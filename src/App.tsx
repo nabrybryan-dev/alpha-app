@@ -1,9 +1,17 @@
+import { BrowserRouter } from 'react-router-dom'
+import { AppRouter } from './app/router'
+import { SessionProvider } from './app/SessionProvider'
+import { ThemeProvider } from './app/ThemeProvider'
+
 function App() {
   return (
-    <main className="p-6">
-      <p className="kicker">Science based performance</p>
-      <h1 className="font-display text-4xl">Alpha Athletics</h1>
-    </main>
+    <ThemeProvider>
+      <SessionProvider>
+        <BrowserRouter>
+          <AppRouter />
+        </BrowserRouter>
+      </SessionProvider>
+    </ThemeProvider>
   )
 }
 
