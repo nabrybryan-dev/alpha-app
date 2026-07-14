@@ -11,7 +11,8 @@
   --linea: #2e2e31;
   --texto: #f2f2f2;
   --tenue: #a8a8ad;
-  --rojo: #e11d2a;
+  --gris-marca: #7a7a7a;
+  --rojo: #ff1e1e;
   --rojo-osc: #8f1119;
   --verde: #28c76f;
   --ambar: #f5a623;
@@ -26,7 +27,8 @@
   --linea: #d9d7d0;
   --texto: #111111;
   --tenue: #5f5e5a;
-  --rojo: #d5121f;
+  --gris-marca: #7a7a7a;
+  --rojo: #d51216;
   --rojo-osc: #8f1119;
   --verde: #178a4c;
   --ambar: #a86e07;
@@ -48,7 +50,7 @@ body {
 }
 
 .font-display {
-  font-family: Archivo, system-ui, sans-serif;
+  font-family: Satoshi, system-ui, sans-serif;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.02em;

@@ -11,6 +11,7 @@ export default {
         linea: 'var(--linea)',
         texto: 'var(--texto)',
         tenue: 'var(--tenue)',
+        'gris-marca': 'var(--gris-marca)',
         rojo: 'var(--rojo)',
         'rojo-osc': 'var(--rojo-osc)',
         verde: 'var(--verde)',
@@ -18,7 +19,7 @@ export default {
         azul: 'var(--azul)',
       },
       fontFamily: {
-        display: ['Archivo', 'system-ui', 'sans-serif'],
+        display: ['Satoshi', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
