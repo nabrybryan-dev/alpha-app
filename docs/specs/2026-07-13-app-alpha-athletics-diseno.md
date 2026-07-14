@@ -143,6 +143,30 @@ suplementación, secciones especiales), `adherencia_nutricional`,
   con vínculos a videos reales de YouTube como demo.
 - **Ningún dato real de asesorados entra al repositorio de la app.**
 
+## 8b · Rachas y reconocimientos (gamificación)
+
+Pantalla **"Logros"** propia (accesible desde "Hoy", donde además vive un resumen
+permanente de nivel y racha en la cabecera):
+
+- **Rachas:** días consecutivos con check-in de bienestar, sesiones registradas del
+  microciclo, y adherencia nutricional. Cada racha con contador visible y récord
+  personal. Romper la racha no castiga: mensaje motivador de reinicio.
+- **Logros (insignias):** hitos automáticos calculados de los datos — ej. "Primera
+  sesión registrada", "Semana de bienestar completa", "Microciclo 100% registrado",
+  "4 semanas de constancia", "Adherencia nutricional perfecta del microciclo",
+  "Cuestionarios al día". Estética de medalla Alpha (monocroma + rojo al
+  desbloquear).
+- **Niveles:** puntos de disciplina (XP) por cada acción (registrar sesión,
+  check-in, adherencia, responder cuestionario, tareas al 100%); escala de niveles
+  con identidad del método (ej. Iniciado → Constante → Disciplinado → Espartano →
+  Heracles). Barra de progreso al siguiente nivel siempre visible en "Logros".
+- **Premiaciones del coach:** reconocimientos manuales que Bryan otorga desde su
+  panel (ej. "Mejor progresión del mes") — visibles con distintivo especial.
+  *Etapa 1: se muestran desde el seed; otorgarlos en vivo es etapa 2.*
+- Todo el cálculo de rachas/XP/logros es determinista a partir de los registros
+  existentes (sin datos nuevos que llenar): la gamificación premia usar la app,
+  no añade fricción.
+
 ## 9 · Notificaciones
 
 - Etapa 1: recordatorios internos (banner en "Hoy" + badges en pestañas).
@@ -164,7 +188,8 @@ suplementación, secciones especiales), `adherencia_nutricional`,
 1. En el celular: instalar la PWA, cambiar tema claro/oscuro, y completar el flujo
    asesorado: ver sesión del día → registrar 3 series de un ejercicio → test
    post-entrenamiento → check-in de bienestar → ver plan de nutrición y marcar
-   adherencia → responder un cuestionario → abrir un contenido → enviar un mensaje.
+   adherencia → responder un cuestionario → abrir un contenido → enviar un mensaje
+   → ver la racha/XP actualizarse y un logro desbloquearse en "Logros".
 2. Como coach: ver semáforos de la lista, abrir a Valentina y comparar pautado vs.
    realizado, leer su bienestar y responder su mensaje.
 3. Todo persiste localmente (recargar no pierde lo registrado).
