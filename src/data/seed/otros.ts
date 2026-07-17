@@ -1,3 +1,4 @@
+import { diasAtras } from './fechas'
 import type { CheckinDiario, Microciclo, Perfil, Usuario } from '../../domain/types'
 
 export const mateo: Usuario = {
@@ -32,8 +33,8 @@ export const perfilMateo: Perfil = {
     Glúteo: 'Bajo',
   },
   medidas: [
-    { fecha: '2026-06-20', pesoKg: 68.4, alturaCm: 176, perimetros: { Brazos: 32.1, Pecho: 96.0 } },
-    { fecha: '2026-07-04', pesoKg: 69.1, alturaCm: 176, perimetros: { Brazos: 32.4, Pecho: 96.8 } },
+    { fecha: diasAtras(27), pesoKg: 68.4, alturaCm: 176, perimetros: { Brazos: 32.1, Pecho: 96.0 } },
+    { fecha: diasAtras(13), pesoKg: 69.1, alturaCm: 176, perimetros: { Brazos: 32.4, Pecho: 96.8 } },
   ],
 }
 
@@ -55,8 +56,8 @@ export const perfilSara: Perfil = {
     Tríceps: 'Bajo',
   },
   medidas: [
-    { fecha: '2026-06-27', pesoKg: 74.2, alturaCm: 160, perimetros: { 'Abdomen medio': 88.0, Glúteos: 104.0 }, pgPct: 31.2 },
-    { fecha: '2026-07-11', pesoKg: 73.1, alturaCm: 160, perimetros: { 'Abdomen medio': 86.9, Glúteos: 103.8 }, pgPct: 30.4 },
+    { fecha: diasAtras(20), pesoKg: 74.2, alturaCm: 160, perimetros: { 'Abdomen medio': 88.0, Glúteos: 104.0 }, pgPct: 31.2 },
+    { fecha: diasAtras(6), pesoKg: 73.1, alturaCm: 160, perimetros: { 'Abdomen medio': 86.9, Glúteos: 103.8 }, pgPct: 30.4 },
   ],
 }
 
@@ -105,7 +106,7 @@ export const microciclosOtros: Microciclo[] = [
     numero: 8,
     cadenciaDias: 8,
     estado: 'activo',
-    fechaInicio: '2026-07-08',
+    fechaInicio: diasAtras(4),
     sesiones: [sesionSimple('s-m8-full-a', 'FULL A', 1), sesionSimple('s-m8-full-b', 'FULL B', 2)],
   },
   {
@@ -114,12 +115,13 @@ export const microciclosOtros: Microciclo[] = [
     numero: 15,
     cadenciaDias: 15,
     estado: 'activo',
-    fechaInicio: '2026-07-05',
+    fechaInicio: diasAtras(9),
     sesiones: [sesionSimple('s-m15-full-a', 'FULL A', 1), sesionSimple('s-m15-full-b', 'FULL B', 2)],
   },
 ]
 
 export const checkinsOtros: CheckinDiario[] = [
-  { id: 'ck-sara-1', usuarioId: 'u-sara', fecha: '2026-07-12', pesoKg: 73.2, pasos: 8100, entreno: 'FULL A', rendimiento: 'BUENA', motivacion: 'REGULAR', hambre: 'MUCHO', cansancio: 'REGULAR', estres: 'REGULAR', horasSueno: 6.5, calidadSueno: 'REGULAR', alimentacion: 'BUENA' },
-  { id: 'ck-sara-2', usuarioId: 'u-sara', fecha: '2026-07-13', pesoKg: 73.1, pasos: 9200, entreno: 'Descanso', rendimiento: 'BUENA', motivacion: 'MUCHO', hambre: 'REGULAR', cansancio: 'POCO', estres: 'POCO', horasSueno: 7.5, calidadSueno: 'BUENA', alimentacion: 'BUENA' },
+  { id: 'ck-mateo-1', usuarioId: 'u-mateo', fecha: diasAtras(3), pesoKg: 69.0, pasos: 7400, entreno: 'FULL A', rendimiento: 'REGULAR', motivacion: 'REGULAR', hambre: 'POCO', cansancio: 'MUCHO', estres: 'MUCHO', horasSueno: 5.5, calidadSueno: 'MALA', alimentacion: 'REGULAR', comentarios: 'Semana pesada en el trabajo' },
+  { id: 'ck-sara-1', usuarioId: 'u-sara', fecha: diasAtras(2), pesoKg: 73.2, pasos: 8100, entreno: 'FULL A', rendimiento: 'BUENA', motivacion: 'REGULAR', hambre: 'MUCHO', cansancio: 'REGULAR', estres: 'REGULAR', horasSueno: 6.5, calidadSueno: 'REGULAR', alimentacion: 'BUENA' },
+  { id: 'ck-sara-2', usuarioId: 'u-sara', fecha: diasAtras(1), pesoKg: 73.1, pasos: 9200, entreno: 'Descanso', rendimiento: 'BUENA', motivacion: 'MUCHO', hambre: 'REGULAR', cansancio: 'POCO', estres: 'POCO', horasSueno: 7.5, calidadSueno: 'BUENA', alimentacion: 'BUENA' },
 ]

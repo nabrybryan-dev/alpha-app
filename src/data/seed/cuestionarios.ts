@@ -1,3 +1,4 @@
+import { fechaIsoAtras } from './fechas'
 import type { Cuestionario, Respuesta } from '../../domain/types'
 
 export const cuestionarios: Cuestionario[] = [
@@ -33,7 +34,7 @@ export const respuestas: Respuesta[] = [
     id: 'r-valentina-adherencia',
     cuestionarioId: 'q-adherencia-bloque',
     usuarioId: 'u-valentina',
-    fechaIso: '2026-07-05T18:30:00',
+    fechaIso: fechaIsoAtras(12, '18:30:00'),
     valores: {
       p1: '5',
       p2: '4',

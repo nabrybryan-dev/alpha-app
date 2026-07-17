@@ -1,3 +1,4 @@
+import { diasAtras } from './fechas'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
@@ -43,10 +44,10 @@ export const perfilValentina: Perfil = {
     Tríceps: 'Bajo',
   },
   medidas: [
-    { fecha: '2026-05-30', pesoKg: 60.2, alturaCm: 163, perimetros: { Glúteos: 98.5, Muslos: 56.0, 'Abdomen medio': 68.0, Brazos: 27.5 }, pgPct: 24.1 },
-    { fecha: '2026-06-13', pesoKg: 59.8, alturaCm: 163, perimetros: { Glúteos: 98.9, Muslos: 56.3, 'Abdomen medio': 67.2, Brazos: 27.6 }, pgPct: 23.6 },
-    { fecha: '2026-06-27', pesoKg: 59.4, alturaCm: 163, perimetros: { Glúteos: 99.2, Muslos: 56.5, 'Abdomen medio': 66.5, Brazos: 27.8 }, pgPct: 23.0 },
-    { fecha: '2026-07-11', pesoKg: 59.1, alturaCm: 163, perimetros: { Glúteos: 99.6, Muslos: 56.8, 'Abdomen medio': 66.0, Brazos: 27.9 }, pgPct: 22.5 },
+    { fecha: diasAtras(48), pesoKg: 60.2, alturaCm: 163, perimetros: { Glúteos: 98.5, Muslos: 56.0, 'Abdomen medio': 68.0, Brazos: 27.5 }, pgPct: 24.1 },
+    { fecha: diasAtras(34), pesoKg: 59.8, alturaCm: 163, perimetros: { Glúteos: 98.9, Muslos: 56.3, 'Abdomen medio': 67.2, Brazos: 27.6 }, pgPct: 23.6 },
+    { fecha: diasAtras(20), pesoKg: 59.4, alturaCm: 163, perimetros: { Glúteos: 99.2, Muslos: 56.5, 'Abdomen medio': 66.5, Brazos: 27.8 }, pgPct: 23.0 },
+    { fecha: diasAtras(3), pesoKg: 59.1, alturaCm: 163, perimetros: { Glúteos: 99.6, Muslos: 56.8, 'Abdomen medio': 66.0, Brazos: 27.9 }, pgPct: 22.5 },
   ],
 }
 
@@ -179,7 +180,7 @@ export const microciclosValentina: Microciclo[] = [
     numero: 21,
     cadenciaDias: 8,
     estado: 'cerrado',
-    fechaInicio: '2026-06-28',
+    fechaInicio: diasAtras(22),
     sesiones: sesionesBloque('m21', true),
   },
   {
@@ -188,7 +189,7 @@ export const microciclosValentina: Microciclo[] = [
     numero: 22,
     cadenciaDias: 8,
     estado: 'activo',
-    fechaInicio: '2026-07-07',
+    fechaInicio: diasAtras(7),
     sesiones: conLegARegistrada(sesionesBloque('m22', false)),
   },
 ]
@@ -205,18 +206,18 @@ const checkinBase = {
 }
 
 export const checkinsValentina: CheckinDiario[] = [
-  { id: 'ck-01', fecha: '2026-07-02', pesoKg: 59.6, pasos: 9500, entreno: 'LEG A', horasSueno: 7.5, ...checkinBase },
-  { id: 'ck-02', fecha: '2026-07-03', pesoKg: 59.5, pasos: 8200, entreno: 'UPPER A', horasSueno: 7, ...checkinBase },
-  { id: 'ck-03', fecha: '2026-07-04', pesoKg: 59.4, pasos: 11200, entreno: 'Descanso', horasSueno: 8, ...checkinBase, cansancio: 'POCO' },
-  { id: 'ck-04', fecha: '2026-07-05', pesoKg: 59.5, pasos: 7800, entreno: 'LEG B', horasSueno: 6.5, ...checkinBase, cansancio: 'MUCHO', comentarios: 'La prensa se sintió pesada, dormí poco' },
-  { id: 'ck-05', fecha: '2026-07-06', pesoKg: 59.3, pasos: 9100, entreno: 'UPPER B', horasSueno: 7.5, ...checkinBase },
-  { id: 'ck-06', fecha: '2026-07-07', pesoKg: 59.2, pasos: 10400, entreno: 'FULL C', horasSueno: 8, ...checkinBase },
-  { id: 'ck-07', fecha: '2026-07-08', pesoKg: 59.3, pasos: 8900, entreno: 'Descanso', horasSueno: 7, ...checkinBase },
-  { id: 'ck-08', fecha: '2026-07-09', pesoKg: 59.2, pasos: 9700, entreno: 'LEG A', horasSueno: 7.5, ...checkinBase, comentarios: 'Hip thrust progresó, me sentí fuerte' },
-  { id: 'ck-09', fecha: '2026-07-10', pesoKg: 59.1, pasos: 8600, entreno: 'Descanso', horasSueno: 8, ...checkinBase, estres: 'REGULAR' },
-  { id: 'ck-10', fecha: '2026-07-11', pesoKg: 59.1, pasos: 10100, entreno: 'Descanso', horasSueno: 7, ...checkinBase },
-  { id: 'ck-11', fecha: '2026-07-12', pesoKg: 59.0, pasos: 9300, entreno: 'Descanso', horasSueno: 7.5, ...checkinBase },
-  { id: 'ck-12', fecha: '2026-07-13', pesoKg: 59.0, pasos: 8800, entreno: 'Descanso', horasSueno: 8, ...checkinBase },
+  { id: 'ck-01', fecha: diasAtras(12), pesoKg: 59.6, pasos: 9500, entreno: 'LEG A', horasSueno: 7.5, ...checkinBase },
+  { id: 'ck-02', fecha: diasAtras(11), pesoKg: 59.5, pasos: 8200, entreno: 'UPPER A', horasSueno: 7, ...checkinBase },
+  { id: 'ck-03', fecha: diasAtras(10), pesoKg: 59.4, pasos: 11200, entreno: 'Descanso', horasSueno: 8, ...checkinBase, cansancio: 'POCO' },
+  { id: 'ck-04', fecha: diasAtras(9), pesoKg: 59.5, pasos: 7800, entreno: 'LEG B', horasSueno: 6.5, ...checkinBase, cansancio: 'MUCHO', comentarios: 'La prensa se sintió pesada, dormí poco' },
+  { id: 'ck-05', fecha: diasAtras(8), pesoKg: 59.3, pasos: 9100, entreno: 'UPPER B', horasSueno: 7.5, ...checkinBase },
+  { id: 'ck-06', fecha: diasAtras(7), pesoKg: 59.2, pasos: 10400, entreno: 'FULL C', horasSueno: 8, ...checkinBase },
+  { id: 'ck-07', fecha: diasAtras(6), pesoKg: 59.3, pasos: 8900, entreno: 'Descanso', horasSueno: 7, ...checkinBase },
+  { id: 'ck-08', fecha: diasAtras(5), pesoKg: 59.2, pasos: 9700, entreno: 'LEG A', horasSueno: 7.5, ...checkinBase, comentarios: 'Hip thrust progresó, me sentí fuerte' },
+  { id: 'ck-09', fecha: diasAtras(4), pesoKg: 59.1, pasos: 8600, entreno: 'Descanso', horasSueno: 8, ...checkinBase, estres: 'REGULAR' },
+  { id: 'ck-10', fecha: diasAtras(3), pesoKg: 59.1, pasos: 10100, entreno: 'Descanso', horasSueno: 7, ...checkinBase },
+  { id: 'ck-11', fecha: diasAtras(2), pesoKg: 59.0, pasos: 9300, entreno: 'Descanso', horasSueno: 7.5, ...checkinBase },
+  { id: 'ck-12', fecha: diasAtras(1), pesoKg: 59.0, pasos: 8800, entreno: 'Descanso', horasSueno: 8, ...checkinBase },
 ]
 
 export const planValentina: PlanNutricional = {
@@ -277,16 +278,16 @@ export const planValentina: PlanNutricional = {
 }
 
 export const adherenciasValentina: AdherenciaNutricional[] = [
-  { id: 'ad-01', usuarioId: 'u-valentina', fecha: '2026-07-02', estado: 'si' },
-  { id: 'ad-02', usuarioId: 'u-valentina', fecha: '2026-07-03', estado: 'si' },
-  { id: 'ad-03', usuarioId: 'u-valentina', fecha: '2026-07-04', estado: 'si' },
-  { id: 'ad-04', usuarioId: 'u-valentina', fecha: '2026-07-05', estado: 'parcial', comentario: 'Salí a almorzar por cumpleaños, elegí bien pero sin medir' },
-  { id: 'ad-05', usuarioId: 'u-valentina', fecha: '2026-07-06', estado: 'si' },
-  { id: 'ad-06', usuarioId: 'u-valentina', fecha: '2026-07-07', estado: 'si' },
-  { id: 'ad-07', usuarioId: 'u-valentina', fecha: '2026-07-08', estado: 'no', comentario: 'Día complicado en el trabajo, pedí domicilio' },
-  { id: 'ad-08', usuarioId: 'u-valentina', fecha: '2026-07-09', estado: 'si' },
-  { id: 'ad-09', usuarioId: 'u-valentina', fecha: '2026-07-10', estado: 'si' },
-  { id: 'ad-10', usuarioId: 'u-valentina', fecha: '2026-07-11', estado: 'parcial', comentario: 'Cheat planificado, una sola comida' },
-  { id: 'ad-11', usuarioId: 'u-valentina', fecha: '2026-07-12', estado: 'si' },
-  { id: 'ad-12', usuarioId: 'u-valentina', fecha: '2026-07-13', estado: 'si' },
+  { id: 'ad-01', usuarioId: 'u-valentina', fecha: diasAtras(12), estado: 'si' },
+  { id: 'ad-02', usuarioId: 'u-valentina', fecha: diasAtras(11), estado: 'si' },
+  { id: 'ad-03', usuarioId: 'u-valentina', fecha: diasAtras(10), estado: 'si' },
+  { id: 'ad-04', usuarioId: 'u-valentina', fecha: diasAtras(9), estado: 'parcial', comentario: 'Salí a almorzar por cumpleaños, elegí bien pero sin medir' },
+  { id: 'ad-05', usuarioId: 'u-valentina', fecha: diasAtras(8), estado: 'si' },
+  { id: 'ad-06', usuarioId: 'u-valentina', fecha: diasAtras(7), estado: 'si' },
+  { id: 'ad-07', usuarioId: 'u-valentina', fecha: diasAtras(6), estado: 'no', comentario: 'Día complicado en el trabajo, pedí domicilio' },
+  { id: 'ad-08', usuarioId: 'u-valentina', fecha: diasAtras(5), estado: 'si' },
+  { id: 'ad-09', usuarioId: 'u-valentina', fecha: diasAtras(4), estado: 'si' },
+  { id: 'ad-10', usuarioId: 'u-valentina', fecha: diasAtras(3), estado: 'parcial', comentario: 'Cheat planificado, una sola comida' },
+  { id: 'ad-11', usuarioId: 'u-valentina', fecha: diasAtras(2), estado: 'si' },
+  { id: 'ad-12', usuarioId: 'u-valentina', fecha: diasAtras(1), estado: 'si' },
 ]

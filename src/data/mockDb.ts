@@ -8,7 +8,7 @@ import type {
 import type { Db } from './repos'
 import { seedDb, type SeedDb } from './seed'
 
-const CLAVE = 'alpha-db-v1'
+const CLAVE = 'alpha-db-v2'
 
 type Oyente = () => void
 const oyentes = new Set<Oyente>()
