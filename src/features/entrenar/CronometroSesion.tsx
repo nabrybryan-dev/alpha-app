@@ -9,8 +9,8 @@ function formatear(segundos: number): string {
 }
 
 /**
- * Cronómetro de sesión estilo "Pro Premium": display digital prominente
- * que arranca al entrar a la sesión y puede pausarse. Vive solo en la
+ * Cronómetro de sesión estilo Stitch: display digital gigante y centrado,
+ * sin caja. Se pausa y reanuda tocando el propio display. Vive solo en la
  * página (se reinicia al salir); no persiste en la base de datos.
  */
 export function CronometroSesion() {
@@ -25,34 +25,22 @@ export function CronometroSesion() {
   }, [corriendo])
 
   return (
-    <div className="rounded-panel glass glass-destacada flex items-center justify-between gap-3 px-5 py-4">
-      <div>
-        <p className="kicker">Cronómetro de sesión</p>
-        <p
-          className="cifras mt-1 font-display text-4xl leading-none text-texto"
-          style={{ textShadow: '0 0 18px rgba(255, 30, 30, 0.35)' }}
-          aria-live="off"
-        >
-          {formatear(segundos)}
-        </p>
-      </div>
+    <div className="flex flex-col items-center py-1 text-center">
+      <p className="kicker">Cronómetro de sesión</p>
       <button
         type="button"
         onClick={() => setCorriendo((v) => !v)}
         aria-label={corriendo ? 'Pausar cronómetro' : 'Reanudar cronómetro'}
-        className="press glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-texto"
+        className={`press cifras mt-1 font-display text-6xl leading-none transition-opacity duration-200 ease-salida ${
+          corriendo ? 'text-texto' : 'text-tenue opacity-70'
+        }`}
+        style={corriendo ? { textShadow: '0 0 24px rgba(255, 30, 30, 0.4)' } : undefined}
       >
-        {corriendo ? (
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-            <path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5Z" />
-          </svg>
-        )}
+        {formatear(segundos)}
       </button>
+      <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-tenue">
+        {corriendo ? 'Toca para pausar' : 'En pausa · toca para seguir'}
+      </p>
     </div>
   )
 }

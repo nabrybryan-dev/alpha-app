@@ -20,6 +20,15 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
   const hechas = partes.filter((p) => p.hechoEn).length
   const completa = partes.length > 0 && hechas === partes.length
   const [abierta, setAbierta] = useState(!completa)
+  const [detalles, setDetalles] = useState<Set<string>>(new Set())
+
+  const alternarDetalle = (id: string) =>
+    setDetalles((prev) => {
+      const copia = new Set(prev)
+      if (copia.has(id)) copia.delete(id)
+      else copia.add(id)
+      return copia
+    })
 
   if (partes.length === 0) return null
 
@@ -30,12 +39,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
         onClick={() => setAbierta(!abierta)}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
-        <div>
-          <p className="kicker">Antes de entrenar</p>
-          <p className="mt-0.5 text-xs text-tenue">
-            Sube temperatura, lubrica articulaciones, activa. Nadie entrena en frío.
-          </p>
-        </div>
+        <p className="kicker">Antes de entrenar</p>
         <span className="flex items-center gap-2">
           {completa ? (
             <Badge tono="verde">✓ +{XP_POR_ACCION.preparacion} XP</Badge>
@@ -45,7 +49,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
             </Badge>
           )}
           <span aria-hidden="true" className="text-tenue">
-            {abierta ? '▲' : '▼'}
+            {abierta ? '▴' : '▾'}
           </span>
         </span>
       </button>
@@ -57,38 +61,53 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
             if (grupo.length === 0) return null
             return (
               <div key={tipo}>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-tenue">{titulo}</p>
-                <ul className="mt-1.5 flex flex-col gap-1.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{titulo}</p>
+                <ul className="mt-1.5 flex flex-col gap-1">
                   {grupo.map((parte) => {
                     const demo = parte.contenidoDemoId ? db.contenidos.byId(parte.contenidoDemoId) : undefined
+                    const detalleAbierto = detalles.has(parte.id)
                     return (
-                      <li key={parte.id} className="flex items-start gap-2.5">
+                      <li key={parte.id} className="flex items-start gap-2.5 py-0.5">
                         <button
                           type="button"
                           aria-label={parte.hechoEn ? `Desmarcar ${parte.titulo}` : `Marcar ${parte.titulo}`}
                           onClick={() => onMarcar(parte.id)}
-                          className={`press mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-200 ease-salida ${
+                          className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-200 ease-salida ${
                             parte.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
                           ✓
                         </button>
-                        <div className={parte.hechoEn ? 'opacity-60' : ''}>
-                          <p className="text-sm font-bold text-texto">
-                            {parte.titulo}
-                            {parte.duracionMin ? (
-                              <span className="ml-1 text-xs font-normal text-tenue">· {parte.duracionMin} min</span>
-                            ) : null}
-                          </p>
-                          <p className="text-xs text-tenue">{parte.indicaciones}</p>
-                          {demo && (
-                            <button
-                              type="button"
-                              onClick={() => onVerDemo(demo)}
-                              className="mt-0.5 text-xs font-bold text-azul"
-                            >
-                              🎬 Ver técnica
-                            </button>
+                        <div className={`min-w-0 flex-1 transition-opacity duration-200 ${parte.hechoEn ? 'opacity-60' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={() => alternarDetalle(parte.id)}
+                            aria-expanded={detalleAbierto}
+                            className="flex w-full items-center justify-between gap-2 text-left"
+                          >
+                            <p className="text-sm font-bold leading-snug text-texto">
+                              {parte.titulo}
+                              {parte.duracionMin ? (
+                                <span className="cifras ml-1 text-xs font-normal text-tenue">· {parte.duracionMin} min</span>
+                              ) : null}
+                            </p>
+                            <span aria-hidden="true" className="text-[10px] text-tenue">
+                              {detalleAbierto ? '▴' : '▾'}
+                            </span>
+                          </button>
+                          {detalleAbierto && (
+                            <div className="entrada">
+                              <p className="mt-1 text-xs leading-snug text-tenue">{parte.indicaciones}</p>
+                              {demo && (
+                                <button
+                                  type="button"
+                                  onClick={() => onVerDemo(demo)}
+                                  className="press mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-azul"
+                                >
+                                  🎬 Técnica
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       </li>

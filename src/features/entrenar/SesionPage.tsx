@@ -20,8 +20,20 @@ function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | nu
   return (
     <div className="text-center">
       <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
-      <p className="cifras font-display text-lg leading-tight text-rojo">{valor}</p>
+      <p className="cifras font-display text-xl leading-tight text-rojo">{valor}</p>
     </div>
+  )
+}
+
+function MiniaturaEjercicio() {
+  return (
+    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-tenue" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="h-5 w-5">
+        <path d="M6.5 6.5v11M17.5 6.5v11" />
+        <path d="M3.5 9v6M20.5 9v6" />
+        <path d="M6.5 12h11" />
+      </svg>
+    </span>
   )
 }
 
@@ -31,6 +43,15 @@ export default function SesionPage() {
   useDbVersion()
   const [demo, setDemo] = useState<Contenido | undefined>()
   const [cerrada, setCerrada] = useState(false)
+  const [notasVisibles, setNotasVisibles] = useState<Set<string>>(new Set())
+
+  const alternarNota = (id: string) =>
+    setNotasVisibles((prev) => {
+      const copia = new Set(prev)
+      if (copia.has(id)) copia.delete(id)
+      else copia.add(id)
+      return copia
+    })
 
   const microciclo = db.microciclos
     .byUsuario(usuario.id)
@@ -129,36 +150,55 @@ export default function SesionPage() {
             return (
               <div key={ejercicio.id} className={`entrada entrada-${Math.min(i + 4, 6)}`}>
               <Card className={completo ? 'opacity-75' : ''}>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="kicker">{ejercicio.categoria}</p>
-                    <h3 className="mt-0.5 font-display text-lg text-texto">{ejercicio.nombre}</h3>
+                <div className="flex items-center gap-3">
+                  <MiniaturaEjercicio />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">
+                      {ejercicio.categoria}
+                    </p>
+                    <h3 className="mt-0.5 truncate font-display text-base leading-tight text-texto">
+                      {ejercicio.nombre}
+                    </h3>
                   </div>
-                  {completo && <Badge tono="verde">✓ Hecho</Badge>}
+                  {completo && <Badge tono="verde">✓</Badge>}
                 </div>
 
-                <div className="mt-3 flex items-center justify-around rounded-xl border border-hairline bg-surface-2/50 px-2 py-2">
+                <div className="mt-3 flex items-center justify-around">
                   <Estadistica etiqueta="Sets" valor={ejercicio.sets} />
-                  <span className="h-7 w-px bg-linea" aria-hidden="true" />
-                  <Estadistica etiqueta="Reps" valor={ejercicio.rango} />
-                  <span className="h-7 w-px bg-linea" aria-hidden="true" />
+                  <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
+                  <Estadistica etiqueta="Reps" valor={ejercicio.rango.replace(/[()]/g, '')} />
+                  <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
                   <Estadistica etiqueta="RIR" valor={ejercicio.rirObjetivo} />
-                  <span className="h-7 w-px bg-linea" aria-hidden="true" />
+                  <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
                   <Estadistica etiqueta="Descanso" valor={`${ejercicio.descansoMin}'`} />
                 </div>
 
-                <p className="mt-3 rounded-lg border border-rojo-osc/60 bg-rojo/5 p-2.5 font-mono text-[13px] font-bold leading-snug text-texto">
-                  {ejercicio.prescripcion}
-                </p>
-                <p className="mt-2 text-[13px] italic text-tenue">{ejercicio.cues}</p>
-                {contenidoDemo && (
+                <div className="mt-2.5 flex items-center gap-3 border-t border-hairline pt-2">
                   <button
                     type="button"
-                    onClick={() => setDemo(contenidoDemo)}
-                    className="press mt-2 text-xs font-bold text-azul"
+                    onClick={() => alternarNota(ejercicio.id)}
+                    aria-expanded={notasVisibles.has(ejercicio.id)}
+                    className="press text-[10px] font-bold uppercase tracking-[0.15em] text-tenue"
                   >
-                    🎬 Ver técnica
+                    Nota del coach {notasVisibles.has(ejercicio.id) ? '▴' : '▾'}
                   </button>
+                  {contenidoDemo && (
+                    <button
+                      type="button"
+                      onClick={() => setDemo(contenidoDemo)}
+                      className="press ml-auto text-[10px] font-bold uppercase tracking-[0.15em] text-azul"
+                    >
+                      🎬 Técnica
+                    </button>
+                  )}
+                </div>
+                {notasVisibles.has(ejercicio.id) && (
+                  <div className="entrada mt-2">
+                    <p className="font-mono text-[11px] font-bold leading-snug text-texto/90">
+                      {ejercicio.prescripcion}
+                    </p>
+                    <p className="mt-1.5 text-xs italic leading-snug text-tenue">{ejercicio.cues}</p>
+                  </div>
                 )}
 
                 {ejercicio.series.length > 0 && (
