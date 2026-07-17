@@ -29,6 +29,7 @@ export interface MicrociclosRepo {
   byUsuario(usuarioId: string): Microciclo[]
   registrarSerie(microcicloId: string, ejercicioId: string, serie: SerieRegistrada): void
   guardarTestPost(microcicloId: string, sesionId: string, test: TestPostSesion): void
+  marcarParte(microcicloId: string, sesionId: string, parteId: string): void
 }
 
 export interface BienestarRepo {

@@ -22,6 +22,30 @@ describe('mockDb', () => {
     expect(m22b.sesiones[1].ejercicios[0].series).toHaveLength(1)
   })
 
+  it('marcarParte materializa la plantilla y alterna el hecho', () => {
+    const db = crearMockDb()
+    const m22 = db.microciclos.byUsuario('u-valentina').find((m) => m.numero === 22)
+    if (!m22) throw new Error('no hay m22 en el seed')
+    const full = m22.sesiones.find((s) => s.nombre === 'FULL C')
+    if (!full) throw new Error('no hay FULL C en el seed')
+    expect(full.preparacion).toBeUndefined()
+
+    const leer = () => {
+      const sesion = db.microciclos
+        .byUsuario('u-valentina')
+        .find((m) => m.numero === 22)
+        ?.sesiones.find((s) => s.nombre === 'FULL C')
+      if (!sesion) throw new Error('no se pudo releer FULL C')
+      return sesion
+    }
+
+    db.microciclos.marcarParte(m22.id, full.id, 'prep-base-cardio')
+    expect(leer().preparacion?.find((p) => p.id === 'prep-base-cardio')?.hechoEn).toBeTruthy()
+
+    db.microciclos.marcarParte(m22.id, full.id, 'prep-base-cardio')
+    expect(leer().preparacion?.find((p) => p.id === 'prep-base-cardio')?.hechoEn).toBeUndefined()
+  })
+
   it('guarda y lee check-ins del día', () => {
     const db = crearMockDb()
     db.bienestar.guardar({ id: 'c1', usuarioId: 'u-valentina', fecha: '2026-07-14', estres: 'POCO' })

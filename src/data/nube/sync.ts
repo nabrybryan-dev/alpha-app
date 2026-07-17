@@ -86,6 +86,10 @@ export function crearDbSincronizada(local: Db): Db {
         local.microciclos.guardarTestPost(microcicloId, sesionId, test)
         subirMicrociclo(local, microcicloId)
       },
+      marcarParte: (microcicloId, sesionId, parteId) => {
+        local.microciclos.marcarParte(microcicloId, sesionId, parteId)
+        subirMicrociclo(local, microcicloId)
+      },
     },
 
     bienestar: {

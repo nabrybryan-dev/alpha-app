@@ -1,10 +1,12 @@
 import type {
   CheckinDiario,
   EstadoAdherencia,
+  ItemMarcable,
   Microciclo,
   SerieRegistrada,
   TestPostSesion,
 } from '../domain/types'
+import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBase'
 import type { Db } from './repos'
 import { seedDb, type SeedDb } from './seed'
 
@@ -108,6 +110,22 @@ export function crearMockDb(): Db {
           actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
             ...m,
             sesiones: m.sesiones.map((s) => (s.id === sesionId ? { ...s, testPost: test } : s)),
+          })),
+        )
+      },
+      marcarParte: (microcicloId: string, sesionId: string, parteId: string) => {
+        const alternar = <T extends ItemMarcable>(item: T): T =>
+          item.id === parteId
+            ? { ...item, hechoEn: item.hechoEn ? undefined : new Date().toISOString() }
+            : item
+        mutar(
+          actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
+            ...m,
+            sesiones: m.sesiones.map((s) => {
+              if (s.id !== sesionId) return s
+              const preparacion = s.preparacion ?? plantillaPreparacion(patronDeSesion(s.nombre))
+              return { ...s, preparacion: preparacion.map(alternar), bloquesCardio: s.bloquesCardio?.map(alternar) }
+            }),
           })),
         )
       },
