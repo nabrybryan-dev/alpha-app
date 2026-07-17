@@ -34,8 +34,16 @@ producirá la preparación junto con la prescripción.
 
 ## Modelo de datos (`src/domain/types.ts`)
 
+> **Ajuste de Bryan (2026-07-17):** estiramiento y movilidad son conceptos
+> similares — NO son subdivisiones separadas. La preparación tiene dos partes:
+> **calentamiento cardiovascular** y **movilidad específica** (incluye
+> activación del sistema nervioso). Y la plantilla base se adapta al patrón de
+> la sesión: torso → hombro/codo/muñeca; pierna → cadera/rodilla/tobillo;
+> full body → misma duración total cubriendo la mayor cantidad de
+> articulaciones.
+
 ```ts
-export type TipoPreparacion = 'estiramiento' | 'calentamiento' | 'movilidad'
+export type TipoPreparacion = 'calentamiento' | 'movilidad'
 
 export interface ItemMarcable {
   id: string
@@ -59,10 +67,17 @@ export interface Sesion {
 ```
 
 - **Plantilla base:** `src/data/plantillas/preparacionBase.ts` — función
-  `plantillaPreparacion(): PartePreparacion[]` (ids estables `prep-base-*`).
-  Contenido inicial: calentamiento cardiovascular 5-8 min + movilidad general
-  (cadera/tobillo/hombro) + estiramientos dinámicos. Bryan valida los textos.
-- **Selector:** `preparacionDe(sesion)` devuelve `sesion.preparacion ?? plantilla`.
+  `plantillaPreparacion(patron): PartePreparacion[]` con
+  `patron: 'torso' | 'pierna' | 'fullbody' | 'general'` (ids estables
+  `prep-base-*`). Siempre dos partes: cardio suave 5-8 min a ritmo
+  conversacional + movilidad/activación específica de las articulaciones
+  protagonistas del patrón (torso: hombro, codo, muñeca; pierna: cadera,
+  rodilla, tobillo; full body: cobertura amplia en el mismo tiempo).
+- **Detección del patrón:** `patronDeSesion(sesion)` lo infiere del nombre
+  (UPPER/TORSO → torso; LEG/PIERNA → pierna; FULL → fullbody; si no,
+  general). El coach siempre puede sobrescribir programando `preparacion`
+  propia en la sesión.
+- **Selector:** `preparacionDe(sesion)` devuelve `sesion.preparacion ?? plantillaPreparacion(patronDeSesion(sesion))`.
 
 ## Capa de datos
 
@@ -75,8 +90,8 @@ export interface Sesion {
 ## UI (`src/features/entrenar/`)
 
 1. **`PreparacionSesion.tsx`** (nuevo): desplegable "Antes de entrenar" arriba
-   de los ejercicios en `SesionPage`. Agrupa por tipo (Estiramiento /
-   Calentamiento / Movilidad), cada parte con título, indicaciones, duración,
+   de los ejercicios en `SesionPage`. Agrupa por tipo (Calentamiento /
+   Movilidad), cada parte con título, indicaciones, duración,
    enlace a video demo si tiene, y botón ✓ grande (uso en gimnasio). Contador
    "2/4" en la cabecera del desplegable; al completar todo, se colapsa y
    muestra estado logrado.
