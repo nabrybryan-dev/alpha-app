@@ -38,6 +38,14 @@ export function reiniciarDb(): void {
   oyentes.forEach((o) => o())
 }
 
+let referencia: { actual: SeedDb } | undefined
+
+export function aplicarSnapshot(nuevo: SeedDb): void {
+  localStorage.setItem(CLAVE, JSON.stringify(nuevo))
+  if (referencia) referencia.actual = nuevo
+  oyentes.forEach((o) => o())
+}
+
 function actualizarMicrociclo(
   estado: SeedDb,
   microcicloId: string,
@@ -50,33 +58,34 @@ function actualizarMicrociclo(
 }
 
 export function crearMockDb(): Db {
-  let estado = cargar()
-  guardar(estado)
+  const ref = { actual: cargar() }
+  referencia = ref
+  guardar(ref.actual)
 
   const mutar = (nuevo: SeedDb) => {
-    estado = nuevo
-    guardar(estado)
+    ref.actual = nuevo
+    guardar(ref.actual)
   }
 
   return {
     usuarios: {
-      list: () => estado.usuarios,
-      byId: (id) => estado.usuarios.find((u) => u.id === id),
-      asesorados: () => estado.usuarios.filter((u) => u.rol === 'asesorado'),
+      list: () => ref.actual.usuarios,
+      byId: (id) => ref.actual.usuarios.find((u) => u.id === id),
+      asesorados: () => ref.actual.usuarios.filter((u) => u.rol === 'asesorado'),
     },
 
     perfiles: {
-      byUsuario: (usuarioId) => estado.perfiles.find((p) => p.usuarioId === usuarioId),
+      byUsuario: (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId),
     },
 
     microciclos: {
       byUsuario: (usuarioId) =>
-        estado.microciclos
+        ref.actual.microciclos
           .filter((m) => m.usuarioId === usuarioId)
           .sort((a, b) => b.numero - a.numero),
       registrarSerie: (microcicloId: string, ejercicioId: string, serie: SerieRegistrada) => {
         mutar(
-          actualizarMicrociclo(estado, microcicloId, (m) => ({
+          actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
             ...m,
             sesiones: m.sesiones.map((s) => ({
               ...s,
@@ -96,7 +105,7 @@ export function crearMockDb(): Db {
       },
       guardarTestPost: (microcicloId: string, sesionId: string, test: TestPostSesion) => {
         mutar(
-          actualizarMicrociclo(estado, microcicloId, (m) => ({
+          actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
             ...m,
             sesiones: m.sesiones.map((s) => (s.id === sesionId ? { ...s, testPost: test } : s)),
           })),
@@ -106,14 +115,14 @@ export function crearMockDb(): Db {
 
     bienestar: {
       byUsuario: (usuarioId) =>
-        estado.checkins
+        ref.actual.checkins
           .filter((c) => c.usuarioId === usuarioId)
           .sort((a, b) => a.fecha.localeCompare(b.fecha)),
       guardar: (checkin: CheckinDiario) => {
         mutar({
-          ...estado,
+          ...ref.actual,
           checkins: [
-            ...estado.checkins.filter(
+            ...ref.actual.checkins.filter(
               (c) => !(c.usuarioId === checkin.usuarioId && c.fecha === checkin.fecha),
             ),
             checkin,
@@ -123,9 +132,9 @@ export function crearMockDb(): Db {
     },
 
     nutricion: {
-      planByUsuario: (usuarioId) => estado.planes.find((p) => p.usuarioId === usuarioId),
+      planByUsuario: (usuarioId) => ref.actual.planes.find((p) => p.usuarioId === usuarioId),
       adherenciasByUsuario: (usuarioId) =>
-        estado.adherencias
+        ref.actual.adherencias
           .filter((a) => a.usuarioId === usuarioId)
           .sort((a, b) => a.fecha.localeCompare(b.fecha)),
       marcarAdherencia: (
@@ -135,9 +144,9 @@ export function crearMockDb(): Db {
         comentario?: string,
       ) => {
         mutar({
-          ...estado,
+          ...ref.actual,
           adherencias: [
-            ...estado.adherencias.filter((a) => !(a.usuarioId === usuarioId && a.fecha === fecha)),
+            ...ref.actual.adherencias.filter((a) => !(a.usuarioId === usuarioId && a.fecha === fecha)),
             { id: `ad-${usuarioId}-${fecha}`, usuarioId, fecha, estado: estadoAdh, comentario },
           ],
         })
@@ -146,7 +155,7 @@ export function crearMockDb(): Db {
 
     mensajes: {
       hilo: (usuarioA, usuarioB) =>
-        estado.mensajes
+        ref.actual.mensajes
           .filter(
             (m) =>
               (m.deId === usuarioA && m.paraId === usuarioB) ||
@@ -155,9 +164,9 @@ export function crearMockDb(): Db {
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
       enviar: ({ deId, paraId, texto, adjuntoUrl }) => {
         mutar({
-          ...estado,
+          ...ref.actual,
           mensajes: [
-            ...estado.mensajes,
+            ...ref.actual.mensajes,
             {
               id: `msg-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
               deId,
@@ -172,27 +181,27 @@ export function crearMockDb(): Db {
       },
       marcarLeidos: (paraId, deId) => {
         mutar({
-          ...estado,
-          mensajes: estado.mensajes.map((m) =>
+          ...ref.actual,
+          mensajes: ref.actual.mensajes.map((m) =>
             m.paraId === paraId && m.deId === deId ? { ...m, leido: true } : m,
           ),
         })
       },
       noLeidosPara: (usuarioId) =>
-        estado.mensajes.filter((m) => m.paraId === usuarioId && !m.leido).length,
+        ref.actual.mensajes.filter((m) => m.paraId === usuarioId && !m.leido).length,
       noLeidosDe: (paraId, deId) =>
-        estado.mensajes.filter((m) => m.paraId === paraId && m.deId === deId && !m.leido).length,
+        ref.actual.mensajes.filter((m) => m.paraId === paraId && m.deId === deId && !m.leido).length,
     },
 
     cuestionarios: {
       asignadosA: (usuarioId) =>
-        estado.cuestionarios.filter((q) => q.asignadoA.includes(usuarioId)),
-      respuestasDe: (usuarioId) => estado.respuestas.filter((r) => r.usuarioId === usuarioId),
+        ref.actual.cuestionarios.filter((q) => q.asignadoA.includes(usuarioId)),
+      respuestasDe: (usuarioId) => ref.actual.respuestas.filter((r) => r.usuarioId === usuarioId),
       responder: (cuestionarioId, usuarioId, valores) => {
         mutar({
-          ...estado,
+          ...ref.actual,
           respuestas: [
-            ...estado.respuestas,
+            ...ref.actual.respuestas,
             {
               id: `r-${cuestionarioId}-${usuarioId}-${Date.now()}`,
               cuestionarioId,
@@ -206,12 +215,12 @@ export function crearMockDb(): Db {
     },
 
     contenidos: {
-      list: () => estado.contenidos,
-      byId: (id) => estado.contenidos.find((c) => c.id === id),
+      list: () => ref.actual.contenidos,
+      byId: (id) => ref.actual.contenidos.find((c) => c.id === id),
     },
 
     premiaciones: {
-      byUsuario: (usuarioId) => estado.premiaciones.filter((p) => p.usuarioId === usuarioId),
+      byUsuario: (usuarioId) => ref.actual.premiaciones.filter((p) => p.usuarioId === usuarioId),
     },
   }
 }

@@ -9,7 +9,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ titulo }: TopBarProps) {
-  const { usuario, cambiarUsuario } = useSesion()
+  const { usuario, cambiarUsuario, esNube, cerrarSesion } = useSesion()
   const { tema, alternar } = useTema()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const navigate = useNavigate()
@@ -60,7 +60,19 @@ export function TopBar({ titulo }: TopBarProps) {
                 </span>
               )}
             </button>
-            {menuAbierto && (
+            {menuAbierto && esNube && (
+              <div className="absolute right-0 top-12 w-56 rounded-2xl border border-linea bg-surface-1 p-2 shadow-xl">
+                <p className="px-3 py-1 text-xs font-bold text-texto">{usuario.nombre}</p>
+                <button
+                  type="button"
+                  onClick={cerrarSesion}
+                  className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-rojo active:bg-surface-2"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+            {menuAbierto && !esNube && (
               <div className="absolute right-0 top-12 w-56 rounded-2xl border border-linea bg-surface-1 p-2 shadow-xl">
                 <p className="px-3 py-1 text-[10px] uppercase tracking-widest text-tenue">
                   Ver la app como

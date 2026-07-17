@@ -1,8 +1,13 @@
 import { useSyncExternalStore } from 'react'
 import { crearMockDb, suscribirse } from './mockDb'
+import { crearDbSincronizada } from './nube/sync'
 import type { Db } from './repos'
 
-export const db: Db = crearMockDb()
+export const db: Db = crearDbSincronizada(crearMockDb())
+
+export function idCoach(): string {
+  return db.usuarios.list().find((u) => u.rol === 'coach')?.id ?? 'u-bryan'
+}
 
 let version = 0
 suscribirse(() => {

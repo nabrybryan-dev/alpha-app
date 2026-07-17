@@ -1,0 +1,129 @@
+import type {
+  AdherenciaNutricional,
+  CheckinDiario,
+  Contenido,
+  Cuestionario,
+  Mensaje,
+  Microciclo,
+  Perfil,
+  PlanNutricional,
+  PremiacionCoach,
+  Respuesta,
+  Usuario,
+} from '../../domain/types'
+import { aplicarSnapshot } from '../mockDb'
+import type { SeedDb } from '../seed'
+import { supabase } from '../supabase'
+
+interface FilaUsuario {
+  id: string
+  nombre: string
+  rol: 'asesorado' | 'coach'
+  avatar_iniciales: string
+}
+
+interface FilaMensaje {
+  id: string
+  de_id: string
+  para_id: string
+  fecha_iso: string
+  texto: string
+  adjunto_url: string | null
+  leido: boolean
+}
+
+export async function hidratarDesdeNube(): Promise<void> {
+  const sb = supabase()
+
+  const [
+    usuarios,
+    perfiles,
+    microciclos,
+    checkins,
+    adherencias,
+    planes,
+    mensajes,
+    cuestionarios,
+    respuestas,
+    contenidos,
+    premiaciones,
+  ] = await Promise.all([
+    sb.from('usuarios_app').select('*'),
+    sb.from('perfiles').select('datos'),
+    sb.from('microciclos').select('datos'),
+    sb.from('checkins').select('datos'),
+    sb.from('adherencias').select('*'),
+    sb.from('planes_nutricionales').select('datos'),
+    sb.from('mensajes').select('*'),
+    sb.from('cuestionarios').select('*'),
+    sb.from('respuestas').select('*'),
+    sb.from('contenidos').select('datos'),
+    sb.from('premiaciones').select('*'),
+  ])
+
+  const primerError = [usuarios, perfiles, microciclos, checkins, adherencias, planes, mensajes, cuestionarios, respuestas, contenidos, premiaciones].find((r) => r.error)
+  if (primerError?.error) {
+    throw new Error(`No se pudo descargar tus datos: ${primerError.error.message}`)
+  }
+
+  const snapshot: SeedDb = {
+    usuarios: ((usuarios.data ?? []) as FilaUsuario[]).map(
+      (u): Usuario => ({
+        id: u.id,
+        nombre: u.nombre,
+        rol: u.rol,
+        avatarIniciales: u.avatar_iniciales || u.nombre.slice(0, 2).toUpperCase(),
+      }),
+    ),
+    perfiles: (perfiles.data ?? []).map((f) => f.datos as Perfil),
+    microciclos: (microciclos.data ?? []).map((f) => f.datos as Microciclo),
+    checkins: (checkins.data ?? []).map((f) => f.datos as CheckinDiario),
+    adherencias: (adherencias.data ?? []).map(
+      (f): AdherenciaNutricional => ({
+        id: f.id as string,
+        usuarioId: f.usuario_id as string,
+        fecha: f.fecha as string,
+        estado: f.estado as AdherenciaNutricional['estado'],
+        comentario: (f.comentario as string | null) ?? undefined,
+      }),
+    ),
+    planes: (planes.data ?? []).map((f) => f.datos as PlanNutricional),
+    mensajes: ((mensajes.data ?? []) as FilaMensaje[]).map(
+      (m): Mensaje => ({
+        id: m.id,
+        deId: m.de_id,
+        paraId: m.para_id,
+        fechaIso: m.fecha_iso,
+        texto: m.texto,
+        adjuntoUrl: m.adjunto_url ?? undefined,
+        leido: m.leido,
+      }),
+    ),
+    cuestionarios: (cuestionarios.data ?? []).map((f) => ({
+      ...(f.datos as Cuestionario),
+      id: f.id as string,
+      asignadoA: (f.asignado_a as string[]) ?? [],
+    })),
+    respuestas: (respuestas.data ?? []).map(
+      (f): Respuesta => ({
+        id: f.id as string,
+        cuestionarioId: f.cuestionario_id as string,
+        usuarioId: f.usuario_id as string,
+        fechaIso: f.fecha_iso as string,
+        valores: f.valores as Record<string, string>,
+      }),
+    ),
+    contenidos: (contenidos.data ?? []).map((f) => f.datos as Contenido),
+    premiaciones: (premiaciones.data ?? []).map(
+      (f): PremiacionCoach => ({
+        id: f.id as string,
+        usuarioId: f.usuario_id as string,
+        titulo: f.titulo as string,
+        fecha: f.fecha as string,
+        nota: (f.nota as string | null) ?? undefined,
+      }),
+    ),
+  }
+
+  aplicarSnapshot(snapshot)
+}

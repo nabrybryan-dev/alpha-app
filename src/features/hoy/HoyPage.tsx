@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
-import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { sesionRegistrada } from '../../domain/cumplimiento'
 import { useGamificacion } from '../logros/useGamificacion'
 
@@ -16,7 +16,7 @@ export default function HoyPage() {
   const siguienteSesion = microciclo?.sesiones.find((s) => !sesionRegistrada(s.ejercicios))
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
-  const noLeidos = db.mensajes.noLeidosDe(usuario.id, 'u-bryan')
+  const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
   const cuestionariosPendientes = db.cuestionarios
     .asignadosA(usuario.id)
     .filter((q) => !db.cuestionarios.respuestasDe(usuario.id).some((r) => r.cuestionarioId === q.id))

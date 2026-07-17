@@ -1,4 +1,5 @@
 import { useSesion } from '../../app/SessionProvider'
+import { idCoach } from '../../data/dbInstance'
 import { Conversacion } from './Conversacion'
 
 export default function ChatPage() {
@@ -10,7 +11,7 @@ export default function ChatPage() {
         <p className="kicker">Línea directa</p>
         <h2 className="font-display text-2xl text-texto">Chat con tu coach</h2>
       </section>
-      <Conversacion yoId={usuario.id} otroId="u-bryan" />
+      <Conversacion yoId={usuario.id} otroId={idCoach()} />
     </div>
   )
 }

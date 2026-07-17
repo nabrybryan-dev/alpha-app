@@ -1,4 +1,4 @@
-import { hoyIso } from '../../data/dbInstance'
+import { hoyIso, idCoach } from '../../data/dbInstance'
 import type { Db } from '../../data/repos'
 import { resumenMicrociclo, semaforoAsesorado, type Semaforo } from '../../domain/cumplimiento'
 import type { Microciclo, Usuario } from '../../domain/types'
@@ -24,6 +24,7 @@ function diasDesde(fecha: string | undefined, hoy: string): number {
 
 export function resumenAsesorado(db: Db, usuario: Usuario): ResumenAsesorado {
   const hoy = hoyIso()
+  const idCoachId = idCoach()
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
   const checkins = db.bienestar.byUsuario(usuario.id)
   const ultimoCheckin = checkins[checkins.length - 1]?.fecha
@@ -51,7 +52,7 @@ export function resumenAsesorado(db: Db, usuario: Usuario): ResumenAsesorado {
     diasSinRegistrar,
     readinessBaja,
     semaforo: semaforoAsesorado({ diasSinRegistrar, readinessBaja }),
-    noLeidos: db.mensajes.noLeidosDe('u-bryan', usuario.id),
+    noLeidos: db.mensajes.noLeidosDe(idCoachId, usuario.id),
     cuestionariosPendientes,
   }
 }
