@@ -22,13 +22,16 @@ export default function HoyPage() {
     .filter((q) => !db.cuestionarios.respuestasDe(usuario.id).some((r) => r.cuestionarioId === q.id))
 
   const pendientes = [
-    !checkinHoy && { texto: 'Tu check-in de bienestar de hoy está pendiente', ruta: '/bienestar' },
-    !adherenciaHoy && { texto: '¿Cumpliste el plan de nutrición hoy? Márcalo', ruta: '/nutricion' },
+    !checkinHoy && { texto: 'Check-in de bienestar', ruta: '/bienestar' },
+    !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
-      texto: `Tienes ${cuestionariosPendientes.length} cuestionario(s) por responder`,
+      texto: `${cuestionariosPendientes.length} cuestionario${cuestionariosPendientes.length === 1 ? '' : 's'} por responder`,
       ruta: '/cuestionarios',
     },
-    noLeidos > 0 && { texto: `El coach te escribió: ${noLeidos} mensaje(s) sin leer`, ruta: '/chat' },
+    noLeidos > 0 && {
+      texto: `${noLeidos} mensaje${noLeidos === 1 ? '' : 's'} del coach`,
+      ruta: '/chat',
+    },
   ].filter((p): p is { texto: string; ruta: string } => Boolean(p))
 
   return (
@@ -45,22 +48,23 @@ export default function HoyPage() {
       <Link to="/logros" className="entrada entrada-2 block">
         <Card className="press flex items-center gap-4">
           <div
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-rojo font-display text-xl text-rojo"
+            className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-2 border-rojo font-display text-2xl text-rojo"
             style={{ boxShadow: 'var(--halo-rojo)' }}
           >
             {juego.rachaBienestar.actual}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-texto">
-              Racha de {juego.rachaBienestar.actual} día{juego.rachaBienestar.actual === 1 ? '' : 's'} 🔥
-              <span className="ml-2 font-normal text-tenue">Nivel {juego.nivel.nombre}</span>
-            </p>
-            <div className="mt-1.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
+                Día{juego.rachaBienestar.actual === 1 ? '' : 's'} de racha
+              </p>
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.2em] text-rojo">
+                {juego.nivel.nombre}
+              </p>
+            </div>
+            <div className="mt-2.5">
               <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
             </div>
-            <p className="cifras mt-1 text-[11px] text-tenue">
-              {juego.xp} XP{juego.siguiente ? ` · ${juego.siguiente.xpMinimo - juego.xp} XP para ${juego.siguiente.nombre}` : ' · Nivel máximo'}
-            </p>
           </div>
         </Card>
       </Link>
@@ -123,18 +127,43 @@ export default function HoyPage() {
       <section className="entrada entrada-5 grid grid-cols-2 gap-3">
         <Link to="/contenidos">
           <Card className="press h-full">
-            <span className="text-xl" aria-hidden="true">🎬</span>
-            <p className="mt-1 font-display text-sm text-texto">Contenidos</p>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6 text-rojo"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M10.2 8.8l5 3.2-5 3.2z" />
+            </svg>
+            <p className="mt-2 font-display text-sm text-texto">Contenidos</p>
             <p className="text-xs text-tenue">Técnica y educación</p>
           </Card>
         </Link>
         <Link to="/cuestionarios">
           <Card className="press h-full">
-            <span className="text-xl" aria-hidden="true">📋</span>
-            <p className="mt-1 font-display text-sm text-texto">Cuestionarios</p>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6 text-rojo"
+            >
+              <rect x="5" y="4" width="14" height="17" rx="2.5" />
+              <path d="M9 4.5V3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5v1" />
+              <path d="M9 10h6M9 14h6M9 18h3.5" />
+            </svg>
+            <p className="mt-2 font-display text-sm text-texto">Cuestionarios</p>
             <p className="text-xs text-tenue">
               {cuestionariosPendientes.length > 0
-                ? `${cuestionariosPendientes.length} pendiente(s)`
+                ? `${cuestionariosPendientes.length} pendiente${cuestionariosPendientes.length === 1 ? '' : 's'}`
                 : 'Al día ✓'}
             </p>
           </Card>

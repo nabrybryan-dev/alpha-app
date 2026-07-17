@@ -37,7 +37,7 @@ export default function NutricionPage() {
     <div className="flex flex-col gap-4">
       <section className="entrada entrada-1">
         <div
-          className="tarjeta-foto p-5 pt-16"
+          className="tarjeta-foto p-5 pt-14"
           style={{ '--foto': 'url(/fondos/plato.jpg)' } as React.CSSProperties}
         >
           <p className="kicker">Plan individualizado</p>
@@ -45,36 +45,39 @@ export default function NutricionPage() {
         </div>
       </section>
 
-      <div className="entrada entrada-2">
-        <AdherenciaDia usuarioId={usuario.id} />
-      </div>
-
-      <Acordeon numero="01" titulo="Análisis completo" abiertoInicial>
-        <p className="text-sm leading-relaxed text-texto/90">{plan.analisis}</p>
-      </Acordeon>
-
-      <Acordeon numero="02" titulo="Macros por tipo de día" abiertoInicial>
-        <div className="mb-3 flex gap-2">
+      <section
+        aria-label="Macros del día"
+        className="entrada entrada-2 rounded-2xl border border-hairline bg-surface-1 px-4 pb-6 pt-5"
+      >
+        <div className="flex justify-center gap-2">
           {TIPOS_DIA.map((tipo) => (
             <Chip key={tipo} etiqueta={tipo} seleccionado={tipoDia === tipo} onSeleccionar={() => setTipoDia(tipo)} />
           ))}
         </div>
-        <div className="mb-3 text-center">
-          <p className="cifras font-display text-4xl leading-none text-texto">
+        <div className="mt-6 text-center">
+          <p className="cifras font-display text-6xl leading-none text-texto">
             {Math.round(macros.kcal)}
           </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
-            kcal objetivo del día
+          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-tenue">
+            kcal del día
           </p>
         </div>
-        <div key={tipoDia} className="flex items-start justify-around rounded-xl border border-hairline bg-surface-2/50 px-2 py-3">
+        <div key={tipoDia} className="mt-6 flex items-start justify-around">
           <AnilloMacro etiqueta="Proteína" gramos={macros.proteinaG} pct={(kcalProteina / kcalTotales) * 100} color="var(--rojo)" />
           <AnilloMacro etiqueta="Carbos" gramos={macros.carbosG} pct={(kcalCarbos / kcalTotales) * 100} color="var(--ambar)" />
           <AnilloMacro etiqueta="Grasas" gramos={macros.grasaG} pct={(kcalGrasa / kcalTotales) * 100} color="var(--verde)" />
         </div>
+      </section>
+
+      <div className="entrada entrada-3">
+        <AdherenciaDia usuarioId={usuario.id} />
+      </div>
+
+      <Acordeon numero="01" titulo="Análisis completo">
+        <p className="text-sm leading-relaxed text-texto/90">{plan.analisis}</p>
       </Acordeon>
 
-      <Acordeon numero="03" titulo={`Tus ${plan.menus.length} menús`}>
+      <Acordeon numero="02" titulo={`Tus ${plan.menus.length} menús`}>
         <div className="flex flex-col gap-6">
           {plan.menus.map((menu) => (
             <MenuDia key={menu.nombre} menu={menu} />
@@ -82,7 +85,7 @@ export default function NutricionPage() {
         </div>
       </Acordeon>
 
-      <Acordeon numero="04" titulo="Tabla de equivalencias">
+      <Acordeon numero="03" titulo="Tabla de equivalencias">
         <div className="flex flex-col gap-4">
           {plan.equivalencias.map((eq) => (
             <div key={eq.grupo}>
@@ -98,7 +101,7 @@ export default function NutricionPage() {
         </div>
       </Acordeon>
 
-      <Acordeon numero="05" titulo="Lista de compras · 15 días">
+      <Acordeon numero="04" titulo="Lista de compras · 15 días">
         <ul className="grid grid-cols-1 gap-1.5 text-sm text-texto/90">
           {plan.listaCompras.map((item) => (
             <li key={item} className="flex items-center gap-2">
@@ -109,7 +112,7 @@ export default function NutricionPage() {
         </ul>
       </Acordeon>
 
-      <Acordeon numero="06" titulo="Suplementación">
+      <Acordeon numero="05" titulo="Suplementación">
         <ul className="flex flex-col gap-2 text-sm text-texto/90">
           {plan.suplementacion.map((s) => (
             <li key={s} className="rounded-lg border border-linea bg-surface-2 px-3 py-2">
@@ -120,7 +123,7 @@ export default function NutricionPage() {
       </Acordeon>
 
       {plan.seccionesEspeciales.map((seccion, i) => (
-        <Acordeon key={seccion.titulo} numero={String(7 + i).padStart(2, '0')} titulo={seccion.titulo}>
+        <Acordeon key={seccion.titulo} numero={String(6 + i).padStart(2, '0')} titulo={seccion.titulo}>
           <p className="text-sm leading-relaxed text-texto/90">{seccion.contenido}</p>
         </Acordeon>
       ))}
