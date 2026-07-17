@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface-1: #141414;
+  --surface-2: #1c1c1e;
+  --surface-3: #242427;
+  --linea: #2e2e31;
+  --texto: #f2f2f2;
+  --tenue: #a8a8ad;
+  --gris-marca: #7a7a7a;
+  --rojo: #ff1e1e;
+  --rojo-osc: #8f1119;
+  --verde: #28c76f;
+  --ambar: #f5a623;
+  --azul: #3b9dff;
+}
+
+[data-theme="light"] {
+  --bg: #f7f7f5;
+  --surface-1: #ffffff;
+  --surface-2: #f0efec;
+  --surface-3: #e7e5e0;
+  --linea: #d9d7d0;
+  --texto: #111111;
+  --tenue: #5f5e5a;
+  --gris-marca: #7a7a7a;
+  --rojo: #d51216;
+  --rojo-osc: #8f1119;
+  --verde: #178a4c;
+  --ambar: #a86e07;
+  --azul: #1462b8;
+}
+
+html {
+  background: var(--bg);
+  color: var(--texto);
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.font-display {
+  font-family: Satoshi, system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.kicker {
+  color: var(--rojo);
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-size: 11px;
+}

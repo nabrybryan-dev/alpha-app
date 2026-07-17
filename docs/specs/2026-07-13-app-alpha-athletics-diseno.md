@@ -27,12 +27,26 @@ etapa 2 solo cambie la implementación (mock → Supabase), no las pantallas.
 
 ## 3 · Manual de marca
 
-Derivado de atletaalpha.com y de los planes nutricionales HTML reales (que ya usan
-este lenguaje con los asesorados):
+Fuente principal: el **sistema de identidad oficial de Alpha Athletics**
+(imágenes suministradas por Bryan el 2026-07-14, en `Desktop/APP ALPHA/`),
+complementado con atletaalpha.com y los planes nutricionales HTML reales:
 
+- **Logos oficiales** (copiados a `src/assets/brand/`): águila musculada con "A"
+  (principal), cabeza de halcón (marca alternativa), monograma "A" rasgado,
+  wordmark ALPHA ATHLETICS. Blanco sobre negro.
+- **Sistema de color oficial:** BLACK `#0A0A0A` (fondos y base visual), WHITE
+  `#FFFFFF` (texto principal), GREY `#7A7A7A` (texto secundario), RED `#FF1E1E`
+  (acentos y énfasis). **Regla de uso: 70% negro / 15% blanco / 10% gris / 5% rojo.**
+- **Tipografía oficial:** **Satoshi Bold** (principal, titulares) + **Inter
+  Regular** (secundaria, texto y datos). Máximo dos fuentes, alto contraste,
+  tracking amplio en titulares.
+- **Dirección visual oficial:** cinemática, oscura, minimalista, alto contraste;
+  luz lateral y sombras marcadas; texturas de humo/metal/concreto/grano fino;
+  atmósfera intensa, cruda, real, sin artificialidad.
 - **Paleta oscura (tema principal):** fondo `#0a0a0a`, superficies `#141414` /
-  `#1c1c1e` / `#242427`, línea `#2e2e31`, texto `#f2f2f2`, tenue `#a8a8ad`.
-- **Acento:** rojo Alpha `#e11d2a` (único acento de marca; botones primarios,
+  `#1c1c1e` / `#242427`, línea `#2e2e31`, texto `#f2f2f2`, tenue `#a8a8ad`
+  (gris de marca `#7a7a7a` para elementos no críticos).
+- **Acento:** rojo Alpha `#ff1e1e` (único acento; botones primarios,
   progresiones, kickers). Rojo oscuro `#8f1119` para bordes.
 - **Semánticos:** verde `#28c76f` (cumplido/progresó), ámbar `#f5a623`
   (precaución/cheat), azul `#3b9dff` (informativo/enlaces).
