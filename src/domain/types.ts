@@ -57,10 +57,28 @@ export interface EjercicioPrescrito {
   series: SerieRegistrada[]
 }
 
+export type TipoPreparacion = 'calentamiento' | 'movilidad'
+
+export interface ItemMarcable {
+  id: string
+  titulo: string
+  indicaciones: string
+  duracionMin?: number
+  contenidoDemoId?: string
+  hechoEn?: string
+}
+
+export interface PartePreparacion extends ItemMarcable {
+  tipo: TipoPreparacion
+}
+
 export interface Sesion {
   id: string
   nombre: string
   orden: number
+  tipo?: 'fuerza' | 'metabolica'
+  preparacion?: PartePreparacion[]
+  bloquesCardio?: ItemMarcable[]
   ejercicios: EjercicioPrescrito[]
   testPost?: TestPostSesion
 }
