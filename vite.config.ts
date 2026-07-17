@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Respeta el puerto que asigne el entorno (p. ej. el panel de vista previa)
+  server: { port: Number(process.env.PORT) || 5173 },
   plugins: [
     react(),
     VitePWA({
