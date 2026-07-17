@@ -21,10 +21,10 @@ export default function LogrosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="rounded-3xl border border-rojo-osc bg-surface-1 p-5 text-center">
+      <section className="entrada entrada-1 rounded-panel glass glass-destacada p-5 text-center">
         <p className="kicker">Tu nivel de disciplina</p>
         <h2 className="mt-1 font-display text-4xl text-texto">{juego.nivel.nombre}</h2>
-        <p className="mt-1 text-sm text-tenue">{juego.xp} XP acumulados</p>
+        <p className="cifras mt-1 text-sm text-tenue">{juego.xp} XP acumulados</p>
         <div className="mt-3">
           <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
           <p className="mt-1.5 text-xs text-tenue">
@@ -35,11 +35,11 @@ export default function LogrosPage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-3 gap-2.5">
+      <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
         {rachas.map((r) => (
           <Card key={r.nombre} className="text-center !p-3">
             <span className="text-lg" aria-hidden="true">{r.icono}</span>
-            <p className="font-display text-2xl text-rojo">{r.racha.actual}</p>
+            <p className="cifras font-display text-2xl text-rojo">{r.racha.actual}</p>
             <p className="text-[10px] uppercase tracking-wider text-tenue">{r.nombre}</p>
             <p className="mt-0.5 text-[10px] text-tenue">Récord: {r.racha.record}</p>
           </Card>

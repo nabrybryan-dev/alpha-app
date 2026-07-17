@@ -67,8 +67,8 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                           type="button"
                           aria-label={parte.hechoEn ? `Desmarcar ${parte.titulo}` : `Marcar ${parte.titulo}`}
                           onClick={() => onMarcar(parte.id)}
-                          className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-sm font-bold ${
-                            parte.hechoEn ? 'border-verde bg-verde text-white' : 'border-linea text-tenue'
+                          className={`press mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-200 ease-salida ${
+                            parte.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
                           ✓

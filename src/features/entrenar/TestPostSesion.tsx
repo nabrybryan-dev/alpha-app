@@ -17,7 +17,7 @@ export function TestPostSesion({ onGuardar }: TestPostSesionProps) {
   const completo = rpeSesion !== undefined && prsEntrada !== undefined
 
   return (
-    <div className="rounded-2xl border border-rojo-osc bg-surface-1 p-4">
+    <div className="entrada rounded-panel glass glass-destacada p-4">
       <p className="kicker">Test post-entrenamiento</p>
       <p className="mt-1 text-sm text-tenue">Última parte: cuéntale al coach cómo estuvo la sesión.</p>
 
@@ -51,7 +51,7 @@ export function TestPostSesion({ onGuardar }: TestPostSesionProps) {
             onGuardar({ duracionMin, rpeSesion, prsEntrada })
           }
         }}
-        className="mt-4 w-full rounded-xl bg-rojo py-3 font-display text-sm text-white disabled:opacity-40"
+        className={`press mt-4 w-full rounded-full bg-rojo py-3 font-display text-sm text-white disabled:opacity-40 ${completo ? 'cta-pulso' : ''}`}
       >
         Cerrar sesión de entrenamiento ✓
       </button>

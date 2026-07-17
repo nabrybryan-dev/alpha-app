@@ -6,9 +6,9 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function Card({ children, destacada = false, className = '', ...rest }: CardProps) {
-  const borde = destacada ? 'border-rojo-osc' : 'border-linea'
+  const acento = destacada ? 'glass-destacada' : ''
   return (
-    <div className={`rounded-2xl border bg-surface-1 p-4 ${borde} ${className}`} {...rest}>
+    <div className={`rounded-panel glass p-4 ${acento} ${className}`} {...rest}>
       {children}
     </div>
   )

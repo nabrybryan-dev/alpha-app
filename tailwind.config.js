@@ -22,6 +22,23 @@ export default {
         display: ['Satoshi', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
       },
+      borderColor: {
+        hairline: 'var(--hairline)',
+        'hairline-fuerte': 'var(--hairline-fuerte)',
+      },
+      transitionTimingFunction: {
+        salida: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        mov: 'cubic-bezier(0.77, 0, 0.175, 1)',
+        cajon: 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
+      boxShadow: {
+        halo: 'var(--halo-rojo)',
+        brillo: 'var(--brillo-interior)',
+      },
+      borderRadius: {
+        panel: '1.5rem',
+        nucleo: 'calc(1.5rem - 0.375rem)',
+      },
     },
   },
   plugins: [],

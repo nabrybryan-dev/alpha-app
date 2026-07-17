@@ -44,26 +44,26 @@ export default function BienestarPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section>
+      <section className="entrada entrada-1 pt-2">
         <p className="kicker">Test durante el día</p>
-        <h2 className="font-display text-3xl text-texto">Bienestar diario</h2>
-        <p className="mt-1 text-sm text-tenue">
+        <h2 className="mt-1 font-display text-4xl leading-none text-texto">Bienestar diario</h2>
+        <p className="mt-1.5 text-sm text-tenue">
           2 minutos al día que le dan al coach lo que necesita para ajustar tu plan.
         </p>
       </section>
 
       {deHoy ? (
-        <Card destacada>
+        <Card destacada className="entrada entrada-2">
           <p className="text-sm font-bold text-verde">Check-in de hoy completado ✓ (+{XP_POR_ACCION.checkin} XP)</p>
           <p className="mt-1 text-sm text-tenue">Vuelve mañana. La constancia es la que programa.</p>
         </Card>
       ) : (
-        <Card>
+        <Card className="entrada entrada-2">
           <CheckinForm usuarioId={usuario.id} fecha={hoy} onGuardar={(c) => db.bienestar.guardar(c)} />
         </Card>
       )}
 
-      <section className="flex flex-col gap-2">
+      <section className="entrada entrada-3 flex flex-col gap-2">
         <p className="kicker">Últimos 7 días</p>
         {ultimos.map((c) => (
           <FilaHistorial key={c.id} checkin={c} />

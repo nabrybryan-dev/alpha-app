@@ -1,0 +1,397 @@
+<!DOCTYPE html><html class="dark" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ALPHA ATHLETICS - Comunidad</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#690005",
+                      "surface-container": "#20201f",
+                      "on-secondary": "#690003",
+                      "surface-bright": "#393939",
+                      "on-surface": "#e5e2e1",
+                      "tertiary-container": "#080a0a",
+                      "secondary": "#FF1E1E",
+                      "error-container": "#93000a",
+                      "surface-variant": "#353535",
+                      "surface-container-high": "#2a2a2a",
+                      "primary": "#ffffff",
+                      "on-tertiary-container": "#78797a",
+                      "primary-container": "#0a0a0a",
+                      "on-surface-variant": "#c4c7c7",
+                      "secondary-fixed-dim": "#FF1E1E",
+                      "primary-fixed": "#e5e2e1",
+                      "surface-tint": "#ffffff",
+                      "on-error-container": "#ffdad6",
+                      "primary-fixed-dim": "#ffffff",
+                      "on-secondary-container": "#ffffff",
+                      "surface": "#131313",
+                      "on-primary-fixed": "#1c1b1b",
+                      "on-background": "#e5e2e1",
+                      "inverse-primary": "#5f5e5e",
+                      "on-tertiary-fixed": "#1a1c1c",
+                      "on-tertiary": "#2f3131",
+                      "surface-dim": "#131313",
+                      "on-secondary-fixed": "#410001",
+                      "on-tertiary-fixed-variant": "#454747",
+                      "surface-container-lowest": "#0e0e0e",
+                      "secondary-container": "#FF1E1E",
+                      "error": "#ffb4ab",
+                      "on-primary-fixed-variant": "#474646",
+                      "inverse-surface": "#e5e2e1",
+                      "on-primary": "#313030",
+                      "tertiary": "#c6c6c7",
+                      "tertiary-fixed-dim": "#c6c6c7",
+                      "on-primary-container": "#7b7979",
+                      "outline": "#8e9192",
+                      "outline-variant": "#444748",
+                      "on-secondary-fixed-variant": "#930006",
+                      "background": "#131313",
+                      "secondary-fixed": "#ffdad5",
+                      "inverse-on-surface": "#313030",
+                      "tertiary-fixed": "#e2e2e2",
+                      "surface-container-low": "#1c1b1b",
+                      "surface-container-highest": "#353535",
+                      "accent-red": "#FF1E1E"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "stack-md": "16px",
+                      "unit": "4px",
+                      "margin-desktop": "40px",
+                      "gutter": "16px",
+                      "stack-sm": "8px",
+                      "stack-lg": "32px"
+              },
+              "fontFamily": {
+                      "label-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .red-glow {
+            box-shadow: 0 0 20px rgba(255, 30, 30, 0.35);
+        }
+
+        .active-red-indicator {
+            position: relative;
+        }
+        .active-red-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #FF1E1E;
+            border-radius: 50%;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 30, 30, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 30, 30, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 30, 30, 0); }
+        }
+        .animate-pulse-red {
+            animation: pulse-red 2.5s infinite;
+        }
+        
+        .technical-heading {
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="dark flex flex-col min-h-screen bg-surface">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 sticky z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center w-full px-margin-mobile h-16">
+<div class="flex items-center gap-3">
+<h1 class="text-headline-md font-black tracking-tighter text-white uppercase technical-heading">ALPHA ATHLETICS</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-white hover:bg-white/10 transition-colors p-2 rounded-full">notifications</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-white">person</span>
+</div>
+</div>
+</header>
+<!-- Background Layer -->
+<div class="fixed inset-0 z-0">
+<div class="absolute inset-0 bg-[#0A0A0A] opacity-70 z-10"></div>
+<div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6sKt460t3zErArfOZ8gsTfzQaypSI36Fg5cDbtzK7PQFi8ifWawsitFZYyCwCZD20-X9mogd1jRH2T8DMjjjqoGZCOTL6Y4G8bcRYd_ClnW3EfSAAQPcnSNra6VeGcyExIsKywlrOVpaUfOeO4LEG9AJw2yTSvXrbB2HS-DFEFOJCV1sivpNfVBQkKjJKysBXDUAqt0WBAEEXiCjdPifA3JDv1EDtQCx3ExFfe8nYmKDJ7sr0DzGCWx1wERbEO3ENJS4zW9OPr9Fh')"></div>
+</div>
+<!-- Content Canvas -->
+<main class="relative z-10 flex-grow pb-32">
+<!-- Retos del Equipo (Horizontal Scroller) -->
+<section class="mt-stack-lg px-margin-mobile">
+<div class="flex justify-between items-end mb-stack-md">
+<h2 class="font-headline-md text-headline-md text-white technical-heading">Retos del Equipo</h2>
+<a class="font-label-md text-label-md text-accent-red font-bold uppercase tracking-wider" href="#">Ver todos</a>
+</div>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar -mx-margin-mobile px-margin-mobile pb-2">
+<!-- Challenge Card 1 -->
+<div class="glass-card min-w-[280px] p-5 rounded-xl flex flex-col gap-3 border-l-2 border-l-accent-red">
+<div class="flex justify-between items-start">
+<div class="bg-accent-red text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">Activo</div>
+<span class="material-symbols-outlined text-on-surface-variant text-lg">timer</span>
+</div>
+<div>
+<h3 class="font-headline-md text-body-lg text-white font-bold uppercase">100 KM Mayo</h3>
+<p class="font-label-md text-label-md text-on-surface-variant">Completa 100km corriendo este mes.</p>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[11px] mb-1 text-on-surface-variant">
+<span>Progreso del grupo</span>
+<span class="text-white font-bold">64%</span>
+</div>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+<div class="bg-accent-red h-full w-[64%] red-glow"></div>
+</div>
+</div>
+</div>
+<!-- Challenge Card 2 -->
+<div class="glass-card min-w-[280px] p-5 rounded-xl flex flex-col gap-3 opacity-60">
+<div class="flex justify-between items-start">
+<div class="bg-white/10 text-white/50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">Próximamente</div>
+<span class="material-symbols-outlined text-on-surface-variant text-lg">fitness_center</span>
+</div>
+<div>
+<h3 class="font-headline-md text-body-lg text-white font-bold uppercase">Max Deadlift</h3>
+<p class="font-label-md text-label-md text-on-surface-variant">Supera tu PR en peso muerto.</p>
+</div>
+<div class="mt-2 flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-black bg-surface-variant flex items-center justify-center text-[10px] font-bold">JD</div>
+<div class="w-6 h-6 rounded-full border border-black bg-accent-red flex items-center justify-center text-[10px] font-bold">AL</div>
+<div class="w-6 h-6 rounded-full border border-black bg-surface-container-high flex items-center justify-center text-[10px] font-bold">+12</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Leaderboard Snippet -->
+<section class="mt-stack-lg px-margin-mobile">
+<div class="glass-card p-5 rounded-xl">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-accent-red" style="font-variation-settings: 'FILL' 1;">leaderboard</span>
+<h2 class="font-headline-md text-body-lg text-white technical-heading">Leaderboard de la Semana</h2>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+<div class="flex items-center gap-3">
+<span class="font-black text-accent-red w-4">1</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-high">
+<img class="w-full h-full rounded-full object-cover" data-alt="Close-up portrait of a determined male athlete" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiACIs8vlQr5sh8inJOf2JZc34_8trpcvyuri7jRFwV2BvqC318BWmmfnqsA_NAdQ1ZgaO0shoXCn9AJglS0SRCYllHp6Q-zghVVAhaSKG4KiqCAyPleMHQUIG17JCBNeCqCMZfk37JX4EkkffXSmZDdwxTZEaLtIoNFQhtRnFItFV7YkHmk4jyCjOW_xhwxxVoOjCAewOIAXyLxPNvacCH1kiLLJj1FWCcax6xnxRLbDxpwiHI5k3e9bFDXYGNi-DiKu94aL9dyYR">
+</div>
+<span class="font-label-md text-label-md text-white">Carlos R.</span>
+</div>
+<span class="font-label-md text-label-md text-accent-red font-black">4,250 XP</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg">
+<div class="flex items-center gap-3">
+<span class="font-black text-on-surface-variant w-4">2</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-high">
+<img class="w-full h-full rounded-full object-cover" data-alt="Close-up portrait of a strong female athlete" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmr94NjxU_m2w4AQtZ_1KxdHS6AH4FKNqvrI9t84iG2jJJ8zoAUHoJSvicR5zU66JRf3k8Nai01jvv6dzb_t6WyQi9IbSeRieD_eQe24nj-s-LzIR7BHmpJPYM1rTZrLwJvEzKX-J3LUdpokco8-1EI_pyLbESj1EeL5dSi7NgkCqOg6AybT7XVuwmm3ytZILvZdQuBK7XTV20kTERx3R94_LrVSC4HlihwP-mttdgN7HaTnJSNxonkeGp_I4EjyMvA17SSBuYvWyI">
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Elena M.</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant font-bold">3,910 XP</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg border border-accent-red/30 bg-accent-red/10">
+<div class="flex items-center gap-3">
+<span class="font-black text-on-surface-variant w-4">8</span>
+<div class="w-8 h-8 rounded-full bg-accent-red flex items-center justify-center font-black text-[10px] text-white">TÚ</div>
+<span class="font-label-md text-label-md text-white font-bold">Alex Guerrero</span>
+</div>
+<span class="font-label-md text-label-md text-accent-red font-black">2,100 XP</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Athlete Feed -->
+<section class="mt-stack-lg px-margin-mobile flex flex-col gap-6">
+<h2 class="font-headline-md text-headline-md text-white technical-heading">Muro de la Comunidad</h2>
+<!-- Feed Item 1 -->
+<article class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+<div class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full border border-white/10 bg-surface-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of a professional athletic coach" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5yNRTUPxwtx7EZfwz5jm3bBz6UQPryy7fqZXYUSRJEG7_CTDy3xBcBFrTA8cer4xp03XmWTPuohQfKzDrOWJ4KFYqewiNONJ9XtYA85WwUnoR2sUX2nzMMFLWWPPNrX2wkuEIiYwPrjpqlzyw-NVNCd6XPfrO3OcdngBi3hP1HRk2EU31mEaT_PxHhbYmBQpjjalxkRCA4iOOIg-Hd-Vzm3c9ckeScQ3b1mbYmoj1YJA3itOUICREhhCYgTDDmCtlvWangXVdng7S">
+</div>
+<div>
+<p class="font-label-md text-label-md font-black text-white uppercase tracking-tight">Coach Marco</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-medium">Hace 2 horas</p>
+</div>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant">more_horiz</button>
+</div>
+<div class="px-4 pb-4">
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                    ¡Nueva sesión de alta intensidad disponible! No olviden hidratarse bien hoy. Nos vemos en el Hub a las 6:00 PM. 🔥
+                </p>
+</div>
+<div class="aspect-square w-full relative group">
+<img class="w-full h-full object-cover" data-alt="Action shot of athletes performing explosive box jumps" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMcDPp-lRHOXkksVdJP3i4kryt3rvTJPqFTsiyLSRiGdGFNFso_Li6LVjABv0mmBewDujZLQ3C05BUnVlBM9XQTfoFoffxcMXB7fE6YXDUpbyt3rL3wJJ4MjNLh_GjE_XaEFjOw_JQ1DK9zEPQjoiop6RxF3gBCOKeyIXJiQLwF8lseirojjMJqkD0TCvK2Hebv0RbwKYA2l-LRNTURE53PxnIBMRPjeg76q8M9gObc6cu6Ay6MyU99mv9LMI3BrB3833CKOZFuVSl">
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+</div>
+<div class="p-4 flex justify-between items-center border-t border-white/5">
+<div class="flex gap-6">
+<button class="flex items-center gap-2 group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-accent-red transition-colors" style="font-variation-settings: 'FILL' 0;">favorite</span>
+<span class="text-xs font-bold text-on-surface-variant">124</span>
+</button>
+<button class="flex items-center gap-2 group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-white transition-colors">chat_bubble</span>
+<span class="text-xs font-bold text-on-surface-variant">18</span>
+</button>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant">share</button>
+</div>
+</article>
+<!-- Feed Item 2 -->
+<article class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+<div class="p-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full border border-white/10 bg-surface-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of a young female athlete" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUOkyxU7nr9suLPtvXjj-MsGeLi3fi149ERNctAcf719Sgrlak_Rb-3xw_GLUiVfbPWr613YrvmUDdAWZayt7Y0Gf8HgYhsIaEtuzFgVNUW0Kumxtzs_X1qr8sQhJKD0L9to5XMc578qYqtTMfobMXr42Xq41v2vfsiy6srjcQsgPjyxyTMzxtmuNmF1lOM_SSgOB_qY7g8YdHis5a2RZdhMj-oHHfwVG58spYB9luWXgb9pE3m-a9Vlj_Vxjvg2M1BxJ6LmVhIH3t">
+</div>
+<div>
+<p class="font-label-md text-label-md font-black text-white uppercase tracking-tight">Lucía Fer</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-medium">Hace 5 horas</p>
+</div>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant">more_horiz</button>
+</div>
+<div class="px-4 pb-4">
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-4">
+                    ¡PR logrado en Sentadilla! 120kg x 3. ¡Vamos por más! 💪
+                </p>
+<div class="bg-white/5 rounded-xl p-4 flex items-center justify-between border border-white/10 group active:bg-white/10 transition-colors">
+<div class="flex items-center gap-3">
+<div class="p-2.5 bg-accent-red/20 rounded-lg">
+<span class="material-symbols-outlined text-accent-red" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+</div>
+<div>
+<p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">Entrenamiento completado</p>
+<p class="text-label-md font-black text-white uppercase">Leg Day - Alpha Pro</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+</div>
+<div class="p-4 flex justify-between items-center border-t border-white/5">
+<div class="flex gap-6">
+<button class="flex items-center gap-2 text-accent-red">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="text-xs font-black">89</span>
+</button>
+<button class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">chat_bubble</span>
+<span class="text-xs font-bold text-on-surface-variant">4</span>
+</button>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant">share</button>
+</div>
+</article>
+</section>
+</main>
+<!-- FAB Publicar -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-accent-red/90 backdrop-blur-md rounded-full shadow-lg red-glow flex items-center justify-center z-50 hover:scale-110 active:scale-90 transition-all animate-pulse-red text-white">
+<span class="material-symbols-outlined font-black" style="font-size: 28px;">add</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full flex justify-around items-center pt-3 pb-6 px-4 bg-black/90 backdrop-blur-2xl border-t border-white/10 shadow-2xl z-50">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-[10px] mt-1 font-bold uppercase tracking-tighter">Panel</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-md text-[10px] mt-1 font-bold uppercase tracking-tighter">Entreno</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">restaurant</span>
+<span class="font-label-md text-[10px] mt-1 font-bold uppercase tracking-tighter">Nutrición</span>
+</a>
+<a class="flex flex-col items-center justify-center text-accent-red relative after:content-[''] after:absolute after:-bottom-2 after:w-1 after:h-1 after:bg-accent-red after:rounded-full" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="font-label-md text-[10px] mt-1 font-black uppercase tracking-tighter">Comunidad</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="font-label-md text-[10px] mt-1 font-bold uppercase tracking-tighter">Coaching</span>
+</a>
+</nav>
+<script>
+    // Micro-interactions for buttons
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.classList.add('scale-90');
+            setTimeout(() => this.classList.remove('scale-90'), 150);
+        });
+    });
+
+    // Header scroll effect
+    window.addEventListener('scroll', () => {
+        const header = document.querySelector('header');
+        if (window.scrollY > 10) {
+            header.classList.add('bg-black/95');
+            header.classList.remove('bg-black/80');
+        } else {
+            header.classList.add('bg-black/80');
+            header.classList.remove('bg-black/95');
+        }
+    });
+</script>
+</body></html>

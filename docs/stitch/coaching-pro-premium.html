@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Alpha Athletics - Chat de Coaching</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#353535",
+                        "secondary-fixed": "#e2e2e2",
+                        "tertiary-container": "#200000",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "error": "#ffb4ab",
+                        "surface-variant": "#353535",
+                        "surface-dim": "#131313",
+                        "surface-tint": "#c9c6c5",
+                        "background": "#131313",
+                        "surface-container-low": "#1c1b1b",
+                        "error-container": "#93000a",
+                        "on-tertiary": "#690003",
+                        "on-error": "#690005",
+                        "on-primary-fixed-variant": "#474646",
+                        "tertiary-fixed-dim": "#ffb4aa",
+                        "on-tertiary-container": "#f20d16",
+                        "tertiary-fixed": "#ffdad5",
+                        "surface": "#131313",
+                        "inverse-surface": "#e5e2e1",
+                        "outline-variant": "#444748",
+                        "on-secondary": "#2f3131",
+                        "on-surface": "#e5e2e1",
+                        "on-primary-container": "#7b7979",
+                        "inverse-primary": "#5f5e5e",
+                        "surface-bright": "#393939",
+                        "inverse-on-surface": "#313030",
+                        "primary": "#c9c6c5",
+                        "on-background": "#e5e2e1",
+                        "on-secondary-container": "#b4b5b5",
+                        "primary-fixed": "#e5e2e1",
+                        "on-primary-fixed": "#1c1b1b",
+                        "tertiary": "#ffb4aa",
+                        "on-tertiary-fixed": "#410001",
+                        "surface-container": "#20201f",
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-primary": "#313030",
+                        "surface-container-high": "#2a2a2a",
+                        "outline": "#8e9192",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#c9c6c5",
+                        "on-tertiary-fixed-variant": "#930006",
+                        "on-surface-variant": "#c4c7c7",
+                        "secondary": "#c6c6c7",
+                        "primary-container": "#0a0a0a",
+                        "on-secondary-fixed-variant": "#454747",
+                        "secondary-container": "#454747"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "64px",
+                        "gutter": "24px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "code-data": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.03em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["40px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "code-data": ["14px", { "lineHeight": "1", "letterSpacing": "0em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "letterSpacing": "-0.01em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444748; 
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8e9192;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background h-screen overflow-hidden flex font-body-md" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC2-82LOA-b1tQKIKovKSFTOZYJWb2U0AL2c0VilqLrPMX4GOxxs9As8XFmE3_nyB2HwowMqdThY1CsJUWxzyK6XLDFVjT_9EDw8jQLZyYaR3XyM7LHV6Ed7WK2WyltWs3DtO5R5YW07HDWLrRzgMNQqpuiATwWFvde6as_Ohj3YL_Xdjm64bzRRRCzO2Pe6bilBGJyux8fkpV0y8cFD8V2zNZ2pIto3cFgsGSYChCDF7SybfzOAf7jKVC94gdDN-6OQHYCndKee0st'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat;"><div class="fixed inset-0 bg-black/60 pointer-events-none z-[-1]"></div>
+<!-- Desktop Navigation Drawer -->
+<aside class="hidden md:flex flex-col h-full w-80 fixed left-0 top-0 border-r border-outline-variant bg-surface-container-low py-8 z-50">
+<!-- Profile Header -->
+<div class="px-6 pb-8 border-b border-outline-variant flex flex-col gap-4">
+<div class="w-16 h-16 rounded-none overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A stark, high-contrast, black and white portrait of a focused elite athlete looking directly at the camera, wearing sleek technical activewear. Minimalist dark background, sharp lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKQ_Y-7_6DIrujY8DdLSiKW8dOvNbrtIQXe4_Eh_j9pUvPWDDprhXrYAfwGnaLpexl8DKNhR6z5uLAW-hCw1vniYE70zwr0Iy4YO0sRW5qDcptYs2ANTjAjpcB71-vEc8GHdi87lUavv95k6r3MfIf_mN_jl4yYdVa5amxm1V1FDjFhlLOiQXGZVKBKJ72l1oew2p9NWtOntmZ4a7kgNOMo2PcywrJIh8eBXnmQ2PZCZCnNI5FGchcS0OO7psvZG1kUtLQIbx6gu8l"/>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface uppercase tracking-tight">OPERADOR_01</h2>
+<p class="font-label-md text-label-md text-tertiary-fixed-dim uppercase mt-1">Estado Nivel 1</p>
+<p class="font-code-data text-code-data text-on-surface-variant mt-2 tracking-widest">V02 Max: 64.2</p>
+</div>
+</div>
+<!-- Nav Links (All inactive as focus is Coaching Chat, which is a main app level destination not in this subset drawer) -->
+<nav class="flex flex-col mt-4">
+<a class="flex items-center gap-4 text-on-surface-variant px-6 py-4 hover:bg-surface-variant transition-colors cursor-pointer border-l-2 border-transparent hover:border-outline" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md text-body-md uppercase tracking-wider">Perfil</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant px-6 py-4 hover:bg-surface-variant transition-colors cursor-pointer border-l-2 border-transparent hover:border-outline" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-body-md text-body-md uppercase tracking-wider">Biometría</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant px-6 py-4 hover:bg-surface-variant transition-colors cursor-pointer border-l-2 border-transparent hover:border-outline" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md uppercase tracking-wider">Historial de Entrenamiento</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant px-6 py-4 hover:bg-surface-variant transition-colors cursor-pointer border-l-2 border-transparent hover:border-outline" href="#">
+<span class="material-symbols-outlined">restaurant</span>
+<span class="font-body-md text-body-md uppercase tracking-wider">Registro Nutricional</span>
+</a>
+<a class="flex items-center gap-4 text-on-surface-variant px-6 py-4 hover:bg-surface-variant transition-colors cursor-pointer border-l-2 border-transparent hover:border-outline mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md uppercase tracking-wider">Ajustes</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col h-full md:ml-80 relative">
+<!-- TopAppBar (Mobile & Desktop) -->
+<header class="w-full top-0 sticky bg-background/60 backdrop-blur-xl flex justify-between items-center h-16 px-margin-mobile border-b border-white/10 z-40">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-on-background hover:text-primary transition-colors duration-200 cursor-pointer active:opacity-70">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold tracking-widest text-on-background uppercase">ALPHA ATHLETICS</h1>
+</div>
+<button class="text-on-background hover:text-primary transition-colors duration-200 cursor-pointer active:opacity-70">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</header>
+<!-- Chat Interface -->
+<div class="flex-1 flex flex-col bg-surface overflow-hidden relative">
+<!-- Chat Header -->
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop py-4 md:py-6 border-b border-white/10 bg-surface/40 backdrop-blur-xl z-10 shrink-0">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-none border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A dramatic close up portrait of an intense, professional male athletic coach with short hair, wearing a sleek black technical jacket. Dark, moody lighting emphasizing facial structure, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqKI1wXArKFCiuQCjEBZ2h995Cg-DWJukYCNyof2-jZt71pXTxTc4YIQPYYTaosDnNXQR9cQpq3_1WqWivo4PxdZIMHyERt79rCwBFo9iaHyrLLqaJmcu9NB8r1KlMenqVz-A3SCfQS0Gn3dNQMVjhNJkABawtr0Ikmfvj2vss02izSEdHdUyN0XDfeDh6wXQSUS92nDMMXrJeuzC6nUg-HZ5_L7vS51uJgG0rfQdZ3A-wwbVZ7PwoRWOalHbqfnADU__7Ql_dm3e6"/>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md font-bold tracking-tight text-on-surface uppercase mb-1">COACH MARCUS</h2>
+<div class="inline-flex items-center gap-2 px-2 py-1 border border-outline-variant bg-surface-container">
+<span class="w-1.5 h-1.5 bg-tertiary rounded-full"></span>
+<span class="font-label-md text-label-md text-outline tracking-widest uppercase">ESTADO ELITE</span>
+</div>
+</div>
+</div>
+<button class="flex items-center gap-2 px-4 py-3 bg-on-background text-background hover:bg-surface-tint transition-colors border border-on-background">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">videocam</span>
+<span class="font-label-md text-label-md uppercase tracking-widest hidden md:inline-block">Unirse a la Sesión</span>
+</button>
+</div>
+<!-- Scrollable Messages Area -->
+<div class="flex-1 overflow-y-auto px-margin-mobile md:px-margin-desktop py-8 flex flex-col gap-8 bg-transparent">
+<!-- Date Separator -->
+<div class="flex items-center justify-center gap-4 mb-4">
+<div class="h-px w-12 bg-surface-container-high"></div>
+<span class="font-label-md text-label-md text-outline tracking-widest uppercase">HOY</span>
+<div class="h-px w-12 bg-surface-container-high"></div>
+</div>
+<!-- Coach Message (Technical Grey) -->
+<div class="flex items-end gap-4 w-full md:w-3/4">
+<div class="w-8 h-8 rounded-none border border-outline-variant overflow-hidden shrink-0 hidden md:block">
+<img class="w-full h-full object-cover" data-alt="A dramatic close up portrait of an intense, professional male athletic coach with short hair, wearing a sleek black technical jacket. Dark, moody lighting emphasizing facial structure, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0bg4ExyxJocYYuzV39UUBKmEJKJOykYl5a2czGboRkdi8-sFbH6vZ7eor_rO-4VxMVXtNON0tmqM-VdgVdXuFmkP-Bq78b_fhsywXFX0Xb-1AOtx1CbjVl2ZKb5o26Vhwrh33uExeo4vCa5eC-a1qkrQjHUFdpeH3wwgHnZI9fNVJBRxdRfqIOTksDYxR6xj4Rnc-S3QKEmOhpzNfxb0dyJLTn6ljdDY_Dvd4S-ntNBrGKgC7hXEPo-5u25pMc6lkPWta_H3sjUMW"/>
+</div>
+<div class="flex flex-col gap-1 w-full">
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                                Operadora, tu telemetría del bloque de resistencia de ayer muestra una desviación del umbral del 4.2% en la zona 4. Necesitamos recalibrar los parámetros de recuperación activa antes de la sesión de máximo rendimiento de mañana.
+                            </p>
+</div>
+<span class="font-code-data text-code-data text-outline-variant mt-1 ml-1">08:42 AM</span>
+</div>
+</div>
+<!-- User Message (Deep Red / Tertiary Container) -->
+<div class="flex items-end gap-4 w-full md:w-3/4 self-end justify-end">
+<div class="flex flex-col gap-1 w-full items-end">
+<div class="bg-surface/60 backdrop-blur-xl border-l-2 border-on-tertiary-container p-5 rounded-xl shadow-none">
+<p class="font-body-md text-body-md text-tertiary-fixed leading-relaxed">
+                                Entendido. ¿Debo ejecutar el protocolo Bravo hoy, o bajar la intensidad por completo y limitarme a trabajo de movilidad aislado?
+                            </p>
+</div>
+<span class="font-code-data text-code-data text-outline-variant mt-1 mr-1">09:15 AM</span>
+</div>
+</div>
+<!-- Coach Message with Attachment -->
+<div class="flex items-end gap-4 w-full md:w-3/4 mt-4">
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none flex flex-col gap-4">
+<img class="w-full h-full object-cover" data-alt="A dramatic close up portrait of an intense, professional male athletic coach with short hair, wearing a sleek black technical jacket. Dark, moody lighting emphasizing facial structure, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArRLGcMwcDbAVsGowNkuWdazCiWyv3UZyg6TstiiyRLbxSDEoPHxzXKfzZlbaFa0CGI1rX2xFLMt8NOQRZjbPUuiX76A8-XnKpE5VdhOaTkq8BWu0XbbRj1ss44KgyEbVAYQNEft88gAYbHn7dtxhNDpvBbKvEHThhiEJ5WowsHwFb7tZDdl4B-GW9smViVjjgXEEdHssQprvqYws4FNPwqzZ1Mapmmptg5lcA-xIcAI0qtYosvjqKgc9X879LSCF3cmvOKTv1FDTV"/>
+</div>
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none flex flex-col gap-4">
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none flex flex-col gap-4">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                                Baja a movilidad aislada. He compilado una rutina de integridad estructural revisada. Revisa el esquema adjunto antes de nuestra sincronización a las 1400.
+                            </p>
+<!-- Attachment Block -->
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none flex flex-col gap-4">
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none flex flex-col gap-4">
+<span class="material-symbols-outlined text-on-surface">description</span>
+</div>
+<div class="bg-surface/60 backdrop-blur-xl border border-white/10 p-5 rounded-xl shadow-none flex flex-col gap-4">
+<span class="font-label-md text-label-md text-on-surface tracking-wider uppercase mb-1">ESQUEMA_RECUPERACION_V3.PDF</span>
+<span class="font-code-data text-code-data text-outline text-xs">2.4 MB • DOCUMENTO TÉCNICO</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-outline group-hover:text-on-surface transition-colors">download</span>
+</div>
+</div>
+<span class="font-code-data text-code-data text-outline-variant mt-1 ml-1">09:22 AM</span>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="px-margin-mobile md:px-margin-desktop py-4 md:py-6 border-t border-white/10 bg-surface/40 backdrop-blur-xl shrink-0 mb-20 md:mb-0 pb-24 md:pb-6">
+<div class="flex items-end gap-3 max-w-container-max mx-auto">
+<button class="p-4 border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-outline hover:text-on-surface shrink-0">
+<span class="material-symbols-outlined">attach_file</span>
+</button>
+<div class="flex-1 border border-outline-variant bg-surface flex items-center focus-within:border-outline focus-within:bg-surface-container transition-colors relative">
+<textarea class="w-full bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface placeholder-outline resize-none py-4 px-4 h-14" placeholder="TRANSMITIR MENSAJE..." rows="1"></textarea>
+</div>
+<button class="p-4 border border-on-tertiary-container bg-on-tertiary-container text-surface hover:bg-tertiary hover:border-tertiary transition-colors shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Mobile Bottom Navigation Shell -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 bg-surface-container/60 backdrop-blur-3xl border-t border-white/10 h-20 z-50">
+<!-- Dashboard (Inactive) -->
+<a class="flex flex-col items-center justify-center text-outline pt-2 hover:text-on-surface transition-all duration-300 active:scale-95 border-t-2 border-transparent w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-label-md text-label-md uppercase tracking-widest text-[10px]">PANEL</span>
+</a>
+<!-- Training (Inactive) -->
+<a class="flex flex-col items-center justify-center text-outline pt-2 hover:text-on-surface transition-all duration-300 active:scale-95 border-t-2 border-transparent w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1">fitness_center</span>
+<span class="font-label-md text-label-md uppercase tracking-widest text-[10px]">ENTRENO</span>
+</a>
+<!-- Coaching (Active - Exact Match) -->
+<a class="flex flex-col items-center justify-center text-tertiary-fixed-dim border-t-2 border-tertiary-fixed-dim pt-2 hover:text-on-surface transition-all duration-300 active:scale-95 w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+<span class="font-label-md text-label-md uppercase tracking-widest text-[10px]">COACHING</span>
+</a>
+<!-- Community (Inactive) -->
+<a class="flex flex-col items-center justify-center text-outline pt-2 hover:text-on-surface transition-all duration-300 active:scale-95 border-t-2 border-transparent w-full h-full" href="#">
+<span class="material-symbols-outlined mb-1">groups</span>
+<span class="font-label-md text-label-md uppercase tracking-widest text-[10px]">COMUNIDAD</span>
+</a>
+</nav>
+<script>
+        // Simple auto-resize for textarea to maintain professional feel
+        const textarea = document.querySelector('textarea');
+        textarea.addEventListener('input', function() {
+            this.style.height = '56px'; // Reset base height
+            if(this.scrollHeight > 56) {
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            }
+        });
+    </script>
+</body></html>

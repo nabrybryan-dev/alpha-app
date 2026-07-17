@@ -1,0 +1,302 @@
+<!DOCTYPE html><html class="dark" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#690005",
+                        "surface-container": "#20201f",
+                        "on-secondary": "#690003",
+                        "surface-bright": "#393939",
+                        "on-surface": "#e5e2e1",
+                        "tertiary-container": "#080a0a",
+                        "secondary": "#ffb4aa",
+                        "error-container": "#93000a",
+                        "surface-variant": "#353535",
+                        "surface-container-high": "#2a2a2a",
+                        "primary": "#c9c6c5",
+                        "on-tertiary-container": "#78797a",
+                        "primary-container": "#0a0a0a",
+                        "on-surface-variant": "#c4c7c7",
+                        "secondary-fixed-dim": "#ffb4aa",
+                        "primary-fixed": "#e5e2e1",
+                        "surface-tint": "#c9c6c5",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#c9c6c5",
+                        "on-secondary-container": "#fffbff",
+                        "surface": "#131313",
+                        "on-primary-fixed": "#1c1b1b",
+                        "on-background": "#e5e2e1",
+                        "inverse-primary": "#5f5e5e",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "on-tertiary": "#2f3131",
+                        "surface-dim": "#131313",
+                        "on-secondary-fixed": "#410001",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "surface-container-lowest": "#0e0e0e",
+                        "secondary-container": "#ea0011",
+                        "brand-red": "#FF1E1E",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed-variant": "#474646",
+                        "inverse-surface": "#e5e2e1",
+                        "on-primary": "#313030",
+                        "tertiary": "#c6c6c7",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-primary-container": "#7b7979",
+                        "outline": "#8e9192",
+                        "outline-variant": "#444748",
+                        "on-secondary-fixed-variant": "#930006",
+                        "background": "#131313",
+                        "secondary-fixed": "#ffdad5",
+                        "inverse-on-surface": "#313030",
+                        "tertiary-fixed": "#e2e2e2",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-highest": "#353535"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "stack-md": "16px",
+                        "unit": "4px",
+                        "margin-desktop": "40px",
+                        "gutter": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "32px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(26, 26, 26, 0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .red-glow {
+            box-shadow: 0 0 15px rgba(255, 30, 30, 0.3);
+        }
+        .red-glow-btn:active {
+            box-shadow: 0 0 25px rgba(255, 30, 30, 0.6);
+            transform: scale(0.98);
+        }
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 30, 30, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(255, 30, 30, 0.5); }
+        }
+        .animate-red-pulse {
+            animation: pulse-red 2s infinite ease-in-out;
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .technical-font {
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="bg-background">
+<!-- Background Layer -->
+<div class="fixed inset-0 z-0 overflow-hidden">
+<div class="w-full h-full bg-cover bg-center opacity-30 scale-105" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6sKt460t3zErArfOZ8gsTfzQaypSI36Fg5cDbtzK7PQFi8ifWawsitFZYyCwCZD20-X9mogd1jRH2T8DMjjjqoGZCOTL6Y4G8bcRYd_ClnW3EfSAAQPcnSNra6VeGcyExIsKywlrOVpaUfOeO4LEG9AJw2yTSvXrbB2HS-DFEFOJCV1sivpNfVBQkKjJKysBXDUAqt0WBAEEXiCjdPifA3JDv1EDtQCx3ExFfe8nYmKDJ7sr0DzGCWx1wERbEO3ENJS4zW9OPr9Fh')"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-background via-background/40 to-background"></div>
+</div>
+<!-- Top Navigation Bar -->
+<header class="docked full-width top-0 sticky z-50 bg-surface/60 backdrop-blur-2xl border-b border-white/5 flex justify-between items-center w-full px-margin-mobile h-16">
+<div class="flex items-center gap-2">
+<h1 class="text-headline-md font-black tracking-tighter text-on-surface">ALPHA ATHLETICS</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant hover:bg-white/5 transition-colors p-2 rounded-full cursor-pointer">notifications</span>
+<div class="w-8 h-8 rounded-full border border-brand-red p-0.5 overflow-hidden">
+<div class="w-full h-full bg-surface-container-high rounded-full flex items-center justify-center text-[10px] font-bold">JD</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="relative z-10 px-margin-mobile pt-stack-lg pb-32 max-w-md mx-auto">
+<!-- Header Section -->
+<section class="mb-stack-lg">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface technical-font">Nutrición Pro</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Mantén tu rendimiento al máximo nivel.</p>
+</section>
+<!-- Macros Grid -->
+<section class="grid grid-cols-3 gap-gutter mb-stack-lg">
+<!-- Proteína -->
+<div class="glass-card rounded-xl p-4 flex flex-col items-center">
+<div class="relative w-16 h-16 mb-2">
+<svg class="w-full h-full">
+<circle cx="32" cy="32" fill="transparent" r="28" stroke="rgba(255,255,255,0.05)" stroke-width="4"></circle>
+<circle class="progress-ring-circle" cx="32" cy="32" fill="transparent" r="28" stroke="#FF1E1E" stroke-dasharray="175.9" stroke-dashoffset="44" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center font-bold text-xs">75%</div>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest text-[10px]">Proteína</span>
+<span class="font-black text-brand-red text-lg technical-font">142g</span>
+</div>
+<!-- Carbohidratos -->
+<div class="glass-card rounded-xl p-4 flex flex-col items-center">
+<div class="relative w-16 h-16 mb-2">
+<svg class="w-full h-full">
+<circle cx="32" cy="32" fill="transparent" r="28" stroke="rgba(255,255,255,0.05)" stroke-width="4"></circle>
+<circle class="progress-ring-circle" cx="32" cy="32" fill="transparent" r="28" stroke="#FF1E1E" stroke-dasharray="175.9" stroke-dashoffset="88" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center font-bold text-xs">50%</div>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest text-[10px]">Carbs</span>
+<span class="font-black text-on-surface text-lg technical-font">185g</span>
+</div>
+<!-- Grasas -->
+<div class="glass-card rounded-xl p-4 flex flex-col items-center">
+<div class="relative w-16 h-16 mb-2">
+<svg class="w-full h-full">
+<circle cx="32" cy="32" fill="transparent" r="28" stroke="rgba(255,255,255,0.05)" stroke-width="4"></circle>
+<circle class="progress-ring-circle" cx="32" cy="32" fill="transparent" r="28" stroke="#FF1E1E" stroke-dasharray="175.9" stroke-dashoffset="130" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center font-bold text-xs">25%</div>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest text-[10px]">Grasas</span>
+<span class="font-black text-on-surface text-lg technical-font">42g</span>
+</div>
+</section>
+<!-- Water Tracker -->
+<section class="glass-card rounded-xl p-5 mb-stack-lg flex items-center justify-between">
+<div>
+<h3 class="font-headline-md text-headline-md mb-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-red">water_drop</span>
+                    Hidratación
+                </h3>
+<p class="font-label-md text-label-md text-on-surface-variant">2.4L de 3.5L diarios</p>
+</div>
+<div class="flex gap-1">
+<button class="w-10 h-10 rounded-lg bg-brand-red/10 border border-brand-red/20 flex items-center justify-center hover:bg-brand-red/20 transition-all active:scale-90" onclick="updateWater(this)">
+<span class="material-symbols-outlined text-brand-red">add</span>
+</button>
+</div>
+</section>
+<!-- Today's Meals -->
+<section class="mb-stack-lg">
+<div class="flex justify-between items-end mb-stack-sm">
+<h3 class="font-headline-md text-headline-md technical-font">Comidas de Hoy</h3>
+<span class="font-label-md text-label-md text-brand-red uppercase tracking-wider font-bold">Ver todas</span>
+</div>
+<div class="space-y-stack-sm">
+<!-- Meal Item -->
+<div class="glass-card rounded-xl p-4 flex items-center gap-4 transition-all hover:bg-white/5 active:scale-[0.99]">
+<div class="w-14 h-14 rounded-lg overflow-hidden bg-surface-container">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC5P6kYjo47RObioqUpyOhzNXoQdetEg5Iu3kF9n-aZylqyl8XrzrgmLYADFrBSLlnfX9hmDSta7IWMlXSvTGT7m-AquO2fwJkmK8RQiiNCQuPsaIDQTHT9CAxi_ZxSY5VsO1sjZ3euLDPENs29PJv7QPcOuo0W8XTJVTcp5zN5SRXUtbvTl-ZOcldeeWsN1ILrkGwzimzGRktK0563cwCLY0P1-WIcqjr7l85lTaXf0ciibrW84MrYB70N5ACEWgwiY6h03Q71ZI3e')"></div>
+</div>
+<div class="flex-1">
+<h4 class="font-body-lg text-body-lg font-bold">Desayuno Fitness</h4>
+<p class="text-xs text-on-surface-variant">08:30 AM • 450 kcal</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Meal Item -->
+<div class="glass-card rounded-xl p-4 flex items-center gap-4 transition-all hover:bg-white/5 active:scale-[0.99]">
+<div class="w-14 h-14 rounded-lg overflow-hidden bg-surface-container">
+<div class="w-full h-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAYKF9ORup56lOgDHBRTkurLZH1cysv90TT8cZykaR1RPxKuL8DHmrHpCS40spjWiZiNhjYm16etX1JJSNLMuD8MpKKZlX_NKA2X977xEbjZwrrYDyAXfuKSuRJZjglsKPmj2oErQeJDi2lZP7RVILWpKyCEMoEq93OMc9VINvezUPawXTXwwaYCKgl2lTvnZyihh5l-lGGuyHVpYj-BlfxdSwMCicX6QtZbKQd4XQeb4fAc9ab7lyhKk1_C3Pkobd0k5l0JKViG3TT')"></div>
+</div>
+<div class="flex-1">
+<h4 class="font-body-lg text-body-lg font-bold">Salmón con Quinoa</h4>
+<p class="text-xs text-on-surface-variant">01:45 PM • 620 kcal</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Meal Item (Button-like) -->
+<div class="glass-card rounded-xl p-4 border-dashed border-brand-red/30 bg-brand-red/5 flex items-center justify-center gap-2 py-6 cursor-pointer hover:bg-brand-red/10 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-brand-red">add_circle</span>
+<span class="font-label-md text-label-md text-brand-red font-bold uppercase tracking-wider">Planificar Cena</span>
+</div>
+</div>
+</section>
+<!-- CTA Action Button -->
+<button class="w-full py-4 bg-brand-red text-white font-black rounded-xl flex items-center justify-center gap-2 red-glow animate-red-pulse red-glow-btn transition-all mt-stack-lg uppercase tracking-tighter">
+<span class="material-symbols-outlined">add_box</span>
+            REGISTRAR COMIDA
+        </button>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full flex justify-around items-center pt-3 pb-6 px-4 bg-surface-container-lowest/80 backdrop-blur-2xl border-t border-white/5 shadow-lg z-50">
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-[10px] uppercase font-bold tracking-tight">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-md text-[10px] uppercase font-bold tracking-tight">Entreno</span>
+</div>
+<div class="flex flex-col items-center justify-center text-brand-red relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-brand-red after:rounded-full cursor-pointer scale-110">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+<span class="font-label-md text-[10px] uppercase font-bold tracking-tight">Nutrición</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-md text-[10px] uppercase font-bold tracking-tight">Comunidad</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-all cursor-pointer">
+<span class="material-symbols-outlined">forum</span>
+<span class="font-label-md text-[10px] uppercase font-bold tracking-tight">Coaching</span>
+</div>
+</nav>
+<script>
+        function updateWater(btn) {
+            const container = btn.closest('section');
+            const text = container.querySelector('p');
+            let current = parseFloat(text.textContent.split('L')[0]);
+            current = (current + 0.2).toFixed(1);
+            text.textContent = `${current}L de 3.5L diarios`;
+            
+            // Micro-interaction feedback
+            btn.classList.add('bg-brand-red/30');
+            setTimeout(() => btn.classList.remove('bg-brand-red/30'), 200);
+        }
+
+        // Add a subtle parallax effect to the background
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const bg = document.querySelector('.fixed.inset-0 div');
+            bg.style.transform = `translateY(${scrolled * 0.1}px) scale(1.05)`;
+        });
+    </script>
+</body></html>

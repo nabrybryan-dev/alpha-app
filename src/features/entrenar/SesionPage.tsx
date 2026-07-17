@@ -10,10 +10,20 @@ import { preparacionDe } from '../../data/plantillas/preparacionBase'
 import { ejercicioCompleto, sesionCompleta } from '../../domain/cumplimiento'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido } from '../../domain/types'
+import { CronometroSesion } from './CronometroSesion'
 import { PreparacionSesion } from './PreparacionSesion'
 import { RegistroSerie } from './RegistroSerie'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
+
+function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
+  return (
+    <div className="text-center">
+      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
+      <p className="cifras font-display text-lg leading-tight text-rojo">{valor}</p>
+    </div>
+  )
+}
 
 export default function SesionPage() {
   const { sesionId } = useParams()
@@ -35,16 +45,16 @@ export default function SesionPage() {
 
   if (cerrada) {
     return (
-      <div className="flex flex-col items-center gap-4 py-10 text-center">
+      <div className="entrada flex flex-col items-center gap-4 py-10 text-center">
         <span className="text-5xl" aria-hidden="true">🏆</span>
         <h2 className="font-display text-3xl text-texto">Sesión {sesion.nombre} registrada</h2>
-        <p className="text-lg font-bold text-verde">+{XP_POR_ACCION.sesion} XP</p>
+        <p className="cifras text-lg font-bold text-verde">+{XP_POR_ACCION.sesion} XP</p>
         <p className="max-w-xs text-sm text-tenue">
           Tus datos ya quedaron guardados para la próxima decisión de programación del coach.
         </p>
         <Link
           to="/"
-          className="mt-2 rounded-xl bg-rojo px-6 py-3 font-display text-sm text-white"
+          className="press mt-2 rounded-full bg-rojo px-8 py-3 font-display text-sm text-white"
         >
           Volver a Hoy →
         </Link>
@@ -54,18 +64,27 @@ export default function SesionPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section>
+      <section className="entrada entrada-1 pt-2">
         <p className="kicker">Microciclo M{microciclo.numero}</p>
-        <h2 className="font-display text-3xl text-texto">{sesion.nombre}</h2>
+        <h2 className="mt-1 font-display text-3xl leading-none text-texto">{sesion.nombre}</h2>
       </section>
 
-      <PreparacionSesion
-        partes={preparacionDe(sesion)}
-        onMarcar={(parteId) => db.microciclos.marcarParte(microciclo.id, sesion.id, parteId)}
-        onVerDemo={setDemo}
-      />
+      {!todasRegistradas && (
+        <div className="entrada entrada-2">
+          <CronometroSesion />
+        </div>
+      )}
+
+      <div className="entrada entrada-3">
+        <PreparacionSesion
+          partes={preparacionDe(sesion)}
+          onMarcar={(parteId) => db.microciclos.marcarParte(microciclo.id, sesion.id, parteId)}
+          onVerDemo={setDemo}
+        />
+      </div>
 
       {sesion.tipo === 'metabolica' && (
+        <div className="entrada entrada-4">
         <Card>
           <p className="kicker">Bloques de la sesión</p>
           <ul className="mt-2 flex flex-col gap-2">
@@ -75,17 +94,17 @@ export default function SesionPage() {
                   type="button"
                   aria-label={bloque.hechoEn ? `Desmarcar ${bloque.titulo}` : `Marcar ${bloque.titulo}`}
                   onClick={() => db.microciclos.marcarParte(microciclo.id, sesion.id, bloque.id)}
-                  className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold ${
-                    bloque.hechoEn ? 'border-verde bg-verde text-white' : 'border-linea text-tenue'
+                  className={`press mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-200 ease-salida ${
+                    bloque.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
                   }`}
                 >
                   ✓
                 </button>
-                <div className={bloque.hechoEn ? 'opacity-60' : ''}>
+                <div className={`transition-opacity duration-200 ${bloque.hechoEn ? 'opacity-60' : ''}`}>
                   <p className="text-sm font-bold text-texto">
                     {bloque.titulo}
                     {bloque.duracionMin ? (
-                      <span className="ml-1 text-xs font-normal text-tenue">· {bloque.duracionMin} min</span>
+                      <span className="cifras ml-1 text-xs font-normal text-tenue">· {bloque.duracionMin} min</span>
                     ) : null}
                   </p>
                   <p className="text-xs text-tenue">{bloque.indicaciones}</p>
@@ -94,70 +113,83 @@ export default function SesionPage() {
             ))}
           </ul>
         </Card>
+        </div>
       )}
 
-      {sesion.tipo !== 'metabolica' && sesion.ejercicios.map((ejercicio) => {
-        const completo = ejercicioCompleto(ejercicio)
-        const siguienteOrden = ejercicio.series.length + 1
-        const contenidoDemo = ejercicio.contenidoDemoId
-          ? db.contenidos.byId(ejercicio.contenidoDemoId)
-          : undefined
+      {sesion.tipo !== 'metabolica' && (
+        <section className="flex flex-col gap-4">
+          <p className="entrada entrada-4 kicker">Protocolo de ejercicios</p>
+          {sesion.ejercicios.map((ejercicio, i) => {
+            const completo = ejercicioCompleto(ejercicio)
+            const siguienteOrden = ejercicio.series.length + 1
+            const contenidoDemo = ejercicio.contenidoDemoId
+              ? db.contenidos.byId(ejercicio.contenidoDemoId)
+              : undefined
 
-        return (
-          <Card key={ejercicio.id} className={completo ? 'opacity-75' : ''}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="kicker">{ejercicio.categoria}</p>
-                <h3 className="mt-0.5 font-display text-lg text-texto">{ejercicio.nombre}</h3>
+            return (
+              <div key={ejercicio.id} className={`entrada entrada-${Math.min(i + 4, 6)}`}>
+              <Card className={completo ? 'opacity-75' : ''}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="kicker">{ejercicio.categoria}</p>
+                    <h3 className="mt-0.5 font-display text-lg text-texto">{ejercicio.nombre}</h3>
+                  </div>
+                  {completo && <Badge tono="verde">✓ Hecho</Badge>}
+                </div>
+
+                <div className="mt-3 flex items-center justify-around rounded-xl border border-hairline bg-surface-2/50 px-2 py-2">
+                  <Estadistica etiqueta="Sets" valor={ejercicio.sets} />
+                  <span className="h-7 w-px bg-linea" aria-hidden="true" />
+                  <Estadistica etiqueta="Reps" valor={ejercicio.rango} />
+                  <span className="h-7 w-px bg-linea" aria-hidden="true" />
+                  <Estadistica etiqueta="RIR" valor={ejercicio.rirObjetivo} />
+                  <span className="h-7 w-px bg-linea" aria-hidden="true" />
+                  <Estadistica etiqueta="Descanso" valor={`${ejercicio.descansoMin}'`} />
+                </div>
+
+                <p className="mt-3 rounded-lg border border-rojo-osc/60 bg-rojo/5 p-2.5 font-mono text-[13px] font-bold leading-snug text-texto">
+                  {ejercicio.prescripcion}
+                </p>
+                <p className="mt-2 text-[13px] italic text-tenue">{ejercicio.cues}</p>
+                {contenidoDemo && (
+                  <button
+                    type="button"
+                    onClick={() => setDemo(contenidoDemo)}
+                    className="press mt-2 text-xs font-bold text-azul"
+                  >
+                    🎬 Ver técnica
+                  </button>
+                )}
+
+                {ejercicio.series.length > 0 && (
+                  <ul className="mt-3 flex flex-col gap-1">
+                    {ejercicio.series.map((serie) => (
+                      <li key={serie.orden} className="flex items-center gap-2 text-sm text-texto">
+                        <span className="text-xs text-tenue">S{serie.orden}</span>
+                        <span className="cifras font-bold">{serie.cargaKg} kg</span>
+                        <span className="cifras">× {serie.reps} reps</span>
+                        <span className="cifras text-tenue">RIR {serie.rir}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {!completo && (
+                  <div className="mt-3">
+                    <RegistroSerie
+                      key={siguienteOrden}
+                      ejercicio={ejercicio}
+                      orden={siguienteOrden}
+                      onGuardar={(serie) => db.microciclos.registrarSerie(microciclo.id, ejercicio.id, serie)}
+                    />
+                  </div>
+                )}
+              </Card>
               </div>
-              {completo && <Badge tono="verde">✓ Hecho</Badge>}
-            </div>
-
-            <p className="mt-2 rounded-lg border border-rojo-osc bg-rojo/5 p-2.5 font-mono text-[13px] font-bold leading-snug text-texto">
-              {ejercicio.prescripcion}
-            </p>
-            <p className="mt-2 text-[13px] italic text-tenue">{ejercicio.cues}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-tenue">
-              <Badge>Rango {ejercicio.rango}</Badge>
-              <Badge>RIR {ejercicio.rirObjetivo}</Badge>
-              <Badge>Descanso {ejercicio.descansoMin} min</Badge>
-              {contenidoDemo && (
-                <button
-                  type="button"
-                  onClick={() => setDemo(contenidoDemo)}
-                  className="ml-auto text-xs font-bold text-azul"
-                >
-                  🎬 Ver técnica
-                </button>
-              )}
-            </div>
-
-            {ejercicio.series.length > 0 && (
-              <ul className="mt-3 flex flex-col gap-1">
-                {ejercicio.series.map((serie) => (
-                  <li key={serie.orden} className="flex items-center gap-2 text-sm text-texto">
-                    <span className="text-xs text-tenue">S{serie.orden}</span>
-                    <span className="font-bold">{serie.cargaKg} kg</span>
-                    <span>× {serie.reps} reps</span>
-                    <span className="text-tenue">RIR {serie.rir}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {!completo && (
-              <div className="mt-3">
-                <RegistroSerie
-                  key={siguienteOrden}
-                  ejercicio={ejercicio}
-                  orden={siguienteOrden}
-                  onGuardar={(serie) => db.microciclos.registrarSerie(microciclo.id, ejercicio.id, serie)}
-                />
-              </div>
-            )}
-          </Card>
-        )
-      })}
+            )
+          })}
+        </section>
+      )}
 
       {todasRegistradas && !sesion.testPost && (
         <TestPostSesion

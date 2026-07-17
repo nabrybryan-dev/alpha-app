@@ -8,6 +8,23 @@ interface TopBarProps {
   titulo: string
 }
 
+function IconoSol() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="h-[18px] w-[18px]" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+  )
+}
+
+function IconoLuna() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden="true">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+    </svg>
+  )
+}
+
 export function TopBar({ titulo }: TopBarProps) {
   const { usuario, cambiarUsuario, esNube, cerrarSesion } = useSesion()
   const { tema, alternar } = useTema()
@@ -25,7 +42,7 @@ export function TopBar({ titulo }: TopBarProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-linea bg-bg/90 backdrop-blur">
+    <header className="glass-blur sticky top-0 z-40 border-b border-hairline bg-bg/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2.5">
           <span
@@ -41,9 +58,9 @@ export function TopBar({ titulo }: TopBarProps) {
             type="button"
             onClick={alternar}
             aria-label={tema === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-            className="grid h-10 w-10 place-items-center rounded-full border border-linea bg-surface-2 text-base"
+            className="press glass grid h-10 w-10 place-items-center rounded-full text-texto"
           >
-            {tema === 'dark' ? '☀️' : '🌙'}
+            {tema === 'dark' ? <IconoSol /> : <IconoLuna />}
           </button>
           <div className="relative">
             <button
@@ -51,7 +68,7 @@ export function TopBar({ titulo }: TopBarProps) {
               onClick={() => setMenuAbierto((v) => !v)}
               aria-label="Cambiar usuario"
               aria-expanded={menuAbierto}
-              className="relative grid h-10 w-10 place-items-center rounded-full border border-linea bg-surface-2 text-xs font-bold text-texto"
+              className="press glass relative grid h-10 w-10 place-items-center rounded-full text-xs font-bold text-texto"
             >
               {usuario.avatarIniciales}
               {noLeidos > 0 && (
@@ -61,19 +78,19 @@ export function TopBar({ titulo }: TopBarProps) {
               )}
             </button>
             {menuAbierto && esNube && (
-              <div className="absolute right-0 top-12 w-56 rounded-2xl border border-linea bg-surface-1 p-2 shadow-xl">
+              <div className="entrada glass glass-blur absolute right-0 top-12 w-56 rounded-panel p-2 shadow-xl">
                 <p className="px-3 py-1 text-xs font-bold text-texto">{usuario.nombre}</p>
                 <button
                   type="button"
                   onClick={cerrarSesion}
-                  className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-rojo active:bg-surface-2"
+                  className="press mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-rojo active:bg-surface-2"
                 >
                   Cerrar sesión
                 </button>
               </div>
             )}
             {menuAbierto && !esNube && (
-              <div className="absolute right-0 top-12 w-56 rounded-2xl border border-linea bg-surface-1 p-2 shadow-xl">
+              <div className="entrada glass glass-blur absolute right-0 top-12 w-56 rounded-panel p-2 shadow-xl">
                 <p className="px-3 py-1 text-[10px] uppercase tracking-widest text-tenue">
                   Ver la app como
                 </p>
@@ -82,7 +99,7 @@ export function TopBar({ titulo }: TopBarProps) {
                     key={u.id}
                     type="button"
                     onClick={() => elegirUsuario(u.id)}
-                    className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm ${
+                    className={`press flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm ${
                       u.id === usuario.id ? 'bg-rojo/10 text-rojo' : 'text-texto active:bg-surface-2'
                     }`}
                   >

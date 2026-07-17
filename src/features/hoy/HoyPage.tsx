@@ -33,16 +33,21 @@ export default function HoyPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section>
+      <section className="entrada entrada-1 pt-2">
         <p className="kicker">
           {microciclo ? `Microciclo M${microciclo.numero} · Cadencia ${microciclo.cadenciaDias} días` : 'Sin microciclo activo'}
         </p>
-        <h2 className="font-display text-3xl text-texto">Hola, {usuario.nombre.split(' ')[0]}</h2>
+        <h2 className="mt-1 font-display text-4xl leading-none text-texto">
+          Hola, {usuario.nombre.split(' ')[0]}
+        </h2>
       </section>
 
-      <Link to="/logros">
-        <Card className="flex items-center gap-4">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-rojo font-display text-lg text-rojo">
+      <Link to="/logros" className="entrada entrada-2 block">
+        <Card className="press flex items-center gap-4">
+          <div
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-rojo font-display text-xl text-rojo"
+            style={{ boxShadow: 'var(--halo-rojo)' }}
+          >
             {juego.rachaBienestar.actual}
           </div>
           <div className="min-w-0 flex-1">
@@ -53,7 +58,7 @@ export default function HoyPage() {
             <div className="mt-1.5">
               <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
             </div>
-            <p className="mt-1 text-[11px] text-tenue">
+            <p className="cifras mt-1 text-[11px] text-tenue">
               {juego.xp} XP{juego.siguiente ? ` · ${juego.siguiente.xpMinimo - juego.xp} XP para ${juego.siguiente.nombre}` : ' · Nivel máximo'}
             </p>
           </div>
@@ -61,52 +66,67 @@ export default function HoyPage() {
       </Link>
 
       {siguienteSesion && microciclo ? (
-        <Card destacada>
-          <p className="kicker">Tu siguiente sesión</p>
-          <h3 className="mt-1 font-display text-2xl text-texto">{siguienteSesion.nombre}</h3>
-          <p className="mt-1 text-sm text-tenue">
-            {siguienteSesion.ejercicios.length} ejercicios · descansos de 2-3 min
-          </p>
-          <Link
-            to={`/entrenar/sesion/${siguienteSesion.id}`}
-            className="mt-3 block rounded-xl bg-rojo py-3 text-center font-display text-sm text-white active:opacity-90"
-          >
-            Empezar sesión →
-          </Link>
-        </Card>
+        <div className="entrada entrada-3">
+          <Card destacada>
+            <p className="kicker">Tu siguiente sesión</p>
+            <h3 className="mt-1.5 font-display text-3xl leading-none text-texto">{siguienteSesion.nombre}</h3>
+            <p className="mt-1.5 text-sm text-tenue">
+              {siguienteSesion.ejercicios.length} ejercicios · descansos de 2-3 min
+            </p>
+            <Link
+              to={`/entrenar/sesion/${siguienteSesion.id}`}
+              className="press cta-pulso mt-4 flex items-center justify-center gap-2.5 rounded-full bg-rojo py-2.5 pl-6 pr-2.5 font-display text-sm text-white"
+            >
+              <span className="flex-1 text-center">Empezar sesión</span>
+              <span
+                aria-hidden="true"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 text-base"
+              >
+                →
+              </span>
+            </Link>
+          </Card>
+        </div>
       ) : (
-        <Card>
-          <p className="text-sm font-bold text-verde">Microciclo completo 💪</p>
-          <p className="mt-1 text-sm text-tenue">
-            Registraste todas las sesiones. El coach está preparando tu siguiente microciclo.
-          </p>
-        </Card>
+        <div className="entrada entrada-3">
+          <Card>
+            <p className="text-sm font-bold text-verde">Microciclo completo 💪</p>
+            <p className="mt-1 text-sm text-tenue">
+              Registraste todas las sesiones. El coach está preparando tu siguiente microciclo.
+            </p>
+          </Card>
+        </div>
       )}
 
       {pendientes.length > 0 && (
-        <section className="flex flex-col gap-2">
+        <section className="entrada entrada-4 flex flex-col gap-2">
           <p className="kicker">Pendientes de hoy</p>
           {pendientes.map((p) => (
             <Link key={p.ruta} to={p.ruta}>
-              <Card className="flex items-center justify-between gap-3 !py-3">
+              <Card className="press flex items-center justify-between gap-3 !py-3">
                 <p className="text-sm text-texto">{p.texto}</p>
-                <span className="text-rojo" aria-hidden="true">→</span>
+                <span
+                  aria-hidden="true"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-hairline text-sm text-rojo"
+                >
+                  →
+                </span>
               </Card>
             </Link>
           ))}
         </section>
       )}
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="entrada entrada-5 grid grid-cols-2 gap-3">
         <Link to="/contenidos">
-          <Card className="h-full">
+          <Card className="press h-full">
             <span className="text-xl" aria-hidden="true">🎬</span>
             <p className="mt-1 font-display text-sm text-texto">Contenidos</p>
             <p className="text-xs text-tenue">Técnica y educación</p>
           </Card>
         </Link>
         <Link to="/cuestionarios">
-          <Card className="h-full">
+          <Card className="press h-full">
             <span className="text-xl" aria-hidden="true">📋</span>
             <p className="mt-1 font-display text-sm text-texto">Cuestionarios</p>
             <p className="text-xs text-tenue">

@@ -25,26 +25,26 @@ export default function MicrocicloPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section>
+      <section className="entrada entrada-1 pt-2">
         <p className="kicker">Microciclo activo</p>
-        <h2 className="font-display text-3xl text-texto">M{microciclo.numero}</h2>
-        <p className="mt-1 text-sm text-tenue">
+        <h2 className="mt-1 font-display text-4xl leading-none text-texto">M{microciclo.numero}</h2>
+        <p className="mt-1.5 text-sm text-tenue">
           Inició el {microciclo.fechaInicio} · cadencia de {microciclo.cadenciaDias} días
         </p>
         <div className="mt-3">
           <ProgressBar pct={resumen.pctRegistrado} etiqueta="Progreso del microciclo" />
-          <p className="mt-1 text-xs text-tenue">
+          <p className="cifras mt-1.5 text-xs text-tenue">
             {resumen.sesionesRegistradas} de {resumen.sesionesTotales} sesiones registradas
           </p>
         </div>
       </section>
 
       <section className="flex flex-col gap-2.5">
-        {microciclo.sesiones.map((sesion) => {
+        {microciclo.sesiones.map((sesion, i) => {
           const registrada = sesionCompleta(sesion)
           return (
-            <Link key={sesion.id} to={`/entrenar/sesion/${sesion.id}`}>
-              <Card className={`flex items-center justify-between gap-3 ${registrada ? 'opacity-70' : ''}`}>
+            <Link key={sesion.id} to={`/entrenar/sesion/${sesion.id}`} className={`entrada entrada-${Math.min(i + 2, 6)}`}>
+              <Card className={`press flex items-center justify-between gap-3 ${registrada ? 'opacity-70' : ''}`}>
                 <div>
                   <h3 className="font-display text-lg text-texto">
                     {sesion.nombre}

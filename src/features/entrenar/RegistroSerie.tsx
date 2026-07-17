@@ -21,7 +21,7 @@ export function RegistroSerie({ ejercicio, orden, onGuardar }: RegistroSerieProp
   const [rir, setRir] = useState(ejercicio.rirObjetivo)
 
   return (
-    <div className="rounded-xl border border-linea bg-surface-2 p-3">
+    <div className="rounded-xl border border-hairline bg-surface-2/60 p-3">
       <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-widest text-tenue">
         Serie {orden} de {ejercicio.sets}
       </p>
@@ -33,7 +33,7 @@ export function RegistroSerie({ ejercicio, orden, onGuardar }: RegistroSerieProp
       <button
         type="button"
         onClick={() => onGuardar({ orden, cargaKg, reps, rir })}
-        className="mt-3 w-full rounded-xl bg-rojo py-2.5 font-display text-sm text-white active:opacity-90"
+        className="press mt-3 w-full rounded-full bg-rojo py-2.5 font-display text-sm text-white"
       >
         Guardar serie {orden} ✓
       </button>

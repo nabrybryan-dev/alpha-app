@@ -50,10 +50,10 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
             return (
               <div
                 key={mensaje.id}
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                className={`entrada max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                   mio
-                    ? 'self-end rounded-br-sm bg-rojo-osc/60 text-texto'
-                    : 'self-start rounded-bl-sm border border-linea bg-surface-2 text-texto'
+                    ? 'self-end rounded-br-sm border-l-2 border-rojo bg-rojo/10 text-texto'
+                    : 'glass self-start rounded-bl-sm text-texto'
                 }`}
               >
                 <p>{mensaje.texto}</p>
@@ -76,13 +76,13 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
         </p>
       )}
 
-      <div className="flex items-end gap-2 border-t border-linea pt-2">
+      <div className="flex items-end gap-2 border-t border-hairline pt-2">
         <input ref={inputArchivo} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => setAdjunto(e.target.files?.[0]?.name ?? '')} />
         <button
           type="button"
           aria-label="Adjuntar foto o video"
           onClick={() => inputArchivo.current?.click()}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-linea bg-surface-2 text-lg"
+          className="press glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg"
         >
           📎
         </button>
@@ -90,14 +90,14 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           rows={1}
-          placeholder="Escríbele al coach…"
-          className="max-h-28 min-h-11 flex-1 resize-none rounded-2xl border border-linea bg-surface-2 px-4 py-2.5 text-sm text-texto placeholder:text-tenue focus:border-rojo focus:outline-none"
+          placeholder="Transmitir mensaje…"
+          className="glass max-h-28 min-h-11 flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm text-texto transition-colors duration-200 ease-salida placeholder:text-[11px] placeholder:font-bold placeholder:uppercase placeholder:tracking-[0.18em] placeholder:text-tenue focus:border-rojo focus:outline-none"
         />
         <button
           type="button"
           onClick={enviar}
           aria-label="Enviar mensaje"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-rojo text-lg text-white active:opacity-90"
+          className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-rojo text-lg text-white"
         >
           ➤
         </button>

@@ -1,0 +1,338 @@
+<!DOCTYPE html><html class="dark" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#690005",
+                        "surface-container": "#20201f",
+                        "on-secondary": "#690003",
+                        "surface-bright": "#393939",
+                        "on-surface": "#e5e2e1",
+                        "tertiary-container": "#080a0a",
+                        "secondary": "#ffb4aa",
+                        "error-container": "#93000a",
+                        "surface-variant": "#353535",
+                        "surface-container-high": "#2a2a2a",
+                        "primary": "#c9c6c5",
+                        "on-tertiary-container": "#78797a",
+                        "primary-container": "#0a0a0a",
+                        "on-surface-variant": "#c4c7c7",
+                        "secondary-fixed-dim": "#ffb4aa",
+                        "primary-fixed": "#e5e2e1",
+                        "surface-tint": "#c9c6c5",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#c9c6c5",
+                        "on-secondary-container": "#fffbff",
+                        "surface": "#131313",
+                        "on-primary-fixed": "#1c1b1b",
+                        "on-background": "#e5e2e1",
+                        "inverse-primary": "#5f5e5e",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "on-tertiary": "#2f3131",
+                        "surface-dim": "#131313",
+                        "on-secondary-fixed": "#410001",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "surface-container-lowest": "#0e0e0e",
+                        "secondary-container": "#ea0011",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed-variant": "#474646",
+                        "inverse-surface": "#e5e2e1",
+                        "on-primary": "#313030",
+                        "tertiary": "#c6c6c7",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-primary-container": "#7b7979",
+                        "outline": "#8e9192",
+                        "outline-variant": "#444748",
+                        "on-secondary-fixed-variant": "#930006",
+                        "background": "#131313",
+                        "secondary-fixed": "#ffdad5",
+                        "inverse-on-surface": "#313030",
+                        "tertiary-fixed": "#e2e2e2",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-highest": "#353535",
+                        "accent-red": "#FF1E1E"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "stack-md": "16px",
+                        "unit": "4px",
+                        "margin-desktop": "40px",
+                        "gutter": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "32px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: rgba(26, 26, 26, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .red-glow {
+            box-shadow: 0 0 15px rgba(255, 30, 30, 0.3);
+        }
+
+        .red-glow-strong:hover {
+            box-shadow: 0 0 25px rgba(255, 30, 30, 0.6);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .active-dot::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            width: 4px;
+            height: 4px;
+            background-color: #FF1E1E;
+            border-radius: 50%;
+        }
+
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .transition-interaction {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        }
+
+        .btn-active:active {
+            transform: scale(0.95);
+        }
+
+        .input-elegant {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            width: 44px;
+            height: 32px;
+            border-radius: 6px;
+        }
+        
+        .input-elegant:focus {
+            outline: none;
+            border-color: #FF1E1E;
+            background: rgba(255, 30, 30, 0.05);
+        }
+    </style>
+</head>
+<body class="dark flex flex-col min-h-screen">
+<!-- Full-screen Background -->
+<div class="fixed inset-0 z-0">
+<div class="w-full h-full bg-cover bg-center opacity-40 grayscale-[0.2]" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCOq7uuRfawc4AuYJVz9QDr2LK6VWcx_RR54frYEeF3buwOH89DSoI3I1RphkdT34Fuv9NpJGesfMUyumHRede9Flq8kyAHM17rLT-8CyfvfK3nCaiJwzzyo_aiq1gxGPwIG1iwDNYp282POFs2DAhSyDCyN82KVANM-pXbA1MRZhYBu8TJsXOWO5a2NZtBZoimqCgRuGnWDlkQwO8oqfx-QdI-l9hSxZkQuG0hJs6675ESKFYhyohY9OjNJQVMji5sgIVsTLFzDvlW')"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/90 via-[#0A0A0A]/60 to-[#0A0A0A]"></div>
+</div>
+<!-- Top Navigation -->
+<header class="bg-surface/60 backdrop-blur-xl text-on-surface docked full-width top-0 sticky z-50 border-b border-white/5 flex items-center w-full px-margin-mobile h-16">
+<div class="flex items-center gap-3">
+<img alt="ALPHA ATHLETICS" class="h-10 w-10 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxR00Iv3u6mtaMLkvbZZUkO9qJu9H609Zbv0RZsb1gWcSrIYP_Mk90pHlUoT-tZk3bj9QXVeOJnhq9Y7J05PJ2Kb8j_62JRGEMDMSugwacFEScGuK-druE09eaB8obAKshhzWsEXBXTtfrvtLocSXk9MCYbF7MgIOV5CuLnNvIFlBRsn4w2nUMV9yfOttKoyXALASob_qfZYU0Qrlby8q3jjMt3dAWvPsWcwJgo7fjcP_J49Ooc4kjmdMRa3TQR5tluEzKFzYQCTvl">
+<span class="text-headline-lg font-black tracking-widest text-white uppercase">ALPHA ATHLETICS</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow pb-32 relative z-10 px-margin-mobile pt-stack-lg">
+<!-- Session Timer Bar -->
+<div class="glass-card rounded-2xl p-6 mb-stack-lg flex flex-col items-center justify-center border-accent-red/20 relative overflow-hidden"><div class="absolute inset-0 bg-accent-red/5 animate-pulse"></div><div class="relative z-10 flex flex-col items-center"><span class="text-[10px] font-black tracking-[0.3em] text-accent-red uppercase mb-2">Cronómetro de Sesión</span><span class="text-display-lg font-mono font-bold tracking-tighter text-white tabular-nums" id="session-timer">00:45:15</span></div></div>
+<!-- Header Section -->
+<div class="mb-stack-lg">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-accent-red px-2 py-0.5 rounded text-[10px] font-black tracking-widest text-white uppercase">Pro Premium</span>
+<span class="text-on-surface-variant font-label-md text-[10px] uppercase tracking-widest">Micro-Ciclo: 4</span>
+</div>
+<h1 class="font-headline-lg-mobile text-white leading-none uppercase italic tracking-tighter">Objetivo: Hipertrofia</h1>
+<p class="text-on-surface-variant font-body-md mt-2">Día 12: Empuje Horizontal &amp; Vertical</p>
+</div>
+<!-- Exercises List -->
+<div class="space-y-stack-md mb-stack-lg">
+<h2 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-[0.2em] mb-stack-sm flex items-center justify-between">
+                Protocolo de Ejercicios
+                <span class="material-symbols-outlined text-sm">settings</span>
+</h2>
+<!-- Exercise Card 1 -->
+<div class="glass-card rounded-2xl p-5 space-y-4">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+<img class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmlvs5XXYj-szJ0jJxR4VsCfx3mbqb6iJ1d7qMlXDmAk4EmVsiG7THt3pDO_ZqXWMPk2At6zB8s-g9dID5wsosZu6Oq13p5ag2hHrkhbDlbHLCxllFeL5ooErp2jyPQkH3HrMFgrkZbd1AflU0L7Ylgi9Stz_ECs00qqjMjnPe9DEts0TiJ0ZPkmgdBTOAA3pkq-0_KeVhnt0e3D-AaqN0rUwUC2883um9n4mjQSHrbsMrWTWuQ-2btLAKVlKPxMPvjPv2jV_S3WNa">
+</div>
+<div class="flex-grow">
+<h3 class="font-headline-md text-white text-[18px] uppercase tracking-tight">Press de Banca</h3>
+<div class="flex gap-4 mt-1">
+<div class="flex flex-col">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">Sets</span>
+<span class="text-accent-red font-bold">4</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">Reps</span>
+<span class="text-white font-bold">8-10</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">RIR</span>
+<span class="text-white font-bold">1-2</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Logging Area -->
+<div class="pt-3 border-t border-white/5 flex items-center justify-between"><div class="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5"><span class="material-symbols-outlined text-[14px] text-accent-red">timer</span><span class="text-[11px] font-mono text-white">01:30</span></div>
+<span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Registro Real</span>
+<div class="flex gap-2">
+<input class="input-elegant" placeholder="S" type="number">
+<input class="input-elegant" placeholder="R" type="number">
+<input class="input-elegant" placeholder="RIR" type="number">
+<button class="bg-white text-black w-8 h-8 rounded-lg flex items-center justify-center transition-interaction active:scale-90">
+<span class="material-symbols-outlined text-[18px] font-bold">check</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Exercise Card 2 -->
+<div class="glass-card rounded-2xl p-5 space-y-4">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-white/10">
+<img class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgUMRglCrvnh5z0gHlwQ5v3RtUWhwoVjLzlJjziKR4ivEhIcnAHBy4FB8FRjpHrhm06I-3EzlYqPnS0zxkSQDm8cQioG40Tzi1QkOkr_O2lM61m09I-SCbsoJrXb9xKwZ55lUVx1zRnP2sqpVKs7dfyIwncBFTDm_M_qUg6M-50Oa_6NZi5y3zTZb73gwpMa340Ownc6Omkd4NVNYNgQZSuJnJIhjrWowj5IjUA7jInMzSkPxKrdefv2RGPu8cNgdpbElsbzC3_aoc">
+</div>
+<div class="flex-grow">
+<h3 class="font-headline-md text-white text-[18px] uppercase tracking-tight">Press Inclinado DB</h3>
+<div class="flex gap-4 mt-1">
+<div class="flex flex-col">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">Sets</span>
+<span class="text-accent-red font-bold">3</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">Reps</span>
+<span class="text-white font-bold">12</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[9px] text-on-surface-variant uppercase font-bold tracking-widest">RIR</span>
+<span class="text-white font-bold">0-1</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Logging Area -->
+<div class="pt-3 border-t border-white/5 flex items-center justify-between"><div class="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5"><span class="material-symbols-outlined text-[14px] text-accent-red">timer</span><span class="text-[11px] font-mono text-white">01:30</span></div>
+<span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">Registro Real</span>
+<div class="flex gap-2">
+<input class="input-elegant" placeholder="S" type="number">
+<input class="input-elegant" placeholder="R" type="number">
+<input class="input-elegant" placeholder="RIR" type="number">
+<button class="bg-white text-black w-8 h-8 rounded-lg flex items-center justify-center transition-interaction active:scale-90">
+<span class="material-symbols-outlined text-[18px] font-bold">check</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Timer Section Integrated -->
+<!-- Main Action CTA -->
+<div class="fixed bottom-24 left-0 w-full px-margin-mobile">
+<button class="w-full h-16 bg-accent-red/20 backdrop-blur-xl border border-accent-red/40 text-white font-headline-md rounded-xl flex items-center justify-center gap-3 transition-interaction btn-active uppercase font-black tracking-widest animate-pulse shadow-[0_0_20px_rgba(255,30,30,0.2)]"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>Finalizar Sesión</button>
+</div>
+</main>
+<!-- Navigation Bar -->
+<nav class="bg-[#0A0A0A]/90 backdrop-blur-2xl text-on-surface-variant font-label-md text-label-md docked full-width bottom-0 fixed z-50 border-t border-white/5 shadow-lg w-full flex justify-around items-center pt-3 pb-8 px-4">
+<!-- Dashboard -->
+<a class="flex flex-col items-center justify-center transition-all opacity-50" href="#">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="text-[9px] uppercase font-black tracking-tighter">Dashboard</span>
+</a>
+<!-- Entrenamiento (Active) -->
+<a class="flex flex-col items-center justify-center text-white relative scale-110 transition-all" href="#">
+<span class="material-symbols-outlined mb-1 text-accent-red" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="text-[9px] uppercase font-black tracking-tighter">Train</span>
+<div class="absolute -bottom-1 w-1 h-1 bg-accent-red rounded-full"></div>
+</a>
+<!-- Nutrición -->
+<a class="flex flex-col items-center justify-center transition-all opacity-50" href="#">
+<span class="material-symbols-outlined mb-1">restaurant</span>
+<span class="text-[9px] uppercase font-black tracking-tighter">Nutrición</span>
+</a>
+<!-- Comunidad -->
+<a class="flex flex-col items-center justify-center transition-all opacity-50" href="#">
+<span class="material-symbols-outlined mb-1">groups</span>
+<span class="text-[9px] uppercase font-black tracking-tighter">Social</span>
+</a>
+<!-- Coaching -->
+<a class="flex flex-col items-center justify-center transition-all opacity-50" href="#">
+<span class="material-symbols-outlined mb-1">forum</span>
+<span class="text-[9px] uppercase font-black tracking-tighter">Coach</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for the rest timer
+        let timeLeft = 90;
+        const timerDisplay = document.getElementById('rest-timer');
+        
+        function updateRestTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+            timerDisplay.innerHTML = `0${minutes}:${seconds}`;
+        }
+
+        // Session timer simulation
+        let sessionSeconds = 2712; // Starting at 45:12
+        const sessionDisplay = document.getElementById('session-timer');
+
+        setInterval(() => {
+            sessionSeconds++;
+            const h = Math.floor(sessionSeconds / 3600);
+            const m = Math.floor((sessionSeconds % 3600) / 60);
+            const s = sessionSeconds % 60;
+            sessionDisplay.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }, 1000);
+
+        document.querySelectorAll('button, input').forEach(el => {
+            el.addEventListener('click', function() {
+                if (window.navigator.vibrate) window.navigator.vibrate(10);
+            });
+        });
+    </script>
+</body></html>

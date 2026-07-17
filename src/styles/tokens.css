@@ -17,6 +17,14 @@
   --verde: #28c76f;
   --ambar: #f5a623;
   --azul: #3b9dff;
+
+  /* Glass Pro Premium */
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-fuerte: rgba(255, 255, 255, 0.14);
+  --glass-bg: rgba(20, 20, 20, 0.62);
+  --glass-shell: rgba(255, 255, 255, 0.03);
+  --brillo-interior: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --halo-rojo: 0 0 24px rgba(255, 30, 30, 0.18);
 }
 
 [data-theme="light"] {
@@ -33,6 +41,20 @@
   --verde: #178a4c;
   --ambar: #a86e07;
   --azul: #1462b8;
+
+  --hairline: rgba(0, 0, 0, 0.07);
+  --hairline-fuerte: rgba(0, 0, 0, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-shell: rgba(0, 0, 0, 0.03);
+  --brillo-interior: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --halo-rojo: 0 0 24px rgba(213, 18, 22, 0.12);
+}
+
+:root {
+  /* Motion — curvas con carácter, nunca ease-in-out genérico */
+  --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-mov: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 html {
@@ -62,4 +84,111 @@ body {
   letter-spacing: 0.25em;
   text-transform: uppercase;
   font-size: 11px;
+}
+
+/* ---------- Arquitectura de cristal (Pro Premium) ---------- */
+
+/* Panel de cristal: fondo translúcido + hairline + brillo interior.
+   El blur solo se aplica en superficies fijas (nav, topbar, sheets)
+   vía .glass-blur para no castigar el scroll en móvil. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--brillo-interior);
+}
+
+.glass-blur {
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+/* Tarjeta destacada: hairline rojo + halo, conservando el brillo interior */
+.glass-destacada {
+  border-color: color-mix(in srgb, var(--rojo) 45%, transparent);
+  box-shadow: var(--brillo-interior), var(--halo-rojo);
+}
+
+/* Doble bisel: bandeja exterior sutil que encierra el panel interior */
+.bisel {
+  background: var(--glass-shell);
+  border: 1px solid var(--hairline);
+  border-radius: 1.5rem;
+  padding: 0.375rem;
+}
+
+.bisel > .bisel-nucleo {
+  border-radius: calc(1.5rem - 0.375rem);
+}
+
+/* ---------- Feedback físico ---------- */
+
+.press {
+  transition: transform 160ms var(--ease-salida);
+}
+
+.press:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Entradas coreografiadas ---------- */
+
+@keyframes entrada-suave {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entrada {
+  animation: entrada-suave 480ms var(--ease-salida) both;
+}
+
+.entrada-1 { animation-delay: 0ms; }
+.entrada-2 { animation-delay: 60ms; }
+.entrada-3 { animation-delay: 120ms; }
+.entrada-4 { animation-delay: 180ms; }
+.entrada-5 { animation-delay: 240ms; }
+.entrada-6 { animation-delay: 300ms; }
+
+/* ---------- Pulso del CTA principal (Finalizar sesión / Empezar) ---------- */
+
+@keyframes pulso-halo {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 30, 30, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 30, 30, 0);
+  }
+}
+
+.cta-pulso {
+  animation: pulso-halo 2.4s var(--ease-mov) infinite;
+}
+
+/* ---------- Cronómetro / cifras tabulares ---------- */
+
+.cifras {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Accesibilidad de movimiento ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .entrada {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .cta-pulso {
+    animation: none;
+  }
+  .press,
+  .press:active {
+    transition: none;
+    transform: none;
+  }
 }
