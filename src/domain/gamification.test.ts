@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calcularRacha, calcularXp, evaluarLogros, NIVELES, nivelDeXp } from './gamification'
+import { calcularRacha, calcularXp, evaluarLogros, NIVELES, nivelDeXp, XP_POR_ACCION } from './gamification'
 
 describe('calcularRacha', () => {
   it('cuenta días consecutivos que terminan hoy', () => {
@@ -32,8 +32,15 @@ describe('calcularRacha', () => {
 describe('calcularXp', () => {
   it('10 por check-in, 20 por sesión, 10 por adherencia sí, 5 parcial, 15 por respuesta', () => {
     expect(
-      calcularXp({ checkins: 3, sesiones: 2, adherenciasSi: 2, adherenciasParcial: 1, respuestas: 1 }),
+      calcularXp({ checkins: 3, sesiones: 2, adherenciasSi: 2, adherenciasParcial: 1, respuestas: 1, preparaciones: 0 }),
     ).toBe(3 * 10 + 2 * 20 + 2 * 10 + 5 + 15)
+  })
+
+  it('la preparación completa da 10 xp', () => {
+    expect(XP_POR_ACCION.preparacion).toBe(10)
+    expect(
+      calcularXp({ checkins: 0, sesiones: 0, adherenciasSi: 0, adherenciasParcial: 0, respuestas: 0, preparaciones: 3 }),
+    ).toBe(30)
   })
 })
 

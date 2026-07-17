@@ -33,6 +33,7 @@ export interface ConteosXp {
   adherenciasSi: number
   adherenciasParcial: number
   respuestas: number
+  preparaciones: number
 }
 
 export const XP_POR_ACCION = {
@@ -41,6 +42,7 @@ export const XP_POR_ACCION = {
   adherenciaSi: 10,
   adherenciaParcial: 5,
   respuesta: 15,
+  preparacion: 10,
 } as const
 
 export function calcularXp(c: ConteosXp): number {
@@ -49,7 +51,8 @@ export function calcularXp(c: ConteosXp): number {
     c.sesiones * XP_POR_ACCION.sesion +
     c.adherenciasSi * XP_POR_ACCION.adherenciaSi +
     c.adherenciasParcial * XP_POR_ACCION.adherenciaParcial +
-    c.respuestas * XP_POR_ACCION.respuesta
+    c.respuestas * XP_POR_ACCION.respuesta +
+    c.preparaciones * XP_POR_ACCION.preparacion
   )
 }
 

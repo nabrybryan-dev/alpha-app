@@ -1,5 +1,5 @@
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
-import { resumenMicrociclo, sesionRegistrada } from '../../domain/cumplimiento'
+import { estadoPreparacion, resumenMicrociclo, sesionCompleta } from '../../domain/cumplimiento'
 import {
   calcularRacha,
   calcularXp,
@@ -33,7 +33,7 @@ export function useGamificacion(usuarioId: string): Gamificacion {
 
   const sesionesRegistradas = microciclos
     .flatMap((m) => m.sesiones)
-    .filter((s) => sesionRegistrada(s.ejercicios)).length
+    .filter(sesionCompleta).length
 
   const fechasEntreno = checkins
     .filter((c) => c.entreno && c.entreno.toLowerCase() !== 'descanso')
@@ -45,6 +45,7 @@ export function useGamificacion(usuarioId: string): Gamificacion {
     adherenciasSi: adherencias.filter((a) => a.estado === 'si').length,
     adherenciasParcial: adherencias.filter((a) => a.estado === 'parcial').length,
     respuestas: respuestas.length,
+    preparaciones: microciclos.flatMap((m) => m.sesiones).filter((s) => estadoPreparacion(s) === 'hecha').length,
   })
 
   const nivel = nivelDeXp(xp)
