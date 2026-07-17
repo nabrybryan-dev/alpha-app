@@ -2,10 +2,53 @@ import { describe, expect, it } from 'vitest'
 import {
   desviacionRir,
   ejercicioCompleto,
+  estadoPreparacion,
   resumenMicrociclo,
   semaforoAsesorado,
+  sesionCompleta,
 } from './cumplimiento'
-import type { EjercicioPrescrito, Microciclo } from './types'
+import type { EjercicioPrescrito, Microciclo, Sesion } from './types'
+
+const sesionBase: Sesion = { id: 's', nombre: 'LEG A', orden: 1, ejercicios: [] }
+let contadorItems = 0
+const bloque = (hecho: boolean) => ({
+  id: `b${++contadorItems}`,
+  titulo: 't',
+  indicaciones: 'i',
+  hechoEn: hecho ? '2026-07-17T10:00:00Z' : undefined,
+})
+const parte = (hecho: boolean) => ({ ...bloque(hecho), tipo: 'movilidad' as const })
+
+describe('sesionCompleta', () => {
+  it('sesión de fuerza usa los ejercicios (vacía = incompleta)', () => {
+    expect(sesionCompleta(sesionBase)).toBe(false)
+  })
+
+  it('metabólica completa cuando todos los bloques están hechos', () => {
+    expect(sesionCompleta({ ...sesionBase, tipo: 'metabolica', bloquesCardio: [bloque(true), bloque(true)] })).toBe(true)
+    expect(sesionCompleta({ ...sesionBase, tipo: 'metabolica', bloquesCardio: [bloque(true), bloque(false)] })).toBe(false)
+    expect(sesionCompleta({ ...sesionBase, tipo: 'metabolica', bloquesCardio: [] })).toBe(false)
+  })
+})
+
+describe('estadoPreparacion', () => {
+  it('hecha / parcial según las partes marcadas', () => {
+    expect(estadoPreparacion({ ...sesionBase, preparacion: [parte(true), parte(true)] })).toBe('hecha')
+    expect(estadoPreparacion({ ...sesionBase, preparacion: [parte(true), parte(false)] })).toBe('parcial')
+  })
+
+  it('sin marcar: pendiente si la sesión no se ha hecho, omitida si ya se hizo', () => {
+    expect(estadoPreparacion({ ...sesionBase, preparacion: [parte(false)] })).toBe('pendiente')
+    expect(
+      estadoPreparacion({
+        ...sesionBase,
+        preparacion: [parte(false)],
+        tipo: 'metabolica',
+        bloquesCardio: [bloque(true)],
+      }),
+    ).toBe('omitida')
+  })
+})
 
 describe('desviacionRir', () => {
   it('promedio real menos objetivo', () => {

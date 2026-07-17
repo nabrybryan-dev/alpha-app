@@ -1,4 +1,4 @@
-import type { EjercicioPrescrito, Microciclo, SerieRegistrada } from './types'
+import type { EjercicioPrescrito, Microciclo, SerieRegistrada, Sesion } from './types'
 
 export function desviacionRir(
   rirObjetivo: number,
@@ -17,6 +17,24 @@ export function sesionRegistrada(ejercicios: EjercicioPrescrito[]): boolean {
   return ejercicios.length > 0 && ejercicios.every(ejercicioCompleto)
 }
 
+export function sesionCompleta(sesion: Sesion): boolean {
+  if (sesion.tipo === 'metabolica') {
+    const bloques = sesion.bloquesCardio ?? []
+    return bloques.length > 0 && bloques.every((b) => Boolean(b.hechoEn))
+  }
+  return sesionRegistrada(sesion.ejercicios)
+}
+
+export type EstadoPreparacion = 'hecha' | 'parcial' | 'omitida' | 'pendiente'
+
+export function estadoPreparacion(sesion: Sesion): EstadoPreparacion {
+  const partes = sesion.preparacion ?? []
+  const hechas = partes.filter((p) => p.hechoEn).length
+  if (partes.length > 0 && hechas === partes.length) return 'hecha'
+  if (hechas > 0) return 'parcial'
+  return sesionCompleta(sesion) ? 'omitida' : 'pendiente'
+}
+
 export interface ResumenMicrociclo {
   sesionesTotales: number
   sesionesRegistradas: number
@@ -25,7 +43,7 @@ export interface ResumenMicrociclo {
 
 export function resumenMicrociclo(micro: Microciclo): ResumenMicrociclo {
   const sesionesTotales = micro.sesiones.length
-  const sesionesRegistradas = micro.sesiones.filter((s) => sesionRegistrada(s.ejercicios)).length
+  const sesionesRegistradas = micro.sesiones.filter(sesionCompleta).length
   return {
     sesionesTotales,
     sesionesRegistradas,
