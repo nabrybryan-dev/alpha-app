@@ -71,7 +71,7 @@ export default function AsesoradoDetallePage() {
                 <p className="mt-1 text-sm text-texto/90">{perfil.objetivos}</p>
                 <p className="mt-2 text-xs text-tenue">
                   {perfil.edad} años · {perfil.diasEntrenamiento} días/sem ·{' '}
-                  {Math.round(perfil.tiempoSesionMin / 60)}h{perfil.tiempoSesionMin % 60 || ''} por
+                  {Math.floor(perfil.tiempoSesionMin / 60)}h{perfil.tiempoSesionMin % 60 || ''} por
                   sesión · {perfil.somatotipo}
                 </p>
               </Card>
