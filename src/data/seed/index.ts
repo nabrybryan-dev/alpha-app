@@ -8,6 +8,7 @@ import type {
   Perfil,
   PlanNutricional,
   PremiacionCoach,
+  RegistroHidratacion,
   Respuesta,
   Usuario,
 } from '../../domain/types'
@@ -32,6 +33,8 @@ export interface SeedDb {
   checkins: CheckinDiario[]
   planes: PlanNutricional[]
   adherencias: AdherenciaNutricional[]
+  /** Opcional: snapshots viejos en localStorage no traen esta clave. */
+  hidratacion?: RegistroHidratacion[]
   mensajes: Mensaje[]
   cuestionarios: Cuestionario[]
   respuestas: Respuesta[]
@@ -46,6 +49,7 @@ export const seedDb: SeedDb = {
   checkins: [...checkinsValentina, ...checkinsOtros],
   planes: [planValentina],
   adherencias: adherenciasValentina,
+  hidratacion: [],
   mensajes,
   cuestionarios,
   respuestas,

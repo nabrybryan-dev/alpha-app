@@ -5,6 +5,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { useGamificacion } from '../logros/useGamificacion'
+import { MapaFatiga } from './MapaFatiga'
 
 export default function HoyPage() {
   const { usuario } = useSesion()
@@ -105,8 +106,15 @@ export default function HoyPage() {
         </div>
       )}
 
+      {microciclo && (
+        <section className="entrada entrada-4">
+          <p className="kicker mb-2">Fatiga por grupo muscular</p>
+          <MapaFatiga microciclo={microciclo} />
+        </section>
+      )}
+
       {pendientes.length > 0 && (
-        <section className="entrada entrada-4 flex flex-col gap-2">
+        <section className="entrada entrada-5 flex flex-col gap-2">
           <p className="kicker">Pendientes de hoy</p>
           {pendientes.map((p) => (
             <Link key={p.ruta} to={p.ruta}>
@@ -124,7 +132,7 @@ export default function HoyPage() {
         </section>
       )}
 
-      <section className="entrada entrada-5 grid grid-cols-2 gap-3">
+      <section className="entrada entrada-6 grid grid-cols-2 gap-3">
         <Link to="/contenidos">
           <Card className="press h-full">
             <svg

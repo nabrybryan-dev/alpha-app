@@ -88,6 +88,24 @@ describe('mockDb', () => {
     expect(r.some((x) => x.cuestionarioId === 'q-dolor-articular')).toBe(true)
   })
 
+  it('acumula hidratación por día y no baja de cero', () => {
+    const db = crearMockDb()
+    db.nutricion.registrarHidratacion('u-valentina', '2026-07-17', 250)
+    db.nutricion.registrarHidratacion('u-valentina', '2026-07-17', 500)
+    expect(db.nutricion.hidratacionDe('u-valentina', '2026-07-17')).toBe(750)
+    db.nutricion.registrarHidratacion('u-valentina', '2026-07-17', -1000)
+    expect(db.nutricion.hidratacionDe('u-valentina', '2026-07-17')).toBe(0)
+  })
+
+  it('separa la hidratación por fecha y persiste entre instancias', () => {
+    const db = crearMockDb()
+    db.nutricion.registrarHidratacion('u-valentina', '2026-07-16', 250)
+    db.nutricion.registrarHidratacion('u-valentina', '2026-07-17', 500)
+    const db2 = crearMockDb()
+    expect(db2.nutricion.hidratacionDe('u-valentina', '2026-07-16')).toBe(250)
+    expect(db2.nutricion.hidratacionDe('u-valentina', '2026-07-17')).toBe(500)
+  })
+
   it('guarda test post-sesión', () => {
     const db = crearMockDb()
     const m22 = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')

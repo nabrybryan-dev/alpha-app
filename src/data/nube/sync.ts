@@ -9,7 +9,22 @@ interface OperacionPendiente {
 }
 
 const CLAVE_COLA = 'alpha-cola-sync'
+const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
 let procesando = false
+
+/**
+ * La tabla `hidratacion` llegó después que el esquema inicial (migración 0003).
+ * Solo se sincroniza si la hidratación desde nube confirmó que existe; si no,
+ * el registro queda local y así la cola no se atasca con upserts imposibles.
+ */
+export function marcarTablaHidratacion(disponible: boolean): void {
+  if (disponible) localStorage.setItem(CLAVE_TABLA_HIDRATACION, '1')
+  else localStorage.removeItem(CLAVE_TABLA_HIDRATACION)
+}
+
+function tablaHidratacionLista(): boolean {
+  return localStorage.getItem(CLAVE_TABLA_HIDRATACION) === '1'
+}
 
 function leerCola(): OperacionPendiente[] {
   try {
@@ -111,6 +126,20 @@ export function crearDbSincronizada(local: Db): Db {
 
     nutricion: {
       ...local.nutricion,
+      registrarHidratacion: (usuarioId, fecha, deltaMl) => {
+        local.nutricion.registrarHidratacion(usuarioId, fecha, deltaMl)
+        if (!tablaHidratacionLista()) return
+        encolar({
+          tabla: 'hidratacion',
+          tipo: 'upsert',
+          payload: {
+            id: `hid-${usuarioId}-${fecha}`,
+            usuario_id: usuarioId,
+            fecha,
+            ml: local.nutricion.hidratacionDe(usuarioId, fecha),
+          },
+        })
+      },
       marcarAdherencia: (usuarioId, fecha, estado, comentario) => {
         local.nutricion.marcarAdherencia(usuarioId, fecha, estado, comentario)
         encolar({

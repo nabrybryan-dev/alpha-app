@@ -11,9 +11,11 @@ import type {
   Respuesta,
   Usuario,
 } from '../../domain/types'
+import type { RegistroHidratacion } from '../../domain/types'
 import { aplicarSnapshot } from '../mockDb'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
+import { marcarTablaHidratacion } from './sync'
 
 interface FilaUsuario {
   id: string
@@ -66,6 +68,11 @@ export async function hidratarDesdeNube(): Promise<void> {
     throw new Error(`No se pudo descargar tus datos: ${primerError.error.message}`)
   }
 
+  // Tabla posterior al esquema inicial (migración 0003): si aún no existe,
+  // la app sigue funcionando y la hidratación queda solo en el dispositivo.
+  const hidratacion = await sb.from('hidratacion').select('*')
+  marcarTablaHidratacion(!hidratacion.error)
+
   const snapshot: SeedDb = {
     usuarios: ((usuarios.data ?? []) as FilaUsuario[]).map(
       (u): Usuario => ({
@@ -87,6 +94,16 @@ export async function hidratarDesdeNube(): Promise<void> {
         comentario: (f.comentario as string | null) ?? undefined,
       }),
     ),
+    hidratacion: hidratacion.error
+      ? []
+      : (hidratacion.data ?? []).map(
+          (f): RegistroHidratacion => ({
+            id: f.id as string,
+            usuarioId: f.usuario_id as string,
+            fecha: f.fecha as string,
+            ml: (f.ml as number) ?? 0,
+          }),
+        ),
     planes: (planes.data ?? []).map((f) => f.datos as PlanNutricional),
     mensajes: ((mensajes.data ?? []) as FilaMensaje[]).map(
       (m): Mensaje => ({

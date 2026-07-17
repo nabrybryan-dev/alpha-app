@@ -7,6 +7,7 @@ import { db, useDbVersion } from '../../data/dbInstance'
 import type { TipoDia } from '../../domain/types'
 import { Acordeon } from './Acordeon'
 import { AdherenciaDia } from './AdherenciaDia'
+import { Hidratacion } from './Hidratacion'
 import { MenuDia } from './MenuDia'
 
 const TIPOS_DIA: TipoDia[] = ['ALTO', 'BAJO', 'CHEAT']
@@ -70,6 +71,10 @@ export default function NutricionPage() {
       </section>
 
       <div className="entrada entrada-3">
+        <Hidratacion usuarioId={usuario.id} />
+      </div>
+
+      <div className="entrada entrada-4">
         <AdherenciaDia usuarioId={usuario.id} />
       </div>
 

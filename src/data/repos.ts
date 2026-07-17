@@ -41,6 +41,10 @@ export interface NutricionRepo {
   planByUsuario(usuarioId: string): PlanNutricional | undefined
   adherenciasByUsuario(usuarioId: string): AdherenciaNutricional[]
   marcarAdherencia(usuarioId: string, fecha: string, estado: EstadoAdherencia, comentario?: string): void
+  /** Mililitros de agua registrados en la fecha (0 si no hay registro). */
+  hidratacionDe(usuarioId: string, fecha: string): number
+  /** Suma deltaMl (puede ser negativo para corregir) al total del día, con piso en 0. */
+  registrarHidratacion(usuarioId: string, fecha: string, deltaMl: number): void
 }
 
 export interface MensajesRepo {

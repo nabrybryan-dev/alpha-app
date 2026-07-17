@@ -154,6 +154,13 @@ export interface PlanNutricional {
   seccionesEspeciales: { titulo: string; contenido: string }[]
 }
 
+export interface RegistroHidratacion {
+  id: string
+  usuarioId: string
+  fecha: string
+  ml: number
+}
+
 export type EstadoAdherencia = 'si' | 'parcial' | 'no'
 
 export interface AdherenciaNutricional {

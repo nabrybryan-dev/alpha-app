@@ -69,3 +69,13 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 - Configuro la app con esos valores (`.env.local`) y probamos el login real.
 - Desplegamos a una URL pública (necesitarás crear cuenta en vercel.com igual de
   rápida) y la instalas como app en tu celular.
+
+## 7 · Habilitar la hidratación (migración 0003)
+
+1. Menú → **SQL Editor** → **New query**.
+2. Abre `supabase/migrations/0003_hidratacion.sql` de esta carpeta, copia TODO,
+   pégalo y presiona **Run**. Debe decir "Success. No rows returned".
+3. Listo: el registro de agua de cada asesorado se guardará en la nube.
+
+> Mientras no corras este paso la app NO se rompe: la hidratación se guarda
+> solo en el dispositivo y empieza a sincronizarse en cuanto la tabla exista.

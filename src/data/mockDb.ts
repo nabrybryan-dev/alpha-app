@@ -169,6 +169,21 @@ export function crearMockDb(): Db {
           ],
         })
       },
+      hidratacionDe: (usuarioId, fecha) =>
+        (ref.actual.hidratacion ?? []).find((h) => h.usuarioId === usuarioId && h.fecha === fecha)
+          ?.ml ?? 0,
+      registrarHidratacion: (usuarioId, fecha, deltaMl) => {
+        const lista = ref.actual.hidratacion ?? []
+        const previo = lista.find((h) => h.usuarioId === usuarioId && h.fecha === fecha)
+        const ml = Math.max(0, (previo?.ml ?? 0) + deltaMl)
+        mutar({
+          ...ref.actual,
+          hidratacion: [
+            ...lista.filter((h) => !(h.usuarioId === usuarioId && h.fecha === fecha)),
+            { id: `hid-${usuarioId}-${fecha}`, usuarioId, fecha, ml },
+          ],
+        })
+      },
     },
 
     mensajes: {
