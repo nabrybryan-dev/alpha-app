@@ -1,9 +1,11 @@
-import { diasAtras } from './fechas'
+import { diasAtras, fechaIsoAtras } from './fechas'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
   EjercicioPrescrito,
+  ItemMarcable,
   Microciclo,
+  PartePreparacion,
   Perfil,
   PlanNutricional,
   SerieRegistrada,
@@ -78,9 +80,34 @@ function seriesDe(cargaKg: number, reps: number, rir: number, n: number): SerieR
   }))
 }
 
+const prep = (
+  id: string,
+  tipo: PartePreparacion['tipo'],
+  titulo: string,
+  indicaciones: string,
+): PartePreparacion => ({ id, tipo, titulo, indicaciones })
+
+function prepPierna(sufijo: string, letra: string): PartePreparacion[] {
+  return [
+    prep(`prep-${sufijo}-${letra}-cardio`, 'calentamiento', 'Bici 6 min ritmo conversacional', 'Cadencia alta sin resistencia: temperatura y líquido sinovial antes de cargar.'),
+    prep(`prep-${sufijo}-${letra}-9090`, 'movilidad', '90/90 de cadera × 8 por lado', 'Transiciones lentas; hoy la cadera es protagonista.'),
+    prep(`prep-${sufijo}-${letra}-tobillo`, 'movilidad', 'Dorsiflexión de tobillo × 10 por lado', 'Rodilla a la pared sin levantar el talón.'),
+  ]
+}
+
+function prepTorso(sufijo: string, letra: string): PartePreparacion[] {
+  return [
+    prep(`prep-${sufijo}-${letra}-cardio`, 'calentamiento', 'Remo o elíptica 6 min suave', 'Ritmo conversacional; involucra brazos para irrigar el tren superior.'),
+    prep(`prep-${sufijo}-${letra}-banda`, 'movilidad', 'Dislocaciones con banda × 12', 'Agarre ancho; hombro, codo y muñeca listos para empujar y traccionar.'),
+    prep(`prep-${sufijo}-${letra}-pullapart`, 'movilidad', 'Band pull-apart × 15', 'Aprieta escápulas 1 s: activación de espalda alta y sistema nervioso.'),
+  ]
+}
+
 function sesionesBloque(sufijo: string, conRegistro: boolean): Sesion[] {
   const r = (carga: number, reps: number, rir: number, n: number) =>
     conRegistro ? seriesDe(carga, reps, rir, n) : []
+  const conMarca = (partes: PartePreparacion[]): PartePreparacion[] =>
+    conRegistro ? partes.map((p) => ({ ...p, hechoEn: fechaIsoAtras(10, '17:02:00') })) : partes
   const testPost = conRegistro
     ? { duracionMin: 135, rpeSesion: 8, prsEntrada: 7 }
     : undefined
@@ -90,6 +117,7 @@ function sesionesBloque(sufijo: string, conRegistro: boolean): Sesion[] {
       id: `s-lega-${sufijo}`,
       nombre: 'LEG A',
       orden: 1,
+      preparacion: conMarca(prepPierna(sufijo, 'la')),
       testPost,
       ejercicios: [
         ej({ id: `e-hip-${sufijo}`, categoria: 'DOMINANTE DE CADERA', nombre: 'Hip thrust con barra', cues: 'Mentón abajo, pelvis en retroversión al bloquear, pausa 1s arriba', prescripcion: '85KG A 10 REPS; 3 SERIES (RIR 2). PROGRESA +5KG VS M21. PAUSA ARRIBA', descansoMin: 3, sets: 3, rango: '(8-12)', repsDiana: 10, rirObjetivo: 2, contenidoDemoId: 'c-bisagra' }, r(85, 10, 2, 3)),
@@ -103,6 +131,7 @@ function sesionesBloque(sufijo: string, conRegistro: boolean): Sesion[] {
       id: `s-uppera-${sufijo}`,
       nombre: 'UPPER A',
       orden: 2,
+      preparacion: conMarca(prepTorso(sufijo, 'ua')),
       testPost: conRegistro ? { duracionMin: 128, rpeSesion: 7, prsEntrada: 8 } : undefined,
       ejercicios: [
         ej({ id: `e-press-${sufijo}`, categoria: 'EMPUJE HORIZONTAL', nombre: 'Press plano con mancuernas', cues: 'Escápulas atrás y abajo, codos 45°, toca pecho sin rebote', prescripcion: '22.5KG A 9 REPS; 3 SERIES (RIR 2). PROGRESA +2.5KG VS M21. CONTROLA BAJADA', descansoMin: 3, sets: 3, rango: '(8-10)', repsDiana: 9, rirObjetivo: 2, contenidoDemoId: 'c-empuje-h' }, r(22.5, 9, 2, 3)),
@@ -116,6 +145,7 @@ function sesionesBloque(sufijo: string, conRegistro: boolean): Sesion[] {
       id: `s-legb-${sufijo}`,
       nombre: 'LEG B',
       orden: 3,
+      preparacion: conMarca(prepPierna(sufijo, 'lb')),
       testPost: conRegistro ? { duracionMin: 140, rpeSesion: 9, prsEntrada: 6 } : undefined,
       ejercicios: [
         ej({ id: `e-prensa-${sufijo}`, categoria: 'DOMINANTE DE RODILLA', nombre: 'Prensa 45° pies altos', cues: 'Pies altos y anchos para sesgo de glúteo e isquio, baja profundo', prescripcion: '140KG A 12 REPS; 3 SERIES (RIR 2). PROGRESA +10KG VS M21', descansoMin: 3, sets: 3, rango: '(10-14)', repsDiana: 12, rirObjetivo: 2, contenidoDemoId: 'c-sentadilla' }, r(140, 12, 2, 3)),
@@ -129,6 +159,7 @@ function sesionesBloque(sufijo: string, conRegistro: boolean): Sesion[] {
       id: `s-upperb-${sufijo}`,
       nombre: 'UPPER B',
       orden: 4,
+      preparacion: conMarca(prepTorso(sufijo, 'ub')),
       testPost: conRegistro ? { duracionMin: 125, rpeSesion: 8, prsEntrada: 7 } : undefined,
       ejercicios: [
         ej({ id: `e-inclinado-${sufijo}`, categoria: 'EMPUJE HORIZONTAL', nombre: 'Press inclinado en multipower', cues: 'Banco a 30°, baja a la parte alta del pecho', prescripcion: '35KG A 9 REPS; 3 SERIES (RIR 2). PROGRESA +2.5KG VS M21', descansoMin: 3, sets: 3, rango: '(8-10)', repsDiana: 9, rirObjetivo: 2, contenidoDemoId: 'c-empuje-h' }, r(35, 9, 2, 3)),
@@ -160,6 +191,7 @@ function conLegARegistrada(sesiones: Sesion[]): Sesion[] {
     return {
       ...s,
       testPost: { duracionMin: 132, rpeSesion: 8, prsEntrada: 8 },
+      preparacion: s.preparacion?.map((p) => ({ ...p, hechoEn: fechaIsoAtras(2, '17:02:00') })),
       ejercicios: s.ejercicios.map((e) => ({
         ...e,
         series: seriesDe(
@@ -171,6 +203,26 @@ function conLegARegistrada(sesiones: Sesion[]): Sesion[] {
       })),
     }
   })
+}
+
+function sesionMetabolica(sufijo: string): Sesion {
+  const bloque = (id: string, titulo: string, indicaciones: string, duracionMin: number): ItemMarcable =>
+    ({ id, titulo, indicaciones, duracionMin })
+  return {
+    id: `s-metab-${sufijo}`,
+    nombre: 'METABÓLICO A',
+    orden: 6,
+    tipo: 'metabolica',
+    ejercicios: [],
+    preparacion: [
+      prep(`prep-${sufijo}-met-tobillo`, 'movilidad', 'Tobillos y balanceos de pierna × 10', 'Círculos de tobillo y balanceos frontales antes de correr.'),
+    ],
+    bloquesCardio: [
+      bloque(`bc-${sufijo}-1`, 'Calentamiento: 5 min trote suave', 'Ritmo conversacional, zancada corta.', 5),
+      bloque(`bc-${sufijo}-2`, '10 × 1 min fuerte / 1 min suave', 'El minuto fuerte a RPE 8: palabras sueltas, no frases. El suave es trote, no caminata.', 20),
+      bloque(`bc-${sufijo}-3`, 'Enfriamiento: 5 min caminata', 'Baja pulsaciones caminando, respira por la nariz.', 5),
+    ],
+  }
 }
 
 export const microciclosValentina: Microciclo[] = [
@@ -190,7 +242,7 @@ export const microciclosValentina: Microciclo[] = [
     cadenciaDias: 8,
     estado: 'activo',
     fechaInicio: diasAtras(7),
-    sesiones: conLegARegistrada(sesionesBloque('m22', false)),
+    sesiones: [...conLegARegistrada(sesionesBloque('m22', false)), sesionMetabolica('m22')],
   },
 ]
 
