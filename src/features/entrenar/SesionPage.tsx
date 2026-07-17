@@ -85,16 +85,20 @@ export default function SesionPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="entrada entrada-1 pt-2">
-        <p className="kicker">Microciclo M{microciclo.numero}</p>
-        <h2 className="mt-1 font-display text-3xl leading-none text-texto">{sesion.nombre}</h2>
-      </section>
-
-      {!todasRegistradas && (
-        <div className="entrada entrada-2">
-          <CronometroSesion />
+      <section className="entrada entrada-1">
+        <div
+          className="tarjeta-foto px-5 pb-5 pt-10 text-center"
+          style={{ '--foto': 'url(/fondos/atleta.png)' } as React.CSSProperties}
+        >
+          <p className="kicker">Microciclo M{microciclo.numero}</p>
+          <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>
+          {!todasRegistradas && (
+            <div className="mt-3">
+              <CronometroSesion />
+            </div>
+          )}
         </div>
-      )}
+      </section>
 
       <div className="entrada entrada-3">
         <PreparacionSesion

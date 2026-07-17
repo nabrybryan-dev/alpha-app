@@ -67,15 +67,18 @@ export default function HoyPage() {
 
       {siguienteSesion && microciclo ? (
         <div className="entrada entrada-3">
-          <Card destacada>
+          <div
+            className="tarjeta-foto p-5 pt-16"
+            style={{ '--foto': 'url(/fondos/banco-alpha.jpg)' } as React.CSSProperties}
+          >
             <p className="kicker">Tu siguiente sesión</p>
-            <h3 className="mt-1.5 font-display text-3xl leading-none text-texto">{siguienteSesion.nombre}</h3>
-            <p className="mt-1.5 text-sm text-tenue">
+            <h3 className="mt-1.5 font-display text-4xl leading-none">{siguienteSesion.nombre}</h3>
+            <p className="mt-1.5 text-sm text-white/70">
               {siguienteSesion.ejercicios.length} ejercicios · descansos de 2-3 min
             </p>
             <Link
               to={`/entrenar/sesion/${siguienteSesion.id}`}
-              className="press cta-pulso mt-4 flex items-center justify-center gap-2.5 rounded-full bg-rojo py-2.5 pl-6 pr-2.5 font-display text-sm text-white"
+              className="press cta-pulso btn-cristal-rojo mt-4 flex items-center justify-center gap-2.5 rounded-full py-2.5 pl-6 pr-2.5 font-display text-sm"
             >
               <span className="flex-1 text-center">Empezar sesión</span>
               <span
@@ -85,7 +88,7 @@ export default function HoyPage() {
                 →
               </span>
             </Link>
-          </Card>
+          </div>
         </div>
       ) : (
         <div className="entrada entrada-3">

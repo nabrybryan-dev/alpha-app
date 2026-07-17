@@ -35,9 +35,14 @@ export default function NutricionPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="entrada entrada-1 pt-2">
-        <p className="kicker">Plan individualizado</p>
-        <h2 className="mt-1 font-display text-4xl leading-none text-texto">Nutrición</h2>
+      <section className="entrada entrada-1">
+        <div
+          className="tarjeta-foto p-5 pt-16"
+          style={{ '--foto': 'url(/fondos/plato.jpg)' } as React.CSSProperties}
+        >
+          <p className="kicker">Plan individualizado</p>
+          <h2 className="mt-1 font-display text-4xl leading-none">Nutrición</h2>
+        </div>
       </section>
 
       <div className="entrada entrada-2">

@@ -51,7 +51,7 @@ export function TestPostSesion({ onGuardar }: TestPostSesionProps) {
             onGuardar({ duracionMin, rpeSesion, prsEntrada })
           }
         }}
-        className={`press mt-4 w-full rounded-full bg-rojo py-3 font-display text-sm text-white disabled:opacity-40 ${completo ? 'cta-pulso' : ''}`}
+        className={`press btn-cristal-rojo mt-4 w-full rounded-full py-3 font-display text-sm disabled:opacity-40 ${completo ? 'cta-pulso' : ''}`}
       >
         Cerrar sesión de entrenamiento ✓
       </button>

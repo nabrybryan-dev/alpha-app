@@ -33,7 +33,7 @@ export function RegistroSerie({ ejercicio, orden, onGuardar }: RegistroSerieProp
       <button
         type="button"
         onClick={() => onGuardar({ orden, cargaKg, reps, rir })}
-        className="press mt-3 w-full rounded-full bg-rojo py-2.5 font-display text-sm text-white"
+        className="press btn-cristal-rojo mt-3 w-full rounded-full py-2.5 font-display text-sm"
       >
         Guardar serie {orden} ✓
       </button>

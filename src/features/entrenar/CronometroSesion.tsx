@@ -32,7 +32,7 @@ export function CronometroSesion() {
         onClick={() => setCorriendo((v) => !v)}
         aria-label={corriendo ? 'Pausar cronómetro' : 'Reanudar cronómetro'}
         className={`press cifras mt-1 font-display text-6xl leading-none transition-opacity duration-200 ease-salida ${
-          corriendo ? 'text-texto' : 'text-tenue opacity-70'
+          corriendo ? '' : 'opacity-50'
         }`}
         style={corriendo ? { textShadow: '0 0 24px rgba(255, 30, 30, 0.4)' } : undefined}
       >
