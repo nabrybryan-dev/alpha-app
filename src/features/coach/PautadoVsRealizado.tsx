@@ -1,7 +1,19 @@
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
-import { desviacionRir, ejercicioCompleto } from '../../domain/cumplimiento'
+import {
+  desviacionRir,
+  ejercicioCompleto,
+  estadoPreparacion,
+  type EstadoPreparacion,
+} from '../../domain/cumplimiento'
 import type { Microciclo } from '../../domain/types'
+
+const CHIP_PREP: Record<EstadoPreparacion, { tono: 'verde' | 'ambar' | 'rojo' | 'neutro'; texto: string }> = {
+  hecha: { tono: 'verde', texto: 'Preparación ✓' },
+  parcial: { tono: 'ambar', texto: 'Preparación parcial' },
+  omitida: { tono: 'rojo', texto: 'Preparación omitida' },
+  pendiente: { tono: 'neutro', texto: 'Preparación pendiente' },
+}
 
 function tonoDesviacion(desviacion: number | undefined): 'verde' | 'ambar' | 'rojo' | 'neutro' {
   if (desviacion === undefined) return 'neutro'
@@ -17,7 +29,12 @@ export function PautadoVsRealizado({ microciclo }: { microciclo: Microciclo }) {
       {microciclo.sesiones.map((sesion) => (
         <Card key={sesion.id}>
           <div className="flex items-center justify-between gap-2">
-            <h4 className="font-display text-base text-texto">{sesion.nombre}</h4>
+            <span className="flex items-center gap-2">
+              <h4 className="font-display text-base text-texto">{sesion.nombre}</h4>
+              <Badge tono={CHIP_PREP[estadoPreparacion(sesion)].tono}>
+                {CHIP_PREP[estadoPreparacion(sesion)].texto}
+              </Badge>
+            </span>
             {sesion.testPost ? (
               <p className="text-xs text-tenue">
                 {sesion.testPost.duracionMin} min · RPE {sesion.testPost.rpeSesion} · PRS{' '}
@@ -27,6 +44,17 @@ export function PautadoVsRealizado({ microciclo }: { microciclo: Microciclo }) {
               <Badge>Sin registrar</Badge>
             )}
           </div>
+          {sesion.tipo === 'metabolica' && (
+            <ul className="mt-2 flex flex-col gap-1 text-xs">
+              {(sesion.bloquesCardio ?? []).map((b) => (
+                <li key={b.id} className="flex items-center gap-2">
+                  <span className={b.hechoEn ? 'text-verde' : 'text-tenue'}>{b.hechoEn ? '✓' : '○'}</span>
+                  <span className="text-texto/90">{b.titulo}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {sesion.ejercicios.length > 0 && (
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-xs">
               <thead>
@@ -70,6 +98,7 @@ export function PautadoVsRealizado({ microciclo }: { microciclo: Microciclo }) {
               </tbody>
             </table>
           </div>
+          )}
         </Card>
       ))}
     </div>
