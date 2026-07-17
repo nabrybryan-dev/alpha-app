@@ -4,7 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { db, useDbVersion } from '../../data/dbInstance'
-import { resumenMicrociclo, sesionRegistrada } from '../../domain/cumplimiento'
+import { resumenMicrociclo, sesionCompleta } from '../../domain/cumplimiento'
 
 export default function MicrocicloPage() {
   const { usuario } = useSesion()
@@ -41,13 +41,24 @@ export default function MicrocicloPage() {
 
       <section className="flex flex-col gap-2.5">
         {microciclo.sesiones.map((sesion) => {
-          const registrada = sesionRegistrada(sesion.ejercicios)
+          const registrada = sesionCompleta(sesion)
           return (
             <Link key={sesion.id} to={`/entrenar/sesion/${sesion.id}`}>
               <Card className={`flex items-center justify-between gap-3 ${registrada ? 'opacity-70' : ''}`}>
                 <div>
-                  <h3 className="font-display text-lg text-texto">{sesion.nombre}</h3>
-                  <p className="text-xs text-tenue">{sesion.ejercicios.length} ejercicios</p>
+                  <h3 className="font-display text-lg text-texto">
+                    {sesion.nombre}
+                    {sesion.tipo === 'metabolica' && (
+                      <span className="ml-2 rounded-full bg-azul/15 px-2 py-0.5 align-middle text-[10px] font-bold text-azul">
+                        CARDIO
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-tenue">
+                    {sesion.tipo === 'metabolica'
+                      ? `${(sesion.bloquesCardio ?? []).length} bloques · cardio`
+                      : `${sesion.ejercicios.length} ejercicios`}
+                  </p>
                 </div>
                 {registrada ? (
                   <span className="text-sm font-bold text-verde">✓ Registrada</span>

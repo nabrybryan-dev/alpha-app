@@ -3,7 +3,7 @@ import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
-import { sesionRegistrada } from '../../domain/cumplimiento'
+import { sesionCompleta } from '../../domain/cumplimiento'
 import { useGamificacion } from '../logros/useGamificacion'
 
 export default function HoyPage() {
@@ -13,7 +13,7 @@ export default function HoyPage() {
   const juego = useGamificacion(usuario.id)
 
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
-  const siguienteSesion = microciclo?.sesiones.find((s) => !sesionRegistrada(s.ejercicios))
+  const siguienteSesion = microciclo?.sesiones.find((s) => !sesionCompleta(s))
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
