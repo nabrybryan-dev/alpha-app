@@ -6,9 +6,11 @@ import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
-import { ejercicioCompleto, sesionRegistrada } from '../../domain/cumplimiento'
+import { preparacionDe } from '../../data/plantillas/preparacionBase'
+import { ejercicioCompleto, sesionCompleta } from '../../domain/cumplimiento'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido } from '../../domain/types'
+import { PreparacionSesion } from './PreparacionSesion'
 import { RegistroSerie } from './RegistroSerie'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
@@ -29,7 +31,7 @@ export default function SesionPage() {
     return <EmptyState titulo="Sesión no encontrada" detalle="Vuelve al microciclo y elige una sesión." />
   }
 
-  const todasRegistradas = sesionRegistrada(sesion.ejercicios)
+  const todasRegistradas = sesionCompleta(sesion)
 
   if (cerrada) {
     return (
@@ -55,12 +57,46 @@ export default function SesionPage() {
       <section>
         <p className="kicker">Microciclo M{microciclo.numero}</p>
         <h2 className="font-display text-3xl text-texto">{sesion.nombre}</h2>
-        <p className="mt-1 text-sm text-tenue">
-          Movilidad y activación previa: 8 min antes de la primera serie.
-        </p>
       </section>
 
-      {sesion.ejercicios.map((ejercicio) => {
+      <PreparacionSesion
+        partes={preparacionDe(sesion)}
+        onMarcar={(parteId) => db.microciclos.marcarParte(microciclo.id, sesion.id, parteId)}
+        onVerDemo={setDemo}
+      />
+
+      {sesion.tipo === 'metabolica' && (
+        <Card>
+          <p className="kicker">Bloques de la sesión</p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {(sesion.bloquesCardio ?? []).map((bloque) => (
+              <li key={bloque.id} className="flex items-start gap-2.5">
+                <button
+                  type="button"
+                  aria-label={bloque.hechoEn ? `Desmarcar ${bloque.titulo}` : `Marcar ${bloque.titulo}`}
+                  onClick={() => db.microciclos.marcarParte(microciclo.id, sesion.id, bloque.id)}
+                  className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold ${
+                    bloque.hechoEn ? 'border-verde bg-verde text-white' : 'border-linea text-tenue'
+                  }`}
+                >
+                  ✓
+                </button>
+                <div className={bloque.hechoEn ? 'opacity-60' : ''}>
+                  <p className="text-sm font-bold text-texto">
+                    {bloque.titulo}
+                    {bloque.duracionMin ? (
+                      <span className="ml-1 text-xs font-normal text-tenue">· {bloque.duracionMin} min</span>
+                    ) : null}
+                  </p>
+                  <p className="text-xs text-tenue">{bloque.indicaciones}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {sesion.tipo !== 'metabolica' && sesion.ejercicios.map((ejercicio) => {
         const completo = ejercicioCompleto(ejercicio)
         const siguienteOrden = ejercicio.series.length + 1
         const contenidoDemo = ejercicio.contenidoDemoId
