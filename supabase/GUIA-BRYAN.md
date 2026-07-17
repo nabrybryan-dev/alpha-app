@@ -51,9 +51,21 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 
 **Nunca compartas** la `service_role key` ni la contraseña de la base de datos.
 
+## 6 · Cargar los datos de prueba (después del paso 1)
+
+1. Abre `supabase/migrations/0002_semilla.sql` de esta carpeta.
+2. **Edita las dos líneas de correos** al inicio (sección CONFIGURA): pon el
+   correo de tu cuenta de coach y el de la asesorada de prueba que creaste.
+3. Copia TODO, pégalo en SQL Editor → New query → **Run**.
+4. Debe decir "Success". Es seguro correrlo varias veces: borra y recarga los
+   datos de prueba (perfil, microciclos M21-M22, check-ins, plan nutricional,
+   chat, cuestionarios, contenidos y premiación de Valentina).
+
+> Si cambio los datos de demostración, yo regenero este archivo con
+> `npm run semilla` y tú solo lo vuelves a pegar.
+
 ## Qué sigue después (lo hago yo contigo)
 
 - Configuro la app con esos valores (`.env.local`) y probamos el login real.
-- Te doy el SQL para cargarle a tu asesorada de prueba un perfil y un microciclo.
 - Desplegamos a una URL pública (necesitarás crear cuenta en vercel.com igual de
   rápida) y la instalas como app en tu celular.
