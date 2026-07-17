@@ -63,7 +63,9 @@ export function filtrarSeed(seed) {
   }
 }
 
-export function construirSemillaSql(seedCompleto, fechaGeneracion) {
+export function construirSemillaSql(seedCompleto, fechaGeneracion, correos = {}) {
+  const correoCoach = correos.coach ?? 'TU-CORREO@AQUI.com'
+  const correoValentina = correos.valentina ?? 'CORREO-DE-PRUEBA@AQUI.com'
   const s = filtrarSeed(seedCompleto)
   verificarIdsLocales(s)
   if (JSON.stringify(s).includes('$bloque$')) {
@@ -82,8 +84,8 @@ export function construirSemillaSql(seedCompleto, fechaGeneracion) {
   lineas.push('do $bloque$')
   lineas.push('declare')
   lineas.push("  -- ══════════ CONFIGURA: tus dos correos ══════════")
-  lineas.push("  correo_coach     constant text := 'TU-CORREO@AQUI.com';")
-  lineas.push("  correo_valentina constant text := 'CORREO-DE-PRUEBA@AQUI.com';")
+  lineas.push(`  correo_coach     constant text := ${escaparTexto(correoCoach)};`)
+  lineas.push(`  correo_valentina constant text := ${escaparTexto(correoValentina)};`)
   lineas.push('  -- ═══════════════════════════════════════════════')
   lineas.push('  v_coach uuid;')
   lineas.push('  v_valentina uuid;')
