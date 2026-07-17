@@ -11,6 +11,7 @@ import type {
   Respuesta,
   Usuario,
 } from '../../domain/types'
+import type { FilaRanking } from '../../domain/ranking'
 import type { RegistroHidratacion } from '../../domain/types'
 import { aplicarSnapshot } from '../mockDb'
 import type { SeedDb } from '../seed'
@@ -73,6 +74,10 @@ export async function hidratarDesdeNube(): Promise<void> {
   const hidratacion = await sb.from('hidratacion').select('*')
   marcarTablaHidratacion(!hidratacion.error)
 
+  // RPC del ranking (migración 0004): también opcional. Devuelve SOLO
+  // cumplimiento agregado por asesorado, nunca datos personales.
+  const ranking = await sb.rpc('ranking_disciplina')
+
   const snapshot: SeedDb = {
     usuarios: ((usuarios.data ?? []) as FilaUsuario[]).map(
       (u): Usuario => ({
@@ -102,6 +107,19 @@ export async function hidratarDesdeNube(): Promise<void> {
             usuarioId: f.usuario_id as string,
             fecha: f.fecha as string,
             ml: (f.ml as number) ?? 0,
+          }),
+        ),
+    ranking: ranking.error
+      ? []
+      : ((ranking.data ?? []) as Record<string, unknown>[]).map(
+          (f): FilaRanking => ({
+            usuarioId: f.usuario_id as string,
+            nombre: f.nombre as string,
+            iniciales: f.iniciales as string,
+            sesionesCompletas: (f.sesiones_completas as number) ?? 0,
+            diasCumplidos: (f.dias_cumplidos as number) ?? 0,
+            checkins: (f.checkins as number) ?? 0,
+            puntos: (f.puntos as number) ?? 0,
           }),
         ),
     planes: (planes.data ?? []).map((f) => f.datos as PlanNutricional),

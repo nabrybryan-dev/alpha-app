@@ -79,3 +79,15 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 
 > Mientras no corras este paso la app NO se rompe: la hidratación se guarda
 > solo en el dispositivo y empieza a sincronizarse en cuanto la tabla exista.
+
+## 8 · Habilitar el ranking del equipo (migración 0004)
+
+1. Menú → **SQL Editor** → **New query**.
+2. Abre `supabase/migrations/0004_ranking.sql` de esta carpeta, copia TODO,
+   pégalo y presiona **Run**. Debe decir "Success. No rows returned".
+3. Listo: en Logros aparecerá el "Ranking Equipo Alpha".
+
+> Privacidad: la función solo entrega cumplimiento agregado (sesiones
+> completas, días de nutrición cumplidos, check-ins y puntos). Ningún
+> asesorado puede ver el ánimo, las cargas ni las notas de otro.
+> Mientras no corras este paso, la sección simplemente no se muestra.

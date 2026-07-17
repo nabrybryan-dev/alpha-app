@@ -26,6 +26,8 @@ import { cuestionarios, respuestas } from './cuestionarios'
 import { contenidos } from './contenidos'
 import { mensajes, premiaciones } from './mensajes'
 
+import type { FilaRanking } from '../../domain/ranking'
+
 export interface SeedDb {
   usuarios: Usuario[]
   perfiles: Perfil[]
@@ -35,6 +37,8 @@ export interface SeedDb {
   adherencias: AdherenciaNutricional[]
   /** Opcional: snapshots viejos en localStorage no traen esta clave. */
   hidratacion?: RegistroHidratacion[]
+  /** Solo en modo nube: lo llena la RPC ranking_disciplina al iniciar sesión. */
+  ranking?: FilaRanking[]
   mensajes: Mensaje[]
   cuestionarios: Cuestionario[]
   respuestas: Respuesta[]

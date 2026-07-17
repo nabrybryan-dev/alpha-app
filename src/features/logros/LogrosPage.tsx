@@ -3,6 +3,7 @@ import { Card } from '../../components/ui/Card'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { RankingEquipo } from './RankingEquipo'
 import { useGamificacion } from './useGamificacion'
 
 export default function LogrosPage() {
@@ -44,6 +45,11 @@ export default function LogrosPage() {
             <p className="mt-0.5 text-[10px] text-tenue">Récord: {r.racha.record}</p>
           </Card>
         ))}
+      </section>
+
+      <section className="entrada entrada-3">
+        <p className="kicker mb-2">Ranking Equipo Alpha</p>
+        <RankingEquipo usuarioActualId={usuario.id} />
       </section>
 
       {rachaRota && (

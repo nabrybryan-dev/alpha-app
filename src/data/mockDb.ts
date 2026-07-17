@@ -6,9 +6,11 @@ import type {
   SerieRegistrada,
   TestPostSesion,
 } from '../domain/types'
+import { construirRanking } from '../domain/ranking'
 import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBase'
 import type { Db } from './repos'
 import { seedDb, type SeedDb } from './seed'
+import { diasAtras } from './seed/fechas'
 
 const CLAVE = 'alpha-db-v2'
 
@@ -254,6 +256,22 @@ export function crearMockDb(): Db {
 
     premiaciones: {
       byUsuario: (usuarioId) => ref.actual.premiaciones.filter((p) => p.usuarioId === usuarioId),
+    },
+
+    ranking: {
+      // En nube el snapshot trae el ranking de la RPC (los datos ajenos no
+      // llegan al dispositivo); en demo se calcula con los datos locales.
+      list: () =>
+        ref.actual.ranking ??
+        construirRanking(
+          {
+            usuarios: ref.actual.usuarios,
+            microciclos: ref.actual.microciclos,
+            adherencias: ref.actual.adherencias,
+            checkins: ref.actual.checkins,
+          },
+          diasAtras(0),
+        ),
     },
   }
 }

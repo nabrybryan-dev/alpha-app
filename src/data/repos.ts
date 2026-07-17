@@ -1,3 +1,4 @@
+import type { FilaRanking } from '../domain/ranking'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
@@ -70,6 +71,11 @@ export interface PremiacionesRepo {
   byUsuario(usuarioId: string): PremiacionCoach[]
 }
 
+export interface RankingRepo {
+  /** Ranking de disciplina del equipo: solo cumplimiento, sin datos personales. */
+  list(): FilaRanking[]
+}
+
 export interface Db {
   usuarios: UsuariosRepo
   perfiles: PerfilesRepo
@@ -80,4 +86,5 @@ export interface Db {
   cuestionarios: CuestionariosRepo
   contenidos: ContenidosRepo
   premiaciones: PremiacionesRepo
+  ranking: RankingRepo
 }

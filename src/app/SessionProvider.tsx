@@ -18,6 +18,19 @@ const usuarioDemoPorDefecto = (): Usuario => {
   return usuario ?? db.usuarios.byId('u-valentina') ?? db.usuarios.list()[0]
 }
 
+/**
+ * Política de seguridad acordada con el coach: la sesión dura máximo 2 horas
+ * (lo que dura un entreno). Pasado ese tiempo se cierra sola y hay que volver
+ * a entrar con correo y contraseña.
+ */
+const MAX_SESION_MS = 2 * 60 * 60 * 1000
+const CLAVE_INICIO_SESION = 'alpha-sesion-inicio'
+
+function sesionVencida(): boolean {
+  const inicio = Number(localStorage.getItem(CLAVE_INICIO_SESION) ?? 0)
+  return !inicio || Date.now() - inicio > MAX_SESION_MS
+}
+
 const Contexto = createContext<SesionContexto | null>(null)
 
 function SesionNube({ children }: { children: ReactNode }) {
@@ -46,13 +59,35 @@ function SesionNube({ children }: { children: ReactNode }) {
       }
     }
 
-    void sb.auth.getSession().then(({ data }) => alCambiar(data.session?.user.id))
+    void sb.auth.getSession().then(({ data }) => {
+      if (data.session && sesionVencida()) {
+        void sb.auth.signOut()
+        return
+      }
+      void alCambiar(data.session?.user.id)
+    })
     const { data: escucha } = sb.auth.onAuthStateChange((evento, sesion) => {
-      if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT') {
+      if (evento === 'SIGNED_IN') {
+        if (!localStorage.getItem(CLAVE_INICIO_SESION)) {
+          localStorage.setItem(CLAVE_INICIO_SESION, String(Date.now()))
+        }
         void alCambiar(sesion?.user.id)
       }
+      if (evento === 'SIGNED_OUT') {
+        localStorage.removeItem(CLAVE_INICIO_SESION)
+        localStorage.removeItem('alpha-db-v2')
+        void alCambiar(undefined)
+      }
     })
-    return () => escucha.subscription.unsubscribe()
+    const temporizador = window.setInterval(() => {
+      if (localStorage.getItem(CLAVE_INICIO_SESION) && sesionVencida()) {
+        void sb.auth.signOut()
+      }
+    }, 60_000)
+    return () => {
+      escucha.subscription.unsubscribe()
+      window.clearInterval(temporizador)
+    }
   }, [])
 
   if (estado === 'cargando') {

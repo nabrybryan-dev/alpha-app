@@ -35,6 +35,15 @@ describe('rutas del asesorado', () => {
     renderizarEn('/coach')
     expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
   })
+
+  it('muestra el ranking del equipo en Logros sin exponer datos personales', async () => {
+    renderizarEn('/logros')
+    expect(await screen.findByText('El más juicioso del equipo')).toBeInTheDocument()
+    const ranking = screen.getByLabelText('Ranking del Equipo Alpha')
+    expect(ranking).toBeInTheDocument()
+    // Solo cumplimiento: la tarjeta no debe filtrar estados personales
+    expect(ranking.textContent).not.toMatch(/estrés|sueño|hambre|kg/i)
+  })
 })
 
 describe('rutas del coach', () => {
