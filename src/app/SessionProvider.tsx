@@ -158,7 +158,26 @@ function SesionDemo({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * Guardia de producción: si el build de producción no tiene las variables de
+ * Supabase, NUNCA se cae al modo demo (expondría la interfaz con datos de
+ * muestra y el selector de usuarios). Mejor fallar fuerte y visible.
+ */
+function ConfiguracionFaltante() {
+  return (
+    <div className="grid min-h-dvh place-items-center bg-bg px-6 text-center">
+      <div>
+        <p className="font-display text-xl text-texto">App en mantenimiento</p>
+        <p className="mt-2 text-sm text-tenue">
+          Falta configuración del servidor. Escríbele al coach: el acceso vuelve en unos minutos.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
+  if (import.meta.env.PROD && !modoNube) return <ConfiguracionFaltante />
   return modoNube ? <SesionNube>{children}</SesionNube> : <SesionDemo>{children}</SesionDemo>
 }
 
