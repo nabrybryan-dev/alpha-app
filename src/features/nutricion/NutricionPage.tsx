@@ -54,7 +54,12 @@ export default function NutricionPage() {
       >
         <div className="flex justify-center gap-2">
           {TIPOS_DIA.map((tipo) => (
-            <Chip key={tipo} etiqueta={tipo} seleccionado={tipoDia === tipo} onSeleccionar={() => setTipoDia(tipo)} />
+            <Chip
+              key={tipo}
+              etiqueta={plan.etiquetasDia?.[tipo] ?? tipo}
+              seleccionado={tipoDia === tipo}
+              onSeleccionar={() => setTipoDia(tipo)}
+            />
           ))}
         </div>
         <div className="mt-6 text-center">

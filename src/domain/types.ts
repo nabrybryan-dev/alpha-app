@@ -147,6 +147,9 @@ export interface PlanNutricional {
   usuarioId: string
   analisis: string
   macrosPorDia: Record<TipoDia, Macros>
+  /** Nombres visibles de los tipos de día cuando el plan usa otro esquema
+   *  (p. ej. ALTO→"PIERNA", CHEAT→"TORSO"). Sin definir, se muestra la clave. */
+  etiquetasDia?: Partial<Record<TipoDia, string>>
   menus: MenuDia[]
   equivalencias: Equivalencia[]
   listaCompras: string[]
