@@ -119,6 +119,10 @@ export async function hidratarDesdeNube(): Promise<void> {
             sesionesCompletas: (f.sesiones_completas as number) ?? 0,
             diasCumplidos: (f.dias_cumplidos as number) ?? 0,
             checkins: (f.checkins as number) ?? 0,
+            // Columnas de la migración 0005; 0 mientras la RPC vieja siga activa.
+            seriesRegistradas: (f.series_registradas as number) ?? 0,
+            ejerciciosProgresados: (f.ejercicios_progresados as number) ?? 0,
+            preguntas: (f.preguntas as number) ?? 0,
             puntos: (f.puntos as number) ?? 0,
           }),
         ),

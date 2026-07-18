@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { construirRanking } from './ranking'
-import type { Microciclo, Usuario } from './types'
+import type { Mensaje, Microciclo, Usuario } from './types'
 
 const HOY = '2026-07-17'
 
@@ -79,6 +79,75 @@ describe('construirRanking', () => {
       HOY,
     )
     expect(filas.find((f) => f.usuarioId === 'u-a')?.puntos).toBe(0)
+  })
+
+  it('cuenta las series registradas como cargas colocadas', () => {
+    const filas = construirRanking(
+      { usuarios, microciclos: [microcicloCon('u-a', 3)], adherencias: [], checkins: [] },
+      HOY,
+    )
+    expect(filas.find((f) => f.usuarioId === 'u-a')?.seriesRegistradas).toBe(3)
+  })
+
+  it('detecta progresión cuando un ejercicio sube de carga en una sesión posterior', () => {
+    const microciclo: Microciclo = {
+      ...microcicloCon('u-a', 0),
+      sesiones: [40, 45].map((carga, i) => ({
+        id: `s-${i}`,
+        nombre: `S${i}`,
+        orden: i,
+        ejercicios: [
+          {
+            id: `e-${i}`,
+            categoria: 'EMPUJE HORIZONTAL',
+            nombre: 'Press banca',
+            cues: '',
+            prescripcion: '',
+            descansoMin: 2,
+            sets: 1,
+            rango: '8-10',
+            repsDiana: 8,
+            rirObjetivo: 2,
+            series: [{ orden: 1, cargaKg: carga, reps: 8, rir: 2 }],
+          },
+        ],
+      })),
+    }
+    const filas = construirRanking(
+      { usuarios, microciclos: [microciclo], adherencias: [], checkins: [] },
+      HOY,
+    )
+    const ana = filas.find((f) => f.usuarioId === 'u-a')
+    expect(ana?.ejerciciosProgresados).toBe(1)
+    // 2 sesiones completas (3+3) + progresión (4) = 10
+    expect(ana?.puntos).toBe(10)
+  })
+
+  it('cuenta preguntas al coach en ventana y limita su aporte a 10 puntos', () => {
+    const mensajes: Mensaje[] = Array.from({ length: 14 }, (_, i) => ({
+      id: `msg-${i}`,
+      deId: 'u-a',
+      paraId: 'u-coach',
+      fechaIso: '2026-07-15T10:00:00.000Z',
+      texto: `pregunta ${i}`,
+      leido: true,
+    }))
+    // Mensajes del coach hacia la asesorada no cuentan
+    mensajes.push({
+      id: 'msg-coach',
+      deId: 'u-coach',
+      paraId: 'u-a',
+      fechaIso: '2026-07-15T10:00:00.000Z',
+      texto: 'respuesta',
+      leido: true,
+    })
+    const filas = construirRanking(
+      { usuarios, microciclos: [], adherencias: [], checkins: [], mensajes, coachId: 'u-coach' },
+      HOY,
+    )
+    const ana = filas.find((f) => f.usuarioId === 'u-a')
+    expect(ana?.preguntas).toBe(14)
+    expect(ana?.puntos).toBe(10)
   })
 
   it('ordena por puntos descendente y desempata por nombre', () => {

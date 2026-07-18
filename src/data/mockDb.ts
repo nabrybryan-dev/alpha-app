@@ -269,6 +269,7 @@ export function crearMockDb(): Db {
             microciclos: ref.actual.microciclos,
             adherencias: ref.actual.adherencias,
             checkins: ref.actual.checkins,
+            mensajes: ref.actual.mensajes,
           },
           diasAtras(0),
         ),

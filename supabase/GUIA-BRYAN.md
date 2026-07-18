@@ -91,3 +91,17 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 > completas, días de nutrición cumplidos, check-ins y puntos). Ningún
 > asesorado puede ver el ánimo, las cargas ni las notas de otro.
 > Mientras no corras este paso, la sección simplemente no se muestra.
+
+## 9 · Ranking multi-categoría (migración 0005)
+
+1. Menú → **SQL Editor** → **New query**.
+2. Abre `supabase/migrations/0005_ranking_categorias.sql` de esta carpeta,
+   copia TODO, pégalo y presiona **Run**. Debe decir "Success. No rows returned".
+3. Listo: el ranking de Logros muestra las 6 categorías (General, Disciplina,
+   Sesiones, Cargas, Progresión y Preguntas) con podio de los 3 primeros.
+
+> Reemplaza a la función del paso 8 (la borra y la crea de nuevo con más
+> columnas). Sigue entregando SOLO rendimiento agregado: jamás estados de
+> ánimo, cargas concretas, notas ni datos personales. Si corres este paso,
+> el paso 8 ya no es necesario; si aún no lo corres, el ranking funciona
+> con las categorías básicas y las nuevas aparecen en cero.
