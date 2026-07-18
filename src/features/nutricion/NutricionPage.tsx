@@ -3,6 +3,7 @@ import { useSesion } from '../../app/SessionProvider'
 import { AnilloMacro } from '../../components/ui/AnilloMacro'
 import { Chip } from '../../components/ui/Chip'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, useDbVersion } from '../../data/dbInstance'
 import type { TipoDia } from '../../domain/types'
 import { Acordeon } from './Acordeon'
@@ -18,6 +19,7 @@ export default function NutricionPage() {
   const [tipoDia, setTipoDia] = useState<TipoDia>('ALTO')
 
   const plan = db.nutricion.planByUsuario(usuario.id)
+  const kcalAnimadas = useContadorAnimado(plan?.macrosPorDia[tipoDia].kcal ?? 0)
 
   if (!plan) {
     return (
@@ -57,7 +59,7 @@ export default function NutricionPage() {
         </div>
         <div className="mt-6 text-center">
           <p className="cifras font-display text-6xl leading-none text-texto">
-            {Math.round(macros.kcal)}
+            {Math.round(kcalAnimadas)}
           </p>
           <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-tenue">
             kcal del día

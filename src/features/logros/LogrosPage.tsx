@@ -1,7 +1,9 @@
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
+import { CifraAnimada } from '../../components/ui/CifraAnimada'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { Revelar } from '../../components/ui/Revelar'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { RankingEquipo } from './RankingEquipo'
 import { useGamificacion } from './useGamificacion'
@@ -22,13 +24,18 @@ export default function LogrosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="entrada entrada-1 rounded-panel glass glass-destacada p-5 text-center">
+      <section
+        className="entrada entrada-1 tarjeta-foto p-5 pt-24 text-center"
+        style={{ '--foto': 'url(/fondos/atleta-sonrisa.jpeg)', '--foto-pos': 'center 25%' } as React.CSSProperties}
+      >
         <p className="kicker">Tu nivel de disciplina</p>
-        <h2 className="mt-1 font-display text-4xl text-texto">{juego.nivel.nombre}</h2>
-        <p className="cifras mt-1 text-sm text-tenue">{juego.xp} XP acumulados</p>
+        <h2 className="mt-1 font-display text-4xl">{juego.nivel.nombre}</h2>
+        <p className="cifras mt-1 text-sm text-white/70">
+          <CifraAnimada valor={juego.xp} /> XP acumulados
+        </p>
         <div className="mt-3">
           <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
-          <p className="mt-1.5 text-xs text-tenue">
+          <p className="mt-1.5 text-xs text-white/70">
             {juego.siguiente
               ? `${juego.siguiente.xpMinimo - juego.xp} XP para ser ${juego.siguiente.nombre}`
               : 'Nivel máximo alcanzado: eres Heracles'}
@@ -40,7 +47,9 @@ export default function LogrosPage() {
         {rachas.map((r) => (
           <Card key={r.nombre} className="text-center !p-3">
             <span className="text-lg" aria-hidden="true">{r.icono}</span>
-            <p className="cifras font-display text-2xl text-rojo">{r.racha.actual}</p>
+            <p className="cifras font-display text-2xl text-rojo">
+              <CifraAnimada valor={r.racha.actual} duracionMs={700} />
+            </p>
             <p className="text-[10px] uppercase tracking-wider text-tenue">{r.nombre}</p>
             <p className="mt-0.5 text-[10px] text-tenue">Récord: {r.racha.record}</p>
           </Card>
@@ -65,8 +74,10 @@ export default function LogrosPage() {
       <section>
         <p className="kicker">Logros</p>
         <div className="mt-2 grid grid-cols-2 gap-2.5">
-          {juego.logros.map((logro) => (
-            <Medalla key={logro.id} logro={logro} />
+          {juego.logros.map((logro, i) => (
+            <Revelar key={logro.id} retrasoMs={(i % 4) * 60}>
+              <Medalla logro={logro} />
+            </Revelar>
           ))}
         </div>
       </section>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { useGamificacion } from '../logros/useGamificacion'
@@ -12,6 +13,7 @@ export default function HoyPage() {
   useDbVersion()
   const hoy = hoyIso()
   const juego = useGamificacion(usuario.id)
+  const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
   const siguienteSesion = microciclo?.sesiones.find((s) => !sesionCompleta(s))
@@ -52,7 +54,7 @@ export default function HoyPage() {
             className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-2 border-rojo font-display text-2xl text-rojo"
             style={{ boxShadow: 'var(--halo-rojo)' }}
           >
-            {juego.rachaBienestar.actual}
+            {Math.round(rachaAnimada)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
@@ -73,8 +75,8 @@ export default function HoyPage() {
       {siguienteSesion && microciclo ? (
         <div className="entrada entrada-3">
           <div
-            className="tarjeta-foto p-5 pt-16"
-            style={{ '--foto': 'url(/fondos/banco-alpha.jpg)' } as React.CSSProperties}
+            className="tarjeta-foto tarjeta-foto-alta p-5"
+            style={{ '--foto': 'url(/fondos/atleta-mujer.jpeg)', '--foto-pos': 'center 22%' } as React.CSSProperties}
           >
             <p className="kicker">Tu siguiente sesión</p>
             <h3 className="mt-1.5 font-display text-4xl leading-none">{siguienteSesion.nombre}</h3>

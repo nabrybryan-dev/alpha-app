@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useContadorAnimado } from './useContadorAnimado'
 
 interface AnilloMacroProps {
   etiqueta: string
@@ -18,6 +19,8 @@ const CIRCUNFERENCIA = 2 * Math.PI * RADIO
  */
 export function AnilloMacro({ etiqueta, gramos, pct, color }: AnilloMacroProps) {
   const seguro = Math.max(0, Math.min(100, pct))
+  const pctAnimado = useContadorAnimado(seguro)
+  const gramosAnimados = useContadorAnimado(gramos)
   const [dibujado, setDibujado] = useState(false)
 
   useEffect(() => {
@@ -58,14 +61,14 @@ export function AnilloMacro({ etiqueta, gramos, pct, color }: AnilloMacroProps) 
         </svg>
         <div className="absolute inset-0 grid place-items-center">
           <p className="cifras text-center font-display text-sm leading-none text-texto">
-            {Math.round(gramos)}
+            {Math.round(gramosAnimados)}
             <span className="block text-[9px] font-normal normal-case text-tenue">g</span>
           </p>
         </div>
       </div>
       <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
       <p className="cifras text-[10px] font-bold" style={{ color }}>
-        {Math.round(seguro)}%
+        {Math.round(pctAnimado)}%
       </p>
     </div>
   )

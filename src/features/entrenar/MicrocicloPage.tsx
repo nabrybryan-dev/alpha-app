@@ -25,17 +25,22 @@ export default function MicrocicloPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="entrada entrada-1 pt-2">
-        <p className="kicker">Microciclo activo</p>
-        <h2 className="mt-1 font-display text-4xl leading-none text-texto">M{microciclo.numero}</h2>
-        <p className="mt-1.5 text-sm text-tenue">
-          Inició el {microciclo.fechaInicio} · cadencia de {microciclo.cadenciaDias} días
-        </p>
-        <div className="mt-3">
-          <ProgressBar pct={resumen.pctRegistrado} etiqueta="Progreso del microciclo" />
-          <p className="cifras mt-1.5 text-xs text-tenue">
-            {resumen.sesionesRegistradas} de {resumen.sesionesTotales} sesiones registradas
+      <section className="entrada entrada-1">
+        <div
+          className="tarjeta-foto p-5 pt-24"
+          style={{ '--foto': 'url(/fondos/atleta-predicador.jpeg)', '--foto-pos': 'center 40%' } as React.CSSProperties}
+        >
+          <p className="kicker">Microciclo activo</p>
+          <h2 className="mt-1 font-display text-4xl leading-none">M{microciclo.numero}</h2>
+          <p className="mt-1.5 text-sm text-white/70">
+            Inició el {microciclo.fechaInicio} · cadencia de {microciclo.cadenciaDias} días
           </p>
+          <div className="mt-3">
+            <ProgressBar pct={resumen.pctRegistrado} etiqueta="Progreso del microciclo" />
+            <p className="cifras mt-1.5 text-xs text-white/70">
+              {resumen.sesionesRegistradas} de {resumen.sesionesTotales} sesiones registradas
+            </p>
+          </div>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { Card } from '../../components/ui/Card'
+import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 
 const VASO_ML = 250
@@ -21,6 +22,7 @@ export function Hidratacion({ usuarioId }: { usuarioId: string }) {
   useDbVersion()
   const hoy = hoyIso()
   const ml = db.nutricion.hidratacionDe(usuarioId, hoy)
+  const mlAnimado = useContadorAnimado(ml, 500)
   const peso = ultimoPeso(usuarioId)
   const objetivoMl = peso ? Math.round((peso * 35) / 100) * 100 : 2500
   const pct = Math.min(100, (ml / objetivoMl) * 100)
@@ -46,7 +48,7 @@ export function Hidratacion({ usuarioId }: { usuarioId: string }) {
               Hidratación
             </p>
             <p className="cifras text-xs text-tenue">
-              <span className="font-display text-base text-texto">{litros(ml)}L</span>
+              <span className="font-display text-base text-texto">{litros(mlAnimado)}L</span>
               {` de ${litros(objetivoMl)}L`}
             </p>
           </div>

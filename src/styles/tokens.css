@@ -138,7 +138,26 @@ body {
   inset: 0;
   background-image: var(--foto);
   background-size: cover;
-  background-position: center;
+  background-position: var(--foto-pos, center);
+}
+
+/* Variante alta: la persona de la foto es la protagonista. El contenido
+   baja al pie y el velo se aclara arriba para respetar la fotografía. */
+.tarjeta-foto-alta {
+  display: flex;
+  min-height: 24rem;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.tarjeta-foto-alta::after {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 10, 0.05) 0%,
+    rgba(10, 10, 10, 0.12) 45%,
+    rgba(10, 10, 10, 0.62) 74%,
+    rgba(10, 10, 10, 0.94) 100%
+  );
 }
 
 .tarjeta-foto::after {
@@ -210,6 +229,29 @@ body {
 .entrada-4 { animation-delay: 180ms; }
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
+
+/* ---------- Reveal al entrar al viewport ---------- */
+
+.revelar {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 600ms var(--ease-salida),
+    transform 600ms var(--ease-salida);
+}
+
+.revelar.revelado {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revelar {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
 
 /* ---------- Pulso del CTA principal (Finalizar sesión / Empezar) ---------- */
 

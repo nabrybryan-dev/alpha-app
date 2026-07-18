@@ -87,8 +87,8 @@ export default function SesionPage() {
     <div className="flex flex-col gap-4">
       <section className="entrada entrada-1">
         <div
-          className="tarjeta-foto px-5 pb-5 pt-10 text-center"
-          style={{ '--foto': 'url(/fondos/atleta.png)' } as React.CSSProperties}
+          className="tarjeta-foto px-5 pb-5 pt-24 text-center"
+          style={{ '--foto': 'url(/fondos/atleta-hombre.jpeg)', '--foto-pos': 'center 18%' } as React.CSSProperties}
         >
           <p className="kicker">Microciclo M{microciclo.numero}</p>
           <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>

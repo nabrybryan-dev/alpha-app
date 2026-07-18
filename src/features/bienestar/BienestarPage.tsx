@@ -1,6 +1,7 @@
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { Revelar } from '../../components/ui/Revelar'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { CheckinDiario } from '../../domain/types'
@@ -44,12 +45,17 @@ export default function BienestarPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="entrada entrada-1 pt-2">
-        <p className="kicker">Test durante el día</p>
-        <h2 className="mt-1 font-display text-4xl leading-none text-texto">Bienestar diario</h2>
-        <p className="mt-1.5 text-sm text-tenue">
-          2 minutos al día que le dan al coach lo que necesita para ajustar tu plan.
-        </p>
+      <section className="entrada entrada-1">
+        <div
+          className="tarjeta-foto p-5 pt-24"
+          style={{ '--foto': 'url(/fondos/atleta-film.jpeg)', '--foto-pos': 'center 30%' } as React.CSSProperties}
+        >
+          <p className="kicker">Test durante el día</p>
+          <h2 className="mt-1 font-display text-4xl leading-none">Bienestar diario</h2>
+          <p className="mt-1.5 text-sm text-white/70">
+            2 minutos al día que le dan al coach lo que necesita para ajustar tu plan.
+          </p>
+        </div>
       </section>
 
       {deHoy ? (
@@ -65,8 +71,10 @@ export default function BienestarPage() {
 
       <section className="entrada entrada-3 flex flex-col gap-2">
         <p className="kicker">Últimos 7 días</p>
-        {ultimos.map((c) => (
-          <FilaHistorial key={c.id} checkin={c} />
+        {ultimos.map((c, i) => (
+          <Revelar key={c.id} retrasoMs={(i % 5) * 50}>
+            <FilaHistorial checkin={c} />
+          </Revelar>
         ))}
       </section>
     </div>

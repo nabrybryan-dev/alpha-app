@@ -45,12 +45,14 @@ export function TopBar({ titulo }: TopBarProps) {
     <header className="glass-blur sticky top-0 z-40 border-b border-hairline bg-bg/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2.5">
-          <span
+          <img
+            src="/marca/icono-aguila.jpeg"
+            alt=""
             aria-hidden="true"
-            className="grid h-8 w-8 place-items-center rounded-lg border-2 border-rojo font-display text-sm text-rojo"
-          >
-            A
-          </span>
+            width="32"
+            height="32"
+            className="h-8 w-8 rounded-lg border border-hairline object-cover"
+          />
           <h1 className="font-display text-base tracking-wide text-texto">{titulo}</h1>
         </div>
         <div className="flex items-center gap-1.5">
