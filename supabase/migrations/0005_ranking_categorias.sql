@@ -147,4 +147,7 @@ as $$
 $$;
 
 revoke all on function public.ranking_disciplina() from public;
+-- Supabase otorga execute a anon por privilegios por defecto: hay que
+-- revocarlo explícito para que solo usuarios con sesión vean el ranking.
+revoke execute on function public.ranking_disciplina() from anon;
 grant execute on function public.ranking_disciplina() to authenticated;
