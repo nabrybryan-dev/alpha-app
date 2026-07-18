@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { Semaforo } from '../../components/ui/Semaforo'
-import { db, useDbVersion } from '../../data/dbInstance'
+import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import { resumenAsesorado } from './resumenAsesorado'
 
 const ordenColor = { rojo: 0, ambar: 1, verde: 2 } as const
@@ -10,9 +11,18 @@ const ordenColor = { rojo: 0, ambar: 1, verde: 2 } as const
 export default function AsesoradosPage() {
   useDbVersion()
 
+  const hoy = hoyIso()
   const resumenes = db.usuarios
     .asesorados()
-    .map((usuario) => resumenAsesorado(db, usuario))
+    .map((usuario) => {
+      const r = resumenAsesorado(db, usuario)
+      return {
+        ...r,
+        // Índice de Hooper adaptado (motor 04) + señal de carga por RIR (motor 02)
+        recuperacion: indiceRecuperacion(db.bienestar.byUsuario(usuario.id), hoy),
+        desvRir: desviacionRirMedia(r.microciclo ?? undefined),
+      }
+    })
     .sort((a, b) => ordenColor[a.semaforo.color] - ordenColor[b.semaforo.color])
 
   const pendientesChat = resumenes.reduce((suma, r) => suma + r.noLeidos, 0)
@@ -52,6 +62,22 @@ export default function AsesoradosPage() {
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Semaforo datos={r.semaforo} />
                   <span className="text-xs text-tenue">Registro {r.pctRegistrado}%</span>
+                  {r.recuperacion.indice !== undefined && (
+                    <span
+                      className={`cifras text-xs font-bold ${r.recuperacion.indice >= 70 ? 'text-verde' : r.recuperacion.indice >= 50 ? 'text-ambar' : 'text-rojo'}`}
+                      title={`Índice de recuperación (Hooper adaptado, ${r.recuperacion.dias} check-ins)`}
+                    >
+                      Rec {r.recuperacion.indice}
+                    </span>
+                  )}
+                  {r.desvRir !== undefined && (
+                    <span
+                      className={`cifras text-xs font-bold ${Math.abs(r.desvRir) <= 0.5 ? 'text-verde' : r.desvRir > 0 ? 'text-ambar' : 'text-rojo'}`}
+                      title="Desviación media RIR real - objetivo (+ = lejos del fallo, - = más cerca)"
+                    >
+                      RIR {r.desvRir > 0 ? '+' : ''}{r.desvRir}
+                    </span>
+                  )}
                   {r.noLeidos > 0 && <Badge tono="rojo">{r.noLeidos} 💬</Badge>}
                   {r.cuestionariosPendientes > 0 && (
                     <Badge tono="ambar">{r.cuestionariosPendientes} test</Badge>

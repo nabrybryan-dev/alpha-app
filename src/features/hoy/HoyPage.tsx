@@ -134,6 +134,18 @@ export default function HoyPage() {
         </section>
       )}
 
+      {usuario.rol === 'nutricionista' && (
+        <Link to="/equipo-nutricion" className="entrada entrada-5 block">
+          <Card destacada className="press flex items-center justify-between gap-3">
+            <div>
+              <p className="font-display text-sm text-texto">Nutrición del equipo</p>
+              <p className="text-xs text-tenue">Evaluación de adherencia de todos los asesorados</p>
+            </div>
+            <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rojo/15 text-base text-rojo">→</span>
+          </Card>
+        </Link>
+      )}
+
       <section className="entrada entrada-6 grid grid-cols-2 gap-3">
         <Link to="/contenidos">
           <Card className="press h-full">

@@ -1,4 +1,4 @@
-export type Rol = 'asesorado' | 'coach'
+export type Rol = 'asesorado' | 'coach' | 'nutricionista'
 
 export interface Usuario {
   id: string
