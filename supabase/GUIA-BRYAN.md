@@ -105,3 +105,40 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 > ánimo, cargas concretas, notas ni datos personales. Si corres este paso,
 > el paso 8 ya no es necesario; si aún no lo corres, el ranking funciona
 > con las categorías básicas y las nuevas aparecen en cero.
+
+## 10 · Si un asesorado NO aparece en la app (migración 0006)
+
+Síntomas: creaste la cuenta en Authentication → Users pero el asesorado no
+sale en tu lista de "Asesorados", y si esa persona entra a la app ve
+"Tu cuenta existe pero no tiene perfil en la app".
+
+Causa: la cuenta se creó cuando el disparador automático de la migración
+0001 aún no estaba instalado, así que nunca se creó su ficha interna.
+
+1. Menú → **SQL Editor** → **New query**.
+2. Abre `supabase/migrations/0006_reparar_usuarios.sql` de esta carpeta,
+   copia TODO, pégalo y presiona **Run**.
+3. Al final verás una tabla con TODAS las cuentas (tú como `coach` y cada
+   asesorado como `asesorado`). Si ahí salen todos, en la app también:
+   cierra sesión y vuelve a entrar para refrescar.
+
+Es seguro correrla varias veces y no toca datos existentes.
+
+### Ponerle nombre bonito a un asesorado nuevo
+
+Las fichas reparadas salen con el nombre tomado del correo. Para ajustarlo
+(ejemplo con Karin; repite con el correo de cada persona):
+
+```sql
+update public.usuarios_app
+set nombre = 'Karin', avatar_iniciales = 'K'
+where id = (select id from auth.users where email = 'CORREO-DE-KARIN@AQUI.com');
+```
+
+### Cómo dar de alta a un asesorado nuevo (resumen)
+
+1. **Authentication → Users → Add user** con su correo y una contraseña
+   temporal, marcando **Auto Confirm User**.
+2. Su ficha se crea sola (gracias al disparador) con rol `asesorado`, así
+   que aparece de inmediato en tu lista de Asesorados.
+3. Opcional: ajusta nombre e iniciales con el SQL de arriba.
