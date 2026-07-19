@@ -54,6 +54,10 @@ export interface EjercicioPrescrito {
   repsDiana: number
   rirObjetivo: number
   contenidoDemoId?: string
+  /** Etiqueta de cada serie cuando el esquema no es uniforme
+   *  (p. ej. ["TOP", "BACK-OFF", "BACK-OFF"] o ["PESADA", "MYO-REPS"]).
+   *  Sin definir, todas las series son iguales. */
+  etiquetasSeries?: string[]
   series: SerieRegistrada[]
 }
 
@@ -76,6 +80,9 @@ export interface Sesion {
   id: string
   nombre: string
   orden: number
+  /** Día de la semana programado ("LUNES"…"DOMINGO"). Si falta, se intenta
+   *  deducir del nombre de la sesión (p. ej. "FULL BODY A (LUNES)"). */
+  dia?: string
   tipo?: 'fuerza' | 'metabolica'
   preparacion?: PartePreparacion[]
   bloquesCardio?: ItemMarcable[]

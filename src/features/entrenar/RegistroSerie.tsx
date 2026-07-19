@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
+import { etiquetaDeSerie } from '../../domain/calendario'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 
 interface RegistroSerieProps {
@@ -24,6 +25,11 @@ export function RegistroSerie({ ejercicio, orden, onGuardar }: RegistroSerieProp
     <div className="rounded-xl border border-hairline bg-surface-2/60 p-3">
       <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-widest text-tenue">
         Serie {orden} de {ejercicio.sets}
+        {etiquetaDeSerie(ejercicio, orden) && (
+          <span className="ml-2 rounded-full bg-rojo/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-rojo">
+            {etiquetaDeSerie(ejercicio, orden)}
+          </span>
+        )}
       </p>
       <div className="flex items-start justify-between gap-1">
         <Stepper etiqueta="Carga" valor={cargaKg} paso={2.5} sufijo="kg" onCambiar={setCargaKg} />

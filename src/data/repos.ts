@@ -5,6 +5,7 @@ import type {
   Contenido,
   Cuestionario,
   EstadoAdherencia,
+  MedidaCorporal,
   Mensaje,
   Microciclo,
   Perfil,
@@ -27,6 +28,8 @@ export interface UsuariosRepo {
 
 export interface PerfilesRepo {
   byUsuario(usuarioId: string): Perfil | undefined
+  /** Registra una medición corporal del propio asesorado (reemplaza la de la misma fecha). */
+  agregarMedida(usuarioId: string, medida: MedidaCorporal): void
 }
 
 export interface MicrociclosRepo {

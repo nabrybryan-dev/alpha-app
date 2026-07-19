@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
+import { diaDeSesion, diaSemanaDe, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { useGamificacion } from '../logros/useGamificacion'
 import { MapaFatiga } from './MapaFatiga'
@@ -16,7 +17,8 @@ export default function HoyPage() {
   const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
-  const siguienteSesion = microciclo?.sesiones.find((s) => !sesionCompleta(s))
+  const sugerida = microciclo ? sesionSugerida(microciclo, hoy, sesionCompleta) : undefined
+  const siguienteSesion = sugerida?.sesion
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
@@ -78,7 +80,13 @@ export default function HoyPage() {
             className="tarjeta-foto tarjeta-foto-alta p-5"
             style={{ '--foto': 'url(/fondos/atleta-mujer.jpeg)', '--foto-pos': 'center 22%' } as React.CSSProperties}
           >
-            <p className="kicker">Tu siguiente sesión</p>
+            <p className="kicker">
+              {sugerida?.esDeHoy
+                ? `Hoy ${diaSemanaDe(hoy).toLowerCase()} te toca`
+                : diaDeSesion(siguienteSesion)
+                  ? `Pendiente del ${diaDeSesion(siguienteSesion)?.toLowerCase()}`
+                  : 'Tu siguiente sesión'}
+            </p>
             <h3 className="mt-1.5 font-display text-4xl leading-none">{siguienteSesion.nombre}</h3>
             <p className="mt-1.5 text-sm text-white/70">
               {siguienteSesion.ejercicios.length} ejercicios · descansos de 2-3 min

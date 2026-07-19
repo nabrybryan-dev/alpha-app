@@ -3,7 +3,8 @@ import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ProgressBar } from '../../components/ui/ProgressBar'
-import { db, useDbVersion } from '../../data/dbInstance'
+import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { diaDeSesion, diaSemanaDe } from '../../domain/calendario'
 import { resumenMicrociclo, sesionCompleta } from '../../domain/cumplimiento'
 
 export default function MicrocicloPage() {
@@ -47,10 +48,19 @@ export default function MicrocicloPage() {
       <section className="flex flex-col gap-2.5">
         {microciclo.sesiones.map((sesion, i) => {
           const registrada = sesionCompleta(sesion)
+          const dia = diaDeSesion(sesion)
+          const esHoy = dia !== undefined && dia === diaSemanaDe(hoyIso())
           return (
             <Link key={sesion.id} to={`/entrenar/sesion/${sesion.id}`} className={`entrada entrada-${Math.min(i + 2, 6)}`}>
               <Card className={`press flex items-center justify-between gap-3 ${registrada ? 'opacity-70' : ''}`}>
                 <div>
+                  {dia && (
+                    <p
+                      className={`text-[10px] font-bold uppercase tracking-[0.18em] ${esHoy && !registrada ? 'text-rojo' : 'text-tenue'}`}
+                    >
+                      {esHoy ? `HOY · ${dia}` : dia}
+                    </p>
+                  )}
                   <h3 className="font-display text-lg text-texto">
                     {sesion.nombre}
                     {sesion.tipo === 'metabolica' && (

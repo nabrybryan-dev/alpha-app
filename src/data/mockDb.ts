@@ -82,6 +82,34 @@ export function crearMockDb(): Db {
 
     perfiles: {
       byUsuario: (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId),
+      agregarMedida: (usuarioId, medida) => {
+        const existe = ref.actual.perfiles.some((p) => p.usuarioId === usuarioId)
+        const perfiles = existe
+          ? ref.actual.perfiles.map((p) =>
+              p.usuarioId === usuarioId
+                ? {
+                    ...p,
+                    medidas: [...p.medidas.filter((m) => m.fecha !== medida.fecha), medida].sort(
+                      (a, b) => a.fecha.localeCompare(b.fecha),
+                    ),
+                  }
+                : p,
+            )
+          : [
+              ...ref.actual.perfiles,
+              {
+                usuarioId,
+                objetivos: '',
+                edad: 0,
+                diasEntrenamiento: 0,
+                tiempoSesionMin: 0,
+                somatotipo: '',
+                volumenSemanal: {},
+                medidas: [medida],
+              },
+            ]
+        mutar({ ...ref.actual, perfiles })
+      },
     },
 
     microciclos: {

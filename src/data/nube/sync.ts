@@ -91,6 +91,20 @@ export function crearDbSincronizada(local: Db): Db {
   return {
     ...local,
 
+    perfiles: {
+      ...local.perfiles,
+      agregarMedida: (usuarioId, medida) => {
+        local.perfiles.agregarMedida(usuarioId, medida)
+        const perfil = local.perfiles.byUsuario(usuarioId)
+        if (!perfil) return
+        encolar({
+          tabla: 'perfiles',
+          tipo: 'upsert',
+          payload: { usuario_id: usuarioId, datos: perfil },
+        })
+      },
+    },
+
     microciclos: {
       ...local.microciclos,
       registrarSerie: (microcicloId, ejercicioId, serie) => {

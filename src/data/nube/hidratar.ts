@@ -21,7 +21,7 @@ import { marcarTablaHidratacion } from './sync'
 interface FilaUsuario {
   id: string
   nombre: string
-  rol: 'asesorado' | 'coach'
+  rol: 'asesorado' | 'coach' | 'nutricionista'
   avatar_iniciales: string
 }
 

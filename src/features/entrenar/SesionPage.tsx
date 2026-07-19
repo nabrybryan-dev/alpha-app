@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { preparacionDe } from '../../data/plantillas/preparacionBase'
+import { etiquetaDeSerie } from '../../domain/calendario'
 import { ejercicioCompleto, sesionCompleta } from '../../domain/cumplimiento'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido } from '../../domain/types'
@@ -210,6 +211,11 @@ export default function SesionPage() {
                     {ejercicio.series.map((serie) => (
                       <li key={serie.orden} className="flex items-center gap-2 text-sm text-texto">
                         <span className="text-xs text-tenue">S{serie.orden}</span>
+                        {etiquetaDeSerie(ejercicio, serie.orden) && (
+                          <span className="rounded-full bg-rojo/15 px-1.5 py-px text-[9px] font-bold tracking-[0.1em] text-rojo">
+                            {etiquetaDeSerie(ejercicio, serie.orden)}
+                          </span>
+                        )}
                         <span className="cifras font-bold">{serie.cargaKg} kg</span>
                         <span className="cifras">× {serie.reps} reps</span>
                         <span className="cifras text-tenue">RIR {serie.rir}</span>

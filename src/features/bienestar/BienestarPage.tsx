@@ -7,6 +7,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { CheckinDiario } from '../../domain/types'
 import { CheckinForm } from './CheckinForm'
+import { MedidasCard } from './MedidasCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
 
 function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
@@ -98,7 +99,11 @@ export default function BienestarPage() {
         </Card>
       )}
 
-      <section className="entrada entrada-3 flex flex-col gap-2">
+      <div className="entrada entrada-3">
+        <MedidasCard usuarioId={usuario.id} />
+      </div>
+
+      <section className="entrada entrada-4 flex flex-col gap-2">
         <p className="kicker">Últimos 7 días</p>
         {ultimos.map((c, i) => (
           <Revelar key={c.id} retrasoMs={(i % 5) * 50}>
