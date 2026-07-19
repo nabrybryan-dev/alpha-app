@@ -109,10 +109,10 @@ export default function SesionPage() {
         />
       </div>
 
-      {sesion.tipo === 'metabolica' && (
+      {(sesion.bloquesCardio ?? []).length > 0 && (
         <div className="entrada entrada-4">
         <Card>
-          <p className="kicker">Bloques de la sesión</p>
+          <p className="kicker">{sesion.tipo === 'metabolica' ? 'Bloques de la sesión' : 'Bloques marcables'}</p>
           <ul className="mt-2 flex flex-col gap-2">
             {(sesion.bloquesCardio ?? []).map((bloque) => (
               <li key={bloque.id} className="flex items-start gap-2.5">
