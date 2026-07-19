@@ -13,7 +13,7 @@ export default function AsesoradosPage() {
 
   const hoy = hoyIso()
   const resumenes = db.usuarios
-    .asesorados()
+    .entrenan()
     .map((usuario) => {
       const r = resumenAsesorado(db, usuario)
       return {

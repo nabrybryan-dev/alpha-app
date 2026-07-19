@@ -19,7 +19,10 @@ import type {
 export interface UsuariosRepo {
   list(): Usuario[]
   byId(id: string): Usuario | undefined
+  /** Solo rol asesorado (para el ranking y conteos de cartera pura). */
   asesorados(): Usuario[]
+  /** Todos los que entrenan (asesorados + staff que entrena, p. ej. la nutricionista). */
+  entrenan(): Usuario[]
 }
 
 export interface PerfilesRepo {

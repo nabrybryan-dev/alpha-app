@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Usuario } from '../domain/types'
 import { db, useDbVersion } from '../data/dbInstance'
 import { hidratarDesdeNube } from '../data/nube/hidratar'
+import { pendientesDeSync } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
 import { LoginPage } from '../features/auth/LoginPage'
 
@@ -89,6 +90,34 @@ function SesionNube({ children }: { children: ReactNode }) {
       window.clearInterval(temporizador)
     }
   }, [])
+
+  // Refresco en vivo para el staff: al volver a la pestaña o cada 45 s, si no
+  // hay escrituras locales pendientes, vuelve a bajar los datos de todos los
+  // asesorados. Así el coach y la nutricionista ven las modificaciones de cada
+  // usuario en tiempo casi real, sin recargar.
+  useEffect(() => {
+    if (estado !== 'listo' || !autenticadoId) return
+    const rol = db.usuarios.byId(autenticadoId)?.rol
+    if (rol !== 'coach' && rol !== 'nutricionista') return
+
+    let activo = true
+    const refrescar = async () => {
+      if (!activo || document.visibilityState !== 'visible' || pendientesDeSync() > 0) return
+      try {
+        await hidratarDesdeNube()
+      } catch {
+        // error transitorio de red: se reintenta en el siguiente ciclo
+      }
+    }
+    const alVolver = () => void refrescar()
+    document.addEventListener('visibilitychange', alVolver)
+    const id = window.setInterval(() => void refrescar(), 45_000)
+    return () => {
+      activo = false
+      document.removeEventListener('visibilitychange', alVolver)
+      window.clearInterval(id)
+    }
+  }, [estado, autenticadoId])
 
   if (estado === 'cargando') {
     return (

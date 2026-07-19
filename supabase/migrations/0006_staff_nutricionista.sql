@@ -34,6 +34,7 @@ drop policy if exists adherencias_todo_propio on public.adherencias;
 create policy adherencias_todo_propio on public.adherencias
   for all using (usuario_id = auth.uid() or public.es_coach())
   with check (usuario_id = auth.uid() or public.es_coach());
+drop policy if exists adherencias_lee_staff on public.adherencias;
 create policy adherencias_lee_staff on public.adherencias
   for select using (public.es_staff());
 
@@ -47,6 +48,7 @@ drop policy if exists checkins_todo_propio on public.checkins;
 create policy checkins_todo_propio on public.checkins
   for all using (usuario_id = auth.uid() or public.es_coach())
   with check (usuario_id = auth.uid() or public.es_coach());
+drop policy if exists checkins_lee_staff on public.checkins;
 create policy checkins_lee_staff on public.checkins
   for select using (public.es_staff());
 
@@ -55,6 +57,7 @@ drop policy if exists hidratacion_todo_propio on public.hidratacion;
 create policy hidratacion_todo_propio on public.hidratacion
   for all using (usuario_id = auth.uid() or public.es_coach())
   with check (usuario_id = auth.uid() or public.es_coach());
+drop policy if exists hidratacion_lee_staff on public.hidratacion;
 create policy hidratacion_lee_staff on public.hidratacion
   for select using (public.es_staff());
 

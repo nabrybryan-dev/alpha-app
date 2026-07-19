@@ -76,6 +76,8 @@ export function crearMockDb(): Db {
       list: () => ref.actual.usuarios,
       byId: (id) => ref.actual.usuarios.find((u) => u.id === id),
       asesorados: () => ref.actual.usuarios.filter((u) => u.rol === 'asesorado'),
+      entrenan: () =>
+        ref.actual.usuarios.filter((u) => u.rol === 'asesorado' || u.rol === 'nutricionista'),
     },
 
     perfiles: {
