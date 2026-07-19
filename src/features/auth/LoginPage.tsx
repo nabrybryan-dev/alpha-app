@@ -33,22 +33,24 @@ export function LoginPage() {
     'w-full rounded-xl border border-linea bg-surface-2 px-4 py-3 text-texto placeholder:text-tenue focus:border-rojo focus:outline-none'
 
   return (
-    <div className="relative grid min-h-dvh place-items-center overflow-hidden px-6">
+    <div className="relative grid min-h-dvh place-items-center px-6" style={{ backgroundColor: '#0a0a0a' }}>
+      {/* fixed (no absolute): cubre SIEMPRE el viewport completo, incluso con
+          el teclado abierto o al hacer scroll — sin bordes vacíos */}
       <div
         aria-hidden="true"
-        className="absolute inset-0"
+        className="fixed inset-0"
         style={{
-          backgroundImage: 'url(/fondos/atleta-hombre.jpeg)',
+          backgroundImage: 'url(/fondos/atleta.png)',
           backgroundSize: 'cover',
-          backgroundPosition: 'center 18%',
+          backgroundPosition: 'center top',
         }}
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0"
+        className="fixed inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(10,10,10,0.45) 0%, rgba(10,10,10,0.72) 55%, rgba(10,10,10,0.94) 100%)',
+            'linear-gradient(180deg, rgba(10,10,10,0.35) 0%, rgba(10,10,10,0.66) 55%, rgba(10,10,10,0.93) 100%)',
         }}
       />
 

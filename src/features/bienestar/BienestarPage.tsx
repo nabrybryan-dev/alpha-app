@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
@@ -6,6 +7,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { CheckinDiario } from '../../domain/types'
 import { CheckinForm } from './CheckinForm'
+import { activarRecordatorios, permisoActual } from './recordatorio'
 
 function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
   if (valor === 'BUENA' || valor === 'POCO') return 'verde'
@@ -38,6 +40,7 @@ export default function BienestarPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
+  const [permiso, setPermiso] = useState(permisoActual())
 
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
@@ -48,7 +51,7 @@ export default function BienestarPage() {
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto p-5 pt-24"
-          style={{ '--foto': 'url(/fondos/atleta-film.jpeg)', '--foto-pos': 'center 30%' } as React.CSSProperties}
+          style={{ '--foto': 'url(/fondos/banco-alpha.jpg)', '--foto-pos': 'center 45%' } as React.CSSProperties}
         >
           <p className="kicker">Test durante el día</p>
           <h2 className="mt-1 font-display text-4xl leading-none">Bienestar diario</h2>
@@ -57,6 +60,32 @@ export default function BienestarPage() {
           </p>
         </div>
       </section>
+
+      {permiso === 'default' && (
+        <Card className="entrada entrada-2 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-texto">🔔 Recordatorio de las 6 pm</p>
+            <p className="mt-0.5 text-xs text-tenue">
+              Si a las 6 pm no has llenado tu check-in, te avisamos con una notificación.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              void activarRecordatorios().then((r) => setPermiso(r))
+            }}
+            className="press shrink-0 rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
+          >
+            Activar
+          </button>
+        </Card>
+      )}
+      {permiso === 'denied' && (
+        <p className="entrada entrada-2 text-center text-[11px] text-tenue">
+          Las notificaciones están bloqueadas en tu navegador — actívalas en la configuración del
+          sitio para recibir el recordatorio de las 6 pm.
+        </p>
+      )}
 
       {deHoy ? (
         <Card destacada className="entrada entrada-2">
