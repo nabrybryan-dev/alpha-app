@@ -6,7 +6,9 @@ export function LoginPage() {
   const [correo, setCorreo] = useState('')
   const [clave, setClave] = useState('')
   const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [modo, setModo] = useState<'login' | 'recuperar'>('login')
 
   const entrar = async () => {
     setError('')
@@ -27,6 +29,26 @@ export function LoginPage() {
           : `No se pudo iniciar sesión: ${fallo.message}`,
       )
     }
+  }
+
+  const enviarRecuperacion = async () => {
+    setError('')
+    setAviso('')
+    if (!correo.trim()) {
+      setError('Escribe tu correo para enviarte el enlace')
+      return
+    }
+    setCargando(true)
+    const { error: fallo } = await supabase().auth.resetPasswordForEmail(correo.trim(), {
+      redirectTo: window.location.origin,
+    })
+    setCargando(false)
+    if (fallo) {
+      setError(`No se pudo enviar el correo: ${fallo.message}`)
+      return
+    }
+    // No se revela si el correo existe o no (evita enumerar cuentas).
+    setAviso('Si tu correo está registrado, te llegará un enlace para crear una contraseña nueva. Revisa tu bandeja y la carpeta de spam.')
   }
 
   const campo =
@@ -67,7 +89,7 @@ export function LoginPage() {
           className="glass glass-blur mt-6 flex flex-col gap-3 rounded-panel p-4"
           onSubmit={(e) => {
             e.preventDefault()
-            void entrar()
+            void (modo === 'login' ? entrar() : enviarRecuperacion())
           }}
         >
           <input
@@ -78,22 +100,43 @@ export function LoginPage() {
             placeholder="tu@correo.com"
             className={campo}
           />
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={clave}
-            onChange={(e) => setClave(e.target.value)}
-            placeholder="Contraseña"
-            className={campo}
-          />
+          {modo === 'login' && (
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={clave}
+              onChange={(e) => setClave(e.target.value)}
+              placeholder="Contraseña"
+              className={campo}
+            />
+          )}
           {error && <p className="text-sm font-bold text-rojo">{error}</p>}
+          {aviso && <p className="text-sm text-white/80">{aviso}</p>}
           <button
             type="submit"
             disabled={cargando}
             className="press btn-cristal-rojo mt-1 rounded-full py-3.5 font-display text-sm disabled:opacity-50"
             style={{ color: '#fff' }}
           >
-            {cargando ? 'Entrando…' : 'Entrar →'}
+            {modo === 'login'
+              ? cargando
+                ? 'Entrando…'
+                : 'Entrar →'
+              : cargando
+                ? 'Enviando…'
+                : 'Enviar enlace de recuperación →'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setError('')
+              setAviso('')
+              setModo(modo === 'login' ? 'recuperar' : 'login')
+            }}
+            className="mt-1 text-center text-xs text-white/70 underline underline-offset-2 hover:text-white"
+          >
+            {modo === 'login' ? '¿Olvidaste tu contraseña?' : '← Volver a iniciar sesión'}
           </button>
         </form>
 

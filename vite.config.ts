@@ -5,6 +5,19 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   // Respeta el puerto que asigne el entorno (p. ej. el panel de vista previa)
   server: { port: Number(process.env.PORT) || 5173 },
+  build: {
+    rollupOptions: {
+      output: {
+        // Separar los vendors estables del código propio: al desplegar una
+        // versión nueva, el navegador solo re-descarga el código de la app,
+        // no React ni supabase-js.
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

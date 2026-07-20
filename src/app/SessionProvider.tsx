@@ -1,10 +1,11 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Usuario } from '../domain/types'
 import { db, useDbVersion } from '../data/dbInstance'
 import { hidratarDesdeNube } from '../data/nube/hidratar'
-import { pendientesDeSync } from '../data/nube/sync'
+import { limpiarColasDeSync, pendientesDeSync, procesarCola } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
 import { LoginPage } from '../features/auth/LoginPage'
+import { NuevaClavePage } from '../features/auth/NuevaClavePage'
 
 interface SesionContexto {
   usuario: Usuario
@@ -20,74 +21,95 @@ const usuarioDemoPorDefecto = (): Usuario => {
 }
 
 /**
- * Política de seguridad acordada con el coach: la sesión dura máximo 2 horas
- * (lo que dura un entreno). Pasado ese tiempo se cierra sola y hay que volver
- * a entrar con correo y contraseña.
+ * La sesión queda iniciada de forma permanente: como la app está instalada en
+ * el teléfono personal del asesorado, Supabase renueva el token solo y solo se
+ * sale con el botón "Cerrar sesión". (Decisión de producto de Bryan, 2026-07-20;
+ * reemplaza la antigua expiración de 2 h que era solo cosmética y molestaba.)
  */
-const MAX_SESION_MS = 2 * 60 * 60 * 1000
-const CLAVE_INICIO_SESION = 'alpha-sesion-inicio'
-
-function sesionVencida(): boolean {
-  const inicio = Number(localStorage.getItem(CLAVE_INICIO_SESION) ?? 0)
-  return !inicio || Date.now() - inicio > MAX_SESION_MS
-}
-
 const Contexto = createContext<SesionContexto | null>(null)
 
 function SesionNube({ children }: { children: ReactNode }) {
   const [autenticadoId, setAutenticadoId] = useState<string | null>(null)
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'sin-sesion' | 'error'>('cargando')
   const [detalleError, setDetalleError] = useState('')
+  const [recuperacion, setRecuperacion] = useState(false)
+  const autenticadoRef = useRef<string | null>(null)
+  const hidratandoRef = useRef(false)
+  const recuperacionRef = useRef(false)
   useDbVersion()
 
   useEffect(() => {
     const sb = supabase()
 
+    // Si el usuario llega desde el enlace de "olvidé mi contraseña", Supabase
+    // trae un token de recuperación en el hash de la URL. Se detecta de una vez
+    // para mostrar la pantalla de nueva clave y NO entrar a la app ni hidratar.
+    if (window.location.hash.includes('type=recovery')) {
+      recuperacionRef.current = true
+      setRecuperacion(true)
+    }
+
+    /**
+     * Supabase emite SIGNED_IN no solo en el login real: también cada vez que
+     * la pestaña/app recupera el foco (desbloquear el celular entre series).
+     * Si el usuario ya está autenticado, el refresco corre en segundo plano
+     * sin desmontar la interfaz — desmontarla reiniciaba el cronómetro y
+     * borraba la serie a medio escribir. Solo el primer ingreso bloquea con
+     * la pantalla de "Sincronizando…".
+     */
     const alCambiar = async (usuarioId: string | undefined) => {
+      // Durante la recuperación de contraseña no se entra a la app ni se
+      // hidrata: solo se muestra la pantalla para fijar la nueva clave.
+      if (recuperacionRef.current) return
       if (!usuarioId) {
+        autenticadoRef.current = null
         setAutenticadoId(null)
         setEstado('sin-sesion')
         return
       }
-      setEstado('cargando')
+      if (hidratandoRef.current) return
+      hidratandoRef.current = true
+      const yaActivo = autenticadoRef.current === usuarioId
+      if (!yaActivo) setEstado('cargando')
       try {
+        // Primero suben las escrituras locales pendientes; hidratar antes de
+        // subirlas pisaría series/checkins recién registrados con la copia
+        // vieja del servidor.
+        await procesarCola()
+        if (yaActivo && pendientesDeSync() > 0) return
         await hidratarDesdeNube()
+        autenticadoRef.current = usuarioId
         setAutenticadoId(usuarioId)
         setEstado('listo')
       } catch (fallo: unknown) {
+        if (yaActivo) return // refresco en segundo plano fallido: se reintenta luego
         setDetalleError(fallo instanceof Error ? fallo.message : 'Error desconocido')
         setEstado('error')
+      } finally {
+        hidratandoRef.current = false
       }
     }
 
     void sb.auth.getSession().then(({ data }) => {
-      if (data.session && sesionVencida()) {
-        void sb.auth.signOut()
-        return
-      }
       void alCambiar(data.session?.user.id)
     })
     const { data: escucha } = sb.auth.onAuthStateChange((evento, sesion) => {
+      if (evento === 'PASSWORD_RECOVERY') {
+        recuperacionRef.current = true
+        setRecuperacion(true)
+        return
+      }
       if (evento === 'SIGNED_IN') {
-        if (!localStorage.getItem(CLAVE_INICIO_SESION)) {
-          localStorage.setItem(CLAVE_INICIO_SESION, String(Date.now()))
-        }
         void alCambiar(sesion?.user.id)
       }
       if (evento === 'SIGNED_OUT') {
-        localStorage.removeItem(CLAVE_INICIO_SESION)
         localStorage.removeItem('alpha-db-v2')
+        limpiarColasDeSync()
         void alCambiar(undefined)
       }
     })
-    const temporizador = window.setInterval(() => {
-      if (localStorage.getItem(CLAVE_INICIO_SESION) && sesionVencida()) {
-        void sb.auth.signOut()
-      }
-    }, 60_000)
     return () => {
       escucha.subscription.unsubscribe()
-      window.clearInterval(temporizador)
     }
   }, [])
 
@@ -103,10 +125,14 @@ function SesionNube({ children }: { children: ReactNode }) {
     let activo = true
     const refrescar = async () => {
       if (!activo || document.visibilityState !== 'visible' || pendientesDeSync() > 0) return
+      if (hidratandoRef.current) return
+      hidratandoRef.current = true
       try {
         await hidratarDesdeNube()
       } catch {
         // error transitorio de red: se reintenta en el siguiente ciclo
+      } finally {
+        hidratandoRef.current = false
       }
     }
     const alVolver = () => void refrescar()
@@ -118,6 +144,19 @@ function SesionNube({ children }: { children: ReactNode }) {
       window.clearInterval(id)
     }
   }, [estado, autenticadoId])
+
+  if (recuperacion) {
+    return (
+      <NuevaClavePage
+        onListo={() => {
+          recuperacionRef.current = false
+          setRecuperacion(false)
+          // limpia el token de recuperación del hash de la URL
+          history.replaceState(null, '', window.location.pathname)
+        }}
+      />
+    )
+  }
 
   if (estado === 'cargando') {
     return (
@@ -159,8 +198,10 @@ function SesionNube({ children }: { children: ReactNode }) {
   }
 
   const cerrarSesion = () => {
-    void supabase().auth.signOut()
-    localStorage.removeItem('alpha-db-v2')
+    void (async () => {
+      await procesarCola() // subir lo pendiente antes de salir
+      await supabase().auth.signOut() // SIGNED_OUT limpia db, colas y marca de inicio
+    })()
   }
 
   return (

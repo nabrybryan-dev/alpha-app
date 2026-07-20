@@ -11,7 +11,7 @@ import { etiquetaDeSerie } from '../../domain/calendario'
 import { ejercicioCompleto, sesionCompleta } from '../../domain/cumplimiento'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido } from '../../domain/types'
-import { CronometroSesion } from './CronometroSesion'
+import { CronometroSesion, limpiarCronometro } from './CronometroSesion'
 import { PreparacionSesion } from './PreparacionSesion'
 import { RegistroSerie } from './RegistroSerie'
 import { TestPostSesion } from './TestPostSesion'
@@ -95,7 +95,7 @@ export default function SesionPage() {
           <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>
           {!todasRegistradas && (
             <div className="mt-3">
-              <CronometroSesion />
+              <CronometroSesion sesionId={sesion.id} />
             </div>
           )}
         </div>
@@ -209,7 +209,7 @@ export default function SesionPage() {
                 {ejercicio.series.length > 0 && (
                   <ul className="mt-3 flex flex-col gap-1">
                     {ejercicio.series.map((serie) => (
-                      <li key={serie.orden} className="flex items-center gap-2 text-sm text-texto">
+                      <li key={serie.orden} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-texto">
                         <span className="text-xs text-tenue">S{serie.orden}</span>
                         {etiquetaDeSerie(ejercicio, serie.orden) && (
                           <span className="rounded-full bg-rojo/15 px-1.5 py-px text-[9px] font-bold tracking-[0.1em] text-rojo">
@@ -230,6 +230,7 @@ export default function SesionPage() {
                       key={siguienteOrden}
                       ejercicio={ejercicio}
                       orden={siguienteOrden}
+                      borradorId={`${microciclo.id}-${ejercicio.id}-${siguienteOrden}`}
                       onGuardar={(serie) => db.microciclos.registrarSerie(microciclo.id, ejercicio.id, serie)}
                     />
                   </div>
@@ -245,6 +246,7 @@ export default function SesionPage() {
         <TestPostSesion
           onGuardar={(test) => {
             db.microciclos.guardarTestPost(microciclo.id, sesion.id, test)
+            limpiarCronometro(sesion.id)
             setCerrada(true)
           }}
         />

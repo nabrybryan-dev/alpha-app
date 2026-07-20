@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { z } from 'zod'
 import { ChipGroup } from '../../components/ui/Chip'
 import { Stepper } from '../../components/ui/Stepper'
 import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
@@ -7,10 +6,16 @@ import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
 
-const esquema = z.object({
-  pesoKg: z.number().min(30, 'Peso fuera de rango').max(250, 'Peso fuera de rango').optional(),
-  pasos: z.number().min(0).max(100000, 'Pasos fuera de rango').optional(),
-})
+function validarNumeros(numeros: { pesoKg?: number; pasos?: number }): string {
+  const { pesoKg, pasos } = numeros
+  if (pesoKg !== undefined && (Number.isNaN(pesoKg) || pesoKg < 30 || pesoKg > 250)) {
+    return 'Peso fuera de rango'
+  }
+  if (pasos !== undefined && (Number.isNaN(pasos) || pasos < 0 || pasos > 100000)) {
+    return 'Pasos fuera de rango'
+  }
+  return ''
+}
 
 interface CheckinFormProps {
   usuarioId: string
@@ -38,9 +43,9 @@ export function CheckinForm({ usuarioId, fecha, onGuardar }: CheckinFormProps) {
       pesoKg: pesoKg ? Number.parseFloat(pesoKg.replace(',', '.')) : undefined,
       pasos: pasos ? Number.parseInt(pasos, 10) : undefined,
     }
-    const validacion = esquema.safeParse(numeros)
-    if (!validacion.success) {
-      setError(validacion.error.issues[0]?.message ?? 'Revisa los valores')
+    const fallo = validarNumeros(numeros)
+    if (fallo) {
+      setError(fallo)
       return
     }
     setError('')
@@ -48,7 +53,7 @@ export function CheckinForm({ usuarioId, fecha, onGuardar }: CheckinFormProps) {
       id: `ck-${usuarioId}-${fecha}`,
       usuarioId,
       fecha,
-      ...validacion.data,
+      ...numeros,
       entreno: entreno || undefined,
       rendimiento,
       motivacion,

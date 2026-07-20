@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { ErrorBoundary } from './ErrorBoundary'
 import { AsesoradoLayout, CoachLayout } from './layouts'
 
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
@@ -22,7 +23,11 @@ function Cargando() {
 }
 
 function envolver(children: ReactNode) {
-  return <Suspense fallback={<Cargando />}>{children}</Suspense>
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<Cargando />}>{children}</Suspense>
+    </ErrorBoundary>
+  )
 }
 
 export function AppRouter() {

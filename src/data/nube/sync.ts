@@ -1,15 +1,19 @@
 import type { Db } from '../repos'
 import { modoNube, supabase } from '../supabase'
 
-interface OperacionPendiente {
+export interface OperacionPendiente {
   tabla: string
   tipo: 'upsert' | 'update'
   payload: Record<string, unknown>
   filtro?: Record<string, string>
+  intentos?: number
 }
 
 const CLAVE_COLA = 'alpha-cola-sync'
+const CLAVE_DESCARTES = 'alpha-cola-descartes'
 const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
+const MAX_INTENTOS = 8
+const MAX_DESCARTES = 20
 let procesando = false
 
 /**
@@ -42,6 +46,51 @@ export function pendientesDeSync(): number {
   return leerCola().length
 }
 
+/**
+ * Al cerrar sesión en un dispositivo (posiblemente compartido) no deben quedar
+ * escrituras con datos personales en localStorage, ni operaciones de un usuario
+ * que la cola intentaría subir con el JWT del siguiente.
+ */
+export function limpiarColasDeSync(): void {
+  localStorage.removeItem(CLAVE_COLA)
+  localStorage.removeItem(CLAVE_DESCARTES)
+}
+
+/**
+ * Un upsert nuevo sobre la misma fila reemplaza al que ya estaba en cola: en
+ * una sesión de 24 series el microciclo se sube una vez con el estado final,
+ * no 24 veces con estados intermedios.
+ */
+export function integrarEnCola(
+  cola: OperacionPendiente[],
+  op: OperacionPendiente,
+): OperacionPendiente[] {
+  const clave = claveDeFila(op)
+  if (!clave) return [...cola, op]
+  const previa = cola.findIndex((o) => claveDeFila(o) === clave)
+  if (previa === -1) return [...cola, op]
+  return cola.map((o, i) => (i === previa ? op : o))
+}
+
+function claveDeFila(op: OperacionPendiente): string | undefined {
+  if (op.tipo !== 'upsert') return undefined
+  const id = op.payload.id ?? op.payload.usuario_id
+  return typeof id === 'string' ? `${op.tabla}:${id}` : undefined
+}
+
+function apartarDescartada(op: OperacionPendiente): void {
+  try {
+    const crudo = localStorage.getItem(CLAVE_DESCARTES)
+    const descartes = crudo ? (JSON.parse(crudo) as OperacionPendiente[]) : []
+    localStorage.setItem(
+      CLAVE_DESCARTES,
+      JSON.stringify([...descartes, op].slice(-MAX_DESCARTES)),
+    )
+  } catch {
+    // si ni siquiera se puede apartar, se descarta sin más para no atascar la cola
+  }
+}
+
 async function ejecutar(op: OperacionPendiente): Promise<void> {
   const sb = supabase()
   if (op.tipo === 'upsert') {
@@ -63,12 +112,28 @@ export async function procesarCola(): Promise<void> {
   try {
     let cola = leerCola()
     while (cola.length > 0) {
-      await ejecutar(cola[0])
-      cola = cola.slice(1)
-      escribirCola(cola)
+      const op = cola[0]
+      try {
+        await ejecutar(op)
+        cola = cola.slice(1)
+        escribirCola(cola)
+      } catch {
+        // Sin conexión no se cuenta el intento: estar offline durante todo un
+        // entreno no puede terminar descartando las series registradas.
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return
+        const intentos = (op.intentos ?? 0) + 1
+        if (intentos >= MAX_INTENTOS) {
+          // Operación que falla de forma persistente (fila inexistente, RLS…):
+          // se aparta para que no bloquee eternamente las escrituras siguientes.
+          apartarDescartada({ ...op, intentos })
+          cola = cola.slice(1)
+          escribirCola(cola)
+          continue
+        }
+        escribirCola([{ ...op, intentos }, ...cola.slice(1)])
+        return
+      }
     }
-  } catch {
-    // sin conexión o error transitorio: la cola queda para el próximo intento
   } finally {
     procesando = false
   }
@@ -76,7 +141,7 @@ export async function procesarCola(): Promise<void> {
 
 function encolar(op: OperacionPendiente): void {
   if (!modoNube) return
-  escribirCola([...leerCola(), op])
+  escribirCola(integrarEnCola(leerCola(), op))
   void procesarCola()
 }
 
