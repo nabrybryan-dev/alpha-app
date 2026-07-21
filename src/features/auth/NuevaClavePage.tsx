@@ -51,7 +51,8 @@ export function NuevaClavePage({ onListo }: { onListo: () => void }) {
         aria-hidden="true"
         className="fixed inset-0"
         style={{
-          backgroundImage: 'url(/fondos/atleta.png)',
+          backgroundColor: '#0a0a0a',
+          backgroundImage: 'url(/fondos/atleta.jpeg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
         }}
