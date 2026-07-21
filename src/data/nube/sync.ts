@@ -145,6 +145,34 @@ function encolar(op: OperacionPendiente): void {
   void procesarCola()
 }
 
+/**
+ * Recuperación única: reincorpora a la cola las operaciones que se habían
+ * descartado (p. ej. las series que fallaban por el permiso RLS corregido en la
+ * migración 0009) para que se reintenten ahora que la escritura ya es válida.
+ * Se hace una sola vez por dispositivo para no entrar en un bucle si algo
+ * volviera a fallar de forma legítima.
+ */
+const CLAVE_RECUPERADO = 'alpha-descartes-recuperados-v1'
+
+export function recuperarDescartesUnaVez(): void {
+  if (!modoNube) return
+  if (localStorage.getItem(CLAVE_RECUPERADO)) return
+  localStorage.setItem(CLAVE_RECUPERADO, '1')
+  let descartes: OperacionPendiente[] = []
+  try {
+    descartes = JSON.parse(localStorage.getItem(CLAVE_DESCARTES) ?? '[]') as OperacionPendiente[]
+  } catch {
+    descartes = []
+  }
+  if (descartes.length === 0) return
+  // se reencolan sin el contador de intentos, con dedup por fila
+  let cola = leerCola()
+  for (const op of descartes) cola = integrarEnCola(cola, { ...op, intentos: 0 })
+  escribirCola(cola)
+  localStorage.removeItem(CLAVE_DESCARTES)
+  void procesarCola()
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => void procesarCola())
   window.setInterval(() => void procesarCola(), 30000)

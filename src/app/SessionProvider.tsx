@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { Usuario } from '../domain/types'
 import { db, useDbVersion } from '../data/dbInstance'
 import { hidratarDesdeNube } from '../data/nube/hidratar'
-import { limpiarColasDeSync, pendientesDeSync, procesarCola } from '../data/nube/sync'
+import { limpiarColasDeSync, pendientesDeSync, procesarCola, recuperarDescartesUnaVez } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
 import { LoginPage } from '../features/auth/LoginPage'
 import { NuevaClavePage } from '../features/auth/NuevaClavePage'
@@ -72,11 +72,19 @@ function SesionNube({ children }: { children: ReactNode }) {
       const yaActivo = autenticadoRef.current === usuarioId
       if (!yaActivo) setEstado('cargando')
       try {
-        // Primero suben las escrituras locales pendientes; hidratar antes de
-        // subirlas pisaría series/checkins recién registrados con la copia
-        // vieja del servidor.
+        // Recupera envíos que se hubieran descartado (series bloqueadas por el
+        // permiso ya corregido) y sube lo pendiente ANTES de hidratar.
+        recuperarDescartesUnaVez()
         await procesarCola()
-        if (yaActivo && pendientesDeSync() > 0) return
+        // Si aún quedan escrituras locales sin subir, NO hidratamos: sobrescribir
+        // lo local con la copia del servidor borraría series/checkins que todavía
+        // no llegaron a la nube. Se sigue trabajando con los datos locales.
+        if (pendientesDeSync() > 0) {
+          autenticadoRef.current = usuarioId
+          setAutenticadoId(usuarioId)
+          setEstado('listo')
+          return
+        }
         await hidratarDesdeNube()
         autenticadoRef.current = usuarioId
         setAutenticadoId(usuarioId)
