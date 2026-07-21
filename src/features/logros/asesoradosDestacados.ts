@@ -60,6 +60,7 @@ export const ASESORADOS_DESTACADOS: AsesoradoDestacado[] = [
     historia:
       'Hace más de un año nació su bebé. Demostró lo contrario a lo que muchos creen: la maternidad no frena el progreso. Cuidó a su hija y mejoró su físico a la vez.',
     frase: 'Siempre hay un dónde, un cómo y un cuándo.',
-    // Sin foto todavía: el coach la enviará. La ficha se oculta hasta entonces.
+    foto: '/asesorados/valentina.jpeg',
+    fotoPos: 'center 26%',
   },
 ]
