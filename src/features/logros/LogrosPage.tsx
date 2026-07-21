@@ -6,6 +6,8 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Revelar } from '../../components/ui/Revelar'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
+import { ASESORADOS_DESTACADOS } from './asesoradosDestacados'
+import { FichaPanini } from './FichaPanini'
 import { RankingEquipo } from './RankingEquipo'
 import { useGamificacion } from './useGamificacion'
 
@@ -63,6 +65,20 @@ export default function LogrosPage() {
       <section className="entrada entrada-3">
         <p className="kicker mb-2">Ranking Equipo Alpha</p>
         <RankingEquipo usuarioActualId={usuario.id} />
+      </section>
+
+      <section className="entrada entrada-3">
+        <p className="kicker">Historias Alpha</p>
+        <p className="mb-2 mt-0.5 text-xs text-tenue">
+          Siempre hay un dónde, un cómo y un cuándo. Toca una ficha y muévela.
+        </p>
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+          {ASESORADOS_DESTACADOS.filter((a) => a.foto).map((a) => (
+            <div key={a.id} className="snap-center">
+              <FichaPanini ficha={a} />
+            </div>
+          ))}
+        </div>
       </section>
 
       {rachaRota && (
