@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { db } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido, PartePreparacion, TipoPreparacion } from '../../domain/types'
+import { CheckDibujado } from './CheckDibujado'
 
 const GRUPOS: { tipo: TipoPreparacion; titulo: string }[] = [
   { tipo: 'calentamiento', titulo: 'Calentamiento' },
@@ -76,7 +77,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                             parte.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
-                          ✓
+                          {parte.hechoEn && <CheckDibujado className="h-3.5 w-3.5" />}
                         </button>
                         <div className={`min-w-0 flex-1 transition-opacity duration-200 ${parte.hechoEn ? 'opacity-60' : ''}`}>
                           <button

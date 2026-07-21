@@ -5,6 +5,7 @@ import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Revelar } from '../../components/ui/Revelar'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
 import { RankingEquipo } from './RankingEquipo'
 import { useGamificacion } from './useGamificacion'
 
@@ -28,6 +29,9 @@ export default function LogrosPage() {
         className="entrada entrada-1 tarjeta-foto p-5 pt-24 text-center"
         style={{ '--foto': 'url(/fondos/atleta-sonrisa.jpeg)', '--foto-pos': 'center 25%' } as React.CSSProperties}
       >
+        <div className="mb-2 flex justify-center">
+          <AguilaInteractiva className="h-16 w-16" />
+        </div>
         <p className="kicker">Tu nivel de disciplina</p>
         <h2 className="mt-1 font-display text-4xl">{juego.nivel.nombre}</h2>
         <p className="cifras mt-1 text-sm text-white/70">

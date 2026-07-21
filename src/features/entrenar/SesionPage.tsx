@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
@@ -11,11 +11,23 @@ import { etiquetaDeSerie } from '../../domain/calendario'
 import { ejercicioCompleto, sesionCompleta } from '../../domain/cumplimiento'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido } from '../../domain/types'
+import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
+import { AguilaInteractiva } from './AguilaInteractiva'
+import { CheckDibujado } from './CheckDibujado'
 import { CronometroSesion, limpiarCronometro } from './CronometroSesion'
+import { DescansoTimer } from './DescansoTimer'
+import { frasePorSerie } from './frasesMotivacionales'
+import { PanelRitmo } from './PanelRitmo'
+import { reflexionSesion } from './reflexionSesion'
 import { PreparacionSesion } from './PreparacionSesion'
 import { RegistroSerie } from './RegistroSerie'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
+
+interface Descanso {
+  hasta: number
+  totalSeg: number
+}
 
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
   return (
@@ -45,6 +57,36 @@ export default function SesionPage() {
   const [demo, setDemo] = useState<Contenido | undefined>()
   const [cerrada, setCerrada] = useState(false)
   const [notasVisibles, setNotasVisibles] = useState<Set<string>>(new Set())
+  const claveDescanso = `alpha-descanso-${sesionId}`
+  const [descanso, setDescanso] = useState<Descanso | null>(() => leerJSON<Descanso | null>(claveDescanso, null))
+  const [frase, setFrase] = useState<{ texto: string; n: number } | null>(null)
+  const contadorFrase = useRef(0)
+
+  useEffect(() => {
+    if (descanso) escribirJSON(claveDescanso, descanso)
+    else borrarClave(claveDescanso)
+  }, [claveDescanso, descanso])
+
+  // La frase motivacional se desvanece sola tras su animación.
+  useEffect(() => {
+    if (!frase) return
+    const id = window.setTimeout(() => setFrase(null), 1600)
+    return () => window.clearTimeout(id)
+  }, [frase])
+
+  const alGuardarSerie = (descansoMin: number) => {
+    contadorFrase.current += 1
+    setFrase({ texto: frasePorSerie(contadorFrase.current), n: contadorFrase.current })
+    // Si esta serie completó la sesión, no hay descanso: sigue el cierre.
+    const micro = db.microciclos.byUsuario(usuario.id).find((m) => m.sesiones.some((s) => s.id === sesionId))
+    const ses = micro?.sesiones.find((s) => s.id === sesionId)
+    if (ses && sesionCompleta(ses)) {
+      setDescanso(null)
+      return
+    }
+    const totalSeg = Math.max(1, Math.round(descansoMin * 60))
+    setDescanso({ hasta: Date.now() + totalSeg * 1000, totalSeg })
+  }
 
   const alternarNota = (id: string) =>
     setNotasVisibles((prev) => {
@@ -66,11 +108,17 @@ export default function SesionPage() {
   const todasRegistradas = sesionCompleta(sesion)
 
   if (cerrada) {
+    const reflexion = sesion.testPost
+      ? reflexionSesion(sesion.testPost.rpeSesion, sesion.testPost.prsEntrada)
+      : undefined
     return (
       <div className="entrada flex flex-col items-center gap-4 py-10 text-center">
-        <span className="text-5xl" aria-hidden="true">🏆</span>
+        <AguilaInteractiva entrada className="h-24 w-24" />
         <h2 className="font-display text-3xl text-texto">Sesión {sesion.nombre} registrada</h2>
         <p className="cifras text-lg font-bold text-verde">+{XP_POR_ACCION.sesion} XP</p>
+        {reflexion && (
+          <p className="entrada entrada-3 max-w-xs font-display text-lg leading-snug text-texto">{reflexion}</p>
+        )}
         <p className="max-w-xs text-sm text-tenue">
           Tus datos ya quedaron guardados para la próxima decisión de programación del coach.
         </p>
@@ -101,6 +149,12 @@ export default function SesionPage() {
         </div>
       </section>
 
+      {sesion.tipo !== 'metabolica' && !todasRegistradas && (
+        <div className="entrada entrada-2">
+          <PanelRitmo sesion={sesion} sesionId={sesion.id} />
+        </div>
+      )}
+
       <div className="entrada entrada-3">
         <PreparacionSesion
           partes={preparacionDe(sesion)}
@@ -124,7 +178,7 @@ export default function SesionPage() {
                     bloque.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
                   }`}
                 >
-                  ✓
+                  {bloque.hechoEn && <CheckDibujado className="h-5 w-5" />}
                 </button>
                 <div className={`transition-opacity duration-200 ${bloque.hechoEn ? 'opacity-60' : ''}`}>
                   <p className="text-sm font-bold text-texto">
@@ -231,7 +285,10 @@ export default function SesionPage() {
                       ejercicio={ejercicio}
                       orden={siguienteOrden}
                       borradorId={`${microciclo.id}-${ejercicio.id}-${siguienteOrden}`}
-                      onGuardar={(serie) => db.microciclos.registrarSerie(microciclo.id, ejercicio.id, serie)}
+                      onGuardar={(serie) => {
+                        db.microciclos.registrarSerie(microciclo.id, ejercicio.id, serie)
+                        alGuardarSerie(ejercicio.descansoMin)
+                      }}
                     />
                   </div>
                 )}
@@ -244,9 +301,11 @@ export default function SesionPage() {
 
       {todasRegistradas && !sesion.testPost && (
         <TestPostSesion
+          sesionId={sesion.id}
           onGuardar={(test) => {
             db.microciclos.guardarTestPost(microciclo.id, sesion.id, test)
             limpiarCronometro(sesion.id)
+            setDescanso(null)
             setCerrada(true)
           }}
         />
@@ -265,6 +324,26 @@ export default function SesionPage() {
       <Sheet abierto={demo !== undefined} titulo={demo?.titulo ?? ''} onCerrar={() => setDemo(undefined)}>
         {demo && <VisorContenido contenido={demo} />}
       </Sheet>
+
+      {frase && (
+        <div className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center px-4">
+          <span
+            key={frase.n}
+            className="frase-pop rounded-full bg-rojo px-5 py-2.5 font-display text-base text-white shadow-xl"
+          >
+            {frase.texto}
+          </span>
+        </div>
+      )}
+
+      {descanso && !todasRegistradas && (
+        <DescansoTimer
+          key={descanso.hasta}
+          hasta={descanso.hasta}
+          totalSeg={descanso.totalSeg}
+          onCerrar={() => setDescanso(null)}
+        />
+      )}
     </div>
   )
 }

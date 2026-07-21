@@ -2,24 +2,33 @@ import { useState } from 'react'
 import { Chip } from '../../components/ui/Chip'
 import { Stepper } from '../../components/ui/Stepper'
 import type { TestPostSesion as TestPost } from '../../domain/types'
+import { citaPorIndice, indiceDesdeTexto } from './citasCelebres'
 
 interface TestPostSesionProps {
   onGuardar: (test: TestPost) => void
+  /** Para elegir una cita estable por sesión (opcional). */
+  sesionId?: string
 }
 
 const escala = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-export function TestPostSesion({ onGuardar }: TestPostSesionProps) {
+export function TestPostSesion({ onGuardar, sesionId = '' }: TestPostSesionProps) {
   const [duracionMin, setDuracionMin] = useState(120)
   const [rpeSesion, setRpeSesion] = useState<number | undefined>()
   const [prsEntrada, setPrsEntrada] = useState<number | undefined>()
 
   const completo = rpeSesion !== undefined && prsEntrada !== undefined
+  const cita = citaPorIndice(indiceDesdeTexto(sesionId))
 
   return (
     <div className="entrada rounded-panel glass glass-destacada p-4">
       <p className="kicker">Test post-entrenamiento</p>
       <p className="mt-1 text-sm text-tenue">Última parte: cuéntale al coach cómo estuvo la sesión.</p>
+
+      <figure className="entrada entrada-2 mt-3 rounded-xl border-l-2 border-rojo bg-surface-2/50 py-2.5 pl-3 pr-2">
+        <blockquote className="font-display text-sm italic leading-snug text-texto">“{cita.texto}”</blockquote>
+        <figcaption className="mt-1 text-[11px] font-bold uppercase tracking-wider text-tenue">— {cita.autor}</figcaption>
+      </figure>
 
       <div className="mt-4 flex justify-center">
         <Stepper etiqueta="Duración total" valor={duracionMin} paso={5} minimo={10} maximo={300} sufijo="min" onCambiar={setDuracionMin} />

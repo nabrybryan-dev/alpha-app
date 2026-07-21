@@ -301,6 +301,152 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* ---------- Letrero "¡DALE!" que entra deslizando (fin de descanso) ---------- */
+
+@keyframes letrero-entra {
+  from {
+    opacity: 0;
+    transform: translateX(60%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.letrero-dale {
+  animation: letrero-entra 420ms var(--ease-salida) both;
+}
+
+/* Salida rápida y limpia (más corta que la entrada: el sistema responde) */
+@keyframes letrero-sale {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30%);
+  }
+}
+
+.letrero-sale {
+  animation: letrero-sale 240ms var(--ease-salida) both;
+}
+
+/* Latido corto y punchy del texto del letrero */
+@keyframes latido {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.latido {
+  animation: latido 520ms var(--ease-mov) both;
+}
+
+/* Pulso de urgencia en los últimos segundos del descanso */
+@keyframes tic-urgente {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.tic-urgente {
+  animation: tic-urgente 440ms var(--ease-salida) both;
+}
+
+/* ---------- Frase motivacional al guardar serie ---------- */
+
+@keyframes frase-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+.frase-pop {
+  animation: frase-pop 1600ms var(--ease-salida) both;
+}
+
+/* ---------- Águila viva (pantalla de sesión completada) ---------- */
+
+@keyframes aguila-entra {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.aguila-entra {
+  animation: aguila-entra 760ms var(--ease-cajon) both;
+}
+
+/* ---------- Ticker desplazante del panel de ritmo ---------- */
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.ticker-pista {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: ticker 22s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-pista {
+    animation: none;
+  }
+}
+
+/* ---------- Check que se dibuja al marcar un bloque ---------- */
+
+@keyframes dibujar-check {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
+.dibujar-check {
+  stroke-dasharray: 24;
+  animation: dibujar-check 380ms var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letrero-dale,
+  .letrero-sale,
+  .latido,
+  .tic-urgente,
+  .frase-pop,
+  .aguila-entra,
+  .dibujar-check {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
+
 /* ---------- Accesibilidad de movimiento ---------- */
 
 @media (prefers-reduced-motion: reduce) {

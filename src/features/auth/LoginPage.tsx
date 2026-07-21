@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../data/supabase'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
+import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
 
 export function LoginPage() {
   const [correo, setCorreo] = useState('')
@@ -77,11 +77,9 @@ export function LoginPage() {
       />
 
       <div className="entrada relative w-full max-w-sm">
-        <img
-          src={logoAguila}
-          alt="Alpha Athletics"
-          className="mx-auto mb-5 h-28 w-28 rounded-3xl border border-hairline object-cover"
-        />
+        <div className="mb-5 flex justify-center">
+          <AguilaInteractiva entrada className="h-32 w-32" />
+        </div>
         <p className="kicker text-center">Science based performance</p>
         <h1 className="mt-1 text-center font-display text-3xl text-white">Alpha Athletics</h1>
 

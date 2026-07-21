@@ -31,6 +31,12 @@ export function limpiarCronometro(sesionId: string): void {
   borrarClave(claveCrono(sesionId))
 }
 
+/** Tiempo transcurrido actual del cronómetro (segundos), leído del almacenamiento. */
+export function leerTiempoCrono(sesionId: string): number {
+  const e = leerJSON<EstadoCrono>(claveCrono(sesionId), { acumuladoSeg: 0, desdeEpoch: null })
+  return totalSeg(e)
+}
+
 /**
  * Cronómetro de sesión: display digital gigante, se pausa/reanuda tocándolo.
  * Persiste por sesión (sobrevive salir de la app o cerrarla sin guardar).
