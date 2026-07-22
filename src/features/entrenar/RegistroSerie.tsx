@@ -63,7 +63,7 @@ export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: Regis
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo en dos columnas.
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
-      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={2.5} sufijo="kg" onCambiar={(v) => cambiar({ cargaKg: v })} />
+      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal onCambiar={(v) => cambiar({ cargaKg: v })} />
       <div className="mt-3 grid grid-cols-2 gap-2">
         <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} onCambiar={(v) => cambiar({ reps: v })} />
         <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} onCambiar={(v) => cambiar({ rir: v })} />

@@ -76,16 +76,18 @@ function SesionNube({ children }: { children: ReactNode }) {
         // permiso ya corregido) y sube lo pendiente ANTES de hidratar.
         recuperarDescartesUnaVez()
         await procesarCola()
-        // Si aún quedan escrituras locales sin subir, NO hidratamos: sobrescribir
-        // lo local con la copia del servidor borraría series/checkins que todavía
-        // no llegaron a la nube. Se sigue trabajando con los datos locales.
-        if (pendientesDeSync() > 0) {
-          autenticadoRef.current = usuarioId
-          setAutenticadoId(usuarioId)
-          setEstado('listo')
-          return
+        // Solo en un REFRESCO en segundo plano se evita hidratar si hay
+        // escrituras sin subir (para no pisar series/checkins recién hechos).
+        // En el ingreso inicial siempre se hidrata para que se vea la rutina.
+        if (yaActivo && pendientesDeSync() > 0) return
+        try {
+          await hidratarDesdeNube()
+        } catch (falloRed: unknown) {
+          // Red inestable (típico en el gimnasio): si ya hay datos locales de
+          // este usuario, se muestran (aunque sean de hace un rato) en vez de
+          // bloquear con pantalla de error. La sincronización se reintenta sola.
+          if (!db.usuarios.byId(usuarioId)) throw falloRed
         }
-        await hidratarDesdeNube()
         autenticadoRef.current = usuarioId
         setAutenticadoId(usuarioId)
         setEstado('listo')
