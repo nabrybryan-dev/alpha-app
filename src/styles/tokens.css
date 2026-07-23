@@ -55,12 +55,47 @@
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-mov: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ============ Design System Alfa (handoff) ============
+     Fuentes: display Archivo expandido, UI Hanken Grotesk, datos JetBrains Mono */
+  --font-display: 'Archivo', 'Satoshi', system-ui, sans-serif;
+  --font-ui: 'Hanken Grotesk', Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Escala ink (superficies oscuras, negro elegante) */
+  --ink-900: #08090a;
+  --ink-800: #0f1113;
+  --ink-700: #16181b;
+  --ink-600: #202327;
+  --ink-500: #2a2f35;
+  --ink-400: #3a4048;
+
+  /* Escala silver (texto/plata neutro = estado "logrado") */
+  --silver-100: #f4f5f6;
+  --silver-200: #dfe2e6;
+  --silver-300: #c2c8cf;
+  --silver-400: #9aa1ab;
+  --silver-500: #6f7782;
+
+  /* Superficies claras (Hoy/Bienestar/Progreso) */
+  --bone-50: #fbfaf8;
+  --bone-100: #f4f2ee;
+  --bone-200: #e9e6df;
+  --bone-300: #dcd8cf;
+  --paper: #ffffff;
+
+  /* Semánticos: acción = rojo Alpha (pop 5%); logrado = plata neutro */
+  --accion: #ff1e1e;
+  --accion-osc: #c8121a;
+  --logrado: var(--silver-300);
+  --glow-accion: 0 0 0 3px rgba(255, 30, 30, 0.14), 0 8px 24px rgba(255, 30, 30, 0.2);
+  --inset-top-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 html {
   background: var(--bg);
   color: var(--texto);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-ui);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -72,10 +107,11 @@ body {
 }
 
 .font-display {
-  font-family: Satoshi, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
+  font-stretch: 125%;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .kicker {
@@ -297,8 +333,9 @@ body {
 /* ---------- Cronómetro / cifras tabulares ---------- */
 
 .cifras {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 
 /* ---------- Letrero "¡DALE!" que entra deslizando (fin de descanso) ---------- */
