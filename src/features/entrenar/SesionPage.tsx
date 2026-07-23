@@ -168,10 +168,13 @@ export default function SesionPage() {
       ? reflexionSesion(sesion.testPost.rpeSesion, sesion.testPost.prsEntrada)
       : undefined
     return (
-      <div className="entrada flex flex-col items-center gap-4 py-10 text-center">
+      <div
+        data-theme="dark"
+        className="entrada -mx-4 -mt-4 flex min-h-dvh flex-col items-center justify-center gap-4 bg-bg px-4 py-10 text-center"
+      >
         <AguilaInteractiva entrada className="h-24 w-24" />
         <h2 className="font-display text-3xl text-texto">Sesión {sesion.nombre} registrada</h2>
-        <p className="cifras text-lg font-bold text-verde">+{XP_POR_ACCION.sesion} XP</p>
+        <p className="cifras text-lg font-bold text-logrado">+{XP_POR_ACCION.sesion} XP</p>
         {reflexion && (
           <p className="entrada entrada-3 max-w-xs font-display text-lg leading-snug text-texto">{reflexion}</p>
         )}
@@ -189,7 +192,8 @@ export default function SesionPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    // Entreno es oscura siempre (decisión de diseño), sin importar el tema global.
+    <div data-theme="dark" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-4">
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"
