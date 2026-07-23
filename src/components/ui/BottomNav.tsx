@@ -75,17 +75,17 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 z-40 flex justify-center px-4"
+      className="fixed inset-x-0 z-40 flex justify-center px-3"
       style={{ bottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="glass glass-blur flex items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
+      <div className="glass glass-blur flex w-full max-w-[22rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
         {pestanas.map((p) => (
           <NavLink
             key={p.ruta}
             to={p.ruta}
             end={p.ruta === '/'}
             className={({ isActive }) =>
-              `press relative flex min-w-[3.75rem] flex-col items-center gap-0.5 rounded-full px-2 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] transition-colors duration-200 ease-salida ${
+              `press relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-0.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] transition-colors duration-200 ease-salida ${
                 isActive ? 'text-rojo' : 'text-tenue'
               }`
             }
@@ -93,7 +93,7 @@ export function BottomNav() {
             {({ isActive }) => (
               <>
                 {p.icono}
-                <span>{p.etiqueta}</span>
+                <span className="max-w-full truncate">{p.etiqueta}</span>
                 <span
                   aria-hidden="true"
                   className={`absolute -bottom-0.5 h-1 w-1 rounded-full bg-rojo transition-all duration-200 ease-salida ${

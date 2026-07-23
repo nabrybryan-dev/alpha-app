@@ -53,7 +53,9 @@ export function AsesoradoLayout() {
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo={tituloDe(pathname)} />
-      <main className="mx-auto max-w-lg px-4 pb-28 pt-4">
+      {/* overflow-x-clip: ningún pseudo-elemento o borde debe generar scroll
+          horizontal; el TopBar (sticky) y la BottomNav (fija) van fuera de main. */}
+      <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
         <Outlet />
       </main>
       <BottomNav />
