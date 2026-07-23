@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
-import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { preparacionDe } from '../../data/plantillas/preparacionBase'
-import { etiquetaDeSerie } from '../../domain/calendario'
 import { ejercicioCompleto, sesionCompleta } from '../../domain/cumplimiento'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido } from '../../domain/types'
@@ -175,7 +173,7 @@ export default function SesionPage() {
                   aria-label={bloque.hechoEn ? `Desmarcar ${bloque.titulo}` : `Marcar ${bloque.titulo}`}
                   onClick={() => db.microciclos.marcarParte(microciclo.id, sesion.id, bloque.id)}
                   className={`press mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-200 ease-salida ${
-                    bloque.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
+                    bloque.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
                   }`}
                 >
                   {bloque.hechoEn && <CheckDibujado className="h-5 w-5" />}
@@ -219,7 +217,11 @@ export default function SesionPage() {
                       {ejercicio.nombre}
                     </h3>
                   </div>
-                  {completo && <Badge tono="verde">✓</Badge>}
+                  {completo && (
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+                      <CheckDibujado className="h-3.5 w-3.5" />
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-3 flex items-center justify-around">
@@ -232,50 +234,74 @@ export default function SesionPage() {
                   <Estadistica etiqueta="Descanso" valor={`${ejercicio.descansoMin}'`} />
                 </div>
 
-                <div className="mt-2.5 flex items-center gap-3 border-t border-hairline pt-2">
-                  <button
-                    type="button"
-                    onClick={() => alternarNota(ejercicio.id)}
-                    aria-expanded={notasVisibles.has(ejercicio.id)}
-                    className="press text-[10px] font-bold uppercase tracking-[0.15em] text-tenue"
-                  >
-                    Nota del coach {notasVisibles.has(ejercicio.id) ? '▴' : '▾'}
-                  </button>
-                  {contenidoDemo && (
-                    <button
-                      type="button"
-                      onClick={() => setDemo(contenidoDemo)}
-                      className="press ml-auto text-[10px] font-bold uppercase tracking-[0.15em] text-azul"
-                    >
-                      🎬 Técnica
-                    </button>
-                  )}
-                </div>
-                {notasVisibles.has(ejercicio.id) && (
-                  <div className="entrada mt-2">
-                    <p className="font-mono text-[11px] font-bold leading-snug text-texto/90">
+                {/* Prescripción del coach: siempre visible (texto canónico en
+                    mono). Los cues de ejecución quedan tras un toggle. */}
+                <div
+                  className="mt-3 rounded-tarjeta border border-ink-500 bg-ink-700 p-3"
+                  style={{ boxShadow: 'var(--inset-top-light)' }}
+                >
+                  <div className="relative pl-3">
+                    <span className="absolute bottom-0.5 left-0 top-0.5 w-[3px] rounded-full bg-accion" aria-hidden="true" />
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-silver-500">
+                      Prescripción del coach
+                    </p>
+                    <p className="cifras mt-1.5 text-[12.5px] font-semibold leading-relaxed text-silver-100">
                       {ejercicio.prescripcion}
                     </p>
-                    <p className="mt-1.5 text-xs italic leading-snug text-tenue">{ejercicio.cues}</p>
                   </div>
-                )}
+                  <div className="mt-2.5 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => alternarNota(ejercicio.id)}
+                      aria-expanded={notasVisibles.has(ejercicio.id)}
+                      className="press text-[10px] font-bold uppercase tracking-[0.1em] text-accion"
+                    >
+                      {notasVisibles.has(ejercicio.id) ? 'Ocultar ejecución ▴' : 'Ver notas de ejecución ▾'}
+                    </button>
+                    {contenidoDemo && (
+                      <button
+                        type="button"
+                        onClick={() => setDemo(contenidoDemo)}
+                        className="press ml-auto text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                      >
+                        🎬 Técnica
+                      </button>
+                    )}
+                  </div>
+                  {notasVisibles.has(ejercicio.id) && (
+                    <p className="entrada mt-2 border-t border-ink-500 pt-2 text-xs leading-snug text-silver-300">
+                      {ejercicio.cues}
+                    </p>
+                  )}
+                </div>
 
                 {ejercicio.series.length > 0 && (
-                  <ul className="mt-3 flex flex-col gap-1">
-                    {ejercicio.series.map((serie) => (
-                      <li key={serie.orden} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-texto">
-                        <span className="text-xs text-tenue">S{serie.orden}</span>
-                        {etiquetaDeSerie(ejercicio, serie.orden) && (
-                          <span className="rounded-full bg-rojo/15 px-1.5 py-px text-[9px] font-bold tracking-[0.1em] text-rojo">
-                            {etiquetaDeSerie(ejercicio, serie.orden)}
+                  <div className="mt-3">
+                    <div className="grid grid-cols-[38px_1fr_1fr_1fr_26px] gap-2 px-1 pb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-silver-500">
+                      <span>Serie</span>
+                      <span>Carga</span>
+                      <span>Reps</span>
+                      <span>RIR</span>
+                      <span />
+                    </div>
+                    <ul className="flex flex-col gap-1.5">
+                      {ejercicio.series.map((serie) => (
+                        <li
+                          key={serie.orden}
+                          className="grid grid-cols-[38px_1fr_1fr_1fr_26px] items-center gap-2 rounded-boton border border-ink-500 bg-ink-800 px-2.5 py-2"
+                        >
+                          <span className="cifras text-center text-[13px] font-bold text-silver-500">{serie.orden}</span>
+                          <span className="cifras text-[14px] font-bold text-silver-100">
+                            {serie.cargaKg}
+                            <span className="ml-0.5 text-[10px] text-silver-500">kg</span>
                           </span>
-                        )}
-                        <span className="cifras font-bold">{serie.cargaKg} kg</span>
-                        <span className="cifras">× {serie.reps} reps</span>
-                        <span className="cifras text-tenue">RIR {serie.rir}</span>
-                      </li>
-                    ))}
-                  </ul>
+                          <span className="cifras text-[14px] font-bold text-silver-100">{serie.reps}</span>
+                          <span className="cifras text-[14px] font-bold text-accion">{serie.rir}</span>
+                          <CheckDibujado className="h-4 w-4 justify-self-center text-logrado" />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 {!completo && (

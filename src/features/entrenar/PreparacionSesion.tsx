@@ -74,7 +74,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                           aria-label={parte.hechoEn ? `Desmarcar ${parte.titulo}` : `Marcar ${parte.titulo}`}
                           onClick={() => onMarcar(parte.id)}
                           className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-200 ease-salida ${
-                            parte.hechoEn ? 'border-verde bg-verde text-white' : 'border-hairline-fuerte text-tenue'
+                            parte.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
                           {parte.hechoEn && <CheckDibujado className="h-3.5 w-3.5" />}
