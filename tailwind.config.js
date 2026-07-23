@@ -17,10 +17,11 @@ export default {
         verde: 'var(--verde)',
         ambar: 'var(--ambar)',
         azul: 'var(--azul)',
-        // Design System Alfa (handoff)
-        accion: 'var(--accion)',
+        // Design System Alfa (handoff). accion/logrado con canal RGB
+        // para soportar opacidad (bg-accion/15, border-accion/35, etc.).
+        accion: 'rgb(var(--accion-rgb) / <alpha-value>)',
         'accion-osc': 'var(--accion-osc)',
-        logrado: 'var(--logrado)',
+        logrado: 'rgb(var(--silver-300-rgb) / <alpha-value>)',
         'ink-900': 'var(--ink-900)',
         'ink-800': 'var(--ink-800)',
         'ink-700': 'var(--ink-700)',

@@ -86,10 +86,13 @@
   --bone-300: #dcd8cf;
   --paper: #ffffff;
 
-  /* Semánticos: acción = rojo Alpha (pop 5%); logrado = plata neutro */
+  /* Semánticos: acción = rojo Alpha (pop 5%); logrado = plata neutro.
+     Canales RGB para poder usar opacidad en Tailwind (bg-accion/15, etc.). */
   --accion: #ff1e1e;
+  --accion-rgb: 255 30 30;
   --accion-osc: #c8121a;
   --logrado: var(--silver-300);
+  --silver-300-rgb: 194 200 207;
   --glow-accion: 0 0 0 3px rgba(255, 30, 30, 0.14), 0 8px 24px rgba(255, 30, 30, 0.2);
   --inset-top-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }

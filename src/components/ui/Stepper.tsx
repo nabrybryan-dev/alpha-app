@@ -9,6 +9,8 @@ interface StepperProps {
   sufijo?: string
   /** Permite decimales al escribir (p. ej. cargas 42.5). */
   decimal?: boolean
+  /** Variante grande (dato principal, p. ej. la Carga). */
+  grande?: boolean
   onCambiar: (valor: number) => void
 }
 
@@ -20,6 +22,7 @@ export function Stepper({
   maximo = 999,
   sufijo = '',
   decimal = false,
+  grande = false,
   onCambiar,
 }: StepperProps) {
   const redondear = (n: number) => Math.round(n * 100) / 100
@@ -51,15 +54,18 @@ export function Stepper({
     onCambiar(acotar(Number.isFinite(n) ? (decimal ? n : Math.round(n)) : valor))
   }
 
+  const tamBoton = grande ? 'h-12 w-12' : 'h-10 w-10'
+  const tamValor = grande ? 'text-[26px]' : 'text-lg'
+
   return (
     <div className="flex w-full flex-col items-center gap-1">
-      <span className="text-[11px] uppercase tracking-wider text-tenue">{etiqueta}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">{etiqueta}</span>
       <div className="flex w-full items-center justify-center gap-1.5">
         <button
           type="button"
           aria-label={`Bajar ${etiqueta}`}
           onClick={bajar}
-          className="h-10 w-10 shrink-0 rounded-xl border border-linea bg-surface-2 text-xl font-bold text-texto active:bg-surface-3"
+          className={`${tamBoton} press shrink-0 rounded-boton border border-linea bg-surface-2 text-xl font-bold text-tenue active:bg-surface-3`}
         >
           −
         </button>
@@ -75,7 +81,7 @@ export function Stepper({
             }}
             onChange={(e) => alEscribir(e.target.value)}
             onBlur={alSalir}
-            className="w-full min-w-0 bg-transparent text-center text-lg font-bold tabular-nums text-texto focus:outline-none"
+            className={`cifras w-full min-w-0 bg-transparent text-center ${tamValor} font-bold text-texto focus:outline-none`}
           />
           {sufijo && <span className="-ml-1 shrink-0 text-xs font-normal text-tenue">{sufijo}</span>}
         </div>
@@ -83,7 +89,7 @@ export function Stepper({
           type="button"
           aria-label={`Subir ${etiqueta}`}
           onClick={subir}
-          className="h-10 w-10 shrink-0 rounded-xl border border-linea bg-surface-2 text-xl font-bold text-texto active:bg-surface-3"
+          className={`${tamBoton} press shrink-0 rounded-boton border border-linea bg-surface-2 text-xl font-bold text-accion active:bg-surface-3`}
         >
           +
         </button>

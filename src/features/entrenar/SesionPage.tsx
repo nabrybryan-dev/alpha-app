@@ -342,6 +342,7 @@ export default function SesionPage() {
           hasta={descanso.hasta}
           totalSeg={descanso.totalSeg}
           onCerrar={() => setDescanso(null)}
+          onMas15={() => setDescanso((d) => (d ? { hasta: d.hasta + 15000, totalSeg: d.totalSeg + 15 } : d))}
         />
       )}
     </div>

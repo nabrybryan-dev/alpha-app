@@ -6,6 +6,8 @@ interface DescansoTimerProps {
   /** Duración total del descanso en segundos (para la barra de progreso). */
   totalSeg: number
   onCerrar: () => void
+  /** Añade 15 s al descanso en curso. */
+  onMas15: () => void
 }
 
 const restanteSeg = (hasta: number) => Math.max(0, Math.ceil((hasta - Date.now()) / 1000))
@@ -22,7 +24,7 @@ function mmss(seg: number): string {
  * llegar a cero, un letrero "¡DALE!" entra deslizando de derecha a izquierda y
  * se va solo. El asesorado también puede saltar el descanso.
  */
-export function DescansoTimer({ hasta, totalSeg, onCerrar }: DescansoTimerProps) {
+export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTimerProps) {
   const [restante, setRestante] = useState(() => restanteSeg(hasta))
   const [enBanner, setEnBanner] = useState(restante <= 0)
   const [saliendo, setSaliendo] = useState(false)
@@ -82,28 +84,41 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar }: DescansoTimerProps)
             <span className="latido font-display text-2xl tracking-wide text-white">¡DALE, VAMOS! 🔥</span>
           </button>
         ) : (
-          <div className="glass glass-blur flex items-center gap-3 overflow-hidden rounded-full border border-hairline py-2.5 pl-5 pr-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">Descanso</span>
-            <span
-              key={restante}
-              className={`cifras font-display text-2xl leading-none ${urgente ? 'tic-urgente text-rojo' : 'text-texto'}`}
-            >
-              {mmss(restante)}
-            </span>
+          <div className="glass-blur rounded-bloque border border-ink-500 bg-ink-700/95 px-4 py-3 shadow-xl">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-500">Descanso</div>
+                <div
+                  key={restante}
+                  className={`cifras text-[34px] font-bold leading-none ${urgente ? 'tic-urgente text-accion' : 'text-accion'}`}
+                >
+                  {mmss(restante)}
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={onMas15}
+                  className="press cifras rounded-boton border border-ink-400 bg-ink-600 px-3 py-2.5 text-sm font-bold text-silver-200"
+                >
+                  +15s
+                </button>
+                <button
+                  type="button"
+                  onClick={cerrarUnaVez}
+                  className="press rounded-boton bg-ink-600 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wide text-silver-300"
+                >
+                  Saltar
+                </button>
+              </div>
+            </div>
             {/* barra de progreso: scaleX (compositor), se vacía con el tiempo */}
-            <span className="relative mx-1 h-1 flex-1 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
+            <span className="relative mt-3 block h-1.5 overflow-hidden rounded-full bg-ink-500" aria-hidden="true">
               <span
-                className="absolute inset-0 origin-left rounded-full bg-rojo transition-transform duration-1000 ease-linear"
+                className="absolute inset-0 origin-left rounded-full bg-accion transition-transform duration-1000 ease-linear"
                 style={{ transform: `scaleX(${progreso})` }}
               />
             </span>
-            <button
-              type="button"
-              onClick={cerrarUnaVez}
-              className="press shrink-0 rounded-full bg-surface-2 px-4 py-2 text-xs font-bold uppercase tracking-wide text-texto"
-            >
-              Saltar
-            </button>
           </div>
         )}
       </div>

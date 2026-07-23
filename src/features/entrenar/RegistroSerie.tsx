@@ -51,11 +51,14 @@ export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: Regis
   const etiqueta = etiquetaDeSerie(ejercicio, orden)
 
   return (
-    <div className="rounded-xl border border-hairline bg-surface-2/60 p-3">
-      <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-widest text-tenue">
+    <div
+      className="rounded-bloque border border-accion/35 bg-ink-700 p-3.5"
+      style={{ boxShadow: '0 0 0 3px rgba(255, 30, 30, 0.09)' }}
+    >
+      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-accion">
         Serie {orden} de {ejercicio.sets}
         {etiqueta && (
-          <span className="ml-2 rounded-full bg-rojo/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-rojo">
+          <span className="ml-2 rounded-tag bg-accion/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-accion">
             {etiqueta}
           </span>
         )}
@@ -63,8 +66,8 @@ export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: Regis
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo en dos columnas.
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
-      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal onCambiar={(v) => cambiar({ cargaKg: v })} />
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande onCambiar={(v) => cambiar({ cargaKg: v })} />
+      <div className="mt-2 grid grid-cols-2 gap-2">
         <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} onCambiar={(v) => cambiar({ reps: v })} />
         <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
@@ -72,9 +75,10 @@ export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: Regis
       <button
         type="button"
         onClick={guardar}
-        className="press btn-cristal-rojo mt-3 w-full rounded-full py-2.5 font-display text-sm"
+        className="press mt-3.5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-ink-900"
+        style={{ boxShadow: 'var(--glow-accion)' }}
       >
-        Guardar serie {orden} ✓
+        Guardar serie {orden}
       </button>
     </div>
   )
