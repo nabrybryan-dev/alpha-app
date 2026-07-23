@@ -70,7 +70,7 @@ export function CoachLayout() {
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo="Panel del coach" />
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-4">
+      <main className="mx-auto max-w-3xl overflow-x-clip px-4 pb-16 pt-4">
         <Outlet />
       </main>
     </div>
