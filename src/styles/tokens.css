@@ -14,7 +14,8 @@
   --gris-marca: #7a7a7a;
   --rojo: #ff1e1e;
   --rojo-osc: #8f1119;
-  --verde: #28c76f;
+  /* "Logrado/completado" = plata neutro (reemplaza el verde; decisión de marca) */
+  --verde: #c2c8cf;
   --ambar: #f5a623;
   --azul: #3b9dff;
 
@@ -38,7 +39,8 @@
   --gris-marca: #7a7a7a;
   --rojo: #d51216;
   --rojo-osc: #8f1119;
-  --verde: #178a4c;
+  /* "Logrado/completado" = plata neutro (gris medio para contraste en claro) */
+  --verde: #6f7782;
   --ambar: #a86e07;
   --azul: #1462b8;
 
