@@ -18,6 +18,24 @@ function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
   return 'neutro'
 }
 
+/** Filas [etiqueta, valor] de lo que el asesorado llenó hoy (solo lo diligenciado). */
+function filasCheckin(c: CheckinDiario): [string, string][] {
+  const filas: [string, string][] = []
+  if (c.pesoKg !== undefined) filas.push(['Peso ayunas', `${c.pesoKg} kg`])
+  if (c.pasos !== undefined) filas.push(['Pasos de ayer', c.pasos.toLocaleString('es-CO')])
+  if (c.entreno) filas.push(['Entreno', c.entreno])
+  if (c.rendimiento) filas.push(['Rendimiento', c.rendimiento])
+  if (c.motivacion) filas.push(['Motivación', c.motivacion])
+  if (c.hambre) filas.push(['Hambre', c.hambre])
+  if (c.cansancio) filas.push(['Cansancio', c.cansancio])
+  if (c.estres) filas.push(['Estrés', c.estres])
+  if (c.horasSueno !== undefined) {
+    filas.push(['Sueño', `${c.horasSueno} h${c.calidadSueno ? ` · ${c.calidadSueno}` : ''}`])
+  }
+  if (c.alimentacion) filas.push(['Alimentación', c.alimentacion])
+  return filas
+}
+
 function FilaHistorial({ checkin }: { checkin: CheckinDiario }) {
   return (
     <Card className="!p-3">
@@ -89,21 +107,21 @@ export default function BienestarPage() {
       )}
 
       {deHoy ? (
-        <Card destacada className="entrada entrada-2 flex items-center gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
-            <CheckDibujado className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-texto">Check-in de hoy registrado</p>
-            <p className="mt-0.5 text-xs text-tenue">
-              {[
-                deHoy.pesoKg ? `${deHoy.pesoKg} kg` : null,
-                deHoy.horasSueno ? `${deHoy.horasSueno} h sueño` : null,
-                `+${XP_POR_ACCION.checkin} XP`,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
+        <Card destacada className="entrada entrada-2">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+              <CheckDibujado className="h-4 w-4" />
+            </span>
+            <span className="text-sm font-bold text-texto">Registrado — buen hábito</span>
+            <span className="cifras ml-auto text-xs font-bold text-accion">+{XP_POR_ACCION.checkin} XP</span>
+          </div>
+          <div className="mt-3 flex flex-col gap-2 text-sm">
+            {filasCheckin(deHoy).map(([etiqueta, valor]) => (
+              <div key={etiqueta} className="flex justify-between gap-3 border-b border-linea pb-1.5 last:border-0">
+                <span className="text-tenue">{etiqueta}</span>
+                <span className="cifras font-bold text-texto">{valor}</span>
+              </div>
+            ))}
           </div>
         </Card>
       ) : (

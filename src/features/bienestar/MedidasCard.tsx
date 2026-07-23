@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card } from '../../components/ui/Card'
 import { db, hoyIso } from '../../data/dbInstance'
 import type { MedidaCorporal } from '../../domain/types'
+import { CheckDibujado } from '../entrenar/CheckDibujado'
 
 const PERIMETROS = ['Cintura', 'Cadera', 'Abdomen', 'Muslo', 'Brazo'] as const
 
@@ -18,7 +19,7 @@ function Delta({ actual, previa }: { actual: number; previa?: number }) {
   if (previa === undefined || previa === actual) return null
   const delta = Math.round((actual - previa) * 10) / 10
   return (
-    <span className={`cifras ml-1 text-[10px] font-bold ${delta < 0 ? 'text-verde' : 'text-ambar'}`}>
+    <span className={`cifras ml-1 text-[10px] font-bold ${delta < 0 ? 'text-accion' : 'text-tenue'}`}>
       {delta > 0 ? '+' : ''}
       {delta}
     </span>
@@ -97,7 +98,12 @@ export function MedidasCard({ usuarioId }: MedidasCardProps) {
       )}
 
       {guardado && !abierto && (
-        <p className="mt-2 text-xs font-bold text-verde">Medidas guardadas ✓ El coach ya las ve.</p>
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-texto">
+          <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+            <CheckDibujado className="h-2.5 w-2.5" />
+          </span>
+          Medidas guardadas. El coach ya las ve.
+        </p>
       )}
 
       {abierto && (
