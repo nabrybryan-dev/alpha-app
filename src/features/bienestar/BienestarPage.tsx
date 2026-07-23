@@ -48,19 +48,15 @@ export default function BienestarPage() {
   const ultimos = [...checkins].reverse().slice(0, 7)
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="entrada entrada-1">
-        <div
-          className="tarjeta-foto p-5 pt-24"
-          style={{ '--foto': 'url(/fondos/banco-alpha.jpg)', '--foto-pos': 'center 45%' } as React.CSSProperties}
-        >
-          <p className="kicker">Test durante el día</p>
-          <h2 className="mt-1 font-display text-4xl leading-none">Bienestar diario</h2>
-          <p className="mt-1.5 text-sm text-white/70">
-            2 minutos al día que le dan al coach lo que necesita para ajustar tu plan.
-          </p>
-        </div>
-      </section>
+    // Bienestar es superficie clara siempre (decisión de diseño), sin importar el tema global.
+    <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
+      <header className="entrada entrada-1">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">Test durante el día</p>
+        <h2 className="mt-1 font-display text-3xl leading-none text-texto">Check-in diario</h2>
+        <p className="mt-1.5 text-sm text-tenue">
+          2 minutos que tu coach lee cada mañana para ajustar tu plan.
+        </p>
+      </header>
 
       {permiso === 'default' && (
         <Card className="entrada entrada-2 flex items-center justify-between gap-3">
