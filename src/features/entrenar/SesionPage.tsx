@@ -18,7 +18,7 @@ import { frasePorSerie } from './frasesMotivacionales'
 import { PanelRitmo } from './PanelRitmo'
 import { reflexionSesion } from './reflexionSesion'
 import { PreparacionSesion } from './PreparacionSesion'
-import { RegistroSerie } from './RegistroSerie'
+import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
 
@@ -70,6 +70,7 @@ export default function SesionPage() {
   // un número = el asesorado navegó manualmente a ese ejercicio.
   const [exIdxManual, setExIdxManual] = useState<number | null>(null)
   const contadorFrase = useRef(0)
+  const registroRef = useRef<RegistroSerieHandle | null>(null)
 
   useEffect(() => {
     if (descanso) escribirJSON(claveDescanso, descanso)
@@ -153,6 +154,14 @@ export default function SesionPage() {
   // incompleto, salvo que el asesorado haya navegado a otro manualmente.
   const primerIncompleto = sesion.ejercicios.findIndex((e) => !ejercicioCompleto(e))
   const exIdx = exIdxManual ?? (primerIncompleto === -1 ? Math.max(0, sesion.ejercicios.length - 1) : primerIncompleto)
+  const ejercicioActual = sesion.ejercicios[exIdx]
+  const ordenActual = ejercicioActual ? ejercicioActual.series.length + 1 : 0
+  const mostrarCTA =
+    sesion.tipo !== 'metabolica' &&
+    !todasRegistradas &&
+    !exCompletado &&
+    !!ejercicioActual &&
+    !ejercicioCompleto(ejercicioActual)
 
   if (cerrada) {
     const reflexion = sesion.testPost
@@ -388,6 +397,8 @@ export default function SesionPage() {
                   <div className="mt-3">
                     <RegistroSerie
                       key={`${ejercicio.id}-${siguienteOrden}`}
+                      ref={registroRef}
+                      mostrarBoton={false}
                       ejercicio={ejercicio}
                       orden={siguienteOrden}
                       borradorId={`${microciclo.id}-${ejercicio.id}-${siguienteOrden}`}
@@ -442,6 +453,9 @@ export default function SesionPage() {
         </section>
       )}
 
+      {/* Espacio para que el CTA fijo no tape el contenido inferior. */}
+      {mostrarCTA && <div aria-hidden="true" className="h-16" />}
+
       {todasRegistradas && !sesion.testPost && (
         <TestPostSesion
           sesionId={sesion.id}
@@ -479,14 +493,32 @@ export default function SesionPage() {
         </div>
       )}
 
-      {descanso && !todasRegistradas && !exCompletado && (
-        <DescansoTimer
-          key={descanso.hasta}
-          hasta={descanso.hasta}
-          totalSeg={descanso.totalSeg}
-          onCerrar={() => setDescanso(null)}
-          onMas15={() => setDescanso((d) => (d ? { hasta: d.hasta + 15000, totalSeg: d.totalSeg + 15 } : d))}
-        />
+      {/* Zona fija inferior (sobre la barra de navegación): el descanso se apila
+          encima del CTA "Guardar serie" para que nunca se encimen. */}
+      {(mostrarCTA || (descanso && !todasRegistradas && !exCompletado)) && (
+        <div className="fixed inset-x-0 bottom-[4.25rem] z-40 px-4">
+          <div className="mx-auto flex max-w-lg flex-col gap-2">
+            {descanso && !todasRegistradas && !exCompletado && (
+              <DescansoTimer
+                key={descanso.hasta}
+                hasta={descanso.hasta}
+                totalSeg={descanso.totalSeg}
+                onCerrar={() => setDescanso(null)}
+                onMas15={() => setDescanso((d) => (d ? { hasta: d.hasta + 15000, totalSeg: d.totalSeg + 15 } : d))}
+              />
+            )}
+            {mostrarCTA && (
+              <button
+                type="button"
+                onClick={() => registroRef.current?.guardar()}
+                className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-ink-900"
+                style={{ boxShadow: 'var(--glow-accion)' }}
+              >
+                Guardar serie {ordenActual}
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {exCompletado && (

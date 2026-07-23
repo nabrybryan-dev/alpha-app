@@ -71,8 +71,8 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
   const progreso = totalSeg > 0 ? Math.min(1, Math.max(0, restante / totalSeg)) : 0
 
   return (
-    <div className="fixed inset-x-0 bottom-[4.75rem] z-40 px-4" role="status" aria-live="polite">
-      <div className="mx-auto max-w-lg">
+    <div role="status" aria-live="polite">
+      <div>
         {enBanner ? (
           <button
             type="button"

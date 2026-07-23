@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
@@ -9,7 +9,14 @@ interface RegistroSerieProps {
   orden: number
   /** Identifica el borrador de esta serie en curso (microciclo + ejercicio + orden). */
   borradorId: string
+  /** Muestra el botón interno "Guardar serie". Si es false, el guardado se
+   *  dispara desde fuera vía el ref (CTA fijo inferior). */
+  mostrarBoton?: boolean
   onGuardar: (serie: SerieRegistrada) => void
+}
+
+export interface RegistroSerieHandle {
+  guardar: () => void
 }
 
 interface Borrador {
@@ -25,7 +32,10 @@ function cargaSugerida(ejercicio: EjercicioPrescrito): number {
   return Number.isFinite(dePrescripcion) ? dePrescripcion : 20
 }
 
-export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: RegistroSerieProps) {
+export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>(function RegistroSerie(
+  { ejercicio, orden, borradorId, mostrarBoton = true, onGuardar },
+  ref,
+) {
   const clave = `alpha-serie-${borradorId}`
   const [borrador, setBorrador] = useState<Borrador>(() =>
     leerJSON<Borrador>(clave, {
@@ -47,6 +57,9 @@ export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: Regis
     onGuardar({ orden, cargaKg: borrador.cargaKg, reps: borrador.reps, rir: borrador.rir })
     borrarClave(clave) // ya quedó en la base; el borrador deja de hacer falta
   }
+
+  // Permite disparar el guardado desde el CTA fijo inferior.
+  useImperativeHandle(ref, () => ({ guardar }))
 
   const etiqueta = etiquetaDeSerie(ejercicio, orden)
 
@@ -72,14 +85,16 @@ export function RegistroSerie({ ejercicio, orden, borradorId, onGuardar }: Regis
         <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
-      <button
-        type="button"
-        onClick={guardar}
-        className="press mt-3.5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-ink-900"
-        style={{ boxShadow: 'var(--glow-accion)' }}
-      >
-        Guardar serie {orden}
-      </button>
+      {mostrarBoton && (
+        <button
+          type="button"
+          onClick={guardar}
+          className="press mt-3.5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-ink-900"
+          style={{ boxShadow: 'var(--glow-accion)' }}
+        >
+          Guardar serie {orden}
+        </button>
+      )}
     </div>
   )
-}
+})
