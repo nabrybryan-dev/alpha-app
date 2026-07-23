@@ -521,7 +521,7 @@ export default function SesionPage() {
               <button
                 type="button"
                 onClick={() => registroRef.current?.guardar()}
-                className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-ink-900"
+                className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white"
                 style={{ boxShadow: 'var(--glow-accion)' }}
               >
                 Guardar serie {ordenActual}
@@ -557,7 +557,7 @@ export default function SesionPage() {
             <button
               type="button"
               onClick={irASiguienteEjercicio}
-              className="press mt-5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-ink-900"
+              className="press mt-5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
               style={{ boxShadow: 'var(--glow-accion)' }}
             >
               {exCompletado.siguienteId ? 'Siguiente ejercicio' : 'Seguir'}

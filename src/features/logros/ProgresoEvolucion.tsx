@@ -149,7 +149,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
                 type="button"
                 onClick={() => setMetrica(m)}
                 className={`press rounded-full px-3 py-1 text-xs font-bold transition-colors duration-200 ${
-                  metrica === m ? 'bg-accion text-ink-900' : 'text-silver-400'
+                  metrica === m ? 'bg-accion text-white' : 'text-silver-400'
                 }`}
               >
                 {m === 'peso' ? 'Peso' : 'Fuerza'}

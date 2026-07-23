@@ -73,7 +73,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
                   type="button"
                   onClick={() => setRpeSesion(n)}
                   className={`cifras press flex-1 rounded-boton border py-2.5 text-base font-bold transition-colors duration-200 ease-salida ${
-                    sel ? 'border-accion bg-accion text-ink-900' : 'border-ink-500 bg-ink-700 text-silver-300'
+                    sel ? 'border-accion bg-accion text-white' : 'border-ink-500 bg-ink-700 text-silver-300'
                   }`}
                 >
                   {n}
@@ -94,7 +94,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
                   type="button"
                   onClick={() => setPrsEntrada(o.valor)}
                   className={`press flex-1 rounded-full border py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors duration-200 ease-salida ${
-                    sel ? 'border-accion bg-accion text-ink-900' : 'border-ink-500 bg-ink-700 text-silver-300'
+                    sel ? 'border-accion bg-accion text-white' : 'border-ink-500 bg-ink-700 text-silver-300'
                   }`}
                 >
                   {o.label}
@@ -108,7 +108,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
           type="button"
           disabled={!completo}
           onClick={finalizar}
-          className="press mt-6 w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-ink-900 transition-opacity duration-200 disabled:opacity-40"
+          className="press mt-6 w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white transition-opacity duration-200 disabled:opacity-40"
           style={completo ? { boxShadow: 'var(--glow-accion)' } : undefined}
         >
           Finalizar sesión

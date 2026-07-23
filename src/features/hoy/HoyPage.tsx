@@ -127,7 +127,7 @@ export default function HoyPage() {
           ) : (
             <Link
               to={`/entrenar/sesion/${siguienteSesion.id}`}
-              className="press cta-pulso mt-4 flex items-center justify-center gap-2 rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-ink-900"
+              className="press cta-pulso mt-4 flex items-center justify-center gap-2 rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white"
               style={{ boxShadow: 'var(--glow-accion)' }}
             >
               Empezar sesión →

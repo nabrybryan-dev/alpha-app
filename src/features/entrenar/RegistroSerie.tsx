@@ -89,7 +89,7 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
         <button
           type="button"
           onClick={guardar}
-          className="press mt-3.5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-ink-900"
+          className="press mt-3.5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
           style={{ boxShadow: 'var(--glow-accion)' }}
         >
           Guardar serie {orden}
