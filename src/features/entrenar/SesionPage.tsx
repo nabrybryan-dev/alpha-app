@@ -27,6 +27,13 @@ interface Descanso {
   totalSeg: number
 }
 
+interface ExCompletado {
+  nombre: string
+  series: number
+  siguienteId?: string
+  siguienteNombre?: string
+}
+
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
   return (
     <div className="text-center">
@@ -58,6 +65,7 @@ export default function SesionPage() {
   const claveDescanso = `alpha-descanso-${sesionId}`
   const [descanso, setDescanso] = useState<Descanso | null>(() => leerJSON<Descanso | null>(claveDescanso, null))
   const [frase, setFrase] = useState<{ texto: string; n: number } | null>(null)
+  const [exCompletado, setExCompletado] = useState<ExCompletado | null>(null)
   const contadorFrase = useRef(0)
 
   useEffect(() => {
@@ -72,18 +80,47 @@ export default function SesionPage() {
     return () => window.clearTimeout(id)
   }, [frase])
 
-  const alGuardarSerie = (descansoMin: number) => {
+  const alGuardarSerie = (ejercicioId: string, descansoMin: number) => {
     contadorFrase.current += 1
     setFrase({ texto: frasePorSerie(contadorFrase.current), n: contadorFrase.current })
-    // Si esta serie completó la sesión, no hay descanso: sigue el cierre.
+    // Se relee de la base (ya mutada por registrarSerie) para decidir el flujo.
     const micro = db.microciclos.byUsuario(usuario.id).find((m) => m.sesiones.some((s) => s.id === sesionId))
     const ses = micro?.sesiones.find((s) => s.id === sesionId)
-    if (ses && sesionCompleta(ses)) {
+    if (!ses) return
+    // 1) ¿Se completó la sesión? → sigue el cierre (test post), sin descanso.
+    if (sesionCompleta(ses)) {
       setDescanso(null)
       return
     }
+    // 2) ¿Se completó este ejercicio? → overlay "Ejercicio completado" con el
+    //    siguiente pendiente; no hay descanso (se pasa al siguiente ejercicio).
+    const ej = ses.ejercicios.find((e) => e.id === ejercicioId)
+    if (ej && ejercicioCompleto(ej)) {
+      setDescanso(null)
+      const idx = ses.ejercicios.findIndex((e) => e.id === ejercicioId)
+      const siguiente = ses.ejercicios.slice(idx + 1).find((e) => !ejercicioCompleto(e))
+      setExCompletado({
+        nombre: ej.nombre,
+        series: ej.series.length,
+        siguienteId: siguiente?.id,
+        siguienteNombre: siguiente?.nombre,
+      })
+      return
+    }
+    // 3) Serie intermedia → descanso pautado.
     const totalSeg = Math.max(1, Math.round(descansoMin * 60))
     setDescanso({ hasta: Date.now() + totalSeg * 1000, totalSeg })
+  }
+
+  const irASiguienteEjercicio = () => {
+    const id = exCompletado?.siguienteId
+    setExCompletado(null)
+    if (id) {
+      // pequeño respiro para que el overlay cierre antes de desplazar
+      window.setTimeout(() => {
+        document.getElementById(`ej-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 60)
+    }
   }
 
   const alternarNota = (id: string) =>
@@ -196,7 +233,27 @@ export default function SesionPage() {
 
       {sesion.tipo !== 'metabolica' && (
         <section className="flex flex-col gap-4">
-          <p className="entrada entrada-4 kicker">Protocolo de ejercicios</p>
+          <div className="entrada entrada-4 flex items-center justify-between gap-3">
+            <p className="kicker">Protocolo de ejercicios</p>
+            <p className="cifras text-[11px] font-bold text-silver-400">
+              {sesion.ejercicios.filter(ejercicioCompleto).length}/{sesion.ejercicios.length}
+            </p>
+          </div>
+          {/* Barra segmentada: un tramo por ejercicio (rojo=hecho, plata=en curso). */}
+          <div className="entrada entrada-4 -mt-2 flex gap-1.5" aria-hidden="true">
+            {sesion.ejercicios.map((ej) => {
+              const hecho = ejercicioCompleto(ej)
+              const enCurso = !hecho && ej.series.length > 0
+              return (
+                <span
+                  key={ej.id}
+                  className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ease-salida ${
+                    hecho ? 'bg-accion' : enCurso ? 'bg-logrado' : 'bg-ink-500'
+                  }`}
+                />
+              )
+            })}
+          </div>
           {sesion.ejercicios.map((ejercicio, i) => {
             const completo = ejercicioCompleto(ejercicio)
             const siguienteOrden = ejercicio.series.length + 1
@@ -205,7 +262,7 @@ export default function SesionPage() {
               : undefined
 
             return (
-              <div key={ejercicio.id} className={`entrada entrada-${Math.min(i + 4, 6)}`}>
+              <div key={ejercicio.id} id={`ej-${ejercicio.id}`} className={`entrada entrada-${Math.min(i + 4, 6)} scroll-mt-4`}>
               <Card className={completo ? 'opacity-75' : ''}>
                 <div className="flex items-center gap-3">
                   <MiniaturaEjercicio />
@@ -313,7 +370,7 @@ export default function SesionPage() {
                       borradorId={`${microciclo.id}-${ejercicio.id}-${siguienteOrden}`}
                       onGuardar={(serie) => {
                         db.microciclos.registrarSerie(microciclo.id, ejercicio.id, serie)
-                        alGuardarSerie(ejercicio.descansoMin)
+                        alGuardarSerie(ejercicio.id, ejercicio.descansoMin)
                       }}
                     />
                   </div>
@@ -362,7 +419,7 @@ export default function SesionPage() {
         </div>
       )}
 
-      {descanso && !todasRegistradas && (
+      {descanso && !todasRegistradas && !exCompletado && (
         <DescansoTimer
           key={descanso.hasta}
           hasta={descanso.hasta}
@@ -370,6 +427,41 @@ export default function SesionPage() {
           onCerrar={() => setDescanso(null)}
           onMas15={() => setDescanso((d) => (d ? { hasta: d.hasta + 15000, totalSeg: d.totalSeg + 15 } : d))}
         />
+      )}
+
+      {exCompletado && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-8"
+          style={{ background: 'rgba(8, 9, 10, 0.72)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          role="dialog"
+          aria-label="Ejercicio completado"
+        >
+          <div
+            className="entrada w-full max-w-sm rounded-bloque border border-ink-400 bg-ink-700 p-7 text-center"
+            style={{ boxShadow: 'var(--inset-top-light)' }}
+          >
+            <span className="latido mx-auto grid h-[68px] w-[68px] place-items-center rounded-full bg-logrado">
+              <CheckDibujado className="h-9 w-9 text-ink-900" />
+            </span>
+            <h3 className="mt-4 font-display text-2xl text-silver-100">Ejercicio completado</h3>
+            <p className="mt-2 text-sm text-silver-400">
+              {exCompletado.nombre} — {exCompletado.series} series registradas
+            </p>
+            {exCompletado.siguienteNombre && (
+              <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-accion">
+                A continuación: <span className="text-silver-200">{exCompletado.siguienteNombre}</span>
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={irASiguienteEjercicio}
+              className="press mt-5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-ink-900"
+              style={{ boxShadow: 'var(--glow-accion)' }}
+            >
+              {exCompletado.siguienteId ? 'Siguiente ejercicio' : 'Seguir'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
