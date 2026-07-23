@@ -63,8 +63,17 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
   const [calidadSueno, setCalidadSueno] = useState<Cualitativo3>()
   const [alimentacion, setAlimentacion] = useState<Cualitativo3>()
   const [comentarios, setComentarios] = useState('')
+  const [intento, setIntento] = useState(false)
+
+  // Campos cualitativos obligatorios (peso/pasos/sueño ya traen valor numérico).
+  const camposCualitativos = [rendimiento, motivacion, hambre, cansancio, estres, calidadSueno, alimentacion]
+  const faltantes = camposCualitativos.filter((v) => v === undefined).length
 
   const guardar = () => {
+    if (faltantes > 0) {
+      setIntento(true)
+      return
+    }
     onGuardar({
       id: `ck-${usuarioId}-${fecha}`,
       usuarioId,
@@ -128,6 +137,11 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
         className={inputTexto}
       />
 
+      {intento && faltantes > 0 && (
+        <p role="alert" className="text-center text-xs font-bold text-rojo">
+          Te falta{faltantes === 1 ? '' : 'n'} {faltantes} campo{faltantes === 1 ? '' : 's'} por marcar
+        </p>
+      )}
       <button
         type="button"
         onClick={guardar}
