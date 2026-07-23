@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
-import { Card } from '../../components/ui/Card'
-import { ProgressBar } from '../../components/ui/ProgressBar'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, sesionSugerida } from '../../domain/calendario'
@@ -44,6 +42,21 @@ export default function HoyPage() {
 
   const totalSeries = siguienteSesion?.ejercicios.reduce((n, e) => n + e.sets, 0) ?? 0
   const sesionHecha = siguienteSesion ? sesionCompleta(siguienteSesion) : false
+
+  // Stats reales para los tiles del resumen.
+  const pesosReg = db.bienestar
+    .byUsuario(usuario.id)
+    .map((c) => c.pesoKg)
+    .filter((p): p is number => p !== undefined)
+  const pesoProm = pesosReg.length
+    ? Math.round((pesosReg.reduce((a, b) => a + b, 0) / pesosReg.length) * 10) / 10
+    : undefined
+  const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
+  const adherenciaPct = adhs.length
+    ? Math.round(
+        (adhs.reduce((s, a) => s + (a.estado === 'si' ? 1 : a.estado === 'parcial' ? 0.5 : 0), 0) / adhs.length) * 100,
+      )
+    : undefined
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
@@ -123,29 +136,35 @@ export default function HoyPage() {
         </div>
       )}
 
-      <Link to="/logros" className="entrada entrada-2 block">
-        <Card className="press flex items-center gap-4">
-          <div
-            className="grid h-16 w-16 shrink-0 place-items-center rounded-full border-2 border-rojo font-display text-2xl text-rojo"
-            style={{ boxShadow: 'var(--halo-rojo)' }}
-          >
+      {/* 3 stat tiles con datos reales; la racha lleva a Logros (nivel/progreso). */}
+      <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
+        <Link
+          to="/logros"
+          className="press rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
+        >
+          <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
+          <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
             {Math.round(rachaAnimada)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
-                Día{juego.rachaBienestar.actual === 1 ? '' : 's'} de racha
-              </p>
-              <p className="truncate text-[10px] font-bold uppercase tracking-[0.2em] text-rojo">
-                {juego.nivel.nombre}
-              </p>
-            </div>
-            <div className="mt-2.5">
-              <ProgressBar pct={juego.pctHaciaSiguiente} etiqueta="Progreso al siguiente nivel" />
-            </div>
-          </div>
-        </Card>
-      </Link>
+            <span className="text-sm font-medium text-tenue"> d</span>
+          </p>
+        </Link>
+        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+          <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
+            Peso{microciclo ? ` M${microciclo.numero}` : ''}
+          </p>
+          <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
+            {pesoProm ?? '—'}
+            <span className="text-sm font-medium text-tenue"> kg</span>
+          </p>
+        </div>
+        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+          <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
+          <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
+            {adherenciaPct ?? '—'}
+            <span className="text-sm font-medium text-tenue"> %</span>
+          </p>
+        </div>
+      </section>
 
       {microciclo && !siguienteSesion && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
@@ -167,76 +186,77 @@ export default function HoyPage() {
         <section className="entrada entrada-5 flex flex-col gap-2">
           <p className="kicker">Pendientes de hoy</p>
           {pendientes.map((p) => (
-            <Link key={p.ruta} to={p.ruta}>
-              <Card className="press flex items-center justify-between gap-3 !py-3">
-                <p className="text-sm text-texto">{p.texto}</p>
-                <span
-                  aria-hidden="true"
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-hairline text-sm text-rojo"
-                >
-                  →
-                </span>
-              </Card>
+            <Link
+              key={p.ruta}
+              to={p.ruta}
+              className="press flex items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
+            >
+              <span className="text-sm text-texto">{p.texto}</span>
+              <span
+                aria-hidden="true"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-hairline text-sm text-rojo"
+              >
+                →
+              </span>
             </Link>
           ))}
         </section>
       )}
 
       {usuario.rol === 'nutricionista' && (
-        <Link to="/equipo-nutricion" className="entrada entrada-5 block">
-          <Card destacada className="press flex items-center justify-between gap-3">
-            <div>
-              <p className="font-display text-sm text-texto">Nutrición del equipo</p>
-              <p className="text-xs text-tenue">Evaluación de adherencia de todos los asesorados</p>
-            </div>
-            <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rojo/15 text-base text-rojo">→</span>
-          </Card>
+        <Link
+          to="/equipo-nutricion"
+          className="press entrada entrada-5 flex items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3.5 shadow-sm"
+        >
+          <span>
+            <span className="block font-display text-sm text-texto">Nutrición del equipo</span>
+            <span className="block text-xs text-tenue">Evaluación de adherencia de todos los asesorados</span>
+          </span>
+          <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rojo/15 text-base text-rojo">
+            →
+          </span>
         </Link>
       )}
 
       <section className="entrada entrada-6 grid grid-cols-2 gap-3">
-        <Link to="/contenidos">
-          <Card className="press h-full">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-6 w-6 text-rojo"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M10.2 8.8l5 3.2-5 3.2z" />
-            </svg>
-            <p className="mt-2 font-display text-sm text-texto">Contenidos</p>
-            <p className="text-xs text-tenue">Técnica y educación</p>
-          </Card>
+        <Link to="/contenidos" className="press h-full rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6 text-rojo"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M10.2 8.8l5 3.2-5 3.2z" />
+          </svg>
+          <p className="mt-2 font-display text-sm text-texto">Contenidos</p>
+          <p className="text-xs text-tenue">Técnica y educación</p>
         </Link>
-        <Link to="/cuestionarios">
-          <Card className="press h-full">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-6 w-6 text-rojo"
-            >
-              <rect x="5" y="4" width="14" height="17" rx="2.5" />
-              <path d="M9 4.5V3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5v1" />
-              <path d="M9 10h6M9 14h6M9 18h3.5" />
-            </svg>
-            <p className="mt-2 font-display text-sm text-texto">Cuestionarios</p>
-            <p className="text-xs text-tenue">
-              {cuestionariosPendientes.length > 0
-                ? `${cuestionariosPendientes.length} pendiente${cuestionariosPendientes.length === 1 ? '' : 's'}`
-                : 'Al día ✓'}
-            </p>
-          </Card>
+        <Link to="/cuestionarios" className="press h-full rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6 text-rojo"
+          >
+            <rect x="5" y="4" width="14" height="17" rx="2.5" />
+            <path d="M9 4.5V3.5A1.5 1.5 0 0 1 10.5 2h3A1.5 1.5 0 0 1 15 3.5v1" />
+            <path d="M9 10h6M9 14h6M9 18h3.5" />
+          </svg>
+          <p className="mt-2 font-display text-sm text-texto">Cuestionarios</p>
+          <p className="text-xs text-tenue">
+            {cuestionariosPendientes.length > 0
+              ? `${cuestionariosPendientes.length} pendiente${cuestionariosPendientes.length === 1 ? '' : 's'}`
+              : 'Al día ✓'}
+          </p>
         </Link>
       </section>
     </div>
