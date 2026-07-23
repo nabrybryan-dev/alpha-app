@@ -475,8 +475,13 @@ export default function SesionPage() {
 
       {todasRegistradas && sesion.testPost && (
         <Card>
-          <p className="text-sm font-bold text-verde">Sesión completa ✓</p>
-          <p className="mt-1 text-sm text-tenue">
+          <p className="flex items-center gap-2 text-sm font-bold text-texto">
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+              <CheckDibujado className="h-3 w-3" />
+            </span>
+            Sesión completa
+          </p>
+          <p className="cifras mt-1 text-sm text-tenue">
             Duración {sesion.testPost.duracionMin} min · RPE {sesion.testPost.rpeSesion}/10 · Recuperación{' '}
             {sesion.testPost.prsEntrada}/10
           </p>
