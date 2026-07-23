@@ -6,6 +6,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Revelar } from '../../components/ui/Revelar'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
+import { ProgresoEvolucion } from './ProgresoEvolucion'
 import { ASESORADOS_DESTACADOS } from './asesoradosDestacados'
 import { FichaPanini } from './FichaPanini'
 import { RankingEquipo } from './RankingEquipo'
@@ -60,6 +61,11 @@ export default function LogrosPage() {
             <p className="mt-0.5 text-[10px] text-tenue">Récord: {r.racha.record}</p>
           </Card>
         ))}
+      </section>
+
+      <section className="entrada entrada-3">
+        <p className="kicker mb-2">Tu evolución</p>
+        <ProgresoEvolucion usuarioId={usuario.id} />
       </section>
 
       <section className="entrada entrada-3">

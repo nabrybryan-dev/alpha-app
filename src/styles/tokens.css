@@ -496,6 +496,42 @@ body {
   }
 }
 
+/* ---------- Gráfico de evolución: línea que se dibuja + barras que crecen ---------- */
+
+@keyframes dibujar-linea {
+  from { stroke-dashoffset: 1; }
+}
+
+.dibujar-linea {
+  stroke-dasharray: 1;
+  animation: dibujar-linea 1.1s var(--ease-mov) both;
+}
+
+@keyframes area-aparece {
+  from { opacity: 0; }
+}
+
+.area-aparece {
+  animation: area-aparece 1s var(--ease-salida) 0.35s both;
+}
+
+@keyframes barra-crece {
+  from { transform: scaleX(0); }
+}
+
+.barra-crece {
+  transform-origin: left;
+  animation: barra-crece 0.8s var(--ease-mov) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dibujar-linea,
+  .area-aparece,
+  .barra-crece {
+    animation-duration: 1ms;
+  }
+}
+
 /* ---------- Bottom sheet (test post): scrim + deslizar hacia arriba ---------- */
 
 @keyframes scrim-entra {
