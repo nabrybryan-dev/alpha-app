@@ -66,6 +66,9 @@ export default function SesionPage() {
   const [descanso, setDescanso] = useState<Descanso | null>(() => leerJSON<Descanso | null>(claveDescanso, null))
   const [frase, setFrase] = useState<{ texto: string; n: number } | null>(null)
   const [exCompletado, setExCompletado] = useState<ExCompletado | null>(null)
+  // Un ejercicio a la vez: null = seguir automáticamente el primer incompleto;
+  // un número = el asesorado navegó manualmente a ese ejercicio.
+  const [exIdxManual, setExIdxManual] = useState<number | null>(null)
   const contadorFrase = useRef(0)
 
   useEffect(() => {
@@ -116,10 +119,15 @@ export default function SesionPage() {
     const id = exCompletado?.siguienteId
     setExCompletado(null)
     if (id) {
-      // pequeño respiro para que el overlay cierre antes de desplazar
-      window.setTimeout(() => {
-        document.getElementById(`ej-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 60)
+      const idx = db.microciclos
+        .byUsuario(usuario.id)
+        .find((m) => m.sesiones.some((s) => s.id === sesionId))
+        ?.sesiones.find((s) => s.id === sesionId)
+        ?.ejercicios.findIndex((e) => e.id === id)
+      if (idx !== undefined && idx >= 0) {
+        setExIdxManual(idx)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
   }
 
@@ -141,6 +149,10 @@ export default function SesionPage() {
   }
 
   const todasRegistradas = sesionCompleta(sesion)
+  // Índice del ejercicio en pantalla (un ejercicio a la vez): el primero
+  // incompleto, salvo que el asesorado haya navegado a otro manualmente.
+  const primerIncompleto = sesion.ejercicios.findIndex((e) => !ejercicioCompleto(e))
+  const exIdx = exIdxManual ?? (primerIncompleto === -1 ? Math.max(0, sesion.ejercicios.length - 1) : primerIncompleto)
 
   if (cerrada) {
     const reflexion = sesion.testPost
@@ -231,30 +243,40 @@ export default function SesionPage() {
         </div>
       )}
 
-      {sesion.tipo !== 'metabolica' && (
+      {sesion.tipo !== 'metabolica' && !todasRegistradas && (
         <section className="flex flex-col gap-4">
           <div className="entrada entrada-4 flex items-center justify-between gap-3">
-            <p className="kicker">Protocolo de ejercicios</p>
+            <p className="kicker">Ejercicio {exIdx + 1} de {sesion.ejercicios.length}</p>
             <p className="cifras text-[11px] font-bold text-silver-400">
-              {sesion.ejercicios.filter(ejercicioCompleto).length}/{sesion.ejercicios.length}
+              {sesion.ejercicios.filter(ejercicioCompleto).length}/{sesion.ejercicios.length} hechos
             </p>
           </div>
-          {/* Barra segmentada: un tramo por ejercicio (rojo=hecho, plata=en curso). */}
-          <div className="entrada entrada-4 -mt-2 flex gap-1.5" aria-hidden="true">
-            {sesion.ejercicios.map((ej) => {
+          {/* Barra segmentada navegable: un tramo por ejercicio (rojo=hecho,
+              plata=en curso, ink=pendiente). Tocar un tramo salta a ese ejercicio. */}
+          <div className="entrada entrada-4 -mt-2 flex gap-1.5">
+            {sesion.ejercicios.map((ej, idx) => {
               const hecho = ejercicioCompleto(ej)
               const enCurso = !hecho && ej.series.length > 0
+              const actual = idx === exIdx
               return (
-                <span
+                <button
                   key={ej.id}
-                  className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ease-salida ${
-                    hecho ? 'bg-accion' : enCurso ? 'bg-logrado' : 'bg-ink-500'
-                  }`}
-                />
+                  type="button"
+                  aria-label={`Ir a ${ej.nombre}`}
+                  onClick={() => setExIdxManual(idx)}
+                  className="press flex-1 py-1.5"
+                >
+                  <span
+                    className={`block h-1.5 rounded-full transition-colors duration-300 ease-salida ${
+                      hecho ? 'bg-accion' : enCurso ? 'bg-logrado' : 'bg-ink-500'
+                    } ${actual ? 'ring-2 ring-accion/50' : ''}`}
+                  />
+                </button>
               )
             })}
           </div>
           {sesion.ejercicios.map((ejercicio, i) => {
+            if (i !== exIdx) return null // un ejercicio a la vez
             const completo = ejercicioCompleto(ejercicio)
             const siguienteOrden = ejercicio.series.length + 1
             const contenidoDemo = ejercicio.contenidoDemoId
@@ -262,7 +284,7 @@ export default function SesionPage() {
               : undefined
 
             return (
-              <div key={ejercicio.id} id={`ej-${ejercicio.id}`} className={`entrada entrada-${Math.min(i + 4, 6)} scroll-mt-4`}>
+              <div key={ejercicio.id} id={`ej-${ejercicio.id}`} className="entrada scroll-mt-4">
               <Card className={completo ? 'opacity-75' : ''}>
                 <div className="flex items-start gap-3">
                   <MiniaturaEjercicio />
@@ -365,7 +387,7 @@ export default function SesionPage() {
                 {!completo && (
                   <div className="mt-3">
                     <RegistroSerie
-                      key={siguienteOrden}
+                      key={`${ejercicio.id}-${siguienteOrden}`}
                       ejercicio={ejercicio}
                       orden={siguienteOrden}
                       borradorId={`${microciclo.id}-${ejercicio.id}-${siguienteOrden}`}
@@ -380,6 +402,43 @@ export default function SesionPage() {
               </div>
             )
           })}
+
+          {/* A continuación: ejercicios pendientes después del actual. Tocar salta. */}
+          {(() => {
+            const proximos = sesion.ejercicios
+              .map((e, idx) => ({ e, idx }))
+              .filter(({ e, idx }) => idx > exIdx && !ejercicioCompleto(e))
+            if (proximos.length === 0) return null
+            return (
+              <div className="entrada">
+                <p className="kicker mb-2">A continuación</p>
+                <ul className="flex flex-col gap-2">
+                  {proximos.map(({ e, idx }) => (
+                    <li key={e.id}>
+                      <button
+                        type="button"
+                        onClick={() => setExIdxManual(idx)}
+                        className="press flex w-full items-center gap-3 rounded-tarjeta border border-ink-500 bg-ink-800 px-3.5 py-3 text-left"
+                      >
+                        <span className="cifras grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-600 text-sm font-bold text-silver-400">
+                          {idx + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold leading-snug text-silver-200">{e.nombre}</span>
+                          <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-silver-500">
+                            {e.categoria}
+                          </span>
+                        </span>
+                        <span className="cifras shrink-0 text-xs text-silver-500">
+                          {e.sets}×{e.rango.replace(/[()]/g, '')}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })()}
         </section>
       )}
 
