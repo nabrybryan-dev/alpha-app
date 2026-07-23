@@ -264,18 +264,19 @@ export default function SesionPage() {
             return (
               <div key={ejercicio.id} id={`ej-${ejercicio.id}`} className={`entrada entrada-${Math.min(i + 4, 6)} scroll-mt-4`}>
               <Card className={completo ? 'opacity-75' : ''}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <MiniaturaEjercicio />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">
                       {ejercicio.categoria}
                     </p>
-                    <h3 className="mt-0.5 truncate font-display text-base leading-tight text-texto">
+                    {/* Nombre completo (envuelve): nunca se corta con "…". */}
+                    <h3 className="mt-0.5 font-display text-[17px] leading-snug text-texto [text-wrap:balance]">
                       {ejercicio.nombre}
                     </h3>
                   </div>
                   {completo && (
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
                       <CheckDibujado className="h-3.5 w-3.5" />
                     </span>
                   )}
