@@ -6,6 +6,7 @@ import { Revelar } from '../../components/ui/Revelar'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { CheckinDiario } from '../../domain/types'
+import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { CheckinForm } from './CheckinForm'
 import { MedidasCard } from './MedidasCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
@@ -46,6 +47,9 @@ export default function BienestarPage() {
   const checkins = db.bienestar.byUsuario(usuario.id)
   const deHoy = checkins.find((c) => c.fecha === hoy)
   const ultimos = [...checkins].reverse().slice(0, 7)
+  // Arranca los steppers cerca del último valor real registrado.
+  const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
+  const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
 
   return (
     // Bienestar es superficie clara siempre (decisión de diseño), sin importar el tema global.
@@ -85,13 +89,32 @@ export default function BienestarPage() {
       )}
 
       {deHoy ? (
-        <Card destacada className="entrada entrada-2">
-          <p className="text-sm font-bold text-verde">Check-in de hoy completado ✓ (+{XP_POR_ACCION.checkin} XP)</p>
-          <p className="mt-1 text-sm text-tenue">Vuelve mañana. La constancia es la que programa.</p>
+        <Card destacada className="entrada entrada-2 flex items-center gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
+            <CheckDibujado className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-texto">Check-in de hoy registrado</p>
+            <p className="mt-0.5 text-xs text-tenue">
+              {[
+                deHoy.pesoKg ? `${deHoy.pesoKg} kg` : null,
+                deHoy.horasSueno ? `${deHoy.horasSueno} h sueño` : null,
+                `+${XP_POR_ACCION.checkin} XP`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          </div>
         </Card>
       ) : (
         <Card className="entrada entrada-2">
-          <CheckinForm usuarioId={usuario.id} fecha={hoy} onGuardar={(c) => db.bienestar.guardar(c)} />
+          <CheckinForm
+            usuarioId={usuario.id}
+            fecha={hoy}
+            pesoInicial={pesoInicial}
+            pasosInicial={pasosInicial}
+            onGuardar={(c) => db.bienestar.guardar(c)}
+          />
         </Card>
       )}
 

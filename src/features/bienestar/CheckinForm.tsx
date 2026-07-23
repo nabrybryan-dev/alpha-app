@@ -1,31 +1,58 @@
 import { useState } from 'react'
-import { ChipGroup } from '../../components/ui/Chip'
 import { Stepper } from '../../components/ui/Stepper'
 import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
 
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
 
-function validarNumeros(numeros: { pesoKg?: number; pasos?: number }): string {
-  const { pesoKg, pasos } = numeros
-  if (pesoKg !== undefined && (Number.isNaN(pesoKg) || pesoKg < 30 || pesoKg > 250)) {
-    return 'Peso fuera de rango'
-  }
-  if (pasos !== undefined && (Number.isNaN(pasos) || pasos < 0 || pasos > 100000)) {
-    return 'Pasos fuera de rango'
-  }
-  return ''
-}
-
 interface CheckinFormProps {
   usuarioId: string
   fecha: string
+  /** Peso/pasos del último check-in, para arrancar los steppers cerca del valor real. */
+  pesoInicial?: number
+  pasosInicial?: number
   onGuardar: (checkin: CheckinDiario) => void
 }
 
-export function CheckinForm({ usuarioId, fecha, onGuardar }: CheckinFormProps) {
-  const [pesoKg, setPesoKg] = useState('')
-  const [pasos, setPasos] = useState('')
+/** Tarjeta paper con una pregunta y 3 opciones tipo pill (look del handoff). */
+function CampoPills({
+  titulo,
+  opciones,
+  valor,
+  onCambiar,
+}: {
+  titulo: string
+  opciones: readonly string[]
+  valor: string | undefined
+  onCambiar: (v: string) => void
+}) {
+  return (
+    <fieldset className="rounded-tarjeta border border-linea bg-surface-1 p-3.5 shadow-sm">
+      <legend className="mb-2.5 text-sm font-bold text-texto">{titulo}</legend>
+      <div className="flex gap-2">
+        {opciones.map((o) => {
+          const sel = valor === o
+          return (
+            <button
+              key={o}
+              type="button"
+              onClick={() => onCambiar(o)}
+              className={`press flex-1 rounded-full border py-2 text-[11px] font-bold uppercase tracking-wide transition-colors duration-200 ease-salida ${
+                sel ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'
+              }`}
+            >
+              {o}
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
+  )
+}
+
+export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGuardar }: CheckinFormProps) {
+  const [pesoKg, setPesoKg] = useState(pesoInicial ?? 70)
+  const [pasos, setPasos] = useState(pasosInicial ?? 8000)
   const [entreno, setEntreno] = useState('')
   const [rendimiento, setRendimiento] = useState<Cualitativo3>()
   const [motivacion, setMotivacion] = useState<Cantidad3>()
@@ -36,24 +63,14 @@ export function CheckinForm({ usuarioId, fecha, onGuardar }: CheckinFormProps) {
   const [calidadSueno, setCalidadSueno] = useState<Cualitativo3>()
   const [alimentacion, setAlimentacion] = useState<Cualitativo3>()
   const [comentarios, setComentarios] = useState('')
-  const [error, setError] = useState('')
 
   const guardar = () => {
-    const numeros = {
-      pesoKg: pesoKg ? Number.parseFloat(pesoKg.replace(',', '.')) : undefined,
-      pasos: pasos ? Number.parseInt(pasos, 10) : undefined,
-    }
-    const fallo = validarNumeros(numeros)
-    if (fallo) {
-      setError(fallo)
-      return
-    }
-    setError('')
     onGuardar({
       id: `ck-${usuarioId}-${fecha}`,
       usuarioId,
       fecha,
-      ...numeros,
+      pesoKg,
+      pasos,
       entreno: entreno || undefined,
       rendimiento,
       motivacion,
@@ -67,72 +84,57 @@ export function CheckinForm({ usuarioId, fecha, onGuardar }: CheckinFormProps) {
     })
   }
 
-  const campoNumero = 'w-full rounded-xl border border-linea bg-surface-2 px-3 py-2.5 text-texto placeholder:text-tenue focus:border-rojo focus:outline-none'
+  const inputTexto =
+    'w-full rounded-boton border border-linea bg-surface-1 px-3.5 py-2.5 text-texto shadow-sm placeholder:text-tenue focus:border-accion focus:outline-none'
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
+      {/* Peso ayunas + Pasos como steppers en tarjetas paper */}
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-sm font-bold text-texto">
-          Peso en ayunas (kg)
-          <input inputMode="decimal" value={pesoKg} onChange={(e) => setPesoKg(e.target.value)} placeholder="59.0" className={campoNumero} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-bold text-texto">
-          Pasos de ayer
-          <input inputMode="numeric" value={pasos} onChange={(e) => setPasos(e.target.value)} placeholder="9000" className={campoNumero} />
-        </label>
+        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+          <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={setPesoKg} />
+        </div>
+        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+          <Stepper etiqueta="Pasos de ayer" valor={pasos} paso={500} minimo={0} maximo={100000} onCambiar={setPasos} />
+        </div>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm font-bold text-texto">
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
         ¿Qué entrenaste hoy?
-        <input value={entreno} onChange={(e) => setEntreno(e.target.value)} placeholder="LEG A / Descanso" className={campoNumero} />
+        <input value={entreno} onChange={(e) => setEntreno(e.target.value)} placeholder="LEG A / Descanso" className={inputTexto} />
       </label>
 
-      {[
-        { titulo: '¿Cómo estuvo tu rendimiento?', valor: rendimiento, set: setRendimiento, opciones: CUALITATIVOS },
-        { titulo: 'Motivación', valor: motivacion, set: setMotivacion, opciones: CANTIDADES },
-        { titulo: 'Hambre', valor: hambre, set: setHambre, opciones: CANTIDADES },
-        { titulo: 'Cansancio', valor: cansancio, set: setCansancio, opciones: CANTIDADES },
-        { titulo: 'Estrés', valor: estres, set: setEstres, opciones: CANTIDADES },
-      ].map((campo) => (
-        <fieldset key={campo.titulo}>
-          <legend className="mb-1.5 text-sm font-bold text-texto">{campo.titulo}</legend>
-          <ChipGroup
-            opciones={campo.opciones}
-            valor={campo.valor}
-            onCambiar={(v) => (campo.set as (x: string) => void)(v)}
-          />
-        </fieldset>
-      ))}
+      <CampoPills titulo="¿Cómo estuvo tu rendimiento?" opciones={CUALITATIVOS} valor={rendimiento} onCambiar={(v) => setRendimiento(v as Cualitativo3)} />
+      <CampoPills titulo="Motivación" opciones={CANTIDADES} valor={motivacion} onCambiar={(v) => setMotivacion(v as Cantidad3)} />
+      <CampoPills titulo="Hambre" opciones={CANTIDADES} valor={hambre} onCambiar={(v) => setHambre(v as Cantidad3)} />
+      <CampoPills titulo="Cansancio" opciones={CANTIDADES} valor={cansancio} onCambiar={(v) => setCansancio(v as Cantidad3)} />
+      <CampoPills titulo="Estrés" opciones={CANTIDADES} valor={estres} onCambiar={(v) => setEstres(v as Cantidad3)} />
 
-      <div className="flex justify-start">
-        <Stepper etiqueta="Horas de sueño" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={setHorasSueno} />
+      {/* Horas de sueño: fila con stepper */}
+      <div className="flex items-center justify-between rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
+        <span className="text-sm font-bold text-texto">Horas de sueño</span>
+        <div className="w-40">
+          <Stepper etiqueta="" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={setHorasSueno} />
+        </div>
       </div>
 
-      <fieldset>
-        <legend className="mb-1.5 text-sm font-bold text-texto">Calidad del sueño</legend>
-        <ChipGroup opciones={CUALITATIVOS} valor={calidadSueno} onCambiar={(v) => setCalidadSueno(v as Cualitativo3)} />
-      </fieldset>
+      <CampoPills titulo="Calidad del sueño" opciones={CUALITATIVOS} valor={calidadSueno} onCambiar={(v) => setCalidadSueno(v as Cualitativo3)} />
+      <CampoPills titulo="¿Cómo estuvo tu alimentación?" opciones={CUALITATIVOS} valor={alimentacion} onCambiar={(v) => setAlimentacion(v as Cualitativo3)} />
 
-      <fieldset>
-        <legend className="mb-1.5 text-sm font-bold text-texto">¿Cómo estuvo tu alimentación?</legend>
-        <ChipGroup opciones={CUALITATIVOS} valor={alimentacion} onCambiar={(v) => setAlimentacion(v as Cualitativo3)} />
-      </fieldset>
+      <input
+        value={comentarios}
+        onChange={(e) => setComentarios(e.target.value)}
+        placeholder="Comentarios para tu coach (opcional)"
+        className={inputTexto}
+      />
 
-      <label className="flex flex-col gap-1 text-sm font-bold text-texto">
-        Comentarios para el coach
-        <textarea
-          value={comentarios}
-          onChange={(e) => setComentarios(e.target.value)}
-          rows={3}
-          placeholder="Dolores, sensaciones, algo que el coach deba saber…"
-          className={campoNumero}
-        />
-      </label>
-
-      {error && <p className="text-sm font-bold text-rojo">{error}</p>}
-
-      <button type="button" onClick={guardar} className="rounded-xl bg-rojo py-3 font-display text-sm text-white active:opacity-90">
-        Guardar check-in de hoy ✓
+      <button
+        type="button"
+        onClick={guardar}
+        className="press mt-1 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
+        style={{ boxShadow: 'var(--glow-accion)' }}
+      >
+        Guardar check-in
       </button>
     </div>
   )
