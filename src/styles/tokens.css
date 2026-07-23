@@ -496,6 +496,34 @@ body {
   }
 }
 
+/* ---------- Bottom sheet (test post): scrim + deslizar hacia arriba ---------- */
+
+@keyframes scrim-entra {
+  from { opacity: 0; }
+}
+
+.scrim-entra {
+  animation: scrim-entra 320ms var(--ease-salida) both;
+}
+
+@keyframes subir-hoja {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
+.subir-hoja {
+  animation: subir-hoja 420ms var(--ease-cajon) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim-entra,
+  .subir-hoja {
+    animation-duration: 1ms;
+  }
+}
+
 /* ---------- Check que se dibuja al marcar un bloque ---------- */
 
 @keyframes dibujar-check {

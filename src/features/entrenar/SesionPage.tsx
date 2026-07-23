@@ -459,6 +459,7 @@ export default function SesionPage() {
       {todasRegistradas && !sesion.testPost && (
         <TestPostSesion
           sesionId={sesion.id}
+          nombreSesion={sesion.nombre}
           onGuardar={(test) => {
             db.microciclos.guardarTestPost(microciclo.id, sesion.id, test)
             limpiarCronometro(sesion.id)
