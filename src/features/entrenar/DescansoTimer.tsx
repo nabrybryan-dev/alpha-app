@@ -10,7 +10,11 @@ interface DescansoTimerProps {
   onMas15: () => void
 }
 
-const restanteSeg = (hasta: number) => Math.max(0, Math.ceil((hasta - Date.now()) / 1000))
+/** Segundos restantes contra el timestamp `hasta`, corregidos por el desfase
+ *  acumulado durante las pausas (mientras se pausa, el reloj de pared sigue,
+ *  así que al reanudar se descuenta ese tiempo del objetivo). */
+const restanteSeg = (hasta: number, desfaseMs = 0) =>
+  Math.max(0, Math.ceil((hasta + desfaseMs - Date.now()) / 1000))
 
 function mmss(seg: number): string {
   const m = Math.floor(seg / 60)
@@ -20,15 +24,21 @@ function mmss(seg: number): string {
 
 /**
  * Barra flotante de descanso entre series. Cuenta regresiva pautada por el
- * ejercicio; sobrevive a bloquear el celular (se recalcula del timestamp). Al
- * llegar a cero, un letrero "¡DALE!" entra deslizando de derecha a izquierda y
- * se va solo. El asesorado también puede saltar el descanso.
+ * ejercicio; sobrevive a bloquear el celular (se recalcula del timestamp). Se
+ * puede pausar/reanudar (el tiempo en pausa no cuenta) y añadir +15 s. Al llegar
+ * a cero, un letrero "¡DALE!" entra deslizando de derecha a izquierda y se va
+ * solo. El asesorado también puede saltar el descanso.
  */
 export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTimerProps) {
   const [restante, setRestante] = useState(() => restanteSeg(hasta))
   const [enBanner, setEnBanner] = useState(restante <= 0)
   const [saliendo, setSaliendo] = useState(false)
+  const [pausado, setPausado] = useState(false)
   const cerrado = useRef(false)
+  // Tiempo total acumulado en pausa (ms), y el instante en que empezó la pausa
+  // actual. Se usan para compensar el objetivo `hasta` al reanudar.
+  const desfaseMs = useRef(0)
+  const pausaInicio = useRef(0)
 
   const cerrarUnaVez = () => {
     if (cerrado.current) return
@@ -36,26 +46,36 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
     onCerrar()
   }
 
-  const urgente = !enBanner && restante > 0 && restante <= 5
+  const alternarPausa = () => {
+    setPausado((p) => {
+      if (p) desfaseMs.current += Date.now() - pausaInicio.current // reanuda: suma lo pausado
+      else pausaInicio.current = Date.now() // pausa: congela el instante
+      return !p
+    })
+  }
 
-  // Cuenta regresiva: refresca cada segundo y también al volver de segundo plano.
+  const urgente = !enBanner && !pausado && restante > 0 && restante <= 5
+
+  // Cuenta regresiva: refresca cada segundo y también al volver de segundo
+  // plano. En pausa no corre (el desfase acumulado congela el restante).
   useEffect(() => {
-    if (enBanner) return
+    if (enBanner || pausado) return
     const tick = () => {
-      const r = restanteSeg(hasta)
+      const r = restanteSeg(hasta, desfaseMs.current)
       setRestante(r)
       if (r <= 0) {
         setEnBanner(true)
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(120)
       }
     }
+    tick() // sincroniza de inmediato (p. ej. al reanudar)
     const id = window.setInterval(tick, 250)
     document.addEventListener('visibilitychange', tick)
     return () => {
       window.clearInterval(id)
       document.removeEventListener('visibilitychange', tick)
     }
-  }, [hasta, enBanner])
+  }, [hasta, enBanner, pausado])
 
   // El letrero "¡DALE!" se muestra ~2.4 s, sale limpio (240 ms) y se cierra.
   useEffect(() => {
@@ -87,10 +107,14 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
           <div className="glass-blur rounded-bloque border border-ink-500 bg-ink-700/95 px-4 py-3 shadow-xl">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-500">Descanso</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-500">
+                  Descanso{pausado ? ' · en pausa' : ''}
+                </div>
                 <div
                   key={restante}
-                  className={`cifras text-[34px] font-bold leading-none ${urgente ? 'tic-urgente text-accion' : 'text-accion'}`}
+                  className={`cifras text-[34px] font-bold leading-none transition-opacity ${
+                    urgente ? 'tic-urgente text-accion' : 'text-accion'
+                  } ${pausado ? 'opacity-60' : ''}`}
                 >
                   {mmss(restante)}
                 </div>
@@ -102,6 +126,31 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
                   className="press cifras rounded-boton border border-ink-400 bg-ink-600 px-3 py-2.5 text-sm font-bold text-silver-200"
                 >
                   +15s
+                </button>
+                <button
+                  type="button"
+                  onClick={alternarPausa}
+                  aria-label={pausado ? 'Reanudar descanso' : 'Pausar descanso'}
+                  aria-pressed={pausado}
+                  className="press grid place-items-center rounded-boton border border-ink-400 bg-ink-600 px-3.5 py-2.5 text-silver-200"
+                >
+                  {pausado ? (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+                      <path d="M8 5l11 7-11 7z" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    >
+                      <path d="M9 5v14M15 5v14" />
+                    </svg>
+                  )}
                 </button>
                 <button
                   type="button"
