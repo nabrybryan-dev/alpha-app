@@ -16,8 +16,8 @@ export default function ChatPage() {
           <h2 className="font-display text-xl leading-tight text-texto">
             {coach ? `Coach ${coach.nombre.split(' ')[0]}` : 'Tu coach'}
           </h2>
-          <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
-            <span className="h-1.5 w-1.5 rounded-full bg-verde" aria-hidden="true" />
+          <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accion">
+            <span className="h-1.5 w-1.5 rounded-full bg-accion" aria-hidden="true" />
             Línea directa
           </p>
         </div>
