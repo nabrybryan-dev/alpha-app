@@ -8,18 +8,21 @@ interface Props {
 
 interface State {
   hayError: boolean
+  /** Mensaje del error capturado, para diagnóstico (el celular no ve la consola). */
+  detalle: string
 }
 
 /**
  * Sin esto, cualquier excepción durante el render (un dato inesperado de la
  * nube, un microciclo con forma vieja…) dejaba la pantalla en blanco a mitad
- * de sesión. Aquí se contiene el fallo y se ofrece recuperación.
+ * de sesión. Aquí se contiene el fallo y se ofrece recuperación. Además se
+ * muestra el mensaje del error para poder diagnosticar desde el propio móvil.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hayError: false }
+  state: State = { hayError: false, detalle: '' }
 
-  static getDerivedStateFromError(): State {
-    return { hayError: true }
+  static getDerivedStateFromError(error: Error): State {
+    return { hayError: true, detalle: error?.message ?? 'Error desconocido' }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
@@ -27,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private reintentar = () => {
-    this.setState({ hayError: false })
+    this.setState({ hayError: false, detalle: '' })
   }
 
   render() {
@@ -41,6 +44,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="mt-2 text-sm text-tenue">
               Tus datos están a salvo. Recarga la app para continuar.
             </p>
+            {this.state.detalle && (
+              <p className="mx-auto mt-2 max-w-xs break-words text-[11px] leading-snug text-tenue opacity-70">
+                {this.state.detalle}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -56,6 +64,11 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <div className="p-6 text-center">
         <p className="text-sm text-tenue">Esta sección no se pudo mostrar.</p>
+        {this.state.detalle && (
+          <p className="mx-auto mt-1 max-w-xs break-words text-[11px] leading-snug text-tenue opacity-70">
+            {this.state.detalle}
+          </p>
+        )}
         <button
           type="button"
           onClick={this.reintentar}
