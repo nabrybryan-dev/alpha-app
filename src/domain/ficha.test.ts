@@ -71,7 +71,13 @@ describe('parsearFicha', () => {
   })
 })
 
-import { PARTES, contarPalabras, parsearFicha, validarFicha } from './ficha'
+import {
+  PARTES,
+  contarPalabras,
+  parsearFicha,
+  ranurasUsadas,
+  validarFicha,
+} from './ficha'
 
 function fichaCon(cambios: Partial<ReturnType<typeof parsearFicha>>) {
   return { ...parsearFicha(FICHA_MINIMA), ...cambios }
@@ -135,5 +141,27 @@ describe('validarFicha — cuerpo', () => {
   it('cuenta palabras con contarPalabras', () => {
     expect(contarPalabras('  hola   mundo  ')).toBe(2)
     expect(contarPalabras('')).toBe(0)
+  })
+})
+
+describe('validarFicha — ranuras', () => {
+  it('detecta ranuras usadas pero no declaradas', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.tu_caso_hoy = 'Hoy tienes {{ejercicio_hoy}} a RIR {{rir_pautado}}.'
+    expect(validarFicha(ficha)).toContain(
+      'ranura usada en el texto pero no declarada: "ejercicio_hoy"',
+    )
+  })
+
+  it('detecta ranuras declaradas pero no usadas', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.datosQueUsa = ['rir_pautado', 'medidas']
+    expect(validarFicha(ficha)).toContain(
+      'ranura declarada pero nunca usada: "medidas"',
+    )
+  })
+
+  it('extrae las ranuras del texto', () => {
+    expect(ranurasUsadas('a {{uno}} b {{dos}} c {{uno}}')).toEqual(['uno', 'dos'])
   })
 })

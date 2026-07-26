@@ -168,6 +168,11 @@ export function palabrasDelCuerpo(cuerpo: CuerpoFicha): number {
   return PARTES.reduce((total, parte) => total + contarPalabras(cuerpo[parte]), 0)
 }
 
+export function ranurasUsadas(texto: string): string[] {
+  const encontradas = texto.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)
+  return [...new Set([...encontradas].map((m) => m[1]))]
+}
+
 const MIN_VARIANTES = 8
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -209,6 +214,20 @@ export function validarFicha(ficha: Ficha): string[] {
   }
   if (palabras < LARGO_MIN) {
     errores.push(`el cuerpo tiene ${palabras} palabras, el mínimo es ${LARGO_MIN}`)
+  }
+
+  const textoCompleto = PARTES.map((parte) => ficha.cuerpo[parte]).join('\n')
+  const usadas = ranurasUsadas(textoCompleto)
+
+  for (const ranura of usadas) {
+    if (!ficha.datosQueUsa.includes(ranura)) {
+      errores.push(`ranura usada en el texto pero no declarada: "${ranura}"`)
+    }
+  }
+  for (const ranura of ficha.datosQueUsa) {
+    if (!usadas.includes(ranura)) {
+      errores.push(`ranura declarada pero nunca usada: "${ranura}"`)
+    }
   }
 
   return errores
