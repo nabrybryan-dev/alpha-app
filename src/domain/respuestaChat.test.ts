@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { esCrisis, normalizar } from '../../supabase/functions/responder-chat/index.ts'
+import {
+  esCrisis,
+  esTemaDeSalud,
+  normalizar,
+} from '../../supabase/functions/responder-chat/index.ts'
 
 describe('normalizar', () => {
   it('quita tildes y baja a minusculas', () => {
@@ -27,5 +31,37 @@ describe('esCrisis', () => {
     expect(esCrisis('estoy muerto despues de esa sesion')).toBe(false)
     expect(esCrisis('me quiero morir de agujetas')).toBe(false)
     expect(esCrisis('no tengo ganas de nada')).toBe(false)
+  })
+})
+
+describe('esTemaDeSalud', () => {
+  it('detecta dolor y lesion', () => {
+    expect(esTemaDeSalud('me duele la rodilla al bajar')).toBe(true)
+    expect(esTemaDeSalud('vengo de una lesion de hombro')).toBe(true)
+    expect(esTemaDeSalud('me punza el tendon')).toBe(true)
+  })
+
+  it('detecta urgencias', () => {
+    expect(esTemaDeSalud('me maree en la serie')).toBe(true)
+    expect(esTemaDeSalud('senti opresion en el pecho')).toBe(true)
+    expect(esTemaDeSalud('casi me desmayo')).toBe(true)
+  })
+
+  it('detecta salud femenina', () => {
+    expect(esTemaDeSalud('se me retraso la regla')).toBe(true)
+    expect(esTemaDeSalud('estoy embarazada')).toBe(true)
+    expect(esTemaDeSalud('se me escapa la orina al saltar')).toBe(true)
+  })
+
+  it('detecta angustia ambigua sin ser crisis', () => {
+    expect(esTemaDeSalud('ya no puedo mas')).toBe(true)
+    expect(esCrisis('ya no puedo mas')).toBe(false)
+  })
+
+  it('NO marca preguntas normales de entrenamiento', () => {
+    expect(esTemaDeSalud('hasta donde bajo en la sentadilla')).toBe(false)
+    expect(esTemaDeSalud('cuanta proteina necesito')).toBe(false)
+    expect(esTemaDeSalud('puedo cambiar el orden de los ejercicios')).toBe(false)
+    expect(esTemaDeSalud('que es un rest pause')).toBe(false)
   })
 })
