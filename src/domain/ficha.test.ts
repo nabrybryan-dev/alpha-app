@@ -176,6 +176,18 @@ describe('validarFicha — ranuras', () => {
   it('extrae las ranuras del texto', () => {
     expect(ranurasUsadas('a {{uno}} b {{dos}} c {{uno}}')).toEqual(['uno', 'dos'])
   })
+
+  it('rechaza una ranura mal escrita en vez de dejarla pasar literal al usuario', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.tu_caso_hoy = 'Hoy tienes RIR {{RIR_PAUTADO}}.'
+    expect(validarFicha(ficha)).toContain('ranura mal escrita: "{{RIR_PAUTADO}}"')
+  })
+
+  it('rechaza una ranura vacía', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.tu_caso_hoy = 'Hoy tienes {{}} en tus series.'
+    expect(validarFicha(ficha)).toContain('ranura mal escrita: "{{}}"')
+  })
 })
 
 describe('validarFicha — reglas de objetividad', () => {

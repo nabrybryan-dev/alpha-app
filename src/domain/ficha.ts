@@ -190,10 +190,18 @@ export function palabrasDelCuerpo(cuerpo: CuerpoFicha): number {
   return PARTES.reduce((total, parte) => total + contarPalabras(cuerpo[parte]), 0)
 }
 
+/**
+ * Extrae el interior de todo `{{...}}` del texto, sin filtrar por forma —
+ * eso es responsabilidad de quien valida. Capturar de más aquí es lo que
+ * permite detectar ranuras mal escritas en vez de dejarlas pasar como texto
+ * literal hacia el asesorado.
+ */
 export function ranurasUsadas(texto: string): string[] {
-  const encontradas = texto.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)
+  const encontradas = texto.matchAll(/\{\{\s*(\S*?)\s*\}\}/g)
   return [...new Set([...encontradas].map((m) => m[1]))]
 }
+
+const RANURA_VALIDA = /^[a-z_]+$/
 
 interface ReglaProhibida {
   patron: RegExp
@@ -268,14 +276,19 @@ export function validarFicha(ficha: Ficha): string[] {
 
   const textoCompleto = PARTES.map((parte) => ficha.cuerpo[parte]).join('\n')
   const usadas = ranurasUsadas(textoCompleto)
+  const usadasValidas = usadas.filter((r) => RANURA_VALIDA.test(r))
+  const usadasMalEscritas = usadas.filter((r) => !RANURA_VALIDA.test(r))
 
-  for (const ranura of usadas) {
+  for (const ranura of usadasMalEscritas) {
+    errores.push(`ranura mal escrita: "{{${ranura}}}"`)
+  }
+  for (const ranura of usadasValidas) {
     if (!ficha.datosQueUsa.includes(ranura)) {
       errores.push(`ranura usada en el texto pero no declarada: "${ranura}"`)
     }
   }
   for (const ranura of ficha.datosQueUsa) {
-    if (!usadas.includes(ranura)) {
+    if (!usadasValidas.includes(ranura)) {
       errores.push(`ranura declarada pero nunca usada: "${ranura}"`)
     }
   }
