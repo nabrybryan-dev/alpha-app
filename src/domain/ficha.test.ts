@@ -75,6 +75,14 @@ describe('parsearFicha', () => {
       /frontmatter/i,
     )
   })
+
+  it('parsea igual cuando el archivo usa saltos de línea CRLF', () => {
+    const conCrlf = FICHA_MINIMA.replace(/\n/g, '\r\n')
+    const ficha = parsearFicha(conCrlf)
+    expect(ficha.id).toBe('demo-uno')
+    expect(ficha.variantes).toHaveLength(8)
+    expect(ficha.cuerpo.respuesta_directa).toContain('repeticiones que te quedan')
+  })
 })
 
 function fichaCon(cambios: Partial<ReturnType<typeof parsearFicha>>) {

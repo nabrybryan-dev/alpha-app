@@ -133,7 +133,12 @@ function parsearCuerpo(markdown: string): CuerpoFicha {
 }
 
 export function parsearFicha(texto: string): Ficha {
-  const coincidencia = texto.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  // Las fichas se guardan y se leen tal cual las deja el sistema de archivos:
+  // en este equipo (core.autocrlf=true, sin .gitattributes) eso es CRLF. Se
+  // normaliza a \n antes de parsear para no depender de cómo se materialice
+  // el archivo en disco.
+  const normalizado = texto.replace(/\r\n/g, '\n')
+  const coincidencia = normalizado.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
   if (!coincidencia) {
     throw new Error('La ficha no tiene frontmatter delimitado por ---')
   }
