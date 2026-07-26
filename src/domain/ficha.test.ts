@@ -118,6 +118,16 @@ describe('validarFicha — frontmatter', () => {
     const errores = validarFicha(fichaCon({ datosQueUsa: ['peso_ideal'] }))
     expect(errores).toContain('ranura desconocida en datos_que_usa: "peso_ideal"')
   })
+
+  it('rechaza un bandera_salud que no sea exactamente "true" o "false"', () => {
+    const errores = validarFicha(fichaCon({ banderaSaludCruda: 'True' }))
+    expect(errores).toContain('bandera_salud debe ser true o false')
+  })
+
+  it('exige que bandera_salud esté presente', () => {
+    const errores = validarFicha(fichaCon({ banderaSaludCruda: '' }))
+    expect(errores).toContain('bandera_salud debe ser true o false')
+  })
 })
 
 describe('validarFicha — cuerpo', () => {

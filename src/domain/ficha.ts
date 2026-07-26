@@ -46,6 +46,14 @@ export interface Ficha {
   titulo: string
   variantes: string[]
   banderaSalud: boolean
+  /**
+   * Valor crudo de `bandera_salud` tal como vino en el frontmatter, antes de
+   * interpretarlo. `banderaSalud` colapsa cualquier valor no-"true" a
+   * `false`; este campo es lo que permite a `validarFicha` distinguir un
+   * "false" real de un typo o de un campo ausente, para no tratar en
+   * silencio una ficha de salud como inofensiva.
+   */
+  banderaSaludCruda: string
   datosQueUsa: string[]
   fuentes: string[]
   actualizado: string
@@ -161,13 +169,15 @@ export function parsearFicha(texto: string): Ficha {
   const [, cabecera, markdown] = coincidencia
   const meta = parsearFrontmatter(cabecera)
   const { cuerpo, duplicadas } = parsearCuerpo(markdown)
+  const banderaSaludCruda = comoTexto(meta.bandera_salud)
 
   return {
     id: comoTexto(meta.id),
     bloque: comoTexto(meta.bloque),
     titulo: comoTexto(meta.titulo),
     variantes: comoLista(meta.variantes),
-    banderaSalud: comoTexto(meta.bandera_salud) === 'true',
+    banderaSalud: banderaSaludCruda === 'true',
+    banderaSaludCruda,
     datosQueUsa: comoLista(meta.datos_que_usa),
     fuentes: comoLista(meta.fuentes),
     actualizado: comoTexto(meta.actualizado),
@@ -255,6 +265,9 @@ export function validarFicha(ficha: Ficha): string[] {
     if (!RANURAS.includes(ranura as Ranura)) {
       errores.push(`ranura desconocida en datos_que_usa: "${ranura}"`)
     }
+  }
+  if (ficha.banderaSaludCruda !== 'true' && ficha.banderaSaludCruda !== 'false') {
+    errores.push('bandera_salud debe ser true o false')
   }
 
   for (const parte of PARTES) {
