@@ -105,3 +105,56 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 > ánimo, cargas concretas, notas ni datos personales. Si corres este paso,
 > el paso 8 ya no es necesario; si aún no lo corres, el ranking funciona
 > con las categorías básicas y las nuevas aparecen en cero.
+
+## 10 · Centro de Respuestas (migración 0010)
+
+Esta migración crea el banco de fichas de respuesta con búsqueda semántica
+(`fichas_respuesta`) y la bitácora de preguntas del chat (`consultas_chat`).
+
+1. Menú → **SQL Editor** → **New query**.
+2. En una terminal, dentro de la carpeta `app/`, copia la migración completa
+   al portapapeles con este comando (pegar directo desde el chat puede
+   partir el texto a la mitad, por eso se pasa por el portapapeles):
+
+   ```powershell
+   powershell -Command "Get-Content 'supabase/migrations/0010_centro_respuestas.sql' -Raw -Encoding UTF8 | Set-Clipboard; (Get-Clipboard).Length"
+   ```
+
+   Verifica que el número que imprime se parece al tamaño del archivo.
+3. En el SQL Editor: **Ctrl+A → Delete → Ctrl+V → Run**. Debe decir
+   "Success. No rows returned".
+4. Comprueba que la tabla quedó vacía y lista para publicar:
+
+   ```sql
+   select count(*) from public.fichas_respuesta;
+   ```
+
+   Debe dar **0** — todavía no se ha publicado ninguna ficha.
+
+### Publicar las fichas
+
+1. En tu máquina define tres variables de entorno: `OPENAI_API_KEY`,
+   `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` (esta última es la *service role
+   key* del proyecto: se salta la seguridad de fila por completo, así que
+   vive **solo en tu entorno local**, nunca en Vercel ni en un commit).
+2. Desde `app/`:
+
+   ```bash
+   npm run publicar-fichas
+   ```
+
+   Lee los `.md` de `wiki/centro-respuestas/`, pide los vectores a OpenAI y
+   hace upsert de las 50 fichas en Supabase.
+3. Cada vez que cambies cualquier ficha del Cerebro, antes de publicar corre
+   siempre:
+
+   ```bash
+   npm run validar-fichas
+   ```
+
+   Solo si sale "0 con errores", corre `npm run publicar-fichas` de nuevo
+   para que la ficha corregida quede al día en Supabase.
+
+> `OPENAI_API_KEY`, `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` viven **solo en
+> tu entorno local**. Nunca en Vercel, nunca en un commit. Si alguna se
+> filtra, se rota desde el panel del proveedor correspondiente.
