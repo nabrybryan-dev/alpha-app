@@ -119,3 +119,158 @@ export function armarRespuesta(
     .filter(Boolean)
     .join('\n\n')
 }
+
+// ---------------------------------------------------------------- mensajes fijos
+
+const MSG_CRISIS = [
+  'Leo lo que me escribes y no lo voy a pasar por alto.',
+  'Esto no es algo que deba responderte una app, asi que no voy a hablarte de entrenamiento ahora.',
+  'Ya le llego el aviso a tu coach y va a escribirte.',
+  'Si en este momento sientes que estas en peligro, busca ayuda de un profesional de salud o de alguien de confianza que este cerca de ti. No te quedes solo con esto.',
+].join('\n\n')
+
+const MSG_ESCALADO = [
+  'Esa no te la puedo responder bien con lo que tengo.',
+  'Se la paso a tu coach tal cual y te responde el.',
+].join('\n\n')
+
+const PREFIJO_TENTATIVO = 'Creo que me preguntas por esto. Si no era, dimelo y le paso el mensaje a tu coach.\n\n'
+
+// ---------------------------------------------------------------- handler
+
+interface Peticion {
+  usuario_id: string
+  mensaje: string
+  /** Lo que el asesorado tiene en pantalla. El cliente lo sabe mejor que el servidor. */
+  contexto?: Record<string, string>
+}
+
+async function manejar(req: Request): Promise<Response> {
+  const json = (cuerpo: unknown, status = 200) =>
+    new Response(JSON.stringify(cuerpo), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    })
+
+  let peticion: Peticion
+  try {
+    peticion = await req.json()
+  } catch {
+    return json({ error: 'Cuerpo invalido' }, 400)
+  }
+
+  const mensaje = (peticion.mensaje ?? '').trim()
+  const usuarioId = peticion.usuario_id
+  if (!mensaje || !usuarioId) return json({ error: 'Faltan usuario_id o mensaje' }, 400)
+
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+  const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY')!
+
+  const rest = async (ruta: string, init: RequestInit = {}) =>
+    fetch(`${SUPABASE_URL}/rest/v1/${ruta}`, {
+      ...init,
+      headers: {
+        apikey: SERVICE_KEY,
+        authorization: `Bearer ${SERVICE_KEY}`,
+        'content-type': 'application/json',
+        ...(init.headers ?? {}),
+      },
+    })
+
+  const registrar = (extra: Record<string, unknown>) =>
+    rest('consultas_chat', {
+      method: 'POST',
+      body: JSON.stringify({ usuario_id: usuarioId, mensaje, ...extra }),
+    }).catch(() => {})
+
+  // 1. CRISIS. Antes que nada. No busca ficha ni menciona entrenamiento.
+  if (esCrisis(mensaje)) {
+    await registrar({ via: 'escalado', bandera_roja: true })
+    return json({ respuesta: MSG_CRISIS, via: 'escalado', crisis: true, bandera_roja: true })
+  }
+
+  const salud = esTemaDeSalud(mensaje)
+
+  // 2. Vector del mensaje.
+  let vector: number[]
+  try {
+    const r = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${OPENAI_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: mensaje }),
+    })
+    if (!r.ok) throw new Error(String(r.status))
+    vector = (await r.json()).data[0].embedding
+  } catch {
+    await registrar({ via: 'escalado', bandera_roja: salud })
+    return json({ respuesta: MSG_ESCALADO, via: 'escalado', bandera_roja: salud })
+  }
+
+  // 3. Ficha más cercana.
+  const rpc = await rest('rpc/buscar_ficha', {
+    method: 'POST',
+    body: JSON.stringify({ consulta: vector, limite: 1 }),
+  })
+  const fichas = rpc.ok ? await rpc.json() : []
+  const ficha = fichas?.[0] ?? null
+  const similitud: number | null = ficha ? Number(ficha.similitud) : null
+
+  // 4. Umbrales.
+  const via = decidirVia(similitud)
+  const banderaRoja = salud || (via !== 'escalado' && ficha?.bandera_salud === true)
+
+  if (via === 'escalado' || !ficha) {
+    await registrar({ via: 'escalado', similitud, bandera_roja: banderaRoja })
+    return json({ respuesta: MSG_ESCALADO, via: 'escalado', bandera_roja: banderaRoja })
+  }
+
+  // 5. Datos de la persona para las ranuras.
+  const datos: Record<string, string> = {}
+  for (const [k, v] of Object.entries(peticion.contexto ?? {})) {
+    if (/^[a-z_]+$/.test(k) && typeof v === 'string' && v.length <= 120) datos[k] = v
+  }
+
+  const necesita = (r: string) => (ficha.datos_que_usa ?? []).includes(r)
+
+  if (necesita('microciclo_actual') && !datos.microciclo_actual) {
+    const r = await rest(`microciclos?usuario_id=eq.${usuarioId}&estado=eq.activo&select=numero&limit=1`)
+    const m = r.ok ? (await r.json())[0] : null
+    if (m) datos.microciclo_actual = `M${m.numero}`
+  }
+
+  if (necesita('checkin_bienestar') && !datos.checkin_bienestar) {
+    const r = await rest(`checkins?usuario_id=eq.${usuarioId}&select=datos&order=fecha.desc&limit=1`)
+    const c = r.ok ? (await r.json())[0] : null
+    const d = c?.datos ?? null
+    if (d) {
+      const partes = ['sueno', 'animo', 'estres', 'energia']
+        .filter((p) => d[p] !== undefined && d[p] !== null)
+        .map((p) => `${p} ${d[p]}`)
+      if (partes.length) datos.checkin_bienestar = partes.join(', ')
+    }
+  }
+
+  if (necesita('hidratacion_dia') && !datos.hidratacion_dia) {
+    const hoy = new Date().toISOString().slice(0, 10)
+    const r = await rest(`hidratacion?usuario_id=eq.${usuarioId}&fecha=eq.${hoy}&select=ml&limit=1`)
+    const h = r.ok ? (await r.json())[0] : null
+    if (h) datos.hidratacion_dia = `${(h.ml / 1000).toFixed(1)} L`
+  }
+
+  // 6. Respuesta.
+  const cuerpo = armarRespuesta(ficha.cuerpo as CuerpoFicha, datos)
+  const respuesta = via === 'ficha_tentativa' ? PREFIJO_TENTATIVO + cuerpo : cuerpo
+
+  await registrar({ via, ficha_id: ficha.id, similitud, bandera_roja: banderaRoja })
+
+  return json({ respuesta, via, ficha_id: ficha.id, similitud, bandera_roja: banderaRoja })
+}
+
+// Solo arranca el servidor dentro de Deno. Así los tests pueden importar
+// este archivo sin levantar nada.
+declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void } | undefined
+
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
+  Deno.serve(manejar)
+}
