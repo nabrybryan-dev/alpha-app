@@ -83,3 +83,39 @@ export function decidirVia(similitud: number | null): Via {
   if (similitud < UMBRAL_ALTO) return 'ficha_tentativa'
   return 'ficha'
 }
+
+export interface CuerpoFicha {
+  respuesta_directa: string
+  por_que: string
+  tu_caso_hoy: string
+  que_hago_ahora: string
+  senal_alarma: string
+}
+
+/**
+ * Une las cinco partes. Si a `tu_caso_hoy` le falta cualquier dato, se omite
+ * la parte entera: una respuesta sin personalizar sigue siendo correcta, una
+ * con datos inventados o con {{huecos}} a la vista, no.
+ */
+export function armarRespuesta(
+  cuerpo: CuerpoFicha,
+  datos: Record<string, string | undefined>,
+): string {
+  const ranuras = [...cuerpo.tu_caso_hoy.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)].map((m) => m[1])
+  const completo = ranuras.length > 0 && ranuras.every((r) => !!datos[r]?.trim())
+
+  const caso = completo
+    ? cuerpo.tu_caso_hoy.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, r) => datos[r] as string)
+    : ''
+
+  return [
+    cuerpo.respuesta_directa,
+    cuerpo.por_que,
+    caso,
+    cuerpo.que_hago_ahora,
+    cuerpo.senal_alarma,
+  ]
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join('\n\n')
+}

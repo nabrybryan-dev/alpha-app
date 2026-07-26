@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  armarRespuesta,
   decidirVia,
   esCrisis,
   esTemaDeSalud,
@@ -82,5 +83,43 @@ describe('decidirVia', () => {
     expect(decidirVia(0.41)).toBe('escalado')
     expect(decidirVia(0.26)).toBe('escalado')
     expect(decidirVia(null)).toBe('escalado')
+  })
+})
+
+const CUERPO = {
+  respuesta_directa: 'Baja hasta pasar la paralela.',
+  por_que: 'El estimulo esta donde el musculo se estira bajo carga.',
+  tu_caso_hoy: 'Hoy tienes {{ejercicio_hoy}} a RIR {{rir_pautado}}.',
+  que_hago_ahora: 'Graba una serie de lado.',
+  senal_alarma: 'Si duele dentro de la rodilla, para.',
+}
+
+describe('armarRespuesta', () => {
+  it('rellena las ranuras con los datos reales', () => {
+    const r = armarRespuesta(CUERPO, { ejercicio_hoy: 'SENTADILLA HACK', rir_pautado: '2' })
+    expect(r).toContain('Hoy tienes SENTADILLA HACK a RIR 2.')
+    expect(r).not.toContain('{{')
+  })
+
+  it('omite tu_caso_hoy entero si falta un dato', () => {
+    const r = armarRespuesta(CUERPO, { ejercicio_hoy: 'SENTADILLA HACK' })
+    expect(r).not.toContain('SENTADILLA HACK')
+    expect(r).not.toContain('{{')
+    expect(r).toContain('Baja hasta pasar la paralela.')
+    expect(r).toContain('Si duele dentro de la rodilla, para.')
+  })
+
+  it('omite tu_caso_hoy si no hay ningun dato', () => {
+    const r = armarRespuesta(CUERPO, {})
+    expect(r).not.toContain('{{')
+    expect(r).toContain('El estimulo esta donde')
+  })
+
+  it('mantiene el orden de las cinco partes', () => {
+    const r = armarRespuesta(CUERPO, { ejercicio_hoy: 'X', rir_pautado: '2' })
+    expect(r.indexOf('Baja hasta')).toBeLessThan(r.indexOf('El estimulo'))
+    expect(r.indexOf('El estimulo')).toBeLessThan(r.indexOf('Hoy tienes'))
+    expect(r.indexOf('Hoy tienes')).toBeLessThan(r.indexOf('Graba una serie'))
+    expect(r.indexOf('Graba una serie')).toBeLessThan(r.indexOf('Si duele'))
   })
 })
