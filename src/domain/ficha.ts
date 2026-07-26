@@ -279,6 +279,18 @@ function validarFrontmatter(ficha: Ficha): string[] {
   return errores
 }
 
+/**
+ * Partes donde una ranura está prohibida.
+ *
+ * `armarRespuesta` (en `supabase/functions/responder-chat/index.ts`) omite
+ * entera cualquier parte a la que le falte el dato de una de sus ranuras,
+ * pero NUNCA omite `respuesta_directa` ni `senal_alarma`: son la respuesta a
+ * lo que preguntó el asesorado y el aviso de seguridad. Una ranura ahí no
+ * tiene salida limpia en tiempo de ejecución — o se calla el aviso, o se
+ * enseña el {{hueco}} — así que se prohíbe al publicar, que es donde se ve.
+ */
+const PARTES_SIN_RANURA: Parte[] = ['respuesta_directa', 'senal_alarma']
+
 function validarCuerpo(ficha: Ficha): string[] {
   const errores: string[] = []
 
@@ -289,6 +301,13 @@ function validarCuerpo(ficha: Ficha): string[] {
   }
   for (const parte of ficha.partesDuplicadas) {
     errores.push(`parte duplicada: "${parte}"`)
+  }
+  for (const parte of PARTES_SIN_RANURA) {
+    if (ranurasUsadas(ficha.cuerpo[parte]).length > 0) {
+      errores.push(
+        `ranura no permitida en "${parte}": las ranuras solo van en por_que, tu_caso_hoy y que_hago_ahora`,
+      )
+    }
   }
 
   const palabras = palabrasDelCuerpo(ficha.cuerpo)

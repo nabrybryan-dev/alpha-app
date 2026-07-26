@@ -167,6 +167,45 @@ describe('validarFicha — cuerpo', () => {
   })
 })
 
+describe('validarFicha — ranuras prohibidas por parte', () => {
+  // El armador de `responder-chat` omite entera cualquier parte a la que le
+  // falte un dato, PERO nunca omite respuesta_directa ni senal_alarma: son la
+  // respuesta y el aviso de seguridad. Una ranura ahí no tiene salida limpia
+  // en tiempo de ejecución, así que se prohíbe al publicar.
+  const MENSAJE = 'las ranuras solo van en por_que, tu_caso_hoy y que_hago_ahora'
+
+  it('rechaza una ranura en respuesta_directa', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.respuesta_directa = 'Trabajas a RIR {{rir_pautado}} sin llegar al fallo.'
+    expect(validarFicha(ficha)).toContain(
+      `ranura no permitida en "respuesta_directa": ${MENSAJE}`,
+    )
+  })
+
+  it('rechaza una ranura en senal_alarma', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.senal_alarma = 'Si no llegas a RIR {{rir_pautado}}, avísame.'
+    expect(validarFicha(ficha)).toContain(
+      `ranura no permitida en "senal_alarma": ${MENSAJE}`,
+    )
+  })
+
+  it('permite ranuras en por_que, tu_caso_hoy y que_hago_ahora', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.por_que = 'La cercanía al fallo manda, por eso hoy vas a RIR {{rir_pautado}}.'
+    ficha.cuerpo.que_hago_ahora = 'Cierra las series en RIR {{rir_pautado}} y registra el real.'
+    const errores = validarFicha(ficha)
+    expect(errores.filter((e) => e.includes('ranura no permitida'))).toEqual([])
+  })
+
+  it('no reporta la misma parte dos veces aunque tenga dos ranuras', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.senal_alarma = 'Si en {{ejercicio_hoy}} no llegas a RIR {{rir_pautado}}, avísame.'
+    const errores = validarFicha(ficha).filter((e) => e.includes('ranura no permitida'))
+    expect(errores).toHaveLength(1)
+  })
+})
+
 describe('validarFicha — ranuras', () => {
   it('detecta ranuras usadas pero no declaradas', () => {
     const ficha = parsearFicha(FICHA_MINIMA)
