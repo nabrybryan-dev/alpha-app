@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  decidirVia,
   esCrisis,
   esTemaDeSalud,
   normalizar,
@@ -63,5 +64,23 @@ describe('esTemaDeSalud', () => {
     expect(esTemaDeSalud('cuanta proteina necesito')).toBe(false)
     expect(esTemaDeSalud('puedo cambiar el orden de los ejercicios')).toBe(false)
     expect(esTemaDeSalud('que es un rest pause')).toBe(false)
+  })
+})
+
+describe('decidirVia', () => {
+  it('ficha directa por encima de 0,50', () => {
+    expect(decidirVia(0.78)).toBe('ficha')
+    expect(decidirVia(0.50)).toBe('ficha')
+  })
+
+  it('tentativa en la banda intermedia', () => {
+    expect(decidirVia(0.49)).toBe('ficha_tentativa')
+    expect(decidirVia(0.42)).toBe('ficha_tentativa')
+  })
+
+  it('escala al coach por debajo de 0,42', () => {
+    expect(decidirVia(0.41)).toBe('escalado')
+    expect(decidirVia(0.26)).toBe('escalado')
+    expect(decidirVia(null)).toBe('escalado')
   })
 })

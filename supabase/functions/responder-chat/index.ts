@@ -68,3 +68,18 @@ export function esTemaDeSalud(mensaje: string): boolean {
   const t = normalizar(mensaje)
   return SALUD.some((p) => t.includes(p))
 }
+
+// Umbrales MEDIDOS el 2026-07-26 con las 50 fichas reales y 15 preguntas de
+// prueba: coincidencias verdaderas 0,507-0,779; falsas 0,264-0,379.
+// Los valores anteriores del spec (0,80/0,60) eran conjetura y estaban por
+// encima de la escala real del modelo: ninguna ficha habria respondido nunca.
+export const UMBRAL_ALTO = 0.5
+export const UMBRAL_BAJO = 0.42
+
+export type Via = 'ficha' | 'ficha_tentativa' | 'ia_vivo' | 'escalado'
+
+export function decidirVia(similitud: number | null): Via {
+  if (similitud === null || similitud < UMBRAL_BAJO) return 'escalado'
+  if (similitud < UMBRAL_ALTO) return 'ficha_tentativa'
+  return 'ficha'
+}
