@@ -148,6 +148,12 @@ describe('validarFicha — cuerpo', () => {
     expect(contarPalabras('  hola   mundo  ')).toBe(2)
     expect(contarPalabras('')).toBe(0)
   })
+
+  it('detecta una parte repetida en vez de perder la primera en silencio', () => {
+    const conParteDuplicada = `${FICHA_MINIMA}\n## por_que\nTexto extra que no debería colarse en silencio.\n`
+    const ficha = parsearFicha(conParteDuplicada)
+    expect(validarFicha(ficha)).toContain('parte duplicada: "por_que"')
+  })
 })
 
 describe('validarFicha — ranuras', () => {

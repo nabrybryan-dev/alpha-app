@@ -50,6 +50,8 @@ export interface Ficha {
   fuentes: string[]
   actualizado: string
   cuerpo: CuerpoFicha
+  /** Partes cuyo encabezado `## nombre` aparece más de una vez en el cuerpo. */
+  partesDuplicadas: Parte[]
 }
 
 /** Quita comillas envolventes y espacios de un valor escalar del frontmatter. */
@@ -115,10 +117,19 @@ function comoTexto(valor: string | string[] | undefined): string {
   return Array.isArray(valor) ? (valor[0] ?? '') : (valor ?? '')
 }
 
-/** Extrae las secciones `## nombre` del cuerpo markdown. */
-function parsearCuerpo(markdown: string): CuerpoFicha {
+/**
+ * Extrae las secciones `## nombre` del cuerpo markdown. Si una parte aparece
+ * más de una vez, se reporta en `duplicadas` — de lo contrario la reescritura
+ * pierde el primer texto sin avisar a quien escribió la ficha.
+ */
+function parsearCuerpo(markdown: string): {
+  cuerpo: CuerpoFicha
+  duplicadas: Parte[]
+} {
   const cuerpo = {} as CuerpoFicha
   for (const parte of PARTES) cuerpo[parte] = ''
+  const vistas = new Set<Parte>()
+  const duplicadas: Parte[] = []
 
   const bloques = markdown.split(/^##\s+/m).slice(1)
   for (const bloque of bloques) {
@@ -126,10 +137,14 @@ function parsearCuerpo(markdown: string): CuerpoFicha {
     if (salto === -1) continue
     const nombre = bloque.slice(0, salto).trim() as Parte
     if (!PARTES.includes(nombre)) continue
+    if (vistas.has(nombre) && !duplicadas.includes(nombre)) {
+      duplicadas.push(nombre)
+    }
+    vistas.add(nombre)
     cuerpo[nombre] = bloque.slice(salto + 1).trim()
   }
 
-  return cuerpo
+  return { cuerpo, duplicadas }
 }
 
 export function parsearFicha(texto: string): Ficha {
@@ -145,6 +160,7 @@ export function parsearFicha(texto: string): Ficha {
 
   const [, cabecera, markdown] = coincidencia
   const meta = parsearFrontmatter(cabecera)
+  const { cuerpo, duplicadas } = parsearCuerpo(markdown)
 
   return {
     id: comoTexto(meta.id),
@@ -155,7 +171,8 @@ export function parsearFicha(texto: string): Ficha {
     datosQueUsa: comoLista(meta.datos_que_usa),
     fuentes: comoLista(meta.fuentes),
     actualizado: comoTexto(meta.actualizado),
-    cuerpo: parsearCuerpo(markdown),
+    cuerpo,
+    partesDuplicadas: duplicadas,
   }
 }
 
@@ -236,6 +253,9 @@ export function validarFicha(ficha: Ficha): string[] {
     if (!ficha.cuerpo[parte].trim()) {
       errores.push(`falta la parte "${parte}"`)
     }
+  }
+  for (const parte of ficha.partesDuplicadas) {
+    errores.push(`parte duplicada: "${parte}"`)
   }
 
   const palabras = palabrasDelCuerpo(ficha.cuerpo)
