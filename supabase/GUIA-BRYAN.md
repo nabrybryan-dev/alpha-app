@@ -189,3 +189,62 @@ where n.nspname = 'public' and p.proname = 'buscar_ficha';
 > `OPENAI_API_KEY`, `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` viven **solo en
 > tu entorno local**. Nunca en Vercel, nunca en un commit. Si alguna se
 > filtra, se rota desde el panel del proveedor correspondiente.
+
+## 11 · Desplegar el motor de respuesta (Edge Function `responder-chat`)
+
+Es la función que recibe el mensaje del asesorado en el chat y devuelve la
+ficha correcta rellenada con sus datos. Hazlo **después** de haber publicado
+las fichas (paso 10).
+
+### 11.1 · Dar de alta el secreto
+
+1. Menú → **Edge Functions** → **Secrets** (o *Manage secrets*).
+2. **Add new secret**: nombre `OPENAI_API_KEY`, valor tu clave de OpenAI.
+
+> `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` **ya vienen puestas** por
+> Supabase en todas las Edge Functions. No las agregues ni las toques: si
+> creas una con el mismo nombre puedes romper la que ya funciona.
+
+### 11.2 · Desplegar la función
+
+1. Menú → **Edge Functions** → **Deploy a new function** → **Via Editor**.
+2. Nombre de la función: exactamente `responder-chat`.
+3. Borra el ejemplo que trae el editor (**Ctrl+A → Delete**) y pega el
+   contenido completo de `supabase/functions/responder-chat/index.ts`.
+
+   Como en el paso 10, pásalo por el portapapeles para que no se parta a la
+   mitad. Desde la carpeta `app/`:
+
+   ```powershell
+   powershell -Command "Get-Content 'supabase/functions/responder-chat/index.ts' -Raw -Encoding UTF8 | Set-Clipboard; (Get-Clipboard).Length"
+   ```
+
+   Verifica que el número que imprime se parece al tamaño del archivo, y en
+   el editor pega con **Ctrl+V**.
+4. **Deploy**.
+
+### 11.3 · Probarla desde el panel
+
+Con el probador que trae el editor (*Test*/*Invoke*), manda este cuerpo:
+
+```json
+{ "usuario_id": "<un uuid real de usuarios_app>", "mensaje": "hasta donde bajo en la sentadilla" }
+```
+
+Debe devolver `via: "ficha"` y el texto de la ficha de profundidad.
+
+Para sacar un uuid real, en el SQL Editor:
+
+```sql
+select id, nombre from public.usuarios_app limit 5;
+```
+
+### 11.4 · Aviso importante sobre el editor del panel
+
+El editor del panel **no tiene versionado ni rollback**: lo que pegas
+reemplaza lo anterior y no hay forma de volver atrás desde ahí. La copia
+buena y con historial es la del repo (`supabase/functions/responder-chat/index.ts`).
+Si algo se rompe, se vuelve a pegar desde el repo.
+
+Por lo mismo: **nunca edites el código directamente en el panel.** Se cambia
+en el repo, se prueba con `npm test`, y recién ahí se pega.
