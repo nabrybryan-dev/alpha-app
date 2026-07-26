@@ -198,6 +198,12 @@ describe('validarFicha — ranuras', () => {
     ficha.cuerpo.tu_caso_hoy = 'Hoy tienes {{}} en tus series.'
     expect(validarFicha(ficha)).toContain('ranura mal escrita: "{{}}"')
   })
+
+  it('rechaza una ranura mal escrita con espacio interno en vez de guion bajo', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.tu_caso_hoy = 'Hoy tienes {{rir pautado}} en tus series.'
+    expect(validarFicha(ficha)).toContain('ranura mal escrita: "{{rir pautado}}"')
+  })
 })
 
 describe('validarFicha — reglas de objetividad', () => {

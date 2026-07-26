@@ -206,13 +206,15 @@ export function palabrasDelCuerpo(cuerpo: CuerpoFicha): number {
 
 /**
  * Extrae el interior de todo `{{...}}` del texto, sin filtrar por forma —
- * eso es responsabilidad de quien valida. Capturar de más aquí es lo que
+ * eso es responsabilidad de quien valida. Capturar de más aquí (incluidos
+ * espacios internos, como en un `{{rir pautado}}` mal escrito) es lo que
  * permite detectar ranuras mal escritas en vez de dejarlas pasar como texto
- * literal hacia el asesorado.
+ * literal hacia el asesorado. `[^}]*` en vez de `\S*?` es a propósito: `\S`
+ * no puede cruzar un espacio interno y dejaba ese caso sin capturar.
  */
 export function ranurasUsadas(texto: string): string[] {
-  const encontradas = texto.matchAll(/\{\{\s*(\S*?)\s*\}\}/g)
-  return [...new Set([...encontradas].map((m) => m[1]))]
+  const encontradas = texto.matchAll(/\{\{([^}]*)\}\}/g)
+  return [...new Set([...encontradas].map((m) => m[1].trim()))]
 }
 
 const RANURA_VALIDA = /^[a-z_]+$/
