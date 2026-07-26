@@ -173,6 +173,31 @@ export function ranurasUsadas(texto: string): string[] {
   return [...new Set([...encontradas].map((m) => m[1]))]
 }
 
+interface ReglaProhibida {
+  patron: RegExp
+  etiqueta: string
+}
+
+// La etiqueta va completa y ya concordada en género: se inserta tal cual en el
+// mensaje, sin concatenarle un adjetivo que no concordaría con "lenguaje".
+const REGLAS_PROHIBIDAS: ReglaProhibida[] = [
+  { patron: /\ben \d+\s*(día|dias|días|semana|semanas|mes|meses)\b/gi, etiqueta: 'promesa de plazo prohibida' },
+  { patron: /\b(garantiza|garantizo|garantizado)\b/gi, etiqueta: 'promesa de resultado prohibida' },
+  { patron: /\b(vas a lograr|te aseguro|sin falta)\b/gi, etiqueta: 'promesa de resultado prohibida' },
+  { patron: /\blo que tienes es\b/gi, etiqueta: 'lenguaje de diagnóstico prohibido' },
+  { patron: /\b(tienes|padeces) una (tendinitis|hernia|lesión|rotura|fractura)\b/gi, etiqueta: 'lenguaje de diagnóstico prohibido' },
+]
+
+export function lintObjetividad(texto: string): string[] {
+  const hallazgos: string[] = []
+  for (const { patron, etiqueta } of REGLAS_PROHIBIDAS) {
+    for (const encontrado of texto.matchAll(patron)) {
+      hallazgos.push(`${etiqueta} (§7.5): "${encontrado[0].toLowerCase()}"`)
+    }
+  }
+  return [...new Set(hallazgos)]
+}
+
 const MIN_VARIANTES = 8
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -229,6 +254,8 @@ export function validarFicha(ficha: Ficha): string[] {
       errores.push(`ranura declarada pero nunca usada: "${ranura}"`)
     }
   }
+
+  errores.push(...lintObjetividad(textoCompleto))
 
   return errores
 }

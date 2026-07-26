@@ -165,3 +165,35 @@ describe('validarFicha — ranuras', () => {
     expect(ranurasUsadas('a {{uno}} b {{dos}} c {{uno}}')).toEqual(['uno', 'dos'])
   })
 })
+
+describe('validarFicha — reglas de objetividad', () => {
+  it('rechaza plazos de resultado', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.por_que = 'En 4 semanas vas a ver el cambio en el espejo.'
+    expect(validarFicha(ficha)).toContain(
+      'promesa de plazo prohibida (§7.5): "en 4 semanas"',
+    )
+  })
+
+  it('rechaza promesas de resultado', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.por_que = 'Esto te garantiza ganar masa muscular rápido.'
+    expect(validarFicha(ficha)).toContain(
+      'promesa de resultado prohibida (§7.5): "garantiza"',
+    )
+  })
+
+  it('rechaza lenguaje de diagnóstico', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.senal_alarma = 'Lo que tienes es una tendinitis rotuliana.'
+    expect(validarFicha(ficha)).toContain(
+      'lenguaje de diagnóstico prohibido (§7.5): "lo que tienes es"',
+    )
+  })
+
+  it('no marca texto legítimo', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    const errores = validarFicha(ficha)
+    expect(errores.filter((e) => e.includes('§7.5'))).toEqual([])
+  })
+})
