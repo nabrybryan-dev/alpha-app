@@ -196,6 +196,18 @@ Es la función que recibe el mensaje del asesorado en el chat y devuelve la
 ficha correcta rellenada con sus datos. Hazlo **después** de haber publicado
 las fichas (paso 10).
 
+### 11.0 · Correr la migración 0011 (obligatorio, va primero)
+
+1. Menú → **SQL Editor** → **New query**.
+2. Pega el contenido de `supabase/migrations/0011_grant_buscar_ficha_service_role.sql`
+   y **Run**.
+
+> Por qué: la migración 0010 le quitó a `public` el permiso de ejecutar
+> `buscar_ficha` para cerrar el acceso anónimo, y de paso se lo quitó a
+> `service_role`, que es con quien llama la Edge Function. Sin este paso la
+> función despliega bien pero **toda respuesta cae a "se la paso a tu coach"**,
+> porque la búsqueda de ficha devuelve permiso denegado.
+
 ### 11.1 · Dar de alta el secreto
 
 1. Menú → **Edge Functions** → **Secrets** (o *Manage secrets*).
