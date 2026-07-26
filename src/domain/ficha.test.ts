@@ -4,6 +4,7 @@ import {
   contarPalabras,
   parsearFicha,
   ranurasUsadas,
+  textoParaEmbedding,
   validarFicha,
 } from './ficha'
 
@@ -235,5 +236,29 @@ describe('validarFicha — reglas de objetividad', () => {
     const ficha = parsearFicha(FICHA_MINIMA)
     const errores = validarFicha(ficha)
     expect(errores.filter((e) => e.includes('§7.5'))).toEqual([])
+  })
+})
+
+describe('textoParaEmbedding', () => {
+  it('junta el título y todas las variantes', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    const texto = textoParaEmbedding(ficha)
+    expect(texto).toContain('¿Qué es RIR?')
+    expect(texto).toContain('qué es rir')
+    expect(texto).toContain('rir 2 qué significa')
+  })
+
+  it('no incluye el cuerpo de la ficha', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    const texto = textoParaEmbedding(ficha)
+    expect(texto).not.toContain('repeticiones que te quedan')
+    expect(texto).not.toContain('{{rir_pautado}}')
+  })
+
+  it('separa cada forma con salto de línea', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    const lineas = textoParaEmbedding(ficha).split('\n')
+    expect(lineas).toHaveLength(9)
+    expect(lineas[0]).toBe('¿Qué es RIR?')
   })
 })

@@ -337,3 +337,12 @@ export function validarFicha(ficha: Ficha): string[] {
     ...lintObjetividad(textoCompleto),
   ]
 }
+
+/**
+ * Texto que se convierte en vector. Solo título y variantes: la consulta
+ * entrante es una pregunta, y las variantes son formas de esa pregunta.
+ * Incluir el cuerpo diluiría la señal con texto que nadie escribe en un chat.
+ */
+export function textoParaEmbedding(ficha: Ficha): string {
+  return [ficha.titulo, ...ficha.variantes].join('\n')
+}
