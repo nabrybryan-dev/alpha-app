@@ -38,12 +38,18 @@ const CRISIS = [
 ]
 
 // "me quiero morir de X" / "me muero de X" son exageraciones, no crisis.
-const EXAGERACION = /\b(me quiero morir|me muero|muerto|muerta)\s+(de|del|por)\b/
+const EXAGERACION = /\b(me quiero morir|me muero|muerto|muerta)\s+(de|del|por)\s+\S+/g
 
+/**
+ * La exageración se BORRA del texto y la crisis se busca en lo que queda.
+ *
+ * Vetar el mensaje entero en cuanto aparecía una exageración era demasiado
+ * ancho: "me muero de ganas de que esto acabe, quiero quitarme la vida"
+ * devolvía false. Los mensajes mixtos son justamente los que más importan.
+ */
 export function esCrisis(mensaje: string): boolean {
-  const t = normalizar(mensaje)
-  if (EXAGERACION.test(t)) return false
-  return CRISIS.some((f) => t.includes(f))
+  const limpio = normalizar(mensaje).replace(EXAGERACION, ' ')
+  return CRISIS.some((f) => limpio.includes(f))
 }
 
 // Léxico de salud. Se marca al coach en rojo. El sesgo es marcar de más:

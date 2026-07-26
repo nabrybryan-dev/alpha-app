@@ -34,6 +34,20 @@ describe('esCrisis', () => {
     expect(esCrisis('me quiero morir de agujetas')).toBe(false)
     expect(esCrisis('no tengo ganas de nada')).toBe(false)
   })
+
+  // La exageracion se BORRA del texto y la crisis se busca en lo que queda.
+  // Vetar el mensaje entero dejaba pasar los mensajes mixtos, que son
+  // justamente los que mas importan.
+  it('la exageracion no tapa una crisis en el mismo mensaje', () => {
+    expect(esCrisis('me muero de ganas de que acabe, quiero quitarme la vida')).toBe(true)
+    expect(esCrisis('me quiero morir de agujetas pero tambien pienso en matarme')).toBe(true)
+  })
+
+  it('sigue sin dispararse con exageraciones solas', () => {
+    expect(esCrisis('me quiero morir de agujetas')).toBe(false)
+    expect(esCrisis('estoy muerto del cansancio')).toBe(false)
+    expect(esCrisis('me muero de hambre')).toBe(false)
+  })
 })
 
 describe('esTemaDeSalud', () => {
