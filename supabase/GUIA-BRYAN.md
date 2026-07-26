@@ -111,6 +111,37 @@ where id = (select id from auth.users where email = 'CORREO-DE-PRUEBA@AQUI.com')
 Esta migración crea el banco de fichas de respuesta con búsqueda semántica
 (`fichas_respuesta`) y la bitácora de preguntas del chat (`consultas_chat`).
 
+### Antes de correr la migración: comprobar que no hay una `buscar_ficha` vieja
+
+`create or replace function` solo reemplaza la función si los tipos de sus
+argumentos coinciden exactamente. Si en algún momento se probó a mano en el
+SQL Editor una versión de `buscar_ficha` con otra firma (por ejemplo con un
+argumento de más, o un tipo distinto), esa versión **sobrevive** a la
+migración con su propio permiso de `EXECUTE` para `PUBLIC` — y el `revoke`
+de la migración, que apunta a la firma exacta `(extensions.vector, int)`, no
+la alcanza. Antes de pegar la migración, en el SQL Editor corre:
+
+```sql
+select p.oid::regprocedure,
+       has_function_privilege('anon', p.oid, 'execute') as anon_ejecuta
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'buscar_ficha';
+```
+
+- Si no devuelve filas: no hay ninguna versión previa, sigue tranquilo.
+- Si devuelve **más de una fila**, o alguna fila con `anon_ejecuta = true`:
+  hay una firma vieja con permiso de `anon`. Antes de continuar, revócala
+  explícitamente usando la firma exacta que muestre `regprocedure` para esa
+  fila, por ejemplo:
+
+  ```sql
+  revoke execute on function public.buscar_ficha(<firma exacta de la fila>) from anon, public;
+  ```
+
+  Solo cuando la consulta anterior devuelva cero filas con `anon_ejecuta = true`
+  (idealmente una sola fila, la de la migración) sigue con el paso 1.
+
 1. Menú → **SQL Editor** → **New query**.
 2. En una terminal, dentro de la carpeta `app/`, copia la migración completa
    al portapapeles con este comando (pegar directo desde el chat puede

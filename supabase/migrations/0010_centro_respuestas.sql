@@ -56,16 +56,38 @@ create policy consultas_leer_propias on public.consultas_chat
   for select to authenticated
   using (usuario_id = auth.uid() or public.es_staff());
 
+-- El check de dueño (usuario_id = auth.uid()) no basta: sin las otras tres
+-- columnas en false, un asesorado autenticado podría llamar al endpoint REST
+-- directo (sin pasar por la app) e insertar su propia fila ya con
+-- bandera_roja/revisado/corregido en true, evadiendo la cola de pendientes
+-- del coach. La política de UPDATE de abajo protege esas columnas después
+-- del insert, pero de nada sirve si ya se pueden fijar en el insert mismo.
+-- bandera_roja en particular NO es un dato que el navegador pueda declarar:
+-- es una clasificación de confianza (¿este mensaje es de salud?) que hace la
+-- Edge Function `responder-chat` de la Etapa 3 con la service role key, que
+-- se salta RLS y por tanto no la limita esta política.
 drop policy if exists consultas_insertar_propias on public.consultas_chat;
 create policy consultas_insertar_propias on public.consultas_chat
   for insert to authenticated
-  with check (usuario_id = auth.uid());
+  with check (
+    usuario_id = auth.uid()
+    and revisado = false
+    and corregido = false
+    and bandera_roja = false
+  );
 
 -- Solo el staff marca revisado/corregido.
 drop policy if exists consultas_actualizar_staff on public.consultas_chat;
 create policy consultas_actualizar_staff on public.consultas_chat
   for update to authenticated
   using (public.es_staff()) with check (public.es_staff());
+
+-- No hay política de DELETE para consultas_chat, y es a propósito: es una
+-- bitácora de consultas de salud y debe ser append-only para todos los
+-- roles de la API (con RLS activo y sin política de delete, el borrado
+-- queda bloqueado por defecto, tanto para authenticated como para anon).
+-- El único borrado posible es fuera de RLS, con la service role key
+-- (p. ej. para cumplir una solicitud de baja de datos).
 
 -- --------------------------------------------------------------- búsqueda
 
