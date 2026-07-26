@@ -71,7 +71,7 @@ describe('parsearFicha', () => {
   })
 })
 
-import { parsearFicha, validarFicha } from './ficha'
+import { PARTES, contarPalabras, parsearFicha, validarFicha } from './ficha'
 
 function fichaCon(cambios: Partial<ReturnType<typeof parsearFicha>>) {
   return { ...parsearFicha(FICHA_MINIMA), ...cambios }
@@ -105,5 +105,35 @@ describe('validarFicha — frontmatter', () => {
   it('rechaza ranuras fuera del catálogo', () => {
     const errores = validarFicha(fichaCon({ datosQueUsa: ['peso_ideal'] }))
     expect(errores).toContain('ranura desconocida en datos_que_usa: "peso_ideal"')
+  })
+})
+
+describe('validarFicha — cuerpo', () => {
+  it('exige las cinco partes presentes', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    ficha.cuerpo.senal_alarma = ''
+    expect(validarFicha(ficha)).toContain('falta la parte "senal_alarma"')
+  })
+
+  it('rechaza un cuerpo demasiado largo', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    // 81 palabras del fixture − 29 de por_que + 200 de relleno = 252
+    ficha.cuerpo.por_que = 'palabra '.repeat(200)
+    expect(validarFicha(ficha)).toContain(
+      'el cuerpo tiene 252 palabras, el máximo es 160',
+    )
+  })
+
+  it('rechaza un cuerpo demasiado corto', () => {
+    const ficha = parsearFicha(FICHA_MINIMA)
+    for (const parte of PARTES) ficha.cuerpo[parte] = 'muy corto'
+    expect(validarFicha(ficha)).toContain(
+      'el cuerpo tiene 10 palabras, el mínimo es 70',
+    )
+  })
+
+  it('cuenta palabras con contarPalabras', () => {
+    expect(contarPalabras('  hola   mundo  ')).toBe(2)
+    expect(contarPalabras('')).toBe(0)
   })
 })

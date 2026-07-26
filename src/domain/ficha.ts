@@ -154,6 +154,20 @@ export function parsearFicha(texto: string): Ficha {
   }
 }
 
+export const LARGO_MIN = 70
+export const LARGO_MAX = 160
+export const LARGO_IDEAL_MIN = 90
+export const LARGO_IDEAL_MAX = 140
+
+export function contarPalabras(texto: string): number {
+  const podado = texto.trim()
+  return podado ? podado.split(/\s+/).length : 0
+}
+
+export function palabrasDelCuerpo(cuerpo: CuerpoFicha): number {
+  return PARTES.reduce((total, parte) => total + contarPalabras(cuerpo[parte]), 0)
+}
+
 const MIN_VARIANTES = 8
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -181,6 +195,20 @@ export function validarFicha(ficha: Ficha): string[] {
     if (!RANURAS.includes(ranura as Ranura)) {
       errores.push(`ranura desconocida en datos_que_usa: "${ranura}"`)
     }
+  }
+
+  for (const parte of PARTES) {
+    if (!ficha.cuerpo[parte].trim()) {
+      errores.push(`falta la parte "${parte}"`)
+    }
+  }
+
+  const palabras = palabrasDelCuerpo(ficha.cuerpo)
+  if (palabras > LARGO_MAX) {
+    errores.push(`el cuerpo tiene ${palabras} palabras, el máximo es ${LARGO_MAX}`)
+  }
+  if (palabras < LARGO_MIN) {
+    errores.push(`el cuerpo tiene ${palabras} palabras, el mínimo es ${LARGO_MIN}`)
   }
 
   return errores
