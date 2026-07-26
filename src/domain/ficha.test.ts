@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { parsearFicha } from './ficha'
+import {
+  PARTES,
+  contarPalabras,
+  parsearFicha,
+  ranurasUsadas,
+  validarFicha,
+} from './ficha'
 
 // Fixture deliberadamente VÁLIDO: 8 variantes y 81 palabras de cuerpo, dentro
 // del rango 70-160. Así `validarFicha(FICHA_MINIMA)` devuelve [] y cada test
@@ -70,14 +76,6 @@ describe('parsearFicha', () => {
     )
   })
 })
-
-import {
-  PARTES,
-  contarPalabras,
-  parsearFicha,
-  ranurasUsadas,
-  validarFicha,
-} from './ficha'
 
 function fichaCon(cambios: Partial<ReturnType<typeof parsearFicha>>) {
   return { ...parsearFicha(FICHA_MINIMA), ...cambios }
