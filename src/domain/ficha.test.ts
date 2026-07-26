@@ -70,3 +70,40 @@ describe('parsearFicha', () => {
     )
   })
 })
+
+import { parsearFicha, validarFicha } from './ficha'
+
+function fichaCon(cambios: Partial<ReturnType<typeof parsearFicha>>) {
+  return { ...parsearFicha(FICHA_MINIMA), ...cambios }
+}
+
+describe('validarFicha — frontmatter', () => {
+  it('una ficha correcta no produce errores', () => {
+    expect(validarFicha(parsearFicha(FICHA_MINIMA))).toEqual([])
+  })
+
+  it('exige un id en kebab-case', () => {
+    const errores = validarFicha(fichaCon({ id: 'Demo Uno' }))
+    expect(errores).toContain('id debe ser kebab-case: "Demo Uno"')
+  })
+
+  it('exige que el bloque sea uno de los 12', () => {
+    const errores = validarFicha(fichaCon({ bloque: 'inventado' }))
+    expect(errores).toContain('bloque desconocido: "inventado"')
+  })
+
+  it('exige al menos 8 variantes de frase', () => {
+    const errores = validarFicha(fichaCon({ variantes: ['una', 'dos'] }))
+    expect(errores).toContain('se requieren al menos 8 variantes, hay 2')
+  })
+
+  it('exige al menos una fuente', () => {
+    const errores = validarFicha(fichaCon({ fuentes: [] }))
+    expect(errores).toContain('la ficha debe declarar al menos una fuente')
+  })
+
+  it('rechaza ranuras fuera del catálogo', () => {
+    const errores = validarFicha(fichaCon({ datosQueUsa: ['peso_ideal'] }))
+    expect(errores).toContain('ranura desconocida en datos_que_usa: "peso_ideal"')
+  })
+})

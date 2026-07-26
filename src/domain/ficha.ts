@@ -153,3 +153,35 @@ export function parsearFicha(texto: string): Ficha {
     cuerpo: parsearCuerpo(markdown),
   }
 }
+
+const MIN_VARIANTES = 8
+const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+export function validarFicha(ficha: Ficha): string[] {
+  const errores: string[] = []
+
+  if (!KEBAB.test(ficha.id)) {
+    errores.push(`id debe ser kebab-case: "${ficha.id}"`)
+  }
+  if (!BLOQUES.includes(ficha.bloque as Bloque)) {
+    errores.push(`bloque desconocido: "${ficha.bloque}"`)
+  }
+  if (!ficha.titulo.trim()) {
+    errores.push('la ficha debe tener título')
+  }
+  if (ficha.variantes.length < MIN_VARIANTES) {
+    errores.push(
+      `se requieren al menos ${MIN_VARIANTES} variantes, hay ${ficha.variantes.length}`,
+    )
+  }
+  if (ficha.fuentes.length === 0) {
+    errores.push('la ficha debe declarar al menos una fuente')
+  }
+  for (const ranura of ficha.datosQueUsa) {
+    if (!RANURAS.includes(ranura as Ranura)) {
+      errores.push(`ranura desconocida en datos_que_usa: "${ranura}"`)
+    }
+  }
+
+  return errores
+}
