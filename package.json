@@ -11,6 +11,7 @@
     "semilla": "node scripts/generar-semilla-sql.mjs",
     "validar-fichas": "vite-node scripts/validar-fichas.mjs",
     "publicar-fichas": "vite-node scripts/publicar-fichas.mjs",
+    "calibrar-umbrales": "vite-node scripts/calibrar-umbrales.mjs",
     "test": "vitest run"
   },
   "dependencies": {
