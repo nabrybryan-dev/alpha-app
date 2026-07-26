@@ -188,6 +188,10 @@ export function parsearFicha(texto: string): Ficha {
 
 export const LARGO_MIN = 70
 export const LARGO_MAX = 160
+// LARGO_IDEAL_MIN/MAX no las usa validarFicha (70-160 es el rango que
+// bloquea). Las consume el CLI scripts/validar-fichas.mjs (Task 6) para
+// avisar en amarillo cuando una ficha válida se sale del rango ideal
+// 90-140, sin bloquear la publicación.
 export const LARGO_IDEAL_MIN = 90
 export const LARGO_IDEAL_MAX = 140
 
@@ -241,7 +245,7 @@ export function lintObjetividad(texto: string): string[] {
 const MIN_VARIANTES = 8
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
-export function validarFicha(ficha: Ficha): string[] {
+function validarFrontmatter(ficha: Ficha): string[] {
   const errores: string[] = []
 
   if (!KEBAB.test(ficha.id)) {
@@ -270,6 +274,12 @@ export function validarFicha(ficha: Ficha): string[] {
     errores.push('bandera_salud debe ser true o false')
   }
 
+  return errores
+}
+
+function validarCuerpo(ficha: Ficha): string[] {
+  const errores: string[] = []
+
   for (const parte of PARTES) {
     if (!ficha.cuerpo[parte].trim()) {
       errores.push(`falta la parte "${parte}"`)
@@ -286,6 +296,12 @@ export function validarFicha(ficha: Ficha): string[] {
   if (palabras < LARGO_MIN) {
     errores.push(`el cuerpo tiene ${palabras} palabras, el mínimo es ${LARGO_MIN}`)
   }
+
+  return errores
+}
+
+function validarRanuras(ficha: Ficha): string[] {
+  const errores: string[] = []
 
   const textoCompleto = PARTES.map((parte) => ficha.cuerpo[parte]).join('\n')
   const usadas = ranurasUsadas(textoCompleto)
@@ -306,7 +322,16 @@ export function validarFicha(ficha: Ficha): string[] {
     }
   }
 
-  errores.push(...lintObjetividad(textoCompleto))
-
   return errores
+}
+
+export function validarFicha(ficha: Ficha): string[] {
+  const textoCompleto = PARTES.map((parte) => ficha.cuerpo[parte]).join('\n')
+
+  return [
+    ...validarFrontmatter(ficha),
+    ...validarCuerpo(ficha),
+    ...validarRanuras(ficha),
+    ...lintObjetividad(textoCompleto),
+  ]
 }
