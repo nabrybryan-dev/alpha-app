@@ -92,32 +92,68 @@ export interface CuerpoFicha {
   senal_alarma: string
 }
 
+/** Las cinco partes, en el orden en que se le entregan al asesorado. */
+const PARTES: (keyof CuerpoFicha)[] = [
+  'respuesta_directa',
+  'por_que',
+  'tu_caso_hoy',
+  'que_hago_ahora',
+  'senal_alarma',
+]
+
 /**
- * Une las cinco partes. Si a `tu_caso_hoy` le falta cualquier dato, se omite
- * la parte entera: una respuesta sin personalizar sigue siendo correcta, una
- * con datos inventados o con {{huecos}} a la vista, no.
+ * Partes que NUNCA se omiten: la respuesta a lo que preguntó y el aviso de
+ * seguridad. Callar un "para si te duele dentro de la rodilla" porque faltaba
+ * un dato de relleno sería peor que cualquier respuesta sin personalizar.
+ *
+ * Una ranura en estas dos partes es un fallo de contenido, y por eso
+ * `validarCuerpo` (en `src/domain/ficha.ts`) las prohíbe al publicar: ahí es
+ * donde se ve, no en la cara del asesorado. Si aun así llegara una, se
+ * entrega la parte con la ranura borrada — nunca con el {{hueco}} a la vista.
+ */
+const NUNCA_SE_OMITEN: (keyof CuerpoFicha)[] = ['respuesta_directa', 'senal_alarma']
+
+/** Fábrica, no constante: un regex global compartido arrastra `lastIndex`. */
+const ranura = () => /\{\{\s*([a-z_]+)\s*\}\}/g
+
+/**
+ * Une las cinco partes rellenando las ranuras de todas ellas.
+ *
+ * La regla es **por parte**: si a una parte le falta el dato de cualquiera de
+ * sus ranuras, se omite esa parte entera y las demás siguen. Una respuesta sin
+ * personalizar sigue siendo correcta; una con datos inventados o con
+ * {{huecos}} a la vista, no. Las dos partes de `NUNCA_SE_OMITEN` son la
+ * excepción y se explican ahí arriba.
  */
 export function armarRespuesta(
   cuerpo: CuerpoFicha,
   datos: Record<string, string | undefined>,
 ): string {
-  const ranuras = [...cuerpo.tu_caso_hoy.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)].map((m) => m[1])
-  const completo = ranuras.length > 0 && ranuras.every((r) => !!datos[r]?.trim())
+  const dato = (nombre: string) => datos[nombre]?.trim() || ''
 
-  const caso = completo
-    ? cuerpo.tu_caso_hoy.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, r) => datos[r] as string)
-    : ''
+  const armadas = PARTES.map((parte) => {
+    const texto = (cuerpo[parte] ?? '').trim()
+    if (!texto) return ''
 
-  return [
-    cuerpo.respuesta_directa,
-    cuerpo.por_que,
-    caso,
-    cuerpo.que_hago_ahora,
-    cuerpo.senal_alarma,
-  ]
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .join('\n\n')
+    const usadas = [...texto.matchAll(ranura())].map((m) => m[1])
+    if (usadas.length === 0) return texto
+
+    if (usadas.every((r) => dato(r))) {
+      return texto.replace(ranura(), (_, r) => dato(r))
+    }
+
+    if (!NUNCA_SE_OMITEN.includes(parte)) return ''
+
+    // Parte obligatoria a la que le falta un dato: se entrega igual, con la
+    // ranura borrada y los espacios que deja recogidos.
+    return texto
+      .replace(ranura(), (_, r) => dato(r))
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/[ \t]+([.,;:!?])/g, '$1')
+      .trim()
+  })
+
+  return armadas.filter(Boolean).join('\n\n')
 }
 
 // ---------------------------------------------------------------- mensajes fijos

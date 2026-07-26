@@ -123,3 +123,93 @@ describe('armarRespuesta', () => {
     expect(r.indexOf('Graba una serie')).toBeLessThan(r.indexOf('Si duele'))
   })
 })
+
+// Ficha con ranuras en DOS partes distintas: es el caso real de
+// `cargas-sobraron-reps`, `fatiga-dormi-mal` y `mujer-embarazo-postparto`,
+// que tienen ranuras en que_hago_ahora y no solo en tu_caso_hoy.
+const CUERPO_MULTI = {
+  respuesta_directa: 'Sube 2,5 kg si te sobraron reps.',
+  por_que: 'La sobrecarga progresiva necesita un salto medible.',
+  tu_caso_hoy: 'Vienes de {{carga_anterior}} en {{ejercicio_hoy}}.',
+  que_hago_ahora: 'Cierra el microciclo {{microciclo_actual}} y registra el RIR real.',
+  senal_alarma: 'Si la tecnica se rompe, baja el peso.',
+}
+
+describe('armarRespuesta — ranuras fuera de tu_caso_hoy', () => {
+  it('rellena la ranura de que_hago_ahora cuando el dato esta', () => {
+    const r = armarRespuesta(CUERPO_MULTI, {
+      carga_anterior: '40KG',
+      ejercicio_hoy: 'SENTADILLA HACK',
+      microciclo_actual: 'M22',
+    })
+    expect(r).toContain('Cierra el microciclo M22 y registra el RIR real.')
+    expect(r).toContain('Vienes de 40KG en SENTADILLA HACK.')
+    expect(r).not.toContain('{{')
+  })
+
+  it('omite que_hago_ahora si falta su dato, sin tumbar las demas partes', () => {
+    const r = armarRespuesta(CUERPO_MULTI, {
+      carga_anterior: '40KG',
+      ejercicio_hoy: 'SENTADILLA HACK',
+    })
+    expect(r).not.toContain('Cierra el microciclo')
+    expect(r).not.toContain('{{')
+    expect(r).toContain('Sube 2,5 kg si te sobraron reps.')
+    expect(r).toContain('La sobrecarga progresiva necesita un salto medible.')
+    expect(r).toContain('Vienes de 40KG en SENTADILLA HACK.')
+    expect(r).toContain('Si la tecnica se rompe, baja el peso.')
+  })
+
+  it('cae solo la parte incompleta: tu_caso_hoy fuera, que_hago_ahora dentro', () => {
+    const r = armarRespuesta(CUERPO_MULTI, { microciclo_actual: 'M22' })
+    expect(r).not.toContain('Vienes de')
+    expect(r).toContain('Cierra el microciclo M22 y registra el RIR real.')
+    expect(r).not.toContain('{{')
+  })
+
+  it('un dato de dos en tu_caso_hoy tampoco basta: cae la parte entera', () => {
+    const r = armarRespuesta(CUERPO_MULTI, { carga_anterior: '40KG', microciclo_actual: 'M22' })
+    expect(r).not.toContain('Vienes de')
+    expect(r).not.toContain('40KG')
+    expect(r).toContain('Cierra el microciclo M22')
+    expect(r).not.toContain('{{')
+  })
+
+  it('NUNCA deja un {{hueco}} a la vista, con cualquier combinacion de datos', () => {
+    const claves = ['carga_anterior', 'ejercicio_hoy', 'microciclo_actual']
+    // Las 8 combinaciones posibles de datos presentes/ausentes.
+    for (let mascara = 0; mascara < 8; mascara++) {
+      const datos: Record<string, string> = {}
+      claves.forEach((k, i) => {
+        if (mascara & (1 << i)) datos[k] = 'VALOR'
+      })
+      const r = armarRespuesta(CUERPO_MULTI, datos)
+      expect(r).not.toContain('{{')
+      expect(r).not.toContain('}}')
+      // La respuesta y el aviso de seguridad siempre se entregan.
+      expect(r).toContain('Sube 2,5 kg si te sobraron reps.')
+      expect(r).toContain('Si la tecnica se rompe, baja el peso.')
+    }
+  })
+})
+
+describe('armarRespuesta — partes que nunca se omiten', () => {
+  // El validador prohibe ranuras en respuesta_directa y senal_alarma, asi que
+  // esto no deberia existir en produccion. Si una ficha se colara igual, se
+  // entrega la respuesta y el aviso de seguridad antes que un {{hueco}}.
+  const CUERPO_MAL = {
+    respuesta_directa: 'Sube a {{carga_anterior}} esta semana.',
+    por_que: 'Porque si.',
+    tu_caso_hoy: '',
+    que_hago_ahora: 'Registra el RIR.',
+    senal_alarma: 'Para si duele en {{ejercicio_hoy}}.',
+  }
+
+  it('entrega respuesta_directa y senal_alarma aunque falte el dato, sin el hueco', () => {
+    const r = armarRespuesta(CUERPO_MAL, {})
+    expect(r).not.toContain('{{')
+    expect(r).toContain('Sube a')
+    expect(r).toContain('Para si duele en')
+    expect(r).toContain('Registra el RIR.')
+  })
+})
