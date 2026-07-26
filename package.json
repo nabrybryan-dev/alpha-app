@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "semilla": "node scripts/generar-semilla-sql.mjs",
+    "validar-fichas": "vite-node scripts/validar-fichas.mjs",
     "test": "vitest run"
   },
   "dependencies": {
