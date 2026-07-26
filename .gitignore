@@ -4,3 +4,7 @@ dev-dist
 *.local
 .vite
 *.local.sql
+
+# Claves y salidas del publicador de fichas (nunca versionar)
+CLAVES.local.txt
+RESULTADO.local.txt
