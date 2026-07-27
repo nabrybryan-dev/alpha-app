@@ -29,22 +29,34 @@ export default function AsesoradosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex items-end justify-between gap-3">
+      {/* flex-wrap + ml-auto en vez de justify-between: con dos accesos, el
+          título y los botones no caben en 375 px y el de Bandeja se salía del
+          ancho (invisible, porque el layout del coach recorta el desbordamiento
+          horizontal). Al envolver, los accesos bajan a su propia línea. */}
+      <section className="flex flex-wrap items-end gap-3">
         <div>
           <p className="kicker">Cartera activa</p>
           <h2 className="font-display text-3xl text-texto">Asesorados</h2>
         </div>
-        <Link
-          to="/coach/chat"
-          className="relative rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
-        >
-          💬 Bandeja
-          {pendientesChat > 0 && (
-            <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-bold text-white">
-              {pendientesChat}
-            </span>
-          )}
-        </Link>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Link
+            to="/coach/consultas"
+            className="rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
+          >
+            ❓ Consultas
+          </Link>
+          <Link
+            to="/coach/chat"
+            className="relative rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
+          >
+            💬 Bandeja
+            {pendientesChat > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-bold text-white">
+                {pendientesChat}
+              </span>
+            )}
+          </Link>
+        </div>
       </section>
 
       <section className="flex flex-col gap-2.5">

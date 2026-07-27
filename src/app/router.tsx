@@ -17,6 +17,7 @@ const EquipoNutricionPage = lazy(() => import('../features/nutri/EquipoNutricion
 const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
+const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -50,6 +51,7 @@ export function AppRouter() {
         <Route index element={envolver(<AsesoradosPage />)} />
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
+        <Route path="consultas" element={envolver(<ConsultasPage />)} />
       </Route>
     </Routes>
   )
