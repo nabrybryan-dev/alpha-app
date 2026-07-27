@@ -9,13 +9,19 @@ describe('pedirRespuestaAlpha', () => {
   it('manda el mensaje con el token en la cabecera', async () => {
     const fetchSimulado = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ respuesta: 'Baja hasta la paralela.', via: 'ficha' }),
+      json: async () => ({
+        respuesta: 'Baja hasta la paralela.',
+        via: 'ficha',
+        mensaje_id: 'msg-1234-567',
+      }),
     })
     vi.stubGlobal('fetch', fetchSimulado)
 
     const r = await pedirRespuestaAlpha('hasta donde bajo', sesion)
 
-    expect(r).toBe('Baja hasta la paralela.')
+    // El id viene de la funcion: es la fila que ella misma ya escribio en
+    // `mensajes`. La app pinta con ESE id para no duplicar al rehidratar.
+    expect(r).toEqual({ texto: 'Baja hasta la paralela.', mensajeId: 'msg-1234-567' })
     const [url, init] = fetchSimulado.mock.calls[0]
     expect(url).toContain('/functions/v1/responder-chat')
     expect((init.headers as Record<string, string>).authorization).toBe('Bearer tok')
@@ -30,6 +36,20 @@ describe('pedirRespuestaAlpha', () => {
     vi.stubGlobal('fetch', fetchSimulado)
     await pedirRespuestaAlpha('hola', sesion)
     expect(fetchSimulado.mock.calls[0][1].body).not.toContain('usuario_id')
+  })
+
+  // El insert de la fila puede fallar sin que la respuesta deje de servir: que
+  // el asesorado la lea importa mas que quede registrada.
+  it('acepta una respuesta sin mensaje_id', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ respuesta: 'Baja hasta la paralela.', via: 'ficha' }),
+      }),
+    )
+    const r = await pedirRespuestaAlpha('hasta donde bajo', sesion)
+    expect(r).toEqual({ texto: 'Baja hasta la paralela.', mensajeId: undefined })
   })
 
   it('devuelve null si la funcion falla, sin lanzar', async () => {

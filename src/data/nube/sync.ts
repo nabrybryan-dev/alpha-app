@@ -284,6 +284,25 @@ export function crearDbSincronizada(local: Db): Db {
           },
         })
       },
+      /**
+       * ÚNICA escritura de mensajes que NO pasa por la cola, y es a propósito.
+       *
+       * La fila de la respuesta de Alpha va firmada con el id del coach, y la
+       * política RLS de `mensajes` es `with check (de_id = auth.uid())`: el
+       * dispositivo de la asesorada NO puede insertarla. Por eso la escribe la
+       * Edge Function con `service_role`, que se salta RLS, y cuando llega aquí
+       * la fila ya existe en la base.
+       *
+       * Si además se encolara, ese upsert se rechazaría 8 veces, se descartaría
+       * y —lo importante— mientras tanto bloquearía la cabeza de la cola,
+       * retrasando la subida de las series y los check-ins que van detrás.
+       *
+       * Se pinta en local con el MISMO id que devolvió la función para que en
+       * la siguiente hidratación coincida y no aparezca duplicada.
+       */
+      recibirDeAlpha: (mensaje) => {
+        local.mensajes.recibirDeAlpha(mensaje)
+      },
       marcarLeidos: (paraId, deId) => {
         local.mensajes.marcarLeidos(paraId, deId)
         encolar({

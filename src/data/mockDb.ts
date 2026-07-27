@@ -245,6 +245,26 @@ export function crearMockDb(): Db {
           ],
         })
       },
+      recibirDeAlpha: ({ id, deId, paraId, texto }) => {
+        // El id lo manda la Edge Function. Si por lo que sea ya estaba en el
+        // hilo (una rehidratación que se adelantó), no se duplica.
+        if (ref.actual.mensajes.some((m) => m.id === id)) return
+        mutar({
+          ...ref.actual,
+          mensajes: [
+            ...ref.actual.mensajes,
+            {
+              id,
+              deId,
+              paraId,
+              texto,
+              origen: 'alpha',
+              fechaIso: new Date().toISOString(),
+              leido: false,
+            },
+          ],
+        })
+      },
       marcarLeidos: (paraId, deId) => {
         mutar({
           ...ref.actual,

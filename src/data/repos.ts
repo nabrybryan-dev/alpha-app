@@ -67,6 +67,12 @@ export interface MensajesRepo {
   marcarLeidos(paraId: string, deId: string): void
   noLeidosPara(usuarioId: string): number
   noLeidosDe(paraId: string, deId: string): number
+  /**
+   * Mete en el hilo una respuesta del Centro de Respuestas que la Edge Function
+   * YA escribió en la base. Solo pinta en local: no sincroniza, a propósito.
+   * El `id` es el que devolvió la función, para que al rehidratar coincida.
+   */
+  recibirDeAlpha(mensaje: { id: string; deId: string; paraId: string; texto: string }): void
 }
 
 export interface CuestionariosRepo {

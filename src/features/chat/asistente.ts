@@ -3,6 +3,16 @@ export interface SesionAlpha {
   url: string
 }
 
+export interface RespuestaAlpha {
+  texto: string
+  /**
+   * Id de la fila que la funcion YA escribio en `mensajes`. Viene sin definir
+   * si no se pudo guardar; en ese caso la app la pinta igual con un id local y
+   * la respuesta se pierde al rehidratar, pero la persona ya la leyo.
+   */
+  mensajeId?: string
+}
+
 /**
  * Pide la respuesta del Centro de Respuestas. Devuelve null ante cualquier
  * problema: si el asistente falla, el mensaje del asesorado ya quedo enviado
@@ -14,7 +24,7 @@ export interface SesionAlpha {
 export async function pedirRespuestaAlpha(
   mensaje: string,
   sesion: SesionAlpha | null,
-): Promise<string | null> {
+): Promise<RespuestaAlpha | null> {
   if (!sesion?.access_token || !sesion.url) return null
 
   try {
@@ -29,7 +39,9 @@ export async function pedirRespuestaAlpha(
     if (!r.ok) return null
     const datos = await r.json()
     const texto = typeof datos?.respuesta === 'string' ? datos.respuesta.trim() : ''
-    return texto || null
+    if (!texto) return null
+    const mensajeId = typeof datos?.mensaje_id === 'string' ? datos.mensaje_id : undefined
+    return { texto, mensajeId }
   } catch {
     return null
   }

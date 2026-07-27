@@ -50,13 +50,23 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
    * Nunca lanza ni avisa de un fallo: cuando llega aquí el mensaje del
    * asesorado ya salió hacia el coach, así que si Alpha no contesta lo correcto
    * es que no pase nada visible y el chat siga como siempre.
+   *
+   * La fila NO se envía: ya la escribió la Edge Function (ver `recibirDeAlpha`
+   * en `data/nube/sync.ts`). Aquí solo se pinta, con el id que devolvió.
    */
   const consultarAlpha = async (mensaje: string) => {
     setEsperandoAlpha(true)
     try {
       const respuesta = await pedirRespuestaAlpha(mensaje, await sesionDeFunciones())
       if (respuesta) {
-        db.mensajes.enviar({ deId: otroId, paraId: yoId, texto: respuesta, origen: 'alpha' })
+        db.mensajes.recibirDeAlpha({
+          // Sin id la fila no llegó a la base: se pinta igual con uno local y
+          // se perderá al rehidratar, pero la persona ya la leyó.
+          id: respuesta.mensajeId ?? `msg-alpha-local-${Date.now()}`,
+          deId: otroId,
+          paraId: yoId,
+          texto: respuesta.texto,
+        })
       }
     } finally {
       if (montadoRef.current) setEsperandoAlpha(false)
