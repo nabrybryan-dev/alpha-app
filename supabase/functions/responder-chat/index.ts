@@ -299,6 +299,43 @@ async function manejar(req: Request): Promise<Response> {
       body: JSON.stringify({ usuario_id: usuarioId, mensaje, ...extra }),
     }).catch(() => {})
 
+  const URL_PANEL = 'https://alpha-athletics-app.vercel.app/coach/consultas'
+
+  /**
+   * Avisa al coach por Telegram. A prueba de fallos: si no hay secretos o
+   * Telegram no responde, el asesorado recibe su respuesta igual. Un aviso que
+   * no sale nunca debe costarle a nadie su contestación.
+   *
+   * Lo único que sale de Supabase es el tipo, el nombre de pila y el enlace:
+   * `textoDeAviso` no acepta el mensaje y aquí tampoco se le pasa. El texto del
+   * asesorado no viaja a Telegram nunca.
+   */
+  const avisar = async (tipo: 'crisis' | 'salud') => {
+    const token = Deno.env.get('TELEGRAM_BOT_TOKEN')
+    const chat = Deno.env.get('TELEGRAM_CHAT_ID')
+    if (!token || !chat) return
+
+    try {
+      const r = await rest(`usuarios_app?id=eq.${usuarioId}&select=nombre&limit=1`)
+      const nombre = r.ok ? ((await r.json())[0]?.nombre ?? '') : ''
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chat,
+          text: textoDeAviso({ tipo, nombre, panel: URL_PANEL }),
+        }),
+        // "Telegram no responde" tambien incluye que se quede colgado. Sin
+        // corte, la respuesta del asesorado esperaria a un servidor mudo hasta
+        // que la plataforma matara la funcion: justo lo que no puede pasar.
+        // A los 4 s se aborta, salta al catch y se sigue sin aviso.
+        signal: AbortSignal.timeout(4000),
+      })
+    } catch {
+      // Silencio a propósito: ver comentario de arriba.
+    }
+  }
+
   /**
    * Escribe la respuesta en el hilo del chat y devuelve el id de la fila.
    *
@@ -344,8 +381,16 @@ async function manejar(req: Request): Promise<Response> {
   /**
    * Unico punto de salida con texto para el asesorado: guarda la fila y añade
    * `mensaje_id`. Si no se pudo guardar, la respuesta sale igual sin ese campo.
+   *
+   * El aviso al coach se manda AQUI, y solo aqui. Por ser el unico punto de
+   * salida, ninguna rama puede olvidarse de avisar ni mandar dos avisos por el
+   * mismo mensaje. El tipo sale de lo que ya se calculo: la crisis manda el
+   * suyo y NO el de salud, aunque tambien lleve `bandera_roja`.
    */
   const entregar = async (texto: string, extra: Record<string, unknown>) => {
+    if (extra.crisis === true) await avisar('crisis')
+    else if (extra.bandera_roja === true) await avisar('salud')
+
     const mensajeId = await guardarEnHilo(texto)
     return json({ respuesta: texto, ...extra, ...(mensajeId ? { mensaje_id: mensajeId } : {}) })
   }
