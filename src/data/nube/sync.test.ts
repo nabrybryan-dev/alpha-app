@@ -73,11 +73,14 @@ describe('integrarEnCola', () => {
  * `crearDbSincronizada` devuelve la db local sin envolver. Para probar el
  * envoltorio hay que levantar el módulo con las variables puestas.
  */
+let ultimoSync: typeof import('./sync') | undefined
+
 async function dbEnModoNube() {
   vi.stubEnv('VITE_SUPABASE_URL', 'https://x.supabase.co')
   vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-de-prueba')
   vi.resetModules()
   const sync = await import('./sync')
+  ultimoSync = sync
   const { crearMockDb } = await import('../mockDb')
   return { sync, db: sync.crearDbSincronizada(crearMockDb()) }
 }
@@ -90,7 +93,24 @@ describe('mensajes: qué se sincroniza y qué no', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('sin red en test')))
   })
 
-  afterEach(() => {
+  /**
+   * `encolar` dispara `procesarCola` sin esperarlo, y ese procesado sobrevive
+   * al test: `vi.resetModules()` da un módulo nuevo pero no cancela el del
+   * anterior, y los dos escriben en el MISMO `localStorage`.
+   *
+   * Sin esta espera, el reintento del test que acaba (la misma operación con
+   * `intentos: 1`) aterrizaba a mitad del siguiente —después de su
+   * `localStorage.clear()` y antes de su primer encolado— y le metía una
+   * operación ajena en la cola. Eso hacía fallar "la respuesta de Alpha NO se
+   * encola" con 2 pendientes en vez de 1, aproximadamente la mitad de las
+   * corridas, según ganara la carrera el import o la promesa huérfana.
+   *
+   * Va ANTES de `unstubAllGlobals` a propósito: el procesado en vuelo todavía
+   * necesita el `fetch` simulado para terminar.
+   */
+  afterEach(async () => {
+    await ultimoSync?.colaEnReposo()
+    ultimoSync = undefined
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
     vi.resetModules()

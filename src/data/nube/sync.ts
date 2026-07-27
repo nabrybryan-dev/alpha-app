@@ -14,7 +14,13 @@ const CLAVE_DESCARTES = 'alpha-cola-descartes'
 const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
 const MAX_INTENTOS = 8
 const MAX_DESCARTES = 20
-let procesando = false
+
+/**
+ * El procesado en marcha, o `null` si no hay ninguno. Es la promesa, no un
+ * booleano, para que se pueda ESPERAR: `encolar` lo lanza sin await y ese
+ * trabajo sigue vivo después de que quien lo disparó haya terminado.
+ */
+let enVuelo: Promise<void> | null = null
 
 /**
  * La tabla `hidratacion` llegó después que el esquema inicial (migración 0003).
@@ -106,36 +112,58 @@ async function ejecutar(op: OperacionPendiente): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-export async function procesarCola(): Promise<void> {
-  if (!modoNube || procesando) return
-  procesando = true
-  try {
-    let cola = leerCola()
-    while (cola.length > 0) {
-      const op = cola[0]
-      try {
-        await ejecutar(op)
+/**
+ * Vacía la cola contra Supabase. Si ya hay un procesado en marcha devuelve ESE
+ * mismo en vez de resolver de inmediato, para que `await procesarCola()` espere
+ * de verdad a que la cola quede quieta y no solo a que alguien la esté mirando.
+ */
+export function procesarCola(): Promise<void> {
+  if (!modoNube) return Promise.resolve()
+  if (enVuelo) return enVuelo
+  enVuelo = drenar().finally(() => {
+    enVuelo = null
+  })
+  return enVuelo
+}
+
+/**
+ * Promesa del procesado que haya en vuelo, o una ya resuelta si no hay ninguno.
+ * A diferencia de `procesarCola`, NO arranca trabajo nuevo: solo deja aterrizar
+ * lo que ya estaba corriendo antes de tocar la cola desde fuera.
+ *
+ * `encolar` lanza el procesado sin esperarlo, así que sus escrituras en
+ * `localStorage` ocurren después de que el código que las provocó haya
+ * terminado. Quien necesite la cola en un estado conocido —los tests entre
+ * casos, o un cierre de sesión que va a borrarla— tiene que esperar aquí.
+ */
+export function colaEnReposo(): Promise<void> {
+  return enVuelo ?? Promise.resolve()
+}
+
+async function drenar(): Promise<void> {
+  let cola = leerCola()
+  while (cola.length > 0) {
+    const op = cola[0]
+    try {
+      await ejecutar(op)
+      cola = cola.slice(1)
+      escribirCola(cola)
+    } catch {
+      // Sin conexión no se cuenta el intento: estar offline durante todo un
+      // entreno no puede terminar descartando las series registradas.
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return
+      const intentos = (op.intentos ?? 0) + 1
+      if (intentos >= MAX_INTENTOS) {
+        // Operación que falla de forma persistente (fila inexistente, RLS…):
+        // se aparta para que no bloquee eternamente las escrituras siguientes.
+        apartarDescartada({ ...op, intentos })
         cola = cola.slice(1)
         escribirCola(cola)
-      } catch {
-        // Sin conexión no se cuenta el intento: estar offline durante todo un
-        // entreno no puede terminar descartando las series registradas.
-        if (typeof navigator !== 'undefined' && !navigator.onLine) return
-        const intentos = (op.intentos ?? 0) + 1
-        if (intentos >= MAX_INTENTOS) {
-          // Operación que falla de forma persistente (fila inexistente, RLS…):
-          // se aparta para que no bloquee eternamente las escrituras siguientes.
-          apartarDescartada({ ...op, intentos })
-          cola = cola.slice(1)
-          escribirCola(cola)
-          continue
-        }
-        escribirCola([{ ...op, intentos }, ...cola.slice(1)])
-        return
+        continue
       }
+      escribirCola([{ ...op, intentos }, ...cola.slice(1)])
+      return
     }
-  } finally {
-    procesando = false
   }
 }
 
