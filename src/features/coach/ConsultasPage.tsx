@@ -2,118 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { modoNube, supabase } from '../../data/supabase'
-import { agrupar, type Consulta, type Grupos, type ViaConsulta } from './consultas'
-
-// ------------------------------------------------------------------- datos
-
-/** Ventana de trabajo. Esto es una cola para resolver, no un archivo histórico. */
-const LIMITE = 100
-
-const VIAS: ViaConsulta[] = ['ficha', 'ficha_tentativa', 'ia_vivo', 'escalado']
-
-interface FilaConsulta {
-  id: string
-  usuario_id: string
-  mensaje: string
-  ficha_id: string | null
-  similitud: number | null
-  via: string
-  bandera_roja: boolean
-  revisado: boolean
-  corregido: boolean
-  creado_en: string
-}
-
-/**
- * Fila de Supabase → modelo de la app.
- *
- * `via` se valida aunque la tabla tenga un CHECK: si algún día entrara un
- * valor nuevo, cae en 'escalado', que lo manda al grupo "requiere tu criterio".
- * El sesgo es que el coach lo vea de más, nunca que se pierda de vista.
- */
-function aConsulta(f: FilaConsulta): Consulta {
-  return {
-    id: f.id,
-    usuarioId: f.usuario_id,
-    mensaje: f.mensaje,
-    similitud: f.similitud === null ? null : Number(f.similitud),
-    fichaId: f.ficha_id,
-    via: VIAS.includes(f.via as ViaConsulta) ? (f.via as ViaConsulta) : 'escalado',
-    banderaRoja: Boolean(f.bandera_roja),
-    revisado: Boolean(f.revisado),
-    corregido: Boolean(f.corregido),
-    creadoEn: f.creado_en,
-  }
-}
-
-interface Datos {
-  consultas: Consulta[]
-  /** usuarioId → nombre. */
-  nombres: Record<string, string>
-  /** fichaId → título. */
-  titulos: Record<string, string>
-}
-
-/**
- * Lee directo de Supabase, sin pasar por el almacén local: esta vista es solo
- * del coach, se mira con conexión y siempre quiere el dato más fresco.
- *
- * Los nombres y los títulos van en consultas aparte y no como embed
- * (`select=*,usuarios_app(nombre)`) a propósito: si una de las dos fallara,
- * las preguntas se siguen viendo con una etiqueta de reserva. Un embed las
- * tumbaría todas por un adorno.
- */
-async function leerConsultas(): Promise<Datos> {
-  const sb = supabase()
-
-  const { data, error } = await sb
-    .from('consultas_chat')
-    .select('*')
-    .order('creado_en', { ascending: false })
-    .limit(LIMITE)
-  if (error) throw new Error(error.message)
-
-  const consultas = (data ?? []).map((f) => aConsulta(f as FilaConsulta))
-
-  const [usuarios, fichas] = await Promise.all([
-    sb.from('usuarios_app').select('id,nombre'),
-    sb.from('fichas_respuesta').select('id,titulo'),
-  ])
-
-  const nombres: Record<string, string> = {}
-  for (const u of usuarios.data ?? []) nombres[u.id as string] = u.nombre as string
-
-  const titulos: Record<string, string> = {}
-  for (const f of fichas.data ?? []) titulos[f.id as string] = f.titulo as string
-
-  return { consultas, nombres, titulos }
-}
-
-interface Marca {
-  revisado: boolean
-  corregido?: boolean
-}
-
-/**
- * Marca la fila y devuelve lo que Supabase confirmó haber guardado.
- *
- * El `.select()` no es adorno: un UPDATE que RLS descarta NO devuelve error,
- * devuelve cero filas. Sin comprobar que volvió la fila, la pantalla diría
- * "revisado" de algo que la base nunca guardó.
- */
-async function marcarEnSupabase(id: string, campos: Marca): Promise<Consulta> {
-  const { data, error } = await supabase()
-    .from('consultas_chat')
-    .update(campos)
-    .eq('id', id)
-    .select()
-  if (error) throw new Error(error.message)
-
-  const fila = (data ?? [])[0]
-  if (!fila) throw new Error('Supabase no confirmó el cambio. Revisa que tu sesión siga abierta.')
-  return aConsulta(fila as FilaConsulta)
-}
+import { modoNube } from '../../data/supabase'
+import { agrupar, type Consulta, type Grupos } from './consultas'
+import { leerConsultas, marcarCorregida, marcarRevisada, type Datos } from './consultasNube'
 
 function mensajeDeError(e: unknown): string {
   return e instanceof Error ? e.message : 'Error inesperado'
@@ -392,11 +283,11 @@ function TarjetaConsulta({ consulta: c, datos, alMarcar }: TarjetaProps) {
 
   // Nada se pinta como guardado antes de que Supabase lo confirme: decirle al
   // coach que quedó marcado algo que no se guardó sería mentirle.
-  const marcar = async (campos: Marca) => {
+  const marcar = async (guardar: () => Promise<Consulta>) => {
     setGuardando(true)
     setError(undefined)
     try {
-      alMarcar(await marcarEnSupabase(c.id, campos))
+      alMarcar(await guardar())
     } catch (e) {
       setError(`No se guardó: ${mensajeDeError(e)}`)
     } finally {
@@ -434,7 +325,7 @@ function TarjetaConsulta({ consulta: c, datos, alMarcar }: TarjetaProps) {
             <button
               type="button"
               disabled={guardando}
-              onClick={() => void marcar({ revisado: true })}
+              onClick={() => void marcar(() => marcarRevisada(c.id))}
               className="press shrink-0 rounded-boton border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto disabled:opacity-40"
             >
               Revisado
@@ -448,7 +339,7 @@ function TarjetaConsulta({ consulta: c, datos, alMarcar }: TarjetaProps) {
             <button
               type="button"
               disabled={guardando}
-              onClick={() => void marcar({ revisado: true, corregido: true })}
+              onClick={() => void marcar(() => marcarCorregida(c.id))}
               className="press min-w-0 flex-1 rounded-boton border border-accion bg-accion px-4 py-2.5 font-display text-sm uppercase tracking-wide text-white disabled:opacity-40"
             >
               Esto no es lo que yo habría dicho
