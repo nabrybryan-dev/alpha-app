@@ -277,7 +277,13 @@ ti atribuidas a alguien que nunca escribió eso.
 
 Ahora el usuario sale del **token de sesión**, validado contra Supabase Auth.
 
-### 12.1 · Correr la migración 0012
+### 12.1 · Correr la migración 0012 (va PRIMERO, antes del redespliegue)
+
+**El orden importa.** La función nueva escribe la columna `origen` al guardar la
+respuesta en el chat. Si redespliegas antes de correr la migración, esa columna
+todavía no existe y el guardado falla: la asesorada vería la respuesta pero no
+quedaría en su hilo. Primero la migración, después el redespliegue.
+
 
 1. Menú → **SQL Editor** → **New query**.
 2. Pega el contenido de `supabase/migrations/0012_origen_mensajes.sql` y **Run**.
@@ -327,14 +333,11 @@ de ficha, el redespliegue no tomó: repite el 12.2.
 Para probarla de verdad hay que hacerlo desde la app con una cuenta iniciada,
 que es lo que pasa cuando una asesorada escribe en su chat.
 
-> **Ojo con este 401:** no distingue "el arreglo funciona" de "falta la clave".
-> Para validar el token, la función usa `SUPABASE_ANON_KEY` (o
-> `SUPABASE_PUBLISHABLE_KEY` si el proyecto ya migró al formato nuevo de
-> claves). Si ninguna de las dos está puesta, **todo** devuelve 401, también
-> las peticiones legítimas de la app — y el chat se queda sin respuestas de
-> Alpha sin ningún error a la vista. Falla del lado seguro, pero falla. Por eso
-> la prueba que vale es la de la app con sesión iniciada: si desde ahí llega
-> respuesta, las dos cosas están bien.
+> **Si en vez de 401 te sale un 500** que dice `Falta SUPABASE_ANON_KEY (o
+> SUPABASE_PUBLISHABLE_KEY) en la funcion`, el problema no es la sesión: es que
+> la función no tiene con qué validar el token. Ese caso devuelve 500 justamente
+> para que no lo confundas con un 401 y busques donde no es. Añade la clave
+> pública del proyecto como secreto y vuelve a probar.
 
 ### 12.4 · La app ya no manda el usuario, y es a propósito
 
@@ -343,33 +346,42 @@ No es un olvido: **mandar el usuario es justamente el agujero**. Quien pregunta
 se decide con el token de sesión y con nada más. Si alguna vez alguien propone
 volver a aceptarlo "por si acaso", la respuesta es no.
 
-### 12.5 · PENDIENTE antes de que esto funcione de punta a punta
+### 12.5 · Quién escribe la respuesta en el hilo (y por qué no la app)
 
-Falta una decisión tuya. La respuesta de Alpha entra en el hilo firmada con
-**tu id de coach** (la tabla `mensajes` exige que `de_id` sea un usuario real) y
-marcada `origen = 'alpha'`. Pero la política de seguridad de `mensajes` dice:
+La respuesta de Alpha entra en el chat firmada con **tu id de coach**: la tabla
+`mensajes` exige que `de_id` sea un usuario real, así que no hay un "remitente
+Alpha". Lo que la distingue es la columna `origen = 'alpha'` de la 0012, y con
+eso la app la pinta rotulada y en plano — la asesorada ve de un vistazo que no
+se la escribiste tú, y en tu bandeja tú también.
+
+**La fila la escribe la función, no la app.** La política de la 0001 dice:
 
 ```sql
 create policy mensajes_enviar on public.mensajes
   for insert with check (de_id = auth.uid());
 ```
 
-Es decir: **una asesorada no puede insertar una fila firmada por ti.** Con eso,
-la respuesta de Alpha se ve al instante en su teléfono pero no se guarda en la
-base: se reintenta 8 veces, se descarta, y desaparece la próxima vez que la app
-sincroniza. Además, mientras reintenta, **bloquea la cola** y retrasa la subida
-de sus series y check-ins.
+O sea: el teléfono de la asesorada **no puede** insertar una fila firmada por ti,
+y está bien que no pueda — si pudiera, podría fabricar mensajes atribuidos a tu
+cuenta. Por eso la inserta la Edge Function, que corre con `service_role` y se
+salta las políticas. Es el mismo criterio que con el usuario: **el servidor es
+dueño de lo que firma.**
 
-Hay dos salidas y la elección es tuya:
+La función devuelve el id de esa fila (`mensaje_id`) y la app la pinta con ese
+mismo id, para que al sincronizar no aparezca duplicada. Si el guardado fallara,
+la respuesta se muestra igual y solo se pierde al recargar: que la persona la
+lea importa más que quede registrada.
 
-- **(A) Que la escriba la función.** La Edge Function ya corre con
-  `service_role` y se salta las políticas: puede insertar ella misma la fila en
-  `mensajes`. Es lo más limpio y no abre nada. Requiere un cambio más en la
-  función y en la app.
-- **(B) Abrir una política nueva** que deje a la asesorada insertar filas con
-  `origen = 'alpha'` dirigidas a ella misma. Es menos trabajo, pero le permite
-  fabricar mensajes firmados con tu id. Quedarían marcados como `'alpha'`, no
-  como tuyos, pero **serían filas reales atribuidas a tu cuenta**. En una app con
-  datos de salud eso no es un detalle menor.
+No hay que abrir ninguna política nueva para esto. Si alguna vez se propone una
+que deje al cliente insertar filas `origen = 'alpha'`, la respuesta es no: es la
+misma clase de agujero que cerró esta etapa.
 
-Mi recomendación es **(A)**. No conectes el chat en producción hasta decidirlo.
+Comprobación después de probar desde la app:
+
+```sql
+select id, de_id, para_id, origen, left(texto, 40) as texto
+from public.mensajes
+where origen = 'alpha'
+order by fecha_iso desc
+limit 5;
+```
