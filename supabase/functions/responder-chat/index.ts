@@ -75,6 +75,13 @@ export function esTemaDeSalud(mensaje: string): boolean {
   return SALUD.some((p) => t.includes(p))
 }
 
+/** Saca el token de una cabecera `Authorization: Bearer <token>`. */
+export function tokenDeCabecera(cabecera: string | null): string {
+  if (!cabecera) return ''
+  const m = cabecera.match(/^Bearer\s+(\S+)$/i)
+  return m ? m[1] : ''
+}
+
 // Umbrales MEDIDOS el 2026-07-26 con las 50 fichas reales y 15 preguntas de
 // prueba: coincidencias verdaderas 0,507-0,779; falsas 0,264-0,379.
 // Los valores anteriores del spec (0,80/0,60) eran conjetura y estaban por
@@ -180,8 +187,11 @@ const PREFIJO_TENTATIVO = 'Creo que me preguntas por esto. Si no era, dimelo y l
 
 // ---------------------------------------------------------------- handler
 
+/**
+ * El cuerpo NO lleva usuario: quien pregunta se decide con el token de sesion.
+ * Si el cliente manda un `usuario_id`, se ignora en silencio.
+ */
 interface Peticion {
-  usuario_id: string
   mensaje: string
   /** Lo que el asesorado tiene en pantalla. El cliente lo sabe mejor que el servidor. */
   contexto?: Record<string, string>
@@ -202,12 +212,38 @@ async function manejar(req: Request): Promise<Response> {
   }
 
   const mensaje = (peticion.mensaje ?? '').trim()
-  const usuarioId = peticion.usuario_id
-  if (!mensaje || !usuarioId) return json({ error: 'Faltan usuario_id o mensaje' }, 400)
+  if (!mensaje) return json({ error: 'Falta el mensaje' }, 400)
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
   const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY')!
+
+  // El usuario NO se toma del cuerpo: se saca del token de sesion y se valida
+  // contra Supabase Auth. Si se confiara en el cuerpo, cualquier asesorado
+  // podria pasar el uuid de otro y leer sus datos o escribir en su historial.
+  //
+  // Se le pregunta a Auth en vez de decodificar el token aqui: decodificar sin
+  // verificar la firma acepta tokens falsificados, y verificarla dentro de la
+  // funcion exigiria el secreto JWT, que cambia de forma segun el proyecto use
+  // claves antiguas o nuevas. Preguntarle a Auth es autoritativo en los dos
+  // casos. Cuesta un viaje extra de unos 50 ms.
+  const token = tokenDeCabecera(req.headers.get('Authorization'))
+  if (!token) return json({ error: 'Falta la sesion' }, 401)
+
+  const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? ''
+
+  let usuarioId: string
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: ANON_KEY, authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) return json({ error: 'Sesion invalida' }, 401)
+    const u = await r.json()
+    if (!u?.id) return json({ error: 'Sesion invalida' }, 401)
+    usuarioId = u.id
+  } catch {
+    return json({ error: 'No se pudo validar la sesion' }, 401)
+  }
 
   const rest = async (ruta: string, init: RequestInit = {}) =>
     fetch(`${SUPABASE_URL}/rest/v1/${ruta}`, {

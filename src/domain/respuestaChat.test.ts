@@ -5,6 +5,7 @@ import {
   esCrisis,
   esTemaDeSalud,
   normalizar,
+  tokenDeCabecera,
 } from '../../supabase/functions/responder-chat/index.ts'
 
 describe('normalizar', () => {
@@ -47,6 +48,20 @@ describe('esCrisis', () => {
     expect(esCrisis('me quiero morir de agujetas')).toBe(false)
     expect(esCrisis('estoy muerto del cansancio')).toBe(false)
     expect(esCrisis('me muero de hambre')).toBe(false)
+  })
+})
+
+describe('tokenDeCabecera', () => {
+  it('extrae el token de un Bearer', () => {
+    expect(tokenDeCabecera('Bearer abc.def.ghi')).toBe('abc.def.ghi')
+    expect(tokenDeCabecera('bearer abc.def.ghi')).toBe('abc.def.ghi')
+  })
+
+  it('devuelve vacio si no hay cabecera o no es Bearer', () => {
+    expect(tokenDeCabecera(null)).toBe('')
+    expect(tokenDeCabecera('')).toBe('')
+    expect(tokenDeCabecera('Basic abc')).toBe('')
+    expect(tokenDeCabecera('Bearer')).toBe('')
   })
 })
 
