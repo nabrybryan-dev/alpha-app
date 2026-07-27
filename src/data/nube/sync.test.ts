@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { integrarEnCola, limpiarColasDeSync, pendientesDeSync, type OperacionPendiente } from './sync'
+import type { CheckinDiario } from '../../domain/types'
 
 const upsertMicrociclo = (id: string, numero: number): OperacionPendiente => ({
   tabla: 'microciclos',
@@ -166,6 +167,199 @@ describe('mensajes: qué se sincroniza y qué no', () => {
       .hilo('u-valentina', 'u-bryan')
       .filter((m) => m.id === 'msg-de-la-funcion')
     expect(repetidas).toHaveLength(1)
+  })
+})
+
+/**
+ * `fetch` simulado con freno de mano: cada llamada queda EN VUELO hasta que el
+ * test la suelta a mano. Es la única forma de encolar algo *mientras* hay una
+ * petición en curso, que es exactamente la situación que se prueba aquí.
+ */
+function fetchConFreno() {
+  const llamadas: { cuerpo: string }[] = []
+  const sueltas: { ok: () => void; falla: () => void }[] = []
+  const fn = vi.fn((_url: unknown, init?: { body?: unknown }) => {
+    llamadas.push({ cuerpo: String(init?.body ?? '') })
+    return new Promise<Response>((resolver, rechazar) => {
+      sueltas.push({
+        ok: () =>
+          resolver(
+            new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }),
+          ),
+        falla: () => rechazar(new Error('sin red en test')),
+      })
+    })
+  })
+  vi.stubGlobal('fetch', fn)
+  ultimoArnes = { llamadas, sueltas }
+  return ultimoArnes
+}
+
+let ultimoArnes: { llamadas: { cuerpo: string }[]; sueltas: { ok: () => void; falla: () => void }[] } | undefined
+
+async function nubeConFreno() {
+  const arnes = fetchConFreno()
+  const { sync, db } = await dbEnModoNube()
+  return { sync, db, ...arnes }
+}
+
+const checkin = (id: string, pasos: number): CheckinDiario => ({
+  id,
+  usuarioId: 'u-valentina',
+  fecha: '2026-07-27',
+  pasos,
+})
+
+const CASI_DESCARTADA = 7 // MAX_INTENTOS es 8: el siguiente fallo la aparta
+
+/**
+ * `ejecutar` tarda lo que tarde la red, y durante ese rato la asesorada sigue
+ * usando la app: registra otra serie, guarda un check-in, bebe agua. Todo eso
+ * entra en la MISMA cola que se está procesando.
+ *
+ * `drenar` trabajaba sobre la foto tomada al empezar y la devolvía recortada,
+ * así que esas escrituras se sobrescribían: no subían, no se reintentaban y no
+ * quedaban en descartes. Desaparecían del teléfono en la siguiente hidratación.
+ */
+describe('procesarCola: lo que se encola mientras la cola se procesa', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(async () => {
+    // Si el test dejó peticiones colgadas (porque falló antes de soltarlas),
+    // se sueltan para que el procesado termine; si no, `colaEnReposo` no
+    // resolvería nunca y este afterEach se quedaría esperando.
+    for (let vuelta = 0; vuelta < 20 && ultimoArnes; vuelta++) {
+      const colgadas = ultimoArnes.sueltas.splice(0)
+      if (colgadas.length === 0) break
+      for (const s of colgadas) s.falla()
+      await ultimoSync?.colaEnReposo()
+    }
+    await ultimoSync?.colaEnReposo()
+    ultimoArnes = undefined
+    ultimoSync = undefined
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  })
+
+  it('ÉXITO: lo encolado durante el vuelo no se pierde y acaba subiendo', async () => {
+    const { sync, db, llamadas, sueltas } = await nubeConFreno()
+
+    db.bienestar.guardar(checkin('chk-A', 100))
+    await vi.waitFor(() => expect(llamadas).toHaveLength(1))
+
+    // B entra MIENTRAS A está en vuelo.
+    db.bienestar.guardar(checkin('chk-B', 200))
+    expect(sync.pendientesDeSync()).toBe(2)
+
+    sueltas[0].ok() // A sube bien
+    await vi.waitFor(() => expect(llamadas).toHaveLength(2))
+
+    // B sigue en la cola y es lo que se está subiendo ahora.
+    expect(sync.pendientesDeSync()).toBe(1)
+    expect(llamadas[1].cuerpo).toContain('chk-B')
+
+    sueltas[1].ok()
+    await sync.colaEnReposo()
+    expect(sync.pendientesDeSync()).toBe(0)
+  })
+
+  it('REINTENTO: A vuelve a la cola con su cuenta de intentos y B sigue detrás', async () => {
+    const { sync, db, llamadas, sueltas } = await nubeConFreno()
+
+    db.bienestar.guardar(checkin('chk-A', 100))
+    await vi.waitFor(() => expect(llamadas).toHaveLength(1))
+
+    db.bienestar.guardar(checkin('chk-B', 200))
+
+    sueltas[0].falla() // A no sube
+    await sync.colaEnReposo()
+
+    const cola = JSON.parse(localStorage.getItem('alpha-cola-sync') ?? '[]') as OperacionPendiente[]
+    expect(cola).toHaveLength(2)
+    expect(cola[0].payload.id).toBe('chk-A')
+    expect(cola[0].intentos).toBe(1)
+    expect(cola[1].payload.id).toBe('chk-B')
+    expect(cola[1].intentos).toBeUndefined()
+  })
+
+  it('DESCARTE: A agota los intentos y se aparta, B sobrevive en la cola', async () => {
+    const { sync, db, llamadas, sueltas } = await nubeConFreno()
+
+    // A llega con 7 intentos: el fallo de ahora es el octavo y la aparta.
+    localStorage.setItem(
+      'alpha-cola-sync',
+      JSON.stringify([
+        { tabla: 'microciclos', tipo: 'upsert', payload: { id: 'm-vieja' }, intentos: CASI_DESCARTADA },
+      ]),
+    )
+    void sync.procesarCola()
+    await vi.waitFor(() => expect(llamadas).toHaveLength(1))
+
+    db.bienestar.guardar(checkin('chk-B', 200))
+
+    sueltas[0].falla() // A agota los intentos
+    await vi.waitFor(() => expect(llamadas).toHaveLength(2)) // sigue con B
+    sueltas[1].falla()
+    await sync.colaEnReposo()
+
+    const cola = JSON.parse(localStorage.getItem('alpha-cola-sync') ?? '[]') as OperacionPendiente[]
+    expect(cola).toHaveLength(1)
+    expect(cola[0].payload.id).toBe('chk-B')
+
+    const descartes = JSON.parse(
+      localStorage.getItem('alpha-cola-descartes') ?? '[]',
+    ) as OperacionPendiente[]
+    expect(descartes).toHaveLength(1)
+    expect(descartes[0].payload.id).toBe('m-vieja')
+    expect(descartes[0].intentos).toBe(CASI_DESCARTADA + 1)
+  })
+
+  /**
+   * El caso real del entreno: se registra una serie (arranca la subida) y antes
+   * de que termine se registra la siguiente del MISMO microciclo.
+   * `integrarEnCola` reemplaza la operación en su sitio por la versión nueva,
+   * así que quitar "la de la posición 0" al acabar borraría la nueva —el mismo
+   * bug con otra cara— y el microciclo se quedaría en el estado viejo.
+   */
+  it('COALESCENCIA: la versión más nueva de la misma fila no se borra al acabar la vieja', async () => {
+    const { sync, db, llamadas, sueltas } = await nubeConFreno()
+
+    db.bienestar.guardar(checkin('chk-1', 100))
+    await vi.waitFor(() => expect(llamadas).toHaveLength(1))
+    expect(llamadas[0].cuerpo).toContain('"pasos":100')
+
+    // Misma fila, dato nuevo: reemplaza a la que está en vuelo, no se añade.
+    db.bienestar.guardar(checkin('chk-1', 900))
+    expect(sync.pendientesDeSync()).toBe(1)
+
+    sueltas[0].ok() // termina la subida de la versión vieja
+    await vi.waitFor(() => expect(llamadas).toHaveLength(2))
+    expect(llamadas[1].cuerpo).toContain('"pasos":900')
+
+    sueltas[1].ok()
+    await sync.colaEnReposo()
+    expect(sync.pendientesDeSync()).toBe(0)
+  })
+
+  it('no reenvía una operación ya subida, aunque entren otras en medio', async () => {
+    const { sync, db, llamadas, sueltas } = await nubeConFreno()
+
+    db.bienestar.guardar(checkin('chk-A', 100))
+    await vi.waitFor(() => expect(llamadas).toHaveLength(1))
+    db.bienestar.guardar(checkin('chk-B', 200))
+
+    sueltas[0].ok()
+    await vi.waitFor(() => expect(llamadas).toHaveLength(2))
+    sueltas[1].ok()
+    await sync.colaEnReposo()
+
+    expect(llamadas).toHaveLength(2)
+    expect(llamadas.filter((l) => l.cuerpo.includes('chk-A'))).toHaveLength(1)
+    expect(llamadas.filter((l) => l.cuerpo.includes('chk-B'))).toHaveLength(1)
+    expect(sync.pendientesDeSync()).toBe(0)
   })
 })
 

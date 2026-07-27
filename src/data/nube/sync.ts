@@ -140,14 +140,62 @@ export function colaEnReposo(): Promise<void> {
   return enVuelo ?? Promise.resolve()
 }
 
+/**
+ * Dos entradas son la misma operación si su contenido coincide. No hay id de
+ * operación, y comparar por posición es justo lo que no se puede hacer aquí.
+ */
+function mismaOperacion(a: OperacionPendiente, b: OperacionPendiente): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/**
+ * Quita la operación que se acaba de procesar, buscándola por CONTENIDO.
+ *
+ * Si no aparece es porque `integrarEnCola` la reemplazó durante el vuelo por
+ * una versión más nueva de la misma fila (la serie siguiente del mismo
+ * microciclo). Entonces no se quita nada: esa versión nueva todavía no ha
+ * subido y le toca en la vuelta siguiente.
+ *
+ * Se quita UNA sola coincidencia: dos `update` idénticos (marcar leídos dos
+ * veces) son dos operaciones distintas y las dos tienen que ejecutarse.
+ */
+function sinLaOperacion(
+  cola: OperacionPendiente[],
+  op: OperacionPendiente,
+): OperacionPendiente[] {
+  const i = cola.findIndex((o) => mismaOperacion(o, op))
+  if (i === -1) return cola
+  return [...cola.slice(0, i), ...cola.slice(i + 1)]
+}
+
+/** Deja la operación donde está y le anota el intento fallido. */
+function conIntentos(
+  cola: OperacionPendiente[],
+  op: OperacionPendiente,
+  intentos: number,
+): OperacionPendiente[] {
+  const i = cola.findIndex((o) => mismaOperacion(o, op))
+  if (i === -1) return cola
+  return cola.map((o, j) => (j === i ? { ...op, intentos } : o))
+}
+
+/**
+ * Vacía la cola de una en una, RELEYENDO `localStorage` en cada paso.
+ *
+ * Releer no es un detalle: `ejecutar` tarda lo que tarde la red, y durante ese
+ * rato la asesorada sigue usando la app y `encolar` escribe en la misma cola.
+ * Antes se trabajaba sobre la foto tomada al empezar y se devolvía esa foto
+ * recortada, así que **todo lo encolado durante la petición se sobrescribía y
+ * desaparecía**: ni se subía ni se reintentaba ni quedaba en descartes.
+ */
 async function drenar(): Promise<void> {
-  let cola = leerCola()
-  while (cola.length > 0) {
+  for (;;) {
+    const cola = leerCola()
+    if (cola.length === 0) return
     const op = cola[0]
     try {
       await ejecutar(op)
-      cola = cola.slice(1)
-      escribirCola(cola)
+      escribirCola(sinLaOperacion(leerCola(), op))
     } catch {
       // Sin conexión no se cuenta el intento: estar offline durante todo un
       // entreno no puede terminar descartando las series registradas.
@@ -157,11 +205,10 @@ async function drenar(): Promise<void> {
         // Operación que falla de forma persistente (fila inexistente, RLS…):
         // se aparta para que no bloquee eternamente las escrituras siguientes.
         apartarDescartada({ ...op, intentos })
-        cola = cola.slice(1)
-        escribirCola(cola)
+        escribirCola(sinLaOperacion(leerCola(), op))
         continue
       }
-      escribirCola([{ ...op, intentos }, ...cola.slice(1)])
+      escribirCola(conIntentos(leerCola(), op, intentos))
       return
     }
   }
