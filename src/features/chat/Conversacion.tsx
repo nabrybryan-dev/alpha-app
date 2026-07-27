@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { db, idCoach, useDbVersion } from '../../data/dbInstance'
 import { sesionDeFunciones } from '../../data/supabase'
 import { pedirRespuestaAlpha } from './asistente'
@@ -6,6 +6,26 @@ import { pedirRespuestaAlpha } from './asistente'
 interface ConversacionProps {
   yoId: string
   otroId: string
+}
+
+/**
+ * El texto de las fichas marca en **negrita** la frase que el asesorado se
+ * lleva; es una decisión de redacción, no adorno. Aquí se pinta de verdad en
+ * vez de mostrar los asteriscos.
+ *
+ * Parte por los pares de asteriscos y nada más: no interpreta HTML ni ningún
+ * otro marcador, así que el contenido no puede inyectar nada.
+ */
+function conNegritas(texto: string): ReactNode[] {
+  return texto.split(/(\*\*[^*\n]+\*\*)/g).map((tramo, i) =>
+    tramo.length > 4 && tramo.startsWith('**') && tramo.endsWith('**') ? (
+      <strong key={i} className="font-semibold">
+        {tramo.slice(2, -2)}
+      </strong>
+    ) : (
+      tramo
+    ),
+  )
 }
 
 function horaDe(fechaIso: string): string {
@@ -125,7 +145,9 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
                     Alpha · respuesta automática
                   </p>
                 )}
-                <p className="whitespace-pre-wrap break-words">{mensaje.texto}</p>
+                <p className="whitespace-pre-wrap break-words">
+                  {deAlpha ? conNegritas(mensaje.texto) : mensaje.texto}
+                </p>
                 <p
                   className={`cifras mt-1 text-[10px] ${mio && !deAlpha ? 'text-white/70' : 'text-tenue'}`}
                 >
