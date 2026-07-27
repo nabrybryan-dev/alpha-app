@@ -327,6 +327,15 @@ de ficha, el redespliegue no tomó: repite el 12.2.
 Para probarla de verdad hay que hacerlo desde la app con una cuenta iniciada,
 que es lo que pasa cuando una asesorada escribe en su chat.
 
+> **Ojo con este 401:** no distingue "el arreglo funciona" de "falta la clave".
+> Para validar el token, la función usa `SUPABASE_ANON_KEY` (o
+> `SUPABASE_PUBLISHABLE_KEY` si el proyecto ya migró al formato nuevo de
+> claves). Si ninguna de las dos está puesta, **todo** devuelve 401, también
+> las peticiones legítimas de la app — y el chat se queda sin respuestas de
+> Alpha sin ningún error a la vista. Falla del lado seguro, pero falla. Por eso
+> la prueba que vale es la de la app con sesión iniciada: si desde ahí llega
+> respuesta, las dos cosas están bien.
+
 ### 12.4 · La app ya no manda el usuario, y es a propósito
 
 Si miras el cuerpo que envía la app, verás que solo lleva `{ "mensaje": ... }`.
