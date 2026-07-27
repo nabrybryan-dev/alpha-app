@@ -16,7 +16,16 @@ function litros(ml: number): string {
 
 /**
  * Registro de agua del día (diseño Stitch "Nutrición Pro"). El objetivo se
- * individualiza a 35 ml/kg con el último peso registrado; 2.5L si no hay peso.
+ * individualiza a 30 ml/kg con el último peso registrado; 2L si no hay peso.
+ *
+ * OJO con el 30: este contador registra SOLO lo que el asesorado bebe, y la
+ * necesidad diaria total ronda los 35 ml/kg — pero entre un 20 y un 30% de esa
+ * agua llega en la comida. Poner aquí los 35 hacía que alguien bien hidratado
+ * viera la barra sin llenar, que es peor que no tener barra. No se baja hasta
+ * los ~26 de la resta pura porque estos asesorados entrenan y sudan; 30 se
+ * queda dentro del rango clínico y deja la meta alcanzable un día de descanso
+ * sin quedarse corta un día de sesión.
+ * Ver wiki/conocimiento/nutricion-deportiva-timing.md.
  */
 export function Hidratacion({ usuarioId }: { usuarioId: string }) {
   useDbVersion()
@@ -24,7 +33,7 @@ export function Hidratacion({ usuarioId }: { usuarioId: string }) {
   const ml = db.nutricion.hidratacionDe(usuarioId, hoy)
   const mlAnimado = useContadorAnimado(ml, 500)
   const peso = ultimoPeso(usuarioId)
-  const objetivoMl = peso ? Math.round((peso * 35) / 100) * 100 : 2500
+  const objetivoMl = peso ? Math.round((peso * 30) / 100) * 100 : 2000
   const pct = Math.min(100, (ml / objetivoMl) * 100)
 
   return (
