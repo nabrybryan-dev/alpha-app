@@ -171,11 +171,16 @@ export function armarRespuesta(
 
 // ---------------------------------------------------------------- mensajes fijos
 
+// El texto NO promete un aviso al telefono: hoy la bandera roja solo queda
+// marcada en el panel del coach. Prometer "va a escribirte" a las 3 de la
+// madrugada es prometer algo que el sistema no cumple, y ahi es donde menos
+// se puede. El aviso real es la Etapa 6; hasta entonces, la urgencia se
+// traslada a lo que si esta disponible en ese momento.
 const MSG_CRISIS = [
   'Leo lo que me escribes y no lo voy a pasar por alto.',
   'Esto no es algo que deba responderte una app, asi que no voy a hablarte de entrenamiento ahora.',
-  'Ya le llego el aviso a tu coach y va a escribirte.',
-  'Si en este momento sientes que estas en peligro, busca ayuda de un profesional de salud o de alguien de confianza que este cerca de ti. No te quedes solo con esto.',
+  'Le voy a dejar esto marcado a tu coach para que lo vea.',
+  'Si necesitas hablar con alguien ahora mismo, no esperes a que el te escriba: busca a un profesional de salud o a alguien de confianza que este cerca de ti. No te quedes solo con esto.',
 ].join('\n\n')
 
 const MSG_ESCALADO = [
