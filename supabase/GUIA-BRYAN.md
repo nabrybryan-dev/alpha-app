@@ -385,3 +385,85 @@ where origen = 'alpha'
 order by fecha_iso desc
 limit 5;
 ```
+
+## 13 · Que las banderas rojas te suenen en el teléfono (Telegram)
+
+Hasta ahora una bandera roja se quedaba marcada en el panel de consultas: si
+alguien escribía a las 3 de la madrugada, esperaba a que tú abrieras el panel.
+Con esto te llega un aviso al teléfono en el momento.
+
+### 13.1 · Crear el bot y sacar los dos datos
+
+1. Doble clic en **`CONFIGURAR AVISOS.bat`** (está en la carpeta `app`, al lado
+   de `PUBLICAR FICHAS.bat`).
+2. Sigue lo que dice en pantalla: crear el bot con **@BotFather**, copiar el
+   token, y escribirle algo al bot desde tu Telegram.
+3. Al final te muestra el **`TELEGRAM_CHAT_ID`**. El token no lo muestra nunca:
+   sigue en tu portapapeles, que es de donde lo tomó.
+
+### 13.2 · Guardar los dos secretos en Supabase
+
+1. Menú → **Edge Functions** → **Secrets** → añadir dos:
+
+   | Name | Value |
+   |---|---|
+   | `TELEGRAM_BOT_TOKEN` | el token que te dio @BotFather |
+   | `TELEGRAM_CHAT_ID` | el número que te mostró el ayudante |
+
+2. El `chat_id` no es secreto y por eso el ayudante te lo enseña. **El token
+   sí**: no lo pegues en ningún chat, ni siquiera conmigo.
+
+### 13.3 · Redesplegar `responder-chat`
+
+**Sin esto no se envía nada.** El código del aviso está en el archivo, pero la
+función que corre en Supabase sigue siendo la vieja hasta que la vuelvas a
+pegar. Mismo procedimiento del paso 12.2:
+
+```powershell
+powershell -Command "Get-Content 'supabase/functions/responder-chat/index.ts' -Raw -Encoding UTF8 | Set-Clipboard; (Get-Clipboard).Length"
+```
+
+Edge Functions → `responder-chat` → editar → **Ctrl+A → Delete** → pegar →
+**Deploy**.
+
+### 13.4 · Probar
+
+Desde la app, con una cuenta de asesorado, escribe en el chat:
+
+> me duele la rodilla al bajar
+
+Debe llegarte el aviso a Telegram en unos segundos. Fíjate en que **no trae el
+texto del mensaje**: solo el tipo, el nombre de pila, y el enlace al panel.
+
+### 13.5 · Por qué el aviso no trae lo que escribió la persona
+
+Un mensaje con bandera roja puede decir *"se me escapa la orina al saltar"* o
+*"se me retrasó la regla"*. Mandar eso a Telegram sacaría **datos de salud de
+personas reales fuera de Supabase**, a un servidor de terceros. El aviso lleva
+solo tipo, nombre de pila y enlace; el contenido se lee en el panel, que está
+dentro de tu propia base.
+
+El teléfono te suena igual, que es todo lo que hacía falta. Si alguna vez se
+propone meter el mensaje dentro del aviso "para no tener que abrir el panel",
+la respuesta es no.
+
+### 13.6 · Si no configuras esto, no se rompe nada
+
+Si los dos secretos no están, la función **funciona exactamente igual**: la
+asesorada recibe su respuesta, la consulta queda registrada y la bandera roja
+sigue apareciendo en el panel. Simplemente no suena el teléfono.
+
+Lo mismo si Telegram se cae o tarda: el envío se corta a los pocos segundos y la
+respuesta al asesorado sale igual. **Un aviso que no sale nunca le cuesta a
+nadie su contestación.**
+
+### 13.7 · Si empieza a sonar demasiado
+
+Las banderas de salud incluyen cosas corrientes como "me duele la rodilla". Con
+19 asesorados podrían ser varios avisos al día, y un coach que recibe demasiados
+deja de mirarlos — que es justo lo que esto intenta evitar.
+
+Todavía no se pone ningún límite, a propósito: no sabemos el volumen real.
+`consultas_chat` lo dirá en una semana. Si resulta ruidoso, la salida es separar
+la crisis (que siempre suene) de la bandera de salud (un resumen diario), **no
+bajar el listón de lo que se marca**.
