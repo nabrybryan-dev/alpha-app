@@ -233,7 +233,25 @@ export interface OpcionesOndulacion {
   incrementoKg?: number
   /** Reduce volumen manteniendo intensidad (semana 4 de cada mesociclo). */
   descarga?: boolean
+  /**
+   * Carga pautada del ejercicio. Sirve de ancla cuando todavía no hay series
+   * registradas: se ondula sobre lo que ya está programado.
+   */
+  cargaPrescritaKg?: number
+  /**
+   * Caída de 1RM efectivo por set, en tanto por uno, para reflejar la fatiga
+   * dentro del ejercicio. 0 = el 1RM estimado se mantiene en todos los sets.
+   */
+  derivaFatiga?: number
 }
+
+/**
+ * Sin deriva, la carga sube más rápido de lo que sube en la práctica: al bajar
+ * las reps el coeficiente da un salto que el cuerpo, ya fatigado, no sostiene.
+ * 0.025 es lo que reproduce el único patrón real documentado (Mariana M15:
+ * 13→11→10→9 reps con 65→70→75→77.5 kg).
+ */
+export const DERIVA_FATIGA_POR_SET = 0.025
 
 /** Proporción de series que se conserva en una semana de descarga. */
 export const FACTOR_DESCARGA = 0.6
@@ -241,18 +259,35 @@ export const FACTOR_DESCARGA = 0.6
 /**
  * Ondula un ejercicio para el microciclo siguiente.
  *
- * El patrón es el que quedó documentado en las plantillas actualizadas del 27
- * de junio: las reps descienden set a set y la carga sube, con el último set
- * como el de máxima intensidad. La carga de cada set no es un porcentaje
- * inventado sobre la anterior: sale del 1RM estimado con lo que la persona
- * registró, aplicado a las reps y el RIR de ese set.
+ * El patrón es el de las plantillas actualizadas del 27 de junio: las reps
+ * descienden set a set y la carga sube, con el último set como el de mayor
+ * carga. La carga de cada set no es un porcentaje inventado sobre la anterior:
+ * sale del 1RM estimado y del coeficiente que le corresponde a las reps y el
+ * RIR de ese set.
+ *
+ * El RIR se mantiene en el objetivo a lo largo del ejercicio. Es lo que
+ * reproduce el ejemplo documentado (13→11→10→9 reps con 65→70→75→77.5 kg): lo
+ * que sube set a set es la carga, no la cercanía al fallo.
+ *
+ * El ancla del 1RM es lo registrado; si todavía no hay series, se usa la carga
+ * pautada, de modo que se pueda ondular sobre una programación ya hecha.
  */
 export function ondularEjercicio(
   ejercicio: EjercicioPrescrito,
   opciones: OpcionesOndulacion = {},
 ): EjercicioOndulado {
-  const { prs, incrementoKg = 2.5, descarga = false } = opciones
-  const e1rm = e1rmDeSeries(ejercicio.series)
+  const {
+    prs,
+    incrementoKg = 2.5,
+    descarga = false,
+    cargaPrescritaKg,
+    derivaFatiga = DERIVA_FATIGA_POR_SET,
+  } = opciones
+  const e1rm =
+    e1rmDeSeries(ejercicio.series) ??
+    (cargaPrescritaKg !== undefined && cargaPrescritaKg > 0
+      ? Math.round((cargaPrescritaKg / coeficiente1rm(ejercicio.repsDiana, ejercicio.rirObjetivo)) * 100) / 100
+      : undefined)
   const brecha = brechaReps(ejercicio)
   const rango = rangoReps(ejercicio.rango) ?? { min: ejercicio.repsDiana, max: ejercicio.repsDiana }
 
@@ -268,35 +303,36 @@ export function ondularEjercicio(
       brechaReps: brecha,
       direccion: 'sin-datos',
       series: [],
-      motivo: 'Sin series registradas: se repite la prescripción anterior.',
+      motivo: 'Sin series registradas ni carga pautada: no hay ancla para ondular.',
     }
   }
 
   const banda = prs === undefined ? undefined : bandaPrs(prs)
   const congelado = banda === 'rojo'
+  // Con PRS en rojo no se progresa: se suelta 1 de RIR sobre el objetivo.
+  const rir = congelado ? ejercicio.rirObjetivo + 1 : ejercicio.rirObjetivo
 
   const series: SeriePrescrita[] = []
+  let cargaPrevia = 0
   for (let i = 0; i < sets; i++) {
     // Reps descendentes dentro del rango; con un solo set se usa la diana.
     const reps =
       sets === 1
         ? ejercicio.repsDiana
         : Math.round(rango.max - ((rango.max - rango.min) * i) / (sets - 1))
-    // El último set es el de máxima intensidad: RIR baja hasta el objetivo.
-    const rir = congelado
-      ? ejercicio.rirObjetivo + 1
-      : sets === 1
-        ? ejercicio.rirObjetivo
-        : Math.max(ejercicio.rirObjetivo, ejercicio.rirObjetivo + (sets - 1 - i))
-    series.push({
-      orden: i + 1,
-      reps,
-      rir,
-      cargaKg: redondearCarga(cargaObjetivo(e1rm, reps, rir), incrementoKg),
-    })
+    const e1rmDelSet = e1rm * (1 - derivaFatiga * i)
+    // La carga nunca retrocede dentro del ejercicio: cuando dos sets comparten
+    // reps, la deriva de fatiga haría bajar el peso a media serie, y eso no es
+    // lo que se hace en la sala.
+    const carga = Math.max(
+      redondearCarga(cargaObjetivo(e1rmDelSet, reps, rir), incrementoKg),
+      cargaPrevia,
+    )
+    cargaPrevia = carga
+    series.push({ orden: i + 1, reps, rir, cargaKg: carga })
   }
 
-  const cargaAnterior = ejercicio.series[0]?.cargaKg
+  const cargaAnterior = ejercicio.series[0]?.cargaKg ?? cargaPrescritaKg
   const cargaNueva = series[series.length - 1]?.cargaKg
   let direccion: EjercicioOndulado['direccion'] = 'estable'
   if (cargaAnterior !== undefined && cargaNueva !== undefined) {

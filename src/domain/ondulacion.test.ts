@@ -57,7 +57,7 @@ describe('fasePeriodizacion', () => {
     expect(fasePeriodizacion(25)).toMatchObject({ micro: 1, meso: 1, semana: 1 })
   })
 
-  it('los microciclos de Dania (15) y Juan Camilo (14) caen en fuerza-hipertrofia sin descarga', () => {
+  it('los microciclos 14 y 15 caen en fuerza-hipertrofia sin descarga', () => {
     for (const numero of [14, 15]) {
       const fase = fasePeriodizacion(numero)
       expect(fase.fase).toBe('Fuerza-hipertrofia')
@@ -180,11 +180,63 @@ describe('ondularEjercicio', () => {
     expect(reps[reps.length - 1]).toBe(8)
   })
 
-  it('deja el último set como el de máxima intensidad', () => {
+  it('deja el último set como el de mayor carga, con el RIR sostenido', () => {
     const r = ondularEjercicio(registrado)
-    const rirs = r.series.map((s) => s.rir)
-    expect(rirs[rirs.length - 1]).toBe(registrado.rirObjetivo)
-    expect(rirs[0]).toBeGreaterThan(rirs[rirs.length - 1])
+    expect(r.series.every((s) => s.rir === registrado.rirObjetivo)).toBe(true)
+    const cargas = r.series.map((s) => s.cargaKg)
+    expect(cargas[cargas.length - 1]).toBeGreaterThan(cargas[0])
+  })
+
+  it('reproduce el ejemplo documentado (Mariana M15: 65→70→75→77.5 kg)', () => {
+    const ej = ejercicio({
+      nombre: 'ADUCCIÓN POLEA',
+      sets: 4,
+      rango: '9-13',
+      repsDiana: 13,
+      rirObjetivo: 2,
+      series: [],
+    })
+    const r = ondularEjercicio(ej, { cargaPrescritaKg: 65 })
+    const cargas = r.series.map((s) => s.cargaKg)
+    // Arranca en la carga pautada y cierra donde cerró el ejemplo real.
+    expect(cargas[0]).toBe(65)
+    expect(cargas[2]).toBe(75)
+    expect(cargas[3]).toBe(77.5)
+    expect(cargas).toEqual([...cargas].sort((a, b) => a - b))
+  })
+
+  it('sin deriva de fatiga la carga se dispara por encima del patrón real', () => {
+    const ej = ejercicio({ sets: 4, rango: '9-13', repsDiana: 13, rirObjetivo: 2, series: [] })
+    const sin = ondularEjercicio(ej, { cargaPrescritaKg: 65, derivaFatiga: 0 })
+    expect(sin.series[3].cargaKg).toBeGreaterThan(82)
+  })
+
+  it('ondula sobre una programación ya hecha, sin series registradas', () => {
+    const soloPautado = ejercicio({ sets: 5, rango: '8-10', repsDiana: 10, rirObjetivo: 2 })
+    const r = ondularEjercicio(soloPautado, { cargaPrescritaKg: 50 })
+    expect(r.series).toHaveLength(5)
+    expect(r.series[0].cargaKg).toBe(50)
+    // Con un rango estrecho y muchos sets la deriva de fatiga compensa lo que
+    // gana el descenso de reps: la carga se aplana, pero nunca baja.
+    expect(r.series.at(-1)!.cargaKg).toBeGreaterThanOrEqual(50)
+  })
+
+  it('la carga nunca retrocede entre sets consecutivos', () => {
+    for (const rango of ['8-10', '6-8', '10-12', '12-15']) {
+      for (const sets of [2, 3, 4, 5]) {
+        const r = ondularEjercicio(ejercicio({ sets, rango, repsDiana: 10, rirObjetivo: 2 }), {
+          cargaPrescritaKg: 50,
+        })
+        const cargas = r.series.map((s) => s.cargaKg)
+        expect(cargas).toEqual([...cargas].sort((a, b) => a - b))
+      }
+    }
+  })
+
+  it('aplica deriva de fatiga bajando el 1RM efectivo set a set', () => {
+    const sinDeriva = ondularEjercicio(registrado, { derivaFatiga: 0 })
+    const conDeriva = ondularEjercicio(registrado, { derivaFatiga: 0.05 })
+    expect(conDeriva.series.at(-1)!.cargaKg).toBeLessThan(sinDeriva.series.at(-1)!.cargaKg)
   })
 
   it('sube la carga cuando hizo más reps de las pedidas', () => {
