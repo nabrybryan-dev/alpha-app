@@ -227,10 +227,18 @@ async function manejar(req: Request): Promise<Response> {
   // funcion exigiria el secreto JWT, que cambia de forma segun el proyecto use
   // claves antiguas o nuevas. Preguntarle a Auth es autoritativo en los dos
   // casos. Cuesta un viaje extra de unos 50 ms.
+  //
+  // La clave publica se comprueba ANTES que el token y falla con 500, no con
+  // 401: si faltara, TODA peticion respondería "sesion invalida" y mandaria a
+  // buscar el problema en la sesion del asesorado en vez de en la configuracion
+  // de la funcion, que es donde esta.
+  const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? ''
+  if (!ANON_KEY) {
+    return json({ error: 'Falta SUPABASE_ANON_KEY (o SUPABASE_PUBLISHABLE_KEY) en la funcion' }, 500)
+  }
+
   const token = tokenDeCabecera(req.headers.get('Authorization'))
   if (!token) return json({ error: 'Falta la sesion' }, 401)
-
-  const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? ''
 
   let usuarioId: string
   try {
@@ -262,10 +270,61 @@ async function manejar(req: Request): Promise<Response> {
       body: JSON.stringify({ usuario_id: usuarioId, mensaje, ...extra }),
     }).catch(() => {})
 
+  /**
+   * Escribe la respuesta en el hilo del chat y devuelve el id de la fila.
+   *
+   * La fila la escribe la FUNCION, no el cliente. `mensajes.de_id` exige un
+   * usuario real y su politica RLS es `with check (de_id = auth.uid())`: una
+   * asesorada no puede insertar una fila firmada por el coach. Aqui se usa
+   * service_role, que se salta RLS. Es el mismo criterio que con el usuario:
+   * el servidor es dueño de lo que firma, el cliente no.
+   *
+   * Devuelve undefined si algo falla; nunca lanza. Que el asesorado lea la
+   * respuesta importa mas que quede registrada.
+   */
+  const guardarEnHilo = async (texto: string): Promise<string | undefined> => {
+    try {
+      const r = await rest('usuarios_app?rol=eq.coach&select=id&limit=1')
+      const coach = r.ok ? (await r.json())[0] : null
+      // Sin coach dado de alta no hay quien firme la fila, pero la respuesta
+      // se entrega igual: es un problema de configuracion, no del asesorado.
+      if (!coach?.id) return undefined
+
+      // Misma convencion de id que `mockDb.ts` en la app: el cliente pinta la
+      // respuesta con ESTE id, asi que al rehidratar la fila coincide y no
+      // aparece duplicada.
+      const id = `msg-${Date.now()}-${Math.round(Math.random() * 1e6)}`
+      const ins = await rest('mensajes', {
+        method: 'POST',
+        body: JSON.stringify({
+          id,
+          de_id: coach.id,
+          para_id: usuarioId,
+          fecha_iso: new Date().toISOString(),
+          texto,
+          origen: 'alpha',
+          leido: false,
+        }),
+      })
+      return ins.ok ? id : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * Unico punto de salida con texto para el asesorado: guarda la fila y añade
+   * `mensaje_id`. Si no se pudo guardar, la respuesta sale igual sin ese campo.
+   */
+  const entregar = async (texto: string, extra: Record<string, unknown>) => {
+    const mensajeId = await guardarEnHilo(texto)
+    return json({ respuesta: texto, ...extra, ...(mensajeId ? { mensaje_id: mensajeId } : {}) })
+  }
+
   // 1. CRISIS. Antes que nada. No busca ficha ni menciona entrenamiento.
   if (esCrisis(mensaje)) {
     await registrar({ via: 'escalado', bandera_roja: true })
-    return json({ respuesta: MSG_CRISIS, via: 'escalado', crisis: true, bandera_roja: true })
+    return entregar(MSG_CRISIS, { via: 'escalado', crisis: true, bandera_roja: true })
   }
 
   const salud = esTemaDeSalud(mensaje)
@@ -282,7 +341,7 @@ async function manejar(req: Request): Promise<Response> {
     vector = (await r.json()).data[0].embedding
   } catch {
     await registrar({ via: 'escalado', bandera_roja: salud })
-    return json({ respuesta: MSG_ESCALADO, via: 'escalado', bandera_roja: salud })
+    return entregar(MSG_ESCALADO, { via: 'escalado', bandera_roja: salud })
   }
 
   // 3. Ficha más cercana.
@@ -300,7 +359,7 @@ async function manejar(req: Request): Promise<Response> {
 
   if (via === 'escalado' || !ficha) {
     await registrar({ via: 'escalado', similitud, bandera_roja: banderaRoja })
-    return json({ respuesta: MSG_ESCALADO, via: 'escalado', bandera_roja: banderaRoja })
+    return entregar(MSG_ESCALADO, { via: 'escalado', bandera_roja: banderaRoja })
   }
 
   // 5. Datos de la persona para las ranuras.
@@ -342,7 +401,7 @@ async function manejar(req: Request): Promise<Response> {
 
   await registrar({ via, ficha_id: ficha.id, similitud, bandera_roja: banderaRoja })
 
-  return json({ respuesta, via, ficha_id: ficha.id, similitud, bandera_roja: banderaRoja })
+  return entregar(respuesta, { via, ficha_id: ficha.id, similitud, bandera_roja: banderaRoja })
 }
 
 // Solo arranca el servidor dentro de Deno. Así los tests pueden importar
