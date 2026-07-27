@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
+import { seriePrescrita } from '../../domain/ondulacion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
 
@@ -25,7 +26,11 @@ interface Borrador {
   rir: number
 }
 
-function cargaSugerida(ejercicio: EjercicioPrescrito): number {
+function cargaSugerida(ejercicio: EjercicioPrescrito, orden: number): number {
+  // Si el microciclo viene ondulado, cada serie trae su propia carga: la de la
+  // serie anterior ya no sirve como sugerencia, justamente porque van subiendo.
+  const prescrita = seriePrescrita(ejercicio, orden)
+  if (prescrita) return prescrita.cargaKg
   const previa = ejercicio.series[ejercicio.series.length - 1]?.cargaKg
   if (previa !== undefined) return previa
   const dePrescripcion = Number.parseFloat(ejercicio.prescripcion.replace(',', '.'))
@@ -37,11 +42,12 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
   ref,
 ) {
   const clave = `alpha-serie-${borradorId}`
+  const prescrita = seriePrescrita(ejercicio, orden)
   const [borrador, setBorrador] = useState<Borrador>(() =>
     leerJSON<Borrador>(clave, {
-      cargaKg: cargaSugerida(ejercicio),
-      reps: ejercicio.repsDiana,
-      rir: ejercicio.rirObjetivo,
+      cargaKg: cargaSugerida(ejercicio, orden),
+      reps: prescrita?.reps ?? ejercicio.repsDiana,
+      rir: prescrita?.rir ?? ejercicio.rirObjetivo,
     }),
   )
 
@@ -76,6 +82,16 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
           </span>
         )}
       </p>
+
+      {prescrita && (
+        <p className="-mt-1.5 mb-3 text-center text-[11px] text-tenue">
+          Objetivo:{' '}
+          <span className="font-semibold text-texto">
+            {prescrita.reps} reps × {prescrita.cargaKg} kg
+          </span>{' '}
+          · RIR {prescrita.rir}
+        </p>
+      )}
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo en dos columnas.
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}

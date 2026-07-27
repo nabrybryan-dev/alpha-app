@@ -10,9 +10,13 @@ import {
   e1rmDeSerie,
   e1rmDeSeries,
   fasePeriodizacion,
+  aplicarOndulacion,
+  ejercicioOndulado,
   ondularEjercicio,
   rangoReps,
   redondearCarga,
+  seriePrescrita,
+  sesionOndulada,
 } from './ondulacion'
 import type { EjercicioPrescrito } from './types'
 
@@ -281,5 +285,44 @@ describe('ondularEjercicio', () => {
     expect(r.direccion).toBe('sin-datos')
     expect(r.series).toEqual([])
     expect(r.e1rm).toBeUndefined()
+  })
+})
+
+describe('la ondulación guardada en el ejercicio', () => {
+  const base = ejercicio({ sets: 4, rango: '8-10', repsDiana: 10, rirObjetivo: 2 })
+
+  it('aplicarOndulacion deja una prescripción por set', () => {
+    const r = aplicarOndulacion(base, { cargaPrescritaKg: 50 })
+    expect(r.seriesPrescritas).toHaveLength(4)
+    expect(r.seriesPrescritas!.map((s) => s.orden)).toEqual([1, 2, 3, 4])
+    expect(ejercicioOndulado(r)).toBe(true)
+  })
+
+  it('deja el ejercicio intacto si no hay ancla para calcular', () => {
+    const r = aplicarOndulacion(base)
+    expect(r).toBe(base)
+    expect(ejercicioOndulado(r)).toBe(false)
+  })
+
+  it('ajusta los sets cuando la descarga recorta volumen', () => {
+    const r = aplicarOndulacion(base, { cargaPrescritaKg: 50, descarga: true })
+    expect(r.sets).toBe(r.seriesPrescritas!.length)
+    expect(r.sets).toBeLessThan(base.sets)
+    expect(ejercicioOndulado(r)).toBe(true)
+  })
+
+  it('seriePrescrita devuelve la serie por su orden', () => {
+    const r = aplicarOndulacion(base, { cargaPrescritaKg: 50 })
+    expect(seriePrescrita(r, 1)!.reps).toBe(10)
+    expect(seriePrescrita(r, 4)!.reps).toBe(8)
+    expect(seriePrescrita(r, 9)).toBeUndefined()
+    expect(seriePrescrita(base, 1)).toBeUndefined()
+  })
+
+  it('una sesión solo está ondulada si lo están todos sus ejercicios', () => {
+    const ondulado = aplicarOndulacion(base, { cargaPrescritaKg: 50 })
+    expect(sesionOndulada([ondulado, ondulado])).toBe(true)
+    expect(sesionOndulada([ondulado, base])).toBe(false)
+    expect(sesionOndulada([])).toBe(false)
   })
 })

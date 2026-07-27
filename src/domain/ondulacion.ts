@@ -1,4 +1,4 @@
-import type { EjercicioPrescrito, SerieRegistrada } from './types'
+import type { EjercicioPrescrito, SeriePrescrita, SerieRegistrada } from './types'
 
 /**
  * Motor de ondulación (método Heracles 2.0).
@@ -207,12 +207,7 @@ export function bandaPrs(prs: number): BandaPrs {
   return 'rojo'
 }
 
-export interface SeriePrescrita {
-  orden: number
-  reps: number
-  rir: number
-  cargaKg: number
-}
+export type { SeriePrescrita }
 
 export interface EjercicioOndulado {
   ejercicioId: string
@@ -362,4 +357,37 @@ export function ondularEjercicio(
     series,
     motivo: motivos.join(' '),
   }
+}
+
+/**
+ * Deja la ondulación guardada dentro del ejercicio, que es lo que permite que
+ * el asesorado la vea serie por serie y que después se pueda auditar si el
+ * microciclo quedó ondulado o no. Si no hay ancla para calcularla, el ejercicio
+ * se devuelve intacto.
+ */
+export function aplicarOndulacion(
+  ejercicio: EjercicioPrescrito,
+  opciones: OpcionesOndulacion = {},
+): EjercicioPrescrito {
+  const { series } = ondularEjercicio(ejercicio, opciones)
+  if (series.length === 0) return ejercicio
+  return { ...ejercicio, sets: series.length, seriesPrescritas: series }
+}
+
+/** Prescripción de una serie concreta (orden 1-based). */
+export function seriePrescrita(
+  ejercicio: EjercicioPrescrito,
+  orden: number,
+): SeriePrescrita | undefined {
+  return ejercicio.seriesPrescritas?.find((s) => s.orden === orden)
+}
+
+/** Un ejercicio está ondulado cuando trae una prescripción por cada set. */
+export function ejercicioOndulado(ejercicio: EjercicioPrescrito): boolean {
+  return (ejercicio.seriesPrescritas?.length ?? 0) >= ejercicio.sets && ejercicio.sets > 0
+}
+
+/** Una sesión está ondulada cuando lo están todos sus ejercicios de fuerza. */
+export function sesionOndulada(ejercicios: EjercicioPrescrito[]): boolean {
+  return ejercicios.length > 0 && ejercicios.every(ejercicioOndulado)
 }
