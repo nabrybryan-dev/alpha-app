@@ -245,6 +245,9 @@ Con el probador que trae el editor (*Test*/*Invoke*), manda este cuerpo:
 
 Debe devolver `via: "ficha"` y el texto de la ficha de profundidad.
 
+> **Si ya vas por el paso 12, este cuerpo ya no aplica.** La función dejó de
+> aceptar el `usuario_id` del cuerpo; usa el de la sección 12.3.
+
 Para sacar un uuid real, en el SQL Editor:
 
 ```sql
@@ -260,3 +263,104 @@ Si algo se rompe, se vuelve a pegar desde el repo.
 
 Por lo mismo: **nunca edites el código directamente en el panel.** Se cambia
 en el repo, se prueba con `npm test`, y recién ahí se pega.
+
+---
+
+## 12 · Cerrar el agujero y conectar el chat (migración 0012 + redespliegue)
+
+Hasta ahora la función se creía el `usuario_id` que le llegaba en el cuerpo de
+la petición. Como la app todavía no la llamaba, nadie podía aprovecharlo — pero
+conectar el chat sin arreglar eso sí lo haría: un asesorado podía mandar el uuid
+de otro y **leer sus datos** (microciclo, check-in de bienestar, hidratación) y
+**escribir en su historial**, incluidas banderas rojas falsas que te llegarían a
+ti atribuidas a alguien que nunca escribió eso.
+
+Ahora el usuario sale del **token de sesión**, validado contra Supabase Auth.
+
+### 12.1 · Correr la migración 0012
+
+1. Menú → **SQL Editor** → **New query**.
+2. Pega el contenido de `supabase/migrations/0012_origen_mensajes.sql` y **Run**.
+
+Agrega la columna `origen` a `mensajes` (`'humano'` o `'alpha'`). Las filas que
+ya existen quedan como `'humano'`, así que nada de lo que ya está escrito
+cambia. Sirve para que la app pinte distinto la respuesta automática: el
+asesorado tiene que saber si le habló la app o le hablaste tú.
+
+Comprobación rápida:
+
+```sql
+select origen, count(*) from public.mensajes group by origen;
+```
+
+### 12.2 · Redesplegar `responder-chat` (sin esto el arreglo NO está activo)
+
+El código nuevo está en el repo, pero la función que corre en Supabase sigue
+siendo la vieja hasta que la vuelvas a pegar. **Mientras no hagas este paso, el
+agujero sigue abierto.**
+
+1. Menú → **Edge Functions** → `responder-chat` → editar.
+2. Borra todo (**Ctrl+A → Delete**) y pega de nuevo el archivo completo, igual
+   que en el paso 11.2. Desde la carpeta `app/`:
+
+   ```powershell
+   powershell -Command "Get-Content 'supabase/functions/responder-chat/index.ts' -Raw -Encoding UTF8 | Set-Clipboard; (Get-Clipboard).Length"
+   ```
+
+3. **Deploy**.
+
+### 12.3 · Probar que el arreglo quedó activo
+
+Con el probador del panel, manda el mismo mensaje de antes **pero ya sin
+`usuario_id`**:
+
+```json
+{ "mensaje": "hasta donde bajo en la sentadilla" }
+```
+
+Desde el panel no hay sesión de asesorado, así que **debe responder `401`** con
+`{ "error": "Falta la sesion" }` o `{ "error": "Sesion invalida" }`.
+
+**Ese 401 es la señal de que el arreglo funciona.** Si te devuelve una respuesta
+de ficha, el redespliegue no tomó: repite el 12.2.
+
+Para probarla de verdad hay que hacerlo desde la app con una cuenta iniciada,
+que es lo que pasa cuando una asesorada escribe en su chat.
+
+### 12.4 · La app ya no manda el usuario, y es a propósito
+
+Si miras el cuerpo que envía la app, verás que solo lleva `{ "mensaje": ... }`.
+No es un olvido: **mandar el usuario es justamente el agujero**. Quien pregunta
+se decide con el token de sesión y con nada más. Si alguna vez alguien propone
+volver a aceptarlo "por si acaso", la respuesta es no.
+
+### 12.5 · PENDIENTE antes de que esto funcione de punta a punta
+
+Falta una decisión tuya. La respuesta de Alpha entra en el hilo firmada con
+**tu id de coach** (la tabla `mensajes` exige que `de_id` sea un usuario real) y
+marcada `origen = 'alpha'`. Pero la política de seguridad de `mensajes` dice:
+
+```sql
+create policy mensajes_enviar on public.mensajes
+  for insert with check (de_id = auth.uid());
+```
+
+Es decir: **una asesorada no puede insertar una fila firmada por ti.** Con eso,
+la respuesta de Alpha se ve al instante en su teléfono pero no se guarda en la
+base: se reintenta 8 veces, se descarta, y desaparece la próxima vez que la app
+sincroniza. Además, mientras reintenta, **bloquea la cola** y retrasa la subida
+de sus series y check-ins.
+
+Hay dos salidas y la elección es tuya:
+
+- **(A) Que la escriba la función.** La Edge Function ya corre con
+  `service_role` y se salta las políticas: puede insertar ella misma la fila en
+  `mensajes`. Es lo más limpio y no abre nada. Requiere un cambio más en la
+  función y en la app.
+- **(B) Abrir una política nueva** que deje a la asesorada insertar filas con
+  `origen = 'alpha'` dirigidas a ella misma. Es menos trabajo, pero le permite
+  fabricar mensajes firmados con tu id. Quedarían marcados como `'alpha'`, no
+  como tuyos, pero **serían filas reales atribuidas a tu cuenta**. En una app con
+  datos de salud eso no es un detalle menor.
+
+Mi recomendación es **(A)**. No conectes el chat en producción hasta decidirlo.
