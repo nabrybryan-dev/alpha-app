@@ -44,10 +44,15 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
 
   const hilo = db.mensajes.hilo(yoId, otroId)
 
-  // Alpha solo contesta cuando el asesorado le escribe a SU coach. Esta misma
-  // pantalla la usa el coach desde su bandeja: si quien escribe es staff, no se
-  // llama a nada.
-  const respondeAlpha = db.usuarios.byId(yoId)?.rol === 'asesorado' && otroId === idCoach()
+  // Alpha contesta a quien le escribe AL coach, sea cual sea su rol. La única
+  // excepción es el propio coach: esta misma pantalla la usa él desde su
+  // bandeja, y ahí no debe responder nadie.
+  //
+  // Se comprueba por rol de coach y no por "eres asesorado" a propósito: la
+  // nutricionista del equipo también entrena con el plan de Alpha, y con la
+  // condición anterior se quedaba sin asistente por ser staff. Ser parte del
+  // equipo no quita ser asesorado.
+  const respondeAlpha = yoId !== idCoach() && otroId === idCoach()
 
   useEffect(() => {
     montadoRef.current = true
