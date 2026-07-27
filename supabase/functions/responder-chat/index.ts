@@ -169,6 +169,30 @@ export function armarRespuesta(
   return armadas.filter(Boolean).join('\n\n')
 }
 
+// ---------------------------------------------------------------- aviso al coach
+
+export interface Aviso {
+  tipo: 'crisis' | 'salud'
+  nombre: string
+  panel: string
+}
+
+/**
+ * El aviso NO lleva el texto del mensaje, a propósito: puede contener datos de
+ * salud y Telegram es un tercero. Solo dice quién y de qué tipo; el contenido
+ * se lee en el panel. Ver §9 de CLAUDE.md.
+ */
+export function textoDeAviso(a: Aviso): string {
+  const pila = (a.nombre ?? '').trim().split(/\s+/)[0]
+  const quien = pila || 'Una asesorada'
+  const cabecera = a.tipo === 'crisis' ? '🚨 URGENTE — Alpha Athletics' : '🔴 Bandera roja — Alpha Athletics'
+  const que =
+    a.tipo === 'crisis'
+      ? `${quien} escribió algo que el sistema no debe responder. Ya recibió una respuesta de contención, pero te está esperando a ti.`
+      : `${quien} escribió sobre un tema de salud.`
+  return `${cabecera}\n\n${que}\n\n${a.panel}`
+}
+
 // ---------------------------------------------------------------- mensajes fijos
 
 // El texto NO promete un aviso al telefono: hoy la bandera roja solo queda

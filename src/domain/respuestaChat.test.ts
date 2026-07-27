@@ -5,6 +5,7 @@ import {
   esCrisis,
   esTemaDeSalud,
   normalizar,
+  textoDeAviso,
   tokenDeCabecera,
 } from '../../supabase/functions/responder-chat/index.ts'
 
@@ -219,6 +220,45 @@ describe('armarRespuesta — ranuras fuera de tu_caso_hoy', () => {
       expect(r).toContain('Sube 2,5 kg si te sobraron reps.')
       expect(r).toContain('Si la tecnica se rompe, baja el peso.')
     }
+  })
+})
+
+// El aviso sale de Supabase hacia Telegram, que es un tercero. Por eso NO lleva
+// el texto del mensaje: puede contener datos de salud de una persona real. Ver
+// §9 de CLAUDE.md. El contenido se lee en el panel del coach.
+describe('textoDeAviso', () => {
+  it('marca la crisis como urgente y la distingue', () => {
+    const t = textoDeAviso({ tipo: 'crisis', nombre: 'Laura', panel: 'https://x/coach/consultas' })
+    expect(t).toContain('URGENTE')
+    expect(t).toContain('Laura')
+    expect(t).toContain('https://x/coach/consultas')
+  })
+
+  it('la bandera de salud no dice urgente', () => {
+    const t = textoDeAviso({ tipo: 'salud', nombre: 'Laura', panel: 'https://x/coach/consultas' })
+    expect(t).not.toContain('URGENTE')
+    expect(t).toContain('Laura')
+  })
+
+  it('NUNCA incluye el texto del mensaje', () => {
+    const t = textoDeAviso({
+      tipo: 'salud',
+      nombre: 'Laura',
+      panel: 'https://x/coach/consultas',
+      mensaje: 'se me escapa la orina al saltar',
+    } as never)
+    expect(t).not.toContain('orina')
+  })
+
+  it('usa solo el nombre de pila', () => {
+    const t = textoDeAviso({ tipo: 'salud', nombre: 'Maria Isabel Restrepo Gomez', panel: 'https://x' })
+    expect(t).toContain('Maria')
+    expect(t).not.toContain('Restrepo')
+  })
+
+  it('aguanta que no se sepa el nombre', () => {
+    const t = textoDeAviso({ tipo: 'salud', nombre: '', panel: 'https://x' })
+    expect(t).toContain('Una asesorada')
   })
 })
 
