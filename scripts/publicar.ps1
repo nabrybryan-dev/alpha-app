@@ -89,11 +89,21 @@ $env:OPENAI_API_KEY = Pedir-Clave 'OPENAI_API_KEY' 'Clave de OpenAI' @(
   'Copiala con el boton de copiar (empieza por sk-).'
 ) { param($v) $v -match '^sk-' -and $v.Length -gt 20 }
 
-$env:SUPABASE_SERVICE_KEY = Pedir-Clave 'SUPABASE_SERVICE_KEY' 'Clave service_role de Supabase' @(
-  'Supabase -> tu proyecto -> Project Settings -> API',
-  'Busca "service_role", dale a Reveal y copiala.',
-  'OJO: no es la anon. Si copias la anon te aviso y lo repetimos.'
-) { param($v) (Rol-Del-Jwt $v) -eq 'service_role' }
+# Supabase tiene dos formatos de clave secreta:
+#   nuevo   -> empieza por sb_secret_
+#   antiguo -> es un JWT (empieza por eyJ) con role = service_role
+# Y hay que rechazar la publica: sb_publishable_ o JWT con role = anon.
+$env:SUPABASE_SERVICE_KEY = Pedir-Clave 'SUPABASE_SERVICE_KEY' 'Clave secreta de Supabase' @(
+  'Supabase -> tu proyecto -> Settings -> API Keys',
+  'Busca el apartado "Secret keys" (el de ABAJO).',
+  'Dale al boton de copiar de la fila "default".',
+  'OJO: la de arriba, "Publishable key", NO sirve. Si la copias te aviso.'
+) {
+  param($v)
+  if ($v -match '^sb_publishable_') { return $false }
+  if ($v -match '^sb_secret_')      { return $true }
+  (Rol-Del-Jwt $v) -eq 'service_role'
+}
 
 # ---------------------------------------------------------------- trabajo
 
