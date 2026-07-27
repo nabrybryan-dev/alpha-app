@@ -189,6 +189,8 @@ export interface Mensaje {
   texto: string
   adjuntoUrl?: string
   leido: boolean
+  /** 'alpha' = respuesta automatica del Centro de Respuestas. Sin definir = humano. */
+  origen?: 'humano' | 'alpha'
 }
 
 export type TipoPregunta = 'si_no' | 'escala_1_5' | 'opcion_multiple' | 'texto'

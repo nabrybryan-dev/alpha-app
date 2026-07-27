@@ -56,7 +56,14 @@ export interface NutricionRepo {
 
 export interface MensajesRepo {
   hilo(usuarioA: string, usuarioB: string): Mensaje[]
-  enviar(mensaje: { deId: string; paraId: string; texto: string; adjuntoUrl?: string }): void
+  enviar(mensaje: {
+    deId: string
+    paraId: string
+    texto: string
+    adjuntoUrl?: string
+    /** 'alpha' marca la respuesta del Centro de Respuestas. Por defecto, humano. */
+    origen?: 'humano' | 'alpha'
+  }): void
   marcarLeidos(paraId: string, deId: string): void
   noLeidosPara(usuarioId: string): number
   noLeidosDe(paraId: string, deId: string): number

@@ -33,6 +33,8 @@ interface FilaMensaje {
   texto: string
   adjunto_url: string | null
   leido: boolean
+  /** Columna de la migración 0012: falta mientras no se haya corrido. */
+  origen?: 'humano' | 'alpha' | null
 }
 
 export async function hidratarDesdeNube(): Promise<void> {
@@ -135,6 +137,7 @@ export async function hidratarDesdeNube(): Promise<void> {
         fechaIso: m.fecha_iso,
         texto: m.texto,
         adjuntoUrl: m.adjunto_url ?? undefined,
+        origen: m.origen ?? 'humano',
         leido: m.leido,
       }),
     ),

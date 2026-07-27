@@ -81,6 +81,23 @@ describe('mockDb', () => {
     expect(db.mensajes.noLeidosPara('u-valentina')).toBe(0)
   })
 
+  // El origen es lo que permite que el asesorado sepa si le hablo una maquina
+  // o su coach. Si se perdiera, la respuesta de Alpha pasaria por palabra del
+  // coach, que es justo lo que no puede ocurrir.
+  it('guarda el origen del mensaje y por defecto es humano', () => {
+    const db = crearMockDb()
+    db.mensajes.enviar({ deId: 'u-valentina', paraId: 'u-bryan', texto: 'hasta donde bajo' })
+    db.mensajes.enviar({
+      deId: 'u-bryan',
+      paraId: 'u-valentina',
+      texto: 'Baja hasta pasar la paralela.',
+      origen: 'alpha',
+    })
+    const hilo = db.mensajes.hilo('u-valentina', 'u-bryan')
+    expect(hilo[hilo.length - 2].origen).toBe('humano')
+    expect(hilo[hilo.length - 1].origen).toBe('alpha')
+  })
+
   it('responde cuestionarios', () => {
     const db = crearMockDb()
     db.cuestionarios.responder('q-dolor-articular', 'u-valentina', { p1: 'No' })

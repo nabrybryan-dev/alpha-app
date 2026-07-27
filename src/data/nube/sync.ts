@@ -279,6 +279,7 @@ export function crearDbSincronizada(local: Db): Db {
             fecha_iso: ultimo.fechaIso,
             texto: ultimo.texto,
             adjunto_url: ultimo.adjuntoUrl ?? null,
+            origen: ultimo.origen ?? 'humano',
             leido: false,
           },
         })

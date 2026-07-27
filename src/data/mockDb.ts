@@ -227,7 +227,7 @@ export function crearMockDb(): Db {
               (m.deId === usuarioB && m.paraId === usuarioA),
           )
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
-      enviar: ({ deId, paraId, texto, adjuntoUrl }) => {
+      enviar: ({ deId, paraId, texto, adjuntoUrl, origen }) => {
         mutar({
           ...ref.actual,
           mensajes: [
@@ -238,6 +238,7 @@ export function crearMockDb(): Db {
               paraId,
               texto,
               adjuntoUrl,
+              origen: origen ?? 'humano',
               fechaIso: new Date().toISOString(),
               leido: false,
             },
