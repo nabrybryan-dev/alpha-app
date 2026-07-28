@@ -13,10 +13,10 @@ import type {
 } from '../../domain/types'
 import type { FilaRanking } from '../../domain/ranking'
 import type { RegistroHidratacion } from '../../domain/types'
-import { aplicarSnapshot } from '../mockDb'
+import { aplicarSnapshot, epocaSesion, versionEscrituras } from '../mockDb'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
-import { marcarTablaHidratacion } from './sync'
+import { conPendientes, marcarTablaHidratacion } from './sync'
 
 interface FilaUsuario {
   id: string
@@ -37,8 +37,25 @@ interface FilaMensaje {
   origen?: 'humano' | 'alpha' | null
 }
 
+/**
+ * Distingue "esa tabla no existe en este despliegue" de "la lectura falló
+ * ahora". Postgres da `42P01` (undefined_table); PostgREST, `PGRST205` cuando
+ * no la encuentra en su caché de esquema. Cualquier otra cosa —500, timeout,
+ * red -— es pasajera y no debe apagar nada.
+ */
+function esTablaInexistente(error: { code?: string }): boolean {
+  return error.code === '42P01' || error.code === 'PGRST205'
+}
+
 export async function hidratarDesdeNube(): Promise<void> {
   const sb = supabase()
+
+  // Marca de agua: todo lo que se escriba de aquí en adelante es MÁS NUEVO que
+  // la foto que estamos a punto de pedir. Ver la comprobación al aplicarla.
+  const versionAlEmpezar = versionEscrituras()
+  // Y de qué sesión es esta descarga: si por el medio se cierra o entra otra
+  // persona, lo que baje aquí ya no le pertenece a nadie que esté dentro.
+  const epocaAlEmpezar = epocaSesion()
 
   const [
     usuarios,
@@ -73,8 +90,13 @@ export async function hidratarDesdeNube(): Promise<void> {
 
   // Tabla posterior al esquema inicial (migración 0003): si aún no existe,
   // la app sigue funcionando y la hidratación queda solo en el dispositivo.
+  //
+  // Solo un "esta tabla no existe" apaga la sincronización. Un 500 pasajero o
+  // un corte de wifi NO son eso, y apagarla por ellos dejaba cada vaso de agua
+  // encerrado en el móvil de por vida.
   const hidratacion = await sb.from('hidratacion').select('*')
-  marcarTablaHidratacion(!hidratacion.error)
+  if (!hidratacion.error) marcarTablaHidratacion(true)
+  else if (esTablaInexistente(hidratacion.error)) marcarTablaHidratacion(false)
 
   // RPC del ranking (migración 0004): también opcional. Devuelve SOLO
   // cumplimiento agregado por asesorado, nunca datos personales.
@@ -89,10 +111,12 @@ export async function hidratarDesdeNube(): Promise<void> {
         avatarIniciales: u.avatar_iniciales || u.nombre.slice(0, 2).toUpperCase(),
       }),
     ),
-    perfiles: (perfiles.data ?? []).map((f) => f.datos as Perfil),
-    microciclos: (microciclos.data ?? []).map((f) => f.datos as Microciclo),
-    checkins: (checkins.data ?? []).map((f) => f.datos as CheckinDiario),
-    adherencias: (adherencias.data ?? []).map(
+    perfiles: conPendientes('perfiles', perfiles.data ?? []).map((f) => f.datos as Perfil),
+    microciclos: conPendientes('microciclos', microciclos.data ?? []).map(
+      (f) => f.datos as Microciclo,
+    ),
+    checkins: conPendientes('checkins', checkins.data ?? []).map((f) => f.datos as CheckinDiario),
+    adherencias: conPendientes('adherencias', adherencias.data ?? []).map(
       (f): AdherenciaNutricional => ({
         id: f.id as string,
         usuarioId: f.usuario_id as string,
@@ -101,16 +125,17 @@ export async function hidratarDesdeNube(): Promise<void> {
         comentario: (f.comentario as string | null) ?? undefined,
       }),
     ),
-    hidratacion: hidratacion.error
-      ? []
-      : (hidratacion.data ?? []).map(
-          (f): RegistroHidratacion => ({
-            id: f.id as string,
-            usuarioId: f.usuario_id as string,
-            fecha: f.fecha as string,
-            ml: (f.ml as number) ?? 0,
-          }),
-        ),
+    hidratacion: conPendientes(
+      'hidratacion',
+      hidratacion.error ? [] : (hidratacion.data ?? []),
+    ).map(
+      (f): RegistroHidratacion => ({
+        id: f.id as string,
+        usuarioId: f.usuario_id as string,
+        fecha: f.fecha as string,
+        ml: (f.ml as number) ?? 0,
+      }),
+    ),
     ranking: ranking.error
       ? []
       : ((ranking.data ?? []) as Record<string, unknown>[]).map(
@@ -129,7 +154,7 @@ export async function hidratarDesdeNube(): Promise<void> {
           }),
         ),
     planes: (planes.data ?? []).map((f) => f.datos as PlanNutricional),
-    mensajes: ((mensajes.data ?? []) as FilaMensaje[]).map(
+    mensajes: conPendientes('mensajes', (mensajes.data ?? []) as FilaMensaje[]).map(
       (m): Mensaje => ({
         id: m.id,
         deId: m.de_id,
@@ -146,7 +171,7 @@ export async function hidratarDesdeNube(): Promise<void> {
       id: f.id as string,
       asignadoA: (f.asignado_a as string[]) ?? [],
     })),
-    respuestas: (respuestas.data ?? []).map(
+    respuestas: conPendientes('respuestas', respuestas.data ?? []).map(
       (f): Respuesta => ({
         id: f.id as string,
         cuestionarioId: f.cuestionario_id as string,
@@ -167,5 +192,16 @@ export async function hidratarDesdeNube(): Promise<void> {
     ),
   }
 
-  aplicarSnapshot(snapshot)
+  // La descarga tardó lo que tardó el wifi del gimnasio, y en ese rato la
+  // persona pudo guardar una serie o un check-in. `aplicarSnapshot` REEMPLAZA
+  // la base local entera, así que aplicar ahora una foto anterior a esa
+  // pulsación la borraría —y en la escritura siguiente la pérdida se volvería
+  // definitiva, porque el envío se reconstruye leyendo el estado ya pisado.
+  //
+  // Se prefiere quedarse un momento desactualizado antes que perder un dato:
+  // la hidratación se repite sola (al volver a la pestaña, cada 45 s en el
+  // staff, en el siguiente SIGNED_IN).
+  if (versionEscrituras() !== versionAlEmpezar) return
+
+  aplicarSnapshot(snapshot, epocaAlEmpezar)
 }

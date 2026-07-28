@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
 import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
 
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
+
+/** Solo para el primer check-in de alguien, cuando aún no hay historial. */
+const PESO_DE_FABRICA = 70
+const PASOS_DE_FABRICA = 8000
 
 interface CheckinFormProps {
   usuarioId: string
@@ -51,8 +55,29 @@ function CampoPills({
 }
 
 export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGuardar }: CheckinFormProps) {
-  const [pesoKg, setPesoKg] = useState(pesoInicial ?? 70)
-  const [pasos, setPasos] = useState(pasosInicial ?? 8000)
+  const [pesoKg, setPesoKg] = useState(pesoInicial ?? PESO_DE_FABRICA)
+  const [pasos, setPasos] = useState(pasosInicial ?? PASOS_DE_FABRICA)
+  // Si la persona ya movió el campo, manda ella: una hidratación tardía no
+  // puede pisarle lo que acaba de escribir.
+  const [pesoTocado, setPesoTocado] = useState(false)
+  const [pasosTocados, setPasosTocados] = useState(false)
+
+  /**
+   * El historial puede llegar DESPUÉS de abrir el formulario: se entra al
+   * vestuario con mala señal (la app deja pasar con los datos locales que
+   * haya) y la hidratación aterriza al salir del gimnasio.
+   *
+   * Sin esto, el valor de fábrica se quedaba puesto. Y no es un placeholder
+   * gris: es un número ya cargado en el campo, el peso no es obligatorio para
+   * guardar, y el coach decide superávit o déficit sobre lo que se guardó.
+   */
+  useEffect(() => {
+    if (pesoInicial !== undefined && !pesoTocado) setPesoKg(pesoInicial)
+  }, [pesoInicial, pesoTocado])
+
+  useEffect(() => {
+    if (pasosInicial !== undefined && !pasosTocados) setPasos(pasosInicial)
+  }, [pasosInicial, pasosTocados])
   const [entreno, setEntreno] = useState('')
   const [rendimiento, setRendimiento] = useState<Cualitativo3>()
   const [motivacion, setMotivacion] = useState<Cantidad3>()
@@ -101,10 +126,10 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
       {/* Peso ayunas + Pasos como steppers en tarjetas paper */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
-          <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={setPesoKg} />
+          <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />
         </div>
         <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
-          <Stepper etiqueta="Pasos de ayer" valor={pasos} paso={500} minimo={0} maximo={100000} onCambiar={setPasos} />
+          <Stepper etiqueta="Pasos de ayer" valor={pasos} paso={500} minimo={0} maximo={100000} onCambiar={(v) => { setPasosTocados(true); setPasos(v) }} />
         </div>
       </div>
 

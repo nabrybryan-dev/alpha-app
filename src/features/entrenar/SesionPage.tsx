@@ -25,6 +25,13 @@ import { VisorContenido } from '../contenidos/VisorContenido'
 interface Descanso {
   hasta: number
   totalSeg: number
+  /**
+   * Cuándo empezó ESTE descanso. Identifica al descanso como tal, a diferencia
+   * de `hasta`, que se mueve cada vez que se piden +15 s. Es lo que se usa como
+   * `key` del contador: con `hasta` de clave, pedir +15 s lo remontaba y le
+   * borraba la pausa que la persona acababa de poner.
+   */
+  iniciadoEn: number
 }
 
 interface ExCompletado {
@@ -55,7 +62,26 @@ function MiniaturaEjercicio() {
   )
 }
 
+/**
+ * Fuerza un remontaje al cambiar de sesión.
+ *
+ * La ruta `entrenar/sesion/:sesionId` reutiliza el mismo elemento, así que
+ * pasar de una sesión a otra NO desmontaba nada. Los `useState(() => leerJSON(…))`
+ * solo corren en el primer montaje y conservaban el estado de la sesión
+ * anterior, mientras que los efectos que persisten SÍ reaccionaban a la clave
+ * nueva: el cronómetro de la sesión vieja se escribía sobre la clave de la
+ * nueva —y ese cronómetro alimenta la duración del test post-sesión, que sube
+ * al servidor— y el descanso a medias de la nueva se borraba.
+ *
+ * Le pasa a cualquiera que abra una sesión por error y entre luego a la que
+ * de verdad le tocaba.
+ */
 export default function SesionPage() {
+  const { sesionId } = useParams()
+  return <SesionEnCurso key={sesionId} />
+}
+
+function SesionEnCurso() {
   const { sesionId } = useParams()
   const { usuario } = useSesion()
   useDbVersion()
@@ -113,7 +139,7 @@ export default function SesionPage() {
     }
     // 3) Serie intermedia → descanso pautado.
     const totalSeg = Math.max(1, Math.round(descansoMin * 60))
-    setDescanso({ hasta: Date.now() + totalSeg * 1000, totalSeg })
+    setDescanso({ hasta: Date.now() + totalSeg * 1000, totalSeg, iniciadoEn: Date.now() })
   }
 
   const irASiguienteEjercicio = () => {
@@ -510,11 +536,13 @@ export default function SesionPage() {
           <div className="mx-auto flex max-w-lg flex-col gap-2">
             {descanso && !todasRegistradas && !exCompletado && (
               <DescansoTimer
-                key={descanso.hasta}
+                key={descanso.iniciadoEn}
                 hasta={descanso.hasta}
                 totalSeg={descanso.totalSeg}
                 onCerrar={() => setDescanso(null)}
-                onMas15={() => setDescanso((d) => (d ? { hasta: d.hasta + 15000, totalSeg: d.totalSeg + 15 } : d))}
+                onMas15={() =>
+                  setDescanso((d) => (d ? { ...d, hasta: d.hasta + 15000, totalSeg: d.totalSeg + 15 } : d))
+                }
               />
             )}
             {mostrarCTA && (

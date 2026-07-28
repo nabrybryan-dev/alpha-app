@@ -42,18 +42,25 @@ function avanzar(ms: number) {
 }
 
 /**
- * Réplica exacta de cómo `SesionPage` monta el descanso (líneas 511-518),
- * incluida la `key`.
+ * Réplica de cómo `SesionPage` monta el descanso, incluida la `key`.
+ *
+ * La clave es `iniciadoEn` y no `hasta` a propósito: identifica al descanso, no
+ * a su hora de fin. Con `hasta` de clave —como estaba— pedir +15 s remontaba el
+ * contador y le borraba a la persona la pausa que acababa de poner.
  */
 function ZonaDeDescanso() {
-  const [descanso, setDescanso] = useState({ hasta: BASE + 120_000, totalSeg: 120 })
+  const [descanso, setDescanso] = useState({
+    hasta: BASE + 120_000,
+    totalSeg: 120,
+    iniciadoEn: BASE,
+  })
   return (
     <DescansoTimer
-      key={descanso.hasta}
+      key={descanso.iniciadoEn}
       hasta={descanso.hasta}
       totalSeg={descanso.totalSeg}
       onCerrar={() => {}}
-      onMas15={() => setDescanso((d) => ({ hasta: d.hasta + 15_000, totalSeg: d.totalSeg + 15 }))}
+      onMas15={() => setDescanso((d) => ({ ...d, hasta: d.hasta + 15_000, totalSeg: d.totalSeg + 15 }))}
     />
   )
 }

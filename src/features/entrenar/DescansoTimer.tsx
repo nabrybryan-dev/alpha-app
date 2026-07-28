@@ -46,12 +46,14 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
     onCerrar()
   }
 
+  // Los efectos van FUERA del actualizador de estado: React invoca los
+  // actualizadores dos veces bajo StrictMode, y ahí dentro el tiempo pausado se
+  // acreditaba por duplicado (30 s de pausa contaban como 60). Es un manejador
+  // de evento, así que `pausado` ya es el valor de este render.
   const alternarPausa = () => {
-    setPausado((p) => {
-      if (p) desfaseMs.current += Date.now() - pausaInicio.current // reanuda: suma lo pausado
-      else pausaInicio.current = Date.now() // pausa: congela el instante
-      return !p
-    })
+    if (pausado) desfaseMs.current += Date.now() - pausaInicio.current // reanuda: suma lo pausado
+    else pausaInicio.current = Date.now() // pausa: congela el instante
+    setPausado(!pausado)
   }
 
   const urgente = !enBanner && !pausado && restante > 0 && restante <= 5
@@ -76,6 +78,15 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
       document.removeEventListener('visibilitychange', tick)
     }
   }, [hasta, enBanner, pausado])
+
+  // En pausa la cuenta regresiva no corre, pero `hasta` sí puede moverse:
+  // pedir +15 s con el descanso congelado tiene que verse en el acto. El
+  // tiempo que lleva pausado todavía no está en `desfaseMs` (se suma al
+  // reanudar), así que aquí se cuenta aparte.
+  useEffect(() => {
+    if (!pausado) return
+    setRestante(restanteSeg(hasta, desfaseMs.current + (Date.now() - pausaInicio.current)))
+  }, [hasta, pausado])
 
   // El letrero "¡DALE!" se muestra ~2.4 s, sale limpio (240 ms) y se cierra.
   useEffect(() => {

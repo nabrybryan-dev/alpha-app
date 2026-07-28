@@ -44,7 +44,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider, useSesion } from './SessionProvider'
 import { db } from '../data/dbInstance'
-import { aplicarSnapshot } from '../data/mockDb'
+import { aplicarSnapshot, epocaSesion } from '../data/mockDb'
 import type { SeedDb } from '../data/seed'
 import type { Usuario } from '../domain/types'
 
@@ -200,13 +200,17 @@ describe('cambio de asesorado en el mismo teléfono', () => {
     // Ana desbloquea el teléfono: supabase-js emite SIGNED_IN y arranca una
     // hidratación en segundo plano que el wifi del gimnasio deja colgada.
     let soltarHidratacion = () => {}
-    arnes.hidratar = () =>
-      new Promise<void>((resolver) => {
+    arnes.hidratar = () => {
+      // Como la de verdad: la época se captura al ARRANCAR la descarga y se
+      // usa al aplicarla, que es lo que la delata como vieja.
+      const epoca = epocaSesion()
+      return new Promise<void>((resolver) => {
         soltarHidratacion = () => {
-          aplicarSnapshot(snapshotDe([ana]))
+          aplicarSnapshot(snapshotDe([ana]), epoca)
           resolver()
         }
       })
+    }
     await emitir('SIGNED_IN', 'u-ana')
 
     // Ana cierra sesión mientras esa petición sigue en vuelo.
@@ -227,13 +231,15 @@ describe('cambio de asesorado en el mismo teléfono', () => {
     await waitFor(() => expect(screen.getByTestId('quien')).toHaveTextContent('u-ana'))
 
     let soltarHidratacionDeAna = () => {}
-    arnes.hidratar = () =>
-      new Promise<void>((resolver) => {
+    arnes.hidratar = () => {
+      const epoca = epocaSesion()
+      return new Promise<void>((resolver) => {
         soltarHidratacionDeAna = () => {
-          aplicarSnapshot(snapshotDe([ana]))
+          aplicarSnapshot(snapshotDe([ana]), epoca)
           resolver()
         }
       })
+    }
     await emitir('SIGNED_IN', 'u-ana') // refoco: hidratación en segundo plano
 
     await emitir('SIGNED_OUT') // Ana sale
