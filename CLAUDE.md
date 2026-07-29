@@ -60,7 +60,7 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 | `src/components/ui/` | Primitivas reutilizables (18) | Sin lógica de negocio. |
 | `src/app/` | Router, `SessionProvider`, `ThemeProvider`, `ErrorBoundary`, layouts | |
 | `src/styles/tokens.css` | Tokens de marca | **El diseño se hace con Tailwind + estos tokens.** No añadir CSS-in-JS, CSS Modules ni Bootstrap. |
-| `supabase/migrations/` | Migraciones numeradas (`0001`…`0014`) | Nueva migración = número siguiente, nunca editar una aplicada. |
+| `supabase/migrations/` | Migraciones numeradas (`0001`…`0014`) | Nueva migración = número siguiente, nunca editar una aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
 | `scripts/` | Utilidades Node (`.mjs`) | Si un test las importa, mantener su `.d.mts` al día. |
 
 ### Cómo fluyen los datos

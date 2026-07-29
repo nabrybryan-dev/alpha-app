@@ -27,5 +27,15 @@ Reglas de este proyecto:
    migración y **cómo comprobar que la política funciona** (qué debería fallar y con
    qué rol). Si el cambio afecta al aislamiento, añade o ajusta el test
    correspondiente en `src/data/nube/`.
-7. **Aplicación.** La migración se aplica en Supabase **antes** de que el código que
-   la necesita llegue a producción. Recuérdaselo a Bryan y no la apliques tú.
+7. **Añádele sus señales a `supabase/comprobar-migraciones.sql`.** Una fila por objeto
+   que crea la migración (política, trigger, vista, tabla, función), con el mismo
+   patrón que las existentes. **Esto no es opcional:** las migraciones se aplican a
+   mano y no hay registro de versiones, así que ese archivo es la única forma de saber
+   qué está realmente aplicado. Si no se actualiza, da una falsa sensación de
+   cobertura. El 2026-07-29 la 0013 llevaba días aplicada a medias sin que nadie
+   pudiera notarlo.
+8. **Aplicación.** La migración se aplica en Supabase **antes** de que el código que
+   la necesita llegue a producción. Recuérdaselo a Bryan y no la apliques tú. Al
+   pegarla, que compare la última línea del editor con la del archivo: un pegado
+   truncado no da error. Después, correr `comprobar-migraciones.sql` y confirmar que
+   las señales nuevas dicen `SI`.
