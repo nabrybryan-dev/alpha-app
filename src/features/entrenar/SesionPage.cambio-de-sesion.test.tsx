@@ -1,9 +1,12 @@
 /**
- * ⚠️ ESTOS TESTS FALLAN A PROPÓSITO. Documentan un fallo REAL que NO está
- * arreglado (auditoría de carreras y estado compartido, 2026-07-27).
+ * ✅ TESTS DE REGRESIÓN. Nacieron rojos, documentando un fallo real de la
+ * auditoría de carreras y estado compartido (2026-07-27). **Ya está corregido**:
+ * `SesionPage` envuelve la pantalla en `<SesionEnCurso key={sesionId} />`, que
+ * fuerza el remontaje al cambiar de sesión (ver `SesionPage.tsx:65-82`).
+ * Estos tests se quedan para que el fallo no vuelva.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * EL FALLO
+ * EL FALLO QUE DOCUMENTAN (histórico)
  * ────────────────────────────────────────────────────────────────────────────
  * La ruta `entrenar/sesion/:sesionId` monta SIEMPRE el mismo `<SesionPage />`.
  * Al pasar de una sesión a otra, React Router NO desmonta el componente: solo
@@ -97,7 +100,10 @@ describe('cambiar de sesión sin salir de la pantalla de entreno', () => {
     expect(await screen.findByText('00:00:00', undefined, { timeout: 5000 })).toBeInTheDocument()
 
     pasarMinutos(5)
-    expect(screen.getByText('00:05:00')).toBeInTheDocument()
+    // `findByText` y no `getByText`: el refresco del cronómetro llega por evento,
+    // y con la suite completa en paralelo el flush puede caer un tick más tarde.
+    // Con la aserción sincrónica este test fallaba de forma intermitente.
+    expect(await screen.findByText('00:05:00')).toBeInTheDocument()
 
     // Se da cuenta de que hoy le toca la otra sesión y entra a ella.
     act(() => {
