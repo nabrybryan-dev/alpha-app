@@ -243,9 +243,9 @@ async function manejar(req: Request): Promise<Response> {
   const mensaje = (peticion.mensaje ?? '').trim()
   if (!mensaje) return json({ error: 'Falta el mensaje' }, 400)
 
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-  const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY')!
+  const SUPABASE_URL = env('SUPABASE_URL')!
+  const SERVICE_KEY = env('SUPABASE_SERVICE_ROLE_KEY')!
+  const OPENAI_KEY = env('OPENAI_API_KEY')!
 
   // El usuario NO se toma del cuerpo: se saca del token de sesion y se valida
   // contra Supabase Auth. Si se confiara en el cuerpo, cualquier asesorado
@@ -261,7 +261,7 @@ async function manejar(req: Request): Promise<Response> {
   // 401: si faltara, TODA peticion respondería "sesion invalida" y mandaria a
   // buscar el problema en la sesion del asesorado en vez de en la configuracion
   // de la funcion, que es donde esta.
-  const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? ''
+  const ANON_KEY = env('SUPABASE_ANON_KEY') ?? env('SUPABASE_PUBLISHABLE_KEY') ?? ''
   if (!ANON_KEY) {
     return json({ error: 'Falta SUPABASE_ANON_KEY (o SUPABASE_PUBLISHABLE_KEY) en la funcion' }, 500)
   }
@@ -311,8 +311,8 @@ async function manejar(req: Request): Promise<Response> {
    * asesorado no viaja a Telegram nunca.
    */
   const avisar = async (tipo: 'crisis' | 'salud') => {
-    const token = Deno.env.get('TELEGRAM_BOT_TOKEN')
-    const chat = Deno.env.get('TELEGRAM_CHAT_ID')
+    const token = env('TELEGRAM_BOT_TOKEN')
+    const chat = env('TELEGRAM_CHAT_ID')
     if (!token || !chat) return
 
     try {
@@ -481,6 +481,17 @@ async function manejar(req: Request): Promise<Response> {
 // Solo arranca el servidor dentro de Deno. Así los tests pueden importar
 // este archivo sin levantar nada.
 declare const Deno: { env: { get(k: string): string | undefined }; serve(h: (r: Request) => Promise<Response>): void } | undefined
+
+/**
+ * Variable de entorno, o `undefined` fuera de Deno.
+ *
+ * `Deno` se declara opcional a propósito (ver arriba), así que leerlo directo no
+ * compila con `strict`. Estrechar el tipo aquí, una sola vez, en vez de repetir
+ * la comprobación en cada lectura.
+ */
+function env(clave: string): string | undefined {
+  return typeof Deno !== 'undefined' ? Deno.env.get(clave) : undefined
+}
 
 if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
   Deno.serve(manejar)
