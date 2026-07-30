@@ -241,8 +241,13 @@ function SesionEnCurso() {
         </section>
       )}
 
-      {/* Espacio para que el CTA fijo no tape el contenido inferior. */}
-      {mostrarCTA && <div aria-hidden="true" className="h-16" />}
+      {/* Espacio para que el CTA fijo no tape el contenido inferior.
+          Reserva la barra de navegación + el CTA + un margen. Estaba en `h-16`
+          (64 px) cuando la franja tapada mide 124 px, así que al final de la página
+          quedaban 60 px de contenido imposibles de ver. */}
+      {mostrarCTA && (
+        <div aria-hidden="true" style={{ height: 'calc(var(--tope-nav) + 5rem)' }} />
+      )}
 
       {todasRegistradas && !sesion.testPost && (
         <TestPostSesion
@@ -287,10 +292,15 @@ function SesionEnCurso() {
         </div>
       )}
 
-      {/* Zona fija inferior (sobre la barra de navegación): el descanso se apila
-          encima del CTA "Guardar serie" para que nunca se encimen. */}
+      {/* Zona fija inferior: el descanso se apila encima del CTA "Guardar serie".
+          El `bottom` sale de `--tope-nav` (el borde superior de la barra) y no de un
+          número fijo: con `4.25rem` se encimaba con la barra 10 px en escritorio y
+          30 px en un iPhone, porque la barra baja con `env(safe-area-inset-bottom)`. */}
       {(mostrarCTA || (descanso && !todasRegistradas && !exCompletado)) && (
-        <div className="fixed inset-x-0 bottom-[4.25rem] z-40 px-4">
+        <div
+          className="fixed inset-x-0 z-40 px-4"
+          style={{ bottom: 'calc(var(--tope-nav) + 0.5rem)' }}
+        >
           <div className="mx-auto flex max-w-lg flex-col gap-2">
             {descanso && !todasRegistradas && !exCompletado && (
               <DescansoTimer
