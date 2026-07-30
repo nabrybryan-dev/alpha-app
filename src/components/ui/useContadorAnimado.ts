@@ -16,14 +16,17 @@ function movimientoReducido(): boolean {
  * El llamador redondea/formatea el resultado.
  */
 export function useContadorAnimado(objetivo: number, duracionMs = 900): number {
-  const [valor, setValor] = useState(() => (movimientoReducido() ? objetivo : 0))
+  const reducido = movimientoReducido()
+  const [valor, setValor] = useState(() => (reducido ? objetivo : 0))
   // Último valor realmente mostrado: punto de partida de la siguiente animación.
-  const mostradoRef = useRef(movimientoReducido() ? objetivo : 0)
+  const mostradoRef = useRef(reducido ? objetivo : 0)
 
   useEffect(() => {
     if (movimientoReducido()) {
+      // Sin animación no hay estado que sincronizar: el valor sale directo de
+      // `objetivo` al devolverlo, abajo. Aquí solo se apunta el mostrado, que es
+      // el punto de partida si el movimiento se reactiva.
       mostradoRef.current = objetivo
-      setValor(objetivo)
       return
     }
     const desde = mostradoRef.current
@@ -71,5 +74,7 @@ export function useContadorAnimado(objetivo: number, duracionMs = 900): number {
     }
   }, [objetivo, duracionMs])
 
-  return valor
+  // Con movimiento reducido el valor ES el objetivo: se deriva en el render en vez
+  // de empujarlo al estado desde el efecto.
+  return reducido ? objetivo : valor
 }

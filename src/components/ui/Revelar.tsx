@@ -8,25 +8,34 @@ interface RevelarProps {
 }
 
 /**
+ * ¿Hay que mostrar el contenido ya, sin animar nada?
+ *
+ * Es una pregunta que se responde ANTES del primer render: no depende de nada que
+ * pase después. Por eso es el valor inicial del estado y no un efecto —así además
+ * quien pidió menos movimiento no ve el parpadeo de "oculto y de golpe visible".
+ */
+function revelarDeInmediato(): boolean {
+  if (!('IntersectionObserver' in window)) return true
+  return (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/**
  * Revela su contenido con un fade-up cuando entra al viewport
  * (IntersectionObserver, una sola vez). Sin observador disponible o con
  * prefers-reduced-motion, muestra el contenido de inmediato.
  */
 export function Revelar({ children, retrasoMs = 0, className = '' }: RevelarProps) {
   const ref = useRef<HTMLDivElement | null>(null)
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(revelarDeInmediato)
 
   useEffect(() => {
+    // Ya visible: no hay nada que observar. Al revelarse, este efecto se limpia.
+    if (visible) return
     const el = ref.current
     if (!el) return
-    const sinSoporte = !('IntersectionObserver' in window)
-    const reducido =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (sinSoporte || reducido) {
-      setVisible(true)
-      return
-    }
     const observador = new IntersectionObserver(
       (entradas) => {
         if (entradas[0]?.isIntersecting) {
@@ -44,7 +53,7 @@ export function Revelar({ children, retrasoMs = 0, className = '' }: RevelarProp
       observador.disconnect()
       clearTimeout(garantia)
     }
-  }, [])
+  }, [visible])
 
   return (
     <div
