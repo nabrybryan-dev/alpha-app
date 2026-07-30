@@ -30,11 +30,23 @@ const usuarioDemoPorDefecto = (): Usuario => {
  */
 const Contexto = createContext<SesionContexto | null>(null)
 
+/**
+ * ¿La app se abrió desde el enlace de "olvidé mi contraseña"? Supabase trae un
+ * token de recuperación en el hash de la URL.
+ *
+ * Se responde en el primer render y no dentro del efecto. Además de quitar un
+ * `setState` en efecto, se lee el hash ANTES de crear el cliente de Supabase, que
+ * es quien lo consume: cuanto antes se mire, más fiable es la detección.
+ */
+function llegaDeRecuperacion(): boolean {
+  return typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
+}
+
 function SesionNube({ children }: { children: ReactNode }) {
   const [autenticadoId, setAutenticadoId] = useState<string | null>(null)
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'sin-sesion' | 'error'>('cargando')
   const [detalleError, setDetalleError] = useState('')
-  const [recuperacion, setRecuperacion] = useState(false)
+  const [recuperacion, setRecuperacion] = useState(llegaDeRecuperacion)
   const autenticadoRef = useRef<string | null>(null)
   /**
    * QUIÉN está hidratando, no solo "si hay alguien". El candado sin dueño
@@ -44,19 +56,22 @@ function SesionNube({ children }: { children: ReactNode }) {
    * programación, los check-ins y las medidas de la otra.
    */
   const hidratandoRef = useRef<string | null>(null)
-  const recuperacionRef = useRef(false)
+  /**
+   * Espejo de `recuperacion` para leerlo desde `alCambiar`, que no ve el estado.
+   * Arranca con el MISMO valor que el estado, no en `false`: si el ref llegara
+   * tarde, un `SIGNED_IN` podría hidratar la app durante una recuperación de
+   * contraseña, que es justo lo que la comprobación evita.
+   */
+  const recuperacionRef = useRef(recuperacion)
   useDbVersion()
 
   useEffect(() => {
     const sb = supabase()
 
-    // Si el usuario llega desde el enlace de "olvidé mi contraseña", Supabase
-    // trae un token de recuperación en el hash de la URL. Se detecta de una vez
-    // para mostrar la pantalla de nueva clave y NO entrar a la app ni hidratar.
-    if (window.location.hash.includes('type=recovery')) {
-      recuperacionRef.current = true
-      setRecuperacion(true)
-    }
+    // La llegada desde el enlace de "olvidé mi contraseña" ya se detectó en el
+    // primer render (`llegaDeRecuperacion`), para mostrar la pantalla de nueva
+    // clave y NO entrar a la app ni hidratar. El evento PASSWORD_RECOVERY de más
+    // abajo sigue cubriendo el caso en que el hash ya se hubiera consumido.
 
     /**
      * Supabase emite SIGNED_IN no solo en el login real: también cada vez que

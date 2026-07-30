@@ -87,14 +87,23 @@ type Estado =
   | { fase: 'listo'; datos: Datos }
 
 export default function ConsultasPage() {
-  const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
+  // `modoNube` es una constante de módulo: se sabe antes del primer render si esta
+  // vista puede funcionar. Es estado inicial, no algo que sincronizar por efecto.
+  const [estado, setEstado] = useState<Estado>(() =>
+    modoNube
+      ? { fase: 'cargando' }
+      : {
+          fase: 'error',
+          mensaje:
+            'Esta vista lee las consultas directo de Supabase y la app está en modo demo, sin conexión a la nube.',
+        },
+  )
   // Bryan entra a resolver, no a leer: solo el primer grupo abre solo.
   const [abiertas, setAbiertas] = useState<Record<string, boolean>>({ criterio: true })
   const [aviso, setAviso] = useState<string | undefined>()
 
-  const cargar = useCallback(async () => {
-    setAviso(undefined)
-    setEstado({ fase: 'cargando' })
+  /** Pide las consultas y deja el resultado. No toca el estado antes de pedir. */
+  const traer = useCallback(async () => {
     try {
       setEstado({ fase: 'listo', datos: await leerConsultas() })
     } catch (e) {
@@ -102,16 +111,23 @@ export default function ConsultasPage() {
     }
   }, [])
 
+  /**
+   * Recarga a petición (el botón de reintentar): además de pedir, limpia el aviso
+   * y vuelve a "cargando" para que se vea que algo está pasando.
+   */
+  const cargar = useCallback(async () => {
+    setAviso(undefined)
+    setEstado({ fase: 'cargando' })
+    await traer()
+  }, [traer])
+
   useEffect(() => {
-    if (!modoNube) {
-      setEstado({
-        fase: 'error',
-        mensaje: 'Esta vista lee las consultas directo de Supabase y la app está en modo demo, sin conexión a la nube.',
-      })
-      return
-    }
-    void cargar()
-  }, [cargar])
+    // En modo demo el estado ya arranca en error (arriba): no hay nada que cargar.
+    if (!modoNube) return
+    // `traer` y no `cargar`: al montar, el estado ya ES 'cargando', así que volver
+    // a ponerlo serían dos renders de más.
+    void traer()
+  }, [traer])
 
   /** Reemplaza una consulta por la versión que confirmó Supabase. */
   const reemplazar = useCallback((c: Consulta) => {
