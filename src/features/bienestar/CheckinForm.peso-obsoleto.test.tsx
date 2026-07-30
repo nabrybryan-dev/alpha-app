@@ -1,9 +1,16 @@
 /**
- * ⚠️ ESTE TEST FALLA A PROPÓSITO. Documenta un fallo REAL que NO está arreglado
- * (auditoría de carreras y estado compartido, 2026-07-27).
+ * ✅ TEST DE REGRESIÓN. Nació rojo, documentando un fallo real de la auditoría de
+ * carreras y estado compartido (2026-07-27). **Ya está corregido**: los dos efectos
+ * de `CheckinForm` adoptan el peso y los pasos reales cuando llegan, mientras la
+ * persona no haya tocado el campo.
+ *
+ * Este archivo es la razón por la que esos dos efectos NO se convirtieron en una
+ * derivación en el render al limpiar los avisos de `set-state-in-effect`: la
+ * derivación pierde la guarda `!== undefined` y volvería al 70 de fábrica si el
+ * historial desapareciera. Ver el comentario en `CheckinForm.tsx`.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * EL FALLO
+ * EL FALLO QUE DOCUMENTA (histórico)
  * ────────────────────────────────────────────────────────────────────────────
  * `CheckinForm.tsx:54-55` siembra los steppers con
  *
