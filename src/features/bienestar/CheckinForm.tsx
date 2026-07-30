@@ -71,11 +71,31 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
    * gris: es un número ya cargado en el campo, el peso no es obligatorio para
    * guardar, y el coach decide superávit o déficit sobre lo que se guardó.
    */
+  /*
+   * Estos dos efectos son intencionados, aunque `set-state-in-effect` los marque.
+   *
+   * La alternativa que sugiere la regla es derivar en el render:
+   *   `pesoTocado ? pesoEscrito : (pesoInicial ?? PESO_DE_FABRICA)`
+   * Y funciona para el caso que importa (el peso real llega tarde). Pero pierde la
+   * guarda `pesoInicial !== undefined`: si el prop volviera a quedar sin valor
+   * —una hidratación que se lleve el historial— la derivación caería al 70 de
+   * fábrica, que es EXACTAMENTE el dato equivocado contra el que existe
+   * `CheckinForm.peso-obsoleto.test.tsx`. Con el efecto, se conserva el último peso
+   * real conocido.
+   *
+   * Hay una tercera vía (ajustar estado durante el render, patrón documentado de
+   * React) que cumple las dos cosas, pero mete un `setState` en el cuerpo del
+   * componente: más difícil de leer para quien entre después, a cambio de un aviso
+   * de linter. La jerarquía de este proyecto pone integridad de datos y
+   * mantenibilidad por encima de eso.
+   */
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver el comentario de arriba
     if (pesoInicial !== undefined && !pesoTocado) setPesoKg(pesoInicial)
   }, [pesoInicial, pesoTocado])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver el comentario de arriba
     if (pasosInicial !== undefined && !pasosTocados) setPasos(pasosInicial)
   }, [pasosInicial, pasosTocados])
   const [entreno, setEntreno] = useState('')

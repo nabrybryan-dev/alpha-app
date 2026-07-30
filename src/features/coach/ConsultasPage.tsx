@@ -121,11 +121,20 @@ export default function ConsultasPage() {
     await traer()
   }, [traer])
 
+  /*
+   * `set-state-in-effect` marca este `void traer()` porque `traer` contiene
+   * `setEstado`. Es un falso positivo: los `setEstado` de `traer` ocurren DESPUÉS
+   * del `await`, o sea en la continuación asíncrona, que es justo el patrón que la
+   * documentación de la propia regla recomienda ("subscribe for updates from some
+   * external system, calling setState in a callback"). Pedir datos al montar es
+   * para lo que existen los efectos; la regla no distingue el await.
+   */
   useEffect(() => {
     // En modo demo el estado ya arranca en error (arriba): no hay nada que cargar.
     if (!modoNube) return
     // `traer` y no `cargar`: al montar, el estado ya ES 'cargando', así que volver
     // a ponerlo serían dos renders de más.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- los setEstado van tras el await
     void traer()
   }, [traer])
 

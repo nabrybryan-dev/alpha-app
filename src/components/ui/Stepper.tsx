@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 interface StepperProps {
   etiqueta: string
@@ -30,14 +30,17 @@ export function Stepper({
   const bajar = () => onCambiar(acotar(valor - paso))
   const subir = () => onCambiar(acotar(valor + paso))
 
-  // El texto se edita libremente (permite "", "42.", "42.5") y solo se confirma
-  // un número válido; al salir del campo se normaliza al valor acotado.
+  /**
+   * El texto se edita libremente (permite "", "42.", "42.5") y solo se confirma un
+   * número válido; al salir del campo se normaliza al valor acotado.
+   *
+   * `texto` SOLO se usa mientras se está editando (ver el `value` del input, que
+   * fuera de la edición muestra `valor` directamente). Por eso no hace falta
+   * mantenerlo sincronizado con un efecto: basta con ponerlo al día en el momento
+   * exacto en que empieza a usarse, que es al enfocar el campo.
+   */
   const [texto, setTexto] = useState(String(valor))
   const [editando, setEditando] = useState(false)
-
-  useEffect(() => {
-    if (!editando) setTexto(String(valor))
-  }, [valor, editando])
 
   const alEscribir = (bruto: string) => {
     const limpio = bruto.replace(',', '.')
@@ -76,6 +79,8 @@ export function Stepper({
             inputMode={decimal ? 'decimal' : 'numeric'}
             value={editando ? texto : String(valor)}
             onFocus={(e) => {
+              // El texto arranca en el valor de AHORA, no en el de la última edición.
+              setTexto(String(valor))
               setEditando(true)
               e.currentTarget.select()
             }}
