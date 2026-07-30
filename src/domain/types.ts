@@ -42,6 +42,14 @@ export interface TestPostSesion {
   prsEntrada: number
 }
 
+/** Prescripción de una serie concreta cuando el ejercicio viene ondulado. */
+export interface SeriePrescrita {
+  orden: number
+  reps: number
+  rir: number
+  cargaKg: number
+}
+
 export interface EjercicioPrescrito {
   id: string
   categoria: string
@@ -53,6 +61,10 @@ export interface EjercicioPrescrito {
   rango: string
   repsDiana: number
   rirObjetivo: number
+  /** Ondulación del microciclo: reps a la baja y carga al alza, set a set.
+   *  Sin definir, todas las series comparten `repsDiana` y `rirObjetivo` — que
+   *  es como quedaban los microciclos antes de que la ondulación se guardara. */
+  seriesPrescritas?: SeriePrescrita[]
   contenidoDemoId?: string
   /** Etiqueta de cada serie cuando el esquema no es uniforme
    *  (p. ej. ["TOP", "BACK-OFF", "BACK-OFF"] o ["PESADA", "MYO-REPS"]).
