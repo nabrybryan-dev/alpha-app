@@ -1,35 +1,33 @@
-import type { Db } from '../repos'
-import { modoNube, supabase } from '../supabase'
-
-export interface OperacionPendiente {
-  tabla: string
-  tipo: 'upsert' | 'update'
-  payload: Record<string, unknown>
-  filtro?: Record<string, string>
-  intentos?: number
-  /**
-   * Quién la escribió. Se sella al apartarla en el cierre de sesión, para que
-   * su trabajo no se reintente nunca con la sesión de la persona siguiente en
-   * un móvil compartido: solo se rescata cuando vuelve a entrar quien la hizo.
-   */
-  duenio?: string
-  /** Veces que se ha reencolado desde descartes. Corta el ida y vuelta eterno. */
-  rescates?: number
-}
-
-const CLAVE_COLA = 'alpha-cola-sync'
-const CLAVE_DESCARTES = 'alpha-cola-descartes'
-const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
-const MAX_INTENTOS = 8
-const MAX_DESCARTES = 20
-const MAX_RESCATES = 2
-
 /**
- * El procesado en marcha, o `null` si no hay ninguno. Es la promesa, no un
- * booleano, para que se pueda ESPERAR: `encolar` lo lanza sin await y ese
- * trabajo sigue vivo después de que quien lo disparó haya terminado.
+ * La base de datos local envuelta para que cada escritura, además de guardarse en
+ * el dispositivo, salga hacia Supabase por la cola de sync.
+ *
+ * Este archivo es la CARA PÚBLICA del sync: el resto de la app importa siempre
+ * de aquí, nunca de las piezas internas. Las tres piezas son:
+ *
+ *   · `cola.ts`       — la cola como estructura de datos. El único que toca
+ *                       `localStorage`. Sin red.
+ *   · `procesador.ts` — vaciarla contra Supabase. Aquí vive `enVuelo`.
+ *   · `fusion.ts`     — el camino de lectura: filas del servidor + pendientes.
+ *
+ * Se partió el 2026-07-29 (antes eran 507 líneas en un solo archivo). La
+ * propiedad que hay que conservar: **una sola cola y un solo procesador.** Si
+ * alguna vez alguien duplica las claves de `localStorage` o el `enVuelo`, el
+ * fallo no será un error en pantalla: se encolará en una cola y se drenará de la
+ * otra, y las series registradas desaparecerán sin aviso.
  */
-let enVuelo: Promise<void> | null = null
+import type { Db } from '../repos'
+import { modoNube } from '../supabase'
+import { encolar } from './procesador'
+
+// Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
+// de cómo esté repartido por dentro.
+export type { OperacionPendiente } from './cola'
+export { integrarEnCola, limpiarColasDeSync, pendientesDeSync } from './cola'
+export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
+export { conPendientes } from './fusion'
+
+const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
 
 /**
  * La tabla `hidratacion` llegó después que el esquema inicial (migración 0003).
@@ -48,322 +46,6 @@ export function marcarTablaHidratacion(disponible: boolean): void {
 
 function tablaHidratacionLista(): boolean {
   return localStorage.getItem(CLAVE_TABLA_HIDRATACION) !== '0'
-}
-
-function leerCola(): OperacionPendiente[] {
-  try {
-    return JSON.parse(localStorage.getItem(CLAVE_COLA) ?? '[]') as OperacionPendiente[]
-  } catch {
-    return []
-  }
-}
-
-function escribirCola(cola: OperacionPendiente[]): void {
-  localStorage.setItem(CLAVE_COLA, JSON.stringify(cola))
-}
-
-export function pendientesDeSync(): number {
-  return leerCola().length
-}
-
-/**
- * Al cerrar sesión, la cola activa tiene que vaciarse: en un dispositivo
- * compartido, sus operaciones se reintentarían con el JWT de la persona
- * siguiente.
- *
- * Pero vaciarla NO puede significar tirarla. `cerrarSesion` intenta subir lo
- * pendiente antes de salir y `procesarCola` resuelve igual cuando no subió nada
- * —sin señal se rinde a propósito, para no gastar reintentos—, así que borrar
- * aquí sin más se llevaba por delante entrenos enteros: quien entrena en un
- * sótano, registra sus series y luego cierra sesión porque "la app se puso
- * rara", perdía las 24 series sin un solo aviso.
- *
- * Se aparta sellada con su dueño. Solo vuelve a la cola cuando entra esa misma
- * persona (`recuperarDescartes`), nunca la siguiente.
- */
-export function limpiarColasDeSync(usuarioId?: string): void {
-  const pendientes = leerCola()
-  if (pendientes.length > 0) {
-    apartarDescartadas(pendientes.map((op) => ({ ...op, duenio: op.duenio ?? usuarioId })))
-  }
-  localStorage.removeItem(CLAVE_COLA)
-}
-
-/**
- * Un upsert nuevo sobre la misma fila reemplaza al que ya estaba en cola: en
- * una sesión de 24 series el microciclo se sube una vez con el estado final,
- * no 24 veces con estados intermedios.
- */
-export function integrarEnCola(
-  cola: OperacionPendiente[],
-  op: OperacionPendiente,
-): OperacionPendiente[] {
-  const clave = claveDeFila(op)
-  if (!clave) return [...cola, op]
-  const previa = cola.findIndex((o) => claveDeFila(o) === clave)
-  if (previa === -1) return [...cola, op]
-  return cola.map((o, i) => (i === previa ? op : o))
-}
-
-function claveDeFila(op: OperacionPendiente): string | undefined {
-  if (op.tipo !== 'upsert') return undefined
-  const id = op.payload.id ?? op.payload.usuario_id
-  return typeof id === 'string' ? `${op.tabla}:${id}` : undefined
-}
-
-/**
- * Identidad de una fila, venga del servidor o de la cola.
- *
- * Las dos formas tienen que resolverse IGUAL o la fusión no encontraría el par.
- * Unas tablas se descargan con `select('datos')` (la fila es `{datos}` y el id
- * vive dentro, en camelCase del dominio) y otras con `select('*')` (columnas
- * reales, en snake_case). Se miran las dos.
- */
-function identidadDeFila(fila: Record<string, unknown>): string | undefined {
-  const datos = fila.datos
-  if (datos && typeof datos === 'object') {
-    const d = datos as Record<string, unknown>
-    if (typeof d.id === 'string') return d.id
-    if (typeof d.usuarioId === 'string') return d.usuarioId
-  }
-  if (typeof fila.id === 'string') return fila.id
-  if (typeof fila.usuario_id === 'string') return fila.usuario_id
-  return undefined
-}
-
-function cumpleFiltro(
-  fila: Record<string, unknown>,
-  filtro: Record<string, string> | undefined,
-): boolean {
-  return Object.entries(filtro ?? {}).every(([columna, valor]) => fila[columna] === valor)
-}
-
-/**
- * Las filas descargadas del servidor con las escrituras locales PENDIENTES
- * puestas encima.
- *
- * La cola es, por definición, lo que este dispositivo escribió y el servidor
- * todavía no tiene: cualquier operación que siga en ella es más nueva que la
- * fila que acaba de bajar. Sin esta fusión, la foto del servidor —leída ANTES
- * de que la persona tocara "guardar serie"— vuelve a la base local y borra todo
- * lo que se escribió mientras la descarga estaba en vuelo. Con wifi de gimnasio
- * esa ventana son decenas de segundos, y `SIGNED_IN` la abre cada vez que se
- * desbloquea el móvil entre series.
- *
- * Que la cola gane no es solo para no perder el dato en pantalla: si el estado
- * local se pisa, la escritura SIGUIENTE reconstruye su envío leyendo ese estado
- * ya pisado y reemplaza en la cola la operación buena. Ahí la pérdida deja de
- * ser un susto visual y se vuelve definitiva.
- */
-export function conPendientes<T>(tabla: string, filas: readonly T[]): T[] {
-  if (!modoNube) return [...filas]
-  const ops = leerCola().filter((o) => o.tabla === tabla)
-  if (ops.length === 0) return [...filas]
-
-  let salida = [...filas] as Record<string, unknown>[]
-  for (const op of ops) {
-    if (op.tipo === 'update') {
-      // Un update es un parche sobre las filas que cumplen su filtro (marcar
-      // leído un hilo), no una fila completa: se aplica encima, no reemplaza.
-      salida = salida.map((f) => (cumpleFiltro(f, op.filtro) ? { ...f, ...op.payload } : f))
-      continue
-    }
-    const clave = identidadDeFila(op.payload)
-    if (clave === undefined) continue
-    const i = salida.findIndex((f) => identidadDeFila(f) === clave)
-    // Si no está en la descarga es una fila creada en este dispositivo que el
-    // servidor aún no conoce (el check-in de hoy): se añade, no se descarta.
-    salida = i === -1 ? [...salida, op.payload] : salida.map((f, j) => (j === i ? op.payload : f))
-  }
-  return salida as T[]
-}
-
-function leerDescartes(): OperacionPendiente[] {
-  try {
-    return JSON.parse(localStorage.getItem(CLAVE_DESCARTES) ?? '[]') as OperacionPendiente[]
-  } catch {
-    return []
-  }
-}
-
-/**
- * Aparta operaciones para rescatarlas más tarde. Las nuevas van al final, así
- * que si el almacén se llena lo que se pierde es lo más viejo.
- */
-function apartarDescartadas(ops: readonly OperacionPendiente[]): void {
-  try {
-    localStorage.setItem(
-      CLAVE_DESCARTES,
-      JSON.stringify([...leerDescartes(), ...ops].slice(-MAX_DESCARTES)),
-    )
-  } catch {
-    // si ni siquiera se puede apartar, se descarta sin más para no atascar la cola
-  }
-}
-
-async function ejecutar(op: OperacionPendiente): Promise<void> {
-  const sb = supabase()
-  if (op.tipo === 'upsert') {
-    const { error } = await sb.from(op.tabla).upsert(op.payload)
-    if (error) throw new Error(error.message)
-    return
-  }
-  let consulta = sb.from(op.tabla).update(op.payload)
-  for (const [columna, valor] of Object.entries(op.filtro ?? {})) {
-    consulta = consulta.eq(columna, valor)
-  }
-  const { error } = await consulta
-  if (error) throw new Error(error.message)
-}
-
-/**
- * Vacía la cola contra Supabase. Si ya hay un procesado en marcha devuelve ESE
- * mismo en vez de resolver de inmediato, para que `await procesarCola()` espere
- * de verdad a que la cola quede quieta y no solo a que alguien la esté mirando.
- */
-export function procesarCola(): Promise<void> {
-  if (!modoNube) return Promise.resolve()
-  if (enVuelo) return enVuelo
-  enVuelo = drenar().finally(() => {
-    enVuelo = null
-  })
-  return enVuelo
-}
-
-/**
- * Promesa del procesado que haya en vuelo, o una ya resuelta si no hay ninguno.
- * A diferencia de `procesarCola`, NO arranca trabajo nuevo: solo deja aterrizar
- * lo que ya estaba corriendo antes de tocar la cola desde fuera.
- *
- * `encolar` lanza el procesado sin esperarlo, así que sus escrituras en
- * `localStorage` ocurren después de que el código que las provocó haya
- * terminado. Quien necesite la cola en un estado conocido —los tests entre
- * casos, o un cierre de sesión que va a borrarla— tiene que esperar aquí.
- */
-export function colaEnReposo(): Promise<void> {
-  return enVuelo ?? Promise.resolve()
-}
-
-/**
- * Dos entradas son la misma operación si su contenido coincide. No hay id de
- * operación, y comparar por posición es justo lo que no se puede hacer aquí.
- */
-function mismaOperacion(a: OperacionPendiente, b: OperacionPendiente): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
-}
-
-/**
- * Quita la operación que se acaba de procesar, buscándola por CONTENIDO.
- *
- * Si no aparece es porque `integrarEnCola` la reemplazó durante el vuelo por
- * una versión más nueva de la misma fila (la serie siguiente del mismo
- * microciclo). Entonces no se quita nada: esa versión nueva todavía no ha
- * subido y le toca en la vuelta siguiente.
- *
- * Se quita UNA sola coincidencia: dos `update` idénticos (marcar leídos dos
- * veces) son dos operaciones distintas y las dos tienen que ejecutarse.
- */
-function sinLaOperacion(
-  cola: OperacionPendiente[],
-  op: OperacionPendiente,
-): OperacionPendiente[] {
-  const i = cola.findIndex((o) => mismaOperacion(o, op))
-  if (i === -1) return cola
-  return [...cola.slice(0, i), ...cola.slice(i + 1)]
-}
-
-/** Deja la operación donde está y le anota el intento fallido. */
-function conIntentos(
-  cola: OperacionPendiente[],
-  op: OperacionPendiente,
-  intentos: number,
-): OperacionPendiente[] {
-  const i = cola.findIndex((o) => mismaOperacion(o, op))
-  if (i === -1) return cola
-  return cola.map((o, j) => (j === i ? { ...op, intentos } : o))
-}
-
-/**
- * Vacía la cola de una en una, RELEYENDO `localStorage` en cada paso.
- *
- * Releer no es un detalle: `ejecutar` tarda lo que tarde la red, y durante ese
- * rato la asesorada sigue usando la app y `encolar` escribe en la misma cola.
- * Antes se trabajaba sobre la foto tomada al empezar y se devolvía esa foto
- * recortada, así que **todo lo encolado durante la petición se sobrescribía y
- * desaparecía**: ni se subía ni se reintentaba ni quedaba en descartes.
- */
-async function drenar(): Promise<void> {
-  for (;;) {
-    const cola = leerCola()
-    if (cola.length === 0) return
-    const op = cola[0]
-    try {
-      await ejecutar(op)
-      escribirCola(sinLaOperacion(leerCola(), op))
-    } catch {
-      // Sin conexión no se cuenta el intento: estar offline durante todo un
-      // entreno no puede terminar descartando las series registradas.
-      if (typeof navigator !== 'undefined' && !navigator.onLine) return
-      const intentos = (op.intentos ?? 0) + 1
-      if (intentos >= MAX_INTENTOS) {
-        // Operación que falla de forma persistente (fila inexistente, RLS…):
-        // se aparta para que no bloquee eternamente las escrituras siguientes.
-        apartarDescartadas([{ ...op, intentos }])
-        escribirCola(sinLaOperacion(leerCola(), op))
-        continue
-      }
-      escribirCola(conIntentos(leerCola(), op, intentos))
-      return
-    }
-  }
-}
-
-function encolar(op: OperacionPendiente): void {
-  if (!modoNube) return
-  escribirCola(integrarEnCola(leerCola(), op))
-  void procesarCola()
-}
-
-/**
- * Devuelve a la cola lo apartado que pertenezca a quien acaba de entrar: lo que
- * quedó sin subir al cerrar sesión, y lo que se descartó por fallar de forma
- * persistente (p. ej. las series que rechazaba el permiso RLS corregido en la
- * migración 0009, que ahora ya se pueden escribir).
- *
- * Se filtra por dueño a propósito. En un móvil compartido, reencolar lo de otra
- * persona significaría intentar subir sus datos con la sesión de esta: RLS lo
- * rechazaría, pero además su trabajo se gastaría los reintentos y acabaría
- * descartado de verdad. Lo que no tiene dueño sellado es de antes de este
- * cambio y se rescata igual, que es como se comportaba hasta ahora.
- *
- * `rescates` corta el ida y vuelta: una operación que el servidor no acepta
- * nunca deja de reencolarse tras un par de intentos y se queda apartada.
- */
-export function recuperarDescartes(usuarioId?: string): void {
-  if (!modoNube) return
-  const descartes = leerDescartes()
-  if (descartes.length === 0) return
-
-  const suyas = (op: OperacionPendiente) => op.duenio === undefined || op.duenio === usuarioId
-  const rescatables = descartes.filter((op) => suyas(op) && (op.rescates ?? 0) < MAX_RESCATES)
-  if (rescatables.length === 0) return
-
-  // se reencolan sin el contador de intentos, con dedup por fila
-  let cola = leerCola()
-  for (const op of rescatables) {
-    cola = integrarEnCola(cola, { ...op, intentos: 0, rescates: (op.rescates ?? 0) + 1 })
-  }
-  escribirCola(cola)
-  localStorage.setItem(
-    CLAVE_DESCARTES,
-    JSON.stringify(descartes.filter((op) => !rescatables.includes(op))),
-  )
-  void procesarCola()
-}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => void procesarCola())
-  window.setInterval(() => void procesarCola(), 30000)
 }
 
 export function crearDbSincronizada(local: Db): Db {
