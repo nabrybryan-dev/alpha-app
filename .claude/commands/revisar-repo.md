@@ -19,6 +19,25 @@ Correr cada pocas semanas, o antes de planear trabajo nuevo: puede que ya esté 
 
 ---
 
+## 0 · Trabajo sin commitear o sin empujar (empieza por aquí)
+
+Es el escondite más cercano y el que menos se mira. El 2026-07-30 apareció en él la
+corrección de la migración 0014 —el `sin_tildes()` IMMUTABLE sin el que el índice de
+búsqueda ni se puede crear— sin commitear, en `main`, que además está protegida: no
+se podía empujar aunque se quisiera.
+
+```powershell
+git status --short
+git log --oneline "@{u}.."   # commits hechos y sin empujar
+```
+
+Correrlo también en los dos cerebros (`Cerebro Alpha` y `Cerebro Programacion Alpha`),
+no solo en el repo de la app.
+
+Si aparece algo: **no lo dejes ahí ni lo mezcles con otra cosa.** Rama propia, commit
+que explique el porqué, y PR. Un archivo modificado en el disco no existe para nadie
+más que para esta máquina.
+
 ## 1 · Ramas con trabajo sin mezclar
 
 ```powershell
