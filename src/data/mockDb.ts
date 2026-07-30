@@ -32,19 +32,71 @@ function cargar(): SeedDb {
   return structuredClone(seedDb)
 }
 
-function guardar(estado: SeedDb): void {
-  localStorage.setItem(CLAVE, JSON.stringify(estado))
-  oyentes.forEach((o) => o())
+/**
+ * Cuenta las escrituras LOCALES (las que nacen de tocar la app), no las de la
+ * descarga. `hidratarDesdeNube` la mira antes de pedir los datos y otra vez
+ * justo antes de aplicarlos: si cambió, es que la persona guardó algo mientras
+ * bajaba y la foto del servidor —leída antes de esa pulsación— ya está vieja.
+ */
+let escriturasLocales = 0
+
+export function versionEscrituras(): number {
+  return escriturasLocales
 }
 
-export function reiniciarDb(): void {
-  localStorage.removeItem(CLAVE)
+function guardar(estado: SeedDb): void {
+  escriturasLocales += 1
+  localStorage.setItem(CLAVE, JSON.stringify(estado))
   oyentes.forEach((o) => o())
 }
 
 let referencia: { actual: SeedDb } | undefined
 
-export function aplicarSnapshot(nuevo: SeedDb): void {
+/**
+ * Sube en cada apertura y cierre de sesión. Una descarga que empezó antes de
+ * que cambiara ya no vale: o no hay nadie dentro, o dentro hay otra persona.
+ */
+let epoca = 0
+
+export function epocaSesion(): number {
+  return epoca
+}
+
+export function abrirSesionLocal(): void {
+  epoca += 1
+}
+
+/**
+ * Borra del dispositivo los datos de quien acaba de salir.
+ *
+ * Quitar la clave de `localStorage` no bastaba: `referencia.actual` es la copia
+ * EN MEMORIA y sobrevivía intacta, así que `db.usuarios`, `db.microciclos` y
+ * `db.bienestar` seguían devolviendo los datos de quien había cerrado sesión —y
+ * la primera escritura posterior los volvía a dejar en el disco enteros.
+ */
+export function olvidarDatosLocales(): void {
+  epoca += 1
+  localStorage.removeItem(CLAVE)
+  if (referencia) referencia.actual = structuredClone(seedDb)
+  oyentes.forEach((o) => o())
+}
+
+export function reiniciarDb(): void {
+  olvidarDatosLocales()
+}
+
+/**
+ * Reemplaza la base local ENTERA con la foto del servidor.
+ *
+ * `epoca` es la que había cuando ARRANCÓ la descarga. Si ya no coincide, por el
+ * medio se cerró sesión o entró otra persona, y esta foto pertenece a una
+ * sesión que ya no existe: aplicarla repondría en el teléfono los datos de
+ * quien acaba de salir, o dejaría sin perfil a quien acaba de entrar. Sin
+ * `epoca` se aplica sin más, que es lo que necesitan los tests para montar un
+ * estado de partida.
+ */
+export function aplicarSnapshot(nuevo: SeedDb, epocaDeOrigen?: number): void {
+  if (epocaDeOrigen !== undefined && epocaDeOrigen !== epoca) return
   localStorage.setItem(CLAVE, JSON.stringify(nuevo))
   if (referencia) referencia.actual = nuevo
   oyentes.forEach((o) => o())
@@ -66,8 +118,17 @@ export function crearMockDb(): Db {
   referencia = ref
   guardar(ref.actual)
 
-  const mutar = (nuevo: SeedDb) => {
-    ref.actual = nuevo
+  /**
+   * Aplica un cambio RELEYENDO el disco, no la copia en memoria.
+   *
+   * `ref.actual` es la foto de cuando se creó esta instancia y no se vuelve a
+   * leer nunca. Como cada escritura serializa esa foto ENTERA sobre
+   * `alpha-db-v2`, todo lo que hubiera escrito otra pestaña por el camino
+   * desaparecía sin dejar rastro. Es el mismo fallo que tenía la cola de sync,
+   * con la segunda pestaña haciendo de `await`.
+   */
+  const mutar = (transformar: (estado: SeedDb) => SeedDb) => {
+    ref.actual = transformar(cargar())
     guardar(ref.actual)
   }
 
@@ -83,32 +144,33 @@ export function crearMockDb(): Db {
     perfiles: {
       byUsuario: (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId),
       agregarMedida: (usuarioId, medida) => {
-        const existe = ref.actual.perfiles.some((p) => p.usuarioId === usuarioId)
-        const perfiles = existe
-          ? ref.actual.perfiles.map((p) =>
-              p.usuarioId === usuarioId
-                ? {
-                    ...p,
-                    medidas: [...p.medidas.filter((m) => m.fecha !== medida.fecha), medida].sort(
-                      (a, b) => a.fecha.localeCompare(b.fecha),
-                    ),
-                  }
-                : p,
-            )
-          : [
-              ...ref.actual.perfiles,
-              {
-                usuarioId,
-                objetivos: '',
-                edad: 0,
-                diasEntrenamiento: 0,
-                tiempoSesionMin: 0,
-                somatotipo: '',
-                volumenSemanal: {},
-                medidas: [medida],
-              },
-            ]
-        mutar({ ...ref.actual, perfiles })
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.some((p) => p.usuarioId === usuarioId)
+            ? estado.perfiles.map((p) =>
+                p.usuarioId === usuarioId
+                  ? {
+                      ...p,
+                      medidas: [...p.medidas.filter((m) => m.fecha !== medida.fecha), medida].sort(
+                        (a, b) => a.fecha.localeCompare(b.fecha),
+                      ),
+                    }
+                  : p,
+              )
+            : [
+                ...estado.perfiles,
+                {
+                  usuarioId,
+                  objetivos: '',
+                  edad: 0,
+                  diasEntrenamiento: 0,
+                  tiempoSesionMin: 0,
+                  somatotipo: '',
+                  volumenSemanal: {},
+                  medidas: [medida],
+                },
+              ],
+        }))
       },
     },
 
@@ -118,8 +180,8 @@ export function crearMockDb(): Db {
           .filter((m) => m.usuarioId === usuarioId)
           .sort((a, b) => b.numero - a.numero),
       registrarSerie: (microcicloId: string, ejercicioId: string, serie: SerieRegistrada) => {
-        mutar(
-          actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
+        mutar((estado) =>
+          actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
             sesiones: m.sesiones.map((s) => ({
               ...s,
@@ -138,8 +200,8 @@ export function crearMockDb(): Db {
         )
       },
       guardarTestPost: (microcicloId: string, sesionId: string, test: TestPostSesion) => {
-        mutar(
-          actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
+        mutar((estado) =>
+          actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
             sesiones: m.sesiones.map((s) => (s.id === sesionId ? { ...s, testPost: test } : s)),
           })),
@@ -150,8 +212,8 @@ export function crearMockDb(): Db {
           item.id === parteId
             ? { ...item, hechoEn: item.hechoEn ? undefined : new Date().toISOString() }
             : item
-        mutar(
-          actualizarMicrociclo(ref.actual, microcicloId, (m) => ({
+        mutar((estado) =>
+          actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
             sesiones: m.sesiones.map((s) => {
               if (s.id !== sesionId) return s
@@ -169,15 +231,15 @@ export function crearMockDb(): Db {
           .filter((c) => c.usuarioId === usuarioId)
           .sort((a, b) => a.fecha.localeCompare(b.fecha)),
       guardar: (checkin: CheckinDiario) => {
-        mutar({
-          ...ref.actual,
+        mutar((estado) => ({
+          ...estado,
           checkins: [
-            ...ref.actual.checkins.filter(
+            ...estado.checkins.filter(
               (c) => !(c.usuarioId === checkin.usuarioId && c.fecha === checkin.fecha),
             ),
             checkin,
           ],
-        })
+        }))
       },
     },
 
@@ -193,27 +255,35 @@ export function crearMockDb(): Db {
         estadoAdh: EstadoAdherencia,
         comentario?: string,
       ) => {
-        mutar({
-          ...ref.actual,
+        mutar((estado) => ({
+          ...estado,
           adherencias: [
-            ...ref.actual.adherencias.filter((a) => !(a.usuarioId === usuarioId && a.fecha === fecha)),
+            ...estado.adherencias.filter((a) => !(a.usuarioId === usuarioId && a.fecha === fecha)),
             { id: `ad-${usuarioId}-${fecha}`, usuarioId, fecha, estado: estadoAdh, comentario },
           ],
-        })
+        }))
       },
       hidratacionDe: (usuarioId, fecha) =>
         (ref.actual.hidratacion ?? []).find((h) => h.usuarioId === usuarioId && h.fecha === fecha)
           ?.ml ?? 0,
       registrarHidratacion: (usuarioId, fecha, deltaMl) => {
-        const lista = ref.actual.hidratacion ?? []
-        const previo = lista.find((h) => h.usuarioId === usuarioId && h.fecha === fecha)
-        const ml = Math.max(0, (previo?.ml ?? 0) + deltaMl)
-        mutar({
-          ...ref.actual,
-          hidratacion: [
-            ...lista.filter((h) => !(h.usuarioId === usuarioId && h.fecha === fecha)),
-            { id: `hid-${usuarioId}-${fecha}`, usuarioId, fecha, ml },
-          ],
+        // El acumulado se calcula DENTRO del transformador: es un incremento
+        // sobre lo que ya hay, y leerlo fuera sumaría sobre una foto vieja.
+        mutar((estado) => {
+          const lista = estado.hidratacion ?? []
+          const previo = lista.find((h) => h.usuarioId === usuarioId && h.fecha === fecha)
+          return {
+            ...estado,
+            hidratacion: [
+              ...lista.filter((h) => !(h.usuarioId === usuarioId && h.fecha === fecha)),
+              {
+                id: `hid-${usuarioId}-${fecha}`,
+                usuarioId,
+                fecha,
+                ml: Math.max(0, (previo?.ml ?? 0) + deltaMl),
+              },
+            ],
+          }
         })
       },
     },
@@ -228,10 +298,10 @@ export function crearMockDb(): Db {
           )
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
       enviar: ({ deId, paraId, texto, adjuntoUrl, origen }) => {
-        mutar({
-          ...ref.actual,
+        mutar((estado) => ({
+          ...estado,
           mensajes: [
-            ...ref.actual.mensajes,
+            ...estado.mensajes,
             {
               id: `msg-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
               deId,
@@ -243,16 +313,16 @@ export function crearMockDb(): Db {
               leido: false,
             },
           ],
-        })
+        }))
       },
       recibirDeAlpha: ({ id, deId, paraId, texto }) => {
         // El id lo manda la Edge Function. Si por lo que sea ya estaba en el
         // hilo (una rehidratación que se adelantó), no se duplica.
         if (ref.actual.mensajes.some((m) => m.id === id)) return
-        mutar({
-          ...ref.actual,
+        mutar((estado) => ({
+          ...estado,
           mensajes: [
-            ...ref.actual.mensajes,
+            ...estado.mensajes,
             {
               id,
               deId,
@@ -263,15 +333,15 @@ export function crearMockDb(): Db {
               leido: false,
             },
           ],
-        })
+        }))
       },
       marcarLeidos: (paraId, deId) => {
-        mutar({
-          ...ref.actual,
-          mensajes: ref.actual.mensajes.map((m) =>
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
             m.paraId === paraId && m.deId === deId ? { ...m, leido: true } : m,
           ),
-        })
+        }))
       },
       noLeidosPara: (usuarioId) =>
         ref.actual.mensajes.filter((m) => m.paraId === usuarioId && !m.leido).length,
@@ -284,10 +354,10 @@ export function crearMockDb(): Db {
         ref.actual.cuestionarios.filter((q) => q.asignadoA.includes(usuarioId)),
       respuestasDe: (usuarioId) => ref.actual.respuestas.filter((r) => r.usuarioId === usuarioId),
       responder: (cuestionarioId, usuarioId, valores) => {
-        mutar({
-          ...ref.actual,
+        mutar((estado) => ({
+          ...estado,
           respuestas: [
-            ...ref.actual.respuestas,
+            ...estado.respuestas,
             {
               id: `r-${cuestionarioId}-${usuarioId}-${Date.now()}`,
               cuestionarioId,
@@ -296,7 +366,7 @@ export function crearMockDb(): Db {
               fechaIso: new Date().toISOString(),
             },
           ],
-        })
+        }))
       },
     },
 

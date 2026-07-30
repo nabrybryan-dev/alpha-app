@@ -1,0 +1,47 @@
+# Gate de la app: tipos, linter y tests en cada push y cada PR.
+#
+# Por qué existe: Vercel despliega solo con hacer push a `main`, y hasta ahora
+# nada comprobaba que los 242 tests pasaran antes de que el código llegara a los
+# asesorados. Esto no bloquea el despliegue por sí solo (ver README): hace falta
+# activar la protección de rama en GitHub para que un fallo aquí impida mezclar.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un push nuevo cancela la comprobación anterior de la misma rama.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `npm ci` respeta los `overrides` a esbuild-wasm/@rollup/wasm-node que esta
+      # máquina necesita por WDAC. Son más lentos, pero mantener CI y local con las
+      # mismas versiones evita que un fallo aparezca solo en uno de los dos.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Tipos (tsc --strict)
+        run: npm run typecheck
+
+      - name: Linter (ESLint)
+        run: npm run lint
+
+      # Con cobertura y no `npm run test` a secas: así los umbrales-trinquete de
+      # `vitest.config.ts` también son gate, no solo un informe local.
+      - name: Tests con cobertura (vitest)
+        run: npm run coverage

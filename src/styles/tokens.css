@@ -53,6 +53,21 @@
 }
 
 :root {
+  /* ============ Barra de navegación inferior ============
+     Todo lo que se fija abajo (el CTA de "Guardar serie", el temporizador de
+     descanso, los espaciadores de final de página) tiene que posicionarse a partir
+     de ESTAS variables y no de un número suelto.
+
+     Por qué: la barra baja `env(safe-area-inset-bottom)`, que en un escritorio son
+     0 px pero en un iPhone con barra de gestos son ~34 px. Un `bottom` fijo que
+     cuadra en el navegador del ordenador se encima de la barra en el móvil —que es
+     donde se usa la app—. Pasó: el CTA de la sesión estaba a `4.25rem` y tapaba la
+     barra 10 px en escritorio y 30 px en iPhone. */
+  --hueco-nav: max(0.875rem, env(safe-area-inset-bottom));
+  --alto-nav: 4rem;
+  /* Borde superior de la barra, medido desde el fondo de la ventana. */
+  --tope-nav: calc(var(--hueco-nav) + var(--alto-nav));
+
   /* Motion — curvas con carácter, nunca ease-in-out genérico */
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-mov: cubic-bezier(0.77, 0, 0.175, 1);

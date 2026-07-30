@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Usuario } from '../domain/types'
 import { db, useDbVersion } from '../data/dbInstance'
+import { abrirSesionLocal, olvidarDatosLocales } from '../data/mockDb'
+import { limpiarBorradoresLocales } from '../lib/persistencia'
 import { hidratarDesdeNube } from '../data/nube/hidratar'
-import { limpiarColasDeSync, pendientesDeSync, procesarCola, recuperarDescartesUnaVez } from '../data/nube/sync'
+import { limpiarColasDeSync, pendientesDeSync, procesarCola, recuperarDescartes } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
 import { LoginPage } from '../features/auth/LoginPage'
 import { NuevaClavePage } from '../features/auth/NuevaClavePage'
@@ -34,7 +36,14 @@ function SesionNube({ children }: { children: ReactNode }) {
   const [detalleError, setDetalleError] = useState('')
   const [recuperacion, setRecuperacion] = useState(false)
   const autenticadoRef = useRef<string | null>(null)
-  const hidratandoRef = useRef(false)
+  /**
+   * QUIÉN está hidratando, no solo "si hay alguien". El candado sin dueño
+   * descartaba en seco el `SIGNED_IN` de la persona siguiente mientras seguía
+   * en vuelo la descarga de la anterior: en un teléfono compartido, quien
+   * acababa de escribir su correo y su contraseña entraba viendo la
+   * programación, los check-ins y las medidas de la otra.
+   */
+  const hidratandoRef = useRef<string | null>(null)
   const recuperacionRef = useRef(false)
   useDbVersion()
 
@@ -67,14 +76,17 @@ function SesionNube({ children }: { children: ReactNode }) {
         setEstado('sin-sesion')
         return
       }
-      if (hidratandoRef.current) return
-      hidratandoRef.current = true
+      // Solo se descarta el aviso repetido de la MISMA persona (Supabase emite
+      // SIGNED_IN en cada refoco). El de otra tiene que ganar siempre.
+      if (hidratandoRef.current === usuarioId) return
+      hidratandoRef.current = usuarioId
+      abrirSesionLocal()
       const yaActivo = autenticadoRef.current === usuarioId
       if (!yaActivo) setEstado('cargando')
       try {
         // Recupera envíos que se hubieran descartado (series bloqueadas por el
         // permiso ya corregido) y sube lo pendiente ANTES de hidratar.
-        recuperarDescartesUnaVez()
+        recuperarDescartes(usuarioId)
         await procesarCola()
         // Solo en un REFRESCO en segundo plano se evita hidratar si hay
         // escrituras sin subir (para no pisar series/checkins recién hechos).
@@ -88,15 +100,21 @@ function SesionNube({ children }: { children: ReactNode }) {
           // bloquear con pantalla de error. La sincronización se reintenta sola.
           if (!db.usuarios.byId(usuarioId)) throw falloRed
         }
+        // Si mientras bajaba entró otra persona (o se cerró sesión), esta
+        // descarga ya no manda: dejarla pasar pondría en pantalla a quien
+        // acaba de salir.
+        if (hidratandoRef.current !== usuarioId) return
         autenticadoRef.current = usuarioId
         setAutenticadoId(usuarioId)
         setEstado('listo')
       } catch (fallo: unknown) {
-        if (yaActivo) return // refresco en segundo plano fallido: se reintenta luego
+        if (yaActivo || hidratandoRef.current !== usuarioId) return
         setDetalleError(fallo instanceof Error ? fallo.message : 'Error desconocido')
         setEstado('error')
       } finally {
-        hidratandoRef.current = false
+        // Solo suelta el candado quien lo tiene puesto: si entró otra persona,
+        // el candado ya es suyo y esta hidratación vieja no debe abrirlo.
+        if (hidratandoRef.current === usuarioId) hidratandoRef.current = null
       }
     }
 
@@ -113,8 +131,14 @@ function SesionNube({ children }: { children: ReactNode }) {
         void alCambiar(sesion?.user.id)
       }
       if (evento === 'SIGNED_OUT') {
-        localStorage.removeItem('alpha-db-v2')
-        limpiarColasDeSync()
+        // Con el id de quien sale: lo que no llegó a subir se aparta sellado a
+        // su nombre y vuelve a la cola solo cuando entre esa misma persona.
+        limpiarColasDeSync(autenticadoRef.current ?? undefined)
+        // Los datos, también los de la copia en memoria; y los borradores de
+        // series y cronómetro, que si no aparecen en la pantalla del siguiente.
+        olvidarDatosLocales()
+        limpiarBorradoresLocales()
+        hidratandoRef.current = null
         void alCambiar(undefined)
       }
     })
@@ -135,14 +159,14 @@ function SesionNube({ children }: { children: ReactNode }) {
     let activo = true
     const refrescar = async () => {
       if (!activo || document.visibilityState !== 'visible' || pendientesDeSync() > 0) return
-      if (hidratandoRef.current) return
-      hidratandoRef.current = true
+      if (hidratandoRef.current !== null) return
+      hidratandoRef.current = autenticadoId
       try {
         await hidratarDesdeNube()
       } catch {
         // error transitorio de red: se reintenta en el siguiente ciclo
       } finally {
-        hidratandoRef.current = false
+        if (hidratandoRef.current === autenticadoId) hidratandoRef.current = null
       }
     }
     const alVolver = () => void refrescar()

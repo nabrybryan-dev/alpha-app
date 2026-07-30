@@ -363,13 +363,63 @@ describe('procesarCola: lo que se encola mientras la cola se procesa', () => {
   })
 })
 
-describe('limpiarColasDeSync', () => {
-  it('borra la cola y los descartes de localStorage', () => {
+/**
+ * Este bloque comprobaba antes que cerrar sesión borrara la cola Y los
+ * descartes. Esa conducta era el fallo: `cerrarSesion` intenta subir lo
+ * pendiente, pero sin señal `procesarCola` se rinde y resuelve igual, así que
+ * el borrado se llevaba por delante el entreno entero de quien había entrenado
+ * en un sótano. Ahora la exigencia es la contraria — vaciar la cola activa sin
+ * perder el trabajo — y el aislamiento se consigue sellando el dueño.
+ */
+describe('cerrar sesión con trabajo sin subir', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('sin red en test')))
+  })
+
+  afterEach(async () => {
+    await ultimoSync?.colaEnReposo()
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    localStorage.clear()
+  })
+
+  it('vacía la cola activa pero NO tira lo que quedó sin subir', () => {
     localStorage.setItem('alpha-cola-sync', JSON.stringify([upsertMicrociclo('m1', 1)]))
-    localStorage.setItem('alpha-cola-descartes', JSON.stringify([upsertMicrociclo('m2', 1)]))
     expect(pendientesDeSync()).toBe(1)
-    limpiarColasDeSync()
+
+    limpiarColasDeSync('u-ana')
+
+    // Vacía: si no, sus operaciones se reintentarían con el JWT de quien entre
+    // después en este mismo móvil.
     expect(pendientesDeSync()).toBe(0)
-    expect(localStorage.getItem('alpha-cola-descartes')).toBeNull()
+    // Pero rescatable, y sellada con su dueña.
+    const apartadas = JSON.parse(
+      localStorage.getItem('alpha-cola-descartes') ?? '[]',
+    ) as OperacionPendiente[]
+    expect(apartadas).toHaveLength(1)
+    expect(apartadas[0].duenio).toBe('u-ana')
+  })
+
+  it('lo de una persona no vuelve a la cola con la sesión de otra', async () => {
+    const { sync } = await dbEnModoNube()
+    localStorage.setItem('alpha-cola-sync', JSON.stringify([upsertMicrociclo('m1', 1)]))
+    sync.limpiarColasDeSync('u-ana')
+
+    sync.recuperarDescartes('u-carlos')
+    expect(sync.pendientesDeSync()).toBe(0)
+
+    sync.recuperarDescartes('u-ana')
+    expect(sync.pendientesDeSync()).toBe(1)
+  })
+
+  it('deja de reencolar lo que el servidor nunca acepta', async () => {
+    const { sync } = await dbEnModoNube()
+    const rechazada = { ...upsertMicrociclo('m1', 1), duenio: 'u-ana', rescates: 2 }
+    localStorage.setItem('alpha-cola-descartes', JSON.stringify([rechazada]))
+
+    sync.recuperarDescartes('u-ana')
+
+    expect(sync.pendientesDeSync()).toBe(0)
   })
 })

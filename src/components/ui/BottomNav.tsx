@@ -76,7 +76,7 @@ export function BottomNav() {
     <nav
       aria-label="Navegación principal"
       className="fixed inset-x-0 z-40 flex justify-center px-3"
-      style={{ bottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
+      style={{ bottom: 'var(--hueco-nav)' }}
     >
       <div className="glass glass-blur flex w-full max-w-[22rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
         {pestanas.map((p) => (
