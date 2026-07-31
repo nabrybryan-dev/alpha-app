@@ -30,7 +30,7 @@
  * Ver `conocimiento/comparativa-cursos-vs-arquitectura-app.md` en el Cerebro de
  * Programación.
  */
-import { ondularEjercicio } from '../../domain/ondulacion'
+import { aplicarOndulacion, ondularEjercicio } from '../../domain/ondulacion'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
@@ -145,6 +145,49 @@ function filasDeSesion(
  * Solo se ondulan los ejercicios de fuerza (`sesion.ejercicios`). La preparación
  * y los bloques de cardio no llevan carga que progresar.
  */
+/**
+ * Convierte la propuesta en un microciclo guardable, ondulando de verdad los
+ * ejercicios (con `seriesPrescritas`, que es lo que el asesorado ve serie a serie).
+ *
+ * Lo que NO arrastra del microciclo de origen: las series registradas y los tests
+ * post. Empieza limpio, porque es un microciclo nuevo, no una copia del anterior
+ * con lo hecho dentro. Arrastrarlos haría que el asesorado abriera M23 con las
+ * series de M22 ya marcadas.
+ *
+ * El `estado` lo fuerza la capa de datos a `'propuesto'`; aquí se pone igual por
+ * claridad, pero la salvaguarda real está en `guardarPropuesta`.
+ */
+export function microcicloPropuesto(
+  origen: Microciclo,
+  opciones: { incrementoKg?: number } = {},
+): Microciclo {
+  const { incrementoKg = 2.5 } = opciones
+  const prs = prsMasReciente(origen)
+  return {
+    ...origen,
+    id: `${origen.id}-prop${origen.numero + 1}`,
+    numero: origen.numero + 1,
+    estado: 'propuesto',
+    sesiones: origen.sesiones.map((s) => ({
+      ...s,
+      testPost: undefined,
+      ejercicios: s.ejercicios.map((e) => {
+        const limpio: EjercicioPrescrito = { ...e, series: [] }
+        if (s.tipo === 'metabolica') return limpio
+        return {
+          ...aplicarOndulacion(e, {
+            prs,
+            incrementoKg,
+            descarga: false, // ver el encabezado del archivo
+            cargaPrescritaKg: e.series[0]?.cargaKg,
+          }),
+          series: [],
+        }
+      }),
+    })),
+  }
+}
+
 export function proponerMicrociclo(
   micro: Microciclo,
   opciones: { incrementoKg?: number } = {},

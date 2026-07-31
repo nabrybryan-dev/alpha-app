@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
+import { db } from '../../data/dbInstance'
 import type { Microciclo } from '../../domain/types'
-import { proponerMicrociclo } from './propuestaMicrociclo'
+import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
 
 interface GenerarMicrocicloSheetProps {
   abierto: boolean
@@ -19,6 +21,13 @@ export function GenerarMicrocicloSheet({
   onCerrar,
 }: GenerarMicrocicloSheetProps) {
   const propuesta = microciclo ? proponerMicrociclo(microciclo) : undefined
+  const [guardada, setGuardada] = useState(false)
+
+  const guardar = () => {
+    if (!microciclo) return
+    db.microciclos.guardarPropuesta(microcicloPropuesto(microciclo))
+    setGuardada(true)
+  }
 
   return (
     <Sheet abierto={abierto} titulo="Propuesta del siguiente microciclo" onCerrar={onCerrar}>
@@ -70,10 +79,24 @@ export function GenerarMicrocicloSheet({
           )}
 
           <p className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
-            <strong>Esto no se guarda.</strong> Es una propuesta para que la revises y la cargues
-            tú. Y no aplica descarga automática: su disparador (semana 4 de cada mesociclo) no
-            coincide con lo que muestran tus plantillas.
+            No aplica descarga automática: su disparador (semana 4 de cada mesociclo) no coincide
+            con lo que muestran tus plantillas.
           </p>
+
+          {guardada ? (
+            <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
+              Guardada como <strong>propuesta</strong>. {nombreAsesorado} todavía no la ve: sus
+              pantallas solo muestran el microciclo activo. Queda ahí hasta que decidas activarla.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={guardar}
+              className="press w-full rounded-boton bg-accion py-3.5 font-display text-sm uppercase tracking-wide text-white"
+            >
+              Guardar como propuesta
+            </button>
+          )}
         </div>
       )}
     </Sheet>

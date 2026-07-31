@@ -70,6 +70,12 @@ export function crearDbSincronizada(local: Db): Db {
 
     microciclos: {
       ...local.microciclos,
+      guardarPropuesta: (micro) => {
+        local.microciclos.guardarPropuesta(micro)
+        // Se sube leyendo de local y no `micro` a secas, para que viaje con el
+        // `estado: 'propuesto'` que fuerza la capa local y no con el que llegara.
+        subirMicrociclo(local, micro.id)
+      },
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
         subirMicrociclo(local, microcicloId)

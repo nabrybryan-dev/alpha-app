@@ -34,6 +34,16 @@ export interface PerfilesRepo {
 
 export interface MicrociclosRepo {
   byUsuario(usuarioId: string): Microciclo[]
+  /**
+   * Guarda una propuesta del coach. Entra SIEMPRE con `estado: 'propuesto'`, y esa
+   * es la salvaguarda: las pantallas del asesorado (`HoyPage`, `MicrocicloPage`)
+   * solo miran el microciclo `activo`, así que una propuesta no le llega a nadie
+   * hasta que alguien decida activarla.
+   *
+   * No sustituye a ninguno existente: si ya hay una propuesta con ese número, se
+   * reemplaza; el activo y los cerrados no se tocan.
+   */
+  guardarPropuesta(micro: Microciclo): void
   registrarSerie(microcicloId: string, ejercicioId: string, serie: SerieRegistrada): void
   guardarTestPost(microcicloId: string, sesionId: string, test: TestPostSesion): void
   marcarParte(microcicloId: string, sesionId: string, parteId: string): void

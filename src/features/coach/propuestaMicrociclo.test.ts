@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { proponerMicrociclo } from './propuestaMicrociclo'
+import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
 function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {
@@ -167,6 +167,7 @@ describe('proponerMicrociclo', () => {
   })
 
   it('con PRS bajo sostiene la carga en vez de progresar', () => {
+
     const conPrsBajo = micro({
       sesiones: [
         sesion({
@@ -185,5 +186,50 @@ describe('proponerMicrociclo', () => {
     })
     expect(proponerMicrociclo(conPrsBajo).filas[0].motivo).toMatch(/PRS/)
     expect(proponerMicrociclo(normal).filas[0].motivo).not.toMatch(/PRS en rojo/)
+  })
+})
+
+describe('microcicloPropuesto', () => {
+  const conRegistro = micro({
+    numero: 22,
+    sesiones: [
+      sesion({
+        ejercicios: [registrado],
+        testPost: { duracionMin: 60, rpeSesion: 8, prsEntrada: 9 },
+      }),
+    ],
+  })
+
+  it('nace como propuesto, con el número siguiente y un id propio', () => {
+    const p = microcicloPropuesto(conRegistro)
+    expect(p.estado).toBe('propuesto')
+    expect(p.numero).toBe(23)
+    expect(p.id).not.toBe(conRegistro.id)
+  })
+
+  /**
+   * Lo más importante de todo esto: un microciclo nuevo empieza limpio. Si
+   * arrastrara lo hecho, el asesorado abriría M23 con las series de M22 ya
+   * marcadas y el test post ya respondido.
+   */
+  it('no arrastra las series registradas ni los tests post del anterior', () => {
+    const p = microcicloPropuesto(conRegistro)
+    expect(p.sesiones[0].ejercicios.every((e) => e.series.length === 0)).toBe(true)
+    expect(p.sesiones[0].testPost).toBeUndefined()
+  })
+
+  it('deja la ondulación dentro, que es lo que el asesorado ve serie a serie', () => {
+    const p = microcicloPropuesto(conRegistro)
+    const ej = p.sesiones[0].ejercicios[0]
+    expect(ej.seriesPrescritas?.length).toBeGreaterThan(0)
+  })
+
+  it('no ondula las metabólicas, pero tampoco las pierde', () => {
+    const conMeta = micro({
+      sesiones: [sesion({ id: 's2', nombre: 'METABÓLICO', tipo: 'metabolica', ejercicios: [registrado] })],
+    })
+    const p = microcicloPropuesto(conMeta)
+    expect(p.sesiones).toHaveLength(1)
+    expect(p.sesiones[0].ejercicios[0].seriesPrescritas).toBeUndefined()
   })
 })

@@ -179,6 +179,28 @@ export function crearMockDb(): Db {
         ref.actual.microciclos
           .filter((m) => m.usuarioId === usuarioId)
           .sort((a, b) => b.numero - a.numero),
+      guardarPropuesta: (micro: Microciclo) => {
+        // Se fuerza el estado aquí y no en quien llama: es la salvaguarda de que
+        // una propuesta nunca aparezca en las pantallas del asesorado, que solo
+        // miran el `activo`. Un descuido de quien llama no puede saltársela.
+        const propuesta: Microciclo = { ...micro, estado: 'propuesto' }
+        mutar((estado) => ({
+          ...estado,
+          microciclos: [
+            // Reemplaza una propuesta previa del mismo número; nunca toca el
+            // microciclo activo ni los cerrados.
+            ...estado.microciclos.filter(
+              (m) =>
+                !(
+                  m.usuarioId === propuesta.usuarioId &&
+                  m.numero === propuesta.numero &&
+                  m.estado === 'propuesto'
+                ),
+            ),
+            propuesta,
+          ],
+        }))
+      },
       registrarSerie: (microcicloId: string, ejercicioId: string, serie: SerieRegistrada) => {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({
