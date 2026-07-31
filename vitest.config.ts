@@ -28,24 +28,31 @@ export default defineConfig({
       reporter: ['text-summary', 'html'],
       // Umbrales-trinquete: fijados en lo que hay HOY (medido, no aspiracional) para
       // que la cobertura no BAJE. No son la meta: `src/domain/` es lógica pura y
-      // debería acercarse al 90 %; hoy va por 74 %. Cuando un cambio los suba, subir
-      // el umbral con él. El global es bajo a propósito porque incluye pantallas,
-      // donde la cobertura útil viene de tests de comportamiento y no de recorrer JSX.
+      // debería acercarse al 90 %. El global es bajo a propósito porque incluye
+      // pantallas, donde la cobertura útil viene de tests de comportamiento y no de
+      // recorrer JSX.
+      //
+      // **Cuando un cambio los suba, subir el umbral con él**, o el trinquete deja de
+      // trincar. Medido en `main` el 2026-07-30 con 289 tests:
+      //   · dominio  78,29 líneas · 90,19 ramas · 98,63 funciones
+      //   · global   51,95 líneas · 78,96 ramas · 68,67 funciones
+      // El dominio subió de 74,4 a 78,3 al recuperar el motor de ondulación, que
+      // llegó con 328 líneas de tests propios.
       //
       // Van ~1 punto por debajo de lo medido a propósito: el porcentaje oscila unas
-      // décimas entre corridas (50,31 % y 50,48 % en dos seguidas), y un umbral
-      // pegado al valor exacto produciría fallos aleatorios. Un gate intermitente se
-      // acaba ignorando, que es peor que no tenerlo.
+      // décimas entre corridas, y un umbral pegado al valor exacto produciría fallos
+      // aleatorios. Un gate intermitente se acaba ignorando, que es peor que no
+      // tenerlo.
       thresholds: {
-        lines: 49,
-        statements: 49,
-        functions: 64,
-        branches: 76,
+        lines: 50,
+        statements: 50,
+        functions: 67,
+        branches: 77,
         'src/domain/**': {
-          lines: 73,
-          statements: 73,
-          functions: 94,
-          branches: 87,
+          lines: 77,
+          statements: 77,
+          functions: 97,
+          branches: 89,
         },
       },
     },
