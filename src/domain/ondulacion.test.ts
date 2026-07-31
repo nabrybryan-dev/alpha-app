@@ -165,7 +165,8 @@ describe('utilidades de prescripción', () => {
    * nunca, así que este es el caso que hay que proteger: si alguien mueve los
    * cortes, lo que importa es que POCO siga frenando.
    */
-  it('sobre los tres valores reales de la app: POCO frena, NORMAL y MUCHO no', () => {
+  it('sobre los cuatro valores reales de la app', () => {
+    expect(bandaPrs(1)).toBe('critico') // NADA
     expect(bandaPrs(3)).toBe('rojo') // POCO
     expect(bandaPrs(6)).toBe('ambar') // NORMAL
     expect(bandaPrs(9)).toBe('verde') // MUCHO
@@ -279,9 +280,34 @@ describe('ondularEjercicio', () => {
   })
 
   it('congela la progresión y suelta el RIR con PRS en rojo', () => {
-    const r = ondularEjercicio(registrado, { prs: 2 })
+    const r = ondularEjercicio(registrado, { prs: 3 })
     expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
     expect(r.motivo).toContain('PRS en rojo')
+  })
+
+  /**
+   * El nivel NADA (1). Antes había solo tres botones y esto se trataba igual que
+   * POCO; el método pide para la banda 0-2 algo más fuerte que frenar.
+   */
+  it('con PRS crítico recorta una serie y suelta 2 de RIR', () => {
+    const r = ondularEjercicio(registrado, { prs: 1 })
+    expect(r.series).toHaveLength(registrado.sets - 1)
+    expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 2)).toBe(true)
+    expect(r.motivo).toContain('PRS crítico')
+    // Lo que el motor NO decide, pero recuerda:
+    expect(r.motivo).toContain('accesorios')
+  })
+
+  it('crítico nunca deja un ejercicio sin series', () => {
+    const unaSerie = { ...registrado, sets: 1 }
+    expect(ondularEjercicio(unaSerie, { prs: 1 }).series).toHaveLength(1)
+  })
+
+  it('crítico y descarga se acumulan, sin bajar de una serie', () => {
+    const r = ondularEjercicio(registrado, { prs: 1, descarga: true })
+    const soloDescarga = ondularEjercicio(registrado, { descarga: true })
+    expect(r.series.length).toBeLessThan(soloDescarga.series.length)
+    expect(r.series.length).toBeGreaterThanOrEqual(1)
   })
 
   /**
