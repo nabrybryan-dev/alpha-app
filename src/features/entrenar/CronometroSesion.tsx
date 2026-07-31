@@ -26,6 +26,30 @@ function totalSeg(e: EstadoCrono): number {
   return e.acumuladoSeg + Math.max(0, corriendo)
 }
 
+/**
+ * Lo máximo que puede durar una sesión de entrenamiento. Por encima de esto, el
+ * cronómetro guardado ya no es de la sesión que se está haciendo.
+ */
+export const TOPE_SESION_SEG = 5 * 3600
+
+/**
+ * El estado guardado, o uno nuevo si el guardado no puede ser de esta sesión.
+ *
+ * El cronómetro se persiste como marca de tiempo para sobrevivir a que la app se
+ * cierre, y eso tiene un efecto que no se pensó: si alguien abre una sesión por
+ * error y no la cierra, sigue contando durante días. Llegó a verse `156:20:13` en
+ * pantalla, y esa misma cuenta alimenta la `duracionMin` que sube al servidor y con
+ * la que el coach decide el microciclo siguiente.
+ *
+ * Al retomar una sesión abandonada, lo que interesa medir es el entreno de AHORA,
+ * así que se descarta lo viejo y se arranca de cero. No se "acota" el número: un
+ * tope de 5 h tampoco sería una duración real, solo un absurdo más pequeño.
+ */
+function vigente(e: EstadoCrono): EstadoCrono {
+  if (totalSeg(e) <= TOPE_SESION_SEG) return e
+  return { acumuladoSeg: 0, desdeEpoch: Date.now() }
+}
+
 /** Se llama al cerrar la sesión para que el cronómetro no reaparezca luego. */
 export function limpiarCronometro(sesionId: string): void {
   borrarClave(claveCrono(sesionId))
@@ -34,7 +58,7 @@ export function limpiarCronometro(sesionId: string): void {
 /** Tiempo transcurrido actual del cronómetro (segundos), leído del almacenamiento. */
 export function leerTiempoCrono(sesionId: string): number {
   const e = leerJSON<EstadoCrono>(claveCrono(sesionId), { acumuladoSeg: 0, desdeEpoch: null })
-  return totalSeg(e)
+  return totalSeg(vigente(e))
 }
 
 /**
@@ -44,7 +68,7 @@ export function leerTiempoCrono(sesionId: string): number {
 export function CronometroSesion({ sesionId }: { sesionId: string }) {
   const clave = claveCrono(sesionId)
   const [estado, setEstado] = useState<EstadoCrono>(() =>
-    leerJSON<EstadoCrono>(clave, { acumuladoSeg: 0, desdeEpoch: Date.now() }),
+    vigente(leerJSON<EstadoCrono>(clave, { acumuladoSeg: 0, desdeEpoch: Date.now() })),
   )
   const [, refrescar] = useState(0)
 
