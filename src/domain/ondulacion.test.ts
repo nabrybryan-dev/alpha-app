@@ -157,6 +157,19 @@ describe('utilidades de prescripción', () => {
     expect(bandaPrs(5)).toBe('ambar')
     expect(bandaPrs(3)).toBe('rojo')
   })
+
+  /**
+   * Los tres únicos valores que la app puede producir: el test post-sesión pregunta
+   * con botones POCO / NORMAL / MUCHO, que valen 3 / 6 / 9
+   * (`TestPostSesion.tsx:16-20`). Los demás números de la escala 0-10 no llegan
+   * nunca, así que este es el caso que hay que proteger: si alguien mueve los
+   * cortes, lo que importa es que POCO siga frenando.
+   */
+  it('sobre los tres valores reales de la app: POCO frena, NORMAL y MUCHO no', () => {
+    expect(bandaPrs(3)).toBe('rojo') // POCO
+    expect(bandaPrs(6)).toBe('ambar') // NORMAL
+    expect(bandaPrs(9)).toBe('verde') // MUCHO
+  })
 })
 
 describe('ondularEjercicio', () => {
@@ -269,6 +282,21 @@ describe('ondularEjercicio', () => {
     const r = ondularEjercicio(registrado, { prs: 2 })
     expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
     expect(r.motivo).toContain('PRS en rojo')
+  })
+
+  /**
+   * El caso que de verdad ocurre: el asesorado pulsa POCO, que vale 3. El test de
+   * arriba usa un 2, que la app no puede producir.
+   */
+  it('POCO (3) frena igual que cualquier rojo, y NORMAL (6) no frena', () => {
+    const poco = ondularEjercicio(registrado, { prs: 3 })
+    expect(poco.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
+    expect(poco.motivo).toContain('PRS en rojo')
+
+    const normal = ondularEjercicio(registrado, { prs: 6 })
+    expect(normal.series.every((s) => s.rir === registrado.rirObjetivo)).toBe(true)
+    // El ámbar ya no anuncia una "progresión vigilada" que no existía.
+    expect(normal.motivo).not.toContain('vigilada')
   })
 
   it('recorta series en semana de descarga sin bajar la intensidad', () => {

@@ -200,7 +200,21 @@ export function brechaReps(ejercicio: EjercicioPrescrito): number | undefined {
 
 export type BandaPrs = 'verde' | 'ambar' | 'rojo'
 
-/** Banda de recuperación por PRS (0-10). Plantilla: ≥7 verde, 4-6 ámbar, ≤3 rojo. */
+/**
+ * Banda de recuperación por PRS. La escala teórica es 0-10 (Laurent 2011), pero
+ * **la app solo puede producir tres valores**: el test post-sesión pregunta con
+ * botones POCO / NORMAL / MUCHO, que valen `3 / 6 / 9`
+ * (`TestPostSesion.tsx:16-20`). Nunca llega un 0, un 2, un 4 ni un 7.
+ *
+ * Por eso el corte está en ≤3 y no en la banda 0-2 del método: sobre tres botones,
+ * una banda 0-2 no se activaría jamás y el criterio «si llegó mal, no progreses»
+ * quedaría muerto. Con estos cortes, POCO frena y NORMAL/MUCHO progresan, que es la
+ * intención.
+ *
+ * **Si algún día el test vuelve a una escala numérica o gana un cuarto nivel, hay
+ * que revisar estos cortes**, no solo aquí sino en la página de autorregulación del
+ * Cerebro (`motor-decision/04-autorregulacion-prs-hooper.md`).
+ */
 export function bandaPrs(prs: number): BandaPrs {
   if (prs >= 7) return 'verde'
   if (prs >= 4) return 'ambar'
@@ -343,8 +357,10 @@ export function ondularEjercicio(
         : `Se quedó ${Math.abs(brecha)} reps por debajo: la carga iba por encima.`,
     )
   }
-  if (congelado) motivos.push('PRS en rojo (≤3): se sostiene carga y se suma 1 al RIR.')
-  else if (banda === 'ambar') motivos.push('PRS en ámbar (4-6): progresión vigilada.')
+  // Solo se anota el rojo. El ámbar decía «progresión vigilada» y no vigilaba nada:
+  // se comporta igual que el verde, así que el aviso le prometía al coach un matiz
+  // que el motor no aplicaba. Si algún día el ámbar hace algo distinto, vuelve.
+  if (congelado) motivos.push('PRS en rojo (POCO): se sostiene carga y se suma 1 al RIR.')
   if (descarga) motivos.push(`Semana de descarga: ${ejercicio.sets} → ${sets} series.`)
   if (motivos.length === 0) motivos.push('Ejecución alineada con lo pautado.')
 
