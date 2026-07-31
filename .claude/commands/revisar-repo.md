@@ -34,9 +34,33 @@ git log --oneline "@{u}.."   # commits hechos y sin empujar
 Correrlo también en los dos cerebros (`Cerebro Alpha` y `Cerebro Programacion Alpha`),
 no solo en el repo de la app.
 
-Si aparece algo: **no lo dejes ahí ni lo mezcles con otra cosa.** Rama propia, commit
-que explique el porqué, y PR. Un archivo modificado en el disco no existe para nadie
-más que para esta máquina.
+### ⚠️ Antes de tocar nada: ¿olvidado o en curso?
+
+**`git status` no distingue "trabajo olvidado" de "alguien tecleando ahora mismo".** Es
+la misma señal para dos situaciones opuestas, y confundirlas hace daño: commitear el
+trabajo a medias de otra sesión deja un commit incoherente y le pisa el trabajo.
+
+Pasó el 2026-07-30: se detectaron cambios sin commitear en `Cerebro Alpha` y se ofreció
+cerrarlos. Al mirar los tiempos, el último commit era de hacía 4 minutos y había
+archivos escritos hacía 35 segundos. No era trabajo olvidado: era otra sesión
+trabajando. Se dejó intacto.
+
+**Mira siempre las fechas antes de decidir:**
+
+```powershell
+git log -1 --format="%h | %ad | %s" --date=relative       # ¿cuándo fue el último commit?
+git status --short | ForEach-Object {
+  $f = ($_ -replace '^.{3}', '')
+  if (Test-Path $f) { "{0}  <- modificado {1}" -f $f, (Get-Item $f).LastWriteTime }
+}
+```
+
+- **Minutos u horas** → alguien está trabajando. **No tocar.** Como mucho, avisar.
+- **Días o semanas** → probablemente olvidado. Entonces sí: rama propia, commit que
+  explique el porqué, y PR.
+
+Un archivo modificado en el disco no existe para nadie más que para esta máquina. Pero
+uno que se está escribiendo ahora tampoco es tuyo para cerrarlo.
 
 ## 1 · Ramas con trabajo sin mezclar
 
