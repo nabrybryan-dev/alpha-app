@@ -39,6 +39,8 @@
 --            alimentos. Si `sin_tildes() IMMUTABLE` dijera NO, el índice de
 --            trigramas no existe y la búsqueda recorre la tabla entera sin fallar
 --            de forma visible.
+--   · 0015 → todo NO todavía. Escrita y revisada (Tarea 8 del plan de registro de
+--            comidas), sin aplicar: aplicarla es decisión de Bryan.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -145,5 +147,73 @@ select '0014 · catálogo alimentos', 'catálogo cargado (>1000 alimentos)',
        case when to_regclass('public.alimentos') is not null
              and (select count(*) from public.alimentos) > 1000
        then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tipo confianza_registro',
+       case when to_regtype('public.confianza_registro') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla registro_comida',
+       case when to_regclass('public.registro_comida') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla registro_item',
+       case when to_regclass('public.registro_item') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla preferencia_estado',
+       case when to_regclass('public.preferencia_estado') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla prueba_calibracion',
+       case when to_regclass('public.prueba_calibracion') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy registro_comida_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'registro_comida'
+           and policyname = 'registro_comida_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy registro_item_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'registro_item'
+           and policyname = 'registro_item_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy preferencia_estado_propia',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'preferencia_estado'
+           and policyname = 'preferencia_estado_propia'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy prueba_calibracion_propia',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'prueba_calibracion'
+           and policyname = 'prueba_calibracion_propia'
+       ) then 'SI' else 'NO' end
+
+union all
+-- FK contra usuarios_app, no contra auth.users (ver el porqué en la propia
+-- migración). Si esto diera NO, alguien aplicó la 0015 tal como estaba en el
+-- plan original en vez de con la corrección de la revisión.
+select '0015 · registro de comidas', 'asesorado_id referencia usuarios_app',
+       case when exists (
+         select 1
+         from pg_constraint c
+         join pg_class hijo on hijo.oid = c.conrelid
+         join pg_namespace nsp on nsp.oid = hijo.relnamespace
+         join pg_class padre on padre.oid = c.confrelid
+         where c.contype = 'f'
+           and nsp.nspname = 'public' and hijo.relname = 'registro_comida'
+           and padre.relname = 'usuarios_app'
+       ) then 'SI' else 'NO' end
 
 order by migracion, senal;
