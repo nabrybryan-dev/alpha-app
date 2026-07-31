@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { formatoDuracion } from '../../domain/ritmoSesion'
 import type { TestPostSesion as TestPost } from '../../domain/types'
 import { citaPorIndice, indiceDesdeTexto } from './citasCelebres'
-import { leerTiempoCrono } from './CronometroSesion'
-
-const TOPE_SEG = 5 * 3600 // tope contra cronómetros viejos que nunca se cerraron
+import { leerTiempoCrono, TOPE_SESION_SEG } from './CronometroSesion'
 
 interface TestPostSesionProps {
   onGuardar: (test: TestPost) => void
@@ -25,7 +23,9 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
   const [rpeSesion, setRpeSesion] = useState<number | undefined>()
   const [prsEntrada, setPrsEntrada] = useState<number | undefined>()
 
-  const segundos = Math.min(sesionId ? leerTiempoCrono(sesionId) : 0, TOPE_SEG)
+  // `leerTiempoCrono` ya descarta los cronómetros que quedaron abiertos días. El
+  // `min` se queda como última defensa por si el tiempo llegara por otra vía.
+  const segundos = Math.min(sesionId ? leerTiempoCrono(sesionId) : 0, TOPE_SESION_SEG)
   const completo = rpeSesion !== undefined && prsEntrada !== undefined
   const cita = citaPorIndice(indiceDesdeTexto(sesionId))
 
