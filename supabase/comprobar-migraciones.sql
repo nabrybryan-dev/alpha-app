@@ -32,7 +32,7 @@
 -- **Al escribir una migración nueva, añádele aquí sus señales.** Un archivo de
 -- comprobación desactualizado da una falsa sensación de cobertura. Ver `/migracion`.
 --
--- Lee la columna "aplicada". Estado esperado hoy (2026-07-30):
+-- Lee la columna "aplicada". Estado esperado hoy (2026-07-31):
 --   · 0008 → todo SI
 --   · 0013 → todo SI
 --   · 0014 → todo SI. Aplicada el 2026-07-30 junto con la carga de los 1.195
@@ -41,6 +41,9 @@
 --            de forma visible.
 --   · 0015 → todo NO todavía. Escrita y revisada (Tarea 8 del plan de registro de
 --            comidas), sin aplicar: aplicarla es decisión de Bryan.
+--   · 0016 → todo NO todavía. Escrita y revisada (perfil alimentario del
+--            asesorado, las doce preguntas del cuestionario), sin aplicar:
+--            aplicarla es decisión de Bryan.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -213,6 +216,63 @@ select '0015 · registro de comidas', 'asesorado_id referencia usuarios_app',
          join pg_class padre on padre.oid = c.confrelid
          where c.contype = 'f'
            and nsp.nspname = 'public' and hijo.relname = 'registro_comida'
+           and padre.relname = 'usuarios_app'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'tabla perfil_alimentario',
+       case when to_regclass('public.perfil_alimentario') is not null then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'tabla perfil_alimentario_veto',
+       case when to_regclass('public.perfil_alimentario_veto') is not null then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'índice perfil_alimentario_veto_por_alimento',
+       case when to_regclass('public.perfil_alimentario_veto_por_alimento') is not null
+       then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'policy perfil_alimentario_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'perfil_alimentario'
+           and policyname = 'perfil_alimentario_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'policy perfil_alimentario_veto_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'perfil_alimentario_veto'
+           and policyname = 'perfil_alimentario_veto_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+-- FK contra usuarios_app, no contra auth.users: mismo riesgo que ya atrapó
+-- esta misma comprobación para la 0015.
+select '0016 · perfil alimentario', 'perfil_alimentario.asesorado_id referencia usuarios_app',
+       case when exists (
+         select 1
+         from pg_constraint c
+         join pg_class hijo on hijo.oid = c.conrelid
+         join pg_namespace nsp on nsp.oid = hijo.relnamespace
+         join pg_class padre on padre.oid = c.confrelid
+         where c.contype = 'f'
+           and nsp.nspname = 'public' and hijo.relname = 'perfil_alimentario'
+           and padre.relname = 'usuarios_app'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'perfil_alimentario_veto.asesorado_id referencia usuarios_app',
+       case when exists (
+         select 1
+         from pg_constraint c
+         join pg_class hijo on hijo.oid = c.conrelid
+         join pg_namespace nsp on nsp.oid = hijo.relnamespace
+         join pg_class padre on padre.oid = c.confrelid
+         where c.contype = 'f'
+           and nsp.nspname = 'public' and hijo.relname = 'perfil_alimentario_veto'
            and padre.relname = 'usuarios_app'
        ) then 'SI' else 'NO' end
 
