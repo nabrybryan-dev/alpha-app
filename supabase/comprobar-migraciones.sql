@@ -32,11 +32,13 @@
 -- **Al escribir una migración nueva, añádele aquí sus señales.** Un archivo de
 -- comprobación desactualizado da una falsa sensación de cobertura. Ver `/migracion`.
 --
--- Lee la columna "aplicada". Estado esperado hoy (2026-07-29):
+-- Lee la columna "aplicada". Estado esperado hoy (2026-07-30):
 --   · 0008 → todo SI
 --   · 0013 → todo SI
---   · 0014 → todo NO, a propósito: se aplica junto con la pantalla de registro de
---            alimentos, que todavía no existe.
+--   · 0014 → todo SI. Aplicada el 2026-07-30 junto con la carga de los 1.195
+--            alimentos. Si `sin_tildes() IMMUTABLE` dijera NO, el índice de
+--            trigramas no existe y la búsqueda recorre la tabla entera sin fallar
+--            de forma visible.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -129,5 +131,19 @@ select '0014 · catálogo alimentos', 'función buscar_alimento()',
          select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public' and p.proname = 'buscar_alimento'
        ) then 'SI' else 'NO' end
+
+union all
+-- Sin esta función el índice de trigramas ni siquiera se puede crear (42P17).
+select '0014 · catálogo alimentos', 'función sin_tildes() IMMUTABLE',
+       case when exists (
+         select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = 'sin_tildes' and p.provolatile = 'i'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0014 · catálogo alimentos', 'catálogo cargado (>1000 alimentos)',
+       case when to_regclass('public.alimentos') is not null
+             and (select count(*) from public.alimentos) > 1000
+       then 'SI' else 'NO' end
 
 order by migracion, senal;
