@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run verify)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(npm test)",
+      "Bash(npm run coverage)",
+      "Bash(npm run build)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git for-each-ref:*)",
+      "Bash(git merge-tree:*)"
+    ],
+    "deny": [
+      "Read(./.env.local)",
+      "Read(./.env.development.local)",
+      "Read(./CLAVES.local.txt)",
+      "Read(./RESULTADO.local.txt)",
+      "Read(./supabase/**/*.local.sql)",
+      "Read(./supabase/_app-cargar-*.sql)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)"
+    ]
+  }
+}

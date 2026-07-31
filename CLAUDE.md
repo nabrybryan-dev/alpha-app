@@ -126,7 +126,24 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 
 ---
 
-## 7. Dónde está el conocimiento
+## 7. Skills y permisos
+
+Dos skills de ingeniería en `.claude/skills/`, además de las de diseño y animación que
+ya había:
+
+- **`verificar-contra-la-realidad`** — antes de afirmar que algo está aplicado,
+  arreglado o desplegado, comprobarlo contra la fuente real. En este proyecto el repo
+  **no** es la realidad: las migraciones se aplican a mano y los tests no ven píxeles.
+- **`tests-primero-sin-cobertura`** — cómo tocar un archivo de `src/` que no tiene
+  tests: escribirlos primero y comprobarlos contra el código viejo.
+
+`.claude/settings.json` deja pasar sin preguntar lo que es de lectura o verificación
+(`npm run verify`, `git status`, `git diff`…) y **bloquea la lectura de los archivos con
+credenciales** (`.env.local`, `CLAVES.local.txt`, los `*.local.sql` y las cargas de
+asesorados). También bloquea `push --force` y `reset --hard`. Todo lo demás pregunta,
+que es lo que se quiere: la fricción está donde hay riesgo, no en lo rutinario.
+
+## 8. Dónde está el conocimiento
 
 - **Cómo está construido el software y cómo se repara:**
   `../../Cerebro Programacion Alpha/wiki/` — protocolos, conceptos e **incidentes
