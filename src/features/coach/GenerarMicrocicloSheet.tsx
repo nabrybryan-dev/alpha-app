@@ -39,7 +39,9 @@ export function GenerarMicrocicloSheet({
         <div className="flex flex-col gap-3 text-sm text-texto/90">
           <p>
             Propuesta de <strong>M{propuesta.numero}</strong> para {nombreAsesorado}, calculada con
-            el motor Heracles sobre lo que registró de verdad.
+            el motor Heracles sobre lo que registró de verdad.{' '}
+            {propuesta.reparto.suben} suben · {propuesta.reparto.sostienen} sostienen ·{' '}
+            {propuesta.reparto.bajan} bajan.
             {propuesta.prs !== undefined && (
               <>
                 {' '}
@@ -47,6 +49,24 @@ export function GenerarMicrocicloSheet({
               </>
             )}
           </p>
+
+          {propuesta.revision.auto ? (
+            <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
+              <strong>Dato fiable.</strong> Cumple las cinco señales, así que podría activarse sola
+              cuando llegue su fecha.
+            </p>
+          ) : (
+            <div className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
+              <p>
+                <strong>Esta hay que mirarla.</strong> No se activaría sola porque:
+              </p>
+              <ul className="mt-1 list-disc pl-4">
+                {propuesta.revision.motivos.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <ul className="flex flex-col gap-2">
             {propuesta.filas.map((f, i) => (
