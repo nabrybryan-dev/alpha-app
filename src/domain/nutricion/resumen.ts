@@ -37,7 +37,15 @@ export function itemsDelDia(comidas: RegistroComida[], porId: BuscarAlimento): I
         gramos: item.gramos,
         // El ítem manda sobre la comida: dentro de un almuerzo estimado puede
         // haber un alimento que sí se pesó, y su margen es el suyo.
-        confianza: item.fuePesado ? 'pesado' : comida.confianza,
+        // Un ítem estimado NUNCA puede acabar en 'pesado'. La comida nace con
+        // esa confianza -es la fase de báscula- y sin este tope, marcar "lo
+        // estimé" heredaba ±5 %: la app afirmaba saber con precisión de
+        // báscula algo que la persona calculó a ojo.
+        confianza: item.fuePesado
+          ? 'pesado'
+          : comida.confianza === 'pesado'
+            ? 'estimado'
+            : comida.confianza,
       })
     }
   }

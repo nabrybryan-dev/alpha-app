@@ -15,6 +15,7 @@ import { AdherenciaDia } from './AdherenciaDia'
 import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
+import { estaCalibrado } from '../../domain/nutricion/calibracion'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
 import { ResumenDia } from './ResumenDia'
@@ -103,6 +104,24 @@ export default function DiarioDia() {
   const plan = db.nutricion.planByUsuario(usuario.id)
   const delDia = db.registroComidas.delDia(usuario.id, fecha)
 
+  const pruebas = db.calibracion.byUsuario(usuario.id).map((p) => ({
+    alimentoId: p.alimentoId,
+    gramosEstimados: p.gramosEstimados,
+    gramosReales: p.gramosReales,
+    fecha: p.fecha,
+  }))
+  const diasPesando = db.calibracion.diasPesando(usuario.id)
+
+  /**
+   * Con qué margen nacen las comidas de hoy.
+   *
+   * Se decide AL CREARLAS, no al leerlas. La calibración cambia con el tiempo:
+   * quien calibró ayer no estimaba igual de bien hace tres semanas, y derivarlo
+   * en la lectura reescribiría el margen de todo su historial cada vez que
+   * mejora. Lo que se registró con ±25 % se queda con ±25 %.
+   */
+  const confianzaDeHoy = estaCalibrado(pruebas, diasPesando) ? 'estimado_calibrado' : 'estimado'
+
 
   const porId = (id: string) => catalogoRepo.porId(id)
   // Sin useMemo a propósito: sumar un día son unas decenas de ítems que ya
@@ -130,7 +149,7 @@ export default function DiarioDia() {
     cocinadoPorEl: true,
     aceiteG: null,
     salG: null,
-    confianza: 'pesado',
+    confianza: confianzaDeHoy,
     items: [],
   })
 
@@ -145,7 +164,7 @@ export default function DiarioDia() {
       cocinadoPorEl: true,
       aceiteG: null,
       salG: null,
-      confianza: 'pesado',
+      confianza: confianzaDeHoy,
     })
   }
 
@@ -316,13 +335,8 @@ export default function DiarioDia() {
       <PanelMicros total={total} />
 
       <PanelCalibracion
-        pruebas={db.calibracion.byUsuario(usuario.id).map((p) => ({
-          alimentoId: p.alimentoId,
-          gramosEstimados: p.gramosEstimados,
-          gramosReales: p.gramosReales,
-          fecha: p.fecha,
-        }))}
-        diasPesando={db.calibracion.diasPesando(usuario.id)}
+        pruebas={pruebas}
+        diasPesando={diasPesando}
         onRegistrar={({ alimentoId, estimados, reales }) =>
           db.calibracion.registrar({
             usuarioId: usuario.id,

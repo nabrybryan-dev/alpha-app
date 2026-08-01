@@ -236,6 +236,34 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    calibracion: {
+      ...local.calibracion,
+      registrar: (prueba) => {
+        local.calibracion.registrar(prueba)
+        if (!tablasRegistroListas()) return
+        // Se lee de local para que viaje con el id que le acaba de poner la
+        // capa local: ese id es su `cliente_id`, y es lo que hace que un
+        // reintento no la duplique. Una prueba duplicada pesa el doble en la
+        // mediana del sesgo y puede mover el veredicto entero.
+        const suyas = local.calibracion.byUsuario(prueba.usuarioId)
+        const nueva = suyas[suyas.length - 1]
+        if (!nueva) return
+        encolar({
+          tabla: 'prueba_calibracion',
+          tipo: 'upsert',
+          onConflict: 'cliente_id',
+          payload: {
+            cliente_id: nueva.id,
+            asesorado_id: nueva.usuarioId,
+            fecha: nueva.fecha,
+            alimento_id: nueva.alimentoId,
+            gramos_estimados: nueva.gramosEstimados,
+            gramos_reales: nueva.gramosReales,
+          },
+        })
+      },
+    },
+
     registroComidas: {
       ...local.registroComidas,
       abrirComida: (comida) => {
