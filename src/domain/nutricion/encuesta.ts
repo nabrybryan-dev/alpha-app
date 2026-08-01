@@ -41,6 +41,14 @@ export type ClaveCampo =
   | 'tieneBascula'
   // Solo a quien aplica
   | 'cicloMenstrual'
+  /**
+   * Antecedente de conducta alimentaria. NO se pregunta en la app -no hay
+   * ninguna entrada suya en `CAMPOS`- y por eso nunca aparece en el
+   * formulario: preguntarlo en una pantalla sin nadie al otro lado que responda
+   * es peor que no preguntarlo. Llega solo desde la encuesta de captación, que
+   * sí lo pregunta, y lo lee `senalesDeLaEncuesta`.
+   */
+  | 'antecedenteTca'
 
 export type TipoCampo = 'numero' | 'fecha' | 'opcion' | 'multiple' | 'texto'
 

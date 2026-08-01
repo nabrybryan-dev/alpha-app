@@ -117,14 +117,16 @@ export function calcularPerfil(
  * cifras.
  *
  * De la encuesta de la app sale UNA: el ciclo alterado. El antecedente de
- * conducta alimentaria lo trae la encuesta de captación, que sí lo pregunta —y
- * la de la app no, a propósito: preguntarlo en un formulario sin nadie al otro
- * lado que responda es peor que no preguntarlo. Para quien ya lleva meses, esa
- * bandera la levanta la nutricionista, que conoce a la persona.
+ * conducta alimentaria lo trae la encuesta de captación —que sí lo pregunta— a
+ * través del importador; la app no lo pregunta a propósito, porque hacerlo en
+ * un formulario sin nadie al otro lado que responda es peor que no
+ * preguntarlo. Para quien ya lleva meses y no pasó por esa encuesta, la bandera
+ * la levanta la nutricionista, que conoce a la persona.
  */
 export function senalesDeLaEncuesta(respuestas: Respuestas): SenalesDeRevision {
   const ciclo = respuestas.cicloMenstrual
   return {
     cicloAlterado: ciclo === 'irregular' || ciclo === 'ausente',
+    antecedenteTca: respuestas.antecedenteTca === 'si',
   }
 }
