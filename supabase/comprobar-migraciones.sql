@@ -381,7 +381,22 @@ select '0019 - respuestas de la encuesta', 'la vista de revision respeta RLS',
        ) then 'SI' else 'NO' end
 
 union all
-select '0020 - estado del microciclo', 'existe la funcion proteger_estado_microciclo',
+select '0020 - pruebas desde el movil', 'prueba_calibracion.cliente_id existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'prueba_calibracion'
+           and column_name = 'cliente_id'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0020 - pruebas desde el movil', 'cliente_id es unico',
+       case when exists (
+         select 1 from pg_indexes
+         where schemaname = 'public' and indexname = 'prueba_calibracion_cliente_id_unico'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0021 - estado del microciclo', 'existe la funcion proteger_estado_microciclo',
        case when exists (
          select 1 from pg_proc p
          join pg_namespace n on n.oid = p.pronamespace
@@ -391,7 +406,7 @@ select '0020 - estado del microciclo', 'existe la funcion proteger_estado_microc
 union all
 -- La función sin el trigger no protege nada, y las dos mitades se aplican en
 -- sentencias distintas: se comprueban por separado a propósito.
-select '0020 - estado del microciclo', 'el trigger esta puesto en microciclos',
+select '0021 - estado del microciclo', 'el trigger esta puesto en microciclos',
        case when exists (
          select 1 from pg_trigger t
          join pg_class c on c.oid = t.tgrelid

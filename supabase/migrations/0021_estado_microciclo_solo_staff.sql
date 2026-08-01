@@ -1,5 +1,17 @@
--- ============ 0020: EL ESTADO DEL MICROCICLO LO DECIDE EL STAFF ============
+-- ============ 0021: EL ESTADO DEL MICROCICLO LO DECIDE EL STAFF ============
 -- Hallazgo de la revisión adversaria del mecanismo de activación (2026-08-01).
+--
+-- ⚠️ YA ESTÁ APLICADA EN PRODUCCIÓN. Se aplicó el 2026-08-01 cuando este archivo
+-- se llamaba `0020_...`: la rama de calibración de báscula usó ese mismo número y
+-- llegó antes a `main`, así que aquí se renumeró a 0021. El SQL no cambió ni una
+-- línea; solo el nombre del archivo y el rótulo de sus señales en
+-- `comprobar-migraciones.sql`. NO hay que volver a ejecutarla —aunque es
+-- idempotente (`create or replace` + `drop trigger if exists`), así que hacerlo no
+-- rompería nada—.
+--
+-- La lección, que es lo que importa: dos ramas a la vez cogieron el mismo número
+-- porque el número se decide mirando el repo, y el repo no sabe qué hay en la otra
+-- rama. Al abrir una migración, mirar también las ramas vivas, no solo `main`.
 --
 -- EL FALLO
 -- La app hace UPSERT del microciclo entero cada vez que el asesorado registra una

@@ -126,7 +126,23 @@ export interface CheckinDiario {
   entreno?: string
   rendimiento?: Cualitativo3
   motivacion?: Cantidad3
+  /**
+   * Cómo se preguntaba el hambre antes: POCO / REGULAR / MUCHO.
+   *
+   * Se conserva SOLO para los check-ins ya guardados. No se convierte a la
+   * escala nueva: «MUCHO» no es un 8, y traducirlo fabricaría una precisión que
+   * nadie midió. Los registros viejos se leen tal como se respondieron y no
+   * entran en la regla de días, que necesita el número.
+   */
   hambre?: Cantidad3
+  /**
+   * El hambre del día, de 1 a 10. Es lo que se pregunta desde ahora.
+   *
+   * Con tres categorías no se distinguía un 7 de un 9 — que es justo la
+   * diferencia entre esperar cinco días y actuar en dos. La regla de la
+   * nutricionista existía y no se podía ejecutar por eso.
+   */
+  hambreEscala?: number
   cansancio?: Cantidad3
   estres?: Cantidad3
   horasSueno?: number
@@ -318,6 +334,21 @@ export interface PerfilNutricion {
   respuestas: Record<string, string | number | string[]>
   /** Cuándo terminó de responder. Sin esto, la encuesta sigue pendiente. */
   completadaEn?: string
+}
+
+/**
+ * Una vez que el asesorado estimó primero y pesó después.
+ *
+ * El orden importa y es lo que hace que la prueba valga: si pesa antes de
+ * estimar, ya no está midiendo su ojo, está copiando la báscula.
+ */
+export interface PruebaCalibracion {
+  id: string
+  usuarioId: string
+  fecha: string
+  alimentoId: string
+  gramosEstimados: number
+  gramosReales: number
 }
 
 /**

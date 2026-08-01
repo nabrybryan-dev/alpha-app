@@ -228,6 +228,44 @@ describe('el registro de comidas sube a Supabase', () => {
     })
   })
 
+  describe('las pruebas de calibración', () => {
+    const prueba = {
+      usuarioId: VALENTINA,
+      fecha: FECHA,
+      alimentoId: 'arroz-blanco-pulido-cocido-sin-sal',
+      gramosEstimados: 100,
+      gramosReales: 130,
+    }
+
+    it('suben con su id de cliente', () => {
+      const { db, cola } = modulos!
+      db.calibracion.registrar(prueba)
+
+      const op = cola().find((o) => o.tabla === 'prueba_calibracion')
+      expect(op?.payload.cliente_id).toBeTruthy()
+      expect(op?.payload.gramos_estimados).toBe(100)
+      expect(op?.payload.gramos_reales).toBe(130)
+    })
+
+    it('el conflicto se resuelve por cliente_id, para que reintentar no duplique', () => {
+      // Una prueba duplicada pesa el doble en la mediana del sesgo, y si cae en
+      // un extremo mueve el veredicto: alguien con sesgo real podría pasar el
+      // corte y registrar todo con un margen que no le corresponde.
+      const { db, cola } = modulos!
+      db.calibracion.registrar(prueba)
+      expect(cola().find((o) => o.tabla === 'prueba_calibracion')?.onConflict).toBe('cliente_id')
+    })
+
+    it('sin las tablas aplicadas no se encola, pero sí se guarda en el móvil', () => {
+      localStorage.setItem('alpha-tablas-registro', '0')
+      const { db, cola } = modulos!
+      db.calibracion.registrar(prueba)
+
+      expect(cola().filter((o) => o.tabla === 'prueba_calibracion')).toEqual([])
+      expect(db.calibracion.byUsuario(VALENTINA)).toHaveLength(1)
+    })
+  })
+
   it('lo local se guarda aunque no haya red', () => {
     // El registro no depende de que la subida funcione. Es lo que permite
     // anotar en un sótano sin cobertura.

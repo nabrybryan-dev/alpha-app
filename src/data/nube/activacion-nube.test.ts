@@ -24,7 +24,7 @@
  *   · Cambiar de estado es un `update` de la COLUMNA `estado`, nunca un upsert del
  *     blob. Así el coach no reescribe nada del asesorado.   ← se prueba aquí
  *   · La hidratación lee la columna y esa manda sobre `datos.estado`.  ← aquí
- *   · Un trigger impide a quien no es staff cambiar la columna (migración 0020).
+ *   · Un trigger impide a quien no es staff cambiar la columna (migración 0021).
  *     Eso vive en el servidor y no lo ve ningún test de este repo.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
