@@ -10,6 +10,7 @@ import type {
   Microciclo,
   Perfil,
   PlanNutricional,
+  PerfilNutricion,
   PreferenciaEstado,
   PremiacionCoach,
   RegistroComida,
@@ -65,6 +66,12 @@ export interface NutricionRepo {
   hidratacionDe(usuarioId: string, fecha: string): number
   /** Suma deltaMl (puede ser negativo para corregir) al total del día, con piso en 0. */
   registrarHidratacion(usuarioId: string, fecha: string, deltaMl: number): void
+}
+
+export interface PerfilNutricionRepo {
+  byUsuario(usuarioId: string): PerfilNutricion | undefined
+  /** Guarda lo respondido. `completada` marca que ya no hay que preguntar más. */
+  guardar(usuarioId: string, respuestas: PerfilNutricion['respuestas'], completada: boolean): void
 }
 
 export interface RegistroComidasRepo {
@@ -133,6 +140,7 @@ export interface Db {
   microciclos: MicrociclosRepo
   bienestar: BienestarRepo
   nutricion: NutricionRepo
+  perfilNutricion: PerfilNutricionRepo
   registroComidas: RegistroComidasRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo

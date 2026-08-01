@@ -288,6 +288,21 @@ export interface RegistroComida {
 }
 
 /**
+ * Lo que el asesorado respondió en la encuesta que abre Nutrición.
+ *
+ * Se guarda tal cual, en crudo. Las cifras que salen de aquí -grasa, TDEE,
+ * macros- NO se guardan: se recalculan siempre desde estas respuestas. Así, el
+ * día que se corrija una fórmula, los perfiles viejos se corrigen solos en vez
+ * de arrastrar para siempre un número hecho con la versión anterior.
+ */
+export interface PerfilNutricion {
+  usuarioId: string
+  respuestas: Record<string, string | number | string[]>
+  /** Cuándo terminó de responder. Sin esto, la encuesta sigue pendiente. */
+  completadaEn?: string
+}
+
+/**
  * Qué contestó el asesorado a «¿crudo o cocido?» para una familia de alimentos.
  * Se recuerda para no volver a preguntárselo cada vez que registre arroz.
  */

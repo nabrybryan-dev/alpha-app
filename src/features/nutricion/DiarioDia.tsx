@@ -4,6 +4,7 @@ import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
+import { encuestaCompleta, type Respuestas } from '../../domain/nutricion/encuesta'
 import { familia } from '../../domain/nutricion/estado'
 import {
   alimentosRecientes,
@@ -13,6 +14,7 @@ import {
 import type { RegistroComida, TipoComida, TipoDia } from '../../domain/types'
 import { AdherenciaDia } from './AdherenciaDia'
 import { DetalleComida } from './DetalleComida'
+import { EncuestaNutricion } from './EncuestaNutricion'
 import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
 import { PanelMicros } from './PanelMicros'
@@ -102,6 +104,18 @@ export default function DiarioDia() {
   const plan = db.nutricion.planByUsuario(usuario.id)
   const delDia = db.registroComidas.delDia(usuario.id, fecha)
 
+  /**
+   * La compuerta: sin la encuesta no hay Nutricion.
+   *
+   * Es un bloqueo completo a proposito. Todo lo que hay detras -las calorias,
+   * los macros, el margen de cada registro- se calcula CON esos datos: sin
+   * ellos la pantalla no ensenaria un poco menos, ensenaria numeros sin
+   * respaldo. Y un numero sin respaldo se lee igual que uno bueno.
+   */
+  const perfilNutricion = db.perfilNutricion.byUsuario(usuario.id)
+  const yaSabidos = (perfilNutricion?.respuestas ?? {}) as Respuestas
+  const faltaEncuesta = !perfilNutricion?.completadaEn || !encuestaCompleta(yaSabidos)
+
   const porId = (id: string) => catalogoRepo.porId(id)
   // Sin useMemo a propósito: sumar un día son unas decenas de ítems que ya
   // están en memoria. Memorizarlo obligaría a declarar como dependencia una
@@ -174,6 +188,19 @@ export default function DiarioDia() {
   // Donde cae lo que se busque: la comida abierta desde el diario, o la que se
   // está mirando en el detalle.
   const destino = comidaAbierta ?? detalle
+
+  if (faltaEncuesta) {
+    return (
+      <EncuestaNutricion
+        yaSabidos={{}}
+        enCurso={yaSabidos}
+        onGuardarAvance={(respuestas) =>
+          db.perfilNutricion.guardar(usuario.id, respuestas, false)
+        }
+        onTerminar={(respuestas) => db.perfilNutricion.guardar(usuario.id, respuestas, true)}
+      />
+    )
+  }
 
   if (!plan) {
     return (

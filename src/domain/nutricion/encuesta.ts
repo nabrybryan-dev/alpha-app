@@ -272,6 +272,18 @@ export function camposAPreguntar(
   })
 }
 
+/**
+ * Si la encuesta ya se puede dar por respondida.
+ *
+ * Mira SOLO los campos obligatorios. Los opcionales -qué no te gusta, a qué no
+ * tienes acceso- mejoran las recomendaciones pero no hacen falta para calcular
+ * nada, y exigirlos dejaría fuera para siempre a quien los deje en blanco: la
+ * compuerta no se volvería a abrir nunca.
+ */
+export function encuestaCompleta(respuestas: Respuestas): boolean {
+  return camposAPreguntar(respuestas).every((campo) => !campo.obligatorio)
+}
+
 /** Si una respuesta cuenta como contestada. */
 export function tieneValor(valor: string | number | string[] | undefined): boolean {
   if (valor === undefined || valor === null) return false

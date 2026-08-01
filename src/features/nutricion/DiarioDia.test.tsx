@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import DiarioDia from './DiarioDia'
@@ -125,6 +125,61 @@ describe('DiarioDia', () => {
     await userEvent.click(otro)
 
     expect(screen.getByRole('button', { name: /almuerzo, sin registrar/i })).toBeInTheDocument()
+  })
+
+  describe('la compuerta', () => {
+    it('sin la encuesta respondida, Nutrición no se abre', () => {
+      // Bloqueo completo a propósito: todo lo de detrás -calorías, macros,
+      // márgenes- se calcula CON esos datos. Sin ellos la pantalla no enseñaría
+      // un poco menos: enseñaría números sin respaldo, que se leen igual que
+      // los buenos.
+      // Mateo no la ha contestado en el seed: es el caso real de los 19 que
+      // llevan meses y nunca la respondieron.
+      localStorage.setItem('alpha-usuario', 'u-mateo')
+      pintar()
+
+      expect(screen.getByText(/antes de empezar/i)).toBeInTheDocument()
+      expect(screen.queryByText(/diario de comidas/i)).not.toBeInTheDocument()
+    })
+
+    it('con la encuesta respondida, entra directo al diario', () => {
+      // Valentina la tiene contestada en el seed.
+      pintar()
+      expect(screen.getByText(/diario de comidas/i)).toBeInTheDocument()
+    })
+
+    it('al terminarla, la compuerta se abre sin recargar', async () => {
+      localStorage.setItem('alpha-usuario', 'u-mateo')
+      pintar()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Mujer' }))
+      for (const [etiqueta, valor] of [
+        [/tu peso/i, '62'],
+        [/tu altura/i, '165'],
+        [/perímetro del cuello/i, '31'],
+        [/perímetro de la cintura/i, '71'],
+        [/perímetro de la cadera/i, '96'],
+        [/cuántos pasos/i, '9500'],
+        [/cuántos días entrenas/i, '4'],
+      ] as const) {
+        await userEvent.type(screen.getByLabelText(etiqueta), valor)
+      }
+      // `userEvent.type` no rellena un <input type="date">: hay que emitir el
+      // cambio directamente.
+      fireEvent.change(screen.getByLabelText(/cuándo naciste/i), {
+        target: { value: '1998-03-14' },
+      })
+      const alergias = screen.getByText(/tienes alguna alergia/i).closest('div') as HTMLElement
+      await userEvent.click(within(alergias).getByRole('button', { name: 'Ninguna' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Sí' }))
+
+      await userEvent.click(screen.getByRole('button', { name: /listo/i }))
+
+      // La encuesta desaparece. Mateo aun no tiene plan, asi que lo que ve es
+      // el aviso de que su coach lo esta preparando -sin prometerle un reloj-.
+      expect(screen.queryByText(/antes de empezar/i)).not.toBeInTheDocument()
+      expect(screen.getByText(/viene en camino/i)).toBeInTheDocument()
+    })
   })
 
   it('lleva a Mi plan', () => {

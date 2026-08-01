@@ -350,6 +350,31 @@ export function crearMockDb(): Db {
       },
     },
 
+    perfilNutricion: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.perfilesNutricion ?? []).find((p) => p.usuarioId === usuarioId),
+      guardar: (usuarioId, respuestas, completada) => {
+        mutar((estado) => {
+          const previo = (estado.perfilesNutricion ?? []).find((p) => p.usuarioId === usuarioId)
+          return {
+            ...estado,
+            perfilesNutricion: [
+              ...(estado.perfilesNutricion ?? []).filter((p) => p.usuarioId !== usuarioId),
+              {
+                usuarioId,
+                // Se acumula sobre lo que ya había: la encuesta se puede dejar a
+                // medias y retomar, y nadie va a volver a escribir su altura.
+                respuestas: { ...previo?.respuestas, ...respuestas },
+                completadaEn: completada
+                  ? (previo?.completadaEn ?? new Date().toISOString())
+                  : previo?.completadaEn,
+              },
+            ],
+          }
+        })
+      },
+    },
+
     registroComidas: {
       delDia: (usuarioId, fecha) =>
         (ref.actual.registrosComida ?? [])
