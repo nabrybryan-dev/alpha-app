@@ -8,6 +8,9 @@ interface AnilloMacroProps {
   pct: number
   /** Variable CSS de color, p. ej. 'var(--rojo)'. */
   color: string
+  /** Unidad bajo la cifra. Por defecto gramos, que es para lo que nacio; el
+   *  anillo de energia del diario la necesita en kcal. */
+  unidad?: string
 }
 
 const RADIO = 26
@@ -17,7 +20,7 @@ const CIRCUNFERENCIA = 2 * Math.PI * RADIO
  * Anillo de macro estilo "Nutrición Pro": progreso circular SVG que se
  * dibuja al montar, con gramos al centro y etiqueta en mayúsculas debajo.
  */
-export function AnilloMacro({ etiqueta, gramos, pct, color }: AnilloMacroProps) {
+export function AnilloMacro({ etiqueta, gramos, pct, color, unidad = 'g' }: AnilloMacroProps) {
   const seguro = Math.max(0, Math.min(100, pct))
   const pctAnimado = useContadorAnimado(seguro)
   const gramosAnimados = useContadorAnimado(gramos)
@@ -62,7 +65,7 @@ export function AnilloMacro({ etiqueta, gramos, pct, color }: AnilloMacroProps) 
         <div className="absolute inset-0 grid place-items-center">
           <p className="cifras text-center font-display text-sm leading-none text-texto">
             {Math.round(gramosAnimados)}
-            <span className="block text-[9px] font-normal normal-case text-tenue">g</span>
+            <span className="block text-[9px] font-normal normal-case text-tenue">{unidad}</span>
           </p>
         </div>
       </div>

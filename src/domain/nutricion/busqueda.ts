@@ -23,11 +23,20 @@ export interface AlimentoIndice {
   estado: string
   confianza: string
   fuente: string
+  /**
+   * Solo lo que la app necesita sin conexión: los cuatro que se pintan al
+   * buscar y los tres micros del panel del día. `null` significa "no se midió",
+   * nunca "no contiene" -la TCAC no publica vitamina C para las carnes, y
+   * escribir 0 ahí afirmaría algo que ninguna fuente dice-.
+   */
   por100g: {
     kcal: number | null
     proteina_g: number | null
     carbos_g: number | null
     grasa_g: number | null
+    hierro_mg?: number | null
+    vitamina_c_mg?: number | null
+    potasio_mg?: number | null
   }
   medidas?: { nombre: string; gramos: number }[]
 }

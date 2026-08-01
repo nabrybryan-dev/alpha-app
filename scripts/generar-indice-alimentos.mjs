@@ -32,8 +32,22 @@ const aqui = dirname(fileURLToPath(import.meta.url))
 const ORIGEN = resolve(aqui, '../../herramientas/base-alimentos/catalogo.json')
 const DESTINO = resolve(aqui, '../src/data/catalogo/alimentos.json')
 
-/** Lo único que se pinta en la hoja de búsqueda. */
-const NUTRIENTES = ['kcal', 'proteina_g', 'carbos_g', 'grasa_g']
+/**
+ * Los cuatro que se pintan al buscar, más los tres micronutrientes del panel
+ * del día. Estos tres viajan aunque no se vean en la lista de resultados: sin
+ * ellos el panel de micros solo funcionaría con conexión, que es justo lo que
+ * este índice existe para evitar. Los otros diez (calcio, B12, zinc, magnesio,
+ * sodio, EPA, DHA…) se quedan fuera y se calculan cuando haya red.
+ */
+const NUTRIENTES = [
+  'kcal',
+  'proteina_g',
+  'carbos_g',
+  'grasa_g',
+  'hierro_mg',
+  'vitamina_c_mg',
+  'potasio_mg',
+]
 
 /** `undefined` se cae al serializar a JSON; `null` sobrevive, y es lo que hay
  *  que conservar. Un nutriente ausente en origen entra como null explícito. */

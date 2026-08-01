@@ -49,7 +49,22 @@ interface SheetBuscarAlimentoProps {
 
 const cifra = (valor: number | null) => (valor === null ? '—' : Math.round(valor))
 
-export function SheetBuscarAlimento({
+/**
+ * Cada apertura empieza en blanco.
+ *
+ * El cuerpo se desmonta al cerrar, y con el se va lo escrito. Sin esto el
+ * componente se queda montado -solo el `Sheet` de dentro devuelve null- y la
+ * siguiente vez que el asesorado abre el buscador se encuentra la busqueda
+ * anterior todavia escrita, con sus resultados. Lo mismo que garantiza el `key`
+ * de la hoja de cantidad, por la misma razon: lo que arrastra la pantalla no lo
+ * escribio nadie.
+ */
+export function SheetBuscarAlimento(props: SheetBuscarAlimentoProps) {
+  if (!props.abierto) return null
+  return <CuerpoBuscar {...props} />
+}
+
+function CuerpoBuscar({
   abierto,
   recientes = [],
   onCerrar,
