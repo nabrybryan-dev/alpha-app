@@ -5,6 +5,7 @@ import { Semaforo } from '../../components/ui/Semaforo'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import { resumenAsesorado } from './resumenAsesorado'
+import { PanelMicrociclos } from './PanelMicrociclos'
 
 const ordenColor = { rojo: 0, ambar: 1, verde: 2 } as const
 
@@ -58,6 +59,8 @@ export default function AsesoradosPage() {
           </Link>
         </div>
       </section>
+
+      <PanelMicrociclos />
 
       <section className="flex flex-col gap-2.5">
         {resumenes.map((r) => (

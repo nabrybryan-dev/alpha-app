@@ -30,7 +30,7 @@
  * Ver `conocimiento/comparativa-cursos-vs-arquitectura-app.md` en el Cerebro de
  * Programación.
  */
-import { revisarActivacion, type RevisionActivacion } from '../../domain/activacion'
+import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../domain/activacion'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
@@ -175,20 +175,34 @@ function filasDeSesion(
  * con lo hecho dentro. Arrastrarlos haría que el asesorado abriera M23 con las
  * series de M22 ya marcadas.
  *
+ * **Tampoco arrastra la fecha de inicio**, y esto se vio en pantalla, no en un
+ * test: el `...origen` la copiaba tal cual, así que el microciclo nuevo nacía con
+ * la fecha del viejo —es decir, **ya vencido**—. En el panel del coach eso salía
+ * como un M10 propuesto sobre un M9 recién creado y vacío: «0 suben · 0 sostienen
+ * · 0 bajan». Encadenado, le habría generado un microciclo fantasma por cada vez
+ * que Bryan abriera la app.
+ *
+ * Arranca donde terminaba el anterior, salvo que eso ya sea pasado: si se activa
+ * con retraso, empieza hoy. Encadenar hacia atrás le daría al asesorado una semana
+ * nacida a medias.
+ *
  * El `estado` lo fuerza la capa de datos a `'propuesto'`; aquí se pone igual por
  * claridad, pero la salvaguarda real está en `guardarPropuesta`.
  */
 export function microcicloPropuesto(
   origen: Microciclo,
-  opciones: { incrementoKg?: number } = {},
+  opciones: { incrementoKg?: number; hoy?: string } = {},
 ): Microciclo {
-  const { incrementoKg = 2.5 } = opciones
+  const { incrementoKg = 2.5, hoy } = opciones
   const prs = prsMasReciente(origen)
+  const finAnterior = sumarDias(origen.fechaInicio, origen.cadenciaDias)
   return {
     ...origen,
     id: `${origen.id}-prop${origen.numero + 1}`,
     numero: origen.numero + 1,
     estado: 'propuesto',
+    // Comparación de cadenas ISO: ordena bien sin construir fechas.
+    fechaInicio: hoy && hoy > finAnterior ? hoy : finAnterior,
     sesiones: origen.sesiones.map((s) => ({
       ...s,
       testPost: undefined,
