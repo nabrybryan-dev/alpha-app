@@ -271,8 +271,30 @@ export interface OpcionesOndulacion {
  */
 export const DERIVA_FATIGA_POR_SET = 0.025
 
-/** Proporción de series que se conserva en una semana de descarga. */
-export const FACTOR_DESCARGA = 0.6
+/**
+ * Proporción de series que se conserva en una semana de descarga.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * MEDIDO, NO ELEGIDO (2026-08-01)
+ * ────────────────────────────────────────────────────────────────────────────
+ * Sobre **356 bajadas reales de series** entre microciclos consecutivos de las 21
+ * plantillas de asesorados. El acierto de cada candidato, contando cuántas de esas
+ * 356 reproduce exactamente `Math.round(sets * F)`:
+ *
+ *   F = 2/3  →  **81,7 %**      F = 0.6 → 70,5 %      F = 0.75 → 67,1 %
+ *
+ * Manda porque acierta los dos patrones dominantes a la vez: 3→2 (177 casos) y
+ * 4→3 (61). Con 0.6 el segundo se convierte en 4→2, que solo ocurre 21 veces.
+ *
+ * Y 0.75 tiene un defecto peor que ser menos preciso: `round(2 * 0.75) = 2`, así
+ * que **en un ejercicio de 2 series la descarga no quitaría ninguna**. Hay 51
+ * bajadas reales de 2→1.
+ *
+ * Corrige una afirmación anterior de este repo —«la mediana real es 0,75»— que
+ * medía caídas de VOLUMEN de más del 10 %, no el número de series. Es la cantidad
+ * que esta constante multiplica, así que era comparar cosas distintas.
+ */
+export const FACTOR_DESCARGA = 2 / 3
 
 /**
  * Ondula un ejercicio para el microciclo siguiente.

@@ -187,6 +187,28 @@ describe('ondularEjercicio', () => {
     ],
   })
 
+  /**
+   * FIJA LO MEDIDO, no una preferencia. `FACTOR_DESCARGA = 2/3` salió de 356
+   * bajadas reales de series entre microciclos consecutivos de las 21 plantillas:
+   * acierta el 81,7 % de ellas, contra 70,5 % de 0.6 y 67,1 % de 0.75.
+   *
+   * El caso de 2 series es el que descarta 0.75 por sí solo: `round(2 * 0.75) = 2`
+   * dejaría la descarga sin efecto, y hay 51 bajadas reales de 2→1.
+   *
+   * Si alguien cambia la constante, estos tres casos se ponen rojos. Ese es el
+   * punto: el número se mueve con datos nuevos, no por intuición.
+   */
+  it('la descarga recorta las series como lo hace Bryan de verdad', () => {
+    const conSets = (sets: number) =>
+      ondularEjercicio(ejercicio({ ...registrado, sets, series: registrado.series }), {
+        descarga: true,
+      }).series.length
+
+    expect(conSets(3)).toBe(2) // el patrón más frecuente: 177 de 356
+    expect(conSets(4)).toBe(3) // el segundo: 61 — con 0.6 daría 2
+    expect(conSets(2)).toBe(1) // 51 casos — con 0.75 se quedaría en 2
+  })
+
   it('ondula con reps descendentes y cargas ascendentes', () => {
     const r = ondularEjercicio(registrado)
     expect(r.series).toHaveLength(4)

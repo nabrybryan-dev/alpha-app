@@ -23,10 +23,16 @@
  *
  *   · El 15 % de los microciclos baja volumen más de un 10 %… y es el MISMO 15 %
  *     dentro y fuera de M4/M8/M12. No hay ninguna señal en la semana 4.
- *   · Cuando baja de verdad, la mediana es 0,75, no el 0,6 de `FACTOR_DESCARGA`.
  *
- * Así que aquí se pasa `descarga: false` siempre. **Antes de activarla hay que
- * decidir cómo se dispara**: ¿fatiga acumulada? ¿PRS bajo sostenido? ¿a mano?
+ * Esa medición decía también «cuando baja, la mediana es 0,75, no el 0,6 de
+ * FACTOR_DESCARGA». **Era una comparación mal hecha** y se corrigió el 2026-08-01:
+ * medía caídas de VOLUMEN, mientras que `FACTOR_DESCARGA` multiplica el NÚMERO DE
+ * SERIES. Midiendo directamente las series —356 bajadas reales— el valor que más
+ * acierta es 2/3. Ver su comentario en `domain/ondulacion.ts`.
+ *
+ * Lo que sigue en pie es lo de arriba: **la semana 4 no dispara nada en la
+ * práctica**. Así que aquí se pasa `descarga: false` siempre. Antes de activarla
+ * hay que decidir cómo se dispara: ¿fatiga acumulada? ¿PRS bajo sostenido? ¿a mano?
  * Ver `conocimiento/comparativa-cursos-vs-arquitectura-app.md` en el Cerebro de
  * Programación.
  */
