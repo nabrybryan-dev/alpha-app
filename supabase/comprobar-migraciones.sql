@@ -315,4 +315,44 @@ select '0017 - registro desde el movil', 'cliente_id es unico en registro_comida
          where schemaname = 'public' and indexname = 'registro_comida_cliente_id_unico'
        ) then 'SI' else 'NO' end
 
+union all
+select '0018 - visibilidad de cifras', 'la tabla de interruptores existe',
+       case when exists (
+         select 1 from information_schema.tables
+         where table_schema = 'public' and table_name = 'visibilidad_nutricion'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'los tres interruptores estan',
+       case when (
+         select count(*) from information_schema.columns
+         where table_schema = 'public' and table_name = 'visibilidad_nutricion'
+           and column_name in ('ver_composicion', 'ver_objetivo_calorico', 'ver_contador_kcal')
+       ) = 3 then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'la nota clinica esta en su propia tabla',
+       case when exists (
+         select 1 from information_schema.tables
+         where table_schema = 'public' and table_name = 'visibilidad_nutricion_nota'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'el asesorado NO puede escribir sus interruptores',
+       case when not exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'visibilidad_nutricion'
+           and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+           and qual like '%auth.uid()%'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'la vista de pendientes respeta RLS',
+       case when exists (
+         select 1 from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public' and c.relname = 'visibilidad_pendiente'
+           and c.reloptions::text like '%security_invoker=true%'
+       ) then 'SI' else 'NO' end
+
 order by migracion, senal;
