@@ -201,6 +201,41 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    visibilidad: {
+      ...local.visibilidad,
+      decidir: (decision) => {
+        local.visibilidad.decidir(decision)
+        encolar({
+          tabla: 'visibilidad_nutricion',
+          tipo: 'upsert',
+          payload: {
+            asesorado_id: decision.usuarioId,
+            ver_composicion: decision.verComposicion,
+            ver_objetivo_calorico: decision.verObjetivoCalorico,
+            ver_contador_kcal: decision.verContadorKcal,
+            estado: decision.estado,
+            actualizado_en: new Date().toISOString(),
+          },
+        })
+        // La nota va en su propia tabla y en su propia operación: es clínica y
+        // el asesorado puede leer sus interruptores pero no esto. Separarlas en
+        // la base es lo que lo garantiza -RLS es por fila, no por columna-, así
+        // que aquí viajan por separado también.
+        if (decision.nota === undefined) return
+        encolar({
+          tabla: 'visibilidad_nutricion_nota',
+          tipo: 'upsert',
+          payload: {
+            asesorado_id: decision.usuarioId,
+            motivo: decision.nota || null,
+            decidido_por: decision.decididoPor ?? null,
+            decidido_en: decision.decididoEn ?? null,
+            actualizado_en: new Date().toISOString(),
+          },
+        })
+      },
+    },
+
     registroComidas: {
       ...local.registroComidas,
       abrirComida: (comida) => {

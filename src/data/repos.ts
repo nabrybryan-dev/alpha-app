@@ -19,6 +19,7 @@ import type {
   SerieRegistrada,
   TestPostSesion,
   Usuario,
+  VisibilidadAsesorado,
 } from '../domain/types'
 
 export interface UsuariosRepo {
@@ -72,6 +73,18 @@ export interface PerfilNutricionRepo {
   byUsuario(usuarioId: string): PerfilNutricion | undefined
   /** Guarda lo respondido. `completada` marca que ya no hay que preguntar más. */
   guardar(usuarioId: string, respuestas: PerfilNutricion['respuestas'], completada: boolean): void
+}
+
+/**
+ * Los interruptores de visibilidad. SOLO STAFF.
+ *
+ * El asesorado los LEE -la app necesita saber qué pintarle- pero no los
+ * escribe: si pudiera, encendería los suyos y toda la protección sobraría. Esa
+ * asimetría la impone la migración 0018 en la base; aquí solo se refleja.
+ */
+export interface VisibilidadRepo {
+  byUsuario(usuarioId: string): VisibilidadAsesorado | undefined
+  decidir(decision: VisibilidadAsesorado): void
 }
 
 export interface RegistroComidasRepo {
@@ -141,6 +154,7 @@ export interface Db {
   bienestar: BienestarRepo
   nutricion: NutricionRepo
   perfilNutricion: PerfilNutricionRepo
+  visibilidad: VisibilidadRepo
   registroComidas: RegistroComidasRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo

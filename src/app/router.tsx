@@ -16,6 +16,7 @@ const ContenidosPage = lazy(() => import('../features/contenidos/ContenidosPage'
 const LogrosPage = lazy(() => import('../features/logros/LogrosPage'))
 const MarcaPage = lazy(() => import('../features/marca/MarcaPage'))
 const EquipoNutricionPage = lazy(() => import('../features/nutri/EquipoNutricionPage'))
+const CifrasAsesoradosPage = lazy(() => import('../features/nutri/CifrasAsesoradosPage'))
 const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
@@ -53,6 +54,7 @@ export function AppRouter() {
         <Route path="logros" element={envolver(<LogrosPage />)} />
         <Route path="marca" element={envolver(<MarcaPage />)} />
         <Route path="equipo-nutricion" element={envolver(<EquipoNutricionPage />)} />
+        <Route path="equipo-nutricion/cifras" element={envolver(<CifrasAsesoradosPage />)} />
       </Route>
       <Route path="coach" element={<CoachLayout />}>
         <Route index element={envolver(<AsesoradosPage />)} />

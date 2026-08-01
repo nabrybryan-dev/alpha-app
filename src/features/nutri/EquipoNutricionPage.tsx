@@ -1,9 +1,12 @@
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { calcularRacha } from '../../domain/gamification'
+import type { Respuestas } from '../../domain/nutricion/encuesta'
+import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
+import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 
 function fechaAtras(hoy: string, dias: number): string {
   const fecha = new Date(`${hoy}T00:00:00`)
@@ -27,6 +30,16 @@ export default function EquipoNutricionPage() {
   if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
     return <Navigate to="/" replace />
   }
+
+  // Cuántos esperan decisión. Va en el enlace: si no se ve el número, nadie
+  // entra a mirar hasta que alguien pregunte.
+  const pendientes = db.usuarios.asesorados().filter((a) => {
+    const respuestas = (db.perfilNutricion.byUsuario(a.id)?.respuestas ?? {}) as Respuestas
+    return (
+      visibilidadDe(db.visibilidad.byUsuario(a.id), senalesDeLaEncuesta(respuestas)).estado ===
+      'en_espera'
+    )
+  }).length
 
   const filas = db.usuarios
     .asesorados()
@@ -63,6 +76,19 @@ export default function EquipoNutricionPage() {
         <p className="mt-1 text-xs text-tenue">
           Adherencia de los últimos 30 días · ordenado de mayor a menor atención requerida
         </p>
+        {/* Sin este enlace la pantalla de decisiones existe y no la alcanza
+            nadie: la ruta estaba, pero no había por dónde entrar. */}
+        <Link
+          to="/equipo-nutricion/cifras"
+          className="press mt-3 inline-block rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+        >
+          Qué cifras ve cada asesorado
+          {pendientes > 0 && (
+            <span className="ml-2 rounded-full bg-accion px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {pendientes}
+            </span>
+          )}
+        </Link>
       </section>
 
       <section className="flex flex-col gap-2.5">

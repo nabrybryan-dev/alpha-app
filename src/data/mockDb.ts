@@ -375,6 +375,20 @@ export function crearMockDb(): Db {
       },
     },
 
+    visibilidad: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.visibilidades ?? []).find((v) => v.usuarioId === usuarioId),
+      decidir: (decision) => {
+        mutar((estado) => ({
+          ...estado,
+          visibilidades: [
+            ...(estado.visibilidades ?? []).filter((v) => v.usuarioId !== decision.usuarioId),
+            decision,
+          ],
+        }))
+      },
+    },
+
     registroComidas: {
       delDia: (usuarioId, fecha) =>
         (ref.actual.registrosComida ?? [])

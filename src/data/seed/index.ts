@@ -14,6 +14,7 @@ import type {
   RegistroHidratacion,
   Respuesta,
   Usuario,
+  VisibilidadAsesorado,
 } from '../../domain/types'
 import {
   adherenciasValentina,
@@ -42,6 +43,7 @@ export interface SeedDb {
   hidratacion?: RegistroHidratacion[]
   /** Opcional por lo mismo: el registro de comidas llegó después. */
   perfilesNutricion?: PerfilNutricion[]
+  visibilidades?: VisibilidadAsesorado[]
   registrosComida?: RegistroComida[]
   preferenciasEstado?: PreferenciaEstado[]
   /** Solo en modo nube: lo llena la RPC ranking_disciplina al iniciar sesión. */
@@ -91,6 +93,7 @@ export const seedDb: SeedDb = {
       },
     },
   ],
+  visibilidades: [],
   registrosComida: [],
   preferenciasEstado: [],
   mensajes,

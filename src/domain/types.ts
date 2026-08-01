@@ -288,6 +288,24 @@ export interface RegistroComida {
 }
 
 /**
+ * La decisión de la nutricionista sobre qué cifras ve un asesorado.
+ *
+ * La `nota` va aparte en la base -tabla propia, solo staff- porque es clínica y
+ * el asesorado sí puede leer sus interruptores. Aquí viajan juntas porque quien
+ * carga este objeto es siempre staff.
+ */
+export interface VisibilidadAsesorado {
+  usuarioId: string
+  verComposicion: boolean
+  verObjetivoCalorico: boolean
+  verContadorKcal: boolean
+  estado: 'automatico' | 'en_espera' | 'decidido'
+  nota?: string
+  decididoPor?: string
+  decididoEn?: string
+}
+
+/**
  * Lo que el asesorado respondió en la encuesta que abre Nutrición.
  *
  * Se guarda tal cual, en crudo. Las cifras que salen de aquí -grasa, TDEE,
