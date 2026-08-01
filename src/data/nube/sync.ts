@@ -48,6 +48,45 @@ function tablaHidratacionLista(): boolean {
   return localStorage.getItem(CLAVE_TABLA_HIDRATACION) !== '0'
 }
 
+const CLAVE_TABLAS_REGISTRO = 'alpha-tablas-registro'
+
+/**
+ * Mismo interruptor que el de hidratación, para las tablas del registro de
+ * comidas (migraciones 0015 y 0017).
+ *
+ * Sin él, en un despliegue que aún no las tenga cada alimento anotado se
+ * encolaría, fallaría ocho veces y acabaría descartado. El asesorado no vería
+ * ningún error: seguiría registrando con normalidad mientras su día se
+ * evapora en la cola.
+ *
+ * Solo lo apaga un error que signifique EXACTAMENTE "esta tabla no existe".
+ */
+export function marcarTablaRegistro(disponible: boolean): void {
+  localStorage.setItem(CLAVE_TABLAS_REGISTRO, disponible ? '1' : '0')
+}
+
+function tablasRegistroListas(): boolean {
+  return localStorage.getItem(CLAVE_TABLAS_REGISTRO) !== '0'
+}
+
+/**
+ * Cómo sube el registro de comidas (migración 0017).
+ *
+ * El id de las dos tablas lo genera el servidor, así que el móvil no lo conoce
+ * hasta que la fila existe arriba — y sin conexión no existe nunca. Por eso
+ * cada comida y cada ítem llevan un `cliente_id` que pone el dispositivo, y el
+ * upsert resuelve el conflicto sobre ESA columna y no sobre la clave primaria.
+ * Un ítem apunta a su comida por `comida_cliente_id`, y un trigger de la base
+ * lo traduce al id real al insertar.
+ *
+ * El ORDEN importa y la cola lo respeta: la comida va antes que sus ítems. Si
+ * llegara primero un ítem, el trigger no encontraría su comida y lo rechazaría.
+ * Como la cola drena de una en una y se para en el primer fallo, ese orden se
+ * mantiene también cuando la conexión se cae a la mitad.
+ *
+ * Quitar no borra: marca `borrado`. La cola no sabe hacer `delete`, y añadírselo
+ * obliga a tocar el procesador, que es donde un fallo no da error en pantalla.
+ */
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -70,6 +109,12 @@ export function crearDbSincronizada(local: Db): Db {
 
     microciclos: {
       ...local.microciclos,
+      guardarPropuesta: (micro) => {
+        local.microciclos.guardarPropuesta(micro)
+        // Se sube leyendo de local y no `micro` a secas, para que viaje con el
+        // `estado: 'propuesto'` que fuerza la capa local y no con el que llegara.
+        subirMicrociclo(local, micro.id)
+      },
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
         subirMicrociclo(local, microcicloId)
@@ -128,6 +173,133 @@ export function crearDbSincronizada(local: Db): Db {
             fecha,
             estado,
             comentario: comentario ?? null,
+          },
+        })
+      },
+    },
+
+    perfilNutricion: {
+      ...local.perfilNutricion,
+      guardar: (usuarioId, respuestas, completada) => {
+        local.perfilNutricion.guardar(usuarioId, respuestas, completada)
+        // Solo se sube cuando termina. A medias no vale la pena: el perfil que
+        // lee la nutricionista tiene que estar entero o no estar.
+        if (!completada) return
+        const perfil = local.perfilNutricion.byUsuario(usuarioId)
+        if (!perfil) return
+        encolar({
+          tabla: 'perfil_alimentario',
+          tipo: 'upsert',
+          payload: {
+            ...aPerfilAlimentario(usuarioId, perfil.respuestas),
+            // El crudo es la fuente de verdad; lo de arriba es su proyección
+            // para poder consultar sin abrir el jsonb de cada uno.
+            respuestas: perfil.respuestas,
+            completada_en: perfil.completadaEn ?? null,
+          },
+        })
+      },
+    },
+
+    visibilidad: {
+      ...local.visibilidad,
+      decidir: (decision) => {
+        local.visibilidad.decidir(decision)
+        encolar({
+          tabla: 'visibilidad_nutricion',
+          tipo: 'upsert',
+          payload: {
+            asesorado_id: decision.usuarioId,
+            ver_composicion: decision.verComposicion,
+            ver_objetivo_calorico: decision.verObjetivoCalorico,
+            ver_contador_kcal: decision.verContadorKcal,
+            estado: decision.estado,
+            actualizado_en: new Date().toISOString(),
+          },
+        })
+        // La nota va en su propia tabla y en su propia operación: es clínica y
+        // el asesorado puede leer sus interruptores pero no esto. Separarlas en
+        // la base es lo que lo garantiza -RLS es por fila, no por columna-, así
+        // que aquí viajan por separado también.
+        if (decision.nota === undefined) return
+        encolar({
+          tabla: 'visibilidad_nutricion_nota',
+          tipo: 'upsert',
+          payload: {
+            asesorado_id: decision.usuarioId,
+            motivo: decision.nota || null,
+            decidido_por: decision.decididoPor ?? null,
+            decidido_en: decision.decididoEn ?? null,
+            actualizado_en: new Date().toISOString(),
+          },
+        })
+      },
+    },
+
+    registroComidas: {
+      ...local.registroComidas,
+      abrirComida: (comida) => {
+        const id = local.registroComidas.abrirComida(comida)
+        if (tablasRegistroListas()) subirComida(local, comida.usuarioId, id)
+        return id
+      },
+      editarComida: (usuarioId, comidaId, cambios) => {
+        local.registroComidas.editarComida(usuarioId, comidaId, cambios)
+        if (tablasRegistroListas()) subirComida(local, usuarioId, comidaId)
+      },
+      agregarItem: (usuarioId, comidaId, item) => {
+        local.registroComidas.agregarItem(usuarioId, comidaId, item)
+        if (!tablasRegistroListas()) return
+        // Se lee de local en vez de usar `item`: así viaja con el id que le
+        // acaba de poner la capa local, que es el `cliente_id` de la fila.
+        const guardada = comidaDe(local, usuarioId, comidaId)
+        const nuevo = guardada?.items[guardada.items.length - 1]
+        if (!guardada || !nuevo) return
+        encolar({
+          tabla: 'registro_item',
+          tipo: 'upsert',
+          onConflict: 'cliente_id',
+          payload: {
+            cliente_id: nuevo.id,
+            comida_cliente_id: guardada.id,
+            alimento_id: nuevo.alimentoId,
+            gramos: nuevo.gramos,
+            fue_pesado: nuevo.fuePesado,
+            estado_asumido: nuevo.estadoAsumido,
+            borrado: false,
+          },
+        })
+      },
+      quitarItem: (usuarioId, comidaId, itemId) => {
+        local.registroComidas.quitarItem(usuarioId, comidaId, itemId)
+        if (!tablasRegistroListas()) return
+        encolar({
+          tabla: 'registro_item',
+          tipo: 'update',
+          payload: { borrado: true },
+          filtro: { cliente_id: itemId },
+        })
+      },
+      borrarComida: (usuarioId, comidaId) => {
+        local.registroComidas.borrarComida(usuarioId, comidaId)
+        if (!tablasRegistroListas()) return
+        encolar({
+          tabla: 'registro_comida',
+          tipo: 'update',
+          payload: { borrado: true },
+          filtro: { cliente_id: comidaId },
+        })
+      },
+      recordarPreferencia: (preferencia) => {
+        local.registroComidas.recordarPreferencia(preferencia)
+        if (!tablasRegistroListas()) return
+        encolar({
+          tabla: 'preferencia_estado',
+          tipo: 'upsert',
+          payload: {
+            asesorado_id: preferencia.usuarioId,
+            familia: preferencia.familia,
+            estado: preferencia.estado,
           },
         })
       },
@@ -204,6 +376,88 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
   }
+}
+
+/** La comida guardada, buscándola por el día al que pertenece su id. */
+function comidaDe(local: Db, usuarioId: string, comidaId: string) {
+  // El id del cliente lleva dentro el momento, pero no la fecha: se busca en el
+  // día de la comida, que es lo que `delDia` sabe filtrar.
+  for (const fecha of fechasCercanas()) {
+    const encontrada = local.registroComidas
+      .delDia(usuarioId, fecha)
+      .find((c) => c.id === comidaId)
+    if (encontrada) return encontrada
+  }
+  return undefined
+}
+
+/** Ayer, hoy y mañana. Una comida se registra el día que se come o el siguiente
+ *  de madrugada; más lejos no hace falta mirar. */
+function fechasCercanas(): string[] {
+  const hoy = new Date()
+  return [-1, 0, 1].map((delta) => {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + delta)
+    const mes = String(d.getMonth() + 1).padStart(2, '0')
+    return `${d.getFullYear()}-${mes}-${String(d.getDate()).padStart(2, '0')}`
+  })
+}
+
+/** Lo que se responde en la encuesta, en las columnas de la migración 0016. */
+function aPerfilAlimentario(
+  usuarioId: string,
+  respuestas: Record<string, string | number | string[]>,
+): Record<string, unknown> {
+  /**
+   * Un texto libre entra como lista de un elemento.
+   *
+   * `sin_acceso` y `no_le_gustan` son `text[]` en la base porque nacieron para
+   * casillas. La encuesta los pregunta abiertos —"¿qué no consigues?"— y meter
+   * la frase entera como un elemento conserva lo que la persona escribió sin
+   * inventarse una separación por comas que ella no hizo.
+   */
+  const comoLista = (valor: unknown): string[] | null => {
+    if (Array.isArray(valor)) return valor.length > 0 ? valor : null
+    if (typeof valor === 'string' && valor.trim()) return [valor.trim()]
+    return null
+  }
+
+  const texto = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor : null)
+
+  return {
+    asesorado_id: usuarioId,
+    alergias: comoLista(respuestas.alergias),
+    condiciones_medicas: comoLista(respuestas.condicionesMedicas),
+    excluye: comoLista(respuestas.excluye),
+    no_le_gustan: comoLista(respuestas.noLeGustan),
+    sin_acceso: comoLista(respuestas.sinAcceso),
+    come_visceras: texto(respuestas.comeVisceras),
+    lugar_compra: texto(respuestas.lugarCompra),
+    frecuencia_cocina: texto(respuestas.frecuenciaCocina),
+    tiene_bascula: texto(respuestas.tieneBascula),
+    ciclo_menstrual: texto(respuestas.cicloMenstrual),
+    actualizado_en: new Date().toISOString(),
+  }
+}
+
+function subirComida(local: Db, usuarioId: string, comidaId: string): void {
+  const comida = comidaDe(local, usuarioId, comidaId)
+  if (!comida) return
+  encolar({
+    tabla: 'registro_comida',
+    tipo: 'upsert',
+    onConflict: 'cliente_id',
+    payload: {
+      cliente_id: comida.id,
+      asesorado_id: comida.usuarioId,
+      momento: comida.momentoIso,
+      comida: comida.comida,
+      cocinado_por_el: comida.cocinadoPorEl,
+      aceite_g: comida.aceiteG,
+      sal_g: comida.salG,
+      confianza: comida.confianza,
+      borrado: false,
+    },
+  })
 }
 
 function subirMicrociclo(local: Db, microcicloId: string): void {

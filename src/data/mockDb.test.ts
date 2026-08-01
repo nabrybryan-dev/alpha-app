@@ -133,3 +133,44 @@ describe('mockDb', () => {
     expect(m22b?.sesiones[1].testPost?.rpeSesion).toBe(8)
   })
 })
+
+describe('guardarPropuesta', () => {
+  it('fuerza el estado a propuesto aunque le llegue otro', () => {
+    const db = crearMockDb()
+    const activo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    if (!activo) throw new Error('no hay microciclo activo en el seed')
+
+    // Se le pasa a propósito con estado 'activo': la capa de datos no debe fiarse.
+    db.microciclos.guardarPropuesta({ ...activo, id: 'm-prop', numero: 99, estado: 'activo' })
+
+    const guardado = db.microciclos.byUsuario('u-valentina').find((m) => m.id === 'm-prop')
+    expect(guardado?.estado).toBe('propuesto')
+  })
+
+  it('no toca el microciclo activo: el asesorado sigue viendo el suyo', () => {
+    const db = crearMockDb()
+    const antes = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    if (!antes) throw new Error('no hay microciclo activo')
+
+    db.microciclos.guardarPropuesta({ ...antes, id: 'm-prop', numero: antes.numero + 1 })
+
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos).toHaveLength(1)
+    expect(activos[0].id).toBe(antes.id)
+  })
+
+  it('reemplaza una propuesta previa del mismo número en vez de duplicarla', () => {
+    const db = crearMockDb()
+    const activo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    if (!activo) throw new Error('no hay microciclo activo')
+    const base = { ...activo, id: 'm-prop', numero: activo.numero + 1 }
+
+    db.microciclos.guardarPropuesta(base)
+    db.microciclos.guardarPropuesta(base)
+
+    const propuestas = db.microciclos
+      .byUsuario('u-valentina')
+      .filter((m) => m.estado === 'propuesto' && m.numero === base.numero)
+    expect(propuestas).toHaveLength(1)
+  })
+})

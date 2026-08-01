@@ -32,13 +32,18 @@
 -- **Al escribir una migración nueva, añádele aquí sus señales.** Un archivo de
 -- comprobación desactualizado da una falsa sensación de cobertura. Ver `/migracion`.
 --
--- Lee la columna "aplicada". Estado esperado hoy (2026-07-30):
+-- Lee la columna "aplicada". Estado esperado hoy (2026-07-31):
 --   · 0008 → todo SI
 --   · 0013 → todo SI
 --   · 0014 → todo SI. Aplicada el 2026-07-30 junto con la carga de los 1.195
 --            alimentos. Si `sin_tildes() IMMUTABLE` dijera NO, el índice de
 --            trigramas no existe y la búsqueda recorre la tabla entera sin fallar
 --            de forma visible.
+--   · 0015 → todo NO todavía. Escrita y revisada (Tarea 8 del plan de registro de
+--            comidas), sin aplicar: aplicarla es decisión de Bryan.
+--   · 0016 → todo NO todavía. Escrita y revisada (perfil alimentario del
+--            asesorado, las doce preguntas del cuestionario), sin aplicar:
+--            aplicarla es decisión de Bryan.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -145,5 +150,234 @@ select '0014 · catálogo alimentos', 'catálogo cargado (>1000 alimentos)',
        case when to_regclass('public.alimentos') is not null
              and (select count(*) from public.alimentos) > 1000
        then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tipo confianza_registro',
+       case when to_regtype('public.confianza_registro') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla registro_comida',
+       case when to_regclass('public.registro_comida') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla registro_item',
+       case when to_regclass('public.registro_item') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla preferencia_estado',
+       case when to_regclass('public.preferencia_estado') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'tabla prueba_calibracion',
+       case when to_regclass('public.prueba_calibracion') is not null then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy registro_comida_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'registro_comida'
+           and policyname = 'registro_comida_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy registro_item_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'registro_item'
+           and policyname = 'registro_item_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy preferencia_estado_propia',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'preferencia_estado'
+           and policyname = 'preferencia_estado_propia'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0015 · registro de comidas', 'policy prueba_calibracion_propia',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'prueba_calibracion'
+           and policyname = 'prueba_calibracion_propia'
+       ) then 'SI' else 'NO' end
+
+union all
+-- FK contra usuarios_app, no contra auth.users (ver el porqué en la propia
+-- migración). Si esto diera NO, alguien aplicó la 0015 tal como estaba en el
+-- plan original en vez de con la corrección de la revisión.
+select '0015 · registro de comidas', 'asesorado_id referencia usuarios_app',
+       case when exists (
+         select 1
+         from pg_constraint c
+         join pg_class hijo on hijo.oid = c.conrelid
+         join pg_namespace nsp on nsp.oid = hijo.relnamespace
+         join pg_class padre on padre.oid = c.confrelid
+         where c.contype = 'f'
+           and nsp.nspname = 'public' and hijo.relname = 'registro_comida'
+           and padre.relname = 'usuarios_app'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'tabla perfil_alimentario',
+       case when to_regclass('public.perfil_alimentario') is not null then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'tabla perfil_alimentario_veto',
+       case when to_regclass('public.perfil_alimentario_veto') is not null then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'índice perfil_alimentario_veto_por_alimento',
+       case when to_regclass('public.perfil_alimentario_veto_por_alimento') is not null
+       then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'policy perfil_alimentario_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'perfil_alimentario'
+           and policyname = 'perfil_alimentario_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'policy perfil_alimentario_veto_propio',
+       case when exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'perfil_alimentario_veto'
+           and policyname = 'perfil_alimentario_veto_propio'
+       ) then 'SI' else 'NO' end
+
+union all
+-- FK contra usuarios_app, no contra auth.users: mismo riesgo que ya atrapó
+-- esta misma comprobación para la 0015.
+select '0016 · perfil alimentario', 'perfil_alimentario.asesorado_id referencia usuarios_app',
+       case when exists (
+         select 1
+         from pg_constraint c
+         join pg_class hijo on hijo.oid = c.conrelid
+         join pg_namespace nsp on nsp.oid = hijo.relnamespace
+         join pg_class padre on padre.oid = c.confrelid
+         where c.contype = 'f'
+           and nsp.nspname = 'public' and hijo.relname = 'perfil_alimentario'
+           and padre.relname = 'usuarios_app'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0016 · perfil alimentario', 'perfil_alimentario_veto.asesorado_id referencia usuarios_app',
+       case when exists (
+         select 1
+         from pg_constraint c
+         join pg_class hijo on hijo.oid = c.conrelid
+         join pg_namespace nsp on nsp.oid = hijo.relnamespace
+         join pg_class padre on padre.oid = c.confrelid
+         where c.contype = 'f'
+           and nsp.nspname = 'public' and hijo.relname = 'perfil_alimentario_veto'
+           and padre.relname = 'usuarios_app'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'registro_comida.cliente_id existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'registro_comida'
+           and column_name = 'cliente_id'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'registro_item.comida_cliente_id existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'registro_item'
+           and column_name = 'comida_cliente_id'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'las dos tablas tienen borrado logico',
+       case when (
+         select count(*) from information_schema.columns
+         where table_schema = 'public'
+           and table_name in ('registro_comida', 'registro_item')
+           and column_name = 'borrado'
+       ) = 2 then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'el trigger resuelve la comida del item',
+       case when exists (
+         select 1 from pg_trigger
+         where not tgisinternal and tgname = 'registro_item_resolver_comida'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'cliente_id es unico en registro_comida',
+       case when exists (
+         select 1 from pg_indexes
+         where schemaname = 'public' and indexname = 'registro_comida_cliente_id_unico'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'la tabla de interruptores existe',
+       case when exists (
+         select 1 from information_schema.tables
+         where table_schema = 'public' and table_name = 'visibilidad_nutricion'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'los tres interruptores estan',
+       case when (
+         select count(*) from information_schema.columns
+         where table_schema = 'public' and table_name = 'visibilidad_nutricion'
+           and column_name in ('ver_composicion', 'ver_objetivo_calorico', 'ver_contador_kcal')
+       ) = 3 then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'la nota clinica esta en su propia tabla',
+       case when exists (
+         select 1 from information_schema.tables
+         where table_schema = 'public' and table_name = 'visibilidad_nutricion_nota'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'el asesorado NO puede escribir sus interruptores',
+       case when not exists (
+         select 1 from pg_policies
+         where schemaname = 'public' and tablename = 'visibilidad_nutricion'
+           and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+           and qual like '%auth.uid()%'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0018 - visibilidad de cifras', 'la vista de pendientes respeta RLS',
+       case when exists (
+         select 1 from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public' and c.relname = 'visibilidad_pendiente'
+           and c.reloptions::text like '%security_invoker=true%'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0019 - respuestas de la encuesta', 'perfil_alimentario.respuestas existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'perfil_alimentario'
+           and column_name = 'respuestas' and data_type = 'jsonb'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0019 - respuestas de la encuesta', 'perfil_alimentario.completada_en existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'perfil_alimentario'
+           and column_name = 'completada_en'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0019 - respuestas de la encuesta', 'la vista de revision respeta RLS',
+       case when exists (
+         select 1 from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public' and c.relname = 'cifras_por_revisar'
+           and c.reloptions::text like '%security_invoker=true%'
+       ) then 'SI' else 'NO' end
 
 order by migracion, senal;

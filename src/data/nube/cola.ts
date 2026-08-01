@@ -17,6 +17,13 @@ export interface OperacionPendiente {
   tipo: 'upsert' | 'update'
   payload: Record<string, unknown>
   filtro?: Record<string, string>
+  /**
+   * Columna sobre la que resolver el conflicto del upsert. Sin esto, Supabase
+   * usa la clave primaria, y las tablas del registro de comidas la generan en
+   * el servidor: el movil no la conoce, asi que cada reintento insertaria una
+   * fila nueva en vez de actualizar la suya.
+   */
+  onConflict?: string
   intentos?: number
   /**
    * Quién la escribió. Se sella al apartarla en el cierre de sesión, para que
@@ -93,7 +100,10 @@ export function integrarEnCola(
 
 function claveDeFila(op: OperacionPendiente): string | undefined {
   if (op.tipo !== 'upsert') return undefined
-  const id = op.payload.id ?? op.payload.usuario_id
+  // `cliente_id` entra por el registro de comidas, donde la clave primaria la
+  // pone el servidor: sin mirarla, editar la misma comida cinco veces dejaria
+  // cinco upserts en cola en vez de uno con el estado final.
+  const id = op.payload.id ?? op.payload.cliente_id ?? op.payload.usuario_id
   return typeof id === 'string' ? `${op.tabla}:${id}` : undefined
 }
 

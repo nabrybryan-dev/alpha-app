@@ -236,7 +236,12 @@ export default function AsesoradoDetallePage() {
         ← Volver a asesorados
       </Link>
 
-      <GenerarMicrocicloSheet abierto={iaAbierta} nombreAsesorado={usuario.nombre} onCerrar={() => setIaAbierta(false)} />
+      <GenerarMicrocicloSheet
+        abierto={iaAbierta}
+        nombreAsesorado={usuario.nombre}
+        microciclo={resumen.microciclo}
+        onCerrar={() => setIaAbierta(false)}
+      />
     </div>
   )
 }

@@ -12,11 +12,17 @@ import type {
   Usuario,
 } from '../../domain/types'
 import type { FilaRanking } from '../../domain/ranking'
-import type { RegistroHidratacion } from '../../domain/types'
-import { aplicarSnapshot, epocaSesion, versionEscrituras } from '../mockDb'
+import type {
+  PerfilNutricion,
+  PreferenciaEstado,
+  RegistroComida,
+  RegistroHidratacion,
+  RegistroItem,
+} from '../../domain/types'
+import { aplicarSnapshot, epocaSesion, instantaneaLocal, versionEscrituras } from '../mockDb'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
-import { conPendientes, marcarTablaHidratacion } from './sync'
+import { conPendientes, marcarTablaHidratacion, marcarTablaRegistro } from './sync'
 
 interface FilaUsuario {
   id: string
@@ -45,6 +51,60 @@ interface FilaMensaje {
  */
 function esTablaInexistente(error: { code?: string }): boolean {
   return error.code === '42P01' || error.code === 'PGRST205'
+}
+
+type Fila = Record<string, unknown>
+
+/**
+ * Junta las comidas del servidor con sus items.
+ *
+ * EL ID LOCAL ES EL `cliente_id` cuando existe. Es el que puso este dispositivo
+ * al crear la comida, y es el que sigue estando en la cola de sync de lo que
+ * aun no ha subido: si al bajar se cambiara por el `bigint` del servidor, esas
+ * operaciones pendientes apuntarian a un id que ya no existe en local y sus
+ * items se quedarian huerfanos. Las filas que entraron por SQL o desde el panel
+ * del coach no tienen `cliente_id`, y esas si usan el bigint.
+ */
+function armarComidas(comidas: Fila[], items: Fila[]): RegistroComida[] {
+  const idLocal = (fila: Fila) => (fila.cliente_id as string | null) ?? String(fila.id)
+
+  // Del id del servidor al id local, para poder colgar cada item de su comida.
+  const porIdDeServidor = new Map(comidas.map((c) => [String(c.id), idLocal(c)]))
+
+  const itemsDe = new Map<string, RegistroItem[]>()
+  for (const item of items) {
+    const duenio = porIdDeServidor.get(String(item.registro_id))
+    // Un item cuya comida no bajo -borrada, o de otra persona- se descarta: no
+    // hay donde colgarlo, y crear una comida fantasma para sostenerlo seria
+    // inventar una comida que nadie registro.
+    if (!duenio) continue
+    const lista = itemsDe.get(duenio) ?? []
+    lista.push({
+      id: idLocal(item),
+      alimentoId: item.alimento_id as string,
+      gramos: Number(item.gramos),
+      fuePesado: Boolean(item.fue_pesado),
+      estadoAsumido: item.estado_asumido as RegistroItem['estadoAsumido'],
+    })
+    itemsDe.set(duenio, lista)
+  }
+
+  return comidas.map((c): RegistroComida => {
+    const id = idLocal(c)
+    return {
+      id,
+      usuarioId: c.asesorado_id as string,
+      momentoIso: String(c.momento),
+      comida: c.comida as RegistroComida['comida'],
+      cocinadoPorEl: Boolean(c.cocinado_por_el),
+      // `null` sobrevive: significa "no se pregunto", que es distinto de un 0
+      // -"no le puse"-. Un `Number(null)` los habria vuelto lo mismo.
+      aceiteG: c.aceite_g === null ? null : Number(c.aceite_g),
+      salG: c.sal_g === null ? null : Number(c.sal_g),
+      confianza: c.confianza as RegistroComida['confianza'],
+      items: itemsDe.get(id) ?? [],
+    }
+  })
 }
 
 export async function hidratarDesdeNube(): Promise<void> {
@@ -97,6 +157,32 @@ export async function hidratarDesdeNube(): Promise<void> {
   const hidratacion = await sb.from('hidratacion').select('*')
   if (!hidratacion.error) marcarTablaHidratacion(true)
   else if (esTablaInexistente(hidratacion.error)) marcarTablaHidratacion(false)
+
+  // Registro de comidas (migraciones 0015 y 0017). Mismo trato que la
+  // hidratación: si el despliegue todavía no las tiene, la app sigue andando y
+  // lo registrado se queda en el dispositivo hasta que se apliquen.
+  const perfilesNutricion = await sb
+    .from('perfil_alimentario')
+    .select('asesorado_id, respuestas, completada_en')
+
+  const [comidas, items, preferencias] = await Promise.all([
+    sb.from('registro_comida').select('*').eq('borrado', false),
+    sb.from('registro_item').select('*').eq('borrado', false),
+    sb.from('preferencia_estado').select('*'),
+  ])
+
+  /**
+   * Si las tablas no responden, NO se baja nada: se conserva lo local.
+   *
+   * `aplicarSnapshot` reemplaza la base del dispositivo entera. Poner aqui una
+   * lista vacia porque la migracion aun no esta aplicada borraria el desayuno
+   * que la persona acaba de anotar, y en la escritura siguiente la perdida
+   * seria definitiva. Es el mismo fallo que ya costo dos veces en este repo.
+   */
+  const registroDisponible = !comidas.error && !items.error
+  if (comidas.error && esTablaInexistente(comidas.error)) marcarTablaRegistro(false)
+  else if (registroDisponible) marcarTablaRegistro(true)
+  const local = registroDisponible ? undefined : instantaneaLocal()
 
   // RPC del ranking (migración 0004): también opcional. Devuelve SOLO
   // cumplimiento agregado por asesorado, nunca datos personales.
@@ -178,6 +264,32 @@ export async function hidratarDesdeNube(): Promise<void> {
         usuarioId: f.usuario_id as string,
         fechaIso: f.fecha_iso as string,
         valores: f.valores as Record<string, string>,
+      }),
+    ),
+    // Si la tabla no responde -migración sin aplicar- se conserva lo local en
+    // vez de escribir una lista vacía encima: es la encuesta que la persona
+    // acaba de responder.
+    perfilesNutricion: perfilesNutricion.error
+      ? (instantaneaLocal().perfilesNutricion ?? [])
+      : (perfilesNutricion.data ?? [])
+          .filter((f) => f.respuestas)
+          .map(
+            (f): PerfilNutricion => ({
+              usuarioId: f.asesorado_id as string,
+              respuestas: f.respuestas as PerfilNutricion['respuestas'],
+              completadaEn: (f.completada_en as string | null) ?? undefined,
+            }),
+          ),
+    registrosComida: registroDisponible
+      ? armarComidas(comidas.data ?? [], items.data ?? [])
+      : (local?.registrosComida ?? []),
+    preferenciasEstado: preferencias.error
+      ? (local?.preferenciasEstado ?? [])
+      : (preferencias.data ?? []).map(
+      (f): PreferenciaEstado => ({
+        usuarioId: f.asesorado_id as string,
+        familia: f.familia as string,
+        estado: f.estado as PreferenciaEstado['estado'],
       }),
     ),
     contenidos: (contenidos.data ?? []).map((f) => f.datos as Contenido),
