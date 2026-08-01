@@ -167,6 +167,14 @@ function filasDeSesion(
  * y los bloques de cardio no llevan carga que progresar.
  */
 /**
+ * Quita la marca de hecho conservando el ítem. Lo que se programa es lo que hay que
+ * hacer; lo que se hizo se queda en el microciclo que se cierra.
+ */
+function sinMarcar<T extends { hechoEn?: string }>(item: T): T {
+  return { ...item, hechoEn: undefined }
+}
+
+/**
  * Convierte la propuesta en un microciclo guardable, ondulando de verdad los
  * ejercicios (con `seriesPrescritas`, que es lo que el asesorado ve serie a serie).
  *
@@ -206,6 +214,8 @@ export function microcicloPropuesto(
     sesiones: origen.sesiones.map((s) => ({
       ...s,
       testPost: undefined,
+      preparacion: s.preparacion?.map(sinMarcar),
+      bloquesCardio: s.bloquesCardio?.map(sinMarcar),
       ejercicios: s.ejercicios.map((e) => {
         const limpio: EjercicioPrescrito = { ...e, series: [] }
         if (s.tipo === 'metabolica') return limpio

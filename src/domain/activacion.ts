@@ -138,7 +138,13 @@ export function revisarActivacion(s: SenalesPropuesta): RevisionActivacion {
     motivos.push(`${s.sesionesSinRegistrar} sesiones sin registrar`)
   }
 
-  if (s.ejerciciosTotales > 0) {
+  // Sin ejercicios no hay nada de donde ondular, y —esto es lo importante— tampoco
+  // hay ninguna otra regla que lo frene: sin ejercicios no hay series que falten,
+  // ni saltos, ni brechas. Se colaría como «fiable» y activaría un microciclo vacío
+  // detrás de otro. Un microciclo sin ejercicios es un dato roto, no un dato bueno.
+  if (s.ejerciciosTotales === 0) {
+    motivos.push('el microciclo no tiene ejercicios de fuerza')
+  } else {
     const proporcion = s.ejerciciosSinSeries / s.ejerciciosTotales
     if (proporcion > MAX_EJERCICIOS_SIN_SERIES) {
       const pct = Math.round(proporcion * 100)

@@ -75,9 +75,17 @@ describe('revisarActivacion', () => {
     expect(r.auto).toBe(true)
   })
 
-  it('un microciclo sin ejercicios no revienta al dividir', () => {
+  /**
+   * Este test nació afirmando `auto === true`, y esa afirmación era el fallo: se
+   * escribió para comprobar que no reventaba la división por cero y de paso dejó
+   * fijado que un microciclo vacío es fiable. No lo es —y encima es el único caso
+   * que ninguna otra regla frena, porque sin ejercicios no hay series que falten,
+   * ni saltos, ni brechas—: se activaría un microciclo vacío detrás de otro.
+   */
+  it('un microciclo sin ejercicios no es fiable, y no revienta al dividir', () => {
     const r = revisarActivacion(senales({ ejerciciosTotales: 0, ejerciciosSinSeries: 0 }))
-    expect(r.auto).toBe(true)
+    expect(r.auto).toBe(false)
+    expect(r.motivos).toContain('el microciclo no tiene ejercicios de fuerza')
   })
 })
 
