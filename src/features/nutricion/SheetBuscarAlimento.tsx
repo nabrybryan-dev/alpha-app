@@ -43,6 +43,9 @@ interface SheetBuscarAlimentoProps {
   abierto: boolean
   /** Ids de lo que ya registró antes, de lo más reciente a lo más viejo. */
   recientes?: string[]
+  /** Con qué llega escrito el campo. Lo usa "registrar lo que pauta el plan":
+   *  llega con el nombre puesto y el asesorado solo confirma cuál es. */
+  consultaInicial?: string
   onCerrar: () => void
   onElegir: (alimento: AlimentoIndice) => void
 }
@@ -67,11 +70,13 @@ export function SheetBuscarAlimento(props: SheetBuscarAlimentoProps) {
 function CuerpoBuscar({
   abierto,
   recientes = [],
+  consultaInicial = '',
   onCerrar,
   onElegir,
 }: SheetBuscarAlimentoProps) {
-  const [consulta, setConsulta] = useState('')
+  const [consulta, setConsulta] = useState(consultaInicial)
   const [filtro, setFiltro] = useState(FILTROS[0].etiqueta)
+  // Llegando con algo escrito, el chip de recientes estorbaria: se busca en todo.
 
   const activo = FILTROS.find((f) => f.etiqueta === filtro) ?? FILTROS[0]
 

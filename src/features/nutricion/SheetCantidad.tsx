@@ -53,6 +53,9 @@ interface SheetCantidadProps {
   preguntarEstado: OpcionEstado[] | null
   /** 'Almuerzo', 'Cena'… Va en el botón para que sepa dónde lo está metiendo. */
   nombreComida: string
+  /** Gramos de arranque. Los pone "registrar lo que pauta el plan" cuando la
+   *  línea del menú los dice ("70 g avena"). Sin esto, arranca en 100. */
+  gramosIniciales?: number | null
   onCerrar: () => void
   /** Contestó la pregunta de crudo/cocido. Se recuerda para siempre. */
   onElegirEstado: (alimento: AlimentoIndice) => void
@@ -85,11 +88,13 @@ function CuerpoCantidad({
   alimento,
   preguntarEstado,
   nombreComida,
+  gramosIniciales,
   onCerrar,
   onElegirEstado,
   onAgregar,
 }: SheetCantidadProps & { alimento: AlimentoIndice }) {
-  const [gramos, setGramos] = useState(100)
+  // Un cero pautado es un cero: solo se cae a 100 cuando NO hay pauta.
+  const [gramos, setGramos] = useState(gramosIniciales ?? 100)
   const [fuePesado, setFuePesado] = useState(true)
 
   const escalado = useMemo(() => escalar(alimento.por100g, gramos), [alimento, gramos])

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
@@ -11,8 +11,10 @@ import {
   resumenDelDia,
 } from '../../domain/nutricion/resumen'
 import type { RegistroComida, TipoComida, TipoDia } from '../../domain/types'
+import { AdherenciaDia } from './AdherenciaDia'
 import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
+import { Hidratacion } from './Hidratacion'
 import { PanelMicros } from './PanelMicros'
 import { ResumenDia } from './ResumenDia'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
@@ -30,6 +32,11 @@ import { TiraSemana } from './TiraSemana'
  */
 
 const COMIDAS: TipoComida[] = ['desayuno', 'almuerzo', 'cena', 'snack']
+
+/** Lo que "Mi plan" manda por la navegación al tocar el + de un alimento. */
+interface DesdeElPlan {
+  desdeElPlan?: { busqueda: string; gramos: number | null; comida: TipoComida }
+}
 
 /** Hora por defecto de cada comida cuando se crea. La cambia después. */
 const HORAS: Record<TipoComida, string> = {
@@ -54,13 +61,39 @@ export default function DiarioDia() {
   const { usuario } = useSesion()
   useDbVersion()
 
+  /**
+   * Lo que llega desde "Mi plan" al tocar el + de un alimento pautado.
+   *
+   * Se lee UNA vez, al montar, y no en un efecto: la navegación ya remonta esta
+   * página, así que el estado inicial es el sitio correcto. Un efecto que
+   * llamara a setState aquí volvería a abrir la hoja cada vez que el asesorado
+   * la cerrara.
+   */
+  const ruta = useLocation()
+  const [prefijo] = useState((ruta.state as DesdeElPlan | null)?.desdeElPlan)
+
+  /**
+   * Se consume una sola vez y se borra del historial.
+   *
+   * `state` de React Router vive en `history.state`, que SOBREVIVE a recargar la
+   * página. Sin esto, el asesorado cerraba la hoja, recargaba, y se le volvía a
+   * abrir sola con el alimento del plan todavía escrito: la pantalla trayendo
+   * algo que él ya había descartado.
+   *
+   * El efecto solo toca el historial -no llama a setState-, que es exactamente
+   * para lo que sirven los efectos: sincronizar con algo de fuera de React.
+   */
+  useEffect(() => {
+    if (ruta.state) window.history.replaceState({}, '')
+  }, [ruta.state])
+
   const [fecha, setFecha] = useState(hoyIso())
   const [tipoDia] = useState<TipoDia>('ALTO')
   // `detalle` es la comida que se está mirando entera; `comidaAbierta` es en
   // cuál va a caer lo que se busque. Son distintas: desde el detalle se abre el
   // buscador sin dejar de estar en el detalle.
   const [detalle, setDetalle] = useState<TipoComida | null>(null)
-  const [comidaAbierta, setComidaAbierta] = useState<TipoComida | null>(null)
+  const [comidaAbierta, setComidaAbierta] = useState<TipoComida | null>(prefijo?.comida ?? null)
   const [elegido, setElegido] = useState<AlimentoIndice | null>(null)
 
   const plan = db.nutricion.planByUsuario(usuario.id)
@@ -154,6 +187,7 @@ export default function DiarioDia() {
       <SheetBuscarAlimento
   abierto={comidaAbierta !== null && elegido === null}
   recientes={recientes}
+  consultaInicial={prefijo?.busqueda}
   onCerrar={() => setComidaAbierta(null)}
   onElegir={setElegido}
 />
@@ -163,6 +197,7 @@ export default function DiarioDia() {
   alimento={elegido}
   preguntarEstado={elegido ? preguntaDe(elegido) : null}
   nombreComida={destino ?? ''}
+  gramosIniciales={prefijo?.gramos}
   onCerrar={() => setElegido(null)}
   onElegirEstado={(alimento) => {
     db.registroComidas.recordarPreferencia({
@@ -253,6 +288,12 @@ export default function DiarioDia() {
       </section>
 
       <PanelMicros total={total} />
+
+      {/* El agua y la adherencia son hechos del DÍA, igual que las comidas, así
+          que viven aquí. Estaban en la vista del plan, que ahora es solo lo que
+          el coach pautó -algo que se lee, no donde se registra-. */}
+      <Hidratacion usuarioId={usuario.id} />
+      <AdherenciaDia usuarioId={usuario.id} />
 
       {hojas}
     </div>
