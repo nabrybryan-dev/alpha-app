@@ -21,6 +21,8 @@ import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
 import { semanaDe } from '../../domain/nutricion/semana'
 import { TiraSemana } from './TiraSemana'
+import { VistaSemana } from './VistaSemana'
+import { resumenDeSemana } from '../../domain/nutricion/semanaResumen'
 
 /**
  * El diario del día: lo que el asesorado se comió, contra lo que le tocaba.
@@ -93,6 +95,7 @@ export default function DiarioDia() {
   // cuál va a caer lo que se busque. Son distintas: desde el detalle se abre el
   // buscador sin dejar de estar en el detalle.
   const [detalle, setDetalle] = useState<TipoComida | null>(null)
+  const [verSemana, setVerSemana] = useState(false)
   const [comidaAbierta, setComidaAbierta] = useState<TipoComida | null>(prefijo?.comida ?? null)
   const [elegido, setElegido] = useState<AlimentoIndice | null>(null)
 
@@ -222,6 +225,20 @@ export default function DiarioDia() {
     </>
   )
 
+  if (verSemana) {
+    return (
+      <VistaSemana
+        resumen={resumenDeSemana(porDiaDeLaSemana, semana, porId, meta.kcal)}
+        meta={meta}
+        onVolver={() => setVerSemana(false)}
+        onElegirDia={(dia) => {
+          setFecha(dia)
+          setVerSemana(false)
+        }}
+      />
+    )
+  }
+
   // El detalle reemplaza al diario, no se apila encima: en un móvil dos capas
   // con scroll propio es donde se pierde la gente.
   if (detalle) {
@@ -244,13 +261,20 @@ export default function DiarioDia() {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
             Diario de comidas · Día {plan.etiquetasDia?.[tipoDia] ?? tipoDia}
           </p>
           <h1 className="font-display text-xl capitalize text-texto">{fechaBonita(fecha)}</h1>
         </div>
+        <button
+          type="button"
+          onClick={() => setVerSemana(true)}
+          className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+        >
+          Semana
+        </button>
         <Link
           to="/nutricion/plan"
           className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
