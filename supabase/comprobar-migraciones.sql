@@ -276,4 +276,43 @@ select '0016 · perfil alimentario', 'perfil_alimentario_veto.asesorado_id refer
            and padre.relname = 'usuarios_app'
        ) then 'SI' else 'NO' end
 
+union all
+select '0017 - registro desde el movil', 'registro_comida.cliente_id existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'registro_comida'
+           and column_name = 'cliente_id'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'registro_item.comida_cliente_id existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'registro_item'
+           and column_name = 'comida_cliente_id'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'las dos tablas tienen borrado logico',
+       case when (
+         select count(*) from information_schema.columns
+         where table_schema = 'public'
+           and table_name in ('registro_comida', 'registro_item')
+           and column_name = 'borrado'
+       ) = 2 then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'el trigger resuelve la comida del item',
+       case when exists (
+         select 1 from pg_trigger
+         where not tgisinternal and tgname = 'registro_item_resolver_comida'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0017 - registro desde el movil', 'cliente_id es unico en registro_comida',
+       case when exists (
+         select 1 from pg_indexes
+         where schemaname = 'public' and indexname = 'registro_comida_cliente_id_unico'
+       ) then 'SI' else 'NO' end
+
 order by migracion, senal;

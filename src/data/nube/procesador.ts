@@ -32,7 +32,9 @@ let enVuelo: Promise<void> | null = null
 async function ejecutar(op: OperacionPendiente): Promise<void> {
   const sb = supabase()
   if (op.tipo === 'upsert') {
-    const { error } = await sb.from(op.tabla).upsert(op.payload)
+    const { error } = await sb
+      .from(op.tabla)
+      .upsert(op.payload, op.onConflict ? { onConflict: op.onConflict } : undefined)
     if (error) throw new Error(error.message)
     return
   }

@@ -87,6 +87,18 @@ export function reiniciarDb(): void {
 }
 
 /**
+ * Lo que hay ahora mismo en el dispositivo.
+ *
+ * Contraparte de `aplicarSnapshot`. La necesita la hidratacion: cuando una
+ * tabla no se puede leer -porque su migracion aun no esta aplicada- hay que
+ * conservar lo local en vez de escribir una lista vacia encima, que borraria lo
+ * que la persona ya habia registrado.
+ */
+export function instantaneaLocal(): SeedDb {
+  return cargar()
+}
+
+/**
  * Reemplaza la base local ENTERA con la foto del servidor.
  *
  * `epoca` es la que había cuando ARRANCÓ la descarga. Si ya no coincide, por el

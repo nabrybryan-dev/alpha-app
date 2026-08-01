@@ -48,21 +48,44 @@ function tablaHidratacionLista(): boolean {
   return localStorage.getItem(CLAVE_TABLA_HIDRATACION) !== '0'
 }
 
+const CLAVE_TABLAS_REGISTRO = 'alpha-tablas-registro'
+
 /**
- * `registroComidas` NO está aquí, y no es un olvido.
+ * Mismo interruptor que el de hidratación, para las tablas del registro de
+ * comidas (migraciones 0015 y 0017).
  *
- * El registro de comidas se guarda en el dispositivo y **todavía no sube**. La
- * cola solo sabe `upsert` y `update`, y las dos tablas de la migración 0015
- * generan su id en el servidor (`bigint generated always as identity`). Un
- * almuerzo que nace sin conexión necesita que sus ítems apunten a una comida que
- * aún no existe arriba: sin un id puesto por el dispositivo no hay forma de
- * relacionarlos, y la comida subiría sin sus alimentos.
+ * Sin él, en un despliegue que aún no las tenga cada alimento anotado se
+ * encolaría, fallaría ocho veces y acabaría descartado. El asesorado no vería
+ * ningún error: seguiría registrando con normalidad mientras su día se
+ * evapora en la cola.
  *
- * Resolverlo pide dos cosas que son una tanda propia: una migración que añada un
- * `cliente_id` y una operación de cola que suba la comida entera de una vez
- * (hoy no existe). Se deja fuera a propósito en vez de encolar algo que el
- * servidor rechazaría en silencio y que además taponaría la cabeza de la cola,
- * retrasando las series y los check-ins que van detrás.
+ * Solo lo apaga un error que signifique EXACTAMENTE "esta tabla no existe".
+ */
+export function marcarTablaRegistro(disponible: boolean): void {
+  localStorage.setItem(CLAVE_TABLAS_REGISTRO, disponible ? '1' : '0')
+}
+
+function tablasRegistroListas(): boolean {
+  return localStorage.getItem(CLAVE_TABLAS_REGISTRO) !== '0'
+}
+
+/**
+ * Cómo sube el registro de comidas (migración 0017).
+ *
+ * El id de las dos tablas lo genera el servidor, así que el móvil no lo conoce
+ * hasta que la fila existe arriba — y sin conexión no existe nunca. Por eso
+ * cada comida y cada ítem llevan un `cliente_id` que pone el dispositivo, y el
+ * upsert resuelve el conflicto sobre ESA columna y no sobre la clave primaria.
+ * Un ítem apunta a su comida por `comida_cliente_id`, y un trigger de la base
+ * lo traduce al id real al insertar.
+ *
+ * El ORDEN importa y la cola lo respeta: la comida va antes que sus ítems. Si
+ * llegara primero un ítem, el trigger no encontraría su comida y lo rechazaría.
+ * Como la cola drena de una en una y se para en el primer fallo, ese orden se
+ * mantiene también cuando la conexión se cae a la mitad.
+ *
+ * Quitar no borra: marca `borrado`. La cola no sabe hacer `delete`, y añadírselo
+ * obliga a tocar el procesador, que es donde un fallo no da error en pantalla.
  */
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
@@ -155,6 +178,75 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    registroComidas: {
+      ...local.registroComidas,
+      abrirComida: (comida) => {
+        const id = local.registroComidas.abrirComida(comida)
+        if (tablasRegistroListas()) subirComida(local, comida.usuarioId, id)
+        return id
+      },
+      editarComida: (usuarioId, comidaId, cambios) => {
+        local.registroComidas.editarComida(usuarioId, comidaId, cambios)
+        if (tablasRegistroListas()) subirComida(local, usuarioId, comidaId)
+      },
+      agregarItem: (usuarioId, comidaId, item) => {
+        local.registroComidas.agregarItem(usuarioId, comidaId, item)
+        if (!tablasRegistroListas()) return
+        // Se lee de local en vez de usar `item`: así viaja con el id que le
+        // acaba de poner la capa local, que es el `cliente_id` de la fila.
+        const guardada = comidaDe(local, usuarioId, comidaId)
+        const nuevo = guardada?.items[guardada.items.length - 1]
+        if (!guardada || !nuevo) return
+        encolar({
+          tabla: 'registro_item',
+          tipo: 'upsert',
+          onConflict: 'cliente_id',
+          payload: {
+            cliente_id: nuevo.id,
+            comida_cliente_id: guardada.id,
+            alimento_id: nuevo.alimentoId,
+            gramos: nuevo.gramos,
+            fue_pesado: nuevo.fuePesado,
+            estado_asumido: nuevo.estadoAsumido,
+            borrado: false,
+          },
+        })
+      },
+      quitarItem: (usuarioId, comidaId, itemId) => {
+        local.registroComidas.quitarItem(usuarioId, comidaId, itemId)
+        if (!tablasRegistroListas()) return
+        encolar({
+          tabla: 'registro_item',
+          tipo: 'update',
+          payload: { borrado: true },
+          filtro: { cliente_id: itemId },
+        })
+      },
+      borrarComida: (usuarioId, comidaId) => {
+        local.registroComidas.borrarComida(usuarioId, comidaId)
+        if (!tablasRegistroListas()) return
+        encolar({
+          tabla: 'registro_comida',
+          tipo: 'update',
+          payload: { borrado: true },
+          filtro: { cliente_id: comidaId },
+        })
+      },
+      recordarPreferencia: (preferencia) => {
+        local.registroComidas.recordarPreferencia(preferencia)
+        if (!tablasRegistroListas()) return
+        encolar({
+          tabla: 'preferencia_estado',
+          tipo: 'upsert',
+          payload: {
+            asesorado_id: preferencia.usuarioId,
+            familia: preferencia.familia,
+            estado: preferencia.estado,
+          },
+        })
+      },
+    },
+
     mensajes: {
       ...local.mensajes,
       enviar: (mensaje) => {
@@ -226,6 +318,51 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
   }
+}
+
+/** La comida guardada, buscándola por el día al que pertenece su id. */
+function comidaDe(local: Db, usuarioId: string, comidaId: string) {
+  // El id del cliente lleva dentro el momento, pero no la fecha: se busca en el
+  // día de la comida, que es lo que `delDia` sabe filtrar.
+  for (const fecha of fechasCercanas()) {
+    const encontrada = local.registroComidas
+      .delDia(usuarioId, fecha)
+      .find((c) => c.id === comidaId)
+    if (encontrada) return encontrada
+  }
+  return undefined
+}
+
+/** Ayer, hoy y mañana. Una comida se registra el día que se come o el siguiente
+ *  de madrugada; más lejos no hace falta mirar. */
+function fechasCercanas(): string[] {
+  const hoy = new Date()
+  return [-1, 0, 1].map((delta) => {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + delta)
+    const mes = String(d.getMonth() + 1).padStart(2, '0')
+    return `${d.getFullYear()}-${mes}-${String(d.getDate()).padStart(2, '0')}`
+  })
+}
+
+function subirComida(local: Db, usuarioId: string, comidaId: string): void {
+  const comida = comidaDe(local, usuarioId, comidaId)
+  if (!comida) return
+  encolar({
+    tabla: 'registro_comida',
+    tipo: 'upsert',
+    onConflict: 'cliente_id',
+    payload: {
+      cliente_id: comida.id,
+      asesorado_id: comida.usuarioId,
+      momento: comida.momentoIso,
+      comida: comida.comida,
+      cocinado_por_el: comida.cocinadoPorEl,
+      aceite_g: comida.aceiteG,
+      sal_g: comida.salG,
+      confianza: comida.confianza,
+      borrado: false,
+    },
+  })
 }
 
 function subirMicrociclo(local: Db, microcicloId: string): void {
