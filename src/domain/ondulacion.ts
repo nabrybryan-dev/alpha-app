@@ -198,13 +198,36 @@ export function brechaReps(ejercicio: EjercicioPrescrito): number | undefined {
   return Math.round((promedio - ejercicio.repsDiana) * 10) / 10
 }
 
-export type BandaPrs = 'verde' | 'ambar' | 'rojo'
+export type BandaPrs = 'verde' | 'ambar' | 'rojo' | 'critico'
 
-/** Banda de recuperación por PRS (0-10). Plantilla: ≥7 verde, 4-6 ámbar, ≤3 rojo. */
+/**
+ * Banda de recuperación por PRS. La escala teórica es 0-10 (Laurent 2011), pero
+ * **la app solo produce cuatro valores**: el test post-sesión pregunta con botones
+ * NADA / POCO / NORMAL / MUCHO, que valen `1 / 3 / 6 / 9`
+ * (`TestPostSesion.tsx:16-24`). No llega ningún otro número.
+ *
+ * Los cortes están puestos para que cada botón caiga donde el método lo trata:
+ *
+ * | Botón | Valor | Banda | Qué hace el motor |
+ * |-------|-------|-------|-------------------|
+ * | NADA | 1 | `critico` | Sostiene carga, **+2 RIR y una serie menos** |
+ * | POCO | 3 | `rojo` | Sostiene carga y **+1 RIR** |
+ * | NORMAL | 6 | `ambar` | Ejecuta lo pautado |
+ * | MUCHO | 9 | `verde` | Ejecuta lo pautado |
+ *
+ * `critico` existe desde el 2026-07-30. Antes había tres botones y todo «mal» se
+ * trataba igual, cuando la tabla del método pide para 0-2 algo más fuerte que
+ * frenar: −1 a −2 series/grupo y RIR +1/+2.
+ *
+ * **Si el test cambia de niveles otra vez, revisar estos cortes**, y también la
+ * página de autorregulación del Cerebro
+ * (`motor-decision/04-autorregulacion-prs-hooper.md`).
+ */
 export function bandaPrs(prs: number): BandaPrs {
   if (prs >= 7) return 'verde'
   if (prs >= 4) return 'ambar'
-  return 'rojo'
+  if (prs >= 3) return 'rojo'
+  return 'critico'
 }
 
 export type { SeriePrescrita }
@@ -286,9 +309,15 @@ export function ondularEjercicio(
   const brecha = brechaReps(ejercicio)
   const rango = rangoReps(ejercicio.rango) ?? { min: ejercicio.repsDiana, max: ejercicio.repsDiana }
 
-  const sets = descarga
+  const banda = prs === undefined ? undefined : bandaPrs(prs)
+  const critico = banda === 'critico'
+  const congelado = critico || banda === 'rojo'
+
+  const setsBase = descarga
     ? Math.max(1, Math.round(ejercicio.sets * FACTOR_DESCARGA))
     : ejercicio.sets
+  // En crítico se quita una serie, además de lo que ya recorte la descarga.
+  const sets = critico ? Math.max(1, setsBase - 1) : setsBase
 
   if (e1rm === undefined) {
     return {
@@ -302,10 +331,20 @@ export function ondularEjercicio(
     }
   }
 
-  const banda = prs === undefined ? undefined : bandaPrs(prs)
-  const congelado = banda === 'rojo'
-  // Con PRS en rojo no se progresa: se suelta 1 de RIR sobre el objetivo.
-  const rir = congelado ? ejercicio.rirObjetivo + 1 : ejercicio.rirObjetivo
+  /**
+   * Con PRS bajo no se progresa: se suelta RIR sobre el objetivo. En crítico se
+   * sueltan 2 y además se recorta una serie, que es el extremo suave del rango que
+   * pide el método para la banda 0-2 (−1 a −2 series/grupo, RIR +1/+2).
+   *
+   * Lo que el motor NO hace y sigue siendo del coach: «quitar accesorios». Decidir
+   * qué ejercicio sobra es criterio de sesión, no de ejercicio, y este motor ondula
+   * uno a uno. Va anotado en el motivo.
+   */
+  const rir = critico
+    ? ejercicio.rirObjetivo + 2
+    : congelado
+      ? ejercicio.rirObjetivo + 1
+      : ejercicio.rirObjetivo
 
   const series: SeriePrescrita[] = []
   let cargaPrevia = 0
@@ -343,8 +382,17 @@ export function ondularEjercicio(
         : `Se quedó ${Math.abs(brecha)} reps por debajo: la carga iba por encima.`,
     )
   }
-  if (congelado) motivos.push('PRS en rojo (≤3): se sostiene carga y se suma 1 al RIR.')
-  else if (banda === 'ambar') motivos.push('PRS en ámbar (4-6): progresión vigilada.')
+  // Solo se anota el rojo. El ámbar decía «progresión vigilada» y no vigilaba nada:
+  // se comporta igual que el verde, así que el aviso le prometía al coach un matiz
+  // que el motor no aplicaba. Si algún día el ámbar hace algo distinto, vuelve.
+  if (critico) {
+    motivos.push(
+      `PRS crítico (NADA): se sostiene carga, +2 al RIR y ${ejercicio.sets} → ${sets} series. ` +
+        'Valorar además quitar accesorios: eso lo decide el coach, no el motor.',
+    )
+  } else if (congelado) {
+    motivos.push('PRS en rojo (POCO): se sostiene carga y se suma 1 al RIR.')
+  }
   if (descarga) motivos.push(`Semana de descarga: ${ejercicio.sets} → ${sets} series.`)
   if (motivos.length === 0) motivos.push('Ejecución alineada con lo pautado.')
 

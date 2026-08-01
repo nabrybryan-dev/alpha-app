@@ -157,6 +157,20 @@ describe('utilidades de prescripción', () => {
     expect(bandaPrs(5)).toBe('ambar')
     expect(bandaPrs(3)).toBe('rojo')
   })
+
+  /**
+   * Los tres únicos valores que la app puede producir: el test post-sesión pregunta
+   * con botones POCO / NORMAL / MUCHO, que valen 3 / 6 / 9
+   * (`TestPostSesion.tsx:16-20`). Los demás números de la escala 0-10 no llegan
+   * nunca, así que este es el caso que hay que proteger: si alguien mueve los
+   * cortes, lo que importa es que POCO siga frenando.
+   */
+  it('sobre los cuatro valores reales de la app', () => {
+    expect(bandaPrs(1)).toBe('critico') // NADA
+    expect(bandaPrs(3)).toBe('rojo') // POCO
+    expect(bandaPrs(6)).toBe('ambar') // NORMAL
+    expect(bandaPrs(9)).toBe('verde') // MUCHO
+  })
 })
 
 describe('ondularEjercicio', () => {
@@ -266,9 +280,49 @@ describe('ondularEjercicio', () => {
   })
 
   it('congela la progresión y suelta el RIR con PRS en rojo', () => {
-    const r = ondularEjercicio(registrado, { prs: 2 })
+    const r = ondularEjercicio(registrado, { prs: 3 })
     expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
     expect(r.motivo).toContain('PRS en rojo')
+  })
+
+  /**
+   * El nivel NADA (1). Antes había solo tres botones y esto se trataba igual que
+   * POCO; el método pide para la banda 0-2 algo más fuerte que frenar.
+   */
+  it('con PRS crítico recorta una serie y suelta 2 de RIR', () => {
+    const r = ondularEjercicio(registrado, { prs: 1 })
+    expect(r.series).toHaveLength(registrado.sets - 1)
+    expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 2)).toBe(true)
+    expect(r.motivo).toContain('PRS crítico')
+    // Lo que el motor NO decide, pero recuerda:
+    expect(r.motivo).toContain('accesorios')
+  })
+
+  it('crítico nunca deja un ejercicio sin series', () => {
+    const unaSerie = { ...registrado, sets: 1 }
+    expect(ondularEjercicio(unaSerie, { prs: 1 }).series).toHaveLength(1)
+  })
+
+  it('crítico y descarga se acumulan, sin bajar de una serie', () => {
+    const r = ondularEjercicio(registrado, { prs: 1, descarga: true })
+    const soloDescarga = ondularEjercicio(registrado, { descarga: true })
+    expect(r.series.length).toBeLessThan(soloDescarga.series.length)
+    expect(r.series.length).toBeGreaterThanOrEqual(1)
+  })
+
+  /**
+   * El caso que de verdad ocurre: el asesorado pulsa POCO, que vale 3. El test de
+   * arriba usa un 2, que la app no puede producir.
+   */
+  it('POCO (3) frena igual que cualquier rojo, y NORMAL (6) no frena', () => {
+    const poco = ondularEjercicio(registrado, { prs: 3 })
+    expect(poco.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
+    expect(poco.motivo).toContain('PRS en rojo')
+
+    const normal = ondularEjercicio(registrado, { prs: 6 })
+    expect(normal.series.every((s) => s.rir === registrado.rirObjetivo)).toBe(true)
+    // El ámbar ya no anuncia una "progresión vigilada" que no existía.
+    expect(normal.motivo).not.toContain('vigilada')
   })
 
   it('recorta series en semana de descarga sin bajar la intensidad', () => {

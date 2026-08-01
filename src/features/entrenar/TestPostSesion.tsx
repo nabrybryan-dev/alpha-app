@@ -11,9 +11,15 @@ interface TestPostSesionProps {
 }
 
 const RPE_OPCIONES = [6, 7, 8, 9, 10]
-// La recuperación se pide en 3 niveles pero se guarda numérica (1-10) para que
-// el panel del coach y el índice de readiness la sigan leyendo igual.
+// La recuperación se pide en niveles pero se guarda numérica (1-10) para que el
+// panel del coach y el índice de readiness la sigan leyendo igual.
+//
+// Son CUATRO y no tres desde el 2026-07-30. Con tres (3/6/9) no había forma de
+// distinguir «mal» de «muy mal», y el método pide cosas distintas para cada uno:
+// con PRS bajo se sostiene la carga, pero con PRS muy bajo además se recorta la
+// sesión. `NADA` cae en la banda 0-2 del método (ver `bandaPrs`).
 const RECUP_OPCIONES = [
+  { label: 'NADA', valor: 1 },
   { label: 'POCO', valor: 3 },
   { label: 'NORMAL', valor: 6 },
   { label: 'MUCHO', valor: 9 },
