@@ -355,4 +355,29 @@ select '0018 - visibilidad de cifras', 'la vista de pendientes respeta RLS',
            and c.reloptions::text like '%security_invoker=true%'
        ) then 'SI' else 'NO' end
 
+union all
+select '0019 - respuestas de la encuesta', 'perfil_alimentario.respuestas existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'perfil_alimentario'
+           and column_name = 'respuestas' and data_type = 'jsonb'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0019 - respuestas de la encuesta', 'perfil_alimentario.completada_en existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'perfil_alimentario'
+           and column_name = 'completada_en'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0019 - respuestas de la encuesta', 'la vista de revision respeta RLS',
+       case when exists (
+         select 1 from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public' and c.relname = 'cifras_por_revisar'
+           and c.reloptions::text like '%security_invoker=true%'
+       ) then 'SI' else 'NO' end
+
 order by migracion, senal;

@@ -46,16 +46,24 @@ export const VISIBILIDAD_EN_ESPERA: Visibilidad = {
 /**
  * La visibilidad efectiva de un asesorado.
  *
- * `undefined` = no hay fila en la base, que es el caso normal y significa
- * "nadie ha tenido que decidir nada aquí".
+ * `guardada` sin definir = no hay fila en la base, que es el caso normal y
+ * significa "nadie ha tenido que decidir nada aquí".
+ *
+ * EL "EN ESPERA" SE DERIVA, NO SE GUARDA. La tabla de interruptores solo la
+ * escribe el staff -si el asesorado pudiera, se encendería los suyos-, así que
+ * la app del móvil no puede marcar a nadie. Y no hace falta: si la encuesta
+ * levantó una señal y nadie ha decidido todavía, eso YA es estar en espera. Un
+ * estado derivado no se puede quedar desincronizado del dato que lo justifica.
  */
-export function visibilidadDe(guardada: Visibilidad | undefined): Visibilidad {
-  if (!guardada) return VISIBILIDAD_POR_DEFECTO
-  // `en_espera` manda sobre lo que digan los booleanos: una fila puede quedar a
-  // medio escribir -alguien la creó con los valores por defecto y la marcó para
-  // revisar- y en ese caso lo que vale es que falta la decisión.
-  if (guardada.estado === 'en_espera') return VISIBILIDAD_EN_ESPERA
-  return guardada
+export function visibilidadDe(
+  guardada: Visibilidad | undefined,
+  senales: SenalesDeRevision = {},
+): Visibilidad {
+  // Una decisión tomada manda siempre: si la nutricionista ya miró y dijo que
+  // sí, la señal que la trajo aquí no la vuelve a esconder.
+  if (guardada && guardada.estado !== 'en_espera') return guardada
+  if (guardada?.estado === 'en_espera') return VISIBILIDAD_EN_ESPERA
+  return necesitaRevision(senales) ? VISIBILIDAD_EN_ESPERA : VISIBILIDAD_POR_DEFECTO
 }
 
 /**

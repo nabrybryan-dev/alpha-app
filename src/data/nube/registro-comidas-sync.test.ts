@@ -176,6 +176,58 @@ describe('el registro de comidas sube a Supabase', () => {
     })
   })
 
+  describe('la encuesta de nutrición', () => {
+    const encuesta = { genero: 'M', pesoKg: 56, alergias: ['lacteos'], cicloMenstrual: 'irregular' }
+
+    it('a medias NO sube: el perfil se lee entero o no se lee', () => {
+      const { db, cola } = modulos!
+      db.perfilNutricion.guardar(VALENTINA, encuesta, false)
+      expect(cola().filter((o) => o.tabla === 'perfil_alimentario')).toEqual([])
+    })
+
+    it('al terminarla sube, con las respuestas en crudo', () => {
+      const { db, cola } = modulos!
+      db.perfilNutricion.guardar(VALENTINA, encuesta, true)
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+      expect(op?.payload.asesorado_id).toBe(VALENTINA)
+      expect(op?.payload.respuestas).toMatchObject(encuesta)
+      expect(op?.payload.completada_en).toBeTruthy()
+    })
+
+    it('y con las columnas que se consultan, proyectadas del crudo', () => {
+      // El jsonb es la fuente de verdad; estas columnas existen para poder
+      // preguntar "quiénes no comen lácteos" sin abrir el jsonb de cada uno.
+      const { db, cola } = modulos!
+      db.perfilNutricion.guardar(VALENTINA, encuesta, true)
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+      expect(op?.payload.alergias).toEqual(['lacteos'])
+      expect(op?.payload.ciclo_menstrual).toBe('irregular')
+    })
+
+    it('un texto libre entra como lista de un elemento, sin trocearlo', () => {
+      // "no consigo salmón ni arándanos" es UNA respuesta. Partirla por comas
+      // que la persona no puso sería inventarse una estructura.
+      const { db, cola } = modulos!
+      db.perfilNutricion.guardar(VALENTINA, { sinAcceso: 'salmón, arándanos' }, true)
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+      expect(op?.payload.sin_acceso).toEqual(['salmón, arándanos'])
+    })
+
+    it('lo que no se respondió entra como null, no como lista vacía', () => {
+      // Mateo no tiene perfil en el seed: `guardar` fusiona con lo previo, así
+      // que hace falta alguien que empiece de cero para ver los huecos.
+      const { db, cola } = modulos!
+      db.perfilNutricion.guardar('u-mateo', { genero: 'H' }, true)
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+      expect(op?.payload.alergias).toBeNull()
+      expect(op?.payload.come_visceras).toBeNull()
+    })
+  })
+
   it('lo local se guarda aunque no haya red', () => {
     // El registro no depende de que la subida funcione. Es lo que permite
     // anotar en un sótano sin cobertura.

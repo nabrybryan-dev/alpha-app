@@ -178,6 +178,29 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    perfilNutricion: {
+      ...local.perfilNutricion,
+      guardar: (usuarioId, respuestas, completada) => {
+        local.perfilNutricion.guardar(usuarioId, respuestas, completada)
+        // Solo se sube cuando termina. A medias no vale la pena: el perfil que
+        // lee la nutricionista tiene que estar entero o no estar.
+        if (!completada) return
+        const perfil = local.perfilNutricion.byUsuario(usuarioId)
+        if (!perfil) return
+        encolar({
+          tabla: 'perfil_alimentario',
+          tipo: 'upsert',
+          payload: {
+            ...aPerfilAlimentario(usuarioId, perfil.respuestas),
+            // El crudo es la fuente de verdad; lo de arriba es su proyección
+            // para poder consultar sin abrir el jsonb de cada uno.
+            respuestas: perfil.respuestas,
+            completada_en: perfil.completadaEn ?? null,
+          },
+        })
+      },
+    },
+
     registroComidas: {
       ...local.registroComidas,
       abrirComida: (comida) => {
@@ -342,6 +365,43 @@ function fechasCercanas(): string[] {
     const mes = String(d.getMonth() + 1).padStart(2, '0')
     return `${d.getFullYear()}-${mes}-${String(d.getDate()).padStart(2, '0')}`
   })
+}
+
+/** Lo que se responde en la encuesta, en las columnas de la migración 0016. */
+function aPerfilAlimentario(
+  usuarioId: string,
+  respuestas: Record<string, string | number | string[]>,
+): Record<string, unknown> {
+  /**
+   * Un texto libre entra como lista de un elemento.
+   *
+   * `sin_acceso` y `no_le_gustan` son `text[]` en la base porque nacieron para
+   * casillas. La encuesta los pregunta abiertos —"¿qué no consigues?"— y meter
+   * la frase entera como un elemento conserva lo que la persona escribió sin
+   * inventarse una separación por comas que ella no hizo.
+   */
+  const comoLista = (valor: unknown): string[] | null => {
+    if (Array.isArray(valor)) return valor.length > 0 ? valor : null
+    if (typeof valor === 'string' && valor.trim()) return [valor.trim()]
+    return null
+  }
+
+  const texto = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor : null)
+
+  return {
+    asesorado_id: usuarioId,
+    alergias: comoLista(respuestas.alergias),
+    condiciones_medicas: comoLista(respuestas.condicionesMedicas),
+    excluye: comoLista(respuestas.excluye),
+    no_le_gustan: comoLista(respuestas.noLeGustan),
+    sin_acceso: comoLista(respuestas.sinAcceso),
+    come_visceras: texto(respuestas.comeVisceras),
+    lugar_compra: texto(respuestas.lugarCompra),
+    frecuencia_cocina: texto(respuestas.frecuenciaCocina),
+    tiene_bascula: texto(respuestas.tieneBascula),
+    ciclo_menstrual: texto(respuestas.cicloMenstrual),
+    actualizado_en: new Date().toISOString(),
+  }
 }
 
 function subirComida(local: Db, usuarioId: string, comidaId: string): void {

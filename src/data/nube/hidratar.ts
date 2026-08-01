@@ -13,6 +13,7 @@ import type {
 } from '../../domain/types'
 import type { FilaRanking } from '../../domain/ranking'
 import type {
+  PerfilNutricion,
   PreferenciaEstado,
   RegistroComida,
   RegistroHidratacion,
@@ -160,6 +161,10 @@ export async function hidratarDesdeNube(): Promise<void> {
   // Registro de comidas (migraciones 0015 y 0017). Mismo trato que la
   // hidratación: si el despliegue todavía no las tiene, la app sigue andando y
   // lo registrado se queda en el dispositivo hasta que se apliquen.
+  const perfilesNutricion = await sb
+    .from('perfil_alimentario')
+    .select('asesorado_id, respuestas, completada_en')
+
   const [comidas, items, preferencias] = await Promise.all([
     sb.from('registro_comida').select('*').eq('borrado', false),
     sb.from('registro_item').select('*').eq('borrado', false),
@@ -261,6 +266,20 @@ export async function hidratarDesdeNube(): Promise<void> {
         valores: f.valores as Record<string, string>,
       }),
     ),
+    // Si la tabla no responde -migración sin aplicar- se conserva lo local en
+    // vez de escribir una lista vacía encima: es la encuesta que la persona
+    // acaba de responder.
+    perfilesNutricion: perfilesNutricion.error
+      ? (instantaneaLocal().perfilesNutricion ?? [])
+      : (perfilesNutricion.data ?? [])
+          .filter((f) => f.respuestas)
+          .map(
+            (f): PerfilNutricion => ({
+              usuarioId: f.asesorado_id as string,
+              respuestas: f.respuestas as PerfilNutricion['respuestas'],
+              completadaEn: (f.completada_en as string | null) ?? undefined,
+            }),
+          ),
     registrosComida: registroDisponible
       ? armarComidas(comidas.data ?? [], items.data ?? [])
       : (local?.registrosComida ?? []),

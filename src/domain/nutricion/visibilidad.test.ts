@@ -36,6 +36,30 @@ describe('visibilidadDe', () => {
     expect(visibilidadDe(aMedias)).toEqual(VISIBILIDAD_EN_ESPERA)
   })
 
+  describe('el "en espera" derivado', () => {
+    it('una señal sin decisión guardada retiene las cifras', () => {
+      // La app del móvil no puede escribir la tabla de interruptores -es solo
+      // del staff-, así que el estado se deduce en vez de guardarse.
+      expect(visibilidadDe(undefined, { cicloAlterado: true })).toEqual(VISIBILIDAD_EN_ESPERA)
+    })
+
+    it('sin señales, se ve todo', () => {
+      expect(visibilidadDe(undefined, { cicloAlterado: false })).toEqual(VISIBILIDAD_POR_DEFECTO)
+    })
+
+    it('una decisión ya tomada manda sobre la señal', () => {
+      // Si la nutricionista miró y dijo que sí, la señal que la trajo aquí no
+      // vuelve a esconder nada.
+      const decidida: Visibilidad = {
+        verComposicion: true,
+        verObjetivoCalorico: true,
+        verContadorKcal: true,
+        estado: 'decidido',
+      }
+      expect(visibilidadDe(decidida, { cicloAlterado: true })).toEqual(decidida)
+    })
+  })
+
   it('el estado "automatico" con valores puestos también se respeta', () => {
     const tocada: Visibilidad = {
       verComposicion: false,
