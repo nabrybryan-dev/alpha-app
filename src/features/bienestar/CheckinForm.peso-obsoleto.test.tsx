@@ -43,23 +43,36 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CheckinForm } from './CheckinForm'
 
+// Las 6 preguntas cualitativas de pastillas. El hambre ya no está aquí: pasó a
+// una escala de 1 a 10, y se marca aparte.
 const GRUPOS = [
   '¿Cómo estuvo tu rendimiento?',
   'Motivación',
-  'Hambre',
   'Cansancio',
   'Estrés',
   'Calidad del sueño',
   '¿Cómo estuvo tu alimentación?',
 ]
 
-function marcarLosSieteCualitativos() {
-  for (const titulo of GRUPOS) {
-    const fieldset = screen.getByText(titulo).closest('fieldset') as HTMLElement
-    const opciones = within(fieldset).getAllByRole('button')
-    fireEvent.click(opciones[opciones.length - 1])
-  }
+function grupo(titulo: string): HTMLElement {
+  const fieldset = screen.getByText(titulo).closest('fieldset')
+  if (!fieldset) throw new Error(`No se encontró el fieldset de "${titulo}"`)
+  return fieldset as HTMLElement
 }
+
+/** El hambre se marca en la escala nueva, no en pastillas. */
+function marcarHambre(valor = 10) {
+  fireEvent.click(screen.getByRole('button', { name: `Hambre ${valor} de 10` }))
+}
+
+function marcarTodos() {
+  for (const titulo of GRUPOS) {
+    const opciones = within(grupo(titulo)).getAllByRole('button')
+    fireEvent.click(opciones[opciones.length - 1]) // última opción (BUENA / MUCHO)
+  }
+  marcarHambre()
+}
+
 
 describe('el peso sembrado en el check-in', () => {
   afterEach(cleanup)
@@ -89,7 +102,7 @@ describe('el peso sembrado en el check-in', () => {
     )
 
     // Rellena los siete cualitativos obligatorios y guarda.
-    marcarLosSieteCualitativos()
+    marcarTodos()
     fireEvent.click(screen.getByRole('button', { name: /guardar check-in/i }))
 
     expect(onGuardar).toHaveBeenCalledTimes(1)

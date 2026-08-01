@@ -126,7 +126,23 @@ export interface CheckinDiario {
   entreno?: string
   rendimiento?: Cualitativo3
   motivacion?: Cantidad3
+  /**
+   * Cómo se preguntaba el hambre antes: POCO / REGULAR / MUCHO.
+   *
+   * Se conserva SOLO para los check-ins ya guardados. No se convierte a la
+   * escala nueva: «MUCHO» no es un 8, y traducirlo fabricaría una precisión que
+   * nadie midió. Los registros viejos se leen tal como se respondieron y no
+   * entran en la regla de días, que necesita el número.
+   */
   hambre?: Cantidad3
+  /**
+   * El hambre del día, de 1 a 10. Es lo que se pregunta desde ahora.
+   *
+   * Con tres categorías no se distinguía un 7 de un 9 — que es justo la
+   * diferencia entre esperar cinco días y actuar en dos. La regla de la
+   * nutricionista existía y no se podía ejecutar por eso.
+   */
+  hambreEscala?: number
   cansancio?: Cantidad3
   estres?: Cantidad3
   horasSueno?: number
