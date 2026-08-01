@@ -27,7 +27,7 @@ const CATALOGO: Record<string, AlimentoIndice> = {
 
 const porId = (id: string) => CATALOGO[id]
 
-const item = (alimentoId: string, gramos: number, fuePesado = true): RegistroItem => ({
+const item2 = (alimentoId: string, gramos: number, fuePesado = true): RegistroItem => ({
   id: `it-${alimentoId}`,
   alimentoId,
   gramos,
@@ -53,7 +53,7 @@ const comida = (
 
 describe('itemsDelDia', () => {
   it('convierte cada ítem con su composición', () => {
-    const items = itemsDelDia([comida('2026-07-31T13:00', [item('arroz', 150)])], porId)
+    const items = itemsDelDia([comida('2026-07-31T13:00', [item2('arroz', 150)])], porId)
     expect(items).toEqual([{ por100g: CATALOGO.arroz.por100g, gramos: 150, confianza: 'pesado' }])
   })
 
@@ -61,17 +61,28 @@ describe('itemsDelDia', () => {
     // Dentro de un almuerzo estimado a ojo puede haber un alimento que sí se
     // pesó. Su margen es el suyo, no el de la comida.
     const [pesado, aOjo] = itemsDelDia(
-      [comida('2026-07-31T13:00', [item('arroz', 150, true), item('pollo', 120, false)], 'estimado')],
+      [comida('2026-07-31T13:00', [item2('arroz', 150, true), item2('pollo', 120, false)], 'estimado')],
       porId,
     )
     expect(pesado.confianza).toBe('pesado')
     expect(aOjo.confianza).toBe('estimado')
   })
 
+  it('un ítem estimado NUNCA hereda el margen de pesado', () => {
+    // El bug: la comida nacía con confianza 'pesado' y un ítem marcado "lo
+    // estimé" heredaba ±5 %. La app decía que sabía con precisión de báscula
+    // algo que la persona calculó a ojo.
+    const [item] = itemsDelDia(
+      [comida('2026-07-31T13:00', [item2('arroz', 150, false)], 'pesado')],
+      porId,
+    )
+    expect(item.confianza).not.toBe('pesado')
+  })
+
   it('se salta un alimento que ya no está en el catálogo', () => {
     // El registro viejo sigue en la base; simplemente no hay con qué calcularlo.
     const items = itemsDelDia(
-      [comida('2026-07-31T13:00', [item('borrado', 100), item('arroz', 100)])],
+      [comida('2026-07-31T13:00', [item2('borrado', 100), item2('arroz', 100)])],
       porId,
     )
     expect(items).toHaveLength(1)
@@ -86,8 +97,8 @@ describe('resumenDelDia', () => {
   it('suma las calorías de todo el día', () => {
     const total = resumenDelDia(
       [
-        comida('2026-07-31T08:00', [item('arroz', 100)]),
-        comida('2026-07-31T13:00', [item('pollo', 100)]),
+        comida('2026-07-31T08:00', [item2('arroz', 100)]),
+        comida('2026-07-31T13:00', [item2('pollo', 100)]),
       ],
       porId,
     )
@@ -95,7 +106,7 @@ describe('resumenDelDia', () => {
   })
 
   it('un día entero pesado tiene el margen más estrecho', () => {
-    const total = resumenDelDia([comida('2026-07-31T13:00', [item('arroz', 100)])], porId)
+    const total = resumenDelDia([comida('2026-07-31T13:00', [item2('arroz', 100)])], porId)
     expect(total.margenPct).toBe(5)
   })
 
@@ -103,7 +114,7 @@ describe('resumenDelDia', () => {
     // El pollo no trae vitamina C medida. Sumarla como si fuera 0 diría que el
     // día tuvo menos de la que tuvo.
     const total = resumenDelDia(
-      [comida('2026-07-31T13:00', [item('arroz', 100), item('pollo', 100)])],
+      [comida('2026-07-31T13:00', [item2('arroz', 100), item2('pollo', 100)])],
       porId,
     )
     expect(total.parciales.has('vitamina_c_mg')).toBe(true)
@@ -112,7 +123,7 @@ describe('resumenDelDia', () => {
 
 describe('kcalDeComida', () => {
   it('suma solo esa comida', () => {
-    expect(kcalDeComida(comida('2026-07-31T13:00', [item('arroz', 200)]), porId)).toBe(260)
+    expect(kcalDeComida(comida('2026-07-31T13:00', [item2('arroz', 200)]), porId)).toBe(260)
   })
 
   it('una comida vacía son 0 kcal', () => {
@@ -120,29 +131,29 @@ describe('kcalDeComida', () => {
   })
 
   it('ignora lo que no está en el catálogo en vez de reventar', () => {
-    expect(kcalDeComida(comida('2026-07-31T13:00', [item('borrado', 500)]), porId)).toBe(0)
+    expect(kcalDeComida(comida('2026-07-31T13:00', [item2('borrado', 500)]), porId)).toBe(0)
   })
 })
 
 describe('alimentosRecientes', () => {
   it('devuelve lo último registrado primero', () => {
     const recientes = alimentosRecientes([
-      comida('2026-07-30T13:00', [item('arroz', 100)]),
-      comida('2026-07-31T13:00', [item('pollo', 100)]),
+      comida('2026-07-30T13:00', [item2('arroz', 100)]),
+      comida('2026-07-31T13:00', [item2('pollo', 100)]),
     ])
     expect(recientes).toEqual(['pollo', 'arroz'])
   })
 
   it('no repite el mismo alimento', () => {
     const recientes = alimentosRecientes([
-      comida('2026-07-30T13:00', [item('arroz', 100)]),
-      comida('2026-07-31T13:00', [item('arroz', 200)]),
+      comida('2026-07-30T13:00', [item2('arroz', 100)]),
+      comida('2026-07-31T13:00', [item2('arroz', 200)]),
     ])
     expect(recientes).toEqual(['arroz'])
   })
 
   it('respeta el tope', () => {
-    const comidas = [comida('2026-07-31T13:00', [item('arroz', 100), item('pollo', 100)])]
+    const comidas = [comida('2026-07-31T13:00', [item2('arroz', 100), item2('pollo', 100)])]
     expect(alimentosRecientes(comidas, 1)).toEqual(['arroz'])
   })
 

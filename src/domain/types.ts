@@ -337,6 +337,21 @@ export interface PerfilNutricion {
 }
 
 /**
+ * Una vez que el asesorado estimó primero y pesó después.
+ *
+ * El orden importa y es lo que hace que la prueba valga: si pesa antes de
+ * estimar, ya no está midiendo su ojo, está copiando la báscula.
+ */
+export interface PruebaCalibracion {
+  id: string
+  usuarioId: string
+  fecha: string
+  alimentoId: string
+  gramosEstimados: number
+  gramosReales: number
+}
+
+/**
  * Qué contestó el asesorado a «¿crudo o cocido?» para una familia de alimentos.
  * Se recuerda para no volver a preguntárselo cada vez que registre arroz.
  */

@@ -15,6 +15,7 @@ import type { FilaRanking } from '../../domain/ranking'
 import type {
   PerfilNutricion,
   PreferenciaEstado,
+  PruebaCalibracion,
   RegistroComida,
   RegistroHidratacion,
   RegistroItem,
@@ -165,10 +166,11 @@ export async function hidratarDesdeNube(): Promise<void> {
     .from('perfil_alimentario')
     .select('asesorado_id, respuestas, completada_en')
 
-  const [comidas, items, preferencias] = await Promise.all([
+  const [comidas, items, preferencias, calibraciones] = await Promise.all([
     sb.from('registro_comida').select('*').eq('borrado', false),
     sb.from('registro_item').select('*').eq('borrado', false),
     sb.from('preferencia_estado').select('*'),
+    sb.from('prueba_calibracion').select('*'),
   ])
 
   /**
@@ -280,6 +282,18 @@ export async function hidratarDesdeNube(): Promise<void> {
               completadaEn: (f.completada_en as string | null) ?? undefined,
             }),
           ),
+    pruebasCalibracion: calibraciones.error
+      ? (instantaneaLocal().pruebasCalibracion ?? [])
+      : (calibraciones.data ?? []).map(
+          (f): PruebaCalibracion => ({
+            id: (f.cliente_id as string | null) ?? String(f.id),
+            usuarioId: f.asesorado_id as string,
+            fecha: String(f.fecha),
+            alimentoId: f.alimento_id as string,
+            gramosEstimados: Number(f.gramos_estimados),
+            gramosReales: Number(f.gramos_reales),
+          }),
+        ),
     registrosComida: registroDisponible
       ? armarComidas(comidas.data ?? [], items.data ?? [])
       : (local?.registrosComida ?? []),

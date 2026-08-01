@@ -380,4 +380,19 @@ select '0019 - respuestas de la encuesta', 'la vista de revision respeta RLS',
            and c.reloptions::text like '%security_invoker=true%'
        ) then 'SI' else 'NO' end
 
+union all
+select '0020 - pruebas desde el movil', 'prueba_calibracion.cliente_id existe',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'prueba_calibracion'
+           and column_name = 'cliente_id'
+       ) then 'SI' else 'NO' end
+
+union all
+select '0020 - pruebas desde el movil', 'cliente_id es unico',
+       case when exists (
+         select 1 from pg_indexes
+         where schemaname = 'public' and indexname = 'prueba_calibracion_cliente_id_unico'
+       ) then 'SI' else 'NO' end
+
 order by migracion, senal;

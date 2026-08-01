@@ -389,6 +389,28 @@ export function crearMockDb(): Db {
       },
     },
 
+    calibracion: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.pruebasCalibracion ?? []).filter((p) => p.usuarioId === usuarioId),
+      diasPesando: (usuarioId) =>
+        // Días DISTINTOS, no pruebas: quince pruebas en una tarde no son quince
+        // días aprendiendo a estimar.
+        new Set(
+          (ref.actual.pruebasCalibracion ?? [])
+            .filter((p) => p.usuarioId === usuarioId)
+            .map((p) => p.fecha),
+        ).size,
+      registrar: (prueba) => {
+        mutar((estado) => ({
+          ...estado,
+          pruebasCalibracion: [
+            ...(estado.pruebasCalibracion ?? []),
+            { ...prueba, id: nuevoId('cal') },
+          ],
+        }))
+      },
+    },
+
     registroComidas: {
       delDia: (usuarioId, fecha) =>
         (ref.actual.registrosComida ?? [])

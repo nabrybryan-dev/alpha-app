@@ -9,6 +9,7 @@ import type {
   PlanNutricional,
   PerfilNutricion,
   PreferenciaEstado,
+  PruebaCalibracion,
   PremiacionCoach,
   RegistroComida,
   RegistroHidratacion,
@@ -44,6 +45,7 @@ export interface SeedDb {
   /** Opcional por lo mismo: el registro de comidas llegó después. */
   perfilesNutricion?: PerfilNutricion[]
   visibilidades?: VisibilidadAsesorado[]
+  pruebasCalibracion?: PruebaCalibracion[]
   registrosComida?: RegistroComida[]
   preferenciasEstado?: PreferenciaEstado[]
   /** Solo en modo nube: lo llena la RPC ranking_disciplina al iniciar sesión. */
@@ -94,6 +96,7 @@ export const seedDb: SeedDb = {
     },
   ],
   visibilidades: [],
+  pruebasCalibracion: [],
   registrosComida: [],
   preferenciasEstado: [],
   mensajes,
