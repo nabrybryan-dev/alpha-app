@@ -10,6 +10,7 @@ import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { CheckinForm } from './CheckinForm'
 import { MedidasCard } from './MedidasCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
+import { tramoDeHambre } from '../../domain/senales/hambre'
 
 function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
   if (valor === 'BUENA' || valor === 'POCO') return 'verde'
@@ -26,7 +27,14 @@ function filasCheckin(c: CheckinDiario): [string, string][] {
   if (c.entreno) filas.push(['Entreno', c.entreno])
   if (c.rendimiento) filas.push(['Rendimiento', c.rendimiento])
   if (c.motivacion) filas.push(['Motivación', c.motivacion])
-  if (c.hambre) filas.push(['Hambre', c.hambre])
+  // Los dos, y sin mezclarlos: los check-ins viejos guardaron una categoría y
+  // los nuevos guardan un número. Enseñar «MUCHO» como si fuera un 8 diría que
+  // se midió algo que nadie midió.
+  if (c.hambreEscala !== undefined) {
+    filas.push(['Hambre', `${c.hambreEscala} / 10 · ${tramoDeHambre(c.hambreEscala).etiqueta}`])
+  } else if (c.hambre) {
+    filas.push(['Hambre', `${c.hambre} (escala antigua)`])
+  }
   if (c.cansancio) filas.push(['Cansancio', c.cansancio])
   if (c.estres) filas.push(['Estrés', c.estres])
   if (c.horasSueno !== undefined) {

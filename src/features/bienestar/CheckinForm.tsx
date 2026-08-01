@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { tramoDeHambre } from '../../domain/senales/hambre'
 import { Stepper } from '../../components/ui/Stepper'
 import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
 
@@ -101,7 +102,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
   const [entreno, setEntreno] = useState('')
   const [rendimiento, setRendimiento] = useState<Cualitativo3>()
   const [motivacion, setMotivacion] = useState<Cantidad3>()
-  const [hambre, setHambre] = useState<Cantidad3>()
+  const [hambreEscala, setHambreEscala] = useState<number>()
   const [cansancio, setCansancio] = useState<Cantidad3>()
   const [estres, setEstres] = useState<Cantidad3>()
   const [horasSueno, setHorasSueno] = useState(7)
@@ -111,7 +112,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
   const [intento, setIntento] = useState(false)
 
   // Campos cualitativos obligatorios (peso/pasos/sueño ya traen valor numérico).
-  const camposCualitativos = [rendimiento, motivacion, hambre, cansancio, estres, calidadSueno, alimentacion]
+  const camposCualitativos = [rendimiento, motivacion, hambreEscala, cansancio, estres, calidadSueno, alimentacion]
   const faltantes = camposCualitativos.filter((v) => v === undefined).length
 
   const guardar = () => {
@@ -128,7 +129,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
       entreno: entreno || undefined,
       rendimiento,
       motivacion,
-      hambre,
+      hambreEscala,
       cansancio,
       estres,
       horasSueno,
@@ -160,7 +161,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
 
       <CampoPills titulo="¿Cómo estuvo tu rendimiento?" opciones={CUALITATIVOS} valor={rendimiento} onCambiar={(v) => setRendimiento(v as Cualitativo3)} />
       <CampoPills titulo="Motivación" opciones={CANTIDADES} valor={motivacion} onCambiar={(v) => setMotivacion(v as Cantidad3)} />
-      <CampoPills titulo="Hambre" opciones={CANTIDADES} valor={hambre} onCambiar={(v) => setHambre(v as Cantidad3)} />
+      <EscalaHambre valor={hambreEscala} onCambiar={setHambreEscala} />
       <CampoPills titulo="Cansancio" opciones={CANTIDADES} valor={cansancio} onCambiar={(v) => setCansancio(v as Cantidad3)} />
       <CampoPills titulo="Estrés" opciones={CANTIDADES} valor={estres} onCambiar={(v) => setEstres(v as Cantidad3)} />
 
@@ -197,4 +198,69 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
       </button>
     </div>
   )
+}
+
+/**
+ * El hambre del dia, de 1 a 10.
+ *
+ * POR QUE DIEZ Y NO TRES. Antes se preguntaba POCO / REGULAR / MUCHO, y con eso
+ * no se distingue un 7 de un 9 -que es justo la diferencia entre esperar cinco
+ * dias y actuar en dos-. La regla de la nutricionista existia y no se podia
+ * ejecutar por falta de este numero.
+ *
+ * Se enseñan las etiquetas de los cuatro tramos debajo, no como decoracion:
+ * "8" no significa nada por si solo, y sin la referencia cada persona calibra su
+ * propia escala. Con "interfiere con el trabajo o el entreno" al lado, dos
+ * asesorados distintos marcan parecido ante lo mismo.
+ */
+function EscalaHambre({
+  valor,
+  onCambiar,
+}: {
+  valor: number | undefined
+  onCambiar: (valor: number) => void
+}) {
+  const tramo = valor === undefined ? undefined : tramoDeHambre(valor)
+
+  return (
+    <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+      <p className="text-sm font-bold text-texto">Hambre de hoy</p>
+      <p className="mt-0.5 text-[11px] leading-snug text-tenue">
+        1 = no la sentiste · 10 = no la pudiste sostener
+      </p>
+
+      <div className="mt-2.5 flex gap-1">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            aria-label={`Hambre ${n} de 10`}
+            aria-pressed={valor === n}
+            onClick={() => onCambiar(n)}
+            className={`press h-9 flex-1 rounded-boton border text-xs font-bold transition-colors ${
+              valor === n
+                ? 'border-accion bg-accion text-white'
+                : 'border-linea bg-surface-2 text-tenue'
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+
+      {tramo && (
+        <p className="mt-2 text-[11px] leading-snug text-tenue">
+          <b className="text-texto">{DESCRIPCION_TRAMO[tramo.etiqueta]}</b>
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Cómo se vive cada tramo, en palabras del asesorado. */
+const DESCRIPCION_TRAMO: Record<string, string> = {
+  leve: 'Molesta, pero se lleva.',
+  moderada: 'Cuesta, distrae.',
+  intensa: 'Interfiere con el trabajo o el entreno.',
+  insostenible: 'No la puedes sostener: fatiga, no te concentras.',
 }
