@@ -12,6 +12,7 @@ import type {
   PlanNutricional,
   PerfilNutricion,
   PreferenciaEstado,
+  PruebaCalibracion,
   PremiacionCoach,
   RegistroComida,
   RegistroItem,
@@ -87,6 +88,13 @@ export interface VisibilidadRepo {
   decidir(decision: VisibilidadAsesorado): void
 }
 
+export interface CalibracionRepo {
+  byUsuario(usuarioId: string): PruebaCalibracion[]
+  /** Cuántos días distintos lleva pesando. Es la otra mitad del criterio. */
+  diasPesando(usuarioId: string): number
+  registrar(prueba: Omit<PruebaCalibracion, 'id'>): void
+}
+
 export interface RegistroComidasRepo {
   /** Las comidas de una fecha (`YYYY-MM-DD`), ordenadas por hora. */
   delDia(usuarioId: string, fecha: string): RegistroComida[]
@@ -156,6 +164,7 @@ export interface Db {
   perfilNutricion: PerfilNutricionRepo
   visibilidad: VisibilidadRepo
   registroComidas: RegistroComidasRepo
+  calibracion: CalibracionRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo
   contenidos: ContenidosRepo

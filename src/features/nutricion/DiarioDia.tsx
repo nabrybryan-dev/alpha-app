@@ -15,6 +15,7 @@ import { AdherenciaDia } from './AdherenciaDia'
 import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
+import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
 import { ResumenDia } from './ResumenDia'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
@@ -313,6 +314,25 @@ export default function DiarioDia() {
       </section>
 
       <PanelMicros total={total} />
+
+      <PanelCalibracion
+        pruebas={db.calibracion.byUsuario(usuario.id).map((p) => ({
+          alimentoId: p.alimentoId,
+          gramosEstimados: p.gramosEstimados,
+          gramosReales: p.gramosReales,
+          fecha: p.fecha,
+        }))}
+        diasPesando={db.calibracion.diasPesando(usuario.id)}
+        onRegistrar={({ alimentoId, estimados, reales }) =>
+          db.calibracion.registrar({
+            usuarioId: usuario.id,
+            fecha: hoyIso(),
+            alimentoId,
+            gramosEstimados: estimados,
+            gramosReales: reales,
+          })
+        }
+      />
 
       {/* El agua y la adherencia son hechos del DÍA, igual que las comidas, así
           que viven aquí. Estaban en la vista del plan, que ahora es solo lo que
