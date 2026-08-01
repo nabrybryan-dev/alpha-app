@@ -1,37 +1,104 @@
+import { useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
+import { db } from '../../data/dbInstance'
+import type { Microciclo } from '../../domain/types'
+import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
 
 interface GenerarMicrocicloSheetProps {
   abierto: boolean
   nombreAsesorado: string
+  /** Microciclo del que se parte. Sin él no hay nada de donde ondular. */
+  microciclo?: Microciclo
   onCerrar: () => void
 }
 
-export function GenerarMicrocicloSheet({ abierto, nombreAsesorado, onCerrar }: GenerarMicrocicloSheetProps) {
+const FLECHA = { subir: '▲', bajar: '▼', estable: '=', 'sin-datos': '·' } as const
+
+export function GenerarMicrocicloSheet({
+  abierto,
+  nombreAsesorado,
+  microciclo,
+  onCerrar,
+}: GenerarMicrocicloSheetProps) {
+  const propuesta = microciclo ? proponerMicrociclo(microciclo) : undefined
+  const [guardada, setGuardada] = useState(false)
+
+  const guardar = () => {
+    if (!microciclo) return
+    db.microciclos.guardarPropuesta(microcicloPropuesto(microciclo))
+    setGuardada(true)
+  }
+
   return (
-    <Sheet abierto={abierto} titulo="Generar microciclo con IA" onCerrar={onCerrar}>
-      <div className="flex flex-col gap-3 text-sm text-texto/90">
-        <p>
-          Este botón conectará con el <strong>Cerebro Alpha (motor Heracles)</strong> para generar la
-          propuesta del siguiente microciclo de {nombreAsesorado}:
+    <Sheet abierto={abierto} titulo="Propuesta del siguiente microciclo" onCerrar={onCerrar}>
+      {!propuesta || propuesta.filas.length === 0 ? (
+        <p className="text-sm text-tenue">
+          {nombreAsesorado} todavía no tiene un microciclo con ejercicios de fuerza del que partir.
         </p>
-        <ol className="list-decimal pl-5 leading-relaxed">
-          <li>Lee lo pautado vs. lo realizado (cargas, reps, RIR real por serie).</li>
-          <li>Cruza bienestar, readiness y adherencia nutricional de la semana.</li>
-          <li>Sitúa cada grupo muscular en su landmark de volumen (MEV→MAV→MRV).</li>
-          <li>Aplica la jerarquía: seguridad → adherencia → tensión mecánica → VBT → preferencias.</li>
-          <li>Devuelve la prescripción lista para revisar, ejercicio por ejercicio.</li>
-        </ol>
-        <div className="rounded-xl border border-linea bg-surface-2 p-3 font-mono text-xs leading-relaxed">
-          <p className="text-tenue">Ejemplo de salida:</p>
-          <p className="mt-1 text-texto">
-            HIP THRUST → 90KG A 10 REPS; 3 SERIES (RIR 2). PROGRESA +5KG VS M22. PAUSA ARRIBA
+      ) : (
+        <div className="flex flex-col gap-3 text-sm text-texto/90">
+          <p>
+            Propuesta de <strong>M{propuesta.numero}</strong> para {nombreAsesorado}, calculada con
+            el motor Heracles sobre lo que registró de verdad.
+            {propuesta.prs !== undefined && (
+              <>
+                {' '}
+                Último PRS: <strong>{propuesta.prs}</strong>.
+              </>
+            )}
           </p>
+
+          <ul className="flex flex-col gap-2">
+            {propuesta.filas.map((f, i) => (
+              <li
+                key={`${f.sesionId}-${f.ejercicio}-${i}`}
+                className="rounded-tarjeta border border-linea bg-surface-2 p-3"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+                  {f.sesionNombre} · {f.categoria}
+                </p>
+                <p className="mt-0.5 text-sm font-bold text-texto">
+                  <span aria-hidden="true" className="mr-1.5 text-rojo">
+                    {FLECHA[f.direccion]}
+                  </span>
+                  {f.ejercicio}
+                </p>
+                <p className="cifras mt-1.5 text-[12.5px] font-semibold leading-relaxed text-texto">
+                  {f.prescripcion || 'Sin datos suficientes para proponer carga.'}
+                </p>
+                <p className="mt-1 text-xs leading-snug text-tenue">{f.motivo}</p>
+              </li>
+            ))}
+          </ul>
+
+          {propuesta.sinDatos > 0 && (
+            <p className="rounded-xl border border-linea bg-surface-2 p-3 text-xs text-tenue">
+              {propuesta.sinDatos} ejercicio(s) sin series registradas ni carga pautada: el motor no
+              tiene de dónde partir y los deja como están.
+            </p>
+          )}
+
+          <p className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
+            No aplica descarga automática: su disparador (semana 4 de cada mesociclo) no coincide
+            con lo que muestran tus plantillas.
+          </p>
+
+          {guardada ? (
+            <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
+              Guardada como <strong>propuesta</strong>. {nombreAsesorado} todavía no la ve: sus
+              pantallas solo muestran el microciclo activo. Queda ahí hasta que decidas activarla.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={guardar}
+              className="press w-full rounded-boton bg-accion py-3.5 font-display text-sm uppercase tracking-wide text-white"
+            >
+              Guardar como propuesta
+            </button>
+          )}
         </div>
-        <p className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
-          Disponible en la etapa 3. Hoy este flujo lo ejecuta Bryan con el Cerebro y carga la
-          propuesta manualmente.
-        </p>
-      </div>
+      )}
     </Sheet>
   )
 }

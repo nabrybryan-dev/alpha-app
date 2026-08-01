@@ -10,11 +10,16 @@ import type {
   Microciclo,
   Perfil,
   PlanNutricional,
+  PerfilNutricion,
+  PreferenciaEstado,
   PremiacionCoach,
+  RegistroComida,
+  RegistroItem,
   Respuesta,
   SerieRegistrada,
   TestPostSesion,
   Usuario,
+  VisibilidadAsesorado,
 } from '../domain/types'
 
 export interface UsuariosRepo {
@@ -34,6 +39,16 @@ export interface PerfilesRepo {
 
 export interface MicrociclosRepo {
   byUsuario(usuarioId: string): Microciclo[]
+  /**
+   * Guarda una propuesta del coach. Entra SIEMPRE con `estado: 'propuesto'`, y esa
+   * es la salvaguarda: las pantallas del asesorado (`HoyPage`, `MicrocicloPage`)
+   * solo miran el microciclo `activo`, así que una propuesta no le llega a nadie
+   * hasta que alguien decida activarla.
+   *
+   * No sustituye a ninguno existente: si ya hay una propuesta con ese número, se
+   * reemplaza; el activo y los cerrados no se tocan.
+   */
+  guardarPropuesta(micro: Microciclo): void
   registrarSerie(microcicloId: string, ejercicioId: string, serie: SerieRegistrada): void
   guardarTestPost(microcicloId: string, sesionId: string, test: TestPostSesion): void
   marcarParte(microcicloId: string, sesionId: string, parteId: string): void
@@ -52,6 +67,43 @@ export interface NutricionRepo {
   hidratacionDe(usuarioId: string, fecha: string): number
   /** Suma deltaMl (puede ser negativo para corregir) al total del día, con piso en 0. */
   registrarHidratacion(usuarioId: string, fecha: string, deltaMl: number): void
+}
+
+export interface PerfilNutricionRepo {
+  byUsuario(usuarioId: string): PerfilNutricion | undefined
+  /** Guarda lo respondido. `completada` marca que ya no hay que preguntar más. */
+  guardar(usuarioId: string, respuestas: PerfilNutricion['respuestas'], completada: boolean): void
+}
+
+/**
+ * Los interruptores de visibilidad. SOLO STAFF.
+ *
+ * El asesorado los LEE -la app necesita saber qué pintarle- pero no los
+ * escribe: si pudiera, encendería los suyos y toda la protección sobraría. Esa
+ * asimetría la impone la migración 0018 en la base; aquí solo se refleja.
+ */
+export interface VisibilidadRepo {
+  byUsuario(usuarioId: string): VisibilidadAsesorado | undefined
+  decidir(decision: VisibilidadAsesorado): void
+}
+
+export interface RegistroComidasRepo {
+  /** Las comidas de una fecha (`YYYY-MM-DD`), ordenadas por hora. */
+  delDia(usuarioId: string, fecha: string): RegistroComida[]
+  /**
+   * Crea la comida y devuelve su id. Nace sin ítems: se añaden uno a uno según
+   * el asesorado los va buscando, que es como funciona la hoja de cantidad.
+   */
+  abrirComida(comida: Omit<RegistroComida, 'id' | 'items'>): string
+  /** Cambia lo que ya se guardó de una comida sin tocar sus ítems. */
+  editarComida(usuarioId: string, comidaId: string, cambios: Partial<Omit<RegistroComida, 'id' | 'usuarioId' | 'items'>>): void
+  agregarItem(usuarioId: string, comidaId: string, item: Omit<RegistroItem, 'id'>): void
+  quitarItem(usuarioId: string, comidaId: string, itemId: string): void
+  /** Borra la comida entera con sus ítems. */
+  borrarComida(usuarioId: string, comidaId: string): void
+  /** Qué estado eligió para esa familia, o `undefined` si nunca se le preguntó. */
+  preferencia(usuarioId: string, familia: string): PreferenciaEstado | undefined
+  recordarPreferencia(preferencia: PreferenciaEstado): void
 }
 
 export interface MensajesRepo {
@@ -101,6 +153,9 @@ export interface Db {
   microciclos: MicrociclosRepo
   bienestar: BienestarRepo
   nutricion: NutricionRepo
+  perfilNutricion: PerfilNutricionRepo
+  visibilidad: VisibilidadRepo
+  registroComidas: RegistroComidasRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo
   contenidos: ContenidosRepo

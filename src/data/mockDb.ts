@@ -3,6 +3,7 @@ import type {
   EstadoAdherencia,
   ItemMarcable,
   Microciclo,
+  RegistroComida,
   SerieRegistrada,
   TestPostSesion,
 } from '../domain/types'
@@ -86,6 +87,18 @@ export function reiniciarDb(): void {
 }
 
 /**
+ * Lo que hay ahora mismo en el dispositivo.
+ *
+ * Contraparte de `aplicarSnapshot`. La necesita la hidratacion: cuando una
+ * tabla no se puede leer -porque su migracion aun no esta aplicada- hay que
+ * conservar lo local en vez de escribir una lista vacia encima, que borraria lo
+ * que la persona ya habia registrado.
+ */
+export function instantaneaLocal(): SeedDb {
+  return cargar()
+}
+
+/**
  * Reemplaza la base local ENTERA con la foto del servidor.
  *
  * `epoca` es la que había cuando ARRANCÓ la descarga. Si ya no coincide, por el
@@ -111,6 +124,33 @@ function actualizarMicrociclo(
     ...estado,
     microciclos: estado.microciclos.map((m) => (m.id === microcicloId ? transformar(m) : m)),
   }
+}
+
+const nuevoId = (prefijo: string) =>
+  `${prefijo}-${Date.now()}-${Math.round(Math.random() * 1e6)}`
+
+/**
+ * Si esa comida es de ese asesorado. Los dos lados de la condición son
+ * obligatorios: filtrar solo por `comidaId` dejaría que un asesorado editara o
+ * borrara la comida de otro con solo conocer el id. El aislamiento entre
+ * asesorados es la propiedad más importante de la app y ya se rompió dos veces.
+ */
+const esSuya = (comida: RegistroComida, usuarioId: string, comidaId: string) =>
+  comida.id === comidaId && comida.usuarioId === usuarioId
+
+/**
+ * Mezcla los cambios descartando las claves `undefined`.
+ *
+ * Un `{ ...comida, ...cambios }` a secas escribiría `undefined` encima de lo que
+ * ya había: pedir "cambia solo la hora" borraría el aceite. Y `null` sí pasa, a
+ * propósito, porque aquí significa "no se preguntó", que es un dato y no un
+ * hueco -la misma regla que separa el `null` del `0` en el catálogo-.
+ */
+function conCambios<T extends object>(base: T, cambios: Partial<T>): T {
+  const definidos = Object.fromEntries(
+    Object.entries(cambios).filter(([, valor]) => valor !== undefined),
+  ) as Partial<T>
+  return { ...base, ...definidos }
 }
 
 export function crearMockDb(): Db {
@@ -179,6 +219,28 @@ export function crearMockDb(): Db {
         ref.actual.microciclos
           .filter((m) => m.usuarioId === usuarioId)
           .sort((a, b) => b.numero - a.numero),
+      guardarPropuesta: (micro: Microciclo) => {
+        // Se fuerza el estado aquí y no en quien llama: es la salvaguarda de que
+        // una propuesta nunca aparezca en las pantallas del asesorado, que solo
+        // miran el `activo`. Un descuido de quien llama no puede saltársela.
+        const propuesta: Microciclo = { ...micro, estado: 'propuesto' }
+        mutar((estado) => ({
+          ...estado,
+          microciclos: [
+            // Reemplaza una propuesta previa del mismo número; nunca toca el
+            // microciclo activo ni los cerrados.
+            ...estado.microciclos.filter(
+              (m) =>
+                !(
+                  m.usuarioId === propuesta.usuarioId &&
+                  m.numero === propuesta.numero &&
+                  m.estado === 'propuesto'
+                ),
+            ),
+            propuesta,
+          ],
+        }))
+      },
       registrarSerie: (microcicloId: string, ejercicioId: string, serie: SerieRegistrada) => {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({
@@ -285,6 +347,121 @@ export function crearMockDb(): Db {
             ],
           }
         })
+      },
+    },
+
+    perfilNutricion: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.perfilesNutricion ?? []).find((p) => p.usuarioId === usuarioId),
+      guardar: (usuarioId, respuestas, completada) => {
+        mutar((estado) => {
+          const previo = (estado.perfilesNutricion ?? []).find((p) => p.usuarioId === usuarioId)
+          return {
+            ...estado,
+            perfilesNutricion: [
+              ...(estado.perfilesNutricion ?? []).filter((p) => p.usuarioId !== usuarioId),
+              {
+                usuarioId,
+                // Se acumula sobre lo que ya había: la encuesta se puede dejar a
+                // medias y retomar, y nadie va a volver a escribir su altura.
+                respuestas: { ...previo?.respuestas, ...respuestas },
+                completadaEn: completada
+                  ? (previo?.completadaEn ?? new Date().toISOString())
+                  : previo?.completadaEn,
+              },
+            ],
+          }
+        })
+      },
+    },
+
+    visibilidad: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.visibilidades ?? []).find((v) => v.usuarioId === usuarioId),
+      decidir: (decision) => {
+        mutar((estado) => ({
+          ...estado,
+          visibilidades: [
+            ...(estado.visibilidades ?? []).filter((v) => v.usuarioId !== decision.usuarioId),
+            decision,
+          ],
+        }))
+      },
+    },
+
+    registroComidas: {
+      delDia: (usuarioId, fecha) =>
+        (ref.actual.registrosComida ?? [])
+          .filter((c) => c.usuarioId === usuarioId && c.momentoIso.slice(0, 10) === fecha)
+          .sort((a, b) => a.momentoIso.localeCompare(b.momentoIso)),
+
+      abrirComida: (comida) => {
+        const id = nuevoId('com')
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: [...(estado.registrosComida ?? []), { ...comida, id, items: [] }],
+        }))
+        return id
+      },
+
+      editarComida: (usuarioId, comidaId, cambios) => {
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).map((c) =>
+            // El genérico se fija a mano: si se deja inferir, TypeScript lo
+            // deduce del segundo argumento -que es un Omit- y el resultado
+            // dejaría de ser una RegistroComida entera.
+            esSuya(c, usuarioId, comidaId) ? conCambios<RegistroComida>(c, cambios) : c,
+          ),
+        }))
+      },
+
+      agregarItem: (usuarioId, comidaId, item) => {
+        const id = nuevoId('it')
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).map((c) =>
+            esSuya(c, usuarioId, comidaId) ? { ...c, items: [...c.items, { ...item, id }] } : c,
+          ),
+        }))
+      },
+
+      quitarItem: (usuarioId, comidaId, itemId) => {
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).map((c) =>
+            esSuya(c, usuarioId, comidaId)
+              ? { ...c, items: c.items.filter((i) => i.id !== itemId) }
+              : c,
+          ),
+        }))
+      },
+
+      borrarComida: (usuarioId, comidaId) => {
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).filter(
+            (c) => !esSuya(c, usuarioId, comidaId),
+          ),
+        }))
+      },
+
+      preferencia: (usuarioId, familia) =>
+        (ref.actual.preferenciasEstado ?? []).find(
+          (p) => p.usuarioId === usuarioId && p.familia === familia,
+        ),
+
+      recordarPreferencia: (preferencia) => {
+        mutar((estado) => ({
+          ...estado,
+          preferenciasEstado: [
+            ...(estado.preferenciasEstado ?? []).filter(
+              (p) =>
+                !(p.usuarioId === preferencia.usuarioId && p.familia === preferencia.familia),
+            ),
+            preferencia,
+          ],
+        }))
       },
     },
 

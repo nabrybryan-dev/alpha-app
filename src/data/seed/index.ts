@@ -7,10 +7,14 @@ import type {
   Microciclo,
   Perfil,
   PlanNutricional,
+  PerfilNutricion,
+  PreferenciaEstado,
   PremiacionCoach,
+  RegistroComida,
   RegistroHidratacion,
   Respuesta,
   Usuario,
+  VisibilidadAsesorado,
 } from '../../domain/types'
 import {
   adherenciasValentina,
@@ -37,6 +41,11 @@ export interface SeedDb {
   adherencias: AdherenciaNutricional[]
   /** Opcional: snapshots viejos en localStorage no traen esta clave. */
   hidratacion?: RegistroHidratacion[]
+  /** Opcional por lo mismo: el registro de comidas llegó después. */
+  perfilesNutricion?: PerfilNutricion[]
+  visibilidades?: VisibilidadAsesorado[]
+  registrosComida?: RegistroComida[]
+  preferenciasEstado?: PreferenciaEstado[]
   /** Solo en modo nube: lo llena la RPC ranking_disciplina al iniciar sesión. */
   ranking?: FilaRanking[]
   mensajes: Mensaje[]
@@ -54,6 +63,39 @@ export const seedDb: SeedDb = {
   planes: [planValentina],
   adherencias: adherenciasValentina,
   hidratacion: [],
+  // Valentina lleva meses: su encuesta esta respondida y ve Nutricion entera.
+  // Mateo y Sara no la han contestado, asi que a ellos les sale la compuerta.
+  // Los dos caminos existen en el seed a proposito, para poder verlos.
+  perfilesNutricion: [
+    {
+      usuarioId: 'u-valentina',
+      completadaEn: '2026-07-01T10:00:00.000Z',
+      respuestas: {
+        genero: 'M',
+        fechaNacimiento: '1998-03-14',
+        pesoKg: 62,
+        alturaCm: 165,
+        cuelloCm: 31,
+        cinturaCm: 71,
+        caderaCm: 96,
+        pasosDiarios: 9500,
+        diasEntreno: 4,
+        alergias: ['ninguna'],
+        condicionesMedicas: ['ninguna'],
+        excluye: ['nada'],
+        comeVisceras: 'algunas',
+        noLeGustan: 'la remolacha',
+        lugarCompra: 'supermercado',
+        frecuenciaCocina: 'casi_siempre',
+        sinAcceso: '-',
+        tieneBascula: 'si',
+        cicloMenstrual: 'regular',
+      },
+    },
+  ],
+  visibilidades: [],
+  registrosComida: [],
+  preferenciasEstado: [],
   mensajes,
   cuestionarios,
   respuestas,
