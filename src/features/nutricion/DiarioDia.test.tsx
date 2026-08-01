@@ -21,6 +21,14 @@ const pintar = () =>
     </MemoryRouter>,
   )
 
+/** El recorrido real: tocar la comida abre su detalle, y desde ahí se agrega. */
+const abrirYAgregar = async (comida: RegExp) => {
+  await userEvent.click(screen.getByRole('button', { name: comida }))
+  await userEvent.click(screen.getByRole('button', { name: /agregar alimento/i }))
+}
+
+const volver = () => userEvent.click(screen.getByRole('button', { name: /volver al diario/i }))
+
 const buscarYElegir = async (texto: string, nombreParcial: RegExp) => {
   await userEvent.type(screen.getByLabelText('Nombre del alimento'), texto)
   const fila = screen.getAllByRole('button', { name: /kcal\/100 g/i }).find((b) =>
@@ -50,7 +58,7 @@ describe('DiarioDia', () => {
 
   it('registra un alimento y lo suma al día', async () => {
     pintar()
-    await userEvent.click(screen.getByRole('button', { name: /almuerzo, sin registrar/i }))
+    await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('arroz', /arroz/i)
 
     // El arroz existe crudo y cocido, así que primero pregunta.
@@ -58,6 +66,7 @@ describe('DiarioDia', () => {
     if (cocido) await userEvent.click(cocido)
 
     await userEvent.click(screen.getByRole('button', { name: /agregar a almuerzo/i }))
+    await volver()
 
     const almuerzo = screen.getByRole('button', { name: /^Almuerzo, \d+ kcal/i })
     expect(within(almuerzo).getByText(/arroz/i)).toBeInTheDocument()
@@ -65,13 +74,14 @@ describe('DiarioDia', () => {
 
   it('la pregunta de crudo o cocido NO se repite la segunda vez', async () => {
     pintar()
-    await userEvent.click(screen.getByRole('button', { name: /almuerzo, sin registrar/i }))
+    await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('arroz', /arroz blanco, pulido/i)
     await userEvent.click(screen.getByRole('button', { name: /lo pesas ya servido/i }))
     await userEvent.click(screen.getByRole('button', { name: /agregar a almuerzo/i }))
 
     // Segunda vez, mismo alimento: tiene que ir directo a la cantidad.
-    await userEvent.click(screen.getByRole('button', { name: /^Cena, sin registrar/i }))
+    await volver()
+    await abrirYAgregar(/^Cena, sin registrar/i)
     await buscarYElegir('arroz', /arroz blanco, pulido/i)
 
     expect(screen.queryByText(/¿cómo pesas/i)).not.toBeInTheDocument()
@@ -80,9 +90,10 @@ describe('DiarioDia', () => {
 
   it('lo registrado en una comida no se mete en otra', async () => {
     pintar()
-    await userEvent.click(screen.getByRole('button', { name: /almuerzo, sin registrar/i }))
+    await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('aceite de girasol', /aceite de girasol/i)
     await userEvent.click(screen.getByRole('button', { name: /agregar a almuerzo/i }))
+    await volver()
 
     expect(screen.getByRole('button', { name: /^Cena, sin registrar/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Desayuno, sin registrar/i })).toBeInTheDocument()
@@ -92,18 +103,20 @@ describe('DiarioDia', () => {
     pintar()
     expect(screen.getByText('0 / 4')).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: /almuerzo, sin registrar/i }))
+    await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('aceite de girasol', /aceite de girasol/i)
     await userEvent.click(screen.getByRole('button', { name: /agregar a almuerzo/i }))
+    await volver()
 
     expect(screen.getByText('1 / 4')).toBeInTheDocument()
   })
 
   it('cambiar de día no arrastra lo registrado', async () => {
     pintar()
-    await userEvent.click(screen.getByRole('button', { name: /almuerzo, sin registrar/i }))
+    await abrirYAgregar(/almuerzo, sin registrar/i)
     await buscarYElegir('aceite de girasol', /aceite de girasol/i)
     await userEvent.click(screen.getByRole('button', { name: /agregar a almuerzo/i }))
+    await volver()
 
     // Cualquier otro día de la tira: el almuerzo vuelve a estar vacío.
     const dias = screen.getAllByRole('button', { name: /^\d{4}-\d{2}-\d{2}$/ })

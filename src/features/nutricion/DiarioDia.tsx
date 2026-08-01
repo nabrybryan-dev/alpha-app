@@ -11,6 +11,7 @@ import {
   resumenDelDia,
 } from '../../domain/nutricion/resumen'
 import type { RegistroComida, TipoComida, TipoDia } from '../../domain/types'
+import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
 import { PanelMicros } from './PanelMicros'
 import { ResumenDia } from './ResumenDia'
@@ -55,6 +56,10 @@ export default function DiarioDia() {
 
   const [fecha, setFecha] = useState(hoyIso())
   const [tipoDia] = useState<TipoDia>('ALTO')
+  // `detalle` es la comida que se está mirando entera; `comidaAbierta` es en
+  // cuál va a caer lo que se busque. Son distintas: desde el detalle se abre el
+  // buscador sin dejar de estar en el detalle.
+  const [detalle, setDetalle] = useState<TipoComida | null>(null)
   const [comidaAbierta, setComidaAbierta] = useState<TipoComida | null>(null)
   const [elegido, setElegido] = useState<AlimentoIndice | null>(null)
 
@@ -77,6 +82,19 @@ export default function DiarioDia() {
   const recientes = alimentosRecientes(porDiaDeLaSemana.flat())
 
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
+
+  /** Una comida que todavía no existe en la base, solo para poder pintarla. */
+  const vacia = (tipo: TipoComida): RegistroComida => ({
+    id: `vacia-${tipo}`,
+    usuarioId: usuario.id,
+    momentoIso: `${fecha}T${HORAS[tipo]}:00`,
+    comida: tipo,
+    cocinadoPorEl: true,
+    aceiteG: null,
+    salG: null,
+    confianza: 'pesado',
+    items: [],
+  })
 
   /** La comida donde va a caer lo que registre. Se crea si aún no existe. */
   const asegurarComida = (tipo: TipoComida): string => {
@@ -117,6 +135,9 @@ export default function DiarioDia() {
       .join(' · ')
 
   const hechas = delDia.filter((c) => c.items.length > 0).length
+  // Donde cae lo que se busque: la comida abierta desde el diario, o la que se
+  // está mirando en el detalle.
+  const destino = comidaAbierta ?? detalle
 
   if (!plan) {
     return (
@@ -127,6 +148,64 @@ export default function DiarioDia() {
   }
 
   const meta = plan.macrosPorDia[tipoDia]
+
+  const hojas = (
+    <>
+      <SheetBuscarAlimento
+  abierto={comidaAbierta !== null && elegido === null}
+  recientes={recientes}
+  onCerrar={() => setComidaAbierta(null)}
+  onElegir={setElegido}
+/>
+
+<SheetCantidad
+  abierto={elegido !== null}
+  alimento={elegido}
+  preguntarEstado={elegido ? preguntaDe(elegido) : null}
+  nombreComida={destino ?? ''}
+  onCerrar={() => setElegido(null)}
+  onElegirEstado={(alimento) => {
+    db.registroComidas.recordarPreferencia({
+      usuarioId: usuario.id,
+      familia: familia(alimento.nombre),
+      estado: alimento.estado as 'crudo' | 'cocido' | 'seco',
+    })
+    setElegido(alimento)
+  }}
+  onAgregar={(alimento, gramos, fuePesado) => {
+    if (!destino) return
+    db.registroComidas.agregarItem(usuario.id, asegurarComida(destino), {
+      alimentoId: alimento.id,
+      gramos,
+      fuePesado,
+      estadoAsumido: alimento.estado as RegistroComida['items'][number]['estadoAsumido'],
+    })
+    setElegido(null)
+    setComidaAbierta(null)
+  }}
+/>
+    </>
+  )
+
+  // El detalle reemplaza al diario, no se apila encima: en un móvil dos capas
+  // con scroll propio es donde se pierde la gente.
+  if (detalle) {
+    const comida = porTipo(detalle) ?? vacia(detalle)
+    return (
+      <>
+        <DetalleComida
+          comida={comida}
+          onVolver={() => setDetalle(null)}
+          onAgregar={() => setComidaAbierta(detalle)}
+          onQuitarItem={(itemId) => db.registroComidas.quitarItem(usuario.id, comida.id, itemId)}
+          onCambiar={(cambios) =>
+            db.registroComidas.editarComida(usuario.id, asegurarComida(detalle), cambios)
+          }
+        />
+        {hojas}
+      </>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4 pb-6">
@@ -159,24 +238,14 @@ export default function DiarioDia() {
 
         <div className="flex flex-col gap-2">
           {COMIDAS.map((tipo) => {
-            const comida = porTipo(tipo) ?? {
-              id: `vacia-${tipo}`,
-              usuarioId: usuario.id,
-              momentoIso: `${fecha}T${HORAS[tipo]}:00`,
-              comida: tipo,
-              cocinadoPorEl: true,
-              aceiteG: null,
-              salG: null,
-              confianza: 'pesado' as const,
-              items: [],
-            }
+            const comida = porTipo(tipo) ?? vacia(tipo)
             return (
               <FilaComida
                 key={tipo}
                 comida={comida}
                 kcal={kcalDeComida(comida, porId)}
                 resumen={resumenDe(comida)}
-                onAbrir={() => setComidaAbierta(tipo)}
+                onAbrir={() => setDetalle(tipo)}
               />
             )
           })}
@@ -185,39 +254,7 @@ export default function DiarioDia() {
 
       <PanelMicros total={total} />
 
-      <SheetBuscarAlimento
-        abierto={comidaAbierta !== null && elegido === null}
-        recientes={recientes}
-        onCerrar={() => setComidaAbierta(null)}
-        onElegir={setElegido}
-      />
-
-      <SheetCantidad
-        abierto={elegido !== null}
-        alimento={elegido}
-        preguntarEstado={elegido ? preguntaDe(elegido) : null}
-        nombreComida={comidaAbierta ?? ''}
-        onCerrar={() => setElegido(null)}
-        onElegirEstado={(alimento) => {
-          db.registroComidas.recordarPreferencia({
-            usuarioId: usuario.id,
-            familia: familia(alimento.nombre),
-            estado: alimento.estado as 'crudo' | 'cocido' | 'seco',
-          })
-          setElegido(alimento)
-        }}
-        onAgregar={(alimento, gramos, fuePesado) => {
-          if (!comidaAbierta) return
-          db.registroComidas.agregarItem(usuario.id, asegurarComida(comidaAbierta), {
-            alimentoId: alimento.id,
-            gramos,
-            fuePesado,
-            estadoAsumido: alimento.estado as RegistroComida['items'][number]['estadoAsumido'],
-          })
-          setElegido(null)
-          setComidaAbierta(null)
-        }}
-      />
+      {hojas}
     </div>
   )
 }
