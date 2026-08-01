@@ -8,6 +8,7 @@ const MicrocicloPage = lazy(() => import('../features/entrenar/MicrocicloPage'))
 const SesionPage = lazy(() => import('../features/entrenar/SesionPage'))
 const BienestarPage = lazy(() => import('../features/bienestar/BienestarPage'))
 const DiarioDia = lazy(() => import('../features/nutricion/DiarioDia'))
+const NutricionLayout = lazy(() => import('../features/nutricion/NutricionLayout'))
 const MiPlan = lazy(() => import('../features/nutricion/MiPlan'))
 const ChatPage = lazy(() => import('../features/chat/ChatPage'))
 const CuestionariosPage = lazy(() => import('../features/cuestionarios/CuestionariosPage'))
@@ -40,8 +41,12 @@ export function AppRouter() {
         <Route path="entrenar" element={envolver(<MicrocicloPage />)} />
         <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
-        <Route path="nutricion" element={envolver(<DiarioDia />)} />
-        <Route path="nutricion/plan" element={envolver(<MiPlan />)} />
+        {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no
+            hay forma de entrar por la URL saltandosela. */}
+        <Route path="nutricion" element={envolver(<NutricionLayout />)}>
+          <Route index element={<DiarioDia />} />
+          <Route path="plan" element={<MiPlan />} />
+        </Route>
         <Route path="chat" element={envolver(<ChatPage />)} />
         <Route path="cuestionarios" element={envolver(<CuestionariosPage />)} />
         <Route path="contenidos" element={envolver(<ContenidosPage />)} />

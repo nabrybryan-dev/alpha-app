@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
+import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
+import type { Respuestas } from '../../domain/nutricion/encuesta'
+import { visibilidadDe } from '../../domain/nutricion/visibilidad'
+import { hoyIso } from '../../data/dbInstance'
+import { PerfilCalculadoVista } from './PerfilCalculadoVista'
 import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
 
 /**
@@ -15,6 +20,7 @@ import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
  */
 
 const SECCIONES = [
+  'Mi perfil',
   'Contexto',
   'Ondulación',
   'Menús',
@@ -45,7 +51,7 @@ export default function MiPlan() {
   const navegar = useNavigate()
 
   const plan = db.nutricion.planByUsuario(usuario.id)
-  const [seccion, setSeccion] = useState<Seccion>('Contexto')
+  const [seccion, setSeccion] = useState<Seccion>('Mi perfil')
   const [tipoMenu, setTipoMenu] = useState<TipoDia>('ALTO')
 
   if (!plan) {
@@ -108,6 +114,19 @@ export default function MiPlan() {
           </button>
         ))}
       </div>
+
+      {seccion === 'Mi perfil' && (
+        <PerfilCalculadoVista
+          perfil={calcularPerfil(
+            (db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}) as Respuestas,
+            hoyIso(),
+          )}
+          // Sin fila guardada se ven las tres cifras: es el caso normal, y ver
+          // el propio progreso es parte del acompanamiento.
+          visibilidad={visibilidadDe(undefined)}
+          nombre={usuario.nombre}
+        />
+      )}
 
       {seccion === 'Contexto' && (
         <section className="rounded-2xl border border-linea bg-surface-1 p-4">

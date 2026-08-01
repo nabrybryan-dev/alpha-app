@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import DiarioDia from './DiarioDia'
+import { CompuertaNutricion } from './CompuertaNutricion'
 import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
 
@@ -16,7 +17,9 @@ const pintar = () =>
   render(
     <MemoryRouter>
       <SessionProvider>
-        <DiarioDia />
+        <CompuertaNutricion>
+          <DiarioDia />
+        </CompuertaNutricion>
       </SessionProvider>
     </MemoryRouter>,
   )

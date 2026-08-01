@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import MiPlan from './MiPlan'
 import DiarioDia from './DiarioDia'
+import { CompuertaNutricion } from './CompuertaNutricion'
 import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
 
@@ -16,10 +17,12 @@ const pintar = () =>
   render(
     <MemoryRouter initialEntries={['/nutricion/plan']}>
       <SessionProvider>
-        <Routes>
-          <Route path="/nutricion" element={<DiarioDia />} />
-          <Route path="/nutricion/plan" element={<MiPlan />} />
-        </Routes>
+        <CompuertaNutricion>
+          <Routes>
+            <Route path="/nutricion" element={<DiarioDia />} />
+            <Route path="/nutricion/plan" element={<MiPlan />} />
+          </Routes>
+        </CompuertaNutricion>
       </SessionProvider>
     </MemoryRouter>,
   )
@@ -32,8 +35,17 @@ describe('MiPlan', () => {
     reiniciarDb()
   })
 
-  it('abre por el contexto, que es el porqué antes de los números', () => {
+  it('abre por su perfil: es lo que acaba de ganarse respondiendo', () => {
+    // El diseño abría por "Contexto", pero se escribió cuando no existía la
+    // sección de perfil. Quien acaba de contestar diecinueve preguntas merece
+    // ver sus cifras primero; el porqué del plan sigue a un toque.
     pintar()
+    expect(screen.getByText(/tu perfil/i)).toBeInTheDocument()
+  })
+
+  it('el contexto sigue estando, a un toque', async () => {
+    pintar()
+    await irA('Contexto')
     expect(screen.getByText(/antes de los números/i)).toBeInTheDocument()
   })
 
@@ -115,6 +127,15 @@ describe('MiPlan', () => {
 
       expect(screen.getByLabelText('Cantidad en g')).toHaveValue('100')
     })
+  })
+
+  it('la compuerta también cubre Mi plan: no se entra por la URL', () => {
+    // Cuando la compuerta vivía solo en el diario, se llegaba aquí saltándosela
+    // y la pantalla enseñaba cifras vacías con aspecto de cifras.
+    localStorage.setItem('alpha-usuario', 'u-mateo')
+    pintar()
+    expect(screen.getByText(/antes de empezar/i)).toBeInTheDocument()
+    expect(screen.queryByText(/tu plan nutricional/i)).not.toBeInTheDocument()
   })
 
   it('vuelve al diario', async () => {
