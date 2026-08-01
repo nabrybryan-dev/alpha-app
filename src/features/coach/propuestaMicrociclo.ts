@@ -30,7 +30,9 @@
  * Ver `conocimiento/comparativa-cursos-vs-arquitectura-app.md` en el Cerebro de
  * Programación.
  */
-import { aplicarOndulacion, ondularEjercicio } from '../../domain/ondulacion'
+import { revisarActivacion, type RevisionActivacion } from '../../domain/activacion'
+import { sesionCompleta } from '../../domain/cumplimiento'
+import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
@@ -43,6 +45,10 @@ export interface FilaPropuesta {
   /** Por qué el motor propone eso. Se le muestra a Bryan, no al asesorado. */
   motivo: string
   direccion: 'subir' | 'estable' | 'bajar' | 'sin-datos'
+  /** Cambio de carga a igual reps, en tanto por uno. Alimenta la revisión. */
+  salto?: number
+  /** Distancia entre las reps hechas y la diana, en valor absoluto. */
+  brecha?: number
 }
 
 export interface PropuestaMicrociclo {
@@ -53,6 +59,10 @@ export interface PropuestaMicrociclo {
   filas: FilaPropuesta[]
   /** Ejercicios que el motor no pudo ondular por falta de ancla. */
   sinDatos: number
+  /** Si puede activarse sola y, si no, por qué. Reglas en `domain/activacion.ts`. */
+  revision: RevisionActivacion
+  /** Para el resumen del coach: cuántos suben, sostienen y bajan. */
+  reparto: { suben: number; sostienen: number; bajan: number }
 }
 
 /**
@@ -90,9 +100,20 @@ function serieTope(
  * motivo. Si no hay ningún set comparable, no se anuncia progresión: mejor callar
  * que inventar un número.
  */
+function comparacion(
+  series: readonly { reps: number; cargaKg: number }[],
+  referencia: { cargaKg: number; reps: number } | undefined,
+): { deltaKg: number; salto: number; reps: number } | undefined {
+  if (!referencia || referencia.cargaKg <= 0) return undefined
+  const comparable = series.find((s) => s.reps === referencia.reps)
+  if (!comparable) return undefined
+  const deltaKg = Math.round((comparable.cargaKg - referencia.cargaKg) * 10) / 10
+  return { deltaKg, salto: deltaKg / referencia.cargaKg, reps: referencia.reps }
+}
+
 function textoPrescripcion(
   series: { reps: number; rir: number; cargaKg: number }[],
-  referencia: { cargaKg: number; reps: number } | undefined,
+  comp: { deltaKg: number; reps: number } | undefined,
   numeroPrevio: number,
 ): string {
   if (series.length === 0) return ''
@@ -102,14 +123,10 @@ function textoPrescripcion(
     ? `${series[0].cargaKg}KG A ${series[0].reps} REPS; ${series.length} SERIES (RIR ${rir}).`
     : `${series.map((s) => `${s.cargaKg}KG×${s.reps}`).join(' · ')} (RIR ${rir}).`
 
-  if (!referencia) return base
-  const comparable = series.find((s) => s.reps === referencia.reps)
-  if (!comparable) return base
-
-  const delta = Math.round((comparable.cargaKg - referencia.cargaKg) * 10) / 10
-  const aReps = `A ${referencia.reps} REPS VS M${numeroPrevio}`
-  if (delta > 0) return `${base} PROGRESA +${delta}KG ${aReps}.`
-  if (delta < 0) return `${base} BAJA ${Math.abs(delta)}KG ${aReps}.`
+  if (!comp) return base
+  const aReps = `A ${comp.reps} REPS VS M${numeroPrevio}`
+  if (comp.deltaKg > 0) return `${base} PROGRESA +${comp.deltaKg}KG ${aReps}.`
+  if (comp.deltaKg < 0) return `${base} BAJA ${Math.abs(comp.deltaKg)}KG ${aReps}.`
   return `${base} SOSTIENE CARGA ${aReps}.`
 }
 
@@ -127,14 +144,18 @@ function filasDeSesion(
       descarga: false,
       cargaPrescritaKg: ejercicio.series[0]?.cargaKg,
     })
+    const comp = comparacion(ondulado.series, serieTope(ejercicio.series))
+    const brecha = brechaReps(ejercicio)
     return {
       sesionId: sesion.id,
       sesionNombre: sesion.nombre,
       categoria: ejercicio.categoria,
       ejercicio: ejercicio.nombre,
-      prescripcion: textoPrescripcion(ondulado.series, serieTope(ejercicio.series), numeroPrevio),
+      prescripcion: textoPrescripcion(ondulado.series, comp, numeroPrevio),
       motivo: ondulado.motivo,
       direccion: ondulado.direccion,
+      salto: comp?.salto,
+      brecha: brecha === undefined ? undefined : Math.abs(brecha),
     }
   })
 }
@@ -198,10 +219,31 @@ export function proponerMicrociclo(
     .filter((s) => s.tipo !== 'metabolica')
     .flatMap((s) => filasDeSesion(s, micro.numero, prs, incrementoKg))
 
+  const ejerciciosDeFuerza = micro.sesiones
+    .filter((s) => s.tipo !== 'metabolica')
+    .flatMap((s) => s.ejercicios)
+  const maximo = (valores: (number | undefined)[]) => {
+    const utiles = valores.filter((v): v is number => v !== undefined)
+    return utiles.length > 0 ? Math.max(...utiles) : undefined
+  }
+
   return {
     numero: micro.numero + 1,
     prs,
     filas,
     sinDatos: filas.filter((f) => f.direccion === 'sin-datos').length,
+    revision: revisarActivacion({
+      sesionesSinRegistrar: micro.sesiones.filter((s) => !sesionCompleta(s)).length,
+      ejerciciosSinSeries: ejerciciosDeFuerza.filter((e) => e.series.length === 0).length,
+      ejerciciosTotales: ejerciciosDeFuerza.length,
+      prsUltimo: prs,
+      saltoMaximo: maximo(filas.map((f) => f.salto)),
+      brechaMaxima: maximo(filas.map((f) => f.brecha)),
+    }),
+    reparto: {
+      suben: filas.filter((f) => f.direccion === 'subir').length,
+      sostienen: filas.filter((f) => f.direccion === 'estable').length,
+      bajan: filas.filter((f) => f.direccion === 'bajar').length,
+    },
   }
 }
