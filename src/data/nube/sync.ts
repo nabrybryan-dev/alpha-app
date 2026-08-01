@@ -48,6 +48,22 @@ function tablaHidratacionLista(): boolean {
   return localStorage.getItem(CLAVE_TABLA_HIDRATACION) !== '0'
 }
 
+/**
+ * `registroComidas` NO está aquí, y no es un olvido.
+ *
+ * El registro de comidas se guarda en el dispositivo y **todavía no sube**. La
+ * cola solo sabe `upsert` y `update`, y las dos tablas de la migración 0015
+ * generan su id en el servidor (`bigint generated always as identity`). Un
+ * almuerzo que nace sin conexión necesita que sus ítems apunten a una comida que
+ * aún no existe arriba: sin un id puesto por el dispositivo no hay forma de
+ * relacionarlos, y la comida subiría sin sus alimentos.
+ *
+ * Resolverlo pide dos cosas que son una tanda propia: una migración que añada un
+ * `cliente_id` y una operación de cola que suba la comida entera de una vez
+ * (hoy no existe). Se deja fuera a propósito en vez de encolar algo que el
+ * servidor rechazaría en silencio y que además taponaría la cabeza de la cola,
+ * retrasando las series y los check-ins que van detrás.
+ */
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 

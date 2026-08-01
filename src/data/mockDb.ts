@@ -3,6 +3,7 @@ import type {
   EstadoAdherencia,
   ItemMarcable,
   Microciclo,
+  RegistroComida,
   SerieRegistrada,
   TestPostSesion,
 } from '../domain/types'
@@ -111,6 +112,33 @@ function actualizarMicrociclo(
     ...estado,
     microciclos: estado.microciclos.map((m) => (m.id === microcicloId ? transformar(m) : m)),
   }
+}
+
+const nuevoId = (prefijo: string) =>
+  `${prefijo}-${Date.now()}-${Math.round(Math.random() * 1e6)}`
+
+/**
+ * Si esa comida es de ese asesorado. Los dos lados de la condición son
+ * obligatorios: filtrar solo por `comidaId` dejaría que un asesorado editara o
+ * borrara la comida de otro con solo conocer el id. El aislamiento entre
+ * asesorados es la propiedad más importante de la app y ya se rompió dos veces.
+ */
+const esSuya = (comida: RegistroComida, usuarioId: string, comidaId: string) =>
+  comida.id === comidaId && comida.usuarioId === usuarioId
+
+/**
+ * Mezcla los cambios descartando las claves `undefined`.
+ *
+ * Un `{ ...comida, ...cambios }` a secas escribiría `undefined` encima de lo que
+ * ya había: pedir "cambia solo la hora" borraría el aceite. Y `null` sí pasa, a
+ * propósito, porque aquí significa "no se preguntó", que es un dato y no un
+ * hueco -la misma regla que separa el `null` del `0` en el catálogo-.
+ */
+function conCambios<T extends object>(base: T, cambios: Partial<T>): T {
+  const definidos = Object.fromEntries(
+    Object.entries(cambios).filter(([, valor]) => valor !== undefined),
+  ) as Partial<T>
+  return { ...base, ...definidos }
 }
 
 export function crearMockDb(): Db {
@@ -307,6 +335,82 @@ export function crearMockDb(): Db {
             ],
           }
         })
+      },
+    },
+
+    registroComidas: {
+      delDia: (usuarioId, fecha) =>
+        (ref.actual.registrosComida ?? [])
+          .filter((c) => c.usuarioId === usuarioId && c.momentoIso.slice(0, 10) === fecha)
+          .sort((a, b) => a.momentoIso.localeCompare(b.momentoIso)),
+
+      abrirComida: (comida) => {
+        const id = nuevoId('com')
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: [...(estado.registrosComida ?? []), { ...comida, id, items: [] }],
+        }))
+        return id
+      },
+
+      editarComida: (usuarioId, comidaId, cambios) => {
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).map((c) =>
+            // El genérico se fija a mano: si se deja inferir, TypeScript lo
+            // deduce del segundo argumento -que es un Omit- y el resultado
+            // dejaría de ser una RegistroComida entera.
+            esSuya(c, usuarioId, comidaId) ? conCambios<RegistroComida>(c, cambios) : c,
+          ),
+        }))
+      },
+
+      agregarItem: (usuarioId, comidaId, item) => {
+        const id = nuevoId('it')
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).map((c) =>
+            esSuya(c, usuarioId, comidaId) ? { ...c, items: [...c.items, { ...item, id }] } : c,
+          ),
+        }))
+      },
+
+      quitarItem: (usuarioId, comidaId, itemId) => {
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).map((c) =>
+            esSuya(c, usuarioId, comidaId)
+              ? { ...c, items: c.items.filter((i) => i.id !== itemId) }
+              : c,
+          ),
+        }))
+      },
+
+      borrarComida: (usuarioId, comidaId) => {
+        mutar((estado) => ({
+          ...estado,
+          registrosComida: (estado.registrosComida ?? []).filter(
+            (c) => !esSuya(c, usuarioId, comidaId),
+          ),
+        }))
+      },
+
+      preferencia: (usuarioId, familia) =>
+        (ref.actual.preferenciasEstado ?? []).find(
+          (p) => p.usuarioId === usuarioId && p.familia === familia,
+        ),
+
+      recordarPreferencia: (preferencia) => {
+        mutar((estado) => ({
+          ...estado,
+          preferenciasEstado: [
+            ...(estado.preferenciasEstado ?? []).filter(
+              (p) =>
+                !(p.usuarioId === preferencia.usuarioId && p.familia === preferencia.familia),
+            ),
+            preferencia,
+          ],
+        }))
       },
     },
 

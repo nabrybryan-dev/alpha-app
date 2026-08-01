@@ -10,7 +10,10 @@ import type {
   Microciclo,
   Perfil,
   PlanNutricional,
+  PreferenciaEstado,
   PremiacionCoach,
+  RegistroComida,
+  RegistroItem,
   Respuesta,
   SerieRegistrada,
   TestPostSesion,
@@ -64,6 +67,25 @@ export interface NutricionRepo {
   registrarHidratacion(usuarioId: string, fecha: string, deltaMl: number): void
 }
 
+export interface RegistroComidasRepo {
+  /** Las comidas de una fecha (`YYYY-MM-DD`), ordenadas por hora. */
+  delDia(usuarioId: string, fecha: string): RegistroComida[]
+  /**
+   * Crea la comida y devuelve su id. Nace sin ítems: se añaden uno a uno según
+   * el asesorado los va buscando, que es como funciona la hoja de cantidad.
+   */
+  abrirComida(comida: Omit<RegistroComida, 'id' | 'items'>): string
+  /** Cambia lo que ya se guardó de una comida sin tocar sus ítems. */
+  editarComida(usuarioId: string, comidaId: string, cambios: Partial<Omit<RegistroComida, 'id' | 'usuarioId' | 'items'>>): void
+  agregarItem(usuarioId: string, comidaId: string, item: Omit<RegistroItem, 'id'>): void
+  quitarItem(usuarioId: string, comidaId: string, itemId: string): void
+  /** Borra la comida entera con sus ítems. */
+  borrarComida(usuarioId: string, comidaId: string): void
+  /** Qué estado eligió para esa familia, o `undefined` si nunca se le preguntó. */
+  preferencia(usuarioId: string, familia: string): PreferenciaEstado | undefined
+  recordarPreferencia(preferencia: PreferenciaEstado): void
+}
+
 export interface MensajesRepo {
   hilo(usuarioA: string, usuarioB: string): Mensaje[]
   enviar(mensaje: {
@@ -111,6 +133,7 @@ export interface Db {
   microciclos: MicrociclosRepo
   bienestar: BienestarRepo
   nutricion: NutricionRepo
+  registroComidas: RegistroComidasRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo
   contenidos: ContenidosRepo

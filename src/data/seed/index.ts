@@ -7,7 +7,9 @@ import type {
   Microciclo,
   Perfil,
   PlanNutricional,
+  PreferenciaEstado,
   PremiacionCoach,
+  RegistroComida,
   RegistroHidratacion,
   Respuesta,
   Usuario,
@@ -37,6 +39,9 @@ export interface SeedDb {
   adherencias: AdherenciaNutricional[]
   /** Opcional: snapshots viejos en localStorage no traen esta clave. */
   hidratacion?: RegistroHidratacion[]
+  /** Opcional por lo mismo: el registro de comidas llegó después. */
+  registrosComida?: RegistroComida[]
+  preferenciasEstado?: PreferenciaEstado[]
   /** Solo en modo nube: lo llena la RPC ranking_disciplina al iniciar sesión. */
   ranking?: FilaRanking[]
   mensajes: Mensaje[]
@@ -54,6 +59,8 @@ export const seedDb: SeedDb = {
   planes: [planValentina],
   adherencias: adherenciasValentina,
   hidratacion: [],
+  registrosComida: [],
+  preferenciasEstado: [],
   mensajes,
   cuestionarios,
   respuestas,

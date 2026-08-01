@@ -1,3 +1,5 @@
+import type { Confianza } from './nutricion/dia'
+
 export type Rol = 'asesorado' | 'coach' | 'nutricionista'
 
 export interface Usuario {
@@ -248,4 +250,49 @@ export interface PremiacionCoach {
   titulo: string
   fecha: string
   nota?: string
+}
+
+// ── Registro de comidas ─────────────────────────────────────────────────────
+// Espejo de las tablas de la migración 0015. La app nombra en camelCase y la
+// base en snake_case; la traducción vive en `nube/`, no aquí.
+
+export type TipoComida = 'desayuno' | 'almuerzo' | 'cena' | 'snack'
+
+/** Los seis estados que puede tener un alimento del catálogo. */
+export type EstadoAlimento = 'crudo' | 'cocido' | 'seco' | 'listo' | 'preparado' | 'en_lata'
+
+export interface RegistroItem {
+  id: string
+  alimentoId: string
+  gramos: number
+  /** Lo pesó de verdad, frente a haberlo estimado a ojo. Manda sobre la
+   *  confianza de la comida: una comida estimada puede tener un ítem pesado. */
+  fuePesado: boolean
+  estadoAsumido: EstadoAlimento
+}
+
+export interface RegistroComida {
+  id: string
+  usuarioId: string
+  /** ISO completo. La hora importa: ordena el día y sitúa cada comida. */
+  momentoIso: string
+  comida: TipoComida
+  /** Si no cocinó él, no se le pregunta por aceite ni sal: no los puede saber. */
+  cocinadoPorEl: boolean
+  /** Gramos de aceite de toda la comida. `null` = no se preguntó, distinto de 0
+   *  = se preguntó y no lleva. Misma regla que los nulos del catálogo. */
+  aceiteG: number | null
+  salG: number | null
+  confianza: Confianza
+  items: RegistroItem[]
+}
+
+/**
+ * Qué contestó el asesorado a «¿crudo o cocido?» para una familia de alimentos.
+ * Se recuerda para no volver a preguntárselo cada vez que registre arroz.
+ */
+export interface PreferenciaEstado {
+  usuarioId: string
+  familia: string
+  estado: 'crudo' | 'cocido' | 'seco'
 }
