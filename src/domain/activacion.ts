@@ -45,6 +45,67 @@ export const MAX_SALTO = 0.1
  */
 export const MAX_BRECHA_REPS = 3
 
+/**
+ * Suma días a una fecha ISO (`2026-07-20` + 8 → `2026-07-28`).
+ *
+ * Va por UTC sobre las partes de la fecha y no por `new Date(local)` como
+ * `ranking.ts`: así el resultado no depende del huso del dispositivo. En Colombia
+ * da lo mismo (no hay horario de verano), pero un asesorado de viaje no debería
+ * cambiar el día en que le vence el microciclo por estar en otro país.
+ */
+export function sumarDias(fechaIso: string, dias: number): string {
+  const [anio, mes, dia] = fechaIso.split('-').map(Number)
+  const t = Date.UTC(anio, mes - 1, dia) + dias * 86_400_000
+  const f = new Date(t)
+  const dd = (n: number) => String(n).padStart(2, '0')
+  return `${f.getUTCFullYear()}-${dd(f.getUTCMonth() + 1)}-${dd(f.getUTCDate())}`
+}
+
+export interface EstadoCierre {
+  /** Si al microciclo le toca ya dar paso al siguiente. */
+  vencido: boolean
+  /** Qué lo venció. `undefined` mientras no vence. */
+  motivo?: 'sesiones-completas' | 'calendario'
+  /** Sesiones que se quedaron sin registrar. Se le avisa a Bryan, no bloquea. */
+  sesionesPendientes: number
+  /** Último día del microciclo según su cadencia. */
+  fechaFin: string
+}
+
+/**
+ * ¿Le toca ya al microciclo dar paso al siguiente?
+ *
+ * Vence por **lo que ocurra primero** (decisión de Bryan, 2026-08-01):
+ *
+ *   · Registró todas sus sesiones → terminó antes, no tiene sentido esperar.
+ *   · Llegó su fecha de fin (`fechaInicio` + `cadenciaDias`) → aunque queden
+ *     sesiones sin registrar.
+ *
+ * Cuando vence por calendario con sesiones a medias, **no se bloquea**: se cierra
+ * y se avisa. Bloquear al que se enfermó o viajó le congelaría el programa por
+ * algo normal, y arrastrar lo pendiente al microciclo siguiente deformaría su
+ * carga y acumularía deuda semana tras semana.
+ *
+ * Cerrar no borra nada: las sesiones y las series se quedan dentro del microciclo
+ * cerrado y el histórico las sigue leyendo.
+ */
+export function evaluarCierre(
+  micro: { fechaInicio: string; cadenciaDias: number; sesiones: readonly unknown[] },
+  hoyIso: string,
+  sesionesPendientes: number,
+): EstadoCierre {
+  const fechaFin = sumarDias(micro.fechaInicio, micro.cadenciaDias)
+
+  if (sesionesPendientes === 0 && micro.sesiones.length > 0) {
+    return { vencido: true, motivo: 'sesiones-completas', sesionesPendientes: 0, fechaFin }
+  }
+  // Comparación de cadenas ISO: `2026-08-01` >= `2026-07-28` ordena bien.
+  if (hoyIso >= fechaFin) {
+    return { vencido: true, motivo: 'calendario', sesionesPendientes, fechaFin }
+  }
+  return { vencido: false, sesionesPendientes, fechaFin }
+}
+
 export interface SenalesPropuesta {
   sesionesSinRegistrar: number
   ejerciciosSinSeries: number

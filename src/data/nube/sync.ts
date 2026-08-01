@@ -115,6 +115,23 @@ export function crearDbSincronizada(local: Db): Db {
         // `estado: 'propuesto'` que fuerza la capa local y no con el que llegara.
         subirMicrociclo(local, micro.id)
       },
+      activarPropuesta: (propuestaId) => {
+        // Qué microciclos estaban activos ANTES de activar: después ya no se
+        // pueden distinguir de los que llevaban cerrados meses, y hay que subir su
+        // cierre igual que la activación. Si solo se subiera la propuesta, el
+        // servidor se quedaría con dos activos.
+        const duenio = local.usuarios
+          .list()
+          .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === propuestaId))
+        const activosPrevios = duenio
+          ? local.microciclos.byUsuario(duenio.id).filter((m) => m.estado === 'activo')
+          : []
+
+        local.microciclos.activarPropuesta(propuestaId)
+
+        for (const m of activosPrevios) subirMicrociclo(local, m.id)
+        subirMicrociclo(local, propuestaId)
+      },
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
         subirMicrociclo(local, microcicloId)

@@ -241,6 +241,28 @@ export function crearMockDb(): Db {
           ],
         }))
       },
+      activarPropuesta: (propuestaId: string) => {
+        mutar((estado) => {
+          const propuesta = estado.microciclos.find(
+            (m) => m.id === propuestaId && m.estado === 'propuesto',
+          )
+          // Sin propuesta no se toca nada: cerrar el activo sin abrir el siguiente
+          // dejaría a la persona sin programación.
+          if (!propuesta) return estado
+          return {
+            ...estado,
+            microciclos: estado.microciclos.map((m) => {
+              if (m.id === propuesta.id) return { ...m, estado: 'activo' as const }
+              // Todos los activos de esa persona, no solo uno: si ya había dos,
+              // esto lo repara en vez de heredar el estado roto.
+              if (m.usuarioId === propuesta.usuarioId && m.estado === 'activo') {
+                return { ...m, estado: 'cerrado' as const }
+              }
+              return m
+            }),
+          }
+        })
+      },
       registrarSerie: (microcicloId: string, ejercicioId: string, serie: SerieRegistrada) => {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({

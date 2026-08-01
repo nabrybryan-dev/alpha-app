@@ -49,6 +49,22 @@ export interface MicrociclosRepo {
    * reemplaza; el activo y los cerrados no se tocan.
    */
   guardarPropuesta(micro: Microciclo): void
+  /**
+   * Pone en marcha una propuesta: cierra lo que estuviera activo de esa persona y
+   * activa esta, **en una sola operación**.
+   *
+   * Que sea indivisible no es elegancia: si se hiciera en dos pasos y algo fallara
+   * en medio —se va la señal, se cierra la app—, el asesorado se quedaría con dos
+   * microciclos activos o con ninguno. Lo primero ya pasó de verdad con dos
+   * asesoradas, y cuando pasa, `find(m => m.estado === 'activo')` devuelve uno
+   * cualquiera: la persona ve un programa u otro según el orden de guardado.
+   *
+   * Cierra TODOS los activos que encuentre, no solo uno. Así, si alguien ya está en
+   * ese estado roto, activar el siguiente lo repara en vez de heredarlo.
+   *
+   * No borra nada: el microciclo cerrado conserva sus sesiones y sus series.
+   */
+  activarPropuesta(propuestaId: string): void
   registrarSerie(microcicloId: string, ejercicioId: string, serie: SerieRegistrada): void
   guardarTestPost(microcicloId: string, sesionId: string, test: TestPostSesion): void
   marcarParte(microcicloId: string, sesionId: string, parteId: string): void

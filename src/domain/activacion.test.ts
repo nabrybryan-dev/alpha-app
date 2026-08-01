@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { revisarActivacion, type SenalesPropuesta } from './activacion'
+import { evaluarCierre, revisarActivacion, sumarDias, type SenalesPropuesta } from './activacion'
 
 /** Un microciclo bien registrado: nada que objetar. */
 function senales(parcial: Partial<SenalesPropuesta> = {}): SenalesPropuesta {
@@ -78,5 +78,76 @@ describe('revisarActivacion', () => {
   it('un microciclo sin ejercicios no revienta al dividir', () => {
     const r = revisarActivacion(senales({ ejerciciosTotales: 0, ejerciciosSinSeries: 0 }))
     expect(r.auto).toBe(true)
+  })
+})
+
+describe('sumarDias', () => {
+  it('suma dentro del mismo mes', () => {
+    expect(sumarDias('2026-07-20', 8)).toBe('2026-07-28')
+  })
+
+  it('cruza el fin de mes y el fin de año', () => {
+    expect(sumarDias('2026-07-28', 8)).toBe('2026-08-05')
+    expect(sumarDias('2026-12-28', 8)).toBe('2027-01-05')
+  })
+
+  it('respeta los años bisiestos', () => {
+    expect(sumarDias('2028-02-26', 4)).toBe('2028-03-01')
+    expect(sumarDias('2026-02-26', 4)).toBe('2026-03-02')
+  })
+
+  it('acepta la cadencia de 15 días', () => {
+    expect(sumarDias('2026-07-20', 15)).toBe('2026-08-04')
+  })
+})
+
+describe('evaluarCierre', () => {
+  const micro = { fechaInicio: '2026-07-20', cadenciaDias: 8, sesiones: [1, 2, 3, 4, 5, 6] }
+
+  it('no vence mientras queden sesiones y no llegue la fecha', () => {
+    const r = evaluarCierre(micro, '2026-07-24', 3)
+    expect(r.vencido).toBe(false)
+    expect(r.motivo).toBeUndefined()
+    expect(r.fechaFin).toBe('2026-07-28')
+  })
+
+  it('vence en cuanto registra todas las sesiones, aunque falten días', () => {
+    const r = evaluarCierre(micro, '2026-07-24', 0)
+    expect(r.vencido).toBe(true)
+    expect(r.motivo).toBe('sesiones-completas')
+  })
+
+  it('vence por calendario aunque queden sesiones sin registrar', () => {
+    const r = evaluarCierre(micro, '2026-07-28', 2)
+    expect(r.vencido).toBe(true)
+    expect(r.motivo).toBe('calendario')
+    // Se cierra igual, pero el número viaja para que Bryan se entere.
+    expect(r.sesionesPendientes).toBe(2)
+  })
+
+  it('el día exacto de fin ya cuenta como vencido', () => {
+    expect(evaluarCierre(micro, '2026-07-27', 1).vencido).toBe(false)
+    expect(evaluarCierre(micro, '2026-07-28', 1).vencido).toBe(true)
+  })
+
+  it('quien va muy retrasado sigue vencido, no se queda colgado', () => {
+    const r = evaluarCierre(micro, '2026-09-15', 5)
+    expect(r.vencido).toBe(true)
+    expect(r.motivo).toBe('calendario')
+  })
+
+  /**
+   * Un microciclo sin sesiones tendría 0 pendientes y se daría por «completado»
+   * el primer día. Es un caso de datos rotos, pero cerrarlo solo sería peor.
+   */
+  it('un microciclo sin sesiones no se da por completado', () => {
+    const vacio = { fechaInicio: '2026-07-20', cadenciaDias: 8, sesiones: [] }
+    expect(evaluarCierre(vacio, '2026-07-21', 0).vencido).toBe(false)
+  })
+
+  it('la cadencia de 15 días alarga la ventana', () => {
+    const quincenal = { ...micro, cadenciaDias: 15 }
+    expect(evaluarCierre(quincenal, '2026-07-28', 3).vencido).toBe(false)
+    expect(evaluarCierre(quincenal, '2026-08-04', 3).vencido).toBe(true)
   })
 })
