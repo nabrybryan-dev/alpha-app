@@ -227,7 +227,26 @@ describe('ondularEjercicio', () => {
     expect(cargas[cargas.length - 1]).toBeGreaterThan(cargas[0])
   })
 
-  it('reproduce el ejemplo documentado (Mariana M15: 65→70→75→77.5 kg)', () => {
+  /**
+   * SE QUEDA CERCA DE UN CASO REAL, QUE NO ES LO MISMO QUE REPRODUCIRLO.
+   *
+   * Este test se llamaba «reproduce el ejemplo documentado» y fijaba tres cargas
+   * exactas del microciclo 15 de una asesorada (65→70→75→77.5). Dos problemas:
+   *
+   *   1. **Nunca lo reprodujo.** Ni con la deriva vieja de 0.025: daba
+   *      65 · 67.5 · 75 · 77.5, con el segundo set 2.5 kg por debajo. El test solo
+   *      miraba los sets 1, 3 y 4, así que el desajuste no se veía.
+   *   2. Era la calibración de **un solo caso** convertida en especificación. Al
+   *      medir 505 casos reales (ver `DERIVA_FATIGA_POR_SET`), este resultó estar
+   *      por encima de la mediana: con la deriva medida, el motor cierra en 75 y no
+   *      en 77.5.
+   *
+   * Así que ahora se comprueba lo que de verdad se quiere: que el motor **arranque
+   * en la carga pautada, suba de forma monótona y se quede dentro de un escalón de
+   * redondeo (2.5 kg) del patrón real, nunca por encima**. Ir por debajo es el lado
+   * recuperable; una serie ligera se corrige la semana siguiente.
+   */
+  it('se queda a un escalón del patrón real, y nunca por encima', () => {
     const ej = ejercicio({
       nombre: 'ADUCCIÓN POLEA',
       sets: 4,
@@ -236,13 +255,15 @@ describe('ondularEjercicio', () => {
       rirObjetivo: 2,
       series: [],
     })
-    const r = ondularEjercicio(ej, { cargaPrescritaKg: 65 })
-    const cargas = r.series.map((s) => s.cargaKg)
-    // Arranca en la carga pautada y cierra donde cerró el ejemplo real.
+    const real = [65, 70, 75, 77.5]
+    const cargas = ondularEjercicio(ej, { cargaPrescritaKg: 65 }).series.map((s) => s.cargaKg)
+
     expect(cargas[0]).toBe(65)
-    expect(cargas[2]).toBe(75)
-    expect(cargas[3]).toBe(77.5)
     expect(cargas).toEqual([...cargas].sort((a, b) => a - b))
+    cargas.forEach((kg, i) => {
+      expect(kg).toBeLessThanOrEqual(real[i])
+      expect(real[i] - kg).toBeLessThanOrEqual(2.5)
+    })
   })
 
   it('sin deriva de fatiga la carga se dispara por encima del patrón real', () => {
