@@ -351,3 +351,38 @@ describe('gradoDeCompetencia', () => {
     expect(gradoDeCompetencia(64)).toBe('bajo')
   })
 })
+
+/**
+ * A mitad de microciclo, un "Progreso de fuerza 0%" es correcto -nadie ha subido
+ * todavia- pero se lee como un juicio. La diferencia entre "vas mal" y "aun no
+ * hay con que" tiene que estar escrita: la barra sola no la dice.
+ */
+describe('progreso de fuerza al principio del microciclo', () => {
+  const base = {
+    microcicloNumero: 22,
+    seriesPorGrupo: [16, 15, 14],
+    progresoFuerza: { mejoraron: 0, comparados: 3, microcicloPrevio: 21 },
+  }
+
+  const notaDeFuerza = (datos: Parameters<typeof competenciasCalculadas>[0]) =>
+    competenciasCalculadas(datos).find((c) => c.id === 'fuerza')?.nota ?? ''
+
+  it('avisa de que faltan sesiones cuando apenas ha empezado', () => {
+    const nota = notaDeFuerza({ ...base, sesionesRegistradas: 1, sesionesTotales: 6 })
+    expect(nota).toMatch(/1 de 6 sesiones/)
+    expect(nota).toMatch(/todavía no dice mucho/i)
+  })
+
+  it('no avisa cuando el microciclo ya va avanzado', () => {
+    const nota = notaDeFuerza({ ...base, sesionesRegistradas: 5, sesionesTotales: 6 })
+    expect(nota).not.toMatch(/todavía no dice mucho/i)
+  })
+
+  it('el porcentaje no cambia: lo que cambia es lo que se explica', () => {
+    const temprano = competenciasCalculadas({ ...base, sesionesRegistradas: 1, sesionesTotales: 6 })
+    const tarde = competenciasCalculadas({ ...base, sesionesRegistradas: 5, sesionesTotales: 6 })
+    expect(temprano.find((c) => c.id === 'fuerza')?.pct).toBe(
+      tarde.find((c) => c.id === 'fuerza')?.pct,
+    )
+  })
+})

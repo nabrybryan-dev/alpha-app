@@ -120,7 +120,33 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
   // Medidas: desviación del último registro vs el anterior.
   const ultima = medidas[medidas.length - 1]
   const previa = medidas[medidas.length - 2]
-  const perimetros = ultima ? Object.entries(ultima.perimetros) : []
+  /**
+   * Los perímetros más la composición corporal.
+   *
+   * El porcentaje de grasa y la masa magra se venían guardando en `MedidaCorporal`
+   * y no se enseñaban en ninguna pantalla: la lista solo recorría `perimetros`.
+   * Entraban a la base y no salían nunca.
+   */
+  const perimetros: [string, number, string][] = ultima
+    ? [
+        ...Object.entries(ultima.perimetros).map(
+          ([nombre, cm]): [string, number, string] => [nombre, cm, 'cm'],
+        ),
+        ...(ultima.pgPct !== undefined
+          ? ([['Grasa', ultima.pgPct, '%']] as [string, number, string][])
+          : []),
+        ...(ultima.masaMagraKg !== undefined
+          ? ([['Masa magra', ultima.masaMagraKg, 'kg']] as [string, number, string][])
+          : []),
+      ]
+    : []
+
+  /** El valor anterior del mismo dato, para calcular la desviación. */
+  const previoDe = (nombre: string): number | undefined => {
+    if (nombre === 'Grasa') return previa?.pgPct
+    if (nombre === 'Masa magra') return previa?.masaMagraKg
+    return previa?.perimetros[nombre]
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -181,8 +207,12 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
               Microciclo
             </span>
           </div>
+          {/* La etiqueta (ALTO, NORMAL…) describe el PLAN, no lo hecho. Sin
+              decirlo, "Espalda 0/15 ALTO" se lee como que va sobrada de volumen
+              cuando lleva cero series. */}
           <p className="mb-3 text-[11px] leading-snug text-silver-500">
-            Barra clara: series que te pautó tu coach. Barra roja: las que registraste.
+            Barra clara y etiqueta: lo que te pautó tu coach. Barra roja y primer número: lo
+            que llevas registrado.
           </p>
           <div className="flex flex-col gap-3">
             {grupos.map((g) => {
@@ -226,16 +256,16 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         <div>
           <p className="mb-2 px-1 font-display text-sm text-silver-100">Medidas · última desviación</p>
           <div className="grid grid-cols-2 gap-2.5">
-            {perimetros.map(([nombre, cm]) => {
-              const antes = previa?.perimetros[nombre]
-              const d = antes !== undefined ? Math.round((cm - antes) * 10) / 10 : undefined
+            {perimetros.map(([nombre, valor, unidad]) => {
+              const antes = previoDe(nombre)
+              const d = antes !== undefined ? Math.round((valor - antes) * 10) / 10 : undefined
               return (
                 <div key={nombre} className="rounded-tarjeta border border-ink-500 bg-ink-800 p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">{nombre}</p>
                   <div className="mt-1 flex items-baseline justify-between gap-1">
                     <span className="cifras text-xl font-bold text-silver-100">
-                      {cm}
-                      <span className="text-xs font-medium text-silver-500"> cm</span>
+                      {valor}
+                      <span className="text-xs font-medium text-silver-500"> {unidad}</span>
                     </span>
                     {d !== undefined && d !== 0 && (
                       <span className={`cifras text-[11px] font-bold ${d < 0 ? 'text-accion' : 'text-silver-400'}`}>

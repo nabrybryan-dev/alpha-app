@@ -384,6 +384,22 @@ function cargaDeGruposPrioritarios(seriesPorGrupo: readonly number[]): number | 
  * nutrición) son juicio del coach y entran por `competenciasCoach`; aquí no se
  * inventan.
  */
+/** Cuánto del microciclo hay que llevar para que las cifras signifiquen algo. */
+const FRACCION_PARA_QUE_CUENTE = 0.5
+
+/**
+ * Va por menos de la mitad del microciclo.
+ *
+ * Importa para el progreso de fuerza: con 1 de 6 sesiones registradas el número
+ * es correcto —ningún ejercicio ha subido todavía— pero se lee como un juicio.
+ * La diferencia entre «vas mal» y «aún no hay con qué» tiene que estar escrita,
+ * porque la barra sola no la dice.
+ */
+function microcicloTempranero(datos: DatosRuta): boolean {
+  if (datos.sesionesTotales === 0) return false
+  return datos.sesionesRegistradas / datos.sesionesTotales < FRACCION_PARA_QUE_CUENTE
+}
+
 export function competenciasCalculadas(datos: DatosRuta): Competencia[] {
   const competencias: Competencia[] = []
 
@@ -437,7 +453,11 @@ export function competenciasCalculadas(datos: DatosRuta): Competencia[] {
       id: 'fuerza',
       nombre: 'Progreso de fuerza',
       pct: acotar((fuerza.mejoraron / fuerza.comparados) * 100),
-      nota: `${fuerza.mejoraron} de ${fuerza.comparados} ejercicios subieron su 1RM estimado frente al M${fuerza.microcicloPrevio}.`,
+      nota:
+        `${fuerza.mejoraron} de ${fuerza.comparados} ejercicios subieron su 1RM estimado frente al M${fuerza.microcicloPrevio}.` +
+        (microcicloTempranero(datos)
+          ? ` Llevas ${datos.sesionesRegistradas} de ${datos.sesionesTotales} sesiones: la cifra todavía no dice mucho y subirá al registrar el resto.`
+          : ''),
     })
   }
 
