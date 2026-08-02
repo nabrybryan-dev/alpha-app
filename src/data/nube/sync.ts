@@ -115,6 +115,27 @@ export function crearDbSincronizada(local: Db): Db {
         // `estado: 'propuesto'` que fuerza la capa local y no con el que llegara.
         subirMicrociclo(local, micro.id)
       },
+      activarPropuesta: (propuestaId) => {
+        // Qué microciclos estaban activos ANTES de activar: después ya no se
+        // pueden distinguir de los que llevaban cerrados meses, y hay que subir su
+        // cierre igual que la activación. Si solo se subiera la propuesta, el
+        // servidor se quedaría con dos activos.
+        const duenio = local.usuarios
+          .list()
+          .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === propuestaId))
+        const activosPrevios = duenio
+          ? local.microciclos.byUsuario(duenio.id).filter((m) => m.estado === 'activo')
+          : []
+
+        local.microciclos.activarPropuesta(propuestaId)
+
+        // Primero abrir, después cerrar. Si la cola se drena a medias —se corta la
+        // señal justo entre las dos— este orden deja una ventana con DOS activos:
+        // malo, pero el asesorado tiene algo que entrenar y la pasada siguiente lo
+        // repara. Al revés la ventana tendría CERO: abriría la app sin programación.
+        cambiarEstadoEnNube(propuestaId, 'activo')
+        for (const m of activosPrevios) cambiarEstadoEnNube(m.id, 'cerrado')
+      },
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
         subirMicrociclo(local, microcicloId)
@@ -485,6 +506,40 @@ function subirComida(local: Db, usuarioId: string, comidaId: string): void {
       confianza: comida.confianza,
       borrado: false,
     },
+  })
+}
+
+/**
+ * Cambia SOLO la columna `estado` de un microciclo en el servidor.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ NO ES UN `subirMicrociclo`
+ * ────────────────────────────────────────────────────────────────────────────
+ * Porque `subirMicrociclo` manda `datos: microciclo` —el blob entero— leído de la
+ * copia LOCAL de quien lo llama. En el móvil del asesorado eso es correcto: su
+ * copia es la autoridad sobre sus propias series. En el del coach no: su copia de
+ * lo del asesorado es la de la última hidratación, que ocurre cada 45 s y solo con
+ * la pestaña visible.
+ *
+ * Cerrar un microciclo con un upsert del blob significaba, entonces, mandar al
+ * servidor la foto que el coach tenía en la mano. Las series que el asesorado
+ * hubiera registrado después **desaparecían de la fila del servidor**, y de ahí de
+ * todos los dispositivos en la siguiente hidratación. Sin error y sin aviso: el
+ * upsert de Supabase reemplaza la columna entera, no fusiona.
+ *
+ * Un cambio de estado es una TRANSICIÓN, no una foto. Mandar solo la columna es lo
+ * único que hace falta y es lo único que no puede pisar el trabajo de nadie.
+ *
+ * Contrapartida asumida: el `estado` que queda dentro del blob se vuelve viejo. Por
+ * eso `hidratar.ts` lee la columna y le da prioridad. **Las dos mitades van juntas:
+ * si alguien vuelve a leer el estado desde `datos`, esto deja de funcionar.**
+ */
+function cambiarEstadoEnNube(microcicloId: string, estado: 'activo' | 'cerrado'): void {
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'update',
+    payload: { estado },
+    filtro: { id: microcicloId },
   })
 }
 

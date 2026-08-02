@@ -23,14 +23,20 @@
  *
  *   · El 15 % de los microciclos baja volumen más de un 10 %… y es el MISMO 15 %
  *     dentro y fuera de M4/M8/M12. No hay ninguna señal en la semana 4.
- *   · Cuando baja de verdad, la mediana es 0,75, no el 0,6 de `FACTOR_DESCARGA`.
  *
- * Así que aquí se pasa `descarga: false` siempre. **Antes de activarla hay que
- * decidir cómo se dispara**: ¿fatiga acumulada? ¿PRS bajo sostenido? ¿a mano?
+ * Esa medición decía también «cuando baja, la mediana es 0,75, no el 0,6 de
+ * FACTOR_DESCARGA». **Era una comparación mal hecha** y se corrigió el 2026-08-01:
+ * medía caídas de VOLUMEN, mientras que `FACTOR_DESCARGA` multiplica el NÚMERO DE
+ * SERIES. Midiendo directamente las series —356 bajadas reales— el valor que más
+ * acierta es 2/3. Ver su comentario en `domain/ondulacion.ts`.
+ *
+ * Lo que sigue en pie es lo de arriba: **la semana 4 no dispara nada en la
+ * práctica**. Así que aquí se pasa `descarga: false` siempre. Antes de activarla
+ * hay que decidir cómo se dispara: ¿fatiga acumulada? ¿PRS bajo sostenido? ¿a mano?
  * Ver `conocimiento/comparativa-cursos-vs-arquitectura-app.md` en el Cerebro de
  * Programación.
  */
-import { revisarActivacion, type RevisionActivacion } from '../../domain/activacion'
+import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../domain/activacion'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
@@ -167,6 +173,14 @@ function filasDeSesion(
  * y los bloques de cardio no llevan carga que progresar.
  */
 /**
+ * Quita la marca de hecho conservando el ítem. Lo que se programa es lo que hay que
+ * hacer; lo que se hizo se queda en el microciclo que se cierra.
+ */
+function sinMarcar<T extends { hechoEn?: string }>(item: T): T {
+  return { ...item, hechoEn: undefined }
+}
+
+/**
  * Convierte la propuesta en un microciclo guardable, ondulando de verdad los
  * ejercicios (con `seriesPrescritas`, que es lo que el asesorado ve serie a serie).
  *
@@ -175,23 +189,39 @@ function filasDeSesion(
  * con lo hecho dentro. Arrastrarlos haría que el asesorado abriera M23 con las
  * series de M22 ya marcadas.
  *
+ * **Tampoco arrastra la fecha de inicio**, y esto se vio en pantalla, no en un
+ * test: el `...origen` la copiaba tal cual, así que el microciclo nuevo nacía con
+ * la fecha del viejo —es decir, **ya vencido**—. En el panel del coach eso salía
+ * como un M10 propuesto sobre un M9 recién creado y vacío: «0 suben · 0 sostienen
+ * · 0 bajan». Encadenado, le habría generado un microciclo fantasma por cada vez
+ * que Bryan abriera la app.
+ *
+ * Arranca donde terminaba el anterior, salvo que eso ya sea pasado: si se activa
+ * con retraso, empieza hoy. Encadenar hacia atrás le daría al asesorado una semana
+ * nacida a medias.
+ *
  * El `estado` lo fuerza la capa de datos a `'propuesto'`; aquí se pone igual por
  * claridad, pero la salvaguarda real está en `guardarPropuesta`.
  */
 export function microcicloPropuesto(
   origen: Microciclo,
-  opciones: { incrementoKg?: number } = {},
+  opciones: { incrementoKg?: number; hoy?: string } = {},
 ): Microciclo {
-  const { incrementoKg = 2.5 } = opciones
+  const { incrementoKg = 2.5, hoy } = opciones
   const prs = prsMasReciente(origen)
+  const finAnterior = sumarDias(origen.fechaInicio, origen.cadenciaDias)
   return {
     ...origen,
     id: `${origen.id}-prop${origen.numero + 1}`,
     numero: origen.numero + 1,
     estado: 'propuesto',
+    // Comparación de cadenas ISO: ordena bien sin construir fechas.
+    fechaInicio: hoy && hoy > finAnterior ? hoy : finAnterior,
     sesiones: origen.sesiones.map((s) => ({
       ...s,
       testPost: undefined,
+      preparacion: s.preparacion?.map(sinMarcar),
+      bloquesCardio: s.bloquesCardio?.map(sinMarcar),
       ejercicios: s.ejercicios.map((e) => {
         const limpio: EjercicioPrescrito = { ...e, series: [] }
         if (s.tipo === 'metabolica') return limpio

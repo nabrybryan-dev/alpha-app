@@ -266,13 +266,58 @@ export interface OpcionesOndulacion {
 /**
  * Sin deriva, la carga sube más rápido de lo que sube en la práctica: al bajar
  * las reps el coeficiente da un salto que el cuerpo, ya fatigado, no sostiene.
- * 0.025 es lo que reproduce el único patrón real documentado (Mariana M15:
- * 13→11→10→9 reps con 65→70→75→77.5 kg).
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * MEDIDO SOBRE 505 CASOS REALES (2026-08-01)
+ * ────────────────────────────────────────────────────────────────────────────
+ * Antes valía 0.025, calibrado sobre **un solo** patrón documentado (Mariana M15:
+ * 13→11→10→9 reps con 65→70→75→77.5 kg). Ahora sale de las series REGISTRADAS por
+ * los asesorados en las 21 plantillas: 2089 ejercicios con las tres series llenas,
+ * de los cuales **505 tienen reps descendentes** —el patrón que esta constante
+ * existe para reproducir—. En cada uno se despeja `d` de `e1RM_i = e1RM_0·(1−d·i)`.
+ *
+ *   mediana = 0.0329      IC 95 % (bootstrap, 3000) = [0.0258, 0.0373]
+ *
+ * **0.025 quedaba fuera de ese intervalo**, así que el cambio no es cosmético: el
+ * valor viejo estaba sesgado a cargar de más en los últimos sets. Se fija 0.03 y no
+ * 0.033 porque el intervalo mide 0.012 de ancho: la tercera cifra no es resoluble y
+ * escribirla fingiría una precisión que no hay.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * LO QUE ESTE NÚMERO NO ES
+ * ────────────────────────────────────────────────────────────────────────────
+ * No es una constante fisiológica. En los 2089 ejercicios la mediana es **0**: el
+ * 71 % de las veces la persona hace el mismo peso en las tres series. Y dentro de
+ * los 505 descendentes el rango intercuartílico va de −0.025 a +0.072, con un 30 %
+ * que ni siquiera baja. Es un compromiso razonable, no una ley: quien tenga datos
+ * de un asesorado concreto puede pasar `derivaFatiga` por opciones.
  */
-export const DERIVA_FATIGA_POR_SET = 0.025
+export const DERIVA_FATIGA_POR_SET = 0.03
 
-/** Proporción de series que se conserva en una semana de descarga. */
-export const FACTOR_DESCARGA = 0.6
+/**
+ * Proporción de series que se conserva en una semana de descarga.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * MEDIDO, NO ELEGIDO (2026-08-01)
+ * ────────────────────────────────────────────────────────────────────────────
+ * Sobre **356 bajadas reales de series** entre microciclos consecutivos de las 21
+ * plantillas de asesorados. El acierto de cada candidato, contando cuántas de esas
+ * 356 reproduce exactamente `Math.round(sets * F)`:
+ *
+ *   F = 2/3  →  **81,7 %**      F = 0.6 → 70,5 %      F = 0.75 → 67,1 %
+ *
+ * Manda porque acierta los dos patrones dominantes a la vez: 3→2 (177 casos) y
+ * 4→3 (61). Con 0.6 el segundo se convierte en 4→2, que solo ocurre 21 veces.
+ *
+ * Y 0.75 tiene un defecto peor que ser menos preciso: `round(2 * 0.75) = 2`, así
+ * que **en un ejercicio de 2 series la descarga no quitaría ninguna**. Hay 51
+ * bajadas reales de 2→1.
+ *
+ * Corrige una afirmación anterior de este repo —«la mediana real es 0,75»— que
+ * medía caídas de VOLUMEN de más del 10 %, no el número de series. Es la cantidad
+ * que esta constante multiplica, así que era comparar cosas distintas.
+ */
+export const FACTOR_DESCARGA = 2 / 3
 
 /**
  * Ondula un ejercicio para el microciclo siguiente.

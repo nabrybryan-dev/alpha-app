@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
-import { db } from '../../data/dbInstance'
+import { db, hoyIso } from '../../data/dbInstance'
 import type { Microciclo } from '../../domain/types'
 import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
 
@@ -25,7 +25,9 @@ export function GenerarMicrocicloSheet({
 
   const guardar = () => {
     if (!microciclo) return
-    db.microciclos.guardarPropuesta(microcicloPropuesto(microciclo))
+    // `hoy` evita que la propuesta nazca con la fecha del microciclo de origen, es
+    // decir vencida. Ver el encabezado de `microcicloPropuesto`.
+    db.microciclos.guardarPropuesta(microcicloPropuesto(microciclo, { hoy: hoyIso() }))
     setGuardada(true)
   }
 

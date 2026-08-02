@@ -57,6 +57,38 @@ function esTablaInexistente(error: { code?: string }): boolean {
 type Fila = Record<string, unknown>
 
 /**
+ * Los microciclos del servidor, con la COLUMNA `estado` mandando sobre el blob.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ LA COLUMNA Y NO `datos.estado`
+ * ────────────────────────────────────────────────────────────────────────────
+ * Porque el blob lo escribe el último dispositivo que suba ese microciclo, y quien
+ * decide el estado (abrir el siguiente, cerrar el anterior) es solo el staff.
+ *
+ * El caso que lo obliga: un asesorado entrena sin señal. Cada serie deja en su cola
+ * un upsert del microciclo con `estado: 'activo'` dentro. El coach cierra ese
+ * microciclo y abre el siguiente. Cuando el móvil recupera cobertura, su cola drena
+ * y **reabre el que ya estaba cerrado**: dos activos, y `find(m => m.estado ===
+ * 'activo')` devuelve uno cualquiera. Es el estado que ya rompió producción.
+ *
+ * Con la columna al mando, la escritura del asesorado sigue trayendo sus series
+ * —que es lo suyo y hay que conservarlo— pero deja de decidir en qué microciclo
+ * está. El servidor lo refuerza con un trigger (migración 0021) para que tampoco
+ * pueda tocar la columna una versión vieja de la app que siga cacheada.
+ *
+ * El `?? datos.estado` cubre las filas que aún no tengan columna leída (una
+ * hidratación de un despliegue anterior): sin él, un `undefined` dejaría al
+ * microciclo sin estado y desaparecería de todas las pantallas.
+ */
+export function microciclosDe(filas: readonly Fila[]): Microciclo[] {
+  return filas.map((f) => {
+    const datos = f.datos as Microciclo
+    const estado = f.estado as Microciclo['estado'] | undefined
+    return estado ? { ...datos, estado } : datos
+  })
+}
+
+/**
  * Junta las comidas del servidor con sus items.
  *
  * EL ID LOCAL ES EL `cliente_id` cuando existe. Es el que puso este dispositivo
@@ -133,7 +165,8 @@ export async function hidratarDesdeNube(): Promise<void> {
   ] = await Promise.all([
     sb.from('usuarios_app').select('*'),
     sb.from('perfiles').select('datos'),
-    sb.from('microciclos').select('datos'),
+    // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
+    sb.from('microciclos').select('id, estado, datos'),
     sb.from('checkins').select('datos'),
     sb.from('adherencias').select('*'),
     sb.from('planes_nutricionales').select('datos'),
@@ -200,9 +233,7 @@ export async function hidratarDesdeNube(): Promise<void> {
       }),
     ),
     perfiles: conPendientes('perfiles', perfiles.data ?? []).map((f) => f.datos as Perfil),
-    microciclos: conPendientes('microciclos', microciclos.data ?? []).map(
-      (f) => f.datos as Microciclo,
-    ),
+    microciclos: microciclosDe(conPendientes('microciclos', microciclos.data ?? [])),
     checkins: conPendientes('checkins', checkins.data ?? []).map((f) => f.datos as CheckinDiario),
     adherencias: conPendientes('adherencias', adherencias.data ?? []).map(
       (f): AdherenciaNutricional => ({
