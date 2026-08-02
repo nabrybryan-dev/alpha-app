@@ -4,6 +4,7 @@ import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
+import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
@@ -61,11 +62,7 @@ export default function HoyPage() {
     ? Math.round((pesosReg.reduce((a, b) => a + b, 0) / pesosReg.length) * 10) / 10
     : undefined
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
-  const adherenciaPct = adhs.length
-    ? Math.round(
-        (adhs.reduce((s, a) => s + (a.estado === 'si' ? 1 : a.estado === 'parcial' ? 0.5 : 0), 0) / adhs.length) * 100,
-      )
-    : undefined
+  const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.

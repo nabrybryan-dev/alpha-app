@@ -214,6 +214,25 @@ export function crearMockDb(): Db {
               ],
         }))
       },
+      guardarValoracion: (usuarioId, valoracion) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId
+              ? {
+                  ...p,
+                  // Reemplaza la del mismo id: es una nota vigente, no un
+                  // histórico. Si algún día se quiere ver la evolución, va en
+                  // su propia tabla y no engordando el perfil.
+                  valoraciones: [
+                    ...(p.valoraciones ?? []).filter((v) => v.id !== valoracion.id),
+                    valoracion,
+                  ],
+                }
+              : p,
+          ),
+        }))
+      },
     },
 
     microciclos: {

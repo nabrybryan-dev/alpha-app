@@ -1,4 +1,4 @@
-import type { Competencia, NivelAlfa, RutaAsesorado } from '../../domain/rutaEntrenamiento'
+import type { NivelAlfa, RutaAsesorado } from '../../domain/rutaEntrenamiento'
 
 /**
  * Contenido de la vista Ruta mientras no exista su tabla en Supabase.
@@ -84,14 +84,6 @@ export const ESCALA_ALFA: NivelAlfa[] = [
   },
 ]
 
-/**
- * Valoración del coach. Vacía a propósito: técnica, fuerza relativa,
- * recuperación y nutrición aplicada las juzga él mirando la ejecución, y hasta
- * que las cargue es más honesto no pintar la tarjeta que enseñar un número
- * igual para todos.
- */
-const COMPETENCIAS_COACH: Competencia[] = []
-
 /** Ruta por defecto mientras no haya valoración propia de la persona. */
 export function rutaPorDefecto(usuarioId: string): RutaAsesorado {
   const nivelActual = ESCALA_ALFA[2]
@@ -105,7 +97,6 @@ export function rutaPorDefecto(usuarioId: string): RutaAsesorado {
       semana: 3,
       semanasTotales: 4,
     },
-    competenciasCoach: COMPETENCIAS_COACH,
     escala: ESCALA_ALFA,
   }
 }

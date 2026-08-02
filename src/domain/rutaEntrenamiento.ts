@@ -1,7 +1,8 @@
 import { diaDeSesion, diaSemanaDe, type DiaSemana } from './calendario'
+import { estimarUnRm } from './cargas'
 import { sesionCompleta } from './cumplimiento'
 import { duracionTotalSeg, formatoDuracion } from './ritmoSesion'
-import type { Microciclo, Sesion } from './types'
+import type { Microciclo, Sesion, ValoracionCompetencia } from './types'
 
 /**
  * Vista macro de la pestaña Entreno ("Ruta"): en qué nivel está el asesorado,
@@ -210,6 +211,48 @@ export function gradoDeCompetencia(pct: number): GradoCompetencia {
   return 'bajo'
 }
 
+export interface CompetenciaDelCoach {
+  id: string
+  nombre: string
+  /** Qué mirar al puntuarla, para que dos valoraciones signifiquen lo mismo. */
+  ayuda: string
+}
+
+/**
+ * Las competencias que NO se pueden deducir del registro y las pone el coach.
+ *
+ * Hoy solo la técnica: la app no ve ejecución. Consistencia, autorregulación,
+ * volumen, fuerza y nutrición salen de los datos, y meterlas aquí sería pedirle
+ * al coach que teclee lo que la app ya sabe.
+ */
+export const COMPETENCIAS_DEL_COACH: CompetenciaDelCoach[] = [
+  {
+    id: 'tecnica',
+    nombre: 'Técnica y patrones',
+    ayuda:
+      'Fase de aprendizaje motor: ¿piensa cada paso (cognitiva), lo refina (asociativa) o ejecuta sin pensar (autónoma)?',
+  },
+]
+
+/** Convierte lo que puso el coach en tarjetas de competencia de la Ruta. */
+export function valoracionesACompetencias(
+  valoraciones: readonly ValoracionCompetencia[] | undefined,
+): Competencia[] {
+  if (!valoraciones) return []
+  return COMPETENCIAS_DEL_COACH.flatMap((definicion) => {
+    const valoracion = valoraciones.find((v) => v.id === definicion.id)
+    if (!valoracion) return []
+    return [
+      {
+        id: definicion.id,
+        nombre: definicion.nombre,
+        pct: Math.max(0, Math.min(100, Math.round(valoracion.pct))),
+        nota: valoracion.nota,
+      },
+    ]
+  })
+}
+
 export interface RequisitoNivel {
   id: string
   cumplido: boolean
@@ -236,6 +279,17 @@ export interface DatosRuta {
   desviacionRir?: number
   /** Series pautadas por grupo muscular en el microciclo. */
   seriesPorGrupo: readonly number[]
+  /** Cómo evolucionó el 1RM estimado frente al microciclo anterior. */
+  progresoFuerza?: ProgresoFuerza
+  /** Adherencia nutricional, 0–100. */
+  adherenciaPct?: number
+}
+
+export interface ProgresoFuerza {
+  mejoraron: number
+  comparados: number
+  /** Número del microciclo contra el que se compara. */
+  microcicloPrevio: number
 }
 
 function acotar(pct: number): number {
@@ -247,6 +301,56 @@ function mediana(valores: readonly number[]): number | undefined {
   const orden = [...valores].sort((a, b) => a - b)
   const medio = Math.floor(orden.length / 2)
   return orden.length % 2 === 0 ? (orden[medio - 1] + orden[medio]) / 2 : orden[medio]
+}
+
+/**
+ * Mejor 1RM estimado por ejercicio en un microciclo.
+ *
+ * Se toma el mejor de todas las series y no el promedio: una serie de calentar
+ * a RIR 5 hundiría la media y haría parecer que retrocedió alguien que subió.
+ */
+function mejorUnRmPorEjercicio(microciclo: Microciclo): Map<string, number> {
+  const mejores = new Map<string, number>()
+  for (const sesion of microciclo.sesiones) {
+    for (const ejercicio of sesion.ejercicios) {
+      for (const serie of ejercicio.series) {
+        const estimado = estimarUnRm(serie.cargaKg, serie.reps, serie.rir)
+        if (estimado === undefined) continue
+        // La clave es el nombre, no el id: los ids llevan el sufijo del
+        // microciclo, así que el mismo ejercicio nunca cruzaría entre semanas.
+        const previo = mejores.get(ejercicio.nombre)
+        if (previo === undefined || estimado > previo) mejores.set(ejercicio.nombre, estimado)
+      }
+    }
+  }
+  return mejores
+}
+
+/**
+ * Cuántos ejercicios subieron su 1RM estimado frente al microciclo anterior.
+ *
+ * Solo cuentan los que aparecen en ambos con series registradas: comparar
+ * contra un ejercicio que no se hizo no dice nada.
+ */
+export function compararFuerza(
+  actual: Microciclo,
+  previo: Microciclo | undefined,
+): ProgresoFuerza | undefined {
+  if (!previo) return undefined
+  const ahora = mejorUnRmPorEjercicio(actual)
+  const antes = mejorUnRmPorEjercicio(previo)
+
+  let mejoraron = 0
+  let comparados = 0
+  for (const [nombre, valor] of ahora) {
+    const anterior = antes.get(nombre)
+    if (anterior === undefined) continue
+    comparados += 1
+    if (valor > anterior) mejoraron += 1
+  }
+
+  if (comparados === 0) return undefined
+  return { mejoraron, comparados, microcicloPrevio: previo.numero }
 }
 
 /** Cuántos grupos se miran para juzgar la tolerancia al volumen. */
@@ -316,6 +420,28 @@ export function competenciasCalculadas(datos: DatosRuta): Competencia[] {
     })
   }
 
+  const fuerza = datos.progresoFuerza
+  if (fuerza && fuerza.comparados > 0) {
+    // Progreso contra sí mismo, no contra un ratio de peso corporal: en toda la
+    // wiki no hay ningún estándar de fuerza relativa, y fijar uno empuja contra
+    // la jerarquía (seguridad y adherencia van antes que tensión mecánica).
+    competencias.push({
+      id: 'fuerza',
+      nombre: 'Progreso de fuerza',
+      pct: acotar((fuerza.mejoraron / fuerza.comparados) * 100),
+      nota: `${fuerza.mejoraron} de ${fuerza.comparados} ejercicios subieron su 1RM estimado frente al M${fuerza.microcicloPrevio}.`,
+    })
+  }
+
+  if (datos.adherenciaPct !== undefined) {
+    competencias.push({
+      id: 'nutricion',
+      nombre: 'Nutrición aplicada',
+      pct: acotar(datos.adherenciaPct),
+      nota: `${acotar(datos.adherenciaPct)}% de adherencia a tu plan en los días registrados.`,
+    })
+  }
+
   return competencias
 }
 
@@ -371,9 +497,17 @@ export function requisitosDeNivel(datos: DatosRuta): RequisitoNivel[] {
     },
     {
       id: 'fuerza',
-      cumplido: false,
+      // Contra sí mismo: que la mayoría de sus ejercicios suban el 1RM estimado
+      // respecto al microciclo anterior. Sin ratio universal.
+      cumplido:
+        datos.progresoFuerza !== undefined &&
+        datos.progresoFuerza.comparados > 0 &&
+        datos.progresoFuerza.mejoraron / datos.progresoFuerza.comparados >= 0.5,
       texto: 'Progresar tu propia fuerza en los básicos, medida con tu 1RM estimado',
-      metrica: 'Lo valora tu coach con tu histórico de cargas',
+      metrica:
+        datos.progresoFuerza && datos.progresoFuerza.comparados > 0
+          ? `${datos.progresoFuerza.mejoraron} / ${datos.progresoFuerza.comparados} ejercicios al alza vs M${datos.progresoFuerza.microcicloPrevio}`
+          : 'Aún sin dos microciclos con series para comparar',
     },
   ]
 }
@@ -429,11 +563,5 @@ export interface RutaAsesorado {
   nivelActual: NivelAlfa
   siguienteNivel?: NivelAlfa
   bloque: BloqueEnCurso
-  /**
-   * Valoración del coach: técnica, fuerza relativa, recuperación y nutrición
-   * aplicada. Vacía mientras no la cargue — se prefiere una pantalla más corta
-   * a un porcentaje que no es de nadie.
-   */
-  competenciasCoach: Competencia[]
   escala: NivelAlfa[]
 }

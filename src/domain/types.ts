@@ -39,6 +39,23 @@ export interface Perfil {
   faseEnergetica?: string
   proteinaGkg?: number
   pasosObjetivo?: number
+  /**
+   * Lo que el coach valora mirando la ejecución y la app no puede deducir
+   * (hoy, la técnica). El resto de competencias de la Ruta se calculan solas.
+   */
+  valoraciones?: ValoracionCompetencia[]
+}
+
+/** Nota del coach a una competencia concreta de la Ruta. */
+export interface ValoracionCompetencia {
+  /** Coincide con el id del catálogo de competencias del coach. */
+  id: string
+  /** 0–100. */
+  pct: number
+  /** Qué vio el coach. Es lo que de verdad le sirve al asesorado. */
+  nota: string
+  /** Fecha ISO en que se puso, para saber si está vieja. */
+  fecha: string
 }
 
 export interface SerieRegistrada {

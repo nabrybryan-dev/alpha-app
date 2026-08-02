@@ -87,6 +87,20 @@ function tablasRegistroListas(): boolean {
  * Quitar no borra: marca `borrado`. La cola no sabe hacer `delete`, y añadírselo
  * obliga a tocar el procesador, que es donde un fallo no da error en pantalla.
  */
+/**
+ * Sube el perfil entero tras tocarlo. Se relee de local a propósito: así viaja
+ * con lo que la capa local dejó, no con lo que creyó quien llamó.
+ */
+function subirPerfil(local: Db, usuarioId: string): void {
+  const perfil = local.perfiles.byUsuario(usuarioId)
+  if (!perfil) return
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'upsert',
+    payload: { usuario_id: usuarioId, datos: perfil },
+  })
+}
+
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -97,13 +111,11 @@ export function crearDbSincronizada(local: Db): Db {
       ...local.perfiles,
       agregarMedida: (usuarioId, medida) => {
         local.perfiles.agregarMedida(usuarioId, medida)
-        const perfil = local.perfiles.byUsuario(usuarioId)
-        if (!perfil) return
-        encolar({
-          tabla: 'perfiles',
-          tipo: 'upsert',
-          payload: { usuario_id: usuarioId, datos: perfil },
-        })
+        subirPerfil(local, usuarioId)
+      },
+      guardarValoracion: (usuarioId, valoracion) => {
+        local.perfiles.guardarValoracion(usuarioId, valoracion)
+        subirPerfil(local, usuarioId)
       },
     },
 

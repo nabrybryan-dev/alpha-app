@@ -23,6 +23,7 @@ import type {
   SerieRegistrada,
   TestPostSesion,
   Usuario,
+  ValoracionCompetencia,
   VisibilidadAsesorado,
 } from '../domain/types'
 
@@ -39,6 +40,12 @@ export interface PerfilesRepo {
   byUsuario(usuarioId: string): Perfil | undefined
   /** Registra una medición corporal del propio asesorado (reemplaza la de la misma fecha). */
   agregarMedida(usuarioId: string, medida: MedidaCorporal): void
+  /**
+   * Guarda la nota del coach a una competencia (reemplaza la anterior del mismo
+   * id). SOLO STAFF: el trigger `proteger_perfil` de la migración 0008 deja al
+   * asesorado tocar únicamente sus medidas.
+   */
+  guardarValoracion(usuarioId: string, valoracion: ValoracionCompetencia): void
 }
 
 export interface MicrociclosRepo {

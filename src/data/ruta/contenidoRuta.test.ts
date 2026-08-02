@@ -59,7 +59,7 @@ describe('rutaPorDefecto', () => {
     expect(ruta.siguienteNivel).toBe(ESCALA_ALFA[actual + 1])
   })
 
-  it('no trae competencias del coach hasta que las cargue', () => {
-    expect(rutaPorDefecto('u1').competenciasCoach).toEqual([])
+  it('no lleva valoración del coach: esa vive en el perfil de cada persona', () => {
+    expect(rutaPorDefecto('u1')).not.toHaveProperty('competenciasCoach')
   })
 })
