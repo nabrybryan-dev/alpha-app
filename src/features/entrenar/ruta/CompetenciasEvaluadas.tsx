@@ -9,6 +9,10 @@ const COLOR: Record<GradoCompetencia, { texto: string; barra: string }> = {
 }
 
 export function CompetenciasEvaluadas({ competencias }: { competencias: readonly Competencia[] }) {
+  // Sin datos registrados no hay nada que valorar: mejor que no salga la
+  // sección a que salga vacía o con cifras que no son de nadie.
+  if (competencias.length === 0) return null
+
   return (
     <section>
       <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.16em] text-silver-500">

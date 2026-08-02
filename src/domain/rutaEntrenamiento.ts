@@ -173,12 +173,22 @@ export function resumenSemana(dias: readonly DiaRuta[]): ResumenSemana {
 
 export type EstadoNivelAlfa = 'superado' | 'actual' | 'bloqueado' | 'elite'
 
+/**
+ * Los tres niveles con los que programa el método (Pérez-Córdoba). Son los que
+ * mandan de verdad: fijan intensidad, esfuerzo, volumen, frecuencia y modelo de
+ * progresión.
+ *
+ * La Escala Alfa enseña 5 peldaños porque una escalera larga se recorre mejor,
+ * pero cada peldaño declara a qué nivel real pertenece. Si algún día la app
+ * decide programación desde aquí, tiene que mirar esto y no el número bonito.
+ */
+export type NivelMetodo = 'principiante' | 'intermedio' | 'avanzado'
+
 export interface NivelAlfa {
   /** "01"…"05", tal cual se pinta. */
   numero: string
   nombre: string
-  /** Edad de entrenamiento típica: "18–36 meses". */
-  rango: string
+  nivelMetodo: NivelMetodo
   descripcion: string
   estado: EstadoNivelAlfa
 }
@@ -208,9 +218,203 @@ export interface RequisitoNivel {
   metrica: string
 }
 
+/**
+ * Landmarks de volumen (Israetel/RP), en series por grupo y semana. Son los
+ * mismos que usa el motor: MEV ~8–12 · MAV ~12–20 · MRV ~18–26. Aquí se toma el
+ * centro de cada rango — sirven de escala, no de prescripción.
+ */
+export const LANDMARK_MEV = 10
+export const LANDMARK_MAV_ALTO = 20
+export const LANDMARK_MRV = 22
+
+/** Lo que hace falta para valorar a la persona con SUS datos, no con un número fijo. */
+export interface DatosRuta {
+  microcicloNumero: number
+  sesionesRegistradas: number
+  sesionesTotales: number
+  /** Desviación media RIR real vs pautado. Sin series registradas, indefinida. */
+  desviacionRir?: number
+  /** Series pautadas por grupo muscular en el microciclo. */
+  seriesPorGrupo: readonly number[]
+}
+
+function acotar(pct: number): number {
+  return Math.max(0, Math.min(100, Math.round(pct)))
+}
+
+function mediana(valores: readonly number[]): number | undefined {
+  if (valores.length === 0) return undefined
+  const orden = [...valores].sort((a, b) => a - b)
+  const medio = Math.floor(orden.length / 2)
+  return orden.length % 2 === 0 ? (orden[medio - 1] + orden[medio]) / 2 : orden[medio]
+}
+
+/** Cuántos grupos se miran para juzgar la tolerancia al volumen. */
+const GRUPOS_PRIORITARIOS = 3
+
+/**
+ * El volumen se juzga donde el bloque ACUMULA, no promediando todos los grupos.
+ *
+ * Los landmarks son "por grupo grande" (página 01 del motor); meter pantorrillas
+ * y abdomen en la misma media hunde el número y hace parecer que la persona
+ * entrena por debajo de MEV cuando sus grupos prioritarios están en MAV.
+ */
+function cargaDeGruposPrioritarios(seriesPorGrupo: readonly number[]): number | undefined {
+  const top = [...seriesPorGrupo].sort((a, b) => b - a).slice(0, GRUPOS_PRIORITARIOS)
+  return mediana(top)
+}
+
+/**
+ * Las competencias que salen de lo que la persona registró.
+ *
+ * El porcentaje es solo la barra: lo que afirma algo es la nota, que lleva el
+ * número real. Las otras cuatro competencias (técnica, fuerza, recuperación y
+ * nutrición) son juicio del coach y entran por `competenciasCoach`; aquí no se
+ * inventan.
+ */
+export function competenciasCalculadas(datos: DatosRuta): Competencia[] {
+  const competencias: Competencia[] = []
+
+  if (datos.sesionesTotales > 0) {
+    const pct = acotar((datos.sesionesRegistradas / datos.sesionesTotales) * 100)
+    competencias.push({
+      id: 'consistencia',
+      nombre: 'Consistencia',
+      pct,
+      nota: `${datos.sesionesRegistradas} de ${datos.sesionesTotales} sesiones registradas en el microciclo M${datos.microcicloNumero}.`,
+    })
+  }
+
+  if (datos.desviacionRir !== undefined) {
+    const desvio = Math.abs(datos.desviacionRir)
+    // 0 de desviación = 100; a partir de 2 puntos, 0. Es la escala de la barra,
+    // no un umbral clínico: el dato que vale es el de la nota.
+    const pct = acotar(100 - desvio * 50)
+    const sentido =
+      datos.desviacionRir > 0
+        ? 'te quedas más lejos del fallo de lo pautado (carga corta)'
+        : 'llegas más cerca del fallo de lo pautado (carga larga)'
+    competencias.push({
+      id: 'autorregulacion',
+      nombre: 'Autorregulación (RIR)',
+      pct,
+      nota:
+        desvio === 0
+          ? 'Tu RIR real coincide con el pautado.'
+          : `Tu RIR real se desvía ${desvio.toString().replace('.', ',')} puntos: ${sentido}.`,
+    })
+  }
+
+  const series = cargaDeGruposPrioritarios(datos.seriesPorGrupo)
+  if (series !== undefined) {
+    const pct = acotar(((series - LANDMARK_MEV) / (LANDMARK_MRV - LANDMARK_MEV)) * 100)
+    competencias.push({
+      id: 'volumen',
+      nombre: 'Tolerancia al volumen',
+      pct,
+      nota: `Mediana de ${series} series por grupo esta semana. MEV ≈${LANDMARK_MEV} · MRV ≈${LANDMARK_MRV}.`,
+    })
+  }
+
+  return competencias
+}
+
+/**
+ * Requisitos para el siguiente nivel.
+ *
+ * El criterio es el mismo para todos —define el nivel—, pero dónde va cada uno
+ * se calcula con sus datos. Los dos últimos los valida el coach mirando la
+ * ejecución: no hay forma honesta de deducirlos del registro de series.
+ */
+export function requisitosDeNivel(datos: DatosRuta): RequisitoNivel[] {
+  const pctSesiones =
+    datos.sesionesTotales > 0
+      ? acotar((datos.sesionesRegistradas / datos.sesionesTotales) * 100)
+      : 0
+  const desvio = datos.desviacionRir === undefined ? undefined : Math.abs(datos.desviacionRir)
+  const series = cargaDeGruposPrioritarios(datos.seriesPorGrupo)
+
+  return [
+    {
+      id: 'consistencia',
+      cumplido: pctSesiones >= 90,
+      texto: 'Registrar al menos el 90% de las sesiones que te pauta el coach',
+      metrica:
+        datos.sesionesTotales > 0
+          ? `${datos.sesionesRegistradas} / ${datos.sesionesTotales} sesiones · ${pctSesiones}%`
+          : 'Sin sesiones pautadas todavía',
+    },
+    {
+      id: 'error-rir',
+      cumplido: desvio !== undefined && desvio < 0.5,
+      texto: 'Estimar tu RIR con una desviación media menor a 0,5 respecto al pautado',
+      metrica:
+        desvio === undefined
+          ? 'Aún sin series registradas para medirlo'
+          : `${desvio.toString().replace('.', ',')} de desviación media`,
+    },
+    {
+      id: 'volumen',
+      cumplido: series !== undefined && series >= LANDMARK_MAV_ALTO,
+      texto:
+        'Llegar a la parte alta del volumen (≈20 series por grupo) dentro de la onda, sin perder rendimiento',
+      metrica:
+        series === undefined
+          ? 'Sin volumen pautado todavía'
+          : `Mediana de ${series} series · objetivo ≈${LANDMARK_MAV_ALTO}`,
+    },
+    {
+      id: 'tecnica',
+      cumplido: false,
+      texto: 'Ejecutar en fase autónoma los patrones que entrenas (sin pensar cada paso)',
+      metrica: 'Lo valora tu coach viendo tu ejecución',
+    },
+    {
+      id: 'fuerza',
+      cumplido: false,
+      texto: 'Progresar tu propia fuerza en los básicos, medida con tu 1RM estimado',
+      metrica: 'Lo valora tu coach con tu histórico de cargas',
+    },
+  ]
+}
+
 export interface MiniEstadistica {
   valor: string
   etiqueta: string
+}
+
+/** Las tres cifras que sostienen la tarjeta de progreso, todas del microciclo real. */
+export function estadisticasCalculadas(datos: DatosRuta): MiniEstadistica[] {
+  const estadisticas: MiniEstadistica[] = []
+  const series = cargaDeGruposPrioritarios(datos.seriesPorGrupo)
+
+  if (series !== undefined) {
+    estadisticas.push({ valor: String(series), etiqueta: 'Series / grupo' })
+  }
+  if (datos.desviacionRir !== undefined) {
+    const d = datos.desviacionRir
+    estadisticas.push({
+      valor: `${d > 0 ? '+' : ''}${d.toString().replace('.', ',')}`,
+      etiqueta: 'Desviación RIR',
+    })
+  }
+  if (datos.sesionesTotales > 0) {
+    estadisticas.push({
+      valor: `${datos.sesionesRegistradas}/${datos.sesionesTotales}`,
+      etiqueta: `Sesiones M${datos.microcicloNumero}`,
+    })
+  }
+
+  return estadisticas
+}
+
+/**
+ * Cuánto le falta para el siguiente nivel: la proporción de requisitos que ya
+ * cumple. Antes era un 62% fijo que no salía de ningún lado.
+ */
+export function progresoAlSiguiente(requisitos: readonly RequisitoNivel[]): number {
+  if (requisitos.length === 0) return 0
+  return Math.round((requisitos.filter((r) => r.cumplido).length / requisitos.length) * 100)
 }
 
 export interface BloqueEnCurso {
@@ -224,11 +428,12 @@ export interface RutaAsesorado {
   usuarioId: string
   nivelActual: NivelAlfa
   siguienteNivel?: NivelAlfa
-  /** Progreso al siguiente nivel, 0–100. */
-  pctAlSiguiente: number
-  estadisticas: MiniEstadistica[]
   bloque: BloqueEnCurso
-  competencias: Competencia[]
-  requisitos: RequisitoNivel[]
+  /**
+   * Valoración del coach: técnica, fuerza relativa, recuperación y nutrición
+   * aplicada. Vacía mientras no la cargue — se prefiere una pantalla más corta
+   * a un porcentaje que no es de nadie.
+   */
+  competenciasCoach: Competencia[]
   escala: NivelAlfa[]
 }

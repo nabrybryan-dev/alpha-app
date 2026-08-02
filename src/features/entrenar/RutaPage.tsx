@@ -1,7 +1,18 @@
 import { useSesion } from '../../app/SessionProvider'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
-import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
+import { resumenMicrociclo } from '../../domain/cumplimiento'
+import { cargaPorGrupo } from '../../domain/fatiga'
+import { desviacionRirMedia } from '../../domain/readiness'
+import {
+  armarSemana,
+  competenciasCalculadas,
+  estadisticasCalculadas,
+  progresoAlSiguiente,
+  requisitosDeNivel,
+  sesionDestacada,
+  type DatosRuta,
+} from '../../domain/rutaEntrenamiento'
 import { BloqueEnCurso } from './ruta/BloqueEnCurso'
 import { CabeceraNivel } from './ruta/CabeceraNivel'
 import { CalendarioSemana } from './ruta/CalendarioSemana'
@@ -32,6 +43,19 @@ export default function RutaPage() {
     )
   }
 
+  // Nivel, competencias y requisitos se valoran con SUS datos, no con cifras
+  // iguales para todos. Lo único compartido es el criterio de cada nivel.
+  const resumen = resumenMicrociclo(microciclo)
+  const datos: DatosRuta = {
+    microcicloNumero: microciclo.numero,
+    sesionesRegistradas: resumen.sesionesRegistradas,
+    sesionesTotales: resumen.sesionesTotales,
+    desviacionRir: desviacionRirMedia(microciclo),
+    seriesPorGrupo: cargaPorGrupo(microciclo).map((g) => g.seriesPautadas),
+  }
+  const requisitos = requisitosDeNivel(datos)
+  const competencias = [...competenciasCalculadas(datos), ...ruta.competenciasCoach]
+
   const semana = armarSemana(microciclo, hoy)
   const destacada = sesionDestacada(semana)
   const sesionCta = destacada
@@ -54,10 +78,10 @@ export default function RutaPage() {
 
       <div className="entrada entrada-2">
         <TarjetaProgresoNivel
-          pct={ruta.pctAlSiguiente}
+          pct={progresoAlSiguiente(requisitos)}
           nivelActual={ruta.nivelActual}
           siguienteNivel={ruta.siguienteNivel}
-          estadisticas={ruta.estadisticas}
+          estadisticas={estadisticasCalculadas(datos)}
         />
       </div>
 
@@ -73,11 +97,11 @@ export default function RutaPage() {
       </div>
 
       <div className="entrada entrada-5">
-        <CompetenciasEvaluadas competencias={ruta.competencias} />
+        <CompetenciasEvaluadas competencias={competencias} />
       </div>
 
       <div className="entrada entrada-6">
-        <RequisitosNivel requisitos={ruta.requisitos} siguienteNivel={ruta.siguienteNivel} />
+        <RequisitosNivel requisitos={requisitos} siguienteNivel={ruta.siguienteNivel} />
       </div>
 
       <div className="entrada entrada-6">
