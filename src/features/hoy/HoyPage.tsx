@@ -10,9 +10,10 @@ import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
+import { BarraCoach } from './BarraCoach'
 import { BloqueActual } from './BloqueActual'
+import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
-import { MensajeCoach } from './MensajeCoach'
 import { RadarAlfa } from './RadarAlfa'
 import logoAguila from '../../assets/brand/logo-aguila.jpeg'
 
@@ -81,6 +82,17 @@ export default function HoyPage() {
           Hola, {usuario.nombre.split(' ')[0]}
         </h2>
       </section>
+
+      {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
+          álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
+      <div className="entrada entrada-2">
+        <BarraCoach
+          iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
+          noLeidos={noLeidos}
+          ultimoTexto={ultimoDelCoach?.texto}
+          onEnviar={(envio) => void enviarRapido(usuario.id, envio)}
+        />
+      </div>
 
       {/* Check-in del día */}
       {checkinHoy ? (
@@ -201,14 +213,6 @@ export default function HoyPage() {
 
       <div className="entrada entrada-4">
         <BloqueActual perfil={perfil} />
-      </div>
-
-      <div className="entrada entrada-5">
-        <MensajeCoach
-          mensaje={ultimoDelCoach}
-          coach={db.usuarios.byId(idCoach())}
-          noLeidos={noLeidos}
-        />
       </div>
 
       <div className="entrada entrada-6">

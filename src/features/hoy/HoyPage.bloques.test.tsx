@@ -59,10 +59,11 @@ describe('BloqueActual', () => {
 describe('HoyPage — bloques del rediseño', () => {
   beforeEach(() => localStorage.clear())
 
-  it('lleva la pauta del bloque, el mensaje del coach, el álbum y el radar', async () => {
+  it('lleva la pauta del bloque, la barra del coach, el álbum y el radar', async () => {
     renderizarHoy()
     expect(await screen.findByText('Tu bloque actual')).toBeInTheDocument()
-    expect(screen.getByText('Coach')).toBeInTheDocument()
+    // El coach ya no es una tarjeta al final: es la barra de la cabecera.
+    expect(screen.getByText(/escríbele a tu coach/i)).toBeInTheDocument()
     expect(screen.getByText('Álbum Alfa')).toBeInTheDocument()
     expect(screen.getByText(/Radar Alfa/)).toBeInTheDocument()
   })

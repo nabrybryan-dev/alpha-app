@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { validarAdjunto } from '../../domain/adjuntos'
 
 export interface EnvioRapido {
@@ -57,11 +57,9 @@ export function BarraCoach({ iniciales, noLeidos, ultimoTexto, onEnviar }: Barra
 
   return (
     <section className="glass glass-destacada rounded-bloque p-3.5">
-      <button
-        type="button"
-        onClick={() => navegar('/chat')}
-        className="press flex w-full items-center gap-2.5 text-left"
-      >
+      {/* Enlace de verdad, no un botón que navega: así funciona el clic central,
+          el "abrir en pestaña nueva" y se anuncia como enlace. */}
+      <Link to="/chat" className="press flex w-full items-center gap-2.5 text-left">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-3 text-[11px] font-bold text-texto">
           {iniciales}
         </span>
@@ -74,7 +72,7 @@ export function BarraCoach({ iniciales, noLeidos, ultimoTexto, onEnviar }: Barra
             {noLeidos}
           </span>
         )}
-      </button>
+      </Link>
 
       {archivo && (
         <p className="mt-2.5 flex items-center gap-2 rounded-boton border border-linea bg-surface-1 px-3 py-1.5 text-xs text-tenue">
