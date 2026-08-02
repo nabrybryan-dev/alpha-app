@@ -108,6 +108,20 @@
   --accion-osc: #c8121a;
   --logrado: var(--silver-300);
   --silver-300-rgb: 194 200 207;
+  /* Oro: reservado al nivel Élite de la Escala Alfa. No es un acento de uso
+     general — si aparece en otra pantalla, es que algo se copió mal. */
+  --oro: #d8b25c;
+  /* Marco metálico de las fichas del Álbum Alfa (padding 4px sobre el interior). */
+  --metal-grad: linear-gradient(
+    135deg,
+    #5f646b 0%,
+    #c9ced6 17%,
+    #7d838b 37%,
+    #eef1f4 51%,
+    #7d838b 65%,
+    #c9ced6 84%,
+    #5f646b 100%
+  );
   --glow-accion: 0 0 0 3px rgba(255, 30, 30, 0.14), 0 8px 24px rgba(255, 30, 30, 0.2);
   --inset-top-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -457,6 +471,80 @@ body {
 
 .aguila-entra {
   animation: aguila-entra 760ms var(--ease-cajon) both;
+}
+
+/* ---------- Splash de marca ---------- */
+
+/* Barrido metálico sobre el nombre: el degradado se mueve por background-position,
+   que no fuerza layout. */
+@keyframes barrido-brillo {
+  from { background-position: -140% 0; }
+  to { background-position: 240% 0; }
+}
+
+.brillo-marca {
+  background-image: linear-gradient(
+    100deg,
+    var(--silver-400) 0%,
+    var(--silver-400) 38%,
+    #ffffff 50%,
+    var(--silver-400) 62%,
+    var(--silver-400) 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: barrido-brillo 1.9s var(--ease-salida) 0.25s both;
+}
+
+@keyframes lema-entra {
+  from { opacity: 0; letter-spacing: 0.5em; }
+  to { opacity: 1; letter-spacing: 0.28em; }
+}
+
+.entrada-lema {
+  animation: lema-entra 900ms var(--ease-salida) 0.35s both;
+}
+
+@keyframes carga-barra {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.barra-carga {
+  transform-origin: left;
+  animation: carga-barra 1.9s var(--ease-mov) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brillo-marca {
+    animation: none;
+    background-image: none;
+    color: var(--silver-100);
+  }
+  .entrada-lema,
+  .barra-carga {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- Punto vivo (cabecera del Radar Alfa) ---------- */
+
+@keyframes latir-punto {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.82); }
+}
+
+.punto-vivo {
+  animation: latir-punto 1.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .punto-vivo {
+    animation: none;
+  }
 }
 
 /* ---------- Ticker desplazante del panel de ritmo ---------- */

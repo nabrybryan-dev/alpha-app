@@ -29,6 +29,16 @@ export interface Perfil {
   somatotipo: string
   volumenSemanal: Record<string, NivelVolumen>
   medidas: MedidaCorporal[]
+  /**
+   * Pauta del bloque actual, la que se resume en Hoy. Los tres son opcionales
+   * a propósito: son prescripción del coach, no cálculo de la app. Mientras no
+   * los cargue, la tarjeta no se pinta — antes que enseñar un número inventado.
+   *
+   * Viajan dentro de `perfiles.datos` (JSONB), así que no necesitan migración.
+   */
+  faseEnergetica?: string
+  proteinaGkg?: number
+  pasosObjetivo?: number
 }
 
 export interface SerieRegistrada {

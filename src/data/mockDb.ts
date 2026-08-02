@@ -8,8 +8,10 @@ import type {
   TestPostSesion,
 } from '../domain/types'
 import { construirRanking } from '../domain/ranking'
+import { crearContenidoRepo } from './contenido/contenidoRepo'
 import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBase'
 import type { Db } from './repos'
+import { crearRutaRepo } from './ruta/rutaRepo'
 import { seedDb, type SeedDb } from './seed'
 import { diasAtras } from './seed/fechas'
 
@@ -616,5 +618,9 @@ export function crearMockDb(): Db {
           diasAtras(0),
         ),
     },
+
+    ruta: crearRutaRepo(),
+
+    contenidoAlfa: crearContenidoRepo(),
   }
 }

@@ -81,8 +81,8 @@ export function LoginPage() {
         <div className="mb-5 flex justify-center">
           <AguilaInteractiva entrada className="h-32 w-32" />
         </div>
-        <p className="kicker text-center">Science based performance</p>
-        <h1 className="mt-1 text-center font-display text-3xl text-white">Alpha Athletics</h1>
+        <h1 className="text-center font-display text-3xl text-white">Alpha Athletics</h1>
+        <p className="kicker mt-1.5 text-center">100% personalizado, 0% genérico</p>
 
         <form
           className="glass glass-blur mt-6 flex flex-col gap-3 rounded-panel p-4"
@@ -119,8 +119,8 @@ export function LoginPage() {
           >
             {modo === 'login'
               ? cargando
-                ? 'Entrando…'
-                : 'Entrar →'
+                ? 'ACCEDIENDO…'
+                : 'ENTRAR'
               : cargando
                 ? 'Enviando…'
                 : 'Enviar enlace de recuperación →'}
