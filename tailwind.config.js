@@ -38,6 +38,8 @@ export default {
         'bone-200': 'var(--bone-200)',
         'bone-300': 'var(--bone-300)',
         paper: 'var(--paper)',
+        // Solo para el nivel Élite de la Escala Alfa.
+        oro: 'var(--oro)',
       },
       fontFamily: {
         display: ['Archivo', 'Satoshi', 'system-ui', 'sans-serif'],

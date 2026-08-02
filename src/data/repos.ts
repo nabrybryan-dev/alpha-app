@@ -1,4 +1,7 @@
 import type { FilaRanking } from '../domain/ranking'
+import type { RutaAsesorado } from '../domain/rutaEntrenamiento'
+import type { StickerAlbum } from './contenido/albumAlfa'
+import type { NoticiaRadar } from './contenido/radarAlfa'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
@@ -42,7 +45,7 @@ export interface MicrociclosRepo {
   byUsuario(usuarioId: string): Microciclo[]
   /**
    * Guarda una propuesta del coach. Entra SIEMPRE con `estado: 'propuesto'`, y esa
-   * es la salvaguarda: las pantallas del asesorado (`HoyPage`, `MicrocicloPage`)
+   * es la salvaguarda: las pantallas del asesorado (`HoyPage`, `RutaPage`)
    * solo miran el microciclo `activo`, así que una propuesta no le llega a nadie
    * hasta que alguien decida activarla.
    *
@@ -171,6 +174,18 @@ export interface RankingRepo {
   list(): FilaRanking[]
 }
 
+export interface RutaRepo {
+  /** Nivel, competencias y requisitos que pinta la vista Ruta de Entrenar. */
+  byUsuario(usuarioId: string): RutaAsesorado
+}
+
+export interface ContenidoAlfaRepo {
+  /** Fichas coleccionables del Álbum Alfa (Hoy). */
+  album(): StickerAlbum[]
+  /** Ticker de ciencia y fitness del Radar Alfa (Hoy). */
+  radar(): NoticiaRadar[]
+}
+
 export interface Db {
   usuarios: UsuariosRepo
   perfiles: PerfilesRepo
@@ -186,4 +201,6 @@ export interface Db {
   contenidos: ContenidosRepo
   premiaciones: PremiacionesRepo
   ranking: RankingRepo
+  ruta: RutaRepo
+  contenidoAlfa: ContenidoAlfaRepo
 }

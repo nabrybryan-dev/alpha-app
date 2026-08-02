@@ -1,13 +1,13 @@
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { CifraAnimada } from '../../components/ui/CifraAnimada'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Revelar } from '../../components/ui/Revelar'
+import { ASESORADOS_DESTACADOS } from '../../data/contenido/asesoradosDestacados'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
-import { ProgresoEvolucion } from './ProgresoEvolucion'
-import { ASESORADOS_DESTACADOS } from './asesoradosDestacados'
 import { FichaPanini } from './FichaPanini'
 import { RankingEquipo } from './RankingEquipo'
 import { useGamificacion } from './useGamificacion'
@@ -63,10 +63,21 @@ export default function LogrosPage() {
         ))}
       </section>
 
-      <section className="entrada entrada-3">
-        <p className="kicker mb-2">Tu evolución</p>
-        <ProgresoEvolucion usuarioId={usuario.id} />
-      </section>
+      {/* La evolución (peso, carga, volumen y medidas) vive en la pestaña
+          Progreso: aquí solo se enlaza para no tener los mismos gráficos en
+          dos pantallas. */}
+      <Link
+        to="/progreso"
+        className="press entrada entrada-3 flex items-center justify-between gap-3 rounded-tarjeta border border-ink-500 bg-ink-800 px-4 py-3.5"
+      >
+        <span>
+          <span className="block font-display text-sm text-silver-100">Tu evolución</span>
+          <span className="block text-xs text-silver-400">Peso, carga, volumen y medidas</span>
+        </span>
+        <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accion/15 text-base text-accion">
+          →
+        </span>
+      </Link>
 
       <section className="entrada entrada-3">
         <p className="kicker mb-2">Ranking Equipo Alpha</p>

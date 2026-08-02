@@ -53,6 +53,24 @@ export function sesionSugerida(
   return { sesion: pendientes[0], esDeHoy: false }
 }
 
+/**
+ * Semana del año (ISO 8601), la que rotula el Radar Alfa ("Sem 31").
+ *
+ * Se calcula en vez de escribirse a mano: un número fijo en el código acierta
+ * una semana y miente las otras 51.
+ */
+export function semanaDelAnio(fechaIso: string): number {
+  const fecha = new Date(`${fechaIso}T00:00:00`)
+  // La semana 1 es la que contiene el primer jueves del año, así que se compara
+  // jueves contra jueves.
+  const jueves = new Date(fecha)
+  jueves.setDate(fecha.getDate() - ((fecha.getDay() + 6) % 7) + 3)
+  const primerJueves = new Date(jueves.getFullYear(), 0, 4)
+  primerJueves.setDate(primerJueves.getDate() - ((primerJueves.getDay() + 6) % 7) + 3)
+  const SEMANA_MS = 7 * 24 * 60 * 60 * 1000
+  return 1 + Math.round((jueves.getTime() - primerJueves.getTime()) / SEMANA_MS)
+}
+
 /** Etiqueta de una serie concreta (1-based) cuando el esquema no es uniforme. */
 export function etiquetaDeSerie(
   ejercicio: { etiquetasSeries?: string[] },

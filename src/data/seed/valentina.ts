@@ -35,6 +35,9 @@ export const perfilValentina: Perfil = {
   diasEntrenamiento: 5,
   tiempoSesionMin: 150,
   somatotipo: 'Mesomorfa',
+  faseEnergetica: 'Déficit 10-15%',
+  proteinaGkg: 2,
+  pasosObjetivo: 9000,
   volumenSemanal: {
     Isquios: 'Muy Alto',
     Pecho: 'Muy Alto',

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { diaDeSesion, diaSemanaDe, etiquetaDeSerie, sesionSugerida } from './calendario'
+import {
+  diaDeSesion,
+  diaSemanaDe,
+  etiquetaDeSerie,
+  semanaDelAnio,
+  sesionSugerida,
+} from './calendario'
 import type { Microciclo, Sesion } from './types'
 
 function sesion(id: string, nombre: string, extra?: Partial<Sesion>): Sesion {
@@ -73,6 +79,26 @@ describe('sesionSugerida', () => {
 
   it('devuelve undefined con todo registrado', () => {
     expect(sesionSugerida(microciclo([lunes, sinDia]), '2026-07-20', () => true)).toBeUndefined()
+  })
+})
+
+describe('semanaDelAnio', () => {
+  it('numera la semana ISO', () => {
+    expect(semanaDelAnio('2026-08-01')).toBe(31)
+    expect(semanaDelAnio('2026-01-01')).toBe(1)
+    expect(semanaDelAnio('2026-12-31')).toBe(53)
+  })
+
+  it('los 7 días de una misma semana comparten número', () => {
+    // Lunes 2026-07-27 a domingo 2026-08-02.
+    const numeros = [27, 28, 29, 30, 31].map((d) => semanaDelAnio(`2026-07-${d}`))
+    numeros.push(semanaDelAnio('2026-08-01'), semanaDelAnio('2026-08-02'))
+    expect(new Set(numeros).size).toBe(1)
+  })
+
+  it('los primeros días de enero pueden caer en la última semana del año anterior', () => {
+    // 2027-01-01 es viernes: pertenece a la semana 53 de 2026.
+    expect(semanaDelAnio('2027-01-01')).toBe(53)
   })
 })
 
