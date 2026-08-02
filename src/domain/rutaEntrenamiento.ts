@@ -460,6 +460,14 @@ export function competenciasCalculadas(datos: DatosRuta): Competencia[] {
  * se calcula con sus datos. Los dos últimos los valida el coach mirando la
  * ejecución: no hay forma honesta de deducirlos del registro de series.
  */
+/**
+ * @deprecated Ya no la usa ninguna pantalla. La sustituye
+ * `requisitosParaPeldano(destino, datos)` de `nivelesAlfa.ts`, que sí mira a qué
+ * peldaño va la persona: esta devolvía la MISMA lista para los siete.
+ *
+ * Sigue aquí solo porque sus tests documentan por qué cada criterio existe.
+ * Al borrarla, llevarse esos tests a `nivelesAlfa.test.ts` en vez de tirarlos.
+ */
 export function requisitosDeNivel(datos: DatosRuta): RequisitoNivel[] {
   const pctSesiones =
     datos.sesionesTotales > 0

@@ -44,6 +44,15 @@ export interface Perfil {
    * (hoy, la técnica). El resto de competencias de la Ruta se calculan solas.
    */
   valoraciones?: ValoracionCompetencia[]
+  /**
+   * Peldaño de la Escala Alfa, 1–7. Sin definir = todavía no se ha calculado y
+   * se deduce de sus datos.
+   *
+   * Antes no existía: la Ruta devolvía el peldaño 03 para todo el mundo.
+   */
+  peldanoAlfa?: number
+  /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
+  ascensoIso?: string
 }
 
 /** Nota del coach a una competencia concreta de la Ruta. */

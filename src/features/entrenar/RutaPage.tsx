@@ -11,11 +11,11 @@ import {
   competenciasCalculadas,
   estadisticasCalculadas,
   progresoAlSiguiente,
-  requisitosDeNivel,
   sesionDestacada,
   valoracionesACompetencias,
   type DatosRuta,
 } from '../../domain/rutaEntrenamiento'
+import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
 import { BloqueEnCurso } from './ruta/BloqueEnCurso'
 import { CabeceraNivel } from './ruta/CabeceraNivel'
 import { CalendarioSemana } from './ruta/CalendarioSemana'
@@ -59,6 +59,7 @@ export default function RutaPage() {
     .sort((a, b) => b.numero - a.numero)[0]
   const adherencias = db.nutricion.adherenciasByUsuario(usuario.id)
 
+  const perfil = db.perfiles.byUsuario(usuario.id)
   const datos: DatosRuta = {
     microcicloNumero: microciclo.numero,
     sesionesRegistradas: resumen.sesionesRegistradas,
@@ -67,11 +68,15 @@ export default function RutaPage() {
     seriesPorGrupo: cargaPorGrupo(microciclo).map((g) => g.seriesPautadas),
     progresoFuerza: compararFuerza(microciclo, previo),
     adherenciaPct: adherencias.length > 0 ? porcentajeAdherencia(adherencias) : undefined,
+    // La técnica es la compuerta humana del ascenso: la app no ve ejecución.
+    tecnicaPct: perfil?.valoraciones?.find((v) => v.id === 'tecnica')?.pct,
   }
-  const requisitos = requisitosDeNivel(datos)
+  // Los requisitos son los del peldaño AL QUE VA, no una lista igual para todos.
+  const peldanoActual = perfil?.peldanoAlfa ?? 1
+  const requisitos = requisitosParaPeldano(peldanoActual + 1, datos)
   const competencias = [
     ...competenciasCalculadas(datos),
-    ...valoracionesACompetencias(db.perfiles.byUsuario(usuario.id)?.valoraciones),
+    ...valoracionesACompetencias(perfil?.valoraciones),
   ]
 
   const semana = armarSemana(microciclo, hoy)

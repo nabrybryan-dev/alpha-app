@@ -655,7 +655,11 @@ export function crearMockDb(): Db {
         ),
     },
 
-    ruta: crearRutaRepo(),
+    // El peldaño sale del perfil de cada persona. Sin valorar todavía, arranca
+    // en el primero: nadie empieza en el 03, que es lo que pasaba antes.
+    ruta: crearRutaRepo(
+      (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId)?.peldanoAlfa ?? 1,
+    ),
 
     contenidoAlfa: crearContenidoRepo(),
   }
