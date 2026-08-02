@@ -197,15 +197,24 @@ describe('activarAutomaticas', () => {
    */
   it('ignora una propuesta guardada que no es la del microciclo siguiente', () => {
     const { db, usuario, activo } = partida()
-    const desfasada = { ...microcicloPropuesto(activo), numero: activo.numero + 5 }
-    db.microciclos.guardarPropuesta(desfasada)
+    // Una que se preparó hace microciclos y nunca se activó: sigue en la base.
+    const colgada = microcicloPropuesto({
+      ...activo,
+      id: 'm18',
+      numero: activo.numero - 4,
+    })
+    db.microciclos.guardarPropuesta(colgada)
 
     activarAutomaticas(db, [filaAutomatica(usuario, activo.numero)])
 
     const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
     expect(activos).toHaveLength(1)
     expect(activos[0].numero).toBe(activo.numero + 1)
-    expect(activos[0].id).not.toBe(desfasada.id)
+    expect(activos[0].id).not.toBe(colgada.id)
+    // Y la colgada se queda como estaba, sin activarse por la puerta de atrás.
+    expect(db.microciclos.byUsuario('u-valentina').find((m) => m.id === colgada.id)?.estado).toBe(
+      'propuesto',
+    )
   })
 
   it('devuelve solo las que activó', () => {
