@@ -282,6 +282,72 @@ describe('ondularEjercicio', () => {
     expect(r.series.at(-1)!.cargaKg).toBeGreaterThanOrEqual(50)
   })
 
+  /**
+   * ✅ REGRESIÓN. `OpcionesOndulacion.cargaPrescritaKg` decía servir «de ancla
+   * cuando todavía no hay series registradas», pero los tres sitios que llaman le
+   * pasaban `ejercicio.series[0]?.cargaKg` — que es lo REGISTRADO. Si hay series
+   * registradas gana `e1rmDeSeries` y el ancla no se usa; si no las hay, vale
+   * `undefined`. Es decir: en la app nunca entraba por ahí.
+   *
+   * Lo que se veía: programar el microciclo siguiente ANTES de que el asesorado
+   * terminara el actual dejaba sin ondular todo lo que aún no había entrenado —la
+   * mayor parte de la semana— y esos ejercicios se copiaban planos al microciclo
+   * nuevo. Justo el caso de preparar la semana por adelantado.
+   *
+   * El ancla que faltaba es la del propio ejercicio: lo que ya está PAUTADO serie
+   * a serie. No inventa progresión (sin series registradas no hay brecha que
+   * corregir): reexpresa la misma intensidad como rampa ondulada.
+   */
+  it('se ondula sobre lo ya pautado cuando el ejercicio aún no se ha entrenado', () => {
+    const pautado = ejercicio({
+      sets: 3,
+      series: [],
+      seriesPrescritas: [
+        { orden: 1, reps: 10, rir: 2, cargaKg: 50 },
+        { orden: 2, reps: 9, rir: 2, cargaKg: 52.5 },
+        { orden: 3, reps: 8, rir: 2, cargaKg: 55 },
+      ],
+    })
+    const r = ondularEjercicio(pautado)
+
+    expect(r.direccion).not.toBe('sin-datos')
+    expect(r.series).toHaveLength(3)
+    expect(r.series.every((s) => s.cargaKg > 0)).toBe(true)
+  })
+
+  it('lo registrado le gana a lo pautado: la evidencia manda sobre el plan', () => {
+    const ambos = ejercicio({
+      sets: 3,
+      series: [
+        { orden: 1, cargaKg: 80, reps: 10, rir: 2 },
+        { orden: 2, cargaKg: 80, reps: 10, rir: 2 },
+        { orden: 3, cargaKg: 80, reps: 10, rir: 2 },
+      ],
+      seriesPrescritas: [{ orden: 1, reps: 10, rir: 2, cargaKg: 50 }],
+    })
+    const soloRegistrado = ejercicio({ sets: 3, series: ambos.series })
+    expect(ondularEjercicio(ambos).e1rm).toBe(ondularEjercicio(soloRegistrado).e1rm)
+  })
+
+  /**
+   * El otro lado del límite: sin NADA de donde partir se sigue diciendo «sin
+   * datos» en vez de fabricar una carga. Un ejercicio nuevo que el coach añadió y
+   * nadie ha hecho todavía no tiene 1RM que estimar, y prescribirle kilos
+   * inventados a alguien en el gimnasio es peor que dejarlo como está.
+   */
+  it('sin series registradas ni pautadas sigue sin inventar carga', () => {
+    const r = ondularEjercicio(ejercicio({ series: [], seriesPrescritas: undefined }))
+    expect(r.direccion).toBe('sin-datos')
+    expect(r.series).toHaveLength(0)
+  })
+
+  it('una prescripción pautada con carga 0 no cuenta como ancla', () => {
+    const r = ondularEjercicio(
+      ejercicio({ series: [], seriesPrescritas: [{ orden: 1, reps: 10, rir: 2, cargaKg: 0 }] }),
+    )
+    expect(r.direccion).toBe('sin-datos')
+  })
+
   it('la carga nunca retrocede entre sets consecutivos', () => {
     for (const rango of ['8-10', '6-8', '10-12', '12-15']) {
       for (const sets of [2, 3, 4, 5]) {
