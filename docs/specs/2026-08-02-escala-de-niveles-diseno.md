@@ -104,11 +104,19 @@ compuerta humana del ascenso automático: nadie sube sin que el coach le haya vi
 
 No existen en los peldaños bajos, porque no aplican a esa etapa.
 
-| Eje | Aparece en | Qué mide | De dónde sale |
+| Eje | Aparece en | Qué mide | Quién lo determina |
 |---|---|---|---|
-| Autorregulación real | 04 en adelante | Que baje la carga cuando entra con readiness baja, en vez de sostenerla igual | Test post-sesión + series registradas |
-| Respuesta a la descarga | 06 en adelante | Que tras la descarga el 1RM estimado suba | Comparar el microciclo posterior a la descarga con el previo |
-| Estabilidad entre bloques | 07 | Que no se caiga: cumplir el resto de requisitos en dos bloques seguidos | Historial de microciclos |
+| Autorregulación real | 04 en adelante | Que baje la carga cuando entra con readiness baja, en vez de sostenerla igual | **El coach**, en su panel |
+| Respuesta a la descarga | 06 en adelante | Que tras la descarga el 1RM estimado suba | La app: compara el microciclo posterior a la descarga con el previo |
+| Estabilidad entre bloques | 07 | Que no se caiga: cumplir el resto de requisitos en dos bloques seguidos | La app: historial de microciclos |
+
+**Por qué la autorregulación la valora el coach y las otras dos no** (decidido el
+2026-08-02): las otras dos son comparaciones limpias entre microciclos, y el dato basta.
+La autorregulación no: distinguir "bajó la carga porque venía cansado" de "bajó porque
+tuvo un mal día" es lectura de contexto. La app ve el número, no el motivo.
+
+Queda entonces junto a la técnica en el panel del coach: dos valoraciones por asesorado,
+no una.
 
 ### 4.3 Los conocimientos
 
@@ -171,9 +179,12 @@ módulo propio.
 
 ## 8. Fuera de alcance
 
-- **Convertir la valoración de técnica en criterios con casillas** (modelo RTSB). Es lo que
-  la evidencia pide y lo que haría fiable la compuerta, pero cambia lo que ya usa el coach
-  y merece su propio proyecto.
+- **Convertir la valoración de técnica en criterios con casillas** (modelo RTSB).
+  **Decidido el 2026-08-02: no se hace.** Se planteó que el deslizador de 0 a 100 no tiene
+  la repetibilidad del modelo validado —ICC 0,88 frente a una impresión que varía entre dos
+  días del mismo evaluador— y que ahora ese número decide ascensos. El coach lo asume y
+  prefiere seguir con el deslizador. Queda escrito aquí para que quien lo lea después sepa
+  que es una decisión tomada con el riesgo a la vista, y no un olvido.
 - Que el nivel decida programación. Hoy es display, y ahí se queda.
 - Bajar de nivel.
 - Insignias o premios por ascender: eso vive en Logros, que es otra escala.
