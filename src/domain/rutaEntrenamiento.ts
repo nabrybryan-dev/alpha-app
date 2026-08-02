@@ -283,6 +283,14 @@ export interface DatosRuta {
   progresoFuerza?: ProgresoFuerza
   /** Adherencia nutricional, 0–100. */
   adherenciaPct?: number
+  /** Valoración de técnica del coach, 0–100. Es la compuerta humana del ascenso. */
+  tecnicaPct?: number
+  /** Baja la carga los días de readiness baja, en vez de sostenerla igual. */
+  autorregulaConReadiness?: boolean
+  /** Su 1RM estimado sube después de una descarga. */
+  respondeADescarga?: boolean
+  /** Sostiene el resto de requisitos dos bloques seguidos. */
+  estableEntreBloques?: boolean
 }
 
 export interface ProgresoFuerza {
