@@ -244,7 +244,20 @@ export interface Mensaje {
   paraId: string
   fechaIso: string
   texto: string
-  adjuntoUrl?: string
+  /**
+   * Ruta del objeto dentro del bucket privado. NO es una URL: el bucket no es
+   * publico, asi que se firma al pintarla y se deja caducar.
+   *
+   * Sustituye al viejo `adjuntoUrl`, que guardaba el nombre que el archivo tenia
+   * en el telefono -y nada mas: no habia archivo detras de ese nombre-.
+   */
+  adjuntoPath?: string
+  adjuntoTipo?: 'imagen' | 'video'
+  /**
+   * Solo local, no viaja a la base: dice si el archivo de ESTE dispositivo ya
+   * subio. Para cualquier otro dispositivo la respuesta siempre es que si.
+   */
+  adjuntoEstado?: 'subiendo' | 'listo'
   leido: boolean
   /** 'alpha' = respuesta automatica del Centro de Respuestas. Sin definir = humano. */
   origen?: 'humano' | 'alpha'

@@ -539,7 +539,7 @@ export function crearMockDb(): Db {
               (m.deId === usuarioB && m.paraId === usuarioA),
           )
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
-      enviar: ({ deId, paraId, texto, adjuntoUrl, origen }) => {
+      enviar: ({ deId, paraId, texto, adjuntoTipo, adjuntoEstado, origen }) => {
         mutar((estado) => ({
           ...estado,
           mensajes: [
@@ -549,12 +549,29 @@ export function crearMockDb(): Db {
               deId,
               paraId,
               texto,
-              adjuntoUrl,
+              adjuntoTipo,
+              adjuntoEstado,
               origen: origen ?? 'humano',
               fechaIso: new Date().toISOString(),
               leido: false,
             },
           ],
+        }))
+      },
+      anotarPath: (mensajeId, path) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoPath: path } : m,
+          ),
+        }))
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoEstado: 'listo' as const } : m,
+          ),
         }))
       },
       recibirDeAlpha: ({ id, deId, paraId, texto }) => {

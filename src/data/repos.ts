@@ -146,10 +146,18 @@ export interface MensajesRepo {
     deId: string
     paraId: string
     texto: string
-    adjuntoUrl?: string
+    adjuntoTipo?: 'imagen' | 'video'
+    adjuntoEstado?: 'subiendo' | 'listo'
     /** 'alpha' marca la respuesta del Centro de Respuestas. Por defecto, humano. */
     origen?: 'humano' | 'alpha'
   }): void
+  /**
+   * Deja anotado dónde quedó el archivo. Va aparte de `enviar` porque el path
+   * lleva el id del mensaje, y ese id no existe hasta haberlo creado.
+   */
+  anotarPath(mensajeId: string, path: string): void
+  /** El archivo terminó de subir: deja de mostrarse como pendiente. */
+  marcarAdjuntoListo(mensajeId: string): void
   marcarLeidos(paraId: string, deId: string): void
   noLeidosPara(usuarioId: string): number
   noLeidosDe(paraId: string, deId: string): number

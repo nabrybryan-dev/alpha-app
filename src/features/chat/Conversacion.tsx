@@ -107,7 +107,6 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
       deId: yoId,
       paraId: otroId,
       texto: limpio || `📎 ${adjunto}`,
-      adjuntoUrl: adjunto || undefined,
     })
     setTexto('')
     setAdjunto('')

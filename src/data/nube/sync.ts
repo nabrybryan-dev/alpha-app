@@ -17,6 +17,8 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
+import type { Mensaje } from '../../domain/types'
+import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube } from '../supabase'
 import { encolar } from './procesador'
 
@@ -26,6 +28,50 @@ export type { OperacionPendiente } from './cola'
 export { integrarEnCola, limpiarColasDeSync, pendientesDeSync } from './cola'
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
+
+/** La fila de `mensajes` tal como viaja a Supabase. */
+function encolarFilaDeMensaje(mensaje: Mensaje): void {
+  encolar({
+    tabla: 'mensajes',
+    tipo: 'upsert',
+    payload: {
+      id: mensaje.id,
+      de_id: mensaje.deId,
+      para_id: mensaje.paraId,
+      fecha_iso: mensaje.fechaIso,
+      texto: mensaje.texto,
+      adjunto_path: mensaje.adjuntoPath ?? null,
+      adjunto_tipo: mensaje.adjuntoTipo ?? null,
+      origen: mensaje.origen ?? 'humano',
+      leido: false,
+    },
+  })
+}
+
+/**
+ * Sube el archivo y SOLO ENTONCES encola la fila del mensaje.
+ *
+ * Nunca lanza: que falle aquí significa "todavía no", no "se perdió". El archivo
+ * se queda en el depósito y lo retoma el intento siguiente. Y no se borra hasta
+ * que la fila está encolada — el mismo principio que protege las series de quien
+ * entrena sin señal en un sótano.
+ */
+export async function subirAdjuntoPendiente(
+  mensaje: Mensaje,
+  subir: (path: string, blob: Blob) => Promise<unknown>,
+): Promise<boolean> {
+  if (!mensaje.adjuntoPath) return false
+  const blob = await leerDeposito(mensaje.id)
+  if (!blob) return false
+  try {
+    await subir(mensaje.adjuntoPath, blob)
+  } catch {
+    return false
+  }
+  encolarFilaDeMensaje(mensaje)
+  await borrarDeposito(mensaje.id)
+  return true
+}
 
 const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
 
@@ -368,24 +414,26 @@ export function crearDbSincronizada(local: Db): Db {
 
     mensajes: {
       ...local.mensajes,
+      /**
+       * Un mensaje de solo texto se encola al momento. Uno CON adjunto no:
+       * espera a que el archivo esté arriba.
+       *
+       * El orden importa. Si la fila subiera primero, el coach vería en su hilo
+       * un mensaje con foto y al tocarlo no habría nada —el archivo todavía
+       * estaría en el teléfono de la otra persona, o no llegaría nunca—. Quien
+       * encola esa fila es `encolarFilaDeMensaje`, ya con el path.
+       */
       enviar: (mensaje) => {
         local.mensajes.enviar(mensaje)
+        if (mensaje.adjuntoTipo) return
         const hilo = local.mensajes.hilo(mensaje.deId, mensaje.paraId)
-        const ultimo = hilo[hilo.length - 1]
-        encolar({
-          tabla: 'mensajes',
-          tipo: 'upsert',
-          payload: {
-            id: ultimo.id,
-            de_id: ultimo.deId,
-            para_id: ultimo.paraId,
-            fecha_iso: ultimo.fechaIso,
-            texto: ultimo.texto,
-            adjunto_url: ultimo.adjuntoUrl ?? null,
-            origen: ultimo.origen ?? 'humano',
-            leido: false,
-          },
-        })
+        encolarFilaDeMensaje(hilo[hilo.length - 1])
+      },
+      anotarPath: (mensajeId, path) => {
+        local.mensajes.anotarPath(mensajeId, path)
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        local.mensajes.marcarAdjuntoListo(mensajeId)
       },
       /**
        * ÚNICA escritura de mensajes que NO pasa por la cola, y es a propósito.
