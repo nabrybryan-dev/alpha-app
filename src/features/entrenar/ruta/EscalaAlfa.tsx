@@ -1,4 +1,10 @@
-import type { EstadoNivelAlfa, NivelAlfa } from '../../../domain/rutaEntrenamiento'
+import type { EstadoNivelAlfa, NivelAlfa, NivelMetodo } from '../../../domain/rutaEntrenamiento'
+
+const ETIQUETA_METODO: Record<NivelMetodo, string> = {
+  principiante: 'Principiante',
+  intermedio: 'Intermedio',
+  avanzado: 'Avanzado',
+}
 
 const ETIQUETA: Record<EstadoNivelAlfa, string> = {
   superado: 'Superado',
@@ -80,9 +86,14 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <h4 className={`font-display text-sm ${COLOR_TITULO[nivel.estado]}`}>{nivel.nombre}</h4>
-                  <span className="cifras shrink-0 whitespace-nowrap text-[10.5px] text-silver-500">
-                    {nivel.rango}
-                  </span>
+                  {/* El método clasifica en tres niveles, no en cinco ni por años
+                      entrenados: cada peldaño declara al suyo. Se calla cuando
+                      diría lo mismo que el nombre ("AVANZADO · Avanzado"). */}
+                  {ETIQUETA_METODO[nivel.nivelMetodo].toUpperCase() !== nivel.nombre && (
+                    <span className="shrink-0 whitespace-nowrap text-[10.5px] uppercase tracking-[0.1em] text-silver-500">
+                      {ETIQUETA_METODO[nivel.nivelMetodo]}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1.5 text-xs leading-relaxed text-silver-400">{nivel.descripcion}</p>
                 <p

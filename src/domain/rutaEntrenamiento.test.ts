@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   armarSemana,
+  competenciasCalculadas,
+  estadisticasCalculadas,
   gradoDeCompetencia,
   inicioSemanaDe,
+  progresoAlSiguiente,
+  requisitosDeNivel,
   resumenSemana,
   sesionDestacada,
 } from './rutaEntrenamiento'
@@ -186,6 +190,114 @@ describe('sesionDestacada', () => {
       sesion('s-lun', 'PUSH A (LUNES)', { ejercicios: [ejercicio(3, 3)] }),
     ])
     expect(sesionDestacada(armarSemana(micro, '2026-07-22'))).toBeUndefined()
+  })
+})
+
+describe('valoración con datos reales', () => {
+  // Lo que se validó contra el Cerebro el 2026-08-01: el nivel no se mide por
+  // años entrenados ni por un ratio de fuerza (no existe ninguno en la wiki), y
+  // sostener 20-22 series un mesociclo entero es vivir en MRV, que es justo lo
+  // que el motor manda descargar.
+  const datos = {
+    microcicloNumero: 22,
+    sesionesRegistradas: 5,
+    sesionesTotales: 6,
+    desviacionRir: 1.2,
+    seriesPorGrupo: [14, 18, 20, 12],
+  }
+
+  it('calcula las tres competencias que salen del registro, y ninguna más', () => {
+    const r = competenciasCalculadas(datos)
+    expect(r.map((c) => c.id)).toEqual(['consistencia', 'autorregulacion', 'volumen'])
+  })
+
+  it('la nota lleva el número real, no solo la barra', () => {
+    const r = competenciasCalculadas(datos)
+    expect(r[0].nota).toMatch(/5 de 6 sesiones/)
+    expect(r[1].nota).toMatch(/1,2 puntos/)
+    // Mediana de los 3 grupos con más volumen (20, 18, 14), no de los cuatro.
+    expect(r[2].nota).toMatch(/18 series/)
+  })
+
+  it('el volumen se juzga donde el bloque acumula, no promediando todos los grupos', () => {
+    // Los landmarks son "por grupo grande": meter pantorrillas y abdomen en la
+    // media hunde el número y hace parecer que entrena por debajo de MEV.
+    const conAccesorios = competenciasCalculadas({
+      ...datos,
+      seriesPorGrupo: [20, 18, 16, 4, 4, 3, 3],
+    })
+    expect(conAccesorios[2].nota).toMatch(/18 series/)
+    expect(conAccesorios[2].pct).toBeGreaterThan(50)
+  })
+
+  it('distingue quedarse corto de pasarse de cerca del fallo', () => {
+    const corto = competenciasCalculadas({ ...datos, desviacionRir: 1.2 })[1]
+    const largo = competenciasCalculadas({ ...datos, desviacionRir: -1.2 })[1]
+    expect(corto.nota).toMatch(/lejos del fallo/)
+    expect(largo.nota).toMatch(/cerca del fallo/)
+  })
+
+  it('sin series registradas no inventa la autorregulación', () => {
+    const r = competenciasCalculadas({ ...datos, desviacionRir: undefined })
+    expect(r.map((c) => c.id)).toEqual(['consistencia', 'volumen'])
+  })
+
+  it('sin nada registrado no devuelve competencias', () => {
+    expect(
+      competenciasCalculadas({
+        microcicloNumero: 1,
+        sesionesRegistradas: 0,
+        sesionesTotales: 0,
+        seriesPorGrupo: [],
+      }),
+    ).toEqual([])
+  })
+
+  it('los requisitos miden a la persona y marcan como del coach lo que no se deduce', () => {
+    const r = requisitosDeNivel(datos)
+    expect(r.map((x) => x.id)).toEqual([
+      'consistencia',
+      'error-rir',
+      'volumen',
+      'tecnica',
+      'fuerza',
+    ])
+    // 5/6 sesiones = 83%, por debajo del 90%
+    expect(r[0].cumplido).toBe(false)
+    expect(r[0].metrica).toBe('5 / 6 sesiones · 83%')
+    // desviación 1,2 no baja de 0,5
+    expect(r[1].cumplido).toBe(false)
+    expect(r[1].metrica).toBe('1,2 de desviación media')
+    expect(r[3].metrica).toMatch(/coach/)
+    expect(r[4].metrica).toMatch(/coach/)
+  })
+
+  it('el requisito de volumen pide llegar a la parte alta de la onda, no vivir en MRV', () => {
+    const enMav = requisitosDeNivel({ ...datos, seriesPorGrupo: [20, 20, 21, 20] })
+    expect(enMav[2].cumplido).toBe(true)
+    expect(enMav[2].texto).toMatch(/dentro de la onda/)
+    expect(enMav[2].texto).not.toMatch(/mesociclo completo/)
+  })
+
+  it('el progreso al siguiente nivel es la proporción de requisitos cumplidos', () => {
+    expect(progresoAlSiguiente(requisitosDeNivel(datos))).toBe(0)
+    expect(
+      progresoAlSiguiente([
+        { id: 'a', cumplido: true, texto: '', metrica: '' },
+        { id: 'b', cumplido: false, texto: '', metrica: '' },
+      ]),
+    ).toBe(50)
+    expect(progresoAlSiguiente([])).toBe(0)
+  })
+
+  it('las mini-cifras salen del microciclo, sin meses entrenando ni ratios de fuerza', () => {
+    const e = estadisticasCalculadas(datos)
+    expect(e.map((x) => x.etiqueta)).toEqual([
+      'Series / grupo',
+      'Desviación RIR',
+      'Sesiones M22',
+    ])
+    expect(e[1].valor).toBe('+1,2')
   })
 })
 
