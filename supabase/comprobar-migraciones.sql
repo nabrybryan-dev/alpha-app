@@ -415,4 +415,31 @@ select '0021 - estado del microciclo', 'el trigger esta puesto en microciclos',
            and t.tgname = 'trg_proteger_estado_microciclo' and not t.tgisinternal
        ) then 'SI' else 'NO' end
 
+union all
+select '0022 - adjuntos del chat', 'existe el bucket privado adjuntos-chat',
+       case when exists (
+         select 1 from storage.buckets where id = 'adjuntos-chat' and public = false
+       ) then 'SI' else 'NO' end
+
+union all
+select '0022 - adjuntos del chat', 'mensajes tiene adjunto_path',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'mensajes'
+           and column_name = 'adjunto_path'
+       ) then 'SI' else 'NO' end
+
+union all
+-- El bucket sin sus politicas es un bucket al que nadie puede subir. Se
+-- comprueban aparte porque se aplican en sentencias distintas.
+select '0022 - adjuntos del chat', 'estan las dos politicas de storage',
+       case when (
+         select count(*) from pg_policies
+         where schemaname = 'storage' and tablename = 'objects'
+           and policyname in (
+             'adjuntos: sube en su propia carpeta',
+             'adjuntos: lee quien envio o recibio'
+           )
+       ) = 2 then 'SI' else 'NO' end
+
 order by migracion, senal;
