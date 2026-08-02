@@ -214,6 +214,14 @@ export function crearMockDb(): Db {
               ],
         }))
       },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
+          ),
+        }))
+      },
       guardarValoracion: (usuarioId, valoracion) => {
         mutar((estado) => ({
           ...estado,

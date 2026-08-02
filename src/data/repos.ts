@@ -46,6 +46,16 @@ export interface PerfilesRepo {
    * asesorado tocar únicamente sus medidas.
    */
   guardarValoracion(usuarioId: string, valoracion: ValoracionCompetencia): void
+  /**
+   * Guarda el peldaño de la Escala Alfa. **SOLO STAFF**, y no por comodidad: el
+   * trigger `proteger_perfil` de la 0008 impide que el asesorado escriba en su
+   * propio perfil nada que no sean sus medidas, y esa migración existe porque
+   * una política mal escrita dejó que alguien se auto-promoviera a coach.
+   *
+   * Por eso el nivel se calcula y se guarda al generar el microciclo siguiente,
+   * que es una acción del coach, y no en el teléfono del asesorado.
+   */
+  guardarPeldano(usuarioId: string, peldano: number, ascensoIso: string): void
 }
 
 export interface MicrociclosRepo {

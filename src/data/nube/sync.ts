@@ -163,6 +163,10 @@ export function crearDbSincronizada(local: Db): Db {
         local.perfiles.guardarValoracion(usuarioId, valoracion)
         subirPerfil(local, usuarioId)
       },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        local.perfiles.guardarPeldano(usuarioId, peldano, ascensoIso)
+        subirPerfil(local, usuarioId)
+      },
     },
 
     microciclos: {
