@@ -47,8 +47,11 @@ export default function HoyPage() {
   const perfil = db.perfiles.byUsuario(usuario.id)
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
-  // Prioridad de volumen que pautó el coach en PERFIL. No es la fatiga ya
-  // ejecutada: eso es el mapa de más abajo.
+  // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
+  // meses. Son tres cosas distintas y conviene no confundirlas:
+  //   · esto        → qué se prioriza en el bloque (etiqueta, no número)
+  //   · Progreso    → cuántas series le tocaron esta semana y cuántas hizo
+  //   · el mapa de abajo → la fatiga ya acumulada
   const prioridadVolumen = prioridadDeVolumen(perfil?.volumenSemanal ?? {})
 
   const totalSeries = siguienteSesion?.ejercicios.reduce((n, e) => n + e.sets, 0) ?? 0
@@ -142,7 +145,7 @@ export default function HoyPage() {
             <img src={logoAguila} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 rounded-xl object-cover opacity-90" />
           </div>
           {prioridadVolumen.length > 0 && (
-            <ul aria-label="Prioridad de volumen" className="mt-3 flex flex-wrap gap-1.5">
+            <ul aria-label="Prioridad del bloque" className="mt-3 flex flex-wrap gap-1.5">
               {prioridadVolumen.map((g) => (
                 <li
                   key={g.grupo}

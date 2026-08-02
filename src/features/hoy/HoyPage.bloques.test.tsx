@@ -72,7 +72,7 @@ describe('HoyPage — bloques del rediseño', () => {
     renderizarHoy()
     // Los nombres de grupo también salen en el mapa de fatiga de más abajo, así
     // que la lista se busca por su etiqueta y no por el texto de los chips.
-    const lista = await screen.findByLabelText('Prioridad de volumen')
+    const lista = await screen.findByLabelText('Prioridad del bloque')
     const chips = within(lista)
       .getAllByRole('listitem')
       .map((li) => li.textContent)

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { db } from '../../data/dbInstance'
 import { cargaPorGrupo } from '../../domain/fatiga'
-import type { MedidaCorporal } from '../../domain/types'
+import { nivelDeSeries } from '../../domain/nivelDeVolumen'
+import type { MedidaCorporal, NivelVolumen } from '../../domain/types'
 
 interface Punto {
   etiqueta: string
@@ -66,12 +67,13 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   )
 }
 
-/** Etiqueta de volumen a partir de las series pautadas del grupo en el microciclo. */
-function tagVolumen(series: number): { texto: string; clase: string } {
-  if (series >= 14) return { texto: 'Muy alto', clase: 'text-accion' }
-  if (series >= 9) return { texto: 'Alto', clase: 'text-silver-200' }
-  if (series >= 5) return { texto: 'Medio', clase: 'text-silver-400' }
-  return { texto: 'Bajo', clase: 'text-silver-500' }
+/** El color sigue a la etiqueta, que ahora es la misma que usa la hoja PERFIL. */
+const CLASE_NIVEL: Record<NivelVolumen, string> = {
+  'Muy Alto': 'text-accion',
+  Alto: 'text-silver-200',
+  Normal: 'text-silver-400',
+  Bajo: 'text-silver-500',
+  'Muy Bajo': 'text-silver-500',
 }
 
 export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
@@ -167,27 +169,50 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         </p>
       </div>
 
-      {/* Volumen por grupo (series pautadas) */}
+      {/* Volumen por grupo: lo pautado y lo hecho, uno encima del otro.
+          Antes solo se veía lo pautado, así que no había pantalla donde mirar
+          dónde se está quedando corta —que es justo lo que abre conversación en
+          la revisión—. */}
       {grupos.length > 0 && (
         <div className="rounded-bloque border border-ink-500 bg-ink-800 p-4">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <span className="font-display text-sm text-silver-100">Volumen por grupo</span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">Microciclo</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">
+              Microciclo
+            </span>
           </div>
-          <div className="flex flex-col gap-2.5">
+          <p className="mb-3 text-[11px] leading-snug text-silver-500">
+            Barra clara: series que te pautó tu coach. Barra roja: las que registraste.
+          </p>
+          <div className="flex flex-col gap-3">
             {grupos.map((g) => {
-              const tag = tagVolumen(g.seriesPautadas)
+              const nivel = nivelDeSeries(g.seriesPautadas)
               return (
-                <div key={g.grupo} className="grid grid-cols-[76px_1fr_58px] items-center gap-2.5">
+                <div key={g.grupo} className="grid grid-cols-[76px_1fr_62px] items-center gap-2.5">
                   <span className="truncate text-xs font-semibold text-silver-200">{g.grupo}</span>
-                  <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
-                    <span
-                      className="barra-crece block h-full rounded-full bg-accion"
-                      style={{ width: `${Math.round((g.seriesPautadas / maxSeries) * 100)}%` }}
-                    />
+                  <span className="flex flex-col gap-1">
+                    <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
+                      <span
+                        className="barra-crece block h-full rounded-full bg-silver-400"
+                        style={{ width: `${Math.round((g.seriesPautadas / maxSeries) * 100)}%` }}
+                      />
+                    </span>
+                    <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
+                      <span
+                        className="barra-crece block h-full rounded-full bg-accion"
+                        style={{ width: `${Math.round((g.seriesHechas / maxSeries) * 100)}%` }}
+                      />
+                    </span>
                   </span>
-                  <span className={`text-right text-[10px] font-bold uppercase tracking-[0.06em] ${tag.clase}`}>
-                    {tag.texto}
+                  <span className="text-right">
+                    <span className="cifras block text-[11px] font-bold text-silver-100">
+                      {g.seriesHechas}/{g.seriesPautadas}
+                    </span>
+                    <span
+                      className={`block text-[9px] font-bold uppercase tracking-[0.06em] ${CLASE_NIVEL[nivel]}`}
+                    >
+                      {nivel}
+                    </span>
                   </span>
                 </div>
               )
