@@ -1,3 +1,6 @@
+// jsdom no implementa IndexedDB, y ahí es donde esperan los adjuntos que todavía
+// no han subido (`lib/depositoAdjuntos.ts`). Sin esto, sus tests no pueden correr.
+import 'fake-indexeddb/auto'
 import { configure } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
