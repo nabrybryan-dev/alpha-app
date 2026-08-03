@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CAMPOS,
   camposAPreguntar,
+  encuestaPendiente,
   generoDe,
   revisarRespuestas,
   tieneValor,
@@ -154,5 +155,26 @@ describe('generoDe', () => {
     // porcentaje creíble pero falso, que es peor que no dar ninguno.
     expect(generoDe({ genero: 'Femenino' })).toBeNull()
     expect(generoDe({})).toBeNull()
+  })
+})
+
+describe('encuestaPendiente', () => {
+  it('está pendiente mientras no se haya marcado como terminada', () => {
+    expect(encuestaPendiente(undefined)).toBe(true)
+    expect(encuestaPendiente({ respuestas: {}, completadaEn: undefined })).toBe(true)
+  })
+
+  it('sigue pendiente si se marcó terminada pero falta algo obligatorio', () => {
+    expect(encuestaPendiente({ respuestas: {}, completadaEn: '2026-08-02' })).toBe(true)
+  })
+
+  it('deja de estar pendiente cuando está terminada y completa', () => {
+    const completas = Object.fromEntries(
+      CAMPOS.filter((c) => c.obligatorio).map((c) => [
+        c.clave,
+        c.tipo === 'numero' ? 10 : c.tipo === 'multiple' ? ['x'] : 'x',
+      ]),
+    )
+    expect(encuestaPendiente({ respuestas: completas, completadaEn: '2026-08-02' })).toBe(false)
   })
 })

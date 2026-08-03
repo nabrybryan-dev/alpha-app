@@ -5,6 +5,7 @@ import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
+import { encuestaPendiente } from '../../domain/nutricion/encuesta'
 import { pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
@@ -37,7 +38,16 @@ export default function HoyPage() {
 
   // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
   // además salieran aquí, la misma pantalla pediría dos veces lo mismo.
+  const perfilNutricion = db.perfilNutricion.byUsuario(usuario.id)
+
   const pendientes = [
+    // Va primero a propósito: sin la encuesta no hay peso ni pasos, y sin eso no
+    // se puede calcular nada de lo suyo. Antes solo aparecía a quien entraba a la
+    // pestaña de Nutrición, y por eso 16 de 20 nunca la llenaron.
+    encuestaPendiente(perfilNutricion) && {
+      texto: 'Completar tu encuesta de nutrición',
+      ruta: '/nutricion',
+    },
     !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
       texto: `${cuestionariosPendientes.length} cuestionario${cuestionariosPendientes.length === 1 ? '' : 's'} por responder`,
@@ -50,7 +60,7 @@ export default function HoyPage() {
   // no prescribió, lo que sale de la encuesta marcado como estimado.
   const pauta = pautaDelBloque(
     perfil,
-    db.perfilNutricion.byUsuario(usuario.id)?.respuestas,
+    perfilNutricion?.respuestas,
     'mantenimiento',
     hoy,
   )

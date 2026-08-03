@@ -292,6 +292,21 @@ export function encuestaCompleta(respuestas: Respuestas): boolean {
   return camposAPreguntar(respuestas).every((campo) => !campo.obligatorio)
 }
 
+/**
+ * Si a esta persona todavía hay que pedirle la encuesta.
+ *
+ * Vive aquí y no en la pantalla porque lo consultan dos sitios: la compuerta de
+ * Nutrición -que decide si enseñar cifras o el formulario- y el aviso de «Hoy».
+ * Cuando la regla estaba solo en la compuerta, la encuesta únicamente aparecía a
+ * quien entraba a la pestaña de Nutrición: 16 de 20 asesorados nunca la vieron.
+ */
+export function encuestaPendiente(
+  perfil: { respuestas?: Respuestas; completadaEn?: string } | undefined,
+): boolean {
+  if (!perfil?.completadaEn) return true
+  return !encuestaCompleta(perfil.respuestas ?? {})
+}
+
 /** Si una respuesta cuenta como contestada. */
 export function tieneValor(valor: string | number | string[] | undefined): boolean {
   if (valor === undefined || valor === null) return false
