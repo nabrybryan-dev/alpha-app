@@ -3,6 +3,8 @@ import { Sheet } from '../../components/ui/Sheet'
 import { db, hoyIso } from '../../data/dbInstance'
 import type { Microciclo } from '../../domain/types'
 import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
+import { datosRutaDe } from '../../data/ruta/datosRuta'
+import { peldanoAlcanzado, peldanoTrasMicrociclo } from '../../domain/nivelesAlfa'
 
 interface GenerarMicrocicloSheetProps {
   abierto: boolean
@@ -28,7 +30,32 @@ export function GenerarMicrocicloSheet({
     // `hoy` evita que la propuesta nazca con la fecha del microciclo de origen, es
     // decir vencida. Ver el encabezado de `microcicloPropuesto`.
     db.microciclos.guardarPropuesta(microcicloPropuesto(microciclo, { hoy: hoyIso() }))
+    recalcularNivel(microciclo)
     setGuardada(true)
+  }
+
+  /**
+   * El nivel se recalcula AQUÍ, al cerrar un microciclo, y no en el teléfono del
+   * asesorado. Dos razones, y las dos importan:
+   *
+   * 1. **Permisos.** El trigger `proteger_perfil` (migración 0008) impide que el
+   *    asesorado escriba en su propio perfil nada que no sean sus medidas. Esa
+   *    migración existe porque una política mal escrita dejó que alguien se
+   *    auto-promoviera a coach; no se ensancha por comodidad.
+   * 2. **Que no oscile.** El cálculo mira la consistencia del microciclo, que al
+   *    empezar la semana es 0%. Calculado al vuelo en cada render, todo el mundo
+   *    caería al nivel 01 cada lunes y volvería a subir al registrar sesiones. Un
+   *    nivel que sube y baja cada semana no mide dominio, mide qué día es hoy.
+   *
+   * Aquí el microciclo ya está cerrado: sus datos están completos.
+   */
+  const recalcularNivel = (cerrado: typeof microciclo) => {
+    if (!cerrado) return
+    const perfil = db.perfiles.byUsuario(cerrado.usuarioId)
+    const actual = perfil?.peldanoAlfa ?? peldanoAlcanzado(datosRutaDe(cerrado.usuarioId, cerrado))
+    const siguiente = peldanoTrasMicrociclo(actual, datosRutaDe(cerrado.usuarioId, cerrado))
+    if (siguiente === perfil?.peldanoAlfa) return
+    db.perfiles.guardarPeldano(cerrado.usuarioId, siguiente, hoyIso())
   }
 
   return (

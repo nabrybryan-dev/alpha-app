@@ -38,7 +38,8 @@ interface FilaMensaje {
   para_id: string
   fecha_iso: string
   texto: string
-  adjunto_url: string | null
+  adjunto_path: string | null
+  adjunto_tipo: 'imagen' | 'video' | null
   leido: boolean
   /** Columna de la migración 0012: falta mientras no se haya corrido. */
   origen?: 'humano' | 'alpha' | null
@@ -280,7 +281,11 @@ export async function hidratarDesdeNube(): Promise<void> {
         paraId: m.para_id,
         fechaIso: m.fecha_iso,
         texto: m.texto,
-        adjuntoUrl: m.adjunto_url ?? undefined,
+        adjuntoPath: m.adjunto_path ?? undefined,
+        adjuntoTipo: m.adjunto_tipo ?? undefined,
+        // Lo que baja de la nube ya subió por definición: `adjuntoEstado` solo
+        // describe el archivo que sigue esperando en ESTE teléfono.
+        adjuntoEstado: m.adjunto_path ? 'listo' : undefined,
         origen: m.origen ?? 'humano',
         leido: m.leido,
       }),

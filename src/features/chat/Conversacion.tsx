@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { db, idCoach, useDbVersion } from '../../data/dbInstance'
 import { sesionDeFunciones } from '../../data/supabase'
 import { pedirRespuestaAlpha } from './asistente'
+import { AdjuntoMensaje } from './AdjuntoMensaje'
 
 interface ConversacionProps {
   yoId: string
@@ -36,10 +37,8 @@ function horaDe(fechaIso: string): string {
 export function Conversacion({ yoId, otroId }: ConversacionProps) {
   useDbVersion()
   const [texto, setTexto] = useState('')
-  const [adjunto, setAdjunto] = useState('')
   const [esperandoAlpha, setEsperandoAlpha] = useState(false)
   const finRef = useRef<HTMLDivElement>(null)
-  const inputArchivo = useRef<HTMLInputElement>(null)
   const montadoRef = useRef(true)
 
   const hilo = db.mensajes.hilo(yoId, otroId)
@@ -98,20 +97,19 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
     }
   }
 
+  /**
+   * Aquí solo se manda texto. El archivo se elige en la barra del coach, en Hoy,
+   * y no en dos sitios: dos entradas serían dos validaciones que mantener
+   * sincronizadas, y ya sabemos cómo acaba eso.
+   */
   const enviar = () => {
     const limpio = texto.trim()
-    if (!limpio && !adjunto) return
+    if (!limpio) return
     // El mensaje del asesorado se envía SIEMPRE primero. La respuesta de Alpha
     // es un extra que llega después y no condiciona el envío.
-    db.mensajes.enviar({
-      deId: yoId,
-      paraId: otroId,
-      texto: limpio || `📎 ${adjunto}`,
-      adjuntoUrl: adjunto || undefined,
-    })
+    db.mensajes.enviar({ deId: yoId, paraId: otroId, texto: limpio })
     setTexto('')
-    setAdjunto('')
-    if (limpio && respondeAlpha) void consultarAlpha(limpio)
+    if (respondeAlpha) void consultarAlpha(limpio)
   }
 
   return (
@@ -150,9 +148,16 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
                     Alpha · respuesta automática
                   </p>
                 )}
-                <p className="whitespace-pre-wrap break-words">
-                  {deAlpha ? conNegritas(mensaje.texto) : mensaje.texto}
-                </p>
+                <AdjuntoMensaje
+                  path={mensaje.adjuntoPath}
+                  tipo={mensaje.adjuntoTipo}
+                  estado={mensaje.adjuntoEstado}
+                />
+                {mensaje.texto && (
+                  <p className="whitespace-pre-wrap break-words">
+                    {deAlpha ? conNegritas(mensaje.texto) : mensaje.texto}
+                  </p>
+                )}
                 <p
                   className={`cifras mt-1 text-[10px] ${mio && !deAlpha ? 'text-white/70' : 'text-tenue'}`}
                 >
@@ -170,27 +175,7 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
         </div>
       </div>
 
-      {adjunto && (
-        <p className="mb-1 flex items-center gap-2 rounded-boton border border-linea bg-surface-1 px-3 py-1.5 text-xs text-tenue">
-          <span className="truncate">📎 {adjunto} (adjunto simulado en etapa 1)</span>
-          <button type="button" className="ml-auto font-bold text-accion" onClick={() => setAdjunto('')}>
-            quitar
-          </button>
-        </p>
-      )}
-
       <div className="flex items-end gap-2 border-t border-linea pt-2.5">
-        <input ref={inputArchivo} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => setAdjunto(e.target.files?.[0]?.name ?? '')} />
-        <button
-          type="button"
-          aria-label="Adjuntar foto o video"
-          onClick={() => inputArchivo.current?.click()}
-          className="press grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-linea bg-surface-1 text-tenue"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="h-5 w-5" aria-hidden="true">
-            <path d="M5 12h14 M12 5v14" />
-          </svg>
-        </button>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}

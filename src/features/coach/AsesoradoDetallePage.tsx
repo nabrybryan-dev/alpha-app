@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { ValoracionCompetencias } from './ValoracionCompetencias'
 import { Chip } from '../../components/ui/Chip'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Semaforo } from '../../components/ui/Semaforo'
@@ -118,6 +119,7 @@ export default function AsesoradoDetallePage() {
                   </table>
                 </div>
               </Card>
+              <ValoracionCompetencias usuarioId={usuario.id} valoraciones={perfil.valoraciones} />
               {premiaciones.length > 0 && (
                 <Card destacada>
                   <p className="kicker">Reconocimientos otorgados</p>

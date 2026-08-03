@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
 import { ThemeProvider } from '../../app/ThemeProvider'
+import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
 import RutaPage from './RutaPage'
 
 function renderizar() {
@@ -58,6 +59,12 @@ describe('RutaPage', () => {
     const requisitos = await screen.findByText('Para subir a nivel 04')
     const panel = requisitos.closest('section')
     expect(panel).not.toBeNull()
-    expect(within(panel as HTMLElement).getAllByRole('listitem')).toHaveLength(5)
+    // Los del peldaño al que va, no una lista igual para todos: el 04 es el
+    // primero que pide autorregulación real, así que trae un requisito más que
+    // los de abajo.
+    expect(within(panel as HTMLElement).getAllByRole('listitem')).toHaveLength(
+      requisitosParaPeldano(4, { microcicloNumero: 22, sesionesRegistradas: 0, sesionesTotales: 0, seriesPorGrupo: [] }).length,
+    )
+    expect(panel?.textContent).toMatch(/cansado/i)
   })
 })

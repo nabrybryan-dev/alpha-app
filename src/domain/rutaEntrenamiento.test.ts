@@ -268,8 +268,8 @@ describe('valoración con datos reales', () => {
     // desviación 1,2 no baja de 0,5
     expect(r[1].cumplido).toBe(false)
     expect(r[1].metrica).toBe('1,2 de desviación media')
+    // La técnica es la única irreducible: la app no ve ejecución.
     expect(r[3].metrica).toMatch(/coach/)
-    expect(r[4].metrica).toMatch(/coach/)
   })
 
   it('el requisito de volumen pide llegar a la parte alta de la onda, no vivir en MRV', () => {
@@ -277,6 +277,47 @@ describe('valoración con datos reales', () => {
     expect(enMav[2].cumplido).toBe(true)
     expect(enMav[2].texto).toMatch(/dentro de la onda/)
     expect(enMav[2].texto).not.toMatch(/mesociclo completo/)
+  })
+
+  it('la fuerza y la nutrición entran cuando hay con qué medirlas', () => {
+    const r = competenciasCalculadas({
+      ...datos,
+      progresoFuerza: { mejoraron: 5, comparados: 7, microcicloPrevio: 21 },
+      adherenciaPct: 83,
+    })
+    expect(r.map((c) => c.id)).toEqual([
+      'consistencia',
+      'autorregulacion',
+      'volumen',
+      'fuerza',
+      'nutricion',
+    ])
+    expect(r[3].nota).toMatch(/5 de 7 ejercicios.*M21/)
+    expect(r[3].pct).toBe(71)
+    expect(r[4].nota).toMatch(/83% de adherencia/)
+  })
+
+  it('el requisito de fuerza se cumple progresando contra sí mismo, no contra un ratio', () => {
+    const mitad = requisitosDeNivel({
+      ...datos,
+      progresoFuerza: { mejoraron: 4, comparados: 7, microcicloPrevio: 21 },
+    })
+    expect(mitad[4].cumplido).toBe(true)
+    expect(mitad[4].metrica).toBe('4 / 7 ejercicios al alza vs M21')
+    expect(mitad[4].texto).not.toMatch(/peso corporal|1,60/)
+
+    const pocos = requisitosDeNivel({
+      ...datos,
+      progresoFuerza: { mejoraron: 2, comparados: 7, microcicloPrevio: 21 },
+    })
+    expect(pocos[4].cumplido).toBe(false)
+  })
+
+  it('sin microciclo previo comparable, la fuerza lo dice en vez de suponer', () => {
+    const r = requisitosDeNivel(datos)
+    expect(r[4].cumplido).toBe(false)
+    expect(r[4].metrica).toMatch(/sin dos microciclos/i)
+    expect(competenciasCalculadas(datos).map((c) => c.id)).not.toContain('fuerza')
   })
 
   it('el progreso al siguiente nivel es la proporción de requisitos cumplidos', () => {
@@ -308,5 +349,40 @@ describe('gradoDeCompetencia', () => {
     expect(gradoDeCompetencia(79)).toBe('medio')
     expect(gradoDeCompetencia(65)).toBe('medio')
     expect(gradoDeCompetencia(64)).toBe('bajo')
+  })
+})
+
+/**
+ * A mitad de microciclo, un "Progreso de fuerza 0%" es correcto -nadie ha subido
+ * todavia- pero se lee como un juicio. La diferencia entre "vas mal" y "aun no
+ * hay con que" tiene que estar escrita: la barra sola no la dice.
+ */
+describe('progreso de fuerza al principio del microciclo', () => {
+  const base = {
+    microcicloNumero: 22,
+    seriesPorGrupo: [16, 15, 14],
+    progresoFuerza: { mejoraron: 0, comparados: 3, microcicloPrevio: 21 },
+  }
+
+  const notaDeFuerza = (datos: Parameters<typeof competenciasCalculadas>[0]) =>
+    competenciasCalculadas(datos).find((c) => c.id === 'fuerza')?.nota ?? ''
+
+  it('avisa de que faltan sesiones cuando apenas ha empezado', () => {
+    const nota = notaDeFuerza({ ...base, sesionesRegistradas: 1, sesionesTotales: 6 })
+    expect(nota).toMatch(/1 de 6 sesiones/)
+    expect(nota).toMatch(/todavía no dice mucho/i)
+  })
+
+  it('no avisa cuando el microciclo ya va avanzado', () => {
+    const nota = notaDeFuerza({ ...base, sesionesRegistradas: 5, sesionesTotales: 6 })
+    expect(nota).not.toMatch(/todavía no dice mucho/i)
+  })
+
+  it('el porcentaje no cambia: lo que cambia es lo que se explica', () => {
+    const temprano = competenciasCalculadas({ ...base, sesionesRegistradas: 1, sesionesTotales: 6 })
+    const tarde = competenciasCalculadas({ ...base, sesionesRegistradas: 5, sesionesTotales: 6 })
+    expect(temprano.find((c) => c.id === 'fuerza')?.pct).toBe(
+      tarde.find((c) => c.id === 'fuerza')?.pct,
+    )
   })
 })

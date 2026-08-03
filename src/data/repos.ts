@@ -23,6 +23,7 @@ import type {
   SerieRegistrada,
   TestPostSesion,
   Usuario,
+  ValoracionCompetencia,
   VisibilidadAsesorado,
 } from '../domain/types'
 
@@ -39,6 +40,22 @@ export interface PerfilesRepo {
   byUsuario(usuarioId: string): Perfil | undefined
   /** Registra una medición corporal del propio asesorado (reemplaza la de la misma fecha). */
   agregarMedida(usuarioId: string, medida: MedidaCorporal): void
+  /**
+   * Guarda la nota del coach a una competencia (reemplaza la anterior del mismo
+   * id). SOLO STAFF: el trigger `proteger_perfil` de la migración 0008 deja al
+   * asesorado tocar únicamente sus medidas.
+   */
+  guardarValoracion(usuarioId: string, valoracion: ValoracionCompetencia): void
+  /**
+   * Guarda el peldaño de la Escala Alfa. **SOLO STAFF**, y no por comodidad: el
+   * trigger `proteger_perfil` de la 0008 impide que el asesorado escriba en su
+   * propio perfil nada que no sean sus medidas, y esa migración existe porque
+   * una política mal escrita dejó que alguien se auto-promoviera a coach.
+   *
+   * Por eso el nivel se calcula y se guarda al generar el microciclo siguiente,
+   * que es una acción del coach, y no en el teléfono del asesorado.
+   */
+  guardarPeldano(usuarioId: string, peldano: number, ascensoIso: string): void
 }
 
 export interface MicrociclosRepo {
@@ -139,10 +156,18 @@ export interface MensajesRepo {
     deId: string
     paraId: string
     texto: string
-    adjuntoUrl?: string
+    adjuntoTipo?: 'imagen' | 'video'
+    adjuntoEstado?: 'subiendo' | 'listo'
     /** 'alpha' marca la respuesta del Centro de Respuestas. Por defecto, humano. */
     origen?: 'humano' | 'alpha'
   }): void
+  /**
+   * Deja anotado dónde quedó el archivo. Va aparte de `enviar` porque el path
+   * lleva el id del mensaje, y ese id no existe hasta haberlo creado.
+   */
+  anotarPath(mensajeId: string, path: string): void
+  /** El archivo terminó de subir: deja de mostrarse como pendiente. */
+  marcarAdjuntoListo(mensajeId: string): void
   marcarLeidos(paraId: string, deId: string): void
   noLeidosPara(usuarioId: string): number
   noLeidosDe(paraId: string, deId: string): number

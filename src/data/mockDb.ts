@@ -214,6 +214,33 @@ export function crearMockDb(): Db {
               ],
         }))
       },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
+          ),
+        }))
+      },
+      guardarValoracion: (usuarioId, valoracion) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId
+              ? {
+                  ...p,
+                  // Reemplaza la del mismo id: es una nota vigente, no un
+                  // histórico. Si algún día se quiere ver la evolución, va en
+                  // su propia tabla y no engordando el perfil.
+                  valoraciones: [
+                    ...(p.valoraciones ?? []).filter((v) => v.id !== valoracion.id),
+                    valoracion,
+                  ],
+                }
+              : p,
+          ),
+        }))
+      },
     },
 
     microciclos: {
@@ -520,7 +547,7 @@ export function crearMockDb(): Db {
               (m.deId === usuarioB && m.paraId === usuarioA),
           )
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
-      enviar: ({ deId, paraId, texto, adjuntoUrl, origen }) => {
+      enviar: ({ deId, paraId, texto, adjuntoTipo, adjuntoEstado, origen }) => {
         mutar((estado) => ({
           ...estado,
           mensajes: [
@@ -530,12 +557,29 @@ export function crearMockDb(): Db {
               deId,
               paraId,
               texto,
-              adjuntoUrl,
+              adjuntoTipo,
+              adjuntoEstado,
               origen: origen ?? 'humano',
               fechaIso: new Date().toISOString(),
               leido: false,
             },
           ],
+        }))
+      },
+      anotarPath: (mensajeId, path) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoPath: path } : m,
+          ),
+        }))
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoEstado: 'listo' as const } : m,
+          ),
         }))
       },
       recibirDeAlpha: ({ id, deId, paraId, texto }) => {
@@ -619,7 +663,11 @@ export function crearMockDb(): Db {
         ),
     },
 
-    ruta: crearRutaRepo(),
+    // El peldaño sale del perfil de cada persona. Sin valorar todavía, arranca
+    // en el primero: nadie empieza en el 03, que es lo que pasaba antes.
+    ruta: crearRutaRepo(
+      (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId)?.peldanoAlfa ?? 1,
+    ),
 
     contenidoAlfa: crearContenidoRepo(),
   }

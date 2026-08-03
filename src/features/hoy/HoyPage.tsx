@@ -4,14 +4,16 @@ import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
+import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
+import { BarraCoach } from './BarraCoach'
 import { BloqueActual } from './BloqueActual'
+import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
-import { MensajeCoach } from './MensajeCoach'
 import { RadarAlfa } from './RadarAlfa'
 import logoAguila from '../../assets/brand/logo-aguila.jpeg'
 
@@ -45,8 +47,11 @@ export default function HoyPage() {
   const perfil = db.perfiles.byUsuario(usuario.id)
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
-  // Prioridad de volumen que pautó el coach en PERFIL. No es la fatiga ya
-  // ejecutada: eso es el mapa de más abajo.
+  // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
+  // meses. Son tres cosas distintas y conviene no confundirlas:
+  //   · esto        → qué se prioriza en el bloque (etiqueta, no número)
+  //   · Progreso    → cuántas series le tocaron esta semana y cuántas hizo
+  //   · el mapa de abajo → la fatiga ya acumulada
   const prioridadVolumen = prioridadDeVolumen(perfil?.volumenSemanal ?? {})
 
   const totalSeries = siguienteSesion?.ejercicios.reduce((n, e) => n + e.sets, 0) ?? 0
@@ -61,11 +66,7 @@ export default function HoyPage() {
     ? Math.round((pesosReg.reduce((a, b) => a + b, 0) / pesosReg.length) * 10) / 10
     : undefined
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
-  const adherenciaPct = adhs.length
-    ? Math.round(
-        (adhs.reduce((s, a) => s + (a.estado === 'si' ? 1 : a.estado === 'parcial' ? 0.5 : 0), 0) / adhs.length) * 100,
-      )
-    : undefined
+  const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
@@ -84,6 +85,17 @@ export default function HoyPage() {
           Hola, {usuario.nombre.split(' ')[0]}
         </h2>
       </section>
+
+      {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
+          álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
+      <div className="entrada entrada-2">
+        <BarraCoach
+          iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
+          noLeidos={noLeidos}
+          ultimoTexto={ultimoDelCoach?.texto}
+          onEnviar={(envio) => void enviarRapido(usuario.id, envio)}
+        />
+      </div>
 
       {/* Check-in del día */}
       {checkinHoy ? (
@@ -133,7 +145,7 @@ export default function HoyPage() {
             <img src={logoAguila} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 rounded-xl object-cover opacity-90" />
           </div>
           {prioridadVolumen.length > 0 && (
-            <ul aria-label="Prioridad de volumen" className="mt-3 flex flex-wrap gap-1.5">
+            <ul aria-label="Prioridad del bloque" className="mt-3 flex flex-wrap gap-1.5">
               {prioridadVolumen.map((g) => (
                 <li
                   key={g.grupo}
@@ -204,14 +216,6 @@ export default function HoyPage() {
 
       <div className="entrada entrada-4">
         <BloqueActual perfil={perfil} />
-      </div>
-
-      <div className="entrada entrada-5">
-        <MensajeCoach
-          mensaje={ultimoDelCoach}
-          coach={db.usuarios.byId(idCoach())}
-          noLeidos={noLeidos}
-        />
       </div>
 
       <div className="entrada entrada-6">
