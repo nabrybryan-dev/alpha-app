@@ -5,6 +5,8 @@ import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
+import { encuestaPendiente } from '../../domain/nutricion/encuesta'
+import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
@@ -36,7 +38,16 @@ export default function HoyPage() {
 
   // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
   // además salieran aquí, la misma pantalla pediría dos veces lo mismo.
+  const perfilNutricion = db.perfilNutricion.byUsuario(usuario.id)
+
   const pendientes = [
+    // Va primero a propósito: sin la encuesta no hay peso ni pasos, y sin eso no
+    // se puede calcular nada de lo suyo. Antes solo aparecía a quien entraba a la
+    // pestaña de Nutrición, y por eso 16 de 20 nunca la llenaron.
+    encuestaPendiente(perfilNutricion) && {
+      texto: 'Completar tu encuesta de nutrición',
+      ruta: '/nutricion',
+    },
     !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
       texto: `${cuestionariosPendientes.length} cuestionario${cuestionariosPendientes.length === 1 ? '' : 's'} por responder`,
@@ -45,6 +56,14 @@ export default function HoyPage() {
   ].filter((p): p is { texto: string; ruta: string } => Boolean(p))
 
   const perfil = db.perfiles.byUsuario(usuario.id)
+  // Los tres números de «Tu bloque actual»: lo que el coach prescribió y, donde
+  // no prescribió, lo que sale de la encuesta marcado como estimado.
+  const pauta = pautaDelBloque(
+    perfil,
+    perfilNutricion?.respuestas,
+    faseDeEtiqueta(perfil?.faseEnergetica),
+    hoy,
+  )
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
   // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
@@ -215,7 +234,7 @@ export default function HoyPage() {
       )}
 
       <div className="entrada entrada-4">
-        <BloqueActual perfil={perfil} />
+        <BloqueActual perfil={perfil} pauta={pauta} />
       </div>
 
       <div className="entrada entrada-6">

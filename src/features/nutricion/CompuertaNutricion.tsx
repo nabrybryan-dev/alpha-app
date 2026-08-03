@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
-import { encuestaCompleta, type Respuestas } from '../../domain/nutricion/encuesta'
+import { encuestaPendiente, type Respuestas } from '../../domain/nutricion/encuesta'
 import { EncuestaNutricion } from './EncuestaNutricion'
 
 /**
@@ -23,7 +23,7 @@ export function CompuertaNutricion({ children }: { children: ReactNode }) {
 
   const perfil = db.perfilNutricion.byUsuario(usuario.id)
   const respuestas = (perfil?.respuestas ?? {}) as Respuestas
-  const abierta = Boolean(perfil?.completadaEn) && encuestaCompleta(respuestas)
+  const abierta = !encuestaPendiente(perfil)
 
   /**
    * Lo que ya se sabía de esta persona ANTES de abrir la encuesta.
