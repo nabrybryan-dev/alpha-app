@@ -16,6 +16,7 @@ import {
   type DatosRuta,
 } from '../../domain/rutaEntrenamiento'
 import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
+import { PortadaMicrociclo } from './PortadaMicrociclo'
 import { BloqueEnCurso } from './ruta/BloqueEnCurso'
 import { CabeceraNivel } from './ruta/CabeceraNivel'
 import { CalendarioSemana } from './ruta/CalendarioSemana'
@@ -97,6 +98,10 @@ export default function RutaPage() {
     // Entrenar es superficie oscura siempre, como la sesión: la pantalla se usa
     // en el gimnasio y no debe cambiar de piel con el tema de la app.
     <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-3.5 bg-ink-900 px-4 pb-4 pt-3">
+      {/* El letrero de inicio de semana: se ve una vez por microciclo y
+          desaparece al empezar. Va antes de las rutinas, a propósito. */}
+      <PortadaMicrociclo microciclo={microciclo} />
+
       <CabeceraNivel nivel={ruta.nivelActual} />
 
       <div className="entrada entrada-2">
