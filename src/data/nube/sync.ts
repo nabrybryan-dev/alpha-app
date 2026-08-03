@@ -25,7 +25,12 @@ import { encolar } from './procesador'
 // Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
 // de cómo esté repartido por dentro.
 export type { OperacionPendiente } from './cola'
-export { integrarEnCola, limpiarColasDeSync, pendientesDeSync } from './cola'
+export {
+  descartesPendientes,
+  integrarEnCola,
+  limpiarColasDeSync,
+  pendientesDeSync,
+} from './cola'
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
 

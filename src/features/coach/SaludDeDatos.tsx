@@ -1,5 +1,6 @@
 import { Card } from '../../components/ui/Card'
 import { db, hoyIso, idCoach } from '../../data/dbInstance'
+import { descartesPendientes } from '../../data/nube/sync'
 import {
   familiasEnRiesgo,
   saludDeDatos,
@@ -99,6 +100,9 @@ export function SaludDeDatos() {
   const hoy = hoyIso()
   const salud = saludDeDatos(familiasDelEquipo(hoy), hoy)
   const enRiesgo = familiasEnRiesgo(salud)
+  // Solo de ESTE dispositivo: la cola vive en el navegador de cada persona, así
+  // que esto no dice nada de los teléfonos de los asesorados.
+  const apartadas = descartesPendientes()
 
   if (salud.sinEstrenar) return null
 
@@ -118,6 +122,14 @@ export function SaludDeDatos() {
           <Fila key={familia.id} familia={familia} />
         ))}
       </div>
+
+      {apartadas > 0 && (
+        <p className="mt-3 text-xs leading-relaxed text-ambar">
+          Este dispositivo tiene al menos {apartadas}{' '}
+          {apartadas === 1 ? 'operación apartada' : 'operaciones apartadas'} tras fallar
+          al subir. Es un mínimo: el montón tiene tope y tira lo más viejo.
+        </p>
+      )}
 
       {enRiesgo.length > 0 && (
         <p className="mt-3 text-xs leading-relaxed text-tenue">

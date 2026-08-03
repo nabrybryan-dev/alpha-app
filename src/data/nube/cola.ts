@@ -60,6 +60,23 @@ export function pendientesDeSync(): number {
 }
 
 /**
+ * Cuántas operaciones de esta persona quedaron apartadas tras fallar.
+ *
+ * POR QUÉ HACE FALTA. El descarte es silencioso a propósito —protege el registro
+ * local de una cola que se atasca—, pero «no pierdas el dato» y «no se lo
+ * cuentes a nadie» son dos decisiones distintas, y aquí se tomaron juntas sin
+ * querer. El registro de comidas estuvo semanas sin subir y el asesorado siguió
+ * anotando su día con normalidad, sin ver jamás un aviso.
+ *
+ * OJO AL LEER ESTE NÚMERO: el montón guarda `MAX_DESCARTES` operaciones y tira
+ * las más viejas al desbordar, así que es un **mínimo**, no el total de lo que
+ * no llegó. Ningún texto de la interfaz debe prometer que están todas.
+ */
+export function descartesPendientes(usuarioId?: string): number {
+  return leerDescartes().filter((op) => op.duenio === undefined || op.duenio === usuarioId).length
+}
+
+/**
  * Al cerrar sesión, la cola activa tiene que vaciarse: en un dispositivo
  * compartido, sus operaciones se reintentarían con el JWT de la persona
  * siguiente.
