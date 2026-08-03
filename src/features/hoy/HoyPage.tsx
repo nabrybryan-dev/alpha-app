@@ -12,6 +12,7 @@ import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
+import { AvisoSinSincronizar } from './AvisoSinSincronizar'
 import { BarraCoach } from './BarraCoach'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
@@ -104,6 +105,13 @@ export default function HoyPage() {
           Hola, {usuario.nombre.split(' ')[0]}
         </h2>
       </section>
+
+      {/* Si algo no subió, se dice antes que nada: el resto de la pantalla da a
+          entender que todo está registrado, y esa es justamente la confusión que
+          dejó el registro de comidas roto durante semanas. */}
+      <div className="entrada entrada-2">
+        <AvisoSinSincronizar usuarioId={usuario.id} />
+      </div>
 
       {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
           álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
