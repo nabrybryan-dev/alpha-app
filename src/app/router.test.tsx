@@ -45,9 +45,14 @@ describe('rutas del asesorado', () => {
     expect(nav.textContent).not.toMatch(/Chat/)
   })
 
-  it('desde Hoy se llega al chat por la tarjeta del coach', async () => {
+  it('desde Hoy se llega al chat por la barra del coach', async () => {
     renderizarEn('/')
-    await screen.findByRole('navigation', { name: 'Navegación principal' })
+    // Esperar a CONTENIDO de Hoy, no a la navegación: la barra vive en el
+    // layout y aparece al instante, mientras que la página entra por `lazy()`.
+    // Esperando la navegación, este test afirmaba sobre un `<main>` que todavía
+    // decía "Cargando…" y fallaba o pasaba según lo rápido que resolviera el
+    // import. Puso `main` en rojo de forma intermitente.
+    await screen.findByText('Escríbele a tu coach')
     const alChat = screen.getAllByRole('link').filter((a) => a.getAttribute('href') === '/chat')
     expect(alChat.length).toBeGreaterThan(0)
   })

@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { validarAdjunto } from '../../domain/adjuntos'
+import { comoTextoPlano } from '../../lib/negritasFicha'
 
 export interface EnvioRapido {
   texto: string
@@ -65,7 +66,12 @@ export function BarraCoach({ iniciales, noLeidos, ultimoTexto, onEnviar }: Barra
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-display text-sm text-texto">Escríbele a tu coach</span>
-          {ultimoTexto && <span className="block truncate text-xs text-tenue">{ultimoTexto}</span>}
+          {/* En texto plano: en una línea truncada la negrita no aporta, y los
+              asteriscos crudos se leen como un error. Es lo primero que carga
+              la app, así que se veían en cada respuesta del Centro. */}
+          {ultimoTexto && (
+            <span className="block truncate text-xs text-tenue">{comoTextoPlano(ultimoTexto)}</span>
+          )}
         </span>
         {noLeidos > 0 && (
           <span className="cifras shrink-0 rounded-full bg-rojo px-2 py-0.5 text-[10px] font-bold text-white">
