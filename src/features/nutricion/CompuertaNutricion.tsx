@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { encuestaCompleta, type Respuestas } from '../../domain/nutricion/encuesta'
@@ -25,11 +25,25 @@ export function CompuertaNutricion({ children }: { children: ReactNode }) {
   const respuestas = (perfil?.respuestas ?? {}) as Respuestas
   const abierta = Boolean(perfil?.completadaEn) && encuestaCompleta(respuestas)
 
+  /**
+   * Lo que ya se sabía de esta persona ANTES de abrir la encuesta.
+   *
+   * Aquí iba `{}`, y con eso `camposAPreguntar` volvía a preguntarlo todo aunque
+   * el perfil ya trajera dieciséis respuestas de la encuesta de captación. No se
+   * notó hasta que hubo altas cargadas de antemano: hasta entonces, quien llegaba
+   * a esta pantalla no sabía nada de sí mismo y las dos formas daban lo mismo.
+   *
+   * Y tiene que ser una FOTO, no el dato vivo: cada respuesta se guarda al vuelo,
+   * así que si el listado siguiera a `respuestas`, cada campo desaparecería de la
+   * pantalla justo al contestarlo.
+   */
+  const [sabidoAlAbrir] = useState<Respuestas>(() => respuestas)
+
   if (abierta) return <>{children}</>
 
   return (
     <EncuestaNutricion
-      yaSabidos={{}}
+      yaSabidos={sabidoAlAbrir}
       enCurso={respuestas}
       onGuardarAvance={(nuevas) => db.perfilNutricion.guardar(usuario.id, nuevas, false)}
       onTerminar={(nuevas) => db.perfilNutricion.guardar(usuario.id, nuevas, true)}
