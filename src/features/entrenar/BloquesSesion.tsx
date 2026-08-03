@@ -1,6 +1,8 @@
 import { Card } from '../../components/ui/Card'
 import type { ItemMarcable } from '../../domain/types'
+import { separarNotas } from '../../domain/notasDeLaSemana'
 import { CheckDibujado } from './CheckDibujado'
+import { NotasDeLaSemana } from './NotasDeLaSemana'
 
 interface BloquesSesionProps {
   bloques: ItemMarcable[]
@@ -11,11 +13,17 @@ interface BloquesSesionProps {
 
 /** Bloques de cardio/metabólico que se marcan a mano, uno a uno. */
 export function BloquesSesion({ bloques, esMetabolica, onMarcar }: BloquesSesionProps) {
+  // Las notas de la semana no son tareas: no llevan casilla y van aparte.
+  const { notas, marcables } = separarNotas(bloques)
+
   return (
+    <div className="flex flex-col gap-3">
+      <NotasDeLaSemana notas={notas} />
+      {marcables.length > 0 && (
     <Card>
       <p className="kicker">{esMetabolica ? 'Bloques de la sesión' : 'Bloques marcables'}</p>
       <ul className="mt-2 flex flex-col gap-2">
-        {bloques.map((bloque) => (
+        {marcables.map((bloque) => (
           <li key={bloque.id} className="flex items-start gap-2.5">
             <button
               type="button"
@@ -40,5 +48,7 @@ export function BloquesSesion({ bloques, esMetabolica, onMarcar }: BloquesSesion
         ))}
       </ul>
     </Card>
+      )}
+    </div>
   )
 }
