@@ -442,4 +442,21 @@ select '0022 - adjuntos del chat', 'estan las dos politicas de storage',
            )
        ) = 2 then 'SI' else 'NO' end
 
+union all
+-- La señal es que el índice NO sea parcial. Un `ON CONFLICT (cliente_id)` no
+-- puede inferir un índice con `where`, así que mientras lo tuviera, cada comida
+-- moría con 42P10 y se descartaba en silencio: ni una llegó al servidor desde
+-- que existe la función. Si esto diera NO, el registro de comidas no sube.
+select '0023 - indices cliente_id no parciales', 'los tres indices sin predicado',
+       case when (
+         select count(*) from pg_indexes
+         where schemaname = 'public'
+           and indexname in (
+             'registro_comida_cliente_id_unico',
+             'registro_item_cliente_id_unico',
+             'prueba_calibracion_cliente_id_unico'
+           )
+           and indexdef not ilike '%where%'
+       ) = 3 then 'SI' else 'NO' end
+
 order by migracion, senal;
