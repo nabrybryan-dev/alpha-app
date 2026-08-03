@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { db, idCoach, useDbVersion } from '../../data/dbInstance'
 import { sesionDeFunciones } from '../../data/supabase'
+import { esNegrita, sinAsteriscos, tramosDeNegrita } from '../../lib/negritasFicha'
 import { pedirRespuestaAlpha } from './asistente'
 import { AdjuntoMensaje } from './AdjuntoMensaje'
 
@@ -10,18 +11,15 @@ interface ConversacionProps {
 }
 
 /**
- * El texto de las fichas marca en **negrita** la frase que el asesorado se
- * lleva; es una decisión de redacción, no adorno. Aquí se pinta de verdad en
- * vez de mostrar los asteriscos.
- *
- * Parte por los pares de asteriscos y nada más: no interpreta HTML ni ningún
- * otro marcador, así que el contenido no puede inyectar nada.
+ * Pinta de verdad la negrita de las fichas en vez de mostrar los asteriscos.
+ * El reconocimiento vive en `lib/negritasFicha` porque la barra del coach de
+ * Hoy necesita el mismo criterio, solo que en texto plano.
  */
 function conNegritas(texto: string): ReactNode[] {
-  return texto.split(/(\*\*[^*\n]+\*\*)/g).map((tramo, i) =>
-    tramo.length > 4 && tramo.startsWith('**') && tramo.endsWith('**') ? (
+  return tramosDeNegrita(texto).map((tramo, i) =>
+    esNegrita(tramo) ? (
       <strong key={i} className="font-semibold">
-        {tramo.slice(2, -2)}
+        {sinAsteriscos(tramo)}
       </strong>
     ) : (
       tramo

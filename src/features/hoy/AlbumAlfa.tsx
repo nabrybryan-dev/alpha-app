@@ -24,7 +24,10 @@ function Sticker({ sticker }: { sticker: StickerAlbum }) {
           <span className="cifras absolute left-2 top-2 rounded-tag bg-accion px-1.5 py-0.5 text-[10.5px] font-bold text-white">
             {sticker.numero}
           </span>
-          <span className="absolute right-2 top-2 rounded-full border border-ink-400 bg-ink-900/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-silver-100">
+          {/* El velo al 60% desaparecía sobre cielos y pieles claras: la
+              categoría solo se leía en las fotos oscuras. Con 78% y desenfoque
+              la píldora se sostiene sola, sea cual sea la foto que toque. */}
+          <span className="absolute right-2 top-2 rounded-full border border-white/25 bg-ink-900/[0.78] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm backdrop-blur-sm">
             {sticker.categoria}
           </span>
         </span>
