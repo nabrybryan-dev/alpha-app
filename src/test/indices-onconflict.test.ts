@@ -1,6 +1,7 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { sqlDeLasMigraciones } from './leerMigraciones'
 
 /**
  * Un `ON CONFLICT (columna)` necesita un índice único NO parcial.
@@ -27,22 +28,12 @@ import { describe, expect, it } from 'vitest'
  * varios NULL, porque los trata como distintos entre sí.
  */
 
-const MIGRACIONES = join(process.cwd(), 'supabase', 'migrations')
-
 /** Columnas sobre las que la app hace upsert, por tabla. */
 const DESTINOS_ONCONFLICT: { tabla: string; columna: string }[] = [
   { tabla: 'registro_comida', columna: 'cliente_id' },
   { tabla: 'registro_item', columna: 'cliente_id' },
   { tabla: 'prueba_calibracion', columna: 'cliente_id' },
 ]
-
-function sqlDeTodasLasMigraciones(): string {
-  return readdirSync(MIGRACIONES)
-    .filter((f) => f.endsWith('.sql') && !f.includes('.local.'))
-    .sort()
-    .map((f) => readFileSync(join(MIGRACIONES, f), 'utf8'))
-    .join('\n')
-}
 
 /**
  * La definición VIGENTE de cada índice, no todas las que existieron.
@@ -71,7 +62,7 @@ function indicesSobre(vigentes: Map<string, string>, tabla: string, columna: str
 }
 
 describe('índices que sostienen los upsert', () => {
-  const vigentes = indicesVigentes(sqlDeTodasLasMigraciones())
+  const vigentes = indicesVigentes(sqlDeLasMigraciones())
 
   for (const { tabla, columna } of DESTINOS_ONCONFLICT) {
     describe(`${tabla}.${columna}`, () => {
