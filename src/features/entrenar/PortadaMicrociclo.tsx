@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { fraseDelMicrociclo } from '../../data/contenido/frasesDelMicrociclo'
 import { cargaPorGrupo } from '../../domain/fatiga'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import type { Microciclo } from '../../domain/types'
@@ -39,6 +40,8 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
   const sesiones = microciclo.sesiones.length
   const series = grupos.reduce((t, g) => t + g.seriesPautadas, 0)
   const notas = notasDelMicrociclo(microciclo)
+  // La misma toda la semana: si cambiara en cada render sería ruido, no mensaje.
+  const frase = fraseDelMicrociclo(microciclo.id)
 
   return (
     <div className="flex flex-col gap-3">
@@ -99,6 +102,12 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
               <p className="text-xs text-silver-400">{`${foco.seriesPautadas} series programadas`}</p>
             </div>
           </div>
+        )}
+
+        {frase && (
+          <p className="border-b border-ink-600 px-[18px] py-4 text-[13.5px] font-semibold leading-relaxed text-silver-200">
+            {frase}
+          </p>
         )}
 
         <div className="px-[18px] py-4">
