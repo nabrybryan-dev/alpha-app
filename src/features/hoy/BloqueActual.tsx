@@ -1,5 +1,6 @@
 import type { Perfil } from '../../domain/types'
 import type { PautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
+import { ObjetivoDelBloque } from './ObjetivoDelBloque'
 
 interface Fila {
   etiqueta: string
@@ -49,7 +50,9 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
         Tu bloque actual
       </h2>
       {perfil.objetivos && (
-        <p className="mt-2 text-sm font-semibold leading-snug text-texto">{perfil.objetivos}</p>
+        <div className="mt-2">
+          <ObjetivoDelBloque objetivos={perfil.objetivos} />
+        </div>
       )}
       {filas.length > 0 && (
         <dl className="mt-3 flex flex-col gap-2">
