@@ -6,7 +6,7 @@ import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calenda
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { encuestaPendiente } from '../../domain/nutricion/encuesta'
-import { pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
+import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
@@ -61,7 +61,7 @@ export default function HoyPage() {
   const pauta = pautaDelBloque(
     perfil,
     perfilNutricion?.respuestas,
-    'mantenimiento',
+    faseDeEtiqueta(perfil?.faseEnergetica),
     hoy,
   )
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { pautaDelBloque, pasosObjetivoDe, PISO_PASOS, TOPE_PASOS } from './pautaDelBloque'
+import {
+  faseDeEtiqueta,
+  pasosObjetivoDe,
+  pautaDelBloque,
+  PISO_PASOS,
+  TOPE_PASOS,
+} from './pautaDelBloque'
 import type { Perfil } from '../types'
 
 const PERFIL_VACIO: Perfil = {
@@ -89,5 +95,27 @@ describe('pautaDelBloque', () => {
     const p = pautaDelBloque(PERFIL_VACIO, { pasosDiarios: 5000 }, 'mantenimiento', '2026-08-03')
     expect(p.pasosObjetivo?.origen).toBe('calculado')
     expect(p.proteinaGkg).toBeUndefined()
+  })
+})
+
+describe('faseDeEtiqueta', () => {
+  it('lee la fase de la etiqueta que escribió el coach', () => {
+    expect(faseDeEtiqueta('Déficit agresivo')).toBe('deficit-agresivo')
+    expect(faseDeEtiqueta('Déficit ondulado 10-20%')).toBe('deficit')
+    expect(faseDeEtiqueta('Recomposición')).toBe('recomposicion')
+    expect(faseDeEtiqueta('Ganancia')).toBe('superavit')
+    expect(faseDeEtiqueta('Mantenimiento')).toBe('mantenimiento')
+    expect(faseDeEtiqueta('Reingreso · mantenimiento')).toBe('reingreso')
+  })
+
+  it('quien está en mantenimiento buscando déficit por NEAT necesita la banda de déficit', () => {
+    // Si se leyera solo "mantenimiento" se le pedirían 8.000 pasos, que es
+    // justo lo contrario de lo que persigue.
+    expect(faseDeEtiqueta('Mantenimiento → déficit por NEAT')).toBe('deficit')
+  })
+
+  it('sin etiqueta no adivina: cae en mantenimiento, la banda más conservadora', () => {
+    expect(faseDeEtiqueta(undefined)).toBe('mantenimiento')
+    expect(faseDeEtiqueta('cualquier cosa')).toBe('mantenimiento')
   })
 })

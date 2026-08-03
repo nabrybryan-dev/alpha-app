@@ -60,6 +60,30 @@ export interface PautaDelBloque {
   pasosObjetivo?: ValorConOrigen<number>
 }
 
+/**
+ * De la etiqueta que escribió el coach a la banda de pasos que le toca.
+ *
+ * El orden importa: se busca primero lo que persigue la persona y después su
+ * estado actual. Alguien "en mantenimiento buscando déficit por NEAT" tiene que
+ * recibir la banda de déficit —subir pasos ES su intervención—, y leyendo solo
+ * la primera palabra se le pedirían 8.000, justo lo contrario.
+ */
+export function faseDeEtiqueta(etiqueta: string | undefined): FaseDelBloque {
+  const t = (etiqueta ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+  if (!t) return 'mantenimiento'
+  if (t.includes('reingreso')) return 'reingreso'
+  if (t.includes('agresivo')) return 'deficit-agresivo'
+  if (t.includes('deficit')) return 'deficit'
+  if (t.includes('recomposicion')) return 'recomposicion'
+  if (t.includes('ganancia') || t.includes('superavit') || t.includes('anabolica')) {
+    return 'superavit'
+  }
+  return 'mantenimiento'
+}
+
 const numero = (v: unknown): number | null => {
   // `Number(null)` es 0, no NaN: sin este guarda, "no contestó" se convertía en
   // "cero pasos" y de ahí salía un objetivo para alguien de quien no sabemos nada.
