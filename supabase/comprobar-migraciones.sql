@@ -395,4 +395,51 @@ select '0020 - pruebas desde el movil', 'cliente_id es unico',
          where schemaname = 'public' and indexname = 'prueba_calibracion_cliente_id_unico'
        ) then 'SI' else 'NO' end
 
+union all
+select '0021 - estado del microciclo', 'existe la funcion proteger_estado_microciclo',
+       case when exists (
+         select 1 from pg_proc p
+         join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = 'proteger_estado_microciclo'
+       ) then 'SI' else 'NO' end
+
+union all
+-- La función sin el trigger no protege nada, y las dos mitades se aplican en
+-- sentencias distintas: se comprueban por separado a propósito.
+select '0021 - estado del microciclo', 'el trigger esta puesto en microciclos',
+       case when exists (
+         select 1 from pg_trigger t
+         join pg_class c on c.oid = t.tgrelid
+         join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public' and c.relname = 'microciclos'
+           and t.tgname = 'trg_proteger_estado_microciclo' and not t.tgisinternal
+       ) then 'SI' else 'NO' end
+
+union all
+select '0022 - adjuntos del chat', 'existe el bucket privado adjuntos-chat',
+       case when exists (
+         select 1 from storage.buckets where id = 'adjuntos-chat' and public = false
+       ) then 'SI' else 'NO' end
+
+union all
+select '0022 - adjuntos del chat', 'mensajes tiene adjunto_path',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'mensajes'
+           and column_name = 'adjunto_path'
+       ) then 'SI' else 'NO' end
+
+union all
+-- El bucket sin sus politicas es un bucket al que nadie puede subir. Se
+-- comprueban aparte porque se aplican en sentencias distintas.
+select '0022 - adjuntos del chat', 'estan las dos politicas de storage',
+       case when (
+         select count(*) from pg_policies
+         where schemaname = 'storage' and tablename = 'objects'
+           and policyname in (
+             'adjuntos: sube en su propia carpeta',
+             'adjuntos: lee quien envio o recibio'
+           )
+       ) = 2 then 'SI' else 'NO' end
+
 order by migracion, senal;

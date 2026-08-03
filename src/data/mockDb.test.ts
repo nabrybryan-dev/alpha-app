@@ -135,6 +135,8 @@ describe('mockDb', () => {
 })
 
 describe('guardarPropuesta', () => {
+  beforeEach(() => localStorage.clear())
+
   it('fuerza el estado a propuesto aunque le llegue otro', () => {
     const db = crearMockDb()
     const activo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
@@ -172,5 +174,91 @@ describe('guardarPropuesta', () => {
       .byUsuario('u-valentina')
       .filter((m) => m.estado === 'propuesto' && m.numero === base.numero)
     expect(propuestas).toHaveLength(1)
+  })
+})
+
+describe('activarPropuesta', () => {
+  beforeEach(() => localStorage.clear())
+
+  function conPropuesta() {
+    const db = crearMockDb()
+    const activo = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    if (!activo) throw new Error('no hay microciclo activo en el seed')
+    db.microciclos.guardarPropuesta({ ...activo, id: 'm-prop', numero: activo.numero + 1 })
+    return { db, activo }
+  }
+
+  it('cierra el anterior y activa la propuesta', () => {
+    const { db, activo } = conPropuesta()
+    db.microciclos.activarPropuesta('m-prop')
+
+    const todos = db.microciclos.byUsuario('u-valentina')
+    expect(todos.find((m) => m.id === 'm-prop')?.estado).toBe('activo')
+    expect(todos.find((m) => m.id === activo.id)?.estado).toBe('cerrado')
+  })
+
+  /**
+   * La invariante que de verdad importa. Ya pasó en producción con dos asesoradas:
+   * cuando hay dos activos, `find(m => m.estado === 'activo')` devuelve uno
+   * cualquiera y la persona ve un programa u otro según el orden de guardado.
+   */
+  it('deja exactamente un activo', () => {
+    const { db } = conPropuesta()
+    db.microciclos.activarPropuesta('m-prop')
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos).toHaveLength(1)
+  })
+
+  it('repara el estado roto si ya había dos activos', () => {
+    const { db, activo } = conPropuesta()
+    // Se fabrica el estado roto: un segundo activo, como el que tuvieron Laura y
+    // María Isabel.
+    db.microciclos.guardarPropuesta({ ...activo, id: 'm-duplicado', numero: 98 })
+    db.microciclos.activarPropuesta('m-duplicado')
+    expect(
+      db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo'),
+    ).toHaveLength(1)
+
+    db.microciclos.activarPropuesta('m-prop')
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos).toHaveLength(1)
+    expect(activos[0].id).toBe('m-prop')
+  })
+
+  it('sin propuesta con ese id no toca nada: nadie se queda sin programación', () => {
+    const { db, activo } = conPropuesta()
+    db.microciclos.activarPropuesta('no-existe')
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos).toHaveLength(1)
+    expect(activos[0].id).toBe(activo.id)
+  })
+
+  it('no activa un microciclo que no sea una propuesta', () => {
+    const { db, activo } = conPropuesta()
+    const cerrado = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'cerrado')
+    if (cerrado) {
+      db.microciclos.activarPropuesta(cerrado.id)
+      expect(db.microciclos.byUsuario('u-valentina').find((m) => m.id === cerrado.id)?.estado).toBe(
+        'cerrado',
+      )
+      expect(
+        db.microciclos.byUsuario('u-valentina').find((m) => m.id === activo.id)?.estado,
+      ).toBe('activo')
+    }
+  })
+
+  it('no borra lo registrado en el microciclo que cierra', () => {
+    const { db, activo } = conPropuesta()
+    const seriesAntes = activo.sesiones.reduce(
+      (t, s) => t + s.ejercicios.reduce((x, e) => x + e.series.length, 0),
+      0,
+    )
+    db.microciclos.activarPropuesta('m-prop')
+    const cerrado = db.microciclos.byUsuario('u-valentina').find((m) => m.id === activo.id)
+    const seriesDespues = (cerrado?.sesiones ?? []).reduce(
+      (t, s) => t + s.ejercicios.reduce((x, e) => x + e.series.length, 0),
+      0,
+    )
+    expect(seriesDespues).toBe(seriesAntes)
   })
 })

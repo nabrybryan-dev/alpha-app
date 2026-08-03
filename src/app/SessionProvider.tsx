@@ -7,6 +7,7 @@ import { hidratarDesdeNube } from '../data/nube/hidratar'
 import { limpiarColasDeSync, pendientesDeSync, procesarCola, recuperarDescartes } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
 import { LoginPage } from '../features/auth/LoginPage'
+import { Splash } from '../features/auth/Splash'
 import { NuevaClavePage } from '../features/auth/NuevaClavePage'
 
 interface SesionContexto {
@@ -47,6 +48,7 @@ function SesionNube({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'sin-sesion' | 'error'>('cargando')
   const [detalleError, setDetalleError] = useState('')
   const [recuperacion, setRecuperacion] = useState(llegaDeRecuperacion)
+  const [splashVisto, setSplashVisto] = useState(false)
   const autenticadoRef = useRef<string | null>(null)
   /**
    * QUIÉN está hidratando, no solo "si hay alguien". El candado sin dueño
@@ -215,7 +217,12 @@ function SesionNube({ children }: { children: ReactNode }) {
     )
   }
 
-  if (estado === 'sin-sesion') return <LoginPage />
+  // El splash precede al login, como en el prototipo. Quien ya tiene sesión no
+  // pasa por aquí: entra directo a la app.
+  if (estado === 'sin-sesion') {
+    if (!splashVisto) return <Splash onListo={() => setSplashVisto(true)} />
+    return <LoginPage />
+  }
 
   if (estado === 'error') {
     return (

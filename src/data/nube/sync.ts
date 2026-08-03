@@ -17,6 +17,8 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
+import type { Mensaje } from '../../domain/types'
+import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube } from '../supabase'
 import { encolar } from './procesador'
 
@@ -26,6 +28,50 @@ export type { OperacionPendiente } from './cola'
 export { integrarEnCola, limpiarColasDeSync, pendientesDeSync } from './cola'
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
+
+/** La fila de `mensajes` tal como viaja a Supabase. */
+function encolarFilaDeMensaje(mensaje: Mensaje): void {
+  encolar({
+    tabla: 'mensajes',
+    tipo: 'upsert',
+    payload: {
+      id: mensaje.id,
+      de_id: mensaje.deId,
+      para_id: mensaje.paraId,
+      fecha_iso: mensaje.fechaIso,
+      texto: mensaje.texto,
+      adjunto_path: mensaje.adjuntoPath ?? null,
+      adjunto_tipo: mensaje.adjuntoTipo ?? null,
+      origen: mensaje.origen ?? 'humano',
+      leido: false,
+    },
+  })
+}
+
+/**
+ * Sube el archivo y SOLO ENTONCES encola la fila del mensaje.
+ *
+ * Nunca lanza: que falle aquí significa "todavía no", no "se perdió". El archivo
+ * se queda en el depósito y lo retoma el intento siguiente. Y no se borra hasta
+ * que la fila está encolada — el mismo principio que protege las series de quien
+ * entrena sin señal en un sótano.
+ */
+export async function subirAdjuntoPendiente(
+  mensaje: Mensaje,
+  subir: (path: string, blob: Blob) => Promise<unknown>,
+): Promise<boolean> {
+  if (!mensaje.adjuntoPath) return false
+  const blob = await leerDeposito(mensaje.id)
+  if (!blob) return false
+  try {
+    await subir(mensaje.adjuntoPath, blob)
+  } catch {
+    return false
+  }
+  encolarFilaDeMensaje(mensaje)
+  await borrarDeposito(mensaje.id)
+  return true
+}
 
 const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
 
@@ -87,6 +133,20 @@ function tablasRegistroListas(): boolean {
  * Quitar no borra: marca `borrado`. La cola no sabe hacer `delete`, y añadírselo
  * obliga a tocar el procesador, que es donde un fallo no da error en pantalla.
  */
+/**
+ * Sube el perfil entero tras tocarlo. Se relee de local a propósito: así viaja
+ * con lo que la capa local dejó, no con lo que creyó quien llamó.
+ */
+function subirPerfil(local: Db, usuarioId: string): void {
+  const perfil = local.perfiles.byUsuario(usuarioId)
+  if (!perfil) return
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'upsert',
+    payload: { usuario_id: usuarioId, datos: perfil },
+  })
+}
+
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -97,13 +157,15 @@ export function crearDbSincronizada(local: Db): Db {
       ...local.perfiles,
       agregarMedida: (usuarioId, medida) => {
         local.perfiles.agregarMedida(usuarioId, medida)
-        const perfil = local.perfiles.byUsuario(usuarioId)
-        if (!perfil) return
-        encolar({
-          tabla: 'perfiles',
-          tipo: 'upsert',
-          payload: { usuario_id: usuarioId, datos: perfil },
-        })
+        subirPerfil(local, usuarioId)
+      },
+      guardarValoracion: (usuarioId, valoracion) => {
+        local.perfiles.guardarValoracion(usuarioId, valoracion)
+        subirPerfil(local, usuarioId)
+      },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        local.perfiles.guardarPeldano(usuarioId, peldano, ascensoIso)
+        subirPerfil(local, usuarioId)
       },
     },
 
@@ -114,6 +176,27 @@ export function crearDbSincronizada(local: Db): Db {
         // Se sube leyendo de local y no `micro` a secas, para que viaje con el
         // `estado: 'propuesto'` que fuerza la capa local y no con el que llegara.
         subirMicrociclo(local, micro.id)
+      },
+      activarPropuesta: (propuestaId) => {
+        // Qué microciclos estaban activos ANTES de activar: después ya no se
+        // pueden distinguir de los que llevaban cerrados meses, y hay que subir su
+        // cierre igual que la activación. Si solo se subiera la propuesta, el
+        // servidor se quedaría con dos activos.
+        const duenio = local.usuarios
+          .list()
+          .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === propuestaId))
+        const activosPrevios = duenio
+          ? local.microciclos.byUsuario(duenio.id).filter((m) => m.estado === 'activo')
+          : []
+
+        local.microciclos.activarPropuesta(propuestaId)
+
+        // Primero abrir, después cerrar. Si la cola se drena a medias —se corta la
+        // señal justo entre las dos— este orden deja una ventana con DOS activos:
+        // malo, pero el asesorado tiene algo que entrenar y la pasada siguiente lo
+        // repara. Al revés la ventana tendría CERO: abriría la app sin programación.
+        cambiarEstadoEnNube(propuestaId, 'activo')
+        for (const m of activosPrevios) cambiarEstadoEnNube(m.id, 'cerrado')
       },
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
@@ -335,24 +418,26 @@ export function crearDbSincronizada(local: Db): Db {
 
     mensajes: {
       ...local.mensajes,
+      /**
+       * Un mensaje de solo texto se encola al momento. Uno CON adjunto no:
+       * espera a que el archivo esté arriba.
+       *
+       * El orden importa. Si la fila subiera primero, el coach vería en su hilo
+       * un mensaje con foto y al tocarlo no habría nada —el archivo todavía
+       * estaría en el teléfono de la otra persona, o no llegaría nunca—. Quien
+       * encola esa fila es `encolarFilaDeMensaje`, ya con el path.
+       */
       enviar: (mensaje) => {
         local.mensajes.enviar(mensaje)
+        if (mensaje.adjuntoTipo) return
         const hilo = local.mensajes.hilo(mensaje.deId, mensaje.paraId)
-        const ultimo = hilo[hilo.length - 1]
-        encolar({
-          tabla: 'mensajes',
-          tipo: 'upsert',
-          payload: {
-            id: ultimo.id,
-            de_id: ultimo.deId,
-            para_id: ultimo.paraId,
-            fecha_iso: ultimo.fechaIso,
-            texto: ultimo.texto,
-            adjunto_url: ultimo.adjuntoUrl ?? null,
-            origen: ultimo.origen ?? 'humano',
-            leido: false,
-          },
-        })
+        encolarFilaDeMensaje(hilo[hilo.length - 1])
+      },
+      anotarPath: (mensajeId, path) => {
+        local.mensajes.anotarPath(mensajeId, path)
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        local.mensajes.marcarAdjuntoListo(mensajeId)
       },
       /**
        * ÚNICA escritura de mensajes que NO pasa por la cola, y es a propósito.
@@ -485,6 +570,40 @@ function subirComida(local: Db, usuarioId: string, comidaId: string): void {
       confianza: comida.confianza,
       borrado: false,
     },
+  })
+}
+
+/**
+ * Cambia SOLO la columna `estado` de un microciclo en el servidor.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ NO ES UN `subirMicrociclo`
+ * ────────────────────────────────────────────────────────────────────────────
+ * Porque `subirMicrociclo` manda `datos: microciclo` —el blob entero— leído de la
+ * copia LOCAL de quien lo llama. En el móvil del asesorado eso es correcto: su
+ * copia es la autoridad sobre sus propias series. En el del coach no: su copia de
+ * lo del asesorado es la de la última hidratación, que ocurre cada 45 s y solo con
+ * la pestaña visible.
+ *
+ * Cerrar un microciclo con un upsert del blob significaba, entonces, mandar al
+ * servidor la foto que el coach tenía en la mano. Las series que el asesorado
+ * hubiera registrado después **desaparecían de la fila del servidor**, y de ahí de
+ * todos los dispositivos en la siguiente hidratación. Sin error y sin aviso: el
+ * upsert de Supabase reemplaza la columna entera, no fusiona.
+ *
+ * Un cambio de estado es una TRANSICIÓN, no una foto. Mandar solo la columna es lo
+ * único que hace falta y es lo único que no puede pisar el trabajo de nadie.
+ *
+ * Contrapartida asumida: el `estado` que queda dentro del blob se vuelve viejo. Por
+ * eso `hidratar.ts` lee la columna y le da prioridad. **Las dos mitades van juntas:
+ * si alguien vuelve a leer el estado desde `datos`, esto deja de funcionar.**
+ */
+function cambiarEstadoEnNube(microcicloId: string, estado: 'activo' | 'cerrado'): void {
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'update',
+    payload: { estado },
+    filtro: { id: microcicloId },
   })
 }
 

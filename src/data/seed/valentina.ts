@@ -35,6 +35,11 @@ export const perfilValentina: Perfil = {
   diasEntrenamiento: 5,
   tiempoSesionMin: 150,
   somatotipo: 'Mesomorfa',
+  faseEnergetica: 'Déficit 10-15%',
+  proteinaGkg: 2,
+  pasosObjetivo: 9000,
+  // Lleva 22 microciclos: la demo se ve rara si aparece en el primer peldaño.
+  peldanoAlfa: 3,
   volumenSemanal: {
     Isquios: 'Muy Alto',
     Pecho: 'Muy Alto',

@@ -60,12 +60,15 @@ const pestanas = [
       </Icono>
     ),
   },
+  // Progreso ocupa el sitio que tenía el chat: al coach se llega desde la
+  // tarjeta de su último mensaje en Hoy, que además enseña lo que escribió.
   {
-    ruta: '/chat',
-    etiqueta: 'Chat',
+    ruta: '/progreso',
+    etiqueta: 'Progreso',
     icono: (
       <Icono>
-        <path d="M21 12a8 8 0 0 1-8 8c-1.4 0-2.8-.3-4-1l-5 1 1.3-4.4A8 8 0 1 1 21 12Z" />
+        <path d="M3 17l6-6 4 4 8-8" />
+        <path d="M15 7h6v6" />
       </Icono>
     ),
   },

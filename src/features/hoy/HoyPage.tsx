@@ -2,12 +2,19 @@ import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
-import { diaDeSesion, sesionSugerida } from '../../domain/calendario'
+import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
+import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
+import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
+import { AlbumAlfa } from './AlbumAlfa'
+import { BarraCoach } from './BarraCoach'
+import { BloqueActual } from './BloqueActual'
+import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
+import { RadarAlfa } from './RadarAlfa'
 import logoAguila from '../../assets/brand/logo-aguila.jpeg'
 
 export default function HoyPage() {
@@ -27,18 +34,25 @@ export default function HoyPage() {
     .asignadosA(usuario.id)
     .filter((q) => !db.cuestionarios.respuestasDe(usuario.id).some((r) => r.cuestionarioId === q.id))
 
+  // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
+  // además salieran aquí, la misma pantalla pediría dos veces lo mismo.
   const pendientes = [
-    !checkinHoy && { texto: 'Check-in de bienestar', ruta: '/bienestar' },
     !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
       texto: `${cuestionariosPendientes.length} cuestionario${cuestionariosPendientes.length === 1 ? '' : 's'} por responder`,
       ruta: '/cuestionarios',
     },
-    noLeidos > 0 && {
-      texto: `${noLeidos} mensaje${noLeidos === 1 ? '' : 's'} del coach`,
-      ruta: '/chat',
-    },
   ].filter((p): p is { texto: string; ruta: string } => Boolean(p))
+
+  const perfil = db.perfiles.byUsuario(usuario.id)
+  const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
+  const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
+  // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
+  // meses. Son tres cosas distintas y conviene no confundirlas:
+  //   · esto        → qué se prioriza en el bloque (etiqueta, no número)
+  //   · Progreso    → cuántas series le tocaron esta semana y cuántas hizo
+  //   · el mapa de abajo → la fatiga ya acumulada
+  const prioridadVolumen = prioridadDeVolumen(perfil?.volumenSemanal ?? {})
 
   const totalSeries = siguienteSesion?.ejercicios.reduce((n, e) => n + e.sets, 0) ?? 0
   const sesionHecha = siguienteSesion ? sesionCompleta(siguienteSesion) : false
@@ -52,23 +66,36 @@ export default function HoyPage() {
     ? Math.round((pesosReg.reduce((a, b) => a + b, 0) / pesosReg.length) * 10) / 10
     : undefined
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
-  const adherenciaPct = adhs.length
-    ? Math.round(
-        (adhs.reduce((s, a) => s + (a.estado === 'si' ? 1 : a.estado === 'parcial' ? 0.5 : 0), 0) / adhs.length) * 100,
-      )
-    : undefined
+  const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
     <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
       <section className="entrada entrada-1">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">
-          {microciclo ? `Microciclo M${microciclo.numero} · Cadencia ${microciclo.cadenciaDias} días` : 'Sin microciclo activo'}
+          {[
+            microciclo ? `Microciclo M${microciclo.numero}` : 'Sin microciclo activo',
+            microciclo ? `Cadencia ${microciclo.cadenciaDias} días` : undefined,
+            perfil?.faseEnergetica,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
         <h2 className="mt-1 font-display text-3xl leading-none text-texto">
           Hola, {usuario.nombre.split(' ')[0]}
         </h2>
       </section>
+
+      {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
+          álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
+      <div className="entrada entrada-2">
+        <BarraCoach
+          iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
+          noLeidos={noLeidos}
+          ultimoTexto={ultimoDelCoach?.texto}
+          onEnviar={(envio) => void enviarRapido(usuario.id, envio)}
+        />
+      </div>
 
       {/* Check-in del día */}
       {checkinHoy ? (
@@ -117,6 +144,18 @@ export default function HoyPage() {
             </div>
             <img src={logoAguila} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 rounded-xl object-cover opacity-90" />
           </div>
+          {prioridadVolumen.length > 0 && (
+            <ul aria-label="Prioridad del bloque" className="mt-3 flex flex-wrap gap-1.5">
+              {prioridadVolumen.map((g) => (
+                <li
+                  key={g.grupo}
+                  className="rounded-full border border-ink-500 bg-ink-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-silver-300"
+                >
+                  {g.grupo} <span className="text-silver-500">{g.nivel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {sesionHecha ? (
             <div className="mt-4 flex items-center gap-2.5 rounded-boton border border-ink-500 bg-ink-700 px-3.5 py-3">
               <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
@@ -175,8 +214,21 @@ export default function HoyPage() {
         </div>
       )}
 
+      <div className="entrada entrada-4">
+        <BloqueActual perfil={perfil} />
+      </div>
+
+      <div className="entrada entrada-6">
+        <AlbumAlfa stickers={db.contenidoAlfa.album()} />
+      </div>
+
+      <div className="entrada entrada-6">
+        <RadarAlfa noticias={db.contenidoAlfa.radar()} semana={semanaDelAnio(hoy)} />
+      </div>
+
+      {/* De aquí abajo, lo que la app tiene de más sobre el diseño. */}
       {microciclo && (
-        <section className="entrada entrada-4">
+        <section className="entrada entrada-6">
           <p className="kicker mb-2">Fatiga por grupo muscular</p>
           <MapaFatiga microciclo={microciclo} />
         </section>

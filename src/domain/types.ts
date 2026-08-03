@@ -29,6 +29,42 @@ export interface Perfil {
   somatotipo: string
   volumenSemanal: Record<string, NivelVolumen>
   medidas: MedidaCorporal[]
+  /**
+   * Pauta del bloque actual, la que se resume en Hoy. Los tres son opcionales
+   * a propósito: son prescripción del coach, no cálculo de la app. Mientras no
+   * los cargue, la tarjeta no se pinta — antes que enseñar un número inventado.
+   *
+   * Viajan dentro de `perfiles.datos` (JSONB), así que no necesitan migración.
+   */
+  faseEnergetica?: string
+  proteinaGkg?: number
+  pasosObjetivo?: number
+  /**
+   * Lo que el coach valora mirando la ejecución y la app no puede deducir
+   * (hoy, la técnica). El resto de competencias de la Ruta se calculan solas.
+   */
+  valoraciones?: ValoracionCompetencia[]
+  /**
+   * Peldaño de la Escala Alfa, 1–7. Sin definir = todavía no se ha calculado y
+   * se deduce de sus datos.
+   *
+   * Antes no existía: la Ruta devolvía el peldaño 03 para todo el mundo.
+   */
+  peldanoAlfa?: number
+  /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
+  ascensoIso?: string
+}
+
+/** Nota del coach a una competencia concreta de la Ruta. */
+export interface ValoracionCompetencia {
+  /** Coincide con el id del catálogo de competencias del coach. */
+  id: string
+  /** 0–100. */
+  pct: number
+  /** Qué vio el coach. Es lo que de verdad le sirve al asesorado. */
+  nota: string
+  /** Fecha ISO en que se puso, para saber si está vieja. */
+  fecha: string
 }
 
 export interface SerieRegistrada {
@@ -217,7 +253,20 @@ export interface Mensaje {
   paraId: string
   fechaIso: string
   texto: string
-  adjuntoUrl?: string
+  /**
+   * Ruta del objeto dentro del bucket privado. NO es una URL: el bucket no es
+   * publico, asi que se firma al pintarla y se deja caducar.
+   *
+   * Sustituye al viejo `adjuntoUrl`, que guardaba el nombre que el archivo tenia
+   * en el telefono -y nada mas: no habia archivo detras de ese nombre-.
+   */
+  adjuntoPath?: string
+  adjuntoTipo?: 'imagen' | 'video'
+  /**
+   * Solo local, no viaja a la base: dice si el archivo de ESTE dispositivo ya
+   * subio. Para cualquier otro dispositivo la respuesta siempre es que si.
+   */
+  adjuntoEstado?: 'subiendo' | 'listo'
   leido: boolean
   /** 'alpha' = respuesta automatica del Centro de Respuestas. Sin definir = humano. */
   origen?: 'humano' | 'alpha'

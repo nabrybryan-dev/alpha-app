@@ -224,6 +224,41 @@ describe('microcicloPropuesto', () => {
     expect(ej.seriesPrescritas?.length).toBeGreaterThan(0)
   })
 
+  /**
+   * ✅ REGRESIÓN. El `...sesion` arrastraba `preparacion` y `bloquesCardio` con su
+   * `hechoEn` puesto, así que el asesorado abría el microciclo nuevo con el
+   * calentamiento y el cardio ya tachados. Peor en las metabólicas: `sesionCompleta`
+   * las da por hechas solo con los bloques marcados, y una sesión que nadie hizo
+   * contaba como registrada para el barrido y para el cumplimiento.
+   */
+  it('no arrastra la preparación ni el cardio ya marcados', () => {
+    const conMarcas = micro({
+      sesiones: [
+        sesion({
+          ejercicios: [registrado],
+          preparacion: [
+            {
+              id: 'p1',
+              tipo: 'movilidad',
+              titulo: 'MOVILIDAD',
+              indicaciones: '',
+              hechoEn: '2026-07-25T10:00:00Z',
+            },
+          ],
+          bloquesCardio: [
+            { id: 'c1', titulo: 'CINTA 10 MIN', indicaciones: '', hechoEn: '2026-07-25T10:20:00Z' },
+          ],
+        }),
+      ],
+    })
+    const p = microcicloPropuesto(conMarcas)
+    expect(p.sesiones[0].preparacion?.every((x) => x.hechoEn === undefined)).toBe(true)
+    expect(p.sesiones[0].bloquesCardio?.every((x) => x.hechoEn === undefined)).toBe(true)
+    // Pero los conserva: son lo que hay que hacer, no lo que se hizo.
+    expect(p.sesiones[0].preparacion).toHaveLength(1)
+    expect(p.sesiones[0].bloquesCardio).toHaveLength(1)
+  })
+
   it('no ondula las metabólicas, pero tampoco las pierde', () => {
     const conMeta = micro({
       sesiones: [sesion({ id: 's2', nombre: 'METABÓLICO', tipo: 'metabolica', ejercicios: [registrado] })],

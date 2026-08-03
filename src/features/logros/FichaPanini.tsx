@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import type { AsesoradoDestacado } from './asesoradosDestacados'
+import type { AsesoradoDestacado } from '../../data/contenido/asesoradosDestacados'
 
 const MAX_DEG = 12
 

@@ -187,6 +187,28 @@ describe('ondularEjercicio', () => {
     ],
   })
 
+  /**
+   * FIJA LO MEDIDO, no una preferencia. `FACTOR_DESCARGA = 2/3` salió de 356
+   * bajadas reales de series entre microciclos consecutivos de las 21 plantillas:
+   * acierta el 81,7 % de ellas, contra 70,5 % de 0.6 y 67,1 % de 0.75.
+   *
+   * El caso de 2 series es el que descarta 0.75 por sí solo: `round(2 * 0.75) = 2`
+   * dejaría la descarga sin efecto, y hay 51 bajadas reales de 2→1.
+   *
+   * Si alguien cambia la constante, estos tres casos se ponen rojos. Ese es el
+   * punto: el número se mueve con datos nuevos, no por intuición.
+   */
+  it('la descarga recorta las series como lo hace Bryan de verdad', () => {
+    const conSets = (sets: number) =>
+      ondularEjercicio(ejercicio({ ...registrado, sets, series: registrado.series }), {
+        descarga: true,
+      }).series.length
+
+    expect(conSets(3)).toBe(2) // el patrón más frecuente: 177 de 356
+    expect(conSets(4)).toBe(3) // el segundo: 61 — con 0.6 daría 2
+    expect(conSets(2)).toBe(1) // 51 casos — con 0.75 se quedaría en 2
+  })
+
   it('ondula con reps descendentes y cargas ascendentes', () => {
     const r = ondularEjercicio(registrado)
     expect(r.series).toHaveLength(4)
@@ -205,7 +227,26 @@ describe('ondularEjercicio', () => {
     expect(cargas[cargas.length - 1]).toBeGreaterThan(cargas[0])
   })
 
-  it('reproduce el ejemplo documentado (Mariana M15: 65→70→75→77.5 kg)', () => {
+  /**
+   * SE QUEDA CERCA DE UN CASO REAL, QUE NO ES LO MISMO QUE REPRODUCIRLO.
+   *
+   * Este test se llamaba «reproduce el ejemplo documentado» y fijaba tres cargas
+   * exactas del microciclo 15 de una asesorada (65→70→75→77.5). Dos problemas:
+   *
+   *   1. **Nunca lo reprodujo.** Ni con la deriva vieja de 0.025: daba
+   *      65 · 67.5 · 75 · 77.5, con el segundo set 2.5 kg por debajo. El test solo
+   *      miraba los sets 1, 3 y 4, así que el desajuste no se veía.
+   *   2. Era la calibración de **un solo caso** convertida en especificación. Al
+   *      medir 505 casos reales (ver `DERIVA_FATIGA_POR_SET`), este resultó estar
+   *      por encima de la mediana: con la deriva medida, el motor cierra en 75 y no
+   *      en 77.5.
+   *
+   * Así que ahora se comprueba lo que de verdad se quiere: que el motor **arranque
+   * en la carga pautada, suba de forma monótona y se quede dentro de un escalón de
+   * redondeo (2.5 kg) del patrón real, nunca por encima**. Ir por debajo es el lado
+   * recuperable; una serie ligera se corrige la semana siguiente.
+   */
+  it('se queda a un escalón del patrón real, y nunca por encima', () => {
     const ej = ejercicio({
       nombre: 'ADUCCIÓN POLEA',
       sets: 4,
@@ -214,13 +255,15 @@ describe('ondularEjercicio', () => {
       rirObjetivo: 2,
       series: [],
     })
-    const r = ondularEjercicio(ej, { cargaPrescritaKg: 65 })
-    const cargas = r.series.map((s) => s.cargaKg)
-    // Arranca en la carga pautada y cierra donde cerró el ejemplo real.
+    const real = [65, 70, 75, 77.5]
+    const cargas = ondularEjercicio(ej, { cargaPrescritaKg: 65 }).series.map((s) => s.cargaKg)
+
     expect(cargas[0]).toBe(65)
-    expect(cargas[2]).toBe(75)
-    expect(cargas[3]).toBe(77.5)
     expect(cargas).toEqual([...cargas].sort((a, b) => a - b))
+    cargas.forEach((kg, i) => {
+      expect(kg).toBeLessThanOrEqual(real[i])
+      expect(real[i] - kg).toBeLessThanOrEqual(2.5)
+    })
   })
 
   it('sin deriva de fatiga la carga se dispara por encima del patrón real', () => {

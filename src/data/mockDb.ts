@@ -8,8 +8,10 @@ import type {
   TestPostSesion,
 } from '../domain/types'
 import { construirRanking } from '../domain/ranking'
+import { crearContenidoRepo } from './contenido/contenidoRepo'
 import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBase'
 import type { Db } from './repos'
+import { crearRutaRepo } from './ruta/rutaRepo'
 import { seedDb, type SeedDb } from './seed'
 import { diasAtras } from './seed/fechas'
 
@@ -212,6 +214,33 @@ export function crearMockDb(): Db {
               ],
         }))
       },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
+          ),
+        }))
+      },
+      guardarValoracion: (usuarioId, valoracion) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId
+              ? {
+                  ...p,
+                  // Reemplaza la del mismo id: es una nota vigente, no un
+                  // histórico. Si algún día se quiere ver la evolución, va en
+                  // su propia tabla y no engordando el perfil.
+                  valoraciones: [
+                    ...(p.valoraciones ?? []).filter((v) => v.id !== valoracion.id),
+                    valoracion,
+                  ],
+                }
+              : p,
+          ),
+        }))
+      },
     },
 
     microciclos: {
@@ -240,6 +269,28 @@ export function crearMockDb(): Db {
             propuesta,
           ],
         }))
+      },
+      activarPropuesta: (propuestaId: string) => {
+        mutar((estado) => {
+          const propuesta = estado.microciclos.find(
+            (m) => m.id === propuestaId && m.estado === 'propuesto',
+          )
+          // Sin propuesta no se toca nada: cerrar el activo sin abrir el siguiente
+          // dejaría a la persona sin programación.
+          if (!propuesta) return estado
+          return {
+            ...estado,
+            microciclos: estado.microciclos.map((m) => {
+              if (m.id === propuesta.id) return { ...m, estado: 'activo' as const }
+              // Todos los activos de esa persona, no solo uno: si ya había dos,
+              // esto lo repara en vez de heredar el estado roto.
+              if (m.usuarioId === propuesta.usuarioId && m.estado === 'activo') {
+                return { ...m, estado: 'cerrado' as const }
+              }
+              return m
+            }),
+          }
+        })
       },
       registrarSerie: (microcicloId: string, ejercicioId: string, serie: SerieRegistrada) => {
         mutar((estado) =>
@@ -496,7 +547,7 @@ export function crearMockDb(): Db {
               (m.deId === usuarioB && m.paraId === usuarioA),
           )
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
-      enviar: ({ deId, paraId, texto, adjuntoUrl, origen }) => {
+      enviar: ({ deId, paraId, texto, adjuntoTipo, adjuntoEstado, origen }) => {
         mutar((estado) => ({
           ...estado,
           mensajes: [
@@ -506,12 +557,29 @@ export function crearMockDb(): Db {
               deId,
               paraId,
               texto,
-              adjuntoUrl,
+              adjuntoTipo,
+              adjuntoEstado,
               origen: origen ?? 'humano',
               fechaIso: new Date().toISOString(),
               leido: false,
             },
           ],
+        }))
+      },
+      anotarPath: (mensajeId, path) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoPath: path } : m,
+          ),
+        }))
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoEstado: 'listo' as const } : m,
+          ),
         }))
       },
       recibirDeAlpha: ({ id, deId, paraId, texto }) => {
@@ -594,5 +662,13 @@ export function crearMockDb(): Db {
           diasAtras(0),
         ),
     },
+
+    // El peldaño sale del perfil de cada persona. Sin valorar todavía, arranca
+    // en el primero: nadie empieza en el 03, que es lo que pasaba antes.
+    ruta: crearRutaRepo(
+      (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId)?.peldanoAlfa ?? 1,
+    ),
+
+    contenidoAlfa: crearContenidoRepo(),
   }
 }

@@ -4,9 +4,10 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { AsesoradoLayout, CoachLayout } from './layouts'
 
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
-const MicrocicloPage = lazy(() => import('../features/entrenar/MicrocicloPage'))
+const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
 const SesionPage = lazy(() => import('../features/entrenar/SesionPage'))
 const BienestarPage = lazy(() => import('../features/bienestar/BienestarPage'))
+const ProgresoPage = lazy(() => import('../features/progreso/ProgresoPage'))
 const DiarioDia = lazy(() => import('../features/nutricion/DiarioDia'))
 const NutricionLayout = lazy(() => import('../features/nutricion/NutricionLayout'))
 const MiPlan = lazy(() => import('../features/nutricion/MiPlan'))
@@ -39,9 +40,10 @@ export function AppRouter() {
     <Routes>
       <Route element={<AsesoradoLayout />}>
         <Route index element={envolver(<HoyPage />)} />
-        <Route path="entrenar" element={envolver(<MicrocicloPage />)} />
+        <Route path="entrenar" element={envolver(<RutaPage />)} />
         <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
+        <Route path="progreso" element={envolver(<ProgresoPage />)} />
         {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no
             hay forma de entrar por la URL saltandosela. */}
         <Route path="nutricion" element={envolver(<NutricionLayout />)}>
