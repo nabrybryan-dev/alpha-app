@@ -23,6 +23,7 @@ import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
 import { semanaDe } from '../../domain/nutricion/semana'
 import { TiraSemana } from './TiraSemana'
+import { visibilidadDelAsesorado } from './visibilidadDelAsesorado'
 import { VistaSemana } from './VistaSemana'
 import { resumenDeSemana } from '../../domain/nutricion/semanaResumen'
 
@@ -103,6 +104,10 @@ export default function DiarioDia() {
 
   const plan = db.nutricion.planByUsuario(usuario.id)
   const delDia = db.registroComidas.delDia(usuario.id, fecha)
+
+  // Misma función que usa "Mi plan": el contador del diario y las cifras del
+  // perfil obedecen a una sola decisión, resuelta en un solo sitio.
+  const visibilidad = visibilidadDelAsesorado(usuario.id)
 
   const pruebas = db.calibracion.byUsuario(usuario.id).map((p) => ({
     alimentoId: p.alimentoId,
@@ -251,6 +256,7 @@ export default function DiarioDia() {
       <VistaSemana
         resumen={resumenDeSemana(porDiaDeLaSemana, semana, porId, meta.kcal)}
         meta={meta}
+        visibilidad={visibilidad}
         onVolver={() => setVerSemana(false)}
         onElegirDia={(dia) => {
           setFecha(dia)
@@ -306,7 +312,7 @@ export default function DiarioDia() {
 
       <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
 
-      <ResumenDia total={total} meta={meta} />
+      <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
@@ -325,6 +331,7 @@ export default function DiarioDia() {
                 comida={comida}
                 kcal={kcalDeComida(comida, porId)}
                 resumen={resumenDe(comida)}
+                verKcal={visibilidad.verContadorKcal}
                 onAbrir={() => setDetalle(tipo)}
               />
             )

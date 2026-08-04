@@ -4,10 +4,9 @@ import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
 import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
-import type { Respuestas } from '../../domain/nutricion/encuesta'
-import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
+import { respuestasDe, visibilidadDelAsesorado } from './visibilidadDelAsesorado'
 import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
 
 /**
@@ -53,6 +52,11 @@ export default function MiPlan() {
   const plan = db.nutricion.planByUsuario(usuario.id)
   const [seccion, setSeccion] = useState<Seccion>('Mi perfil')
   const [tipoMenu, setTipoMenu] = useState<TipoDia>('ALTO')
+
+  // Lo que decidió la nutricionista, o lo que la encuesta pide retener mientras
+  // ella no haya decidido. Ver `visibilidadDelAsesorado`.
+  const respuestas = respuestasDe(usuario.id)
+  const visibilidad = visibilidadDelAsesorado(usuario.id)
 
   if (!plan) {
     return (
@@ -117,13 +121,8 @@ export default function MiPlan() {
 
       {seccion === 'Mi perfil' && (
         <PerfilCalculadoVista
-          perfil={calcularPerfil(
-            (db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}) as Respuestas,
-            hoyIso(),
-          )}
-          // Sin fila guardada se ven las tres cifras: es el caso normal, y ver
-          // el propio progreso es parte del acompanamiento.
-          visibilidad={visibilidadDe(undefined)}
+          perfil={calcularPerfil(respuestas, hoyIso())}
+          visibilidad={visibilidad}
           nombre={usuario.nombre}
         />
       )}
