@@ -32,18 +32,40 @@
 -- **Al escribir una migración nueva, añádele aquí sus señales.** Un archivo de
 -- comprobación desactualizado da una falsa sensación de cobertura. Ver `/migracion`.
 --
--- Lee la columna "aplicada". Estado esperado hoy (2026-07-31):
+-- **Esta cabecera se actualiza con cada migración.** Es la mitad que dice qué
+-- DEBERÍA haber; la consulta solo dice qué HAY. Estuvo congelada en el 2026-07-31
+-- mientras entraban siete migraciones, y llegó a afirmar que la 0015 y la 0016
+-- estaban «sin aplicar» cuando la propia 0017 escribe «no se toca la 0015, ya está
+-- aplicada». Sin tabla de versiones, una cabecera vieja miente con autoridad.
+--
+-- Lee la columna "aplicada". Estado esperado hoy (2026-08-03):
 --   · 0008 → todo SI
 --   · 0013 → todo SI
 --   · 0014 → todo SI. Aplicada el 2026-07-30 junto con la carga de los 1.195
 --            alimentos. Si `sin_tildes() IMMUTABLE` dijera NO, el índice de
 --            trigramas no existe y la búsqueda recorre la tabla entera sin fallar
 --            de forma visible.
---   · 0015 → todo NO todavía. Escrita y revisada (Tarea 8 del plan de registro de
---            comidas), sin aplicar: aplicarla es decisión de Bryan.
---   · 0016 → todo NO todavía. Escrita y revisada (perfil alimentario del
---            asesorado, las doce preguntas del cuestionario), sin aplicar:
---            aplicarla es decisión de Bryan.
+--   · 0015 → todo SI. Registro de comidas.
+--   · 0016 → todo SI. Perfil alimentario (las preguntas del cuestionario).
+--   · 0017 → todo SI. Registro desde el móvil (`cliente_id` y sus triggers).
+--   · 0018 → todo SI. Interruptores de visibilidad de la nutricionista.
+--   · 0019 → todo SI. Respuestas de la encuesta.
+--            Las cinco se aplicaron antes de mezclar el PR del registro de comidas.
+--   · 0020 → SIN CONFIRMAR. Es la de `prueba_calibracion`. **Ojo con el número:**
+--            otra rama usó `0020` a la vez y la suya se renumeró a `0021` DESPUÉS
+--            de estar aplicada en producción, así que un «ya corrí la 0020» es
+--            ambiguo. Aquí las señales de las dos son distintas: fíate de ellas y
+--            no del recuerdo.
+--   · 0021 → todo SI. Ya aplicada en producción cuando aún se llamaba `0020`.
+--   · 0022 → SIN CONFIRMAR. Adjuntos del chat. Aviso: solo hay señal para
+--            `mensajes.adjunto_path`, no para `adjunto_tipo`, que entra en el mismo
+--            `alter table`. Si el pegado se corta entre las dos, esto dirá SI y la
+--            hidratación del chat se caerá (`hidratar.ts:42` y `:285`).
+--   · 0023 → SIN CONFIRMAR, y es la que desatasca el registro de comidas: quita el
+--            `where cliente_id is not null` de tres índices únicos porque un
+--            `ON CONFLICT (cliente_id)` no puede arbitrar sobre un índice parcial.
+--            Mientras diga NO, cada comida que un asesorado registre falla con
+--            42P10 y se descarta **en silencio**. Va después de la 0017 y la 0020.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -316,6 +338,17 @@ select '0017 - registro desde el movil', 'cliente_id es unico en registro_comida
        ) then 'SI' else 'NO' end
 
 union all
+-- Los dos indices de lectura. No fallan de forma visible si faltan: el diario
+-- sigue abriendo, solo que recorriendo la tabla entera. Es el mismo riesgo
+-- silencioso que el indice de trigramas de la 0014.
+select '0017 - registro desde el movil', 'estan los dos indices de lectura del diario',
+       case when (
+         select count(*) from pg_indexes
+         where schemaname = 'public'
+           and indexname in ('registro_item_por_comida_cliente', 'registro_comida_vivas')
+       ) = 2 then 'SI' else 'NO' end
+
+union all
 select '0018 - visibilidad de cifras', 'la tabla de interruptores existe',
        case when exists (
          select 1 from information_schema.tables
@@ -427,6 +460,21 @@ select '0022 - adjuntos del chat', 'mensajes tiene adjunto_path',
          select 1 from information_schema.columns
          where table_schema = 'public' and table_name = 'mensajes'
            and column_name = 'adjunto_path'
+       ) then 'SI' else 'NO' end
+
+union all
+-- Va aparte de adjunto_path aunque las dos columnas entren en el mismo
+-- `alter table`: si el pegado se corta entre ambas, la senal de arriba diria SI
+-- con la migracion a medias, y `hidratar.ts` selecciona `adjunto_tipo` -- el chat
+-- se caeria en produccion con el comprobador en verde. Es el caso de la 0013.
+select '0022 - adjuntos del chat', 'mensajes tiene adjunto_tipo y su restriccion',
+       case when exists (
+         select 1 from information_schema.columns
+         where table_schema = 'public' and table_name = 'mensajes'
+           and column_name = 'adjunto_tipo'
+       ) and exists (
+         select 1 from pg_constraint
+         where conname = 'mensajes_adjunto_tipo_valido'
        ) then 'SI' else 'NO' end
 
 union all
