@@ -1,0 +1,272 @@
+{
+  "aceituna-cruda": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,5: suma 1.668 mg de mineral con 1.100 mg de cenizas"
+  },
+  "almendra-seca": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,2: el mas leve de la lista, cerca del margen de redondeo"
+  },
+  "araza-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,3: suma 269 mg de mineral con 200 mg de cenizas"
+  },
+  "arbol-del-pan-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x5,7: suma 569 mg de mineral con 100 mg de cenizas"
+  },
+  "arepa-de-maiz-asada": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x2,9: suma 294 mg de mineral con 100 mg de cenizas"
+  },
+  "babaco-maduro-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,5: suma 300 mg de mineral con 200 mg de cenizas"
+  },
+  "babaco-pinton-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,4: suma 282 mg de mineral con 200 mg de cenizas"
+  },
+  "carambolo-maduro-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x6,1: los tres carambolos comparten el mismo descuadre"
+  },
+  "carambolo-pinton-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x6,6: los tres carambolos comparten el mismo descuadre"
+  },
+  "carambolo-verde-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x6,6: los tres carambolos comparten el mismo descuadre"
+  },
+  "chontaduro-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,5: suma 1.190 mg de mineral con 800 mg de cenizas"
+  },
+  "coco-deshidratado": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,7: es ademas el unico que el techo fisico ya cazaba por su hierro (434 mg/100 g), asi que las dos senales coinciden"
+  },
+  "cocona-cruda": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x2,6: suma 1.850 mg de mineral con 700 mg de cenizas"
+  },
+  "dulce-de-jengibre-cristalizado": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x19,9: suma 1.987 mg de mineral con 100 mg de cenizas"
+  },
+  "gulupa-madura-cruda": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,6: suma 319 mg de mineral con 200 mg de cenizas"
+  },
+  "helado-de-leche": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,5: suma 148 mg de mineral con 100 mg de cenizas"
+  },
+  "hojaldre-regular-horneado": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x4,4: suma 445 mg de mineral con 100 mg de cenizas"
+  },
+  "mantequilla": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x2,9: suma 286 mg de mineral con 100 mg de cenizas"
+  },
+  "oca-o-ibia-sin-cascara-cruda": {
+    "nutrientes": [
+      "vitamina_c_mg"
+    ],
+    "motivo": "declara 382 mg de vitamina C; la misma oca CON cascara declara 31. Con su porcion de 150 g salia 2a del ranking, por encima de la guayaba"
+  },
+  "palmito-crudo": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,3: suma 1.976 mg de mineral con 1.500 mg de cenizas"
+  },
+  "pina-india-cruda": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x8,7: declara 2.445 mg de potasio, quince veces la pina comun (159), en una fruta de 54 kcal"
+  },
+  "pina-uva-harton-cruda": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,5: declara 2.692 mg de potasio y 210 mg de calcio"
+  },
+  "roscon-relleno-de-arequipe-horneado": {
+    "nutrientes": [
+      "calcio_mg",
+      "fosforo_mg",
+      "hierro_mg",
+      "magnesio_mg",
+      "potasio_mg",
+      "sodio_mg",
+      "zinc_mg"
+    ],
+    "motivo": "x1,4: suma 1.304 mg de mineral con 900 mg de cenizas"
+  }
+}
