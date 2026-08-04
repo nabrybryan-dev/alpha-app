@@ -5,6 +5,15 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { calcularPerfil, senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { motivosDeRevision, visibilidadDe } from '../../domain/nutricion/visibilidad'
+import {
+  DIAS_MINIMOS,
+  ventanaEnergetica,
+  type VentanaEnergetica,
+} from '../../domain/nutricion/ventanaEnergetica'
+import { resumenDelDia } from '../../domain/nutricion/resumen'
+import type { VeredictoEnergetico } from '../../domain/nutricion/composicion'
+import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
+import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
 import type { VisibilidadAsesorado } from '../../domain/types'
 
 /**
@@ -26,6 +35,29 @@ interface Ficha {
   guardada: VisibilidadAsesorado | undefined
   motivos: string[]
   esperando: boolean
+  /** Media de ingesta de sus últimos días registrados. `null` si aún no bastan. */
+  ventana: VentanaEnergetica | null
+}
+
+/**
+ * Los días con registro de esta persona, uno por fecha, para la ventana.
+ *
+ * Se miran los últimos 30 días naturales y no todo el historial: la ventana solo
+ * usa los 7 más recientes, y recorrer un año de fechas para quedarse con una
+ * semana sería trabajo tirado en cada render de la lista.
+ */
+function diasRegistrados(usuarioId: string, hoy: string, porId: (id: string) => AlimentoIndice | undefined) {
+  return Array.from({ length: 30 }, (_, i) => {
+    const fecha = restarDias(hoy, i + 1)
+    return { fecha, total: resumenDelDia(db.registroComidas.delDia(usuarioId, fecha), porId) }
+  })
+}
+
+/** `2026-08-03` menos N días, sin arrastrar la hora local. */
+function restarDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - dias)
+  return d.toISOString().slice(0, 10)
 }
 
 export default function CifrasAsesoradosPage() {
@@ -36,6 +68,9 @@ export default function CifrasAsesoradosPage() {
   if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
     return <Navigate to="/" replace />
   }
+
+  const hoy = hoyIso()
+  const porId = (id: string) => catalogoRepo.porId(id)
 
   const fichas: Ficha[] = db.usuarios.asesorados().map((a) => {
     const respuestas = (db.perfilNutricion.byUsuario(a.id)?.respuestas ?? {}) as Respuestas
@@ -48,6 +83,7 @@ export default function CifrasAsesoradosPage() {
       guardada,
       motivos: motivosDeRevision(senales),
       esperando: visibilidadDe(guardada, senales).estado === 'en_espera',
+      ventana: ventanaEnergetica(diasRegistrados(a.id, hoy, porId), hoy),
     }
   })
 
@@ -111,7 +147,11 @@ interface FichaProps {
 }
 
 function FichaAsesorado({ ficha, abierta, onAbrir, decisorId }: FichaProps) {
-  const perfil = calcularPerfil(ficha.respuestas, hoyIso())
+  // Con la ventana entra la disponibilidad energética. Sin ella `perfil.energia`
+  // es `null` y la tarjeta lo dice, en vez de enseñar un número inventado.
+  const perfil = calcularPerfil(ficha.respuestas, hoyIso(), {
+    ingestaKcal: ficha.ventana?.ingestaKcal,
+  })
   const actual = visibilidadDe(ficha.guardada, senalesDeLaEncuesta(ficha.respuestas))
   const [nota, setNota] = useState(ficha.guardada?.nota ?? '')
 
@@ -175,6 +215,8 @@ function FichaAsesorado({ ficha, abierta, onAbrir, decisorId }: FichaProps) {
                 <Cifra etiqueta="IMC" valor={perfil.imc} />
                 <Cifra etiqueta="TDEE" valor={perfil.tdee} sufijo="kcal" />
               </div>
+
+              <Energia ventana={ficha.ventana} veredicto={perfil.energia} />
 
               <div className="mt-4 flex flex-col gap-2">
                 <Interruptor
@@ -242,6 +284,71 @@ function Cifra({
         {valor === null ? '—' : valor.toLocaleString('es-CO')}
       </p>
       {sufijo && <p className="text-[9px] text-tenue">{sufijo}</p>}
+    </div>
+  )
+}
+
+/**
+ * La disponibilidad energética, y de dónde sale.
+ *
+ * AQUÍ Y NO EN LA PANTALLA DEL ASESORADO, todavía. Es un veredicto sobre una
+ * media de registros estimados, sin saber lo que gastó entrenando —eso no lo
+ * mide nada aún—, y con el gasto contado como cero la cifra sale MÁS ALTA de lo
+ * real: se equivoca hacia «todo bien», que en una alerta de protección es la
+ * dirección mala. Que la lea una persona antes de que llegue a nadie es lo
+ * coherente con el resto del apartado.
+ *
+ * NUNCA ENSEÑA EL NÚMERO SIN SU PROCEDENCIA. Sobre cuántos días, con qué margen
+ * y con qué criterio: los tres cambian cómo se lee, y sin ellos «24,1 kcal/kg»
+ * parece una medición.
+ */
+function Energia({
+  ventana,
+  veredicto,
+}: {
+  ventana: VentanaEnergetica | null
+  veredicto: VeredictoEnergetico | null
+}) {
+  if (!ventana || !veredicto) {
+    return (
+      <p className="mt-3 rounded-xl border border-linea bg-surface-2 p-3 text-[11px] leading-snug text-tenue">
+        Sin días suficientes para calcular su disponibilidad energética. Hacen falta{' '}
+        {DIAS_MINIMOS} días registrados, sin contar hoy.
+      </p>
+    )
+  }
+
+  const tono =
+    veredicto.estado === 'problema'
+      ? 'border-accion/40 bg-accion/10'
+      : veredicto.estado === 'vigilancia'
+        ? 'border-ambar/40 bg-ambar/10'
+        : 'border-linea bg-surface-2'
+
+  return (
+    <div className={`mt-3 rounded-xl border p-3 ${tono}`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          Energía disponible
+        </p>
+        <p className="cifras text-sm font-bold text-texto">
+          {veredicto.disponibilidad} kcal/kg
+        </p>
+      </div>
+      <p className="mt-1 text-[11px] leading-snug text-tenue">
+        Media de {ventana.ingestaKcal.toLocaleString('es-CO')} kcal sobre {ventana.dias}{' '}
+        {ventana.dias === 1 ? 'día' : 'días'} registrados, con un margen de ±{ventana.margenPct} %.
+      </p>
+      {/* En su propio renglón: el criterio empieza en minúscula a propósito -es un
+          fragmento- y pegado a la frase de arriba quedaba tras un punto. */}
+      <p className="mt-0.5 text-[11px] leading-snug text-tenue">
+        Umbral aplicado — {veredicto.criterio}.
+      </p>
+      {/* Sin este renglón el número se lee como si el gasto estuviera medido. */}
+      <p className="mt-1 text-[11px] leading-snug text-tenue">
+        <b className="text-texto">El gasto de entrenamiento cuenta como cero</b> — todavía no se
+        mide. La cifra real es más baja que esta.
+      </p>
     </div>
   )
 }
