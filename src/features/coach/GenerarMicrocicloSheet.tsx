@@ -111,21 +111,30 @@ export function GenerarMicrocicloSheet({
             </p>
           </fieldset>
 
+          {/* El aviso dice si el motor se fiaría del DATO, no si esto se va a
+              activar: una vez guardada se activa igual, porque guardarla es la
+              revisión. Decía «no se activaría sola» y desde que la preparada manda
+              eso era falso justo cuando más importa. */}
           {propuesta.revision.auto ? (
             <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
-              <strong>Dato fiable.</strong> Cumple las cinco señales, así que podría activarse sola
-              cuando llegue su fecha.
+              <strong>Dato fiable.</strong> Cumple las cinco señales: el motor se fiaría de ella sin
+              que la miraras.
             </p>
           ) : (
             <div className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
               <p>
-                <strong>Esta hay que mirarla.</strong> No se activaría sola porque:
+                <strong>Esta hay que mirarla antes de guardar.</strong> El motor no se fiaría del
+                dato de partida porque:
               </p>
               <ul className="mt-1 list-disc pl-4">
                 {propuesta.revision.motivos.map((m) => (
                   <li key={m}>{m}</li>
                 ))}
               </ul>
+              <p className="mt-1.5">
+                Si la guardas, se activa tal cual cuando venza el actual: guardarla cuenta como que
+                la revisaste.
+              </p>
             </div>
           )}
 

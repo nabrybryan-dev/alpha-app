@@ -162,6 +162,21 @@ describe('GenerarMicrocicloSheet', () => {
     expect(guardada.fechaInicio).toBe(finAnterior > hoy() ? finAnterior : hoy())
   })
 
+  /**
+   * ✅ REGRESIÓN de texto, encontrada mirando la pantalla y no un test. El aviso
+   * ámbar decía «no se activaría sola», y desde que la propuesta preparada manda
+   * eso es falso: guardarla ES la revisión, así que se activa igual. Un aviso que
+   * promete lo contrario de lo que hace el sistema es peor que no tenerlo, y este
+   * salía justo en el caso de más riesgo (dato flojo).
+   */
+  it('el aviso de dato flojo no promete que la propuesta se quedará quieta', async () => {
+    abrir()
+    const aviso = await screen.findByText(/hay que mirarla/i)
+    expect(aviso).toBeInTheDocument()
+    expect(screen.queryByText(/no se activaría sola/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/se activa tal cual cuando venza el actual/i)).toBeInTheDocument()
+  })
+
   it('enseña la fecha en la que arrancaría, para no programar a ciegas', async () => {
     abrir()
     await userEvent.click(screen.getByRole('button', { name: /próxima semana/i }))
