@@ -19,7 +19,11 @@ import type {
   RegistroComida,
   RegistroHidratacion,
   RegistroItem,
+  VisibilidadAsesorado,
 } from '../../domain/types'
+
+type EstadoGuardado = VisibilidadAsesorado['estado']
+const ESTADOS: readonly EstadoGuardado[] = ['automatico', 'en_espera', 'decidido']
 import { aplicarSnapshot, epocaSesion, instantaneaLocal, versionEscrituras } from '../mockDb'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
@@ -200,11 +204,17 @@ export async function hidratarDesdeNube(): Promise<void> {
     .from('perfil_alimentario')
     .select('asesorado_id, respuestas, completada_en')
 
-  const [comidas, items, preferencias, calibraciones] = await Promise.all([
+  const [comidas, items, preferencias, calibraciones, visibilidades] = await Promise.all([
     sb.from('registro_comida').select('*').eq('borrado', false),
     sb.from('registro_item').select('*').eq('borrado', false),
     sb.from('preferencia_estado').select('*'),
     sb.from('prueba_calibracion').select('*'),
+    // Migración 0018. El asesorado SÍ puede leer los suyos —la política
+    // `visibilidad_lee_lo_suyo` existe justo para esto— y sin bajarlos su app no
+    // sabe qué pintarle: le enseñaría todo a quien pidió no verlo. Y sin esta
+    // línea la decisión desaparecía también del dispositivo del staff, porque
+    // `aplicarSnapshot` reemplaza la base local entera.
+    sb.from('visibilidad_nutricion').select('*'),
   ])
 
   /**
@@ -318,6 +328,23 @@ export async function hidratarDesdeNube(): Promise<void> {
               completadaEn: (f.completada_en as string | null) ?? undefined,
             }),
           ),
+    // Si la tabla no responde se conserva lo local, por lo mismo que arriba: una
+    // lista vacía aquí le encendería a alguien las cifras que se le apagaron.
+    visibilidades: visibilidades.error
+      ? (instantaneaLocal().visibilidades ?? [])
+      : conPendientes('visibilidad_nutricion', visibilidades.data ?? []).map(
+          (f): VisibilidadAsesorado => ({
+            usuarioId: f.asesorado_id as string,
+            verComposicion: Boolean(f.ver_composicion),
+            verObjetivoCalorico: Boolean(f.ver_objetivo_calorico),
+            verContadorKcal: Boolean(f.ver_contador_kcal),
+            // Un estado que no reconocemos -fila corrupta, versión futura- se
+            // trata como "nadie ha decidido" en vez de colarse como decisión.
+            estado: ESTADOS.includes(f.estado as EstadoGuardado)
+              ? (f.estado as EstadoGuardado)
+              : 'automatico',
+          }),
+        ),
     pruebasCalibracion: calibraciones.error
       ? (instantaneaLocal().pruebasCalibracion ?? [])
       : (calibraciones.data ?? []).map(

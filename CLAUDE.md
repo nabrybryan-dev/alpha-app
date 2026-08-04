@@ -32,7 +32,11 @@ npm run verify
 ```
 
 Corre `typecheck` (`tsc -b`, con **`strict` activado**) + `lint` (ESLint) +
-`test` (vitest). Debe salir en verde: **0 errores y 242 tests pasando**.
+`test` (vitest). Debe salir en verde: **0 errores**. La cifra de tests sube casi a
+diario (el 2026-08-03 eran **1.098 en 93 archivos**), así que el criterio no es
+igualar un número: es que **no baje** y que no aparezca ni un rojo. Si vas a citar
+un total, mídelo, no lo copies de aquí — este dato ya estuvo catorce días desfasado
+diciendo «242» y nadie lo notó.
 
 Los mismos tres pasos corren en CI (`.github/workflows/ci.yml`) en cada push y PR.
 
@@ -42,11 +46,21 @@ sin autorización explícita.
 
 ### Avisos del linter que están pendientes a propósito
 
-`react-hooks/rules-of-hooks` está limpia y es **error** (gate real). Pero hay 14
-avisos abiertos: **7 de `set-state-in-effect`** y **2 de `purity`**
-(`SesionPage.tsx:142`). Son hallazgos reales, en las zonas donde ya hubo bugs de
-pérdida de datos. Están como `warn` a la espera de una tanda propia **con tests**.
-No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
+Dos reglas son **error** y bloquean: `react-hooks/rules-of-hooks` y —desde el
+2026-07-29— `react-hooks/set-state-in-effect`. Esta segunda **ya se cerró**: los 7
+avisos que destapó se arreglaron y quedan tres `eslint-disable` con su motivo
+escrito al lado (`eslint.config.js:34-44`). No la trates como pendiente ni la
+reabras. `react-hooks/purity` también está a cero.
+
+Lo que queda abierto son **5 avisos** (2026-08-03), todos anteriores al trabajo de
+julio y ninguno en zona de riesgo: 4 de `react-refresh/only-export-components`
+(`SessionProvider.tsx:310`, `ThemeProvider.tsx:31`, `CronometroSesion.tsx:54` y
+`:59` — archivos que exportan un componente **y** un hook) y 1 de
+`react-hooks/exhaustive-deps` (`DescansoTimer.tsx:100`, falta `cerrarUnaVez`).
+
+La regla es un **delta, no un presupuesto**: corre el linter antes y después de tu
+cambio y no dejes ni un aviso más de los que había. No los arregles de pasada
+dentro de otro cambio; van en su propia tanda **con tests**.
 
 ---
 
@@ -57,10 +71,10 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 | `src/domain/` | Lógica pura: fatiga, ranking, readiness, cumplimiento, gamificación, ritmo de sesión, fichas, calendario | **Sin React, sin I/O.** Cada módulo con su `.test.ts` al lado. **Aquí va toda regla de negocio nueva.** |
 | `src/data/` | Acceso a datos: `repos.ts` (interfaz `Db`), `mockDb.ts`, `nube/sync.ts`, `nube/hidratar.ts`, `seed/` | Patrón repositorio. La UI **nunca** habla con Supabase directamente. |
 | `src/features/<dominio>/` | Pantallas y componentes por dominio de negocio | Un dominio no importa de otro; lo común sube a `components/ui/`. |
-| `src/components/ui/` | Primitivas reutilizables (18) | Sin lógica de negocio. |
+| `src/components/ui/` | Primitivas reutilizables (16 archivos; `MacroPill` está sin uso desde el rediseño de julio) | Sin lógica de negocio. |
 | `src/app/` | Router, `SessionProvider`, `ThemeProvider`, `ErrorBoundary`, layouts | |
 | `src/styles/tokens.css` | Tokens de marca | **El diseño se hace con Tailwind + estos tokens.** No añadir CSS-in-JS, CSS Modules ni Bootstrap. |
-| `supabase/migrations/` | Migraciones numeradas (`0001`…`0014`) | Nueva migración = número siguiente, nunca editar una aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
+| `supabase/migrations/` | Migraciones numeradas (`0001`…`0023`) | Nueva migración = número siguiente, nunca editar una aplicada. **Mira la carpeta antes de elegir número:** dos ramas cogieron `0020` a la vez y una tuvo que renumerarse a `0021` después de estar aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
 | `scripts/` | Utilidades Node (`.mjs`) | Si un test las importa, mantener su `.d.mts` al día. |
 
 ### Cómo fluyen los datos
@@ -114,7 +128,7 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 
 ## 6. Trampas conocidas (ya nos costaron)
 
-- **`SesionPage` se remonta con `key={sesionId}`** (`SesionPage.tsx:81`). La ruta
+- **`SesionPage` se remonta con `key={sesionId}`** (`SesionPage.tsx:55`). La ruta
   reutiliza el mismo elemento, así que sin ese `key` el estado de la sesión vieja
   se escribía sobre la clave de la nueva. No quitarlo.
 - **`onAuthStateChange` dispara `SIGNED_IN` en cada refoco** de la app, no solo al

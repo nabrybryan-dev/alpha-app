@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { VistaSemana } from './VistaSemana'
 import type { ResumenSemana } from '../../domain/nutricion/semanaResumen'
+import type { Visibilidad } from '../../domain/nutricion/visibilidad'
 
 const FECHAS = [
   '2026-07-27',
@@ -33,12 +34,20 @@ const resumen = (registrados: number[]): ResumenSemana => {
   }
 }
 
-const pintar = (registrados: number[]) => {
+const TODO_VISIBLE: Visibilidad = {
+  verComposicion: true,
+  verObjetivoCalorico: true,
+  verContadorKcal: true,
+  estado: 'automatico',
+}
+
+const pintar = (registrados: number[], visibilidad: Visibilidad = TODO_VISIBLE) => {
   const onElegirDia = vi.fn()
   render(
     <VistaSemana
       resumen={resumen(registrados)}
       meta={META}
+      visibilidad={visibilidad}
       onVolver={vi.fn()}
       onElegirDia={onElegirDia}
     />,
@@ -100,6 +109,47 @@ describe('VistaSemana', () => {
       pintar([])
       expect(screen.getByText(/no has anotado nada todavía/i)).toBeInTheDocument()
       expect(screen.queryByText(/promedio registrado/i)).not.toBeInTheDocument()
+    })
+  })
+
+  /**
+   * Esta pantalla era el agujero del interruptor del contador: se apagó el
+   * contador del diario y aquí seguía habiendo un promedio de kcal, un «vs.
+   * pauta» y un gráfico de barras de calorías por día. Apagar el contador de una
+   * pantalla y dejarlo en la de al lado no protege a nadie: solo le obliga a dar
+   * un rodeo.
+   */
+  describe('con el contador apagado', () => {
+    const SIN_CONTADOR: Visibilidad = {
+      verComposicion: false,
+      verObjetivoCalorico: false,
+      verContadorKcal: false,
+      estado: 'decidido',
+    }
+
+    it('no hay promedio de kcal ni comparación contra la pauta', () => {
+      pintar([0, 1, 2], SIN_CONTADOR)
+      expect(screen.queryByText(/promedio registrado/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/vs\. pauta/i)).not.toBeInTheDocument()
+      expect(screen.queryByText('1.900')).not.toBeInTheDocument()
+    })
+
+    it('las barras dejan de medir calorías', () => {
+      // Una barra proporcional a las kcal sigue siendo el contador, dibujado.
+      pintar([0], SIN_CONTADOR)
+      expect(screen.queryByRole('button', { name: /1900 kcal/i })).not.toBeInTheDocument()
+    })
+
+    it('pero sí se sigue viendo qué días anotó: eso es adherencia, no una cifra sobre su cuerpo', () => {
+      pintar([0], SIN_CONTADOR)
+      expect(screen.getByRole('button', { name: /2026-07-27: registrado/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /2026-07-28: sin registrar/i })).toBeInTheDocument()
+      expect(screen.getByText('Días anotados')).toBeInTheDocument()
+    })
+
+    it('la media de proteína se va con el objetivo calórico: es una meta', () => {
+      pintar([0, 1], SIN_CONTADOR)
+      expect(screen.queryByText(/proteína media/i)).not.toBeInTheDocument()
     })
   })
 })
