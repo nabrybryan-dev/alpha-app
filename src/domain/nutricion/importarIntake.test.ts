@@ -55,7 +55,8 @@ describe('importarIntake', () => {
     const { respuestas } = importarIntake(INTAKE)
     const perfil = calcularPerfil({ ...respuestas, pasosDiarios: 9000 }, '2026-08-01')
     expect(perfil.grasaPct).toBe(24.6)
-    expect(perfil.tdee).toBe(1866)
+    // 1.866 hasta que la TMB pasó a promediar Mifflin con Katch-McArdle.
+    expect(perfil.tdee).toBe(1817)
   })
 
   it('quedan DOS preguntas: las únicas que el intake no hace', () => {

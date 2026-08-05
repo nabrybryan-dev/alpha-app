@@ -45,6 +45,64 @@ export function tmb(
 }
 
 /**
+ * Katch-McArdle (revisión de Cunningham): `370 + 21,6 × masa libre de grasa`.
+ *
+ * No mira peso, ni altura, ni edad: solo cuánto tejido activo hay que mantener.
+ * Ahí está su ventaja y su límite. En alguien musculado, Mifflin —que solo ve el
+ * peso total— se queda corta; en alguien con mucha grasa, se pasa. Pero requiere
+ * el % de grasa, y una estimación por perímetros arrastra su propio error de 3-4
+ * puntos, que es justo la razón de promediarla con Mifflin en vez de sustituirla.
+ *
+ * Fuente: `wiki/conocimiento/cuantificacion-calorica.md`.
+ */
+export function katchMcArdle(masaMagraKg: number | null): number | null {
+  if (!masaMagraKg || !Number.isFinite(masaMagraKg) || masaMagraKg <= 0) return null
+  return redondearExcel(370 + 21.6 * masaMagraKg)
+}
+
+/**
+ * La TMB con la que trabaja el motor: media de Mifflin y Katch-McArdle.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ PROMEDIAR Y NO ELEGIR
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Las dos fórmulas fallan por lados distintos —Mifflin ignora la composición,
+ * Katch depende de un % de grasa estimado— y ninguna es «la buena». Promediarlas
+ * es la práctica que recomienda el Cerebro y lo que decide el spec del motor.
+ * Sigue siendo una estimación: el ajuste de verdad lo hace el peso real en la
+ * revisión quincenal, no esta cuenta.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * SIN MASA MAGRA SE CAE A MIFFLIN, NO SE PROMEDIA CON CERO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Tratar el `null` como un 0 dejaría la TMB en la mitad, y de ahí saldría un
+ * objetivo calórico brutal para alguien cuyo único problema es no haberse medido
+ * el cuello. Un dato que falta no es un dato que vale cero — la misma regla que
+ * gobierna el catálogo y la composición.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * OJO: ESTO YA NO ES LO QUE HACE EL EXCEL
+ * ─────────────────────────────────────────────────────────────────────────────
+ * `herramientas/inventario-nutricion/parametros.py` —espejo del libro del
+ * coach— calcula con Mifflin sola; su columna se llama `tdee (mifflin)`. Desde
+ * este cambio, la app y el Excel dan cifras distintas para la misma persona.
+ * `tmb()` se conserva intacta justo para eso: es la que reproduce el libro.
+ */
+export function tmbCombinada(
+  pesoKg: number | null,
+  alturaCm: number | null,
+  edad: number | null,
+  genero: Genero | null,
+  masaMagraKg: number | null,
+): number | null {
+  const mifflin = tmb(pesoKg, alturaCm, edad, genero)
+  if (mifflin === null) return null
+  const katch = katchMcArdle(masaMagraKg)
+  if (katch === null) return mifflin
+  return redondearExcel((mifflin + katch) / 2)
+}
+
+/**
  * Factor de actividad. Tabla real de Alpha: pasos diarios × días de entreno.
  *
  * Los DOS criterios tienen que cumplirse para subir de escalón. Alguien que
