@@ -61,11 +61,15 @@
 --            `mensajes.adjunto_path`, no para `adjunto_tipo`, que entra en el mismo
 --            `alter table`. Si el pegado se corta entre las dos, esto dirá SI y la
 --            hidratación del chat se caerá (`hidratar.ts:42` y `:285`).
---   · 0023 → SIN CONFIRMAR, y es la que desatasca el registro de comidas: quita el
+--   · 0023 → APLICADA Y COMPROBADA el 2026-08-05 (3 índices, 3 sin predicado).
+--            Es la que desatascó el registro de comidas: quitaba el
 --            `where cliente_id is not null` de tres índices únicos porque un
 --            `ON CONFLICT (cliente_id)` no puede arbitrar sobre un índice parcial.
---            Mientras diga NO, cada comida que un asesorado registre falla con
---            42P10 y se descarta **en silencio**. Va después de la 0017 y la 0020.
+--            Mientras dijo NO, cada comida que un asesorado registró falló con
+--            42P10 y se descartó **en silencio**. Va después de la 0017 y la 0020.
+--   · 0024 → SIN APLICAR. La despensa (spec §11). Sus tres señales van juntas -tabla,
+--            RLS y vista- porque la tabla existiendo sin sus políticas dejaría a la
+--            vista lo que come cada persona, y eso no puede pasar por «aplicada».
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -505,6 +509,26 @@ select '0023 - indices cliente_id no parciales', 'los tres indices sin predicado
              'prueba_calibracion_cliente_id_unico'
            )
            and indexdef not ilike '%where%'
+       ) = 3 then 'SI' else 'NO' end
+
+union all
+-- Tres señales en una: la tabla, su RLS y la vista de la cola. Se comprueban
+-- juntas porque una despensa sin RLS deja a la vista lo que come cada persona,
+-- y un pegado que se corte a la mitad crearía la tabla sin llegar a las
+-- políticas. Que la tabla exista no basta para dar esto por aplicado.
+select '0024 - despensa', 'tabla, RLS y vista de pedidos',
+       case when (
+         select count(*) from (
+           select 1 from pg_tables
+            where schemaname = 'public' and tablename = 'despensa' and rowsecurity
+           union all
+           select 1 from pg_policies
+            where schemaname = 'public' and tablename = 'despensa'
+              and policyname = 'despensa_cada_uno_la_suya'
+           union all
+           select 1 from pg_views
+            where schemaname = 'public' and viewname = 'alimentos_pedidos'
+         ) as senales
        ) = 3 then 'SI' else 'NO' end
 
 order by migracion, senal;
