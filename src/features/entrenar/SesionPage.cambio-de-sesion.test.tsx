@@ -112,7 +112,17 @@ describe('cambiar de sesión sin salir de la pantalla de entreno', () => {
     expect(await screen.findByText('LEG B')).toBeInTheDocument()
 
     // La sesión nueva empieza ahora: su cronómetro tiene que estar en cero.
-    expect(screen.getByText('00:00:00')).toBeInTheDocument()
+    //
+    // `findByText` y no `getByText`, por lo mismo que doce líneas más arriba: el
+    // encabezado de LEG B aparece en cuanto remonta, pero el cronómetro se pinta
+    // en el tick siguiente. Con la suite entera en paralelo ese tick llega tarde
+    // y este test fallaba una de cada varias pasadas -sin que nada estuviera
+    // roto-. Un rojo intermitente enseña a ignorar los rojos, que es como se
+    // cuela el fallo de verdad.
+    expect(await screen.findByText('00:00:00')).toBeInTheDocument()
+    // Y el tiempo de la sesión vieja no puede seguir en pantalla: es el fallo
+    // que estos tests existen para cazar, y esperar no lo puede disimular.
+    expect(screen.queryByText('00:05:00')).not.toBeInTheDocument()
   })
 
   it('el cronómetro guardado de la sesión nueva NO debe heredar el arranque de la vieja', async () => {

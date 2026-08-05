@@ -16,10 +16,24 @@
 
 import type { AlimentoIndice, FiltroBusqueda } from '../../domain/nutricion/busqueda'
 import { buscar } from '../../domain/nutricion/busqueda'
+import { sinDatosEnDuda } from '../../domain/nutricion/datosSospechosos'
 import { ESTADOS_PESABLES, familia } from '../../domain/nutricion/estado'
 import bruto from './alimentos.json'
 
-const ALIMENTOS = bruto as AlimentoIndice[]
+/**
+ * Los datos que no se sostienen se apartan AQUÍ, al entrar, y no en cada
+ * pantalla que los use.
+ *
+ * Es el único punto por el que un id del catálogo se convierte en composición:
+ * el día del asesorado, las cifras que ve la nutricionista, el detalle de una
+ * comida y la hoja de cantidad salen todos de aquí. Filtrar más adelante -en el
+ * resumen del día, por ejemplo- dejaría fuera a los demás y sería una costura
+ * más que alguien tiene que acordarse de llamar, que es justo el patrón que ya
+ * falló en este repo con el aviso de alergia.
+ *
+ * Cuesta un recorrido de 1.195 filas al cargar el módulo, una sola vez.
+ */
+const ALIMENTOS = (bruto as AlimentoIndice[]).map(sinDatosEnDuda)
 
 /** Índice por id: la hoja de cantidad lo consulta en cada pulsación del
  *  stepper, y recorrer 1.195 alimentos en cada una se nota en un móvil. */
