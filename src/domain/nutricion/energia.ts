@@ -1,13 +1,30 @@
 /**
  * De las medidas de una persona a sus calorías y sus macros.
  *
- * Las fórmulas NO son genéricas de internet: son las que ya usa Alpha en sus
- * libros de Excel, para que lo que calcule la app y lo que calcule el coach den
- * lo mismo. Si dieran distinto, cada uno defendería su número y el asesorado
- * estaría en medio.
+ * Las fórmulas NO son genéricas de internet: salen de los libros de Excel de
+ * Alpha y del Cerebro. El factor de actividad y el reparto de macros son espejo
+ * exacto de `herramientas/inventario-nutricion/parametros.py` y de
+ * `wiki/motor-decision/09`.
  *
- * Espejo de `herramientas/inventario-nutricion/parametros.py` (TMB, factor de
- * actividad, TDEE) y de `wiki/motor-decision/09` (el reparto de macros).
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LA TMB YA NO ES ESPEJO, Y ES A PROPÓSITO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Aquí `tmbCombinada` promedia Mifflin con Katch-McArdle; el Python calcula con
+ * Mifflin sola. No es una desincronización que haya que arreglar:
+ *
+ *   · Los `.xlsx` están CONGELADOS como archivo histórico desde el 2026-08-02 y
+ *     la app es la fuente de verdad (ver `CLAUDE.md` §7). Ya no se crean libros
+ *     nuevos, así que no hay dos cifras compitiendo por la misma persona: hay
+ *     una época y la siguiente.
+ *   · El `_calcular_tmb` del Python es un SUPLENTE. Solo entra cuando la celda
+ *     del libro vino sin valor cacheado, y su trabajo es reproducir lo que esa
+ *     fórmula calculó. Meterle el promedio le haría inventar, para 15 de 19
+ *     libros reales, un número que esos libros nunca tuvieron.
+ *   · Y no podría aunque se quisiera: el bloque bioenergético de la hoja PDG%
+ *     no trae composición corporal, y sin masa magra no hay Katch-McArdle.
+ *
+ * Así que el Python se queda en Mifflin para siempre. Si algún día alguien
+ * compara las dos herramientas y ve 1.352 contra 1.317, esto es el porqué.
  */
 
 import type { Genero } from './composicion'
@@ -42,6 +59,64 @@ export function tmb(
   const ajuste = AJUSTE_GENERO[genero]
   if (ajuste === undefined) return null
   return redondearExcel(10 * pesoKg + 6.25 * alturaCm - 5 * edad + ajuste)
+}
+
+/**
+ * Katch-McArdle (revisión de Cunningham): `370 + 21,6 × masa libre de grasa`.
+ *
+ * No mira peso, ni altura, ni edad: solo cuánto tejido activo hay que mantener.
+ * Ahí está su ventaja y su límite. En alguien musculado, Mifflin —que solo ve el
+ * peso total— se queda corta; en alguien con mucha grasa, se pasa. Pero requiere
+ * el % de grasa, y una estimación por perímetros arrastra su propio error de 3-4
+ * puntos, que es justo la razón de promediarla con Mifflin en vez de sustituirla.
+ *
+ * Fuente: `wiki/conocimiento/cuantificacion-calorica.md`.
+ */
+export function katchMcArdle(masaMagraKg: number | null): number | null {
+  if (!masaMagraKg || !Number.isFinite(masaMagraKg) || masaMagraKg <= 0) return null
+  return redondearExcel(370 + 21.6 * masaMagraKg)
+}
+
+/**
+ * La TMB con la que trabaja el motor: media de Mifflin y Katch-McArdle.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ PROMEDIAR Y NO ELEGIR
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Las dos fórmulas fallan por lados distintos —Mifflin ignora la composición,
+ * Katch depende de un % de grasa estimado— y ninguna es «la buena». Promediarlas
+ * es la práctica que recomienda el Cerebro y lo que decide el spec del motor.
+ * Sigue siendo una estimación: el ajuste de verdad lo hace el peso real en la
+ * revisión quincenal, no esta cuenta.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * SIN MASA MAGRA SE CAE A MIFFLIN, NO SE PROMEDIA CON CERO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Tratar el `null` como un 0 dejaría la TMB en la mitad, y de ahí saldría un
+ * objetivo calórico brutal para alguien cuyo único problema es no haberse medido
+ * el cuello. Un dato que falta no es un dato que vale cero — la misma regla que
+ * gobierna el catálogo y la composición.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * OJO: ESTO YA NO ES LO QUE HACE EL EXCEL
+ * ─────────────────────────────────────────────────────────────────────────────
+ * `herramientas/inventario-nutricion/parametros.py` —espejo del libro del
+ * coach— calcula con Mifflin sola; su columna se llama `tdee (mifflin)`. Desde
+ * este cambio, la app y el Excel dan cifras distintas para la misma persona.
+ * `tmb()` se conserva intacta justo para eso: es la que reproduce el libro.
+ */
+export function tmbCombinada(
+  pesoKg: number | null,
+  alturaCm: number | null,
+  edad: number | null,
+  genero: Genero | null,
+  masaMagraKg: number | null,
+): number | null {
+  const mifflin = tmb(pesoKg, alturaCm, edad, genero)
+  if (mifflin === null) return null
+  const katch = katchMcArdle(masaMagraKg)
+  if (katch === null) return mifflin
+  return redondearExcel((mifflin + katch) / 2)
 }
 
 /**
