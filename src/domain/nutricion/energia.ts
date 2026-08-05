@@ -1,13 +1,30 @@
 /**
  * De las medidas de una persona a sus calorías y sus macros.
  *
- * Las fórmulas NO son genéricas de internet: son las que ya usa Alpha en sus
- * libros de Excel, para que lo que calcule la app y lo que calcule el coach den
- * lo mismo. Si dieran distinto, cada uno defendería su número y el asesorado
- * estaría en medio.
+ * Las fórmulas NO son genéricas de internet: salen de los libros de Excel de
+ * Alpha y del Cerebro. El factor de actividad y el reparto de macros son espejo
+ * exacto de `herramientas/inventario-nutricion/parametros.py` y de
+ * `wiki/motor-decision/09`.
  *
- * Espejo de `herramientas/inventario-nutricion/parametros.py` (TMB, factor de
- * actividad, TDEE) y de `wiki/motor-decision/09` (el reparto de macros).
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LA TMB YA NO ES ESPEJO, Y ES A PROPÓSITO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Aquí `tmbCombinada` promedia Mifflin con Katch-McArdle; el Python calcula con
+ * Mifflin sola. No es una desincronización que haya que arreglar:
+ *
+ *   · Los `.xlsx` están CONGELADOS como archivo histórico desde el 2026-08-02 y
+ *     la app es la fuente de verdad (ver `CLAUDE.md` §7). Ya no se crean libros
+ *     nuevos, así que no hay dos cifras compitiendo por la misma persona: hay
+ *     una época y la siguiente.
+ *   · El `_calcular_tmb` del Python es un SUPLENTE. Solo entra cuando la celda
+ *     del libro vino sin valor cacheado, y su trabajo es reproducir lo que esa
+ *     fórmula calculó. Meterle el promedio le haría inventar, para 15 de 19
+ *     libros reales, un número que esos libros nunca tuvieron.
+ *   · Y no podría aunque se quisiera: el bloque bioenergético de la hoja PDG%
+ *     no trae composición corporal, y sin masa magra no hay Katch-McArdle.
+ *
+ * Así que el Python se queda en Mifflin para siempre. Si algún día alguien
+ * compara las dos herramientas y ve 1.352 contra 1.317, esto es el porqué.
  */
 
 import type { Genero } from './composicion'
