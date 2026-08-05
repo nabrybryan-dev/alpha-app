@@ -75,7 +75,40 @@ dentro de otro cambio; van en su propia tanda **con tests**.
 | `src/app/` | Router, `SessionProvider`, `ThemeProvider`, `ErrorBoundary`, layouts | |
 | `src/styles/tokens.css` | Tokens de marca | **El diseño se hace con Tailwind + estos tokens.** No añadir CSS-in-JS, CSS Modules ni Bootstrap. |
 | `supabase/migrations/` | Migraciones numeradas (`0001`…`0023`) | Nueva migración = número siguiente, nunca editar una aplicada. **Mira la carpeta antes de elegir número:** dos ramas cogieron `0020` a la vez y una tuvo que renumerarse a `0021` después de estar aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
+| `supabase/plantilla-carga-microciclo.sql` | Molde del clonador de microciclo (sin datos de nadie, sí va al repo) | **Toda carga nueva sale de aquí.** Un microciclo nuevo **nace sin rastro de ejecución**: se hereda la prescripción, nunca lo que el asesorado hizo. Ver abajo. |
 | `scripts/` | Utilidades Node (`.mjs`) | Si un test las importa, mantener su `.d.mts` al día. |
+
+### Cargas de microciclo: la prescripción se hereda, la ejecución no
+
+Las cargas clonan el microciclo vigente para construir el siguiente. Las de julio
+de 2026 lo hacían con `jsonb_set(s,'{ejercicios}', …)`, que reescribe **solo**
+`ejercicios`: el resto del objeto sesión pasaba literal, y ahí viajaban
+`preparacion[].hechoEn`, `bloquesCardio[].hechoEn` y `testPost` — del microciclo
+**anterior**. Afectó a ~14 asesorados.
+
+Dos daños, y el segundo tardó más en verse:
+
+1. El asesorado abría la semana nueva con el calentamiento ya tildado y el test
+   post ya relleno, de una sesión que hizo la semana pasada.
+2. **Se envenenó la evidencia.** Una marca con hora dejó de probar que alguien
+   estuvo en la sesión, que es exactamente para lo que sirve. Cualquier consulta
+   forense sobre adherencia daba falsos positivos.
+
+Reglas que quedan:
+
+- El clonador pasa cada sesión por `tmp_sesion_en_limpio()` antes de guardarla.
+  Si añades un campo de ejecución a `Sesion` (`src/domain/types.ts`), añádelo
+  también ahí — es el único punto donde se decide qué no se hereda.
+- Después de cada carga, correr `supabase/comprobar-fosiles.sql`. Tiene que dar
+  **cero filas**. No repartir la semana hasta que las dé.
+- Las funciones de carga van con prefijo `tmp_`, con `revoke execute … from
+  public` y se borran al terminar. `create function` concede `EXECUTE` a
+  `PUBLIC` por defecto y todo lo de `public` se expone como RPC a `anon`: sin el
+  `revoke`, una función que **escribe** microciclos queda al alcance de la anon
+  key. Es el mismo agujero que documenta `GUIA-BRYAN.md` §10 con `buscar_ficha`.
+- Cualquier tabla auxiliar que se cree para una limpieza (respaldos, alcance)
+  necesita `enable row level security` en el mismo paso que el `create table`:
+  lleva datos reales y sin RLS queda legible con la anon key.
 
 ### Cómo fluyen los datos
 
@@ -137,6 +170,15 @@ dentro de otro cambio; van en su propia tanda **con tests**.
 - **La persistencia por sesión se lee con `useState(() => leerJSON(…))`**, que solo
   corre en el primer montaje. Si añades estado persistido y la clave depende de un
   parámetro de ruta, asegúrate del remontaje.
+- **El clonador de microciclo heredaba la ejecución, no solo la prescripción.**
+  `jsonb_set(s,'{ejercicios}', …)` reescribe solo `ejercicios`; `preparacion`,
+  `bloquesCardio` y `testPost` pasaban literales del microciclo anterior. ~14
+  asesorados abrieron la semana con el calentamiento tildado y el test post
+  relleno — y toda consulta de adherencia daba falsos positivos, porque una
+  marca con hora dejó de probar que alguien estuvo. Molde arreglado en
+  `supabase/plantilla-carga-microciclo.sql`; comprobar con
+  `supabase/comprobar-fosiles.sql` después de **cada** carga. Ver
+  `docs/specs/2026-08-04-fosiles-de-carga-diseno.md`.
 
 ---
 
