@@ -1,8 +1,41 @@
 # Continuación: lo que queda del motor nutricional
 
-**Fecha:** 2026-08-03
+**Fecha:** 2026-08-03 · **Actualizado:** 2026-08-05
 **Para:** la sesión que retome esto (no tiene la conversación anterior)
 **Spec que manda:** [`docs/specs/2026-08-03-motor-de-ajuste-nutricional-diseno.md`](../specs/2026-08-03-motor-de-ajuste-nutricional-diseno.md)
+
+---
+
+## Estado al 2026-08-05 — leer antes que nada
+
+| Tarea | Estado |
+|---|---|
+| T1 · Ventana energética a `main` | ✅ En la rama, al día y empujada. **Falta abrir el PR.** |
+| T2 · Gasto de entrenamiento | ✅ Hecho (`gastoEjercicio.ts`). Ver más abajo qué quedó fuera. |
+| T3 · TMB con las dos fórmulas | ✅ Hecho (`tmbCombinada`). Abre una divergencia con el Excel, resuelta y documentada. |
+| T4 · La despensa | 🚧 Dominio y migración hechos. Falta la UI y la capa de datos. |
+| Migración 0023 | ✅ **Aplicada y comprobada** contra la base real el 2026-08-05. |
+| Migración 0024 (despensa) | ⏳ Escrita, **sin aplicar**. |
+
+**Lo que sigue necesitando a Bryan:**
+
+1. **Abrir los dos PR**: `nutricion-visibilidad-de-cifras` y `cargas-sin-fosiles`.
+2. **De dónde sale la lista de compra** por asesorado — hoy `plan.listaCompras` es texto
+   libre escrito a mano por el coach. Sin esto, la mitad de entrada de T4 está en el aire.
+3. **Las frases del motor**, firmadas por Manuela. Sigue pendiente.
+4. **Aplicar la 0024** cuando decida.
+
+**Qué quedó fuera de T2, a propósito:** la pregunta de jornada en la encuesta (el NEAT que
+los pasos no capturan). Toca el factor de actividad y cambiaría el TDEE de todos los perfiles
+otra vez: va en su propia tanda, con su comparación antes/después. Tampoco se modula el MET
+por RPE de sesión — no hay fuente para ese número y no se inventa.
+
+**La divergencia con el Excel, resuelta:** la app promedia Mifflin con Katch-McArdle y el
+Python calcula con Mifflin sola. **No es un bug y no se toca el Python.** Su `_calcular_tmb`
+es un suplente que reproduce lo que la fórmula del Excel calculó, y los `.xlsx` están
+congelados como archivo histórico desde el 2026-08-02. Además no podría: el bloque
+bioenergético de la hoja PDG% no trae composición corporal. Está escrito en la cabecera de
+`energia.ts` y en `parametros.py`.
 
 ---
 
@@ -165,7 +198,18 @@ sigue en verde.
 
 ---
 
-### T4 · La despensa *(fase 2 del spec — sesión propia, no la empieces a medias)*
+### T4 · La despensa *(fase 2 del spec)*
+
+**Hecho ya (2026-08-05):**
+
+- `src/domain/nutricion/despensa.ts` + sus 19 tests. Presencia y no saldo, el pedido que
+  entra sin datos y se queda fuera del cálculo, el refresco por ciclo de compra.
+- `supabase/migrations/0024_despensa.sql`, con RLS, la vista `alimentos_pedidos` para la
+  cola del staff y su señal en `comprobar-migraciones.sql`. **Sin aplicar.**
+
+**Falta:** la capa de datos (`DespensaRepo` en `repos.ts` + `mockDb` + sync + **su fallback
+en `hidratar.ts`**, que es donde este repo ya borró datos tres veces) y la sección de
+mercado con casillas, junto a las comidas.
 
 Está detallada en el spec §11. Resumen de lo que la hace distinta de lo que parece:
 
