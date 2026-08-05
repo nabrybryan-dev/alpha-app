@@ -10,6 +10,12 @@ import {
   ventanaEnergetica,
   type VentanaEnergetica,
 } from '../../domain/nutricion/ventanaEnergetica'
+import {
+  entrenosEnVentana,
+  gastoEjercicioDiario,
+  minutosTipicos,
+  type GastoEjercicio,
+} from '../../domain/nutricion/gastoEjercicio'
 import { resumenDelDia } from '../../domain/nutricion/resumen'
 import type { VeredictoEnergetico } from '../../domain/nutricion/composicion'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
@@ -37,6 +43,34 @@ interface Ficha {
   esperando: boolean
   /** Media de ingesta de sus últimos días registrados. `null` si aún no bastan. */
   ventana: VentanaEnergetica | null
+  /** Lo que gastó entrenando en esos MISMOS días. `null` si no se pudo calcular. */
+  gasto: GastoEjercicio | null
+}
+
+/**
+ * El gasto de entreno de la misma ventana que la ingesta.
+ *
+ * Los dos periodos tienen que ser el mismo. Restar el entreno de una semana a la
+ * ingesta media de otra daría una disponibilidad que no es de ningún tramo.
+ *
+ * La duración sale del test post de sus sesiones —el único sitio donde queda
+ * registrada— y se resume en su mediana, porque una `Sesion` no lleva fecha y no
+ * se puede emparejar con el día que el check-in dice que entrenó.
+ */
+function gastoDeLaVentana(usuarioId: string, respuestas: Respuestas, hoy: string, dias: number) {
+  const duraciones = db.microciclos
+    .byUsuario(usuarioId)
+    .flatMap((m) => m.sesiones)
+    .map((s) => s.testPost?.duracionMin)
+    .filter((min): min is number => typeof min === 'number')
+
+  const peso = Number(respuestas.pesoKg)
+  return gastoEjercicioDiario(
+    entrenosEnVentana(db.bienestar.byUsuario(usuarioId), hoy, dias),
+    Number.isFinite(peso) ? peso : null,
+    dias,
+    minutosTipicos(duraciones),
+  )
 }
 
 /**
@@ -76,6 +110,7 @@ export default function CifrasAsesoradosPage() {
     const respuestas = (db.perfilNutricion.byUsuario(a.id)?.respuestas ?? {}) as Respuestas
     const guardada = db.visibilidad.byUsuario(a.id)
     const senales = senalesDeLaEncuesta(respuestas)
+    const ventana = ventanaEnergetica(diasRegistrados(a.id, hoy, porId), hoy)
     return {
       id: a.id,
       nombre: a.nombre,
@@ -83,7 +118,8 @@ export default function CifrasAsesoradosPage() {
       guardada,
       motivos: motivosDeRevision(senales),
       esperando: visibilidadDe(guardada, senales).estado === 'en_espera',
-      ventana: ventanaEnergetica(diasRegistrados(a.id, hoy, porId), hoy),
+      ventana,
+      gasto: ventana ? gastoDeLaVentana(a.id, respuestas, hoy, ventana.dias) : null,
     }
   })
 
@@ -151,6 +187,7 @@ function FichaAsesorado({ ficha, abierta, onAbrir, decisorId }: FichaProps) {
   // es `null` y la tarjeta lo dice, en vez de enseñar un número inventado.
   const perfil = calcularPerfil(ficha.respuestas, hoyIso(), {
     ingestaKcal: ficha.ventana?.ingestaKcal,
+    gastoEjercicioKcal: ficha.gasto?.kcalDia,
   })
   const actual = visibilidadDe(ficha.guardada, senalesDeLaEncuesta(ficha.respuestas))
   const [nota, setNota] = useState(ficha.guardada?.nota ?? '')
@@ -216,7 +253,7 @@ function FichaAsesorado({ ficha, abierta, onAbrir, decisorId }: FichaProps) {
                 <Cifra etiqueta="TDEE" valor={perfil.tdee} sufijo="kcal" />
               </div>
 
-              <Energia ventana={ficha.ventana} veredicto={perfil.energia} />
+              <Energia ventana={ficha.ventana} veredicto={perfil.energia} gasto={ficha.gasto} />
 
               <div className="mt-4 flex flex-col gap-2">
                 <Interruptor
@@ -292,22 +329,22 @@ function Cifra({
  * La disponibilidad energética, y de dónde sale.
  *
  * AQUÍ Y NO EN LA PANTALLA DEL ASESORADO, todavía. Es un veredicto sobre una
- * media de registros estimados, sin saber lo que gastó entrenando —eso no lo
- * mide nada aún—, y con el gasto contado como cero la cifra sale MÁS ALTA de lo
- * real: se equivoca hacia «todo bien», que en una alerta de protección es la
- * dirección mala. Que la lea una persona antes de que llegue a nadie es lo
+ * media de registros estimados y sobre un gasto de entreno que casi siempre es
+ * un estimado también. Que lo lea una persona antes de que llegue a nadie es lo
  * coherente con el resto del apartado.
  *
- * NUNCA ENSEÑA EL NÚMERO SIN SU PROCEDENCIA. Sobre cuántos días, con qué margen
- * y con qué criterio: los tres cambian cómo se lee, y sin ellos «24,1 kcal/kg»
- * parece una medición.
+ * NUNCA ENSEÑA EL NÚMERO SIN SU PROCEDENCIA. Sobre cuántos días, con qué margen,
+ * con qué criterio y con qué gasto descontado: los cuatro cambian cómo se lee, y
+ * sin ellos «24,1 kcal/kg» parece una medición.
  */
 function Energia({
   ventana,
   veredicto,
+  gasto,
 }: {
   ventana: VentanaEnergetica | null
   veredicto: VeredictoEnergetico | null
+  gasto: GastoEjercicio | null
 }) {
   if (!ventana || !veredicto) {
     return (
@@ -345,11 +382,47 @@ function Energia({
         Umbral aplicado — {veredicto.criterio}.
       </p>
       {/* Sin este renglón el número se lee como si el gasto estuviera medido. */}
-      <p className="mt-1 text-[11px] leading-snug text-tenue">
-        <b className="text-texto">El gasto de entrenamiento cuenta como cero</b> — todavía no se
-        mide. La cifra real es más baja que esta.
-      </p>
+      <ProcedenciaDelGasto gasto={gasto} />
     </div>
+  )
+}
+
+/**
+ * Con qué gasto de entreno se hizo la resta, y de dónde salió.
+ *
+ * Un gasto medido y uno estimado no se leen igual, y no distinguirlos es lo que
+ * hacía el cero: pasar por dato algo que nadie midió. Cuando el estimado viene
+ * del suelo de minutos, la cifra se queda corta a propósito y hay que decirlo,
+ * porque quedarse corto en el gasto sube la disponibilidad y suaviza la alerta.
+ */
+function ProcedenciaDelGasto({ gasto }: { gasto: GastoEjercicio | null }) {
+  if (!gasto) {
+    return (
+      <p className="mt-1 text-[11px] leading-snug text-tenue">
+        <b className="text-texto">Sin gasto de entrenamiento descontado</b> — falta su peso para
+        poder calcularlo. La cifra real es más baja que esta.
+      </p>
+    )
+  }
+
+  if (gasto.sesiones === 0) {
+    return (
+      <p className="mt-1 text-[11px] leading-snug text-tenue">
+        No consta ningún entreno en estos {gasto.dias} días, así que no se descuenta nada. Si
+        entrenó sin registrarlo en su check-in, la cifra real es más baja.
+      </p>
+    )
+  }
+
+  return (
+    <p className="mt-1 text-[11px] leading-snug text-tenue">
+      Menos <b className="text-texto">{gasto.kcalDia.toLocaleString('es-CO')} kcal/día</b> de{' '}
+      {gasto.sesiones} {gasto.sesiones === 1 ? 'entreno' : 'entrenos'} repartidos en {gasto.dias}{' '}
+      días
+      {gasto.estimadas > 0 &&
+        ` — ${gasto.estimadas} sin duración registrada, calculado por lo bajo`}
+      .
+    </p>
   )
 }
 
