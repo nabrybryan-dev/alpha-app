@@ -1,28 +1,4 @@
 {
-  "aceituna-cruda": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x1,5: suma 1.668 mg de mineral con 1.100 mg de cenizas"
-  },
-  "almendra-seca": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x1,2: el mas leve de la lista, cerca del margen de redondeo"
-  },
   "araza-crudo": {
     "nutrientes": [
       "calcio_mg",
@@ -34,18 +10,6 @@
       "zinc_mg"
     ],
     "motivo": "x1,3: suma 269 mg de mineral con 200 mg de cenizas"
-  },
-  "arbol-del-pan-crudo": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x5,7: suma 569 mg de mineral con 100 mg de cenizas"
   },
   "arepa-de-maiz-asada": {
     "nutrientes": [
@@ -167,18 +131,6 @@
     ],
     "motivo": "x19,9: suma 1.987 mg de mineral con 100 mg de cenizas"
   },
-  "gulupa-madura-cruda": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x1,6: suma 319 mg de mineral con 200 mg de cenizas"
-  },
   "helado-de-leche": {
     "nutrientes": [
       "calcio_mg",
@@ -191,47 +143,11 @@
     ],
     "motivo": "x1,5: suma 148 mg de mineral con 100 mg de cenizas"
   },
-  "hojaldre-regular-horneado": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x4,4: suma 445 mg de mineral con 100 mg de cenizas"
-  },
-  "mantequilla": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x2,9: suma 286 mg de mineral con 100 mg de cenizas"
-  },
   "oca-o-ibia-sin-cascara-cruda": {
     "nutrientes": [
       "vitamina_c_mg"
     ],
     "motivo": "declara 382 mg de vitamina C; la misma oca CON cascara declara 31. Con su porcion de 150 g salia 2a del ranking, por encima de la guayaba"
-  },
-  "palmito-crudo": {
-    "nutrientes": [
-      "calcio_mg",
-      "fosforo_mg",
-      "hierro_mg",
-      "magnesio_mg",
-      "potasio_mg",
-      "sodio_mg",
-      "zinc_mg"
-    ],
-    "motivo": "x1,3: suma 1.976 mg de mineral con 1.500 mg de cenizas"
   },
   "pina-india-cruda": {
     "nutrientes": [
@@ -268,5 +184,11 @@
       "zinc_mg"
     ],
     "motivo": "x1,4: suma 1.304 mg de mineral con 900 mg de cenizas"
+  },
+  "roscon-relleno-de-bocadillo-horneado": {
+    "nutrientes": [
+      "zinc_mg"
+    ],
+    "motivo": "declara 54,2 mg de zinc; TODOS los demas panes de la TCAC estan entre 0,4 y 1,5 -el pan integral, el mas rico, 1,5-, asi que son unas cuarenta veces el siguiente. Lo encontro el techo por nutriente, no las cenizas: con 1,4 g de cenizas sus minerales caben de sobra (x0,76) y la regla no podia verlo. Estaba 2o del ranking de zinc"
   }
 }
