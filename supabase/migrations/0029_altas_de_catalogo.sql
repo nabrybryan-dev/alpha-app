@@ -22,11 +22,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela', 'vaso pequeno', 170.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela', 'vaso pequeno', 170.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela', 'vaso mediano', 220.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela', 'vaso mediano', 220.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela', 'vaso grande', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela', 'vaso grande', 280.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('agua-de-panela', 'azucar-morena', 'Panela (proxy: azucar morena)', 25.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -42,11 +42,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-limon', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-limon', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-limon', 'vaso mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-limon', 'vaso mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-limon', 'vaso grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-limon', 'vaso grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('agua-de-panela-con-limon', 'azucar-morena', 'Panela (modelada como azucar morena)', 18.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -64,11 +64,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-queso', 'vaso pequeno', 200.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-queso', 'vaso pequeno', 200.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-queso', 'vaso mediano', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-queso', 'vaso mediano', 260.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-queso', 'vaso grande', 330.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('agua-de-panela-con-queso', 'vaso grande', 330.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('agua-de-panela-con-queso', 'azucar-morena', 'Panela (proxy: azucar morena)', 25.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -86,11 +86,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-caja', 'vaso pequeno', 150.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-caja', 'vaso pequeno', 150.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-caja', 'vaso mediano', 210.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-caja', 'vaso mediano', 210.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-caja', 'vaso grande', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-caja', 'vaso grande', 260.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('avena-en-caja', null, 'Leche semidescremada 2%', 180.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -108,11 +108,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-leche', 'vaso pequeno', 180.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-leche', 'vaso pequeno', 180.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-leche', 'vaso mediano', 240.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-leche', 'vaso mediano', 240.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-leche', 'vaso grande', 300.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-en-leche', 'vaso grande', 300.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('avena-en-leche', 'avena-en-hojuelas-peso-en-seco', 'Hojuelas de avena en seco', 30.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -130,11 +130,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-preparada-con-leche', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-preparada-con-leche', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-preparada-con-leche', 'vaso mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-preparada-con-leche', 'vaso mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-preparada-con-leche', 'vaso grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('avena-preparada-con-leche', 'vaso grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('avena-preparada-con-leche', 'avena-instantanea-peso-en-seco', 'avena instantánea, pesada en seco (la leche es el líquido de cocción)', 40.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -152,11 +152,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-banano-en-leche', 'vaso pequeno', 230.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-banano-en-leche', 'vaso pequeno', 230.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-banano-en-leche', 'vaso mediano', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-banano-en-leche', 'vaso mediano', 310.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-banano-en-leche', 'vaso grande', 380.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-banano-en-leche', 'vaso grande', 380.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('batido-de-banano-en-leche', 'banano', 'Banano', 100.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -174,11 +174,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-proteina-con-leche', 'vaso pequeno', 200.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-proteina-con-leche', 'vaso pequeno', 200.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-proteina-con-leche', 'vaso mediano', 270.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-proteina-con-leche', 'vaso mediano', 270.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-proteina-con-leche', 'vaso grande', 340.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-de-proteina-con-leche', 'vaso grande', 340.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('batido-de-proteina-con-leche', 'proteina-en-polvo-whey', 'proteína whey en polvo (1 scoop)', 30.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -194,11 +194,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-ganador-de-peso-casero', 'vaso pequeno', 340.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-ganador-de-peso-casero', 'vaso pequeno', 340.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-ganador-de-peso-casero', 'vaso mediano', 460.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-ganador-de-peso-casero', 'vaso mediano', 460.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-ganador-de-peso-casero', 'vaso grande', 580.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('batido-ganador-de-peso-casero', 'vaso grande', 580.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('batido-ganador-de-peso-casero', 'leche-semidescremada-2', 'leche semidescremada 2%', 250.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -220,11 +220,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso mediano', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso mediano', 260.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso grande', 320.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso grande', 320.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-agua', 'guanabana', 'Guanabana', 120.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -242,11 +242,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-leche', 'vaso pequeno', 210.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-leche', 'vaso pequeno', 210.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-leche', 'vaso mediano', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-leche', 'vaso mediano', 280.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-leche', 'vaso grande', 350.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-leche', 'vaso grande', 350.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-leche', 'guanabana', 'Guanabana', 90.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -264,11 +264,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso mediano', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso mediano', 260.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso grande', 320.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso grande', 320.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guayaba-en-agua', 'guayaba', 'Guayaba', 120.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -286,11 +286,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-leche', 'vaso pequeno', 210.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-leche', 'vaso pequeno', 210.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-leche', 'vaso mediano', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-leche', 'vaso mediano', 280.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-leche', 'vaso grande', 350.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-leche', 'vaso grande', 350.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guayaba-en-leche', 'guayaba', 'Guayaba', 90.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -308,11 +308,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-lulo-en-agua', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-lulo-en-agua', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-lulo-en-agua', 'vaso mediano', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-lulo-en-agua', 'vaso mediano', 260.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-lulo-en-agua', 'vaso grande', 320.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-lulo-en-agua', 'vaso grande', 320.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-lulo-en-agua', 'lulo-pulpa-congelada-sin-azucar', 'Pulpa de lulo', 100.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -330,11 +330,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mango-en-agua', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mango-en-agua', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mango-en-agua', 'vaso mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mango-en-agua', 'vaso mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mango-en-agua', 'vaso grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mango-en-agua', 'vaso grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-mango-en-agua', 'mango', 'Mango', 130.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -352,11 +352,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-maracuya-en-agua', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-maracuya-en-agua', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-maracuya-en-agua', 'vaso mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-maracuya-en-agua', 'vaso mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-maracuya-en-agua', 'vaso grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-maracuya-en-agua', 'vaso grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-maracuya-en-agua', null, 'Pulpa o jugo de maracuya', 80.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -374,11 +374,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-agua', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-agua', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-agua', 'vaso mediano', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-agua', 'vaso mediano', 260.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-agua', 'vaso grande', 320.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-agua', 'vaso grande', 320.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-mora-en-agua', 'mora', 'Mora', 120.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -396,11 +396,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-leche', 'vaso pequeno', 210.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-leche', 'vaso pequeno', 210.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-leche', 'vaso mediano', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-leche', 'vaso mediano', 280.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-leche', 'vaso grande', 350.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-mora-en-leche', 'vaso grande', 350.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-mora-en-leche', 'mora', 'Mora', 90.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -418,11 +418,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-papaya-en-agua', 'vaso pequeno', 200.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-papaya-en-agua', 'vaso pequeno', 200.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-papaya-en-agua', 'vaso mediano', 260.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-papaya-en-agua', 'vaso mediano', 260.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-papaya-en-agua', 'vaso grande', 320.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-papaya-en-agua', 'vaso grande', 320.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-papaya-en-agua', 'papaya', 'Papaya', 150.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -440,11 +440,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada', 'vaso mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada', 'vaso mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada', 'vaso grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada', 'vaso grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('limonada', null, 'Jugo de limon', 30.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -462,11 +462,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada-de-coco', 'vaso pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada-de-coco', 'vaso pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada-de-coco', 'vaso mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada-de-coco', 'vaso mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada-de-coco', 'vaso grande', 320.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('limonada-de-coco', 'vaso grande', 320.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('limonada-de-coco', null, 'Jugo de limon', 30.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -486,11 +486,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('sustituto-de-comida-preparado-con-leche', 'vaso pequeno', 210.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('sustituto-de-comida-preparado-con-leche', 'vaso pequeno', 210.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('sustituto-de-comida-preparado-con-leche', 'vaso mediano', 290.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('sustituto-de-comida-preparado-con-leche', 'vaso mediano', 290.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('sustituto-de-comida-preparado-con-leche', 'vaso grande', 360.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('sustituto-de-comida-preparado-con-leche', 'vaso grande', 360.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('sustituto-de-comida-preparado-con-leche', 'batido-sustituto-de-comida-en-polvo', 'batido sustituto de comida en polvo (1 sobre)', 36.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -506,11 +506,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('te-frio-en-botella', 'vaso pequeno', 200.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('te-frio-en-botella', 'vaso pequeno', 200.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('te-frio-en-botella', 'vaso mediano', 270.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('te-frio-en-botella', 'vaso mediano', 270.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('te-frio-en-botella', 'vaso grande', 340.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('te-frio-en-botella', 'vaso grande', 340.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('te-frio-en-botella', 'te-negro-caliente', 'Te negro colado', 250.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -526,11 +526,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('cafe-con-leche', 'pocillo pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('cafe-con-leche', 'pocillo pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('cafe-con-leche', 'pocillo mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('cafe-con-leche', 'pocillo mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('cafe-con-leche', 'pocillo grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('cafe-con-leche', 'pocillo grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('cafe-con-leche', 'tinto-cafe-negro-sin-azucar', 'Cafe negro colado', 120.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -548,11 +548,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-caliente-en-leche', 'pocillo pequeno', 160.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-caliente-en-leche', 'pocillo pequeno', 160.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-caliente-en-leche', 'pocillo mediano', 220.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-caliente-en-leche', 'pocillo mediano', 220.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-caliente-en-leche', 'pocillo grande', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-caliente-en-leche', 'pocillo grande', 280.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('chocolate-caliente-en-leche', null, 'Leche entera', 200.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -568,11 +568,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-leche', 'pocillo pequeno', 160.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-leche', 'pocillo pequeno', 160.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-leche', 'pocillo mediano', 220.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-leche', 'pocillo mediano', 220.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-leche', 'pocillo grande', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-leche', 'pocillo grande', 280.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('chocolate-con-leche', 'leche-entera', 'Leche entera', 200.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -588,11 +588,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-queso', 'pocillo pequeno', 190.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-queso', 'pocillo pequeno', 190.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-queso', 'pocillo mediano', 250.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-queso', 'pocillo mediano', 250.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-queso', 'pocillo grande', 310.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-con-queso', 'pocillo grande', 310.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('chocolate-con-queso', 'leche-entera', 'Leche entera', 200.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -610,11 +610,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-en-agua', 'pocillo pequeno', 160.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-en-agua', 'pocillo pequeno', 160.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-en-agua', 'pocillo mediano', 220.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-en-agua', 'pocillo mediano', 220.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-en-agua', 'pocillo grande', 280.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('chocolate-en-agua', 'pocillo grande', 280.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('chocolate-en-agua', 'chocolate-de-mesa-pastilla-sin-preparar', 'Chocolate de mesa (pastilla)', 20.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -630,11 +630,11 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('tinto-con-azucar', 'pocillo pequeno', 120.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('tinto-con-azucar', 'pocillo pequeno', 120.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('tinto-con-azucar', 'pocillo mediano', 160.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('tinto-con-azucar', 'pocillo mediano', 160.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('tinto-con-azucar', 'pocillo grande', 200.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('tinto-con-azucar', 'pocillo grande', 200.0, 'estimada')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('tinto-con-azucar', 'tinto-cafe-negro-sin-azucar', 'Cafe negro colado', 150.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
@@ -650,7 +650,7 @@ on conflict (id) do update set
   grupo = excluded.grupo, estado = excluded.estado,
   confianza = excluded.confianza, origen = excluded.origen,
   origen_id = excluded.origen_id, por_100g = excluded.por_100g;
-insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('aguardiente-un-trago', 'trago', 30.0, 'coach')
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('aguardiente-un-trago', 'trago', 30.0, 'receta')
 on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('aguardiente-un-trago', null, 'Destilado de 40 grados', 22.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
