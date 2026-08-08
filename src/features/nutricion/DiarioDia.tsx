@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { CabeceraPantalla } from '../../components/ui/CabeceraPantalla'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import type { AlimentoIndice } from '../../domain/nutricion/busqueda'
@@ -288,27 +289,28 @@ export default function DiarioDia() {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
-            Diario de comidas · Día {plan.etiquetasDia?.[tipoDia] ?? tipoDia}
-          </p>
-          <h1 className="font-display text-xl capitalize text-texto">{fechaBonita(fecha)}</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => setVerSemana(true)}
-          className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
-        >
-          Semana
-        </button>
-        <Link
-          to="/nutricion/plan"
-          className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
-        >
-          Mi plan
-        </Link>
-      </header>
+      <CabeceraPantalla
+        etiqueta={`Diario de comidas · Día ${plan.etiquetasDia?.[tipoDia] ?? tipoDia}`}
+        titulo={fechaBonita(fecha)}
+        capitalizar
+        acciones={
+          <>
+            <button
+              type="button"
+              onClick={() => setVerSemana(true)}
+              className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+            >
+              Semana
+            </button>
+            <Link
+              to="/nutricion/plan"
+              className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+            >
+              Mi plan
+            </Link>
+          </>
+        }
+      />
 
       <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
 

@@ -1,3 +1,4 @@
+import { CabeceraPantalla } from '../../components/ui/CabeceraPantalla'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import { MARGENES } from '../../domain/nutricion/dia'
 import { escalar } from '../../domain/nutricion/porcion'
@@ -88,25 +89,17 @@ export function DetalleComida({
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          aria-label="Volver al diario"
-          className="press h-9 w-9 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
-            {comida.momentoIso.slice(11, 16)}
-          </p>
-          <h1 className="font-display text-xl text-texto">{NOMBRES[comida.comida]}</h1>
-          <p className="cifras mt-1 text-sm text-tenue">
+      <CabeceraPantalla
+        etiqueta={comida.momentoIso.slice(11, 16)}
+        titulo={NOMBRES[comida.comida]}
+        pie={
+          <span className="cifras">
             <b className="text-texto">{kcal.toLocaleString('es-CO')}</b> kcal registradas
-          </p>
-        </div>
-      </header>
+          </span>
+        }
+        alVolver={onVolver}
+        etiquetaVolver="Volver al diario"
+      />
 
       {pauta && (
         <section className="rounded-2xl border border-linea bg-surface-2 p-3">

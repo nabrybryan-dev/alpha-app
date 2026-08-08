@@ -1,3 +1,4 @@
+import { CabeceraPantalla } from '../../components/ui/CabeceraPantalla'
 import type { ResumenSemana } from '../../domain/nutricion/semanaResumen'
 import type { Macros } from '../../domain/types'
 import type { Visibilidad } from '../../domain/nutricion/visibilidad'
@@ -58,17 +59,7 @@ export function VistaSemana({
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          aria-label="Volver al diario"
-          className="press h-9 w-9 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
-        <h1 className="font-display text-xl text-texto">Tu semana</h1>
-      </header>
+      <CabeceraPantalla titulo="Tu semana" alVolver={onVolver} etiquetaVolver="Volver al diario" />
 
       <section className="rounded-3xl border border-linea bg-surface-1 p-4">
         {!visibilidad.verContadorKcal ? (

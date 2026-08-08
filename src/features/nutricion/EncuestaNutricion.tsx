@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CabeceraPantalla } from '../../components/ui/CabeceraPantalla'
 import {
   camposAPreguntar,
   revisarRespuestas,
@@ -56,20 +57,20 @@ export function EncuestaNutricion({
 
   return (
     <div className="flex flex-col gap-5 pb-6">
-      <header>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
-          Antes de empezar
-        </p>
-        <h1 className="font-display text-xl leading-tight text-texto">
-          {campos.length === 1
+      <CabeceraPantalla
+        etiqueta="Antes de empezar"
+        titulo={
+          campos.length === 1
             ? 'Nos falta un dato tuyo'
-            : `Cuéntanos ${campos.length} cosas sobre ti`}
-        </h1>
-        <p className="mt-2 text-sm leading-snug text-tenue">
-          Con esto calculamos tu composición corporal y cuánto necesitas comer. Se responde una
-          sola vez.
-        </p>
-      </header>
+            : `Cuéntanos ${campos.length} cosas sobre ti`
+        }
+        pie={
+          <span className="leading-snug">
+            Con esto calculamos tu composición corporal y cuánto necesitas comer. Se responde una
+            sola vez.
+          </span>
+        }
+      />
 
       {campos.length > 3 && (
         <div className="flex items-center gap-3">

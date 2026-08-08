@@ -8,15 +8,16 @@ import { AppRouter } from '../../app/router'
 import { EncuestaNutricion } from './EncuestaNutricion'
 
 /**
- * ESTE ARCHIVO NACE EN ROJO, A PROPÓSITO.
+ * ARREGLADO. Nació en rojo y hoy pasa; se queda para que no vuelva.
  *
  * El `TopBar` del layout ya emite un `<h1>` en toda ruta de asesorado
  * (`layouts.tsx:56`). Las cinco pantallas de Nutrición añadían otro, así que un
  * lector de pantalla anunciaba dos títulos de nivel 1 en la misma página y la
- * persona perdía la referencia de dónde estaba.
+ * persona perdía la referencia de dónde estaba. Bienestar y Progreso ya lo
+ * hacían bien con `<h2>`; Nutrición se quedó fuera del rediseño de agosto.
  *
- * Bienestar y Progreso ya lo hacían bien: usan `<h2>`. Nutrición se quedó fuera
- * del rediseño de agosto y conservó el `<h1>`.
+ * Ahora las cinco pasan por `CabeceraPantalla`, que emite `<h2>` y no deja
+ * elegir. Si alguien vuelve a escribir un `<h1>` a mano aquí, esto se pone rojo.
  *
  * Spec: docs/specs/2026-08-07-nutricion-al-lenguaje-del-rediseno.md
  */

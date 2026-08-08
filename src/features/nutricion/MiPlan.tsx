@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { CabeceraPantalla } from '../../components/ui/CabeceraPantalla'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
 import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
@@ -89,17 +90,11 @@ export default function MiPlan() {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={() => navegar('/nutricion')}
-          aria-label="Volver al diario"
-          className="press h-9 w-9 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-        >
-          ←
-        </button>
-        <h1 className="font-display text-xl text-texto">Tu plan nutricional</h1>
-      </header>
+      <CabeceraPantalla
+        titulo="Tu plan nutricional"
+        alVolver={() => navegar('/nutricion')}
+        etiquetaVolver="Volver al diario"
+      />
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {secciones.map((s) => (
