@@ -1,6 +1,6 @@
 -- 0029 · Altas de catalogo posteriores a la carga inicial
 --
--- 28 alimento(s) que no existian cuando se cargo el catalogo. Se emiten
+-- 30 alimento(s) que no existian cuando se cargo el catalogo. Se emiten
 -- con `on conflict do update`, asi que correr esto dos veces deja lo mismo.
 --
 -- Generado por `generar_sql_altas.py`, no escrito a mano.
@@ -212,6 +212,28 @@ insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
 
 delete from public.alimento_medidas
+where alimento_id = 'jugo-de-guanabana-en-agua' and nombre not in ('vaso pequeno', 'vaso mediano', 'vaso grande');
+
+insert into public.alimentos (id, nombre, sinonimos, grupo, estado, confianza, origen, origen_id, por_100g, creado_por) values ('jugo-de-guanabana-en-agua', 'Jugo de guanabana en agua', 'jugo de guanabana, guanabana en agua', 'frutas', 'preparado', 'estimado', 'receta', null, '{"carbos_g": 13.81, "dha_g": 0.0, "proteina_g": 0.47, "tiamina_mg": 0.03, "grasa_g": 0.14, "magnesio_mg": 10.82, "hierro_mg": 0.29, "niacina_mg": 0.42, "vitamina_d_ug": 0.0, "folatos_ug": 6.59, "calcio_mg": 11.35, "riboflavina_mg": 0.02, "epa_g": 0.0, "fosforo_mg": 12.71, "b12_ug": 0.0, "potasio_mg": 130.94, "kcal": 53.82, "zinc_mg": 0.05, "sodio_mg": 7.59, "fibra_g": 1.55, "vitamina_c_mg": 9.69, "vitamina_a_er": 0.0}'::jsonb, null)
+on conflict (id) do update set
+  nombre = excluded.nombre, sinonimos = excluded.sinonimos,
+  grupo = excluded.grupo, estado = excluded.estado,
+  confianza = excluded.confianza, origen = excluded.origen,
+  origen_id = excluded.origen_id, por_100g = excluded.por_100g;
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso pequeno', 190.0, 'coach')
+on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso mediano', 260.0, 'coach')
+on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guanabana-en-agua', 'vaso grande', 320.0, 'coach')
+on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
+insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-agua', 'guanabana', 'Guanabana', 120.0)
+on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
+insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-agua', null, 'Azucar blanca', 15.0)
+on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
+insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-agua', 'agua', 'Agua', 120.0)
+on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
+
+delete from public.alimento_medidas
 where alimento_id = 'jugo-de-guanabana-en-leche' and nombre not in ('vaso pequeno', 'vaso mediano', 'vaso grande');
 
 insert into public.alimentos (id, nombre, sinonimos, grupo, estado, confianza, origen, origen_id, por_100g, creado_por) values ('jugo-de-guanabana-en-leche', 'Jugo de guanabana en leche', 'jugo de guanabana en leche, guanabana en leche', 'lacteos', 'preparado', 'estimado', 'receta', null, '{"proteina_g": 2.35, "fibra_g": 1.06, "epa_g": 0.0, "kcal": 74.25, "hierro_mg": 0.21, "carbos_g": 12.07, "calcio_mg": 77.18, "zinc_mg": 0.27, "sodio_mg": 32.18, "b12_ug": 0.29, "grasa_g": 2.19, "dha_g": 0.0, "vitamina_d_ug": 0.84, "magnesio_mg": 13.18, "potasio_mg": 174.28571428571428, "vitamina_a_er": 29.57142857142857, "riboflavina_mg": 0.12539285714285714, "fosforo_mg": 62.67857142857143, "niacina_mg": 0.34650000000000003, "tiamina_mg": 0.05207142857142857, "folatos_ug": 7.714285714285715, "vitamina_c_mg": 6.621428571428573}'::jsonb, null)
@@ -231,6 +253,28 @@ on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingred
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-leche', null, 'Leche entera', 180.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
 insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guanabana-en-leche', null, 'Azucar blanca', 10.0)
+on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
+
+delete from public.alimento_medidas
+where alimento_id = 'jugo-de-guayaba-en-agua' and nombre not in ('vaso pequeno', 'vaso mediano', 'vaso grande');
+
+insert into public.alimentos (id, nombre, sinonimos, grupo, estado, confianza, origen, origen_id, por_100g, creado_por) values ('jugo-de-guayaba-en-agua', 'Jugo de guayaba en agua', 'jugo de guayaba, guayaba en agua, jugo de guayaba natural', 'frutas', 'preparado', 'estimado', 'receta', null, '{"proteina_g": 1.2, "vitamina_a_er": 14.59, "magnesio_mg": 11.29, "riboflavina_mg": 0.02, "b12_ug": 0.0, "vitamina_d_ug": 0.0, "grasa_g": 0.45, "zinc_mg": 0.11, "carbos_g": 12.62, "fosforo_mg": 18.82, "sodio_mg": 1.94, "folatos_ug": 23.06, "hierro_mg": 0.13, "potasio_mg": 196.35, "fibra_g": 2.54, "vitamina_c_mg": 107.44, "tiamina_mg": 0.03, "niacina_mg": 0.51, "kcal": 54.76, "epa_g": 0.0, "calcio_mg": 13.24, "dha_g": 0.0}'::jsonb, null)
+on conflict (id) do update set
+  nombre = excluded.nombre, sinonimos = excluded.sinonimos,
+  grupo = excluded.grupo, estado = excluded.estado,
+  confianza = excluded.confianza, origen = excluded.origen,
+  origen_id = excluded.origen_id, por_100g = excluded.por_100g;
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso pequeno', 190.0, 'coach')
+on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso mediano', 260.0, 'coach')
+on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
+insert into public.alimento_medidas (alimento_id, nombre, gramos, fuente) values ('jugo-de-guayaba-en-agua', 'vaso grande', 320.0, 'coach')
+on conflict (alimento_id, nombre) do update set gramos = excluded.gramos, fuente = excluded.fuente;
+insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guayaba-en-agua', 'guayaba', 'Guayaba', 120.0)
+on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
+insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guayaba-en-agua', null, 'Azucar blanca', 15.0)
+on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
+insert into public.alimento_recetas (alimento_id, ingrediente_id, que_es, gramos) values ('jugo-de-guayaba-en-agua', 'agua', 'Agua', 120.0)
 on conflict (alimento_id, que_es) do update set ingrediente_id = excluded.ingrediente_id, gramos = excluded.gramos;
 
 delete from public.alimento_medidas
