@@ -33,8 +33,13 @@
 --     (1190), que pondera el acido folico de fortificados por su absorcion.
 --
 -- ATRIBUCION: datos de USDA FoodData Central, dominio publico (CC0).
-
-begin;
+--
+-- SIN `begin;` NI `commit;`, Y SIN EL SELECT DE COMPROBACION. La primera version
+-- los llevaba y el 2026-08-08 no aplico nada: el editor de Supabase YA envuelve
+-- el lote en su propia transaccion, y ademas solo muestra el resultado de la
+-- ULTIMA instruccion -que era el `commit`, que no devuelve nada-, asi que la
+-- comprobacion no se veia y no habia forma de notar que no habia entrado. La
+-- comprobacion vive aparte, en `comprobar-0026.sql`.
 
 update public.alimentos as a
 set por_100g = a.por_100g || v.datos
@@ -469,30 +474,3 @@ from (values
   ('zanahoria-cruda', '{"folatos_ug": 37.06, "fosforo_mg": 39.81, "niacina_mg": 1.406, "potasio_mg": 279.6, "riboflavina_mg": 0.095, "tiamina_mg": 0.065, "vitamina_a_er": null, "vitamina_c_mg": null}'::jsonb)
 ) as v(id, datos)
 where a.id = v.id;
-
--- Comprobacion: cada cifra tiene que dar lo que dice su comentario.
---
--- SE CUENTA `jsonb_typeof(...) = 'number'`, NO `por_100g ? 'clave'`. El operador
--- `?` dice si la CLAVE existe, y aqui TODAS existen -las que no se midieron
--- estan en null a proposito-. Contar con `?` daria 1.195 en las ocho y pareceria
--- que todo esta cubierto.
-select
-  -- tiene que dar 925
-  count(*) filter (where jsonb_typeof(por_100g -> 'folatos_ug') = 'number') as folatos_ug,
-  -- tiene que dar 1120
-  count(*) filter (where jsonb_typeof(por_100g -> 'fosforo_mg') = 'number') as fosforo_mg,
-  -- tiene que dar 1101
-  count(*) filter (where jsonb_typeof(por_100g -> 'niacina_mg') = 'number') as niacina_mg,
-  -- tiene que dar 1058
-  count(*) filter (where jsonb_typeof(por_100g -> 'potasio_mg') = 'number') as potasio_mg,
-  -- tiene que dar 1104
-  count(*) filter (where jsonb_typeof(por_100g -> 'riboflavina_mg') = 'number') as riboflavina_mg,
-  -- tiene que dar 1099
-  count(*) filter (where jsonb_typeof(por_100g -> 'tiamina_mg') = 'number') as tiamina_mg,
-  -- tiene que dar 1027
-  count(*) filter (where jsonb_typeof(por_100g -> 'vitamina_a_er') = 'number') as vitamina_a_er,
-  -- tiene que dar 1078
-  count(*) filter (where jsonb_typeof(por_100g -> 'vitamina_c_mg') = 'number') as vitamina_c_mg
-from public.alimentos;
-
-commit;
