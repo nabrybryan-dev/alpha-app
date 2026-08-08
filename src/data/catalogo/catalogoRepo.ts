@@ -18,6 +18,7 @@ import type { AlimentoIndice, FiltroBusqueda } from '../../domain/nutricion/busq
 import { buscar } from '../../domain/nutricion/busqueda'
 import { sinDatosEnDuda } from '../../domain/nutricion/datosSospechosos'
 import { ESTADOS_PESABLES, familia } from '../../domain/nutricion/estado'
+import { conVitaminaAAnimal } from '../../domain/nutricion/techos'
 import bruto from './alimentos.json'
 
 /**
@@ -32,8 +33,12 @@ import bruto from './alimentos.json'
  * falló en este repo con el aviso de alergia.
  *
  * Cuesta un recorrido de 1.195 filas al cargar el módulo, una sola vez.
+ *
+ * Y aquí mismo se separa la vitamina A de origen animal, por la misma razón: la
+ * TCAC publica ER, que suma retinol y β-caroteno en una cifra, y el techo es de
+ * retinol. Sin separarla, un día de zanahoria dispararía el aviso.
  */
-const ALIMENTOS = (bruto as AlimentoIndice[]).map(sinDatosEnDuda)
+const ALIMENTOS = (bruto as AlimentoIndice[]).map(sinDatosEnDuda).map(conVitaminaAAnimal)
 
 /** Índice por id: la hoja de cantidad lo consulta en cada pulsación del
  *  stepper, y recorrer 1.195 alimentos en cada una se nota en un móvil. */

@@ -1,5 +1,6 @@
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import type { TotalDia } from '../../domain/nutricion/dia'
+import { techosPasados } from '../../domain/nutricion/techos'
 
 /**
  * Los tres micronutrientes que el panel del día vigila.
@@ -57,6 +58,52 @@ export function PanelMicros({ total }: PanelMicrosProps) {
           )
         })}
       </div>
+
+      <AvisoDeTecho total={total} />
     </section>
+  )
+}
+
+const NOMBRE_DEL_NUTRIENTE: Record<string, string> = {
+  vitamina_a_er: 'vitamina A',
+  zinc_mg: 'zinc',
+  calcio_mg: 'calcio',
+  vitamina_c_mg: 'vitamina C',
+}
+
+/**
+ * Se dice cuando el día pasó un máximo, y no se dice nunca más.
+ *
+ * VA APARTE DE LAS BARRAS a propósito. Arriba, más es mejor: llegar a los 18 mg
+ * de hierro es el objetivo. Un techo es lo contrario, y pintarlo como una cuarta
+ * barra al 380 % lo leería cualquiera como que va ganando.
+ *
+ * NO DICE "PELIGRO". El límite es de ingesta diaria sostenida, no de una comida:
+ * un hígado el martes no le hace daño a nadie, y asustar con eso es la forma más
+ * rápida de que el aviso deje de leerse. Dice cuánto y de qué, que es lo que
+ * permite decidir la frecuencia. La restricción por persona -y el caso del
+ * embarazo, donde el hígado es contraindicación- la pone la nutricionista.
+ */
+function AvisoDeTecho({ total }: { total: TotalDia }) {
+  const pasados = techosPasados(total)
+  if (pasados.length === 0) return null
+
+  return (
+    <div className="mt-4 rounded-2xl border border-ambar/40 bg-ambar/15 p-3">
+      {pasados.map((techo) => (
+        <p key={techo.nutriente} className="text-[11px] leading-relaxed text-tenue">
+          <b className="text-texto">
+            Hoy llevas {techo.parcial && 'al menos '}
+            {Math.round(techo.veces * 10) / 10}×
+          </b>{' '}
+          el máximo diario de {NOMBRE_DEL_NUTRIENTE[techo.nutriente] ?? techo.nutriente}{' '}
+          <span className="cifras">
+            ({Math.round(techo.valor)} de {techo.limite})
+          </span>
+          . Un día suelto no pasa nada; si se repite, coméntalo con tu
+          nutricionista.
+        </p>
+      ))}
+    </div>
   )
 }
