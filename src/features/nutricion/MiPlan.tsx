@@ -91,12 +91,13 @@ export default function MiPlan() {
   return (
     <div className="flex flex-col gap-4 pb-6">
       <CabeceraPantalla
+        className="entrada entrada-1"
         titulo="Tu plan nutricional"
         alVolver={() => navegar('/nutricion')}
         etiquetaVolver="Volver al diario"
       />
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="entrada entrada-2 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {secciones.map((s) => (
           <button
             key={s}
@@ -114,6 +115,10 @@ export default function MiPlan() {
         ))}
       </div>
 
+      {/* `key={seccion}`: al cambiar de pestaña el bloque se vuelve a montar y
+          la entrada se repite. Sin la clave, el contenido nuevo aparecería de
+          golpe y el cambio de pestaña no se notaría. */}
+      <div key={seccion} className="entrada entrada-3 flex flex-col gap-4">
       {seccion === 'Mi perfil' && (
         <PerfilCalculadoVista
           perfil={calcularPerfil(respuestas, hoyIso())}
@@ -251,8 +256,13 @@ export default function MiPlan() {
         </section>
       )}
 
+      </div>
+
       {plan.seccionesEspeciales.map((especial) => (
-        <section key={especial.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
+        <section
+          key={especial.titulo}
+          className="entrada entrada-4 rounded-2xl border border-linea bg-surface-1 p-4"
+        >
           <h2 className="font-display text-base text-texto">{especial.titulo}</h2>
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-tenue">
             {especial.contenido}

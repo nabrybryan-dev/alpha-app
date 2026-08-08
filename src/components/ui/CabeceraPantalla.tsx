@@ -34,6 +34,12 @@ interface CabeceraPantallaProps {
    * Ojo: `capitalize` de Tailwind sube la inicial de CADA palabra.
    */
   capitalizar?: boolean
+  /**
+   * Para el ritmo de entrada (`entrada entrada-1`) en las pantallas que lo
+   * usan. No va dentro porque las hojas y los detalles no lo llevan: ya animan
+   * al abrirse, y encadenar las dos animaciones se ve como un salto.
+   */
+  className?: string
 }
 
 export function CabeceraPantalla({
@@ -44,9 +50,10 @@ export function CabeceraPantalla({
   alVolver,
   etiquetaVolver = 'Volver',
   capitalizar = false,
+  className = '',
 }: CabeceraPantallaProps) {
   return (
-    <header className="flex items-start gap-3">
+    <header className={`flex items-start gap-3 ${className}`}>
       {alVolver && (
         <button
           type="button"

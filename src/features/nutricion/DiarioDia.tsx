@@ -290,6 +290,7 @@ export default function DiarioDia() {
   return (
     <div className="flex flex-col gap-4 pb-6">
       <CabeceraPantalla
+        className="entrada entrada-1"
         etiqueta={`Diario de comidas · Día ${plan.etiquetasDia?.[tipoDia] ?? tipoDia}`}
         titulo={fechaBonita(fecha)}
         capitalizar
@@ -312,11 +313,15 @@ export default function DiarioDia() {
         }
       />
 
-      <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
+      <div className="entrada entrada-2">
+        <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
+      </div>
 
-      <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+      <div className="entrada entrada-3">
+        <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+      </div>
 
-      <section>
+      <section className="entrada entrada-4">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="font-display text-sm text-texto">Tus {COMIDAS.length} comidas de hoy</h2>
           <span className="cifras text-xs text-tenue">
@@ -341,27 +346,35 @@ export default function DiarioDia() {
         </div>
       </section>
 
-      <PanelMicros total={total} />
+      <div className="entrada entrada-5">
+        <PanelMicros total={total} />
+      </div>
 
-      <PanelCalibracion
-        pruebas={pruebas}
-        diasPesando={diasPesando}
-        onRegistrar={({ alimentoId, estimados, reales }) =>
-          db.calibracion.registrar({
-            usuarioId: usuario.id,
-            fecha: hoyIso(),
-            alimentoId,
-            gramosEstimados: estimados,
-            gramosReales: reales,
-          })
-        }
-      />
+      <div className="entrada entrada-6">
+        <PanelCalibracion
+          pruebas={pruebas}
+          diasPesando={diasPesando}
+          onRegistrar={({ alimentoId, estimados, reales }) =>
+            db.calibracion.registrar({
+              usuarioId: usuario.id,
+              fecha: hoyIso(),
+              alimentoId,
+              gramosEstimados: estimados,
+              gramosReales: reales,
+            })
+          }
+        />
+      </div>
 
       {/* El agua y la adherencia son hechos del DÍA, igual que las comidas, así
           que viven aquí. Estaban en la vista del plan, que ahora es solo lo que
           el coach pautó -algo que se lee, no donde se registra-. */}
-      <Hidratacion usuarioId={usuario.id} />
-      <AdherenciaDia usuarioId={usuario.id} />
+      <div className="entrada entrada-6">
+        <Hidratacion usuarioId={usuario.id} />
+      </div>
+      <div className="entrada entrada-6">
+        <AdherenciaDia usuarioId={usuario.id} />
+      </div>
 
       {hojas}
     </div>
