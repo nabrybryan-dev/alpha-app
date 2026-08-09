@@ -40,9 +40,14 @@ describe('camposAPreguntar', () => {
     expect(pendientes.length).toBeGreaterThan(10)
   })
 
-  it('a quien llega con la encuesta de captación le falta UNA pregunta', () => {
+  it('a quien llega con la encuesta de captación solo le falta lo que esa no trae', () => {
     // Es el objetivo de todo esto: no volver a preguntar lo que ya contestó.
-    expect(claves(CON_JSON)).toEqual(['pasosDiarios'])
+    //
+    // Eran los pasos y solo los pasos hasta el 2026-08-09, cuando se añadió la
+    // del embarazo: la encuesta de captación tampoco la trae, así que hay dos.
+    // Si esta lista crece sin motivo, es que alguien metió una pregunta que ya
+    // estaba contestada en otro sitio.
+    expect(claves(CON_JSON)).toEqual(['pasosDiarios', 'embarazo'])
   })
 
   it('los pasos son justo lo que la encuesta de captación no trae', () => {
@@ -61,6 +66,29 @@ describe('camposAPreguntar', () => {
     it('el ciclo menstrual solo se pregunta a mujeres', () => {
       expect(claves({ genero: 'H' })).not.toContain('cicloMenstrual')
       expect(claves({ genero: 'M' })).toContain('cicloMenstrual')
+    })
+
+    it('el embarazo solo se pregunta a mujeres', () => {
+      expect(claves({ genero: 'H' })).not.toContain('embarazo')
+      expect(claves({ genero: 'M' })).toContain('embarazo')
+    })
+
+    it('la fecha de parto NO se pregunta hasta que diga que está embarazada', () => {
+      // Pedirle a todo el mundo una fecha probable de parto es la clase de
+      // pregunta que hace abandonar una encuesta.
+      expect(claves({ genero: 'M' })).not.toContain('fechaProbableParto')
+      expect(claves({ genero: 'M', embarazo: 'no' })).not.toContain('fechaProbableParto')
+      expect(claves({ genero: 'M', embarazo: 'lactancia' })).not.toContain('fechaProbableParto')
+    })
+
+    it('y sí en cuanto lo diga', () => {
+      expect(claves({ genero: 'M', embarazo: 'si' })).toContain('fechaProbableParto')
+    })
+
+    it('la fecha de parto no es obligatoria', () => {
+      // Quien no la sepa o no la quiera dar tiene que poder seguir. Sin fecha
+      // la marca vale igual, solo que no caduca sola —ver `embarazo.ts`—.
+      expect(CAMPOS.find((c) => c.clave === 'fechaProbableParto')?.obligatorio).toBeFalsy()
     })
 
     it('sin saber el género todavía, no se pregunta lo que depende de él', () => {
