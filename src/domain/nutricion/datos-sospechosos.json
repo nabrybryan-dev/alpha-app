@@ -143,6 +143,25 @@
     ],
     "motivo": "x1,5: suma 148 mg de mineral con 100 mg de cenizas"
   },
+  "mango-tommy-atkins-crudo": {
+    "nutrientes": [
+      "b12_ug",
+      "calcio_mg",
+      "carbos_g",
+      "fibra_g",
+      "fosforo_mg",
+      "grasa_g",
+      "hierro_mg",
+      "kcal",
+      "magnesio_mg",
+      "potasio_mg",
+      "proteina_g",
+      "riboflavina_mg",
+      "vitamina_c_mg",
+      "zinc_mg"
+    ],
+    "motivo": "declara 52,6% de agua y un mango fresco tiene 82-84%: su propio hermano, el mango comun, declara 81,8%. La mediana de la fruta cruda de la TCAC es 85,8%. Esta fila no describe un mango fresco sino uno deshidratado -o su columna de humedad arrastro al resto-, y por eso sus 194 kcal y sus 44,8 g de carbohidrato CUADRAN entre si: la fila es coherente, pero no es lo que su nombre dice. De las 10 frutas 'crudas' con menos de 70% de agua, las otras nueve se explican solas (harinas, tamarindo, coco 47%, chontaduro 48%, aguacate, bananos); esta no. Quien la registre como fruta fresca se lleva el triple de carbohidrato del que comio"
+  },
   "oca-o-ibia-sin-cascara-cruda": {
     "nutrientes": [
       "vitamina_c_mg"
