@@ -6,7 +6,7 @@ import { esHora, leerPauta } from '../../domain/nutricion/pauta'
 import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
 import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
-import { respuestasDe, visibilidadDelAsesorado } from './visibilidadDelAsesorado'
+import { respuestasDe, visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
 
 /**

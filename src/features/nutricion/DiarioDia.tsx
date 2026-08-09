@@ -23,7 +23,7 @@ import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
 import { semanaDe } from '../../domain/nutricion/semana'
 import { TiraSemana } from './TiraSemana'
-import { visibilidadDelAsesorado } from './visibilidadDelAsesorado'
+import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { VistaSemana } from './VistaSemana'
 import { resumenDeSemana } from '../../domain/nutricion/semanaResumen'
 
