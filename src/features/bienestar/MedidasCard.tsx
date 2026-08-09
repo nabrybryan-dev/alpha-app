@@ -4,7 +4,15 @@ import { db, hoyIso } from '../../data/dbInstance'
 import type { MedidaCorporal } from '../../domain/types'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 
-const PERIMETROS = ['Cintura', 'Cadera', 'Abdomen', 'Muslo', 'Brazo'] as const
+/**
+ * Lo que se puede medir desde la app.
+ *
+ * `Glúteo` entró en agosto de 2026: dos asesorados entrenaban un bloque dedicado
+ * a la masa de glúteo y el formulario no permitía medirlo. La lista tiene que
+ * cubrir todo lo que `medidasRequeridas` pueda exigir — si no, la puerta de
+ * `PuertaDeMedidas` pide algo que aquí no se puede cargar.
+ */
+export const PERIMETROS = ['Cintura', 'Cadera', 'Glúteo', 'Abdomen', 'Muslo', 'Brazo'] as const
 
 interface MedidasCardProps {
   usuarioId: string

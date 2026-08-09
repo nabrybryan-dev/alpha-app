@@ -40,6 +40,15 @@ export interface Perfil {
   proteinaGkg?: number
   pasosObjetivo?: number
   /**
+   * Perímetros que esta persona tiene que tener cargados para poder ver su plan
+   * de entrenamiento, además de los de `PERIMETROS_BASE`. Los pone el coach según
+   * el objetivo del bloque: a quien entrena para masa de glúteo se le exige el
+   * glúteo, porque si no, el bloque no se puede evaluar cuando termina.
+   *
+   * Viaja dentro de `perfiles.datos` (JSONB): no necesita migración.
+   */
+  medidasRequeridas?: string[]
+  /**
    * Lo que el coach valora mirando la ejecución y la app no puede deducir
    * (hoy, la técnica). El resto de competencias de la Ruta se calculan solas.
    */

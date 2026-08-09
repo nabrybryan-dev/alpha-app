@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
 import { AsesoradoLayout, CoachLayout } from './layouts'
+import { PuertaDeMedidas } from '../features/entrenar/PuertaDeMedidas'
 
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
 const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
@@ -40,8 +41,25 @@ export function AppRouter() {
     <Routes>
       <Route element={<AsesoradoLayout />}>
         <Route index element={envolver(<HoyPage />)} />
-        <Route path="entrenar" element={envolver(<RutaPage />)} />
-        <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
+        {/* Sin medidas corporales vigentes no se ve el plan de entrenamiento.
+            La puerta envuelve las dos rutas, así que no se salta por URL. El
+            resto de la app —bienestar, donde se cargan— queda abierto. */}
+        <Route
+          path="entrenar"
+          element={envolver(
+            <PuertaDeMedidas>
+              <RutaPage />
+            </PuertaDeMedidas>,
+          )}
+        />
+        <Route
+          path="entrenar/sesion/:sesionId"
+          element={envolver(
+            <PuertaDeMedidas>
+              <SesionPage />
+            </PuertaDeMedidas>,
+          )}
+        />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
         <Route path="progreso" element={envolver(<ProgresoPage />)} />
         {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no

@@ -51,10 +51,10 @@ export const perfilValentina: Perfil = {
     Tríceps: 'Bajo',
   },
   medidas: [
-    { fecha: diasAtras(48), pesoKg: 60.2, alturaCm: 163, perimetros: { Glúteos: 98.5, Muslos: 56.0, 'Abdomen medio': 68.0, Brazos: 27.5 }, pgPct: 24.1 },
-    { fecha: diasAtras(34), pesoKg: 59.8, alturaCm: 163, perimetros: { Glúteos: 98.9, Muslos: 56.3, 'Abdomen medio': 67.2, Brazos: 27.6 }, pgPct: 23.6 },
-    { fecha: diasAtras(20), pesoKg: 59.4, alturaCm: 163, perimetros: { Glúteos: 99.2, Muslos: 56.5, 'Abdomen medio': 66.5, Brazos: 27.8 }, pgPct: 23.0 },
-    { fecha: diasAtras(3), pesoKg: 59.1, alturaCm: 163, perimetros: { Glúteos: 99.6, Muslos: 56.8, 'Abdomen medio': 66.0, Brazos: 27.9 }, pgPct: 22.5 },
+    { fecha: diasAtras(48), pesoKg: 60.2, alturaCm: 163, perimetros: { Cintura: 72.0, Glúteos: 98.5, Muslos: 56.0, 'Abdomen medio': 68.0, Brazos: 27.5 }, pgPct: 24.1 },
+    { fecha: diasAtras(34), pesoKg: 59.8, alturaCm: 163, perimetros: { Cintura: 71.2, Glúteos: 98.9, Muslos: 56.3, 'Abdomen medio': 67.2, Brazos: 27.6 }, pgPct: 23.6 },
+    { fecha: diasAtras(20), pesoKg: 59.4, alturaCm: 163, perimetros: { Cintura: 70.4, Glúteos: 99.2, Muslos: 56.5, 'Abdomen medio': 66.5, Brazos: 27.8 }, pgPct: 23.0 },
+    { fecha: diasAtras(3), pesoKg: 59.1, alturaCm: 163, perimetros: { Cintura: 69.8, Glúteos: 99.6, Muslos: 56.8, 'Abdomen medio': 66.0, Brazos: 27.9 }, pgPct: 22.5 },
   ],
 }
 
