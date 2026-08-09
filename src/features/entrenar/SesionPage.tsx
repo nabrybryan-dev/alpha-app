@@ -236,6 +236,8 @@ function SesionEnCurso() {
             <TarjetaEjercicio
               key={ejercicioActual.id}
               ejercicio={ejercicioActual}
+              indiceEjercicio={exIdx + 1}
+              totalEjercicios={sesion.ejercicios.length}
               microcicloId={microciclo.id}
               notaVisible={notasVisibles.has(ejercicioActual.id)}
               onAlternarNota={() => alternarNota(ejercicioActual.id)}
