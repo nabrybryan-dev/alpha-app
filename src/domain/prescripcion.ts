@@ -94,6 +94,33 @@ export function parsearPrescripcion(texto: string): PrescripcionPartida {
   }
 }
 
+/**
+ * Cabecera de escalera: `ONDULACIÓN ASCENDENTE: 60KG×10 · 62.5KG×8 (RIR 1).`
+ *
+ * Los dos puntos van pegados a ASCENDENTE **a propósito**: existe otra familia,
+ * `ONDULACIÓN ASCENDENTE SOBRE TU PROPIA CARGA:`, que va por porcentajes y no
+ * lleva kilos. Si esta expresión la mordiera, le inventaría una carga.
+ */
+const CABECERA_ONDULADA = new RegExp(
+  '^\\s*ONDULACI[ÓO]N\\s+ASCENDENTE:\\s*' +
+    '(?:\\d+(?:[.,]\\d+)?\\s*KG\\s*[×x]\\s*\\d+\\s*(?:·\\s*)?)+' +
+    '(?:\\(([^)]*)\\))?' +
+    '\\s*\\.?\\s*',
+  'iu',
+)
+
+/**
+ * Separa la nota del coach en un ejercicio ondulado. La carga no se devuelve
+ * porque en estos vive en `seriesPrescritas`, serie a serie: un solo número no
+ * puede representar 60 · 60 · 62.5 · 67.5.
+ */
+export function parsearOndulada(texto: string): { reconocida: boolean; notaCoach: string } {
+  const original = typeof texto === 'string' ? texto : ''
+  const m = CABECERA_ONDULADA.exec(original)
+  if (!m) return { reconocida: false, notaCoach: original.trim() }
+  return { reconocida: true, notaCoach: original.slice(m[0].length).trim() }
+}
+
 /** `60` → «60», `62.5` → «62.5». Sin ceros de adorno. */
 function numero(n: number): string {
   return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)))

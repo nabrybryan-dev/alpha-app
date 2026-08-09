@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { cargaSugerida, componerPrescripcion, parsearPrescripcion } from './prescripcion'
+import {
+  cargaSugerida,
+  componerPrescripcion,
+  parsearOndulada,
+  parsearPrescripcion,
+} from './prescripcion'
 import type { EjercicioPrescrito } from './types'
 
 /**
@@ -193,6 +198,23 @@ describe('componerPrescripcion', () => {
   it('sobrevive a repsDiana con texto', () => {
     const e = ejercicio({ cargaKg: 20, repsDiana: 'Control' as unknown as number })
     expect(() => componerPrescripcion(e)).not.toThrow()
+  })
+})
+
+describe('parsearOndulada', () => {
+  it('separa la nota de la escalera', () => {
+    const r = parsearOndulada(
+      'ONDULACIÓN ASCENDENTE: 60KG×10 · 60KG×9 · 62.5KG×8 (RIR 1). SUBE LA CARGA Y BAJAN LAS REPS.',
+    )
+    expect(r.reconocida).toBe(true)
+    expect(r.notaCoach).toBe('SUBE LA CARGA Y BAJAN LAS REPS.')
+  })
+
+  it('NO muerde la familia de porcentajes, que no lleva kilos', () => {
+    const r = parsearOndulada(
+      'ONDULACIÓN ASCENDENTE SOBRE TU PROPIA CARGA: SERIE 1 AL 90% × 12 REPS (RIR 2). LOS PONES TÚ.',
+    )
+    expect(r.reconocida).toBe(false)
   })
 })
 

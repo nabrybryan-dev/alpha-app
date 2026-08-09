@@ -15,7 +15,8 @@
     "publicar-fichas": "vite-node scripts/publicar-fichas.mjs",
     "calibrar-umbrales": "vite-node scripts/calibrar-umbrales.mjs",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "rellenar-carga": "vite-node scripts/rellenar-carga.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
