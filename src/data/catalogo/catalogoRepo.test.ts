@@ -13,7 +13,7 @@ import type { RegistroComida } from '../../domain/types'
 
 describe('catalogoRepo', () => {
   it('trae el catálogo entero', () => {
-    expect(catalogoRepo.total()).toBe(1195)
+    expect(catalogoRepo.total()).toBe(1198)
   })
 
   it('encuentra el arroz', () => {
@@ -44,7 +44,7 @@ describe('catalogoRepo', () => {
     // `null` es legítimo -significa "no se midió"-, pero la clave tiene que
     // estar: si el script deja de emitirla, la app pinta `undefined`.
     const claves = ['kcal', 'proteina_g', 'carbos_g', 'grasa_g'] as const
-    for (const alimento of catalogoRepo.buscar('', {}, 1195)) {
+    for (const alimento of catalogoRepo.buscar('', {}, 1198)) {
       for (const clave of claves) {
         expect(alimento.por100g).toHaveProperty(clave)
       }
@@ -52,7 +52,7 @@ describe('catalogoRepo', () => {
   })
 
   it('ningún alimento se quedó sin nombre ni sin grupo', () => {
-    const rotos = catalogoRepo.buscar('', {}, 1195).filter((a) => !a.nombre || !a.grupo)
+    const rotos = catalogoRepo.buscar('', {}, 1198).filter((a) => !a.nombre || !a.grupo)
     expect(rotos).toEqual([])
   })
 
