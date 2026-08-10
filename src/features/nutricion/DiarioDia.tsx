@@ -17,6 +17,7 @@ import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
 import { estaCalibrado } from '../../domain/nutricion/calibracion'
 import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
+import { preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
 import { ResumenDia } from './ResumenDia'
@@ -157,6 +158,13 @@ export default function DiarioDia() {
   const respuestasSuyas = db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}
   const condiciones = [...condicionesDeclaradas(respuestasSuyas, fecha)]
 
+  /**
+   * Las quincenales de embarazo y lactancia, si hoy toca alguna.
+   *
+   * Contra `hoyIso()` y no contra `fecha`: abrir el diario del lunes pasado no
+   * es viajar en el tiempo, y una pregunta que toca hoy toca igual.
+   */
+  const quincenalesPendientes = preguntasQueVuelven(respuestasSuyas, hoyIso())
   const nombresDelDia = delDia.flatMap((comida) =>
     comida.items.map((item) => porId(item.alimentoId)?.nombre ?? ''),
   )
@@ -327,6 +335,21 @@ export default function DiarioDia() {
           Mi plan
         </Link>
       </header>
+
+      {quincenalesPendientes.length > 0 && (
+        // Un recordatorio, no una compuerta: se puede seguir usando el diario
+        // entero sin tocarlo. Ver `AlDiaEmbarazo`.
+        <Link
+          to="/nutricion/al-dia"
+          className="press flex items-center justify-between gap-3 rounded-2xl border border-ambar/40 bg-ambar/15 p-3"
+        >
+          <span className="text-[11px] leading-snug text-tenue">
+            <b className="text-texto">Cuéntanos qué te dijo tu médico.</b> Lo que él te indique
+            manda sobre lo que calcule la app.
+          </span>
+          <span className="shrink-0 text-xs font-semibold text-texto">Responder</span>
+        </Link>
+      )}
 
       <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
 

@@ -82,6 +82,22 @@ export function estaEmbarazada(respuestas: RespuestasDeEmbarazo, hoy: string): b
 }
 
 /**
+ * Si a esta persona tiene sentido volver a preguntarle por embarazo.
+ *
+ * `sin_fertilidad` es un estado, no un «no» más. Quien no puede quedar
+ * embarazada —menopausia, cirugía, el motivo que sea, que no se pregunta—
+ * responde algo distinto de quien hoy no lo está: a ella la pregunta no se le
+ * vuelve a hacer nunca.
+ *
+ * NO SABER NO ES «NO PUEDE». Quien no contestó, o prefirió no decirlo, cuenta
+ * como que sí puede: es el lado que protege, el mismo criterio con el que una
+ * fecha ilegible no apaga la marca de embarazo.
+ */
+export function puedeQuedarEmbarazada(respuestas: RespuestasDeEmbarazo): boolean {
+  return respuestas.embarazo !== 'sin_fertilidad'
+}
+
+/**
  * Si a día de hoy hay lactancia declarada.
  *
  * NO CADUCA SOLA, y es la diferencia con el embarazo. Un embarazo tiene fecha
