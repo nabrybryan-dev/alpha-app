@@ -73,6 +73,7 @@ function sesionSimple(id: string, nombre: string, orden: number) {
         nombre: 'Press de banca con barra',
         cues: 'Escápulas retraídas, pies firmes, baja al pecho con control',
         prescripcion: '60KG A 8 REPS; 3 SERIES (RIR 2). PROGRESA +2.5KG',
+        cargaPrescritaKg: 60,
         descansoMin: 3,
         sets: 3,
         rango: '(6-10)',
@@ -87,6 +88,8 @@ function sesionSimple(id: string, nombre: string, orden: number) {
         nombre: 'Dominadas asistidas',
         cues: 'Pecho a la barra, controla la bajada completa',
         prescripcion: 'ASISTENCIA 15KG A 8 REPS; 3 SERIES (RIR 2)',
+        // La asistencia de la máquina, no el peso levantado: es lo que se teclea.
+        cargaPrescritaKg: 15,
         descansoMin: 3,
         sets: 3,
         rango: '(6-10)',

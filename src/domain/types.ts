@@ -93,7 +93,14 @@ export interface EjercicioPrescrito {
   categoria: string
   nombre: string
   cues: string
+  /** Texto del coach, tal como se lee: "85KG A 10 REPS; 3 SERIES (RIR 2)…".
+   *  Es para leerlo, no para sacarle cifras: la carga va en `cargaPrescritaKg`. */
   prescripcion: string
+  /** Carga pautada en kilos, separada del texto que la anuncia. Sin definir en
+   *  los microciclos guardados antes de que el campo existiera: para leerla
+   *  siempre, `cargaPrescritaDe()` (`domain/cargaPrescrita.ts`), que cae en el
+   *  texto cuando falta. */
+  cargaPrescritaKg?: number
   descansoMin: number
   sets: number
   rango: string

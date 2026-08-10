@@ -1,3 +1,4 @@
+import { cargaEnTexto, cargaPrescritaDe } from '../../domain/cargaPrescrita'
 import { diasAtras, fechaIsoAtras } from './fechas'
 import type {
   AdherenciaNutricional,
@@ -72,8 +73,14 @@ interface EjercicioBase {
   contenidoDemoId?: string
 }
 
+/**
+ * El seed se escribe en el texto canónico del coach, que es como llega desde el
+ * Excel. La carga se le extrae **una vez, aquí**, y viaja ya como número: así el
+ * ejercicio sale de fábrica con `cargaPrescritaKg` y ninguna pantalla tiene que
+ * volver a leer prosa para saber cuántos kilos poner.
+ */
 function ej(base: EjercicioBase, series: SerieRegistrada[] = []): EjercicioPrescrito {
-  return { ...base, series }
+  return { ...base, cargaPrescritaKg: cargaEnTexto(base.prescripcion), series }
 }
 
 function seriesDe(cargaKg: number, reps: number, rir: number, n: number): SerieRegistrada[] {
@@ -199,12 +206,7 @@ function conLegARegistrada(sesiones: Sesion[]): Sesion[] {
       preparacion: s.preparacion?.map((p) => ({ ...p, hechoEn: fechaIsoAtras(2, '17:02:00') })),
       ejercicios: s.ejercicios.map((e) => ({
         ...e,
-        series: seriesDe(
-          Number(e.prescripcion.split('KG')[0].replace(',', '.')) || 20,
-          e.repsDiana,
-          e.rirObjetivo,
-          e.sets,
-        ),
+        series: seriesDe(cargaPrescritaDe(e) ?? 20, e.repsDiana, e.rirObjetivo, e.sets),
       })),
     }
   })

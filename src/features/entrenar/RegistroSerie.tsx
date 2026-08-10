@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
+import { cargaPrescritaDe } from '../../domain/cargaPrescrita'
 import { seriePrescrita } from '../../domain/ondulacion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
@@ -33,8 +34,10 @@ function cargaSugerida(ejercicio: EjercicioPrescrito, orden: number): number {
   if (prescrita) return prescrita.cargaKg
   const previa = ejercicio.series[ejercicio.series.length - 1]?.cargaKg
   if (previa !== undefined) return previa
-  const dePrescripcion = Number.parseFloat(ejercicio.prescripcion.replace(',', '.'))
-  return Number.isFinite(dePrescripcion) ? dePrescripcion : 20
+  // Los 20 kg son el último recurso: un ejercicio sin ondular, sin nada
+  // registrado y sin carga pautada. Deja el stepper en un número redondo para
+  // corregir, no pretende acertar.
+  return cargaPrescritaDe(ejercicio) ?? 20
 }
 
 export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>(function RegistroSerie(

@@ -464,7 +464,15 @@ export function aplicarOndulacion(
 ): EjercicioPrescrito {
   const { series } = ondularEjercicio(ejercicio, opciones)
   if (series.length === 0) return ejercicio
-  return { ...ejercicio, sets: series.length, seriesPrescritas: series }
+  // `cargaPrescritaKg` se recalcula con la ondulación: dejar la del microciclo
+  // anterior sería guardar un ejercicio que se contradice a sí mismo, con las
+  // series pidiendo unos kilos y su propia carga pautada diciendo otros.
+  return {
+    ...ejercicio,
+    sets: series.length,
+    cargaPrescritaKg: series[0].cargaKg,
+    seriesPrescritas: series,
+  }
 }
 
 /** Prescripción de una serie concreta (orden 1-based). */
