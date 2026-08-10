@@ -62,6 +62,16 @@ interface EjercicioBase {
   id: string
   categoria: string
   nombre: string
+  /**
+   * Notas de ejecución. **En producción esto no es una frase**: son manuales con
+   * secciones —IMPLEMENTO, MONTAJE, POSICIÓN, EJECUCIÓN—, de 102 caracteres de
+   * media y hasta 718 (medido el 2026-08-09 sobre los 506 ejercicios activos).
+   *
+   * El seed los tenía todos de una línea, y por eso nadie vio que no cabían en
+   * la ventana del gabinete hasta que se miraron los datos reales. El peso
+   * muerto rumano lleva ahora uno de largo realista para que el modo demo
+   * enseñe el caso de verdad y no el cómodo.
+   */
   cues: string
   prescripcion: string
   descansoMin: number
@@ -126,7 +136,7 @@ function sesionesBloque(sufijo: string, conRegistro: boolean): Sesion[] {
       testPost,
       ejercicios: [
         ej({ id: `e-hip-${sufijo}`, categoria: 'DOMINANTE DE CADERA', nombre: 'Hip thrust con barra', cues: 'Mentón abajo, pelvis en retroversión al bloquear, pausa 1s arriba', prescripcion: '85KG A 10 REPS; 3 SERIES (RIR 2). PROGRESA +5KG VS M21. PAUSA ARRIBA', descansoMin: 3, sets: 3, rango: '(8-12)', repsDiana: 10, rirObjetivo: 2, contenidoDemoId: 'c-bisagra' }, r(85, 10, 2, 3)),
-        ej({ id: `e-rdl-${sufijo}`, categoria: 'DOMINANTE DE CADERA', nombre: 'Peso muerto rumano con barra', cues: 'Cadera atrás, barra pegada al muslo, espalda neutra, estira isquios', prescripcion: '52.5KG A 9 REPS; 3 SERIES (RIR 2). PROGRESA +2.5KG VS M21. RANGO COMPLETO', descansoMin: 3, sets: 3, rango: '(8-10)', repsDiana: 9, rirObjetivo: 2, contenidoDemoId: 'c-bisagra' }, r(52.5, 9, 2, 3)),
+        ej({ id: `e-rdl-${sufijo}`, categoria: 'DOMINANTE DE CADERA', nombre: 'Peso muerto rumano con barra', cues: 'IMPLEMENTO: barra recta con discos, cargada en el suelo. MONTAJE: pies a la anchura de la cadera, barra pegada a la espinilla. POSICIÓN: cadera muy atrás como si cerraras una puerta con el glúteo, rodillas casi rectas pero NO bloqueadas, espalda neutra de la nuca al coxis. EJECUCIÓN: baja hasta notar el estiramiento del isquio, sin redondear; sube apretando el glúteo.', prescripcion: '52.5KG A 9 REPS; 3 SERIES (RIR 2). PROGRESA +2.5KG VS M21. RANGO COMPLETO', descansoMin: 3, sets: 3, rango: '(8-10)', repsDiana: 9, rirObjetivo: 2, contenidoDemoId: 'c-bisagra' }, r(52.5, 9, 2, 3)),
         ej({ id: `e-curlfem-${sufijo}`, categoria: 'AISLAMIENTO', nombre: 'Curl femoral sentado', cues: 'Cadera fija al asiento, controla 3s la excéntrica', prescripcion: '40KG A 12 REPS; 3 SERIES (RIR 1). MISMO PESO VS M21, +1 REP. EXCÉNTRICA LENTA', descansoMin: 2, sets: 3, rango: '(10-14)', repsDiana: 12, rirObjetivo: 1 }, r(40, 12, 1, 3)),
         ej({ id: `e-bulgara-${sufijo}`, categoria: 'DOMINANTE DE RODILLA', nombre: 'Sentadilla búlgara con mancuernas', cues: 'Torso ligeramente inclinado, rodilla viaja sobre el pie', prescripcion: '14KG A 10 REPS; 2 SERIES (RIR 2). MANTIENE VS M21. GLÚTEO DOMINANTE', descansoMin: 2, sets: 2, rango: '(8-12)', repsDiana: 10, rirObjetivo: 2, contenidoDemoId: 'c-zancada' }, r(14, 10, 2, 2)),
         ej({ id: `e-abd-${sufijo}`, categoria: 'AISLAMIENTO', nombre: 'Abducción de cadera en máquina', cues: 'Tronco inclinado adelante, apertura máxima controlada', prescripcion: '55KG A 15 REPS; 3 SERIES (RIR 1). PROGRESA +5KG VS M21. PICO 1S', descansoMin: 2, sets: 3, rango: '(12-15)', repsDiana: 15, rirObjetivo: 1 }, r(55, 15, 1, 3)),
