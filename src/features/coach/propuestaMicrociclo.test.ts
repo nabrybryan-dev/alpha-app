@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
+import { cargaEnTexto } from '../../domain/cargaPrescrita'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
 function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {
@@ -166,6 +167,25 @@ describe('proponerMicrociclo', () => {
     expect(p.sinDatos).toBe(1)
   })
 
+  /**
+   * ❌ EN ROJO A PROPÓSITO. `OpcionesOndulacion.cargaPrescritaKg` existe para
+   * ondular sobre lo que ya está programado cuando todavía no hay nada
+   * registrado, pero se le pasaba `ejercicio.series[0]?.cargaKg` — que es
+   * `undefined` exactamente en ese caso. El ancla nunca podía entrar.
+   *
+   * Se ve así: un asesorado que no registró la semana no recibe propuesta de
+   * nada, ni siquiera de repetir lo pautado, aunque su prescripción diga 60 kg.
+   * (El aviso de que no registró sigue estando: lo levanta `revisarActivacion`
+   * con `ejerciciosSinSeries`, que no depende de esto.)
+   */
+  it('ondula sobre la carga pautada cuando no hay ninguna serie registrada', () => {
+    const soloPautado = ejercicio({ series: [], cargaPrescritaKg: 60 })
+    const p = proponerMicrociclo(micro({ sesiones: [sesion({ ejercicios: [soloPautado] })] }))
+    expect(p.sinDatos).toBe(0)
+    expect(p.filas[0].direccion).not.toBe('sin-datos')
+    expect(cargaEnTexto(p.filas[0].prescripcion)).toBeGreaterThan(0)
+  })
+
   it('con PRS bajo sostiene la carga en vez de progresar', () => {
 
     const conPrsBajo = micro({
@@ -257,6 +277,34 @@ describe('microcicloPropuesto', () => {
     // Pero los conserva: son lo que hay que hacer, no lo que se hizo.
     expect(p.sesiones[0].preparacion).toHaveLength(1)
     expect(p.sesiones[0].bloquesCardio).toHaveLength(1)
+  })
+
+  /**
+   * ❌ EN ROJO A PROPÓSITO. El microciclo propuesto se construía con `...e`, así
+   * que `seriesPrescritas` traía las cargas nuevas y `prescripcion` seguía siendo
+   * el texto de la semana anterior. El asesorado abría M23 leyendo «50KG …
+   * PROGRESA +2.5KG VS M21» mientras el stepper le proponía otra cosa, y el
+   * texto es lo único que mira antes de cargar la barra.
+   *
+   * Tiene que decir lo mismo que la fila que el coach revisó y aprobó.
+   */
+  it('reescribe la prescripción con las cargas nuevas, no con las de la semana pasada', () => {
+    const conTextoViejo = ejercicio({
+      prescripcion: '50KG A 10 REPS; 3 SERIES (RIR 2). PROGRESA +2.5KG VS M21',
+      series: [
+        { orden: 1, cargaKg: 50, reps: 10, rir: 2 },
+        { orden: 2, cargaKg: 50, reps: 10, rir: 2 },
+        { orden: 3, cargaKg: 50, reps: 10, rir: 2 },
+      ],
+    })
+    const origen = micro({ numero: 22, sesiones: [sesion({ ejercicios: [conTextoViejo] })] })
+    const ej = microcicloPropuesto(origen).sesiones[0].ejercicios[0]
+
+    expect(ej.prescripcion).not.toMatch(/VS M21/)
+    expect(cargaEnTexto(ej.prescripcion)).toBe(ej.seriesPrescritas![0].cargaKg)
+    expect(cargaEnTexto(ej.prescripcion)).toBe(ej.cargaPrescritaKg)
+    // Y es literalmente la misma frase que el coach aprobó en el panel.
+    expect(ej.prescripcion).toBe(proponerMicrociclo(origen).filas[0].prescripcion)
   })
 
   it('no ondula las metabólicas, pero tampoco las pierde', () => {
