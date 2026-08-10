@@ -99,8 +99,19 @@ Reglas que quedan:
 - El clonador pasa cada sesión por `tmp_sesion_en_limpio()` antes de guardarla.
   Si añades un campo de ejecución a `Sesion` (`src/domain/types.ts`), añádelo
   también ahí — es el único punto donde se decide qué no se hereda.
-- Después de cada carga, correr `supabase/comprobar-fosiles.sql`. Tiene que dar
-  **cero filas**. No repartir la semana hasta que las dé.
+- Después de cada carga, correr **las dos** comprobaciones. Las dos tienen que
+  dar **cero filas**, y no se reparte la semana hasta que las den:
+  - `supabase/comprobar-fosiles.sql` — ejecución heredada del microciclo viejo.
+  - `supabase/comprobar-sesiones.sql` — sesiones que se perdieron o que no se
+    pueden pintar. La segunda existe desde el 2026-08-09: una carga escribió
+    `null` en el array `sesiones` de seis microciclos activos y siete sesiones
+    de cardio desaparecieron. Lo notó una asesorada, no nosotros.
+- **`jsonb_agg` de cero filas devuelve NULL, no `[]`.** Es la trampa que causó
+  aquello. Cualquier `jsonb_set(s, '{...}', (select jsonb_agg(...) …))` va
+  envuelto en `coalesce(…, '[]'::jsonb)`, porque `jsonb_set` con un argumento
+  NULL devuelve NULL y se lleva la sesión entera, no solo la clave. Solo se nota
+  en las sesiones sin ejercicios —cardio, tabata, hábito—, así que una prueba
+  con una sesión normal no lo detecta.
 - Las funciones de carga van con prefijo `tmp_`, con `revoke execute … from
   public` y se borran al terminar. `create function` concede `EXECUTE` a
   `PUBLIC` por defecto y todo lo de `public` se expone como RPC a `anon`: sin el
