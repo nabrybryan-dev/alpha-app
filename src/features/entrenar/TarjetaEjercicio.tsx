@@ -1,9 +1,11 @@
 import { Card } from '../../components/ui/Card'
 import { db } from '../../data/dbInstance'
+import { claseDeEjercicio } from '../../domain/clasificacionEjercicio'
 import { ejercicioCompleto } from '../../domain/cumplimiento'
 import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
 import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
+import { ExerciseSlotMachine } from './components/ExerciseSlotMachine'
 
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
   return (
@@ -14,20 +16,11 @@ function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | nu
   )
 }
 
-function MiniaturaEjercicio() {
-  return (
-    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-tenue" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="h-5 w-5">
-        <path d="M6.5 6.5v11M17.5 6.5v11" />
-        <path d="M3.5 9v6M20.5 9v6" />
-        <path d="M6.5 12h11" />
-      </svg>
-    </span>
-  )
-}
-
 interface TarjetaEjercicioProps {
   ejercicio: EjercicioPrescrito
+  /** 1-indexado, para el contador «Ejercicio 01 / 04» del gabinete. */
+  indiceEjercicio: number
+  totalEjercicios: number
   microcicloId: string
   notaVisible: boolean
   onAlternarNota: () => void
@@ -45,6 +38,8 @@ interface TarjetaEjercicioProps {
  */
 export function TarjetaEjercicio({
   ejercicio,
+  indiceEjercicio,
+  totalEjercicios,
   microcicloId,
   notaVisible,
   onAlternarNota,
@@ -59,14 +54,37 @@ export function TarjetaEjercicio({
   return (
     <div id={`ej-${ejercicio.id}`} className="entrada scroll-mt-4">
       <Card className={completo ? 'opacity-75' : ''}>
-        <div className="flex items-start gap-3">
-          <MiniaturaEjercicio />
+        {/* La cabecera es el «gabinete Alfa»: el nombre ya no vive en un <h3>,
+            vive dentro del tambor junto al patrón, la categoría y la nota.
+            Ver features/entrenar/components/ExerciseSlotMachine.tsx */}
+        {/* El nombre dejó de ser un <h3> visible al entrar el gabinete, y con él
+            se fue el encabezado de la tarjeta: quien navega por encabezados con
+            lector de pantalla se quedó sin poder saltar de ejercicio a ejercicio.
+            Vuelve aquí, solo para ese uso. Lo que se VE sigue siendo el tambor. */}
+        <h3 className="sr-only">{ejercicio.nombre}</h3>
+        <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{ejercicio.categoria}</p>
-            {/* Nombre completo (envuelve): nunca se corta con "…". */}
-            <h3 className="mt-0.5 font-display text-[17px] leading-snug text-texto [text-wrap:balance]">
-              {ejercicio.nombre}
-            </h3>
+            <ExerciseSlotMachine
+              // Remontar al cambiar de ejercicio: el tambor vuelve solo a la
+              // primera parada sin resetear estado a mano.
+              key={ejercicio.id}
+              ejercicio={{
+                nombre: ejercicio.nombre,
+                // `categoria` del modelo ES el patrón de movimiento desde que se
+                // normalizó a la taxonomía del Cerebro (2026-08-09). La «clase»
+                // del gabinete es otra cosa y se deduce de él.
+                patron: ejercicio.categoria || contenidoDemo?.patronMovimiento,
+                categoria: claseDeEjercicio(ejercicio.categoria),
+                tecnica: ejercicio.cues || undefined,
+                referencia: contenidoDemo
+                  ? `${contenidoDemo.tipo} · ${contenidoDemo.titulo}`
+                  : undefined,
+              }}
+              indice={indiceEjercicio}
+              total={totalEjercicios}
+              rango={ejercicio.rango}
+              activa={!completo}
+            />
           </div>
           {completo && (
             <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
