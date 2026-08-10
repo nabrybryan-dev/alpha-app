@@ -39,6 +39,7 @@
 import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../domain/activacion'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
+import { componerPrescripcion } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
@@ -136,6 +137,33 @@ function textoPrescripcion(
   return `${base} SOSTIENE CARGA ${aReps}.`
 }
 
+/**
+ * Opciones con las que se ondula un ejercicio para el microciclo siguiente.
+ *
+ * El ancla del 1RM es lo registrado y, si no hay nada, **la carga pautada**.
+ * Hasta el 2026-08-09 aquí se pasaba `ejercicio.series[0]?.cargaKg`, que es
+ * `undefined` exactamente cuando no hay series registradas: el ancla de reserva
+ * no podía entrar nunca. Era código muerto, y por eso un asesorado que no
+ * registró la semana no recibía propuesta ni de repetir lo pautado. Que no
+ * registrara se sigue avisando por su cuenta, en `revisarActivacion`.
+ *
+ * Ahora la carga vive en su propio campo (`domain/prescripcion.ts`), así que el
+ * ancla existe de verdad y no hay que sacarla de la frase.
+ */
+function opcionesDeOndulacion(
+  ejercicio: EjercicioPrescrito,
+  prs: number | undefined,
+  incrementoKg: number,
+) {
+  return {
+    prs,
+    incrementoKg,
+    // Ver el encabezado del archivo: el disparador de descarga no está validado.
+    descarga: false,
+    cargaPrescritaKg: ejercicio.series[0]?.cargaKg ?? ejercicio.cargaKg,
+  }
+}
+
 function filasDeSesion(
   sesion: Sesion,
   numeroPrevio: number,
@@ -143,13 +171,7 @@ function filasDeSesion(
   incrementoKg: number,
 ): FilaPropuesta[] {
   return sesion.ejercicios.map((ejercicio: EjercicioPrescrito) => {
-    const ondulado = ondularEjercicio(ejercicio, {
-      prs,
-      incrementoKg,
-      // Ver el encabezado del archivo: el disparador de descarga no está validado.
-      descarga: false,
-      cargaPrescritaKg: ejercicio.series[0]?.cargaKg,
-    })
+    const ondulado = ondularEjercicio(ejercicio, opcionesDeOndulacion(ejercicio, prs, incrementoKg))
     const comp = comparacion(ondulado.series, serieTope(ejercicio.series))
     const brecha = brechaReps(ejercicio)
     return {
@@ -225,15 +247,15 @@ export function microcicloPropuesto(
       ejercicios: s.ejercicios.map((e) => {
         const limpio: EjercicioPrescrito = { ...e, series: [] }
         if (s.tipo === 'metabolica') return limpio
-        return {
-          ...aplicarOndulacion(e, {
-            prs,
-            incrementoKg,
-            descarga: false, // ver el encabezado del archivo
-            cargaPrescritaKg: e.series[0]?.cargaKg,
-          }),
-          series: [],
-        }
+        const ondulado = aplicarOndulacion(e, opcionesDeOndulacion(e, prs, incrementoKg))
+        if (!ondulado.seriesPrescritas) return limpio
+        // La frase se compone desde los campos. Sin esto el ejercicio nace
+        // diciendo dos cosas: las series nuevas y, en el texto, la prescripción
+        // de la semana pasada — que es lo único que el asesorado mira antes de
+        // cargar la barra. Su nota va dentro de `componerPrescripcion` y viaja
+        // intacta: no la reescribe nadie.
+        const conSeries: EjercicioPrescrito = { ...ondulado, series: [] }
+        return { ...conSeries, prescripcion: componerPrescripcion(conSeries) }
       }),
     })),
   }

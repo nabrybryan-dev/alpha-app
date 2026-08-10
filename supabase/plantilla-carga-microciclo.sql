@@ -71,9 +71,33 @@ revoke execute on function public.tmp_sesion_en_limpio(jsonb) from public;
 
 
 -- ── 2 · El clonador ────────────────────────────────────────────────────────
--- `p_ajustes` es un objeto {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, nota}}.
+-- `p_ajustes` es un objeto
+--   {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, carga, unidad, nota}}.
 -- Gana la clave más larga que haga prefijo, para poder afinar un ejercicio
 -- concreto sin romper la regla general.
+--
+-- LA CARGA VA EN `carga`, NO DENTRO DE `nota`
+-- Desde que la carga se separó de la frase (`src/domain/prescripcion.ts`), el
+-- ejercicio lleva `cargaKg`, `unidadCarga` y `notaCoach` además de la frase que
+-- se lee. `carga` y `unidad` escriben los dos primeros; `nota` sigue siendo la
+-- frase entera, tal como se pega desde el Excel.
+--
+-- POR QUÉ UN AJUSTE CON `nota` BORRA LOS CAMPOS
+-- Si llega una frase nueva sin `carga`, los campos heredados describen la frase
+-- VIEJA. Y ahora mandan ellos: `cargaSugerida` lee `cargaKg` antes que nada, así
+-- que el asesorado abriría la serie con los kilos de la semana pasada mientras
+-- lee los de esta. Se borran, y el ejercicio queda con la frase como única
+-- verdad hasta que `scripts/rellenar-carga.mjs` vuelva a poblarlos en seco.
+--
+-- Y un ejercicio ajustado PIERDE `seriesPrescritas`: esa ondulación se calculó
+-- sobre la prescripción vieja, y es lo primero que mira el stepper. Los
+-- ejercicios sin ajuste la conservan, porque su prescripción no ha cambiado.
+--
+-- LÍMITE CONOCIDO
+-- Cambiar `reps`, `rir` o `sets` SIN pasar `nota` deja la frase diciendo los
+-- valores viejos, porque aquí no se puede componer: `componerPrescripcion` vive
+-- en TypeScript. Pasa siempre `nota` junto a cualquier cambio estructural, que
+-- además es lo natural: la frase nueva se pega del Excel de todos modos.
 create or replace function public.tmp_nuevo_micro(
   p_datos   jsonb,
   p_num     int,
@@ -95,10 +119,24 @@ create or replace function public.tmp_nuevo_micro(
                  jsonb_set(s, '{ejercicios}', coalesce((
                    select jsonb_agg(
                      ( jsonb_set(e, '{series}', '[]'::jsonb)   -- sin lo registrado
-                       || case when aj.v ? 'sets' then jsonb_build_object('sets', (aj.v->>'sets')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'rir'  then jsonb_build_object('rirObjetivo', (aj.v->>'rir')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'reps' then jsonb_build_object('repsDiana', (aj.v->>'reps')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'nota' then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
+                       -- La ondulación guardada era de la prescripción vieja:
+                       -- si este ejercicio se ajusta, deja de valer.
+                       - (case when aj.v is null then '' else 'seriesPrescritas' end)
+                       -- La nota vieja no sobrevive a una frase nueva: la nota
+                       -- es lo que va DESPUÉS de la cabecera de esa frase, y
+                       -- `componerPrescripcion` la volvería a pegar al final.
+                       - (case when aj.v ? 'nota' then 'notaCoach' else '' end)
+                       -- Frase nueva sin carga nueva = la carga heredada miente,
+                       -- y ahora manda ella sobre lo que se propone en el stepper.
+                       - (case when aj.v ? 'nota' and not (aj.v ? 'carga')
+                               then array['cargaKg','unidadCarga']
+                               else array[]::text[] end)
+                       || case when aj.v ? 'sets'   then jsonb_build_object('sets', (aj.v->>'sets')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'rir'    then jsonb_build_object('rirObjetivo', (aj.v->>'rir')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'reps'   then jsonb_build_object('repsDiana', (aj.v->>'reps')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'carga'  then jsonb_build_object('cargaKg', (aj.v->>'carga')::numeric) else '{}'::jsonb end
+                       || case when aj.v ? 'unidad' then jsonb_build_object('unidadCarga', aj.v->>'unidad') else '{}'::jsonb end
+                       || case when aj.v ? 'nota'   then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
                      ) order by ord)
                    from jsonb_array_elements(s->'ejercicios') with ordinality as t(e, ord)
                    left join lateral (
@@ -163,9 +201,15 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 --   begin;
 --   select public.tmp_cargar_siguiente('<NOMBRE EN usuarios_app>', '<slug>', '<YYYY-MM-DD>',
 --     jsonb_build_object(
---       'PREFIJO DEL EJERCICIO', jsonb_build_object('reps',8,'rir',2,'nota','<prescripción>')
+--       'PREFIJO DEL EJERCICIO',
+--       jsonb_build_object('reps',8,'rir',2,'carga',62.5,'nota','<prescripción>')
 --     ));
 --   commit;
+--
+-- `carga` son kilos, en número: 62.5, no '62.5KG'. `unidad` solo hace falta
+-- cuando ese número no es lo que marca la barra — 'total', 'por lado' o 'por
+-- mano'—; sin ella se asume 'kg'. Confundirlas duplica o parte en dos la carga
+-- la próxima vez que el motor progrese ese ejercicio.
 --
 -- El nombre tiene que coincidir EXACTO con `usuarios_app.nombre`, tildes
 -- incluidas. Si no existe, la función devuelve 'NO ENCONTRADO: <nombre>' en vez
