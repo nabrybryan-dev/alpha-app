@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { titular } from '../../../lib/titular'
 
 /**
  * Cabecera del ejercicio como «gabinete Alfa»: una tragamonedas de una sola
@@ -34,20 +35,22 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *   1. **Arranque** (16 ms) — se enciende la transición antes de mover. Sin
  *      esta pausa el navegador ve el cambio de `transition` y de `transform` en
  *      el mismo repintado y salta sin animar.
- *   2. **Giro** — avanza hasta dos celdas antes del destino, a 62 ms por celda,
- *      lineal y con `blur(1.1px)`. Siempre da **al menos una vuelta entera**
- *      (10 celdas), aunque el destino sea la parada de al lado: un tambor que
- *      recorre dos celdas no parece un tambor.
+ *   2. **Giro** — avanza hasta dos celdas antes del destino, lineal y con
+ *      `blur(1.1px)`. Siempre da **al menos una vuelta entera**, aunque el
+ *      destino sea la parada de al lado: un tambor que recorre dos celdas no
+ *      parece un tambor.
  *   3. **Frenada** (320 ms) — las dos últimas celdas con la curva de rebote, ya
  *      sin desenfoque. Al parar, destella el marco.
  *
- * `pos` solo crece; al asentar se normaliza al rango 0-9 en el mismo commit en
- * que la transición ya está apagada, así que el salto es invisible (la celda
- * `pos + 10` dibuja exactamente lo mismo que la celda `pos`).
+ * `pos` solo crece; al asentar se normaliza en el mismo commit en que la
+ * transición ya está apagada, así que el salto es invisible: la celda
+ * `pos + nCeldas` dibuja exactamente lo mismo que la celda `pos`.
  *
  * En la ventana **solo se montan las celdas del tramo que se recorre**. En
- * reposo eso es UNA: ni el lector de pantalla ni los tests ven cinco copias del
- * texto, y la información del ejercicio aparece una sola vez en el DOM.
+ * reposo eso es UNA: ni el lector de pantalla ni los tests ven copias del texto,
+ * y la información del ejercicio aparece una sola vez en el DOM.
+ *
+ * Cuántas paradas hay lo decide el ejercicio: ver `construirParadas`.
  */
 
 export interface ParadaEjercicio {
@@ -106,9 +109,6 @@ const MS_AUTO = 4200
 const MS_PALANCA = 240
 const BOMBILLAS = 12
 const CURVA_REBOTE = 'cubic-bezier(.14,1.06,.32,1)'
-/** Las paradas son siempre estas cinco, y entre cada dos va un símbolo. */
-const PARADAS = 5
-const CELDAS = PARADAS * 2
 
 type Celda =
   | { tipo: 'parada'; parada: ParadaEjercicio }
@@ -122,14 +122,26 @@ function usaMovimientoReducido(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+/**
+ * Las paradas que este ejercicio puede llenar.
+ *
+ * **Las que no tienen dato no se montan.** Antes salían con un «—», y eso no era
+ * un detalle: de los 506 ejercicios activos, **272 no tienen contenido demo**
+ * (2026-08-09), así que en más de la mitad de la sesión una de cada cinco vueltas
+ * del tambor paraba en un guion. Un ejercicio sin demo tiene cuatro paradas y
+ * cuatro puntos en el paginador, y no se le nota nada.
+ *
+ * El nombre siempre está, así que siempre queda al menos una.
+ */
 function construirParadas(e: DatosSlotEjercicio): ParadaEjercicio[] {
-  return [
+  const candidatas: (ParadaEjercicio | undefined)[] = [
     { etiqueta: 'EJERCICIO', valor: e.nombre, icono: '🏋', tono: 'text-texto' },
-    { etiqueta: 'PATRÓN DE MOVIMIENTO', valor: e.patron ?? '—', icono: '⤢', tono: 'text-accion' },
-    { etiqueta: 'CATEGORÍA', valor: e.categoria ?? '—', icono: '◈', tono: 'text-oro' },
-    { etiqueta: 'NOTA TÉCNICA', valor: e.tecnica ?? '—', icono: '✎', tono: 'text-texto' },
-    { etiqueta: 'REFERENCIA VISUAL', valor: e.referencia ?? '—', icono: '▶', tono: 'text-accion' },
+    e.patron ? { etiqueta: 'PATRÓN DE MOVIMIENTO', valor: e.patron, icono: '⤢', tono: 'text-accion' } : undefined,
+    e.categoria ? { etiqueta: 'CATEGORÍA', valor: e.categoria, icono: '◈', tono: 'text-oro' } : undefined,
+    e.tecnica ? { etiqueta: 'NOTA TÉCNICA', valor: titular(e.tecnica), icono: '✎', tono: 'text-texto' } : undefined,
+    e.referencia ? { etiqueta: 'REFERENCIA VISUAL', valor: e.referencia, icono: '▶', tono: 'text-accion' } : undefined,
   ]
+  return candidatas.filter((p): p is ParadaEjercicio => p !== undefined)
 }
 
 /** La cinta: parada, símbolo, parada, símbolo… La parada `k` está en la celda `2k`. */
@@ -147,8 +159,16 @@ export function ExerciseSlotMachine({
   rango,
   activa = true,
 }: ExerciseSlotMachineProps) {
-  const paradas = construirParadas(ejercicio)
-  const celdas = construirCeldas(paradas)
+  // La cinta se arma UNA vez. El componente se remonta con `key` al cambiar de
+  // ejercicio, así que no necesita seguir a las props — y en estado, `paradas`
+  // es un valor estable del que las dependencias de los `useCallback` pueden
+  // colgar sin que el compilador pierda la memoización.
+  const [{ paradas, celdas }] = useState(() => {
+    const p = construirParadas(ejercicio)
+    return { paradas: p, celdas: construirCeldas(p) }
+  })
+  const nParadas = paradas.length
+  const nCeldas = celdas.length
 
   const [reducido, setReducido] = useState(usaMovimientoReducido)
   // Arranca girando: es el disparador «al entrar a la sesión». Se decide aquí y
@@ -159,7 +179,7 @@ export function ExerciseSlotMachine({
   const [pos, setPos] = useState(0)
   /** Tramo montado en la ventana. En reposo, una sola celda. */
   const [tramo, setTramo] = useState(() =>
-    usaMovimientoReducido() ? { desde: 0, hasta: 0 } : { desde: 0, hasta: CELDAS },
+    usaMovimientoReducido() ? { desde: 0, hasta: 0 } : { desde: 0, hasta: nCeldas },
   )
   // Arranca con los tiempos del giro de entrada: ponerlos desde el efecto sería
   // un setState síncrono dentro de él, que aquí es error de linter.
@@ -217,7 +237,7 @@ export function ExerciseSlotMachine({
 
   const girarA = useCallback(
     (destino: number) => {
-      const paradaDestino = ((destino % PARADAS) + PARADAS) % PARADAS
+      const paradaDestino = ((destino % nParadas) + nParadas) % nParadas
       const celdaDestino = paradaDestino * 2
 
       if (reducido) {
@@ -239,7 +259,7 @@ export function ExerciseSlotMachine({
       const actual = posRef.current
       // Siempre una vuelta entera de más: el destino de al lado son 2 celdas y
       // eso no se lee como un tambor girando.
-      const avance = ((((celdaDestino - actual) % CELDAS) + CELDAS) % CELDAS) + CELDAS
+      const avance = ((((celdaDestino - actual) % nCeldas) + nCeldas) % nCeldas) + nCeldas
       const fin = actual + avance
 
       setTramo({ desde: actual, hasta: fin })
@@ -256,23 +276,25 @@ export function ExerciseSlotMachine({
       }, MS_ARRANQUE + MS_GIRO)
       programar(() => asentar(paradaDestino, celdaDestino), MS_ARRANQUE + MS_GIRO + MS_FRENADA)
     },
-    [asentar, limpiar, mover, programar, reducido],
+    // `nCeldas` y `nParadas` salen de estado, así que son estables durante toda
+    // la vida del componente: van en las dependencias sin recrear la callback.
+    [asentar, limpiar, mover, nCeldas, nParadas, programar, reducido],
   )
 
   // Cierre del giro de entrada. El cambio de ejercicio NO se maneja aquí: el
   // componente se remonta con `key`, así que el estado nace limpio solo.
   useEffect(() => {
     if (reducido) return
-    programar(() => mover(CELDAS - CELDAS_FRENADA), MS_ARRANQUE)
+    programar(() => mover(nCeldas - CELDAS_FRENADA), MS_ARRANQUE)
     programar(() => {
       faseRef.current = 'frenando'
       setFase('frenando')
       setMovimiento({ ms: MS_FRENADA, curva: CURVA_REBOTE })
-      mover(CELDAS)
+      mover(nCeldas)
     }, MS_ARRANQUE + MS_GIRO)
     programar(() => asentar(0, 0), MS_ARRANQUE + MS_GIRO + MS_FRENADA)
     return limpiar
-  }, [asentar, limpiar, mover, programar, reducido])
+  }, [asentar, limpiar, mover, nCeldas, programar, reducido])
 
   // Disparador: automático cada 4,2 s mientras la sesión está activa.
   //
@@ -305,7 +327,7 @@ export function ExerciseSlotMachine({
 
   const parada = paradas[idx]
   const girando = fase !== 'quieto'
-  const celdaEn = (i: number) => celdas[((i % CELDAS) + CELDAS) % CELDAS]
+  const celdaEn = (i: number) => celdas[((i % nCeldas) + nCeldas) % nCeldas]
   const montadas: number[] = []
   for (let i = tramo.desde; i <= tramo.hasta; i++) montadas.push(i)
 

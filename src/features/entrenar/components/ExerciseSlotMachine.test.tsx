@@ -148,14 +148,29 @@ describe('ExerciseSlotMachine', () => {
     expect(screen.getByTestId('slot-ejercicio').dataset.parada).toBe('EJERCICIO')
   })
 
-  it('sin los campos nuevos no rompe: muestra guion en lugar de undefined', () => {
+  /**
+   * Antes las paradas sin dato salían con un «—». No era un detalle: de los 506
+   * ejercicios activos, 272 no tienen contenido demo (medido el 2026-08-09), así
+   * que en más de la mitad de la sesión el tambor paraba en un guion una de cada
+   * cinco vueltas.
+   */
+  it('sin los campos nuevos no monta paradas vacías ni enseña guiones', () => {
     montar({ ejercicio: { nombre: 'Remo con barra' } })
-    fireEvent.click(screen.getByRole('button', { name: /patrón de movimiento/i }))
     act(() => void vi.advanceTimersByTime(1000))
     const slot = screen.getByTestId('slot-ejercicio')
-    expect(slot.dataset.parada).toBe('PATRÓN DE MOVIMIENTO')
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(slot.dataset.parada).toBe('EJERCICIO')
+    expect(screen.getByText('Remo con barra')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Ver / })).toHaveLength(1)
     expect(slot.textContent).not.toMatch(/undefined/)
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
+  })
+
+  it('un ejercicio sin contenido demo tiene cuatro paradas, no cinco con un hueco', () => {
+    montar({ ejercicio: { ...ejercicio, referencia: undefined } })
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(screen.getAllByRole('button', { name: /^Ver / })).toHaveLength(4)
+    expect(screen.queryByRole('button', { name: /referencia visual/i })).not.toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
   })
 
   /**
