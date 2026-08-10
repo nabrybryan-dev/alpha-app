@@ -41,8 +41,19 @@ const pintar = (yaSabidos: Respuestas = {}, enCurso: Respuestas = {}) => {
 }
 
 describe('EncuestaNutricion', () => {
-  it('a quien llega con la encuesta de captación le pide una sola cosa', () => {
+  it('a quien llega con la encuesta de captación le pide solo lo que esa no trae', () => {
+    // Eran los pasos y nada más hasta el 2026-08-09, cuando entró la pregunta
+    // del embarazo: la encuesta de captación tampoco la trae.
     pintar(CON_JSON)
+    expect(screen.getByText(/cuéntanos 2 cosas sobre ti/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/cuántos pasos caminas/i)).toBeInTheDocument()
+    expect(screen.getByText(/¿estás embarazada o en lactancia\?/i)).toBeInTheDocument()
+  })
+
+  it('cuando solo falta una, el titular va en singular', () => {
+    // La copia cambia con el número y es fácil romperla al añadir preguntas:
+    // "Cuéntanos 1 cosas sobre ti" es justo lo que este test impide.
+    pintar({ ...CON_JSON, embarazo: 'no' })
     expect(screen.getByText(/nos falta un dato tuyo/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/cuántos pasos caminas/i)).toBeInTheDocument()
   })
