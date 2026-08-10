@@ -359,6 +359,30 @@ export interface RegistroComida {
  * el asesorado sí puede leer sus interruptores. Aquí viajan juntas porque quien
  * carga este objeto es siempre staff.
  */
+/**
+ * Un alimento que esta persona no debe comer, marcado por la nutricionista.
+ *
+ * ES LA TRADUCCIÓN QUE FALTABA. La encuesta recoge las alergias en texto libre
+ * —«soy alérgica a los mariscos»— y este repo se niega a interpretarlas: no hay
+ * forma fiable de convertir una frase en una lista de ids, y equivocarse ahí es
+ * proponerle a alguien lo que le hace daño. Quien traduce es Manuela, que para
+ * eso conoce a la persona; esto es donde escribe el resultado.
+ *
+ * NO BLOQUEA REGISTRAR, NUNCA. Es la regla R6 y no tiene excepciones: si
+ * alguien con alergia al marisco se comió marisco, lo que hace falta es que
+ * quede anotado y que el coach lo VEA, no que el diario se lo impida y el dato
+ * se pierda. Esto solo decide qué se le PROPONE.
+ *
+ * El motivo es opcional a propósito: exigirlo convertiría un veto de treinta
+ * segundos en un formulario, y un veto sin escribir protege menos que uno
+ * escrito sin motivo.
+ */
+export interface VetoAlimento {
+  usuarioId: string
+  alimentoId: string
+  motivo?: string
+}
+
 export interface VisibilidadAsesorado {
   usuarioId: string
   verComposicion: boolean

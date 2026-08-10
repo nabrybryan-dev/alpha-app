@@ -294,6 +294,48 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    /**
+     * Lo que la nutricionista marca que alguien no debe comer.
+     *
+     * SUBE SIEMPRE, no solo al terminar algo: cada veto es una decisión suelta
+     * y completa. Es lo contrario del perfil, que se sube entero o no se sube.
+     *
+     * QUITAR ES UN UPSERT CON `borrado`, no un delete: la cola solo sabe hacer
+     * upsert y update (`cola.ts`). Sin la columna de la migración 0035, la
+     * nutricionista quitaría un veto, lo vería desaparecer, y volvería en la
+     * siguiente hidratación.
+     */
+    vetados: {
+      ...local.vetados,
+      vetar: (veto) => {
+        local.vetados.vetar(veto)
+        encolar({
+          tabla: 'perfil_alimentario_veto',
+          tipo: 'upsert',
+          onConflict: 'asesorado_id,alimento_id',
+          payload: {
+            asesorado_id: veto.usuarioId,
+            alimento_id: veto.alimentoId,
+            motivo: veto.motivo?.trim() || null,
+            borrado: false,
+          },
+        })
+      },
+      quitar: (usuarioId, alimentoId) => {
+        local.vetados.quitar(usuarioId, alimentoId)
+        encolar({
+          tabla: 'perfil_alimentario_veto',
+          tipo: 'upsert',
+          onConflict: 'asesorado_id,alimento_id',
+          payload: {
+            asesorado_id: usuarioId,
+            alimento_id: alimentoId,
+            borrado: true,
+          },
+        })
+      },
+    },
+
     visibilidad: {
       ...local.visibilidad,
       decidir: (decision) => {

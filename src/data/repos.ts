@@ -24,6 +24,7 @@ import type {
   TestPostSesion,
   Usuario,
   ValoracionCompetencia,
+  VetoAlimento,
   VisibilidadAsesorado,
 } from '../domain/types'
 
@@ -124,6 +125,13 @@ export interface VisibilidadRepo {
   decidir(decision: VisibilidadAsesorado): void
 }
 
+export interface VetadosRepo {
+  /** Lo que la nutricionista marcó que esta persona no debe comer. */
+  byUsuario(usuarioId: string): VetoAlimento[]
+  vetar(veto: VetoAlimento): void
+  quitar(usuarioId: string, alimentoId: string): void
+}
+
 export interface CalibracionRepo {
   byUsuario(usuarioId: string): PruebaCalibracion[]
   /** Cuántos días distintos lleva pesando. Es la otra mitad del criterio. */
@@ -219,6 +227,7 @@ export interface Db {
   nutricion: NutricionRepo
   perfilNutricion: PerfilNutricionRepo
   visibilidad: VisibilidadRepo
+  vetados: VetadosRepo
   registroComidas: RegistroComidasRepo
   calibracion: CalibracionRepo
   mensajes: MensajesRepo

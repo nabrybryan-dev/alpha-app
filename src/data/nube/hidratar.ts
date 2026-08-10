@@ -19,6 +19,7 @@ import type {
   RegistroComida,
   RegistroHidratacion,
   RegistroItem,
+  VetoAlimento,
   VisibilidadAsesorado,
 } from '../../domain/types'
 
@@ -204,7 +205,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     .from('perfil_alimentario')
     .select('asesorado_id, respuestas, completada_en')
 
-  const [comidas, items, preferencias, calibraciones, visibilidades] = await Promise.all([
+  const [comidas, items, preferencias, calibraciones, visibilidades, vetos] = await Promise.all([
     sb.from('registro_comida').select('*').eq('borrado', false),
     sb.from('registro_item').select('*').eq('borrado', false),
     sb.from('preferencia_estado').select('*'),
@@ -215,6 +216,11 @@ export async function hidratarDesdeNube(): Promise<void> {
     // línea la decisión desaparecía también del dispositivo del staff, porque
     // `aplicarSnapshot` reemplaza la base local entera.
     sb.from('visibilidad_nutricion').select('*'),
+    // Migración 0016, con el `borrado` de la 0035. La asesorada NO los lee
+    // -son criterio clínico sobre ella, no suyo- pero su app SÍ los necesita
+    // para no proponerle en 'Mi plan' lo que no puede comer, así que la
+    // política de staff-y-dueño de la 0016 los deja bajar a las dos.
+    sb.from('perfil_alimentario_veto').select('*').eq('borrado', false),
   ])
 
   /**
@@ -330,6 +336,17 @@ export async function hidratarDesdeNube(): Promise<void> {
           ),
     // Si la tabla no responde se conserva lo local, por lo mismo que arriba: una
     // lista vacía aquí le encendería a alguien las cifras que se le apagaron.
+    // Si la tabla no responde se conserva lo local: una lista vacía aquí le
+    // propondría a alguien justo lo que su nutricionista le prohibió.
+    vetosAlimentarios: vetos.error
+      ? (instantaneaLocal().vetosAlimentarios ?? [])
+      : (vetos.data ?? []).map(
+          (f): VetoAlimento => ({
+            usuarioId: f.asesorado_id as string,
+            alimentoId: f.alimento_id as string,
+            motivo: (f.motivo as string | null) ?? undefined,
+          }),
+        ),
     visibilidades: visibilidades.error
       ? (instantaneaLocal().visibilidades ?? [])
       : conPendientes('visibilidad_nutricion', visibilidades.data ?? []).map(

@@ -15,6 +15,7 @@ import type {
   RegistroHidratacion,
   Respuesta,
   Usuario,
+  VetoAlimento,
   VisibilidadAsesorado,
 } from '../../domain/types'
 import {
@@ -45,6 +46,8 @@ export interface SeedDb {
   /** Opcional por lo mismo: el registro de comidas llegó después. */
   perfilesNutricion?: PerfilNutricion[]
   visibilidades?: VisibilidadAsesorado[]
+  /** Los que marcó la nutricionista. Opcional: llegó después. */
+  vetosAlimentarios?: VetoAlimento[]
   pruebasCalibracion?: PruebaCalibracion[]
   registrosComida?: RegistroComida[]
   preferenciasEstado?: PreferenciaEstado[]
@@ -96,6 +99,7 @@ export const seedDb: SeedDb = {
     },
   ],
   visibilidades: [],
+  vetosAlimentarios: [],
   pruebasCalibracion: [],
   registrosComida: [],
   preferenciasEstado: [],
