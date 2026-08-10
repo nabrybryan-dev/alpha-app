@@ -57,6 +57,11 @@ export function TarjetaEjercicio({
         {/* La cabecera es el «gabinete Alfa»: el nombre ya no vive en un <h3>,
             vive dentro del tambor junto al patrón, la categoría y la nota.
             Ver features/entrenar/components/ExerciseSlotMachine.tsx */}
+        {/* El nombre dejó de ser un <h3> visible al entrar el gabinete, y con él
+            se fue el encabezado de la tarjeta: quien navega por encabezados con
+            lector de pantalla se quedó sin poder saltar de ejercicio a ejercicio.
+            Vuelve aquí, solo para ese uso. Lo que se VE sigue siendo el tambor. */}
+        <h3 className="sr-only">{ejercicio.nombre}</h3>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <ExerciseSlotMachine

@@ -152,17 +152,145 @@ describe('ExerciseSlotMachine', () => {
     montar({ ejercicio: { nombre: 'Remo con barra' } })
     fireEvent.click(screen.getByRole('button', { name: /patrón de movimiento/i }))
     act(() => void vi.advanceTimersByTime(1000))
-    // Hay dos guiones: la categoría de la línea superior y el valor del tambor.
-    // El que importa es el del tambor, y nunca puede decir «undefined».
     const slot = screen.getByTestId('slot-ejercicio')
     expect(slot.dataset.parada).toBe('PATRÓN DE MOVIMIENTO')
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.getByText('—')).toBeInTheDocument()
     expect(slot.textContent).not.toMatch(/undefined/)
+  })
+
+  /**
+   * La cabecera fija se redujo a número y rango. La categoría vivía también ahí
+   * y se quitó: es una de las cinco paradas, y enseñarla fija le quitaba sentido
+   * a que el tambor rotara hasta ella.
+   */
+  it('la línea fija es mínima: número y rango, sin la categoría', () => {
+    montar()
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(screen.getByText('Ejercicio 01 / 04')).toBeInTheDocument()
+    expect(screen.getByText('Rango 8-12')).toBeInTheDocument()
+    // La categoría solo aparece cuando el tambor para en ella.
+    expect(screen.queryByText('Compuesto · Cadena posterior')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /ver categoría/i }))
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(screen.getByText('Compuesto · Cadena posterior')).toBeInTheDocument()
   })
 
   it('al desmontar no deja temporizadores vivos', () => {
     const { unmount } = montar({ activa: true })
     unmount()
     expect(() => act(() => void vi.advanceTimersByTime(4200 * 3))).not.toThrow()
+  })
+})
+
+/**
+ * La física del tambor.
+ *
+ * La primera versión no giraba: cambiaba el contenido con un fundido y aplicaba
+ * la curva de rebote a la opacidad, donde el rebote no se percibe. Estos tests
+ * fijan que la cinta se DESPLAZA, que pasa por símbolos entre dato y dato, y que
+ * `reduced-motion` no recorre nada en vez de recorrerlo más despacio.
+ */
+describe('ExerciseSlotMachine · el tambor gira de verdad', () => {
+  const slot = () => screen.getByTestId('slot-ejercicio')
+  const cinta = () => slot().querySelector('[data-cinta]') as HTMLElement
+  const girar = () => fireEvent.click(screen.getByRole('button', { name: /girar la información/i }))
+  /** Deja pasar el giro de entrada, que arranca solo al montar. */
+  const asentado = () => act(() => void vi.advanceTimersByTime(1000))
+
+  it('en reposo la ventana monta UNA celda: el dato no se duplica en el DOM', () => {
+    montar()
+    asentado()
+    expect(cinta().children).toHaveLength(1)
+    expect(slot().dataset.pos).toBe('0')
+  })
+
+  it('la cinta se desplaza y da al menos una vuelta entera antes de parar', () => {
+    montar()
+    asentado()
+    girar()
+    act(() => void vi.advanceTimersByTime(100))
+    // Diez celdas es la vuelta completa. El destino son dos celdas más allá,
+    // así que sin la vuelta esto valdría 2 y no se leería como un tambor.
+    expect(Number(slot().dataset.pos)).toBeGreaterThanOrEqual(10)
+    expect(cinta().style.transform).toBe(`translateY(${-Number(slot().dataset.pos) * 104}px)`)
+    act(() => void vi.advanceTimersByTime(2000))
+    // Al asentar se normaliza: la parada 1 vive en la celda 2.
+    expect(slot().dataset.pos).toBe('2')
+    expect(cinta().children).toHaveLength(1)
+  })
+
+  it('entre parada y parada pasa un símbolo', () => {
+    montar()
+    asentado()
+    girar()
+    act(() => void vi.advanceTimersByTime(100))
+    expect(cinta().textContent).toMatch(/[⚡★🔥✦]/u)
+  })
+
+  it('primero corre lineal y desenfocado, y frena con la curva de rebote', () => {
+    montar()
+    asentado()
+    girar()
+
+    act(() => void vi.advanceTimersByTime(100))
+    expect(cinta().style.transition).toMatch(/linear/)
+    expect(cinta().style.filter).toBe('blur(1.1px)')
+
+    // A los 596 ms (16 de arranque + 580 de giro) empieza la frenada.
+    act(() => void vi.advanceTimersByTime(600))
+    expect(cinta().style.transition).toMatch(/cubic-bezier/)
+    expect(cinta().style.filter).toBe('')
+  })
+
+  it('con reduced-motion la cinta no recorre nada: la parada cambia en el sitio', () => {
+    mockMatchMedia(true)
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: /nota técnica/i }))
+    // Parada 3 → celda 6, sin pasar por ninguna intermedia.
+    expect(slot().dataset.pos).toBe('6')
+    expect(cinta().children).toHaveLength(1)
+    expect(cinta().style.transition).toBe('none')
+    expect(cinta().style.filter).toBe('')
+  })
+
+  /**
+   * Tocar un punto justo antes de un tic automático te arrancaba de la parada
+   * que acababas de pedir. El reloj del auto-giro se reinicia con cada gesto.
+   */
+  it('un gesto de la persona devuelve a cero el reloj del giro automático', () => {
+    montar({ activa: true })
+    asentado()
+    // Casi se cumple el ciclo automático…
+    act(() => void vi.advanceTimersByTime(4000))
+    fireEvent.click(screen.getByRole('button', { name: /ver nota técnica/i }))
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(slot().dataset.parada).toBe('NOTA TÉCNICA')
+    // …y los 200 ms que le faltaban al tic viejo ya no se la llevan.
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(slot().dataset.parada).toBe('NOTA TÉCNICA')
+  })
+
+  it('mientras gira, la cinta sale del árbol de accesibilidad', () => {
+    montar()
+    asentado()
+    expect(cinta().getAttribute('aria-hidden')).toBe('false')
+    girar()
+    act(() => void vi.advanceTimersByTime(100))
+    expect(cinta().getAttribute('aria-hidden')).toBe('true')
+    act(() => void vi.advanceTimersByTime(2000))
+    expect(cinta().getAttribute('aria-hidden')).toBe('false')
+  })
+
+  it('tocar otro punto a mitad de giro abandona el giro anterior, no lo encadena', () => {
+    montar()
+    asentado()
+    girar()
+    act(() => void vi.advanceTimersByTime(200))
+    fireEvent.click(screen.getByRole('button', { name: /referencia visual/i }))
+    act(() => void vi.advanceTimersByTime(2000))
+    // Manda el último destino, y la cinta queda en reposo en su celda.
+    expect(slot().dataset.parada).toBe('REFERENCIA VISUAL')
+    expect(slot().dataset.pos).toBe('8')
+    expect(slot().dataset.girando).toBe('no')
   })
 })
