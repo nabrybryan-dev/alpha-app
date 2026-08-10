@@ -42,6 +42,12 @@ export type ClaveCampo =
   // Solo a quien aplica
   | 'cicloMenstrual'
   /**
+   * La única condición del catálogo que cambia lo que se puede recomendar: el
+   * hígado tiene retinol y el retinol es teratógeno. Ver `embarazo.ts`.
+   */
+  | 'embarazo'
+  | 'fechaProbableParto'
+  /**
    * Antecedente de conducta alimentaria. NO se pregunta en la app -no hay
    * ninguna entrada suya en `CAMPOS`- y por eso nunca aparece en el
    * formulario: preguntarlo en una pantalla sin nadie al otro lado que responda
@@ -260,6 +266,30 @@ export const CAMPOS: readonly CampoEncuesta[] = [
       { valor: 'anticoncepcion_hormonal', etiqueta: 'Uso anticoncepción hormonal' },
       { valor: 'prefiere_no_decir', etiqueta: 'Prefiero no decirlo' },
     ],
+  },
+  {
+    clave: 'embarazo',
+    etiqueta: '¿Estás embarazada o en lactancia?',
+    porQue:
+      'En el embarazo hay alimentos que no se recomiendan, como el hígado. Si nos lo dices, dejamos de sugerírtelos.',
+    tipo: 'opcion',
+    soloSi: esMujer,
+    opciones: [
+      { valor: 'no', etiqueta: 'No' },
+      { valor: 'si', etiqueta: 'Sí, estoy embarazada' },
+      { valor: 'lactancia', etiqueta: 'En lactancia' },
+      { valor: 'prefiere_no_decir', etiqueta: 'Prefiero no decirlo' },
+    ],
+  },
+  {
+    clave: 'fechaProbableParto',
+    etiqueta: '¿Cuál es tu fecha probable de parto?',
+    // Se dice para qué sirve. Pedir una fecha sin explicarla se lee como que la
+    // app quiere saber de más, y quien no entiende una pregunta la deja vacía.
+    porQue:
+      'Solo para dejar de avisarte cuando ya no aplique, en vez de que se quede activo para siempre.',
+    tipo: 'fecha',
+    soloSi: (r) => r.embarazo === 'si',
   },
 ]
 
