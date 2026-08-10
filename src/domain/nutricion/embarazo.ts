@@ -82,6 +82,36 @@ export function estaEmbarazada(respuestas: RespuestasDeEmbarazo, hoy: string): b
 }
 
 /**
+ * Si a día de hoy hay lactancia declarada.
+ *
+ * NO CADUCA SOLA, y es la diferencia con el embarazo. Un embarazo tiene fecha
+ * de final probable; una lactancia no —dura lo que la madre decida— así que
+ * inventarle un vencimiento sería decidir por ella. Lo que hay en su lugar es
+ * la pregunta que vuelve cada quince días.
+ */
+export function enLactancia(respuestas: RespuestasDeEmbarazo): boolean {
+  return respuestas.embarazo === 'lactancia'
+}
+
+/**
+ * Las condiciones declaradas que bajan un límite, para pasárselas a `techos`.
+ *
+ * NO SON LO MISMO Y POR ESO SON DOS. Comparten pregunta porque para la
+ * asesorada es una sola conversación, y se separan aquí porque el embarazo
+ * además contraindica el hígado y la lactancia no: nadie le prohíbe el hígado a
+ * quien amamanta. Lo que sí comparten es el umbral mínimo de vitamina A.
+ */
+export function condicionesDeclaradas(
+  respuestas: RespuestasDeEmbarazo,
+  hoy: string,
+): Set<string> {
+  const condiciones = new Set<string>()
+  if (estaEmbarazada(respuestas, hoy)) condiciones.add('embarazo')
+  if (enLactancia(respuestas)) condiciones.add('lactancia')
+  return condiciones
+}
+
+/**
  * Si este alimento está contraindicado en embarazo, por su nombre.
  *
  * COMPARA POR PALABRA ENTERA, nunca por trozo. Es la regla del repo y tiene su

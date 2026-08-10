@@ -1,3 +1,4 @@
+import { sinTildes } from './busqueda'
 import type { AlimentoIndice } from './busqueda'
 import type { TotalDia } from './dia'
 import tabla from './techos.json'
@@ -35,6 +36,14 @@ interface Limite {
 
 interface TablaTechos {
   limites: Record<string, Limite>
+  /** El límite baja cuando la persona declara embarazo o lactancia. */
+  limites_por_condicion: Record<string, Record<string, number>>
+  /** Alimentos que se manejan por cada cuánto, no por cuánto en un día. */
+  frecuencia: {
+    dias: number
+    por_nutriente: Record<string, string[]>
+    motivo: Record<string, string>
+  }
   origen_animal: { grupos: string[]; ids: string[] }
 }
 
@@ -42,6 +51,82 @@ const TABLA = tabla as TablaTechos
 
 const GRUPOS_ANIMALES = new Set(TABLA.origen_animal.grupos)
 const IDS_ANIMALES = new Set(TABLA.origen_animal.ids)
+
+/**
+ * Las condiciones declaradas que bajan un límite. Hoy: embarazo y lactancia.
+ *
+ * Es un tipo suelto y no un enum porque la lista vive en el Cerebro: si mañana
+ * Manuela añade una, llega por `techos.json` y aquí no hay nada que tocar.
+ */
+export type Condicion = string
+
+/**
+ * El límite que le toca a esta persona, no el del adulto genérico.
+ *
+ * EL MÁS BAJO CUANDO DECLARA VARIAS, y nunca «la última que se leyó»: el orden
+ * de un `Set` es el de inserción y eso convertiría el resultado en algo que
+ * depende de cómo se armó la lista.
+ *
+ * Manuela, 2026-08-09: en embarazo y en lactancia se maneja el umbral mínimo
+ * mientras no haya una indicación médica propia. Son 2.800 µg contra los 3.000
+ * generales — el límite del IOM para embarazadas y lactantes de hasta 18 años,
+ * el más bajo de la tabla.
+ */
+export function limiteDe(nutriente: string, condiciones: Iterable<Condicion> = []): number | null {
+  const candidatos: number[] = []
+  const general = TABLA.limites[nutriente]?.limite
+  if (general != null) candidatos.push(general)
+  for (const condicion of condiciones) {
+    const propio = TABLA.limites_por_condicion[condicion]?.[nutriente]
+    if (propio != null) candidatos.push(propio)
+  }
+  return candidatos.length > 0 ? Math.min(...candidatos) : null
+}
+
+/**
+ * Si este alimento se maneja por frecuencia en vez de por techo diario.
+ *
+ * EL AVISO DIARIO NO SERVÍA PARA EL HÍGADO, Y ESE ES TODO EL MOTIVO. Una sola
+ * ración lo pasa siempre —de 1,3× el de pollo a 3,8× el de res asado—, así que
+ * el aviso salía cada vez que alguien registraba hígado y a la tercera nadie lo
+ * lee. Manuela lo cambió por una frecuencia el 2026-08-09: cada dos semanas.
+ *
+ * SE COMPARA POR PALABRA ENTERA, como todo lo que aquí mira un nombre. Es la
+ * cicatriz de este repo: «lengua» dentro del nombre casaba con «Lenguado».
+ */
+export function seManejaPorFrecuencia(nombre: string, nutriente: string): boolean {
+  const marcadas = TABLA.frecuencia.por_nutriente[nutriente]
+  if (!marcadas) return false
+  // Las dos listas se normalizan igual. El Cerebro exporta «higado» y «hígado»
+  // porque allá compara contra el nombre crudo; aquí las dos llegan a lo mismo.
+  const marcadasSinTildes = marcadas.map((palabra) => sinTildes(palabra))
+  const palabras = sinTildes(nombre).split(/[^a-z0-9]+/)
+  return palabras.some((palabra) => marcadasSinTildes.includes(palabra))
+}
+
+/**
+ * Qué nutrientes del día vienen de un alimento que va por frecuencia.
+ *
+ * Su aviso diario NO se pinta: es exactamente el ruido que Manuela vino a
+ * quitar. Que hoy se comió hígado no es noticia; la noticia sería que se
+ * repitiera antes de dos semanas, y eso necesita el historial.
+ */
+export function nutrientesPorFrecuencia(nombres: readonly string[]): Set<string> {
+  const salida = new Set<string>()
+  for (const nutriente of Object.keys(TABLA.frecuencia.por_nutriente)) {
+    if (nombres.some((nombre) => seManejaPorFrecuencia(nombre, nutriente))) {
+      salida.add(nutriente)
+    }
+  }
+  return salida
+}
+
+/** Cada cuántos días puede repetirse un alimento de los de frecuencia. */
+export const DIAS_ENTRE_RACIONES = TABLA.frecuencia.dias
+
+/** Por qué ese alimento va por frecuencia, para poder explicarlo sin inventarlo. */
+export const motivoDeLaFrecuencia = (nutriente: string): string =>
+  TABLA.frecuencia.motivo[nutriente] ?? ''
 
 /**
  * La clave derivada donde vive la vitamina A que SÍ cuenta para el techo.
@@ -102,25 +187,46 @@ export interface TechoPasado {
   parcial: boolean
 }
 
+export interface OpcionesDeTecho {
+  /** Lo que la asesorada declaró: baja el límite. Ver `limiteDe`. */
+  condiciones?: Iterable<Condicion>
+  /** Nombres de lo que registró hoy, para callar el aviso de los de frecuencia. */
+  nombresDelDia?: readonly string[]
+}
+
 /**
  * Los techos que el día ya pasó, del más excedido al que menos.
  *
  * Vacío es lo normal y es lo que se espera casi siempre: solo el hígado, la
  * ostra y poco más llegan a pasar uno con comida corriente.
+ *
+ * DOS COSAS CAMBIARON EL 2026-08-09, LAS DOS POR RESPUESTA DE MANUELA:
+ *
+ *   - El límite es el de ELLA. Quien declaró embarazo o lactancia tiene 2.800
+ *     de vitamina A, no 3.000. Compararla contra el general le callaría un
+ *     aviso que le toca.
+ *   - El hígado ya no sale por aquí. Su ración pasa el techo siempre, así que
+ *     el aviso salía cada vez y dejó de leerse. Va por frecuencia.
  */
-export function techosPasados(total: TotalDia): TechoPasado[] {
+export function techosPasados(total: TotalDia, opciones: OpcionesDeTecho = {}): TechoPasado[] {
+  const porFrecuencia = nutrientesPorFrecuencia(opciones.nombresDelDia ?? [])
   const pasados: TechoPasado[] = []
   for (const [nutriente, limite] of Object.entries(TABLA.limites)) {
     if (limite.informativo) continue
+    if (porFrecuencia.has(nutriente)) continue
     const clave = claveDelDia(nutriente, limite)
     if (clave === null) continue
+    // `limiteDe` nunca da null aquí —el nutriente viene de la propia tabla—,
+    // pero se resuelve sin `!` para que un día que la tabla cambie de forma
+    // esto no compare contra `undefined` en silencio.
+    const suyo = limiteDe(nutriente, opciones.condiciones ?? []) ?? limite.limite
     const valor = total.porDia[clave]
-    if (valor == null || valor <= limite.limite) continue
+    if (valor == null || valor <= suyo) continue
     pasados.push({
       nutriente,
       valor,
-      limite: limite.limite,
-      veces: valor / limite.limite,
+      limite: suyo,
+      veces: valor / suyo,
       parcial: total.parciales.has(clave),
     })
   }

@@ -1,7 +1,44 @@
 import { describe, expect, it } from 'vitest'
-import { PALABRAS_CONTRAINDICADAS, estaEmbarazada, seContraindica } from './embarazo'
+import {
+  PALABRAS_CONTRAINDICADAS,
+  condicionesDeclaradas,
+  enLactancia,
+  estaEmbarazada,
+  seContraindica,
+} from './embarazo'
 
 const HOY = '2026-08-09'
+
+describe('la lactancia es su propia condición', () => {
+  it('quien contestó lactancia está en lactancia y no embarazada', () => {
+    expect(enLactancia({ embarazo: 'lactancia' })).toBe(true)
+    expect(estaEmbarazada({ embarazo: 'lactancia' }, HOY)).toBe(false)
+  })
+
+  it('NO CADUCA SOLA, y es la diferencia con el embarazo', () => {
+    // Un embarazo tiene final probable; una lactancia dura lo que la madre
+    // decida. Inventarle un vencimiento sería decidir por ella. Lo que la
+    // refresca es la pregunta que vuelve cada quince días.
+    expect(enLactancia({ embarazo: 'lactancia', fechaProbableParto: '2020-01-01' })).toBe(true)
+  })
+
+  it('las dos condiciones bajan el umbral, y solo el embarazo veta el hígado', () => {
+    // Comparten pregunta porque para ella es una sola conversación. Se separan
+    // aquí porque nadie le prohíbe el hígado a quien amamanta.
+    expect([...condicionesDeclaradas({ embarazo: 'lactancia' }, HOY)]).toEqual(['lactancia'])
+    expect([...condicionesDeclaradas({ embarazo: 'si' }, HOY)]).toEqual(['embarazo'])
+  })
+
+  it('quien no contestó no declara ninguna condición', () => {
+    expect(condicionesDeclaradas({}, HOY).size).toBe(0)
+    expect(condicionesDeclaradas({ embarazo: 'prefiere_no_decir' }, HOY).size).toBe(0)
+  })
+
+  it('un embarazo caducado deja de declararse', () => {
+    const caducado = { embarazo: 'si', fechaProbableParto: '2026-01-01' }
+    expect(condicionesDeclaradas(caducado, HOY).size).toBe(0)
+  })
+})
 
 describe('estaEmbarazada', () => {
   it('quien no contestó no está embarazada', () => {
