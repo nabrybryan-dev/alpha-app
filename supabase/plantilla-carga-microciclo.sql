@@ -71,9 +71,27 @@ revoke execute on function public.tmp_sesion_en_limpio(jsonb) from public;
 
 
 -- ── 2 · El clonador ────────────────────────────────────────────────────────
--- `p_ajustes` es un objeto {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, nota}}.
+-- `p_ajustes` es un objeto {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, carga, nota}}.
 -- Gana la clave más larga que haga prefijo, para poder afinar un ejercicio
 -- concreto sin romper la regla general.
+--
+-- LA CARGA VA EN `carga`, NO DENTRO DE `nota`
+-- `nota` es el texto que lee el asesorado; `carga` son los kilos que la app
+-- usa para dejar el stepper listo (`cargaPrescritaKg` en `EjercicioPrescrito`).
+-- Antes solo existía `nota` y la app le sacaba el número al texto, que fallaba
+-- en cuanto la frase no empezaba por los kilos («ASISTENCIA 15KG…» caía en 20,
+-- «40 SEG; … +5KG EN ESPALDA» proponía 40 kg de plancha).
+--
+-- Por eso, si un ajuste trae `nota` pero no `carga`, el clonador BORRA la carga
+-- heredada en vez de conservarla: quedaría un ejercicio con el texto de esta
+-- semana y los kilos de la anterior, y ganaría el número. Sin campo, la app cae
+-- en leer la nota nueva, que al menos no se contradice. Poner `carga` siempre
+-- que se toque `nota` es lo correcto; borrarla es la red de seguridad.
+--
+-- Y un ejercicio ajustado PIERDE `seriesPrescritas`: esa ondulación se calculó
+-- sobre la prescripción vieja, y el asesorado la ve serie a serie por encima de
+-- todo lo demás. Los ejercicios sin ajuste la conservan, porque su prescripción
+-- no ha cambiado.
 create or replace function public.tmp_nuevo_micro(
   p_datos   jsonb,
   p_num     int,
@@ -95,10 +113,17 @@ create or replace function public.tmp_nuevo_micro(
                  jsonb_set(s, '{ejercicios}', coalesce((
                    select jsonb_agg(
                      ( jsonb_set(e, '{series}', '[]'::jsonb)   -- sin lo registrado
-                       || case when aj.v ? 'sets' then jsonb_build_object('sets', (aj.v->>'sets')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'rir'  then jsonb_build_object('rirObjetivo', (aj.v->>'rir')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'reps' then jsonb_build_object('repsDiana', (aj.v->>'reps')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'nota' then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
+                       -- La ondulación guardada era de la prescripción vieja:
+                       -- si este ejercicio se ajusta, deja de valer.
+                       - (case when aj.v is null then '' else 'seriesPrescritas' end)
+                       -- Texto nuevo sin carga nueva = la carga heredada miente.
+                       - (case when aj.v ? 'nota' and not (aj.v ? 'carga')
+                               then 'cargaPrescritaKg' else '' end)
+                       || case when aj.v ? 'sets'  then jsonb_build_object('sets', (aj.v->>'sets')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'rir'   then jsonb_build_object('rirObjetivo', (aj.v->>'rir')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'reps'  then jsonb_build_object('repsDiana', (aj.v->>'reps')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'carga' then jsonb_build_object('cargaPrescritaKg', (aj.v->>'carga')::numeric) else '{}'::jsonb end
+                       || case when aj.v ? 'nota'  then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
                      ) order by ord)
                    from jsonb_array_elements(s->'ejercicios') with ordinality as t(e, ord)
                    left join lateral (
@@ -163,9 +188,15 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 --   begin;
 --   select public.tmp_cargar_siguiente('<NOMBRE EN usuarios_app>', '<slug>', '<YYYY-MM-DD>',
 --     jsonb_build_object(
---       'PREFIJO DEL EJERCICIO', jsonb_build_object('reps',8,'rir',2,'nota','<prescripción>')
+--       'PREFIJO DEL EJERCICIO',
+--       jsonb_build_object('reps',8,'rir',2,'carga',62.5,'nota','<prescripción>')
 --     ));
 --   commit;
+--
+-- `carga` son los kilos que se van a teclear en la app: 62.5 se escribe 62.5, no
+-- '62.5KG'. En los ejercicios en los que el número no es el peso levantado (una
+-- asistencia, un lastre) va igualmente el número que el asesorado pone en la
+-- máquina, que es lo que el stepper tiene que enseñarle.
 --
 -- El nombre tiene que coincidir EXACTO con `usuarios_app.nombre`, tildes
 -- incluidas. Si no existe, la función devuelve 'NO ENCONTRADO: <nombre>' en vez

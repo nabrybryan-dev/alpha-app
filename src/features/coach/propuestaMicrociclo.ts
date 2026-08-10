@@ -37,9 +37,10 @@
  * Programación.
  */
 import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../domain/activacion'
+import { cargaPrescritaDe } from '../../domain/cargaPrescrita'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
-import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
+import type { EjercicioPrescrito, Microciclo, SeriePrescrita, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
   sesionId: string
@@ -118,7 +119,7 @@ function comparacion(
 }
 
 function textoPrescripcion(
-  series: { reps: number; rir: number; cargaKg: number }[],
+  series: readonly { reps: number; rir: number; cargaKg: number }[],
   comp: { deltaKg: number; reps: number } | undefined,
   numeroPrevio: number,
 ): string {
@@ -136,6 +137,43 @@ function textoPrescripcion(
   return `${base} SOSTIENE CARGA ${aReps}.`
 }
 
+/**
+ * Opciones con las que se ondula un ejercicio para el microciclo siguiente.
+ *
+ * El ancla es lo registrado y, si no hay nada, **la carga pautada**. Hasta el
+ * 2026-08-09 aquí se pasaba `ejercicio.series[0]?.cargaKg`, que es `undefined`
+ * exactamente cuando no hay series registradas: el ancla de reserva no podía
+ * entrar nunca, y un asesorado que no registró la semana no recibía propuesta ni
+ * de repetir lo pautado. Que no registrara sigue avisándose por su cuenta, en
+ * `revisarActivacion`.
+ */
+function opcionesDeOndulacion(
+  ejercicio: EjercicioPrescrito,
+  prs: number | undefined,
+  incrementoKg: number,
+) {
+  return {
+    prs,
+    incrementoKg,
+    // Ver el encabezado del archivo: el disparador de descarga no está validado.
+    descarga: false,
+    cargaPrescritaKg: cargaPrescritaDe(ejercicio),
+  }
+}
+
+/**
+ * La frase que va a leer el asesorado. Sale de un solo sitio a propósito: la
+ * fila que el coach revisa en el panel y el microciclo que se guarda tienen que
+ * decir lo mismo, o se aprueba una cosa y se reparte otra.
+ */
+function prescripcionOndulada(
+  ejercicio: EjercicioPrescrito,
+  series: readonly SeriePrescrita[],
+  numeroPrevio: number,
+): string {
+  return textoPrescripcion(series, comparacion(series, serieTope(ejercicio.series)), numeroPrevio)
+}
+
 function filasDeSesion(
   sesion: Sesion,
   numeroPrevio: number,
@@ -143,13 +181,7 @@ function filasDeSesion(
   incrementoKg: number,
 ): FilaPropuesta[] {
   return sesion.ejercicios.map((ejercicio: EjercicioPrescrito) => {
-    const ondulado = ondularEjercicio(ejercicio, {
-      prs,
-      incrementoKg,
-      // Ver el encabezado del archivo: el disparador de descarga no está validado.
-      descarga: false,
-      cargaPrescritaKg: ejercicio.series[0]?.cargaKg,
-    })
+    const ondulado = ondularEjercicio(ejercicio, opcionesDeOndulacion(ejercicio, prs, incrementoKg))
     const comp = comparacion(ondulado.series, serieTope(ejercicio.series))
     const brecha = brechaReps(ejercicio)
     return {
@@ -157,7 +189,7 @@ function filasDeSesion(
       sesionNombre: sesion.nombre,
       categoria: ejercicio.categoria,
       ejercicio: ejercicio.nombre,
-      prescripcion: textoPrescripcion(ondulado.series, comp, numeroPrevio),
+      prescripcion: prescripcionOndulada(ejercicio, ondulado.series, numeroPrevio),
       motivo: ondulado.motivo,
       direccion: ondulado.direccion,
       salto: comp?.salto,
@@ -225,13 +257,14 @@ export function microcicloPropuesto(
       ejercicios: s.ejercicios.map((e) => {
         const limpio: EjercicioPrescrito = { ...e, series: [] }
         if (s.tipo === 'metabolica') return limpio
+        const ondulado = aplicarOndulacion(e, opcionesDeOndulacion(e, prs, incrementoKg))
+        if (!ondulado.seriesPrescritas) return limpio
         return {
-          ...aplicarOndulacion(e, {
-            prs,
-            incrementoKg,
-            descarga: false, // ver el encabezado del archivo
-            cargaPrescritaKg: e.series[0]?.cargaKg,
-          }),
+          ...ondulado,
+          // Sin esto el ejercicio nace diciendo dos cosas: las series nuevas y,
+          // en el texto, la prescripción de la semana pasada («VS M21» incluido).
+          // El texto es lo único que el asesorado mira antes de cargar la barra.
+          prescripcion: prescripcionOndulada(e, ondulado.seriesPrescritas, origen.numero),
           series: [],
         }
       }),
