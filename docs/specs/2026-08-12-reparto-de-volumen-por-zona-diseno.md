@@ -279,46 +279,63 @@ que hace hoy `grupoDeCategoria`. Probado contra las **5.249 series** de toda la 
 **solo el 0,8 % queda sin clasificar**, y un 1,8 % cae en «no cuenta» (prev/rehab,
 movilidad, cardio, isometrías de sostén), que es lo correcto.
 
-**Borrador para revisar. Los valores son propuesta mía, el criterio es del coach.**
+**Aprobado por el coach el 2026-08-12**, con el repaso aplicado. En orden de evaluación:
+el primero que calce gana, como en `GRUPOS`.
 
-| Movimiento | % series | Contribución propuesta |
-|---|---|---|
-| `sentadilla` | 9,1 | Cuádriceps 1 · Glúteos 0,5 |
-| `press-horizontal` | 8,1 | Pecho 1 · Tríceps 0,5 · Hombros 0,5 |
-| `curl-femoral` | 7,2 | Isquios 1 |
-| `remo` | 7,1 | Espalda 1 · Bíceps 0,5 |
-| `bisagra` | 6,1 | Isquios 1 · Glúteos 0,5 |
-| `hip-thrust` | 5,8 | Glúteos 1 · Isquios 0,5 |
-| `elevacion-lateral` | 5,2 | Hombros 1 |
-| `core` | 4,6 | Abdomen 1 |
-| **`zancada-split`** | **4,5** | **Cuádriceps 1 · Glúteos 0,5** ← la deuda de abajo |
-| `triceps` | 4,5 | Tríceps 1 |
-| `pantorrilla` | 4,4 | Pantorrillas 1 |
-| `abduccion` | 3,8 | Glúteos 1 |
-| `curl-biceps` | 3,7 | Bíceps 1 |
-| `extension-rodilla` | 3,6 | Cuádriceps 1 |
-| `jalon` | 3,3 | Espalda 1 · Bíceps 0,5 |
-| `extension-cadera` | 3,3 | Glúteos 1 |
-| `apertura` | 3,0 | Pecho 1 |
-| `press-vertical` | 3,0 | Hombros 1 · Tríceps 0,5 |
-| `aduccion` | 2,2 | Aductores 1 |
-| `deltoides-posterior` | 1,6 | Hombros 1 · Espalda 0,5 |
-| `pullover` | 1,4 | Espalda 1 · Pecho 0,5 |
-| `prensa` | 1,0 | Cuádriceps 1 · Glúteos 0,5 |
-| `tibial` | 0,7 | — *(no hay grupo; ¿se crea o no cuenta?)* |
-| `trapecio` | 0,4 | Espalda 1 |
+| # | Movimiento | % series | Contribución |
+|---|---|---|---|
+| 1 | `fondos` | 0,7 | Pecho 1 · Tríceps 0,5 · Hombros 0,5 |
+| 2 | `triceps` | 3,8 | Tríceps 1 |
+| 3 | `curl-femoral` | 7,2 | Isquios 1 |
+| 4 | `zancada-split` | 4,5 | Cuádriceps 1 · Glúteos 0,5 |
+| 5 | `hip-thrust` | 5,8 | Glúteos 1 · Isquios 0,5 |
+| 6 | `extension-cadera` | 3,3 | Glúteos 1 |
+| 7 | `abduccion` | 3,8 | Glúteos 1 |
+| 8 | `aduccion` | 2,2 | Aductores 1 |
+| 9 | `bisagra` | 6,1 | Isquios 1 · Glúteos 0,5 |
+| 10 | `sentadilla` | 9,1 | Cuádriceps 1 · Glúteos 0,5 |
+| 11 | `prensa` | 1,0 | Cuádriceps 1 · Glúteos 0,5 |
+| 12 | `extension-rodilla` | 3,6 | Cuádriceps 1 |
+| 13 | `pantorrilla` | 4,4 | Pantorrillas 1 |
+| 14 | `tibial` | 0,7 | **Tibial 1** *(grupo nuevo)* |
+| 15 | `apertura` | 3,0 | Pecho 1 |
+| 16 | `press-horizontal` | 8,1 | Pecho 1 · Tríceps 0,5 · Hombros 0,5 |
+| 17 | `press-vertical` | 3,0 | Hombros 1 · Tríceps 0,5 |
+| 18 | `elevacion-lateral` | 5,2 | Hombros 1 |
+| 19 | `deltoides-posterior` | 1,6 | Hombros 1 · Espalda 0,5 |
+| 20 | `pullover` | 1,4 | Espalda 1 · Pecho 0,5 |
+| 21 | `remo` | 7,1 | Espalda 1 · Bíceps 0,5 · **Hombros 0,5** |
+| 22 | `jalon` | 3,3 | Espalda 1 · Bíceps 0,5 |
+| 23 | `trapecio` | 0,4 | Espalda 1 |
+| 24 | `curl-biceps` | 3,7 | Bíceps 1 |
+| 25 | `core` | 4,6 | Abdomen 1 |
+| — | *(no cuenta)* | 1,8 | prev/rehab · movilidad · cardio · isometrías de sostén |
 
-**Tres cosas que hay que decidir sobre este borrador:**
+### Qué cambió en el repaso
 
-1. **La zancada sube a Cuádriceps 1**, no al 0,5/0,5 que anoté antes. El esquema dice que
-   `1` es «el grupo para el que existe el ejercicio», y con 0,5/0,5 una zancada contaría
-   para cuádriceps la mitad que una sentadilla, lo que la infravalora. Además encaja con
-   cómo el propio catálogo la nombra («dominante de rodilla»). **Es un cambio respecto a
-   lo acordado; si prefieres 0,5/0,5, se cambia en una línea.**
-2. **`tibial`** (38 series) no tiene grupo en la app. O se crea, o no cuenta.
-3. **El orden importa**, como en `GRUPOS`: `curl-femoral` va antes que `curl-biceps` o
-   «curl femoral» acabaría en bíceps; `triceps` antes que `extension-cadera` por la
-   «patada».
+**Un error mío, corregido.** El patrón `triceps` incluía `FONDO`, así que los **fondos en
+paralelas** —un compuesto de pecho— contaban como tríceps puro. Son 36 series, 26 de ellas
+con lastre o en paralelas. Van en su propio movimiento y **antes** que `triceps`, o el
+orden se los volvería a tragar.
+
+**Una omisión, corregida.** `remo` no daba nada al deltoides posterior, y el remo es uno de
+sus mayores contribuyentes. Son **442 series** —el segundo movimiento en volumen—, así que
+sin ese `Hombros 0,5` el hombro se subestima de forma apreciable.
+
+**Grupo nuevo: `Tibial`.** 38 series que hoy no cuentan para nadie.
+
+### Decisiones que siguen abiertas, y por qué no las cierro yo
+
+1. **`bisagra`: ¿el glúteo es 0,5 o 1?** En un peso muerto rumano el glúteo es
+   co-primario, no accesorio. Son **434 series**, así que la diferencia no es cosmética.
+   Lo dejo en 0,5 porque el patrón agrupa también hiperextensiones y buenos días, donde
+   sí es más secundario.
+2. **`sentadilla`: ¿añadir Aductores 0,5?** El aductor mayor es un extensor de cadera
+   potente en sentadilla profunda. Son **584 series**, el mayor movimiento del catálogo:
+   añadirlo dispararía el volumen de aductores. Por eso no lo meto sin tu visto bueno.
+3. **Los erectores espinales no tienen grupo.** Cargan en toda la `bisagra` y en las 58
+   series de hiperextensión/lumbar. ¿Se crea un grupo como con `Tibial`, o se asume que
+   `Espalda` los cubre? Meterlos en `Espalda` mezclaría dorsal con lumbar.
 
 #### Deuda que esta tabla tiene que saldar el primer día
 
