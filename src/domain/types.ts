@@ -11,6 +11,20 @@ export interface Usuario {
 
 export type NivelVolumen = 'Muy Bajo' | 'Bajo' | 'Normal' | 'Alto' | 'Muy Alto'
 
+/**
+ * Nivel real de entrenamiento, que no es lo mismo que los años entrenando.
+ *
+ * Sale del libro `Excel. Comprueba tu verdadero nivel de entrenamiento`, que lo
+ * calcula cruzando cinco ejes: años, fuerza relativa en cuatro básicos, técnica,
+ * ritmo de progreso y formación.
+ *
+ * Aquí **lo pone el coach**, no se autocalcula: el cuestionario pide 1RM real en
+ * banca, dominadas, sentadilla y peso muerto, y las asesoradas no hacen tests de
+ * fuerza máxima. Sirve para modular los landmarks de volumen, porque el MEV de
+ * una principiante no es el de una avanzada.
+ */
+export type NivelEntrenamiento = 'Principiante' | 'Intermedio' | 'Avanzado' | 'Experto'
+
 export interface MedidaCorporal {
   fecha: string
   pesoKg: number
@@ -53,6 +67,13 @@ export interface Perfil {
   peldanoAlfa?: number
   /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
   ascensoIso?: string
+  /**
+   * Nivel real de entrenamiento, puesto por el coach. Sin definir, el motor de
+   * volumen se comporta exactamente como antes de que este campo existiera.
+   *
+   * Viaja en `perfiles.datos` (JSONB) como los tres de arriba: sin migración.
+   */
+  nivelEntrenamiento?: NivelEntrenamiento
 }
 
 /** Nota del coach a una competencia concreta de la Ruta. */

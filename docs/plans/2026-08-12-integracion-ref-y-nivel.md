@@ -137,11 +137,32 @@ La hoja no tenía tests. Siguiendo `tests-primero-sin-cobertura`, se escribieron
 seis que cubren su comportamiento anterior y se comprobaron **en verde contra el código
 viejo** antes de tocarlo; los dos del REF eran los únicos en rojo.
 
-### Fase 3 — Nivel de entrenamiento
+### Fase 3 — Nivel de entrenamiento ✅ *hecha el 2026-08-12*
 
-- `nivelEntrenamiento` en el PERFIL (`src/domain/types.ts`), opcional
-- `volumenDelBloque.ts` lo usa para mover los techos de `techoDe()`
-- Sin dato → comportamiento actual, sin cambios
+- `NivelEntrenamiento` y `Perfil.nivelEntrenamiento`, opcional. Viaja en
+  `perfiles.datos` (JSONB): **sin migración**
+- `techoDe()` lo suma al techo por prioridad, con tope en MRV — pasar de ahí es volumen
+  basura, y eso no lo compra la experiencia
+- Sin dato, o con `Intermedio`, el motor decide exactamente lo mismo que antes: los 18
+  asesorados sin el campo no ven cambiar nada. Hay un test que lo fija
+
+**Ajuste por nivel** (cuarta interpolación del módulo; la fuente pide ajustar «según
+recuperación individual» sin cifrar cuánto):
+
+| Nivel | Series sobre el techo |
+|---|---|
+| Principiante | −3 |
+| Intermedio | 0 |
+| Avanzado | +2 |
+| Experto | +3 |
+
+⚠️ **Todavía no se nota en pantalla, y es esperable.** `volumenDelMicrociclo` **no lo
+consume nadie aún**: el motor de volumen sigue sin conectarse a `proponerMicrociclo`
+porque falta la regla de reparto (ver el documento de diseño). El nivel está listo para
+cuando se conecte.
+
+**Falta la UI para cargarlo.** Se hace cuando el motor se conecte: antes, el coach estaría
+rellenando un campo que no mueve nada.
 
 ### Fase 4 — Conteo fraccionado ⛔ *bloqueada por la recalibración de landmarks*
 

@@ -1,6 +1,6 @@
 import { cargaPorGrupo } from './fatiga'
 import { bandaPrs } from './ondulacion'
-import type { Microciclo, NivelVolumen } from './types'
+import type { Microciclo, NivelEntrenamiento, NivelVolumen } from './types'
 
 /**
  * Cuántas series le tocan al grupo la semana que viene.
@@ -122,25 +122,56 @@ export function landmarkDe(series: number): Landmark {
 }
 
 /**
+ * Cuántas series mueve el techo el nivel real de entrenamiento.
+ *
+ * **Interpolación mía (la cuarta de este módulo).** La fuente da los landmarks
+ * «por grupo grande y a RIR moderado» y pide ajustarlos «según recuperación
+ * individual», pero no cifra cuánto. El sentido de la corrección sí está fuera
+ * de discusión —quien lleva años entrenando necesita y tolera más volumen que
+ * quien empieza—; los números son criterio y se cambian aquí.
+ *
+ * `Intermedio` vale 0 a propósito: es el comportamiento que tenía el motor antes
+ * de que este campo existiera, así que los perfiles sin nivel no cambian nada.
+ */
+const AJUSTE_POR_NIVEL: Record<NivelEntrenamiento, number> = {
+  Principiante: -3,
+  Intermedio: 0,
+  Avanzado: 2,
+  Experto: 3,
+}
+
+/**
  * Hasta dónde acumula este grupo, según lo que el coach pautó en el PERFIL.
  * «Ese ranking fija dónde acumular y dónde solo mantener».
+ *
+ * El nivel de entrenamiento corrige ese techo, pero **nunca hasta el exceso**:
+ * pasar de MRV es volumen basura y fatiga, y eso no lo compra la experiencia.
  */
-function techoDe(prioridad: NivelVolumen): number {
-  switch (prioridad) {
-    case 'Muy Alto':
-    case 'Alto':
-      return SUELO_MRV + 3 // dentro de MRV, sin rozar el exceso
-    case 'Normal':
-      return SUELO_MRV - 1 // tope de MAV
-    default:
-      return SUELO_MEV // Bajo y Muy Bajo solo mantienen
-  }
+function techoDe(prioridad: NivelVolumen, nivel?: NivelEntrenamiento): number {
+  const base = (() => {
+    switch (prioridad) {
+      case 'Muy Alto':
+      case 'Alto':
+        return SUELO_MRV + 3 // dentro de MRV, sin rozar el exceso
+      case 'Normal':
+        return SUELO_MRV - 1 // tope de MAV
+      default:
+        return SUELO_MEV // Bajo y Muy Bajo solo mantienen
+    }
+  })()
+  const ajustado = base + (nivel ? AJUSTE_POR_NIVEL[nivel] : 0)
+  return Math.max(SUELO_MANTENIMIENTO, Math.min(SUELO_EXCESO - 1, ajustado))
 }
 
 export interface ContextoVolumen {
   seriesActuales: number
   /** Lo que el PERFIL le asignó al grupo. Sin dato, se trata como 'Normal'. */
   prioridad?: NivelVolumen
+  /**
+   * Nivel real de entrenamiento del asesorado. Sin dato, el techo es el de
+   * siempre: quien no lo tenga cargado no ve cambiar su programación.
+   */
+  nivel?: NivelEntrenamiento
   /** PRS de entrada más reciente. Sin dato, no modula. */
   prs?: number
   /** Déficit calórico: sesga a MEV–MAV y no sostiene MRV. */
@@ -163,7 +194,7 @@ export interface DecisionVolumen {
 }
 
 function decidir(ctx: ContextoVolumen): { series: number; motivo: string } {
-  const { seriesActuales: actuales, prioridad = 'Normal', prs, enDeficit, señalDeTecho } = ctx
+  const { seriesActuales: actuales, prioridad = 'Normal', prs, enDeficit, señalDeTecho, nivel } = ctx
   const banda = prs === undefined ? undefined : bandaPrs(prs)
 
   if (señalDeTecho) {
@@ -186,7 +217,8 @@ function decidir(ctx: ContextoVolumen): { series: number; motivo: string } {
 
   // En déficit el techo baja a MAV: la recuperación está comprometida y el
   // motor pide no sostener MRV (página 09 del Cerebro).
-  const techo = enDeficit ? Math.min(techoDe(prioridad), SUELO_MRV - 1) : techoDe(prioridad)
+  const propio = techoDe(prioridad, nivel)
+  const techo = enDeficit ? Math.min(propio, SUELO_MRV - 1) : propio
 
   if (actuales >= techo) {
     const porQue = enDeficit
@@ -238,9 +270,17 @@ export function volumenDelMicrociclo(
     prs?: number
     enDeficit?: boolean
     gruposConSeñalDeTecho?: readonly string[]
+    /** Del PERFIL. Sin dato, los techos son los de siempre. */
+    nivelEntrenamiento?: NivelEntrenamiento
   } = {},
 ): VolumenDeGrupo[] {
-  const { volumenSemanal = {}, prs, enDeficit, gruposConSeñalDeTecho = [] } = opciones
+  const {
+    volumenSemanal = {},
+    prs,
+    enDeficit,
+    gruposConSeñalDeTecho = [],
+    nivelEntrenamiento,
+  } = opciones
   return cargaPorGrupo(microciclo).map(({ grupo, seriesPautadas }) => {
     const prioridad = prioridadDeGrupo(volumenSemanal, grupo) ?? 'Normal'
     return {
@@ -249,6 +289,7 @@ export function volumenDelMicrociclo(
       ...decidirVolumen({
         seriesActuales: seriesPautadas,
         prioridad,
+        nivel: nivelEntrenamiento,
         prs,
         enDeficit,
         señalDeTecho: gruposConSeñalDeTecho.includes(grupo),

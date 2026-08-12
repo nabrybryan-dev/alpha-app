@@ -48,6 +48,73 @@ describe('landmarkDe', () => {
   })
 })
 
+describe('nivel de entrenamiento', () => {
+  /**
+   * Sin nivel cargado, el motor decide exactamente lo mismo que antes de que
+   * este campo existiera. Es la garantía de que los 18 asesorados sin el dato no
+   * ven cambiar su programación.
+   */
+  it('sin nivel, decide igual que antes', () => {
+    const sinNivel = decidirVolumen({ seriesActuales: 10, prioridad: 'Muy Alto' })
+    const intermedio = decidirVolumen({
+      seriesActuales: 10,
+      prioridad: 'Muy Alto',
+      nivel: 'Intermedio',
+    })
+    expect(sinNivel.seriesPropuestas).toBe(intermedio.seriesPropuestas)
+    expect(sinNivel.seriesPropuestas).toBe(12)
+  })
+
+  it('un principiante topa antes que un experto con la misma prioridad', () => {
+    const principiante = decidirVolumen({
+      seriesActuales: 18,
+      prioridad: 'Muy Alto',
+      nivel: 'Principiante',
+    })
+    const experto = decidirVolumen({
+      seriesActuales: 18,
+      prioridad: 'Muy Alto',
+      nivel: 'Experto',
+    })
+    expect(principiante.delta).toBe(0)
+    expect(experto.delta).toBeGreaterThan(0)
+    expect(experto.seriesPropuestas).toBeGreaterThan(principiante.seriesPropuestas)
+  })
+
+  /** Pasarse de MRV es volumen basura y fatiga: el nivel no compra ese permiso. */
+  it('ni el experto entra en sobre-MRV', () => {
+    const d = decidirVolumen({ seriesActuales: 24, prioridad: 'Muy Alto', nivel: 'Experto' })
+    expect(d.landmarkPropuesto).not.toBe('sobre-MRV')
+  })
+
+  /** El suelo de 3 no admite excepción, tampoco por nivel. */
+  it('el suelo de mantenimiento manda incluso en principiante', () => {
+    const d = decidirVolumen({
+      seriesActuales: 2,
+      prioridad: 'Muy Bajo',
+      nivel: 'Principiante',
+      prs: 1,
+    })
+    expect(d.seriesPropuestas).toBeGreaterThanOrEqual(SUELO_MANTENIMIENTO)
+  })
+
+  it('el nivel llega hasta el microciclo entero', () => {
+    const gluteoDe = (opciones: Parameters<typeof volumenDelMicrociclo>[1]) =>
+      volumenDelMicrociclo(micro([ejercicio({ sets: 18 })]), opciones).find(
+        (g) => g.grupo === 'Glúteos',
+      )
+    const conNivel = gluteoDe({
+      volumenSemanal: { Glúteos: 'Muy Alto' },
+      nivelEntrenamiento: 'Principiante',
+    })
+    const sinNivel = gluteoDe({ volumenSemanal: { Glúteos: 'Muy Alto' } })
+
+    expect(conNivel).toBeDefined()
+    expect(sinNivel).toBeDefined()
+    expect(conNivel!.seriesPropuestas).toBeLessThan(sinNivel!.seriesPropuestas)
+  })
+})
+
 describe('decidirVolumen', () => {
   it('un grupo prioritario lejos del techo sube de dos en dos', () => {
     const d = decidirVolumen({ seriesActuales: 10, prioridad: 'Muy Alto' })
