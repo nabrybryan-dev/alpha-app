@@ -292,9 +292,10 @@ el primero que calce gana, como en `GRUPOS`.
 | 6 | `extension-cadera` | 3,3 | Glúteos 1 |
 | 7 | `abduccion` | 3,8 | Glúteos 1 |
 | 8 | `aduccion` | 2,2 | Aductores 1 |
-| 9 | `bisagra` | 6,1 | Isquios 1 · Glúteos 0,5 |
-| 10 | `sentadilla` | 9,1 | Cuádriceps 1 · Glúteos 0,5 |
-| 11 | `prensa` | 1,0 | Cuádriceps 1 · Glúteos 0,5 |
+| 9a | `bisagra-rodilla-extendida` | — | Isquios 1 · Glúteos 0,5 · Erectores 0,5 |
+| 9b | `bisagra-rodilla-flexionada` | — | Glúteos 1 · Isquios 0,5 · Cuádriceps 0,5 · Erectores 0,5 |
+| 10 | `sentadilla` | 9,1 | Cuádriceps 1 · Glúteos 0,5 · **Aductores 0,5** |
+| 11 | `prensa` | 1,0 | Cuádriceps 1 · Glúteos 0,5 · Aductores 0,5 |
 | 12 | `extension-rodilla` | 3,6 | Cuádriceps 1 |
 | 13 | `pantorrilla` | 4,4 | Pantorrillas 1 |
 | 14 | `tibial` | 0,7 | **Tibial 1** *(grupo nuevo)* |
@@ -324,18 +325,41 @@ sin ese `Hombros 0,5` el hombro se subestima de forma apreciable.
 
 **Grupo nuevo: `Tibial`.** 38 series que hoy no cuentan para nadie.
 
-### Decisiones que siguen abiertas, y por qué no las cierro yo
+### Las tres decisiones, resueltas por el coach con criterio biomecánico (2026-08-12)
 
-1. **`bisagra`: ¿el glúteo es 0,5 o 1?** En un peso muerto rumano el glúteo es
-   co-primario, no accesorio. Son **434 series**, así que la diferencia no es cosmética.
-   Lo dejo en 0,5 porque el patrón agrupa también hiperextensiones y buenos días, donde
-   sí es más secundario.
-2. **`sentadilla`: ¿añadir Aductores 0,5?** El aductor mayor es un extensor de cadera
-   potente en sentadilla profunda. Son **584 series**, el mayor movimiento del catálogo:
-   añadirlo dispararía el volumen de aductores. Por eso no lo meto sin tu visto bueno.
-3. **Los erectores espinales no tienen grupo.** Cargan en toda la `bisagra` y en las 58
-   series de hiperextensión/lumbar. ¿Se crea un grupo como con `Tibial`, o se asume que
-   `Espalda` los cubre? Meterlos en `Espalda` mezclaría dorsal con lumbar.
+Están sostenidas en `2026-08-12-biomecanica-de-la-contribucion.md`, que contrasta el
+criterio contra la literatura. En resumen:
+
+1. **La `bisagra` se desdobla por ángulo de rodilla.** Con la rodilla extendida el isquio
+   trabaja alargado y manda; con la rodilla flexionada entra en **insuficiencia activa** y
+   la extensión de cadera recae en el glúteo. No es interpretación: es el fundamento del
+   test clínico del glúteo mayor, que se hace justamente con la rodilla a 90° para anular
+   al isquio.
+2. **La sentadilla suma aductores.** Y con más razón de la que suponía: a 90° de flexión
+   de cadera el aductor mayor tiene un brazo de momento extensor de **5,7–6,1 cm**, frente
+   a 4,0–4,8 del isquio y **3,1–3,3 del glúteo**. En el fondo de la sentadilla es el
+   extensor de cadera más eficaz de los tres, y su volumen crece un **6,2 %** con
+   entrenamiento de sentadilla frente al 6,7 % del glúteo. Dejarlo fuera era un error.
+3. **`Erectores` se crea como grupo propio**, no dentro de `Espalda`: dorsal y lumbar no se
+   recuperan igual ni se programan juntos. Reciben de ambas bisagras, de la hiperextensión
+   y del modificador de implemento.
+
+### Modificador de implemento
+
+El coach señaló que una máquina pendular o guiada descarga estabilizadores que el peso
+libre exige. Está medido: el **remo libre bilateral da +34 % de erector espinal** que el
+mismo remo en máquina, y en máquina el oblicuo externo baja al 50-57 %.
+
+| Ejecución | Añade |
+|---|---|
+| Libre · bilateral | Erectores +0,5 |
+| Libre · unilateral | Abdomen +0,5 *(demanda antirrotacional)* |
+| Máquina · guiado | — |
+
+> ⚠️ **El modificador toca solo estabilizadores, nunca el grupo primario.** Un metaanálisis
+> de peso libre contra máquina **no encontró diferencias** en hipertrofia, y un estudio de
+> 2025 halló hipertrofia regional del cuádriceps **comparable** entre ambos. El implemento
+> cambia quién estabiliza —eso sí está medido—, no cuánto crece el objetivo.
 
 #### Deuda que esta tabla tiene que saldar el primer día
 
