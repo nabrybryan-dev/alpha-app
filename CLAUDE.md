@@ -101,6 +101,12 @@ Reglas que quedan:
   también ahí — es el único punto donde se decide qué no se hereda.
 - Después de cada carga, correr `supabase/comprobar-fosiles.sql`. Tiene que dar
   **cero filas**. No repartir la semana hasta que las dé.
+- Y correr también `supabase/comprobar-alineacion.sql`, que compara la frase con
+  los campos. Misma regla: **cero filas**. El clonador escribe `sets`, `rir` y
+  `reps` solo cuando el ajuste los trae, así que una carga que pasa la frase
+  nueva sin pasarlos deja los campos con los de la semana anterior. Pasó el
+  2026-08-12 con 128 ejercicios de 13 asesorados (ver §6). El equivalente en
+  dominio es `src/domain/alineacion.ts`: si cambias uno, cambia el otro.
 - Las funciones de carga van con prefijo `tmp_`, con `revoke execute … from
   public` y se borran al terminar. `create function` concede `EXECUTE` a
   `PUBLIC` por defecto y todo lo de `public` se expone como RPC a `anon`: sin el
@@ -179,6 +185,19 @@ Reglas que quedan:
   `supabase/plantilla-carga-microciclo.sql`; comprobar con
   `supabase/comprobar-fosiles.sql` después de **cada** carga. Ver
   `docs/specs/2026-08-04-fosiles-de-carga-diseno.md`.
+- **La frase y los campos divergen en silencio.** Cada ejercicio guarda su
+  prescripción dos veces —el texto que el asesorado lee y los campos con los que
+  la app opera—, una duplicación heredada del Excel, cuya fila lleva las columnas
+  SET · RANGO · REPETICIONES · RIR **y además** la prescripción dentro de NOTAS
+  ASESORADO. El 2026-08-12 salieron **128 ejercicios de 13 asesorados**
+  desalineados: 63 leían «3 SERIES» con `sets` en 2, 69 leían «(RIR 1)» con
+  `rirObjetivo` en 2, y uno tenía una escalera de 3 series con `sets` en 2 —así
+  que la app le cerraba el ejercicio antes de su serie tope, la más pesada. No es
+  cosmético: `sets` decide cuándo se da el ejercicio por terminado y cuánto
+  volumen se cuenta, y `rirObjetivo` elige el coeficiente de %1RM, así que un RIR
+  2 donde se pidió 1 hace que el motor proponga casi un 5 % menos de carga.
+  **Manda la frase**, salvo en un ondulado, donde manda `seriesPrescritas`.
+  Barrido: `supabase/comprobar-alineacion.sql`.
 
 ---
 
