@@ -301,6 +301,45 @@ describe('el registro de comidas sube a Supabase', () => {
     })
   })
 
+  describe('los vetos que escribe la nutricionista', () => {
+    /**
+     * Sin esto, Manuela codifica las alergias en su móvil y no salen de ahí.
+     * La traducción de texto libre a alimentos es lo único que impide que la
+     * app le proponga a alguien lo que le hace daño.
+     */
+    it('vetar sube la fila', () => {
+      const { db, cola } = modulos!
+      db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido' })
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
+      expect(op?.payload.asesorado_id).toBe(VALENTINA)
+      expect(op?.payload.alimento_id).toBe('arroz-blanco-cocido')
+      expect(op?.payload.borrado).toBe(false)
+    })
+
+    it('QUITAR SUBE UN UPSERT CON borrado, no un delete', () => {
+      // La cola solo sabe upsert y update. Sin la columna de la 0035, quitar
+      // un veto no llegaría a la base: ella lo vería desaparecer y volvería en
+      // la siguiente hidratación.
+      const { db, cola } = modulos!
+      db.vetados.quitar(VALENTINA, 'arroz-blanco-cocido')
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
+      expect(op?.tipo).toBe('upsert')
+      expect(op?.payload.borrado).toBe(true)
+    })
+
+    it('el motivo en blanco viaja como null, no como cadena vacía', () => {
+      // La tabla lo comprueba: `motivo is null or length(trim(motivo)) > 0`.
+      // Una cadena vacía haría fallar el upsert entero y el veto se perdería.
+      const { db, cola } = modulos!
+      db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'papa-cocida', motivo: '  ' })
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
+      expect(op?.payload.motivo).toBeNull()
+    })
+  })
+
   describe('las pruebas de calibración', () => {
     const prueba = {
       usuarioId: VALENTINA,

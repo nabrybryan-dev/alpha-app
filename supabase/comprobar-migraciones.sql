@@ -531,4 +531,20 @@ select '0024 - despensa', 'tabla, RLS y vista de pedidos',
          ) as senales
        ) = 3 then 'SI' else 'NO' end
 
+union all
+-- La columna Y su índice parcial. Sin la columna, quitar un veto no llega a la
+-- base y el alimento reaparece en la siguiente hidratación; sin el índice, la
+-- consulta de cada hidratación recorre la tabla entera.
+select '0035 - borrado de vetos', 'columna borrado e indice de vivos',
+       case when (
+         select count(*) from (
+           select 1 from information_schema.columns
+            where table_schema = 'public' and table_name = 'perfil_alimentario_veto'
+              and column_name = 'borrado'
+           union all
+           select 1 from pg_indexes
+            where schemaname = 'public' and indexname = 'perfil_alimentario_veto_vivos'
+         ) as senales
+       ) = 2 then 'SI' else 'NO' end
+
 order by migracion, senal;
