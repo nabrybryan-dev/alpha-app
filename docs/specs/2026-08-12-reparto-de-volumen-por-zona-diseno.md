@@ -256,6 +256,70 @@ disfrazado de dato. Si el coach quiere mover un caso concreto, se mueve y **se m
 criterio suyo** en el propio archivo, igual que están marcadas las tres interpolaciones
 del encabezado de `volumenDelBloque.ts`.
 
+#### La clave NO puede ser la categoría — medido el 2026-08-12
+
+Primer instinto: usar la taxonomía del coach (`categoria`) como clave, que ya es un
+vocabulario de movimiento. **No funciona.** En la base hay **210 categorías distintas**
+para doce grupos musculares:
+
+- **23 variantes solo de glúteo**: `GLÚTEO` · `GLÚTEO PRIORITARIO` · `GLÚTEO MEDIO` ·
+  `GLÚTEO DINÁMICO` · `GLÚTEO COMPLEMENTO` · `GLÚTEO FINISHER` · `GLÚTEO NUEVO` ·
+  `AISLAMIENTO GLÚTEOS` · `GLÚTEO (CONTROL)` · `GLÚTEO (SIN CARGA SACRA)`…
+- **8 de sentadilla**, 
+- Y **120 series** viven en etiquetas que **no nombran ningún grupo**: `SUPERSERIE A1`,
+  `SERIE GIGANTE B2`, `DROP SET`, `FINISHER`, `CLUSTER · SENTADILLA`, `TRI-SET B1`.
+
+Una tabla con esa clave nacería con 210 filas y crecería cada vez que se escriba una
+etiqueta nueva. Es la misma trampa de la ortografía, elevada.
+
+#### Catálogo cerrado de movimientos — 24 patrones, cobertura medida
+
+La clave es el **movimiento**, reconocido sobre `CATEGORÍA + NOMBRE` normalizado, igual
+que hace hoy `grupoDeCategoria`. Probado contra las **5.249 series** de toda la base:
+**solo el 0,8 % queda sin clasificar**, y un 1,8 % cae en «no cuenta» (prev/rehab,
+movilidad, cardio, isometrías de sostén), que es lo correcto.
+
+**Borrador para revisar. Los valores son propuesta mía, el criterio es del coach.**
+
+| Movimiento | % series | Contribución propuesta |
+|---|---|---|
+| `sentadilla` | 9,1 | Cuádriceps 1 · Glúteos 0,5 |
+| `press-horizontal` | 8,1 | Pecho 1 · Tríceps 0,5 · Hombros 0,5 |
+| `curl-femoral` | 7,2 | Isquios 1 |
+| `remo` | 7,1 | Espalda 1 · Bíceps 0,5 |
+| `bisagra` | 6,1 | Isquios 1 · Glúteos 0,5 |
+| `hip-thrust` | 5,8 | Glúteos 1 · Isquios 0,5 |
+| `elevacion-lateral` | 5,2 | Hombros 1 |
+| `core` | 4,6 | Abdomen 1 |
+| **`zancada-split`** | **4,5** | **Cuádriceps 1 · Glúteos 0,5** ← la deuda de abajo |
+| `triceps` | 4,5 | Tríceps 1 |
+| `pantorrilla` | 4,4 | Pantorrillas 1 |
+| `abduccion` | 3,8 | Glúteos 1 |
+| `curl-biceps` | 3,7 | Bíceps 1 |
+| `extension-rodilla` | 3,6 | Cuádriceps 1 |
+| `jalon` | 3,3 | Espalda 1 · Bíceps 0,5 |
+| `extension-cadera` | 3,3 | Glúteos 1 |
+| `apertura` | 3,0 | Pecho 1 |
+| `press-vertical` | 3,0 | Hombros 1 · Tríceps 0,5 |
+| `aduccion` | 2,2 | Aductores 1 |
+| `deltoides-posterior` | 1,6 | Hombros 1 · Espalda 0,5 |
+| `pullover` | 1,4 | Espalda 1 · Pecho 0,5 |
+| `prensa` | 1,0 | Cuádriceps 1 · Glúteos 0,5 |
+| `tibial` | 0,7 | — *(no hay grupo; ¿se crea o no cuenta?)* |
+| `trapecio` | 0,4 | Espalda 1 |
+
+**Tres cosas que hay que decidir sobre este borrador:**
+
+1. **La zancada sube a Cuádriceps 1**, no al 0,5/0,5 que anoté antes. El esquema dice que
+   `1` es «el grupo para el que existe el ejercicio», y con 0,5/0,5 una zancada contaría
+   para cuádriceps la mitad que una sentadilla, lo que la infravalora. Además encaja con
+   cómo el propio catálogo la nombra («dominante de rodilla»). **Es un cambio respecto a
+   lo acordado; si prefieres 0,5/0,5, se cambia en una línea.**
+2. **`tibial`** (38 series) no tiene grupo en la app. O se crea, o no cuenta.
+3. **El orden importa**, como en `GRUPOS`: `curl-femoral` va antes que `curl-biceps` o
+   «curl femoral» acabaría en bíceps; `triceps` antes que `extension-cadera` por la
+   «patada».
+
 #### Deuda que esta tabla tiene que saldar el primer día
 
 `PIERNA UNILATERAL` es hoy un agujero medido: **64 series** que no cuentan para ningún
