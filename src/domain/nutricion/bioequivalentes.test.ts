@@ -86,6 +86,82 @@ describe('la tabla no sabe de quién es, y por eso se filtra al leerla', () => {
   })
 })
 
+describe('EN EMBARAZO NO SE PROPONE HÍGADO', () => {
+  /**
+   * El fallo que estos tests documentan, y que casi se despliega.
+   *
+   * 52 de las 1.958 propuestas de la tabla son hígado o menudencias: al lomo de
+   * cerdo se le proponen 161 g de menudencias de pollo, y al tocino 25 g de
+   * hígado de res. Son sustituciones correctas por proteína, y son exactamente
+   * lo que en embarazo no se puede proponer.
+   *
+   * La primera versión de esta pantalla filtraba las alergias y NO la
+   * contraindicación. `seContraindica` llevaba desde el 2026-08-09 sin un solo
+   * consumidor —la app registraba y no proponía— y esta es la primera pantalla
+   * que propone algo.
+   */
+  const EMBARAZO = new Set(['embarazo'])
+  const sinCondicion = new Set<string>()
+
+  /**
+   * Un alimento del catálogo al que la tabla le propone hígado o menudencias.
+   *
+   * El jamón de cerdo es el caso que mejor lo enseña: **tres de sus cinco
+   * propuestas son hígado**. No es una víscera rara pedida a propósito, es lo
+   * que hay en el desayuno de mucha gente.
+   */
+  const conHigadoEntreSusCambios = () => {
+    for (const id of ['jamon-de-cerdo-crudo', 'res-corazon-crudo']) {
+      const alimento = porId(id)
+      if (!alimento) continue
+      const tieneHigado = cambiosPara(alimento, porId, new Set(), sinCondicion).some((c) =>
+        /h[ií]gado|menudencias/i.test(c.alimento.nombre),
+      )
+      if (tieneHigado) return alimento
+    }
+    return null
+  }
+
+  it('el caso existe de verdad en la tabla, no es hipotético', () => {
+    // Si esto deja de encontrarse, los dos tests de abajo pasarían sin probar
+    // nada. Entonces hay que buscar otro alimento, no borrar el test.
+    expect(conHigadoEntreSusCambios()).not.toBeNull()
+  })
+
+  it('sin declarar embarazo, el hígado sigue siendo una sustitución válida', () => {
+    const alimento = conHigadoEntreSusCambios()!
+    const nombres = cambiosPara(alimento, porId, new Set(), sinCondicion).map(
+      (c) => c.alimento.nombre,
+    )
+    expect(nombres.some((n) => /h[ií]gado|menudencias/i.test(n))).toBe(true)
+  })
+
+  it('declarado el embarazo, desaparece', () => {
+    const alimento = conHigadoEntreSusCambios()!
+    const nombres = cambiosPara(alimento, porId, new Set(), EMBARAZO).map(
+      (c) => c.alimento.nombre,
+    )
+    expect(nombres.some((n) => /h[ií]gado|menudencias/i.test(n))).toBe(false)
+  })
+
+  it('y no la deja sin propuestas: se rellena con las siguientes', () => {
+    // Por esto se exportan diez y se enseñan cinco. Si el filtro la dejara con
+    // dos opciones, la pantalla castigaría justo a quien más la necesita.
+    const alimento = conHigadoEntreSusCambios()!
+    const conFiltro = cambiosPara(alimento, porId, new Set(), EMBARAZO)
+    const sinFiltro = cambiosPara(alimento, porId, new Set(), sinCondicion)
+    expect(conFiltro.length).toBe(sinFiltro.length)
+  })
+
+  it('en lactancia NO se filtra: nadie le prohíbe el hígado a quien amamanta', () => {
+    const alimento = conHigadoEntreSusCambios()!
+    const nombres = cambiosPara(alimento, porId, new Set(), new Set(['lactancia'])).map(
+      (c) => c.alimento.nombre,
+    )
+    expect(nombres.some((n) => /h[ií]gado|menudencias/i.test(n))).toBe(true)
+  })
+})
+
 describe('vacío no es «no hay nada parecido»', () => {
   it('el grupo sin ancla lo dice, no se queda callado', () => {
     const sinAncla = { id: 'x', grupo: 'otro' } as AlimentoIndice

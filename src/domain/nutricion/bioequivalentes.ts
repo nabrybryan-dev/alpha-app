@@ -1,4 +1,5 @@
 import type { AlimentoIndice } from './busqueda'
+import { seContraindica } from './embarazo'
 import tabla from './bioequivalentes.json'
 
 /**
@@ -40,10 +41,25 @@ import tabla from './bioequivalentes.json'
  * LO QUE ESTA TABLA NO SABE: DE QUIÉN ES
  * ─────────────────────────────────────────────────────────────────────────────
  * Se calcula una vez para todos, así que trae los vetos del perfil urbano
- * —caza e insectos— y NO puede traer las alergias, que son de cada persona. Por
- * eso se exportan diez propuestas y se enseñan cinco: el margen existe para que
- * a una alérgica a los lácteos le queden cinco donde las demás ven cinco, y no
- * dos. Filtrar es obligatorio, no opcional: ver `cambiosPara`.
+ * —caza e insectos— y NO puede traer ni las alergias ni las condiciones, que son
+ * de cada persona. Por eso se exportan diez propuestas y se enseñan cinco: el
+ * margen existe para que a una alérgica a los lácteos le queden cinco donde las
+ * demás ven cinco, y no dos. Filtrar es obligatorio, no opcional.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * EL EMBARAZO SE FILTRA AQUÍ, Y CASI SE ESCAPA
+ * ─────────────────────────────────────────────────────────────────────────────
+ * **52 de las 1.958 propuestas de la tabla son hígado o menudencias.** Al lomo
+ * de cerdo se le proponen 161 g de menudencias de pollo, y al tocino, 25 g de
+ * hígado de res: son sustituciones correctas por proteína y son exactamente lo
+ * que en embarazo no se puede proponer.
+ *
+ * La primera versión de esta pantalla filtraba las alergias y no la
+ * contraindicación, y con eso una asesorada que declaró su embarazo —el dato que
+ * costó un PR entero recoger— habría visto hígado entre sus cambios. El veto
+ * vivía en `seContraindica` desde el 2026-08-09 **sin un solo consumidor**: la
+ * app registraba y no proponía, así que no tenía dónde actuar. Esta pantalla es
+ * la primera que propone algo, y por tanto la primera que tiene que respetarlo.
  */
 
 interface OpcionExportada {
@@ -106,20 +122,31 @@ export const anclaDe = (alimento: Pick<AlimentoIndice, 'grupo'>): string | null 
  * calculó sin saber quién la iba a leer, y proponerle leche a una alérgica a la
  * lactosa porque el archivo venía así sería el peor fallo posible de esta
  * pantalla.
+ *
+ * `condiciones` son las que ella declaró —hoy, embarazo y lactancia—. En
+ * embarazo se cae el hígado, y no por su dosis sino por ser hígado: ver el
+ * encabezado del módulo y `seContraindica`.
  */
 export function cambiosPara(
   alimento: AlimentoIndice,
   porId: (id: string) => AlimentoIndice | undefined,
   excluidos: ReadonlySet<string> = new Set(),
+  condiciones: ReadonlySet<string> = new Set(),
 ): Cambio[] {
   const entrada = TABLA.cambios[alimento.id]
   if (!entrada) return []
+
+  const enEmbarazo = condiciones.has('embarazo')
 
   const salida: Cambio[] = []
   for (const opcion of entrada.opciones) {
     if (salida.length >= TABLA.en_pantalla) break
     if (excluidos.has(opcion.id)) continue
     const destino = porId(opcion.id)
+    // Se mira el NOMBRE y no el id, igual que en el Cerebro: los ids de la TCAC
+    // y los de USDA no se parecen entre sí, y la lista de palabras es la misma
+    // en los dos lados.
+    if (enEmbarazo && destino && seContraindica(destino.nombre)) continue
     // Un id que el índice no conoce se salta en silencio. Pasaría si alguien
     // exporta la tabla y no regenera el índice, y enseñar un hueco con gramos
     // sería peor que enseñar una propuesta menos.

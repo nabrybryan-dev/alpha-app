@@ -1,6 +1,6 @@
 import { Sheet } from '../../components/ui/Sheet'
 import { useSesion } from '../../app/SessionProvider'
-import { db, useDbVersion } from '../../data/dbInstance'
+import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import {
   cambiosPara,
@@ -9,6 +9,8 @@ import {
   type Cambio,
   type MacroDeLaDeriva,
 } from '../../domain/nutricion/bioequivalentes'
+import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
+import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { leerPauta } from '../../domain/nutricion/pauta'
 
 /**
@@ -75,7 +77,13 @@ export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
   // `cambiosPara` no debe saber de dónde salen los vetos, solo recibirlos, así
   // que el día que vengan de otro sitio no hay que tocarlo.
   const vetados = new Set(db.vetados.byUsuario(usuario.id).map((v) => v.alimentoId))
-  const cambios = alimento ? cambiosPara(alimento, catalogoRepo.porId, vetados) : []
+  // Y lo que ella declaró. En embarazo el hígado no se propone, y 52 de las
+  // propuestas de la tabla lo son: sin esto, la pantalla se lo enseñaría.
+  const respuestas = (db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}) as Respuestas
+  const condiciones = condicionesDeclaradas(respuestas, hoyIso())
+  const cambios = alimento
+    ? cambiosPara(alimento, catalogoRepo.porId, vetados, condiciones)
+    : []
   const porcion = alimento ? porcionDeReferencia(alimento.id) : null
 
   return (
