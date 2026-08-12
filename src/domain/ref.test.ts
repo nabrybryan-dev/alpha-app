@@ -28,8 +28,9 @@ function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrit
 describe('refDesdePorcentaje', () => {
   /**
    * Ancla contra el libro del coach: `Excel. Ratio estímulo - fatiga por ejercicio`,
-   * hoja «Mes 1», celda L5. Press de banca con 85 kg sobre un 1RM de 113 y 10
-   * repeticiones. Si este test se rompe, la fórmula dejó de ser la del Excel.
+   * hoja «Mes 1», semana 1, celda **P5** — jalón al pecho con 85 kg sobre un 1RM
+   * de 113 y 10 repeticiones. Si este test se rompe, la fórmula dejó de ser la
+   * del Excel.
    */
   it('reproduce la celda del Excel del coach', () => {
     const porcentaje = (85 / 113) * 100

@@ -33,11 +33,20 @@ import type { EjercicioPrescrito } from './types'
  * ────────────────────────────────────────────────────────────────────────────
  * TRAMPA: EL REF NO SE SUMA ENTRE EJERCICIOS
  * ────────────────────────────────────────────────────────────────────────────
- * En la hoja «Mes 1» cada ejercicio acumula el suyo (press banca 2,22 · jalón
- * 1,80 · remo 1,13). Alguien con ocho ejercicios **no** tiene un REF de 12: las
- * dos escalas de abajo son **por ejercicio**, no por sesión completa ni por
- * persona. Sumar entre ejercicios daría siempre «insostenible» y el aviso se
- * volvería ruido.
+ * En la hoja «Mes 1» cada ejercicio acumula el suyo (jalón 2,22 · press banca
+ * 1,80 · remo 1,13). Las dos escalas de abajo son **por ejercicio**, no por
+ * sesión completa ni por persona.
+ *
+ * No es una suposición: los ocho ejercicios de la semana 1 de esa hoja suman
+ * **10,76**. Si la escala se aplicara al total, la propia hoja de ejemplo del
+ * autor saldría al doble del umbral «no recomendado más de una semana» (4,6) y
+ * al cuádruple del «muy difícil» de sesión (2,3). Leídos por ejercicio, en
+ * cambio, sus doce valores caen entre 0,88 y 2,22 — todos en las dos bandas
+ * centrales, que es como se ve una semana bien programada.
+ *
+ * Sumar entre ejercicios daría siempre «insostenible» y el aviso se volvería
+ * ruido. Un indicador de carga global de la persona es otra cosa y necesitaría
+ * su propia escala.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * LO QUE INTERPOLO YO

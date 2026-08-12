@@ -52,12 +52,24 @@ De ahí salen dos cosas que hoy no tenemos:
 | > 2,3 | Muy difícil | > 4,6 | No más de una semana |
 
 ⚠️ **El REF no se suma entre ejercicios distintos.** En la hoja 2 cada ejercicio acumula el
-suyo (press banca 2,22 · jalón 1,80 · remo 1,13). Alguien con 8 ejercicios no tiene REF 12.
-Ambas escalas son **por ejercicio**.
+suyo (jalón 2,22 · press banca 1,80 · remo 1,13). Ambas escalas son **por ejercicio**.
 
-❓ **Pregunta abierta para el coach:** la escala «por sesión», ¿se aplica al REF acumulado
-de *un ejercicio* en esa sesión, o al de la sesión entera? La estructura de la hoja sugiere
-lo primero; el rótulo dice «por sesión» a secas. **Esto bloquea la fase 2.**
+✅ **Resuelto el 2026-08-12 — la escala «por sesión» es por ejercicio.** Estaba planteado
+como pregunta para el coach, pero la propia hoja lo decide sin necesidad de opinión:
+
+- Los **ocho ejercicios de la semana 1 suman 10,76**. Si la escala se aplicara al total de
+  la sesión o de la persona, la hoja de ejemplo del propio autor quedaría al **doble** del
+  umbral «no recomendado más de una semana» (4,6) y al **cuádruple** del «muy difícil» de
+  sesión (2,3). Un autor no publica su ejemplo en zona prohibida.
+- Leídos **por ejercicio**, los doce valores rellenados de la hoja caen entre **0,88 y
+  2,22**: todos en «buen estímulo, recuperable» o «bueno en acumulación de volumen»,
+  ninguno en «poco estímulo» ni en «muy difícil».
+
+La escala de sesión y la semanal son la misma medida en dos ventanas: series de ese
+ejercicio en una sesión, y series de ese ejercicio en toda la semana.
+
+> Es inferencia sobre la hoja, no una declaración del autor. Si algún día aparece la fuente
+> original y dice otra cosa, lo que cambia son los dos `clasificar*` y sus tests, nada más.
 
 ### 🟡 Nivel de entrenamiento — adoptar reducido
 
@@ -109,7 +121,7 @@ autorización**: Vercel publica en producción con solo hacer push allí.
 - **Test de anclaje**: reproducir el caso del Excel (85 kg · 10 reps · 1RM 113 → 0,4036)
   para que un cambio en la matriz CARGAS que rompa la equivalencia salte
 
-### Fase 2 — REF en la propuesta de microciclo ⛔ *bloqueada por la pregunta abierta*
+### Fase 2 — REF en la propuesta de microciclo ✅ *desbloqueada*
 
 - `propuestaMicrociclo` calcula el REF previsto por ejercicio y lo muestra con su tramo
 - Aviso cuando un ejercicio queda `< 0,4` (poco estímulo) o `> 4,6` semanal
@@ -153,7 +165,9 @@ línea en `log.md`.
 
 ## Orden recomendado
 
-1. **Verificar el rango de referencia de Pelland** en el artículo original — decide la fase 4
-2. **Responder la pregunta del REF por sesión** — desbloquea la fase 2
-3. **Fase 1**, que no depende de ninguna de las dos y se puede empezar ya
-4. Fases 3 → 2 → 4 → 5
+1. ~~Fase 1~~ — hecha el 2026-08-12 (`src/domain/ref.ts`, 17 tests)
+2. ~~Resolver el REF por sesión~~ — resuelto por análisis de la propia hoja
+3. **Fase 2**, ya desbloqueada
+4. **Fase 3**, que nunca dependió de nada
+5. **Verificar el rango de referencia de Pelland** en el artículo original — decide la fase 4
+6. Fases 4 → 5
