@@ -256,6 +256,25 @@ disfrazado de dato. Si el coach quiere mover un caso concreto, se mueve y **se m
 criterio suyo** en el propio archivo, igual que están marcadas las tres interpolaciones
 del encabezado de `volumenDelBloque.ts`.
 
+#### Deuda que esta tabla tiene que saldar el primer día
+
+`PIERNA UNILATERAL` es hoy un agujero medido: **64 series** que no cuentan para ningún
+grupo (19 en microciclos activos), y que cuentan o no según cómo se escribiera el nombre
+—«Sentadilla búlgara» sí, «BÚLGARA EN SMITH» no—. El coach decidió el 2026-08-12 **no
+parchear el mapa** y esperar aquí, porque en moneda directa habría que mandar el
+movimiento entero a un solo grupo y estos reparten. Lo que la tabla debe traer:
+
+```
+zancada             → { cuádriceps: 0,5, glúteo: 0,5 }
+sentadilla-búlgara  → { cuádriceps: 0,5, glúteo: 0,5 }
+subida-al-cajón     → { cuádriceps: 0,5, glúteo: 0,5 }
+bajada-desde-cajón  → { cuádriceps: 0,5, glúteo: 0,5 }
+```
+
+Valores de partida a revisar por el coach. Y una nota para quien implemente: la clave debe
+ser el **movimiento**, no la categoría ni el nombre literal. Por categoría se tragaría un
+peso muerto unilateral; por nombre literal repetiríamos el fallo de la ortografía.
+
 ### 3.2 Zona: etiqueta, no fracción
 
 La subdivisión por zona (que es lo que motivó todo esto) **no se modela como número**. Se

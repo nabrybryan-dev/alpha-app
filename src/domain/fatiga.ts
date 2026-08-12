@@ -45,6 +45,34 @@ export interface CargaGrupo {
  * "CATEGORÍA NOMBRE" normalizado; el primer patrón que calce gana, así que
  * el orden importa (p. ej. PESO MUERTO → Isquios antes que la regla genérica
  * DOMINANTE DE CADERA → Glúteos). El orden también define la presentación.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * ⚠️ COBERTURA INCOMPLETA CONOCIDA — `PIERNA UNILATERAL`
+ * ────────────────────────────────────────────────────────────────────────────
+ * Medido contra la base el 2026-08-12: **64 series de esa categoría no calzan
+ * con ningún patrón** (19 de ellas en microciclos activos), así que no cuentan
+ * para nadie. Y lo que decide si cuentan o no es **cómo se escribió el nombre**,
+ * no el ejercicio:
+ *
+ *   «Sentadilla búlgara en Smith»  → calza SENTADILLA          → Cuádriceps
+ *   «BÚLGARA EN SMITH»             → no calza nada             → ninguno
+ *   «Zancada (dominante de rodilla)» → calza DOMINANTE DE RODILLA → Cuádriceps
+ *   «Zancada con mancuernas»       → no calza nada             → ninguno
+ *
+ * Reparto del agujero: búlgara 36 series, zancada 22, subidas/bajadas al cajón 6.
+ *
+ * **No se arregla añadiendo un patrón, y es decisión del coach (2026-08-12).**
+ * En moneda directa habría que mandar el movimiento entero a un solo grupo, y
+ * tanto la búlgara como la zancada reparten entre cuádriceps y glúteo. Se espera
+ * a la tabla de contribución del conteo fraccionado para darles 0,5 y 0,5. Ver
+ * `docs/specs/2026-08-12-reparto-de-volumen-por-zona-diseno.md` §3.1.
+ *
+ * Mientras tanto: **el volumen de cuádriceps y glúteo de esta cartera está
+ * medido por debajo**. No leer esas cifras como completas.
+ *
+ * Y ojo con la tentación de una regla para la categoría entera: se tragaría un
+ * peso muerto unilateral y lo llamaría cuádriceps. Si algún día se parchea, va
+ * por movimiento (ZANCADA · BULGARA · CAJON), no por categoría.
  */
 const GRUPOS: { grupo: string; patron: RegExp }[] = [
   { grupo: 'Pecho', patron: /EMPUJE (HORIZONTAL|INCLINADO|DECLINADO)|PECTORAL|PRESS (PLANO|INCLINADO|DE PECHO)/ },

@@ -185,6 +185,19 @@ Reglas que quedan:
   `supabase/plantilla-carga-microciclo.sql`; comprobar con
   `supabase/comprobar-fosiles.sql` después de **cada** carga. Ver
   `docs/specs/2026-08-04-fosiles-de-carga-diseno.md`.
+- **El volumen por grupo no cuenta todo lo que se entrena, y depende de cómo se
+  escribió el nombre.** `grupoDeCategoria` (`domain/fatiga.ts`) manda cada ejercicio a
+  **un solo grupo** —moneda **directa**, las contribuciones indirectas valen cero— y su
+  mapa no cubre `PIERNA UNILATERAL`. Medido el 2026-08-12: **64 series huérfanas** (19 en
+  microciclos activos) que no cuentan para nadie. Lo peor es la incoherencia: «Sentadilla
+  búlgara» calza con `SENTADILLA` y cuenta, «BÚLGARA EN SMITH» no; «Zancada (dominante de
+  rodilla)» cuenta, «Zancada con mancuernas» no. Es el mismo fallo que el glúteo escrito
+  de tres maneras, en otra esquina. **Decisión del coach (2026-08-12): no se parchea**;
+  se espera a la tabla de contribución del conteo fraccionado para darle 0,5 a cuádriceps
+  y 0,5 a glúteo. Hasta entonces, **el volumen de esos dos grupos está medido por debajo**
+  y no debe leerse como completo. Un parche por categoría sería peor que el problema: se
+  tragaría un peso muerto unilateral. Ver
+  `docs/specs/2026-08-12-reparto-de-volumen-por-zona-diseno.md`.
 - **La frase y los campos divergen en silencio.** Cada ejercicio guarda su
   prescripción dos veces —el texto que el asesorado lee y los campos con los que
   la app opera—, una duplicación heredada del Excel, cuya fila lleva las columnas
