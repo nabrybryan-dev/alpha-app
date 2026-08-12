@@ -212,6 +212,7 @@ describe('conclusion', () => {
     sinDatos: 0,
     revision: { auto: true, motivos: [] },
     reparto: { suben: 8, sostienen: 3, bajan: 1 },
+    refSemanal: [],
   }
 
   it('en curso dice cuándo vence', () => {

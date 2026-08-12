@@ -99,28 +99,39 @@ export function refDeSerie(reps: number, rir: number): number | undefined {
 }
 
 /**
+ * REF acumulado de una tanda de series.
+ *
+ * Basta con que **una** caiga fuera de la matriz para que no se devuelva nada:
+ * una suma parcial haría parecer la tanda más blanda de lo que es, y ese es
+ * justo el error que el aviso debería cazar.
+ */
+export function refDeSeries(series: readonly { reps: number; rir: number }[]): number | undefined {
+  if (series.length === 0) return undefined
+  let total = 0
+  for (const s of series) {
+    const ref = refDeSerie(s.reps, s.rir)
+    if (ref === undefined) return undefined
+    total += ref
+  }
+  return total
+}
+
+/**
  * REF acumulado de un ejercicio en una sesión.
  *
  * Si el ejercicio trae ondulación, se suma serie a serie con sus reps y su RIR
  * propios; si no, todas las series comparten `repsDiana` y `rirObjetivo`, que es
  * como quedaban los microciclos antes de que la ondulación se guardara.
- *
- * Basta con que **una** serie caiga fuera de la matriz para que no se devuelva
- * nada: una suma parcial haría parecer el ejercicio más blando de lo que es, y
- * ese es justo el error que el aviso debería cazar.
  */
 export function refDeEjercicio(ejercicio: EjercicioPrescrito): number | undefined {
   const ondulado = ejercicio.seriesPrescritas
-  const porSerie =
-    ondulado && ondulado.length > 0
-      ? ondulado.map((s) => refDeSerie(s.reps, s.rir))
-      : Array.from({ length: Math.max(0, ejercicio.sets) }, () =>
-          refDeSerie(ejercicio.repsDiana, ejercicio.rirObjetivo),
-        )
-
-  if (porSerie.length === 0) return undefined
-  if (porSerie.some((r) => r === undefined)) return undefined
-  return porSerie.reduce<number>((total, r) => total + r!, 0)
+  if (ondulado && ondulado.length > 0) return refDeSeries(ondulado)
+  return refDeSeries(
+    Array.from({ length: Math.max(0, ejercicio.sets) }, () => ({
+      reps: ejercicio.repsDiana,
+      rir: ejercicio.rirObjetivo,
+    })),
+  )
 }
 
 /** Qué significa el REF de un ejercicio en una sesión. */

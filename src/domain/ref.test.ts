@@ -4,6 +4,7 @@ import {
   clasificarSesion,
   refDeEjercicio,
   refDeSerie,
+  refDeSeries,
   refDesdePorcentaje,
 } from './ref'
 import type { EjercicioPrescrito } from './types'
@@ -88,6 +89,29 @@ describe('refDeSerie', () => {
     expect(refDeSerie(30, 2)).toBeUndefined()
     expect(refDeSerie(10, 9)).toBeUndefined()
     expect(refDeSerie(10.5, 2)).toBeUndefined()
+  })
+})
+
+describe('refDeSeries', () => {
+  it('suma el REF de cada serie', () => {
+    const series = [
+      { reps: 10, rir: 2 },
+      { reps: 9, rir: 1 },
+    ]
+    expect(refDeSeries(series)).toBeCloseTo(refDeSerie(10, 2)! + refDeSerie(9, 1)!, 12)
+  })
+
+  it('no devuelve nada si una serie queda fuera de tabla', () => {
+    expect(
+      refDeSeries([
+        { reps: 10, rir: 2 },
+        { reps: 40, rir: 2 },
+      ]),
+    ).toBeUndefined()
+  })
+
+  it('no devuelve nada sin series', () => {
+    expect(refDeSeries([])).toBeUndefined()
   })
 })
 

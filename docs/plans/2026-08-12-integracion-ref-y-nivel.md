@@ -121,11 +121,21 @@ autorización**: Vercel publica en producción con solo hacer push allí.
 - **Test de anclaje**: reproducir el caso del Excel (85 kg · 10 reps · 1RM 113 → 0,4036)
   para que un cambio en la matriz CARGAS que rompa la equivalencia salte
 
-### Fase 2 — REF en la propuesta de microciclo ✅ *desbloqueada*
+### Fase 2 — REF en la propuesta de microciclo ✅ *hecha el 2026-08-12*
 
-- `propuestaMicrociclo` calcula el REF previsto por ejercicio y lo muestra con su tramo
-- Aviso cuando un ejercicio queda `< 0,4` (poco estímulo) o `> 4,6` semanal
-- El motivo va escrito al lado, para que el coach pueda moverlo al aprobar
+- `FilaPropuesta.ref` y `.tramoRef`: el REF **de lo que se va a prescribir**, no de lo
+  que se hizo. Sale de las series ya onduladas, así que mide la propuesta
+- `PropuestaMicrociclo.refSemanal`: agrupado **por ejercicio** sumando sus sesiones, que
+  es la ventana de la escala semanal. De mayor a menor, el orden en que hay que mirarlos
+- Si una sola aparición del ejercicio no se pudo calcular, el ejercicio se cae de la lista
+  en vez de salir con un total corto. Un total corto diría «va suave» justo cuando falta
+  medirle una sesión
+- `GenerarMicrocicloSheet` muestra `REF x,xx · lectura` en cada tarjeta y levanta un aviso
+  con los ejercicios que pasan del techo semanal (4,6)
+
+La hoja no tenía tests. Siguiendo `tests-primero-sin-cobertura`, se escribieron primero
+seis que cubren su comportamiento anterior y se comprobaron **en verde contra el código
+viejo** antes de tocarlo; los dos del REF eran los únicos en rojo.
 
 ### Fase 3 — Nivel de entrenamiento
 
@@ -165,9 +175,9 @@ línea en `log.md`.
 
 ## Orden recomendado
 
-1. ~~Fase 1~~ — hecha el 2026-08-12 (`src/domain/ref.ts`, 17 tests)
+1. ~~Fase 1~~ — hecha el 2026-08-12 (`src/domain/ref.ts`, 20 tests)
 2. ~~Resolver el REF por sesión~~ — resuelto por análisis de la propia hoja
-3. **Fase 2**, ya desbloqueada
+3. ~~Fase 2~~ — hecha el 2026-08-12 (propuesta + hoja del coach, 16 tests)
 4. **Fase 3**, que nunca dependió de nada
 5. **Verificar el rango de referencia de Pelland** en el artículo original — decide la fase 4
 6. Fases 4 → 5

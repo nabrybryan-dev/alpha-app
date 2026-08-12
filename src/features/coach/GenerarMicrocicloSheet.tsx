@@ -16,6 +16,20 @@ interface GenerarMicrocicloSheetProps {
 
 const FLECHA = { subir: '▲', bajar: '▼', estable: '=', 'sin-datos': '·' } as const
 
+/**
+ * Cómo se lee el REF de un ejercicio en una sesión. Los tramos son los del libro
+ * del coach; ver `domain/ref.ts` para la fórmula y de dónde salen los cortes.
+ */
+const LECTURA_REF = {
+  'poco-estimulo': { texto: 'poco estímulo', tono: 'text-tenue' },
+  recuperable: { texto: 'estímulo recuperable', tono: 'text-logrado' },
+  acumulacion: { texto: 'acumula volumen', tono: 'text-texto' },
+  'muy-dificil': { texto: 'muy difícil', tono: 'text-ambar' },
+} as const
+
+/** El REF es un ratio, no kilos: dos decimales y coma, como el resto de cifras. */
+const cifraRef = (ref: number) => ref.toFixed(2).replace('.', ',')
+
 export function GenerarMicrocicloSheet({
   abierto,
   nombreAsesorado,
@@ -24,6 +38,7 @@ export function GenerarMicrocicloSheet({
 }: GenerarMicrocicloSheetProps) {
   const propuesta = microciclo ? proponerMicrociclo(microciclo) : undefined
   const [guardada, setGuardada] = useState(false)
+  const insostenibles = propuesta?.refSemanal.filter((r) => r.tramo === 'insostenible') ?? []
 
   const guardar = () => {
     if (!microciclo) return
@@ -116,9 +131,30 @@ export function GenerarMicrocicloSheet({
                   {f.prescripcion || 'Sin datos suficientes para proponer carga.'}
                 </p>
                 <p className="mt-1 text-xs leading-snug text-tenue">{f.motivo}</p>
+                {f.ref !== undefined && f.tramoRef && (
+                  <p className={`mt-1 text-[11px] font-semibold ${LECTURA_REF[f.tramoRef].tono}`}>
+                    REF {cifraRef(f.ref)} · {LECTURA_REF[f.tramoRef].texto}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
+
+          {insostenibles.length > 0 && (
+            <div className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
+              <p>
+                <strong>Esto no se sostiene más de una semana.</strong> Sumando sus sesiones, estos
+                ejercicios pasan del techo semanal (4,6) del ratio estímulo-fatiga:
+              </p>
+              <ul className="mt-1 list-disc pl-4">
+                {insostenibles.map((r) => (
+                  <li key={r.ejercicio}>
+                    {r.ejercicio} — REF {cifraRef(r.ref)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {propuesta.sinDatos > 0 && (
             <p className="rounded-xl border border-linea bg-surface-2 p-3 text-xs text-tenue">

@@ -40,6 +40,13 @@ import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../dom
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import { componerPrescripcion } from '../../domain/prescripcion'
+import {
+  clasificarSemana,
+  clasificarSesion,
+  refDeSeries,
+  type TramoSemana,
+  type TramoSesion,
+} from '../../domain/ref'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
@@ -56,6 +63,27 @@ export interface FilaPropuesta {
   salto?: number
   /** Distancia entre las reps hechas y la diana, en valor absoluto. */
   brecha?: number
+  /**
+   * Ratio estímulo-fatiga **de lo que se va a prescribir**, en esta sesión. Sin
+   * definir cuando el ejercicio no se pudo ondular o alguna serie cae fuera de
+   * la matriz CARGAS. Ver `domain/ref.ts`.
+   */
+  ref?: number
+  tramoRef?: TramoSesion
+}
+
+/**
+ * REF de un ejercicio a lo largo de todo el microciclo.
+ *
+ * La escala semanal del Excel suma **las sesiones del mismo ejercicio**: si el
+ * peso muerto rumano se hace lunes y jueves, lo que hay que mirar es la suma de
+ * los dos, no cada día por separado. Por eso se agrupa por nombre y no por id
+ * —el mismo ejercicio en dos sesiones son dos filas distintas del microciclo—.
+ */
+export interface RefSemanal {
+  ejercicio: string
+  ref: number
+  tramo: TramoSemana
 }
 
 export interface PropuestaMicrociclo {
@@ -70,6 +98,11 @@ export interface PropuestaMicrociclo {
   revision: RevisionActivacion
   /** Para el resumen del coach: cuántos suben, sostienen y bajan. */
   reparto: { suben: number; sostienen: number; bajan: number }
+  /**
+   * REF previsto por ejercicio en todo el microciclo, de mayor a menor: el orden
+   * en que hay que mirarlos. Solo aparecen los que se pudieron calcular enteros.
+   */
+  refSemanal: RefSemanal[]
 }
 
 /**
@@ -174,6 +207,7 @@ function filasDeSesion(
     const ondulado = ondularEjercicio(ejercicio, opcionesDeOndulacion(ejercicio, prs, incrementoKg))
     const comp = comparacion(ondulado.series, serieTope(ejercicio.series))
     const brecha = brechaReps(ejercicio)
+    const ref = refDeSeries(ondulado.series)
     return {
       sesionId: sesion.id,
       sesionNombre: sesion.nombre,
@@ -184,8 +218,35 @@ function filasDeSesion(
       direccion: ondulado.direccion,
       salto: comp?.salto,
       brecha: brecha === undefined ? undefined : Math.abs(brecha),
+      ref,
+      tramoRef: ref === undefined ? undefined : clasificarSesion(ref),
     }
   })
+}
+
+/**
+ * Agrupa el REF de las filas por ejercicio, que es la ventana de la escala
+ * semanal del Excel.
+ *
+ * Si **una sola** aparición del ejercicio no se pudo calcular, el ejercicio
+ * entero se cae de la lista en vez de aparecer con un total corto. Un total
+ * corto es peor que ninguno: diría «este ejercicio va suave» justo cuando falta
+ * medirle una sesión.
+ */
+function refPorEjercicio(filas: readonly FilaPropuesta[]): RefSemanal[] {
+  const totales = new Map<string, number | undefined>()
+  for (const fila of filas) {
+    if (totales.has(fila.ejercicio) && totales.get(fila.ejercicio) === undefined) continue
+    if (fila.ref === undefined) {
+      totales.set(fila.ejercicio, undefined)
+      continue
+    }
+    totales.set(fila.ejercicio, (totales.get(fila.ejercicio) ?? 0) + fila.ref)
+  }
+  return [...totales.entries()]
+    .filter((par): par is [string, number] => par[1] !== undefined)
+    .map(([ejercicio, ref]) => ({ ejercicio, ref, tramo: clasificarSemana(ref) }))
+    .sort((a, b) => b.ref - a.ref)
 }
 
 /**
@@ -297,5 +358,6 @@ export function proponerMicrociclo(
       sostienen: filas.filter((f) => f.direccion === 'estable').length,
       bajan: filas.filter((f) => f.direccion === 'bajar').length,
     },
+    refSemanal: refPorEjercicio(filas),
   }
 }

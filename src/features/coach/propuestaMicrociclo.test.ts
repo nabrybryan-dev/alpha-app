@@ -44,6 +44,78 @@ const registrado = ejercicio({
   ],
 })
 
+describe('REF previsto en la propuesta', () => {
+  it('cada fila trae el REF de lo que se va a prescribir, con su tramo', () => {
+    const p = proponerMicrociclo(micro({ sesiones: [sesion({ ejercicios: [registrado] })] }))
+    const fila = p.filas[0]
+    expect(fila.ref).toBeGreaterThan(0)
+    expect(fila.tramoRef).toBeDefined()
+  })
+
+  /**
+   * La escala semanal del Excel suma las sesiones **del mismo ejercicio**. Si el
+   * peso muerto rumano se hace lunes y jueves, su REF de la semana es la suma de
+   * los dos, no el de cada día por separado.
+   */
+  it('el REF semanal suma las apariciones del mismo ejercicio en varias sesiones', () => {
+    const p = proponerMicrociclo(
+      micro({
+        sesiones: [
+          sesion({ id: 's1', nombre: 'UPPER A', ejercicios: [registrado] }),
+          sesion({ id: 's2', nombre: 'UPPER B', ejercicios: [registrado] }),
+        ],
+      }),
+    )
+    const semanal = p.refSemanal.find((r) => r.ejercicio === registrado.nombre)
+    const sumaDeFilas = p.filas.reduce((t, f) => t + (f.ref ?? 0), 0)
+
+    expect(p.filas).toHaveLength(2)
+    expect(semanal).toBeDefined()
+    expect(semanal!.ref).toBeCloseTo(sumaDeFilas, 12)
+    expect(semanal!.tramo).toBeDefined()
+  })
+
+  it('no mezcla ejercicios distintos en la misma cuenta', () => {
+    const otro = ejercicio({
+      id: 'e2',
+      nombre: 'HIP THRUST',
+      series: [{ orden: 1, cargaKg: 60, reps: 10, rir: 2 }],
+    })
+    const p = proponerMicrociclo(
+      micro({ sesiones: [sesion({ ejercicios: [registrado, otro] })] }),
+    )
+    expect(p.refSemanal).toHaveLength(2)
+    expect(p.refSemanal.map((r) => r.ejercicio).sort()).toEqual(['HIP THRUST', 'PESO MUERTO RUMANO'])
+  })
+
+  it('ordena de mayor a menor, que es el orden en que hay que mirarlos', () => {
+    const p = proponerMicrociclo(
+      micro({
+        sesiones: [
+          sesion({ id: 's1', ejercicios: [registrado] }),
+          sesion({
+            id: 's2',
+            ejercicios: [
+              ejercicio({ id: 'e2', nombre: 'HIP THRUST', sets: 6, series: registrado.series }),
+            ],
+          }),
+        ],
+      }),
+    )
+    const refs = p.refSemanal.map((r) => r.ref)
+    expect(refs).toEqual([...refs].sort((a, b) => b - a))
+  })
+
+  /** Sin ancla no hay ondulación, y sin series prescritas no hay REF que afirmar. */
+  it('deja el REF sin definir cuando el ejercicio no se pudo ondular', () => {
+    const sinAncla = ejercicio({ series: [], cargaKg: undefined })
+    const p = proponerMicrociclo(micro({ sesiones: [sesion({ ejercicios: [sinAncla] })] }))
+    expect(p.filas[0].ref).toBeUndefined()
+    expect(p.filas[0].tramoRef).toBeUndefined()
+    expect(p.refSemanal).toHaveLength(0)
+  })
+})
+
 describe('proponerMicrociclo', () => {
   it('propone el microciclo siguiente al leído', () => {
     expect(proponerMicrociclo(micro({ numero: 22 })).numero).toBe(23)
