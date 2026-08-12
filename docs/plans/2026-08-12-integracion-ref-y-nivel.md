@@ -164,11 +164,23 @@ cuando se conecte.
 **Falta la UI para cargarlo.** Se hace cuando el motor se conecte: antes, el coach estaría
 rellenando un campo que no mueve nada.
 
-### Fase 4 — Conteo fraccionado ⛔ *bloqueada por la recalibración de landmarks*
+### Fase 4 — Conteo fraccionado ✅ *desbloqueada el 2026-08-12*
 
-Lo del documento de diseño. **No se toca hasta resolver la moneda del volumen**: cambiar a
-conteo fraccionado sin recalibrar los landmarks hace que el motor programe más volumen del
-que cree. Va en la misma tanda que la recalibración o no va.
+Se leyó el artículo de Pelland (ver §2 del documento de diseño). Resultado:
+
+- **No hay que recalibrar los landmarks.** MEV/MAV/MRV caen en el mismo orden de magnitud
+  que los niveles de eficiencia del artículo
+- **El «5–10» que circulaba no era un techo** sino el primer escalón de eficiencia. La
+  dosis mínima eficaz está en **4** series fraccionadas, y no hay meseta clara
+- **El riesgo era el contrario del que anoté.** La app cuenta hoy en moneda **directa**
+  (`grupoDeCategoria` da un grupo por ejercicio), no total. Pasar a fraccionado **sube** el
+  conteo, así que con landmarks fijos el peligro es quedarse corto, no pasarse
+
+Queda por delante, en este orden:
+
+1. Declarar la moneda en el código y en el Cerebro
+2. La tabla de contribución `ejercicio → { grupo: fracción }` con valores `1 · 0,5 · 0`
+3. **Medir el salto real** sobre los 18 asesorados antes de mover ningún número
 
 ### Fase 5 — REF previsto contra REF real
 

@@ -100,34 +100,64 @@ estaríamos construyendo la pieza más importante sobre la evidencia más floja 
 
 ---
 
-## 2. El hallazgo que obliga a decidir antes de programar
+## 2. La moneda del volumen — verificado contra el artículo el 2026-08-12
 
-**Los landmarks del Cerebro y el conteo fraccionado son dos monedas distintas, y hoy las
-estaríamos sumando.**
+> **Corrección.** La primera versión de esta página decía que pasar a conteo fraccionado
+> haría **bajar** el número contado por grupo, y que por eso el motor programaría de más.
+> **Es al revés**, y el error estaba en dar por supuesto cómo cuenta la app. Se comprobó
+> en el código: `grupoDeCategoria` (`domain/fatiga.ts`) devuelve **un solo grupo** por
+> ejercicio —«el primer patrón que calce gana»—, así que hoy la app cuenta en moneda
+> **directa**, con las indirectas valiendo **cero**. Al pasar a fraccionado esas
+> contribuciones suben de 0 a 0,5 y el conteo **sube**. Con landmarks fijos, el riesgo no
+> es programar de más: es **quedarse corto**.
 
-`wiki/motor-decision/01-volumen-landmarks.md` fija MV ~6 · MEV 8–12 · MAV 12–20 · MRV
-18–26, tomados de Israetel/RP. Esos números nacen de un conteo mayoritariamente
-**directo**: son series *de ese grupo*.
+### Lo que dice el artículo, ya leído
 
-`cargaPorGrupo` en la app hoy cuenta series enteras por grupo. Si mañana pasamos a contar
-fraccionado —el hip thrust aportando 0,5 al isquio— el número total contado por grupo
-**baja**, porque las contribuciones indirectas valen la mitad. Aplicar sin más los
-landmarks de conteo directo sobre un conteo fraccionado significa **programar más volumen
-real del que creemos**: el motor vería «9 series» donde antes veía 12 y añadiría series
-para llegar al techo.
+Pelland et al. cuantifican tres monedas y las definen con un ejemplo propio: 5 series de
+press de banca en una sesión y 5 de remo en otra dan un volumen semanal de **10 (total),
+7,5 (fraccionado) y 5 (directo)**. Es decir: `total ≥ fraccionado ≥ directo`. La app está
+hoy en el extremo bajo.
 
-Es exactamente el mismo tipo de fallo silencioso que la frase contra los campos: dos
-sistemas que hablan de «series» sin significar lo mismo.
+Sus **niveles de eficiencia para hipertrofia** (Tabla 3), en series fraccionadas por grupo
+y semana:
 
-> **Regla que hay que fijar antes de escribir código:** la moneda del volumen se declara
-> una vez y todo el motor la usa. Si adoptamos conteo fraccionado, los landmarks se
-> recalibran **en la misma tanda**, no después.
+| Nivel | Series fraccionadas | Qué significa |
+|---|---|---|
+| **Dosis mínima eficaz** | **4** | suficiente para hipertrofia detectable |
+| Mayor eficiencia | **5–10** | ~6 series más para el siguiente incremento detectable |
+| Eficiencia intermedia | **11–18** | ~8,5 más |
+| Menor eficiencia | **19–29** | ~10,75 más |
+| Eficiencia mínima | **30–42** | ~12,5 más |
+| Sin datos | 43+ | insuficiente, o potencialmente menos hipertrofia |
 
-Hay una segunda cifra circulando —que 5–10 series fraccionadas por grupo y semana serían
-la zona eficiente— que he visto en resúmenes secundarios del metaanálisis, **no en el
-propio artículo**. No la doy por buena hasta leer el original. Es justamente el número
-que decidiría la recalibración, así que conviene verificarlo en la fuente antes de tocar
-nada.
+Mediana de los estudios de hipertrofia: **10,5 series fraccionadas/semana**; media
+**13,00 ± 8,87**.
+
+### Dos cosas que hay que sacar de aquí
+
+**El «5–10» no era lo que parecía.** Circulaba en resúmenes secundarios como «la zona
+eficiente» o el punto dulce, y no lo es: es el **primer escalón de eficiencia**, no un
+techo ni una recomendación. El artículo es explícito en que **no hay meseta clara** —solo
+hacen falta cada vez más series por incremento detectable— y que la dosis mínima eficaz
+está tan abajo como 4.
+
+**Los landmarks no hay que recalibrarlos.** Puestos uno junto a otro, MEV 8–12, MAV 12–20
+y MRV 18–26 caen respectivamente en mayor/intermedia, intermedia y menor eficiencia: el
+mismo orden de magnitud, sin desfase que obligue a mover nada. La alarma de la primera
+versión era prudente pero no se materializa.
+
+> ⚠️ Con un matiz que conviene anotar en el Cerebro: el artículo **no encuentra meseta ni
+> perjuicio** hasta ~42 series, lo que no respalda el «pasarse de MRV es volumen basura y
+> fatiga». Tampoco lo refuta —los propios autores avisan de que **pocos estudios exploran
+> ~25+ series**, así que no pueden situar el punto de meseta—. El MRV del Cerebro cae
+> justo en ese borde de incertidumbre.
+
+### Lo que sí hay que hacer
+
+Declarar la moneda una vez, en el código y en el Cerebro, y **medir el salto real** sobre
+los datos de los 18 asesorados antes de cambiar ningún número: cuánto sube el conteo de
+cada grupo al pasar de directo a fraccionado. Ese salto es medible en cuanto exista la
+tabla de contribución (§3.1), y hasta entonces cualquier ajuste de landmarks sería a ciegas.
 
 ---
 
@@ -205,8 +235,9 @@ primero a medias. Ver el plan de integración en
 1. **La tabla de contribución para el catálogo real de ejercicios.** Yo puedo proponer un
    borrador desde patrón de movimiento, pero la revisión es suya: es criterio clínico.
 2. **La etiqueta de perfil de resistencia** por ejercicio, misma condición.
-3. **Verificar en el artículo de Pelland** el rango de referencia en conteo fraccionado,
-   que es lo que decide la recalibración de landmarks (§2).
+3. ~~Verificar en el artículo de Pelland el rango de referencia~~ — hecho el 2026-08-12,
+   ver §2. No hay que recalibrar landmarks; lo que hay que hacer es declarar la moneda y
+   medir el salto real sobre los datos.
 
 ---
 
