@@ -154,10 +154,78 @@ versión era prudente pero no se materializa.
 
 ### Lo que sí hay que hacer
 
-Declarar la moneda una vez, en el código y en el Cerebro, y **medir el salto real** sobre
-los datos de los 18 asesorados antes de cambiar ningún número: cuánto sube el conteo de
-cada grupo al pasar de directo a fraccionado. Ese salto es medible en cuanto exista la
-tabla de contribución (§3.1), y hasta entonces cualquier ajuste de landmarks sería a ciegas.
+Declarar la moneda una vez, en el código y en el Cerebro —hecho el 2026-08-12, ver
+`domain/fatiga.ts` y `wiki/motor-decision/01-volumen-landmarks.md`— y **medir**.
+
+---
+
+## 2.1 Medición basal contra la base real (2026-08-12)
+
+Sobre los **20 microciclos activos**: 506 ejercicios de fuerza, **1.467 series pautadas**.
+Es la foto contra la que se medirá el salto el día que se adopte el conteo fraccionado.
+
+### Reparto actual, en moneda directa
+
+| Grupo | Series | % |
+|---|---|---|
+| Espalda | 255 | 17,4 |
+| Cuádriceps | 233 | 15,9 |
+| Isquios | 211 | 14,4 |
+| Hombros | 172 | 11,7 |
+| Glúteos | 171 | 11,7 |
+| Pecho | 88 | 6,0 |
+| Abdomen | 81 | 5,5 |
+| Pantorrillas | 67 | 4,6 |
+| Tríceps / Bíceps | 55 / 55 | 3,7 / 3,7 |
+| **(sin grupo)** | **54** | **3,7** |
+| Aductores | 25 | 1,7 |
+
+### Hallazgo 1 — hay trabajo de pierna que hoy no cuenta para nadie
+
+De las **54 series huérfanas**, la mayoría está bien que no cuente (PREV/REHAB —rotación
+externa, control escapular, movilidad, saltos— y ACONDICIONAMIENTO). Pero **19 series son
+`PIERNA UNILATERAL`** y sí son trabajo de fuerza que debería sumar:
+
+- Zancada con mancuernas · Zancada en déficit · Zancada sobre cajón
+- Subida al cajón · Bajada controlada desde cajón
+
+`GRUPOS` (`domain/fatiga.ts`) no tiene patrón para `PIERNA UNILATERAL` ni para `ZANCADA`,
+así que desaparecen del presupuesto de cuádriceps y glúteo. **No se ha tocado a propósito**:
+a qué grupo va una zancada es criterio del coach, y cambiarlo mueve la programación de
+gente real.
+
+### Hallazgo 2 — el volumen medido queda muy por debajo de los landmarks
+
+185 pares asesorado × grupo:
+
+| | Series por grupo y microciclo |
+|---|---|
+| Media | **7,6** |
+| Rango | 2 – 21 |
+| Por debajo de la **dosis mínima eficaz** (4) | **58 pares · 31 %** |
+| Entre 4 y 7 | 45 · 24 % |
+| En MEV (8–11) | 41 · 22 % |
+| En MAV o más (12+) | 41 · 22 % |
+| **Por debajo de MEV (8)** | **55,7 %** |
+
+Y hay que corregir a la baja, no al alza: **19 de los 20 microciclos son de 8 días**, no de
+7 (el otro es de 15). Llevado a semana, la media baja de 7,6 a **~6,7 series por grupo**.
+
+### Cómo leer esto, con cuidado
+
+Son dos hipótesis distintas y los datos no distinguen entre ellas:
+
+1. **Medimos por debajo.** El conteo directo ignora todo el trabajo indirecto; en
+   fraccionado, muchos de esos 58 pares subirían solos sin cambiar una sola serie real.
+2. **El volumen es de verdad bajo** en parte de la cartera.
+
+La primera explica parte y la segunda probablemente también. **Distinguirlas es
+exactamente para lo que sirve el conteo fraccionado**, y por eso el salto no se puede
+estimar todavía: necesita la tabla de contribución (§3.1). Cualquier ajuste de landmarks
+antes de eso sería a ciegas.
+
+> Lo que sí queda fijado: esta foto es la línea base. El día que la tabla exista, la misma
+> consulta da el salto por grupo.
 
 ---
 

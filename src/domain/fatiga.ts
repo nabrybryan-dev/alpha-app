@@ -1,6 +1,34 @@
 import type { Microciclo } from './types'
 
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * LA MONEDA DEL VOLUMEN: AQUÍ SE CUENTA **DIRECTO**
+ * ────────────────────────────────────────────────────────────────────────────
+ * Cada ejercicio suma a **un solo grupo** —el que gane en `grupoDeCategoria`— y
+ * a ninguno más. Un peso muerto rumano cuenta entero para isquios y **cero**
+ * para glúteos, aunque los entrene.
+ *
+ * Está escrito aquí porque hasta el 2026-08-12 era implícito, y esa ambigüedad
+ * ya causó un error de diseño: se dio por supuesto que la app contaba «total»
+ * (indirectas valiendo 1) y se concluyó al revés de lo que toca. Ver
+ * `docs/specs/2026-08-12-reparto-de-volumen-por-zona-diseno.md` §2.
+ *
+ * Las tres monedas de la literatura (Pelland et al., Sports Med 2026), con su
+ * propio ejemplo —5 series de press de banca y 5 de remo en la semana—:
+ *
+ *   total       indirectas valen 1     → 10
+ *   fraccionado indirectas valen 0,5   → 7,5   ← la que mejor predice
+ *   directo     indirectas valen 0     → 5     ← **donde estamos**
+ *
+ * Consecuencia práctica: contra unos landmarks dados, **este conteo mide por
+ * debajo**. El día que se pase a fraccionado el número por grupo subirá, y hay
+ * que medir cuánto antes de tocar ningún umbral.
+ */
+
 export type NivelFatiga = 'fresco' | 'en-trabajo' | 'cargado'
+
+/** En qué moneda cuenta la app hoy. Ver el bloque de arriba. */
+export const MONEDA_VOLUMEN = 'directa' as const
 
 export interface CargaGrupo {
   grupo: string

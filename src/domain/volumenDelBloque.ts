@@ -17,6 +17,11 @@ import type { Microciclo, NivelEntrenamiento, NivelVolumen } from './types'
  * Y se decide **por grupo muscular**, no por ejercicio: dos ejercicios de glúteo
  * suman al mismo presupuesto. Por eso esto vive aparte del motor de carga.
  *
+ * ⚠️ **La moneda es la directa.** `cargaPorGrupo` asigna cada ejercicio a un solo
+ * grupo, así que los landmarks de abajo se están comparando contra un conteo que
+ * **mide por debajo** del que asume la literatura (fraccionado). Está declarado
+ * en `fatiga.ts`; no cambiar uno sin el otro.
+ *
  * ────────────────────────────────────────────────────────────────────────────
  * LO QUE DICE EL CEREBRO (motor-decision/01-volumen-landmarks.md)
  * ────────────────────────────────────────────────────────────────────────────
