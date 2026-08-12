@@ -5,7 +5,7 @@ import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
-import { encuestaPendiente } from '../../domain/nutricion/encuesta'
+import { encuestaPendiente, preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
@@ -48,6 +48,14 @@ export default function HoyPage() {
     encuestaPendiente(perfilNutricion) && {
       texto: 'Completar tu encuesta de nutrición',
       ruta: '/nutricion',
+    },
+    // Las quincenales de embarazo y lactancia. Salen aquí y no solo en
+    // Nutrición por la misma lección que la encuesta: la regla que vivía en
+    // una sola pantalla la vieron 4 de 20. Y salen como recordatorio, no como
+    // bloqueo — ver `AlDiaEmbarazo`.
+    preguntasQueVuelven(perfilNutricion?.respuestas ?? {}, hoy).length > 0 && {
+      texto: 'Contarnos qué te dijo tu médico',
+      ruta: '/nutricion/al-dia',
     },
     !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
