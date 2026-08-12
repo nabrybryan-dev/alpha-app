@@ -16,6 +16,7 @@ import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
 import { estaCalibrado } from '../../domain/nutricion/calibracion'
+import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
 import { ResumenDia } from './ResumenDia'
@@ -142,6 +143,23 @@ export default function DiarioDia() {
     semana.filter((_, i) => porDiaDeLaSemana[i].some((c) => c.items.length > 0)),
   )
   const recientes = alimentosRecientes(porDiaDeLaSemana.flat())
+
+  /**
+   * Lo que la asesorada declaró, y lo que comió hoy: los dos deciden el aviso.
+   *
+   * Las condiciones bajan su límite de vitamina A -2.800 en embarazo o
+   * lactancia, no 3.000-. Los nombres callan el aviso diario del hígado, que va
+   * por frecuencia desde el 2026-08-09. Ver `techos.ts`.
+   *
+   * Se mira contra `fecha` y no contra hoy porque el diario se puede abrir en
+   * un día pasado: un embarazo que ya caducó no debe teñir la semana anterior.
+   */
+  const respuestasSuyas = db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}
+  const condiciones = [...condicionesDeclaradas(respuestasSuyas, fecha)]
+
+  const nombresDelDia = delDia.flatMap((comida) =>
+    comida.items.map((item) => porId(item.alimentoId)?.nombre ?? ''),
+  )
 
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
 
@@ -339,7 +357,7 @@ export default function DiarioDia() {
         </div>
       </section>
 
-      <PanelMicros total={total} />
+      <PanelMicros total={total} condiciones={condiciones} nombresDelDia={nombresDelDia} />
 
       <PanelCalibracion
         pruebas={pruebas}

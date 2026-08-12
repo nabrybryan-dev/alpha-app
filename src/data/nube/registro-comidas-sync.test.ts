@@ -216,6 +216,79 @@ describe('el registro de comidas sube a Supabase', () => {
       expect(op?.payload.sin_acceso).toEqual(['salmón, arándanos'])
     })
 
+    describe('el embarazo declarado tiene que LLEGAR al motor', () => {
+      /**
+       * El hueco que estos tests cierran, y por qué son de seguridad.
+       *
+       * El motor veta el hígado en embarazo leyendo `condiciones_medicas`
+       * (`topes_nutrientes.py` → `VETO_POR_CONDICION`). Esta columna se llenaba
+       * solo con el texto libre de «¿tienes alguna condición médica?», así que
+       * la respuesta de la pregunta de embarazo se quedaba en el jsonb: la
+       * asesorada podía declarar que estaba embarazada y el motor le seguía
+       * pudiendo proponer hígado.
+       */
+      const dentroDeUnAno = () => {
+        const d = new Date()
+        return `${d.getFullYear() + 1}-01-01`
+      }
+
+      it('el embarazo viaja como condición médica', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(
+          VALENTINA,
+          { embarazo: 'si', fechaProbableParto: dentroDeUnAno() },
+          true,
+        )
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toContain('embarazo')
+      })
+
+      it('la lactancia también', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(VALENTINA, { embarazo: 'lactancia' }, true)
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toContain('lactancia')
+      })
+
+      it('sin pisar lo que ella escribió de su puño y letra', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(
+          VALENTINA,
+          { condicionesMedicas: 'hipotiroidismo', embarazo: 'lactancia' },
+          true,
+        )
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toEqual(['hipotiroidismo', 'lactancia'])
+      })
+
+      it('un embarazo caducado deja de viajar', () => {
+        // La marca caduca por fecha probable de parto, y por eso la lista se
+        // rehace cada vez que ella toca su perfil. Se mira que no esté, no que
+        // la lista quede vacía: Valentina ya trae un «ninguna» escrito por ella
+        // en condiciones médicas, y eso no se toca.
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(
+          VALENTINA,
+          { embarazo: 'si', fechaProbableParto: '2020-01-01' },
+          true,
+        )
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).not.toContain('embarazo')
+      })
+
+      it('quien no declaró nada no gana ninguna condición', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar('u-mateo', { genero: 'H' }, true)
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toBeNull()
+      })
+    })
+
     it('lo que no se respondió entra como null, no como lista vacía', () => {
       // Mateo no tiene perfil en el seed: `guardar` fusiona con lo previo, así
       // que hace falta alguien que empiece de cero para ver los huecos.

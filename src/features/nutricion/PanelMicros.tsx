@@ -1,5 +1,6 @@
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import type { TotalDia } from '../../domain/nutricion/dia'
+import type { Condicion } from '../../domain/nutricion/techos'
 import { techosPasados } from '../../domain/nutricion/techos'
 
 /**
@@ -22,11 +23,15 @@ const MICROS = [
 
 interface PanelMicrosProps {
   total: TotalDia
+  /** Lo que declaró en la encuesta. Baja su límite: ver `limiteDe`. */
+  condiciones?: readonly Condicion[]
+  /** Los nombres de lo que registró hoy. Callan el aviso de los de frecuencia. */
+  nombresDelDia?: readonly string[]
 }
 
 const redondear = (valor: number) => (valor >= 100 ? Math.round(valor) : Number(valor.toFixed(1)))
 
-export function PanelMicros({ total }: PanelMicrosProps) {
+export function PanelMicros({ total, condiciones = [], nombresDelDia = [] }: PanelMicrosProps) {
   return (
     <section className="rounded-3xl border border-linea bg-surface-1 p-4">
       <div className="mb-3 flex items-baseline justify-between">
@@ -59,7 +64,7 @@ export function PanelMicros({ total }: PanelMicrosProps) {
         })}
       </div>
 
-      <AvisoDeTecho total={total} />
+      <AvisoDeTecho total={total} condiciones={condiciones} nombresDelDia={nombresDelDia} />
     </section>
   )
 }
@@ -83,9 +88,23 @@ const NOMBRE_DEL_NUTRIENTE: Record<string, string> = {
  * rápida de que el aviso deje de leerse. Dice cuánto y de qué, que es lo que
  * permite decidir la frecuencia. La restricción por persona -y el caso del
  * embarazo, donde el hígado es contraindicación- la pone la nutricionista.
+ *
+ * Y EL HÍGADO YA NO SALE POR AQUÍ. Su ración pasa el techo SIEMPRE, así que este
+ * aviso le salía cada vez que lo registraba: exactamente la forma de que dejara
+ * de leerse que el párrafo de arriba dice evitar. Manuela lo pasó a frecuencia
+ * el 2026-08-09 —cada dos semanas— y `techosPasados` lo calla cuando el día lo
+ * trae. Ver `nutrientesPorFrecuencia`.
  */
-function AvisoDeTecho({ total }: { total: TotalDia }) {
-  const pasados = techosPasados(total)
+function AvisoDeTecho({
+  total,
+  condiciones,
+  nombresDelDia,
+}: {
+  total: TotalDia
+  condiciones: readonly Condicion[]
+  nombresDelDia: readonly string[]
+}) {
+  const pasados = techosPasados(total, { condiciones, nombresDelDia })
   if (pasados.length === 0) return null
 
   return (

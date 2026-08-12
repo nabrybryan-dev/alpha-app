@@ -18,6 +18,11 @@
  */
 import type { Db } from '../repos'
 import type { Mensaje } from '../../domain/types'
+import {
+  condicionesDeclaradas,
+  type RespuestasDeEmbarazo,
+} from '../../domain/nutricion/embarazo'
+import { aIso } from '../../domain/nutricion/semana'
 import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube } from '../supabase'
 import { encolar } from './procesador'
@@ -541,10 +546,35 @@ function aPerfilAlimentario(
 
   const texto = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor : null)
 
+  /**
+   * Lo que declaró de su puño y letra, MÁS las condiciones que se deducen.
+   *
+   * EL HUECO QUE ESTO CIERRA. El motor de recomendaciones veta el hígado en
+   * embarazo leyendo `PerfilAlimentario.condiciones_medicas`
+   * (`topes_nutrientes.py` → `VETO_POR_CONDICION`). Esta columna se llenaba solo
+   * con el texto libre de «¿tienes alguna condición médica?», así que la
+   * respuesta de la pregunta de embarazo se quedaba en el jsonb y no llegaba
+   * nunca: la asesorada podía declarar que estaba embarazada y el motor le
+   * seguía pudiendo proponer hígado. Es el mismo fallo que el módulo de
+   * embarazo vino a arreglar —lógica escrita que no protegía a nadie—, una
+   * capa más abajo.
+   *
+   * SE RESUELVE AL SUBIR Y NO EN EL MOTOR porque la marca CADUCA: pasada la
+   * fecha probable de parto deja de aplicar, y una columna no caduca sola. Al
+   * escribirla aquí, cada vez que ella toca su perfil la lista se rehace con la
+   * fecha de ese día. Si nunca vuelve a tocarlo se queda como estaba, que es el
+   * lado prudente: sigue protegida de más, nunca de menos.
+   */
+  const escritasPorElla = comoLista(respuestas.condicionesMedicas) ?? []
+  const condiciones = [
+    ...escritasPorElla,
+    ...condicionesDeclaradas(respuestas as RespuestasDeEmbarazo, aIso(new Date())),
+  ]
+
   return {
     asesorado_id: usuarioId,
     alergias: comoLista(respuestas.alergias),
-    condiciones_medicas: comoLista(respuestas.condicionesMedicas),
+    condiciones_medicas: condiciones.length > 0 ? condiciones : null,
     excluye: comoLista(respuestas.excluye),
     no_le_gustan: comoLista(respuestas.noLeGustan),
     sin_acceso: comoLista(respuestas.sinAcceso),
