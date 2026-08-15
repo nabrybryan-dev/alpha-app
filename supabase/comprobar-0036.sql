@@ -51,6 +51,17 @@ join respaldo_0036_microciclos r on r.id = m.id,
 where i = j and k = l
   and (e_ahora - 'categoria') <> (e_antes - 'categoria');
 
+-- 5 · Nada cambió FUERA de `ejercicios`. La señal 3 solo mira dentro del
+--     ejercicio, así que por sí sola no habría detectado que la sesión perdiera
+--     `preparacion`, `bloquesCardio` o `testPost` — que es exactamente el daño
+--     que hizo el clonador de julio y que tardó semanas en verse.
+select '5 · cambió algo fuera de los ejercicios' as señal, m.id, s_ahora ->> 'nombre' as sesion
+from microciclos m
+join respaldo_0036_microciclos r on r.id = m.id,
+     lateral jsonb_array_elements(m.datos -> 'sesiones') with ordinality as sa(s_ahora, i),
+     lateral jsonb_array_elements(r.datos -> 'sesiones') with ordinality as sr(s_antes, j)
+where i = j and (s_ahora - 'ejercicios') <> (s_antes - 'ejercicios');
+
 -- 4 · Ningún microciclo fuera del alcance fue tocado: los 40 sucios siguen
 --     exactamente como estaban.
 select '4 · se tocó un microciclo fuera del alcance' as señal, m.id

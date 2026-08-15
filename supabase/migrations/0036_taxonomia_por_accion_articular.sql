@@ -20,7 +20,10 @@
 --
 -- La prescripción no se toca: solo cambia el campo `categoria`.
 
-begin;
+-- SE APLICA POR PASOS, comprobando entre medias. Por eso no hay una transacción
+-- única ni tablas temporales: una `temporary table ... on commit drop` no
+-- sobrevive a que alguien mire el resultado antes de seguir. El alcance vive en
+-- la tabla de respaldo, que es justo el conjunto que se va a tocar.
 
 -- 1 · Respaldo. Lleva datos reales de salud: RLS en el mismo paso que el create.
 create table if not exists respaldo_0036_microciclos as
@@ -84,27 +87,31 @@ $$;
 -- como RPC a `anon`. Sin este revoke queda al alcance de la anon key.
 revoke execute on function tmp_categoria_de(text) from public;
 
--- 3 · El alcance: los microciclos cuyas categorías ya están todas en la lista
--- simplificada de 22. Los demás no se tocan.
-create temporary table tmp_alcance_0036 on commit drop as
-with ej as (
-  select m.id, e->>'categoria' as cat
-  from microciclos m,
-       lateral jsonb_array_elements(m.datos->'sesiones') s,
-       lateral jsonb_array_elements(s->'ejercicios') e
-)
-select id from ej
-group by id
-having count(*) = count(*) filter (where cat in (
-  'AISLAMIENTO GLÚTEOS','TRACCIÓN HORIZONTAL','BISAGRA DE CADERA','SENTADILLAS',
-  'TRACCIÓN VERTICAL','AISLAMIENTO ISQUIOS','TRÍCEPS','BÍCEPS','PIERNA UNILATERAL',
-  'DELTOIDES LATERALES','PANTORRILLAS','AISLAMIENTO CUÁDRICEPS','EMPUJE VERTICAL',
-  'ESPALDA SUPERIOR','DELTOIDES POSTERIORES','ADUCTORES','EMPUJE HORIZONTAL',
-  'EMPUJE INCLINADO','ABDOMEN','PREV/REHAB','AISLAMIENTO PECTORAL','ESPALDA BAJA',
-  'DELTOIDES FRONTALES','ACONDICIONAMIENTO'));
-
+-- 3 · El alcance, guardado en el respaldo: los microciclos cuyas categorías ya
+-- están todas en la lista simplificada de 22. Los demás no se tocan.
+--
+-- Que el respaldo y el alcance sean lo mismo no es un atajo: garantiza que no
+-- se puede escribir sobre un microciclo del que no haya copia.
 insert into respaldo_0036_microciclos (id, datos, respaldado_en)
-select id, datos, now() from microciclos where id in (select id from tmp_alcance_0036);
+select m.id, m.datos, now()
+from microciclos m
+where m.id in (
+  select id from (
+    select m2.id, e->>'categoria' as cat
+    from microciclos m2,
+         lateral jsonb_array_elements(m2.datos->'sesiones') s,
+         lateral jsonb_array_elements(s->'ejercicios') e
+  ) ej
+  group by id
+  having count(*) = count(*) filter (where cat in (
+    'AISLAMIENTO GLÚTEOS','TRACCIÓN HORIZONTAL','BISAGRA DE CADERA','SENTADILLAS',
+    'TRACCIÓN VERTICAL','AISLAMIENTO ISQUIOS','TRÍCEPS','BÍCEPS','PIERNA UNILATERAL',
+    'DELTOIDES LATERALES','PANTORRILLAS','AISLAMIENTO CUÁDRICEPS','EMPUJE VERTICAL',
+    'ESPALDA SUPERIOR','DELTOIDES POSTERIORES','ADUCTORES','EMPUJE HORIZONTAL',
+    'EMPUJE INCLINADO','ABDOMEN','PREV/REHAB','AISLAMIENTO PECTORAL','ESPALDA BAJA',
+    'DELTOIDES FRONTALES','ACONDICIONAMIENTO'))
+)
+and m.id not in (select id from respaldo_0036_microciclos);
 
 -- 4 · La reescritura.
 --
@@ -133,11 +140,9 @@ set datos = jsonb_set(m.datos, '{sesiones}', (
   ), '[]'::jsonb)
   from jsonb_array_elements(m.datos -> 'sesiones') with ordinality as ses(s, orden_s)
 ))
-where m.id in (select id from tmp_alcance_0036);
+where m.id in (select id from respaldo_0036_microciclos);
 
 drop function tmp_categoria_de(text);
-
-commit;
 
 -- Después de aplicar, correr en este orden y exigir cero filas en las tres:
 --   supabase/comprobar-0036.sql
