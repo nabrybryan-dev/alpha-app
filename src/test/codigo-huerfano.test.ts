@@ -50,6 +50,11 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/nutricion/embarazo.ts#puedeQuedarEmbarazada':
     'La encuesta ya recoge «no puedo quedar embarazada» (PR #41), pero todavía nadie ' +
     'consulta la respuesta para saltarse las preguntas del ciclo.',
+  'src/domain/taxonomia.ts#grupoPrimario':
+    'Llegó con la taxonomía por acción articular (PR #44, 2026-08-15). Devuelve el grupo ' +
+    'que recibe el trabajo directo, «para etiquetar, no para contar», y todavía no hay ' +
+    'pantalla que etiquete: la rejilla de volumen pinta los aportes fraccionados, no el ' +
+    'grupo primario. Enchufarla ahí o borrarla — lo decide quien escribió la taxonomía.',
 
   // Línea base heredada del 2026-08-12: medida, no auditada. Al tocar cualquiera de
   // estos módulos, resolver su entrada (enchufarla, borrarla o escribirle el motivo).
