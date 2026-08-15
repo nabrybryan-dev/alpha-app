@@ -547,6 +547,107 @@ select '0035 - borrado de vetos', 'columna borrado e indice de vivos',
          ) as senales
        ) = 2 then 'SI' else 'NO' end
 
+-- ---------------------------------------------------------------------------
+-- 0025 a 0034: las cargas de DATOS, que hasta el 2026-08-12 no comprobaba nadie
+--
+-- Las de esquema fallan ruidosamente: si una tabla no existe, la app revienta.
+-- Estas no. Una carga de datos que se corta a la mitad deja la base en pie y en
+-- silencio, con la mitad de los alimentos. Es la misma forma del incidente de la
+-- carga del 2026-08-09, que dejó seis sesiones en null y lo notó una asesorada.
+--
+-- Se comprueban por CONTENIDO, no por «existe la tabla»: qué filas tienen que
+-- estar y con qué valor. Un umbral flojo («más de mil alimentos») diría SI con
+-- media carga dentro.
+-- ---------------------------------------------------------------------------
+
+union all
+-- La 0025 y la 0026 metieron a las filas de USDA los micros que solo tenía la
+-- TCAC. Antes: 0 de 295. Se comprueba que la CLAVE exista en todas las filas, no
+-- que tenga valor: que a un alimento no le hayan medido el zinc es un hueco
+-- legítimo de la fuente, y exigir valor daría NO para siempre. Lo que no puede
+-- pasar es que la clave no esté, porque entonces el panel lo pinta en blanco
+-- como si fuera cero. Así se coló el hígado con la vitamina A en None.
+select '0025 - potasio y vitamina A de USDA', 'la clave esta en todas las filas',
+       case when (
+         select count(*) from public.alimentos
+          where not (por_100g ? 'potasio_mg') or not (por_100g ? 'vitamina_a_er')
+       ) = 0 then 'SI' else 'NO' end
+
+union all
+select '0026 - los seis micros que faltaban', 'las ocho claves estan en todas las filas',
+       case when (
+         select count(*) from public.alimentos
+          where not (por_100g ?& array['zinc_mg','magnesio_mg','sodio_mg','vitamina_c_mg',
+                                       'folatos_ug','fosforo_mg','b12_ug','vitamina_d_ug'])
+       ) = 0 then 'SI' else 'NO' end
+
+union all
+-- Las altas de 0027, 0029, 0030, 0031 y 0032 van juntas y es a propósito: la
+-- 0030 reemite las mismas filas que las otras (mismo id, misma composición,
+-- mismo origen_id), así que no admite una señal propia. Fingirle una que en
+-- realidad comprueba a sus vecinas sería peor que no tenerla. Son 53 ids
+-- distintos entre las cinco.
+select '0027 a 0032 - altas de catalogo', 'las 53 altas estan en el catalogo',
+       case when (
+         select count(*) from public.alimentos
+          where id in (
+            'agua-de-panela','agua-de-panela-con-limon','agua-de-panela-con-queso',
+            'aguardiente-un-trago','arroz-blanco-cocido','avena-en-caja','avena-en-leche',
+            'avena-preparada-con-leche','batido-de-banano-en-leche','batido-de-proteina-con-leche',
+            'batido-ganador-de-peso-casero','cafe-con-leche',
+            'carne-de-res-magra-posta-o-bola-de-pierna-cruda','cerdo-lomo-crudo',
+            'chocolate-caliente-en-leche','chocolate-con-leche','chocolate-con-queso',
+            'chocolate-en-agua','ciruela-comun-cruda','garbanzo-cocido-sin-sal',
+            'guayaba-madura-cruda','huevo-de-gallina-entero-cocido-sin-sal',
+            'huevo-de-gallina-entero-crudo','jugo-de-guanabana-en-agua',
+            'jugo-de-guanabana-en-leche','jugo-de-guayaba-en-agua','jugo-de-guayaba-en-leche',
+            'jugo-de-lulo-en-agua','jugo-de-mango-en-agua','jugo-de-maracuya-en-agua',
+            'jugo-de-mora-en-agua','jugo-de-mora-en-leche','jugo-de-papaya-en-agua',
+            'leche-de-vaca-descremada-en-polvo','leche-de-vaca-descremada-liquida-pasteurizada',
+            'leche-de-vaca-entera-en-polvo','leche-de-vaca-entera-liquida-pasteurizada',
+            'lenteja-comun-cocida-sin-sal','limonada','limonada-de-coco','lomo-de-cerdo-magro-crudo',
+            'mandarina-cruda','mango-tommy-atkins-crudo','palmito-en-lata','papaya-madura-cruda',
+            'pasta-alimenticia-sin-enriquecer-cocida-sin-sal','pavo-pechuga-sin-piel-cruda',
+            'pepino-cohombro-crudo','pera-cruda','sierra-entera-cruda',
+            'sustituto-de-comida-preparado-con-leche','te-frio-en-botella','tinto-con-azucar')
+       ) = 53 then 'SI' else 'NO' end
+
+union all
+-- Los valores exactos que Bryan decidió uno a uno el 2026-08-09. El zinc de la
+-- posta bajó de 6,90 a 5,25 al promediar las dos fuentes —consecuencia avisada,
+-- no descuido— y la vitamina D del bagre (12,5) no la publica la TCAC en ninguna
+-- fila: sin ese traspaso se perdería al esconder la de USDA.
+select '0033 - los cuatro ultimos duplicados', 'los valores fusionados, no los de antes',
+       case when (
+         select count(*) from (
+           select 1 from public.alimentos
+            where id = 'carne-de-res-magra-posta-o-bola-de-pierna-cruda'
+              and (por_100g->>'zinc_mg')::numeric = 5.25
+           union all
+           select 1 from public.alimentos
+            where id = 'bagre-magro-sin-cabeza-crudo'
+              and (por_100g->>'vitamina_d_ug')::numeric = 12.5
+           union all
+           select 1 from public.alimentos
+            where id = 'fresa-madura-cruda' and (por_100g->>'vitamina_c_mg')::numeric = 67
+         ) as senales
+       ) = 3 then 'SI' else 'NO' end
+
+union all
+-- NO es «el array existe»: el fallo era un `null` DENTRO del array, en la
+-- posición exacta donde iba una sesión real. El array seguía ahí y la app se
+-- caía con «Esta sección no se pudo mostrar». Esta señal es la única de todo el
+-- archivo que hay que volver a mirar DESPUÉS DE CADA CARGA de microciclo, no
+-- solo al aplicar una migración.
+select '0034 - recuperar sesiones nulas', 'ningun null dentro del array de sesiones',
+       case when (
+         select count(*) from public.microciclos m
+          where exists (
+            select 1 from jsonb_array_elements(m.datos->'sesiones') as s
+             where jsonb_typeof(s) = 'null'
+          )
+       ) = 0 then 'SI' else 'NO' end
+
 union all
 -- El respaldo existe con sus 33 microciclos y ni un ejercicio de esos quedó con
 -- categoría de la taxonomía vieja. La función tmp_ tiene que estar muerta:
