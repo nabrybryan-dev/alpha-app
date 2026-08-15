@@ -17,7 +17,7 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
-import type { Mensaje } from '../../domain/types'
+import type { Mensaje, Microciclo } from '../../domain/types'
 import {
   condicionesDeclaradas,
   type RespuestasDeEmbarazo,
@@ -208,17 +208,26 @@ export function crearDbSincronizada(local: Db): Db {
         cambiarEstadoEnNube(propuestaId, 'activo')
         for (const m of activosPrevios) cambiarEstadoEnNube(m.id, 'cerrado')
       },
+      // Las tres escrituras del asesorado suben SOLO su rama, nunca el blob.
+      // Subir el microciclo entero desde el móvil pisó una migración del coach
+      // el 2026-08-15: ver `subirRama` y el spec del 15 de agosto.
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
-        subirMicrociclo(local, microcicloId)
+        subirSeries(local, microcicloId, ejercicioId)
       },
       guardarTestPost: (microcicloId, sesionId, test) => {
         local.microciclos.guardarTestPost(microcicloId, sesionId, test)
-        subirMicrociclo(local, microcicloId)
+        encolar({
+          tabla: 'microciclos',
+          tipo: 'rpc',
+          funcion: 'fijar_test_post',
+          claveRpc: `${microcicloId}:${sesionId}`,
+          payload: { p_microciclo_id: microcicloId, p_sesion_id: sesionId, p_test: test },
+        })
       },
       marcarParte: (microcicloId, sesionId, parteId) => {
         local.microciclos.marcarParte(microcicloId, sesionId, parteId)
-        subirMicrociclo(local, microcicloId)
+        subirPreparacion(local, microcicloId, sesionId)
       },
     },
 
@@ -681,6 +690,72 @@ function cambiarEstadoEnNube(microcicloId: string, estado: 'activo' | 'cerrado')
     tipo: 'update',
     payload: { estado },
     filtro: { id: microcicloId },
+  })
+}
+
+/**
+ * El microciclo local, o `undefined` si no se encuentra a su dueño.
+ *
+ * Los repos son por usuario, así que para llegar a un microciclo por id hay que
+ * pasar por la lista de usuarios. Lo hacían las cuatro subidas por su cuenta.
+ */
+function microcicloLocal(local: Db, microcicloId: string): Microciclo | undefined {
+  const duenio = local.usuarios
+    .list()
+    .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === microcicloId))
+  if (!duenio) return undefined
+  return local.microciclos.byUsuario(duenio.id).find((m) => m.id === microcicloId)
+}
+
+/**
+ * Sube las series de UN ejercicio, no el microciclo.
+ *
+ * Manda el array completo de ese ejercicio, ya resuelto por la capa local
+ * —reemplazar por `orden` y reordenar—. El servidor solo lo coloca en su sitio.
+ * La regla vive en un solo lado a propósito: dos copias de una regla divergen, y
+ * eso es exactamente lo que este cambio arregla.
+ */
+function subirSeries(local: Db, microcicloId: string, ejercicioId: string): void {
+  const microciclo = microcicloLocal(local, microcicloId)
+  if (!microciclo) return
+  const ejercicio = microciclo.sesiones
+    .flatMap((s) => s.ejercicios)
+    .find((e) => e.id === ejercicioId)
+  if (!ejercicio) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_series_ejercicio',
+    claveRpc: `${microcicloId}:${ejercicioId}`,
+    payload: {
+      p_microciclo_id: microcicloId,
+      p_ejercicio_id: ejercicioId,
+      p_series: ejercicio.series,
+    },
+  })
+}
+
+/**
+ * Sube el calentamiento y el cardio de UNA sesión, no el microciclo.
+ *
+ * `marcarParte` es un interruptor que además materializa la plantilla de
+ * calentamiento si la sesión no la traía, así que se manda el resultado ya
+ * calculado en local en vez de repetir esa lógica en SQL.
+ */
+function subirPreparacion(local: Db, microcicloId: string, sesionId: string): void {
+  const sesion = microcicloLocal(local, microcicloId)?.sesiones.find((s) => s.id === sesionId)
+  if (!sesion) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_preparacion_sesion',
+    claveRpc: `${microcicloId}:${sesionId}`,
+    payload: {
+      p_microciclo_id: microcicloId,
+      p_sesion_id: sesionId,
+      p_preparacion: sesion.preparacion ?? null,
+      p_bloques_cardio: sesion.bloquesCardio ?? null,
+    },
   })
 }
 
