@@ -9,6 +9,7 @@ import { Semaforo } from '../../components/ui/Semaforo'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { GenerarMicrocicloSheet } from './GenerarMicrocicloSheet'
 import { PautadoVsRealizado } from './PautadoVsRealizado'
+import { RejillaDeVolumen } from './RejillaDeVolumen'
 import { resumenAsesorado } from './resumenAsesorado'
 
 const PESTANAS = ['Resumen', 'Entrenamiento', 'Vida', 'Nutrición', 'Cuestionarios'] as const
@@ -137,12 +138,19 @@ export default function AsesoradoDetallePage() {
         </div>
       )}
 
-      {pestana === 'Entrenamiento' &&
-        (resumen.microciclo ? (
-          <PautadoVsRealizado microciclo={resumen.microciclo} />
-        ) : (
-          <EmptyState titulo="Sin microciclo activo" detalle="Genera el siguiente microciclo." />
-        ))}
+      {pestana === 'Entrenamiento' && (
+        <div className="flex flex-col gap-3">
+          {resumen.microciclo ? (
+            <PautadoVsRealizado microciclo={resumen.microciclo} />
+          ) : (
+            <EmptyState titulo="Sin microciclo activo" detalle="Genera el siguiente microciclo." />
+          )}
+          {/* La rejilla no depende de que haya microciclo activo: es el
+              histórico del bloque, y sin ella la planificación se sigue
+              mirando en el Excel congelado. */}
+          <RejillaDeVolumen microciclos={db.microciclos.byUsuario(usuario.id)} />
+        </div>
+      )}
 
       {pestana === 'Vida' && (
         <div className="flex flex-col gap-2">
