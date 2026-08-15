@@ -66,11 +66,25 @@ comment on view public.checkins_nutricion is
   'columnas.';
 
 -- ===== Comprobación =====
--- Las dos columnas de hambre tienen que estar, y la nueva traer datos:
 --
---   select count(*)                          as filas,
---          count(hambre)                     as con_hambre_viejo,
---          count(hambre_escala)              as con_hambre_escala
---     from public.checkins_nutricion;
+-- CUIDADO CON CONSULTAR LA VISTA DESDE EL SQL EDITOR: ahí se entra como
+-- `postgres`, sin sesión de usuario, así que `auth.uid()` es NULL y `es_staff()`
+-- devuelve false. El `where` de la vista excluye al que pregunta y sale CERO
+-- FILAS. No es que la migración fallara: es la vista funcionando. Comprobado el
+-- 2026-08-15 al aplicarla.
 --
--- Medido el 2026-08-15 con la sesión del coach: 47 · 23 · 24.
+-- Por eso la cuenta se hace sobre la TABLA, que es donde están los datos, con
+-- las mismas expresiones que usa la vista:
+--
+--   select count(*)                                  as filas,
+--          count((datos ->> 'pesoKg')::numeric)       as con_peso,
+--          count(datos ->> 'hambre')                  as con_hambre_viejo,
+--          count((datos ->> 'hambreEscala')::numeric) as con_hambre_escala,
+--          count(datos ->> 'alimentacion')            as con_alimentacion
+--     from public.checkins;
+--
+-- Medido el 2026-08-15, aplicada ya la migración: 47 · 44 · 23 · 24 · 47.
+--
+-- Para ver la vista con datos hace falta una sesión de verdad: entrar en la app
+-- como staff y mirar la pantalla, o consultarla con el token de esa sesión.
+-- Que la señal diga SI prueba que la columna existe, no que alguien la reciba.
