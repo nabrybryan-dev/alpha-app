@@ -115,10 +115,11 @@ as $$
   where m.id = p_microciclo_id;
 $$;
 
--- El  NO basta en Supabase: el proyecto trae
--- ,
--- así que cada función nueva nace ejecutable por la anon key al margen de PUBLIC.
--- Lo destapó la señal 3 de comprobar-0037 al aplicar esta migración.
+-- OJO: revocar solo a `public` NO basta en Supabase. El proyecto trae
+--   alter default privileges in schema public grant execute on functions to anon
+-- así que cada función nueva nace ejecutable por la anon key por una vía distinta
+-- de PUBLIC, y el revoke a public no la toca. Lo destapó la señal 3 de
+-- comprobar-0037 nada más aplicar esta migración.
 revoke execute on function fijar_series_ejercicio(text, text, jsonb) from public, anon;
 revoke execute on function fijar_test_post(text, text, jsonb) from public, anon;
 revoke execute on function fijar_preparacion_sesion(text, text, jsonb, jsonb) from public, anon;
