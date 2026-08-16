@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
+import { cargarFuentesDelGabinete } from './fuentesDelGabinete'
 import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './slotThemes'
 
 /**
@@ -196,6 +197,13 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
     },
     [limpiar, paradas.length, programar, reducido, tema.brake, tema.step],
   )
+
+  // Las tipografías del gabinete se piden aquí, no en la hoja de estilos: son
+  // 314 KB que solo hacen falta en la pantalla de entrenar. Ver
+  // `fuentesDelGabinete.ts` para por qué no van en un @import.
+  useEffect(() => {
+    cargarFuentesDelGabinete()
+  }, [])
 
   // Al entrar al ejercicio: un giro que aterriza en el nombre. Se programa en
   // vez de lanzarse en el cuerpo del efecto — un setState síncrono ahí es un
