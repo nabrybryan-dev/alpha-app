@@ -20,6 +20,8 @@
  * queda exactamente como estaba hasta que lleguen los datos reales.
  */
 
+import type { EstadoAlimento } from '../domain/types'
+
 export type NotaTipo = 'encaja' | 'canje' | 'ojo' | 'truco'
 
 export interface RecetaNota {
@@ -44,6 +46,16 @@ export interface RecetaIngrediente {
   paraTi: string
   /** Cambia respecto al original: sustitución, no solo menos cantidad. */
   cambiado?: boolean
+  /**
+   * Id del catálogo de alimentos. Sin él la receta no se puede registrar: los
+   * macros del día se derivan de aquí, no de las kcal de la ficha. Ver
+   * `domain/nutricion/recetaAlRegistro.ts`.
+   */
+  alimentoId?: string
+  /** `paraTi` en gramos, para poder calcular. «22 g» de texto no se suma. */
+  gramosParaTi?: number
+  /** Crudo, cocido, seco… Cambia los macros; por defecto se asume crudo. */
+  estado?: EstadoAlimento
 }
 
 export interface Receta {
@@ -116,12 +128,15 @@ const RECETAS_DEMO: Receta[] = [
       ],
     },
     rinde: 'Rinde 9 porciones',
+    // Mapeada al catálogo: es la que demuestra el alta en el registro. Las otras
+    // dos se quedan sin medir a propósito, para ver también el camino en que el
+    // botón explica que no puede.
     ingredientes: [
-      { nombre: 'Avena en hojuelas', enElReel: '200 g', paraTi: '22 g' },
-      { nombre: 'Cacao en polvo', enElReel: '40 g', paraTi: '4 g' },
-      { nombre: 'Huevo', enElReel: '3 unidades', paraTi: '1/3 unidad' },
-      { nombre: 'Panela raspada', enElReel: '120 g', paraTi: '6 g', cambiado: true },
-      { nombre: 'Mantequilla de maní', enElReel: '60 g', paraTi: '7 g' },
+      { nombre: 'Avena en hojuelas', enElReel: '200 g', paraTi: '22 g', alimentoId: 'avena-en-hojuelas-peso-en-seco', gramosParaTi: 22, estado: 'seco' },
+      { nombre: 'Cacao en polvo', enElReel: '40 g', paraTi: '4 g', alimentoId: 'cacao-tostado-y-molido', gramosParaTi: 4, estado: 'seco' },
+      { nombre: 'Huevo', enElReel: '3 unidades', paraTi: '17 g', alimentoId: 'huevo-de-gallina-entero-crudo', gramosParaTi: 17, estado: 'crudo' },
+      { nombre: 'Miel de abejas', enElReel: '120 g de panela', paraTi: '13 g', cambiado: true, alimentoId: 'miel-de-abejas', gramosParaTi: 13 },
+      { nombre: 'Mantequilla de maní', enElReel: '60 g', paraTi: '7 g', alimentoId: 'mantequilla-de-mani', gramosParaTi: 7, estado: 'listo' },
     ],
     preparacion: [
       'Licúa la avena hasta que quede harina.',
