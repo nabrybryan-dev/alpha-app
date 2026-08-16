@@ -1,6 +1,7 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { sqlDeLasMigraciones } from './leerMigraciones'
 
 /**
  * Un `ON CONFLICT (columna)` necesita un índice único NO parcial.
@@ -27,8 +28,6 @@ import { describe, expect, it } from 'vitest'
  * varios NULL, porque los trata como distintos entre sí.
  */
 
-const MIGRACIONES = join(process.cwd(), 'supabase', 'migrations')
-
 /** Columnas sobre las que la app hace upsert, por tabla. */
 const DESTINOS_ONCONFLICT: { tabla: string; columna: string }[] = [
   { tabla: 'registro_comida', columna: 'cliente_id' },
@@ -38,14 +37,6 @@ const DESTINOS_ONCONFLICT: { tabla: string; columna: string }[] = [
   // `create table` de la 0016, no de un `create index` — ver `restriccionesDeTabla`.
   { tabla: 'perfil_alimentario_veto', columna: 'asesorado_id,alimento_id' },
 ]
-
-function sqlDeTodasLasMigraciones(): string {
-  return readdirSync(MIGRACIONES)
-    .filter((f) => f.endsWith('.sql') && !f.includes('.local.'))
-    .sort()
-    .map((f) => readFileSync(join(MIGRACIONES, f), 'utf8'))
-    .join('\n')
-}
 
 /**
  * La definición VIGENTE de cada índice, no todas las que existieron.
@@ -103,14 +94,14 @@ function indicesSobre(vigentes: Map<string, string>, tabla: string, columna: str
     const sobreLaTabla = new RegExp(`on\\s+(public\\.)?${tabla}\\s*\\(`, 'i').test(s)
     return sobreLaTabla && deLaColumna.test(s)
   })
-  const deTabla = restriccionesDeTabla(sqlDeTodasLasMigraciones(), tabla).filter((r) =>
+  const deTabla = restriccionesDeTabla(sqlDeLasMigraciones(), tabla).filter((r) =>
     deLaColumna.test(r),
   )
   return [...declarados, ...deTabla]
 }
 
 describe('índices que sostienen los upsert', () => {
-  const vigentes = indicesVigentes(sqlDeTodasLasMigraciones())
+  const vigentes = indicesVigentes(sqlDeLasMigraciones())
 
   for (const { tabla, columna } of DESTINOS_ONCONFLICT) {
     describe(`${tabla}.${columna}`, () => {
