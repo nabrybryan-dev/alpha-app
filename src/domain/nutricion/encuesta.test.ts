@@ -50,7 +50,12 @@ describe('camposAPreguntar', () => {
     // del embarazo: la encuesta de captación tampoco la trae, así que hay dos.
     // Si esta lista crece sin motivo, es que alguien metió una pregunta que ya
     // estaba contestada en otro sitio.
-    expect(claves(CON_JSON)).toEqual(['pasosDiarios', 'embarazo'])
+    //
+    // El 2026-08-16 crecieron a cuatro con las dos de la despensa, que la
+    // captación tampoco trae. Esas dos NO son obligatorias -por eso la encuesta
+    // sigue dándose por completa sin ellas-, así que aparecer aquí no significa
+    // que bloqueen. Lo comprueba `la despensa: cada cuánto compra y de quién es`.
+    expect(claves(CON_JSON)).toEqual(['pasosDiarios', 'cicloCompra', 'despensaEs', 'embarazo'])
   })
 
   it('los pasos son justo lo que la encuesta de captación no trae', () => {
@@ -311,5 +316,50 @@ describe('el estado de fertilidad', () => {
     expect(preguntasQueVuelven({ genero: 'M', embarazo: 'sin_fertilidad' }, '2026-08-09')).toEqual(
       [],
     )
+  })
+})
+
+// Las dos preguntas que necesita la despensa. Se añadieron el 2026-08-16, cuando
+// la app llevaba 11 encuestas completadas y la despensa aún no existía. De ahí que
+// el primer test sea el que más pesa: si estas dos bloquearan, esas 11 personas
+// perderían sus cifras detrás del formulario por una funcionalidad que todavía no
+// pueden usar. Ver docs/specs/2026-08-16-de-donde-sale-la-lista-de-compra.md
+describe('la despensa: cada cuánto compra y de quién es', () => {
+  it('NO reabren la encuesta a quien ya la había completado', () => {
+    // CON_JSON no las trae: es alguien de antes del 2026-08-16.
+    // CON_JSON no basta: le faltan `pasosDiarios` y `embarazo`, que SI son
+    // obligatorios. Se completa para que el test mida lo que dice medir.
+    const completa: Respuestas = { ...CON_JSON, pasosDiarios: 7000, embarazo: 'no' }
+
+    expect(encuestaPendiente({ respuestas: completa, completadaEn: '2026-08-01' })).toBe(false)
+  })
+
+  it('se preguntan igual, pero sin bloquear', () => {
+    const pendientes = claves(CON_JSON)
+
+    expect(pendientes).toContain('cicloCompra')
+    expect(pendientes).toContain('despensaEs')
+
+    for (const clave of ['cicloCompra', 'despensaEs'] as const) {
+      expect(CAMPOS.find((c) => c.clave === clave)?.obligatorio).toBeFalsy()
+    }
+  })
+
+  it('el ciclo es de 8 o 15 días, nunca de 7', () => {
+    // Las programaciones van a 8 o a 15. Con la compra a 7 se desfasa un día por
+    // ciclo, y al sexto va casi una semana por delante del plan que abastece.
+    // Este test existe para que «7 días» no vuelva por parecer más natural.
+    const ciclo = CAMPOS.find((c) => c.clave === 'cicloCompra')
+
+    expect(ciclo?.opciones?.map((o) => o.valor)).toEqual(['8', '15'])
+  })
+
+  it('de quién es la despensa se contesta con dos opciones, sin contar cuántos viven', () => {
+    // Preguntar cuántos conviven invita a dividir la nevera entre ellos, y nadie
+    // come un cuarto de la nevera. Si es de la casa, la cantidad no se calcula.
+    const deQuien = CAMPOS.find((c) => c.clave === 'despensaEs')
+
+    expect(deQuien?.opciones?.map((o) => o.valor)).toEqual(['solo_yo', 'toda_la_casa'])
+    expect(deQuien?.tipo).toBe('opcion')
   })
 })

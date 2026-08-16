@@ -43,17 +43,27 @@ const pintar = (yaSabidos: Respuestas = {}, enCurso: Respuestas = {}) => {
 describe('EncuestaNutricion', () => {
   it('a quien llega con la encuesta de captación le pide solo lo que esa no trae', () => {
     // Eran los pasos y nada más hasta el 2026-08-09, cuando entró la pregunta
-    // del embarazo: la encuesta de captación tampoco la trae.
+    // del embarazo: la encuesta de captación tampoco la trae. El 2026-08-16
+    // entraron las dos de la despensa —cada cuánto compra y de quién es— que la
+    // captación tampoco trae, así que son cuatro.
+    //
+    // Si este número sube otra vez, que sea a sabiendas: cada pregunta es una
+    // que el asesorado puede abandonar a la mitad, y esta pantalla es la que le
+    // tapa sus cifras hasta que la termine.
     pintar(CON_JSON)
-    expect(screen.getByText(/cuéntanos 2 cosas sobre ti/i)).toBeInTheDocument()
+    expect(screen.getByText(/cuéntanos 4 cosas sobre ti/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/cuántos pasos caminas/i)).toBeInTheDocument()
     expect(screen.getByText(/¿estás embarazada o en lactancia\?/i)).toBeInTheDocument()
+    expect(screen.getByText(/cada cuánto haces mercado/i)).toBeInTheDocument()
   })
 
   it('cuando solo falta una, el titular va en singular', () => {
     // La copia cambia con el número y es fácil romperla al añadir preguntas:
     // "Cuéntanos 1 cosas sobre ti" es justo lo que este test impide.
-    pintar({ ...CON_JSON, embarazo: 'no' })
+    //
+    // Hay que contestar TODO lo demás para dejar una sola pendiente. Antes
+    // bastaba con el embarazo; desde las dos de la despensa hacen falta tres.
+    pintar({ ...CON_JSON, embarazo: 'no', cicloCompra: '8', despensaEs: 'solo_yo' })
     expect(screen.getByText(/nos falta un dato tuyo/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/cuántos pasos caminas/i)).toBeInTheDocument()
   })
