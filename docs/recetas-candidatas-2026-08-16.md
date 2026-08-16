@@ -187,3 +187,66 @@ Una de las de `@tasty_hunting` (tosta de melocotón) empieza con **`Publi/`**: e
 contenido pagado de una marca de aceite, y el pie es medio anuncio. Mandar a un
 asesorado a un anuncio quizá no es lo que quieres. Conviene mirar esa marca en
 el pie antes de subir cualquiera.
+
+---
+
+# Tercera tanda · las cinco cuentas de Bryan
+
+| Cuenta | Publicaciones | Con receta | Con gramos | Veredicto |
+|--------|--------------:|-----------:|-----------:|-----------|
+| `@isabellarodriguezu` | 12 | **7** | 3 | **La mejor de las cinco** |
+| `@healthylife_bymg` | 12 | 4 | 0 | Las coincidencias son de la preparación, no listas |
+| `@nutrikrn` | 12 | 0 | 0 | Divulgación y promoción |
+| `@rivas_nutricion` | 12 | 0 | 0 | Publicaciones de una línea |
+| `@draisabelabelajllo` | — | — | — | **No existe** (¿errata en el usuario?) |
+
+## Lo que separa a unas de otras
+
+No es «nutricionista sí, nutricionista no»: `@isabellarodriguezu` y `@nutrikrn`
+son las dos nutricionistas, y una sirve y la otra no. Lo que las separa es la
+**estrategia de contenido**:
+
+- `@isabellarodriguezu` publica **recetas**, con su lista y sus gramos.
+- `@nutrikrn` publica **divulgación y captación**: «¿Quieres tomar magnesio?»,
+  «Beneficios de esta sopita», «Mañana abrimos las inscripciones». Habla de
+  comida sin dar la receta.
+- `@rivas_nutricion` publica opinión en una línea: «📲🫡», «Nada más que decir».
+
+`@healthylife_bymg` es el caso tramposo: parece que tiene recetas porque la
+palabra «ingredientes» aparece, pero al leerlo es la **preparación** —«agrega los
+ingredientes secos»— y la lista no está en el pie. Debe de ir en el vídeo o en
+un comentario.
+
+## De `@isabellarodriguezu`
+
+Tres con cantidades de peso reales:
+
+- **Torta de banano con frosting de yogur griego** — 120 g yogur, 200 g yogur
+  para el frosting, 100 g chocolate oscuro
+- **Limonada de fresa y menta con sandía** — 250 g fresas, 250 g sandía, 60 g
+  jugo de limón, 500 ml
+- **Cremoso de pollo con cebollín** — 1 pechuga, 1 taza de yogur griego
+
+**Pero ninguna está medida del todo**, y aparece un obstáculo nuevo que no había
+salido antes:
+
+| Lo que dice | Problema |
+|-------------|----------|
+| `1 scoop de proteína` | Depende de la marca: entre 25 y 35 g, y los macros cambian mucho |
+| `1/2 taza de avena` | Convertible (~45 g), pero es asunción mía |
+| `mantequilla de frutos secos` | Sin cantidad |
+| `1 de banano maduro` | Sin peso, y además parece una errata del pie |
+
+El `scoop` es el peor de los cuatro: no es solo una cantidad que estimar, es un
+alimento que ni siquiera sé cuál es. Sin saber la marca no se puede mapear al
+catálogo.
+
+## Recomendación
+
+De las nueve cuentas revisadas ya, **`@paufeel` y `@isabellarodriguezu` son las
+dos que valen la pena seguir minando**. Las dos publican recetas de verdad, con
+listas, y al menos parte de las cantidades en peso.
+
+Y confirma lo de la segunda tanda: el cuello de botella nunca fue el acceso a
+Instagram. Es que **las recetas virales casi nunca están medidas del todo**, y
+cerrar ese hueco es una decisión de nutrición, no de scraping.
