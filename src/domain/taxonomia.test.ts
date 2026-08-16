@@ -112,6 +112,38 @@ describe('aportesDeCategoria', () => {
  * En ninguno de los tres el cuádriceps es el primario, que es justo lo que la
  * fila genérica de la tabla decía mal hasta el 2026-08-15.
  */
+/**
+ * Un combinado cobra por las dos mitades.
+ *
+ * «PRESS MILITAR + CURL BÍCEPS» vivía en FLEXIÓN DE CODO y solo acreditaba
+ * bíceps: la mitad del press desaparecía del recuento de hombro. Decisión del
+ * 2026-08-16: cuenta el volumen efectivo de las dos, porque cada repetición
+ * hace las dos cosas.
+ */
+describe('los ejercicios combinados', () => {
+  it('el press militar + curl acredita hombro Y bíceps, los dos directos', () => {
+    expect(aportesDeCategoria('FLEXIÓN DE CODO', 'PRESS MILITAR + CURL BÍCEPS')).toEqual([
+      { grupo: 'Bíceps', factor: 1 },
+      { grupo: 'Hombros', factor: 1 },
+      { grupo: 'Tríceps', factor: 0.5 },
+    ])
+  })
+
+  /** El tríceps acompaña la extensión del press; no la dirige. */
+  it('el tríceps entra a la mitad, no como primario', () => {
+    const aportes = aportesDeCategoria('FLEXIÓN DE CODO', 'PRESS MILITAR + CURL BÍCEPS')
+    expect(aportes.find((a) => a.grupo === 'Tríceps')?.factor).toBe(0.5)
+    expect(grupoPrimario('FLEXIÓN DE CODO', 'PRESS MILITAR + CURL BÍCEPS')).not.toBe('Tríceps')
+  })
+
+  /** Un curl a secas sigue siendo un curl: la variante no puede contaminarlo. */
+  it('el curl normal no se lleva el hombro de regalo', () => {
+    expect(aportesDeCategoria('FLEXIÓN DE CODO', 'Curl de bíceps con mancuernas')).toEqual([
+      { grupo: 'Bíceps', factor: 1 },
+    ])
+  })
+})
+
 describe('la variante de ejecución redistribuye el estímulo', () => {
   it('el torso vertical carga el glúteo, con el cuádriceps de secundario', () => {
     expect(aportesDeCategoria('SENTADILLA UNILATERAL', 'Sentadilla búlgara con mancuernas (torso vertical · unilateral)')).toEqual([

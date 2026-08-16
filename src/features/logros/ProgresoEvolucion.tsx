@@ -101,7 +101,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
     .map((s) => ({
       etiqueta: s.nombre,
       valor: s.ejercicios.reduce(
-        (t, e) => t + e.series.reduce((acc, ser) => acc + ser.cargaKg * ser.reps, 0),
+        (t, e) => t + e.series.reduce((acc, ser) => acc + ser.cargaKg * (ser.reps ?? 0), 0),
         0,
       ),
     }))

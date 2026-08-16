@@ -20,6 +20,7 @@ import { PanelRitmo } from './PanelRitmo'
 import { PreparacionSesion } from './PreparacionSesion'
 import { type RegistroSerieHandle } from './RegistroSerie'
 import { SesionCerrada } from './SesionCerrada'
+import { SalonDeMaquinas } from './SalonDeMaquinas'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
@@ -230,12 +231,16 @@ function SesionEnCurso() {
             </p>
           </div>
 
+          <SalonDeMaquinas ejercicios={sesion.ejercicios} />
+
           <BarraEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />
 
           {ejercicioActual && (
             <TarjetaEjercicio
               key={ejercicioActual.id}
               ejercicio={ejercicioActual}
+              indice={exIdx}
+              total={sesion.ejercicios.length}
               microcicloId={microciclo.id}
               notaVisible={notasVisibles.has(ejercicioActual.id)}
               onAlternarNota={() => alternarNota(ejercicioActual.id)}
