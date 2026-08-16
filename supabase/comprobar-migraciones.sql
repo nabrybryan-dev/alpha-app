@@ -675,4 +675,28 @@ select '0036 - taxonomia por accion articular', 'respaldo, categorias migradas y
          ) as senales
        ) = 4 then 'SI' else 'NO' end
 
+union all
+-- La columna `hambre_escala` existe en la vista Y la vista sigue SIN
+-- security_invoker. Las dos cosas juntas, porque cada una sola engaña: con la
+-- columna pero en modo invoker, la nutricionista recibe la fila entera; en modo
+-- correcto pero sin la columna, recibe blanco en los check-ins recientes.
+--
+-- Se mira el CONTENIDO, no el nombre. Las tres señales de la 0013 preguntan si
+-- existe una política que se llame así, y existía desde la 0006 con el `es_staff()`
+-- permisivo: daban SI con la migración aplicada y SI sin ella. Una comprobación
+-- que no puede fallar no comprueba nada.
+select '0039 - hambre escala en la vista', 'columna nueva y la vista sin invoker',
+       case when (
+         select count(*) from (
+           select 1 from information_schema.columns
+            where table_schema = 'public' and table_name = 'checkins_nutricion'
+              and column_name = 'hambre_escala'
+           union all
+           select 1 from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'public' and c.relname = 'checkins_nutricion'
+              and not coalesce(c.reloptions::text like '%security_invoker=true%', false)
+         ) as senales
+       ) = 2 then 'SI' else 'NO' end
+
 order by migracion, senal;
