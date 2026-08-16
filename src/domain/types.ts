@@ -70,8 +70,21 @@ export interface ValoracionCompetencia {
 export interface SerieRegistrada {
   orden: number
   cargaKg: number
-  reps: number
-  rir: number
+  /**
+   * Opcionales porque hay trabajo que no se mide así y forzarlo inventa datos.
+   *
+   * Una plancha isométrica no tiene repeticiones en reserva, y un foam roller
+   * tampoco. Hasta el 2026-08-15 la base guardaba ahí las palabras «Isometría»,
+   * «Control», «Movilidad» y «Suave» —81 series— porque el tipo exigía un
+   * número y no había dónde poner «esto no lleva RIR». Eso rompía cualquier
+   * promedio: un `avg` sobre RIR reventaba al toparse con el texto.
+   *
+   * Ausente significa **no aplica**, no «cero». Quien los lea tiene que
+   * saltarse las series sin dato en vez de contarlas como 0, que sería
+   * decir que se llegó al fallo.
+   */
+  reps?: number
+  rir?: number
 }
 
 export interface TestPostSesion {

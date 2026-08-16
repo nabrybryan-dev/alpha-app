@@ -769,4 +769,48 @@ select '0040 - un veto sin motivo no se guarda', 'motivo not null y con contenid
          ) as senales
        ) = 2 then 'SI' else 'NO' end
 
+union all
+-- Las tres funciones de escritura quirúrgica, y que NINGUNA quede al alcance de
+-- la anon key. `revoke ... from public` no basta en Supabase: el `alter default
+-- privileges` del proyecto concede EXECUTE a `anon` por su cuenta, así que hay
+-- que revocarle a él también. Se comprueban las dos mitades.
+select '0037 - escrituras quirurgicas de microciclo', 'las tres funciones, y ninguna abierta a anon',
+       case when (
+         select count(*) from pg_proc p
+          join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public'
+           and p.proname in ('fijar_series_ejercicio', 'fijar_test_post', 'fijar_preparacion_sesion')
+       ) = 3 and not exists (
+         select 1 from pg_proc p
+          join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public'
+           and p.proname in ('fijar_series_ejercicio', 'fijar_test_post', 'fijar_preparacion_sesion')
+           and (has_function_privilege('anon', p.oid, 'execute')
+             or has_function_privilege('public', p.oid, 'execute'))
+       ) then 'SI' else 'NO' end
+
+union all
+-- La taxonomía, medida donde vive: dentro del JSONB de los microciclos. Si
+-- alguna categoría vuelve a traer minúsculas es que un cliente subió el blob
+-- entero por encima -el fallo que la 0037 existe para impedir- y hay que mirarlo.
+select '0038 - taxonomia final', 'ninguna categoria fuera del canon',
+       case when not exists (
+         select 1 from microciclos m,
+              lateral jsonb_array_elements(coalesce(m.datos->'sesiones', '[]'::jsonb)) s,
+              lateral jsonb_array_elements(coalesce(s->'ejercicios', '[]'::jsonb)) e
+          where e->>'categoria' ~ '[a-z]'
+       ) then 'SI' else 'NO' end
+
+union all
+-- Ni RIR ni reps pueden volver a guardar texto. Se mira el dato real, no el
+-- tipo: la columna es JSONB y acepta lo que le echen.
+select '0041 - rir y reps que no son numeros', 'ninguna serie con texto en rir o reps',
+       case when not exists (
+         select 1 from microciclos m,
+              lateral jsonb_array_elements(coalesce(m.datos->'sesiones', '[]'::jsonb)) s,
+              lateral jsonb_array_elements(coalesce(s->'ejercicios', '[]'::jsonb)) e,
+              lateral jsonb_array_elements(coalesce(e->'series', '[]'::jsonb)) sr
+          where (sr->>'rir') ~ '[A-Za-z]' or (sr->>'reps') ~ '[A-Za-z]'
+       ) then 'SI' else 'NO' end
+
 order by migracion, senal;
