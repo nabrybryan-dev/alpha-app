@@ -126,9 +126,26 @@ export interface VisibilidadRepo {
 }
 
 export interface VetadosRepo {
-  /** Lo que la nutricionista marcó que esta persona no debe comer. */
+  /**
+   * Lo que la nutricionista marcó que esta persona no debe comer.
+   *
+   * El `motivo` viene opcional AL LEER porque las filas anteriores a la 0040
+   * pueden no tenerlo. Al escribir es obligatorio: ver `vetar`.
+   */
   byUsuario(usuarioId: string): VetoAlimento[]
-  vetar(veto: VetoAlimento): void
+  /**
+   * El motivo es obligatorio AQUÍ, en el tipo, y no solo en la pantalla.
+   *
+   * Es lo que impide que vuelva a pasar lo de la 0040: se comprobó que nadie
+   * leía la tabla desde `src/` y se dio por hecho que nadie la escribía. Con
+   * esta firma, cualquier sitio nuevo que intente grabar un veto sin decir por
+   * qué no compila — no hace falta que nadie se acuerde de la regla.
+   *
+   * Mínimo 3 caracteres con contenido, que es exactamente lo que exige el
+   * `check` de la 0040. Si la pantalla fuera más permisiva que la base, la
+   * escritura pasaría la validación y moriría en la cola de sincronización.
+   */
+  vetar(veto: VetoAlimento & { motivo: string }): void
   quitar(usuarioId: string, alimentoId: string): void
 }
 

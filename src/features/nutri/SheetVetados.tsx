@@ -3,6 +3,7 @@ import { Sheet } from '../../components/ui/Sheet'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 import { db, useDbVersion } from '../../data/dbInstance'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
+import { porQueNoValeElMotivo } from '../../domain/nutricion/motivoDeVeto'
 
 /**
  * Donde la nutricionista traduce «soy alérgica a los mariscos» a alimentos.
@@ -61,6 +62,10 @@ function loQueEllaEscribio(respuestas: Respuestas): { etiqueta: string; texto: s
 export function SheetVetados({ asesoradoId, nombre, onCerrar }: SheetVetadosProps) {
   useDbVersion()
   const [consulta, setConsulta] = useState('')
+  // El alimento elegido espera aquí hasta que se diga por qué. Sin este paso,
+  // el veto se grababa de un toque y sin explicación: ver `motivoDeVeto.ts`.
+  const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null)
+  const [motivo, setMotivo] = useState('')
 
   if (!asesoradoId) return null
 
@@ -109,26 +114,45 @@ export function SheetVetados({ asesoradoId, nombre, onCerrar }: SheetVetadosProp
         className="mt-1 w-full rounded-2xl border border-linea bg-surface-2 px-3 py-2 text-sm text-texto"
       />
 
-      {resultados.length > 0 && (
-        <ul className="mt-2 flex flex-col gap-1">
-          {resultados.map((alimento) => (
-            <li key={alimento.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  db.vetados.vetar({ usuarioId: asesoradoId, alimentoId: alimento.id })
-                  setConsulta('')
-                }}
-                className="press flex w-full items-center gap-2 rounded-2xl border border-linea bg-surface-1 p-2 text-left"
-              >
-                <span className="min-w-0 flex-1 text-sm leading-snug text-texto">
-                  {alimento.nombre}
-                </span>
-                <span className="shrink-0 text-xs font-semibold text-accion">Vetar</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      {pendiente ? (
+        <PedirMotivo
+          alimento={pendiente.nombre}
+          motivo={motivo}
+          onMotivo={setMotivo}
+          onCancelar={() => {
+            setPendiente(null)
+            setMotivo('')
+          }}
+          onVetar={() => {
+            db.vetados.vetar({
+              usuarioId: asesoradoId,
+              alimentoId: pendiente.id,
+              motivo: motivo.trim(),
+            })
+            setPendiente(null)
+            setMotivo('')
+            setConsulta('')
+          }}
+        />
+      ) : (
+        resultados.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {resultados.map((alimento) => (
+              <li key={alimento.id}>
+                <button
+                  type="button"
+                  onClick={() => setPendiente({ id: alimento.id, nombre: alimento.nombre })}
+                  className="press flex w-full items-center gap-2 rounded-2xl border border-linea bg-surface-1 p-2 text-left"
+                >
+                  <span className="min-w-0 flex-1 text-sm leading-snug text-texto">
+                    {alimento.nombre}
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold text-accion">Vetar</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )
       )}
 
       <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
@@ -149,10 +173,23 @@ export function SheetVetados({ asesoradoId, nombre, onCerrar }: SheetVetadosProp
                 key={veto.alimentoId}
                 className="flex items-center gap-2 rounded-2xl border border-linea bg-surface-2 p-2"
               >
-                <span className="min-w-0 flex-1 text-sm leading-snug text-texto">
+                <span className="min-w-0 flex-1 leading-snug">
                   {/* Si el alimento ya no está en el catálogo se enseña su id:
                       un veto que no se puede leer tampoco se puede quitar. */}
-                  {alimento?.nombre ?? veto.alimentoId}
+                  <span className="block text-sm text-texto">
+                    {alimento?.nombre ?? veto.alimentoId}
+                  </span>
+                  {/* El motivo SE PINTA. Obligar a escribirlo sin enseñarlo
+                      nunca sería pedir texto que no sirve a nadie: la pregunta
+                      «¿por qué no se le propone el huevo?» se responde aquí.
+                      Los vetos anteriores a la 0040 pueden no tenerlo. */}
+                  {veto.motivo ? (
+                    <span className="mt-0.5 block text-[11px] text-tenue">{veto.motivo}</span>
+                  ) : (
+                    <span className="mt-0.5 block text-[11px] italic text-tenue">
+                      Sin motivo anotado
+                    </span>
+                  )}
                 </span>
                 <button
                   type="button"
@@ -173,5 +210,78 @@ export function SheetVetados({ asesoradoId, nombre, onCerrar }: SheetVetadosProp
         se lo comió, tiene que poder anotarlo.
       </p>
     </Sheet>
+  )
+}
+
+/**
+ * El paso que faltaba: decir por qué antes de vetar.
+ *
+ * No es burocracia. Dentro de tres meses, cuando alguien pregunte por qué a
+ * esta asesorada no se le propone el huevo, la respuesta tiene que estar en la
+ * fila — no en la memoria de quien lo tecleó ni en un chat que ya nadie
+ * encuentra. «Alergia declarada» y «no le gusta» son la misma marca en pantalla
+ * y dos cosas muy distintas.
+ */
+function PedirMotivo({
+  alimento,
+  motivo,
+  onMotivo,
+  onCancelar,
+  onVetar,
+}: {
+  alimento: string
+  motivo: string
+  onMotivo: (valor: string) => void
+  onCancelar: () => void
+  onVetar: () => void
+}) {
+  const problema = porQueNoValeElMotivo(motivo)
+
+  return (
+    <div className="mt-2 rounded-2xl border border-accion/40 bg-surface-2 p-3">
+      <p className="text-sm font-semibold leading-snug text-texto">{alimento}</p>
+
+      <label htmlFor="motivo-veto" className="mt-2 block text-[11px] font-semibold text-texto">
+        ¿Por qué no debe comerlo?
+      </label>
+      <input
+        id="motivo-veto"
+        type="text"
+        autoFocus
+        value={motivo}
+        onChange={(e) => onMotivo(e.target.value)}
+        // Enter guarda y Escape cancela: esto se rellena de seguido, uno tras
+        // otro, y obligar a ir al ratón en cada veto sobra.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !problema) onVetar()
+          if (e.key === 'Escape') onCancelar()
+        }}
+        placeholder="alergia declarada, intolerancia, no le gusta…"
+        className="mt-1 w-full rounded-2xl border border-linea bg-surface-1 px-3 py-2 text-sm text-texto"
+      />
+
+      {/* Un botón apagado sin explicación se lee como una app rota. */}
+      <p className="mt-1 min-h-[14px] text-[10px] leading-snug text-tenue">{problema ?? ''}</p>
+
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={onVetar}
+          disabled={problema !== null}
+          className={`press flex-1 rounded-2xl py-2 text-xs font-bold ${
+            problema ? 'border border-linea bg-surface-3 text-tenue' : 'bg-accion text-white'
+          }`}
+        >
+          Vetar
+        </button>
+        <button
+          type="button"
+          onClick={onCancelar}
+          className="press rounded-2xl border border-linea px-4 py-2 text-xs font-semibold text-tenue"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
   )
 }
