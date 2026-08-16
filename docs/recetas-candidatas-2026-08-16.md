@@ -250,3 +250,74 @@ listas, y al menos parte de las cantidades en peso.
 Y confirma lo de la segunda tanda: el cuello de botella nunca fue el acceso a
 Instagram. Es que **las recetas virales casi nunca están medidas del todo**, y
 cerrar ese hueco es una decisión de nutrición, no de scraping.
+# Cuarta tanda · las cantidades promediadas
+
+Decisión de Bryan (2026-08-16): cuando el reel no da la cantidad, la pongo yo
+por referencia en vez de dejar la receta bloqueada.
+
+**Y se marca en el dato.** `RecetaIngrediente.estimado` viaja hasta la hoja, que
+pinta un `*` junto a la cantidad y una nota al pie: «El reel no daba esta
+cantidad. La calculó tu coach para que la receta cuadre con tu plan».
+
+Sin esa marca, «100 g de mozzarella» —que lo dijo el creador— y «40 g de jamón»
+—que lo puse yo— se leen igual de ciertas. Marcado se audita y se corrige; sin
+marcar, se hereda para siempre.
+
+## Las cuatro, ya completas
+
+| Receta | Cuenta | Rinde | Por porción |
+|--------|--------|------:|-------------|
+| Brownie sin harinas | `@paufeel` | 2 | **279 kcal** · 7P 19C 19G |
+| Wrap de papa | `@tasty_hunting` | 1 | **569 kcal** · 32P 33C 30G |
+| Sándwich de pollo | `@tasty_hunting` | 1 | **260 kcal** · 32P 1C 13G |
+| Carlota de mango | `@tasty_hunting` | 6 | **113 kcal** · 2P 16C 4G |
+
+Con las tres anteriores ya son **siete** con sus números.
+
+## Lo que promedié, y de dónde sale cada número
+
+| Ingrediente | El reel decía | Puse | Referencia |
+|-------------|---------------|-----:|-----------|
+| Chips de chocolate | «chips sin azúcar» | 20 g | Cobertura típica de un molde de 2 raciones |
+| Jamón (wrap) | «jamón» | 40 g | 2 lonchas de york |
+| Aguacate (wrap) | «aguacate» | 50 g | Medio pequeño |
+| Tomate (wrap) | «tomate» | 60 g | 1 mediano |
+| Papa (wrap) | «½ papa grande» | 150 g | Papa grande ≈ 300 g |
+| Queso (wrap) | «2 lonchas» | 40 g | 20 g por loncha |
+| Queso crema (sándwich) | «2 cdas» | 30 g | 15 g por cucharada |
+| Espinacas | «espinacas frescas» | 30 g | Un puñado |
+| Tomate deshidratado | «tomates deshidratados» | 15 g | 3 mitades |
+| Parmesano | «parmesano» | 10 g | Espolvoreado |
+| Galletas (carlota) | «galletas» | 80 g | Capa de un molde de 6 |
+
+Ninguna es descabellada. Todas son mías.
+
+## Dos huecos del catálogo que sí te afectan
+
+**1. No hay yogur griego.** Solo `yogur-natural-entero`, y la diferencia no es
+menor:
+
+| | Proteína /100 g |
+|---|---:|
+| Yogur natural (lo que hay) | **3,8 g** |
+| Yogur griego (lo que pide la receta) | ~10 g |
+
+Sustituir uno por otro **subestima la proteína casi tres veces**. La carlota
+sale a 2 P por porción cuando con griego rondaría los 5. Y las recetas de
+`@isabellarodriguezu` se apoyan mucho en él —una lleva 320 g entre masa y
+frosting—, así que el error se multiplica ahí.
+
+No lo maquillé: los 113 kcal de la carlota son con yogur natural. Si quieres las
+de Isabella, hay que meter el yogur griego al catálogo primero.
+
+**2. No hay rúcula ni queso de cabra.** Son de hoja y de guarnición, así que
+mueven poco, pero no se pueden mapear y por tanto no se pueden registrar.
+
+## Lo que sigue sin poder promediar
+
+**`1 scoop de proteína`**, de las recetas de Isabella. No es una cantidad que
+estimar: es un alimento que no sé cuál es. Entre 25 y 35 g según la marca, y
+entre un aislado y un concentrado los macros cambian por completo. Estimar aquí
+no sería promediar, sería inventar un alimento.
+
+Para esas hace falta que digas qué proteína usas tú, o descartarlas.

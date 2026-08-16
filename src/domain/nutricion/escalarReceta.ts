@@ -39,6 +39,8 @@ export interface IngredienteDelReel {
   estado?: EstadoAlimento
   /** El coach lo sustituyó por otra cosa. */
   cambiado?: boolean
+  /** La cantidad la puso el coach por referencia: el reel no la decía. */
+  estimado?: boolean
 }
 
 export interface RecetaEscalada {
@@ -87,6 +89,7 @@ export function escalarReceta(
       gramosParaTi,
       ...(i.estado ? { estado: i.estado } : {}),
       ...(i.cambiado ? { cambiado: true } : {}),
+      ...(i.estimado ? { estimado: true } : {}),
     })
 
     const alimento = porId(i.alimentoId)
