@@ -130,8 +130,14 @@ reproche, no un dato.
 ## 3. Lo que falta
 
 - **Recetas reales.** `RECETAS` está vacía en producción y solo sirve datos de
-  muestra en desarrollo. Faltan las de verdad, con permiso del creador, su
-  handle, el permalink y las notas del coach.
+  muestra en desarrollo. Faltan las de verdad: handle, permalink, ingredientes
+  con su alimento del catálogo, y las notas del coach.
+
+  El permiso receta por receta se retiró el 2026-08-16 — quien publica un reel
+  busca alcance y esto se lo da. Lo que sigue en pie: el crédito es obligatorio
+  y visible, y el vídeo **no se aloja**. Si el reel se viera sin salir de Alfa,
+  el creador dejaría de recibir la visita que justifica todo, y el argumento del
+  alcance se caería solo.
 - **Ingredientes mapeados al catálogo.** Solo la receta de muestra 1 los tiene.
   Sin `alimentoId` y `gramosParaTi`, una receta se ve pero no se registra.
 - **Esqueleto de carga**: construido y probado, pero hoy nadie pasa
