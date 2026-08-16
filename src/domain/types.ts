@@ -393,7 +393,21 @@ export interface RegistroComida {
 export interface VetoAlimento {
   usuarioId: string
   alimentoId: string
-  motivo?: string
+  /**
+   * Por qué esta persona no puede comer esto. OBLIGATORIO.
+   *
+   * La PR #57 puso la pantalla a exigirlo y `motivoDeVeto.ts` a definir qué
+   * cuenta como motivo válido. Faltaba cerrar la puerta AQUÍ: mientras el campo
+   * fuera opcional, cualquier sitio nuevo podía llamar a `vetar()` sin él y
+   * `sync.ts` lo subía como `null` — que es exactamente lo que tumbó la 0040 la
+   * primera vez.
+   *
+   * Con esto, la migración se puede aplicar sin depender de que nadie se olvide:
+   * el compilador señala cada sitio que veta y obliga a traer un motivo. No es
+   * una validación —de eso se encarga `porQueNoValeElMotivo`— es la garantía de
+   * que la validación no se puede saltar por descuido.
+   */
+  motivo: string
 }
 
 export interface VisibilidadAsesorado {
