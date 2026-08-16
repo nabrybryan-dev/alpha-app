@@ -122,6 +122,37 @@ export interface EnvioAlServidor {
   incompleto: boolean
   /** Línea del `encolar` en `sync.ts`, para que el fallo diga dónde mirar. */
   linea: number
+  /**
+   * Función de Postgres, solo en los envíos `tipo: 'rpc'`.
+   *
+   * Estos no escriben columnas: pasan ARGUMENTOS a una función. Su `tabla` es
+   * la que la función toca, no el destino del payload, así que comprobar sus
+   * claves contra columnas da diez falsos positivos —los `p_*` de la 0037—.
+   *
+   * Se comparan contra la firma declarada en la migración, que es donde de
+   * verdad pueden fallar: un argumento con el nombre cambiado no existe para
+   * Postgres, el RPC revienta, la cola lo reintenta ocho veces y lo descarta en
+   * silencio. Exactamente el fallo que este archivo existe para atrapar.
+   */
+  funcion?: string
+}
+
+/** Firmas de las funciones que declaran las migraciones: nombre → parámetros. */
+export function funcionesDeLasMigraciones(sql: string): Map<string, Set<string>> {
+  const firmas = new Map<string, Set<string>>()
+  const declaracion = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_]+)\s*\(([^)]*)\)/gi
+
+  for (const encontrado of sql.matchAll(declaracion)) {
+    const parametros = new Set(
+      encontrado[2]
+        .split(',')
+        .map((p) => p.trim().split(/\s+/)[0]?.toLowerCase())
+        .filter((p): p is string => Boolean(p)),
+    )
+    // Una función redeclarada gana con su última versión, igual que en la base.
+    firmas.set(encontrado[1].toLowerCase(), parametros)
+  }
+  return firmas
 }
 
 /**
@@ -210,6 +241,7 @@ export function enviosDeSync(fuente: string): EnvioAlServidor[] {
     const linea = fuente.slice(0, desde).split('\n').length
     const alrededor = fuente.slice(desde, desde + 400)
     const tipo = alrededor.match(/tipo:\s*'([a-z]+)'/)?.[1] ?? 'desconocido'
+    const funcion = alrededor.match(/funcion:\s*'([a-z_]+)'/)?.[1]
 
     const dondePayload = fuente.indexOf('payload:', desde)
     const objeto = dondePayload === -1 ? undefined : objetoDesde(fuente, dondePayload)
@@ -219,6 +251,7 @@ export function enviosDeSync(fuente: string): EnvioAlServidor[] {
       claves: objeto ? clavesDePrimerNivel(objeto) : [],
       incompleto: objeto === undefined || /\.\.\./.test(objeto.replace(/\/\/[^\n]*/g, '')),
       linea,
+      ...(funcion ? { funcion } : {}),
     })
   }
 

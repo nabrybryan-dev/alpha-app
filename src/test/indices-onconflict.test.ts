@@ -94,7 +94,7 @@ function indicesSobre(vigentes: Map<string, string>, tabla: string, columna: str
     const sobreLaTabla = new RegExp(`on\\s+(public\\.)?${tabla}\\s*\\(`, 'i').test(s)
     return sobreLaTabla && deLaColumna.test(s)
   })
-  const deTabla = restriccionesDeTabla(sqlDeTodasLasMigraciones(), tabla).filter((r) =>
+  const deTabla = restriccionesDeTabla(sqlDeLasMigraciones(), tabla).filter((r) =>
     deLaColumna.test(r),
   )
   return [...declarados, ...deTabla]

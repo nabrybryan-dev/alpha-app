@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { enviosDeSync, esquemaDeLasMigraciones, sqlDeLasMigraciones } from './leerMigraciones'
+import {
+  enviosDeSync,
+  esquemaDeLasMigraciones,
+  funcionesDeLasMigraciones,
+  sqlDeLasMigraciones,
+} from './leerMigraciones'
 
 /**
  * Lo que la app manda al servidor contra lo que la tabla acepta.
@@ -19,8 +24,20 @@ import { enviosDeSync, esquemaDeLasMigraciones, sqlDeLasMigraciones } from './le
 
 const SYNC = join(process.cwd(), 'src', 'data', 'nube', 'sync.ts')
 
-const esquema = esquemaDeLasMigraciones(sqlDeLasMigraciones())
-const envios = enviosDeSync(readFileSync(SYNC, 'utf8'))
+const sql = sqlDeLasMigraciones()
+const esquema = esquemaDeLasMigraciones(sql)
+const funciones = funcionesDeLasMigraciones(sql)
+const todos = enviosDeSync(readFileSync(SYNC, 'utf8'))
+
+/**
+ * Los RPC no escriben columnas: pasan argumentos a una función.
+ *
+ * Su `tabla` dice cuál toca la función, no dónde va el payload, así que
+ * mezclarlos con los upsert daba diez falsos positivos —los `p_*` de la 0037—.
+ * Se comprueban aparte, contra su firma.
+ */
+const envios = todos.filter((e) => e.tipo !== 'rpc')
+const rpcs = todos.filter((e) => e.tipo === 'rpc')
 
 /**
  * Columnas obligatorias que el cliente NO manda porque las pone la base.
@@ -97,6 +114,53 @@ describe('contrato entre sync.ts y el esquema', () => {
     // spread sin darse cuenta.
     const incompletos = envios.filter((e) => e.incompleto).map((e) => e.tabla)
     expect(incompletos).toEqual(['perfil_alimentario'])
+  })
+
+  /**
+   * Las escrituras quirúrgicas de la 0037 no pasan por columnas, pasan por
+   * argumentos. Un nombre cambiado ahí falla igual de callado: Postgres no
+   * encuentra la función, la cola reintenta ocho veces y descarta la serie que
+   * el asesorado acaba de registrar.
+   */
+  describe('las llamadas RPC', () => {
+    it('hay alguna: si dejara de encontrarlas, esto se quedaría verde para siempre', () => {
+      expect(rpcs.length).toBeGreaterThan(0)
+      expect(rpcs.every((e) => e.funcion)).toBe(true)
+    })
+
+    it('llaman a funciones que alguna migración declara', () => {
+      const inexistentes = rpcs
+        .filter((e) => !funciones.has(e.funcion as string))
+        .map((e) => `${e.funcion} (sync.ts:${e.linea})`)
+      expect(inexistentes).toEqual([])
+    })
+
+    it('ningún argumento está inventado', () => {
+      const malos: string[] = []
+      for (const rpc of rpcs) {
+        const firma = funciones.get(rpc.funcion as string)
+        if (!firma) continue
+        for (const clave of rpc.claves) {
+          if (!firma.has(clave)) malos.push(`${rpc.funcion}(${clave}) en sync.ts:${rpc.linea}`)
+        }
+      }
+      expect(malos).toEqual([])
+    })
+
+    /** A una función SQL le faltan argumentos y no compila la llamada. */
+    it('no le falta ningún argumento a la función', () => {
+      const faltantes: string[] = []
+      for (const rpc of rpcs) {
+        const firma = funciones.get(rpc.funcion as string)
+        if (!firma || rpc.incompleto) continue
+        for (const parametro of firma) {
+          if (!rpc.claves.includes(parametro)) {
+            faltantes.push(`${rpc.funcion} sin ${parametro} (sync.ts:${rpc.linea})`)
+          }
+        }
+      }
+      expect(faltantes).toEqual([])
+    })
   })
 
   it('los update solo tocan columnas que existen', () => {
