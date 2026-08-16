@@ -20,6 +20,8 @@ import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
 import { preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
+import { RECETAS } from '../../data/recetas'
+import { RecetasCarousel } from './RecetasCarousel'
 import { ResumenDia } from './ResumenDia'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
@@ -354,6 +356,8 @@ export default function DiarioDia() {
       <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
 
       <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+
+      <RecetasCarousel recetas={RECETAS} kcalRestantes={Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))} />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
