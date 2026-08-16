@@ -4,8 +4,11 @@ export function desviacionRir(
   rirObjetivo: number,
   series: SerieRegistrada[],
 ): number | undefined {
-  if (series.length === 0) return undefined
-  const promedio = series.reduce((suma, s) => suma + s.rir, 0) / series.length
+  // Las series sin RIR se saltan, no cuentan como 0: una plancha isométrica no
+  // llegó al fallo, es que no se mide así. Ver `SerieRegistrada`.
+  const conRir = series.filter((s): s is SerieRegistrada & { rir: number } => s.rir !== undefined)
+  if (conRir.length === 0) return undefined
+  const promedio = conRir.reduce((suma, s) => suma + s.rir, 0) / conRir.length
   return Math.round((promedio - rirObjetivo) * 10) / 10
 }
 
