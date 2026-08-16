@@ -158,12 +158,10 @@ export default function BienestarPage() {
       )}
 
       <div className="entrada entrada-3">
-        {/* PENDIENTE: «Mis medidas» sigue pidiendo el peso a todo el mundo.
-            No entra aquí porque `MedidaCorporal.pesoKg` es obligatorio en el
-            tipo: ocultarle el campo le rompería el registro de perímetros, que
-            es justo la métrica que su plan sí le pide. Hacerlo opcional toca
-            también las vistas de coach y el cálculo de composición. */}
-        <MedidasCard usuarioId={usuario.id} />
+        {/* La cuarta superficie de peso, y la última. `MedidaCorporal.pesoKg`
+            pasó a ser opcional para poder llegar hasta aquí: sin báscula pero
+            con perímetros, que es justo la métrica que su plan sí le pide. */}
+        <MedidasCard usuarioId={usuario.id} verPeso={verPeso} />
       </div>
 
       <section className="entrada entrada-4 flex flex-col gap-2">

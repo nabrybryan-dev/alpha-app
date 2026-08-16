@@ -13,7 +13,19 @@ export type NivelVolumen = 'Muy Bajo' | 'Bajo' | 'Normal' | 'Alto' | 'Muy Alto'
 
 export interface MedidaCorporal {
   fecha: string
-  pesoKg: number
+  /**
+   * Ausente cuando la nutricionista apagó la composición corporal.
+   *
+   * La migración 0018 esconde las cifras de composición a quien tiene un
+   * antecedente de conducta alimentaria, y esa decisión tiene que llegar hasta
+   * aquí: a esa persona su plan SÍ le pide perímetros, así que la tarjeta de
+   * medidas se queda, pero sin la báscula.
+   *
+   * Era obligatorio, y por eso «Mis medidas» seguía pidiendo kilos a todo el
+   * mundo aunque el check-in ya hubiera dejado de hacerlo. Opcional aquí
+   * significa lo mismo que en el resto del repo: no se midió, que no es cero.
+   */
+  pesoKg?: number
   alturaCm: number
   perimetros: Record<string, number>
   pgPct?: number
