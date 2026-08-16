@@ -131,3 +131,121 @@ describe('ExerciseSlotMachine', () => {
     expect(screen.getByText(/Ejercicio 03 \/ 05/)).toBeInTheDocument()
   })
 })
+
+/**
+ * El nombre era la ÚNICA parada que no encogía nunca: `esNombre ? n : …` se
+ * saltaba la comprobación de longitud. «Empuje de cadera (unilateral, con
+ * pausa)» se pintaba al mismo tamaño que «Sentadilla» y se salía de una ventana
+ * de 104 px con `overflow: hidden`, cortado a media letra.
+ */
+describe('los nombres largos caben', () => {
+  const conNombre = (nombre: string, index = 0) =>
+    render(<ExerciseSlotMachine {...BASE} index={index} nombre={nombre} />)
+
+  /** Saca el tamaño de fuente del span que pinta el valor de la parada. */
+  const tamañoDelValor = (container: HTMLElement): number => {
+    const el = container.querySelector('[data-valor]') as HTMLElement
+    return parseFloat(el.style.fontSize)
+  }
+
+  it('un nombre largo se pinta más pequeño que uno corto', () => {
+    const corto = conNombre('Sentadilla')
+    const largo = conNombre('Empuje de cadera (unilateral, con pausa)')
+    expect(tamañoDelValor(largo.container)).toBeLessThan(tamañoDelValor(corto.container))
+  })
+
+  it('encoge por tramos: cuanto más largo, más pequeño', () => {
+    const tam = (n: string) => tamañoDelValor(conNombre(n).container)
+    const a = tam('Sentadilla')
+    const b = tam('Peso muerto rumano con mancuernas')
+    const c = tam('Empuje de cadera unilateral con pausa isométrica')
+    expect(a).toBeGreaterThan(b)
+    expect(b).toBeGreaterThan(c)
+  })
+
+  /** Encoger no puede llegar a ilegible: por eso existe «ver completo». */
+  it('nunca baja de un tamaño legible', () => {
+    const { container } = conNombre('Un nombre absurdamente largo que nadie escribiría jamás en la vida real')
+    expect(tamañoDelValor(container)).toBeGreaterThanOrEqual(13)
+  })
+
+  it('el nombre sigue siendo el texto más grande del gabinete', () => {
+    // Es el dato por el que se mira la máquina: encoge, pero no se degrada a
+    // la altura de una etiqueta.
+    const { container } = conNombre('Sentadilla')
+    expect(tamañoDelValor(container)).toBeGreaterThan(15)
+  })
+
+  /** Pase lo que pase con el tamaño, el nombre entero está accesible. */
+  it.each([0, 1, 2, 3, 4])('en la máquina %i el nombre completo sigue en el árbol', (index) => {
+    const largo = 'Empuje de cadera (unilateral, con pausa)'
+    conNombre(largo, index)
+    expect(screen.getAllByText(largo).length).toBeGreaterThan(0)
+  })
+})
+
+/**
+ * «Ver completo», el toque que enseña la parada entera.
+ *
+ * jsdom no hace layout: `scrollHeight` siempre vale 0, así que el desbordamiento
+ * se simula. Es la única forma de probar esto sin un navegador de verdad, y
+ * merece la pena: la primera versión medía el `span` del texto —que no tiene
+ * altura fija— en vez de la caja de la parada, así que el aviso no habría
+ * aparecido NUNCA y nadie se habría enterado.
+ */
+describe('ver el texto completo cuando no cabe', () => {
+  const LARGO = 'Empuje de cadera unilateral con pausa isométrica de tres segundos'
+
+  /** Hace que las cajas de parada digan que su contenido desborda. */
+  function conDesbordamiento(px: number) {
+    return vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.hasAttribute('data-parada') ? this.clientHeight + px : 0
+    })
+  }
+
+  afterEach(() => vi.restoreAllMocks())
+
+  /** La medida ocurre en un requestAnimationFrame, no en un temporizador. */
+  const asentar = () => act(async () => { await new Promise((r) => setTimeout(r, 40)) })
+
+  it('si no desborda, no ofrece nada: sería ruido', async () => {
+    conDesbordamiento(0)
+    render(<ExerciseSlotMachine {...BASE} nombre={LARGO} />)
+    await asentar()
+    expect(screen.queryByRole('button', { name: /ver completo/i })).toBeNull()
+  })
+
+  /** 1-2 px son redondeo del navegador, no un recorte. */
+  it('un par de píxeles de más no cuentan como recorte', async () => {
+    conDesbordamiento(2)
+    render(<ExerciseSlotMachine {...BASE} nombre={LARGO} />)
+    await asentar()
+    expect(screen.queryByRole('button', { name: /ver completo/i })).toBeNull()
+  })
+
+  it('cuando se corta de verdad, aparece el aviso', async () => {
+    conDesbordamiento(40)
+    render(<ExerciseSlotMachine {...BASE} nombre={LARGO} />)
+    await asentar()
+    expect(screen.getByRole('button', { name: /ver completo/i })).toBeInTheDocument()
+  })
+
+  it('al tocarlo se lee el nombre entero, y se puede cerrar', async () => {
+    conDesbordamiento(40)
+    render(<ExerciseSlotMachine {...BASE} nombre={LARGO} />)
+    await asentar()
+
+    await act(async () => {
+      screen.getByRole('button', { name: /ver completo/i }).click()
+    })
+    const cerrar = screen.getByRole('button', { name: /^cerrar$/i })
+    expect(cerrar.textContent).toContain(LARGO)
+
+    await act(async () => {
+      cerrar.click()
+    })
+    expect(screen.queryByRole('button', { name: /^cerrar$/i })).toBeNull()
+  })
+})
