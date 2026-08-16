@@ -42,17 +42,73 @@ describe('el panel de lo que no debe comer', () => {
     expect(screen.getByText(/Vetados \(0\)/)).toBeTruthy()
   })
 
-  it('buscar y marcar un alimento lo deja vetado', async () => {
+  it('marcar el alimento NO lo veta todavía: pide el motivo', async () => {
+    // Hasta el 2026-08-16 un solo toque vetaba, y `sync.ts` subía `motivo: null`.
+    // La migración 0040 pone `not null` en esa columna, así que ese toque
+    // reventaba el upsert -y lo que revienta al subir se pierde en la cola.
     abrir()
     await userEvent.type(screen.getByLabelText(/Buscar el alimento/), 'arroz')
     const [primero] = await screen.findAllByText('Vetar')
     await userEvent.click(primero)
 
-    expect(db.vetados.byUsuario(VALENTINA)).toHaveLength(1)
+    expect(db.vetados.byUsuario(VALENTINA)).toHaveLength(0)
+    expect(screen.getByLabelText(/por qué no puede comerlo/i)).toBeInTheDocument()
+  })
+
+  it('con el motivo escrito sí queda vetado, y el motivo se guarda', async () => {
+    abrir()
+    await userEvent.type(screen.getByLabelText(/Buscar el alimento/), 'arroz')
+    const [primero] = await screen.findAllByText('Vetar')
+    await userEvent.click(primero)
+
+    await userEvent.type(screen.getByLabelText(/por qué no puede comerlo/i), 'alergia declarada')
+    await userEvent.click(screen.getByRole('button', { name: 'Vetar' }))
+
+    const [veto] = db.vetados.byUsuario(VALENTINA)
+    expect(veto.motivo).toBe('alergia declarada')
+  })
+
+  it('sin motivo no deja vetar, y dos letras tampoco', async () => {
+    // Tres caracteres es el mismo umbral que el `check` de la 0040. Si la
+    // pantalla dejara pasar menos, el veto se guardaría en el dispositivo y
+    // reventaría al subir.
+    abrir()
+    await userEvent.type(screen.getByLabelText(/Buscar el alimento/), 'arroz')
+    const [primero] = await screen.findAllByText('Vetar')
+    await userEvent.click(primero)
+
+    expect(screen.getByRole('button', { name: 'Vetar' })).toBeDisabled()
+
+    await userEvent.type(screen.getByLabelText(/por qué no puede comerlo/i), 'ok')
+    expect(screen.getByRole('button', { name: 'Vetar' })).toBeDisabled()
+
+    await userEvent.type(screen.getByLabelText(/por qué no puede comerlo/i), 'i')
+    expect(screen.getByRole('button', { name: 'Vetar' })).toBeEnabled()
+  })
+
+  it('un motivo de solo espacios tampoco cuenta', async () => {
+    abrir()
+    await userEvent.type(screen.getByLabelText(/Buscar el alimento/), 'arroz')
+    const [primero] = await screen.findAllByText('Vetar')
+    await userEvent.click(primero)
+
+    await userEvent.type(screen.getByLabelText(/por qué no puede comerlo/i), '     ')
+    expect(screen.getByRole('button', { name: 'Vetar' })).toBeDisabled()
+  })
+
+  it('cancelar deja las cosas como estaban', async () => {
+    abrir()
+    await userEvent.type(screen.getByLabelText(/Buscar el alimento/), 'arroz')
+    const [primero] = await screen.findAllByText('Vetar')
+    await userEvent.click(primero)
+    await userEvent.click(screen.getByRole('button', { name: /cancelar/i }))
+
+    expect(db.vetados.byUsuario(VALENTINA)).toHaveLength(0)
+    expect(screen.queryByLabelText(/por qué no puede comerlo/i)).not.toBeInTheDocument()
   })
 
   it('y se puede quitar, que es la mitad que suele faltar', async () => {
-    db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido' })
+    db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido', motivo: 'alergia declarada en la encuesta' })
     abrir()
 
     await userEvent.click(screen.getByLabelText(/Quitar el veto/))
@@ -61,7 +117,7 @@ describe('el panel de lo que no debe comer', () => {
 
   it('lo ya vetado no vuelve a salir en la búsqueda', async () => {
     // Volver a marcar lo marcado no hace nada y ocupa el sitio de lo que falta.
-    db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido' })
+    db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido', motivo: 'alergia declarada en la encuesta' })
     abrir()
     await userEvent.type(screen.getByLabelText(/Buscar el alimento/), 'arroz blanco')
 

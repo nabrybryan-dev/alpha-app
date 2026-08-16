@@ -416,7 +416,18 @@ export async function hidratarDesdeNube(): Promise<void> {
           (f): VetoAlimento => ({
             usuarioId: f.asesorado_id as string,
             alimentoId: f.alimento_id as string,
-            motivo: (f.motivo as string | null) ?? undefined,
+            // Un veto SIN motivo se conserva igual, con el hueco escrito.
+            //
+            // Descartarlo sería lo cómodo y es lo peligroso: la fila dice que
+            // esta persona no puede comer eso, y perderla significa volver a
+            // proponérselo. La seguridad va primero en la jerarquía; la
+            // trazabilidad, después.
+            //
+            // Hoy no existe ninguna así -la tabla está en 0 filas- y con la
+            // 0040 aplicada no podrá haberla. Esto es para las que pudieran
+            // haberse grabado entre que el panel existió y el motivo se hizo
+            // obligatorio.
+            motivo: (f.motivo as string | null) ?? '(sin motivo: veto anterior al 2026-08-16)',
           }),
         ),
     visibilidades: visibilidades.error

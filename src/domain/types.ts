@@ -393,7 +393,20 @@ export interface RegistroComida {
 export interface VetoAlimento {
   usuarioId: string
   alimentoId: string
-  motivo?: string
+  /**
+   * Por qué esta persona no puede comer esto. OBLIGATORIO.
+   *
+   * Era opcional hasta el 2026-08-16, y por eso `SheetVetados` vetaba sin pedir
+   * nada y `sync.ts` subía `motivo: null`. Un veto decide qué NO come alguien
+   * con datos de salud de por medio: dentro de tres meses, cuando alguien
+   * pregunte por qué a esta asesorada no se le propone el huevo, la respuesta
+   * tiene que estar en la fila.
+   *
+   * Ponerlo obligatorio AQUÍ es lo que hace que la migración 0040 pueda
+   * aplicarse sin romper nada: el compilador obliga a cada sitio que veta a
+   * traer un motivo, y no queda ninguno que pueda mandar NULL.
+   */
+  motivo: string
 }
 
 export interface VisibilidadAsesorado {

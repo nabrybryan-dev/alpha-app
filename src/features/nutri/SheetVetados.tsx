@@ -37,6 +37,18 @@ import type { Respuestas } from '../../domain/nutricion/encuesta'
 
 const TOPE_RESULTADOS = 8
 
+/**
+ * Lo mínimo para que un motivo sea un motivo y no un punto para salir del paso.
+ *
+ * Es el mismo umbral que el `check` de la migración 0040. Si cambia uno, cambia
+ * el otro: si la pantalla dejara pasar menos de lo que acepta la base, el veto
+ * se guardaría en el dispositivo y reventaría al subir —y lo que revienta al
+ * subir se encola, y la cola de descartados tiene tope.
+ */
+const MOTIVO_MINIMO = 3
+
+const motivoSuficiente = (motivo: string) => motivo.trim().length >= MOTIVO_MINIMO
+
 interface SheetVetadosProps {
   /** El asesorado cuyo panel está abierto. `null` cierra la hoja. */
   asesoradoId: string | null
@@ -61,6 +73,11 @@ function loQueEllaEscribio(respuestas: Respuestas): { etiqueta: string; texto: s
 export function SheetVetados({ asesoradoId, nombre, onCerrar }: SheetVetadosProps) {
   useDbVersion()
   const [consulta, setConsulta] = useState('')
+  // Elegir el alimento ya no lo veta: abre el paso del motivo. Son dos pasos a
+  // propósito —antes bastaba un toque— porque un veto sin motivo es una decisión
+  // clínica que dentro de tres meses nadie sabe explicar.
+  const [elegido, setElegido] = useState<{ id: string; nombre: string } | null>(null)
+  const [motivo, setMotivo] = useState('')
 
   if (!asesoradoId) return null
 
@@ -109,15 +126,67 @@ export function SheetVetados({ asesoradoId, nombre, onCerrar }: SheetVetadosProp
         className="mt-1 w-full rounded-2xl border border-linea bg-surface-2 px-3 py-2 text-sm text-texto"
       />
 
-      {resultados.length > 0 && (
+      {elegido && (
+        <div className="mt-2 rounded-2xl border border-accion bg-surface-2 p-3">
+          <p className="text-sm font-semibold leading-snug text-texto">{elegido.nombre}</p>
+
+          <label htmlFor="motivo-veto" className="mt-3 block text-xs font-semibold text-texto">
+            ¿Por qué no puede comerlo?
+          </label>
+          <p className="mt-1 text-[11px] leading-snug text-tenue">
+            Lo va a leer quien revise esto dentro de tres meses. «Alergia declarada en la
+            encuesta» sirve; «no puede» no dice nada.
+          </p>
+          <input
+            id="motivo-veto"
+            type="text"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="alergia, condición médica, indicación del médico…"
+            className="mt-2 w-full rounded-2xl border border-linea bg-surface-1 px-3 py-2 text-sm text-texto"
+          />
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={!motivoSuficiente(motivo)}
+              onClick={() => {
+                db.vetados.vetar({
+                  usuarioId: asesoradoId,
+                  alimentoId: elegido.id,
+                  motivo: motivo.trim(),
+                })
+                setElegido(null)
+                setMotivo('')
+                setConsulta('')
+              }}
+              className="press flex-1 rounded-2xl bg-accion py-2 text-xs font-semibold text-white disabled:opacity-40"
+            >
+              Vetar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setElegido(null)
+                setMotivo('')
+              }}
+              className="press rounded-2xl border border-linea px-4 py-2 text-xs font-semibold text-tenue"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!elegido && resultados.length > 0 && (
         <ul className="mt-2 flex flex-col gap-1">
           {resultados.map((alimento) => (
             <li key={alimento.id}>
               <button
                 type="button"
                 onClick={() => {
-                  db.vetados.vetar({ usuarioId: asesoradoId, alimentoId: alimento.id })
-                  setConsulta('')
+                  setElegido({ id: alimento.id, nombre: alimento.nombre })
+                  setMotivo('')
                 }}
                 className="press flex w-full items-center gap-2 rounded-2xl border border-linea bg-surface-1 p-2 text-left"
               >

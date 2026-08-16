@@ -307,14 +307,19 @@ describe('el registro de comidas sube a Supabase', () => {
      * La traducción de texto libre a alimentos es lo único que impide que la
      * app le proponga a alguien lo que le hace daño.
      */
-    it('vetar sube la fila', () => {
+    it('vetar sube la fila, con su motivo', () => {
       const { db, cola } = modulos!
-      db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido' })
+      db.vetados.vetar({
+        usuarioId: VALENTINA,
+        alimentoId: 'arroz-blanco-cocido',
+        motivo: 'alergia declarada en la encuesta',
+      })
 
       const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
       expect(op?.payload.asesorado_id).toBe(VALENTINA)
       expect(op?.payload.alimento_id).toBe('arroz-blanco-cocido')
       expect(op?.payload.borrado).toBe(false)
+      expect(op?.payload.motivo).toBe('alergia declarada en la encuesta')
     })
 
     it('QUITAR SUBE UN UPSERT CON borrado, no un delete', () => {
@@ -329,14 +334,25 @@ describe('el registro de comidas sube a Supabase', () => {
       expect(op?.payload.borrado).toBe(true)
     })
 
-    it('el motivo en blanco viaja como null, no como cadena vacía', () => {
-      // La tabla lo comprueba: `motivo is null or length(trim(motivo)) > 0`.
-      // Una cadena vacía haría fallar el upsert entero y el veto se perdería.
+    it('un motivo en blanco NO viaja como null: viaja con el hueco escrito', () => {
+      // Este test decía lo contrario hasta el 2026-08-16 -blanco viajaba como
+      // null- y era correcto entonces: la 0016 solo pide
+      // `motivo is null or length(trim(motivo)) > 0`.
+      //
+      // Deja de serlo con la 0040, que pone `not null`. Un null ahí revienta el
+      // upsert, y lo que revienta al subir se encola y la cola de descartados
+      // tiene tope: el veto se perdería en silencio, que es la peor forma de
+      // perder una fila que dice qué no puede comer alguien.
+      //
+      // Llegar aquí en blanco ya es un error de programación -el tipo obliga a
+      // traer motivo y la pantalla exige tres caracteres-, pero ante la duda se
+      // conserva el veto, no se descarta.
       const { db, cola } = modulos!
       db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'papa-cocida', motivo: '  ' })
 
       const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
-      expect(op?.payload.motivo).toBeNull()
+      expect(op?.payload.motivo).toBe('(sin motivo)')
+      expect(op?.payload.motivo).not.toBeNull()
     })
   })
 
