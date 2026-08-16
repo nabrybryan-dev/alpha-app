@@ -70,6 +70,31 @@ comment on column public.perfil_alimentario_veto.motivo is
 --   select conname from pg_constraint
 --    where conname='perfil_alimentario_veto_motivo_escrito';   -- tiene que salir
 --
--- Y que de verdad rechaza, que es lo único que prueba que sirve:
+-- Y que de verdad rechaza, que es lo único que prueba que sirve.
+--
+-- CUIDADO CON QUÉ SE PRUEBA. Esta columna tiene DOS checks:
+--
+--   perfil_alimentario_veto_motivo_check      (0016)  motivo IS NULL OR length(trim(motivo)) > 0
+--   perfil_alimentario_veto_motivo_escrito    (0040)  length(trim(motivo)) >= 3
+--
+-- El de la 0016 ya rechazaba el motivo en blanco —lo que dejaba pasar era el
+-- NULL—, así que probar con '  ' choca contra ÉL y no demuestra nada de esta
+-- migración: habría fallado igual antes de aplicarla. Es el mismo error que las
+-- señales ciegas de la 0013 (ver PR #47): una prueba que no distingue el mundo
+-- de antes del mundo de después.
+--
+-- Las dos que sí aíslan esta migración, corridas contra producción el
+-- 2026-08-16 y fallando las dos, como debe ser:
+--
+--   -- 'ok' pasa el check de la 0016 (no está vacío) y choca contra el de la 0040:
 --   insert into perfil_alimentario_veto (asesorado_id, alimento_id, motivo)
---   values ('<uuid>', 'res-higado-crudo', '  ');   -- debe fallar
+--   values ('<uuid>', 'res-higado-crudo', 'ok');
+--   -- ERROR 23514 ... viola «perfil_alimentario_veto_motivo_escrito»
+--
+--   -- el NULL que la 0016 dejaba entrar:
+--   insert into perfil_alimentario_veto (asesorado_id, alimento_id, motivo)
+--   values ('<uuid>', 'res-higado-crudo', null);
+--   -- ERROR 23502 ... viola la restricción not-null
+--
+-- Los dos inserts fallan, así que no dejan basura: la tabla se quedó en 0 filas.
+-- Con un uuid inventado basta — los CHECK se evalúan antes que la FK.
