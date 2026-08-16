@@ -138,12 +138,25 @@ describe a una persona.
 
 La regla que sale de ahí:
 
-| `despensaEs` | qué se hace con la cantidad |
-|---|---|
-| solo para mí | entra en los cálculos |
-| para toda la casa | **se guarda y se ve, pero no entra en ningún cálculo** |
+| `despensaEs` | en los cálculos | en pantalla |
+|---|---|---|
+| solo para mí | entra | cantidad: «pollo · ~1,2 kg» |
+| para toda la casa | **no entra** | **solo presencia: «hay pollo»** |
 
 Es exactamente el mismo trato que la `0024` le da a lo que no sabe resolver.
+
+**Decidido el 2026-08-16: cuando la despensa es de la casa, la pantalla no enseña
+la cantidad.** Ni siquiera marcada como orientativa.
+
+La alternativa —enseñarla con una etiqueta de «aproximado»— parece más informativa
+y es peor: un número en pantalla se usa para decidir, diga lo que diga la etiqueta
+de al lado. Nadie lee la letra pequeña de su propia nevera. Si el número no puede
+sostener una decisión, no se enseña; y «hay pollo» ya sostiene la única decisión
+que importa aquí, que es no recomendar lo que no está.
+
+La cantidad se sigue **guardando** —la nutricionista la ve, y sirve para saber si
+alguien compró proteína para tres días o para quince— pero no viaja a la pantalla
+del asesorado.
 
 **Lo que NO se hace: preguntar cuántos viven en casa y dividir.** Nadie come un
 cuarto de la nevera. Esa división es el número medio con pinta de medido que este
@@ -259,11 +272,12 @@ dos preguntas distintas y la segunda no contesta la primera.
   mantiene ese paso o la despensa se llena sola al empezar el ciclo? Cambia la
   pantalla, no el modelo de datos. La fase 2 lo responde de una forma: la
   confirmación de la factura ES ese paso.
-- **Si la despensa es de la casa, ¿qué se le enseña a la persona?** La cantidad se
-  guarda pero no se calcula, así que la pantalla no puede decir «te quedan 4
-  raciones». ¿Enseña solo la presencia («hay pollo, hay arroz»), o enseña la
-  cantidad marcada como orientativa? Lo segundo invita a que alguien la use para
-  decidir, que es lo que se quiere evitar.
+- **Si la persona cambia de `despensaEs` a mitad de ciclo** —se muda, deja de
+  vivir sola— ¿qué pasa con las cantidades ya guardadas? Lo barato es que la regla
+  se aplique al leer y no al escribir: se guarda siempre, y lo que decide si se
+  calcula y si se enseña es el valor de HOY. Así un cambio de respuesta no obliga a
+  reescribir nada. Queda apuntado porque es una decisión de implementación con
+  consecuencias, no un detalle.
 - **Qué pasa con el catálogo empaquetado.** El spec §11 ya lo apuntaba: los
   alimentos van dentro del build, así que añadir uno exige redesplegar. Su
   propuesta —una tabla `alimento_extra` que se fusiona al leer— sigue pendiente y
