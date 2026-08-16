@@ -720,3 +720,86 @@ body {
     opacity: 0.85;
   }
 }
+
+/* ExerciseSlotMachine — solo interior del gabinete --------------------------- */
+/* Estas cinco familias se usan EXCLUSIVAMENTE dentro del marco de la máquina.
+   Ni una sola aparece en el resto de la app: fuera de ese rectángulo la
+   pantalla es Alfa Athletics puro. */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Alfa+Slab+One&family=Anton&family=Cinzel:wght@600;900&family=Bungee&display=swap');
+
+@keyframes bulbPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.88); }
+}
+
+@keyframes neonFlicker {
+  0%, 100% { opacity: 1; }
+  42% { opacity: 1; }
+  44% { opacity: 0.35; }
+  46% { opacity: 1; }
+  72% { opacity: 1; }
+  73% { opacity: 0.5; }
+  74% { opacity: 1; }
+}
+
+@keyframes ledScan {
+  from { background-position: 0 0; }
+  to { background-position: 14px 0; }
+}
+
+@keyframes ribbonSway {
+  0%, 100% { transform: rotate(-1.4deg); }
+  50% { transform: rotate(1.4deg); }
+}
+
+@keyframes winPulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes coinFall {
+  from { opacity: 0; transform: translateY(-14px) scale(0.7); }
+  60% { opacity: 1; }
+  to { opacity: 0; transform: translateY(10px) scale(1); }
+}
+
+@keyframes shimmerSweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(220%); }
+}
+
+/* Recetas — esqueleto de carga y aviso de registro -------------------------- */
+
+/**
+ * El brillo va en un pseudo-elemento sobre `transform`, no animando un
+ * `background-position`: así se queda en el compositor y no repinta la tarjeta
+ * en cada fotograma mientras el carrusel se desplaza.
+ */
+.brillo-carga {
+  position: relative;
+  overflow: hidden;
+}
+
+.brillo-carga::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent);
+  animation: shimmerSweep 1.45s ease-in-out infinite;
+}
+
+@keyframes avisoSube {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.aviso-registro {
+  animation: avisoSube 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Quien pidió menos movimiento no quiere un barrido infinito en pantalla. */
+@media (prefers-reduced-motion: reduce) {
+  .brillo-carga::after { animation: none; opacity: 0; }
+  .aviso-registro { animation: none; }
+}

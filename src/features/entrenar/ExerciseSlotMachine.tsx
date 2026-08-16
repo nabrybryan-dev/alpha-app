@@ -1,54 +1,36 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
+import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './slotThemes'
 
 /**
- * La cabecera del ejercicio como un gabinete de tragamonedas: en vez de un
- * título estático, un tambor que rota entre cinco datos del ejercicio actual.
+ * La sala de máquinas: cinco gabinetes distintos, uno por ejercicio.
+ *
+ * El asesorado entra a la sesión y cada ejercicio le pone delante otra
+ * máquina — otra tipografía, otra disposición, otros símbolos, otra palanca,
+ * otra cadencia. `THEMES[index % 5]`, sin aleatorizar, para que pueda
+ * reconocer «la del ejercicio 3».
+ *
+ * EL GABINETE ES UNA ISLA. Todo lo temático vive dentro del marco; la línea
+ * superior y el resto de la sesión conservan la tipografía y los colores del
+ * sistema.
  *
  * El movimiento es decorativo; la INFORMACIÓN nunca lo es. El nombre completo
- * está siempre en el árbol de accesibilidad aunque el tambor esté en otra
- * parada, la parada visible se anuncia por `aria-live`, y con
- * `prefers-reduced-motion` no gira solo: cambia con un fundido.
+ * está siempre en el árbol de accesibilidad, la parada visible se anuncia por
+ * `aria-live`, y con `prefers-reduced-motion` el gabinete conserva toda su
+ * estética: solo se apaga el movimiento.
  *
- * DECISIÓN PENDIENTE: el brief pide acento volt (#c8ff1e) y los tokens
- * `--glow-volt` y `--ease-power`. Este proyecto no los tiene: su acento es el
- * rojo Alpha (`--accion`) y así está declarado en `tokens.css` —«si aparece en
- * otra pantalla, es que algo se copió mal»—. Como el encargo prohíbe tocar los
- * tokens globales y hardcodear colores, se usa `--accion` y `--glow-accion`.
- * Si la marca cambia a volt, se cambia el token y esto sigue igual.
- *
- * DECISIÓN PENDIENTE: el brief pide iconos Lucide, pero Lucide no está
- * instalado y las dependencias nuevas están prohibidas. Los trazos van en
- * línea, que es lo que ya hace el resto de la app.
+ * DECISIÓN PENDIENTE: el encargo cita el acento volt (#c8ff1e) para el
+ * exterior. Este proyecto usa el rojo Alfa (`--accion`) y su `tokens.css` lo
+ * declara así; tocar tokens globales está prohibido. La línea superior usa el
+ * token existente. Dentro del gabinete manda el acento de cada tema, que sí es
+ * volt en la máquina 3.
  */
 
-/** Alto de la ventana y de cada fila de la cinta. */
-const ALTO = 104
-/** Milisegundos por paso mientras gira. */
-const PASO_MS = 62
-/** Cuánto gira antes de frenar. */
-const GIRO_MS = 900
-/** Pasos del giro, derivados de la duración: 900 / 62 ≈ 15. */
-const PASOS_GIRO = Math.round(GIRO_MS / PASO_MS)
-
-/**
- * Cuánto dura el paso número `restantes` (va de PASOS_GIRO a 1).
- *
- * Una tragamonedas de verdad **frena**: los últimos giros se separan y el ojo
- * alcanza a leer un símbolo antes del siguiente. Ese titubeo final es lo que
- * genera la expectativa; una cinta a velocidad constante que se para en seco
- * se lee como un carrusel con prisa.
- *
- * Los cuatro últimos pasos se estiran progresivamente hasta triplicar la
- * cadencia de crucero.
- */
-function intervaloDePaso(restantes: number): number {
-  if (restantes > 4) return PASO_MS
-  return PASO_MS * (1 + (5 - restantes) * 0.55)
-}
-/** Cuánto dura el destello del marco al aterrizar. */
-const DESTELLO_MS = 620
-/** Cada cuánto gira solo mientras la sesión está viva. */
-const AUTO_MS = 4200
+/** Milisegundos que dura el destello de premio. */
+const PREMIO_MS = 780
+/** Cada cuánto sube el bote de las marquesinas LED. */
+const BOTE_MS = 2600
+/** Créditos con los que arranca la máquina. */
+const CREDITOS_INICIALES = 25
 
 export interface ExerciseSlotMachineProps {
   index: number
@@ -60,6 +42,7 @@ export interface ExerciseSlotMachineProps {
   refVisual?: string
   categoria: string
   rango: string
+  /** Anulado a propósito: el giro por reloj competía con la lectura. */
   autoSpin?: boolean
   paused?: boolean
   onRefTap?: () => void
@@ -68,55 +51,39 @@ export interface ExerciseSlotMachineProps {
 interface Parada {
   etiqueta: string
   valor: string
-  tono: 'texto' | 'accion' | 'oro'
-  icono: ReactElement
+  simbolo: ClaveSimbolo
   accion?: boolean
 }
 
-const trazo = {
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.7,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  viewBox: '0 0 24 24',
-}
-
-/** Trazos de Lucide en línea: dumbbell, move-3d, layers, notebook-pen, play-circle. */
-const ICONOS = {
-  dumbbell: <svg {...trazo} className="h-5 w-5"><path d="M14.4 14.4 9.6 9.6M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l1.767-1.768a2 2 0 1 1 2.829 2.829z" /><path d="m21.5 21.5-1.4-1.4M3.9 3.9 2.5 2.5" /><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.767a2 2 0 1 1 2.829 2.829z" /></svg>,
-  move3d: <svg {...trazo} className="h-5 w-5"><path d="M5 3v16h16M5 19l6-6M15 8l4-4M19 4h-4M19 4v4" /></svg>,
-  layers: <svg {...trazo} className="h-5 w-5"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" /><path d="m6.08 10.37-3.5 1.6a1 1 0 0 0 0 1.81l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9a1 1 0 0 0 0-1.83l-3.5-1.59" /></svg>,
-  nota: <svg {...trazo} className="h-5 w-5"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h6M8 7h6M8 11h4" /><path d="M18.4 9.6a2 2 0 0 1 3 3L17 17l-4 1 1-4Z" /></svg>,
-  play: <svg {...trazo} className="h-5 w-5"><circle cx="12" cy="12" r="10" /><path d="m10 8 6 4-6 4Z" /></svg>,
-}
-
-/** Símbolos de casino: zap, star, flame, align-justify, sparkles. */
-const SIMBOLOS = [
-  <svg key="zap" {...trazo} className="h-4 w-4"><path d="M4 14h7l-3 7 12-11h-7l3-7z" /></svg>,
-  <svg key="star" {...trazo} className="h-4 w-4"><path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.4l6-.8z" /></svg>,
-  <svg key="flame" {...trazo} className="h-4 w-4"><path d="M12 3c2 4 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 .5 1 1 1.5 2 2 0-3 .5-5 1-7Z" /></svg>,
-  <svg key="barras" {...trazo} className="h-4 w-4"><path d="M4 6h16M4 12h16M4 18h16" /></svg>,
-  <svg key="comodin" {...trazo} className="h-4 w-4"><path d="m12 3 1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4z" /><path d="M19 15.5 19.7 17l1.5.7-1.5.7-.7 1.5-.7-1.5-1.5-.7 1.5-.7z" /></svg>,
-]
-
-function construirParadas(p: ExerciseSlotMachineProps): Parada[] {
-  const paradas: Parada[] = [
-    { etiqueta: 'Ejercicio', valor: p.nombre, tono: 'texto', icono: ICONOS.dumbbell },
-  ]
-  // Los datos opcionales que no vengan simplemente no crean parada: con menos
-  // de cinco el tambor gira igual y el layout no se rompe.
-  if (p.patron) paradas.push({ etiqueta: 'Patrón de movimiento', valor: p.patron, tono: 'accion', icono: ICONOS.move3d })
-  if (p.clase) paradas.push({ etiqueta: 'Categoría del ejercicio', valor: p.clase, tono: 'oro', icono: ICONOS.layers })
-  if (p.tecnica) paradas.push({ etiqueta: 'Nota técnica', valor: p.tecnica, tono: 'texto', icono: ICONOS.nota })
-  if (p.refVisual) paradas.push({ etiqueta: 'Referencia visual', valor: p.refVisual, tono: 'accion', icono: ICONOS.play, accion: true })
+function construirParadas(p: ExerciseSlotMachineProps, tema: SlotTheme): Parada[] {
+  const s = tema.simbolos
+  const paradas: Parada[] = [{ etiqueta: 'Ejercicio', valor: p.nombre, simbolo: s[0] }]
+  // Los datos opcionales que no vengan no crean parada: con menos de cinco la
+  // máquina gira igual y el layout no se rompe.
+  if (p.patron) paradas.push({ etiqueta: 'Patrón', valor: p.patron, simbolo: s[1] })
+  if (p.clase) paradas.push({ etiqueta: 'Categoría', valor: p.clase, simbolo: s[2] })
+  if (p.tecnica) paradas.push({ etiqueta: 'Nota técnica', valor: p.tecnica, simbolo: s[3] })
+  if (p.refVisual) paradas.push({ etiqueta: 'Referencia', valor: p.refVisual, simbolo: s[4], accion: true })
   return paradas
 }
 
-const CLASE_TONO: Record<Parada['tono'], string> = {
-  texto: 'text-texto',
-  accion: 'text-accion',
-  oro: 'text-[color:var(--oro)]',
+function Icono({ clave, tam }: { clave: ClaveSimbolo; tam: number }) {
+  const s = SIMBOLOS[clave]
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={tam}
+      height={tam}
+      fill={s.relleno ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={s.relleno ? 0 : 1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={s.path} />
+    </svg>
+  )
 }
 
 function useMovimientoReducido(): boolean {
@@ -134,164 +101,184 @@ function useMovimientoReducido(): boolean {
 }
 
 export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
-  const { index, total, categoria, rango, autoSpin = true, paused = false, onRefTap } = props
+  const { index, total, categoria, rango, autoSpin = false, paused = false, onRefTap } = props
   const { nombre, patron, clase, tecnica, refVisual } = props
-  // Las dependencias son los CAMPOS, no el objeto `props`: su identidad cambia
-  // en cada render, y con ella `girarA` y el efecto de montaje — cuya limpieza
-  // cancelaba el giro antes de que llegara a aterrizar.
+  const tema = useMemo(() => temaDeEjercicio(index), [index])
   const paradas = useMemo(
-    () => construirParadas({ ...props, nombre, patron, clase, tecnica, refVisual }),
+    () => construirParadas({ ...props, nombre, patron, clase, tecnica, refVisual }, tema),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo los campos que crean paradas
-    [nombre, patron, clase, tecnica, refVisual],
+    [nombre, patron, clase, tecnica, refVisual, tema],
   )
   const reducido = useMovimientoReducido()
 
   const [catIdx, setCatIdx] = useState(0)
   const [rOff, setROff] = useState(0)
-  const [rSpin, setRSpin] = useState(false)
-  const [rSnap, setRSnap] = useState(false)
-  const [flash, setFlash] = useState(false)
+  const [sideA, setSideA] = useState(0)
+  const [sideB, setSideB] = useState(0)
+  const [spinC, setSpinC] = useState(false)
+  const [spinA, setSpinA] = useState(false)
+  const [spinB, setSpinB] = useState(false)
+  const [snap, setSnap] = useState(false)
   const [leverDown, setLeverDown] = useState(false)
+  const [win, setWin] = useState(false)
+  const [credits, setCredits] = useState(CREDITOS_INICIALES)
+  const [jackTick, setJackTick] = useState(0)
   const relojes = useRef<number[]>([])
 
-  const limpiarRelojes = useCallback(() => {
+  const limpiar = useCallback(() => {
     relojes.current.forEach((r) => clearTimeout(r))
     relojes.current = []
   }, [])
-
   const programar = useCallback((fn: () => void, ms: number) => {
     relojes.current.push(window.setTimeout(fn, ms))
   }, [])
 
   /**
-   * La física del giro, en cuatro tiempos: snap sin transición, giro a ciegas,
-   * frenada con un solo rebote, y destello del marco al aterrizar.
+   * Los tres carretes arrancan a la vez y a velocidades distintas, y PARAN
+   * ESCALONADOS: izquierdo al 50 % del frenado, derecho al 76 %, central al
+   * 100 %. Ese orden es el que produce la tensión — parar los tres a la vez
+   * se lee como un carrusel.
    */
   const girarA = useCallback(
     (destino: number) => {
       if (paradas.length < 2) return
       const objetivo = ((destino % paradas.length) + paradas.length) % paradas.length
-      limpiarRelojes()
+      limpiar()
+      setCredits((c) => (c <= 1 ? CREDITOS_INICIALES : c - 1))
 
       if (reducido) {
         setCatIdx(objetivo)
-        setROff(objetivo)
         return
       }
 
-      setRSnap(true)
-      setRSpin(true)
-      // Se cuentan PASOS, no reloj de pared: 900 ms a 62 ms por paso son 15.
-      // Contar el tiempo con `Date.now()` deja el giro a merced de que el
-      // navegador —o un test— tenga el reloj congelado.
-      let restantes = PASOS_GIRO
-      const paso = () => {
-        setROff((o) => o + 1)
-        restantes -= 1
-        if (restantes > 0) programar(paso, intervaloDePaso(restantes))
-        else {
-          setRSpin(false)
-          setRSnap(false)
+      setSnap(true)
+      setSpinC(true)
+      setSpinA(true)
+      setSpinB(true)
+
+      const filas = paradas.length * 2
+      const correr = (
+        avanzar: () => void,
+        detener: () => void,
+        paso: number,
+        hasta: number,
+      ) => {
+        let restante = Math.max(1, Math.round(hasta / paso))
+        const tic = () => {
+          avanzar()
+          restante -= 1
+          if (restante > 0) programar(tic, paso)
+          else detener()
+        }
+        programar(tic, paso)
+      }
+
+      correr(() => setSideA((o) => o + 1), () => setSpinA(false), tema.step * 0.72, tema.brake * 0.5)
+      correr(() => setSideB((o) => o + 1), () => setSpinB(false), tema.step * 0.88, tema.brake * 0.76)
+      correr(
+        () => setROff((o) => o + 1),
+        () => {
+          setSpinC(false)
+          setSnap(false)
           setCatIdx(objetivo)
           setROff((o) => {
-            // La cinta cuenta MEDIAS filas: las pares son paradas y las impares
-            // símbolos. Aterrizar siempre en par es lo que deja el dato
-            // centrado en la ventana, y pasar por las impares es lo que deja
-            // ver los símbolos mientras gira.
-            const filas = paradas.length * 2
+            // Media fila por paso: pares = paradas, impares = símbolos.
             const destinoFila = objetivo * 2
             const restante = ((destinoFila - (o % filas)) + filas) % filas
             return o + restante + filas
           })
-          setFlash(true)
-          programar(() => setFlash(false), DESTELLO_MS)
-        }
-      }
-      programar(paso, PASO_MS)
+          setWin(true)
+          programar(() => setWin(false), PREMIO_MS)
+        },
+        tema.step,
+        tema.brake,
+      )
     },
-    [limpiarRelojes, paradas.length, programar, reducido],
+    [limpiar, paradas.length, programar, reducido, tema.brake, tema.step],
   )
 
-  /**
-   * Al entrar, un giro de bienvenida.
-   *
-   * No hace falta un efecto por cambio de ejercicio: `SesionPage` monta la
-   * tarjeta con `key={ejercicio.id}`, así que al cambiar de ejercicio este
-   * componente se remonta entero y vuelve a pasar por aquí.
-   *
-   * El giro se PROGRAMA, no se lanza en el cuerpo del efecto: llamar a `girarA`
-   * aquí sería un `setState` síncrono dentro de un efecto, que es un error de
-   * lint en este repo y encadena renders.
-   */
+  // Al entrar al ejercicio: un giro que aterriza en el nombre. Se programa en
+  // vez de lanzarse en el cuerpo del efecto — un setState síncrono ahí es un
+  // error de lint en este repo y encadena renders.
   useEffect(() => {
-    // Va por `programar` a propósito: si el asesorado tira de la palanca antes
-    // de que arranque, `limpiarRelojes` lo cancela. Con un `setTimeout` suelto
-    // sobrevivía y pisaba el tirón un segundo después.
-    programar(() => girarA(0), PASO_MS)
-    return limpiarRelojes
-  }, [girarA, limpiarRelojes, programar])
+    programar(() => girarA(0), 60)
+    return limpiar
+  }, [girarA, limpiar, programar])
 
-  // El giro automático. Se detiene con la celebración, la sesión terminada y
-  // la pestaña sin foco: nadie mira una tragamonedas que gira sola en segundo
-  // plano, y con `reduce` no arranca nunca.
-  // La parada actual, espejada en un ref para que el temporizador no se
-  // recree cada vez que cambia. Se escribe en un efecto, nunca en el render.
-  const catIdxRef = useRef(0)
+  // El giro por reloj queda ANULADO por defecto. La prop sigue ahí para poder
+  // reactivarlo sin tocar código.
+  const catRef = useRef(0)
   useEffect(() => {
-    catIdxRef.current = catIdx
+    catRef.current = catIdx
   }, [catIdx])
   useEffect(() => {
     if (!autoSpin || paused || reducido || paradas.length < 2) return
     const tic = window.setInterval(() => {
-      if (document.visibilityState === 'visible') girarA(catIdxRef.current + 1)
-    }, AUTO_MS)
+      if (document.visibilityState === 'visible') girarA(catRef.current + 1)
+    }, 4200)
     return () => clearInterval(tic)
   }, [autoSpin, paused, reducido, paradas.length, girarA])
 
+  // El bote de las marquesinas LED sube solo. Con `reduce`, se queda quieto.
+  useEffect(() => {
+    if (!tema.bote || reducido) return
+    const tic = window.setInterval(() => setJackTick((t) => t + 1), BOTE_MS)
+    return () => clearInterval(tic)
+  }, [tema.bote, reducido])
+
   const tirar = () => {
     setLeverDown(true)
-    window.setTimeout(() => setLeverDown(false), 260)
+    window.setTimeout(() => setLeverDown(false), 300)
     girarA(catIdx + 1)
   }
 
   const visible = paradas[catIdx] ?? paradas[0]
-  // Media fila por paso: pares = paradas, impares = símbolos.
   const filas = Math.max(1, paradas.length * 2)
   const pos = reducido ? catIdx : ((rOff % filas) + filas) % filas
+  const bote = tema.bote ? tema.bote + jackTick * 7 : undefined
 
   return (
     <div
-      className="rounded-[19px] p-[1.5px] transition-shadow duration-300"
-      style={{
-        backgroundImage: 'var(--metal-grad)',
-        boxShadow: flash ? 'var(--glow-accion)' : undefined,
-      }}
+      style={{ backgroundImage: tema.marco.fondo, padding: tema.marco.padding, borderRadius: tema.marco.radius }}
     >
-      <div className="rounded-[17.5px] bg-ink-800 px-3 pb-2.5 pt-2">
-        <FilaSuperior index={index} total={total} categoria={categoria} rango={rango} />
-        <Marquesina />
+      <div
+        style={{
+          background: tema.cuerpo.fondo,
+          borderRadius: tema.cuerpo.radius,
+          border: tema.cuerpo.borde,
+          padding: tema.cuerpo.padding,
+          fontFamily: tema.fuente,
+        }}
+      >
+        <LineaSuperior index={index} total={total} categoria={categoria} rango={rango} acento={tema.acento} />
+        <Corona tema={tema} />
+        <MarquesinaTema tema={tema} reducido={reducido} bote={bote} />
 
-        <div className="mt-2 flex items-stretch gap-2">
-          <span className="w-[7px] shrink-0 rounded-full" style={{ backgroundImage: 'var(--metal-grad)' }} aria-hidden="true" />
+        <div className="mt-2.5 flex items-stretch gap-2">
+          {tema.carretes && <Carrete tema={tema} off={sideA} spin={spinA} blur={1.6} reducido={reducido} />}
 
           <Ventana
+            tema={tema}
             paradas={paradas}
             pos={pos}
-            rSpin={rSpin}
-            rSnap={rSnap}
+            spin={spinC}
+            snap={snap}
             reducido={reducido}
-            flash={flash}
+            win={win}
+            catIdx={catIdx}
             onRefTap={onRefTap}
           />
 
-          <Palanca abajo={leverDown} onTirar={tirar} />
+          {tema.carretes && <Carrete tema={tema} off={sideB} spin={spinB} blur={1.4} reducido={reducido} />}
+
+          <Palanca tema={tema} abajo={leverDown} onTirar={tirar} />
         </div>
 
-        <Paginador paradas={paradas} catIdx={catIdx} onIr={girarA} />
+        <Paginador tema={tema} paradas={paradas} catIdx={catIdx} onIr={girarA} />
+        <Bandeja tema={tema} credits={credits} win={win} reducido={reducido} />
       </div>
 
-      {/* El nombre completo, siempre, aunque el tambor esté en otra parada. */}
-      <span className="sr-only">{props.nombre}</span>
+      <span className="sr-only">{nombre}</span>
       <span className="sr-only" aria-live="polite">
         {visible ? `${visible.etiqueta}: ${visible.valor}` : ''}
       </span>
@@ -299,19 +286,22 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
   )
 }
 
-function FilaSuperior({ index, total, categoria, rango }: { index: number; total: number; categoria: string; rango: string }) {
+/** Fuera del tema: tipografía y colores del sistema. */
+function LineaSuperior({
+  index, total, categoria, rango, acento,
+}: { index: number; total: number; categoria: string; rango: string; acento: string }) {
   const dos = (n: number) => String(n).padStart(2, '0')
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center justify-between gap-2 font-sans">
       <span className="flex min-w-0 items-center gap-2">
         <span className="cifras shrink-0 text-[9.5px] font-bold text-tenue">
           Ejercicio {dos(index + 1)} / {dos(total)}
         </span>
         <span className="h-2.5 w-px shrink-0 bg-linea" aria-hidden="true" />
-        <span className="truncate text-[9.5px] font-bold uppercase tracking-[0.16em] text-accion">{categoria}</span>
+        <span className="truncate text-[9.5px] font-bold uppercase tracking-[0.16em]" style={{ color: acento }}>
+          {categoria}
+        </span>
       </span>
-      {/* El dato ya viene con paréntesis a veces —«(10-14)»— y a veces sin
-          ellos. Se normaliza aquí para no acabar con «Rango ((10-14))». */}
       <span className="cifras shrink-0 text-[9.5px] font-bold text-tenue">
         Rango ({rango.replace(/[()]/g, '')})
       </span>
@@ -319,75 +309,214 @@ function FilaSuperior({ index, total, categoria, rango }: { index: number; total
   )
 }
 
-function Marquesina() {
+function Corona({ tema }: { tema: SlotTheme }) {
+  const base: CSSProperties = { color: tema.acento, fontFamily: tema.fuente }
+  if (tema.id === 'liberty') {
+    return (
+      <div className="mt-2 text-center" style={{ borderBottom: '2px double rgba(200,173,110,.45)', paddingBottom: 6 }}>
+        <div style={{ ...base, fontWeight: 900, fontSize: 19, letterSpacing: '.16em', textShadow: '0 2px 0 rgba(0,0,0,.7)' }}>
+          {tema.nombre}
+        </div>
+        <div style={{ ...base, fontStyle: 'italic', fontSize: 10, letterSpacing: '.3em', color: '#8a733f' }}>{tema.anio}</div>
+      </div>
+    )
+  }
+  if (tema.id === 'fruit') {
+    return (
+      <div className="mt-2 flex items-baseline justify-center gap-2">
+        <span style={{ ...base, fontSize: 20, color: '#efe4cd', textShadow: '2px 2px 0 #a8261c, 4px 4px 0 rgba(0,0,0,.5)' }}>
+          {tema.nombre}
+        </span>
+        <span style={{ ...base, fontSize: 10, color: '#a8261c' }}>{tema.anio}</span>
+      </div>
+    )
+  }
+  if (tema.id === 'sevens') {
+    return (
+      <div className="mt-2 flex items-baseline justify-between gap-2">
+        <span style={{ ...base, fontSize: 21, color: '#dde3e7', textShadow: '0 0 18px rgba(200,255,30,.35)' }}>
+          {tema.nombre}
+        </span>
+        <span className="cifras" style={{ fontSize: 10, letterSpacing: '.24em', color: tema.acento }}>{tema.anio}</span>
+      </div>
+    )
+  }
+  if (tema.id === 'diamond') {
+    return (
+      <div className="mt-2 text-center">
+        <div style={{ ...base, fontWeight: 900, fontSize: 18, letterSpacing: '.4em', color: '#cfe9f6', textShadow: `0 0 14px ${tema.acento}55` }}>
+          {tema.nombre}
+        </div>
+        <div style={{ ...base, fontWeight: 600, fontSize: 9, letterSpacing: '.42em', color: '#5d7f92' }}>{tema.anio}</div>
+      </div>
+    )
+  }
   return (
-    <div className="mt-1.5 flex justify-between px-1" aria-hidden="true">
-      {Array.from({ length: 12 }, (_, i) => (
+    <div
+      className="mt-2 flex items-baseline justify-center gap-2 py-1"
+      style={{ borderTop: '2px solid rgba(216,180,95,.35)', borderBottom: '2px solid rgba(216,180,95,.35)' }}
+    >
+      <span style={{ ...base, fontSize: 17, color: '#d8b45f', textShadow: '0 2px 0 #4a3a14' }}>{tema.nombre}</span>
+      <span style={{ ...base, fontSize: 9, color: tema.acento }}>{tema.anio}</span>
+    </div>
+  )
+}
+
+function MarquesinaTema({ tema, reducido, bote }: { tema: SlotTheme; reducido: boolean; bote?: number }) {
+  if (tema.marquesina === 'bombillas') {
+    return (
+      <div className="mt-2 flex justify-between px-0.5" aria-hidden="true">
+        {Array.from({ length: 13 }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              width: 7, height: 7, borderRadius: 999, background: tema.acento,
+              boxShadow: `0 0 9px ${tema.acento}`,
+              animation: reducido ? undefined : `bulbPulse 1.4s ease-in-out ${i * 115}ms infinite`,
+            }}
+          />
+        ))}
+      </div>
+    )
+  }
+  if (tema.marquesina === 'banderin') {
+    return (
+      <div className="mt-2 flex justify-center" aria-hidden="true">
         <span
-          key={i}
-          className="h-[5px] w-[5px] rounded-full bg-accion"
-          style={{ animation: `bombilla-tragamonedas 1.6s ease-in-out ${i * 130}ms infinite` }}
-        />
-      ))}
+          style={{
+            background: 'linear-gradient(180deg,#e2564a,#a8261c)',
+            boxShadow: '0 3px 0 #6d160f',
+            borderRadius: 4, padding: '3px 14px',
+            fontFamily: tema.fuente, fontSize: 11, color: '#ffeccf',
+            animation: reducido ? undefined : 'ribbonSway 3.4s ease-in-out infinite',
+          }}
+        >
+          BELL · FRUIT · GUM
+        </span>
+      </div>
+    )
+  }
+  if (tema.marquesina === 'neon') {
+    const tubo = (dur: string): CSSProperties => ({
+      height: 9, flex: 1, borderRadius: 999,
+      background: 'linear-gradient(90deg, rgba(200,255,30,.2), #c8ff1e 45%, rgba(200,255,30,.2))',
+      boxShadow: '0 0 16px rgba(200,255,30,.6)',
+      animation: reducido ? undefined : `neonFlicker ${dur} linear infinite`,
+    })
+    return (
+      <div className="mt-2 flex items-center gap-2" aria-hidden="true">
+        <span style={tubo('4.5s')} />
+        <span style={{ fontFamily: tema.fuente, fontSize: 13, color: '#e2564a', animation: reducido ? undefined : 'neonFlicker 3.1s linear infinite' }}>777</span>
+        <span style={tubo('5.3s')} />
+      </div>
+    )
+  }
+  // LED con bote
+  return (
+    <div
+      className="mt-2 flex items-center gap-2 px-2 py-1"
+      style={{ background: '#05080a', border: '1px solid rgba(255,255,255,.08)', borderRadius: 3 }}
+      aria-hidden="true"
+    >
+      <span style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: 10, letterSpacing: '.3em', color: tema.acento }}>
+        JACKPOT
+      </span>
+      <span
+        style={{
+          flex: 1, height: 5,
+          backgroundImage: `repeating-linear-gradient(90deg, ${tema.acento}e6 0 6px, transparent 6px 14px)`,
+          animation: reducido ? undefined : 'ledScan .85s linear infinite',
+        }}
+      />
+      <span className="cifras" style={{ fontSize: 14, color: tema.acento, textShadow: `0 0 10px ${tema.acento}88` }}>
+        {bote?.toLocaleString('es-CO')}
+      </span>
+    </div>
+  )
+}
+
+function Carrete({ tema, off, spin, blur, reducido }: { tema: SlotTheme; off: number; spin: boolean; blur: number; reducido: boolean }) {
+  const s = tema.simbolos
+  return (
+    <div
+      className="shrink-0 overflow-hidden"
+      style={{ width: 40, height: tema.ventana.alto, background: '#0b0907', border: '2px solid #5a4a2a', borderRadius: 3 }}
+      aria-hidden="true"
+    >
+      <div
+        style={{
+          transform: reducido ? undefined : `translateY(-${(off % s.length) * (tema.ventana.alto / 2)}px)`,
+          filter: spin && !reducido ? `blur(${blur}px)` : undefined,
+          transition: spin ? 'none' : 'transform .5s cubic-bezier(.14,1.06,.32,1)',
+        }}
+      >
+        {[...s, ...s].map((clave, i) => (
+          <div key={i} className="grid place-items-center" style={{ height: tema.ventana.alto / 2, color: tema.acento, opacity: 0.75 }}>
+            <Icono clave={clave} tam={20} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 function Ventana({
-  paradas, pos, rSpin, rSnap, reducido, flash, onRefTap,
+  tema, paradas, pos, spin, snap, reducido, win, catIdx, onRefTap,
 }: {
+  tema: SlotTheme
   paradas: Parada[]
   pos: number
-  rSpin: boolean
-  rSnap: boolean
+  spin: boolean
+  snap: boolean
   reducido: boolean
-  flash: boolean
+  win: boolean
+  catIdx: number
   onRefTap?: () => void
 }) {
-  const transicion = rSnap
-    ? 'none'
-    : reducido
-      ? 'opacity 160ms ease-out'
-      : 'transform 420ms cubic-bezier(.14,1.06,.32,1)'
+  const alto = tema.ventana.alto
+  const transicion = snap ? 'none' : reducido ? 'opacity 160ms ease-out' : 'transform .68s cubic-bezier(.14,1.06,.32,1)'
+  const marca = (lado: 'left' | 'right') => (
+    <span
+      aria-hidden="true"
+      className={`absolute top-1/2 flex -translate-y-1/2 flex-col gap-1.5 ${lado === 'left' ? 'left-0' : 'right-0'}`}
+    >
+      {[0, 1].map((i) => (
+        <span key={i} style={{ width: 4, height: 18, background: tema.acento, opacity: 0.55 }} />
+      ))}
+    </span>
+  )
 
   return (
     <div
-      className="relative flex-1 overflow-hidden rounded-xl border bg-ink-900"
+      className="relative flex-1 overflow-hidden"
       style={{
-        height: ALTO,
-        borderColor: flash ? 'var(--accion)' : 'rgb(var(--accion-rgb) / 0.3)',
-        boxShadow: 'var(--inset-top-light)',
+        height: alto,
+        borderRadius: tema.ventana.radius,
+        background: tema.ventana.fondo,
+        border: tema.ventana.borde,
+        boxShadow: tema.ventana.sombra,
       }}
     >
-      <MarcasDeLinea lado="left" />
-      <MarcasDeLinea lado="right" />
+      {marca('left')}
+      {marca('right')}
 
-      {/*
-        Cada bloque mide DOS filas: la parada y, debajo, los símbolos de casino.
-        La cinta se desplaza de dos en dos, así que en la ventana solo cae una
-        de las dos — los símbolos únicamente se perciben mientras gira, que es
-        lo que hace que parezca una tragamonedas y no un carrusel.
-
-        Con una sola altura por bloque los símbolos se desbordaban ENCIMA del
-        texto de la parada. Se veía en la app, no en los tests.
-      */}
       <div
         style={{
-          transform: reducido ? undefined : `translateY(-${pos * ALTO}px)`,
+          transform: reducido ? undefined : `translateY(-${pos * alto}px)`,
           transition: transicion,
-          filter: rSpin ? 'blur(1.1px)' : undefined,
+          filter: spin && !reducido ? 'blur(1.2px)' : undefined,
         }}
       >
         {paradas.map((parada, i) => (
           <div key={parada.etiqueta}>
-            {/* Alto explícito por fila: con `h-full` el hijo heredaba los dos
-                altos del bloque y el dato caía al borde inferior. */}
-            <div style={{ height: ALTO }}>
-              <FilaParada parada={parada} oculta={reducido && i !== pos} onRefTap={onRefTap} />
+            <div style={{ height: alto }}>
+              <Disposicion tema={tema} parada={parada} oculta={reducido && i !== catIdx} onRefTap={onRefTap} />
             </div>
             {!reducido && (
-              <div style={{ height: ALTO }}>
-                <FilaSimbolos indice={i} />
+              <div className="flex items-center justify-center" style={{ height: alto, gap: 22, color: tema.acento, opacity: 0.62 }} aria-hidden="true">
+                {tema.simbolos.slice(i % 3, (i % 3) + 3).map((clave, k) => (
+                  <Icono key={k} clave={clave} tam={30} />
+                ))}
               </div>
             )}
           </div>
@@ -397,119 +526,243 @@ function Ventana({
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(8,9,10,.82), transparent 34%, transparent 66%, rgba(8,9,10,.82))',
-        }}
+        style={{ background: 'linear-gradient(180deg, rgba(8,9,10,.86), transparent 32%, transparent 68%, rgba(8,9,10,.86))' }}
       />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{ background: `linear-gradient(${tema.id === 'diamond' ? 118 : 74}deg, rgba(255,255,255,.07) 0 18%, transparent 46%)` }}
+      />
+      {win && !reducido && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{ boxShadow: `inset 0 0 34px ${tema.acento}66`, animation: 'winPulse .34s ease-in-out 2' }}
+        />
+      )}
     </div>
   )
 }
 
-function MarcasDeLinea({ lado }: { lado: 'left' | 'right' }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`absolute top-1/2 flex -translate-y-1/2 flex-col gap-1 ${lado === 'left' ? 'left-0' : 'right-0'}`}
-    >
-      {Array.from({ length: 4 }, (_, i) => (
-        <span key={i} className="h-[3px] w-[22px] rounded-full bg-accion/45" />
-      ))}
-    </span>
-  )
-}
+/** Cinco layouts genuinamente distintos, no variantes de estilo. */
+function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; parada: Parada; oculta: boolean; onRefTap?: () => void }) {
+  const esNombre = parada.etiqueta === 'Ejercicio'
+  const largo = parada.valor.length > 26
+  const cuerpo = (n: number, r: number, l: number) => (esNombre ? n : largo ? l : r)
+  const envoltura = (hijos: ReactElement) =>
+    parada.accion && onRefTap ? (
+      <button type="button" onClick={onRefTap} className="h-full w-full" style={{ opacity: oculta ? 0 : 1 }}>
+        {hijos}
+      </button>
+    ) : (
+      <div className="h-full w-full" style={{ opacity: oculta ? 0 : 1 }} aria-hidden={oculta}>
+        {hijos}
+      </div>
+    )
 
-function FilaParada({ parada, oculta, onRefTap }: { parada: Parada; oculta: boolean; onRefTap?: () => void }) {
-  const contenido = (
-    <>
-      <span className={`grid h-[52px] w-[52px] shrink-0 place-items-center rounded-xl bg-surface-2 ${CLASE_TONO[parada.tono]}`}>
-        {parada.icono}
-      </span>
-      <span className="min-w-0 flex-1 text-left">
-        <span className="cifras block text-[8.5px] font-bold uppercase tracking-[0.14em] text-tenue">
-          {parada.etiqueta}
+  if (tema.id === 'liberty') {
+    const filete = <span style={{ width: 26, height: 1, background: `linear-gradient(90deg, transparent, ${tema.acento})` }} />
+    return envoltura(
+      <div className="flex h-full flex-col items-center justify-center gap-1 px-4 text-center">
+        <span className="flex items-center gap-2" style={{ color: tema.acento }}>
+          {filete}
+          <Icono clave={parada.simbolo} tam={15} />
+          <span style={{ fontFamily: tema.fuente, fontStyle: 'italic', fontSize: 10.5, letterSpacing: '.1em', color: '#c8ad6e' }}>
+            {parada.etiqueta}
+          </span>
+          <span style={{ width: 26, height: 1, background: `linear-gradient(90deg, ${tema.acento}, transparent)` }} />
         </span>
-        <span
-          className={`mt-0.5 block leading-tight ${CLASE_TONO[parada.tono]} ${
-            parada.etiqueta === 'Ejercicio' ? 'text-[19px] font-black' : 'text-[13.5px] font-semibold'
-          }`}
-        >
+        <span style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: cuerpo(23, 17, 15), color: tema.tono, textWrap: 'balance', lineHeight: 1.15 }}>
           {parada.valor}
         </span>
-      </span>
-    </>
-  )
-
-  const clases = 'flex h-full w-full items-center gap-3 px-3'
-  if (parada.accion && onRefTap) {
-    return (
-      <button type="button" onClick={onRefTap} className={`press ${clases}`} style={{ opacity: oculta ? 0 : 1 }}>
-        {contenido}
-      </button>
+      </div>,
     )
   }
-  return (
-    <div className={clases} style={{ opacity: oculta ? 0 : 1 }} aria-hidden={oculta}>
-      {contenido}
-    </div>
-  )
-}
 
-/**
- * La fila de símbolos que va entre parada y parada. Solo se percibe durante el
- * giro: es lo que hace que parezca una tragamonedas y no un carrusel.
- */
-function FilaSimbolos({ indice }: { indice: number }) {
-  return (
-    <div className="flex h-full items-center justify-around px-6 text-tenue opacity-50" aria-hidden="true">
-      {SIMBOLOS.map((s, i) => (
-        <span key={i} className={i === indice % SIMBOLOS.length ? 'text-accion' : undefined}>
-          {s}
+  if (tema.id === 'fruit') {
+    return envoltura(
+      <div className="flex h-full items-center gap-3 px-3">
+        <span
+          className="grid shrink-0 place-items-center rounded-full"
+          style={{ width: 54, height: 54, background: 'radial-gradient(circle at 40% 30%, #241c15, #0c0907)', border: '2px solid #d9c9a6', color: '#e2564a' }}
+        >
+          <Icono clave={parada.simbolo} tam={25} />
         </span>
-      ))}
-    </div>
+        <span className="min-w-0 flex-1">
+          <span style={{ display: 'inline-block', background: '#a8261c', padding: '2px 8px', borderRadius: 2, fontFamily: tema.fuente, fontSize: 8, color: '#ffeccf', textTransform: 'uppercase' }}>
+            {parada.etiqueta}
+          </span>
+          <span className="mt-1 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(19, 14, 12.5), color: tema.tono, lineHeight: 1.15 }}>
+            {parada.valor}
+          </span>
+        </span>
+      </div>,
+    )
+  }
+
+  if (tema.id === 'sevens') {
+    return envoltura(
+      <div className="grid h-full items-center px-2" style={{ gridTemplateColumns: '54px 1fr 26px' }}>
+        <span className="grid h-full place-items-center" style={{ color: tema.acento, borderRight: '1px dashed rgba(200,255,30,.22)' }}>
+          <Icono clave={parada.simbolo} tam={24} />
+        </span>
+        <span className="min-w-0 px-3">
+          <span className="cifras block" style={{ fontSize: 8, letterSpacing: '.24em', color: '#8a9299', textTransform: 'uppercase' }}>
+            {parada.etiqueta}
+          </span>
+          <span className="mt-0.5 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(23, 18, 15), color: tema.tono, textTransform: 'uppercase', lineHeight: 1.1 }}>
+            {parada.valor}
+          </span>
+        </span>
+        <span className="grid h-full place-items-center" style={{ borderLeft: '1px dashed rgba(200,255,30,.22)', fontFamily: tema.fuente, fontSize: 15, color: '#e2564a', opacity: 0.75 }}>
+          7
+        </span>
+      </div>,
+    )
+  }
+
+  if (tema.id === 'diamond') {
+    return envoltura(
+      <div className="relative flex h-full items-center justify-end pl-16 pr-4">
+        <span className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2" style={{ color: tema.acento, opacity: 0.17 }} aria-hidden="true">
+          <Icono clave={parada.simbolo} tam={86} />
+        </span>
+        <span className="pointer-events-none absolute bottom-3 top-3" style={{ left: 62, width: 1, background: `linear-gradient(180deg, transparent, ${tema.acento}66, transparent)` }} aria-hidden="true" />
+        <span className="min-w-0 text-right">
+          <span className="block" style={{ fontFamily: tema.fuente, fontWeight: 600, fontSize: 8.5, letterSpacing: '.34em', color: '#5d7f92', textTransform: 'uppercase' }}>
+            {parada.etiqueta}
+          </span>
+          <span className="mt-1 block" style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: cuerpo(20, 15.5, 13.5), letterSpacing: '.03em', color: tema.tono, textWrap: 'balance', lineHeight: 1.2 }}>
+            {parada.valor}
+          </span>
+        </span>
+      </div>,
+    )
+  }
+
+  // Cash Bonanza: la información va impresa sobre una plancha de billete.
+  return envoltura(
+    <div className="h-full" style={{ padding: '9px 11px' }}>
+      <div
+        className="relative flex h-full items-center gap-2.5 px-3"
+        style={{
+          border: '1.5px solid rgba(200,155,70,.55)', borderRadius: 4,
+          backgroundColor: '#0a120d',
+          backgroundImage: 'repeating-linear-gradient(135deg, rgba(127,201,141,.05) 0 6px, transparent 6px 12px)',
+        }}
+      >
+        <span className="absolute left-1.5 top-1" style={{ fontFamily: tema.fuente, fontSize: 7.5, color: '#c89b46' }} aria-hidden="true">A</span>
+        <span className="absolute bottom-1 right-1.5" style={{ fontFamily: tema.fuente, fontSize: 7.5, color: '#c89b46' }} aria-hidden="true">A</span>
+        <span className="grid shrink-0 place-items-center rounded-full" style={{ width: 46, height: 46, border: '1.5px dashed #c89b46', color: tema.acento }}>
+          <Icono clave={parada.simbolo} tam={22} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block" style={{ fontFamily: tema.fuente, fontSize: 7.5, letterSpacing: '.16em', color: tema.acento, textTransform: 'uppercase' }}>
+            {parada.etiqueta}
+          </span>
+          <span className="mt-0.5 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(15, 12, 10.5), color: tema.tono, lineHeight: 1.2 }}>
+            {parada.valor}
+          </span>
+        </span>
+      </div>
+    </div>,
   )
 }
 
-function Palanca({ abajo, onTirar }: { abajo: boolean; onTirar: () => void }) {
+function Palanca({ tema, abajo, onTirar }: { tema: SlotTheme; abajo: boolean; onTirar: () => void }) {
+  const p = tema.palanca
   return (
-    <div className="flex w-[44px] shrink-0 flex-col items-center justify-center gap-1">
+    <div className="flex shrink-0 flex-col items-center justify-center gap-1" style={{ width: 48 }}>
       <button
         type="button"
         onClick={onTirar}
         aria-label="Girar información del ejercicio"
         className="flex flex-col items-center"
         style={{
-          transform: abajo ? 'rotate(26deg)' : 'rotate(0deg)',
+          transform: abajo ? `rotate(${p.grados}deg) translateY(${p.baja}px)` : 'rotate(0deg)',
           transformOrigin: 'bottom center',
-          transition: 'transform 260ms cubic-bezier(.14,1.06,.32,1)',
+          transition: `transform ${p.vuelta}`,
         }}
       >
-        <span className="h-[22px] w-[22px] rounded-full bg-accion" style={{ boxShadow: 'var(--glow-accion)' }} />
-        <span className="h-8 w-[6px] rounded-b-full" style={{ backgroundImage: 'var(--metal-grad)' }} />
+        <span
+          style={{
+            width: p.pomoTam, height: p.pomoTam,
+            borderRadius: p.rombo ? 3 : 999,
+            transform: p.rombo ? 'rotate(45deg)' : undefined,
+            background: p.pomo,
+            boxShadow: `0 4px 10px rgba(0,0,0,.6), 0 0 12px ${tema.acento}55`,
+          }}
+        />
+        <span style={{ width: p.vastagoAncho, height: 30, background: p.vastago, borderRadius: p.rombo ? 0 : '0 0 4px 4px' }} />
       </button>
-      <span className="cifras text-[8px] font-bold tracking-[0.12em] text-tenue">TIRAR</span>
+      <span style={{ fontFamily: tema.fuente, fontSize: 8, color: tema.acento, fontStyle: tema.id === 'liberty' ? 'italic' : undefined }}>
+        {p.etiqueta}
+      </span>
     </div>
   )
 }
 
-function Paginador({ paradas, catIdx, onIr }: { paradas: Parada[]; catIdx: number; onIr: (i: number) => void }) {
+function Paginador({ tema, paradas, catIdx, onIr }: { tema: SlotTheme; paradas: Parada[]; catIdx: number; onIr: (i: number) => void }) {
   return (
-    <div className="mt-2 flex items-center justify-center gap-1.5">
-      {paradas.map((parada, i) => (
-        <button
-          key={parada.etiqueta}
-          type="button"
-          onClick={() => onIr(i)}
-          aria-label={`Ver ${parada.etiqueta.toLowerCase()}`}
-          aria-current={i === catIdx}
-          className="h-1.5 rounded-full transition-all duration-300"
-          style={{
-            width: i === catIdx ? 22 : 6,
-            background: i === catIdx ? 'var(--accion)' : 'var(--linea)',
-          }}
-        />
-      ))}
+    <div className="mt-2 flex items-center justify-center">
+      {paradas.map((parada, i) => {
+        const activo = i === catIdx
+        const forma: CSSProperties =
+          tema.punto === 'rombo'
+            ? { width: 9, height: 9, borderRadius: 2, transform: 'rotate(45deg)' }
+            : tema.punto === 'circulo'
+              ? { width: 9, height: 9, borderRadius: 999 }
+              : { width: activo ? (tema.id === 'fruit' ? 24 : 22) : 8, height: 8, borderRadius: 2 }
+        return (
+          <button
+            key={parada.etiqueta}
+            type="button"
+            onClick={() => onIr(i)}
+            aria-label={`Ver ${parada.etiqueta.toLowerCase()}`}
+            aria-current={activo}
+            // Área táctil de 44px aunque el punto mida 9.
+            className="grid place-items-center"
+            style={{ width: 44, height: 44 }}
+          >
+            <span style={{ ...forma, background: activo ? tema.acento : '#4a4133', transition: 'width .3s ease-out' }} />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function Bandeja({ tema, credits, win, reducido }: { tema: SlotTheme; credits: number; win: boolean; reducido: boolean }) {
+  return (
+    <div className="mt-1 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(255,255,255,.07)', paddingTop: 7 }}>
+      <span className="flex items-center gap-2" style={{ color: tema.acento }}>
+        <span className="flex items-center gap-1" aria-hidden="true">
+          {tema.bandeja.simbolos.map((clave, i) => (
+            <Icono key={i} clave={clave} tam={13} />
+          ))}
+        </span>
+        <span style={{ fontFamily: tema.fuente, fontSize: 8.5, opacity: 0.85, fontStyle: tema.id === 'liberty' ? 'italic' : undefined }}>
+          {tema.bandeja.leyenda}
+        </span>
+      </span>
+      <span className="relative flex items-center gap-1.5">
+        {win && !reducido && (
+          <span
+            aria-hidden="true"
+            className="absolute -left-4"
+            style={{ color: tema.acento, animation: 'coinFall .4s ease-out' }}
+          >
+            <Icono clave="moneda" tam={12} />
+          </span>
+        )}
+        <span style={{ fontFamily: tema.fuente, fontSize: 7.5, letterSpacing: '.14em', color: '#7d7d7d' }}>CRÉDITOS</span>
+        <span
+          className={tema.id === 'sevens' ? 'cifras' : undefined}
+          style={{ fontFamily: tema.id === 'sevens' ? undefined : tema.fuente, fontWeight: 900, fontSize: tema.id === 'liberty' ? 15 : 14, color: tema.acento }}
+        >
+          {credits}
+        </span>
+      </span>
     </div>
   )
 }
