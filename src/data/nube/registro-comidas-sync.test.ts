@@ -309,7 +309,11 @@ describe('el registro de comidas sube a Supabase', () => {
      */
     it('vetar sube la fila', () => {
       const { db, cola } = modulos!
-      db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'arroz-blanco-cocido' })
+      db.vetados.vetar({
+        usuarioId: VALENTINA,
+        alimentoId: 'arroz-blanco-cocido',
+        motivo: 'alergia declarada',
+      })
 
       const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
       expect(op?.payload.asesorado_id).toBe(VALENTINA)

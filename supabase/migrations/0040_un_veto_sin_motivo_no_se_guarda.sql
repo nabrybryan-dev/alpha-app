@@ -20,34 +20,46 @@
 -- sobre las filas viejas: inventarles un motivo o dejarlas fuera de la regla.
 -- La ventana se cierra sola, y probablemente esta semana.
 --
--- ⛔ NO APLICAR TODAVÍA. ROMPE EL PANEL DE VETOS.
+-- ⚠️ APLICAR SOLO DESPUÉS DE DESPLEGAR EL PASO 1. Ver abajo.
 --
+-- HISTORIA, PARA QUE NO SE REPITA
 -- Este bloque decía que la app no escribe en esta tabla. ERA FALSO, y la
 -- migración se aplicó el 2026-08-16 creyéndoselo. Hubo que revertirla el mismo
--- día. Lo que hay de verdad:
---
---   SheetVetados.tsx:119   db.vetados.vetar({ usuarioId, alimentoId })   ← sin motivo
---   sync.ts:328            motivo: veto.motivo?.trim() || null           ← lo manda NULL
---   types.ts:383           motivo?: string                               ← opcional en el tipo
---
--- Es el panel que la PR #42 desplegó para la nutricionista. Con el NOT NULL
--- puesto, su primer veto falla — y falla por el peor camino: la operación se
--- encola, el upsert revienta, y la cola de descartados tiene tope. Se pierde en
--- silencio.
+-- día. Con el NOT NULL puesto y la pantalla de entonces, el primer veto de
+-- Manuela fallaba por el peor camino: la operación se encola, el upsert
+-- revienta, y la cola de descartados tiene tope. Se perdía en silencio, y ella
+-- lo veía marcado en su pantalla.
 --
 -- No lo notó nadie porque la tabla estaba en 0 filas. Se descubrió leyendo
--- `sync.ts` para otra cosa.
+-- `sync.ts` para otra cosa. La lección, que es la de siempre en este repo: se
+-- comprobó que nadie LEÍA la tabla desde `src/` y se dio por hecho que nadie la
+-- escribía. La cadena de escritura no pasa por la pantalla, pasa por `sync.ts`,
+-- y ahí no se miró.
 --
--- EL ORDEN CORRECTO, que esta misma migración ya decía y se hizo al revés:
---
---   1. `SheetVetados` pide el motivo, con su test.
---   2. Desplegar.
+-- EL ORDEN CORRECTO
+--   1. `SheetVetados` pide el motivo, con su test.   ← HECHO el 2026-08-16
+--   2. Desplegar.                                    ← ¿ya está en producción?
 --   3. Entonces sí, aplicar esto.
 --   4. Señal a SI, y comprobar que rechaza de verdad.
 --
--- La lección, que es la de siempre en este repo: se comprobó que nadie LEÍA la
--- tabla desde `src/` y se dio por hecho que nadie la escribía. La cadena de
--- escritura no pasa por la pantalla, pasa por `sync.ts`, y ahí no se miró.
+-- ESTADO DEL PASO 1 (2026-08-16)
+-- La app ya no puede escribir un veto sin motivo, y no por disciplina:
+--
+--   repos.ts        vetar(veto: VetoAlimento & { motivo: string })  ← no compila sin él
+--   SheetVetados    pide el motivo antes de vetar, y lo MUESTRA en la lista
+--   motivoDeVeto.ts misma regla que el check de abajo: trim >= 3
+--
+-- El tipo es lo que de verdad cierra el agujero: cualquier sitio nuevo que
+-- intente grabar un veto sin decir por qué falla al compilar. Cuando se cambió,
+-- el compilador destapó los 4 sitios que lo hacían.
+--
+-- El mínimo de `motivoDeVeto.ts` y el `check` de esta migración son el MISMO
+-- número por obligación. Si la pantalla fuera más permisiva, la escritura
+-- pasaría la validación local y moriría contra el constraint. Hay un test que
+-- compara los dos veredictos caso por caso.
+--
+-- ANTES DE PEGAR ESTO: comprueba que el paso 2 está hecho. Si la versión en
+-- producción es anterior al despliegue de hoy, vuelve a romperse igual.
 
 -- Red de seguridad. Si entre que esto se escribió y se corre alguien codificó
 -- vetos, la migración se planta con un mensaje claro en vez de reventar en el

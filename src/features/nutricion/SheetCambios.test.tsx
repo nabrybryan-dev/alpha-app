@@ -93,7 +93,11 @@ describe('la hoja de cambios', () => {
     )
     // Se veta ANTES de pintar: quitarlo después dispararía un render fuera de
     // `act`, y ese aviso enseña a ignorar avisos.
-    db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: primero.alimento.id })
+    db.vetados.vetar({
+      usuarioId: VALENTINA,
+      alimentoId: primero.alimento.id,
+      motivo: 'alergia declarada',
+    })
 
     abrir('150 g de arroz blanco')
     expect(screen.getByRole('dialog').textContent).not.toContain(primero.alimento.nombre)
