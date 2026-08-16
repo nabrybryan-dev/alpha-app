@@ -287,7 +287,11 @@ function FilaSuperior({ index, total, categoria, rango }: { index: number; total
         <span className="h-2.5 w-px shrink-0 bg-linea" aria-hidden="true" />
         <span className="truncate text-[9.5px] font-bold uppercase tracking-[0.16em] text-accion">{categoria}</span>
       </span>
-      <span className="cifras shrink-0 text-[9.5px] font-bold text-tenue">Rango ({rango})</span>
+      {/* El dato ya viene con paréntesis a veces —«(10-14)»— y a veces sin
+          ellos. Se normaliza aquí para no acabar con «Rango ((10-14))». */}
+      <span className="cifras shrink-0 text-[9.5px] font-bold text-tenue">
+        Rango ({rango.replace(/[()]/g, '')})
+      </span>
     </div>
   )
 }

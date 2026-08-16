@@ -24,7 +24,10 @@ export function ReelPlayer({ media, handle }: { media: Receta['media']; handle: 
   }
 
   return (
-    <div className="relative aspect-[9/16] w-full overflow-hidden rounded-tarjeta bg-ink-900">
+    // El 9:16 se acota por ALTO, no por ancho: sin tope, en una pantalla
+    // grande el reel ocupa toda la hoja y empuja el ajuste fuera de la vista,
+    // que es justo el dato por el que se abre esto.
+    <div className="relative mx-auto aspect-[9/16] h-[52dvh] w-auto overflow-hidden rounded-tarjeta bg-ink-900">
       {media.videoUrl ? (
         <video
           ref={video}
