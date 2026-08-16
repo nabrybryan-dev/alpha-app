@@ -754,4 +754,19 @@ select '0039 - hambre escala en la vista', 'columna nueva y la vista sin invoker
          ) as senales
        ) = 2 then 'SI' else 'NO' end
 
+union all
+-- El NOT NULL y el check de contenido, los dos. Por separado no bastan: con el
+-- NOT NULL solo, un motivo de un espacio pasa; con el check solo, un NULL pasa.
+select '0040 - un veto sin motivo no se guarda', 'motivo not null y con contenido',
+       case when (
+         select count(*) from (
+           select 1 from information_schema.columns
+            where table_schema = 'public' and table_name = 'perfil_alimentario_veto'
+              and column_name = 'motivo' and is_nullable = 'NO'
+           union all
+           select 1 from pg_constraint
+            where conname = 'perfil_alimentario_veto_motivo_escrito'
+         ) as senales
+       ) = 2 then 'SI' else 'NO' end
+
 order by migracion, senal;
