@@ -129,12 +129,17 @@ begin
   select u.id into v_uid from public.usuarios_app u where u.nombre = p_nombre;
   if v_uid is null then return 'NO ENCONTRADO: ' || p_nombre; end if;
 
+  -- POR `estado`, NUNCA por `numero desc`. Con dos bloques conviviendo, el
+  -- número más alto es el del bloque VIEJO: Karin tenía el M3 activo y un M20
+  -- del bloque 1, y Laura un M3 activo con un M25. Clonar por `numero desc`
+  -- creaba M21 y M26 — el bogus que hubo que borrar a mano el 2026-08-09 y que
+  -- volvió a aparecer en el ensayo del 2026-08-16, porque el molde nunca se
+  -- arregló, solo el resultado.
   select m.numero, m.datos into v_num, v_datos
     from public.microciclos m
-   where m.usuario_id = v_uid
-   order by m.numero desc limit 1;
+   where m.usuario_id = v_uid and m.estado = 'activo';
 
-  if v_num is null then return 'SIN MICROCICLO: ' || p_nombre; end if;
+  if v_num is null then return 'SIN ACTIVO: ' || p_nombre; end if;
 
   v_id := 'm-' || p_slug || '-' || (v_num + 1);
 
@@ -147,9 +152,14 @@ begin
      set datos = excluded.datos, estado = 'activo', actualizado_en = now();
 
   -- Cierra el anterior en la COLUMNA y en el JSON (la app lee el JSON).
+  -- Las dos, siempre. El 2026-08-16 aparecieron **18 microciclos de julio con la
+  -- columna en 'cerrado' y el JSON en 'activo'**, de 17 asesorados: alguna carga
+  -- vieja cerró solo la columna. Como la app lee el JSON, esas 17 personas
+  -- arrastraban un microciclo fantasma abierto, y la comprobación de «un solo
+  -- activo» no lo veía porque contaba por la columna. Se corrigieron en bloque.
   update public.microciclos
      set estado = 'cerrado', datos = jsonb_set(datos, '{estado}', '"cerrado"')
-   where usuario_id = v_uid and numero = v_num;
+   where usuario_id = v_uid and numero = v_num and id <> v_id;
 
   return 'OK ' || p_slug || ' -> M' || (v_num + 1);
 end;
@@ -202,3 +212,12 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 --
 -- Es lo mismo que comprueba `comprobar-fosiles.sql`, que además distingue
 -- fósil de marca real por fecha.
+--
+-- Y una cuarta, añadida el 2026-08-16 porque las tres anteriores no la veían:
+-- el estado de la COLUMNA y el del JSON tienen que coincidir en toda la tabla.
+--
+--   select count(*) from public.microciclos
+--    where estado is distinct from (datos->>'estado');   -- tiene que dar 0
+--
+-- Contar activos por la columna daba «uno por persona» mientras 17 asesorados
+-- tenían un microciclo de julio con el JSON en 'activo'. La app lee el JSON.
