@@ -333,14 +333,26 @@ describe('el registro de comidas sube a Supabase', () => {
       expect(op?.payload.borrado).toBe(true)
     })
 
-    it('el motivo en blanco viaja como null, no como cadena vacía', () => {
-      // La tabla lo comprueba: `motivo is null or length(trim(motivo)) > 0`.
-      // Una cadena vacía haría fallar el upsert entero y el veto se perdería.
+    it('un motivo en blanco NO viaja como null: viaja con el hueco escrito', () => {
+      // Este test decía lo contrario -blanco viajaba como null- y era CORRECTO
+      // mientras la única regla fuera la de la 0016:
+      //
+      //   motivo is null or length(trim(motivo)) > 0
+      //
+      // Deja de serlo con la 0040, que añade `not null`. Un null ahí revienta el
+      // upsert, y lo que revienta al subir se encola: la cola de descartados
+      // tiene tope, así que el veto se perdería en silencio. La nutricionista lo
+      // vería marcado en su pantalla y en la nube no existiría.
+      //
+      // Llegar aquí en blanco ya es un error de programación -el tipo obliga a
+      // traer motivo y `porQueNoValeElMotivo` lo valida en la pantalla-, pero
+      // ante la duda se conserva el veto, no se descarta.
       const { db, cola } = modulos!
       db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'papa-cocida', motivo: '  ' })
 
       const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
-      expect(op?.payload.motivo).toBeNull()
+      expect(op?.payload.motivo).toBe('(sin motivo)')
+      expect(op?.payload.motivo).not.toBeNull()
     })
   })
 

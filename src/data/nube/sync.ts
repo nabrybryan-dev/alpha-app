@@ -325,7 +325,16 @@ export function crearDbSincronizada(local: Db): Db {
           payload: {
             asesorado_id: veto.usuarioId,
             alimento_id: veto.alimentoId,
-            motivo: veto.motivo?.trim() || null,
+            // NUNCA null y nunca cadena vacía: son los dos valores que la base
+            // rechaza, cada uno por su lado. `motivo is null or length > 0` es
+            // de la 0016; el `not null` con mínimo de 3 llega con la 0040.
+            //
+            // El tipo obliga a traer motivo y `porQueNoValeElMotivo` lo valida
+            // en la pantalla, así que llegar aquí en blanco es un error de
+            // programación. Ante eso se conserva el veto con el hueco escrito,
+            // no se descarta: la fila dice que esta persona no puede comer eso,
+            // y perderla es volver a proponérselo.
+            motivo: veto.motivo.trim() || '(sin motivo)',
             borrado: false,
           },
         })
