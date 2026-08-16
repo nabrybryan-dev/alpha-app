@@ -118,3 +118,72 @@ receta que lleve manzana. Merece una mirada.
 
 El vídeo no se aloja: con `handle` y `instagramPermalink` la hoja cae al póster
 con «Reel disponible en Instagram», que es el comportamiento correcto.
+
+---
+
+# Segunda tanda · barrido de cuentas
+
+Cambio de método. Buscar por etiqueta daba 4 resultados; **entrar al perfil de
+una cuenta da 12**, y recientes. Además los pies de foto se leen en bloque desde
+la propia página con la sesión abierta, sin navegar post a post: mucho más
+rápido y mucho más suave con el límite de Instagram.
+
+Lo que el HTML del perfil NO trae es la rejilla —Instagram la pinta con
+JavaScript—, así que hay que visitar cada cuenta. Una visita por cuenta, y de
+ahí todo lo demás sale en una operación.
+
+## Resultado del barrido
+
+| Cuenta | Publicaciones | Con receta | ¿Trae gramos? |
+|--------|--------------:|-----------:|---------------|
+| `@paufeel` | 12 | 6 | **Sí** |
+| `@tasty_hunting` | 12 | 8 | Parcial: la base sí, el relleno no |
+| `@cocinarebeca` | 12 | 6 | **Sí**, exactos |
+| `@tictacyummy` | 12 | 3 | No: «los ingredientes que prefieras» |
+
+## El patrón que importa para elegir cuentas
+
+**Las cuentas que dan gramos exactos son las de repostería y cocina general, no
+las fit.** Y tiene una explicación: en repostería la cantidad es obligatoria
+—80 g de galleta y 25 g de mantequilla o no cuaja—, mientras que en la cocina
+fit todo es «al gusto».
+
+El problema es que eso las cruza: `@cocinarebeca` da las cantidades al gramo,
+pero su cheesecake lleva 90 g de azúcar y 140 g de nata. Precisión sin encaje.
+
+Y al revés, `@tasty_hunting` es la que mejor encaja en el plan y es justo la que
+deja el relleno suelto: «PARA EL RELLENO: jamón, rúcula, aguacate y tomate».
+
+**Conclusión para elegir cuentas:** las que sirven son las fit que además miden,
+que son las menos. `@paufeel` es la mejor de las cuatro por eso.
+
+## Receta nueva, medida y lista
+
+### Hamburguesas de pollo y brócoli · `@paufeel`
+
+- **Enlace:** https://www.instagram.com/reel/DGsZWL8NZUH/
+- **Rinde:** 2 porciones
+- **Calculado:** **600 kcal** · 47 P · 3 C · 44 G por porción
+
+```ts
+const HAMBURGUESAS_DEL_REEL: IngredienteDelReel[] = [
+  { nombre: 'Contramuslo de pollo', enElReel: '300 g', alimentoId: 'pollo-contramuslo-sin-piel-crudo',            gramosTotales: 300, estado: 'crudo' },
+  { nombre: 'Brócoli rallado',      enElReel: '100 g', alimentoId: 'brocoli-crudo',                               gramosTotales: 100, estado: 'crudo' },
+  { nombre: 'Queso rallado',        enElReel: '60 g',  alimentoId: 'queso-madurado-duro-semigraso-tipo-parmesano', gramosTotales: 60,  estado: 'listo' },
+  { nombre: 'Huevo',                enElReel: '2 huevos', alimentoId: 'huevo-de-gallina-entero-crudo',            gramosTotales: 100, estado: 'crudo' },
+  { nombre: 'Aceite de oliva',      enElReel: '3 cucharadas', alimentoId: 'aceite-de-oliva',                      gramosTotales: 39,  estado: 'listo' },
+]
+```
+
+**Mira el aceite antes de publicarla.** Las 3 cucharadas son 39 g y se llevan
+unas 350 kcal de las 600 — más de la mitad del plato, y casi toda la grasa. Es
+el canje más evidente que he visto en las cuatro cuentas: bajarlo a una cucharada
+deja el plato en torno a 400 kcal sin tocar la proteína. Pero esa decisión es
+tuya.
+
+## Y una advertencia sobre patrocinios
+
+Una de las de `@tasty_hunting` (tosta de melocotón) empieza con **`Publi/`**: es
+contenido pagado de una marca de aceite, y el pie es medio anuncio. Mandar a un
+asesorado a un anuncio quizá no es lo que quieres. Conviene mirar esa marca en
+el pie antes de subir cualquiera.
