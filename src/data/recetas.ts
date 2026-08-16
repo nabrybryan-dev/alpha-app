@@ -76,6 +76,19 @@ export interface RecetaIngrediente {
   gramosParaTi?: number
   /** Crudo, cocido, seco… Cambia los macros; por defecto se asume crudo. */
   estado?: EstadoAlimento
+  /**
+   * La cantidad NO la dijo el creador: la puso el coach por referencia.
+   *
+   * Pasa constantemente. Los reels miden la base —«100 g de mozzarella»— y
+   * dejan el relleno suelto: «jamón, rúcula, aguacate y tomate». Para que la
+   * receta se pueda registrar hay que poner un número, y ese número es una
+   * estimación.
+   *
+   * Se marca porque si no, a los tres meses nadie distingue lo que dijo el
+   * creador de lo que asumimos nosotros, y las dos cosas se leen igual de
+   * ciertas. Marcado, se puede auditar y corregir; sin marcar, se hereda.
+   */
+  estimado?: boolean
 }
 
 export interface Receta {
