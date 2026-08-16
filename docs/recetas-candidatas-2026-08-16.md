@@ -121,6 +121,135 @@ con «Reel disponible en Instagram», que es el comportamiento correcto.
 
 ---
 
+# Segunda tanda · barrido de cuentas
+
+Cambio de método. Buscar por etiqueta daba 4 resultados; **entrar al perfil de
+una cuenta da 12**, y recientes. Además los pies de foto se leen en bloque desde
+la propia página con la sesión abierta, sin navegar post a post: mucho más
+rápido y mucho más suave con el límite de Instagram.
+
+Lo que el HTML del perfil NO trae es la rejilla —Instagram la pinta con
+JavaScript—, así que hay que visitar cada cuenta. Una visita por cuenta, y de
+ahí todo lo demás sale en una operación.
+
+## Resultado del barrido
+
+| Cuenta | Publicaciones | Con receta | ¿Trae gramos? |
+|--------|--------------:|-----------:|---------------|
+| `@paufeel` | 12 | 6 | **Sí** |
+| `@tasty_hunting` | 12 | 8 | Parcial: la base sí, el relleno no |
+| `@cocinarebeca` | 12 | 6 | **Sí**, exactos |
+| `@tictacyummy` | 12 | 3 | No: «los ingredientes que prefieras» |
+
+## El patrón que importa para elegir cuentas
+
+**Las cuentas que dan gramos exactos son las de repostería y cocina general, no
+las fit.** Y tiene una explicación: en repostería la cantidad es obligatoria
+—80 g de galleta y 25 g de mantequilla o no cuaja—, mientras que en la cocina
+fit todo es «al gusto».
+
+El problema es que eso las cruza: `@cocinarebeca` da las cantidades al gramo,
+pero su cheesecake lleva 90 g de azúcar y 140 g de nata. Precisión sin encaje.
+
+Y al revés, `@tasty_hunting` es la que mejor encaja en el plan y es justo la que
+deja el relleno suelto: «PARA EL RELLENO: jamón, rúcula, aguacate y tomate».
+
+**Conclusión para elegir cuentas:** las que sirven son las fit que además miden,
+que son las menos. `@paufeel` es la mejor de las cuatro por eso.
+
+## Receta nueva, medida y lista
+
+### Hamburguesas de pollo y brócoli · `@paufeel`
+
+- **Enlace:** https://www.instagram.com/reel/DGsZWL8NZUH/
+- **Rinde:** 2 porciones
+- **Calculado:** **600 kcal** · 47 P · 3 C · 44 G por porción
+
+```ts
+const HAMBURGUESAS_DEL_REEL: IngredienteDelReel[] = [
+  { nombre: 'Contramuslo de pollo', enElReel: '300 g', alimentoId: 'pollo-contramuslo-sin-piel-crudo',            gramosTotales: 300, estado: 'crudo' },
+  { nombre: 'Brócoli rallado',      enElReel: '100 g', alimentoId: 'brocoli-crudo',                               gramosTotales: 100, estado: 'crudo' },
+  { nombre: 'Queso rallado',        enElReel: '60 g',  alimentoId: 'queso-madurado-duro-semigraso-tipo-parmesano', gramosTotales: 60,  estado: 'listo' },
+  { nombre: 'Huevo',                enElReel: '2 huevos', alimentoId: 'huevo-de-gallina-entero-crudo',            gramosTotales: 100, estado: 'crudo' },
+  { nombre: 'Aceite de oliva',      enElReel: '3 cucharadas', alimentoId: 'aceite-de-oliva',                      gramosTotales: 39,  estado: 'listo' },
+]
+```
+
+**Mira el aceite antes de publicarla.** Las 3 cucharadas son 39 g y se llevan
+unas 350 kcal de las 600 — más de la mitad del plato, y casi toda la grasa. Es
+el canje más evidente que he visto en las cuatro cuentas: bajarlo a una cucharada
+deja el plato en torno a 400 kcal sin tocar la proteína. Pero esa decisión es
+tuya.
+
+## Y una advertencia sobre patrocinios
+
+Una de las de `@tasty_hunting` (tosta de melocotón) empieza con **`Publi/`**: es
+contenido pagado de una marca de aceite, y el pie es medio anuncio. Mandar a un
+asesorado a un anuncio quizá no es lo que quieres. Conviene mirar esa marca en
+el pie antes de subir cualquiera.
+
+---
+
+# Tercera tanda · las cinco cuentas de Bryan
+
+| Cuenta | Publicaciones | Con receta | Con gramos | Veredicto |
+|--------|--------------:|-----------:|-----------:|-----------|
+| `@isabellarodriguezu` | 12 | **7** | 3 | **La mejor de las cinco** |
+| `@healthylife_bymg` | 12 | 4 | 0 | Las coincidencias son de la preparación, no listas |
+| `@nutrikrn` | 12 | 0 | 0 | Divulgación y promoción |
+| `@rivas_nutricion` | 12 | 0 | 0 | Publicaciones de una línea |
+| `@draisabelabelajllo` | — | — | — | **No existe** (¿errata en el usuario?) |
+
+## Lo que separa a unas de otras
+
+No es «nutricionista sí, nutricionista no»: `@isabellarodriguezu` y `@nutrikrn`
+son las dos nutricionistas, y una sirve y la otra no. Lo que las separa es la
+**estrategia de contenido**:
+
+- `@isabellarodriguezu` publica **recetas**, con su lista y sus gramos.
+- `@nutrikrn` publica **divulgación y captación**: «¿Quieres tomar magnesio?»,
+  «Beneficios de esta sopita», «Mañana abrimos las inscripciones». Habla de
+  comida sin dar la receta.
+- `@rivas_nutricion` publica opinión en una línea: «📲🫡», «Nada más que decir».
+
+`@healthylife_bymg` es el caso tramposo: parece que tiene recetas porque la
+palabra «ingredientes» aparece, pero al leerlo es la **preparación** —«agrega los
+ingredientes secos»— y la lista no está en el pie. Debe de ir en el vídeo o en
+un comentario.
+
+## De `@isabellarodriguezu`
+
+Tres con cantidades de peso reales:
+
+- **Torta de banano con frosting de yogur griego** — 120 g yogur, 200 g yogur
+  para el frosting, 100 g chocolate oscuro
+- **Limonada de fresa y menta con sandía** — 250 g fresas, 250 g sandía, 60 g
+  jugo de limón, 500 ml
+- **Cremoso de pollo con cebollín** — 1 pechuga, 1 taza de yogur griego
+
+**Pero ninguna está medida del todo**, y aparece un obstáculo nuevo que no había
+salido antes:
+
+| Lo que dice | Problema |
+|-------------|----------|
+| `1 scoop de proteína` | Depende de la marca: entre 25 y 35 g, y los macros cambian mucho |
+| `1/2 taza de avena` | Convertible (~45 g), pero es asunción mía |
+| `mantequilla de frutos secos` | Sin cantidad |
+| `1 de banano maduro` | Sin peso, y además parece una errata del pie |
+
+El `scoop` es el peor de los cuatro: no es solo una cantidad que estimar, es un
+alimento que ni siquiera sé cuál es. Sin saber la marca no se puede mapear al
+catálogo.
+
+## Recomendación
+
+De las nueve cuentas revisadas ya, **`@paufeel` y `@isabellarodriguezu` son las
+dos que valen la pena seguir minando**. Las dos publican recetas de verdad, con
+listas, y al menos parte de las cantidades en peso.
+
+Y confirma lo de la segunda tanda: el cuello de botella nunca fue el acceso a
+Instagram. Es que **las recetas virales casi nunca están medidas del todo**, y
+cerrar ese hueco es una decisión de nutrición, no de scraping.
 # Cuarta tanda · las cantidades promediadas
 
 Decisión de Bryan (2026-08-16): cuando el reel no da la cantidad, la pongo yo
