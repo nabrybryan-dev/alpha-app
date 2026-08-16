@@ -440,6 +440,33 @@ export function crearMockDb(): Db {
       },
     },
 
+    vetados: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.vetosAlimentarios ?? []).filter((v) => v.usuarioId === usuarioId),
+      vetar: (veto) => {
+        mutar((estado) => ({
+          ...estado,
+          // Se reemplaza el que hubiera para ese alimento en vez de acumular:
+          // la tabla tiene unique (asesorado, alimento) y dos vetos del mismo
+          // alimento con motivos distintos no son dos hechos, son una edición.
+          vetosAlimentarios: [
+            ...(estado.vetosAlimentarios ?? []).filter(
+              (v) => !(v.usuarioId === veto.usuarioId && v.alimentoId === veto.alimentoId),
+            ),
+            veto,
+          ],
+        }))
+      },
+      quitar: (usuarioId, alimentoId) => {
+        mutar((estado) => ({
+          ...estado,
+          vetosAlimentarios: (estado.vetosAlimentarios ?? []).filter(
+            (v) => !(v.usuarioId === usuarioId && v.alimentoId === alimentoId),
+          ),
+        }))
+      },
+    },
+
     calibracion: {
       byUsuario: (usuarioId) =>
         (ref.actual.pruebasCalibracion ?? []).filter((p) => p.usuarioId === usuarioId),

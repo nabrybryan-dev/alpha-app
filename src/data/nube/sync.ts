@@ -17,7 +17,12 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
-import type { Mensaje } from '../../domain/types'
+import type { Mensaje, Microciclo } from '../../domain/types'
+import {
+  condicionesDeclaradas,
+  type RespuestasDeEmbarazo,
+} from '../../domain/nutricion/embarazo'
+import { aIso } from '../../domain/nutricion/semana'
 import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube } from '../supabase'
 import { encolar } from './procesador'
@@ -203,17 +208,26 @@ export function crearDbSincronizada(local: Db): Db {
         cambiarEstadoEnNube(propuestaId, 'activo')
         for (const m of activosPrevios) cambiarEstadoEnNube(m.id, 'cerrado')
       },
+      // Las tres escrituras del asesorado suben SOLO su rama, nunca el blob.
+      // Subir el microciclo entero desde el móvil pisó una migración del coach
+      // el 2026-08-15: ver `subirRama` y el spec del 15 de agosto.
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
-        subirMicrociclo(local, microcicloId)
+        subirSeries(local, microcicloId, ejercicioId)
       },
       guardarTestPost: (microcicloId, sesionId, test) => {
         local.microciclos.guardarTestPost(microcicloId, sesionId, test)
-        subirMicrociclo(local, microcicloId)
+        encolar({
+          tabla: 'microciclos',
+          tipo: 'rpc',
+          funcion: 'fijar_test_post',
+          claveRpc: `${microcicloId}:${sesionId}`,
+          payload: { p_microciclo_id: microcicloId, p_sesion_id: sesionId, p_test: test },
+        })
       },
       marcarParte: (microcicloId, sesionId, parteId) => {
         local.microciclos.marcarParte(microcicloId, sesionId, parteId)
-        subirMicrociclo(local, microcicloId)
+        subirPreparacion(local, microcicloId, sesionId)
       },
     },
 
@@ -284,6 +298,57 @@ export function crearDbSincronizada(local: Db): Db {
             // para poder consultar sin abrir el jsonb de cada uno.
             respuestas: perfil.respuestas,
             completada_en: perfil.completadaEn ?? null,
+          },
+        })
+      },
+    },
+
+    /**
+     * Lo que la nutricionista marca que alguien no debe comer.
+     *
+     * SUBE SIEMPRE, no solo al terminar algo: cada veto es una decisión suelta
+     * y completa. Es lo contrario del perfil, que se sube entero o no se sube.
+     *
+     * QUITAR ES UN UPSERT CON `borrado`, no un delete: la cola solo sabe hacer
+     * upsert y update (`cola.ts`). Sin la columna de la migración 0035, la
+     * nutricionista quitaría un veto, lo vería desaparecer, y volvería en la
+     * siguiente hidratación.
+     */
+    vetados: {
+      ...local.vetados,
+      vetar: (veto) => {
+        local.vetados.vetar(veto)
+        encolar({
+          tabla: 'perfil_alimentario_veto',
+          tipo: 'upsert',
+          onConflict: 'asesorado_id,alimento_id',
+          payload: {
+            asesorado_id: veto.usuarioId,
+            alimento_id: veto.alimentoId,
+            // NUNCA null y nunca cadena vacía: son los dos valores que la base
+            // rechaza, cada uno por su lado. `motivo is null or length > 0` es
+            // de la 0016; el `not null` con mínimo de 3 llega con la 0040.
+            //
+            // El tipo obliga a traer motivo y `porQueNoValeElMotivo` lo valida
+            // en la pantalla, así que llegar aquí en blanco es un error de
+            // programación. Ante eso se conserva el veto con el hueco escrito,
+            // no se descarta: la fila dice que esta persona no puede comer eso,
+            // y perderla es volver a proponérselo.
+            motivo: veto.motivo.trim() || '(sin motivo)',
+            borrado: false,
+          },
+        })
+      },
+      quitar: (usuarioId, alimentoId) => {
+        local.vetados.quitar(usuarioId, alimentoId)
+        encolar({
+          tabla: 'perfil_alimentario_veto',
+          tipo: 'upsert',
+          onConflict: 'asesorado_id,alimento_id',
+          payload: {
+            asesorado_id: usuarioId,
+            alimento_id: alimentoId,
+            borrado: true,
           },
         })
       },
@@ -541,10 +606,35 @@ function aPerfilAlimentario(
 
   const texto = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor : null)
 
+  /**
+   * Lo que declaró de su puño y letra, MÁS las condiciones que se deducen.
+   *
+   * EL HUECO QUE ESTO CIERRA. El motor de recomendaciones veta el hígado en
+   * embarazo leyendo `PerfilAlimentario.condiciones_medicas`
+   * (`topes_nutrientes.py` → `VETO_POR_CONDICION`). Esta columna se llenaba solo
+   * con el texto libre de «¿tienes alguna condición médica?», así que la
+   * respuesta de la pregunta de embarazo se quedaba en el jsonb y no llegaba
+   * nunca: la asesorada podía declarar que estaba embarazada y el motor le
+   * seguía pudiendo proponer hígado. Es el mismo fallo que el módulo de
+   * embarazo vino a arreglar —lógica escrita que no protegía a nadie—, una
+   * capa más abajo.
+   *
+   * SE RESUELVE AL SUBIR Y NO EN EL MOTOR porque la marca CADUCA: pasada la
+   * fecha probable de parto deja de aplicar, y una columna no caduca sola. Al
+   * escribirla aquí, cada vez que ella toca su perfil la lista se rehace con la
+   * fecha de ese día. Si nunca vuelve a tocarlo se queda como estaba, que es el
+   * lado prudente: sigue protegida de más, nunca de menos.
+   */
+  const escritasPorElla = comoLista(respuestas.condicionesMedicas) ?? []
+  const condiciones = [
+    ...escritasPorElla,
+    ...condicionesDeclaradas(respuestas as RespuestasDeEmbarazo, aIso(new Date())),
+  ]
+
   return {
     asesorado_id: usuarioId,
     alergias: comoLista(respuestas.alergias),
-    condiciones_medicas: comoLista(respuestas.condicionesMedicas),
+    condiciones_medicas: condiciones.length > 0 ? condiciones : null,
     excluye: comoLista(respuestas.excluye),
     no_le_gustan: comoLista(respuestas.noLeGustan),
     sin_acceso: comoLista(respuestas.sinAcceso),
@@ -609,6 +699,72 @@ function cambiarEstadoEnNube(microcicloId: string, estado: 'activo' | 'cerrado')
     tipo: 'update',
     payload: { estado },
     filtro: { id: microcicloId },
+  })
+}
+
+/**
+ * El microciclo local, o `undefined` si no se encuentra a su dueño.
+ *
+ * Los repos son por usuario, así que para llegar a un microciclo por id hay que
+ * pasar por la lista de usuarios. Lo hacían las cuatro subidas por su cuenta.
+ */
+function microcicloLocal(local: Db, microcicloId: string): Microciclo | undefined {
+  const duenio = local.usuarios
+    .list()
+    .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === microcicloId))
+  if (!duenio) return undefined
+  return local.microciclos.byUsuario(duenio.id).find((m) => m.id === microcicloId)
+}
+
+/**
+ * Sube las series de UN ejercicio, no el microciclo.
+ *
+ * Manda el array completo de ese ejercicio, ya resuelto por la capa local
+ * —reemplazar por `orden` y reordenar—. El servidor solo lo coloca en su sitio.
+ * La regla vive en un solo lado a propósito: dos copias de una regla divergen, y
+ * eso es exactamente lo que este cambio arregla.
+ */
+function subirSeries(local: Db, microcicloId: string, ejercicioId: string): void {
+  const microciclo = microcicloLocal(local, microcicloId)
+  if (!microciclo) return
+  const ejercicio = microciclo.sesiones
+    .flatMap((s) => s.ejercicios)
+    .find((e) => e.id === ejercicioId)
+  if (!ejercicio) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_series_ejercicio',
+    claveRpc: `${microcicloId}:${ejercicioId}`,
+    payload: {
+      p_microciclo_id: microcicloId,
+      p_ejercicio_id: ejercicioId,
+      p_series: ejercicio.series,
+    },
+  })
+}
+
+/**
+ * Sube el calentamiento y el cardio de UNA sesión, no el microciclo.
+ *
+ * `marcarParte` es un interruptor que además materializa la plantilla de
+ * calentamiento si la sesión no la traía, así que se manda el resultado ya
+ * calculado en local en vez de repetir esa lógica en SQL.
+ */
+function subirPreparacion(local: Db, microcicloId: string, sesionId: string): void {
+  const sesion = microcicloLocal(local, microcicloId)?.sesiones.find((s) => s.id === sesionId)
+  if (!sesion) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_preparacion_sesion',
+    claveRpc: `${microcicloId}:${sesionId}`,
+    payload: {
+      p_microciclo_id: microcicloId,
+      p_sesion_id: sesionId,
+      p_preparacion: sesion.preparacion ?? null,
+      p_bloques_cardio: sesion.bloquesCardio ?? null,
+    },
   })
 }
 

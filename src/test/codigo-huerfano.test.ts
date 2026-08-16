@@ -1,0 +1,186 @@
+import { describe, expect, it } from 'vitest'
+import {
+  buscarHuerfanos,
+  esTestPropio,
+  exportacionesDeValor,
+  importacionesDe,
+  nombresUsadosInternamente,
+} from '../../scripts/codigo-huerfano.mjs'
+
+// Este test existe por un patrón que se repitió cuatro veces en tres días: un módulo
+// del dominio escrito, probado y en verde, que no estaba enchufado a nada. El caso caro
+// fue `seContraindica`: llevaba desde el 2026-08-09 sin un solo consumidor, y por eso la
+// hoja de cambios estuvo a punto de proponerle hígado a una asesorada embarazada. Ningún
+// test lo notó, porque cada pieza pasaba sus pruebas por separado.
+//
+// Comprobado contra la realidad: corriendo el detector sobre el commit `4bc65db` (el
+// anterior al arreglo) `seContraindica` aparece en la lista; sobre `29627f4` ya no.
+//
+// No prohíbe nada. Obliga a escribir el motivo aquí, que es lo único que faltaba.
+
+/**
+ * Módulos del dominio que hoy no importa nadie, con el porqué.
+ *
+ * Si añades una entrada, escribe un motivo de verdad: qué falta para enchufarlo o por
+ * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
+ */
+const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  'src/domain/nutricion/despensa.ts':
+    'Escrito el 2026-08-05 junto a la migración 0024, que nunca se corrió. Ni rompe ni ' +
+    'sirve: ocho exportaciones y cero consumidores. Decisión pendiente de Bryan — ' +
+    'terminarla (correr la migración y enchufar la sección) o borrarla. Lo que no ' +
+    'conviene es dejarla saliendo NO en cada comprobación, porque enseña a ignorar los NO.',
+}
+
+/**
+ * Exportaciones que hoy no usa nadie —ni fuera del módulo ni dentro—, con el porqué.
+ *
+ * La lista se sembró **midiendo** el 2026-08-12 sobre `29627f4`, no auditando una por
+ * una: es una línea base, igual que los umbrales-trinquete de cobertura. Su trabajo es
+ * impedir que aparezcan **nuevas**, no bendecir las que ya había. Cada vez que se
+ * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
+ */
+const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Lo que espera a una función ya planeada y todavía sin construir:
+  'src/domain/nutricion/techos.ts#DIAS_ENTRE_RACIONES':
+    'Espera al aviso de frecuencia: «comiste hígado hace 5 días, deja pasar dos ' +
+    'semanas». Necesita mirar 14 días de registros hacia atrás y esa vista no existe.',
+  'src/domain/nutricion/techos.ts#motivoDeLaFrecuencia':
+    'Mismo aviso de frecuencia pendiente que DIAS_ENTRE_RACIONES.',
+  'src/domain/nutricion/embarazo.ts#puedeQuedarEmbarazada':
+    'La encuesta ya recoge «no puedo quedar embarazada» (PR #41), pero todavía nadie ' +
+    'consulta la respuesta para saltarse las preguntas del ciclo.',
+  'src/domain/taxonomia.ts#grupoPrimario':
+    'Llegó con la taxonomía por acción articular (PR #44, 2026-08-15). Devuelve el grupo ' +
+    'que recibe el trabajo directo, «para etiquetar, no para contar», y todavía no hay ' +
+    'pantalla que etiquete: la rejilla de volumen pinta los aportes fraccionados, no el ' +
+    'grupo primario. Enchufarla ahí o borrarla — lo decide quien escribió la taxonomía.',
+
+  // Línea base heredada del 2026-08-12: medida, no auditada. Al tocar cualquiera de
+  // estos módulos, resolver su entrada (enchufarla, borrarla o escribirle el motivo).
+  'src/domain/nutricion/calibracion.ts#debeVolverAPesar': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/datosSospechosos.ts#motivoDeLaDuda': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/dia.ts#rangoKcal': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/encuesta.ts#LAS_QUE_VUELVEN_NO_BLOQUEAN': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/energia.ts#objetivoInsuficiente': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/estado.ts#elegir': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/estado.ts#hayQuePreguntar': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/gastoEjercicio.ts#MET_CAMINAR': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/techos.ts#fuenteDelLimite': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/topes.ts#revisarDia': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/nutricion/unidades.ts#opciones': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/ondulacion.ts#fasePeriodizacion': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/ondulacion.ts#sesionOndulada': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/rutaEntrenamiento.ts#requisitosDeNivel': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/senales/hambre.ts#diasExigidos': 'HEREDADO 2026-08-12, sin revisar.',
+  'src/domain/senales/hambre.ts#evaluarRacha': 'HEREDADO 2026-08-12, sin revisar.',
+}
+
+const huerfanos = buscarHuerfanos({ raizProyecto: process.cwd() })
+
+const listar = (claves: string[]) => claves.map((c) => `  · ${c}`).join('\n')
+
+describe('el dominio no acumula código sin enchufar', () => {
+  it('ningún módulo nuevo queda sin que nadie lo importe', () => {
+    const nuevos = huerfanos.modulos.map((m) => m.clave).filter((c) => !(c in MODULOS_SIN_ENCHUFAR))
+
+    expect(
+      nuevos,
+      `Estos módulos del dominio no los importa nadie fuera de sus propios tests:\n${listar(nuevos)}\n\n` +
+        'Enchúfalos donde tocaba, bórralos, o añádelos a MODULOS_SIN_ENCHUFAR con el motivo.',
+    ).toEqual([])
+  })
+
+  it('ninguna exportación nueva queda sin usar', () => {
+    const nuevas = huerfanos.exportaciones.map((e) => e.clave).filter((c) => !(c in EXPORTACIONES_SIN_USO))
+
+    expect(
+      nuevas,
+      `Estas exportaciones no las usa nadie, ni siquiera su propio módulo:\n${listar(nuevas)}\n\n` +
+        'Enchúfalas, bórralas, o añádelas a EXPORTACIONES_SIN_USO con el motivo.',
+    ).toEqual([])
+  })
+
+  it('la lista de excepciones no guarda entradas ya resueltas', () => {
+    const vivos = new Set([...huerfanos.modulos, ...huerfanos.exportaciones].map((h) => h.clave))
+    const sobran = [...Object.keys(MODULOS_SIN_ENCHUFAR), ...Object.keys(EXPORTACIONES_SIN_USO)].filter(
+      (c) => !vivos.has(c),
+    )
+
+    expect(
+      sobran,
+      `Estas entradas ya no hacen falta (se enchufaron o se borraron):\n${listar(sobran)}\n\n` +
+        'Quítalas de la lista. Una excepción que sobrevive a su motivo deja de significar nada.',
+    ).toEqual([])
+  })
+
+  it('sigue vigilando el dominio entero, no dos archivos sueltos', () => {
+    // Si alguien rompe la resolución de rutas, las listas salen vacías y los tres tests
+    // de arriba pasan sin comprobar nada. Este ancla el detector a la realidad.
+    const perfilCalculado = buscarHuerfanos({ raizProyecto: process.cwd() })
+    expect(perfilCalculado.modulos.length + perfilCalculado.exportaciones.length).toBeGreaterThan(0)
+    expect(Object.keys(MODULOS_SIN_ENCHUFAR).length + Object.keys(EXPORTACIONES_SIN_USO).length).toBeGreaterThan(15)
+  })
+})
+
+describe('el detector lee el código, no lo adivina', () => {
+  it('cuenta funciones, constantes y clases exportadas, pero no tipos', () => {
+    const codigo = `
+      export function calcular() {}
+      export const TOPE = 10
+      export class Motor {}
+      export interface Perfil { id: string }
+      export type Genero = 'H' | 'M'
+      function privada() {}
+    `
+    expect(exportacionesDeValor(codigo).sort()).toEqual(['Motor', 'TOPE', 'calcular'])
+  })
+
+  it('con `import { original as alias }` lo consumido es el nombre original', () => {
+    const codigo = `import { seContraindica as vetado } from './embarazo'`
+    expect(importacionesDe(codigo)).toEqual([{ especificador: './embarazo', nombres: ['seContraindica'] }])
+  })
+
+  it('un import repartido en varias líneas no se le escapa', () => {
+    const codigo = `
+      import {
+        tmb,
+        katchMcArdle,
+      } from './energia'
+    `
+    expect(importacionesDe(codigo)[0]?.nombres).toEqual(['tmb', 'katchMcArdle'])
+  })
+
+  it('traerse el módulo entero cuenta como usar todo lo que exporta', () => {
+    expect(importacionesDe(`import * as energia from './energia'`)[0]?.nombres).toBe('*')
+    expect(importacionesDe(`const m = await import('./energia')`)[0]?.nombres).toBe('*')
+  })
+
+  it('reexportar también es consumir', () => {
+    expect(importacionesDe(`export { tmb } from './energia'`)).toEqual([
+      { especificador: './energia', nombres: ['tmb'] },
+    ])
+  })
+
+  it('distingue el export ancho de más del código muerto', () => {
+    const codigo = `
+      export function tmb(peso: number) { return peso * 20 }
+      export function tmbCombinada(peso: number) { return tmb(peso) }
+      export function nadieLaLlama() { return 1 }
+    `
+    const usados = nombresUsadosInternamente(codigo)
+    expect(usados.has('tmb')).toBe(true)
+    expect(usados.has('nadieLaLlama')).toBe(false)
+  })
+
+  it('no confunde una propiedad con la función del módulo', () => {
+    expect(nombresUsadosInternamente(`const x = perfil.tmb`).has('tmb')).toBe(false)
+  })
+
+  it('reconoce el test propio de un módulo, incluidos los de nombre compuesto', () => {
+    expect(esTestPropio('src/domain/despensa.ts', 'src/domain/despensa.test.ts')).toBe(true)
+    expect(esTestPropio('src/app/SessionProvider.tsx', 'src/app/SessionProvider.aislamiento.test.tsx')).toBe(true)
+    expect(esTestPropio('src/domain/despensa.ts', 'src/domain/pauta.test.ts')).toBe(false)
+    expect(esTestPropio('src/domain/despensa.ts', 'src/otro/despensa.test.ts')).toBe(false)
+  })
+})

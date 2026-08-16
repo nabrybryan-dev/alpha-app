@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card } from '../../components/ui/Card'
-import { cargaPorGrupo, type NivelFatiga } from '../../domain/fatiga'
+import { cargaPorGrupo, formatearSeries, type NivelFatiga } from '../../domain/fatiga'
 import type { Microciclo } from '../../domain/types'
 
 const COLOR: Record<NivelFatiga, string> = {
@@ -48,8 +48,8 @@ export function MapaFatiga({ microciclo }: { microciclo: Microciclo }) {
                 }}
               />
             </div>
-            <p className="cifras w-9 shrink-0 text-right text-[10px] text-tenue">
-              {c.seriesHechas}/{c.seriesPautadas}
+            <p className="cifras w-14 shrink-0 text-right text-[10px] text-tenue">
+              {formatearSeries(c.seriesHechas)}/{formatearSeries(c.seriesPautadas)}
             </p>
           </div>
         ))}

@@ -216,6 +216,79 @@ describe('el registro de comidas sube a Supabase', () => {
       expect(op?.payload.sin_acceso).toEqual(['salmón, arándanos'])
     })
 
+    describe('el embarazo declarado tiene que LLEGAR al motor', () => {
+      /**
+       * El hueco que estos tests cierran, y por qué son de seguridad.
+       *
+       * El motor veta el hígado en embarazo leyendo `condiciones_medicas`
+       * (`topes_nutrientes.py` → `VETO_POR_CONDICION`). Esta columna se llenaba
+       * solo con el texto libre de «¿tienes alguna condición médica?», así que
+       * la respuesta de la pregunta de embarazo se quedaba en el jsonb: la
+       * asesorada podía declarar que estaba embarazada y el motor le seguía
+       * pudiendo proponer hígado.
+       */
+      const dentroDeUnAno = () => {
+        const d = new Date()
+        return `${d.getFullYear() + 1}-01-01`
+      }
+
+      it('el embarazo viaja como condición médica', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(
+          VALENTINA,
+          { embarazo: 'si', fechaProbableParto: dentroDeUnAno() },
+          true,
+        )
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toContain('embarazo')
+      })
+
+      it('la lactancia también', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(VALENTINA, { embarazo: 'lactancia' }, true)
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toContain('lactancia')
+      })
+
+      it('sin pisar lo que ella escribió de su puño y letra', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(
+          VALENTINA,
+          { condicionesMedicas: 'hipotiroidismo', embarazo: 'lactancia' },
+          true,
+        )
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toEqual(['hipotiroidismo', 'lactancia'])
+      })
+
+      it('un embarazo caducado deja de viajar', () => {
+        // La marca caduca por fecha probable de parto, y por eso la lista se
+        // rehace cada vez que ella toca su perfil. Se mira que no esté, no que
+        // la lista quede vacía: Valentina ya trae un «ninguna» escrito por ella
+        // en condiciones médicas, y eso no se toca.
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar(
+          VALENTINA,
+          { embarazo: 'si', fechaProbableParto: '2020-01-01' },
+          true,
+        )
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).not.toContain('embarazo')
+      })
+
+      it('quien no declaró nada no gana ninguna condición', () => {
+        const { db, cola } = modulos!
+        db.perfilNutricion.guardar('u-mateo', { genero: 'H' }, true)
+
+        const op = cola().find((o) => o.tabla === 'perfil_alimentario')
+        expect(op?.payload.condiciones_medicas).toBeNull()
+      })
+    })
+
     it('lo que no se respondió entra como null, no como lista vacía', () => {
       // Mateo no tiene perfil en el seed: `guardar` fusiona con lo previo, así
       // que hace falta alguien que empiece de cero para ver los huecos.
@@ -225,6 +298,61 @@ describe('el registro de comidas sube a Supabase', () => {
       const op = cola().find((o) => o.tabla === 'perfil_alimentario')
       expect(op?.payload.alergias).toBeNull()
       expect(op?.payload.come_visceras).toBeNull()
+    })
+  })
+
+  describe('los vetos que escribe la nutricionista', () => {
+    /**
+     * Sin esto, Manuela codifica las alergias en su móvil y no salen de ahí.
+     * La traducción de texto libre a alimentos es lo único que impide que la
+     * app le proponga a alguien lo que le hace daño.
+     */
+    it('vetar sube la fila', () => {
+      const { db, cola } = modulos!
+      db.vetados.vetar({
+        usuarioId: VALENTINA,
+        alimentoId: 'arroz-blanco-cocido',
+        motivo: 'alergia declarada',
+      })
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
+      expect(op?.payload.asesorado_id).toBe(VALENTINA)
+      expect(op?.payload.alimento_id).toBe('arroz-blanco-cocido')
+      expect(op?.payload.borrado).toBe(false)
+    })
+
+    it('QUITAR SUBE UN UPSERT CON borrado, no un delete', () => {
+      // La cola solo sabe upsert y update. Sin la columna de la 0035, quitar
+      // un veto no llegaría a la base: ella lo vería desaparecer y volvería en
+      // la siguiente hidratación.
+      const { db, cola } = modulos!
+      db.vetados.quitar(VALENTINA, 'arroz-blanco-cocido')
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
+      expect(op?.tipo).toBe('upsert')
+      expect(op?.payload.borrado).toBe(true)
+    })
+
+    it('un motivo en blanco NO viaja como null: viaja con el hueco escrito', () => {
+      // Este test decía lo contrario -blanco viajaba como null- y era CORRECTO
+      // mientras la única regla fuera la de la 0016:
+      //
+      //   motivo is null or length(trim(motivo)) > 0
+      //
+      // Deja de serlo con la 0040, que añade `not null`. Un null ahí revienta el
+      // upsert, y lo que revienta al subir se encola: la cola de descartados
+      // tiene tope, así que el veto se perdería en silencio. La nutricionista lo
+      // vería marcado en su pantalla y en la nube no existiría.
+      //
+      // Llegar aquí en blanco ya es un error de programación -el tipo obliga a
+      // traer motivo y `porQueNoValeElMotivo` lo valida en la pantalla-, pero
+      // ante la duda se conserva el veto, no se descarta.
+      const { db, cola } = modulos!
+      db.vetados.vetar({ usuarioId: VALENTINA, alimentoId: 'papa-cocida', motivo: '  ' })
+
+      const op = cola().find((o) => o.tabla === 'perfil_alimentario_veto')
+      expect(op?.payload.motivo).toBe('(sin motivo)')
+      expect(op?.payload.motivo).not.toBeNull()
     })
   })
 

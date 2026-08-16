@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   camposAPreguntar,
+  conSelloDeFecha,
   revisarRespuestas,
   tieneValor,
   type CampoEncuesta,
@@ -26,6 +27,19 @@ interface EncuestaNutricionProps {
   yaSabidos: Respuestas
   /** Lo que lleva respondido de antes, si dejó la encuesta a medias. */
   enCurso?: Respuestas
+  /**
+   * Solo para las preguntas que vuelven. Sin fecha no vuelve ninguna.
+   *
+   * ES LO QUE MANTIENE LA COMPUERTA LIMPIA: quien la usa para bloquear la
+   * entrada a Nutrición no lo pasa, así que una quincenal sin contestar nunca
+   * cierra la puerta. Solo la pantalla que existe para eso lo pasa.
+   */
+  hoy?: string
+  /** Encabezado propio. El de por defecto habla de la primera vez. */
+  titulo?: string
+  entradilla?: string
+  /** Lo que va debajo del botón. Ahí vive el «Ahora no» de las que vuelven. */
+  pie?: ReactNode
   onGuardarAvance: (respuestas: Respuestas) => void
   onTerminar: (respuestas: Respuestas) => void
 }
@@ -33,6 +47,10 @@ interface EncuestaNutricionProps {
 export function EncuestaNutricion({
   yaSabidos,
   enCurso = {},
+  hoy,
+  titulo,
+  entradilla,
+  pie,
   onGuardarAvance,
   onTerminar,
 }: EncuestaNutricionProps) {
@@ -41,12 +59,16 @@ export function EncuestaNutricion({
 
   // Se recalcula en cada render: al marcar "Mujer", la cadera y el ciclo
   // aparecen sin recargar nada.
-  const campos = camposAPreguntar(yaSabidos, respuestas)
+  const campos = camposAPreguntar(yaSabidos, respuestas, hoy)
   const errores = revisarRespuestas(campos, respuestas)
   const errorDe = (clave: ClaveCampo) => errores.find((e) => e.clave === clave)?.mensaje
 
   const responder = (clave: ClaveCampo, valor: string | number | string[]) => {
-    const siguiente = { ...respuestas, [clave]: valor }
+    // El sello va en la MISMA escritura que la respuesta. Guardarlo aparte
+    // dejaría una ventana en la que la pregunta está contestada y sin fecha, y
+    // `toca` lee eso como «vuelve mañana».
+    const contestada = { ...respuestas, [clave]: valor }
+    const siguiente = hoy ? conSelloDeFecha(contestada, clave, hoy) : contestada
     setRespuestas(siguiente)
     // Se guarda al vuelo, no al final: quien abandone a la mitad no empieza de cero.
     onGuardarAvance(siguiente)
@@ -58,16 +80,17 @@ export function EncuestaNutricion({
     <div className="flex flex-col gap-5 pb-6">
       <header>
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
-          Antes de empezar
+          {titulo ? 'Cada quince días' : 'Antes de empezar'}
         </p>
         <h1 className="font-display text-xl leading-tight text-texto">
-          {campos.length === 1
-            ? 'Nos falta un dato tuyo'
-            : `Cuéntanos ${campos.length} cosas sobre ti`}
+          {titulo ??
+            (campos.length === 1
+              ? 'Nos falta un dato tuyo'
+              : `Cuéntanos ${campos.length} cosas sobre ti`)}
         </h1>
         <p className="mt-2 text-sm leading-snug text-tenue">
-          Con esto calculamos tu composición corporal y cuánto necesitas comer. Se responde una
-          sola vez.
+          {entradilla ??
+            'Con esto calculamos tu composición corporal y cuánto necesitas comer. Se responde una sola vez.'}
         </p>
       </header>
 
@@ -113,6 +136,8 @@ export function EncuestaNutricion({
       >
         Listo
       </button>
+
+      {pie}
     </div>
   )
 }

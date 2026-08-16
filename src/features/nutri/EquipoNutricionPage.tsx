@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
@@ -7,6 +8,7 @@ import { calcularRacha } from '../../domain/gamification'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { visibilidadDe } from '../../domain/nutricion/visibilidad'
+import { SheetVetados } from './SheetVetados'
 
 function fechaAtras(hoy: string, dias: number): string {
   const fecha = new Date(`${hoy}T00:00:00`)
@@ -25,6 +27,8 @@ export default function EquipoNutricionPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
+  /** El asesorado cuyo panel de vetos está abierto. */
+  const [vetando, setVetando] = useState<{ id: string; nombre: string } | null>(null)
   const limite = fechaAtras(hoy, 30)
 
   if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
@@ -70,6 +74,12 @@ export default function EquipoNutricionPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <SheetVetados
+        asesoradoId={vetando?.id ?? null}
+        nombre={vetando?.nombre ?? ''}
+        onCerrar={() => setVetando(null)}
+      />
+
       <section className="pt-2">
         <p className="kicker">Evaluación nutricional del equipo</p>
         <h2 className="font-display text-3xl text-texto">Nutrición Alpha</h2>
@@ -117,6 +127,16 @@ export default function EquipoNutricionPage() {
                 <span>Racha {f.racha}</span>
                 {f.aguaHoyMl > 0 && <span>Agua hoy {(f.aguaHoyMl / 1000).toFixed(1)}L</span>}
               </div>
+              {/* El número va en el botón porque el cero es el dato que importa:
+                  «0 vetados» de alguien que declaró una alergia es justo lo que
+                  hay que ver desde la lista, sin entrar a mirar. */}
+              <button
+                type="button"
+                onClick={() => setVetando({ id: f.usuario.id, nombre: f.usuario.nombre })}
+                className="press mt-1.5 rounded-full border border-linea bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-texto"
+              >
+                No debe comer ({db.vetados.byUsuario(f.usuario.id).length})
+              </button>
             </div>
           </Card>
         ))}
