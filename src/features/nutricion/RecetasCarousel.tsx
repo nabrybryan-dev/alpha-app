@@ -26,9 +26,20 @@ export interface RecetasCarouselProps {
   /** Mientras las recetas viajan: reserva el hueco exacto, sin salto. */
   cargando?: boolean
   registro?: RecetaRegistro
+  /** Recetas distintas ya cocinadas y registradas. */
+  cocinadas?: number
+  /** Días seguidos cocinando alguna. */
+  racha?: number
 }
 
-export function RecetasCarousel({ recetas, kcalRestantes, cargando, registro }: RecetasCarouselProps) {
+export function RecetasCarousel({
+  recetas,
+  kcalRestantes,
+  cargando,
+  registro,
+  cocinadas = 0,
+  racha = 0,
+}: RecetasCarouselProps) {
   const [abierta, setAbierta] = useState<Receta | null>(null)
 
   if (cargando) return <CarruselFantasma />
@@ -45,6 +56,8 @@ export function RecetasCarousel({ recetas, kcalRestantes, cargando, registro }: 
       <p className="mt-0.5 text-[12.5px] leading-snug text-tenue">
         Virales de Instagram, revisadas por tu coach. Toca una y te decimos la porción exacta.
       </p>
+
+      <Cocinadas cocinadas={cocinadas} racha={racha} />
 
       {/* Sangrado a los bordes para que las tarjetas se asomen fuera del padding. */}
       <div
@@ -98,6 +111,30 @@ function CarruselFantasma() {
         ))}
       </div>
     </section>
+  )
+}
+
+/**
+ * Lo que lleva cocinado, y los días seguidos.
+ *
+ * Solo cuenta lo que quedó REGISTRADO con sus ingredientes: abrir una hoja no
+ * suma. Hasta que cocine la primera no se pinta nada — un «0 recetas» de
+ * bienvenida es un reproche, no un dato.
+ */
+function Cocinadas({ cocinadas, racha }: { cocinadas: number; racha: number }) {
+  if (cocinadas === 0) return null
+
+  return (
+    <p className="mt-1.5 flex items-center gap-1.5">
+      <span className="cifras rounded-full bg-surface-3 px-2 py-0.5 text-[10.5px] font-bold text-silver-200">
+        {cocinadas} {cocinadas === 1 ? 'cocinada' : 'cocinadas'}
+      </span>
+      {racha > 1 && (
+        <span className="cifras rounded-full bg-accion/15 px-2 py-0.5 text-[10.5px] font-bold text-accion">
+          {racha} días seguidos
+        </span>
+      )}
+    </p>
   )
 }
 

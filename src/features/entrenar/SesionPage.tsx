@@ -20,6 +20,7 @@ import { PanelRitmo } from './PanelRitmo'
 import { PreparacionSesion } from './PreparacionSesion'
 import { type RegistroSerieHandle } from './RegistroSerie'
 import { SesionCerrada } from './SesionCerrada'
+import { SalonDeMaquinas } from './SalonDeMaquinas'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
@@ -229,6 +230,8 @@ function SesionEnCurso() {
               {sesion.ejercicios.filter(ejercicioCompleto).length}/{sesion.ejercicios.length} hechos
             </p>
           </div>
+
+          <SalonDeMaquinas ejercicios={sesion.ejercicios} />
 
           <BarraEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />
 

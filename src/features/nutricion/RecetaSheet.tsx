@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
 import type { Receta, RecetaNota } from '../../data/recetas'
+import { motivoParaNoRegistrar } from '../../domain/nutricion/recetaAlRegistro'
 import { ReelPlayer } from './ReelPlayer'
 
 /**
@@ -163,6 +164,10 @@ function PieFijo({
   onAgregar: () => void
   onDeshacer: () => void
 }) {
+  // Se dice ANTES de tocar, no después: un botón que se pulsa y no hace nada
+  // se lee como una app rota.
+  const motivo = motivoParaNoRegistrar(receta)
+
   return (
     <div className="sticky bottom-0 z-10 -mx-4 mt-4 px-4">
       {agregada && (
@@ -197,11 +202,15 @@ function PieFijo({
         <button
           type="button"
           onClick={onAgregar}
-          className="press w-full rounded-boton bg-accion text-[13px] font-bold uppercase tracking-wide text-white"
+          disabled={motivo !== null}
+          className={`press w-full rounded-boton text-[13px] font-bold uppercase tracking-wide ${
+            motivo ? 'border border-linea bg-surface-3 text-tenue' : 'bg-accion text-white'
+          }`}
           style={{ height: 50 }}
         >
           Agregar al registro
         </button>
+        {motivo && <p className="mt-1.5 text-center text-[11px] leading-snug text-tenue">{motivo}</p>}
       </div>
     </div>
   )

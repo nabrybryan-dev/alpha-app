@@ -21,7 +21,22 @@ function receta(id: string, nombre: string): Receta {
       grasa: 6,
       notas: [{ tipo: 'encaja', label: 'Dónde encaja hoy', texto: 'Entra en tu merienda.' }],
     },
+    ingredientes: [
+      {
+        nombre: 'Avena en hojuelas',
+        enElReel: '200 g',
+        paraTi: '22 g',
+        alimentoId: 'avena-en-hojuelas-peso-en-seco',
+        gramosParaTi: 22,
+        estado: 'seco',
+      },
+    ],
   }
+}
+
+/** Sin ingredientes medidos no se puede registrar, y hay que decirlo. */
+function recetaSinMedir(): Receta {
+  return { ...receta('9', 'Sopa de la abuela'), ingredientes: undefined }
 }
 
 const TRES = [receta('1', 'Brownie de avena'), receta('2', 'Tortitas'), receta('3', 'Bolitas')]
@@ -109,6 +124,21 @@ describe('RecetasCarousel', () => {
     it('«Deshacer» tiene 44px de área táctil', () => {
       fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
       expect(screen.getByRole('button', { name: /deshacer/i }).style.minHeight).toBe('44px')
+    })
+
+    /**
+     * Un botón que se pulsa y no hace nada se lee como una app rota. Si la
+     * receta no está medida, se dice antes de tocarlo y no se deja tocar.
+     */
+    it('sin ingredientes medidos el botón se desactiva y explica por qué', () => {
+      const registro = { agregar: vi.fn(), deshacer: vi.fn() }
+      render(<RecetasCarousel recetas={[recetaSinMedir()]} registro={registro} />)
+      fireEvent.click(screen.getByText('Sopa de la abuela'))
+      const boton = screen.getByRole('button', { name: /agregar al registro/i })
+      expect(boton).toBeDisabled()
+      expect(screen.getByText(/todavía no trae sus ingredientes medidos/i)).toBeInTheDocument()
+      fireEvent.click(boton)
+      expect(registro.agregar).not.toHaveBeenCalled()
     })
   })
 
