@@ -5,7 +5,7 @@ import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 
 /**
- * Corre contra el catálogo real de 1.198 alimentos, no contra un montaje: lo
+ * Corre contra el catálogo real de 1.200 alimentos, no contra un montaje: lo
  * que importa de un buscador es que encuentre lo que la gente escribe de
  * verdad, y eso no se prueba con tres alimentos inventados.
  */
@@ -39,7 +39,7 @@ describe('SheetBuscarAlimento', () => {
   it('el contador dice cuántos hay de los 1.198', async () => {
     pintar()
     await userEvent.type(campo(), 'arroz')
-    expect(screen.getByText(/de 1.198 alimentos/)).toBeInTheDocument()
+    expect(screen.getByText(/de 1.200 alimentos/)).toBeInTheDocument()
   })
 
   it('un filtro deja solo su grupo', async () => {

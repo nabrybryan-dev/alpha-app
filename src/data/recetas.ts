@@ -20,22 +20,16 @@
  * creador cede el archivo; sin él, `ReelPlayer` cae al póster con «Reel
  * disponible en Instagram», que es el comportamiento correcto.
  *
- * DECISIÓN PENDIENTE: el encargo dice que los datos semilla (5 recetas) están
- * en el prototipo de Registro de Comidas, en `this.RECETAS`. **No están.** Ese
- * prototipo no contiene ninguna sección de recetas ni de influencers: lo
- * comprobé por nombre, por contenido y listando sus encabezados.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * QUÉ SE PUEDE TOMAR DEL REEL Y QUÉ NO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Del reel se toma lo que el reel dice: qué lleva y cuánto. Los macros no se
+ * copian de ningún sitio — se calculan del catálogo, igual que luego se suma el
+ * día.
  *
- * Se deja vacío a propósito. Inventar cinco recetas significaría inventar
- * handles de personas reales, cifras de visitas y —sobre todo— notas de ajuste
- * nutricional firmadas por el coach para 21 asesorados de carne y hueso. Eso no
- * es un dato de relleno: es consejo de salud atribuido a alguien.
- *
- * Ojo: retirar el permiso del creador NO levanta esto. Lo que se puede tomar
- * del reel es lo que el reel dice —qué lleva y cuánto—; el «dónde encaja hoy»
- * y el canje siguen siendo criterio del coach sobre una persona concreta.
- *
- * Con la lista vacía el carrusel no se renderiza (spec B.1), así que la app
- * queda exactamente como estaba hasta que lleguen los datos reales.
+ * Lo que NO sale de aquí son las notas del coach. El «dónde encaja hoy», el
+ * canje y el «ojo con» son criterio clínico sobre una persona concreta, y por
+ * eso `RECETAS` solo sirve las que ya las tienen. Ver la compuerta del final.
  */
 
 import type { EstadoAlimento } from '../domain/types'
@@ -127,112 +121,283 @@ export interface Receta {
   rinde?: string
 }
 
-/** Miniatura de muestra: SVG en línea, sin red y sin peso. */
-function miniatura(a: string, b: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 160"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="90" height="160" fill="url(#g)"/></svg>`
+/**
+ * Miniatura generada, no un fotograma del reel.
+ *
+ * Las URLs de imagen de Instagram van FIRMADAS y caducan en horas: pegarlas
+ * aquí daría una tarjeta rota a los pocos días. Y guardarse el fotograma es
+ * alojar contenido ajeno, que es justo lo que no se hace.
+ *
+ * Así que la tarjeta se dibuja: degradado propio más la inicial del plato. No
+ * finge ser una foto —nadie la va a confundir— y las seis se distinguen de un
+ * vistazo en el carrusel, que es para lo que sirve.
+ */
+function miniatura(a: string, b: string, letra: string): string {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 160">' +
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="0.6" y2="1">' +
+    `<stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/>` +
+    '</linearGradient></defs>' +
+    '<rect width="90" height="160" fill="url(#g)"/>' +
+    '<text x="45" y="94" text-anchor="middle" font-family="Georgia,serif" font-size="54"' +
+    ` fill="#ffffff" fill-opacity="0.15">${letra}</text>` +
+    '</svg>'
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 }
 
+const porId = (id: string) => catalogoRepo.porId(id)
+
 /**
- * MUESTRA PARA REVISAR EL DISEÑO. No son recetas reales.
+ * Lo que dice cada reel, sin dividir nada. De aquí sale todo lo demás.
  *
- * Los handles son inventados a propósito y las notas están escritas como
- * ejemplo de formato, no como consejo. Nada de esto lo ha firmado el coach.
- * Sirve para ver la sección funcionando; se sustituye por las recetas de verdad
- * antes de que esto llegue a nadie.
+ * `estimado: true` marca las cantidades que el reel NO daba y puso el coach por
+ * referencia. Se pintan con un asterisco y su nota al pie: sin eso, «100 g de
+ * mozzarella» —que lo dijo el creador— y «40 g de jamón» —que lo pusimos
+ * nosotros— se leerían igual de ciertas.
  */
-/**
- * Los ingredientes del brownie tal como los diría el reel, sin dividir nada.
- *
- * De aquí sale TODO lo demás —la columna «para ti» y los cuatro macros de la
- * ficha— vía `escalarReceta`. Es el flujo con el que se meten las recetas de
- * verdad: el coach copia lo que ve, dice cuántas porciones salen, y no calcula.
- *
- * Las cifras de la ficha dejan así de estar escritas a mano, que era un hueco
- * real: si la ficha decía 180 y los ingredientes daban 240, el asesorado veía
- * un número al abrir y otro al registrar sin poder saber cuál valía.
- */
-const BROWNIE_DEL_REEL: IngredienteDelReel[] = [
-  { nombre: 'Avena en hojuelas', enElReel: '200 g', alimentoId: 'avena-en-hojuelas-peso-en-seco', gramosTotales: 200, estado: 'seco' },
-  { nombre: 'Cacao en polvo', enElReel: '40 g', alimentoId: 'cacao-tostado-y-molido', gramosTotales: 40, estado: 'seco' },
-  { nombre: 'Huevo', enElReel: '3 unidades', alimentoId: 'huevo-de-gallina-entero-crudo', gramosTotales: 150, estado: 'crudo' },
-  { nombre: 'Miel de abejas', enElReel: '120 g de panela', alimentoId: 'miel-de-abejas', gramosTotales: 120, cambiado: true },
-  { nombre: 'Mantequilla de maní', enElReel: '60 g', alimentoId: 'mantequilla-de-mani', gramosTotales: 60, estado: 'listo' },
+const ROLLITOS: IngredienteDelReel[] = [
+  { nombre: 'Zanahoria', enElReel: '2 zanahorias', alimentoId: 'zanahoria-cruda', gramosTotales: 120, estado: 'crudo', estimado: true },
+  { nombre: 'Huevo', enElReel: '2 huevos', alimentoId: 'huevo-de-gallina-entero-crudo', gramosTotales: 100, estado: 'crudo', estimado: true },
+  { nombre: 'Mozzarella', enElReel: '100 g', alimentoId: 'queso-fresco-semiduro-semigraso-tipo-mozzarella', gramosTotales: 100 },
+  { nombre: 'Atún al natural', enElReel: '160 g', alimentoId: 'atun-en-lata-en-agua-escurrido', gramosTotales: 160, estado: 'en_lata' },
+  { nombre: 'Maíz tierno', enElReel: '50 g', alimentoId: 'mazorca-maiz-tierno-cocido-desgranado', gramosTotales: 50, estado: 'cocido' },
+  { nombre: 'Queso crema', enElReel: '2 cucharadas', alimentoId: 'queso-crema-amarillo', gramosTotales: 30, estado: 'listo', estimado: true },
+  { nombre: 'Aguacate', enElReel: '1/2 pequeño', alimentoId: 'aguacate-hass-crudo', gramosTotales: 50, estado: 'crudo', estimado: true },
 ]
 
-const PORCIONES_BROWNIE = 9
-const BROWNIE = escalarReceta(BROWNIE_DEL_REEL, PORCIONES_BROWNIE, (id) => catalogoRepo.porId(id))
+const HAMBURGUESAS: IngredienteDelReel[] = [
+  { nombre: 'Contramuslo de pollo', enElReel: '300 g', alimentoId: 'pollo-contramuslo-sin-piel-crudo', gramosTotales: 300, estado: 'crudo' },
+  { nombre: 'Brócoli rallado', enElReel: '100 g', alimentoId: 'brocoli-crudo', gramosTotales: 100, estado: 'crudo' },
+  { nombre: 'Queso rallado', enElReel: '60 g', alimentoId: 'queso-madurado-duro-semigraso-tipo-parmesano', gramosTotales: 60, estado: 'listo' },
+  { nombre: 'Huevo', enElReel: '2 huevos', alimentoId: 'huevo-de-gallina-entero-crudo', gramosTotales: 100, estado: 'crudo', estimado: true },
+  { nombre: 'Aceite de oliva', enElReel: '3 cucharadas', alimentoId: 'aceite-de-oliva', gramosTotales: 39, estado: 'listo', estimado: true },
+]
 
-const RECETAS_DEMO: Receta[] = [
-  {
-    id: 'demo-1',
-    handle: '@ejemplo.postres',
-    nombre: 'Brownie de avena y cacao',
-    categoria: 'Postre',
-    media: { thumbnail: miniatura('#3a2f2a', '#0f0d0c'), duracion: '0:47' },
-    social: { views: '—', likes: '—', guardados: '—' },
+const WRAP: IngredienteDelReel[] = [
+  { nombre: 'Papa', enElReel: '1/2 papa grande', alimentoId: 'papa-variedad-cerosa-sabanera-con-cascara-cruda', gramosTotales: 150, estado: 'crudo', estimado: true },
+  { nombre: 'Queso bajo en grasa', enElReel: '2 lonchas', alimentoId: 'queso-fresco-semiduro-semigraso-tipo-mozzarella', gramosTotales: 40, estimado: true },
+  { nombre: 'Huevo', enElReel: '2 huevos', alimentoId: 'huevo-de-gallina-entero-crudo', gramosTotales: 100, estado: 'crudo', estimado: true },
+  { nombre: 'Jamón', enElReel: 'sin cantidad', alimentoId: 'jamon-tipo-york-precocido', gramosTotales: 40, estimado: true },
+  { nombre: 'Aguacate', enElReel: 'sin cantidad', alimentoId: 'aguacate-hass-crudo', gramosTotales: 50, estado: 'crudo', estimado: true },
+  { nombre: 'Tomate', enElReel: 'sin cantidad', alimentoId: 'tomate-crudo', gramosTotales: 60, estado: 'crudo', estimado: true },
+]
+
+const SANDWICH: IngredienteDelReel[] = [
+  { nombre: 'Pechuga de pollo', enElReel: '100 g', alimentoId: 'pechuga-de-pollo-sin-piel-cruda', gramosTotales: 100, estado: 'crudo' },
+  { nombre: 'Parmesano', enElReel: 'sin cantidad', alimentoId: 'queso-madurado-duro-semigraso-tipo-parmesano', gramosTotales: 10, estado: 'listo', estimado: true },
+  { nombre: 'Queso crema', enElReel: '2 cucharadas', alimentoId: 'queso-crema-amarillo', gramosTotales: 30, estado: 'listo', estimado: true },
+  { nombre: 'Espinacas frescas', enElReel: 'sin cantidad', alimentoId: 'espinaca-cruda', gramosTotales: 30, estado: 'crudo', estimado: true },
+  { nombre: 'Tomates deshidratados', enElReel: 'sin cantidad', alimentoId: 'tomate-crudo', gramosTotales: 15, estado: 'crudo', estimado: true },
+]
+
+const BROWNIE: IngredienteDelReel[] = [
+  { nombre: 'Manzana', enElReel: '1 manzana', alimentoId: 'manzana-comun-cruda', gramosTotales: 150, estado: 'crudo', estimado: true },
+  { nombre: 'Huevo', enElReel: '1 huevo', alimentoId: 'huevo-de-gallina-entero-crudo', gramosTotales: 50, estado: 'crudo', estimado: true },
+  { nombre: 'Nueces', enElReel: '6 nueces', alimentoId: 'nueces-nuez-de-nogal', gramosTotales: 30, estado: 'crudo', estimado: true },
+  { nombre: 'Cacao en polvo', enElReel: '2 cucharadas', alimentoId: 'cacao-tostado-y-molido', gramosTotales: 10, estado: 'seco', estimado: true },
+  { nombre: 'Chocolate sin azúcar', enElReel: 'chips, sin cantidad', alimentoId: 'chocolate-amargo-o-negro', gramosTotales: 20, estado: 'listo', estimado: true },
+]
+
+const CARLOTA: IngredienteDelReel[] = [
+  { nombre: 'Mango', enElReel: '200 g', alimentoId: 'mango-comun-crudo', gramosTotales: 200, estado: 'crudo' },
+  { nombre: 'Yogur griego', enElReel: '240 g', alimentoId: 'yogur-griego-entero', gramosTotales: 240, estado: 'listo' },
+  { nombre: 'Galletas', enElReel: 'sin cantidad', alimentoId: 'galleta-de-avena', gramosTotales: 80, estado: 'listo', estimado: true },
+]
+
+type BaseReceta = Omit<Receta, 'ajuste' | 'ingredientes' | 'rinde'> & { porcionNota: string }
+
+/**
+ * Arma una receta a partir de lo que dice el reel.
+ *
+ * Los cuatro macros NO se escriben aquí: los calcula `escalarReceta` del mismo
+ * catálogo del que luego se suma el día. Así abrir la receta y registrarla dan
+ * la misma cifra, y el día que se corrija un valor del catálogo estas fichas se
+ * corrigen solas.
+ */
+function receta(
+  base: BaseReceta,
+  delReel: IngredienteDelReel[],
+  porciones: number,
+  notas: RecetaNota[] = [],
+): Receta {
+  const { porcionNota, ...resto } = base
+  const e = escalarReceta(delReel, porciones, porId)
+  return {
+    ...resto,
     ajuste: {
       porcion: '1 porción',
-      porcionNota: `de las ${PORCIONES_BROWNIE} que salen del molde`,
-      kcal: BROWNIE.kcal, prot: BROWNIE.prot, carb: BROWNIE.carb, grasa: BROWNIE.grasa,
-      notas: [
-        { tipo: 'encaja', label: 'Dónde encaja hoy', texto: 'Texto de ejemplo: aquí va cómo entra en el día actual.' },
-        { tipo: 'canje', label: 'El canje', texto: 'Texto de ejemplo: qué quitar si la suma.' },
-        { tipo: 'ojo', label: 'Ojo con', texto: 'Texto de ejemplo: advertencia sobre la receta original.' },
-        { tipo: 'truco', label: 'Truco Alfa', texto: 'Texto de ejemplo: tip de ejecución.' },
+      porcionNota,
+      kcal: e.kcal,
+      prot: e.prot,
+      carb: e.carb,
+      grasa: e.grasa,
+      notas,
+    },
+    ingredientes: e.ingredientes,
+    rinde: `Rinde ${porciones} ${porciones === 1 ? 'porción' : 'porciones'}`,
+  }
+}
+
+/**
+ * Las recetas de verdad, sacadas de Instagram el 2026-08-16.
+ *
+ * `notas` va VACÍO a propósito en las seis. El «dónde encaja hoy», el canje y el
+ * «ojo con» son criterio clínico sobre una persona concreta y los escribe el
+ * coach, no esta lista. Mientras estén vacías no se sirven — ver la compuerta.
+ */
+const RECETAS_REALES: Receta[] = [
+  receta(
+    {
+      id: 'rollitos-zanahoria-atun',
+      handle: '@tasty_hunting',
+      nombre: 'Rollitos bajos en hidratos',
+      categoria: 'Cena',
+      media: {
+        thumbnail: miniatura('#3a2a12', '#0f0b06', 'R'),
+        instagramPermalink: 'https://www.instagram.com/reel/DMyJZcUNxKC/',
+        duracion: '0:47',
+      },
+      social: { views: '—', likes: '—', guardados: '—' },
+      porcionNota: 'de las 2 que salen de la receta',
+      preparacion: [
+        'Ralla la zanahoria cruda y mézclala con el queso, los huevos, la cebolla en polvo y la sal.',
+        'Engrasa una sartén a fuego medio, vierte la mezcla y extiéndela sin dejar agujeros.',
+        'Cocina tapado unos 8 minutos, hasta que esté firme.',
+        'Mezcla el relleno y extiéndelo sobre la base cuando esté lista.',
+        'Añade rúcula, enrolla y corta al gusto.',
       ],
     },
-    rinde: `Rinde ${PORCIONES_BROWNIE} porciones`,
-    // Derivados, no escritos: es la que demuestra el alta en el registro. Las
-    // otras dos se quedan sin medir a propósito, para ver también el camino en
-    // que el botón explica que no puede.
-    ingredientes: BROWNIE.ingredientes,
-    preparacion: [
-      'Licúa la avena hasta que quede harina.',
-      'Mezcla con el cacao, el huevo y el endulzante.',
-      'Hornea 18 min a 180 °C en molde cuadrado.',
-      'Deja enfriar y corta en 9 porciones iguales.',
-    ],
-  },
-  {
-    id: 'demo-2',
-    handle: '@ejemplo.desayunos',
-    nombre: 'Tortitas de banano y clara',
-    categoria: 'Desayuno',
-    media: { thumbnail: miniatura('#2b3320', '#0d0f0b'), duracion: '1:02' },
-    social: { views: '—', likes: '—', guardados: '—' },
-    ajuste: {
-      porcion: '2 tortitas medianas',
-      porcionNota: 'de las 6 de la receta',
-      kcal: 240, prot: 18, carb: 30, grasa: 5,
-      notas: [
-        { tipo: 'encaja', label: 'Dónde encaja hoy', texto: 'Texto de ejemplo.' },
-        { tipo: 'truco', label: 'Truco Alfa', texto: 'Texto de ejemplo.' },
+    ROLLITOS,
+    2,
+  ),
+  receta(
+    {
+      id: 'hamburguesas-pollo-brocoli',
+      handle: '@paufeel',
+      nombre: 'Hamburguesas de pollo y brócoli',
+      categoria: 'Almuerzo',
+      media: {
+        thumbnail: miniatura('#20301c', '#0a0d09', 'H'),
+        instagramPermalink: 'https://www.instagram.com/reel/DGsZWL8NZUH/',
+        duracion: '0:52',
+      },
+      social: { views: '—', likes: '—', guardados: '—' },
+      porcionNota: 'de las 2 que salen de la receta',
+      preparacion: [
+        'Corta el pollo en cuadrados pequeños.',
+        'Mezcla en un bol los huevos, el brócoli rallado, el queso, la sal y la pimienta.',
+        'Añade el pollo y forma las hamburguesas.',
+        'Cocina a fuego medio hasta que estén doradas por los dos lados.',
       ],
     },
-  },
-  {
-    id: 'demo-3',
-    handle: '@ejemplo.snacks',
-    nombre: 'Bolitas de dátil y maní',
-    categoria: 'Snack',
-    media: { thumbnail: miniatura('#33291c', '#0f0c08') , duracion: '0:31' },
-    social: { views: '—', likes: '—', guardados: '—' },
-    ajuste: {
-      porcion: '2 unidades',
-      porcionNota: 'de las 14 de la bandeja',
-      kcal: 150, prot: 4, carb: 18, grasa: 7,
-      notas: [{ tipo: 'ojo', label: 'Ojo con', texto: 'Texto de ejemplo.' }],
+    HAMBURGUESAS,
+    2,
+  ),
+  receta(
+    {
+      id: 'wrap-de-papa',
+      handle: '@tasty_hunting',
+      nombre: 'Wrap de papa',
+      categoria: 'Almuerzo',
+      media: {
+        thumbnail: miniatura('#33280f', '#100c05', 'W'),
+        instagramPermalink: 'https://www.instagram.com/reel/DbtadZTtoBT/',
+        duracion: '0:41',
+      },
+      social: { views: '—', likes: '—', guardados: '—' },
+      porcionNota: 'la receta entera es una porción',
+      preparacion: [
+        'Corta la papa en láminas muy finas con mandolina o cuchillo.',
+        'Colócalas en una sartén antiadherente con un poco de aceite, superponiéndolas.',
+        'Pon el queso encima, tapa y cocina a fuego medio-bajo de 8 a 10 minutos.',
+        'Vierte los huevos batidos, tapa otra vez y cocina hasta que cuajen.',
+        'Haz un corte desde el centro hacia fuera, rellena cada lado y ciérralo.',
+      ],
     },
-  },
+    WRAP,
+    1,
+  ),
+  receta(
+    {
+      id: 'sandwich-de-pollo',
+      handle: '@tasty_hunting',
+      nombre: 'Sándwich de pollo sin harinas',
+      categoria: 'Snack',
+      media: {
+        thumbnail: miniatura('#2a2f36', '#0b0d0f', 'S'),
+        instagramPermalink: 'https://www.instagram.com/reel/DbbZKSYtJQB/',
+        duracion: '0:38',
+      },
+      social: { views: '—', likes: '—', guardados: '—' },
+      porcionNota: 'la receta entera es una ración',
+      preparacion: [
+        'Tritura la pechuga con el ajo y la cebolla en polvo, la sal y la pimienta.',
+        'Extiende la mezcla en dos bases finas y dóralas en la sartén.',
+        'Rellena con el queso crema, las espinacas y los tomates deshidratados.',
+      ],
+    },
+    SANDWICH,
+    1,
+  ),
+  receta(
+    {
+      id: 'brownie-sin-harinas',
+      handle: '@paufeel',
+      nombre: 'Brownie sin harinas',
+      categoria: 'Postre',
+      media: {
+        thumbnail: miniatura('#3a2f2a', '#0f0d0c', 'B'),
+        instagramPermalink: 'https://www.instagram.com/reel/DEh5vz3N4qg/',
+        duracion: '0:47',
+      },
+      social: { views: '—', likes: '—', guardados: '—' },
+      porcionNota: 'de las 2 que salen del molde',
+      preparacion: [
+        'Pela y trocea la manzana; tritúrala con el huevo, el cacao y el polvo de hornear.',
+        'Vierte la mitad en un molde, añade las nueces y cubre con el resto.',
+        'Pon los chips por encima y lleva al microondas 2 o 3 minutos a máxima potencia.',
+        'Deja enfriar antes de cortar.',
+      ],
+    },
+    BROWNIE,
+    2,
+  ),
+  receta(
+    {
+      id: 'carlota-de-mango',
+      handle: '@tasty_hunting',
+      nombre: 'Carlota de mango',
+      categoria: 'Postre',
+      media: {
+        thumbnail: miniatura('#3d3211', '#100d05', 'C'),
+        instagramPermalink: 'https://www.instagram.com/reel/DblyNUXtPpm/',
+        duracion: '0:35',
+      },
+      social: { views: '—', likes: '—', guardados: '—' },
+      porcionNota: 'de las 6 que salen del molde',
+      preparacion: [
+        'Tritura el mango con el yogur griego y la vainilla.',
+        'Monta capas alternando galleta y crema en un molde.',
+        'Lleva a la nevera al menos 4 horas antes de cortar.',
+      ],
+    },
+    CARLOTA,
+    6,
+  ),
 ]
 
 /**
- * En desarrollo se sirven las de muestra para poder revisar el diseño; en
- * producción, nada hasta que existan recetas de verdad.
+ * Solo se sirve lo que el coach ha firmado.
  *
- * No es un apaño: es la garantía de que un despliegue accidental no le enseña
- * a 21 personas consejo nutricional que nadie escribió.
+ * Una receta sin notas tiene su porción y sus macros bien calculados, pero le
+ * falta lo único que la hace de Alfa: dónde encaja HOY, qué canjear, con qué
+ * tener ojo. Sin eso es un feed de recetas más.
+ *
+ * La compuerta es un filtro sobre el propio dato, no una lista aparte que
+ * alguien tenga que acordarse de actualizar: en cuanto una receta tenga notas
+ * sale sola, y una a medio escribir no puede llegar a nadie por descuido.
  */
-export const RECETAS: Receta[] =
-  import.meta.env.MODE === 'development' ? RECETAS_DEMO : []
+export const RECETAS: Receta[] = RECETAS_REALES.filter((r) => r.ajuste.notas.length > 0)
+
+/** Las seis armadas, tengan notas o no. Sirve para revisarlas antes de firmar. */
+export const RECETAS_SIN_FIRMAR: Receta[] = RECETAS_REALES
