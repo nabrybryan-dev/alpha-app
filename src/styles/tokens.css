@@ -724,8 +724,17 @@ body {
 /* ExerciseSlotMachine — solo interior del gabinete --------------------------- */
 /* Estas cinco familias se usan EXCLUSIVAMENTE dentro del marco de la máquina.
    Ni una sola aparece en el resto de la app: fuera de ese rectángulo la
-   pantalla es Alfa Athletics puro. */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Alfa+Slab+One&family=Anton&family=Cinzel:wght@600;900&family=Bungee&display=swap');
+   pantalla es Alfa Athletics puro.
+
+   AQUÍ NO VA SU @import, y es a propósito. Estaba, y costaba 314 KB en 19
+   archivos bloqueando el primer pintado de TODAS las pantallas —incluida
+   nutrición, donde no hay ninguna máquina—. Un `@import` dentro de una hoja ya
+   descargada encadena tres viajes antes de pintar: hoja → CSS de Google →
+   archivos de fuente. En un gimnasio con mala conexión eso son segundos de
+   pantalla en blanco a cambio de la tipografía de un adorno.
+
+   Se cargan ahora bajo demanda, cuando monta la primera máquina:
+   `features/entrenar/fuentesDelGabinete.ts`. */
 
 @keyframes bulbPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
