@@ -29,6 +29,22 @@ const PASO_MS = 62
 const GIRO_MS = 900
 /** Pasos del giro, derivados de la duración: 900 / 62 ≈ 15. */
 const PASOS_GIRO = Math.round(GIRO_MS / PASO_MS)
+
+/**
+ * Cuánto dura el paso número `restantes` (va de PASOS_GIRO a 1).
+ *
+ * Una tragamonedas de verdad **frena**: los últimos giros se separan y el ojo
+ * alcanza a leer un símbolo antes del siguiente. Ese titubeo final es lo que
+ * genera la expectativa; una cinta a velocidad constante que se para en seco
+ * se lee como un carrusel con prisa.
+ *
+ * Los cuatro últimos pasos se estiran progresivamente hasta triplicar la
+ * cadencia de crucero.
+ */
+function intervaloDePaso(restantes: number): number {
+  if (restantes > 4) return PASO_MS
+  return PASO_MS * (1 + (5 - restantes) * 0.55)
+}
 /** Cuánto dura el destello del marco al aterrizar. */
 const DESTELLO_MS = 620
 /** Cada cuánto gira solo mientras la sesión está viva. */
@@ -172,15 +188,20 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
       const paso = () => {
         setROff((o) => o + 1)
         restantes -= 1
-        if (restantes > 0) programar(paso, PASO_MS)
+        if (restantes > 0) programar(paso, intervaloDePaso(restantes))
         else {
           setRSpin(false)
           setRSnap(false)
           setCatIdx(objetivo)
           setROff((o) => {
-            // Aterriza en la vuelta siguiente para que nunca retroceda.
-            const restante = ((objetivo - (o % paradas.length)) + paradas.length) % paradas.length
-            return o + restante + paradas.length
+            // La cinta cuenta MEDIAS filas: las pares son paradas y las impares
+            // símbolos. Aterrizar siempre en par es lo que deja el dato
+            // centrado en la ventana, y pasar por las impares es lo que deja
+            // ver los símbolos mientras gira.
+            const filas = paradas.length * 2
+            const destinoFila = objetivo * 2
+            const restante = ((destinoFila - (o % filas)) + filas) % filas
+            return o + restante + filas
           })
           setFlash(true)
           programar(() => setFlash(false), DESTELLO_MS)
@@ -234,7 +255,9 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
   }
 
   const visible = paradas[catIdx] ?? paradas[0]
-  const pos = paradas.length > 0 ? ((rOff % paradas.length) + paradas.length) % paradas.length : 0
+  // Media fila por paso: pares = paradas, impares = símbolos.
+  const filas = Math.max(1, paradas.length * 2)
+  const pos = reducido ? catIdx : ((rOff % filas) + filas) % filas
 
   return (
     <div
@@ -339,6 +362,15 @@ function Ventana({
       <MarcasDeLinea lado="left" />
       <MarcasDeLinea lado="right" />
 
+      {/*
+        Cada bloque mide DOS filas: la parada y, debajo, los símbolos de casino.
+        La cinta se desplaza de dos en dos, así que en la ventana solo cae una
+        de las dos — los símbolos únicamente se perciben mientras gira, que es
+        lo que hace que parezca una tragamonedas y no un carrusel.
+
+        Con una sola altura por bloque los símbolos se desbordaban ENCIMA del
+        texto de la parada. Se veía en la app, no en los tests.
+      */}
       <div
         style={{
           transform: reducido ? undefined : `translateY(-${pos * ALTO}px)`,
@@ -347,9 +379,17 @@ function Ventana({
         }}
       >
         {paradas.map((parada, i) => (
-          <div key={parada.etiqueta} style={{ height: ALTO }}>
-            <FilaParada parada={parada} oculta={reducido && i !== pos} onRefTap={onRefTap} />
-            {!reducido && <FilaSimbolos indice={i} />}
+          <div key={parada.etiqueta}>
+            {/* Alto explícito por fila: con `h-full` el hijo heredaba los dos
+                altos del bloque y el dato caía al borde inferior. */}
+            <div style={{ height: ALTO }}>
+              <FilaParada parada={parada} oculta={reducido && i !== pos} onRefTap={onRefTap} />
+            </div>
+            {!reducido && (
+              <div style={{ height: ALTO }}>
+                <FilaSimbolos indice={i} />
+              </div>
+            )}
           </div>
         ))}
       </div>
