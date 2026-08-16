@@ -416,7 +416,18 @@ export async function hidratarDesdeNube(): Promise<void> {
           (f): VetoAlimento => ({
             usuarioId: f.asesorado_id as string,
             alimentoId: f.alimento_id as string,
-            motivo: (f.motivo as string | null) ?? undefined,
+            // Vacío, no ausente: el tipo exige el campo, y la pantalla ya pinta
+            // «Sin motivo anotado» cuando no hay texto. Así una fila vieja se ve
+            // como lo que es -un veto sin explicación- sin inventarle una.
+            //
+            // Y se CONSERVA, que es lo que importa: descartarla sería lo cómodo
+            // y es lo peligroso, porque dice que esta persona no puede comer eso
+            // y perderla es volver a proponérselo. La seguridad va primero en la
+            // jerarquía; la trazabilidad, después.
+            //
+            // Hoy no existe ninguna así: la tabla está en 0 filas y con la 0040
+            // aplicada no podrá haberla.
+            motivo: (f.motivo as string | null) ?? '',
           }),
         ),
     visibilidades: visibilidades.error
