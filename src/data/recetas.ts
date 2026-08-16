@@ -21,6 +21,8 @@
  */
 
 import type { EstadoAlimento } from '../domain/types'
+import { escalarReceta, type IngredienteDelReel } from '../domain/nutricion/escalarReceta'
+import { catalogoRepo } from './catalogo/catalogoRepo'
 
 export type NotaTipo = 'encaja' | 'canje' | 'ojo' | 'truco'
 
@@ -108,6 +110,28 @@ function miniatura(a: string, b: string): string {
  * Sirve para ver la sección funcionando; se sustituye por las recetas de verdad
  * antes de que esto llegue a nadie.
  */
+/**
+ * Los ingredientes del brownie tal como los diría el reel, sin dividir nada.
+ *
+ * De aquí sale TODO lo demás —la columna «para ti» y los cuatro macros de la
+ * ficha— vía `escalarReceta`. Es el flujo con el que se meten las recetas de
+ * verdad: el coach copia lo que ve, dice cuántas porciones salen, y no calcula.
+ *
+ * Las cifras de la ficha dejan así de estar escritas a mano, que era un hueco
+ * real: si la ficha decía 180 y los ingredientes daban 240, el asesorado veía
+ * un número al abrir y otro al registrar sin poder saber cuál valía.
+ */
+const BROWNIE_DEL_REEL: IngredienteDelReel[] = [
+  { nombre: 'Avena en hojuelas', enElReel: '200 g', alimentoId: 'avena-en-hojuelas-peso-en-seco', gramosTotales: 200, estado: 'seco' },
+  { nombre: 'Cacao en polvo', enElReel: '40 g', alimentoId: 'cacao-tostado-y-molido', gramosTotales: 40, estado: 'seco' },
+  { nombre: 'Huevo', enElReel: '3 unidades', alimentoId: 'huevo-de-gallina-entero-crudo', gramosTotales: 150, estado: 'crudo' },
+  { nombre: 'Miel de abejas', enElReel: '120 g de panela', alimentoId: 'miel-de-abejas', gramosTotales: 120, cambiado: true },
+  { nombre: 'Mantequilla de maní', enElReel: '60 g', alimentoId: 'mantequilla-de-mani', gramosTotales: 60, estado: 'listo' },
+]
+
+const PORCIONES_BROWNIE = 9
+const BROWNIE = escalarReceta(BROWNIE_DEL_REEL, PORCIONES_BROWNIE, (id) => catalogoRepo.porId(id))
+
 const RECETAS_DEMO: Receta[] = [
   {
     id: 'demo-1',
@@ -117,9 +141,9 @@ const RECETAS_DEMO: Receta[] = [
     media: { thumbnail: miniatura('#3a2f2a', '#0f0d0c'), duracion: '0:47' },
     social: { views: '—', likes: '—', guardados: '—' },
     ajuste: {
-      porcion: '1 porción de 60 g',
-      porcionNota: 'de las 9 que salen del molde',
-      kcal: 180, prot: 7, carb: 24, grasa: 6,
+      porcion: '1 porción',
+      porcionNota: `de las ${PORCIONES_BROWNIE} que salen del molde`,
+      kcal: BROWNIE.kcal, prot: BROWNIE.prot, carb: BROWNIE.carb, grasa: BROWNIE.grasa,
       notas: [
         { tipo: 'encaja', label: 'Dónde encaja hoy', texto: 'Texto de ejemplo: aquí va cómo entra en el día actual.' },
         { tipo: 'canje', label: 'El canje', texto: 'Texto de ejemplo: qué quitar si la suma.' },
@@ -127,17 +151,11 @@ const RECETAS_DEMO: Receta[] = [
         { tipo: 'truco', label: 'Truco Alfa', texto: 'Texto de ejemplo: tip de ejecución.' },
       ],
     },
-    rinde: 'Rinde 9 porciones',
-    // Mapeada al catálogo: es la que demuestra el alta en el registro. Las otras
-    // dos se quedan sin medir a propósito, para ver también el camino en que el
-    // botón explica que no puede.
-    ingredientes: [
-      { nombre: 'Avena en hojuelas', enElReel: '200 g', paraTi: '22 g', alimentoId: 'avena-en-hojuelas-peso-en-seco', gramosParaTi: 22, estado: 'seco' },
-      { nombre: 'Cacao en polvo', enElReel: '40 g', paraTi: '4 g', alimentoId: 'cacao-tostado-y-molido', gramosParaTi: 4, estado: 'seco' },
-      { nombre: 'Huevo', enElReel: '3 unidades', paraTi: '17 g', alimentoId: 'huevo-de-gallina-entero-crudo', gramosParaTi: 17, estado: 'crudo' },
-      { nombre: 'Miel de abejas', enElReel: '120 g de panela', paraTi: '13 g', cambiado: true, alimentoId: 'miel-de-abejas', gramosParaTi: 13 },
-      { nombre: 'Mantequilla de maní', enElReel: '60 g', paraTi: '7 g', alimentoId: 'mantequilla-de-mani', gramosParaTi: 7, estado: 'listo' },
-    ],
+    rinde: `Rinde ${PORCIONES_BROWNIE} porciones`,
+    // Derivados, no escritos: es la que demuestra el alta en el registro. Las
+    // otras dos se quedan sin medir a propósito, para ver también el camino en
+    // que el botón explica que no puede.
+    ingredientes: BROWNIE.ingredientes,
     preparacion: [
       'Licúa la avena hasta que quede harina.',
       'Mezcla con el cacao, el huevo y el endulzante.',
