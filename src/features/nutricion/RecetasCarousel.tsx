@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Receta } from '../../data/recetas'
-import { RecetaSheet } from './RecetaSheet'
+import { RecetaSheet, type RecetaRegistro } from './RecetaSheet'
 
 /**
  * «Recetas que sí encajan»: virales de Instagram que el asesorado ya conoce y
@@ -21,13 +21,17 @@ const COLOR_CATEGORIA: Record<Receta['categoria'], string> = {
 
 export interface RecetasCarouselProps {
   recetas: Receta[]
-  /** kcal restantes del día. Sin dato, la hoja omite esa línea. */
+  /** kcal restantes del día. Sin dato la hoja cambia el texto, no lo quita. */
   kcalRestantes?: number
-  onAgregar?: (receta: Receta) => void
+  /** Mientras las recetas viajan: reserva el hueco exacto, sin salto. */
+  cargando?: boolean
+  registro?: RecetaRegistro
 }
 
-export function RecetasCarousel({ recetas, kcalRestantes, onAgregar }: RecetasCarouselProps) {
+export function RecetasCarousel({ recetas, kcalRestantes, cargando, registro }: RecetasCarouselProps) {
   const [abierta, setAbierta] = useState<Receta | null>(null)
+
+  if (cargando) return <CarruselFantasma />
 
   // Sin recetas la sección entera no existe: ni estado vacío, ni hueco.
   if (recetas.length === 0) return null
@@ -53,19 +57,46 @@ export function RecetasCarousel({ recetas, kcalRestantes, onAgregar }: RecetasCa
       </div>
 
       {abierta && (
+        // La hoja NO se cierra al agregar: el aviso de «Deshacer» tiene que
+        // seguir a la vista, y cerrar de golpe se lo lleva por delante.
         <RecetaSheet
           receta={abierta}
           kcalRestantes={kcalRestantes}
           onCerrar={() => setAbierta(null)}
-          onAgregar={
-            onAgregar &&
-            ((receta) => {
-              onAgregar(receta)
-              setAbierta(null)
-            })
-          }
+          registro={registro}
         />
       )}
+    </section>
+  )
+}
+
+/**
+ * El hueco antes de que lleguen las recetas.
+ *
+ * Mide exactamente lo mismo que las tarjetas de verdad —132 × 176 más el pie de
+ * texto— porque un esqueleto que no coincide es peor que ninguno: el contenido
+ * salta justo cuando el dedo ya iba a tocar.
+ */
+function CarruselFantasma() {
+  return (
+    <section className="mt-4" aria-hidden="true">
+      <div className="h-[19px] w-[186px] rounded-[6px] bg-surface-2 brillo-carga" />
+      <div className="mt-1.5 h-[13px] w-full max-w-[280px] rounded-[6px] bg-surface-2 brillo-carga" />
+      <div
+        className="mt-2.5 flex gap-[11px] overflow-hidden"
+        style={{ margin: '10px -18px 0', padding: '0 18px' }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="w-[132px] shrink-0 overflow-hidden rounded-[15px] border border-linea bg-surface-2">
+            <div className="brillo-carga h-[176px] w-full bg-surface-3" />
+            <div className="px-2 pb-2 pt-1.5">
+              <div className="brillo-carga h-[9px] w-3/5 rounded-[4px] bg-surface-3" />
+              <div className="brillo-carga mt-1.5 h-[11px] w-full rounded-[4px] bg-surface-3" />
+              <div className="brillo-carga mt-1 h-[11px] w-4/5 rounded-[4px] bg-surface-3" />
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   )
 }

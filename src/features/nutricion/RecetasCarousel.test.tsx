@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Receta } from '../../data/recetas'
 import { RecetasCarousel } from './RecetasCarousel'
+import type { RecetaRegistro } from './RecetaSheet'
 
 function receta(id: string, nombre: string): Receta {
   return {
@@ -54,23 +55,61 @@ describe('RecetasCarousel', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('«Agregar al registro» llama al handler con la receta y cierra', () => {
-    const alAgregar = vi.fn()
-    render(<RecetasCarousel recetas={TRES} onAgregar={alAgregar} />)
-    fireEvent.click(screen.getByText('Brownie de avena'))
-    fireEvent.click(screen.getByRole('button', { name: /agregar al registro/i }))
-    expect(alAgregar).toHaveBeenCalledWith(expect.objectContaining({ id: '1', nombre: 'Brownie de avena' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
+  describe('agregar al registro', () => {
+    function abrirCon(registro: RecetaRegistro) {
+      render(<RecetasCarousel recetas={TRES} registro={registro} />)
+      fireEvent.click(screen.getByText('Brownie de avena'))
+      return screen.getByRole('button', { name: /agregar al registro/i })
+    }
 
-  /**
-   * Sin handler no hay botón. El registro de comidas no admite entradas libres,
-   * y un botón que no guarda nada es peor que ningún botón.
-   */
-  it('sin handler no ofrece el botón de agregar', () => {
-    render(<RecetasCarousel recetas={TRES} />)
-    fireEvent.click(screen.getByText('Brownie de avena'))
-    expect(screen.queryByRole('button', { name: /agregar al registro/i })).not.toBeInTheDocument()
+    it('agrega en un solo toque, sin diálogo de confirmación', () => {
+      const registro = { agregar: vi.fn(), deshacer: vi.fn() }
+      fireEvent.click(abrirCon(registro))
+      expect(registro.agregar).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }))
+      expect(registro.agregar).toHaveBeenCalledTimes(1)
+    })
+
+    /**
+     * La hoja NO se cierra al agregar. Cerrar de golpe se lleva por delante el
+     * aviso de «Deshacer», que es la única salida si el toque fue un accidente.
+     */
+    it('deja la hoja abierta y avisa de lo que quedó registrado', () => {
+      fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      const aviso = screen.getByRole('status')
+      expect(aviso).toHaveTextContent('Brownie de avena')
+      expect(aviso).toHaveTextContent('1 porción de 60 g agregada')
+    })
+
+    it('«Deshacer» revierte de verdad, no solo esconde el aviso', () => {
+      const registro = { agregar: vi.fn(), deshacer: vi.fn() }
+      fireEvent.click(abrirCon(registro))
+      fireEvent.click(screen.getByRole('button', { name: /deshacer/i }))
+      expect(registro.deshacer).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }))
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('el aviso se va solo a los 4 s', () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
+        act(() => {
+          vi.advanceTimersByTime(3900)
+        })
+        expect(screen.getByRole('status')).toBeInTheDocument()
+        act(() => {
+          vi.advanceTimersByTime(200)
+        })
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('«Deshacer» tiene 44px de área táctil', () => {
+      fireEvent.click(abrirCon({ agregar: vi.fn(), deshacer: vi.fn() }))
+      expect(screen.getByRole('button', { name: /deshacer/i }).style.minHeight).toBe('44px')
+    })
   })
 
   it('el crédito al creador está en la tarjeta y en la hoja', () => {
@@ -83,10 +122,45 @@ describe('RecetasCarousel', () => {
     )
   })
 
-  it('muestra las kcal restantes del día cuando se le pasan', () => {
-    render(<RecetasCarousel recetas={TRES} kcalRestantes={420} />)
-    fireEvent.click(screen.getByText('Brownie de avena'))
-    expect(screen.getByText(/Te quedan 420 kcal hoy/)).toBeInTheDocument()
+  /**
+   * La línea contextual es lo único que separa esto de un feed de recetas: dice
+   * que la porción está medida contra el día de esta persona. Sin dato cambia de
+   * texto; no se calla nunca.
+   */
+  describe('línea contextual', () => {
+    it('con dato, dice cuántas kcal quedan hoy', () => {
+      render(<RecetasCarousel recetas={TRES} kcalRestantes={420} />)
+      fireEvent.click(screen.getByText('Brownie de avena'))
+      expect(screen.getByText('Te quedan 420 kcal hoy')).toBeInTheDocument()
+    })
+
+    it('sin dato NO desaparece: cae al plan del día', () => {
+      render(<RecetasCarousel recetas={TRES} />)
+      fireEvent.click(screen.getByText('Brownie de avena'))
+      expect(screen.getByText('Según tu plan de hoy')).toBeInTheDocument()
+    })
+  })
+
+  /** El esqueleto reserva el hueco exacto: si no coincide, el contenido salta. */
+  describe('esqueleto de carga', () => {
+    it('reserva tres tarjetas del mismo ancho que las de verdad', () => {
+      const { container } = render(<RecetasCarousel recetas={[]} cargando />)
+      const fantasmas = container.querySelectorAll('.w-\\[132px\\]')
+      expect(fantasmas).toHaveLength(3)
+      expect(container.querySelector('.h-\\[176px\\]')).toBeInTheDocument()
+    })
+
+    it('no anuncia el hueco a quien navega por voz', () => {
+      const { container } = render(<RecetasCarousel recetas={[]} cargando />)
+      expect(container.querySelector('section')).toHaveAttribute('aria-hidden', 'true')
+    })
+
+    it('al llegar las recetas, el esqueleto se va', () => {
+      const { container, rerender } = render(<RecetasCarousel recetas={[]} cargando />)
+      rerender(<RecetasCarousel recetas={TRES} />)
+      expect(container.querySelector('.brillo-carga')).not.toBeInTheDocument()
+      expect(screen.getByText('Brownie de avena')).toBeInTheDocument()
+    })
   })
 
   /** Sin `videoUrl` el reproductor cae al póster, nunca a un layout roto. */
