@@ -20,11 +20,34 @@
 -- sobre las filas viejas: inventarles un motivo o dejarlas fuera de la regla.
 -- La ventana se cierra sola, y probablemente esta semana.
 --
--- LO QUE NO HACE
--- No toca la app. Hoy nada escribe en esta tabla desde `src/` -el panel de vetos
--- de la PR #42 lee, y la carga inicial va por SQL- así que esto no puede romper
--- un formulario que no existe. Cuando se escriba, el `check` estará esperando y
--- la UI tendrá que pedir el motivo, que es el orden que se quiere.
+-- ⛔ NO APLICAR TODAVÍA. ROMPE EL PANEL DE VETOS.
+--
+-- Este bloque decía que la app no escribe en esta tabla. ERA FALSO, y la
+-- migración se aplicó el 2026-08-16 creyéndoselo. Hubo que revertirla el mismo
+-- día. Lo que hay de verdad:
+--
+--   SheetVetados.tsx:119   db.vetados.vetar({ usuarioId, alimentoId })   ← sin motivo
+--   sync.ts:328            motivo: veto.motivo?.trim() || null           ← lo manda NULL
+--   types.ts:383           motivo?: string                               ← opcional en el tipo
+--
+-- Es el panel que la PR #42 desplegó para la nutricionista. Con el NOT NULL
+-- puesto, su primer veto falla — y falla por el peor camino: la operación se
+-- encola, el upsert revienta, y la cola de descartados tiene tope. Se pierde en
+-- silencio.
+--
+-- No lo notó nadie porque la tabla estaba en 0 filas. Se descubrió leyendo
+-- `sync.ts` para otra cosa.
+--
+-- EL ORDEN CORRECTO, que esta misma migración ya decía y se hizo al revés:
+--
+--   1. `SheetVetados` pide el motivo, con su test.
+--   2. Desplegar.
+--   3. Entonces sí, aplicar esto.
+--   4. Señal a SI, y comprobar que rechaza de verdad.
+--
+-- La lección, que es la de siempre en este repo: se comprobó que nadie LEÍA la
+-- tabla desde `src/` y se dio por hecho que nadie la escribía. La cadena de
+-- escritura no pasa por la pantalla, pasa por `sync.ts`, y ahí no se miró.
 
 -- Red de seguridad. Si entre que esto se escribió y se corre alguien codificó
 -- vetos, la migración se planta con un mensaje claro en vez de reventar en el
@@ -70,6 +93,31 @@ comment on column public.perfil_alimentario_veto.motivo is
 --   select conname from pg_constraint
 --    where conname='perfil_alimentario_veto_motivo_escrito';   -- tiene que salir
 --
--- Y que de verdad rechaza, que es lo único que prueba que sirve:
+-- Y que de verdad rechaza, que es lo único que prueba que sirve.
+--
+-- CUIDADO CON QUÉ SE PRUEBA. Esta columna tiene DOS checks:
+--
+--   perfil_alimentario_veto_motivo_check      (0016)  motivo IS NULL OR length(trim(motivo)) > 0
+--   perfil_alimentario_veto_motivo_escrito    (0040)  length(trim(motivo)) >= 3
+--
+-- El de la 0016 ya rechazaba el motivo en blanco —lo que dejaba pasar era el
+-- NULL—, así que probar con '  ' choca contra ÉL y no demuestra nada de esta
+-- migración: habría fallado igual antes de aplicarla. Es el mismo error que las
+-- señales ciegas de la 0013 (ver PR #47): una prueba que no distingue el mundo
+-- de antes del mundo de después.
+--
+-- Las dos que sí aíslan esta migración, corridas contra producción el
+-- 2026-08-16 y fallando las dos, como debe ser:
+--
+--   -- 'ok' pasa el check de la 0016 (no está vacío) y choca contra el de la 0040:
 --   insert into perfil_alimentario_veto (asesorado_id, alimento_id, motivo)
---   values ('<uuid>', 'res-higado-crudo', '  ');   -- debe fallar
+--   values ('<uuid>', 'res-higado-crudo', 'ok');
+--   -- ERROR 23514 ... viola «perfil_alimentario_veto_motivo_escrito»
+--
+--   -- el NULL que la 0016 dejaba entrar:
+--   insert into perfil_alimentario_veto (asesorado_id, alimento_id, motivo)
+--   values ('<uuid>', 'res-higado-crudo', null);
+--   -- ERROR 23502 ... viola la restricción not-null
+--
+-- Los dos inserts fallan, así que no dejan basura: la tabla se quedó en 0 filas.
+-- Con un uuid inventado basta — los CHECK se evalúan antes que la FK.
