@@ -6,6 +6,20 @@
  * pull request y para retirar una basta con borrar su entrada — el handle y el
  * enlace al post original son obligatorios y nunca se ocultan.
  *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * EL CRÉDITO ES OBLIGATORIO; EL PERMISO, NO
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Pedir autorización receta por receta se retiró el 2026-08-16. Quien publica
+ * un reel busca alcance, y mandarle tráfico desde aquí le sirve a su objetivo.
+ *
+ * Lo que NO se retira, porque no es lo mismo: `handle` y
+ * `media.instagramPermalink` siguen siendo obligatorios y visibles, y el vídeo
+ * **no se aloja**. Si el reel se pudiera ver sin salir de Alfa, el creador
+ * dejaría de recibir la visita que justifica todo esto — el argumento del
+ * alcance se caería solo. Por eso `media.videoUrl` solo se rellena si el
+ * creador cede el archivo; sin él, `ReelPlayer` cae al póster con «Reel
+ * disponible en Instagram», que es el comportamiento correcto.
+ *
  * DECISIÓN PENDIENTE: el encargo dice que los datos semilla (5 recetas) están
  * en el prototipo de Registro de Comidas, en `this.RECETAS`. **No están.** Ese
  * prototipo no contiene ninguna sección de recetas ni de influencers: lo
@@ -15,6 +29,10 @@
  * handles de personas reales, cifras de visitas y —sobre todo— notas de ajuste
  * nutricional firmadas por el coach para 21 asesorados de carne y hueso. Eso no
  * es un dato de relleno: es consejo de salud atribuido a alguien.
+ *
+ * Ojo: retirar el permiso del creador NO levanta esto. Lo que se puede tomar
+ * del reel es lo que el reel dice —qué lleva y cuánto—; el «dónde encaja hoy»
+ * y el canje siguen siendo criterio del coach sobre una persona concreta.
  *
  * Con la lista vacía el carrusel no se renderiza (spec B.1), así que la app
  * queda exactamente como estaba hasta que lleguen los datos reales.
