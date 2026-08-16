@@ -146,6 +146,58 @@ function armarComidas(comidas: Fila[], items: Fila[]): RegistroComida[] {
   })
 }
 
+/** Una fila de la vista `checkins_nutricion` (migraciones 0013 y 0039). */
+export interface FilaCheckinNutricion {
+  id: string
+  usuario_id: string
+  fecha: string
+  peso_kg: number | string | null
+  hambre: string | null
+  alimentacion: string | null
+  hambre_escala: number | string | null
+}
+
+/**
+ * Los check-ins enteros con los recortados de la vista rellenando los huecos.
+ *
+ * Quien puede leer la fila entera la recibe entera: para el asesorado y el coach
+ * esto no cambia nada, porque la vista les devuelve las mismas filas que la tabla
+ * y la entera gana siempre. Quien NO puede —la nutricionista, desde que la 0013
+ * cierre `checkins_lee_staff` a `es_coach()`— solo recibe de la tabla sus propios
+ * check-ins, y de la vista los cuatro campos nutricionales de los demás.
+ *
+ * El orden importa y es el bug fácil: si el recorte se aplicara DESPUÉS, pisaría
+ * las filas enteras y dejaría a todo el mundo sin ánimo, sueño ni comentarios.
+ * Por eso los recortados van primero al mapa y los enteros encima.
+ *
+ * Los campos que la vista no trae quedan `undefined`, no vacíos ni en cero:
+ * `CheckinDiario` los tiene todos opcionales y «no me lo dieron» no es «lo
+ * respondió y salió cero».
+ */
+export function fusionarCheckins(
+  enteros: readonly CheckinDiario[],
+  recortados: readonly FilaCheckinNutricion[],
+): CheckinDiario[] {
+  const porId = new Map<string, CheckinDiario>()
+
+  for (const f of recortados) {
+    porId.set(f.id, {
+      id: f.id,
+      usuarioId: f.usuario_id,
+      fecha: f.fecha,
+      ...(f.peso_kg === null ? {} : { pesoKg: Number(f.peso_kg) }),
+      ...(f.hambre === null ? {} : { hambre: f.hambre as CheckinDiario['hambre'] }),
+      ...(f.hambre_escala === null ? {} : { hambreEscala: Number(f.hambre_escala) }),
+      ...(f.alimentacion === null
+        ? {}
+        : { alimentacion: f.alimentacion as CheckinDiario['alimentacion'] }),
+    })
+  }
+  for (const c of enteros) porId.set(c.id, c)
+
+  return [...porId.values()]
+}
+
 export async function hidratarDesdeNube(): Promise<void> {
   const sb = supabase()
 
@@ -161,6 +213,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     perfiles,
     microciclos,
     checkins,
+    checkinsNutricion,
     adherencias,
     planes,
     mensajes,
@@ -174,6 +227,16 @@ export async function hidratarDesdeNube(): Promise<void> {
     // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
     sb.from('microciclos').select('id, estado, datos'),
     sb.from('checkins').select('datos'),
+    // Migración 0013, ampliada por la 0039. La nutricionista NO lee la tabla de
+    // arriba —ahí viven ánimo, estrés, sueño y comentarios libres, que no son
+    // asunto de nutrición— y esta vista le da las cuatro columnas que sí lo son.
+    //
+    // Se piden las DOS a todo el mundo en vez de mirar el rol: saber el rol
+    // exigiría una consulta previa, y eso es una cascada en la descarga que abre
+    // `SIGNED_IN` cada vez que alguien desbloquea el móvil entre series. Al
+    // fusionar gana la fila entera, así que para el asesorado y el coach esto es
+    // un no-op: solo cambia lo de quien no puede ver la fila entera.
+    sb.from('checkins_nutricion').select('*'),
     sb.from('adherencias').select('*'),
     sb.from('planes_nutricionales').select('datos'),
     sb.from('mensajes').select('*'),
@@ -183,7 +246,13 @@ export async function hidratarDesdeNube(): Promise<void> {
     sb.from('premiaciones').select('*'),
   ])
 
-  const primerError = [usuarios, perfiles, microciclos, checkins, adherencias, planes, mensajes, cuestionarios, respuestas, contenidos, premiaciones].find((r) => r.error)
+  // `checkinsNutricion` entra en la lista a propósito, aunque para el asesorado y
+  // el coach sea redundante: si la vista falla, la nutricionista se queda sin
+  // ningún check-in y no lo sabría. Un error a gritos es mejor que una pantalla
+  // vacía que parece decir «esta gente no ha registrado nada». La vista existe
+  // desde la 0013 y está concedida a `authenticated`, así que fallar aquí
+  // significa que algo está roto de verdad.
+  const primerError = [usuarios, perfiles, microciclos, checkins, checkinsNutricion, adherencias, planes, mensajes, cuestionarios, respuestas, contenidos, premiaciones].find((r) => r.error)
   if (primerError?.error) {
     throw new Error(`No se pudo descargar tus datos: ${primerError.error.message}`)
   }
@@ -251,7 +320,10 @@ export async function hidratarDesdeNube(): Promise<void> {
     ),
     perfiles: conPendientes('perfiles', perfiles.data ?? []).map((f) => f.datos as Perfil),
     microciclos: microciclosDe(conPendientes('microciclos', microciclos.data ?? [])),
-    checkins: conPendientes('checkins', checkins.data ?? []).map((f) => f.datos as CheckinDiario),
+    checkins: fusionarCheckins(
+      conPendientes('checkins', checkins.data ?? []).map((f) => f.datos as CheckinDiario),
+      (checkinsNutricion.data ?? []) as FilaCheckinNutricion[],
+    ),
     adherencias: conPendientes('adherencias', adherencias.data ?? []).map(
       (f): AdherenciaNutricional => ({
         id: f.id as string,
