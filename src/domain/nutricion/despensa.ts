@@ -53,6 +53,19 @@ export interface ItemDespensa {
 }
 
 /**
+ * Un item con su dueño: es como se GUARDA.
+ *
+ * El dominio trabaja con `ItemDespensa` a secas —las funciones de aquí operan
+ * sobre la despensa de una sola persona y no tienen por qué saber de quién es—,
+ * pero la base y el almacén local necesitan el dueño en cada fila. Esta es la
+ * costura entre las dos formas, y vive aquí para que `seed` y `repos` no tengan
+ * que inventarse cada uno la suya.
+ */
+export interface ItemDespensaDe extends ItemDespensa {
+  usuarioId: string
+}
+
+/**
  * El ciclo de compra más largo que maneja Alpha.
  *
  * Las programaciones van a 8 o a 15 días. Pasado el más largo sin tocar nada,

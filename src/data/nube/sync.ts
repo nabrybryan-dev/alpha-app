@@ -22,6 +22,7 @@ import {
   condicionesDeclaradas,
   type RespuestasDeEmbarazo,
 } from '../../domain/nutricion/embarazo'
+import { claveDe, type ItemDespensa } from '../../domain/nutricion/despensa'
 import { aIso } from '../../domain/nutricion/semana'
 import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube } from '../supabase'
@@ -147,6 +148,19 @@ function tablasRegistroListas(): boolean {
  * Sube el perfil entero tras tocarlo. Se relee de local a propósito: así viaja
  * con lo que la capa local dejó, no con lo que creyó quien llamó.
  */
+/**
+ * El `cliente_id` de un item de despensa: dueño + clave del dominio.
+ *
+ * No es aleatorio a propósito. `claveDe` devuelve el id del catálogo, o
+ * `pedido:<texto normalizado>` para lo que la persona escribió a mano, así que
+ * dos compras del mismo alimento —o dos veces «kefir» escrito distinto— caen en
+ * el mismo id y el upsert las funde. Que el `unique (cliente_id)` de la 0024 no
+ * sea parcial es lo que permite arbitrar sobre él (ver 0023).
+ */
+function idDeDespensa(usuarioId: string, item: ItemDespensa): string {
+  return `${usuarioId}:${claveDe(item)}`
+}
+
 function subirPerfil(local: Db, usuarioId: string): void {
   const perfil = local.perfiles.byUsuario(usuarioId)
   if (!perfil) return
@@ -350,6 +364,53 @@ export function crearDbSincronizada(local: Db): Db {
             alimento_id: alimentoId,
             borrado: true,
           },
+        })
+      },
+    },
+
+    /**
+     * La despensa (migraciones 0024 y 0042).
+     *
+     * EL `cliente_id` SALE DE LA CLAVE DEL DOMINIO, y no es un detalle: es lo que
+     * hace que volver a comprar algo REFRESQUE su fila en vez de crear otra. El
+     * dominio ya decide eso en `agregar()` —«volver a comprar algo no es tenerlo
+     * dos veces, es tenerlo otra vez»— y con el id derivado de `claveDe()` la
+     * base aplica exactamente la misma regla a través de su unique.
+     *
+     * Si el id fuera aleatorio, cada compra insertaría una fila nueva y la
+     * despensa crecería sola: el mismo pollo cinco veces, cinco fechas
+     * distintas, y ninguna forma de saber cuál manda.
+     */
+    despensa: {
+      ...local.despensa,
+      agregar: (usuarioId, item) => {
+        local.despensa.agregar(usuarioId, item)
+        encolar({
+          tabla: 'despensa',
+          tipo: 'upsert',
+          onConflict: 'cliente_id',
+          payload: {
+            cliente_id: idDeDespensa(usuarioId, item),
+            asesorado_id: usuarioId,
+            alimento_id: item.alimentoId,
+            texto_pedido: item.alimentoId ? null : (item.textoPedido ?? null),
+            cantidad_g: item.cantidadG,
+            origen: item.origen,
+            agregado_en: item.agregadoEn,
+            borrado: false,
+          },
+        })
+      },
+      quitar: (usuarioId, clave) => {
+        local.despensa.quitar(usuarioId, clave)
+        // `update` y no `upsert`: un upsert que no encuentre la fila la
+        // INSERTARÍA, y sin `alimento_id` ni `texto_pedido` chocaría contra el
+        // check `despensa_alimento_o_pedido`. El update solo toca lo que existe.
+        encolar({
+          tabla: 'despensa',
+          tipo: 'update',
+          payload: { borrado: true },
+          filtro: { cliente_id: `${usuarioId}:${clave}` },
         })
       },
     },

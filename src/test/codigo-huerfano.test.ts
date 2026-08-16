@@ -25,11 +25,6 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
-  'src/domain/nutricion/despensa.ts':
-    'Escrito el 2026-08-05 junto a la migración 0024, que nunca se corrió. Ni rompe ni ' +
-    'sirve: ocho exportaciones y cero consumidores. Decisión pendiente de Bryan — ' +
-    'terminarla (correr la migración y enchufar la sección) o borrarla. Lo que no ' +
-    'conviene es dejarla saliendo NO en cada comprobación, porque enseña a ignorar los NO.',
 }
 
 /**
@@ -47,6 +42,23 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'semanas». Necesita mirar 14 días de registros hacia atrás y esa vista no existe.',
   'src/domain/nutricion/techos.ts#motivoDeLaFrecuencia':
     'Mismo aviso de frecuencia pendiente que DIAS_ENTRE_RACIONES.',
+  // Las tres que quedan de la despensa. El módulo dejó de estar huérfano el
+  // 2026-08-16, cuando se le puso capa de datos: `agregar`, `quitar` y `claveDe`
+  // ya los usan `mockDb` y `sync`. Estas esperan a la PANTALLA, que es el paso
+  // siguiente del spec.
+  'src/domain/nutricion/despensa.ts#paraElMotor':
+    'Filtra lo que tiene tabla nutricional, que es lo único con lo que se pueden ' +
+    'calcular cantidades. La usará el motor de cambios cuando la despensa le diga ' +
+    'qué hay en casa (paso 6 del spec del 2026-08-16). Hasta entonces nadie calcula ' +
+    'nada contra la despensa.',
+  'src/domain/nutricion/despensa.ts#pedidos':
+    'Lo que la persona escribió y el catálogo no conoce. Su destino es la cola de ' +
+    'trabajo del staff, que arriba ya existe como vista `alimentos_pedidos` (0024) ' +
+    'y abajo necesita la pantalla del paso 5.',
+  'src/domain/nutricion/despensa.ts#estaVieja':
+    'Si toca volver a preguntar qué hay en casa, contando desde el ciclo de compra ' +
+    'que la persona declaró en la encuesta (`cicloCompra`, PR #52). Lo consulta la ' +
+    'pantalla para pedir la actualización, y esa pantalla es el paso 5.',
   'src/domain/nutricion/embarazo.ts#puedeQuedarEmbarazada':
     'La encuesta ya recoge «no puedo quedar embarazada» (PR #41), pero todavía nadie ' +
     'consulta la respuesta para saltarse las preguntas del ciclo.',
