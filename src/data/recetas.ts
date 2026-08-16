@@ -28,6 +28,24 @@ export interface RecetaNota {
   texto: string
 }
 
+/**
+ * Un ingrediente en dos columnas: lo que dice el reel y lo que le toca a esta
+ * persona.
+ *
+ * Las dos van juntas a propósito. Enseñar solo «tu cantidad» obliga al
+ * asesorado a fiarse a ciegas; enseñar solo la del reel lo deja donde estaba.
+ * El valor de la sección es ver **la traducción**, no el resultado.
+ */
+export interface RecetaIngrediente {
+  nombre: string
+  /** Cantidad tal como sale en el reel. Ej. «3 huevos», «200 g de avena». */
+  enElReel: string
+  /** Lo que le toca a esta persona para su porción. Ej. «1 huevo». */
+  paraTi: string
+  /** Cambia respecto al original: sustitución, no solo menos cantidad. */
+  cambiado?: boolean
+}
+
 export interface Receta {
   id: string
   /** Obligatorio y siempre visible: es el crédito al creador. */
@@ -50,6 +68,18 @@ export interface Receta {
     grasa: number
     notas: RecetaNota[]
   }
+  /**
+   * Qué lleva y cuánto, en las dos columnas. Vacío o ausente: la sección no se
+   * pinta y la hoja se queda con el ajuste, que es lo mínimo útil.
+   */
+  ingredientes?: RecetaIngrediente[]
+  /** Los pasos, tal cual. Cortos: esto se lee de pie en una cocina. */
+  preparacion?: string[]
+  /**
+   * Cuántas porciones salen con las cantidades de la columna «en el reel». Se
+   * usa para explicar de dónde sale la porción del asesorado.
+   */
+  rinde?: string
 }
 
 /** Miniatura de muestra: SVG en línea, sin red y sin peso. */
@@ -85,6 +115,20 @@ const RECETAS_DEMO: Receta[] = [
         { tipo: 'truco', label: 'Truco Alfa', texto: 'Texto de ejemplo: tip de ejecución.' },
       ],
     },
+    rinde: 'Rinde 9 porciones',
+    ingredientes: [
+      { nombre: 'Avena en hojuelas', enElReel: '200 g', paraTi: '22 g' },
+      { nombre: 'Cacao en polvo', enElReel: '40 g', paraTi: '4 g' },
+      { nombre: 'Huevo', enElReel: '3 unidades', paraTi: '1/3 unidad' },
+      { nombre: 'Panela raspada', enElReel: '120 g', paraTi: '6 g', cambiado: true },
+      { nombre: 'Mantequilla de maní', enElReel: '60 g', paraTi: '7 g' },
+    ],
+    preparacion: [
+      'Licúa la avena hasta que quede harina.',
+      'Mezcla con el cacao, el huevo y el endulzante.',
+      'Hornea 18 min a 180 °C en molde cuadrado.',
+      'Deja enfriar y corta en 9 porciones iguales.',
+    ],
   },
   {
     id: 'demo-2',

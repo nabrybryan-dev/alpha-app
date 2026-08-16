@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactElement } from 'react'
+import { Fragment, useEffect, useRef, type ReactElement } from 'react'
 import type { Receta, RecetaNota } from '../../data/recetas'
 import { ReelPlayer } from './ReelPlayer'
 
@@ -100,6 +100,9 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, onAgregar }: Rece
 
         <AjusteAlfa ajuste={ajuste} kcalRestantes={kcalRestantes} />
 
+        <Ingredientes receta={receta} />
+        <Preparacion pasos={receta.preparacion} />
+
         {onAgregar && (
           <button
             type="button"
@@ -170,6 +173,71 @@ function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalR
           </li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+/**
+ * Los ingredientes en dos columnas: lo que dice el reel y lo que te toca.
+ *
+ * Van juntas a propósito. Solo «tu cantidad» obliga a fiarse a ciegas; solo la
+ * del reel deja al asesorado donde estaba. Lo que vale es ver la traducción.
+ */
+function Ingredientes({ receta }: { receta: Receta }) {
+  const lista = receta.ingredientes
+  if (!lista || lista.length === 0) return null
+
+  return (
+    <section className="mt-3 rounded-[18px] border border-linea bg-ink-800 p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-accion">Qué lleva</p>
+        {receta.rinde && <span className="cifras text-[10px] text-tenue">{receta.rinde}</span>}
+      </div>
+
+      <div className="mt-2.5 grid grid-cols-[1fr_auto_auto] items-baseline gap-x-3 gap-y-2">
+        <span className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Ingrediente</span>
+        <span className="cifras text-right text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
+          En el reel
+        </span>
+        <span className="cifras text-right text-[9.5px] font-bold uppercase tracking-[0.1em] text-accion">
+          Para ti
+        </span>
+
+        {lista.map((ing) => (
+          <Fragment key={ing.nombre}>
+            <span className="text-[12.5px] leading-snug text-silver-200">
+              {ing.nombre}
+              {ing.cambiado && (
+                <span className="ml-1 text-[9.5px] font-bold uppercase tracking-[0.08em] text-ambar">
+                  cambia
+                </span>
+              )}
+            </span>
+            {/* Tachado: se ve de un vistazo que esa cantidad no es la tuya. */}
+            <span className="cifras text-right text-[12px] text-tenue line-through">{ing.enElReel}</span>
+            <span className="cifras text-right text-[12.5px] font-bold text-texto">{ing.paraTi}</span>
+          </Fragment>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function Preparacion({ pasos }: { pasos?: string[] }) {
+  if (!pasos || pasos.length === 0) return null
+  return (
+    <section className="mt-3 rounded-[18px] border border-linea bg-ink-800 p-4">
+      <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-accion">Cómo se hace</p>
+      <ol className="mt-2.5 flex flex-col gap-2">
+        {pasos.map((paso, i) => (
+          <li key={paso} className="flex gap-2.5">
+            <span className="cifras mt-0.5 shrink-0 text-[11px] font-bold text-accion">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span className="text-[12.5px] leading-snug text-silver-300">{paso}</span>
+          </li>
+        ))}
+      </ol>
     </section>
   )
 }
