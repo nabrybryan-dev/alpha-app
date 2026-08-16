@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
@@ -20,6 +20,11 @@ import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
 import { preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
+import { RECETAS, type Receta } from '../../data/recetas'
+import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
+import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from '../../domain/recetasProbadas'
+import { escribirJSON, leerJSON } from '../../lib/persistencia'
+import { RecetasCarousel } from './RecetasCarousel'
 import { ResumenDia } from './ResumenDia'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
@@ -95,6 +100,25 @@ export default function DiarioDia() {
   }, [ruta.state])
 
   const [fecha, setFecha] = useState(hoyIso())
+  /** Qué comida creó cada receta, para poder deshacer exactamente esa. */
+  const comidasDeReceta = useRef(new Map<string, string>())
+
+  /**
+   * Las recetas ya cocinadas, en el teléfono y con la clave del usuario.
+   *
+   * No entra en `limpiarBorradoresLocales`: los borradores se borran al cerrar
+   * sesión porque son kilos y reps a medio escribir de otra persona, y aquí la
+   * clave ya lleva el id —nadie ve lo de nadie—. Borrarlo al salir solo serviría
+   * para tirarle la racha a quien vuelve a entrar en su propio teléfono.
+   */
+  const claveProbadas = `alpha-recetas-${usuario.id}`
+  const [probadas, setProbadasEstado] = useState<RecetaProbada[]>(() =>
+    leerJSON<RecetaProbada[]>(claveProbadas, []),
+  )
+  const setProbadas = (nuevas: RecetaProbada[]) => {
+    setProbadasEstado(nuevas)
+    escribirJSON(claveProbadas, nuevas)
+  }
   const [tipoDia] = useState<TipoDia>('ALTO')
   // `detalle` es la comida que se está mirando entera; `comidaAbierta` es en
   // cuál va a caer lo que se busque. Son distintas: desde el detalle se abre el
@@ -170,6 +194,34 @@ export default function DiarioDia() {
   )
 
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
+
+  /**
+   * Una receta entra como comida propia, no dentro de la que ya hubiera.
+   *
+   * Así el «Deshacer» puede borrarla entera sin tocar lo que la persona había
+   * registrado antes: mezclarla en el snack existente obligaría a quitar ítem a
+   * ítem y bastaría un ingrediente repetido para llevarse por delante el que ya
+   * estaba.
+   */
+  const registroDeRecetas = {
+    agregar: (receta: Receta) => {
+      const plan = recetaAlRegistro(receta, `${fecha}T${new Date().toTimeString().slice(0, 5)}:00`)
+      if (!plan.puede) return
+      const comidaId = db.registroComidas.abrirComida({ ...plan.comida, usuarioId: usuario.id })
+      for (const item of plan.items) db.registroComidas.agregarItem(usuario.id, comidaId, item)
+      comidasDeReceta.current.set(receta.id, comidaId)
+      setProbadas(anotar(probadas, receta.id, fecha))
+    },
+    deshacer: (receta: Receta) => {
+      const comidaId = comidasDeReceta.current.get(receta.id)
+      if (!comidaId) return
+      db.registroComidas.borrarComida(usuario.id, comidaId)
+      comidasDeReceta.current.delete(receta.id)
+      // La racha baja con la comida. Si no, el número seguiría diciendo que
+      // cocinó algo que ya no está registrado en ninguna parte.
+      setProbadas(desanotar(probadas, receta.id, fecha))
+    },
+  }
 
   /** Una comida que todavía no existe en la base, solo para poder pintarla. */
   const vacia = (tipo: TipoComida): RegistroComida => ({
@@ -354,6 +406,14 @@ export default function DiarioDia() {
       <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
 
       <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+
+      <RecetasCarousel
+        recetas={RECETAS}
+        kcalRestantes={Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))}
+        registro={registroDeRecetas}
+        cocinadas={distintas(probadas)}
+        racha={rachaDeRecetas(probadas, fecha).actual}
+      />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">

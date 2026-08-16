@@ -149,6 +149,23 @@ const EQUIVALENCIA: Readonly<Record<Categoria, readonly Aporte[]>> = {
  * toda búlgara, zancada y sentadilla a una pierna.
  */
 const VARIANTES: Partial<Record<Categoria, readonly { patron: RegExp; aportes: readonly Aporte[] }[]>> = {
+  /**
+   * Los combinados cobran por las DOS mitades.
+   *
+   * «PRESS MILITAR + CURL BÍCEPS» estaba en FLEXIÓN DE CODO, así que solo
+   * acreditaba bíceps: la mitad del press desaparecía del recuento. No es un
+   * ejercicio de bíceps con un adorno — cada repetición hace las dos cosas y
+   * las dos son trabajo efectivo, así que las dos van a 1.
+   *
+   * El tríceps entra a 0,5: acompaña la extensión de codo del press, no la
+   * dirige.
+   */
+  'FLEXIÓN DE CODO': [
+    {
+      patron: /PRESS MILITAR|PRESS HOMBRO|EMPUJE VERTICAL/,
+      aportes: [directo('Bíceps'), directo('Hombros'), indirecto('Tríceps')],
+    },
+  ],
   'SENTADILLA UNILATERAL': [
     { patron: /TORSO INCLINADO/, aportes: [directo('Aductores'), indirecto('Glúteos')] },
     { patron: /TORSO VERTICAL/, aportes: [directo('Glúteos'), indirecto('Cuádriceps')] },
