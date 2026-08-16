@@ -1,5 +1,6 @@
 import type { ResumenSemana } from '../../domain/nutricion/semanaResumen'
 import type { Macros } from '../../domain/types'
+import type { Visibilidad } from '../../domain/nutricion/visibilidad'
 
 /**
  * La semana de un vistazo: cuánto registró, cuánto se aleja de la pauta y qué
@@ -15,11 +16,26 @@ const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 interface VistaSemanaProps {
   resumen: ResumenSemana
   meta: Macros
+  /**
+   * Con el contador apagado esta pantalla era el rodeo: se apagaba el total del
+   * diario y aquí seguía el promedio de kcal, el «vs. pauta» y un gráfico de
+   * barras de calorías por día.
+   *
+   * Lo que se queda es la ADHERENCIA —qué días anotó, cuántas comidas—, que no
+   * es una cifra sobre su cuerpo y es justo lo que hace útil la vista.
+   */
+  visibilidad: Visibilidad
   onVolver: () => void
   onElegirDia: (fecha: string) => void
 }
 
-export function VistaSemana({ resumen, meta, onVolver, onElegirDia }: VistaSemanaProps) {
+export function VistaSemana({
+  resumen,
+  meta,
+  visibilidad,
+  onVolver,
+  onElegirDia,
+}: VistaSemanaProps) {
   // La barra más alta de la semana marca el tope, con la pauta como suelo para
   // que un día flojo no se dibuje enorme solo por ser el único.
   const techo = Math.max(meta.kcal, ...resumen.dias.map((d) => d.kcal))
@@ -27,7 +43,17 @@ export function VistaSemana({ resumen, meta, onVolver, onElegirDia }: VistaSeman
   const stats = [
     { etiqueta: 'Días anotados', valor: `${resumen.diasRegistrados}`, unidad: 'de 7' },
     { etiqueta: 'Comidas', valor: `${resumen.comidasRegistradas}`, unidad: 'con datos' },
-    { etiqueta: 'Proteína media', valor: `${resumen.promedioProteinaG}`, unidad: `de ${meta.proteinaG} g` },
+    // La media de proteína se mide contra una meta, así que va con el
+    // interruptor del objetivo calórico, no con el del contador.
+    ...(visibilidad.verObjetivoCalorico
+      ? [
+          {
+            etiqueta: 'Proteína media',
+            valor: `${resumen.promedioProteinaG}`,
+            unidad: `de ${meta.proteinaG} g`,
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -45,7 +71,13 @@ export function VistaSemana({ resumen, meta, onVolver, onElegirDia }: VistaSeman
       </header>
 
       <section className="rounded-3xl border border-linea bg-surface-1 p-4">
-        {resumen.diasRegistrados === 0 ? (
+        {!visibilidad.verContadorKcal ? (
+          <p className="py-2 text-center text-sm leading-snug text-tenue">
+            {resumen.diasRegistrados === 0
+              ? 'Esta semana no has anotado nada todavía.'
+              : 'Aquí ves qué días anotaste. Las cifras las está viendo tu nutricionista.'}
+          </p>
+        ) : resumen.diasRegistrados === 0 ? (
           <p className="py-2 text-center text-sm leading-snug text-tenue">
             Esta semana no has anotado nada todavía.
             <br />
@@ -86,14 +118,27 @@ export function VistaSemana({ resumen, meta, onVolver, onElegirDia }: VistaSeman
               key={dia.fecha}
               type="button"
               onClick={() => onElegirDia(dia.fecha)}
-              aria-label={`${dia.fecha}: ${dia.registrado ? `${dia.kcal} kcal` : 'sin registrar'}`}
+              aria-label={`${dia.fecha}: ${
+                dia.registrado
+                  ? visibilidad.verContadorKcal
+                    ? `${dia.kcal} kcal`
+                    : 'registrado'
+                  : 'sin registrar'
+              }`}
               className="press flex flex-1 flex-col items-center gap-1"
             >
               <span className="flex h-16 w-full items-end">
                 {dia.registrado ? (
                   <span
                     className="w-full rounded-t-md bg-accion"
-                    style={{ height: `${Math.max(4, (dia.kcal / techo) * 100)}%` }}
+                    // Con el contador apagado todas las barras miden lo mismo:
+                    // una barra proporcional a las kcal sigue siendo el
+                    // contador, solo que dibujado.
+                    style={{
+                      height: visibilidad.verContadorKcal
+                        ? `${Math.max(4, (dia.kcal / techo) * 100)}%`
+                        : '100%',
+                    }}
                   />
                 ) : (
                   // Un día sin anotar se dibuja hueco, no a cero: la ausencia

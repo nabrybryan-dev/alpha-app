@@ -70,8 +70,21 @@ export interface ValoracionCompetencia {
 export interface SerieRegistrada {
   orden: number
   cargaKg: number
-  reps: number
-  rir: number
+  /**
+   * Opcionales porque hay trabajo que no se mide así y forzarlo inventa datos.
+   *
+   * Una plancha isométrica no tiene repeticiones en reserva, y un foam roller
+   * tampoco. Hasta el 2026-08-15 la base guardaba ahí las palabras «Isometría»,
+   * «Control», «Movilidad» y «Suave» —81 series— porque el tipo exigía un
+   * número y no había dónde poner «esto no lleva RIR». Eso rompía cualquier
+   * promedio: un `avg` sobre RIR reventaba al toparse con el texto.
+   *
+   * Ausente significa **no aplica**, no «cero». Quien los lea tiene que
+   * saltarse las series sin dato en vez de contarlas como 0, que sería
+   * decir que se llegó al fallo.
+   */
+  reps?: number
+  rir?: number
 }
 
 export interface TestPostSesion {
@@ -359,6 +372,44 @@ export interface RegistroComida {
  * el asesorado sí puede leer sus interruptores. Aquí viajan juntas porque quien
  * carga este objeto es siempre staff.
  */
+/**
+ * Un alimento que esta persona no debe comer, marcado por la nutricionista.
+ *
+ * ES LA TRADUCCIÓN QUE FALTABA. La encuesta recoge las alergias en texto libre
+ * —«soy alérgica a los mariscos»— y este repo se niega a interpretarlas: no hay
+ * forma fiable de convertir una frase en una lista de ids, y equivocarse ahí es
+ * proponerle a alguien lo que le hace daño. Quien traduce es Manuela, que para
+ * eso conoce a la persona; esto es donde escribe el resultado.
+ *
+ * NO BLOQUEA REGISTRAR, NUNCA. Es la regla R6 y no tiene excepciones: si
+ * alguien con alergia al marisco se comió marisco, lo que hace falta es que
+ * quede anotado y que el coach lo VEA, no que el diario se lo impida y el dato
+ * se pierda. Esto solo decide qué se le PROPONE.
+ *
+ * El motivo es opcional a propósito: exigirlo convertiría un veto de treinta
+ * segundos en un formulario, y un veto sin escribir protege menos que uno
+ * escrito sin motivo.
+ */
+export interface VetoAlimento {
+  usuarioId: string
+  alimentoId: string
+  /**
+   * Por qué esta persona no puede comer esto. OBLIGATORIO.
+   *
+   * La PR #57 puso la pantalla a exigirlo y `motivoDeVeto.ts` a definir qué
+   * cuenta como motivo válido. Faltaba cerrar la puerta AQUÍ: mientras el campo
+   * fuera opcional, cualquier sitio nuevo podía llamar a `vetar()` sin él y
+   * `sync.ts` lo subía como `null` — que es exactamente lo que tumbó la 0040 la
+   * primera vez.
+   *
+   * Con esto, la migración se puede aplicar sin depender de que nadie se olvide:
+   * el compilador señala cada sitio que veta y obliga a traer un motivo. No es
+   * una validación —de eso se encarga `porQueNoValeElMotivo`— es la garantía de
+   * que la validación no se puede saltar por descuido.
+   */
+  motivo: string
+}
+
 export interface VisibilidadAsesorado {
   usuarioId: string
   verComposicion: boolean

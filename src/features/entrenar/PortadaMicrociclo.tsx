@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { fraseDelMicrociclo } from '../../data/contenido/frasesDelMicrociclo'
-import { cargaPorGrupo } from '../../domain/fatiga'
+import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import type { Microciclo } from '../../domain/types'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
@@ -38,7 +38,13 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
   const prioritarios = grupos.slice(0, 5)
   const foco = prioritarios[0]
   const sesiones = microciclo.sesiones.length
-  const series = grupos.reduce((t, g) => t + g.seriesPautadas, 0)
+  // Las series que la persona va a hacer de verdad, no la suma por grupo: desde
+  // que el volumen se cuenta fraccionado, un ejercicio alimenta a varios grupos
+  // y sumarlos daría un número mayor que el de series de la semana.
+  const series = microciclo.sesiones.reduce(
+    (total, s) => total + s.ejercicios.reduce((t, e) => t + e.sets, 0),
+    0,
+  )
   const notas = notasDelMicrociclo(microciclo)
   // La misma toda la semana: si cambiara en cada render sería ruido, no mensaje.
   const frase = fraseDelMicrociclo(microciclo.id)
@@ -99,7 +105,7 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
                 Foco de la semana
               </p>
               <p className="font-display text-[18px] font-black uppercase text-accion">{foco.grupo}</p>
-              <p className="text-xs text-silver-400">{`${foco.seriesPautadas} series programadas`}</p>
+              <p className="text-xs text-silver-400">{`${formatearSeries(foco.seriesPautadas)} series programadas`}</p>
             </div>
           </div>
         )}

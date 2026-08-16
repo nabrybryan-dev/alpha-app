@@ -94,7 +94,21 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
         </section>
       )}
 
-      {perfil.energia && visibilidad.verObjetivoCalorico && (
+      {/*
+        LA ALERTA DE ENERGÍA NO PASA POR NINGÚN INTERRUPTOR, y es deliberado.
+
+        Estaba detrás de `verObjetivoCalorico` y no se notaba porque el
+        interruptor llegaba siempre encendido. En cuanto se cableó de verdad,
+        apagarle las cifras a alguien le habría apagado también el aviso de que
+        está comiendo por debajo de lo que su cuerpo necesita — justo a la
+        persona por la que se apagan. Un interruptor de privacidad no puede
+        callar una alerta de salud.
+
+        Es lo que la migración 0018 promete por escrito en su cabecera: «la
+        alerta de disponibilidad energética funciona igual con los tres
+        interruptores apagados».
+      */}
+      {perfil.energia && (
         <section
           className={`rounded-2xl border p-4 ${
             perfil.energia.estado === 'problema'

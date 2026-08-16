@@ -4,10 +4,10 @@ import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
 import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
-import type { Respuestas } from '../../domain/nutricion/encuesta'
-import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
+import { SheetCambios } from './SheetCambios'
+import { respuestasDe, visibilidadDelAsesorado } from './visibilidadDelAsesorado'
 import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
 
 /**
@@ -53,6 +53,13 @@ export default function MiPlan() {
   const plan = db.nutricion.planByUsuario(usuario.id)
   const [seccion, setSeccion] = useState<Seccion>('Mi perfil')
   const [tipoMenu, setTipoMenu] = useState<TipoDia>('ALTO')
+  /** La línea del plan cuya hoja de cambios está abierta. */
+  const [cambiando, setCambiando] = useState<string | null>(null)
+
+  // Lo que decidió la nutricionista, o lo que la encuesta pide retener mientras
+  // ella no haya decidido. Ver `visibilidadDelAsesorado`.
+  const respuestas = respuestasDe(usuario.id)
+  const visibilidad = visibilidadDelAsesorado(usuario.id)
 
   if (!plan) {
     return (
@@ -97,6 +104,8 @@ export default function MiPlan() {
         <h1 className="font-display text-xl text-texto">Tu plan nutricional</h1>
       </header>
 
+      <SheetCambios linea={cambiando} onCerrar={() => setCambiando(null)} />
+
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {secciones.map((s) => (
           <button
@@ -117,13 +126,8 @@ export default function MiPlan() {
 
       {seccion === 'Mi perfil' && (
         <PerfilCalculadoVista
-          perfil={calcularPerfil(
-            (db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}) as Respuestas,
-            hoyIso(),
-          )}
-          // Sin fila guardada se ven las tres cifras: es el caso normal, y ver
-          // el propio progreso es parte del acompanamiento.
-          visibilidad={visibilidadDe(undefined)}
+          perfil={calcularPerfil(respuestas, hoyIso())}
+          visibilidad={visibilidad}
           nombre={usuario.nombre}
         />
       )}
@@ -199,7 +203,7 @@ export default function MiPlan() {
             dice cocido, se pesa cocido.
           </p>
 
-          <ComidasDelMenu menu={menu} onRegistrar={registrar} />
+          <ComidasDelMenu menu={menu} onRegistrar={registrar} onCambiar={setCambiando} />
         </section>
       )}
 
@@ -272,9 +276,11 @@ export default function MiPlan() {
 function ComidasDelMenu({
   menu,
   onRegistrar,
+  onCambiar,
 }: {
   menu: MenuDia
   onRegistrar: (linea: string, tituloComida: string) => void
+  onCambiar: (linea: string) => void
 }) {
   return (
     <>
@@ -289,6 +295,16 @@ function ComidasDelMenu({
             {comida.alimentos.filter((a) => !esHora(a)).map((alimento) => (
               <li key={alimento} className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 text-sm leading-snug text-texto">{alimento}</span>
+                {/* «No tengo esto» va ANTES del «+», y no es casual: quien no
+                    tiene el alimento no llega nunca a registrarlo. */}
+                <button
+                  type="button"
+                  onClick={() => onCambiar(alimento)}
+                  aria-label={`Por qué cambiar ${alimento}`}
+                  className="press h-7 w-7 shrink-0 rounded-full border border-linea text-sm text-tenue"
+                >
+                  ⇄
+                </button>
                 <button
                   type="button"
                   onClick={() => onRegistrar(alimento, comida.titulo)}

@@ -36,11 +36,50 @@ export type ClaveCampo =
   | 'comeVisceras'
   | 'noLeGustan'
   | 'lugarCompra'
+  /**
+   * Cada cuántos días hace mercado: 8 o 15, alineado con la programación.
+   *
+   * Las dos, junto con `despensaEs`, las necesita la despensa —que todavía no
+   * existe— y por eso van SIN `obligatorio`. Marcarlas obligatorias hoy dejaría a
+   * las 11 personas que ya completaron la encuesta detrás del formulario otra
+   * vez, perdiendo sus cifras por una funcionalidad que aún no pueden usar.
+   * Cuando la despensa exista, será ella quien las pida en su propia puerta.
+   * Ver `docs/specs/2026-08-16-de-donde-sale-la-lista-de-compra.md`.
+   */
+  | 'cicloCompra'
+  /**
+   * Si lo que compra es solo suyo o de toda la casa. Decide si la cantidad de la
+   * despensa significa algo: si es de la casa, se guarda pero no se calcula ni se
+   * le enseña. Lo que NO se hace es preguntar cuántos viven allí y dividir —nadie
+   * come un cuarto de la nevera.
+   */
+  | 'despensaEs'
   | 'frecuenciaCocina'
   | 'sinAcceso'
   | 'tieneBascula'
   // Solo a quien aplica
   | 'cicloMenstrual'
+  /**
+   * La única condición del catálogo que cambia lo que se puede recomendar: el
+   * hígado tiene retinol y el retinol es teratógeno. Ver `embarazo.ts`.
+   */
+  | 'embarazo'
+  | 'fechaProbableParto'
+  /**
+   * Las dos que vuelven cada quince días mientras haya embarazo o lactancia.
+   *
+   * Decisión de Manuela, 2026-08-09: antes de tomar decisiones hay que saber
+   * qué le dijo SU médico en su caso. El sistema pone el umbral mínimo mientras
+   * no conste nada; lo que conste manda sobre él.
+   */
+  | 'recomendacionMedica'
+  | 'diagnosticoEmbarazo'
+  /**
+   * Cuándo contestó las dos de arriba. NO es una pregunta —no tiene entrada en
+   * `CAMPOS`, nadie la ve— y sin ella no habría forma de saber si la respuesta
+   * es de hace tres días o de hace tres meses. La estampa `conSelloDeFecha`.
+   */
+  | 'preguntasDeEmbarazoEn'
   /**
    * Antecedente de conducta alimentaria. NO se pregunta en la app -no hay
    * ninguna entrada suya en `CAMPOS`- y por eso nunca aparece en el
@@ -67,11 +106,28 @@ export interface CampoEncuesta {
   obligatorio?: boolean
   /** Solo se pregunta si la respuesta de otro campo lo pide. */
   soloSi?: (respuestas: Respuestas) => boolean
+  /**
+   * Cada cuántos días vuelve a preguntarse, aunque ya esté contestada.
+   *
+   * SIN ESTO SE PREGUNTA UNA VEZ Y NUNCA MÁS, que es lo que hacían todas hasta
+   * el 2026-08-09. Sirve para lo que cambia con el tiempo y no se puede deducir
+   * de nada que la app ya sepa: qué le dijo su médico este mes.
+   *
+   * UNA PREGUNTA QUE VUELVE NUNCA ES OBLIGATORIA. Si lo fuera reabriría la
+   * compuerta de Nutrición cada quince días y dejaría a una embarazada sin sus
+   * cifras por no haber ido al médico. Lo fija `LAS_QUE_VUELVEN_NO_BLOQUEAN`.
+   */
+  cadaDias?: number
+  /** Dónde se guarda cuándo se contestó. Obligatorio si hay `cadaDias`. */
+  selloDeFecha?: ClaveCampo
 }
 
 export type Respuestas = Partial<Record<ClaveCampo, string | number | string[]>>
 
 const esMujer = (r: Respuestas) => r.genero === 'M'
+
+/** Quien declaró embarazo o lactancia. Es a quien le vuelven las dos quincenales. */
+const enEmbarazoOLactancia = (r: Respuestas) => r.embarazo === 'si' || r.embarazo === 'lactancia'
 
 /**
  * Los perímetros que pide la fórmula US Navy.
@@ -219,6 +275,29 @@ export const CAMPOS: readonly CampoEncuesta[] = [
     ],
   },
   {
+    clave: 'cicloCompra',
+    etiqueta: '¿Cada cuánto haces mercado?',
+    porQue: 'Para calcular cuánto necesitas hasta la próxima compra, no un número suelto.',
+    tipo: 'opcion',
+    // 8 y 15, no 7 y 15. Las programaciones van a 8 o a 15 días: con la compra a
+    // 7 se desfasaría un día por ciclo, y al sexto iría casi una semana por
+    // delante del plan que tiene que abastecer.
+    opciones: [
+      { valor: '8', etiqueta: 'Cada 8 días' },
+      { valor: '15', etiqueta: 'Cada 15 días' },
+    ],
+  },
+  {
+    clave: 'despensaEs',
+    etiqueta: '¿La comida que compras es solo tuya o de toda la casa?',
+    porQue: 'Dos kilos de pollo no dicen lo mismo si son para ti que si son para cuatro.',
+    tipo: 'opcion',
+    opciones: [
+      { valor: 'solo_yo', etiqueta: 'Solo mía' },
+      { valor: 'toda_la_casa', etiqueta: 'De toda la casa' },
+    ],
+  },
+  {
     clave: 'frecuenciaCocina',
     etiqueta: '¿Cocinas tú?',
     porQue: 'Si no cocinas, no te podemos preguntar por el aceite, y el registro cambia.',
@@ -261,23 +340,166 @@ export const CAMPOS: readonly CampoEncuesta[] = [
       { valor: 'prefiere_no_decir', etiqueta: 'Prefiero no decirlo' },
     ],
   },
+  {
+    clave: 'embarazo',
+    etiqueta: '¿Estás embarazada o en lactancia?',
+    porQue:
+      'En el embarazo hay alimentos que no se recomiendan, como el hígado. Si nos lo dices, dejamos de sugerírtelos.',
+    tipo: 'opcion',
+    soloSi: esMujer,
+    opciones: [
+      { valor: 'no', etiqueta: 'No' },
+      { valor: 'si', etiqueta: 'Sí, estoy embarazada' },
+      { valor: 'lactancia', etiqueta: 'En lactancia' },
+      // ES UN ESTADO, NO UN «NO» MÁS. Quien no puede quedar embarazada
+      // -menopausia, cirugía, cualquier motivo suyo- responde algo distinto de
+      // quien hoy no lo está: a ella esta pregunta no hay que volver a hacérsela
+      // nunca. Sin esta opción, «no» tendría que releerse cada cierto tiempo a
+      // todo el mundo. Ver `puedeQuedarEmbarazada`.
+      { valor: 'sin_fertilidad', etiqueta: 'No, y no puedo quedar embarazada' },
+      { valor: 'prefiere_no_decir', etiqueta: 'Prefiero no decirlo' },
+    ],
+  },
+  {
+    clave: 'fechaProbableParto',
+    etiqueta: '¿Cuál es tu fecha probable de parto?',
+    // Se dice para qué sirve. Pedir una fecha sin explicarla se lee como que la
+    // app quiere saber de más, y quien no entiende una pregunta la deja vacía.
+    porQue:
+      'Solo para dejar de avisarte cuando ya no aplique, en vez de que se quede activo para siempre.',
+    tipo: 'fecha',
+    soloSi: (r) => r.embarazo === 'si',
+  },
+  {
+    clave: 'diagnosticoEmbarazo',
+    etiqueta: '¿Te han diagnosticado algo en este tiempo?',
+    // De todo lo que un médico puede decir en una consulta de embarazo, estas
+    // tres son las que CAMBIAN lo que el sistema debería recomendar: la anemia
+    // mueve el hierro, la diabetes gestacional mueve el carbohidrato entero y
+    // la hipertensión mueve el sodio. Lo demás se conversa con Manuela; esto se
+    // pregunta porque sin ello el sistema calcularía sobre una persona que ya
+    // no es la que tiene delante.
+    porQue: 'Si te han diagnosticado algo, tu plan tiene que cambiar con eso y no después.',
+    tipo: 'multiple',
+    cadaDias: 15,
+    selloDeFecha: 'preguntasDeEmbarazoEn',
+    soloSi: enEmbarazoOLactancia,
+    opciones: [
+      { valor: 'ninguno', etiqueta: 'Nada, todo bien' },
+      { valor: 'anemia', etiqueta: 'Anemia o hierro bajo' },
+      { valor: 'diabetes_gestacional', etiqueta: 'Diabetes gestacional' },
+      { valor: 'hipertension', etiqueta: 'Tensión alta o preeclampsia' },
+      { valor: 'otro', etiqueta: 'Otra cosa' },
+    ],
+  },
+  {
+    clave: 'recomendacionMedica',
+    etiqueta: '¿Tu médico te indicó algo sobre tu alimentación?',
+    // ABIERTA Y NO DE OPCIONES, a propósito. Una indicación médica no cabe en
+    // una lista que escribimos nosotros, y una lista incompleta haría que la
+    // respuesta correcta fuera «otro» casi siempre. Lo que ella escriba lo lee
+    // Manuela, que es quien decide con eso.
+    porQue:
+      'Lo que te diga tu médico manda sobre lo que calcule la app. Mientras no nos digas nada, la app se pone en el margen más prudente.',
+    tipo: 'texto',
+    cadaDias: 15,
+    selloDeFecha: 'preguntasDeEmbarazoEn',
+    soloSi: enEmbarazoOLactancia,
+  },
 ]
+
+/**
+ * Ninguna pregunta que vuelve puede bloquear. Se comprueba, no se confía.
+ *
+ * Si una lo fuera, `encuestaCompleta` daría falso cada quince días y la
+ * compuerta de Nutrición se cerraría sola: una embarazada perdería sus cifras
+ * por no haber ido al médico todavía. Es justo el error que este archivo evita
+ * en `encuestaCompleta` mirando solo los obligatorios.
+ */
+export const LAS_QUE_VUELVEN_NO_BLOQUEAN = CAMPOS.every(
+  (campo) => !campo.cadaDias || !campo.obligatorio,
+)
+
+/** Días enteros entre dos fechas ISO. Negativo si la segunda es anterior. */
+function diasEntre(desde: string, hasta: string): number {
+  const [a1, m1, d1] = desde.split('-').map(Number)
+  const [a2, m2, d2] = hasta.split('-').map(Number)
+  // Mediodía en las dos para que un cambio de horario no reste un día entero.
+  const uno = Date.UTC(a1, m1 - 1, d1, 12)
+  const dos = Date.UTC(a2, m2 - 1, d2, 12)
+  return Math.round((dos - uno) / 86_400_000)
+}
+
+/**
+ * Si a este campo ya le toca volver a preguntarse.
+ *
+ * SIN SELLO DE FECHA, TOCA. Una respuesta de la que no se sabe cuándo se dio
+ * podría ser de hace medio año, y aquí lo barato es preguntar de más: la
+ * alternativa es decidir la alimentación de una embarazada con lo que su médico
+ * dijo hace meses.
+ */
+function toca(campo: CampoEncuesta, respuestas: Respuestas, hoy: string): boolean {
+  if (!campo.cadaDias) return false
+  const sello = campo.selloDeFecha ? respuestas[campo.selloDeFecha] : undefined
+  if (typeof sello !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(sello)) return true
+  return diasEntre(sello, hoy) >= campo.cadaDias
+}
 
 /**
  * Los campos que hay que preguntar de verdad.
  *
  * Se cae uno cuando ya se sabe la respuesta -de la encuesta de captación o de
  * lo que ya haya en el perfil- o cuando no aplica a esa persona.
+ *
+ * `hoy` solo hace falta para las que vuelven. Sin él se comportan como el resto
+ * —contestadas es contestadas— y por eso `encuestaCompleta`, que pregunta por
+ * los obligatorios y no por el calendario, lo sigue llamando sin fecha.
  */
 export function camposAPreguntar(
   yaSabidos: Respuestas,
   respuestasEnCurso: Respuestas = {},
+  hoy?: string,
 ): CampoEncuesta[] {
   const todo = { ...yaSabidos, ...respuestasEnCurso }
   return CAMPOS.filter((campo) => {
     if (campo.soloSi && !campo.soloSi(todo)) return false
-    return !tieneValor(yaSabidos[campo.clave])
+    if (!tieneValor(yaSabidos[campo.clave])) return true
+    // Ya está contestada: solo vuelve si es de las que vuelven y ya le toca. Y
+    // no vuelve dentro de la misma sesión, o desaparecería al contestarla.
+    if (hoy === undefined || tieneValor(respuestasEnCurso[campo.clave])) return false
+    return toca(campo, todo, hoy)
   })
+}
+
+/**
+ * Las preguntas que hoy vuelven a tocar. Vacío es lo normal.
+ *
+ * Lo consultan los dos sitios que avisan -«Hoy» y el diario de Nutrición- y por
+ * eso vive aquí: cuando la regla de la encuesta vivió solo en la compuerta, 16
+ * de 20 asesorados nunca la vieron.
+ */
+export function preguntasQueVuelven(respuestas: Respuestas, hoy: string): CampoEncuesta[] {
+  return camposAPreguntar(respuestas, {}, hoy).filter((campo) => Boolean(campo.cadaDias))
+}
+
+/**
+ * Estampa la fecha del día en el campo que ACABA de contestarse.
+ *
+ * SE LLAMA AL RESPONDER, no al guardar el conjunto. Estampar mirando «qué
+ * campos tienen valor» reiniciaría el reloj de los quince días cada vez que
+ * alguien tocara cualquier otra pregunta, y la quincenal no volvería nunca.
+ *
+ * Y hace falta: sin sello, `toca` da true y la pregunta vuelve al día
+ * siguiente, cada vez que abra la app, hasta hartarla.
+ */
+export function conSelloDeFecha(
+  respuestas: Respuestas,
+  contestada: ClaveCampo,
+  hoy: string,
+): Respuestas {
+  const campo = CAMPOS.find((c) => c.clave === contestada)
+  if (!campo?.selloDeFecha) return respuestas
+  return { ...respuestas, [campo.selloDeFecha]: hoy }
 }
 
 /**

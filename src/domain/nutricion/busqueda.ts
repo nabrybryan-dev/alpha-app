@@ -37,6 +37,13 @@ export interface AlimentoIndice {
     hierro_mg?: number | null
     vitamina_c_mg?: number | null
     potasio_mg?: number | null
+    /** No se pinta en ningún lado: es el único techo que se pasa con comida
+     *  corriente. Ver `techos.ts`. */
+    vitamina_a_er?: number | null
+    /** DERIVADA, no viene del índice: la calcula `conVitaminaAAnimal` al entrar
+     *  al repositorio. La TCAC publica ER, que suma retinol y β-caroteno en una
+     *  cifra, y el techo es solo del retinol. */
+    vitamina_a_animal_er?: number | null
   }
   medidas?: { nombre: string; gramos: number }[]
 }

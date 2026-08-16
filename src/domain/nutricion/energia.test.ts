@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   edadA,
   factorActividad,
+  katchMcArdle,
   objetivoInsuficiente,
   redondearExcel,
   repartirMacros,
   tdee,
+  tmbCombinada,
   tmb,
 } from './energia'
 
@@ -167,5 +169,61 @@ describe('edadA', () => {
 
   it('una fecha imposible no da una edad', () => {
     expect(edadA('2040-01-01', '2026-07-31')).toBeNull()
+  })
+})
+
+describe('katchMcArdle', () => {
+  it('370 + 21,6 x masa libre de grasa, como la fuente', () => {
+    // 370 + 21,6 x 42,22 = 1.281,95
+    expect(katchMcArdle(42.22)).toBe(1282)
+  })
+
+  // Es toda la diferencia con Mifflin: esta fórmula no sabe de peso, altura ni
+  // edad, solo de cuánto músculo hay que mantener.
+  it('la misma masa magra da la misma cifra, pese al resto', () => {
+    expect(katchMcArdle(50)).toBe(katchMcArdle(50))
+  })
+
+  describe('cuando el dato no da', () => {
+    it('sin masa magra devuelve null: sin % de grasa no hay fórmula', () => {
+      expect(katchMcArdle(null)).toBeNull()
+    })
+
+    it('una masa magra de cero o negativa no es una persona', () => {
+      expect(katchMcArdle(0)).toBeNull()
+      expect(katchMcArdle(-10)).toBeNull()
+    })
+  })
+})
+
+describe('tmbCombinada', () => {
+  /**
+   * El caso conocido del repo: mujer, 56 kg, 170 cm, 22 años, 42,22 kg de masa
+   * magra. Mifflin sola daba 1.352; Katch da 1.282; el promedio, 1.317.
+   */
+  it('promedia las dos fórmulas cuando se conoce la masa magra', () => {
+    expect(tmbCombinada(56, 170, 22, 'M', 42.22)).toBe(1317)
+  })
+
+  it('queda entre las dos, nunca fuera', () => {
+    const mifflin = tmb(56, 170, 22, 'M') as number
+    const katch = katchMcArdle(42.22) as number
+    const combinada = tmbCombinada(56, 170, 22, 'M', 42.22) as number
+    expect(combinada).toBeGreaterThanOrEqual(Math.min(mifflin, katch))
+    expect(combinada).toBeLessThanOrEqual(Math.max(mifflin, katch))
+  })
+
+  /**
+   * Sin % de grasa NO se promedia con cero: eso hundiría la TMB a la mitad y
+   * pautaría un déficit brutal a quien solo dejó una medida sin tomar.
+   */
+  it('sin masa magra cae a Mifflin sola, no a un promedio con cero', () => {
+    expect(tmbCombinada(56, 170, 22, 'M', null)).toBe(tmb(56, 170, 22, 'M'))
+    expect(tmbCombinada(56, 170, 22, 'M', null)).toBe(1352)
+  })
+
+  it('si no hay ni Mifflin, no hay nada que promediar', () => {
+    expect(tmbCombinada(null, 170, 22, 'M', 42.22)).toBeNull()
+    expect(tmbCombinada(56, 170, 22, null, 42.22)).toBeNull()
   })
 })

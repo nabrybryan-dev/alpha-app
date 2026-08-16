@@ -7,7 +7,7 @@ import {
   type Medidas,
   type VeredictoEnergetico,
 } from './composicion'
-import { edadA, factorActividad, repartirMacros, tdee, tmb, type Macros } from './energia'
+import { edadA, factorActividad, repartirMacros, tdee, tmbCombinada, type Macros } from './energia'
 import { generoDe, type Respuestas } from './encuesta'
 import type { SenalesDeRevision } from './visibilidad'
 
@@ -75,7 +75,9 @@ export function calcularPerfil(
 
   const grasa = grasaPct(medidas)
   const magra = masaMagraKg(medidas)
-  const basal = tmb(pesoKg, alturaCm, edad, genero)
+  // Promedia Mifflin con Katch-McArdle cuando hay masa magra; si no, Mifflin
+  // sola. Por eso se calcula DESPUÉS de `magra` y no antes.
+  const basal = tmbCombinada(pesoKg, alturaCm, edad, genero, magra)
   const fa = factorActividad(numero(respuestas.pasosDiarios), numero(respuestas.diasEntreno))
   const gasto = tdee(basal, fa)
 

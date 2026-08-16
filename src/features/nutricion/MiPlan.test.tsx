@@ -7,6 +7,7 @@ import DiarioDia from './DiarioDia'
 import { CompuertaNutricion } from './CompuertaNutricion'
 import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
+import { db } from '../../data/dbInstance'
 
 /**
  * Lo que separa esta vista de una hoja de cálculo bonita es el `+` de cada
@@ -142,5 +143,69 @@ describe('MiPlan', () => {
     pintar()
     await userEvent.click(screen.getByRole('button', { name: /volver al diario/i }))
     expect(screen.getByText(/diario de comidas/i)).toBeInTheDocument()
+  })
+
+  /**
+   * Lo que la nutricionista decide tiene que llegar hasta aquí.
+   *
+   * Esta pantalla pasaba `visibilidadDe(undefined)` escrito a pelo, así que los
+   * tres interruptores llegaban siempre encendidos y la decisión de Manuela no
+   * cambiaba nada en el móvil del asesorado. No fallaba: enseñaba las cifras de
+   * quien había pedido no verlas.
+   */
+  describe('la decisión de la nutricionista', () => {
+    it('por defecto se ven las cifras: es el caso normal', () => {
+      pintar()
+      expect(screen.getByText(/tu composición/i)).toBeInTheDocument()
+    })
+
+    it('si ella apaga la composición, deja de verse', () => {
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: false,
+        verObjetivoCalorico: true,
+        verContadorKcal: true,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.queryByText(/tu composición/i)).not.toBeInTheDocument()
+      // Lo que no apagó sigue ahí: se respeta la decisión, no se generaliza.
+      expect(screen.getByText(/tu gasto estimado/i)).toBeInTheDocument()
+    })
+
+    /**
+     * El "en espera" no está guardado en ninguna parte: se deriva de la encuesta
+     * más la ausencia de decisión. La app del móvil no puede escribir esa tabla,
+     * así que si la pantalla no derivara la señal, nadie la marcaría nunca.
+     */
+    it('con una señal en la encuesta y sin decisión todavía, retiene las cifras', () => {
+      const perfil = db.perfilNutricion.byUsuario('u-valentina')
+      db.perfilNutricion.guardar(
+        'u-valentina',
+        { ...perfil?.respuestas, cicloMenstrual: 'ausente' },
+        true,
+      )
+      pintar()
+      expect(screen.getByText(/está revisando tus datos/i)).toBeInTheDocument()
+      expect(screen.queryByText(/tu composición/i)).not.toBeInTheDocument()
+    })
+
+    it('pero si ella ya miró y dijo que sí, la señal no las vuelve a esconder', () => {
+      const perfil = db.perfilNutricion.byUsuario('u-valentina')
+      db.perfilNutricion.guardar(
+        'u-valentina',
+        { ...perfil?.respuestas, cicloMenstrual: 'ausente' },
+        true,
+      )
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: true,
+        verObjetivoCalorico: true,
+        verContadorKcal: true,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.getByText(/tu composición/i)).toBeInTheDocument()
+    })
   })
 })
