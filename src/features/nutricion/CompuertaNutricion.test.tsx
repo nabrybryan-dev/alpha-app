@@ -33,6 +33,11 @@ const TODO_MENOS_LOS_PASOS: Respuestas = {
   comeVisceras: 'algunas',
   noLeGustan: '-',
   lugarCompra: 'supermercado',
+  // Las dos de la despensa (2026-08-16). No son obligatorias, pero sí cuentan
+  // para el titular: sin ellas aquí faltarían tres cosas y no una, y este test
+  // dejaría de comprobar lo que dice comprobar.
+  cicloCompra: '8',
+  despensaEs: 'solo_yo',
   frecuenciaCocina: 'casi_siempre',
   sinAcceso: '-',
   tieneBascula: 'si',

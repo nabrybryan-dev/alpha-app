@@ -36,6 +36,24 @@ export type ClaveCampo =
   | 'comeVisceras'
   | 'noLeGustan'
   | 'lugarCompra'
+  /**
+   * Cada cuántos días hace mercado: 8 o 15, alineado con la programación.
+   *
+   * Las dos, junto con `despensaEs`, las necesita la despensa —que todavía no
+   * existe— y por eso van SIN `obligatorio`. Marcarlas obligatorias hoy dejaría a
+   * las 11 personas que ya completaron la encuesta detrás del formulario otra
+   * vez, perdiendo sus cifras por una funcionalidad que aún no pueden usar.
+   * Cuando la despensa exista, será ella quien las pida en su propia puerta.
+   * Ver `docs/specs/2026-08-16-de-donde-sale-la-lista-de-compra.md`.
+   */
+  | 'cicloCompra'
+  /**
+   * Si lo que compra es solo suyo o de toda la casa. Decide si la cantidad de la
+   * despensa significa algo: si es de la casa, se guarda pero no se calcula ni se
+   * le enseña. Lo que NO se hace es preguntar cuántos viven allí y dividir —nadie
+   * come un cuarto de la nevera.
+   */
+  | 'despensaEs'
   | 'frecuenciaCocina'
   | 'sinAcceso'
   | 'tieneBascula'
@@ -254,6 +272,29 @@ export const CAMPOS: readonly CampoEncuesta[] = [
       { valor: 'tienda_barrio', etiqueta: 'Tienda de barrio' },
       { valor: 'domicilio', etiqueta: 'A domicilio' },
       { valor: 'mezcla', etiqueta: 'Un poco de todo' },
+    ],
+  },
+  {
+    clave: 'cicloCompra',
+    etiqueta: '¿Cada cuánto haces mercado?',
+    porQue: 'Para calcular cuánto necesitas hasta la próxima compra, no un número suelto.',
+    tipo: 'opcion',
+    // 8 y 15, no 7 y 15. Las programaciones van a 8 o a 15 días: con la compra a
+    // 7 se desfasaría un día por ciclo, y al sexto iría casi una semana por
+    // delante del plan que tiene que abastecer.
+    opciones: [
+      { valor: '8', etiqueta: 'Cada 8 días' },
+      { valor: '15', etiqueta: 'Cada 15 días' },
+    ],
+  },
+  {
+    clave: 'despensaEs',
+    etiqueta: '¿La comida que compras es solo tuya o de toda la casa?',
+    porQue: 'Dos kilos de pollo no dicen lo mismo si son para ti que si son para cuatro.',
+    tipo: 'opcion',
+    opciones: [
+      { valor: 'solo_yo', etiqueta: 'Solo mía' },
+      { valor: 'toda_la_casa', etiqueta: 'De toda la casa' },
     ],
   },
   {
