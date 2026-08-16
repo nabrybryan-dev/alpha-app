@@ -704,3 +704,19 @@ body {
     transform: none;
   }
 }
+
+/* ExerciseSlotMachine ----------------------------------------------------- */
+/* Las bombillas de la marquesina del gabinete. Añadido al final y sin tocar
+   nada de lo anterior: es la única excepción al bloqueo de estilos globales.
+   El nombre lleva sufijo para no chocar con ninguna keyframe existente. */
+@keyframes bombilla-tragamonedas {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
+  }
+}
