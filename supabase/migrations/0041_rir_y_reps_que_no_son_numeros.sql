@@ -1,4 +1,10 @@
--- 0039 · El RIR y las reps que no eran números
+-- 0041 · El RIR y las reps que no eran números
+--
+-- OJO CON EL NÚMERO: se aplicó el 2026-08-15 como 0039, ANTES que la 0040. Se
+-- renumeró a 0041 al traer `main` a la rama, porque allí ya existía otra 0039
+-- (hambre escala en la vista) y dos archivos con el mismo número es justo el
+-- lío que ya costó una renumeración en la 0020. El orden real de aplicación es
+-- 0038 → esta → 0039 hambre → 0040; el número solo la ordena en la carpeta.
 --
 -- 81 series guardaban texto donde el tipo pide un número: «Control» (51),
 -- «Isometría» (8), «Movilidad» (6), «Suave» (1), «RIR 2-3» (8), «RIR 1» (3), y
