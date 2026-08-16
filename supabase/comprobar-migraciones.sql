@@ -813,4 +813,26 @@ select '0041 - rir y reps que no son numeros', 'ninguna serie con texto en rir o
           where (sr->>'rir') ~ '[A-Za-z]' or (sr->>'reps') ~ '[A-Za-z]'
        ) then 'SI' else 'NO' end
 
+union all
+-- La columna Y el índice de lo vivo. Y una tercera que se lee al revés: el
+-- índice de `cliente_id` NO puede volverse parcial. Si alguien le añadiera un
+-- `where not borrado` «por simetría», `ON CONFLICT (cliente_id)` dejaría de
+-- poder arbitrar sobre él y la despensa entera dejaría de subir en silencio.
+-- Es literalmente lo que paso con el registro de comidas (ver 0023).
+select '0042 - borrado de despensa', 'columna, indice de lo vivo y cliente_id no parcial',
+       case when (
+         select count(*) from (
+           select 1 from information_schema.columns
+            where table_schema = 'public' and table_name = 'despensa'
+              and column_name = 'borrado'
+           union all
+           select 1 from pg_indexes
+            where schemaname = 'public' and indexname = 'despensa_viva'
+           union all
+           select 1 from pg_indexes
+            where schemaname = 'public' and indexname = 'despensa_cliente_id_unico'
+              and indexdef not ilike '%where%'
+         ) as senales
+       ) = 3 then 'SI' else 'NO' end
+
 order by migracion, senal;

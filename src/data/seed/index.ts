@@ -1,3 +1,4 @@
+import type { ItemDespensaDe } from '../../domain/nutricion/despensa'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
@@ -48,6 +49,8 @@ export interface SeedDb {
   visibilidades?: VisibilidadAsesorado[]
   /** Los que marcó la nutricionista. Opcional: llegó después. */
   vetosAlimentarios?: VetoAlimento[]
+  /** Lo que tiene en casa (0024). Opcional: la despensa llego despues. */
+  despensa?: ItemDespensaDe[]
   pruebasCalibracion?: PruebaCalibracion[]
   registrosComida?: RegistroComida[]
   preferenciasEstado?: PreferenciaEstado[]
