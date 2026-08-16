@@ -17,8 +17,25 @@
 -- escribir fichas de respuesta, y estaba a punto de desplegarse código que lee una
 -- vista inexistente, lo que le habría roto el panel en producción.
 --
--- Por eso esto comprueba los EFECTOS de cada migración (¿existe la política? ¿el
--- trigger? ¿la vista?) en vez de fiarse de una tabla de versiones que no tenemos.
+-- Por eso esto comprueba los EFECTOS de cada migración en vez de fiarse de una
+-- tabla de versiones que no tenemos.
+--
+-- Y «efecto» no es «existe algo con ese nombre». Es la trampa en la que cayeron
+-- las tres señales de política de la 0013 durante un mes: preguntaban si existía
+-- una política llamada `checkins_lee_staff`, y existía desde la 0006 con el
+-- `es_staff()` permisivo. Daban SI con la 0013 aplicada y SI sin ella, así que
+-- la fuga que la 0013 venía a cerrar siguió abierta con la comprobación en verde.
+-- Corregidas el 2026-08-15.
+--
+-- Al escribir una señal nueva, la prueba es esta: **¿en qué estado del mundo
+-- diría NO?** Si no hay ninguno, no es una señal. Correrla ANTES de aplicar la
+-- migración es la forma barata de comprobarlo — tiene que decir NO.
+--
+--   nombre de un objeto      →  débil: sobrevive a que otro lo creara antes
+--   expresión de una policy  →  fuerte: cambia con la migración
+--   privilegio efectivo      →  fuerte: mide lo que se puede hacer, no lo que
+--                                se mandó hacer (ver la sección (4) de la 0013,
+--                                cuyo `revoke` no revocaba nada)
 --
 -- ─────────────────────────────────────────────────────────────────────────────
 -- CÓMO SE USA
@@ -99,28 +116,50 @@ select '0008 · rol y perfil', 'función proteger_perfil()',
          where n.nspname = 'public' and p.proname = 'proteger_perfil'
        ) then 'SI' else 'NO' end
 
+-- ---------------------------------------------------------------------------
+-- Las tres señales de política de la 0013 miraban el NOMBRE. No servían.
+--
+-- La 0013 no crea `consultas_leer_propias`, `consultas_actualizar_staff` ni
+-- `checkins_lee_staff`: las REDEFINE. Ya existían —las creó la 0006 y la 0010
+-- con el `es_staff()` permisivo— así que preguntar «¿existe una política que se
+-- llame así?» daba SI con la migración aplicada y SI sin ella.
+--
+-- No es teoría. El 2026-07-29 se detectó la 0013 a medias y se creyó arreglada.
+-- El 2026-08-15, con estas tres señales en SI, se midió la expresión viva y las
+-- tres seguían en `es_staff()`: la nutricionista llevaba un mes bajándose 47
+-- check-ins de 9 personas —ánimo, estrés, horas de sueño, 19 con comentarios de
+-- texto libre— y las 15 consultas del chat. Un mes de fuga con la comprobación
+-- en verde.
+--
+-- Una señal que no puede fallar es peor que ninguna: da confianza sin
+-- respaldarla. Estas miran la EXPRESIÓN.
+-- ---------------------------------------------------------------------------
+
 union all
-select '0013 · acotar nutricionista', 'policy consultas_leer_propias',
+select '0013 · acotar nutricionista', 'policy consultas_leer_propias usa es_coach',
        case when exists (
          select 1 from pg_policies
          where schemaname = 'public' and tablename = 'consultas_chat'
            and policyname = 'consultas_leer_propias'
+           and qual like '%es_coach()%' and qual not like '%es_staff()%'
        ) then 'SI' else 'NO' end
 
 union all
-select '0013 · acotar nutricionista', 'policy consultas_actualizar_staff',
+select '0013 · acotar nutricionista', 'policy consultas_actualizar_staff usa es_coach',
        case when exists (
          select 1 from pg_policies
          where schemaname = 'public' and tablename = 'consultas_chat'
            and policyname = 'consultas_actualizar_staff'
+           and qual like '%es_coach()%' and qual not like '%es_staff()%'
        ) then 'SI' else 'NO' end
 
 union all
-select '0013 · acotar nutricionista', 'policy checkins_lee_staff',
+select '0013 · acotar nutricionista', 'policy checkins_lee_staff usa es_coach',
        case when exists (
          select 1 from pg_policies
          where schemaname = 'public' and tablename = 'checkins'
            and policyname = 'checkins_lee_staff'
+           and qual like '%es_coach()%' and qual not like '%es_staff()%'
        ) then 'SI' else 'NO' end
 
 union all
@@ -128,12 +167,28 @@ select '0013 · acotar nutricionista', 'vista checkins_nutricion',
        case when to_regclass('public.checkins_nutricion') is not null then 'SI' else 'NO' end
 
 union all
-select '0013 · acotar nutricionista', 'policy nueva fichas_escribir_coach',
+select '0013 · acotar nutricionista', 'policy nueva fichas_escribir_coach usa es_coach',
        case when exists (
          select 1 from pg_policies
          where schemaname = 'public' and tablename = 'fichas_respuesta'
            and policyname = 'fichas_escribir_coach'
+           and qual like '%es_coach()%'
        ) then 'SI' else 'NO' end
+
+union all
+-- La sección (4) de la 0013, que faltaba aquí y encima venía mal escrita en la
+-- migración: decía `revoke ... from anon`, y el permiso no lo tenía `anon` a su
+-- nombre sino heredado de PUBLIC, porque `create function` se lo concede por
+-- defecto. Revocarle a `anon` algo que nunca tuvo a su nombre no quita nada: la
+-- 0013 habría dejado esto abierto aunque se hubiera aplicado entera en julio.
+-- Cerrado de verdad el 2026-08-15 con `from public`.
+--
+-- Se comprueba el efecto —¿puede anon ejecutarlas?— y no la orden que se corrió,
+-- que es lo que habría escondido el fallo.
+select '0013 · acotar nutricionista', 'es_staff y es_coach cerradas a anon',
+       case when not has_function_privilege('anon', 'public.es_staff()', 'EXECUTE')
+             and not has_function_privilege('anon', 'public.es_coach()', 'EXECUTE')
+            then 'SI' else 'NO' end
 
 union all
 -- Esta fila se lee al revés: la política vieja y permisiva NO debe existir.
