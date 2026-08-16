@@ -100,3 +100,32 @@ describe('escalarReceta', () => {
     expect(r.ingredientes[0].cambiado).toBe(true)
   })
 })
+
+/**
+ * Marcar lo estimado es lo que separa «el creador dijo 100 g» de «lo puse yo
+ * porque el reel no lo decía». Sin la marca las dos cifras se leen igual de
+ * ciertas, y a los tres meses nadie sabe cuál era cuál.
+ */
+describe('cantidades estimadas', () => {
+  const conEstimado: IngredienteDelReel[] = [
+    { nombre: 'Mozzarella', enElReel: '100 g', alimentoId: 'queso-fresco-semiduro-semigraso-tipo-mozzarella', gramosTotales: 100 },
+    { nombre: 'Jamón', enElReel: 'sin cantidad', alimentoId: 'jamon-tipo-york-precocido', gramosTotales: 40, estimado: true },
+  ]
+
+  it('la marca viaja hasta la ficha', () => {
+    const r = escalarReceta(conEstimado, 2, porId)
+    expect(r.ingredientes[1].estimado).toBe(true)
+  })
+
+  it('lo que sí dijo el creador NO se marca', () => {
+    const r = escalarReceta(conEstimado, 2, porId)
+    expect(r.ingredientes[0].estimado).toBeUndefined()
+  })
+
+  /** Estimar la cantidad no la excluye del cálculo: sigue siendo comida. */
+  it('lo estimado cuenta en los macros igual que lo demás', () => {
+    const con = escalarReceta(conEstimado, 2, porId)
+    const sin = escalarReceta([conEstimado[0]], 2, porId)
+    expect(con.kcal).toBeGreaterThan(sin.kcal)
+  })
+})

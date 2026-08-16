@@ -324,10 +324,23 @@ function Ingredientes({ receta }: { receta: Receta }) {
             </span>
             {/* Tachado: se ve de un vistazo que esa cantidad no es la tuya. */}
             <span className="cifras text-right text-[12px] text-tenue line-through">{ing.enElReel}</span>
-            <span className="cifras text-right text-[12.5px] font-bold text-texto">{ing.paraTi}</span>
+            <span className="cifras text-right text-[12.5px] font-bold text-texto">
+              {ing.paraTi}
+              {/* El asterisco dice que ese número lo puso el coach porque el
+                  reel no lo decía. Sin él, una cantidad estimada se lee igual
+                  de exacta que una que dio el creador. */}
+              {ing.estimado && <span className="ml-0.5 font-normal text-ambar">*</span>}
+            </span>
           </Fragment>
         ))}
       </div>
+
+      {lista.some((i) => i.estimado) && (
+        <p className="mt-2.5 text-[10.5px] leading-snug text-tenue">
+          <span className="text-ambar">*</span> El reel no daba esta cantidad. La calculó tu
+          coach para que la receta cuadre con tu plan.
+        </p>
+      )}
     </section>
   )
 }
