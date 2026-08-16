@@ -517,7 +517,9 @@ function Ventana({
       >
         {paradas.map((parada, i) => (
           <div key={parada.etiqueta}>
-            <div style={{ height: alto }}>
+            {/* `data-parada` es lo que mide la lupa: quien recorta es esta
+                caja de alto fijo, no el `span` del texto, que crece libre. */}
+            <div data-parada={i} style={{ height: alto }}>
               <Disposicion tema={tema} parada={parada} oculta={reducido && i !== catIdx} onRefTap={onRefTap} />
             </div>
             {!reducido && (
@@ -541,6 +543,8 @@ function Ventana({
         className="pointer-events-none absolute inset-0"
         style={{ background: `linear-gradient(${tema.id === 'diamond' ? 118 : 74}deg, rgba(255,255,255,.07) 0 18%, transparent 46%)` }}
       />
+      <LupaDeParada key={catIdx} tema={tema} parada={paradas[catIdx]} alto={alto} catIdx={catIdx} />
+
       {win && !reducido && (
         <span
           aria-hidden="true"
@@ -552,11 +556,122 @@ function Ventana({
   )
 }
 
+/**
+ * Un toque en la ventana enseña la parada entera, cuando no cabe.
+ *
+ * Encoger el texto resuelve casi todo, pero no todo: un nombre de 60 caracteres
+ * acabaría ilegible antes que cabiendo. Aquí se corta a propósito —lo que
+ * mantiene el gabinete con su tamaño y su forma— y el texto completo queda a un
+ * toque de distancia.
+ *
+ * Solo aparece cuando de verdad se está cortando. Ofrecer «ver completo» en un
+ * nombre que se lee entero es ruido, y enseña a ignorar el aviso el día que sí
+ * importa. Se mide contra el DOM (`scrollHeight` vs `clientHeight`), no
+ * adivinando por número de caracteres: lo que desborda depende de la fuente de
+ * cada máquina y del ancho real del móvil.
+ */
+function LupaDeParada({
+  tema,
+  parada,
+  alto,
+  catIdx,
+}: {
+  tema: SlotTheme
+  parada?: Parada
+  alto: number
+  catIdx: number
+}) {
+  const caja = useRef<HTMLDivElement>(null)
+  const [desborda, setDesborda] = useState(false)
+  const [abierta, setAbierta] = useState(false)
+
+  const valor = parada?.valor ?? ''
+
+  useEffect(() => {
+    // Al cambiar de parada este componente se remonta por `key`, así que la
+    // lupa se cierra sola: no hace falta reiniciar el estado a mano, que además
+    // sería un `setState` síncrono en un efecto —error de lint en este repo—.
+    //
+    // Tras el giro el layout aún se está asentando; se mide en el fotograma
+    // siguiente para no preguntar por una altura que todavía no es la final.
+    const id = requestAnimationFrame(() => {
+      // Se mide la CAJA de la parada, no el `span` del texto. El span no tiene
+      // altura fija —crece todo lo que necesite— así que su `scrollHeight`
+      // siempre iguala a su `clientHeight` y el aviso no aparecería jamás.
+      // Quien recorta es esta caja, con el alto de la ventana.
+      //
+      // El margen de 8 px distingue un recorte de verdad de los 1-2 px de
+      // redondeo que devuelve el navegador: una línea cortada pasa de 12.
+      const el = caja.current?.parentElement?.querySelector(
+        `[data-parada="${catIdx}"]`,
+      ) as HTMLElement | null
+      setDesborda(el ? el.scrollHeight > el.clientHeight + 8 : false)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [valor, alto, catIdx])
+
+  if (!parada) return null
+
+  return (
+    <div ref={caja} className="contents">
+      {desborda && !abierta && (
+        <button
+          type="button"
+          onClick={() => setAbierta(true)}
+          aria-label={`Ver completo: ${valor}`}
+          className="press absolute bottom-1 right-1 z-10 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em]"
+          style={{ background: tema.acento, color: tema.ventana.fondo.startsWith('#') ? tema.ventana.fondo : '#0b0907' }}
+        >
+          Ver completo
+        </button>
+      )}
+
+      {abierta && (
+        <button
+          type="button"
+          onClick={() => setAbierta(false)}
+          aria-label="Cerrar"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-1 overflow-y-auto px-3 py-2 text-center"
+          style={{ background: 'rgba(6,7,8,.94)' }}
+        >
+          <span className="text-[8.5px] font-bold uppercase tracking-[0.28em]" style={{ color: tema.acento }}>
+            {parada.etiqueta}
+          </span>
+          <span
+            className="block"
+            style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: 16, lineHeight: 1.25, color: tema.tono, textWrap: 'balance' }}
+          >
+            {valor}
+          </span>
+          <span className="text-[8.5px] uppercase tracking-[0.18em] text-tenue">Toca para cerrar</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
 /** Cinco layouts genuinamente distintos, no variantes de estilo. */
 function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; parada: Parada; oculta: boolean; onRefTap?: () => void }) {
   const esNombre = parada.etiqueta === 'Ejercicio'
   const largo = parada.valor.length > 26
-  const cuerpo = (n: number, r: number, l: number) => (esNombre ? n : largo ? l : r)
+
+  /**
+   * El nombre era la ÚNICA parada que no encogía nunca.
+   *
+   * `esNombre ? n : …` se saltaba la comprobación de longitud, así que
+   * «Empuje de cadera (unilateral, con pausa)» —40 caracteres— se pintaba al
+   * mismo tamaño que «Sentadilla» y se salía de una ventana de 104 px con
+   * `overflow: hidden`. Se veía cortado a media letra, que no parece una
+   * decisión de diseño: parece la app rota.
+   *
+   * Ahora encoge por tramos. Sigue siendo el texto más grande del gabinete
+   * —es el dato por el que se mira—, pero cabe.
+   */
+  const factorNombre =
+    parada.valor.length > 38 ? 0.62 : parada.valor.length > 30 ? 0.74 : parada.valor.length > 22 ? 0.86 : 1
+
+  const cuerpo = (n: number, r: number, l: number) =>
+    esNombre ? Math.round(n * factorNombre * 10) / 10 : largo ? l : r
   const envoltura = (hijos: ReactElement) =>
     parada.accion && onRefTap ? (
       <button type="button" onClick={onRefTap} className="h-full w-full" style={{ opacity: oculta ? 0 : 1 }}>
@@ -580,7 +695,7 @@ function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; para
           </span>
           <span style={{ width: 26, height: 1, background: `linear-gradient(90deg, ${tema.acento}, transparent)` }} />
         </span>
-        <span style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: cuerpo(23, 17, 15), color: tema.tono, textWrap: 'balance', lineHeight: 1.15 }}>
+        <span data-valor style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: cuerpo(23, 17, 15), color: tema.tono, textWrap: 'balance', lineHeight: 1.15 }}>
           {parada.valor}
         </span>
       </div>,
@@ -600,7 +715,7 @@ function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; para
           <span style={{ display: 'inline-block', background: '#a8261c', padding: '2px 8px', borderRadius: 2, fontFamily: tema.fuente, fontSize: 8, color: '#ffeccf', textTransform: 'uppercase' }}>
             {parada.etiqueta}
           </span>
-          <span className="mt-1 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(19, 14, 12.5), color: tema.tono, lineHeight: 1.15 }}>
+          <span data-valor className="mt-1 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(19, 14, 12.5), color: tema.tono, lineHeight: 1.15 }}>
             {parada.valor}
           </span>
         </span>
@@ -618,7 +733,7 @@ function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; para
           <span className="cifras block" style={{ fontSize: 8, letterSpacing: '.24em', color: '#8a9299', textTransform: 'uppercase' }}>
             {parada.etiqueta}
           </span>
-          <span className="mt-0.5 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(23, 18, 15), color: tema.tono, textTransform: 'uppercase', lineHeight: 1.1 }}>
+          <span data-valor className="mt-0.5 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(23, 18, 15), color: tema.tono, textTransform: 'uppercase', lineHeight: 1.1 }}>
             {parada.valor}
           </span>
         </span>
@@ -640,7 +755,7 @@ function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; para
           <span className="block" style={{ fontFamily: tema.fuente, fontWeight: 600, fontSize: 8.5, letterSpacing: '.34em', color: '#5d7f92', textTransform: 'uppercase' }}>
             {parada.etiqueta}
           </span>
-          <span className="mt-1 block" style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: cuerpo(20, 15.5, 13.5), letterSpacing: '.03em', color: tema.tono, textWrap: 'balance', lineHeight: 1.2 }}>
+          <span data-valor className="mt-1 block" style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: cuerpo(20, 15.5, 13.5), letterSpacing: '.03em', color: tema.tono, textWrap: 'balance', lineHeight: 1.2 }}>
             {parada.valor}
           </span>
         </span>
@@ -668,7 +783,7 @@ function Disposicion({ tema, parada, oculta, onRefTap }: { tema: SlotTheme; para
           <span className="block" style={{ fontFamily: tema.fuente, fontSize: 7.5, letterSpacing: '.16em', color: tema.acento, textTransform: 'uppercase' }}>
             {parada.etiqueta}
           </span>
-          <span className="mt-0.5 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(15, 12, 10.5), color: tema.tono, lineHeight: 1.2 }}>
+          <span data-valor className="mt-0.5 block" style={{ fontFamily: tema.fuente, fontSize: cuerpo(15, 12, 10.5), color: tema.tono, lineHeight: 1.2 }}>
             {parada.valor}
           </span>
         </span>
