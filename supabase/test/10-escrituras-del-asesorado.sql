@@ -32,8 +32,14 @@ on conflict (id) do nothing;
 -- columnas de abajo son obligatorias y con CHECK: `estado` existe porque 100 g
 -- de arroz crudo no son 100 g de arroz cocido, y `creado_por` tiene que quedar
 -- nulo cuando la confianza es 'verificado'.
-insert into public.alimentos (id, nombre, grupo, estado, confianza, origen)
-values ('alimento-prueba', 'Arroz de prueba', 'cereales', 'cocido', 'verificado', 'tcac')
+-- `por_100g` también es obligatoria: un alimento sin composición no sirve para
+-- nada y la tabla lo impide. Las cifras de aquí son de mentira a propósito —lo
+-- que se prueba es quién puede escribir, no cuánto pesa un arroz—.
+insert into public.alimentos (id, nombre, grupo, estado, confianza, origen, por_100g)
+values (
+  'alimento-prueba', 'Arroz de prueba', 'cereales', 'cocido', 'verificado', 'tcac',
+  '{"kcal": 130, "proteina_g": 2.7, "carbos_g": 28.0, "grasa_g": 0.3}'::jsonb
+)
 on conflict (id) do nothing;
 
 -- ─────────────────── Como la asesorada A ───────────────────
