@@ -83,9 +83,13 @@ function prsMasReciente(micro: Microciclo): number | undefined {
 
 /** La serie más pesada de lo registrado: la referencia contra la que se compara. */
 function serieTope(
-  series: readonly { cargaKg: number; reps: number }[],
+  series: readonly { cargaKg: number; reps?: number }[],
 ): { cargaKg: number; reps: number } | undefined {
-  const utiles = series.filter((s) => s.cargaKg > 0 && s.reps > 0)
+  // Las series sin reps —isométricas, control, movilidad— no compiten por ser
+  // la serie tope: no hay con qué compararlas.
+  const utiles = series.filter((s): s is { cargaKg: number; reps: number } =>
+    s.reps !== undefined && s.cargaKg > 0 && s.reps > 0,
+  )
   return utiles.length > 0 ? utiles.reduce((a, b) => (b.cargaKg > a.cargaKg ? b : a)) : undefined
 }
 

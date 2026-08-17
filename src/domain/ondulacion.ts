@@ -141,8 +141,20 @@ export function coeficiente1rm(reps: number, rir: number): number {
   return COEF_1RM[fila][columna]
 }
 
+/** Una serie con los dos datos que hacen falta para estimar el 1RM. */
+type SerieMedible = SerieRegistrada & { reps: number; rir: number }
+
+/**
+ * Las series que se pueden medir. Las isométricas y las de control no traen
+ * reps ni RIR, y saltárselas no es perder dato: es que ese dato no existe.
+ * Contarlas como 0 diría que se llegó al fallo con cero repeticiones.
+ */
+function medibles(series: readonly SerieRegistrada[]): SerieMedible[] {
+  return series.filter((s): s is SerieMedible => s.reps !== undefined && s.rir !== undefined)
+}
+
 /** 1RM estimado a partir de una serie registrada. */
-export function e1rmDeSerie(serie: SerieRegistrada): number {
+export function e1rmDeSerie(serie: SerieMedible): number {
   return serie.cargaKg / coeficiente1rm(serie.reps, serie.rir)
 }
 
@@ -152,7 +164,7 @@ export function e1rmDeSerie(serie: SerieRegistrada): number {
  * prescripción de toda la semana siguiente.
  */
 export function e1rmDeSeries(series: SerieRegistrada[]): number | undefined {
-  const validas = series.filter((s) => s.cargaKg > 0 && s.reps > 0)
+  const validas = medibles(series).filter((s) => s.cargaKg > 0 && s.reps > 0)
   if (validas.length === 0) return undefined
   const estimados = validas.map(e1rmDeSerie).sort((a, b) => a - b)
   const medio = Math.floor(estimados.length / 2)
@@ -192,7 +204,7 @@ export function rangoReps(rango: string): RangoReps | undefined {
  * quedó por encima de lo que podía sostener.
  */
 export function brechaReps(ejercicio: EjercicioPrescrito): number | undefined {
-  const validas = ejercicio.series.filter((s) => s.reps > 0)
+  const validas = medibles(ejercicio.series).filter((s) => s.reps > 0)
   if (validas.length === 0) return undefined
   const promedio = validas.reduce((suma, s) => suma + s.reps, 0) / validas.length
   return Math.round((promedio - ejercicio.repsDiana) * 10) / 10

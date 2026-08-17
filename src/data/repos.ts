@@ -1,3 +1,4 @@
+import type { ItemDespensa } from '../domain/nutricion/despensa'
 import type { FilaRanking } from '../domain/ranking'
 import type { RutaAsesorado } from '../domain/rutaEntrenamiento'
 import type { StickerAlbum } from './contenido/albumAlfa'
@@ -24,6 +25,7 @@ import type {
   TestPostSesion,
   Usuario,
   ValoracionCompetencia,
+  VetoAlimento,
   VisibilidadAsesorado,
 } from '../domain/types'
 
@@ -124,6 +126,50 @@ export interface VisibilidadRepo {
   decidir(decision: VisibilidadAsesorado): void
 }
 
+export interface VetadosRepo {
+  /**
+   * Lo que la nutricionista marcó que esta persona no debe comer.
+   *
+   * El `motivo` viene opcional AL LEER porque las filas anteriores a la 0040
+   * pueden no tenerlo. Al escribir es obligatorio: ver `vetar`.
+   */
+  byUsuario(usuarioId: string): VetoAlimento[]
+  /**
+   * El motivo es obligatorio AQUÍ, en el tipo, y no solo en la pantalla.
+   *
+   * Es lo que impide que vuelva a pasar lo de la 0040: se comprobó que nadie
+   * leía la tabla desde `src/` y se dio por hecho que nadie la escribía. Con
+   * esta firma, cualquier sitio nuevo que intente grabar un veto sin decir por
+   * qué no compila — no hace falta que nadie se acuerde de la regla.
+   *
+   * Mínimo 3 caracteres con contenido, que es exactamente lo que exige el
+   * `check` de la 0040. Si la pantalla fuera más permisiva que la base, la
+   * escritura pasaría la validación y moriría en la cola de sincronización.
+   */
+  vetar(veto: VetoAlimento & { motivo: string }): void
+  quitar(usuarioId: string, alimentoId: string): void
+}
+
+/**
+ * Lo que el asesorado tiene en casa (migraciones 0024 y 0042).
+ *
+ * PRESENCIA, NO SALDO. Aquí no se descuenta nada comida a comida: `cantidadG`
+ * es una foto al empezar el ciclo de compra. Un inventario que se descuenta se
+ * desincroniza en tres días —nadie anota el pollo que se comió su pareja— y a
+ * partir de ahí el motor recomienda comida que no está. Ver la cabecera de
+ * `domain/nutricion/despensa.ts`.
+ *
+ * `quitar` recibe la CLAVE, no el id del alimento: los pedidos —lo que la
+ * persona escribió porque no estaba en el catálogo— no tienen id y se
+ * identifican por su texto normalizado. Ver `claveDe()`.
+ */
+export interface DespensaRepo {
+  byUsuario(usuarioId: string): ItemDespensa[]
+  /** Mete un alimento, o lo refresca si ya estaba. Comprar dos veces no duplica. */
+  agregar(usuarioId: string, item: ItemDespensa): void
+  quitar(usuarioId: string, clave: string): void
+}
+
 export interface CalibracionRepo {
   byUsuario(usuarioId: string): PruebaCalibracion[]
   /** Cuántos días distintos lleva pesando. Es la otra mitad del criterio. */
@@ -219,6 +265,8 @@ export interface Db {
   nutricion: NutricionRepo
   perfilNutricion: PerfilNutricionRepo
   visibilidad: VisibilidadRepo
+  vetados: VetadosRepo
+  despensa: DespensaRepo
   registroComidas: RegistroComidasRepo
   calibracion: CalibracionRepo
   mensajes: MensajesRepo

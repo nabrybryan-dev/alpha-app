@@ -99,14 +99,25 @@ Reglas que quedan:
 - El clonador pasa cada sesión por `tmp_sesion_en_limpio()` antes de guardarla.
   Si añades un campo de ejecución a `Sesion` (`src/domain/types.ts`), añádelo
   también ahí — es el único punto donde se decide qué no se hereda.
-- Después de cada carga, correr `supabase/comprobar-fosiles.sql`. Tiene que dar
-  **cero filas**. No repartir la semana hasta que las dé.
-- Y correr también `supabase/comprobar-alineacion.sql`, que compara la frase con
-  los campos. Misma regla: **cero filas**. El clonador escribe `sets`, `rir` y
-  `reps` solo cuando el ajuste los trae, así que una carga que pasa la frase
-  nueva sin pasarlos deja los campos con los de la semana anterior. Pasó el
-  2026-08-12 con 128 ejercicios de 13 asesorados (ver §6). El equivalente en
-  dominio es `src/domain/alineacion.ts`: si cambias uno, cambia el otro.
+- Después de cada carga, correr **las tres** comprobaciones. Las tres tienen que
+  dar **cero filas**, y no se reparte la semana hasta que las den:
+  - `supabase/comprobar-fosiles.sql` — ejecución heredada del microciclo viejo.
+  - `supabase/comprobar-sesiones.sql` — sesiones que se perdieron o que no se
+    pueden pintar. Existe desde el 2026-08-09: una carga escribió `null` en el
+    array `sesiones` de seis microciclos activos y siete sesiones de cardio
+    desaparecieron. Lo notó una asesorada, no nosotros.
+  - `supabase/comprobar-alineacion.sql` — la frase contra los campos. El
+    clonador escribe `sets`, `rir` y `reps` solo cuando el ajuste los trae, así
+    que una carga que pasa la frase nueva sin pasarlos deja los campos con los
+    de la semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13
+    asesorados. El equivalente en dominio es `src/domain/alineacion.ts`: si
+    cambias uno, cambia el otro.
+- **`jsonb_agg` de cero filas devuelve NULL, no `[]`.** Es la trampa que causó
+  aquello. Cualquier `jsonb_set(s, '{...}', (select jsonb_agg(...) …))` va
+  envuelto en `coalesce(…, '[]'::jsonb)`, porque `jsonb_set` con un argumento
+  NULL devuelve NULL y se lleva la sesión entera, no solo la clave. Solo se nota
+  en las sesiones sin ejercicios —cardio, tabata, hábito—, así que una prueba
+  con una sesión normal no lo detecta.
 - Las funciones de carga van con prefijo `tmp_`, con `revoke execute … from
   public` y se borran al terminar. `create function` concede `EXECUTE` a
   `PUBLIC` por defecto y todo lo de `public` se expone como RPC a `anon`: sin el

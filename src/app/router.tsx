@@ -11,6 +11,7 @@ const ProgresoPage = lazy(() => import('../features/progreso/ProgresoPage'))
 const DiarioDia = lazy(() => import('../features/nutricion/DiarioDia'))
 const NutricionLayout = lazy(() => import('../features/nutricion/NutricionLayout'))
 const MiPlan = lazy(() => import('../features/nutricion/MiPlan'))
+const AlDiaEmbarazo = lazy(() => import('../features/nutricion/AlDiaEmbarazo'))
 const ChatPage = lazy(() => import('../features/chat/ChatPage'))
 const CuestionariosPage = lazy(() => import('../features/cuestionarios/CuestionariosPage'))
 const ContenidosPage = lazy(() => import('../features/contenidos/ContenidosPage'))
@@ -49,6 +50,10 @@ export function AppRouter() {
         <Route path="nutricion" element={envolver(<NutricionLayout />)}>
           <Route index element={<DiarioDia />} />
           <Route path="plan" element={<MiPlan />} />
+          {/* Cuelga del layout como las otras dos, así que la compuerta
+              también la cubre: nadie llega aquí sin la encuesta hecha. Lo que
+              no hace es bloquear —ver `AlDiaEmbarazo`—. */}
+          <Route path="al-dia" element={<AlDiaEmbarazo />} />
         </Route>
         <Route path="chat" element={envolver(<ChatPage />)} />
         <Route path="cuestionarios" element={envolver(<CuestionariosPage />)} />

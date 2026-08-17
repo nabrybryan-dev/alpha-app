@@ -1,6 +1,7 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { sqlDeLasMigraciones } from './leerMigraciones'
 
 /**
  * Un `ON CONFLICT (columna)` necesita un índice único NO parcial.
@@ -27,22 +28,15 @@ import { describe, expect, it } from 'vitest'
  * varios NULL, porque los trata como distintos entre sí.
  */
 
-const MIGRACIONES = join(process.cwd(), 'supabase', 'migrations')
-
 /** Columnas sobre las que la app hace upsert, por tabla. */
 const DESTINOS_ONCONFLICT: { tabla: string; columna: string }[] = [
   { tabla: 'registro_comida', columna: 'cliente_id' },
   { tabla: 'registro_item', columna: 'cliente_id' },
   { tabla: 'prueba_calibracion', columna: 'cliente_id' },
+  // Los vetos de la nutricionista. Su unicidad viene de un `unique (...)` en el
+  // `create table` de la 0016, no de un `create index` — ver `restriccionesDeTabla`.
+  { tabla: 'perfil_alimentario_veto', columna: 'asesorado_id,alimento_id' },
 ]
-
-function sqlDeTodasLasMigraciones(): string {
-  return readdirSync(MIGRACIONES)
-    .filter((f) => f.endsWith('.sql') && !f.includes('.local.'))
-    .sort()
-    .map((f) => readFileSync(join(MIGRACIONES, f), 'utf8'))
-    .join('\n')
-}
 
 /**
  * La definición VIGENTE de cada índice, no todas las que existieron.
@@ -62,16 +56,52 @@ function indicesVigentes(sql: string): Map<string, string> {
   return porNombre
 }
 
+/**
+ * La lista de columnas tal cual se escribe, tolerando espacios y saltos.
+ *
+ * `onConflict` viaja sin espacios —«asesorado_id,alimento_id»— y el SQL se
+ * escribe con ellos. Comparar los dos textos a pelo daría un falso negativo
+ * justo en los upsert compuestos, que son los que más fácil se rompen.
+ */
+function comoLista(columna: string): RegExp {
+  const columnas = columna.split(',').map((c) => c.trim()).join('\\s*,\\s*')
+  return new RegExp(`\\(\\s*${columnas}\\s*\\)`, 'i')
+}
+
+/**
+ * Los `unique (...)` declarados DENTRO de un `create table`.
+ *
+ * Cuentan igual que un `create unique index`: PostgreSQL crea el índice por su
+ * cuenta y `ON CONFLICT` lo infiere sin problema. Mirar solo los `create index`
+ * dejaba fuera a `perfil_alimentario_veto`, cuya unicidad vive en su propia
+ * definición desde la 0016 — y este test habría exigido duplicarla.
+ *
+ * Una restricción de tabla NO puede ser parcial (no admite `where`), así que lo
+ * que se devuelve aquí nunca puede caer en el fallo 42P10 que motiva el archivo.
+ */
+function restriccionesDeTabla(sql: string, tabla: string): string[] {
+  const plano = sql.replace(/\s+/g, ' ')
+  const creacion = plano.match(
+    new RegExp(`create table (?:if not exists )?(?:public\\.)?${tabla} \\((.*?)\\);`, 'i'),
+  )
+  if (!creacion) return []
+  return creacion[1].match(/unique\s*\([^)]*\)/gi) ?? []
+}
+
 function indicesSobre(vigentes: Map<string, string>, tabla: string, columna: string): string[] {
-  return [...vigentes.values()].filter((s) => {
+  const deLaColumna = comoLista(columna)
+  const declarados = [...vigentes.values()].filter((s) => {
     const sobreLaTabla = new RegExp(`on\\s+(public\\.)?${tabla}\\s*\\(`, 'i').test(s)
-    const sobreLaColumna = new RegExp(`\\(\\s*${columna}\\s*\\)`, 'i').test(s)
-    return sobreLaTabla && sobreLaColumna
+    return sobreLaTabla && deLaColumna.test(s)
   })
+  const deTabla = restriccionesDeTabla(sqlDeLasMigraciones(), tabla).filter((r) =>
+    deLaColumna.test(r),
+  )
+  return [...declarados, ...deTabla]
 }
 
 describe('índices que sostienen los upsert', () => {
-  const vigentes = indicesVigentes(sqlDeTodasLasMigraciones())
+  const vigentes = indicesVigentes(sqlDeLasMigraciones())
 
   for (const { tabla, columna } of DESTINOS_ONCONFLICT) {
     describe(`${tabla}.${columna}`, () => {
