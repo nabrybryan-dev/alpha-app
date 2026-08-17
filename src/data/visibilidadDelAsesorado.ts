@@ -1,12 +1,16 @@
-import { db } from '../../data/dbInstance'
-import type { Respuestas } from '../../domain/nutricion/encuesta'
-import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
-import { visibilidadDe, type Visibilidad } from '../../domain/nutricion/visibilidad'
+import { db } from './dbInstance'
+import type { Respuestas } from '../domain/nutricion/encuesta'
+import { senalesDeLaEncuesta } from '../domain/nutricion/perfilCalculado'
+import { visibilidadDe, type Visibilidad } from '../domain/nutricion/visibilidad'
 
 /**
  * Qué cifras le toca ver a este asesorado, resuelto en UN solo sitio.
  *
- * Vive aquí y no en cada pantalla a propósito. Antes cada una lo resolvía por su
+ * Vive en `data/` y no dentro de una feature a propósito: la consultan
+ * Nutrición y Bienestar, y una regla que gobierna a dos dominios no puede vivir
+ * dentro de uno de ellos —`CLAUDE.md` §3: un dominio no importa de otro—.
+ *
+ * Vive en un solo sitio y no en cada pantalla a propósito. Antes cada una lo resolvía por su
  * cuenta —y «Mi plan» lo resolvía mal, con un `visibilidadDe(undefined)` escrito
  * a pelo que devolvía siempre los tres interruptores encendidos—, así que la
  * decisión de la nutricionista no cambiaba nada en el móvil.

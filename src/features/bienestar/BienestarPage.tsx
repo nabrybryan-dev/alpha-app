@@ -7,6 +7,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { CheckinDiario } from '../../domain/types'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
+import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { CheckinForm } from './CheckinForm'
 import { MedidasCard } from './MedidasCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
@@ -19,10 +20,16 @@ function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
   return 'neutro'
 }
 
-/** Filas [etiqueta, valor] de lo que el asesorado llenó hoy (solo lo diligenciado). */
-function filasCheckin(c: CheckinDiario): [string, string][] {
+/**
+ * Filas [etiqueta, valor] de lo que el asesorado llenó hoy (solo lo diligenciado).
+ *
+ * `verPeso` viene de la decisión de la nutricionista. Dejar de PEDIR el peso sin
+ * dejar de ENSEÑARLO no serviría de nada: los kilos que ya están guardados
+ * seguirían apareciéndole cada día en su propio resumen.
+ */
+function filasCheckin(c: CheckinDiario, verPeso: boolean): [string, string][] {
   const filas: [string, string][] = []
-  if (c.pesoKg !== undefined) filas.push(['Peso ayunas', `${c.pesoKg} kg`])
+  if (verPeso && c.pesoKg !== undefined) filas.push(['Peso ayunas', `${c.pesoKg} kg`])
   if (c.pasos !== undefined) filas.push(['Pasos de ayer', c.pasos.toLocaleString('es-CO')])
   if (c.entreno) filas.push(['Entreno', c.entreno])
   if (c.rendimiento) filas.push(['Rendimiento', c.rendimiento])
@@ -44,13 +51,13 @@ function filasCheckin(c: CheckinDiario): [string, string][] {
   return filas
 }
 
-function FilaHistorial({ checkin }: { checkin: CheckinDiario }) {
+function FilaHistorial({ checkin, verPeso }: { checkin: CheckinDiario; verPeso: boolean }) {
   return (
     <Card className="!p-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-texto">{checkin.fecha}</p>
         <p className="text-xs text-tenue">
-          {checkin.pesoKg ? `${checkin.pesoKg} kg` : ''} {checkin.horasSueno ? `· ${checkin.horasSueno} h sueño` : ''}
+          {verPeso && checkin.pesoKg ? `${checkin.pesoKg} kg` : ''} {checkin.horasSueno ? `· ${checkin.horasSueno} h sueño` : ''}
         </p>
       </div>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -76,6 +83,9 @@ export default function BienestarPage() {
   // Arranca los steppers cerca del último valor real registrado.
   const pesoInicial = [...checkins].reverse().find((c) => c.pesoKg !== undefined)?.pesoKg
   const pasosInicial = [...checkins].reverse().find((c) => c.pasos !== undefined)?.pasos
+  // Una sola respuesta para las cuatro superficies de peso de esta pantalla:
+  // el formulario, el resumen de hoy, el historial y la tarjeta de medidas.
+  const verPeso = visibilidadDelAsesorado(usuario.id).verComposicion
 
   return (
     // Bienestar es superficie clara siempre (decisión de diseño), sin importar el tema global.
@@ -124,7 +134,7 @@ export default function BienestarPage() {
             <span className="cifras ml-auto text-xs font-bold text-accion">+{XP_POR_ACCION.checkin} XP</span>
           </div>
           <div className="mt-3 flex flex-col gap-2 text-sm">
-            {filasCheckin(deHoy).map(([etiqueta, valor]) => (
+            {filasCheckin(deHoy, verPeso).map(([etiqueta, valor]) => (
               <div key={etiqueta} className="flex justify-between gap-3 border-b border-linea pb-1.5 last:border-0">
                 <span className="text-tenue">{etiqueta}</span>
                 <span className="cifras font-bold text-texto">{valor}</span>
@@ -139,12 +149,20 @@ export default function BienestarPage() {
             fecha={hoy}
             pesoInicial={pesoInicial}
             pasosInicial={pasosInicial}
+            // La decisión de la nutricionista también gobierna aquí: Bienestar
+            // tiene su propio campo de peso y hasta ahora no lo miraba nadie.
+            pedirPeso={verPeso}
             onGuardar={(c) => db.bienestar.guardar(c)}
           />
         </Card>
       )}
 
       <div className="entrada entrada-3">
+        {/* PENDIENTE: «Mis medidas» sigue pidiendo el peso a todo el mundo.
+            No entra aquí porque `MedidaCorporal.pesoKg` es obligatorio en el
+            tipo: ocultarle el campo le rompería el registro de perímetros, que
+            es justo la métrica que su plan sí le pide. Hacerlo opcional toca
+            también las vistas de coach y el cálculo de composición. */}
         <MedidasCard usuarioId={usuario.id} />
       </div>
 
@@ -152,7 +170,7 @@ export default function BienestarPage() {
         <p className="kicker">Últimos 7 días</p>
         {ultimos.map((c, i) => (
           <Revelar key={c.id} retrasoMs={(i % 5) * 50}>
-            <FilaHistorial checkin={c} />
+            <FilaHistorial checkin={c} verPeso={verPeso} />
           </Revelar>
         ))}
       </section>
