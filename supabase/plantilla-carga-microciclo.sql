@@ -358,3 +358,66 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 --
 -- Contar activos por la columna daba «uno por persona» mientras 17 asesorados
 -- tenían un microciclo de julio con el JSON en 'activo'. La app lee el JSON.
+
+
+-- ============================================================================
+-- §7 · EL CAMPO `dia` · cuatro reglas, escritas el 2026-08-17
+-- ----------------------------------------------------------------------------
+-- `armarSemana` (domain/rutaEntrenamiento.ts) coloca PRIMERO las sesiones que
+-- traen `dia` y solo reparte por `orden`, desde el lunes, las que no. O sea que
+-- **el campo `dia` manda sobre el orden**. Eso lo hace potente y silencioso a la
+-- vez: cuando está mal no falla, coloca la sesión en otro día y nadie se entera.
+--
+-- Las cuatro fallaron el mismo día. Las cuatro tienen que dar CERO filas.
+--
+-- 1. SI EL NOMBRE DICE EL DÍA, EL CAMPO TIENE QUE DECIR LO MISMO.
+--    46 sesiones decían «(JUEVES)» con el campo vacío: el asesorado leía una cosa
+--    y el calendario le ponía otra.
+--    COROLARIO: si una función toca el nombre, tiene que tocar el campo. El
+--    reordenador cambiaba el día dentro del nombre y no el campo, así que mover
+--    la prevención de hombro de Karin al lunes NO SURTIÓ EFECTO y nadie lo vio.
+--
+-- 2. NINGÚN DÍA PUEDE CAER ANTES DE `fechaInicio`.
+--    16 asesorados tenían sesiones fechadas antes de arrancar su bloque —
+--    empezaba el miércoles con sesiones etiquetadas lunes y martes. El volumen se
+--    recupera a los 8 días; el ORDEN no, y el orden es decisión clínica.
+--
+-- 3. SI HAY SESIÓN EN DOMINGO, EL MICROCICLO NO ARRANCA A MEDIA SEMANA.
+--    `inicioSemanaDe` toma el domingo como primer día en cuanto existe una sesión
+--    en domingo. Con arranque en martes, esa sesión se va al domingo ANTERIOR.
+--
+-- 4. SI SE MUEVE EL ARRANQUE DE ALGUIEN, HAY QUE RECOLOCARLE LOS DÍAS.
+--    Mover la fecha sin mover los días deja su primera sesión en el pasado.
+--
+-- ── Comprobación 1: nombre y campo dicen lo mismo ───────────────────────────
+--
+--   select u.nombre, s->>'nombre', s->>'dia'
+--     from public.microciclos m join public.usuarios_app u on u.id = m.usuario_id,
+--          jsonb_array_elements(m.datos->'sesiones') s
+--    where m.estado = 'activo'
+--      and substring(s->>'nombre' from '(LUNES|MARTES|MIÉRCOLES|JUEVES|VIERNES|SÁBADO|DOMINGO)') is not null
+--      and s->>'dia' is distinct from
+--          substring(s->>'nombre' from '(LUNES|MARTES|MIÉRCOLES|JUEVES|VIERNES|SÁBADO|DOMINGO)');
+--
+-- ── Comprobación 2-4: ninguna sesión cae antes de arrancar ──────────────────
+-- Replica lo que hace `armarSemana`. Cubre las reglas 2, 3 y 4 de una vez.
+--
+--   with cfg as (
+--     select u.nombre, m.id mid, m.datos, (m.datos->>'fechaInicio')::date ini,
+--            case when extract(dow from (m.datos->>'fechaInicio')::date)::int = 0 then 'DOMINGO'
+--                 when extract(dow from (m.datos->>'fechaInicio')::date)::int = 1 then 'LUNES'
+--                 when exists (select 1 from jsonb_array_elements(m.datos->'sesiones') s
+--                               where s->>'dia' = 'DOMINGO') then 'DOMINGO'
+--                 else 'LUNES' end inicio_sem
+--       from public.microciclos m join public.usuarios_app u on u.id = m.usuario_id
+--      where m.estado = 'activo'),
+--   slots as (
+--     select c.*, (current_date - (case when c.inicio_sem='DOMINGO' then 2 else 1 end) + i) fecha,
+--            (array['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'])[
+--              extract(dow from (current_date - (case when c.inicio_sem='DOMINGO' then 2 else 1 end) + i))::int + 1] dia_nom
+--       from cfg c, generate_series(0,6) i)
+--   select sl.nombre, sl.ini "arranca", sl.fecha "cae", s->>'nombre' "sesion huerfana"
+--     from slots sl, jsonb_array_elements(sl.datos->'sesiones') s
+--    where s->>'dia' = sl.dia_nom and sl.fecha < sl.ini
+--      and jsonb_array_length(coalesce(s->'ejercicios','[]'::jsonb)) > 0;
+-- ============================================================================
