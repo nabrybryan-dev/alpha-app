@@ -39,7 +39,10 @@
 import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../domain/activacion'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
-import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
+import { componerPrescripcion } from '../../domain/prescripcion'
+import { desalineadosDe } from '../../domain/alineacion'
+import { volumenDelMicrociclo, type VolumenDeGrupo } from '../../domain/progresionDeVolumen'
+import type { EjercicioPrescrito, Microciclo, NivelVolumen, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
   sesionId: string
@@ -69,6 +72,31 @@ export interface PropuestaMicrociclo {
   revision: RevisionActivacion
   /** Para el resumen del coach: cuántos suben, sostienen y bajan. */
   reparto: { suben: number; sostienen: number; bajan: number }
+  /**
+   * Cuántas series le tocan a cada grupo la semana que viene, por landmark.
+   *
+   * `aplicarOndulacion` decide la CARGA con criterio, pero el número de series
+   * lo heredaba: partía de `ejercicio.sets` del microciclo anterior y solo lo
+   * movía en descarga o con PRS crítico. Así el volumen no progresaba solo,
+   * cuando es —según el motor del Cerebro— la variable que más se ondula a lo
+   * largo de los 24 microciclos.
+   *
+   * Es una RECOMENDACIÓN, no una escritura: se le enseña al coach junto a la
+   * propuesta y él decide. Por eso viaja aquí y no dentro de `microcicloPropuesto`.
+   */
+  volumen: VolumenDeGrupo[]
+  /**
+   * Ejercicios cuya frase contradice a sus campos.
+   *
+   * Es el espejo en la app de `supabase/comprobar-alineacion.sql`: el clonador
+   * escribe `sets`, `rir` y `reps` solo cuando el ajuste los trae, así que una
+   * carga que pasa la frase nueva sin pasarlos deja los campos con los de la
+   * semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13 asesorados.
+   *
+   * El asesorado lee la FRASE antes de cargar la barra; el motor lee los
+   * CAMPOS. Cuando divergen, los dos van a lo suyo y nadie se entera.
+   */
+  desalineados: ReturnType<typeof desalineadosDe>
 }
 
 /**
@@ -140,6 +168,33 @@ function textoPrescripcion(
   return `${base} SOSTIENE CARGA ${aReps}.`
 }
 
+/**
+ * Opciones con las que se ondula un ejercicio para el microciclo siguiente.
+ *
+ * El ancla del 1RM es lo registrado y, si no hay nada, **la carga pautada**.
+ * Hasta el 2026-08-09 aquí se pasaba `ejercicio.series[0]?.cargaKg`, que es
+ * `undefined` exactamente cuando no hay series registradas: el ancla de reserva
+ * no podía entrar nunca. Era código muerto, y por eso un asesorado que no
+ * registró la semana no recibía propuesta ni de repetir lo pautado. Que no
+ * registrara se sigue avisando por su cuenta, en `revisarActivacion`.
+ *
+ * Ahora la carga vive en su propio campo (`domain/prescripcion.ts`), así que el
+ * ancla existe de verdad y no hay que sacarla de la frase.
+ */
+function opcionesDeOndulacion(
+  ejercicio: EjercicioPrescrito,
+  prs: number | undefined,
+  incrementoKg: number,
+) {
+  return {
+    prs,
+    incrementoKg,
+    // Ver el encabezado del archivo: el disparador de descarga no está validado.
+    descarga: false,
+    cargaPrescritaKg: ejercicio.series[0]?.cargaKg ?? ejercicio.cargaKg,
+  }
+}
+
 function filasDeSesion(
   sesion: Sesion,
   numeroPrevio: number,
@@ -147,13 +202,7 @@ function filasDeSesion(
   incrementoKg: number,
 ): FilaPropuesta[] {
   return sesion.ejercicios.map((ejercicio: EjercicioPrescrito) => {
-    const ondulado = ondularEjercicio(ejercicio, {
-      prs,
-      incrementoKg,
-      // Ver el encabezado del archivo: el disparador de descarga no está validado.
-      descarga: false,
-      cargaPrescritaKg: ejercicio.series[0]?.cargaKg,
-    })
+    const ondulado = ondularEjercicio(ejercicio, opcionesDeOndulacion(ejercicio, prs, incrementoKg))
     const comp = comparacion(ondulado.series, serieTope(ejercicio.series))
     const brecha = brechaReps(ejercicio)
     return {
@@ -229,15 +278,15 @@ export function microcicloPropuesto(
       ejercicios: s.ejercicios.map((e) => {
         const limpio: EjercicioPrescrito = { ...e, series: [] }
         if (s.tipo === 'metabolica') return limpio
-        return {
-          ...aplicarOndulacion(e, {
-            prs,
-            incrementoKg,
-            descarga: false, // ver el encabezado del archivo
-            cargaPrescritaKg: e.series[0]?.cargaKg,
-          }),
-          series: [],
-        }
+        const ondulado = aplicarOndulacion(e, opcionesDeOndulacion(e, prs, incrementoKg))
+        if (!ondulado.seriesPrescritas) return limpio
+        // La frase se compone desde los campos. Sin esto el ejercicio nace
+        // diciendo dos cosas: las series nuevas y, en el texto, la prescripción
+        // de la semana pasada — que es lo único que el asesorado mira antes de
+        // cargar la barra. Su nota va dentro de `componerPrescripcion` y viaja
+        // intacta: no la reescribe nadie.
+        const conSeries: EjercicioPrescrito = { ...ondulado, series: [] }
+        return { ...conSeries, prescripcion: componerPrescripcion(conSeries) }
       }),
     })),
   }
@@ -245,9 +294,13 @@ export function microcicloPropuesto(
 
 export function proponerMicrociclo(
   micro: Microciclo,
-  opciones: { incrementoKg?: number } = {},
+  opciones: {
+    incrementoKg?: number
+    /** Prioridad por grupo, del perfil. Sin ella, todos cuentan como 'Normal'. */
+    volumenSemanal?: Readonly<Record<string, NivelVolumen>>
+  } = {},
 ): PropuestaMicrociclo {
-  const { incrementoKg = 2.5 } = opciones
+  const { incrementoKg = 2.5, volumenSemanal } = opciones
   const prs = prsMasReciente(micro)
   const filas = micro.sesiones
     .filter((s) => s.tipo !== 'metabolica')
@@ -274,6 +327,9 @@ export function proponerMicrociclo(
       saltoMaximo: maximo(filas.map((f) => f.salto)),
       brechaMaxima: maximo(filas.map((f) => f.brecha)),
     }),
+    // El perfil dice qué grupos son prioritarios; sin perfil, todos 'Normal'.
+    volumen: volumenDelMicrociclo(micro, { volumenSemanal, prs }),
+    desalineados: desalineadosDe(ejerciciosDeFuerza),
     reparto: {
       suben: filas.filter((f) => f.direccion === 'subir').length,
       sostienen: filas.filter((f) => f.direccion === 'estable').length,

@@ -101,12 +101,36 @@ export interface SeriePrescrita {
   cargaKg: number
 }
 
+/**
+ * Cómo hay que leer `cargaKg`.
+ *
+ * - `kg` — lo que marca la barra o la máquina.
+ * - `total` — la suma de los dos lados (mancuernas sumadas, lastre + cuerpo).
+ * - `por lado` — esa carga en cada pierna/lado; se mueve el doble.
+ * - `por mano` — esa carga en cada mancuerna.
+ *
+ * No es cosmético: confundir `por mano` con `total` duplica o parte en dos la
+ * carga cuando se progresa.
+ */
+export type UnidadCarga = 'kg' | 'total' | 'por lado' | 'por mano'
+
 export interface EjercicioPrescrito {
   id: string
   categoria: string
   nombre: string
   cues: string
+  /** Frase que ve el asesorado. Desde el 2026-08-09 **se compone** desde los
+   *  campos de abajo con `componerPrescripcion` (`domain/prescripcion.ts`);
+   *  antes era texto libre y la carga vivía dentro de la frase. */
   prescripcion: string
+  /** La carga, ya fuera de la frase. Sin definir = la prescripción no lleva
+   *  kilos (porcentajes, «REGISTRA TU CARGA», tiempo, peso corporal). **No es
+   *  lo mismo que 0**: 0 sería carga cero, esto es «no hay dato». */
+  cargaKg?: number
+  unidadCarga?: UnidadCarga
+  /** La prosa del coach, separada de los números. Se transporta tal cual: ni la
+   *  progresión ni la composición la reescriben nunca. */
+  notaCoach?: string
   descansoMin: number
   sets: number
   rango: string
