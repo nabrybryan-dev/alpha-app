@@ -164,13 +164,30 @@ spec lleva rechazando desde §5, y encima con apariencia de precisión, que es l
 que la vuelve peligrosa. Si es de la casa, la despensa vale como **presencia** —
 «hay pollo» — que ya es útil para no recomendar lo que no está.
 
-**`alimentosQueMasConsume`** — y este **no encaja en ningún tipo actual**. Hoy
-`TipoCampo` es `'numero' | 'fecha' | 'opcion' | 'multiple' | 'texto'`, y esto es
-una **lista repetible de tres cosas**: alimento del catálogo + veces por semana +
-cantidad que compra (texto libre).
+**`alimentosQueMasConsume` — DESCARTADO el 2026-08-16.** No va en la encuesta.
+Se mueve a la pantalla de la despensa, y con eso los pasos 4 y 5 se funden.
 
-Es la única pieza de la encuesta que exige tipo nuevo. Va con su propia tanda y
-sus tests, no de pasada dentro de otra cosa.
+Tres motivos, en orden de peso:
+
+1. **No cabe sin abrir el motor de la encuesta.** `Respuestas` es
+   `Partial<Record<ClaveCampo, string | number | string[]>>` y una lista repetible
+   de *alimento + veces/semana + cantidad* no es ninguno de los tres. Ese tipo lo
+   consumen ~10 archivos: `importarIntake`, `perfilCalculado`, el asistente del
+   chat, el formulario entero. Mucha cirugía por un campo.
+2. **La encuesta es corta a propósito**, y su cabecera dice por qué: «cada
+   pregunta que se hace es una que el asesorado puede abandonar a la mitad». Una
+   lista de diez o quince alimentos con frecuencia y cantidad no es una pregunta
+   más: es una mini-aplicación dentro del formulario **que le tapa sus cifras
+   hasta que lo termine**.
+3. **La frecuencia dejó de calcular nada.** En §5 se decidió que la cantidad la
+   diga la persona, así que `veces/semana × ciclo` ya no estima el volumen de
+   compra. La frecuencia sigue siendo útil —le dice a la nutricionista qué come
+   más— pero eso no obliga a preguntarla en la puerta de entrada.
+
+Donde sí encaja es en la pantalla de la despensa: allí ya está el buscador del
+catálogo, la persona entra cuando vuelve del mercado, y lo que declara se
+convierte directamente en filas de `despensa` en vez de en un campo que alguien
+tiene que traducir después.
 
 ### 6.2 · Capa de datos
 
@@ -195,19 +212,40 @@ Ojo al número: la carpeta va por `0040`. Si hace falta una migración nueva par
 cola de unidades, será la siguiente libre — **mirar la carpeta, no fiarse de este
 documento**, que envejece.
 
-## 7. Orden sugerido
+## 7. Orden, y por dónde va
 
-1. `cicloCompra` en la encuesta — es el campo barato y no depende de nada.
-2. Aplicar la `0024`.
-3. `DespensaRepo` + `mockDb` + sync + fallback en `hidratar.ts`, con los tests de
-   pérdida de datos delante.
-4. `alimentosQueMasConsume`, con su tipo nuevo y su tanda propia.
-5. La pantalla de mercado.
+1. ✅ `cicloCompra` y `despensaEs` en la encuesta (PR #52).
+2. ✅ Aplicar la `0024`.
+3. ✅ `DespensaRepo` + `mockDb` + sync + fallback en `hidratar.ts` (PR #66), con
+   la **`0042`** que hizo falta: la `0024` no permitía SACAR nada de la despensa,
+   porque no tiene columna `borrado` y la cola de sync no sabe borrar.
+4. ~~`alimentosQueMasConsume` en la encuesta~~ — descartado, ver §6.1. Se funde
+   con el 5.
+5. 🚧 **La pantalla de la despensa.** Primera tanda: añadir desde el catálogo,
+   ver lo que hay, sacar lo que se acabó, y el aviso de despensa vieja.
+   **Sin cantidades todavía** — ver abajo.
 6. Enganchar la despensa al motor de cambios (#42), que es donde esto paga: las
    sugerencias dejan de proponer lo que no hay en casa.
 
-El punto 6 es el que la persona pidió —«resolver las discrepancias cuando coma algo
-diferente»— y no se puede hacer antes, porque necesita los cinco anteriores.
+El punto 6 es el que se pidió —«resolver las discrepancias cuando coma algo
+diferente»— y no se puede hacer antes, porque necesita los anteriores.
+
+### Lo que falta para cerrar el 5
+
+**Las cantidades en las unidades de la persona.** Se decidió en §5 que las diga
+ella («una bandeja», «media libra») y eso **no tiene dónde guardarse**:
+`despensa.cantidad_g` es numérica, y de 1.198 alimentos solo 357 tienen medida
+casera con la que convertir.
+
+Hace falta una columna para el texto dicho —y su cola de resolución, como
+`texto_pedido` hace con los alimentos que no están en el catálogo—. Es una
+migración más, la siguiente libre: **mirar la carpeta, no fiarse de este
+documento**, que envejece.
+
+Mientras tanto la pantalla guarda **presencia sin cantidad**, que no es un
+recorte arbitrario: es exactamente lo que §6.1 decide enseñar cuando la despensa
+es de toda la casa, y ya sostiene la decisión que importa —no proponer lo que no
+está—.
 
 ## 7bis. Fase 2 · La foto de la factura
 
