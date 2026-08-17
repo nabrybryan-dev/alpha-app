@@ -386,18 +386,41 @@ const RECETAS_REALES: Receta[] = [
   ),
 ]
 
-/**
- * Solo se sirve lo que el coach ha firmado.
- *
- * Una receta sin notas tiene su porción y sus macros bien calculados, pero le
- * falta lo único que la hace de Alfa: dónde encaja HOY, qué canjear, con qué
- * tener ojo. Sin eso es un feed de recetas más.
- *
- * La compuerta es un filtro sobre el propio dato, no una lista aparte que
- * alguien tenga que acordarse de actualizar: en cuanto una receta tenga notas
- * sale sola, y una a medio escribir no puede llegar a nadie por descuido.
- */
-export const RECETAS: Receta[] = RECETAS_REALES.filter((r) => r.ajuste.notas.length > 0)
+/** Las que el coach ya firmó: son las únicas que llegan al asesorado. */
+const FIRMADAS: Receta[] = RECETAS_REALES.filter((r) => r.ajuste.notas.length > 0)
 
-/** Las seis armadas, tengan notas o no. Sirve para revisarlas antes de firmar. */
-export const RECETAS_SIN_FIRMAR: Receta[] = RECETAS_REALES
+/**
+ * En producción, solo lo firmado. En desarrollo, las seis.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ HACEN FALTA LAS DOS COSAS
+ * ─────────────────────────────────────────────────────────────────────────────
+ * La compuerta de las notas está bien y se queda: una receta sin el «dónde
+ * encaja hoy» y el canje es un feed de recetas más, y una a medio escribir no
+ * puede llegarle a nadie por descuido.
+ *
+ * Pero tal cual estaba, las seis eran **invisibles hasta en la máquina del
+ * coach**: `RECETAS` las filtraba y `RECETAS_SIN_FIRMAR` no lo pintaba nadie. O
+ * sea que había que escribir las notas a ciegas, sin poder ver la porción, los
+ * macros ni la tarjeta. Pedir eso es pedir que se firme sin mirar.
+ *
+ * Así que en desarrollo se sirven las seis, con su aviso de que están sin
+ * firmar. `MODE` es `'test'` en vitest y `'production'` en el build, de modo que
+ * ni la suite ni los 21 asesorados ven una receta sin notas.
+ */
+export const RECETAS: Receta[] =
+  import.meta.env.MODE === 'development' ? RECETAS_REALES : FIRMADAS
+
+/** Si a esta receta le faltan las notas del coach. Solo se ve en desarrollo. */
+export function sinFirmar(receta: Receta): boolean {
+  return receta.ajuste.notas.length === 0
+}
+
+/**
+ * Las seis, firmadas o no.
+ *
+ * La usan los tests: lo que hay que comprobar —que los ingredientes existen en
+ * el catálogo, que la ficha cuadra con el registro— vale para las seis, y
+ * `RECETAS` en modo test solo trae las firmadas, que hoy son cero.
+ */
+export const TODAS_LAS_RECETAS: Receta[] = RECETAS_REALES

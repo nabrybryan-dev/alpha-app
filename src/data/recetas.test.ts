@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RECETAS, RECETAS_SIN_FIRMAR } from './recetas'
+import { RECETAS, TODAS_LAS_RECETAS as TODAS, sinFirmar } from './recetas'
 import { catalogoRepo } from './catalogo/catalogoRepo'
 import { motivoParaNoRegistrar, recetaAlRegistro } from '../domain/nutricion/recetaAlRegistro'
 
@@ -14,7 +14,7 @@ import { motivoParaNoRegistrar, recetaAlRegistro } from '../domain/nutricion/rec
 
 describe('las recetas reales', () => {
   it('hay seis', () => {
-    expect(RECETAS_SIN_FIRMAR).toHaveLength(6)
+    expect(TODAS).toHaveLength(6)
   })
 
   /**
@@ -23,8 +23,29 @@ describe('las recetas reales', () => {
    * una lista que alguien tenga que acordarse de actualizar.
    */
   describe('la compuerta de las notas', () => {
-    it('hoy no se sirve ninguna: el coach aún no las ha firmado', () => {
+    /**
+     * En la suite `MODE` vale 'test', y en el build 'production': las dos caen
+     * del mismo lado. Ni los tests ni los 21 asesorados ven una receta sin
+     * firmar; en desarrollo sí, para que el coach pueda revisarlas antes de
+     * escribir las notas.
+     */
+    it('fuera de desarrollo solo sale lo firmado, y hoy no hay nada firmado', () => {
       expect(RECETAS).toHaveLength(0)
+    })
+
+    it('las seis siguen ahí, esperando su firma', () => {
+      expect(TODAS).toHaveLength(6)
+      expect(TODAS.every(sinFirmar)).toBe(true)
+    })
+
+    it('`sinFirmar` distingue la que tiene notas de la que no', () => {
+      const [una] = TODAS
+      expect(sinFirmar(una)).toBe(true)
+      const firmada = {
+        ...una,
+        ajuste: { ...una.ajuste, notas: [{ tipo: 'encaja' as const, label: 'x', texto: 'y' }] },
+      }
+      expect(sinFirmar(firmada)).toBe(false)
     })
 
     it('lo que se sirve SIEMPRE tiene notas', () => {
@@ -32,7 +53,7 @@ describe('las recetas reales', () => {
     })
 
     it('y sale sola en cuanto se le escriban', () => {
-      const conNotas = RECETAS_SIN_FIRMAR.map((r) => ({
+      const conNotas = TODAS.map((r) => ({
         ...r,
         ajuste: { ...r.ajuste, notas: [{ tipo: 'encaja' as const, label: 'x', texto: 'y' }] },
       }))
@@ -42,7 +63,7 @@ describe('las recetas reales', () => {
 
   describe('el crédito al creador', () => {
     it('todas llevan handle y enlace al post original', () => {
-      for (const r of RECETAS_SIN_FIRMAR) {
+      for (const r of TODAS) {
         expect(r.handle, r.nombre).toMatch(/^@/)
         expect(r.media.instagramPermalink, r.nombre).toMatch(/^https:\/\/www\.instagram\.com\//)
       }
@@ -50,24 +71,24 @@ describe('las recetas reales', () => {
 
     /** Si el reel se viera sin salir de Alfa, el creador perdería la visita. */
     it('ninguna aloja el vídeo', () => {
-      for (const r of RECETAS_SIN_FIRMAR) expect(r.media.videoUrl, r.nombre).toBeUndefined()
+      for (const r of TODAS) expect(r.media.videoUrl, r.nombre).toBeUndefined()
     })
 
     /** Las URLs de imagen de Instagram van firmadas y caducan en horas. */
     it('la miniatura se dibuja, no se trae de Instagram', () => {
-      for (const r of RECETAS_SIN_FIRMAR) {
+      for (const r of TODAS) {
         expect(r.media.thumbnail, r.nombre).toMatch(/^data:image\/svg\+xml/)
       }
     })
   })
 
   describe('todas se pueden registrar', () => {
-    it.each(RECETAS_SIN_FIRMAR.map((r) => [r.nombre, r] as const))('%s', (_n, r) => {
+    it.each(TODAS.map((r) => [r.nombre, r] as const))('%s', (_n, r) => {
       expect(motivoParaNoRegistrar(r)).toBeNull()
     })
 
     it('ningún ingrediente se cae del catálogo', () => {
-      for (const r of RECETAS_SIN_FIRMAR) {
+      for (const r of TODAS) {
         for (const i of r.ingredientes ?? []) {
           expect(catalogoRepo.porId(i.alimentoId as string), `${r.nombre} · ${i.nombre}`).toBeDefined()
         }
@@ -81,7 +102,7 @@ describe('las recetas reales', () => {
    * agregar sin saber cuál vale.
    */
   it('las kcal de la ficha son las que luego suma el día', () => {
-    for (const r of RECETAS_SIN_FIRMAR) {
+    for (const r of TODAS) {
       const plan = recetaAlRegistro(r, '2026-08-16T12:00:00')
       if (!plan.puede) throw new Error(`${r.nombre}: ${plan.motivo}`)
       const sumadas = plan.items.reduce((t, item) => {
@@ -93,7 +114,7 @@ describe('las recetas reales', () => {
   })
 
   it('ninguna sale con cifras absurdas', () => {
-    for (const r of RECETAS_SIN_FIRMAR) {
+    for (const r of TODAS) {
       expect(r.ajuste.kcal, r.nombre).toBeGreaterThan(50)
       expect(r.ajuste.kcal, r.nombre).toBeLessThan(900)
       expect(r.ajuste.prot, r.nombre).toBeGreaterThanOrEqual(0)
@@ -105,7 +126,7 @@ describe('las recetas reales', () => {
    * que puso el coach. Si nada estuviera marcado, la marca no serviría de nada.
    */
   it('lo estimado está marcado, y lo que dio el creador no', () => {
-    const todos = RECETAS_SIN_FIRMAR.flatMap((r) => r.ingredientes ?? [])
+    const todos = TODAS.flatMap((r) => r.ingredientes ?? [])
     expect(todos.some((i) => i.estimado)).toBe(true)
     expect(todos.some((i) => !i.estimado)).toBe(true)
   })
