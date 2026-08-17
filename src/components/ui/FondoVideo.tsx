@@ -1,4 +1,4 @@
-import { useMovimientoReducido } from './useMovimientoReducido'
+import { useMovimientoReducido } from './movimientoReducido'
 
 interface FondoVideoProps {
   /** Fotograma fijo. Es la base, no un respaldo: tiene que aguantar solo. */

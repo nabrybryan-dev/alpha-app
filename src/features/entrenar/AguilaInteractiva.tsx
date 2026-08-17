@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { movimientoReducido } from '../../components/ui/movimientoReducido'
 import logoAguila from '../../assets/brand/logo-aguila.jpeg'
 
 interface AguilaInteractivaProps {
@@ -19,7 +20,7 @@ export function AguilaInteractiva({ className = '', entrada = false }: AguilaInt
   const girar = () => {
     const el = ref.current
     if (!el) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (movimientoReducido()) return
     el.animate(
       [
         { transform: 'perspective(600px) rotateY(0deg) scale(1)' },

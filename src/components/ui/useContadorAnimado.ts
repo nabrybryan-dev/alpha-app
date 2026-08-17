@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { movimientoReducido } from './movimientoReducido'
 
 const facilidad = (t: number) => 1 - Math.pow(1 - t, 4)
-
-function movimientoReducido(): boolean {
-  return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-}
 
 /**
  * Cuenta un número desde su valor mostrado actual hasta `objetivo` con rAF
