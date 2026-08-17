@@ -47,6 +47,11 @@ const NUTRIENTES = [
   'hierro_mg',
   'vitamina_c_mg',
   'potasio_mg',
+  // No viaja para pintarse: el panel no la vigila y a esta cartera no le falta.
+  // Viaja porque es el único de los cinco techos que se pasa de verdad con
+  // comida normal —una porción de hígado de res da 11.389 ER contra un límite de
+  // 3.000— y sin el dato aquí la app no puede avisarlo. Ver `techos.ts`.
+  'vitamina_a_er',
 ]
 
 /** `undefined` se cae al serializar a JSON; `null` sobrevive, y es lo que hay

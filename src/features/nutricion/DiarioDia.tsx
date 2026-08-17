@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
@@ -16,13 +16,21 @@ import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
 import { Hidratacion } from './Hidratacion'
 import { estaCalibrado } from '../../domain/nutricion/calibracion'
+import { condicionesDeclaradas } from '../../domain/nutricion/embarazo'
+import { preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { PanelCalibracion } from './PanelCalibracion'
 import { PanelMicros } from './PanelMicros'
+import { RECETAS, type Receta } from '../../data/recetas'
+import { recetaAlRegistro } from '../../domain/nutricion/recetaAlRegistro'
+import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from '../../domain/recetasProbadas'
+import { escribirJSON, leerJSON } from '../../lib/persistencia'
+import { RecetasCarousel } from './RecetasCarousel'
 import { ResumenDia } from './ResumenDia'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
 import { semanaDe } from '../../domain/nutricion/semana'
 import { TiraSemana } from './TiraSemana'
+import { visibilidadDelAsesorado } from './visibilidadDelAsesorado'
 import { VistaSemana } from './VistaSemana'
 import { resumenDeSemana } from '../../domain/nutricion/semanaResumen'
 
@@ -92,6 +100,25 @@ export default function DiarioDia() {
   }, [ruta.state])
 
   const [fecha, setFecha] = useState(hoyIso())
+  /** Qué comida creó cada receta, para poder deshacer exactamente esa. */
+  const comidasDeReceta = useRef(new Map<string, string>())
+
+  /**
+   * Las recetas ya cocinadas, en el teléfono y con la clave del usuario.
+   *
+   * No entra en `limpiarBorradoresLocales`: los borradores se borran al cerrar
+   * sesión porque son kilos y reps a medio escribir de otra persona, y aquí la
+   * clave ya lleva el id —nadie ve lo de nadie—. Borrarlo al salir solo serviría
+   * para tirarle la racha a quien vuelve a entrar en su propio teléfono.
+   */
+  const claveProbadas = `alpha-recetas-${usuario.id}`
+  const [probadas, setProbadasEstado] = useState<RecetaProbada[]>(() =>
+    leerJSON<RecetaProbada[]>(claveProbadas, []),
+  )
+  const setProbadas = (nuevas: RecetaProbada[]) => {
+    setProbadasEstado(nuevas)
+    escribirJSON(claveProbadas, nuevas)
+  }
   const [tipoDia] = useState<TipoDia>('ALTO')
   // `detalle` es la comida que se está mirando entera; `comidaAbierta` es en
   // cuál va a caer lo que se busque. Son distintas: desde el detalle se abre el
@@ -103,6 +130,10 @@ export default function DiarioDia() {
 
   const plan = db.nutricion.planByUsuario(usuario.id)
   const delDia = db.registroComidas.delDia(usuario.id, fecha)
+
+  // Misma función que usa "Mi plan": el contador del diario y las cifras del
+  // perfil obedecen a una sola decisión, resuelta en un solo sitio.
+  const visibilidad = visibilidadDelAsesorado(usuario.id)
 
   const pruebas = db.calibracion.byUsuario(usuario.id).map((p) => ({
     alimentoId: p.alimentoId,
@@ -138,7 +169,59 @@ export default function DiarioDia() {
   )
   const recientes = alimentosRecientes(porDiaDeLaSemana.flat())
 
+  /**
+   * Lo que la asesorada declaró, y lo que comió hoy: los dos deciden el aviso.
+   *
+   * Las condiciones bajan su límite de vitamina A -2.800 en embarazo o
+   * lactancia, no 3.000-. Los nombres callan el aviso diario del hígado, que va
+   * por frecuencia desde el 2026-08-09. Ver `techos.ts`.
+   *
+   * Se mira contra `fecha` y no contra hoy porque el diario se puede abrir en
+   * un día pasado: un embarazo que ya caducó no debe teñir la semana anterior.
+   */
+  const respuestasSuyas = db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}
+  const condiciones = [...condicionesDeclaradas(respuestasSuyas, fecha)]
+
+  /**
+   * Las quincenales de embarazo y lactancia, si hoy toca alguna.
+   *
+   * Contra `hoyIso()` y no contra `fecha`: abrir el diario del lunes pasado no
+   * es viajar en el tiempo, y una pregunta que toca hoy toca igual.
+   */
+  const quincenalesPendientes = preguntasQueVuelven(respuestasSuyas, hoyIso())
+  const nombresDelDia = delDia.flatMap((comida) =>
+    comida.items.map((item) => porId(item.alimentoId)?.nombre ?? ''),
+  )
+
   const porTipo = (tipo: TipoComida) => delDia.find((c) => c.comida === tipo)
+
+  /**
+   * Una receta entra como comida propia, no dentro de la que ya hubiera.
+   *
+   * Así el «Deshacer» puede borrarla entera sin tocar lo que la persona había
+   * registrado antes: mezclarla en el snack existente obligaría a quitar ítem a
+   * ítem y bastaría un ingrediente repetido para llevarse por delante el que ya
+   * estaba.
+   */
+  const registroDeRecetas = {
+    agregar: (receta: Receta) => {
+      const plan = recetaAlRegistro(receta, `${fecha}T${new Date().toTimeString().slice(0, 5)}:00`)
+      if (!plan.puede) return
+      const comidaId = db.registroComidas.abrirComida({ ...plan.comida, usuarioId: usuario.id })
+      for (const item of plan.items) db.registroComidas.agregarItem(usuario.id, comidaId, item)
+      comidasDeReceta.current.set(receta.id, comidaId)
+      setProbadas(anotar(probadas, receta.id, fecha))
+    },
+    deshacer: (receta: Receta) => {
+      const comidaId = comidasDeReceta.current.get(receta.id)
+      if (!comidaId) return
+      db.registroComidas.borrarComida(usuario.id, comidaId)
+      comidasDeReceta.current.delete(receta.id)
+      // La racha baja con la comida. Si no, el número seguiría diciendo que
+      // cocinó algo que ya no está registrado en ninguna parte.
+      setProbadas(desanotar(probadas, receta.id, fecha))
+    },
+  }
 
   /** Una comida que todavía no existe en la base, solo para poder pintarla. */
   const vacia = (tipo: TipoComida): RegistroComida => ({
@@ -251,6 +334,7 @@ export default function DiarioDia() {
       <VistaSemana
         resumen={resumenDeSemana(porDiaDeLaSemana, semana, porId, meta.kcal)}
         meta={meta}
+        visibilidad={visibilidad}
         onVolver={() => setVerSemana(false)}
         onElegirDia={(dia) => {
           setFecha(dia)
@@ -304,9 +388,32 @@ export default function DiarioDia() {
         </Link>
       </header>
 
+      {quincenalesPendientes.length > 0 && (
+        // Un recordatorio, no una compuerta: se puede seguir usando el diario
+        // entero sin tocarlo. Ver `AlDiaEmbarazo`.
+        <Link
+          to="/nutricion/al-dia"
+          className="press flex items-center justify-between gap-3 rounded-2xl border border-ambar/40 bg-ambar/15 p-3"
+        >
+          <span className="text-[11px] leading-snug text-tenue">
+            <b className="text-texto">Cuéntanos qué te dijo tu médico.</b> Lo que él te indique
+            manda sobre lo que calcule la app.
+          </span>
+          <span className="shrink-0 text-xs font-semibold text-texto">Responder</span>
+        </Link>
+      )}
+
       <TiraSemana fecha={fecha} conRegistro={conRegistro} onElegir={setFecha} />
 
-      <ResumenDia total={total} meta={meta} />
+      <ResumenDia total={total} meta={meta} visibilidad={visibilidad} />
+
+      <RecetasCarousel
+        recetas={RECETAS}
+        kcalRestantes={Math.max(0, Math.round(meta.kcal - (total.porDia.kcal ?? 0)))}
+        registro={registroDeRecetas}
+        cocinadas={distintas(probadas)}
+        racha={rachaDeRecetas(probadas, fecha).actual}
+      />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
@@ -325,6 +432,7 @@ export default function DiarioDia() {
                 comida={comida}
                 kcal={kcalDeComida(comida, porId)}
                 resumen={resumenDe(comida)}
+                verKcal={visibilidad.verContadorKcal}
                 onAbrir={() => setDetalle(tipo)}
               />
             )
@@ -332,7 +440,7 @@ export default function DiarioDia() {
         </div>
       </section>
 
-      <PanelMicros total={total} />
+      <PanelMicros total={total} condiciones={condiciones} nombresDelDia={nombresDelDia} />
 
       <PanelCalibracion
         pruebas={pruebas}

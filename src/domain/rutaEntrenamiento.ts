@@ -322,6 +322,8 @@ function mejorUnRmPorEjercicio(microciclo: Microciclo): Map<string, number> {
   for (const sesion of microciclo.sesiones) {
     for (const ejercicio of sesion.ejercicios) {
       for (const serie of ejercicio.series) {
+        // Sin reps o sin RIR no hay 1RM que estimar: ese trabajo no se mide así.
+        if (serie.reps === undefined || serie.rir === undefined) continue
         const estimado = estimarUnRm(serie.cargaKg, serie.reps, serie.rir)
         if (estimado === undefined) continue
         // La clave es el nombre, no el id: los ids llevan el sufijo del

@@ -5,7 +5,8 @@ import { MemoryRouter } from 'react-router-dom'
 import CifrasAsesoradosPage from './CifrasAsesoradosPage'
 import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
-import { db } from '../../data/dbInstance'
+import { db, hoyIso } from '../../data/dbInstance'
+import { catalogoRepo } from '../../data/catalogo/catalogoRepo'
 
 /**
  * El puesto de la nutricionista. Lo que se prueba: que llegue a la decisión,
@@ -26,6 +27,54 @@ const conSenal = () =>
   db.perfilNutricion.guardar('u-valentina', { cicloMenstrual: 'irregular' }, true)
 
 const comoStaff = () => localStorage.setItem('alpha-usuario', 'u-bryan')
+
+/** Todo lo que las fórmulas necesitan, para que salga masa magra y con ella la energía. */
+const PERFIL_COMPLETO = {
+  genero: 'M',
+  fechaNacimiento: '1996-05-10',
+  pesoKg: 60,
+  alturaCm: 165,
+  cuelloCm: 32,
+  cinturaCm: 72,
+  caderaCm: 96,
+  pasosDiarios: 8000,
+  diasEntreno: 4,
+}
+
+/** La fecha de hace N días, con la misma aritmética que usa la pantalla. */
+const hace = (dias: number): string => {
+  const d = new Date(`${hoyIso()}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - dias)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Un almuerzo con kcal de verdad, del catálogo empaquetado. */
+const registrarAlmuerzo = (fecha: string) => {
+  const [arroz] = catalogoRepo.buscar('arroz')
+  const comidaId = db.registroComidas.abrirComida({
+    usuarioId: 'u-valentina',
+    momentoIso: `${fecha}T12:00:00.000Z`,
+    comida: 'almuerzo',
+    cocinadoPorEl: true,
+    aceiteG: 0,
+    salG: 0,
+    confianza: 'estimado',
+  })
+  db.registroComidas.agregarItem('u-valentina', comidaId, {
+    alimentoId: arroz.id,
+    gramos: 300,
+    fuePesado: false,
+    estadoAsumido: 'cocido',
+  })
+}
+
+/** Un check-in que dice que ese día entrenó. Sin duración: el check-in no la pregunta. */
+const entrenoEl = (fecha: string) =>
+  db.bienestar.guardar({ id: `c-${fecha}`, usuarioId: 'u-valentina', fecha, entreno: 'Pierna A' })
+
+/** El mismo check-in diciendo que no entrenó. Se guarda por fecha: pisa al del seed. */
+const descansoEl = (fecha: string) =>
+  db.bienestar.guardar({ id: `c-${fecha}`, usuarioId: 'u-valentina', fecha, entreno: 'Descanso' })
 
 const fichaDe = async (nombre: RegExp) => {
   const boton = screen.getByRole('button', { name: nombre })
@@ -130,6 +179,54 @@ describe('CifrasAsesoradosPage', () => {
       const ficha = await fichaDe(/mateo/i)
       expect(ficha.getByText(/todavía no ha respondido/i)).toBeInTheDocument()
       expect(ficha.queryByRole('switch')).not.toBeInTheDocument()
+    })
+  })
+
+  /**
+   * El gasto de entrenar, descontado de verdad.
+   *
+   * Contarlo como CERO no era un hueco cosmético: la disponibilidad salía más
+   * alta de lo real y la alerta se callaba justo en quien entrenó y no comió.
+   * Lo que se fija aquí es que el descuento llegue a la pantalla y que diga de
+   * dónde sale, porque un gasto estimado y uno medido no se leen igual.
+   */
+  describe('el gasto de entrenamiento', () => {
+    beforeEach(() => {
+      db.perfilNutricion.guardar('u-valentina', PERFIL_COMPLETO, true)
+      for (let i = 1; i <= 4; i += 1) registrarAlmuerzo(hace(i))
+    })
+
+    it('se descuenta y se enseña con su procedencia', async () => {
+      for (let i = 1; i <= 3; i += 1) entrenoEl(hace(i))
+      pintar()
+      const ficha = await fichaDe(/valentina/i)
+      expect(ficha.getByText(/Menos/)).toBeInTheDocument()
+      expect(ficha.getByText(/kcal\/día/)).toBeInTheDocument()
+    })
+
+    it('ya no declara que cuenta como cero', async () => {
+      for (let i = 1; i <= 3; i += 1) entrenoEl(hace(i))
+      pintar()
+      const ficha = await fichaDe(/valentina/i)
+      expect(ficha.queryByText(/cuenta como cero/i)).not.toBeInTheDocument()
+    })
+
+    // Sin duración registrada el cálculo usa un suelo, y quedarse corto en el
+    // gasto sube la disponibilidad y suaviza la alerta. Hay que poder verlo.
+    it('avisa cuando el entreno no traía duración', async () => {
+      for (let i = 1; i <= 3; i += 1) entrenoEl(hace(i))
+      pintar()
+      const ficha = await fichaDe(/valentina/i)
+      expect(ficha.getByText(/sin duración registrada/i)).toBeInTheDocument()
+    })
+
+    it('sin ningún entreno anotado lo dice, en vez de callarse el cero', async () => {
+      // El seed le pone entrenos; aquí se sobrescriben con descanso, que es la
+      // respuesta «no entrené» y no un hueco.
+      for (let i = 1; i <= 14; i += 1) descansoEl(hace(i))
+      pintar()
+      const ficha = await fichaDe(/valentina/i)
+      expect(ficha.getByText(/No consta ningún entreno/i)).toBeInTheDocument()
     })
   })
 })

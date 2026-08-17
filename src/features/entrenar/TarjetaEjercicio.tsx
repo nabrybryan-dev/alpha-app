@@ -3,6 +3,7 @@ import { db } from '../../data/dbInstance'
 import { ejercicioCompleto } from '../../domain/cumplimiento'
 import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
+import { ExerciseSlotMachine } from './ExerciseSlotMachine'
 import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
 
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
@@ -14,18 +15,6 @@ function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | nu
   )
 }
 
-function MiniaturaEjercicio() {
-  return (
-    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-tenue" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="h-5 w-5">
-        <path d="M6.5 6.5v11M17.5 6.5v11" />
-        <path d="M3.5 9v6M20.5 9v6" />
-        <path d="M6.5 12h11" />
-      </svg>
-    </span>
-  )
-}
-
 interface TarjetaEjercicioProps {
   ejercicio: EjercicioPrescrito
   microcicloId: string
@@ -34,6 +23,9 @@ interface TarjetaEjercicioProps {
   onVerDemo: (contenido: Contenido) => void
   onGuardarSerie: (serie: SerieRegistrada) => void
   registroRef: React.Ref<RegistroSerieHandle>
+  /** Posición del ejercicio en la sesión: la cabecera-gabinete la muestra. */
+  indice: number
+  total: number
 }
 
 /**
@@ -51,6 +43,8 @@ export function TarjetaEjercicio({
   onVerDemo,
   onGuardarSerie,
   registroRef,
+  indice,
+  total,
 }: TarjetaEjercicioProps) {
   const completo = ejercicioCompleto(ejercicio)
   const siguienteOrden = ejercicio.series.length + 1
@@ -59,21 +53,7 @@ export function TarjetaEjercicio({
   return (
     <div id={`ej-${ejercicio.id}`} className="entrada scroll-mt-4">
       <Card className={completo ? 'opacity-75' : ''}>
-        <div className="flex items-start gap-3">
-          <MiniaturaEjercicio />
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{ejercicio.categoria}</p>
-            {/* Nombre completo (envuelve): nunca se corta con "…". */}
-            <h3 className="mt-0.5 font-display text-[17px] leading-snug text-texto [text-wrap:balance]">
-              {ejercicio.nombre}
-            </h3>
-          </div>
-          {completo && (
-            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
-              <CheckDibujado className="h-3.5 w-3.5" />
-            </span>
-          )}
-        </div>
+        <ExerciseSlotMachine index={indice} total={total} nombre={ejercicio.nombre} categoria={ejercicio.categoria} rango={ejercicio.rango} tecnica={ejercicio.cues || undefined} paused={completo} onRefTap={contenidoDemo ? () => onVerDemo(contenidoDemo) : undefined} refVisual={contenidoDemo ? 'Ver demostración' : undefined} />
 
         <div className="mt-3 flex items-center justify-around">
           <Estadistica etiqueta="Sets" valor={ejercicio.sets} />

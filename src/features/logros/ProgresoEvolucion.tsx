@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { db } from '../../data/dbInstance'
-import { cargaPorGrupo } from '../../domain/fatiga'
+import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
 import { nivelDeSeries } from '../../domain/nivelDeVolumen'
 import type { MedidaCorporal, NivelVolumen } from '../../domain/types'
 
@@ -101,7 +101,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
     .map((s) => ({
       etiqueta: s.nombre,
       valor: s.ejercicios.reduce(
-        (t, e) => t + e.series.reduce((acc, ser) => acc + ser.cargaKg * ser.reps, 0),
+        (t, e) => t + e.series.reduce((acc, ser) => acc + ser.cargaKg * (ser.reps ?? 0), 0),
         0,
       ),
     }))
@@ -236,7 +236,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
                   </span>
                   <span className="text-right">
                     <span className="cifras block text-[11px] font-bold text-silver-100">
-                      {g.seriesHechas}/{g.seriesPautadas}
+                      {formatearSeries(g.seriesHechas)}/{formatearSeries(g.seriesPautadas)}
                     </span>
                     <span
                       className={`block text-[9px] font-bold uppercase tracking-[0.06em] ${CLASE_NIVEL[nivel]}`}
