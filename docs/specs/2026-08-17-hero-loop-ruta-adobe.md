@@ -1,249 +1,179 @@
-# Hero 3D de Alpha — ruta Adobe, paso a paso
+# Hero del Splash — ruta Photoshop + After Effects
 
-Cuatro partes. Ninguna necesita saber 3D.
+**Sin generar nada nuevo.** Partimos de `banco-alpha.jpg`, que es la imagen que te
+gusta, y la llevamos a vertical conservando su atmósfera.
 
-Cada número de aquí está decidido: no tienes que elegir nada. Si algo no encaja,
-dímelo y lo recalculo.
-
----
-
-## PARTE 1 · El fotograma (Nano Banana Pro)
-
-Ve a **https://aistudio.google.com/models/gemini-3-pro-image**
-
-Adjunta como referencia:
-- `Cerebro Alpha\app\public\fondos\banco-alpha.jpg` — el equipo y la paleta
-- El moodboard **GRIND** que ya generaste — solo para el grading
-
-### Por qué este prompt no es el de Seedance
-
-Seedance recibía una foto y la animaba entera. Aquí la vas a **despiezar en
-Photoshop**, así que la imagen tiene que nacer preparada para eso: cada elemento
-recortable, con negro limpio detrás y sin sombras que caigan de un objeto sobre
-otro. Si los discos se solapan, recortarlos es una tarde perdida.
-
-### Prompt
-
-```
-A single cinematic product still, vertical 9:16 aspect ratio, shot as a phone
-splash screen background plate.
-
-SUBJECT
-An Olympic barbell floating horizontally in a black void, loaded with four bumper
-plates: two matte black and two deep red. Knurled steel shaft with a brushed satin
-finish, machined collars, black powder-coated sleeves with a subtle raised ALPHA
-ATHLETICS relief on the plate faces. Below and behind it, a matte black flat bench
-in textured vinyl with visible stitching, angled slightly away from camera.
-
-SEPARATION — the most important requirement
-Every plate is clearly separated from every other plate along the bar, with visible
-black gaps between them. No plate overlaps another. No plate overlaps the bench.
-The bench does not touch the barbell. Each object reads as a distinct silhouette
-against clean black negative space, as if photographed for a cutout.
-
-COMPOSITION
-The barbell sits in the upper-middle third of the frame. The bottom 40% of the
-frame is pure near-black empty space with nothing legible in it: no bench, no
-floor detail, no highlights, no gradient banding. That band is reserved for
-interface text composited later. Nothing bright may enter it.
-
-LIGHTING
-One hard rectangular key light from camera left at 40 degrees elevation,
-warm-neutral 5200K, raking across the knurling so the texture reads. A deep red
-rim light (#FF1E1E) along the top-right edges only, low intensity. No cast shadows
-falling from one object onto another. No shadow on the floor.
-
-COLOR
-Background #08090A. Steel between #C9CED6 and #5F646B. Red #FF1E1E confined to two
-plates and the single rim — under 5% of the frame. Shadows carry a slightly
-desaturated olive cast.
-
-GRADE
-Cinematic, high contrast, crushed blacks, fine film grain, sharp throughout. Clean
-studio product photography, not a gym snapshot.
-
-NEGATIVE
-No people. No text. No watermarks. No UI. No borders. No logos beyond the ALPHA
-ATHLETICS relief. No cast shadows between objects. Nothing in the lower 40%.
-```
-
-### Cómo elegir la que sirve
-
-Genera varias y quédate con la que cumpla las cuatro:
-
-1. La franja de abajo está **vacía y negra**
-2. Los discos **no se tocan** entre sí
-3. El rojo se ve **escaso**, no domina
-4. El eje moleteado está **nítido**
-
-Mándamelas y te digo cuál pasa. Es el filtro más barato: equivocarse aquí cuesta
-todo el trabajo de después.
-
-Descárgala en 2K o 4K y guárdala como `frame.png` en esta carpeta.
+Por qué cambió el plan: el prompt anterior pedía *"floating in a black void, no gym
+clutter, no shadows, as if photographed for a cutout"*. Eso mataba a propósito el
+ambiente, la luz roja del fondo y las sombras — todo lo que hace buena a la
+referencia — a cambio de poder recortar las piezas. Mal cambio: el velo del Splash
+tapa el 60% de la pantalla, así que el despiece fino no se aprecia y la atmósfera
+sí.
 
 ---
 
-## PARTE 2 · Separar en capas (Photoshop)
+## PARTE 1 · Subir la resolución (Photoshop)
 
-Abre `frame.png`.
+El original mide **512 × 279 px**. Es diminuto: hay que multiplicarlo por tres
+antes de tocar nada.
 
-1. **Herramienta de selección de objetos** (atajo `W`). Pasa el cursor por encima
-   de cada disco: Photoshop lo detecta solo. Clic para seleccionar.
-2. Con la selección activa: `Ctrl+J`. Crea una capa con solo ese objeto.
-3. Repite para: cada disco (4), la barra, el banco.
-4. Renombra las capas: `disco-1`, `disco-2`, `disco-3`, `disco-4`, `barra`, `banco`.
-5. **La capa de fondo**: selecciona todo lo que recortaste, y usa **Relleno
-   generativo** con el prompt `empty black studio void` y sin nada más. Así el
-   fondo queda completo por detrás, sin agujeros. Nómbrala `fondo`.
+1. Abre `Cerebro Alpha\app\public\fondos\banco-alpha.jpg`
+2. `Imagen > Tamaño de imagen`
+3. Marca **Remuestrear** y elige **Conservar detalles 2.0** en el desplegable
+4. Cambia las unidades a **Porcentaje** y escribe **300**
+5. Sube **Reducir ruido** hasta ~40 si la ves con grano
+6. Aceptar
+
+Queda en **1536 × 837**.
+
+> **Mejor aún, si te apetece:** `Archivo > Abrir como > Camera Raw`, y una vez
+> dentro, clic derecho sobre la imagen → **Mejorar → Superresolución**. Usa IA en
+> vez de interpolación y el resultado es bastante más limpio. Si te lía, el paso
+> de arriba vale.
 
 Guarda como `hero.psd`.
 
-> Si la selección de objetos falla en algún disco, no pelees: usa el lazo a mano.
-> Los bordes no tienen que ser perfectos — el velo del Splash y la viñeta se comen
-> cualquier borde sucio.
+---
+
+## PARTE 2 · Estirarla a vertical
+
+### Ampliar el lienzo
+
+1. `Imagen > Tamaño de lienzo`
+2. Anchura **1536**, Altura **2732** (es 9:16, la proporción del móvil)
+3. En el cuadro de anclaje, pulsa la casilla **de arriba en el centro** ↑
+
+Eso deja la imagen pegada arriba y **1895 px de hueco vacío debajo**.
+
+4. Ahora baja la imagen un poco: `Ctrl+T`, y arrástrala hasta que la barra quede
+   más o menos a **un tercio desde arriba**. Enter.
+
+Te queda hueco arriba (poco) y hueco abajo (mucho). Son dos problemas distintos.
+
+### El hueco de arriba — Relleno Generativo
+
+1. Herramienta **Marco rectangular** (`M`)
+2. Selecciona la franja vacía de arriba, **metiéndote unos 100 px dentro de la
+   imagen**. Ese solape es lo que le permite continuar la escena en vez de
+   inventarse otra.
+3. En la barra que aparece abajo, pulsa **Relleno Generativo**
+4. Escribe: `dark gym ceiling with dim red light, deep shadow`
+5. **Generar**. Salen tres opciones: elige la que menos llame la atención.
+
+### El hueco de abajo — degradado, NO generativo
+
+Aquí **no uses Relleno Generativo**. Si le pides que invente suelo, te lo va a
+llenar de detalle justo donde tiene que ir el texto de "Alpha Athletics".
+
+1. `Capa > Nueva capa`
+2. Herramienta **Degradado** (`G`)
+3. Color frontal: pon el hex **`08090A`**
+4. Elige el degradado **De frente a transparente**, tipo **Lineal**
+5. Arrastra desde **abajo del todo** hasta **justo por debajo del banco**,
+   manteniendo `Shift` para que salga recto
+
+El suelo se disuelve en negro y te queda la franja limpia. Si no cubre bastante,
+duplica la capa (`Ctrl+J`).
+
+### Cerrar
+
+1. `Imagen > Tamaño de imagen` → Anchura **1080** (la altura se pone sola en 1920)
+2. `Archivo > Exportar > Exportar como` → **JPG**, calidad **80**
+3. Guárdalo como `frame.jpg` en esta carpeta
+
+### Cómo saber si está bien
+
+Tapa con la mano el **40% de abajo** de la pantalla. Lo que queda visible tiene que
+ser: la barra, el banco y el ambiente. Y lo que tapaste tiene que ser negro casi
+liso. Si hay algo llamativo ahí debajo, alarga más el degradado.
 
 ---
 
 ## PARTE 3 · El movimiento (After Effects)
 
-### Crear la composición
+Deriva de cámara. Sin despiece: la imagen entera se mueve muy despacio.
+
+### La composición
 
 `Composición > Nueva composición`
 
 | Ajuste | Valor |
 |---|---|
 | Anchura × Altura | **1080 × 1920** |
-| Frecuencia de fotogramas | **24** |
+| Fotogramas por segundo | **24** |
 | Duración | **0:00:08:00** |
 | Color de fondo | **Negro** |
 
-### Importar
+### Meter la imagen
 
-`Archivo > Importar > Archivo` → elige `hero.psd` → en el diálogo, **Importar
-como: Composición - Mantener tamaños de capa**. Así entran las capas sueltas.
+Arrastra `frame.jpg` a la línea de tiempo.
 
-Arrastra esa composición dentro de la tuya y haz doble clic para entrar.
+Pulsa `S` (Escala) y ponla al **118%**. Tiene que sobrar imagen por los bordes: es
+de donde sale el margen para moverse sin que asome el vacío.
 
-### Poner las capas en profundidad
+### El movimiento
 
-En la columna de interruptores, activa el **cubo 3D** de cada capa. Luego abre
-`Posición` (atajo `P`) en cada una y pon **solo el tercer número**, que es la Z:
+Pulsa `P` (Posición). Vas a tocar **solo el primer número**, que es la horizontal.
 
-| Capa | Z |
-|---|---|
-| `fondo` | **-900** |
-| `banco` | **-250** |
-| `disco-1` | **-60** |
-| `disco-2` | **-20** |
-| `barra` | **0** |
-| `disco-3` | **20** |
-| `disco-4` | **60** |
-| Capa de ajuste (luego) | **400** |
-
-> Z negativa = más lejos. El fondo a -900 hace que casi no se mueva mientras los
-> discos sí: eso es lo que el ojo lee como profundidad.
-
-Al alejar el fondo se verá más pequeño. Escálalo hasta que vuelva a cubrir el
-encuadre (`S` para escala, sube hasta ~180%).
-
-### La cámara
-
-`Capa > Nueva > Cámara`. Elige **Cámara de dos nodos**, preajuste **50 mm**.
-
-Con la cámara seleccionada, pulsa `P` para ver su Posición.
-
-Pon tres keyframes en el campo de Posición, tocando **solo el primer número (X)**:
-
-| Tiempo | X | Cómo |
+| Tiempo | Posición X | Cómo |
 |---|---|---|
-| `0:00` | **-70** | Clic en el cronómetro ⏱ junto a Posición |
-| `4:00` | **+70** | Cambia el valor: el keyframe se crea solo |
-| `8:00` | **-70** | Cambia el valor |
+| `0:00` | **480** | Pulsa el cronómetro ⏱ que hay junto a "Posición" |
+| `4:00` | **600** | Cambia el número: el punto se crea solo |
+| `8:00` | **480** | Cambia el número |
 
-Selecciona los tres keyframes y pulsa **F9** (Easy Ease).
+Selecciona los tres puntos y pulsa **F9**.
 
-### El detalle que hace que el bucle sea perfecto
+> El de `8:00` cae **fuera** de la composición, y es a propósito. Es lo del vídeo
+> que te pasé: el último fotograma que se graba se queda a un pasito del principio,
+> y ese pasito lo da el salto del bucle. Si lo pusieras en `7:23` verías un tirón
+> cada ocho segundos.
 
-El keyframe de `8:00` cae **fuera** de la composición de 8 segundos (que va de
-`0:00` a `7:23`). Eso es correcto y es justo lo que quieres: el último fotograma
-*renderizado* es el `7:23`, que está a punto de llegar a `-70` pero no llega. Al
-saltar al `0:00` el movimiento continúa sin repetir ningún fotograma.
+### Un poco de vida (opcional, 1 minuto)
 
-Si en cambio pusieras el keyframe en `7:23`, ese fotograma sería idéntico al
-primero y verías un micro-tirón cada ocho segundos.
+Pulsa `S` y haz lo mismo con la Escala: **118 → 122 → 118** en los mismos tres
+tiempos, con F9. El zoom lentísimo le da respiración sin marear.
 
-Con Easy Ease en los tres, la cámara además llega frenada a los extremos, así que
-el empalme no da ningún tirón de velocidad.
+### Comprobarlo
 
-### Comprobar el bucle antes de exportar
-
-Barra espaciadora para previsualizar en bucle. Míralo **cinco vueltas seguidas
-sin apartar la vista**. Si no distingues dónde empieza, está bien.
+Barra espaciadora. Míralo **cinco vueltas seguidas sin apartar la vista**. Si no
+distingues dónde empieza, está.
 
 ---
 
-## PARTE 4 · Exportar (Media Encoder)
+## PARTE 4 · Exportar
 
 `Composición > Añadir a la cola de Adobe Media Encoder`
 
-### El MP4 — este es el que importa
+### El MP4
 
 | Ajuste | Valor |
 |---|---|
 | Formato | **H.264** |
-| Codificación de vídeo | **VBR, 2 pasadas** |
+| Codificación | **VBR, 2 pasadas** |
 | Velocidad de bits objetivo | **0,75 Mbps** |
 | Velocidad de bits máxima | **1,1 Mbps** |
-| Perfil | **Alto** |
 | Audio | **desmarcado** |
 
-Guarda como `despiece.mp4`.
-
-> De dónde sale 0,75: el presupuesto es 900 KB en 8 segundos, o sea 900 kbps.
-> Bajando a 750 kbps queda margen para el contenedor y para que el pico no se
-> pase. Si el archivo sale por encima de 900 KB, baja a 0,6 y reexporta.
-
-### El WebM — opcional, ahorra un 25%
-
-Duplica la entrada en la cola y cambia solo:
-
-| Ajuste | Valor |
-|---|---|
-| Formato | **WebM** |
-| Códec de vídeo | **VP9** |
-| Velocidad de bits objetivo | **0,6 Mbps** |
-
-Guarda como `despiece.webm`.
+Nómbralo `despiece.mp4`. Tiene que quedar **por debajo de 900 KB**; si se pasa,
+baja a 0,6 y reexporta.
 
 ### El póster
 
-Vuelve a After Effects, lleva el cursor de tiempo al fotograma **0**, y
-`Composición > Guardar fotograma como > Archivo`. En la cola, formato **JPEG**,
-calidad **80**.
+En After Effects, lleva el cursor al fotograma **0** y
+`Composición > Guardar fotograma como > Archivo`. Formato **JPEG**, calidad **80**.
 
-Guarda como `despiece.jpg`. Tiene que quedar por debajo de **120 KB**.
-
-> Este archivo es el que ve quien tiene mala conexión, quien pidió menos
-> movimiento y quien abre la app mientras carga el vídeo. Míralo solo, sin
-> movimiento: si por sí mismo no dice "Alpha Athletics", la dirección está mal
-> elegida y conviene saberlo ahora.
+Nómbralo `despiece.jpg`. Máximo **120 KB**.
 
 ---
 
 ## Y ya
 
-Deja los tres archivos en esta carpeta y avísame. Yo hago el resto:
-
-- Copiarlos a `public/hero/`
-- Cambiar la constante `poster` en `src/features/auth/heroDespiece.ts`
-- Correr `npm run verify`
-- Arrancar la app y comprobar el bucle y que el texto se lee encima
-
----
+Deja `despiece.mp4` y `despiece.jpg` en esta carpeta y avísame. Yo hago el resto:
+copiarlos a `public/hero/`, cambiar la constante en `heroDespiece.ts`, correr los
+tests y comprobar en el navegador que el bucle no da salto y que el texto se lee.
 
 ## Si te atascas
 
-Dime en qué parte y con qué te has quedado. La más probable es la 2 (recortar):
-si la selección de objetos no separa bien los discos, hay una salida — generar la
-imagen otra vez pidiendo **más separación entre discos** — que es más rápida que
-pelearse con el lazo.
+Dime en qué parte exacta. La más delicada es el Relleno Generativo de arriba: si te
+inventa algo raro, prueba a seleccionar una franja más estrecha y con más solape
+sobre la imagen original.
