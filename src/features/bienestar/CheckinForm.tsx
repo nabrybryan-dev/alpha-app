@@ -16,6 +16,15 @@ interface CheckinFormProps {
   /** Peso/pasos del último check-in, para arrancar los steppers cerca del valor real. */
   pesoInicial?: number
   pasosInicial?: number
+  /**
+   * Si se le pregunta el peso. `false` para quien tiene la composición corporal
+   * apagada (migración 0018): Bienestar tiene su propio campo de peso y ningún
+   * interruptor lo cubría, así que la persona a la que le ocultamos su
+   * porcentaje de grasa se encontraba igualmente un selector de kilos cinco
+   * veces por semana. El resto del check-in sigue igual: sus pasos, su sueño y
+   * su hambre son justo lo que sostiene su plan.
+   */
+  pedirPeso?: boolean
   onGuardar: (checkin: CheckinDiario) => void
 }
 
@@ -55,7 +64,7 @@ function CampoPills({
   )
 }
 
-export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGuardar }: CheckinFormProps) {
+export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedirPeso = true, onGuardar }: CheckinFormProps) {
   const [pesoKg, setPesoKg] = useState(pesoInicial ?? PESO_DE_FABRICA)
   const [pasos, setPasos] = useState(pasosInicial ?? PASOS_DE_FABRICA)
   // Si la persona ya movió el campo, manda ella: una hidratación tardía no
@@ -124,8 +133,26 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
       id: `ck-${usuarioId}-${fecha}`,
       usuarioId,
       fecha,
-      pesoKg,
-      pasos,
+      /*
+       * Un número que nadie tocó NO es una medición.
+       *
+       * Los steppers arrancan en 70 kg y 8.000 pasos para que el primer
+       * check-in de alguien no empiece en cero, pero eso es una sugerencia, no
+       * un dato: los siete campos obligatorios son los cualitativos, así que
+       * quien no toca estos dos guarda igual. Se registraron 70 kg de una
+       * persona que pesa bastante menos, y con ese número se decide un
+       * superávit o un déficit.
+       *
+       * `pesoKg` y `pasos` son opcionales en `CheckinDiario` justo para esto:
+       * ausente y inventado no valen lo mismo. Misma regla que ya gobierna el
+       * catálogo de alimentos y `grasaPct`, que devuelve `null` en vez de un
+       * número cuando le falta una medida.
+       *
+       * Lo que SÍ se conserva es el arrastre de una medida real anterior: eso
+       * salió de una báscula alguna vez.
+       */
+      pesoKg: pedirPeso && (pesoTocado || pesoInicial !== undefined) ? pesoKg : undefined,
+      pasos: pasosTocados || pasosInicial !== undefined ? pasos : undefined,
       entreno: entreno || undefined,
       rendimiento,
       motivacion,
@@ -145,10 +172,12 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, onGua
   return (
     <div className="flex flex-col gap-3">
       {/* Peso ayunas + Pasos como steppers en tarjetas paper */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
-          <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />
-        </div>
+      <div className={pedirPeso ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
+        {pedirPeso && (
+          <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+            <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />
+          </div>
+        )}
         <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
           <Stepper etiqueta="Pasos de ayer" valor={pasos} paso={500} minimo={0} maximo={100000} onCambiar={(v) => { setPasosTocados(true); setPasos(v) }} />
         </div>
