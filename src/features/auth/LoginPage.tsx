@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { FondoVideo } from '../../components/ui/FondoVideo'
 import { supabase } from '../../data/supabase'
 import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
+import { heroDespiece } from './heroDespiece'
 
 export function LoginPage() {
   const [correo, setCorreo] = useState('')
@@ -58,16 +60,7 @@ export function LoginPage() {
     <div className="relative grid min-h-dvh place-items-center px-6" style={{ backgroundColor: '#0a0a0a' }}>
       {/* fixed (no absolute): cubre SIEMPRE el viewport completo, incluso con
           el teclado abierto o al hacer scroll — sin bordes vacíos */}
-      <div
-        aria-hidden="true"
-        className="fixed inset-0"
-        style={{
-          backgroundColor: '#0a0a0a',
-          backgroundImage: 'url(/fondos/atleta.jpeg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center top',
-        }}
-      />
+      <FondoVideo {...heroDespiece} className="fixed inset-0" encuadre="center top" />
       <div
         aria-hidden="true"
         className="fixed inset-0"
