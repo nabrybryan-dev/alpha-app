@@ -11,6 +11,7 @@ import type {
   Respuesta,
   Usuario,
 } from '../../domain/types'
+import type { ItemDespensaDe } from '../../domain/nutricion/despensa'
 import type { FilaRanking } from '../../domain/ranking'
 import type {
   PerfilNutricion,
@@ -274,7 +275,8 @@ export async function hidratarDesdeNube(): Promise<void> {
     .from('perfil_alimentario')
     .select('asesorado_id, respuestas, completada_en')
 
-  const [comidas, items, preferencias, calibraciones, visibilidades, vetos] = await Promise.all([
+  const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa] =
+    await Promise.all([
     sb.from('registro_comida').select('*').eq('borrado', false),
     sb.from('registro_item').select('*').eq('borrado', false),
     sb.from('preferencia_estado').select('*'),
@@ -290,6 +292,9 @@ export async function hidratarDesdeNube(): Promise<void> {
     // para no proponerle en 'Mi plan' lo que no puede comer, así que la
     // política de staff-y-dueño de la 0016 los deja bajar a las dos.
     sb.from('perfil_alimentario_veto').select('*').eq('borrado', false),
+    // Migraciones 0024 y 0042. Solo lo vivo: lo que se sacó de la despensa se
+    // conserva arriba —la cola no sabe borrar— pero no vuelve al dispositivo.
+    sb.from('despensa').select('*').eq('borrado', false),
   ])
 
   /**
@@ -428,6 +433,35 @@ export async function hidratarDesdeNube(): Promise<void> {
             // Hoy no existe ninguna así: la tabla está en 0 filas y con la 0040
             // aplicada no podrá haberla.
             motivo: (f.motivo as string | null) ?? '',
+          }),
+        ),
+    /**
+     * Si la tabla no responde, se CONSERVA lo local.
+     *
+     * `aplicarSnapshot` reemplaza la base del dispositivo entera, así que poner
+     * aquí una lista vacía porque la 0024 aún no esté aplicada borraría lo que
+     * la persona acaba de meter en su despensa — y con la escritura siguiente,
+     * la pérdida sería definitiva. Es el mismo fallo que ya costó dos veces en
+     * este repo, y por eso todas las tablas posteriores al esquema inicial
+     * bajan con este mismo `error ? local : servidor`.
+     *
+     * `conPendientes` pone encima lo que este dispositivo escribió y todavía no
+     * ha subido: sin ella, la foto del servidor —leída ANTES de que la persona
+     * marcara lo que compró— volvería a local y se llevaría por delante esa
+     * compra.
+     */
+    despensa: despensa.error
+      ? (instantaneaLocal().despensa ?? [])
+      : conPendientes('despensa', despensa.data ?? []).map(
+          (f): ItemDespensaDe => ({
+            usuarioId: f.asesorado_id as string,
+            alimentoId: (f.alimento_id as string | null) ?? null,
+            ...(f.texto_pedido === null ? {} : { textoPedido: f.texto_pedido as string }),
+            // `null` sobrevive: significa «no dijo cuánto», que no es lo mismo
+            // que cero. Un `Number(null)` los habría vuelto lo mismo.
+            cantidadG: f.cantidad_g === null ? null : Number(f.cantidad_g),
+            agregadoEn: f.agregado_en as string,
+            origen: f.origen as ItemDespensaDe['origen'],
           }),
         ),
     visibilidades: visibilidades.error

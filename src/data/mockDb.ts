@@ -1,3 +1,4 @@
+import { agregar as agregarItem, quitar as quitarItem } from '../domain/nutricion/despensa'
 import type {
   CheckinDiario,
   EstadoAdherencia,
@@ -464,6 +465,58 @@ export function crearMockDb(): Db {
             (v) => !(v.usuarioId === usuarioId && v.alimentoId === alimentoId),
           ),
         }))
+      },
+    },
+
+    /**
+     * La despensa se apoya en el dominio en vez de repetir su lógica.
+     *
+     * `agregarItem` y `quitarItem` ya saben que volver a comprar algo lo
+     * refresca en vez de duplicarlo, y que un pedido sin id se identifica por su
+     * texto normalizado. Reescribir ese filtro aquí sería tener la misma regla
+     * en dos sitios, y la primera vez que cambie uno solo, la despensa local y
+     * la de la nube dejarán de coincidir sin que nadie lo note.
+     */
+    despensa: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.despensa ?? [])
+          .filter((i) => i.usuarioId === usuarioId)
+          // El dueño se quita al salir: el dominio trabaja con la despensa de
+          // una sola persona y no tiene por qué saber de quién es.
+          .map((i) => ({
+            alimentoId: i.alimentoId,
+            ...(i.textoPedido === undefined ? {} : { textoPedido: i.textoPedido }),
+            cantidadG: i.cantidadG,
+            agregadoEn: i.agregadoEn,
+            origen: i.origen,
+          })),
+      agregar: (usuarioId, item) => {
+        mutar((estado) => {
+          const todos = estado.despensa ?? []
+          const suyos = todos.filter((i) => i.usuarioId === usuarioId)
+          const resto = todos.filter((i) => i.usuarioId !== usuarioId)
+          return {
+            ...estado,
+            despensa: [
+              ...resto,
+              ...agregarItem(suyos, item).map((i) => ({ ...i, usuarioId })),
+            ],
+          }
+        })
+      },
+      quitar: (usuarioId, clave) => {
+        mutar((estado) => {
+          const todos = estado.despensa ?? []
+          const suyos = todos.filter((i) => i.usuarioId === usuarioId)
+          const resto = todos.filter((i) => i.usuarioId !== usuarioId)
+          return {
+            ...estado,
+            despensa: [
+              ...resto,
+              ...quitarItem(suyos, clave).map((i) => ({ ...i, usuarioId })),
+            ],
+          }
+        })
       },
     },
 
