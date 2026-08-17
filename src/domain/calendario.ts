@@ -1,3 +1,4 @@
+import { sumarDias } from './activacion'
 import type { Microciclo, Sesion } from './types'
 
 /** Índice 0 = domingo, igual que Date.getDay(). */
@@ -34,6 +35,25 @@ export function diaDeSesion(sesion: Pick<Sesion, 'nombre' | 'dia'>): DiaSemana |
 /** Día de la semana de una fecha ISO local ("2026-07-20" → "LUNES"). */
 export function diaSemanaDe(fechaIso: string): DiaSemana {
   return DIAS_SEMANA[new Date(`${fechaIso}T00:00:00`).getDay()]
+}
+
+/**
+ * El lunes siguiente a una fecha: cuándo empieza «la próxima semana».
+ *
+ * Siempre avanza. Un lunes devuelve el lunes de después, no el mismo día, porque
+ * quien programa el lunes por la mañana está programando la semana que viene, no
+ * la que acaba de empezar.
+ *
+ * Es lunes y no «hoy + 7» porque las sesiones llevan su día escrito ("FULL BODY A
+ * (LUNES)") y `sesionSugerida` las casa con el día del calendario. Un microciclo
+ * que arranca a mitad de semana funciona, pero le desplaza a la persona lo que ve
+ * en Hoy respecto de lo que dice su propia sesión.
+ */
+export function inicioProximaSemana(fechaIso: string): string {
+  const dia = DIAS_SEMANA.indexOf(diaSemanaDe(fechaIso))
+  // Índice 1 = lunes. El +1/-1 mantiene el resultado en 1..7 y nunca en 0, que
+  // devolvería la misma fecha cuando ya es lunes.
+  return sumarDias(fechaIso, ((1 - dia + 6) % 7) + 1)
 }
 
 /**
