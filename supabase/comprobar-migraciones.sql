@@ -707,28 +707,41 @@ union all
 -- El respaldo existe con sus 33 microciclos y ni un ejercicio de esos quedó con
 -- categoría de la taxonomía vieja. La función tmp_ tiene que estar muerta:
 -- escribe microciclos, y create function la deja al alcance de la anon key.
-select '0036 - taxonomia por accion articular', 'respaldo, categorias migradas y funcion limpiada',
+-- UNA SEÑAL NO PUEDE VIVIR DE SU RESPALDO.
+--
+-- Esta pedía que `respaldo_0036_microciclos` existiera con sus 33 filas, y
+-- acotaba la comprobación de categorías a las filas respaldadas. Eso ataba la
+-- señal a una tabla temporal: al ir a soltar el respaldo -344 kB con datos
+-- reales de asesorados, sin política de RLS y sin fecha de caducidad- la señal
+-- habría pasado a NO y habría parecido que la 0036 se desaplicó. Un falso
+-- negativo enseña a ignorar los NO, que es lo contrario de para lo que existe
+-- este archivo.
+--
+-- La 0038 ya tenía el patrón bueno: mira los DATOS VIVOS. Esta hace lo mismo, y
+-- de paso comprueba más que antes -los 93 microciclos, no solo los 33 que se
+-- respaldaron-.
+--
+-- Lo que se pierde: saber que el respaldo existió. No es lo que había que
+-- comprobar. Lo que importa es que la migración dejó los datos como debía, y eso
+-- se lee en los datos.
+select '0036 - taxonomia por accion articular', 'categorias migradas y funcion limpiada',
        case when (
          select count(*) from (
-           select 1 from information_schema.tables
-            where table_schema = 'public' and table_name = 'respaldo_0036_microciclos'
-           union all
-           select 1 where (select count(*) from respaldo_0036_microciclos) = 33
-           union all
            select 1 where not exists (
-             select 1 from microciclos m
-             join respaldo_0036_microciclos r on r.id = m.id,
-                  lateral jsonb_array_elements(m.datos->'sesiones') s,
-                  lateral jsonb_array_elements(s->'ejercicios') e
+             select 1 from microciclos m,
+                  lateral jsonb_array_elements(coalesce(m.datos->'sesiones', '[]'::jsonb)) s,
+                  lateral jsonb_array_elements(coalesce(s->'ejercicios', '[]'::jsonb)) e
              where e->>'categoria' like 'AISLAMIENTO %' or e->>'categoria' = 'SENTADILLAS'
            )
            union all
+           -- La función `tmp_` escribe microciclos, y `create function` la deja
+           -- al alcance de la anon key. Tiene que estar muerta.
            select 1 where not exists (
              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
               where n.nspname = 'public' and p.proname = 'tmp_categoria_de'
            )
          ) as senales
-       ) = 4 then 'SI' else 'NO' end
+       ) = 2 then 'SI' else 'NO' end
 
 union all
 -- La columna `hambre_escala` existe en la vista Y la vista sigue SIN
