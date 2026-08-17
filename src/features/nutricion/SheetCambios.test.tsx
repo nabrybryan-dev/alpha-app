@@ -110,3 +110,41 @@ describe('la hoja de cambios', () => {
     expect(onCerrar).toHaveBeenCalled()
   })
 })
+
+describe('lo que ya tiene en casa', () => {
+  const hoy = new Date().toISOString().slice(0, 10)
+
+  beforeEach(() => {
+    for (const item of db.despensa.byUsuario(VALENTINA)) {
+      db.despensa.quitar(VALENTINA, item.alimentoId ?? '')
+    }
+  })
+
+  it('con la despensa vacía la hoja se ve como siempre', () => {
+    // Hoy la despensa está vacía para todo el mundo. Este camino es el de
+    // siempre y no puede cambiar.
+    abrir('150 g de arroz blanco')
+    expect(screen.queryByText(/lo tienes en casa/i)).toBeNull()
+    expect(screen.getAllByText(/ g$/).length).toBeGreaterThan(0)
+  })
+
+  it('se lo dice cuando lo tiene, porque cambia lo que puede hacer hoy', () => {
+    // No es lo mismo «cámbialo por lentejas» que «cámbialo por las lentejas que
+    // ya tienes»: lo segundo se resuelve esta noche sin ir al mercado, que es
+    // para lo que existe esta pantalla.
+    const [propuesto] = cambiosPara(
+      catalogoRepo.buscar('arroz blanco', undefined, 1)[0],
+      catalogoRepo.porId,
+    )
+    db.despensa.agregar(VALENTINA, {
+      alimentoId: propuesto.alimento.id,
+      cantidadG: null,
+      agregadoEn: hoy,
+      origen: 'compra',
+    })
+
+    abrir('150 g de arroz blanco')
+
+    expect(screen.getByText(/lo tienes en casa/i)).toBeTruthy()
+  })
+})

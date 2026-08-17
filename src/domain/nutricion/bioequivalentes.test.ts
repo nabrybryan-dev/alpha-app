@@ -194,3 +194,67 @@ describe('la tabla y el índice hablan del mismo catálogo', () => {
     expect(cambiosPara(buscar('brocoli-crudo'), porId).length).toBeGreaterThan(0)
   })
 })
+
+/**
+ * Lo que la persona tiene en casa (migraciones 0024 y 0042).
+ *
+ * El sentido de esto es que la pantalla pueda decir «cámbialo por las lentejas
+ * que ya tienes» en vez de «cámbialo por lentejas»: lo primero se puede hacer
+ * esta noche sin ir al mercado, que es para lo que existe la hoja de cambios.
+ */
+describe('lo que hay en casa sube en la lista', () => {
+  it('con la despensa vacía NO cambia nada', () => {
+    // Es la propiedad que más importa: hoy la despensa está vacía para todo el
+    // mundo, así que este camino es el de siempre y no puede alterarse.
+    const sinDespensa = cambiosPara(buscar(ARROZ), porId)
+    const conVacia = cambiosPara(buscar(ARROZ), porId, new Set(), new Set(), new Set())
+
+    expect(conVacia.map((c) => c.alimento.id)).toEqual(sinDespensa.map((c) => c.alimento.id))
+    expect(conVacia.every((c) => !c.enCasa)).toBe(true)
+  })
+
+  it('lo que hay en casa se marca', () => {
+    const todos = cambiosPara(buscar(ARROZ), porId)
+    const alguno = todos[todos.length - 1].alimento.id
+
+    const cambios = cambiosPara(buscar(ARROZ), porId, new Set(), new Set(), new Set([alguno]))
+
+    expect(cambios.find((c) => c.alimento.id === alguno)?.enCasa).toBe(true)
+  })
+
+  it('y sube al primer puesto, que es el que se ve', () => {
+    // El tope de pantalla corta la lista: sin esto, lo que la persona tiene en
+    // casa se quedaría fuera por estar más abajo en la tabla curada.
+    const todos = cambiosPara(buscar(ARROZ), porId)
+    const ultimo = todos[todos.length - 1].alimento.id
+
+    const cambios = cambiosPara(buscar(ARROZ), porId, new Set(), new Set(), new Set([ultimo]))
+
+    expect(cambios[0].alimento.id).toBe(ultimo)
+  })
+
+  it('NO filtra: lo que no está en casa sigue saliendo', () => {
+    // Ocultar lo que no hay dejaría sin ninguna propuesta a quien tenga la
+    // despensa vacía o con cosas que no son equivalentes. Sería peor que no
+    // mirarla.
+    const todos = cambiosPara(buscar(ARROZ), porId)
+    const uno = todos[0].alimento.id
+
+    const cambios = cambiosPara(buscar(ARROZ), porId, new Set(), new Set(), new Set([uno]))
+
+    expect(cambios.length).toBe(todos.length)
+    expect(cambios.some((c) => !c.enCasa)).toBe(true)
+  })
+
+  it('el orden de la tabla se conserva dentro de cada grupo', () => {
+    // La tabla no está ordenada al azar ni alfabéticamente: la curó alguien. Un
+    // sort inestable la barajaría y nadie lo notaría en pantalla.
+    const todos = cambiosPara(buscar(ARROZ), porId).map((c) => c.alimento.id)
+    const enCasa = new Set([todos[todos.length - 1]])
+
+    const cambios = cambiosPara(buscar(ARROZ), porId, new Set(), new Set(), enCasa)
+    const resto = cambios.filter((c) => !c.enCasa).map((c) => c.alimento.id)
+
+    expect(resto).toEqual(todos.filter((id) => !enCasa.has(id)))
+  })
+})
