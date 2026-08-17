@@ -43,7 +43,12 @@ create schema if not exists pruebas;
 -- existir aunque aquí solo se use como ancla de la clave ajena.
 create table if not exists auth.users (
   id uuid primary key,
-  email text
+  email text,
+  -- El trigger `al_crear_usuario` de la 0001 lee de aquí el nombre para crear la
+  -- fila de `usuarios_app`. Sin la columna, cualquier alta revienta con
+  -- «record "new" has no field "raw_user_meta_data"» — que suena a fallo del
+  -- trigger y es solo que esta tabla de mentira estaba incompleta.
+  raw_user_meta_data jsonb
 );
 
 -- Las dos cuentas de staff que la 0006 exige.
