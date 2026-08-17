@@ -86,8 +86,11 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
 
   // Peso: de las medidas; si hay pocas, se completa con los check-ins.
   let puntosPeso: Punto[] = medidas
-    .filter((m) => m.pesoKg > 0)
-    .map((m) => ({ etiqueta: m.fecha, valor: m.pesoKg }))
+    // `pesoKg` es opcional desde que «Mis medidas» dejó de pedirlo a quien
+    // tiene la composición corporal apagada: una medición puede traer solo
+    // perímetros, y esa no dibuja punto en la curva de peso.
+    .filter((m) => m.pesoKg !== undefined && m.pesoKg > 0)
+    .map((m) => ({ etiqueta: m.fecha, valor: m.pesoKg as number }))
   if (puntosPeso.length < 2) {
     const desdeCheckins = db.bienestar
       .byUsuario(usuarioId)

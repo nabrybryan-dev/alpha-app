@@ -1,0 +1,11 @@
+# Los scripts de shell SIEMPRE con saltos de línea de Unix.
+#
+# El CI los corre en Linux. Un archivo commiteado con CRLF -que es lo que pasa
+# si alguien tiene core.autocrlf=false en Windows- hace que bash falle con un
+# error que no se parece en nada a la causa. Hoy el blob está limpio porque la
+# normalización de git lo arregló, pero eso depende de la config de cada uno.
+*.sh text eol=lf
+
+# Igual para el SQL: psql lo lee bien con CRLF, pero los cuerpos entre $$ y los
+# comentarios quedan con basura al final de línea en cualquier volcado.
+*.sql text eol=lf

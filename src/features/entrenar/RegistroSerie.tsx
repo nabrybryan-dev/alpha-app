@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
 import { seriePrescrita } from '../../domain/ondulacion'
+import { cargaSugerida } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
 
@@ -26,15 +27,11 @@ interface Borrador {
   rir: number
 }
 
-function cargaSugerida(ejercicio: EjercicioPrescrito, orden: number): number {
-  // Si el microciclo viene ondulado, cada serie trae su propia carga: la de la
-  // serie anterior ya no sirve como sugerencia, justamente porque van subiendo.
-  const prescrita = seriePrescrita(ejercicio, orden)
-  if (prescrita) return prescrita.cargaKg
-  const previa = ejercicio.series[ejercicio.series.length - 1]?.cargaKg
-  if (previa !== undefined) return previa
-  const dePrescripcion = Number.parseFloat(ejercicio.prescripcion.replace(',', '.'))
-  return Number.isFinite(dePrescripcion) ? dePrescripcion : 20
+/** Cuando no hay nada de dónde deducir la carga, el stepper arranca aquí. */
+const CARGA_POR_DEFECTO_KG = 20
+
+function cargaInicial(ejercicio: EjercicioPrescrito, orden: number): number {
+  return cargaSugerida(ejercicio, seriePrescrita(ejercicio, orden)) ?? CARGA_POR_DEFECTO_KG
 }
 
 export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>(function RegistroSerie(
@@ -45,7 +42,7 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
   const prescrita = seriePrescrita(ejercicio, orden)
   const [borrador, setBorrador] = useState<Borrador>(() =>
     leerJSON<Borrador>(clave, {
-      cargaKg: cargaSugerida(ejercicio, orden),
+      cargaKg: cargaInicial(ejercicio, orden),
       reps: prescrita?.reps ?? ejercicio.repsDiana,
       rir: prescrita?.rir ?? ejercicio.rirObjetivo,
     }),

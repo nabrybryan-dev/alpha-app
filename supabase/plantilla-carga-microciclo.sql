@@ -70,10 +70,113 @@ $fn$;
 revoke execute on function public.tmp_sesion_en_limpio(jsonb) from public;
 
 
+-- ── 1b · Los campos salen de la frase ──────────────────────────────────────
+-- Lee la cabecera canónica y devuelve los campos que anuncia. Es el gemelo en
+-- SQL de `parsearPrescripcion` (`src/domain/prescripcion.ts`), y comparte sus
+-- dos reglas:
+--
+--   · **Anclada al principio.** Lo que venga después es nota del coach, aunque
+--     lleve números, «TOTAL» o «KG». Un ejercicio de peso corporal cuya nota
+--     dice «te quedó registrado 20KG» no tiene 20 kg de carga pautada.
+--   · **Lo que no se puede leer no se inventa.** Sin cabecera reconocible
+--     devuelve `{}` y el clonador hereda, que es lo único honesto.
+--
+-- Existe por el incidente del 2026-08-12: el clonador escribía `sets`, `rir` y
+-- `reps` solo cuando el ajuste los traía, así que una carga que pasaba la frase
+-- nueva sin pasarlos dejaba los campos con los de la semana anterior. 170
+-- ejercicios de 15 asesorados leían una cosa mientras la app operaba con otra.
+--
+-- DEUDA CONOCIDA: esto y `prescripcion.ts` son dos implementaciones de la misma
+-- regla y pueden separarse. Quien las mantiene honestas es
+-- `comprobar-alineacion.sql`, que se corre después de cada carga. La solución de
+-- fondo es mover la carga a un script Node que use el parser de verdad.
+create or replace function public.tmp_campos_de_frase(p_frase text)
+returns jsonb language sql immutable as $fn$
+  with patron as (
+    select '^\s*(\d+(?:[.,]\d+)?)\s*KGS?\y'
+        || '(?:\s+(TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?'
+        || '\s+A\s+(\d+)(?:\s*-\s*\d+)?\s*REPS?'
+        || '(?:\s+(TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?'
+        || '\s*;\s*(\d+)\s*SERIES?'
+        || '(?:\s*\(([^)]*)\))?'
+        || '\s*\.?\s*' as p
+  ),
+  leido as (
+    select regexp_match(coalesce(p_frase, ''), p, 'i') as g, p from patron
+  ),
+  -- Los ondulados no llevan cabecera con kilos: su carga vive serie a serie.
+  -- Pero el número de series SÍ se puede contar, y es justo el que se quedaba
+  -- heredado y cerraba el ejercicio antes de la serie tope.
+  escalones as (
+    select case
+             when coalesce(p_frase,'') ~* '^\s*ONDULACI[ÓO]N\s+ASCENDENTE:'
+             then (select count(*) from regexp_matches(p_frase, '\d+(?:[.,]\d+)?\s*KG\s*[×x]\s*\d+', 'gi'))
+           end as n
+  )
+  select case
+           when l.g is not null then jsonb_strip_nulls(jsonb_build_object(
+             'cargaKg',     replace(l.g[1], ',', '.')::numeric,
+             'unidadCarga', case
+                              when upper(coalesce(l.g[2], l.g[4], '')) like 'TOTAL%'   then 'total'
+                              when upper(coalesce(l.g[2], l.g[4], '')) = 'POR MANO'    then 'por mano'
+                              when upper(coalesce(l.g[2], l.g[4], '')) in
+                                   ('POR PIERNA','POR LADO','CADA LADO')               then 'por lado'
+                              else 'kg'
+                            end,
+             'repsDiana',   l.g[3]::int,
+             'sets',        l.g[5]::int,
+             -- `(RIR 2-3)` e `(ISOMETRÍA)` no son un número y no se fuerzan:
+             -- fingir que lo son es lo que abortaba la carga entera.
+             'rirObjetivo', case when l.g[6] ~* '^\s*RIR\s+\d+\s*$'
+                                 then (regexp_match(l.g[6], '\d+'))[1]::int end,
+             'notaCoach',   nullif(trim(regexp_replace(p_frase, l.p, '', 'i')), '')
+           ))
+           when e.n is not null and e.n > 0 then jsonb_build_object('sets', e.n)
+           else '{}'::jsonb
+         end
+    from leido l, escalones e;
+$fn$;
+revoke execute on function public.tmp_campos_de_frase(text) from public;
+
+
 -- ── 2 · El clonador ────────────────────────────────────────────────────────
--- `p_ajustes` es un objeto {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, nota}}.
+-- `p_ajustes` es un objeto
+--   {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, carga, unidad, nota}}.
 -- Gana la clave más larga que haga prefijo, para poder afinar un ejercicio
 -- concreto sin romper la regla general.
+--
+-- LA CARGA VA EN `carga`, NO DENTRO DE `nota`
+-- Desde que la carga se separó de la frase (`src/domain/prescripcion.ts`), el
+-- ejercicio lleva `cargaKg`, `unidadCarga` y `notaCoach` además de la frase que
+-- se lee. `carga` y `unidad` escriben los dos primeros; `nota` sigue siendo la
+-- frase entera, tal como se pega desde el Excel.
+--
+-- POR QUÉ UN AJUSTE CON `nota` BORRA LOS CAMPOS
+-- Si llega una frase nueva sin `carga`, los campos heredados describen la frase
+-- VIEJA. Y ahora mandan ellos: `cargaSugerida` lee `cargaKg` antes que nada, así
+-- que el asesorado abriría la serie con los kilos de la semana pasada mientras
+-- lee los de esta. Se borran, y el ejercicio queda con la frase como única
+-- verdad hasta que `scripts/rellenar-carga.mjs` vuelva a poblarlos en seco.
+--
+-- Y un ejercicio ajustado PIERDE `seriesPrescritas`: esa ondulación se calculó
+-- sobre la prescripción vieja, y es lo primero que mira el stepper. Los
+-- ejercicios sin ajuste la conservan, porque su prescripción no ha cambiado.
+--
+-- LOS CAMPOS SALEN DE LA FRASE
+-- Desde el 2026-08-12, pasar `nota` **deriva** `sets`, `repsDiana`,
+-- `rirObjetivo`, `cargaKg`, `unidadCarga` y `notaCoach` de esa frase
+-- (`tmp_campos_de_frase`, §1b). Ya no hace falta repetirlos en el ajuste, y
+-- sobre todo: **ya no se quedan heredados de la semana anterior**, que es lo que
+-- provocó el incidente de los 170 ejercicios. Los ajustes explícitos siguen
+-- valiendo y ganan sobre lo derivado: son la salida para las frases que el
+-- patrón no sabe leer (porcentajes, peso corporal, tiempo).
+--
+-- LÍMITE QUE QUEDA
+-- Cambiar `reps`, `rir` o `sets` SIN pasar `nota` deja la frase diciendo los
+-- valores viejos, porque aquí no se puede componer: `componerPrescripcion` vive
+-- en TypeScript. Pasa siempre `nota` junto a cualquier cambio estructural, que
+-- además es lo natural: la frase nueva se pega del Excel de todos modos.
+-- `comprobar-alineacion.sql` lo caza si se olvida.
 create or replace function public.tmp_nuevo_micro(
   p_datos   jsonb,
   p_num     int,
@@ -95,10 +198,32 @@ create or replace function public.tmp_nuevo_micro(
                  jsonb_set(s, '{ejercicios}', coalesce((
                    select jsonb_agg(
                      ( jsonb_set(e, '{series}', '[]'::jsonb)   -- sin lo registrado
-                       || case when aj.v ? 'sets' then jsonb_build_object('sets', (aj.v->>'sets')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'rir'  then jsonb_build_object('rirObjetivo', (aj.v->>'rir')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'reps' then jsonb_build_object('repsDiana', (aj.v->>'reps')::int) else '{}'::jsonb end
-                       || case when aj.v ? 'nota' then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
+                       -- La ondulación guardada era de la prescripción vieja:
+                       -- si este ejercicio se ajusta, deja de valer.
+                       - (case when aj.v is null then '' else 'seriesPrescritas' end)
+                       -- Con frase nueva, los campos que la describían dejan de
+                       -- valer. Se borran y se vuelven a derivar de la frase
+                       -- justo debajo; los que no se puedan leer quedan fuera,
+                       -- que es preferible a heredar un número que miente.
+                       - (case when aj.v ? 'nota'
+                               then array['cargaKg','unidadCarga','notaCoach']
+                               else array[]::text[] end)
+                       -- ↓↓↓ LOS CAMPOS SALEN DE LA FRASE, no del microciclo
+                       --     anterior. Sin esto, una carga que pasa `nota` sin
+                       --     pasar `sets`/`rir`/`reps` deja los campos viejos y
+                       --     el asesorado lee una cosa mientras la app hace otra
+                       --     (incidente del 2026-08-12, 170 ejercicios).
+                       || case when aj.v ? 'nota'
+                               then public.tmp_campos_de_frase(aj.v->>'nota')
+                               else '{}'::jsonb end
+                       -- El ajuste explícito manda sobre lo derivado: es la
+                       -- salida para las frases que el patrón no sabe leer.
+                       || case when aj.v ? 'sets'   then jsonb_build_object('sets', (aj.v->>'sets')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'rir'    then jsonb_build_object('rirObjetivo', (aj.v->>'rir')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'reps'   then jsonb_build_object('repsDiana', (aj.v->>'reps')::int) else '{}'::jsonb end
+                       || case when aj.v ? 'carga'  then jsonb_build_object('cargaKg', (aj.v->>'carga')::numeric) else '{}'::jsonb end
+                       || case when aj.v ? 'unidad' then jsonb_build_object('unidadCarga', aj.v->>'unidad') else '{}'::jsonb end
+                       || case when aj.v ? 'nota'   then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
                      ) order by ord)
                    from jsonb_array_elements(s->'ejercicios') with ordinality as t(e, ord)
                    left join lateral (
@@ -173,9 +298,15 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 --   begin;
 --   select public.tmp_cargar_siguiente('<NOMBRE EN usuarios_app>', '<slug>', '<YYYY-MM-DD>',
 --     jsonb_build_object(
---       'PREFIJO DEL EJERCICIO', jsonb_build_object('reps',8,'rir',2,'nota','<prescripción>')
+--       'PREFIJO DEL EJERCICIO',
+--       jsonb_build_object('reps',8,'rir',2,'carga',62.5,'nota','<prescripción>')
 --     ));
 --   commit;
+--
+-- `carga` son kilos, en número: 62.5, no '62.5KG'. `unidad` solo hace falta
+-- cuando ese número no es lo que marca la barra — 'total', 'por lado' o 'por
+-- mano'—; sin ella se asume 'kg'. Confundirlas duplica o parte en dos la carga
+-- la próxima vez que el motor progrese ese ejercicio.
 --
 -- El nombre tiene que coincidir EXACTO con `usuarios_app.nombre`, tildes
 -- incluidas. Si no existe, la función devuelve 'NO ENCONTRADO: <nombre>' en vez
@@ -186,6 +317,7 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 -- ── 5 · Borrar las funciones temporales (SIEMPRE, al terminar) ─────────────
 -- drop function if exists public.tmp_cargar_siguiente(text, text, text, jsonb);
 -- drop function if exists public.tmp_nuevo_micro(jsonb, int, text, jsonb);
+-- drop function if exists public.tmp_campos_de_frase(text);
 -- drop function if exists public.tmp_sesion_en_limpio(jsonb);
 -- drop function if exists public.tmp_sin_marcas(jsonb);
 
@@ -213,8 +345,13 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 -- Es lo mismo que comprueba `comprobar-fosiles.sql`, que además distingue
 -- fósil de marca real por fecha.
 --
--- Y una cuarta, añadida el 2026-08-16 porque las tres anteriores no la veían:
--- el estado de la COLUMNA y el del JSON tienen que coincidir en toda la tabla.
+-- Y correr también `comprobar-alineacion.sql`: compara la frase con los campos y
+-- tiene que dar CERO FILAS. Es el árbitro entre `tmp_campos_de_frase` (§1b) y
+-- `src/domain/prescripcion.ts`, que son dos implementaciones de la misma regla y
+-- podrían separarse sin que nadie lo notara.
+--
+-- Y una más, añadida el 2026-08-16 porque las anteriores no la veían: el estado
+-- de la COLUMNA y el del JSON tienen que coincidir en toda la tabla.
 --
 --   select count(*) from public.microciclos
 --    where estado is distinct from (datos->>'estado');   -- tiene que dar 0
