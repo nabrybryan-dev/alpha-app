@@ -253,14 +253,19 @@ function sinMarcar<T extends { hechoEn?: string }>(item: T): T {
  * con retraso, empieza hoy. Encadenar hacia atrás le daría al asesorado una semana
  * nacida a medias.
  *
+ * `fechaInicio` manda sobre las dos, y es lo que permite preparar la semana de
+ * alguien por adelantado en vez de solo «a continuación de lo que está haciendo».
+ * Es una fecha elegida por una persona: no se corrige contra `hoy`, porque
+ * corregirla sería descartar en silencio lo que el coach decidió.
+ *
  * El `estado` lo fuerza la capa de datos a `'propuesto'`; aquí se pone igual por
  * claridad, pero la salvaguarda real está en `guardarPropuesta`.
  */
 export function microcicloPropuesto(
   origen: Microciclo,
-  opciones: { incrementoKg?: number; hoy?: string } = {},
+  opciones: { incrementoKg?: number; hoy?: string; fechaInicio?: string } = {},
 ): Microciclo {
-  const { incrementoKg = 2.5, hoy } = opciones
+  const { incrementoKg = 2.5, hoy, fechaInicio } = opciones
   const prs = prsMasReciente(origen)
   const finAnterior = sumarDias(origen.fechaInicio, origen.cadenciaDias)
   return {
@@ -269,7 +274,7 @@ export function microcicloPropuesto(
     numero: origen.numero + 1,
     estado: 'propuesto',
     // Comparación de cadenas ISO: ordena bien sin construir fechas.
-    fechaInicio: hoy && hoy > finAnterior ? hoy : finAnterior,
+    fechaInicio: fechaInicio ?? (hoy && hoy > finAnterior ? hoy : finAnterior),
     sesiones: origen.sesiones.map((s) => ({
       ...s,
       testPost: undefined,

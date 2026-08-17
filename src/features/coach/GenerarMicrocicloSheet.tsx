@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, hoyIso } from '../../data/dbInstance'
+import { sumarDias } from '../../domain/activacion'
+import { inicioProximaSemana } from '../../domain/calendario'
 import type { Microciclo } from '../../domain/types'
 import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
 import { datosRutaDe } from '../../data/ruta/datosRuta'
@@ -16,6 +18,9 @@ interface GenerarMicrocicloSheetProps {
 
 const FLECHA = { subir: '▲', bajar: '▼', estable: '=', 'sin-datos': '·' } as const
 
+/** Cuándo arranca lo que se está programando. */
+type Arranque = 'a-continuacion' | 'proxima-semana'
+
 export function GenerarMicrocicloSheet({
   abierto,
   nombreAsesorado,
@@ -24,12 +29,34 @@ export function GenerarMicrocicloSheet({
 }: GenerarMicrocicloSheetProps) {
   const propuesta = microciclo ? proponerMicrociclo(microciclo) : undefined
   const [guardada, setGuardada] = useState(false)
+  const [arranque, setArranque] = useState<Arranque>('a-continuacion')
+
+  const hoy = hoyIso()
+  /**
+   * La fecha que va a llevar el microciclo. Se calcula aquí y se enseña porque
+   * programar a ciegas es como nacía el bug de la propuesta vencida: el coach no
+   * veía qué fecha le estaba poniendo a la semana de alguien.
+   */
+  const finActual = microciclo
+    ? sumarDias(microciclo.fechaInicio, microciclo.cadenciaDias)
+    : undefined
+  const fechaInicio =
+    arranque === 'proxima-semana'
+      ? inicioProximaSemana(hoy)
+      : finActual && finActual > hoy
+        ? finActual
+        : hoy
 
   const guardar = () => {
     if (!microciclo) return
     // `hoy` evita que la propuesta nazca con la fecha del microciclo de origen, es
     // decir vencida. Ver el encabezado de `microcicloPropuesto`.
-    db.microciclos.guardarPropuesta(microcicloPropuesto(microciclo, { hoy: hoyIso() }))
+    db.microciclos.guardarPropuesta(
+      microcicloPropuesto(microciclo, {
+        hoy,
+        ...(arranque === 'proxima-semana' ? { fechaInicio } : {}),
+      }),
+    )
     recalcularNivel(microciclo)
     setGuardada(true)
   }
@@ -79,21 +106,62 @@ export function GenerarMicrocicloSheet({
             )}
           </p>
 
+          <fieldset className="rounded-xl border border-linea bg-surface-2 p-3">
+            <legend className="kicker px-1">Cuándo empieza</legend>
+            <div className="mt-1 flex gap-2">
+              {(
+                [
+                  ['a-continuacion', 'A continuación'],
+                  ['proxima-semana', 'Próxima semana'],
+                ] as const
+              ).map(([valor, etiqueta]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={arranque === valor}
+                  onClick={() => setArranque(valor)}
+                  className={`flex-1 rounded-boton border px-3 py-2 text-xs font-bold ${
+                    arranque === valor
+                      ? 'border-accion bg-accion text-white'
+                      : 'border-linea bg-surface-1 text-tenue'
+                  }`}
+                >
+                  {etiqueta}
+                </button>
+              ))}
+            </div>
+            <p className="cifras mt-2 text-xs text-tenue">
+              Arranca el <strong className="text-texto">{fechaInicio}</strong>
+              {arranque === 'a-continuacion' && finActual
+                ? ', cuando termina el que está haciendo.'
+                : '.'}
+            </p>
+          </fieldset>
+
+          {/* El aviso dice si el motor se fiaría del DATO, no si esto se va a
+              activar: una vez guardada se activa igual, porque guardarla es la
+              revisión. Decía «no se activaría sola» y desde que la preparada manda
+              eso era falso justo cuando más importa. */}
           {propuesta.revision.auto ? (
             <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
-              <strong>Dato fiable.</strong> Cumple las cinco señales, así que podría activarse sola
-              cuando llegue su fecha.
+              <strong>Dato fiable.</strong> Cumple las cinco señales: el motor se fiaría de ella sin
+              que la miraras.
             </p>
           ) : (
             <div className="rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-ambar">
               <p>
-                <strong>Esta hay que mirarla.</strong> No se activaría sola porque:
+                <strong>Esta hay que mirarla antes de guardar.</strong> El motor no se fiaría del
+                dato de partida porque:
               </p>
               <ul className="mt-1 list-disc pl-4">
                 {propuesta.revision.motivos.map((m) => (
                   <li key={m}>{m}</li>
                 ))}
               </ul>
+              <p className="mt-1.5">
+                Si la guardas, se activa tal cual cuando venza el actual: guardarla cuenta como que
+                la revisaste.
+              </p>
             </div>
           )}
 
@@ -134,8 +202,9 @@ export function GenerarMicrocicloSheet({
 
           {guardada ? (
             <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
-              Guardada como <strong>propuesta</strong>. {nombreAsesorado} todavía no la ve: sus
-              pantallas solo muestran el microciclo activo. Queda ahí hasta que decidas activarla.
+              Preparada para el <strong>{fechaInicio}</strong>. {nombreAsesorado} todavía no la ve:
+              sigue con el microciclo que está entrenando. Se activa sola —esta, no una
+              recalculada— cuando el actual termine y abras el panel de asesorados.
             </p>
           ) : (
             <button

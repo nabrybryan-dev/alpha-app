@@ -266,6 +266,12 @@ export interface OpcionesOndulacion {
   /**
    * Carga pautada del ejercicio. Sirve de ancla cuando todavía no hay series
    * registradas: se ondula sobre lo que ya está programado.
+   *
+   * Los llamadores le pasan `ejercicio.series[0]?.cargaKg`, que es lo REGISTRADO,
+   * así que en la práctica nunca entra por aquí: si hay series registradas gana
+   * `e1rmDeSeries`, y si no las hay esto vale `undefined`. Se conserva porque
+   * permite forzar el ancla desde fuera; el ancla que de verdad se usa cuando el
+   * ejercicio aún no se ha entrenado es su propia `seriesPrescritas`.
    */
   cargaPrescritaKg?: number
   /**
@@ -332,6 +338,29 @@ export const DERIVA_FATIGA_POR_SET = 0.03
 export const FACTOR_DESCARGA = 2 / 3
 
 /**
+ * 1RM estimado a partir de lo que ya estaba PAUTADO serie a serie.
+ *
+ * Es el ancla de un ejercicio que el asesorado todavía no ha entrenado, y existe
+ * para poder preparar una semana por adelantado: sin esto, programar el
+ * microciclo siguiente antes de que termine el actual dejaba plano todo lo aún no
+ * registrado —la mayor parte de la semana— y lo copiaba tal cual.
+ *
+ * Se calcula igual que con las series registradas, y a propósito: `SeriePrescrita`
+ * y `SerieRegistrada` tienen los mismos campos, así que la mediana de los 1RM
+ * despejados vale para las dos. Anclar en un set concreto obligaría a elegir cuál,
+ * y la ondulación hace que el primero y el último no signifiquen lo mismo.
+ *
+ * **No fabrica progresión.** Sin series registradas no hay brecha de reps que
+ * corregir ni PRS que mirar, así que lo que sale es la misma intensidad expresada
+ * como rampa ondulada, no una carga mayor. Que eso sea lo correcto para el método
+ * lo confirma Bryan, no este archivo.
+ */
+function e1rmDePautado(ejercicio: EjercicioPrescrito): number | undefined {
+  const pautadas = ejercicio.seriesPrescritas
+  return pautadas && pautadas.length > 0 ? e1rmDeSeries(pautadas) : undefined
+}
+
+/**
  * Ondula un ejercicio para el microciclo siguiente.
  *
  * El patrón es el de las plantillas actualizadas del 27 de junio: las reps
@@ -362,7 +391,8 @@ export function ondularEjercicio(
     e1rmDeSeries(ejercicio.series) ??
     (cargaPrescritaKg !== undefined && cargaPrescritaKg > 0
       ? Math.round((cargaPrescritaKg / coeficiente1rm(ejercicio.repsDiana, ejercicio.rirObjetivo)) * 100) / 100
-      : undefined)
+      : undefined) ??
+    e1rmDePautado(ejercicio)
   const brecha = brechaReps(ejercicio)
   const rango = rangoReps(ejercicio.rango) ?? { min: ejercicio.repsDiana, max: ejercicio.repsDiana }
 
@@ -451,7 +481,16 @@ export function ondularEjercicio(
     motivos.push('PRS en rojo (POCO): se sostiene carga y se suma 1 al RIR.')
   }
   if (descarga) motivos.push(`Semana de descarga: ${ejercicio.sets} → ${sets} series.`)
-  if (motivos.length === 0) motivos.push('Ejecución alineada con lo pautado.')
+  if (motivos.length === 0) {
+    // Sin series registradas el ancla es lo pautado, y decir «ejecución alineada»
+    // de algo que nadie ejecutó le vendería al coach una confirmación que no
+    // existe: lo que se le está dando es la misma intensidad, ondulada.
+    motivos.push(
+      ejercicio.series.length === 0
+        ? 'Todavía sin registrar: se ondula sobre lo pautado, a la misma intensidad.'
+        : 'Ejecución alineada con lo pautado.',
+    )
+  }
 
   return {
     ejercicioId: ejercicio.id,
