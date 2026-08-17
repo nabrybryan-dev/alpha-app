@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { movimientoReducido } from './movimientoReducido'
 
 interface RevelarProps {
   children: ReactNode
@@ -16,10 +17,7 @@ interface RevelarProps {
  */
 function revelarDeInmediato(): boolean {
   if (!('IntersectionObserver' in window)) return true
-  return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
+  return movimientoReducido()
 }
 
 /**

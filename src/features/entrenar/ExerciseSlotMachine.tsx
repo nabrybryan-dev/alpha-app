@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
+import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
 import { cargarFuentesDelGabinete } from './fuentesDelGabinete'
 import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './slotThemes'
 
@@ -85,20 +86,6 @@ function Icono({ clave, tam }: { clave: ClaveSimbolo; tam: number }) {
       <path d={s.path} />
     </svg>
   )
-}
-
-function useMovimientoReducido(): boolean {
-  const [reducido, setReducido] = useState(
-    () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
-  )
-  useEffect(() => {
-    if (typeof matchMedia !== 'function') return
-    const mq = matchMedia('(prefers-reduced-motion: reduce)')
-    const alCambiar = () => setReducido(mq.matches)
-    mq.addEventListener?.('change', alCambiar)
-    return () => mq.removeEventListener?.('change', alCambiar)
-  }, [])
-  return reducido
 }
 
 export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
