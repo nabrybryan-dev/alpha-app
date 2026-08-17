@@ -182,3 +182,13 @@ begin
   end if;
 end
 $$;
+
+-- ── Permisos del esquema de pruebas ──
+--
+-- Va AL FINAL a propósito: los grants por defecto de arriba solo alcanzan a
+-- `public`, y estas funciones se crean después de aquello. Sin esto, la primera
+-- comprobación que corre ya como `authenticated` muere con «permission denied
+-- for schema pruebas» — un error que suena a política mal escrita y es solo un
+-- permiso que faltaba en el andamio.
+grant usage on schema pruebas to anon, authenticated, service_role;
+grant execute on all functions in schema pruebas to anon, authenticated, service_role;
