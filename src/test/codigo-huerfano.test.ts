@@ -55,10 +55,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'Lo que la persona escribió y el catálogo no conoce. Su destino es la cola de ' +
     'trabajo del staff, que arriba ya existe como vista `alimentos_pedidos` (0024) ' +
     'y abajo necesita la pantalla del paso 5.',
-  'src/domain/nutricion/despensa.ts#estaVieja':
-    'Si toca volver a preguntar qué hay en casa, contando desde el ciclo de compra ' +
-    'que la persona declaró en la encuesta (`cicloCompra`, PR #52). Lo consulta la ' +
-    'pantalla para pedir la actualización, y esa pantalla es el paso 5.',
   'src/domain/nutricion/embarazo.ts#puedeQuedarEmbarazada':
     'La encuesta ya recoge «no puedo quedar embarazada» (PR #41), pero todavía nadie ' +
     'consulta la respuesta para saltarse las preguntas del ciclo.',

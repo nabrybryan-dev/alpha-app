@@ -7,6 +7,7 @@ import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
 import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
 import { SheetCambios } from './SheetCambios'
+import { SheetDespensa } from './SheetDespensa'
 import { respuestasDe, visibilidadDelAsesorado } from './visibilidadDelAsesorado'
 import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
 
@@ -55,6 +56,7 @@ export default function MiPlan() {
   const [tipoMenu, setTipoMenu] = useState<TipoDia>('ALTO')
   /** La línea del plan cuya hoja de cambios está abierta. */
   const [cambiando, setCambiando] = useState<string | null>(null)
+  const [despensaAbierta, setDespensaAbierta] = useState(false)
 
   // Lo que decidió la nutricionista, o lo que la encuesta pide retener mientras
   // ella no haya decidido. Ver `visibilidadDelAsesorado`.
@@ -102,9 +104,24 @@ export default function MiPlan() {
           ←
         </button>
         <h1 className="font-display text-xl text-texto">Tu plan nutricional</h1>
+        {/* La despensa vive aquí y no en el diario a propósito: es la pantalla
+            que PROPONE cambios, y el sentido de saber qué hay en casa es dejar
+            de proponer lo que no está. */}
+        <button
+          type="button"
+          onClick={() => setDespensaAbierta(true)}
+          className="press ml-auto shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-tenue"
+        >
+          En casa
+        </button>
       </header>
 
       <SheetCambios linea={cambiando} onCerrar={() => setCambiando(null)} />
+      <SheetDespensa
+        asesoradoId={usuario.id}
+        abierto={despensaAbierta}
+        onCerrar={() => setDespensaAbierta(false)}
+      />
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {secciones.map((s) => (
