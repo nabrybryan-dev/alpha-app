@@ -94,6 +94,17 @@ export interface Cambio {
    * prometer que no mueve nada.
    */
   deriva: Partial<Record<MacroDeLaDeriva, number>>
+  /**
+   * Si la persona lo tiene en casa ahora mismo (migraciones 0024 y 0042).
+   *
+   * Sirve para dos cosas y ninguna es filtrar: sube la opción a los primeros
+   * puestos —que son los únicos que caben en pantalla— y deja decírselo, que es
+   * la diferencia entre «cámbialo por lentejas» y «cámbialo por las lentejas que
+   * ya tienes».
+   *
+   * `false` cuando la despensa está vacía, que hoy es el caso de todo el mundo.
+   */
+  enCasa: boolean
 }
 
 export interface PorQueNoHayCambios {
@@ -132,6 +143,7 @@ export function cambiosPara(
   porId: (id: string) => AlimentoIndice | undefined,
   excluidos: ReadonlySet<string> = new Set(),
   condiciones: ReadonlySet<string> = new Set(),
+  enCasa: ReadonlySet<string> = new Set(),
 ): Cambio[] {
   const entrada = TABLA.cambios[alimento.id]
   if (!entrada) return []
@@ -140,7 +152,9 @@ export function cambiosPara(
 
   const salida: Cambio[] = []
   for (const opcion of entrada.opciones) {
-    if (salida.length >= TABLA.en_pantalla) break
+    // El tope se aplica DESPUÉS de ordenar, no aquí: si se cortara antes, lo
+    // que la persona tiene en casa se quedaría fuera de pantalla por estar más
+    // abajo en la tabla, que es justo lo que este cambio viene a evitar.
     if (excluidos.has(opcion.id)) continue
     const destino = porId(opcion.id)
     // Se mira el NOMBRE y no el id, igual que en el Cerebro: los ids de la TCAC
@@ -159,9 +173,22 @@ export function cambiosPara(
       if (suyo == null || original == null) continue
       deriva[macro] = Math.round((suyo - original) * 10) / 10
     }
-    salida.push({ alimento: destino, gramos: opcion.g, deriva })
+    salida.push({ alimento: destino, gramos: opcion.g, deriva, enCasa: enCasa.has(opcion.id) })
   }
+
+  // Lo que hay en casa primero, y el resto en el orden de la tabla.
+  //
+  // NO SE FILTRA, SE ORDENA. Ocultar lo que no está en casa dejaría sin ninguna
+  // propuesta a quien tenga la despensa vacía —que hoy es todo el mundo— y sería
+  // peor que no mirarla. Con la despensa vacía este `sort` no mueve nada y la
+  // pantalla se comporta exactamente como antes.
+  //
+  // El orden de la tabla dentro de cada grupo se conserva: `sort` es estable en
+  // todos los motores desde ES2019, y ese orden no es alfabético ni casual —lo
+  // decidió quien curó las equivalencias.
   return salida
+    .sort((a, b) => Number(b.enCasa) - Number(a.enCasa))
+    .slice(0, TABLA.en_pantalla)
 }
 
 /**
