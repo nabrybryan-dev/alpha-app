@@ -36,6 +36,15 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // La guarda del relleno masivo de carga, que se corre desde el SQL Editor y
+  // no desde la app: si componer los campos devuelve el MISMO texto, guardar no
+  // cambia ni una letra de lo que el asesorado va a leer; si no, el ejercicio se
+  // aparta para mirarlo a mano. Vive en TypeScript porque es la misma regla que
+  // `componerPrescripcion`, y separarlas es justo lo que causó el desajuste del
+  // 2026-08-12.
+  'src/domain/prescripcion.ts#componerCoincide':
+    'Guarda del relleno masivo de carga. Se ejecuta desde SQL, no desde la app, ' +
+    'pero comparte regla con componerPrescripcion y separarlas ya costó 128 ejercicios.',
   // Lo que espera a una función ya planeada y todavía sin construir:
   'src/domain/nutricion/techos.ts#DIAS_ENTRE_RACIONES':
     'Espera al aviso de frecuencia: «comiste hígado hace 5 días, deja pasar dos ' +

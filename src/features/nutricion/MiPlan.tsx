@@ -8,7 +8,7 @@ import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
 import { SheetCambios } from './SheetCambios'
 import { SheetDespensa } from './SheetDespensa'
-import { respuestasDe, visibilidadDelAsesorado } from './visibilidadDelAsesorado'
+import { respuestasDe, visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
 
 /**
