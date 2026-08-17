@@ -269,6 +269,36 @@ const RECETAS_REALES: Receta[] = [
     },
     ROLLITOS,
     2,
+    [
+      {
+        tipo: 'encaja',
+        label: 'Dónde encaja hoy',
+        texto:
+          'Cena redonda: 37 g de proteína con solo 15 de hidratos. Si ya comiste el arroz al ' +
+          'almuerzo, esta cierra el día sin repetirlos.',
+      },
+      {
+        tipo: 'canje',
+        label: 'El canje',
+        texto:
+          'La mozzarella sola son 148 de las 445 kcal. Bájala a 30 g y te quedas cerca de 380 ' +
+          'sin tocar el atún, que es de donde viene la proteína.',
+      },
+      {
+        tipo: 'ojo',
+        label: 'Ojo con',
+        texto:
+          'El atún tiene que ser al natural y bien escurrido. En aceite, esos mismos 80 g pasan ' +
+          'de 72 a 169 kcal: casi 100 más sin que cambie nada de lo que ves en el plato.',
+      },
+      {
+        tipo: 'truco',
+        label: 'Truco Alfa',
+        texto:
+          'Extiende la mezcla sin dejar agujeros y cocínala tapada: si la base queda con huecos, ' +
+          'se te rompe al enrollar y acabas comiéndotela con tenedor.',
+      },
+    ],
   ),
   receta(
     {
@@ -292,6 +322,36 @@ const RECETAS_REALES: Receta[] = [
     },
     HAMBURGUESAS,
     2,
+    [
+      {
+        tipo: 'encaja',
+        label: 'Dónde encaja hoy',
+        texto:
+          '47 g de proteína, la más alta de todas. Es almuerzo de día de pierna o de espalda, ' +
+          'cuando vienes de mover peso y hay que reponer.',
+      },
+      {
+        tipo: 'canje',
+        label: 'El canje',
+        texto:
+          'Las 3 cucharadas de aceite son 20 g por porción: 177 de las 600 kcal. Con una sola ' +
+          'cucharada bajas a unas 480 y la proteína no se mueve.',
+      },
+      {
+        tipo: 'ojo',
+        label: 'Ojo con',
+        texto:
+          'El contramuslo lleva más grasa que la pechuga. Si el día ya viene cargado de grasa, ' +
+          'cámbialo por pechuga y le quitas otras 30 kcal por porción.',
+      },
+      {
+        tipo: 'truco',
+        label: 'Truco Alfa',
+        texto:
+          'Corta el pollo a cuchillo en cuadritos en vez de triturarlo. Queda con textura de ' +
+          'hamburguesa de verdad y no de paté.',
+      },
+    ],
   ),
   receta(
     {
@@ -316,6 +376,36 @@ const RECETAS_REALES: Receta[] = [
     },
     WRAP,
     1,
+    [
+      {
+        tipo: 'encaja',
+        label: 'Dónde encaja hoy',
+        texto:
+          'Almuerzo completo en un plato: 32 g de proteína y 33 de hidratos. Encaja en día ALTO, ' +
+          'que es cuando el carbohidrato de la papa te sirve para algo.',
+      },
+      {
+        tipo: 'canje',
+        label: 'El canje',
+        texto:
+          'Es la más pesada de las seis: 569 kcal. Si la pones de cena, quítale el aguacate y ' +
+          'el jamón del relleno y te quedas cerca de 400.',
+      },
+      {
+        tipo: 'ojo',
+        label: 'Ojo con',
+        texto:
+          'El relleno del reel no trae cantidades y esos gramos los puse yo por referencia — van ' +
+          'con asterisco en la lista. Ajústalos a lo que de verdad le eches.',
+      },
+      {
+        tipo: 'truco',
+        label: 'Truco Alfa',
+        texto:
+          'La papa en láminas MUY finas, con mandolina si tienes. Gruesa no se cocina por dentro ' +
+          'en los 10 minutos y queda cruda en el centro.',
+      },
+    ],
   ),
   receta(
     {
@@ -338,6 +428,36 @@ const RECETAS_REALES: Receta[] = [
     },
     SANDWICH,
     1,
+    [
+      {
+        tipo: 'encaja',
+        label: 'Dónde encaja hoy',
+        texto:
+          '32 g de proteína en 260 kcal: es la mejor relación de las seis. Merienda de tarde o ' +
+          'cena ligera cuando el día ya viene lleno.',
+      },
+      {
+        tipo: 'canje',
+        label: 'El canje',
+        texto:
+          'El queso crema son 88 de las 260 kcal, un tercio del plato por dos cucharadas. Con ' +
+          'una sola sigue cremoso y bajas a 215.',
+      },
+      {
+        tipo: 'ojo',
+        label: 'Ojo con',
+        texto:
+          'Casi no lleva hidratos: 1 g. Si es tu comida de antes de entrenar, acompáñala con ' +
+          'algo que sí los traiga o vas a llegar vacío a la última serie.',
+      },
+      {
+        tipo: 'truco',
+        label: 'Truco Alfa',
+        texto:
+          'Extiende la mezcla fina y dórala bien por los dos lados antes de rellenar. Si la ' +
+          'dejas gruesa, por dentro queda húmeda y no aguanta el relleno.',
+      },
+    ],
   ),
   receta(
     {
@@ -361,6 +481,36 @@ const RECETAS_REALES: Receta[] = [
     },
     BROWNIE,
     2,
+    [
+      {
+        tipo: 'encaja',
+        label: 'Dónde encaja hoy',
+        texto:
+          'Postre de 279 kcal que sí cabe. No lo pongas de merienda «extra»: cuenta como el ' +
+          'postre del día, no como algo que se suma encima.',
+      },
+      {
+        tipo: 'canje',
+        label: 'El canje',
+        texto:
+          'Las 6 nueces son 102 de las 279 kcal — el ingrediente más caro del molde. Con 3 ' +
+          'bajas a unas 230 y el brownie sigue igual de bueno.',
+      },
+      {
+        tipo: 'ojo',
+        label: 'Ojo con',
+        texto:
+          'Solo 7 g de proteína: es un postre, no una merienda que sostenga. Si es lo único que ' +
+          'comes en la tarde, vas a tener hambre en una hora.',
+      },
+      {
+        tipo: 'truco',
+        label: 'Truco Alfa',
+        texto:
+          'Al microondas empieza por 2 minutos y comprueba. Pasarse lo seca y deja de parecer un ' +
+          'brownie: se puede añadir tiempo, quitarlo no.',
+      },
+    ],
   ),
   receta(
     {
@@ -383,6 +533,36 @@ const RECETAS_REALES: Receta[] = [
     },
     CARLOTA,
     6,
+    [
+      {
+        tipo: 'encaja',
+        label: 'Dónde encaja hoy',
+        texto:
+          '120 kcal por porción: la más ligera de las seis. Es el postre para el día que no te ' +
+          'sobra casi nada, o para cerrar una cena que ya iba justa.',
+      },
+      {
+        tipo: 'canje',
+        label: 'El canje',
+        texto:
+          'La galleta es casi la mitad de las kcal (56 de 120) y es lo único que no aporta nada ' +
+          'más. Con la mitad de galleta baja a 90 y sigue teniendo capas.',
+      },
+      {
+        tipo: 'ojo',
+        label: 'Ojo con',
+        texto:
+          'Que sea yogur GRIEGO, no natural. El griego tiene el doble de proteína, y con el ' +
+          'normal este postre se queda en azúcar con fruta.',
+      },
+      {
+        tipo: 'truco',
+        label: 'Truco Alfa',
+        texto:
+          'Cuatro horas de nevera como mínimo, y mejor de un día para otro. Si la cortas antes, ' +
+          'no ha cuajado y se te desarma en el plato.',
+      },
+    ],
   ),
 ]
 

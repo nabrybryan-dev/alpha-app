@@ -29,23 +29,46 @@ describe('las recetas reales', () => {
      * firmar; en desarrollo sí, para que el coach pueda revisarlas antes de
      * escribir las notas.
      */
-    it('fuera de desarrollo solo sale lo firmado, y hoy no hay nada firmado', () => {
-      expect(RECETAS).toHaveLength(0)
+    it('las seis están firmadas, así que las seis salen', () => {
+      expect(RECETAS).toHaveLength(6)
+      expect(TODAS).toHaveLength(6)
     })
 
-    it('las seis siguen ahí, esperando su firma', () => {
-      expect(TODAS).toHaveLength(6)
-      expect(TODAS.every(sinFirmar)).toBe(true)
+    /** Las cuatro son el formato del coach: dónde encaja, canje, ojo, truco. */
+    it('cada una trae sus cuatro notas', () => {
+      for (const r of TODAS) {
+        expect(r.ajuste.notas, r.nombre).toHaveLength(4)
+        expect(r.ajuste.notas.map((n) => n.tipo), r.nombre).toEqual([
+          'encaja',
+          'canje',
+          'ojo',
+          'truco',
+        ])
+      }
+    })
+
+    /** Una nota vacía pasaría la compuerta y no diría nada. */
+    it('ninguna nota está en blanco', () => {
+      for (const r of TODAS) {
+        for (const n of r.ajuste.notas) {
+          expect(n.texto.trim().length, `${r.nombre} · ${n.tipo}`).toBeGreaterThan(20)
+        }
+      }
     })
 
     it('`sinFirmar` distingue la que tiene notas de la que no', () => {
       const [una] = TODAS
-      expect(sinFirmar(una)).toBe(true)
-      const firmada = {
-        ...una,
-        ajuste: { ...una.ajuste, notas: [{ tipo: 'encaja' as const, label: 'x', texto: 'y' }] },
-      }
-      expect(sinFirmar(firmada)).toBe(false)
+      expect(sinFirmar(una)).toBe(false)
+      const enBlanco = { ...una, ajuste: { ...una.ajuste, notas: [] } }
+      expect(sinFirmar(enBlanco)).toBe(true)
+    })
+
+    /** La compuerta sigue viva: una sin firmar no sale, aunque el resto sí. */
+    it('una receta sin notas seguiría sin servirse', () => {
+      const conUnaEnBlanco = TODAS.map((r, i) =>
+        i === 0 ? { ...r, ajuste: { ...r.ajuste, notas: [] } } : r,
+      )
+      expect(conUnaEnBlanco.filter((r) => !sinFirmar(r))).toHaveLength(5)
     })
 
     it('lo que se sirve SIEMPRE tiene notas', () => {
