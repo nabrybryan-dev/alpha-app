@@ -3,6 +3,7 @@ import {
   diaDeSesion,
   diaSemanaDe,
   etiquetaDeSerie,
+  inicioProximaSemana,
   semanaDelAnio,
   sesionSugerida,
 } from './calendario'
@@ -99,6 +100,41 @@ describe('semanaDelAnio', () => {
   it('los primeros días de enero pueden caer en la última semana del año anterior', () => {
     // 2027-01-01 es viernes: pertenece a la semana 53 de 2026.
     expect(semanaDelAnio('2027-01-01')).toBe(53)
+  })
+})
+
+describe('inicioProximaSemana', () => {
+  it('desde cualquier día de la semana cae en el lunes siguiente', () => {
+    // 2026-08-03 es lunes. Toda la semana anterior apunta a él.
+    expect(inicioProximaSemana('2026-07-28')).toBe('2026-08-03') // martes
+    expect(inicioProximaSemana('2026-07-29')).toBe('2026-08-03') // miércoles
+    expect(inicioProximaSemana('2026-07-30')).toBe('2026-08-03') // jueves
+    expect(inicioProximaSemana('2026-07-31')).toBe('2026-08-03') // viernes
+    expect(inicioProximaSemana('2026-08-01')).toBe('2026-08-03') // sábado
+    expect(inicioProximaSemana('2026-08-02')).toBe('2026-08-03') // domingo
+  })
+
+  /**
+   * El caso que decide el `+1`: en lunes, «la próxima semana» es la de dentro de
+   * siete días. Devolver el mismo día haría que programar un lunes por la mañana
+   * le pisara al asesorado la semana que acaba de empezar.
+   */
+  it('un lunes devuelve el lunes de después, no el mismo día', () => {
+    expect(inicioProximaSemana('2026-08-03')).toBe('2026-08-10')
+  })
+
+  it('cruza el cambio de mes y el de año sin desalinearse', () => {
+    expect(inicioProximaSemana('2026-12-30')).toBe('2027-01-04') // miércoles
+    expect(inicioProximaSemana('2026-08-30')).toBe('2026-08-31') // domingo
+  })
+
+  it('siempre avanza y siempre cae en lunes', () => {
+    for (let dia = 1; dia <= 28; dia++) {
+      const fecha = `2026-09-${String(dia).padStart(2, '0')}`
+      const siguiente = inicioProximaSemana(fecha)
+      expect(siguiente > fecha).toBe(true)
+      expect(diaSemanaDe(siguiente)).toBe('LUNES')
+    }
   })
 })
 

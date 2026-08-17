@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { crearMockDb } from '../../data/mockDb'
 import { sumarDias } from '../../domain/activacion'
 import type { Usuario } from '../../domain/types'
+import { microcicloPropuesto } from './propuestaMicrociclo'
 import {
   activarAutomaticas,
   barrerYActivar,
@@ -58,6 +59,37 @@ describe('revisarCartera', () => {
 
     expect(fila.estado).toBe('revisar')
     expect(fila.propuesta?.revision.motivos.length).toBeGreaterThan(0)
+  })
+
+  /**
+   * ✅ REGRESIÓN. Nació rojo, y es el hueco que dejaba sin sentido a todo el
+   * flujo de «programar por adelantado»: `activarPropuesta` no tenía ni un solo
+   * llamador que partiera de una propuesta guardada. `GenerarMicrocicloSheet`
+   * guardaba y prometía «queda ahí hasta que decidas activarla», y no había forma
+   * de decidirlo; `activarAutomaticas` se generaba la suya y pasaba de largo.
+   *
+   * Resultado: el coach podía preparar la semana de alguien y esa semana no le
+   * llegaba nunca. Y la cola de «te esperan a ti» —justo las que Bryan pidió
+   * mirar él— no tenía salida: revisarlas no llevaba a ninguna parte.
+   */
+  it('con una propuesta ya preparada por el coach, no espera revisión', () => {
+    const { db, activo } = partida()
+    const fin = sumarDias(activo.fechaInicio, activo.cadenciaDias)
+
+    // Sin preparar, este mismo caso pide revisión (test de arriba).
+    db.microciclos.guardarPropuesta(microcicloPropuesto(activo, { hoy: fin }))
+
+    const fila = filaDe(revisarCartera(db, fin))
+    expect(fila.estado).toBe('automatica')
+    expect(fila.preparada?.numero).toBe(activo.numero + 1)
+  })
+
+  it('una propuesta preparada no adelanta el cierre del microciclo en curso', () => {
+    const { db, activo } = partida()
+    const vispera = sumarDias(activo.fechaInicio, activo.cadenciaDias - 1)
+    db.microciclos.guardarPropuesta(microcicloPropuesto(activo, { hoy: vispera }))
+
+    expect(filaDe(revisarCartera(db, vispera)).estado).toBe('en-curso')
   })
 
   it('quien no tiene microciclo activo no genera propuesta', () => {
@@ -127,6 +159,62 @@ describe('activarAutomaticas', () => {
     const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
     expect(activos).toHaveLength(1)
     expect(activos[0].numero).toBe(activo.numero)
+  })
+
+  /**
+   * ✅ REGRESIÓN. Lo importante no es solo que se active algo, sino que se active
+   * **lo que el coach revisó**. Regenerarla descartaría en silencio su criterio:
+   * la propuesta guardada puede llevar una fecha de inicio elegida a mano, y desde
+   * la hoja se revisan ejercicio por ejercicio antes de guardar.
+   */
+  it('activa la propuesta que preparó el coach, no una recién generada', () => {
+    const { db, usuario, activo } = partida()
+    const preparada = microcicloPropuesto(activo, { fechaInicio: '2026-09-07' })
+    db.microciclos.guardarPropuesta(preparada)
+
+    activarAutomaticas(db, [filaAutomatica(usuario, activo.numero)])
+
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos).toHaveLength(1)
+    expect(activos[0].id).toBe(preparada.id)
+    expect(activos[0].fechaInicio).toBe('2026-09-07')
+  })
+
+  it('activar la preparada cierra el microciclo anterior igual que siempre', () => {
+    const { db, usuario, activo } = partida()
+    db.microciclos.guardarPropuesta(microcicloPropuesto(activo, { fechaInicio: '2026-09-07' }))
+    activarAutomaticas(db, [filaAutomatica(usuario, activo.numero)])
+
+    const todos = db.microciclos.byUsuario('u-valentina')
+    expect(todos.find((m) => m.id === activo.id)?.estado).toBe('cerrado')
+    expect(todos.filter((m) => m.estado === 'activo')).toHaveLength(1)
+  })
+
+  /**
+   * El otro lado del límite: una propuesta vieja que quedó colgada de un
+   * microciclo anterior no se activa por error. Solo cuenta la del número que
+   * sigue al que se está cerrando.
+   */
+  it('ignora una propuesta guardada que no es la del microciclo siguiente', () => {
+    const { db, usuario, activo } = partida()
+    // Una que se preparó hace microciclos y nunca se activó: sigue en la base.
+    const colgada = microcicloPropuesto({
+      ...activo,
+      id: 'm18',
+      numero: activo.numero - 4,
+    })
+    db.microciclos.guardarPropuesta(colgada)
+
+    activarAutomaticas(db, [filaAutomatica(usuario, activo.numero)])
+
+    const activos = db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')
+    expect(activos).toHaveLength(1)
+    expect(activos[0].numero).toBe(activo.numero + 1)
+    expect(activos[0].id).not.toBe(colgada.id)
+    // Y la colgada se queda como estaba, sin activarse por la puerta de atrás.
+    expect(db.microciclos.byUsuario('u-valentina').find((m) => m.id === colgada.id)?.estado).toBe(
+      'propuesto',
+    )
   })
 
   it('devuelve solo las que activó', () => {

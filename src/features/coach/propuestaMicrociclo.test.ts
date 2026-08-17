@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { sumarDias } from '../../domain/activacion'
 import { microcicloPropuesto, proponerMicrociclo } from './propuestaMicrociclo'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
 
@@ -275,6 +276,31 @@ describe('microcicloPropuesto', () => {
     // Pero los conserva: son lo que hay que hacer, no lo que se hizo.
     expect(p.sesiones[0].preparacion).toHaveLength(1)
     expect(p.sesiones[0].bloquesCardio).toHaveLength(1)
+  })
+
+  /**
+   * ✅ REGRESIÓN. La fecha salía siempre de encadenar con el anterior (o de hoy si
+   * eso ya era pasado), así que no había forma de programarle a alguien la semana
+   * que viene: la única opción era «a continuación de lo que está haciendo».
+   */
+  it('acepta la fecha de inicio que elija el coach', () => {
+    const p = microcicloPropuesto(conRegistro, { fechaInicio: '2026-09-07' })
+    expect(p.fechaInicio).toBe('2026-09-07')
+  })
+
+  /**
+   * El otro lado del límite: quien no elige fecha tiene que seguir obteniendo
+   * exactamente lo de antes. Encadenar con el microciclo en curso es lo normal y
+   * es lo que hace el barrido automático.
+   */
+  it('sin fecha elegida sigue encadenando con el anterior', () => {
+    const p = microcicloPropuesto(conRegistro)
+    expect(p.fechaInicio).toBe(sumarDias(conRegistro.fechaInicio, conRegistro.cadenciaDias))
+  })
+
+  it('la fecha elegida manda sobre hoy, aunque hoy sea posterior', () => {
+    const p = microcicloPropuesto(conRegistro, { fechaInicio: '2026-09-07', hoy: '2026-12-01' })
+    expect(p.fechaInicio).toBe('2026-09-07')
   })
 
   /**

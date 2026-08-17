@@ -35,7 +35,7 @@ import { hoyIso } from '../../data/dbInstance'
 import type { Db } from '../../data/repos'
 import { evaluarCierre, type EstadoCierre } from '../../domain/activacion'
 import { sesionCompleta } from '../../domain/cumplimiento'
-import type { Usuario } from '../../domain/types'
+import type { Microciclo, Usuario } from '../../domain/types'
 import { microcicloPropuesto, proponerMicrociclo, type PropuestaMicrociclo } from './propuestaMicrociclo'
 
 export type EstadoActivacion =
@@ -54,8 +54,31 @@ export interface FilaCartera {
   /** El microciclo que se cierra. Ausente en `sin-microciclo`. */
   numeroActual?: number
   cierre?: EstadoCierre
-  /** La propuesta calculada. Solo cuando el microciclo vence. */
+  /** La propuesta calculada. Solo cuando el microciclo vence y no hay preparada. */
   propuesta?: PropuestaMicrociclo
+  /**
+   * La que el coach dejó guardada para el número siguiente. Cuando existe, es la
+   * que se activa: ya pasó por una persona.
+   */
+  preparada?: Microciclo
+}
+
+/**
+ * La propuesta que el coach ya dejó lista para el microciclo siguiente.
+ *
+ * Se busca por número y no «la última propuesta que haya», porque una propuesta
+ * puede quedarse colgada: si el coach preparó la M23 y por lo que sea se activó
+ * otra cosa, esa M23 sigue guardada. Activarla más tarde le metería al asesorado
+ * una semana deducida de datos viejos.
+ */
+function propuestaPreparada(
+  db: Db,
+  usuarioId: string,
+  numeroSiguiente: number,
+): Microciclo | undefined {
+  return db.microciclos
+    .byUsuario(usuarioId)
+    .find((m) => m.estado === 'propuesto' && m.numero === numeroSiguiente)
 }
 
 /**
@@ -75,6 +98,20 @@ export function revisarCartera(db: Db, hoy: string = hoyIso()): FilaCartera[] {
     const cierre = evaluarCierre(activo, hoy, pendientes)
     if (!cierre.vencido) {
       return { usuario, estado: 'en-curso', numeroActual: activo.numero, cierre }
+    }
+
+    /**
+     * Si el coach ya la dejó preparada, esa manda y no se vuelve a pasar por el
+     * gate de fiabilidad: el gate existe para decidir **si nos podemos fiar sin
+     * mirar**, y aquí ya miró alguien. Volver a aplicarlo mandaría a la cola de
+     * «te esperan a ti» justo lo que el coach acaba de revisar.
+     *
+     * Tampoco se recalcula la propuesta para el resumen: enseñaría el reparto de
+     * una que no es la que se va a activar.
+     */
+    const preparada = propuestaPreparada(db, usuario.id, activo.numero + 1)
+    if (preparada) {
+      return { usuario, estado: 'automatica', numeroActual: activo.numero, cierre, preparada }
     }
 
     const propuesta = proponerMicrociclo(activo)
@@ -114,6 +151,16 @@ export function activarAutomaticas(
     // activar una propuesta calculada sobre un microciclo que ya no está sería
     // prescribirle a alguien sobre datos viejos.
     if (!activo || activo.numero !== fila.numeroActual) continue
+
+    // Releída de la base por lo mismo que el activo, y no tomada de `fila`: entre
+    // el barrido y esta línea el coach pudo regenerarla desde la hoja.
+    const preparada = propuestaPreparada(db, fila.usuario.id, activo.numero + 1)
+    if (preparada) {
+      // Ya está guardada: solo se activa. Regenerarla encima descartaría lo que el
+      // coach revisó, incluida la fecha de inicio que hubiera elegido a mano.
+      db.microciclos.activarPropuesta(preparada.id)
+      continue
+    }
 
     const propuesta = microcicloPropuesto(activo, { hoy })
     db.microciclos.guardarPropuesta(propuesta)
@@ -174,6 +221,16 @@ export function conclusion(fila: FilaCartera): string {
     return quedan === 0
       ? `M${fila.numeroActual} en curso.${hasta}`
       : `M${fila.numeroActual} en curso, ${quedan} ${quedan === 1 ? 'sesión' : 'sesiones'} por registrar.${hasta}`
+  }
+
+  /**
+   * La preparada no lleva reparto y no se le inventa uno: el reparto sale de
+   * `proponerMicrociclo`, que recalcula desde el microciclo en curso, y enseñar
+   * ESE reparto junto a la propuesta que el coach guardó hace días describiría una
+   * semana distinta de la que se acaba de activar.
+   */
+  if (fila.preparada) {
+    return `M${fila.preparada.numero}: la que dejaste preparada. Activada, empieza el ${fila.preparada.fechaInicio}${avisoSesiones(fila.cierre)}.`
   }
 
   const p = fila.propuesta
