@@ -22,11 +22,22 @@ insert into auth.users (id, email) values
   ('33333333-3333-3333-3333-333333333333', 'coach@ejemplo.test')
 on conflict (id) do nothing;
 
+-- `do update`, NO `do nothing`, y aquí está la diferencia entre probar algo y
+-- no probar nada.
+--
+-- El trigger `al_crear_usuario` de la 0001 ya creó estas tres filas al insertar
+-- en `auth.users`, y las creó con el rol por defecto. Con `do nothing` el
+-- `update` no tocaba ninguna —el log lo decía: «INSERT 0 3» y después
+-- «INSERT 0 0»— así que el coach se quedaba de asesorado y la comprobación de
+-- que el staff SÍ ve fallaba por el motivo equivocado.
 insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('11111111-1111-1111-1111-111111111111', 'Asesorada A', 'asesorado', 'AA'),
   ('22222222-2222-2222-2222-222222222222', 'Asesorado B', 'asesorado', 'AB'),
   ('33333333-3333-3333-3333-333333333333', 'Coach', 'coach', 'CO')
-on conflict (id) do nothing;
+on conflict (id) do update set
+  nombre = excluded.nombre,
+  rol = excluded.rol,
+  avatar_iniciales = excluded.avatar_iniciales;
 
 -- Un alimento, porque `registro_item.alimento_id` lo referencia. Todas las
 -- columnas de abajo son obligatorias y con CHECK: `estado` existe porque 100 g
