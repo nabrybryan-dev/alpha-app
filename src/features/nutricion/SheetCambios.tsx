@@ -81,8 +81,18 @@ export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
   // propuestas de la tabla lo son: sin esto, la pantalla se lo enseñaría.
   const respuestas = (db.perfilNutricion.byUsuario(usuario.id)?.respuestas ?? {}) as Respuestas
   const condiciones = condicionesDeclaradas(respuestas, hoyIso())
+  // Y lo que tiene en casa (0024/0042). No filtra: SUBE esas opciones a los
+  // primeros puestos, que son los unicos que caben en pantalla. Filtrar dejaria
+  // sin ninguna propuesta a quien tenga la despensa vacia, que hoy es todo el
+  // mundo, y seria peor que no mirarla.
+  const enCasa = new Set(
+    db.despensa
+      .byUsuario(usuario.id)
+      .map((i) => i.alimentoId)
+      .filter((id): id is string => id !== null),
+  )
   const cambios = alimento
-    ? cambiosPara(alimento, catalogoRepo.porId, vetados, condiciones)
+    ? cambiosPara(alimento, catalogoRepo.porId, vetados, condiciones, enCasa)
     : []
   const porcion = alimento ? porcionDeReferencia(alimento.id) : null
 
@@ -133,10 +143,23 @@ function FilaCambio({ cambio }: { cambio: Cambio }) {
     })
 
   return (
-    <li className="rounded-2xl border border-linea bg-surface-2 p-3">
+    <li
+      className={`rounded-2xl border p-3 ${
+        cambio.enCasa ? 'border-accion bg-accion/10' : 'border-linea bg-surface-2'
+      }`}
+    >
       <div className="flex items-baseline justify-between gap-3">
         <span className="min-w-0 flex-1 text-sm leading-snug text-texto">
           {cambio.alimento.nombre}
+          {/* Decirlo cambia la propuesta: no es lo mismo «cámbialo por lentejas»
+              que «cámbialo por las lentejas que ya tienes». Lo segundo se puede
+              hacer esta noche sin ir al mercado, y esta pantalla existe para
+              resolver la discrepancia en el momento. */}
+          {cambio.enCasa && (
+            <span className="mt-0.5 block text-[11px] font-semibold text-accion">
+              Lo tienes en casa
+            </span>
+          )}
         </span>
         <b className="cifras shrink-0 text-sm text-texto">{cambio.gramos} g</b>
       </div>
