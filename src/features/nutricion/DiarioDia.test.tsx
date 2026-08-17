@@ -6,6 +6,7 @@ import DiarioDia from './DiarioDia'
 import { CompuertaNutricion } from './CompuertaNutricion'
 import { SessionProvider } from '../../app/SessionProvider'
 import { reiniciarDb } from '../../data/mockDb'
+import { db } from '../../data/dbInstance'
 
 /**
  * El camino crítico entero: tocar una comida, buscar, elegir, poner la cantidad
@@ -188,5 +189,61 @@ describe('DiarioDia', () => {
   it('lleva a Mi plan', () => {
     pintar()
     expect(screen.getByRole('link', { name: /mi plan/i })).toHaveAttribute('href', '/nutricion/plan')
+  })
+
+  /**
+   * El contador es el interruptor que más pesa de los tres, y era el único que
+   * no estaba cableado en ninguna pantalla: `verContadorKcal` se guardaba, se
+   * subía a la nube y no lo leía nadie.
+   *
+   * La migración 0018 lo dice con estas palabras: «una pantalla de perfil se
+   * mira una vez, el contador cinco veces al día».
+   */
+  describe('el contador de kcal del día', () => {
+    it('se ve mientras nadie decida lo contrario', () => {
+      pintar()
+      expect(screen.getByText(/de 2.100 kcal/i)).toBeInTheDocument()
+    })
+
+    it('desaparece si la nutricionista lo apagó', () => {
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: true,
+        verObjetivoCalorico: true,
+        verContadorKcal: false,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.queryByText(/de 2.100 kcal/i)).not.toBeInTheDocument()
+    })
+
+    it('tampoco queda en las filas de cada comida', () => {
+      // El total de arriba se apagaba y las cuatro filas seguían enseñando sus
+      // kcal. Sumarlas de cabeza es exactamente lo que el interruptor evita.
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: true,
+        verObjetivoCalorico: true,
+        verContadorKcal: false,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.getByRole('button', { name: /desayuno, sin registrar/i })).toBeInTheDocument()
+      expect(screen.queryByText('kcal')).not.toBeInTheDocument()
+    })
+
+    it('y aun así se puede seguir registrando: es lo único que no se toca', () => {
+      db.visibilidad.decidir({
+        usuarioId: 'u-valentina',
+        verComposicion: false,
+        verObjetivoCalorico: false,
+        verContadorKcal: false,
+        estado: 'decidido',
+      })
+      pintar()
+      expect(screen.getByRole('button', { name: /desayuno/i })).toBeInTheDocument()
+      // El margen se queda: habla de la calidad del dato, no del cuerpo de nadie.
+      expect(screen.getByText(/margen de tu registro/i)).toBeInTheDocument()
+    })
   })
 })

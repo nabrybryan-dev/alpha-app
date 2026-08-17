@@ -14,9 +14,24 @@
 
 export interface OperacionPendiente {
   tabla: string
-  tipo: 'upsert' | 'update'
+  tipo: 'upsert' | 'update' | 'rpc'
   payload: Record<string, unknown>
   filtro?: Record<string, string>
+  /**
+   * Función del servidor a llamar, solo en `tipo: 'rpc'`.
+   *
+   * Existe porque PostgREST no sabe escribir dentro de un JSONB: para tocar una
+   * rama de `microciclos.datos` sin mandar el blob entero hace falta que el
+   * servidor haga el `jsonb_set`. Ver `0037` y
+   * `docs/specs/2026-08-15-subir-solo-lo-que-cambia.md`.
+   */
+  funcion?: string
+  /**
+   * Qué identifica a esta llamada para colapsarla con la anterior igual. Sin
+   * esto, cuatro series en el mismo ejercicio dejan cuatro operaciones en cola
+   * donde basta la última: cada una manda el array completo de ese ejercicio.
+   */
+  claveRpc?: string
   /**
    * Columna sobre la que resolver el conflicto del upsert. Sin esto, Supabase
    * usa la clave primaria, y las tablas del registro de comidas la generan en
@@ -60,6 +75,23 @@ export function pendientesDeSync(): number {
 }
 
 /**
+ * Cuántas operaciones de esta persona quedaron apartadas tras fallar.
+ *
+ * POR QUÉ HACE FALTA. El descarte es silencioso a propósito —protege el registro
+ * local de una cola que se atasca—, pero «no pierdas el dato» y «no se lo
+ * cuentes a nadie» son dos decisiones distintas, y aquí se tomaron juntas sin
+ * querer. El registro de comidas estuvo semanas sin subir y el asesorado siguió
+ * anotando su día con normalidad, sin ver jamás un aviso.
+ *
+ * OJO AL LEER ESTE NÚMERO: el montón guarda `MAX_DESCARTES` operaciones y tira
+ * las más viejas al desbordar, así que es un **mínimo**, no el total de lo que
+ * no llegó. Ningún texto de la interfaz debe prometer que están todas.
+ */
+export function descartesPendientes(usuarioId?: string): number {
+  return leerDescartes().filter((op) => op.duenio === undefined || op.duenio === usuarioId).length
+}
+
+/**
  * Al cerrar sesión, la cola activa tiene que vaciarse: en un dispositivo
  * compartido, sus operaciones se reintentarían con el JWT de la persona
  * siguiente.
@@ -99,6 +131,9 @@ export function integrarEnCola(
 }
 
 function claveDeFila(op: OperacionPendiente): string | undefined {
+  // Las llamadas al servidor traen su propia clave: mandan el estado final de
+  // la rama que tocan, así que la última gana y las anteriores sobran.
+  if (op.tipo === 'rpc') return op.claveRpc ? `rpc:${op.funcion}:${op.claveRpc}` : undefined
   if (op.tipo !== 'upsert') return undefined
   // `cliente_id` entra por el registro de comidas, donde la clave primaria la
   // pone el servidor: sin mirarla, editar la misma comida cinco veces dejaria

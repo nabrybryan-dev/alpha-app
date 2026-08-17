@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   CAMPOS,
+  LAS_QUE_VUELVEN_NO_BLOQUEAN,
   camposAPreguntar,
+  conSelloDeFecha,
+  encuestaPendiente,
   generoDe,
+  preguntasQueVuelven,
   revisarRespuestas,
   tieneValor,
   type Respuestas,
@@ -39,9 +43,19 @@ describe('camposAPreguntar', () => {
     expect(pendientes.length).toBeGreaterThan(10)
   })
 
-  it('a quien llega con la encuesta de captación le falta UNA pregunta', () => {
+  it('a quien llega con la encuesta de captación solo le falta lo que esa no trae', () => {
     // Es el objetivo de todo esto: no volver a preguntar lo que ya contestó.
-    expect(claves(CON_JSON)).toEqual(['pasosDiarios'])
+    //
+    // Eran los pasos y solo los pasos hasta el 2026-08-09, cuando se añadió la
+    // del embarazo: la encuesta de captación tampoco la trae, así que hay dos.
+    // Si esta lista crece sin motivo, es que alguien metió una pregunta que ya
+    // estaba contestada en otro sitio.
+    //
+    // El 2026-08-16 crecieron a cuatro con las dos de la despensa, que la
+    // captación tampoco trae. Esas dos NO son obligatorias -por eso la encuesta
+    // sigue dándose por completa sin ellas-, así que aparecer aquí no significa
+    // que bloqueen. Lo comprueba `la despensa: cada cuánto compra y de quién es`.
+    expect(claves(CON_JSON)).toEqual(['pasosDiarios', 'cicloCompra', 'despensaEs', 'embarazo'])
   })
 
   it('los pasos son justo lo que la encuesta de captación no trae', () => {
@@ -60,6 +74,29 @@ describe('camposAPreguntar', () => {
     it('el ciclo menstrual solo se pregunta a mujeres', () => {
       expect(claves({ genero: 'H' })).not.toContain('cicloMenstrual')
       expect(claves({ genero: 'M' })).toContain('cicloMenstrual')
+    })
+
+    it('el embarazo solo se pregunta a mujeres', () => {
+      expect(claves({ genero: 'H' })).not.toContain('embarazo')
+      expect(claves({ genero: 'M' })).toContain('embarazo')
+    })
+
+    it('la fecha de parto NO se pregunta hasta que diga que está embarazada', () => {
+      // Pedirle a todo el mundo una fecha probable de parto es la clase de
+      // pregunta que hace abandonar una encuesta.
+      expect(claves({ genero: 'M' })).not.toContain('fechaProbableParto')
+      expect(claves({ genero: 'M', embarazo: 'no' })).not.toContain('fechaProbableParto')
+      expect(claves({ genero: 'M', embarazo: 'lactancia' })).not.toContain('fechaProbableParto')
+    })
+
+    it('y sí en cuanto lo diga', () => {
+      expect(claves({ genero: 'M', embarazo: 'si' })).toContain('fechaProbableParto')
+    })
+
+    it('la fecha de parto no es obligatoria', () => {
+      // Quien no la sepa o no la quiera dar tiene que poder seguir. Sin fecha
+      // la marca vale igual, solo que no caduca sola —ver `embarazo.ts`—.
+      expect(CAMPOS.find((c) => c.clave === 'fechaProbableParto')?.obligatorio).toBeFalsy()
     })
 
     it('sin saber el género todavía, no se pregunta lo que depende de él', () => {
@@ -154,5 +191,175 @@ describe('generoDe', () => {
     // porcentaje creíble pero falso, que es peor que no dar ninguno.
     expect(generoDe({ genero: 'Femenino' })).toBeNull()
     expect(generoDe({})).toBeNull()
+  })
+})
+
+describe('encuestaPendiente', () => {
+  it('está pendiente mientras no se haya marcado como terminada', () => {
+    expect(encuestaPendiente(undefined)).toBe(true)
+    expect(encuestaPendiente({ respuestas: {}, completadaEn: undefined })).toBe(true)
+  })
+
+  it('sigue pendiente si se marcó terminada pero falta algo obligatorio', () => {
+    expect(encuestaPendiente({ respuestas: {}, completadaEn: '2026-08-02' })).toBe(true)
+  })
+
+  it('deja de estar pendiente cuando está terminada y completa', () => {
+    const completas = Object.fromEntries(
+      CAMPOS.filter((c) => c.obligatorio).map((c) => [
+        c.clave,
+        c.tipo === 'numero' ? 10 : c.tipo === 'multiple' ? ['x'] : 'x',
+      ]),
+    )
+    expect(encuestaPendiente({ respuestas: completas, completadaEn: '2026-08-02' })).toBe(false)
+  })
+})
+
+describe('las preguntas que vuelven', () => {
+  // Manuela, 2026-08-09: en embarazo y lactancia hay que saber qué dijo SU
+  // médico antes de decidir nada, y eso cambia con cada control. Es la primera
+  // pregunta de esta encuesta que no se hace una vez y ya.
+  const EMBARAZADA = { genero: 'M', embarazo: 'si' }
+  const HOY = '2026-08-09'
+
+  const clavesQueVuelven = (respuestas: Respuestas, hoy: string) =>
+    preguntasQueVuelven(respuestas, hoy).map((c) => c.clave)
+
+  it('NINGUNA QUE VUELVE PUEDE BLOQUEAR', () => {
+    // Si una fuera obligatoria, la compuerta de Nutrición se cerraría sola cada
+    // quince días y una embarazada perdería sus cifras por no haber ido al
+    // médico. Se comprueba, no se confía.
+    expect(LAS_QUE_VUELVEN_NO_BLOQUEAN).toBe(true)
+  })
+
+  it('sin contestar nunca, tocan', () => {
+    expect(clavesQueVuelven(EMBARAZADA, HOY)).toEqual([
+      'diagnosticoEmbarazo',
+      'recomendacionMedica',
+    ])
+  })
+
+  it('recién contestadas, no vuelven', () => {
+    const alDia = { ...EMBARAZADA, diagnosticoEmbarazo: ['ninguno'], recomendacionMedica: 'nada', preguntasDeEmbarazoEn: HOY }
+    expect(clavesQueVuelven(alDia, HOY)).toEqual([])
+  })
+
+  it('a los 14 días todavía no, a los 15 sí', () => {
+    const alDia = { ...EMBARAZADA, diagnosticoEmbarazo: ['ninguno'], recomendacionMedica: 'nada', preguntasDeEmbarazoEn: '2026-08-09' }
+    expect(clavesQueVuelven(alDia, '2026-08-23')).toEqual([])
+    expect(clavesQueVuelven(alDia, '2026-08-24')).toHaveLength(2)
+  })
+
+  it('una respuesta sin fecha SIEMPRE toca', () => {
+    // Podría ser de hace medio año. Preguntar de más es barato; decidir la
+    // alimentación de una embarazada con lo que su médico dijo hace meses, no.
+    const sinSello = { ...EMBARAZADA, recomendacionMedica: 'nada' }
+    expect(clavesQueVuelven(sinSello, HOY)).toContain('recomendacionMedica')
+  })
+
+  it('una fecha ilegible cuenta como que no hay fecha', () => {
+    const rota = { ...EMBARAZADA, recomendacionMedica: 'nada', preguntasDeEmbarazoEn: 'ayer' }
+    expect(clavesQueVuelven(rota, HOY)).toContain('recomendacionMedica')
+  })
+
+  it('a quien no está embarazada ni en lactancia no le tocan nunca', () => {
+    expect(clavesQueVuelven({ genero: 'M', embarazo: 'no' }, HOY)).toEqual([])
+    expect(clavesQueVuelven({ genero: 'H' }, HOY)).toEqual([])
+  })
+
+  it('en lactancia también tocan', () => {
+    expect(clavesQueVuelven({ genero: 'M', embarazo: 'lactancia' }, HOY)).toHaveLength(2)
+  })
+
+  it('SIN FECHA NO VUELVE NINGUNA, que es lo que mantiene limpia la compuerta', () => {
+    // `encuestaCompleta` llama a `camposAPreguntar` sin fecha. Si las que
+    // vuelven se colaran ahí, reabrirían la encuesta entera cada quince días.
+    const vencida = { ...EMBARAZADA, recomendacionMedica: 'nada', preguntasDeEmbarazoEn: '2020-01-01' }
+    expect(camposAPreguntar(vencida).map((c) => c.clave)).not.toContain('recomendacionMedica')
+  })
+
+  it('no desaparece de la pantalla justo al contestarla', () => {
+    // Se guarda al vuelo, así que si al contestar dejara de estar en la lista,
+    // el campo se borraría debajo del dedo.
+    const vencida = { ...EMBARAZADA, recomendacionMedica: 'vieja', preguntasDeEmbarazoEn: '2020-01-01' }
+    const enCurso = { recomendacionMedica: 'lo que me dijo hoy' }
+    expect(camposAPreguntar(vencida, enCurso, HOY).map((c) => c.clave)).not.toContain(
+      'recomendacionMedica',
+    )
+  })
+})
+
+describe('el sello de fecha', () => {
+  it('estampa solo el campo que se acaba de contestar', () => {
+    const conSello = conSelloDeFecha({ recomendacionMedica: 'nada' }, 'recomendacionMedica', '2026-08-09')
+    expect(conSello.preguntasDeEmbarazoEn).toBe('2026-08-09')
+  })
+
+  it('NO reinicia el reloj al tocar otra pregunta', () => {
+    // Estampar mirando «qué campos tienen valor» resetearía los quince días
+    // cada vez que alguien editara su peso, y la quincenal no volvería nunca.
+    const previo = { recomendacionMedica: 'nada', preguntasDeEmbarazoEn: '2026-07-01' }
+    expect(conSelloDeFecha({ ...previo, pesoKg: 60 }, 'pesoKg', '2026-08-09')).toEqual({
+      ...previo,
+      pesoKg: 60,
+    })
+  })
+})
+
+describe('el estado de fertilidad', () => {
+  it('es una opción de la pregunta de embarazo, no una pregunta nueva', () => {
+    const embarazo = CAMPOS.find((c) => c.clave === 'embarazo')
+    expect(embarazo?.opciones?.map((o) => o.valor)).toContain('sin_fertilidad')
+  })
+
+  it('a quien declara que no puede quedar embarazada no le tocan las quincenales', () => {
+    expect(preguntasQueVuelven({ genero: 'M', embarazo: 'sin_fertilidad' }, '2026-08-09')).toEqual(
+      [],
+    )
+  })
+})
+
+// Las dos preguntas que necesita la despensa. Se añadieron el 2026-08-16, cuando
+// la app llevaba 11 encuestas completadas y la despensa aún no existía. De ahí que
+// el primer test sea el que más pesa: si estas dos bloquearan, esas 11 personas
+// perderían sus cifras detrás del formulario por una funcionalidad que todavía no
+// pueden usar. Ver docs/specs/2026-08-16-de-donde-sale-la-lista-de-compra.md
+describe('la despensa: cada cuánto compra y de quién es', () => {
+  it('NO reabren la encuesta a quien ya la había completado', () => {
+    // CON_JSON no las trae: es alguien de antes del 2026-08-16.
+    // CON_JSON no basta: le faltan `pasosDiarios` y `embarazo`, que SI son
+    // obligatorios. Se completa para que el test mida lo que dice medir.
+    const completa: Respuestas = { ...CON_JSON, pasosDiarios: 7000, embarazo: 'no' }
+
+    expect(encuestaPendiente({ respuestas: completa, completadaEn: '2026-08-01' })).toBe(false)
+  })
+
+  it('se preguntan igual, pero sin bloquear', () => {
+    const pendientes = claves(CON_JSON)
+
+    expect(pendientes).toContain('cicloCompra')
+    expect(pendientes).toContain('despensaEs')
+
+    for (const clave of ['cicloCompra', 'despensaEs'] as const) {
+      expect(CAMPOS.find((c) => c.clave === clave)?.obligatorio).toBeFalsy()
+    }
+  })
+
+  it('el ciclo es de 8 o 15 días, nunca de 7', () => {
+    // Las programaciones van a 8 o a 15. Con la compra a 7 se desfasa un día por
+    // ciclo, y al sexto va casi una semana por delante del plan que abastece.
+    // Este test existe para que «7 días» no vuelva por parecer más natural.
+    const ciclo = CAMPOS.find((c) => c.clave === 'cicloCompra')
+
+    expect(ciclo?.opciones?.map((o) => o.valor)).toEqual(['8', '15'])
+  })
+
+  it('de quién es la despensa se contesta con dos opciones, sin contar cuántos viven', () => {
+    // Preguntar cuántos conviven invita a dividir la nevera entre ellos, y nadie
+    // come un cuarto de la nevera. Si es de la casa, la cantidad no se calcula.
+    const deQuien = CAMPOS.find((c) => c.clave === 'despensaEs')
+
+    expect(deQuien?.opciones?.map((o) => o.valor)).toEqual(['solo_yo', 'toda_la_casa'])
+    expect(deQuien?.tipo).toBe('opcion')
   })
 })

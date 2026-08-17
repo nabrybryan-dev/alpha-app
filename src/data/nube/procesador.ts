@@ -31,6 +31,15 @@ let enVuelo: Promise<void> | null = null
 
 async function ejecutar(op: OperacionPendiente): Promise<void> {
   const sb = supabase()
+  if (op.tipo === 'rpc') {
+    // La función escribe dentro del JSONB en el servidor. Va con `security
+    // invoker`, así que la RLS de la tabla sigue mandando: nadie toca lo que no
+    // es suyo por llamar a una función.
+    if (!op.funcion) throw new Error('operación rpc sin función')
+    const { error } = await sb.rpc(op.funcion, op.payload)
+    if (error) throw new Error(error.message)
+    return
+  }
   if (op.tipo === 'upsert') {
     const { error } = await sb
       .from(op.tabla)

@@ -27,6 +27,11 @@ function identidadDeFila(fila: Record<string, unknown>): string | undefined {
   }
   if (typeof fila.id === 'string') return fila.id
   if (typeof fila.usuario_id === 'string') return fila.usuario_id
+  // Las tablas de nutrición llaman `asesorado_id` a lo que el resto llama
+  // `usuario_id`. Sin esta línea sus operaciones pendientes se resolvían a
+  // `undefined` y el bucle de abajo las SALTABA en silencio: la fusión parecía
+  // estar puesta y no fusionaba nada.
+  if (typeof fila.asesorado_id === 'string') return fila.asesorado_id
   return undefined
 }
 

@@ -126,7 +126,14 @@ type Freno = (p: Peticion) => boolean
 /** La lectura de la tabla `hidratacion`: el punto donde se frena la hidratación. */
 const LECTURA_HIDRATACION: Freno = (p) => p.metodo === 'GET' && tablaDe(p.url) === 'hidratacion'
 /** La subida del microciclo a la cola: se queda en vuelo, como en el gimnasio. */
-const SUBIDA_MICROCICLO: Freno = (p) => p.metodo === 'POST' && tablaDe(p.url) === 'microciclos'
+/**
+ * La subida de lo que el asesorado hace en el microciclo. Desde el 2026-08-15
+ * viaja como llamada a `fijar_series_ejercicio` en vez de como upsert de la
+ * tabla: el móvil ya no manda el blob entero. Ver el spec del 15 de agosto.
+ */
+const SUBIDA_MICROCICLO: Freno = (p) =>
+  p.metodo === 'POST' &&
+  (tablaDe(p.url) === 'microciclos' || tablaDe(p.url).startsWith('rpc/fijar_'))
 
 /** Suelta con datos del servidor todo lo pendiente salvo lo que retenga el freno. */
 function soltarLecturas(peticiones: Peticion[], retener: Freno = () => false): number {
@@ -257,12 +264,16 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
    *
    * Tras el borrado del test anterior, la serie 1 sigue viva en la cola de
    * sync, así que "solo" era un susto visual. Pero Valentina registra la serie
-   * 2: `subirMicrociclo` reconstruye el payload leyendo el estado local YA
-   * PISADO (sin la serie 1) y `integrarEnCola` REEMPLAZA la operación pendiente
-   * que sí la tenía.
+   * 2: la subida reconstruye el payload leyendo el estado local, y
+   * `integrarEnCola` REEMPLAZA la operación pendiente que sí tenía la serie 1.
    *
-   * Resultado: la serie 1 no está en el móvil, no está en la cola y nunca
-   * llegará al servidor. Ni reintento, ni descarte, ni error.
+   * Si el estado local estuviera pisado, la serie 1 no estaría en el móvil, ni
+   * en la cola, y nunca llegaría al servidor. Ni reintento, ni descarte, ni
+   * error.
+   *
+   * El colapso de operaciones sigue existiendo tras pasar a escrituras
+   * quirúrgicas (`claveRpc` junta las del mismo ejercicio), así que esta red
+   * hace falta igual: lo que la sostiene es que el local NO se pise.
    */
   it('la serie borrada por el snapshot NO debe desaparecer también de la cola de sync', async () => {
     const { hidratar, sync, db } = await appEnModoNube()
@@ -285,8 +296,8 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(2, 42.5))
 
     const opMicrociclo = colaEnDisco().find((o) => o.tabla === 'microciclos')
-    const subiran = seriesDe(opMicrociclo?.payload.datos as Microciclo | undefined)
-    expect(subiran).toEqual([1, 2])
+    const series = (opMicrociclo?.payload.p_series ?? []) as { orden: number }[]
+    expect(series.map((s) => s.orden)).toEqual([1, 2])
   })
 })
 

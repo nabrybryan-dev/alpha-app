@@ -167,6 +167,24 @@ describe('proponerMicrociclo', () => {
     expect(p.sinDatos).toBe(1)
   })
 
+  /**
+   * ❌ EN ROJO A PROPÓSITO. `OpcionesOndulacion.cargaPrescritaKg` existe para
+   * ondular sobre lo que ya está programado cuando todavía no hay nada
+   * registrado, pero se le pasaba `ejercicio.series[0]?.cargaKg` — que es
+   * `undefined` exactamente en ese caso. El ancla de reserva no podía entrar
+   * nunca, y era código muerto desde que se escribió.
+   *
+   * Ahora que la carga es un campo, el ancla existe de verdad: un asesorado que
+   * no registró la semana recibe propuesta sobre lo pautado en vez de un «sin
+   * datos». Que no registrara se sigue avisando aparte, en `revisarActivacion`.
+   */
+  it('ondula sobre la carga pautada cuando no hay ninguna serie registrada', () => {
+    const soloPautado = ejercicio({ series: [], cargaKg: 60, unidadCarga: 'kg' })
+    const p = proponerMicrociclo(micro({ sesiones: [sesion({ ejercicios: [soloPautado] })] }))
+    expect(p.sinDatos).toBe(0)
+    expect(p.filas[0].direccion).not.toBe('sin-datos')
+  })
+
   it('con PRS bajo sostiene la carga en vez de progresar', () => {
 
     const conPrsBajo = micro({
@@ -283,6 +301,41 @@ describe('microcicloPropuesto', () => {
   it('la fecha elegida manda sobre hoy, aunque hoy sea posterior', () => {
     const p = microcicloPropuesto(conRegistro, { fechaInicio: '2026-09-07', hoy: '2026-12-01' })
     expect(p.fechaInicio).toBe('2026-09-07')
+  })
+
+  /**
+   * ❌ EN ROJO A PROPÓSITO. El microciclo propuesto se construía con `...e`, así
+   * que `seriesPrescritas` traía las cargas nuevas y `prescripcion` seguía
+   * siendo la frase de la semana anterior. El asesorado abría M23 leyendo los
+   * kilos de M22 mientras el stepper le proponía otros, y el texto es lo único
+   * que mira antes de cargar la barra.
+   *
+   * Ahora la frase se **compone** desde los campos, que es exactamente para lo
+   * que está `componerPrescripcion`. Y su nota —prosa suya, con contexto real
+   * dentro— viaja intacta al microciclo nuevo: no la reescribe nadie.
+   */
+  it('compone la prescripción con la ondulación nueva y conserva la nota del coach', () => {
+    const NOTA = 'CONSOLIDA LOS 48 QUE MOVISTE LA SEMANA PASADA.'
+    const conTextoViejo = ejercicio({
+      prescripcion: `50KG A 10 REPS; 3 SERIES (RIR 2). ${NOTA}`,
+      cargaKg: 50,
+      unidadCarga: 'kg',
+      notaCoach: NOTA,
+      series: [
+        { orden: 1, cargaKg: 50, reps: 10, rir: 2 },
+        { orden: 2, cargaKg: 50, reps: 10, rir: 2 },
+        { orden: 3, cargaKg: 50, reps: 10, rir: 2 },
+      ],
+    })
+    const ej = microcicloPropuesto(
+      micro({ numero: 22, sesiones: [sesion({ ejercicios: [conTextoViejo] })] }),
+    ).sesiones[0].ejercicios[0]
+
+    expect(ej.prescripcion).toMatch(/^ONDULACIÓN ASCENDENTE:/)
+    expect(ej.prescripcion).not.toContain('50KG A 10 REPS')
+    expect(ej.prescripcion).toContain(NOTA)
+    // Y el campo numérico no se queda con la carga de la semana que se cierra.
+    expect(ej.cargaKg).toBe(ej.seriesPrescritas![0].cargaKg)
   })
 
   it('no ondula las metabólicas, pero tampoco las pierde', () => {

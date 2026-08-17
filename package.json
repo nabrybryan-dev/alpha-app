@@ -15,7 +15,8 @@
     "publicar-fichas": "vite-node scripts/publicar-fichas.mjs",
     "calibrar-umbrales": "vite-node scripts/calibrar-umbrales.mjs",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "rellenar-carga": "vite-node scripts/rellenar-carga.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
@@ -37,6 +38,7 @@
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^17.8.0",
     "jimp": "^1.6.1",
     "jsdom": "^25.0.1",

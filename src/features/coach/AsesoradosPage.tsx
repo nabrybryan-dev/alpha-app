@@ -6,6 +6,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import { resumenAsesorado } from './resumenAsesorado'
 import { PanelMicrociclos } from './PanelMicrociclos'
+import { SaludDeDatos } from './SaludDeDatos'
 
 const ordenColor = { rojo: 0, ambar: 1, verde: 2 } as const
 
@@ -59,6 +60,10 @@ export default function AsesoradosPage() {
           </Link>
         </div>
       </section>
+
+      {/* Antes que la cartera: si un canal de datos se cayó, lo que se lee más
+          abajo está incompleto y conviene saberlo antes de interpretarlo. */}
+      <SaludDeDatos />
 
       <PanelMicrociclos />
 

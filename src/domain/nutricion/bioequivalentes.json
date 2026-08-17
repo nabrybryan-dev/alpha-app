@@ -1,0 +1,8931 @@
+{
+"anclas": {
+"carbohidratos": "carbos_g",
+"frutas": "carbos_g",
+"grasas": "grasa_g",
+"lacteos": "proteina_g",
+"leguminosas": "carbos_g",
+"proteinas": "proteina_g",
+"vegetales": "fibra_g"
+},
+"en_pantalla": 5,
+"cambios": {
+"aguacate-comun-criollo-papelillo-tipo-antillano": {
+"porcion": 150,
+"opciones": [
+{
+"id": "nueces-nuez-de-nogal",
+"g": 22
+},
+{
+"id": "coco-fresco",
+"g": 45
+},
+{
+"id": "semillas-de-girasol-pepas-de-girasol",
+"g": 31
+},
+{
+"id": "aguacate-hass",
+"g": 74
+},
+{
+"id": "maranon-nuez-de-la-india",
+"g": 39
+},
+{
+"id": "almendras-crudas",
+"g": 30
+},
+{
+"id": "mani-crudo",
+"g": 35
+},
+{
+"id": "omega-3-en-capsula-aceite-de-pescado",
+"g": 15
+}
+]
+},
+"aguacate-lorena-crudo": {
+"porcion": 150,
+"opciones": [
+{
+"id": "chontaduro-crudo",
+"g": 81
+},
+{
+"id": "aguacate-hass-crudo",
+"g": 76
+},
+{
+"id": "ruibarbo-crudo",
+"g": 319
+},
+{
+"id": "granadilla-cruda",
+"g": 57
+},
+{
+"id": "tomate-de-arbol-rojo-crudo",
+"g": 62
+},
+{
+"id": "breva-verde-cruda",
+"g": 61
+},
+{
+"id": "lulo-crudo",
+"g": 96
+},
+{
+"id": "feijoa-crudo",
+"g": 54
+},
+{
+"id": "babaco-verde-crudo",
+"g": 69
+},
+{
+"id": "papayuela-cruda",
+"g": 134
+}
+]
+},
+"aji-dulce-crudo": {
+"porcion": 15,
+"opciones": [
+{
+"id": "pepino-cohombro-crudo",
+"g": 39
+},
+{
+"id": "repollo-morado-crudo",
+"g": 13
+},
+{
+"id": "pimenton-rojo-crudo",
+"g": 16
+},
+{
+"id": "cebolla-junca-hojas-cruda",
+"g": 13
+},
+{
+"id": "nabo-sin-cascara-crudo",
+"g": 17
+},
+{
+"id": "remolacha-sin-cascara-cruda",
+"g": 10
+},
+{
+"id": "arveja-verde-cruda",
+"g": 5
+},
+{
+"id": "cebolla-junca-tallos-cruda",
+"g": 14
+},
+{
+"id": "guatila-sin-cascara-cruda",
+"g": 16
+},
+{
+"id": "repollo-blanco-crudo",
+"g": 10
+}
+]
+},
+"aji-rojo-crudo": {
+"porcion": 15,
+"opciones": [
+{
+"id": "papa-variedad-harinosa-pastusa-sin-cascara-cruda",
+"g": 12
+},
+{
+"id": "papa-variedad-harinosa-pastusa-con-cascara-cruda",
+"g": 12
+},
+{
+"id": "ajo-crudo",
+"g": 8
+},
+{
+"id": "papa-variedad-cerosa-sabanera-con-cascara-cruda",
+"g": 14
+},
+{
+"id": "platano-espermo-maduro-crudo",
+"g": 10
+},
+{
+"id": "arracacha-blanca-sin-cascara-cruda",
+"g": 11
+},
+{
+"id": "arracacha-morada-sin-cascara-cruda",
+"g": 11
+},
+{
+"id": "platano-maritu-maduro-crudo",
+"g": 10
+},
+{
+"id": "platano-harton-maduro-crudo",
+"g": 10
+},
+{
+"id": "platano-africa-maduro-crudo",
+"g": 10
+}
+]
+},
+"ajonjoli": {
+"porcion": 9,
+"opciones": [
+{
+"id": "semillas-de-chia",
+"g": 14
+}
+]
+},
+"ajonjoli-o-sesamo-crudo": {
+"porcion": 9,
+"opciones": [
+{
+"id": "mani-con-piel-crudo",
+"g": 8
+},
+{
+"id": "soya-cruda",
+"g": 4
+},
+{
+"id": "harina-de-soya-con-grasa-cruda",
+"g": 3
+},
+{
+"id": "lenteja-real-cruda",
+"g": 2
+},
+{
+"id": "frijol-radical-crudo",
+"g": 2
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 2
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 2
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 2
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 2
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 1
+}
+]
+},
+"almeja-de-agua-dulce-cruda": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "bocachico-sin-cabeza-crudo",
+"g": 69
+},
+{
+"id": "merluza-filete-crudo",
+"g": 76
+},
+{
+"id": "camaron-crudo",
+"g": 69
+},
+{
+"id": "lenguado-entero-crudo",
+"g": 84
+},
+{
+"id": "pulpo-crudo",
+"g": 94
+},
+{
+"id": "mero-entero-crudo",
+"g": 72
+},
+{
+"id": "pargo-rojo-crudo",
+"g": 68
+},
+{
+"id": "pavo-pechuga-sin-piel-cruda",
+"g": 58
+},
+{
+"id": "tilapia-o-mojarra-entera-cruda",
+"g": 70
+},
+{
+"id": "tilapia-o-mojarra-roja-cruda",
+"g": 70
+}
+]
+},
+"almendra-seca": {
+"porcion": 25,
+"opciones": [
+{
+"id": "nuez-de-brasil-seca",
+"g": 18
+},
+{
+"id": "macadamia-seca",
+"g": 2
+},
+{
+"id": "coco-deshidratado",
+"g": 2
+},
+{
+"id": "maranon-seco",
+"g": 8
+},
+{
+"id": "datil-seco",
+"g": 1
+},
+{
+"id": "uva-deshidratada",
+"g": 1
+},
+{
+"id": "mango-tommy-atkins-crudo",
+"g": 2
+}
+]
+},
+"almendras-crudas": {
+"porcion": 25,
+"opciones": [
+{
+"id": "semillas-de-girasol-pepas-de-girasol",
+"g": 26
+},
+{
+"id": "aguacate-hass",
+"g": 63
+},
+{
+"id": "mani-crudo",
+"g": 30
+},
+{
+"id": "coco-fresco",
+"g": 38
+},
+{
+"id": "nueces-nuez-de-nogal",
+"g": 18
+},
+{
+"id": "aguacate-comun-criollo-papelillo-tipo-antillano",
+"g": 127
+},
+{
+"id": "maranon-nuez-de-la-india",
+"g": 33
+},
+{
+"id": "omega-3-en-capsula-aceite-de-pescado",
+"g": 13
+}
+]
+},
+"arenque-entero-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "bagre-semigraso-sin-cabeza-crudo",
+"g": 139
+},
+{
+"id": "pollo-entero-con-piel-crudo",
+"g": 119
+},
+{
+"id": "salmon-filete-crudo",
+"g": 106
+},
+{
+"id": "conejo-rinon-crudo",
+"g": 127
+},
+{
+"id": "cordero-corazon-crudo",
+"g": 134
+},
+{
+"id": "higado-de-pollo-crudo",
+"g": 127
+},
+{
+"id": "pavo-pescuezo-o-cuello-sin-piel-crudo",
+"g": 130
+},
+{
+"id": "carne-molida-de-res-90-10-cruda",
+"g": 107
+},
+{
+"id": "pato-carne-cruda",
+"g": 117
+},
+{
+"id": "pollo-pechuga-con-piel-cruda",
+"g": 104
+}
+]
+},
+"arepa-de-maiz": {
+"porcion": 98,
+"opciones": [
+{
+"id": "arepa",
+"g": 98
+},
+{
+"id": "roscon-con-bocadillo",
+"g": 69
+},
+{
+"id": "arequipe",
+"g": 66
+},
+{
+"id": "roscon-con-arequipe",
+"g": 73
+},
+{
+"id": "barra-de-cereal",
+"g": 50
+},
+{
+"id": "pan-alinado",
+"g": 68
+},
+{
+"id": "galleta-de-sal",
+"g": 49
+},
+{
+"id": "galleta-maria",
+"g": 52
+},
+{
+"id": "oblea-con-arequipe",
+"g": 60
+},
+{
+"id": "arroz-con-coco",
+"g": 138
+}
+]
+},
+"arepa-de-maiz-precocido-con-sal": {
+"porcion": 98,
+"opciones": [
+{
+"id": "arroz-integral-cocido-sin-sal",
+"g": 45
+},
+{
+"id": "arroz-integral-cocido",
+"g": 131
+},
+{
+"id": "arroz-blanco-cocido",
+"g": 119
+},
+{
+"id": "mojicon-horneado",
+"g": 53
+},
+{
+"id": "cebada-perlada-cocida",
+"g": 118
+},
+{
+"id": "pan-blanco-tipo-molde-horneado",
+"g": 60
+},
+{
+"id": "papa-cocida-con-cascara-sin-sal",
+"g": 166
+},
+{
+"id": "batata-cocida-sin-cascara",
+"g": 189
+},
+{
+"id": "pan-frances-horneado",
+"g": 57
+},
+{
+"id": "name-cocido",
+"g": 122
+}
+]
+},
+"armadillo-carne-cruda": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "cerdo-brazo-crudo",
+"g": 171
+},
+{
+"id": "corvina-de-mar-filete-crudo",
+"g": 196
+},
+{
+"id": "carne-de-res-magra-posta-o-bola-de-pierna-cruda",
+"g": 153
+},
+{
+"id": "bonito-sin-cabeza-crudo",
+"g": 145
+},
+{
+"id": "res-pajarilla-o-bazo-cruda",
+"g": 189
+},
+{
+"id": "cerdo-rinon-crudo",
+"g": 215
+},
+{
+"id": "cachama-sin-cabeza-cruda",
+"g": 192
+},
+{
+"id": "sierra-entera-cruda",
+"g": 160
+},
+{
+"id": "muslo-de-pollo-sin-piel-crudo",
+"g": 177
+},
+{
+"id": "res-rinon-crudo",
+"g": 228
+}
+]
+},
+"arroz-blanco-cocido": {
+"porcion": 150,
+"opciones": [
+{
+"id": "papa-cocida-con-cascara-sin-sal",
+"g": 210
+},
+{
+"id": "batata-cocida-sin-cascara",
+"g": 238
+},
+{
+"id": "cebada-perlada-cocida",
+"g": 150
+},
+{
+"id": "name-cocido",
+"g": 154
+},
+{
+"id": "arepa-de-maiz-precocido-con-sal",
+"g": 124
+},
+{
+"id": "platano-verde-cocido",
+"g": 145
+},
+{
+"id": "arroz-integral-cocido-sin-sal",
+"g": 57
+},
+{
+"id": "arroz-integral-cocido",
+"g": 165
+},
+{
+"id": "mojicon-horneado",
+"g": 67
+},
+{
+"id": "pan-blanco-tipo-molde-horneado",
+"g": 75
+}
+]
+},
+"arroz-con-pollo": {
+"porcion": 352,
+"opciones": [
+{
+"id": "batido-ganador-de-peso-casero",
+"g": 357
+},
+{
+"id": "sanduche-submarino-de-pollo-sub",
+"g": 303
+},
+{
+"id": "arroz-chino-de-casa",
+"g": 382
+},
+{
+"id": "pizza-de-queso",
+"g": 194
+},
+{
+"id": "pasta-con-carne-molida",
+"g": 343
+},
+{
+"id": "pizza-hawaiana",
+"g": 230
+},
+{
+"id": "arepa-con-queso",
+"g": 206
+},
+{
+"id": "hamburguesa-sencilla",
+"g": 219
+},
+{
+"id": "sushi-roll-california",
+"g": 320
+},
+{
+"id": "galleta-integral",
+"g": 93
+}
+]
+},
+"atun-enlatado-en-aceite": {
+"porcion": 90,
+"opciones": [
+{
+"id": "sardinas-enlatadas-en-salsa-de-tomate",
+"g": 110
+},
+{
+"id": "sardinas-enlatadas-en-aceite",
+"g": 93
+},
+{
+"id": "salmon-enlatado-en-aceite",
+"g": 106
+},
+{
+"id": "sardina-en-lata-con-espina-en-salsa-de-tomate-escurrida",
+"g": 110
+},
+{
+"id": "atun-en-lata-en-agua-escurrido",
+"g": 121
+},
+{
+"id": "atun-enlatado-en-agua",
+"g": 95
+}
+]
+},
+"avena-en-hojuelas-peso-en-seco": {
+"porcion": 40,
+"opciones": [
+{
+"id": "avena-instantanea-peso-en-seco",
+"g": 39
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 41
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 40
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 38
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 35
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 35
+},
+{
+"id": "milo-en-polvo",
+"g": 31
+},
+{
+"id": "batido-sustituto-de-comida-en-polvo",
+"g": 41
+},
+{
+"id": "avena-en-hojuelas-precocida",
+"g": 50
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 35
+}
+]
+},
+"avena-en-hojuelas-precocida": {
+"porcion": 40,
+"opciones": [
+{
+"id": "avena-en-hojuelas-peso-en-seco",
+"g": 32
+},
+{
+"id": "avena-instantanea-peso-en-seco",
+"g": 31
+},
+{
+"id": "batido-sustituto-de-comida-en-polvo",
+"g": 33
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 33
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 32
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 28
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 31
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 28
+},
+{
+"id": "milo-en-polvo",
+"g": 25
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 28
+}
+]
+},
+"avena-instantanea-peso-en-seco": {
+"porcion": 40,
+"opciones": [
+{
+"id": "avena-en-hojuelas-peso-en-seco",
+"g": 41
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 42
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 41
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 36
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 36
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 40
+},
+{
+"id": "milo-en-polvo",
+"g": 32
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 36
+},
+{
+"id": "batido-sustituto-de-comida-en-polvo",
+"g": 42
+},
+{
+"id": "avena-en-hojuelas-precocida",
+"g": 51
+}
+]
+},
+"avena-preparada-con-leche": {
+"porcion": 250,
+"opciones": [
+{
+"id": "calentado",
+"g": 198
+},
+{
+"id": "arroz-con-huevo",
+"g": 210
+},
+{
+"id": "pan-alinado",
+"g": 89
+},
+{
+"id": "mogolla-integral",
+"g": 98
+},
+{
+"id": "arepa",
+"g": 128
+},
+{
+"id": "arepa-de-maiz",
+"g": 128
+},
+{
+"id": "cereal-con-leche",
+"g": 254
+},
+{
+"id": "arequipe",
+"g": 86
+},
+{
+"id": "roscon-con-bocadillo",
+"g": 91
+},
+{
+"id": "barra-de-cereal",
+"g": 66
+}
+]
+},
+"azucar": {
+"porcion": 5,
+"opciones": [
+{
+"id": "panela",
+"g": 6
+},
+{
+"id": "cereal-de-hojuelas-de-maiz",
+"g": 6
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 6
+},
+{
+"id": "milo-en-polvo",
+"g": 6
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 6
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 6
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 7
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 7
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 8
+},
+{
+"id": "avena-instantanea-peso-en-seco",
+"g": 7
+}
+]
+},
+"babilla-carne-cruda": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "chiguiro-pierna-o-pernil-cruda",
+"g": 168
+},
+{
+"id": "res-pata-cruda",
+"g": 131
+},
+{
+"id": "pavo-pechuga-sin-piel-cruda",
+"g": 152
+},
+{
+"id": "pargo-rojo-crudo",
+"g": 180
+},
+{
+"id": "mero-entero-crudo",
+"g": 190
+},
+{
+"id": "pulpo-crudo",
+"g": 248
+},
+{
+"id": "huevo-de-gallina-clara-crudo",
+"g": 342
+},
+{
+"id": "merluza-filete-crudo",
+"g": 202
+},
+{
+"id": "camaron-crudo",
+"g": 182
+},
+{
+"id": "clara-de-huevo-cruda",
+"g": 339
+}
+]
+},
+"banano": {
+"porcion": 118,
+"opciones": [
+{
+"id": "yuca-cruda-pelada-pesar-en-crudo",
+"g": 71
+},
+{
+"id": "platano-maduro-crudo-pelado",
+"g": 87
+},
+{
+"id": "harina-de-arroz-cruda",
+"g": 35
+},
+{
+"id": "arroz-blanco-pulido-crudo",
+"g": 34
+},
+{
+"id": "almidon-de-maiz-crudo",
+"g": 30
+},
+{
+"id": "harina-de-trigo-fortificada-para-reposteria-cruda",
+"g": 37
+},
+{
+"id": "harina-de-centeno-para-reposteria-cruda",
+"g": 38
+},
+{
+"id": "maiz-tierno-crudo",
+"g": 97
+},
+{
+"id": "harina-de-cebada-cruda",
+"g": 41
+},
+{
+"id": "maiz-blanco-crudo",
+"g": 38
+}
+]
+},
+"banano-comun-crudo": {
+"porcion": 118,
+"opciones": [
+{
+"id": "toronja-cruda",
+"g": 236
+},
+{
+"id": "guama-cruda",
+"g": 190
+},
+{
+"id": "tamarindo-crudo",
+"g": 34
+},
+{
+"id": "harina-de-chontaduro-cruda",
+"g": 29
+},
+{
+"id": "anon-crudo",
+"g": 97
+},
+{
+"id": "durazno-crudo",
+"g": 210
+},
+{
+"id": "uva-blanca-cruda",
+"g": 300
+},
+{
+"id": "mangostino-crudo",
+"g": 154
+},
+{
+"id": "cereza-cruda",
+"g": 106
+},
+{
+"id": "curuba-cruda",
+"g": 275
+}
+]
+},
+"barra-de-proteina": {
+"porcion": 50,
+"opciones": [
+{
+"id": "sudado-de-pollo",
+"g": 149
+},
+{
+"id": "dedos-de-pollo",
+"g": 79
+},
+{
+"id": "sudado-de-carne",
+"g": 122
+},
+{
+"id": "pechuga-de-pollo-apanada-broaster",
+"g": 64
+},
+{
+"id": "cuajada-proxy-requeson-semidescremado",
+"g": 133
+},
+{
+"id": "pollo-apanado",
+"g": 58
+},
+{
+"id": "higado-encebollado",
+"g": 84
+},
+{
+"id": "mojarra-frita",
+"g": 66
+},
+{
+"id": "chuleta-de-cerdo-apanada",
+"g": 63
+},
+{
+"id": "pincho-de-res",
+"g": 106
+}
+]
+},
+"batido-de-banano-en-leche": {
+"porcion": 310,
+"opciones": [
+{
+"id": "jugo-de-guanabana-en-leche",
+"g": 317
+},
+{
+"id": "yogur-bebible-de-fruta",
+"g": 274
+},
+{
+"id": "jugo-de-mora-en-leche",
+"g": 304
+},
+{
+"id": "jugo-de-guayaba-en-leche",
+"g": 262
+},
+{
+"id": "ensure-suplemento-liquido-listo-para-tomar",
+"g": 196
+},
+{
+"id": "cafe-con-leche",
+"g": 451
+},
+{
+"id": "kumis",
+"g": 228
+},
+{
+"id": "avena-en-caja",
+"g": 204
+},
+{
+"id": "chocolate-caliente-en-leche",
+"g": 233
+},
+{
+"id": "chocolate-con-leche",
+"g": 225
+}
+]
+},
+"batido-sustituto-de-comida-en-polvo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 30
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 26
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 26
+},
+{
+"id": "cereal-de-hojuelas-de-maiz",
+"g": 23
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 28
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 30
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 26
+},
+{
+"id": "panela",
+"g": 22
+},
+{
+"id": "milo-en-polvo",
+"g": 23
+},
+{
+"id": "avena-en-hojuelas-peso-en-seco",
+"g": 29
+}
+]
+},
+"bebida-energizante-red-bull": {
+"porcion": 258,
+"opciones": [
+{
+"id": "salsa-de-tomate-ketchup",
+"g": 96
+},
+{
+"id": "refajo",
+"g": 333
+},
+{
+"id": "refresco-de-fruta-en-caja-tipo-hit",
+"g": 197
+},
+{
+"id": "bocadillo-veleno",
+"g": 38
+},
+{
+"id": "mermelada",
+"g": 38
+},
+{
+"id": "salsa-agridulce",
+"g": 69
+},
+{
+"id": "malta-pony-malta",
+"g": 194
+},
+{
+"id": "limonada",
+"g": 293
+},
+{
+"id": "salsa-bbq",
+"g": 65
+},
+{
+"id": "agua-de-panela-con-limon",
+"g": 349
+}
+]
+},
+"bebida-hidratante": {
+"porcion": 609,
+"opciones": [
+{
+"id": "bebida-hidratante-gatorade",
+"g": 609
+},
+{
+"id": "bebida-energizante",
+"g": 348
+},
+{
+"id": "gaseosa-de-naranja-o-colombiana",
+"g": 318
+},
+{
+"id": "agua-de-panela",
+"g": 359
+},
+{
+"id": "miel",
+"g": 48
+},
+{
+"id": "bocadillo-veleno",
+"g": 57
+},
+{
+"id": "mermelada",
+"g": 57
+},
+{
+"id": "salsa-agridulce",
+"g": 102
+},
+{
+"id": "refresco-de-fruta-en-caja-tipo-hit",
+"g": 292
+},
+{
+"id": "gaseosa-de-cola",
+"g": 378
+}
+]
+},
+"bebida-hidratante-gatorade": {
+"porcion": 609,
+"opciones": [
+{
+"id": "bebida-hidratante",
+"g": 609
+},
+{
+"id": "bebida-energizante",
+"g": 348
+},
+{
+"id": "gaseosa-de-naranja-o-colombiana",
+"g": 318
+},
+{
+"id": "agua-de-panela",
+"g": 359
+},
+{
+"id": "miel",
+"g": 48
+},
+{
+"id": "bocadillo-veleno",
+"g": 57
+},
+{
+"id": "mermelada",
+"g": 57
+},
+{
+"id": "salsa-agridulce",
+"g": 102
+},
+{
+"id": "refresco-de-fruta-en-caja-tipo-hit",
+"g": 292
+},
+{
+"id": "gaseosa-de-cola",
+"g": 378
+}
+]
+},
+"berro-crudo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "acelga-hojas-cruda",
+"g": 21
+},
+{
+"id": "espinaca-cruda",
+"g": 23
+},
+{
+"id": "lechuga-romana-cruda",
+"g": 29
+},
+{
+"id": "acelga-tallos-cruda",
+"g": 43
+},
+{
+"id": "esparrago-crudo",
+"g": 29
+},
+{
+"id": "col-o-repollitas-de-bruselas-cruda",
+"g": 16
+},
+{
+"id": "calabaza-sin-cascara-cruda",
+"g": 21
+},
+{
+"id": "lechuga-comun-cruda",
+"g": 35
+},
+{
+"id": "alcachofa-cruda",
+"g": 12
+},
+{
+"id": "coliflor-crudo",
+"g": 25
+}
+]
+},
+"brocoli-crudo": {
+"porcion": 80,
+"opciones": [
+{
+"id": "arveja-verde-cruda",
+"g": 39
+},
+{
+"id": "col-o-repollitas-de-bruselas-cruda",
+"g": 55
+},
+{
+"id": "esparrago-crudo",
+"g": 99
+},
+{
+"id": "repollo-blanco-crudo",
+"g": 80
+},
+{
+"id": "coliflor-crudo",
+"g": 87
+},
+{
+"id": "colinabo-sin-cascara-crudo",
+"g": 87
+},
+{
+"id": "habichuela-cruda",
+"g": 69
+},
+{
+"id": "pimenton-verde-crudo",
+"g": 110
+},
+{
+"id": "acelga-cruda",
+"g": 130
+},
+{
+"id": "repollo-morado-crudo",
+"g": 99
+}
+]
+},
+"cabra-o-chivo-carne-cocida-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 114
+},
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 97
+},
+{
+"id": "res-churrasco-asado-sin-sal",
+"g": 98
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 93
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 105
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 124
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 111
+},
+{
+"id": "cerdo-lomo-cocido-sin-sal",
+"g": 93
+},
+{
+"id": "pavo-pechuga-sin-piel-horneada-sin-sal",
+"g": 108
+},
+{
+"id": "jaiba-o-cangrejo-azul-cocida-sin-sal",
+"g": 170
+}
+]
+},
+"cafe-con-leche": {
+"porcion": 250,
+"opciones": [
+{
+"id": "kumis",
+"g": 126
+},
+{
+"id": "jugo-de-guayaba-en-leche",
+"g": 145
+},
+{
+"id": "jugo-de-mora-en-leche",
+"g": 168
+},
+{
+"id": "yogur-bebible-de-fruta",
+"g": 152
+},
+{
+"id": "chocolate-con-leche",
+"g": 125
+},
+{
+"id": "avena-en-caja",
+"g": 113
+},
+{
+"id": "chocolate-caliente-en-leche",
+"g": 129
+},
+{
+"id": "ensure-suplemento-liquido-listo-para-tomar",
+"g": 109
+},
+{
+"id": "jugo-de-guanabana-en-leche",
+"g": 176
+},
+{
+"id": "batido-de-banano-en-leche",
+"g": 172
+}
+]
+},
+"calentado": {
+"porcion": 249,
+"opciones": [
+{
+"id": "arroz-con-huevo",
+"g": 263
+},
+{
+"id": "avena-preparada-con-leche",
+"g": 314
+},
+{
+"id": "pan-alinado",
+"g": 112
+},
+{
+"id": "mogolla-integral",
+"g": 123
+},
+{
+"id": "arepa",
+"g": 161
+},
+{
+"id": "arepa-de-maiz",
+"g": 161
+},
+{
+"id": "cereal-con-leche",
+"g": 319
+},
+{
+"id": "arequipe",
+"g": 108
+},
+{
+"id": "barra-de-cereal",
+"g": 82
+},
+{
+"id": "galleta-de-sal",
+"g": 81
+}
+]
+},
+"caracol-de-mar-crudo": {
+"porcion": 100,
+"opciones": [
+{
+"id": "camaron-crudo",
+"g": 117
+},
+{
+"id": "mero-entero-crudo",
+"g": 123
+},
+{
+"id": "almeja-de-agua-dulce-cruda",
+"g": 170
+},
+{
+"id": "pulpo-crudo",
+"g": 160
+},
+{
+"id": "pargo-rojo-crudo",
+"g": 116
+},
+{
+"id": "bocachico-sin-cabeza-crudo",
+"g": 118
+},
+{
+"id": "res-pata-cruda",
+"g": 84
+},
+{
+"id": "merluza-filete-crudo",
+"g": 130
+},
+{
+"id": "pavo-pechuga-sin-piel-cruda",
+"g": 98
+},
+{
+"id": "clara-de-huevo-cruda",
+"g": 218
+}
+]
+},
+"carne-asada-churrasco": {
+"porcion": 150,
+"opciones": [
+{
+"id": "lomo-de-cerdo-asado",
+"g": 154
+},
+{
+"id": "pollo-pierna-o-colombina-sin-piel-cocida-sin-sal",
+"g": 176
+},
+{
+"id": "cerdo-pierna-o-pernil-horneada-sin-sal",
+"g": 150
+},
+{
+"id": "bocachico-entero-cocido-sin-sal",
+"g": 219
+},
+{
+"id": "cerdo-brazo-cocido-sin-sal",
+"g": 164
+},
+{
+"id": "pollo-contramuslo-sin-piel-cocido-sin-sal",
+"g": 178
+},
+{
+"id": "bagre-magro-entero-cocido-sin-sal",
+"g": 242
+},
+{
+"id": "pollo-pechuga-con-piel-cocida-sin-sal",
+"g": 164
+},
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 164
+},
+{
+"id": "res-pajarilla-o-bazo-dorada-sin-sal",
+"g": 169
+}
+]
+},
+"carne-de-res-magra-posta-o-bola-de-pierna-cruda": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "corvina-de-mar-filete-crudo",
+"g": 153
+},
+{
+"id": "bonito-sin-cabeza-crudo",
+"g": 114
+},
+{
+"id": "cerdo-brazo-crudo",
+"g": 134
+},
+{
+"id": "res-pajarilla-o-bazo-cruda",
+"g": 148
+},
+{
+"id": "cerdo-rinon-crudo",
+"g": 168
+},
+{
+"id": "carite-entero-crudo",
+"g": 147
+},
+{
+"id": "cachama-sin-cabeza-cruda",
+"g": 151
+},
+{
+"id": "sierra-entera-cruda",
+"g": 125
+},
+{
+"id": "res-rinon-crudo",
+"g": 178
+},
+{
+"id": "muslo-de-pollo-sin-piel-crudo",
+"g": 139
+}
+]
+},
+"carne-molida-guisada": {
+"porcion": 166,
+"opciones": [
+{
+"id": "carne-desmechada",
+"g": 155
+},
+{
+"id": "huevos-revueltos",
+"g": 281
+},
+{
+"id": "mojarra-frita",
+"g": 122
+},
+{
+"id": "huevo-frito",
+"g": 206
+},
+{
+"id": "tortilla-de-huevo",
+"g": 265
+},
+{
+"id": "chorizo",
+"g": 145
+},
+{
+"id": "pechuga-de-pollo-apanada-broaster",
+"g": 119
+},
+{
+"id": "chuleta-de-cerdo-apanada",
+"g": 116
+},
+{
+"id": "pincho-de-pollo",
+"g": 126
+},
+{
+"id": "alitas-bbq",
+"g": 146
+}
+]
+},
+"cebada-perlada-cruda": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "harina-de-trigo-integral-cruda",
+"g": 57
+},
+{
+"id": "trigo-duro-crudo",
+"g": 56
+},
+{
+"id": "trigo-blando-crudo",
+"g": 56
+},
+{
+"id": "semolina-sin-enriquecer-cruda",
+"g": 50
+},
+{
+"id": "harina-de-trigo-fortificada-para-panificacion-cruda",
+"g": 49
+},
+{
+"id": "harina-de-cebada-cruda",
+"g": 52
+},
+{
+"id": "semolina-enriquecida-cruda",
+"g": 50
+},
+{
+"id": "harina-de-trigo-fortificada-todo-proposito-cruda",
+"g": 49
+},
+{
+"id": "pasta-alimenticia-enriquecida-cruda",
+"g": 48
+},
+{
+"id": "pasta-alimenticia-sin-enriquecer-cruda",
+"g": 48
+}
+]
+},
+"cerdo-carne-magra-cruda": {
+"porcion": 120,
+"opciones": [
+{
+"id": "conejo-carne-cruda",
+"g": 128
+},
+{
+"id": "cerdo-pierna-o-pernil-cruda",
+"g": 125
+},
+{
+"id": "res-callo-o-menudo-crudo",
+"g": 176
+},
+{
+"id": "pierna-o-pernil-de-cerdo-magro-crudo",
+"g": 125
+},
+{
+"id": "lomo-de-cerdo-magro-crudo",
+"g": 120
+},
+{
+"id": "falda-de-res-para-sudar-o-asar-cruda",
+"g": 118
+},
+{
+"id": "trucha-entera-cruda",
+"g": 129
+},
+{
+"id": "machuelo-o-moncholo-sin-cabeza-crudo",
+"g": 135
+},
+{
+"id": "trucha-de-mar-entera-cruda",
+"g": 124
+},
+{
+"id": "macabi-o-machete-entero-crudo",
+"g": 125
+}
+]
+},
+"cerdo-higado-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "cordero-rinon-crudo",
+"g": 143
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 116
+},
+{
+"id": "lisa-sin-cabeza-cruda",
+"g": 143
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 115
+},
+{
+"id": "cordero-higado-crudo",
+"g": 126
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 118
+},
+{
+"id": "lisa-sin-cabeza-salada-cruda",
+"g": 118
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 121
+},
+{
+"id": "pollo-higado-crudo",
+"g": 149
+},
+{
+"id": "res-bofe-o-pulmon-crudo",
+"g": 155
+}
+]
+},
+"cerdo-lomo-cocido-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pavo-pechuga-sin-piel-horneada-sin-sal",
+"g": 140
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 161
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 136
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 144
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 148
+},
+{
+"id": "camaron-cocido-sin-sal",
+"g": 179
+},
+{
+"id": "jaiba-o-cangrejo-azul-cocida-sin-sal",
+"g": 220
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 155
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 155
+},
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 161
+}
+]
+},
+"cerdo-lomo-crudo": {
+"porcion": 120,
+"opciones": [
+{
+"id": "cabra-o-chivo-carne-cruda",
+"g": 126
+},
+{
+"id": "bagre-magro-sin-cabeza-crudo",
+"g": 148
+},
+{
+"id": "langosta-cruda",
+"g": 160
+},
+{
+"id": "ternera-carne-magra-cruda",
+"g": 118
+},
+{
+"id": "lenguado-entero-crudo",
+"g": 155
+},
+{
+"id": "pollo-molleja-cruda",
+"g": 146
+},
+{
+"id": "pechuga-de-pollo-sin-piel-cruda",
+"g": 115
+},
+{
+"id": "calamar-crudo",
+"g": 158
+},
+{
+"id": "res-bofe-o-pulmon-crudo",
+"g": 156
+},
+{
+"id": "robalo-o-gualajo-entero-crudo",
+"g": 141
+}
+]
+},
+"cerdo-lomo-horneado-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pavo-pechuga-sin-piel-horneada-sin-sal",
+"g": 140
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 161
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 148
+},
+{
+"id": "jaiba-o-cangrejo-azul-cocida-sin-sal",
+"g": 220
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 136
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 155
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 144
+},
+{
+"id": "camaron-cocido-sin-sal",
+"g": 179
+},
+{
+"id": "res-churrasco-asado-sin-sal",
+"g": 127
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 142
+}
+]
+},
+"cerdo-panceta-o-tocineta-cocida-sin-sal": {
+"porcion": 40,
+"opciones": [
+{
+"id": "huevo-de-gallina-entero-cocido-sin-sal",
+"g": 120
+},
+{
+"id": "huevo-de-gallina-entero-tibio-sin-sal",
+"g": 120
+},
+{
+"id": "pollo-ala-con-piel-asada-sin-sal",
+"g": 66
+},
+{
+"id": "res-sobrebarriga-cocida-sin-sal",
+"g": 64
+},
+{
+"id": "cerdo-costilla-horneada-sin-sal",
+"g": 64
+},
+{
+"id": "pollo-contramuslo-con-piel-cocido-sin-sal",
+"g": 68
+},
+{
+"id": "cachama-entera-frita-con-sal",
+"g": 58
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cocida-sin-sal",
+"g": 68
+},
+{
+"id": "pollo-ala-con-piel-cocida-sin-sal",
+"g": 69
+},
+{
+"id": "cerdo-costilla-cocida-sin-sal",
+"g": 53
+}
+]
+},
+"cerdo-rinon-crudo": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "res-pajarilla-o-bazo-cruda",
+"g": 88
+},
+{
+"id": "bonito-sin-cabeza-crudo",
+"g": 68
+},
+{
+"id": "corvina-de-mar-filete-crudo",
+"g": 91
+},
+{
+"id": "carne-de-res-magra-posta-o-bola-de-pierna-cruda",
+"g": 71
+},
+{
+"id": "cerdo-brazo-crudo",
+"g": 80
+},
+{
+"id": "res-rinon-crudo",
+"g": 106
+},
+{
+"id": "carite-entero-crudo",
+"g": 87
+},
+{
+"id": "pechuga-de-pollo-sin-piel-cruda",
+"g": 72
+},
+{
+"id": "cachama-sin-cabeza-cruda",
+"g": 90
+},
+{
+"id": "sierra-entera-cruda",
+"g": 74
+}
+]
+},
+"cerdo-tocino-frito-en-su-propia-grasa-chicharron-con-sal": {
+"porcion": 35,
+"opciones": [
+{
+"id": "res-sesos-cocidos-sin-sal",
+"g": 62
+},
+{
+"id": "huevo-de-gallina-entero-frito-sin-sal",
+"g": 43
+},
+{
+"id": "res-chunchullo-dorado-sin-sal",
+"g": 30
+},
+{
+"id": "pollo-ala-con-piel-frita-con-sal",
+"g": 28
+},
+{
+"id": "huevo-de-gallina-entero-revuelto-con-sal",
+"g": 71
+},
+{
+"id": "res-higado-dorado-sin-sal",
+"g": 28
+},
+{
+"id": "cerdo-panceta-o-tocineta-salteada-sin-sal",
+"g": 32
+},
+{
+"id": "res-corazon-dorado-sin-sal",
+"g": 26
+},
+{
+"id": "res-higado-asado-sin-sal",
+"g": 25
+},
+{
+"id": "res-callo-o-menudo-cocido-sin-sal",
+"g": 48
+}
+]
+},
+"cereal-de-hojuelas-de-maiz": {
+"porcion": 28,
+"opciones": [
+{
+"id": "maiz-blanco-trillado",
+"g": 32
+},
+{
+"id": "panela",
+"g": 27
+},
+{
+"id": "milo-en-polvo",
+"g": 28
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 32
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 35
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 32
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 37
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 37
+},
+{
+"id": "avena-instantanea-peso-en-seco",
+"g": 35
+},
+{
+"id": "batido-sustituto-de-comida-en-polvo",
+"g": 37
+}
+]
+},
+"champinon-blanco-crudo": {
+"porcion": 80,
+"opciones": [
+{
+"id": "acelga-cruda",
+"g": 86
+},
+{
+"id": "coliflor-cruda",
+"g": 70
+},
+{
+"id": "brocoli-crudo",
+"g": 53
+},
+{
+"id": "arveja-verde-cruda",
+"g": 26
+},
+{
+"id": "pepino-cohombro-crudo",
+"g": 196
+},
+{
+"id": "cebolla-larga-junca-cruda",
+"g": 53
+},
+{
+"id": "cebolla-junca-hojas-cruda",
+"g": 65
+},
+{
+"id": "repollo-morado-crudo",
+"g": 65
+},
+{
+"id": "tomate-crudo",
+"g": 114
+},
+{
+"id": "cebolla-junca-tallos-cruda",
+"g": 69
+}
+]
+},
+"chicharron-de-paquete": {
+"porcion": 30,
+"opciones": [
+{
+"id": "tocineta-frita",
+"g": 27
+},
+{
+"id": "chicharron",
+"g": 18
+},
+{
+"id": "mayonesa",
+"g": 12
+},
+{
+"id": "margarina",
+"g": 12
+},
+{
+"id": "salsa-de-ajo",
+"g": 14
+},
+{
+"id": "margarina-light-untable",
+"g": 25
+},
+{
+"id": "crema-de-leche",
+"g": 27
+},
+{
+"id": "aderezo-cesar",
+"g": 16
+},
+{
+"id": "vinagreta-aceite-y-vinagre",
+"g": 19
+},
+{
+"id": "chimichurri",
+"g": 19
+}
+]
+},
+"chocolate-en-agua": {
+"porcion": 220,
+"opciones": [
+{
+"id": "tajada-de-platano-maduro",
+"g": 38
+},
+{
+"id": "patacon",
+"g": 32
+},
+{
+"id": "galleta-de-avena",
+"g": 22
+},
+{
+"id": "brownie",
+"g": 24
+},
+{
+"id": "galleta-rellena-de-crema-tipo-oreo",
+"g": 22
+},
+{
+"id": "torta-de-vainilla",
+"g": 28
+},
+{
+"id": "patacon-con-hogao",
+"g": 47
+},
+{
+"id": "galleta-wafer",
+"g": 22
+},
+{
+"id": "barra-de-granola-con-chocolate",
+"g": 22
+},
+{
+"id": "yuca-frita",
+"g": 46
+}
+]
+},
+"chorizo-de-cerdo-y-res-crudo": {
+"porcion": 90,
+"opciones": [
+{
+"id": "res-lengua-cruda",
+"g": 132
+},
+{
+"id": "huevo-de-pata-entero-crudo",
+"g": 167
+},
+{
+"id": "huevo-de-pava-entero-crudo",
+"g": 158
+},
+{
+"id": "res-costilla-cruda",
+"g": 127
+},
+{
+"id": "trucha-recortes-crudos",
+"g": 133
+},
+{
+"id": "huevo-de-codorniz-entero-crudo",
+"g": 167
+},
+{
+"id": "huevo-de-gallina-entero-crudo",
+"g": 172
+},
+{
+"id": "pollo-ala-con-piel-cruda",
+"g": 124
+},
+{
+"id": "gallina-entera-con-piel-cruda",
+"g": 115
+},
+{
+"id": "cordero-carne-semigorda-cruda",
+"g": 119
+}
+]
+},
+"chorizo-de-pollo-crudo": {
+"porcion": 90,
+"opciones": [
+{
+"id": "trucha-de-mar-entera-cruda",
+"g": 135
+},
+{
+"id": "trucha-arcoiris-de-cultivo-cruda",
+"g": 141
+},
+{
+"id": "trucha-entera-cruda",
+"g": 142
+},
+{
+"id": "falda-de-res-para-sudar-o-asar-cruda",
+"g": 130
+},
+{
+"id": "pollo-contramuslo-sin-piel-crudo",
+"g": 149
+},
+{
+"id": "res-callo-o-menudo-crudo",
+"g": 193
+},
+{
+"id": "bocachico-sin-cabeza-salado-crudo",
+"g": 166
+},
+{
+"id": "lomo-de-cerdo-magro-crudo",
+"g": 132
+},
+{
+"id": "pierna-o-pernil-de-cerdo-magro-crudo",
+"g": 138
+},
+{
+"id": "pavo-entero-con-piel-crudo",
+"g": 135
+}
+]
+},
+"cilantro-crudo": {
+"porcion": 5,
+"opciones": [
+{
+"id": "col-o-repollitas-de-bruselas-cruda",
+"g": 4
+},
+{
+"id": "repollo-blanco-crudo",
+"g": 5
+},
+{
+"id": "coliflor-crudo",
+"g": 6
+},
+{
+"id": "esparrago-crudo",
+"g": 7
+},
+{
+"id": "perejil-crudo",
+"g": 4
+},
+{
+"id": "colinabo-sin-cascara-crudo",
+"g": 6
+},
+{
+"id": "habichuela-cruda",
+"g": 5
+},
+{
+"id": "ocra-cruda",
+"g": 4
+},
+{
+"id": "guatila-sin-cascara-cruda",
+"g": 8
+},
+{
+"id": "acelga-hojas-cruda",
+"g": 5
+}
+]
+},
+"coco-deshidratado": {
+"porcion": 30,
+"opciones": [
+{
+"id": "macadamia-seca",
+"g": 27
+},
+{
+"id": "maranon-seco",
+"g": 122
+},
+{
+"id": "datil-seco",
+"g": 18
+},
+{
+"id": "uva-deshidratada",
+"g": 18
+},
+{
+"id": "mango-tommy-atkins-crudo",
+"g": 27
+}
+]
+},
+"col-o-repollitas-de-bruselas-cruda": {
+"porcion": 80,
+"opciones": [
+{
+"id": "coliflor-crudo",
+"g": 127
+},
+{
+"id": "esparrago-crudo",
+"g": 145
+},
+{
+"id": "repollo-blanco-crudo",
+"g": 117
+},
+{
+"id": "colinabo-sin-cascara-crudo",
+"g": 127
+},
+{
+"id": "habichuela-cruda",
+"g": 101
+},
+{
+"id": "acelga-hojas-cruda",
+"g": 109
+},
+{
+"id": "ocra-cruda",
+"g": 95
+},
+{
+"id": "brocoli-crudo",
+"g": 117
+},
+{
+"id": "rabano-sin-cascara-crudo",
+"g": 190
+},
+{
+"id": "acelga-tallos-cruda",
+"g": 217
+}
+]
+},
+"col-silvestre-cruda": {
+"porcion": 80,
+"opciones": [
+{
+"id": "ajo-crudo",
+"g": 23
+},
+{
+"id": "aji-rojo-crudo",
+"g": 43
+},
+{
+"id": "papa-variedad-cerosa-sabanera-con-cascara-cruda",
+"g": 40
+},
+{
+"id": "papa-variedad-harinosa-pastusa-sin-cascara-cruda",
+"g": 34
+},
+{
+"id": "papa-variedad-harinosa-pastusa-con-cascara-cruda",
+"g": 36
+},
+{
+"id": "champinon-crudo",
+"g": 64
+},
+{
+"id": "platano-maritu-maduro-crudo",
+"g": 28
+},
+{
+"id": "platano-espermo-maduro-crudo",
+"g": 28
+},
+{
+"id": "platano-africa-maduro-crudo",
+"g": 28
+},
+{
+"id": "platano-dominico-maduro-crudo",
+"g": 27
+}
+]
+},
+"colageno-en-polvo": {
+"porcion": 15,
+"opciones": [
+{
+"id": "pescado-seco-crudo",
+"g": 20
+},
+{
+"id": "proteina-de-caseina-en-polvo",
+"g": 16
+},
+{
+"id": "proteina-en-polvo-whey",
+"g": 16
+},
+{
+"id": "proteina-vegetal-en-polvo-base-soya",
+"g": 23
+},
+{
+"id": "huevo-de-gallina-entero-en-polvo",
+"g": 27
+}
+]
+},
+"conejo-carne-cocida-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-lomo-cocido-sin-sal",
+"g": 101
+},
+{
+"id": "pollo-pechuga-con-piel-cocida-sin-sal",
+"g": 136
+},
+{
+"id": "pavo-entero-con-piel-horneado-sin-sal",
+"g": 129
+},
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 127
+},
+{
+"id": "bocachico-entero-cocido-sin-sal",
+"g": 182
+},
+{
+"id": "cerdo-brazo-cocido-sin-sal",
+"g": 136
+},
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 136
+},
+{
+"id": "cerdo-pierna-o-pernil-horneada-sin-sal",
+"g": 124
+},
+{
+"id": "pollo-pierna-o-colombina-sin-piel-cocida-sin-sal",
+"g": 146
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 123
+}
+]
+},
+"conejo-higado-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-corazon-crudo",
+"g": 128
+},
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 91
+},
+{
+"id": "pollo-higado-crudo",
+"g": 125
+},
+{
+"id": "cordero-higado-crudo",
+"g": 106
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 101
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 97
+},
+{
+"id": "res-higado-crudo",
+"g": 105
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 98
+},
+{
+"id": "higado-de-pollo-crudo",
+"g": 127
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 96
+}
+]
+},
+"conejo-rinon-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "higado-de-pollo-crudo",
+"g": 120
+},
+{
+"id": "pavo-pescuezo-o-cuello-sin-piel-crudo",
+"g": 123
+},
+{
+"id": "pato-carne-cruda",
+"g": 111
+},
+{
+"id": "bagre-semigraso-sin-cabeza-crudo",
+"g": 131
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 93
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 95
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 90
+},
+{
+"id": "macabi-o-machete-entero-crudo",
+"g": 99
+},
+{
+"id": "lisa-sin-cabeza-cruda",
+"g": 113
+},
+{
+"id": "conejo-carne-cruda",
+"g": 101
+}
+]
+},
+"cordero-corazon-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "salmon-filete-crudo",
+"g": 95
+},
+{
+"id": "pollo-pechuga-con-piel-cruda",
+"g": 93
+},
+{
+"id": "carne-molida-de-res-90-10-cruda",
+"g": 96
+},
+{
+"id": "res-hueso-carnudo-crudo",
+"g": 91
+},
+{
+"id": "pollo-entero-con-piel-crudo",
+"g": 106
+},
+{
+"id": "res-carne-semigorda-molida-cruda",
+"g": 98
+},
+{
+"id": "pavo-entero-con-piel-crudo",
+"g": 92
+},
+{
+"id": "bocachico-sin-cabeza-salado-crudo",
+"g": 113
+},
+{
+"id": "pollo-contramuslo-sin-piel-crudo",
+"g": 102
+},
+{
+"id": "arenque-entero-crudo",
+"g": 107
+}
+]
+},
+"cordero-higado-crudo": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 92
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 95
+},
+{
+"id": "pollo-higado-crudo",
+"g": 118
+},
+{
+"id": "higado-de-pollo-crudo",
+"g": 120
+},
+{
+"id": "cerdo-higado-crudo",
+"g": 95
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 93
+},
+{
+"id": "cordero-rinon-crudo",
+"g": 113
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 91
+},
+{
+"id": "res-corazon-crudo",
+"g": 121
+},
+{
+"id": "lisa-sin-cabeza-cruda",
+"g": 113
+}
+]
+},
+"cordero-rinon-crudo": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "cerdo-higado-crudo",
+"g": 84
+},
+{
+"id": "lisa-sin-cabeza-cruda",
+"g": 100
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 80
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 81
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 83
+},
+{
+"id": "lisa-sin-cabeza-salada-cruda",
+"g": 83
+},
+{
+"id": "cordero-higado-crudo",
+"g": 89
+},
+{
+"id": "res-bofe-o-pulmon-crudo",
+"g": 108
+},
+{
+"id": "res-rinon-crudo",
+"g": 118
+},
+{
+"id": "carite-entero-crudo",
+"g": 97
+}
+]
+},
+"ensalada-de-la-casa": {
+"porcion": 136,
+"opciones": [
+{
+"id": "hogao",
+"g": 96
+}
+]
+},
+"espinaca-cruda": {
+"porcion": 40,
+"opciones": [
+{
+"id": "berro-crudo",
+"g": 52
+},
+{
+"id": "acelga-hojas-cruda",
+"g": 37
+},
+{
+"id": "lechuga-romana-cruda",
+"g": 50
+},
+{
+"id": "lechuga-comun-cruda",
+"g": 61
+},
+{
+"id": "esparrago-crudo",
+"g": 50
+},
+{
+"id": "alcachofa-cruda",
+"g": 20
+},
+{
+"id": "calabaza-sin-cascara-cruda",
+"g": 36
+},
+{
+"id": "acelga-tallos-cruda",
+"g": 74
+},
+{
+"id": "berenjena-con-cascara-cruda",
+"g": 35
+},
+{
+"id": "col-o-repollitas-de-bruselas-cruda",
+"g": 27
+}
+]
+},
+"fresa-madura-cruda": {
+"porcion": 100,
+"opciones": [
+{
+"id": "fresa-pintona-cruda",
+"g": 121
+},
+{
+"id": "higo-pinton-crudo",
+"g": 66
+},
+{
+"id": "higo-verde-crudo",
+"g": 71
+},
+{
+"id": "breva-madura-cruda",
+"g": 98
+},
+{
+"id": "zapote-comun-crudo",
+"g": 77
+},
+{
+"id": "granada-cruda",
+"g": 57
+},
+{
+"id": "guayaba-pintona-cruda",
+"g": 65
+},
+{
+"id": "uchuva-cruda",
+"g": 69
+},
+{
+"id": "lima-cruda",
+"g": 166
+},
+{
+"id": "higo-maduro-crudo",
+"g": 93
+}
+]
+},
+"fresa-pintona-cruda": {
+"porcion": 100,
+"opciones": [
+{
+"id": "fresa-madura-cruda",
+"g": 82
+},
+{
+"id": "breva-madura-cruda",
+"g": 81
+},
+{
+"id": "uchuva-cruda",
+"g": 57
+},
+{
+"id": "higo-pinton-crudo",
+"g": 54
+},
+{
+"id": "babaco-maduro-crudo",
+"g": 87
+},
+{
+"id": "mora",
+"g": 54
+},
+{
+"id": "higo-verde-crudo",
+"g": 58
+},
+{
+"id": "zapote-comun-crudo",
+"g": 63
+},
+{
+"id": "breva-verde-cruda",
+"g": 63
+},
+{
+"id": "papayuela-cruda",
+"g": 137
+}
+]
+},
+"frijol-blanco-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 56
+},
+{
+"id": "frijol-nima-crudo",
+"g": 66
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 60
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 65
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 65
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 71
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 68
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 72
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 69
+},
+{
+"id": "lenteja-real-cruda",
+"g": 74
+}
+]
+},
+"frijol-bola-roja-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-sangretoro-crudo",
+"g": 56
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 57
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 54
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 54
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 58
+},
+{
+"id": "lenteja-real-cruda",
+"g": 61
+},
+{
+"id": "frijol-nima-crudo",
+"g": 54
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 50
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 65
+},
+{
+"id": "frijol-radical-crudo",
+"g": 66
+}
+]
+},
+"frijol-cabecita-negra-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-radical-crudo",
+"g": 61
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 57
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 53
+},
+{
+"id": "lenteja-real-cruda",
+"g": 56
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 55
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 52
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 50
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 54
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 50
+},
+{
+"id": "frijol-nima-crudo",
+"g": 50
+}
+]
+},
+"frijol-canavalia-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-nima-crudo",
+"g": 60
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 62
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 66
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 56
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 55
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 60
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 63
+},
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 52
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 65
+},
+{
+"id": "lenteja-real-cruda",
+"g": 68
+}
+]
+},
+"frijol-caraota-o-negro-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 63
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 55
+},
+{
+"id": "frijol-radical-crudo",
+"g": 64
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 58
+},
+{
+"id": "lenteja-real-cruda",
+"g": 59
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 54
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 56
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 52
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 52
+},
+{
+"id": "frijol-nima-crudo",
+"g": 53
+}
+]
+},
+"frijol-cargamanto-cranberry-borlotti-cocido": {
+"porcion": 150,
+"opciones": [
+{
+"id": "frijol-rojo-kidney-cocido",
+"g": 161
+},
+{
+"id": "haba-cocida",
+"g": 187
+},
+{
+"id": "frijol-negro-cocido",
+"g": 155
+},
+{
+"id": "frijol-blanco-cocido",
+"g": 146
+},
+{
+"id": "arveja-verde-cocida",
+"g": 235
+},
+{
+"id": "frijol-cargamanto-rojo-cocido-sin-sal",
+"g": 190
+},
+{
+"id": "lenteja-comun-cocida-sin-sal",
+"g": 306
+},
+{
+"id": "garbanzo-cocido-sin-sal",
+"g": 296
+}
+]
+},
+"frijol-cargamanto-rojo-cocido-sin-sal": {
+"porcion": 150,
+"opciones": [
+{
+"id": "frijol-negro-cocido",
+"g": 122
+},
+{
+"id": "haba-cocida",
+"g": 147
+},
+{
+"id": "frijol-rojo-kidney-cocido",
+"g": 127
+},
+{
+"id": "frijol-cargamanto-cranberry-borlotti-cocido",
+"g": 118
+},
+{
+"id": "frijol-blanco-cocido",
+"g": 115
+},
+{
+"id": "arveja-verde-cocida",
+"g": 185
+},
+{
+"id": "lenteja-comun-cocida-sin-sal",
+"g": 241
+},
+{
+"id": "garbanzo-cocido-sin-sal",
+"g": 234
+}
+]
+},
+"frijol-cargamanto-rojo-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-bola-roja-crudo",
+"g": 63
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 59
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 68
+},
+{
+"id": "frijol-radical-crudo",
+"g": 70
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 57
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 61
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 65
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 57
+},
+{
+"id": "lenteja-real-cruda",
+"g": 64
+},
+{
+"id": "frijol-nima-crudo",
+"g": 57
+}
+]
+},
+"frijol-cargamanto-rosado-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-blanco-crudo",
+"g": 64
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 64
+},
+{
+"id": "frijol-nima-crudo",
+"g": 70
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 69
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 70
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 75
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 72
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 77
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 73
+},
+{
+"id": "lenteja-real-cruda",
+"g": 79
+}
+]
+},
+"frijol-guandul-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 56
+},
+{
+"id": "frijol-nima-crudo",
+"g": 65
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 60
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 65
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 67
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 65
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 72
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 69
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 70
+},
+{
+"id": "lenteja-real-cruda",
+"g": 74
+}
+]
+},
+"frijol-mungo-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-sangretoro-crudo",
+"g": 62
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 67
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 65
+},
+{
+"id": "frijol-nima-crudo",
+"g": 60
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 60
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 55
+},
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 52
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 64
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 56
+},
+{
+"id": "lenteja-real-cruda",
+"g": 68
+}
+]
+},
+"frijol-nima-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-canavalia-crudo",
+"g": 60
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 55
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 55
+},
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 52
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 60
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 62
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 66
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 64
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 63
+},
+{
+"id": "lenteja-real-cruda",
+"g": 68
+}
+]
+},
+"frijol-radical-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 59
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 52
+},
+{
+"id": "lenteja-real-cruda",
+"g": 55
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 56
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 54
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 50
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 53
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 49
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 49
+},
+{
+"id": "frijol-nima-crudo",
+"g": 49
+}
+]
+},
+"frijol-sangretoro-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-bola-roja-crudo",
+"g": 64
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 58
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 61
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 58
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 63
+},
+{
+"id": "frijol-nima-crudo",
+"g": 58
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 54
+},
+{
+"id": "lenteja-real-cruda",
+"g": 66
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 53
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 70
+}
+]
+},
+"fruta-picada": {
+"porcion": 220,
+"opciones": [
+{
+"id": "jugo-de-mango-en-agua",
+"g": 280
+},
+{
+"id": "jugo-de-papaya-en-agua",
+"g": 327
+},
+{
+"id": "jugo-de-guanabana-en-agua",
+"g": 239
+},
+{
+"id": "jugo-de-mora-en-agua",
+"g": 317
+},
+{
+"id": "jugo-de-naranja-de-caja",
+"g": 286
+},
+{
+"id": "jugo-de-lulo-en-agua",
+"g": 356
+},
+{
+"id": "jugo-de-maracuya-en-agua",
+"g": 267
+},
+{
+"id": "jugo-de-guayaba-en-agua",
+"g": 261
+}
+]
+},
+"galleta-rellena-de-crema-tipo-oreo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "brownie",
+"g": 33
+},
+{
+"id": "galleta-dulce",
+"g": 32
+},
+{
+"id": "galleta-de-avena",
+"g": 31
+},
+{
+"id": "torta-de-vainilla",
+"g": 38
+},
+{
+"id": "galleta-wafer",
+"g": 30
+},
+{
+"id": "barra-de-granola",
+"g": 32
+},
+{
+"id": "barra-de-granola-natural-sin-cubierta",
+"g": 32
+},
+{
+"id": "papas-a-la-francesa",
+"g": 51
+},
+{
+"id": "barra-de-granola-con-chocolate",
+"g": 30
+},
+{
+"id": "galleta-con-chispas-de-chocolate",
+"g": 33
+}
+]
+},
+"galletas-dulces-sin-relleno": {
+"porcion": 30,
+"opciones": [
+{
+"id": "galletas-dulces-de-avena-con-uvas-pasas",
+"g": 30
+},
+{
+"id": "galletas-saladas-tipo-cracker",
+"g": 30
+},
+{
+"id": "galletas-dulces-tipo-wafer",
+"g": 28
+},
+{
+"id": "galletas-dulces-con-relleno",
+"g": 29
+},
+{
+"id": "galletas-dulces-tipo-polvorosas",
+"g": 27
+},
+{
+"id": "muffins-dulces-con-chips-de-chocolate",
+"g": 46
+},
+{
+"id": "galletas-saladas-tipo-soda",
+"g": 28
+},
+{
+"id": "galleta-de-soda",
+"g": 27
+},
+{
+"id": "cereal-para-el-desayuno-hojuelas-de-maiz-sin-azucar",
+"g": 24
+},
+{
+"id": "tortilla-de-maiz",
+"g": 44
+}
+]
+},
+"garbanzo-crudo": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "harina-de-garbanzo-cruda",
+"g": 57
+},
+{
+"id": "frijol-nima-crudo",
+"g": 62
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 62
+},
+{
+"id": "frijol-guandul-crudo",
+"g": 57
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 57
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 66
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 64
+},
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 54
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 62
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 69
+}
+]
+},
+"granola": {
+"porcion": 40,
+"opciones": [
+{
+"id": "avena-en-hojuelas-precocida",
+"g": 40
+},
+{
+"id": "avena-en-hojuelas-peso-en-seco",
+"g": 32
+},
+{
+"id": "avena-instantanea-peso-en-seco",
+"g": 31
+},
+{
+"id": "batido-sustituto-de-comida-en-polvo",
+"g": 33
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 32
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 32
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 28
+},
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 31
+},
+{
+"id": "harina-de-maiz-masa-seca-para-arepa-o-tortilla",
+"g": 28
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 28
+}
+]
+},
+"guacamole": {
+"porcion": 61.5,
+"opciones": [
+{
+"id": "pesto",
+"g": 22
+},
+{
+"id": "mayonesa-light",
+"g": 41
+},
+{
+"id": "crema-agria",
+"g": 51
+},
+{
+"id": "salsa-tartara",
+"g": 55
+},
+{
+"id": "crema-de-leche",
+"g": 26
+},
+{
+"id": "salsa-rosada",
+"g": 18
+},
+{
+"id": "aderezo-ranch",
+"g": 21
+},
+{
+"id": "aderezo-cesar",
+"g": 16
+},
+{
+"id": "chimichurri",
+"g": 18
+},
+{
+"id": "chicharron",
+"g": 17
+}
+]
+},
+"guayaba": {
+"porcion": 100,
+"opciones": [
+{
+"id": "uchuva",
+"g": 128
+},
+{
+"id": "mora",
+"g": 149
+},
+{
+"id": "fresa-pintona-cruda",
+"g": 275
+},
+{
+"id": "babaco-maduro-crudo",
+"g": 239
+},
+{
+"id": "babaco-pinton-crudo",
+"g": 224
+},
+{
+"id": "babaco-verde-crudo",
+"g": 194
+},
+{
+"id": "fresa-madura-cruda",
+"g": 227
+},
+{
+"id": "maracuya-cruda",
+"g": 117
+},
+{
+"id": "naranja-cruda",
+"g": 166
+},
+{
+"id": "breva-verde-cruda",
+"g": 172
+}
+]
+},
+"guayaba-madura-cruda": {
+"porcion": 100,
+"opciones": [
+{
+"id": "guayaba-pintona-cruda",
+"g": 82
+},
+{
+"id": "mora-de-castilla-cruda",
+"g": 86
+},
+{
+"id": "lima-cruda",
+"g": 210
+},
+{
+"id": "breva-madura-cruda",
+"g": 125
+},
+{
+"id": "guanabana-cruda",
+"g": 133
+},
+{
+"id": "higo-maduro-crudo",
+"g": 118
+},
+{
+"id": "kiwi-crudo",
+"g": 66
+},
+{
+"id": "uchuva-cruda",
+"g": 88
+},
+{
+"id": "higo-verde-crudo",
+"g": 90
+},
+{
+"id": "fresa-madura-cruda",
+"g": 127
+}
+]
+},
+"guayaba-pintona-cruda": {
+"porcion": 100,
+"opciones": [
+{
+"id": "higo-verde-crudo",
+"g": 109
+},
+{
+"id": "guayaba-madura-cruda",
+"g": 121
+},
+{
+"id": "mora-de-castilla-cruda",
+"g": 104
+},
+{
+"id": "kiwi-crudo",
+"g": 80
+},
+{
+"id": "papaya-madura-cruda",
+"g": 156
+},
+{
+"id": "guanabana-cruda",
+"g": 162
+},
+{
+"id": "higo-maduro-crudo",
+"g": 143
+},
+{
+"id": "chirimoya-cruda",
+"g": 54
+},
+{
+"id": "durazno",
+"g": 96
+},
+{
+"id": "gulupa-maracuya-morado-pulpa-con-semillas",
+"g": 42
+}
+]
+},
+"haba-seca-cruda": {
+"porcion": 60,
+"opciones": [
+{
+"id": "arveja-seca-cocida-sin-sal",
+"g": 112
+},
+{
+"id": "arveja-seca-cruda",
+"g": 40
+},
+{
+"id": "arveja-seca-partida-cocida",
+"g": 87
+},
+{
+"id": "guandul-guandu-seco-cocido",
+"g": 79
+}
+]
+},
+"harina-de-algarrobo-cruda": {
+"porcion": 30,
+"opciones": [
+{
+"id": "frijol-guandul-crudo",
+"g": 30
+},
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 28
+},
+{
+"id": "frijol-nima-crudo",
+"g": 32
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 32
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 30
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 34
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 36
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 33
+},
+{
+"id": "garbanzo-crudo",
+"g": 31
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 32
+}
+]
+},
+"harina-de-avena-cruda": {
+"porcion": 40,
+"opciones": [
+{
+"id": "quinua-cruda",
+"g": 40
+},
+{
+"id": "maiz-pira-o-reventon-crudo",
+"g": 41
+},
+{
+"id": "harina-de-centeno-para-panificacion-cruda",
+"g": 44
+},
+{
+"id": "harina-de-trigo-integral-cruda",
+"g": 40
+},
+{
+"id": "cebada-perlada-cruda",
+"g": 42
+},
+{
+"id": "mijo-crudo",
+"g": 38
+},
+{
+"id": "harina-de-maiz-extra-cruda",
+"g": 37
+},
+{
+"id": "maiz-amarillo-crudo",
+"g": 36
+},
+{
+"id": "trigo-duro-crudo",
+"g": 40
+},
+{
+"id": "harina-de-quinua-cruda",
+"g": 35
+}
+]
+},
+"harina-de-maiz-masa-seca-para-arepa-o-tortilla": {
+"porcion": 50,
+"opciones": [
+{
+"id": "harina-de-maiz-amarillo-precocida",
+"g": 54
+},
+{
+"id": "milo-en-polvo",
+"g": 44
+},
+{
+"id": "harina-de-maiz-blanco-precocida",
+"g": 58
+},
+{
+"id": "harina-de-maiz-extra-tostada",
+"g": 50
+},
+{
+"id": "maiz-blanco-trillado",
+"g": 50
+},
+{
+"id": "cereal-de-hojuelas-de-maiz",
+"g": 44
+},
+{
+"id": "mezcla-lista-para-preparar-pancakes-en-polvo",
+"g": 57
+},
+{
+"id": "avena-instantanea-peso-en-seco",
+"g": 55
+},
+{
+"id": "avena-en-hojuelas-peso-en-seco",
+"g": 57
+},
+{
+"id": "panela",
+"g": 42
+}
+]
+},
+"harina-de-platano-cruda": {
+"porcion": 50,
+"opciones": [
+{
+"id": "platano-coli-o-guineo-verde-crudo",
+"g": 112
+},
+{
+"id": "harina-de-papa-comun-cruda",
+"g": 35
+},
+{
+"id": "platano-popocho-verde-crudo",
+"g": 90
+},
+{
+"id": "papa-variedad-harinosa-criolla-con-cascara-cruda",
+"g": 75
+},
+{
+"id": "papa-variedad-harinosa-criolla-sin-cascara-cruda",
+"g": 112
+},
+{
+"id": "arracacha-amarilla-sin-cascara-cruda",
+"g": 75
+},
+{
+"id": "col-silvestre-cruda",
+"g": 56
+},
+{
+"id": "platano-dominico-verde-crudo",
+"g": 41
+},
+{
+"id": "platano-harton-verde-crudo",
+"g": 38
+},
+{
+"id": "frijol-verde-crudo",
+"g": 22
+}
+]
+},
+"harina-de-soya-con-grasa-cruda": {
+"porcion": 30,
+"opciones": [
+{
+"id": "soya-cruda",
+"g": 41
+},
+{
+"id": "frijol-radical-crudo",
+"g": 15
+},
+{
+"id": "lenteja-real-cruda",
+"g": 14
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 15
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 14
+},
+{
+"id": "harina-de-garbanzo-cruda",
+"g": 11
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 14
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 14
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 13
+},
+{
+"id": "garbanzo-crudo",
+"g": 12
+}
+]
+},
+"harina-de-yuca-cruda": {
+"porcion": 50,
+"opciones": [
+{
+"id": "almidon-de-yuca-crudo",
+"g": 50
+},
+{
+"id": "harina-de-platano-cruda",
+"g": 17
+},
+{
+"id": "platano-coli-o-guineo-verde-crudo",
+"g": 38
+},
+{
+"id": "papa-variedad-harinosa-criolla-sin-cascara-cruda",
+"g": 38
+},
+{
+"id": "papa-variedad-harinosa-criolla-con-cascara-cruda",
+"g": 25
+},
+{
+"id": "harina-de-papa-comun-cruda",
+"g": 12
+},
+{
+"id": "platano-popocho-verde-crudo",
+"g": 30
+},
+{
+"id": "arracacha-amarilla-sin-cascara-cruda",
+"g": 25
+},
+{
+"id": "col-silvestre-cruda",
+"g": 19
+},
+{
+"id": "champinon-crudo",
+"g": 15
+}
+]
+},
+"higado-de-pollo-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "cordero-carne-magra-cruda",
+"g": 95
+},
+{
+"id": "conejo-rinon-crudo",
+"g": 120
+},
+{
+"id": "bagre-semigraso-sin-cabeza-crudo",
+"g": 131
+},
+{
+"id": "cordero-higado-crudo",
+"g": 100
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 93
+},
+{
+"id": "cordero-rinon-crudo",
+"g": 113
+},
+{
+"id": "pato-carne-cruda",
+"g": 111
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 92
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 91
+},
+{
+"id": "macabi-o-machete-entero-crudo",
+"g": 99
+}
+]
+},
+"higado-de-res-crudo": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "res-higado-crudo",
+"g": 100
+},
+{
+"id": "conejo-higado-crudo",
+"g": 114
+},
+{
+"id": "res-corazon-crudo",
+"g": 121
+},
+{
+"id": "cerdo-higado-crudo",
+"g": 95
+},
+{
+"id": "cordero-rinon-crudo",
+"g": 113
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 92
+},
+{
+"id": "pollo-higado-crudo",
+"g": 118
+},
+{
+"id": "lisa-sin-cabeza-cruda",
+"g": 113
+},
+{
+"id": "caracol-de-mar-crudo",
+"g": 86
+},
+{
+"id": "lisa-sin-cabeza-salada-cruda",
+"g": 93
+}
+]
+},
+"higado-encebollado": {
+"porcion": 150.0,
+"opciones": [
+{
+"id": "pollo-apanado",
+"g": 103
+},
+{
+"id": "pechuga-de-pollo-apanada-broaster",
+"g": 116
+},
+{
+"id": "mojarra-frita",
+"g": 118
+},
+{
+"id": "pincho-de-pollo",
+"g": 123
+},
+{
+"id": "chuleta-de-cerdo-apanada",
+"g": 113
+},
+{
+"id": "batido-de-proteina-con-leche",
+"g": 234
+},
+{
+"id": "cuajada-proxy-requeson-semidescremado",
+"g": 239
+},
+{
+"id": "pincho-de-res",
+"g": 191
+},
+{
+"id": "sudado-de-carne",
+"g": 219
+},
+{
+"id": "alitas-bbq",
+"g": 142
+}
+]
+},
+"hogao": {
+"porcion": 58,
+"opciones": [
+{
+"id": "ensalada-de-la-casa",
+"g": 82
+}
+]
+},
+"huevo-de-gallina-entero-cocido-sin-sal": {
+"porcion": 100,
+"opciones": [
+{
+"id": "huevo-de-gallina-entero-tibio-sin-sal",
+"g": 100
+},
+{
+"id": "pollo-ala-con-piel-asada-sin-sal",
+"g": 55
+},
+{
+"id": "pollo-contramuslo-con-piel-cocido-sin-sal",
+"g": 57
+},
+{
+"id": "cerdo-panceta-o-tocineta-cocida-sin-sal",
+"g": 33
+},
+{
+"id": "cachama-entera-frita-con-sal",
+"g": 48
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cocida-sin-sal",
+"g": 57
+},
+{
+"id": "pollo-ala-con-piel-cocida-sin-sal",
+"g": 58
+},
+{
+"id": "cerdo-costilla-cocida-sin-sal",
+"g": 44
+},
+{
+"id": "res-sobrebarriga-cocida-sin-sal",
+"g": 54
+},
+{
+"id": "tilapia-o-mojarra-frita-sin-sal",
+"g": 49
+}
+]
+},
+"huevo-de-gallina-entero-crudo": {
+"porcion": 100,
+"opciones": [
+{
+"id": "huevo-de-codorniz-entero-crudo",
+"g": 97
+},
+{
+"id": "pollo-ala-con-piel-cruda",
+"g": 72
+},
+{
+"id": "pollo-contramuslo-con-piel-crudo",
+"g": 74
+},
+{
+"id": "trucha-recortes-crudos",
+"g": 77
+},
+{
+"id": "res-sesos-crudos",
+"g": 117
+},
+{
+"id": "res-carne-semigorda-cruda",
+"g": 58
+},
+{
+"id": "bagre-graso-sin-cabeza-crudo",
+"g": 81
+},
+{
+"id": "pollo-entero-con-piel-crudo",
+"g": 70
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cruda",
+"g": 70
+},
+{
+"id": "res-carne-semigorda-molida-cruda",
+"g": 64
+}
+]
+},
+"huevo-de-gallina-entero-en-polvo": {
+"porcion": 13,
+"opciones": [
+{
+"id": "proteina-de-caseina-en-polvo",
+"g": 8
+},
+{
+"id": "proteina-en-polvo-whey",
+"g": 8
+},
+{
+"id": "pescado-seco-crudo",
+"g": 10
+},
+{
+"id": "colageno-en-polvo",
+"g": 7
+},
+{
+"id": "proteina-vegetal-en-polvo-base-soya",
+"g": 11
+}
+]
+},
+"huevo-de-gallina-entero-revuelto-con-sal": {
+"porcion": 100,
+"opciones": [
+{
+"id": "res-sesos-cocidos-sin-sal",
+"g": 87
+},
+{
+"id": "res-chunchullo-dorado-sin-sal",
+"g": 42
+},
+{
+"id": "huevo-de-gallina-entero-frito-sin-sal",
+"g": 60
+},
+{
+"id": "pollo-ala-con-piel-frita-con-sal",
+"g": 39
+},
+{
+"id": "cerdo-costilla-horneada-sin-sal",
+"g": 42
+},
+{
+"id": "res-sobrebarriga-cocida-sin-sal",
+"g": 42
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-frita-sin-sal",
+"g": 60
+},
+{
+"id": "cerdo-panceta-o-tocineta-salteada-sin-sal",
+"g": 46
+},
+{
+"id": "cerdo-panceta-o-tocineta-cocida-sin-sal",
+"g": 26
+},
+{
+"id": "huevo-de-gallina-entero-cocido-sin-sal",
+"g": 78
+}
+]
+},
+"huevo-de-gallina-entero-tibio-sin-sal": {
+"porcion": 100,
+"opciones": [
+{
+"id": "huevo-de-gallina-entero-cocido-sin-sal",
+"g": 100
+},
+{
+"id": "pollo-ala-con-piel-asada-sin-sal",
+"g": 55
+},
+{
+"id": "pollo-contramuslo-con-piel-cocido-sin-sal",
+"g": 57
+},
+{
+"id": "cachama-entera-frita-con-sal",
+"g": 48
+},
+{
+"id": "cerdo-panceta-o-tocineta-cocida-sin-sal",
+"g": 33
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cocida-sin-sal",
+"g": 57
+},
+{
+"id": "pollo-ala-con-piel-cocida-sin-sal",
+"g": 58
+},
+{
+"id": "cerdo-costilla-cocida-sin-sal",
+"g": 44
+},
+{
+"id": "tilapia-o-mojarra-frita-sin-sal",
+"g": 49
+},
+{
+"id": "pollo-asado",
+"g": 48
+}
+]
+},
+"huevo-de-iguana-entero-crudo": {
+"porcion": 40,
+"opciones": [
+{
+"id": "huevo-de-pata-entero-crudo",
+"g": 46
+},
+{
+"id": "chorizo-de-cerdo-y-res-crudo",
+"g": 25
+},
+{
+"id": "res-lengua-cruda",
+"g": 36
+},
+{
+"id": "huevo-de-pava-entero-crudo",
+"g": 44
+},
+{
+"id": "res-costilla-cruda",
+"g": 35
+},
+{
+"id": "cerdo-carne-semigorda-cruda",
+"g": 35
+},
+{
+"id": "trucha-recortes-crudos",
+"g": 37
+},
+{
+"id": "gallina-entera-con-piel-cruda",
+"g": 32
+},
+{
+"id": "cordero-carne-semigorda-cruda",
+"g": 33
+},
+{
+"id": "res-carne-gorda-cruda",
+"g": 32
+}
+]
+},
+"huevos-revueltos": {
+"porcion": 122,
+"opciones": [
+{
+"id": "queso-campesino-tajada-de-queso",
+"g": 64
+},
+{
+"id": "tortilla-de-huevo",
+"g": 115
+},
+{
+"id": "carne-molida-guisada",
+"g": 72
+},
+{
+"id": "huevo-frito",
+"g": 90
+},
+{
+"id": "chorizo",
+"g": 63
+},
+{
+"id": "carne-desmechada",
+"g": 67
+},
+{
+"id": "mojarra-frita",
+"g": 53
+},
+{
+"id": "huevos-pericos",
+"g": 168
+},
+{
+"id": "pechuga-de-pollo-apanada-broaster",
+"g": 52
+},
+{
+"id": "alitas-bbq",
+"g": 64
+}
+]
+},
+"jaiba-o-cangrejo-azul-cocida-sin-sal": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "camaron-cocido-sin-sal",
+"g": 81
+},
+{
+"id": "pavo-pechuga-sin-piel-horneada-sin-sal",
+"g": 64
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 54
+},
+{
+"id": "cerdo-lomo-cocido-sin-sal",
+"g": 54
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 73
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 67
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 70
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 62
+},
+{
+"id": "raya-filete-asado",
+"g": 61
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 65
+}
+]
+},
+"jamon-de-cerdo-crudo": {
+"porcion": 40,
+"opciones": [
+{
+"id": "res-corazon-crudo",
+"g": 56
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 44
+},
+{
+"id": "pollo-higado-crudo",
+"g": 55
+},
+{
+"id": "higado-de-pollo-crudo",
+"g": 56
+},
+{
+"id": "conejo-higado-crudo",
+"g": 53
+},
+{
+"id": "cordero-higado-crudo",
+"g": 47
+},
+{
+"id": "pollo-menudencias-crudas",
+"g": 54
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 43
+},
+{
+"id": "conejo-rinon-crudo",
+"g": 56
+},
+{
+"id": "macabi-o-machete-entero-crudo",
+"g": 46
+}
+]
+},
+"jugo-de-guayaba-en-agua": {
+"porcion": 260,
+"opciones": [
+{
+"id": "jugo-de-mora-en-agua",
+"g": 316
+},
+{
+"id": "jugo-de-naranja-de-caja",
+"g": 284
+},
+{
+"id": "fruta-picada",
+"g": 219
+},
+{
+"id": "jugo-de-mango-en-agua",
+"g": 278
+},
+{
+"id": "jugo-de-papaya-en-agua",
+"g": 325
+},
+{
+"id": "jugo-de-guanabana-en-agua",
+"g": 238
+},
+{
+"id": "jugo-de-lulo-en-agua",
+"g": 354
+},
+{
+"id": "jugo-de-maracuya-en-agua",
+"g": 266
+}
+]
+},
+"jugo-de-guayaba-en-leche": {
+"porcion": 280,
+"opciones": [
+{
+"id": "jugo-de-mora-en-leche",
+"g": 325
+},
+{
+"id": "cafe-con-leche",
+"g": 482
+},
+{
+"id": "yogur-bebible-de-fruta",
+"g": 293
+},
+{
+"id": "ensure-suplemento-liquido-listo-para-tomar",
+"g": 209
+},
+{
+"id": "kumis",
+"g": 244
+},
+{
+"id": "avena-en-caja",
+"g": 218
+},
+{
+"id": "jugo-de-guanabana-en-leche",
+"g": 338
+},
+{
+"id": "batido-de-banano-en-leche",
+"g": 331
+},
+{
+"id": "chocolate-con-leche",
+"g": 240
+},
+{
+"id": "chocolate-caliente-en-leche",
+"g": 249
+}
+]
+},
+"jugo-de-pina": {
+"porcion": 250,
+"opciones": [
+{
+"id": "durazno-en-almibar-escurrido",
+"g": 175
+},
+{
+"id": "nectar-de-guanabana-en-caja",
+"g": 216
+},
+{
+"id": "nectar-de-mango-en-caja",
+"g": 245
+}
+]
+},
+"kiwi": {
+"porcion": 75,
+"opciones": [
+{
+"id": "gulupa-maracuya-morado-pulpa-con-semillas",
+"g": 45
+},
+{
+"id": "durazno",
+"g": 104
+},
+{
+"id": "sandia",
+"g": 139
+},
+{
+"id": "jugo-de-naranja-natural",
+"g": 101
+},
+{
+"id": "jugo-de-naranja-natural-sin-azucar",
+"g": 101
+},
+{
+"id": "naranja-cruda",
+"g": 122
+},
+{
+"id": "curuba-cruda",
+"g": 125
+},
+{
+"id": "feijoa",
+"g": 69
+},
+{
+"id": "mango",
+"g": 70
+},
+{
+"id": "guanabana",
+"g": 62
+}
+]
+},
+"kiwi-crudo": {
+"porcion": 75,
+"opciones": [
+{
+"id": "chirimoya-cruda",
+"g": 50
+},
+{
+"id": "naranja-cruda",
+"g": 106
+},
+{
+"id": "papaya-madura-cruda",
+"g": 146
+},
+{
+"id": "guanabana-cruda",
+"g": 151
+},
+{
+"id": "ciruela-comun-cruda",
+"g": 104
+},
+{
+"id": "mandarina-cruda",
+"g": 94
+},
+{
+"id": "tamarindo-crudo",
+"g": 13
+},
+{
+"id": "toronja-cruda",
+"g": 93
+},
+{
+"id": "higo-verde-crudo",
+"g": 102
+},
+{
+"id": "gulupa-maracuya-morado-pulpa-con-semillas",
+"g": 39
+}
+]
+},
+"leche-baja-en-grasa-1": {
+"porcion": 200,
+"opciones": [
+{
+"id": "yogur-natural-semidescremado",
+"g": 129
+},
+{
+"id": "leche-de-vaca-descremada-liquida-pasteurizada",
+"g": 205
+},
+{
+"id": "leche-semidescremada-2",
+"g": 202
+},
+{
+"id": "yogur-natural-descremado",
+"g": 160
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-con-crema",
+"g": 54
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-sin-crema",
+"g": 49
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-parmesano",
+"g": 19
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 211
+},
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 95
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 27
+}
+]
+},
+"leche-de-vaca-descremada-en-polvo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "leche-de-vaca-entera-en-polvo",
+"g": 41
+}
+]
+},
+"leche-de-vaca-descremada-liquida-pasteurizada": {
+"porcion": 200,
+"opciones": [
+{
+"id": "yogur-natural-descremado",
+"g": 156
+},
+{
+"id": "yogur-natural-semidescremado",
+"g": 126
+},
+{
+"id": "leche-baja-en-grasa-1",
+"g": 195
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-sin-crema",
+"g": 48
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-con-crema",
+"g": 53
+},
+{
+"id": "leche-semidescremada-2",
+"g": 197
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-parmesano",
+"g": 18
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 206
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 26
+},
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 93
+}
+]
+},
+"leche-de-vaca-entera-en-polvo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "leche-de-vaca-descremada-en-polvo",
+"g": 22
+}
+]
+},
+"leche-de-vaca-entera-liquida-pasteurizada": {
+"porcion": 200,
+"opciones": [
+{
+"id": "leche-de-cabra",
+"g": 180
+},
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 90
+},
+{
+"id": "yogur-natural-entero",
+"g": 167
+},
+{
+"id": "leche-semidescremada-2",
+"g": 191
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 26
+},
+{
+"id": "yogur-natural-semidescremado",
+"g": 122
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-camembert",
+"g": 32
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-roquefort",
+"g": 29
+},
+{
+"id": "leche-baja-en-grasa-1",
+"g": 189
+},
+{
+"id": "queso-crema-amarillo",
+"g": 39
+}
+]
+},
+"leche-en-polvo-descremada": {
+"porcion": 30,
+"opciones": [
+{
+"id": "leche-de-vaca-descremada-en-polvo",
+"g": 30
+},
+{
+"id": "leche-de-vaca-entera-en-polvo",
+"g": 41
+}
+]
+},
+"leche-en-polvo-entera": {
+"porcion": 30,
+"opciones": [
+{
+"id": "leche-de-vaca-entera-en-polvo",
+"g": 30
+},
+{
+"id": "leche-de-vaca-descremada-en-polvo",
+"g": 22
+}
+]
+},
+"lenteja-comun-cocida-sin-sal": {
+"porcion": 150,
+"opciones": [
+{
+"id": "frijol-cargamanto-rojo-cocido-sin-sal",
+"g": 93
+},
+{
+"id": "frijol-negro-cocido",
+"g": 76
+},
+{
+"id": "haba-cocida",
+"g": 92
+},
+{
+"id": "frijol-rojo-kidney-cocido",
+"g": 79
+},
+{
+"id": "frijol-cargamanto-cranberry-borlotti-cocido",
+"g": 74
+},
+{
+"id": "frijol-blanco-cocido",
+"g": 72
+},
+{
+"id": "arveja-verde-cocida",
+"g": 115
+},
+{
+"id": "garbanzo-cocido-sin-sal",
+"g": 145
+}
+]
+},
+"lenteja-comun-cruda": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-mungo-crudo",
+"g": 55
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 62
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 57
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 59
+},
+{
+"id": "frijol-blanco-crudo",
+"g": 51
+},
+{
+"id": "lenteja-real-cruda",
+"g": 63
+},
+{
+"id": "frijol-nima-crudo",
+"g": 56
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 56
+},
+{
+"id": "frijol-cargamanto-rosado-crudo",
+"g": 48
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 67
+}
+]
+},
+"lenteja-real-cruda": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "frijol-bola-roja-crudo",
+"g": 59
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 57
+},
+{
+"id": "frijol-radical-crudo",
+"g": 65
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 64
+},
+{
+"id": "frijol-sangretoro-crudo",
+"g": 55
+},
+{
+"id": "frijol-mungo-crudo",
+"g": 53
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 56
+},
+{
+"id": "frijol-nima-crudo",
+"g": 53
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 61
+},
+{
+"id": "frijol-canavalia-crudo",
+"g": 53
+}
+]
+},
+"lomo-de-cerdo-asado": {
+"porcion": 120,
+"opciones": [
+{
+"id": "carne-asada-churrasco",
+"g": 117
+},
+{
+"id": "pollo-pierna-o-colombina-sin-piel-cocida-sin-sal",
+"g": 137
+},
+{
+"id": "cerdo-pierna-o-pernil-horneada-sin-sal",
+"g": 117
+},
+{
+"id": "bocachico-entero-cocido-sin-sal",
+"g": 171
+},
+{
+"id": "cerdo-brazo-cocido-sin-sal",
+"g": 128
+},
+{
+"id": "pollo-contramuslo-sin-piel-cocido-sin-sal",
+"g": 139
+},
+{
+"id": "bagre-magro-entero-cocido-sin-sal",
+"g": 188
+},
+{
+"id": "pollo-pechuga-con-piel-cocida-sin-sal",
+"g": 127
+},
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 127
+},
+{
+"id": "cerdo-brazo-horneado-sin-sal",
+"g": 128
+}
+]
+},
+"mango": {
+"porcion": 165,
+"opciones": [
+{
+"id": "feijoa",
+"g": 162
+},
+{
+"id": "guanabana",
+"g": 147
+},
+{
+"id": "jugo-de-naranja-natural",
+"g": 238
+},
+{
+"id": "jugo-de-naranja-natural-sin-azucar",
+"g": 238
+},
+{
+"id": "pepino-dulce-pinton-crudo",
+"g": 374
+},
+{
+"id": "sandia",
+"g": 327
+},
+{
+"id": "gulupa-madura-cruda",
+"g": 145
+},
+{
+"id": "gulupa-verde-cruda",
+"g": 189
+},
+{
+"id": "cereza-cruda",
+"g": 113
+},
+{
+"id": "durazno",
+"g": 245
+}
+]
+},
+"mango-tommy-atkins-crudo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "uva-deshidratada",
+"g": 20
+},
+{
+"id": "datil-seco",
+"g": 20
+},
+{
+"id": "maranon-seco",
+"g": 137
+},
+{
+"id": "macadamia-seca",
+"g": 30
+},
+{
+"id": "coco-deshidratado",
+"g": 34
+}
+]
+},
+"mani-salado": {
+"porcion": 25,
+"opciones": [
+{
+"id": "salsa-de-queso",
+"g": 93
+},
+{
+"id": "mezcla-de-nueces-de-paquete",
+"g": 24
+},
+{
+"id": "crema-agria",
+"g": 69
+},
+{
+"id": "mayonesa-light",
+"g": 56
+},
+{
+"id": "guacamole",
+"g": 83
+},
+{
+"id": "pesto",
+"g": 29
+},
+{
+"id": "salsa-rosada",
+"g": 25
+},
+{
+"id": "salsa-tartara",
+"g": 74
+},
+{
+"id": "chicharron",
+"g": 23
+},
+{
+"id": "aderezo-ranch",
+"g": 28
+}
+]
+},
+"mantequilla-con-sal": {
+"porcion": 14,
+"opciones": [
+{
+"id": "margarina-con-sal",
+"g": 14
+},
+{
+"id": "margarina-de-canola",
+"g": 14
+},
+{
+"id": "margarina-esparcible",
+"g": 14
+},
+{
+"id": "aceite-de-canola",
+"g": 11
+},
+{
+"id": "aceite-de-girasol",
+"g": 11
+},
+{
+"id": "aceite-de-oliva",
+"g": 11
+},
+{
+"id": "aceite-de-soya-aceite-vegetal-de-cocina",
+"g": 11
+},
+{
+"id": "aceite-de-ajonjoli-o-sesamo",
+"g": 11
+},
+{
+"id": "aceite-de-algodon",
+"g": 11
+},
+{
+"id": "aceite-de-linaza-o-lino",
+"g": 11
+}
+]
+},
+"mantequilla-de-mani": {
+"porcion": 15,
+"opciones": [
+{
+"id": "aceitunas-verdes-rellenas-de-pimenton",
+"g": 58
+},
+{
+"id": "mayonesa-con-sal",
+"g": 22
+},
+{
+"id": "mantequilla",
+"g": 9
+},
+{
+"id": "margarina-con-sal",
+"g": 9
+},
+{
+"id": "margarina-esparcible",
+"g": 9
+},
+{
+"id": "mantequilla-con-sal",
+"g": 9
+},
+{
+"id": "margarina-de-canola",
+"g": 9
+},
+{
+"id": "aceite-de-ajonjoli-o-sesamo",
+"g": 7
+},
+{
+"id": "aceite-de-algodon",
+"g": 7
+},
+{
+"id": "aceite-de-linaza-o-lino",
+"g": 7
+}
+]
+},
+"maranon-nuez-de-la-india": {
+"porcion": 25,
+"opciones": [
+{
+"id": "mani-crudo",
+"g": 22
+},
+{
+"id": "semillas-de-girasol-pepas-de-girasol",
+"g": 20
+},
+{
+"id": "aguacate-comun-criollo-papelillo-tipo-antillano",
+"g": 97
+},
+{
+"id": "almendras-crudas",
+"g": 19
+},
+{
+"id": "coco-fresco",
+"g": 29
+},
+{
+"id": "aguacate-hass",
+"g": 48
+},
+{
+"id": "nueces-nuez-de-nogal",
+"g": 14
+},
+{
+"id": "omega-3-en-capsula-aceite-de-pescado",
+"g": 10
+}
+]
+},
+"maranon-seco": {
+"porcion": 100,
+"opciones": [
+{
+"id": "uva-deshidratada",
+"g": 14
+},
+{
+"id": "datil-seco",
+"g": 15
+},
+{
+"id": "mango-tommy-atkins-crudo",
+"g": 22
+},
+{
+"id": "macadamia-seca",
+"g": 22
+},
+{
+"id": "coco-deshidratado",
+"g": 25
+}
+]
+},
+"maranon-tostado-sin-sal": {
+"porcion": 25,
+"opciones": [
+{
+"id": "lulo-pulpa-congelada-sin-azucar",
+"g": 131
+},
+{
+"id": "pistacho-tostado-sin-sal",
+"g": 45
+}
+]
+},
+"mezcla-de-nueces-de-paquete": {
+"porcion": 30,
+"opciones": [
+{
+"id": "mani-salado",
+"g": 31
+},
+{
+"id": "salsa-de-queso",
+"g": 116
+},
+{
+"id": "guacamole",
+"g": 103
+},
+{
+"id": "crema-agria",
+"g": 86
+},
+{
+"id": "mayonesa-light",
+"g": 70
+},
+{
+"id": "pesto",
+"g": 36
+},
+{
+"id": "salsa-tartara",
+"g": 92
+},
+{
+"id": "chicharron",
+"g": 29
+},
+{
+"id": "salsa-rosada",
+"g": 31
+},
+{
+"id": "aderezo-ranch",
+"g": 35
+}
+]
+},
+"miel": {
+"porcion": 21,
+"opciones": [
+{
+"id": "limonada",
+"g": 192
+},
+{
+"id": "agua-de-panela-con-limon",
+"g": 229
+},
+{
+"id": "agua-de-panela",
+"g": 159
+},
+{
+"id": "bocadillo-veleno",
+"g": 25
+},
+{
+"id": "mermelada",
+"g": 25
+},
+{
+"id": "te-frio-en-botella",
+"g": 248
+},
+{
+"id": "gaseosa-de-naranja-o-colombiana",
+"g": 141
+},
+{
+"id": "bebida-energizante",
+"g": 154
+},
+{
+"id": "salsa-agridulce",
+"g": 45
+},
+{
+"id": "bebida-hidratante",
+"g": 269
+}
+]
+},
+"naranja-cruda": {
+"porcion": 150.0,
+"opciones": [
+{
+"id": "chirimoya-cruda",
+"g": 72
+},
+{
+"id": "kiwi-crudo",
+"g": 107
+},
+{
+"id": "durazno",
+"g": 128
+},
+{
+"id": "guanabana-cruda",
+"g": 215
+},
+{
+"id": "sandia",
+"g": 171
+},
+{
+"id": "guama-cruda",
+"g": 106
+},
+{
+"id": "harina-de-chontaduro-cruda",
+"g": 16
+},
+{
+"id": "tamarindo-crudo",
+"g": 19
+},
+{
+"id": "gulupa-maracuya-morado-pulpa-con-semillas",
+"g": 55
+},
+{
+"id": "curuba-cruda",
+"g": 154
+}
+]
+},
+"nueces-nuez-de-nogal": {
+"porcion": 25,
+"opciones": [
+{
+"id": "omega-3-en-capsula-aceite-de-pescado",
+"g": 17
+},
+{
+"id": "aguacate-hass",
+"g": 86
+},
+{
+"id": "coco-fresco",
+"g": 52
+},
+{
+"id": "almendras-crudas",
+"g": 34
+},
+{
+"id": "semillas-de-girasol-pepas-de-girasol",
+"g": 36
+},
+{
+"id": "aguacate-comun-criollo-papelillo-tipo-antillano",
+"g": 173
+},
+{
+"id": "mani-crudo",
+"g": 40
+},
+{
+"id": "maranon-nuez-de-la-india",
+"g": 45
+}
+]
+},
+"nuez-de-brasil-seca": {
+"porcion": 20,
+"opciones": [
+{
+"id": "almendra-seca",
+"g": 28
+},
+{
+"id": "macadamia-seca",
+"g": 2
+},
+{
+"id": "coco-deshidratado",
+"g": 2
+},
+{
+"id": "maranon-seco",
+"g": 9
+},
+{
+"id": "datil-seco",
+"g": 1
+},
+{
+"id": "uva-deshidratada",
+"g": 1
+},
+{
+"id": "mango-tommy-atkins-crudo",
+"g": 2
+}
+]
+},
+"ostra-cruda": {
+"porcion": 85,
+"opciones": [
+{
+"id": "pollo-menudencias-crudas",
+"g": 26
+},
+{
+"id": "bagre-semigraso-sin-cabeza-crudo",
+"g": 30
+},
+{
+"id": "res-hueso-carnudo-crudo",
+"g": 22
+},
+{
+"id": "pavo-pescuezo-o-cuello-sin-piel-crudo",
+"g": 28
+},
+{
+"id": "pollo-pechuga-con-piel-cruda",
+"g": 22
+},
+{
+"id": "pavo-entero-con-piel-crudo",
+"g": 22
+},
+{
+"id": "bocachico-sin-cabeza-salado-crudo",
+"g": 27
+},
+{
+"id": "pato-carne-cruda",
+"g": 25
+},
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 19
+},
+{
+"id": "pollo-contramuslo-sin-piel-crudo",
+"g": 24
+}
+]
+},
+"palmito-crudo": {
+"porcion": 60,
+"opciones": [
+{
+"id": "papa-variedad-harinosa-pastusa-sin-cascara-cruda",
+"g": 47
+},
+{
+"id": "papa-variedad-harinosa-pastusa-con-cascara-cruda",
+"g": 50
+},
+{
+"id": "tomate-extracto-fresco",
+"g": 180
+},
+{
+"id": "cebolla-puerro-cruda",
+"g": 50
+},
+{
+"id": "papa-variedad-cerosa-sabanera-sin-cascara-cruda",
+"g": 43
+},
+{
+"id": "papa-variedad-cerosa-sabanera-con-cascara-cruda",
+"g": 56
+},
+{
+"id": "zapallo-crudo",
+"g": 69
+},
+{
+"id": "salsifi-sin-cascara-crudo",
+"g": 27
+},
+{
+"id": "ajo-crudo",
+"g": 32
+},
+{
+"id": "platano-espermo-maduro-crudo",
+"g": 39
+}
+]
+},
+"palmito-en-lata": {
+"porcion": 60,
+"opciones": [
+{
+"id": "champinon-en-conserva",
+"g": 58
+}
+]
+},
+"pan-blanco-tajado": {
+"porcion": 50,
+"opciones": [
+{
+"id": "tortilla-de-maiz",
+"g": 55
+},
+{
+"id": "pan-integral",
+"g": 57
+},
+{
+"id": "galleta-de-soda",
+"g": 33
+},
+{
+"id": "galletas-saladas-tipo-soda",
+"g": 35
+},
+{
+"id": "cereal-para-el-desayuno-hojuelas-de-maiz-sin-azucar",
+"g": 30
+},
+{
+"id": "galletas-dulces-tipo-polvorosas",
+"g": 33
+},
+{
+"id": "galletas-dulces-tipo-wafer",
+"g": 34
+},
+{
+"id": "galletas-dulces-de-avena-con-uvas-pasas",
+"g": 37
+},
+{
+"id": "galletas-saladas-tipo-cracker",
+"g": 37
+},
+{
+"id": "muffins-dulces-con-chips-de-chocolate",
+"g": 57
+}
+]
+},
+"papa-cocida-con-cascara-sin-sal": {
+"porcion": 156,
+"opciones": [
+{
+"id": "batata-cocida-sin-cascara",
+"g": 177
+},
+{
+"id": "arroz-blanco-cocido",
+"g": 112
+},
+{
+"id": "name-cocido",
+"g": 114
+},
+{
+"id": "cebada-perlada-cocida",
+"g": 111
+},
+{
+"id": "platano-verde-cocido",
+"g": 108
+},
+{
+"id": "arepa-de-maiz-precocido-con-sal",
+"g": 92
+},
+{
+"id": "arroz-integral-cocido",
+"g": 123
+},
+{
+"id": "arroz-integral-cocido-sin-sal",
+"g": 43
+},
+{
+"id": "mojicon-horneado",
+"g": 50
+},
+{
+"id": "pan-blanco-tipo-molde-horneado",
+"g": 56
+}
+]
+},
+"papas-fritas-de-paquete-con-sabor": {
+"porcion": 30,
+"opciones": [
+{
+"id": "salchipapa",
+"g": 51
+},
+{
+"id": "papas-fritas-de-paquete",
+"g": 29
+},
+{
+"id": "chitos",
+"g": 28
+},
+{
+"id": "crispetas",
+"g": 27
+},
+{
+"id": "torta-de-zanahoria",
+"g": 38
+},
+{
+"id": "croissant",
+"g": 34
+},
+{
+"id": "aros-de-cebolla",
+"g": 36
+},
+{
+"id": "doritos",
+"g": 25
+},
+{
+"id": "tostada-con-mantequilla",
+"g": 34
+},
+{
+"id": "dona",
+"g": 30
+}
+]
+},
+"papaya-madura-cruda": {
+"porcion": 150,
+"opciones": [
+{
+"id": "ciruela-comun-cruda",
+"g": 107
+},
+{
+"id": "pitahaya-roja-cruda",
+"g": 112
+},
+{
+"id": "kiwi-crudo",
+"g": 77
+},
+{
+"id": "chirimoya-cruda",
+"g": 52
+},
+{
+"id": "papaya-pintona-cruda",
+"g": 116
+},
+{
+"id": "higo-maduro-crudo",
+"g": 137
+},
+{
+"id": "banano-comun-crudo",
+"g": 47
+},
+{
+"id": "mandarina-cruda",
+"g": 97
+},
+{
+"id": "pomarrosa-cruda",
+"g": 74
+},
+{
+"id": "tamarindo-crudo",
+"g": 14
+}
+]
+},
+"papaya-pintona-cruda": {
+"porcion": 150,
+"opciones": [
+{
+"id": "ciruela-comun-cruda",
+"g": 138
+},
+{
+"id": "pitahaya-roja-cruda",
+"g": 145
+},
+{
+"id": "toronja-cruda",
+"g": 122
+},
+{
+"id": "pina-cruda",
+"g": 112
+},
+{
+"id": "uva-blanca-cruda",
+"g": 156
+},
+{
+"id": "papaya-madura-cruda",
+"g": 194
+},
+{
+"id": "mamey-crudo",
+"g": 115
+},
+{
+"id": "mango-comun-crudo",
+"g": 91
+},
+{
+"id": "curuba-cruda",
+"g": 143
+},
+{
+"id": "pitahaya-amarilla-cruda",
+"g": 116
+}
+]
+},
+"papayuela-cruda": {
+"porcion": 100,
+"opciones": [
+{
+"id": "breva-verde-cruda",
+"g": 46
+},
+{
+"id": "melon-crudo",
+"g": 95
+},
+{
+"id": "fresa-pintona-cruda",
+"g": 73
+},
+{
+"id": "breva-madura-cruda",
+"g": 59
+},
+{
+"id": "tomate-de-arbol-rojo-crudo",
+"g": 46
+},
+{
+"id": "higo-maduro-crudo",
+"g": 56
+},
+{
+"id": "zapote-comun-crudo",
+"g": 46
+},
+{
+"id": "babaco-verde-crudo",
+"g": 51
+},
+{
+"id": "feijoa-crudo",
+"g": 40
+},
+{
+"id": "babaco-maduro-crudo",
+"g": 63
+}
+]
+},
+"pasta-alimenticia-sin-enriquecer-cocida-sin-sal": {
+"porcion": 112,
+"opciones": [
+{
+"id": "pan-frances-horneado",
+"g": 48
+},
+{
+"id": "pasta-alimenticia-con-huevo-sin-enriquecer-cocida-sin-sal",
+"g": 116
+},
+{
+"id": "pan-blanco-tipo-molde-horneado",
+"g": 50
+},
+{
+"id": "arroz-integral-cocido-sin-sal",
+"g": 38
+},
+{
+"id": "mojicon-horneado",
+"g": 45
+},
+{
+"id": "arroz-integral-cocido",
+"g": 110
+},
+{
+"id": "pasta-integral-cocida",
+"g": 94
+},
+{
+"id": "arepa-de-maiz-precocido-con-sal",
+"g": 83
+},
+{
+"id": "pan-integral-regular-horneado",
+"g": 64
+},
+{
+"id": "pan-blanco-regular-horneado",
+"g": 62
+}
+]
+},
+"pavo-pechuga-sin-piel-horneada-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "cerdo-lomo-cocido-sin-sal",
+"g": 103
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 138
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 103
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 116
+},
+{
+"id": "jaiba-o-cangrejo-azul-cocida-sin-sal",
+"g": 189
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 124
+},
+{
+"id": "camaron-cocido-sin-sal",
+"g": 154
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 127
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 133
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 133
+}
+]
+},
+"pechuga-a-la-plancha": {
+"porcion": 140,
+"opciones": [
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 149
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 166
+},
+{
+"id": "cerdo-lomo-cocido-sin-sal",
+"g": 124
+},
+{
+"id": "pavo-pechuga-sin-piel-horneada-sin-sal",
+"g": 144
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 160
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 124
+},
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 166
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 153
+},
+{
+"id": "res-churrasco-asado-sin-sal",
+"g": 131
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 160
+}
+]
+},
+"pepino-dulce-maduro-crudo": {
+"porcion": 150,
+"opciones": [
+{
+"id": "banano-bocadillo-crudo",
+"g": 37
+},
+{
+"id": "banano-manzano-crudo",
+"g": 39
+},
+{
+"id": "gulupa-pintona-cruda",
+"g": 64
+},
+{
+"id": "cereza-cruda",
+"g": 45
+},
+{
+"id": "mango-comun-crudo",
+"g": 75
+},
+{
+"id": "mangostino-crudo",
+"g": 66
+},
+{
+"id": "uva-blanca-cruda",
+"g": 129
+},
+{
+"id": "uva-isabella-cruda",
+"g": 85
+},
+{
+"id": "pina-cruda",
+"g": 92
+},
+{
+"id": "harina-de-banano-cruda",
+"g": 12
+}
+]
+},
+"pepino-dulce-pinton-crudo": {
+"porcion": 150,
+"opciones": [
+{
+"id": "feijoa",
+"g": 65
+},
+{
+"id": "banano-manzano-crudo",
+"g": 39
+},
+{
+"id": "limon-crudo",
+"g": 127
+},
+{
+"id": "pina-cruda",
+"g": 92
+},
+{
+"id": "mango",
+"g": 66
+},
+{
+"id": "pepino-dulce-maduro-crudo",
+"g": 150
+},
+{
+"id": "mangostino-crudo",
+"g": 66
+},
+{
+"id": "banano-bocadillo-crudo",
+"g": 37
+},
+{
+"id": "pomarrosa-cruda",
+"g": 79
+},
+{
+"id": "chirimoya-cruda",
+"g": 55
+}
+]
+},
+"pepino-dulce-verde-crudo": {
+"porcion": 150,
+"opciones": [
+{
+"id": "limon-crudo",
+"g": 129
+},
+{
+"id": "pepino-dulce-pinton-crudo",
+"g": 152
+},
+{
+"id": "pina",
+"g": 71
+},
+{
+"id": "manzana-comun-cruda",
+"g": 67
+},
+{
+"id": "mamey-crudo",
+"g": 97
+},
+{
+"id": "pitahaya-amarilla-cruda",
+"g": 98
+},
+{
+"id": "feijoa",
+"g": 66
+},
+{
+"id": "mangostino-crudo",
+"g": 67
+},
+{
+"id": "uva-isabella-cruda",
+"g": 86
+},
+{
+"id": "banano-manzano-crudo",
+"g": 39
+}
+]
+},
+"perejil-crudo": {
+"porcion": 5,
+"opciones": [
+{
+"id": "cilantro-crudo",
+"g": 6
+},
+{
+"id": "esparrago-crudo",
+"g": 8
+},
+{
+"id": "coliflor-crudo",
+"g": 7
+},
+{
+"id": "colinabo-sin-cascara-crudo",
+"g": 7
+},
+{
+"id": "col-o-repollitas-de-bruselas-cruda",
+"g": 4
+},
+{
+"id": "ocra-cruda",
+"g": 5
+},
+{
+"id": "brocoli-crudo",
+"g": 6
+},
+{
+"id": "repollo-blanco-crudo",
+"g": 6
+},
+{
+"id": "acelga-hojas-cruda",
+"g": 6
+},
+{
+"id": "arveja-verde-cruda",
+"g": 3
+}
+]
+},
+"pescado-seco-crudo": {
+"porcion": 70,
+"opciones": [
+{
+"id": "proteina-de-caseina-en-polvo",
+"g": 56
+},
+{
+"id": "proteina-en-polvo-whey",
+"g": 56
+},
+{
+"id": "proteina-vegetal-en-polvo-base-soya",
+"g": 79
+}
+]
+},
+"pimenton-rojo-crudo": {
+"porcion": 80,
+"opciones": [
+{
+"id": "remolacha-sin-cascara-cruda",
+"g": 49
+},
+{
+"id": "pepino-cohombro-crudo",
+"g": 194
+},
+{
+"id": "cebolla-junca-tallos-cruda",
+"g": 68
+},
+{
+"id": "repollo-morado-crudo",
+"g": 65
+},
+{
+"id": "cebolla-junca-hojas-cruda",
+"g": 65
+},
+{
+"id": "tomate-crudo",
+"g": 113
+},
+{
+"id": "nabo-sin-cascara-crudo",
+"g": 85
+},
+{
+"id": "cebolla-larga-junca-cruda",
+"g": 52
+},
+{
+"id": "zanahoria-sin-cascara-cruda",
+"g": 50
+},
+{
+"id": "guatila-sin-cascara-cruda",
+"g": 80
+}
+]
+},
+"pimenton-verde-crudo": {
+"porcion": 80,
+"opciones": [
+{
+"id": "rabano-sin-cascara-crudo",
+"g": 95
+},
+{
+"id": "ocra-cruda",
+"g": 48
+},
+{
+"id": "apio-crudo",
+"g": 80
+},
+{
+"id": "guatila-sin-cascara-cruda",
+"g": 89
+},
+{
+"id": "acelga-tallos-cruda",
+"g": 109
+},
+{
+"id": "repollo-blanco-crudo",
+"g": 58
+},
+{
+"id": "colinabo-sin-cascara-crudo",
+"g": 63
+},
+{
+"id": "habichuela-cruda",
+"g": 51
+},
+{
+"id": "coliflor-crudo",
+"g": 63
+},
+{
+"id": "alcachofa-cruda",
+"g": 30
+}
+]
+},
+"pincho-de-res": {
+"porcion": 176,
+"opciones": [
+{
+"id": "chuleta-de-cerdo-apanada",
+"g": 104
+},
+{
+"id": "cuajada-proxy-requeson-semidescremado",
+"g": 220
+},
+{
+"id": "alitas-bbq",
+"g": 131
+},
+{
+"id": "filete-de-pescado-apanado",
+"g": 156
+},
+{
+"id": "presa-de-pollo-apanada-pernil-o-muslo",
+"g": 130
+},
+{
+"id": "huevos-pericos",
+"g": 345
+},
+{
+"id": "alitas-apanadas",
+"g": 119
+},
+{
+"id": "carne-molida-guisada",
+"g": 148
+},
+{
+"id": "carne-desmechada",
+"g": 139
+},
+{
+"id": "pollo-apanado",
+"g": 95
+}
+]
+},
+"platano-harton-maduro-frito-en-tajadas-sin-sal": {
+"porcion": 100,
+"opciones": [
+{
+"id": "platano-harton-verde-frito-en-patacon-sin-sal",
+"g": 71
+},
+{
+"id": "papa-variedad-cerosa-sabanera-sin-cascara-frita-tipo-francesa-sin-sal",
+"g": 68
+},
+{
+"id": "yuca-blanca-sin-cascara-dorada-con-sal",
+"g": 74
+},
+{
+"id": "platano-harton-verde-cocido-sin-sal",
+"g": 109
+},
+{
+"id": "platano-harton-maduro-cocido-sin-sal",
+"g": 109
+},
+{
+"id": "cebolla-pasta-escaldada",
+"g": 109
+},
+{
+"id": "yuca-blanca-sin-cascara-cocida-sin-sal",
+"g": 93
+},
+{
+"id": "papa-variedad-harinosa-criolla-con-cascara-cocida-sin-sal",
+"g": 83
+},
+{
+"id": "remolacha-sin-cascara-cocida-sin-sal",
+"g": 93
+},
+{
+"id": "tomate-escaldado-sin-sal",
+"g": 167
+}
+]
+},
+"pollo-asado": {
+"porcion": 140,
+"opciones": [
+{
+"id": "tilapia-o-mojarra-frita-sin-sal",
+"g": 145
+},
+{
+"id": "cerdo-costilla-cocida-sin-sal",
+"g": 130
+},
+{
+"id": "pollo-ala-con-piel-cocida-sin-sal",
+"g": 170
+},
+{
+"id": "cerdo-brazo-horneado-sin-sal",
+"g": 143
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cocida-sin-sal",
+"g": 167
+},
+{
+"id": "cachama-entera-frita-con-sal",
+"g": 142
+},
+{
+"id": "bagre-magro-entero-cocido-sin-sal",
+"g": 210
+},
+{
+"id": "pollo-contramuslo-sin-piel-cocido-sin-sal",
+"g": 155
+},
+{
+"id": "pollo-contramuslo-con-piel-cocido-sin-sal",
+"g": 167
+},
+{
+"id": "lomo-de-cerdo-asado",
+"g": 134
+}
+]
+},
+"pollo-corazon-crudo": {
+"porcion": 80,
+"opciones": [
+{
+"id": "pavo-rabadilla-con-piel-cruda",
+"g": 75
+},
+{
+"id": "pollo-menudencias-crudas",
+"g": 72
+},
+{
+"id": "ostra-cruda",
+"g": 231
+},
+{
+"id": "huevo-de-pava-entero-crudo",
+"g": 91
+},
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 53
+},
+{
+"id": "arenque-entero-crudo",
+"g": 70
+},
+{
+"id": "pollo-entero-con-piel-crudo",
+"g": 69
+},
+{
+"id": "res-carne-semigorda-molida-cruda",
+"g": 64
+},
+{
+"id": "res-corazon-crudo",
+"g": 74
+},
+{
+"id": "salmon-filete-crudo",
+"g": 62
+}
+]
+},
+"pollo-higado-cocido-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pavo-entero-con-piel-horneado-sin-sal",
+"g": 104
+},
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 102
+},
+{
+"id": "conejo-carne-cocida-sin-sal",
+"g": 96
+},
+{
+"id": "res-lomo-cocido-sin-sal",
+"g": 81
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-asada-sin-sal",
+"g": 122
+},
+{
+"id": "res-rinon-dorado-sin-sal",
+"g": 108
+},
+{
+"id": "pollo-pechuga-con-piel-cocida-sin-sal",
+"g": 109
+},
+{
+"id": "res-callo-o-menudo-cocido-sin-sal",
+"g": 195
+},
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 109
+},
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 88
+}
+]
+},
+"pollo-higado-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-corazon-crudo",
+"g": 123
+},
+{
+"id": "cordero-higado-crudo",
+"g": 102
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 93
+},
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 87
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 95
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 97
+},
+{
+"id": "cerdo-higado-crudo",
+"g": 96
+},
+{
+"id": "cordero-rinon-crudo",
+"g": 115
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 92
+},
+{
+"id": "higado-de-pollo-crudo",
+"g": 122
+}
+]
+},
+"pollo-menudencias-cocidas-sin-sal": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 96
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 88
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 89
+},
+{
+"id": "res-pajarilla-o-bazo-dorada-sin-sal",
+"g": 100
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 84
+},
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 97
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 100
+},
+{
+"id": "res-churrasco-asado-sin-sal",
+"g": 79
+},
+{
+"id": "cerdo-lomo-cocido-sin-sal",
+"g": 74
+},
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 78
+}
+]
+},
+"pollo-menudencias-crudas": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 73
+},
+{
+"id": "bagre-semigraso-sin-cabeza-crudo",
+"g": 112
+},
+{
+"id": "pavo-rabadilla-con-piel-cruda",
+"g": 104
+},
+{
+"id": "pollo-corazon-crudo",
+"g": 112
+},
+{
+"id": "res-corazon-crudo",
+"g": 104
+},
+{
+"id": "conejo-higado-crudo",
+"g": 97
+},
+{
+"id": "pollo-higado-crudo",
+"g": 101
+},
+{
+"id": "arenque-entero-crudo",
+"g": 97
+},
+{
+"id": "higado-de-pollo-crudo",
+"g": 103
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 82
+}
+]
+},
+"pollo-pechuga-sin-piel-frita-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-churrasco-asado-sin-sal",
+"g": 121
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 148
+},
+{
+"id": "res-lomo-cocido-sin-sal",
+"g": 111
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 137
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 148
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 129
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 114
+},
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 154
+},
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 140
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 153
+}
+]
+},
+"proteina-de-caseina-en-polvo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "proteina-en-polvo-whey",
+"g": 30
+},
+{
+"id": "pescado-seco-crudo",
+"g": 37
+},
+{
+"id": "colageno-en-polvo",
+"g": 27
+},
+{
+"id": "proteina-vegetal-en-polvo-base-soya",
+"g": 42
+}
+]
+},
+"proteina-en-polvo-whey": {
+"porcion": 30,
+"opciones": [
+{
+"id": "proteina-de-caseina-en-polvo",
+"g": 30
+},
+{
+"id": "pescado-seco-crudo",
+"g": 37
+},
+{
+"id": "colageno-en-polvo",
+"g": 27
+},
+{
+"id": "proteina-vegetal-en-polvo-base-soya",
+"g": 42
+}
+]
+},
+"proteina-vegetal-en-polvo-base-soya": {
+"porcion": 45,
+"opciones": [
+{
+"id": "pescado-seco-crudo",
+"g": 40
+},
+{
+"id": "proteina-de-caseina-en-polvo",
+"g": 32
+},
+{
+"id": "proteina-en-polvo-whey",
+"g": 32
+},
+{
+"id": "colageno-en-polvo",
+"g": 29
+}
+]
+},
+"pulpo-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "merluza-filete-crudo",
+"g": 98
+},
+{
+"id": "pargo-rojo-crudo",
+"g": 87
+},
+{
+"id": "mero-entero-crudo",
+"g": 92
+},
+{
+"id": "calamar-crudo",
+"g": 109
+},
+{
+"id": "tilapia-o-mojarra-entera-cruda",
+"g": 89
+},
+{
+"id": "tilapia-o-mojarra-roja-cruda",
+"g": 89
+},
+{
+"id": "camaron-crudo",
+"g": 88
+},
+{
+"id": "res-pata-cruda",
+"g": 63
+},
+{
+"id": "almeja-de-agua-dulce-cruda",
+"g": 128
+},
+{
+"id": "bocachico-sin-cabeza-crudo",
+"g": 88
+}
+]
+},
+"queso-campesino-tajada-de-queso": {
+"porcion": 40,
+"opciones": [
+{
+"id": "huevos-revueltos",
+"g": 76
+},
+{
+"id": "chorizo",
+"g": 39
+},
+{
+"id": "tortilla-de-huevo",
+"g": 72
+},
+{
+"id": "carne-molida-guisada",
+"g": 45
+},
+{
+"id": "huevo-frito",
+"g": 56
+},
+{
+"id": "carne-desmechada",
+"g": 42
+},
+{
+"id": "mojarra-frita",
+"g": 33
+},
+{
+"id": "huevos-pericos",
+"g": 104
+},
+{
+"id": "pechuga-de-pollo-apanada-broaster",
+"g": 32
+},
+{
+"id": "alitas-bbq",
+"g": 39
+}
+]
+},
+"queso-crema-amarillo": {
+"porcion": 30,
+"opciones": [
+{
+"id": "queso-madurado-duro-semigraso-tipo-roquefort",
+"g": 22
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-camembert",
+"g": 25
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 20
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-parmesano",
+"g": 14
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-sin-crema",
+"g": 36
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-con-crema",
+"g": 39
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 154
+},
+{
+"id": "leche-de-cabra",
+"g": 138
+},
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 69
+},
+{
+"id": "yogur-natural-entero",
+"g": 129
+}
+]
+},
+"queso-fresco-semiblando-semimagro-tipo-cuajada": {
+"porcion": 50,
+"opciones": [
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-mozzarella",
+"g": 33
+},
+{
+"id": "queso-fresco-semiduro-semimagro-de-pasta-hilada",
+"g": 31
+},
+{
+"id": "queso-fresco-semiduro-semimagro-tipo-doble-crema",
+"g": 32
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-costeno",
+"g": 43
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-campesino",
+"g": 43
+},
+{
+"id": "queso-fresco-blando-magro-tipo-suero-costeno",
+"g": 69
+},
+{
+"id": "leche-de-cabra-entera-liquida-cruda",
+"g": 195
+},
+{
+"id": "leche-de-vaca-entera-liquida-cruda",
+"g": 230
+}
+]
+},
+"queso-fresco-semiduro-semigraso-tipo-campesino": {
+"porcion": 50,
+"opciones": [
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-costeno",
+"g": 50
+},
+{
+"id": "queso-fresco-semiblando-semimagro-tipo-cuajada",
+"g": 58
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-mozzarella",
+"g": 38
+},
+{
+"id": "queso-fresco-semiduro-semimagro-de-pasta-hilada",
+"g": 36
+},
+{
+"id": "queso-fresco-semiduro-semimagro-tipo-doble-crema",
+"g": 37
+},
+{
+"id": "queso-fresco-blando-magro-tipo-suero-costeno",
+"g": 80
+},
+{
+"id": "leche-de-cabra-entera-liquida-cruda",
+"g": 224
+},
+{
+"id": "leche-de-vaca-entera-liquida-cruda",
+"g": 265
+}
+]
+},
+"queso-fresco-semiduro-semigraso-tipo-costeno": {
+"porcion": 50,
+"opciones": [
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-campesino",
+"g": 50
+},
+{
+"id": "queso-fresco-semiblando-semimagro-tipo-cuajada",
+"g": 58
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-mozzarella",
+"g": 38
+},
+{
+"id": "queso-fresco-semiduro-semimagro-de-pasta-hilada",
+"g": 36
+},
+{
+"id": "queso-fresco-semiduro-semimagro-tipo-doble-crema",
+"g": 37
+},
+{
+"id": "queso-fresco-blando-magro-tipo-suero-costeno",
+"g": 80
+},
+{
+"id": "leche-de-cabra-entera-liquida-cruda",
+"g": 224
+},
+{
+"id": "leche-de-vaca-entera-liquida-cruda",
+"g": 265
+}
+]
+},
+"queso-fresco-semiduro-semigraso-tipo-mozzarella": {
+"porcion": 50,
+"opciones": [
+{
+"id": "queso-fresco-semiblando-semimagro-tipo-cuajada",
+"g": 75
+},
+{
+"id": "queso-fresco-semiduro-semimagro-de-pasta-hilada",
+"g": 47
+},
+{
+"id": "queso-fresco-semiduro-semimagro-tipo-doble-crema",
+"g": 49
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-costeno",
+"g": 65
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-campesino",
+"g": 65
+},
+{
+"id": "queso-fresco-blando-magro-tipo-suero-costeno",
+"g": 104
+},
+{
+"id": "leche-de-cabra-entera-liquida-cruda",
+"g": 294
+},
+{
+"id": "leche-de-vaca-entera-liquida-cruda",
+"g": 347
+}
+]
+},
+"queso-fresco-semiduro-semimagro-de-pasta-hilada": {
+"porcion": 50,
+"opciones": [
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-mozzarella",
+"g": 53
+},
+{
+"id": "queso-fresco-semiblando-semimagro-tipo-cuajada",
+"g": 80
+},
+{
+"id": "queso-fresco-semiduro-semimagro-tipo-doble-crema",
+"g": 52
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-costeno",
+"g": 69
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-campesino",
+"g": 69
+},
+{
+"id": "queso-fresco-blando-magro-tipo-suero-costeno",
+"g": 110
+},
+{
+"id": "leche-de-cabra-entera-liquida-cruda",
+"g": 312
+},
+{
+"id": "leche-de-vaca-entera-liquida-cruda",
+"g": 368
+}
+]
+},
+"queso-fresco-semiduro-semimagro-tipo-doble-crema": {
+"porcion": 50,
+"opciones": [
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-mozzarella",
+"g": 51
+},
+{
+"id": "queso-fresco-semiblando-semimagro-tipo-cuajada",
+"g": 77
+},
+{
+"id": "queso-fresco-semiduro-semimagro-de-pasta-hilada",
+"g": 48
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-costeno",
+"g": 67
+},
+{
+"id": "queso-fresco-semiduro-semigraso-tipo-campesino",
+"g": 67
+},
+{
+"id": "queso-fresco-blando-magro-tipo-suero-costeno",
+"g": 106
+},
+{
+"id": "leche-de-cabra-entera-liquida-cruda",
+"g": 300
+},
+{
+"id": "leche-de-vaca-entera-liquida-cruda",
+"g": 354
+}
+]
+},
+"queso-madurado-duro-semigraso-tipo-parmesano": {
+"porcion": 20,
+"opciones": [
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 29
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-camembert",
+"g": 36
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-sin-crema",
+"g": 52
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-con-crema",
+"g": 57
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-roquefort",
+"g": 32
+},
+{
+"id": "queso-crema-amarillo",
+"g": 44
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 224
+},
+{
+"id": "leche-de-cabra",
+"g": 201
+},
+{
+"id": "yogur-natural-semidescremado",
+"g": 136
+},
+{
+"id": "leche-semidescremada-2",
+"g": 214
+}
+]
+},
+"queso-madurado-duro-semigraso-tipo-roquefort": {
+"porcion": 30,
+"opciones": [
+{
+"id": "queso-crema-amarillo",
+"g": 41
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-camembert",
+"g": 34
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 27
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-parmesano",
+"g": 19
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-sin-crema",
+"g": 49
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-con-crema",
+"g": 53
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 208
+},
+{
+"id": "leche-de-cabra",
+"g": 187
+},
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 94
+},
+{
+"id": "yogur-natural-entero",
+"g": 174
+}
+]
+},
+"queso-madurado-semiduro-semigraso-tipo-holandes": {
+"porcion": 40,
+"opciones": [
+{
+"id": "queso-madurado-duro-semigraso-tipo-parmesano",
+"g": 28
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-camembert",
+"g": 50
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-roquefort",
+"g": 45
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-con-crema",
+"g": 80
+},
+{
+"id": "queso-crema-amarillo",
+"g": 61
+},
+{
+"id": "queso-madurado-blando-magro-tipo-cottage-sin-crema",
+"g": 73
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 311
+},
+{
+"id": "leche-de-cabra",
+"g": 280
+},
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 140
+},
+{
+"id": "yogur-natural-semidescremado",
+"g": 190
+}
+]
+},
+"quinua-cruda": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "maiz-pira-o-reventon-crudo",
+"g": 62
+},
+{
+"id": "mijo-crudo",
+"g": 58
+},
+{
+"id": "harina-de-maiz-extra-cruda",
+"g": 56
+},
+{
+"id": "maiz-amarillo-crudo",
+"g": 54
+},
+{
+"id": "harina-de-centeno-para-panificacion-cruda",
+"g": 66
+},
+{
+"id": "harina-de-trigo-integral-cruda",
+"g": 60
+},
+{
+"id": "harina-de-quinua-cruda",
+"g": 53
+},
+{
+"id": "cebada-perlada-cruda",
+"g": 63
+},
+{
+"id": "trigo-duro-crudo",
+"g": 60
+},
+{
+"id": "maiz-blanco-crudo",
+"g": 51
+}
+]
+},
+"raya-filete-asado": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "camaron-cocido-sin-sal",
+"g": 159
+},
+{
+"id": "jaiba-o-cangrejo-azul-cocida-sin-sal",
+"g": 195
+},
+{
+"id": "pavo-pechuga-sin-piel-horneada-sin-sal",
+"g": 124
+},
+{
+"id": "pollo-molleja-cocida-sin-sal",
+"g": 138
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 106
+},
+{
+"id": "cerdo-lomo-cocido-sin-sal",
+"g": 106
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 131
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 138
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 143
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 120
+}
+]
+},
+"res-churrasco-asado-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 119
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 147
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 140
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 134
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 136
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 128
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 147
+},
+{
+"id": "cerdo-lomo-horneado-sin-sal",
+"g": 114
+},
+{
+"id": "mojarra-asada-pescado-a-la-plancha",
+"g": 152
+},
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 153
+}
+]
+},
+"res-corazon-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pollo-higado-crudo",
+"g": 117
+},
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 85
+},
+{
+"id": "cordero-higado-crudo",
+"g": 99
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 91
+},
+{
+"id": "conejo-higado-crudo",
+"g": 113
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 92
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 95
+},
+{
+"id": "cerdo-higado-crudo",
+"g": 94
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 90
+},
+{
+"id": "cordero-rinon-crudo",
+"g": 112
+}
+]
+},
+"res-higado-asado-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-rinon-dorado-sin-sal",
+"g": 128
+},
+{
+"id": "res-lomo-cocido-sin-sal",
+"g": 97
+},
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 134
+},
+{
+"id": "res-callo-o-menudo-cocido-sin-sal",
+"g": 233
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 118
+},
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 122
+},
+{
+"id": "res-pajarilla-o-bazo-dorada-sin-sal",
+"g": 134
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 129
+},
+{
+"id": "pollo-higado-cocido-sin-sal",
+"g": 143
+},
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 105
+}
+]
+},
+"res-higado-crudo": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "higado-de-res-crudo",
+"g": 100
+},
+{
+"id": "conejo-higado-crudo",
+"g": 114
+},
+{
+"id": "res-corazon-crudo",
+"g": 121
+},
+{
+"id": "pollo-higado-crudo",
+"g": 119
+},
+{
+"id": "jamon-de-cerdo-crudo",
+"g": 86
+},
+{
+"id": "cordero-higado-crudo",
+"g": 100
+},
+{
+"id": "chiguiro-carne-salada-cruda",
+"g": 92
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-cruda",
+"g": 94
+},
+{
+"id": "cordero-carne-magra-cruda",
+"g": 96
+},
+{
+"id": "codorniz-o-perdiz-entera-sin-piel-cruda",
+"g": 91
+}
+]
+},
+"res-higado-dorado-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-callo-o-menudo-cocido-sin-sal",
+"g": 207
+},
+{
+"id": "res-rinon-dorado-sin-sal",
+"g": 114
+},
+{
+"id": "res-corazon-dorado-sin-sal",
+"g": 110
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-asada-sin-sal",
+"g": 130
+},
+{
+"id": "cerdo-brazo-horneado-sin-sal",
+"g": 116
+},
+{
+"id": "pollo-higado-cocido-sin-sal",
+"g": 127
+},
+{
+"id": "bagre-magro-entero-cocido-sin-sal",
+"g": 171
+},
+{
+"id": "pollo-contramuslo-sin-piel-cocido-sin-sal",
+"g": 126
+},
+{
+"id": "pollo-asado",
+"g": 114
+},
+{
+"id": "tilapia-o-mojarra-frita-sin-sal",
+"g": 118
+}
+]
+},
+"res-higado-frito-sin-sal": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 102
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 90
+},
+{
+"id": "res-rinon-dorado-sin-sal",
+"g": 98
+},
+{
+"id": "res-lomo-cocido-sin-sal",
+"g": 74
+},
+{
+"id": "res-callo-o-menudo-cocido-sin-sal",
+"g": 178
+},
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 93
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 98
+},
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 80
+},
+{
+"id": "res-pajarilla-o-bazo-dorada-sin-sal",
+"g": 102
+},
+{
+"id": "pollo-molleja-cocida-sin-sal",
+"g": 98
+}
+]
+},
+"res-hueso-carnudo-crudo": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pavo-entero-con-piel-crudo",
+"g": 122
+},
+{
+"id": "bocachico-sin-cabeza-salado-crudo",
+"g": 150
+},
+{
+"id": "pollo-contramuslo-sin-piel-crudo",
+"g": 135
+},
+{
+"id": "pollo-pechuga-con-piel-cruda",
+"g": 123
+},
+{
+"id": "trucha-arcoiris-de-cultivo-cruda",
+"g": 128
+},
+{
+"id": "carne-molida-de-res-90-10-cruda",
+"g": 127
+},
+{
+"id": "trucha-de-mar-entera-cruda",
+"g": 122
+},
+{
+"id": "trucha-entera-cruda",
+"g": 128
+},
+{
+"id": "falda-de-res-para-sudar-o-asar-cruda",
+"g": 117
+},
+{
+"id": "chorizo-de-pollo-crudo",
+"g": 81
+}
+]
+},
+"res-lomo-cocido-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 151
+},
+{
+"id": "pollo-pechuga-sin-piel-frita-sin-sal",
+"g": 130
+},
+{
+"id": "pavo-entero-con-piel-horneado-sin-sal",
+"g": 154
+},
+{
+"id": "conejo-carne-cocida-sin-sal",
+"g": 142
+},
+{
+"id": "res-churrasco-asado-sin-sal",
+"g": 130
+},
+{
+"id": "res-pajarilla-o-bazo-dorada-sin-sal",
+"g": 166
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 146
+},
+{
+"id": "cabra-o-chivo-carne-cocida-sin-sal",
+"g": 160
+},
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 161
+},
+{
+"id": "pollo-pechuga-sin-piel-cocida-sin-sal",
+"g": 152
+}
+]
+},
+"res-pajarilla-o-bazo-cruda": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "bonito-sin-cabeza-crudo",
+"g": 92
+},
+{
+"id": "corvina-de-mar-filete-crudo",
+"g": 124
+},
+{
+"id": "cerdo-rinon-crudo",
+"g": 136
+},
+{
+"id": "carne-de-res-magra-posta-o-bola-de-pierna-cruda",
+"g": 97
+},
+{
+"id": "cerdo-brazo-crudo",
+"g": 109
+},
+{
+"id": "res-rinon-crudo",
+"g": 144
+},
+{
+"id": "carite-entero-crudo",
+"g": 119
+},
+{
+"id": "cachama-sin-cabeza-cruda",
+"g": 122
+},
+{
+"id": "sierra-entera-cruda",
+"g": 101
+},
+{
+"id": "muslo-de-pollo-sin-piel-crudo",
+"g": 112
+}
+]
+},
+"res-pajarilla-o-bazo-dorada-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "pollo-ala-sin-piel-cocida-sin-sal",
+"g": 116
+},
+{
+"id": "pollo-menudencias-cocidas-sin-sal",
+"g": 120
+},
+{
+"id": "pollo-pechuga-con-piel-cocida-sin-sal",
+"g": 116
+},
+{
+"id": "cerdo-pierna-o-pernil-cocida-sin-sal",
+"g": 116
+},
+{
+"id": "res-lomo-cocido-sin-sal",
+"g": 87
+},
+{
+"id": "pollo-pechuga-sin-piel-asada-sin-sal",
+"g": 106
+},
+{
+"id": "pavo-pierna-o-pernil-sin-piel-horneada-sin-sal",
+"g": 107
+},
+{
+"id": "pechuga-a-la-plancha",
+"g": 101
+},
+{
+"id": "res-cadera-frita-sin-sal",
+"g": 109
+},
+{
+"id": "bocachico-entero-cocido-sin-sal",
+"g": 156
+}
+]
+},
+"res-pierna-cruda": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-pajarilla-o-bazo-cruda",
+"g": 142
+},
+{
+"id": "bonito-sin-cabeza-crudo",
+"g": 109
+},
+{
+"id": "corvina-de-mar-filete-crudo",
+"g": 147
+},
+{
+"id": "cerdo-rinon-crudo",
+"g": 162
+},
+{
+"id": "carne-de-res-magra-posta-o-bola-de-pierna-cruda",
+"g": 115
+},
+{
+"id": "cerdo-brazo-crudo",
+"g": 129
+},
+{
+"id": "carite-entero-crudo",
+"g": 141
+},
+{
+"id": "cachama-sin-cabeza-cruda",
+"g": 144
+},
+{
+"id": "res-rinon-crudo",
+"g": 171
+},
+{
+"id": "sierra-entera-cruda",
+"g": 120
+}
+]
+},
+"res-rinon-crudo": {
+"porcion": 100.0,
+"opciones": [
+{
+"id": "carite-entero-crudo",
+"g": 82
+},
+{
+"id": "corvina-de-mar-filete-crudo",
+"g": 86
+},
+{
+"id": "cerdo-brazo-crudo",
+"g": 75
+},
+{
+"id": "carne-de-res-magra-posta-o-bola-de-pierna-cruda",
+"g": 67
+},
+{
+"id": "bonito-sin-cabeza-crudo",
+"g": 64
+},
+{
+"id": "res-pajarilla-o-bazo-cruda",
+"g": 83
+},
+{
+"id": "cerdo-rinon-crudo",
+"g": 94
+},
+{
+"id": "lisa-sin-cabeza-salada-cruda",
+"g": 70
+},
+{
+"id": "cachama-sin-cabeza-cruda",
+"g": 84
+},
+{
+"id": "sierra-entera-cruda",
+"g": 70
+}
+]
+},
+"res-sesos-cocidos-sin-sal": {
+"porcion": 80.0,
+"opciones": [
+{
+"id": "huevo-de-gallina-entero-frito-sin-sal",
+"g": 55
+},
+{
+"id": "pollo-ala-con-piel-frita-con-sal",
+"g": 36
+},
+{
+"id": "res-chunchullo-dorado-sin-sal",
+"g": 38
+},
+{
+"id": "cerdo-panceta-o-tocineta-cocida-sin-sal",
+"g": 24
+},
+{
+"id": "res-corazon-dorado-sin-sal",
+"g": 33
+},
+{
+"id": "huevo-de-gallina-entero-revuelto-con-sal",
+"g": 92
+},
+{
+"id": "res-higado-dorado-sin-sal",
+"g": 36
+},
+{
+"id": "huevo-de-gallina-entero-cocido-sin-sal",
+"g": 72
+},
+{
+"id": "huevo-de-gallina-entero-tibio-sin-sal",
+"g": 72
+},
+{
+"id": "res-sobrebarriga-cocida-sin-sal",
+"g": 39
+}
+]
+},
+"res-sesos-crudos": {
+"porcion": 80.0,
+"opciones": [
+{
+"id": "pollo-contramuslo-con-piel-crudo",
+"g": 50
+},
+{
+"id": "pollo-ala-con-piel-cruda",
+"g": 49
+},
+{
+"id": "huevo-de-gallina-entero-crudo",
+"g": 69
+},
+{
+"id": "trucha-recortes-crudos",
+"g": 53
+},
+{
+"id": "bagre-graso-sin-cabeza-crudo",
+"g": 56
+},
+{
+"id": "gallina-entera-con-piel-cruda",
+"g": 46
+},
+{
+"id": "cordero-carne-semigorda-cruda",
+"g": 48
+},
+{
+"id": "huevo-de-codorniz-entero-crudo",
+"g": 66
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cruda",
+"g": 48
+},
+{
+"id": "salmon-de-cultivo-crudo",
+"g": 42
+}
+]
+},
+"res-sobrebarriga-cocida-sin-sal": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "cerdo-costilla-horneada-sin-sal",
+"g": 119
+},
+{
+"id": "cerdo-panceta-o-tocineta-salteada-sin-sal",
+"g": 130
+},
+{
+"id": "huevo-de-gallina-entero-cocido-sin-sal",
+"g": 223
+},
+{
+"id": "huevo-de-gallina-entero-tibio-sin-sal",
+"g": 223
+},
+{
+"id": "pollo-ala-con-piel-asada-sin-sal",
+"g": 122
+},
+{
+"id": "pollo-contramuslo-con-piel-cocido-sin-sal",
+"g": 127
+},
+{
+"id": "cerdo-panceta-o-tocineta-cocida-sin-sal",
+"g": 74
+},
+{
+"id": "cachama-entera-frita-con-sal",
+"g": 108
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cocida-sin-sal",
+"g": 127
+},
+{
+"id": "pollo-ala-con-piel-cocida-sin-sal",
+"g": 129
+}
+]
+},
+"rollo-de-canela": {
+"porcion": 83,
+"opciones": [
+{
+"id": "tostacos",
+"g": 63
+},
+{
+"id": "ponque",
+"g": 80
+},
+{
+"id": "chocoramo",
+"g": 78
+},
+{
+"id": "barra-de-granola",
+"g": 63
+},
+{
+"id": "barra-de-granola-natural-sin-cubierta",
+"g": 63
+},
+{
+"id": "papas-a-la-francesa",
+"g": 102
+},
+{
+"id": "galleta-dulce",
+"g": 63
+},
+{
+"id": "galleta-con-chispas-de-chocolate",
+"g": 65
+},
+{
+"id": "doritos",
+"g": 70
+},
+{
+"id": "galleta-tipo-ducales",
+"g": 69
+}
+]
+},
+"salchicha-asada": {
+"porcion": 100,
+"opciones": [
+{
+"id": "alitas-apanadas",
+"g": 46
+},
+{
+"id": "presa-de-pollo-apanada-pernil-o-muslo",
+"g": 51
+},
+{
+"id": "huevos-pericos",
+"g": 135
+},
+{
+"id": "filete-de-pescado-apanado",
+"g": 61
+},
+{
+"id": "cuajada-proxy-requeson-semidescremado",
+"g": 86
+},
+{
+"id": "alitas-bbq",
+"g": 51
+},
+{
+"id": "pincho-de-res",
+"g": 69
+},
+{
+"id": "chorizo",
+"g": 51
+},
+{
+"id": "chuleta-de-cerdo-apanada",
+"g": 40
+},
+{
+"id": "queso-campesino-tajada-de-queso",
+"g": 52
+}
+]
+},
+"salmon-de-cultivo-crudo": {
+"porcion": 198,
+"opciones": [
+{
+"id": "bagre-graso-sin-cabeza-crudo",
+"g": 261
+},
+{
+"id": "pollo-pierna-o-colombina-con-piel-cruda",
+"g": 223
+},
+{
+"id": "carne-molida-de-res-90-10-cruda",
+"g": 202
+},
+{
+"id": "res-carne-semigorda-molida-cruda",
+"g": 206
+},
+{
+"id": "pollo-contramuslo-con-piel-crudo",
+"g": 236
+},
+{
+"id": "res-hueso-carnudo-crudo",
+"g": 191
+},
+{
+"id": "res-carne-semigorda-cruda",
+"g": 187
+},
+{
+"id": "pavo-entero-con-piel-crudo",
+"g": 194
+},
+{
+"id": "bocachico-sin-cabeza-salado-crudo",
+"g": 238
+},
+{
+"id": "pollo-contramuslo-sin-piel-crudo",
+"g": 214
+}
+]
+},
+"sardina-en-lata-con-espina-en-salsa-de-tomate-escurrida": {
+"porcion": 90.0,
+"opciones": [
+{
+"id": "sardinas-enlatadas-en-salsa-de-tomate",
+"g": 90
+},
+{
+"id": "atun-enlatado-en-aceite",
+"g": 74
+},
+{
+"id": "sardinas-enlatadas-en-aceite",
+"g": 76
+},
+{
+"id": "salmon-enlatado-en-aceite",
+"g": 86
+},
+{
+"id": "atun-enlatado-en-agua",
+"g": 78
+},
+{
+"id": "atun-en-lata-en-agua-escurrido",
+"g": 99
+}
+]
+},
+"sardinas-enlatadas-en-aceite": {
+"porcion": 90.0,
+"opciones": [
+{
+"id": "atun-enlatado-en-aceite",
+"g": 87
+},
+{
+"id": "salmon-enlatado-en-aceite",
+"g": 102
+},
+{
+"id": "sardinas-enlatadas-en-salsa-de-tomate",
+"g": 106
+},
+{
+"id": "sardina-en-lata-con-espina-en-salsa-de-tomate-escurrida",
+"g": 106
+},
+{
+"id": "atun-en-lata-en-agua-escurrido",
+"g": 116
+},
+{
+"id": "atun-enlatado-en-agua",
+"g": 92
+}
+]
+},
+"sardinas-enlatadas-en-salsa-de-tomate": {
+"porcion": 90.0,
+"opciones": [
+{
+"id": "atun-enlatado-en-aceite",
+"g": 74
+},
+{
+"id": "sardinas-enlatadas-en-aceite",
+"g": 76
+},
+{
+"id": "salmon-enlatado-en-aceite",
+"g": 87
+},
+{
+"id": "sardina-en-lata-con-espina-en-salsa-de-tomate-escurrida",
+"g": 90
+},
+{
+"id": "atun-en-lata-en-agua-escurrido",
+"g": 99
+},
+{
+"id": "atun-enlatado-en-agua",
+"g": 78
+}
+]
+},
+"semillas-de-chia": {
+"porcion": 10,
+"opciones": [
+{
+"id": "ajonjoli",
+"g": 6
+}
+]
+},
+"semillas-de-girasol-pepas-de-girasol": {
+"porcion": 25,
+"opciones": [
+{
+"id": "almendras-crudas",
+"g": 24
+},
+{
+"id": "mani-crudo",
+"g": 28
+},
+{
+"id": "coco-fresco",
+"g": 36
+},
+{
+"id": "aguacate-comun-criollo-papelillo-tipo-antillano",
+"g": 120
+},
+{
+"id": "aguacate-hass",
+"g": 60
+},
+{
+"id": "maranon-nuez-de-la-india",
+"g": 31
+},
+{
+"id": "nueces-nuez-de-nogal",
+"g": 17
+},
+{
+"id": "omega-3-en-capsula-aceite-de-pescado",
+"g": 12
+}
+]
+},
+"soya-cruda": {
+"porcion": 60.0,
+"opciones": [
+{
+"id": "harina-de-soya-con-grasa-cruda",
+"g": 44
+},
+{
+"id": "frijol-radical-crudo",
+"g": 22
+},
+{
+"id": "frijol-cabecita-negra-crudo",
+"g": 22
+},
+{
+"id": "lenteja-real-cruda",
+"g": 21
+},
+{
+"id": "frijol-caraota-o-negro-crudo",
+"g": 21
+},
+{
+"id": "lenteja-comun-cruda",
+"g": 20
+},
+{
+"id": "harina-de-garbanzo-cruda",
+"g": 17
+},
+{
+"id": "frijol-cargamanto-rojo-crudo",
+"g": 19
+},
+{
+"id": "garbanzo-crudo",
+"g": 18
+},
+{
+"id": "frijol-bola-roja-crudo",
+"g": 20
+}
+]
+},
+"soya-tostada": {
+"porcion": 30,
+"opciones": [
+{
+"id": "bebida-vegetal-de-soya-liquida-sin-azucar",
+"g": 179
+},
+{
+"id": "mani-con-piel-tostado-sin-sal",
+"g": 33
+}
+]
+},
+"tocineta-frita": {
+"porcion": 35,
+"opciones": [
+{
+"id": "crema-de-leche",
+"g": 35
+},
+{
+"id": "vinagreta-aceite-y-vinagre",
+"g": 24
+},
+{
+"id": "aderezo-cesar",
+"g": 21
+},
+{
+"id": "margarina-light-untable",
+"g": 32
+},
+{
+"id": "salsa-de-ajo",
+"g": 18
+},
+{
+"id": "chicharron",
+"g": 23
+},
+{
+"id": "mayonesa",
+"g": 16
+},
+{
+"id": "margarina",
+"g": 15
+},
+{
+"id": "chimichurri",
+"g": 25
+},
+{
+"id": "chicharron-de-paquete",
+"g": 39
+}
+]
+},
+"trucha-recortes-crudos": {
+"porcion": 120.0,
+"opciones": [
+{
+"id": "res-carne-gorda-cruda",
+"g": 106
+},
+{
+"id": "pollo-ala-con-piel-cruda",
+"g": 112
+},
+{
+"id": "gallina-entera-con-piel-cruda",
+"g": 104
+},
+{
+"id": "cordero-carne-semigorda-cruda",
+"g": 108
+},
+{
+"id": "cerdo-carne-semigorda-cruda",
+"g": 114
+},
+{
+"id": "res-sesos-crudos",
+"g": 181
+},
+{
+"id": "pollo-contramuslo-con-piel-crudo",
+"g": 114
+},
+{
+"id": "huevo-de-gallina-entero-crudo",
+"g": 155
+},
+{
+"id": "cordero-carne-gorda-cruda",
+"g": 116
+},
+{
+"id": "res-carne-semigorda-cruda",
+"g": 91
+}
+]
+},
+"yogur-de-fruta-bebible": {
+"porcion": 170,
+"opciones": [
+{
+"id": "avena-en-caja",
+"g": 185
+},
+{
+"id": "ensure-suplemento-liquido-listo-para-tomar",
+"g": 178
+},
+{
+"id": "jugo-de-guayaba-en-leche",
+"g": 238
+},
+{
+"id": "jugo-de-mora-en-leche",
+"g": 276
+},
+{
+"id": "yogur-bebible-de-fruta",
+"g": 250
+},
+{
+"id": "cafe-con-leche",
+"g": 410
+},
+{
+"id": "kumis",
+"g": 208
+},
+{
+"id": "leche-de-soya-endulzada",
+"g": 244
+},
+{
+"id": "jugo-de-guanabana-en-leche",
+"g": 288
+},
+{
+"id": "batido-de-banano-en-leche",
+"g": 282
+}
+]
+},
+"yogur-natural-entero": {
+"porcion": 200,
+"opciones": [
+{
+"id": "leche-de-vaca-entera-evaporada",
+"g": 108
+},
+{
+"id": "leche-de-cabra",
+"g": 215
+},
+{
+"id": "leche-de-vaca-entera-liquida-pasteurizada",
+"g": 239
+},
+{
+"id": "leche-semidescremada-2",
+"g": 228
+},
+{
+"id": "leche-baja-en-grasa-1",
+"g": 226
+},
+{
+"id": "yogur-natural-semidescremado",
+"g": 146
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-camembert",
+"g": 39
+},
+{
+"id": "queso-madurado-duro-semigraso-tipo-roquefort",
+"g": 34
+},
+{
+"id": "queso-madurado-semiduro-semigraso-tipo-holandes",
+"g": 31
+},
+{
+"id": "queso-crema-amarillo",
+"g": 47
+}
+]
+},
+"yuca-blanca-sin-cascara-cocida-sin-sal": {
+"porcion": 150,
+"opciones": [
+{
+"id": "platano-harton-maduro-cocido-sin-sal",
+"g": 176
+},
+{
+"id": "platano-harton-verde-cocido-sin-sal",
+"g": 176
+},
+{
+"id": "zanahoria-sin-cascara-cocida-sin-sal",
+"g": 145
+},
+{
+"id": "berenjena-con-cascara-cocida-sin-sal",
+"g": 162
+},
+{
+"id": "papa-variedad-harinosa-criolla-con-cascara-cocida-sin-sal",
+"g": 135
+},
+{
+"id": "repollo-morado-cocido-sin-sal",
+"g": 162
+},
+{
+"id": "ahuyama-cocida-sin-sal",
+"g": 162
+},
+{
+"id": "remolacha-sin-cascara-cocida-sin-sal",
+"g": 150
+},
+{
+"id": "tomate-escaldado-sin-sal",
+"g": 270
+},
+{
+"id": "habichuela-cocida-sin-sal",
+"g": 145
+}
+]
+},
+"zanahoria-sin-cascara-cruda": {
+"porcion": 80,
+"opciones": [
+{
+"id": "remolacha-sin-cascara-cruda",
+"g": 77
+},
+{
+"id": "nabo-sin-cascara-crudo",
+"g": 135
+},
+{
+"id": "cebolla-junca-tallos-cruda",
+"g": 108
+},
+{
+"id": "berenjena-cruda",
+"g": 72
+},
+{
+"id": "guatila-sin-cascara-cruda",
+"g": 127
+},
+{
+"id": "apio-crudo",
+"g": 114
+},
+{
+"id": "pimenton-verde-crudo",
+"g": 114
+},
+{
+"id": "pimenton-rojo-crudo",
+"g": 127
+},
+{
+"id": "berenjena-con-cascara-cruda",
+"g": 72
+},
+{
+"id": "rabano-sin-cascara-crudo",
+"g": 135
+}
+]
+}
+}
+}

@@ -32,7 +32,11 @@ npm run verify
 ```
 
 Corre `typecheck` (`tsc -b`, con **`strict` activado**) + `lint` (ESLint) +
-`test` (vitest). Debe salir en verde: **0 errores y 242 tests pasando**.
+`test` (vitest). Debe salir en verde: **0 errores**. La cifra de tests sube casi a
+diario (el 2026-08-03 eran **1.098 en 93 archivos**), así que el criterio no es
+igualar un número: es que **no baje** y que no aparezca ni un rojo. Si vas a citar
+un total, mídelo, no lo copies de aquí — este dato ya estuvo catorce días desfasado
+diciendo «242» y nadie lo notó.
 
 Los mismos tres pasos corren en CI (`.github/workflows/ci.yml`) en cada push y PR.
 
@@ -42,11 +46,21 @@ sin autorización explícita.
 
 ### Avisos del linter que están pendientes a propósito
 
-`react-hooks/rules-of-hooks` está limpia y es **error** (gate real). Pero hay 14
-avisos abiertos: **7 de `set-state-in-effect`** y **2 de `purity`**
-(`SesionPage.tsx:142`). Son hallazgos reales, en las zonas donde ya hubo bugs de
-pérdida de datos. Están como `warn` a la espera de una tanda propia **con tests**.
-No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
+Dos reglas son **error** y bloquean: `react-hooks/rules-of-hooks` y —desde el
+2026-07-29— `react-hooks/set-state-in-effect`. Esta segunda **ya se cerró**: los 7
+avisos que destapó se arreglaron y quedan tres `eslint-disable` con su motivo
+escrito al lado (`eslint.config.js:34-44`). No la trates como pendiente ni la
+reabras. `react-hooks/purity` también está a cero.
+
+Lo que queda abierto son **5 avisos** (2026-08-03), todos anteriores al trabajo de
+julio y ninguno en zona de riesgo: 4 de `react-refresh/only-export-components`
+(`SessionProvider.tsx:310`, `ThemeProvider.tsx:31`, `CronometroSesion.tsx:54` y
+`:59` — archivos que exportan un componente **y** un hook) y 1 de
+`react-hooks/exhaustive-deps` (`DescansoTimer.tsx:100`, falta `cerrarUnaVez`).
+
+La regla es un **delta, no un presupuesto**: corre el linter antes y después de tu
+cambio y no dejes ni un aviso más de los que había. No los arregles de pasada
+dentro de otro cambio; van en su propia tanda **con tests**.
 
 ---
 
@@ -57,11 +71,61 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 | `src/domain/` | Lógica pura: fatiga, ranking, readiness, cumplimiento, gamificación, ritmo de sesión, fichas, calendario | **Sin React, sin I/O.** Cada módulo con su `.test.ts` al lado. **Aquí va toda regla de negocio nueva.** |
 | `src/data/` | Acceso a datos: `repos.ts` (interfaz `Db`), `mockDb.ts`, `nube/sync.ts`, `nube/hidratar.ts`, `seed/` | Patrón repositorio. La UI **nunca** habla con Supabase directamente. |
 | `src/features/<dominio>/` | Pantallas y componentes por dominio de negocio | Un dominio no importa de otro; lo común sube a `components/ui/`. |
-| `src/components/ui/` | Primitivas reutilizables (18) | Sin lógica de negocio. |
+| `src/components/ui/` | Primitivas reutilizables (16 archivos; `MacroPill` está sin uso desde el rediseño de julio) | Sin lógica de negocio. |
 | `src/app/` | Router, `SessionProvider`, `ThemeProvider`, `ErrorBoundary`, layouts | |
 | `src/styles/tokens.css` | Tokens de marca | **El diseño se hace con Tailwind + estos tokens.** No añadir CSS-in-JS, CSS Modules ni Bootstrap. |
-| `supabase/migrations/` | Migraciones numeradas (`0001`…`0014`) | Nueva migración = número siguiente, nunca editar una aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
+| `supabase/migrations/` | Migraciones numeradas (`0001`…`0023`) | Nueva migración = número siguiente, nunca editar una aplicada. **Mira la carpeta antes de elegir número:** dos ramas cogieron `0020` a la vez y una tuvo que renumerarse a `0021` después de estar aplicada. **Se aplican a mano en el SQL Editor: no hay registro de versiones.** Comprobar el estado real con `supabase/comprobar-migraciones.sql` y añadirle las señales de cada migración nueva. |
+| `supabase/plantilla-carga-microciclo.sql` | Molde del clonador de microciclo (sin datos de nadie, sí va al repo) | **Toda carga nueva sale de aquí.** Un microciclo nuevo **nace sin rastro de ejecución**: se hereda la prescripción, nunca lo que el asesorado hizo. Ver abajo. |
 | `scripts/` | Utilidades Node (`.mjs`) | Si un test las importa, mantener su `.d.mts` al día. |
+
+### Cargas de microciclo: la prescripción se hereda, la ejecución no
+
+Las cargas clonan el microciclo vigente para construir el siguiente. Las de julio
+de 2026 lo hacían con `jsonb_set(s,'{ejercicios}', …)`, que reescribe **solo**
+`ejercicios`: el resto del objeto sesión pasaba literal, y ahí viajaban
+`preparacion[].hechoEn`, `bloquesCardio[].hechoEn` y `testPost` — del microciclo
+**anterior**. Afectó a ~14 asesorados.
+
+Dos daños, y el segundo tardó más en verse:
+
+1. El asesorado abría la semana nueva con el calentamiento ya tildado y el test
+   post ya relleno, de una sesión que hizo la semana pasada.
+2. **Se envenenó la evidencia.** Una marca con hora dejó de probar que alguien
+   estuvo en la sesión, que es exactamente para lo que sirve. Cualquier consulta
+   forense sobre adherencia daba falsos positivos.
+
+Reglas que quedan:
+
+- El clonador pasa cada sesión por `tmp_sesion_en_limpio()` antes de guardarla.
+  Si añades un campo de ejecución a `Sesion` (`src/domain/types.ts`), añádelo
+  también ahí — es el único punto donde se decide qué no se hereda.
+- Después de cada carga, correr **las tres** comprobaciones. Las tres tienen que
+  dar **cero filas**, y no se reparte la semana hasta que las den:
+  - `supabase/comprobar-fosiles.sql` — ejecución heredada del microciclo viejo.
+  - `supabase/comprobar-sesiones.sql` — sesiones que se perdieron o que no se
+    pueden pintar. Existe desde el 2026-08-09: una carga escribió `null` en el
+    array `sesiones` de seis microciclos activos y siete sesiones de cardio
+    desaparecieron. Lo notó una asesorada, no nosotros.
+  - `supabase/comprobar-alineacion.sql` — la frase contra los campos. El
+    clonador escribe `sets`, `rir` y `reps` solo cuando el ajuste los trae, así
+    que una carga que pasa la frase nueva sin pasarlos deja los campos con los
+    de la semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13
+    asesorados. El equivalente en dominio es `src/domain/alineacion.ts`: si
+    cambias uno, cambia el otro.
+- **`jsonb_agg` de cero filas devuelve NULL, no `[]`.** Es la trampa que causó
+  aquello. Cualquier `jsonb_set(s, '{...}', (select jsonb_agg(...) …))` va
+  envuelto en `coalesce(…, '[]'::jsonb)`, porque `jsonb_set` con un argumento
+  NULL devuelve NULL y se lleva la sesión entera, no solo la clave. Solo se nota
+  en las sesiones sin ejercicios —cardio, tabata, hábito—, así que una prueba
+  con una sesión normal no lo detecta.
+- Las funciones de carga van con prefijo `tmp_`, con `revoke execute … from
+  public` y se borran al terminar. `create function` concede `EXECUTE` a
+  `PUBLIC` por defecto y todo lo de `public` se expone como RPC a `anon`: sin el
+  `revoke`, una función que **escribe** microciclos queda al alcance de la anon
+  key. Es el mismo agujero que documenta `GUIA-BRYAN.md` §10 con `buscar_ficha`.
+- Cualquier tabla auxiliar que se cree para una limpieza (respaldos, alcance)
+  necesita `enable row level security` en el mismo paso que el `create table`:
+  lleva datos reales y sin RLS queda legible con la anon key.
 
 ### Cómo fluyen los datos
 
@@ -114,7 +178,7 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 
 ## 6. Trampas conocidas (ya nos costaron)
 
-- **`SesionPage` se remonta con `key={sesionId}`** (`SesionPage.tsx:81`). La ruta
+- **`SesionPage` se remonta con `key={sesionId}`** (`SesionPage.tsx:55`). La ruta
   reutiliza el mismo elemento, así que sin ese `key` el estado de la sesión vieja
   se escribía sobre la clave de la nueva. No quitarlo.
 - **`onAuthStateChange` dispara `SIGNED_IN` en cada refoco** de la app, no solo al
@@ -123,6 +187,28 @@ No arreglarlos de pasada dentro de otro cambio, y no añadir avisos nuevos.
 - **La persistencia por sesión se lee con `useState(() => leerJSON(…))`**, que solo
   corre en el primer montaje. Si añades estado persistido y la clave depende de un
   parámetro de ruta, asegúrate del remontaje.
+- **El clonador de microciclo heredaba la ejecución, no solo la prescripción.**
+  `jsonb_set(s,'{ejercicios}', …)` reescribe solo `ejercicios`; `preparacion`,
+  `bloquesCardio` y `testPost` pasaban literales del microciclo anterior. ~14
+  asesorados abrieron la semana con el calentamiento tildado y el test post
+  relleno — y toda consulta de adherencia daba falsos positivos, porque una
+  marca con hora dejó de probar que alguien estuvo. Molde arreglado en
+  `supabase/plantilla-carga-microciclo.sql`; comprobar con
+  `supabase/comprobar-fosiles.sql` después de **cada** carga. Ver
+  `docs/specs/2026-08-04-fosiles-de-carga-diseno.md`.
+- **La frase y los campos divergen en silencio.** Cada ejercicio guarda su
+  prescripción dos veces —el texto que el asesorado lee y los campos con los que
+  la app opera—, una duplicación heredada del Excel, cuya fila lleva las columnas
+  SET · RANGO · REPETICIONES · RIR **y además** la prescripción dentro de NOTAS
+  ASESORADO. El 2026-08-12 salieron **128 ejercicios de 13 asesorados**
+  desalineados: 63 leían «3 SERIES» con `sets` en 2, 69 leían «(RIR 1)» con
+  `rirObjetivo` en 2, y uno tenía una escalera de 3 series con `sets` en 2 —así
+  que la app le cerraba el ejercicio antes de su serie tope, la más pesada. No es
+  cosmético: `sets` decide cuándo se da el ejercicio por terminado y cuánto
+  volumen se cuenta, y `rirObjetivo` elige el coeficiente de %1RM, así que un RIR
+  2 donde se pidió 1 hace que el motor proponga casi un 5 % menos de carga.
+  **Manda la frase**, salvo en un ondulado, donde manda `seriesPrescritas`.
+  Barrido: `supabase/comprobar-alineacion.sql`.
 
 ---
 

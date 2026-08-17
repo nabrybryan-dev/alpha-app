@@ -1,3 +1,4 @@
+import { agregar as agregarItem, quitar as quitarItem } from '../domain/nutricion/despensa'
 import type {
   CheckinDiario,
   EstadoAdherencia,
@@ -214,6 +215,33 @@ export function crearMockDb(): Db {
               ],
         }))
       },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
+          ),
+        }))
+      },
+      guardarValoracion: (usuarioId, valoracion) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) =>
+            p.usuarioId === usuarioId
+              ? {
+                  ...p,
+                  // Reemplaza la del mismo id: es una nota vigente, no un
+                  // histórico. Si algún día se quiere ver la evolución, va en
+                  // su propia tabla y no engordando el perfil.
+                  valoraciones: [
+                    ...(p.valoraciones ?? []).filter((v) => v.id !== valoracion.id),
+                    valoracion,
+                  ],
+                }
+              : p,
+          ),
+        }))
+      },
     },
 
     microciclos: {
@@ -413,6 +441,85 @@ export function crearMockDb(): Db {
       },
     },
 
+    vetados: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.vetosAlimentarios ?? []).filter((v) => v.usuarioId === usuarioId),
+      vetar: (veto) => {
+        mutar((estado) => ({
+          ...estado,
+          // Se reemplaza el que hubiera para ese alimento en vez de acumular:
+          // la tabla tiene unique (asesorado, alimento) y dos vetos del mismo
+          // alimento con motivos distintos no son dos hechos, son una edición.
+          vetosAlimentarios: [
+            ...(estado.vetosAlimentarios ?? []).filter(
+              (v) => !(v.usuarioId === veto.usuarioId && v.alimentoId === veto.alimentoId),
+            ),
+            veto,
+          ],
+        }))
+      },
+      quitar: (usuarioId, alimentoId) => {
+        mutar((estado) => ({
+          ...estado,
+          vetosAlimentarios: (estado.vetosAlimentarios ?? []).filter(
+            (v) => !(v.usuarioId === usuarioId && v.alimentoId === alimentoId),
+          ),
+        }))
+      },
+    },
+
+    /**
+     * La despensa se apoya en el dominio en vez de repetir su lógica.
+     *
+     * `agregarItem` y `quitarItem` ya saben que volver a comprar algo lo
+     * refresca en vez de duplicarlo, y que un pedido sin id se identifica por su
+     * texto normalizado. Reescribir ese filtro aquí sería tener la misma regla
+     * en dos sitios, y la primera vez que cambie uno solo, la despensa local y
+     * la de la nube dejarán de coincidir sin que nadie lo note.
+     */
+    despensa: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.despensa ?? [])
+          .filter((i) => i.usuarioId === usuarioId)
+          // El dueño se quita al salir: el dominio trabaja con la despensa de
+          // una sola persona y no tiene por qué saber de quién es.
+          .map((i) => ({
+            alimentoId: i.alimentoId,
+            ...(i.textoPedido === undefined ? {} : { textoPedido: i.textoPedido }),
+            cantidadG: i.cantidadG,
+            agregadoEn: i.agregadoEn,
+            origen: i.origen,
+          })),
+      agregar: (usuarioId, item) => {
+        mutar((estado) => {
+          const todos = estado.despensa ?? []
+          const suyos = todos.filter((i) => i.usuarioId === usuarioId)
+          const resto = todos.filter((i) => i.usuarioId !== usuarioId)
+          return {
+            ...estado,
+            despensa: [
+              ...resto,
+              ...agregarItem(suyos, item).map((i) => ({ ...i, usuarioId })),
+            ],
+          }
+        })
+      },
+      quitar: (usuarioId, clave) => {
+        mutar((estado) => {
+          const todos = estado.despensa ?? []
+          const suyos = todos.filter((i) => i.usuarioId === usuarioId)
+          const resto = todos.filter((i) => i.usuarioId !== usuarioId)
+          return {
+            ...estado,
+            despensa: [
+              ...resto,
+              ...quitarItem(suyos, clave).map((i) => ({ ...i, usuarioId })),
+            ],
+          }
+        })
+      },
+    },
+
     calibracion: {
       byUsuario: (usuarioId) =>
         (ref.actual.pruebasCalibracion ?? []).filter((p) => p.usuarioId === usuarioId),
@@ -520,7 +627,7 @@ export function crearMockDb(): Db {
               (m.deId === usuarioB && m.paraId === usuarioA),
           )
           .sort((a, b) => a.fechaIso.localeCompare(b.fechaIso)),
-      enviar: ({ deId, paraId, texto, adjuntoUrl, origen }) => {
+      enviar: ({ deId, paraId, texto, adjuntoTipo, adjuntoEstado, origen }) => {
         mutar((estado) => ({
           ...estado,
           mensajes: [
@@ -530,12 +637,29 @@ export function crearMockDb(): Db {
               deId,
               paraId,
               texto,
-              adjuntoUrl,
+              adjuntoTipo,
+              adjuntoEstado,
               origen: origen ?? 'humano',
               fechaIso: new Date().toISOString(),
               leido: false,
             },
           ],
+        }))
+      },
+      anotarPath: (mensajeId, path) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoPath: path } : m,
+          ),
+        }))
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        mutar((estado) => ({
+          ...estado,
+          mensajes: estado.mensajes.map((m) =>
+            m.id === mensajeId ? { ...m, adjuntoEstado: 'listo' as const } : m,
+          ),
         }))
       },
       recibirDeAlpha: ({ id, deId, paraId, texto }) => {
@@ -619,7 +743,11 @@ export function crearMockDb(): Db {
         ),
     },
 
-    ruta: crearRutaRepo(),
+    // El peldaño sale del perfil de cada persona. Sin valorar todavía, arranca
+    // en el primero: nadie empieza en el 03, que es lo que pasaba antes.
+    ruta: crearRutaRepo(
+      (usuarioId) => ref.actual.perfiles.find((p) => p.usuarioId === usuarioId)?.peldanoAlfa ?? 1,
+    ),
 
     contenidoAlfa: crearContenidoRepo(),
   }

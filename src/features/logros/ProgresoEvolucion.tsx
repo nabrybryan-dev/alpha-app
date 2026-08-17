@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { db } from '../../data/dbInstance'
-import { cargaPorGrupo } from '../../domain/fatiga'
-import type { MedidaCorporal } from '../../domain/types'
+import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
+import { nivelDeSeries } from '../../domain/nivelDeVolumen'
+import type { MedidaCorporal, NivelVolumen } from '../../domain/types'
 
 interface Punto {
   etiqueta: string
@@ -66,12 +67,13 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   )
 }
 
-/** Etiqueta de volumen a partir de las series pautadas del grupo en el microciclo. */
-function tagVolumen(series: number): { texto: string; clase: string } {
-  if (series >= 14) return { texto: 'Muy alto', clase: 'text-accion' }
-  if (series >= 9) return { texto: 'Alto', clase: 'text-silver-200' }
-  if (series >= 5) return { texto: 'Medio', clase: 'text-silver-400' }
-  return { texto: 'Bajo', clase: 'text-silver-500' }
+/** El color sigue a la etiqueta, que ahora es la misma que usa la hoja PERFIL. */
+const CLASE_NIVEL: Record<NivelVolumen, string> = {
+  'Muy Alto': 'text-accion',
+  Alto: 'text-silver-200',
+  Normal: 'text-silver-400',
+  Bajo: 'text-silver-500',
+  'Muy Bajo': 'text-silver-500',
 }
 
 export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
@@ -99,7 +101,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
     .map((s) => ({
       etiqueta: s.nombre,
       valor: s.ejercicios.reduce(
-        (t, e) => t + e.series.reduce((acc, ser) => acc + ser.cargaKg * ser.reps, 0),
+        (t, e) => t + e.series.reduce((acc, ser) => acc + ser.cargaKg * (ser.reps ?? 0), 0),
         0,
       ),
     }))
@@ -118,7 +120,33 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
   // Medidas: desviación del último registro vs el anterior.
   const ultima = medidas[medidas.length - 1]
   const previa = medidas[medidas.length - 2]
-  const perimetros = ultima ? Object.entries(ultima.perimetros) : []
+  /**
+   * Los perímetros más la composición corporal.
+   *
+   * El porcentaje de grasa y la masa magra se venían guardando en `MedidaCorporal`
+   * y no se enseñaban en ninguna pantalla: la lista solo recorría `perimetros`.
+   * Entraban a la base y no salían nunca.
+   */
+  const perimetros: [string, number, string][] = ultima
+    ? [
+        ...Object.entries(ultima.perimetros).map(
+          ([nombre, cm]): [string, number, string] => [nombre, cm, 'cm'],
+        ),
+        ...(ultima.pgPct !== undefined
+          ? ([['Grasa', ultima.pgPct, '%']] as [string, number, string][])
+          : []),
+        ...(ultima.masaMagraKg !== undefined
+          ? ([['Masa magra', ultima.masaMagraKg, 'kg']] as [string, number, string][])
+          : []),
+      ]
+    : []
+
+  /** El valor anterior del mismo dato, para calcular la desviación. */
+  const previoDe = (nombre: string): number | undefined => {
+    if (nombre === 'Grasa') return previa?.pgPct
+    if (nombre === 'Masa magra') return previa?.masaMagraKg
+    return previa?.perimetros[nombre]
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -167,27 +195,54 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         </p>
       </div>
 
-      {/* Volumen por grupo (series pautadas) */}
+      {/* Volumen por grupo: lo pautado y lo hecho, uno encima del otro.
+          Antes solo se veía lo pautado, así que no había pantalla donde mirar
+          dónde se está quedando corta —que es justo lo que abre conversación en
+          la revisión—. */}
       {grupos.length > 0 && (
         <div className="rounded-bloque border border-ink-500 bg-ink-800 p-4">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <span className="font-display text-sm text-silver-100">Volumen por grupo</span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">Microciclo</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">
+              Microciclo
+            </span>
           </div>
-          <div className="flex flex-col gap-2.5">
+          {/* La etiqueta (ALTO, NORMAL…) describe el PLAN, no lo hecho. Sin
+              decirlo, "Espalda 0/15 ALTO" se lee como que va sobrada de volumen
+              cuando lleva cero series. */}
+          <p className="mb-3 text-[11px] leading-snug text-silver-500">
+            Barra clara y etiqueta: lo que te pautó tu coach. Barra roja y primer número: lo
+            que llevas registrado.
+          </p>
+          <div className="flex flex-col gap-3">
             {grupos.map((g) => {
-              const tag = tagVolumen(g.seriesPautadas)
+              const nivel = nivelDeSeries(g.seriesPautadas)
               return (
-                <div key={g.grupo} className="grid grid-cols-[76px_1fr_58px] items-center gap-2.5">
+                <div key={g.grupo} className="grid grid-cols-[76px_1fr_62px] items-center gap-2.5">
                   <span className="truncate text-xs font-semibold text-silver-200">{g.grupo}</span>
-                  <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
-                    <span
-                      className="barra-crece block h-full rounded-full bg-accion"
-                      style={{ width: `${Math.round((g.seriesPautadas / maxSeries) * 100)}%` }}
-                    />
+                  <span className="flex flex-col gap-1">
+                    <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
+                      <span
+                        className="barra-crece block h-full rounded-full bg-silver-400"
+                        style={{ width: `${Math.round((g.seriesPautadas / maxSeries) * 100)}%` }}
+                      />
+                    </span>
+                    <span className="h-1.5 overflow-hidden rounded-full bg-ink-500">
+                      <span
+                        className="barra-crece block h-full rounded-full bg-accion"
+                        style={{ width: `${Math.round((g.seriesHechas / maxSeries) * 100)}%` }}
+                      />
+                    </span>
                   </span>
-                  <span className={`text-right text-[10px] font-bold uppercase tracking-[0.06em] ${tag.clase}`}>
-                    {tag.texto}
+                  <span className="text-right">
+                    <span className="cifras block text-[11px] font-bold text-silver-100">
+                      {formatearSeries(g.seriesHechas)}/{formatearSeries(g.seriesPautadas)}
+                    </span>
+                    <span
+                      className={`block text-[9px] font-bold uppercase tracking-[0.06em] ${CLASE_NIVEL[nivel]}`}
+                    >
+                      {nivel}
+                    </span>
                   </span>
                 </div>
               )
@@ -201,16 +256,16 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         <div>
           <p className="mb-2 px-1 font-display text-sm text-silver-100">Medidas · última desviación</p>
           <div className="grid grid-cols-2 gap-2.5">
-            {perimetros.map(([nombre, cm]) => {
-              const antes = previa?.perimetros[nombre]
-              const d = antes !== undefined ? Math.round((cm - antes) * 10) / 10 : undefined
+            {perimetros.map(([nombre, valor, unidad]) => {
+              const antes = previoDe(nombre)
+              const d = antes !== undefined ? Math.round((valor - antes) * 10) / 10 : undefined
               return (
                 <div key={nombre} className="rounded-tarjeta border border-ink-500 bg-ink-800 p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">{nombre}</p>
                   <div className="mt-1 flex items-baseline justify-between gap-1">
                     <span className="cifras text-xl font-bold text-silver-100">
-                      {cm}
-                      <span className="text-xs font-medium text-silver-500"> cm</span>
+                      {valor}
+                      <span className="text-xs font-medium text-silver-500"> {unidad}</span>
                     </span>
                     {d !== undefined && d !== 0 && (
                       <span className={`cifras text-[11px] font-bold ${d < 0 ? 'text-accion' : 'text-silver-400'}`}>

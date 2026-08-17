@@ -1,0 +1,64 @@
+{
+  "limites": {
+    "calcio_mg": {
+      "limite": 2500,
+      "fuente": "2.500 mg (IOM), por riesgo de calculos renales",
+      "informativo": false,
+      "solo_origen_animal": false
+    },
+    "hierro_mg": {
+      "limite": 45,
+      "fuente": "45 mg (IOM). Fijado por molestia gastrointestinal, y pensado sobre todo en suplementos: el hierro hemo de un plato rara vez lo alcanza. Es el mas flojo de los cinco y conviene leerlo como aviso, no como techo",
+      "informativo": true,
+      "solo_origen_animal": false
+    },
+    "vitamina_a_er": {
+      "limite": 3000,
+      "fuente": "3.000 ug de retinol preformado (IOM). SOLO cuenta el retinol: los carotenoides de la zanahoria o la ahuyama no causan hipervitaminosis y quedan fuera, ver SOLO_DE_ORIGEN_ANIMAL. En embarazo el margen es menor y el higado es contraindicacion, no aviso",
+      "informativo": false,
+      "solo_origen_animal": true
+    },
+    "vitamina_c_mg": {
+      "limite": 2000,
+      "fuente": "2.000 mg (IOM), fijado por diarrea osmotica",
+      "informativo": false,
+      "solo_origen_animal": false
+    },
+    "zinc_mg": {
+      "limite": 40,
+      "fuente": "40 mg (IOM). Aplica al zinc de la dieta; el efecto que lo fija es la interferencia con la absorcion de cobre",
+      "informativo": false,
+      "solo_origen_animal": false
+    }
+  },
+  "limites_por_condicion": {
+    "embarazo": {
+      "vitamina_a_er": 2800
+    },
+    "lactancia": {
+      "vitamina_a_er": 2800
+    }
+  },
+  "frecuencia": {
+    "dias": 14,
+    "por_nutriente": {
+      "vitamina_a_er": [
+        "higado",
+        "hígado",
+        "menudencias"
+      ]
+    },
+    "motivo": {
+      "vitamina_a_er": "el retinol se acumula, asi que lo que importa es cada cuanto se come higado y no cuanto se pasa un dia suelto (Manuela, 2026-08-09)"
+    }
+  },
+  "origen_animal": {
+    "grupos": [
+      "lacteos",
+      "proteinas"
+    ],
+    "ids": [
+      "mantequilla"
+    ]
+  }
+}

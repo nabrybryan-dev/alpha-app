@@ -17,15 +17,72 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
+import type { Mensaje, Microciclo } from '../../domain/types'
+import {
+  condicionesDeclaradas,
+  type RespuestasDeEmbarazo,
+} from '../../domain/nutricion/embarazo'
+import { claveDe, type ItemDespensa } from '../../domain/nutricion/despensa'
+import { aIso } from '../../domain/nutricion/semana'
+import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube } from '../supabase'
 import { encolar } from './procesador'
 
 // Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
 // de cómo esté repartido por dentro.
 export type { OperacionPendiente } from './cola'
-export { integrarEnCola, limpiarColasDeSync, pendientesDeSync } from './cola'
+export {
+  descartesPendientes,
+  integrarEnCola,
+  limpiarColasDeSync,
+  pendientesDeSync,
+} from './cola'
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
+
+/** La fila de `mensajes` tal como viaja a Supabase. */
+function encolarFilaDeMensaje(mensaje: Mensaje): void {
+  encolar({
+    tabla: 'mensajes',
+    tipo: 'upsert',
+    payload: {
+      id: mensaje.id,
+      de_id: mensaje.deId,
+      para_id: mensaje.paraId,
+      fecha_iso: mensaje.fechaIso,
+      texto: mensaje.texto,
+      adjunto_path: mensaje.adjuntoPath ?? null,
+      adjunto_tipo: mensaje.adjuntoTipo ?? null,
+      origen: mensaje.origen ?? 'humano',
+      leido: false,
+    },
+  })
+}
+
+/**
+ * Sube el archivo y SOLO ENTONCES encola la fila del mensaje.
+ *
+ * Nunca lanza: que falle aquí significa "todavía no", no "se perdió". El archivo
+ * se queda en el depósito y lo retoma el intento siguiente. Y no se borra hasta
+ * que la fila está encolada — el mismo principio que protege las series de quien
+ * entrena sin señal en un sótano.
+ */
+export async function subirAdjuntoPendiente(
+  mensaje: Mensaje,
+  subir: (path: string, blob: Blob) => Promise<unknown>,
+): Promise<boolean> {
+  if (!mensaje.adjuntoPath) return false
+  const blob = await leerDeposito(mensaje.id)
+  if (!blob) return false
+  try {
+    await subir(mensaje.adjuntoPath, blob)
+  } catch {
+    return false
+  }
+  encolarFilaDeMensaje(mensaje)
+  await borrarDeposito(mensaje.id)
+  return true
+}
 
 const CLAVE_TABLA_HIDRATACION = 'alpha-tabla-hidratacion'
 
@@ -87,6 +144,33 @@ function tablasRegistroListas(): boolean {
  * Quitar no borra: marca `borrado`. La cola no sabe hacer `delete`, y añadírselo
  * obliga a tocar el procesador, que es donde un fallo no da error en pantalla.
  */
+/**
+ * Sube el perfil entero tras tocarlo. Se relee de local a propósito: así viaja
+ * con lo que la capa local dejó, no con lo que creyó quien llamó.
+ */
+/**
+ * El `cliente_id` de un item de despensa: dueño + clave del dominio.
+ *
+ * No es aleatorio a propósito. `claveDe` devuelve el id del catálogo, o
+ * `pedido:<texto normalizado>` para lo que la persona escribió a mano, así que
+ * dos compras del mismo alimento —o dos veces «kefir» escrito distinto— caen en
+ * el mismo id y el upsert las funde. Que el `unique (cliente_id)` de la 0024 no
+ * sea parcial es lo que permite arbitrar sobre él (ver 0023).
+ */
+function idDeDespensa(usuarioId: string, item: ItemDespensa): string {
+  return `${usuarioId}:${claveDe(item)}`
+}
+
+function subirPerfil(local: Db, usuarioId: string): void {
+  const perfil = local.perfiles.byUsuario(usuarioId)
+  if (!perfil) return
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'upsert',
+    payload: { usuario_id: usuarioId, datos: perfil },
+  })
+}
+
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -97,13 +181,15 @@ export function crearDbSincronizada(local: Db): Db {
       ...local.perfiles,
       agregarMedida: (usuarioId, medida) => {
         local.perfiles.agregarMedida(usuarioId, medida)
-        const perfil = local.perfiles.byUsuario(usuarioId)
-        if (!perfil) return
-        encolar({
-          tabla: 'perfiles',
-          tipo: 'upsert',
-          payload: { usuario_id: usuarioId, datos: perfil },
-        })
+        subirPerfil(local, usuarioId)
+      },
+      guardarValoracion: (usuarioId, valoracion) => {
+        local.perfiles.guardarValoracion(usuarioId, valoracion)
+        subirPerfil(local, usuarioId)
+      },
+      guardarPeldano: (usuarioId, peldano, ascensoIso) => {
+        local.perfiles.guardarPeldano(usuarioId, peldano, ascensoIso)
+        subirPerfil(local, usuarioId)
       },
     },
 
@@ -136,17 +222,26 @@ export function crearDbSincronizada(local: Db): Db {
         cambiarEstadoEnNube(propuestaId, 'activo')
         for (const m of activosPrevios) cambiarEstadoEnNube(m.id, 'cerrado')
       },
+      // Las tres escrituras del asesorado suben SOLO su rama, nunca el blob.
+      // Subir el microciclo entero desde el móvil pisó una migración del coach
+      // el 2026-08-15: ver `subirRama` y el spec del 15 de agosto.
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
-        subirMicrociclo(local, microcicloId)
+        subirSeries(local, microcicloId, ejercicioId)
       },
       guardarTestPost: (microcicloId, sesionId, test) => {
         local.microciclos.guardarTestPost(microcicloId, sesionId, test)
-        subirMicrociclo(local, microcicloId)
+        encolar({
+          tabla: 'microciclos',
+          tipo: 'rpc',
+          funcion: 'fijar_test_post',
+          claveRpc: `${microcicloId}:${sesionId}`,
+          payload: { p_microciclo_id: microcicloId, p_sesion_id: sesionId, p_test: test },
+        })
       },
       marcarParte: (microcicloId, sesionId, parteId) => {
         local.microciclos.marcarParte(microcicloId, sesionId, parteId)
-        subirMicrociclo(local, microcicloId)
+        subirPreparacion(local, microcicloId, sesionId)
       },
     },
 
@@ -218,6 +313,104 @@ export function crearDbSincronizada(local: Db): Db {
             respuestas: perfil.respuestas,
             completada_en: perfil.completadaEn ?? null,
           },
+        })
+      },
+    },
+
+    /**
+     * Lo que la nutricionista marca que alguien no debe comer.
+     *
+     * SUBE SIEMPRE, no solo al terminar algo: cada veto es una decisión suelta
+     * y completa. Es lo contrario del perfil, que se sube entero o no se sube.
+     *
+     * QUITAR ES UN UPSERT CON `borrado`, no un delete: la cola solo sabe hacer
+     * upsert y update (`cola.ts`). Sin la columna de la migración 0035, la
+     * nutricionista quitaría un veto, lo vería desaparecer, y volvería en la
+     * siguiente hidratación.
+     */
+    vetados: {
+      ...local.vetados,
+      vetar: (veto) => {
+        local.vetados.vetar(veto)
+        encolar({
+          tabla: 'perfil_alimentario_veto',
+          tipo: 'upsert',
+          onConflict: 'asesorado_id,alimento_id',
+          payload: {
+            asesorado_id: veto.usuarioId,
+            alimento_id: veto.alimentoId,
+            // NUNCA null y nunca cadena vacía: son los dos valores que la base
+            // rechaza, cada uno por su lado. `motivo is null or length > 0` es
+            // de la 0016; el `not null` con mínimo de 3 llega con la 0040.
+            //
+            // El tipo obliga a traer motivo y `porQueNoValeElMotivo` lo valida
+            // en la pantalla, así que llegar aquí en blanco es un error de
+            // programación. Ante eso se conserva el veto con el hueco escrito,
+            // no se descarta: la fila dice que esta persona no puede comer eso,
+            // y perderla es volver a proponérselo.
+            motivo: veto.motivo.trim() || '(sin motivo)',
+            borrado: false,
+          },
+        })
+      },
+      quitar: (usuarioId, alimentoId) => {
+        local.vetados.quitar(usuarioId, alimentoId)
+        encolar({
+          tabla: 'perfil_alimentario_veto',
+          tipo: 'upsert',
+          onConflict: 'asesorado_id,alimento_id',
+          payload: {
+            asesorado_id: usuarioId,
+            alimento_id: alimentoId,
+            borrado: true,
+          },
+        })
+      },
+    },
+
+    /**
+     * La despensa (migraciones 0024 y 0042).
+     *
+     * EL `cliente_id` SALE DE LA CLAVE DEL DOMINIO, y no es un detalle: es lo que
+     * hace que volver a comprar algo REFRESQUE su fila en vez de crear otra. El
+     * dominio ya decide eso en `agregar()` —«volver a comprar algo no es tenerlo
+     * dos veces, es tenerlo otra vez»— y con el id derivado de `claveDe()` la
+     * base aplica exactamente la misma regla a través de su unique.
+     *
+     * Si el id fuera aleatorio, cada compra insertaría una fila nueva y la
+     * despensa crecería sola: el mismo pollo cinco veces, cinco fechas
+     * distintas, y ninguna forma de saber cuál manda.
+     */
+    despensa: {
+      ...local.despensa,
+      agregar: (usuarioId, item) => {
+        local.despensa.agregar(usuarioId, item)
+        encolar({
+          tabla: 'despensa',
+          tipo: 'upsert',
+          onConflict: 'cliente_id',
+          payload: {
+            cliente_id: idDeDespensa(usuarioId, item),
+            asesorado_id: usuarioId,
+            alimento_id: item.alimentoId,
+            texto_pedido: item.alimentoId ? null : (item.textoPedido ?? null),
+            cantidad_g: item.cantidadG,
+            origen: item.origen,
+            agregado_en: item.agregadoEn,
+            borrado: false,
+          },
+        })
+      },
+      quitar: (usuarioId, clave) => {
+        local.despensa.quitar(usuarioId, clave)
+        // `update` y no `upsert`: un upsert que no encuentre la fila la
+        // INSERTARÍA, y sin `alimento_id` ni `texto_pedido` chocaría contra el
+        // check `despensa_alimento_o_pedido`. El update solo toca lo que existe.
+        encolar({
+          tabla: 'despensa',
+          tipo: 'update',
+          payload: { borrado: true },
+          filtro: { cliente_id: `${usuarioId}:${clave}` },
         })
       },
     },
@@ -356,24 +549,26 @@ export function crearDbSincronizada(local: Db): Db {
 
     mensajes: {
       ...local.mensajes,
+      /**
+       * Un mensaje de solo texto se encola al momento. Uno CON adjunto no:
+       * espera a que el archivo esté arriba.
+       *
+       * El orden importa. Si la fila subiera primero, el coach vería en su hilo
+       * un mensaje con foto y al tocarlo no habría nada —el archivo todavía
+       * estaría en el teléfono de la otra persona, o no llegaría nunca—. Quien
+       * encola esa fila es `encolarFilaDeMensaje`, ya con el path.
+       */
       enviar: (mensaje) => {
         local.mensajes.enviar(mensaje)
+        if (mensaje.adjuntoTipo) return
         const hilo = local.mensajes.hilo(mensaje.deId, mensaje.paraId)
-        const ultimo = hilo[hilo.length - 1]
-        encolar({
-          tabla: 'mensajes',
-          tipo: 'upsert',
-          payload: {
-            id: ultimo.id,
-            de_id: ultimo.deId,
-            para_id: ultimo.paraId,
-            fecha_iso: ultimo.fechaIso,
-            texto: ultimo.texto,
-            adjunto_url: ultimo.adjuntoUrl ?? null,
-            origen: ultimo.origen ?? 'humano',
-            leido: false,
-          },
-        })
+        encolarFilaDeMensaje(hilo[hilo.length - 1])
+      },
+      anotarPath: (mensajeId, path) => {
+        local.mensajes.anotarPath(mensajeId, path)
+      },
+      marcarAdjuntoListo: (mensajeId) => {
+        local.mensajes.marcarAdjuntoListo(mensajeId)
       },
       /**
        * ÚNICA escritura de mensajes que NO pasa por la cola, y es a propósito.
@@ -472,10 +667,35 @@ function aPerfilAlimentario(
 
   const texto = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor : null)
 
+  /**
+   * Lo que declaró de su puño y letra, MÁS las condiciones que se deducen.
+   *
+   * EL HUECO QUE ESTO CIERRA. El motor de recomendaciones veta el hígado en
+   * embarazo leyendo `PerfilAlimentario.condiciones_medicas`
+   * (`topes_nutrientes.py` → `VETO_POR_CONDICION`). Esta columna se llenaba solo
+   * con el texto libre de «¿tienes alguna condición médica?», así que la
+   * respuesta de la pregunta de embarazo se quedaba en el jsonb y no llegaba
+   * nunca: la asesorada podía declarar que estaba embarazada y el motor le
+   * seguía pudiendo proponer hígado. Es el mismo fallo que el módulo de
+   * embarazo vino a arreglar —lógica escrita que no protegía a nadie—, una
+   * capa más abajo.
+   *
+   * SE RESUELVE AL SUBIR Y NO EN EL MOTOR porque la marca CADUCA: pasada la
+   * fecha probable de parto deja de aplicar, y una columna no caduca sola. Al
+   * escribirla aquí, cada vez que ella toca su perfil la lista se rehace con la
+   * fecha de ese día. Si nunca vuelve a tocarlo se queda como estaba, que es el
+   * lado prudente: sigue protegida de más, nunca de menos.
+   */
+  const escritasPorElla = comoLista(respuestas.condicionesMedicas) ?? []
+  const condiciones = [
+    ...escritasPorElla,
+    ...condicionesDeclaradas(respuestas as RespuestasDeEmbarazo, aIso(new Date())),
+  ]
+
   return {
     asesorado_id: usuarioId,
     alergias: comoLista(respuestas.alergias),
-    condiciones_medicas: comoLista(respuestas.condicionesMedicas),
+    condiciones_medicas: condiciones.length > 0 ? condiciones : null,
     excluye: comoLista(respuestas.excluye),
     no_le_gustan: comoLista(respuestas.noLeGustan),
     sin_acceso: comoLista(respuestas.sinAcceso),
@@ -540,6 +760,72 @@ function cambiarEstadoEnNube(microcicloId: string, estado: 'activo' | 'cerrado')
     tipo: 'update',
     payload: { estado },
     filtro: { id: microcicloId },
+  })
+}
+
+/**
+ * El microciclo local, o `undefined` si no se encuentra a su dueño.
+ *
+ * Los repos son por usuario, así que para llegar a un microciclo por id hay que
+ * pasar por la lista de usuarios. Lo hacían las cuatro subidas por su cuenta.
+ */
+function microcicloLocal(local: Db, microcicloId: string): Microciclo | undefined {
+  const duenio = local.usuarios
+    .list()
+    .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === microcicloId))
+  if (!duenio) return undefined
+  return local.microciclos.byUsuario(duenio.id).find((m) => m.id === microcicloId)
+}
+
+/**
+ * Sube las series de UN ejercicio, no el microciclo.
+ *
+ * Manda el array completo de ese ejercicio, ya resuelto por la capa local
+ * —reemplazar por `orden` y reordenar—. El servidor solo lo coloca en su sitio.
+ * La regla vive en un solo lado a propósito: dos copias de una regla divergen, y
+ * eso es exactamente lo que este cambio arregla.
+ */
+function subirSeries(local: Db, microcicloId: string, ejercicioId: string): void {
+  const microciclo = microcicloLocal(local, microcicloId)
+  if (!microciclo) return
+  const ejercicio = microciclo.sesiones
+    .flatMap((s) => s.ejercicios)
+    .find((e) => e.id === ejercicioId)
+  if (!ejercicio) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_series_ejercicio',
+    claveRpc: `${microcicloId}:${ejercicioId}`,
+    payload: {
+      p_microciclo_id: microcicloId,
+      p_ejercicio_id: ejercicioId,
+      p_series: ejercicio.series,
+    },
+  })
+}
+
+/**
+ * Sube el calentamiento y el cardio de UNA sesión, no el microciclo.
+ *
+ * `marcarParte` es un interruptor que además materializa la plantilla de
+ * calentamiento si la sesión no la traía, así que se manda el resultado ya
+ * calculado en local en vez de repetir esa lógica en SQL.
+ */
+function subirPreparacion(local: Db, microcicloId: string, sesionId: string): void {
+  const sesion = microcicloLocal(local, microcicloId)?.sesiones.find((s) => s.id === sesionId)
+  if (!sesion) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_preparacion_sesion',
+    claveRpc: `${microcicloId}:${sesionId}`,
+    payload: {
+      p_microciclo_id: microcicloId,
+      p_sesion_id: sesionId,
+      p_preparacion: sesion.preparacion ?? null,
+      p_bloques_cardio: sesion.bloquesCardio ?? null,
+    },
   })
 }
 

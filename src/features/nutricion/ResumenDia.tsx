@@ -2,6 +2,7 @@ import { AnilloMacro } from '../../components/ui/AnilloMacro'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import type { Macros } from '../../domain/types'
 import type { TotalDia } from '../../domain/nutricion/dia'
+import type { Visibilidad } from '../../domain/nutricion/visibilidad'
 
 /**
  * La tarjeta de arriba del diario: cuánto lleva, cuánto le falta y con cuánta
@@ -17,6 +18,22 @@ import type { TotalDia } from '../../domain/nutricion/dia'
 interface ResumenDiaProps {
   total: TotalDia
   meta: Macros
+  /**
+   * Qué cifras le toca ver. Las dos que se apagan aquí son las que la migración
+   * 0018 describe con estas palabras:
+   *
+   *   · `verContadorKcal` → «el anillo y el "te faltan 400 kcal" del diario». Es
+   *     el que más pesa de los tres: una pantalla de perfil se mira una vez, el
+   *     contador cinco veces al día.
+   *   · `verObjetivoCalorico` → «"2.100 kcal · P 115 · C 240 · G 62"», o sea las
+   *     metas. Sin ellas las barras de macro no tienen contra qué medir, así que
+   *     se van con el mismo interruptor: dejarlas sería dejar la misma cifra con
+   *     la que negociar, repartida en tres.
+   *
+   * Lo que NO se apaga nunca: el margen. Habla de la calidad del dato, no del
+   * cuerpo de nadie, y sin él el registro se lee como si fuera exacto.
+   */
+  visibilidad: Visibilidad
   /** En qué fase va: "Vas 12 días pesando. Faltan 3 para dejar la báscula." */
   notaFase?: string
 }
@@ -29,54 +46,66 @@ const MACROS = [
 
 const pct = (valor: number, tope: number) => (tope > 0 ? Math.min(100, (valor / tope) * 100) : 0)
 
-export function ResumenDia({ total, meta, notaFase }: ResumenDiaProps) {
+export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaProps) {
   const kcal = Math.round(total.porDia.kcal ?? 0)
   const restan = meta.kcal - kcal
 
   return (
     <section className="rounded-3xl border border-linea bg-surface-1 p-4">
-      <div className="flex items-center gap-4">
-        <AnilloMacro
-          etiqueta="del día"
-          gramos={kcal}
-          pct={pct(kcal, meta.kcal)}
-          color="var(--accion)"
-          unidad="kcal"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="cifras text-2xl font-bold leading-none text-texto">
-            {kcal.toLocaleString('es-CO')}
-          </p>
-          <p className="text-xs text-tenue">de {meta.kcal.toLocaleString('es-CO')} kcal</p>
-          <p className="mt-1 text-xs font-semibold text-accion">
-            {restan > 0
-              ? `faltan ${restan.toLocaleString('es-CO')}`
-              : restan === 0
-                ? 'justo en la meta'
-                : `${Math.abs(restan).toLocaleString('es-CO')} por encima`}
-          </p>
+      {visibilidad.verContadorKcal && (
+        <div className="flex items-center gap-4">
+          <AnilloMacro
+            etiqueta="del día"
+            gramos={kcal}
+            pct={pct(kcal, meta.kcal)}
+            color="var(--accion)"
+            unidad="kcal"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="cifras text-2xl font-bold leading-none text-texto">
+              {kcal.toLocaleString('es-CO')}
+            </p>
+            <p className="text-xs text-tenue">de {meta.kcal.toLocaleString('es-CO')} kcal</p>
+            <p className="mt-1 text-xs font-semibold text-accion">
+              {restan > 0
+                ? `faltan ${restan.toLocaleString('es-CO')}`
+                : restan === 0
+                  ? 'justo en la meta'
+                  : `${Math.abs(restan).toLocaleString('es-CO')} por encima`}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mt-4 flex flex-col gap-2.5">
-        {MACROS.map((macro) => {
-          const valor = Math.round(total.porDia[macro.clave] ?? 0)
-          const tope = meta[macro.meta]
-          return (
-            <div key={macro.clave}>
-              <div className="mb-1 flex items-baseline justify-between text-[11px]">
-                <span className="text-tenue">{macro.etiqueta}</span>
-                <span className="cifras text-tenue">
-                  <b className="text-texto">{valor}</b> / {tope} g
-                </span>
+      {visibilidad.verObjetivoCalorico && (
+        <div className={`flex flex-col gap-2.5 ${visibilidad.verContadorKcal ? 'mt-4' : ''}`}>
+          {MACROS.map((macro) => {
+            const valor = Math.round(total.porDia[macro.clave] ?? 0)
+            const tope = meta[macro.meta]
+            return (
+              <div key={macro.clave}>
+                <div className="mb-1 flex items-baseline justify-between text-[11px]">
+                  <span className="text-tenue">{macro.etiqueta}</span>
+                  <span className="cifras text-tenue">
+                    <b className="text-texto">{valor}</b> / {tope} g
+                  </span>
+                </div>
+                <ProgressBar pct={pct(valor, tope)} />
               </div>
-              <ProgressBar pct={pct(valor, tope)} />
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-linea pt-3">
+      {/* Sin nada encima, el margen no necesita separador: sería una raya bajo
+          un hueco. */}
+      <div
+        className={`flex flex-wrap items-center gap-2 ${
+          visibilidad.verContadorKcal || visibilidad.verObjetivoCalorico
+            ? 'mt-4 border-t border-linea pt-3'
+            : ''
+        }`}
+      >
         <span className="rounded-full border border-linea bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-texto">
           ±{total.margenPct} %
         </span>

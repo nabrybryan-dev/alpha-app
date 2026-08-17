@@ -4,14 +4,19 @@ import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
 import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
+import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
+import { encuestaPendiente, preguntasQueVuelven } from '../../domain/nutricion/encuesta'
+import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
+import { AvisoSinSincronizar } from './AvisoSinSincronizar'
+import { BarraCoach } from './BarraCoach'
 import { BloqueActual } from './BloqueActual'
+import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
-import { MensajeCoach } from './MensajeCoach'
 import { RadarAlfa } from './RadarAlfa'
 import logoAguila from '../../assets/brand/logo-aguila.jpeg'
 
@@ -34,7 +39,24 @@ export default function HoyPage() {
 
   // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
   // además salieran aquí, la misma pantalla pediría dos veces lo mismo.
+  const perfilNutricion = db.perfilNutricion.byUsuario(usuario.id)
+
   const pendientes = [
+    // Va primero a propósito: sin la encuesta no hay peso ni pasos, y sin eso no
+    // se puede calcular nada de lo suyo. Antes solo aparecía a quien entraba a la
+    // pestaña de Nutrición, y por eso 16 de 20 nunca la llenaron.
+    encuestaPendiente(perfilNutricion) && {
+      texto: 'Completar tu encuesta de nutrición',
+      ruta: '/nutricion',
+    },
+    // Las quincenales de embarazo y lactancia. Salen aquí y no solo en
+    // Nutrición por la misma lección que la encuesta: la regla que vivía en
+    // una sola pantalla la vieron 4 de 20. Y salen como recordatorio, no como
+    // bloqueo — ver `AlDiaEmbarazo`.
+    preguntasQueVuelven(perfilNutricion?.respuestas ?? {}, hoy).length > 0 && {
+      texto: 'Contarnos qué te dijo tu médico',
+      ruta: '/nutricion/al-dia',
+    },
     !adherenciaHoy && { texto: 'Marcar nutrición de hoy', ruta: '/nutricion' },
     cuestionariosPendientes.length > 0 && {
       texto: `${cuestionariosPendientes.length} cuestionario${cuestionariosPendientes.length === 1 ? '' : 's'} por responder`,
@@ -43,10 +65,21 @@ export default function HoyPage() {
   ].filter((p): p is { texto: string; ruta: string } => Boolean(p))
 
   const perfil = db.perfiles.byUsuario(usuario.id)
+  // Los tres números de «Tu bloque actual»: lo que el coach prescribió y, donde
+  // no prescribió, lo que sale de la encuesta marcado como estimado.
+  const pauta = pautaDelBloque(
+    perfil,
+    perfilNutricion?.respuestas,
+    faseDeEtiqueta(perfil?.faseEnergetica),
+    hoy,
+  )
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
-  // Prioridad de volumen que pautó el coach en PERFIL. No es la fatiga ya
-  // ejecutada: eso es el mapa de más abajo.
+  // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
+  // meses. Son tres cosas distintas y conviene no confundirlas:
+  //   · esto        → qué se prioriza en el bloque (etiqueta, no número)
+  //   · Progreso    → cuántas series le tocaron esta semana y cuántas hizo
+  //   · el mapa de abajo → la fatiga ya acumulada
   const prioridadVolumen = prioridadDeVolumen(perfil?.volumenSemanal ?? {})
 
   const totalSeries = siguienteSesion?.ejercicios.reduce((n, e) => n + e.sets, 0) ?? 0
@@ -61,11 +94,7 @@ export default function HoyPage() {
     ? Math.round((pesosReg.reduce((a, b) => a + b, 0) / pesosReg.length) * 10) / 10
     : undefined
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
-  const adherenciaPct = adhs.length
-    ? Math.round(
-        (adhs.reduce((s, a) => s + (a.estado === 'si' ? 1 : a.estado === 'parcial' ? 0.5 : 0), 0) / adhs.length) * 100,
-      )
-    : undefined
+  const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
@@ -84,6 +113,24 @@ export default function HoyPage() {
           Hola, {usuario.nombre.split(' ')[0]}
         </h2>
       </section>
+
+      {/* Si algo no subió, se dice antes que nada: el resto de la pantalla da a
+          entender que todo está registrado, y esa es justamente la confusión que
+          dejó el registro de comidas roto durante semanas. */}
+      <div className="entrada entrada-2">
+        <AvisoSinSincronizar usuarioId={usuario.id} />
+      </div>
+
+      {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
+          álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
+      <div className="entrada entrada-2">
+        <BarraCoach
+          iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
+          noLeidos={noLeidos}
+          ultimoTexto={ultimoDelCoach?.texto}
+          onEnviar={(envio) => void enviarRapido(usuario.id, envio)}
+        />
+      </div>
 
       {/* Check-in del día */}
       {checkinHoy ? (
@@ -133,7 +180,7 @@ export default function HoyPage() {
             <img src={logoAguila} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 rounded-xl object-cover opacity-90" />
           </div>
           {prioridadVolumen.length > 0 && (
-            <ul aria-label="Prioridad de volumen" className="mt-3 flex flex-wrap gap-1.5">
+            <ul aria-label="Prioridad del bloque" className="mt-3 flex flex-wrap gap-1.5">
               {prioridadVolumen.map((g) => (
                 <li
                   key={g.grupo}
@@ -203,15 +250,7 @@ export default function HoyPage() {
       )}
 
       <div className="entrada entrada-4">
-        <BloqueActual perfil={perfil} />
-      </div>
-
-      <div className="entrada entrada-5">
-        <MensajeCoach
-          mensaje={ultimoDelCoach}
-          coach={db.usuarios.byId(idCoach())}
-          noLeidos={noLeidos}
-        />
+        <BloqueActual perfil={perfil} pauta={pauta} />
       </div>
 
       <div className="entrada entrada-6">

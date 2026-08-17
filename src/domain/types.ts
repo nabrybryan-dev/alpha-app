@@ -39,13 +39,52 @@ export interface Perfil {
   faseEnergetica?: string
   proteinaGkg?: number
   pasosObjetivo?: number
+  /**
+   * Lo que el coach valora mirando la ejecución y la app no puede deducir
+   * (hoy, la técnica). El resto de competencias de la Ruta se calculan solas.
+   */
+  valoraciones?: ValoracionCompetencia[]
+  /**
+   * Peldaño de la Escala Alfa, 1–7. Sin definir = todavía no se ha calculado y
+   * se deduce de sus datos.
+   *
+   * Antes no existía: la Ruta devolvía el peldaño 03 para todo el mundo.
+   */
+  peldanoAlfa?: number
+  /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
+  ascensoIso?: string
+}
+
+/** Nota del coach a una competencia concreta de la Ruta. */
+export interface ValoracionCompetencia {
+  /** Coincide con el id del catálogo de competencias del coach. */
+  id: string
+  /** 0–100. */
+  pct: number
+  /** Qué vio el coach. Es lo que de verdad le sirve al asesorado. */
+  nota: string
+  /** Fecha ISO en que se puso, para saber si está vieja. */
+  fecha: string
 }
 
 export interface SerieRegistrada {
   orden: number
   cargaKg: number
-  reps: number
-  rir: number
+  /**
+   * Opcionales porque hay trabajo que no se mide así y forzarlo inventa datos.
+   *
+   * Una plancha isométrica no tiene repeticiones en reserva, y un foam roller
+   * tampoco. Hasta el 2026-08-15 la base guardaba ahí las palabras «Isometría»,
+   * «Control», «Movilidad» y «Suave» —81 series— porque el tipo exigía un
+   * número y no había dónde poner «esto no lleva RIR». Eso rompía cualquier
+   * promedio: un `avg` sobre RIR reventaba al toparse con el texto.
+   *
+   * Ausente significa **no aplica**, no «cero». Quien los lea tiene que
+   * saltarse las series sin dato en vez de contarlas como 0, que sería
+   * decir que se llegó al fallo.
+   */
+  reps?: number
+  rir?: number
 }
 
 export interface TestPostSesion {
@@ -62,12 +101,36 @@ export interface SeriePrescrita {
   cargaKg: number
 }
 
+/**
+ * Cómo hay que leer `cargaKg`.
+ *
+ * - `kg` — lo que marca la barra o la máquina.
+ * - `total` — la suma de los dos lados (mancuernas sumadas, lastre + cuerpo).
+ * - `por lado` — esa carga en cada pierna/lado; se mueve el doble.
+ * - `por mano` — esa carga en cada mancuerna.
+ *
+ * No es cosmético: confundir `por mano` con `total` duplica o parte en dos la
+ * carga cuando se progresa.
+ */
+export type UnidadCarga = 'kg' | 'total' | 'por lado' | 'por mano'
+
 export interface EjercicioPrescrito {
   id: string
   categoria: string
   nombre: string
   cues: string
+  /** Frase que ve el asesorado. Desde el 2026-08-09 **se compone** desde los
+   *  campos de abajo con `componerPrescripcion` (`domain/prescripcion.ts`);
+   *  antes era texto libre y la carga vivía dentro de la frase. */
   prescripcion: string
+  /** La carga, ya fuera de la frase. Sin definir = la prescripción no lleva
+   *  kilos (porcentajes, «REGISTRA TU CARGA», tiempo, peso corporal). **No es
+   *  lo mismo que 0**: 0 sería carga cero, esto es «no hay dato». */
+  cargaKg?: number
+  unidadCarga?: UnidadCarga
+  /** La prosa del coach, separada de los números. Se transporta tal cual: ni la
+   *  progresión ni la composición la reescriben nunca. */
+  notaCoach?: string
   descansoMin: number
   sets: number
   rango: string
@@ -227,7 +290,20 @@ export interface Mensaje {
   paraId: string
   fechaIso: string
   texto: string
-  adjuntoUrl?: string
+  /**
+   * Ruta del objeto dentro del bucket privado. NO es una URL: el bucket no es
+   * publico, asi que se firma al pintarla y se deja caducar.
+   *
+   * Sustituye al viejo `adjuntoUrl`, que guardaba el nombre que el archivo tenia
+   * en el telefono -y nada mas: no habia archivo detras de ese nombre-.
+   */
+  adjuntoPath?: string
+  adjuntoTipo?: 'imagen' | 'video'
+  /**
+   * Solo local, no viaja a la base: dice si el archivo de ESTE dispositivo ya
+   * subio. Para cualquier otro dispositivo la respuesta siempre es que si.
+   */
+  adjuntoEstado?: 'subiendo' | 'listo'
   leido: boolean
   /** 'alpha' = respuesta automatica del Centro de Respuestas. Sin definir = humano. */
   origen?: 'humano' | 'alpha'
@@ -320,6 +396,44 @@ export interface RegistroComida {
  * el asesorado sí puede leer sus interruptores. Aquí viajan juntas porque quien
  * carga este objeto es siempre staff.
  */
+/**
+ * Un alimento que esta persona no debe comer, marcado por la nutricionista.
+ *
+ * ES LA TRADUCCIÓN QUE FALTABA. La encuesta recoge las alergias en texto libre
+ * —«soy alérgica a los mariscos»— y este repo se niega a interpretarlas: no hay
+ * forma fiable de convertir una frase en una lista de ids, y equivocarse ahí es
+ * proponerle a alguien lo que le hace daño. Quien traduce es Manuela, que para
+ * eso conoce a la persona; esto es donde escribe el resultado.
+ *
+ * NO BLOQUEA REGISTRAR, NUNCA. Es la regla R6 y no tiene excepciones: si
+ * alguien con alergia al marisco se comió marisco, lo que hace falta es que
+ * quede anotado y que el coach lo VEA, no que el diario se lo impida y el dato
+ * se pierda. Esto solo decide qué se le PROPONE.
+ *
+ * El motivo es opcional a propósito: exigirlo convertiría un veto de treinta
+ * segundos en un formulario, y un veto sin escribir protege menos que uno
+ * escrito sin motivo.
+ */
+export interface VetoAlimento {
+  usuarioId: string
+  alimentoId: string
+  /**
+   * Por qué esta persona no puede comer esto. OBLIGATORIO.
+   *
+   * La PR #57 puso la pantalla a exigirlo y `motivoDeVeto.ts` a definir qué
+   * cuenta como motivo válido. Faltaba cerrar la puerta AQUÍ: mientras el campo
+   * fuera opcional, cualquier sitio nuevo podía llamar a `vetar()` sin él y
+   * `sync.ts` lo subía como `null` — que es exactamente lo que tumbó la 0040 la
+   * primera vez.
+   *
+   * Con esto, la migración se puede aplicar sin depender de que nadie se olvide:
+   * el compilador señala cada sitio que veta y obliga a traer un motivo. No es
+   * una validación —de eso se encarga `porQueNoValeElMotivo`— es la garantía de
+   * que la validación no se puede saltar por descuido.
+   */
+  motivo: string
+}
+
 export interface VisibilidadAsesorado {
   usuarioId: string
   verComposicion: boolean
