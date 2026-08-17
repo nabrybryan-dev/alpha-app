@@ -110,10 +110,9 @@ export function revisarAlineacion(ejercicio: EjercicioPrescrito): Desalineacion[
   ].filter((d): d is Desalineacion => d !== undefined)
 }
 
-/** Atajo legible para las guardas: `if (!alineado(e)) …`. */
-export function alineado(ejercicio: EjercicioPrescrito): boolean {
-  return revisarAlineacion(ejercicio).length === 0
-}
+// `alineado()` vivía aquí y era `revisarAlineacion(e).length === 0`. Solo lo
+// usaban sus propios tests, así que se fue: una API que envuelve una línea y no
+// tiene consumidor es peso muerto, y para eso está el detector de huérfanos.
 
 /**
  * Los ejercicios de una sesión que no cuadran, con su id. Pensado para el barrido

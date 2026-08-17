@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { alineado, desalineadosDe, revisarAlineacion } from './alineacion'
+import { desalineadosDe, revisarAlineacion } from './alineacion'
+
+/** Lo que antes era `alineado()`: un atajo que solo usaban estos tests. */
+const alineado = (e: Parameters<typeof revisarAlineacion>[0]) => revisarAlineacion(e).length === 0
 import type { EjercicioPrescrito } from './types'
 
 function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {

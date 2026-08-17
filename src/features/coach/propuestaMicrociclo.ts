@@ -40,7 +40,9 @@ import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../dom
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import { componerPrescripcion } from '../../domain/prescripcion'
-import type { EjercicioPrescrito, Microciclo, Sesion } from '../../domain/types'
+import { desalineadosDe } from '../../domain/alineacion'
+import { volumenDelMicrociclo, type VolumenDeGrupo } from '../../domain/progresionDeVolumen'
+import type { EjercicioPrescrito, Microciclo, NivelVolumen, Sesion } from '../../domain/types'
 
 export interface FilaPropuesta {
   sesionId: string
@@ -70,6 +72,31 @@ export interface PropuestaMicrociclo {
   revision: RevisionActivacion
   /** Para el resumen del coach: cuántos suben, sostienen y bajan. */
   reparto: { suben: number; sostienen: number; bajan: number }
+  /**
+   * Cuántas series le tocan a cada grupo la semana que viene, por landmark.
+   *
+   * `aplicarOndulacion` decide la CARGA con criterio, pero el número de series
+   * lo heredaba: partía de `ejercicio.sets` del microciclo anterior y solo lo
+   * movía en descarga o con PRS crítico. Así el volumen no progresaba solo,
+   * cuando es —según el motor del Cerebro— la variable que más se ondula a lo
+   * largo de los 24 microciclos.
+   *
+   * Es una RECOMENDACIÓN, no una escritura: se le enseña al coach junto a la
+   * propuesta y él decide. Por eso viaja aquí y no dentro de `microcicloPropuesto`.
+   */
+  volumen: VolumenDeGrupo[]
+  /**
+   * Ejercicios cuya frase contradice a sus campos.
+   *
+   * Es el espejo en la app de `supabase/comprobar-alineacion.sql`: el clonador
+   * escribe `sets`, `rir` y `reps` solo cuando el ajuste los trae, así que una
+   * carga que pasa la frase nueva sin pasarlos deja los campos con los de la
+   * semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13 asesorados.
+   *
+   * El asesorado lee la FRASE antes de cargar la barra; el motor lee los
+   * CAMPOS. Cuando divergen, los dos van a lo suyo y nadie se entera.
+   */
+  desalineados: ReturnType<typeof desalineadosDe>
 }
 
 /**
@@ -267,9 +294,13 @@ export function microcicloPropuesto(
 
 export function proponerMicrociclo(
   micro: Microciclo,
-  opciones: { incrementoKg?: number } = {},
+  opciones: {
+    incrementoKg?: number
+    /** Prioridad por grupo, del perfil. Sin ella, todos cuentan como 'Normal'. */
+    volumenSemanal?: Readonly<Record<string, NivelVolumen>>
+  } = {},
 ): PropuestaMicrociclo {
-  const { incrementoKg = 2.5 } = opciones
+  const { incrementoKg = 2.5, volumenSemanal } = opciones
   const prs = prsMasReciente(micro)
   const filas = micro.sesiones
     .filter((s) => s.tipo !== 'metabolica')
@@ -296,6 +327,9 @@ export function proponerMicrociclo(
       saltoMaximo: maximo(filas.map((f) => f.salto)),
       brechaMaxima: maximo(filas.map((f) => f.brecha)),
     }),
+    // El perfil dice qué grupos son prioritarios; sin perfil, todos 'Normal'.
+    volumen: volumenDelMicrociclo(micro, { volumenSemanal, prs }),
+    desalineados: desalineadosDe(ejerciciosDeFuerza),
     reparto: {
       suben: filas.filter((f) => f.direccion === 'subir').length,
       sostienen: filas.filter((f) => f.direccion === 'estable').length,

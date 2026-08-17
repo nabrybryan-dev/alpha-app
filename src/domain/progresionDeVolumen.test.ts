@@ -5,7 +5,7 @@ import {
   decidirVolumen,
   landmarkDe,
   volumenDelMicrociclo,
-} from './volumenDelBloque'
+} from './progresionDeVolumen'
 import type { EjercicioPrescrito, Microciclo, Sesion } from './types'
 
 function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {

@@ -212,6 +212,10 @@ describe('conclusion', () => {
     sinDatos: 0,
     revision: { auto: true, motivos: [] },
     reparto: { suben: 8, sostienen: 3, bajan: 1 },
+    // La conclusión de cartera no los mira, pero el tipo los exige: son parte
+    // de la propuesta desde que el volumen dejó de heredarse.
+    volumen: [],
+    desalineados: [],
   }
 
   it('en curso dice cuándo vence', () => {

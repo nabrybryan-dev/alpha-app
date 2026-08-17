@@ -5,6 +5,12 @@ import type { Microciclo, NivelVolumen } from './types'
 /**
  * Cuántas series le tocan al grupo la semana que viene.
  *
+ * OJO CON EL NOMBRE. Se llamaba `volumenDelBloque` y `main` tiene un
+ * `volumenDeBloque` —una letra de diferencia— que hace algo distinto: pinta la
+ * rejilla de 24 microciclos para MIRAR el bloque. Este DECIDE el siguiente. Dos
+ * módulos a una letra son un error esperando a que alguien importe el que no
+ * era, así que este pasa a decir lo que hace.
+ *
  * ────────────────────────────────────────────────────────────────────────────
  * QUÉ RESUELVE
  * ────────────────────────────────────────────────────────────────────────────
