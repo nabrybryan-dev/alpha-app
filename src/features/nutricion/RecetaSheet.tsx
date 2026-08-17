@@ -269,6 +269,15 @@ function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalR
         <Macro etiqueta="grasa" valor={ajuste.grasa} clase="text-oro" sufijo="g" />
       </div>
 
+      {/* Solo se ve en desarrollo: en producción una receta sin notas no se
+          sirve. Es lo que le dice al coach cuáles le faltan por escribir. */}
+      {ajuste.notas.length === 0 && (
+        <p className="mt-3 rounded-[12px] border border-ambar/40 bg-ambar/10 p-2.5 text-[11px] leading-snug text-ambar">
+          <b>Sin firmar.</b> Le faltan tus notas: dónde encaja hoy, el canje, el ojo con. Hasta
+          que las escribas, esta receta no le llega a nadie.
+        </p>
+      )}
+
       <ul className="mt-3 flex flex-col gap-3">
         {ajuste.notas.map((nota) => (
           <li key={nota.tipo} className="flex gap-2.5">
