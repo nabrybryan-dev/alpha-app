@@ -45,3 +45,54 @@ jobs:
       # `vitest.config.ts` también son gate, no solo un informe local.
       - name: Tests con cobertura (vitest)
         run: npm run coverage
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Lo que la suite de vitest NO puede ver.
+  #
+  # Los tests de la app corren siempre en modo demo (forzado en
+  # `vitest.config.ts`), sin Supabase. Así que RLS, triggers, tipos y `ON
+  # CONFLICT` quedaban sin ejercitar: un índice único parcial dejó el registro
+  # de comidas sin subir nada durante semanas y ningún test podía verlo.
+  #
+  # Esto corre en los runners de GitHub, no en la máquina del equipo, así que la
+  # restricción WDAC que obliga a `esbuild-wasm` aquí no aplica: se puede tener
+  # un Postgres de verdad.
+  #
+  # Imagen con pgvector porque la 0010 (Centro de Respuestas) usa `vector`.
+  base-de-datos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: alpha_pruebas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/alpha_pruebas
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar cliente de Postgres
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      # Vale por sí solo: hoy nadie comprueba que las migraciones corran seguidas
+      # sobre una base vacía.
+      - name: Aplicar migraciones desde cero
+        run: bash scripts/aplicar-migraciones.sh
+
+      - name: Las escrituras del asesorado llegan de verdad
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/10-escrituras-del-asesorado.sql
+
+      - name: El aislamiento entre asesorados aguanta
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/20-aislamiento.sql
