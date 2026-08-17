@@ -46,6 +46,24 @@ create table if not exists auth.users (
   email text
 );
 
+-- Las dos cuentas de staff que la 0006 exige.
+--
+-- Esa migración se planta con «No existe la cuenta …» si no las encuentra, y en
+-- una base recién creada no hay ninguna: sin esto, la cadena de migraciones se
+-- corta en la sexta y las treinta y seis siguientes no se comprueban nunca.
+--
+-- Se crean AQUÍ y no se omite la 0006, que sería lo cómodo: lo que este job
+-- promete es que la 0001 → 00NN corren seguidas sobre una base vacía, y saltarse
+-- una a mitad convierte esa promesa en otra más pequeña sin que se note.
+--
+-- Los correos son los mismos que ya están escritos en la 0006. No se añade aquí
+-- ningún dato que no estuviera ya en el repositorio, y no hay ninguno de
+-- asesorado: son las dos cuentas de staff.
+insert into auth.users (id, email) values
+  ('00000000-0000-4000-8000-000000000001', 'alpha+bryan@gmail.com'),
+  ('00000000-0000-4000-8000-000000000002', 'alpha+manu@gmail.com')
+on conflict (id) do nothing;
+
 /**
  * Quién es el usuario de la petición.
  *
