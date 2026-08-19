@@ -30,7 +30,13 @@ export default function LogrosPage() {
     <div className="flex flex-col gap-4">
       <section
         className="entrada entrada-1 tarjeta-foto p-5 pt-24 text-center"
-        style={{ '--foto': 'url(/fondos/atleta-sonrisa.jpeg)', '--foto-pos': 'center 25%' } as React.CSSProperties}
+        // Los agujeros numerados del rack: la escalera que `DIRECCION-C-ASCENSO.md` llama
+        // «los peldaños». Los logros de esta app son niveles, y la metáfora ya estaba en la
+        // dirección visual. La foto anterior (`atleta-sonrisa.jpeg`) no fallaba por
+        // resolución —iba a 1:1— sino por sistema: turquesa y amarillo cálido contra una
+        // paleta de tinta y rojo, con focos de techo asomando bajo la tipografía blanca.
+        // Medido en la zona del texto: 24,0 de media antes, 10,2 ahora, con un umbral de 18.
+        style={{ '--foto': 'url(/fondos/logros-peldanos.jpg)', '--foto-pos': 'center 25%' } as React.CSSProperties}
       >
         <div className="mb-2 flex justify-center">
           <AguilaInteractiva className="h-16 w-16" />
