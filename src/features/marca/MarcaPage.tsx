@@ -3,11 +3,25 @@ import { Card } from '../../components/ui/Card'
 import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { MarcaAguila } from '../../components/ui/MarcaAguila'
+import { MarcaRaster, type NombreDeMarca } from '../../components/ui/MarcaRaster'
 import { Semaforo } from '../../components/ui/Semaforo'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
-import marcaHalcon from '../../assets/brand/marca-halcon.jpeg'
-import monogramaA from '../../assets/brand/monograma-a.jpeg'
-import wordmark from '../../assets/brand/wordmark.jpeg'
+
+/**
+ * Los cuatro logotipos oficiales.
+ *
+ * Antes eran cuatro JPEG con el fondo negro cocido dentro del archivo, en la
+ * pantalla que precisamente sirve de referencia para cualquier pieza nueva.
+ * Ahora la cabeza de halcon sale de su vector y las otras tres de su mascara,
+ * asi que todas toman el color del tema y la placa oscura de detras es una
+ * decision, no un resto del archivo.
+ */
+const logos: { marca?: NombreDeMarca; vector?: boolean; alt: string }[] = [
+  { marca: 'aguila', alt: 'Logo principal: águila con monograma A' },
+  { vector: true, alt: 'Marca alternativa: cabeza de halcón' },
+  { marca: 'monograma', alt: 'Monograma A rasgado' },
+  { marca: 'wordmark', alt: 'Wordmark ALPHA ATHLETICS' },
+]
 
 const colores = [
   { nombre: 'BLACK', hex: '#0A0A0A', uso: 'Fondos y base visual · 70%' },
@@ -30,19 +44,17 @@ export default function MarcaPage() {
       <Card>
         <p className="kicker">Logos oficiales</p>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          {[
-            { src: logoAguila, alt: 'Logo principal: águila con monograma A' },
-            { src: marcaHalcon, alt: 'Marca alternativa: cabeza de halcón' },
-            { src: monogramaA, alt: 'Monograma A rasgado' },
-            { src: wordmark, alt: 'Wordmark ALPHA ATHLETICS' },
-          ].map((logo) => (
-            <img
+          {logos.map((logo) => (
+            <div
               key={logo.alt}
-              src={logo.src}
-              alt={logo.alt}
-              loading="lazy"
-              className="aspect-square w-full rounded-xl border border-linea object-cover"
-            />
+              className="grid aspect-square w-full place-items-center rounded-xl border border-linea bg-ink-900 p-6 text-silver-100"
+            >
+              {logo.vector ? (
+                <MarcaAguila className="h-full w-full" />
+              ) : (
+                <MarcaRaster marca={logo.marca!} alt={logo.alt} className="w-full max-h-full" />
+              )}
+            </div>
           ))}
         </div>
       </Card>

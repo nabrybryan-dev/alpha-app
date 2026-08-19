@@ -18,7 +18,7 @@ import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
 import { RadarAlfa } from './RadarAlfa'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
+import { MarcaAguila } from '../../components/ui/MarcaAguila'
 
 export default function HoyPage() {
   const { usuario } = useSesion()
@@ -177,7 +177,10 @@ export default function HoyPage() {
                 <span className="cifras">≈ {formatoDuracion(duracionTotalSeg(siguienteSesion))}</span>
               </div>
             </div>
-            <img src={logoAguila} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 rounded-xl object-cover opacity-90" />
+            {/* El halcon y no el logotipo completo: a 48 px el «ALPHA ATHLETICS»
+                que lleva debajo el bloqueo de marca no se lee, y un texto ilegible
+                es ruido. El halcon es vector, asi que aguanta cualquier tamano. */}
+            <MarcaAguila className="h-11 w-11 shrink-0 text-white/70" />
           </div>
           {prioridadVolumen.length > 0 && (
             <ul aria-label="Prioridad del bloque" className="mt-3 flex flex-wrap gap-1.5">

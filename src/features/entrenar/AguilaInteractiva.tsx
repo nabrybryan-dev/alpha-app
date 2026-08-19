@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
+import { MarcaRaster } from '../../components/ui/MarcaRaster'
 
 interface AguilaInteractivaProps {
   /** Clase para el tamaño/estilo del logo (h-24 w-24, etc.). */
@@ -14,7 +14,7 @@ interface AguilaInteractivaProps {
  * volver a disparar tocando de nuevo sin esperar a que termine.
  */
 export function AguilaInteractiva({ className = '', entrada = false }: AguilaInteractivaProps) {
-  const ref = useRef<HTMLImageElement>(null)
+  const ref = useRef<HTMLSpanElement>(null)
 
   const girar = () => {
     const el = ref.current
@@ -37,15 +37,16 @@ export function AguilaInteractiva({ className = '', entrada = false }: AguilaInt
       aria-label="Águila Alpha"
       className="press inline-block [perspective:600px]"
     >
-      <img
+      {/* Antes esto era un JPEG con el fondo negro dentro del archivo, y el
+          `rounded-3xl` con borde estaba para disimular el recuadro. Ahora es la
+          marca enmascarada: toma el color del texto que la rodea, asi que ya no
+          necesita caja ni sombra que la despegue del fondo. */}
+      <span
         ref={ref}
-        src={logoAguila}
-        alt=""
-        aria-hidden="true"
-        className={`rounded-3xl border border-hairline object-cover shadow-xl [backface-visibility:hidden] ${
-          entrada ? 'aguila-entra' : ''
-        } ${className}`}
-      />
+        className={`inline-block [backface-visibility:hidden] ${entrada ? 'aguila-entra' : ''} ${className}`}
+      >
+        <MarcaRaster marca="aguila" className="h-full w-full" />
+      </span>
     </button>
   )
 }
