@@ -11,6 +11,7 @@ import { GenerarMicrocicloSheet } from './GenerarMicrocicloSheet'
 import { PautadoVsRealizado } from './PautadoVsRealizado'
 import { RejillaDeVolumen } from './RejillaDeVolumen'
 import { resumenAsesorado } from './resumenAsesorado'
+import { IconoEstrella } from '../../components/ui/Icono'
 
 const PESTANAS = ['Resumen', 'Entrenamiento', 'Vida', 'Nutrición', 'Cuestionarios'] as const
 type Pestana = (typeof PESTANAS)[number]
@@ -125,8 +126,11 @@ export default function AsesoradoDetallePage() {
                 <Card destacada>
                   <p className="kicker">Reconocimientos otorgados</p>
                   {premiaciones.map((premio) => (
-                    <p key={premio.id} className="mt-1 text-sm text-texto/90">
-                      ⭐ {premio.titulo} ({premio.fecha})
+                    <p key={premio.id} className="mt-1 flex items-start gap-1.5 text-sm text-texto/90">
+                      <IconoEstrella className="mt-0.5 h-[15px] w-[15px] shrink-0 text-rojo" />
+                      <span>
+                        {premio.titulo} ({premio.fecha})
+                      </span>
                     </p>
                   ))}
                 </Card>

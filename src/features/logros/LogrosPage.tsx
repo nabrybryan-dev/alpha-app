@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { CifraAnimada } from '../../components/ui/CifraAnimada'
+import { IconoCorazon, IconoCubiertos, IconoEstrella, IconoPesa } from '../../components/ui/Icono'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Revelar } from '../../components/ui/Revelar'
@@ -19,9 +20,11 @@ export default function LogrosPage() {
   const premiaciones = db.premiaciones.byUsuario(usuario.id)
 
   const rachas = [
-    { nombre: 'Bienestar', racha: juego.rachaBienestar, icono: '♥' },
-    { nombre: 'Entrenamiento', racha: juego.rachaEntrenamiento, icono: '🏋' },
-    { nombre: 'Nutrición', racha: juego.rachaNutricion, icono: '🍽' },
+    // Cada racha lleva el icono de SU pestaña: así el asesorado aprende un símbolo
+    // por dominio en vez de tres vocabularios distintos.
+    { nombre: 'Bienestar', racha: juego.rachaBienestar, Icono: IconoCorazon },
+    { nombre: 'Entrenamiento', racha: juego.rachaEntrenamiento, Icono: IconoPesa },
+    { nombre: 'Nutrición', racha: juego.rachaNutricion, Icono: IconoCubiertos },
   ]
 
   const rachaRota = juego.rachaBienestar.actual === 0 && juego.rachaBienestar.record > 0
@@ -59,7 +62,9 @@ export default function LogrosPage() {
       <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
         {rachas.map((r) => (
           <Card key={r.nombre} className="text-center !p-3">
-            <span className="text-lg" aria-hidden="true">{r.icono}</span>
+            <span className="mb-1 flex justify-center text-tenue">
+              <r.Icono className="h-[19px] w-[19px]" />
+            </span>
             <p className="cifras font-display text-2xl text-rojo">
               <CifraAnimada valor={r.racha.actual} duracionMs={700} />
             </p>
@@ -131,7 +136,7 @@ export default function LogrosPage() {
           <div className="mt-2 flex flex-col gap-2">
             {premiaciones.map((premio) => (
               <Card key={premio.id} destacada className="flex items-start gap-3">
-                <span className="text-2xl" aria-hidden="true">⭐</span>
+                <IconoEstrella className="h-6 w-6 shrink-0 text-rojo" />
                 <div>
                   <h3 className="font-display text-base text-texto">{premio.titulo}</h3>
                   <p className="text-xs text-tenue">{premio.fecha}</p>

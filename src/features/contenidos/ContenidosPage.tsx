@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { Chip } from '../../components/ui/Chip'
+import { IconoDocumento, IconoImagen, IconoVideo } from '../../components/ui/Icono'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
 import type { Contenido } from '../../domain/types'
 import { VisorContenido } from './VisorContenido'
 
-const iconos = { video: '🎬', imagen: '🖼', articulo: '📄' } as const
+const iconos = { video: IconoVideo, imagen: IconoImagen, articulo: IconoDocumento } as const
 
 export default function ContenidosPage() {
   useDbVersion()
@@ -39,8 +40,11 @@ export default function ContenidosPage() {
         {visibles.map((contenido) => (
           <button key={contenido.id} type="button" onClick={() => setAbierto(contenido)} className="text-left">
             <Card className="flex items-start gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-3 text-xl" aria-hidden="true">
-                {iconos[contenido.tipo]}
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-3 text-tenue">
+                {(() => {
+                  const IconoTipo = iconos[contenido.tipo]
+                  return <IconoTipo className="h-[22px] w-[22px]" />
+                })()}
               </span>
               <div className="min-w-0">
                 <h3 className="font-display text-base text-texto">{contenido.titulo}</h3>

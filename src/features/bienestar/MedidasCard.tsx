@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Card } from '../../components/ui/Card'
+import { IconoRegla } from '../../components/ui/Icono'
 import { db, hoyIso } from '../../data/dbInstance'
 import type { MedidaCorporal } from '../../domain/types'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
@@ -92,7 +93,10 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
     <Card>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-texto">📏 Mis medidas</p>
+          <p className="flex items-center gap-2 text-sm font-bold text-texto">
+            <IconoRegla className="h-[17px] w-[17px] shrink-0 text-tenue" />
+            Mis medidas
+          </p>
           <p className="mt-0.5 text-xs text-tenue">
             {/* El kilaje solo aparece si esta persona ve su composición Y esa
                 medición traía peso. Enseñarlo aquí dejaría entrar por la puerta

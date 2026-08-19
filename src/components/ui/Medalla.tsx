@@ -1,4 +1,5 @@
 import type { Logro } from '../../domain/gamification'
+import { IconoCandado, IconoMedalla } from './Icono'
 
 export function Medalla({ logro }: { logro: Logro }) {
   return (
@@ -8,12 +9,15 @@ export function Medalla({ logro }: { logro: Logro }) {
       }`}
     >
       <span
-        className={`grid h-12 w-12 place-items-center rounded-full border-2 text-xl ${
-          logro.desbloqueado ? 'border-rojo text-rojo' : 'border-linea text-tenue grayscale'
+        className={`grid h-12 w-12 place-items-center rounded-full border-2 ${
+          logro.desbloqueado ? 'border-rojo text-rojo' : 'border-linea text-tenue'
         }`}
-        aria-hidden="true"
       >
-        {logro.desbloqueado ? '🏅' : '🔒'}
+        {logro.desbloqueado ? (
+          <IconoMedalla className="h-6 w-6" />
+        ) : (
+          <IconoCandado className="h-[22px] w-[22px]" />
+        )}
       </span>
       <p className="text-xs font-bold leading-tight text-texto">{logro.titulo}</p>
       <p className="text-[10px] leading-tight text-tenue">{logro.criterio}</p>
