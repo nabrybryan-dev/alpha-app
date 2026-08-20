@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../data/supabase'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
+import logoAguila from '../../assets/brand/logo-aguila.png'
 
 const CLAVE_MINIMA = 6
 
@@ -70,7 +70,7 @@ export function NuevaClavePage({ onListo }: { onListo: () => void }) {
         <img
           src={logoAguila}
           alt="Alpha Athletics"
-          className="mx-auto mb-5 h-28 w-28 rounded-3xl border border-hairline object-cover"
+          className="mx-auto mb-5 h-28 w-28 rounded-3xl border border-hairline bg-ink-900 object-contain p-2"
         />
         <p className="kicker text-center">Recuperar acceso</p>
         <h1 className="mt-1 text-center font-display text-3xl text-white">Nueva contraseña</h1>
