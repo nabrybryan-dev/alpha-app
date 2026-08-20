@@ -30,9 +30,27 @@ export type ClaveCampo =
   | 'diasEntreno'
   // Seguridad
   | 'alergias'
+  /**
+   * Cuál es la alergia, cuando marcó «Otra».
+   *
+   * La encuesta ofrecía «Otra» y no tenía dónde decir cuál, así que una alergia
+   * declarada llegaba sin nada que apartar del plan. El 2026-08-17 había una
+   * persona así, y cuatro con exclusión «otra». Una alergia recogida que el
+   * sistema no puede accionar es peor que no haberla preguntado, porque parece
+   * recogida.
+   *
+   * NO es obligatoria, y no por comodidad: `encuestaCompleta` mira solo los
+   * obligatorios, y exigirla dejaría a quien la deje en blanco detrás del
+   * formulario, sin sus cifras, para siempre. Lo que sí hace es aparecer, que es
+   * lo que faltaba. Quien no la conteste sigue en la lista de trabajo de la
+   * nutricionista, que es donde estaba antes.
+   */
+  | 'alergiaOtra'
   | 'condicionesMedicas'
   // Preferencias y acceso
   | 'excluye'
+  /** Qué es lo que no come, cuando marcó «Otra». Mismo caso que `alergiaOtra`. */
+  | 'excluyeOtra'
   | 'comeVisceras'
   | 'noLeGustan'
   | 'lugarCompra'
@@ -125,6 +143,16 @@ export interface CampoEncuesta {
 export type Respuestas = Partial<Record<ClaveCampo, string | number | string[]>>
 
 const esMujer = (r: Respuestas) => r.genero === 'M'
+
+/**
+ * Si marco esa opcion en una pregunta de las de marcar varias.
+ *
+ * Se comprueba el ARRAY y no un `includes` a secas porque las respuestas viejas
+ * pueden traer el campo sin contestar, y `undefined.includes` revienta la
+ * encuesta entera para esa persona.
+ */
+const marco = (valor: Respuestas[ClaveCampo], opcion: string) =>
+  Array.isArray(valor) && valor.includes(opcion)
 
 /** Quien declaró embarazo o lactancia. Es a quien le vuelven las dos quincenales. */
 const enEmbarazoOLactancia = (r: Respuestas) => r.embarazo === 'si' || r.embarazo === 'lactancia'
@@ -232,6 +260,17 @@ export const CAMPOS: readonly CampoEncuesta[] = [
     ],
   },
   {
+    clave: 'alergiaOtra',
+    etiqueta: '¿Cuál es esa alergia o intolerancia?',
+    porQue:
+      'Sin saber cuál, no podemos apartar nada de tu plan: quedaría anotada y sin efecto.',
+    tipo: 'texto',
+    // Solo a quien marcó «Otra». Preguntárselo a todo el mundo sería una
+    // pregunta muerta en el 90% de los casos, y esta pantalla es la que le tapa
+    // sus cifras hasta que la termine.
+    soloSi: (r) => marco(r.alergias, 'otra'),
+  },
+  {
     clave: 'excluye',
     etiqueta: '¿Hay algo que no comas por decisión propia?',
     tipo: 'multiple',
@@ -244,6 +283,12 @@ export const CAMPOS: readonly CampoEncuesta[] = [
       { valor: 'todo_animal', etiqueta: 'Nada de origen animal' },
       { valor: 'otra', etiqueta: 'Otra' },
     ],
+  },
+  {
+    clave: 'excluyeOtra',
+    etiqueta: '¿Qué es lo que no comes?',
+    tipo: 'texto',
+    soloSi: (r) => marco(r.excluye, 'otra'),
   },
   {
     clave: 'comeVisceras',

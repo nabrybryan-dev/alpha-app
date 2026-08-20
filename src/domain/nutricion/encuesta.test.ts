@@ -363,3 +363,60 @@ describe('la despensa: cada cuánto compra y de quién es', () => {
     expect(deQuien?.tipo).toBe('opcion')
   })
 })
+
+// La encuesta ofrecía «Otra» en alergias y en exclusiones, y no tenía dónde
+// decir cuál. El 2026-08-17 había una persona con alergia «otra» y cuatro con
+// exclusión «otra»: seis declaraciones que el sistema no podía accionar.
+//
+// Una alergia recogida que no se puede accionar es peor que no haberla
+// preguntado, porque parece recogida.
+describe('«Otra» ya se puede especificar', () => {
+  it('NO se le pregunta a quien no marcó «Otra»', () => {
+    // Preguntárselo a todo el mundo sería una pregunta muerta en el 90% de los
+    // casos, y esta pantalla es la que le tapa las cifras hasta terminarla.
+    const pendientes = claves({ genero: 'H', alergias: ['lacteos'], excluye: ['nada'] })
+
+    expect(pendientes).not.toContain('alergiaOtra')
+    expect(pendientes).not.toContain('excluyeOtra')
+  })
+
+  it('y sí en cuanto la marca', () => {
+    expect(claves({ genero: 'H', alergias: ['otra'] })).toContain('alergiaOtra')
+    expect(claves({ genero: 'H', excluye: ['otra'] })).toContain('excluyeOtra')
+  })
+
+  it('aparece sin recargar, en la misma sesión', () => {
+    // Marca «Otra» y el campo sale, igual que la cadera al marcar Mujer.
+    const enCurso = camposAPreguntar({ genero: 'H' }, { alergias: ['otra'] }).map((c) => c.clave)
+    expect(enCurso).toContain('alergiaOtra')
+  })
+
+  it('ninguna de las dos bloquea la encuesta', () => {
+    // `encuestaCompleta` mira solo los obligatorios. Exigirlas dejaría a quien
+    // las deje en blanco detrás del formulario, sin sus cifras, para siempre.
+    for (const clave of ['alergiaOtra', 'excluyeOtra'] as const) {
+      expect(CAMPOS.find((c) => c.clave === clave)?.obligatorio).toBeFalsy()
+    }
+
+    const conOtra = { ...CON_JSON, pasosDiarios: 7000, embarazo: 'no', alergias: ['otra'] }
+    expect(encuestaPendiente({ respuestas: conOtra, completadaEn: '2026-08-01' })).toBe(false)
+  })
+
+  it('un valor que no sea lista tampoco revienta', () => {
+    // `Respuestas` admite string | number | string[]. Una respuesta vieja o una
+    // importacion torcida puede traer ahi un numero, y `(5).includes` es un
+    // TypeError que deja a esa persona sin poder abrir Nutricion.
+    //
+    // Un `Boolean(valor)` en vez de `Array.isArray` pasaria los otros tests y
+    // moriria aqui.
+    expect(() => claves({ genero: 'H', alergias: 7 as never })).not.toThrow()
+    expect(claves({ genero: 'H', alergias: 'otra' as never })).not.toContain('alergiaOtra')
+  })
+
+  it('un campo sin contestar no revienta la encuesta entera', () => {
+    // Las respuestas viejas pueden no traer `alergias`, y un `includes` sobre
+    // `undefined` dejaría a esa persona sin poder abrir Nutrición.
+    expect(() => claves({ genero: 'H' })).not.toThrow()
+    expect(claves({ genero: 'H' })).not.toContain('alergiaOtra')
+  })
+})
