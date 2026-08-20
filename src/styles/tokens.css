@@ -75,8 +75,8 @@
 
   /* ============ Design System Alfa (handoff) ============
      Fuentes: display Archivo expandido, UI Hanken Grotesk, datos JetBrains Mono */
-  --font-display: 'Archivo', 'Satoshi', system-ui, sans-serif;
-  --font-ui: 'Hanken Grotesk', Inter, system-ui, sans-serif;
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-ui: 'Hanken Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
   /* Escala ink (superficies oscuras, negro elegante) */

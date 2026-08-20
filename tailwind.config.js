@@ -42,8 +42,8 @@ export default {
         oro: 'var(--oro)',
       },
       fontFamily: {
-        display: ['Archivo', 'Satoshi', 'system-ui', 'sans-serif'],
-        body: ['Hanken Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'system-ui', 'sans-serif'],
+        body: ['Hanken Grotesk', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       borderColor: {
