@@ -18,7 +18,7 @@ import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
 import { RadarAlfa } from './RadarAlfa'
-import logoAguila from '../../assets/brand/logo-aguila.png'
+import monogramaA from '../../assets/brand/monograma-a.png'
 
 export default function HoyPage() {
   const { usuario } = useSesion()
@@ -177,7 +177,8 @@ export default function HoyPage() {
                 <span className="cifras">≈ {formatoDuracion(duracionTotalSeg(siguienteSesion))}</span>
               </div>
             </div>
-            <img src={logoAguila} alt="" aria-hidden="true" className="h-12 w-12 shrink-0 rounded-xl bg-ink-900 object-contain p-1 opacity-90" />
+            <img src={monogramaA} alt="" aria-hidden="true"
+              className="h-12 w-12 shrink-0 rounded-xl bg-ink-900 object-contain p-1.5 opacity-90" />
           </div>
           {prioridadVolumen.length > 0 && (
             <ul aria-label="Prioridad del bloque" className="mt-3 flex flex-wrap gap-1.5">
