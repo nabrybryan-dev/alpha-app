@@ -4,10 +4,10 @@ import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Semaforo } from '../../components/ui/Semaforo'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
-import marcaHalcon from '../../assets/brand/marca-halcon.jpeg'
-import monogramaA from '../../assets/brand/monograma-a.jpeg'
-import wordmark from '../../assets/brand/wordmark.jpeg'
+import logoAguila from '../../assets/brand/logo-aguila.png'
+import marcaHalcon from '../../assets/brand/marca-halcon.png'
+import monogramaA from '../../assets/brand/monograma-a.png'
+import wordmark from '../../assets/brand/wordmark.png'
 
 const colores = [
   { nombre: 'BLACK', hex: '#0A0A0A', uso: 'Fondos y base visual · 70%' },
@@ -41,7 +41,7 @@ export default function MarcaPage() {
               src={logo.src}
               alt={logo.alt}
               loading="lazy"
-              className="aspect-square w-full rounded-xl border border-linea object-cover"
+              className="aspect-square w-full rounded-xl border border-linea bg-ink-900 object-contain p-3"
             />
           ))}
         </div>
