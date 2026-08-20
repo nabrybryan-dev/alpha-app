@@ -1,4 +1,5 @@
 import { Badge } from '../../components/ui/Badge'
+import { BandaDireccion } from '../../components/ui/BandaDireccion'
 import { Card } from '../../components/ui/Card'
 import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
@@ -6,6 +7,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { MarcaAguila } from '../../components/ui/MarcaAguila'
 import { MarcaRaster, type NombreDeMarca } from '../../components/ui/MarcaRaster'
 import { Semaforo } from '../../components/ui/Semaforo'
+import { DIRECCIONES } from '../../lib/direccionesVisuales'
 
 /**
  * Los cuatro logotipos oficiales.
@@ -104,6 +106,24 @@ export default function MarcaPage() {
           Luz lateral, sombras marcadas, texturas de humo/metal/concreto. Premium = disciplina: un
           solo acento, espacio generoso, jerarquía tipográfica fuerte.
         </p>
+
+        {/* Hasta aquí la dirección se describía con palabras. Estas son las cinco
+            piezas que la ejecutan, cada una de su dossier. Esta pantalla es «la
+            referencia para cualquier pieza nueva», así que el catálogo entero vive
+            aquí y las pantallas que usan una la piden por su letra. */}
+        <div className="mt-5 flex flex-col gap-4">
+          {DIRECCIONES.map((d) => (
+            <figure key={d.id} className="m-0">
+              <BandaDireccion direccion={d} />
+              <figcaption className="mt-2">
+                <p className="text-sm font-black text-texto">
+                  <span className="cifras text-rojo">{d.id}</span> · {d.nombre}
+                </p>
+                <p className="mt-0.5 text-xs text-tenue">{d.frase}</p>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </Card>
 
       <Card>

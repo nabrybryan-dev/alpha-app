@@ -35,19 +35,23 @@ export const POSTER_SPLASH = '/fondos/ancla-rack-splash.jpg'
 export const POSTER_LOGIN = '/fondos/login-rack.jpg'
 
 /**
- * Loop de 8 s de la dirección elegida — Despiece, Órbita o Ascenso.
+ * Loop del hero. **Ascenso**, la dirección C.
  *
- * `null` hasta que el archivo exista. Apuntar a una ruta que todavía no está
- * significa un 404 en cada arranque de la app, así que el vídeo no se monta
- * mientras esto no tenga valor.
+ * Se elige esa y no otra por una razón que no es de gusto: los dos pósters de
+ * arriba SON fotogramas de la dirección C. Un loop de otra dirección arrancaría
+ * con un salto visible en cuanto el vídeo relevara al póster, porque el primer
+ * fotograma del vídeo no sería el que ya estaba en pantalla.
  *
- * Cuando el loop esté listo:
- *   1. Comprimirlo por debajo de **900 KB** en WebM/AV1. El repo ya se quemó con
- *      un `@import` de fuentes de 314 KB bloqueando el primer pintado; un loop
- *      de 8 s a 4K sin comprimir es mucho peor.
- *   2. Dejarlo en `public/hero/`.
- *   3. Poner aquí su ruta.
+ * Producido el 20-08-2026. Cumple lo que este archivo pedía:
+ *   - 1280×720, WebM/AV1, **746 KB** — por debajo del techo de 900 KB.
+ *   - En `public/hero/`.
  *
- * No hace falta tocar nada más: `Splash` y `LoginPage` ya lo esperan.
+ * Las otras cuatro —A, B, D y E— ya tienen sitio, y no aquí: van en bandas
+ * apaisadas por la app (Entrenar, Progreso, Contenidos y el manual de marca).
+ * El catálogo con sus pósters está en `src/lib/direccionesVisuales.ts`.
+ *
+ * Estas dos pantallas siguen aparte a propósito: son verticales a pantalla
+ * completa y sus pósters son renders verticales de 1080x1920, no los fotogramas
+ * apaisados del catálogo.
  */
-export const LOOP_HERO: string | null = null
+export const LOOP_HERO: string | null = '/hero/hero-loop-ascenso.webm'

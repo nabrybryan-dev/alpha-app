@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { BandaDireccion } from '../../components/ui/BandaDireccion'
 import { Chip } from '../../components/ui/Chip'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
 import type { Contenido } from '../../domain/types'
+import { direccion } from '../../lib/direccionesVisuales'
 import { FilaContenido } from './FilaContenido'
 import { TarjetaPatron } from './TarjetaPatron'
 import { VisorContenido } from './VisorContenido'
@@ -34,6 +36,10 @@ export default function ContenidosPage() {
   return (
     <div className="flex flex-col gap-5">
       <section>
+        {/* Esfuerzo, la dirección D: la última repetición con el magnesio en el aire.
+            Es la más clara de las cinco (84,7 de media), así que aquí funciona
+            justamente porque no lleva una sola letra encima. */}
+        <BandaDireccion direccion={direccion('D')} prioridad="auto" className="mb-3" />
         <p className="kicker">Biblioteca Alpha</p>
         <h2 className="font-display text-3xl text-texto">Contenidos</h2>
         <p className="mt-1 text-sm text-tenue">

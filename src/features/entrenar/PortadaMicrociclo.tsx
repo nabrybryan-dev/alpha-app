@@ -3,6 +3,8 @@ import { fraseDelMicrociclo } from '../../data/contenido/frasesDelMicrociclo'
 import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import type { Microciclo } from '../../domain/types'
+import { BandaDireccion } from '../../components/ui/BandaDireccion'
+import { direccion } from '../../lib/direccionesVisuales'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
 import { NotasDeLaSemana } from './NotasDeLaSemana'
 
@@ -52,6 +54,12 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
   return (
     <div className="flex flex-col gap-3">
       <section className="overflow-hidden rounded-[20px] border border-ink-500 bg-ink-900 shadow-lg">
+        {/* Despiece, la dirección A: la barra se desarma y cada disco ocupa su
+            sitio. La metáfora es la del propio cartel —la semana repartida antes
+            de empezar— y encaja porque este letrero se ve UNA VEZ por microciclo:
+            un loop que saliera a diario sería ruido a los dos días.
+            Va con las esquinas cuadradas porque la sección ya recorta a 20 px. */}
+        <BandaDireccion direccion={direccion('A')} className="!rounded-none" />
         <header className="flex items-start justify-between gap-3 border-b border-ink-600 bg-gradient-to-b from-white/[.05] to-transparent px-[18px] pb-4 pt-[18px]">
           <div>
             <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-silver-500">
