@@ -68,14 +68,28 @@ export default function MarcaPage() {
 
       <Card>
         <p className="kicker">Sistema tipográfico</p>
-        <p className="mt-3 font-display text-3xl text-texto">Satoshi Bold</p>
-        <p className="text-xs text-tenue">Tipografía principal: titulares, números grandes, CTA</p>
-        <p className="mt-3 text-base text-texto">
-          Inter Regular — así comunica Alpha Athletics con claridad, precisión y estructura.
-        </p>
-        <p className="text-xs text-tenue">Tipografía secundaria: cuerpo, datos, prescripciones</p>
+        <div className="mt-3 flex flex-col gap-4">
+          <div>
+            <p className="font-display text-3xl uppercase tracking-tight text-texto">Archivo 800</p>
+            <p className="text-xs text-tenue">
+              Display, expandido al 125%. Titulares, cifras grandes y botones de acción.
+            </p>
+          </div>
+          <div>
+            <p className="font-body text-base text-texto">
+              Hanken Grotesk — así explica Alpha lo que toca hacer: claro, corto y sin adornos.
+            </p>
+            <p className="text-xs text-tenue">Interfaz: cuerpo, etiquetas y prescripciones.</p>
+          </div>
+          <div>
+            <p className="font-mono text-lg text-texto">4 × 8 · RIR 2 · 62,5 kg</p>
+            <p className="text-xs text-tenue">
+              JetBrains Mono. Solo donde las cifras tienen que alinearse en columna.
+            </p>
+          </div>
+        </div>
         <ul className="mt-3 list-disc pl-5 text-xs text-tenue">
-          <li>Máximo dos fuentes</li>
+          <li>Tres familias y ninguna más: cada hoja de fuentes retrasa el primer pintado</li>
           <li>Alto contraste</li>
           <li>Espaciado amplio (tracking) en titulares y kickers</li>
         </ul>
