@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
+import { puntoDeLaImagen } from './toque'
 
 /**
  * El instrumento: la imagen de la cámara, sus lecturas en vivo y el botón de
@@ -87,12 +88,19 @@ export function Visor({ ajustes, children }: VisorProps) {
 
   function alTocar(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
-    // El lienzo se procesa a 640 px pero se ve al ancho que sea: sin esta regla
-    // de tres, tocar la marca fijaría el color de otro sitio de la imagen.
     const r = capa.getBoundingClientRect()
-    const x = Math.round(((ev.clientX - r.left) / r.width) * capa.width)
-    const y = Math.round(((ev.clientY - r.top) / r.height) * capa.height)
-    captura.fijarEn(x, y)
+    const punto = puntoDeLaImagen(
+      ev.clientX - r.left,
+      ev.clientY - r.top,
+      r.width,
+      r.height,
+      capa.width,
+      capa.height,
+    )
+    // Fuera de la imagen no hay nada que fijar: en la banda negra no hay disco,
+    // y dejarlo pasar devolvería «no veo un disco» culpando al encuadre.
+    if (!punto) return
+    captura.fijarEn(punto.x, punto.y)
   }
 
   return (
@@ -109,7 +117,7 @@ export function Visor({ ajustes, children }: VisorProps) {
           <canvas
             ref={capaRef}
             onClick={alTocar}
-            className="absolute inset-0 h-full w-full"
+            className="absolute inset-0 h-full w-full object-contain"
           />
           {!captura.camaraAbierta && (
             <div className="absolute inset-0 grid place-items-center">
