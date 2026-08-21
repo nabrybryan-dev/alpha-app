@@ -41,6 +41,14 @@ export default function AsesoradosPage() {
           <h2 className="font-display text-3xl text-texto">Asesorados</h2>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* Herramienta de validacion, no de asesoramiento: sus numeros son
+              provisionales mientras la prueba de gravedad no apruebe. */}
+          <Link
+            to="/coach/encoder"
+            className="rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-tenue"
+          >
+            📷 Encoder
+          </Link>
           <Link
             to="/coach/consultas"
             className="rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
