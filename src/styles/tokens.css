@@ -136,11 +136,14 @@
   --z-nav: 40;
   --z-scrim: 200;
   --z-hoja: 210;
-  /* Estos dos se declaran y HOY NO LOS CONSUME NADIE, a diferencia de los seis de
-     arriba. No es un olvido: la app no tiene todavía ni toasts ni tooltips con
-     capa propia. El único aviso que existe —`.aviso-registro`, de las recetas—
-     no lleva z-index, y ponérselo sería tocar una función cerrada.
-     Están aquí para que el siguiente que necesite uno no invente un 999. */
+  /* DECISIÓN PENDIENTE: estos dos se declaran y HOY NO LOS CONSUME NADIE, a
+     diferencia de los seis de arriba. El criterio 10 pide que todo token nuevo
+     se consuma, pero el único candidato —`.aviso-registro`, el aviso de las
+     recetas— no lleva z-index, y ponérselo sería tocar una función cerrada por
+     la sección 0. Entre incumplir el criterio 10 y tocar las recetas, se elige
+     lo que menos código mueve y se anota aquí.
+     Se resuelve solo el día que la app tenga toasts o tooltips con capa propia.
+     Están declarados para que quien llegue a eso no invente un 999. */
   --z-superpuesto: 300;
   --z-tooltip: 400;
 

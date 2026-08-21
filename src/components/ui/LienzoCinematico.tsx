@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { encajeCover } from '../../lib/encajeCover'
 import { useMovimientoReducido } from '../../lib/movimientoReducido'
 
 /**
@@ -12,10 +13,10 @@ import { useMovimientoReducido } from '../../lib/movimientoReducido'
  * pasado por detrás y el atleta es una silueta a contraluz. Se respeta el número
  * pedido; cambiarlo es tocar esta constante y nada más.
  */
-const FOTOGRAMA_QUIETO = 14
+export const FOTOGRAMA_QUIETO = 14
 
 /** Los que se produjeron. Una vuelta completa. */
-const TOTAL_FOTOGRAMAS = 36
+export const TOTAL_FOTOGRAMAS = 36
 
 /** Cuánto se desplaza la pieza contra el scroll, en píxeles. */
 const PARALAJE = 96
@@ -159,16 +160,14 @@ export function LienzoCinematico({
         cv.height = Math.round(alto * dpr)
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      // Encaje `cover` a mano: la pieza es 16:9 y la ventana es más baja, así que
-      // se recorta por arriba y por abajo, nunca se deforma.
-      const razonImg = img.width / img.height
-      const razonCaja = ancho / alto
-      let w = ancho
-      let h = ancho / razonImg
-      if (razonImg < razonCaja) {
-        h = alto
-        w = alto * razonImg
-      }
+      // Encaje `cover`, en `encajeCover` y no aquí. La pieza es 16:9 y la ventana
+      // es mucho más cuadrada, así que sobra por los lados y es por ahí por
+      // donde se recorta. Estuvo escrito a mano con la condición al revés y
+      // dejaba 66 px de negro arriba y abajo: la banda que esto sustituye.
+      const { ancho: w, alto: h } = encajeCover(
+        { ancho: img.width, alto: img.height },
+        { ancho, alto },
+      )
       ctx.clearRect(0, 0, ancho, alto)
       ctx.drawImage(img, (ancho - w) / 2, (alto - h) / 2, w, h)
       pintado.current = indice
