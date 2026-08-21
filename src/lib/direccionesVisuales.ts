@@ -28,6 +28,12 @@ export interface DireccionVisual {
   /** Primer fotograma del propio vídeo. Ver la nota de arriba. */
   poster: string
   /**
+   * Duración en segundos, MEDIDA del propio archivo con `ffprobe`, no estimada.
+   * Está aquí porque el manual de marca la enseña en su ficha técnica y un número
+   * plausible inventado sería peor que no ponerlo.
+   */
+  duracionS: number
+  /**
    * Encaje extra cuando la pieza no llena la banda por sí sola.
    *
    * Solo lo usa Físico: su fotograma trae una columna negra en el 17,5% de la
@@ -40,6 +46,7 @@ export interface DireccionVisual {
 export const DIRECCIONES: DireccionVisual[] = [
   {
     id: 'A',
+    duracionS: 6.9,
     nombre: 'Despiece',
     frase: 'La barra se desarma en el aire y cada disco ocupa su sitio.',
     video: '/hero/hero-loop-despiece.webm',
@@ -47,6 +54,7 @@ export const DIRECCIONES: DireccionVisual[] = [
   },
   {
     id: 'B',
+    duracionS: 7.4,
     nombre: 'Órbita',
     frase:
       'Nada se desmonta: la cámara rodea al atleta sentado entre series y deja que hable el material.',
@@ -55,6 +63,7 @@ export const DIRECCIONES: DireccionVisual[] = [
   },
   {
     id: 'C',
+    duracionS: 15.1,
     nombre: 'Ascenso',
     frase: 'La torre del rack y sus peldaños numerados, subiendo.',
     video: '/hero/hero-loop-ascenso.webm',
@@ -62,6 +71,7 @@ export const DIRECCIONES: DireccionVisual[] = [
   },
   {
     id: 'D',
+    duracionS: 8.0,
     nombre: 'Esfuerzo',
     frase: 'La última repetición, con el polvo de magnesio suspendido alrededor.',
     video: '/hero/hero-loop-esfuerzo.webm',
@@ -69,6 +79,7 @@ export const DIRECCIONES: DireccionVisual[] = [
   },
   {
     id: 'E',
+    duracionS: 6.0,
     nombre: 'Físico',
     frase: 'La cámara sube por el físico y recorre las inserciones una a una.',
     video: '/hero/hero-fisico.webm',

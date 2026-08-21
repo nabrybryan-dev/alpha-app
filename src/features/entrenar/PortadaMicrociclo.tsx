@@ -3,8 +3,7 @@ import { fraseDelMicrociclo } from '../../data/contenido/frasesDelMicrociclo'
 import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import type { Microciclo } from '../../domain/types'
-import { BandaDireccion } from '../../components/ui/BandaDireccion'
-import { direccion } from '../../lib/direccionesVisuales'
+import { useInclinacionAlPuntero } from '../../lib/inclinacionAlPuntero'
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
 import { NotasDeLaSemana } from './NotasDeLaSemana'
 
@@ -24,6 +23,14 @@ const CLAVE = 'alpha-portada-vista'
  * decisión de marca de este proyecto.
  */
 export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
+  // La MISMA inclinación de la ficha coleccionable de Logros, aquí sobre la
+  // bandeja. No es adorno: la ficha flota delante de la pieza cinemática, y al
+  // inclinarse se lee que hay una escena DETRÁS y no una imagen debajo. Es lo que
+  // convierte el solape en profundidad. Grados cortos —6 en vez de 12— porque
+  // esto es una superficie de lectura, no una carta que se manosea.
+  const { ref: bandeja, alMover, alSalir } = useInclinacionAlPuntero<HTMLDivElement>({
+    maxGrados: 6,
+  })
   const [vistas, setVistas] = useState<string[]>(() => leerJSON<string[]>(CLAVE, []))
   if (vistas.includes(microciclo.id)) return null
 
@@ -53,13 +60,24 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="overflow-hidden rounded-[20px] border border-ink-500 bg-ink-900 shadow-lg">
-        {/* Despiece, la dirección A: la barra se desarma y cada disco ocupa su
-            sitio. La metáfora es la del propio cartel —la semana repartida antes
-            de empezar— y encaja porque este letrero se ve UNA VEZ por microciclo:
-            un loop que saliera a diario sería ruido a los dos días.
-            Va con las esquinas cuadradas porque la sección ya recorta a 20 px. */}
-        <BandaDireccion direccion={direccion('A')} className="!rounded-none" />
+      {/* La envoltura concéntrica que el sistema ya declaraba y nadie usaba:
+          `.bisel` es la bandeja exterior a 24 px y `.bisel-nucleo` el núcleo a 18.
+          Aquí es lo que hace que la ficha FLOTE sobre la pieza en vez de posarse
+          encima: la sombra va hacia ARRIBA, contra el sentido natural, que es como
+          se lee que hay algo detrás y no debajo. */}
+      <div className="[perspective:900px]" style={{ position: 'relative', zIndex: 'var(--z-elevado)' }}>
+      <div
+        ref={bandeja}
+        onPointerMove={alMover}
+        onPointerLeave={alSalir}
+        onPointerCancel={alSalir}
+        className="bisel [transform-style:preserve-3d]"
+        style={{
+          boxShadow: '0 -18px 40px -24px rgba(0,0,0,.9), 0 10px 30px -18px rgba(0,0,0,.8)',
+          transition: 'transform var(--dur-base) var(--ease-salida)',
+        }}
+      >
+      <section className="bisel-nucleo overflow-hidden border border-ink-500 bg-ink-900 shadow-lg">
         <header className="flex items-start justify-between gap-3 border-b border-ink-600 bg-gradient-to-b from-white/[.05] to-transparent px-[18px] pb-4 pt-[18px]">
           <div>
             <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-silver-500">
@@ -130,6 +148,8 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
           </button>
         </div>
       </section>
+      </div>
+      </div>
 
       <NotasDeLaSemana notas={notas} />
     </div>

@@ -1,11 +1,10 @@
 import { Badge } from '../../components/ui/Badge'
-import { BandaDireccion } from '../../components/ui/BandaDireccion'
 import { Card } from '../../components/ui/Card'
 import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Semaforo } from '../../components/ui/Semaforo'
-import { DIRECCIONES } from '../../lib/direccionesVisuales'
+import { RolloDePelicula } from './RolloDePelicula'
 import logoAguila from '../../assets/brand/logo-aguila.png'
 import marcaHalcon from '../../assets/brand/marca-halcon.png'
 import monogramaA from '../../assets/brand/monograma-a.png'
@@ -68,6 +67,20 @@ export default function MarcaPage() {
         </p>
       </Card>
 
+      {/* EL ROLLO DE PELÍCULA.
+          Va aquí, después del color y antes de la tipografía, porque es donde el
+          manual pasa de enumerar ingredientes a enseñar el resultado. Y entra como
+          una Card más, en el mismo ritmo que las otras: las piezas son contenido
+          de esta pantalla, no un adorno pegado a ella. */}
+      <Card>
+        <p className="kicker">Las cinco piezas</p>
+        <p className="mt-1 text-sm text-tenue">
+          Se mira una cada vez. La que entra en el centro de la pantalla se abre y
+          arranca; las demás esperan retraídas.
+        </p>
+        <RolloDePelicula />
+      </Card>
+
       <Card>
         <p className="kicker">Sistema tipográfico</p>
         <div className="mt-3 flex flex-col gap-4">
@@ -109,23 +122,6 @@ export default function MarcaPage() {
           solo acento, espacio generoso, jerarquía tipográfica fuerte.
         </p>
 
-        {/* Hasta aquí la dirección se describía con palabras. Estas son las cinco
-            piezas que la ejecutan, cada una de su dossier. Esta pantalla es «la
-            referencia para cualquier pieza nueva», así que el catálogo entero vive
-            aquí y las pantallas que usan una la piden por su letra. */}
-        <div className="mt-5 flex flex-col gap-4">
-          {DIRECCIONES.map((d) => (
-            <figure key={d.id} className="m-0">
-              <BandaDireccion direccion={d} />
-              <figcaption className="mt-2">
-                <p className="text-sm font-black text-texto">
-                  <span className="cifras text-rojo">{d.id}</span> · {d.nombre}
-                </p>
-                <p className="mt-0.5 text-xs text-tenue">{d.frase}</p>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
       </Card>
 
       <Card>

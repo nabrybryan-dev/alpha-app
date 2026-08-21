@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { BandaDireccion } from '../../components/ui/BandaDireccion'
+import { Card } from '../../components/ui/Card'
 import { Chip } from '../../components/ui/Chip'
+import { FondoLoop } from '../../components/ui/FondoLoop'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
 import type { Contenido } from '../../domain/types'
 import { direccion } from '../../lib/direccionesVisuales'
+import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { FilaContenido } from './FilaContenido'
 import { TarjetaPatron } from './TarjetaPatron'
 import { VisorContenido } from './VisorContenido'
@@ -19,6 +21,7 @@ const PATRONES = 'Patrones de movimiento'
 
 export default function ContenidosPage() {
   useDbVersion()
+  const marco = usePausaFueraDePantalla<HTMLDivElement>()
   const [categoria, setCategoria] = useState<string>('Todos')
   const [abierto, setAbierto] = useState<Contenido | undefined>()
 
@@ -35,17 +38,43 @@ export default function ContenidosPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section>
-        {/* Esfuerzo, la dirección D: la última repetición con el magnesio en el aire.
-            Es la más clara de las cinco (84,7 de media), así que aquí funciona
-            justamente porque no lleva una sola letra encima. */}
-        <BandaDireccion direccion={direccion('D')} prioridad="auto" className="mb-3" />
-        <p className="kicker">Biblioteca Alpha</p>
+      {/* LA PLANCHA MONTADA.
+          Contenidos es superficie CLARA y se queda clara: meter una banda oscura a
+          sangre en una pantalla clara es justo lo que se leía como copiar-pegar.
+          Así que la pieza no invade la pantalla — se MONTA, como una lámina impresa
+          sobre una cartulina: la tarjeta de cristal es el paspartú, el filete
+          interior es el canto del papel, y el margen de 16 px de la propia Card es
+          lo que la separa del borde.
+
+          D mide 84,7 de luminancia media y no admite texto en ninguna parte, así
+          que NO LLEVA NINGUNO: ni título, ni duración, ni marca de agua. El texto
+          va debajo de la lámina, dentro de la misma tarjeta. Es la regla dura
+          resuelta por composición y no por un velo. */}
+      {/* El ref va en un envoltorio y no en la Card: `Card` no reenvía `ref` y
+          añadirle `forwardRef` tocaría un primitivo que usa media app. */}
+      <div ref={marco}>
+      <Card>
+        <div
+          className="relative aspect-video w-full overflow-hidden rounded-[12px] bg-ink-900"
+          style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.12)' }}
+        >
+          <FondoLoop
+            poster={direccion('D').poster}
+            video={direccion('D').video}
+            preload="none"
+            prioridad="auto"
+            anchura={1280}
+            altura={720}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </div>
+        <p className="kicker mt-3.5">Biblioteca Alpha</p>
         <h2 className="font-display text-3xl text-texto">Contenidos</h2>
         <p className="mt-1 text-sm text-tenue">
           Técnica por patrón de movimiento, movilidad y educación del método.
         </p>
-      </section>
+      </Card>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {categorias.map((cat) => (

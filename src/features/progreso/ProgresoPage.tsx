@@ -1,7 +1,5 @@
-import { BandaDireccion } from '../../components/ui/BandaDireccion'
 import { useSesion } from '../../app/SessionProvider'
 import { useDbVersion } from '../../data/dbInstance'
-import { direccion } from '../../lib/direccionesVisuales'
 import { ProgresoEvolucion } from '../logros/ProgresoEvolucion'
 
 /**
@@ -20,11 +18,10 @@ export default function ProgresoPage() {
     // pide el diseño.
     <div className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-3.5 bg-ink-900 px-4 pb-4 pt-3">
       <header className="entrada entrada-1">
-        {/* Físico, la dirección E: la cámara recorre las inserciones. Es la pieza
-            que habla de lo mismo que esta pantalla, un cuerpo que cambia.
-            El título va DEBAJO y no encima: el centro de este plano mide 75,7 de
-            luminancia y el umbral del repo para texto blanco sobre foto es 18. */}
-        <BandaDireccion direccion={direccion('E')} prioridad="auto" className="mb-3" />
+        {/* Aquí había una banda de la pieza E encima del título. Ya no: la pieza
+            bajó DENTRO del gráfico, recortada por la propia curva, en
+            `ProgresoEvolucion`. Una banda decorativa arriba y un gráfico abajo eran
+            dos cosas que no se hablaban; ahora son la misma. */}
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-silver-500">
           Cómo vas
         </p>

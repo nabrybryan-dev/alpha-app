@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { FondoLoop } from '../../components/ui/FondoLoop'
 import { db } from '../../data/dbInstance'
+import { direccion } from '../../lib/direccionesVisuales'
+import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
 import { nivelDeSeries } from '../../domain/nivelDeVolumen'
 import type { MedidaCorporal, NivelVolumen } from '../../domain/types'
@@ -27,7 +30,29 @@ function coordenadas(puntos: Punto[]): { x: number; y: number }[] {
   }))
 }
 
+/**
+ * El gráfico no cambia: cambia SU RELLENO.
+ *
+ * Antes, bajo la línea había un degradado rojo. Ahora hay cuerpo — la pieza E,
+ * la cámara subiendo por el físico— recortada por la MISMA polilínea del área.
+ * La relación es literal y por eso funciona: cuando el dato sube aparece más
+ * cuerpo, cuando baja, se retira. No es decoración detrás de un gráfico; es el
+ * gráfico dibujado con el material.
+ *
+ * Lo que NO se toca, porque el gráfico ya funcionaba: la geometría (300x96,
+ * PAD 6), la normalización al rango de los datos, `.dibujar-linea` con su
+ * `pathLength={1}`, `.area-aparece`, el círculo del último punto y el toggle real
+ * de dos métricas.
+ *
+ * R1 · La pieza NO se amplía. Entra en `foreignObject` a las medidas del viewBox
+ * y encaja con `cover`, así que se recorta; nunca se estira.
+ * R2 · Ningún texto cae encima: el gráfico no lleva rótulos dentro.
+ * R3 · Póster y vídeo son el mismo elemento (`FondoLoop`) dentro del mismo
+ * recorte, así que no pueden desincronizarse.
+ */
 function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
+  const marco = usePausaFueraDePantalla<HTMLDivElement>()
+  const pieza = direccion('E')
   const pts = coordenadas(puntos)
   if (pts.length === 0) {
     return (
@@ -40,16 +65,37 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   const area = `${linea} L ${pts[pts.length - 1].x.toFixed(1)} ${ALTO} L ${pts[0].x.toFixed(1)} ${ALTO} Z`
   const ultimo = pts[pts.length - 1]
   const idGrad = `grad-${unidad}`
+  const idClip = `recorte-${unidad}`
 
   return (
+    <div ref={marco}>
     <svg width="100%" viewBox={`0 0 ${ANCHO} ${ALTO}`} className="block" role="img" aria-label="Gráfico de evolución">
       <defs>
         <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--accion)" stopOpacity="0.26" />
           <stop offset="100%" stopColor="var(--accion)" stopOpacity="0" />
         </linearGradient>
+        {/* El recorte ES el área. La misma cadena de path que dibujaba el relleno. */}
+        <clipPath id={idClip}>
+          <path d={area} />
+        </clipPath>
       </defs>
-      {pts.length > 1 && <path className="area-aparece" d={area} fill={`url(#${idGrad})`} />}
+      {pts.length > 1 && (
+        <g className="area-aparece" clipPath={`url(#${idClip})`}>
+          <foreignObject x="0" y="0" width={ANCHO} height={ALTO}>
+            <FondoLoop
+              poster={pieza.poster}
+              video={pieza.video}
+              preload="none"
+              prioridad="low"
+              className="h-full w-full object-cover"
+            />
+          </foreignObject>
+          {/* El rojo de marca por encima. Es el mismo degradado de antes: mantiene
+              la continuidad con la línea y baja la pieza a un plano de fondo. */}
+          <rect x="0" y="0" width={ANCHO} height={ALTO} fill={`url(#${idGrad})`} />
+        </g>
+      )}
       {pts.length > 1 && (
         <path
           className="dibujar-linea"
@@ -64,6 +110,7 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
       )}
       <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill="var(--accion)" stroke="var(--ink-900)" strokeWidth="2" />
     </svg>
+    </div>
   )
 }
 
