@@ -30,6 +30,10 @@ import { sqlDeLasMigraciones } from './leerMigraciones'
 
 /** Columnas sobre las que la app hace upsert, por tabla. */
 const DESTINOS_ONCONFLICT: { tabla: string; columna: string }[] = [
+  // Las series medidas con camara (0043). Su unicidad es la CLAVE PRIMARIA, y el
+  // id se deriva de usuario + fecha + ejercicio + orden: remedir una serie
+  // refresca su fila en vez de duplicarla.
+  { tabla: 'mediciones_velocidad', columna: 'id' },
   { tabla: 'registro_comida', columna: 'cliente_id' },
   { tabla: 'registro_item', columna: 'cliente_id' },
   { tabla: 'prueba_calibracion', columna: 'cliente_id' },
@@ -85,7 +89,25 @@ function restriccionesDeTabla(sql: string, tabla: string): string[] {
     new RegExp(`create table (?:if not exists )?(?:public\\.)?${tabla} \\((.*?)\\);`, 'i'),
   )
   if (!creacion) return []
-  return creacion[1].match(/unique\s*\([^)]*\)/gi) ?? []
+  const cuerpo = creacion[1]
+  const unicos = cuerpo.match(/unique\s*\([^)]*\)/gi) ?? []
+
+  // Y la CLAVE PRIMARIA, que se escapaba.
+  //
+  // Una primary key es un indice unico y no puede ser parcial, asi que sostiene
+  // un `ON CONFLICT` exactamente igual que un `unique`. Pero se declara de dos
+  // formas y ninguna casaba con el patron de arriba: pegada a la columna
+  // (`id text primary key`) o como restriccion de tabla (`primary key (a, b)`).
+  //
+  // Lo destapo `mediciones_velocidad` (0043), cuyo id es la clave primaria: el
+  // test exigia un `unique` que habria sido una copia literal de la PK. Un
+  // guardian que obliga a escribir dos veces la misma restriccion acaba
+  // enseñando a la gente a rodearlo.
+  const pkDeTabla = cuerpo.match(/primary\s+key\s*\([^)]*\)/gi) ?? []
+  const pkDeColumna = [...cuerpo.matchAll(/(\w+)\s+[\w()[\],\s]*?primary\s+key/gi)]
+    .map((m) => `primary key (${m[1]})`)
+
+  return [...unicos, ...pkDeTabla, ...pkDeColumna]
 }
 
 function indicesSobre(vigentes: Map<string, string>, tabla: string, columna: string): string[] {
@@ -108,11 +130,11 @@ describe('índices que sostienen los upsert', () => {
       const indices = indicesSobre(vigentes, tabla, columna)
 
       it('tiene un índice único declarado', () => {
-        expect(indices.some((i) => /unique/i.test(i))).toBe(true)
+        expect(indices.some((i) => /unique|primary\s+key/i.test(i))).toBe(true)
       })
 
       it('el índice único NO es parcial: sin él, cada upsert falla con 42P10', () => {
-        const unicos = indices.filter((i) => /unique/i.test(i))
+        const unicos = indices.filter((i) => /unique|primary\s+key/i.test(i))
         const parciales = unicos.filter((i) => /\bwhere\b/i.test(i))
         expect(parciales).toEqual([])
       })

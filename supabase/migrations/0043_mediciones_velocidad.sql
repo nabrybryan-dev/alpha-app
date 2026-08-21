@@ -34,6 +34,17 @@
 -- lleva—, mientras que un motivo emitido y no previsto rechaza la escritura. El
 -- CHECK se equivoca por el lado seguro a propósito.
 --
+-- ── 2b · Y el dominio de la app tenia un TERCER vocabulario ───────────────────
+--
+-- `src/domain/serieMedida.ts` emite sus propias claves —`codo-estirado`,
+-- `te-desplazas`, `objeto-tapado`, `un-solo-ciclo`— y ninguna estaba aqui. Si la
+-- app escribiera una fila, la base la rechazaria.
+--
+-- Entran las cuatro, con guion bajo para no mezclar dos convenciones de nombre en
+-- la misma columna. NO se traducen a las de arriba aunque algunas se parezcan,
+-- porque son de otro nivel: las de arriba dicen por que fallo la MEDICION, estas
+-- dicen por que el MOVIMIENTO no era medible.
+--
 -- ── 3 · El umbral de fps del contrato está desfasado ──────────────────────────
 --
 -- El contrato pide fps >= 30 para `buena`; el código exige >= 50 desde que la
@@ -88,7 +99,17 @@ as $$
     'contorno_parcial',
     'camara_movida',
     'rom_implausible',
-    'contraste'
+    'contraste',
+    -- Los de `src/domain/serieMedida.ts`, que son de OTRO NIVEL y por eso no se
+    -- traducen a los de arriba. Los de arriba dicen por que fallo la MEDICION
+    -- -cadencia, marcas, escala-; estos dicen por que el MOVIMIENTO no era
+    -- medible. Un 'codo-estirado' con la camara perfecta no es un
+    -- 'marcador_perdido': mapearlo a el destruiria justo lo que el vocabulario
+    -- cerrado existe para contar, que es que falla mas.
+    'codo_estirado',
+    'te_desplazas',
+    'objeto_tapado',
+    'un_solo_ciclo'
   ));
 $$;
 

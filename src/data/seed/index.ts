@@ -1,4 +1,5 @@
 import type { ItemDespensaDe } from '../../domain/nutricion/despensa'
+import type { MedicionVelocidad } from '../../domain/medicionVelocidad'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
@@ -51,6 +52,12 @@ export interface SeedDb {
   vetosAlimentarios?: VetoAlimento[]
   /** Lo que tiene en casa (0024). Opcional: la despensa llego despues. */
   despensa?: ItemDespensaDe[]
+  /**
+   * Las series medidas con camara (0043). Opcional, y lo va a seguir siendo:
+   * la medicion es una capa que se SUMA. Cuando no esta, el asesorado registra
+   * kg, reps y RIR como siempre y el motor decide como decide hoy.
+   */
+  mediciones?: MedicionVelocidad[]
   pruebasCalibracion?: PruebaCalibracion[]
   registrosComida?: RegistroComida[]
   preferenciasEstado?: PreferenciaEstado[]

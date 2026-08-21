@@ -415,6 +415,52 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    /**
+     * Las series medidas con camara (0043).
+     *
+     * `upsert` sobre `id`, y el id viene derivado del dominio: usuario + fecha +
+     * ejercicio + orden. Es la misma leccion que la despensa —con un id
+     * aleatorio, remedir una serie insertaria otra fila y no habria forma de
+     * saber cual manda— pero aqui pesa mas, porque remedir NO es un caso raro:
+     * es exactamente lo que uno hace cuando la primera sale `descartada`.
+     *
+     * Se suben tambien las descartadas. El contrato lo pide y tiene razon: sin
+     * ellas no se puede contar que falla mas, y sin eso el protocolo de encuadre
+     * no se arregla nunca.
+     */
+    mediciones: {
+      ...local.mediciones,
+      guardar: (medicion) => {
+        local.mediciones.guardar(medicion)
+        encolar({
+          tabla: 'mediciones_velocidad',
+          tipo: 'upsert',
+          onConflict: 'id',
+          payload: {
+            id: medicion.id,
+            usuario_id: medicion.usuarioId,
+            microciclo_id: medicion.microcicloId,
+            fecha: medicion.fecha,
+            ejercicio_id: medicion.ejercicioId,
+            ejercicio_nom: medicion.ejercicioNom,
+            orden_serie: medicion.ordenSerie,
+            carga_kg: medicion.cargaKg,
+            reps_medidas: medicion.repsMedidas,
+            v_primera: medicion.vPrimera,
+            v_ultima: medicion.vUltima,
+            pv_pct: medicion.pvPct,
+            conc_ms_media: medicion.concMsMedia,
+            tipo_velocidad: medicion.tipoVelocidad,
+            calidad: medicion.calidad,
+            motivos_calidad: medicion.motivosCalidad,
+            version_algo: medicion.versionAlgo,
+            captura: medicion.captura,
+            reps: medicion.reps,
+          },
+        })
+      },
+    },
+
     visibilidad: {
       ...local.visibilidad,
       decidir: (decision) => {

@@ -520,6 +520,30 @@ export function crearMockDb(): Db {
       },
     },
 
+    /**
+     * Las series medidas con camara (0043).
+     *
+     * `guardar` reemplaza por id en vez de acumular. El id se deriva de usuario
+     * + fecha + ejercicio + orden, asi que volver a medir la misma serie pisa la
+     * anterior — la misma regla que aplica el `unique` de la tabla y el
+     * `onConflict` del sync. Si aqui se acumulara, el almacen local y la nube
+     * dirian cosas distintas sobre la misma serie, y la que manda seria la
+     * ultima que alguien mirara.
+     */
+    mediciones: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.mediciones ?? []).filter((m) => m.usuarioId === usuarioId),
+      guardar: (medicion) => {
+        mutar((estado) => ({
+          ...estado,
+          mediciones: [
+            ...(estado.mediciones ?? []).filter((m) => m.id !== medicion.id),
+            medicion,
+          ],
+        }))
+      },
+    },
+
     calibracion: {
       byUsuario: (usuarioId) =>
         (ref.actual.pruebasCalibracion ?? []).filter((p) => p.usuarioId === usuarioId),

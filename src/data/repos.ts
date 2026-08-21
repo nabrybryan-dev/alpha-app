@@ -1,4 +1,5 @@
 import type { ItemDespensa } from '../domain/nutricion/despensa'
+import type { MedicionVelocidad } from '../domain/medicionVelocidad'
 import type { FilaRanking } from '../domain/ranking'
 import type { RutaAsesorado } from '../domain/rutaEntrenamiento'
 import type { StickerAlbum } from './contenido/albumAlfa'
@@ -257,6 +258,22 @@ export interface ContenidoAlfaRepo {
   radar(): NoticiaRadar[]
 }
 
+/**
+ * Las series medidas con camara (0043).
+ *
+ * `guardar` es un UPSERT y no un insert, porque el id de una medicion se DERIVA
+ * de usuario + fecha + ejercicio + orden: volver a medir la misma serie refresca
+ * su fila. Repetir no es raro — es lo que uno hace cuando la primera sale
+ * `descartada`. Ver `idDeMedicion()`.
+ *
+ * Se guardan TODAS, tambien las descartadas. Una fila descartada no es basura:
+ * es el registro de que el protocolo fallo ahi, y es con lo que se arregla.
+ */
+export interface MedicionesRepo {
+  byUsuario(usuarioId: string): MedicionVelocidad[]
+  guardar(medicion: MedicionVelocidad): void
+}
+
 export interface Db {
   usuarios: UsuariosRepo
   perfiles: PerfilesRepo
@@ -267,6 +284,7 @@ export interface Db {
   visibilidad: VisibilidadRepo
   vetados: VetadosRepo
   despensa: DespensaRepo
+  mediciones: MedicionesRepo
   registroComidas: RegistroComidasRepo
   calibracion: CalibracionRepo
   mensajes: MensajesRepo
