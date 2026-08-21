@@ -72,6 +72,13 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'que recibe el trabajo directo, «para etiquetar, no para contar», y todavía no hay ' +
     'pantalla que etiquete: la rejilla de volumen pinta los aportes fraccionados, no el ' +
     'grupo primario. Enchufarla ahí o borrarla — lo decide quien escribió la taxonomía.',
+  'src/domain/serieMedida.ts#interpretarSerie':
+    'La rama de velocidad. La pantalla `entrenar/serie` YA está enrutada, pero pinta ' +
+    'desde `seriesDeMuestra`: la nombra en un comentario y no la importa, así que el ' +
+    'cable central no existe todavía. Y no puede existir aún — el intérprete come ' +
+    'muestras de vídeo reales, y la fase 2 no ha aprobado la prueba de gravedad, así ' +
+    'que no hay ninguna medición de verdad que darle. Se enchufa en la fase 4, cuando ' +
+    'la captura entre en RegistroSerie. Ver wiki/motor-velocidad/plan-camara-encoder.md §11.',
 
   // Línea base heredada del 2026-08-12: medida, no auditada. Al tocar cualquiera de
   // estos módulos, resolver su entrada (enchufarla, borrarla o escribirle el motivo).

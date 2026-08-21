@@ -848,4 +848,38 @@ select '0042 - borrado de despensa', 'columna, indice de lo vivo y cliente_id no
          ) as senales
        ) = 3 then 'SI' else 'NO' end
 
+union all
+-- Cuatro señales, y la tercera es la que de verdad dice si la migracion sirve.
+-- Las tablas y el RLS los ve cualquiera en el panel; lo que no se ve es si el
+-- CHECK del vocabulario acepta los motivos que el codigo emite HOY. Cuatro de
+-- ellos -sin_escala, referencia_torcida, inclinacion_no_medible, pocas_reps-
+-- nacieron con la rama de cuatro marcas, DESPUES de escribirse el contrato de
+-- datos. Si esa señal se cae, la base rechaza justo las mediciones que fallan.
+--
+-- La cuarta comprueba que el indice de referencia siguio siendo PARCIAL. Es la
+-- misma leccion que la 0042: un indice al que alguien le quita el `where` deja
+-- de servir para la consulta que corre mientras el asesorado espera.
+select '0043 - mediciones de velocidad', 'tres tablas, RLS, vocabulario vivo e indice parcial',
+       case when (
+         select count(*) from (
+           select 1 from information_schema.tables
+            where table_schema = 'public'
+              and table_name in ('mediciones_velocidad','perfil_carga_velocidad','estado_del_dia')
+           having count(*) = 3
+           union all
+           select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'public'
+              and c.relname in ('mediciones_velocidad','perfil_carga_velocidad','estado_del_dia')
+              and c.relrowsecurity
+           having count(*) = 3
+           union all
+           select 1 where public.motivos_calidad_validos(
+             '{sin_escala,referencia_torcida,inclinacion_no_medible,pocas_reps}')
+           union all
+           select 1 from pg_indexes
+            where schemaname = 'public' and indexname = 'mediciones_referencia'
+              and indexdef ilike '%where (calidad = ''buena''::text)%'
+         ) as senales
+       ) = 4 then 'SI' else 'NO' end
+
 order by migracion, senal;
