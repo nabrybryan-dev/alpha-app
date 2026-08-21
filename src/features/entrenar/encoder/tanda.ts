@@ -195,3 +195,25 @@ export function aCsv(filas: Medicion[]): string {
     )
     .join('\n')
 }
+
+/** La tanda vive en el navegador, no en la base: mientras la prueba de gravedad
+ *  no apruebe, estos números no tienen sitio en el historial de nadie. */
+export const CLAVE_TANDA = 'alpha-encoder-fase2'
+
+export function leerTanda(): Medicion[] {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE_TANDA) ?? '[]') as Medicion[]
+  } catch {
+    return []
+  }
+}
+
+export function anadirATanda(fila: Medicion): Medicion[] {
+  const siguiente = [...leerTanda(), fila]
+  try {
+    localStorage.setItem(CLAVE_TANDA, JSON.stringify(siguiente))
+  } catch {
+    /* cuota llena: la fila se pierde, pero la sesión no se interrumpe */
+  }
+  return siguiente
+}

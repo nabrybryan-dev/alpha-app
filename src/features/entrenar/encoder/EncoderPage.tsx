@@ -1,26 +1,20 @@
 import { useMemo, useRef, useState } from 'react'
-import { Badge } from '../../components/ui/Badge'
-import { Card } from '../../components/ui/Card'
+import { Badge } from '../../../components/ui/Badge'
+import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
   aCsv,
+  anadirATanda,
+  CLAVE_TANDA,
   criteriosDeLaTanda,
+  leerTanda,
   pvDeReferencia,
   type Medicion,
   type Modo,
   type Referencia,
 } from './tanda'
 
-const CLAVE_TANDA = 'alpha-encoder-fase2'
-
-const leerTanda = (): Medicion[] => {
-  try {
-    return JSON.parse(localStorage.getItem(CLAVE_TANDA) ?? '[]') as Medicion[]
-  } catch {
-    return []
-  }
-}
 
 /**
  * Una lectura del instrumento. Tipografía tabular: si los números bailan de
@@ -197,9 +191,7 @@ export default function EncoderPage() {
       nota: nota.trim(),
     }
 
-    const siguiente = [...tanda, fila]
-    setTanda(siguiente)
-    localStorage.setItem(CLAVE_TANDA, JSON.stringify(siguiente))
+    setTanda(anadirATanda(fila))
     // Lo que cambia de una serie a la siguiente se limpia; ejercicio y carga se
     // quedan puestos, que es como se encadena una tanda de verdad.
     setNota('')
