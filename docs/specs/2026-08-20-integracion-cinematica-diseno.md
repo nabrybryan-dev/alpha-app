@@ -117,18 +117,44 @@ atleta es una silueta. Se respeta el número pedido; cambiarlo es tocar
 
 ---
 
-## Lo que falta
+## El fallo que encontró la auditoría (2026-08-21)
+
+**La pieza de Entrenar volvía a ser una banda 16:9, por un signo.** El encaje
+`cover` del lienzo estaba escrito a mano con la condición invertida. En la ventana
+del móvil de referencia —390×352— la pieza se pintaba a **390×219**, con 66 px de
+negro arriba y otros 66 abajo. Sobre `bg-ink-900` eso no se lee como un fallo: se
+lee como la banda que este trabajo existe para quitar. Cover de verdad da 626×352,
+recortada 118 px por lado.
+
+Nadie lo cazaba y no se ve desarrollando, así que el arreglo no fue cambiar el
+signo. `encajeCover` sale a `src/lib/encajeCover.ts` como función pura con siete
+tests, y `escalaCover` se comparte con el criterio que ya usaba
+`fondos-de-tarjeta`, para que las piezas se midan con la misma regla que las fotos
+y no con una propia más blanda.
+
+## Lo que se cerró
+
+- **La secuencia de fotogramas ya está vigilada.** `secuencia-cinematica.test.ts`:
+  los 36 con el nombre exacto, `FOTOGRAMA_QUIETO` dentro de rango, todos del mismo
+  tamaño, el 16:9 conservado, R1 con el paralaje en su tope y R4 con la secuencia
+  entera —338 KB medidos contra 900—. Probado escondiendo el fotograma 22.
+- **El rollo tiene test.** `RolloDePelicula.test.tsx` cubre R6 —al entrar una en la
+  ventana, las otras cuatro se pausan— y R5 —con movimiento reducido no se monta
+  ni un `<video>`—. Probado comentando la pausa del componente.
+
+## Lo que sigue faltando
 
 - **Nadie ha comparado esto con las comps.** La referencia visual que el encargo
   daba como fuente de verdad —`"Entrenar - Integracion cinematica.dc.html"`— no
-  existe en el equipo. Se implementó desde la especificación escrita.
-- **Sin ver en un móvil real.** Las capturas son Chrome de escritorio a 390 px.
-- **`LienzoCinematico` y `RolloDePelicula` no tienen test.** Sí lo tiene el hook
-  de inclinación. Hay cosas concretas que cubrir: que con movimiento reducido no
-  se pidan los otros 35 fotogramas, y que el rollo reproduzca uno solo.
-- **`fondos-de-tarjeta.test.ts` no vigila las piezas nuevas**: solo mira las
-  tarjetas con `--foto`. Hoy R1 se cumple porque se calculó a mano, no porque algo
-  lo compruebe.
+  existe en el equipo, y sigue sin existir. Se implementó desde la especificación
+  escrita.
+- **Sin ver en un móvil real.** Las capturas son Chrome de escritorio a 390 px. Es
+  justo el punto ciego que produjo el fallo de arriba, y el único de esta lista que
+  no se puede cerrar desde el código.
+- **`LienzoCinematico` no tiene test de componente.** Lo tienen ahora su aritmética
+  (`encajeCover`) y su material (`secuencia-cinematica`), que es donde estaban los
+  dos fallos posibles. Falta cubrir que con movimiento reducido no se pidan los
+  otros 35 fotogramas.
 - **`--z-superpuesto` y `--z-tooltip` se declaran sin consumidor.** No hay todavía
   toasts ni tooltips con capa propia; el único aviso que existe es de las recetas,
-  que es zona cerrada. Anotado en `tokens.css`.
+  que es zona cerrada. Anotado como DECISIÓN PENDIENTE en `tokens.css`.
