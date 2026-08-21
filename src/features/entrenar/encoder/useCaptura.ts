@@ -18,6 +18,7 @@ import {
   type ResultadoSerie,
 } from './nucleo/analisis'
 import { detectarDisco, identificarEstructura, type DiscoVisto } from './nucleo/disco'
+import { avisoDeDisco } from './avisoDisco'
 import { nuevoReloj, type Reloj } from './nucleo/reloj-fotograma'
 import type { Modo, Referencia } from './tanda'
 
@@ -268,7 +269,7 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       if (r.tipo !== 'disco') {
         discoRef.current = null
         setListoParaGrabar(false)
-        setAviso(`Ahí no veo un disco: ${r.motivo}. Toca el centro del disco, o cambia de referencia.`)
+        setAviso(avisoDeDisco(r))
         return
       }
       discoRef.current = { r: r.ajuste.r }
