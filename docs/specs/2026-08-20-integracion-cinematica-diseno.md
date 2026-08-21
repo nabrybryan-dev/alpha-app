@@ -158,3 +158,35 @@ y no con una propia más blanda.
 - **`--z-superpuesto` y `--z-tooltip` se declaran sin consumidor.** No hay todavía
   toasts ni tooltips con capa propia; el único aviso que existe es de las recetas,
   que es zona cerrada. Anotado como DECISIÓN PENDIENTE en `tokens.css`.
+
+
+---
+
+## Cómo mirar esto (2026-08-21)
+
+Nadie había visto esta pantalla. El fallo del encaje y el relleno negro salieron
+midiendo, no mirando, y los dos se veían de un vistazo. La receta, porque volver
+a deducirla cuesta media hora:
+
+```
+npx vite --mode demo --port 5199 --strictPort
+```
+
+**En Windows, `--window-size=390` da `innerWidth=504`**: Chrome headless impone un
+ancho mínimo de ventana, así que una captura directa sale de una maqueta de 504 px
+recortada a 390 y todo *parece* desbordarse. No se desborda. La única forma fiable
+es meter la app en un iframe de 390 px dentro de una página mayor y recortar
+después:
+
+```html
+<style>html,body{margin:0}iframe{display:block;width:390px;height:844px;border:0}</style>
+<iframe src="/entrenar"></iframe>
+```
+
+Se captura con `--window-size=900,1000 --force-device-scale-factor=3
+--virtual-time-budget=15000` y se recorta a `1170x2532` con ffmpeg. El perfil
+tiene que ser un `--user-data-dir` nuevo cada vez, o Chrome se engancha a la
+instancia abierta y no captura nada.
+
+La página del iframe **no debe vivir en `public/`** más allá del rato de trabajo:
+se desplegaría.
