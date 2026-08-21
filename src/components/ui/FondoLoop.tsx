@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMovimientoReducido } from '../../lib/movimientoReducido'
+import { useMovimientoReducido } from './movimientoReducido'
 
 interface FondoLoopProps {
   /** Imagen fija. Es lo que se ve primero, siempre, y lo único si no hay vídeo. */

@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent as PointerEventoReact } from 'react'
-import { useMovimientoReducido } from './movimientoReducido'
+import { useMovimientoReducido } from '../components/ui/movimientoReducido'
 
 /** Inclinación máxima en grados a cada lado. La de la ficha coleccionable. */
 const MAX_GRADOS = 12

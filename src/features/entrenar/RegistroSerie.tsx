@@ -5,6 +5,8 @@ import { seriePrescrita } from '../../domain/ondulacion'
 import { cargaSugerida } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
+import { IconoCamara } from '../../components/ui/Icono'
+import { HojaMedicion } from './encoder/HojaMedicion'
 
 interface RegistroSerieProps {
   ejercicio: EjercicioPrescrito
@@ -65,6 +67,7 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
   useImperativeHandle(ref, () => ({ guardar }))
 
   const etiqueta = etiquetaDeSerie(ejercicio, orden)
+  const [midiendo, setMidiendo] = useState(false)
 
   return (
     <div
@@ -97,6 +100,26 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
         <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} onCambiar={(v) => cambiar({ reps: v })} />
         <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
+
+      {/* Medir va ANTES de guardar, y no es un detalle de orden: se mide la
+          serie que acabas de hacer, y al guardar la serie desaparece este
+          bloque. Debajo del botón de guardar nadie lo vería a tiempo. */}
+      <button
+        type="button"
+        onClick={() => setMidiendo(true)}
+        className="press mt-3 flex w-full items-center justify-center gap-2 rounded-boton border border-white/15 bg-white/5 py-3 text-sm font-bold uppercase tracking-wide text-texto"
+      >
+        <IconoCamara className="h-[18px] w-[18px] shrink-0" />
+        Medir con la cámara
+      </button>
+
+      <HojaMedicion
+        abierto={midiendo}
+        onCerrar={() => setMidiendo(false)}
+        ejercicio={ejercicio.nombre}
+        cargaKg={borrador.cargaKg}
+        reps={borrador.reps}
+      />
 
       {mostrarBoton && (
         <button

@@ -193,3 +193,20 @@ export function IconoMensaje({ className }: IconoProps) {
     </Icono>
   )
 }
+
+/**
+ * Cámara. La usa el encoder para medir la barra desde dentro de la serie.
+ *
+ * Entró con la fusión del encoder, que traía `📷` en dos botones. No es voz de
+ * entrenador dentro de una frase: abre la etiqueta, así que es icono y le
+ * aplican los tres problemas de arriba. Mismo trazo que el resto, sin inventar
+ * lenguaje nuevo.
+ */
+export function IconoCamara({ className }: IconoProps) {
+  return (
+    <Icono className={className}>
+      <path d="M4.5 8.5h2.9l1.2-2.2h6.8l1.2 2.2h2.9A1.5 1.5 0 0 1 21 10v7a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17v-7a1.5 1.5 0 0 1 1.5-1.5Z" />
+      <circle cx="12" cy="13.2" r="3.2" />
+    </Icono>
+  )
+}

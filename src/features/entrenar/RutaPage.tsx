@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { LienzoCinematico } from '../../components/ui/LienzoCinematico'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -26,6 +27,7 @@ import { CompetenciasEvaluadas } from './ruta/CompetenciasEvaluadas'
 import { EscalaAlfa } from './ruta/EscalaAlfa'
 import { RequisitosNivel } from './ruta/RequisitosNivel'
 import { TarjetaProgresoNivel } from './ruta/TarjetaProgresoNivel'
+import { IconoCamara } from '../../components/ui/Icono'
 
 /**
  * Vista macro de la pestaña Entrenar: dónde está la persona en su ruta de
@@ -140,6 +142,24 @@ export default function RutaPage() {
       <PortadaMicrociclo microciclo={microciclo} />
 
       <CabeceraNivel nivel={ruta.nivelActual} />
+
+      {/* La mesa de trabajo del encoder: la tanda entera, los criterios y el
+          CSV. Medir se mide dentro de la serie; esto es para ver el conjunto y
+          exportarlo. Discreto a propósito — está en pruebas. */}
+      <Link
+        to="/entrenar/encoder"
+        className="flex items-center justify-between rounded-bloque border border-white/10 bg-ink-700 px-4 py-3 text-sm text-tenue"
+      >
+        <span className="flex items-center gap-2">
+          <IconoCamara className="h-[18px] w-[18px] shrink-0" />
+          <span>
+            <b className="text-texto">Encoder</b> · tanda y criterios
+          </span>
+        </span>
+        <span className="rounded-tag bg-ambar/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ambar">
+          en pruebas
+        </span>
+      </Link>
 
       <div className="entrada entrada-2">
         <TarjetaProgresoNivel

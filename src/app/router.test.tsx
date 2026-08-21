@@ -36,6 +36,13 @@ describe('rutas del asesorado', () => {
     expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
   })
 
+  it('el asesorado sí llega al encoder: medir la barra es parte de entrenar', async () => {
+    // Estuvo un rato colgando del panel del coach y era el sitio equivocado: la
+    // medición ocurre mientras haces la serie, no mientras revisas a alguien.
+    renderizarEn('/entrenar/encoder')
+    expect(await screen.findByText('Encoder de cámara')).toBeInTheDocument()
+  })
+
   it('Progreso tiene pestaña propia y el chat sigue alcanzable desde Hoy', async () => {
     renderizarEn('/progreso')
     expect(await screen.findByText('Tu progreso')).toBeInTheDocument()
@@ -80,5 +87,14 @@ describe('rutas del coach', () => {
   it('muestra el panel del coach', async () => {
     renderizarEn('/coach')
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+  })
+
+  it('el encoder ya no está en el panel del coach', async () => {
+    // Se movió a Entrenar: la medición ocurre mientras haces la serie, no
+    // mientras revisas a alguien. Un coach que quiera medir entra con su cuenta
+    // de asesorado, como cualquiera que esté entrenando.
+    renderizarEn('/coach')
+    expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+    expect(screen.queryByText(/Encoder/i)).not.toBeInTheDocument()
   })
 })

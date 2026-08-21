@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { encajeCover } from '../../lib/encajeCover'
-import { useMovimientoReducido } from '../../lib/movimientoReducido'
+import { useMovimientoReducido } from './movimientoReducido'
 
 /**
  * Fotograma en el que se congela la pieza cuando se pide menos movimiento.
