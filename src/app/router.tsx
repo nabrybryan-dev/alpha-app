@@ -6,6 +6,7 @@ import { AsesoradoLayout, CoachLayout } from './layouts'
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
 const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
 const SesionPage = lazy(() => import('../features/entrenar/SesionPage'))
+const SerieMedidaPage = lazy(() => import('../features/serie/SerieMedidaPage'))
 const BienestarPage = lazy(() => import('../features/bienestar/BienestarPage'))
 const ProgresoPage = lazy(() => import('../features/progreso/ProgresoPage'))
 const DiarioDia = lazy(() => import('../features/nutricion/DiarioDia'))
@@ -43,6 +44,9 @@ export function AppRouter() {
         <Route index element={envolver(<HoyPage />)} />
         <Route path="entrenar" element={envolver(<RutaPage />)} />
         <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
+        {/* La serie medida cuelga de Entrenar porque es lo que se mira justo
+            despues de hacerla, no una seccion aparte. */}
+        <Route path="entrenar/serie" element={envolver(<SerieMedidaPage />)} />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
         <Route path="progreso" element={envolver(<ProgresoPage />)} />
         {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no
