@@ -1,11 +1,8 @@
 import { useRef } from 'react'
+import { movimientoReducido } from '../../components/ui/movimientoReducido'
 import type { AsesoradoDestacado } from '../../data/contenido/asesoradosDestacados'
 
 const MAX_DEG = 12
-
-function reduceMovimiento(): boolean {
-  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 /**
  * Ficha coleccionable estilo Panini: se inclina en 3D siguiendo el dedo/cursor
@@ -18,7 +15,7 @@ export function FichaPanini({ ficha }: { ficha: AsesoradoDestacado }) {
 
   const mover = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = cardRef.current
-    if (!el || reduceMovimiento()) return
+    if (!el || movimientoReducido()) return
     const r = el.getBoundingClientRect()
     const px = (e.clientX - r.left) / r.width
     const py = (e.clientY - r.top) / r.height
