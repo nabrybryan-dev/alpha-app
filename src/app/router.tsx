@@ -23,6 +23,7 @@ const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
+const EncoderPage = lazy(() => import('../features/encoder/EncoderPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -68,6 +69,10 @@ export function AppRouter() {
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
         <Route path="consultas" element={envolver(<ConsultasPage />)} />
+        {/* Cuelga de CoachLayout a proposito: la herramienta de validacion no
+            la ve ningun asesorado, ni por la URL. Y sus numeros son
+            provisionales mientras la prueba de gravedad no apruebe. */}
+        <Route path="encoder" element={envolver(<EncoderPage />)} />
       </Route>
     </Routes>
   )

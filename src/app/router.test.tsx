@@ -36,6 +36,16 @@ describe('rutas del asesorado', () => {
     expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
   })
 
+  it('un asesorado no llega al encoder ni escribiendo la URL', async () => {
+    // La herramienta de validación da números provisionales mientras la prueba
+    // de gravedad no apruebe. Cuelga de CoachLayout justo para que la compuerta
+    // se aplique una vez y no haya forma de saltársela por la barra del
+    // navegador. Si alguien la sacara de ahí, este test lo dice.
+    renderizarEn('/coach/encoder')
+    expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
+    expect(screen.queryByText(/Encoder de cámara/i)).not.toBeInTheDocument()
+  })
+
   it('Progreso tiene pestaña propia y el chat sigue alcanzable desde Hoy', async () => {
     renderizarEn('/progreso')
     expect(await screen.findByText('Tu progreso')).toBeInTheDocument()
@@ -80,5 +90,10 @@ describe('rutas del coach', () => {
   it('muestra el panel del coach', async () => {
     renderizarEn('/coach')
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+  })
+
+  it('el coach sí llega al encoder', async () => {
+    renderizarEn('/coach/encoder')
+    expect(await screen.findByText('Encoder de cámara')).toBeInTheDocument()
   })
 })
