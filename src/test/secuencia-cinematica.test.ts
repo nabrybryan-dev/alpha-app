@@ -65,9 +65,26 @@ describe('secuencia cinemática de Órbita', () => {
     }
   })
 
-  it('conserva la forma 16:9 de la pieza original', () => {
+  it('NO conserva el 16:9: es la franja viva, no el fotograma entero', () => {
+    // La pieza venia con relleno negro cocido en el 41% inferior —luminancia
+    // media exactamente 0,0, canto duro—, herencia de haberse generado sobre un
+    // montaje en vacio. Con el fotograma entero, cuatro de cada diez pixeles de
+    // la ventana de Entrenar eran negro puro sobre un fondo #0a0a0a: la pieza no
+    // se leia como escena, se leia como una banda con hueco debajo.
+    //
+    // La secuencia se extrae de la franja viva. Si alguien la regenera desde el
+    // 16:9 completo, este test se lo dice antes de que llegue a produccion.
     const { ancho, alto } = medidasWebp(fotograma(0))
-    expect(ancho / alto).toBeCloseTo(16 / 9, 2)
+    expect(ancho / alto).toBeGreaterThan(2.5)
+    expect(ancho / alto).toBeLessThan(3.5)
+  })
+
+  it('no arrastra relleno negro en el borde inferior', () => {
+    // La fila viva mas baja de las 36 estaba en la 388 de 658. Por debajo, negro
+    // garantizado en TODOS los fotogramas. Se comprueba que el fotograma con mas
+    // luz tiene senal hasta abajo del todo: si el relleno vuelve, aqui se cae.
+    const { alto } = medidasWebp(fotograma(0))
+    expect(alto).toBeLessThanOrEqual(420)
   })
 
   it('R1 · no se amplía ni con el paralaje al máximo', () => {

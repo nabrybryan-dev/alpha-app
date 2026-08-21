@@ -24,6 +24,22 @@ const PARALAJE = 96
 /** De 1,00 a 1,06: nunca por encima de 1,05 respecto al hueco. Ver R1 abajo. */
 const ESCALA_MAX = 1.06
 
+/**
+ * Alto de `TopBar` (`h-14`), en píxeles CSS.
+ *
+ * La pieza empieza POR DEBAJO de la barra, y esto es R2 hecho estructura en vez
+ * de hecho promesa. La spec afirmaba que ningún texto tocaba ninguna pieza «por
+ * construcción», y era falso justo aquí: la barra es `sticky top-0` y flota
+ * sobre el lienzo, así que el título se leía sobre la escena. Se sostenía sólo
+ * porque `bg-bg/80` hace de velo al 80 % — y el velo es exactamente lo que el
+ * encargo prohíbe.
+ *
+ * Medido sobre la app en marcha: con la pieza arrancando en 0, la luminancia
+ * bajo el título daba 19 en la posición inicial, por encima del tope de 18.
+ * Bajándola, ahí sólo hay tinta y el número deja de depender del fotograma.
+ */
+const ALTO_BARRA = 56
+
 interface LienzoCinematicoProps {
   /** Carpeta bajo `public/hero/` con los fotogramas `00.webp` … `35.webp`. */
   secuencia: string
@@ -198,7 +214,11 @@ export function LienzoCinematico({
       // otra, se transforma el plano. Es lo que evita el corte seco.
       style={{ zIndex: 'var(--z-lienzo)', viewTransitionName: 'ventana-hero' }}
     >
-      <div ref={capa} className="absolute inset-x-0 top-0 will-change-transform">
+      <div
+        ref={capa}
+        className="absolute inset-x-0 will-change-transform"
+        style={{ top: ALTO_BARRA }}
+      >
         <canvas ref={lienzo} className="block w-full" style={{ height: altura }} />
         {/* La pieza no termina en un canto: se disuelve en la tinta sobre la que
             va a pasar el contenido. Es lo que la convierte en fondo y no en banda. */}
