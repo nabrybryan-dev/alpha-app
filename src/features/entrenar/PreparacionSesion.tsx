@@ -5,6 +5,7 @@ import { db } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido, PartePreparacion, TipoPreparacion } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
+import { IconoVideo } from '../../components/ui/Icono'
 
 const GRUPOS: { tipo: TipoPreparacion; titulo: string }[] = [
   { tipo: 'calentamiento', titulo: 'Calentamiento' },
@@ -103,9 +104,10 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                                 <button
                                   type="button"
                                   onClick={() => onVerDemo(demo)}
-                                  className="press mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-azul"
+                                  className="press mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-azul"
                                 >
-                                  🎬 Técnica
+                                  <IconoVideo className="h-[13px] w-[13px]" />
+                                  Técnica
                                 </button>
                               )}
                             </div>

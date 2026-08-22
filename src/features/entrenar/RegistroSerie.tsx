@@ -5,6 +5,7 @@ import { seriePrescrita } from '../../domain/ondulacion'
 import { cargaSugerida } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
+import { IconoCamara } from '../../components/ui/Icono'
 import { HojaMedicion } from './encoder/HojaMedicion'
 
 interface RegistroSerieProps {
@@ -106,9 +107,10 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
       <button
         type="button"
         onClick={() => setMidiendo(true)}
-        className="press mt-3 w-full rounded-boton border border-white/15 bg-white/5 py-3 text-sm font-bold uppercase tracking-wide text-texto"
+        className="press mt-3 flex w-full items-center justify-center gap-2 rounded-boton border border-white/15 bg-white/5 py-3 text-sm font-bold uppercase tracking-wide text-texto"
       >
-        📷 Medir con la cámara
+        <IconoCamara className="h-[18px] w-[18px] shrink-0" />
+        Medir con la cámara
       </button>
 
       <HojaMedicion

@@ -5,6 +5,7 @@ import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domai
 import { CheckDibujado } from './CheckDibujado'
 import { ExerciseSlotMachine } from './ExerciseSlotMachine'
 import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
+import { IconoVideo } from '../../components/ui/Icono'
 
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
   return (
@@ -91,9 +92,10 @@ export function TarjetaEjercicio({
               <button
                 type="button"
                 onClick={() => onVerDemo(contenidoDemo)}
-                className="press ml-auto text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                className="press ml-auto flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
               >
-                🎬 Técnica
+                <IconoVideo className="h-[13px] w-[13px]" />
+                Técnica
               </button>
             )}
           </div>

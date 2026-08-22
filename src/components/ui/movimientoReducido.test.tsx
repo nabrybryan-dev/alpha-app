@@ -86,3 +86,48 @@ describe('useMovimientoReducido', () => {
     expect(getByTestId('v').textContent).toBe('false')
   })
 })
+
+describe('Safari viejo: solo existe addListener', () => {
+  /**
+   * Antes de unificar, la suscripción se hacía con `addEventListener?.()`. En un
+   * navegador que solo trae la API anterior eso no lanza nada: simplemente no
+   * escucha. El fallo es invisible —ni error, ni aviso— y el efecto es que quien
+   * activa la preferencia con la app abierta se queda con el movimiento puesto.
+   */
+  function declararSoloApiVieja() {
+    oyentes = []
+    vi.stubGlobal('matchMedia', (consulta: string) => ({
+      get matches() {
+        return reducido && consulta.includes('prefers-reduced-motion')
+      },
+      addListener: (fn: Oyente) => oyentes.push(fn),
+      removeListener: (fn: Oyente) => {
+        oyentes = oyentes.filter((o) => o !== fn)
+      },
+    }))
+  }
+
+  beforeEach(() => {
+    reducido = false
+    declararSoloApiVieja()
+  })
+
+  it('se suscribe por la API vieja en vez de quedarse sordo', () => {
+    render(<Sonda />)
+    expect(oyentes).toHaveLength(1)
+  })
+
+  it('y se entera del cambio igual que con la API nueva', () => {
+    const { getByTestId } = render(<Sonda />)
+    expect(getByTestId('v').textContent).toBe('false')
+    cambiarPreferencia(true)
+    expect(getByTestId('v').textContent).toBe('true')
+  })
+
+  it('se da de baja al desmontar, tambien por la API vieja', () => {
+    const { unmount } = render(<Sonda />)
+    expect(oyentes).toHaveLength(1)
+    unmount()
+    expect(oyentes).toHaveLength(0)
+  })
+})

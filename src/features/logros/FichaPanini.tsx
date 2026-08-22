@@ -1,34 +1,28 @@
 import { useRef } from 'react'
-import { movimientoReducido } from '../../components/ui/movimientoReducido'
 import type { AsesoradoDestacado } from '../../data/contenido/asesoradosDestacados'
-
-const MAX_DEG = 12
+import { useInclinacionAlPuntero } from '../../lib/inclinacionAlPuntero'
 
 /**
  * Ficha coleccionable estilo Panini: se inclina en 3D siguiendo el dedo/cursor
  * y tiene un brillo holográfico que se desplaza. Solo transform/opacity, y sin
  * inclinación si el usuario pidió menos movimiento.
+ *
+ * La inclinación vivía aquí y solo aquí. Se sacó a `useInclinacionAlPuntero`
+ * cuando las piezas cinemáticas necesitaron la misma profundidad en otras dos
+ * superficies: es el mismo gesto, no uno parecido. El brillo sí se queda —es
+ * propio de la ficha— y se alimenta de la posición que el hook devuelve.
  */
 export function FichaPanini({ ficha }: { ficha: AsesoradoDestacado }) {
-  const cardRef = useRef<HTMLDivElement>(null)
   const foilRef = useRef<HTMLDivElement>(null)
-
-  const mover = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = cardRef.current
-    if (!el || movimientoReducido()) return
-    const r = el.getBoundingClientRect()
-    const px = (e.clientX - r.left) / r.width
-    const py = (e.clientY - r.top) / r.height
-    el.style.transform = `rotateX(${-(py - 0.5) * 2 * MAX_DEG}deg) rotateY(${(px - 0.5) * 2 * MAX_DEG}deg)`
-    // el brillo se mueve en sentido contrario, como un foil real
-    if (foilRef.current) {
-      foilRef.current.style.backgroundPosition = `${(1 - px) * 100}% ${(1 - py) * 100}%`
-    }
-  }
-
-  const reset = () => {
-    if (cardRef.current) cardRef.current.style.transform = 'rotateX(0deg) rotateY(0deg)'
-  }
+  const { ref: cardRef, alMover: mover, alSalir: reset } =
+    useInclinacionAlPuntero<HTMLDivElement>({
+      // El brillo se mueve en sentido contrario, como un foil real.
+      alMoverse: (px, py) => {
+        if (foilRef.current) {
+          foilRef.current.style.backgroundPosition = `${(1 - px) * 100}% ${(1 - py) * 100}%`
+        }
+      },
+    })
 
   return (
     <div className="shrink-0 [perspective:900px]" style={{ width: '15rem' }}>

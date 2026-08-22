@@ -4,6 +4,7 @@ import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Semaforo } from '../../components/ui/Semaforo'
+import { RolloDePelicula } from './RolloDePelicula'
 import logoAguila from '../../assets/brand/logo-aguila.png'
 import marcaHalcon from '../../assets/brand/marca-halcon.png'
 import monogramaA from '../../assets/brand/monograma-a.png'
@@ -66,6 +67,20 @@ export default function MarcaPage() {
         </p>
       </Card>
 
+      {/* EL ROLLO DE PELÍCULA.
+          Va aquí, después del color y antes de la tipografía, porque es donde el
+          manual pasa de enumerar ingredientes a enseñar el resultado. Y entra como
+          una Card más, en el mismo ritmo que las otras: las piezas son contenido
+          de esta pantalla, no un adorno pegado a ella. */}
+      <Card>
+        <p className="kicker">Las cinco piezas</p>
+        <p className="mt-1 text-sm text-tenue">
+          Se mira una cada vez. La que entra en el centro de la pantalla se abre y
+          arranca; las demás esperan retraídas.
+        </p>
+        <RolloDePelicula />
+      </Card>
+
       <Card>
         <p className="kicker">Sistema tipográfico</p>
         <div className="mt-3 flex flex-col gap-4">
@@ -106,6 +121,7 @@ export default function MarcaPage() {
           Luz lateral, sombras marcadas, texturas de humo/metal/concreto. Premium = disciplina: un
           solo acento, espacio generoso, jerarquía tipográfica fuerte.
         </p>
+
       </Card>
 
       <Card>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useTema } from '../../app/ThemeProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { MarcaAguila } from './MarcaAguila'
 
 interface TopBarProps {
   titulo: string
@@ -45,14 +46,7 @@ export function TopBar({ titulo }: TopBarProps) {
     <header className="glass-blur sticky top-0 z-40 border-b border-hairline bg-bg/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-2.5">
-          <img
-            src="/marca/icono-aguila.jpeg"
-            alt=""
-            aria-hidden="true"
-            width="32"
-            height="32"
-            className="h-8 w-8 rounded-lg border border-hairline object-cover"
-          />
+          <MarcaAguila className="h-8 w-8 text-texto" />
           <h1 className="font-display text-base tracking-wide text-texto">{titulo}</h1>
         </div>
         <div className="flex items-center gap-1.5">

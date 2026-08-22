@@ -173,7 +173,11 @@ function SesionEnCurso() {
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"
-          style={{ '--foto': 'url(/fondos/atleta-hombre.jpeg)', '--foto-pos': 'center 18%' } as React.CSSProperties}
+          // El banco con la barra cargada, de la dirección visual actual. La foto anterior
+          // (`atleta-hombre.jpeg`) medía 590x1280 y se ampliaba 1,82x en un móvil: se veía
+          // borrosa y nadie lo notaba porque en el navegador se pinta a 1x. Ver
+          // `src/test/fondos-de-tarjeta.test.ts`, que ahora lo impide.
+          style={{ '--foto': 'url(/fondos/sesion-banco.jpg)', '--foto-pos': 'center 18%' } as React.CSSProperties}
         >
           {/* La sesión es el segundo nivel de Entrenar: atrás vuelve a la Ruta,
               no a Hoy, aunque se haya entrado desde ahí. */}

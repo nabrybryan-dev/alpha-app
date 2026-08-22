@@ -10,6 +10,8 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0a" />
+    <!-- El fondo del splash es lo primero que se ve: se pide antes que las fuentes. -->
+    <link rel="preload" as="image" href="/fondos/ancla-rack-splash.jpg" fetchpriority="high" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Design system Alfa Athletics (handoff): display Archivo (expandido),
@@ -27,6 +29,37 @@
       rel="stylesheet"
     />
     <title>Alpha Athletics</title>
+    <meta
+      name="description"
+      content="Entrenamiento y nutrición 100% individualizados. Microciclo a microciclo."
+    />
+
+    <!-- Tarjeta al compartir el enlace. La imagen va en ruta relativa porque este
+         repo no conoce su dominio de producción: Vercel lo resuelve. Si algún día
+         se fija un dominio propio, pásala a absoluta — hay rastreadores viejos que
+         no resuelven relativas. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Alpha Athletics" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:title" content="Alpha Athletics" />
+    <meta
+      property="og:description"
+      content="Entrenamiento y nutrición 100% individualizados. Microciclo a microciclo."
+    />
+    <meta property="og:image" content="/marca/og-alpha.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Monograma A de Alpha Athletics retroiluminado, con un atleta a contraluz dentro de un rack"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Alpha Athletics" />
+    <meta
+      name="twitter:description"
+      content="Entrenamiento y nutrición 100% individualizados. Microciclo a microciclo."
+    />
+    <meta name="twitter:image" content="/marca/og-alpha.jpg" />
   </head>
   <body>
     <div id="root"></div>
