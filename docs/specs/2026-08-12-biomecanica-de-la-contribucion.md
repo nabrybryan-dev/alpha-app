@@ -34,6 +34,14 @@ sube el ratio isquio/glúteo**.
 > **Regla 1.** La bisagra no es un patrón, son dos. Con rodilla extendida manda el isquio;
 > con rodilla flexionada manda el glúteo.
 
+> **Dónde el coach se apartó de esta regla, y queda dicho.** Al repartir las cinco
+> familias concretas (2026-08-12) el coach mandó la **extensión de cadera en banco 45° /
+> banco romano** —76 series, la familia más grande— a **rodilla flexionada**. Por esta
+> regla le tocaría **extendida**: la rodilla va bloqueada y el isquio trabaja alargado,
+> sin insuficiencia activa. Es criterio clínico suyo y va marcado como tal en el
+> documento de diseño; la anotación existe para que quien lo lea dentro de seis meses
+> sepa que la discrepancia fue deliberada y no un despiste del patrón.
+
 Un matiz que también aparece y que conviene no olvidar: los ejercicios **rodilla-dominantes**
 (curl) reclutan preferentemente isquios **mediales**, mientras que los **cadera-dominantes**
 (rumano) dan más bíceps femoral. Contribuyen al mismo grupo, pero no a la misma región —
@@ -126,7 +134,10 @@ arrastrando desde la frase contra los campos.
 ## 5. Reglas que la tabla debe implementar
 
 1. **Desdoblar `bisagra`** por ángulo de rodilla → `bisagra-rodilla-extendida` y
-   `bisagra-rodilla-flexionada`.
+   `bisagra-rodilla-flexionada`. **Cerrado el 2026-08-12**: las cinco familias que
+   necesitaban criterio están repartidas en el documento de diseño, con la familia del
+   banco romano resuelta contra la Regla 1 y marcada. Al implementarlo, las ramas de
+   banco romano y de pull-through se evalúan **antes** que `extension-cadera`.
 2. **La sentadilla suma aductores**, con el glúteo, y ambos por debajo del cuádriceps.
 3. **Erectores como grupo propio** (`Erectores`), no dentro de `Espalda`: dorsal y lumbar
    no se recuperan igual ni se programan juntos.

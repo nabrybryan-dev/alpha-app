@@ -339,3 +339,147 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 -- tiene que dar CERO FILAS. Es el árbitro entre `tmp_campos_de_frase` (§1b) y
 -- `src/domain/prescripcion.ts`, que son dos implementaciones de la misma regla y
 -- podrían separarse sin que nadie lo notara.
+<<<<<<< Updated upstream
+=======
+--
+-- Y una más, añadida el 2026-08-16 porque las anteriores no la veían: el estado
+-- de la COLUMNA y el del JSON tienen que coincidir en toda la tabla.
+--
+--   select count(*) from public.microciclos
+--    where estado is distinct from (datos->>'estado');   -- tiene que dar 0
+--
+-- Contar activos por la columna daba «uno por persona» mientras 17 asesorados
+-- tenían un microciclo de julio con el JSON en 'activo'. La app lee el JSON.
+
+
+-- ============================================================================
+-- §7 · EL CAMPO `dia` · cuatro reglas, escritas el 2026-08-17
+-- ----------------------------------------------------------------------------
+-- `armarSemana` (domain/rutaEntrenamiento.ts) coloca PRIMERO las sesiones que
+-- traen `dia` y solo reparte por `orden`, desde el lunes, las que no. O sea que
+-- **el campo `dia` manda sobre el orden**. Eso lo hace potente y silencioso a la
+-- vez: cuando está mal no falla, coloca la sesión en otro día y nadie se entera.
+--
+-- Las cuatro fallaron el mismo día. Las cuatro tienen que dar CERO filas.
+--
+-- 1. SI EL NOMBRE DICE EL DÍA, EL CAMPO TIENE QUE DECIR LO MISMO.
+--    46 sesiones decían «(JUEVES)» con el campo vacío: el asesorado leía una cosa
+--    y el calendario le ponía otra.
+--    COROLARIO: si una función toca el nombre, tiene que tocar el campo. El
+--    reordenador cambiaba el día dentro del nombre y no el campo, así que mover
+--    la prevención de hombro de Karin al lunes NO SURTIÓ EFECTO y nadie lo vio.
+--
+-- 2. NINGÚN DÍA PUEDE CAER ANTES DE `fechaInicio`.
+--    16 asesorados tenían sesiones fechadas antes de arrancar su bloque —
+--    empezaba el miércoles con sesiones etiquetadas lunes y martes. El volumen se
+--    recupera a los 8 días; el ORDEN no, y el orden es decisión clínica.
+--
+-- 3. SI HAY SESIÓN EN DOMINGO, EL MICROCICLO NO ARRANCA A MEDIA SEMANA.
+--    `inicioSemanaDe` toma el domingo como primer día en cuanto existe una sesión
+--    en domingo. Con arranque en martes, esa sesión se va al domingo ANTERIOR.
+--
+-- 4. SI SE MUEVE EL ARRANQUE DE ALGUIEN, HAY QUE RECOLOCARLE LOS DÍAS.
+--    Mover la fecha sin mover los días deja su primera sesión en el pasado.
+--
+-- ── Comprobación 1: nombre y campo dicen lo mismo ───────────────────────────
+--
+--   select u.nombre, s->>'nombre', s->>'dia'
+--     from public.microciclos m join public.usuarios_app u on u.id = m.usuario_id,
+--          jsonb_array_elements(m.datos->'sesiones') s
+--    where m.estado = 'activo'
+--      and substring(s->>'nombre' from '(LUNES|MARTES|MIÉRCOLES|JUEVES|VIERNES|SÁBADO|DOMINGO)') is not null
+--      and s->>'dia' is distinct from
+--          substring(s->>'nombre' from '(LUNES|MARTES|MIÉRCOLES|JUEVES|VIERNES|SÁBADO|DOMINGO)');
+--
+-- ── Comprobación 2-4: ninguna sesión cae antes de arrancar ──────────────────
+-- Replica lo que hace `armarSemana`. Cubre las reglas 2, 3 y 4 de una vez.
+--
+--   with cfg as (
+--     select u.nombre, m.id mid, m.datos, (m.datos->>'fechaInicio')::date ini,
+--            case when extract(dow from (m.datos->>'fechaInicio')::date)::int = 0 then 'DOMINGO'
+--                 when extract(dow from (m.datos->>'fechaInicio')::date)::int = 1 then 'LUNES'
+--                 when exists (select 1 from jsonb_array_elements(m.datos->'sesiones') s
+--                               where s->>'dia' = 'DOMINGO') then 'DOMINGO'
+--                 else 'LUNES' end inicio_sem
+--       from public.microciclos m join public.usuarios_app u on u.id = m.usuario_id
+--      where m.estado = 'activo'),
+--   slots as (
+--     select c.*, (current_date - (case when c.inicio_sem='DOMINGO' then 2 else 1 end) + i) fecha,
+--            (array['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'])[
+--              extract(dow from (current_date - (case when c.inicio_sem='DOMINGO' then 2 else 1 end) + i))::int + 1] dia_nom
+--       from cfg c, generate_series(0,6) i)
+--   select sl.nombre, sl.ini "arranca", sl.fecha "cae", s->>'nombre' "sesion huerfana"
+--     from slots sl, jsonb_array_elements(sl.datos->'sesiones') s
+--    where s->>'dia' = sl.dia_nom and sl.fecha < sl.ini
+--      and jsonb_array_length(coalesce(s->'ejercicios','[]'::jsonb)) > 0;
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- §7.1 · LOS DOS PUNTOS CIEGOS DE LA COMPROBACIÓN DE ARRIBA (2026-08-18)
+-- ----------------------------------------------------------------------------
+-- La comprobación 2-4 se ancla en `current_date`, igual que `armarSemana`. Eso
+-- está bien para auditar la semana que se está corriendo, pero falla en dos
+-- casos, y los dos aparecieron el mismo día:
+--
+--   A. MICROCICLOS QUE AÚN NO HAN ARRANCADO.
+--      Marca TODAS sus sesiones como huérfanas, porque las evalúa contra la
+--      semana actual y su fechaInicio todavía es futura. El 18-ago dio 8 falsos
+--      positivos: las 4 de Bolaño (arranca el 25) y las 4 de Laura Valentina
+--      (arranca el 24), estando las 8 bien colocadas.
+--
+--   B. CADENCIA DISTINTA DE 8.
+--      Un microciclo de 15 días ocupa TRES semanas de calendario, así que una
+--      sesión puede ser legítima aunque no quepa en la primera. A Juliana
+--      (cadencia 15, arranca martes 11-ago) su sesión de LUNES le cae el 17 y el
+--      24, las dos dentro de su ventana. Anclar la comprobación en la semana de
+--      su fechaInicio la marca como huérfana y NO LO ESTÁ.
+--
+-- La versión de abajo arregla las dos: se ancla en la ventana real del propio
+-- microciclo, y solo exige "todo en la primera semana" cuando la cadencia <= 8.
+-- Tiene que dar CERO filas.
+--
+--   with cfg as (
+--     select u.nombre, m.id mid, m.datos, (m.datos->>'fechaInicio')::date ini,
+--            (m.datos->>'cadenciaDias')::int cad,
+--            case when extract(dow from (m.datos->>'fechaInicio')::date)::int = 0 then 'DOMINGO'
+--                 when extract(dow from (m.datos->>'fechaInicio')::date)::int = 1 then 'LUNES'
+--                 when exists (select 1 from jsonb_array_elements(m.datos->'sesiones') s
+--                               where s->>'dia' = 'DOMINGO') then 'DOMINGO'
+--                 else 'LUNES' end inicio_sem
+--       from public.microciclos m join public.usuarios_app u on u.id = m.usuario_id
+--      where m.estado = 'activo'),
+--   ses as (
+--     select c.*, s->>'dia' dia, s->>'nombre' sesion
+--       from cfg c, jsonb_array_elements(c.datos->'sesiones') s
+--      where s->>'dia' is not null
+--        and jsonb_array_length(coalesce(s->'ejercicios','[]'::jsonb)) > 0),
+--   ventana as (
+--     select se.*, (se.ini + i) f,
+--            (array['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'])[
+--              extract(dow from (se.ini + i))::int + 1] dn
+--       from ses se, generate_series(0, greatest(se.cad,7) - 1) i),
+--   alcance as (
+--     select nombre, mid, ini, cad, inicio_sem, dia, sesion,
+--            min(case when dn = dia then f end) primera
+--       from ventana group by 1,2,3,4,5,6,7)
+--   select nombre, mid, ini "arranca", cad, dia, sesion, primera, motivo from (
+--     select a.*,
+--            case when primera is null then 'INALCANZABLE en toda la ventana'
+--                 when cad <= 8 and primera >= ini - extract(dow from ini)::int
+--                      + (case when inicio_sem = 'DOMINGO' then 0 else 1 end) + 7
+--                      then 'Cae fuera de la primera semana (cadencia<=8)'
+--            end motivo
+--       from alcance a) t
+--    where motivo is not null;
+--
+-- CÓMO SE ARREGLA UNA HUÉRFANA DE VERDAD, con el caso real de Laura Valentina:
+-- su M1 arrancaba el martes 25 con sesiones MARTES/JUEVES/SÁBADO/LUNES. La de
+-- LUNES caía el 24, un día antes de empezar. Su aviso le prometía "un día sí y
+-- un día no, 48 horas entre sesiones", así que la solución NO era mover esa
+-- sesión a miércoles o viernes —rompía el ritmo prometido— sino CORRER EL
+-- ARRANQUE AL LUNES 24 y recolocar las cuatro a LUNES/MIÉRCOLES/VIERNES/DOMINGO.
+-- Mismo ritmo de 48 h, las cuatro dentro de la ventana, y es el patrón que ya
+-- funciona en producción con Mara. Se tocaron a la vez las TRES cosas: el campo
+-- `dia`, el día dentro del `nombre`, y la frase del aviso en perfiles.objetivos.
+-- ============================================================================
+>>>>>>> Stashed changes

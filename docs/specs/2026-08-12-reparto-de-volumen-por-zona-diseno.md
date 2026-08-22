@@ -1,7 +1,10 @@
 # Reparto de volumen por zona — diseño
 
 **Fecha:** 2026-08-12
-**Estado:** propuesta, sin implementar
+**Estado:** catálogo **cerrado, aprobado y escrito** en `src/domain/contribucion.ts`
+(2026-08-12): 27 movimientos, 29 tests. **Todavía no está conectado a nada:** `grupoDeCategoria`
+sigue mandando cada ejercicio a un solo grupo, así que la app **sigue contando en moneda
+directa**. Cambiar de moneda es un paso aparte, y antes hay que medir el salto por grupo.
 **Origen:** `volumenDelBloque.ts` decide cuántas series le tocan a un grupo, pero nadie
 decide a cuál de sus ejercicios van. Esta es la investigación que debe responderlo.
 
@@ -287,13 +290,14 @@ el primero que calce gana, como en `GRUPOS`.
 | 1 | `fondos` | 0,7 | Pecho 1 · Tríceps 0,5 · Hombros 0,5 |
 | 2 | `triceps` | 3,8 | Tríceps 1 |
 | 3 | `curl-femoral` | 7,2 | Isquios 1 |
-| 4 | `zancada-split` | 4,5 | Cuádriceps 1 · Glúteos 0,5 |
+| 4a | `subida-al-cajon` | 0,4 | Glúteos 1 · Cuádriceps 0,5 |
+| 4b | `zancada-split` | 4,0 | Cuádriceps 1 · Glúteos 0,5 |
 | 5 | `hip-thrust` | 5,8 | Glúteos 1 · Isquios 0,5 |
-| 6 | `extension-cadera` | 3,3 | Glúteos 1 |
+| 6 | `extension-cadera` | 2,2 | Glúteos 1 |
 | 7 | `abduccion` | 3,8 | Glúteos 1 |
 | 8 | `aduccion` | 2,2 | Aductores 1 |
-| 9a | `bisagra-rodilla-extendida` | — | Isquios 1 · Glúteos 0,5 · Erectores 0,5 |
-| 9b | `bisagra-rodilla-flexionada` | — | Glúteos 1 · Isquios 0,5 · Cuádriceps 0,5 · Erectores 0,5 |
+| 9a | `bisagra-rodilla-extendida` | 4,2 | Isquios 1 · Glúteos 0,5 · Erectores 0,5 |
+| 9b | `bisagra-rodilla-flexionada` | 3,0 | Glúteos 1 · Isquios 0,5 · Cuádriceps 0,5 · Erectores 0,5 |
 | 10 | `sentadilla` | 9,1 | Cuádriceps 1 · Glúteos 0,5 · **Aductores 0,5** |
 | 11 | `prensa` | 1,0 | Cuádriceps 1 · Glúteos 0,5 · Aductores 0,5 |
 | 12 | `extension-rodilla` | 3,6 | Cuádriceps 1 |
@@ -306,11 +310,31 @@ el primero que calce gana, como en `GRUPOS`.
 | 19 | `deltoides-posterior` | 1,6 | Hombros 1 · Espalda 0,5 |
 | 20 | `pullover` | 1,4 | Espalda 1 · Pecho 0,5 |
 | 21 | `remo` | 7,1 | Espalda 1 · Bíceps 0,5 · **Hombros 0,5** |
-| 22 | `jalon` | 3,3 | Espalda 1 · Bíceps 0,5 |
+| 22 | `jalon` | 3,2 | Espalda 1 · Bíceps 0,5 |
 | 23 | `trapecio` | 0,4 | Espalda 1 |
 | 24 | `curl-biceps` | 3,7 | Bíceps 1 |
-| 25 | `core` | 4,6 | Abdomen 1 |
-| — | *(no cuenta)* | 1,8 | prev/rehab · movilidad · cardio · isometrías de sostén |
+| 25 | `core` | 4,5 | Abdomen 1 |
+| — | *(no cuenta)* | 2,0 | prev/rehab · movilidad · cardio · pliometría · isometrías de sostén |
+| — | *(sin clasificar)* | 0,8 | residuo aceptado |
+
+Suman **5.249 series**, la base entera sin las sesiones metabólicas. Remedido el
+2026-08-12 con el catálogo cerrado, ya con la bisagra desdoblada, y **comprobado
+movimiento a movimiento contra la implementación** en `src/domain/contribucion.ts`:
+las dos dan exactamente los mismos totales.
+
+> **Un ajuste que salió de implementarlo.** `zancada-split` baja de 4,5 % a **4,4 %** y
+> «no cuenta» sube de 1,8 % a **2,0 %**: son 9 series de **mecánica de aterrizaje**
+> («aterrizaje amortiguado desde cajón», «drop squat desde cajón bajo») que calzaban con
+> `zancada-split` por la palabra «cajón» y se contaban como trabajo de cuádriceps. No es
+> trabajo de fuerza. El patrón las excluye por nombre.
+
+> ⚠️ **El orden no es el de esta tabla en dos casos.** Las ramas de bisagra de
+> **banco romano/45°** y de **pull-through** se evalúan **antes** que
+> `extension-cadera`, porque sus nombres contienen literalmente «extensión de
+> cadera» y si no el patrón 6 se las traga. Es el mismo tipo de fallo que el de
+> `fondos` dentro de `triceps`, y por eso se anota aquí y no se descubre en
+> producción. `extension-cadera` baja de 3,3 % a **2,2 %** justo por eso: esas
+> series no desaparecen, se van a la bisagra que les toca.
 
 ### Qué cambió en el repaso
 
@@ -324,6 +348,61 @@ sus mayores contribuyentes. Son **442 series** —el segundo movimiento en volum
 sin ese `Hombros 0,5` el hombro se subestima de forma apreciable.
 
 **Grupo nuevo: `Tibial`.** 38 series que hoy no cuentan para nadie.
+
+### El desdoble de la bisagra, cerrado (2026-08-12)
+
+Los 33 nombres que parecían necesitar criterio del coach eran en realidad **5
+familias**, y la mitad de los «ambiguos» los resolvía ya el propio orden de la tabla
+(`hip thrust`, `step up` y `subida al cajón` calzan en sus patrones antes de llegar a
+la bisagra; `GOOD MORNING EN SMITH` se arregla añadiendo el término inglés al patrón —
+eso era trabajo mío, no criterio suyo).
+
+| # | Familia | Series | Decisión | Quién |
+|---|---|---|---|---|
+| 1 | Peso muerto convencional · mancuernas · unilateral | 68 | **flexionada** | coach, coincide con la propuesta |
+| 2 | Peso muerto parcial desde rack · RACK PULL | 12 | **flexionada** | coach, coincide con la propuesta |
+| 3 | Extensión de cadera en banco 45° · banco romano · silla romana · hiperextensión | **76** | **flexionada** | **coach, contra la propuesta** |
+| 4 | Pull-through en polea · extensión de cadera entre piernas | 21 | **extendida** | coach, coincide con la propuesta |
+| 5 | Swing con kettlebell | 4 | **extendida** | coach, coincide con la propuesta |
+
+El resto de la bisagra no necesitaba decisión: **rumano y stiff** (171 series) y los
+**buenos días / cadena posterior / bisagra genérica** (24) van a rodilla extendida por
+el propio nombre. Total de la bisagra: **376 series, 7,2 %** — 220 extendida (4,2 %) y
+156 flexionada (3,0 %).
+
+> **Ojo con las cifras que se citaron al decidir.** En la conversación se hablaba de
+> «~35 · 22 · 48 · 18 · 4» series por familia. Esos eran los **subconjuntos de nombres
+> ambiguos**, no las familias enteras. Medidas contra la base, las familias son
+> mayores: la 1 son 68 y la 3 son **76**. El sentido de las decisiones no cambia, pero
+> el peso sí — conviene saberlo por si alguna se quiere revisar.
+
+#### La familia 3 es criterio del coach, y va marcada
+
+La biomecánica de §1 del documento acompañante apunta a **rodilla extendida** para el
+banco romano: la rodilla va bloqueada, el isquio trabaja alargado y no hay
+insuficiencia activa, que es justo la condición que manda el glúteo. **El coach decidió
+flexionada.** Queda anotado como criterio suyo, igual que las tres interpolaciones del
+encabezado de `volumenDelBloque.ts`.
+
+**Qué mueve, medido y no supuesto.** Hoy esas 76 series no van todas al mismo sitio: se
+reparten según **cómo se escribió el nombre**, que es el fallo de fondo de todo esto.
+
+| | Hoy (moneda directa) | Con «flexionada» *(decisión)* | Con «extendida» *(propuesta)* |
+|---|---|---|---|
+| Isquios | **45** | 38 *(76 × 0,5)* | **76** |
+| Glúteos | 18 | **76** | 38 |
+| Espalda | 13 | 0 | 0 |
+| Cuádriceps | 0 | 38 | 0 |
+| Erectores | 0 | 38 | 38 |
+
+Leído así, la decisión **sí mueve reparto**: el glúteo pasa de 18 a 76 y el isquio baja
+de 45 a 38. La opción contraria hacía lo simétrico. No es un matiz de segundo orden como
+llegué a escribir en la primera versión de este párrafo —lo comprobé después contra
+`GRUPOS` y era falso—, es la decisión de mayor efecto de las cinco familias.
+
+Las 13 series que hoy cuentan para **Espalda** son, en cualquiera de las dos opciones,
+una corrección limpia: una hiperextensión en banco romano no es trabajo de dorsal. Ese
+volumen se va a `Erectores`, que existe precisamente para esto.
 
 ### Las tres decisiones, resueltas por el coach con criterio biomecánico (2026-08-12)
 
@@ -356,29 +435,54 @@ mismo remo en máquina, y en máquina el oblicuo externo baja al 50-57 %.
 | Libre · unilateral | Abdomen +0,5 *(demanda antirrotacional)* |
 | Máquina · guiado | — |
 
+**Qué pasa cuando el nombre no lo dice — decisión mía, no del coach (2026-08-12).**
+**269 nombres** (28 % de las series) no permiten saber si fue peso libre o máquina. El
+coach se ofreció a clasificarlos; se lo desaconsejé y queda escrito por qué: son 269
+decisiones suyas para mover una variable de **segundo orden**, porque el modificador solo
+toca estabilizadores y la evidencia no respalda que el implemento cambie la hipertrofia
+del objetivo. **Por defecto van como «guiado»**, que es el conservador: no infla erectores
+con trabajo que quizá no los cargó. Los **199 nombres** que sí dicen «barra», «mancuerna»
+o «kettlebell» se detectan solos y reciben su `+0,5`. Si algún día importa, se revisa
+entonces y con datos de por medio.
+
 > ⚠️ **El modificador toca solo estabilizadores, nunca el grupo primario.** Un metaanálisis
 > de peso libre contra máquina **no encontró diferencias** en hipertrofia, y un estudio de
 > 2025 halló hipertrofia regional del cuádriceps **comparable** entre ambos. El implemento
 > cambia quién estabiliza —eso sí está medido—, no cuánto crece el objetivo.
 
-#### Deuda que esta tabla tiene que saldar el primer día
+#### La deuda de `PIERNA UNILATERAL`, saldada (2026-08-12)
 
-`PIERNA UNILATERAL` es hoy un agujero medido: **64 series** que no cuentan para ningún
-grupo (19 en microciclos activos), y que cuentan o no según cómo se escribiera el nombre
-—«Sentadilla búlgara» sí, «BÚLGARA EN SMITH» no—. El coach decidió el 2026-08-12 **no
-parchear el mapa** y esperar aquí, porque en moneda directa habría que mandar el
-movimiento entero a un solo grupo y estos reparten. Lo que la tabla debe traer:
+`PIERNA UNILATERAL` era un agujero medido: **64 series** que no contaban para ningún
+grupo (19 en microciclos activos), y que contaban o no según cómo se escribiera el nombre
+—«Sentadilla búlgara» sí, «BÚLGARA EN SMITH» no—. El coach decidió no parchear
+`grupoDeCategoria` y esperar a esta tabla, porque en moneda directa habría que mandar el
+movimiento entero a un solo grupo y estos reparten.
 
-```
-zancada             → { cuádriceps: 0,5, glúteo: 0,5 }
-sentadilla-búlgara  → { cuádriceps: 0,5, glúteo: 0,5 }
-subida-al-cajón     → { cuádriceps: 0,5, glúteo: 0,5 }
-bajada-desde-cajón  → { cuádriceps: 0,5, glúteo: 0,5 }
-```
+Con el catálogo cerrado la familia entera cuenta, y son **233 series**, no 64: el agujero
+medido era solo la parte que además no calzaba con ningún patrón viejo.
 
-Valores de partida a revisar por el coach. Y una nota para quien implemente: la clave debe
-ser el **movimiento**, no la categoría ni el nombre literal. Por categoría se tragaría un
-peso muerto unilateral; por nombre literal repetiríamos el fallo de la ortografía.
+**El borrador proponía 0,5 · 0,5 para las cuatro**, que se contradecía con la fila 4 de la
+tabla y además dejaba los ejercicios **sin grupo primario**, algo que la escala no
+contempla —el 1 se definió como «el ejercicio existe para entrenarlo»—. El coach lo
+resolvió el 2026-08-12 **partiendo el movimiento en dos** según qué articulación domina:
+
+| Movimiento | Qué entra | Series | Contribución |
+|---|---|---|---|
+| `zancada-split` | búlgara · zancada · split squat · **bajada** controlada desde cajón | 211 | Cuádriceps 1 · Glúteos 0,5 |
+| `subida-al-cajon` | subida al cajón · step up · zancada inversa | 22 | **Glúteos 1 · Cuádriceps 0,5** |
+
+La bajada controlada se queda con la rodilla a propósito: es un descenso excéntrico, no
+un empuje de cadera.
+
+> ⚠️ **Tensión conocida, y va escrita.** Dos de los cuatro nombres de `subida-al-cajon`
+> se llaman a sí mismos «dominante de rodilla» en la propia base. El coach decidió con el
+> gesto delante, no con la etiqueta. Queda anotado para que quien lo revise sepa que la
+> discrepancia con la taxonomía es consciente.
+
+Y la nota para quien implemente sigue valiendo: la clave es el **movimiento**, no la
+categoría ni el nombre literal. Por categoría se tragaría un peso muerto unilateral; por
+nombre literal repetiríamos el fallo de la ortografía. En el orden de evaluación,
+`subida-al-cajon` va **antes** que `zancada-split`, que lleva `CAJON` en su patrón.
 
 ### 3.2 Zona: etiqueta, no fracción
 
@@ -396,6 +500,12 @@ entrenado solo con patadas y abducciones, todo en acortamiento, sin nada en elon
 Eso es defendible con la evidencia que hay: la selección de ejercicio sí cambia qué zona
 recibe estímulo, pero **cuánto** no se puede cifrar hoy. Un aviso de cobertura da el 80 %
 del valor sin fingir precisión.
+
+> **Actualizado el 2026-08-12.** Esta sección daba por hecho que la etiqueta la escribía
+> el coach ejercicio por ejercicio. Él planteó que **se puede derivar** del patrón y el
+> implemento, porque el torque es carga por brazo de momento y el implemento decide cómo
+> varía ese brazo. Con eso deja de ser una deuda de ~900 decisiones y pasa a ser una tabla
+> de trece filas. Ver `2026-08-12-perfil-de-resistencia-diseno.md`.
 
 ### 3.3 Las cadenas, donde sí sirven
 
@@ -424,9 +534,20 @@ primero a medias. Ver el plan de integración en
 
 ## 5. Lo que falta y solo el coach tiene
 
-1. **La tabla de contribución para el catálogo real de ejercicios.** Yo puedo proponer un
-   borrador desde patrón de movimiento, pero la revisión es suya: es criterio clínico.
-2. **La etiqueta de perfil de resistencia** por ejercicio, misma condición.
+1. ~~**La tabla de contribución para el catálogo real de ejercicios.**~~ — **cerrada el
+   2026-08-12.** Catálogo de 25 movimientos revisado y aprobado, bisagra desdoblada por
+   familias y modificador de implemento con su valor por defecto. Lo que queda de esta
+   línea ya no es criterio del coach, es **implementación**: no existe
+   `src/domain/contribucion.ts`.
+2. ~~**La etiqueta de perfil de resistencia** por ejercicio~~ — **replanteada el
+   2026-08-12**. El coach señaló que el perfil no hace falta declararlo: se **deriva** de
+   la física (torque = carga × brazo), y por tanto del patrón de movimiento más el
+   implemento, que son dos cosas que el catálogo ya conoce. Eso baja la deuda de ~900
+   decisiones a **una tabla de trece filas**. Diseño en
+   `2026-08-12-perfil-de-resistencia-diseno.md`; lo que queda para el coach es revisar
+   esa tabla y fijar el umbral del aviso.
+3. ~~**`PIERNA UNILATERAL`.**~~ — **saldada el 2026-08-12.** El movimiento se partió en
+   `zancada-split` (211 series, rodilla) y `subida-al-cajon` (22, cadera). Ver más arriba.
 3. ~~Verificar en el artículo de Pelland el rango de referencia~~ — hecho el 2026-08-12,
    ver §2. No hay que recalibrar landmarks; lo que hay que hacer es declarar la moneda y
    medir el salto real sobre los datos.
