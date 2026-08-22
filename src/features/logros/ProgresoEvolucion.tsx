@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import { FondoLoop } from '../../components/ui/FondoLoop'
 import { db } from '../../data/dbInstance'
-import { direccion } from '../../lib/direccionesVisuales'
-import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { cargaPorGrupo, formatearSeries } from '../../domain/fatiga'
 import { nivelDeSeries } from '../../domain/nivelDeVolumen'
 import type { MedidaCorporal, NivelVolumen } from '../../domain/types'
@@ -33,26 +30,35 @@ function coordenadas(puntos: Punto[]): { x: number; y: number }[] {
 /**
  * El gráfico no cambia: cambia SU RELLENO.
  *
- * Antes, bajo la línea había un degradado rojo. Ahora hay cuerpo — la pieza E,
- * la cámara subiendo por el físico— recortada por la MISMA polilínea del área.
- * La relación es literal y por eso funciona: cuando el dato sube aparece más
- * cuerpo, cuando baja, se retira. No es decoración detrás de un gráfico; es el
- * gráfico dibujado con el material.
+ * Antes, bajo la línea había un degradado rojo. Después hubo cuerpo: la pieza E,
+ * recortada con la misma cadena de path que dibujaba ese degradado. Y no
+ * funcionaba.
  *
- * Lo que NO se toca, porque el gráfico ya funcionaba: la geometría (300x96,
- * PAD 6), la normalización al rango de los datos, `.dibujar-linea` con su
- * `pathLength={1}`, `.area-aparece`, el círculo del último punto y el toggle real
- * de dos métricas.
+ * POR QUÉ SE CAMBIÓ. La cuña mide 300x96 de viewBox — en un móvil de 390, unos
+ * 125 px de alto por 390 de ancho. La pieza E es una cámara que SUBE por un
+ * cuerpo: su eje es vertical y la ventana es de 3,1:1. A esa altura no puede
+ * enseñar un cuerpo, solo el trozo que le toque, así que se leían dos
+ * pantorrillas cortadas y cálidas flotando en un triángulo — lo único con color
+ * de toda la pantalla.
  *
- * R1 · La pieza NO se amplía. Entra en `foreignObject` a las medidas del viewBox
- * y encaja con `cover`, así que se recorta; nunca se estira.
- * R2 · Ningún texto cae encima: el gráfico no lleva rótulos dentro.
- * R3 · Póster y vídeo son el mismo elemento (`FondoLoop`) dentro del mismo
- * recorte, así que no pueden desincronizarse.
+ * Una TEXTURA se lee a cualquier tamaño; un plano que recorre un sujeto, no. Por
+ * eso ahora hay suelo agrietado, y de paso aparece un significado que antes no
+ * estaba: el área bajo la curva es el terreno que ya llevas andado.
+ *
+ * ES UNA IMAGEN FIJA, NO UN LOOP, y también a propósito: una cuña de 125 px no
+ * gana nada con vídeo y sí paga su peso, su decodificación y la lógica de pausa
+ * fuera de pantalla. Son 55 KB de WebP contra los 437 KB del vídeo de E.
+ *
+ * El recorte se eligió por PROPORCIÓN, no por brillo. El primer intento usaba una
+ * zona de 980x672 con mediana 32 y se veía negra: `object-cover` recortaba su
+ * centro, que era lo más oscuro. El que sirve es 700x300 —razón 2,33:1, parecida
+ * a la de la cuña— con mediana 44.
+ *
+ * Lo que NO se tocó: la geometría (300x96, PAD 6), la normalización al rango,
+ * `.dibujar-linea` con su `pathLength={1}`, `.area-aparece`, el círculo del
+ * último punto y el toggle Peso/Fuerza.
  */
 function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
-  const marco = usePausaFueraDePantalla<HTMLDivElement>()
-  const pieza = direccion('E')
   const pts = coordenadas(puntos)
   if (pts.length === 0) {
     return (
@@ -68,7 +74,6 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   const idClip = `recorte-${unidad}`
 
   return (
-    <div ref={marco}>
     <svg width="100%" viewBox={`0 0 ${ANCHO} ${ALTO}`} className="block" role="img" aria-label="Gráfico de evolución">
       <defs>
         <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
@@ -83,11 +88,12 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
       {pts.length > 1 && (
         <g className="area-aparece" clipPath={`url(#${idClip})`}>
           <foreignObject x="0" y="0" width={ANCHO} height={ALTO}>
-            <FondoLoop
-              poster={pieza.poster}
-              video={pieza.video}
-              preload="none"
-              prioridad="low"
+            <img
+              src="/fondos/terreno-progreso.webp"
+              alt=""
+              aria-hidden="true"
+              width={700}
+              height={300}
               className="h-full w-full object-cover"
             />
           </foreignObject>
@@ -110,7 +116,6 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
       )}
       <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill="var(--accion)" stroke="var(--ink-900)" strokeWidth="2" />
     </svg>
-    </div>
   )
 }
 
