@@ -4,9 +4,14 @@ Flujo en tres pasos. **No gasta API ni tokens de imagen**: la generación se hac
 AI Studio / Flow con la cuota de la suscripción que ya está pagada. El porqué y las
 alternativas descartadas, en `docs/specs/2026-08-22-video-nano-banana-diseno.md`.
 
-1. **Escribe el brief** en `briefs/<nombre>.json` — copia
-   `briefs/ejemplo-ajuste-semanal.json` y cambia el contenido. Solo hacen falta
-   `titulo`, `objetivo` y `planos[].descripcion`; el resto tiene valores por defecto.
+1. **Escribe el brief** en `briefs/<nombre>.json`. Hay dos de los que partir:
+   - `briefs/ejemplo-ajuste-semanal.json` — lo mínimo que hace falta.
+   - `briefs/plantilla-completa.json` — **usa todos los campos**, incluido el
+     `marca` para cambiarle la luz a un vídeo sin tocar la paleta. Copia este si
+     quieres verlos todos en su sitio.
+
+   Solo son obligatorios `titulo`, `objetivo` y `planos[].descripcion`; el resto
+   tiene valores por defecto.
 
 2. **Genera el paquete**. Lo más simple en Windows: **arrastra el `.json` encima de
    `GENERAR VIDEO.bat`** (en la raíz del proyecto). Sin argumentos usa el de ejemplo.
