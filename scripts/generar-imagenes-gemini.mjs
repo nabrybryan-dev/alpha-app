@@ -3,8 +3,15 @@
 //   GEMINI_API_KEY=... node scripts/generar-imagenes-gemini.mjs docs/video/paquetes/<slug>.md
 //
 // Para qué: iterar mucho sobre un encuadre sin gastar la cuota de la suscripción.
-// Usa **Flash Image**, que sí tiene free tier; Nano Banana **Pro** no lo tiene y se
-// paga por imagen, así que el plano definitivo se genera en AI Studio a mano.
+// Usa **Flash Image**; Nano Banana **Pro** no tiene free tier y se paga por imagen,
+// así que el plano definitivo se genera en AI Studio a mano.
+//
+// OJO — esto HOY NO FUNCIONA, y no es la key (medido el 2026-08-21). El proyecto
+// está en prepago con el saldo a cero, y en ese estado la API rechaza todos los
+// modelos —Flash Image incluido, aunque tenga free tier— con
+// `429 RESOURCE_EXHAUSTED · Your prepayment credits are depleted`. El free tier
+// solo aplica a proyectos que nunca pasaron a prepago. Hace falta recargar créditos
+// del proyecto; la mensualidad de Google AI no los rellena.
 //
 // La key va SIEMPRE en el entorno. Nunca en un archivo del repo, nunca en un commit.
 // Ver docs/specs/2026-08-22-video-nano-banana-diseno.md.

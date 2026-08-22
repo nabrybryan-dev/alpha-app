@@ -29,6 +29,15 @@ del ecosistema (no de memoria):
    (`gemini-3-pro-image`) no tiene free tier**: es de pago desde la primera
    imagen (~0,13 $ la de 1K/2K, ~0,24 $ la de 4K).
 
+4. **Y en ESTE proyecto el free tier ya no existe para nada** (medido el
+   2026-08-21, corrige lo que decía este documento). El proyecto
+   `gen-lang-client-0617952892` está en **prepago con el saldo a cero**, y en ese
+   estado la API rechaza **todos** los modelos —Flash Image incluido, aunque
+   tenga cuota gratuita— con `429 RESOURCE_EXHAUSTED · Your prepayment credits
+   are depleted`. El free tier solo aplica a proyectos que nunca pasaron a
+   prepago; una vez cruzas esa puerta no se vuelve. La key no tiene nada que ver:
+   `GET /v1beta/models` responde 200 y lista los 50 modelos.
+
 Conclusión: **no hay ruta soportada** para que Claude genere imágenes «por debajo»
 gastando la mensualidad. Lo que sí hay es un reparto de trabajo que aprovecha la
 mensualidad al 100 % y cuesta 0 € extra.
@@ -38,7 +47,7 @@ mensualidad al 100 % y cuesta 0 € extra.
 | | Qué es | Coste extra | Nano Banana Pro | Veredicto |
 |---|---|---|---|---|
 | **A. Claude dirige, AI Studio filma** | Claude produce el paquete de producción completo (prompts exactos plano a plano); se pega en AI Studio / Flow | **0 €** | Sí, el de la suscripción | **Elegida** |
-| **B. API con free tier** | Script propio contra la API de Gemini con una key gratuita | 0 € dentro de la cuota | **No** (solo Flash Image) | Complemento para volumen |
+| **B. API con free tier** | Script propio contra la API de Gemini con una key gratuita | **Hoy: bloqueada** — el proyecto está en prepago sin saldo | **No** (solo Flash Image) | Inservible hasta recargar créditos |
 | **C. Automatizar el navegador** | Playwright sobre `aistudio.google.com` con la sesión iniciada | 0 € | Sí | **Descartada** |
 
 La C se descarta y conviene que quede escrito por qué, para no volver a
@@ -88,12 +97,22 @@ tanto una trampa conocida: **si cambian los tokens de marca, cambiar también `M
 Es el mismo patrón que la frase y los campos de la prescripción, y ya sabemos cómo
 acaba cuando se olvida.
 
-## La ruta B, cuando haga falta
+## La ruta B, que hoy no está disponible
 
-Para iterar mucho sobre un plano (veinte variantes de un encuadre) la mensualidad se
-agota antes que las ganas. Ahí sirve una API key gratuita de AI Studio contra
-**Flash Image**, que sí tiene free tier: `scripts/generar-imagenes-gemini.mjs`,
-que lee un paquete ya generado y produce los borradores.
+La idea era: para iterar mucho sobre un plano (veinte variantes de un encuadre) la
+mensualidad se agota antes que las ganas, y ahí serviría una API key gratuita contra
+**Flash Image**. `scripts/generar-imagenes-gemini.mjs` hace eso.
+
+**No funciona hoy**, y conviene entender por qué antes de perder otra tarde: el
+proyecto está en prepago con saldo cero, y eso apaga el free tier de *todos* los
+modelos, no solo de los de pago. El script está bien y la key autentica; falta
+saldo. Para reactivarlo hay que recargar créditos en el proyecto de Google Cloud
+—y entonces deja de ser gratis, que era su único motivo de existir—.
+
+Lo que sí sigue siendo cierto es la conclusión de arriba: **la mensualidad de
+Google AI no rellena ese saldo.** Son dos cajas separadas. La suscripción paga la
+app web; la API se paga con créditos del proyecto. Por eso la ruta A (pegar en AI
+Studio) es gratis y este atajo no.
 
 Dos decisiones deliberadas:
 
@@ -104,8 +123,9 @@ Dos decisiones deliberadas:
 - **La key va en el entorno, nunca en el repo.** `GEMINI_API_KEY` como variable de
   entorno; ni en un archivo, ni en un commit, ni en `.mcp.json`.
 
-Flash Image es para **borrador y encuadre**. El plano que se publica se genera con
-Nano Banana Pro en AI Studio, que es lo que la mensualidad ya paga.
+Si algún día se recarga: Flash Image es para **borrador y encuadre**. El plano que
+se publica se genera con Nano Banana Pro en AI Studio, que es lo que la mensualidad
+ya paga.
 
 ## Lo que este diseño NO resuelve
 

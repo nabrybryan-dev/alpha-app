@@ -1,0 +1,34 @@
+{
+  "titulo": "El descanso también está prescrito",
+  "objetivo": "Que el asesorado deje de improvisar el descanso entre series y entienda que el temporizador no es un adorno: el tiempo que espera cambia lo que la serie siguiente puede levantar.",
+  "formato": "reel-vertical",
+  "slug": "el-descanso-esta-prescrito",
+  "marca": {
+    "luz": "luz de mañana entrando por ventanal, sombras largas, ambiente de gimnasio vacío",
+    "camara": "lente 50 mm, poca profundidad de campo, cámara en trípode"
+  },
+  "planos": [
+    {
+      "id": "01",
+      "segundos": 3,
+      "descripcion": "Plano cerrado de un banco de press vacío con una toalla encima y una botella al lado, gimnasio en silencio.",
+      "composicion": "objeto centrado, mucho aire arriba",
+      "movimiento": "cámara fija, motas de polvo en el haz de luz",
+      "textoEnPantalla": "90 segundos.",
+      "locucion": "Noventa segundos.",
+      "evitar": [
+        "gente de fondo",
+        "espejos"
+      ]
+    },
+    {
+      "id": "02",
+      "segundos": 5,
+      "descripcion": "Persona sentada en el banco mirando el móvil con el temporizador en marcha.",
+      "composicion": "sujeto a la izquierda, aire a la derecha",
+      "movimiento": "push-in muy lento, hombros subiendo y bajando por la respiración todavía alta",
+      "textoEnPantalla": "No es tiempo muerto.",
+      "locucion": "No es tiempo muerto. Es parte de la serie."
+    }
+  ]
+}
