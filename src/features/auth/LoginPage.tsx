@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../data/supabase'
 import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
+import { FondoLoop } from '../../components/ui/FondoLoop'
+import { LOOP_HERO, POSTER_LOGIN } from './fondoHero'
 
 export function LoginPage() {
   const [correo, setCorreo] = useState('')
@@ -57,16 +59,17 @@ export function LoginPage() {
   return (
     <div className="relative grid min-h-dvh place-items-center px-6" style={{ backgroundColor: '#0a0a0a' }}>
       {/* fixed (no absolute): cubre SIEMPRE el viewport completo, incluso con
-          el teclado abierto o al hacer scroll — sin bordes vacíos */}
-      <div
-        aria-hidden="true"
-        className="fixed inset-0"
-        style={{
-          backgroundColor: '#0a0a0a',
-          backgroundImage: 'url(/fondos/atleta.jpeg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center top',
-        }}
+          el teclado abierto o al hacer scroll — sin bordes vacíos.
+
+          El fondo pasó de `background-image` a `FondoLoop` para poder llevar el
+          loop de 8 s encima del plano fijo. Aquí va con `preload="none"`: en el
+          login el vídeo es ambiente, no contenido, y no debe competir con la
+          descarga del formulario. */}
+      <FondoLoop
+        poster={POSTER_LOGIN}
+        video={LOOP_HERO}
+        preload="none"
+        className="fixed inset-0 h-full w-full object-cover object-top"
       />
       <div
         aria-hidden="true"

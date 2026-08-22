@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { IconoCampana } from '../../components/ui/Icono'
 import { Revelar } from '../../components/ui/Revelar'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { XP_POR_ACCION } from '../../domain/gamification'
@@ -101,7 +102,10 @@ export default function BienestarPage() {
       {permiso === 'default' && (
         <Card className="entrada entrada-2 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-texto">🔔 Recordatorio de las 6 pm</p>
+            <p className="flex items-center gap-2 text-sm font-bold text-texto">
+              <IconoCampana className="h-[17px] w-[17px] shrink-0 text-rojo" />
+              Recordatorio de las 6 pm
+            </p>
             <p className="mt-0.5 text-xs text-tenue">
               Si a las 6 pm no has llenado tu check-in, te avisamos con una notificación.
             </p>

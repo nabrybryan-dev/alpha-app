@@ -42,6 +42,10 @@ export function BloqueEnCurso({ bloque, sesion }: Props) {
       {sesion ? (
         <Link
           to={`/entrenar/sesion/${sesion.id}`}
+          // Entrar a la sesión es moverse dentro del mismo gimnasio, no cambiar de
+          // documento. React Router hace el resto con la View Transitions API, y
+          // donde no esté soportada navega igual, sin transición.
+          viewTransition
           className="press mt-3.5 flex items-center justify-center rounded-xl bg-accion py-3.5 text-center font-display text-sm text-white"
           style={{ boxShadow: 'var(--glow-accion)' }}
         >

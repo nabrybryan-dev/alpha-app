@@ -1,5 +1,6 @@
 import { useRef } from 'react'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
+import { movimientoReducido } from '../../components/ui/movimientoReducido'
+import logoAguila from '../../assets/brand/logo-aguila.png'
 
 interface AguilaInteractivaProps {
   /** Clase para el tamaño/estilo del logo (h-24 w-24, etc.). */
@@ -19,7 +20,7 @@ export function AguilaInteractiva({ className = '', entrada = false }: AguilaInt
   const girar = () => {
     const el = ref.current
     if (!el) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (movimientoReducido()) return
     el.animate(
       [
         { transform: 'perspective(600px) rotateY(0deg) scale(1)' },
@@ -42,7 +43,7 @@ export function AguilaInteractiva({ className = '', entrada = false }: AguilaInt
         src={logoAguila}
         alt=""
         aria-hidden="true"
-        className={`rounded-3xl border border-hairline object-cover shadow-xl [backface-visibility:hidden] ${
+        className={`rounded-3xl border border-hairline bg-ink-900 object-contain p-2 shadow-xl [backface-visibility:hidden] ${
           entrada ? 'aguila-entra' : ''
         } ${className}`}
       />

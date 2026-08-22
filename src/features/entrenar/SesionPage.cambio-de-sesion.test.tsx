@@ -60,6 +60,24 @@ function Navegador() {
   )
 }
 
+/**
+ * Precalentar el import perezoso ANTES de renderizar.
+ *
+ * `AppRouter` monta `SesionPage` con `lazy()`, así que la primera aserción no
+ * esperaba al cronómetro: esperaba a que resolviera un `import()` dinámico. Con
+ * la suite entera en paralelo eso pasaba de los 5 s y el volcado del fallo lo
+ * decía —el DOM seguía en «Cargando…», el fallback de Suspense—, pero como el
+ * mensaje hablaba de `00:00:00` parecía cosa del cronómetro. Aislado no falla
+ * nunca; solo bajo carga.
+ *
+ * Subir más el tiempo de espera no arregla nada: alarga la suite cuando falla y
+ * sigue siendo una carrera. Teniendo el módulo ya en la caché, Suspense resuelve
+ * en el primer microtask y la espera vuelve a medir lo que dice medir.
+ */
+async function precalentarSesionPage() {
+  await import('./SesionPage')
+}
+
 function montarEn(sesionId: string) {
   return render(
     <ThemeProvider>
@@ -82,10 +100,11 @@ function pasarMinutos(min: number) {
 }
 
 describe('cambiar de sesión sin salir de la pantalla de entreno', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear()
     ahora = BASE
     vi.spyOn(Date, 'now').mockImplementation(() => ahora)
+    await precalentarSesionPage()
   })
 
   afterEach(() => {
@@ -96,7 +115,8 @@ describe('cambiar de sesión sin salir de la pantalla de entreno', () => {
 
   it('el cronómetro NO debe arrastrar el tiempo de la sesión anterior', async () => {
     montarEn(SESION_A)
-    // timeout holgado: aquí se resuelve el import perezoso de SesionPage.
+    // El import perezoso ya viene precalentado, así que esto solo espera al
+    // cronómetro. El margen se queda como red por si la suite va muy cargada.
     expect(await screen.findByText('00:00:00', undefined, { timeout: 5000 })).toBeInTheDocument()
 
     pasarMinutos(5)

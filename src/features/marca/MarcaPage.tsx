@@ -4,10 +4,11 @@ import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Semaforo } from '../../components/ui/Semaforo'
-import logoAguila from '../../assets/brand/logo-aguila.jpeg'
-import marcaHalcon from '../../assets/brand/marca-halcon.jpeg'
-import monogramaA from '../../assets/brand/monograma-a.jpeg'
-import wordmark from '../../assets/brand/wordmark.jpeg'
+import { RolloDePelicula } from './RolloDePelicula'
+import logoAguila from '../../assets/brand/logo-aguila.png'
+import marcaHalcon from '../../assets/brand/marca-halcon.png'
+import monogramaA from '../../assets/brand/monograma-a.png'
+import wordmark from '../../assets/brand/wordmark.png'
 
 const colores = [
   { nombre: 'BLACK', hex: '#0A0A0A', uso: 'Fondos y base visual · 70%' },
@@ -41,7 +42,7 @@ export default function MarcaPage() {
               src={logo.src}
               alt={logo.alt}
               loading="lazy"
-              className="aspect-square w-full rounded-xl border border-linea object-cover"
+              className="aspect-square w-full rounded-xl border border-linea bg-ink-900 object-contain p-3"
             />
           ))}
         </div>
@@ -66,16 +67,44 @@ export default function MarcaPage() {
         </p>
       </Card>
 
+      {/* EL ROLLO DE PELÍCULA.
+          Va aquí, después del color y antes de la tipografía, porque es donde el
+          manual pasa de enumerar ingredientes a enseñar el resultado. Y entra como
+          una Card más, en el mismo ritmo que las otras: las piezas son contenido
+          de esta pantalla, no un adorno pegado a ella. */}
+      <Card>
+        <p className="kicker">Las cinco piezas</p>
+        <p className="mt-1 text-sm text-tenue">
+          Se mira una cada vez. La que entra en el centro de la pantalla se abre y
+          arranca; las demás esperan retraídas.
+        </p>
+        <RolloDePelicula />
+      </Card>
+
       <Card>
         <p className="kicker">Sistema tipográfico</p>
-        <p className="mt-3 font-display text-3xl text-texto">Satoshi Bold</p>
-        <p className="text-xs text-tenue">Tipografía principal: titulares, números grandes, CTA</p>
-        <p className="mt-3 text-base text-texto">
-          Inter Regular — así comunica Alpha Athletics con claridad, precisión y estructura.
-        </p>
-        <p className="text-xs text-tenue">Tipografía secundaria: cuerpo, datos, prescripciones</p>
+        <div className="mt-3 flex flex-col gap-4">
+          <div>
+            <p className="font-display text-3xl uppercase tracking-tight text-texto">Archivo 800</p>
+            <p className="text-xs text-tenue">
+              Display, expandido al 125%. Titulares, cifras grandes y botones de acción.
+            </p>
+          </div>
+          <div>
+            <p className="font-body text-base text-texto">
+              Hanken Grotesk — así explica Alpha lo que toca hacer: claro, corto y sin adornos.
+            </p>
+            <p className="text-xs text-tenue">Interfaz: cuerpo, etiquetas y prescripciones.</p>
+          </div>
+          <div>
+            <p className="font-mono text-lg text-texto">4 × 8 · RIR 2 · 62,5 kg</p>
+            <p className="text-xs text-tenue">
+              JetBrains Mono. Solo donde las cifras tienen que alinearse en columna.
+            </p>
+          </div>
+        </div>
         <ul className="mt-3 list-disc pl-5 text-xs text-tenue">
-          <li>Máximo dos fuentes</li>
+          <li>Tres familias y ninguna más: cada hoja de fuentes retrasa el primer pintado</li>
           <li>Alto contraste</li>
           <li>Espaciado amplio (tracking) en titulares y kickers</li>
         </ul>
@@ -92,6 +121,7 @@ export default function MarcaPage() {
           Luz lateral, sombras marcadas, texturas de humo/metal/concreto. Premium = disciplina: un
           solo acento, espacio generoso, jerarquía tipográfica fuerte.
         </p>
+
       </Card>
 
       <Card>

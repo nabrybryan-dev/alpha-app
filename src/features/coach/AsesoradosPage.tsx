@@ -7,6 +7,7 @@ import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import { resumenAsesorado } from './resumenAsesorado'
 import { PanelMicrociclos } from './PanelMicrociclos'
 import { SaludDeDatos } from './SaludDeDatos'
+import { IconoConsulta, IconoMensaje } from '../../components/ui/Icono'
 
 const ordenColor = { rojo: 0, ambar: 1, verde: 2 } as const
 
@@ -43,15 +44,17 @@ export default function AsesoradosPage() {
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Link
             to="/coach/consultas"
-            className="rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
+            className="flex items-center gap-2 rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
           >
-            ❓ Consultas
+            <IconoConsulta className="h-[17px] w-[17px] shrink-0 text-tenue" />
+            Consultas
           </Link>
           <Link
             to="/coach/chat"
-            className="relative rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
+            className="relative flex items-center gap-2 rounded-xl border border-linea bg-surface-2 px-4 py-2.5 text-sm font-bold text-texto"
           >
-            💬 Bandeja
+            <IconoMensaje className="h-[17px] w-[17px] shrink-0 text-tenue" />
+            Bandeja
             {pendientesChat > 0 && (
               <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-bold text-white">
                 {pendientesChat}
@@ -98,7 +101,14 @@ export default function AsesoradosPage() {
                       RIR {r.desvRir > 0 ? '+' : ''}{r.desvRir}
                     </span>
                   )}
-                  {r.noLeidos > 0 && <Badge tono="rojo">{r.noLeidos} 💬</Badge>}
+                  {r.noLeidos > 0 && (
+                    <Badge tono="rojo">
+                      <span className="flex items-center gap-1">
+                        {r.noLeidos}
+                        <IconoMensaje className="h-[13px] w-[13px]" />
+                      </span>
+                    </Badge>
+                  )}
                   {r.cuestionariosPendientes > 0 && (
                     <Badge tono="ambar">{r.cuestionariosPendientes} test</Badge>
                   )}

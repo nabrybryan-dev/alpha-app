@@ -78,8 +78,10 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 z-40 flex justify-center px-3"
-      style={{ bottom: 'var(--hueco-nav)' }}
+      className="fixed inset-x-0 flex justify-center px-3"
+      // El `z-40` que estaba aquí a pelo pasa a nombrarse. Es el mismo número:
+      // `--z-nav` se definió con 40 justamente para no mover esta barra.
+      style={{ bottom: 'var(--hueco-nav)', zIndex: 'var(--z-nav)' }}
     >
       <div className="glass glass-blur flex w-full max-w-[22rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
         {pestanas.map((p) => (
@@ -87,6 +89,12 @@ export function BottomNav() {
             key={p.ruta}
             to={p.ruta}
             end={p.ruta === '/'}
+            // Cambiar de pestaña deja de ser un corte seco. Con la View
+            // Transitions API la pieza cinemática que comparten Entrenar y
+            // Progreso se transforma en vez de desaparecer y reaparecer, y las
+            // pantallas que no la llevan cruzan con la misma curva y duración que
+            // el resto de la app. Donde no esté soportada, navega igual.
+            viewTransition
             className={({ isActive }) =>
               `press relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-0.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] transition-colors duration-200 ease-salida ${
                 isActive ? 'text-rojo' : 'text-tenue'

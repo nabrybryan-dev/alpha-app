@@ -75,8 +75,8 @@
 
   /* ============ Design System Alfa (handoff) ============
      Fuentes: display Archivo expandido, UI Hanken Grotesk, datos JetBrains Mono */
-  --font-display: 'Archivo', 'Satoshi', system-ui, sans-serif;
-  --font-ui: 'Hanken Grotesk', Inter, system-ui, sans-serif;
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-ui: 'Hanken Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
   /* Escala ink (superficies oscuras, negro elegante) */
@@ -124,6 +124,36 @@
   );
   --glow-accion: 0 0 0 3px rgba(255, 30, 30, 0.14), 0 8px 24px rgba(255, 30, 30, 0.2);
   --inset-top-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* ============ Escala de capas ============
+     El repo no tenia ninguna: se apilaba a ojo y el unico z-index del archivo era
+     un `1` suelto. Con la pieza cinematica al fondo y tarjetas que la solapan hay
+     que poder decir en que plano vive cada cosa sin inventar numeros.
+     `--z-nav` vale 40 porque es el `z-40` que BottomNav ya usaba. */
+  --z-lienzo: 0;
+  --z-contenido: 10;
+  --z-elevado: 20;
+  --z-nav: 40;
+  --z-scrim: 200;
+  --z-hoja: 210;
+  /* DECISIÓN PENDIENTE: estos dos se declaran y HOY NO LOS CONSUME NADIE, a
+     diferencia de los seis de arriba. El criterio 10 pide que todo token nuevo
+     se consuma, pero el único candidato —`.aviso-registro`, el aviso de las
+     recetas— no lleva z-index, y ponérselo sería tocar una función cerrada por
+     la sección 0. Entre incumplir el criterio 10 y tocar las recetas, se elige
+     lo que menos código mueve y se anota aquí.
+     Se resuelve solo el día que la app tenga toasts o tooltips con capa propia.
+     Están declarados para que quien llegue a eso no invente un 999. */
+  --z-superpuesto: 300;
+  --z-tooltip: 400;
+
+  /* ============ Escala de duraciones ============
+     Las curvas ya existian; lo que faltaba era el tiempo. Sin esta escala cada
+     pantalla elegia el suyo y ninguna se movia igual que la de al lado. */
+  --dur-toque: 160ms;
+  --dur-base: 240ms;
+  --dur-panel: 360ms;
+  --dur-escena: 520ms;
 }
 
 html {
@@ -269,7 +299,9 @@ body {
 /* ---------- Feedback físico ---------- */
 
 .press {
-  transition: transform 160ms var(--ease-salida);
+  /* Los 160 ms que estaban escritos aquí a mano son exactamente `--dur-toque`:
+     la escala de duraciones se dedujo de lo que la app ya hacía, no al revés. */
+  transition: transform var(--dur-toque) var(--ease-salida);
 }
 
 .press:active {
@@ -811,4 +843,33 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .brillo-carga::after { animation: none; opacity: 0; }
   .aviso-registro { animation: none; }
+}
+
+
+/* ---------- Transición entre pantallas ----------
+   Una sola gramática: la escala de duraciones y las curvas que ya existían. Sin
+   esto cada navegación usaría el crossfade por defecto del navegador, que dura
+   250 ms y no se parece a nada más de la app. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-escena);
+  animation-timing-function: var(--ease-salida);
+}
+
+/* La ventana de la pieza no se desvanece: se transforma. Es lo que hace que el
+   plano persista de una pantalla a la siguiente. */
+::view-transition-old(ventana-hero),
+::view-transition-new(ventana-hero) {
+  animation-duration: var(--dur-escena);
+  animation-timing-function: var(--ease-cajon);
+}
+
+/* R5: quien pide menos movimiento navega sin transición. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-old(ventana-hero),
+  ::view-transition-new(ventana-hero) {
+    animation: none;
+  }
 }
