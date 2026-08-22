@@ -16,7 +16,8 @@
     "calibrar-umbrales": "vite-node scripts/calibrar-umbrales.mjs",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "rellenar-carga": "vite-node scripts/rellenar-carga.mjs"
+    "rellenar-carga": "vite-node scripts/rellenar-carga.mjs",
+    "video": "node scripts/generar-paquete-video.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

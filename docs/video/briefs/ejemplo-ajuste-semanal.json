@@ -1,0 +1,40 @@
+{
+  "titulo": "Por qué tu carga sube sola cada semana",
+  "objetivo": "Que el asesorado entienda que la app le ajusta el peso a partir de lo que registró, y que por eso merece la pena marcar las series en el momento.",
+  "formato": "reel-vertical",
+  "planos": [
+    {
+      "id": "01",
+      "segundos": 3,
+      "descripcion": "Plano cerrado de unas manos con magnesio agarrando una barra olímpica en un rack, gimnasio en penumbra.",
+      "composicion": "sujeto a la derecha, aire a la izquierda",
+      "movimiento": "push-in muy lento hacia las manos",
+      "textoEnPantalla": "No adivinamos tu peso.",
+      "locucion": "Nadie decide tu carga a ojo."
+    },
+    {
+      "id": "02",
+      "segundos": 5,
+      "descripcion": "La misma persona de espaldas mirando el móvil apoyado en el rack entre series, respirando fuerte.",
+      "movimiento": "cámara fija, hombros subiendo y bajando",
+      "textoEnPantalla": "Marcas la serie.",
+      "locucion": "Tú marcas la serie que acabas de hacer, con el RIR que sentiste."
+    },
+    {
+      "id": "03",
+      "segundos": 5,
+      "descripcion": "Detalle macro de discos de peso apilados, uno de ellos con un halo rojo tenue, como si acabara de sumarse.",
+      "movimiento": "travelling lateral corto de izquierda a derecha",
+      "textoEnPantalla": "La app calcula la siguiente.",
+      "locucion": "Con eso la app calcula la carga de la semana que viene."
+    },
+    {
+      "id": "04",
+      "segundos": 4,
+      "descripcion": "Plano medio de la persona terminando una serie exigente, luz dura de lateral, expresión de esfuerzo contenido.",
+      "movimiento": "ligero temblor de cámara en mano",
+      "textoEnPantalla": "Si no la marcas, se queda igual.",
+      "locucion": "Si no la marcas, la semana que viene repites el mismo peso."
+    }
+  ]
+}
