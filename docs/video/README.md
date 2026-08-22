@@ -26,6 +26,9 @@ alternativas descartadas, en `docs/specs/2026-08-22-video-nano-banana-diseno.md`
    Sale un Markdown en `paquetes/` con, para cada plano: el prompt de imagen
    completo, el de continuidad, el de animación para Veo, el rótulo y la locución.
 
+   `paquetes/` está en `.gitignore` a propósito: es **salida**, se reconstruye
+   desde el brief en un doble clic. El brief es lo que se versiona.
+
 3. **Pega y genera** en [AI Studio](https://aistudio.google.com) (imágenes con Nano
    Banana Pro) y Flow (animación con Veo). Guarda cada archivo con el nombre que
    indica el paquete y monta en ese orden.

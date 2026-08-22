@@ -13,3 +13,8 @@ RESULTADO.local.txt
 # Cargas de asesorados: SIEMPRE traen datos personales (nombres, correos,
 # medidas, notas de salud). Nunca deben entrar al repo.
 supabase/_app-cargar-*.sql
+
+# Paquetes de producción de vídeo: son SALIDA, se reconstruyen con `npm run video`
+# desde el brief, que sí va al repo. Versionarlos no aporta nada y provoca
+# conflictos add/add en cada `pull` de quien los haya regenerado.
+docs/video/paquetes/
