@@ -52,7 +52,7 @@ export function NuevaClavePage({ onListo }: { onListo: () => void }) {
         className="fixed inset-0"
         style={{
           backgroundColor: '#0a0a0a',
-          backgroundImage: 'url(/fondos/atleta.jpeg)',
+          backgroundImage: 'url(/fondos/login-rack.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
         }}

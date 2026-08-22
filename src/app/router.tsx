@@ -23,6 +23,7 @@ const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
+const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -43,6 +44,11 @@ export function AppRouter() {
         <Route index element={envolver(<HoyPage />)} />
         <Route path="entrenar" element={envolver(<RutaPage />)} />
         <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
+        {/* La medicion se hace DENTRO de la serie (ver RegistroSerie). Esta
+            pantalla es la mesa de trabajo: ajustes, la tanda entera y los
+            criterios de la fase 2. Cuelga de Entrenar porque medir la barra es
+            parte de entrenar, no una herramienta de coach. */}
+        <Route path="entrenar/encoder" element={envolver(<EncoderPage />)} />
         <Route path="bienestar" element={envolver(<BienestarPage />)} />
         <Route path="progreso" element={envolver(<ProgresoPage />)} />
         {/* Las dos cuelgan del layout: la compuerta se aplica una vez y no

@@ -27,6 +27,37 @@ function coordenadas(puntos: Punto[]): { x: number; y: number }[] {
   }))
 }
 
+/**
+ * El gráfico no cambia: cambia SU RELLENO.
+ *
+ * Antes, bajo la línea había un degradado rojo. Después hubo cuerpo: la pieza E,
+ * recortada con la misma cadena de path que dibujaba ese degradado. Y no
+ * funcionaba.
+ *
+ * POR QUÉ SE CAMBIÓ. La cuña mide 300x96 de viewBox — en un móvil de 390, unos
+ * 125 px de alto por 390 de ancho. La pieza E es una cámara que SUBE por un
+ * cuerpo: su eje es vertical y la ventana es de 3,1:1. A esa altura no puede
+ * enseñar un cuerpo, solo el trozo que le toque, así que se leían dos
+ * pantorrillas cortadas y cálidas flotando en un triángulo — lo único con color
+ * de toda la pantalla.
+ *
+ * Una TEXTURA se lee a cualquier tamaño; un plano que recorre un sujeto, no. Por
+ * eso ahora hay suelo agrietado, y de paso aparece un significado que antes no
+ * estaba: el área bajo la curva es el terreno que ya llevas andado.
+ *
+ * ES UNA IMAGEN FIJA, NO UN LOOP, y también a propósito: una cuña de 125 px no
+ * gana nada con vídeo y sí paga su peso, su decodificación y la lógica de pausa
+ * fuera de pantalla. Son 55 KB de WebP contra los 437 KB del vídeo de E.
+ *
+ * El recorte se eligió por PROPORCIÓN, no por brillo. El primer intento usaba una
+ * zona de 980x672 con mediana 32 y se veía negra: `object-cover` recortaba su
+ * centro, que era lo más oscuro. El que sirve es 700x300 —razón 2,33:1, parecida
+ * a la de la cuña— con mediana 44.
+ *
+ * Lo que NO se tocó: la geometría (300x96, PAD 6), la normalización al rango,
+ * `.dibujar-linea` con su `pathLength={1}`, `.area-aparece`, el círculo del
+ * último punto y el toggle Peso/Fuerza.
+ */
 function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   const pts = coordenadas(puntos)
   if (pts.length === 0) {
@@ -40,6 +71,7 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
   const area = `${linea} L ${pts[pts.length - 1].x.toFixed(1)} ${ALTO} L ${pts[0].x.toFixed(1)} ${ALTO} Z`
   const ultimo = pts[pts.length - 1]
   const idGrad = `grad-${unidad}`
+  const idClip = `recorte-${unidad}`
 
   return (
     <svg width="100%" viewBox={`0 0 ${ANCHO} ${ALTO}`} className="block" role="img" aria-label="Gráfico de evolución">
@@ -48,8 +80,28 @@ function GraficoLinea({ puntos, unidad }: { puntos: Punto[]; unidad: string }) {
           <stop offset="0%" stopColor="var(--accion)" stopOpacity="0.26" />
           <stop offset="100%" stopColor="var(--accion)" stopOpacity="0" />
         </linearGradient>
+        {/* El recorte ES el área. La misma cadena de path que dibujaba el relleno. */}
+        <clipPath id={idClip}>
+          <path d={area} />
+        </clipPath>
       </defs>
-      {pts.length > 1 && <path className="area-aparece" d={area} fill={`url(#${idGrad})`} />}
+      {pts.length > 1 && (
+        <g className="area-aparece" clipPath={`url(#${idClip})`}>
+          <foreignObject x="0" y="0" width={ANCHO} height={ALTO}>
+            <img
+              src="/fondos/terreno-progreso.webp"
+              alt=""
+              aria-hidden="true"
+              width={700}
+              height={300}
+              className="h-full w-full object-cover"
+            />
+          </foreignObject>
+          {/* El rojo de marca por encima. Es el mismo degradado de antes: mantiene
+              la continuidad con la línea y baja la pieza a un plano de fondo. */}
+          <rect x="0" y="0" width={ANCHO} height={ALTO} fill={`url(#${idGrad})`} />
+        </g>
+      )}
       {pts.length > 1 && (
         <path
           className="dibujar-linea"
