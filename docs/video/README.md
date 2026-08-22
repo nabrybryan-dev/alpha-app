@@ -54,5 +54,19 @@ Para iterar mucho sobre un encuadre sin gastar la cuota de la suscripción:
 GEMINI_API_KEY=... node scripts/generar-imagenes-gemini.mjs docs/video/paquetes/<slug>.md
 ```
 
-Usa Flash Image (tiene free tier). Es **solo para encuadre**: el plano que se publica
-se genera con Nano Banana Pro en AI Studio. La key va en el entorno, nunca en el repo.
+Usa Flash Image. Es **solo para encuadre**: el plano que se publica se genera con
+Nano Banana Pro en AI Studio. La key va en el entorno, nunca en el repo.
+
+> **Hoy esto no funciona, y no es la key.** Comprobado el 2026-08-21: el proyecto
+> `gen-lang-client-0617952892` está en plan de **prepago con el saldo a cero**, y en
+> ese estado la API rechaza **todos** los modelos —también Flash Image, aunque tenga
+> free tier— con `429 RESOURCE_EXHAUSTED · Your prepayment credits are depleted`.
+> El free tier solo aplica a proyectos que no han pasado a prepago.
+>
+> La key autentica bien: `GET /v1beta/models` devuelve 200 y lista los 50 modelos,
+> incluidos `nano-banana-pro-preview` y `gemini-3-pro-image`. Lo que falta es saldo.
+>
+> Y ojo con la confusión que costó una tarde: **la mensualidad de Google AI no
+> rellena este saldo.** Son dos cajas distintas — la suscripción paga la app web, y
+> la API se paga con créditos del proyecto. Por eso el paso 3 (pegar en AI Studio)
+> sigue siendo gratis y este atajo no.
