@@ -8,7 +8,11 @@ alternativas descartadas, en `docs/specs/2026-08-22-video-nano-banana-diseno.md`
    `briefs/ejemplo-ajuste-semanal.json` y cambia el contenido. Solo hacen falta
    `titulo`, `objetivo` y `planos[].descripcion`; el resto tiene valores por defecto.
 
-2. **Genera el paquete**:
+2. **Genera el paquete**. Lo más simple en Windows: **arrastra el `.json` encima de
+   `GENERAR VIDEO.bat`** (en la raíz del proyecto). Sin argumentos usa el de ejemplo.
+
+   Desde la terminal, y **desde la carpeta del proyecto** —si sale
+   `ENOENT ... C:\Users\Usuario\package.json` es que npm se ejecutó en otro sitio—:
 
    ```bash
    npm run video -- docs/video/briefs/<nombre>.json
