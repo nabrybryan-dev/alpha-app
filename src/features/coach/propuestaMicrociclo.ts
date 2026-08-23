@@ -37,6 +37,7 @@
  * Programación.
  */
 import { revisarActivacion, sumarDias, type RevisionActivacion } from '../../domain/activacion'
+import { diaDeSesion, diaSemanaDe, type DiaSemana } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { aplicarOndulacion, brechaReps, ondularEjercicio } from '../../domain/ondulacion'
 import { componerPrescripcion } from '../../domain/prescripcion'
@@ -261,6 +262,63 @@ function sinMarcar<T extends { hechoEn?: string }>(item: T): T {
  * El `estado` lo fuerza la capa de datos a `'propuesto'`; aquí se pone igual por
  * claridad, pero la salvaguarda real está en `guardarPropuesta`.
  */
+const SEMANA_DESDE_LUNES = [
+  'LUNES',
+  'MARTES',
+  'MIÉRCOLES',
+  'JUEVES',
+  'VIERNES',
+  'SÁBADO',
+  'DOMINGO',
+] as const satisfies readonly DiaSemana[]
+
+const SEMANA_DESDE_DOMINGO = [
+  'DOMINGO',
+  'LUNES',
+  'MARTES',
+  'MIÉRCOLES',
+  'JUEVES',
+  'VIERNES',
+  'SÁBADO',
+] as const satisfies readonly DiaSemana[]
+
+/**
+ * Corre el arranque calculado hasta el día de la primera sesión fijada.
+ *
+ * Con cadencia 8 y días clavados —hay planes de LUNES a JUEVES— encadenar
+ * `inicio + cadencia` mueve el arranque un día de la semana en cada ciclo. A la
+ * segunda vuelta la sesión del LUNES cae **antes** de que el microciclo empiece:
+ * `armarSemana` la coloca en su día exacto, y ese día ya pasó. No falla nada, no
+ * avisa nadie, y el asesorado abre la semana con una sesión en el pasado.
+ *
+ * Solo toca la fecha **calculada**. Una `fechaInicio` que eligió el coach no se
+ * corrige nunca, que es la regla que ya tenía esta función.
+ *
+ * Retrocede como mucho seis días y jamás hasta el arranque anterior o antes: es
+ * lo mismo que ya se hizo a mano la vez que un microciclo cayó en martes y el
+ * siguiente se devolvió al lunes.
+ */
+function arranqueQueRespetaLosDias(
+  calculado: string,
+  sesiones: readonly Sesion[],
+  arranqueAnterior: string,
+): string {
+  const fijados = sesiones
+    .map((s) => diaDeSesion(s))
+    .filter((dia): dia is DiaSemana => dia !== undefined)
+  if (fijados.length === 0) return calculado
+
+  const orden: readonly DiaSemana[] = fijados.includes('DOMINGO')
+    ? SEMANA_DESDE_DOMINGO
+    : SEMANA_DESDE_LUNES
+  const posArranque = orden.indexOf(diaSemanaDe(calculado))
+  const posPrimera = Math.min(...fijados.map((dia) => orden.indexOf(dia)))
+  if (posPrimera >= posArranque) return calculado
+
+  const corregido = sumarDias(calculado, posPrimera - posArranque)
+  return corregido > arranqueAnterior ? corregido : calculado
+}
+
 export function microcicloPropuesto(
   origen: Microciclo,
   opciones: { incrementoKg?: number; hoy?: string; fechaInicio?: string } = {},
@@ -274,7 +332,13 @@ export function microcicloPropuesto(
     numero: origen.numero + 1,
     estado: 'propuesto',
     // Comparación de cadenas ISO: ordena bien sin construir fechas.
-    fechaInicio: fechaInicio ?? (hoy && hoy > finAnterior ? hoy : finAnterior),
+    fechaInicio:
+      fechaInicio ??
+      arranqueQueRespetaLosDias(
+        hoy && hoy > finAnterior ? hoy : finAnterior,
+        origen.sesiones,
+        origen.fechaInicio,
+      ),
     sesiones: origen.sesiones.map((s) => ({
       ...s,
       testPost: undefined,

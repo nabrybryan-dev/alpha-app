@@ -304,6 +304,65 @@ describe('microcicloPropuesto', () => {
   })
 
   /**
+   * Un microciclo nació en martes con sus cuatro sesiones clavadas de LUNES a
+   * JUEVES: la sesión del lunes caía el día anterior, ANTES de que el microciclo
+   * empezara. `armarSemana` la ponía en su día exacto y ese día ya había pasado.
+   *
+   * Con cadencia 8 el arranque se corre un día de la semana por ciclo, así que
+   * no era de un asesorado concreto: le pasa a cualquiera con los días fijados,
+   * cada dos microciclos. La corrección ya se había hecho a mano una vez y esto
+   * la automatiza.
+   */
+  it('corre el arranque calculado al dia de la primera sesion fijada', () => {
+    const clavado = micro({
+      fechaInicio: '2026-08-17',
+      cadenciaDias: 8,
+      sesiones: [
+        sesion({ id: 's1', orden: 1, dia: 'LUNES', nombre: 'LEG A' }),
+        sesion({ id: 's2', orden: 2, dia: 'MARTES', nombre: 'UPPER B' }),
+        sesion({ id: 's3', orden: 3, dia: 'MIÉRCOLES', nombre: 'LEG B' }),
+        sesion({ id: 's4', orden: 4, dia: 'JUEVES', nombre: 'CARDIO TABATA' }),
+      ],
+    })
+    // Encadenar daría el martes 25; la sesión del LUNES caería el 24, en el pasado.
+    expect(sumarDias(clavado.fechaInicio, clavado.cadenciaDias)).toBe('2026-08-25')
+    expect(microcicloPropuesto(clavado).fechaInicio).toBe('2026-08-24')
+  })
+
+  it('no toca el arranque si la primera sesion fijada ya coincide', () => {
+    const enPunto = micro({
+      fechaInicio: '2026-08-17',
+      cadenciaDias: 7,
+      sesiones: [sesion({ dia: 'LUNES', nombre: 'LEG A' })],
+    })
+    expect(microcicloPropuesto(enPunto).fechaInicio).toBe('2026-08-24')
+  })
+
+  /**
+   * La regla que ya existía no se toca: una fecha que eligió una persona no se
+   * corrige nunca, aunque deje una sesión en el pasado. Corregirla sería
+   * descartar en silencio lo que el coach decidió.
+   */
+  it('no corrige la fecha que eligio el coach, aunque los dias no cuadren', () => {
+    const clavado = micro({
+      fechaInicio: '2026-08-17',
+      sesiones: [sesion({ dia: 'LUNES', nombre: 'LEG A' })],
+    })
+    expect(microcicloPropuesto(clavado, { fechaInicio: '2026-08-26' }).fechaInicio).toBe(
+      '2026-08-26',
+    )
+  })
+
+  it('sin dias fijados sigue encadenando tal cual', () => {
+    const suelto = micro({
+      fechaInicio: '2026-08-17',
+      cadenciaDias: 8,
+      sesiones: [sesion({ nombre: 'UPPER A' })],
+    })
+    expect(microcicloPropuesto(suelto).fechaInicio).toBe('2026-08-25')
+  })
+
+  /**
    * ❌ EN ROJO A PROPÓSITO. El microciclo propuesto se construía con `...e`, así
    * que `seriesPrescritas` traía las cargas nuevas y `prescripcion` seguía
    * siendo la frase de la semana anterior. El asesorado abría M23 leyendo los
