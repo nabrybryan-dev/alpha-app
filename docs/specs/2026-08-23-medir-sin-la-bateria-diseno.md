@@ -25,7 +25,7 @@ El banco corre con `npm run banco-encoder`, o directamente con `node
 scripts/banco-encoder.mjs`. **Va aparte de vitest a propósito**: se corre sin
 instalar nada, que es exactamente la situación en la que hace falta.
 
-Setenta y ocho casos. Rejilla de fps × velocidad × %PV, los dos sentidos
+Ochenta y seis casos. Rejilla de fps × velocidad × %PV, los dos sentidos
 (subir y bajar), recorridos cortos, velocidades extremas, ruido de centroide,
 fotogramas perdidos, la prueba de gravedad, imágenes fabricadas para el color y
 para el disco, y la cadena entera fotograma a fotograma.
@@ -52,15 +52,15 @@ Queda escrito porque es la parte que se olvida:
    por fotograma— junto con la detección, y eso dejaba las dos políticas
    empatadas a 6 ms. Cronometrando solo la detección, la diferencia se ve.
 
-Con las dos cosas arregladas: **el núcleo pasa los 78 casos**. La aritmética
+Con las dos cosas arregladas: **el núcleo pasa todos los casos**. La aritmética
 está bien. Lo que estaba mal era la capa de app.
 
 ---
 
 ## Lo que se encontró en la app
 
-Cinco formas de medir mal. Ninguna fallaba: las cinco devolvían un número, con
-su calidad y su %PV, y el número estaba mal.
+Ocho formas de medir mal. Ninguna fallaba: las ocho devolvían un número, con su
+calidad y su %PV, y el número estaba mal.
 
 ### 1 · Se miraba el fotograma entero, y ahí entra cualquiera
 
@@ -162,6 +162,33 @@ Cada reja se comprobó quitándola: si al quitarla no se pone nada rojo, la reja
 no defiende nada y el test no vale. Dos de las seis no estaban cubiertas por
 ningún caso — una se cubrió, y la otra (`acertada`) se queda escrita como red de
 seguridad, con el comentario diciendo que nada la dispara hoy.
+
+### 8 · La predicción extrapolaba un fotograma, no el tiempo
+
+Éste salió al extender el banco a las otras dos referencias, y es el más
+interesante de todos porque **el arreglo anterior lo tapaba a medias**.
+
+La predicción hacía «donde estaba más lo que se movió en el último fotograma».
+Eso vale mientras no se caiga ninguno — y los fotogramas no se caen sueltos, se
+caen **a rachas**: lo que los tira es un tirón del recolector de basura o un
+frenazo térmico, y eso se lleva cinco o seis seguidos. Un fotograma caído no
+llega al bucle, `requestVideoFrameCallback` sencillamente no dispara, así que
+nadie se entera de que existió.
+
+Con la barra a 10 px por fotograma, tras una racha de seis la referencia está
+60 px más allá y la predicción apuntaba a 10. La reja de `detectarDisco` son 40:
+el fotograma se descarta, y el siguiente también, y el siguiente — porque la
+referencia se aleja mientras la predicción se queda donde estaba.
+
+`paso()` recibe ahora el instante del fotograma y la extrapolación va por tiempo.
+Medido en el banco, con rachas de cinco: **64 % de detección con la posición
+anterior, 67 % con la predicción** — y 67 % es el techo, porque el resto son
+fotogramas que el aparato nunca entregó.
+
+Y el banco volvió a mentir antes de acertar, por tercera vez: modelaba la pérdida
+como monedas independientes al 15 %, y así casi nunca se juntan cuatro. Con
+pérdidas sueltas las dos políticas empataban y el caso salía en verde sin probar
+nada.
 
 ### Y el arreglo del #86 que solo llegó a una de las dos pantallas
 

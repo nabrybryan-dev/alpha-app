@@ -7,8 +7,8 @@
  * dentro del bucle de `useCaptura`, mezclado con el canvas y con React.
  *
  * Sacarlo aquí no es orden por el orden. Es que la calidad de la medida vive
- * justo en estas tres decisiones, y dentro de un hook con cámara no se pueden
- * probar sin un navegador:
+ * justo en estas decisiones, y dentro de un hook con cámara no se pueden probar
+ * sin un navegador:
  *
  * 1. **Mirar el fotograma entero es lo que deja entrar a los intrusos.** Un
  *    disco pintado, una camiseta, el logo de la pared: cualquier cosa del color
@@ -29,6 +29,10 @@
  *    entonces no casa NUNCA con nada. En pantalla eso se lee como «la cámara va
  *    mal», y lo que pasa es que el filtro descartó la marca antes de mirarla.
  *
+ * 4. **Cerrar la ventana sobre lo poco que se ve es una trampa de un solo
+ *    sentido.** Lo que queda fuera ya no puede volver a entrar, porque la
+ *    ventana del fotograma siguiente se dibuja sobre lo que se vio en éste.
+ *
  * Aquí no hay DOM: entra un `Uint8ClampedArray` y salen números. Eso es lo que
  * permite que `scripts/banco-encoder.mjs` lo corra con `node` a secas.
  */
@@ -36,55 +40,33 @@
 import {
   centroideEnVentana,
   detectarDianaCuatro,
-  distanciaTono,
   pixelesQueCasan,
   rgbAHsv,
   separarMarcadores,
   unSoloMarcador,
-  type DianaCuatro,
-  type DosMarcadores,
   type Hsv,
-  type MarcadorUnico,
-  type Nube,
 } from './nucleo/analisis.js'
-import { detectarDisco, identificarEstructura, type DiscoVisto, type Estructura } from './nucleo/disco.js'
-import type { Referencia } from './tanda'
+import { detectarDisco, identificarEstructura, type Estructura } from './nucleo/disco.js'
+import {
+  esDiana,
+  esPareja,
+  esquinasDe,
+  nubeEnRecuadro,
+  puntosDe,
+  recuadroDe,
+  tocaAlguna,
+  umbralesDelColor,
+  type AjustesSeguimiento,
+  type Deteccion,
+  type Paso,
+  type Recuadro,
+} from './ventana.ts'
 
-export type Deteccion = DianaCuatro | DosMarcadores | MarcadorUnico | DiscoVisto
-
-export const esDiana = (d: Deteccion | undefined): d is DianaCuatro =>
-  d !== undefined && 'nMarcas' in d && d.nMarcas === 4
-
-export const esPareja = (d: Deteccion | undefined): d is DosMarcadores =>
-  d !== undefined && 'a' in d && 'b' in d
-
-export const esDisco = (d: Deteccion | undefined): d is DiscoVisto =>
-  d !== undefined && 'cobertura' in d
-
-export interface Recuadro {
-  x0: number
-  y0: number
-  x1: number
-  y1: number
-}
-
-export interface AjustesSeguimiento {
-  referencia: Referencia
-  /** Entre centros de marca, en mm. Solo con diana. */
-  dianaMm: [number, number]
-  tolTono: number
-}
-
-export interface Paso {
-  det?: Deteccion
-  /** Píxeles que casaron con el color. `null` con disco: ahí no se mira color. */
-  nPix: number | null
-  /** Dónde se miró. Se dibuja en la capa: una ventana que se sale de la imagen
-   *  o que se queda atrás explica el fallo mucho mejor que un contador. */
-  ventana?: Recuadro
-  /** Fotogramas seguidos sin ver la referencia. */
-  perdidos: number
-}
+// Se reexporta para que quien sigue una referencia no tenga que saber que la
+// geometría vive en otro archivo. La extensión explícita, aquí y en el núcleo,
+// es lo que permite que `scripts/banco-encoder.mjs` cargue esto con `node` a
+// secas: node resuelve rutas ESM reales, no las adivina como un empaquetador.
+export * from './ventana.ts'
 
 /** Tras estos fotogramas seguidos sin ver nada se vuelve a mirar el fotograma
  *  entero. Cinco a 60 fps son 83 ms: lo justo para que una oclusión corta —la
@@ -140,124 +122,11 @@ const ACOTAR_AL_TOQUE = 0.4
  */
 const FRACCION_MAX_DEL_COLOR = 0.2
 
-/**
- * Los mínimos de saturación y brillo que corresponden al color que se fijó.
- *
- * Nunca por encima de los del núcleo —un marcador saturado se sigue filtrando
- * igual de duro— pero sí por debajo cuando la marca es pálida. El 0,6 es el
- * margen para que la misma marca siga casando cuando la luz del gimnasio le
- * quita saturación a media serie.
- */
-export function umbralesDelColor(color: Hsv): { minSat: number; minVal: number } {
-  return {
-    minSat: Math.min(0.35, Math.max(0.08, color.s * 0.6)),
-    minVal: Math.min(0.25, Math.max(0.08, color.v * 0.6)),
-  }
-}
-
-/** El recuadro que envuelve lo detectado, con margen. */
-export function recuadroDe(
-  puntos: Array<{ x: number; y: number }>,
-  margen: number,
-  ancho: number,
-  alto: number,
-): Recuadro | undefined {
-  if (puntos.length === 0) return undefined
-  let x0 = Infinity
-  let y0 = Infinity
-  let x1 = -Infinity
-  let y1 = -Infinity
-  for (const p of puntos) {
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue
-    x0 = Math.min(x0, p.x)
-    y0 = Math.min(y0, p.y)
-    x1 = Math.max(x1, p.x)
-    y1 = Math.max(y1, p.y)
-  }
-  if (!Number.isFinite(x0)) return undefined
-  return {
-    x0: Math.max(0, Math.floor(x0 - margen)),
-    y0: Math.max(0, Math.floor(y0 - margen)),
-    x1: Math.min(ancho - 1, Math.ceil(x1 + margen)),
-    y1: Math.min(alto - 1, Math.ceil(y1 + margen)),
-  }
-}
-
-/**
- * La nube de píxeles del color, mirando SOLO dentro del recuadro.
- *
- * La prueba del color es la del núcleo —`rgbAHsv` y `distanciaTono`, las mismas
- * funciones— porque duplicarla aquí crearía un segundo criterio parecido al
- * primero sin serlo, y el día que alguien afinara uno el otro seguiría igual.
- * Lo único que cambia es por dónde pasa el bucle.
- *
- * Las coordenadas que salen son las de la IMAGEN, no las del recuadro: quien
- * llama no tiene que deshacer ningún desplazamiento, y por tanto no puede
- * olvidarse de deshacerlo.
- */
-export function nubeEnRecuadro(
-  datos: Uint8ClampedArray,
-  ancho: number,
-  alto: number,
-  objetivo: Hsv,
-  recuadro: Recuadro,
-  opciones: { tolTono?: number; minSat?: number; minVal?: number; paso?: number } = {},
-): Nube {
-  const { tolTono = 22, minSat = 0.35, minVal = 0.25, paso = 1 } = opciones
-  const xs: number[] = []
-  const ys: number[] = []
-  const yFin = Math.min(alto - 1, recuadro.y1)
-  const xFin = Math.min(ancho - 1, recuadro.x1)
-  for (let y = Math.max(0, recuadro.y0); y <= yFin; y += paso) {
-    for (let x = Math.max(0, recuadro.x0); x <= xFin; x += paso) {
-      const i = (y * ancho + x) * 4
-      const r = datos[i]
-      const g = datos[i + 1]
-      const b = datos[i + 2]
-      if (r < 45 && g < 45 && b < 45) continue
-      const hsv = rgbAHsv(r, g, b)
-      if (hsv.s < minSat || hsv.v < minVal) continue
-      if (distanciaTono(hsv.h, objetivo.h) > tolTono) continue
-      xs.push(x)
-      ys.push(y)
-    }
-  }
-  return { xs, ys, n: xs.length }
-}
-
-/** ¿La detección incluye la marca que se tocó?
- *
- *  Es la pregunta que separa «he encontrado la referencia» de «he encontrado
- *  algo». Sin ella, `separarMarcadores` puede devolver la marca de la izquierda
- *  emparejada con el logo de la pared, y eso no es un fallo que se vea: es una
- *  pareja con su separación, su ángulo y su punto medio, que se mueve la mitad
- *  de lo que se mueve la barra. */
-function tocaAlguna(det: Deteccion, tocada: { x: number; y: number; n: number }): boolean {
-  if (esDisco(det)) return Math.hypot(det.x - tocada.x, det.y - tocada.y) <= det.r
-  // La tolerancia sale del tamaño de la propia mancha, no de un número fijo: con
-  // 14 px fijos, una marca grande —un círculo de 5 cm a medio metro— se
-  // rechazaba a sí misma, porque el centroide de la ventana del toque y el de la
-  // detección completa no tienen por qué caer en el mismo píxel.
-  const radio = Math.sqrt(tocada.n / Math.PI)
-  const tolerancia = Math.max(14, radio * 1.5)
-  return puntosDe(det).some((p) => Math.hypot(p.x - tocada.x, p.y - tocada.y) <= tolerancia)
-}
-
-/** Las dos esquinas que envuelven un círculo. */
-function esquinasDe(c: { x: number; y: number; r: number }): Array<{ x: number; y: number }> {
-  return [
-    { x: c.x - c.r, y: c.y - c.r },
-    { x: c.x + c.r, y: c.y + c.r },
-  ]
-}
-
-/** Los puntos que definen dónde está la referencia, para envolverlos. */
-function puntosDe(det: Deteccion): Array<{ x: number; y: number }> {
-  if (esDiana(det)) return det.marcas
-  if (esPareja(det)) return [det.a, det.b]
-  if (esDisco(det)) return esquinasDe(det)
-  return [{ x: det.x, y: det.y }]
-}
+/** Cuántos fotogramas de los de antes se admite extrapolar de golpe. Ocho a 60
+ *  fps son 133 ms: por encima de eso la barra ya ha podido frenar, invertir el
+ *  sentido y volver, y la extrapolación deja de ser una predicción para ser una
+ *  fantasía con decimales. */
+const TOPE_EXTRAPOLACION = 8
 
 export interface Seguimiento {
   /** Fija la referencia tocando la imagen. */
@@ -270,8 +139,16 @@ export interface Seguimiento {
     ajustes: AjustesSeguimiento,
   ): { ok: boolean; color: Hsv; nPix: number; det?: Deteccion; esFondo?: boolean }
   fijarDisco(datos: Uint8ClampedArray, ancho: number, alto: number, x: number, y: number, opciones?: { radioMax?: number }): Estructura
-  /** Un fotograma. */
-  paso(datos: Uint8ClampedArray, ancho: number, alto: number, ajustes: AjustesSeguimiento): Paso
+  /** Un fotograma. `t` es su instante en segundos, del reloj que se haya
+   *  elegido. Es opcional porque no todo el que llama lo tiene, pero sin él la
+   *  predicción no sobrevive a una racha de fotogramas caídos. */
+  paso(
+    datos: Uint8ClampedArray,
+    ancho: number,
+    alto: number,
+    ajustes: AjustesSeguimiento,
+    t?: number,
+  ): Paso
   /** ¿Hay ya una referencia fijada? */
   readonly fijado: boolean
   readonly color: Hsv | null
@@ -295,26 +172,70 @@ export function nuevoSeguimiento(): Seguimiento {
    *  permite distinguir «la referencia» de «algo con forma de referencia»:
    *  una barra no se estira entre dos fotogramas. */
   let ultimaSep: number | null = null
+  /** El instante de los dos últimos fotogramas VISTOS. La diferencia entre los
+   *  dos es lo que convierte «un fotograma de desplazamiento» en píxeles por
+   *  segundo, que es lo único que sobrevive a una racha de fotogramas caídos. */
+  let tUltima: number | null = null
+  let tPenultima: number | null = null
   let perdidos = 0
 
-  /** Dónde estará la referencia en este fotograma, según lo que hizo en el
-   *  anterior. `detectarDisco` pide exactamente esto, y estaba sin dárselo. */
-  function prediccion(): { x: number; y: number } | null {
-    if (!ultima) return null
-    if (!penultima) return ultima
-    const dx = ultima.x - penultima.x
-    const dy = ultima.y - penultima.y
+  /**
+   * Cuánto se habrá movido la referencia desde el último fotograma que se vio.
+   *
+   * La primera versión de esto extrapolaba **un fotograma**, dando por hecho que
+   * el que viene está tan lejos del anterior como el anterior del suyo. Eso vale
+   * mientras no se caiga ninguno, y deja de valer justo cuando hace falta: los
+   * fotogramas no se caen sueltos, se caen a rachas —un tirón del recolector de
+   * basura, un frenazo térmico— y una racha se lleva cinco o seis seguidos. Un
+   * fotograma caído no llega al bucle: `requestVideoFrameCallback` sencillamente
+   * no dispara, así que nadie se entera de que existió.
+   *
+   * Con la barra a 10 px por fotograma, tras una racha de seis la referencia
+   * está 60 px más allá y la predicción apuntaba a 10. La reja de `detectarDisco`
+   * son 40 px: el fotograma se descartaba, y el siguiente también, y el
+   * siguiente — porque la referencia se aleja mientras la predicción se queda.
+   *
+   * Con el instante de cada fotograma, la extrapolación va por TIEMPO y la racha
+   * deja de importar. Sin él —quien llame puede no pasarlo— se conserva el
+   * comportamiento de antes, que es correcto mientras no se caiga nada.
+   */
+  function desplazamiento(t?: number): { dx: number; dy: number } {
+    if (!ultima || !penultima) return { dx: 0, dy: 0 }
+    let dx = ultima.x - penultima.x
+    let dy = ultima.y - penultima.y
+    if (t !== undefined && tUltima !== null && tPenultima !== null) {
+      const dtAntes = tUltima - tPenultima
+      const dtAhora = t - tUltima
+      if (dtAntes > 0 && dtAhora > 0) {
+        const k = Math.min(dtAhora / dtAntes, TOPE_EXTRAPOLACION)
+        dx *= k
+        dy *= k
+      }
+    }
+    // Un tope al salto, o un fotograma con la detección mal puesta lanza la
+    // ventana al otro lado de la imagen y el seguimiento no vuelve.
     const salto = Math.hypot(dx, dy)
-    const k = salto > SALTO_MAX_PX ? SALTO_MAX_PX / salto : 1
-    return { x: ultima.x + dx * k, y: ultima.y + dy * k }
+    if (salto > SALTO_MAX_PX) {
+      dx *= SALTO_MAX_PX / salto
+      dy *= SALTO_MAX_PX / salto
+    }
+    return { dx, dy }
   }
 
-  function velocidadPx(): number {
-    if (!ultima || !penultima) return 0
-    return Math.hypot(ultima.x - penultima.x, ultima.y - penultima.y)
+  /** Dónde estará la referencia en este fotograma, según lo que hizo antes.
+   *  `detectarDisco` pide exactamente esto, y estaba sin dárselo. */
+  function prediccion(t?: number): { x: number; y: number } | null {
+    if (!ultima) return null
+    const { dx, dy } = desplazamiento(t)
+    return { x: ultima.x + dx, y: ultima.y + dy }
   }
 
-  function anotar(det: Deteccion | undefined) {
+  function velocidadPx(t?: number): number {
+    const { dx, dy } = desplazamiento(t)
+    return Math.hypot(dx, dy)
+  }
+
+  function anotar(det: Deteccion | undefined, t?: number) {
     if (!det) {
       perdidos++
       return
@@ -322,6 +243,8 @@ export function nuevoSeguimiento(): Seguimiento {
     const anterior = ultima
     perdidos = 0
     penultima = ultima
+    tPenultima = tUltima
+    tUltima = t ?? null
     const sep = esDiana(det) ? det.escalaPxM : esPareja(det) ? det.sepPx : NaN
     if (Number.isFinite(sep) && sep > 0) ultimaSep = sep
     const puntos = puntosDe(det)
@@ -363,14 +286,14 @@ export function nuevoSeguimiento(): Seguimiento {
   }
 
   /** La ventana de este fotograma, o `undefined` si toca mirarlo entero. */
-  function ventana(ancho: number, alto: number): Recuadro | undefined {
+  function ventana(ancho: number, alto: number, t?: number): Recuadro | undefined {
     if (!ultima || perdidos >= REENGANCHE_TRAS || ultimosPuntos.length === 0) return undefined
-    const p = prediccion()!
+    const p = prediccion(t)!
     // Las marcas de antes, movidas adonde la velocidad dice que estarán ahora.
     const dx = p.x - ultima.x
     const dy = p.y - ultima.y
     const movidos = ultimosPuntos.map((q) => ({ x: q.x + dx, y: q.y + dy }))
-    const margen = MARGEN_MIN_PX + velocidadPx() * CREDITO_VELOCIDAD
+    const margen = MARGEN_MIN_PX + velocidadPx(t) * CREDITO_VELOCIDAD
     // Al perder fotogramas la ventana se abre: la referencia puede haber
     // seguido moviéndose mientras no se la veía.
     return recuadroDe(movidos, margen * (1 + perdidos * 0.5), ancho, alto)
@@ -408,9 +331,10 @@ export function nuevoSeguimiento(): Seguimiento {
     ancho: number,
     alto: number,
     ajustes: AjustesSeguimiento,
+    t?: number,
   ): Paso {
     if (!color) return { nPix: null, perdidos }
-    const marco = ventana(ancho, alto)
+    const marco = ventana(ancho, alto, t)
     const { det, nPix } = detectarEn(datos, ancho, alto, ajustes, marco)
 
     // Un fallo DENTRO de la ventana puede ser que la referencia se salió de
@@ -430,7 +354,7 @@ export function nuevoSeguimiento(): Seguimiento {
       // Si en la ventana NO había nada, la referencia se fue de ella y el
       // fotograma entero es la única opción que queda: se acepta lo que dé.
       if (!det) {
-        anotar(entero.det)
+        anotar(entero.det, t)
         return { det: entero.det, nPix: entero.nPix, perdidos }
       }
       // Si en la ventana SÍ había algo —una marca de las dos— la referencia
@@ -441,12 +365,12 @@ export function nuevoSeguimiento(): Seguimiento {
       // de la marca visible y el logo de la pared, y como es una pareja y no un
       // marcador suelto, gana.
       if (entero.det && !degradada(entero.det, ajustes) && cuadra(entero.det)) {
-        anotar(entero.det)
+        anotar(entero.det, t)
         return { det: entero.det, nPix: entero.nPix, perdidos }
       }
     }
 
-    anotar(det)
+    anotar(det, t)
     return { det, nPix, ventana: marco, perdidos }
   }
 
@@ -476,9 +400,9 @@ export function nuevoSeguimiento(): Seguimiento {
     return Math.abs(sep - ultimaSep) / ultimaSep <= 0.35
   }
 
-  function detectarPorDisco(datos: Uint8ClampedArray, ancho: number, alto: number): Paso {
+  function detectarPorDisco(datos: Uint8ClampedArray, ancho: number, alto: number, t?: number): Paso {
     if (radioDisco === null) return { nPix: null, perdidos }
-    const centro = prediccion() ?? { x: ancho / 2, y: alto / 2 }
+    const centro = prediccion(t) ?? { x: ancho / 2, y: alto / 2 }
     const opciones = { radioMax: Math.round(radioDisco * 1.35) }
     let d = detectarDisco(datos, ancho, alto, centro, radioDisco, opciones)
 
@@ -496,7 +420,7 @@ export function nuevoSeguimiento(): Seguimiento {
       // cada fotograma NO sale de aquí, sale del ajuste de ese fotograma; esto
       // solo mueve dónde se busca.
       radioDisco = radioDisco * 0.9 + d.r * 0.1
-      anotar(d)
+      anotar(d, t)
       // La ventana que se enseña es DONDE SE BUSCÓ —el círculo de rayos
       // alrededor de la predicción—, no el disco que se encontró. Enseñar el
       // hallazgo no informa de nada: siempre encaja consigo mismo.
@@ -656,9 +580,9 @@ export function nuevoSeguimiento(): Seguimiento {
       return e
     },
 
-    paso(datos, ancho, alto, ajustes) {
-      if (ajustes.referencia === 'disco') return detectarPorDisco(datos, ancho, alto)
-      return detectarPorColor(datos, ancho, alto, ajustes)
+    paso(datos, ancho, alto, ajustes, t) {
+      if (ajustes.referencia === 'disco') return detectarPorDisco(datos, ancho, alto, t)
+      return detectarPorColor(datos, ancho, alto, ajustes, t)
     },
   }
 }

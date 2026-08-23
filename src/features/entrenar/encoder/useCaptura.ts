@@ -411,11 +411,16 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
 
       if (seg.fijado) {
         const img = pctx.getImageData(0, 0, proceso.width, proceso.height)
-        const paso = seg.paso(img.data, proceso.width, proceso.height, {
-          referencia,
-          dianaMm,
-          tolTono,
-        })
+        // El instante va también al seguimiento, no solo a la muestra: sin él la
+        // predicción no sabe cuánto tiempo lleva sin ver la referencia, y una
+        // racha de fotogramas caídos la deja apuntando adonde ya no está.
+        const paso = seg.paso(
+          img.data,
+          proceso.width,
+          proceso.height,
+          { referencia, dianaMm, tolTono },
+          t,
+        )
         det = paso.det
         nPix = paso.nPix
         ventana = paso.ventana

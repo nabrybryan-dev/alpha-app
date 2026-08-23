@@ -766,7 +766,7 @@ async function reproducir({ politica, intruso = false, pastel = false, nReps = 3
     let det
     const antes = process.hrtime.bigint()
     if (seg) {
-      det = seg.paso(img.datos, img.ancho, img.alto, ajustes).det
+      det = seg.paso(img.datos, img.ancho, img.alto, ajustes, t).det
     } else {
       const nube = pixelesQueCasan(img.datos, img.ancho, img.alto, objetivoColor, { paso: 2 })
       det = separarMarcadores(nube)
@@ -860,6 +860,243 @@ async function reproducir({ politica, intruso = false, pastel = false, nReps = 3
       ? `detección ${(ventana.r.deteccion * 100).toFixed(0)} % · reps ${ventana.r.reps.length}/3 · v₁ ${ventana.r.vPrimera.toFixed(3)}`
       : `no midió: ${ventana.r.detalle ?? ventana.r.motivo}`,
     '±0,04 m/s',
+  )
+}
+
+/* Hasta aquí la cadena entera solo ha corrido con DOS MARCADORES. Las otras dos
+ * referencias van por caminos distintos —la diana resuelve una homografía de
+ * cuatro puntos, el disco no mira color en absoluto— y son las dos que menos se
+ * usan al probar a mano, porque montar una diana cuesta y el disco pide un
+ * gimnasio. Es decir: son justo las que se van a romper sin que nadie lo note. */
+
+bloque('La cadena entera con las otras dos referencias')
+
+const DIANA_MM = [300, 200]
+/** px por mm de la diana fabricada. 0,7 y no 1,1: con 1,1 la marca de arriba se
+ *  salía del encuadre en el punto alto del recorrido, y el banco acusaba al
+ *  código de no detectar nada cuando lo que fallaba era la escena. */
+const ESCALA_DIANA = 0.7
+
+function escenaDiana({ y, inc = 0, intruso = false, escalaPx = ESCALA_DIANA }) {
+  const img = lienzo(640, 360)
+  const cos = Math.cos((inc * Math.PI) / 180)
+  const hw = (DIANA_MM[0] / 2) * escalaPx
+  const hh = (DIANA_MM[1] / 2) * escalaPx * cos
+  for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    pintarCirculo(img, 320 + sx * hw, y + sy * hh, 6, MAGENTA)
+  }
+  if (intruso) pintarCirculo(img, 600, 40, 20, MAGENTA)
+  granular(img, 4)
+  return img
+}
+
+async function reproducirDiana({ intruso = false, inc = 0, nReps = 3, v = 0.6, fps = 60 }) {
+  const { nuevoSeguimiento } = await import('../src/features/entrenar/encoder/seguimiento.ts')
+  const ajustes = { referencia: 'diana4', dianaMm: DIANA_MM, tolTono: 22 }
+  const azar = azarCon(4242)
+  const seg = nuevoSeguimiento()
+  const muestras = []
+  let t = 0
+  // La diana ocupa la mitad del alto, así que el recorrido tiene que caber:
+  // 120 px de sube y baja en vez de los 200 de la barra con dos marcas.
+  const romPx = 120
+  for (let k = 0; k < 6000; k++) {
+    const { y, fin } = alturaEn(t, { nReps, v, romPx })
+    if (fin) break
+    const yDiana = y - 60 // centrada en el encuadre a lo largo del recorrido
+    const img = escenaDiana({ y: yDiana, inc, intruso })
+    if (k === 0) seg.fijarColor(
+        img.datos,
+        img.ancho,
+        img.alto,
+        Math.round(320 - (DIANA_MM[0] / 2) * ESCALA_DIANA),
+        Math.round(yDiana - (DIANA_MM[1] / 2) * ESCALA_DIANA * Math.cos((inc * Math.PI) / 180)),
+        ajustes,
+      )
+    const det = seg.paso(img.datos, img.ancho, img.alto, ajustes, t).det
+    muestras.push(det ? { t, ...det } : { t, y: NaN })
+    t += (1 / fps) * (1 + 0.3 * azar())
+  }
+  // Con diana la escala la trae cada muestra en px/m, así que `sepMm` sobra.
+  return analizarSerie(muestras, { sepMm: DIANA_MM[0], sentido: 'subir' })
+}
+
+{
+  const r = await reproducirDiana({})
+  caso(
+    'diana de cuatro marcas · la cadena entera mide',
+    r.ok && r.reps.length === 3 && r.conDiana && Number.isFinite(r.escalaPxM),
+    r.ok
+      ? `reps ${r.reps.length}/3 · escala ${r.escalaPxM.toFixed(0)} px/m (verdad 700) · ` +
+        `inclinación ${r.inclinacionGrados.toFixed(1)}° · %PV ${r.pvPct.toFixed(1)}`
+      : `no midió: ${r.detalle ?? r.motivo}`,
+    'con escala propia y sin ayuda de sepMm',
+  )
+  caso(
+    'diana · la escala sale de la geometría, no de lo que se teclea',
+    r.ok && cerca(r.escalaPxM, 700, 30) && Math.abs(r.pvPct) < 3,
+    r.ok ? `escala ${r.escalaPxM.toFixed(0)} px/m · %PV ${r.pvPct.toFixed(1)} (verdad 0)` : 'no midió',
+    '±30 px/m, ±3 pts',
+  )
+}
+
+{
+  // Escorzo de 20°: la diana lo MIDE, y por encima de ahí la puerta descarta.
+  // Es lo único que distingue la diana de dos marcadores, así que si esto se
+  // rompe la diana deja de tener motivo para existir.
+  const r = await reproducirDiana({ inc: 20 })
+  caso(
+    'diana a 20° · lo mide y lo marca en la calidad',
+    r.ok && cerca(r.inclinacionGrados, 20, 5) && cerca(r.escalaPxM, 700, 40),
+    r.ok
+      ? `inclinación ${r.inclinacionGrados.toFixed(1)}° · escala ${r.escalaPxM.toFixed(0)} px/m · calidad ${r.calidad.nivel}`
+      : `no midió: ${r.detalle ?? r.motivo}`,
+    '±5°, ±40 px/m: la escala NO se descompone con el escorzo',
+  )
+}
+
+{
+  const r = await reproducirDiana({ intruso: true })
+  caso(
+    'diana con un intruso del mismo color · no se lo come',
+    r.ok && r.conDiana && cerca(r.escalaPxM, 700, 40) && r.reps.length === 3,
+    r.ok
+      ? `escala ${r.escalaPxM.toFixed(0)} px/m (verdad 700) · reps ${r.reps.length}/3`
+      : `no midió: ${r.detalle ?? r.motivo}`,
+    'cinco manchas del mismo color y solo cuatro son la diana',
+  )
+}
+
+/**
+ * Una serie de disco entera, bajo una de las dos políticas.
+ *
+ *   'posicion' — lo que hacía `useCaptura` antes: a `detectarDisco` se le daba
+ *                la posición anterior donde pide «posición anterior + velocidad».
+ *   'ventana'  — `seguimiento.ts`, con predicción y reenganche.
+ *
+ * El disco va grande y rápido a propósito. Con un disco pequeño y una barra
+ * lenta las dos políticas empatan —cuatro píxeles por fotograma nunca llegan a
+ * la reja de 40 px de `detectarDisco`— y un caso que empata no prueba nada. Un
+ * disco de 90 px de radio a metro y medio por segundo son once píxeles por
+ * fotograma: bastan cuatro fotogramas caídos seguidos para pasarse de la reja,
+ * y eso pasa varias veces en una serie con pérdidas.
+ */
+async function reproducirDisco({ politica = 'ventana', nReps = 3, v = 1.5, fps = 60, perdidaPct = 0, largoRacha = 5, radio = 90, semilla = 777 }) {
+  const { nuevoSeguimiento } = await import('../src/features/entrenar/encoder/seguimiento.ts')
+  const ajustes = { referencia: 'disco', dianaMm: DIANA_MM, tolTono: 22 }
+  const azar = azarCon(semilla)
+  const seg = politica === 'ventana' ? nuevoSeguimiento() : null
+  let anterior = null
+  let racha = 0
+  const muestras = []
+  let t = 0
+  const romPx = 140
+  for (let k = 0; k < 6000; k++) {
+    const { y, fin } = alturaEn(t, { nReps, v, romPx })
+    if (fin) break
+    const yDisco = y - 35
+    const img = escenaDisco({ x: 320, y: yDisco, r: radio })
+    if (k === 0) {
+      if (seg) seg.fijarDisco(img.datos, img.ancho, img.alto, 320, Math.round(yDisco), { radioMax: 160 })
+      else anterior = { x: 320, y: yDisco }
+    }
+    // Fotogramas que el aparato no entrega. Se caen A RACHAS, no sueltos: lo
+    // que los tira es un tirón del recolector de basura o un frenazo térmico, y
+    // eso se lleva por delante cinco o seis seguidos, no uno de cada siete. La
+    // diferencia no es cosmética — con pérdidas sueltas al 15 % casi nunca se
+    // juntan cuatro, y sin cuatro seguidos el disco no se sale de la reja de 40
+    // px. Modelar la pérdida como monedas independientes es lo que hacía que
+    // este caso saliera en verde con las dos políticas.
+    if (racha > 0) {
+      racha--
+      muestras.push({ t, y: NaN })
+      t += (1 / fps) * (1 + 0.3 * azar())
+      continue
+    }
+    if (perdidaPct > 0 && azar() + 0.5 < perdidaPct / 100 / largoRacha) {
+      racha = largoRacha
+      muestras.push({ t, y: NaN })
+      t += (1 / fps) * (1 + 0.3 * azar())
+      continue
+    }
+
+    let det
+    if (seg) {
+      det = seg.paso(img.datos, img.ancho, img.alto, ajustes, t).det
+    } else {
+      const d = detectarDisco(img.datos, img.ancho, img.alto, anterior ?? { x: 320, y: 180 }, radio, {
+        radioMax: Math.round(radio * 1.35),
+      })
+      if (d.ok) {
+        det = d
+        anterior = { x: d.x, y: d.y }
+      }
+    }
+    muestras.push(
+      det ? { t, x: det.x, y: det.y, sepPx: det.sepPx, fiable: det.fiable } : { t, y: NaN },
+    )
+    t += (1 / fps) * (1 + 0.3 * azar())
+  }
+  // Un disco de 20 kg mide 450 mm.
+  return { r: analizarSerie(muestras, { sepMm: 450, sentido: 'subir' }), muestras }
+}
+
+{
+  const { r } = await reproducirDisco({})
+  caso(
+    'disco · la cadena entera lo sigue durante toda la serie',
+    r.ok && r.reps.length === 3 && r.deteccion > 0.95,
+    r.ok
+      ? `detección ${(r.deteccion * 100).toFixed(0)} % · reps ${r.reps.length}/3 · escala ${r.escalaPxM.toFixed(0)} px/m`
+      : `no midió: ${r.detalle ?? r.motivo}`,
+    '≥ 95 % de fotogramas',
+  )
+}
+
+{
+  // Aquí es donde la predicción con velocidad se gana el sueldo. La reja de
+  // `detectarDisco` son 40 px, y con fotogramas caídos el disco recorre más que
+  // eso entre dos fotogramas VISTOS: la posición anterior se queda corta, el
+  // ajuste cae fuera de la reja y se descarta — y se descarta en la parte
+  // rápida de la repetición, que es la que decide el %PV.
+  const conPosicion = await reproducirDisco({ politica: 'posicion', perdidaPct: 15 })
+  const conVentana = await reproducirDisco({ politica: 'ventana', perdidaPct: 15 })
+  const det = (x) => (x.r.ok ? x.r.deteccion : 0)
+  caso(
+    'disco con fotogramas caídos · la predicción detecta más que la posición anterior',
+    det(conVentana) > det(conPosicion),
+    `posición anterior ${(det(conPosicion) * 100).toFixed(0)} % · predicción ${(det(conVentana) * 100).toFixed(0)} %`,
+    'los fotogramas que se pierden son los rápidos, y esos son los que mandan',
+  )
+  // Y con un tercio de los fotogramas ausentes NO se puede medir, por buena que
+  // sea la política: la predicción recupera los fotogramas que llegan, no los
+  // que el aparato nunca entregó. Lo que se le exige entonces es que lo DIGA.
+  caso(
+    'disco con un tercio de fotogramas ausentes · la toma se descarta y dice por qué',
+    conVentana.r.ok &&
+      conVentana.r.calidad.nivel === 'descartada' &&
+      conVentana.r.calidad.motivos.includes('marcador_perdido'),
+    conVentana.r.ok
+      ? `calidad ${conVentana.r.calidad.nivel} · motivos ${conVentana.r.calidad.motivos.join('+')}`
+      : `no midió: ${conVentana.r.detalle ?? conVentana.r.motivo}`,
+    'una toma imposible tiene que salir marcada, no salir bonita',
+  )
+}
+
+{
+  // Con rachas pero de las normales —un tirón cada pocos segundos— la serie
+  // entera tiene que sobrevivir. Es el caso de todos los días.
+  const conPosicion = await reproducirDisco({ politica: 'posicion', perdidaPct: 6 })
+  const conVentana = await reproducirDisco({ politica: 'ventana', perdidaPct: 6 })
+  caso(
+    'disco con rachas normales · la serie entera sobrevive',
+    conVentana.r.ok && conVentana.r.reps.length === 3 && conVentana.r.deteccion > 0.8,
+    conVentana.r.ok
+      ? `predicción: detección ${(conVentana.r.deteccion * 100).toFixed(0)} % · reps ${conVentana.r.reps.length}/3 · ` +
+        `posición anterior: ${conPosicion.r.ok ? `${(conPosicion.r.deteccion * 100).toFixed(0)} % · reps ${conPosicion.r.reps.length}/3` : 'no midió'}`
+      : `no midió: ${conVentana.r.detalle ?? conVentana.r.motivo}`,
+    'las tres repeticiones y ≥ 80 % de detección. Aquí las dos políticas empatan: ' +
+      'el caso está para que la cadena no se rompa en silencio, no para separarlas',
   )
 }
 
