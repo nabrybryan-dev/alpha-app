@@ -3,27 +3,35 @@ import {
   INCLINACION_CALIDAD_GRADOS,
   INCLINACION_MAX_GRADOS,
   analizarSerie,
-  detectarDianaCuatro,
-  pixelesQueCasan,
   pruebaDeGravedad,
-  rgbAHsv,
-  separarMarcadores,
-  unSoloMarcador,
-  type DianaCuatro,
-  type DosMarcadores,
-  type Hsv,
-  type MarcadorUnico,
   type Muestra,
   type ResultadoGravedad,
   type ResultadoSerie,
 } from './nucleo/analisis'
-import { detectarDisco, identificarEstructura, type DiscoVisto } from './nucleo/disco'
 import { avisoDeDisco } from './avisoDisco'
 import { nuevoReloj, type Reloj } from './nucleo/reloj-fotograma'
+import {
+  esDiana,
+  esDisco,
+  esPareja,
+  nuevoSeguimiento,
+  type Deteccion,
+  type Recuadro,
+  type Seguimiento,
+} from './seguimiento'
 import type { Modo, Referencia } from './tanda'
 
 /** 640 de ancho basta para un centroide y deja margen de CPU para ir a 60 fps. */
 const ANCHO_PROCESO = 640
+
+/** Cuántas muestras del rastro se dibujan. Dibujarlas TODAS costaba un recorrido
+ *  de la tanda entera en cada fotograma: al final de una serie de mil muestras
+ *  eso son mil segmentos por fotograma, sesenta veces por segundo. Y el precio
+ *  no es que se vea peor — es que los fps bajan, y por debajo de 50 la puerta
+ *  descarta la toma. El instrumento se estropeaba a sí mismo cuanto más larga
+ *  era la serie. Cuatro segundos de rastro bastan para ver si la trayectoria
+ *  salta, que es para lo que está. */
+const RASTRO_MAX = 240
 
 export interface Ajustes {
   referencia: Referencia
@@ -55,14 +63,6 @@ export interface RefsMedidas {
   reloj: React.RefObject<HTMLElement | null>
 }
 
-type Deteccion = DianaCuatro | DosMarcadores | MarcadorUnico | DiscoVisto
-
-const esDiana = (d: Deteccion | undefined): d is DianaCuatro =>
-  d !== undefined && 'nMarcas' in d && d.nMarcas === 4
-
-const esPareja = (d: Deteccion | undefined): d is DosMarcadores =>
-  d !== undefined && 'a' in d && 'b' in d
-
 /** Los nodos del DOM los declara la PANTALLA y se pasan aquí. Al revés —el hook
  *  creándolos y devolviéndolos— el analizador de React marca todo lo que
  *  devuelve el hook como valor de referencia, y deja de poder usarse en el
@@ -80,9 +80,9 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
 
   // El lienzo de proceso no se pinta: es donde se lee la imagen a 640 px.
   const procesoRef = useRef<HTMLCanvasElement | null>(null)
-  const colorRef = useRef<Hsv | null>(null)
-  const discoRef = useRef<{ r: number } | null>(null)
-  const ultimoDiscoRef = useRef<{ x: number; y: number } | null>(null)
+  // Dónde mirar en cada fotograma lo decide `seguimiento.ts`, que no toca el
+  // DOM y por eso se puede correr con `node` en `scripts/banco-encoder.mjs`.
+  const seguimientoRef = useRef<Seguimiento>(nuevoSeguimiento())
   const grabandoRef = useRef(false)
   const muestrasRef = useRef<Muestra[]>([])
   const relojRef = useRef<Reloj>(nuevoReloj())
@@ -109,12 +109,13 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
     if (ref.current) ref.current.textContent = texto
   }
 
-  function pintar(det: Deteccion | undefined, nPix: number | null) {
+  function pintar(det: Deteccion | undefined, nPix: number | null, ventana?: Recuadro) {
     const capa = capaRef.current
     const ctx = capa?.getContext('2d')
     if (!capa || !ctx) return
     ctx.clearRect(0, 0, capa.width, capa.height)
     escribir(medidas.pixeles, nPix === null ? '—' : String(nPix))
+    dibujarVentana(ctx, ventana)
 
     if (esDiana(det)) {
       // Con diana se enseña la INCLINACIÓN, que es lo que dos marcadores no
@@ -201,20 +202,76 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
     rastro(ctx)
   }
 
+  /** La ventana donde se buscó. Enseñarla no es adorno: cuando la referencia se
+   *  pierde, ver que la ventana se quedó atrás dice en qué dirección falló el
+   *  seguimiento, y un contador de fotogramas perdidos no dice eso. */
+  function dibujarVentana(ctx: CanvasRenderingContext2D, v?: Recuadro) {
+    if (!v) return
+    ctx.save()
+    ctx.strokeStyle = 'rgba(255,255,255,.22)'
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 4])
+    ctx.strokeRect(v.x0, v.y0, v.x1 - v.x0, v.y1 - v.y0)
+    ctx.restore()
+  }
+
   /** El rastro de la trayectoria mientras graba. Es lo que hace creíble el
    *  número: si el rastro salta, el número no vale aunque parezca razonable. */
   function rastro(ctx: CanvasRenderingContext2D) {
-    if (!grabandoRef.current || muestrasRef.current.length < 2) return
+    const todas = muestrasRef.current
+    if (!grabandoRef.current || todas.length < 2) return
     ctx.strokeStyle = 'rgba(59,157,255,.85)'
     ctx.beginPath()
     let primero = true
-    for (const m of muestrasRef.current) {
+    for (let i = Math.max(0, todas.length - RASTRO_MAX); i < todas.length; i++) {
+      const m = todas[i]
       if (!Number.isFinite(m.y) || m.x === undefined) continue
       if (primero) ctx.moveTo(m.x, m.y)
       else ctx.lineTo(m.x, m.y)
       primero = false
     }
     ctx.stroke()
+  }
+
+  /** Espera a que el vídeo diga de qué tamaño es. Con tope: si el aparato no lo
+   *  dice nunca, es mejor seguir y fallar con un aviso que quedarse colgado. */
+  function medidasDelVideo(video: HTMLVideoElement): Promise<void> {
+    if (video.videoWidth > 0 && video.videoHeight > 0) return Promise.resolve()
+    return new Promise((listo) => {
+      const fin = () => {
+        video.removeEventListener('loadedmetadata', fin)
+        video.removeEventListener('resize', fin)
+        clearTimeout(temporizador)
+        listo()
+      }
+      const temporizador = setTimeout(fin, 3000)
+      video.addEventListener('loadedmetadata', fin)
+      video.addEventListener('resize', fin)
+    })
+  }
+
+  /** Los dos lienzos al tamaño del vídeo de AHORA.
+   *
+   *  Se vuelve a llamar desde el bucle cuando el vídeo cambia de tamaño, que es
+   *  lo que pasa al girar el teléfono: la cámara entrega 1280×720 y pasa a
+   *  720×1280. Con el lienzo congelado en la proporción anterior, `drawImage`
+   *  aplasta la imagen — y una imagen aplastada mide mal la escala en píxeles
+   *  por metro sin dar ningún síntoma. Los números salen, y salen torcidos. */
+  function ajustarLienzos(video: HTMLVideoElement) {
+    const ancho = video.videoWidth
+    const alto = video.videoHeight
+    if (!(ancho > 0 && alto > 0)) return false
+    const proceso = procesoRef.current ?? document.createElement('canvas')
+    const nuevoAlto = Math.max(1, Math.round((alto * ANCHO_PROCESO) / ancho))
+    if (proceso.width === ANCHO_PROCESO && proceso.height === nuevoAlto) return false
+    proceso.width = ANCHO_PROCESO
+    proceso.height = nuevoAlto
+    procesoRef.current = proceso
+    if (capaRef.current) {
+      capaRef.current.width = proceso.width
+      capaRef.current.height = proceso.height
+    }
+    return true
   }
 
   async function abrirCamara() {
@@ -232,16 +289,15 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       video.srcObject = stream
       streamRef.current = stream
       await video.play()
+      // `play()` resuelve cuando empieza a reproducir, y eso NO garantiza que
+      // las dimensiones estén: en un móvil lento `videoWidth` sigue a cero unos
+      // fotogramas. La escala salía Infinity, la altura del lienzo NaN —que el
+      // canvas convierte en 0 sin quejarse— y la herramienta se quedaba viva,
+      // con la cámara encendida, sin detectar nada nunca. El fallo no decía que
+      // era esto: decía «no veo la marca».
+      await medidasDelVideo(video)
 
-      const escala = ANCHO_PROCESO / video.videoWidth
-      const proceso = document.createElement('canvas')
-      proceso.width = ANCHO_PROCESO
-      proceso.height = Math.round(video.videoHeight * escala)
-      procesoRef.current = proceso
-      if (capaRef.current) {
-        capaRef.current.width = proceso.width
-        capaRef.current.height = proceso.height
-      }
+      ajustarLienzos(video)
       setCamaraAbierta(true)
       setAviso(null)
       bucle()
@@ -259,21 +315,19 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
     const proceso = procesoRef.current
     const pctx = proceso?.getContext('2d', { willReadFrequently: true })
     if (!proceso || !pctx) return
-    const { referencia } = ajustesRef.current
+    const { referencia, dianaMm, tolTono } = ajustesRef.current
+    const seg = seguimientoRef.current
+    const img = pctx.getImageData(0, 0, proceso.width, proceso.height)
 
     if (referencia === 'disco') {
-      const img = pctx.getImageData(0, 0, proceso.width, proceso.height)
-      const r = identificarEstructura(img.data, proceso.width, proceso.height, { x, y }, {
+      const r = seg.fijarDisco(img.data, proceso.width, proceso.height, x, y, {
         radioMax: Math.round(proceso.height * 0.45),
       })
       if (r.tipo !== 'disco') {
-        discoRef.current = null
         setListoParaGrabar(false)
         setAviso(avisoDeDisco(r))
         return
       }
-      discoRef.current = { r: r.ajuste.r }
-      ultimoDiscoRef.current = { x: r.ajuste.x, y: r.ajuste.y }
       setListoParaGrabar(true)
       setAviso(
         `Disco detectado: radio ${r.ajuste.r.toFixed(0)} px, contorno visto ` +
@@ -283,79 +337,100 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       return
     }
 
-    // Media de 7x7 para que un píxel raro no fije el tono de toda la tanda.
-    const d = pctx.getImageData(Math.max(0, x - 3), Math.max(0, y - 3), 7, 7).data
-    let sr = 0
-    let sg = 0
-    let sb = 0
-    for (let i = 0; i < d.length; i += 4) {
-      sr += d[i]
-      sg += d[i + 1]
-      sb += d[i + 2]
-    }
-    const n = d.length / 4
-    colorRef.current = rgbAHsv(sr / n, sg / n, sb / n)
-    setListoParaGrabar(true)
+    const v = seg.fijarColor(img.data, proceso.width, proceso.height, x, y, {
+      referencia,
+      dianaMm,
+      tolTono,
+    })
     const cuantas = referencia === 'diana4' ? 'cuatro' : 'dos'
+
+    // Fijar el color no era fijar nada: se daba «listo para grabar» sin haber
+    // comprobado que con ese color se ve algo. El fallo aparecía DESPUÉS de la
+    // serie —«menos de 10 fotogramas con marcador»— con el asesorado ya
+    // sentado, y la toma se perdía entera. Ahora se mira en el acto.
+    if (!v.ok) {
+      setListoParaGrabar(false)
+      setAviso(
+        v.esFondo
+          ? 'Ese color está por casi todo el encuadre: es el fondo, no una marca. Toca justo ' +
+            'encima de la marca — si la marca y el fondo son parecidos, la medición no va a ' +
+            'salir por mucho que se ajuste la tolerancia: hace falta otro color de marca.'
+          : v.nPix < 24
+            ? `Con ese color solo casan ${v.nPix} píxeles: no basta para una marca. Toca en el ` +
+              'centro de la marca, no en su borde, y si la marca es pálida sube la tolerancia de tono.'
+            : `Casan ${v.nPix} píxeles pero no salen ${cuantas} marcas separadas. O hay algo más ` +
+              'del mismo color en el encuadre, o las marcas se tocan: sepáralas o cambia de color.',
+      )
+      return
+    }
+
+    setListoParaGrabar(true)
+    const soloUna = !esPareja(v.det) && !esDiana(v.det)
     setAviso(
-      `Color fijado (tono ${colorRef.current.h.toFixed(0)}°). Comprueba que las ${cuantas} ` +
-        'marcas salen marcadas en TODO el recorrido, no solo en reposo.',
+      `Color fijado (tono ${v.color.h.toFixed(0)}°, ${v.nPix} píxeles). ` +
+        (soloUna
+          ? `Solo se ve UNA marca: sin dos no hay escala, y la velocidad saldrá en píxeles. ` +
+            `Comprueba que las ${cuantas} marcas se ven.`
+          : `Se ven las ${cuantas} marcas. Comprueba que siguen viéndose en TODO el recorrido, ` +
+            'no solo en reposo.'),
     )
   }
 
   function bucle() {
-    const video = videoRef.current
-    if (!video) return
+    if (!videoRef.current) return
     const paso = (ahora: number, meta: VideoFrameCallbackMetadata | null) => {
+      const video = videoRef.current
+      if (!video) return
+      // El vídeo puede cambiar de tamaño en marcha: girar el teléfono lo hace.
+      // Y si pasa GRABANDO, las muestras de antes y las de después están en
+      // sistemas de coordenadas distintos: la escala en píxeles por metro cambia
+      // a mitad de la serie y el resultado sale de mezclar dos reglas. Eso no se
+      // puede arreglar por dentro, solo se puede decir.
+      if (ajustarLienzos(video) && grabandoRef.current) {
+        setAviso(
+          'La cámara ha cambiado de tamaño a mitad de la grabación (¿se giró el teléfono?). ' +
+            'Las muestras de antes y las de después no están a la misma escala: descarta esta ' +
+            'toma y repítela sin girar.',
+        )
+      }
       const proceso = procesoRef.current
       const pctx = proceso?.getContext('2d', { willReadFrequently: true })
-      if (!proceso || !pctx || !videoRef.current) return
-      pctx.drawImage(videoRef.current, 0, 0, proceso.width, proceso.height)
+      if (!proceso || !pctx) return
+      pctx.drawImage(video, 0, 0, proceso.width, proceso.height)
 
       // El instante se pide SIEMPRE, no solo grabando: el selector necesita ver
       // unos cuantos fotogramas para saber qué reloj de este aparato avanza, y
       // ese aprendizaje tiene que estar hecho antes de que nadie pulse grabar.
       const t = relojRef.current.instante(meta, ahora)
       const { referencia, dianaMm, tolTono } = ajustesRef.current
+      const seg = seguimientoRef.current
+
       let det: Deteccion | undefined
       let nPix: number | null = null
+      let ventana: Recuadro | undefined
 
-      if (referencia === 'disco' && discoRef.current) {
+      if (seg.fijado) {
         const img = pctx.getImageData(0, 0, proceso.width, proceso.height)
-        // Acotar la búsqueda a la última posición no es solo velocidad: es la
-        // reja que impide guardar un salto imposible.
-        const prev = ultimoDiscoRef.current ?? { x: proceso.width / 2, y: proceso.height / 2 }
-        const d = detectarDisco(img.data, proceso.width, proceso.height, prev, discoRef.current.r, {
-          radioMax: Math.round(discoRef.current.r * 1.35),
+        const paso = seg.paso(img.data, proceso.width, proceso.height, {
+          referencia,
+          dianaMm,
+          tolTono,
         })
-        if (d.ok) {
-          det = d
-          ultimoDiscoRef.current = { x: d.x, y: d.y }
-        }
+        det = paso.det
+        nPix = paso.nPix
+        ventana = paso.ventana
         if (grabandoRef.current) {
           muestrasRef.current.push(
-            d.ok ? { t, x: d.x, y: d.y, sepPx: d.sepPx, fiable: d.fiable } : { t, y: NaN },
+            det
+              ? esDisco(det)
+                ? { t, x: det.x, y: det.y, sepPx: det.sepPx, fiable: det.fiable }
+                : { t, ...det }
+              : { t, y: NaN },
           )
-        }
-      } else if (colorRef.current) {
-        const img = pctx.getImageData(0, 0, proceso.width, proceso.height)
-        // paso 1 con diana: cada marca aporta cuatro veces más píxeles. Medido:
-        // con paso 2 y marcas pequeñas la detección cae al 36 % de fotogramas.
-        const nube = pixelesQueCasan(img.data, proceso.width, proceso.height, colorRef.current, {
-          tolTono,
-          paso: referencia === 'diana4' ? 1 : 2,
-        })
-        nPix = nube.n
-        det =
-          referencia === 'diana4'
-            ? detectarDianaCuatro(nube, dianaMm[0], dianaMm[1]) ?? unSoloMarcador(nube)
-            : separarMarcadores(nube) ?? unSoloMarcador(nube)
-        if (grabandoRef.current) {
-          muestrasRef.current.push(det ? { t, ...det } : { t, y: NaN })
         }
       }
 
-      pintar(det, nPix)
+      pintar(det, nPix, ventana)
       if (grabandoRef.current) escribir(medidas.muestras, String(muestrasRef.current.length))
       medirFps(ahora)
       if (relojRef.current.decidido && medidas.reloj.current) {

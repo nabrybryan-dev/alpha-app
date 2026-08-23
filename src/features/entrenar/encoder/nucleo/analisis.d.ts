@@ -130,6 +130,11 @@ export interface Muestra {
 
 export function rgbAHsv(r: number, g: number, b: number): Hsv
 
+/** Distancia angular entre dos tonos, en grados (0-180). El tono es circular:
+ *  el rojo a 359° y el rojo a 1° distan 2, no 358. La usa `seguimiento.ts` para
+ *  hacer la MISMA prueba de color que el núcleo dentro de una ventana. */
+export function distanciaTono(a: number, b: number): number
+
 export function pixelesQueCasan(
   datos: Uint8ClampedArray,
   ancho: number,

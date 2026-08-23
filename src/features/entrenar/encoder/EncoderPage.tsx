@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Badge } from '../../../components/ui/Badge'
 import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
+import { puntoDeLaImagen } from './toque'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
   aCsv,
@@ -142,12 +143,25 @@ export default function EncoderPage() {
 
   function alTocarVisor(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
-    // El lienzo se procesa a 640 px pero se ve al ancho que sea: sin esta regla
-    // de tres, tocar la marca fijaría el color de otro sitio de la imagen.
+    // La regla de tres sobre la caja entera estuvo aquí hasta hoy, y es el fallo
+    // que el #86 arregló... en `Visor`, la otra pantalla. Esta se quedó con la
+    // versión vieja: el lienzo se dibuja con `object-contain`, así que casi
+    // nunca llena su caja, y las bandas negras entran en la cuenta. Con el
+    // teléfono en vertical dentro de la caja 4:3 el eje horizontal salía
+    // comprimido 2,4 veces, y la herramienta contestaba «ahí no veo un disco»,
+    // que suena a problema de luz o de encuadre. Dos pantallas que hacen lo
+    // mismo, y el arreglo solo llegó a una.
     const r = capa.getBoundingClientRect()
-    const x = Math.round(((ev.clientX - r.left) / r.width) * capa.width)
-    const y = Math.round(((ev.clientY - r.top) / r.height) * capa.height)
-    captura.fijarEn(x, y)
+    const punto = puntoDeLaImagen(
+      ev.clientX - r.left,
+      ev.clientY - r.top,
+      r.width,
+      r.height,
+      capa.width,
+      capa.height,
+    )
+    if (!punto) return
+    captura.fijarEn(punto.x, punto.y)
   }
 
   const guardar = () => {
