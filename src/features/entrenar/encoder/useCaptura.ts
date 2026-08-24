@@ -21,7 +21,7 @@ import {
   type Recuadro,
   type Seguimiento,
 } from './seguimiento'
-import type { Modo, Referencia } from './tanda'
+import { gravedadAprobada, leerTanda, type Modo, type Referencia } from './tanda'
 
 /** 640 de ancho basta para un centroide y deja margen de CPU para ir a 60 fps. */
 const ANCHO_PROCESO = 640
@@ -352,12 +352,21 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       // redondez, ni lo cerca que cayó el toque separan los buenos de los malos.
       // El %PV sí sobrevive a eso, porque es un cociente entre dos velocidades
       // medidas con la misma regla equivocada. Los m/s no.
+      // El aviso se APAGA cuando hay prueba de gravedad aprobada en la tanda.
+      // Uno que no se puede apagar nunca es ruido, y el ruido se ignora justo
+      // el día que importa — es la misma razón por la que la reja del ROM se
+      // dejó gruesa. La caída valida escala y tiempos a la vez contra una
+      // constante que nadie discute, así que es lo único que puede levantar la
+      // sospecha sobre una escala que falla cuatro de cada cinco veces.
+      const validada = gravedadAprobada(leerTanda())
       setAviso(
         `Disco detectado: radio ${r.ajuste.r.toFixed(0)} px, contorno visto ` +
           `${(r.cobertura * 100).toFixed(0)} %. Cámara a ${r.anguloCamara.toFixed(0)}° de la ` +
           `perpendicular${r.anguloCamara > 10 ? ' — demasiado torcida, muévete hasta bajar de 10°.' : '.'}` +
-          ' Con disco, fíate del %PV y no de los m/s mientras la prueba de gravedad no' +
-          ' apruebe en este sitio: la escala del disco falla más de lo que parece.',
+          (validada
+            ? ' La prueba de gravedad de esta tanda aprobó, así que la escala de este montaje está validada.'
+            : ' Con disco, fíate del %PV y no de los m/s: la escala del disco falla más de lo' +
+              ' que parece, y aquí no hay ninguna prueba de gravedad aprobada que la respalde.'),
       )
       return
     }

@@ -205,6 +205,22 @@ export function criteriosDeLaTanda(filas: Medicion[]): Criterio[] {
   ]
 }
 
+/**
+ * ¿Hay en la tanda alguna caída que valide la escala de este montaje?
+ *
+ * La prueba de gravedad es la única verdad de balde que tiene la herramienta:
+ * se suelta el implemento, se ajusta la parábola y la aceleración tiene que
+ * salir la g del sitio. Valida **escala y tiempos a la vez** y nadie discute la
+ * física, así que es lo único que puede levantar la sospecha sobre el disco —
+ * cuya escala falla en cuatro de cada cinco fotogramas reales.
+ *
+ * El 2 % es el mismo umbral que el criterio de la tanda: dos números distintos
+ * para la misma pregunta acabarían diciendo cosas distintas.
+ */
+export function gravedadAprobada(filas: Medicion[]): boolean {
+  return filas.some((f) => f.modo === 'gravedad' && finito(f.errorPct) && Math.abs(f.errorPct) <= 2)
+}
+
 export const COLUMNAS_CSV = [
   'fecha', 'modo', 'ejercicio', 'cargaKg', 'repsReales', 'repsDetectadas', 'vPrimera',
   'vUltima', 'vRef', 'vRefUltima', 'pvPct', 'pvRefPct', 'fpsReal', 'unidad', 'calidad',
