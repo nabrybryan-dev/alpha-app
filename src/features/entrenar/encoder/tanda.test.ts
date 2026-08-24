@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { aCsv, criteriosDeLaTanda, mediana, pvDeReferencia, type Medicion } from './tanda'
+import {
+  aCsv,
+  criteriosDeLaTanda,
+  gravedadAprobada,
+  mediana,
+  pvDeReferencia,
+  type Medicion,
+} from './tanda'
 
 function serie(p: Partial<Medicion> = {}): Medicion {
   return {
@@ -106,6 +113,60 @@ describe('criterios de repeticiones', () => {
     const filas = [serie({ repsReales: undefined })]
     expect(criterio(filas, 'Repeticiones fantasma').valor).toBeUndefined()
     expect(criterio(filas, 'Repeticiones perdidas').valor).toBeUndefined()
+  })
+})
+
+describe('gravedadAprobada', () => {
+  const caida = (errorPct?: number): Medicion =>
+    serie({ modo: 'gravedad', errorPct, calidad: 'buena', repsDetectadas: 0 })
+
+  it('sin ninguna caida no hay nada que respalde la escala', () => {
+    expect(gravedadAprobada([serie()])).toBe(false)
+  })
+
+  it('una caida que no aprueba no cuenta', () => {
+    expect(gravedadAprobada([caida(6.4)])).toBe(false)
+  })
+
+  it('una caida dentro del 2 % valida el montaje', () => {
+    expect(gravedadAprobada([serie(), caida(1.3)])).toBe(true)
+  })
+
+  it('una caida sin error medido no vale como aprobada', () => {
+    // Un `undefined` es «no se midio», y darlo por bueno apagaria el aviso del
+    // disco con nada detras — que es peor que no tener aviso.
+    expect(gravedadAprobada([caida(undefined)])).toBe(false)
+  })
+
+  it('el 2 % es el mismo umbral que el criterio de la tanda', () => {
+    // Dos numeros distintos para la misma pregunta acabarian diciendo cosas
+    // distintas: el criterio en verde y el aviso encendido, o al reves.
+    const filas = [caida(1.9)]
+    expect(gravedadAprobada(filas)).toBe(true)
+    expect(criterio(filas, 'Prueba de gravedad').cumple).toBe(true)
+  })
+})
+
+describe('criterio de la escala', () => {
+  const escala = (filas: Medicion[]) => criterio(filas, 'Tomas con la escala en duda')
+
+  it('sin ninguna toma juzgable se queda sin contestar', () => {
+    // `escalaDudosa` vacio es «no lo se»: sin escala el recorrido esta en
+    // pixeles y no hay metros que comparar. Contarlo como buena seria dar por
+    // pasada una puerta que no se ha mirado.
+    expect(escala([serie({ escalaDudosa: undefined })]).cumple).toBeUndefined()
+  })
+
+  it('una sola toma con la escala en duda tumba el criterio', () => {
+    const c = escala([serie({ escalaDudosa: false }), serie({ escalaDudosa: true })])
+    expect(c.valor).toBe('1')
+    expect(c.cumple).toBe(false)
+  })
+
+  it('todas juzgadas y ninguna dudosa, pasa', () => {
+    const c = escala([serie({ escalaDudosa: false }), serie({ escalaDudosa: false })])
+    expect(c.valor).toBe('0')
+    expect(c.cumple).toBe(true)
   })
 })
 
