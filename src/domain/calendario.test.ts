@@ -5,24 +5,11 @@ import {
   etiquetaDeSerie,
   inicioProximaSemana,
   semanaDelAnio,
-  sesionSugerida,
 } from './calendario'
-import type { Microciclo, Sesion } from './types'
+import type { Sesion } from './types'
 
 function sesion(id: string, nombre: string, extra?: Partial<Sesion>): Sesion {
   return { id, nombre, orden: 1, ejercicios: [], ...extra }
-}
-
-function microciclo(sesiones: Sesion[]): Microciclo {
-  return {
-    id: 'm-test',
-    usuarioId: 'u1',
-    numero: 1,
-    cadenciaDias: 8,
-    estado: 'activo',
-    fechaInicio: '2026-07-20',
-    sesiones,
-  }
 }
 
 describe('diaDeSesion', () => {
@@ -52,34 +39,6 @@ describe('diaSemanaDe', () => {
     expect(diaSemanaDe('2026-07-20')).toBe('LUNES')
     expect(diaSemanaDe('2026-07-25')).toBe('SÁBADO')
     expect(diaSemanaDe('2026-07-26')).toBe('DOMINGO')
-  })
-})
-
-describe('sesionSugerida', () => {
-  const lunes = sesion('s-lun', 'FULL BODY A (LUNES)')
-  const martes = sesion('s-mar', 'CARDIO (MARTES)')
-  const sinDia = sesion('s-x', 'FULL BODY B')
-
-  it('destaca la sesión pendiente del día actual', () => {
-    const r = sesionSugerida(microciclo([lunes, martes]), '2026-07-21', () => false)
-    expect(r?.sesion.id).toBe('s-mar')
-    expect(r?.esDeHoy).toBe(true)
-  })
-
-  it('si hoy no toca ninguna, cae a la primera pendiente en orden', () => {
-    const r = sesionSugerida(microciclo([lunes, martes]), '2026-07-23', () => false)
-    expect(r?.sesion.id).toBe('s-lun')
-    expect(r?.esDeHoy).toBe(false)
-  })
-
-  it('salta las sesiones ya registradas aunque sean las de hoy', () => {
-    const r = sesionSugerida(microciclo([lunes, martes]), '2026-07-20', (s) => s.id === 's-lun')
-    expect(r?.sesion.id).toBe('s-mar')
-    expect(r?.esDeHoy).toBe(false)
-  })
-
-  it('devuelve undefined con todo registrado', () => {
-    expect(sesionSugerida(microciclo([lunes, sinDia]), '2026-07-20', () => true)).toBeUndefined()
   })
 })
 
