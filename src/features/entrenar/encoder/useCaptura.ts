@@ -9,6 +9,7 @@ import {
   type ResultadoSerie,
 } from './nucleo/analisis'
 import { avisoDeDisco } from './avisoDisco'
+import { avisoDeEscala, revisarEscala, type RevisionDeEscala } from './escala'
 import { nuevoReloj, type Reloj } from './nucleo/reloj-fotograma'
 import {
   esDiana,
@@ -44,6 +45,10 @@ export interface Ajustes {
   sentido: 'subir' | 'bajar'
   modo: Modo
   gRef: number
+  /** Para qué ejercicio es la toma. No se usa para medir: se usa para saber si
+   *  el recorrido medido es posible, que es lo único que delata un diámetro de
+   *  disco mal elegido. Ver `escala.ts`. */
+  ejercicio: string
 }
 
 export type Resultado =
@@ -101,6 +106,7 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [nMuestras, setNMuestras] = useState(0)
+  const [revisionEscala, setRevisionEscala] = useState<RevisionDeEscala | null>(null)
   /** El cronómetro de la puerta 2: de «Parar» a «Guardar». */
   const tPararRef = useRef<number | undefined>(undefined)
   const tListoRef = useRef<number | undefined>(undefined)
@@ -483,7 +489,8 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
     tPararRef.current = performance.now()
     tListoRef.current = undefined
 
-    const { modo, referencia, dianaMm, sepMm, diametroMm, sentido, gRef } = ajustesRef.current
+    const { modo, referencia, dianaMm, sepMm, diametroMm, sentido, gRef, ejercicio } =
+      ajustesRef.current
     const escalaMm =
       referencia === 'disco' ? diametroMm : referencia === 'diana4' ? dianaMm[0] : sepMm
     const muestras = muestrasRef.current
@@ -494,6 +501,15 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
         ? { tipo: 'gravedad', datos: pruebaDeGravedad(muestras, escalaMm, { gRef }) }
         : { tipo: 'serie', datos: analizarSerie(muestras, { sepMm: escalaMm, sentido }) }
     setResultado(r)
+
+    // La reja de la escala. Va aquí y no en la pantalla porque hay DOS pantallas
+    // que miden —el panel del coach y la hoja de dentro de la serie— y el
+    // arreglo del toque del #86 ya se quedó una vez en una sola de las dos.
+    const revision = r.tipo === 'serie' ? revisarEscala(r.datos, ejercicio) : null
+    setRevisionEscala(revision)
+    const avisoEscala = avisoDeEscala(revision)
+    if (avisoEscala) setAviso(avisoEscala)
+
     // Al llegar aquí el resultado ya está calculado: lo que va de aquí a
     // «Guardar» es humano (teclear reps y referencia), no máquina.
     tListoRef.current = performance.now()
@@ -528,6 +544,7 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
     resultado,
     aviso,
     nMuestras,
+    revisionEscala,
     abrirCamara,
     fijarEn,
     empezar,

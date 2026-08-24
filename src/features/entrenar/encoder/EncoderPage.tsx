@@ -112,6 +112,7 @@ export default function EncoderPage() {
     sentido,
     modo,
     gRef,
+    ejercicio,
   }
 
   // Los nodos vivos son de la pantalla, que es quien los pinta. El hook solo
@@ -198,6 +199,8 @@ export default function EncoderPage() {
               : 'descartada'
           : 'descartada',
       motivos: serie ? serie.calidad.motivos.join('|') : (gravedad?.avisos.join('|') ?? ''),
+      romM: captura.revisionEscala?.romM,
+      escalaDudosa: captura.revisionEscala ? !captura.revisionEscala.ok : undefined,
       aceleracion: gravedad?.aceleracion,
       errorPct: gravedad?.errorPct,
       sAnadidos,

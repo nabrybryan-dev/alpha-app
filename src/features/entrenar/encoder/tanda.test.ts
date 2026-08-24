@@ -109,6 +109,29 @@ describe('criterios de repeticiones', () => {
   })
 })
 
+describe('criterio de la escala', () => {
+  const escala = (filas: Medicion[]) => criterio(filas, 'Tomas con la escala en duda')
+
+  it('sin ninguna toma juzgable se queda sin contestar', () => {
+    // `escalaDudosa` vacio es «no lo se»: sin escala el recorrido esta en
+    // pixeles y no hay metros que comparar. Contarlo como buena seria dar por
+    // pasada una puerta que no se ha mirado.
+    expect(escala([serie({ escalaDudosa: undefined })]).cumple).toBeUndefined()
+  })
+
+  it('una sola toma con la escala en duda tumba el criterio', () => {
+    const c = escala([serie({ escalaDudosa: false }), serie({ escalaDudosa: true })])
+    expect(c.valor).toBe('1')
+    expect(c.cumple).toBe(false)
+  })
+
+  it('todas juzgadas y ninguna dudosa, pasa', () => {
+    const c = escala([serie({ escalaDudosa: false }), serie({ escalaDudosa: false })])
+    expect(c.valor).toBe('0')
+    expect(c.cumple).toBe(true)
+  })
+})
+
 describe('criterio de gravedad', () => {
   it('promedia el valor absoluto de las caidas, no el error con signo', () => {
     const caida = (errorPct: number): Medicion =>

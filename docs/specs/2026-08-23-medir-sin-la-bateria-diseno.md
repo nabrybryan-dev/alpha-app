@@ -25,7 +25,7 @@ El banco corre con `npm run banco-encoder`, o directamente con `node
 scripts/banco-encoder.mjs`. **Va aparte de vitest a propósito**: se corre sin
 instalar nada, que es exactamente la situación en la que hace falta.
 
-Ochenta y seis casos. Rejilla de fps × velocidad × %PV, los dos sentidos
+Noventa y un casos. Rejilla de fps × velocidad × %PV, los dos sentidos
 (subir y bajar), recorridos cortos, velocidades extremas, ruido de centroide,
 fotogramas perdidos, la prueba de gravedad, imágenes fabricadas para el color y
 para el disco, y la cadena entera fotograma a fotograma.
@@ -219,11 +219,52 @@ centroide. Más barato y más preciso a la vez.
 
 ---
 
-## Lo que sigue sin estar defendido
+## 9 · La escala en milímetros: el error que no deja rastro
 
-- **La escala en milímetros.** Ni el banco ni los tests saben si el diámetro del
-  disco que se teclea es el que tiene el disco. `romPlausible` es lo único que
-  hay, y es una reja gruesa.
+Es el que más daño hace de todos, porque es el único que no falla de forma
+visible. Todo lo demás chirría: el marcador se pierde, los fps bajan, la
+referencia sale torcida, y `calificar` lo dice. Elegir «olímpico 15 kg» con un
+bumper de 450 puesto **desvía todas las velocidades por el mismo 12,5 %**, la
+serie sale limpia, la calidad sale buena, y el número entra en el historial
+siendo mentira.
+
+Y el %PV sobrevive a ese error, porque es un cociente entre dos velocidades
+medidas con la misma regla equivocada. Eso, que en el §4 del plan es una virtud,
+aquí es la trampa: **la métrica que más se mira es justo la que no se entera.**
+
+Lo único que chirría es el recorrido. `romPlausible` lleva la tabla por ejercicio
+desde el principio en `nucleo/disco.js`, con su comentario explicando exactamente
+esto — y **no la llamaba nadie**. Tercera función del núcleo escrita, tipada en
+el `.d.ts` y sin usar, después de `centroideEnVentana` y de la predicción con
+velocidad.
+
+Ahora la llama `escala.ts` desde `useCaptura.parar()` —un solo sitio, las dos
+pantallas cubiertas— y el veredicto viaja a la fila de la tanda (`romM`,
+`escalaDudosa`) y al noveno criterio, «Tomas con la escala en duda = 0».
+
+### Hasta dónde llega, medido
+
+Una reja que no se mide se acaba vendiendo por más de lo que es. El banco calcula
+el factor de error que hace falta para que salte:
+
+| Ejercicio | Recorrido real | Salta por debajo de | Salta por encima de |
+|---|---|---|---|
+| Sentadilla | 55 cm | ×0,45 | ×1,55 |
+| Press banca | 35 cm | ×0,42 | ×1,58 |
+| Peso muerto | 60 cm | ×0,49 | ×1,42 |
+
+O sea: **caza el teclazo —un cero de más, el diámetro en cm donde se pedían mm—
+y NO caza la confusión de discos.** 450 contra 400, 450 contra 325 y 400 contra
+325 pasan las tres sin chistar, y esa es justo la confusión de todos los días.
+Para eso está la prueba de gravedad, que valida escala y tiempos a la vez contra
+una constante que nadie discute.
+
+La reja es gruesa a propósito: un rango estrecho descartaría recorridos legítimos,
+y un instrumento que grita cuando no pasa nada se acaba ignorando cuando pasa.
+
+---
+
+## Lo que sigue sin estar defendido
 - **El escorzo con dos marcadores.** Sigue entrando ciego. Es lo que ya dice
   `calificar` con `inclinacion_no_medible`, y no lo arregla ningún test: lo
   arregla usar la diana de cuatro marcas.

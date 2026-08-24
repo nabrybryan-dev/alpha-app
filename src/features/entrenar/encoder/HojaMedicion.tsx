@@ -51,6 +51,7 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
     sentido: 'subir',
     modo: 'serie',
     gRef: gLocal(4.534, 1480),
+    ejercicio,
   }
 
   const elegirDisco = (mm: number) => {
@@ -123,6 +124,8 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
               unidad: s.unidad,
               calidad: s.calidad.nivel,
               motivos: s.calidad.motivos.join('|'),
+              romM: captura.revisionEscala?.romM,
+              escalaDudosa: captura.revisionEscala ? !captura.revisionEscala.ok : undefined,
               sAnadidos,
               sMaquina,
               nota: '',

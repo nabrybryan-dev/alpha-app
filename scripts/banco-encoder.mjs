@@ -1101,7 +1101,106 @@ async function reproducirDisco({ politica = 'ventana', nReps = 3, v = 1.5, fps =
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9 · Cierre
+// 9 · Hasta dónde llega la reja de la escala
+// ─────────────────────────────────────────────────────────────────────────────
+
+/* `escala.ts` es lo único que defiende el error que no deja rastro: el diámetro
+ * de disco mal elegido desvía TODAS las velocidades por el mismo factor, la
+ * serie sale limpia y el %PV ni se entera, porque es un cociente entre dos
+ * velocidades medidas con la misma regla equivocada.
+ *
+ * Pero una reja que no se mide se acaba vendiendo por más de lo que es. Esto
+ * calcula el factor de error que hace falta para que salte, y lo deja escrito.
+ * El resultado incómodo es el que más importa: **confundir un bumper de 450 con
+ * un olímpico de 400 NO salta**, y esa es justo la confusión de todos los días.
+ * Para eso está la prueba de gravedad, que valida escala y tiempos a la vez. */
+
+bloque('Hasta dónde llega la reja de la escala')
+
+const { revisarEscala } = await import('../src/features/entrenar/encoder/escala.ts')
+
+/** Una serie ya medida, con el recorrido que se le diga. */
+function serieConRom(romM) {
+  return {
+    ok: true,
+    unidad: 'm/s',
+    hayEscala: true,
+    fpsReal: 60,
+    deteccion: 1,
+    sepPxMediana: 180,
+    escalaPxM: 400,
+    conDiana: false,
+    inclinacionGrados: NaN,
+    inclinacionMax: NaN,
+    anguloMediana: 2,
+    reps: [romM, romM, romM].map((rom) => ({ rom, concSeg: 0.8, vMedia: 0.6, vPico: 0.9 })),
+    vPrimera: 0.6,
+    vUltima: 0.5,
+    pvPct: 16,
+    concSegMedia: 0.8,
+    romRelativo: 1,
+    compensacion: NaN,
+    calidad: { nivel: 'buena', motivos: [] },
+    serie: { t: [], s: [], v: [] },
+  }
+}
+
+/** El factor de escala más pequeño, por arriba y por abajo, que hace saltar la
+ *  reja para un ejercicio con un recorrido real dado. */
+function margenDeLaReja(ejercicio, romReal) {
+  let abajo = 1
+  let arriba = 1
+  for (let k = 1; k <= 400; k++) {
+    const f = 1 - k * 0.005
+    if (f > 0 && !revisarEscala(serieConRom(romReal * f), ejercicio).ok) { abajo = f; break }
+  }
+  for (let k = 1; k <= 400; k++) {
+    const f = 1 + k * 0.005
+    if (!revisarEscala(serieConRom(romReal * f), ejercicio).ok) { arriba = f; break }
+  }
+  return { abajo, arriba }
+}
+
+for (const [ejercicio, romReal] of [['sentadilla', 0.55], ['press banca', 0.35], ['peso muerto', 0.6]]) {
+  const { abajo, arriba } = margenDeLaReja(ejercicio, romReal)
+  caso(
+    `${ejercicio} · el error de escala tiene que pasar de ×${abajo.toFixed(2)} o ×${arriba.toFixed(2)} para saltar`,
+    abajo < 1 && arriba > 1,
+    `recorrido real ${(romReal * 100).toFixed(0)} cm · salta por debajo de ×${abajo.toFixed(2)} y por encima de ×${arriba.toFixed(2)}`,
+    'la reja es gruesa a propósito: un rango estrecho descartaría recorridos legítimos',
+  )
+}
+
+{
+  // Un cero de más al teclear, o el diámetro en cm donde se pedían mm.
+  const diez = revisarEscala(serieConRom(0.55 * 10), 'sentadilla')
+  const decimo = revisarEscala(serieConRom(0.55 / 10), 'sentadilla')
+  caso(
+    'un factor de diez —un cero de más— salta siempre',
+    diez !== null && !diez.ok && decimo !== null && !decimo.ok,
+    `×10 → ${diez?.ok ? 'pasa' : 'salta'} · ÷10 → ${decimo?.ok ? 'pasa' : 'salta'}`,
+  )
+}
+
+{
+  // Y lo que NO caza, que es lo que hay que tener escrito. Los tres diámetros de
+  // la lista están dentro de un 28 % unos de otros, y eso no mueve el recorrido
+  // lo bastante como para salirse de ningún rango.
+  const confusiones = [[450, 400], [450, 325], [400, 325]]
+  const escapan = confusiones.filter(([real, elegido]) => {
+    const romMedido = 0.55 * (elegido / real)
+    return revisarEscala(serieConRom(romMedido), 'sentadilla').ok
+  })
+  caso(
+    'confundir dos discos de la lista NO salta — para eso está la prueba de gravedad',
+    escapan.length === confusiones.length,
+    escapan.map(([a, b]) => `${a}→${b}`).join(', ') + ' pasan la reja sin chistar',
+    'documenta el límite: esta reja caza el teclazo, no la confusión de discos',
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10 · Cierre
 // ─────────────────────────────────────────────────────────────────────────────
 
 const fallos = actas.filter((a) => !a.ok)
