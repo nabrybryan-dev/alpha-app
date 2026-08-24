@@ -18,6 +18,10 @@
  *      vertical, así que el brazo de momento externo es la distancia
  *      HORIZONTAL entre la articulación y la carga.
  *
+ * Fuente de verdad de la tabla:
+ * `Cerebro Alpha/wiki/conocimiento/segmentos-ejes-y-palancas.md`. Si las dos
+ * divergen, manda la página: aquí solo vive la copia ejecutable.
+ *
  * ## Las tres distinciones que estructuran la tabla
  *
  * **1 · Anclaje contra referencia.** «Segmento fijo» significa dos cosas

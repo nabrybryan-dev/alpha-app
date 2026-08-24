@@ -5,6 +5,8 @@
  * `Cerebro Alpha/wiki/conocimiento/perfiles-de-resistencia.md` (el brazo de
  * momento externo). Va partida en tres por región porque entera pasa del
  * tamaño de archivo del proyecto; el porqué de cada campo está en `palancas.ts`.
+ *
+ * Fuente de verdad: `Cerebro Alpha/wiki/conocimiento/segmentos-ejes-y-palancas.md`.
  */
 
 import type { Categoria } from '../taxonomia'
