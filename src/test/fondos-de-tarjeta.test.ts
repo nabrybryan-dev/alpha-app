@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import {
+  FONDO_SESION_FUERZA,
+  FONDO_SESION_METABOLICA,
+} from '../features/entrenar/fondoSesion'
 import { medidasJpeg } from './medidasJpeg'
 
 /**
@@ -27,11 +31,24 @@ const DPR = 3
  * no estimada. Si cambia la maquetación de estas pantallas hay que volver a
  * medirla: un número inventado aquí haría pasar el test sin querer.
  */
-const TARJETAS = [
+const TARJETAS: {
+  pantalla: string
+  anchoPt: number
+  altoPt: number
+  /**
+   * Fondos declarados fuera de la pantalla, cuando la ruta no es un literal.
+   * Sin esto, `fondoDeclarado` leería el texto de la expresión que elige entre
+   * dos y daría un archivo que no existe.
+   */
+  fondos?: string[]
+}[] = [
   {
     pantalla: 'src/features/entrenar/SesionPage.tsx',
     anchoPt: 358,
     altoPt: 334,
+    // La sesión pinta un fondo u otro según su tipo, y los dos caen en la misma
+    // tarjeta: los dos tienen que aguantar la misma geometría.
+    fondos: [FONDO_SESION_FUERZA, FONDO_SESION_METABOLICA],
   },
   {
     pantalla: 'src/features/logros/LogrosPage.tsx',
@@ -65,35 +82,38 @@ describe('fondos de las tarjetas con foto', () => {
     const nombre = partes[partes.length - 1] ?? tarjeta.pantalla
 
     describe(nombre, () => {
-      const fondo = fondoDeclarado(tarjeta.pantalla)
-      const archivo = join(raiz, 'public', fondo.replace(/^\//, ''))
+      const fondos = tarjeta.fondos ?? [fondoDeclarado(tarjeta.pantalla)]
 
-      it('apunta a un archivo que existe', () => {
-        // Una ruta rota no da error en desarrollo: la tarjeta se queda negra y
-        // el texto se sigue leyendo, así que pasa desapercibida.
-        expect(existsSync(archivo), `${fondo} no existe en public/`).toBe(true)
-      })
+      for (const fondo of fondos) {
+        const archivo = join(raiz, 'public', fondo.replace(/^\//, ''))
 
-      it('tiene resolución para el móvil, sin estirarse', () => {
-        const imagen = medidasJpeg(archivo)
-        const escala = escalaCover(imagen, {
-          anchoPx: tarjeta.anchoPt * DPR,
-          altoPx: tarjeta.altoPt * DPR,
+        it(`${fondo} apunta a un archivo que existe`, () => {
+          // Una ruta rota no da error en desarrollo: la tarjeta se queda negra y
+          // el texto se sigue leyendo, así que pasa desapercibida.
+          expect(existsSync(archivo), `${fondo} no existe en public/`).toBe(true)
         })
 
-        expect(
-          escala,
-          `${fondo} mide ${imagen.ancho}x${imagen.alto} y se ampliaría ${escala.toFixed(2)}x ` +
-            `para llenar ${tarjeta.anchoPt * DPR}x${tarjeta.altoPt * DPR}`,
-        ).toBeLessThanOrEqual(1.05)
-      })
+        it(`${fondo} tiene resolución para el móvil, sin estirarse`, () => {
+          const imagen = medidasJpeg(archivo)
+          const escala = escalaCover(imagen, {
+            anchoPx: tarjeta.anchoPt * DPR,
+            altoPx: tarjeta.altoPt * DPR,
+          })
 
-      it('no pesa más de 200 KB', () => {
-        // Son fondos decorativos por encima del pliegue: si engordan, retrasan
-        // el primer pintado de una pantalla que se abre a diario.
-        const kb = readFileSync(archivo).length / 1024
-        expect(kb, `${fondo} pesa ${kb.toFixed(0)} KB`).toBeLessThanOrEqual(200)
-      })
+          expect(
+            escala,
+            `${fondo} mide ${imagen.ancho}x${imagen.alto} y se ampliaría ${escala.toFixed(2)}x ` +
+              `para llenar ${tarjeta.anchoPt * DPR}x${tarjeta.altoPt * DPR}`,
+          ).toBeLessThanOrEqual(1.05)
+        })
+
+        it(`${fondo} no pesa más de 200 KB`, () => {
+          // Son fondos decorativos por encima del pliegue: si engordan, retrasan
+          // el primer pintado de una pantalla que se abre a diario.
+          const kb = readFileSync(archivo).length / 1024
+          expect(kb, `${fondo} pesa ${kb.toFixed(0)} KB`).toBeLessThanOrEqual(200)
+        })
+      }
     })
   }
 })
