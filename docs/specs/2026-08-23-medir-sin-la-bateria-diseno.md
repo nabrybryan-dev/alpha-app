@@ -4,9 +4,13 @@
 
 El núcleo del encoder (`src/features/entrenar/encoder/nucleo/`) entra verbatim
 desde `herramientas/encoder-camara`, y lo validan **56 casos que viven allí**.
-En esta máquina ese repo no está. El único guardián que quedaba era
-`nucleo.test.ts`, que compara huellas sha-256: sabe decir «alguien tocó la
-copia» y no sabe decir **si mide bien**.
+Cuando esto empezó, ese repo **no estaba** en la máquina: el único guardián que
+quedaba era `nucleo.test.ts`, que compara huellas sha-256 y sabe decir «alguien
+tocó la copia» pero no sabe decir **si mide bien**.
+
+Apareció a mitad del trabajo, y lo que salió al correr por fin la comprobación
+que esta spec pedía «lo primero de todo» está en el **§11** — que acabó siendo el
+hallazgo más gordo del documento.
 
 Este documento es lo que se hizo para poder arreglar y afinar la medición sin
 esa batería, y lo que se encontró al hacerlo.
