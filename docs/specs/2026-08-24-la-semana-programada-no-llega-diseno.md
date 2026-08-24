@@ -75,3 +75,30 @@ Es una mejora real —antes no se activaba ni abriéndolo— pero el disparador 
 siendo humano. Hacer que la activación salga del dispositivo del asesorado es
 otra decisión: le daría a la app de la persona la capacidad de escribirse su
 propia prescripción, y eso se discute aparte, no se cuela dentro de este arreglo.
+
+---
+
+## Dos tests que hubo que reescribir, y por qué
+
+`programarSemana.test.ts` se puso rojo, y uno de los dos casos lleva etiqueta de
+aislamiento. Va explicado porque en este repo un test de aislamiento en rojo
+significa por defecto que **el cambio está mal**:
+
+- **«a cada uno se le activa la suya el día que vence»** afirmaba precisamente lo
+  que se ha arreglado: que manda la cadencia y no la fecha del coach. Reescrito
+  para afirmar lo nuevo —manda la fecha elegida— conservando lo que protegía: que
+  a cada uno le llega la suya y con la fecha que se le puso. Se le añadió el caso
+  de la víspera, que antes no existía: una preparada con fecha futura no se
+  adelanta.
+
+- **«activar la semana de uno no le mueve el microciclo a los otros»** preparaba
+  a los tres asesorados la misma semana y luego comprobaba que solo se movía uno.
+  Con la regla nueva se mueven los tres —porque el coach les puso a los tres el
+  mismo lunes, no porque se contagien—, así que la comprobación ya no distinguía
+  contagio de calendario. Ahora se le prepara a ella una semana que empieza hoy y
+  a los demás una que empieza dentro de un mes: si alguno de ellos se moviera,
+  sería contagio de verdad. La propiedad que vigila es la misma y ahora es la
+  única explicación posible de un fallo.
+
+Los dos tests dedicados al aislamiento (`SessionProvider.aislamiento.test.tsx` y
+`data/nube/perdida-datos.test.ts`) no se tocaron y siguen verdes.
