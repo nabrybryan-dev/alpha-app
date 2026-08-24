@@ -14,6 +14,7 @@ import { CheckDibujado } from './CheckDibujado'
 import { CronometroSesion, limpiarCronometro } from './CronometroSesion'
 import { DescansoTimer } from './DescansoTimer'
 import { EjercicioCompletado, type ExCompletado } from './EjercicioCompletado'
+import { FONDO_SESION_FUERZA, FONDO_SESION_METABOLICA } from './fondoSesion'
 import { frasePorSerie } from './frasesMotivacionales'
 import { BarraEjercicios, ProximosEjercicios } from './NavegadorEjercicios'
 import { PanelRitmo } from './PanelRitmo'
@@ -164,6 +165,8 @@ function SesionEnCurso() {
     !!ejercicioActual &&
     !ejercicioCompleto(ejercicioActual)
   const bloques = sesion.bloquesCardio ?? []
+  const fondoDeLaSesion =
+    sesion.tipo === 'metabolica' ? FONDO_SESION_METABOLICA : FONDO_SESION_FUERZA
 
   if (cerrada) return <SesionCerrada sesion={sesion} />
 
@@ -173,11 +176,10 @@ function SesionEnCurso() {
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"
-          // El banco con la barra cargada, de la dirección visual actual. La foto anterior
-          // (`atleta-hombre.jpeg`) medía 590x1280 y se ampliaba 1,82x en un móvil: se veía
-          // borrosa y nadie lo notaba porque en el navegador se pinta a 1x. Ver
-          // `src/test/fondos-de-tarjeta.test.ts`, que ahora lo impide.
-          style={{ '--foto': 'url(/fondos/sesion-banco.jpg)', '--foto-pos': 'center 18%' } as React.CSSProperties}
+          // El fondo lo decide el tipo de sesión: hierro para fuerza, sprint resistido
+          // para metabólica. Las dos rutas viven en `fondoSesion.ts` y las mide
+          // `src/test/fondos-de-tarjeta.test.ts`, que impide que se amplíen.
+          style={{ '--foto': `url(${fondoDeLaSesion})`, '--foto-pos': 'center 18%' } as React.CSSProperties}
         >
           {/* La sesión es el segundo nivel de Entrenar: atrás vuelve a la Ruta,
               no a Hoy, aunque se haya entrado desde ahí. */}
