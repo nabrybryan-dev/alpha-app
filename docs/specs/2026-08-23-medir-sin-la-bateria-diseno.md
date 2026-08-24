@@ -25,7 +25,7 @@ El banco corre con `npm run banco-encoder`, o directamente con `node
 scripts/banco-encoder.mjs`. **Va aparte de vitest a propósito**: se corre sin
 instalar nada, que es exactamente la situación en la que hace falta.
 
-Noventa y un casos. Rejilla de fps × velocidad × %PV, los dos sentidos
+Ciento dos casos. Rejilla de fps × velocidad × %PV, los dos sentidos
 (subir y bajar), recorridos cortos, velocidades extremas, ruido de centroide,
 fotogramas perdidos, la prueba de gravedad, imágenes fabricadas para el color y
 para el disco, y la cadena entera fotograma a fotograma.
@@ -264,12 +264,72 @@ y un instrumento que grita cuando no pasa nada se acaba ignorando cuando pasa.
 
 ---
 
+## 10 · La luz de un gimnasio, y la cuarta vez que el banco mintió
+
+Todo lo anterior corre con luz plana. Un gimnasio no tiene luz plana: tiene una
+ventana detrás del rack, fluorescentes parpadeando contra el obturador, un foco
+que ilumina la mitad alta del recorrido y deja la baja en sombra, y una barra que
+a metro y medio por segundo sale movida.
+
+**Multiplicar el brillo no hace daño y no sirve de prueba.** El tono y la
+saturación de HSV son invariantes a multiplicar los tres canales por lo mismo —es
+aritmética, no opinión— y el filtro del núcleo mira tono y saturación. La primera
+versión de estas luces subía y bajaba el brillo un 40 % y las diez escenas
+salieron con **detección del 100 % y v₁ exacta a la milésima**. Parecía que la
+herramienta era invencible. Lo que pasaba es que la prueba no probaba nada.
+
+Lo que sí destruye el color son los dos extremos del sensor: por arriba el
+recorte —cuando un canal llega a 255 los otros lo alcanzan y el marcador se va a
+blanco—, y por abajo el suelo de negro, que en `pixelesQueCasan` es literal: lo
+que tiene los tres canales bajo 45 se descarta de entrada. Tres pasos de sombra
+meten al marcador ahí. Y el grano va **después** de la luz, no antes: el ruido lo
+pone el sensor al leer, no la escena al iluminarse, y ponerlo antes lo atenuaba
+justo donde más pesa.
+
+Con las luces escritas para llegar a esos dos extremos:
+
+| Escena | Detección | v₁ (verdad 0,600) | Veredicto |
+|---|---|---|---|
+| Contraluz (ventana detrás) | 23 % | 0,530 | **descartada** |
+| Parpadeo de fluorescente | — | no midió | **no midió** |
+| Foco con sombra dura | 57 % | 0,600 | **descartada** |
+| Bandas de obturador rodante | 91 % | 0,615 | **descartada** |
+| Poco contraste (hasta el 20 %) | 100 % | 0,600 | mide bien |
+| Arrastre de exposición (0,6 y 1,5 m/s) | 100 % | exacta | mide bien |
+| Contraluz + barra rápida y movida | — | no midió | **no midió** |
+
+Lo que se le exige aquí no es medir pase lo que pase —hay luces con las que no se
+puede medir— sino la otra mitad, que es la que separa un instrumento de un
+adorno: **o mide bien, o queda marcada**. En las diez escenas se cumplió.
+
+### Y se buscó a propósito la que mintiera
+
+«No la hemos encontrado» vale mucho más si se ha buscado. Hay un hueco donde
+tendría que estar: la puerta de calidad se apoya en la detección —cuántos
+fotogramas vieron la marca— y existe una franja en la que la marca se ve en
+**todos** y aun así el centroide está corrido, que es cuando la sombra no tapa la
+marca entera sino solo un trozo. Ahí la detección sigue al 100 %, no salta ningún
+motivo, y el número saldría con sesgo.
+
+Se barrieron ocho bordes de sombra —cuatro alturas × dos durezas— buscando una
+toma que el coach leyera como aceptable con la velocidad mal. **Ninguna coló.**
+
+Con dos marcadores, además, ninguna toma puede salir «buena»: `calificar` mete
+siempre `inclinacion_no_medible`, porque con dos marcas el escorzo entra ciego.
+Así que el barrido persigue el equivalente —que ése sea el único reparo y el
+número esté mal— y no el literal, que sería trivial.
+
+---
+
 ## Lo que sigue sin estar defendido
 - **El escorzo con dos marcadores.** Sigue entrando ciego. Es lo que ya dice
   `calificar` con `inclinacion_no_medible`, y no lo arregla ningún test: lo
   arregla usar la diana de cuatro marcas.
-- **La luz de un gimnasio de verdad.** Las escenas fabricadas tienen ruido de
-  sensor y decorado, pero no tienen fluorescentes parpadeando ni contraluz.
+- **La luz de un gimnasio de verdad, la parte que no se puede fabricar.** El §10
+  cubre contraluz, parpadeo, sombra dura, bandas de obturador, poco contraste y
+  arrastre — pero todo eso es un modelo. Lo que no está: el balance de blancos
+  del teléfono corrigiendo el tono a media serie, el infrarrojo de las cámaras
+  baratas, y un marcador que se despega y se dobla. Eso se ve en el gimnasio.
 - **El reloj de cada aparato.** `reloj-fotograma.js` elige mirando cuál avanza,
   pero eso solo se comprueba de verdad en el aparato.
 

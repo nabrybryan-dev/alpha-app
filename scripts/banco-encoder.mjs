@@ -719,15 +719,120 @@ function alturaEn(t, { nReps, v, romPx = ROM_PX }) {
   return { y: 300 - romPx, fin: false }
 }
 
-function escenaSerie({ y, intruso, pastel = false }) {
-  const marca = pastel ? [225, 175, 215] : MAGENTA
-  const img = lienzo(640, 360, pastel ? [225, 226, 228] : [40, 42, 46])
-  pintarCirculo(img, 320 - SEP_PX / 2, y, 7, marca)
-  pintarCirculo(img, 320 + SEP_PX / 2, y, 7, marca)
+/**
+ * La luz de un gimnasio de verdad, que es lo que las escenas limpias no tienen.
+ *
+ * Cada una multiplica el brillo de cada píxel por un factor. No es un filtro
+ * bonito: es la forma en que estas cinco cosas llegan al sensor, y las cinco
+ * atacan el mismo sitio —el valor y la saturación del marcador—, que es donde
+ * `pixelesQueCasan` decide si un píxel cuenta o no.
+ */
+/*
+ * Aviso, porque este banco ya se ha equivocado tres veces y ésta fue la cuarta:
+ * **multiplicar el brillo no hace daño y no sirve de prueba.** El tono y la
+ * saturación de HSV son invariantes a multiplicar los tres canales por lo mismo
+ * —es aritmética, no opinión— y el filtro del núcleo mira tono y saturación. La
+ * primera versión de estas luces subía y bajaba el brillo un 40 % y las diez
+ * escenas salían con detección del 100 % y v₁ exacta a la milésima. Parecía que
+ * la herramienta era invencible; lo que pasaba es que la prueba no probaba nada.
+ *
+ * Lo que sí destruye el color son los DOS EXTREMOS del sensor:
+ *
+ *   - Por arriba, el recorte. Cuando un canal llega a 255 deja de crecer y los
+ *     otros lo alcanzan: el marcador se va a blanco y el tono se pierde.
+ *   - Por abajo, el suelo de negro. `pixelesQueCasan` descarta de entrada lo que
+ *     tiene los tres canales por debajo de 45, porque lo oscuro no puede ser un
+ *     marcador saturado. Tres pasos de sombra meten al marcador ahí.
+ *
+ * Así que estas luces están escritas para LLEGAR a esos dos extremos, que es
+ * donde vive el fallo. Una luz que se queda en medio es decorado.
+ */
+const LUCES = {
+  /** Ventana detrás del rack. El sensor expone para la ventana: arriba se
+   *  quema, abajo se va a negro. Es el encuadre que sale solo si montas el
+   *  trípode mirando hacia la calle. */
+  contraluz: (x, y) => (y < 130 ? 4.5 : 0.19),
+
+  /** Fluorescente o LED barato a 100-120 Hz contra una cámara a 60 fps: el
+   *  brillo del fotograma ENTERO oscila. Los fotogramas del valle caen por
+   *  debajo del suelo de negro y ahí no hay marcador que valga. */
+  parpadeo: (x, y, k) => (Math.sin(k * 2.1) > 0 ? 1.15 : 0.17),
+
+  /** Un foco sobre el rack: la mitad alta del recorrido iluminada y la baja en
+   *  sombra de tres pasos. La barra CRUZA el borde a media repetición, así que
+   *  el marcador se pierde y se recupera dentro de la misma serie — y se pierde
+   *  siempre en el mismo tramo, que es lo peor que puede pasarle a una medida. */
+  sombra: (x, y) => (y > 210 ? 0.18 : 1.15),
+
+  /** Bandas del obturador rodante. El periodo va a propósito por debajo del
+   *  tamaño de la marca: así la banda parte el marcador en dos y **solo la
+   *  mitad iluminada casa**. Ese es el caso peligroso de verdad — no se pierde
+   *  la marca, se corre el centroide, y un centroide corrido no baja la
+   *  detección ni enciende ningún aviso. */
+  bandas: (x, y, k) => (Math.sin(y / 4 + k * 1.7) > 0 ? 1.2 : 0.16),
+}
+
+function aplicarLuz(img, luz, k) {
+  if (!luz) return img
+  const fn = typeof luz === 'function' ? luz : LUCES[luz]
+  const { datos, ancho, alto } = img
+  for (let y = 0; y < alto; y++) {
+    for (let x = 0; x < ancho; x++) {
+      const i = (y * ancho + x) * 4
+      const f = fn(x, y, k)
+      datos[i] = Math.max(0, Math.min(255, datos[i] * f))
+      datos[i + 1] = Math.max(0, Math.min(255, datos[i + 1] * f))
+      datos[i + 2] = Math.max(0, Math.min(255, datos[i + 2] * f))
+    }
+  }
+  return img
+}
+
+/**
+ * El arrastre de la exposición.
+ *
+ * A 1/60 de segundo y con la barra a metro y medio por segundo, el marcador
+ * recorre unos diez píxeles MIENTRAS el obturador está abierto: no sale un
+ * círculo, sale un churro. Y no es solo que se vea peor — el color se reparte
+ * entre el marcador y el fondo, así que los píxeles de las puntas pierden
+ * saturación y dejan de casar. Se pinta como una sucesión de círculos entre
+ * donde estaba y donde está.
+ */
+function pintarConArrastre(img, cx, cyDesde, cyHasta, radio, color) {
+  const pasos = Math.max(1, Math.round(Math.abs(cyHasta - cyDesde)))
+  for (let k = 0; k <= pasos; k++) {
+    const u = pasos === 0 ? 1 : k / pasos
+    const y = cyDesde + (cyHasta - cyDesde) * u
+    // Las posiciones intermedias contribuyen menos color: el obturador reparte
+    // el mismo fotón entre todas ellas.
+    const mezcla = 0.35 + 0.65 * u
+    pintarCirculo(img, cx, y, radio, [
+      color[0] * mezcla + 40 * (1 - mezcla),
+      color[1] * mezcla + 42 * (1 - mezcla),
+      color[2] * mezcla + 46 * (1 - mezcla),
+    ])
+  }
+}
+
+function escenaSerie({ y, yAnterior, intruso, pastel = false, luz, k = 0, contraste = 1, arrastre = false }) {
+  const base = pastel ? [225, 175, 215] : MAGENTA
+  // Poco contraste: el marcador se acerca al color del fondo. Un marcador rojo
+  // sobre el suelo de goma rojizo del área de peso libre es exactamente esto.
+  const fondo = pastel ? [225, 226, 228] : [40, 42, 46]
+  const marca = base.map((c, i) => fondo[i] + (c - fondo[i]) * contraste)
+  const img = lienzo(640, 360, fondo)
+  if (arrastre && yAnterior !== undefined) {
+    pintarConArrastre(img, 320 - SEP_PX / 2, yAnterior, y, 7, marca)
+    pintarConArrastre(img, 320 + SEP_PX / 2, yAnterior, y, 7, marca)
+  } else {
+    pintarCirculo(img, 320 - SEP_PX / 2, y, 7, marca)
+    pintarCirculo(img, 320 + SEP_PX / 2, y, 7, marca)
+  }
   // El intruso: algo del mismo color que no es la barra y no se mueve. Un
   // disco pintado apoyado en la pared, una camiseta, el logo del gimnasio.
   if (intruso) pintarCirculo(img, 560, 70, 24, marca)
   granular(img, 4)
+  aplicarLuz(img, luz, k)
   return img
 }
 
@@ -738,7 +843,7 @@ function escenaSerie({ y, intruso, pastel = false }) {
  *               umbrales fijos, sin memoria de dónde estaba la referencia.
  *   'ventana' — `seguimiento.ts`.
  */
-async function reproducir({ politica, intruso = false, pastel = false, nReps = 3, v = 0.6, fps = 60, perdidaPct = 0, semilla = 31337 }) {
+async function reproducir({ politica, intruso = false, pastel = false, nReps = 3, v = 0.6, fps = 60, perdidaPct = 0, semilla = 31337, luz, contraste = 1, arrastre = false }) {
   const { nuevoSeguimiento } = await import(
     '../src/features/entrenar/encoder/seguimiento.ts'
   )
@@ -753,10 +858,12 @@ async function reproducir({ politica, intruso = false, pastel = false, nReps = 3
   // diferencia entre las dos políticas y las dejaba empatadas a 6 ms.
   let nanos = 0n
 
+  let yAnterior
   for (let k = 0; k < 6000; k++) {
     const { y, fin } = alturaEn(t, { nReps, v })
     if (fin) break
-    const img = escenaSerie({ y, intruso, pastel })
+    const img = escenaSerie({ y, yAnterior, intruso, pastel, luz, k, contraste, arrastre })
+    yAnterior = y
     if (k === 0) {
       // Fijar la referencia tocando la marca de la izquierda.
       if (seg) seg.fijarColor(img.datos, img.ancho, img.alto, 320 - SEP_PX / 2, Math.round(y), ajustes)
@@ -1101,7 +1208,125 @@ async function reproducirDisco({ politica = 'ventana', nReps = 3, v = 1.5, fps =
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9 · Hasta dónde llega la reja de la escala
+// 9 · La luz de un gimnasio de verdad
+// ─────────────────────────────────────────────────────────────────────────────
+
+/* Todo lo anterior corre en escenas fabricadas con luz plana. Un gimnasio no
+ * tiene luz plana: tiene una ventana detrás del rack, fluorescentes parpadeando
+ * contra el obturador, un foco que ilumina la mitad alta del recorrido y deja la
+ * baja en sombra, y una barra que a metro y medio por segundo sale movida.
+ *
+ * Aquí no se puede pedir que mida bien pase lo que pase — hay luces con las que
+ * NO se puede medir. Lo que se le exige es la otra mitad, que es la que
+ * distingue un instrumento de un adorno: **o mide bien, o queda marcada**. Un
+ * número bonito y equivocado es peor que un fallo.
+ */
+
+bloque('La luz de un gimnasio de verdad')
+
+/** ¿La toma es honesta? O sale bien, o la puerta de calidad la descarta. Lo que
+ *  no vale es salir «buena» con la velocidad equivocada. */
+function honesta(r, vVerdad, tol = 0.05) {
+  if (!r.ok) return { ok: true, como: `no midió: ${r.detalle ?? r.motivo}` }
+  const error = Math.abs(r.vPrimera - vVerdad)
+  const bien = error <= tol
+  const marcada = r.calidad.nivel !== 'buena'
+  return {
+    ok: bien || marcada,
+    como:
+      `v₁ ${r.vPrimera.toFixed(3)} (${error >= 0 ? '+' : ''}${(r.vPrimera - vVerdad).toFixed(3)}) · ` +
+      `detección ${(r.deteccion * 100).toFixed(0)} % · ${r.reps.length} reps · calidad ${r.calidad.nivel}` +
+      (r.calidad.motivos.length ? ` (${r.calidad.motivos.join('+')})` : ''),
+    bien,
+    marcada,
+  }
+}
+
+for (const luz of ['contraluz', 'parpadeo', 'sombra', 'bandas']) {
+  const { r } = await reproducir({ politica: 'ventana', luz })
+  const v = honesta(r, 0.6)
+  caso(`${luz} · o mide bien, o queda marcada`, v.ok, v.como, 'nunca «buena» con el número mal')
+}
+
+{
+  // Poco contraste: el marcador se acerca al color del fondo. Un marcador rojo
+  // sobre el suelo de goma rojizo del área de peso libre.
+  for (const c of [0.6, 0.35, 0.2]) {
+    const { r } = await reproducir({ politica: 'ventana', contraste: c })
+    const v = honesta(r, 0.6)
+    caso(
+      `contraste al ${(c * 100).toFixed(0)} % · o mide bien, o queda marcada`,
+      v.ok,
+      v.como,
+      'nunca «buena» con el número mal',
+    )
+  }
+}
+
+{
+  // Arrastre de la exposición. A 1/60 y con la barra rápida el marcador no sale
+  // redondo, sale movido — y el color se reparte entre marcador y fondo.
+  for (const v of [0.6, 1.5]) {
+    const { r } = await reproducir({ politica: 'ventana', v, arrastre: true })
+    const ver = honesta(r, v, Math.max(0.05, v * 0.05))
+    caso(`arrastre a ${v} m/s · o mide bien, o queda marcada`, ver.ok, ver.como, 'nunca «buena» con el número mal')
+  }
+}
+
+{
+  // Y las dos juntas, que es como llega de verdad: contraluz Y barra rápida.
+  const { r } = await reproducir({ politica: 'ventana', luz: 'contraluz', v: 1.5, arrastre: true })
+  const v = honesta(r, 1.5, 0.08)
+  caso('contraluz con la barra rápida y movida · o mide bien, o queda marcada', v.ok, v.como)
+}
+
+/* Y ahora la parte que importa: BUSCAR a propósito la escena que mienta.
+ *
+ * «No la hemos encontrado» vale mucho más si se ha buscado, y hay un hueco donde
+ * tendría que estar. La puerta de calidad se apoya en la DETECCIÓN —cuántos
+ * fotogramas vieron la marca— y hay una franja en la que la marca se ve en todos
+ * y aun así el centroide está corrido: cuando la sombra no tapa la marca entera,
+ * solo un trozo. Ahí la detección sigue al 100 %, no salta ningún motivo, y el
+ * número sale con un sesgo.
+ *
+ * Se barre el borde de sombra por todo el recorrido y con varias durezas. Lo que
+ * se busca es una toma «buena» con la velocidad mal: si aparece una sola, la
+ * puerta de calidad tiene un agujero con nombre y sitio. */
+{
+  const sospechosas = []
+  let probadas = 0
+  for (const corte of [150, 190, 230, 270]) {
+    for (const oscuridad of [0.16, 0.3]) {
+      probadas++
+      const { r } = await reproducir({
+        politica: 'ventana',
+        luz: (x, y) => (y > corte ? oscuridad : 1.15),
+      })
+      if (!r.ok) continue
+      const error = Math.abs(r.vPrimera - 0.6)
+      // «Buena» es imposible aquí porque con dos marcadores siempre entra
+      // `inclinacion_no_medible`. Lo que se persigue es lo equivalente: que el
+      // ÚNICO reparo sea ése y el número esté mal — una toma que el coach leería
+      // como aceptable con la velocidad equivocada.
+      const soloEseReparo =
+        r.calidad.motivos.length === 0 ||
+        (r.calidad.motivos.length === 1 && r.calidad.motivos[0] === 'inclinacion_no_medible')
+      if (soloEseReparo && error > 0.05) {
+        sospechosas.push(`corte y=${corte} oscuridad ×${oscuridad}: v₁ ${r.vPrimera.toFixed(3)}`)
+      }
+    }
+  }
+  caso(
+    'ninguna sombra parcial cuela un número mal como toma aceptable',
+    sospechosas.length === 0,
+    `${probadas} bordes de sombra probados · ${sospechosas.length} colaron` +
+      (sospechosas.length ? `: ${sospechosas.join(' · ')}` : ''),
+    'buscado a propósito, no encontrado — que no es lo mismo que no haber mirado',
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10 · Hasta dónde llega la reja de la escala
 // ─────────────────────────────────────────────────────────────────────────────
 
 /* `escala.ts` es lo único que defiende el error que no deja rastro: el diámetro
@@ -1200,7 +1425,7 @@ for (const [ejercicio, romReal] of [['sentadilla', 0.55], ['press banca', 0.35],
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 10 · Cierre
+// 11 · Cierre
 // ─────────────────────────────────────────────────────────────────────────────
 
 const fallos = actas.filter((a) => !a.ok)
