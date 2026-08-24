@@ -38,6 +38,13 @@ igualar un número: es que **no baje** y que no aparezca ni un rojo. Si vas a ci
 un total, mídelo, no lo copies de aquí — este dato ya estuvo catorce días desfasado
 diciendo «242» y nadie lo notó.
 
+**Si tienes clonado el repo de las herramientas**, `verify` comprueba además que el
+núcleo vendorizado del encoder (`src/features/entrenar/encoder/nucleo/`) no se haya
+separado de su original. Se salta solo si ese repo no está —en el CI no está—, y se
+le puede decir dónde con `ENCODER_HERRAMIENTAS`. Existe porque el 2026-08-23 se
+descubrió que la app llevaba semanas midiendo con un núcleo viejo: la copia estaba
+intacta, las huellas en verde, y obsoleta. Ver `nucleo/ORIGEN.md`.
+
 Los mismos tres pasos corren en CI (`.github/workflows/ci.yml`) en cada push y PR.
 
 **Aviso de despliegue:** Vercel publica en producción **con solo hacer push a
