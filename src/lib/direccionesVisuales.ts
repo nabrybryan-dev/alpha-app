@@ -1,5 +1,5 @@
 /**
- * Las cinco direcciones visuales del hero, en un solo sitio.
+ * Las seis direcciones visuales del hero, en un solo sitio.
  *
  * Cada una nació de su propio dossier (`DIRECCION-A-DESPIECE.md` y hermanos) y
  * se produjo como loop de 1280x720 en WebM/AV1. Se centralizan aquí por la misma
@@ -20,7 +20,7 @@
  */
 export interface DireccionVisual {
   /** Letra del dossier que la definió. */
-  id: 'A' | 'B' | 'C' | 'D' | 'E'
+  id: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
   nombre: string
   /** Qué ocurre en el plano. Se enseña en el manual de marca. */
   frase: string
@@ -85,6 +85,14 @@ export const DIRECCIONES: DireccionVisual[] = [
     video: '/hero/hero-fisico.webm',
     poster: '/fondos/poster-fisico.jpg',
     encaje: 'origin-right scale-[1.213]',
+  },
+  {
+    id: 'F',
+    duracionS: 8.0,
+    nombre: 'Proyección',
+    frase: 'Un sprint resistido de noche: el cuerpo empuja contra la banda y la calle no se mueve.',
+    video: '/hero/hero-loop-proyeccion.webm',
+    poster: '/fondos/poster-proyeccion.jpg',
   },
 ]
 
