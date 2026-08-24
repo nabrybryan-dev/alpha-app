@@ -249,7 +249,7 @@ create or replace function public.tmp_cargar_siguiente(
   p_ajustes jsonb default '{}'::jsonb
 ) returns text language plpgsql as $fn$
 declare
-  v_uid uuid; v_num int; v_datos jsonb; v_id text;
+  v_uid uuid; v_num int; v_datos jsonb; v_id text; v_src_id text; v_activos int;
 begin
   select u.id into v_uid from public.usuarios_app u where u.nombre = p_nombre;
   if v_uid is null then return 'NO ENCONTRADO: ' || p_nombre; end if;
@@ -260,13 +260,37 @@ begin
   -- creaba M21 y M26 — el bogus que hubo que borrar a mano el 2026-08-09 y que
   -- volvió a aparecer en el ensayo del 2026-08-16, porque el molde nunca se
   -- arregló, solo el resultado.
-  select m.numero, m.datos into v_num, v_datos
+  --
+  -- Y se cuenta ANTES de leer. `select into` de plpgsql **no falla con varias
+  -- filas: se queda con una cualquiera, en silencio**. Con los 18 fantasmas del
+  -- 2026-08-16 (columna 'cerrado', JSON 'activo') había gente con dos activos, y
+  -- este clonador habría copiado el que le diera la gana sin avisar. Se cuenta
+  -- por la columna Y por el JSON, porque la app lee el JSON.
+  select count(*) into v_activos
     from public.microciclos m
-   where m.usuario_id = v_uid and m.estado = 'activo';
+   where m.usuario_id = v_uid
+     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
 
-  if v_num is null then return 'SIN ACTIVO: ' || p_nombre; end if;
+  if v_activos = 0 then return 'SIN ACTIVO: ' || p_nombre; end if;
+  if v_activos > 1 then
+    return 'ABORTA · ' || p_nombre || ' tiene ' || v_activos ||
+           ' microciclos activos. Resolver a mano antes de cargar.';
+  end if;
+
+  select m.id, m.numero, m.datos into v_src_id, v_num, v_datos
+    from public.microciclos m
+   where m.usuario_id = v_uid
+     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
 
   v_id := 'm-' || p_slug || '-' || (v_num + 1);
+
+  -- El id destino no puede existir ya. Si existe, es de otro bloque con la misma
+  -- numeración (`m-karin-5` del bloque 1 contra el M5 del bloque 2) y el
+  -- `on conflict do update` lo sobrescribiría sin dejar rastro.
+  if exists (select 1 from public.microciclos where id = v_id and id <> v_src_id
+                                                and usuario_id is distinct from v_uid) then
+    return 'ABORTA · el id ' || v_id || ' ya existe y es de otro usuario.';
+  end if;
 
   insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
   values (v_id, v_uid, v_num + 1, 'activo',
@@ -282,9 +306,25 @@ begin
   -- vieja cerró solo la columna. Como la app lee el JSON, esas 17 personas
   -- arrastraban un microciclo fantasma abierto, y la comprobación de «un solo
   -- activo» no lo veía porque contaba por la columna. Se corrigieron en bloque.
+  --
+  -- Se cierra POR ID, no por `numero`. Con dos bloques conviviendo hay números
+  -- repetidos —el M5 del bloque 1 y el M5 del bloque 2 de la misma persona— y
+  -- cerrar por número tumbaba los dos.
   update public.microciclos
      set estado = 'cerrado', datos = jsonb_set(datos, '{estado}', '"cerrado"')
-   where usuario_id = v_uid and numero = v_num and id <> v_id;
+   where id = v_src_id and id <> v_id;
+
+  -- Red de seguridad: después de cargar tiene que quedar exactamente uno activo.
+  -- Si no, se revienta la transacción entera en vez de dejar el fantasma puesto.
+  select count(*) into v_activos
+    from public.microciclos m
+   where m.usuario_id = v_uid
+     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+
+  if v_activos <> 1 then
+    raise exception 'ABORTA · % quedó con % microciclos activos tras la carga',
+      p_nombre, v_activos;
+  end if;
 
   return 'OK ' || p_slug || ' -> M' || (v_num + 1);
 end;
