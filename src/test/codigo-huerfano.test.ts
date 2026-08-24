@@ -47,6 +47,18 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'martes. En sombra hasta que la corrida de un microciclo avale que reduce la ' +
     'discrepancia. Ver Cerebro Alpha/docs/superpowers/specs/' +
     '2026-08-25-ondulacion-flexible-intra-semana.md §7.',
+  // La pantalla de palancas SÍ existe desde el 2026-08-25 (#112), pero no entra
+  // por aquí: se alimenta de `medidaDePalancas.ts`, que recibe los brazos ya
+  // medidos por `brazo-por-fotograma.mjs` fuera de la app. Nadie le dice todavía
+  // QUÉ eje había que mirar en ese ejercicio — lo elige quien lanza la medida a
+  // mano—, y eso es justo lo que resuelve esta tabla. Se enchufa cuando la
+  // exportación pase por ella en vez de por el criterio del operador.
+  'src/domain/biomecanica/palancas.ts':
+    'La tabla que dice, por patrón, qué eje mirar y contra qué línea de fuerza. Hoy ' +
+    'la elección del eje la hace a mano quien lanza `exportar-medida.mjs`; esta tabla ' +
+    'la haría sola. Vive suelta a propósito para que el conocimiento se pueda revisar ' +
+    'sin esperar a que la exportación la consuma. Ver ' +
+    'docs/specs/2026-08-24-palancas-y-paralelogramo-diseno.md.',
 }
 
 /**
@@ -106,11 +118,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/nutricion/embarazo.ts#puedeQuedarEmbarazada':
     'La encuesta ya recoge «no puedo quedar embarazada» (PR #41), pero todavía nadie ' +
     'consulta la respuesta para saltarse las preguntas del ciclo.',
-  'src/domain/taxonomia.ts#grupoPrimario':
-    'Llegó con la taxonomía por acción articular (PR #44, 2026-08-15). Devuelve el grupo ' +
-    'que recibe el trabajo directo, «para etiquetar, no para contar», y todavía no hay ' +
-    'pantalla que etiquete: la rejilla de volumen pinta los aportes fraccionados, no el ' +
-    'grupo primario. Enchufarla ahí o borrarla — lo decide quien escribió la taxonomía.',
 
   // Línea base heredada del 2026-08-12: medida, no auditada. Al tocar cualquiera de
   // estos módulos, resolver su entrada (enchufarla, borrarla o escribirle el motivo).
