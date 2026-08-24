@@ -88,6 +88,32 @@ export const EJES_DERIVADOS: Partial<Record<Articulacion, readonly Articulacion[
   escapula: ['hombro'],
 }
 
+/**
+ * Lo que ese eje tiene que hacer para que el protagonista pueda trabajar.
+ *
+ * Un eje no protagonista no es solo «el que acompaña»: tiene un trabajo
+ * geométrico concreto, y hay dos.
+ *
+ * - `neutralizar` — colocarlo de modo que su brazo externo sea ≈ 0, para que la
+ *   carga NO se quede ahí y siga hasta el eje protagonista. El caso de manual
+ *   es la rodilla del peso muerto: en vertical sobre el tobillo no tiene brazo,
+ *   y toda la exigencia se va a la cadera. Mal colocada, se queda una parte por
+ *   el camino y el ejercicio deja de estimular lo que se prescribió.
+ * - `congelar` — mantener su ángulo, para que el RECORRIDO sea del protagonista
+ *   y no suyo. El codo del curl: si viaja hacia delante, el hombro hace parte
+ *   del trabajo y el bíceps se acorta menos de lo que marca el recorrido.
+ *
+ * Los dos son comprobables con una cámara y los dos se pueden decir en una
+ * frase, que es lo que los hace útiles en el gimnasio.
+ */
+export interface ReglaDeEje {
+  tipo: 'neutralizar' | 'congelar'
+  /** Qué tiene que quedar sobre qué. Es la frase que sale a pantalla. */
+  regla: string
+  toleranciaMm: number
+  porQue: string
+}
+
 export interface Eje {
   articulacion: Articulacion
   protagonismo: Protagonismo
@@ -102,6 +128,8 @@ export interface Eje {
   brazoInternoMm: readonly [number, number]
   /** Desde dónde se ve girar este eje. */
   vista: Vista
+  /** Qué hay que hacer con este eje para que el protagonista trabaje. */
+  regla?: ReglaDeEje
   nota?: string
 }
 

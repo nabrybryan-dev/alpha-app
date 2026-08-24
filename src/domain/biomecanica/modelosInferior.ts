@@ -62,6 +62,9 @@ export const MODELOS_INFERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
         'Ese momento frontal NO se ve en el plano sagital: la cámara de lado no lo mide.', 'frontal'),
       M('tobillo', 'secundario', 'dorsiflexion', ['Pantorrillas'], [40, 55],
         'La dorsiflexión disponible limita cuánto puede avanzar la rodilla, y con ello el reparto.'),
+      M('lumbar', 'estabilizador', 'isometrico', ['Lumbares', 'Abdomen'], [50, 60],
+        'Aquí el torso no es un acompañante: su ángulo ES la variante. Vertical manda el ' +
+        'glúteo, inclinado manda el aductor, y el eje lumbar es el que lo delata.'),
     ],
     linea: { origen: 'carga-externa' },
     marcas: ['tobillo', 'rodilla', 'cadera', 'hombro'],

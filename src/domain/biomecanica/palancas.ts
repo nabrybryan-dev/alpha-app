@@ -67,6 +67,7 @@
 
 import { categoriaCanonica, grupoPrimario, type Grupo } from '../taxonomia'
 import { MODELOS, VARIANTES } from './modelos'
+import { REGLAS_DE_EJE } from './reglas'
 import type { Alineacion, Articulacion, Eje, ModeloDePalanca, Protagonismo, Vista } from './tipos'
 
 export * from './tipos'
@@ -77,6 +78,25 @@ function normalizar(texto: string): string {
     .replace(/[̀-ͯ]/g, '')
     .toUpperCase()
     .trim()
+}
+
+/**
+ * Pega a cada eje lo que tiene que hacer para que el protagonista trabaje.
+ *
+ * Las reglas viven aparte (`reglas.ts`) para poder leerlas todas juntas —son el
+ * texto que alguien lee en el móvil— y se juntan aquí, no en la tabla, para que
+ * nadie tenga que acordarse de mirar en dos sitios.
+ */
+function conReglas(modelo: ModeloDePalanca): ModeloDePalanca {
+  const reglas = REGLAS_DE_EJE[modelo.patron]
+  if (!reglas) return modelo
+  return {
+    ...modelo,
+    ejes: modelo.ejes.map((eje) => {
+      const regla = reglas[eje.articulacion]
+      return regla ? { ...eje, regla } : eje
+    }),
+  }
 }
 
 /**
@@ -97,9 +117,10 @@ export function modeloDePalanca(
   if (variantes) {
     const nombre = normalizar(nombreEjercicio)
     const declarada = variantes.find((v) => v.patron.test(nombre))
-    if (declarada) return declarada.modelo
+    if (declarada) return conReglas(declarada.modelo)
   }
-  return MODELOS[canonica] ?? undefined
+  const modelo = MODELOS[canonica]
+  return modelo ? conReglas(modelo) : undefined
 }
 
 export interface PlanDeMedida {
@@ -125,6 +146,15 @@ export interface PlanDeMedida {
   vista: Vista
   /** Ejes que NO se ven desde esa vista, con la vista que harían falta. */
   fueraDeVista: readonly string[]
+  /**
+   * En qué articulación se inserta el grupo objetivo — el eje donde ese músculo
+   * gira el segmento y, por tanto, donde se genera la tensión que buscamos.
+   *
+   * Es el eje que hay que medir para saber si el ejercicio está estimulando lo
+   * que se prescribió. Los demás no sobran: se colocan para que la carga llegue
+   * hasta aquí en vez de quedarse por el camino.
+   */
+  ejeObjetivo?: Articulacion
 }
 
 /**
@@ -150,9 +180,14 @@ export function planDeMedida(categoria: string, nombreEjercicio = ''): PlanDeMed
     .filter((e) => e.vista !== modelo.vista)
     .map((e) => `${e.articulacion}: ${e.accion} solo se ve con la cámara ${e.vista}`)
 
+  const grupoObjetivo = grupoPrimario(categoria, nombreEjercicio)
+
   return {
     ejes,
-    grupoObjetivo: grupoPrimario(categoria, nombreEjercicio),
+    grupoObjetivo,
+    ejeObjetivo: grupoObjetivo
+      ? ejes.find((e) => e.motores.includes(grupoObjetivo))?.articulacion
+      : undefined,
     marcas: modelo.marcas,
     linea: modelo.linea,
     alineacion: modelo.alineacion,

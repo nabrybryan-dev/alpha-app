@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORIAS, grupoPrimario, ORDEN_GRUPOS, type Categoria } from '../taxonomia'
+import { REGLAS_DE_EJE } from './reglas'
 import {
   EJES_DERIVADOS,
   MODELOS_DE_PALANCA,
@@ -128,6 +129,62 @@ describe('invariantes de cada modelo', () => {
       expect(alineacion.porQue.length, categoria).toBeGreaterThan(0)
       // Por debajo de 15 mm el ruido de la propia medida manda sobre el consejo.
       expect(alineacion.toleranciaMm, categoria).toBeGreaterThanOrEqual(15)
+    }
+  })
+})
+
+describe('lo que cada eje tiene que hacer para que el protagonista trabaje', () => {
+  /**
+   * El caso que enseña la idea: en un peso muerto la rodilla no «acompaña».
+   * Colocada en vertical sobre el tobillo no tiene brazo, no se queda nada, y
+   * toda la exigencia sigue hasta la cadera. Adelantada, una parte se va al
+   * cuádriceps y la bisagra deja de estimular lo que se prescribió.
+   */
+  it('la rodilla del peso muerto se neutraliza para que la carga llegue a la cadera', () => {
+    const plan = planDeMedida('BISAGRA DE CADERA', 'PESO MUERTO RUMANO')
+    expect(plan?.ejeObjetivo).toBe('cadera')
+
+    const rodilla = plan?.ejes.find((e) => e.articulacion === 'rodilla')
+    expect(rodilla?.regla?.tipo).toBe('neutralizar')
+    expect(rodilla?.regla?.regla).toContain('tobillo')
+  })
+
+  it('el codo del curl se congela: el recorrido es del codo, no del hombro', () => {
+    const hombro = planDeMedida('FLEXIÓN DE CODO')?.ejes.find((e) => e.articulacion === 'hombro')
+    expect(hombro?.regla?.tipo).toBe('neutralizar')
+    expect(planDeMedida('FLEXIÓN DE CODO')?.ejeObjetivo).toBe('codo')
+  })
+
+  it('ningún eje protagonista lleva regla: es al que se le manda la carga, no el que se aparta', () => {
+    for (const categoria of conModelo) {
+      for (const eje of modelo(categoria).ejes) {
+        if (eje.protagonismo !== 'principal') continue
+        const regla = REGLAS_DE_EJE[categoria]?.[eje.articulacion]
+        // Salvo cuando ese eje es principal Y hay que sostenerlo quieto: la
+        // lumbar de la bisagra manda y aun así se congela.
+        if (regla) expect(regla.tipo, `${categoria} · ${eje.articulacion}`).toBe('congelar')
+      }
+    }
+  })
+
+  it('toda regla apunta a un eje que existe en su patrón', () => {
+    for (const [categoria, reglas] of Object.entries(REGLAS_DE_EJE)) {
+      const m = MODELOS_DE_PALANCA[categoria as Categoria]
+      expect(m, categoria).not.toBeNull()
+      const articulaciones = new Set(m?.ejes.map((e) => e.articulacion))
+      for (const articulacion of Object.keys(reglas ?? {})) {
+        expect(articulaciones, `${categoria} · ${articulacion}`).toContain(articulacion)
+      }
+    }
+  })
+
+  it('cada regla dice qué hacer, cuánto se tolera y por qué', () => {
+    for (const reglas of Object.values(REGLAS_DE_EJE)) {
+      for (const [articulacion, regla] of Object.entries(reglas ?? {})) {
+        expect(regla.regla.length, articulacion).toBeGreaterThan(0)
+        expect(regla.porQue.length, articulacion).toBeGreaterThan(0)
+        expect(regla.toleranciaMm, articulacion).toBeGreaterThanOrEqual(15)
+      }
     }
   })
 })
