@@ -13,3 +13,6 @@ RESULTADO.local.txt
 # Cargas de asesorados: SIEMPRE traen datos personales (nombres, correos,
 # medidas, notas de salud). Nunca deben entrar al repo.
 supabase/_app-cargar-*.sql
+
+# Estado local del CLI de Supabase
+supabase/.temp/
