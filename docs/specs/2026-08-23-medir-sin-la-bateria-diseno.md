@@ -25,7 +25,7 @@ El banco corre con `npm run banco-encoder`, o directamente con `node
 scripts/banco-encoder.mjs`. **Va aparte de vitest a propósito**: se corre sin
 instalar nada, que es exactamente la situación en la que hace falta.
 
-Ciento dos casos. Rejilla de fps × velocidad × %PV, los dos sentidos
+Ciento tres casos. Rejilla de fps × velocidad × %PV, los dos sentidos
 (subir y bajar), recorridos cortos, velocidades extremas, ruido de centroide,
 fotogramas perdidos, la prueba de gravedad, imágenes fabricadas para el color y
 para el disco, y la cadena entera fotograma a fotograma.
@@ -318,6 +318,79 @@ Con dos marcadores, además, ninguna toma puede salir «buena»: `calificar` met
 siempre `inclinacion_no_medible`, porque con dos marcas el escorzo entra ciego.
 Así que el barrido persigue el equivalente —que ése sea el único reparo y el
 número esté mal— y no el literal, que sería trivial.
+
+---
+
+## 11 · Y entonces apareció el otro repo
+
+A mitad de esto, `herramientas/encoder-camara` **apareció en la máquina** — lo
+trajo la sesión de migración. Con él, las dos baterías originales, 60 fotogramas
+de gimnasio con la verdad medida a mano con una rejilla, y el
+`comprobar-copia-en-la-app.mjs` que esta spec pedía correr «lo primero de todo».
+
+Se corrió lo primero de todo. **Las dos copias se habían separado**, que es
+exactamente el riesgo que `ORIGEN.md` describe y que ningún CI puede ver, porque
+son dos repos. La app llevaba semanas midiendo con un núcleo viejo al que le
+faltaban dos arreglos:
+
+- **`disco.js`: el ajuste de ELIPSE.** Un disco solo se ve redondo si la cámara
+  está perpendicular, y en un gimnasio nunca lo está. Metiéndole una
+  circunferencia pasaban dos cosas a la vez: a 25° la herramienta **no fijaba
+  nada**, y la escala se quedaba corta un 6-9 % sistemático, porque la
+  circunferencia cae en el radio medio y el diámetro real solo se ve entero en el
+  eje mayor. Más `afinarContorno`, que corrige el sesgo contrario —con ruido, un
+  disco de 70 px se medía en 87.
+- **`analisis.js`: `GIRO_CALIDAD_GRADOS`.** El giro (la diana torcida como un
+  cuadro mal colgado) tumba la toma igual que el escorzo, y la barra de medidas
+  solo enseñaba el escorzo. La tanda del 22 de agosto salió con `angulo` en las
+  diez tomas con el indicador en verde.
+
+Recopiado verbatim, huellas actualizadas, las dos baterías del otro repo en verde
+(**42 + 14 = los 56 casos**), y los 103 del banco de aquí también. El indicador en
+vivo enseña ahora los dos ángulos, que es la mitad del arreglo que faltaba en la
+app.
+
+Medido antes y después con el mismo caso del banco:
+
+| | núcleo viejo | núcleo nuevo |
+|---|---|---|
+| Disco perpendicular de 60 px | «cámara a **20°**» | cámara a 0° |
+| Disco perpendicular de 90 px | «cámara a **22°**» | cámara a 0° |
+| Disco a 30° de verdad | 31° | 30° |
+
+O sea que la app venía mandando mover el trípode con la cámara perfectamente
+puesta.
+
+### Los 60 fotogramas reales, que es lo que ninguna escena fabricada sustituye
+
+Las escenas de este banco las pasaba todas. Los fotogramas reales, no:
+
+| | |
+|---|---|
+| VERDE (±2 % de escala) | **8 · 13 %** |
+| ÁMBAR (±5 %) | 5 · 8 % |
+| ROJO | **29 · 48 %** |
+| PERDIDO (no fija nada) | **18 · 30 %** |
+
+Corren ahora también desde aquí (§11 del banco), pasando por `fijarDisco` —la
+ruta del teléfono— y no por el núcleo a pelo, y se saltan con un aviso si el otro
+repo no está. El listón no es «que salga bien», porque hoy no sale bien y un rojo
+permanente se acaba ignorando: el listón es **que no baje del 18 %**.
+
+**Se buscó un guardián en la capa de app y no lo hay.** La hipótesis era que un
+ajuste que se va a la pared se delata por caer lejos del dedo. Es falsa: los
+malos caen *más cerca* del centro que los buenos (0,14 contra 0,21 de radio), y
+ni la redondez ni la cobertura los separan. Los 247 % de error vienen con un
+contorno del 84 % y una redondez de 0,041 — indistinguibles de un acierto.
+
+Y la reja del ROM que se montó en el §9 caza **4 de esas 29**: pilla la
+catástrofe (un ajuste 3,5 veces mayor) y no pilla el 5-25 %, que es justo el
+rango que mueve una decisión de carga.
+
+Conclusión, que va escrita en el aviso de la propia pantalla: **con disco, el %PV
+aguanta y los m/s no**, mientras la prueba de gravedad no apruebe en ese sitio.
+El %PV es un cociente entre dos velocidades medidas con la misma regla
+equivocada; los metros por segundo llevan la regla dentro.
 
 ---
 

@@ -19,6 +19,9 @@
  * nada, que es la situación en la que este archivo hace falta.
  */
 
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   analizarSerie,
   detectarDianaCuatro,
@@ -35,6 +38,7 @@ import {
 } from '../src/features/entrenar/encoder/nucleo/disco.js'
 
 const DETALLE = process.argv.includes('--detalle')
+const AQUI = dirname(fileURLToPath(import.meta.url))
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Azar reproducible
@@ -1425,7 +1429,99 @@ for (const [ejercicio, romReal] of [['sentadilla', 0.55], ['press banca', 0.35],
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 11 · Cierre
+// 11 · Fotogramas REALES, si el repo de las herramientas está a mano
+// ─────────────────────────────────────────────────────────────────────────────
+
+/* Todo lo anterior es fabricado, y lo fabricado es amable: el borde de un disco
+ * compuesto es perfecto y no lleva sombra propia ni polvo pegados. En
+ * `herramientas/encoder-camara/banco` hay 60 fotogramas —16 reales medidos a
+ * mano con una rejilla, 44 compuestos— con la verdad apuntada por una persona
+ * mirando la imagen, que es la única verdad que no se comprueba a sí misma.
+ *
+ * Ese repo es OTRO repo y puede no estar en esta máquina —de hecho no estaba
+ * cuando se escribió este banco—, así que esto se salta con un aviso en vez de
+ * fallar. Un banco que se pone rojo porque falta algo que no depende de él
+ * enseña a ignorar los rojos.
+ *
+ * Y no se llama a `identificarEstructura` directamente, que es lo que hace el
+ * banco de allí: se llama a `seguimiento.fijarDisco`, que es **la ruta que corre
+ * en el teléfono**. Si algún día la política de la app empeora lo que el núcleo
+ * hace bien, aquí es donde se ve.
+ */
+
+bloque('Fotogramas reales del gimnasio')
+
+{
+  const raizHerramientas = join(
+    AQUI, '..', '..', 'cerebro-alpha', 'herramientas', 'encoder-camara', 'banco',
+  )
+  const casos = ['casos.json', 'casos-compuestos.json'].flatMap((f) => {
+    try { return JSON.parse(readFileSync(join(raizHerramientas, f), 'utf8')) } catch { return [] }
+  })
+
+  if (casos.length === 0) {
+    console.log(
+      '  — saltado: no está `herramientas/encoder-camara/banco`. Es otro repo.\n' +
+      '    Sin él este banco solo prueba escenas fabricadas, que son más limpias\n' +
+      '    que cualquier gimnasio.',
+    )
+  } else {
+    const { nuevoSeguimiento } = await import('../src/features/entrenar/encoder/seguimiento.ts')
+    const marcador = { verde: 0, ambar: 0, rojo: 0, perdido: 0 }
+    const peores = []
+
+    for (const c of casos) {
+      let datos
+      try {
+        datos = new Uint8ClampedArray(readFileSync(join(raizHerramientas, 'fotogramas', c.crudo)))
+      } catch { continue }
+      const seg = nuevoSeguimiento()
+      const r = seg.fijarDisco(datos, c.ancho, c.alto, c.toque.x, c.toque.y, {
+        radioMax: Math.round(c.alto * 0.45),
+      })
+      if (r.tipo !== 'disco') {
+        marcador.perdido++
+        peores.push({ nombre: c.nombre, que: r.motivo ?? r.tipo })
+        continue
+      }
+      // La escala es el SEMIEJE MAYOR: un disco inclinado se ve aplastado en una
+      // dirección y entero en la otra. Medir contra el radio medio premiaría a un
+      // detector que se queda corto justo cuando la cámara está torcida.
+      const error = ((r.ajuste.r - c.verdad.rMayor) / c.verdad.rMayor) * 100
+      const abs = Math.abs(error)
+      // ±2 % no es gusto: el motor mueve la carga un 5 % cuando la desviación
+      // llega a 0,06 m/s, así que un 2 % de escala ya es media decisión.
+      if (abs <= 2) marcador.verde++
+      else if (abs <= 5) marcador.ambar++
+      else { marcador.rojo++; peores.push({ nombre: c.nombre, que: `${error.toFixed(0)} % de escala` }) }
+    }
+
+    const total = marcador.verde + marcador.ambar + marcador.rojo + marcador.perdido
+    const utiles = marcador.verde + marcador.ambar
+    console.log(
+      `  ${total} fotogramas · verde ${marcador.verde} · ámbar ${marcador.ambar} · ` +
+      `rojo ${marcador.rojo} · perdido ${marcador.perdido}`,
+    )
+    if (DETALLE) for (const p of peores.slice(0, 12)) console.log(`     ${p.nombre.padEnd(42)} ${p.que}`)
+
+    /* El listón NO es «que salga bien»: hoy no sale bien, y ponerlo alto sería
+     * escribir un rojo permanente que se acaba ignorando. El listón es que **no
+     * empeore**, y el número de hoy queda aquí escrito para que se note si baja.
+     * Que la referencia de disco solo dé una escala utilizable en uno de cada
+     * cinco fotogramas reales es el hallazgo, no el fallo del banco. */
+    const LISTON = 0.18
+    caso(
+      'la referencia de disco no empeora sobre fotogramas reales',
+      total > 0 && utiles / total >= LISTON,
+      `${utiles} de ${total} dentro del ±5 % (${((utiles / total) * 100).toFixed(0)} %) · ` +
+        `${marcador.perdido} sin fijar`,
+      `hoy es el 22 %; el listón está en el ${LISTON * 100} % para que solo salte si baja`,
+    )
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12 · Cierre
 // ─────────────────────────────────────────────────────────────────────────────
 
 const fallos = actas.filter((a) => !a.ok)

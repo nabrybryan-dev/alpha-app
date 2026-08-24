@@ -204,5 +204,11 @@ export function gLocal(latitudGrados: number, altitudM?: number): number
 
 /** Donde la MEDICION deja de valer. */
 export const INCLINACION_CALIDAD_GRADOS: number
+/** Donde el GIRO —la referencia torcida como un cuadro mal colgado, dentro del
+ *  plano de la imagen— tumba la toma. No es lo mismo que la inclinación, que es
+ *  escorzo. Enseñar solo la inclinación en vivo mientras la puerta rechazaba por
+ *  giro costó la tanda entera del 22 de agosto de 2026: diez tomas grabadas con
+ *  el indicador en verde y descartadas después. */
+export const GIRO_CALIDAD_GRADOS: number
 /** Donde la GEOMETRIA de las cuatro esquinas pierde precision. No es el mismo. */
 export const INCLINACION_MAX_GRADOS: number

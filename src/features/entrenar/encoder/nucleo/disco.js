@@ -123,6 +123,61 @@ export function candidatosPorRayos(datos, ancho, alto, centro, opciones = {}) {
   return { porRayo, nRayos }
 }
 
+/** Cuánto se aparta un punto de una elipse, en píxeles, medido radialmente. */
+export function desvioDeElipse(punto, elipse) {
+  const dx = punto.x - elipse.x, dy = punto.y - elipse.y
+  const cos = Math.cos(elipse.giro), sin = Math.sin(elipse.giro)
+  const u = (dx * cos + dy * sin) / elipse.semiMayor
+  const v = (-dx * sin + dy * cos) / elipse.semiMenor
+  const norma = Math.hypot(u, v)
+  if (!Number.isFinite(norma)) return Infinity
+  return Math.abs(norma - 1) * elipse.semiMayor
+}
+
+/**
+ * Aprieta el contorno: repite el ajuste quedándose con el borde MÁS CERCANO a la
+ * elipse que ya se tiene, dentro de una banda estrecha.
+ *
+ * Sin esto el radio sale sistemáticamente GRANDE, y no por poco: con ruido alto,
+ * un disco de 70 px se medía en 87. La causa está en el voto — su tolerancia es
+ * relativa (±25 % del radio), así que cuanto mayor es el radio más ancha es la
+ * red, y con ruido el apoyo se consigue barato ahí fuera. El resultado es un
+ * sesgo que siempre empuja hacia afuera, nunca hacia adentro, y eso es escala:
+ * un 13 % de más en el radio es un 13 % de más en toda velocidad.
+ *
+ * La banda estrecha invierte el incentivo: ya no gana el radio que reúne más
+ * bordes cualesquiera, gana el que reúne los bordes que de verdad caen sobre una
+ * elipse. Se itera porque la primera pasada aún arrastra el sesgo de la anterior.
+ */
+export function afinarContorno(porRayo, nRayos, elipse, opciones = {}) {
+  // La banda se estrecha por pasos en vez de empezar apretada. Empezando en
+  // 0,10 el afinado no puede ENSANCHAR la elipse: selecciona puntos cerca de la
+  // forma que ya tiene y esa forma se congela. Con un disco a 10° —una elipse de
+  // relación 1,016— eso borraba la inclinación entera y la devolvía como 0°.
+  const { bandas = [0.25, 0.15, 0.10], apoyoMin = 0.5 } = opciones
+  let mejorElipse = elipse
+  let mejoresPuntos = null
+  for (const banda of bandas) {
+    const puntos = []
+    for (const lista of porRayo) {
+      let elegido, mejorD = Infinity
+      for (const p of lista) {
+        const d = desvioDeElipse(p, mejorElipse)
+        if (d > mejorElipse.semiMayor * banda) continue
+        if (d < mejorD) { mejorD = d; elegido = p }
+      }
+      if (elegido) puntos.push(elegido)
+    }
+    if (puntos.length < nRayos * apoyoMin) break
+    const circulo = ajusteRobusto(puntos)
+    const nueva = circulo && elipseRobusta(puntos, circulo)
+    if (!nueva) break
+    mejorElipse = { ...nueva, x: circulo.x, y: circulo.y }
+    mejoresPuntos = puntos
+  }
+  return mejoresPuntos ? { elipse: mejorElipse, puntos: mejoresPuntos } : undefined
+}
+
 /**
  * ¿En qué radio coinciden más direcciones? Ese es el contorno.
  *
@@ -189,9 +244,13 @@ export function radioMasVotado(datos, ancho, alto, centro, porRayo, nRayos, opci
     // de 51 a 69. Por eso NO se puntúa por radio constante —eso castigaría el
     // descentrado igual que castiga un rectángulo— sino por lo bien que los
     // puntos elegidos caen en UNA CIRCUNFERENCIA, que absorbe el desplazamiento.
-    const ajuste = ajusteRobusto(elegidos)
-    if (!ajuste || !(ajuste.r > 0)) continue
-    const redondez = ajuste.residuo / ajuste.r
+    // Se puntúa con ELIPSE. Con circunferencia, un disco inclinado 40° puntuaba
+    // peor que la pared por el simple hecho de estar torcido.
+    const circulo = ajusteRobusto(elegidos)
+    if (!circulo || !(circulo.r > 0)) continue
+    const ajuste = elipseRobusta(elegidos, circulo)
+    if (!ajuste || !(ajuste.semiMayor > 0)) continue
+    const redondez = ajuste.residuo / ajuste.semiMayor
 
     // Y la física del canto: dentro y fuera tienen que diferenciarse en el mismo
     // sentido en todas las direcciones. La pared del gimnasio da 51 % —una
@@ -210,9 +269,12 @@ export function radioMasVotado(datos, ancho, alto, centro, porRayo, nRayos, opci
     if (coherencia < coherenciaMin) continue
 
     evaluados.push({
-      R, media: ajuste.r, apoyo, redondez, coherencia,
+      R, media: ajuste.semiMayor, apoyo, redondez, coherencia, circulo,
+      // El centro viaja siempre con la elipse: `elipseDesdeCentro` solo devuelve
+      // ejes, y quien la reciba no tiene por qué saber de dónde salió el centro.
+      ajuste: { ...ajuste, x: circulo.x, y: circulo.y },
       puntuacion: (apoyo * coherencia) / (1 + redondez * 10),
-      puntos: elegidos, ajuste,
+      puntos: elegidos,
     })
   }
   if (!evaluados.length) return undefined
@@ -222,9 +284,33 @@ export function radioMasVotado(datos, ancho, alto, centro, porRayo, nRayos, opci
   // el canto. Medido con la barra en el suelo, el buje ganaba por un 4 % y
   // devolvía 32 px donde el disco medía 103.
   const mejor = Math.max(...evaluados.map((e) => e.puntuacion))
-  return evaluados
+  const elegido = evaluados
     .filter((e) => e.puntuacion >= mejor * margenEmpate)
     .reduce((a, b) => (b.media > a.media ? b : a))
+
+  if (!elegido.ajuste || !elegido.circulo) return elegido
+
+  // El afinado solo se aplica si el contorno viene SUCIO. El sesgo hacia afuera
+  // que corrige nace del ruido; con un contorno limpio no hay nada que apretar y
+  // sí algo que perder: una elipse a 10° de cámara se aparta medio píxel de la
+  // circunferencia, y reelegir puntos dentro de una banda la borra entera —el
+  // ángulo pasaba de 10° a 0°—. Por debajo del 3 % de residuo se deja como está.
+  const suciedad = elegido.ajuste.residuo / elegido.ajuste.semiMayor
+  if (suciedad < 0.03) return elegido
+
+  const partida = { ...elegido.ajuste, x: elegido.circulo.x, y: elegido.circulo.y }
+  const apretado = afinarContorno(porRayo, nRayos, partida)
+  if (!apretado) return elegido
+  return {
+    ...elegido,
+    media: apretado.elipse.semiMayor,
+    apoyo: apretado.puntos.length / nRayos,
+    puntos: apretado.puntos,
+    // Las esquinas se juzgan con el contorno ANCHO, antes de apretar. Apretar
+    // descarta justo los puntos que se salen —que en un rectángulo son las
+    // esquinas—, así que después de afinar cualquier cosa parece una elipse.
+    ajuste: { ...apretado.elipse, esquinas: Math.max(apretado.elipse.esquinas ?? 0, elegido.ajuste.esquinas ?? 0) },
+  }
 }
 
 /** Sistema 3x3 por regla de Cramer. Devuelve undefined si es degenerado. */
@@ -281,6 +367,118 @@ export function ajustarCircunferencia(puntos) {
   return { x: cx, y: cy, r, residuo: residuo / n }
 }
 
+/** Elimina un sistema n×n por Gauss con pivoteo. undefined si es singular. */
+export function resolverNxN(A, b) {
+  const n = A.length
+  const M = A.map((fila, i) => [...fila, b[i]])
+  for (let col = 0; col < n; col++) {
+    let piv = col
+    for (let f = col + 1; f < n; f++) if (Math.abs(M[f][col]) > Math.abs(M[piv][col])) piv = f
+    if (Math.abs(M[piv][col]) < 1e-12) return undefined
+    ;[M[col], M[piv]] = [M[piv], M[col]]
+    for (let f = 0; f < n; f++) {
+      if (f === col) continue
+      const k = M[f][col] / M[col][col]
+      for (let c = col; c <= n; c++) M[f][c] -= k * M[col][c]
+    }
+  }
+  return M.map((fila, i) => fila[n] / fila[i])
+}
+
+/**
+ * Ajuste de ELIPSE, que es lo que de verdad se ve.
+ *
+ * Un disco es un círculo, pero su imagen solo es un círculo si la cámara está
+ * perpendicular a su cara. En cuanto se tuerce —y en un gimnasio siempre se
+ * tuerce— es una elipse, y ajustarle una circunferencia tiene dos consecuencias
+ * que se pagan en sitios distintos:
+ *
+ * 1. **La detección se cae.** El residuo de meter una circunferencia en una
+ *    elipse crece con la inclinación: a 25° ya roza el 8 % que separa «disco» de
+ *    «no es redondo», y a 40° lo dobla. Medido en el banco: a 25° y a 40° la
+ *    herramienta no fijaba nada.
+ * 2. **La escala se queda corta.** La circunferencia ajustada cae en el radio
+ *    MEDIO, y el diámetro real del disco se ve entero solo en el eje MAYOR. Son
+ *    6-9 % de menos, sistemático, que entran multiplicando en toda velocidad.
+ *
+ * Esto ya estaba escrito en la doctrina del motor para la diana de cuatro
+ * marcas: `sigma_max` es la escala, inmune al escorzo, y `sigma_min/sigma_max`
+ * es el coseno del ángulo. La elipse del disco es el mismo teorema con otra
+ * forma: semieje mayor = escala, menor/mayor = cos θ.
+ *
+ * Ajusta la cónica a·x² + b·xy + c·y² + d·x + e·y − 1 = 0 por mínimos cuadrados,
+ * con los puntos centrados y normalizados antes (si no, x² y x conviven en la
+ * misma matriz con seis órdenes de magnitud de diferencia y el sistema se vuelve
+ * numéricamente sordo).
+ */
+export function ajustarElipse(puntos) {
+  if (puntos.length < 6) return undefined
+  const n = puntos.length
+  const mx = puntos.reduce((s, p) => s + p.x, 0) / n
+  const my = puntos.reduce((s, p) => s + p.y, 0) / n
+  const escala = Math.sqrt(puntos.reduce((s, p) => s + (p.x - mx) ** 2 + (p.y - my) ** 2, 0) / n) || 1
+  const q = puntos.map((p) => ({ x: (p.x - mx) / escala, y: (p.y - my) / escala }))
+
+  // Normales de mínimos cuadrados para [a,b,c,d,e] con el término independiente
+  // fijado a −1: el origen está dentro de la elipse tras centrar, así que ese
+  // coeficiente no puede ser cero y la normalización es legítima.
+  const filas = q.map((p) => [p.x * p.x, p.x * p.y, p.y * p.y, p.x, p.y])
+  const A = Array.from({ length: 5 }, (_, i) => Array.from({ length: 5 }, (_, j) =>
+    filas.reduce((s, f) => s + f[i] * f[j], 0)))
+  const bb = Array.from({ length: 5 }, (_, i) => filas.reduce((s, f) => s + f[i], 0))
+  const sol = resolverNxN(A, bb)
+  if (!sol) return undefined
+  const [a, b, c, d, e] = sol
+  const f = -1
+
+  // ¿Es una elipse? b² − 4ac < 0. Si no, lo que se tocó no era un disco.
+  if (!(b * b - 4 * a * c < 0)) return undefined
+
+  const den = 4 * a * c - b * b
+  const x0 = (b * e - 2 * c * d) / den
+  const y0 = (b * d - 2 * a * e) / den
+  const F0 = a * x0 * x0 + b * x0 * y0 + c * y0 * y0 + d * x0 + e * y0 + f
+  // Autovalores de [[a, b/2], [b/2, c]]: los ejes de la elipse.
+  const media = (a + c) / 2
+  const raiz = Math.sqrt(((a - c) / 2) ** 2 + (b / 2) ** 2)
+  const l1 = media + raiz, l2 = media - raiz
+  if (!(l1 > 0 && l2 > 0) || F0 >= 0) return undefined
+  const ejeA = Math.sqrt(-F0 / l2)   // el menor autovalor da el eje MAYOR
+  const ejeB = Math.sqrt(-F0 / l1)
+  // `atan2(b, a−c)` apunta al autovector del autovalor MAYOR, que es el eje
+  // MENOR de la elipse. El eje mayor está a 90° de ahí, y confundirlos no cambia
+  // los ejes pero sí el residuo: mide contra una elipse girada un cuarto de
+  // vuelta y sale enorme con los datos perfectos.
+  const giro = 0.5 * Math.atan2(b, a - c) + Math.PI / 2
+
+  // Residuo geométrico aproximado, en píxeles del original.
+  const cos = Math.cos(giro), sin = Math.sin(giro)
+  const residuos = q.map((p) => {
+    const dx = p.x - x0, dy = p.y - y0
+    const u = (dx * cos + dy * sin) / ejeA
+    const v = (-dx * sin + dy * cos) / ejeB
+    return Math.abs(Math.hypot(u, v) - 1) * ejeA * escala
+  })
+  const residuo = Math.sqrt(residuos.reduce((s, r) => s + r * r, 0) / residuos.length)
+
+  return {
+    x: mx + x0 * escala, y: my + y0 * escala,
+    semiMayor: ejeA * escala, semiMenor: ejeB * escala,
+    giro, residuo, residuos,
+  }
+}
+
+/** Ajuste de elipse descartando el 25 % de puntos peores y repitiendo. */
+export function ajusteRobustoElipse(puntos) {
+  const primero = ajustarElipse(puntos)
+  if (!primero) return undefined
+  const orden = puntos
+    .map((p, i) => ({ p, r: primero.residuos[i] }))
+    .sort((u, v) => u.r - v.r)
+  const buenos = orden.slice(0, Math.max(6, Math.floor(puntos.length * 0.75))).map((o) => o.p)
+  return ajustarElipse(buenos) ?? primero
+}
+
 /** Ajuste con una pasada robusta: descarta los puntos que se van del consenso. */
 export function ajusteRobusto(puntos) {
   const primero = ajustarCircunferencia(puntos)
@@ -329,9 +527,134 @@ export function relacionDeEjes(puntos, centro) {
   const c = resolver3x3(M, b)
   if (!c) return undefined
   const [c0, c1, c2] = c
-  const A = Math.hypot(c1, c2)
-  if (!(c0 - A > 0)) return undefined
+  const Abruto = Math.hypot(c1, c2)
   return (c0 + A) / (c0 - A)
+}
+
+/**
+ * Los DOS ejes de la elipse, a partir de un centro ya conocido.
+ *
+ * Ajusta r(θ) = c₀ + c₁·cos2θ + c₂·sin2θ, que es la forma de primer orden del
+ * radio de una elipse vista desde su centro. De ahí salen los dos semiejes
+ * —c₀+A y c₀−A, con A = |(c₁,c₂)|— y la dirección del mayor.
+ *
+ * Es el mismo ajuste que `relacionDeEjes` ya hacía para medir el ángulo de
+ * cámara. Lo nuevo no es la matemática: es darse cuenta de que **el semieje
+ * MAYOR es la escala**. La circunferencia ajustada cae en c₀, el radio medio, y
+ * eso deja la escala un 6-9 % corta en cuanto la cámara se tuerce, que es
+ * siempre. El diámetro real solo se ve entero en la dirección larga.
+ *
+ * Frente a ajustar una cónica completa tiene dos ventajas que se pagan caras en
+ * el gimnasio: son tres incógnitas en vez de cinco —con el disco medio tapado la
+ * cónica se desboca y el centro se iba a 1,7 px— y a excentricidad pequeña es
+ * mucho más estable, que es justo donde hay que distinguir 10° de 0°.
+ *
+ * El residuo se mide contra ESA elipse. Un rectángulo no la cumple: su radio
+ * tiene cuatro lóbulos y este ajuste solo puede representar dos, así que el
+ * sobrante se queda en el residuo y lo delata.
+ */
+export function elipseDesdeCentro(puntos, centro) {
+  if (puntos.length < 8) return undefined
+  const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+  const b = [0, 0, 0]
+  const filas = []
+  for (const p of puntos) {
+    const ang = Math.atan2(p.y - centro.y, p.x - centro.x)
+    const base = [1, Math.cos(2 * ang), Math.sin(2 * ang)]
+    const r = Math.hypot(p.x - centro.x, p.y - centro.y)
+    filas.push({ base, r })
+    for (let i = 0; i < 3; i++) {
+      b[i] += base[i] * r
+      for (let j = 0; j < 3; j++) M[i][j] += base[i] * base[j]
+    }
+  }
+  const c = resolver3x3(M, b)
+  if (!c) return undefined
+  const [c0, c1, c2] = c
+  const Abruto = Math.hypot(c1, c2)
+
+  const residuos = filas.map((f) => f.r - (c[0] * f.base[0] + c[1] * f.base[1] + c[2] * f.base[2]))
+  const residuo = Math.sqrt(residuos.reduce((s, r) => s + r * r, 0) / residuos.length)
+
+  // ¿Cuánto de lo que sobra tiene forma de ESQUINAS? Un rectángulo, un banco o
+  // una placa cuadrada tienen cuatro lóbulos; una elipse solo dos, y por eso el
+  // término de 4θ los delata aunque el residuo total sea parecido. Medido: el
+  // rectángulo de las pruebas da 12,3 % y los discos reales del banco, entre
+  // 2,6 % y 4,7 % — incluso los oscuros, movidos y con la barra al lado.
+  const M4 = [[0, 0], [0, 0]], b4 = [0, 0]
+  for (const f of filas) {
+    const ang = Math.atan2(f.base[2], f.base[1]) / 2
+    const g = [Math.cos(4 * ang), Math.sin(4 * ang)]
+    const resto = f.r - (c[0] * f.base[0] + c[1] * f.base[1] + c[2] * f.base[2])
+    for (let i = 0; i < 2; i++) {
+      b4[i] += g[i] * resto
+      for (let j = 0; j < 2; j++) M4[i][j] += g[i] * g[j]
+    }
+  }
+  // SESGO DE LA AMPLITUD. `A` es el módulo de dos coeficientes ruidosos, y un
+  // módulo nunca sale negativo: el ruido lo empuja siempre hacia arriba. Con un
+  // disco de frente eso inventa inclinación, y con uno inclinado infla el
+  // semieje mayor —que es la escala—. Medido en el banco: +9 % con ruido, +25 %
+  // con ruido alto, siempre por exceso y nunca por defecto, que es la firma de
+  // un sesgo y no de un error aleatorio.
+  //
+  // E[A²] ≈ A_real² + 2σ²/n para dos parámetros ajustados, así que se resta esa
+  // parte. Cuando el ruido domina, A_real cae a cero: un disco ruidoso se
+  // declara redondo, que es lo prudente — perder inclinación real cuesta un
+  // coseno, e inventarla cuesta la escala.
+  const varianza = residuo * residuo
+  const A = Math.sqrt(Math.max(0, Abruto * Abruto - (2 * varianza) / filas.length))
+  if (!(c0 - A > 0)) return undefined
+
+  const det4 = M4[0][0] * M4[1][1] - M4[0][1] * M4[1][0]
+  const esquinas = Math.abs(det4) < 1e-9 ? 0 : Math.hypot(
+    (b4[0] * M4[1][1] - b4[1] * M4[0][1]) / det4,
+    (M4[0][0] * b4[1] - M4[1][0] * b4[0]) / det4,
+  ) / c0
+
+  return {
+    esquinas,
+    semiMayor: c0 + A,
+    semiMenor: c0 - A,
+    giro: Math.atan2(c2, c1) / 2,
+    relacion: (c0 + A) / (c0 - A),
+    residuo,
+    residuos,
+  }
+}
+
+/**
+ * La elipse, quitando solo los atípicos GRUESOS.
+ *
+ * Aquí hubo que elegir con cuidado, y las dos formas obvias fallan:
+ *
+ * - **Sin descartar nada**, unos pocos rayos enganchados a un reflejo, a la
+ *   barra o a una sombra pegada al canto se comen el criterio de forma: en el
+ *   banco de fotogramas reales, el 94 % de los casos acababa en «el contorno no
+ *   es redondo».
+ * - **Descartando un cupo fijo** —el 25 % peor, como hace el ajuste de
+ *   circunferencia— se tiran justo las puntas del eje MAYOR, que en una elipse
+ *   de verdad son las que más se separan de la media. Eso aplana la
+ *   excentricidad y con ella el ángulo: un disco de frente pasaba a medir 5,5°
+ *   de inclinación, y uno a 10° bajaba a 4,5°.
+ *
+ * Lo que funciona es un umbral por MAD: fuera lo que se aparta más de tres
+ * desviaciones robustas, que es donde vive la barra y no el disco. Un contorno
+ * limpio no pierde ni un punto, y la eccentricidad —que ES la medida del
+ * ángulo— se queda intacta.
+ */
+export function elipseRobusta(puntos, centro) {
+  const primera = elipseDesdeCentro(puntos, centro)
+  if (!primera) return undefined
+  const abs = primera.residuos.map(Math.abs).slice().sort((a, b) => a - b)
+  const mad = abs[Math.floor(abs.length / 2)] || 0
+  // 1,4826·MAD estima la desviación típica de una gaussiana sin dejarse
+  // arrastrar por las colas. El suelo de 0,5 px evita que un contorno
+  // perfectamente ajustado se ponga a descartar sus propios redondeos.
+  const limite = Math.max(3 * 1.4826 * mad, 0.5)
+  const buenos = puntos.filter((_, i) => Math.abs(primera.residuos[i]) <= limite)
+  if (buenos.length < Math.max(8, puntos.length * 0.6)) return primera
+  return elipseDesdeCentro(buenos, centro) ?? primera
 }
 
 /** Grados que la cámara se sale de la perpendicular, deducidos de la elipse. */
@@ -362,17 +685,38 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
   if (cobertura < 0.5) {
     return { tipo: 'desconocida', motivo: 'no se ve un contorno cerrado', cobertura }
   }
-  const ajuste = ajusteRobusto(puntos)
-  if (!ajuste) return { tipo: 'desconocida', motivo: 'no se pudo ajustar', cobertura }
-  const relacion = relacionDeEjes(puntos, ajuste)
-  // Un residuo por encima del 8 % del radio ya no es una circunferencia.
-  const redondez = ajuste.residuo / ajuste.r
-  if (redondez > 0.08) {
-    return { tipo: 'no-circular', motivo: 'el contorno no es redondo', redondez, cobertura, ajuste }
+  // La elipse ya la trae el voto —afinada y con las esquinas medidas sobre el
+  // contorno ancho—. Recalcularla aquí desde los puntos ya apretados borraba las
+  // dos cosas: las esquinas de un rectángulo y la inclinación de un disco a 10°.
+  const elipse = votado.ajuste ?? (() => {
+    const c = ajusteRobusto(puntos)
+    return c && elipseRobusta(puntos, c)
+  })()
+  if (!elipse) return { tipo: 'desconocida', motivo: 'no se pudo ajustar', cobertura }
+  const circulo = { x: elipse.x, y: elipse.y, r: elipse.semiMayor, residuo: elipse.residuo }
+  const relacion = elipse.relacion
+  // El residuo se mide contra la ELIPSE, no contra una circunferencia: un disco
+  // inclinado sigue siendo un contorno perfecto, solo que escorzado. Antes, a
+  // 25° ya rozaba este 8 % y a 40° lo doblaba, y la herramienta se negaba a
+  // fijar el disco justo en los encuadres que hay en un gimnasio de verdad.
+  const redondez = elipse.residuo / elipse.semiMayor
+  // Dos criterios distintos para dos cosas distintas. ESQUINAS dice «esto no es
+  // un disco» y es el que rechaza rectángulos. El residuo dice «esto es un disco
+  // mal visto» y por eso puede ser laxo: un disco de verdad en penumbra, movido
+  // o con la barra pegada al canto da 8-13 % de residuo, y el umbral de 8 %
+  // heredado de la circunferencia tumbaba 23 de los 49 casos del banco.
+  if (elipse.esquinas > 0.08) {
+    return { tipo: 'no-circular', motivo: 'eso tiene esquinas: un disco no las tiene', redondez, esquinas: elipse.esquinas, cobertura, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+  if (redondez > 0.16) {
+    return { tipo: 'no-circular', motivo: 'el contorno no es redondo', redondez, cobertura, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
   }
   return {
     tipo: 'disco',
-    ajuste,
+    // `r` es el SEMIEJE MAYOR, que es la escala inmune al escorzo: el diámetro
+    // real solo se ve entero en esa dirección. El radio medio de una
+    // circunferencia ajustada se queda un 6-9 % corto en cuanto hay inclinación.
+    ajuste: { ...circulo, ...elipse, r: elipse.semiMayor },
     cobertura,
     redondez,
     relacionEjes: relacion,
@@ -399,8 +743,14 @@ export function detectarDisco(datos, ancho, alto, prediccion, radioEsperado, opc
   const cobertura = puntos.length / nRayos
   if (cobertura < minCobertura) return { ok: false, motivo: 'marcador_perdido', cobertura }
 
-  const ajuste = ajusteRobusto(puntos)
-  if (!ajuste) return { ok: false, motivo: 'marcador_perdido', cobertura }
+  const circulo = ajusteRobusto(puntos)
+  if (!circulo) return { ok: false, motivo: 'marcador_perdido', cobertura }
+  const elipse = elipseRobusta(puntos, circulo)
+  if (!elipse) return { ok: false, motivo: 'marcador_perdido', cobertura }
+  // `r` del seguimiento es el semieje MAYOR: es lo que se convierte en `sepPx`,
+  // y `sepPx` es la escala de la medición entera. El centro sigue saliendo de la
+  // circunferencia, que con el disco medio tapado es mucho más estable.
+  const ajuste = { ...circulo, r: elipse.semiMayor }
 
   const salto = Math.hypot(ajuste.x - prediccion.x, ajuste.y - prediccion.y)
   if (salto > saltoMaxPx) return { ok: false, motivo: 'salto_imposible', cobertura, salto }
@@ -408,7 +758,7 @@ export function detectarDisco(datos, ancho, alto, prediccion, radioEsperado, opc
     return { ok: false, motivo: 'radio_incoherente', cobertura, r: ajuste.r }
   }
 
-  const relacion = relacionDeEjes(puntos, ajuste)
+  const relacion = elipse.relacion
   return {
     ok: true,
     // Con el disco medio tapado el ajuste SALE, y sale con un error de un par de

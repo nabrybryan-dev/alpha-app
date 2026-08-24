@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  GIRO_CALIDAD_GRADOS,
   INCLINACION_CALIDAD_GRADOS,
   INCLINACION_MAX_GRADOS,
   analizarSerie,
@@ -129,21 +130,30 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       escribir(medidas.marcas, det.ambiguo ? '4 (ambiguo)' : '4')
       escribir(medidas.separacion, `${det.escalaPxM.toFixed(0)} px/m`)
       const inc = det.inclinacionGrados
+      const giro = Math.abs(det.anguloGrados)
       const torcida = inc > INCLINACION_CALIDAD_GRADOS
       const rota = inc > INCLINACION_MAX_GRADOS
+      // El giro es LO OTRO, y es la segunda vez que esto cuesta una sesión. La
+      // inclinación es escorzo —la diana mirada de canto— y el giro es la diana
+      // torcida como un cuadro mal colgado. `calificar` tumba la toma por
+      // cualquiera de los dos, y aquí solo se enseñaba la inclinación: la tanda
+      // del 22 de agosto de 2026 salió con `angulo` en las diez tomas mientras
+      // la barra de medidas iba en verde porque el escorzo estaba bien.
+      const girada = giro > GIRO_CALIDAD_GRADOS
       // El que manda es el umbral de CALIDAD, no el de geometría: enseñar solo
       // el de 35° fue lo que dejó grabar en verde una sesión entera de tomas
       // que la puerta descartaba después.
       escribir(
         medidas.angulo,
-        `${inc.toFixed(0)}° incl.${rota ? ' ✕ endereza' : torcida ? ' ⚠ se descartará' : ''}`,
+        `${inc.toFixed(0)}° incl.${rota ? ' ✕ endereza' : torcida ? ' ⚠ se descartará' : ''}` +
+          ` · ${giro.toFixed(0)}° giro${girada ? ' ⚠ endereza la diana' : ''}`,
       )
       // setProperty y no `style.color =`: aquí sí valen las variables CSS
       // —esto es CSS de verdad, no canvas— y el analizador de React no admite
       // asignar a una propiedad anidada de algo que llega por argumento.
       medidas.angulo.current?.style.setProperty(
         'color',
-        rota ? 'var(--rojo)' : torcida ? 'var(--ambar)' : null,
+        rota ? 'var(--rojo)' : torcida || girada ? 'var(--ambar)' : null,
       )
       ctx.lineWidth = 2
       // Hexadecimales y no var(--rojo): el canvas no resuelve variables CSS,
@@ -335,10 +345,19 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
         return
       }
       setListoParaGrabar(true)
+      // El aviso dice lo que se sabe Y lo que no. Sobre los 60 fotogramas reales
+      // del banco de las herramientas, la escala del disco cae dentro del ±5 %
+      // en **13** de ellos: cuatro de cada cinco veces el radio sale mal, y no
+      // hay forma de saberlo desde aquí —se probó, y ni la cobertura, ni la
+      // redondez, ni lo cerca que cayó el toque separan los buenos de los malos.
+      // El %PV sí sobrevive a eso, porque es un cociente entre dos velocidades
+      // medidas con la misma regla equivocada. Los m/s no.
       setAviso(
         `Disco detectado: radio ${r.ajuste.r.toFixed(0)} px, contorno visto ` +
           `${(r.cobertura * 100).toFixed(0)} %. Cámara a ${r.anguloCamara.toFixed(0)}° de la ` +
-          `perpendicular${r.anguloCamara > 10 ? ' — demasiado torcida, muévete hasta bajar de 10°.' : '.'}`,
+          `perpendicular${r.anguloCamara > 10 ? ' — demasiado torcida, muévete hasta bajar de 10°.' : '.'}` +
+          ' Con disco, fíate del %PV y no de los m/s mientras la prueba de gravedad no' +
+          ' apruebe en este sitio: la escala del disco falla más de lo que parece.',
       )
       return
     }
