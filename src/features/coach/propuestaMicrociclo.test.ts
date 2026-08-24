@@ -330,9 +330,10 @@ describe('microcicloPropuesto', () => {
   })
 
   it('no toca el arranque si la primera sesion fijada ya coincide', () => {
+    // Domingo 16 + cadencia 8 cae en lunes 24, que es justo el dia fijado.
     const enPunto = micro({
-      fechaInicio: '2026-08-17',
-      cadenciaDias: 7,
+      fechaInicio: '2026-08-16',
+      cadenciaDias: 8,
       sesiones: [sesion({ dia: 'LUNES', nombre: 'LEG A' })],
     })
     expect(microcicloPropuesto(enPunto).fechaInicio).toBe('2026-08-24')
