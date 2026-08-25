@@ -47,18 +47,6 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'martes. En sombra hasta que la corrida de un microciclo avale que reduce la ' +
     'discrepancia. Ver Cerebro Alpha/docs/superpowers/specs/' +
     '2026-08-25-ondulacion-flexible-intra-semana.md §7.',
-  // La pantalla de palancas SÍ existe desde el 2026-08-25 (#112), pero no entra
-  // por aquí: se alimenta de `medidaDePalancas.ts`, que recibe los brazos ya
-  // medidos por `brazo-por-fotograma.mjs` fuera de la app. Nadie le dice todavía
-  // QUÉ eje había que mirar en ese ejercicio — lo elige quien lanza la medida a
-  // mano—, y eso es justo lo que resuelve esta tabla. Se enchufa cuando la
-  // exportación pase por ella en vez de por el criterio del operador.
-  'src/domain/biomecanica/palancas.ts':
-    'La tabla que dice, por patrón, qué eje mirar y contra qué línea de fuerza. Hoy ' +
-    'la elección del eje la hace a mano quien lanza `exportar-medida.mjs`; esta tabla ' +
-    'la haría sola. Vive suelta a propósito para que el conocimiento se pueda revisar ' +
-    'sin esperar a que la exportación la consuma. Ver ' +
-    'docs/specs/2026-08-24-palancas-y-paralelogramo-diseno.md.',
 }
 
 /**
@@ -87,6 +75,21 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/taxonomia.ts#tieneTecnicaDeclarada':
     'Detecta tecnica o recorrido declarados en la prescripcion. Espera a la captura de ' +
     'SerieRegistrada.extra en RegistroSerie.tsx.',
+  // La tabla de palancas dejó de ser un módulo huérfano el 2026-08-24: la
+  // consume `scripts/corpus-video.mjs`, que la choca contra el catálogo de 168
+  // vídeos reales de gimnasio y es lo que destapó que faltaba el implemento.
+  // La pantalla de palancas ya existe (#112, 2026-08-25), pero NO entra por aquí:
+  // se alimenta de `medidaDePalancas.ts` con los brazos que `brazo-por-fotograma.mjs`
+  // ya midió fuera de la app, y qué eje mirar lo eligió a mano quien lanzó la
+  // medida. Estas dos entradas se enchufan el día que esa elección la haga la
+  // tabla. Diseño: docs/specs/2026-08-24-palancas-y-paralelogramo-diseno.md.
+  'src/domain/biomecanica/palancas.ts#ejePrincipal':
+    'El eje que manda, para etiquetar una serie en pantalla. Espera a que la ' +
+    'exportación de la medida elija el eje por tabla en vez de a mano; el informe ' +
+    'del corpus usa planDeMedida, que ya lo lleva dentro.',
+  'src/domain/biomecanica/palancas.ts#MODELOS_DE_PALANCA':
+    'La tabla entera, para recorrerla. La usan los tests de invariantes y el día ' +
+    'que el selector de ejercicio de la pantalla lea de aquí.',
   // La guarda del relleno masivo de carga, que se corre desde el SQL Editor y
   // no desde la app: si componer los campos devuelve el MISMO texto, guardar no
   // cambia ni una letra de lo que el asesorado va a leer; si no, el ejercicio se
