@@ -44,7 +44,10 @@ export function PautadoVsRealizado({ microciclo }: { microciclo: Microciclo }) {
               <Badge>Sin registrar</Badge>
             )}
           </div>
-          {sesion.tipo === 'metabolica' && (
+          {/* Los bloques se pintan si LOS HAY, no si la etiqueta dice `metabolica`:
+              una sesion marcada `fuerza` con bloques dentro dejaba al coach sin ver
+              nada de lo unico que esa persona tenia que hacer. */}
+          {(sesion.bloquesCardio ?? []).length > 0 && (
             <ul className="mt-2 flex flex-col gap-1 text-xs">
               {(sesion.bloquesCardio ?? []).map((b) => (
                 <li key={b.id} className="flex items-center gap-2">
