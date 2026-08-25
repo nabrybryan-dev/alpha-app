@@ -226,7 +226,11 @@ function SesionEnCurso() {
         </div>
       )}
 
-      {sesion.tipo !== 'metabolica' && !todasRegistradas && (
+      {/* `sesion.ejercicios.length > 0`: una sesión de Zona 2, movilidad o hábito
+          no lleva ejercicios y no es un error. Sin esta guarda pintaba la cabecera
+          entera —«Ejercicio 1 de 0», «0/0 hechos»— sobre un salón, una barra y una
+          lista vacíos, y el asesorado abría su sesión y no veía ninguna sección. */}
+      {sesion.tipo !== 'metabolica' && !todasRegistradas && sesion.ejercicios.length > 0 && (
         <section className="flex flex-col gap-4">
           <div className="entrada entrada-4 flex items-center justify-between gap-3">
             <p className="kicker">
