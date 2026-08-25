@@ -97,6 +97,40 @@ export interface SerieRegistrada {
    */
   reps?: number
   rir?: number
+  /**
+   * Los mini-bloques de una técnica de intensidad: myo-reps, rest-pause, drop
+   * set. Uno por bloque, en el orden en que se hicieron.
+   *
+   * **NO ES VOLUMEN, y esa es la mitad de su razón de ser.** La convención de
+   * Alpha es que las repeticiones extra de la técnica no se cuentan: si son 10,
+   * pausa y 5 más, el volumen registrado son 10 y la serie cuenta 1. Se sostiene
+   * en que Bradshaw 2026 obtuvo la misma ganancia de tamaño y fuerza con ~30 %
+   * menos volumen-carga, así que sumarlas hincharía el número sin hinchar el
+   * estímulo. `cargaPorGrupo` cuenta con `series.length`, así que este campo no
+   * puede colarse en el PANEL ni queriendo.
+   *
+   * **Para qué sirve entonces: para medir esfuerzo.** Cuando la prescripción
+   * dice «descansa 15 segundos y saca 5 más» y salen 5 —o salen 2— ese número es
+   * un RESULTADO, no una prescripción: no se puede «cumplir» como se cumple un
+   * RIR objetivo. Y hace falta, porque el barrido de 186 series del 2026-08-25
+   * mostró que el RIR declarado sigue a la prescripción y no a la sensación.
+   *
+   * **Y se guarda la observación, no la conclusión.** Sumar `10 + 5 = 15` al
+   * registrar es irreversible: un `15` ya no dice si fueron 15 limpias o 10+5.
+   * Con los bloques aparte, cualquier convención futura —contar todo, ponderar
+   * por proximidad al fallo, dar peso fraccionado al bloque— es un recálculo y
+   * no una migración. → `Cerebro Alpha/wiki/motor-decision/11-convenciones-que-la-evidencia-no-cierra.md`
+   *
+   * `cargaKg` solo cuando el bloque se hizo con **otra** carga, que es el caso
+   * del drop set. Ausente = la misma carga de la serie base.
+   */
+  extra?: BloqueDeTecnica[]
+}
+
+/** Un mini-bloque de una técnica de intensidad. Ver `SerieRegistrada.extra`. */
+export interface BloqueDeTecnica {
+  reps: number
+  cargaKg?: number
 }
 
 export interface TestPostSesion {

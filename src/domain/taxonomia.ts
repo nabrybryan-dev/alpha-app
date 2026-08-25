@@ -374,6 +374,34 @@ const AXIALES: ReadonlySet<Categoria> = new Set<Categoria>([
 export const ANCLA_PARCIALES =
   'LA SERIE ACABA CUANDO NO PUEDAS MOVER LA CARGA, NO CUANDO PIERDAS EL RANGO'
 
+/**
+ * Marcas de que la prescripción ya declara una técnica o un recorrido pautado.
+ *
+ * Se busca en la frase y en el cue, que es donde viven hoy —no hay campo—.
+ * `parcial` cubre los dos sentidos opuestos que tiene esa palabra en el
+ * vocabulario del método, y a propósito: en los dos el ancla sobra.
+ */
+const MARCAS_DE_TECNICA =
+  /myo[- ]?reps?|rest[- ]?pause|restpause|parcial|drop *set|series? descendente|isometr|iso *hold|escalera de exposici/i
+
+/**
+ * Si el ejercicio ya trae técnica o recorrido declarados por el coach.
+ *
+ * Existe para que el ancla no contradiga la prescripción. «Parciales» significa
+ * dos cosas opuestas aquí —sobrecarga al final, o recorrido reducido como
+ * regresión— y el ancla estorba en ambas, pero por motivos distintos:
+ *
+ * - Con parciales de SOBRECARGA, el coach ya dice que se pase del fallo técnico;
+ *   el ancla repite peor lo que la frase dice mejor.
+ * - Con recorrido REDUCIDO —una escalera de exposición, «tira solo hasta la
+ *   mitad»— el ancla diría lo contrario que la prescripción, y en un ejercicio
+ *   programado a ROM corto para reexposición eso toca seguridad, que es el
+ *   rango 1 de la jerarquía.
+ */
+export function tieneTecnicaDeclarada(cues: string, prescripcion: string): boolean {
+  return MARCAS_DE_TECNICA.test(`${cues} ${prescripcion}`)
+}
+
 /** Si esta categoría necesita el ancla: pico distinto de `inicio` y no axial. */
 export function necesitaAncla(categoria: string): boolean {
   const canonica = categoriaCanonica(categoria)
@@ -391,8 +419,11 @@ export function necesitaAncla(categoria: string): boolean {
  * la vez, en silencio. Y sería almacenar un dato derivado, que es como
  * `rirObjetivo` acabó diciendo 2 mientras el texto decía «(RIR 1)».
  */
-export function cuesConAncla(categoria: string, cues: string): string {
+export function cuesConAncla(categoria: string, cues: string, prescripcion = ''): string {
   if (!necesitaAncla(categoria)) return cues
+  // Ante la duda, NO inyectar. Un ancla que falta deja las cosas como están; una
+  // que sobra contradice al coach delante del asesorado.
+  if (tieneTecnicaDeclarada(cues, prescripcion)) return cues
   const limpio = cues.trim()
   if (!limpio) return ANCLA_PARCIALES
   const sinPuntoFinal = limpio.replace(/[;.]\s*$/, '')

@@ -126,3 +126,40 @@ describe('formatearSeries', () => {
     expect(formatearSeries(1.5)).toBe('1,5')
   })
 })
+
+describe('cargaPorGrupo · las reps de técnica NO son volumen', () => {
+  // La convención de Alpha: las repeticiones extra de una myo-rep o un
+  // rest-pause no se cuentan, y la serie con técnica cuenta UNA.
+  // Ver `Cerebro Alpha/wiki/conocimiento/tecnicas-de-intensidad.md` §11.
+  function conTecnica(bloques: number): Microciclo {
+    const e = ejercicio('EXTENSIÓN DE RODILLA', 3, 3)
+    e.series = e.series.map((s, i) =>
+      i === e.series.length - 1
+        ? { ...s, extra: Array.from({ length: bloques }, () => ({ reps: 5 })) }
+        : s,
+    )
+    return microciclo([e])
+  }
+
+  it('una serie con cuatro mini-bloques sigue contando UNA serie', () => {
+    const sin = cargaPorGrupo(conTecnica(0))
+    const con = cargaPorGrupo(conTecnica(4))
+    expect(con).toEqual(sin)
+  })
+
+  it('el número de bloques no mueve el volumen, sea cual sea', () => {
+    const base = cargaPorGrupo(conTecnica(0))
+    for (const n of [1, 3, 8]) {
+      expect(cargaPorGrupo(conTecnica(n))).toEqual(base)
+    }
+  })
+
+  it('un drop set con carga distinta por bloque tampoco lo mueve', () => {
+    const e = ejercicio('FLEXIÓN DE CODO', 2, 2)
+    e.series = e.series.map((s, i) =>
+      i === 1 ? { ...s, extra: [{ reps: 6, cargaKg: 12 }, { reps: 4, cargaKg: 8 }] } : s,
+    )
+    const sinExtra = ejercicio('FLEXIÓN DE CODO', 2, 2)
+    expect(cargaPorGrupo(microciclo([e]))).toEqual(cargaPorGrupo(microciclo([sinExtra])))
+  })
+})

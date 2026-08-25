@@ -5,6 +5,7 @@ import {
   categoriaCanonica,
   CATEGORIAS,
   cuesConAncla,
+  tieneTecnicaDeclarada,
   grupoPrimario,
   necesitaAncla,
   ORDEN_GRUPOS,
@@ -393,6 +394,34 @@ describe('pico de exigencia y ancla de parciales', () => {
   it('con el cue vacío el ancla va sola, sin punto y coma huérfano', () => {
     expect(cuesConAncla('EXTENSIÓN DE RODILLA', '')).toBe(ANCLA_PARCIALES)
     expect(cuesConAncla('EXTENSIÓN DE RODILLA', '   ')).toBe(ANCLA_PARCIALES)
+  })
+
+  it('con tecnica declarada NO se inyecta, aunque la categoria lo pida', () => {
+    // El coach ya dijo como acaba la serie. El ancla repetiria peor lo que la
+    // frase dice mejor, y en el peor caso la contradice.
+    const conMyo = 'A 14 REPS; 3 SERIES (RIR 2) EN MYO-REPS. SACA 5 MAS.'
+    expect(cuesConAncla('ABDUCCIÓN DE HOMBRO', 'Cable cruza el cuerpo', conMyo))
+      .toBe('Cable cruza el cuerpo')
+  })
+
+  it('y sobre todo NO se inyecta con recorrido reducido — ahi es seguridad', () => {
+    // Una escalera de exposicion pide ROM corto a proposito. Decirle «acaba
+    // cuando no puedas mover la carga» seria mandarle moler en un ejercicio
+    // programado para reexponer. Rango 1 de la jerarquia.
+    const escalera = 'ESCALERA DE EXPOSICION, 5 SERIES DE 12 (RIR 4). SERIES 1 A 3: RECORRIDO PARCIAL.'
+    expect(cuesConAncla('TRACCIÓN HORIZONTAL', 'Pecho apoyado', escalera))
+      .toBe('Pecho apoyado')
+  })
+
+  it('detecta la tecnica venga en el cue o en la frase', () => {
+    expect(tieneTecnicaDeclarada('parciales abajo al final', '')).toBe(true)
+    expect(tieneTecnicaDeclarada('', 'ULTIMA SERIE EN REST-PAUSE')).toBe(true)
+    expect(tieneTecnicaDeclarada('Rango completo, espalda pegada', '40KG A 10 REPS')).toBe(false)
+  })
+
+  it('sin tecnica declarada, el ancla si entra', () => {
+    expect(cuesConAncla('EXTENSIÓN DE RODILLA', 'CONTROLA EL RETORNO', '110KG A 11 REPS; 4 SERIES'))
+      .toBe(`CONTROLA EL RETORNO; ${ANCLA_PARCIALES}`)
   })
 
   it('donde no hace falta ancla, el cue sale intacto', () => {
