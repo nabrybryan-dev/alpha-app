@@ -15,6 +15,7 @@
     "publicar-fichas": "vite-node scripts/publicar-fichas.mjs",
     "calibrar-umbrales": "vite-node scripts/calibrar-umbrales.mjs",
     "test": "vitest run",
+    "banco-encoder": "node scripts/banco-encoder.mjs",
     "coverage": "vitest run --coverage",
     "rellenar-carga": "vite-node scripts/rellenar-carga.mjs"
   },

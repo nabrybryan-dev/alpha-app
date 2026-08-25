@@ -5,7 +5,7 @@ import { RolloDePelicula } from './RolloDePelicula'
 
 /**
  * R6 · SOLO SUENA UNA. Es la regla que sostiene el rollo, y hasta ahora no la
- * comprobaba nadie: cinco vídeos de 1280x720 descomprimiendo a la vez en la
+ * comprobaba nadie: seis vídeos de 1280x720 descomprimiendo a la vez en la
  * misma pantalla no se ve como un fallo —se ve como que el móvil va lento—.
  *
  * jsdom no trae `IntersectionObserver`, así que se sustituye por uno de mentira
@@ -64,7 +64,7 @@ afterEach(() => {
 })
 
 describe('RolloDePelicula', () => {
-  it('enseña las cinco piezas, cada una con su ficha', () => {
+  it('enseña las seis piezas, cada una con su ficha', () => {
     montarObservador()
     conMovimiento(false)
     espiarVideos()
@@ -78,7 +78,7 @@ describe('RolloDePelicula', () => {
     }
   })
 
-  it('observa las cinco, para saber cuál cruza la línea central', () => {
+  it('observa las seis, para saber cuál cruza la línea central', () => {
     montarObservador()
     conMovimiento(false)
     espiarVideos()
@@ -115,7 +115,7 @@ describe('RolloDePelicula', () => {
     espiarVideos()
     const { container } = render(<RolloDePelicula />)
 
-    // `FondoLoop` no monta el elemento: se ven los cinco pósters y la ventana
+    // `FondoLoop` no monta el elemento: se ven los seis pósters y la ventana
     // sigue marcando cuál se mira. Se pierde el bucle, no la composición.
     expect(container.querySelectorAll('video')).toHaveLength(0)
     expect(screen.getByText(DIRECCIONES[0].nombre)).toBeInTheDocument()

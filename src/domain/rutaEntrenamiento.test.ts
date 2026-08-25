@@ -386,3 +386,20 @@ describe('progreso de fuerza al principio del microciclo', () => {
     )
   })
 })
+
+/**
+ * Los casos que cubría `sesionSugerida` antes de borrarse (2026-08-24). Hoy y
+ * Entrenar comparten ya esta única función, así que sus casos viven aquí.
+ */
+describe('sesionDestacada — lo que heredó de la Hoy vieja', () => {
+  it('salta la de hoy cuando ya está registrada', () => {
+    const micro = microciclo([
+      sesion('s-mie', 'LEG A (MIÉRCOLES)', { orden: 1, ejercicios: [ejercicio(3, 3)] }),
+      sesion('s-vie', 'UPPER A (VIERNES)', { orden: 2, ejercicios: [ejercicio(3, 0)] }),
+    ])
+    // 2026-07-22 es miércoles: la suya está completa, así que propone la del viernes.
+    const destacada = sesionDestacada(armarSemana(micro, '2026-07-22'))
+    expect(destacada?.sesionId).toBe('s-vie')
+    expect(destacada?.esDeHoy).toBe(false)
+  })
+})

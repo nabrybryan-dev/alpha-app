@@ -14,6 +14,7 @@ import { CheckDibujado } from './CheckDibujado'
 import { CronometroSesion, limpiarCronometro } from './CronometroSesion'
 import { DescansoTimer } from './DescansoTimer'
 import { EjercicioCompletado, type ExCompletado } from './EjercicioCompletado'
+import { FONDO_SESION_FUERZA, FONDO_SESION_METABOLICA } from './fondoSesion'
 import { frasePorSerie } from './frasesMotivacionales'
 import { BarraEjercicios, ProximosEjercicios } from './NavegadorEjercicios'
 import { PanelRitmo } from './PanelRitmo'
@@ -158,12 +159,29 @@ function SesionEnCurso() {
   const ejercicioActual = sesion.ejercicios[exIdx]
   const ordenActual = ejercicioActual ? ejercicioActual.series.length + 1 : 0
   const mostrarCTA =
-    sesion.tipo !== 'metabolica' &&
     !todasRegistradas &&
     !exCompletado &&
     !!ejercicioActual &&
     !ejercicioCompleto(ejercicioActual)
+  /**
+   * Si esta sesión pinta o no la maquinaria de fuerza — cabecera, salón, barra,
+   * tarjeta y botón de guardar serie.
+   *
+   * Lo decide **haber ejercicios**, no la etiqueta `tipo`. Antes lo decidía
+   * `tipo !== 'metabolica'`, y una etiqueta mal puesta borraba de la pantalla
+   * trabajo que sí estaba prescrito: el 2026-08-25 había dos sesiones marcadas
+   * `metabolica` **con ejercicios dentro** —7 de Alejandra Tapasco y 6 de Karin
+   * Better—, y esos 13 ejercicios no se pintaban ni se podían registrar. La
+   * inversa también existía: la Zona 2 de Natalia venía marcada `fuerza` con
+   * cero ejercicios, y se llevaba la cabecera «Ejercicio 1 de 0».
+   *
+   * `tipo` sigue mandando en lo que de verdad describe —el fondo y el panel de
+   * ritmo—, pero ya no puede esconder contenido.
+   */
+  const hayEjercicios = sesion.ejercicios.length > 0
   const bloques = sesion.bloquesCardio ?? []
+  const fondoDeLaSesion =
+    sesion.tipo === 'metabolica' ? FONDO_SESION_METABOLICA : FONDO_SESION_FUERZA
 
   if (cerrada) return <SesionCerrada sesion={sesion} />
 
@@ -173,11 +191,10 @@ function SesionEnCurso() {
       <section className="entrada entrada-1">
         <div
           className="tarjeta-foto px-5 pb-5 pt-24 text-center"
-          // El banco con la barra cargada, de la dirección visual actual. La foto anterior
-          // (`atleta-hombre.jpeg`) medía 590x1280 y se ampliaba 1,82x en un móvil: se veía
-          // borrosa y nadie lo notaba porque en el navegador se pinta a 1x. Ver
-          // `src/test/fondos-de-tarjeta.test.ts`, que ahora lo impide.
-          style={{ '--foto': 'url(/fondos/sesion-banco.jpg)', '--foto-pos': 'center 18%' } as React.CSSProperties}
+          // El fondo lo decide el tipo de sesión: hierro para fuerza, sprint resistido
+          // para metabólica. Las dos rutas viven en `fondoSesion.ts` y las mide
+          // `src/test/fondos-de-tarjeta.test.ts`, que impide que se amplíen.
+          style={{ '--foto': `url(${fondoDeLaSesion})`, '--foto-pos': 'center 18%' } as React.CSSProperties}
         >
           {/* La sesión es el segundo nivel de Entrenar: atrás vuelve a la Ruta,
               no a Hoy, aunque se haya entrado desde ahí. */}
@@ -200,7 +217,7 @@ function SesionEnCurso() {
         </div>
       </section>
 
-      {sesion.tipo !== 'metabolica' && !todasRegistradas && (
+      {hayEjercicios && !todasRegistradas && (
         <div className="entrada entrada-2">
           <PanelRitmo sesion={sesion} sesionId={sesion.id} />
         </div>
@@ -224,7 +241,11 @@ function SesionEnCurso() {
         </div>
       )}
 
-      {sesion.tipo !== 'metabolica' && !todasRegistradas && (
+      {/* `sesion.ejercicios.length > 0`: una sesión de Zona 2, movilidad o hábito
+          no lleva ejercicios y no es un error. Sin esta guarda pintaba la cabecera
+          entera —«Ejercicio 1 de 0», «0/0 hechos»— sobre un salón, una barra y una
+          lista vacíos, y el asesorado abría su sesión y no veía ninguna sección. */}
+      {hayEjercicios && !todasRegistradas && (
         <section className="flex flex-col gap-4">
           <div className="entrada entrada-4 flex items-center justify-between gap-3">
             <p className="kicker">

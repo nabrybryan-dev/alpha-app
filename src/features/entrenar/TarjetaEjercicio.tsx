@@ -1,6 +1,7 @@
 import { Card } from '../../components/ui/Card'
 import { db } from '../../data/dbInstance'
 import { ejercicioCompleto } from '../../domain/cumplimiento'
+import { demoDeEjercicio } from '../../domain/demos'
 import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
 import { ExerciseSlotMachine } from './ExerciseSlotMachine'
@@ -49,7 +50,7 @@ export function TarjetaEjercicio({
 }: TarjetaEjercicioProps) {
   const completo = ejercicioCompleto(ejercicio)
   const siguienteOrden = ejercicio.series.length + 1
-  const contenidoDemo = ejercicio.contenidoDemoId ? db.contenidos.byId(ejercicio.contenidoDemoId) : undefined
+  const contenidoDemo = demoDeEjercicio(ejercicio, db.contenidos.list())
 
   return (
     <div id={`ej-${ejercicio.id}`} className="entrada scroll-mt-4">
