@@ -232,17 +232,28 @@ dura 6,0 s, que es más o menos lo que cuesta llenar cinco campos.
 
 ---
 
-## 8. Lo que queda abierto
+## 8. Lo que quedaba abierto, y cómo se cerró
 
-- **Sin ver en un móvil real**, igual que el trabajo del 20-08. La receta de
-  captura está al final de aquel spec y hay que usarla.
-- **El disco de A es la decisión más discutible** de las tres: es la única que
-  inventa una forma que la app no usa en ningún otro sitio. La alternativa era
-  montarla como lámina rectangular, y se descartó por ser el mecanismo de
-  Contenidos otra vez.
-- **La banda de tinta del 40%** no está documentada en `direccionesVisuales.ts`
-  pese a ser una propiedad de las piezas que condiciona dónde puede ir el texto.
-  Debería subir al catálogo, medida, en vez de vivir solo aquí.
+- ~~**Sin ver en un móvil real.**~~ **Cerrado el 25-08.** Las tres pantallas
+  —Logros, Bienestar con el formulario abierto y Hoy— se capturaron a 390 pt con
+  la receta del spec del 20-08. De ahí salieron los dos hallazgos de la §9 y la
+  corrección de la §10.
+- ~~**El disco de A es la decisión más discutible.**~~ **Cerrado el 25-08: se
+  queda.** Bryan lo aprobó con la captura delante. Sigue siendo la única forma
+  que la app no usa en ningún otro sitio, y eso es deliberado: la alternativa era
+  la lámina rectangular de Contenidos, o sea repetir mecanismo, que es lo que
+  este trabajo existe para no hacer. Si algún día se replantea, el motivo tiene
+  que ser nuevo — no este, que ya se decidió mirándolo.
+- ~~**La banda de tinta del 40% no está documentada en el catálogo.**~~
+  **Cerrado el 25-08.** Subió a `direccionesVisuales.ts` con sus medidas, junto a
+  la otra lección: que el umbral de 18 es un techo y no un suelo. Va como
+  comentario y no como campo porque no lo consume nadie: es una propiedad del
+  material, no un dato de la app.
+
+**No queda nada abierto de este trabajo.** Lo que sigue pendiente es de fuera: la
+pieza D se está rehaciendo (`Downloads\hero-d-esfuerzo\ESTADO.md`), y cuando
+exista habrá que re-medirla contra la pregunta de la §9 —¿es más clara que lo que
+la rodea?— antes de darla por buena en Contenidos.
 
 ---
 
