@@ -11,6 +11,7 @@ import { db, useDbVersion } from '../../data/dbInstance'
 import { AguilaInteractiva } from '../entrenar/AguilaInteractiva'
 import { FichaPanini } from './FichaPanini'
 import { RankingEquipo } from './RankingEquipo'
+import { TiraDeRachas } from './TiraDeRachas'
 import { useGamificacion } from './useGamificacion'
 
 export default function LogrosPage() {
@@ -59,19 +60,12 @@ export default function LogrosPage() {
         </div>
       </section>
 
-      <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
-        {rachas.map((r) => (
-          <Card key={r.nombre} className="text-center !p-3">
-            <span className="mb-1 flex justify-center text-tenue">
-              <r.Icono className="h-[19px] w-[19px]" />
-            </span>
-            <p className="cifras font-display text-2xl text-rojo">
-              <CifraAnimada valor={r.racha.actual} duracionMs={700} />
-            </p>
-            <p className="text-[10px] uppercase tracking-wider text-tenue">{r.nombre}</p>
-            <p className="mt-0.5 text-[10px] text-tenue">Récord: {r.racha.record}</p>
-          </Card>
-        ))}
+      {/* Las tres rachas ya no son tres cristales sueltos: son tres ventanas a la
+          misma calle, con la pieza F corriendo por detrás y cada celda
+          descubriendo hasta donde llegó su racha. El porqué está en
+          `TiraDeRachas.tsx` y en el spec del 25-08. */}
+      <section className="entrada entrada-2">
+        <TiraDeRachas celdas={rachas} />
       </section>
 
       {/* La evolución (peso, carga, volumen y medidas) vive en la pestaña
