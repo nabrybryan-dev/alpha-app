@@ -65,27 +65,41 @@ describe('programar la semana siguiente de varios asesorados', () => {
   })
 
   /**
-   * El corazón del asunto. Cada uno vence un día distinto —cadencias de 8 y 15
-   * días, fechas de inicio distintas— así que el barrido tiene que activarle a
-   * cada uno la suya el día que le toca, no a todos a la vez.
+   * El corazón del asunto, reescrito el 2026-08-24.
+   *
+   * ANTES decía «el día que vence», porque hasta entonces la fecha que el coach
+   * elegía al programar no activaba nada: había que esperar a que al microciclo
+   * en curso se le acabara la cadencia. Eso es justo lo que se arregló —una
+   * asesorada abrió el lunes la semana vieja teniendo la nueva guardada—, así
+   * que la afirmación que toca proteger ahora es la otra: **manda la fecha que
+   * eligió una persona**, y cada uno recibe la suya, no la de otro.
+   *
+   * Que se les active a los tres en el mismo barrido no es que se contagien: es
+   * que el coach les puso a los tres el mismo lunes. El aislamiento lo prueban
+   * los dos casos de más abajo.
    */
-  it('a cada uno se le activa la suya el día que vence, con la fecha elegida', () => {
+  it('a cada uno se le activa la suya cuando llega la fecha que eligió el coach', () => {
     const db = crearMockDb()
     const preparadas = new Map(
       db.usuarios.entrenan().map((u) => [u.id, prepararProximaSemana(db, u.id)]),
     )
+    const arranque = inicioProximaSemana(HOY)
+    const numerosAntes = new Map([...preparadas.keys()].map((id) => [id, activoDe(db, id).numero]))
 
+    // La víspera todavía no le toca a nadie: una fecha futura no adelanta nada.
+    reiniciarBarrido()
+    barrerYActivar(db, sumarDias(arranque, -1))
     for (const [usuarioId, preparada] of preparadas) {
-      const actual = activoDe(db, usuarioId)
-      const vence = sumarDias(actual.fechaInicio, actual.cadenciaDias)
+      expect(activoDe(db, usuarioId).id).not.toBe(preparada.id)
+    }
 
-      reiniciarBarrido()
-      barrerYActivar(db, vence)
-
+    reiniciarBarrido()
+    barrerYActivar(db, arranque)
+    for (const [usuarioId, preparada] of preparadas) {
       const nuevo = activoDe(db, usuarioId)
       expect(nuevo.id).toBe(preparada.id)
-      expect(nuevo.numero).toBe(actual.numero + 1)
-      expect(nuevo.fechaInicio).toBe(inicioProximaSemana(HOY))
+      expect(nuevo.numero).toBe((numerosAntes.get(usuarioId) ?? 0) + 1)
+      expect(nuevo.fechaInicio).toBe(arranque)
     }
   })
 
@@ -195,14 +209,25 @@ describe('programar la semana siguiente de varios asesorados', () => {
    */
   it('activar la semana de uno no le mueve el microciclo a los otros', () => {
     const db = crearMockDb()
-    for (const u of db.usuarios.entrenan()) prepararProximaSemana(db, u.id)
+    // A ella se le prepara una semana que empieza HOY; a los demás una que
+    // empieza dentro de un mes. Así, si a alguno de ellos se le moviera el
+    // microciclo en este barrido, sería contagio y no su propio calendario —que
+    // es exactamente lo que este caso vigila—.
+    const suya = microcicloPropuesto(activoDe(db, 'u-valentina'), { hoy: HOY, fechaInicio: HOY })
+    db.microciclos.guardarPropuesta(suya)
 
     const otros = db.usuarios.entrenan().filter((u) => u.id !== 'u-valentina')
+    for (const u of otros) {
+      db.microciclos.guardarPropuesta(
+        microcicloPropuesto(activoDe(db, u.id), { hoy: HOY, fechaInicio: sumarDias(HOY, 30) }),
+      )
+    }
     const antes = otros.map((u) => activoDe(db, u.id).id)
 
-    const actual = activoDe(db, 'u-valentina')
-    barrerYActivar(db, sumarDias(actual.fechaInicio, actual.cadenciaDias))
+    reiniciarBarrido()
+    barrerYActivar(db, HOY)
 
+    expect(activoDe(db, 'u-valentina').id).toBe(suya.id)
     expect(otros.map((u) => activoDe(db, u.id).id)).toEqual(antes)
   })
 

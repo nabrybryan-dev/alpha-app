@@ -39,11 +39,15 @@ import type { Microciclo, Usuario } from '../../domain/types'
 import { microcicloPropuesto, proponerMicrociclo, type PropuestaMicrociclo } from './propuestaMicrociclo'
 
 export type EstadoActivacion =
-  /** Vencido y fiable: se activa sin que nadie mire. */
+  /**
+   * Se activa sin que nadie mire. Por dos vías: el microciclo venció y la
+   * propuesta es fiable, o hay una preparada cuya `fechaInicio` ya llegó —esa la
+   * eligió una persona y no espera a la cadencia—.
+   */
   | 'automatica'
   /** Vencido pero con señales dudosas: espera a que Bryan lo revise. */
   | 'revisar'
-  /** Aún no vence: sigue entrenándolo. */
+  /** Ni vencido ni con una preparada que ya empiece: sigue entrenándolo. */
   | 'en-curso'
   /** No tiene microciclo activo: no hay nada que ondular. */
   | 'sin-microciclo'
@@ -96,9 +100,6 @@ export function revisarCartera(db: Db, hoy: string = hoyIso()): FilaCartera[] {
 
     const pendientes = activo.sesiones.filter((s) => !sesionCompleta(s)).length
     const cierre = evaluarCierre(activo, hoy, pendientes)
-    if (!cierre.vencido) {
-      return { usuario, estado: 'en-curso', numeroActual: activo.numero, cierre }
-    }
 
     /**
      * Si el coach ya la dejó preparada, esa manda y no se vuelve a pasar por el
@@ -110,6 +111,32 @@ export function revisarCartera(db: Db, hoy: string = hoyIso()): FilaCartera[] {
      * una que no es la que se va a activar.
      */
     const preparada = propuestaPreparada(db, usuario.id, activo.numero + 1)
+
+    /**
+     * Su `fechaInicio` manda sobre la cadencia, y esta comprobación va ANTES de
+     * mirar si el que está en curso venció.
+     *
+     * Es el arreglo del 2026-08-24. La `fechaInicio` de una preparada es el único
+     * dato suyo que expresa una decisión de una persona: el coach la eligió al
+     * programar. Leerla solo después de que venciera el anterior la hacía inútil
+     * justo en el caso para el que existe —programar el domingo la semana que
+     * empieza el lunes—, porque con cadencia 8 el microciclo en curso casi nunca
+     * vence en lunes. La asesorada entrenaba la semana vieja con la nueva
+     * guardada al lado.
+     *
+     * Cerrar el que está en curso antes de tiempo no pierde nada: sus sesiones y
+     * sus series se quedan dentro del microciclo cerrado (`activacion.ts`).
+     */
+    if (preparada && preparada.fechaInicio <= hoy) {
+      return { usuario, estado: 'automatica', numeroActual: activo.numero, cierre, preparada }
+    }
+
+    if (!cierre.vencido) {
+      return { usuario, estado: 'en-curso', numeroActual: activo.numero, cierre }
+    }
+
+    // Vencido y con una preparada que aún no empieza: se adelanta igual. Es
+    // preferible a dejar a alguien sin programación mientras llega su fecha.
     if (preparada) {
       return { usuario, estado: 'automatica', numeroActual: activo.numero, cierre, preparada }
     }

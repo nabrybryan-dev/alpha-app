@@ -26,6 +26,22 @@ export function avisoDeDisco(r: Veredicto): string {
   const cobertura = r.cobertura === undefined ? null : Math.round(r.cobertura * 100)
   const radio = r.ajuste ? Math.round(r.ajuste.r) : null
 
+  // El núcleo distingue DOS formas de no ser redondo, y llevan a sitios
+  // contrarios. «Tiene esquinas» no es un disco mal visto: es que lo que se tocó
+  // no es un disco — un banco, una caja, el borde del tapete. Darle aquí el
+  // consejo del buje manda a la persona a frotar el metal de algo que no tiene
+  // metal, y es exactamente el fallo que arregló el #88: un mensaje que no
+  // distingue entre causas manda a arreglar la que no es.
+  if (r.motivo === 'eso tiene esquinas: un disco no las tiene') {
+    return (
+      `Eso tiene esquinas, y un disco no las tiene: lo que hay bajo el dedo es plano y ` +
+      `recto —un banco, una caja, el borde del tapete—, no un disco. ` +
+      (radio ? `El contorno que encontré mide ${radio} px de radio. ` : '') +
+      'Toca sobre la CARA del disco de la barra. Si el disco está medio tapado por otro, ' +
+      'no se puede fijar ahí: gira la barra o usa el otro extremo.'
+    )
+  }
+
   if (r.tipo === 'no-circular') {
     const residuo = r.redondez === undefined ? null : Math.round(r.redondez * 100)
     return (

@@ -28,6 +28,15 @@ export interface Medicion {
   motivos: string
   aceleracion?: number
   errorPct?: number
+  /** El recorrido mediano de la serie, en metros. Va al CSV porque es lo único
+   *  que delata un diámetro de disco mal elegido: con la escala equivocada las
+   *  velocidades salen desviadas por un factor constante y no chirría nada,
+   *  pero una sentadilla de 1,40 m sí chirría. Ver `escala.ts`. */
+  romM?: number
+  /** `true` cuando ese recorrido no es posible para ese ejercicio. Vacío
+   *  cuando no se pudo juzgar —sin escala no hay metros que comparar—, que no
+   *  es lo mismo que estar bien. */
+  escalaDudosa?: boolean
   /** Segundos de «Parar y analizar» a «Guardar»: lo que la medición le roba a
    *  la serie con el asesorado de pie esperando. */
   sAnadidos?: number
@@ -101,6 +110,13 @@ export function criteriosDeLaTanda(filas: Medicion[]): Criterio[] {
   const pctValidas = series.length > 0 ? (buenas / series.length) * 100 : undefined
   const pctPerdidas = totalReales > 0 ? (perdidas / totalReales) * 100 : undefined
 
+  // Solo cuentan las tomas que se pudieron juzgar: sin escala el recorrido está
+  // en píxeles y no hay metros que comparar. Un `undefined` es «no lo sé», y
+  // meterlo en el saco de las buenas seria dar por pasada una puerta que no se
+  // ha mirado.
+  const conRom = series.filter((f) => f.escalaDudosa !== undefined)
+  const dudosas = conRom.filter((f) => f.escalaDudosa).length
+
   const sAnadidos = mediana(filas.map((f) => f.sAnadidos).filter(finito))
   const sMaquina = mediana(filas.map((f) => f.sMaquina).filter(finito))
 
@@ -166,6 +182,20 @@ export function criteriosDeLaTanda(filas: Medicion[]): Criterio[] {
         : `${sMaquina.toFixed(1)} s de máquina, el resto es teclear`,
     },
     {
+      // El error de escala no aparece en ningún otro criterio, y es el que más
+      // daño hace: con el disco mal elegido las velocidades salen desviadas por
+      // un factor constante, la calidad sale «buena» y el %PV ni se entera
+      // —es un cociente entre dos velocidades medidas con la misma regla mala—.
+      // Lo único que lo delata es un recorrido imposible. Ver `escala.ts`.
+      etiqueta: 'Tomas con la escala en duda',
+      umbral: '= 0',
+      valor: conRom.length ? String(dudosas) : undefined,
+      cumple: conRom.length ? dudosas === 0 : undefined,
+      detalle: conRom.length
+        ? `${conRom.length} series con recorrido en metros`
+        : 'hace falta al menos una toma con escala',
+    },
+    {
       etiqueta: 'Prueba de gravedad (error medio)',
       umbral: '≤ 2 %',
       valor: errorG === undefined ? undefined : `${errorG.toFixed(2)} %`,
@@ -175,10 +205,26 @@ export function criteriosDeLaTanda(filas: Medicion[]): Criterio[] {
   ]
 }
 
+/**
+ * ¿Hay en la tanda alguna caída que valide la escala de este montaje?
+ *
+ * La prueba de gravedad es la única verdad de balde que tiene la herramienta:
+ * se suelta el implemento, se ajusta la parábola y la aceleración tiene que
+ * salir la g del sitio. Valida **escala y tiempos a la vez** y nadie discute la
+ * física, así que es lo único que puede levantar la sospecha sobre el disco —
+ * cuya escala falla en cuatro de cada cinco fotogramas reales.
+ *
+ * El 2 % es el mismo umbral que el criterio de la tanda: dos números distintos
+ * para la misma pregunta acabarían diciendo cosas distintas.
+ */
+export function gravedadAprobada(filas: Medicion[]): boolean {
+  return filas.some((f) => f.modo === 'gravedad' && finito(f.errorPct) && Math.abs(f.errorPct) <= 2)
+}
+
 export const COLUMNAS_CSV = [
   'fecha', 'modo', 'ejercicio', 'cargaKg', 'repsReales', 'repsDetectadas', 'vPrimera',
   'vUltima', 'vRef', 'vRefUltima', 'pvPct', 'pvRefPct', 'fpsReal', 'unidad', 'calidad',
-  'motivos', 'aceleracion', 'errorPct', 'sAnadidos', 'sMaquina', 'nota',
+  'motivos', 'romM', 'escalaDudosa', 'aceleracion', 'errorPct', 'sAnadidos', 'sMaquina', 'nota',
 ] as const
 
 /** CSV con comillas donde hacen falta. Lo que falta sale vacío, no «undefined». */

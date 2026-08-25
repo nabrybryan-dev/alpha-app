@@ -47,9 +47,10 @@ describe('EncoderPage', () => {
   it('sin tanda, los criterios se quedan sin contestar en vez de salir en verde', () => {
     render(<EncoderPage />)
     expect(screen.getByText('Error de %PV vs referencia')).toBeInTheDocument()
-    // Ocho criterios, todos con «--»: un criterio sin datos que se pintara
+    // Nueve criterios, todos con «--»: un criterio sin datos que se pintara
     // verde diria que la puerta esta pasada cuando no se ha medido nada.
-    expect(screen.getAllByText('--')).toHaveLength(8)
+    // El noveno —la escala en duda— entro con `escala.ts`.
+    expect(screen.getAllByText('--')).toHaveLength(9)
   })
 
   it('lee la tanda guardada al abrir, que es lo que sobrevive a cerrar la app', () => {
