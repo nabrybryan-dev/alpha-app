@@ -47,6 +47,21 @@
 -- Bajarla a 2 sumaria los 56 de racha exactamente 2, o sea 87. La constante vive
 -- en `RACHA_PARA_ESTANDARIZAR` (src/domain/estandarizacion.ts) y aqui abajo.
 --
+-- ══ APLICADO EL 2026-08-25 ═════════════════════════════════════════════════
+-- Migracion 0043 aplicada y verificada (7 columnas, RLS activo, politica de
+-- lectura, 3 checks + PK + FK, indice parcial de vetos). Siembra corrida: las
+-- 1.217 filas entraron y la distribucion coincide EXACTA con el ensayo en seco
+-- —882 / 248 / 56 / 31—, asi que no hubo deriva entre medir y escribir.
+--
+-- 25 personas con filas; 31 ejercicios estandarizados de entrada, y **19 de esos
+-- 31 son de una sola asesorada**, que tiene 19 de sus 21 ejercicios avalados.
+-- No es que entrene mejor: es la unica con historial largo y RIR anotado en casi
+-- todo. Otra tiene 58 ejercicios y 5 avalados. Confirma desde otro angulo que el
+-- cuello de botella es el REGISTRO, no el criterio.
+--
+-- Nada de esto ha cambiado un microciclo ni una carga: la tabla es de lectura y
+-- hoy no la consulta nadie —`estandarizacion.ts` sigue en MODULOS_SIN_ENCHUFAR—.
+--
 -- Diseño → Cerebro Alpha/docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4
 
 
