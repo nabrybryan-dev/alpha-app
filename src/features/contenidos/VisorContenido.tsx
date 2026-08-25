@@ -1,9 +1,5 @@
 import type { Contenido } from '../../domain/types'
-
-function idDeYoutube(url: string): string | undefined {
-  const patron = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/
-  return patron.exec(url)?.[1]
-}
+import { idDeYoutube } from '../../lib/youtube'
 
 export function VisorContenido({ contenido }: { contenido: Contenido }) {
   const videoId = contenido.tipo === 'video' ? idDeYoutube(contenido.url) : undefined
@@ -32,9 +28,12 @@ export function VisorContenido({ contenido }: { contenido: Contenido }) {
         />
       ) : null}
       <p className="text-sm leading-relaxed text-texto">{contenido.descripcion}</p>
-      {contenido.url && !videoId && contenido.tipo === 'video' && (
+      {/* El enlace va SIEMPRE que haya vídeo, no solo cuando no se pudo leer el
+          id. Si el dueño del vídeo tiene el embebido desactivado, el iframe pinta
+          «no disponible» y sin este enlace el asesorado se quedaba sin salida. */}
+      {contenido.tipo === 'video' && contenido.url && (
         <a href={contenido.url} target="_blank" rel="noreferrer" className="text-sm font-bold text-azul">
-          Abrir video →
+          {videoId ? 'Ver en YouTube →' : 'Abrir video →'}
         </a>
       )}
     </div>
