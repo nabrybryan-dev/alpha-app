@@ -23,6 +23,23 @@ describe('avisoDeDisco', () => {
     expect(t).not.toContain('redondo')
   })
 
+  it('«tiene esquinas» no manda a frotar el buje de algo que no es un disco', () => {
+    // El nucleo distingue dos formas de no ser redondo y llevan a sitios
+    // contrarios: «no es redondo» es un disco mal visto —buje o camara torcida—
+    // y «tiene esquinas» es que eso NO es un disco. Con el mismo consejo para
+    // los dos se manda a tocar la goma negra de un banco.
+    const t = avisoDeDisco({
+      tipo: 'no-circular',
+      motivo: 'eso tiene esquinas: un disco no las tiene',
+      redondez: 0.12,
+      cobertura: 0.8,
+      ajuste: { r: 140 },
+    })
+    expect(t).toMatch(/esquina/i)
+    expect(t).not.toMatch(/buje/i)
+    expect(t).not.toContain('undefined')
+  })
+
   it('un motivo que no conoce se dice tal cual, sin inventarse un diagnóstico', () => {
     expect(avisoDeDisco({ tipo: 'desconocida', motivo: 'no se pudo ajustar' })).toContain('no se pudo ajustar')
   })

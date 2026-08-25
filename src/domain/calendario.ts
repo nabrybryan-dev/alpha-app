@@ -1,5 +1,5 @@
 import { sumarDias } from './activacion'
-import type { Microciclo, Sesion } from './types'
+import type { Sesion } from './types'
 
 /** Índice 0 = domingo, igual que Date.getDay(). */
 const DIAS_SEMANA = [
@@ -45,7 +45,7 @@ export function diaSemanaDe(fechaIso: string): DiaSemana {
  * la que acaba de empezar.
  *
  * Es lunes y no «hoy + 7» porque las sesiones llevan su día escrito ("FULL BODY A
- * (LUNES)") y `sesionSugerida` las casa con el día del calendario. Un microciclo
+ * (LUNES)") y `armarSemana` las casa con el día del calendario. Un microciclo
  * que arranca a mitad de semana funciona, pero le desplaza a la persona lo que ve
  * en Hoy respecto de lo que dice su propia sesión.
  */
@@ -54,23 +54,6 @@ export function inicioProximaSemana(fechaIso: string): string {
   // Índice 1 = lunes. El +1/-1 mantiene el resultado en 1..7 y nunca en 0, que
   // devolvería la misma fecha cuando ya es lunes.
   return sumarDias(fechaIso, ((1 - dia + 6) % 7) + 1)
-}
-
-/**
- * Sesión a destacar en Hoy: la pendiente programada para el día de la fecha;
- * si hoy no toca ninguna (o ya se registró), la primera pendiente en orden.
- */
-export function sesionSugerida(
-  microciclo: Microciclo,
-  fechaIso: string,
-  estaCompleta: (sesion: Sesion) => boolean,
-): { sesion: Sesion; esDeHoy: boolean } | undefined {
-  const pendientes = microciclo.sesiones.filter((s) => !estaCompleta(s))
-  if (pendientes.length === 0) return undefined
-  const hoy = diaSemanaDe(fechaIso)
-  const deHoy = pendientes.find((s) => diaDeSesion(s) === hoy)
-  if (deHoy) return { sesion: deHoy, esDeHoy: true }
-  return { sesion: pendientes[0], esDeHoy: false }
 }
 
 /**

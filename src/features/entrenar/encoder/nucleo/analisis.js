@@ -631,6 +631,15 @@ export function analizarSerie(muestras, opciones = {}) {
  *  porque es el que decide si la grabación sobrevive. */
 export const INCLINACION_CALIDAD_GRADOS = 20
 
+/** Giro de la referencia DENTRO del plano de la imagen por encima del cual la
+ *  toma se descarta. No es lo mismo que la inclinación: aquélla es escorzo y
+ *  ésta es que la diana está torcida como un cuadro mal colgado.
+ *  Se exporta por la misma razón que la de arriba —el indicador en vivo tiene
+ *  que enseñar el número que usa la puerta—, y esta vez el aviso llega tarde:
+ *  la tanda del 22 de agosto de 2026 salió con `angulo` en las diez tomas
+ *  mientras la barra de medidas enseñaba la inclinación, que iba bien. */
+export const GIRO_CALIDAD_GRADOS = 10
+
 /**
  * Contrato de calidad — la puerta del motor.
  * wiki/motor-velocidad/contrato-datos.md §5. Vocabulario de motivos cerrado a
@@ -647,7 +656,7 @@ export function calificar({ fpsReal, deteccion, anguloMediana, nReps, hayEscala,
   // la que decide la dosis. Ver wiki/motor-velocidad/ensayos-simulados.md §2.
   if (!(fpsReal >= 50)) fallos.push('pocos_fps')
   if (!(deteccion >= 0.95)) fallos.push('marcador_perdido')
-  if (Number.isFinite(anguloMediana) && anguloMediana > 10) fallos.push('angulo')
+  if (Number.isFinite(anguloMediana) && anguloMediana > GIRO_CALIDAD_GRADOS) fallos.push('angulo')
   if (nReps < 3) fallos.push('pocas_reps')
   if (!hayEscala) fallos.push('sin_escala')
   // La inclinación de la referencia va DIRECTA a la velocidad: 20° son +6,4 %.

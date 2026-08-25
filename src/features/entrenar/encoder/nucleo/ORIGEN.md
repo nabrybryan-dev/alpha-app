@@ -19,16 +19,33 @@ parche hecho aquí no lo ve ninguna prueba.
 `huellas.json` guarda el sha-256 de los tres archivos y `nucleo.test.ts` lo
 comprueba. Si alguien edita una copia aquí, el test se pone rojo y dice cuál.
 
-## Lo que esa comprobación NO puede hacer
+## Lo que esa comprobación NO puede hacer, y quién lo hace ahora
 
-**La app y las herramientas son dos repos distintos**, así que el test no puede
-mirar el original: solo detecta que *aquí* se tocó algo. Si el que cambia es el
-de allí, los dos ficheros se separan en silencio hasta la siguiente copia.
+Las huellas solo detectan que *aquí* se tocó algo. Si el que cambia es el de
+allí, los dos ficheros se separan **en silencio**: la copia sigue intacta, las
+huellas siguen en verde, y la app mide con un núcleo viejo.
 
-Para eso está `comprobar-copia-en-la-app.mjs`, en el repo de las herramientas: se
-corre a mano y compara las dos copias. Es el mismo riesgo que ya tiene el proyecto
-entre `dutyEnT` y el firmware de la claqueta, y se trata igual — dejándolo escrito
-donde se va a leer.
+Eso no es hipotético. El **23 de agosto de 2026** se descubrió que llevaba
+semanas pasando: a esta copia le faltaban el ajuste de elipse del disco —6-9 % de
+escala sistemático, y nada detectado por encima de 25° de cámara— y el umbral de
+giro, que costó una tanda entera de diez tomas grabadas con el indicador en
+verde. Las huellas estuvieron en verde todo el tiempo. **Una copia intacta y
+obsoleta es peor que una tocada**, porque nada la delata.
+
+Desde entonces hay un segundo guardián en `nucleo.test.ts`, y corre dentro de
+`npm run verify`: si encuentra el repo de las herramientas, compara los tres
+ficheros contra el original y se pone rojo si se han separado. Busca en las
+colocaciones conocidas, o donde diga `ENCODER_HERRAMIENTAS`.
+
+**Se salta cuando el otro repo no está** —en el CI no está— y eso es deliberado:
+un guardián que se pone rojo por algo que no depende de quien lo lee enseña a
+ignorar los rojos. Así que sigue habiendo un hueco, y conviene tenerlo escrito:
+en una máquina sin el repo de herramientas, esto no protege de nada. Ahí sigue
+valiendo `comprobar-copia-en-la-app.mjs`, que se corre a mano desde el otro lado.
+
+Es el mismo riesgo que ya tiene el proyecto entre `dutyEnT` y el firmware de la
+claqueta: dos ficheros que tienen que ir a la par y que, si se separan, no dan
+error — dan números creíbles y equivocados.
 
 ## Por qué hay `.d.ts` a mano
 

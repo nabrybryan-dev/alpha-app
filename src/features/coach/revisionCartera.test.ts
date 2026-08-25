@@ -356,3 +356,49 @@ describe('conclusion', () => {
     expect(texto).toContain('entró mal recuperado (PRS 3)')
   })
 })
+
+/**
+ * ROJO A PROPÓSITO (2026-08-24). Documenta el primero de los dos fallos de
+ * `docs/specs/2026-08-24-la-semana-programada-no-llega-diseno.md`.
+ *
+ * El coach programa el domingo la semana que empieza el lunes y elige a mano la
+ * `fechaInicio`. Como `revisarCartera` solo mira la preparada DESPUÉS de
+ * comprobar que el microciclo en curso venció, y con cadencia 8 casi nunca vence
+ * en lunes, esa semana se queda guardada mientras la asesorada entrena la vieja.
+ * La única fecha de la propuesta que expresa una decisión humana no la lee nadie.
+ */
+describe('la semana preparada arranca el día que eligió el coach', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    reiniciarBarrido()
+  })
+
+  it('se activa cuando llega su fechaInicio aunque al que está en curso le queden días', () => {
+    const { db, activo } = partida()
+    // En curso: le queda un día de cadencia. Antes esto bastaba para no mirar.
+    const arranque = sumarDias(activo.fechaInicio, activo.cadenciaDias - 1)
+    db.microciclos.guardarPropuesta(microcicloPropuesto(activo, { fechaInicio: arranque }))
+
+    const fila = filaDe(revisarCartera(db, arranque))
+    expect(fila.estado).toBe('automatica')
+    expect(fila.preparada?.numero).toBe(activo.numero + 1)
+
+    activarAutomaticas(db, [fila], arranque)
+    const ahora = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    expect(ahora?.numero).toBe(activo.numero + 1)
+    expect(ahora?.fechaInicio).toBe(arranque)
+  })
+
+  it('la que aún no empieza no se adelanta: sigue entrenando la suya', () => {
+    const { db, activo } = partida()
+    const hoy = sumarDias(activo.fechaInicio, 1)
+    db.microciclos.guardarPropuesta(
+      microcicloPropuesto(activo, { fechaInicio: sumarDias(hoy, 3) }),
+    )
+
+    expect(filaDe(revisarCartera(db, hoy)).estado).toBe('en-curso')
+    expect(db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')?.numero).toBe(
+      activo.numero,
+    )
+  })
+})
