@@ -29,6 +29,7 @@ const ESTADOS: readonly EstadoGuardado[] = ['automatico', 'en_espera', 'decidido
 import { aplicarSnapshot, epocaSesion, instantaneaLocal, versionEscrituras } from '../mockDb'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
+import { sanearMicrociclo, sanearPlan } from './saneado'
 import { conPendientes, marcarTablaHidratacion, marcarTablaRegistro } from './sync'
 
 interface FilaUsuario {
@@ -89,7 +90,9 @@ type Fila = Record<string, unknown>
  */
 export function microciclosDe(filas: readonly Fila[]): Microciclo[] {
   return filas.map((f) => {
-    const datos = f.datos as Microciclo
+    // `as Microciclo` es una promesa al compilador, no una garantia: las cargas
+    // por SQL pueden dejar `sesiones` o `ejercicios` en null. Ver `saneado.ts`.
+    const datos = sanearMicrociclo(f.datos as Microciclo)
     const estado = f.estado as Microciclo['estado'] | undefined
     return estado ? { ...datos, estado } : datos
   })
@@ -366,7 +369,7 @@ export async function hidratarDesdeNube(): Promise<void> {
             puntos: (f.puntos as number) ?? 0,
           }),
         ),
-    planes: (planes.data ?? []).map((f) => f.datos as PlanNutricional),
+    planes: (planes.data ?? []).map((f) => sanearPlan(f.datos as PlanNutricional)),
     mensajes: conPendientes('mensajes', (mensajes.data ?? []) as FilaMensaje[]).map(
       (m): Mensaje => ({
         id: m.id,
