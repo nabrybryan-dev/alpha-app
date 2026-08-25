@@ -47,6 +47,114 @@ export interface Medicion {
 
 export const redondea2 = (x: number) => Math.round(x * 100) / 100
 
+// ── La hora del día, que no es ruido ─────────────────────────────────────────
+//
+// La fuerza sube de la mañana a la tarde, y no por estar más despierto: el
+// mecanismo es intrínseco al músculo y al reloj circadiano (Douglas, Hesketh y
+// Esser, *Physiology* 2021;36(1):44-51 · PMID 33325817).
+//
+// Cuánto. En contracción isométrica máxima se han medido diferencias de ~67 N,
+// en torno al 10 %. En deportistas de equipo, un metaanálisis de 5 estudios y 68
+// atletas comparando 7:00-10:00 contra 16:00-20:00 encontró **CMJ −1,44 cm**
+// (IC −2,80 a −0,08; p = 0,04) y **agilidad 0,42 s** (IC 0,09-0,74; p = 0,01).
+//
+// ⚠ Y lo que NO salió significativo, que hay que decir igual: salto sin
+// contramovimiento (p = 0,09) y dinamometría de mano (p = 0,17). El efecto
+// aparece en tareas dinámicas y explosivas, no en todo. Las muestras son
+// pequeñas —30 a 68 sujetos—.
+//
+// ⚠ Nadie ha medido esto sobre la VELOCIDAD DE BARRA. Extrapolar desde el CMJ
+// es razonable —las dos son concéntricas explosivas— pero es una extrapolación.
+//
+// POR QUÉ IMPORTA AQUÍ, que es lo que decide que esto exista: el motor dispara
+// una decisión de programación cuando la velocidad cae más de un 5-6 % entre
+// semanas a igual carga (`03-vbt-perdida-velocidad.md`). Si la hora del día
+// mueve del orden del 10 %, **cambiar de franja puede fabricar esa caída, o
+// tapar una real**. La hora deja de ser metadato y pasa a ser covariable.
+//
+// Lo que NO hace este código: corregir el número. No hay factor de corrección
+// validado para velocidad de barra, e inventarlo sería peor que no hacer nada.
+// Solo avisa de cuándo dos tomas no son comparables.
+
+/** Las franjas del metaanálisis, más el hueco entre ambas. */
+export type Franja = 'manana' | 'intermedia' | 'tarde'
+
+/** En qué franja cae una medición. `undefined` si la fecha no es utilizable.
+ *
+ *  Los límites son los del metaanálisis (7-10 h y 16-20 h) y no una partición
+ *  del día: entre las 10 y las 16 no hay evidencia de a qué se parece más, así
+ *  que se llama `intermedia` en vez de forzarla a un lado. */
+export function franjaDe(fechaIso: string): Franja | undefined {
+  const d = new Date(fechaIso)
+  if (Number.isNaN(d.getTime())) return undefined
+  const h = d.getHours() + d.getMinutes() / 60
+  if (h >= 7 && h < 10) return 'manana'
+  if (h >= 16 && h < 20) return 'tarde'
+  return 'intermedia'
+}
+
+export interface AvisoDeHora {
+  /** `false` solo cuando una toma es de mañana y la otra de tarde. */
+  comparables: boolean
+  horasDeDiferencia: number
+  franjaA?: Franja
+  franjaB?: Franja
+  /** Texto para la pantalla. `undefined` cuando no hay nada que decir. */
+  aviso?: string
+}
+
+/** Si dos tomas del mismo ejercicio se pueden comparar por la hora a la que se
+ *  hicieron.
+ *
+ *  Devuelve `comparables: false` únicamente en el caso documentado —una franja
+ *  de mañana contra una de tarde—, porque es el único con evidencia detrás.
+ *  Una diferencia grande de horas dentro de la zona intermedia da aviso pero no
+ *  invalida: no hay dato que lo respalde. */
+export function comparablesPorHora(fechaA: string, fechaB: string): AvisoDeHora {
+  const a = new Date(fechaA).getTime()
+  const b = new Date(fechaB).getTime()
+  const franjaA = franjaDe(fechaA)
+  const franjaB = franjaDe(fechaB)
+  if (Number.isNaN(a) || Number.isNaN(b) || !franjaA || !franjaB) {
+    return { comparables: true, horasDeDiferencia: NaN, franjaA, franjaB }
+  }
+
+  // La diferencia en HORA DEL DÍA, no el tiempo transcurrido: dos tomas
+  // separadas por una semana a la misma hora son perfectamente comparables.
+  const horaDe = (f: string) => {
+    const d = new Date(f)
+    return d.getHours() + d.getMinutes() / 60
+  }
+  const bruta = Math.abs(horaDe(fechaA) - horaDe(fechaB))
+  const horasDeDiferencia = redondea2(Math.min(bruta, 24 - bruta))
+
+  if ((franjaA === 'manana' && franjaB === 'tarde') || (franjaA === 'tarde' && franjaB === 'manana')) {
+    return {
+      comparables: false,
+      horasDeDiferencia,
+      franjaA,
+      franjaB,
+      aviso:
+        `Una toma es de mañana y la otra de tarde (${horasDeDiferencia} h de diferencia). ` +
+        'La fuerza sube de la mañana a la tarde por sí sola: una parte de lo que cambie ' +
+        'entre estas dos medidas es la hora, no el entrenamiento.',
+    }
+  }
+
+  if (horasDeDiferencia >= 4) {
+    return {
+      comparables: true,
+      horasDeDiferencia,
+      franjaA,
+      franjaB,
+      aviso: `${horasDeDiferencia} h de diferencia entre las dos tomas. Conviene medir siempre a la misma hora.`,
+    }
+  }
+
+  return { comparables: true, horasDeDiferencia, franjaA, franjaB }
+}
+
+
 /** El %PV del instrumento de referencia, con la MISMA fórmula que `analisis.js`
  *  usa para el nuestro. Si las dos se separan, los dos números dejan de ser
  *  comparables y nada avisa. */
