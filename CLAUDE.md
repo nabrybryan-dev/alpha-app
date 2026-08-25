@@ -106,8 +106,8 @@ Reglas que quedan:
 - El clonador pasa cada sesión por `tmp_sesion_en_limpio()` antes de guardarla.
   Si añades un campo de ejecución a `Sesion` (`src/domain/types.ts`), añádelo
   también ahí — es el único punto donde se decide qué no se hereda.
-- Después de cada carga, correr **las cinco** comprobaciones, y no se reparte la
-  semana hasta que las cinco pasen. Las tres primeras tienen que dar **cero
+- Después de cada carga, correr **las seis** comprobaciones, y no se reparte la
+  semana hasta que las seis pasen. Las cuatro primeras tienen que dar **cero
   filas**:
   - `supabase/comprobar-fosiles.sql` — ejecución heredada del microciclo viejo.
     **No filtra por `rol`, y no debe volver a hacerlo:** hasta el 2026-08-24 lo
@@ -125,6 +125,17 @@ Reglas que quedan:
     de la semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13
     asesorados. El equivalente en dominio es `src/domain/alineacion.ts`: si
     cambias uno, cambia el otro.
+
+  - `supabase/comprobar-base-de-tecnica.sql` — cuando la prescripción describe una
+    técnica (myo-reps, rest-pause, «N REPS + PAUSA + M REPS»), ¿`repsDiana` lleva
+    la **base** o el total? Cero filas. Importa porque `RegistroSerie.tsx` prefija
+    el campo `reps` desde `repsDiana`: si ahí va el total, **el asesorado registra
+    el total haciendo lo correcto**, el PANEL cuenta reps que la convención dice
+    no contar, y el dato queda con la interpretación dentro —un `9` sobre un
+    `repsDiana` de 9 no dice si fueron 9 limpias o 6+3—. No lo caza
+    `comprobar-alineacion.sql` porque esa solo lee la cabecera canónica
+    `{CARGA}KG A {REPS} REPS`, y una frase con técnica no encaja en ese patrón.
+    Convención → `Cerebro Alpha/wiki/conocimiento/tecnicas-de-intensidad.md` §11.
 
   Y dos más, que no se leen igual que las anteriores:
   - `supabase/comprobar-sesiones-perdidas.sql` — ¿le falta al microciclo nuevo
