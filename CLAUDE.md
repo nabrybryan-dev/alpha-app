@@ -106,9 +106,15 @@ Reglas que quedan:
 - El clonador pasa cada sesión por `tmp_sesion_en_limpio()` antes de guardarla.
   Si añades un campo de ejecución a `Sesion` (`src/domain/types.ts`), añádelo
   también ahí — es el único punto donde se decide qué no se hereda.
-- Después de cada carga, correr **las tres** comprobaciones. Las tres tienen que
-  dar **cero filas**, y no se reparte la semana hasta que las den:
+- Después de cada carga, correr **las cinco** comprobaciones, y no se reparte la
+  semana hasta que las cinco pasen. Las tres primeras tienen que dar **cero
+  filas**:
   - `supabase/comprobar-fosiles.sql` — ejecución heredada del microciclo viejo.
+    **No filtra por `rol`, y no debe volver a hacerlo:** hasta el 2026-08-24 lo
+    hacía, y por eso contó 141 marcas fósiles el día que había 161 — las 20 que
+    faltaban eran de una persona cuyo `rol` es `nutricionista`. La regla vale
+    para cualquier barrido de integridad de este repo: **el `rol` decide a quién
+    se le PROGRAMA, no qué datos EXISTEN.**
   - `supabase/comprobar-sesiones.sql` — sesiones que se perdieron o que no se
     pueden pintar. Existe desde el 2026-08-09: una carga escribió `null` en el
     array `sesiones` de seis microciclos activos y siete sesiones de cardio
@@ -119,6 +125,20 @@ Reglas que quedan:
     de la semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13
     asesorados. El equivalente en dominio es `src/domain/alineacion.ts`: si
     cambias uno, cambia el otro.
+
+  Y dos más, que no se leen igual que las anteriores:
+  - `supabase/comprobar-sesiones-perdidas.sql` — ¿le falta al microciclo nuevo
+    alguna sesión que tenía el viejo? Aquí el contrato **no es «cero filas»**:
+    la columna `veredicto` tiene que decir `OK` en todas. Existe desde el
+    2026-08-24, cuando una asesorada salió de una carga con 4 sesiones viniendo
+    de 5 — y la que faltaba, de cardio y sin `ejercicios`, era la misma que ya
+    se había perdido el 2026-08-09. **Las sesiones sin `ejercicios` son siempre
+    las frágiles**, y ninguna de las tres anteriores ve una que ya no está: el
+    array es válido, lo que queda es correcto, las frases alinean.
+  - `supabase/comprobar-cobertura.sql` — ¿quedó alguien FUERA de la carga? Cero
+    filas. Las otras verifican la **integridad de lo que se escribió**; esta es
+    la única que verifica la **cobertura de lo que debía escribirse**. Una
+    persona omitida por completo pasa todas las demás con nota.
 - **`jsonb_agg` de cero filas devuelve NULL, no `[]`.** Es la trampa que causó
   aquello. Cualquier `jsonb_set(s, '{...}', (select jsonb_agg(...) …))` va
   envuelto en `coalesce(…, '[]'::jsonb)`, porque `jsonb_set` con un argumento
