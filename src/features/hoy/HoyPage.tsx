@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
 import { db, hoyIso, idCoach, useDbVersion } from '../../data/dbInstance'
-import { diaDeSesion, semanaDelAnio, sesionSugerida } from '../../domain/calendario'
+import { diaDeSesion, semanaDelAnio } from '../../domain/calendario'
 import { sesionCompleta } from '../../domain/cumplimiento'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { encuestaPendiente, preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
+import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
@@ -28,8 +29,13 @@ export default function HoyPage() {
   const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
-  const sugerida = microciclo ? sesionSugerida(microciclo, hoy, sesionCompleta) : undefined
-  const siguienteSesion = sugerida?.sesion
+  // La MISMA respuesta que da Entrenar, y por la misma función. Hoy tenía criterio
+  // propio (`sesionSugerida`, que caía en la primera del array) y las dos pantallas
+  // proponían sesiones distintas el mismo día: un lunes sin sesión, Hoy empujaba la
+  // más antigua colgada mientras Entrenar ofrecía la del martes. Es el mismo bug que
+  // ya se arregló DENTRO de Entrenar entre su botón y su calendario.
+  const sugerida = microciclo ? sesionDestacada(armarSemana(microciclo, hoy)) : undefined
+  const siguienteSesion = microciclo?.sesiones.find((s) => s.id === sugerida?.sesionId)
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
