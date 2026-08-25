@@ -46,8 +46,20 @@ export const POSTER_LOGIN = '/fondos/login-rack.jpg'
  *   - 1280×720, WebM/AV1, **746 KB** — por debajo del techo de 900 KB.
  *   - En `public/hero/`.
  *
- * Las otras cuatro —A, B, D y E— ya tienen sitio, y no aquí: van en bandas
- * apaisadas por la app (Entrenar, Progreso, Contenidos y el manual de marca).
+ * De las otras cinco, dos tienen sitio propio en la app y NINGUNA va en banda:
+ * las bandas apaisadas se retiraron con `BandaDireccion` el 20-08 —ver
+ * `docs/specs/2026-08-20-integracion-cinematica-diseno.md`—, porque se leían como
+ * material pegado encima del título. Hoy:
+ *
+ *   - **B Órbita** — Entrenar/Ruta, como fondo con scrub por scroll. No consume el
+ *     `.webm` de esta lista sino los 36 WebP de `public/hero/orbita/`.
+ *   - **D Esfuerzo** — Contenidos, montada como lámina impresa dentro de la tarjeta.
+ *   - **A Despiece, E Físico y F Proyección** — SIN COLOCAR. Solo aparecen en el
+ *     rollo del manual de marca, que las enseña las seis.
+ *
+ * Progreso NO lleva pieza, aunque durante un tiempo llevó la E bajo la curva: hoy
+ * ese relleno es `terreno-progreso.webp`, que no es una dirección visual.
+ *
  * El catálogo con sus pósters está en `src/lib/direccionesVisuales.ts`.
  *
  * Estas dos pantallas siguen aparte a propósito: son verticales a pantalla
