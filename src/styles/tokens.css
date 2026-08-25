@@ -26,6 +26,33 @@
   --glass-shell: rgba(255, 255, 255, 0.03);
   --brillo-interior: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --halo-rojo: 0 0 24px rgba(255, 30, 30, 0.18);
+
+  /* ============ El sello de calidad: una placa troquelada ============
+     Sin verde disponible y con el rojo tomado por la marca, la calidad de una
+     toma no se puede señalar con un semaforo. Se señala con MATERIA: la silueta
+     del sello es identica en los tres estados y lo que cambia es de que esta
+     hecho — lleno, hueco, hundido.
+
+     El eje es la cantidad de materia y no el matiz, y por eso se lee a tres
+     metros con luz de gimnasio, sobrevive al contraluz y funciona en escala de
+     grises. La opacidad quedo descartada a proposito: un elemento al 50 %
+     desaparece a esa distancia, y `descartada` es justo el estado que MAS tiene
+     que verse. */
+
+  /* El metal del sello. Es el mismo valor que --verde, y tiene nombre propio a
+     proposito: usarlo llamandolo «verde» garantiza que alguien acabe pintandolo
+     de verde, que es exactamente lo que la marca decidio no hacer. */
+  --placa: #c2c8cf;
+  /* El filete de la placa descartada. Entre --linea (invisible a 3 m) y
+     --gris-marca (demasiado presente) no habia ningun paso intermedio. */
+  --placa-muerta: #4a4a4d;
+  /* El interior de la placa descartada: mas oscuro que el fondo de pagina, para
+     que el sello se lea como un hueco en la superficie y no como una tarjeta. */
+  --hundido: #060606;
+  /* La unica sombra del sistema. */
+  --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.9);
+  /* El corte de las dos esquinas opuestas del troquel. */
+  --troquel: 10px;
 }
 
 [data-theme="light"] {
@@ -50,6 +77,15 @@
   --glass-shell: rgba(0, 0, 0, 0.03);
   --brillo-interior: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --halo-rojo: 0 0 24px rgba(213, 18, 22, 0.12);
+
+  /* La placa en claro: el metal se oscurece para seguir teniendo contraste sobre
+     blanco, y el hundido se aclara. La relacion entre los tres se conserva —lleno,
+     hueco, hundido— porque es esa relacion y no el color lo que informa. */
+  --placa: #5f5e5a;
+  --placa-muerta: #a3a099;
+  --hundido: #e7e5e0;
+  --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.18);
+  --troquel: 10px;
 }
 
 :root {
