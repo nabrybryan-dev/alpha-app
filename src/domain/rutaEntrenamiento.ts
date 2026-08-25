@@ -67,15 +67,16 @@ function sumarDias(fechaIso: string, dias: number): string {
 
 function detalleDeSesion(sesion: Sesion): string {
   const bloques = (sesion.bloquesCardio ?? []).length
-  if (sesion.tipo === 'metabolica') {
-    return `${bloques} bloque${bloques === 1 ? '' : 's'} · cardio`
+
+  // Manda lo que hay, no la etiqueta. Si la sesion trae ejercicios se describen
+  // los ejercicios, aunque este marcada `metabolica`: desde el 2026-08-25 esos
+  // ejercicios cuentan para cerrarla y para la propuesta, asi que esconderlos en
+  // la Ruta seria lo unico que quedaria mintiendo.
+  if (sesion.ejercicios.length === 0) {
+    const cola = sesion.tipo === 'metabolica' ? ' · cardio' : ''
+    return `${bloques} bloque${bloques === 1 ? '' : 's'}${cola}`
   }
-  // Sin ejercicios, contarlos es escribir «0 ejercicios · 0 series · 0:00» sobre
-  // una sesion que si tiene trabajo prescrito: sus bloques. No se dice «cardio»
-  // porque sin la etiqueta no se sabe que lo sea — puede ser movilidad.
-  if (sesion.ejercicios.length === 0 && bloques > 0) {
-    return `${bloques} bloque${bloques === 1 ? '' : 's'}`
-  }
+
   const series = sesion.ejercicios.reduce((n, e) => n + e.sets, 0)
   return `${sesion.ejercicios.length} ejercicios · ${series} series · ${formatoDuracion(duracionTotalSeg(sesion))}`
 }

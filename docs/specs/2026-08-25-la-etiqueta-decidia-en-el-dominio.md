@@ -36,21 +36,35 @@ dentro. Es el caso de la ZONA 2 + MOVILIDAD que venía marcada `fuerza`.
 3. **`PautadoVsRealizado` no le enseñaba al coach ni un bloque**, porque la lista
    solo se pintaba con la etiqueta puesta. Ahora se pinta si hay bloques.
 
-## Lo que NO se toca, y es una decisión pendiente
+## Lo que quedó pendiente, y se decidió el mismo día
 
-Una sesión marcada `metabolica` **con ejercicios dentro** sigue juzgándose solo
-por sus bloques, y sus ejercicios siguen fuera de la propuesta del microciclo
-siguiente (`propuestaMicrociclo` los filtra por `tipo`).
+Quedaba abierto si una sesión marcada `metabolica` **con ejercicios dentro** debía
+contar: cerrarse por sus ejercicios y no solo por sus bloques, y entrar en la
+propuesta del microciclo siguiente.
 
-**Eso no es un descuido: está pinneado por sus propios tests**, dos de ellos
-escritos a propósito («no ondula las metabólicas, pero tampoco las pierde»).
-Cambiarlo movería la adherencia de personas a mitad de bloque y metería sus
-ejercicios en la propuesta de carga. Es una decisión de programación, no de
-código, y no se toma desde aquí.
+**Decisión de Bryan, 2026-08-25: sí cuentan, porque generan fatiga.** Un
+ejercicio con series y kilos produce fatiga esté en la sesión que esté, así que
+tiene que contar para cerrarla, para el volumen y para la progresión.
 
-Lo que sí conviene saber al decidirla: hoy, una `metabolica` con 7 ejercicios
-dentro **se da por completa marcando solo los bloques**, con los 7 ejercicios sin
-registrar — y ese 100 % es el que alimenta el «margen sin usar → sube».
+Aplicado justo después, en su propio cambio:
+
+- **`sesionCompleta` ya no mira `tipo` en absoluto.** Si hay ejercicios, mandan
+  los ejercicios; si no hay, la cierran sus bloques. Las dos sesiones con 7 y 6
+  ejercicios dentro dejan de darse por completas con los 13 sin registrar.
+- **`propuestaMicrociclo` ya no filtra por `tipo`.** Sus ejercicios entran en las
+  filas, en la cuenta de volumen, en el barrido de desalineados y en la
+  ondulación. Una metabólica de verdad —solo bloques, `ejercicios: []`— sigue sin
+  aportar nada, porque no tiene ejercicios que aportar: el filtro sobraba.
+- **`detalleDeSesion` describe los ejercicios cuando los hay**, aunque la
+  etiqueta diga `metabolica`.
+
+**Lo que expresamente NO se hizo:** exigir las dos cosas a la vez. Una sesión de
+fuerza con un bloque de movilidad delante seguiría sin cerrarse hasta tildarlo, y
+eso bajaría la adherencia de media cartera por un calentamiento sin marcar. La
+regla es «manda lo que prescribe carga», no «manda todo». Hay un test que lo fija.
+
+`tipo` sobrevive solo donde de verdad describe: el fondo de la tarjeta, el panel
+de ritmo y el rótulo de los bloques.
 
 ## Cómo se comprobó
 

@@ -63,12 +63,30 @@ describe('proponerMicrociclo', () => {
     expect(p.filas.map((f) => f.sesionNombre)).toEqual(['UPPER A', 'UPPER A', 'LEG B'])
   })
 
-  it('no ondula las sesiones metabólicas: ahí no hay carga que progresar', () => {
+  it('los ejercicios de una metabólica también entran: generan fatiga', () => {
+    // Cambio de política del 2026-08-25. Antes esta prueba fijaba lo contrario
+    // —«no ondula las metabólicas: ahí no hay carga que progresar»— y era cierto
+    // mientras una metabólica fuera solo bloques. Pero las había con ejercicios
+    // cargados dentro, y quedaban congelados microciclo tras microciclo, fuera de
+    // la propuesta y fuera de la cuenta de volumen.
     const p = proponerMicrociclo(
       micro({
         sesiones: [
           sesion({ id: 's1', ejercicios: [registrado] }),
           sesion({ id: 's2', nombre: 'METABÓLICO', tipo: 'metabolica', ejercicios: [registrado] }),
+        ],
+      }),
+    )
+    expect(p.filas).toHaveLength(2)
+    expect(p.filas.map((f) => f.sesionNombre)).toContain('METABÓLICO')
+  })
+
+  it('pero una metabólica de verdad, solo bloques, sigue sin aportar filas', () => {
+    const p = proponerMicrociclo(
+      micro({
+        sesiones: [
+          sesion({ id: 's1', ejercicios: [registrado] }),
+          sesion({ id: 's2', nombre: 'ZONA 2', tipo: 'metabolica', ejercicios: [] }),
         ],
       }),
     )
@@ -398,12 +416,16 @@ describe('microcicloPropuesto', () => {
     expect(ej.cargaKg).toBe(ej.seriesPrescritas![0].cargaKg)
   })
 
-  it('no ondula las metabólicas, pero tampoco las pierde', () => {
+  it('ondula los ejercicios de una metabólica, y no la pierde', () => {
+    // Antes esta prueba exigía `seriesPrescritas` sin definir. Se invirtió el
+    // 2026-08-25: un ejercicio con series y kilos progresa esté en la sesión que
+    // esté. Lo que decide es el ejercicio, no la etiqueta de su sesión —
+    // `aplicarOndulacion` ya devuelve el ejercicio limpio cuando no hay carga.
     const conMeta = micro({
       sesiones: [sesion({ id: 's2', nombre: 'METABÓLICO', tipo: 'metabolica', ejercicios: [registrado] })],
     })
     const p = microcicloPropuesto(conMeta)
     expect(p.sesiones).toHaveLength(1)
-    expect(p.sesiones[0].ejercicios[0].seriesPrescritas).toBeUndefined()
+    expect(p.sesiones[0].ejercicios[0].seriesPrescritas).toBeDefined()
   })
 })
