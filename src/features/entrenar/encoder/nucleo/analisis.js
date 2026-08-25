@@ -437,6 +437,29 @@ export function percentil(arr, p) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * El vértice de la parábola que pasa por las tres muestras alrededor del máximo.
+ *
+ * Un pico suave, visto de cerca, es una parábola: tres puntos la determinan y su
+ * vértice cae donde de verdad estaba el máximo, entre fotograma y fotograma. Es
+ * la corrección estándar de interpolación parabólica, y aquí gana lo que el
+ * muestreo se llevaba.
+ *
+ * Devuelve el máximo crudo cuando no hay tres puntos, o cuando los tres no
+ * dibujan un pico —si la curva no es cóncava ahí, el vértice no es un máximo y
+ * extrapolarlo daría un número mayor que cualquier medida, que es peor que
+ * quedarse corto.
+ */
+export function vertice(v, iPico, iMin, iMax) {
+  if (iPico <= iMin || iPico >= iMax) return v[iPico]
+  const a = v[iPico - 1], b = v[iPico], c = v[iPico + 1]
+  const denominador = a - 2 * b + c
+  if (!(denominador < 0)) return b
+  const desplazamiento = (0.5 * (a - c)) / denominador
+  if (Math.abs(desplazamiento) > 0.5) return b
+  return b - 0.25 * (a - c) * desplazamiento
+}
+
+/**
  * Parte la señal en repeticiones con una máquina de estados con histéresis.
  *
  * `s` es la posición **en el sentido de la concéntrica**: crece cuando el
@@ -446,7 +469,46 @@ export function percentil(arr, p) {
  * La histéresis (25 % y 75 % del recorrido) evita que un temblor en el punto
  * bajo cuente cuatro repeticiones donde hay una.
  */
-export function segmentarRepeticiones(t, s, v) {
+/**
+ * La aceleración, del mismo ajuste que da la velocidad.
+ *
+ * Derivar dos veces una posición ruidosa amplifica el ruido, así que no se
+ * deriva dos veces: se pasa la VELOCIDAD ya ajustada por el mismo ajuste
+ * cuadrático por mínimos cuadrados. Es una derivada suavizada de algo ya
+ * suavizado, que es lo que hace falta aquí — el umbral propulsivo no necesita
+ * una aceleración exacta, necesita saber en qué fotograma cruza −g.
+ */
+export function aceleraciones(t, v, semiVentana = 3) {
+  return velocidades(t, Array.from(v), semiVentana)
+}
+
+/**
+ * Dónde acaba la fase propulsiva de una repetición.
+ *
+ * Definición de Sánchez-Medina y González-Badillo, que es la que usan las tablas
+ * de velocidad por porcentaje: la fase propulsiva va desde el inicio de la
+ * concéntrica hasta que **la aceleración cae por debajo de −g**. A partir de ahí
+ * la carga frena sola, más rápido de lo que la gravedad la frenaría, porque el
+ * sujeto está tirando hacia abajo.
+ *
+ * Importa porque **las tablas de %1RM están en velocidad media PROPULSIVA**
+ * (motor-decision/03-vbt §«VMP vs VM»), y un aparato que solo da velocidad media
+ * lee por debajo en cargas ligeras — y penaliza más a los sujetos fuertes, que
+ * tienen una fase de frenado más ancha. Con cargas por encima del 80-85 % las
+ * dos son la misma cosa porque ya no hay frenado.
+ *
+ * Devuelve `iFin` si nunca cruza: entonces toda la concéntrica fue propulsiva.
+ */
+export function finPropulsivo(t, a, iInicio, iFin, gravedad = G_ESTANDAR) {
+  for (let k = iInicio + 1; k <= iFin; k++) {
+    if (a[k] < -gravedad) return k
+  }
+  return iFin
+}
+
+export function segmentarRepeticiones(t, s, v, opciones = {}) {
+  const { conEscala = false } = opciones
+  const aceleracion = conEscala ? aceleraciones(t, v) : undefined
   const n = t.length
   if (n < 8) return []
   const bajo = percentil(s, 0.05)
@@ -498,8 +560,49 @@ export function segmentarRepeticiones(t, s, v) {
         let iPico = iInicio
         for (let k = iInicio; k <= iFin; k++) if (v[k] > v[iPico]) iPico = k
 
+        // El pico verdadero casi nunca cae encima de un fotograma: cae ENTRE
+        // dos, y el máximo de las muestras se queda corto por debajo de él. No
+        // es un defecto de esta implementación —la literatura lo mide en toda la
+        // familia de aparatos ópticos, ver ESTADO-DEL-ARTE.md §3— y tiene una
+        // causa aritmética: un pico es el extremo de una derivada, y muestrear
+        // una curva recorta sus extremos. La velocidad MEDIA no lo sufre, porque
+        // es un cociente entre dos posiciones y un tiempo.
+        //
+        // Se recupera ajustando una parábola a las tres muestras alrededor del
+        // máximo, que es la forma que tiene cualquier pico suave visto de cerca.
+        // Y la diferencia entre el máximo crudo y el del vértice se guarda: es
+        // una medida de CUÁNTO se estaba perdiendo, y por tanto de cuánto fiarse
+        // del número. A 60 fps es pequeña; a 30, no.
+        const picoInterpolado = vertice(v, iPico, iInicio, iFin)
+
         const dt = t[iFin] - t[iInicio]
         if (dt > 0.08 && s[iFin] > s[iInicio]) {
+          // La velocidad media propulsiva solo tiene sentido con la señal en
+          // metros: el umbral es −g, y en píxeles por segundo al cuadrado −9,81
+          // no significa nada. Sin escala se devuelve `undefined`, que es la
+          // respuesta honesta, y no la media disfrazada de propulsiva.
+          // Desde iMin y no desde iInicio: la fase propulsiva empieza donde
+          // empieza la concéntrica, no en el 5 % del recorrido. Medirla desde el
+          // recorte hacía que, sin frenado, la «propulsiva» saliera distinta de
+          // la media completa — y sin frenado tienen que ser la misma cosa.
+          // El arranque, no el punto más bajo. Entre los dos hay una pausa —
+          // el atleta se coloca, respira— y meterla dentro de la concéntrica
+          // hunde las dos medias por igual y hace incomparable el número con
+          // cualquier tabla. Es el mismo criterio que `UMBRAL_SUELTA` aplica a
+          // la caída libre, y por la misma razón.
+          let iArranque = iMin
+          while (iArranque < iCima && v[iArranque] < 0.05 * v[iPico]) iArranque++
+
+          let vMediaPropulsiva, frenadoPct
+          if (conEscala) {
+            const dtTotal = t[iCima] - t[iArranque]
+            const iProp = finPropulsivo(t, aceleracion, iArranque, iCima)
+            const dtProp = t[iProp] - t[iArranque]
+            if (dtProp > 0 && dtTotal > 0) {
+              vMediaPropulsiva = (s[iProp] - s[iArranque]) / dtProp
+              frenadoPct = (1 - dtProp / dtTotal) * 100
+            }
+          }
           let vExcPico
           if (iFinAnterior >= 0) {
             let peor = 0
@@ -512,8 +615,32 @@ export function segmentarRepeticiones(t, s, v) {
             iFin,
             concSeg: dt,
             rom: romTotal,
+            /**
+             * La media del tramo 5–95 % del recorrido. NO es la «velocidad
+             * media» de los libros: está recortada por los bordes a propósito,
+             * porque marcarlos sobre la velocidad suavizada inflaba el tiempo y
+             * comprimía el %PV. Es la buena para comparar una serie consigo
+             * misma, que es para lo que se creó.
+             *
+             * Para comparar contra una TABLA de %1RM no sirve ninguna de las
+             * dos: las tablas están en `vMediaPropulsiva`.
+             */
             vMedia: (s[iFin] - s[iInicio]) / dt,
-            vPico: v[iPico],
+            /** La media del libro: concéntrica entera, de abajo del todo a arriba del todo. */
+            vMediaCompleta: (s[iCima] - s[iArranque]) / (t[iCima] - t[iArranque]),
+            /** La de las tablas de %1RM. `undefined` sin escala: ver `finPropulsivo`. */
+            vMediaPropulsiva,
+            /** Qué parte de la concéntrica fue frenado. Crece al bajar la carga. */
+            frenadoPct,
+            vPico: picoInterpolado,
+            /** El máximo tal cual salió de las muestras, sin recuperar nada. */
+            vPicoCrudo: v[iPico],
+            /**
+             * Cuánto se estaba perdiendo el muestreo, en fracción del pico.
+             * Es la barra de error del pico: por encima de un 5 % ese número no
+             * se puede enseñar con la misma cara que la velocidad media.
+             */
+            picoRecuperado: picoInterpolado > 0 ? (picoInterpolado - v[iPico]) / picoInterpolado : 0,
             excSeg: iFinAnterior >= 0 ? t[iInicio] - t[iFinAnterior] : undefined,
             vExcPico,
           })
@@ -574,12 +701,18 @@ export function analizarSerie(muestras, opciones = {}) {
   const inclinacionGrados = inclinaciones.length ? percentil(inclinaciones, 0.5) : NaN
   const inclinacionMax = inclinaciones.length ? percentil(inclinaciones, 0.9) : NaN
 
+  // Cobertura del contorno del disco, cuando la detección la trae. La mediana y
+  // no el mínimo: un fotograma con la barra tapando el disco no estropea una
+  // toma entera, y en el corpus de gimnasio eso pasa constantemente.
+  const coberturas = validas.map((m) => m.coberturaDisco).filter(Number.isFinite)
+  const coberturaDisco = coberturas.length ? percentil(coberturas, 0.5) : NaN
+
   // Signo: `s` crece durante la concéntrica.
   const signo = sentido === 'subir' ? -1 : 1
   const s = validas.map((m) => signo * m.y * metrosPorPixel)
 
   const v = velocidades(t, s)
-  const reps = segmentarRepeticiones(t, s, v)
+  const reps = segmentarRepeticiones(t, s, v, { conEscala: hayEscala })
 
   if (reps.length === 0) {
     return { ok: false, motivo: 'sin_segmentar', detalle: 'No se reconoció ninguna repetición', fpsReal, deteccion }
@@ -598,6 +731,26 @@ export function analizarSerie(muestras, opciones = {}) {
   const romUltima = reps[reps.length - 1].rom
   const concSegMedia = reps.reduce((a, r) => a + r.concSeg, 0) / reps.length
 
+  /* Índice de esfuerzo (Rodríguez-Rosell et al. 2018, JSCR 32(8):2139-2153).
+   *
+   *     IE = velocidad de la primera repetición × %PV
+   *
+   * Dos números que esta función ya tenía calculados, y que multiplicados
+   * predicen la fatiga mejor que cualquiera de los dos por su cuenta: r = 0,91-0,95
+   * contra el lactato post-esfuerzo, sobre 16 protocolos de 50-80 % de 1RM.
+   *
+   * El campo lleva en `contrato-datos.md` desde que se escribió y NUNCA se
+   * calculaba. Es la misma deriva que tuvo `contorno_parcial`: el contrato
+   * prometía una columna que el motor no llenaba.
+   *
+   * Va en VMP y no en VM porque es lo que usa el grupo que lo definió. Y VMP no
+   * existe sin escala —su umbral es −9,81 m/s², que en px/s² no significa nada—,
+   * así que sin calibrar el IE tampoco existe. El %PV sí sobrevive, porque es un
+   * cociente; el IE no, porque es un producto y arrastra la unidad. */
+  const vmpsIniciales = reps.slice(0, 2).map((r) => r.vMediaPropulsiva).filter(Number.isFinite)
+  const vmpPrimera = hayEscala && vmpsIniciales.length ? Math.max(...vmpsIniciales) : NaN
+  const ie = Number.isFinite(vmpPrimera) && Number.isFinite(pvPct) ? vmpPrimera * pvPct : NaN
+
   return {
     ok: true,
     unidad,
@@ -614,11 +767,14 @@ export function analizarSerie(muestras, opciones = {}) {
     vPrimera,
     vUltima,
     pvPct,
+    /** Índice de esfuerzo: VMP de la primera × %PV. NaN sin escala. */
+    ie,
     concSegMedia,
     romRelativo: romPrimera > 0 ? romUltima / romPrimera : NaN,
     compensacion: reps[reps.length - 1].vExcPico ?? NaN,
+    coberturaDisco,
     calidad: calificar({ fpsReal, deteccion, anguloMediana, nReps: reps.length, hayEscala,
-                         inclinacionGrados, conDiana }),
+                         inclinacionGrados, conDiana, coberturaDisco }),
     serie: { t, s, v },
   }
 }
@@ -640,6 +796,24 @@ export const INCLINACION_CALIDAD_GRADOS = 20
  *  mientras la barra de medidas enseñaba la inclinación, que iba bien. */
 export const GIRO_CALIDAD_GRADOS = 10
 
+/** Fracción del contorno del disco que hay que ver para fiarse del ajuste.
+ *
+ *  El motivo `contorno_parcial` está en el contrato de datos desde el 2026-08-18
+ *  —«el disco se detectó, pero con menos del 90 % del contorno visible»— y hasta
+ *  hoy `calificar` no lo emitía nunca. Contrato y código llevaban separados
+ *  desde entonces.
+ *
+ *  Lo que lo destapó fue el corpus de 168 vídeos de gimnasio (ver CORPUS.md §2.1):
+ *  en el mejor fotograma de todos, `medirDisco` ajustó una circunferencia a la
+ *  PILA de discos en vez de a la cara del primero y devolvió un semieje un 50 %
+ *  grande — o sea, una escala un tercio corta en todos los brazos de momento.
+ *  Su `cobertura` bajó a 0,70 y su `redondez` a 0,01: **el detector ya sabía que
+ *  el ajuste era malo, y devolvía el número igual**.
+ *
+ *  Va como puerta blanda —un solo fallo deja la toma en `dudosa`, no
+ *  `descartada`— porque es lo que dice el contrato: «sirve, no manda». */
+export const COBERTURA_CALIDAD = 0.9
+
 /**
  * Contrato de calidad — la puerta del motor.
  * wiki/motor-velocidad/contrato-datos.md §5. Vocabulario de motivos cerrado a
@@ -647,7 +821,7 @@ export const GIRO_CALIDAD_GRADOS = 10
  * encuadre no se puede arreglar.
  */
 export function calificar({ fpsReal, deteccion, anguloMediana, nReps, hayEscala,
-                            inclinacionGrados, conDiana }) {
+                            inclinacionGrados, conDiana, coberturaDisco }) {
   const fallos = []
   // 50 y no 30. Medido en la campaña de ensayos (2026-08-19): a 30 fps el error
   // de %PV es de -5,0 puntos, que es EXACTAMENTE el umbral de muerte de la rama;
@@ -665,6 +839,10 @@ export function calificar({ fpsReal, deteccion, anguloMediana, nReps, hayEscala,
   // Ver wiki/motor-velocidad/escala-e-inclinacion.md
   if (hayEscala && conDiana === false) fallos.push('inclinacion_no_medible')
   if (Number.isFinite(inclinacionGrados) && inclinacionGrados > INCLINACION_CALIDAD_GRADOS) fallos.push('referencia_torcida')
+  // Un ajuste de disco con medio contorno inventado da una escala plausible y
+  // falsa, que es la que no caza ninguna otra reja. Solo entra si la detección
+  // la trae: con marcadores de color no hay disco que medir y esto no aplica.
+  if (Number.isFinite(coberturaDisco) && coberturaDisco < COBERTURA_CALIDAD) fallos.push('contorno_parcial')
   if (fallos.length === 0) return { nivel: 'buena', motivos: [] }
   if (fallos.length === 1) return { nivel: 'dudosa', motivos: fallos }
   return { nivel: 'descartada', motivos: fallos }

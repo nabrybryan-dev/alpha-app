@@ -827,3 +827,102 @@ export function romPlausible(romM, ejercicio = 'generico') {
   }
   return { ok: true, clave }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// La escala de una barra: dos discos, no uno
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Salto de escala entre los dos extremos de la barra por encima del cual un
+ * solo disco deja de servir para fijar la escala.
+ *
+ * Un 15 % de error en mm/px va lineal al brazo de momento y a la velocidad, y
+ * es del orden del criterio de muerte de la rama. Por debajo, coger un disco u
+ * otro da igual; por encima, decide el número.
+ */
+export const SALTO_DE_ESCALA_MAX = 0.15
+
+/**
+ * La escala en el plano del atleta, sacada de los discos de LOS DOS extremos.
+ *
+ * ## Por qué no vale un disco
+ *
+ * Esto no es teoría: lo obligó el corpus de 168 vídeos reales de gimnasio
+ * (CORPUS.md §2). La barra mide 2,2 m y **apunta hacia la cámara**, así que sus
+ * dos extremos están a distancias muy distintas del móvil. Medido sobre un peso
+ * muerto a 1080×1920 con el teléfono en el suelo a un metro:
+ *
+ *     disco cercano   eje mayor 197 px  →  2,28 mm/px
+ *     disco lejano    eje mayor 125 px  →  3,60 mm/px
+ *
+ * Un 58 % de diferencia entre los dos extremos de la MISMA barra. El atleta
+ * está en medio, así que fijar la escala con el disco que se detecte primero
+ * mete un sesgo de hasta la mitad del brazo de momento — y siempre en la misma
+ * dirección, que es la clase de error que no hace ruido.
+ *
+ * ## Dos correcciones, y son distintas
+ *
+ * 1. **La escala**, que se interpola entre los dos discos hasta donde la barra
+ *    cruza el plano sagital del atleta: las manos.
+ * 2. **El escorzo anteroposterior.** El eje MAYOR de la elipse es la vertical y
+ *    no se comprime nunca, así que da los mm/px verticales tal cual. Pero un
+ *    brazo de momento es una distancia ANTEROPOSTERIOR, y ésa sí sale
+ *    comprimida por cos φ. Hay que dividir por él.
+ *
+ * Las dos van juntas porque las dos salen del mismo par de elipses, y separarlas
+ * es cómo se aplica una y se olvida la otra.
+ *
+ * @param cerca  {x, semiMayor, semiMenor} del disco más cercano a la cámara
+ * @param lejos  lo mismo del otro extremo. Si falta, se devuelve la escala del
+ *               único disco y `fiable: false`: un disco no sabe que le falta el otro.
+ */
+export function escalaDeLaBarra(cerca, lejos, diametroMm = 450) {
+  const mmPorPxDe = (d) => diametroMm / (2 * d.semiMayor)
+  const fiDe = (d) => anguloDeCamara(d.semiMayor / d.semiMenor)
+
+  if (!lejos) {
+    const fi = fiDe(cerca)
+    return {
+      fiable: false,
+      motivo: 'un solo disco: la escala vale en su extremo de la barra, no donde está el atleta',
+      fiGrados: fi,
+      cosFi: Math.cos((fi * Math.PI) / 180),
+      saltoRelativo: NaN,
+      mmPorPxEn: () => mmPorPxDe(cerca),
+    }
+  }
+
+  const mmCerca = mmPorPxDe(cerca)
+  const mmLejos = mmPorPxDe(lejos)
+  const salto = Math.abs(mmLejos / mmCerca - 1)
+  // El promedio de los dos y no el de uno: el atleta está entre ellos, y a esa
+  // distancia la elipse ya no dice exactamente lo mismo en los dos extremos.
+  const fi = (fiDe(cerca) + fiDe(lejos)) / 2
+
+  return {
+    fiable: true,
+    fiGrados: fi,
+    cosFi: Math.cos((fi * Math.PI) / 180),
+    saltoRelativo: salto,
+    // Por encima del tope, quedarse con un disco cualquiera ya no es una
+    // aproximación: es elegir el error.
+    exigeInterpolar: salto > SALTO_DE_ESCALA_MAX,
+    mmPorPxEn(x) {
+      if (!Number.isFinite(x) || cerca.x === lejos.x) return (mmCerca + mmLejos) / 2
+      const t = Math.max(0, Math.min(1, (x - cerca.x) / (lejos.x - cerca.x)))
+      return mmCerca + t * (mmLejos - mmCerca)
+    },
+  }
+}
+
+/**
+ * El brazo de momento externo en milímetros, con las dos correcciones puestas.
+ *
+ * Se separa de `escalaDeLaBarra` porque es la operación que alguien va a repetir
+ * por cada eje —tobillo, rodilla, cadera, lumbar— y conviene que no haya forma
+ * de hacerla a medias.
+ */
+export function brazoEnMm(escala, xEje, xCarga) {
+  const px = xCarga - xEje
+  return (px * escala.mmPorPxEn(xCarga)) / escala.cosFi
+}
