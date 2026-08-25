@@ -6,7 +6,14 @@ El qué y el porqué están en el spec. Esto es el cómo: los números de CSS ya
 resueltos, el orden de trabajo y qué se comprueba en cada paso.
 
 **Todos los recortes de aquí están medidos, no estimados.** Se reproducen con
-`Downloads\hero-d-esfuerzo\medir-piezas.py` desde la raíz del repo.
+`medir-piezas.py` desde la raíz del repo.
+
+> **Aviso de vigencia (25-08).** Al traer `main` para el PR resultó que el #96
+> había regraduado cinco de las seis piezas, así que **las cifras de este plan
+> describen los fotogramas de antes**. Se corrigieron las dos que cambian una
+> decisión —el centro del disco de A y la ventana de la columna de E—; el resto
+> se dejan como quedaron, porque este documento es el registro de cómo se
+> ejecutó. **La referencia viva es el spec**, que sí está remedido entero.
 
 ---
 
@@ -169,10 +176,11 @@ object-position = 632 / 1040 = 60,8%   →   object-[61%_50%]
 ```
 
 Comprobado: la columna negra (`x < 225`) queda fuera de cuadro. Medido en la
-ventana: media **69,0**, p95 155,9, p99,5 177,4 — que es exactamente el ancla
-«centro» del spec, por el mismo camino y sin transformación ninguna.
+ventana: media **63,4**, p95 118,0, p99,5 122,0 —tras el re-grade del #96; antes
+daba 69,0— que es exactamente el ancla «centro» del spec, por el mismo camino y
+sin transformación ninguna.
 
-**69,0 es alto, y por eso la columna no lleva texto encima.** Es marco; los campos
+**63,4 es alto, y por eso la columna no lleva texto encima.** Es marco; los campos
 van fuera. En pantalla clara ese valor juega a favor: una columna a 17,4 —el ancla
 izquierda— sería un agujero negro dentro de una tarjeta blanca.
 
@@ -244,21 +252,23 @@ No lleva texto encima. El texto son las filas, al lado.
 Este es el único de los tres que necesita **acercarse**, así que camino 2. La
 ventana buena de A es un cuadrado de **216 px de lado centrado en (621, 216)**:
 
-- **x=621 es el 49% del ancho**, que es donde está el centro del brillo de la
-  pieza. No es el centro geométrico, y centrar ahí en vez de en 640 es la
-  diferencia entre un disco con luz dentro y un disco apagado.
+- **x=518 es el 40% del ancho.** Ahí está el disco de la barra —la placa roja y
+  la mano—, así que el disco de la tarjeta contiene un disco, que es la frase de
+  la pieza. Es además el máximo de luminancia medido, pero por poco: **lo elige la
+  composición, no el número**. Antes del re-grade del #96 este punto estaba en
+  x=621, y con el encaje viejo el disco pasó a enseñar la cara del atleta — un
+  cambio que ningún número habría cazado.
 - **y=216 es el 30% del alto.** La ventana ocupa y=108…324, así que no toca la
   banda de tinta de la pieza, que empieza en y=426. En un recorte circular esa
   tinta no aportaría nada.
 
-Con `L=216`, `cx=621`, `cy=216` sobre 1280×720:
+Con `L=216`, `cx=518`, `cy=216` sobre 1280×720:
 
 ```
-ancho 592,6%   alto 333,3%   left −237,5%   top −50,0%
+ancho 592,6%   alto 333,3%   left −189,8%   top −50,0%
 ```
 
-Medido: el disco inscrito da media **37,9** y la ventana cuadrada que el CSS
-recorta, **33,9**. Oscuro sobre `#f7f7f5`: se lee como objeto, que es lo que se
+Medido: el disco inscrito da media **35,3**. Oscuro sobre `#f7f7f5`: se lee como objeto, que es lo que se
 busca en una pantalla clara.
 
 ### El tope de tamaño, que hay que escribir al lado
@@ -329,6 +339,6 @@ En `src/features/hoy/BloqueActual.test.tsx`:
   Solo le pasa a quien rompió una racha, nunca a quien empieza —día 1 es
   `actual = record = 1`, o sea la calle entera—, pero eso hay que verlo en
   pantalla, no razonarlo aquí.
-- **Que 69,0 de luminancia en la columna de E no canta** dentro de una tarjeta
-  blanca. Es el valor más alto de los tres montajes y el único que no tiene
-  precedente medido en la app.
+- ~~**Que 69,0 de luminancia en la columna de E no canta** dentro de una tarjeta
+  blanca.~~ **Comprobado el 25-08**: con el fotograma regraduado da 63,4 y en el
+  render real se lee como objeto, con 182 puntos de contraste contra la tarjeta.

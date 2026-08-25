@@ -39,6 +39,25 @@
 
 
 -- ── 1 · Resumen por asesorado: ¿quién está sucio? ───────────────────────────
+-- ── POR QUE AQUI NO SE FILTRA POR `rol` ────────────────────────────────────
+-- Hasta el 2026-08-24 las dos consultas de este archivo llevaban
+-- `where u.rol = 'asesorado'`, y por eso este barrido conto **141 marcas
+-- fosiles** el dia que habia **161**. Las 20 que faltaban eran de Manuela
+-- Quintero, cuyo `rol` es `nutricionista` porque es staff — correcto en la
+-- tabla, y letal en un `where`.
+--
+-- Es la tercera vez que muerde lo mismo: el 2026-08-09 desaparecio del roster
+-- teniendo microciclo activo, el 2026-08-24 se quedo fuera de la carga de la
+-- tanda, y ese mismo dia se habria quedado con las marcas fosiles puestas para
+-- siempre — porque la herramienta que existe justamente para cazarlas no la
+-- miraba.
+--
+-- LA REGLA, y aplica a cualquier barrido de integridad de este repo:
+-- **el `rol` decide a quien se le PROGRAMA, no que datos EXISTEN.** Un barrido
+-- de integridad recorre lo que hay en la tabla. Si algo tiene microciclo, tiene
+-- que entrar, sea asesorado, coach o nutricionista.
+-- `auditar-cartera.sql` ya lo hacia bien y lo dice en su cabecera; este no.
+
 select u.nombre,
        count(*) filter (where d.marcas_fosiles > 0)              as sesiones_con_fosiles,
        sum(d.marcas_fosiles)                                     as marcas_fosiles,
@@ -77,7 +96,7 @@ select u.nombre,
         and coalesce((s->'testPost'->>'prsEntrada')::numeric,0) = 0)
         as test_en_ceros
   ) d
- where u.rol = 'asesorado'
+ -- sin filtro de `rol`: ver la nota de cabecera (2026-08-24)
  group by u.nombre
 having sum(d.marcas_fosiles) > 0
     or count(*) filter (where d.test_sospechoso) > 0
@@ -126,6 +145,6 @@ select u.nombre,
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id
   cross join lateral jsonb_array_elements(m.datos->'sesiones') s
- where u.rol = 'asesorado'
-   and m.estado <> 'cerrado'
+ -- sin filtro de `rol`: ver la nota de cabecera (2026-08-24)
+ where m.estado <> 'cerrado'
  order by u.nombre, m.numero desc, (s->>'orden')::int;

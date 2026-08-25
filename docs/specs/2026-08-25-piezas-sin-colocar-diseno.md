@@ -63,20 +63,22 @@ recuento de tests.
 
 | Pieza | media | p50 | p99,5 | tercio sup. | tercio inf. | banda de tinta |
 |---|---:|---:|---:|---:|---:|---|
-| A Despiece | 14,7 | 9,2 | 169,2 | 21,9 | 9,2 | **40,8%** |
-| B Órbita | 21,5 | 9,2 | 155,2 | 35,2 | 9,2 | **40,7%** |
-| C Ascenso | 24,5 | 15,0 | 154,2 | 38,0 | 9,1 | **40,0%** |
+| A Despiece | 14,7 | 9,2 | 120,5 | 21,0 | 9,2 | **40,1%** |
+| B Órbita | 21,3 | 9,2 | 118,2 | 35,2 | 9,2 | **40,7%** |
+| C Ascenso | 25,2 | 15,0 | 117,7 | 38,4 | 9,9 | **40,0%** |
 | D Esfuerzo | 84,7 | 78,1 | 254,0 | 101,7 | 62,1 | — |
-| E Físico | 32,7 | 13,2 | 171,5 | 42,2 | 25,6 | — |
-| F Proyección | **8,1** | **3,0** | **56,1** | 1,3 | 15,4 | **40,0%** |
+| E Físico | 30,4 | 12,0 | 121,0 | 37,2 | 25,3 | — |
+| F Proyección | **8,5** | **4,3** | **62,2** | 1,6 | 16,4 | **40,0%** |
 
 **E se mide tras su `encaje`.** `origin-right scale-[1.213]` equivale a recortar el
 17,6% izquierdo, que es la columna negra que documenta `direccionesVisuales.ts`.
-Ya recortada: media **39,6**, p50 14,1, y por tercios 38,2 · **59,8** · 20,9. El
+Ya recortada: media **36,8**, p50 13,0, y por tercios 35,3 · **55,7** · 19,4. El
 cuerpo iluminado está en el centro.
 
-**La fila de F es la del archivo LEVANTADO el 25-08.** El publicado hasta entonces
-daba media 5,0 · p50 2,0 · p99,5 42,0, y sigue siendo la pieza más oscura del
+**Toda la tabla se remidió el 25-08 tras traer `main`,** que en el #96 regraduó
+cinco de las seis piezas —D no, porque se está rehaciendo—. Los valores anteriores
+describían fotogramas que ya no existen. La fila de F es además la del archivo
+LEVANTADO: el de `main` daba media 5,6 · p50 2,9, y sigue siendo la pieza más oscura del
 catálogo por un margen enorme. Que admita texto encima en cualquier punto es
 verdad, y fue justo lo que me llevó al error: es un TECHO, no un suelo. Ver §9.
 
@@ -116,14 +118,14 @@ en las tres anclas posibles:
 
 | ancla | media | p95 | p99,5 |
 |---|---:|---:|---:|
-| arriba | 1,2 | 3,0 | 36,4 |
-| **centro** | **5,0** | **9,2** | **82,2** |
-| abajo | 8,9 | 9,2 | 59,5 |
+| arriba | 2,1 | 4,5 | 55,3 |
+| **centro** | **8,1** | **16,4** | **102,0** |
+| abajo | 14,9 | 16,4 | 81,2 |
 
 Arriba y abajo la pieza no se ve —son cielo y tinta—. El centro es donde está el
-corredor y la farola. (Estas tres cifras son las del archivo de antes del
-levantado; tras él la ventana del centro da 7,7. La conclusión —anclar al centro—
-no cambia, porque las tres suben a la vez.)
+corredor y la farola. Las tres son del archivo ya levantado; sin levantar, el
+centro daba 5,6. La conclusión —anclar al centro— no cambia, porque las tres se
+mueven a la vez.
 
 **No se toca el héroe de Logros.** `logros-peldanos.jpg` son los agujeros numerados
 del rack, elegidos por la metáfora de los peldaños y **medidos** (24,0 antes,
@@ -140,13 +142,19 @@ En pantalla clara la pieza no puede ser suelo, así que **es un disco**: A recor
 en círculo, un objeto redondo junto al título de la tarjeta, del que salen las
 filas. No lleva texto encima — el texto son las filas, al lado.
 
-Medido: el centro del brillo de A cae en **x=621, el 49% del ancho**, así que el
-disco se centra ahí y no en el centro geométrico. Con r=108 px sobre el fotograma
-de 720 de alto, el disco da media **37,9**. Es oscuro sobre `#f7f7f5`: se lee como
-objeto, que es lo que se busca.
+El disco se centra en **x=518, el 40% del ancho**, y ahí manda la composición
+antes que el número: en ese punto la ventana contiene **el disco de la barra —la
+placa roja y la mano—**, así que el disco de la tarjeta contiene un disco, que es
+la frase de la pieza, y trae de paso el rojo de marca. Es además el máximo de
+luminancia medido (35,3 contra 33,4 en x=621), pero por poco: en el fotograma
+regraduado la luminancia está casi igualada de lado a lado.
 
-El 40,8% inferior de A es tinta plana, y en un recorte circular no aporta nada. El
-disco se ancla en el 30% de altura, dentro de la imagen viva (media 18,4 en el 60%
+Ese punto **se movió con el re-grade del #96**: antes estaba en x=621 y con el
+encaje viejo el disco pasó a enseñar la cara del atleta. El número solo no lo
+habría cazado. Es la misma lección de la §9 en otra forma: medir y **mirar**.
+
+El 40,1% inferior de A es tinta plana, y en un recorte circular no aporta nada. El
+disco se ancla en el 30% de altura, dentro de la imagen viva (media 18,3 en el 60%
 superior).
 
 ### E Físico → Bienestar, la columna de «Mis medidas»
@@ -163,13 +171,13 @@ Medido sobre E ya con su `encaje`, columna cover de 240×720:
 
 | ancla | media | p95 | p99,5 |
 |---|---:|---:|---:|
-| izquierda | 17,4 | 72,4 | 126,6 |
-| **centro** | **69,0** | 155,9 | 177,4 |
-| derecha | 20,2 | 63,7 | 217,2 |
+| izquierda | 16,9 | 75,0 | 108,0 |
+| **centro** | **63,4** | 118,0 | 122,0 |
+| derecha | 18,8 | 66,0 | 126,0 |
 
-Se ancla al **centro**: es donde está el cuerpo iluminado. 69,0 es alto para poner
+Se ancla al **centro**: es donde está el cuerpo iluminado. 63,4 es alto para poner
 texto encima y por eso **no lleva ninguno** — la columna es marco, los campos van
-fuera. En pantalla clara ese valor juega a favor: una columna a 17,4 sería un
+fuera. En pantalla clara ese valor juega a favor: una columna a 16,9 sería un
 agujero negro en una tarjeta blanca.
 
 Escala: a 64×192 CSS con densidad 3 el destino son 192×576 px y la fuente da
@@ -202,7 +210,7 @@ vídeo solo se pide en la pantalla que lo usa:
 
 | Pieza | vídeo | póster |
 |---|---:|---:|
-| F Proyección | 124 KB | 10,5 KB |
+| F Proyección | 98 KB | 10,7 KB |
 | A Despiece | 368 KB | 24 KB |
 | E Físico | 448 KB | 33 KB |
 
@@ -268,8 +276,8 @@ texto encima en cualquier punto sin tocarla» y de ahí saqué que era la pieza
 ideal. El 18 es un **techo** para que el texto se lea; lo que faltaba escrito es
 que una pieza que hay que VER necesita además un **suelo**. F no lo tenía.
 
-**El segundo no es de la pieza, es de la cortina.** La calle de F está en **3,4**
-de luminancia y `--ink-900` en **8,9**: lo que se descubría salía *más oscuro* que
+**El segundo no es de la pieza, es de la cortina.** La calle de F está en **4,3**
+de luminancia —**3,8** en el archivo de `main` sin levantar— y `--ink-900` en **8,9**: lo que se descubría salía *más oscuro* que
 lo que lo tapaba. Medido en pantalla, el efecto estaba **invertido** —la parte
 superior de la celda descubierta daba 0,18 contra 8,86 de la tapada, o sea −8,68—.
 Ninguna curva lo arregla: para subir la calle por encima de 8,9 hay que levantar
@@ -278,22 +286,35 @@ tanto la pieza que su propia banda de tinta pasa de 25 y el texto deja de leerse
 Lo que se hizo, y por qué en ese orden:
 
 1. **F se levantó**, porque estaba mal graduada y eso es un hecho medible aparte
-   de dónde se coloque. La ancla pre-grade (`HERO 3D ALPHA\entrada-proyeccion\`)
-   da media **16,3**; el archivo publicado daba **4,49**. El grade la aplastó
-   3,6x. Con una **gamma pura de 1,2219** —el negro sigue en negro, el blanco en
-   blanco, no puede reventar— la ventana de la tira pasa de 4,85 a 7,65 y el
-   archivo baja de 130 a **124 KB**. `banco.py validar` da **PASA**, y el p50
-   vuelve a **2,1**, que es exactamente el valor que el propio `banco.py` tiene
-   escrito para F: el archivo publicado había derivado a 1,0.
-   El objetivo (8,0) no se eligió a ojo: es la última parada del barrido donde la
-   banda de tinta de la pieza sigue bajo el techo de 18 (14,9) y el bloqueo del
-   AV1 no sube más de 1,25x (1,19x). A 8,5 el bloqueo pasa a 1,27x.
+   de dónde se coloque. Su ancla pre-grade da media **16,3** y el archivo
+   publicado daba **4,49**: el grade la aplastó 3,6x. Se levanta con una **gamma
+   pura** —el negro sigue en negro, el blanco en blanco, así que no puede
+   reventar— calibrada una vez sobre 12 fotogramas, nunca por fotograma.
+
+   El objetivo (8,0 en la ventana de la tira) no se eligió a ojo: es la última
+   parada del barrido donde caben los dos límites, la banda de tinta de la propia
+   pieza bajo el techo de 18 y el bloqueo del AV1 por debajo de 1,25x. Un paso
+   más arriba, el bloqueo se pasa.
+
+   **Rehecho el 25-08 sobre el archivo de `main`.** El #96 regraduó F mientras
+   esto estaba en rama, así que el primer levantado se había hecho sobre un
+   fotograma que ya no existe. Sobre el de `main` —media 5,6, p50 2,9— el barrido
+   da **exactamente la misma frontera**: gamma **1,2504**, banda 15,9 y bloqueo
+   1,22x en el objetivo 8,0; en 9,0 el bloqueo ya se pasa. `banco.py validar` da
+   **PASA** con p50 **3,6** —más dentro del corredor que la propia F de `main`— y
+   el archivo queda en **98 KB**.
+
+   Que la frontera caiga en el mismo sitio con dos fotogramas distintos es la
+   señal de que el criterio no estaba ajustado al archivo.
+
 2. **La cortina bajó a negro puro**, `--ink-1000`, un token nuevo al pie de la
    escala ink. Lo que hay debajo de una pieza sin recorrer no es una superficie:
    es que ahí no hay luz.
 
 Resultado medido en la misma captura: la diferencia pasa de **+0,36** a
-**+15,37**, y se ve sin retocar la imagen.
+**+15,37**, y se ve sin retocar la imagen. Con el archivo de `main` ya mezclado,
+la banda de la pieza dentro de la ventana da **16,2** contra los 0,0 de la
+cortina.
 
 **Lo que esto deja pendiente para A y E:** comprobar la misma relación ANTES de
 montarlas. La pregunta no es «¿se lee el texto encima?» sino «¿es la pieza más

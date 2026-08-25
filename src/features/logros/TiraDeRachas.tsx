@@ -31,9 +31,9 @@ export interface CeldaDeRacha {
  * (`--ink-1000`), opaco, no un velo — el velo está prohibido en este lenguaje.
  *
  * **Y tiene que ser negro puro, no `--ink-900`.** Esto se descubrió mirándolo,
- * no razonándolo: la calle de F está en 3,4 de luminancia y `--ink-900` en 8,9,
+ * no razonándolo: la calle de F está en 4,3 de luminancia y `--ink-900` en 8,9,
  * o sea que lo que se descubría salía MÁS OSCURO que lo que lo tapaba. El efecto
- * se invertía y la diferencia medida en pantalla era de 0,58 de luma: invisible.
+ * se invertía y la diferencia medida en pantalla era de 0,36 de luma: invisible.
  * Ninguna curva lo arregla —para subir la calle por encima de 8,9 hay que
  * levantar tanto la pieza que su propia banda pasa de 25 y el texto deja de
  * leerse—, así que lo que cambió fue la cortina. Ver el token en `tokens.css`.
@@ -50,8 +50,8 @@ export interface CeldaDeRacha {
  *
  * EL ENCAJE ES `object-cover` A SECAS. La tira mide ~3,5:1 y la pieza 16:9, así
  * que el recorte es solo vertical y el centro por defecto es justo el que se
- * quiere. Medido en las tres anclas: arriba 1,2 de media (cielo), centro 5,0
- * (el corredor y la farola), abajo 8,9 (la banda de tinta de la propia pieza).
+ * quiere. Medido en las tres anclas: arriba 2,1 de media (cielo), centro 8,1
+ * (el corredor y la farola), abajo 14,9 (la banda de tinta de la propia pieza).
  * Arriba y abajo la pieza no se ve.
  *
  * UN SOLO `<video>` PARA LAS TRES. Son ventanas a la misma calle. Tres vídeos

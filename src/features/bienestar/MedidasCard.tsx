@@ -54,14 +54,14 @@ function Delta({ actual, previa }: { actual: number; previa?: number }) {
  * la pieza como lámina. Aquí es un objeto con forma, y la forma no es un capricho:
  * un plano que sube por un cuerpo se lee en vertical.
  *
- * NO LLEVA TEXTO ENCIMA. La ventana da 69,0 de luminancia media, muy por encima
+ * NO LLEVA TEXTO ENCIMA. La ventana da 63,4 de luminancia media, muy por encima
  * del techo de 18. La columna es marco; los campos van fuera, al lado.
  *
  * EL `encaje` DE E NO SE APLICA AQUÍ, Y APLICARLO SERÍA UN ERROR. En el catálogo E
  * lleva `origin-right scale-[1.213]` para sacar de cuadro la columna negra de su
  * 17,6% izquierdo. Pero un recorte 1:3 solo enseña 240 px de los 1280 y la ventana
  * empieza en x=632, muy a la derecha de esa columna. El encaje encima desplazaría
- * la ventana fuera del cuerpo. `object-[61%_50%]` sola da la misma medida —69,0—
+ * la ventana fuera del cuerpo. `object-[61%_50%]` sola da la misma medida —63,4—
  * sin transformación ninguna, y el negro queda fuera a cualquier alto.
  *
  * EL TOPE ES DE ALTO, NO DE ANCHO. El recorte es cover sobre una caja alta y

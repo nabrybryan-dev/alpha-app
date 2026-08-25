@@ -17,7 +17,7 @@
  * `--ink-900` salvo redondeo del JPEG— ocupando el **40% inferior exacto**: la
  * pieza reserva por construcción el sitio del texto. D y E **no la tienen**, y
  * por eso D necesitó en Contenidos una lámina de tinta que subiera a taparla.
- * Medido, no estimado: A 40,8% · B 40,7% · C 40,0% · F 40,0% · D y E 0%.
+ * Medido, no estimado: A 40,1% · B 40,7% · C 40,0% · F 40,0% · D y E 0%.
  * Se reproduce con `Downloads\hero-d-esfuerzo\medir-piezas.py`.
  *
  * No es un campo de esta interfaz porque no lo consume nadie: es una propiedad

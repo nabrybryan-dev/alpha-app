@@ -96,12 +96,39 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
     else sinDia.push(sesion)
   }
 
+  /**
+   * Si esta fecha cae DENTRO del microciclo.
+   *
+   * La rejilla que se pinta son los 7 días naturales de hoy, pero el microciclo
+   * dura `cadenciaDias` —8 o 15— y puede empezar cualquier día. No son la misma
+   * cosa, y sin esta comprobación el reparto por nombre de día colocaba sesiones
+   * en fechas que el microciclo ni siquiera cubre.
+   *
+   * Lo que pasó el 2026-08-24: el microciclo de una asesorada empezaba el martes
+   * 25 y su sesión de CIERRE se llama «(LUNES)» —el lunes 31, el último día—.
+   * Como hoy era lunes 24, esa sesión caía en hoy: la app le ofrecía el último
+   * día de su bloque **antes de que el bloque empezara**.
+   *
+   * SOLO SE ACOTA POR ABAJO, y es deliberado. El mismo descuadre tiene una
+   * segunda mitad —un microciclo ya vencido sigue repartiendo sesiones de la
+   * semana pasada— pero esa afecta a quien YA está entrenando y taparla le
+   * dejaría la semana en blanco. Es una decisión distinta, con otro riesgo, y va
+   * en su propia tanda. Aquí solo se impide ofrecer lo que aún no ha empezado.
+   *
+   * Si falta `fechaInicio`, NO se acota: degradar a la conducta de antes es
+   * preferible a dejar a alguien sin semana por un campo ausente.
+   */
+  const acota = Boolean(microciclo.fechaInicio)
+  const yaEmpezo = (fechaIso: string) => !acota || fechaIso >= microciclo.fechaInicio
+
   const sueltas = [...sinDia]
   return ABREVIATURAS.map((_, i) => i).map((i) => {
     const fechaIso = sumarDias(primerDia, i)
     const fecha = new Date(`${fechaIso}T00:00:00`)
     const dia = diaSemanaDe(fechaIso)
-    const sesion = conDia.get(dia) ?? sueltas.shift()
+    // Antes del arranque no se reparte nada — y en particular no se consume de
+    // `sueltas`, que si no se gastarían en días que el microciclo no cubre.
+    const sesion = yaEmpezo(fechaIso) ? (conDia.get(dia) ?? sueltas.shift()) : undefined
     const esHoy = fechaIso === hoyIso
 
     const base = {

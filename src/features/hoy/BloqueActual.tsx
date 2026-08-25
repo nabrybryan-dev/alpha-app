@@ -13,19 +13,29 @@ interface Fila {
 }
 
 /**
- * Lado del recorte de A que envuelve al disco, en píxeles de la pieza.
+ * La ventana de A que se ve dentro del disco, en píxeles de la pieza.
  *
- * De aquí sale TODO lo demás, y por eso es una constante y no cuatro números
- * sueltos en una clase. La ventana es un cuadrado de 216 px centrado en
- * (621, 216) sobre el fotograma de 1280x720:
+ * De aquí sale TODO lo demás, y por eso son constantes y no cuatro números
+ * sueltos en una clase. Es un cuadrado de 216 px centrado en (518, 216) sobre el
+ * fotograma de 1280x720:
  *
- *   · **x=621 es el 49% del ancho**, el centro del brillo de la pieza — medido,
- *     no el centro geométrico. Centrar en 640 da un disco apagado.
+ *   · **x=518 es el 40% del ancho.** Ahí está el disco de la barra: la placa roja
+ *     y la mano. El recorte contiene entonces *un disco*, que es la frase de la
+ *     pieza —«cada disco ocupa su sitio»— y de paso el rojo de marca. También es
+ *     el máximo de luminancia medido (35,3 contra 33,4 en x=621), pero esa parte
+ *     es marginal: **lo elige la composición, no el número**.
  *   · **y=216 es el 30% del alto.** La ventana ocupa y=108…324, así que no toca
- *     la banda de tinta de la propia pieza, que empieza en y=426 y en un recorte
+ *     la banda de tinta de la propia pieza, que empieza en y=431 y en un recorte
  *     circular no aportaría nada.
+ *
+ * **Estos números describen el fotograma de HOY.** El re-grade del #96 movió el
+ * centro de brillo de x=621 a x=518, y con el encaje viejo el disco pasó a
+ * enseñar la cara del atleta en vez de la placa. Si una pieza se vuelve a
+ * graduar, esto se vuelve a medir y a MIRAR: el número solo no habría cazado el
+ * cambio, porque en el fotograma nuevo la luminancia está casi igualada.
  */
 const LADO = 216
+const CENTRO = { x: 518, y: 216 }
 
 /** Diámetro del disco. El tope está justo debajo: ver `DiscoDespiece`. */
 const DIAMETRO = 56
@@ -67,8 +77,8 @@ function DiscoDespiece() {
   const encaje = {
     width: `${(100 * 1280) / LADO}%`,
     height: `${(100 * 720) / LADO}%`,
-    left: `${50 - (100 * 621) / LADO}%`,
-    top: `${50 - (100 * 216) / LADO}%`,
+    left: `${50 - (100 * CENTRO.x) / LADO}%`,
+    top: `${50 - (100 * CENTRO.y) / LADO}%`,
   }
 
   return (

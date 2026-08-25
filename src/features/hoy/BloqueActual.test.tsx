@@ -63,12 +63,14 @@ describe('el disco de «Tu bloque actual»', () => {
     const { container } = render(<BloqueActual perfil={PERFIL} />)
     const { width, height, left, top } = disco(container).style
 
-    // Los cuatro salen de una ventana de 216 px centrada en (621, 216), que es
-    // donde está el brillo — medido, no elegido. Con el centro geométrico (640)
-    // el disco sale apagado, y eso no lo delata nada más que mirarlo.
+    // Los cuatro salen de una ventana de 216 px centrada en (518, 216): ahí está
+    // el disco de la barra, la placa roja y la mano. El recorte contiene un
+    // disco, que es la frase de la pieza. Con el encaje anterior —x=621, del
+    // fotograma de antes del re-grade del #96— el disco enseña la cara del
+    // atleta, y eso no lo delata ningún número: hay que mirarlo.
     expect(width).toBe('592.5925925925926%')
     expect(height).toBe('333.3333333333333%')
-    expect(left).toBe('-237.5%')
+    expect(left).toBe('-189.8148148148148%')
     expect(top).toBe('-50%')
   })
 
