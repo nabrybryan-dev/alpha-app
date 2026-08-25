@@ -25,6 +25,17 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
+  // 2026-08-25 y sin enchufar a proposito: se apoya en la tabla
+  // `estandarizado_ejercicio` (migracion 0043), y esa migracion NO se aplica
+  // hasta que `supabase/comprobar-ids-de-ejercicio.sql` confirme contra la base
+  // que los ejercicio.id son unicos dentro de una persona. Que persisten entre
+  // microciclos ya esta verificado contra el codigo; que no se repiten, no puede
+  // saberse leyendo codigo.
+  'src/domain/estandarizacion.ts':
+    'Deriva si la tecnica de un ejercicio esta asentada. Espera a la migracion 0043, ' +
+    'que a su vez espera a comprobar-ids-de-ejercicio.sql. Ver ' +
+    'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4.',
 }
 
 /**
