@@ -68,9 +68,18 @@
 import { categoriaCanonica, grupoPrimario, type Grupo } from '../taxonomia'
 import { MODELOS, VARIANTES } from './modelos'
 import { REGLAS_DE_EJE } from './reglas'
+import {
+  IMPLEMENTOS,
+  LIMITE_UNILATERAL,
+  esUnilateral,
+  implementoDe,
+  type Implemento,
+  type PerfilDeImplemento,
+} from './implementos'
 import type { Alineacion, Articulacion, Eje, ModeloDePalanca, Protagonismo, Vista } from './tipos'
 
 export * from './tipos'
+export * from './implementos'
 
 function normalizar(texto: string): string {
   return texto
@@ -147,6 +156,33 @@ export interface PlanDeMedida {
   /** Ejes que NO se ven desde esa vista, con la vista que harían falta. */
   fueraDeVista: readonly string[]
   /**
+   * El implemento declarado en el nombre, si lo declara. `undefined` no
+   * significa barra: significa que el nombre no dice con qué se hace, y suponer
+   * barra ahí es cómo entraría un Smith con el modelo equivocado.
+   */
+  implemento?: Implemento
+  perfilDeImplemento?: PerfilDeImplemento
+  /**
+   * Si la carga va a un solo lado. Es ortogonal al implemento —hay mancuernas,
+   * poleas y prensas unilaterales— y por eso va aparte: un remo a una mano y un
+   * jalón unilateral en polea comparten el problema y no comparten implemento.
+   */
+  unilateral: boolean
+  /**
+   * Si sigue valiendo la regla de la que sale todo —brazo externo = distancia
+   * horizontal del eje a la vertical de la carga, `perfiles-de-resistencia`
+   * §2.1—. Con un raíl o una leva de por medio, NO: el número sale igual, varía
+   * entre repeticiones y ya no habla del atleta. Cuando esto es `false`, la
+   * pantalla enseña ángulos y calla los momentos.
+   */
+  brazoPorDistanciaHorizontal: boolean
+  /**
+   * Lo que con este implemento no se puede prometer. Vacío cuando no hay nada
+   * que advertir; nunca `undefined`, para que quien lo pinte no tenga que
+   * preguntar.
+   */
+  limites: readonly string[]
+  /**
    * En qué articulación se inserta el grupo objetivo — el eje donde ese músculo
    * gira el segmento y, por tanto, donde se genera la tensión que buscamos.
    *
@@ -182,18 +218,51 @@ export function planDeMedida(categoria: string, nombreEjercicio = ''): PlanDeMed
 
   const grupoObjetivo = grupoPrimario(categoria, nombreEjercicio)
 
+  // El implemento entra DESPUÉS del patrón y puede mandar sobre él: el patrón
+  // dice qué gira, el implemento dice contra qué. Un remo con mancuerna a una
+  // mano y uno con barra son el mismo patrón y dos medidas distintas.
+  const implemento = implementoDe(nombreEjercicio)
+  const perfil = implemento ? IMPLEMENTOS[implemento] : undefined
+
+  const marcas = perfil?.marcasExtra
+    ? [...new Set([...modelo.marcas, ...perfil.marcasExtra])]
+    : modelo.marcas
+
+  // Un plano que el implemento exige y el patrón no da es exactamente el mismo
+  // problema que un eje fuera de vista, así que se cuenta en la misma lista: la
+  // pantalla ya sabe qué hacer con ella.
+  if (perfil?.vistaExtra && perfil.vistaExtra !== modelo.vista) {
+    fueraDeVista.push(
+      `${perfil.nombre}: la carga sale del plano sagital y su momento solo se ve con la cámara ${perfil.vistaExtra}`,
+    )
+  }
+
+  const unilateral = esUnilateral(nombreEjercicio)
+  if (unilateral && modelo.vista !== 'frontal') {
+    fueraDeVista.push(
+      'carga a un lado: el momento en el plano frontal solo se ve con la cámara frontal',
+    )
+  }
+
   return {
     ejes,
     grupoObjetivo,
     ejeObjetivo: grupoObjetivo
       ? ejes.find((e) => e.motores.includes(grupoObjetivo))?.articulacion
       : undefined,
-    marcas: modelo.marcas,
-    linea: modelo.linea,
+    marcas,
+    linea: perfil?.linea ? { ...modelo.linea, origen: perfil.linea } : modelo.linea,
     alineacion: modelo.alineacion,
     necesitaRepartoDeApoyos: modelo.dosApoyos !== undefined,
     vista: modelo.vista,
     fueraDeVista,
+    implemento,
+    perfilDeImplemento: perfil,
+    unilateral,
+    // Sin implemento declarado no se sabe, y no saber se parece más a que valga
+    // que a que no: el patrón por defecto de la tabla es peso libre.
+    brazoPorDistanciaHorizontal: perfil ? perfil.distanciaHorizontalVale : true,
+    limites: [...(perfil?.limite ? [perfil.limite] : []), ...(unilateral ? [LIMITE_UNILATERAL] : [])],
   }
 }
 

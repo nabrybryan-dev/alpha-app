@@ -3,8 +3,11 @@ import { CATEGORIAS, grupoPrimario, ORDEN_GRUPOS, type Categoria } from '../taxo
 import { REGLAS_DE_EJE } from './reglas'
 import {
   EJES_DERIVADOS,
+  IMPLEMENTOS,
   MODELOS_DE_PALANCA,
   ejePrincipal,
+  esUnilateral,
+  implementoDe,
   modeloDePalanca,
   planDeMedida,
   type Articulacion,
@@ -306,5 +309,141 @@ describe('ejePrincipal', () => {
 
   it('un patrón sin modelo no devuelve eje', () => {
     expect(ejePrincipal('MOVILIDAD')).toBeUndefined()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// El implemento
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Los nombres de esta sección salen del catálogo de 168 vídeos reales
+// (`Cerebro Alpha/herramientas/encoder-camara/banco/corpus-gimnasio.tsv`), no
+// están inventados: son los ejercicios que de verdad llegan.
+
+describe('el implemento declarado en el nombre', () => {
+  it('lo detecta en los ejercicios que trae el corpus', () => {
+    expect(implementoDe('PESO MUERTO CON BARRA')).toBe('barra')
+    expect(implementoDe('PESO MUERTO RUMANO CON MANCUERNAS')).toBe('mancuernas')
+    expect(implementoDe('SENTADILLA EN SMITH')).toBe('guiado-vertical')
+    expect(implementoDe('PRENSA DE PIERNAS 45')).toBe('guiado-inclinado')
+    expect(implementoDe('JALON AL PECHO EN POLEA')).toBe('polea')
+    expect(implementoDe('ZANCADA BULGARA CON DISCO')).toBe('disco')
+    expect(implementoDe('CURL FEMORAL EN MAQUINA')).toBe('maquina')
+  })
+
+  it('lo específico gana a lo general', () => {
+    expect(implementoDe('PATADA DE GLUTEO EN POLEA CON TOBILLERA')).toBe('polea-tobillera')
+    expect(implementoDe('SENTADILLA EN SMITH CON BARRA')).toBe('guiado-vertical')
+  })
+
+  it('unilateral NO es un implemento: es ortogonal', () => {
+    // El fallo que cazó el corpus la primera vez que se corrió esta tabla: con
+    // «unilateral» dentro de la detección de implemento, un jalón en polea
+    // salía clasificado como mancuerna y se perdía la línea de cable.
+    expect(implementoDe('JALON UNILATERAL EN POLEA')).toBe('polea')
+    expect(implementoDe('PRESS UNILATERAL DE HOMBRO CON BARRA')).toBe('barra')
+    expect(implementoDe('REMO CON MANCUERNA A UNA MANO')).toBe('mancuernas')
+
+    expect(esUnilateral('JALON UNILATERAL EN POLEA')).toBe(true)
+    expect(esUnilateral('REMO CON MANCUERNA A UNA MANO')).toBe(true)
+    expect(esUnilateral('PESO MUERTO CON BARRA')).toBe(false)
+  })
+
+  it('un nombre que no declara implemento devuelve undefined, no barra', () => {
+    // No saber y suponer barra no es lo mismo: es por donde entraría un Smith
+    // con el modelo equivocado.
+    expect(implementoDe('PESO MUERTO')).toBeUndefined()
+    expect(implementoDe('')).toBeUndefined()
+  })
+
+  it('los acentos y las minúsculas no lo despistan', () => {
+    expect(implementoDe('prensa de piernas')).toBe('guiado-inclinado')
+    expect(implementoDe('Jalón al pecho')).toBe('polea')
+  })
+})
+
+describe('lo que el implemento le hace al plan', () => {
+  it('un raíl le quita al brazo su significado, y el plan lo dice', () => {
+    const smith = planDeMedida('SENTADILLA', 'SENTADILLA EN SMITH')
+    expect(smith?.implemento).toBe('guiado-vertical')
+    expect(smith?.brazoPorDistanciaHorizontal).toBe(false)
+    expect(smith?.limites.length).toBeGreaterThan(0)
+
+    // El mismo patrón con barra libre sí conserva la regla.
+    const libre = planDeMedida('SENTADILLA', 'SENTADILLA CON BARRA')
+    expect(libre?.brazoPorDistanciaHorizontal).toBe(true)
+    expect(libre?.limites).toEqual([])
+  })
+
+  it('una carga a un lado pide un plano que la vista del patrón no da', () => {
+    const unaMano = planDeMedida('TRACCIÓN HORIZONTAL', 'REMO CON MANCUERNA A UNA MANO')
+    expect(unaMano?.unilateral).toBe(true)
+    expect(unaMano?.vista).toBe('lateral')
+    expect(unaMano?.fueraDeVista.some((t) => t.includes('frontal'))).toBe(true)
+    expect(unaMano?.limites.some((t) => t.includes('plano sagital'))).toBe(true)
+  })
+
+  it('y lo pide venga la carga de donde venga, no solo de una mancuerna', () => {
+    // El mismo problema mecánico con tres implementos distintos.
+    for (const nombre of [
+      'REMO CON MANCUERNA A UNA MANO',
+      'JALON UNILATERAL EN POLEA',
+      'PRESS UNILATERAL DE HOMBRO CON BARRA',
+    ]) {
+      const plan = planDeMedida('TRACCIÓN HORIZONTAL', nombre)
+      expect(plan?.unilateral, nombre).toBe(true)
+      expect(plan?.fueraDeVista.some((t) => t.includes('frontal')), nombre).toBe(true)
+    }
+  })
+
+  it('y un jalón unilateral en polea sigue midiéndose contra el cable', () => {
+    const plan = planDeMedida('TRACCIÓN VERTICAL', 'JALON UNILATERAL EN POLEA')
+    expect(plan?.implemento).toBe('polea')
+    expect(plan?.linea.origen).toBe('cable')
+    expect(plan?.unilateral).toBe(true)
+  })
+
+  it('la polea manda sobre el origen de la línea que declara el patrón', () => {
+    const conBarra = planDeMedida('EXTENSIÓN DE CADERA', 'HIP THRUST CON BARRA')
+    expect(conBarra?.linea.origen).toBe('carga-externa')
+
+    const conPolea = planDeMedida('EXTENSIÓN DE CADERA', 'PATADA DE GLUTEO EN POLEA CON TOBILLERA')
+    expect(conPolea?.linea.origen).toBe('cable')
+  })
+
+  it('una carga que entra por el tobillo añade esa marca', () => {
+    const plan = planDeMedida('EXTENSIÓN DE CADERA', 'PATADA DE GLUTEO EN POLEA CON TOBILLERA')
+    expect(plan?.marcas).toContain('tobillo')
+    expect(plan?.perfilDeImplemento?.aplicacion).toBe('tobillo')
+  })
+
+  it('sin implemento declarado el plan no inventa limites', () => {
+    const plan = planDeMedida('BISAGRA DE CADERA')
+    expect(plan?.implemento).toBeUndefined()
+    expect(plan?.limites).toEqual([])
+    expect(plan?.brazoPorDistanciaHorizontal).toBe(true)
+  })
+})
+
+describe('coherencia de la tabla de implementos', () => {
+  it('todo implemento que rompe la regla de la distancia horizontal dice por qué', () => {
+    // Es la invariante que evita el peor fallo posible: apagar la medida sin
+    // decírselo a nadie.
+    for (const [clave, perfil] of Object.entries(IMPLEMENTOS)) {
+      if (!perfil.distanciaHorizontalVale) {
+        expect(perfil.limite, `${clave} apaga el brazo y no explica el límite`).toBeTruthy()
+      }
+    }
+  })
+
+  it('dos cargas solo las tienen las mancuernas bilaterales', () => {
+    const conDos = Object.entries(IMPLEMENTOS).filter(([, p]) => p.cargas === 2)
+    expect(conDos.map(([k]) => k)).toEqual(['mancuernas'])
+  })
+
+  it('todo perfil explica su porqué', () => {
+    for (const [clave, perfil] of Object.entries(IMPLEMENTOS)) {
+      expect(perfil.porQue.length, `${clave} sin porQue`).toBeGreaterThan(40)
+    }
   })
 })
