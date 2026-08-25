@@ -72,6 +72,29 @@ function buscarHerramientas(): string | null {
 
 const herramientas = buscarHerramientas()
 
+/* Un `skip` no se ve. Vitest lo pinta en gris junto a los cientos de tests que
+ * pasan, y quien mira la salida entiende «todo bien» — que es justo lo contrario
+ * de lo que significa: significa «no he podido comprobar lo que más ha fallado».
+ *
+ * La deriva se descubrió el 23 de agosto de 2026 y VOLVIÓ a ocurrir el 25, con
+ * 188 líneas de diferencia en `analisis.js`. El guardián existía y estaba bien
+ * escrito las dos veces. Lo que no existía era un aviso de que no estaba mirando. */
+if (!herramientas) {
+  console.warn(
+    `
+  ⚠ EL GUARDIAN DEL NUCLEO NO SE HA EJECUTADO.
+    No encuentro el repo de las herramientas, asi que NO se ha comprobado que esta
+    copia siga al dia. Ha derivado en silencio dos veces: el 23 de agosto de 2026 y
+    otra vez el 25, esa con 188 lineas de diferencia y la app midiendo sin velocidad
+    media propulsiva.
+    En el CI es normal y no pasa nada. En tu maquina, no: clona cerebro-alpha al lado,
+    o pon ENCODER_HERRAMIENTAS=<ruta a herramientas/encoder-camara>.
+
+    Para sincronizar:  node herramientas/encoder-camara/sincronizar-nucleo.mjs --aplicar
+`,
+  )
+}
+
 /* Este bloque se SALTA cuando el otro repo no está, y eso es deliberado: es otro
  * repo y puede no estar clonado —en el CI no lo está—. Un guardián que se pone
  * rojo por algo que no depende de quien lo lee enseña a ignorar los rojos, y
