@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   aCsv,
+  comparablesPorHora,
   criteriosDeLaTanda,
+  franjaDe,
   gravedadAprobada,
   mediana,
   pvDeReferencia,
@@ -216,5 +218,64 @@ describe('aCsv', () => {
   it('lleva las dos columnas nuevas de la referencia', () => {
     expect(aCsv([]).split(',')).toContain('vRefUltima')
     expect(aCsv([]).split(',')).toContain('pvRefPct')
+  })
+})
+
+describe('la hora del dia', () => {
+  // La fuerza sube de la manana a la tarde por mecanismos del propio musculo
+  // (Douglas 2021). El motor dispara una decision cuando la velocidad cae mas de
+  // un 5-6 % entre semanas, y la hora mueve del orden del 10 %: cambiar de franja
+  // puede fabricar esa caida o tapar una real.
+
+  it('coloca cada toma en la franja del metaanalisis', () => {
+    expect(franjaDe('2026-08-25T08:30:00')).toBe('manana')
+    expect(franjaDe('2026-08-25T18:00:00')).toBe('tarde')
+    expect(franjaDe('2026-08-25T13:00:00')).toBe('intermedia')
+  })
+
+  it('los bordes son los publicados, no una particion del dia', () => {
+    // 7-10 y 16-20. Las 10:00 y las 20:00 ya estan fuera.
+    expect(franjaDe('2026-08-25T07:00:00')).toBe('manana')
+    expect(franjaDe('2026-08-25T10:00:00')).toBe('intermedia')
+    expect(franjaDe('2026-08-25T16:00:00')).toBe('tarde')
+    expect(franjaDe('2026-08-25T20:00:00')).toBe('intermedia')
+  })
+
+  it('una fecha que no se puede leer no se inventa una franja', () => {
+    expect(franjaDe('no es una fecha')).toBeUndefined()
+  })
+
+  it('manana contra tarde NO son comparables, y lo dice', () => {
+    const r = comparablesPorHora('2026-08-25T08:00:00', '2026-09-01T18:00:00')
+    expect(r.comparables).toBe(false)
+    expect(r.horasDeDiferencia).toBe(10)
+    expect(r.aviso).toContain('mañana')
+  })
+
+  it('una semana de diferencia A LA MISMA HORA es perfectamente comparable', () => {
+    // Lo que importa es la hora del dia, no el tiempo transcurrido. Este es el
+    // caso normal del PANEL: el mismo ejercicio, siete dias despues.
+    const r = comparablesPorHora('2026-08-25T18:00:00', '2026-09-01T18:00:00')
+    expect(r.comparables).toBe(true)
+    expect(r.horasDeDiferencia).toBe(0)
+    expect(r.aviso).toBeUndefined()
+  })
+
+  it('la distancia horaria da la vuelta por medianoche', () => {
+    // 23:00 y 01:00 estan a dos horas, no a veintidos.
+    expect(comparablesPorHora('2026-08-25T23:00:00', '2026-08-26T01:00:00').horasDeDiferencia).toBe(2)
+  })
+
+  it('mucha diferencia dentro de la zona intermedia avisa pero NO invalida', () => {
+    // No hay evidencia de que 11:00 y 15:00 se comporten distinto: se dice, y ya.
+    const r = comparablesPorHora('2026-08-25T11:00:00', '2026-08-26T15:00:00')
+    expect(r.comparables).toBe(true)
+    expect(r.aviso).toContain('misma hora')
+  })
+
+  it('sin fecha utilizable no bloquea la comparacion', () => {
+    // Callarse aqui seria peor: la tanda historica puede traer fechas raras y
+    // no se puede dejar de comparar por eso.
+    expect(comparablesPorHora('vacio', '2026-08-25T18:00:00').comparables).toBe(true)
   })
 })
