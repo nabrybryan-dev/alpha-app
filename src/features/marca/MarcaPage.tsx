@@ -4,6 +4,7 @@ import { Chip } from '../../components/ui/Chip'
 import { Medalla } from '../../components/ui/Medalla'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { Semaforo } from '../../components/ui/Semaforo'
+import { cuantasPiezas } from '../../lib/direccionesVisuales'
 import { RolloDePelicula } from './RolloDePelicula'
 import logoAguila from '../../assets/brand/logo-aguila.png'
 import marcaHalcon from '../../assets/brand/marca-halcon.png'
@@ -73,7 +74,7 @@ export default function MarcaPage() {
           una Card más, en el mismo ritmo que las otras: las piezas son contenido
           de esta pantalla, no un adorno pegado a ella. */}
       <Card>
-        <p className="kicker">Las cinco piezas</p>
+        <p className="kicker">Las {cuantasPiezas()} piezas</p>
         <p className="mt-1 text-sm text-tenue">
           Se mira una cada vez. La que entra en el centro de la pantalla se abre y
           arranca; las demás esperan retraídas.

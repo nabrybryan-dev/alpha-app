@@ -124,6 +124,27 @@ export const DIRECCIONES: DireccionVisual[] = [
   },
 ]
 
+/**
+ * Cuántas piezas hay, en palabras, para escribirlo en pantalla.
+ *
+ * Existe porque el manual de marca decía «Las cinco piezas» con SEIS debajo, y no
+ * era un despiste suelto: `fondoHero.ts` contaba «las otras cuatro» omitiendo
+ * también a F. **La pieza que nunca se colocó tampoco se contaba**, y el número
+ * escrito a mano lo repetía en cada sitio. Contarlo aquí es la única forma de que
+ * añadir o quitar una dirección no deje un número mintiendo en una pantalla.
+ */
+export function cuantasPiezas(): string {
+  const palabras: Record<number, string> = {
+    3: 'tres',
+    4: 'cuatro',
+    5: 'cinco',
+    6: 'seis',
+    7: 'siete',
+    8: 'ocho',
+  }
+  return palabras[DIRECCIONES.length] ?? String(DIRECCIONES.length)
+}
+
 /** Busca por letra. Falla fuerte: una letra que no existe es un error de programación. */
 export function direccion(id: DireccionVisual['id']): DireccionVisual {
   const encontrada = DIRECCIONES.find((d) => d.id === id)
