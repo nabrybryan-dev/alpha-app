@@ -275,3 +275,102 @@ export function aportesDeCategoria(
 export function grupoPrimario(categoria: string, nombreEjercicio = ''): Grupo | undefined {
   return aportesDeCategoria(categoria, nombreEjercicio).find((a) => a.factor === 1)?.grupo
 }
+
+/**
+ * Dónde cae el pico de exigencia externa de cada categoría.
+ *
+ * Regla, de `Cerebro Alpha/wiki/conocimiento/perfiles-de-resistencia.md` §2.1: con
+ * peso libre la carga tira siempre vertical, así que el brazo de momento externo
+ * es la distancia HORIZONTAL entre la articulación y la carga. **El pico está
+ * donde el segmento queda más horizontal.**
+ *
+ * Para qué sirve: decidir si el cue necesita el ancla de «parciales en reserva».
+ * Lo que hace ambigua una serie no es dónde está el pico, sino si al fallar
+ * quedan parciales — y eso pasa en `medio` igual que en `final`. En `inicio`
+ * no: si no puedes iniciar la repetición, no hay repetición.
+ *
+ * ⚠ Una categoría no fija del todo el perfil: la leva de la máquina lo modifica
+ * (§7.1: las levas no igualan la curva humana). Seis entradas dependen del
+ * implemento y están marcadas para revisión del coach — sobre todo APERTURA DE
+ * PECHO, que con mancuerna pica abajo y en pec deck pica al cierre.
+ *
+ * Las categorías sin entrada son isométricas o no van al fallo.
+ */
+export type PicoDeExigencia = 'inicio' | 'medio' | 'final'
+
+export const PICO_DE_EXIGENCIA: Partial<Record<Categoria, PicoDeExigencia>> = {
+  'BISAGRA DE CADERA': 'inicio',
+  'EXTENSIÓN DE CADERA': 'final',
+  'ABDUCCIÓN DE CADERA': 'final', // ⚠ revisar: máquina sentado vs polea
+  'ADUCCIÓN DE CADERA': 'final', // ⚠ revisar: la leva manda
+  'ROTACIÓN DE CADERA': 'medio',
+  SENTADILLA: 'inicio',
+  'SENTADILLA UNILATERAL': 'inicio',
+  'EXTENSIÓN DE RODILLA': 'final',
+  'FLEXIÓN DE RODILLA': 'medio', // ⚠ revisar: sentado ≠ tumbado (Maeo 2021)
+  'FLEXIÓN PLANTAR': 'inicio',
+  DORSIFLEXIÓN: 'final',
+  'EMPUJE HORIZONTAL': 'inicio',
+  'EMPUJE INCLINADO': 'inicio',
+  'EMPUJE VERTICAL': 'inicio',
+  'APERTURA DE PECHO': 'inicio', // ⚠ revisar: mancuerna sí, pec deck no
+  'TRACCIÓN VERTICAL': 'inicio',
+  'TRACCIÓN HORIZONTAL': 'medio', // ⚠ revisar: barra ≠ polea
+  'EXTENSIÓN DE HOMBRO': 'inicio',
+  'RETRACCIÓN ESCAPULAR': 'final',
+  'ABDUCCIÓN DE HOMBRO': 'medio',
+  'ABDUCCIÓN HORIZONTAL': 'final',
+  'FLEXIÓN DE HOMBRO': 'medio',
+  'FLEXIÓN DE CODO': 'medio',
+  'EXTENSIÓN DE CODO': 'medio', // ⚠ revisar: press francés ≠ polea
+  'FLEXIÓN DE TRONCO': 'medio',
+  'EXTENSIÓN LUMBAR': 'inicio',
+}
+
+/**
+ * Categorías con carga axial. El ancla **nunca** se inyecta aquí.
+ *
+ * El ancla dice «acaba cuando no puedas mover la carga»; en un compuesto axial
+ * eso es una instrucción de moler hasta quedarse clavado bajo la barra.
+ * Seguridad es el rango 1 de la jerarquía del método.
+ *
+ * Hoy todas caen en `inicio` por geometría, así que la exclusión es redundante.
+ * Está escrita para que la seguridad **no dependa de esa coincidencia**: si
+ * mañana alguien recategoriza, el ancla sigue sin aparecer donde no debe.
+ */
+const AXIALES: ReadonlySet<Categoria> = new Set<Categoria>([
+  'SENTADILLA',
+  'SENTADILLA UNILATERAL',
+  'BISAGRA DE CADERA',
+  'EMPUJE VERTICAL',
+  'EXTENSIÓN LUMBAR',
+])
+
+/** El ancla de «parciales en reserva», en la redacción canónica del método. */
+export const ANCLA_PARCIALES =
+  'LA SERIE ACABA CUANDO NO PUEDAS MOVER LA CARGA, NO CUANDO PIERDAS EL RANGO'
+
+/** Si esta categoría necesita el ancla: pico distinto de `inicio` y no axial. */
+export function necesitaAncla(categoria: string): boolean {
+  const canonica = categoriaCanonica(categoria)
+  if (!canonica || AXIALES.has(canonica)) return false
+  const pico = PICO_DE_EXIGENCIA[canonica]
+  return pico === 'medio' || pico === 'final'
+}
+
+/**
+ * El cue que ve el asesorado, con el ancla puesta donde toca.
+ *
+ * **Se compone, no se guarda.** Guardar el ancla en el campo `cues` la
+ * convertiría en una «nota técnica nueva» a ojos del contador de
+ * estandarización, y reiniciaría la racha de toda una familia de ejercicios a
+ * la vez, en silencio. Y sería almacenar un dato derivado, que es como
+ * `rirObjetivo` acabó diciendo 2 mientras el texto decía «(RIR 1)».
+ */
+export function cuesConAncla(categoria: string, cues: string): string {
+  if (!necesitaAncla(categoria)) return cues
+  const limpio = cues.trim()
+  if (!limpio) return ANCLA_PARCIALES
+  const sinPuntoFinal = limpio.replace(/[;.]\s*$/, '')
+  return `${sinPuntoFinal}; ${ANCLA_PARCIALES}`
+}

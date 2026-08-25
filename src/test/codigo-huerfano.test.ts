@@ -36,6 +36,16 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // El ancla de «parciales en reserva» del cue. Construida el 2026-08-25 y
+  // deliberadamente SIN enchufar: componerla cambia lo que el asesorado lee, y
+  // seis de las 32 categorias de PICO_DE_EXIGENCIA dependen del implemento mas
+  // que de la accion articular —apertura de pecho pica abajo con mancuerna y
+  // arriba en pec deck— asi que esperan revision del coach antes de disparar
+  // anclas sobre la cartera.
+  'src/domain/taxonomia.ts#cuesConAncla':
+    'Ancla de parciales en reserva. Sin enchufar a proposito: cambia el cue que lee ' +
+    'el asesorado y 6 categorias esperan revision del coach. Ver ' +
+    'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §7.',
   // La guarda del relleno masivo de carga, que se corre desde el SQL Editor y
   // no desde la app: si componer los campos devuelve el MISMO texto, guardar no
   // cambia ni una letra de lo que el asesorado va a leer; si no, el ejercicio se

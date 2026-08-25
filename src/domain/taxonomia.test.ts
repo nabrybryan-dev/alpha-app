@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ANCLA_PARCIALES,
   aportesDeCategoria,
   categoriaCanonica,
   CATEGORIAS,
+  cuesConAncla,
   grupoPrimario,
+  necesitaAncla,
   ORDEN_GRUPOS,
+  PICO_DE_EXIGENCIA,
   type Grupo,
 } from './taxonomia'
 
@@ -304,5 +308,82 @@ describe('compatibilidad con la taxonomía vieja', () => {
     expect(aportesDeCategoria('CARDIO HIIT')).toEqual([])
     expect(aportesDeCategoria('ENTRADA/PASARELA')).toEqual([])
     expect(aportesDeCategoria('COMBINADO')).toEqual([])
+  })
+})
+
+describe('pico de exigencia y ancla de parciales', () => {
+  it('las 32 categorías están decididas: con pico, o excluidas a propósito', () => {
+    const sinPico = CATEGORIAS.filter((c) => !PICO_DE_EXIGENCIA[c])
+    // Isométricas (no hay recorrido que perder) y las que no van al fallo.
+    expect([...sinPico].sort()).toEqual([
+      'ACONDICIONAMIENTO',
+      'ANTIEXTENSIÓN',
+      'ANTIFLEXIÓN LATERAL',
+      'ANTIRROTACIÓN',
+      'MOVILIDAD',
+      'PREV/REHAB',
+    ])
+  })
+
+  it('no hay claves inventadas en la tabla de picos', () => {
+    for (const clave of Object.keys(PICO_DE_EXIGENCIA)) {
+      expect(CATEGORIAS).toContain(clave)
+    }
+  })
+
+  it('el ancla NO entra donde el pico está al inicio: si no arranca, no hay rep', () => {
+    expect(necesitaAncla('SENTADILLA')).toBe(false)
+    expect(necesitaAncla('BISAGRA DE CADERA')).toBe(false)
+    expect(necesitaAncla('EMPUJE HORIZONTAL')).toBe(false)
+    expect(necesitaAncla('TRACCIÓN VERTICAL')).toBe(false)
+  })
+
+  it('el ancla entra con pico medio, no solo con pico final', () => {
+    // El curl es el caso que corrigió la especificación: pico a 90° de codo, y
+    // al fallar quedan varios centímetros que sí se pueden mover.
+    expect(necesitaAncla('FLEXIÓN DE CODO')).toBe(true)
+    expect(necesitaAncla('ABDUCCIÓN DE HOMBRO')).toBe(true)
+    expect(necesitaAncla('EXTENSIÓN DE RODILLA')).toBe(true)
+  })
+
+  it('ninguna categoría axial lleva ancla, aunque cambie su pico', () => {
+    for (const axial of ['SENTADILLA', 'SENTADILLA UNILATERAL', 'BISAGRA DE CADERA',
+      'EMPUJE VERTICAL', 'EXTENSIÓN LUMBAR']) {
+      expect(necesitaAncla(axial)).toBe(false)
+    }
+  })
+
+  it('las isométricas y las que no van al fallo se quedan sin ancla', () => {
+    expect(necesitaAncla('ANTIEXTENSIÓN')).toBe(false)
+    expect(necesitaAncla('MOVILIDAD')).toBe(false)
+    expect(necesitaAncla('PREV/REHAB')).toBe(false)
+  })
+
+  it('una categoría desconocida no lleva ancla en vez de reventar', () => {
+    expect(necesitaAncla('GLÚTEO FINISHER')).toBe(false)
+    expect(necesitaAncla('')).toBe(false)
+  })
+
+  it('acepta la categoría escrita como venga: usa la normalización que ya existe', () => {
+    expect(necesitaAncla('flexión de codo')).toBe(true)
+    expect(necesitaAncla('FLEXION DE CODO')).toBe(true)
+  })
+
+  it('compone el cue sin duplicar el punto y coma', () => {
+    expect(cuesConAncla('FLEXIÓN DE CODO', 'CODO FIJO; NO USES IMPULSO')).toBe(
+      `CODO FIJO; NO USES IMPULSO; ${ANCLA_PARCIALES}`,
+    )
+    expect(cuesConAncla('FLEXIÓN DE CODO', 'CODO FIJO;')).toBe(
+      `CODO FIJO; ${ANCLA_PARCIALES}`,
+    )
+  })
+
+  it('con el cue vacío el ancla va sola, sin punto y coma huérfano', () => {
+    expect(cuesConAncla('EXTENSIÓN DE RODILLA', '')).toBe(ANCLA_PARCIALES)
+    expect(cuesConAncla('EXTENSIÓN DE RODILLA', '   ')).toBe(ANCLA_PARCIALES)
+  })
+
+  it('donde no hace falta ancla, el cue sale intacto', () => {
+    expect(cuesConAncla('SENTADILLA', 'PROFUNDIDAD COMPLETA')).toBe('PROFUNDIDAD COMPLETA')
   })
 })
