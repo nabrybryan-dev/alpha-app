@@ -21,10 +21,27 @@ export function sesionRegistrada(ejercicios: EjercicioPrescrito[]): boolean {
 }
 
 export function sesionCompleta(sesion: Sesion): boolean {
-  if (sesion.tipo === 'metabolica') {
-    const bloques = sesion.bloquesCardio ?? []
-    return bloques.length > 0 && bloques.every((b) => Boolean(b.hechoEn))
-  }
+  const bloques = sesion.bloquesCardio ?? []
+  const bloquesHechos = bloques.length > 0 && bloques.every((b) => Boolean(b.hechoEn))
+
+  if (sesion.tipo === 'metabolica') return bloquesHechos
+
+  /**
+   * Sin ejercicios prescritos, lo unico que hay para cerrar son los bloques —
+   * lo diga o no la etiqueta.
+   *
+   * La Zona 2 de una asesorada venia marcada `fuerza` con CERO ejercicios y dos
+   * bloques (2026-08-25). `sesionRegistrada([])` es false siempre, asi que podia
+   * tildar los dos bloques y la sesion no se cerraba nunca — ni contaba en
+   * `pctRegistrado`, que es el porcentaje con el que se decide si sube la carga.
+   *
+   * Es la misma trampa que el #100 quito de la pantalla: `tipo` describe, no
+   * decide. Aqui se arregla SOLO la mitad sin ejercicios. Una `metabolica` CON
+   * ejercicios dentro sigue juzgandose por sus bloques: eso es una decision
+   * distinta, esta pinneada por sus propios tests y no es mia.
+   */
+  if (sesion.ejercicios.length === 0) return bloquesHechos
+
   return sesionRegistrada(sesion.ejercicios)
 }
 

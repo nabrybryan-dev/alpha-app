@@ -66,9 +66,15 @@ function sumarDias(fechaIso: string, dias: number): string {
 }
 
 function detalleDeSesion(sesion: Sesion): string {
+  const bloques = (sesion.bloquesCardio ?? []).length
   if (sesion.tipo === 'metabolica') {
-    const bloques = (sesion.bloquesCardio ?? []).length
     return `${bloques} bloque${bloques === 1 ? '' : 's'} · cardio`
+  }
+  // Sin ejercicios, contarlos es escribir «0 ejercicios · 0 series · 0:00» sobre
+  // una sesion que si tiene trabajo prescrito: sus bloques. No se dice «cardio»
+  // porque sin la etiqueta no se sabe que lo sea — puede ser movilidad.
+  if (sesion.ejercicios.length === 0 && bloques > 0) {
+    return `${bloques} bloque${bloques === 1 ? '' : 's'}`
   }
   const series = sesion.ejercicios.reduce((n, e) => n + e.sets, 0)
   return `${sesion.ejercicios.length} ejercicios · ${series} series · ${formatoDuracion(duracionTotalSeg(sesion))}`
