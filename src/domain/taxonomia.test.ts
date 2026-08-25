@@ -338,6 +338,18 @@ describe('pico de exigencia y ancla de parciales', () => {
     expect(necesitaAncla('TRACCIÓN VERTICAL')).toBe(false)
   })
 
+  it('las dos resueltas el 25/08 llevan ancla, y las dos son de mucho uso', () => {
+    // FLEXIÓN DE RODILLA: la regla de la palanca decia `inicio` —tibia horizontal
+    // con la rodilla extendida— pero en maquina la leva no deja caer la
+    // resistencia y se falla sin cerrar. 29 ejercicios activos en 20 asesorados.
+    expect(PICO_DE_EXIGENCIA['FLEXIÓN DE RODILLA']).toBe('final')
+    expect(necesitaAncla('FLEXIÓN DE RODILLA')).toBe(true)
+    // TRACCIÓN HORIZONTAL: al tirar, el antebrazo va a la horizontal y el brazo
+    // sobre el codo crece. 40 activos en 22 asesorados, casi la cartera entera.
+    expect(PICO_DE_EXIGENCIA['TRACCIÓN HORIZONTAL']).toBe('final')
+    expect(necesitaAncla('TRACCIÓN HORIZONTAL')).toBe(true)
+  })
+
   it('el ancla entra con pico medio, no solo con pico final', () => {
     // El curl es el caso que corrigió la especificación: pico a 90° de codo, y
     // al fallar quedan varios centímetros que sí se pueden mover.

@@ -290,9 +290,33 @@ export function grupoPrimario(categoria: string, nombreEjercicio = ''): Grupo | 
  * no: si no puedes iniciar la repetición, no hay repetición.
  *
  * ⚠ Una categoría no fija del todo el perfil: la leva de la máquina lo modifica
- * (§7.1: las levas no igualan la curva humana). Seis entradas dependen del
- * implemento y están marcadas para revisión del coach — sobre todo APERTURA DE
- * PECHO, que con mancuerna pica abajo y en pec deck pica al cierre.
+ * (§7.1: las levas no igualan la curva humana). Cuatro entradas siguen marcadas
+ * para revisión del coach — sobre todo APERTURA DE PECHO, que con mancuerna pica
+ * abajo y en pec deck pica al cierre.
+ *
+ * ## Dos resueltas el 2026-08-25, y la primera enseña algo
+ *
+ * **FLEXIÓN DE RODILLA.** La regla de §2.1 sola dice `inicio`: la tibia está más
+ * horizontal con la rodilla extendida, tanto sentado como tumbado. Pero el coach,
+ * preguntado por cómo falla la gente en SU máquina, responde que «sigue moviendo
+ * un trozo sin llegar a cerrar todo el ROM». **La leva no deja que la resistencia
+ * caiga**, así que el punto duro está al cerrar y quedan parciales. Va `final`.
+ *
+ * Es el aviso de §7.1 hecho caso concreto: en máquina, la regla de la palanca no
+ * basta y **manda la observación**. Se intentó zanjarlo con datos —dispersión del
+ * RIR declarado por categoría, 186 series— y no discrimina: los ejercicios de
+ * fallo limpio y los de fallo con parciales salen mezclados, porque el RIR
+ * declarado sigue a la prescripción y no a la sensación.
+ *
+ * El reparto de la cartera era 14 activos sentado y 11 tumbado —los dos brazos de
+ * Maeo 2021 (PMID 33009197)—, y la respuesta vale para los dos: no cambia dónde
+ * se falla, cambia a qué longitud se carga el isquio.
+ *
+ * **TRACCIÓN HORIZONTAL.** Aquí la regla y la observación coinciden: al tirar, el
+ * antebrazo va hacia la horizontal y el brazo de momento sobre el codo CRECE, así
+ * que el punto duro es el cierre. Se falla sin tocar el torso, dejando recorrido.
+ * Vale igual en peso libre (14 activos) y en polea o máquina (21): la carga tira
+ * distinto pero el fallo ocurre en el mismo sitio.
  *
  * Las categorías sin entrada son isométricas o no van al fallo.
  */
@@ -307,7 +331,7 @@ export const PICO_DE_EXIGENCIA: Partial<Record<Categoria, PicoDeExigencia>> = {
   SENTADILLA: 'inicio',
   'SENTADILLA UNILATERAL': 'inicio',
   'EXTENSIÓN DE RODILLA': 'final',
-  'FLEXIÓN DE RODILLA': 'medio', // ⚠ revisar: sentado ≠ tumbado (Maeo 2021)
+  'FLEXIÓN DE RODILLA': 'final', // confirmado por el coach 2026-08-25, ver nota abajo
   'FLEXIÓN PLANTAR': 'inicio',
   DORSIFLEXIÓN: 'final',
   'EMPUJE HORIZONTAL': 'inicio',
@@ -315,7 +339,7 @@ export const PICO_DE_EXIGENCIA: Partial<Record<Categoria, PicoDeExigencia>> = {
   'EMPUJE VERTICAL': 'inicio',
   'APERTURA DE PECHO': 'inicio', // ⚠ revisar: mancuerna sí, pec deck no
   'TRACCIÓN VERTICAL': 'inicio',
-  'TRACCIÓN HORIZONTAL': 'medio', // ⚠ revisar: barra ≠ polea
+  'TRACCIÓN HORIZONTAL': 'final', // confirmado 2026-08-25: se falla sin cerrar, en barra y en polea
   'EXTENSIÓN DE HOMBRO': 'inicio',
   'RETRACCIÓN ESCAPULAR': 'final',
   'ABDUCCIÓN DE HOMBRO': 'medio',
