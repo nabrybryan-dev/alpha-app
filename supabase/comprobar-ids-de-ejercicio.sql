@@ -23,6 +23,24 @@
 -- respuesta real se leyo como dato corrupto.
 --
 --   VEREDICTO: si las cuatro filas dicen OK, la migracion puede aplicarse.
+--
+-- ══ CORRIDA DEL 2026-08-25 · LAS CUATRO OK ════════════════════════════════
+--   1 · ejercicios sin id ................................ 0    OK
+--   2 · ids repetidos dentro de un microciclo ............ 0    OK
+--   3 · ids compartidos entre usuarios ................... 0    OK
+--   4 · ejercicios en 3+ microciclos de la misma persona . 424  OK
+--
+-- La clave `ejercicio.id` es valida: unica, estable y con 424 linajes reales
+-- detras. Lo que se dedujo leyendo el SQL del clonador queda confirmado con
+-- datos delante.
+--
+-- Y de paso salio un hallazgo que no se buscaba: **79 ejercicios tienen texto
+-- en `rirObjetivo`** —Control, Isometria, Movilidad, Test, Cribado, Suave,
+-- Conversacional— mas 12 que son valores de verdad escritos como texto,
+-- «RIR 1» y «RIR 2-3», todos de Manuela Quintero y 2 en microciclo activo.
+-- La 0041 no cerro del todo el patron de las 81 series. `desviacionDeRir` en
+-- TypeScript ya lo sobrevive (typeof !== 'number' -> undefined), pero esos 12
+-- nunca podran estandarizar hasta que sean numeros.
 
 -- ── 1 · Ningun ejercicio sin id ────────────────────────────────────────────
 -- Un id nulo o vacio no puede ser clave. Si aparece, hay que rellenarlos antes.
