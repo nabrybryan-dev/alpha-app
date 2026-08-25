@@ -29,6 +29,34 @@ describe('sesionCompleta', () => {
     expect(sesionCompleta({ ...sesionBase, tipo: 'metabolica', bloquesCardio: [bloque(true), bloque(false)] })).toBe(false)
     expect(sesionCompleta({ ...sesionBase, tipo: 'metabolica', bloquesCardio: [] })).toBe(false)
   })
+
+  it('sin ejercicios, la cierran sus bloques aunque la etiqueta no diga metabolica', () => {
+    // El caso real del 2026-08-25: ZONA 2 + MOVILIDAD marcada `fuerza`, cero
+    // ejercicios, dos bloques. Antes no se cerraba nunca por mas que los tildara.
+    const zona2: Sesion = { ...sesionBase, nombre: 'ZONA 2 + MOVILIDAD (LUNES)', ejercicios: [] }
+    expect(sesionCompleta({ ...zona2, bloquesCardio: [bloque(true), bloque(true)] })).toBe(true)
+    expect(sesionCompleta({ ...zona2, bloquesCardio: [bloque(true), bloque(false)] })).toBe(false)
+    expect(sesionCompleta({ ...zona2, bloquesCardio: [] })).toBe(false)
+  })
+
+  it('y por eso cuenta en el porcentaje con el que se decide la carga', () => {
+    const zona2: Sesion = {
+      ...sesionBase,
+      id: 'z',
+      ejercicios: [],
+      bloquesCardio: [bloque(true), bloque(true)],
+    }
+    const micro: Microciclo = {
+      id: 'm',
+      usuarioId: 'u',
+      numero: 1,
+      estado: 'activo',
+      fechaInicio: '2026-08-25',
+      cadenciaDias: 8,
+      sesiones: [zona2],
+    }
+    expect(resumenMicrociclo(micro).pctRegistrado).toBe(100)
+  })
 })
 
 describe('estadoPreparacion', () => {

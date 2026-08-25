@@ -135,6 +135,19 @@ describe('armarSemana', () => {
     expect(semana[0].detalle).toMatch(/1 ejercicios · 3 series/)
   })
 
+  it('una sesion sin ejercicios se describe por sus bloques, no con «0 ejercicios»', () => {
+    const zona2 = sesion('s-lun', 'ZONA 2 + MOVILIDAD (LUNES)', {
+      ejercicios: [],
+      bloquesCardio: [
+        { id: 'b1', titulo: 'ZONA 2 · 40 MIN', indicaciones: '' },
+        { id: 'b2', titulo: 'MOVILIDAD DE CADERA', indicaciones: '' },
+      ],
+    })
+    const semana = armarSemana(microciclo([zona2]), '2026-07-22')
+    expect(semana[0].detalle).toBe('2 bloques')
+    expect(semana[0].detalle).not.toMatch(/0 ejercicios/)
+  })
+
   it('numera los días con dos cifras', () => {
     const semana = armarSemana(microciclo([], '2026-07-06'), '2026-07-08')
     expect(semana[0].numero).toBe('06')
