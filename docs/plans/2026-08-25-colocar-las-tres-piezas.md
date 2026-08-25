@@ -64,9 +64,14 @@ de la tira, continua de lado a lado, y cada tarjeta descubre la parte que le toc
 ### La revelación
 
 Cada tarjeta descubre la pieza **de izquierda a derecha** hasta la fracción
-`actual / record` de su propia racha. Lo que no está descubierto es `--ink-900`
-**opaco**, no un velo: el velo está prohibido en este lenguaje y además aquí no
-haría falta, porque F ya admite texto encima (media 5,0 contra umbral 18).
+`actual / record` de su propia racha. Lo que no está descubierto es **negro puro**
+(`--ink-1000`) opaco, no un velo: el velo está prohibido en este lenguaje.
+
+> **Corregido el 25-08, mirándolo.** Aquí ponía `--ink-900`, y con esa cortina el
+> efecto salía **invertido**: la calle de F está en 3,4 de luminancia y `--ink-900`
+> en 8,9, así que lo descubierto era más oscuro que lo que lo tapaba. Además hubo
+> que levantar F, que había salido del grade 3,6x por debajo de su ancla. Los dos
+> arreglos y sus medidas están en la §9 del spec.
 
 `Racha` es `{ actual, record }` (`src/domain/gamification.ts:1-3`) y `record` es
 siempre el máximo histórico, así que la fracción nunca pasa de 1. Los dos bordes:

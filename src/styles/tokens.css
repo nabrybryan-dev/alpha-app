@@ -80,6 +80,15 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
   /* Escala ink (superficies oscuras, negro elegante) */
+  /* El suelo de la escala, y el unico sitio donde este sistema usa negro puro.
+     Existe por una razon medida: la pieza F «Proyeccion» tiene su calle en 3,4 de
+     luminancia, o sea MAS OSCURA que --ink-900 (8,9). Tapandola con ink-900 lo que
+     se descubria salia mas oscuro que lo que lo tapaba, y el efecto se invertia.
+     Ninguna curva lo arregla: para subir la calle por encima de 8,9 hay que
+     levantar la pieza tanto que su propia banda de tinta pasa de 25 y el texto
+     deja de leerse. Lo que hay debajo de una pieza sin recorrer no es una
+     superficie: es que ahi no hay luz. */
+  --ink-1000: #000000;
   --ink-900: #08090a;
   --ink-800: #0f1113;
   --ink-700: #16181b;

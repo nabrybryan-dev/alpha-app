@@ -68,16 +68,17 @@ recuento de tests.
 | C Ascenso | 24,5 | 15,0 | 154,2 | 38,0 | 9,1 | **40,0%** |
 | D Esfuerzo | 84,7 | 78,1 | 254,0 | 101,7 | 62,1 | — |
 | E Físico | 32,7 | 13,2 | 171,5 | 42,2 | 25,6 | — |
-| F Proyección | **5,0** | **2,0** | **42,0** | 0,7 | 9,2 | **40,0%** |
+| F Proyección | **8,1** | **3,0** | **56,1** | 1,3 | 15,4 | **40,0%** |
 
 **E se mide tras su `encaje`.** `origin-right scale-[1.213]` equivale a recortar el
 17,6% izquierdo, que es la columna negra que documenta `direccionesVisuales.ts`.
 Ya recortada: media **39,6**, p50 14,1, y por tercios 38,2 · **59,8** · 20,9. El
 cuerpo iluminado está en el centro.
 
-**F es la pieza más oscura del catálogo por un margen enorme**: su p99,5 (42,0) no
-llega ni al p50 de D. Es la única que admite texto encima en cualquier punto sin
-tocarla.
+**La fila de F es la del archivo LEVANTADO el 25-08.** El publicado hasta entonces
+daba media 5,0 · p50 2,0 · p99,5 42,0, y sigue siendo la pieza más oscura del
+catálogo por un margen enorme. Que admita texto encima en cualquier punto es
+verdad, y fue justo lo que me llevó al error: es un TECHO, no un suelo. Ver §9.
 
 ---
 
@@ -120,8 +121,9 @@ en las tres anclas posibles:
 | abajo | 8,9 | 9,2 | 59,5 |
 
 Arriba y abajo la pieza no se ve —son cielo y tinta—. El centro es donde está el
-corredor y la farola, y aun así da 5,0 de media contra un umbral de 18: las cifras
-rojas de la racha se leen sin velo.
+corredor y la farola. (Estas tres cifras son las del archivo de antes del
+levantado; tras él la ventana del centro da 7,7. La conclusión —anclar al centro—
+no cambia, porque las tres suben a la vez.)
 
 **No se toca el héroe de Logros.** `logros-peldanos.jpg` son los agujeros numerados
 del rack, elegidos por la metáfora de los peldaños y **medidos** (24,0 antes,
@@ -191,13 +193,16 @@ Escala: a 64×192 CSS con densidad 3 el destino son 192×576 px y la fuente da
 
 ## 6. Coste
 
+> **Corregido el 25-08 al colocar F.** Esta sección decía «cero archivos nuevos» y
+> resultó falso para F. Ver §9.
+
 Cero archivos nuevos. Las tres piezas ya están en `public/hero/` y sus pósters en
 `public/fondos/`, y las tres pantallas montan con `preload="none"`, así que el
 vídeo solo se pide en la pantalla que lo usa:
 
 | Pieza | vídeo | póster |
 |---|---:|---:|
-| F Proyección | 133 KB | 8,4 KB |
+| F Proyección | 124 KB | 10,5 KB |
 | A Despiece | 368 KB | 24 KB |
 | E Físico | 448 KB | 33 KB |
 
@@ -238,3 +243,51 @@ dura 6,0 s, que es más o menos lo que cuesta llenar cinco campos.
 - **La banda de tinta del 40%** no está documentada en `direccionesVisuales.ts`
   pese a ser una propiedad de las piezas que condiciona dónde puede ir el texto.
   Debería subir al catálogo, medida, en vez de vivir solo aquí.
+
+---
+
+## 9. Lo que cambió al colocar F (25-08, después de mirarlo)
+
+Esta sección la escribe la pantalla, no el razonamiento. Al capturar Logros en un
+móvil de 390 pt, la diferencia entre la celda descubierta y la tapada era de
+**0,36 de luma**: invisible. Midiéndolo bien salieron dos errores encadenados.
+
+**El primero es mío y está en la §2 de este mismo spec.** Escribí que F «admite
+texto encima en cualquier punto sin tocarla» y de ahí saqué que era la pieza
+ideal. El 18 es un **techo** para que el texto se lea; lo que faltaba escrito es
+que una pieza que hay que VER necesita además un **suelo**. F no lo tenía.
+
+**El segundo no es de la pieza, es de la cortina.** La calle de F está en **3,4**
+de luminancia y `--ink-900` en **8,9**: lo que se descubría salía *más oscuro* que
+lo que lo tapaba. Medido en pantalla, el efecto estaba **invertido** —la parte
+superior de la celda descubierta daba 0,18 contra 8,86 de la tapada, o sea −8,68—.
+Ninguna curva lo arregla: para subir la calle por encima de 8,9 hay que levantar
+tanto la pieza que su propia banda de tinta pasa de 25 y el texto deja de leerse.
+
+Lo que se hizo, y por qué en ese orden:
+
+1. **F se levantó**, porque estaba mal graduada y eso es un hecho medible aparte
+   de dónde se coloque. La ancla pre-grade (`HERO 3D ALPHA\entrada-proyeccion\`)
+   da media **16,3**; el archivo publicado daba **4,49**. El grade la aplastó
+   3,6x. Con una **gamma pura de 1,2219** —el negro sigue en negro, el blanco en
+   blanco, no puede reventar— la ventana de la tira pasa de 4,85 a 7,65 y el
+   archivo baja de 130 a **124 KB**. `banco.py validar` da **PASA**, y el p50
+   vuelve a **2,1**, que es exactamente el valor que el propio `banco.py` tiene
+   escrito para F: el archivo publicado había derivado a 1,0.
+   El objetivo (8,0) no se eligió a ojo: es la última parada del barrido donde la
+   banda de tinta de la pieza sigue bajo el techo de 18 (14,9) y el bloqueo del
+   AV1 no sube más de 1,25x (1,19x). A 8,5 el bloqueo pasa a 1,27x.
+2. **La cortina bajó a negro puro**, `--ink-1000`, un token nuevo al pie de la
+   escala ink. Lo que hay debajo de una pieza sin recorrer no es una superficie:
+   es que ahí no hay luz.
+
+Resultado medido en la misma captura: la diferencia pasa de **+0,36** a
+**+15,37**, y se ve sin retocar la imagen.
+
+**Lo que esto deja pendiente para A y E:** comprobar la misma relación ANTES de
+montarlas. La pregunta no es «¿se lee el texto encima?» sino «¿es la pieza más
+clara que lo que la rodea?». A da 14,7 de media y va sobre pantalla clara, así que
+el problema no se repite; E da 39,6 y menos todavía.
+
+**Y una advertencia de método:** este fallo no lo habría encontrado ningún test.
+Lo encontró capturar la pantalla y medir dos rectángulos.

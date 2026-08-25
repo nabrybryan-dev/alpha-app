@@ -27,10 +27,16 @@ export interface CeldaDeRacha {
  * tira y cada celda descubre la parte que le toca.
  *
  * CUÁNTO SE DESCUBRE. `actual / record`: hasta donde ha llegado esta racha
- * contra tu propio máximo. Lo que no está descubierto es `--ink-900` **opaco**,
- * no un velo. El velo está prohibido en este lenguaje y además aquí no haría
- * falta: F da 5,0 de luminancia media contra un umbral de 18, así que las cifras
- * se leen encima de la pieza sin ayuda.
+ * contra tu propio máximo. Lo que no está descubierto es **negro puro**
+ * (`--ink-1000`), opaco, no un velo — el velo está prohibido en este lenguaje.
+ *
+ * **Y tiene que ser negro puro, no `--ink-900`.** Esto se descubrió mirándolo,
+ * no razonándolo: la calle de F está en 3,4 de luminancia y `--ink-900` en 8,9,
+ * o sea que lo que se descubría salía MÁS OSCURO que lo que lo tapaba. El efecto
+ * se invertía y la diferencia medida en pantalla era de 0,58 de luma: invisible.
+ * Ninguna curva lo arregla —para subir la calle por encima de 8,9 hay que
+ * levantar tanto la pieza que su propia banda pasa de 25 y el texto deja de
+ * leerse—, así que lo que cambió fue la cortina. Ver el token en `tokens.css`.
  *
  * QUÉ PASA EN LOS BORDES, que es donde esto se decide:
  *   - Sin un solo registro (`record = 0`) no hay calle. Y como no hay ninguna
@@ -83,12 +89,13 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
               i > 0 ? 'border-l border-hairline' : ''
             }`}
           >
-            {/* La calle sin recorrer. Tinta opaca, no velo: tapa la pieza, no la
-                atenúa. Va detrás del contenido y no encima, para que la cifra no
-                dependa nunca de esta anchura. */}
+            {/* La calle sin recorrer: negro puro, opaco. No es una superficie —es
+                que ahí no hay luz—, y por eso `--ink-1000` y no `--ink-900`. Va
+                detrás del contenido y no encima, para que la cifra no dependa
+                nunca de esta anchura. */}
             <div
               aria-hidden="true"
-              className="absolute inset-y-0 right-0 bg-ink-900"
+              className="absolute inset-y-0 right-0 bg-ink-1000"
               style={{ width: `${(1 - fracciones[i]) * 100}%` }}
               data-descubierto={fracciones[i]}
             />
