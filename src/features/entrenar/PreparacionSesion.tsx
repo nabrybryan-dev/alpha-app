@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { db } from '../../data/dbInstance'
+import { demoDePreparacion } from '../../domain/demos'
 import { XP_POR_ACCION } from '../../domain/gamification'
 import type { Contenido, PartePreparacion, TipoPreparacion } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
@@ -66,7 +67,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                 <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{titulo}</p>
                 <ul className="mt-1.5 flex flex-col gap-1">
                   {grupo.map((parte) => {
-                    const demo = parte.contenidoDemoId ? db.contenidos.byId(parte.contenidoDemoId) : undefined
+                    const demo = demoDePreparacion(parte, db.contenidos.list())
                     const detalleAbierto = detalles.has(parte.id)
                     return (
                       <li key={parte.id} className="flex items-start gap-2.5 py-0.5">
