@@ -178,9 +178,21 @@ izquierda— sería un agujero negro dentro de una tarjeta blanca.
 
 ### Escala
 
-A **64×192 CSS** con DPR 3 el destino son 192×576 px y la fuente da 240×720:
-**0,80x**. Nunca se amplía. El tope antes de ampliar es una columna de **80 CSS px**
-de ancho.
+> **Corregido el 25-08 al hacerlo.** Aquí ponía que el tope era «una columna de 80
+> CSS px de **ancho**», y el ancho no es lo que ata.
+
+El recorte es cover sobre una caja alta y estrecha, así que la escala la manda
+siempre el **alto**: `alto_destino / 720`. El ancho solo mandaría si la caja fuera
+más ancha que alta en proporción 16:9, que es justo lo contrario de una columna.
+
+Con densidad 3 eso deja el techo en **240 CSS px de alto**, y por eso `max-h-60`.
+Medido sobre el render real a 390 pt: la columna sale **64 × 240 pt**, o sea
+**720 px de alto contra los 720 de la fuente — escala 1,000x exacta**. El tope ata
+justo y la pieza se pinta a resolución nativa.
+
+Sin ese tope el formulario manda: con los seis campos pediría unos 270 pt, que a
+densidad 3 son 810 px contra 720 de fuente — **1,13x**, estirada, y eso no se ve en
+un monitor. Es el fallo que `fondos-de-tarjeta.test.ts` existe para cazar.
 
 Si el formulario crece —el campo de peso aparece o desaparece según `verPeso`— la
 columna crece con él y la proporción cambia. Se fija el ancho y se deja que el alto

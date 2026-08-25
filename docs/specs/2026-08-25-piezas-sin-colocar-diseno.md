@@ -291,3 +291,28 @@ el problema no se repite; E da 39,6 y menos todavía.
 
 **Y una advertencia de método:** este fallo no lo habría encontrado ningún test.
 Lo encontró capturar la pantalla y medir dos rectángulos.
+
+---
+
+## 10. Un bug que reporté y no existe (25-08)
+
+Al capturar Logros y Bienestar dije que la app **desbordaba en horizontal a 390 pt**
+—cabecera cortada, campos inalcanzables, la tira de rachas en 468 px dentro de 390—.
+**Es falso, y el error es mío.**
+
+Chrome headless en Windows impone un ancho mínimo de ventana: con
+`--window-size=390` el viewport real fue **500 px**. Estuve capturando una maqueta
+de 500 recortada a 390×3, así que todo *parecía* cortado sin estarlo. Una sonda
+temporal en el layout lo dijo de una vez: `viewport 500`, `main 500,0`,
+`scrollWidth 500` — **main no desborda**. Lo único que sobresale son los carruseles
+horizontales, dentro de su `overflow-x-auto`, que es lo suyo.
+
+Y es exactamente la trampa que el spec del 20-08 ya documentaba al final, con su
+receta: **el iframe de 390 px dentro de una ventana mayor**. La abandoné al primer
+intento porque la app se quedaba en «Cargando…» y volví al atajo. Con el marco
+servido desde el propio vite —`public/__marco.html`, borrado al terminar, como
+avisa aquella receta— la captura sale limpia y no hay nada cortado.
+
+**La regla, para no repetirlo:** en esta máquina, una captura cuyo ancho no sea
+exactamente `390 × factor` no es un móvil de 390 pt. Comprobarlo antes de creerse
+lo que se ve.
