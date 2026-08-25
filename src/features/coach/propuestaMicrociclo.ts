@@ -346,7 +346,10 @@ export function microcicloPropuesto(
       bloquesCardio: s.bloquesCardio?.map(sinMarcar),
       ejercicios: s.ejercicios.map((e) => {
         const limpio: EjercicioPrescrito = { ...e, series: [] }
-        if (s.tipo === 'metabolica') return limpio
+        // Sin filtro por `tipo`: lo que decide si hay carga que progresar es el
+        // propio ejercicio, y `aplicarOndulacion` ya devuelve `limpio` cuando no
+        // la hay. Un ejercicio con series y kilos dentro de una metabolica
+        // genera fatiga igual, y hasta el 2026-08-25 se quedaba congelado.
         const ondulado = aplicarOndulacion(e, opcionesDeOndulacion(e, prs, incrementoKg))
         if (!ondulado.seriesPrescritas) return limpio
         // La frase se compone desde los campos. Sin esto el ejercicio nace
@@ -371,13 +374,21 @@ export function proponerMicrociclo(
 ): PropuestaMicrociclo {
   const { incrementoKg = 2.5, volumenSemanal } = opciones
   const prs = prsMasReciente(micro)
-  const filas = micro.sesiones
-    .filter((s) => s.tipo !== 'metabolica')
-    .flatMap((s) => filasDeSesion(s, micro.numero, prs, incrementoKg))
+  /**
+   * Todas las sesiones, sin filtrar por `tipo`.
+   *
+   * Hasta el 2026-08-25 las metabolicas se quedaban fuera: «ahi no hay carga que
+   * progresar». Eso vale cuando la sesion es solo bloques, pero habia metabolicas
+   * con ejercicios cargados dentro —7 de una asesorada, 6 de otra— y esos
+   * quedaban congelados microciclo tras microciclo, invisibles en la propuesta y
+   * fuera de la cuenta de volumen. Generan fatiga: cuentan.
+   *
+   * Una metabolica de verdad —solo bloques, `ejercicios: []`— sigue sin aportar
+   * nada aqui, porque no tiene ejercicios que aportar. El filtro sobraba.
+   */
+  const filas = micro.sesiones.flatMap((s) => filasDeSesion(s, micro.numero, prs, incrementoKg))
 
-  const ejerciciosDeFuerza = micro.sesiones
-    .filter((s) => s.tipo !== 'metabolica')
-    .flatMap((s) => s.ejercicios)
+  const ejerciciosPrescritos = micro.sesiones.flatMap((s) => s.ejercicios)
   const maximo = (valores: (number | undefined)[]) => {
     const utiles = valores.filter((v): v is number => v !== undefined)
     return utiles.length > 0 ? Math.max(...utiles) : undefined
@@ -390,15 +401,15 @@ export function proponerMicrociclo(
     sinDatos: filas.filter((f) => f.direccion === 'sin-datos').length,
     revision: revisarActivacion({
       sesionesSinRegistrar: micro.sesiones.filter((s) => !sesionCompleta(s)).length,
-      ejerciciosSinSeries: ejerciciosDeFuerza.filter((e) => e.series.length === 0).length,
-      ejerciciosTotales: ejerciciosDeFuerza.length,
+      ejerciciosSinSeries: ejerciciosPrescritos.filter((e) => e.series.length === 0).length,
+      ejerciciosTotales: ejerciciosPrescritos.length,
       prsUltimo: prs,
       saltoMaximo: maximo(filas.map((f) => f.salto)),
       brechaMaxima: maximo(filas.map((f) => f.brecha)),
     }),
     // El perfil dice qué grupos son prioritarios; sin perfil, todos 'Normal'.
     volumen: volumenDelMicrociclo(micro, { volumenSemanal, prs }),
-    desalineados: desalineadosDe(ejerciciosDeFuerza),
+    desalineados: desalineadosDe(ejerciciosPrescritos),
     reparto: {
       suben: filas.filter((f) => f.direccion === 'subir').length,
       sostienen: filas.filter((f) => f.direccion === 'estable').length,

@@ -21,28 +21,29 @@ export function sesionRegistrada(ejercicios: EjercicioPrescrito[]): boolean {
 }
 
 export function sesionCompleta(sesion: Sesion): boolean {
-  const bloques = sesion.bloquesCardio ?? []
-  const bloquesHechos = bloques.length > 0 && bloques.every((b) => Boolean(b.hechoEn))
-
-  if (sesion.tipo === 'metabolica') return bloquesHechos
-
   /**
-   * Sin ejercicios prescritos, lo unico que hay para cerrar son los bloques —
-   * lo diga o no la etiqueta.
+   * Lo decide el CONTENIDO, no la etiqueta `tipo`.
    *
-   * La Zona 2 de una asesorada venia marcada `fuerza` con CERO ejercicios y dos
-   * bloques (2026-08-25). `sesionRegistrada([])` es false siempre, asi que podia
-   * tildar los dos bloques y la sesion no se cerraba nunca — ni contaba en
-   * `pctRegistrado`, que es el porcentaje con el que se decide si sube la carga.
+   * **Si hay ejercicios, mandan los ejercicios** — aunque la sesion este marcada
+   * `metabolica`. Hasta el 2026-08-25 una metabolica se cerraba con solo tildar
+   * sus bloques, asi que las dos que tenian ejercicios dentro —7 de una asesorada
+   * y 6 de otra— se daban por completas con los 13 sin registrar. Y ese 100 %
+   * es el que alimenta el «tiene margen sin usar -> sube la carga». Un ejercicio
+   * con series y kilos genera fatiga: si no se registra, la sesion no esta hecha.
    *
-   * Es la misma trampa que el #100 quito de la pantalla: `tipo` describe, no
-   * decide. Aqui se arregla SOLO la mitad sin ejercicios. Una `metabolica` CON
-   * ejercicios dentro sigue juzgandose por sus bloques: eso es una decision
-   * distinta, esta pinneada por sus propios tests y no es mia.
+   * **Sin ejercicios, la cierran sus bloques** — lo diga o no la etiqueta. Una
+   * ZONA 2 + MOVILIDAD venia marcada `fuerza` con cero ejercicios y dos bloques,
+   * y `sesionRegistrada([])` es false siempre: no se cerraba nunca.
+   *
+   * Lo que NO se hace es exigir las dos cosas. Una sesion de fuerza con un bloque
+   * de movilidad delante seguiria sin cerrarse hasta tildarlo, y eso bajaria la
+   * adherencia de media cartera por un calentamiento sin marcar. La regla es
+   * «manda lo que prescribe carga», no «manda todo».
    */
-  if (sesion.ejercicios.length === 0) return bloquesHechos
+  if (sesion.ejercicios.length > 0) return sesionRegistrada(sesion.ejercicios)
 
-  return sesionRegistrada(sesion.ejercicios)
+  const bloques = sesion.bloquesCardio ?? []
+  return bloques.length > 0 && bloques.every((b) => Boolean(b.hechoEn))
 }
 
 export type EstadoPreparacion = 'hecha' | 'parcial' | 'omitida' | 'pendiente'

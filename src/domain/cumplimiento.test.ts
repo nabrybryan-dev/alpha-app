@@ -39,6 +39,32 @@ describe('sesionCompleta', () => {
     expect(sesionCompleta({ ...zona2, bloquesCardio: [] })).toBe(false)
   })
 
+  it('una metabolica CON ejercicios ya no se cierra tildando solo los bloques', () => {
+    // El caso de las dos asesoradas: sesiones marcadas `metabolica` con 7 y 6
+    // ejercicios cargados dentro. Hasta el 2026-08-25 bastaba con tildar los
+    // bloques y se daban por completas con los 13 sin registrar — y ese 100 %
+    // es el que despues dice «tiene margen sin usar, sube la carga».
+    const conEjercicios: Sesion = {
+      ...sesionBase,
+      tipo: 'metabolica',
+      ejercicios: [ejercicio(3, 0)],
+      bloquesCardio: [bloque(true), bloque(true)],
+    }
+    expect(sesionCompleta(conEjercicios)).toBe(false)
+    expect(sesionCompleta({ ...conEjercicios, ejercicios: [ejercicio(3, 3)] })).toBe(true)
+  })
+
+  it('y una sesion de fuerza no se queda sin cerrar por un calentamiento sin tildar', () => {
+    // La otra mitad, que expresamente NO se toco: exigir tambien los bloques
+    // bajaria la adherencia de media cartera por un bloque de movilidad.
+    const fuerza: Sesion = {
+      ...sesionBase,
+      ejercicios: [ejercicio(3, 3)],
+      bloquesCardio: [bloque(false)],
+    }
+    expect(sesionCompleta(fuerza)).toBe(true)
+  })
+
   it('y por eso cuenta en el porcentaje con el que se decide la carga', () => {
     const zona2: Sesion = {
       ...sesionBase,
