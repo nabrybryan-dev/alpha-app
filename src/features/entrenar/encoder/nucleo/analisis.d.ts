@@ -47,10 +47,28 @@ export interface Calidad {
 }
 
 export interface Repeticion {
+  /** 1-indexado: la primera repeticion de la serie es la 1. */
+  n: number
+  iInicio: number
+  iFin: number
   rom: number
   concSeg: number
+  /** La media del tramo 5-95 % del recorrido. Es la que da el %PV. */
   vMedia: number
+  /** La VM del libro: concentrica entera desde que la barra arranca. */
+  vMediaCompleta: number
+  /** La VMP del libro. LA UNICA comparable con las tablas de %1RM.
+   *  `undefined` sin escala: su umbral es -9,81 m/s2 y en px/s2 no significa nada. */
+  vMediaPropulsiva?: number
+  /** Fraccion de la concentrica que va frenando. `undefined` sin escala. */
+  frenadoPct?: number
+  /** Pico interpolado por el vertice de la parabola. */
   vPico: number
+  /** El maximo crudo, sin interpolar. Se conserva para poder comparar. */
+  vPicoCrudo: number
+  picoRecuperado: number
+  /** Segundos de excentrica previos. `undefined` en la primera repeticion. */
+  excSeg?: number
   vExcPico?: number
 }
 
@@ -78,9 +96,14 @@ export interface SerieMedida {
   vPrimera: number
   vUltima: number
   pvPct: number
+  /** Indice de esfuerzo (Rodriguez-Rosell 2018): VMP de la 1a repeticion x %PV.
+   *  `NaN` sin escala, porque la VMP no existe sin escala. El %PV si sobrevive. */
+  ie: number
   concSegMedia: number
   romRelativo: number
   compensacion: number
+  /** Mediana de la fraccion visible del contorno del disco. `NaN` si no aplica. */
+  coberturaDisco: number
   calidad: Calidad
   serie: { t: number[]; s: number[]; v: number[] }
 }

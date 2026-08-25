@@ -23,13 +23,29 @@ function serie(roms: number[], hayEscala = true): ResultadoSerie {
     inclinacionGrados: NaN,
     inclinacionMax: NaN,
     anguloMediana: 2,
-    reps: roms.map((rom) => ({ rom, concSeg: 0.8, vMedia: 0.6, vPico: 0.9 })),
+    // El fixture completo de Repeticion: `revisarEscala` solo mira `rom`, pero el
+    // tipo es el que devuelve el nucleo y rellenarlo entero evita que un campo
+    // nuevo del nucleo pase inadvertido aqui.
+    reps: roms.map((rom, i) => ({
+      n: i + 1,
+      iInicio: i * 10,
+      iFin: i * 10 + 9,
+      rom,
+      concSeg: 0.8,
+      vMedia: 0.6,
+      vMediaCompleta: 0.55,
+      vPico: 0.9,
+      vPicoCrudo: 0.88,
+      picoRecuperado: 0.02,
+    })),
     vPrimera: 0.6,
     vUltima: 0.5,
     pvPct: 16,
     concSegMedia: 0.8,
     romRelativo: 1,
     compensacion: NaN,
+    ie: 9.6,
+    coberturaDisco: NaN,
     calidad: { nivel: 'buena', motivos: [] },
     serie: { t: [], s: [], v: [] },
   }
