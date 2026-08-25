@@ -39,6 +39,7 @@ const A_CATEGORIA = {
   'abduccion horizontal': 'ABDUCCIÓN HORIZONTAL',
   'flexion de codo': 'FLEXIÓN DE CODO',
   'extension de codo': 'EXTENSIÓN DE CODO',
+  antiextension: 'ANTIEXTENSIÓN',
 }
 
 const ruta = process.argv[2]

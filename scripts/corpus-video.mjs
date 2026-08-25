@@ -38,6 +38,7 @@ const A_CATEGORIA = {
   'abduccion horizontal': 'ABDUCCIÓN HORIZONTAL',
   'flexion de codo': 'FLEXIÓN DE CODO',
   'extension de codo': 'EXTENSIÓN DE CODO',
+  antiextension: 'ANTIEXTENSIÓN',
 }
 
 /**
@@ -47,6 +48,9 @@ const A_CATEGORIA = {
 const SIN_CATEGORIA = {
   prensa: 'la prensa no es una categoría: su carga va por un raíl inclinado, no por la vertical',
   'flexion de muneca': 'no hay categoría de muñeca en la taxonomía de 32',
+  'levantamiento olimpico':
+    'del suelo a por encima de la cabeza no es UN patrón: es una bisagra y un empuje encadenados, ' +
+    'y forzarlo a uno de los dos da un número que no es de ese ejercicio',
 }
 
 const ruta = process.argv[2]
