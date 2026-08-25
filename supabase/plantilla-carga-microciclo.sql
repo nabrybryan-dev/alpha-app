@@ -250,6 +250,7 @@ create or replace function public.tmp_cargar_siguiente(
 ) returns text language plpgsql as $fn$
 declare
   v_uid uuid; v_num int; v_datos jsonb; v_id text; v_src_id text; v_activos int;
+  v_ambiguas text;
 begin
   select u.id into v_uid from public.usuarios_app u where u.nombre = p_nombre;
   if v_uid is null then return 'NO ENCONTRADO: ' || p_nombre; end if;
@@ -281,6 +282,41 @@ begin
     from public.microciclos m
    where m.usuario_id = v_uid
      and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+
+  -- ── UNA CLAVE DE AJUSTE QUE CASA CON DOS EJERCICIOS DE IGUAL NOMBRE ────
+  -- `p_ajustes` empareja por PREFIJO DE NOMBRE. Si el microciclo lleva dos
+  -- ejercicios con el mismo nombre y un ajuste apunta a ese nombre, **la misma
+  -- carga se escribe en los dos** y no hay manera de afinar uno sin tocar el
+  -- otro. Silencioso: la carga devuelve OK.
+  --
+  -- La auditoria del 2026-08-24 encontro 16 casos en 8 personas. Los congelados
+  -- no corrian riesgo porque clonan sin ajustes; Karin, Maria Isabel y Karen si
+  -- llevaban ajustes sobre nombres duplicados. Y las dos instancias NO son
+  -- intercambiables: a Maria Isabel la misma «Sentadilla» le iba a 30 kg un dia
+  -- y a 52,5 otro. Aplanarlas le habria puesto 52,5 en el dia ligero.
+  --
+  -- Solo aborta cuando el nombre duplicado esta REALMENTE apuntado por un
+  -- ajuste. Un nombre repetido que nadie ajusta se clona igual y no molesta. Y
+  -- una clave ancha que casa con varios ejercicios DISTINTOS sigue siendo
+  -- legitima: para eso esta la regla de que gana la clave mas larga.
+  --
+  -- COMO SE SALE: renombrar una de las dos instancias en el microciclo ORIGEN
+  -- antes de cargar (p. ej. anadiendole el dia), o alargar la clave del ajuste
+  -- hasta que solo case con una.
+  select string_agg(distinct d.nom, ' | ') into v_ambiguas
+    from (
+      select upper(e->>'nombre') as nom
+        from jsonb_array_elements(v_datos->'sesiones') s,
+             jsonb_array_elements(coalesce(s->'ejercicios','[]'::jsonb)) e
+       group by 1 having count(*) > 1
+    ) d
+   where exists (select 1 from jsonb_each(p_ajustes) a
+                  where d.nom like upper(a.key) || '%');
+
+  if v_ambiguas is not null then
+    return 'ABORTA · ' || p_nombre || ' tiene ejercicios con el nombre repetido a los que '
+        || 'apunta un ajuste, y ese ajuste les escribiria lo mismo a los dos: ' || v_ambiguas;
+  end if;
 
   v_id := 'm-' || p_slug || '-' || (v_num + 1);
 
