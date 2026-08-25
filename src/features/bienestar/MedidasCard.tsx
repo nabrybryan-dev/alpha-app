@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Card } from '../../components/ui/Card'
+import { FondoLoop } from '../../components/ui/FondoLoop'
 import { IconoRegla } from '../../components/ui/Icono'
 import { db, hoyIso } from '../../data/dbInstance'
 import type { MedidaCorporal } from '../../domain/types'
+import { direccion } from '../../lib/direccionesVisuales'
+import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 
 const PERIMETROS = ['Cintura', 'Cadera', 'Abdomen', 'Muslo', 'Brazo'] as const
@@ -34,6 +37,59 @@ function Delta({ actual, previa }: { actual: number; previa?: number }) {
       {delta > 0 ? '+' : ''}
       {delta}
     </span>
+  )
+}
+
+/**
+ * La pieza E «Físico» al lado de los campos: la cámara sube, la lista baja.
+ *
+ * LA PIEZA. *«La cámara sube por el físico y recorre las inserciones una a una.»*
+ * Eso son los cinco perímetros de `PERIMETROS`. La pieza no acompaña a la lista:
+ * es la misma cosa en otro registro. Ver
+ * `docs/specs/2026-08-25-piezas-sin-colocar-diseno.md`.
+ *
+ * POR QUÉ UNA COLUMNA Y NO UNA BANDA. Esta pantalla es CLARA
+ * (`data-theme="light"`, fondo `#f7f7f5`), y en claro la pieza no puede ser suelo:
+ * una banda oscura a sangre es justo lo que Contenidos tuvo que resolver montando
+ * la pieza como lámina. Aquí es un objeto con forma, y la forma no es un capricho:
+ * un plano que sube por un cuerpo se lee en vertical.
+ *
+ * NO LLEVA TEXTO ENCIMA. La ventana da 63,4 de luminancia media, muy por encima
+ * del techo de 18. La columna es marco; los campos van fuera, al lado.
+ *
+ * EL `encaje` DE E NO SE APLICA AQUÍ, Y APLICARLO SERÍA UN ERROR. En el catálogo E
+ * lleva `origin-right scale-[1.213]` para sacar de cuadro la columna negra de su
+ * 17,6% izquierdo. Pero un recorte 1:3 solo enseña 240 px de los 1280 y la ventana
+ * empieza en x=632, muy a la derecha de esa columna. El encaje encima desplazaría
+ * la ventana fuera del cuerpo. `object-[61%_50%]` sola da la misma medida —63,4—
+ * sin transformación ninguna, y el negro queda fuera a cualquier alto.
+ *
+ * EL TOPE ES DE ALTO, NO DE ANCHO. El recorte es cover sobre una caja alta y
+ * estrecha, así que la escala la manda el alto: `alto_destino / 720`. Con densidad
+ * 3 el techo son **240 CSS px**, y por eso `max-h-60`. Sin ese tope un formulario
+ * más largo estira la pieza sin que nadie se entere: es el fallo que
+ * `fondos-de-tarjeta.test.ts` existe para cazar, y no se ve en un monitor.
+ */
+function ColumnaFisico() {
+  const marco = usePausaFueraDePantalla<HTMLDivElement>()
+  const pieza = direccion('E')
+
+  return (
+    <div
+      ref={marco}
+      aria-hidden="true"
+      className="max-h-60 w-16 shrink-0 self-stretch overflow-hidden rounded-[10px] bg-ink-900"
+    >
+      <FondoLoop
+        poster={pieza.poster}
+        video={pieza.video}
+        preload="none"
+        prioridad="auto"
+        anchura={1280}
+        altura={720}
+        className="h-full w-full object-cover object-[61%_50%]"
+      />
+    </div>
   )
 }
 
@@ -143,32 +199,39 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
       )}
 
       {abierto && (
-        <div className="entrada mt-3 flex flex-col gap-2 border-t border-hairline pt-3">
-          {verPeso && (
-            <label className="flex items-center justify-between gap-3">
-              <span className="text-xs text-tenue">Peso (kg) *</span>
-              <input
-                inputMode="decimal"
-                value={peso}
-                onChange={(e) => setPeso(e.target.value)}
-                placeholder={ultima?.pesoKg !== undefined ? String(ultima.pesoKg) : 'kg'}
-                className="w-24 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
-              />
-            </label>
-          )}
-          {PERIMETROS.map((nombre) => (
-            <label key={nombre} className="flex items-center justify-between gap-3">
-              <span className="text-xs text-tenue">{nombre} (cm)</span>
-              <input
-                inputMode="decimal"
-                value={valores[nombre] ?? ''}
-                onChange={(e) => setValores((prev) => ({ ...prev, [nombre]: e.target.value }))}
-                placeholder={ultima?.perimetros[nombre] ? String(ultima.perimetros[nombre]) : '—'}
-                className="w-24 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
-              />
-            </label>
-          ))}
-          <p className="text-[10px] text-tenue">
+        <div className="entrada mt-3 border-t border-hairline pt-3">
+          {/* La pieza acompaña a los CAMPOS, no al pie: el texto de instrucciones
+              y los botones van debajo, a todo el ancho. */}
+          <div className="flex gap-3">
+            <ColumnaFisico />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              {verPeso && (
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-tenue">Peso (kg) *</span>
+                  <input
+                    inputMode="decimal"
+                    value={peso}
+                    onChange={(e) => setPeso(e.target.value)}
+                    placeholder={ultima?.pesoKg !== undefined ? String(ultima.pesoKg) : 'kg'}
+                    className="w-24 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
+                  />
+                </label>
+              )}
+              {PERIMETROS.map((nombre) => (
+                <label key={nombre} className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-tenue">{nombre} (cm)</span>
+                  <input
+                    inputMode="decimal"
+                    value={valores[nombre] ?? ''}
+                    onChange={(e) => setValores((prev) => ({ ...prev, [nombre]: e.target.value }))}
+                    placeholder={ultima?.perimetros[nombre] ? String(ultima.perimetros[nombre]) : '—'}
+                    className="w-24 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+          <p className="mt-2 text-[10px] text-tenue">
             {verPeso
               ? '* El peso es obligatorio; los perímetros que dejes vacíos no se guardan. '
               : 'Anota al menos un perímetro; los que dejes vacíos no se guardan. '}

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { calcularRacha, calcularXp, evaluarLogros, NIVELES, nivelDeXp, XP_POR_ACCION } from './gamification'
+import {
+  calcularRacha,
+  calcularXp,
+  evaluarLogros,
+  fraccionDeRacha,
+  NIVELES,
+  nivelDeXp,
+  XP_POR_ACCION,
+} from './gamification'
 
 describe('calcularRacha', () => {
   it('cuenta días consecutivos que terminan hoy', () => {
@@ -94,5 +102,37 @@ describe('evaluarLogros', () => {
       expect(l.titulo.length).toBeGreaterThan(3)
       expect(l.criterio.length).toBeGreaterThan(3)
     })
+  })
+})
+
+/**
+ * Los cuatro bordes de `fraccionDeRacha`.
+ *
+ * Los dos primeros deciden si la tira de rachas de Logros da la bienvenida o
+ * parece apagada, y ninguno de los dos falla ruidosamente: `NaN` en una anchura
+ * de CSS no da error, se ignora.
+ */
+describe('fraccionDeRacha', () => {
+  it('sin un solo registro no se ha recorrido nada, y no divide por cero', () => {
+    // No es un caso defensivo: es literalmente lo que devuelve `calcularRacha([])`.
+    expect(fraccionDeRacha(calcularRacha([], '2026-08-25'))).toBe(0)
+  })
+
+  it('el primer día se ha recorrido todo, porque el récord también es 1', () => {
+    expect(fraccionDeRacha(calcularRacha(['2026-08-25'], '2026-08-25'))).toBe(1)
+  })
+
+  it('mide contra el propio récord', () => {
+    expect(fraccionDeRacha({ actual: 3, record: 6 })).toBe(0.5)
+  })
+
+  it('con la racha rota vuelve a cero aunque el récord siga ahí', () => {
+    expect(fraccionDeRacha({ actual: 0, record: 12 })).toBe(0)
+  })
+
+  it('nunca pasa de 1 aunque `actual` supere al récord', () => {
+    // Hoy `calcularRacha` no lo permite. La cota está para que un cambio allí no
+    // se convierta en una anchura negativa donde esto se consuma.
+    expect(fraccionDeRacha({ actual: 9, record: 4 })).toBe(1)
   })
 })

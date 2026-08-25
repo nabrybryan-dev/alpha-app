@@ -22,6 +22,7 @@ export default {
         accion: 'rgb(var(--accion-rgb) / <alpha-value>)',
         'accion-osc': 'var(--accion-osc)',
         logrado: 'rgb(var(--silver-300-rgb) / <alpha-value>)',
+        'ink-1000': 'var(--ink-1000)',
         'ink-900': 'var(--ink-900)',
         'ink-800': 'var(--ink-800)',
         'ink-700': 'var(--ink-700)',

@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db } from '../../data/dbInstance'
+import { direccion } from '../../lib/direccionesVisuales'
 import { MedidasCard } from './MedidasCard'
 
 /**
@@ -130,5 +131,88 @@ describe('la tarjeta de medidas', () => {
 
       expect(screen.getByText(/56 kg/)).toBeTruthy()
     })
+  })
+})
+
+/**
+ * La columna de la pieza E, dentro de esta misma tarjeta.
+ *
+ * Tres de estas cinco comprobaciones existen porque el fallo **no daría error**:
+ * pedir 448 KB de vídeo al abrir Bienestar, aplicarle a la columna un `encaje`
+ * que la saca del cuerpo, o estirar la pieza en un móvil. Ninguna de las tres se
+ * ve desarrollando en un monitor.
+ */
+describe('la columna de la pieza E', () => {
+  /** El alto que Tailwind da a cada clase `max-h-*`, en px. `max-h-60` = 15rem. */
+  const MAX_H = { 'max-h-56': 224, 'max-h-60': 240, 'max-h-64': 256, 'max-h-72': 288 }
+  const DPR = 3
+  const ALTO_PIEZA = 720
+
+  const columna = (c: HTMLElement) => c.querySelector('[aria-hidden="true"].overflow-hidden')
+
+  it('con el formulario cerrado no se pide la pieza', () => {
+    const { container } = abrir()
+
+    // Abrir Bienestar no puede costar el vídeo de una tarjeta que nadie ha tocado.
+    expect(container.querySelectorAll('video')).toHaveLength(0)
+    expect(container.querySelectorAll('img')).toHaveLength(0)
+  })
+
+  it('al pulsar «Registrar» aparece, y es la pieza E', async () => {
+    const { container } = abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(direccion('E').poster)
+    expect(container.querySelector('video')?.getAttribute('src')).toBe(direccion('E').video)
+  })
+
+  it('mira al cuerpo, no al centro geométrico', async () => {
+    const { container } = abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    // 61% es la ventana x=632..872, medida. El centro por defecto —50%— cae en la
+    // parte apagada del plano, y ese cambio de una cifra no lo delata nada más.
+    expect(container.querySelector('img')?.className).toContain('object-[61%_50%]')
+  })
+
+  it('NO lleva el `encaje` de E, que aquí sobra y desplaza la ventana', async () => {
+    const { container } = abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    // El catálogo lleva `origin-right scale-[1.213]` para quitar la columna negra
+    // del 17,6% izquierdo. El recorte 1:3 ya empieza en x=632, muy a su derecha:
+    // aplicarlo encima sacaría la ventana del cuerpo. Ver el comentario del
+    // componente. Este test está para el día que alguien lo añada «porque falta».
+    expect(direccion('E').encaje).toBeTruthy()
+    expect(container.querySelector('img')?.className).not.toContain('scale-')
+  })
+
+  it('no se amplía: el tope es de ALTO y sale de la propia pieza', async () => {
+    const { container } = abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    // Cover sobre una caja alta y estrecha: la escala la manda el alto, no el
+    // ancho. `alto_css * DPR` no puede pasar de los 720 px de la fuente.
+    const clase = Object.keys(MAX_H).find((c) => columna(container)?.className.includes(c))
+    expect(clase, 'la columna tiene que declarar un tope de alto').toBeTruthy()
+    expect(MAX_H[clase as keyof typeof MAX_H] * DPR).toBeLessThanOrEqual(ALTO_PIEZA)
+  })
+
+  it('con movimiento reducido queda el póster y ni un vídeo', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({
+        matches: true,
+        media: '(prefers-reduced-motion: reduce)',
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      })),
+    )
+    const { container } = abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(container.querySelectorAll('video')).toHaveLength(0)
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(direccion('E').poster)
+    vi.unstubAllGlobals()
   })
 })

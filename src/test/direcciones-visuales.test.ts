@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { DIRECCIONES } from '../lib/direccionesVisuales'
+import { cuantasPiezas, DIRECCIONES } from '../lib/direccionesVisuales'
 import { medidasJpeg } from './medidasJpeg'
 
 /**
@@ -60,5 +60,13 @@ describe('direcciones visuales', () => {
     const posters = DIRECCIONES.map((d) => d.poster)
     expect(new Set(videos).size).toBe(videos.length)
     expect(new Set(posters).size).toBe(posters.length)
+  })
+
+  it('el número que se enseña en el manual es el que hay', () => {
+    // El manual decía «Las cinco piezas» con seis debajo. No era un despiste
+    // suelto: `fondoHero.ts` contaba «las otras cuatro» omitiendo también a F.
+    // La pieza que nunca se colocó tampoco se contaba.
+    const palabras = ['cero', 'una', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho']
+    expect(cuantasPiezas()).toBe(palabras[DIRECCIONES.length])
   })
 })

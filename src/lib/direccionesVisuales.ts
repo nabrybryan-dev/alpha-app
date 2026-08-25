@@ -12,11 +12,39 @@
  * por una foto parecida, al relevar el póster el vídeo salta a la vista. Ese
  * emparejamiento lo vigila `direccionesVisuales.test.ts`.
  *
- * **Todas son apaisadas 16:9 y la app es vertical.** Por eso van en bandas
- * `aspect-video` a lo ancho y no en las tarjetas cuadradas de foto: en un móvil
- * de 390 pt a densidad 3 la banda mide 1170 px, o sea que la pieza se pinta a
- * 0,91x, sin ampliar. En la tarjeta de Sesión, que es casi cuadrada, la misma
- * pieza se ampliaría 1,39x — justo lo que prohíbe `fondos-de-tarjeta.test.ts`.
+ * **Cuatro de las seis traen su propia tinta, y eso decide dónde cabe el texto.**
+ * A, B, C y F cierran el fotograma con una banda PLANA de RGB(6,10,11) —que es
+ * `--ink-900` salvo redondeo del JPEG— ocupando el **40% inferior exacto**: la
+ * pieza reserva por construcción el sitio del texto. D y E **no la tienen**, y
+ * por eso D necesitó en Contenidos una lámina de tinta que subiera a taparla.
+ * Medido, no estimado: A 40,1% · B 40,7% · C 40,0% · F 40,0% · D y E 0%.
+ * Se reproduce con `Downloads\hero-d-esfuerzo\medir-piezas.py`.
+ *
+ * No es un campo de esta interfaz porque no lo consume nadie: es una propiedad
+ * del material, y quien coloque una pieza nueva tiene que mirarla antes de poner
+ * un texto encima.
+ *
+ * **Y el umbral de 18 es un TECHO, no un suelo.** Que una pieza admita texto
+ * encima no dice que se vea. F lo cumplía de sobra y su calle estaba MÁS OSCURA
+ * que la tinta que la tapaba, así que el efecto salía invertido; hubo que
+ * levantarla y bajar la cortina a `--ink-1000`. Antes de colocar una pieza, la
+ * pregunta es «¿es más clara que lo que la rodea?». Ver la §9 del spec del 25-08.
+ *
+ * **Todas son apaisadas 16:9 y la app es vertical, y NINGUNA va ya en banda.**
+ * Las bandas `aspect-video` se retiraron con `BandaDireccion` el 20-08 por leerse
+ * como material pegado encima del título. Hoy cada pantalla resuelve distinto, que
+ * es la regla que gobierna esto: B es el fondo con scrub por scroll de Ruta —y
+ * consume los 36 WebP de `public/hero/orbita/`, no su `.webm`—, D es una lámina
+ * montada en Contenidos, F es la calle bajo la tira de rachas de Logros, E una
+ * columna 1:3 en «Mis medidas» y A un disco en «Tu bloque actual». C vive aparte,
+ * en las dos puertas de entrada (`fondoHero.ts`).
+ *
+ * Lo que sobrevive de la regla vieja es la aritmética, y sigue mandando: **la
+ * escala la manda la dimensión que peor va**, y hay que calcularla contra un móvil
+ * de 390 pt a densidad 3. En una caja alta y estrecha la manda el ALTO —la columna
+ * de E no puede pasar de 240 CSS px— y en un recorte que se acerca, el lado de la
+ * ventana —el disco de A no puede pasar de 72—. Ampliar no da error y no se ve en
+ * un monitor: es justo lo que `fondos-de-tarjeta.test.ts` existe para cazar.
  */
 export interface DireccionVisual {
   /** Letra del dossier que la definió. */
@@ -95,6 +123,27 @@ export const DIRECCIONES: DireccionVisual[] = [
     poster: '/fondos/poster-proyeccion.jpg',
   },
 ]
+
+/**
+ * Cuántas piezas hay, en palabras, para escribirlo en pantalla.
+ *
+ * Existe porque el manual de marca decía «Las cinco piezas» con SEIS debajo, y no
+ * era un despiste suelto: `fondoHero.ts` contaba «las otras cuatro» omitiendo
+ * también a F. **La pieza que nunca se colocó tampoco se contaba**, y el número
+ * escrito a mano lo repetía en cada sitio. Contarlo aquí es la única forma de que
+ * añadir o quitar una dirección no deje un número mintiendo en una pantalla.
+ */
+export function cuantasPiezas(): string {
+  const palabras: Record<number, string> = {
+    3: 'tres',
+    4: 'cuatro',
+    5: 'cinco',
+    6: 'seis',
+    7: 'siete',
+    8: 'ocho',
+  }
+  return palabras[DIRECCIONES.length] ?? String(DIRECCIONES.length)
+}
 
 /** Busca por letra. Falla fuerte: una letra que no existe es un error de programación. */
 export function direccion(id: DireccionVisual['id']): DireccionVisual {

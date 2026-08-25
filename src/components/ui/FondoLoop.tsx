@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useMovimientoReducido } from './movimientoReducido'
 
 interface FondoLoopProps {
@@ -17,6 +17,16 @@ interface FondoLoopProps {
   altura?: number
   /** Clases del encaje. Se aplican igual a la imagen y al vídeo, para que coincidan. */
   className?: string
+  /**
+   * Encaje que Tailwind no puede generar, por la misma regla que `className`: a
+   * los DOS elementos, o al relevar el póster el vídeo salta.
+   *
+   * Existe porque el JIT de Tailwind solo ve clases literales en el código, así
+   * que un encaje calculado —el disco de `BloqueActual`, cuyos cuatro
+   * porcentajes salen del lado de su ventana— no puede escribirse como
+   * `w-[...]`. Para un encaje fijo se usa `className`, que es lo normal.
+   */
+  estilo?: CSSProperties
 }
 
 /**
@@ -41,6 +51,7 @@ export function FondoLoop({
   anchura,
   altura,
   className,
+  estilo,
 }: FondoLoopProps) {
   const movimientoReducido = useMovimientoReducido()
   const [falloElVideo, setFalloElVideo] = useState(false)
@@ -58,6 +69,7 @@ export function FondoLoop({
         fetchPriority={prioridad}
         decoding="async"
         className={className}
+        style={estilo}
       />
 
       {conVideo && (
@@ -72,6 +84,7 @@ export function FondoLoop({
           aria-hidden="true"
           onError={() => setFalloElVideo(true)}
           className={className}
+          style={estilo}
         />
       )}
     </>

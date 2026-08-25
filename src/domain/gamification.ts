@@ -27,6 +27,26 @@ export function calcularRacha(fechas: string[], hoy: string): Racha {
   return { actual, record }
 }
 
+/**
+ * Cuánto de la racha se ha recorrido contra el propio récord, entre 0 y 1.
+ *
+ * Lo consume la tira de rachas de Logros para decidir cuánta pieza descubre cada
+ * celda, pero la regla es de dominio y no de pintura: es «hasta dónde has
+ * llegado contra tu máximo», y se lee igual en una barra que en una calle.
+ *
+ * **La guarda de `record <= 0` no es defensiva, es el caso real** de quien no ha
+ * registrado nada nunca: `calcularRacha([])` devuelve `{0, 0}`. Sin ella el
+ * cociente es `NaN`, que en CSS no da error — se ignora la anchura y la celda
+ * aparece entera, o sea justo lo contrario de lo que hay que enseñar.
+ *
+ * Se acota a 1 aunque hoy `actual` no pueda superar a `record`: si esa relación
+ * cambia algún día, aquí no puede salir una anchura negativa.
+ */
+export function fraccionDeRacha({ actual, record }: Racha): number {
+  if (record <= 0) return 0
+  return Math.min(1, Math.max(0, actual / record))
+}
+
 export interface ConteosXp {
   checkins: number
   sesiones: number
