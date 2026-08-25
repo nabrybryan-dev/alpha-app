@@ -125,7 +125,6 @@ Reglas que quedan:
     de la semana anterior. Pasó el 2026-08-12 con 128 ejercicios de 13
     asesorados. El equivalente en dominio es `src/domain/alineacion.ts`: si
     cambias uno, cambia el otro.
-
   - `supabase/comprobar-base-de-tecnica.sql` — cuando la prescripción describe una
     técnica (myo-reps, rest-pause, «N REPS + PAUSA + M REPS»), ¿`repsDiana` lleva
     la **base** o el total? Cero filas. Importa porque `RegistroSerie.tsx` prefija
