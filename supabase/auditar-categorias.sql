@@ -236,3 +236,40 @@ join public.usuarios_app u on u.id = m.usuario_id,
 where u.nombre ilike '%dhanny%'
   and m.numero = 22
 order by sesion, (e->>'orden')::int;
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- 5 · Las CARGAS de LEG B y UPPER B — lo que el ③ necesita para escribirlas
+-- ═════════════════════════════════════════════════════════════════════════════
+-- El §4 dijo CUANTAS series se hicieron. Esto dice CON QUE PESO, que es lo que
+-- I-2 exige: la linea base es lo EJECUTADO, no lo prescrito.
+--
+-- Sin esto, escribir esas dos sesiones seria inventarle kilos a una persona. Y el
+-- caso de esta misma semana lo justifica: su prensa venia pautada a 142,5 kg y
+-- movia 80 — progresar desde el numero de la frase la habria subido a 145.
+--
+-- `cargaKg` es el peso real de cada serie; la pautada se saca de la cabecera de la
+-- frase, que es lo que el asesorado lee.
+
+select sesion->>'nombre'                                        as sesion,
+       e->>'nombre'                                             as ejercicio,
+       e->>'categoria'                                          as categoria,
+       (regexp_match(e->>'prescripcion',
+          '^\s*(\d+([.,]\d+)?)\s*KGS?\y','i'))[1]              as pautada_kg,
+       (s->>'cargaKg')::numeric                                 as realizada_kg,
+       (s->>'reps')::int                                        as reps,
+       (s->>'rir')::numeric                                     as rir,
+       (s->>'orden')::int                                       as serie
+from public.microciclos m
+join public.usuarios_app u on u.id = m.usuario_id,
+     jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
+     jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e,
+     jsonb_array_elements(coalesce(e->'series','[]'::jsonb)) s
+where u.nombre ilike '%dhanny%'
+  and m.numero = 22
+  and sesion->>'nombre' ilike any (array['%LEG B%', '%UPPER B%'])
+order by sesion, (e->>'orden')::int, (s->>'orden')::int;
+
+-- 👉 Si UPPER B sale VACIO no es un error de la consulta: es que esa sesion sigue
+--    sin hacerse. El §4 ya lo decia —7 ejercicios, 0 series registradas— y
+--    significa que la razon por la que el ③ no la escribio SIGUE VIGENTE para
+--    ella. Para LEG B ya no.
