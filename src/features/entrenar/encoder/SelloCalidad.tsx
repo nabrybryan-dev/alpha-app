@@ -56,6 +56,15 @@ interface SelloProps {
    *  todavía no hay número, significa «desde aquí sale una medida en la que se
    *  puede confiar». El sello es el mismo objeto y la frase no. */
   subtitulo?: string
+  /** Sustituye la palabra del sello.
+   *
+   *  La tanda juzga CRITERIOS contra umbrales, no tomas: allí las tres materias
+   *  siguen valiendo —llena pasa, hundida falla, hueca es «sin datos todavía»—
+   *  pero las palabras Buena/Dudosa/Descartada no significan nada. El estado
+   *  «sin datos» no existe en ninguna otra pantalla y es el que importa: sin
+   *  tanda, los nueve criterios tienen que quedarse sin contestar en vez de
+   *  salir aprobados. */
+  titulo?: string
   className?: string
 }
 
@@ -64,6 +73,7 @@ export function SelloCalidad({
   tamano = 'grande',
   children,
   subtitulo,
+  titulo,
   className = '',
 }: SelloProps) {
   const grande = tamano === 'grande'
@@ -92,7 +102,7 @@ export function SelloCalidad({
             grande ? 'text-[25px]' : 'text-[9.5px]'
           }`}
         >
-          {TITULO[nivel]}
+          {titulo ?? TITULO[nivel]}
         </p>
         {grande && (
           <p className="mt-1.5 text-[13px] leading-snug opacity-80">

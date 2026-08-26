@@ -4,6 +4,8 @@ import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
 import { puntoDeLaImagen } from './toque'
 import { seOcultanLasCifras } from './cifras'
+import { TablaTanda } from './TablaTanda'
+import { COPY } from './copys'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
@@ -421,30 +423,38 @@ export default function EncoderPage() {
         </button>
       </Card>
 
+      {/* La tabla va ANTES de los criterios: los criterios son el agregado, y un
+          agregado que no cuadra solo se puede diagnosticar mirando las filas. */}
+      <Card className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between">
+          <b className="text-sm">Tanda · {tanda.length} tomas</b>
+          <span className="font-mono text-[11px] text-tenue">reales / detectadas</span>
+        </div>
+        <TablaTanda filas={tanda} />
+        <p className="text-[11.5px] leading-snug text-tenue">{COPY.tanda_fantasma}</p>
+      </Card>
+
       <Card className="flex flex-col gap-3">
         <b className="text-sm">Criterios de la fase 2</b>
         <ul className="flex flex-col gap-1.5">
           {criterios.map((c) => (
             <li
               key={c.etiqueta}
-              className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-l-2 py-0.5 pl-3 ${
-                c.cumple === undefined
-                  ? 'border-linea'
-                  : c.cumple ? 'border-verde' : 'border-rojo bg-rojo/5'
-              }`}
+              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 border-l border-hairline py-1 pl-3"
             >
               <span className="text-sm text-texto">{c.etiqueta}</span>
-              <span className="flex items-baseline gap-2">
+              <span className="flex items-center gap-2">
                 <span className="font-mono text-[11px] text-tenue">{c.umbral}</span>
-                <b
-                  className={`font-mono tabular-nums ${
-                    c.cumple === undefined
-                      ? 'text-sm font-normal text-tenue'
-                      : c.cumple ? 'text-base text-verde' : 'text-base text-rojo'
-                  }`}
-                >
-                  {c.valor ?? '--'}
-                </b>
+                <b className="font-mono text-base tabular-nums text-texto">{c.valor ?? '--'}</b>
+                {/* Tres materias y tres palabras propias: aquí no se juzga una
+                    toma sino un criterio contra su umbral, y «sin datos» es un
+                    estado que ninguna otra pantalla tiene. La placa hueca lo dice
+                    sin aprobarlo, que es lo que exige el test de esta página. */}
+                <SelloCalidad
+                  tamano="inline"
+                  nivel={c.cumple === undefined ? 'dudosa' : c.cumple ? 'buena' : 'descartada'}
+                  titulo={c.cumple === undefined ? 'sin datos' : c.cumple ? 'pasa' : 'falla'}
+                />
               </span>
               {c.detalle && (
                 <span className="w-full font-mono text-[11px] text-tenue">{c.detalle}</span>

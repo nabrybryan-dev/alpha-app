@@ -79,7 +79,7 @@ export const COPY = {
   "historial_vacio": "Todavía no hay dos tomas buenas de este ejercicio. Con una sola no hay tendencia que enseñar.",
   "laboratorio_aviso": "Números provisionales. La prueba de gravedad todavia no ha aprobado.",
   "laboratorio_guardar": "Guardar en la tanda",
-  "tanda_fantasma": "Contar repeticiones que no existen es el modo de fallo dominante de las apps de cámara. Por eso se teclea lo que la persona conto.",
+  "tanda_fantasma": "Contar repeticiones que no existen es el modo de fallo dominante de las apps de cámara. Por eso se teclea lo que la persona contó.",
   "tanda_vacia": "Tanda vacía. Los umbrales ya están escritos: se juzgan contra ellos, no contra lo que salga.",
   "tanda_exportar": "Exportar CSV"
 } as const
