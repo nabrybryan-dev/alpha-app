@@ -4,7 +4,7 @@ import { HistorialEncoder } from './HistorialEncoder'
 import type { TomaDelHistorial } from './historial'
 
 function toma(fecha: string, p: Partial<TomaDelHistorial> = {}): TomaDelHistorial {
-  return { fecha, vPrimera: 0.72, calidad: 'buena', cargaKg: 100, ...p }
+  return { fecha, pvPct: 29.2, calidad: 'buena', cargaKg: 100, ...p }
 }
 
 /* Horas locales: la franja del día decide, y una fecha en UTC cambiaría de
@@ -52,7 +52,7 @@ describe('lo que entra en la gráfica', () => {
         tomas={[
           toma(L_MANANA),
           toma(M_MANANA),
-          toma(M_TARDE, { calidad: 'descartada', vPrimera: 0.94 }),
+          toma(M_TARDE, { calidad: 'descartada', pvPct: 24.5 }),
         ]}
       />,
     )
@@ -92,5 +92,48 @@ describe('sin tendencia', () => {
   it('y el vacío usa la misma placa que el resto de estados sin dato', () => {
     const { container } = render(<HistorialEncoder tomas={[]} />)
     expect(container.querySelector('svg')).toBeNull()
+  })
+})
+
+describe('lo que el %PV obliga a enseñar', () => {
+  it('la carga va pegada a cada punto', () => {
+    // Dos puntos a la misma altura con distinta carga NO son estancamiento: son
+    // el mismo esfuerzo con más peso. En una leyenda al pie eso no se lee.
+    render(
+      <HistorialEncoder
+        tomas={[toma(L_MANANA, { cargaKg: 100 }), toma(M_MANANA, { cargaKg: 110 })]}
+      />,
+    )
+    expect(screen.getByText('100 kg')).toBeInTheDocument()
+    expect(screen.getByText('110 kg')).toBeInTheDocument()
+  })
+
+  it('avisa cuando la tendencia mezcla cargas, sin llamarlo problema', () => {
+    render(
+      <HistorialEncoder
+        tomas={[toma(L_MANANA, { cargaKg: 100 }), toma(M_MANANA, { cargaKg: 110 })]}
+      />,
+    )
+    expect(screen.getByText(/llegar al mismo %PV con más peso es progreso/i)).toBeInTheDocument()
+  })
+
+  it('y no dice nada cuando la carga no cambió', () => {
+    render(<HistorialEncoder tomas={[toma(L_MANANA), toma(M_MANANA)]} />)
+    expect(screen.queryByText(/mezcla cargas/i)).toBeNull()
+  })
+
+  it('una toma sin escala cuenta, y se dice que cuenta', () => {
+    // Es un cociente: la escala se cancela. Descartarla sería tirar un dato
+    // bueno; callarlo sería esconder de dónde salió.
+    render(
+      <HistorialEncoder tomas={[toma(L_MANANA, { hayEscala: false }), toma(M_MANANA)]} />,
+    )
+    expect(screen.getByText(/sin\s+escala/i)).toBeInTheDocument()
+    expect(screen.getByText(/el %PV es un cociente y la\s+escala se cancela/i)).toBeInTheDocument()
+  })
+
+  it('con todas las tomas con escala no se menciona', () => {
+    render(<HistorialEncoder tomas={[toma(L_MANANA), toma(M_MANANA)]} />)
+    expect(screen.queryByText(/píxeles por segundo/i)).toBeNull()
   })
 })
