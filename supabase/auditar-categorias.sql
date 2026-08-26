@@ -120,7 +120,11 @@ ejercicios as (
          sesion->>'nombre'                               as sesion,
          e->>'nombre'                                    as ejercicio,
          nullif(trim(coalesce(e->>'categoria','')), '')  as categoria,
-         coalesce((e->>'sets')::int, 0)                  as sets
+         -- Cast GUARDADO: V6 dice que en la base ha habido texto en campos
+         -- numericos («Control», «Superset»). Un `::int` a secas tumbaria la
+         -- auditoria entera por un solo ejercicio mal escrito.
+         case when e->>'sets' ~ '^[0-9]+$' then (e->>'sets')::int else 0 end as sets,
+         jsonb_array_length(coalesce(e->'series','[]'::jsonb))               as registradas
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id,
        jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
@@ -130,14 +134,20 @@ select coalesce(ej.categoria, '(VACIA)')      as categoria_escrita,
        ej.ejercicio,
        count(*)                               as veces,
        count(distinct ej.asesorado)           as personas,
-       sum(ej.sets)                           as series_que_no_se_cuentan,
+       sum(ej.sets)                           as series_pautadas_perdidas,
+       sum(ej.registradas)                    as series_REGISTRADAS_perdidas,
        string_agg(distinct ej.asesorado, ', ') as quienes
 from ejercicios ej
 left join canonicas c
        on upper(c.categoria) = upper(coalesce(ej.categoria,''))
 where c.categoria is null                       -- no casa con ninguna canonica
 group by 1, 2
-order by series_que_no_se_cuentan desc, veces desc;
+order by series_REGISTRADAS_perdidas desc, series_pautadas_perdidas desc, veces desc;
+
+-- 👉 LAS DOS COLUMNAS NO DICEN LO MISMO Y LA QUE DUELE ES LA SEGUNDA.
+--    `cargaPorGrupo` cuenta con `series.length`, o sea las series REGISTRADAS.
+--    Las pautadas dicen cuanto volumen se perderia si lo hiciera; las
+--    registradas dicen cuanto se esta perdiendo YA.
 
 -- OJO: el cruce es por texto EXACTO en mayusculas. Una categoria que solo se
 -- diferencie por una TILDE saldra aqui, y eso NO es ruido: es exactamente el
@@ -204,7 +214,10 @@ with canonicas(categoria) as (
 )
 select u.nombre                                         as asesorado,
        count(*)                                         as ejercicios_sin_contar,
-       sum(coalesce((e->>'sets')::int, 0))              as series_perdidas
+       sum(case when e->>'sets' ~ '^[0-9]+$'
+                then (e->>'sets')::int else 0 end)      as series_pautadas_perdidas,
+       sum(jsonb_array_length(coalesce(e->'series','[]'::jsonb)))
+                                                        as series_REGISTRADAS_perdidas
 from public.microciclos m
 join public.usuarios_app u on u.id = m.usuario_id,
      jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
@@ -213,7 +226,7 @@ left join canonicas c
        on upper(c.categoria) = upper(trim(coalesce(e->>'categoria','')))
 where c.categoria is null
 group by 1
-order by series_perdidas desc;
+order by series_REGISTRADAS_perdidas desc, series_pautadas_perdidas desc;
 
 
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -227,7 +240,8 @@ select m.numero                                   as microciclo,
        sesion->>'nombre'                          as sesion,
        e->>'nombre'                               as ejercicio,
        e->>'categoria'                            as categoria,
-       (e->>'sets')::int                          as series_pautadas,
+       case when e->>'sets' ~ '^[0-9]+$'
+            then (e->>'sets')::int end             as series_pautadas,
        jsonb_array_length(coalesce(e->'series','[]'::jsonb)) as series_registradas
 from public.microciclos m
 join public.usuarios_app u on u.id = m.usuario_id,
@@ -235,7 +249,7 @@ join public.usuarios_app u on u.id = m.usuario_id,
      jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e
 where u.nombre ilike '%dhanny%'
   and m.numero = 22
-order by sesion, (e->>'orden')::int;
+order by sesion, case when e->>'orden' ~ '^[0-9]+$' then (e->>'orden')::int end;
 
 -- ═════════════════════════════════════════════════════════════════════════════
 -- 5 · Las CARGAS de LEG B y UPPER B — lo que el ③ necesita para escribirlas
@@ -256,9 +270,10 @@ select sesion->>'nombre'                                        as sesion,
        (regexp_match(e->>'prescripcion',
           '^\s*(\d+([.,]\d+)?)\s*KGS?\y','i'))[1]              as pautada_kg,
        (s->>'cargaKg')::numeric                                 as realizada_kg,
-       (s->>'reps')::int                                        as reps,
-       (s->>'rir')::numeric                                     as rir,
-       (s->>'orden')::int                                       as serie
+       case when s->>'reps' ~ '^[0-9]+$' then (s->>'reps')::int end as reps,
+       case when s->>'rir' ~ '^[0-9]+([.][0-9]+)?$'
+            then (s->>'rir')::numeric end                        as rir,
+       case when s->>'orden' ~ '^[0-9]+$' then (s->>'orden')::int end as serie
 from public.microciclos m
 join public.usuarios_app u on u.id = m.usuario_id,
      jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
@@ -267,7 +282,9 @@ join public.usuarios_app u on u.id = m.usuario_id,
 where u.nombre ilike '%dhanny%'
   and m.numero = 22
   and sesion->>'nombre' ilike any (array['%LEG B%', '%UPPER B%'])
-order by sesion, (e->>'orden')::int, (s->>'orden')::int;
+order by sesion,
+         case when e->>'orden' ~ '^[0-9]+$' then (e->>'orden')::int end,
+         case when s->>'orden' ~ '^[0-9]+$' then (s->>'orden')::int end;
 
 -- 👉 Si UPPER B sale VACIO no es un error de la consulta: es que esa sesion sigue
 --    sin hacerse. El §4 ya lo decia —7 ejercicios, 0 series registradas— y
