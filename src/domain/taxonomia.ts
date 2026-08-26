@@ -284,10 +284,15 @@ export function grupoPrimario(categoria: string, nombreEjercicio = ''): Grupo | 
  * es la distancia HORIZONTAL entre la articulación y la carga. **El pico está
  * donde el segmento queda más horizontal.**
  *
- * Para qué sirve: decidir si el cue necesita el ancla de «parciales en reserva».
- * Lo que hace ambigua una serie no es dónde está el pico, sino si al fallar
- * quedan parciales — y eso pasa en `medio` igual que en `final`. En `inicio`
- * no: si no puedes iniciar la repetición, no hay repetición.
+ * Para qué sirve: **selección y progresión de ejercicios**, no para el cue.
+ *
+ * ⚠️ Aquí vivió hasta el 2026-08-25 el ancla de «parciales en reserva», que se
+ * inyectaba en el cue de las categorías con pico distinto de `inicio`. **Se
+ * retiró: contradecía el método.** En Alpha las repeticiones son COMPLETAS y a
+ * rango completo salvo que la prescripción diga otra cosa, y RIR 0 **no es el
+ * fallo** — es la última repetición completa, con la parcial aún guardada.
+ * Llegar al fallo es meterse en esa parcial. El ancla decía lo contrario y lo
+ * habría dicho en 19 de las 32 categorías.
  *
  * ⚠ Una categoría no fija del todo el perfil: la leva de la máquina lo modifica
  * (§7.1: las levas no igualan la curva humana). Cuatro entradas siguen marcadas
@@ -351,81 +356,24 @@ export const PICO_DE_EXIGENCIA: Partial<Record<Categoria, PicoDeExigencia>> = {
   'EXTENSIÓN LUMBAR': 'inicio',
 }
 
-/**
- * Categorías con carga axial. El ancla **nunca** se inyecta aquí.
- *
- * El ancla dice «acaba cuando no puedas mover la carga»; en un compuesto axial
- * eso es una instrucción de moler hasta quedarse clavado bajo la barra.
- * Seguridad es el rango 1 de la jerarquía del método.
- *
- * Hoy todas caen en `inicio` por geometría, así que la exclusión es redundante.
- * Está escrita para que la seguridad **no dependa de esa coincidencia**: si
- * mañana alguien recategoriza, el ancla sigue sin aparecer donde no debe.
- */
-const AXIALES: ReadonlySet<Categoria> = new Set<Categoria>([
-  'SENTADILLA',
-  'SENTADILLA UNILATERAL',
-  'BISAGRA DE CADERA',
-  'EMPUJE VERTICAL',
-  'EXTENSIÓN LUMBAR',
-])
-
-/** El ancla de «parciales en reserva», en la redacción canónica del método. */
-export const ANCLA_PARCIALES =
-  'LA SERIE ACABA CUANDO NO PUEDAS MOVER LA CARGA, NO CUANDO PIERDAS EL RANGO'
 
 /**
- * Marcas de que la prescripción ya declara una técnica o un recorrido pautado.
+ * Marcas de que la prescripción declara una técnica o un recorrido pautado.
  *
- * Se busca en la frase y en el cue, que es donde viven hoy —no hay campo—.
- * `parcial` cubre los dos sentidos opuestos que tiene esa palabra en el
- * vocabulario del método, y a propósito: en los dos el ancla sobra.
+ * Se busca en la frase y en el cue, que es donde viven hoy — no hay campo.
+ * `parcial` y `rango medio` cubren los dos sentidos opuestos que tiene eso en el
+ * vocabulario del método: **parciales al final como sobrecarga**, y **recorrido
+ * reducido como regresión**. Los dos se declaran, y por motivos contrarios.
+ *
+ * Para qué sirve, ahora que el ancla del cue se retiró: para saber que ese
+ * ejercicio lleva mini-bloques que capturar en `SerieRegistrada.extra`. En Alpha
+ * el rango completo es el defecto y las repeticiones son completas; lo que se
+ * declara explícitamente es la EXCEPCIÓN, y esto la encuentra.
  */
 const MARCAS_DE_TECNICA =
-  /myo[- ]?reps?|rest[- ]?pause|restpause|parcial|drop *set|series? descendente|isometr|iso *hold|escalera de exposici/i
+  /myo[- ]?reps?|rest[- ]?pause|restpause|parcial|rango medio|medio rango|drop *set|series? descendente|escalera de exposici/i
 
-/**
- * Si el ejercicio ya trae técnica o recorrido declarados por el coach.
- *
- * Existe para que el ancla no contradiga la prescripción. «Parciales» significa
- * dos cosas opuestas aquí —sobrecarga al final, o recorrido reducido como
- * regresión— y el ancla estorba en ambas, pero por motivos distintos:
- *
- * - Con parciales de SOBRECARGA, el coach ya dice que se pase del fallo técnico;
- *   el ancla repite peor lo que la frase dice mejor.
- * - Con recorrido REDUCIDO —una escalera de exposición, «tira solo hasta la
- *   mitad»— el ancla diría lo contrario que la prescripción, y en un ejercicio
- *   programado a ROM corto para reexposición eso toca seguridad, que es el
- *   rango 1 de la jerarquía.
- */
+/** Si el ejercicio trae técnica o recorrido declarados por el coach. */
 export function tieneTecnicaDeclarada(cues: string, prescripcion: string): boolean {
   return MARCAS_DE_TECNICA.test(`${cues} ${prescripcion}`)
-}
-
-/** Si esta categoría necesita el ancla: pico distinto de `inicio` y no axial. */
-export function necesitaAncla(categoria: string): boolean {
-  const canonica = categoriaCanonica(categoria)
-  if (!canonica || AXIALES.has(canonica)) return false
-  const pico = PICO_DE_EXIGENCIA[canonica]
-  return pico === 'medio' || pico === 'final'
-}
-
-/**
- * El cue que ve el asesorado, con el ancla puesta donde toca.
- *
- * **Se compone, no se guarda.** Guardar el ancla en el campo `cues` la
- * convertiría en una «nota técnica nueva» a ojos del contador de
- * estandarización, y reiniciaría la racha de toda una familia de ejercicios a
- * la vez, en silencio. Y sería almacenar un dato derivado, que es como
- * `rirObjetivo` acabó diciendo 2 mientras el texto decía «(RIR 1)».
- */
-export function cuesConAncla(categoria: string, cues: string, prescripcion = ''): string {
-  if (!necesitaAncla(categoria)) return cues
-  // Ante la duda, NO inyectar. Un ancla que falta deja las cosas como están; una
-  // que sobra contradice al coach delante del asesorado.
-  if (tieneTecnicaDeclarada(cues, prescripcion)) return cues
-  const limpio = cues.trim()
-  if (!limpio) return ANCLA_PARCIALES
-  const sinPuntoFinal = limpio.replace(/[;.]\s*$/, '')
-  return `${sinPuntoFinal}; ${ANCLA_PARCIALES}`
 }

@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ANCLA_PARCIALES,
   aportesDeCategoria,
   categoriaCanonica,
   CATEGORIAS,
-  cuesConAncla,
   tieneTecnicaDeclarada,
   grupoPrimario,
-  necesitaAncla,
   ORDEN_GRUPOS,
   PICO_DE_EXIGENCIA,
   type Grupo,
@@ -312,7 +309,7 @@ describe('compatibilidad con la taxonomía vieja', () => {
   })
 })
 
-describe('pico de exigencia y ancla de parciales', () => {
+describe('pico de exigencia', () => {
   it('las 32 categorías están decididas: con pico, o excluidas a propósito', () => {
     const sinPico = CATEGORIAS.filter((c) => !PICO_DE_EXIGENCIA[c])
     // Isométricas (no hay recorrido que perder) y las que no van al fallo.
@@ -332,99 +329,37 @@ describe('pico de exigencia y ancla de parciales', () => {
     }
   })
 
-  it('el ancla NO entra donde el pico está al inicio: si no arranca, no hay rep', () => {
-    expect(necesitaAncla('SENTADILLA')).toBe(false)
-    expect(necesitaAncla('BISAGRA DE CADERA')).toBe(false)
-    expect(necesitaAncla('EMPUJE HORIZONTAL')).toBe(false)
-    expect(necesitaAncla('TRACCIÓN VERTICAL')).toBe(false)
+  it('las resueltas contra la doctrina de perfiles-de-resistencia §2.1', () => {
+    // Donde el segmento queda más horizontal está el pico.
+    expect(PICO_DE_EXIGENCIA['SENTADILLA']).toBe('inicio')          // máxima profundidad
+    expect(PICO_DE_EXIGENCIA['BISAGRA DE CADERA']).toBe('inicio')   // al despegue
+    expect(PICO_DE_EXIGENCIA['EXTENSIÓN DE RODILLA']).toBe('final') // tibia horizontal
+    expect(PICO_DE_EXIGENCIA['FLEXIÓN DE CODO']).toBe('medio')      // antebrazo a 90°
   })
 
-  it('las dos resueltas el 25/08 llevan ancla, y las dos son de mucho uso', () => {
-    // FLEXIÓN DE RODILLA: la regla de la palanca decia `inicio` —tibia horizontal
-    // con la rodilla extendida— pero en maquina la leva no deja caer la
-    // resistencia y se falla sin cerrar. 29 ejercicios activos en 20 asesorados.
+  it('las dos resueltas por observación del coach el 25/08', () => {
+    // En máquina la regla de la palanca no basta: la leva no deja caer la
+    // resistencia y se falla sin cerrar.
     expect(PICO_DE_EXIGENCIA['FLEXIÓN DE RODILLA']).toBe('final')
-    expect(necesitaAncla('FLEXIÓN DE RODILLA')).toBe(true)
-    // TRACCIÓN HORIZONTAL: al tirar, el antebrazo va a la horizontal y el brazo
-    // sobre el codo crece. 40 activos en 22 asesorados, casi la cartera entera.
     expect(PICO_DE_EXIGENCIA['TRACCIÓN HORIZONTAL']).toBe('final')
-    expect(necesitaAncla('TRACCIÓN HORIZONTAL')).toBe(true)
   })
+})
 
-  it('el ancla entra con pico medio, no solo con pico final', () => {
-    // El curl es el caso que corrigió la especificación: pico a 90° de codo, y
-    // al fallar quedan varios centímetros que sí se pueden mover.
-    expect(necesitaAncla('FLEXIÓN DE CODO')).toBe(true)
-    expect(necesitaAncla('ABDUCCIÓN DE HOMBRO')).toBe(true)
-    expect(necesitaAncla('EXTENSIÓN DE RODILLA')).toBe(true)
-  })
-
-  it('ninguna categoría axial lleva ancla, aunque cambie su pico', () => {
-    for (const axial of ['SENTADILLA', 'SENTADILLA UNILATERAL', 'BISAGRA DE CADERA',
-      'EMPUJE VERTICAL', 'EXTENSIÓN LUMBAR']) {
-      expect(necesitaAncla(axial)).toBe(false)
-    }
-  })
-
-  it('las isométricas y las que no van al fallo se quedan sin ancla', () => {
-    expect(necesitaAncla('ANTIEXTENSIÓN')).toBe(false)
-    expect(necesitaAncla('MOVILIDAD')).toBe(false)
-    expect(necesitaAncla('PREV/REHAB')).toBe(false)
-  })
-
-  it('una categoría desconocida no lleva ancla en vez de reventar', () => {
-    expect(necesitaAncla('GLÚTEO FINISHER')).toBe(false)
-    expect(necesitaAncla('')).toBe(false)
-  })
-
-  it('acepta la categoría escrita como venga: usa la normalización que ya existe', () => {
-    expect(necesitaAncla('flexión de codo')).toBe(true)
-    expect(necesitaAncla('FLEXION DE CODO')).toBe(true)
-  })
-
-  it('compone el cue sin duplicar el punto y coma', () => {
-    expect(cuesConAncla('FLEXIÓN DE CODO', 'CODO FIJO; NO USES IMPULSO')).toBe(
-      `CODO FIJO; NO USES IMPULSO; ${ANCLA_PARCIALES}`,
-    )
-    expect(cuesConAncla('FLEXIÓN DE CODO', 'CODO FIJO;')).toBe(
-      `CODO FIJO; ${ANCLA_PARCIALES}`,
-    )
-  })
-
-  it('con el cue vacío el ancla va sola, sin punto y coma huérfano', () => {
-    expect(cuesConAncla('EXTENSIÓN DE RODILLA', '')).toBe(ANCLA_PARCIALES)
-    expect(cuesConAncla('EXTENSIÓN DE RODILLA', '   ')).toBe(ANCLA_PARCIALES)
-  })
-
-  it('con tecnica declarada NO se inyecta, aunque la categoria lo pida', () => {
-    // El coach ya dijo como acaba la serie. El ancla repetiria peor lo que la
-    // frase dice mejor, y en el peor caso la contradice.
-    const conMyo = 'A 14 REPS; 3 SERIES (RIR 2) EN MYO-REPS. SACA 5 MAS.'
-    expect(cuesConAncla('ABDUCCIÓN DE HOMBRO', 'Cable cruza el cuerpo', conMyo))
-      .toBe('Cable cruza el cuerpo')
-  })
-
-  it('y sobre todo NO se inyecta con recorrido reducido — ahi es seguridad', () => {
-    // Una escalera de exposicion pide ROM corto a proposito. Decirle «acaba
-    // cuando no puedas mover la carga» seria mandarle moler en un ejercicio
-    // programado para reexponer. Rango 1 de la jerarquia.
-    const escalera = 'ESCALERA DE EXPOSICION, 5 SERIES DE 12 (RIR 4). SERIES 1 A 3: RECORRIDO PARCIAL.'
-    expect(cuesConAncla('TRACCIÓN HORIZONTAL', 'Pecho apoyado', escalera))
-      .toBe('Pecho apoyado')
-  })
-
-  it('detecta la tecnica venga en el cue o en la frase', () => {
+describe('técnica declarada en la prescripción', () => {
+  // Sigue vivo aunque el ancla se retirara: es lo que le dirá a la UI que ese
+  // ejercicio lleva mini-bloques que capturar en `SerieRegistrada.extra`.
+  it('la detecta venga en el cue o en la frase', () => {
     expect(tieneTecnicaDeclarada('parciales abajo al final', '')).toBe(true)
     expect(tieneTecnicaDeclarada('', 'ULTIMA SERIE EN REST-PAUSE')).toBe(true)
+    expect(tieneTecnicaDeclarada('', '3 SERIES (RIR 2) EN MYO-REPS')).toBe(true)
+  })
+
+  it('también el recorrido reducido, que es lo contrario pero también se declara', () => {
+    expect(tieneTecnicaDeclarada('', 'SERIES 1 A 3: RECORRIDO PARCIAL')).toBe(true)
+    expect(tieneTecnicaDeclarada('', 'CRUCE EN POLEA A RANGO MEDIO')).toBe(true)
+  })
+
+  it('un ejercicio normal no la declara: el rango completo es el defecto', () => {
     expect(tieneTecnicaDeclarada('Rango completo, espalda pegada', '40KG A 10 REPS')).toBe(false)
-  })
-
-  it('sin tecnica declarada, el ancla si entra', () => {
-    expect(cuesConAncla('EXTENSIÓN DE RODILLA', 'CONTROLA EL RETORNO', '110KG A 11 REPS; 4 SERIES'))
-      .toBe(`CONTROLA EL RETORNO; ${ANCLA_PARCIALES}`)
-  })
-
-  it('donde no hace falta ancla, el cue sale intacto', () => {
-    expect(cuesConAncla('SENTADILLA', 'PROFUNDIDAD COMPLETA')).toBe('PROFUNDIDAD COMPLETA')
   })
 })
