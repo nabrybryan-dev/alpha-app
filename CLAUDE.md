@@ -135,6 +135,16 @@ Reglas que quedan:
     `comprobar-alineacion.sql` porque esa solo lee la cabecera canónica
     `{CARGA}KG A {REPS} REPS`, y una frase con técnica no encaja en ese patrón.
     Convención → `Cerebro Alpha/wiki/conocimiento/tecnicas-de-intensidad.md` §11.
+  - `supabase/comprobar-fallo-declarado.sql` — ¿algún ejercicio PIDE el fallo en la
+    prosa sin declararlo en el campo `rirObjetivo`? Cero filas. **`RIR 0` no es el
+    fallo**: es la última repetición completa, con la parcial en reserva; el fallo
+    es meterse en esa parcial y se declara escribiendo la palabra. La consulta
+    filtra en vez de detectar, y por una razón medida: el 2026-08-25 la palabra
+    «fallo» salía en 81 de las 2.702 prescripciones, y la mayoría querían decir lo
+    **contrario** —«SIN LLEGAR AL FALLO», «LEJOS DEL FALLO»—, o narraban el pasado
+    —«en M14 llegaste al fallo»—, o ni iban de entrenar —«es un fallo mío»—. Un
+    detector ingenuo habría leído una isométrica terapéutica como una orden de
+    llegar al fallo. Regla → `Cerebro Alpha/wiki/motor-decision/02-intensidad-rir-rpe-cargas.md`.
 
   Y dos más, que no se leen igual que las anteriores:
   - `supabase/comprobar-sesiones-perdidas.sql` — ¿le falta al microciclo nuevo

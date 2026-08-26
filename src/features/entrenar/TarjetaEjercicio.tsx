@@ -7,6 +7,7 @@ import { CheckDibujado } from './CheckDibujado'
 import { ExerciseSlotMachine } from './ExerciseSlotMachine'
 import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
 import { IconoVideo } from '../../components/ui/Icono'
+import { esAlFallo } from '../../domain/objetivoDeIntensidad'
 
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
   return (
@@ -62,7 +63,13 @@ export function TarjetaEjercicio({
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
           <Estadistica etiqueta="Reps" valor={ejercicio.rango.replace(/[()]/g, '')} />
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
-          <Estadistica etiqueta="RIR" valor={ejercicio.rirObjetivo} />
+          {/* Con el objetivo en FALLO la etiqueta cambia: «RIR FALLO» no
+              significa nada, y son dos cosas distintas. */}
+          {esAlFallo(ejercicio.rirObjetivo) ? (
+            <Estadistica etiqueta="Objetivo" valor="FALLO" />
+          ) : (
+            <Estadistica etiqueta="RIR" valor={ejercicio.rirObjetivo} />
+          )}
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
           <Estadistica etiqueta="Descanso" valor={`${ejercicio.descansoMin}'`} />
         </div>

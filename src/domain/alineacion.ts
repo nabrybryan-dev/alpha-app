@@ -1,3 +1,4 @@
+import { AL_FALLO } from './objetivoDeIntensidad'
 import { parsearPrescripcion } from './prescripcion'
 import type { EjercicioPrescrito } from './types'
 
@@ -52,10 +53,11 @@ export type CampoAlineable = 'cargaKg' | 'repsDiana' | 'sets' | 'rirObjetivo'
 
 export interface Desalineacion {
   campo: CampoAlineable
-  /** Lo que dice la frase que lee el asesorado. */
-  enLaFrase: number
-  /** Lo que el ejercicio tiene guardado, y con lo que la app opera. */
-  enElCampo: number | undefined
+  /** Lo que dice la frase que lee el asesorado. Puede ser `'FALLO'`. */
+  enLaFrase: number | string
+  /** Lo que el ejercicio tiene guardado, y con lo que la app opera. Puede ser
+   *  `'FALLO'`: un objetivo de intensidad que no es un número. */
+  enElCampo: number | string | undefined
 }
 
 /**
@@ -70,13 +72,18 @@ export interface Desalineacion {
  *   sin rellenar, y de eso se ocupa `scripts/rellenar-carga.mjs`. Sin esta
  *   salvedad, `cargaKg` —que hoy está vacío en los 506 ejercicios activos—
  *   generaba 279 falsos positivos y tapaba los desajustes de verdad.
+ *
+ * Y un ruido que sí se denuncia: si el campo dice `FALLO` y la frase anuncia un
+ * RIR numérico, **eso es un desajuste de verdad** —son objetivos distintos, no
+ * dos formas de escribir el mismo—, así que sale en la lista.
  */
 function contrastar(
   campo: CampoAlineable,
   enLaFrase: number | string | undefined,
-  enElCampo: number | undefined,
+  enElCampo: number | string | undefined,
 ): Desalineacion | undefined {
-  if (typeof enLaFrase !== 'number' || !Number.isFinite(enLaFrase)) return undefined
+  const comparable = enLaFrase === AL_FALLO || (typeof enLaFrase === 'number' && Number.isFinite(enLaFrase))
+  if (!comparable) return undefined
   if (enElCampo === undefined) return undefined
   if (enLaFrase === enElCampo) return undefined
   return { campo, enLaFrase, enElCampo }

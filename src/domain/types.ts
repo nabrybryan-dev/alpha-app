@@ -1,3 +1,4 @@
+import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
 import type { Confianza } from './nutricion/dia'
 
 export type Rol = 'asesorado' | 'coach' | 'nutricionista'
@@ -181,7 +182,15 @@ export interface EjercicioPrescrito {
   sets: number
   rango: string
   repsDiana: number
-  rirObjetivo: number
+  /**
+   * El objetivo de intensidad: un RIR, o `'FALLO'`.
+   *
+   * **`RIR 0` y `FALLO` no son lo mismo**, y por eso esto no es un `number`.
+   * `RIR 0` es la última repetición completa, con la parcial en reserva; `FALLO`
+   * es la instrucción de meterse en esa parcial. Ver `objetivoDeIntensidad.ts`,
+   * que es donde vive la regla y las tres operaciones que la respetan.
+   */
+  rirObjetivo: ObjetivoDeIntensidad
   /** Ondulación del microciclo: reps a la baja y carga al alza, set a set.
    *  Sin definir, todas las series comparten `repsDiana` y `rirObjetivo` — que
    *  es como quedaban los microciclos antes de que la ondulación se guardara. */

@@ -1,4 +1,5 @@
 import { diasAtras, fechaIsoAtras } from './fechas'
+import { rirDeTabla } from '../../domain/objetivoDeIntensidad'
 import type {
   AdherenciaNutricional,
   CheckinDiario,
@@ -202,7 +203,9 @@ function conLegARegistrada(sesiones: Sesion[]): Sesion[] {
         series: seriesDe(
           Number(e.prescripcion.split('KG')[0].replace(',', '.')) || 20,
           e.repsDiana,
-          e.rirObjetivo,
+          // La demo no lleva ningún ejercicio al fallo; si algún día lo lleva, lo
+          // registrado sería RIR 0 —la última completa— y la parcial iría en `extra`.
+          rirDeTabla(e.rirObjetivo),
           e.sets,
         ),
       })),

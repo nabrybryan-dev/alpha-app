@@ -7,6 +7,7 @@ import {
   type EstadoPreparacion,
 } from '../../domain/cumplimiento'
 import type { Microciclo } from '../../domain/types'
+import { textoDeObjetivo } from '../../domain/objetivoDeIntensidad'
 
 const CHIP_PREP: Record<EstadoPreparacion, { tono: 'verde' | 'ambar' | 'rojo' | 'neutro'; texto: string }> = {
   hecha: { tono: 'verde', texto: 'Preparación ✓' },
@@ -78,7 +79,7 @@ export function PautadoVsRealizado({ microciclo }: { microciclo: Microciclo }) {
                     <tr key={ejercicio.id} className="border-t border-linea align-top">
                       <td className="py-2 pr-2 font-bold text-texto">{ejercicio.nombre}</td>
                       <td className="py-2 pr-2 text-tenue">
-                        {ejercicio.sets}×{ejercicio.rango} RIR {ejercicio.rirObjetivo}
+                        {ejercicio.sets}×{ejercicio.rango} {textoDeObjetivo(ejercicio.rirObjetivo)}
                       </td>
                       <td className="py-2 pr-2 text-texto/90">
                         {realizado || <span className="text-tenue">—</span>}

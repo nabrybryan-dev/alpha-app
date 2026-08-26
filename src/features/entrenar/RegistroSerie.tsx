@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
 import { seriePrescrita } from '../../domain/ondulacion'
+import { rirDeTabla } from '../../domain/objetivoDeIntensidad'
 import { cargaSugerida } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
@@ -46,7 +47,11 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
     leerJSON<Borrador>(clave, {
       cargaKg: cargaInicial(ejercicio, orden),
       reps: prescrita?.reps ?? ejercicio.repsDiana,
-      rir: prescrita?.rir ?? ejercicio.rirObjetivo,
+      // Con el objetivo en `FALLO` el stepper arranca en 0, y es lo correcto: la
+      // parte contada de una serie al fallo termina en la última repetición
+      // COMPLETA, que es RIR 0. La parcial que viene después no es una
+      // repetición en reserva y no cabe en este campo — su sitio es `extra`.
+      rir: prescrita?.rir ?? rirDeTabla(ejercicio.rirObjetivo),
     }),
   )
 

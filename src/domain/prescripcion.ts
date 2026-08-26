@@ -1,3 +1,4 @@
+import { AL_FALLO, leerObjetivoDeIntensidad, textoDeObjetivo } from './objetivoDeIntensidad'
 import type { EjercicioPrescrito, SeriePrescrita, UnidadCarga } from './types'
 
 /**
@@ -47,7 +48,8 @@ export interface PrescripcionPartida {
   unidadCarga?: UnidadCarga
   repsDiana?: number
   sets?: number
-  /** Se devuelve tal cual viene: hay `rirObjetivo` que son texto («Isometría»). */
+  /** El objetivo que anuncia la cabecera. Un número, `'FALLO'`, o el texto tal
+   *  cual cuando no es ninguna de las dos («Isometría», «2-3»). */
   rirObjetivo?: number | string
   /** Todo lo que sigue a la cabecera, sin tocar. */
   notaCoach: string
@@ -65,10 +67,16 @@ function normalizarUnidad(bruto: string | undefined): UnidadCarga | undefined {
 function leerRir(bruto: string | undefined): number | string | undefined {
   if (!bruto) return undefined
   const limpio = bruto.trim()
-  // `(RIR 2)` → 2. `(RIR 2-3)` y `(ISOMETRÍA)` se quedan como texto: no son un
-  // número y fingir que lo son es lo que abortaba la carga entera.
-  const soloRir = limpio.match(/^RIR\s+(\d+)$/i)
-  return soloRir ? Number(soloRir[1]) : limpio
+  // `(RIR 2)` → 2 y `(FALLO)` → `'FALLO'`. `(RIR 2-3)` y `(ISOMETRÍA)` se quedan
+  // como texto: no son un objetivo de intensidad y fingir que lo son es lo que
+  // abortaba la carga entera.
+  //
+  // Que la palabra se lea **solo aquí dentro** es la salvaguarda entera: en el
+  // paréntesis de la cabecera «FALLO» únicamente puede ser una declaración,
+  // mientras que dos palabras más allá, en la nota del coach, lo normal es que
+  // sea una negación —«SIN LLEGAR AL FALLO»— o un recuerdo —«EN M14 LLEGASTE AL
+  // FALLO»—. Medido: de 81 prescripciones con la palabra, la mayoría son eso.
+  return leerObjetivoDeIntensidad(limpio) ?? limpio
 }
 
 /**
@@ -139,12 +147,16 @@ function sufijoUnidad(unidad: UnidadCarga | undefined): string {
   }
 }
 
-/** `(RIR 2)` · `(RIR 2-3)` · `(ISOMETRÍA)`. Cast defensivo: puede no ser número. */
+/** `(RIR 2)` · `(FALLO)` · `(RIR 2-3)` · `(ISOMETRÍA)`. Cast defensivo: puede no ser número. */
 function parentesisRir(rir: number | string | undefined): string {
   if (rir === undefined || rir === null || rir === '') return ''
-  if (typeof rir === 'number' && Number.isFinite(rir)) return ` (RIR ${rir})`
+  // Los dos objetivos de verdad —un RIR o el FALLO— los escribe
+  // `textoDeObjetivo`, que es la única función que sabe cómo se dicen. Lo demás
+  // («ISOMETRÍA», «2-3», «CONTROL») no es un objetivo: se transporta tal cual.
+  if (typeof rir === 'number' && Number.isFinite(rir)) return ` (${textoDeObjetivo(rir)})`
   const texto = String(rir).trim().toUpperCase()
-  return texto.startsWith('RIR') ? ` (${texto})` : ` (${texto})`
+  if (texto === AL_FALLO) return ` (${textoDeObjetivo(AL_FALLO)})`
+  return ` (${texto})`
 }
 
 function pegarNota(cabecera: string, nota: string | undefined): string {

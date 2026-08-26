@@ -7,6 +7,7 @@ import {
   semaforoAsesorado,
   sesionCompleta,
 } from './cumplimiento'
+import { AL_FALLO } from './objetivoDeIntensidad'
 import type { EjercicioPrescrito, Microciclo, Sesion } from './types'
 
 const sesionBase: Sesion = { id: 's', nombre: 'LEG A', orden: 1, ejercicios: [] }
@@ -188,5 +189,26 @@ describe('semaforoAsesorado', () => {
   })
   it('rojo con 4 o más días sin registrar', () => {
     expect(semaforoAsesorado({ diasSinRegistrar: 5, readinessBaja: true }).color).toBe('rojo')
+  })
+})
+
+describe('desviacionRir con el objetivo en FALLO', () => {
+  /**
+   * Devuelve `undefined` a propósito, y no 0.
+   *
+   * Restar contra 0 daría cumplimiento perfecto a las dos cosas contrarias: al
+   * que se metió en la parcial —que hizo lo pedido— y al que paró en la última
+   * repetición completa —que no—. La diferencia entre los dos no está en el RIR,
+   * porque una parcial no es una repetición en reserva; está en `extra`, y cómo
+   * se lee eso sigue sin decidirse con el coach.
+   */
+  it('no inventa un número de reserva donde la reserva no existe', () => {
+    const series = [
+      { orden: 1, cargaKg: 60, reps: 8, rir: 0 },
+      { orden: 2, cargaKg: 60, reps: 7, rir: 0 },
+    ]
+    expect(desviacionRir(AL_FALLO, series)).toBeUndefined()
+    // El mismo registro contra RIR 0 sí se mide: son objetivos distintos.
+    expect(desviacionRir(0, series)).toBe(0)
   })
 })

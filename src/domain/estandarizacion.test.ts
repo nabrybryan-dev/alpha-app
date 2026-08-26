@@ -12,7 +12,7 @@ import {
 import type { EjercicioPrescrito, SerieRegistrada } from './types'
 
 function ejercicio(
-  parcial: Partial<EjercicioPrescrito> & { rirObjetivo?: number } = {},
+  parcial: Partial<EjercicioPrescrito> = {},
 ): EjercicioPrescrito {
   return {
     id: 'e1',

@@ -1,9 +1,27 @@
+import { esAlFallo, type ObjetivoDeIntensidad } from './objetivoDeIntensidad'
 import type { EjercicioPrescrito, Microciclo, SerieRegistrada, Sesion } from './types'
 
+/**
+ * Cuánto se desvió el esfuerzo real del objetivo, en repeticiones de reserva.
+ *
+ * **Con el objetivo en `FALLO` devuelve `undefined`, y es deliberado.** Lo que
+ * distingue al fallo de `RIR 0` ocurre *después* de la última repetición
+ * completa: es la parcial, y una parcial no es una repetición en reserva. No hay
+ * número de RIR que exprese «se metió en la parcial» ni «se quedó a las puertas»,
+ * así que restar contra 0 fabricaría un cero de cumplimiento perfecto para las
+ * dos cosas contrarias.
+ *
+ * La evidencia de que un ejercicio al fallo se cumplió no vive aquí: vive en los
+ * bloques de `SerieRegistrada.extra`. Cómo se lee eso está sin decidir con el
+ * coach —va anotado en el diseño de los agentes—, y **inventarlo aquí sería
+ * guardar la conclusión**, que es justo lo que
+ * `wiki/motor-decision/11-convenciones-que-la-evidencia-no-cierra.md` prohíbe.
+ */
 export function desviacionRir(
-  rirObjetivo: number,
+  rirObjetivo: ObjetivoDeIntensidad,
   series: SerieRegistrada[],
 ): number | undefined {
+  if (esAlFallo(rirObjetivo)) return undefined
   // Las series sin RIR se saltan, no cuentan como 0: una plancha isométrica no
   // llegó al fallo, es que no se mide así. Ver `SerieRegistrada`.
   const conRir = series.filter((s): s is SerieRegistrada & { rir: number } => s.rir !== undefined)
