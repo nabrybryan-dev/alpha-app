@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aplicarEscenario,
   contextoDelDia,
   escenarioDelDia,
   reglaDelMartes,
@@ -165,5 +166,64 @@ describe('reglaDelMartes — solo la fatiga viaja', () => {
 
   it('sin solapamiento no viaja nada', () => {
     expect(reglaDelMartes(rojo, ['GEMELO'], restantes)).toEqual([])
+  })
+})
+
+describe('aplicarEscenario — solo por los caminos que el coach dejo escritos', () => {
+  const escenarios = {
+    verde: { deltaCargaKg: 2.5, serieExtra: false, techoCargaKg: 105 },
+    rojo: { deltaRir: 1, quitarUltimaSerie: true, sueloRir: 1 },
+  }
+  const verde = { escenario: 'verde', rendimiento: 'por_encima', contexto: 'bueno', motivo: 'x' } as const
+  const rojo = { escenario: 'rojo', rendimiento: 'por_debajo', contexto: 'malo', motivo: 'x' } as const
+
+  /**
+   * LA REGLA QUE SOSTIENE TODO: sin escenarios escritos no hay ajuste, valga lo
+   * que valga el cruce. Un bucle que ajusta sin camino autorizado es
+   * exactamente el bucle que este diseño prohíbe.
+   */
+  it('sin escenarios escritos no propone nada, ni en el mejor dia', () => {
+    const a = aplicarEscenario(ejercicio(), verde)
+    expect(a.cargaKg).toBeUndefined()
+    expect(a.sets).toBeUndefined()
+    expect(a.motivo).toContain('sin camino autorizado')
+  })
+
+  it('el verde sube el escalon autorizado', () => {
+    const a = aplicarEscenario(ejercicio({ escenarios }), verde)
+    expect(a.cargaKg).toBe(102.5)
+    expect(a.sets).toBeUndefined()
+  })
+
+  it('el techo es un techo: recorta, y en el techo no propone nada', () => {
+    // 104 + 2.5 pasaria el techo de 105: se recorta a 105.
+    expect(aplicarEscenario(ejercicio({ cargaKg: 104, escenarios }), verde).cargaKg).toBe(105)
+    // Ya en el techo: el verde no tiene nada que ofrecer, y lo dice.
+    const enElTecho = aplicarEscenario(ejercicio({ cargaKg: 105, escenarios }), verde)
+    expect(enElTecho.cargaKg).toBeUndefined()
+    expect(enElTecho.motivo).toContain('techo')
+  })
+
+  it('el rojo suelta RIR y recorta la ultima serie', () => {
+    const a = aplicarEscenario(ejercicio({ escenarios }), rojo)
+    expect(a.rirObjetivo).toBe(3)
+    expect(a.sets).toBe(2)
+    expect(a.motivo).toContain('RIR 1') // el suelo escrito viaja en el motivo
+  })
+
+  /**
+   * El rojo afloja con `aflojar`, nunca sumando: desde FALLO un escalon deja
+   * RIR 0, no 'FALLO1' ni RIR 1. Es la misma trampa que ya mordio a la
+   * ondulacion (ver objetivoDeIntensidad.ts).
+   */
+  it('desde FALLO el rojo baja a RIR 0', () => {
+    const a = aplicarEscenario(ejercicio({ rirObjetivo: AL_FALLO, escenarios }), rojo)
+    expect(a.rirObjetivo).toBe(0)
+  })
+
+  it('con decision ninguno transporta el motivo y no toca nada', () => {
+    const ninguno = { escenario: 'ninguno', rendimiento: 'en_linea', contexto: 'neutro', motivo: 'sin cruce' } as const
+    const a = aplicarEscenario(ejercicio({ escenarios }), ninguno)
+    expect(a).toEqual({ escenario: 'ninguno', motivo: 'sin cruce' })
   })
 })

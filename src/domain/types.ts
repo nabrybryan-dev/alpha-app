@@ -161,6 +161,46 @@ export interface SeriePrescrita {
  */
 export type UnidadCarga = 'kg' | 'total' | 'por lado' | 'por mano'
 
+
+/**
+ * Los dos caminos pre-autorizados de un ejercicio para el bucle del día.
+ *
+ * Aprobados por el coach el 2026-08-25 (supuesto de ondulación flexible §2).
+ * La idea entera: el ajuste del día no se improvisa — el coach escribe POR
+ * ADELANTADO qué puede pasar si el día viene mejor o peor de lo esperado, y el
+ * bucle solo decide cuál de los dos caminos ya escritos se pisa.
+ */
+export interface EscenarioVerde {
+  /** Cuánto sube el escalón autorizado. Sin definir: no se toca la carga. */
+  deltaCargaKg?: number
+  /** Si el día bueno autoriza una serie más. */
+  serieExtra?: boolean
+  /**
+   * El techo, OBLIGATORIO. La carga que no se pasa ni con el mejor día del
+   * bloque. Es lo que hace que «autorizado por adelantado» signifique algo:
+   * un verde sin techo es un cheque en blanco, y eso no es autorizar.
+   */
+  techoCargaKg: number
+}
+
+export interface EscenarioRojo {
+  /** Cuántos escalones de RIR se sueltan (1 o 2, como las bandas de PRS). */
+  deltaRir: number
+  /** Si el día malo recorta la última serie. */
+  quitarUltimaSerie?: boolean
+  /**
+   * El suelo de RIR del ejercicio, OBLIGATORIO (I-13). Viaja escrito aquí para
+   * que el camino rojo lleve consigo la regla que protege al asesorado: la
+   * prescripción base nunca debe estar por debajo de este número.
+   */
+  sueloRir: number
+}
+
+export interface EscenariosDelDia {
+  verde: EscenarioVerde
+  rojo: EscenarioRojo
+}
+
 export interface EjercicioPrescrito {
   id: string
   categoria: string
@@ -195,6 +235,10 @@ export interface EjercicioPrescrito {
    *  Sin definir, todas las series comparten `repsDiana` y `rirObjetivo` — que
    *  es como quedaban los microciclos antes de que la ondulación se guardara. */
   seriesPrescritas?: SeriePrescrita[]
+  /** Los dos caminos pre-autorizados para el bucle del día. Sin definir, el
+   *  bucle observa pero no puede proponer nada: sin camino escrito no hay
+   *  ajuste — la pre-autorización es el mecanismo, no un adorno. */
+  escenarios?: EscenariosDelDia
   contenidoDemoId?: string
   /** Etiqueta de cada serie cuando el esquema no es uniforme
    *  (p. ej. ["TOP", "BACK-OFF", "BACK-OFF"] o ["PESADA", "MYO-REPS"]).
