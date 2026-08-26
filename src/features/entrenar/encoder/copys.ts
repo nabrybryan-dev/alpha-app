@@ -27,7 +27,7 @@ export const COPY = {
   "pocos_fps": "Pocos fps",
   "pocos_fps_largo": "La cámara grabó a menos de 50 fps. A 30 fps la pérdida de velocidad se va 5 puntos, y es la que decide la dosis.",
   "pocos_fps_hacer": "Más luz. En iPhone no hay palanca de exposición: la solución es luz.",
-  "marcador_perdido": "Referencia pérdida",
+  "marcador_perdido": "Referencia perdida",
   "marcador_perdido_hacer": "Que nada tape el disco durante la serie.",
   "angulo": "Diana torcida",
   "angulo_hacer": "Endereza la tira o el disco.",
