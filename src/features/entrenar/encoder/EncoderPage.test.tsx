@@ -80,3 +80,23 @@ describe('EncoderPage', () => {
     expect(screen.getByRole('button', { name: /Vaciar tanda/i })).toBeDisabled()
   })
 })
+
+describe('donde plantar la camara', () => {
+  it('esta en el laboratorio y no en la hoja de medicion', async () => {
+    // Meterlo en la hoja añadiria al protocolo de CADA toma un paso que no
+    // cambia entre series, y el criterio que decide si el protocolo es viable
+    // son los segundos que la medicion le roba a cada serie.
+    render(<EncoderPage />)
+    expect(screen.getByRole('button', { name: /Donde plantar la camara|Dónde plantar la cámara/i }))
+      .toBeInTheDocument()
+  })
+
+  it('viene plegado: se consulta al montar el tripode, no cada vez', async () => {
+    render(<EncoderPage />)
+    const boton = screen.getByRole('button', { name: /plantar la c/i })
+    expect(boton.getAttribute('aria-expanded')).toBe('false')
+    await userEvent.click(boton)
+    expect(boton.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByLabelText('Distancia')).toBeInTheDocument()
+  })
+})

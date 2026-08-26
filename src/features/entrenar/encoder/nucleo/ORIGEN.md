@@ -1,8 +1,8 @@
 # De dónde sale este núcleo, y por qué no se toca aquí
 
-Los tres `.js` de esta carpeta entran **verbatim** desde el otro repo:
+Los cuatro `.js` de esta carpeta entran **verbatim** desde el otro repo:
 
-    Cerebro Alpha/herramientas/encoder-camara/{analisis,disco,reloj-fotograma}.js
+    Cerebro Alpha/herramientas/encoder-camara/{analisis,disco,reloj-fotograma,encuadre}.js
 
 No son código nuevo. Son el código que llevan validando dos semanas **56 casos de
 prueba** (`pruebas-velocidad.mjs` y `pruebas-disco.mjs`, que viven allí, no aquí) y
@@ -16,7 +16,35 @@ pantalla mezclaría dos riesgos que conviene tener separados.
 se corren allí las dos baterías, y luego se vuelve a copiar. Al revés no: un
 parche hecho aquí no lo ve ninguna prueba.
 
-`huellas.json` guarda el sha-256 de los tres archivos y `nucleo.test.ts` lo
+### Y desde el 2026-08-25, con un solo comando
+
+Los seis pasos a mano fallaron dos veces en tres días. Ahora los hace un script,
+en el otro repo:
+
+```bash
+node herramientas/encoder-camara/sincronizar-nucleo.mjs            # qué haría
+node herramientas/encoder-camara/sincronizar-nucleo.mjs --aplicar  # lo hace
+```
+
+Corre las dos baterías **antes** de copiar —si algo está rojo no toca nada, para
+no dejar esta copia con un núcleo roto—, copia los cuatro `.js` y regenera
+`huellas.json`.
+
+> **El paso que más se resiste, y por qué el script existe:** las huellas se
+> calculan **normalizando `
+
+` a `
+` antes del sha-256**, porque esta máquina
+> tiene `core.autocrlf=true`. Sobre los bytes crudos salen hashes que no
+> coinciden y `nucleo.test.ts` se pone rojo con la copia correcta. Eso no se
+> deduce leyendo este archivo: hay que abrir el test. El 25 de agosto costó un
+> intento.
+
+**Lo que el script NO hace, y hay que mirar a mano:** `analisis.d.ts`. Los tipos
+no se copian y se quedan atrás en silencio — el 25 de agosto le faltaban `ie`,
+`coberturaDisco` y siete campos de `Repeticion`.
+
+`huellas.json` guarda el sha-256 de los cuatro archivos y `nucleo.test.ts` lo
 comprueba. Si alguien edita una copia aquí, el test se pone rojo y dice cuál.
 
 ## Lo que esa comprobación NO puede hacer, y quién lo hace ahora
@@ -33,9 +61,16 @@ verde. Las huellas estuvieron en verde todo el tiempo. **Una copia intacta y
 obsoleta es peor que una tocada**, porque nada la delata.
 
 Desde entonces hay un segundo guardián en `nucleo.test.ts`, y corre dentro de
-`npm run verify`: si encuentra el repo de las herramientas, compara los tres
+`npm run verify`: si encuentra el repo de las herramientas, compara los cuatro
 ficheros contra el original y se pone rojo si se han separado. Busca en las
 colocaciones conocidas, o donde diga `ENCODER_HERRAMIENTAS`.
+
+**Y desde el 2026-08-25 avisa cuando se salta.** Un `skip` se pinta en gris entre
+cientos de tests verdes y quien mira la salida entiende «todo bien», que es lo
+contrario de lo que significa. Ahora imprime en claro que **no ha comprobado
+nada**, y con qué comando arreglarlo. El guardián existía y estaba bien escrito
+las dos veces que la copia derivó; lo que no existía era un aviso de que no
+estaba mirando.
 
 **Se salta cuando el otro repo no está** —en el CI no está— y eso es deliberado:
 un guardián que se pone rojo por algo que no depende de quien lo lee enseña a
@@ -61,3 +96,18 @@ marcadores, y eso habría compilado y reventado en el gimnasio.
 teléfonos y para medir el ritmo del cristal, y no hace falta para medir series: en
 un teléfono suelto `captureTime` ya llega. Si algún día hacen falta dos cámaras
 sincronizadas, se trae entonces.
+
+## El cuarto archivo llegó con una condición
+
+`encuadre.js` entró el 2026-08-25 con la pantalla de encuadre. En el otro repo era
+`encuadre.mjs` y hacía dos cosas: calcular y **imprimir su carta por consola**. Lo
+segundo importa `node:url` y lee `process.argv`, así que el archivo entero no podía
+viajar aquí: en el bundle del navegador no existe ninguna de las dos.
+
+Se partió allí, no aquí — `encuadre.js` es el cálculo y `carta-encuadre.mjs` la
+carta. La regla de arriba no admitía otra cosa: arreglarlo en esta copia habría
+dejado el parche sin ninguna prueba que lo viera.
+
+**Los motivos de `calificarEncuadre` llevan `disco_pequeño` con ñ** y la clave del
+copy es `disco_pequeno` sin ella. No se renombra aquí. La distancia se salva en un
+único sitio, `motivosEncuadre.ts`.

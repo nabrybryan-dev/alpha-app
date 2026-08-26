@@ -46,10 +46,18 @@ export default function ContenidosPage() {
           interior es el canto del papel, y el margen de 16 px de la propia Card es
           lo que la separa del borde.
 
-          D mide 84,7 de luminancia media y no admite texto en ninguna parte, así
-          que NO LLEVA NINGUNO: ni título, ni duración, ni marca de agua. El texto
-          va debajo de la lámina, dentro de la misma tarjeta. Es la regla dura
-          resuelta por composición y no por un velo. */}
+          D no admite texto en ninguna parte, así que NO LLEVA NINGUNO: ni título,
+          ni duración, ni marca de agua. El texto va debajo de la lámina, dentro de
+          la misma tarjeta. Es la regla dura resuelta por composición y no por un
+          velo.
+
+          Aquí ponía «D mide 84,7 de luminancia media», y eso describía la pieza
+          VIEJA — que estaba mal graduada: reventaba el 0,24% a blanco contra un
+          máximo de 0,05%, croma 21,25 contra 9, y necesitaba anclar el negro en
+          p45. La pieza rehecha mide **27,8**. La decisión no cambia, porque el
+          techo para poner texto encima sigue siendo 18 y 27,8 lo pasa; lo que
+          cambia es el motivo: ya no es que deslumbre, es que sigue por encima del
+          techo. Ver `docs/specs/2026-08-25-piezas-sin-colocar-diseno.md`. */}
       {/* El ref va en un envoltorio y no en la Card: `Card` no reenvía `ref` y
           añadirle `forwardRef` tocaría un primitivo que usa media app. */}
       <div ref={marco}>

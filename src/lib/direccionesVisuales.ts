@@ -99,7 +99,7 @@ export const DIRECCIONES: DireccionVisual[] = [
   },
   {
     id: 'D',
-    duracionS: 8.0,
+    duracionS: 6.8,
     nombre: 'Esfuerzo',
     frase: 'La última repetición, con el polvo de magnesio suspendido alrededor.',
     video: '/hero/hero-loop-esfuerzo.webm',
