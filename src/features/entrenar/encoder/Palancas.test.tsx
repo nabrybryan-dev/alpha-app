@@ -195,6 +195,24 @@ describe('la selección de atleta se calla cuando no hay duda', () => {
     expect(screen.getByText('Cambiar de persona')).toBeInTheDocument()
   })
 
+  it('el conteo se dice UNA vez: el copy no repite lo que ya dice el titular', () => {
+    // El copy del diseño abre con «Dos personas en cuadro» porque se redactó sobre
+    // ese caso. Pegado bajo un titular que ya lo dice, se leería dos veces — y una
+    // tarjeta que se repite se lee como plantilla, no como aviso.
+    const { container } = render(
+      <Palancas
+        medida={MEDIDO}
+        seleccion={{ personas: 3, ambiguo: true }}
+        onCambiarAtleta={() => {}}
+      />,
+    )
+    const texto = container.textContent ?? ''
+    expect(texto.match(/personas en cuadro/g)).toHaveLength(1)
+    expect(texto).not.toMatch(/Dos personas/)
+    // pero el argumento, que es lo que importa, sí sobrevive entero
+    expect(texto).toMatch(/el esqueleto sale impecable y es de otro/)
+  })
+
   it('sin dato de selección la fila no existe', () => {
     const { container } = render(<Palancas medida={MEDIDO} />)
     expect(container.textContent).not.toMatch(/en cuadro/)

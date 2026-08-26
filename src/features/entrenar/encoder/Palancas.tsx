@@ -39,6 +39,18 @@ interface Props {
  *  es una fila callada. Añadir un paso a todas las mediciones por un riesgo que no
  *  existe en el 93 % de los casos sería cobrarle a todos el error de unos pocos.
  */
+/** El copy del diseño abre con «Dos personas en cuadro», que era el caso que se
+ *  redactó, y el conteo real es dato. Aquí se descarta esa primera frase porque el
+ *  titular ya la dice con el número de verdad: repetirla debajo diría dos veces lo
+ *  mismo en la misma tarjeta. Lo que se conserva es el resto, que es donde está el
+ *  argumento y no depende del número — si nos equivocamos, el esqueleto sale
+ *  impecable y es de otro. */
+export function explicacionAmbigua(): string {
+  const completo = COPY.palancas_senalar_atleta_ambiguo
+  const corte = completo.indexOf('. ')
+  return corte < 0 ? completo : completo.slice(corte + 2)
+}
+
 function Seleccion({
   personas,
   ambiguo,
@@ -53,7 +65,9 @@ function Seleccion({
       <div className="flex min-h-11 items-center gap-2 text-[12.5px] text-tenue">
         <span className="h-[30px] w-[30px] shrink-0 rounded-sm bg-surface-3" aria-hidden="true" />
         <span className="flex-1">
-          Atleta seleccionado · {personas === 1 ? 'una persona en cuadro' : `${personas} en cuadro`}
+          {personas === 1
+            ? COPY.palancas_senalar_atleta_callado
+            : `Atleta seleccionado · ${personas} en cuadro`}
         </span>
         {onCambiar && (
           <button type="button" onClick={onCambiar} className="underline-offset-2 hover:underline">
@@ -76,7 +90,9 @@ function Seleccion({
           <p className="font-display text-[15px] font-bold text-texto">
             {personas} personas en cuadro
           </p>
-          <p className="mt-1 text-[12.5px] leading-snug text-tenue">{COPY.hoja_senalar}</p>
+          <p className="mt-1 text-[12.5px] leading-snug text-tenue">
+            {explicacionAmbigua()}
+          </p>
           {onCambiar && (
             <button
               type="button"

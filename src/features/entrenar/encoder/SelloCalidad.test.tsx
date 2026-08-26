@@ -142,3 +142,29 @@ describe('el intervalo dibujado a escala', () => {
     expect(screen.getByText('134 – 222 mm')).toBeInTheDocument()
   })
 })
+
+describe('la lectura del veredicto cambia con lo que se juzga', () => {
+  it('sin subtitulo propio usa la genérica del sistema', () => {
+    render(<SelloCalidad nivel="buena" />)
+    expect(screen.getByText(/Este número decide carga/)).toBeInTheDocument()
+  })
+
+  it('con subtitulo propio manda el de la pantalla', () => {
+    // El encuadre juzga una colocación, no un número: allí `buena` no puede
+    // decir «este número decide carga» porque todavía no hay número.
+    render(<SelloCalidad nivel="buena" subtitulo="Desde aquí sale una medida en la que se puede confiar." />)
+    expect(screen.getByText(/se puede confiar/)).toBeInTheDocument()
+    expect(screen.queryByText(/decide carga/)).toBeNull()
+  })
+
+  it('pero NO abre la puerta a los motivos en buena', () => {
+    // El subtítulo sustituye una frase; los motivos siguen sin pintarse en un
+    // sello bueno, que por definición no los tiene.
+    render(
+      <SelloCalidad nivel="buena" subtitulo="otra cosa">
+        <p>un motivo que no debería salir</p>
+      </SelloCalidad>,
+    )
+    expect(screen.queryByText('un motivo que no debería salir')).toBeNull()
+  })
+})

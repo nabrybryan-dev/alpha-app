@@ -49,10 +49,23 @@ interface SelloProps {
   /** Se pinta pegado a la placa, no flotando aparte: un sello dudoso sin su
    *  motivo no es un sello. Se ignora en `buena`, que por definición no tiene. */
   children?: React.ReactNode
+  /** Sustituye la lectura genérica del nivel por la de esta pantalla.
+   *
+   *  El mismo veredicto se lee distinto según lo que se esté juzgando: en un
+   *  resultado, `buena` significa «este número decide carga»; en el encuadre, que
+   *  todavía no hay número, significa «desde aquí sale una medida en la que se
+   *  puede confiar». El sello es el mismo objeto y la frase no. */
+  subtitulo?: string
   className?: string
 }
 
-export function SelloCalidad({ nivel, tamano = 'grande', children, className = '' }: SelloProps) {
+export function SelloCalidad({
+  nivel,
+  tamano = 'grande',
+  children,
+  subtitulo,
+  className = '',
+}: SelloProps) {
   const grande = tamano === 'grande'
 
   // Los tres estados comparten silueta, cuerpo y peso. Solo cambia la materia.
@@ -82,7 +95,9 @@ export function SelloCalidad({ nivel, tamano = 'grande', children, className = '
           {TITULO[nivel]}
         </p>
         {grande && (
-          <p className="mt-1.5 text-[13px] leading-snug opacity-80">{SUBTITULO[nivel]}</p>
+          <p className="mt-1.5 text-[13px] leading-snug opacity-80">
+            {subtitulo ?? SUBTITULO[nivel]}
+          </p>
         )}
       </div>
       {/* Soldado a la placa: en contacto con ella y del mismo ancho. */}

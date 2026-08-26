@@ -355,6 +355,14 @@ body {
 
 /* ---------- Entradas coreografiadas ---------- */
 
+/* Las dos barras del par de errores. Se anima `transform` y no `width` porque
+   width relayoutea en cada fotograma y esta pantalla se usa con la cámara ya
+   abierta: robarle presupuesto puede tumbar la toma por debajo de 50 fps. */
+@keyframes crecer-barra {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
 @keyframes entrada-suave {
   from {
     opacity: 0;
