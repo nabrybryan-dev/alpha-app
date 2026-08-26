@@ -6,6 +6,7 @@ import { puntoDeLaImagen } from './toque'
 import { seOcultanLasCifras } from './cifras'
 import { TablaTanda } from './TablaTanda'
 import { Encuadre } from './Encuadre'
+import { PanelPalancas } from './PanelPalancas'
 import { COPY } from './copys'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
@@ -105,6 +106,7 @@ export default function EncoderPage() {
 
   const [tanda, setTanda] = useState<Medicion[]>(leerTanda)
   const [encuadreAbierto, setEncuadreAbierto] = useState(false)
+  const [palancasAbierto, setPalancasAbierto] = useState(false)
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false)
 
   const gRef = useMemo(() => gLocal(lat, alt), [lat, alt])
@@ -423,6 +425,27 @@ export default function EncoderPage() {
         >
           Guardar medición
         </button>
+      </Card>
+
+      {/* Palancas va aquí por el mismo motivo que el encuadre, y por uno más: la
+          medida NO se produce en la app. Sale de `exportar-medida.mjs`, que
+          necesita ONNX y ~1 min de CPU por vídeo. Ponerla en la hoja del
+          asesorado prometeria un boton que no existe. */}
+      <Card>
+        <button
+          type="button"
+          onClick={() => setPalancasAbierto((v) => !v)}
+          className="flex min-h-11 w-full items-center justify-between text-left"
+          aria-expanded={palancasAbierto}
+        >
+          <b className="text-sm">Palancas · abrir una medida</b>
+          <span className="font-mono text-tenue">{palancasAbierto ? '−' : '+'}</span>
+        </button>
+        {palancasAbierto && (
+          <div className="mt-3 border-t border-hairline pt-3">
+            <PanelPalancas />
+          </div>
+        )}
       </Card>
 
       {/* El encuadre se decide UNA vez y no en cada serie, así que vive aquí y no
