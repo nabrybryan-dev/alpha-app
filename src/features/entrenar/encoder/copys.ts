@@ -65,7 +65,7 @@ export const COPY = {
   "palancas_no_medible": "No lo sé",
   "palancas_no_medible_sub": "4 de 96 fotogramas medibles. No hay número, y no lo va a haber por mucho que repitas con esta máquina.",
   "palancas_no_aplica": "Este ejercicio no entra en el modelo",
-  "palancas_no_aplica_sub": "Con polea, la vertical de la carga no es la línea de acción: la marca el cable. No es un fallo de la toma ni del detector, y repetir la grabacion no lo arregla.",
+  "palancas_no_aplica_sub": "Con polea, la vertical de la carga no es la línea de acción: la marca el cable. No es un fallo de la toma ni del detector, y repetir la grabación no lo arregla.",
   "palancas_escala_dudosa": "La escala de este vídeo dispersa un 21 %: los milímetros son orientativos, no medidas.",
   "palancas_cruce_cero": "La rodilla cruza el cero: la carga pasó al otro lado del eje.",
   "palancas_lumbar": "El lumbar no se ve en el vídeo, se estima sobre la línea cadera-hombro.",
