@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
 import { puntoDeLaImagen } from './toque'
+import { COPY } from './copys'
 
 /**
  * El instrumento: la imagen de la cámara, sus lecturas en vivo y el botón de
@@ -167,12 +168,43 @@ export function Visor({ ajustes, children }: VisorProps) {
               </p>
             </div>
           )}
-          {captura.grabando && (
+
+          {/* El estado de la referencia, sobre la imagen y en la esquina donde ya
+              estaba el punto de grabar. Son TRES y no los cinco del entregable:
+              `referencia_perdida` y `procesando` no tienen señal en `useCaptura`
+              —la pérdida solo se ve en el lienzo, cuando la ventana de búsqueda se
+              queda atrás, y en `marcador_perdido` del resultado—. Deducirlos aquí
+              sería una pastilla que afirma lo que nadie ha medido, y esta es la
+              pantalla donde la persona decide si repetir la toma. */}
+          {captura.camaraAbierta && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rojo" />
+              <span
+                className={
+                  captura.grabando
+                    ? 'h-2.5 w-2.5 rounded-full bg-rojo motion-safe:animate-pulse'
+                    : captura.listoParaGrabar
+                      ? 'h-2.5 w-2.5 rounded-full bg-[var(--placa)]'
+                      : 'h-2.5 w-2.5 rounded-full bg-[var(--gris-marca)]'
+                }
+              />
               <span className="font-mono text-[11px] uppercase tracking-widest text-white">
-                grabando
+                {captura.grabando
+                  ? 'grabando'
+                  : captura.listoParaGrabar
+                    ? 'disco fijado'
+                    : 'buscando la referencia'}
               </span>
+            </div>
+          )}
+
+          {/* Cómo se enseña el toque: una pastilla en la base, que se va en cuanto
+              hay disco fijado y no vuelve. Sin tutorial y sin overlay modal —esta
+              pantalla se usa con la barra en las manos—. */}
+          {captura.camaraAbierta && !captura.listoParaGrabar && !captura.grabando && (
+            <div className="absolute inset-x-0 bottom-3 flex justify-center">
+              <p className="rounded-full bg-black/70 px-3 py-1.5 text-[12.5px] text-white">
+                {COPY.hoja_senalar}
+              </p>
             </div>
           )}
         </div>

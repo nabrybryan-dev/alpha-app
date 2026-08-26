@@ -25,6 +25,30 @@ const DISCOS = [
 
 const CLAVE_DIAMETRO = 'alpha-encoder-diametro'
 
+/**
+ * El disco se recuerda **por ejercicio**, no a secas.
+ *
+ * Recordar «el último» a secas se lleva bien con una sesión de un solo
+ * ejercicio y mal con la realidad: si se alterna peso muerto con bumper y press
+ * con olímpico, cada serie llega con el disco de la otra y hay que cambiarlo —o
+ * peor, no se cambia y la escala sale del diámetro equivocado, que es un error
+ * que no se nota porque produce un número perfectamente creíble.
+ *
+ * La clave global se conserva como respaldo: la primera medición de un ejercicio
+ * nuevo hereda el último disco usado en general, que acierta más veces que 450.
+ */
+function claveDelEjercicio(ejercicio: string): string {
+  return `${CLAVE_DIAMETRO}:${ejercicio.trim().toLowerCase()}`
+}
+
+function discoRecordado(ejercicio: string): number {
+  return (
+    Number(localStorage.getItem(claveDelEjercicio(ejercicio))) ||
+    Number(localStorage.getItem(CLAVE_DIAMETRO)) ||
+    450
+  )
+}
+
 interface HojaMedicionProps {
   abierto: boolean
   onCerrar: () => void
@@ -36,9 +60,11 @@ interface HojaMedicionProps {
 export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: HojaMedicionProps) {
   // El disco se recuerda entre series: en una sesión no cambias de disco cada
   // vez, y volver a elegirlo nueve veces es tiempo que cuenta en el criterio.
-  const [diametroMm, setDiametroMm] = useState(
-    () => Number(localStorage.getItem(CLAVE_DIAMETRO)) || 450,
-  )
+  // Leer en el inicializador es seguro AQUÍ y conviene comprobarlo antes de
+  // copiar el patrón: solo corre en el primer montaje, y esto se monta una vez
+  // por serie porque `TarjetaEjercicio` le pone `key={ejercicio.id}-{orden}` a
+  // `RegistroSerie`. Sin esa key, cambiar de ejercicio dejaría el disco anterior.
+  const [diametroMm, setDiametroMm] = useState(() => discoRecordado(ejercicio))
   const [guardadas, setGuardadas] = useState(() => leerTanda().length)
   const [ultimoAviso, setUltimoAviso] = useState<string | null>(null)
 
@@ -56,6 +82,9 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
 
   const elegirDisco = (mm: number) => {
     setDiametroMm(mm)
+    localStorage.setItem(claveDelEjercicio(ejercicio), String(mm))
+    // Y también el global, que es de donde sale el primer acierto de un
+    // ejercicio que todavía no tiene disco propio.
     localStorage.setItem(CLAVE_DIAMETRO, String(mm))
   }
 
