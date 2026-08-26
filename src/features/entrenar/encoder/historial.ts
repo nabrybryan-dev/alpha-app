@@ -47,6 +47,9 @@ export interface TramoDelHistorial {
   desde: TomaDelHistorial
   hasta: TomaDelHistorial
   aviso: AvisoDeHora
+  /** Alguna de las dos tomas no trae hora, así que la franja del día es
+   *  desconocida y **el aviso de hora no se puede dar**. Ver `tieneHora`. */
+  horaDesconocida: boolean
   /** La carga cambió entre las dos. Con %PV no invalida la comparación —al
    *  contrario, es el dato interesante— pero hay que decirlo: llegar al mismo
    *  %PV con más peso es progreso, y sin la carga a la vista parece estancamiento. */
@@ -80,16 +83,39 @@ export function tomasDeLaTendencia(tomas: TomaDelHistorial[]): TomaDelHistorial[
  * el que no se sostiene. Un solo aviso para toda la gráfica diría que ninguna
  * pareja se compara, que casi nunca es verdad.
  */
+/**
+ * Si una fecha trae hora de verdad.
+ *
+ * **Hoy casi ninguna la trae, y por eso esto existe.** `SerieRegistrada` no
+ * guarda cuándo se hizo: la fecha de un punto se deriva del `fechaInicio` del
+ * microciclo más el día de la semana, y eso da un día a medianoche. Pasarle esa
+ * medianoche a `comparablesPorHora` haría que TODAS las tomas cayeran en la misma
+ * franja inventada y el aviso de hora saliera —o dejara de salir— por una hora
+ * que nadie midió.
+ *
+ * Una medianoche exacta se trata como «sin hora» a propósito. Se pierde el caso
+ * rarísimo de quien entrena a las 00:00 clavadas; se gana no inventar la franja
+ * de todas las demás.
+ */
+export function tieneHora(fechaIso: string): boolean {
+  if (!fechaIso.includes('T')) return false
+  const d = new Date(fechaIso)
+  if (Number.isNaN(d.getTime())) return false
+  return d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0
+}
+
 export function tramosDelHistorial(tomas: TomaDelHistorial[]): TramoDelHistorial[] {
   const puntos = tomasDeLaTendencia(tomas)
   const tramos: TramoDelHistorial[] = []
   for (let i = 1; i < puntos.length; i++) {
     const desde = puntos[i - 1]
     const hasta = puntos[i]
+    const horaDesconocida = !tieneHora(desde.fecha) || !tieneHora(hasta.fecha)
     tramos.push({
       desde,
       hasta,
       aviso: comparablesPorHora(desde.fecha, hasta.fecha),
+      horaDesconocida,
       cargaCambio: desde.cargaKg !== hasta.cargaKg,
     })
   }
@@ -105,7 +131,9 @@ export function tramosDelHistorial(tomas: TomaDelHistorial[]): TramoDelHistorial
  * solo avisa.
  */
 export function tramoQueSeñalar(tomas: TomaDelHistorial[]): TramoDelHistorial | undefined {
-  const tramos = tramosDelHistorial(tomas)
+  // Sin hora no se señala nada: decir «una toma es de mañana y la otra de tarde»
+  // sobre dos medianoches derivadas sería inventarse el motivo.
+  const tramos = tramosDelHistorial(tomas).filter((t) => !t.horaDesconocida)
   for (let i = tramos.length - 1; i >= 0; i--) {
     if (!tramos[i].aviso.comparables) return tramos[i]
   }

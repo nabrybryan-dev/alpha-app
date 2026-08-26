@@ -1,6 +1,7 @@
 import { useSesion } from '../../app/SessionProvider'
 import { useDbVersion } from '../../data/dbInstance'
 import { ProgresoEvolucion } from '../logros/ProgresoEvolucion'
+import { HistorialDeVelocidad } from '../entrenar/encoder/HistorialDeVelocidad'
 
 /**
  * Pestaña Progreso: evolución de peso y carga, volumen por grupo y desviación
@@ -30,6 +31,13 @@ export default function ProgresoPage() {
 
       <div className="entrada entrada-2">
         <ProgresoEvolucion usuarioId={usuario.id} />
+      </div>
+
+      {/* El historial del encoder. No pinta nada mientras no haya una sola serie
+          medida —hoy casi nadie graba— porque una tarjeta vacía en una pantalla
+          que se abre cada semana es ruido permanente. */}
+      <div className="entrada entrada-3">
+        <HistorialDeVelocidad usuarioId={usuario.id} />
       </div>
     </div>
   )
