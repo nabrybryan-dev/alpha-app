@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
 import { puntoDeLaImagen } from './toque'
 
@@ -85,6 +85,47 @@ export function Visor({ ajustes, children }: VisorProps) {
       reloj: relojRef,
     },
   })
+
+  /**
+   * Abre la cámara sola al montar, y **solo si el permiso ya está concedido**.
+   *
+   * Bajaba a tres los dos toques que la doctrina fija para una medición: la
+   * secuencia real era abrir cámara + tocar el disco + grabar. El primero no
+   * decide nada —nadie abre la hoja de medición para no medir—, así que sobra.
+   *
+   * La condición del permiso no es una precaución de más: llamar a
+   * `getUserMedia` sin gesto de la persona dispara el diálogo del navegador
+   * nada más abrirse la hoja, y un permiso que se pide sin contexto se deniega.
+   * Denegado, además, no se vuelve a pedir. Así que la primera medición sigue
+   * pasando por el botón, y de la segunda en adelante ya no hay tercer toque.
+   *
+   * Si `permissions` no existe —Firefox no expone la cámara ahí— se queda el
+   * botón, que es el comportamiento de siempre.
+   */
+  const yaSeIntento = useRef(false)
+  useEffect(() => {
+    if (yaSeIntento.current) return
+    yaSeIntento.current = true
+    let vivo = true
+    void (async () => {
+      try {
+        const permiso = await navigator.permissions?.query({
+          name: 'camera' as PermissionName,
+        })
+        if (!vivo || permiso?.state !== 'granted') return
+        await captura.abrirCamara()
+      } catch {
+        // Sin `permissions` o con un nombre que el navegador no conoce: queda el
+        // botón. No se toca el aviso, que aquí no significaría nada.
+      }
+    })()
+    return () => {
+      vivo = false
+    }
+    // Solo al montar: `abrirCamara` se recrea en cada render y meterla en las
+    // dependencias reabriría la cámara sin parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function alTocar(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget

@@ -45,7 +45,7 @@ interface Props {
  *  mismo en la misma tarjeta. Lo que se conserva es el resto, que es donde está el
  *  argumento y no depende del número — si nos equivocamos, el esqueleto sale
  *  impecable y es de otro. */
-export function explicacionAmbigua(): string {
+function explicacionAmbigua(): string {
   const completo = COPY.palancas_senalar_atleta_ambiguo
   const corte = completo.indexOf('. ')
   return corte < 0 ? completo : completo.slice(corte + 2)
