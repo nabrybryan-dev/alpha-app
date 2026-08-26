@@ -80,9 +80,41 @@ export interface ValoracionCompetencia {
   fecha: string
 }
 
+/**
+ * Lo que el encoder de cámara midió en una serie.
+ *
+ * **Solo `pvPct`, y esa restricción es el diseño entero.** La pérdida de
+ * velocidad es un cociente entre dos velocidades de la MISMA serie, así que la
+ * escala se cancela: se calcula igual en px/s que en m/s y **no necesita diana,
+ * ni milímetros, ni que la prueba de gravedad esté en verde**. Por eso puede
+ * entrar hoy, mientras los m/s siguen bloqueados tras la fase 2 del motor de
+ * velocidad.
+ *
+ * Lo que NO se guarda aquí, a propósito: `vPrimera` en m/s y el índice de
+ * esfuerzo. Los dos dependen de la escala, y guardar un número que sabemos que
+ * puede estar un 14-24 % desviado es guardar una conclusión falsa.
+ * → `Cerebro Alpha/wiki/motor-velocidad/velocidad-vs-fuerza.md`
+ */
+export interface VelocidadDeSerie {
+  /** Pérdida de velocidad de la serie, en puntos porcentuales. Sin escala vale igual. */
+  pvPct: number
+  /** `false` = medido en px/s. No invalida el %PV; sí invalidaría unos m/s. */
+  hayEscala: boolean
+  /** El veredicto del contrato de calidad del encoder. Una medición mala no se borra:
+   *  se marca, y quien la lea decide si la usa. */
+  calidad: string
+  /** Inclinación máxima de la referencia durante la serie. Importa porque el %PV
+   *  solo se cancela si la escala es CONSTANTE: si la referencia se movió entre la
+   *  primera repetición y la última, el cociente queda contaminado. */
+  inclinacionMax?: number
+}
+
 export interface SerieRegistrada {
   orden: number
   cargaKg: number
+  /** La medición del encoder, si esa serie se grabó. Ausente = no se midió, que
+   *  es lo normal: hoy casi nadie graba. */
+  velocidad?: VelocidadDeSerie
   /**
    * Opcionales porque hay trabajo que no se mide así y forzarlo inventa datos.
    *
@@ -239,6 +271,17 @@ export interface EjercicioPrescrito {
    *  bucle observa pero no puede proponer nada: sin camino escrito no hay
    *  ajuste — la pre-autorización es el mecanismo, no un adorno. */
   escenarios?: EscenariosDelDia
+  /**
+   * Pérdida de velocidad objetivo de la serie, en puntos porcentuales.
+   *
+   * Es lo que convierte el `pvPct` medido en una señal: un %PV suelto dice cuánto
+   * se frenó la barra, no si eso fue lo pedido. La banda para la clientela de
+   * Alpha —composición corporal— es **20-35 %**, no los 10-20 % de deportista.
+   * → `Cerebro Alpha/wiki/motor-decision/03-vbt-perdida-velocidad.md`
+   *
+   * Sin definir, la velocidad no informa y manda el RIR.
+   */
+  pvObjetivo?: number
   contenidoDemoId?: string
   /** Etiqueta de cada serie cuando el esquema no es uniforme
    *  (p. ej. ["TOP", "BACK-OFF", "BACK-OFF"] o ["PESADA", "MYO-REPS"]).

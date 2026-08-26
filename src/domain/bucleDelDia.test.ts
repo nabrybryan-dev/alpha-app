@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DESVIO_PV_PUNTOS,
   aplicarEscenario,
   contextoDelDia,
   escenarioDelDia,
@@ -7,7 +8,7 @@ import {
   rendimientoDelDia,
 } from './bucleDelDia'
 import { AL_FALLO } from './objetivoDeIntensidad'
-import type { EjercicioPrescrito, SerieRegistrada } from './types'
+import type { EjercicioPrescrito, SerieRegistrada, VelocidadDeSerie } from './types'
 
 function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {
   return {
@@ -225,5 +226,89 @@ describe('aplicarEscenario — solo por los caminos que el coach dejo escritos',
     const ninguno = { escenario: 'ninguno', rendimiento: 'en_linea', contexto: 'neutro', motivo: 'sin cruce' } as const
     const a = aplicarEscenario(ejercicio({ escenarios }), ninguno)
     expect(a).toEqual({ escenario: 'ninguno', motivo: 'sin cruce' })
+  })
+})
+
+describe('la velocidad, cuando existe, manda sobre el RIR', () => {
+  const vel = (pvPct: number, extra: Partial<VelocidadDeSerie> = {}): VelocidadDeSerie => ({
+    pvPct, hayEscala: false, calidad: 'buena', ...extra,
+  })
+  const conVel = (pvPct: number, pvObjetivo = 25, extra: Partial<VelocidadDeSerie> = {}) =>
+    ejercicio({
+      pvObjetivo,
+      series: [
+        { orden: 1, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(pvPct, extra) },
+        { orden: 2, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(pvPct, extra) },
+      ],
+    })
+
+  /**
+   * La direccion, que es lo unico que hay que entender: si el trabajo pautado le
+   * fatigo MENOS de lo previsto, tenia mas dentro — eso es ir por encima.
+   */
+  it('fatigarse menos de lo pautado es ir POR ENCIMA', () => {
+    expect(rendimientoDelDia(conVel(10))).toBe('por_encima') // 25 pedido, 10 real
+  })
+
+  it('fatigarse mas es ir POR DEBAJO', () => {
+    expect(rendimientoDelDia(conVel(40))).toBe('por_debajo')
+  })
+
+  it('dentro de la banda no dice nada', () => {
+    expect(rendimientoDelDia(conVel(25 - DESVIO_PV_PUNTOS + 1))).toBe('en_linea')
+  })
+
+  /**
+   * El %PV se apoya en que la escala sea la MISMA en la primera repeticion y en
+   * la ultima. Una referencia que se movio rompe justo eso — y entonces el %PV
+   * no vale mas que el RIR, que es la señal de respaldo.
+   */
+  it('con la referencia inclinada se descarta y manda el RIR', () => {
+    const e = conVel(10, 25, { inclinacionMax: 12 })
+    expect(rendimientoDelDia(e)).toBe('en_linea') // el RIR va clavado al objetivo
+  })
+
+  it('con calidad mala se descarta igual', () => {
+    expect(rendimientoDelDia(conVel(10, 25, { calidad: 'mala' }))).toBe('en_linea')
+  })
+
+  /**
+   * Sin pvObjetivo un %PV suelto no dice si sobro o falto: dice cuanto se freno
+   * la barra, que no es lo mismo.
+   */
+  it('sin objetivo pautado, la velocidad no informa', () => {
+    const e = ejercicio({
+      series: [{ orden: 1, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(10) }],
+    })
+    expect(rendimientoDelDia(e)).toBe('en_linea')
+  })
+
+  /**
+   * El caso que justifica la precedencia: el RIR declarado dice «clavado» —sigue
+   * a la prescripcion, no a la sensacion, medido sobre 186 series— y la barra
+   * dice que sobro margen. Gana la barra.
+   */
+  it('cuando el RIR dice una cosa y la barra otra, gana la barra', () => {
+    const e = ejercicio({
+      pvObjetivo: 30,
+      series: [
+        { orden: 1, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(12) },
+        { orden: 2, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(14) },
+      ],
+    })
+    expect(rendimientoDelDia(e)).toBe('por_encima')
+  })
+
+  /**
+   * Lo que la velocidad NO hace: sustituir a la carga. Son cosas distintas
+   * —cuanto peso movio contra cuanto le costo— y siguen cruzandose.
+   */
+  it('velocidad y carga contrarias siguen anulandose', () => {
+    const e = ejercicio({
+      cargaKg: 100,
+      pvObjetivo: 25,
+      series: [{ orden: 1, cargaKg: 60, reps: 10, rir: 2, velocidad: vel(10) }],
+    })
+    expect(rendimientoDelDia(e)).toBe('en_linea')
   })
 })

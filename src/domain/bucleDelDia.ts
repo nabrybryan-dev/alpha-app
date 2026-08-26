@@ -44,6 +44,30 @@ import type { EjercicioPrescrito } from './types'
 /** El umbral del coach: «más de un veinte por ciento» (2026-08-25). */
 export const DISCREPANCIA_GRANDE = 0.2
 
+/**
+ * Cuántos PUNTOS de pérdida de velocidad separan «lo pedido» de «otra cosa».
+ *
+ * Diez, y el número sale del ancho de las bandas, no del gusto: la tabla de
+ * `03-vbt` reparte los objetivos en franjas de 10-20 puntos (10-20 % potencia,
+ * 20-25 % fuerza eficiente, 20-40 % hipertrofia). Desviarse 10 puntos es
+ * **cambiar de banda**, que es lo mínimo que merece llamarse discrepancia.
+ *
+ * Punto de partida con evidencia detrás, no dogma: si al calibrarlo con series
+ * reales resulta ancho o estrecho, se mueve — y se anota por qué.
+ */
+export const DESVIO_PV_PUNTOS = 10
+
+/**
+ * Inclinación de la referencia por encima de la cual el %PV deja de valer.
+ *
+ * No es el umbral de calidad del encoder —ése decide si la MEDICIÓN vale— sino
+ * el de esta lectura: el %PV se apoya en que la escala sea la misma en la primera
+ * repetición y en la última, y una referencia que se mueve rompe justo eso.
+ * Cinco grados es conservador a propósito: descartar de más solo cuesta volver al
+ * RIR, y ésa es la señal de respaldo.
+ */
+export const INCLINACION_MAX_GRADOS = 5
+
 export type Rendimiento = 'por_encima' | 'en_linea' | 'por_debajo' | 'sin_registro'
 export type Contexto = 'bueno' | 'malo' | 'neutro' | 'sin_datos'
 export type Escenario = 'verde' | 'rojo' | 'ninguno'
@@ -107,11 +131,68 @@ export function rendimientoDelDia(ejercicio: EjercicioPrescrito): Rendimiento {
     }
   }
 
+  const porVelocidad = senalDeVelocidad(ejercicio)
+
+  /**
+   * **La velocidad manda sobre el RIR cuando existe, y no es una preferencia.**
+   *
+   * El RIR declarado sigue a la prescripción y no a la sensación —medido sobre
+   * 186 series el 2026-08-25, dispersión 0,37-0,57 en todas las categorías— y su
+   * precisión empeora lejos del fallo y en series largas. El %PV no opina: es un
+   * cociente entre dos velocidades medidas de la misma serie.
+   *
+   * Lo que NO hace: sustituir a la carga. Son cosas distintas —cuánto peso movió
+   * contra cuánto le costó moverlo— y por eso siguen cruzándose igual.
+   */
+  const porEsfuerzo = porVelocidad !== 'en_linea' ? porVelocidad : porRir
+
   // Si las dos señales apuntan a lados contrarios, no se afirma nada.
-  if (porCarga === 'por_encima' && porRir === 'por_debajo') return 'en_linea'
-  if (porCarga === 'por_debajo' && porRir === 'por_encima') return 'en_linea'
+  if (porCarga === 'por_encima' && porEsfuerzo === 'por_debajo') return 'en_linea'
+  if (porCarga === 'por_debajo' && porEsfuerzo === 'por_encima') return 'en_linea'
   if (porCarga !== 'en_linea') return porCarga
-  return porRir
+  return porEsfuerzo
+}
+
+/**
+ * La pérdida de velocidad real contra la pautada.
+ *
+ * **La dirección, que es lo único que hay que entender aquí:** si el trabajo
+ * pautado le fatigó MENOS de lo previsto —%PV por debajo del objetivo— es que
+ * tenía más dentro, y eso es ir `por_encima`. Si le fatigó más, `por_debajo`.
+ *
+ * Es la señal que el método pone en el rango 4 de la jerarquía y la que el coach
+ * quiere de primera línea (2026-08-25): *«si la barra con la misma carga está
+ * subiendo más rápido, la persona está más predispuesta a una serie más»*.
+ *
+ * Tres puertas antes de hacerle caso, y las tres están medidas:
+ *
+ * 1. **Sin `pvObjetivo` no hay contra qué comparar.** Un %PV suelto no dice si
+ *    sobró o faltó: dice cuánto se frenó la barra, que no es lo mismo.
+ * 2. **Calidad `mala` se descarta.** El contrato del encoder existe para esto.
+ * 3. **Referencia inclinada, fuera.** El %PV solo cancela la escala si ésta es
+ *    CONSTANTE durante la serie; si la referencia se movió entre la primera
+ *    repetición y la última, el cociente está contaminado y no vale más que el
+ *    RIR — que es la señal de respaldo.
+ */
+export function senalDeVelocidad(ejercicio: EjercicioPrescrito): Rendimiento {
+  const objetivo = ejercicio.pvObjetivo
+  if (typeof objetivo !== 'number') return 'en_linea'
+
+  const medidas = ejercicio.series
+    .map((s) => s.velocidad)
+    .filter(
+      (v): v is NonNullable<typeof v> =>
+        !!v &&
+        Number.isFinite(v.pvPct) &&
+        v.calidad.toLowerCase() !== 'mala' &&
+        !(typeof v.inclinacionMax === 'number' && v.inclinacionMax > INCLINACION_MAX_GRADOS),
+    )
+  if (medidas.length === 0) return 'en_linea'
+
+  const media = medidas.reduce((a, v) => a + v.pvPct, 0) / medidas.length
+  if (objetivo - media >= DESVIO_PV_PUNTOS) return 'por_encima'
+  if (media - objetivo >= DESVIO_PV_PUNTOS) return 'por_debajo'
+  return 'en_linea'
 }
 
 /**
