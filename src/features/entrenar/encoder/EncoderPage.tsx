@@ -5,6 +5,7 @@ import { gLocal } from './nucleo/analisis'
 import { puntoDeLaImagen } from './toque'
 import { seOcultanLasCifras } from './cifras'
 import { TablaTanda } from './TablaTanda'
+import { Encuadre } from './Encuadre'
 import { COPY } from './copys'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
@@ -103,6 +104,7 @@ export default function EncoderPage() {
   const [nota, setNota] = useState('')
 
   const [tanda, setTanda] = useState<Medicion[]>(leerTanda)
+  const [encuadreAbierto, setEncuadreAbierto] = useState(false)
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false)
 
   const gRef = useMemo(() => gLocal(lat, alt), [lat, alt])
@@ -421,6 +423,27 @@ export default function EncoderPage() {
         >
           Guardar medición
         </button>
+      </Card>
+
+      {/* El encuadre se decide UNA vez y no en cada serie, así que vive aquí y no
+          en la hoja de medición: meterlo allí añadiría al protocolo de cada toma
+          un paso que no cambia entre series. Va plegado porque se consulta al
+          montar el trípode, no cada vez que se abre el laboratorio. */}
+      <Card>
+        <button
+          type="button"
+          onClick={() => setEncuadreAbierto((v) => !v)}
+          className="flex min-h-11 w-full items-center justify-between text-left"
+          aria-expanded={encuadreAbierto}
+        >
+          <b className="text-sm">Dónde plantar la cámara</b>
+          <span className="font-mono text-tenue">{encuadreAbierto ? '−' : '+'}</span>
+        </button>
+        {encuadreAbierto && (
+          <div className="mt-3 border-t border-hairline pt-3">
+            <Encuadre />
+          </div>
+        )}
       </Card>
 
       {/* La tabla va ANTES de los criterios: los criterios son el agregado, y un

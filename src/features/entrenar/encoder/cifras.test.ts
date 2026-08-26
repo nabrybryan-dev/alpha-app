@@ -29,18 +29,26 @@ describe('las tres vistas la consultan, ninguna la reimplementa', () => {
   const AQUI = join(process.cwd(), 'src/features/entrenar/encoder')
   const leer = (f: string) => readFileSync(join(AQUI, f), 'utf8')
 
-  it.each(['HojaMedicion.tsx', 'EncoderPage.tsx'])(
-    '%s consulta la regla antes de pintar velocidades',
-    (archivo) => {
-      // Es un test de estructura y no de render a propósito: montar el
-      // laboratorio entero con un resultado descartado pide una cámara que jsdom
-      // no tiene, y la pregunta que importa —¿mira alguien el nivel antes de
-      // pintar?— se contesta igual de bien aquí y no se cae por otra razón.
-      const src = leer(archivo)
-      expect(src).toContain('seOcultanLasCifras')
-      expect(src.includes('vPrimera.toFixed')).toBe(true)
-    },
-  )
+  it('el laboratorio consulta la regla antes de pintar velocidades', () => {
+    // Es un test de estructura y no de render a propósito: montar el laboratorio
+    // con un resultado descartado pide una cámara que jsdom no tiene, y la
+    // pregunta que importa —¿mira alguien el nivel antes de pintar?— se contesta
+    // igual de bien aquí y no se cae por otra razón.
+    const src = leer('EncoderPage.tsx')
+    expect(src).toContain('seOcultanLasCifras')
+    expect(src).toContain('vPrimera.toFixed')
+  })
+
+  it('y la hoja de medición no la necesita porque ya no pinta velocidades', () => {
+    // Delega en `ResultadoSerie`, que es donde vive la regla con sus tests. Lo
+    // que este test protege es que no vuelva a pintarlas por su cuenta: si
+    // alguien reintroduce un `vPrimera.toFixed` ahí, tiene que consultar la
+    // regla como hacen las demás.
+    const src = leer('HojaMedicion.tsx')
+    const pintaVelocidades = src.includes('vPrimera.toFixed') || src.includes('pvPct.toFixed')
+    expect(pintaVelocidades ? src.includes('seOcultanLasCifras') : true).toBe(true)
+    expect(src).toContain('ResultadoSerie')
+  })
 
   it('y nadie compara con la cadena suelta por su cuenta', () => {
     // Si alguien escribe `nivel === 'descartada'` en una pantalla, la regla ya

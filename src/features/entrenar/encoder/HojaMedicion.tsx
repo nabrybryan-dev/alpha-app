@@ -4,8 +4,7 @@ import { gLocal } from './nucleo/analisis'
 import { anadirATanda, leerTanda, type Medicion } from './tanda'
 import type { Ajustes } from './useCaptura'
 import { Visor } from './Visor'
-import { seOcultanLasCifras } from './cifras'
-import { SelloCalidad } from './SelloCalidad'
+import { ResultadoSerie } from './ResultadoSerie'
 
 /**
  * Medir una serie desde dentro de la serie.
@@ -171,43 +170,16 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
 
           return (
             <div className="mt-3 flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <SelloCalidad nivel={s.calidad.nivel} tamano="inline" />
-                <span className="font-mono text-xs text-tenue">
-                  {s.reps.length} reps · {s.fpsReal.toFixed(0)} fps ·{' '}
-                  {(s.deteccion * 100).toFixed(0)} % detectado
-                </span>
-              </div>
-
-              {/* Esta es la pantalla donde se decide si guardar, así que es donde
-                  más daño hace enseñar la cifra de una toma descartada: el número
-                  es creíble y es falso, y una vez guardado entra en la tanda como
-                  si fuera bueno. Ver `cifras.ts`. */}
-              {seOcultanLasCifras(s.calidad.nivel) ? (
-                <p className="text-xs leading-snug text-tenue">
-                  Las velocidades de esta toma no se enseñan: la referencia no
-                  aguantó y el número que sale es creíble y falso.
-                </p>
-              ) : (
-                <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                  <span className="flex items-baseline gap-2">
-                    <b className="font-mono text-2xl tabular-nums text-texto">
-                      {s.vPrimera.toFixed(3)}
-                    </b>
-                    <span className="text-xs text-tenue">v₁ {s.unidad}</span>
-                  </span>
-                  <span className="flex items-baseline gap-2">
-                    <b className="font-mono text-2xl tabular-nums text-texto">
-                      {s.pvPct.toFixed(1)}
-                    </b>
-                    <span className="text-xs text-tenue">%PV</span>
-                  </span>
-                </div>
-              )}
-
-              {s.calidad.motivos.length > 0 && (
-                <p className="font-mono text-xs text-tenue">{s.calidad.motivos.join(' · ')}</p>
-              )}
+              {/* La pantalla de resultado del rediseño, en el sitio donde se
+                  lee de verdad. Trae el sello por materia, el %PV a cuerpo de
+                  titular con su ±, y la regla de que una toma descartada no
+                  enseña ni una cifra — que aquí es lo que decide si se guarda. */}
+              <ResultadoSerie
+                resultado={s}
+                ejercicio={ejercicio}
+                cargaKg={cargaKg}
+                reps={reps}
+              />
 
               <button
                 type="button"
