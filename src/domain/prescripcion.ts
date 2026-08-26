@@ -21,18 +21,57 @@ import type { EjercicioPrescrito, SeriePrescrita, UnidadCarga } from './types'
  * la palabra «TOTAL» o «KG». La nota no se interpreta; se transporta.
  */
 
-const UNIDADES = 'TOTAL(?:ES)?|POR\\s+PIERNA|POR\\s+LADO|POR\\s+MANO|CADA\\s+LADO'
+const UNIDADES =
+  'TOTAL(?:ES)?(?:\\s+EN\\s+BARRA)?|POR\\s+PIERNA|POR\\s+LADO|POR\\s+MANO|CADA\\s+LADO|DE\\s+CADA\\s+UNO'
+
+/**
+ * La ranura de repeticiones, y las tres formas en que aparece escrita.
+ *
+ * `A 12 REPS` es la canónica y la **única que el compositor genera**. Las otras
+ * dos se leen pero no se escriben:
+ *
+ * - **`A 12`, sin la palabra** — 28 casos, todos de julio de 2026.
+ * - **`x12`**, con la equis pegada o separada — 27 casos, también de julio.
+ *
+ * Y un sufijo que sí convive con la canónica: **el rango entre paréntesis** tras
+ * REPS —`A 11 REPS (10-12)`, 16 casos—, que repite lo que ya dice el campo
+ * `rango` y por eso se lee y se descarta.
+ *
+ * **Por qué se aceptan si el estilo está muerto.** Lo está —cero apariciones en
+ * agosto contra 71 en julio— pero un ejercicio cuya carga no se extrae se queda
+ * sin `cargaKg`, y sin `cargaKg` es invisible para
+ * `comprobar-alineacion-ejecutada.sql`: no falla, **deja de estar vigilado**, que
+ * es peor porque no se nota.
+ *
+ * ⚠ **El `A 12` sin palabra exige `;` inmediatamente después**, y ese anclaje es
+ * lo único que lo hace seguro. Sin él, `10KG A 20 PASOS` daría 20 repeticiones y
+ * `70KG A 12-15 + 5 PARCIALES` daría 12: dos formas donde el número que sigue a
+ * la `A` **no son repeticiones**. Con el `;` pegado, ninguna de las dos entra.
+ */
+const REPS =
+  '(?:A\\s+(\\d+(?:\\s*-\\s*\\d+)?)\\s*REPS?(?:\\s*\\(\\s*\\d+\\s*-\\s*\\d+\\s*\\))?' +
+  '|A\\s+(\\d+(?:\\s*-\\s*\\d+)?)(?=\\s*;)' +
+  '|[x×]\\s*(\\d+(?:\\s*-\\s*\\d+)?))'
 
 /**
  * Cabecera canónica. Las dos ranuras de unidad existen porque el coach la
  * escribe en los dos sitios: `80KG POR PIERNA A 12 REPS` y también
  * `20KG A 8 REPS POR PIERNA`.
+ *
+ * ⚠ **Esta gramática la comparten tres piezas**, y las tres cambian en el mismo
+ * commit: esta función, `supabase/rellenar-carga.sql` y
+ * `supabase/comprobar-alineacion.sql`. Dos implementaciones del mismo patrón
+ * divergen en silencio — es el modo M-1 con otra ropa.
  */
 const CABECERA = new RegExp(
   '^\\s*(\\d+(?:[.,]\\d+)?)\\s*KGS?\\b' +
+    `(?:\\s*,?\\s*(${UNIDADES}))?` +
+    `\\s*${REPS}` +
     `(?:\\s+(${UNIDADES}))?` +
-    '\\s+A\\s+(\\d+(?:\\s*-\\s*\\d+)?)\\s*REPS?' +
-    `(?:\\s+(${UNIDADES}))?` +
+    // El RIR viaja en DOS sitios según la forma: `x13 (RIR 2); 3 SERIES` lo pone
+    // antes del punto y coma, y la canónica lo pone tras SERIES. Se capturan los
+    // dos. El rango `(10-12)` no cae aquí: ya se lo comió la ranura de REPS.
+    '(?:\\s*\\(([^)]*)\\))?' +
     '\\s*;\\s*(\\d+)\\s*SERIES?' +
     '(?:\\s*\\(([^)]*)\\))?' +
     '\\s*\\.?\\s*',
@@ -61,6 +100,9 @@ function normalizarUnidad(bruto: string | undefined): UnidadCarga | undefined {
   if (u.startsWith('TOTAL')) return 'total'
   if (u === 'POR MANO') return 'por mano'
   if (u === 'POR PIERNA' || u === 'POR LADO' || u === 'CADA LADO') return 'por lado'
+  // «A 15 REPS DE CADA UNO» es una prevención de hombro con dos movimientos por
+  // serie, no una carga por lado: los 3,4 kg son los que se cogen, y punto.
+  if (u === 'DE CADA UNO') return 'kg'
   return undefined
 }
 
@@ -90,12 +132,20 @@ export function parsearPrescripcion(texto: string): PrescripcionPartida {
   const m = CABECERA.exec(original)
   if (!m) return { reconocida: false, notaCoach: original.trim() }
 
-  const [cabecera, carga, unidadAntes, reps, unidadDespues, sets, rir] = m
+  // Las tres ranuras de repeticiones son alternativas EXCLUYENTES dentro de
+  // `REPS`, así que exactamente una viene definida y las otras dos `undefined`.
+  const [cabecera, carga, unidadAntes, repsCanonica, repsSinPalabra, repsPorEquis,
+    unidadDespues, rirAntes, sets, rirDespues] = m
+  const reps = repsCanonica ?? repsSinPalabra ?? repsPorEquis
+  // Manda el de después de SERIES: es el de la cabecera canónica, la única forma
+  // que el compositor escribe. El de antes solo existe en la variante con equis.
+  const rir = rirDespues ?? rirAntes
   return {
     reconocida: true,
     cargaKg: Number(carga.replace(',', '.')),
     unidadCarga: normalizarUnidad(unidadAntes ?? unidadDespues) ?? 'kg',
-    repsDiana: Number(reps.split('-')[0].trim()),
+    // `reps` no puede faltar: si la cabecera casó, una de las tres ranuras casó.
+    repsDiana: Number(String(reps).split('-')[0].trim()),
     sets: Number(sets),
     rirObjetivo: leerRir(rir),
     notaCoach: original.slice(cabecera.length).trim(),
