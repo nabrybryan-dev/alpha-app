@@ -145,6 +145,14 @@ Reglas que quedan:
     —«en M14 llegaste al fallo»—, o ni iban de entrenar —«es un fallo mío»—. Un
     detector ingenuo habría leído una isométrica terapéutica como una orden de
     llegar al fallo. Regla → `Cerebro Alpha/wiki/motor-decision/02-intensidad-rir-rpe-cargas.md`.
+  - `supabase/comprobar-alineacion-ejecutada.sql` — la frase contra el **registro**:
+    ¿|prescrita − realizada| / prescrita > 15 % dos microciclos seguidos? Cada fila
+    exige decisión del coach: reanclar la prescripción a lo ejecutado (I-2) o
+    explicar la brecha. Es la que habría cazado la prensa del 24/08 (pautada 142,5,
+    moviendo 80), y el día que se estrenó cazó el caso inverso: pautada 145,
+    moviendo 160→240 con la frase diciendo «SUBE +5KG». Necesita `cargaKg` poblado
+    — el relleno de cerrados del 2026-08-25 (`rellenar-carga.sql`) la subió de 50 a
+    190 comparables; su límite restante es el registro (16 %).
 
   Y dos más, que no se leen igual que las anteriores:
   - `supabase/comprobar-sesiones-perdidas.sql` — ¿le falta al microciclo nuevo
