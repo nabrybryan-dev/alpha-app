@@ -1,6 +1,7 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
 import { puntoDeLaImagen } from './toque'
+import { COPY } from './copys'
 
 /**
  * El instrumento: la imagen de la cámara, sus lecturas en vivo y el botón de
@@ -86,6 +87,47 @@ export function Visor({ ajustes, children }: VisorProps) {
     },
   })
 
+  /**
+   * Abre la cámara sola al montar, y **solo si el permiso ya está concedido**.
+   *
+   * Bajaba a tres los dos toques que la doctrina fija para una medición: la
+   * secuencia real era abrir cámara + tocar el disco + grabar. El primero no
+   * decide nada —nadie abre la hoja de medición para no medir—, así que sobra.
+   *
+   * La condición del permiso no es una precaución de más: llamar a
+   * `getUserMedia` sin gesto de la persona dispara el diálogo del navegador
+   * nada más abrirse la hoja, y un permiso que se pide sin contexto se deniega.
+   * Denegado, además, no se vuelve a pedir. Así que la primera medición sigue
+   * pasando por el botón, y de la segunda en adelante ya no hay tercer toque.
+   *
+   * Si `permissions` no existe —Firefox no expone la cámara ahí— se queda el
+   * botón, que es el comportamiento de siempre.
+   */
+  const yaSeIntento = useRef(false)
+  useEffect(() => {
+    if (yaSeIntento.current) return
+    yaSeIntento.current = true
+    let vivo = true
+    void (async () => {
+      try {
+        const permiso = await navigator.permissions?.query({
+          name: 'camera' as PermissionName,
+        })
+        if (!vivo || permiso?.state !== 'granted') return
+        await captura.abrirCamara()
+      } catch {
+        // Sin `permissions` o con un nombre que el navegador no conoce: queda el
+        // botón. No se toca el aviso, que aquí no significaría nada.
+      }
+    })()
+    return () => {
+      vivo = false
+    }
+    // Solo al montar: `abrirCamara` se recrea en cada render y meterla en las
+    // dependencias reabriría la cámara sin parar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function alTocar(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
     const r = capa.getBoundingClientRect()
@@ -126,12 +168,43 @@ export function Visor({ ajustes, children }: VisorProps) {
               </p>
             </div>
           )}
-          {captura.grabando && (
+
+          {/* El estado de la referencia, sobre la imagen y en la esquina donde ya
+              estaba el punto de grabar. Son TRES y no los cinco del entregable:
+              `referencia_perdida` y `procesando` no tienen señal en `useCaptura`
+              —la pérdida solo se ve en el lienzo, cuando la ventana de búsqueda se
+              queda atrás, y en `marcador_perdido` del resultado—. Deducirlos aquí
+              sería una pastilla que afirma lo que nadie ha medido, y esta es la
+              pantalla donde la persona decide si repetir la toma. */}
+          {captura.camaraAbierta && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rojo" />
+              <span
+                className={
+                  captura.grabando
+                    ? 'h-2.5 w-2.5 rounded-full bg-rojo motion-safe:animate-pulse'
+                    : captura.listoParaGrabar
+                      ? 'h-2.5 w-2.5 rounded-full bg-[var(--placa)]'
+                      : 'h-2.5 w-2.5 rounded-full bg-[var(--gris-marca)]'
+                }
+              />
               <span className="font-mono text-[11px] uppercase tracking-widest text-white">
-                grabando
+                {captura.grabando
+                  ? 'grabando'
+                  : captura.listoParaGrabar
+                    ? 'disco fijado'
+                    : 'buscando la referencia'}
               </span>
+            </div>
+          )}
+
+          {/* Cómo se enseña el toque: una pastilla en la base, que se va en cuanto
+              hay disco fijado y no vuelve. Sin tutorial y sin overlay modal —esta
+              pantalla se usa con la barra en las manos—. */}
+          {captura.camaraAbierta && !captura.listoParaGrabar && !captura.grabando && (
+            <div className="absolute inset-x-0 bottom-3 flex justify-center">
+              <p className="rounded-full bg-black/70 px-3 py-1.5 text-[12.5px] text-white">
+                {COPY.hoja_senalar}
+              </p>
             </div>
           )}
         </div>

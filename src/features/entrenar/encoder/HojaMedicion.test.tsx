@@ -89,3 +89,47 @@ describe('medir desde dentro de la serie', () => {
     )
   })
 })
+
+describe('el disco se recuerda por ejercicio, no a secas', () => {
+  const CLAVE = 'alpha-encoder-diametro'
+  const DEL_PESO_MUERTO = `${CLAVE}:peso muerto convencional`
+
+  async function abrirHojaYElegir(etiqueta: string) {
+    await userEvent.click(screen.getByRole('button', { name: /Medir con la cámara/i }))
+    await screen.findByRole('dialog', { name: /Medir la barra/i })
+    await userEvent.click(screen.getByRole('button', { name: etiqueta }))
+  }
+
+  it('elegir un disco lo guarda bajo la clave DEL EJERCICIO', async () => {
+    // Alternar peso muerto con bumper y press con olímpico traía cada serie con
+    // el disco del otro. Cambiarlo cuesta un toque; no cambiarlo saca la escala
+    // de un diámetro equivocado, y eso produce un número perfectamente creíble.
+    render(
+      <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="d1" onGuardar={() => {}} />,
+    )
+    await abrirHojaYElegir('Hierro 10 kg')
+    expect(localStorage.getItem(DEL_PESO_MUERTO)).toBe('325')
+  })
+
+  it('y también el global, que es de donde hereda un ejercicio nuevo', async () => {
+    // La primera medición de un ejercicio que no tiene disco propio acierta más
+    // veces heredando el último usado que empezando siempre en 450.
+    render(
+      <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="d2" onGuardar={() => {}} />,
+    )
+    await abrirHojaYElegir('Olímpico 15 kg')
+    expect(localStorage.getItem(CLAVE)).toBe('400')
+  })
+
+  it('al reabrir, el ejercicio recupera EL SUYO y no el del otro', async () => {
+    localStorage.setItem(DEL_PESO_MUERTO, '325')
+    localStorage.setItem(CLAVE, '450') // el último de otro ejercicio
+    render(
+      <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="d3" onGuardar={() => {}} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /Medir con la cámara/i }))
+    await screen.findByRole('dialog', { name: /Medir la barra/i })
+    // El chip activo es el suyo, no el global.
+    expect(screen.getByRole('button', { name: 'Hierro 10 kg' }).className).toMatch(/border-rojo/)
+  })
+})

@@ -4,6 +4,7 @@ import { gLocal } from './nucleo/analisis'
 import { anadirATanda, leerTanda, type Medicion } from './tanda'
 import type { Ajustes } from './useCaptura'
 import { Visor } from './Visor'
+import { ResultadoSerie } from './ResultadoSerie'
 
 /**
  * Medir una serie desde dentro de la serie.
@@ -25,6 +26,30 @@ const DISCOS = [
 
 const CLAVE_DIAMETRO = 'alpha-encoder-diametro'
 
+/**
+ * El disco se recuerda **por ejercicio**, no a secas.
+ *
+ * Recordar «el último» a secas se lleva bien con una sesión de un solo
+ * ejercicio y mal con la realidad: si se alterna peso muerto con bumper y press
+ * con olímpico, cada serie llega con el disco de la otra y hay que cambiarlo —o
+ * peor, no se cambia y la escala sale del diámetro equivocado, que es un error
+ * que no se nota porque produce un número perfectamente creíble.
+ *
+ * La clave global se conserva como respaldo: la primera medición de un ejercicio
+ * nuevo hereda el último disco usado en general, que acierta más veces que 450.
+ */
+function claveDelEjercicio(ejercicio: string): string {
+  return `${CLAVE_DIAMETRO}:${ejercicio.trim().toLowerCase()}`
+}
+
+function discoRecordado(ejercicio: string): number {
+  return (
+    Number(localStorage.getItem(claveDelEjercicio(ejercicio))) ||
+    Number(localStorage.getItem(CLAVE_DIAMETRO)) ||
+    450
+  )
+}
+
 interface HojaMedicionProps {
   abierto: boolean
   onCerrar: () => void
@@ -36,9 +61,11 @@ interface HojaMedicionProps {
 export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: HojaMedicionProps) {
   // El disco se recuerda entre series: en una sesión no cambias de disco cada
   // vez, y volver a elegirlo nueve veces es tiempo que cuenta en el criterio.
-  const [diametroMm, setDiametroMm] = useState(
-    () => Number(localStorage.getItem(CLAVE_DIAMETRO)) || 450,
-  )
+  // Leer en el inicializador es seguro AQUÍ y conviene comprobarlo antes de
+  // copiar el patrón: solo corre en el primer montaje, y esto se monta una vez
+  // por serie porque `TarjetaEjercicio` le pone `key={ejercicio.id}-{orden}` a
+  // `RegistroSerie`. Sin esa key, cambiar de ejercicio dejaría el disco anterior.
+  const [diametroMm, setDiametroMm] = useState(() => discoRecordado(ejercicio))
   const [guardadas, setGuardadas] = useState(() => leerTanda().length)
   const [ultimoAviso, setUltimoAviso] = useState<string | null>(null)
 
@@ -56,6 +83,9 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
 
   const elegirDisco = (mm: number) => {
     setDiametroMm(mm)
+    localStorage.setItem(claveDelEjercicio(ejercicio), String(mm))
+    // Y también el global, que es de donde sale el primer acierto de un
+    // ejercicio que todavía no tiene disco propio.
     localStorage.setItem(CLAVE_DIAMETRO, String(mm))
   }
 
@@ -140,28 +170,16 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
 
           return (
             <div className="mt-3 flex flex-col gap-3">
-              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                <span className="flex items-baseline gap-2">
-                  <b className="font-mono text-2xl tabular-nums text-texto">
-                    {s.vPrimera.toFixed(3)}
-                  </b>
-                  <span className="text-xs text-tenue">v₁ {s.unidad}</span>
-                </span>
-                <span className="flex items-baseline gap-2">
-                  <b className="font-mono text-2xl tabular-nums text-texto">
-                    {s.pvPct.toFixed(1)}
-                  </b>
-                  <span className="text-xs text-tenue">%PV</span>
-                </span>
-                <span className="font-mono text-xs text-tenue">
-                  {s.reps.length} reps · {s.fpsReal.toFixed(0)} fps ·{' '}
-                  {(s.deteccion * 100).toFixed(0)} % detectado
-                </span>
-              </div>
-
-              {s.calidad.motivos.length > 0 && (
-                <p className="font-mono text-xs text-ambar">{s.calidad.motivos.join(' · ')}</p>
-              )}
+              {/* La pantalla de resultado del rediseño, en el sitio donde se
+                  lee de verdad. Trae el sello por materia, el %PV a cuerpo de
+                  titular con su ±, y la regla de que una toma descartada no
+                  enseña ni una cifra — que aquí es lo que decide si se guarda. */}
+              <ResultadoSerie
+                resultado={s}
+                ejercicio={ejercicio}
+                cargaKg={cargaKg}
+                reps={reps}
+              />
 
               <button
                 type="button"
@@ -183,8 +201,8 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
 
       {/* No se puede cerrar a propósito: la prueba de gravedad todavía no ha
           aprobado, así que estas cifras juzgan la herramienta, no el entreno. */}
-      <p className="mt-4 rounded-xl border border-ambar/40 bg-ambar/10 p-3 text-xs text-texto">
-        <b className="text-ambar">Provisional.</b> Estos números sirven para ver si la
+      <p className="mt-4 rounded-xl border-l-[3px] border-l-[var(--gris-marca)] border-y border-r border-hairline p-3 text-xs text-texto">
+        <b className="text-texto">Provisional.</b> Estos números sirven para ver si la
         herramienta funciona en el gimnasio. No entran en tu historial ni deciden cargas.
       </p>
     </Sheet>

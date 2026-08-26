@@ -3,6 +3,11 @@ import { Badge } from '../../../components/ui/Badge'
 import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
 import { puntoDeLaImagen } from './toque'
+import { seOcultanLasCifras } from './cifras'
+import { TablaTanda } from './TablaTanda'
+import { Encuadre } from './Encuadre'
+import { COPY } from './copys'
+import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
   aCsv,
@@ -99,6 +104,7 @@ export default function EncoderPage() {
   const [nota, setNota] = useState('')
 
   const [tanda, setTanda] = useState<Medicion[]>(leerTanda)
+  const [encuadreAbierto, setEncuadreAbierto] = useState(false)
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false)
 
   const gRef = useMemo(() => gLocal(lat, alt), [lat, alt])
@@ -250,9 +256,11 @@ export default function EncoderPage() {
       {/* Este aviso no se puede cerrar a propósito. La prueba de gravedad es la
           que valida escala y tiempos, y hasta que apruebe cualquier cifra de
           aquí es creíble sin ser cierta — que es el modo de fallo peligroso. */}
-      <div className="rounded-panel border border-ambar/40 bg-ambar/10 p-3">
+      {/* Filete gris y no ámbar: no es una alarma sino una condición del
+          instrumento, y una alarma que lleva meses puesta deja de leerse. */}
+      <div className="rounded-panel border-l-[3px] border-l-[var(--gris-marca)] border-y border-r border-hairline p-3">
         <p className="text-sm text-texto">
-          <b className="text-ambar">Números provisionales.</b> La prueba de gravedad todavía no ha
+          <b className="text-texto">Números provisionales.</b> La prueba de gravedad todavía no ha
           aprobado, así que estos valores sirven para juzgar <i>la herramienta</i> — si detecta, si
           estorba, cuánto tarda— y no para decidir cargas de nadie.
         </p>
@@ -417,30 +425,59 @@ export default function EncoderPage() {
         </button>
       </Card>
 
+      {/* El encuadre se decide UNA vez y no en cada serie, así que vive aquí y no
+          en la hoja de medición: meterlo allí añadiría al protocolo de cada toma
+          un paso que no cambia entre series. Va plegado porque se consulta al
+          montar el trípode, no cada vez que se abre el laboratorio. */}
+      <Card>
+        <button
+          type="button"
+          onClick={() => setEncuadreAbierto((v) => !v)}
+          className="flex min-h-11 w-full items-center justify-between text-left"
+          aria-expanded={encuadreAbierto}
+        >
+          <b className="text-sm">Dónde plantar la cámara</b>
+          <span className="font-mono text-tenue">{encuadreAbierto ? '−' : '+'}</span>
+        </button>
+        {encuadreAbierto && (
+          <div className="mt-3 border-t border-hairline pt-3">
+            <Encuadre />
+          </div>
+        )}
+      </Card>
+
+      {/* La tabla va ANTES de los criterios: los criterios son el agregado, y un
+          agregado que no cuadra solo se puede diagnosticar mirando las filas. */}
+      <Card className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between">
+          <b className="text-sm">Tanda · {tanda.length} tomas</b>
+          <span className="font-mono text-[11px] text-tenue">reales / detectadas</span>
+        </div>
+        <TablaTanda filas={tanda} />
+        <p className="text-[11.5px] leading-snug text-tenue">{COPY.tanda_fantasma}</p>
+      </Card>
+
       <Card className="flex flex-col gap-3">
         <b className="text-sm">Criterios de la fase 2</b>
         <ul className="flex flex-col gap-1.5">
           {criterios.map((c) => (
             <li
               key={c.etiqueta}
-              className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-l-2 py-0.5 pl-3 ${
-                c.cumple === undefined
-                  ? 'border-linea'
-                  : c.cumple ? 'border-verde' : 'border-rojo bg-rojo/5'
-              }`}
+              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 border-l border-hairline py-1 pl-3"
             >
               <span className="text-sm text-texto">{c.etiqueta}</span>
-              <span className="flex items-baseline gap-2">
+              <span className="flex items-center gap-2">
                 <span className="font-mono text-[11px] text-tenue">{c.umbral}</span>
-                <b
-                  className={`font-mono tabular-nums ${
-                    c.cumple === undefined
-                      ? 'text-sm font-normal text-tenue'
-                      : c.cumple ? 'text-base text-verde' : 'text-base text-rojo'
-                  }`}
-                >
-                  {c.valor ?? '--'}
-                </b>
+                <b className="font-mono text-base tabular-nums text-texto">{c.valor ?? '--'}</b>
+                {/* Tres materias y tres palabras propias: aquí no se juzga una
+                    toma sino un criterio contra su umbral, y «sin datos» es un
+                    estado que ninguna otra pantalla tiene. La placa hueca lo dice
+                    sin aprobarlo, que es lo que exige el test de esta página. */}
+                <SelloCalidad
+                  tamano="inline"
+                  nivel={c.cumple === undefined ? 'dudosa' : c.cumple ? 'buena' : 'descartada'}
+                  titulo={c.cumple === undefined ? 'sin datos' : c.cumple ? 'pasa' : 'falla'}
+                />
               </span>
               {c.detalle && (
                 <span className="w-full font-mono text-[11px] text-tenue">{c.detalle}</span>
@@ -623,13 +660,13 @@ function ResultadoMedicion({ resultado, modo }: { resultado: Resultado | null; m
           inclinación {g.inclinacionGrados.toFixed(0)}°
         </p>
         {g.errorPct > 0 && (
-          <p className="text-xs text-ambar">
+          <p className="text-xs text-tenue">
             Por encima de la g local, y el aire solo puede frenar: esto no es física, es escala o
             tiempos.
           </p>
         )}
         {g.avisos.length > 0 && (
-          <p className="text-xs text-ambar">{g.avisos.join(' · ')}</p>
+          <p className="text-xs text-tenue">{g.avisos.join(' · ')}</p>
         )}
       </Card>
     )
@@ -649,38 +686,50 @@ function ResultadoMedicion({ resultado, modo }: { resultado: Resultado | null; m
     )
   }
 
-  const tono = s.calidad.nivel === 'buena' ? 'verde' : s.calidad.nivel === 'dudosa' ? 'ambar' : 'rojo'
+  // El veredicto se lee en la MATERIA de la placa, no en un color: verde, ámbar y
+  // rojo eran el último resto de semáforo del encoder, y el rojo de esta app
+  // significa selección y acción, nunca calidad.
+  const ocultas = seOcultanLasCifras(s.calidad.nivel)
   return (
     <Card destacada className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <Badge tono={tono}>{s.calidad.nivel}</Badge>
+        <SelloCalidad nivel={s.calidad.nivel} tamano="inline" />
         <span className="font-mono text-xs text-tenue">
           {s.reps.length} reps · {s.fpsReal.toFixed(0)} fps · {(s.deteccion * 100).toFixed(0) } %
           detectado
         </span>
       </div>
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-        <span className="flex items-baseline gap-2">
-          <b className="font-mono text-2xl tabular-nums">{s.vPrimera.toFixed(3)}</b>
-          <span className="text-xs text-tenue">v₁ {s.unidad}</span>
-        </span>
-        <span className="flex items-baseline gap-2">
-          <b className="font-mono text-2xl tabular-nums">{s.vUltima.toFixed(3)}</b>
-          <span className="text-xs text-tenue">v última</span>
-        </span>
-        <span className="flex items-baseline gap-2">
-          <b className="font-mono text-2xl tabular-nums">{s.pvPct.toFixed(1)}</b>
-          <span className="text-xs text-tenue">%PV</span>
-        </span>
-      </div>
-      {s.unidad === 'px/s' && (
-        <p className="text-xs text-ambar">
+      {/* Con la toma descartada NO se pinta ni una cifra: el número que salió es
+          falso, no poco fiable, y en gris pequeñito alguien lo apunta igual. */}
+      {ocultas ? (
+        <p className="text-xs leading-snug text-tenue">
+          Las velocidades de esta toma no se enseñan: la referencia no aguantó y el
+          número que sale es creíble y falso.
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+          <span className="flex items-baseline gap-2">
+            <b className="font-mono text-2xl tabular-nums">{s.vPrimera.toFixed(3)}</b>
+            <span className="text-xs text-tenue">v₁ {s.unidad}</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <b className="font-mono text-2xl tabular-nums">{s.vUltima.toFixed(3)}</b>
+            <span className="text-xs text-tenue">v última</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <b className="font-mono text-2xl tabular-nums">{s.pvPct.toFixed(1)}</b>
+            <span className="text-xs text-tenue">%PV</span>
+          </span>
+        </div>
+      )}
+      {s.unidad === 'px/s' && !ocultas && (
+        <p className="text-xs leading-snug text-tenue">
           Sin escala: esto va en píxeles por segundo. El %PV sigue valiendo —es un cociente— pero
           los m/s no existen en esta toma.
         </p>
       )}
       {s.calidad.motivos.length > 0 && (
-        <p className="font-mono text-xs text-ambar">{s.calidad.motivos.join(' · ')}</p>
+        <p className="font-mono text-xs text-tenue">{s.calidad.motivos.join(' · ')}</p>
       )}
     </Card>
   )
