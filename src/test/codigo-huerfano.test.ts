@@ -36,6 +36,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'Deriva si la tecnica de un ejercicio esta asentada. Espera a la migracion 0043, ' +
     'que a su vez espera a comprobar-ids-de-ejercicio.sql. Ver ' +
     'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4.',
+
+  // El bucle del dia: la ondulacion flexible intra-semana, EN SOMBRA a proposito.
+  // El despliegue pactado con el coach (supuesto del 2026-08-25, §7) empieza
+  // calculando sin enseñar: un microciclo entero guardando que escenario se
+  // habria pisado, y el cierre compara si esos ajustes habrian reducido la
+  // discrepancia. Se enchufa cuando ese numero lo avale, no antes.
+  'src/domain/bucleDelDia.ts':
+    'El cruce rendimiento x contexto del dia (verde/rojo/ninguno) y la regla del ' +
+    'martes. En sombra hasta que la corrida de un microciclo avale que reduce la ' +
+    'discrepancia. Ver Cerebro Alpha/docs/superpowers/specs/' +
+    '2026-08-25-ondulacion-flexible-intra-semana.md §7.',
 }
 
 /**
