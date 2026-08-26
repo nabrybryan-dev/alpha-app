@@ -116,13 +116,13 @@ with canonicas(categoria) as (
 ),
 ejercicios as (
   select u.nombre                                        as asesorado,
-         m.datos->>'microciclo'                          as microciclo,
+         m.numero                                        as microciclo,
          sesion->>'nombre'                               as sesion,
          e->>'nombre'                                    as ejercicio,
          nullif(trim(coalesce(e->>'categoria','')), '')  as categoria,
          coalesce((e->>'sets')::int, 0)                  as sets
-  from microciclos m
-  join usuarios_app u on u.id = m.usuario_id,
+  from public.microciclos m
+  join public.usuarios_app u on u.id = m.usuario_id,
        jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
        jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e
 )
@@ -155,7 +155,7 @@ select nullif(trim(coalesce(e->>'categoria','')), '') as categoria,
        e->>'nombre'                                   as ejercicio,
        count(*)                                       as veces,
        count(distinct m.usuario_id)                   as personas
-from microciclos m,
+from public.microciclos m,
      jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
      jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e
 group by 1, 2
@@ -205,8 +205,8 @@ with canonicas(categoria) as (
 select u.nombre                                         as asesorado,
        count(*)                                         as ejercicios_sin_contar,
        sum(coalesce((e->>'sets')::int, 0))              as series_perdidas
-from microciclos m
-join usuarios_app u on u.id = m.usuario_id,
+from public.microciclos m
+join public.usuarios_app u on u.id = m.usuario_id,
      jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
      jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e
 left join canonicas c
@@ -223,15 +223,16 @@ order by series_perdidas desc;
 -- el dato que falta para cerrar su dictamen: si los cuatro accesorios salen a 3,
 -- el conteo corregido cuadra exacto con lo que se le escribio en el M23.
 
-select sesion->>'nombre'                          as sesion,
+select m.numero                                   as microciclo,
+       sesion->>'nombre'                          as sesion,
        e->>'nombre'                               as ejercicio,
        e->>'categoria'                            as categoria,
        (e->>'sets')::int                          as series_pautadas,
        jsonb_array_length(coalesce(e->'series','[]'::jsonb)) as series_registradas
-from microciclos m
-join usuarios_app u on u.id = m.usuario_id,
+from public.microciclos m
+join public.usuarios_app u on u.id = m.usuario_id,
      jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
      jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e
 where u.nombre ilike '%dhanny%'
-  and coalesce(m.datos->>'microciclo', '') ilike '%22%'
+  and m.numero = 22
 order by sesion, (e->>'orden')::int;
