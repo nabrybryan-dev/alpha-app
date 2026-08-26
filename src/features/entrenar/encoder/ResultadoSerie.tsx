@@ -1,5 +1,6 @@
 import { Card } from '../../../components/ui/Card'
 import { COPY } from './copys'
+import { seOcultanLasCifras } from './cifras'
 import { GraficaVelocidad } from './GraficaVelocidad'
 import { NumeroConError } from './NumeroConError'
 import { PlacaHundida, SelloCalidad } from './SelloCalidad'
@@ -145,7 +146,7 @@ export function ResultadoSerie({
   }
 
   const { calidad, pvPct, vPrimera, vUltima, unidad, ie, hayEscala } = resultado
-  const descartada = calidad.nivel === 'descartada'
+  const descartada = seOcultanLasCifras(calidad.nivel)
   const motivoQueContamina = calidad.motivos[0]
 
   return (

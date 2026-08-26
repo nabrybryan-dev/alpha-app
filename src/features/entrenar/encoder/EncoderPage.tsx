@@ -3,6 +3,8 @@ import { Badge } from '../../../components/ui/Badge'
 import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
 import { puntoDeLaImagen } from './toque'
+import { seOcultanLasCifras } from './cifras'
+import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
   aCsv,
@@ -250,9 +252,11 @@ export default function EncoderPage() {
       {/* Este aviso no se puede cerrar a propósito. La prueba de gravedad es la
           que valida escala y tiempos, y hasta que apruebe cualquier cifra de
           aquí es creíble sin ser cierta — que es el modo de fallo peligroso. */}
-      <div className="rounded-panel border border-ambar/40 bg-ambar/10 p-3">
+      {/* Filete gris y no ámbar: no es una alarma sino una condición del
+          instrumento, y una alarma que lleva meses puesta deja de leerse. */}
+      <div className="rounded-panel border-l-[3px] border-l-[var(--gris-marca)] border-y border-r border-hairline p-3">
         <p className="text-sm text-texto">
-          <b className="text-ambar">Números provisionales.</b> La prueba de gravedad todavía no ha
+          <b className="text-texto">Números provisionales.</b> La prueba de gravedad todavía no ha
           aprobado, así que estos valores sirven para juzgar <i>la herramienta</i> — si detecta, si
           estorba, cuánto tarda— y no para decidir cargas de nadie.
         </p>
@@ -623,13 +627,13 @@ function ResultadoMedicion({ resultado, modo }: { resultado: Resultado | null; m
           inclinación {g.inclinacionGrados.toFixed(0)}°
         </p>
         {g.errorPct > 0 && (
-          <p className="text-xs text-ambar">
+          <p className="text-xs text-tenue">
             Por encima de la g local, y el aire solo puede frenar: esto no es física, es escala o
             tiempos.
           </p>
         )}
         {g.avisos.length > 0 && (
-          <p className="text-xs text-ambar">{g.avisos.join(' · ')}</p>
+          <p className="text-xs text-tenue">{g.avisos.join(' · ')}</p>
         )}
       </Card>
     )
@@ -649,38 +653,50 @@ function ResultadoMedicion({ resultado, modo }: { resultado: Resultado | null; m
     )
   }
 
-  const tono = s.calidad.nivel === 'buena' ? 'verde' : s.calidad.nivel === 'dudosa' ? 'ambar' : 'rojo'
+  // El veredicto se lee en la MATERIA de la placa, no en un color: verde, ámbar y
+  // rojo eran el último resto de semáforo del encoder, y el rojo de esta app
+  // significa selección y acción, nunca calidad.
+  const ocultas = seOcultanLasCifras(s.calidad.nivel)
   return (
     <Card destacada className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <Badge tono={tono}>{s.calidad.nivel}</Badge>
+        <SelloCalidad nivel={s.calidad.nivel} tamano="inline" />
         <span className="font-mono text-xs text-tenue">
           {s.reps.length} reps · {s.fpsReal.toFixed(0)} fps · {(s.deteccion * 100).toFixed(0) } %
           detectado
         </span>
       </div>
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-        <span className="flex items-baseline gap-2">
-          <b className="font-mono text-2xl tabular-nums">{s.vPrimera.toFixed(3)}</b>
-          <span className="text-xs text-tenue">v₁ {s.unidad}</span>
-        </span>
-        <span className="flex items-baseline gap-2">
-          <b className="font-mono text-2xl tabular-nums">{s.vUltima.toFixed(3)}</b>
-          <span className="text-xs text-tenue">v última</span>
-        </span>
-        <span className="flex items-baseline gap-2">
-          <b className="font-mono text-2xl tabular-nums">{s.pvPct.toFixed(1)}</b>
-          <span className="text-xs text-tenue">%PV</span>
-        </span>
-      </div>
-      {s.unidad === 'px/s' && (
-        <p className="text-xs text-ambar">
+      {/* Con la toma descartada NO se pinta ni una cifra: el número que salió es
+          falso, no poco fiable, y en gris pequeñito alguien lo apunta igual. */}
+      {ocultas ? (
+        <p className="text-xs leading-snug text-tenue">
+          Las velocidades de esta toma no se enseñan: la referencia no aguantó y el
+          número que sale es creíble y falso.
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+          <span className="flex items-baseline gap-2">
+            <b className="font-mono text-2xl tabular-nums">{s.vPrimera.toFixed(3)}</b>
+            <span className="text-xs text-tenue">v₁ {s.unidad}</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <b className="font-mono text-2xl tabular-nums">{s.vUltima.toFixed(3)}</b>
+            <span className="text-xs text-tenue">v última</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <b className="font-mono text-2xl tabular-nums">{s.pvPct.toFixed(1)}</b>
+            <span className="text-xs text-tenue">%PV</span>
+          </span>
+        </div>
+      )}
+      {s.unidad === 'px/s' && !ocultas && (
+        <p className="text-xs leading-snug text-tenue">
           Sin escala: esto va en píxeles por segundo. El %PV sigue valiendo —es un cociente— pero
           los m/s no existen en esta toma.
         </p>
       )}
       {s.calidad.motivos.length > 0 && (
-        <p className="font-mono text-xs text-ambar">{s.calidad.motivos.join(' · ')}</p>
+        <p className="font-mono text-xs text-tenue">{s.calidad.motivos.join(' · ')}</p>
       )}
     </Card>
   )
