@@ -275,3 +275,105 @@ export function aportesDeCategoria(
 export function grupoPrimario(categoria: string, nombreEjercicio = ''): Grupo | undefined {
   return aportesDeCategoria(categoria, nombreEjercicio).find((a) => a.factor === 1)?.grupo
 }
+
+/**
+ * Dónde cae el pico de exigencia externa de cada categoría.
+ *
+ * Regla, de `Cerebro Alpha/wiki/conocimiento/perfiles-de-resistencia.md` §2.1: con
+ * peso libre la carga tira siempre vertical, así que el brazo de momento externo
+ * es la distancia HORIZONTAL entre la articulación y la carga. **El pico está
+ * donde el segmento queda más horizontal.**
+ *
+ * Para qué sirve: **selección y progresión de ejercicios**, no para el cue.
+ *
+ * ⚠️ Aquí vivió hasta el 2026-08-25 el ancla de «parciales en reserva», que se
+ * inyectaba en el cue de las categorías con pico distinto de `inicio`. **Se
+ * retiró: contradecía el método.** En Alpha las repeticiones son COMPLETAS y a
+ * rango completo salvo que la prescripción diga otra cosa, y RIR 0 **no es el
+ * fallo** — es la última repetición completa, con la parcial aún guardada.
+ * Llegar al fallo es meterse en esa parcial. El ancla decía lo contrario y lo
+ * habría dicho en 19 de las 32 categorías.
+ *
+ * ⚠ Una categoría no fija del todo el perfil: la leva de la máquina lo modifica
+ * (§7.1: las levas no igualan la curva humana). Cuatro entradas siguen marcadas
+ * para revisión del coach — sobre todo APERTURA DE PECHO, que con mancuerna pica
+ * abajo y en pec deck pica al cierre.
+ *
+ * ## Dos resueltas el 2026-08-25, y la primera enseña algo
+ *
+ * **FLEXIÓN DE RODILLA.** La regla de §2.1 sola dice `inicio`: la tibia está más
+ * horizontal con la rodilla extendida, tanto sentado como tumbado. Pero el coach,
+ * preguntado por cómo falla la gente en SU máquina, responde que «sigue moviendo
+ * un trozo sin llegar a cerrar todo el ROM». **La leva no deja que la resistencia
+ * caiga**, así que el punto duro está al cerrar y quedan parciales. Va `final`.
+ *
+ * Es el aviso de §7.1 hecho caso concreto: en máquina, la regla de la palanca no
+ * basta y **manda la observación**. Se intentó zanjarlo con datos —dispersión del
+ * RIR declarado por categoría, 186 series— y no discrimina: los ejercicios de
+ * fallo limpio y los de fallo con parciales salen mezclados, porque el RIR
+ * declarado sigue a la prescripción y no a la sensación.
+ *
+ * El reparto de la cartera era 14 activos sentado y 11 tumbado —los dos brazos de
+ * Maeo 2021 (PMID 33009197)—, y la respuesta vale para los dos: no cambia dónde
+ * se falla, cambia a qué longitud se carga el isquio.
+ *
+ * **TRACCIÓN HORIZONTAL.** Aquí la regla y la observación coinciden: al tirar, el
+ * antebrazo va hacia la horizontal y el brazo de momento sobre el codo CRECE, así
+ * que el punto duro es el cierre. Se falla sin tocar el torso, dejando recorrido.
+ * Vale igual en peso libre (14 activos) y en polea o máquina (21): la carga tira
+ * distinto pero el fallo ocurre en el mismo sitio.
+ *
+ * Las categorías sin entrada son isométricas o no van al fallo.
+ */
+export type PicoDeExigencia = 'inicio' | 'medio' | 'final'
+
+export const PICO_DE_EXIGENCIA: Partial<Record<Categoria, PicoDeExigencia>> = {
+  'BISAGRA DE CADERA': 'inicio',
+  'EXTENSIÓN DE CADERA': 'final',
+  'ABDUCCIÓN DE CADERA': 'final', // ⚠ revisar: máquina sentado vs polea
+  'ADUCCIÓN DE CADERA': 'final', // ⚠ revisar: la leva manda
+  'ROTACIÓN DE CADERA': 'medio',
+  SENTADILLA: 'inicio',
+  'SENTADILLA UNILATERAL': 'inicio',
+  'EXTENSIÓN DE RODILLA': 'final',
+  'FLEXIÓN DE RODILLA': 'final', // confirmado por el coach 2026-08-25, ver nota abajo
+  'FLEXIÓN PLANTAR': 'inicio',
+  DORSIFLEXIÓN: 'final',
+  'EMPUJE HORIZONTAL': 'inicio',
+  'EMPUJE INCLINADO': 'inicio',
+  'EMPUJE VERTICAL': 'inicio',
+  'APERTURA DE PECHO': 'inicio', // ⚠ revisar: mancuerna sí, pec deck no
+  'TRACCIÓN VERTICAL': 'inicio',
+  'TRACCIÓN HORIZONTAL': 'final', // confirmado 2026-08-25: se falla sin cerrar, en barra y en polea
+  'EXTENSIÓN DE HOMBRO': 'inicio',
+  'RETRACCIÓN ESCAPULAR': 'final',
+  'ABDUCCIÓN DE HOMBRO': 'medio',
+  'ABDUCCIÓN HORIZONTAL': 'final',
+  'FLEXIÓN DE HOMBRO': 'medio',
+  'FLEXIÓN DE CODO': 'medio',
+  'EXTENSIÓN DE CODO': 'medio', // ⚠ revisar: press francés ≠ polea
+  'FLEXIÓN DE TRONCO': 'medio',
+  'EXTENSIÓN LUMBAR': 'inicio',
+}
+
+
+/**
+ * Marcas de que la prescripción declara una técnica o un recorrido pautado.
+ *
+ * Se busca en la frase y en el cue, que es donde viven hoy — no hay campo.
+ * `parcial` y `rango medio` cubren los dos sentidos opuestos que tiene eso en el
+ * vocabulario del método: **parciales al final como sobrecarga**, y **recorrido
+ * reducido como regresión**. Los dos se declaran, y por motivos contrarios.
+ *
+ * Para qué sirve, ahora que el ancla del cue se retiró: para saber que ese
+ * ejercicio lleva mini-bloques que capturar en `SerieRegistrada.extra`. En Alpha
+ * el rango completo es el defecto y las repeticiones son completas; lo que se
+ * declara explícitamente es la EXCEPCIÓN, y esto la encuentra.
+ */
+const MARCAS_DE_TECNICA =
+  /myo[- ]?reps?|rest[- ]?pause|restpause|parcial|rango medio|medio rango|drop *set|series? descendente|escalera de exposici/i
+
+/** Si el ejercicio trae técnica o recorrido declarados por el coach. */
+export function tieneTecnicaDeclarada(cues: string, prescripcion: string): boolean {
+  return MARCAS_DE_TECNICA.test(`${cues} ${prescripcion}`)
+}

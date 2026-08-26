@@ -19,6 +19,7 @@ import {
   sesionOndulada,
 } from './ondulacion'
 import type { EjercicioPrescrito } from './types'
+import { AL_FALLO, aflojar } from './objetivoDeIntensidad'
 
 function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {
   return {
@@ -185,6 +186,49 @@ describe('ondularEjercicio', () => {
       { orden: 3, cargaKg: 50, reps: 10, rir: 2 },
       { orden: 4, cargaKg: 50, reps: 10, rir: 2 },
     ],
+  })
+
+  describe('un ejercicio pautado al FALLO', () => {
+    const alFallo: EjercicioPrescrito = { ...registrado, rirObjetivo: AL_FALLO }
+
+    /**
+     * Con readiness normal la carga NO cambia respecto a RIR 0, y está bien.
+     * La parte contada de una serie al fallo acaba en la última repetición
+     * completa; la parcial que viene después no es una repetición y no mueve el
+     * peso de la barra. Lo que cambia es lo que se hace al terminar las reps.
+     */
+    it('ondula con la carga de RIR 0 mientras la readiness aguante', () => {
+      const r = ondularEjercicio(alFallo, {})
+      expect(r.series.every((s) => s.rir === 0)).toBe(true)
+      expect(r.series.map((s) => s.cargaKg)).toEqual(
+        ondularEjercicio({ ...registrado, rirObjetivo: 0 }, {}).series.map((s) => s.cargaKg),
+      )
+    })
+
+    /**
+     * **El escalón de debajo del fallo es RIR 0** —durísimo, pero ya sin pedir la
+     * parcial—, y por eso la ondulación afloja con `aflojar` y no sumando.
+     *
+     * Las dos formas de sumar fallaban, y la segunda es la peligrosa:
+     *
+     * - `'FALLO' + 1` da la cadena `'FALLO1'`, que entra en la tabla como `NaN`
+     *   y saca una carga `NaN`. Rompe, pero **se ve**.
+     * - Guardar el fallo como `rirObjetivo: 0` y sumar da **RIR 1**: un número
+     *   legítimo, una carga creíble, y la instrucción de máxima intensidad
+     *   borrada sin que nada lo denuncie. Eso no se ve, y es la razón de que el
+     *   fallo sea un valor propio y no un cero.
+     */
+    it('en rojo baja al escalón de debajo, que es RIR 0', () => {
+      const r = ondularEjercicio(alFallo, { prs: 3 })
+      expect(r.series.every((s) => s.rir === 0)).toBe(true)
+      expect(r.motivo).toContain('PRS en rojo')
+    })
+
+    it('en crítico baja dos escalones: RIR 1', () => {
+      const r = ondularEjercicio(alFallo, { prs: 1 })
+      expect(r.series.every((s) => s.rir === 1)).toBe(true)
+      expect(r.motivo).toContain('PRS crítico')
+    })
   })
 
   /**
@@ -390,7 +434,7 @@ describe('ondularEjercicio', () => {
 
   it('congela la progresión y suelta el RIR con PRS en rojo', () => {
     const r = ondularEjercicio(registrado, { prs: 3 })
-    expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
+    expect(r.series.every((s) => s.rir === aflojar(registrado.rirObjetivo, 1))).toBe(true)
     expect(r.motivo).toContain('PRS en rojo')
   })
 
@@ -401,7 +445,7 @@ describe('ondularEjercicio', () => {
   it('con PRS crítico recorta una serie y suelta 2 de RIR', () => {
     const r = ondularEjercicio(registrado, { prs: 1 })
     expect(r.series).toHaveLength(registrado.sets - 1)
-    expect(r.series.every((s) => s.rir === registrado.rirObjetivo + 2)).toBe(true)
+    expect(r.series.every((s) => s.rir === aflojar(registrado.rirObjetivo, 2))).toBe(true)
     expect(r.motivo).toContain('PRS crítico')
     // Lo que el motor NO decide, pero recuerda:
     expect(r.motivo).toContain('accesorios')
@@ -425,7 +469,7 @@ describe('ondularEjercicio', () => {
    */
   it('POCO (3) frena igual que cualquier rojo, y NORMAL (6) no frena', () => {
     const poco = ondularEjercicio(registrado, { prs: 3 })
-    expect(poco.series.every((s) => s.rir === registrado.rirObjetivo + 1)).toBe(true)
+    expect(poco.series.every((s) => s.rir === aflojar(registrado.rirObjetivo, 1))).toBe(true)
     expect(poco.motivo).toContain('PRS en rojo')
 
     const normal = ondularEjercicio(registrado, { prs: 6 })

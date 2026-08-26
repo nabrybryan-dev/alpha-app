@@ -1,0 +1,314 @@
+import { describe, expect, it } from 'vitest'
+import {
+  DESVIO_PV_PUNTOS,
+  aplicarEscenario,
+  contextoDelDia,
+  escenarioDelDia,
+  reglaDelMartes,
+  rendimientoDelDia,
+} from './bucleDelDia'
+import { AL_FALLO } from './objetivoDeIntensidad'
+import type { EjercicioPrescrito, SerieRegistrada, VelocidadDeSerie } from './types'
+
+function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrito {
+  return {
+    id: 'e1',
+    categoria: 'SENTADILLA',
+    nombre: 'PRENSA 45',
+    cues: '',
+    prescripcion: '',
+    cargaKg: 100,
+    descansoMin: 2,
+    sets: 3,
+    rango: '8-10',
+    repsDiana: 10,
+    rirObjetivo: 2,
+    series: [],
+    ...parcial,
+  }
+}
+
+const series = (cargas: number[], rir?: number): SerieRegistrada[] =>
+  cargas.map((cargaKg, i) => ({ orden: i + 1, cargaKg, reps: 10, rir }))
+
+describe('rendimientoDelDia', () => {
+  it('sin series registradas no hay rendimiento — esa rama es ondular a ciegas', () => {
+    expect(rendimientoDelDia(ejercicio())).toBe('sin_registro')
+  })
+
+  /**
+   * El umbral es el del coach, literal: «más de un veinte por ciento»
+   * (2026-08-25). 125 sobre 100 es 25 % y dispara; 115 es 15 % y no.
+   */
+  it('la carga manda con el umbral del 20 %', () => {
+    expect(rendimientoDelDia(ejercicio({ series: series([125, 125, 125], 2) }))).toBe('por_encima')
+    expect(rendimientoDelDia(ejercicio({ series: series([115, 115, 115], 2) }))).toBe('en_linea')
+    expect(rendimientoDelDia(ejercicio({ series: series([75, 75, 75], 2) }))).toBe('por_debajo')
+  })
+
+  it('el RIR informa cuando la carga va en linea: sobrar 2 es ir por encima', () => {
+    expect(rendimientoDelDia(ejercicio({ series: series([100, 100, 100], 4) }))).toBe('por_encima')
+    expect(rendimientoDelDia(ejercicio({ series: series([100, 100, 100], 0) }))).toBe('por_debajo')
+  })
+
+  it('señales contrarias no afirman nada', () => {
+    // Más carga de la pautada pero mucho más cerca del fallo: no se sabe si
+    // sobró o faltó — y afirmar cualquiera de las dos sería inventar.
+    expect(rendimientoDelDia(ejercicio({ series: series([125, 125, 125], 0) }))).toBe('en_linea')
+  })
+
+  /**
+   * Con el objetivo en FALLO el RIR no informa (la parcial no es una repetición
+   * en reserva): decide solo la carga. Un RIR 0 registrado sobre FALLO no es
+   * «ir por debajo».
+   */
+  it('al FALLO decide solo la carga', () => {
+    expect(rendimientoDelDia(ejercicio({ rirObjetivo: AL_FALLO, series: series([100, 100], 0) }))).toBe('en_linea')
+    expect(rendimientoDelDia(ejercicio({ rirObjetivo: AL_FALLO, series: series([130, 130], 0) }))).toBe('por_encima')
+  })
+
+  it('en un ondulado la pauta es la media de la escalera, no cargaKg', () => {
+    const e = ejercicio({
+      cargaKg: undefined,
+      seriesPrescritas: [
+        { orden: 1, cargaKg: 160, reps: 12, rir: 2 },
+        { orden: 2, cargaKg: 200, reps: 12, rir: 2 },
+        { orden: 3, cargaKg: 240, reps: 11, rir: 2 },
+        { orden: 4, cargaKg: 240, reps: 10, rir: 1 },
+      ],
+      series: series([160, 200, 240, 240], 2),
+    })
+    expect(rendimientoDelDia(e)).toBe('en_linea')
+  })
+})
+
+describe('contextoDelDia', () => {
+  it('sin nada reportado es sin_datos, que NO es neutro', () => {
+    expect(contextoDelDia({})).toBe('sin_datos')
+  })
+
+  it('una sola señal roja basta para malo: la fatiga no necesita unanimidad', () => {
+    expect(contextoDelDia({ checkin: { horasSueno: 4, estres: 'POCO' } })).toBe('malo')
+    expect(contextoDelDia({ checkin: { estres: 'MUCHO' } })).toBe('malo')
+    expect(contextoDelDia({ prsEntrada: 3 })).toBe('malo')
+  })
+
+  it('bueno exige que lo reportado este bien', () => {
+    expect(contextoDelDia({ checkin: { horasSueno: 8, calidadSueno: 'BUENA', estres: 'POCO' }, prsEntrada: 9 })).toBe('bueno')
+    // Durmió 6: ni rojo ni limpio.
+    expect(contextoDelDia({ checkin: { horasSueno: 6, estres: 'POCO' }, prsEntrada: 9 })).toBe('neutro')
+  })
+})
+
+describe('escenarioDelDia — la señal es el cruce, nunca el número solo', () => {
+  const buenDia = { checkin: { horasSueno: 8, calidadSueno: 'BUENA', estres: 'POCO' }, prsEntrada: 9 }
+  const malDia = { checkin: { horasSueno: 4, estres: 'MUCHO' }, prsEntrada: 3 }
+
+  it('por encima + contexto bueno = verde', () => {
+    const r = escenarioDelDia(ejercicio({ series: series([130, 130, 130], 2) }), buenDia)
+    expect(r.escenario).toBe('verde')
+  })
+
+  it('por debajo + contexto malo = rojo', () => {
+    const r = escenarioDelDia(ejercicio({ series: series([70, 70, 70], 2) }), malDia)
+    expect(r.escenario).toBe('rojo')
+  })
+
+  /**
+   * El caso de la prensa del 25/08, exacto: 45 % por encima con PRS 9 y todo
+   * limpio no es fatiga — es una frase fosilizada o autoprogresión, y eso lo
+   * diagnostica el agente de discrepancia. El bucle del día con contexto bueno
+   * y rendimiento por encima SÍ pisa verde... pero con contexto MALO y
+   * rendimiento por encima, la contradicción se anota y no se toca nada.
+   */
+  it('las contradicciones no ajustan: se anotan', () => {
+    const r = escenarioDelDia(ejercicio({ series: series([130, 130, 130], 2) }), malDia)
+    expect(r.escenario).toBe('ninguno')
+    expect(r.motivo).toContain('no concuerdan')
+  })
+
+  /**
+   * Sin check-in del día no se pisa NINGÚN escenario, ni el verde con el mejor
+   * rendimiento del mundo. Es la regla del agente de discrepancia hecha bucle:
+   * sin la pata 2 no se inventa el porqué (I-14).
+   */
+  it('sin contexto no hay escenario, diga lo que diga el rendimiento', () => {
+    const r = escenarioDelDia(ejercicio({ series: series([130, 130, 130], 2) }), {})
+    expect(r.escenario).toBe('ninguno')
+    expect(r.contexto).toBe('sin_datos')
+  })
+
+  it('sin registro tampoco: esa rama es ondular a ciegas', () => {
+    const r = escenarioDelDia(ejercicio(), buenDia)
+    expect(r.escenario).toBe('ninguno')
+    expect(r.rendimiento).toBe('sin_registro')
+  })
+})
+
+describe('reglaDelMartes — solo la fatiga viaja', () => {
+  const rojo = { escenario: 'rojo', rendimiento: 'por_debajo', contexto: 'malo', motivo: 'x' } as const
+  const verde = { escenario: 'verde', rendimiento: 'por_encima', contexto: 'bueno', motivo: 'x' } as const
+  const restantes = [
+    { nombre: 'MARTES · POSTERIOR', grupos: ['ISQUIOS', 'GLUTEO'] },
+    { nombre: 'MIERCOLES · TORSO', grupos: ['PECHO', 'DORSAL'] },
+  ]
+
+  it('el rojo alcanza a las sesiones que comparten grupo, y solo a esas', () => {
+    expect(reglaDelMartes(rojo, ['CUADRICEPS', 'GLUTEO'], restantes)).toEqual(['MARTES · POSTERIOR'])
+  })
+
+  /**
+   * El verde NUNCA se propaga. Que hoy sobrara fuerza no promete nada de
+   * mañana: la fatiga viaja, la frescura se comprueba cada día.
+   */
+  it('el verde nunca se propaga', () => {
+    expect(reglaDelMartes(verde, ['CUADRICEPS', 'GLUTEO'], restantes)).toEqual([])
+  })
+
+  it('sin solapamiento no viaja nada', () => {
+    expect(reglaDelMartes(rojo, ['GEMELO'], restantes)).toEqual([])
+  })
+})
+
+describe('aplicarEscenario — solo por los caminos que el coach dejo escritos', () => {
+  const escenarios = {
+    verde: { deltaCargaKg: 2.5, serieExtra: false, techoCargaKg: 105 },
+    rojo: { deltaRir: 1, quitarUltimaSerie: true, sueloRir: 1 },
+  }
+  const verde = { escenario: 'verde', rendimiento: 'por_encima', contexto: 'bueno', motivo: 'x' } as const
+  const rojo = { escenario: 'rojo', rendimiento: 'por_debajo', contexto: 'malo', motivo: 'x' } as const
+
+  /**
+   * LA REGLA QUE SOSTIENE TODO: sin escenarios escritos no hay ajuste, valga lo
+   * que valga el cruce. Un bucle que ajusta sin camino autorizado es
+   * exactamente el bucle que este diseño prohíbe.
+   */
+  it('sin escenarios escritos no propone nada, ni en el mejor dia', () => {
+    const a = aplicarEscenario(ejercicio(), verde)
+    expect(a.cargaKg).toBeUndefined()
+    expect(a.sets).toBeUndefined()
+    expect(a.motivo).toContain('sin camino autorizado')
+  })
+
+  it('el verde sube el escalon autorizado', () => {
+    const a = aplicarEscenario(ejercicio({ escenarios }), verde)
+    expect(a.cargaKg).toBe(102.5)
+    expect(a.sets).toBeUndefined()
+  })
+
+  it('el techo es un techo: recorta, y en el techo no propone nada', () => {
+    // 104 + 2.5 pasaria el techo de 105: se recorta a 105.
+    expect(aplicarEscenario(ejercicio({ cargaKg: 104, escenarios }), verde).cargaKg).toBe(105)
+    // Ya en el techo: el verde no tiene nada que ofrecer, y lo dice.
+    const enElTecho = aplicarEscenario(ejercicio({ cargaKg: 105, escenarios }), verde)
+    expect(enElTecho.cargaKg).toBeUndefined()
+    expect(enElTecho.motivo).toContain('techo')
+  })
+
+  it('el rojo suelta RIR y recorta la ultima serie', () => {
+    const a = aplicarEscenario(ejercicio({ escenarios }), rojo)
+    expect(a.rirObjetivo).toBe(3)
+    expect(a.sets).toBe(2)
+    expect(a.motivo).toContain('RIR 1') // el suelo escrito viaja en el motivo
+  })
+
+  /**
+   * El rojo afloja con `aflojar`, nunca sumando: desde FALLO un escalon deja
+   * RIR 0, no 'FALLO1' ni RIR 1. Es la misma trampa que ya mordio a la
+   * ondulacion (ver objetivoDeIntensidad.ts).
+   */
+  it('desde FALLO el rojo baja a RIR 0', () => {
+    const a = aplicarEscenario(ejercicio({ rirObjetivo: AL_FALLO, escenarios }), rojo)
+    expect(a.rirObjetivo).toBe(0)
+  })
+
+  it('con decision ninguno transporta el motivo y no toca nada', () => {
+    const ninguno = { escenario: 'ninguno', rendimiento: 'en_linea', contexto: 'neutro', motivo: 'sin cruce' } as const
+    const a = aplicarEscenario(ejercicio({ escenarios }), ninguno)
+    expect(a).toEqual({ escenario: 'ninguno', motivo: 'sin cruce' })
+  })
+})
+
+describe('la velocidad, cuando existe, manda sobre el RIR', () => {
+  const vel = (pvPct: number, extra: Partial<VelocidadDeSerie> = {}): VelocidadDeSerie => ({
+    pvPct, hayEscala: false, calidad: 'buena', ...extra,
+  })
+  const conVel = (pvPct: number, pvObjetivo = 25, extra: Partial<VelocidadDeSerie> = {}) =>
+    ejercicio({
+      pvObjetivo,
+      series: [
+        { orden: 1, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(pvPct, extra) },
+        { orden: 2, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(pvPct, extra) },
+      ],
+    })
+
+  /**
+   * La direccion, que es lo unico que hay que entender: si el trabajo pautado le
+   * fatigo MENOS de lo previsto, tenia mas dentro — eso es ir por encima.
+   */
+  it('fatigarse menos de lo pautado es ir POR ENCIMA', () => {
+    expect(rendimientoDelDia(conVel(10))).toBe('por_encima') // 25 pedido, 10 real
+  })
+
+  it('fatigarse mas es ir POR DEBAJO', () => {
+    expect(rendimientoDelDia(conVel(40))).toBe('por_debajo')
+  })
+
+  it('dentro de la banda no dice nada', () => {
+    expect(rendimientoDelDia(conVel(25 - DESVIO_PV_PUNTOS + 1))).toBe('en_linea')
+  })
+
+  /**
+   * El %PV se apoya en que la escala sea la MISMA en la primera repeticion y en
+   * la ultima. Una referencia que se movio rompe justo eso — y entonces el %PV
+   * no vale mas que el RIR, que es la señal de respaldo.
+   */
+  it('con la referencia inclinada se descarta y manda el RIR', () => {
+    const e = conVel(10, 25, { inclinacionMax: 12 })
+    expect(rendimientoDelDia(e)).toBe('en_linea') // el RIR va clavado al objetivo
+  })
+
+  it('con calidad mala se descarta igual', () => {
+    expect(rendimientoDelDia(conVel(10, 25, { calidad: 'mala' }))).toBe('en_linea')
+  })
+
+  /**
+   * Sin pvObjetivo un %PV suelto no dice si sobro o falto: dice cuanto se freno
+   * la barra, que no es lo mismo.
+   */
+  it('sin objetivo pautado, la velocidad no informa', () => {
+    const e = ejercicio({
+      series: [{ orden: 1, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(10) }],
+    })
+    expect(rendimientoDelDia(e)).toBe('en_linea')
+  })
+
+  /**
+   * El caso que justifica la precedencia: el RIR declarado dice «clavado» —sigue
+   * a la prescripcion, no a la sensacion, medido sobre 186 series— y la barra
+   * dice que sobro margen. Gana la barra.
+   */
+  it('cuando el RIR dice una cosa y la barra otra, gana la barra', () => {
+    const e = ejercicio({
+      pvObjetivo: 30,
+      series: [
+        { orden: 1, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(12) },
+        { orden: 2, cargaKg: 100, reps: 10, rir: 2, velocidad: vel(14) },
+      ],
+    })
+    expect(rendimientoDelDia(e)).toBe('por_encima')
+  })
+
+  /**
+   * Lo que la velocidad NO hace: sustituir a la carga. Son cosas distintas
+   * —cuanto peso movio contra cuanto le costo— y siguen cruzandose.
+   */
+  it('velocidad y carga contrarias siguen anulandose', () => {
+    const e = ejercicio({
+      cargaKg: 100,
+      pvObjetivo: 25,
+      series: [{ orden: 1, cargaKg: 60, reps: 10, rir: 2, velocidad: vel(10) }],
+    })
+    expect(rendimientoDelDia(e)).toBe('en_linea')
+  })
+})

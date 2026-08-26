@@ -1,3 +1,4 @@
+import { aflojar, rirDeTabla } from './objetivoDeIntensidad'
 import type { EjercicioPrescrito, SeriePrescrita, SerieRegistrada } from './types'
 
 /**
@@ -390,7 +391,7 @@ export function ondularEjercicio(
   const e1rm =
     e1rmDeSeries(ejercicio.series) ??
     (cargaPrescritaKg !== undefined && cargaPrescritaKg > 0
-      ? Math.round((cargaPrescritaKg / coeficiente1rm(ejercicio.repsDiana, ejercicio.rirObjetivo)) * 100) / 100
+      ? Math.round((cargaPrescritaKg / coeficiente1rm(ejercicio.repsDiana, rirDeTabla(ejercicio.rirObjetivo))) * 100) / 100
       : undefined) ??
     e1rmDePautado(ejercicio)
   const brecha = brechaReps(ejercicio)
@@ -426,12 +427,13 @@ export function ondularEjercicio(
    * Lo que el motor NO hace y sigue siendo del coach: «quitar accesorios». Decidir
    * qué ejercicio sobra es criterio de sesión, no de ejercicio, y este motor ondula
    * uno a uno. Va anotado en el motivo.
+   *
+   * Se afloja con `aflojar` y no sumando, porque el objetivo puede ser `FALLO` y
+   * `'FALLO' + 1` no es RIR 1: en la escalera del método el fallo está **por
+   * encima** de RIR 0, así que aflojar un escalón desde el fallo da RIR 0.
    */
-  const rir = critico
-    ? ejercicio.rirObjetivo + 2
-    : congelado
-      ? ejercicio.rirObjetivo + 1
-      : ejercicio.rirObjetivo
+  const objetivo = aflojar(ejercicio.rirObjetivo, critico ? 2 : congelado ? 1 : 0)
+  const rir = rirDeTabla(objetivo)
 
   const series: SeriePrescrita[] = []
   let cargaPrevia = 0

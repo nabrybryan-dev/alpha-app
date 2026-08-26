@@ -1,3 +1,4 @@
+import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
 import type { Confianza } from './nutricion/dia'
 
 export type Rol = 'asesorado' | 'coach' | 'nutricionista'
@@ -79,9 +80,41 @@ export interface ValoracionCompetencia {
   fecha: string
 }
 
+/**
+ * Lo que el encoder de cámara midió en una serie.
+ *
+ * **Solo `pvPct`, y esa restricción es el diseño entero.** La pérdida de
+ * velocidad es un cociente entre dos velocidades de la MISMA serie, así que la
+ * escala se cancela: se calcula igual en px/s que en m/s y **no necesita diana,
+ * ni milímetros, ni que la prueba de gravedad esté en verde**. Por eso puede
+ * entrar hoy, mientras los m/s siguen bloqueados tras la fase 2 del motor de
+ * velocidad.
+ *
+ * Lo que NO se guarda aquí, a propósito: `vPrimera` en m/s y el índice de
+ * esfuerzo. Los dos dependen de la escala, y guardar un número que sabemos que
+ * puede estar un 14-24 % desviado es guardar una conclusión falsa.
+ * → `Cerebro Alpha/wiki/motor-velocidad/velocidad-vs-fuerza.md`
+ */
+export interface VelocidadDeSerie {
+  /** Pérdida de velocidad de la serie, en puntos porcentuales. Sin escala vale igual. */
+  pvPct: number
+  /** `false` = medido en px/s. No invalida el %PV; sí invalidaría unos m/s. */
+  hayEscala: boolean
+  /** El veredicto del contrato de calidad del encoder. Una medición mala no se borra:
+   *  se marca, y quien la lea decide si la usa. */
+  calidad: string
+  /** Inclinación máxima de la referencia durante la serie. Importa porque el %PV
+   *  solo se cancela si la escala es CONSTANTE: si la referencia se movió entre la
+   *  primera repetición y la última, el cociente queda contaminado. */
+  inclinacionMax?: number
+}
+
 export interface SerieRegistrada {
   orden: number
   cargaKg: number
+  /** La medición del encoder, si esa serie se grabó. Ausente = no se midió, que
+   *  es lo normal: hoy casi nadie graba. */
+  velocidad?: VelocidadDeSerie
   /**
    * Opcionales porque hay trabajo que no se mide así y forzarlo inventa datos.
    *
@@ -97,6 +130,40 @@ export interface SerieRegistrada {
    */
   reps?: number
   rir?: number
+  /**
+   * Los mini-bloques de una técnica de intensidad: myo-reps, rest-pause, drop
+   * set. Uno por bloque, en el orden en que se hicieron.
+   *
+   * **NO ES VOLUMEN, y esa es la mitad de su razón de ser.** La convención de
+   * Alpha es que las repeticiones extra de la técnica no se cuentan: si son 10,
+   * pausa y 5 más, el volumen registrado son 10 y la serie cuenta 1. Se sostiene
+   * en que Bradshaw 2026 obtuvo la misma ganancia de tamaño y fuerza con ~30 %
+   * menos volumen-carga, así que sumarlas hincharía el número sin hinchar el
+   * estímulo. `cargaPorGrupo` cuenta con `series.length`, así que este campo no
+   * puede colarse en el PANEL ni queriendo.
+   *
+   * **Para qué sirve entonces: para medir esfuerzo.** Cuando la prescripción
+   * dice «descansa 15 segundos y saca 5 más» y salen 5 —o salen 2— ese número es
+   * un RESULTADO, no una prescripción: no se puede «cumplir» como se cumple un
+   * RIR objetivo. Y hace falta, porque el barrido de 186 series del 2026-08-25
+   * mostró que el RIR declarado sigue a la prescripción y no a la sensación.
+   *
+   * **Y se guarda la observación, no la conclusión.** Sumar `10 + 5 = 15` al
+   * registrar es irreversible: un `15` ya no dice si fueron 15 limpias o 10+5.
+   * Con los bloques aparte, cualquier convención futura —contar todo, ponderar
+   * por proximidad al fallo, dar peso fraccionado al bloque— es un recálculo y
+   * no una migración. → `Cerebro Alpha/wiki/motor-decision/11-convenciones-que-la-evidencia-no-cierra.md`
+   *
+   * `cargaKg` solo cuando el bloque se hizo con **otra** carga, que es el caso
+   * del drop set. Ausente = la misma carga de la serie base.
+   */
+  extra?: BloqueDeTecnica[]
+}
+
+/** Un mini-bloque de una técnica de intensidad. Ver `SerieRegistrada.extra`. */
+export interface BloqueDeTecnica {
+  reps: number
+  cargaKg?: number
 }
 
 export interface TestPostSesion {
@@ -126,6 +193,46 @@ export interface SeriePrescrita {
  */
 export type UnidadCarga = 'kg' | 'total' | 'por lado' | 'por mano'
 
+
+/**
+ * Los dos caminos pre-autorizados de un ejercicio para el bucle del día.
+ *
+ * Aprobados por el coach el 2026-08-25 (supuesto de ondulación flexible §2).
+ * La idea entera: el ajuste del día no se improvisa — el coach escribe POR
+ * ADELANTADO qué puede pasar si el día viene mejor o peor de lo esperado, y el
+ * bucle solo decide cuál de los dos caminos ya escritos se pisa.
+ */
+export interface EscenarioVerde {
+  /** Cuánto sube el escalón autorizado. Sin definir: no se toca la carga. */
+  deltaCargaKg?: number
+  /** Si el día bueno autoriza una serie más. */
+  serieExtra?: boolean
+  /**
+   * El techo, OBLIGATORIO. La carga que no se pasa ni con el mejor día del
+   * bloque. Es lo que hace que «autorizado por adelantado» signifique algo:
+   * un verde sin techo es un cheque en blanco, y eso no es autorizar.
+   */
+  techoCargaKg: number
+}
+
+export interface EscenarioRojo {
+  /** Cuántos escalones de RIR se sueltan (1 o 2, como las bandas de PRS). */
+  deltaRir: number
+  /** Si el día malo recorta la última serie. */
+  quitarUltimaSerie?: boolean
+  /**
+   * El suelo de RIR del ejercicio, OBLIGATORIO (I-13). Viaja escrito aquí para
+   * que el camino rojo lleve consigo la regla que protege al asesorado: la
+   * prescripción base nunca debe estar por debajo de este número.
+   */
+  sueloRir: number
+}
+
+export interface EscenariosDelDia {
+  verde: EscenarioVerde
+  rojo: EscenarioRojo
+}
+
 export interface EjercicioPrescrito {
   id: string
   categoria: string
@@ -147,11 +254,34 @@ export interface EjercicioPrescrito {
   sets: number
   rango: string
   repsDiana: number
-  rirObjetivo: number
+  /**
+   * El objetivo de intensidad: un RIR, o `'FALLO'`.
+   *
+   * **`RIR 0` y `FALLO` no son lo mismo**, y por eso esto no es un `number`.
+   * `RIR 0` es la última repetición completa, con la parcial en reserva; `FALLO`
+   * es la instrucción de meterse en esa parcial. Ver `objetivoDeIntensidad.ts`,
+   * que es donde vive la regla y las tres operaciones que la respetan.
+   */
+  rirObjetivo: ObjetivoDeIntensidad
   /** Ondulación del microciclo: reps a la baja y carga al alza, set a set.
    *  Sin definir, todas las series comparten `repsDiana` y `rirObjetivo` — que
    *  es como quedaban los microciclos antes de que la ondulación se guardara. */
   seriesPrescritas?: SeriePrescrita[]
+  /** Los dos caminos pre-autorizados para el bucle del día. Sin definir, el
+   *  bucle observa pero no puede proponer nada: sin camino escrito no hay
+   *  ajuste — la pre-autorización es el mecanismo, no un adorno. */
+  escenarios?: EscenariosDelDia
+  /**
+   * Pérdida de velocidad objetivo de la serie, en puntos porcentuales.
+   *
+   * Es lo que convierte el `pvPct` medido en una señal: un %PV suelto dice cuánto
+   * se frenó la barra, no si eso fue lo pedido. La banda para la clientela de
+   * Alpha —composición corporal— es **20-35 %**, no los 10-20 % de deportista.
+   * → `Cerebro Alpha/wiki/motor-decision/03-vbt-perdida-velocidad.md`
+   *
+   * Sin definir, la velocidad no informa y manda el RIR.
+   */
+  pvObjetivo?: number
   contenidoDemoId?: string
   /** Etiqueta de cada serie cuando el esquema no es uniforme
    *  (p. ej. ["TOP", "BACK-OFF", "BACK-OFF"] o ["PESADA", "MYO-REPS"]).

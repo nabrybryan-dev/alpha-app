@@ -25,6 +25,28 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
+  // 2026-08-25 y sin enchufar a proposito: se apoya en la tabla
+  // `estandarizado_ejercicio` (migracion 0043), y esa migracion NO se aplica
+  // hasta que `supabase/comprobar-ids-de-ejercicio.sql` confirme contra la base
+  // que los ejercicio.id son unicos dentro de una persona. Que persisten entre
+  // microciclos ya esta verificado contra el codigo; que no se repiten, no puede
+  // saberse leyendo codigo.
+  'src/domain/estandarizacion.ts':
+    'Deriva si la tecnica de un ejercicio esta asentada. Espera a la migracion 0043, ' +
+    'que a su vez espera a comprobar-ids-de-ejercicio.sql. Ver ' +
+    'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4.',
+
+  // El bucle del dia: la ondulacion flexible intra-semana, EN SOMBRA a proposito.
+  // El despliegue pactado con el coach (supuesto del 2026-08-25, §7) empieza
+  // calculando sin enseñar: un microciclo entero guardando que escenario se
+  // habria pisado, y el cierre compara si esos ajustes habrian reducido la
+  // discrepancia. Se enchufa cuando ese numero lo avale, no antes.
+  'src/domain/bucleDelDia.ts':
+    'El cruce rendimiento x contexto del dia (verde/rojo/ninguno) y la regla del ' +
+    'martes. En sombra hasta que la corrida de un microciclo avale que reduce la ' +
+    'discrepancia. Ver Cerebro Alpha/docs/superpowers/specs/' +
+    '2026-08-25-ondulacion-flexible-intra-semana.md §7.',
 }
 
 /**
@@ -36,6 +58,23 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Donde cae el pico de exigencia externa de cada una de las 32 categorias.
+  // Nacio para decidir si el cue llevaba el ancla de «parciales en reserva»; ese
+  // uso se RETIRO el 2026-08-25 porque contradecia el metodo -en Alpha las
+  // repeticiones son completas y a rango completo salvo prescripcion contraria-.
+  // La tabla se queda porque es conocimiento verificado contra
+  // `perfiles-de-resistencia` §2.1 y tiene un uso previsto: la seleccion de
+  // ejercicios por rango donde el musculo es eficiente aplicando fuerza.
+  'src/domain/taxonomia.ts#PICO_DE_EXIGENCIA':
+    'Pico de exigencia por categoria. Su primer uso -el ancla del cue- se retiro por ' +
+    'contradecir el metodo. Espera a la seleccion de ejercicios. Ver ' +
+    'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §7.',
+  // Encuentra la EXCEPCION: el rango completo es el defecto, y lo que se declara
+  // en la frase es cuando NO. Lo usara la UI para saber que ese ejercicio lleva
+  // mini-bloques que capturar en SerieRegistrada.extra.
+  'src/domain/taxonomia.ts#tieneTecnicaDeclarada':
+    'Detecta tecnica o recorrido declarados en la prescripcion. Espera a la captura de ' +
+    'SerieRegistrada.extra en RegistroSerie.tsx.',
   // La guarda del relleno masivo de carga, que se corre desde el SQL Editor y
   // no desde la app: si componer los campos devuelve el MISMO texto, guardar no
   // cambia ni una letra de lo que el asesorado va a leer; si no, el ejercicio se

@@ -3,8 +3,10 @@ import {
   aportesDeCategoria,
   categoriaCanonica,
   CATEGORIAS,
+  tieneTecnicaDeclarada,
   grupoPrimario,
   ORDEN_GRUPOS,
+  PICO_DE_EXIGENCIA,
   type Grupo,
 } from './taxonomia'
 
@@ -304,5 +306,60 @@ describe('compatibilidad con la taxonomía vieja', () => {
     expect(aportesDeCategoria('CARDIO HIIT')).toEqual([])
     expect(aportesDeCategoria('ENTRADA/PASARELA')).toEqual([])
     expect(aportesDeCategoria('COMBINADO')).toEqual([])
+  })
+})
+
+describe('pico de exigencia', () => {
+  it('las 32 categorías están decididas: con pico, o excluidas a propósito', () => {
+    const sinPico = CATEGORIAS.filter((c) => !PICO_DE_EXIGENCIA[c])
+    // Isométricas (no hay recorrido que perder) y las que no van al fallo.
+    expect([...sinPico].sort()).toEqual([
+      'ACONDICIONAMIENTO',
+      'ANTIEXTENSIÓN',
+      'ANTIFLEXIÓN LATERAL',
+      'ANTIRROTACIÓN',
+      'MOVILIDAD',
+      'PREV/REHAB',
+    ])
+  })
+
+  it('no hay claves inventadas en la tabla de picos', () => {
+    for (const clave of Object.keys(PICO_DE_EXIGENCIA)) {
+      expect(CATEGORIAS).toContain(clave)
+    }
+  })
+
+  it('las resueltas contra la doctrina de perfiles-de-resistencia §2.1', () => {
+    // Donde el segmento queda más horizontal está el pico.
+    expect(PICO_DE_EXIGENCIA['SENTADILLA']).toBe('inicio')          // máxima profundidad
+    expect(PICO_DE_EXIGENCIA['BISAGRA DE CADERA']).toBe('inicio')   // al despegue
+    expect(PICO_DE_EXIGENCIA['EXTENSIÓN DE RODILLA']).toBe('final') // tibia horizontal
+    expect(PICO_DE_EXIGENCIA['FLEXIÓN DE CODO']).toBe('medio')      // antebrazo a 90°
+  })
+
+  it('las dos resueltas por observación del coach el 25/08', () => {
+    // En máquina la regla de la palanca no basta: la leva no deja caer la
+    // resistencia y se falla sin cerrar.
+    expect(PICO_DE_EXIGENCIA['FLEXIÓN DE RODILLA']).toBe('final')
+    expect(PICO_DE_EXIGENCIA['TRACCIÓN HORIZONTAL']).toBe('final')
+  })
+})
+
+describe('técnica declarada en la prescripción', () => {
+  // Sigue vivo aunque el ancla se retirara: es lo que le dirá a la UI que ese
+  // ejercicio lleva mini-bloques que capturar en `SerieRegistrada.extra`.
+  it('la detecta venga en el cue o en la frase', () => {
+    expect(tieneTecnicaDeclarada('parciales abajo al final', '')).toBe(true)
+    expect(tieneTecnicaDeclarada('', 'ULTIMA SERIE EN REST-PAUSE')).toBe(true)
+    expect(tieneTecnicaDeclarada('', '3 SERIES (RIR 2) EN MYO-REPS')).toBe(true)
+  })
+
+  it('también el recorrido reducido, que es lo contrario pero también se declara', () => {
+    expect(tieneTecnicaDeclarada('', 'SERIES 1 A 3: RECORRIDO PARCIAL')).toBe(true)
+    expect(tieneTecnicaDeclarada('', 'CRUCE EN POLEA A RANGO MEDIO')).toBe(true)
+  })
+
+  it('un ejercicio normal no la declara: el rango completo es el defecto', () => {
+    expect(tieneTecnicaDeclarada('Rango completo, espalda pegada', '40KG A 10 REPS')).toBe(false)
   })
 })
