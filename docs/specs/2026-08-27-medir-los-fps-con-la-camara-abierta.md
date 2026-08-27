@@ -41,6 +41,29 @@ Quitar el atributo a mano **enciende otra vez todo el movimiento** sin tocar nad
 las cuatro animaciones infinitas del gabinete, el ticker del panel de ritmo y el
 desenfoque de la barra de descanso. Esa es exactamente la diferencia que se quiere medir.
 
+## Antes de subir al gimnasio: la cámara pide contexto seguro
+
+Servir la app al móvil por la IP de la wifi —`http://192.168.1.82:5190/` o la que
+toque— **deja la app navegable pero la cámara muerta**. `getUserMedia` solo existe en
+un contexto seguro, y un `http://` que no sea `localhost` no lo es. El fallo no se
+anuncia como lo que es: se ve como un permiso denegado, y se pierde media hora
+buscándolo en los ajustes del teléfono.
+
+Las dos salidas, en orden de menos fricción:
+
+1. **USB con reenvío de puerto** (Android). En el portátil, `chrome://inspect` →
+   *Port forwarding* → `5190` → `localhost:5190`. En el móvil se abre
+   **`http://localhost:5190/`**, que **sí** es contexto seguro. Es la opción buena
+   además por otra razón: el A/B necesita la consola remota para quitar y poner
+   `data-camara-abierta`, y con el USB ya la tienes.
+2. **HTTPS con certificado propio**, si hace falta ir sin cable. Se levanta el
+   servidor con un certificado autofirmado que incluya la IP en el `subjectAltName`,
+   y en el móvil se acepta el aviso una vez. Vale para Android; en iOS Safari es más
+   quisquilloso y puede no bastar.
+
+La IP de la wifi sirve para **mirar la app** —los desplegables, las barras, el
+movimiento reducido—; para **medir la cámara**, no.
+
 ## El procedimiento
 
 1. Móvil en el trípode, con el visor abierto y el disco fijado. **Que la pantalla no se
