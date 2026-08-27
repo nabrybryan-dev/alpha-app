@@ -76,9 +76,24 @@ describe('categorías que no suman volumen', () => {
     'MOVILIDAD',
     'FLEXIÓN DE MUÑECA',
     'EXTENSIÓN DE MUÑECA',
+    'DORSIFLEXIÓN',
   ])('%s no aporta a ningún grupo', (categoria) => {
     expect(aportesDeCategoria(categoria)).toEqual([])
     expect(grupoPrimario(categoria)).toBeUndefined()
+  })
+})
+
+describe('DORSIFLEXIÓN sale del conteo (2026-08-27)', () => {
+  // Hasta esta fecha aportaba `Pantorrillas 0,5`, y era un error de anatomía: el
+  // tibial anterior dorsiflexiona y el tríceps sural plantiflexiona. Son
+  // antagonistas. El test no comprueba una preferencia de conteo — comprueba que la
+  // app no vuelve a acreditar a un músculo series de su antagonista.
+  it('una elevación de puntas no acredita nada a Pantorrillas', () => {
+    expect(aportesDeCategoria('DORSIFLEXIÓN')).toEqual([])
+  })
+
+  it('Pantorrillas sigue teniendo su directo, que es FLEXIÓN PLANTAR', () => {
+    expect(grupoPrimario('FLEXIÓN PLANTAR')).toBe('Pantorrillas')
   })
 })
 
@@ -142,7 +157,9 @@ describe('aportesDeCategoria', () => {
 
   it('las categorías de asistencia solo tienen indirecto', () => {
     expect(aportesDeCategoria('ROTACIÓN DE CADERA')).toEqual([{ grupo: 'Glúteos', factor: 0.5 }])
-    expect(aportesDeCategoria('DORSIFLEXIÓN')).toEqual([{ grupo: 'Pantorrillas', factor: 0.5 }])
+    // DORSIFLEXIÓN estuvo aquí hasta el 2026-08-27. Salió porque no es una categoría
+    // de asistencia: no asiste a la pantorrilla, es su antagonista. Ahora vive en
+    // «categorías que no suman volumen», que es donde le corresponde.
   })
 })
 
