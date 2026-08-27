@@ -494,6 +494,39 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- El aviso de la captura ---------- */
+
+/* `transition` y NO `@keyframes`, y no es un detalle: un segundo aviso que
+   sustituye al primero tiene que poder redirigirse a mitad de camino. Con una
+   keyframe se reiniciaria desde cero cada vez.
+
+   El `@starting-style` da el estado de salida sin necesidad de un doble render.
+   Un navegador que no lo entienda pinta el aviso directamente, que es justo lo
+   que hacia antes: se pierde la entrada, no el aviso.
+
+   Nunca se anima el ALTO del bloque: relayoutearia la pantalla del encoder en
+   cada fotograma, y esta corre con la camara a 50 fps. */
+.aviso-captura {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-toque) var(--ease-salida),
+    transform var(--dur-toque) var(--ease-salida);
+}
+
+@starting-style {
+  .aviso-captura {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-captura {
+    transition: none;
+  }
+}
+
 /* ---------- El corte entre ejercicios ---------- */
 
 /* Hasta hoy el velo a pantalla completa aparecia DE GOLPE mientras el panel

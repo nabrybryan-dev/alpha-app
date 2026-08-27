@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
 import { puntoDeLaImagen } from './toque'
+import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { COPY } from './copys'
 
 /**
@@ -207,13 +208,18 @@ export function Visor({ ajustes, children }: VisorProps) {
           {/* Cómo se enseña el toque: una pastilla en la base, que se va en cuanto
               hay disco fijado y no vuelve. Sin tutorial y sin overlay modal —esta
               pantalla se usa con la barra en las manos—. */}
-          {captura.camaraAbierta && !captura.listoParaGrabar && !captura.grabando && (
+          {captura.camaraAbierta && !captura.aviso && !captura.listoParaGrabar && !captura.grabando && (
             <div className="absolute inset-x-0 bottom-3 flex justify-center">
               <p className="rounded-full bg-black/70 px-3 py-1.5 text-[12.5px] text-white">
                 {COPY.hoja_senalar}
               </p>
             </div>
           )}
+
+          {/* El aviso vive AQUI, sobre la imagen, y no debajo del boton: alli
+              empujaba el boton de grabar hacia abajo justo cuando la mano iba a
+              pulsarlo. Ver `AvisoDeCaptura`. */}
+          <AvisoDeCaptura aviso={captura.aviso} />
         </div>
 
         {/* Se escriben por textContent desde el bucle: 60 renders por segundo
@@ -229,12 +235,6 @@ export function Visor({ ajustes, children }: VisorProps) {
           <Medida nombre="muestras" valorRef={muestrasRef} inicial="0" />
           <Medida nombre="reloj" valorRef={relojRef} />
         </div>
-
-        {captura.aviso && (
-          <p className="border-t border-white/10 px-4 py-3 text-sm text-white/70">
-            {captura.aviso}
-          </p>
-        )}
 
         <div className="border-t border-white/10 p-3">
           {!captura.camaraAbierta ? (
