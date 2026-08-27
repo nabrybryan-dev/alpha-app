@@ -249,6 +249,15 @@ export function crearMockDb(): Db {
         ref.actual.microciclos
           .filter((m) => m.usuarioId === usuarioId)
           .sort((a, b) => b.numero - a.numero),
+      // En demo la instantánea lo tiene TODO, así que el historial ya está aquí
+      // y no hay a quién pedírselo. La capa de nube lo sustituye por una
+      // consulta de verdad (`sync.ts`).
+      historialDe: (usuarioId) =>
+        Promise.resolve(
+          ref.actual.microciclos
+            .filter((m) => m.usuarioId === usuarioId)
+            .sort((a, b) => b.numero - a.numero),
+        ),
       guardarPropuesta: (micro: Microciclo) => {
         // Se fuerza el estado aquí y no en quien llama: es la salvaguarda de que
         // una propuesta nunca aparezca en las pantallas del asesorado, que solo

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
@@ -7,6 +7,7 @@ import { Chip } from '../../components/ui/Chip'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Semaforo } from '../../components/ui/Semaforo'
 import { db, useDbVersion } from '../../data/dbInstance'
+import type { Microciclo } from '../../domain/types'
 import { GenerarMicrocicloSheet } from './GenerarMicrocicloSheet'
 import { PautadoVsRealizado } from './PautadoVsRealizado'
 import { RejillaDeVolumen } from './RejillaDeVolumen'
@@ -16,11 +17,53 @@ import { IconoEstrella } from '../../components/ui/Icono'
 const PESTANAS = ['Resumen', 'Entrenamiento', 'Vida', 'Nutrición', 'Cuestionarios'] as const
 type Pestana = (typeof PESTANAS)[number]
 
+/**
+ * El historial completo de una persona, pedido al abrirla.
+ *
+ * La hidratación del staff ya no baja los microciclos cerrados de toda la
+ * cartera: son el 78 % de lo que se descarga y crecen sin freno, porque cada
+ * asesorado cierra uno por semana para siempre. A 1.000 usuarios eran 94 MB por
+ * refresco, cada 45 s. Ver `docs/specs/2026-08-27-donde-truena-a-mil-usuarios.md`.
+ *
+ * Arranca con lo que ya haya en la instantánea -el activo y la propuesta, que
+ * SÍ bajan- para que la rejilla pinte algo desde el primer fotograma en vez de
+ * parpadear vacía, y lo sustituye cuando llega el historial.
+ */
+function useHistorial(usuarioId: string): Microciclo[] {
+  /** De quién es lo cargado, no solo qué se cargó. Ver el `return`. */
+  const [cargado, setCargado] = useState<{ de: string; micros: Microciclo[] }>()
+
+  useEffect(() => {
+    let vigente = true
+    void db.microciclos.historialDe(usuarioId).then((micros) => {
+      if (vigente) setCargado({ de: usuarioId, micros })
+    })
+    return () => {
+      vigente = false
+    }
+  }, [usuarioId])
+
+  // Mientras no llegue el historial DE ESTA persona, lo que haya en la
+  // instantánea —el activo y la propuesta, que sí bajan—. Así la rejilla pinta
+  // desde el primer fotograma en vez de parpadear vacía.
+  //
+  // La comprobación es `cargado.de === usuarioId`, no `cargado != null`: al
+  // pasar de un asesorado a otro, el estado todavía tiene el del anterior, y
+  // enseñar el historial de otra persona sería mucho peor que no enseñar
+  // ninguno.
+  return cargado?.de === usuarioId ? cargado.micros : db.microciclos.byUsuario(usuarioId)
+}
+
 export default function AsesoradoDetallePage() {
   const { usuarioId } = useParams()
   useDbVersion()
   const [pestana, setPestana] = useState<Pestana>('Resumen')
   const [iaAbierta, setIaAbierta] = useState(false)
+  // ANTES del `return` de «no encontrado»: un hook por debajo de un return
+  // condicional viola las reglas de hooks, y en este repo esa regla es error y
+  // bloquea. Con `?? ''` no se pide nada y devuelve vacío, que es lo correcto
+  // cuando no hay a quién mirar.
+  const historial = useHistorial(usuarioId ?? '')
 
   const usuario = usuarioId ? db.usuarios.byId(usuarioId) : undefined
   if (!usuario) {
@@ -152,7 +195,7 @@ export default function AsesoradoDetallePage() {
           {/* La rejilla no depende de que haya microciclo activo: es el
               histórico del bloque, y sin ella la planificación se sigue
               mirando en el Excel congelado. */}
-          <RejillaDeVolumen microciclos={db.microciclos.byUsuario(usuario.id)} />
+          <RejillaDeVolumen microciclos={historial} />
         </div>
       )}
 
