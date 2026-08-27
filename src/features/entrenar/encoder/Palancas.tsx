@@ -70,7 +70,7 @@ function Seleccion({
             : `Atleta seleccionado · ${personas} en cuadro`}
         </span>
         {onCambiar && (
-          <button type="button" onClick={onCambiar} className="underline-offset-2 hover:underline">
+          <button type="button" onClick={onCambiar} className="press underline-offset-2 hover:underline">
             Cambiar
           </button>
         )}
@@ -97,7 +97,7 @@ function Seleccion({
             <button
               type="button"
               onClick={onCambiar}
-              className="mt-2 min-h-11 rounded-full border border-rojo px-4 text-[12.5px] font-bold text-rojo"
+              className="press mt-2 min-h-11 rounded-full border border-rojo px-4 text-[12.5px] font-bold text-rojo"
             >
               Cambiar de persona
             </button>
