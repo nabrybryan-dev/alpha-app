@@ -50,34 +50,17 @@ function coloresDeTailwind(): Map<string, string> {
 }
 
 /**
- * Los colores que HOY se usan con opacidad sin admitirla.
+ * Los colores que se usan con opacidad sin admitirla. **Tiene que estar vacía.**
  *
- * Son 222 clases repartidas en estos doce, y ninguna pinta. No se arreglan aquí
- * porque no es un cambio pequeño: siete de ellos se redefinen por tema —hay que dar
- * canales en `:root` y otra vez en `[data-theme="light"]`— y `hairline` ya es un
- * `rgba()` con su propia alfa, así que ni siquiera encaja en la forma de canales.
- * Eso es una tanda propia, con su revisión.
+ * Llegó a tener doce, con 222 clases que no pintaban nada. Ya no queda ninguno: toda
+ * la paleta se declara por canales, en los dos temas, y `hairline` —que es un
+ * `rgba()` con su propia alfa y nunca podrá admitir modificador— dejó de usarse con
+ * uno en su único sitio.
  *
- * Esta lista es un **delta, no un presupuesto**, igual que los avisos del linter: no
- * se trata de tenerla a cero hoy, se trata de que no crezca. Si alguien añade un
- * color nuevo a `extend` y lo usa con `/NN` sin `<alpha-value>`, este test se pone
- * rojo. Y si alguien arregla uno de estos doce, hay que quitarlo de aquí — el test
- * también avisa de eso, para que la lista no se quede mintiendo.
+ * Existe como lista y no como `[]` a secas para que, si algún día hace falta meter
+ * una excepción, quede escrita con nombre y no escondida en un `skip`.
  */
-const SIN_ALFA_CONOCIDOS = [
-  'ambar',
-  'azul',
-  'bg',
-  'hairline',
-  'linea',
-  'oro',
-  'rojo',
-  'surface-2',
-  'surface-3',
-  'tenue',
-  'texto',
-  'verde',
-] as const
+const SIN_ALFA_CONOCIDOS: readonly string[] = []
 
 describe('los colores del sistema admiten la opacidad que se les pide', () => {
   it('ningún color NUEVO se usa con opacidad sin admitirla', () => {

@@ -4,19 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: 'var(--bg)',
-        'surface-1': 'var(--surface-1)',
-        'surface-2': 'var(--surface-2)',
-        'surface-3': 'var(--surface-3)',
-        linea: 'var(--linea)',
-        texto: 'var(--texto)',
-        tenue: 'var(--tenue)',
+        bg: 'rgb(var(--bg-rgb) / <alpha-value>)',
+        'surface-1': 'rgb(var(--surface-1-rgb) / <alpha-value>)',
+        'surface-2': 'rgb(var(--surface-2-rgb) / <alpha-value>)',
+        'surface-3': 'rgb(var(--surface-3-rgb) / <alpha-value>)',
+        linea: 'rgb(var(--linea-rgb) / <alpha-value>)',
+        texto: 'rgb(var(--texto-rgb) / <alpha-value>)',
+        tenue: 'rgb(var(--tenue-rgb) / <alpha-value>)',
         'gris-marca': 'var(--gris-marca)',
-        rojo: 'var(--rojo)',
+        rojo: 'rgb(var(--rojo-rgb) / <alpha-value>)',
         'rojo-osc': 'var(--rojo-osc)',
-        verde: 'var(--verde)',
-        ambar: 'var(--ambar)',
-        azul: 'var(--azul)',
+        verde: 'rgb(var(--verde-rgb) / <alpha-value>)',
+        ambar: 'rgb(var(--ambar-rgb) / <alpha-value>)',
+        azul: 'rgb(var(--azul-rgb) / <alpha-value>)',
         // Design System Alfa (handoff). accion/logrado con canal RGB
         // para soportar opacidad (bg-accion/15, border-accion/35, etc.).
         accion: 'rgb(var(--accion-rgb) / <alpha-value>)',
@@ -40,7 +40,7 @@ export default {
         'bone-300': 'var(--bone-300)',
         paper: 'var(--paper)',
         // Solo para el nivel Élite de la Escala Alfa.
-        oro: 'var(--oro)',
+        oro: 'rgb(var(--oro-rgb) / <alpha-value>)',
       },
       fontFamily: {
         display: ['Archivo', 'system-ui', 'sans-serif'],
