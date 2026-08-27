@@ -27,6 +27,7 @@ import type {
 type EstadoGuardado = VisibilidadAsesorado['estado']
 const ESTADOS: readonly EstadoGuardado[] = ['automatico', 'en_espera', 'decidido']
 import { aplicarSnapshot, epocaSesion, instantaneaLocal, versionEscrituras } from '../mockDb'
+import { pedirFirma, sinCambios } from './firma'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
 import { sanearMicrociclo, sanearPlan } from './saneado'
@@ -212,6 +213,37 @@ export async function hidratarDesdeNube(): Promise<void> {
   // persona, lo que baje aquí ya no le pertenece a nadie que esté dentro.
   const epocaAlEmpezar = epocaSesion()
 
+  /**
+   * Antes de bajar nada: preguntar si hay algo que bajar.
+   *
+   * Las 21 consultas de abajo no llevan `LIMIT`, así que traen todo lo que RLS
+   * deje ver. Para un asesorado es poco; para el coach, `es_coach()` es cierto
+   * y RLS no acota nada: cada refresco se lleva la cartera entera, cada 45
+   * segundos y por pestaña abierta. Y casi siempre para encontrarse lo mismo.
+   *
+   * La firma cuesta una consulta pequeña y dice si alguna tabla cambió. Si
+   * ninguna cambió, esta función NO ESCRIBE NADA: se va antes de construir el
+   * snapshot, así que no hay forma de que un salto borre nada. Es todo o nada a
+   * propósito; saltarse tablas sueltas exige mezclar con lo local y con la cola
+   * de pendientes, y ahí es donde este archivo ya perdió datos dos veces.
+   *
+   * `pedirFirma` devuelve `undefined` si el RPC no existe -la 0049 sin
+   * aplicar-, y entonces se descarga como siempre. Fallar tiene que costar
+   * rendimiento, nunca frescura.
+   */
+  const firmaPrevia = instantaneaLocal().firmaSync
+  const firmaPendiente = pedirFirma(sb)
+
+  // Solo se ESPERA la firma cuando hay una previa contra la que compararla. En
+  // la primera carga de la sesión no hay nada que comparar, así que esperarla
+  // sería un viaje de ida y vuelta de más justo cuando la persona está mirando
+  // la pantalla de carga. Sin previa se pide igual -hace falta para guardarla-
+  // pero en paralelo con las lecturas, y no cuesta latencia.
+  if (firmaPrevia) {
+    const firmaAhora = await firmaPendiente
+    if (firmaAhora && sinCambios(firmaAhora, firmaPrevia)) return
+  }
+
   const [
     usuarios,
     perfiles,
@@ -319,6 +351,10 @@ export async function hidratarDesdeNube(): Promise<void> {
   const ranking = await sb.rpc('ranking_disciplina')
 
   const snapshot: SeedDb = {
+    // Lo que el servidor decia justo antes de esta descarga. Se guarda DESPUES
+    // de pedir los datos y no antes: si algo cambiara en medio, la firma vieja
+    // obliga a repetir en el refresco siguiente, que es el lado seguro.
+    firmaSync: await firmaPendiente,
     usuarios: ((usuarios.data ?? []) as FilaUsuario[]).map(
       (u): Usuario => ({
         id: u.id,
