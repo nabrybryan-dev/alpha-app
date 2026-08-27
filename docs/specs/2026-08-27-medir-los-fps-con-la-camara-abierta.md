@@ -89,6 +89,79 @@ nada, y este repo ya se quemó una vez dando por bueno un dato sin su contexto.
   'requestVideoFrameCallback' in HTMLVideoElement.prototype
   ```
 
+## Sin móvil a mano: la cámara sintética
+
+El procedimiento de arriba es el que vale. Esto es el banco de pruebas para cuando no
+hay móvil delante: sirve para **probar que el bucle corre y comparar A contra B en el
+portátil**, no para dar un número que se pueda llevar al gimnasio. Los fps dependen del
+aparato, y un portátil no dice nada de un teléfono de gama media caliente.
+
+La idea es sustituir la cámara por un lienzo que se anima: `getUserMedia` devuelve el
+`captureStream()` de un canvas con un disco subiendo y bajando, que es exactamente lo
+que el segmentador busca. El encoder no se entera —recibe un `MediaStream` con sus
+`videoWidth`/`videoHeight`— y el bucle de captura corre entero: `drawImage`, el
+`getImageData` del lienzo de 640, la segmentación y las siete escrituras de `textContent`.
+
+Pegar esto en la consola **antes** de tocar «Abrir cámara»:
+
+```js
+const c = document.createElement('canvas')
+c.width = 1280; c.height = 720
+const g = c.getContext('2d')
+const t0 = performance.now()
+;(function pinta () {
+  const t = (performance.now() - t0) / 1000
+  g.fillStyle = '#101014'; g.fillRect(0, 0, c.width, c.height)
+  g.fillStyle = '#f2f2f2'
+  g.beginPath(); g.arc(640, 360 + Math.sin(t * 1.4) * 240, 78, 0, Math.PI * 2); g.fill()
+  requestAnimationFrame(pinta)
+})()
+const flujo = c.captureStream(60)
+navigator.mediaDevices.getUserMedia = async () => flujo
+```
+
+Y a partir de ahí, el mismo A/B: `delete document.body.dataset.camaraAbierta` para la
+toma B, y el atributo puesto para la A.
+
+### Dónde se corre importa: la puerta NO existe en `/entrenar/encoder`
+
+El atributo lo escribe **`RegistroSerie`** y nadie más (`camaraAbierta.ts`, un único
+llamante). O sea que la puerta de cámara está puesta cuando se mide **desde la sesión**
+—`RegistroSerie` → `HojaMedicion` → visor—, y **no** cuando se abre la página suelta de
+`/entrenar/encoder`. Comprobado el 27/08: con el flujo sintético ya enganchado en esa
+página, `document.body.dataset` estaba **vacío**.
+
+Consecuencia para el A/B: en la página suelta, la toma A no es «con la puerta puesta»
+sino «sin puerta» — se estarían midiendo dos veces las mismas condiciones y saldría que
+el movimiento no cuesta nada. La medición se hace **desde la sesión**; si aun así se
+quiere usar la página suelta, hay que poner el atributo a mano para la toma A:
+
+```js
+document.body.dataset.camaraAbierta = 'si'
+```
+
+### La condición que invalida la medición: la pestaña en segundo plano
+
+**La ventana de Chrome tiene que estar delante.** No es una recomendación: en una
+pestaña oculta Chrome **congela el reloj de animación** —`document.timeline.currentTime`
+se queda quieto—, así que ni el `requestAnimationFrame` que pinta el lienzo ni el
+`requestVideoFrameCallback` del bucle de captura llegan a dispararse. Comprobado el
+27/08 en este mismo montaje: con la ventana detrás, el vídeo recibía el flujo y decía
+`1280×720` reproduciéndose, y la barra de medidas seguía marcando **`fps —`** después de
+dos segundos y medio. Ni un solo fotograma.
+
+O sea que el modo de fallo es el peor posible: **parece que mide y da un número bajo**.
+Si alguien corre esto con la ventana minimizada y anota lo que sale, anota la
+estrangulación de Chrome creyendo que anota el coste del movimiento. Antes de dar por
+buena cualquier lectura:
+
+```js
+document.visibilityState   // tiene que decir "visible"
+```
+
+Este repo ya se comió esa trampa una vez el mismo día, midiendo el contraste de una
+transición en una pestaña oculta y acusando a `main` de un fallo que no existía.
+
 ## Dónde anotar lo que salga
 
 Aquí mismo, debajo. Una fila por medición, con fecha y aparato.
