@@ -114,7 +114,14 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
           type="button"
           disabled={!completo}
           onClick={finalizar}
-          className="press mt-6 w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white transition-opacity duration-200 disabled:opacity-40"
+          // El halo `--glow-accion` aparecia en UN fotograma mientras la
+          // opacidad interpolaba: el boton se encendia a dos velocidades. Ahora
+          // el pulso lo pone `.cta-pulso`, que anima un pseudo-elemento sobre
+          // `transform` y `opacity` — nunca la sombra, que se re-rasteriza.
+          // La opacidad sube a 240 ms para ir con el resto del sistema.
+          className={`press mt-6 w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white transition-opacity duration-[240ms] disabled:opacity-40 ${
+            completo ? 'cta-pulso' : ''
+          }`}
           style={completo ? { boxShadow: 'var(--glow-accion)' } : undefined}
         >
           Finalizar sesión
