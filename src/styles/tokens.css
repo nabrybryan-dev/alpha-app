@@ -512,7 +512,19 @@ body {
 .tecla-3d {
   transform: translateZ(var(--prof-relieve));
   box-shadow: var(--sombra-alzado);
-  transition: transform var(--dur-toque) var(--ease-salida);
+  /* Las propiedades van ENUMERADAS y no en un `transition` a secas, por una
+     colision que no avisa. Tailwind inyecta sus utilidades en la linea 3 de este
+     mismo archivo, asi que `.tecla-3d` le gana a `transition-colors` por orden
+     con la misma especificidad: un boton con las dos clases perdia la transicion
+     de color entera y el color pasaba a saltar de golpe. No se pone nada en rojo
+     —es una clase ganandole a otra, que es lo que la cascada hace— y en el
+     navegador se ve como un parpadeo que nadie sabe de donde sale.
+
+     Enumerando aqui los colores, el marcado ya no necesita la utilidad: una tecla
+     lleva `tecla-3d` y nada mas. */
+  transition-property: transform, background-color, border-color, color;
+  transition-duration: var(--dur-toque);
+  transition-timing-function: var(--ease-salida);
 }
 
 .tecla-3d:active {

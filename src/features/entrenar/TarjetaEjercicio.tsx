@@ -64,7 +64,26 @@ export function TarjetaEjercicio({
       <Card className={completo ? 'opacity-75' : ''}>
         <ExerciseSlotMachine index={indice} total={total} nombre={ejercicio.nombre} categoria={ejercicio.categoria} rango={ejercicio.rango} tecnica={ejercicio.cues || undefined} paused={completo} onRefTap={contenidoDemo ? () => onVerDemo(contenidoDemo) : undefined} refVisual={contenidoDemo ? 'Ver demostración' : undefined} />
 
-        <div className="mt-3 flex items-center justify-around">
+        {/* EL BANCO DE TRABAJO. La tarjeta es la superficie; lo que lleva encima se
+            reparte en tres escalones de la escala y ni uno más:
+
+            · las cuatro cifras del objetivo van TROQUELADAS en el banco (`pozo-3d`,
+              −8), que es literalmente para lo que existe ese escalón: «materia que
+              falta dentro de la misma placa: cifras, troqueles»;
+            · la prescripción del coach es una placa POSADA encima (+16). Es lo único
+              en relieve, y por eso se lee como lo que hay que hacer;
+            · las series ya registradas vuelven a hundirse (−8): son registro, no
+              instrucción — están escritas y no se tocan.
+
+            REGISTROSERIE SE QUEDA FUERA DE ESTA ESCENA, y no es una preferencia de
+            orden. `perspective` crea bloque contenedor para los descendientes
+            `fixed`, y de `RegistroSerie` cuelga `HojaMedicion`, que es `fixed
+            inset-0`. Metiéndolo aquí dentro, la hoja de la cámara dejaría de ocupar
+            la pantalla para encerrarse en una tarjeta de 350 px. El propio
+            `RegistroSerie` ya lo tiene escrito en su marco; esto es el otro lado de
+            la misma regla. */}
+        <div className="escena-prof">
+        <div className="pozo-3d mt-3 flex items-center justify-around rounded-boton bg-ink-800/60 py-2.5">
           <Estadistica etiqueta="Sets" valor={ejercicio.sets} />
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
           <Estadistica etiqueta="Reps" valor={ejercicio.rango.replace(/[()]/g, '')} />
@@ -84,7 +103,14 @@ export function TarjetaEjercicio({
             cues de ejecución quedan tras un toggle. */}
         <div
           className="mt-3 rounded-tarjeta border border-ink-500 bg-ink-700 p-3"
-          style={{ boxShadow: 'var(--inset-top-light)' }}
+          style={{
+            // La única placa en relieve de la tarjeta. Los dos botones de dentro se
+            // quedan en `press` a propósito: `tecla-3d` sumaría otros +16 sobre estos
+            // —los `translateZ` anidados se suman— y +32 no es ninguno de los cinco
+            // escalones. Un relieve dentro de un relieve deja de ser una escala.
+            transform: 'translateZ(var(--prof-relieve))',
+            boxShadow: 'var(--inset-top-light), var(--sombra-alzado)',
+          }}
         >
           <div className="relative pl-3">
             <span className="absolute bottom-0.5 left-0 top-0.5 w-[3px] rounded-full bg-accion" aria-hidden="true" />
@@ -121,7 +147,9 @@ export function TarjetaEjercicio({
         </div>
 
         {ejercicio.series.length > 0 && (
-          <div className="mt-3">
+          // Hundido al mismo escalón que las cifras: lo ya registrado es del mismo
+          // material que el objetivo, y ninguno de los dos se toca.
+          <div className="mt-3" style={{ transform: 'translateZ(var(--prof-hueco))' }}>
             <div className="grid grid-cols-[38px_1fr_1fr_1fr_26px] gap-2 px-1 pb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-silver-500">
               <span>Serie</span>
               <span>Carga</span>
@@ -148,6 +176,10 @@ export function TarjetaEjercicio({
             </ul>
           </div>
         )}
+
+        </div>
+        {/* Y aquí acaba la escena: de este punto para abajo no hay perspectiva, para
+            que la hoja de la cámara siga siendo `fixed` respecto a la pantalla. */}
 
         {!completo && (
           <div className="mt-3">
