@@ -1340,10 +1340,17 @@ body {
 }
 
 /* Y el desenfoque se retira mientras se captura. No es una animacion —la regla
-   de arriba no lo alcanza— pero un `backdrop-filter` a pantalla completa es de
-   lo mas caro que se le puede pedir a la GPU: obliga a remuestrear y difuminar
-   la region entera en cada fotograma. El corte entre ejercicios lo lleva, y esa
-   pantalla puede aparecer con la camara viva.
+   de arriba solo pausa animaciones y un filtro no lo es— pero un
+   `backdrop-filter` es de lo mas caro que se le puede pedir a la GPU: obliga a
+   remuestrear y difuminar la region entera en cada fotograma.
+
+   QUIEN LA NECESITA HOY es la barra de descanso, no el corte entre ejercicios.
+   El corte ya no lleva desenfoque —se le quito porque no bloqueaba el scroll del
+   documento de debajo y el velo subio a opaco—, asi que por ese lado esta regla
+   ya no hace falta. Pero el descanso SI: su lamina de cristal lleva `.glass-blur`
+   y puede estar corriendo mientras se mide, porque la hoja del encoder se pinta
+   AL LADO de la sesion y no la desmonta. Sin esta regla, ese desenfoque vuelve a
+   costar fotogramas durante la toma.
 
    El contraste no se pierde: debajo del desenfoque siempre hay un velo opaco,
    que es lo que de verdad garantiza que se lea el texto. */

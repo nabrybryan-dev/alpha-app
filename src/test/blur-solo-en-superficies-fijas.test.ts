@@ -136,7 +136,12 @@ describe('las dos reglas de movimiento que el repo ya tenía escritas', () => {
     const mudos = tsx(ENCODER)
       .filter((ruta) => !PENDIENTES.some((p) => ruta.endsWith(p)))
       .filter((ruta) => {
-        const fuente = readFileSync(ruta, 'utf8')
+        // Los saltos se normalizan antes de mirar. En Windows el archivo llega con
+        // CRLF, así que buscar el cierre del tag por salto de línea no lo encuentra
+        // y el corte cae al tope de caracteres — que un comentario largo dentro del
+        // tag se come antes de llegar al `className`. El guardián daba entonces un
+        // falso positivo; se vio con `Visor.tsx`, que sí tenía su `press`.
+        const fuente = readFileSync(ruta, 'utf8').split('\r\n').join('\n')
         return fuente
           .split('<button')
           .slice(1)

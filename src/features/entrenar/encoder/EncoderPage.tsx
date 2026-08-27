@@ -446,7 +446,7 @@ export default function EncoderPage() {
         <button
           type="button"
           onClick={() => setPalancasAbierto((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between text-left"
+          className="press flex min-h-11 w-full items-center justify-between text-left"
           aria-expanded={palancasAbierto}
         >
           <b className="text-sm">Palancas · abrir una medida</b>
@@ -467,7 +467,7 @@ export default function EncoderPage() {
         <button
           type="button"
           onClick={() => setEncuadreAbierto((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between text-left"
+          className="press flex min-h-11 w-full items-center justify-between text-left"
           aria-expanded={encuadreAbierto}
         >
           <b className="text-sm">Dónde plantar la cámara</b>
@@ -524,7 +524,7 @@ export default function EncoderPage() {
             type="button"
             onClick={exportar}
             disabled={tanda.length === 0}
-            className="min-h-11 rounded-xl border border-linea bg-surface-3 px-4 text-sm font-medium disabled:opacity-40"
+            className="press min-h-11 rounded-xl border border-linea bg-surface-3 px-4 text-sm font-medium disabled:opacity-40"
           >
             Exportar CSV
           </button>
@@ -532,7 +532,7 @@ export default function EncoderPage() {
             type="button"
             onClick={vaciar}
             disabled={tanda.length === 0}
-            className="min-h-11 rounded-xl border border-linea px-4 text-sm text-tenue disabled:opacity-40"
+            className="press min-h-11 rounded-xl border border-linea px-4 text-sm text-tenue disabled:opacity-40"
           >
             Vaciar tanda
           </button>
@@ -627,7 +627,7 @@ export default function EncoderPage() {
               max={45}
               value={tolTono}
               onChange={(e) => setTolTono(Number(e.target.value))}
-              className="min-h-11"
+              className="press min-h-11"
             />
           </Campo>
           <Campo etiqueta="Latitud (°)" ancho="w-28">

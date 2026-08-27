@@ -36,8 +36,11 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
       <p className="entrada entrada-2 cifras text-lg font-bold text-logrado">
         +{XP_POR_ACCION.sesion} XP
       </p>
+      {/* `entrada-3` y no `entrada-2`: el XP de arriba ya usa el 2. Con los dos
+          iguales la cascada se cortaba justo aquí, que es el mismo defecto que
+          tenía la Ruta. El paso de 60 ms se mantiene. */}
       {reflexion && (
-        <p className="entrada entrada-2 max-w-xs font-display text-lg leading-snug text-texto">{reflexion}</p>
+        <p className="entrada entrada-3 max-w-xs font-display text-lg leading-snug text-texto">{reflexion}</p>
       )}
       <p className="entrada entrada-4 max-w-xs text-sm text-tenue">
         Tus datos ya quedaron guardados para la próxima decisión de programación del coach.
