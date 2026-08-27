@@ -36,9 +36,11 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
         aria-label="Índice de recuperación"
         className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
       >
+        {/* Ver TarjetaProgresoNivel: `scaleX` en vez de `width`, y 240 ms en vez
+            de 700. Son las tres barras de la Ruta con el mismo defecto. */}
         <span
-          className={`block h-full rounded-full transition-[width] duration-700 ease-salida ${t.barra}`}
-          style={{ width: `${indice}%` }}
+          className={`block h-full w-full rounded-full origin-left transition-transform duration-[240ms] ease-salida ${t.barra}`}
+          style={{ transform: `scaleX(${indice / 100})` }}
         />
       </div>
       <p className="mt-2 text-[11.5px] leading-relaxed text-silver-400">

@@ -97,6 +97,29 @@ describe('las dos reglas de movimiento que el repo ya tenía escritas', () => {
     ).toEqual([])
   })
 
+  it('nadie transiciona `width` ni `height`: las barras escalan', () => {
+    // Una barra que crece por `width` dispara layout + pintado + composición en
+    // **cada fotograma** del recorrido. Con `scaleX` sobre un carril al 100 % se
+    // queda en el compositor y hace exactamente lo mismo a la vista.
+    //
+    // EL HUECO QUE CERRÓ (2026-08-27): las tres barras de la Ruta lo hacían a
+    // 700 ms —más del doble del techo de 300 del estándar— y una de ellas
+    // arrastraba además un halo de 24 px que hay que re-rasterizar entero en
+    // cada fotograma. Y esa pantalla corre con el lienzo cinemático haciendo
+    // scrub dentro de su propio `requestAnimationFrame`: el layout de la barra
+    // y el scrub se peleaban por el mismo hilo.
+    //
+    // El halo, cuando lo haya, va en el carril que NO se mueve: sobre el
+    // elemento escalado la sombra se deforma con él.
+    const culpables = culpablesDe(/transition-\[(width|height)\]|transition:\s*['"`]?\s*(width|height)\b/, [])
+    expect(
+      culpables,
+      `Transicionan una medida: ${culpables.join(', ')}.\n` +
+        'Carril al 100 % y `transform: scaleX(pct/100)` con `origin-left`.\n' +
+        'Es lo que `.barra-crece` ya hace en tokens.css.',
+    ).toEqual([])
+  })
+
   it('`.glass-blur` sigue siendo la vía sancionada, y se usa', () => {
     // Si esto se pone rojo es que alguien retiró el último uso legítimo: o el
     // desenfoque dejó de hacer falta —y entonces `.glass-blur` sobra en

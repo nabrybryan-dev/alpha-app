@@ -35,9 +35,10 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
                 aria-label={c.nombre}
                 className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
               >
+                {/* Ver TarjetaProgresoNivel: `scaleX` en vez de `width`. */}
                 <span
-                  className={`block h-full rounded-full transition-[width] duration-700 ease-salida ${color.barra}`}
-                  style={{ width: `${c.pct}%` }}
+                  className={`block h-full w-full rounded-full origin-left transition-transform duration-[240ms] ease-salida ${color.barra}`}
+                  style={{ transform: `scaleX(${c.pct / 100})` }}
                 />
               </div>
               <p className="mt-2 text-[11.5px] leading-relaxed text-silver-400">{c.nota}</p>

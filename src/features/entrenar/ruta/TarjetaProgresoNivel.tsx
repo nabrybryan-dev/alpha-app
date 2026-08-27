@@ -33,10 +33,22 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
           siguienteNivel ? `Progreso al nivel ${siguienteNivel.numero}` : 'Progreso de nivel'
         }
         className="mt-2.5 h-2 overflow-hidden rounded-full bg-ink-500"
+        /* EL HALO VIVE AQUI, en el carril que no se mueve, y no en la barra que
+           escala. Puesto sobre el elemento escalado la sombra se deformaria con
+           el `scaleX` —un halo estirado— y habria que re-rasterizar 24 px de
+           difuminado en cada fotograma del recorrido. */
+        style={{ boxShadow: 'var(--glow-accion)' }}
       >
+        {/* `scaleX` y no `width`: el ancho dispara layout, pintado y composicion
+            en cada fotograma, y esta pantalla corre con el lienzo cinematico
+            haciendo scrub dentro de su propio `requestAnimationFrame`. Si el
+            valor cambiaba mientras se scrollea, el layout de la barra y el scrub
+            se peleaban por el mismo hilo.
+            Y baja de 700 ms a 240: los 700 doblaban con creces el techo de 300
+            del estandar y no salian de ninguna escala del repo. */}
         <span
-          className="block h-full rounded-full bg-accion transition-[width] duration-700 ease-salida"
-          style={{ width: `${seguro}%`, boxShadow: 'var(--glow-accion)' }}
+          className="block h-full w-full rounded-full bg-accion origin-left transition-transform duration-[240ms] ease-salida"
+          style={{ transform: `scaleX(${seguro / 100})` }}
         />
       </div>
 

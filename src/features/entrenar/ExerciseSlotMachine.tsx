@@ -884,12 +884,24 @@ function Paginador({ tema, paradas, catIdx, onIr }: { tema: SlotTheme; paradas: 
     <div className="mt-2 flex items-center justify-center">
       {paradas.map((parada, i) => {
         const activo = i === catIdx
+        // El punto alargado se ensancha al activarse. Lo hacia con `width`, que
+        // relayoutea en cada fotograma — y este gabinete vive en la misma
+        // pantalla que la camara. Ahora el ancho es FIJO (el del activo) y lo
+        // que cambia es un `scaleX`, que se queda en el compositor. Sale del
+        // centro para que el punto siga centrado en su area tactil de 44 px.
+        // Las otras dos formas no cambian de tamano: su transform es estatico.
+        const anchoAbierto = tema.id === 'fruit' ? 24 : 22
         const forma: CSSProperties =
           tema.punto === 'rombo'
             ? { width: 9, height: 9, borderRadius: 2, transform: 'rotate(45deg)' }
             : tema.punto === 'circulo'
               ? { width: 9, height: 9, borderRadius: 999 }
-              : { width: activo ? (tema.id === 'fruit' ? 24 : 22) : 8, height: 8, borderRadius: 2 }
+              : {
+                  width: anchoAbierto,
+                  height: 8,
+                  borderRadius: 2,
+                  transform: `scaleX(${activo ? 1 : 8 / anchoAbierto})`,
+                }
         return (
           <button
             key={parada.etiqueta}
@@ -901,7 +913,13 @@ function Paginador({ tema, paradas, catIdx, onIr }: { tema: SlotTheme; paradas: 
             className="grid place-items-center"
             style={{ width: 44, height: 44 }}
           >
-            <span style={{ ...forma, background: activo ? tema.acento : '#4a4133', transition: 'width .3s ease-out' }} />
+            <span
+              style={{
+                ...forma,
+                background: activo ? tema.acento : '#4a4133',
+                transition: 'transform var(--dur-base) var(--ease-salida)',
+              }}
+            />
           </button>
         )
       })}
