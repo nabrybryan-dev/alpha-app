@@ -114,7 +114,18 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
           type="button"
           disabled={!completo}
           onClick={finalizar}
-          className="press mt-6 w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white transition-opacity duration-toque ease-salida disabled:opacity-40"
+          // El halo `--glow-accion` aparecía en UN fotograma mientras la opacidad
+          // interpolaba: el botón se encendía a dos velocidades. Ahora el pulso lo
+          // pone `.cta-pulso`, que anima un pseudo-elemento sobre `transform` y
+          // `opacity` — nunca la sombra, que se re-rasteriza en cada fotograma.
+          //
+          // La duración va por `duration-base` y no por un `duration-[240ms]` a mano:
+          // son los mismos 240 ms, pero salen del token, así que si la escala cambia
+          // esto cambia con ella. Y se conserva `ease-salida`, que el valor arbitrario
+          // dejaba caer a la curva por defecto de Tailwind.
+          className={`press mt-6 w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white transition-opacity duration-base ease-salida disabled:opacity-40 ${
+            completo ? 'cta-pulso' : ''
+          }`}
           style={completo ? { boxShadow: 'var(--glow-accion)' } : undefined}
         >
           Finalizar sesión

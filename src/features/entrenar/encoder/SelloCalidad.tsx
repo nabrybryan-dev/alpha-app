@@ -92,12 +92,51 @@ export function SelloCalidad({
   }
 
   const subtituloVisible = subtitulo === null ? null : (subtitulo ?? SUBTITULO[nivel])
+  /**
+   * La hundida se HUNDE, y es el unico 3D del encoder que no toca la imagen
+   * medida.
+   *
+   * Hasta hoy la placa cambiaba de materia de golpe: al arrastrar el desvio se
+   * cruza el umbral y el sello salta de llena a hundida sin nada entre medias.
+   * Ahora la hundida se inclina 6 grados y retrocede un escalon, asi que el
+   * cambio de estado tiene cuerpo.
+   *
+   * LA PROFUNDIDAD REFUERZA LA MATERIA, NO LA SUSTITUYE. Si se quita el
+   * `transform`, los tres estados se siguen leyendo exactamente igual — llena,
+   * hueca, hundida— porque el eje siempre fue la cantidad de materia. Esto
+   * añade cuerpo a lo que ya se entendia sin el.
+   *
+   * HAY UN SOLO GRADO DE PROFUNDIDAD, asi que `dudosa` NO recibe un tercer valor
+   * inventado a medio camino: se queda a cero como `buena`, y la unica que se
+   * mueve es la que representa una ausencia.
+   *
+   * Los numeros son los del sistema y ninguno es nuevo: 6 grados es
+   * `--giro-lectura`, el tope de cualquier superficie con un rotulo dentro —y
+   * esta placa lleva una palabra en 25 px—; el escalon es `--prof-hueco`, el
+   * mismo que usa cualquier materia que falta.
+   *
+   * SOLO EN EL SELLO GRANDE. En la version `inline` de una fila de lista, seis
+   * grados sobre un chip de 9,5 px serian ruido: alli el estado se lee en la
+   * materia, que es justo para lo que se diseño.
+   */
+  const hundiendose = grande && nivel === 'descartada'
 
   return (
-    <div className={className}>
+    <div className={className} style={grande ? { perspective: 'var(--perspectiva)' } : undefined}>
       <div
         className={`${materia[nivel]} ${grande ? 'px-4 py-3' : 'px-2.5 py-1.5'}`}
-        style={{ clipPath: TROQUEL }}
+        style={{
+          clipPath: TROQUEL,
+          ...(grande
+            ? {
+                transformStyle: 'preserve-3d' as const,
+                transform: hundiendose
+                  ? 'rotateX(var(--giro-lectura)) translateZ(var(--prof-hueco))'
+                  : 'rotateX(0deg) translateZ(0)',
+                transition: 'transform var(--dur-base) var(--ease-salida)',
+              }
+            : {}),
+        }}
       >
         <p
           className={`font-display font-extrabold uppercase leading-none tracking-[0.08em] ${

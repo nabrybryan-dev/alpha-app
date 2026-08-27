@@ -52,7 +52,22 @@ export function HistorialDeVelocidad({ usuarioId }: { usuarioId: string }) {
           ))}
         </div>
       )}
-      <HistorialEncoder tomas={tomas} ejercicio={ejercicio} />
+      {/* La `key` fuerza a React a SUSTITUIR el subarbol al cambiar de ejercicio.
+          Sin ella, puntos, tendencia y rotulos se reemplazaban en el mismo
+          fotograma sobre el mismo `<svg>`.
+          Es reemplazo con desvanecido de entrada y NO un fundido cruzado, a
+          proposito: dos lineas de tendencia superpuestas, aunque sean 160 ms,
+          enseñarian una tendencia que no existe. */}
+      {/* Se pide la keyframe con la duracion de aqui y no la clase `.area-aparece`
+          tal cual: esa lleva 1 s con 0,35 de retraso, pensada para el trazo del
+          grafico de evolucion. Aqui son 160 ms, que es lo que tarda un cambio de
+          ficha en sentirse instantaneo. */}
+      <div
+        key={ejercicio}
+        style={{ animation: 'area-aparece var(--dur-toque) var(--ease-salida) both' }}
+      >
+        <HistorialEncoder tomas={tomas} ejercicio={ejercicio} />
+      </div>
     </section>
   )
 }

@@ -189,7 +189,7 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
               <button
                 type="button"
                 onClick={guardar}
-                className="min-h-12 rounded-xl bg-rojo px-4 text-sm font-bold text-white"
+                className="press min-h-12 rounded-xl bg-rojo px-4 text-sm font-bold text-white"
               >
                 Guardar medición
               </button>

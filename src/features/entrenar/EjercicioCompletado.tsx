@@ -22,19 +22,27 @@ export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSegu
       // que su contenido—. Su hermano de la misma pantalla, el del test post, ya se
       // fundía con esta misma clase. Son 320 ms con `--ease-salida` y trae su propia
       // rama de movimiento reducido.
-      className="scrim-entra fixed inset-0 flex items-center justify-center px-8"
-      // Sin `backdropFilter`. Era superficie fija, así que la regla del blur lo
-      // permitía, pero faltaba la otra mitad: este overlay no bloquea el scroll del
-      // documento de debajo, y en cuanto el fondo se mueve hay que recalcular el
-      // desenfoque de TODO el viewport por fotograma. El corte es a pantalla completa
-      // a propósito —existe para que nadie siga registrando series del ejercicio
-      // equivocado—, o sea que no necesita que se vea el fondo: el velo sube a opaco.
+      //
+      // La `perspective` es lo que hace posible el `rotateX` del panel de dentro:
+      // tiene que vivir en el PADRE, no en el elemento que gira.
+      className="scrim-entra fixed inset-0 flex items-center justify-center px-8 [perspective:900px]"
+      // Sin `backdropFilter`, y esto NO se recupera al traer la profundidad. Era
+      // superficie fija, así que la regla del blur lo permitía, pero faltaba la otra
+      // mitad: este overlay no bloquea el scroll del documento de debajo, y en cuanto
+      // el fondo se mueve hay que recalcular el desenfoque de TODO el viewport por
+      // fotograma. El corte es a pantalla completa a propósito —existe para que nadie
+      // siga registrando series del ejercicio equivocado—, o sea que no necesita que
+      // se vea el fondo: el velo va opaco. Un velo opaco además hace el escorzo del
+      // panel más legible, no menos.
       style={{ background: 'var(--ink-900)', zIndex: 'var(--z-scrim)' }}
       role="dialog"
       aria-label="Ejercicio completado"
     >
+      {/* El velo funde con `.scrim-entra` en vez de aparecer de golpe: la capa
+          oscura llegaba antes que su contenido. Es lo que ya hace el test post,
+          que es su hermano de esta misma pantalla. */}
       <div
-        className="entrada w-full max-w-sm rounded-bloque border border-ink-400 bg-ink-700 p-7 text-center"
+        className="corte-entra w-full max-w-sm rounded-bloque border border-ink-400 bg-ink-700 p-7 text-center [transform-style:preserve-3d]"
         style={{ boxShadow: 'var(--inset-top-light)' }}
       >
         <span className="latido mx-auto grid h-[68px] w-[68px] place-items-center rounded-full bg-logrado">

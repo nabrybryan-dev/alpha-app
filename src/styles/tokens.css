@@ -494,6 +494,220 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- La consola: teclas que sobresalen, cifras hundidas ---------- */
+
+/* Registrar una serie deja de ser rellenar un formulario y pasa a ser operar una
+   consola: la cifra vive HUNDIDA en su hueco y las teclas SOBRESALEN de la
+   placa. Al pulsar una, recorre sus 16 px hasta tocarla — el recorrido de la
+   tecla es literal, no una metafora.
+
+   Las dos sustituyen a `.press` en esos botones, no se apilan con ella: dos
+   reglas peleandose por `transform` las gana la ultima, y el 3D o el hundido
+   desapareceria sin aviso. Por eso llevan el mismo `scale(0.97)`, la misma
+   duracion y la misma curva: el tacto es identico, con recorrido añadido.
+
+   NINGUNA ZONA TOCABLE BAJA DEL PLANO. Hundir encoge —a 900 px de perspectiva,
+   -8 px son un factor 0,9912— y una diana de 44 px hundida se queda en 43,6.
+   Las teclas van de +16 a 0, nunca a negativo. */
+.tecla-3d {
+  transform: translateZ(var(--prof-relieve));
+  box-shadow: var(--sombra-alzado);
+  transition: transform var(--dur-toque) var(--ease-salida);
+}
+
+.tecla-3d:active {
+  transform: translateZ(var(--prof-plano)) scale(0.97);
+}
+
+.pozo-3d {
+  transform: translateZ(var(--prof-hueco));
+  box-shadow: var(--sombra-hundido);
+}
+
+/* El asentado de la consola: entra inclinada y se posa. 240 ms y sin escalonado,
+   porque esto se reproduce despues de CADA serie —unas 25 veces por sesion— y la
+   tabla de frecuencia del estandar dice reducir, no adornar. */
+@keyframes asentar-consola {
+  from {
+    transform: rotateX(3deg) translateZ(-14px);
+  }
+}
+
+.consola-asienta {
+  transform-style: preserve-3d;
+  animation: asentar-consola var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tecla-3d {
+    transition: none;
+  }
+  .consola-asienta {
+    animation: none;
+  }
+}
+
+/* ---------- Una pieza que aparece donde no habia nada ---------- */
+
+/* Para lo que se monta de golpe: los plegables del encoder y la tarjeta de
+   resultado que sustituye al «sin medicion todavia».
+
+   `transition` con `@starting-style` y NO una keyframe, porque una pieza que se
+   sustituye por otra tiene que poder redirigirse a mitad de camino. Un navegador
+   que no entienda `@starting-style` la pinta directamente, que es lo que hacia
+   antes: se pierde la entrada, no la pieza.
+
+   NUNCA se anima el alto ni el `max-height` de un plegable. Un elemento animado
+   y uno solo —el envoltorio—, y nada de escalonar los hijos: serian N capas
+   promovidas con el bucle de captura corriendo.
+
+   Los 240 ms caen en los 150-250 que el estandar da a los desplegables. */
+.aparece-pieza {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-base) var(--ease-salida),
+    transform var(--dur-base) var(--ease-salida);
+}
+
+@starting-style {
+  .aparece-pieza {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aparece-pieza {
+    transition: none;
+  }
+}
+
+/* ---------- La insignia del Salon de Maquinas ---------- */
+
+/* La clase `insignia-salon` ya estaba puesta en el marcado y NO EXISTIA en
+   ninguna hoja: un gancho colgado y vacio, esperando exactamente esto. Por eso
+   aqui no cambia ni una linea de TSX.
+
+   El 0,94 es el 0 % de `.frase-pop`, dentro de la banda 0,9-0,97 que el estandar
+   da al feedback fisico. Nunca se toca el oro del fondo ni se le pone una sombra
+   animada: el oro esta reservado al nivel Elite y no es un acento decorativo. */
+@keyframes insignia-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.insignia-salon {
+  animation: insignia-entra var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insignia-salon {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- El aviso de la captura ---------- */
+
+/* `transition` y NO `@keyframes`, y no es un detalle: un segundo aviso que
+   sustituye al primero tiene que poder redirigirse a mitad de camino. Con una
+   keyframe se reiniciaria desde cero cada vez.
+
+   El `@starting-style` da el estado de salida sin necesidad de un doble render.
+   Un navegador que no lo entienda pinta el aviso directamente, que es justo lo
+   que hacia antes: se pierde la entrada, no el aviso.
+
+   Nunca se anima el ALTO del bloque: relayoutearia la pantalla del encoder en
+   cada fotograma, y esta corre con la camara a 50 fps. */
+.aviso-captura {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-toque) var(--ease-salida),
+    transform var(--dur-toque) var(--ease-salida);
+}
+
+@starting-style {
+  .aviso-captura {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-captura {
+    transition: none;
+  }
+}
+
+/* ---------- El corte entre ejercicios ---------- */
+
+/* Hasta hoy el velo a pantalla completa aparecia DE GOLPE mientras el panel
+   entraba en 480 ms: la capa oscura llegaba antes que su contenido. Su hermano
+   de la misma pantalla —el test post— si funde el suyo. Y el panel era plano:
+   nada decia que fuese una capa POR ENCIMA de la sesion salvo que el fondo se
+   oscurece.
+
+   LA PROFUNDIDAD SE PAGA CON TIEMPO QUE SE QUITA, NO QUE SE AÑADE: 480 -> 360.
+   Es un corte que interrumpe, no un premio; llega, se entiende y se aparta.
+
+   `scale(0.97)` es el de `.press`, y nunca `scale(0)`: un modal que nace de un
+   punto se lee como un truco. El origen va al centro y no al disparador, que es
+   lo que el estandar exime expresamente para los modales. */
+@keyframes corte-entra {
+  from {
+    opacity: 0;
+    transform: rotateX(6deg) translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0deg) translateY(0) scale(1);
+  }
+}
+
+.corte-entra {
+  animation: corte-entra var(--dur-panel) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Con `both` el panel queda entero y plano: se pierde el giro, NO el corte —
+     que es lo que impide seguir registrando series del ejercicio equivocado. */
+  .corte-entra {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- La portada del microciclo aterriza ---------- */
+
+/* Es la pieza que MAS deleite tiene permitido: se ve UNA vez por microciclo, y
+   era la unica que no se movia al llegar — se pintaba de golpe y plana mientras
+   las siete tarjetas de debajo subian escalonadas.
+
+   La `perspective()` va DENTRO del `transform` porque este envoltorio no tiene
+   ningun ancestro con perspectiva: la suya se la da a sus hijos, no a si mismo.
+   Es el mismo patron del volteo del aguila.
+
+   Ningun numero es nuevo. Los 6 grados son el tope que la bandeja ya hace al
+   dedo, asi que la entrada ATERRIZA justo donde empieza el gesto en vez de
+   inventarse un angulo. Los 14 px son los de `entrada-suave`. Y la curva es
+   `--ease-cajon`, la que este repo reserva para lo que llega con peso. */
+@keyframes portada-entra {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateX(6deg) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(900px) rotateX(0deg) translateY(0);
+  }
+}
+
+.portada-entra {
+  animation: portada-entra var(--dur-escena) var(--ease-cajon) both;
+}
+
 /* ---------- Reveal al entrar al viewport ---------- */
 
 .revelar {
@@ -514,6 +728,11 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  /* La portada aparece ENTERA —bandeja, chips, foco, frase y notas—, solo que
+     plana y de inmediato. No se pierde nada de lo que dice. */
+  .portada-entra {
+    animation: none;
   }
 }
 
@@ -1118,6 +1337,26 @@ body {
    tira de leds— y hasta hoy ninguna paraba durante la toma. */
 [data-camara-abierta] * {
   animation-play-state: paused !important;
+}
+
+/* Y el desenfoque se retira mientras se captura. No es una animacion —la regla
+   de arriba solo pausa animaciones y un filtro no lo es— pero un
+   `backdrop-filter` es de lo mas caro que se le puede pedir a la GPU: obliga a
+   remuestrear y difuminar la region entera en cada fotograma.
+
+   QUIEN LA NECESITA HOY es la barra de descanso, no el corte entre ejercicios.
+   El corte ya no lleva desenfoque —se le quito porque no bloqueaba el scroll del
+   documento de debajo y el velo subio a opaco—, asi que por ese lado esta regla
+   ya no hace falta. Pero el descanso SI: su lamina de cristal lleva `.glass-blur`
+   y puede estar corriendo mientras se mide, porque la hoja del encoder se pinta
+   AL LADO de la sesion y no la desmonta. Sin esta regla, ese desenfoque vuelve a
+   costar fotogramas durante la toma.
+
+   El contraste no se pierde: debajo del desenfoque siempre hay un velo opaco,
+   que es lo que de verdad garantiza que se lea el texto. */
+[data-camara-abierta] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* `prefers-reduced-motion` NO aplana la profundidad, y es deliberado: la

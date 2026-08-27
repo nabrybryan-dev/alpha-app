@@ -58,7 +58,17 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
       </button>
 
       {abierta && (
-        <div className="mt-3 flex flex-col gap-3">
+        // El detalle de cada parte YA entraba con cuidado; el que lo contiene se
+        // teletransportaba. El hijo con cuidado y el padre de golpe es lo raro.
+        //
+        // No se anima la ALTURA del acordeon: se acepta el salto de maquetacion
+        // de una vez y se mueve solo el contenido, que es la unica forma de
+        // respetar «solo transform y opacity» en un colapso.
+        //
+        // Los 480 ms pasan del techo de 300 A SABIENDAS: un acordeon de este
+        // tamaño cae en la banda de 200-500 de paneles, y es exactamente lo que
+        // hace su propio hijo. Cohesion por encima de ahorrar 180 ms.
+        <div className="entrada mt-3 flex flex-col gap-3">
           {GRUPOS.map(({ tipo, titulo }) => {
             const grupo = partes.filter((p) => p.tipo === tipo)
             if (grupo.length === 0) return null
