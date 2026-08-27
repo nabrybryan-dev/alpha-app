@@ -63,6 +63,20 @@ export interface PerfilesRepo {
 export interface MicrociclosRepo {
   byUsuario(usuarioId: string): Microciclo[]
   /**
+   * El historial COMPLETO de una persona, pedido a demanda.
+   *
+   * Existe porque la hidratación del staff ya no se baja los microciclos
+   * cerrados de toda la cartera: son el 78 % del peso hoy y crecen sin freno
+   * -cada asesorado cierra uno por semana, para siempre-. Ver
+   * `docs/specs/2026-08-27-donde-truena-a-mil-usuarios.md`.
+   *
+   * DEVUELVE los datos en vez de meterlos en la instantánea, y eso es
+   * deliberado: quien llama los guarda en su propio estado. Escribirlos en el
+   * snapshot obligaría a que la hidratación siguiente supiera conservarlos, y
+   * ese es exactamente el camino en el que este repo ya perdió datos dos veces.
+   */
+  historialDe(usuarioId: string): Promise<Microciclo[]>
+  /**
    * Guarda una propuesta del coach. Entra SIEMPRE con `estado: 'propuesto'`, y esa
    * es la salvaguarda: las pantallas del asesorado (`HoyPage`, `RutaPage`)
    * solo miran el microciclo `activo`, así que una propuesta no le llega a nadie

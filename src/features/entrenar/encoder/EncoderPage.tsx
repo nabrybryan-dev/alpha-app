@@ -295,7 +295,7 @@ export default function EncoderPage() {
           )}
           {captura.grabando && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rojo" />
+              <span className="punto-vivo h-2.5 w-2.5 rounded-full bg-rojo" />
               <span className="font-mono text-[11px] uppercase tracking-widest text-white">
                 grabando
               </span>
@@ -329,7 +329,7 @@ export default function EncoderPage() {
             <button
               type="button"
               onClick={captura.abrirCamara}
-              className="min-h-14 flex-1 rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
+              className="press min-h-14 flex-1 rounded-xl bg-rojo px-4 text-base font-bold text-white"
             >
               Abrir cámara
             </button>
@@ -338,7 +338,7 @@ export default function EncoderPage() {
               type="button"
               disabled={!captura.listoParaGrabar}
               onClick={() => (captura.grabando ? captura.parar() : captura.empezar())}
-              className={`min-h-14 flex-1 rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
+              className={`press min-h-14 flex-1 rounded-xl px-4 text-base font-bold disabled:opacity-40 ${
                 captura.grabando
                   ? 'bg-rojo text-white'
                   : 'border border-white/15 bg-white/10 text-white'
@@ -417,7 +417,7 @@ export default function EncoderPage() {
           type="button"
           disabled={!resultado}
           onClick={guardar}
-          className={`min-h-12 rounded-xl px-4 text-sm font-bold transition-colors ${
+          className={`press min-h-12 rounded-xl px-4 text-sm font-bold ${
             resultado
               ? 'bg-rojo text-white'
               : 'cursor-not-allowed border border-linea bg-surface-2 text-tenue'

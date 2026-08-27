@@ -56,6 +56,19 @@ export default {
         mov: 'cubic-bezier(0.77, 0, 0.175, 1)',
         cajon: 'cubic-bezier(0.32, 0.72, 0, 1)',
       },
+      // Las curvas ya estaban aquí; el tiempo no, y esa era la causa raíz de que
+      // ninguna duración del área de entrenamiento cayera en la escala. Sin estas
+      // cuatro claves `--dur-*` no se puede escribir en una clase, así que cada
+      // pantalla acababa cogiendo el valor más cercano del catálogo de Tailwind:
+      // salieron 200, 700, 300, 150 y 1000 ms, ni uno del sistema.
+      // Se leen del token y no se duplica el número: si la escala cambia en
+      // `tokens.css`, estas clases cambian con ella.
+      transitionDuration: {
+        toque: 'var(--dur-toque)',
+        base: 'var(--dur-base)',
+        panel: 'var(--dur-panel)',
+        escena: 'var(--dur-escena)',
+      },
       boxShadow: {
         halo: 'var(--halo-rojo)',
         brillo: 'var(--brillo-interior)',

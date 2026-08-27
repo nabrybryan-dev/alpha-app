@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 import { COPY } from './copys'
 import { huecosPorSalto, rangoConBandas, sigmaDe, tramosDeEje, type FotogramaBrazo } from './medidaDePalancas'
 
@@ -41,27 +42,25 @@ interface Props {
   alto?: number
 }
 
-/* Se lee con `useSyncExternalStore` y no con useState+useEffect a propósito: la
- * regla `react-hooks/set-state-in-effect` está en error en este repo desde que
- * destapó siete casos, y es el mismo patrón que ya usa `useDbVersion`. Además
- * evita el primer pintado con el valor equivocado, que en un media query se ve. */
-const MQ_REDUCIDO = '(prefers-reduced-motion: reduce)'
+/* La pregunta de si hay que moverse menos se hace en `components/ui/movimientoReducido`
+ * y en ningún otro sitio. Aquí vivía una copia local: el mismo `useSyncExternalStore`,
+ * pero SIN el respaldo de `addListener`/`removeListener` que el módulo canónico
+ * documenta para Safari viejo. Con esa copia, en un Safari antiguo la suscripción no
+ * enganchaba —sin error y sin escucha—, así que si alguien activaba «reducir
+ * movimiento» con esta pantalla ya abierta, la órbita y el trazado seguían corriendo
+ * para quien acababa de pedir que pararan. Y esta es la única pantalla del área que
+ * se mueve. */
 
-function suscribirAMovimiento(alCambiar: () => void) {
-  const mq = window.matchMedia?.(MQ_REDUCIDO)
-  mq?.addEventListener?.('change', alCambiar)
-  return () => mq?.removeEventListener?.('change', alCambiar)
-}
-
-function useMovimientoReducido() {
-  return useSyncExternalStore(
-    suscribirAMovimiento,
-    () => window.matchMedia?.(MQ_REDUCIDO).matches ?? false,
-    // En servidor no hay preferencia que leer: se asume movimiento permitido y
-    // el cliente corrige en el primer render.
-    () => false,
-  )
-}
+/* La resistencia del tope: cuánto se deja pasar del ±25° antes de que la escena se
+ * plante del todo. Sin esto el recorte era una PARED —el dedo seguía y la escena se
+ * quedaba clavada—, que es justo lo que STANDARDS pide evitar: fricción creciente,
+ * no un muro invisible.
+ *
+ * ES EL ÚNICO NÚMERO DE ESTE ARCHIVO QUE NO SALE DE NINGÚN SITIO: ni tokens.css ni
+ * STANDARDS dan una constante de amortiguación. Queda escrito aquí, con nombre, para
+ * poder ajustarlo con el dedo en un móvil real, que es la única forma de elegirlo.
+ * No está medido. */
+const GIRO_ELASTICO = 6
 
 export function GraficaBrazo({
   fotogramas,
@@ -72,8 +71,13 @@ export function GraficaBrazo({
 }: Props) {
   const reducido = useMovimientoReducido()
   const [grados, setGrados] = useState(0)
-  const arrastre = useRef<{ x: number; desde: number } | null>(null)
+  const arrastre = useRef<{ x: number; desde: number; puntero: number } | null>(null)
   const escenaRef = useRef<HTMLDivElement>(null)
+  // El plano que gira. Durante el gesto se le escribe el `transform` DIRECTAMENTE.
+  const planoRef = useRef<HTMLDivElement>(null)
+  // Los grados de verdad mientras dura el arrastre. Viven en un ref y no en estado
+  // porque el estado re-renderiza, y aquí re-renderizar es exactamente el problema.
+  const gradosVivos = useRef(0)
 
   const presentes = EJES_ORDEN.filter((e) =>
     fotogramas.some((f) => f.ok && f.brazos?.[e] && Number.isFinite(f.brazos[e].mm)),
@@ -94,21 +98,62 @@ export function GraficaBrazo({
   const alSoltar = useCallback(() => {
     arrastre.current = null
     setGestoActivo(false)
+    // Al soltar, el excedente elástico se devuelve al tope y el valor sube UNA vez a
+    // estado: es el único render de todo el gesto, y es el que necesitan el depth
+    // cueing y el texto del botón.
+    const fijado = Math.max(-TOPE_GRADOS, Math.min(TOPE_GRADOS, gradosVivos.current))
+    gradosVivos.current = fijado
+    setGrados(fijado)
   }, [])
+
+  // Fricción en el borde en vez de pared: pasado el tope, el excedente entra cada vez
+  // más amortiguado y se acerca asintóticamente a `TOPE_GRADOS + GIRO_ELASTICO`, así
+  // que el dedo siempre obtiene algo de respuesta pero el dato nunca se pierde de
+  // vista. El valor del tope (±25°) no se toca: está razonado en el docblock.
+  const conFriccion = (g: number) => {
+    const exceso = Math.abs(g) - TOPE_GRADOS
+    if (exceso <= 0) return g
+    return Math.sign(g) * (TOPE_GRADOS + GIRO_ELASTICO * (1 - Math.exp(-exceso / GIRO_ELASTICO)))
+  }
 
   useEffect(() => {
     if (!gestoActivo) return
+    // El `transform` se escribe DIRECTO en el nodo, sin pasar por estado. Antes cada
+    // `pointermove` llamaba a `setGrados`, y eso re-renderizaba el SVG entero:
+    // `tramosDeEje` se recorre dos veces por eje, y `camino()` y `bandaDe()` vuelven a
+    // serializar todos los `path` recorriendo fotograma a fotograma. Un ciclo completo
+    // de reconciliación de React por cada movimiento del dedo, en la misma pantalla
+    // donde el bucle de captura hace `getImageData` por fotograma — y el bucle NO se
+    // detiene al pulsar «Parar». Ahora el arrastre cuesta una escritura de `transform`
+    // en el compositor y CERO renders; el único render llega al soltar.
+    // Efecto lateral asumido: el depth cueing se queda quieto mientras se arrastra y
+    // se pone al día al soltar, ya con su transición.
     const mover = (e: PointerEvent) => {
-      if (!arrastre.current) return
-      const dx = e.clientX - arrastre.current.x
-      const g = arrastre.current.desde + dx * 0.16
-      setGrados(Math.max(-TOPE_GRADOS, Math.min(TOPE_GRADOS, g)))
+      const a = arrastre.current
+      if (!a) return
+      // Multitáctil: solo manda el dedo que empezó el gesto. Con el móvil en una mano y
+      // el pulgar de la otra encima, un segundo puntero le cambiaba el dueño al
+      // arrastre a mitad de camino.
+      if (e.pointerId !== a.puntero) return
+      const dx = e.clientX - a.x
+      gradosVivos.current = conFriccion(a.desde + dx * 0.16)
+      if (planoRef.current) {
+        planoRef.current.style.transform = `rotateY(${gradosVivos.current.toFixed(2)}deg)`
+      }
+    }
+    // Se filtra por el mismo puntero: sin esto, LEVANTAR el segundo dedo terminaba el
+    // arrastre aunque el primero siguiera apoyado y moviéndose.
+    const alLevantar = (e: PointerEvent) => {
+      if (arrastre.current && e.pointerId !== arrastre.current.puntero) return
+      alSoltar()
     }
     window.addEventListener('pointermove', mover)
-    window.addEventListener('pointerup', alSoltar)
+    window.addEventListener('pointerup', alLevantar)
+    window.addEventListener('pointercancel', alLevantar)
     return () => {
       window.removeEventListener('pointermove', mover)
-      window.removeEventListener('pointerup', alSoltar)
+      window.removeEventListener('pointerup', alLevantar)
+      window.removeEventListener('pointercancel', alLevantar)
     }
   }, [gestoActivo, alSoltar])
 
@@ -131,17 +176,30 @@ export function GraficaBrazo({
         style={{ perspective: '1000px', height: alto + 26 }}
         onPointerDown={(e) => {
           if (reducido) return
-          arrastre.current = { x: e.clientX, desde: grados }
+          // Un gesto ya empezado no se reancla con un segundo dedo.
+          if (arrastre.current) return
+          gradosVivos.current = grados
+          arrastre.current = { x: e.clientX, desde: grados, puntero: e.pointerId }
           setGestoActivo(true)
         }}
-        onDoubleClick={() => setGrados(0)}
+        onDoubleClick={() => {
+          gradosVivos.current = 0
+          setGrados(0)
+        }}
       >
         <div
+          ref={planoRef}
           className="absolute inset-0"
           style={{
             transformStyle: 'preserve-3d',
             transform: `rotateY(${reducido ? 0 : grados}deg)`,
-            transition: gestoActivo ? 'none' : 'transform 420ms cubic-bezier(.16,1,.3,1)',
+            // 240 ms y `--ease-salida`, los del sistema. Antes eran 420 ms con una
+            // `cubic-bezier(.16,1,.3,1)` tecleada a mano que no existe en tokens.css:
+            // una de las cuatro curvas casi iguales que andaban sueltas por el repo.
+            // No es cosmético — la vuelta a 0° devuelve a la VISTA CANÓNICA, que es
+            // donde los valores se leen, así que cada milisegundo de más es un
+            // milisegundo en que el número todavía no se lee bien.
+            transition: gestoActivo ? 'none' : 'transform var(--dur-base) var(--ease-salida)',
             willChange: gestoActivo ? 'transform' : undefined,
           }}
         >
@@ -173,20 +231,28 @@ export function GraficaBrazo({
                 <defs>
                   {presentes.map((eje, i) => (
                     <clipPath key={eje} id={`trazo-${eje}`}>
-                      <rect x={0} y={0} height={H} width={0}>
-                        <animate
-                          attributeName="width"
-                          from={0}
-                          to={W}
-                          dur="600ms"
-                          begin={`${i * 60}ms`}
-                          fill="freeze"
-                          calcMode="spline"
-                          keySplines=".22 .61 .36 1"
-                          keyTimes="0;1"
-                          values={`0;${W}`}
-                        />
-                      </rect>
+                      {/* El barrido va por `transform: scaleX` y no animando el
+                          atributo `width` del rect. El width obligaba a recalcular la
+                          geometría del recorte en cada fotograma, en el hilo principal
+                          y con la cámara capturando; es el mismo argumento que
+                          `tokens.css` ya escribió para `crecer-barra`, y esta pantalla
+                          era justo la que no lo aplicaba.
+                          Se reutiliza esa keyframe —solo tiene `from`, así que el
+                          estado final es el rect entero— con la duración y la curva
+                          del sistema: 240 ms en vez de 600, dentro del techo de 300 ms.
+                          El escalonado de 60 ms se conserva: cae en la banda 30-80 ms.
+                          `transform-origin: 0 0` es el origen del viewBox y el rect
+                          empieza en x=0, así que crece desde el borde izquierdo. */}
+                      <rect
+                        x={0}
+                        y={0}
+                        height={H}
+                        width={W}
+                        style={{
+                          transformOrigin: '0 0',
+                          animation: `crecer-barra var(--dur-base) var(--ease-salida) ${i * 60}ms backwards`,
+                        }}
+                      />
                     </clipPath>
                   ))}
                 </defs>
@@ -203,7 +269,16 @@ export function GraficaBrazo({
                 // perspectiva aérea. El ojo lo entiende sin leer nada.
                 const lejania = 1 - Math.min(1, Math.abs(grados) / TOPE_GRADOS) * (esObjetivo ? 0.1 : 0.4)
                 return (
-                  <g key={eje} opacity={lejania}>
+                  <g
+                    key={eje}
+                    opacity={lejania}
+                    // La opacidad va con la MISMA duración y curva que el transform del
+                    // plano. Al volver a 0°, dos propiedades del mismo objeto acababan
+                    // en momentos distintos: el giro interpolaba y el contraste saltaba
+                    // en el primer render. Es justo lo que STANDARDS manda revisar a
+                    // cámara lenta — «coordinated properties stay in sync».
+                    style={{ transition: 'opacity var(--dur-base) var(--ease-salida)' }}
+                  >
                     {tramosDeEje(fotogramas, eje).map((tramo, i) =>
                       tramo.length > 1 ? (
                         <path
@@ -254,7 +329,7 @@ export function GraficaBrazo({
           <button
             type="button"
             onClick={() => setGrados(0)}
-            className="min-h-11 px-2 text-[11px] text-tenue underline-offset-2 hover:underline"
+            className="press min-h-11 px-2 text-[11px] text-tenue underline-offset-2 hover:underline"
           >
             {grados === 0 ? 'arrastra para orbitar' : 'Volver a 0°'}
           </button>

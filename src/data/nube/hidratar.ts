@@ -225,6 +225,22 @@ export async function hidratarDesdeNube(): Promise<void> {
   const epocaAlEmpezar = epocaSesion()
 
   /**
+   * Quién está mirando. Decide cuánto historial se baja.
+   *
+   * Con `?.` y `catch` porque no todos los clientes que llegan aquí traen
+   * `auth` —los dobles de las pruebas, sin ir más lejos—. Sin id no se filtra y
+   * se baja todo, que es el comportamiento de siempre: fallar aquí tiene que
+   * costar tráfico, nunca datos que falten.
+   */
+  let miId: string | undefined
+  try {
+    const { data } = await sb.auth.getSession()
+    miId = data?.session?.user?.id
+  } catch {
+    miId = undefined
+  }
+
+  /**
    * Antes de bajar nada: preguntar si hay algo que bajar.
    *
    * Las 21 consultas de abajo no llevan `LIMIT`, así que traen todo lo que RLS
@@ -297,7 +313,29 @@ export async function hidratarDesdeNube(): Promise<void> {
     pedir('usuarios_app', () => sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales')),
     pedir('perfiles', () => sb.from('perfiles').select('datos')),
     // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
-    pedir('microciclos', () => sb.from('microciclos').select('id, estado, datos')),
+    // Dos recortes que se suman, y son independientes:
+    //
+    //   QUÉ FILAS  el staff no se baja los cerrados de toda la cartera: hoy son
+    //              el 78 % del peso y crecen sin freno —cada asesorado cierra
+    //              uno por semana, para siempre—. Se traen los estados que las
+    //              pantallas de cartera miran de verdad (`activo` para el
+    //              semáforo, `propuesto` porque `propuestaPreparada` lo busca)
+    //              más TODO lo de quien mira, que es lo que necesitan sus
+    //              propias pantallas de logros y progreso. El historial ajeno se
+    //              pide a demanda: `db.microciclos.historialDe`.
+    //
+    //   SI SE PIDE `pedir` se la salta entera cuando la firma dice que no ha
+    //              cambiado desde la última vez.
+    //
+    // Ver `docs/specs/2026-08-27-donde-truena-a-mil-usuarios.md`.
+    pedir('microciclos', () =>
+      miId
+        ? sb
+            .from('microciclos')
+            .select('id, estado, datos')
+            .or(`estado.in.(activo,propuesto),usuario_id.eq.${miId}`)
+        : sb.from('microciclos').select('id, estado, datos'),
+    ),
     pedir('checkins', () => sb.from('checkins').select('datos')),
     // Migración 0013, ampliada por la 0039. La nutricionista NO lee la tabla de
     // arriba —ahí viven ánimo, estrés, sueño y comentarios libres, que no son

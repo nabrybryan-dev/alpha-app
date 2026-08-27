@@ -17,8 +17,19 @@ export interface ExCompletado {
 export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSeguir: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-8"
-      style={{ background: 'rgba(8, 9, 10, 0.72)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+      // `scrim-entra`: el velo aparecía DE GOLPE mientras la tarjeta de dentro
+      // entraba en 480 ms, así que se veía el corte —la capa oscura llegaba antes
+      // que su contenido—. Su hermano de la misma pantalla, el del test post, ya se
+      // fundía con esta misma clase. Son 320 ms con `--ease-salida` y trae su propia
+      // rama de movimiento reducido.
+      className="scrim-entra fixed inset-0 flex items-center justify-center px-8"
+      // Sin `backdropFilter`. Era superficie fija, así que la regla del blur lo
+      // permitía, pero faltaba la otra mitad: este overlay no bloquea el scroll del
+      // documento de debajo, y en cuanto el fondo se mueve hay que recalcular el
+      // desenfoque de TODO el viewport por fotograma. El corte es a pantalla completa
+      // a propósito —existe para que nadie siga registrando series del ejercicio
+      // equivocado—, o sea que no necesita que se vea el fondo: el velo sube a opaco.
+      style={{ background: 'var(--ink-900)', zIndex: 'var(--z-scrim)' }}
       role="dialog"
       aria-label="Ejercicio completado"
     >
