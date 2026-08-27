@@ -51,16 +51,29 @@ interface Props {
  * para quien acababa de pedir que pararan. Y esta es la única pantalla del área que
  * se mueve. */
 
+/** Cuánto gira la escena por cada píxel que recorre el dedo. */
+const GRADOS_POR_PX = 0.16
+
+/** El objetivo táctil de la app: lo que mide un dedo. Es el mismo 44 que usan los
+ *  `min-h-11` de toda la interfaz y el anillo de `acusarToque`. */
+const OBJETIVO_TACTIL_PX = 44
+
 /* La resistencia del tope: cuánto se deja pasar del ±25° antes de que la escena se
  * plante del todo. Sin esto el recorte era una PARED —el dedo seguía y la escena se
  * quedaba clavada—, que es justo lo que STANDARDS pide evitar: fricción creciente,
  * no un muro invisible.
  *
- * ES EL ÚNICO NÚMERO DE ESTE ARCHIVO QUE NO SALE DE NINGÚN SITIO: ni tokens.css ni
- * STANDARDS dan una constante de amortiguación. Queda escrito aquí, con nombre, para
- * poder ajustarlo con el dedo en un móvil real, que es la única forma de elegirlo.
- * No está medido. */
-const GIRO_ELASTICO = 6
+ * ANTES ERA UN 6 INVENTADO, y era el único número de esta pantalla que no salía de
+ * ningún sitio. Ahora se deriva, y la derivación es la que le da sentido: la
+ * elasticidad se agota en **un objetivo táctil de recorrido**. O sea que para llegar
+ * al final del margen hay que arrastrar exactamente lo que mide un dedo más allá del
+ * tope — ni un gesto que se acaba antes de notarse, ni uno que invite a seguir
+ * tirando. Sale en ~7°, cerca del 6 que estaba a ojo, pero ya no hay que defenderlo:
+ * se lee de los dos valores que el repo ya tenía.
+ *
+ * El tope de ±25° NO se toca: está razonado en el docblock y es lo que impide que las
+ * curvas se solapen. Esto solo decide cómo se llega a él. */
+const GIRO_ELASTICO = OBJETIVO_TACTIL_PX * GRADOS_POR_PX
 
 export function GraficaBrazo({
   fotogramas,
@@ -197,7 +210,7 @@ export function GraficaBrazo({
       // arrastre a mitad de camino.
       if (e.pointerId !== a.puntero) return
       const dx = e.clientX - a.x
-      gradosVivos.current = conFriccion(a.desde + dx * 0.16)
+      gradosVivos.current = conFriccion(a.desde + dx * GRADOS_POR_PX)
       if (planoRef.current) {
         planoRef.current.style.transform = `rotateY(${gradosVivos.current.toFixed(2)}deg)`
       }
