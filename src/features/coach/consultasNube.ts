@@ -73,7 +73,7 @@ export async function leerConsultas(): Promise<Datos> {
 
   const { data, error } = await sb
     .from('consultas_chat')
-    .select('*')
+    .select('id,usuario_id,mensaje,ficha_id,similitud,via,bandera_roja,revisado,corregido,creado_en')
     .order('creado_en', { ascending: false })
     .limit(LIMITE)
   if (error) throw new Error(error.message)

@@ -226,7 +226,8 @@ export async function hidratarDesdeNube(): Promise<void> {
     contenidos,
     premiaciones,
   ] = await Promise.all([
-    sb.from('usuarios_app').select('*'),
+    // Columnas necesarias para UI: id, nombre, rol, avatar
+    sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales'),
     sb.from('perfiles').select('datos'),
     // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
     sb.from('microciclos').select('id, estado, datos'),
@@ -240,14 +241,14 @@ export async function hidratarDesdeNube(): Promise<void> {
     // `SIGNED_IN` cada vez que alguien desbloquea el móvil entre series. Al
     // fusionar gana la fila entera, así que para el asesorado y el coach esto es
     // un no-op: solo cambia lo de quien no puede ver la fila entera.
-    sb.from('checkins_nutricion').select('*'),
-    sb.from('adherencias').select('*'),
+    sb.from('checkins_nutricion').select('id,usuario_id,fecha,peso_kg,hambre,alimentacion,hambre_escala'),
+    sb.from('adherencias').select('id,usuario_id,fecha,estado,comentario'),
     sb.from('planes_nutricionales').select('datos'),
-    sb.from('mensajes').select('*'),
-    sb.from('cuestionarios').select('*'),
-    sb.from('respuestas').select('*'),
+    sb.from('mensajes').select('id,de_id,para_id,fecha_iso,texto,adjunto_path,adjunto_tipo,leido,origen'),
+    sb.from('cuestionarios').select('id,datos,asignado_a'),
+    sb.from('respuestas').select('id,cuestionario_id,usuario_id,fecha_iso,valores'),
     sb.from('contenidos').select('datos'),
-    sb.from('premiaciones').select('*'),
+    sb.from('premiaciones').select('id,usuario_id,titulo,fecha,nota'),
   ])
 
   // `checkinsNutricion` entra en la lista a propósito, aunque para el asesorado y
@@ -267,7 +268,7 @@ export async function hidratarDesdeNube(): Promise<void> {
   // Solo un "esta tabla no existe" apaga la sincronización. Un 500 pasajero o
   // un corte de wifi NO son eso, y apagarla por ellos dejaba cada vaso de agua
   // encerrado en el móvil de por vida.
-  const hidratacion = await sb.from('hidratacion').select('*')
+  const hidratacion = await sb.from('hidratacion').select('id,usuario_id,fecha,ml')
   if (!hidratacion.error) marcarTablaHidratacion(true)
   else if (esTablaInexistente(hidratacion.error)) marcarTablaHidratacion(false)
 
@@ -280,24 +281,24 @@ export async function hidratarDesdeNube(): Promise<void> {
 
   const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa] =
     await Promise.all([
-    sb.from('registro_comida').select('*').eq('borrado', false),
-    sb.from('registro_item').select('*').eq('borrado', false),
-    sb.from('preferencia_estado').select('*'),
-    sb.from('prueba_calibracion').select('*'),
+    sb.from('registro_comida').select('id,cliente_id,asesorado_id,momento,comida,cocinado_por_el,aceite_g,sal_g,confianza').eq('borrado', false),
+    sb.from('registro_item').select('id,cliente_id,registro_id,alimento_id,gramos,fue_pesado,estado_asumido').eq('borrado', false),
+    sb.from('preferencia_estado').select('asesorado_id,familia,estado'),
+    sb.from('prueba_calibracion').select('id,cliente_id,asesorado_id,fecha,alimento_id,gramos_estimados,gramos_reales'),
     // Migración 0018. El asesorado SÍ puede leer los suyos —la política
     // `visibilidad_lee_lo_suyo` existe justo para esto— y sin bajarlos su app no
     // sabe qué pintarle: le enseñaría todo a quien pidió no verlo. Y sin esta
     // línea la decisión desaparecía también del dispositivo del staff, porque
     // `aplicarSnapshot` reemplaza la base local entera.
-    sb.from('visibilidad_nutricion').select('*'),
+    sb.from('visibilidad_nutricion').select('asesorado_id,ver_composicion,ver_objetivo_calorico,ver_contador_kcal,estado'),
     // Migración 0016, con el `borrado` de la 0035. La asesorada NO los lee
     // -son criterio clínico sobre ella, no suyo- pero su app SÍ los necesita
     // para no proponerle en 'Mi plan' lo que no puede comer, así que la
     // política de staff-y-dueño de la 0016 los deja bajar a las dos.
-    sb.from('perfil_alimentario_veto').select('*').eq('borrado', false),
+    sb.from('perfil_alimentario_veto').select('id,asesorado_id,alimento_id,motivo').eq('borrado', false),
     // Migraciones 0024 y 0042. Solo lo vivo: lo que se sacó de la despensa se
     // conserva arriba —la cola no sabe borrar— pero no vuelve al dispositivo.
-    sb.from('despensa').select('*').eq('borrado', false),
+    sb.from('despensa').select('id,asesorado_id,alimento_id,texto_pedido,cantidad_g,agregado_en,origen').eq('borrado', false),
   ])
 
   /**

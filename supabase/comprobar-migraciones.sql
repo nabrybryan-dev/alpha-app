@@ -848,4 +848,80 @@ select '0042 - borrado de despensa', 'columna, indice de lo vivo y cliente_id no
          ) as senales
        ) = 3 then 'SI' else 'NO' end
 
+union all
+-- El unico indice de la 0044 que no estaba ya duplicado. Los otros tres del
+-- borrador se cayeron: `registro_comida_vivas` (0017) y
+-- `perfil_alimentario_veto_vivos` (0035) ya existian, y el tercero apuntaba a
+-- una columna inexistente.
+select '0044 - indice de consultas por fecha', 'consultas_chat ordenado por creado_en',
+       case when exists (
+         select 1 from pg_indexes
+          where schemaname = 'public' and indexname = 'consultas_chat_por_fecha'
+       ) then 'SI' else 'NO' end
+
+union all
+-- Se mira `usuarios_leer` como testigo de las 21: es la politica que mas se
+-- evalua de todas, porque `es_coach()` y `es_staff()` consultan esta tabla.
+-- Sin envolver, se llamaban una vez POR FILA: 76 millones de filas leidas de
+-- una tabla de 26.
+select '0045 - RLS en InitPlan', 'usuarios_leer envuelve auth.uid() y es_staff()',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'usuarios_app'
+            and policyname = 'usuarios_leer'
+            and qual like '%SELECT auth.uid()%'
+            and qual like '%SELECT es_staff()%'
+       ) then 'SI' else 'NO' end
+
+union all
+-- Dos señales, y hacen falta las dos. Que no quede ningun `for all` prueba que
+-- dejaron de dispararse al LEER; que haya 15 politicas de escritura -tres por
+-- tabla- prueba que no se perdio ningun permiso por el camino. Con solo la
+-- primera, borrar las cinco a secas tambien daria 'SI'.
+select '0046 - las de escritura no leen', 'ningun for all, y tres de escritura por tabla',
+       case when (
+         select count(*) from pg_policies
+          where schemaname = 'public'
+            and tablename in ('perfiles','planes_nutricionales','contenidos',
+                              'cuestionarios','premiaciones')
+            and cmd = 'ALL'
+       ) = 0 and (
+         select count(*) from pg_policies
+          where schemaname = 'public'
+            and tablename in ('perfiles','planes_nutricionales','contenidos',
+                              'cuestionarios','premiaciones')
+            and policyname like '%escribir\_coach\_%'
+       ) = 15 then 'SI' else 'NO' end
+
+union all
+-- Esta se lee al reves: la señal es que la politica NO este. `checkins_lee_staff`
+-- quedo vacia de contenido en la 0013, cuando se acoto a `es_coach()` y
+-- `checkins_todo_propio` ya concedia eso mismo.
+select '0047 - checkins_lee_staff sobraba', 'la politica redundante ya no esta',
+       case when not exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'checkins'
+            and policyname = 'checkins_lee_staff'
+       ) then 'SI' else 'NO' end
+
+union all
+-- Las tres piezas, porque sueltas no sirven: sin el sello la caché no sabria
+-- cuando esta vieja, y sin el calculo vivo no habria a donde volver si el cron
+-- se cae. Una vista materializada sin refrescar no da error: da un ranking
+-- creible y viejo.
+select '0048 - ranking en cache', 'vista materializada, calculo vivo y sello',
+       case when (
+         select count(*) from (
+           select 1 from pg_matviews
+            where schemaname = 'public' and matviewname = 'ranking_disciplina_cache'
+           union all
+           select 1 from pg_proc p
+            join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname = 'ranking_disciplina_vivo'
+           union all
+           select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'ranking_cache_sello'
+         ) as senales
+       ) = 3 then 'SI' else 'NO' end
+
 order by migracion, senal;
