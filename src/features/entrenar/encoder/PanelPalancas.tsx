@@ -74,7 +74,14 @@ export function PanelPalancas() {
           }}
         />
         {problema && (
-          <p className="border-l-[3px] border-l-[var(--placa-muerta)] pl-3 text-[12.5px] leading-snug text-tenue">
+          // Es el UNICO feedback del importador, y aparecia de golpe empujando
+          // lo de abajo. Sube 8 px en 160 ms — no se usa `.aviso-registro`, que
+          // hace este mismo gesto, porque sus 180 ms no estan en la escala y su
+          // curva no es ninguna de las tres del sistema.
+          <p
+            style={{ animation: 'avisoSube var(--dur-toque) var(--ease-salida) both' }}
+            className="border-l-[3px] border-l-[var(--placa-muerta)] pl-3 text-[12.5px] leading-snug text-tenue"
+          >
             {problema}
           </p>
         )}

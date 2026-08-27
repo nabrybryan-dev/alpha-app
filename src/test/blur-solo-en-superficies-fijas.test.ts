@@ -154,6 +154,39 @@ describe('las dos reglas de movimiento que el repo ya tenía escritas', () => {
     ).toEqual([])
   })
 
+  it('toda clase de animación declarada se consume en algún sitio', () => {
+    // El criterio 10 del repo —«todo token nuevo se consuma»— aplicado al
+    // movimiento. `tokens.css` ya lleva una nota disculpándose por dos tokens
+    // que quedaron sueltos; una clase de animación huérfana es lo mismo, pero
+    // peor: parece vocabulario del sistema y no lo es.
+    //
+    // EL CASO QUE LO INSPIRÓ es el contrario y no lo caza este test: la insignia
+    // del Salón de Máquinas llevaba `insignia-salon` en el marcado y la clase no
+    // existía en ninguna hoja — un gancho colgado y vacío. Esa dirección no se
+    // puede vigilar sin distinguir las clases del sistema de las cientos de
+    // Tailwind, y un guardián que no sabe distinguirlas da falsos rojos hasta que
+    // alguien lo apaga. Así que se vigila la dirección que SÍ se puede probar.
+    const css = readFileSync(join(process.cwd(), 'src/styles/tokens.css'), 'utf8')
+
+    // Solo las clases con `animation:` propia: son el vocabulario de movimiento.
+    const declaradas = [...css.matchAll(/^\.([a-z][\w-]*)\s*\{([^}]*)\}/gm)]
+      .filter(([, , cuerpo]) => /\banimation\s*:/.test(cuerpo))
+      .map(([, nombre]) => nombre)
+
+    const fuentes = tsx(join(process.cwd(), 'src'))
+      .map((ruta) => readFileSync(ruta, 'utf8'))
+      .join('\n')
+
+    const huerfanas = [...new Set(declaradas)].filter((clase) => !fuentes.includes(clase))
+
+    expect(
+      huerfanas,
+      `Clases de animación que nadie usa: ${huerfanas.join(', ')}.\n` +
+        'O se consumen, o se retiran de tokens.css. Una clase huérfana parece\n' +
+        'vocabulario del sistema y no lo es: la siguiente persona la copiará.',
+    ).toEqual([])
+  })
+
   it('`.glass-blur` sigue siendo la vía sancionada, y se usa', () => {
     // Si esto se pone rojo es que alguien retiró el último uso legítimo: o el
     // desenfoque dejó de hacer falta —y entonces `.glass-blur` sobra en
