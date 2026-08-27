@@ -75,13 +75,13 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                           type="button"
                           aria-label={parte.hechoEn ? `Desmarcar ${parte.titulo}` : `Marcar ${parte.titulo}`}
                           onClick={() => onMarcar(parte.id)}
-                          className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-200 ease-salida ${
+                          className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-toque ease-salida ${
                             parte.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
                           {parte.hechoEn && <CheckDibujado className="h-3.5 w-3.5" />}
                         </button>
-                        <div className={`min-w-0 flex-1 transition-opacity duration-200 ${parte.hechoEn ? 'opacity-60' : ''}`}>
+                        <div className={`min-w-0 flex-1 transition-opacity duration-toque ease-salida ${parte.hechoEn ? 'opacity-60' : ''}`}>
                           <button
                             type="button"
                             onClick={() => alternarDetalle(parte.id)}
@@ -99,7 +99,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                             </span>
                           </button>
                           {detalleAbierto && (
-                            <div className="entrada">
+                            <div className="desplegar">
                               <p className="mt-1 text-xs leading-snug text-tenue">{parte.indicaciones}</p>
                               {demo && (
                                 <button

@@ -25,7 +25,7 @@ export function BarraEjercicios({ ejercicios, exIdx, onIr }: NavegadorProps) {
         return (
           <button key={ej.id} type="button" aria-label={`Ir a ${ej.nombre}`} onClick={() => onIr(idx)} className="press flex-1 py-1.5">
             <span
-              className={`block h-1.5 rounded-full transition-colors duration-300 ease-salida ${
+              className={`block h-1.5 rounded-full transition-colors duration-toque ease-salida ${
                 hecho ? 'bg-accion' : enCurso ? 'bg-logrado' : 'bg-ink-500'
               } ${actual ? 'ring-2 ring-accion/50' : ''}`}
             />

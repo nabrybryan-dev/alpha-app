@@ -47,7 +47,13 @@ function Ficha({ indice, abierta }: { indice: number; abierta: boolean }) {
     <span
       title={tema.nombre}
       aria-label={`${tema.nombre}${abierta ? ', abierta' : ', pendiente'}`}
-      className="relative block h-[26px] w-[19px] shrink-0 rounded-[4px] border transition-all duration-300"
+      // `transition-all` animaba las cuatro propiedades que se escriben justo
+      // debajo, y tres son de pintado —el `boxShadow` es un halo que había que
+      // re-rasterizar por ficha y por fotograma—. Además `all` mete en la
+      // animación cualquier propiedad que alguien añada mañana sin decidirlo.
+      // Se nombra solo la barata: la ficha se enciende al registrar series, o sea
+      // decenas de veces por sesión, y en ese tramo el color puede cambiar seco.
+      className="relative block h-[26px] w-[19px] shrink-0 rounded-[4px] border transition-opacity duration-toque ease-salida"
       style={{
         borderColor: abierta ? tema.acento : 'var(--linea)',
         background: abierta ? tema.cuerpo.fondo : 'transparent',

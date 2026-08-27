@@ -33,10 +33,18 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
           siguienteNivel ? `Progreso al nivel ${siguienteNivel.numero}` : 'Progreso de nivel'
         }
         className="mt-2.5 h-2 overflow-hidden rounded-full bg-ink-500"
+        // El halo se ha movido del relleno AL CARRIL. Estaba sobre el elemento que
+        // recorre, así que había que volver a rasterizar un anillo de 3 px más una
+        // sombra de 24 px en cada fotograma del recorrido; y una sombra sobre algo
+        // que escala se deforma con él. En el carril es estable y no se repinta.
+        style={{ boxShadow: 'var(--glow-accion)' }}
       >
+        {/* `scaleX` y no `width`. Es la barra más grande de la Ruta y comparte
+            pantalla con el scrub del lienzo cinemático: animar maquetación aquí
+            hacía que las dos cosas se pelearan por el hilo principal. */}
         <span
-          className="block h-full rounded-full bg-accion transition-[width] duration-700 ease-salida"
-          style={{ width: `${seguro}%`, boxShadow: 'var(--glow-accion)' }}
+          className="block h-full w-full origin-left rounded-full bg-accion transition-transform duration-base ease-salida"
+          style={{ transform: `scaleX(${seguro / 100})` }}
         />
       </div>
 
