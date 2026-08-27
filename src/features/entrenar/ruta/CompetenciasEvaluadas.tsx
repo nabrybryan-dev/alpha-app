@@ -35,9 +35,13 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
                 aria-label={c.nombre}
                 className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
               >
+                {/* `scaleX` y no `width`: aquí son N barras a la vez, una por
+                    competencia, así que es donde más se nota pasar de N cálculos
+                    de maquetación a N capas de compositor. Misma técnica que
+                    `.barra-crece`. */}
                 <span
-                  className={`block h-full rounded-full transition-[width] duration-700 ease-salida ${color.barra}`}
-                  style={{ width: `${c.pct}%` }}
+                  className={`block h-full w-full origin-left rounded-full transition-transform duration-base ease-salida ${color.barra}`}
+                  style={{ transform: `scaleX(${Math.max(0, Math.min(100, c.pct)) / 100})` }}
                 />
               </div>
               <p className="mt-2 text-[11.5px] leading-relaxed text-silver-400">{c.nota}</p>

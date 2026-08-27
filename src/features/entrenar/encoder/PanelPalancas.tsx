@@ -56,7 +56,7 @@ export function PanelPalancas() {
           <button
             type="button"
             onClick={() => entrada.current?.click()}
-            className="min-h-11 shrink-0 rounded-full border border-linea px-4 text-[12.5px] font-bold text-texto"
+            className="press min-h-11 shrink-0 rounded-full border border-linea px-4 text-[12.5px] font-bold text-texto"
           >
             {medida ? 'Abrir otra' : 'Abrir medida'}
           </button>

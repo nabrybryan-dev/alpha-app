@@ -108,6 +108,15 @@
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-mov: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
+  /* La cuarta, y la única con rebote: el segundo punto de control pasa de 1, así
+     que sobrepasa y vuelve. Existe porque el repo ya tenía cuatro cubic-bezier
+     tecleadas a mano que casi coincidían entre sí, que es el caso de manual de
+     consolidación. El valor no es nuevo: es el que ya estaba escrito en el giro
+     del águila, el único sitio del sistema donde el rebote está justificado —un
+     gesto raro, en una pantalla de celebración—. No se usa para UI corriente.
+     Ojo al consumirla desde la Web Animations API: `el.animate()` NO resuelve
+     `var()`, así que allí va escrita literal, con una nota que apunte aquí. */
+  --ease-rebote: cubic-bezier(0.34, 1.2, 0.4, 1);
 
   /* ============ Design System Alfa (handoff) ============
      Fuentes: display Archivo expandido, UI Hanken Grotesk, datos JetBrains Mono */
@@ -357,10 +366,16 @@ body {
 
 /* Las dos barras del par de errores. Se anima `transform` y no `width` porque
    width relayoutea en cada fotograma y esta pantalla se usa con la cámara ya
-   abierta: robarle presupuesto puede tumbar la toma por debajo de 50 fps. */
+   abierta: robarle presupuesto puede tumbar la toma por debajo de 50 fps.
+
+   SOLO `from`, y es lo que hace que funcione. Con un `to: scaleX(1)` explícito la
+   animación terminaba pisando el valor real de la barra —`fill: both` conserva el
+   último fotograma—, así que las dos barras se quedaban al 100 % y el dato
+   desaparecía. Sin `to`, el estado final es el `transform` propio del elemento,
+   o sea el valor que sigue al control. Es el mismo patrón que `barra-crece` unas
+   líneas más abajo, que sí lo tenía bien. */
 @keyframes crecer-barra {
   from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
 }
 
 @keyframes entrada-suave {
@@ -639,10 +654,19 @@ body {
   to { transform: translateX(-50%); }
 }
 
+/* Sin `will-change: transform`, que estaba aquí y era permanente. Una animación
+   infinita ya mantiene la capa promovida por sí sola, así que la pista no compraba
+   nada y sí costaba: una capa reservada para siempre en una pantalla que además es
+   desde la que se lanza la toma del encoder —y la hoja de la cámara se monta AL LADO
+   de esta, no en vez de ella—. La regla del repo ya estaba escrita en `GraficaBrazo`:
+   `will-change` solo mientras dura el gesto, porque una capa promovida de forma
+   permanente reserva memoria de textura en un móvil de gama media.
+   Lo que esto NO resuelve es que el ticker siga corriendo durante la captura: eso es
+   otra cosa y se apaga en un solo sitio, con la puerta de cámara que llega por la
+   rama de la escala de profundidad. Aquí solo se suelta la capa. */
 .ticker-pista {
   display: inline-flex;
   white-space: nowrap;
-  will-change: transform;
   animation: ticker 22s linear infinite;
 }
 
@@ -748,6 +772,41 @@ body {
   }
 }
 
+/* ---------- Desplegable corto (notas de ejecución, detalle de una parte) ---------- */
+
+/* `transition` y NO `@keyframes`, y esa es toda la razón de que exista: estos
+   bloques se abren y se cierran en ráfagas mientras alguien busca una indicación
+   entre serie y serie. Una transición se re-dirige a mitad de camino; un keyframe
+   reinicia desde cero cada vez que se toca.
+
+   Antes esto usaba `.entrada`, que son 480 ms pensados para que una tarjeta entre
+   en la página. Para un desplegable dentro de una fila el presupuesto es otro
+   —150-250 ms— y el desplazamiento también: 8 px, no 14.
+
+   `@starting-style` da la entrada sin una línea de JS. Donde no exista, el bloque
+   aparece directamente en su estado final, que es exactamente lo que hacía antes
+   de esta clase: se degrada a lo de hoy, no a algo roto. */
+.desplegar {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-toque) var(--ease-salida),
+    transform var(--dur-toque) var(--ease-salida);
+}
+
+@starting-style {
+  .desplegar {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desplegar {
+    transition-duration: 1ms;
+  }
+}
+
 /* ---------- Check que se dibuja al marcar un bloque ---------- */
 
 @keyframes dibujar-check {
@@ -783,28 +842,32 @@ body {
   .cta-pulso {
     animation: none;
   }
-  .press,
-  .press:active {
-    transition: none;
+  /* Quitar el `scale` es correcto: es un cambio de tamaño y de posición, justo lo
+     que esta preferencia pide retirar. Dejar el botón SIN NADA no lo es.
+     `Guardar serie` se pulsa decenas de veces por sesión, con el móvil en la mano
+     y sudando, y `.press` es su único acuse de recibo: con `transform: none` y
+     `transition: none` no devolvía absolutamente nada al tacto. STANDARDS
+     «Accessibility» lo dice literal —«fewer and gentler animations, not zero»— y
+     manda conservar lo de opacidad y quitar lo de posición, que es exactamente lo
+     que hace esto.
+     El 0.9 no es un número nuevo: es el `active:opacity-90` que la app ya usaba a
+     mano para acusar el toque en los dos botones de abrir cámara. Aquí gana la
+     duración del sistema, así que deja de ser un salto seco. */
+  .press {
+    transition: opacity var(--dur-toque) var(--ease-salida);
     transform: none;
+  }
+  .press:active {
+    transform: none;
+    opacity: 0.9;
   }
 }
 
-/* ExerciseSlotMachine ----------------------------------------------------- */
-/* Las bombillas de la marquesina del gabinete. Añadido al final y sin tocar
-   nada de lo anterior: es la única excepción al bloqueo de estilos globales.
-   El nombre lleva sufijo para no chocar con ninguna keyframe existente. */
-@keyframes bombilla-tragamonedas {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.12);
-    opacity: 0.85;
-  }
-}
+/* Aquí vivía `@keyframes bombilla-tragamonedas`, y se ha borrado: no lo consumía
+   nadie en todo `src/`. Las bombillas de la marquesina usan `bulbPulse`, que está
+   unas líneas más abajo. Eran dos keyframes casi iguales para lo mismo y una de
+   las dos estaba muerta; no es el caso de `--z-superpuesto` y `--z-tooltip`, que
+   se declaran sin consumidor a propósito y con su nota puesta. */
 
 /* ExerciseSlotMachine — solo interior del gabinete --------------------------- */
 /* Estas cinco familias se usan EXCLUSIVAMENTE dentro del marco de la máquina.

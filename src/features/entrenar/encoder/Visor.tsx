@@ -178,10 +178,17 @@ export function Visor({ ajustes, children }: VisorProps) {
               pantalla donde la persona decide si repetir la toma. */}
           {captura.camaraAbierta && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
+              {/* `.punto-vivo` en vez de `motion-safe:animate-pulse`: el gesto ya
+                  estaba resuelto en el sistema y el encoder era el único sitio que
+                  no lo usaba. Trae su propia guarda de movimiento reducido, así que
+                  el `motion-safe:` sobra, y de paso deja de depender de la curva y
+                  los 2 s por defecto de Tailwind, que no son del repo.
+                  Su gemelo de EncoderPage no llevaba NINGUNA guarda; ahora los dos
+                  son literalmente el mismo elemento. */}
               <span
                 className={
                   captura.grabando
-                    ? 'h-2.5 w-2.5 rounded-full bg-rojo motion-safe:animate-pulse'
+                    ? 'punto-vivo h-2.5 w-2.5 rounded-full bg-rojo'
                     : captura.listoParaGrabar
                       ? 'h-2.5 w-2.5 rounded-full bg-[var(--placa)]'
                       : 'h-2.5 w-2.5 rounded-full bg-[var(--gris-marca)]'
@@ -234,7 +241,7 @@ export function Visor({ ajustes, children }: VisorProps) {
             <button
               type="button"
               onClick={captura.abrirCamara}
-              className="min-h-14 w-full rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
+              className="press min-h-14 w-full rounded-xl bg-rojo px-4 text-base font-bold text-white"
             >
               Abrir cámara
             </button>
@@ -243,7 +250,15 @@ export function Visor({ ajustes, children }: VisorProps) {
               type="button"
               disabled={!captura.listoParaGrabar}
               onClick={() => (captura.grabando ? captura.parar() : captura.empezar())}
-              className={`min-h-14 w-full rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
+              // Sin `transition-colors`: interpolaba background-color y
+              // border-color —pintado, no compositor— justo en los dos instantes
+              // peores, al pulsar Grabar y al pulsar Parar, con el bucle de
+              // captura vivo. Y ni siquiera incluía `opacity`, así que el
+              // `disabled:opacity-40` saltaba mientras el color deslizaba: la
+              // misma transición contada a dos tiempos.
+              // El acuse que sí faltaba es táctil y lo da `.press`: transform en
+              // el compositor, que no le quita nada a la captura.
+              className={`press min-h-14 w-full rounded-xl px-4 text-base font-bold disabled:opacity-40 ${
                 captura.grabando
                   ? 'bg-rojo text-white'
                   : 'border border-white/15 bg-white/10 text-white'
