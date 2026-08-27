@@ -91,7 +91,6 @@ export function SelloCalidad({
       'bg-[var(--hundido)] text-[var(--gris-marca)] ring-1 ring-inset ring-[var(--placa-muerta)] shadow-[var(--sombra-hundido)]',
   }
 
-<<<<<<< HEAD
   /**
    * La hundida se HUNDE, y es el unico 3D del encoder que no toca la imagen
    * medida.
