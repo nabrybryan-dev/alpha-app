@@ -167,4 +167,42 @@ describe('la lectura del veredicto cambia con lo que se juzga', () => {
     )
     expect(screen.queryByText('un motivo que no debería salir')).toBeNull()
   })
+
+  describe('la hundida se hunde', () => {
+    const placa = (contenedor: HTMLElement) =>
+      contenedor.querySelector('[style*="clip-path"], [style*="clipPath"]') as HTMLElement
+
+    it('descartada se inclina y retrocede un escalón', () => {
+      const { container } = render(<SelloCalidad nivel="descartada" />)
+      expect(placa(container).style.transform).toBe(
+        'rotateX(var(--giro-lectura)) translateZ(var(--prof-hueco))',
+      )
+    })
+
+    it.each(['buena', 'dudosa'] as const)('%s se queda a cero, sin un valor inventado', (nivel) => {
+      // Hay UN solo grado de profundidad en el sistema. `dudosa` no recibe un
+      // tercer valor a medio camino: la única que se mueve es la que representa
+      // una ausencia.
+      const { container } = render(<SelloCalidad nivel={nivel} />)
+      expect(placa(container).style.transform).toBe('rotateX(0deg) translateZ(0)')
+    })
+
+    it('el sello de una fila NO se inclina', () => {
+      // Seis grados sobre un chip de 9,5 px son ruido. Ahí el estado se lee en
+      // la materia, que es justo para lo que se diseñó.
+      const { container } = render(<SelloCalidad nivel="descartada" tamano="inline" />)
+      expect(placa(container).style.transform).toBe('')
+    })
+
+    it('la profundidad REFUERZA la materia, no la sustituye', () => {
+      // La comprobación que sostiene todo lo demás: quitando el `transform`, los
+      // tres estados se siguen distinguiendo. El eje siempre fue la cantidad de
+      // materia; esto solo le añade cuerpo.
+      const materias = (['buena', 'dudosa', 'descartada'] as const).map((nivel) => {
+        const { container } = render(<SelloCalidad nivel={nivel} />)
+        return placa(container).className
+      })
+      expect(new Set(materias).size).toBe(3)
+    })
+  })
 })

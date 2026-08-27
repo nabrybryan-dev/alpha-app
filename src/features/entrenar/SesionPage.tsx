@@ -21,6 +21,7 @@ import { BarraEjercicios, ProximosEjercicios } from './NavegadorEjercicios'
 import { PanelRitmo } from './PanelRitmo'
 import { PreparacionSesion } from './PreparacionSesion'
 import { type RegistroSerieHandle } from './RegistroSerie'
+import { conTransicionDeVista } from '../../lib/transicionDeVista'
 import { SesionCerrada } from './SesionCerrada'
 import { SalonDeMaquinas } from './SalonDeMaquinas'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
@@ -64,6 +65,22 @@ function SesionEnCurso() {
   useDbVersion()
   const [demo, setDemo] = useState<Contenido | undefined>()
   const [cerrada, setCerrada] = useState(false)
+
+  /**
+   * El cierre, como UNA escena y no como dos entradas encadenadas.
+   *
+   * Hasta hoy, al guardar el test post la hoja —que acababa de subir— y la sesion
+   * entera desaparecian en un fotograma, y la pantalla de cierre entraba por su
+   * cuenta. Dos llegadas seguidas sin ninguna salida entre medias, y justo en el
+   * momento de mas carga emocional de la app.
+   *
+   * El porque y las trampas viven en `lib/transicionDeVista.ts`, con sus tests.
+   */
+  const cerrarLaSesion = () =>
+    conTransicionDeVista(() => {
+      setDescanso(null)
+      setCerrada(true)
+    })
   const [notasVisibles, setNotasVisibles] = useState<Set<string>>(new Set())
   const claveDescanso = `alpha-descanso-${sesionId}`
   const [descanso, setDescanso] = useState<Descanso | null>(() => leerJSON<Descanso | null>(claveDescanso, null))
@@ -322,8 +339,7 @@ function SesionEnCurso() {
           onGuardar={(test) => {
             db.microciclos.guardarTestPost(microciclo.id, sesion.id, test)
             limpiarCronometro(sesion.id)
-            setDescanso(null)
-            setCerrada(true)
+            cerrarLaSesion()
           }}
         />
       )}

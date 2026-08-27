@@ -90,10 +90,18 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
       className="rounded-bloque border border-accion/35 bg-ink-700 p-3.5"
       style={{ boxShadow: '0 0 0 3px rgba(255, 30, 30, 0.09)' }}
     >
+      {/* EL MARCO NO ENTRA EN LA ESCENA, y es innegociable: `HojaMedicion` es
+          `fixed inset-0` y cuelga de aqui dentro. Un `perspective` o un
+          `transform` en el marco lo convertiria en bloque contenedor y la hoja
+          de la camara se encerraria dentro de una tarjeta de 350 px en vez de
+          ocupar la pantalla. La perspectiva vive en este envoltorio interior, y
+          la hoja se queda FUERA de el, como hermana posterior. */}
+      <div className="escena-prof">
+        <div className="consola-asienta">
       <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-accion">
         Serie {orden} de {ejercicio.sets}
         {etiqueta && (
-          <span className="ml-2 rounded-tag bg-accion/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-accion">
+          <span className="tecla-3d ml-2 inline-block rounded-tag bg-accion/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-accion">
             {etiqueta}
           </span>
         )}
@@ -111,10 +119,10 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo en dos columnas.
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
-      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande onCambiar={(v) => cambiar({ cargaKg: v })} />
+      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad onCambiar={(v) => cambiar({ cargaKg: v })} />
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} onCambiar={(v) => cambiar({ reps: v })} />
-        <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} onCambiar={(v) => cambiar({ rir: v })} />
+        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad onCambiar={(v) => cambiar({ reps: v })} />
+        <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} profundidad onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
       {/* Medir va ANTES de guardar, y no es un detalle de orden: se mide la
@@ -123,11 +131,14 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
       <button
         type="button"
         onClick={() => setMidiendo(true)}
-        className="press mt-3 flex w-full items-center justify-center gap-2 rounded-boton border border-white/15 bg-white/5 py-3 text-sm font-bold uppercase tracking-wide text-texto"
+        className="tecla-3d mt-3 flex w-full items-center justify-center gap-2 rounded-boton border border-white/15 bg-white/5 py-3 text-sm font-bold uppercase tracking-wide text-texto"
       >
         <IconoCamara className="h-[18px] w-[18px] shrink-0" />
         Medir con la cámara
       </button>
+
+        </div>
+      </div>
 
       <HojaMedicion
         abierto={midiendo}
