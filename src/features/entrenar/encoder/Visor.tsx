@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
 import { puntoDeLaImagen } from './toque'
+import { acusarToque } from './acusarToque'
 import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { COPY } from './copys'
 
@@ -131,6 +132,10 @@ export function Visor({ ajustes, children }: VisorProps) {
 
   function alTocar(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
+    // El acuse va PRIMERO, antes de decidir si el punto vale. El caso que se
+    // quedaba mudo era justamente el toque que no vale: en la banda negra se
+    // salia por un `return` sin decir nada.
+    acusarToque(capa, ev.clientX, ev.clientY)
     const r = capa.getBoundingClientRect()
     const punto = puntoDeLaImagen(
       ev.clientX - r.left,

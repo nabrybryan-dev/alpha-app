@@ -8,6 +8,7 @@ import { TablaTanda } from './TablaTanda'
 import { Encuadre } from './Encuadre'
 import { PanelPalancas } from './PanelPalancas'
 import { COPY } from './copys'
+import { acusarToque } from './acusarToque'
 import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
@@ -153,6 +154,9 @@ export default function EncoderPage() {
 
   function alTocarVisor(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
+    // El acuse va PRIMERO, antes de decidir si el punto vale. El caso que se
+    // quedaba mudo era justamente el toque que no vale.
+    acusarToque(capa, ev.clientX, ev.clientY)
     // La regla de tres sobre la caja entera estuvo aquí hasta hoy, y es el fallo
     // que el #86 arregló... en `Visor`, la otra pantalla. Esta se quedó con la
     // versión vieja: el lienzo se dibuja con `object-contain`, así que casi
