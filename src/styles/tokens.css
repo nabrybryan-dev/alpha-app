@@ -494,6 +494,35 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- La portada del microciclo aterriza ---------- */
+
+/* Es la pieza que MAS deleite tiene permitido: se ve UNA vez por microciclo, y
+   era la unica que no se movia al llegar — se pintaba de golpe y plana mientras
+   las siete tarjetas de debajo subian escalonadas.
+
+   La `perspective()` va DENTRO del `transform` porque este envoltorio no tiene
+   ningun ancestro con perspectiva: la suya se la da a sus hijos, no a si mismo.
+   Es el mismo patron del volteo del aguila.
+
+   Ningun numero es nuevo. Los 6 grados son el tope que la bandeja ya hace al
+   dedo, asi que la entrada ATERRIZA justo donde empieza el gesto en vez de
+   inventarse un angulo. Los 14 px son los de `entrada-suave`. Y la curva es
+   `--ease-cajon`, la que este repo reserva para lo que llega con peso. */
+@keyframes portada-entra {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateX(6deg) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(900px) rotateX(0deg) translateY(0);
+  }
+}
+
+.portada-entra {
+  animation: portada-entra var(--dur-escena) var(--ease-cajon) both;
+}
+
 /* ---------- Reveal al entrar al viewport ---------- */
 
 .revelar {
@@ -514,6 +543,11 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  /* La portada aparece ENTERA —bandeja, chips, foco, frase y notas—, solo que
+     plana y de inmediato. No se pierde nada de lo que dice. */
+  .portada-entra {
+    animation: none;
   }
 }
 
