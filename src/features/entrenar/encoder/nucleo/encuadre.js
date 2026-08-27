@@ -139,12 +139,57 @@ export function encuadre({
   }
 }
 
-/** Un veredicto legible, con el mismo vocabulario de puertas del motor. */
-export function calificarEncuadre(e) {
+/**
+ * Los tres topes de desvío, y por qué son tres y no uno (2026-08-26).
+ *
+ * El error sin corregir crece más que lineal: 4,4 % a 10°, 8 % a 15°, 12,6 % a
+ * 20° y **25,5 % a 30°**. Hasta hoy la puerta solo miraba los 30°, así que daba
+ * por `buena` una toma con un cuarto de error — y del que no hace ruido, porque
+ * va siempre en la misma dirección.
+ *
+ * Pero un tope único no puede estar bien, porque **el desvío se puede deshacer
+ * si se conoce φ**, y φ se mide del vídeo: sale de lo aplastada que se ve la
+ * elipse del disco (`anguloDeCamara` en `disco.js`). Corregido quedan 0,7 % a
+ * cualquier ángulo — el ruido de localizar el borde, y nada más.
+ *
+ * De ahí los dos mundos:
+ *
+ *   - **Con disco a la vista** (barra, Smith: la mitad del corpus) el desvío
+ *     casi no cuesta. Manda el otro límite, el de los 30°.
+ *   - **Sin disco** (mancuernas, máquina, polea, peso corporal) no hay con qué
+ *     medir φ y el error entra entero. Hay que ser estricto.
+ *
+ * El tope de los 12° no es redondo por gusto: da 5,8 % de error, del mismo
+ * orden que el ±4 % de ruido aleatorio de la única medida limpia del proyecto
+ * (remo con barra, 290 mm ± 12). Por encima de ahí el error sistemático se come
+ * al aleatorio y pasa a mandar él, que es justo lo que no se quiere.
+ */
+export const DESVIO_MAX = 30
+export const DESVIO_BUENO_SIN_DISCO = 12
+export const DESVIO_MAX_SIN_DISCO = 20
+
+/**
+ * Un veredicto legible, con el mismo vocabulario de puertas del motor.
+ *
+ * @param opciones.hayDisco  si en el cuadro se ve un disco de 450 mm, que es lo
+ *   que permite medir φ y deshacer el escorzo. **Por defecto `false`**, y a
+ *   propósito: dar por hecho que hay disco es dar por hecho que la corrección
+ *   ocurrió. Quien lo sepa, que lo diga.
+ */
+export function calificarEncuadre(e, { hayDisco = false } = {}) {
   const fallos = []
+  // Un fallo que descarta por sí solo. Los demás necesitan compañía: dos hacen
+  // una `descartada`. Este no, porque no hay nada que lo compense.
+  const graves = []
   // Por encima de 30° el reparto entre ejes deja de ser fiable y no hay
   // corrección que lo salve: la profundidad se come la geometría (CORPUS.md §5).
-  if (e.desvio > 30) fallos.push('no_es_lateral')
+  // Vale con disco y sin él.
+  if (e.desvio > DESVIO_MAX) fallos.push('no_es_lateral')
+  // Y sin disco, además, el escorzo no se puede deshacer.
+  if (!hayDisco) {
+    if (e.desvio > DESVIO_MAX_SIN_DISCO) graves.push('desvio_sin_disco')
+    else if (e.desvio > DESVIO_BUENO_SIN_DISCO) fallos.push('desvio_sin_disco')
+  }
   // Un disco por debajo de 80 px no da un contorno del que fiarse: es el mismo
   // límite que la puerta `contorno_parcial` de `calificar()`.
   if (e.discoPx < 80) fallos.push('disco_pequeño')
@@ -153,7 +198,9 @@ export function calificarEncuadre(e) {
   if (Math.abs(e.inclinacionGrados) > 20) fallos.push('camara_baja')
   // Si no cabe el atleta con la barra, faltan marcas y no hay plan que ejecutar.
   if (e.anchoEscenaM < 2.4) fallos.push('no_cabe')
-  if (fallos.length === 0) return { nivel: 'buena', motivos: [] }
-  if (fallos.length === 1) return { nivel: 'dudosa', motivos: fallos }
-  return { nivel: 'descartada', motivos: fallos }
+  const motivos = [...graves, ...fallos]
+  if (graves.length > 0) return { nivel: 'descartada', motivos }
+  if (motivos.length === 0) return { nivel: 'buena', motivos: [] }
+  if (motivos.length === 1) return { nivel: 'dudosa', motivos }
+  return { nivel: 'descartada', motivos }
 }
