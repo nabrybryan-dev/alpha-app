@@ -116,6 +116,27 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
     if (ref.current) ref.current.textContent = texto
   }
 
+  /**
+   * El color de la lectura del angulo, escrito SOLO cuando cambia de verdad.
+   *
+   * Antes se llamaba a `setProperty('color', ...)` en cada fotograma, hubiera
+   * cambiado o no. Escribir una propiedad en linea invalida el estilo del elemento
+   * aunque el valor sea identico, y eso es recalculo de estilo mas repintado del
+   * nodo en el mismo hilo donde el bucle acaba de hacer un `getImageData` de todo
+   * el lienzo de proceso. Es barato en absoluto —un nodo de texto diminuto— pero
+   * es gratis quitarlo y esta en el sitio donde nada es gratis.
+   *
+   * El patron no es nuevo: la escritura del reloj ya compara antes de escribir.
+   * A las cifras (fps, muestras, pixeles) NO se les pone este guardian a proposito:
+   * esos valores si cambian casi todos los fotogramas y comparar no ahorraria nada.
+   */
+  const colorAnguloRef = useRef<string | null>(null)
+  const pintarColorAngulo = (color: string | null) => {
+    if (colorAnguloRef.current === color) return
+    colorAnguloRef.current = color
+    medidas.angulo.current?.style.setProperty('color', color)
+  }
+
   function pintar(det: Deteccion | undefined, nPix: number | null, ventana?: Recuadro) {
     const capa = capaRef.current
     const ctx = capa?.getContext('2d')
@@ -151,10 +172,7 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       // setProperty y no `style.color =`: aquí sí valen las variables CSS
       // —esto es CSS de verdad, no canvas— y el analizador de React no admite
       // asignar a una propiedad anidada de algo que llega por argumento.
-      medidas.angulo.current?.style.setProperty(
-        'color',
-        rota ? 'var(--rojo)' : torcida || girada ? 'var(--ambar)' : null,
-      )
+      pintarColorAngulo(rota ? 'var(--rojo)' : torcida || girada ? 'var(--ambar)' : null)
       ctx.lineWidth = 2
       // Hexadecimales y no var(--rojo): el canvas no resuelve variables CSS,
       // se queda en negro y no avisa. Son los mismos valores de tokens.css.
@@ -172,7 +190,7 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       return
     }
 
-    medidas.angulo.current?.style.setProperty('color', null)
+    pintarColorAngulo(null)
 
     if (det && 'cobertura' in det) {
       escribir(medidas.marcas, det.fiable ? 'disco' : 'disco (dudoso)')

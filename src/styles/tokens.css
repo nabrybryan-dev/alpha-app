@@ -4,20 +4,31 @@
 
 :root,
 [data-theme="dark"] {
-  --bg: #0a0a0a;
-  --surface-1: #141414;
-  --surface-2: #1c1c1e;
-  --surface-3: #242427;
-  --linea: #2e2e31;
-  --texto: #f2f2f2;
-  --tenue: #a8a8ad;
+  --bg-rgb: 10 10 10;
+  --bg: rgb(var(--bg-rgb));
+  --surface-1-rgb: 20 20 20;
+  --surface-1: rgb(var(--surface-1-rgb));
+  --surface-2-rgb: 28 28 30;
+  --surface-2: rgb(var(--surface-2-rgb));
+  --surface-3-rgb: 36 36 39;
+  --surface-3: rgb(var(--surface-3-rgb));
+  --linea-rgb: 46 46 49;
+  --linea: rgb(var(--linea-rgb));
+  --texto-rgb: 242 242 242;
+  --texto: rgb(var(--texto-rgb));
+  --tenue-rgb: 168 168 173;
+  --tenue: rgb(var(--tenue-rgb));
   --gris-marca: #7a7a7a;
-  --rojo: #ff1e1e;
+  --rojo-rgb: 255 30 30;
+  --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
   /* "Logrado/completado" = plata neutro (reemplaza el verde; decisión de marca) */
-  --verde: #c2c8cf;
-  --ambar: #f5a623;
-  --azul: #3b9dff;
+  --verde-rgb: 194 200 207;
+  --verde: rgb(var(--verde-rgb));
+  --ambar-rgb: 245 166 35;
+  --ambar: rgb(var(--ambar-rgb));
+  --azul-rgb: 59 157 255;
+  --azul: rgb(var(--azul-rgb));
 
   /* Glass Pro Premium */
   --hairline: rgba(255, 255, 255, 0.08);
@@ -49,27 +60,42 @@
   /* El interior de la placa descartada: mas oscuro que el fondo de pagina, para
      que el sello se lea como un hueco en la superficie y no como una tarjeta. */
   --hundido: #060606;
-  /* La unica sombra del sistema. */
+  /* Las dos sombras del sistema: la de dentro y la de fuera.
+     `--sombra-hundido` era la unica, y describia solo la materia que FALTA. Con
+     la escala de profundidad aparece materia que SOBRESALE, y sin su sombra un
+     elemento a +16 px se lee como un elemento plano mas claro. */
   --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.9);
+  --sombra-alzado: 0 2px 6px rgba(0, 0, 0, 0.55);
   /* El corte de las dos esquinas opuestas del troquel. */
   --troquel: 10px;
 }
 
 [data-theme="light"] {
-  --bg: #f7f7f5;
-  --surface-1: #ffffff;
-  --surface-2: #f0efec;
-  --surface-3: #e7e5e0;
-  --linea: #d9d7d0;
-  --texto: #111111;
-  --tenue: #5f5e5a;
+  --bg-rgb: 247 247 245;
+  --bg: rgb(var(--bg-rgb));
+  --surface-1-rgb: 255 255 255;
+  --surface-1: rgb(var(--surface-1-rgb));
+  --surface-2-rgb: 240 239 236;
+  --surface-2: rgb(var(--surface-2-rgb));
+  --surface-3-rgb: 231 229 224;
+  --surface-3: rgb(var(--surface-3-rgb));
+  --linea-rgb: 217 215 208;
+  --linea: rgb(var(--linea-rgb));
+  --texto-rgb: 17 17 17;
+  --texto: rgb(var(--texto-rgb));
+  --tenue-rgb: 95 94 90;
+  --tenue: rgb(var(--tenue-rgb));
   --gris-marca: #7a7a7a;
-  --rojo: #d51216;
+  --rojo-rgb: 213 18 22;
+  --rojo: rgb(var(--rojo-rgb));
   --rojo-osc: #8f1119;
   /* "Logrado/completado" = plata neutro (gris medio para contraste en claro) */
-  --verde: #6f7782;
-  --ambar: #a86e07;
-  --azul: #1462b8;
+  --verde-rgb: 111 119 130;
+  --verde: rgb(var(--verde-rgb));
+  --ambar-rgb: 168 110 7;
+  --ambar: rgb(var(--ambar-rgb));
+  --azul-rgb: 20 98 184;
+  --azul: rgb(var(--azul-rgb));
 
   --hairline: rgba(0, 0, 0, 0.07);
   --hairline-fuerte: rgba(0, 0, 0, 0.12);
@@ -85,6 +111,9 @@
   --placa-muerta: #a3a099;
   --hundido: #e7e5e0;
   --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.18);
+  /* La misma proporcion que guarda --sombra-hundido entre sus dos temas
+     (.9 -> .18): sobre hueso, un 0,55 no se lee como sombra, se lee como suciedad. */
+  --sombra-alzado: 0 2px 6px rgba(0, 0, 0, 0.12);
   --troquel: 10px;
 }
 
@@ -108,6 +137,15 @@
   --ease-salida: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-mov: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
+  /* La cuarta, y la única con rebote: el segundo punto de control pasa de 1, así
+     que sobrepasa y vuelve. Existe porque el repo ya tenía cuatro cubic-bezier
+     tecleadas a mano que casi coincidían entre sí, que es el caso de manual de
+     consolidación. El valor no es nuevo: es el que ya estaba escrito en el giro
+     del águila, el único sitio del sistema donde el rebote está justificado —un
+     gesto raro, en una pantalla de celebración—. No se usa para UI corriente.
+     Ojo al consumirla desde la Web Animations API: `el.animate()` NO resuelve
+     `var()`, así que allí va escrita literal, con una nota que apunte aquí. */
+  --ease-rebote: cubic-bezier(0.34, 1.2, 0.4, 1);
 
   /* ============ Design System Alfa (handoff) ============
      Fuentes: display Archivo expandido, UI Hanken Grotesk, datos JetBrains Mono */
@@ -124,14 +162,32 @@
      levantar la pieza tanto que su propia banda de tinta pasa de 25 y el texto
      deja de leerse. Lo que hay debajo de una pieza sin recorrer no es una
      superficie: es que ahi no hay luz. */
-  --ink-1000: #000000;
-  --ink-900: #08090a;
-  --ink-800: #0f1113;
-  --ink-700: #16181b;
-  --ink-600: #202327;
-  --ink-500: #2a2f35;
-  --ink-400: #3a4048;
+  /* La escala se declara por CANALES y el color se deriva de ellos.
 
+     No es un capricho de formato: Tailwind solo puede aplicar un modificador de
+     opacidad —`bg-ink-900/70`— a un color declarado con el marcador `<alpha-value>`,
+     y eso obliga a la forma `rgb(<canales> / <alpha-value>)`. Mientras estos tonos
+     fueron un hex suelto, Tailwind DESCARTABA el modificador sin avisar: no fallaba
+     el build, no fallaba el typecheck, simplemente no generaba la regla y el
+     elemento se quedaba SIN FONDO. Habia seis sitios asi en el repo.
+
+     Los canales son la unica fuente: el hex de toda la vida sale de ellos, asi que
+     no hay dos numeros que puedan separarse. Es lo unico que `--accion` hace peor,
+     porque alli el hex y los canales estan escritos aparte. */
+  --ink-1000-rgb: 0 0 0;
+  --ink-1000: rgb(var(--ink-1000-rgb));
+  --ink-900-rgb: 8 9 10;
+  --ink-900: rgb(var(--ink-900-rgb));
+  --ink-800-rgb: 15 17 19;
+  --ink-800: rgb(var(--ink-800-rgb));
+  --ink-700-rgb: 22 24 27;
+  --ink-700: rgb(var(--ink-700-rgb));
+  --ink-600-rgb: 32 35 39;
+  --ink-600: rgb(var(--ink-600-rgb));
+  --ink-500-rgb: 42 47 53;
+  --ink-500: rgb(var(--ink-500-rgb));
+  --ink-400-rgb: 58 64 72;
+  --ink-400: rgb(var(--ink-400-rgb));
   /* Escala silver (texto/plata neutro = estado "logrado") */
   --silver-100: #f4f5f6;
   --silver-200: #dfe2e6;
@@ -155,7 +211,8 @@
   --silver-300-rgb: 194 200 207;
   /* Oro: reservado al nivel Élite de la Escala Alfa. No es un acento de uso
      general — si aparece en otra pantalla, es que algo se copió mal. */
-  --oro: #d8b25c;
+  --oro-rgb: 216 178 92;
+  --oro: rgb(var(--oro-rgb));
   /* Marco metálico de las fichas del Álbum Alfa (padding 4px sobre el interior). */
   --metal-grad: linear-gradient(
     135deg,
@@ -192,6 +249,52 @@
   --z-superpuesto: 300;
   --z-tooltip: 400;
 
+  /* ============ Escala de profundidad ============
+     La tercera escala del sistema, hermana de las capas y las duraciones. Existe
+     por el mismo motivo que aquellas: sin ella cada pantalla se inventa su
+     `translateZ` y cinco pantallas con profundidad se notan cinco pantallas
+     distintas. Criterio de revision de una linea: si un `translateZ` del area de
+     entrenamiento no es una de estas cinco variables, esta mal.
+
+     Los valores no son nuevos ni redondos por gusto. Salen de lo que la app YA
+     hacia: los 900 px de perspectiva son los de PortadaMicrociclo, FichaPanini y
+     RolloDePelicula; los 12 grados son el MAX_GRADOS que `inclinacionAlPuntero.ts`
+     ya trae; y los 6 los razono PortadaMicrociclo cuando bajo de 12 «porque esto
+     es una superficie de lectura».
+
+     A 900 px de perspectiva, cada escalon cambia el tamano aparente: -24 es
+     -2,6 %, -8 es -0,9 %, +16 es +1,8 % y +40 es +4,7 %. Eso importa dos veces.
+     Una: +40 sigue por debajo del 12 % de `.latido`, asi que la profundidad nunca
+     grita mas que el enfasis. Y dos, la que muerde: HUNDIR ENCOGE. Una diana de
+     44 px hundida a -8 px se queda en 43,6 y cae bajo el minimo tactil, asi que
+     NINGUNA zona tocable baja del plano. */
+  --prof-fondo: -24px;    /* otro plano, detras de la superficie: rieles, colas, lo que espera */
+  --prof-hueco: -8px;     /* materia que falta DENTRO de la misma placa: cifras, troqueles, notas al pie */
+  --prof-plano: 0px;      /* el suelo, y el punto de retorno de toda transicion. Tiene nombre por lo mismo que --z-lienzo: 0 */
+  --prof-relieve: 16px;   /* acunado sobre la placa: tipografia, chips, teclas, placas secundarias */
+  --prof-sujeto: 40px;    /* despegado. UNO por escena: si hay dos, la escena ha dejado de decir donde mirar */
+
+  --perspectiva: 900px;
+  /* La fuga por encima del centro: el movil esta en el suelo o en el banco y se
+     mira hacia abajo. Es la misma mirada que asume `--foto-pos`. */
+  --perspectiva-origen: 50% 32%;
+
+  --giro-lectura: 6deg;   /* tope de cualquier superficie con una cifra o un rotulo dentro */
+  --giro-objeto: 12deg;   /* solo para objetos sin un solo glifo: medallon, ficha, plancha */
+
+  /* ============ La puerta de camara ============
+     Hay pantallas de esta app que corren con `getUserMedia` abierto a 50 fps, y
+     ahi el presupuesto de fotogramas no es una metafora: se pierde la toma.
+
+     Cualquier escena de profundidad se declara con `.escena-prof`, y basta con
+     poner `data-camara-abierta` en un ancestro para que TODA la profundidad de
+     dentro se aplane. Se apaga en la raiz de la escena y no elemento a elemento,
+     porque un `!important` por hijo seria imposible de auditar.
+
+     Lo que esto hace y lo que no: quitar la `perspective` elimina el escorzo, o
+     sea la profundidad visible, y `flat` deshace la cadena 3D. Las capas de
+     composicion que ya creo cada `translateZ` NO desaparecen; para eso habria que
+     quitar el transform de cada hijo. Es un apagado del efecto, no del coste. */
   /* ============ Escala de duraciones ============
      Las curvas ya existian; lo que faltaba era el tiempo. Sin esta escala cada
      pantalla elegia el suyo y ninguna se movia igual que la de al lado. */
@@ -357,10 +460,16 @@ body {
 
 /* Las dos barras del par de errores. Se anima `transform` y no `width` porque
    width relayoutea en cada fotograma y esta pantalla se usa con la cámara ya
-   abierta: robarle presupuesto puede tumbar la toma por debajo de 50 fps. */
+   abierta: robarle presupuesto puede tumbar la toma por debajo de 50 fps.
+
+   SOLO `from`, y es lo que hace que funcione. Con un `to: scaleX(1)` explícito la
+   animación terminaba pisando el valor real de la barra —`fill: both` conserva el
+   último fotograma—, así que las dos barras se quedaban al 100 % y el dato
+   desaparecía. Sin `to`, el estado final es el `transform` propio del elemento,
+   o sea el valor que sigue al control. Es el mismo patrón que `barra-crece` unas
+   líneas más abajo, que sí lo tenía bien. */
 @keyframes crecer-barra {
   from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
 }
 
 @keyframes entrada-suave {
@@ -385,6 +494,220 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- La consola: teclas que sobresalen, cifras hundidas ---------- */
+
+/* Registrar una serie deja de ser rellenar un formulario y pasa a ser operar una
+   consola: la cifra vive HUNDIDA en su hueco y las teclas SOBRESALEN de la
+   placa. Al pulsar una, recorre sus 16 px hasta tocarla — el recorrido de la
+   tecla es literal, no una metafora.
+
+   Las dos sustituyen a `.press` en esos botones, no se apilan con ella: dos
+   reglas peleandose por `transform` las gana la ultima, y el 3D o el hundido
+   desapareceria sin aviso. Por eso llevan el mismo `scale(0.97)`, la misma
+   duracion y la misma curva: el tacto es identico, con recorrido añadido.
+
+   NINGUNA ZONA TOCABLE BAJA DEL PLANO. Hundir encoge —a 900 px de perspectiva,
+   -8 px son un factor 0,9912— y una diana de 44 px hundida se queda en 43,6.
+   Las teclas van de +16 a 0, nunca a negativo. */
+.tecla-3d {
+  transform: translateZ(var(--prof-relieve));
+  box-shadow: var(--sombra-alzado);
+  transition: transform var(--dur-toque) var(--ease-salida);
+}
+
+.tecla-3d:active {
+  transform: translateZ(var(--prof-plano)) scale(0.97);
+}
+
+.pozo-3d {
+  transform: translateZ(var(--prof-hueco));
+  box-shadow: var(--sombra-hundido);
+}
+
+/* El asentado de la consola: entra inclinada y se posa. 240 ms y sin escalonado,
+   porque esto se reproduce despues de CADA serie —unas 25 veces por sesion— y la
+   tabla de frecuencia del estandar dice reducir, no adornar. */
+@keyframes asentar-consola {
+  from {
+    transform: rotateX(3deg) translateZ(-14px);
+  }
+}
+
+.consola-asienta {
+  transform-style: preserve-3d;
+  animation: asentar-consola var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tecla-3d {
+    transition: none;
+  }
+  .consola-asienta {
+    animation: none;
+  }
+}
+
+/* ---------- Una pieza que aparece donde no habia nada ---------- */
+
+/* Para lo que se monta de golpe: los plegables del encoder y la tarjeta de
+   resultado que sustituye al «sin medicion todavia».
+
+   `transition` con `@starting-style` y NO una keyframe, porque una pieza que se
+   sustituye por otra tiene que poder redirigirse a mitad de camino. Un navegador
+   que no entienda `@starting-style` la pinta directamente, que es lo que hacia
+   antes: se pierde la entrada, no la pieza.
+
+   NUNCA se anima el alto ni el `max-height` de un plegable. Un elemento animado
+   y uno solo —el envoltorio—, y nada de escalonar los hijos: serian N capas
+   promovidas con el bucle de captura corriendo.
+
+   Los 240 ms caen en los 150-250 que el estandar da a los desplegables. */
+.aparece-pieza {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-base) var(--ease-salida),
+    transform var(--dur-base) var(--ease-salida);
+}
+
+@starting-style {
+  .aparece-pieza {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aparece-pieza {
+    transition: none;
+  }
+}
+
+/* ---------- La insignia del Salon de Maquinas ---------- */
+
+/* La clase `insignia-salon` ya estaba puesta en el marcado y NO EXISTIA en
+   ninguna hoja: un gancho colgado y vacio, esperando exactamente esto. Por eso
+   aqui no cambia ni una linea de TSX.
+
+   El 0,94 es el 0 % de `.frase-pop`, dentro de la banda 0,9-0,97 que el estandar
+   da al feedback fisico. Nunca se toca el oro del fondo ni se le pone una sombra
+   animada: el oro esta reservado al nivel Elite y no es un acento decorativo. */
+@keyframes insignia-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.insignia-salon {
+  animation: insignia-entra var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insignia-salon {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- El aviso de la captura ---------- */
+
+/* `transition` y NO `@keyframes`, y no es un detalle: un segundo aviso que
+   sustituye al primero tiene que poder redirigirse a mitad de camino. Con una
+   keyframe se reiniciaria desde cero cada vez.
+
+   El `@starting-style` da el estado de salida sin necesidad de un doble render.
+   Un navegador que no lo entienda pinta el aviso directamente, que es justo lo
+   que hacia antes: se pierde la entrada, no el aviso.
+
+   Nunca se anima el ALTO del bloque: relayoutearia la pantalla del encoder en
+   cada fotograma, y esta corre con la camara a 50 fps. */
+.aviso-captura {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-toque) var(--ease-salida),
+    transform var(--dur-toque) var(--ease-salida);
+}
+
+@starting-style {
+  .aviso-captura {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-captura {
+    transition: none;
+  }
+}
+
+/* ---------- El corte entre ejercicios ---------- */
+
+/* Hasta hoy el velo a pantalla completa aparecia DE GOLPE mientras el panel
+   entraba en 480 ms: la capa oscura llegaba antes que su contenido. Su hermano
+   de la misma pantalla —el test post— si funde el suyo. Y el panel era plano:
+   nada decia que fuese una capa POR ENCIMA de la sesion salvo que el fondo se
+   oscurece.
+
+   LA PROFUNDIDAD SE PAGA CON TIEMPO QUE SE QUITA, NO QUE SE AÑADE: 480 -> 360.
+   Es un corte que interrumpe, no un premio; llega, se entiende y se aparta.
+
+   `scale(0.97)` es el de `.press`, y nunca `scale(0)`: un modal que nace de un
+   punto se lee como un truco. El origen va al centro y no al disparador, que es
+   lo que el estandar exime expresamente para los modales. */
+@keyframes corte-entra {
+  from {
+    opacity: 0;
+    transform: rotateX(6deg) translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0deg) translateY(0) scale(1);
+  }
+}
+
+.corte-entra {
+  animation: corte-entra var(--dur-panel) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Con `both` el panel queda entero y plano: se pierde el giro, NO el corte —
+     que es lo que impide seguir registrando series del ejercicio equivocado. */
+  .corte-entra {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- La portada del microciclo aterriza ---------- */
+
+/* Es la pieza que MAS deleite tiene permitido: se ve UNA vez por microciclo, y
+   era la unica que no se movia al llegar — se pintaba de golpe y plana mientras
+   las siete tarjetas de debajo subian escalonadas.
+
+   La `perspective()` va DENTRO del `transform` porque este envoltorio no tiene
+   ningun ancestro con perspectiva: la suya se la da a sus hijos, no a si mismo.
+   Es el mismo patron del volteo del aguila.
+
+   Ningun numero es nuevo. Los 6 grados son el tope que la bandeja ya hace al
+   dedo, asi que la entrada ATERRIZA justo donde empieza el gesto en vez de
+   inventarse un angulo. Los 14 px son los de `entrada-suave`. Y la curva es
+   `--ease-cajon`, la que este repo reserva para lo que llega con peso. */
+@keyframes portada-entra {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateX(6deg) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(900px) rotateX(0deg) translateY(0);
+  }
+}
+
+.portada-entra {
+  animation: portada-entra var(--dur-escena) var(--ease-cajon) both;
+}
+
 /* ---------- Reveal al entrar al viewport ---------- */
 
 .revelar {
@@ -405,6 +728,11 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  /* La portada aparece ENTERA —bandeja, chips, foco, frase y notas—, solo que
+     plana y de inmediato. No se pierde nada de lo que dice. */
+  .portada-entra {
+    animation: none;
   }
 }
 
@@ -502,10 +830,15 @@ body {
 }
 
 /* Pulso de urgencia en los últimos segundos del descanso */
+/* El pico es ADITIVO: el envolvente de la cifra ya esta en --prof-relieve (+16),
+   asi que este +24 aterriza exacto en --prof-sujeto (+40). Los escalones se suman
+   a proposito — asi no hace falta un translateZ suelto para el pico, que seria el
+   primer valor fuera de la escala. Sin perspectiva alrededor, el translateZ no
+   pinta nada y queda el scale de siempre. */
 @keyframes tic-urgente {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.18); }
-  100% { transform: scale(1); }
+  0% { transform: translateZ(0) scale(1); }
+  30% { transform: translateZ(24px) scale(1.18); }
+  100% { transform: translateZ(0) scale(1); }
 }
 
 .tic-urgente {
@@ -639,10 +972,19 @@ body {
   to { transform: translateX(-50%); }
 }
 
+/* Sin `will-change: transform`, que estaba aquí y era permanente. Una animación
+   infinita ya mantiene la capa promovida por sí sola, así que la pista no compraba
+   nada y sí costaba: una capa reservada para siempre en una pantalla que además es
+   desde la que se lanza la toma del encoder —y la hoja de la cámara se monta AL LADO
+   de esta, no en vez de ella—. La regla del repo ya estaba escrita en `GraficaBrazo`:
+   `will-change` solo mientras dura el gesto, porque una capa promovida de forma
+   permanente reserva memoria de textura en un móvil de gama media.
+   Lo que esto NO resuelve es que el ticker siga corriendo durante la captura: eso es
+   otra cosa y se apaga en un solo sitio, con la puerta de cámara que llega por la
+   rama de la escala de profundidad. Aquí solo se suelta la capa. */
 .ticker-pista {
   display: inline-flex;
   white-space: nowrap;
-  will-change: transform;
   animation: ticker 22s linear infinite;
 }
 
@@ -748,6 +1090,41 @@ body {
   }
 }
 
+/* ---------- Desplegable corto (notas de ejecución, detalle de una parte) ---------- */
+
+/* `transition` y NO `@keyframes`, y esa es toda la razón de que exista: estos
+   bloques se abren y se cierran en ráfagas mientras alguien busca una indicación
+   entre serie y serie. Una transición se re-dirige a mitad de camino; un keyframe
+   reinicia desde cero cada vez que se toca.
+
+   Antes esto usaba `.entrada`, que son 480 ms pensados para que una tarjeta entre
+   en la página. Para un desplegable dentro de una fila el presupuesto es otro
+   —150-250 ms— y el desplazamiento también: 8 px, no 14.
+
+   `@starting-style` da la entrada sin una línea de JS. Donde no exista, el bloque
+   aparece directamente en su estado final, que es exactamente lo que hacía antes
+   de esta clase: se degrada a lo de hoy, no a algo roto. */
+.desplegar {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-toque) var(--ease-salida),
+    transform var(--dur-toque) var(--ease-salida);
+}
+
+@starting-style {
+  .desplegar {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desplegar {
+    transition-duration: 1ms;
+  }
+}
+
 /* ---------- Check que se dibuja al marcar un bloque ---------- */
 
 @keyframes dibujar-check {
@@ -783,28 +1160,32 @@ body {
   .cta-pulso {
     animation: none;
   }
-  .press,
-  .press:active {
-    transition: none;
+  /* Quitar el `scale` es correcto: es un cambio de tamaño y de posición, justo lo
+     que esta preferencia pide retirar. Dejar el botón SIN NADA no lo es.
+     `Guardar serie` se pulsa decenas de veces por sesión, con el móvil en la mano
+     y sudando, y `.press` es su único acuse de recibo: con `transform: none` y
+     `transition: none` no devolvía absolutamente nada al tacto. STANDARDS
+     «Accessibility» lo dice literal —«fewer and gentler animations, not zero»— y
+     manda conservar lo de opacidad y quitar lo de posición, que es exactamente lo
+     que hace esto.
+     El 0.9 no es un número nuevo: es el `active:opacity-90` que la app ya usaba a
+     mano para acusar el toque en los dos botones de abrir cámara. Aquí gana la
+     duración del sistema, así que deja de ser un salto seco. */
+  .press {
+    transition: opacity var(--dur-toque) var(--ease-salida);
     transform: none;
+  }
+  .press:active {
+    transform: none;
+    opacity: 0.9;
   }
 }
 
-/* ExerciseSlotMachine ----------------------------------------------------- */
-/* Las bombillas de la marquesina del gabinete. Añadido al final y sin tocar
-   nada de lo anterior: es la única excepción al bloqueo de estilos globales.
-   El nombre lleva sufijo para no chocar con ninguna keyframe existente. */
-@keyframes bombilla-tragamonedas {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.12);
-    opacity: 0.85;
-  }
-}
+/* Aquí vivía `@keyframes bombilla-tragamonedas`, y se ha borrado: no lo consumía
+   nadie en todo `src/`. Las bombillas de la marquesina usan `bulbPulse`, que está
+   unas líneas más abajo. Eran dos keyframes casi iguales para lo mismo y una de
+   las dos estaba muerta; no es el caso de `--z-superpuesto` y `--z-tooltip`, que
+   se declaran sin consumidor a propósito y con su nota puesta. */
 
 /* ExerciseSlotMachine — solo interior del gabinete --------------------------- */
 /* Estas cinco familias se usan EXCLUSIVAMENTE dentro del marco de la máquina.
@@ -836,9 +1217,16 @@ body {
   74% { opacity: 1; }
 }
 
+/* Animaba `background-position`, que repinta la tira en cada fotograma y no
+   toca el compositor — y corria mientras el encoder captura a 50 fps. Ahora
+   viaja con `transform` dentro de un contenedor con `overflow: hidden`, que es
+   exactamente lo que este archivo ya decidio para `.brillo-carga`. Mismo
+   aspecto, misma cadencia, cero repintados. Los 14 px son el periodo del
+   `repeating-linear-gradient` de la tira: al recorrer uno entero, el bucle
+   empalma sin costura. */
 @keyframes ledScan {
-  from { background-position: 0 0; }
-  to { background-position: 14px 0; }
+  from { transform: translateX(0); }
+  to { transform: translateX(14px); }
 }
 
 @keyframes ribbonSway {
@@ -924,5 +1312,59 @@ body {
   ::view-transition-old(ventana-hero),
   ::view-transition-new(ventana-hero) {
     animation: none;
+  }
+}
+
+/* ---------- Profundidad: la escena y su puerta ---------- */
+
+.escena-prof {
+  perspective: var(--perspectiva);
+  perspective-origin: var(--perspectiva-origen);
+}
+
+[data-camara-abierta] .escena-prof {
+  perspective: none;
+}
+
+[data-camara-abierta] .escena-prof * {
+  transform-style: flat;
+}
+
+/* Y para TODA animacion mientras la camara captura, este dentro de una escena o
+   no. Es una sola propiedad y una sola regla, auditable de un vistazo: no hay
+   forma de que a alguien se le olvide apagar la suya. Un gabinete tiene cuatro
+   animaciones infinitas corriendo a la vez —bombillas, banderola, neon y la
+   tira de leds— y hasta hoy ninguna paraba durante la toma. */
+[data-camara-abierta] * {
+  animation-play-state: paused !important;
+}
+
+/* Y el desenfoque se retira mientras se captura. No es una animacion —la regla
+   de arriba solo pausa animaciones y un filtro no lo es— pero un
+   `backdrop-filter` es de lo mas caro que se le puede pedir a la GPU: obliga a
+   remuestrear y difuminar la region entera en cada fotograma.
+
+   QUIEN LA NECESITA HOY es la barra de descanso, no el corte entre ejercicios.
+   El corte ya no lleva desenfoque —se le quito porque no bloqueaba el scroll del
+   documento de debajo y el velo subio a opaco—, asi que por ese lado esta regla
+   ya no hace falta. Pero el descanso SI: su lamina de cristal lleva `.glass-blur`
+   y puede estar corriendo mientras se mide, porque la hoja del encoder se pinta
+   AL LADO de la sesion y no la desmonta. Sin esta regla, ese desenfoque vuelve a
+   costar fotogramas durante la toma.
+
+   El contraste no se pierde: debajo del desenfoque siempre hay un velo opaco,
+   que es lo que de verdad garantiza que se lea el texto. */
+[data-camara-abierta] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* `prefers-reduced-motion` NO aplana la profundidad, y es deliberado: la
+   profundidad es una posicion, no un movimiento. Lo que se quita son las
+   transiciones entre escalones, no los escalones. Aplanarla dejaria la jerarquia
+   sostenida solo por el color, que es justo lo que la marca decidio no hacer. */
+@media (prefers-reduced-motion: reduce) {
+  .escena-prof * {
+    transition-duration: 1ms !important;
   }
 }

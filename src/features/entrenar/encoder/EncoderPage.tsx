@@ -8,6 +8,8 @@ import { TablaTanda } from './TablaTanda'
 import { Encuadre } from './Encuadre'
 import { PanelPalancas } from './PanelPalancas'
 import { COPY } from './copys'
+import { acusarToque } from './acusarToque'
+import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
@@ -152,6 +154,9 @@ export default function EncoderPage() {
 
   function alTocarVisor(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
+    // El acuse va PRIMERO, antes de decidir si el punto vale. El caso que se
+    // quedaba mudo era justamente el toque que no vale.
+    acusarToque(capa, ev.clientX, ev.clientY)
     // La regla de tres sobre la caja entera estuvo aquí hasta hoy, y es el fallo
     // que el #86 arregló... en `Visor`, la otra pantalla. Esta se quedó con la
     // versión vieja: el lienzo se dibuja con `object-contain`, así que casi
@@ -295,12 +300,15 @@ export default function EncoderPage() {
           )}
           {captura.grabando && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rojo" />
+              <span className="punto-vivo h-2.5 w-2.5 rounded-full bg-rojo" />
               <span className="font-mono text-[11px] uppercase tracking-widest text-white">
                 grabando
               </span>
             </div>
           )}
+          {/* Sobre la imagen y no debajo del boton, que es donde empujaba.
+              Ver `AvisoDeCaptura`. */}
+          <AvisoDeCaptura aviso={captura.aviso} />
         </div>
 
         {/* Las tres que deciden si la toma sirve, grandes; el resto, de apoyo.
@@ -318,18 +326,12 @@ export default function EncoderPage() {
           <Medida nombre="reloj" valorRef={relojRef} />
         </div>
 
-        {captura.aviso && (
-          <p className="border-t border-white/10 px-4 py-3 text-sm text-white/70">
-            {captura.aviso}
-          </p>
-        )}
-
         <div className="flex flex-wrap gap-2 border-t border-white/10 p-3">
           {!captura.camaraAbierta ? (
             <button
               type="button"
               onClick={captura.abrirCamara}
-              className="min-h-14 flex-1 rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
+              className="press min-h-14 flex-1 rounded-xl bg-rojo px-4 text-base font-bold text-white"
             >
               Abrir cámara
             </button>
@@ -338,7 +340,7 @@ export default function EncoderPage() {
               type="button"
               disabled={!captura.listoParaGrabar}
               onClick={() => (captura.grabando ? captura.parar() : captura.empezar())}
-              className={`min-h-14 flex-1 rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
+              className={`press min-h-14 flex-1 rounded-xl px-4 text-base font-bold disabled:opacity-40 ${
                 captura.grabando
                   ? 'bg-rojo text-white'
                   : 'border border-white/15 bg-white/10 text-white'
@@ -350,7 +352,16 @@ export default function EncoderPage() {
         </div>
       </section>
 
-      <ResultadoMedicion resultado={resultado} modo={modo} />
+      {/* Al parar, «Sin medicion todavia» se sustituia de golpe por la tarjeta
+          con el sello y las tres cifras. Entra como UNA sola pieza, sin
+          escalonar las cifras: son tres numeros que se leen juntos, y hacerlos
+          llegar en fila los convertiria en una secuencia que no lo es.
+          La `key` es lo que hace que la entrada ocurra: `@starting-style` solo
+          actua cuando el elemento se monta, asi que sin ella el envoltorio
+          persistiria y solo cambiarian los hijos. */}
+      <div key={resultado ? 'con-medida' : 'sin-medida'} className="aparece-pieza">
+        <ResultadoMedicion resultado={resultado} modo={modo} />
+      </div>
 
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -417,7 +428,7 @@ export default function EncoderPage() {
           type="button"
           disabled={!resultado}
           onClick={guardar}
-          className={`min-h-12 rounded-xl px-4 text-sm font-bold transition-colors ${
+          className={`press min-h-12 rounded-xl px-4 text-sm font-bold ${
             resultado
               ? 'bg-rojo text-white'
               : 'cursor-not-allowed border border-linea bg-surface-2 text-tenue'
@@ -435,14 +446,14 @@ export default function EncoderPage() {
         <button
           type="button"
           onClick={() => setPalancasAbierto((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between text-left"
+          className="press flex min-h-11 w-full items-center justify-between text-left"
           aria-expanded={palancasAbierto}
         >
           <b className="text-sm">Palancas · abrir una medida</b>
           <span className="font-mono text-tenue">{palancasAbierto ? '−' : '+'}</span>
         </button>
         {palancasAbierto && (
-          <div className="mt-3 border-t border-hairline pt-3">
+          <div className="aparece-pieza mt-3 border-t border-hairline pt-3">
             <PanelPalancas />
           </div>
         )}
@@ -456,14 +467,14 @@ export default function EncoderPage() {
         <button
           type="button"
           onClick={() => setEncuadreAbierto((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between text-left"
+          className="press flex min-h-11 w-full items-center justify-between text-left"
           aria-expanded={encuadreAbierto}
         >
           <b className="text-sm">Dónde plantar la cámara</b>
           <span className="font-mono text-tenue">{encuadreAbierto ? '−' : '+'}</span>
         </button>
         {encuadreAbierto && (
-          <div className="mt-3 border-t border-hairline pt-3">
+          <div className="aparece-pieza mt-3 border-t border-hairline pt-3">
             <Encuadre />
           </div>
         )}
@@ -513,7 +524,7 @@ export default function EncoderPage() {
             type="button"
             onClick={exportar}
             disabled={tanda.length === 0}
-            className="min-h-11 rounded-xl border border-linea bg-surface-3 px-4 text-sm font-medium disabled:opacity-40"
+            className="press min-h-11 rounded-xl border border-linea bg-surface-3 px-4 text-sm font-medium disabled:opacity-40"
           >
             Exportar CSV
           </button>
@@ -521,7 +532,7 @@ export default function EncoderPage() {
             type="button"
             onClick={vaciar}
             disabled={tanda.length === 0}
-            className="min-h-11 rounded-xl border border-linea px-4 text-sm text-tenue disabled:opacity-40"
+            className="press min-h-11 rounded-xl border border-linea px-4 text-sm text-tenue disabled:opacity-40"
           >
             Vaciar tanda
           </button>
@@ -616,7 +627,7 @@ export default function EncoderPage() {
               max={45}
               value={tolTono}
               onChange={(e) => setTolTono(Number(e.target.value))}
-              className="min-h-11"
+              className="press min-h-11"
             />
           </Campo>
           <Campo etiqueta="Latitud (°)" ancho="w-28">

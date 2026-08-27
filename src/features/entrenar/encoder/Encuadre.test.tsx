@@ -20,6 +20,7 @@ describe('el traductor de motivos salva la ñ del núcleo', () => {
     expect(textoDeMotivo('camara_baja')).toBe('Cámara baja')
     expect(textoDeMotivo('no_cabe')).toBe('No cabe')
     expect(textoDeMotivo('no_es_lateral')).toBe('No es lateral')
+    expect(textoDeMotivo('desvio_sin_disco')).toBe('Muy en diagonal para no llevar disco')
   })
 })
 
@@ -59,18 +60,36 @@ describe('el veredicto es el del núcleo, sin criterio propio de la pantalla', (
     expect(screen.getByText(/Cámara baja · No cabe/)).toBeInTheDocument()
   })
 
-  it('22° de desvío: el núcleo dice buena, y la pantalla NO lo contradice', () => {
-    // Documenta la distancia con el entregable de diseño, que esperaba `dudosa`.
-    // La pantalla no inventa la puerta que falta: enseña la cifra y deja el
-    // criterio donde vive, en `encuadre.js` y sus pruebas.
+  it('22° de desvío sin disco: ya no salen buena (puerta del 2026-08-26)', () => {
+    // Este test documentaba lo contrario. Hasta el 26/08 el núcleo solo miraba
+    // desvío > 30°, así que 22° devolvían `buena` con un 14,7 % de error sin
+    // corregir, y la pantalla solo podía enseñar la cifra sin contradecirlo.
+    // La puerta ya está decidida y vive en `calificarEncuadre`.
     const e = encuadre({ ...FUERA_DEL_EJE, fov: 70 })
-    expect(calificarEncuadre(e).nivel).toBe('buena')
+    expect(calificarEncuadre(e).nivel).toBe('descartada')
     expect(e.errorSinCorregir).toBeGreaterThan(0.14)
 
     render(<Encuadre inicial={FUERA_DEL_EJE} />)
-    expect(screen.getByText('Buena')).toBeInTheDocument()
-    // pero el 14,7 % está a la vista, que es lo que impide la lectura de promesa
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+    // y el 14,7 % se sigue enseñando: el motivo explica, la cifra demuestra
     expect(screen.getByText(/14\.[0-9] %/)).toBeInTheDocument()
+  })
+
+  it('los mismos 22° CON disco pasan: φ se mide de la elipse y se corrige', () => {
+    const e = encuadre({ ...FUERA_DEL_EJE, fov: 70 })
+    expect(calificarEncuadre(e, { hayDisco: true }).nivel).toBe('buena')
+    // Lo que queda tras corregir no depende del ángulo: es el ruido del borde.
+    expect(e.errorCorregido).toBeLessThan(0.02)
+  })
+
+  it('el interruptor de disco cambia el veredicto sin mover la cámara', () => {
+    render(<Encuadre inicial={FUERA_DEL_EJE} />)
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText(/Se ve un disco de la barra/))
+
+    expect(screen.getByText('Desde aquí sale una medida en la que se puede confiar.'))
+      .toBeInTheDocument()
   })
 })
 
@@ -110,3 +129,44 @@ describe('confirmar devuelve la colocación elegida', () => {
     expect(recibido).toEqual([{ dist: 2.5, altura: 0.95, desvio: 0 }])
   })
 })
+
+describe('una sola placa para los tres estados', () => {
+  it('el nodo PERSISTE al cruzar el umbral, no se sustituye', () => {
+    // De esto depende que la placa pueda moverse. Hasta hoy `descartada`
+    // renderizaba OTRO componente, así que al cruzar el umbral arrastrando el
+    // desvío el nodo no cambiaba de estado: se sustituía. Y una transición sobre
+    // un nodo que nace ya en su estado final no interpola nada, por muy bien
+    // escrito que esté el `transform`.
+    //
+    // Se comprueba con la identidad del nodo del DOM, que es justamente lo que
+    // React tira al cambiar el tipo de elemento.
+    // Se cruza moviendo los DESLIZADORES, no con `rerender`: esta pantalla
+    // inicializa su estado una sola vez, así que cambiar la prop `inicial` no
+    // mueve nada. La primera versión de este test lo hacía así y pasaba en vacío
+    // — con el nodo forzado a sustituirse seguía en verde.
+    const { container } = render(<Encuadre inicial={COLOCADA_BIEN} />)
+    const placa = () => container.querySelector('[style*="clip-path"], [style*="clipPath"]')
+    const antes = placa()
+    expect(antes).toBeTruthy()
+    expect(screen.getByText('Buena')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Altura lente'), { target: { value: '0.05' } })
+    fireEvent.change(screen.getByLabelText('Distancia'), { target: { value: '1' } })
+
+    // Ya es otro veredicto...
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+    // ...y sigue siendo el MISMO nodo.
+    expect(placa()).toBe(antes)
+  })
+
+  it('la descartada conserva su titular y sus motivos en grande', () => {
+    // Unificar el nodo no puede costar información: cuando la toma no sirve, el
+    // porqué es lo más importante de la pantalla.
+    render(<Encuadre inicial={EN_EL_SUELO} />)
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+    const motivos = screen.getByText(/Cámara baja · No cabe/)
+    expect(motivos.className).toContain('font-display')
+    expect(motivos.className).toContain('font-bold')
+  })
+})
+

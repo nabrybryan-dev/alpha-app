@@ -1,0 +1,61 @@
+# Claude dentro de GitHub: responde a `@claude` en issues, PRs y revisiones.
+#
+# Por qué existe: permite pedirle un cambio desde el móvil o desde la web de
+# GitHub sin tener el terminal delante. Claude abre su propia rama (`claude/…`)
+# y un PR; como `main` está protegido con PR obligatorio, nada de lo que escriba
+# aquí llega a los asesorados sin pasar el CI y sin que tú lo mezcles.
+#
+# El token vive en el secreto CLAUDE_CODE_OAUTH_TOKEN del repo (Settings →
+# Secrets and variables → Actions). Caduca: se regenera con `claude setup-token`
+# y se vuelve a guardar con `gh secret set`.
+#
+# Sobre el consumo de minutos: no lleva filtro `if`, siguiendo la plantilla
+# oficial de la action v1 — es ella quien decide si le han hablado o no. Eso
+# significa que el job arranca en cada comentario del repo y sale a los pocos
+# segundos si no hay `@claude`. Si algún mes aprieta la cuota de Actions, el
+# ahorro está aquí.
+name: Claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+# Dos menciones seguidas no se pisan: cada una es una conversación distinta.
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  responder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write # crear la rama y commitear
+      pull-requests: write # abrir el PR y comentar en él
+      issues: write # responder en los issues
+      id-token: write # requerido: token OIDC de la action
+      actions: read # leer los logs del CI cuando un PR se queda en rojo
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historial completo: lo necesita para ramificar desde `main` y para
+          # que un rebase no se quede sin base común.
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # Con `main` protegido, lo primero que hace falta cuando un PR se
+          # queda en rojo es poder mirar el CI. Sin esto, Claude ve que falla
+          # pero no por qué.
+          additional_permissions: |
+            actions: read

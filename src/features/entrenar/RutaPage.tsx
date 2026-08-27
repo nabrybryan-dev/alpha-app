@@ -148,7 +148,7 @@ export default function RutaPage() {
           exportarlo. Discreto a propósito — está en pruebas. */}
       <Link
         to="/entrenar/encoder"
-        className="flex items-center justify-between rounded-bloque border border-white/10 bg-ink-700 px-4 py-3 text-sm text-tenue"
+        className="press flex items-center justify-between rounded-bloque border border-white/10 bg-ink-700 px-4 py-3 text-sm text-tenue"
       >
         <span className="flex items-center gap-2">
           <IconoCamara className="h-[18px] w-[18px] shrink-0" />
@@ -174,26 +174,33 @@ export default function RutaPage() {
         <ComoLlegas recuperacion={recuperacion} />
       </div>
 
-      <div className="entrada entrada-3">
+      <div className="entrada entrada-4">
         <BloqueEnCurso bloque={ruta.bloque} sesion={sesionCta} />
       </div>
 
-      <div className="entrada entrada-4">
+      <div className="entrada entrada-5">
         <CalendarioSemana
           dias={semana}
           titulo={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
         />
       </div>
 
-      <div className="entrada entrada-5">
+      <div className="entrada entrada-6">
         <CompetenciasEvaluadas competencias={competencias} />
       </div>
 
-      <div className="entrada entrada-6">
+      {/* Los dos ultimos bloques entran SIN retardo, y no es un descuido. La
+          escala solo llega a `.entrada-6` y aqui hay siete bloques mas la
+          cabecera, asi que antes habia dos pares compartiendo retardo — que no
+          es una decision, es que se acabaron las clases. Estos dos caen por
+          debajo del pliegue en un movil: nadie los ve entrar, y el escalonado
+          es decorativo por definicion. Estirar la escala habria puesto el
+          ultimo a 420 ms de retardo sobre contenido que se esta leyendo. */}
+      <div className="entrada">
         <RequisitosNivel requisitos={requisitos} siguienteNivel={ruta.siguienteNivel} />
       </div>
 
-      <div className="entrada entrada-6">
+      <div className="entrada">
         <EscalaAlfa niveles={ruta.escala} />
       </div>
     </div>

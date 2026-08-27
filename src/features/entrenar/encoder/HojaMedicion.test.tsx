@@ -45,6 +45,51 @@ describe('medir desde dentro de la serie', () => {
     expect(medir).toBeLessThan(guardar)
   })
 
+  it('la hoja de la cámara NUNCA queda dentro de la escena de profundidad', async () => {
+    // Es el bloqueante que la revisión marcó como el primero, y de los que no se
+    // ven venir: `HojaMedicion` es `fixed inset-0` y cuelga dentro del div de
+    // `RegistroSerie`. Un `perspective` o un `transform` en un ancestro lo
+    // convierte en BLOQUE CONTENEDOR, y entonces la hoja de la cámara se
+    // encierra dentro de una tarjeta de 350 px en vez de ocupar la pantalla.
+    //
+    // Se descubriría en producción, con la cámara abierta y la barra en las
+    // manos. Por eso la escena vive en un envoltorio interior y la hoja se queda
+    // fuera de él — y por eso esto es un test y no un comentario.
+    const usuario = userEvent.setup()
+    const { container } = render(
+      <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="b-escena" onGuardar={() => {}} />,
+    )
+    await usuario.click(screen.getByRole('button', { name: /Medir con la cámara/i }))
+
+    const hoja = container.querySelector('[role="dialog"]')
+    expect(hoja, 'la hoja tiene que estar abierta para poder comprobarlo').toBeTruthy()
+    expect(hoja?.closest('.escena-prof'), 'la hoja NO puede colgar de la escena').toBeNull()
+    // Y la escena sí existe: si alguien la quitara, este test pasaría en vacío.
+    expect(container.querySelector('.escena-prof')).toBeTruthy()
+  })
+
+  it('abrir la camara marca el documento, y cerrarla lo limpia', async () => {
+    // Que la camara este abierta es un hecho global: se publica en el <body> y
+    // lo lee `tokens.css`, que aplana la profundidad y para TODA animacion
+    // mientras se captura a 50 fps. Un gabinete tiene cuatro animaciones
+    // infinitas corriendo a la vez y hasta hoy ninguna paraba durante la toma.
+    const usuario = userEvent.setup()
+    const { unmount } = render(
+      <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="b-cam" onGuardar={() => {}} />,
+    )
+
+    expect(document.body.dataset.camaraAbierta).toBeUndefined()
+
+    await usuario.click(screen.getByRole('button', { name: /Medir con la cámara/i }))
+    expect(document.body.dataset.camaraAbierta).toBe('si')
+
+    // Se desmonta en vez de pulsar el cierre a proposito: lo que hay que
+    // garantizar es que el atributo NO se queda pegado pase lo que pase — si se
+    // filtrara, la app entera se quedaria sin animaciones hasta recargar.
+    unmount()
+    expect(document.body.dataset.camaraAbierta).toBeUndefined()
+  })
+
   it('la hoja llega con el ejercicio, la carga y las reps ya puestos', async () => {
     render(
       <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="b2" onGuardar={() => {}} />,

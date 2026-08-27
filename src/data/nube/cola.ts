@@ -12,6 +12,9 @@
  * accesos al almacén. Quien las ejecuta contra Supabase es `procesador.ts`.
  */
 
+import { liberarEspacioDeInstantanea } from '../mockDb'
+import { esCuotaLlena, marcarSinEspacio } from '../sinEspacio'
+
 export interface OperacionPendiente {
   tabla: string
   tipo: 'upsert' | 'update' | 'rpc'
@@ -67,7 +70,30 @@ export function leerCola(): OperacionPendiente[] {
 }
 
 export function escribirCola(cola: OperacionPendiente[]): void {
-  localStorage.setItem(CLAVE_COLA, JSON.stringify(cola))
+  const serializada = JSON.stringify(cola)
+  try {
+    localStorage.setItem(CLAVE_COLA, serializada)
+    return
+  } catch (error) {
+    if (!esCuotaLlena(error)) throw error
+  }
+
+  /**
+   * No cabe. Se hace sitio SOLTANDO LA INSTANTÁNEA, y el orden no es negociable:
+   *
+   *   la instantánea es una CACHÉ  → se vuelve a bajar de la nube
+   *   la cola NO                   → es la única copia de lo que no ha subido
+   *
+   * Perder la instantánea cuesta una descarga. Perder la cola cuesta las series
+   * que alguien registró sin señal, y ésas no están en ningún otro sitio.
+   */
+  marcarSinEspacio()
+  liberarEspacioDeInstantanea()
+
+  // Y se reintenta SIN capturar: si después de vaciar la caché tampoco cabe una
+  // cola de unos pocos kilobytes, el dispositivo tiene un problema que esta capa
+  // no puede resolver, y taparlo dejaría creer que la operación se guardó.
+  localStorage.setItem(CLAVE_COLA, serializada)
 }
 
 export function pendientesDeSync(): number {

@@ -58,7 +58,17 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
       </button>
 
       {abierta && (
-        <div className="mt-3 flex flex-col gap-3">
+        // El detalle de cada parte YA entraba con cuidado; el que lo contiene se
+        // teletransportaba. El hijo con cuidado y el padre de golpe es lo raro.
+        //
+        // No se anima la ALTURA del acordeon: se acepta el salto de maquetacion
+        // de una vez y se mueve solo el contenido, que es la unica forma de
+        // respetar «solo transform y opacity» en un colapso.
+        //
+        // Los 480 ms pasan del techo de 300 A SABIENDAS: un acordeon de este
+        // tamaño cae en la banda de 200-500 de paneles, y es exactamente lo que
+        // hace su propio hijo. Cohesion por encima de ahorrar 180 ms.
+        <div className="entrada mt-3 flex flex-col gap-3">
           {GRUPOS.map(({ tipo, titulo }) => {
             const grupo = partes.filter((p) => p.tipo === tipo)
             if (grupo.length === 0) return null
@@ -75,13 +85,13 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                           type="button"
                           aria-label={parte.hechoEn ? `Desmarcar ${parte.titulo}` : `Marcar ${parte.titulo}`}
                           onClick={() => onMarcar(parte.id)}
-                          className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-200 ease-salida ${
+                          className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-toque ease-salida ${
                             parte.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
                           {parte.hechoEn && <CheckDibujado className="h-3.5 w-3.5" />}
                         </button>
-                        <div className={`min-w-0 flex-1 transition-opacity duration-200 ${parte.hechoEn ? 'opacity-60' : ''}`}>
+                        <div className={`min-w-0 flex-1 transition-opacity duration-toque ease-salida ${parte.hechoEn ? 'opacity-60' : ''}`}>
                           <button
                             type="button"
                             onClick={() => alternarDetalle(parte.id)}
@@ -99,7 +109,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                             </span>
                           </button>
                           {detalleAbierto && (
-                            <div className="entrada">
+                            <div className="desplegar">
                               <p className="mt-1 text-xs leading-snug text-tenue">{parte.indicaciones}</p>
                               {demo && (
                                 <button

@@ -125,7 +125,13 @@ export function CalendarioSemana({ dias, titulo }: Props) {
               aria-pressed={activo}
               aria-label={`${dia.dia} ${dia.numero}: ${ETIQUETA[dia.estado]}`}
               onClick={() => setSeleccionado(i)}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border px-0.5 pb-2.5 pt-2.5 transition-transform duration-150 ease-salida active:scale-95 ${
+              // Antes el hundido iba escrito a mano (`transition-transform
+              // duration-150 active:scale-95`), y por eso se quedaba fuera de la
+              // guarda de movimiento reducido: el bloque de tokens.css apaga
+              // `.press`, no un `active:scale-95` suelto. La fila de agenda de
+              // justo encima ya usaba `.press`, así que dos elementos que hacen lo
+              // mismo se comportaban distinto con la preferencia activa.
+              className={`press flex flex-col items-center gap-1.5 rounded-xl border px-0.5 pb-2.5 pt-2.5 ${
                 activo ? 'border-accion/45' : 'border-ink-500 bg-ink-800'
               }`}
               style={

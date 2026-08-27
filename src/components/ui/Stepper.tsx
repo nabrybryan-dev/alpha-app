@@ -11,6 +11,16 @@ interface StepperProps {
   decimal?: boolean
   /** Variante grande (dato principal, p. ej. la Carga). */
   grande?: boolean
+  /**
+   * Teclas en relieve y cifra hundida, para cuando el stepper vive dentro de una
+   * escena con perspectiva.
+   *
+   * Es opt-in y no automatico a proposito: este stepper lo usan tambien
+   * bienestar y dos pantallas de nutricion, que estan fuera del area de
+   * entrenamiento. El `translateZ` sin perspectiva alrededor no pintaria nada,
+   * pero la sombra interior del hueco SI se veria, y ahi no viene a cuento.
+   */
+  profundidad?: boolean
   onCambiar: (valor: number) => void
 }
 
@@ -23,6 +33,7 @@ export function Stepper({
   sufijo = '',
   decimal = false,
   grande = false,
+  profundidad = false,
   onCambiar,
 }: StepperProps) {
   const redondear = (n: number) => Math.round(n * 100) / 100
@@ -58,6 +69,8 @@ export function Stepper({
   }
 
   const tamBoton = grande ? 'h-12 w-12' : 'h-10 w-10'
+  // `.tecla-3d` SUSTITUYE a `.press`, no se suma: las dos escriben `transform`.
+  const tacto = profundidad ? 'tecla-3d' : 'press'
   const tamValor = grande ? 'text-[26px]' : 'text-lg'
 
   return (
@@ -68,11 +81,18 @@ export function Stepper({
           type="button"
           aria-label={`Bajar ${etiqueta}`}
           onClick={bajar}
-          className={`${tamBoton} press shrink-0 rounded-boton border border-linea bg-surface-2 text-xl font-bold text-tenue active:bg-surface-3`}
+          className={`${tamBoton} ${tacto} shrink-0 rounded-boton border border-linea bg-surface-2 text-xl font-bold text-tenue active:bg-surface-3`}
         >
           −
         </button>
-        <div className="flex min-w-0 flex-1 items-baseline justify-center">
+        {/* El pozo envuelve la cifra Y su sufijo. El sufijo es HERMANO del input
+            y lleva `-ml-1`, o sea que ya solapa 4 px a proposito: dejarlo fuera
+            del hueco lo partiria en dos materias distintas justo donde se tocan. */}
+        <div
+          className={`flex min-w-0 flex-1 items-baseline justify-center ${
+            profundidad ? 'pozo-3d rounded-boton px-2 py-1' : ''
+          }`}
+        >
           <input
             aria-label={`${etiqueta}${sufijo ? ` en ${sufijo}` : ''}`}
             type="text"
@@ -94,7 +114,7 @@ export function Stepper({
           type="button"
           aria-label={`Subir ${etiqueta}`}
           onClick={subir}
-          className={`${tamBoton} press shrink-0 rounded-boton border border-linea bg-surface-2 text-xl font-bold text-accion active:bg-surface-3`}
+          className={`${tamBoton} ${tacto} shrink-0 rounded-boton border border-linea bg-surface-2 text-xl font-bold text-accion active:bg-surface-3`}
         >
           +
         </button>

@@ -115,17 +115,37 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
             <span className="latido font-display text-2xl tracking-wide text-white">¡DALE, VAMOS! 🔥</span>
           </button>
         ) : (
-          <div className="glass-blur rounded-bloque border border-ink-500 bg-ink-700/95 px-4 py-3 shadow-xl">
+          <div className="escena-prof relative rounded-bloque">
+            {/* La lamina de cristal va aparte y NO se transforma nunca: lleva el
+                `backdrop-filter` de `glass-blur`, y un backdrop-filter dentro de
+                una cadena `preserve-3d` deja de pintar. Es la superficie contra
+                la que se miden los escalones, no una capa mas. */}
+            <span
+              aria-hidden="true"
+              className="glass-blur absolute inset-0 rounded-bloque border border-ink-500 bg-ink-700/95 shadow-xl"
+            />
+            <div className="relative px-4 py-3 [transform-style:preserve-3d]">
             <div className="flex items-center justify-between gap-3">
-              <div>
+              {/* El translateZ va en este envolvente, que es estable, y no en el
+                  `div key={restante}` de dentro: ese remonta cada segundo y se
+                  llevaria por delante cualquier transicion entre escalones. */}
+              <div
+                className="[transform-style:preserve-3d] transition-transform duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
+                style={{
+                  transform: `translateZ(var(${pausado ? '--prof-plano' : '--prof-relieve'}))`,
+                }}
+              >
                 <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-500">
                   Descanso{pausado ? ' · en pausa' : ''}
                 </div>
+                {/* Pausar hunde el dato al ras. Antes era `opacity-60`, y la
+                    marca descarto la opacidad a proposito: a tres metros un
+                    elemento al 60 % desaparece. El estado se dice con materia. */}
                 <div
                   key={restante}
-                  className={`cifras text-[34px] font-bold leading-none transition-opacity ${
-                    urgente ? 'tic-urgente text-accion' : 'text-accion'
-                  } ${pausado ? 'opacity-60' : ''}`}
+                  className={`cifras text-[34px] font-bold leading-none text-accion ${
+                    urgente ? 'tic-urgente' : ''
+                  }`}
                 >
                   {mmss(restante)}
                 </div>
@@ -172,13 +192,22 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
                 </button>
               </div>
             </div>
-            {/* barra de progreso: scaleX (compositor), se vacía con el tiempo */}
-            <span className="relative mt-3 block h-1.5 overflow-hidden rounded-full bg-ink-500" aria-hidden="true">
+            {/* barra de progreso: scaleX (compositor), se vacía con el tiempo.
+                El translateZ va en el CARRIL y no en el relleno: el carril lleva
+                `overflow-hidden`, que aplana a su hijo, asi que ahi dentro no
+                pintaria nada. Al fondo porque es el riel del que se retira la
+                materia, no un dato que se lea. */}
+            <span
+              className="relative mt-3 block h-1.5 overflow-hidden rounded-full bg-ink-500"
+              aria-hidden="true"
+              style={{ transform: 'translateZ(var(--prof-fondo))' }}
+            >
               <span
                 className="absolute inset-0 origin-left rounded-full bg-accion transition-transform duration-1000 ease-linear"
                 style={{ transform: `scaleX(${progreso})` }}
               />
             </span>
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useCaptura, type Ajustes } from './useCaptura'
 import { puntoDeLaImagen } from './toque'
+import { acusarToque } from './acusarToque'
+import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { COPY } from './copys'
 
 /**
@@ -130,6 +132,10 @@ export function Visor({ ajustes, children }: VisorProps) {
 
   function alTocar(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
+    // El acuse va PRIMERO, antes de decidir si el punto vale. El caso que se
+    // quedaba mudo era justamente el toque que no vale: en la banda negra se
+    // salia por un `return` sin decir nada.
+    acusarToque(capa, ev.clientX, ev.clientY)
     const r = capa.getBoundingClientRect()
     const punto = puntoDeLaImagen(
       ev.clientX - r.left,
@@ -149,25 +155,40 @@ export function Visor({ ajustes, children }: VisorProps) {
     <>
       <section className="overflow-hidden rounded-panel border border-white/10 bg-[#0a0a0a] shadow-lg">
         <div className="relative bg-black" style={{ aspectRatio: '4 / 3' }}>
+          {/* SOLO opacidad: ni escala ni desenfoque sobre el video. Escalar o
+              difuminar la imagen de un instrumento, aunque sean 240 ms, es
+              enseñar una imagen que NO es la que se esta midiendo.
+              El fundido es asimetrico a proposito: la imagen tarda 240 ms en
+              llegar y el cartel se va en 160. Lo que entra puede tomarse su
+              tiempo; lo que sobra se quita de en medio. */}
           <video
             ref={videoRef}
             playsInline
             muted
             autoPlay
             className="h-full w-full object-contain"
+            style={{
+              opacity: captura.camaraAbierta ? 1 : 0,
+              transition: 'opacity var(--dur-base) var(--ease-salida)',
+            }}
           />
           <canvas
             ref={capaRef}
             onClick={alTocar}
             className="absolute inset-0 h-full w-full object-contain"
           />
-          {!captura.camaraAbierta && (
-            <div className="absolute inset-0 grid place-items-center">
-              <p className="px-8 text-center text-sm text-white/50">
-                Abre la cámara y toca el disco de la barra para fijarlo.
-              </p>
-            </div>
-          )}
+          <div
+            className="absolute inset-0 grid place-items-center"
+            style={{
+              opacity: captura.camaraAbierta ? 0 : 1,
+              transition: 'opacity var(--dur-toque) var(--ease-salida)',
+              pointerEvents: captura.camaraAbierta ? 'none' : undefined,
+            }}
+          >
+            <p className="px-8 text-center text-sm text-white/50">
+              Abre la cámara y toca el disco de la barra para fijarlo.
+            </p>
+          </div>
 
           {/* El estado de la referencia, sobre la imagen y en la esquina donde ya
               estaba el punto de grabar. Son TRES y no los cinco del entregable:
@@ -178,10 +199,17 @@ export function Visor({ ajustes, children }: VisorProps) {
               pantalla donde la persona decide si repetir la toma. */}
           {captura.camaraAbierta && (
             <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5">
+              {/* `.punto-vivo` en vez de `motion-safe:animate-pulse`: el gesto ya
+                  estaba resuelto en el sistema y el encoder era el único sitio que
+                  no lo usaba. Trae su propia guarda de movimiento reducido, así que
+                  el `motion-safe:` sobra, y de paso deja de depender de la curva y
+                  los 2 s por defecto de Tailwind, que no son del repo.
+                  Su gemelo de EncoderPage no llevaba NINGUNA guarda; ahora los dos
+                  son literalmente el mismo elemento. */}
               <span
                 className={
                   captura.grabando
-                    ? 'h-2.5 w-2.5 rounded-full bg-rojo motion-safe:animate-pulse'
+                    ? 'punto-vivo h-2.5 w-2.5 rounded-full bg-rojo'
                     : captura.listoParaGrabar
                       ? 'h-2.5 w-2.5 rounded-full bg-[var(--placa)]'
                       : 'h-2.5 w-2.5 rounded-full bg-[var(--gris-marca)]'
@@ -200,13 +228,18 @@ export function Visor({ ajustes, children }: VisorProps) {
           {/* Cómo se enseña el toque: una pastilla en la base, que se va en cuanto
               hay disco fijado y no vuelve. Sin tutorial y sin overlay modal —esta
               pantalla se usa con la barra en las manos—. */}
-          {captura.camaraAbierta && !captura.listoParaGrabar && !captura.grabando && (
+          {captura.camaraAbierta && !captura.aviso && !captura.listoParaGrabar && !captura.grabando && (
             <div className="absolute inset-x-0 bottom-3 flex justify-center">
               <p className="rounded-full bg-black/70 px-3 py-1.5 text-[12.5px] text-white">
                 {COPY.hoja_senalar}
               </p>
             </div>
           )}
+
+          {/* El aviso vive AQUI, sobre la imagen, y no debajo del boton: alli
+              empujaba el boton de grabar hacia abajo justo cuando la mano iba a
+              pulsarlo. Ver `AvisoDeCaptura`. */}
+          <AvisoDeCaptura aviso={captura.aviso} />
         </div>
 
         {/* Se escriben por textContent desde el bucle: 60 renders por segundo
@@ -223,18 +256,12 @@ export function Visor({ ajustes, children }: VisorProps) {
           <Medida nombre="reloj" valorRef={relojRef} />
         </div>
 
-        {captura.aviso && (
-          <p className="border-t border-white/10 px-4 py-3 text-sm text-white/70">
-            {captura.aviso}
-          </p>
-        )}
-
         <div className="border-t border-white/10 p-3">
           {!captura.camaraAbierta ? (
             <button
               type="button"
               onClick={captura.abrirCamara}
-              className="min-h-14 w-full rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
+              className="press min-h-14 w-full rounded-xl bg-rojo px-4 text-base font-bold text-white"
             >
               Abrir cámara
             </button>
@@ -243,7 +270,15 @@ export function Visor({ ajustes, children }: VisorProps) {
               type="button"
               disabled={!captura.listoParaGrabar}
               onClick={() => (captura.grabando ? captura.parar() : captura.empezar())}
-              className={`min-h-14 w-full rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
+              // Sin `transition-colors`: interpolaba background-color y
+              // border-color —pintado, no compositor— justo en los dos instantes
+              // peores, al pulsar Grabar y al pulsar Parar, con el bucle de
+              // captura vivo. Y ni siquiera incluía `opacity`, así que el
+              // `disabled:opacity-40` saltaba mientras el color deslizaba: la
+              // misma transición contada a dos tiempos.
+              // El acuse que sí faltaba es táctil y lo da `.press`: transform en
+              // el compositor, que no le quita nada a la captura.
+              className={`press min-h-14 w-full rounded-xl px-4 text-base font-bold disabled:opacity-40 ${
                 captura.grabando
                   ? 'bg-rojo text-white'
                   : 'border border-white/15 bg-white/10 text-white'

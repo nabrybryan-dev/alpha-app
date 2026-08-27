@@ -25,7 +25,8 @@ import {
 import { claveDe, type ItemDespensa } from '../../domain/nutricion/despensa'
 import { aIso } from '../../domain/nutricion/semana'
 import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
-import { modoNube } from '../supabase'
+import { modoNube, supabase } from '../supabase'
+import { microciclosDe } from './hidratar'
 import { encolar } from './procesador'
 
 // Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
@@ -195,6 +196,25 @@ export function crearDbSincronizada(local: Db): Db {
 
     microciclos: {
       ...local.microciclos,
+      /**
+       * El historial de una persona, pedido cuando alguien la abre.
+       *
+       * La hidratación del staff ya no se baja los microciclos cerrados de toda
+       * la cartera -el 78 % del peso, y creciendo sin freno- así que aquí se
+       * piden los de UNA. Ver `docs/specs/2026-08-27-donde-truena-a-mil-usuarios.md`.
+       *
+       * Si falla, se devuelve lo que haya en local en vez de lanzar: la rejilla
+       * de volumen enseñará menos historia, pero la pantalla del coach abre. Un
+       * corte de red no puede dejarle una pantalla rota.
+       */
+      historialDe: async (usuarioId) => {
+        const { data, error } = await supabase()
+          .from('microciclos')
+          .select('id, estado, datos')
+          .eq('usuario_id', usuarioId)
+        if (error) return local.microciclos.historialDe(usuarioId)
+        return microciclosDe(data ?? [])
+      },
       guardarPropuesta: (micro) => {
         local.microciclos.guardarPropuesta(micro)
         // Se sube leyendo de local y no `micro` a secas, para que viaje con el

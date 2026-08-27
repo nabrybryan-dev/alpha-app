@@ -14,6 +14,7 @@ import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBa
 import type { Db } from './repos'
 import { crearRutaRepo } from './ruta/rutaRepo'
 import { seedDb, type SeedDb } from './seed'
+import { esCuotaLlena, marcarSinEspacio } from './sinEspacio'
 import { diasAtras } from './seed/fechas'
 
 const CLAVE = 'alpha-db-v2'
@@ -50,8 +51,47 @@ export function versionEscrituras(): number {
 
 function guardar(estado: SeedDb): void {
   escriturasLocales += 1
-  localStorage.setItem(CLAVE, JSON.stringify(estado))
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify(estado))
+  } catch (error) {
+    if (!esCuotaLlena(error)) throw error
+
+    /**
+     * Sin espacio. NO se borra lo que ya había guardado, y eso es deliberado:
+     * una instantánea vieja pero válida vale más que ninguna. Al recargar, esa
+     * foto más la cola de pendientes reconstruyen el estado.
+     *
+     * Y NO se lanza: `guardar` lo llama cada escritura de la app, así que lanzar
+     * aquí tumbaría la pantalla en mitad de un entreno. La copia EN MEMORIA
+     * -`referencia.actual`- sigue al día, así que la sesión continúa como si
+     * nada; lo que se pierde es la persistencia entre recargas.
+     *
+     * Lo que de verdad protege el dato es que la cola vive en OTRA clave y se
+     * escribe aparte: lo que aún no ha subido no depende de esto. Ver
+     * `sinEspacio.ts`.
+     */
+    marcarSinEspacio()
+    console.error(
+      'Sin espacio en el dispositivo: la instantánea no se guardó. Lo pendiente de subir sigue en la cola.',
+      error,
+    )
+  }
   oyentes.forEach((o) => o())
+}
+
+/**
+ * Suelta la instantánea para hacer sitio.
+ *
+ * La llama la cola cuando no le cabe una operación. Es la regla del módulo
+ * `sinEspacio`: la instantánea se puede volver a bajar de la nube, y lo que aún
+ * no ha subido no. Así que cede ésta.
+ */
+export function liberarEspacioDeInstantanea(): void {
+  try {
+    localStorage.removeItem(CLAVE)
+  } catch {
+    // Si ni siquiera se puede borrar, no queda nada que intentar desde aquí.
+  }
 }
 
 let referencia: { actual: SeedDb } | undefined
@@ -249,6 +289,15 @@ export function crearMockDb(): Db {
         ref.actual.microciclos
           .filter((m) => m.usuarioId === usuarioId)
           .sort((a, b) => b.numero - a.numero),
+      // En demo la instantánea lo tiene TODO, así que el historial ya está aquí
+      // y no hay a quién pedírselo. La capa de nube lo sustituye por una
+      // consulta de verdad (`sync.ts`).
+      historialDe: (usuarioId) =>
+        Promise.resolve(
+          ref.actual.microciclos
+            .filter((m) => m.usuarioId === usuarioId)
+            .sort((a, b) => b.numero - a.numero),
+        ),
       guardarPropuesta: (micro: Microciclo) => {
         // Se fuerza el estado aquí y no en quien llama: es la salvaguarda de que
         // una propuesta nunca aparezca en las pantallas del asesorado, que solo
