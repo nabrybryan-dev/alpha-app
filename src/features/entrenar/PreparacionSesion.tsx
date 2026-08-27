@@ -40,7 +40,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
       <button
         type="button"
         onClick={() => setAbierta(!abierta)}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="press flex w-full items-center justify-between gap-2 text-left"
       >
         <p className="kicker">Antes de entrenar</p>
         <span className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                             type="button"
                             onClick={() => alternarDetalle(parte.id)}
                             aria-expanded={detalleAbierto}
-                            className="flex w-full items-center justify-between gap-2 text-left"
+                            className="press flex w-full items-center justify-between gap-2 text-left"
                           >
                             <p className="text-sm font-bold leading-snug text-texto">
                               {parte.titulo}

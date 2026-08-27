@@ -299,7 +299,7 @@ export function GraficaBrazo({
           <button
             type="button"
             onClick={() => setGrados(0)}
-            className="min-h-11 px-2 text-[11px] text-tenue underline-offset-2 hover:underline"
+            className="press min-h-11 px-2 text-[11px] text-tenue underline-offset-2 hover:underline"
           >
             {grados === 0 ? 'arrastra para orbitar' : 'Volver a 0°'}
           </button>

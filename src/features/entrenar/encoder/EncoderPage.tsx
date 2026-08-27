@@ -329,7 +329,7 @@ export default function EncoderPage() {
             <button
               type="button"
               onClick={captura.abrirCamara}
-              className="min-h-14 flex-1 rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
+              className="press min-h-14 flex-1 rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
             >
               Abrir cámara
             </button>
@@ -338,7 +338,7 @@ export default function EncoderPage() {
               type="button"
               disabled={!captura.listoParaGrabar}
               onClick={() => (captura.grabando ? captura.parar() : captura.empezar())}
-              className={`min-h-14 flex-1 rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
+              className={`press min-h-14 flex-1 rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
                 captura.grabando
                   ? 'bg-rojo text-white'
                   : 'border border-white/15 bg-white/10 text-white'
@@ -417,7 +417,7 @@ export default function EncoderPage() {
           type="button"
           disabled={!resultado}
           onClick={guardar}
-          className={`min-h-12 rounded-xl px-4 text-sm font-bold transition-colors ${
+          className={`press press min-h-12 rounded-xl px-4 text-sm font-bold transition-colors ${
             resultado
               ? 'bg-rojo text-white'
               : 'cursor-not-allowed border border-linea bg-surface-2 text-tenue'
@@ -435,7 +435,7 @@ export default function EncoderPage() {
         <button
           type="button"
           onClick={() => setPalancasAbierto((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between text-left"
+          className="press flex min-h-11 w-full items-center justify-between text-left"
           aria-expanded={palancasAbierto}
         >
           <b className="text-sm">Palancas · abrir una medida</b>
@@ -456,7 +456,7 @@ export default function EncoderPage() {
         <button
           type="button"
           onClick={() => setEncuadreAbierto((v) => !v)}
-          className="flex min-h-11 w-full items-center justify-between text-left"
+          className="press flex min-h-11 w-full items-center justify-between text-left"
           aria-expanded={encuadreAbierto}
         >
           <b className="text-sm">Dónde plantar la cámara</b>
@@ -513,7 +513,7 @@ export default function EncoderPage() {
             type="button"
             onClick={exportar}
             disabled={tanda.length === 0}
-            className="min-h-11 rounded-xl border border-linea bg-surface-3 px-4 text-sm font-medium disabled:opacity-40"
+            className="press min-h-11 rounded-xl border border-linea bg-surface-3 px-4 text-sm font-medium disabled:opacity-40"
           >
             Exportar CSV
           </button>
@@ -521,7 +521,7 @@ export default function EncoderPage() {
             type="button"
             onClick={vaciar}
             disabled={tanda.length === 0}
-            className="min-h-11 rounded-xl border border-linea px-4 text-sm text-tenue disabled:opacity-40"
+            className="press min-h-11 rounded-xl border border-linea px-4 text-sm text-tenue disabled:opacity-40"
           >
             Vaciar tanda
           </button>

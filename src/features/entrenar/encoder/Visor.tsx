@@ -234,7 +234,7 @@ export function Visor({ ajustes, children }: VisorProps) {
             <button
               type="button"
               onClick={captura.abrirCamara}
-              className="min-h-14 w-full rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
+              className="press min-h-14 w-full rounded-xl bg-rojo px-4 text-base font-bold text-white active:opacity-90"
             >
               Abrir cámara
             </button>
@@ -243,7 +243,7 @@ export function Visor({ ajustes, children }: VisorProps) {
               type="button"
               disabled={!captura.listoParaGrabar}
               onClick={() => (captura.grabando ? captura.parar() : captura.empezar())}
-              className={`min-h-14 w-full rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
+              className={`press min-h-14 w-full rounded-xl px-4 text-base font-bold transition-colors disabled:opacity-40 ${
                 captura.grabando
                   ? 'bg-rojo text-white'
                   : 'border border-white/15 bg-white/10 text-white'

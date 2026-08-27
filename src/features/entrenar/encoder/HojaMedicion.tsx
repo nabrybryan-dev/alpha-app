@@ -103,7 +103,7 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
             type="button"
             aria-pressed={diametroMm === d.mm}
             onClick={() => elegirDisco(d.mm)}
-            className={`min-h-11 rounded-full border px-3 text-xs font-medium transition-colors ${
+            className={`press min-h-11 rounded-full border px-3 text-xs font-medium transition-colors ${
               diametroMm === d.mm
                 ? 'border-rojo bg-rojo/15 text-rojo'
                 : 'border-linea bg-surface-2 text-tenue'
@@ -184,7 +184,7 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
               <button
                 type="button"
                 onClick={guardar}
-                className="min-h-12 rounded-xl bg-rojo px-4 text-sm font-bold text-white"
+                className="press min-h-12 rounded-xl bg-rojo px-4 text-sm font-bold text-white"
               >
                 Guardar medición
               </button>

@@ -120,6 +120,40 @@ describe('las dos reglas de movimiento que el repo ya tenía escritas', () => {
     ).toEqual([])
   })
 
+  it('todo botón del encoder acusa el tacto', () => {
+    // El encoder era el ÚNICO dominio de la app con cero `.press`: 19 botones
+    // que no devolvían nada al pulsarlos. Y son los que más lo necesitan — se
+    // tocan de pie, en un gimnasio, con el dedo sudado y mirando otra cosa.
+    //
+    // `.press` es `transform: scale(0.97)` a 160 ms y nada más: ni opacidad, ni
+    // color, ni sombra. Es seguro con la cámara abierta porque solo toca el
+    // compositor, y son los valores que STANDARDS «Physicality» prescribe.
+    const ENCODER = join(RAIZ, 'encoder')
+    // Pendiente: vive en la lineación del PR #122 y tocarlo aquí haría que los
+    // dos choquen al fusionar. Entra con aquella rama.
+    const PENDIENTES = ['Encuadre.tsx']
+
+    const mudos = tsx(ENCODER)
+      .filter((ruta) => !PENDIENTES.some((p) => ruta.endsWith(p)))
+      .filter((ruta) => {
+        const fuente = readFileSync(ruta, 'utf8')
+        return fuente
+          .split('<button')
+          .slice(1)
+          .some((tras) => {
+            const tag = tras.slice(0, tras.indexOf('>\n') + 1 || 400)
+            return tag.includes('type="button"') && !tag.includes('press')
+          })
+      })
+      .map((ruta) => ruta.slice(ENCODER.length + 1))
+
+    expect(
+      mudos,
+      `Botones sin acuse al tacto: ${mudos.join(', ')}.\n` +
+        'Añade `press` al className. Es la clase del sistema y no lleva nada más.',
+    ).toEqual([])
+  })
+
   it('`.glass-blur` sigue siendo la vía sancionada, y se usa', () => {
     // Si esto se pone rojo es que alguien retiró el último uso legítimo: o el
     // desenfoque dejó de hacer falta —y entonces `.glass-blur` sobra en
