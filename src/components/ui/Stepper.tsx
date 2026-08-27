@@ -76,7 +76,21 @@ export function Stepper({
   return (
     <div className="flex w-full flex-col items-center gap-1">
       <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">{etiqueta}</span>
-      <div className="flex w-full items-center justify-center gap-1.5">
+      {/* LA ESCENA VA AQUI, en el padre DIRECTO de las teclas y del pozo.
+          `perspective` solo alcanza a los hijos directos: con la escena declarada mas
+          arriba —en la tarjeta o en la pantalla— estas tres piezas son nietas y el
+          `translateZ` se aplica sin escorzar. O sea que la tecla no sobresale y el
+          pozo no se hunde, y no hay forma de notarlo: el transform esta ahi, la capa
+          se promueve, y se ve exactamente plano.
+
+          Paso de verdad: los seis botones y los tres pozos de kg / reps / RIR de la
+          pantalla de sesion estuvieron planos desde que se les puso profundidad. Se
+          descubrio midiendo el ENCOGIMIENTO —`getBoundingClientRect().width /
+          offsetWidth`, que a --prof-hueco tiene que dar 0,9912 y daba 1—, no leyendo
+          los estilos calculados, que decian que el translateZ estaba puesto. */}
+      <div
+        className={`flex w-full items-center justify-center gap-1.5 ${profundidad ? 'escena-prof' : ''}`}
+      >
         <button
           type="button"
           aria-label={`Bajar ${etiqueta}`}
