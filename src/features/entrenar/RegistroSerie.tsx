@@ -8,6 +8,7 @@ import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
 import { IconoCamara } from '../../components/ui/Icono'
 import { HojaMedicion } from './encoder/HojaMedicion'
+import { marcarCamaraAbierta } from './camaraAbierta'
 
 interface RegistroSerieProps {
   ejercicio: EjercicioPrescrito
@@ -73,6 +74,16 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
   const etiqueta = etiquetaDeSerie(ejercicio, orden)
   const [midiendo, setMidiendo] = useState(false)
+
+  // Que la camara este abierta es un hecho GLOBAL, no una prop de esta tarjeta:
+  // le importa al gabinete de al lado, a la profundidad de toda la pantalla y a
+  // cualquier cosa que se mueva mientras se captura a 50 fps. Publicarlo como
+  // atributo evita cablearlo por seis componentes y deja que lo lea el CSS —la
+  // puerta vive en `tokens.css`, que es donde se puede auditar de un vistazo.
+  useEffect(() => {
+    if (!midiendo) return
+    return marcarCamaraAbierta()
+  }, [midiendo])
 
   return (
     <div
