@@ -4,7 +4,7 @@
  *
  * Dos preguntas distintas, que antes vivían mezcladas en una lista de regex:
  *
- *   1. ¿Qué movimiento es?  → la CATEGORÍA (32 acciones articulares).
+ *   1. ¿Qué movimiento es?  → la CATEGORÍA (34 acciones articulares).
  *   2. ¿Qué parte estimula? → los APORTES de esa categoría a cada grupo.
  *
  * El volumen se cuenta en **moneda fraccionada**: el trabajo directo vale 1
@@ -79,6 +79,8 @@ export const CATEGORIAS = [
   'FLEXIÓN DE HOMBRO',
   'FLEXIÓN DE CODO',
   'EXTENSIÓN DE CODO',
+  'FLEXIÓN DE MUÑECA',
+  'EXTENSIÓN DE MUÑECA',
   'ANTIEXTENSIÓN',
   'ANTIRROTACIÓN',
   'ANTIFLEXIÓN LATERAL',
@@ -95,8 +97,12 @@ const directo = (grupo: Grupo): Aporte => ({ grupo, factor: 1 })
 const indirecto = (grupo: Grupo): Aporte => ({ grupo, factor: 0.5 })
 
 /**
- * Tabla de equivalencia categoría → grupos. Las tres últimas categorías no
- * suman volumen a propósito: son tejido, metabólico y rango, no hipertrofia.
+ * Tabla de equivalencia categoría → grupos.
+ *
+ * Cinco categorías no suman volumen a propósito. Tres por naturaleza —
+ * PREV/REHAB es tejido, ACONDICIONAMIENTO es metabólico y MOVILIDAD es rango,
+ * ninguno hipertrofia—, y las dos de muñeca por aritmética honesta: ver la nota
+ * al pie de la tabla.
  */
 const EQUIVALENCIA: Readonly<Record<Categoria, readonly Aporte[]>> = {
   'BISAGRA DE CADERA': [directo('Isquios'), indirecto('Glúteos'), indirecto('Lumbares')],
@@ -124,6 +130,9 @@ const EQUIVALENCIA: Readonly<Record<Categoria, readonly Aporte[]>> = {
   'FLEXIÓN DE HOMBRO': [directo('Hombros'), indirecto('Pecho')],
   'FLEXIÓN DE CODO': [directo('Bíceps')],
   'EXTENSIÓN DE CODO': [directo('Tríceps')],
+  // Categoría sí, grupo no. Ver la nota de abajo.
+  'FLEXIÓN DE MUÑECA': [],
+  'EXTENSIÓN DE MUÑECA': [],
   ANTIEXTENSIÓN: [directo('Abdomen')],
   ANTIRROTACIÓN: [directo('Abdomen')],
   'ANTIFLEXIÓN LATERAL': [directo('Abdomen'), indirecto('Glúteos')],
@@ -133,6 +142,30 @@ const EQUIVALENCIA: Readonly<Record<Categoria, readonly Aporte[]>> = {
   ACONDICIONAMIENTO: [],
   MOVILIDAD: [],
 }
+
+/**
+ * Las dos de muñeca: categoría sí, grupo no (2026-08-25).
+ *
+ * Salieron del corpus de vídeos del encoder: dos curls de muñeca que **ninguna
+ * de las 32 categorías cubría** — la taxonomía llegaba hasta el codo y ahí se
+ * paraba. Así que el ejercicio no se podía ni nombrar.
+ *
+ * Entran como categoría, pero **no aportan a ningún grupo**, y no es un olvido:
+ *
+ *   1. El PANEL no tiene grupo «Antebrazo», y abrirlo obligaría a inventarle
+ *      landmarks MEV/MAV/MRV que nadie ha medido.
+ *   2. Y el problema de fondo es peor: el antebrazo y el agarre reciben trabajo
+ *      en cada serie de tracción, cada peso muerto y cada paseo del granjero.
+ *      Contar solo las series directas diría «2 series de antebrazo» en una
+ *      semana con cuarenta de agarre. **El número existiría y sería falso**,
+ *      que es peor que no tenerlo.
+ *
+ * Qué haría falta para cambiar de opinión: un modelo de trabajo indirecto de
+ * agarre. El día que exista, estas dos pasan a Antebrazo con su 1,0 y la
+ * tracción le aporta su 0,5.
+ *
+ * Fuente: `04-taxonomia-categorias.md` §3bis, «Las dos de muñeca».
+ */
 
 /**
  * La variante de ejecución redistribuye el estímulo dentro de un mismo patrón.
