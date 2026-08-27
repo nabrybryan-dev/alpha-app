@@ -112,14 +112,25 @@ export function GraficaBrazo({
     const fijado = Math.max(-TOPE_GRADOS, Math.min(TOPE_GRADOS, gradosVivos.current))
     gradosVivos.current = fijado
     setGrados(fijado)
-    // Y SE SUELTA LA OPACIDAD ESCRITA A MANO, que si no se queda clavada. En SVG el
-    // estilo en línea gana al atributo de presentación, así que mientras `style.opacity`
-    // tenga valor el `opacity={lejania}` de React no pinta nada nunca más — ni ahora ni
-    // en el siguiente render. Vaciándolo vuelve a mandar React, y la transición que se
-    // acaba de reactivar lleva el contraste hasta su sitio junto con el giro.
-    escenaRef.current?.querySelectorAll<SVGGElement>('[data-eje]').forEach((nodo) => {
-      nodo.style.opacity = ''
-    })
+    // EL EXCEDENTE ELASTICO NO SIEMPRE LO DEVUELVE REACT.
+    //
+    // `setGrados` con el valor que ya estaba no provoca render: React corta antes. Y
+    // `grados` YA vale el tope siempre que el arrastre anterior termino pasado de el.
+    // Asi que al segundo arrastre elastico seguido nadie reescribe el transform y el
+    // plano se queda clavado FUERA del tope, sin volver nunca.
+    //
+    // Va en el frame siguiente a proposito: para entonces `gestoActivo` ya es false y
+    // la transicion esta de vuelta, asi que el excedente se devuelve animado y no de
+    // un tiron. La opacidad no lo necesita —su `cerca` ya viene recortado a 1, asi que
+    // el gesto dejo escrito exactamente lo que React iba a poner.
+    // NO se vacia `style.opacity` aqui, y es a proposito. `pintarGiro` escribe la
+    // MISMA formula que `lejania`, asi que el gesto y React comparten canal y valor:
+    // al soltar, el nodo ya tiene puesto lo que el proximo render iba a poner.
+    //
+    // Vaciarlo seria peor que inutil. `setGrados` con el valor que ya habia no
+    // provoca render —React corta antes—, asi que en el caso de soltar en el mismo
+    // angulo en que se empezo nadie volveria a escribir la opacidad y los ejes se
+    // quedarian a 1: el depth cueing desaparecido, y sin nada en rojo.
   }, [])
 
   // Fricción en el borde en vez de pared: pasado el tope, el excedente entra cada vez
@@ -158,7 +169,7 @@ export function GraficaBrazo({
   }, [])
 
   /**
-   * UN GUIÑO DE ÓRBITA al montar, y solo uno.
+   * UN GUIÑO DE ÓRBITA al abrir cada medida, y solo uno.
    *
    * A 0° no hay forma de ver que esto es tridimensional: la órbita se anuncia con
    * texto —«arrastra para orbitar»— y con nada más. Un giro corto de ida y vuelta lo
@@ -348,20 +359,24 @@ export function GraficaBrazo({
                 return (
                   <g
                     key={eje}
-                    // Marcados para que el gesto pueda escribirles la opacidad DIRECTO,
-                    // sin pasar por React. Ver `pintarGiro`.
+                    // El asa por la que el gesto los encuentra para escribirlos en
+                    // vivo, y la opacidad en `style` y NO en el atributo: un estilo en
+                    // linea gana siempre al atributo, asi que si volviera al atributo,
+                    // React y el gesto escribirian en canales distintos y el efecto
+                    // dejaria de moverse SIN que nada se pusiera rojo.
                     data-eje={eje}
-                    data-objetivo={esObjetivo ? '1' : '0'}
-                    opacity={lejania}
+                    data-objetivo={esObjetivo ? '1' : undefined}
                     // La opacidad va con la MISMA duración y curva que el transform del
                     // plano. Al volver a 0°, dos propiedades del mismo objeto acababan
                     // en momentos distintos: el giro interpolaba y el contraste saltaba
                     // en el primer render. Es justo lo que STANDARDS manda revisar a
                     // cámara lenta — «coordinated properties stay in sync».
-                    //
-                    // Durante el gesto la transición se apaga, igual que la del plano:
-                    // el contraste tiene que seguir al dedo 1:1, no ir 240 ms por detrás.
                     style={{
+                      opacity: lejania,
+                      // Durante el gesto la transicion estorba: la opacidad se escribe
+                      // a mano en cada movimiento y una transicion la haria ir con
+                      // retraso respecto al giro. Fuera del gesto vuelve, y con la
+                      // MISMA duracion y curva que el transform del plano.
                       transition: gestoActivo ? 'none' : 'opacity var(--dur-base) var(--ease-salida)',
                     }}
                   >

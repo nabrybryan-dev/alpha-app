@@ -11,8 +11,8 @@ import {
 } from './taxonomia'
 
 describe('CATEGORIAS', () => {
-  it('son las 32 acciones articulares de la taxonomía', () => {
-    expect(CATEGORIAS).toHaveLength(32)
+  it('son las 34 acciones articulares de la taxonomía', () => {
+    expect(CATEGORIAS).toHaveLength(34)
   })
 
   it('no tiene duplicados', () => {
@@ -70,9 +70,62 @@ describe('invariantes de la tabla de equivalencia', () => {
 })
 
 describe('categorías que no suman volumen', () => {
-  it.each(['PREV/REHAB', 'ACONDICIONAMIENTO', 'MOVILIDAD'])('%s no aporta a ningún grupo', (categoria) => {
+  it.each([
+    'PREV/REHAB',
+    'ACONDICIONAMIENTO',
+    'MOVILIDAD',
+    'FLEXIÓN DE MUÑECA',
+    'EXTENSIÓN DE MUÑECA',
+    'DORSIFLEXIÓN',
+  ])('%s no aporta a ningún grupo', (categoria) => {
     expect(aportesDeCategoria(categoria)).toEqual([])
     expect(grupoPrimario(categoria)).toBeUndefined()
+  })
+})
+
+describe('DORSIFLEXIÓN sale del conteo (2026-08-27)', () => {
+  // Hasta esta fecha aportaba `Pantorrillas 0,5`, y era un error de anatomía: el
+  // tibial anterior dorsiflexiona y el tríceps sural plantiflexiona. Son
+  // antagonistas. El test no comprueba una preferencia de conteo — comprueba que la
+  // app no vuelve a acreditar a un músculo series de su antagonista.
+  it('una elevación de puntas no acredita nada a Pantorrillas', () => {
+    expect(aportesDeCategoria('DORSIFLEXIÓN')).toEqual([])
+  })
+
+  it('Pantorrillas sigue teniendo su directo, que es FLEXIÓN PLANTAR', () => {
+    expect(grupoPrimario('FLEXIÓN PLANTAR')).toBe('Pantorrillas')
+  })
+})
+
+describe('las dos de muñeca (2026-08-25)', () => {
+  // El hueco era que la taxonomía llegaba hasta el codo: un curl de muñeca no
+  // se podía ni nombrar. Esto es lo que arregla el cambio.
+  it.each(['FLEXIÓN DE MUÑECA', 'EXTENSIÓN DE MUÑECA'])('%s es una categoría canónica', (c) => {
+    expect(categoriaCanonica(c)).toBe(c)
+  })
+
+  it('se reconocen aunque la base las escriba sin acentos ni mayúsculas', () => {
+    expect(categoriaCanonica('flexion de muneca')).toBe('FLEXIÓN DE MUÑECA')
+    expect(categoriaCanonica('Extension De Muñeca')).toBe('EXTENSIÓN DE MUÑECA')
+  })
+
+  // La razón de que no cuenten: el PANEL no tiene grupo «Antebrazo», y contar
+  // solo las series directas diría «2» en una semana con cuarenta de agarre.
+  it('no aportan a ningún grupo, ni siquiera indirecto', () => {
+    expect(aportesDeCategoria('FLEXIÓN DE MUÑECA', 'Curl de muñeca con barra')).toEqual([])
+    expect(aportesDeCategoria('EXTENSIÓN DE MUÑECA', 'Extensión de muñeca con mancuerna')).toEqual([])
+  })
+
+  // El guardián de la regresión: antes del cambio caían en la capa heredada y
+  // devolvían []. Si alguien añade un patrón a HEREDADAS que las capture —
+  // «CURL» a bíceps, pongamos— el PANEL empezaría a contar antebrazo como
+  // bíceps sin que nadie lo pidiera.
+  it('el curl de muñeca NO cuenta como bíceps', () => {
+    expect(grupoPrimario('FLEXIÓN DE MUÑECA', 'Curl de muñeca sentado con barra')).toBeUndefined()
+  })
+
+  it('la extensión de muñeca NO cuenta como tríceps', () => {
+    expect(grupoPrimario('EXTENSIÓN DE MUÑECA', 'Extensión de muñeca con banda')).toBeUndefined()
   })
 })
 
@@ -104,7 +157,9 @@ describe('aportesDeCategoria', () => {
 
   it('las categorías de asistencia solo tienen indirecto', () => {
     expect(aportesDeCategoria('ROTACIÓN DE CADERA')).toEqual([{ grupo: 'Glúteos', factor: 0.5 }])
-    expect(aportesDeCategoria('DORSIFLEXIÓN')).toEqual([{ grupo: 'Pantorrillas', factor: 0.5 }])
+    // DORSIFLEXIÓN estuvo aquí hasta el 2026-08-27. Salió porque no es una categoría
+    // de asistencia: no asiste a la pantorrilla, es su antagonista. Ahora vive en
+    // «categorías que no suman volumen», que es donde le corresponde.
   })
 })
 
@@ -310,7 +365,7 @@ describe('compatibilidad con la taxonomía vieja', () => {
 })
 
 describe('pico de exigencia', () => {
-  it('las 32 categorías están decididas: con pico, o excluidas a propósito', () => {
+  it('las 34 categorías están decididas: con pico, o excluidas a propósito', () => {
     const sinPico = CATEGORIAS.filter((c) => !PICO_DE_EXIGENCIA[c])
     // Isométricas (no hay recorrido que perder) y las que no van al fallo.
     expect([...sinPico].sort()).toEqual([
@@ -318,6 +373,8 @@ describe('pico de exigencia', () => {
       'ANTIEXTENSIÓN',
       'ANTIFLEXIÓN LATERAL',
       'ANTIRROTACIÓN',
+      'EXTENSIÓN DE MUÑECA',
+      'FLEXIÓN DE MUÑECA',
       'MOVILIDAD',
       'PREV/REHAB',
     ])
