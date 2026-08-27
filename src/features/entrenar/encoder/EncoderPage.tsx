@@ -248,7 +248,17 @@ export default function EncoderPage() {
   const criterios = criteriosDeLaTanda(tanda)
 
   return (
-    <div className="flex flex-col gap-4">
+    // El hueco de la barra de navegación, que esta pantalla no reservaba. Sin él, lo
+    // último de la página queda DEBAJO de la barra: en un iPhone tapaba «Abrir
+    // cámara», que es el primer botón que hay que pulsar aquí y encima está en el
+    // gimnasio, con el móvil en el trípode y las manos ocupadas.
+    //
+    // Sale de `--tope-nav` y no de un número suelto porque la barra baja
+    // `env(safe-area-inset-bottom)`: son 0 px en un escritorio y ~34 en un iPhone con
+    // barra de gestos, así que cualquier `padding` fijo cuadra en el portátil y falla
+    // justo en el aparato donde se usa. Es el mismo fallo que ya documenta CLAUDE.md
+    // con el CTA de la sesión, y la Ruta ya lo hace así (`RutaPage.tsx:138`).
+    <div className="flex flex-col gap-4" style={{ paddingBottom: 'var(--tope-nav)' }}>
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold tracking-tight">Encoder de cámara</h1>
