@@ -60,8 +60,8 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
       </h3>
       <ol className="flex flex-col">
         {niveles.map((nivel, i) => (
-          <li key={nivel.numero} className="escena-prof flex items-stretch gap-3.5">
-            <div className="flex w-[34px] shrink-0 flex-col items-center">
+          <li key={nivel.numero} className="flex items-stretch gap-3.5">
+            <div className="escena-prof flex w-[34px] shrink-0 flex-col items-center">
               <span
                 className={`cifras grid h-[34px] w-[34px] place-items-center rounded-full border-[1.5px] text-[12.5px] font-bold ${claseNodo(nivel.estado)}`}
                 style={

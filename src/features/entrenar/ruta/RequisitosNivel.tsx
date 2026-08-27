@@ -23,7 +23,7 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
       </h3>
       <ul className="mt-3 flex flex-col gap-2.5">
         {requisitos.map((r) => (
-          <li key={r.id} className="flex items-start gap-3">
+          <li key={r.id} className="escena-prof flex items-start gap-3">
             <span
               className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] ${
                 r.cumplido ? 'border-accion bg-accion text-white' : 'border-ink-400 text-ink-400'

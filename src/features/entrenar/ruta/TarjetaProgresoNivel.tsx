@@ -65,7 +65,10 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
         {siguienteNivel && <span>{nombreBonito(siguienteNivel.nombre)}</span>}
       </div>
 
-      <div className="mt-3.5 grid grid-cols-3 gap-2">
+      {/* La escena va aqui y no solo en la seccion: `perspective` alcanza a los HIJOS
+            DIRECTOS, y estas tres cifras son nietas. Sin esto el `translateZ` se
+            aplica igual y no escorza — se ve exactamente plano, sin ningun aviso. */}
+      <div className="escena-prof mt-3.5 grid grid-cols-3 gap-2">
         {estadisticas.map((e) => (
           // Las tres cifras van TROQUELADAS en la placa, no posadas encima: son datos
           // que se leen, y `--prof-hueco` es exactamente «cifras, troqueles, notas al
