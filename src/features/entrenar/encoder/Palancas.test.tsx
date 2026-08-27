@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Palancas } from './Palancas'
 import type { FotogramaBrazo, MedidaDePalancas } from './medidaDePalancas'
 
@@ -216,5 +216,99 @@ describe('la selección de atleta se calla cuando no hay duda', () => {
   it('sin dato de selección la fila no existe', () => {
     const { container } = render(<Palancas medida={MEDIDO} />)
     expect(container.textContent).not.toMatch(/en cuadro/)
+  })
+})
+
+describe('el guiño de órbita', () => {
+  // En este jsdom `Element.prototype.animate` NO EXISTE, así que hay que ponerla
+  // para poder observarla. Conviene saberlo al leer cualquier test de movimiento
+  // de este repo: todo el código WAAPI sale por su guarda y nunca se ejecuta —
+  // se puede probar que se PIDE la animación correcta, nunca que el navegador la
+  // corra.
+  function conAnimacionObservable() {
+    const animar = vi.fn(
+      (...llamada: unknown[]) => (void llamada, { cancel: vi.fn(), finished: Promise.resolve() }),
+    )
+    Object.defineProperty(Element.prototype, 'animate', {
+      value: animar,
+      configurable: true,
+      writable: true,
+    })
+    return animar
+  }
+
+  function conMovimientoReducido(reducido: boolean) {
+    vi.stubGlobal('matchMedia', (consulta: string) => ({
+      matches: reducido && consulta.includes('prefers-reduced-motion'),
+      media: consulta,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  }
+
+  const orbitas = (animar: ReturnType<typeof conAnimacionObservable>) =>
+    animar.mock.calls.filter((ll) => JSON.stringify(ll[0]).includes('rotateY'))
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    delete (Element.prototype as { animate?: unknown }).animate
+  })
+
+  it('al abrir una medida da UN giro corto de ida y vuelta', () => {
+    conMovimientoReducido(false)
+    const animar = conAnimacionObservable()
+    render(<Palancas medida={MEDIDO} />)
+    expect(orbitas(animar)).toHaveLength(1)
+    expect(JSON.stringify(orbitas(animar)[0][0])).toContain('-12deg')
+  })
+
+  it('y se repite al abrir OTRA medida, aunque el componente no se remonte', () => {
+    // El fallo que este test fija: `PanelPalancas` renderiza la gráfica sin
+    // `key`, así que una segunda medida no la remonta — solo le cambia las
+    // props. Con las dependencias vacías el guiño se vería una vez por SESIÓN, y
+    // quien abriera un segundo archivo no lo vería nunca más.
+    conMovimientoReducido(false)
+    const animar = conAnimacionObservable()
+    const { rerender } = render(<Palancas medida={MEDIDO} />)
+    expect(orbitas(animar)).toHaveLength(1)
+
+    rerender(<Palancas medida={{ ...MEDIDO, porFotograma: [...MEDIDO.porFotograma] }} />)
+    expect(orbitas(animar)).toHaveLength(2)
+  })
+
+  it('pero NO en un re-render sin datos nuevos', () => {
+    // La otra mitad: si se disparase en cualquier re-render, la gráfica giraría
+    // sola cada vez que el panel de al lado cambia algo.
+    conMovimientoReducido(false)
+    const animar = conAnimacionObservable()
+    const { rerender } = render(<Palancas medida={MEDIDO} />)
+    rerender(<Palancas medida={MEDIDO} />)
+    expect(orbitas(animar)).toHaveLength(1)
+  })
+
+  it('con movimiento reducido no gira', () => {
+    conMovimientoReducido(true)
+    const animar = conAnimacionObservable()
+    render(<Palancas medida={MEDIDO} />)
+    expect(orbitas(animar)).toHaveLength(0)
+  })
+
+  it('el depth cueing deja el asa por la que el gesto lo escribe en vivo', () => {
+    // Main documentaba como precio aceptado que el contraste se quedara quieto
+    // durante el arrastre y saltara al soltar — hasta un 40 % de golpe. Ahora se
+    // escribe a mano en cada movimiento, y eso depende de dos cosas: el asa
+    // `data-eje`, y que la opacidad viva en `style` y no en el atributo. Un
+    // estilo en línea gana al atributo: si alguien vuelve al atributo, React y el
+    // gesto escribirían en canales distintos y el efecto dejaría de moverse sin
+    // que nada se ponga rojo.
+    conMovimientoReducido(false)
+    const { container } = render(<Palancas medida={MEDIDO} />)
+    const ejes = Array.from(container.querySelectorAll<SVGGElement>('[data-eje]'))
+    expect(ejes.length).toBeGreaterThan(0)
+    for (const eje of ejes) {
+      expect(eje.style.opacity).not.toBe('')
+      expect(eje.getAttribute('opacity')).toBeNull()
+    }
   })
 })
