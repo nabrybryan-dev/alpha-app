@@ -154,6 +154,57 @@ describe('ExerciseSlotMachine', () => {
     }
   })
 
+  /**
+   * El hermano del test de arriba, y el que faltaba: allí la cámara YA estaba
+   * abierta al montar, así que la puerta de `girarA` se preguntaba a tiempo.
+   *
+   * Aquí se abre DESPUÉS, con la cadena ya corriendo. Ese caso no lo cubría
+   * nadie: la puerta se pregunta una sola vez, al arrancar el giro, y ni el
+   * `animation-play-state` de `tokens.css` ni ninguna otra regla de CSS puede
+   * parar un `setTimeout`. Quedaba hasta `brake` ms —1,08 s en LIBERTY BELL,
+   * 1,12 s en DIAMOND SALON— haciendo un render completo del gabinete por paso,
+   * justo encima de una captura que necesita 50 fps para no descartar la toma.
+   *
+   * No es rebuscado: el giro se dispara a los 60 ms de montar CADA ejercicio,
+   * y abrir la cámara es un toque que cae donde caiga.
+   */
+  it('si la cámara se abre A MEDIA TIRADA, la cadena se corta', async () => {
+    // Los desplazamientos son la huella de la cadena: cada paso de cada carrete
+    // mueve un `translateY`. Se miran ellos y no el `innerHTML` entero para que
+    // el test hable del giro y no de cualquier otra cosa que repinte.
+    const desplazamientos = (html: string) => html.match(/translateY\([^)]*\)/g) ?? []
+
+    const { container } = render(<ExerciseSlotMachine {...BASE} />)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
+    expect(container.innerHTML, 'la cadena tiene que estar viva para poder cortarla').toContain('blur(')
+
+    try {
+      // La cámara se abre AHORA. `RegistroSerie` escribe el atributo en el
+      // `<body>` y el gabinete, que es un vecino sin parentesco, se entera por
+      // ahí. El observador entrega en microtarea, de ahí el `await`.
+      await act(async () => {
+        document.body.dataset.camaraAbierta = 'si'
+        await Promise.resolve()
+      })
+
+      expect(container.innerHTML, 'el desenfoque del giro sigue puesto').not.toContain('blur(')
+      const quieto = desplazamientos(container.innerHTML)
+
+      act(() => {
+        vi.advanceTimersByTime(4000)
+      })
+      expect(desplazamientos(container.innerHTML), 'la cadena siguió avanzando con la cámara abierta').toEqual(quieto)
+
+      // Y se pierde el giro, no el argumento: la parada a la que iba se ve.
+      expect(screen.getByText('LIBERTY BELL')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /ver ejercicio/i })).toHaveAttribute('aria-current', 'true')
+    } finally {
+      delete document.body.dataset.camaraAbierta
+    }
+  })
+
   it('no gira solo: el reloj está anulado por defecto', () => {
     render(<ExerciseSlotMachine {...BASE} />)
     act(() => {

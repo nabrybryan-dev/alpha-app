@@ -44,3 +44,32 @@ export function marcarCamaraAbierta(): () => void {
 export function camaraAbierta(): boolean {
   return typeof document !== 'undefined' && document.body.dataset[CLAVE] === 'si'
 }
+
+/**
+ * Avisa cuando la cámara PASA a estar abierta. Devuelve la función de baja,
+ * pensada para devolverla tal cual desde un `useEffect`.
+ *
+ * Preguntar `camaraAbierta()` una vez solo protege a quien empieza su trabajo
+ * después de que se abra. Quien ya tenía una cadena de temporizadores corriendo
+ * necesita enterarse a mitad, y no hay evento del navegador para esto: el
+ * atributo lo escribe otro componente sin relación de parentesco.
+ *
+ * Se observan TODOS los atributos del `<body>` en vez de filtrar por el nombre
+ * del atributo, y es deliberado: filtrar obligaría a escribir aquí
+ * `data-camara-abierta` además de `CLAVE`, y el día que alguien renombre uno y
+ * no el otro esto dejaría de avisar **en silencio** — que es exactamente el
+ * modo de fallo contra el que existe este archivo. Los atributos del `<body>`
+ * cambian un puñado de veces por sesión; el filtro no compra nada.
+ */
+export function alAbrirseLaCamara(alAbrir: () => void): () => void {
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return () => {}
+  let antes = camaraAbierta()
+  const observador = new MutationObserver(() => {
+    const ahora = camaraAbierta()
+    // Solo el flanco de subida. Cerrar la cámara no tiene que despertar a nadie.
+    if (ahora && !antes) alAbrir()
+    antes = ahora
+  })
+  observador.observe(document.body, { attributes: true })
+  return () => observador.disconnect()
+}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
-import { camaraAbierta } from './camaraAbierta'
+import { alAbrirseLaCamara, camaraAbierta } from './camaraAbierta'
 import { cargarFuentesDelGabinete } from './fuentesDelGabinete'
 import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './slotThemes'
 
@@ -113,6 +113,14 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
   const [credits, setCredits] = useState(CREDITOS_INICIALES)
   const [jackTick, setJackTick] = useState(0)
   const relojes = useRef<number[]>([])
+  // Hay una tirada EN MARCHA ahora mismo. No sirve mirar `relojes`: los
+  // temporizadores que ya dispararon siguen en la lista, así que una tirada
+  // terminada se vería igual que una viva.
+  const enMarcha = useRef(false)
+  // La parada a la que va la tirada. Se guarda porque hace falta fuera de
+  // `girarA`: quien corta el giro a mitad tiene que enseñar el dato al que iba,
+  // no el que hubiera quedado a medio camino.
+  const paradaBuscada = useRef(0)
 
   const limpiar = useCallback(() => {
     relojes.current.forEach((r) => clearTimeout(r))
@@ -132,6 +140,7 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
     (destino: number) => {
       if (paradas.length < 2) return
       const objetivo = ((destino % paradas.length) + paradas.length) % paradas.length
+      paradaBuscada.current = objetivo
       limpiar()
       setCredits((c) => (c <= 1 ? CREDITOS_INICIALES : c - 1))
 
@@ -150,6 +159,7 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
         return
       }
 
+      enMarcha.current = true
       setSnap(true)
       setSpinC(true)
       setSpinA(true)
@@ -177,6 +187,7 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
       correr(
         () => setROff((o) => o + 1),
         () => {
+          enMarcha.current = false
           setSpinC(false)
           setSnap(false)
           setCatIdx(objetivo)
@@ -195,6 +206,41 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
     },
     [limpiar, paradas.length, programar, reducido, tema.brake, tema.step],
   )
+
+  /**
+   * La puerta de arriba se pregunta UNA VEZ, al arrancar la tirada. Si la cámara
+   * se abre con la cadena ya corriendo, nada la paraba: `animation-play-state`
+   * no alcanza a un `setTimeout`, así que el gabinete seguía hasta `brake` ms
+   * —1,08 s en LIBERTY BELL, 1,12 s en DIAMOND SALON— haciendo un render
+   * completo por paso encima de una captura que necesita 50 fps para que la toma
+   * no se descarte.
+   *
+   * Y no es rebuscado: el giro se dispara a los 60 ms de montar CADA ejercicio,
+   * y abrir la cámara es un toque que cae donde caiga.
+   *
+   * Se termina como termina el modo reducido: SE PIERDE EL GIRO, NO EL
+   * ARGUMENTO. La parada a la que iba se enseña ya y sin deslizarse — `snap`
+   * sigue puesto desde el arranque, así que la ventana salta en vez de planear
+   * sus 0,68 s.
+   */
+  const cortarTirada = useCallback(() => {
+    if (!enMarcha.current) return
+    enMarcha.current = false
+    limpiar()
+    setSpinA(false)
+    setSpinB(false)
+    setSpinC(false)
+    // El apagado del premio es un temporizador, y acaba de cancelarse con los
+    // demás. Puede estar encendido de la tirada anterior —`girarA` limpia el
+    // apagado pendiente y no toca `win`—, y sin esta línea se quedaría así para
+    // siempre.
+    setWin(false)
+    setCatIdx(paradaBuscada.current)
+    // Media fila por paso: las paradas caen en las filas pares.
+    setROff(paradaBuscada.current * 2)
+  }, [limpiar])
+
+  useEffect(() => alAbrirseLaCamara(cortarTirada), [cortarTirada])
 
   // Las tipografías del gabinete se piden aquí, no en la hoja de estilos: son
   // 314 KB que solo hacen falta en la pantalla de entrenar. Ver
