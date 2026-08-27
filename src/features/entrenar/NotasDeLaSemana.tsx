@@ -28,11 +28,20 @@ export function NotasDeLaSemana({ notas }: { notas: ItemMarcable[] }) {
         </h2>
       </header>
 
-      <ul className="flex flex-col gap-[13px] px-[18px] py-4">
+      {/* La escena en la lista, padre directo de las notas. */}
+      <ul className="escena-prof flex flex-col gap-[13px] px-[18px] py-4">
         {notas.map((nota) => (
           <li
             key={nota.id}
+            // Cada nota es una PLACA acuñada sobre el panel, no un renglón: es un
+            // aviso que abre el microciclo y ya se decidió que no es una tarea que se
+            // tacha. `--prof-relieve` es «acuñado sobre la placa: placas
+            // secundarias». No es tocable, así que sube sin tocar el mínimo táctil.
             className="rounded-[10px] border border-ink-500 border-l-[3px] border-l-accion bg-ink-700 px-3 py-[10px]"
+            style={{
+              transform: 'translateZ(var(--prof-relieve))',
+              boxShadow: 'var(--sombra-alzado)',
+            }}
           >
             <p className="text-[13.5px] font-bold leading-snug text-silver-100">{nota.titulo}</p>
             {nota.indicaciones && (
