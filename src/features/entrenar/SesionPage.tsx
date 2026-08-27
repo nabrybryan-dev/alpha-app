@@ -198,10 +198,21 @@ function SesionEnCurso() {
         >
           {/* La sesión es el segundo nivel de Entrenar: atrás vuelve a la Ruta,
               no a Hoy, aunque se haya entrado desde ahí. */}
+          {/* Sin `backdrop-blur`, y no es un descuido: esta flecha es `absolute`
+              dentro de `.tarjeta-foto`, que es contenido normal de la pagina y
+              SE DESPLAZA CON EL SCROLL. Un `backdrop-filter` ahi obliga a
+              remuestrear y desenfocar la region en cada fotograma del scroll, y
+              encima sobre una fotografia a sangre. Es lo que `tokens.css` ya
+              prohibe por escrito: «el blur solo se aplica en superficies fijas
+              (nav, topbar, sheets) para no castigar el scroll en movil».
+              El contraste del icono no lo daba el desenfoque: lo da el velo de
+              `.tarjeta-foto::after`, que oscurece la foto entera. El fondo sube
+              a `--ink-900` para que el boton siga leyendose como una pieza
+              solida sobre cualquier foto. */}
           <Link
             to="/entrenar"
             aria-label="Volver a tu ruta de entrenamiento"
-            className="press absolute left-3.5 top-3.5 z-[2] grid h-[38px] w-[38px] place-items-center rounded-boton border border-white/20 bg-black/40 text-white backdrop-blur"
+            className="press absolute left-3.5 top-3.5 z-[2] grid h-[38px] w-[38px] place-items-center rounded-boton border border-white/20 bg-ink-900/70 text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
               <path d="m15 18-6-6 6-6" />
