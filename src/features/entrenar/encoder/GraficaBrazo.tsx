@@ -74,6 +74,10 @@ export function GraficaBrazo({
   const [grados, setGrados] = useState(0)
   const arrastre = useRef<{ x: number; desde: number } | null>(null)
   const escenaRef = useRef<HTMLDivElement>(null)
+  // El nodo que gira, y el ultimo angulo del gesto. Durante el arrastre se
+  // escriben directos y NO pasan por el estado: ver el comentario de `mover`.
+  const mundoRef = useRef<HTMLDivElement>(null)
+  const gradosVivos = useRef(0)
 
   const presentes = EJES_ORDEN.filter((e) =>
     fotogramas.some((f) => f.ok && f.brazos?.[e] && Number.isFinite(f.brazos[e].mm)),
@@ -91,9 +95,44 @@ export function GraficaBrazo({
   // `will-change` solo mientras dura el gesto: una capa promovida de forma
   // permanente reserva memoria de textura en un móvil de gama media.
   const [gestoActivo, setGestoActivo] = useState(false)
+  /**
+   * El arrastre NO pasa por el estado, y esa es toda la idea.
+   *
+   * Cada `pointermove` llamaba a `setGrados`, y eso re-renderiza el SVG entero:
+   * `tramosDeEje` se recorre dos veces por eje —bandas y lineas— y `camino()` y
+   * `bandaDe()` vuelven a serializar todos los `path` fotograma a fotograma.
+   *
+   * Y ocurre en la pantalla del encoder. Con la camara abierta el bucle no se
+   * detiene nunca, y mientras hay un segmento fijado cada fotograma hace un
+   * `getImageData` del lienzo entero mas una pasada de segmentacion. Meter ahi
+   * una reconciliacion completa de React por cada movimiento del dedo es
+   * quitarle el hilo a la captura justo cuando mas lo necesita.
+   *
+   * Se escriben directo las DOS cosas que cambian al girar: la rotacion del
+   * mundo y las opacidades del depth cueing. Lo segundo podria haberse dejado en
+   * el estado —la propuesta original lo hacia— pero entonces los ejes se
+   * quedarian congelados durante el arrastre y saltarian de golpe al soltar, que
+   * es hasta un 40 % de opacidad de un tiron. Son un punado de nodos: escribirlos
+   * a mano cuesta menos que un solo render.
+   *
+   * El estado se toca UNA vez, al soltar, y ahi vuelve a mandar React.
+   */
+  const pintarGiro = useCallback((g: number) => {
+    gradosVivos.current = g
+    if (mundoRef.current) mundoRef.current.style.transform = `rotateY(${g}deg)`
+    const cerca = Math.min(1, Math.abs(g) / TOPE_GRADOS)
+    escenaRef.current?.querySelectorAll<SVGGElement>('[data-eje]').forEach((nodo) => {
+      const esObjetivo = nodo.dataset.objetivo === '1'
+      nodo.style.opacity = `${1 - cerca * (esObjetivo ? 0.1 : 0.4)}`
+    })
+  }, [])
+
   const alSoltar = useCallback(() => {
     arrastre.current = null
     setGestoActivo(false)
+    // Aqui vuelve a mandar React: escribe la misma rotacion y las mismas
+    // opacidades que ya estan en el DOM, asi que no hay salto ni transicion.
+    setGrados(gradosVivos.current)
   }, [])
 
   useEffect(() => {
@@ -102,7 +141,7 @@ export function GraficaBrazo({
       if (!arrastre.current) return
       const dx = e.clientX - arrastre.current.x
       const g = arrastre.current.desde + dx * 0.16
-      setGrados(Math.max(-TOPE_GRADOS, Math.min(TOPE_GRADOS, g)))
+      pintarGiro(Math.max(-TOPE_GRADOS, Math.min(TOPE_GRADOS, g)))
     }
     window.addEventListener('pointermove', mover)
     window.addEventListener('pointerup', alSoltar)
@@ -110,7 +149,7 @@ export function GraficaBrazo({
       window.removeEventListener('pointermove', mover)
       window.removeEventListener('pointerup', alSoltar)
     }
-  }, [gestoActivo, alSoltar])
+  }, [gestoActivo, alSoltar, pintarGiro])
 
   const camino = (puntos: Array<{ t: number; mm: number }>) =>
     puntos.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.t).toFixed(1)} ${y(p.mm).toFixed(1)}`).join(' ')
@@ -132,11 +171,13 @@ export function GraficaBrazo({
         onPointerDown={(e) => {
           if (reducido) return
           arrastre.current = { x: e.clientX, desde: grados }
+          gradosVivos.current = grados
           setGestoActivo(true)
         }}
         onDoubleClick={() => setGrados(0)}
       >
         <div
+          ref={mundoRef}
           className="absolute inset-0"
           style={{
             transformStyle: 'preserve-3d',
@@ -203,7 +244,11 @@ export function GraficaBrazo({
                 // perspectiva aérea. El ojo lo entiende sin leer nada.
                 const lejania = 1 - Math.min(1, Math.abs(grados) / TOPE_GRADOS) * (esObjetivo ? 0.1 : 0.4)
                 return (
-                  <g key={eje} opacity={lejania}>
+                  // `style` y no el atributo `opacity`: durante el arrastre
+                  // estas opacidades se escriben directas en el DOM, y un estilo
+                  // en linea gana siempre al atributo. Usando el mismo canal,
+                  // React sobrescribe limpio al soltar y no hay parpadeo.
+                  <g key={eje} data-eje={eje} data-objetivo={esObjetivo ? '1' : undefined} style={{ opacity: lejania }}>
                     {tramosDeEje(fotogramas, eje).map((tramo, i) =>
                       tramo.length > 1 ? (
                         <path

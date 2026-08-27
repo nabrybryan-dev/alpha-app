@@ -217,4 +217,26 @@ describe('la selección de atleta se calla cuando no hay duda', () => {
     const { container } = render(<Palancas medida={MEDIDO} />)
     expect(container.textContent).not.toMatch(/en cuadro/)
   })
+
+  it('el depth cueing deja el asa por la que el gesto lo escribe en vivo', () => {
+    // Durante el arrastre de la gráfica, la rotación y estas opacidades se
+    // escriben DIRECTAS en el DOM en vez de pasar por el estado: cada
+    // `pointermove` re-renderizaba el SVG entero y volvía a serializar todos los
+    // `path`, y eso ocurre con la cámara abierta, donde el bucle de captura ya
+    // hace un `getImageData` del lienzo completo en cada fotograma.
+    //
+    // Ese atajo depende de dos cosas que este test fija:
+    //   · `data-eje` — el asa por la que el gesto encuentra los nodos.
+    //   · la opacidad en `style` y NO en el atributo `opacity`. Un estilo en
+    //     línea gana siempre al atributo, así que si alguien vuelve al atributo,
+    //     React y el gesto escribirían en canales distintos y el depth cueing
+    //     dejaría de moverse — sin que nada se ponga rojo.
+    const { container } = render(<Palancas medida={MEDIDO} />)
+    const ejes = Array.from(container.querySelectorAll<SVGGElement>('[data-eje]'))
+    expect(ejes.length).toBeGreaterThan(0)
+    for (const eje of ejes) {
+      expect(eje.style.opacity).not.toBe('')
+      expect(eje.getAttribute('opacity')).toBeNull()
+    }
+  })
 })
