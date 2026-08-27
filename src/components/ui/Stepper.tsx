@@ -86,7 +86,7 @@ export function Stepper({
           Paso de verdad: los seis botones y los tres pozos de kg / reps / RIR de la
           pantalla de sesion estuvieron planos desde que se les puso profundidad. Se
           descubrio midiendo el ENCOGIMIENTO —`getBoundingClientRect().width /
-          offsetWidth`, que a --prof-hueco tiene que dar 0,9912 y daba 1—, no leyendo
+          offsetWidth`, que a --prof-hueco tiene que dar 0,9878 y daba 1—, no leyendo
           los estilos calculados, que decian que el translateZ estaba puesto. */}
       <div
         className={`flex w-full items-center justify-center gap-1.5 ${profundidad ? 'escena-prof' : ''}`}

@@ -64,8 +64,14 @@
      `--sombra-hundido` era la unica, y describia solo la materia que FALTA. Con
      la escala de profundidad aparece materia que SOBRESALE, y sin su sombra un
      elemento a +16 px se lee como un elemento plano mas claro. */
-  --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.9);
-  --sombra-alzado: 0 2px 6px rgba(0, 0, 0, 0.55);
+  /* La linea de luz de 1 px es la mitad del efecto: marca el LABIO del hueco donde
+     le daria la luz. Sin ella un hundido es solo un rectangulo mas pequeno. */
+  --sombra-hundido:
+    inset 0 4px 12px rgba(0, 0, 0, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  --sombra-alzado:
+    0 3px 10px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   /* El corte de las dos esquinas opuestas del troquel. */
   --troquel: 10px;
 }
@@ -110,10 +116,14 @@
   --placa: #5f5e5a;
   --placa-muerta: #a3a099;
   --hundido: #e7e5e0;
-  --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.18);
+  --sombra-hundido:
+    inset 0 4px 12px rgba(0, 0, 0, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.7);
   /* La misma proporcion que guarda --sombra-hundido entre sus dos temas
      (.9 -> .18): sobre hueso, un 0,55 no se lee como sombra, se lee como suciedad. */
-  --sombra-alzado: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --sombra-alzado:
+    0 3px 10px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
   --troquel: 10px;
 }
 
@@ -257,24 +267,39 @@
      entrenamiento no es una de estas cinco variables, esta mal.
 
      Los valores no son nuevos ni redondos por gusto. Salen de lo que la app YA
-     hacia: los 900 px de perspectiva son los de PortadaMicrociclo, FichaPanini y
+     hacia: los 900 px de perspectiva de los que salio esto son los de
+     PortadaMicrociclo, FichaPanini y
      RolloDePelicula; los 12 grados son el MAX_GRADOS que `inclinacionAlPuntero.ts`
      ya trae; y los 6 los razono PortadaMicrociclo cuando bajo de 12 «porque esto
      es una superficie de lectura».
 
-     A 900 px de perspectiva, cada escalon cambia el tamano aparente: -24 es
-     -2,6 %, -8 es -0,9 %, +16 es +1,8 % y +40 es +4,7 %. Eso importa dos veces.
-     Una: +40 sigue por debajo del 12 % de `.latido`, asi que la profundidad nunca
-     grita mas que el enfasis. Y dos, la que muerde: HUNDIR ENCOGE. Una diana de
-     44 px hundida a -8 px se queda en 43,6 y cae bajo el minimo tactil, asi que
-     NINGUNA zona tocable baja del plano. */
+     LA FUGA SE ACERCO DE 900 A 650, y el motivo es medido, no de gusto. A 900 px
+     el escalon mas grande cambiaba el tamano aparente un 4,7 % y el hueco un 0,9 %:
+     por debajo de lo que un ojo distingue en una pantalla quieta. La profundidad
+     estaba puesta, era correcta y NO SE VEIA — se comprobo en un movil real y la
+     respuesta fue «lo veo todo igual». Una escala que no se percibe no es sobria,
+     es decorativa y encima se paga en capas de composicion.
+
+     A 650 px cada escalon cambia el tamano aparente: -24 es -3,6 %, -8 es -1,2 %,
+     +16 es +2,5 % y +40 es +6,6 %. Eso importa dos veces. Una: +40 sigue por debajo
+     del 12 % de `.latido`, asi que la profundidad sigue sin gritar mas que el
+     enfasis —ese techo era el limite real y no los 900 px—. Y dos, la que muerde:
+     HUNDIR ENCOGE. Una diana de 44 px hundida a -8 px se queda en 43,5 y cae bajo
+     el minimo tactil, asi que NINGUNA zona tocable baja del plano.
+
+     Y EL TAMANO NO ES LO QUE VENDE LA PROFUNDIDAD. En una pantalla plana el
+     escorzo aporta poco; lo que lee el ojo es el SOMBREADO. Por eso las dos sombras
+     de abajo llevan ademas una linea de luz de 1 px: arriba en lo alzado y abajo en
+     lo hundido, que es donde daria la luz con la fuga por encima del centro que
+     declara --perspectiva-origen. Sin esa linea, un hundido del 1,2 % es un cuadro
+     un poco mas pequeno; con ella, es un hueco. */
   --prof-fondo: -24px;    /* otro plano, detras de la superficie: rieles, colas, lo que espera */
   --prof-hueco: -8px;     /* materia que falta DENTRO de la misma placa: cifras, troqueles, notas al pie */
   --prof-plano: 0px;      /* el suelo, y el punto de retorno de toda transicion. Tiene nombre por lo mismo que --z-lienzo: 0 */
   --prof-relieve: 16px;   /* acunado sobre la placa: tipografia, chips, teclas, placas secundarias */
   --prof-sujeto: 40px;    /* despegado. UNO por escena: si hay dos, la escena ha dejado de decir donde mirar */
 
-  --perspectiva: 900px;
+  --perspectiva: 650px;
   /* La fuga por encima del centro: el movil esta en el suelo o en el banco y se
      mira hacia abajo. Es la misma mirada que asume `--foto-pos`. */
   --perspectiva-origen: 50% 32%;
@@ -506,8 +531,8 @@ body {
    desapareceria sin aviso. Por eso llevan el mismo `scale(0.97)`, la misma
    duracion y la misma curva: el tacto es identico, con recorrido añadido.
 
-   NINGUNA ZONA TOCABLE BAJA DEL PLANO. Hundir encoge —a 900 px de perspectiva,
-   -8 px son un factor 0,9912— y una diana de 44 px hundida se queda en 43,6.
+   NINGUNA ZONA TOCABLE BAJA DEL PLANO. Hundir encoge —a 650 px de perspectiva,
+   -8 px son un factor 0,9878— y una diana de 44 px hundida se queda en 43,5.
    Las teclas van de +16 a 0, nunca a negativo. */
 .tecla-3d {
   transform: translateZ(var(--prof-relieve));
@@ -1357,8 +1382,8 @@ body {
    niveles mas abajo.
 
    COMO SE COMPRUEBA QUE SE VE, que no es lo mismo que comprobar que esta: el
-   encogimiento. A 900 px de perspectiva un elemento a --prof-hueco tiene que medir en
-   pantalla un factor 0,9912 de su caja de maquetacion, y uno a --prof-relieve, 1,0181.
+   encogimiento. A 650 px de perspectiva un elemento a --prof-hueco tiene que medir en
+   pantalla un factor 0,9878 de su caja de maquetacion, y uno a --prof-relieve, 1,0252.
    Los factores estan arriba, en el bloque de la escala.
 
      getBoundingClientRect().width / offsetWidth
