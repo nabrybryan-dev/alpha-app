@@ -49,8 +49,12 @@
   /* El interior de la placa descartada: mas oscuro que el fondo de pagina, para
      que el sello se lea como un hueco en la superficie y no como una tarjeta. */
   --hundido: #060606;
-  /* La unica sombra del sistema. */
+  /* Las dos sombras del sistema: la de dentro y la de fuera.
+     `--sombra-hundido` era la unica, y describia solo la materia que FALTA. Con
+     la escala de profundidad aparece materia que SOBRESALE, y sin su sombra un
+     elemento a +16 px se lee como un elemento plano mas claro. */
   --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.9);
+  --sombra-alzado: 0 2px 6px rgba(0, 0, 0, 0.55);
   /* El corte de las dos esquinas opuestas del troquel. */
   --troquel: 10px;
 }
@@ -85,6 +89,9 @@
   --placa-muerta: #a3a099;
   --hundido: #e7e5e0;
   --sombra-hundido: inset 0 3px 10px rgba(0, 0, 0, 0.18);
+  /* La misma proporcion que guarda --sombra-hundido entre sus dos temas
+     (.9 -> .18): sobre hueso, un 0,55 no se lee como sombra, se lee como suciedad. */
+  --sombra-alzado: 0 2px 6px rgba(0, 0, 0, 0.12);
   --troquel: 10px;
 }
 
@@ -192,6 +199,52 @@
   --z-superpuesto: 300;
   --z-tooltip: 400;
 
+  /* ============ Escala de profundidad ============
+     La tercera escala del sistema, hermana de las capas y las duraciones. Existe
+     por el mismo motivo que aquellas: sin ella cada pantalla se inventa su
+     `translateZ` y cinco pantallas con profundidad se notan cinco pantallas
+     distintas. Criterio de revision de una linea: si un `translateZ` del area de
+     entrenamiento no es una de estas cinco variables, esta mal.
+
+     Los valores no son nuevos ni redondos por gusto. Salen de lo que la app YA
+     hacia: los 900 px de perspectiva son los de PortadaMicrociclo, FichaPanini y
+     RolloDePelicula; los 12 grados son el MAX_GRADOS que `inclinacionAlPuntero.ts`
+     ya trae; y los 6 los razono PortadaMicrociclo cuando bajo de 12 «porque esto
+     es una superficie de lectura».
+
+     A 900 px de perspectiva, cada escalon cambia el tamano aparente: -24 es
+     -2,6 %, -8 es -0,9 %, +16 es +1,8 % y +40 es +4,7 %. Eso importa dos veces.
+     Una: +40 sigue por debajo del 12 % de `.latido`, asi que la profundidad nunca
+     grita mas que el enfasis. Y dos, la que muerde: HUNDIR ENCOGE. Una diana de
+     44 px hundida a -8 px se queda en 43,6 y cae bajo el minimo tactil, asi que
+     NINGUNA zona tocable baja del plano. */
+  --prof-fondo: -24px;    /* otro plano, detras de la superficie: rieles, colas, lo que espera */
+  --prof-hueco: -8px;     /* materia que falta DENTRO de la misma placa: cifras, troqueles, notas al pie */
+  --prof-plano: 0px;      /* el suelo, y el punto de retorno de toda transicion. Tiene nombre por lo mismo que --z-lienzo: 0 */
+  --prof-relieve: 16px;   /* acunado sobre la placa: tipografia, chips, teclas, placas secundarias */
+  --prof-sujeto: 40px;    /* despegado. UNO por escena: si hay dos, la escena ha dejado de decir donde mirar */
+
+  --perspectiva: 900px;
+  /* La fuga por encima del centro: el movil esta en el suelo o en el banco y se
+     mira hacia abajo. Es la misma mirada que asume `--foto-pos`. */
+  --perspectiva-origen: 50% 32%;
+
+  --giro-lectura: 6deg;   /* tope de cualquier superficie con una cifra o un rotulo dentro */
+  --giro-objeto: 12deg;   /* solo para objetos sin un solo glifo: medallon, ficha, plancha */
+
+  /* ============ La puerta de camara ============
+     Hay pantallas de esta app que corren con `getUserMedia` abierto a 50 fps, y
+     ahi el presupuesto de fotogramas no es una metafora: se pierde la toma.
+
+     Cualquier escena de profundidad se declara con `.escena-prof`, y basta con
+     poner `data-camara-abierta` en un ancestro para que TODA la profundidad de
+     dentro se aplane. Se apaga en la raiz de la escena y no elemento a elemento,
+     porque un `!important` por hijo seria imposible de auditar.
+
+     Lo que esto hace y lo que no: quitar la `perspective` elimina el escorzo, o
+     sea la profundidad visible, y `flat` deshace la cadena 3D. Las capas de
+     composicion que ya creo cada `translateZ` NO desaparecen; para eso habria que
+     quitar el transform de cada hijo. Es un apagado del efecto, no del coste. */
   /* ============ Escala de duraciones ============
      Las curvas ya existian; lo que faltaba era el tiempo. Sin esta escala cada
      pantalla elegia el suyo y ninguna se movia igual que la de al lado. */
@@ -502,10 +555,15 @@ body {
 }
 
 /* Pulso de urgencia en los últimos segundos del descanso */
+/* El pico es ADITIVO: el envolvente de la cifra ya esta en --prof-relieve (+16),
+   asi que este +24 aterriza exacto en --prof-sujeto (+40). Los escalones se suman
+   a proposito — asi no hace falta un translateZ suelto para el pico, que seria el
+   primer valor fuera de la escala. Sin perspectiva alrededor, el translateZ no
+   pinta nada y queda el scale de siempre. */
 @keyframes tic-urgente {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.18); }
-  100% { transform: scale(1); }
+  0% { transform: translateZ(0) scale(1); }
+  30% { transform: translateZ(24px) scale(1.18); }
+  100% { transform: translateZ(0) scale(1); }
 }
 
 .tic-urgente {
@@ -924,5 +982,30 @@ body {
   ::view-transition-old(ventana-hero),
   ::view-transition-new(ventana-hero) {
     animation: none;
+  }
+}
+
+/* ---------- Profundidad: la escena y su puerta ---------- */
+
+.escena-prof {
+  perspective: var(--perspectiva);
+  perspective-origin: var(--perspectiva-origen);
+}
+
+[data-camara-abierta] .escena-prof {
+  perspective: none;
+}
+
+[data-camara-abierta] .escena-prof * {
+  transform-style: flat;
+}
+
+/* `prefers-reduced-motion` NO aplana la profundidad, y es deliberado: la
+   profundidad es una posicion, no un movimiento. Lo que se quita son las
+   transiciones entre escalones, no los escalones. Aplanarla dejaria la jerarquia
+   sostenida solo por el color, que es justo lo que la marca decidio no hacer. */
+@media (prefers-reduced-motion: reduce) {
+  .escena-prof * {
+    transition-duration: 1ms !important;
   }
 }
