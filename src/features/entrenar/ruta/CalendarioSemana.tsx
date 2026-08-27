@@ -115,7 +115,10 @@ export function CalendarioSemana({ dias, titulo }: Props) {
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      {/* La semana es un TECLADO: siete teclas que sobresalen de la placa y recorren
+          sus 16 px al pulsarlas. Por eso la rejilla abre su propia escena — sin
+          `perspective` un `translateZ` no escorza, solo promueve una capa. */}
+      <div className="escena-prof grid grid-cols-7 gap-1.5">
         {dias.map((dia, i) => {
           const activo = i === seleccionado
           return (
@@ -131,7 +134,19 @@ export function CalendarioSemana({ dias, titulo }: Props) {
               // `.press`, no un `active:scale-95` suelto. La fila de agenda de
               // justo encima ya usaba `.press`, así que dos elementos que hacen lo
               // mismo se comportaban distinto con la preferencia activa.
-              className={`press flex flex-col items-center gap-1.5 rounded-xl border px-0.5 pb-2.5 pt-2.5 ${
+              //
+              // Y ahora `.tecla-3d` en vez de `.press`. NO se apilan —lo dice
+              // `tokens.css` al declararla—: las dos escriben `transform` y ganaría
+              // la última. La tecla trae el mismo `scale(0.97)`, la misma duración y
+              // la misma curva que `.press`, así que el tacto es idéntico; lo que
+              // añade es el recorrido real, de `--prof-relieve` a `--prof-plano`. El
+              // día se pulsa, no se encoge. Y sube en vez de bajar: hundir encoge, y
+              // una diana de 44 px hundida se queda en 43,6 — bajo el mínimo táctil.
+              //
+              // `.tecla-3d` enumera sus propias transiciones, así que aquí no puede
+              // ir NINGUNA utilidad de transición de Tailwind: hay un guardián que
+              // lo comprueba, porque esa colisión no se pone roja en ninguna parte.
+              className={`tecla-3d flex flex-col items-center gap-1.5 rounded-xl border px-0.5 pb-2.5 pt-2.5 ${
                 activo ? 'border-accion/45' : 'border-ink-500 bg-ink-800'
               }`}
               style={

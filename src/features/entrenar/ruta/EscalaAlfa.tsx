@@ -60,7 +60,7 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
       </h3>
       <ol className="flex flex-col">
         {niveles.map((nivel, i) => (
-          <li key={nivel.numero} className="flex items-stretch gap-3.5">
+          <li key={nivel.numero} className="escena-prof flex items-stretch gap-3.5">
             <div className="flex w-[34px] shrink-0 flex-col items-center">
               <span
                 className={`cifras grid h-[34px] w-[34px] place-items-center rounded-full border-[1.5px] text-[12.5px] font-bold ${claseNodo(nivel.estado)}`}
@@ -75,7 +75,13 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
               {i < niveles.length - 1 && (
                 <span
                   aria-hidden="true"
+                  // El riel se va al fondo. `--prof-fondo` está definido con esta
+                  // palabra exacta —«otro plano, detrás de la superficie: rieles,
+                  // colas, lo que espera»— y esto es un riel literal: no es
+                  // contenido, es lo que une dos peldaños. Detrás, los nodos y las
+                  // tarjetas quedan delante y la línea de tiempo gana su eje.
                   className={`min-h-3.5 w-0.5 flex-1 ${nivel.estado === 'superado' ? 'bg-accion' : 'bg-ink-500'}`}
+                  style={{ transform: 'translateZ(var(--prof-fondo))' }}
                 />
               )}
             </div>

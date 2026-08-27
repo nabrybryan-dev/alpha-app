@@ -22,7 +22,10 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
         {competencias.map((c) => {
           const color = COLOR[gradoDeCompetencia(c.pct)]
           return (
-            <article key={c.id} className="rounded-[13px] border border-ink-500 bg-ink-800 px-3.5 py-3">
+            <article
+              key={c.id}
+              className="escena-prof rounded-[13px] border border-ink-500 bg-ink-800 px-3.5 py-3"
+            >
               <div className="flex items-baseline justify-between gap-2.5">
                 <h4 className="text-[13.5px] font-bold text-silver-100">{c.nombre}</h4>
                 <span className={`cifras text-[13px] font-bold ${color.texto}`}>{c.pct}%</span>
@@ -33,7 +36,7 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label={c.nombre}
-                className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
+                className="pozo-3d mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
               >
                 {/* `scaleX` y no `width`: aquí son N barras a la vez, una por
                     competencia, así que es donde más se nota pasar de N cálculos
