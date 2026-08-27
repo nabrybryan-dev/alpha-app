@@ -136,7 +136,7 @@ export function ResultadoSerie({
           <button
             type="button"
             onClick={onRepetir}
-            className="min-h-11 w-full rounded-panel bg-rojo px-4 font-display font-bold text-white"
+            className="press min-h-11 w-full rounded-panel bg-rojo px-4 font-display font-bold text-white"
           >
             {COPY.resultado_repetir}
           </button>
@@ -239,7 +239,7 @@ export function ResultadoSerie({
             <button
               type="button"
               onClick={onVerPalancas}
-              className="min-h-11 w-full rounded-panel border border-hairline-fuerte px-4 font-display font-bold text-texto"
+              className="press min-h-11 w-full rounded-panel border border-hairline-fuerte px-4 font-display font-bold text-texto"
             >
               Ver quién llevó el peso
             </button>

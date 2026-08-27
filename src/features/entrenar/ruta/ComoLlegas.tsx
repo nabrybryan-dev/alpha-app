@@ -36,9 +36,14 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
         aria-label="Índice de recuperación"
         className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
       >
+        {/* El relleno va por `scaleX` y no por `width`: width relayoutea en cada
+            fotograma y esta pantalla corre con la pieza cinemática haciendo scrub
+            de un canvas en su propio rAF. Es la técnica que `.barra-crece` ya usa
+            en tokens.css. Va como `transition` y no como keyframe porque el valor
+            cambia en vivo y una transición se re-dirige a mitad de camino. */}
         <span
-          className={`block h-full rounded-full transition-[width] duration-700 ease-salida ${t.barra}`}
-          style={{ width: `${indice}%` }}
+          className={`block h-full w-full origin-left rounded-full transition-transform duration-base ease-salida ${t.barra}`}
+          style={{ transform: `scaleX(${Math.max(0, Math.min(100, indice)) / 100})` }}
         />
       </div>
       <p className="mt-2 text-[11.5px] leading-relaxed text-silver-400">

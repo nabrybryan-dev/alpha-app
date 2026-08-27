@@ -24,7 +24,7 @@ export function SesionCerrada({ sesion }: { sesion: Sesion }) {
       <h2 className="font-display text-3xl text-texto">Sesión {sesion.nombre} registrada</h2>
       <p className="cifras text-lg font-bold text-logrado">+{XP_POR_ACCION.sesion} XP</p>
       {reflexion && (
-        <p className="entrada entrada-3 max-w-xs font-display text-lg leading-snug text-texto">{reflexion}</p>
+        <p className="entrada entrada-2 max-w-xs font-display text-lg leading-snug text-texto">{reflexion}</p>
       )}
       <p className="max-w-xs text-sm text-tenue">
         Tus datos ya quedaron guardados para la próxima decisión de programación del coach.

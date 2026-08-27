@@ -29,13 +29,13 @@ export function BloquesSesion({ bloques, esMetabolica, onMarcar }: BloquesSesion
               type="button"
               aria-label={bloque.hechoEn ? `Desmarcar ${bloque.titulo}` : `Marcar ${bloque.titulo}`}
               onClick={() => onMarcar(bloque.id)}
-              className={`press mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-200 ease-salida ${
+              className={`press mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-toque ease-salida ${
                 bloque.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
               }`}
             >
               {bloque.hechoEn && <CheckDibujado className="h-5 w-5" />}
             </button>
-            <div className={`transition-opacity duration-200 ${bloque.hechoEn ? 'opacity-60' : ''}`}>
+            <div className={`transition-opacity duration-toque ease-salida ${bloque.hechoEn ? 'opacity-60' : ''}`}>
               <p className="text-sm font-bold text-texto">
                 {bloque.titulo}
                 {bloque.duracionMin ? (
