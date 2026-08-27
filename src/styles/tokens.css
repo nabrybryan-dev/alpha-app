@@ -1345,6 +1345,25 @@ body {
 
 /* ---------- Profundidad: la escena y su puerta ---------- */
 
+/* VA EN EL PADRE DIRECTO DEL `translateZ`, NO EN LA SECCION QUE LO CONTIENE.
+   `perspective` solo alcanza a los HIJOS DIRECTOS del elemento que la declara; un
+   nieto no escorza salvo que toda la cadena intermedia lleve `preserve-3d`.
+
+   Puesta demasiado arriba, el fallo es MUDO: el `translateZ` se aplica, la capa se
+   promueve —o sea que se paga el coste— y la pantalla se ve EXACTAMENTE plana. No hay
+   error, no hay consola, y los estilos calculados dicen que el transform esta ahi.
+   Paso el 27/08 con la Ruta: 15 de 31 elementos con su escalon correcto y ni uno
+   escorzando, porque la escena estaba en la <section> y las piezas colgaban dos y tres
+   niveles mas abajo.
+
+   COMO SE COMPRUEBA QUE SE VE, que no es lo mismo que comprobar que esta: el
+   encogimiento. A 900 px de perspectiva un elemento a --prof-hueco tiene que medir en
+   pantalla un factor 0,9912 de su caja de maquetacion, y uno a --prof-relieve, 1,0181.
+   Los factores estan arriba, en el bloque de la escala.
+
+     getBoundingClientRect().width / offsetWidth
+
+   Si da 1, la profundidad no se ve por mucho que el `translateZ` este escrito. */
 .escena-prof {
   perspective: var(--perspectiva);
   perspective-origin: var(--perspectiva-origen);
