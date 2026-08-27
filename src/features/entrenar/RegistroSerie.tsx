@@ -8,6 +8,7 @@ import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
 import { IconoCamara } from '../../components/ui/Icono'
 import { HojaMedicion } from './encoder/HojaMedicion'
+import { marcarCamaraAbierta } from './camaraAbierta'
 
 interface RegistroSerieProps {
   ejercicio: EjercicioPrescrito
@@ -81,10 +82,7 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
   // puerta vive en `tokens.css`, que es donde se puede auditar de un vistazo.
   useEffect(() => {
     if (!midiendo) return
-    document.body.dataset.camaraAbierta = 'si'
-    return () => {
-      delete document.body.dataset.camaraAbierta
-    }
+    return marcarCamaraAbierta()
   }, [midiendo])
 
   return (

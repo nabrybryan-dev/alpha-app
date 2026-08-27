@@ -121,6 +121,39 @@ describe('ExerciseSlotMachine', () => {
     expect(container.innerHTML).toContain('translateY(')
   })
 
+  it('con la cámara capturando NO gira: va directo a la parada', () => {
+    // La puerta de `tokens.css` no cubre este caso, y por eso hace falta este
+    // test. Para animaciones con `animation-play-state`; el giro no es una
+    // animación sino una cadena de temporizadores que hace un `setState` por
+    // paso — de 38 a 62 renders completos del gabinete en poco más de un
+    // segundo. Ninguna regla de CSS puede pararlo.
+    //
+    // Se mira A MEDIA ROTACIÓN, y eso es la mitad del test: la primera versión
+    // avanzaba 4000 ms, o sea el giro entero, así que el desenfoque ya se había
+    // ido cuando comprobaba y pasaba en verde SIN el arreglo puesto.
+    const aMediaRotacion = () => {
+      act(() => {
+        vi.advanceTimersByTime(200)
+      })
+    }
+
+    const normal = render(<ExerciseSlotMachine {...BASE} />)
+    aMediaRotacion()
+    expect(normal.container.innerHTML, 'sin cámara el carrete gira y se desenfoca').toContain('blur(')
+    normal.unmount()
+
+    document.body.dataset.camaraAbierta = 'si'
+    try {
+      const conCamara = render(<ExerciseSlotMachine {...BASE} />)
+      aMediaRotacion()
+      expect(conCamara.container.innerHTML, 'con cámara no arranca la cadena').not.toContain('blur(')
+      // Y la parada se ve igual: se pierde el giro, no el argumento.
+      expect(screen.getByText('LIBERTY BELL')).toBeInTheDocument()
+    } finally {
+      delete document.body.dataset.camaraAbierta
+    }
+  })
+
   it('no gira solo: el reloj está anulado por defecto', () => {
     render(<ExerciseSlotMachine {...BASE} />)
     act(() => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
+import { camaraAbierta } from './camaraAbierta'
 import { cargarFuentesDelGabinete } from './fuentesDelGabinete'
 import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './slotThemes'
 
@@ -134,7 +135,17 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
       limpiar()
       setCredits((c) => (c <= 1 ? CREDITOS_INICIALES : c - 1))
 
-      if (reducido) {
+      // El giro se salta entero con movimiento reducido y con la camara
+      // capturando: en los dos casos se va directo a la parada, que es lo que de
+      // verdad hay que enseñar. Se pierde el giro, no el argumento.
+      //
+      // La puerta de `tokens.css` NO cubre esto, y conviene saber por que: para
+      // animaciones con `animation-play-state`, y este giro no es una animacion
+      // sino una cadena de temporizadores que hace un `setState` por paso — 38 a
+      // 62 renders completos del gabinete en poco mas de un segundo. Ninguna
+      // regla de CSS puede pararlo. Quien programa trabajo repetido tiene que
+      // preguntar el.
+      if (reducido || camaraAbierta()) {
         setCatIdx(objetivo)
         return
       }
