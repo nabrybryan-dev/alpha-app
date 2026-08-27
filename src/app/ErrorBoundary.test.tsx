@@ -47,21 +47,23 @@ describe('ErrorBoundary · el trozo que ya no existe', () => {
    * LO QUE ARREGLA EL FALLO REPORTADO. Recargar es lo único que sirve: entonces
    * el navegador pide el `index.html` nuevo, que apunta a los nombres nuevos.
    */
-  it('recarga sola cuando el fichero de la sección ya no existe', () => {
+  it('recarga sola cuando el fichero de la sección ya no existe', async () => {
     render(
       <ErrorBoundary>
         <Explota mensaje={ERROR_DE_DESPLIEGUE} />
       </ErrorBoundary>,
     )
 
-    expect(recargas).toBe(1)
+    // Asíncrona: antes de recargar se tira la caché del service worker, que es
+    // la que servía el `index.html` viejo. Ver `despliegueNuevo.ts`.
+    await vi.waitFor(() => expect(recargas).toBe(1))
   })
 
   /**
    * Y NO recarga ante un error de verdad de la app: hacerlo taparía el fallo
    * con una recarga y nadie llegaría a leer nunca el mensaje.
    */
-  it('un error normal no provoca recarga: se enseña, como siempre', () => {
+  it('un error normal no provoca recarga: se enseña, como siempre', async () => {
     render(
       <ErrorBoundary>
         <Explota mensaje="Cannot read properties of undefined" />
