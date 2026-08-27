@@ -8,6 +8,7 @@ import { TablaTanda } from './TablaTanda'
 import { Encuadre } from './Encuadre'
 import { PanelPalancas } from './PanelPalancas'
 import { COPY } from './copys'
+import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import {
@@ -301,6 +302,9 @@ export default function EncoderPage() {
               </span>
             </div>
           )}
+          {/* Sobre la imagen y no debajo del boton, que es donde empujaba.
+              Ver `AvisoDeCaptura`. */}
+          <AvisoDeCaptura aviso={captura.aviso} />
         </div>
 
         {/* Las tres que deciden si la toma sirve, grandes; el resto, de apoyo.
@@ -317,12 +321,6 @@ export default function EncoderPage() {
           <Medida nombre="muestras" valorRef={muestrasRef} inicial="0" />
           <Medida nombre="reloj" valorRef={relojRef} />
         </div>
-
-        {captura.aviso && (
-          <p className="border-t border-white/10 px-4 py-3 text-sm text-white/70">
-            {captura.aviso}
-          </p>
-        )}
 
         <div className="flex flex-wrap gap-2 border-t border-white/10 p-3">
           {!captura.camaraAbierta ? (
