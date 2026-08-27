@@ -536,6 +536,22 @@ body {
   box-shadow: var(--sombra-hundido);
 }
 
+/* Lo que espera detras: rieles, colas, colecciones. Es --prof-fondo puesto sobre
+   los HIJOS y no sobre el elemento, para que cada bloque traiga su propia escena.
+
+   Trae su propia escena porque en la pantalla de sesion NO se puede poner una
+   perspectiva en un ancestro comun: de la tarjeta del ejercicio cuelga la hoja de
+   la camara, que es `fixed inset-0`, y un `perspective` arriba la encerraria en
+   una tarjeta de 350 px. Asi cada riel recede por su cuenta y la tarjeta se queda
+   en el plano de delante, sola.
+
+   VA SIEMPRE JUNTO A .escena-prof, nunca sola: la puerta de camara se cuelga de
+   `.escena-prof`, asi que un fondo sin ella seguiria con escorzo durante la toma.
+   Hay un guardian que lo comprueba. */
+.al-fondo > * {
+  transform: translateZ(var(--prof-fondo));
+}
+
 /* El asentado de la consola: entra inclinada y se posa. 240 ms y sin escalonado,
    porque esto se reproduce despues de CADA serie —unas 25 veces por sesion— y la
    tabla de frecuencia del estandar dice reducir, no adornar. */
