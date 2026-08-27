@@ -1,5 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { esModuloQueYaNoExiste, recargarPorDespliegue } from './despliegueNuevo'
+import {
+  esModuloQueYaNoExiste,
+  recargarPorDespliegue,
+  tirarLoViejoYRecargar,
+} from './despliegueNuevo'
 
 interface Props {
   children: ReactNode
@@ -46,11 +50,24 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('Fallo de interfaz contenido por ErrorBoundary', error, info.componentStack)
   }
 
+  /**
+   * El botón, cuando el fallo es un despliegue.
+   *
+   * Recargar pelado NO basta, y es justo aquí donde se nota: a este botón solo
+   * se llega cuando la recarga automática ya se intentó y el freno la paró, o
+   * sea en el único caso en que el service worker sigue siendo el viejo. Una
+   * recarga sin limpiar volvería a servir su `index.html` cacheado, que pide
+   * los mismos ficheros que ya no existen. Ver `despliegueNuevo.ts`.
+   */
+  private recargarLimpiando = () => {
+    void tirarLoViejoYRecargar()
+  }
+
   private reintentar = () => {
     // Volver a renderizar pediría EL MISMO fichero que no existe, y fallaría
     // igual. Por eso «Reintentar» no servía y había que salir de la app.
     if (this.state.esDespliegue) {
-      window.location.reload()
+      this.recargarLimpiando()
       return
     }
     this.setState({ hayError: false, detalle: '', esDespliegue: false })
@@ -74,7 +91,7 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={this.state.esDespliegue ? this.recargarLimpiando : () => window.location.reload()}
               className="mt-4 rounded-xl bg-rojo px-6 py-3 font-display text-sm text-white"
             >
               Recargar
