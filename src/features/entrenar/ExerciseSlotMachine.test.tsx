@@ -13,6 +13,59 @@ function conMovimientoReducido(reducido: boolean) {
   }))
 }
 
+/**
+ * jsdom no implementa la Web Animations API, así que sin esto el gabinete cae en
+ * su rama de «no hay con qué animar» y no gira nunca. Se declara una que lleva su
+ * propio reloj: `onfinish` a los `duration` ms, con los temporizadores falsos de
+ * vitest, para que el giro termine cuando el test adelanta el tiempo.
+ *
+ * Lo que estas pruebas comprueban es lo que SE LE PIDE al navegador —cuántos
+ * saltos, a qué fila, con qué curva y cuánto duran—, nunca que el navegador lo
+ * pinte. Eso último no lo puede ver ningún test de este repo.
+ */
+interface AnimacionFalsa {
+  marcos: Keyframe[]
+  opciones: KeyframeAnimationOptions
+  cancelada: boolean
+  onfinish: (() => void) | null
+  cancel: () => void
+}
+
+const animaciones: AnimacionFalsa[] = []
+
+function declararWaapi() {
+  animaciones.length = 0
+  vi.stubGlobal('HTMLElement', window.HTMLElement)
+  window.HTMLElement.prototype.animate = function animate(
+    marcos: Keyframe[],
+    opciones: KeyframeAnimationOptions,
+  ) {
+    const animacion: AnimacionFalsa = {
+      marcos,
+      opciones,
+      cancelada: false,
+      onfinish: null,
+      cancel: () => {
+        animacion.cancelada = true
+        clearTimeout(reloj)
+      },
+    }
+    const reloj = setTimeout(() => {
+      if (!animacion.cancelada) animacion.onfinish?.()
+    }, Number(opciones.duration ?? 0))
+    animaciones.push(animacion)
+    return animacion as unknown as Animation
+  } as unknown as HTMLElement['animate']
+}
+
+/** Las filas por las que pasa un carrete, leídas de sus fotogramas. */
+function filasDe(animacion: AnimacionFalsa): number[] {
+  return animacion.marcos.map((m) => {
+    const encontrado = /translateY\(-(\d+(?:\.\d+)?)px\)/.exec(String(m.transform))
+    return Number(encontrado?.[1] ?? -1)
+  })
+}
+
 const BASE = {
   index: 0,
   total: 5,
@@ -28,6 +81,7 @@ describe('ExerciseSlotMachine', () => {
   beforeEach(() => {
     conMovimientoReducido(false)
     vi.useFakeTimers({ shouldAdvanceTime: true })
+    declararWaapi()
   })
 
   afterEach(() => {
@@ -168,17 +222,13 @@ describe('ExerciseSlotMachine', () => {
    * No es rebuscado: el giro se dispara a los 60 ms de montar CADA ejercicio,
    * y abrir la cámara es un toque que cae donde caiga.
    */
-  it('si la cámara se abre A MEDIA TIRADA, la cadena se corta', async () => {
-    // Los desplazamientos son la huella de la cadena: cada paso de cada carrete
-    // mueve un `translateY`. Se miran ellos y no el `innerHTML` entero para que
-    // el test hable del giro y no de cualquier otra cosa que repinte.
-    const desplazamientos = (html: string) => html.match(/translateY\([^)]*\)/g) ?? []
-
+  it('si la cámara se abre A MEDIA TIRADA, el giro se corta', async () => {
     const { container } = render(<ExerciseSlotMachine {...BASE} />)
     act(() => {
       vi.advanceTimersByTime(200)
     })
-    expect(container.innerHTML, 'la cadena tiene que estar viva para poder cortarla').toContain('blur(')
+    expect(container.innerHTML, 'el giro tiene que estar vivo para poder cortarlo').toContain('blur(')
+    expect(animaciones.length, 'no se pidió ninguna animación').toBeGreaterThan(0)
 
     try {
       // La cámara se abre AHORA. `RegistroSerie` escribe el atributo en el
@@ -189,13 +239,19 @@ describe('ExerciseSlotMachine', () => {
         await Promise.resolve()
       })
 
+      // Cancelar es AHORA la única forma de parar esto: la regla de `tokens.css`
+      // pausa animaciones declaradas en CSS, y estas no lo son.
+      expect(
+        animaciones.every((a) => a.cancelada),
+        'quedaron animaciones vivas con la cámara abierta',
+      ).toBe(true)
       expect(container.innerHTML, 'el desenfoque del giro sigue puesto').not.toContain('blur(')
-      const quieto = desplazamientos(container.innerHTML)
 
+      const pedidas = animaciones.length
       act(() => {
         vi.advanceTimersByTime(4000)
       })
-      expect(desplazamientos(container.innerHTML), 'la cadena siguió avanzando con la cámara abierta').toEqual(quieto)
+      expect(animaciones.length, 'se pidió una animación nueva después de cortar').toBe(pedidas)
 
       // Y se pierde el giro, no el argumento: la parada a la que iba se ve.
       expect(screen.getByText('LIBERTY BELL')).toBeInTheDocument()
@@ -203,6 +259,51 @@ describe('ExerciseSlotMachine', () => {
     } finally {
       delete document.body.dataset.camaraAbierta
     }
+  })
+
+  /**
+   * El giro pasó de una cadena de `setTimeout` con un `setState` por paso —de 38
+   * a 62 renders completos del gabinete en poco más de un segundo— a la Web
+   * Animations API, que es lo que este repo ya usa para el volteo del águila.
+   *
+   * Lo que este test protege es que se TRANSCRIBIÓ y no se reinterpretó: los
+   * mismos saltos, a las mismas filas, con la misma duración y la misma curva de
+   * asiento. Si alguien cambia el movimiento sin querer, aquí se ve.
+   */
+  it('el giro se pide a la Web Animations API con los saltos de siempre', () => {
+    const tema = temaDeEjercicio(0)
+    const alto = tema.ventana.alto
+    // Las cuatro paradas de BASE, media fila por paso: ocho filas.
+    const filas = 4 * 2
+    const pasos = Math.round(tema.brake / tema.step)
+
+    render(<ExerciseSlotMachine {...BASE} />)
+    act(() => {
+      vi.advanceTimersByTime(60)
+    })
+
+    // Tres carretes: los dos laterales y la ventana. LIBERTY BELL los tiene.
+    expect(animaciones).toHaveLength(3)
+    const central = animaciones[2]
+
+    expect(central.opciones.duration, 'el giro dura otra cosa').toBe(pasos * tema.step)
+    expect(filasDe(central), 'el carrete ya no salta de fila en fila').toEqual(
+      Array.from({ length: pasos + 1 }, (_, k) => (k % filas) * alto),
+    )
+    expect(
+      central.marcos.every((m) => m.easing === 'steps(1, jump-end)'),
+      'un fotograma sin salto: el carrete se desliza en vez de saltar',
+    ).toBe(true)
+
+    // Y al terminar los saltos, el asiento: la curva con rebote del archivo.
+    act(() => {
+      vi.advanceTimersByTime(pasos * tema.step)
+    })
+    const asiento = animaciones[3]
+    expect(asiento.opciones.duration, 'el asiento ya no dura los .68s de la transición').toBe(680)
+    expect(asiento.opciones.easing).toBe('cubic-bezier(.14,1.06,.32,1)')
+    // Sale de donde lo dejaron los saltos y aterriza en la parada de destino.
+    expect(filasDe(asiento)).toEqual([(pasos % filas) * alto, 0])
   })
 
   it('no gira solo: el reloj está anulado por defecto', () => {
