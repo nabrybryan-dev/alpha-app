@@ -71,7 +71,13 @@ function Control({ etiqueta, valor, min, max, paso, formato, onCambio }: Control
 function ParDeErrores({ sinCorregir, corregido }: { sinCorregir: number; corregido: number }) {
   const tope = Math.max(0.3, sinCorregir * 1.15)
   const pct = (x: number) => `${(100 * x).toFixed(1)} %`
-  const ancho = (x: number) => `${Math.min(100, (100 * x) / tope)}%`
+  // La fraccion de la barra, NO su anchura. Se pinta con `scaleX` y no con
+  // `width` porque el ancho relayoutea, y esta pantalla se usa con la camara ya
+  // abierta: robarle presupuesto puede tumbar la toma por debajo de 50 fps. Es
+  // la regla que `tokens.css` ya escribio para estas dos barras — pero solo
+  // valia para la entrada, y cada movimiento del deslizador volvia a escribir
+  // una anchura.
+  const fraccion = (x: number) => Math.min(1, x / tope)
 
   return (
     <Card>
@@ -86,17 +92,37 @@ function ParDeErrores({ sinCorregir, corregido }: { sinCorregir: number; corregi
               {pct(c.v)}
             </p>
             <div className="mt-2 h-[6px] overflow-hidden rounded-full bg-[var(--hundido)]">
-              {/* El stagger de 60 ms hace que se lean como comparación y no como
-                  dos datos sueltos. Se anima el ancho una sola vez, a la entrada. */}
+              {/* Dos capas, y no es adorno: la entrada y el valor en vivo se
+                  pelearian por la misma propiedad si fueran una sola.
+
+                  FUERA, la entrada — el stagger de 60 ms hace que las dos barras
+                  se lean como comparación y no como dos datos sueltos. Corre una
+                  vez y no vuelve.
+
+                  DENTRO, el valor. Se pinta con `scaleX` y no con `width`, que
+                  es lo que hacía hasta hoy: cada movimiento del deslizador
+                  reescribía un porcentaje de anchura, o sea layout, pintado y
+                  composición en el hilo principal, decenas de veces por segundo
+                  mientras el dedo arrastra. Y por el camino de
+                  `requestAnimationFrame` del bucle de captura, ese layout se
+                  recalcula DENTRO del fotograma que la cámara intenta cerrar.
+
+                  Las dos escalas se multiplican, así que la entrada sigue
+                  creciendo desde cero hasta el valor que toque. */}
               <div
-                className="h-full rounded-full motion-safe:animate-[crecer-barra_420ms_cubic-bezier(.16,1,.3,1)_both]"
-                style={{
-                  width: ancho(c.v),
-                  background: c.color,
-                  animationDelay: `${i * 60}ms`,
-                  transformOrigin: "left",
-                }}
-              />
+                className="h-full motion-safe:animate-[crecer-barra_420ms_cubic-bezier(.16,1,.3,1)_both]"
+                style={{ animationDelay: `${i * 60}ms`, transformOrigin: 'left' }}
+              >
+                <div
+                  className="h-full w-full rounded-full"
+                  style={{
+                    background: c.color,
+                    transform: `scaleX(${fraccion(c.v)})`,
+                    transformOrigin: 'left',
+                    transition: 'transform var(--dur-base) var(--ease-salida)',
+                  }}
+                />
+              </div>
             </div>
           </div>
         ))}

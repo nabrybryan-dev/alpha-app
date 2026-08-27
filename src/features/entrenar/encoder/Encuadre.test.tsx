@@ -128,4 +128,18 @@ describe('confirmar devuelve la colocación elegida', () => {
     fireEvent.click(screen.getByText('Ya está colocada'))
     expect(recibido).toEqual([{ dist: 2.5, altura: 0.95, desvio: 0 }])
   })
+
+  it('el par de errores viaja por scaleX y NUNCA por width', () => {
+    // Esta pantalla se usa con la camara ya abierta. Escribir un porcentaje de
+    // anchura en cada movimiento del deslizador es layout, pintado y composicion
+    // en el hilo principal decenas de veces por segundo — y por el camino de
+    // `requestAnimationFrame` del bucle de captura, ese layout se recalcula
+    // DENTRO del fotograma que la camara intenta cerrar.
+    //
+    // Es la regla que `tokens.css` ya tenia escrita para estas dos barras, pero
+    // solo se cumplia en la entrada.
+    const { container } = render(<Encuadre inicial={FUERA_DEL_EJE} />)
+    expect(container.innerHTML).toContain('scaleX(')
+    expect(container.innerHTML).not.toMatch(/style="[^"]*width:\s*[\d.]+%/)
+  })
 })
