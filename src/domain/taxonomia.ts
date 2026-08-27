@@ -116,7 +116,21 @@ const EQUIVALENCIA: Readonly<Record<Categoria, readonly Aporte[]>> = {
   'EXTENSIÓN DE RODILLA': [directo('Cuádriceps')],
   'FLEXIÓN DE RODILLA': [directo('Isquios')],
   'FLEXIÓN PLANTAR': [directo('Pantorrillas')],
-  DORSIFLEXIÓN: [indirecto('Pantorrillas')],
+  // Decisión del coach 2026-08-27 (§3bis nota 4): NO suma a ningún grupo. El 0,5 a
+  // Pantorrillas era un error de anatomía escrito en la fuente de verdad — el tibial
+  // anterior dorsiflexiona y el tríceps sural plantiflexiona: son ANTAGONISTAS, así
+  // que una elevación de puntas no puede fatigar la pantorrilla.
+  //
+  // Se vio en un documento real: en el M23 de Dhanny, 1,5 de las 5,5 series de
+  // Pantorrillas salían de aquí. Y el agravante es que ese grupo estaba bajo
+  // restricción de seguridad por sospecha de dolor plantar: el número que el coach
+  // iba a mirar para decidir cuánta pantorrilla queda estaba inflado justo por el
+  // ejercicio de rehabilitación que querría conservar.
+  //
+  // De las dos salidas —`Tibial` como grupo 13, o sacarla del conteo— se eligió la
+  // segunda: es trabajo preventivo, no de estímulo, y un grupo 13 obligaría a
+  // inventarle landmarks MEV/MAV/MRV sin literatura de volumen detrás.
+  DORSIFLEXIÓN: [],
   'EMPUJE HORIZONTAL': [directo('Pecho'), indirecto('Tríceps'), indirecto('Hombros')],
   'EMPUJE INCLINADO': [directo('Pecho'), indirecto('Hombros'), indirecto('Tríceps')],
   'EMPUJE VERTICAL': [directo('Hombros'), indirecto('Tríceps'), indirecto('Pecho')],
