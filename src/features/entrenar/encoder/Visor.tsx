@@ -155,25 +155,40 @@ export function Visor({ ajustes, children }: VisorProps) {
     <>
       <section className="overflow-hidden rounded-panel border border-white/10 bg-[#0a0a0a] shadow-lg">
         <div className="relative bg-black" style={{ aspectRatio: '4 / 3' }}>
+          {/* SOLO opacidad: ni escala ni desenfoque sobre el video. Escalar o
+              difuminar la imagen de un instrumento, aunque sean 240 ms, es
+              enseñar una imagen que NO es la que se esta midiendo.
+              El fundido es asimetrico a proposito: la imagen tarda 240 ms en
+              llegar y el cartel se va en 160. Lo que entra puede tomarse su
+              tiempo; lo que sobra se quita de en medio. */}
           <video
             ref={videoRef}
             playsInline
             muted
             autoPlay
             className="h-full w-full object-contain"
+            style={{
+              opacity: captura.camaraAbierta ? 1 : 0,
+              transition: 'opacity var(--dur-base) var(--ease-salida)',
+            }}
           />
           <canvas
             ref={capaRef}
             onClick={alTocar}
             className="absolute inset-0 h-full w-full object-contain"
           />
-          {!captura.camaraAbierta && (
-            <div className="absolute inset-0 grid place-items-center">
-              <p className="px-8 text-center text-sm text-white/50">
-                Abre la cámara y toca el disco de la barra para fijarlo.
-              </p>
-            </div>
-          )}
+          <div
+            className="absolute inset-0 grid place-items-center"
+            style={{
+              opacity: captura.camaraAbierta ? 0 : 1,
+              transition: 'opacity var(--dur-toque) var(--ease-salida)',
+              pointerEvents: captura.camaraAbierta ? 'none' : undefined,
+            }}
+          >
+            <p className="px-8 text-center text-sm text-white/50">
+              Abre la cámara y toca el disco de la barra para fijarlo.
+            </p>
+          </div>
 
           {/* El estado de la referencia, sobre la imagen y en la esquina donde ya
               estaba el punto de grabar. Son TRES y no los cinco del entregable:

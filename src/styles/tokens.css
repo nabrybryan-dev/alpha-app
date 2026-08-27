@@ -494,6 +494,42 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- Una pieza que aparece donde no habia nada ---------- */
+
+/* Para lo que se monta de golpe: los plegables del encoder y la tarjeta de
+   resultado que sustituye al «sin medicion todavia».
+
+   `transition` con `@starting-style` y NO una keyframe, porque una pieza que se
+   sustituye por otra tiene que poder redirigirse a mitad de camino. Un navegador
+   que no entienda `@starting-style` la pinta directamente, que es lo que hacia
+   antes: se pierde la entrada, no la pieza.
+
+   NUNCA se anima el alto ni el `max-height` de un plegable. Un elemento animado
+   y uno solo —el envoltorio—, y nada de escalonar los hijos: serian N capas
+   promovidas con el bucle de captura corriendo.
+
+   Los 240 ms caen en los 150-250 que el estandar da a los desplegables. */
+.aparece-pieza {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--dur-base) var(--ease-salida),
+    transform var(--dur-base) var(--ease-salida);
+}
+
+@starting-style {
+  .aparece-pieza {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aparece-pieza {
+    transition: none;
+  }
+}
+
 /* ---------- La insignia del Salon de Maquinas ---------- */
 
 /* La clase `insignia-salon` ya estaba puesta en el marcado y NO EXISTIA en

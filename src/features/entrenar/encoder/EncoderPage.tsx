@@ -352,7 +352,16 @@ export default function EncoderPage() {
         </div>
       </section>
 
-      <ResultadoMedicion resultado={resultado} modo={modo} />
+      {/* Al parar, «Sin medicion todavia» se sustituia de golpe por la tarjeta
+          con el sello y las tres cifras. Entra como UNA sola pieza, sin
+          escalonar las cifras: son tres numeros que se leen juntos, y hacerlos
+          llegar en fila los convertiria en una secuencia que no lo es.
+          La `key` es lo que hace que la entrada ocurra: `@starting-style` solo
+          actua cuando el elemento se monta, asi que sin ella el envoltorio
+          persistiria y solo cambiarian los hijos. */}
+      <div key={resultado ? 'con-medida' : 'sin-medida'} className="aparece-pieza">
+        <ResultadoMedicion resultado={resultado} modo={modo} />
+      </div>
 
       <Card className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -444,7 +453,7 @@ export default function EncoderPage() {
           <span className="font-mono text-tenue">{palancasAbierto ? '−' : '+'}</span>
         </button>
         {palancasAbierto && (
-          <div className="mt-3 border-t border-hairline pt-3">
+          <div className="aparece-pieza mt-3 border-t border-hairline pt-3">
             <PanelPalancas />
           </div>
         )}
@@ -465,7 +474,7 @@ export default function EncoderPage() {
           <span className="font-mono text-tenue">{encuadreAbierto ? '−' : '+'}</span>
         </button>
         {encuadreAbierto && (
-          <div className="mt-3 border-t border-hairline pt-3">
+          <div className="aparece-pieza mt-3 border-t border-hairline pt-3">
             <Encuadre />
           </div>
         )}
