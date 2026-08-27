@@ -69,7 +69,12 @@ export function TablaTanda({ filas }: Props) {
             const cuadra = f.repsReales == null || f.repsReales === f.repsDetectadas
             const ocultas = seOcultanLasCifras(f.calidad)
             return (
-              <tr key={`${f.fecha}-${i}`} className="border-b border-hairline/60">
+              // Sin modificador de opacidad. `--hairline` ya es un `rgba()` con su
+              // propia alfa, así que no admite uno: Tailwind descartaba la clase, no
+              // generaba ninguna regla, y el borde caía al color por defecto de
+              // Tailwind —`#e5e7eb`— pintando una línea GRIS CLARA cruzando una tabla
+              // oscura. No era un fallo invisible: se veía.
+              <tr key={`${f.fecha}-${i}`} className="border-b border-hairline">
                 <td className="py-1.5 pr-2 text-tenue">{hora(f.fecha)}</td>
                 <td className="max-w-[9rem] truncate py-1.5 pr-2 font-sans text-texto" title={f.ejercicio}>
                   {f.ejercicio}
