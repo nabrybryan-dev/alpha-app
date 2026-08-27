@@ -460,13 +460,24 @@ function MarquesinaTema({ tema, reducido, bote }: { tema: SlotTheme; reducido: b
       <span style={{ fontFamily: tema.fuente, fontWeight: 900, fontSize: 10, letterSpacing: '.3em', color: tema.acento }}>
         JACKPOT
       </span>
-      <span
-        style={{
-          flex: 1, height: 5,
-          backgroundImage: `repeating-linear-gradient(90deg, ${tema.acento}e6 0 6px, transparent 6px 14px)`,
-          animation: reducido ? undefined : 'ledScan .85s linear infinite',
-        }}
-      />
+      {/* La tira de leds viaja con `transform` dentro de un contenedor recortado,
+          no animando `background-position`: eso repintaba la tira en cada
+          fotograma sin tocar el compositor, y corria mientras el encoder
+          captura. El hijo se extiende 14 px por la izquierda —un periodo entero
+          del degradado— para que al recorrerlos no aparezca un hueco. */}
+      <span style={{ flex: 1, height: 5, position: 'relative', overflow: 'hidden' }}>
+        <span
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: -14,
+            right: 0,
+            backgroundImage: `repeating-linear-gradient(90deg, ${tema.acento}e6 0 6px, transparent 6px 14px)`,
+            animation: reducido ? undefined : 'ledScan .85s linear infinite',
+          }}
+        />
+      </span>
       <span className="cifras" style={{ fontSize: 14, color: tema.acento, textShadow: `0 0 10px ${tema.acento}88` }}>
         {bote?.toLocaleString('es-CO')}
       </span>

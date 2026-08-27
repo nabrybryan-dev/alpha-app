@@ -894,9 +894,16 @@ body {
   74% { opacity: 1; }
 }
 
+/* Animaba `background-position`, que repinta la tira en cada fotograma y no
+   toca el compositor — y corria mientras el encoder captura a 50 fps. Ahora
+   viaja con `transform` dentro de un contenedor con `overflow: hidden`, que es
+   exactamente lo que este archivo ya decidio para `.brillo-carga`. Mismo
+   aspecto, misma cadencia, cero repintados. Los 14 px son el periodo del
+   `repeating-linear-gradient` de la tira: al recorrer uno entero, el bucle
+   empalma sin costura. */
 @keyframes ledScan {
-  from { background-position: 0 0; }
-  to { background-position: 14px 0; }
+  from { transform: translateX(0); }
+  to { transform: translateX(14px); }
 }
 
 @keyframes ribbonSway {
@@ -998,6 +1005,15 @@ body {
 
 [data-camara-abierta] .escena-prof * {
   transform-style: flat;
+}
+
+/* Y para TODA animacion mientras la camara captura, este dentro de una escena o
+   no. Es una sola propiedad y una sola regla, auditable de un vistazo: no hay
+   forma de que a alguien se le olvide apagar la suya. Un gabinete tiene cuatro
+   animaciones infinitas corriendo a la vez —bombillas, banderola, neon y la
+   tira de leds— y hasta hoy ninguna paraba durante la toma. */
+[data-camara-abierta] * {
+  animation-play-state: paused !important;
 }
 
 /* `prefers-reduced-motion` NO aplana la profundidad, y es deliberado: la
