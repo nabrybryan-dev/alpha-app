@@ -77,11 +77,7 @@ export function ProximosEjercicios({ ejercicios, exIdx, onIr }: NavegadorProps) 
                   se lee, no un botón. `--prof-hueco` es literalmente «cifras,
                   troqueles, notas al pie». */}
               <span
-                className="cifras grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-600 text-sm font-bold text-silver-400"
-                style={{
-                  transform: 'translateZ(var(--prof-hueco))',
-                  boxShadow: 'var(--sombra-hundido)',
-                }}
+                className="pozo-3d cifras grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-600 text-sm font-bold text-silver-400"
               >
                 {idx + 1}
               </span>

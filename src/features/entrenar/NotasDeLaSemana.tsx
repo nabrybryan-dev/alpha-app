@@ -37,11 +37,7 @@ export function NotasDeLaSemana({ notas }: { notas: ItemMarcable[] }) {
             // aviso que abre el microciclo y ya se decidió que no es una tarea que se
             // tacha. `--prof-relieve` es «acuñado sobre la placa: placas
             // secundarias». No es tocable, así que sube sin tocar el mínimo táctil.
-            className="rounded-[10px] border border-ink-500 border-l-[3px] border-l-accion bg-ink-700 px-3 py-[10px]"
-            style={{
-              transform: 'translateZ(var(--prof-relieve))',
-              boxShadow: 'var(--sombra-alzado)',
-            }}
+            className="relieve-3d rounded-[10px] border border-ink-500 border-l-[3px] border-l-accion bg-ink-700 px-3 py-[10px]"
           >
             <p className="text-[13.5px] font-bold leading-snug text-silver-100">{nota.titulo}</p>
             {nota.indicaciones && (

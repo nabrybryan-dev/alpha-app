@@ -64,14 +64,52 @@
      `--sombra-hundido` era la unica, y describia solo la materia que FALTA. Con
      la escala de profundidad aparece materia que SOBRESALE, y sin su sombra un
      elemento a +16 px se lee como un elemento plano mas claro. */
-  /* La linea de luz de 1 px es la mitad del efecto: marca el LABIO del hueco donde
-     le daria la luz. Sin ella un hundido es solo un rectangulo mas pequeno. */
+  /* ============ Lo que de verdad se ve ============
+     EL ESCORZO NO VENDE LA PROFUNDIDAD EN UNA PANTALLA PLANA. Se probo: la escala
+     entera aplicada y bien medida, y en un movil real la respuesta fue «lo veo todo
+     igual». Acercar la fuga de 900 a 650 subio el escalon del 1,8 % al 2,5 % y
+     siguio sin notarse, porque un 2,5 % de tamano no es una senal que un ojo lea en
+     una imagen quieta.
+
+     Lo que SI lee el ojo es el SOMBREADO, y son tres cosas a la vez:
+
+       1. El LABIO. Una linea de 1 px de luz donde daria la luz —arriba en lo
+          alzado, abajo en el fondo del hueco— y otra de sombra en el borde opuesto.
+          Es lo que dice de que lado esta la materia.
+       2. El DEGRADADO de la cara. Una superficie hundida recibe menos luz arriba
+          —la tapa su propio borde— y una alzada recibe mas. Sin esto los dos bordes
+          se leen como un marco decorativo en vez de como relieve.
+       3. La SOMBRA PROYECTADA, que solo tiene lo alzado. Es la que separa el objeto
+          del plano.
+
+     Nada de esto cuesta un fotograma: es pintura estatica dentro de una capa que ya
+     estaba promovida por el translateZ. Es gratis comparado con lo que ya se paga. */
   --sombra-hundido:
-    inset 0 4px 12px rgba(0, 0, 0, 0.95),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    inset 0 1px 0 rgba(0, 0, 0, 0.9),
+    inset 0 6px 14px rgba(0, 0, 0, 1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.11);
   --sombra-alzado:
-    0 3px 10px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    0 4px 12px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+
+  /* El degradado de la cara. Va como `background-image`, que COMPONE ENCIMA del
+     `background-color` que traiga cada elemento: asi una misma clase sirve sobre
+     ink-500, ink-800 o un color-mix sin tocar la paleta ni saber de que color es. */
+  --relleno-hundido:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.38) 0%,
+      rgba(0, 0, 0, 0.06) 58%,
+      rgba(255, 255, 255, 0.035) 100%
+    );
+  --relleno-alzado:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.09) 0%,
+      rgba(255, 255, 255, 0.012) 46%,
+      rgba(0, 0, 0, 0.13) 100%
+    );
   /* El corte de las dos esquinas opuestas del troquel. */
   --troquel: 10px;
 }
@@ -116,14 +154,33 @@
   --placa: #5f5e5a;
   --placa-muerta: #a3a099;
   --hundido: #e7e5e0;
+  /* En claro la luz sigue viniendo de arriba, asi que la GEOMETRIA de las tres
+     senales no cambia: labio, degradado y proyectada en los mismos bordes. Lo que
+     cambia es la fuerza —sobre hueso una sombra al 0,8 no se lee como sombra, se lee
+     como suciedad— y quien hace el trabajo: aqui la luz del labio es casi blanca y
+     la que informa es la sombra, al reves que en oscuro. */
   --sombra-hundido:
-    inset 0 4px 12px rgba(0, 0, 0, 0.22),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.7);
-  /* La misma proporcion que guarda --sombra-hundido entre sus dos temas
-     (.9 -> .18): sobre hueso, un 0,55 no se lee como sombra, se lee como suciedad. */
+    inset 0 1px 0 rgba(0, 0, 0, 0.14),
+    inset 0 6px 14px rgba(0, 0, 0, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.85);
   --sombra-alzado:
-    0 3px 10px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    0 4px 12px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  --relleno-hundido:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.11) 0%,
+      rgba(0, 0, 0, 0.015) 58%,
+      rgba(255, 255, 255, 0.55) 100%
+    );
+  --relleno-alzado:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 255, 255, 0.15) 46%,
+      rgba(0, 0, 0, 0.05) 100%
+    );
   --troquel: 10px;
 }
 
@@ -537,6 +594,14 @@ body {
 .tecla-3d {
   transform: translateZ(var(--prof-relieve));
   box-shadow: var(--sombra-alzado);
+  /* Compone ENCIMA del `bg-*` que traiga el marcado; no lo sustituye.
+
+     OJO AL ABREVIADO: un `background:` en linea —aunque solo lleve un color—
+     REINICIA `background-image` y se lleva esta cara por delante, sin aviso. El
+     elemento se queda con las dos sombras y sin relieve, que se ve como un marco.
+     Quien ponga color en linea sobre una de estas clases escribe `backgroundColor`.
+     Ya paso con el distintivo del nivel y con el dia seleccionado del calendario. */
+  background-image: var(--relleno-alzado);
   /* Las propiedades van ENUMERADAS y no en un `transition` a secas, por una
      colision que no avisa. Tailwind inyecta sus utilidades en la linea 3 de este
      mismo archivo, asi que `.tecla-3d` le gana a `transition-colors` por orden
@@ -552,13 +617,33 @@ body {
   transition-timing-function: var(--ease-salida);
 }
 
+/* Al pulsar no basta con bajar: la tecla PIERDE su cara iluminada y su sombra
+   proyectada, y coge las del hueco. Es lo que hace que el toque se sienta como
+   apretar algo y no como encoger una imagen. */
 .tecla-3d:active {
   transform: translateZ(var(--prof-plano)) scale(0.97);
+  box-shadow: var(--sombra-hundido);
+  background-image: var(--relleno-hundido);
 }
 
 .pozo-3d {
   transform: translateZ(var(--prof-hueco));
   box-shadow: var(--sombra-hundido);
+  background-image: var(--relleno-hundido);
+}
+
+/* El espejo de `.pozo-3d`: materia que SOBRESALE de la placa sin ser una tecla.
+   Existia el hueco y existia la tecla —que ademas responde al toque—, pero no habia
+   forma de decir «esto esta encima» en algo que no se pulsa: un emblema, una nota,
+   una placa secundaria. Se escribia a mano con dos lineas de estilo en linea cada
+   vez, que es como se pierden de vista.
+
+   NO lleva `:active`: si algo responde al toque, es una tecla, y para eso esta
+   `.tecla-3d`. */
+.relieve-3d {
+  transform: translateZ(var(--prof-relieve));
+  box-shadow: var(--sombra-alzado);
+  background-image: var(--relleno-alzado);
 }
 
 /* Lo que espera detras: rieles, colas, colecciones. Es --prof-fondo puesto sobre
@@ -1400,6 +1485,16 @@ body {
 
 [data-camara-abierta] .escena-prof * {
   transform-style: flat;
+}
+
+/* El degradado de la cara TAMBIEN se apaga con la camara. No por fotogramas —es
+   pintura estatica— sino porque sin escorzo un degradado no dice relieve: dice
+   mancha. Aplanar a medias deja las superficies con un sombreado que ya no
+   corresponde a ninguna profundidad. */
+[data-camara-abierta] .pozo-3d,
+[data-camara-abierta] .tecla-3d,
+[data-camara-abierta] .relieve-3d {
+  background-image: none;
 }
 
 /* Y para TODA animacion mientras la camara captura, este dentro de una escena o
