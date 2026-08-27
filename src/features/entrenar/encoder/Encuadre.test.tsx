@@ -143,3 +143,44 @@ describe('confirmar devuelve la colocación elegida', () => {
     expect(container.innerHTML).not.toMatch(/style="[^"]*width:\s*[\d.]+%/)
   })
 })
+
+describe('una sola placa para los tres estados', () => {
+  it('el nodo PERSISTE al cruzar el umbral, no se sustituye', () => {
+    // De esto depende que la placa pueda moverse. Hasta hoy `descartada`
+    // renderizaba OTRO componente, así que al cruzar el umbral arrastrando el
+    // desvío el nodo no cambiaba de estado: se sustituía. Y una transición sobre
+    // un nodo que nace ya en su estado final no interpola nada, por muy bien
+    // escrito que esté el `transform`.
+    //
+    // Se comprueba con la identidad del nodo del DOM, que es justamente lo que
+    // React tira al cambiar el tipo de elemento.
+    // Se cruza moviendo los DESLIZADORES, no con `rerender`: esta pantalla
+    // inicializa su estado una sola vez, así que cambiar la prop `inicial` no
+    // mueve nada. La primera versión de este test lo hacía así y pasaba en vacío
+    // — con el nodo forzado a sustituirse seguía en verde.
+    const { container } = render(<Encuadre inicial={COLOCADA_BIEN} />)
+    const placa = () => container.querySelector('[style*="clip-path"], [style*="clipPath"]')
+    const antes = placa()
+    expect(antes).toBeTruthy()
+    expect(screen.getByText('Buena')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Altura lente'), { target: { value: '0.05' } })
+    fireEvent.change(screen.getByLabelText('Distancia'), { target: { value: '1' } })
+
+    // Ya es otro veredicto...
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+    // ...y sigue siendo el MISMO nodo.
+    expect(placa()).toBe(antes)
+  })
+
+  it('la descartada conserva su titular y sus motivos en grande', () => {
+    // Unificar el nodo no puede costar información: cuando la toma no sirve, el
+    // porqué es lo más importante de la pantalla.
+    render(<Encuadre inicial={EN_EL_SUELO} />)
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+    const motivos = screen.getByText(/Cámara baja · No cabe/)
+    expect(motivos.className).toContain('font-display')
+    expect(motivos.className).toContain('font-bold')
+  })
+})
+
