@@ -127,6 +127,40 @@ export function GraficaBrazo({
     })
   }, [])
 
+  /**
+   * UN GUIÑO DE ORBITA al montar, y solo uno.
+   *
+   * A 0 grados no hay forma de ver que esto es tridimensional: la orbita se
+   * anuncia con texto —«arrastra para orbitar»— y nada mas. Un giro corto de ida
+   * y vuelta lo enseña en medio segundo.
+   *
+   * Los 12 grados salen de `inclinacionAlPuntero`, y caben de sobra dentro del
+   * `TOPE_GRADOS = 25` que esta misma grafica permite al dedo: el guiño no llega
+   * ni a la mitad de lo que la persona puede hacer, asi que enseña el gesto sin
+   * exagerarlo. Es una pieza que se ORBITA, no una superficie de lectura, y por
+   * eso no se le aplica el tope de 6 grados de los rotulos.
+   *
+   * `fill: 'none'` para que al terminar mande otra vez el estado, y el gesto
+   * CANCELA el guiño: si el dedo llega antes, gana el dedo al instante.
+   */
+  const guino = useRef<Animation | null>(null)
+  useEffect(() => {
+    if (reducido) return
+    const nodo = mundoRef.current
+    if (!nodo || typeof nodo.animate !== 'function') return
+    guino.current = nodo.animate(
+      [
+        { transform: 'rotateY(0deg)' },
+        { transform: 'rotateY(-12deg)', offset: 0.5 },
+        { transform: 'rotateY(0deg)' },
+      ],
+      { duration: 520, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'none' },
+    )
+    return () => guino.current?.cancel()
+    // Una vez por montaje, que es una vez por medida.
+     
+  }, [reducido])
+
   const alSoltar = useCallback(() => {
     arrastre.current = null
     setGestoActivo(false)
@@ -170,6 +204,8 @@ export function GraficaBrazo({
         style={{ perspective: '1000px', height: alto + 26 }}
         onPointerDown={(e) => {
           if (reducido) return
+          // El dedo gana al guiño al instante: si sigue corriendo, se corta.
+          guino.current?.cancel()
           arrastre.current = { x: e.clientX, desde: grados }
           gradosVivos.current = grados
           setGestoActivo(true)
@@ -206,32 +242,14 @@ export function GraficaBrazo({
           <div className="absolute inset-0" style={{ transform: 'translateZ(0)' }}>
             <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: alto }} role="img"
               aria-label={`Brazo de momento de ${presentes.join(', ')} a lo largo de la repetición`}>
-              {/* El trazado progresivo va por MÁSCARA y no por stroke-dasharray,
-                  porque el dasharray ya está ocupado: el trazo discontinuo 7-5 es
-                  una de las tres señales que distinguen un eje estimado de uno
-                  visto, y no se puede gastar en una animación de entrada. */}
-              {!reducido && (
-                <defs>
-                  {presentes.map((eje, i) => (
-                    <clipPath key={eje} id={`trazo-${eje}`}>
-                      <rect x={0} y={0} height={H} width={0}>
-                        <animate
-                          attributeName="width"
-                          from={0}
-                          to={W}
-                          dur="600ms"
-                          begin={`${i * 60}ms`}
-                          fill="freeze"
-                          calcMode="spline"
-                          keySplines=".22 .61 .36 1"
-                          keyTimes="0;1"
-                          values={`0;${W}`}
-                        />
-                      </rect>
-                    </clipPath>
-                  ))}
-                </defs>
-              )}
+              {/* AQUI VIVIA EL TRAZADO PROGRESIVO por mascara, y se ha retirado a
+                  cambio del guiño de orbita. No se suman: dos entradas a la vez
+                  en la misma pieza son ruido, no informacion.
+                  Lo que se pierde: el trazo se dibujaba de izquierda a derecha, y
+                  eso contaba que la medida recorre la repeticion. Lo que se gana:
+                  a 0 grados NADA decia que esto sea tridimensional, y la orbita
+                  solo se anunciaba con texto. Se elige enseñar lo que no se puede
+                  decir con palabras. */}
 
               {/* El cero: un brazo negativo significa que la carga pasó al otro
                   lado del eje, y eso tiene que verse. */}
@@ -272,7 +290,6 @@ export function GraficaBrazo({
                           strokeWidth={esObjetivo ? 2.6 : 1.8}
                           strokeDasharray={derivado ? '7 5' : undefined}
                           strokeLinecap={derivado ? 'butt' : 'round'}
-                          clipPath={reducido ? undefined : `url(#trazo-${eje})`}
                         />
                       ) : null,
                     )}

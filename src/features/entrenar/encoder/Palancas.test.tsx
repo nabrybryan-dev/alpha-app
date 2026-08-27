@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Palancas } from './Palancas'
 import type { FotogramaBrazo, MedidaDePalancas } from './medidaDePalancas'
 
@@ -240,3 +240,75 @@ describe('la selección de atleta se calla cuando no hay duda', () => {
     }
   })
 })
+
+describe('el guiño de órbita de la gráfica', () => {
+  function conMovimientoReducido(reducido: boolean) {
+    vi.stubGlobal('matchMedia', (consulta: string) => ({
+      matches: reducido && consulta.includes('prefers-reduced-motion'),
+      media: consulta,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  }
+
+  // En este jsdom `Element.prototype.animate` NO EXISTE, asi que hay que
+  // ponerla para poder observarla. Vale la pena decirlo: cualquier codigo con
+  // WAAPI de este repo sale por su guarda en los tests y nunca se ejecuta de
+  // verdad — lo que se prueba aqui es que se PIDE la animacion correcta, no que
+  // el navegador la corra.
+  function conAnimacionObservable() {
+    const animar = vi.fn(
+      (...llamada: unknown[]) => (
+        // `llamada` se ignora aqui a proposito: lo que interesa es que quede
+        // registrada, y se inspecciona luego en `animar.mock.calls`.
+        void llamada, { cancel: vi.fn(), finished: Promise.resolve() }
+      ),
+    )
+    Object.defineProperty(Element.prototype, 'animate', {
+      value: animar,
+      configurable: true,
+      writable: true,
+    })
+    return animar
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    delete (Element.prototype as { animate?: unknown }).animate
+  })
+
+  it('al montar da UN giro corto de ida y vuelta', () => {
+    // A 0 grados no hay forma de ver que la gráfica es tridimensional: la órbita
+    // se anunciaba solo con texto. El guiño lo enseña en medio segundo.
+    conMovimientoReducido(false)
+    const animar = conAnimacionObservable()
+    render(<Palancas medida={MEDIDO} />)
+
+    const orbitas = animar.mock.calls.filter((llamada) =>
+      JSON.stringify(llamada[0]).includes('rotateY'),
+    )
+    expect(orbitas).toHaveLength(1)
+    expect(JSON.stringify(orbitas[0][0])).toContain('-12deg')
+  })
+
+  it('con movimiento reducido NO gira', () => {
+    conMovimientoReducido(true)
+    const animar = conAnimacionObservable()
+    render(<Palancas medida={MEDIDO} />)
+    const orbitas = animar.mock.calls.filter((llamada) =>
+      JSON.stringify(llamada[0]).includes('rotateY'),
+    )
+    expect(orbitas).toHaveLength(0)
+  })
+
+  it('el trazado progresivo se retiró: no se suman dos entradas', () => {
+    // Iba por máscara `clipPath` y se cambió por el guiño. Si alguien reintroduce
+    // aquella sin quitar este, la gráfica entraría dos veces a la vez, que es
+    // ruido y no información.
+    conMovimientoReducido(false)
+    const { container } = render(<Palancas medida={MEDIDO} />)
+    expect(container.querySelector('clipPath')).toBeNull()
+  })
+})
+
