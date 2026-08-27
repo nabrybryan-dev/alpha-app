@@ -85,3 +85,86 @@ export function sinCambios(nueva: FirmaSync, previa: FirmaSync | undefined): boo
   }
   return true
 }
+
+/**
+ * Qué tabla del servidor alimenta cada campo de la instantánea.
+ *
+ * No es un diccionario de nombres: es la lista de lo que hay que comprobar
+ * ANTES de decidir que un campo puede conservarse. Dos campos se arman con dos
+ * tablas cada uno —`checkins` sale de `checkins` y de la vista
+ * `checkins_nutricion`; `registrosComida` de `registro_comida` y
+ * `registro_item`— y basta con que UNA de las dos haya cambiado para que el
+ * campo entero tenga que rebajarse. Conservar la mitad sería peor que no
+ * conservar nada.
+ *
+ * `ranking` no está: sale de un RPC, no de una tabla, y desde la 0048 lo sirve
+ * una vista materializada, así que pedirlo cuesta 0,17 ms.
+ */
+export const FUENTES = {
+  usuarios: ['usuarios_app'],
+  perfiles: ['perfiles'],
+  microciclos: ['microciclos'],
+  checkins: ['checkins', 'checkins_nutricion'],
+  adherencias: ['adherencias'],
+  planes: ['planes_nutricionales'],
+  mensajes: ['mensajes'],
+  cuestionarios: ['cuestionarios'],
+  respuestas: ['respuestas'],
+  contenidos: ['contenidos'],
+  premiaciones: ['premiaciones'],
+  hidratacion: ['hidratacion'],
+  perfilesNutricion: ['perfil_alimentario'],
+  registrosComida: ['registro_comida', 'registro_item'],
+  preferenciasEstado: ['preferencia_estado'],
+  pruebasCalibracion: ['prueba_calibracion'],
+  visibilidades: ['visibilidad_nutricion'],
+  vetosAlimentarios: ['perfil_alimentario_veto'],
+  despensa: ['despensa'],
+} as const satisfies Record<string, readonly string[]>
+
+export type ClaveConservable = keyof typeof FUENTES
+
+/** Dos firmas de una tabla son la misma. Si falta cualquiera, NO lo son. */
+function igual(a: FirmaDeTabla | undefined, b: FirmaDeTabla | undefined): boolean {
+  if (!a || !b) return false
+  return a.filas === b.filas && a.ultimo === b.ultimo
+}
+
+/**
+ * Qué campos de la instantánea se pueden conservar tal cual, sin volver a
+ * bajarlos.
+ *
+ * Devuelve un conjunto VACÍO ante cualquier duda —sin firma previa, sin firma
+ * nueva, o una tabla que no aparece en alguna de las dos—. El conjunto vacío
+ * significa «bajarlo todo», que es el comportamiento de siempre: equivocarse de
+ * más aquí solo cuesta una descarga, y equivocarse de menos sirve datos viejos.
+ */
+export function clavesConservables(
+  nueva: FirmaSync | undefined,
+  previa: FirmaSync | undefined,
+): Set<ClaveConservable> {
+  const conservar = new Set<ClaveConservable>()
+  if (!nueva || !previa) return conservar
+
+  for (const clave of Object.keys(FUENTES) as ClaveConservable[]) {
+    const fuentes: readonly string[] = FUENTES[clave]
+    if (fuentes.every((t) => igual(nueva[t], previa[t]))) conservar.add(clave)
+  }
+  return conservar
+}
+
+/**
+ * Las tablas cuya descarga se puede saltar, derivadas de los campos que se
+ * conservan.
+ *
+ * Se DERIVA de `clavesConservables` a propósito, en vez de calcularse aparte.
+ * Es lo que hace imposible el fallo que da miedo: que se salte la descarga de
+ * una tabla cuyo campo NO se va a conservar dejaría ese campo vacío, y
+ * `aplicarSnapshot` reemplaza la instantánea entera. Viniendo las dos del mismo
+ * sitio, no pueden discrepar.
+ */
+export function tablasQueNoSePiden(conservar: Set<ClaveConservable>): Set<string> {
+  const omitir = new Set<string>()
+  for (const clave of conservar) for (const t of FUENTES[clave]) omitir.add(t)
+  return omitir
+}

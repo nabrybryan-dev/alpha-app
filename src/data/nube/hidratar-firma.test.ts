@@ -24,8 +24,10 @@ function respuesta(filas: unknown[], error: Error = null) {
   return p
 }
 
-/** Qué tablas se han pedido desde el último `reiniciarLecturas()`. */
+/** Qué tablas se han pedido desde el último reinicio. */
 let lecturas: string[] = []
+/** Qué devuelve cada tabla. Lo que no esté, sale vacío. */
+let tablas: Record<string, unknown[]> = {}
 /** Lo que devuelve el RPC de la firma. */
 let respuestaFirma: { data: unknown; error: Error } = { data: null, error: null }
 
@@ -34,7 +36,7 @@ vi.mock('../supabase', () => ({
   supabase: () => ({
     from: (tabla: string) => {
       lecturas.push(tabla)
-      return { select: () => respuesta([]) }
+      return { select: () => respuesta(tablas[tabla] ?? []) }
     },
     rpc: (fn: string) =>
       fn === 'firma_de_sincronizacion'
@@ -43,7 +45,29 @@ vi.mock('../supabase', () => ({
   }),
 }))
 
-const firmaDe = (filasDeMicrociclos: number, ultimo = '2026-08-27T05:00:00Z') => ({
+const FIJA = '2026-08-27T05:00:00Z'
+
+/**
+ * Una firma con todas las tablas iguales salvo las que se le pasen. Así un test
+ * cambia UNA y el resto se queda quieto, que es el escenario real.
+ */
+const firmaCon = (cambios: Record<string, string> = {}) => ({
+  data: [
+    'usuarios_app', 'perfiles', 'microciclos', 'checkins', 'checkins_nutricion',
+    'adherencias', 'planes_nutricionales', 'mensajes', 'cuestionarios',
+    'respuestas', 'contenidos', 'premiaciones', 'hidratacion',
+    'perfil_alimentario', 'registro_comida', 'registro_item',
+    'preferencia_estado', 'prueba_calibracion', 'visibilidad_nutricion',
+    'perfil_alimentario_veto', 'despensa',
+  ].map((tabla) => ({
+    tabla,
+    filas: cambios[tabla] ?? '10',
+    ultimo_cambio: FIJA,
+  })),
+  error: null as Error,
+})
+
+const firmaDe = (filasDeMicrociclos: number, ultimo = FIJA) => ({
   data: [
     { tabla: 'microciclos', filas: String(filasDeMicrociclos), ultimo_cambio: ultimo },
     { tabla: 'usuarios_app', filas: '26', ultimo_cambio: ultimo },
@@ -65,6 +89,7 @@ describe('la firma decide si hay que descargar', () => {
   beforeEach(() => {
     localStorage.clear()
     lecturas = []
+    tablas = {}
     respuestaFirma = firmaDe(113)
     vi.resetModules()
   })
@@ -136,5 +161,74 @@ describe('la firma decide si hay que descargar', () => {
     lecturas = []
     await hidratar()
     expect(lecturas.length).toBeGreaterThan(10)
+  })
+})
+
+describe('el salto por tabla', () => {
+  const USUARIO = { id: 'u-val', nombre: 'Valentina', rol: 'asesorado', avatar_iniciales: 'VC' }
+
+  beforeEach(() => {
+    localStorage.clear()
+    lecturas = []
+    tablas = {}
+    respuestaFirma = firmaCon()
+    vi.resetModules()
+  })
+
+  it('solo pide las tablas que cambiaron', async () => {
+    tablas.usuarios_app = [USUARIO]
+    await hidratar()
+
+    lecturas = []
+    respuestaFirma = firmaCon({ microciclos: '11' }) // solo esta se movió
+    await hidratar()
+
+    expect(lecturas).toContain('microciclos')
+    expect(lecturas).not.toContain('usuarios_app')
+    expect(lecturas).not.toContain('mensajes')
+  })
+
+  /**
+   * LA PRUEBA QUE DECIDE SI ESTO ES SEGURO.
+   *
+   * `aplicarSnapshot` reemplaza la instantánea ENTERA. Si una tabla que no se
+   * pidió llegara vacía al snapshot, no se quedaría igual: BORRARÍA lo que la
+   * persona ya tenía en el dispositivo. Y sin error, que es lo peor.
+   *
+   * Aquí el servidor devuelve vacío para TODO en la segunda vuelta. Lo que se
+   * conservó tiene que seguir estando.
+   */
+  it('lo que no se pidió NO se pierde, aunque el servidor devuelva vacío', async () => {
+    tablas.usuarios_app = [USUARIO]
+    await hidratar()
+
+    const { instantaneaLocal } = await import('../mockDb')
+    expect(instantaneaLocal().usuarios.some((u) => u.id === 'u-val')).toBe(true)
+
+    // El servidor no devuelve nada de nada, y solo `microciclos` cambió.
+    tablas = {}
+    respuestaFirma = firmaCon({ microciclos: '11' })
+    await hidratar()
+
+    const despues = (await import('../mockDb')).instantaneaLocal()
+    expect(despues.usuarios.some((u) => u.id === 'u-val')).toBe(true)
+    // Y lo que sí se pidió refleja lo que dijo el servidor: vacío.
+    expect(despues.microciclos).toEqual([])
+  })
+
+  /**
+   * `checkins` se arma con la tabla y con la vista de la nutricionista. Si solo
+   * una se movió, hay que rebajar las dos: media hidratación sería peor que
+   * ninguna.
+   */
+  it('un campo con dos fuentes se rebaja entero si una se movió', async () => {
+    await hidratar()
+
+    lecturas = []
+    respuestaFirma = firmaCon({ checkins_nutricion: '11' })
+    await hidratar()
+
+    expect(lecturas).toContain('checkins')
+    expect(lecturas).toContain('checkins_nutricion')
   })
 })

@@ -27,7 +27,13 @@ import type {
 type EstadoGuardado = VisibilidadAsesorado['estado']
 const ESTADOS: readonly EstadoGuardado[] = ['automatico', 'en_espera', 'decidido']
 import { aplicarSnapshot, epocaSesion, instantaneaLocal, versionEscrituras } from '../mockDb'
-import { pedirFirma, sinCambios } from './firma'
+import {
+  clavesConservables,
+  pedirFirma,
+  sinCambios,
+  tablasQueNoSePiden,
+  type ClaveConservable,
+} from './firma'
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
 import { sanearMicrociclo, sanearPlan } from './saneado'
@@ -203,6 +209,11 @@ export function fusionarCheckins(
   return [...porId.values()]
 }
 
+/** Devuelve a un campo del snapshot el valor que ya tenía en el dispositivo. */
+function conservarCampo<K extends keyof SeedDb>(destino: SeedDb, origen: SeedDb, clave: K): void {
+  destino[clave] = origen[clave]
+}
+
 export async function hidratarDesdeNube(): Promise<void> {
   const sb = supabase()
 
@@ -212,6 +223,22 @@ export async function hidratarDesdeNube(): Promise<void> {
   // Y de qué sesión es esta descarga: si por el medio se cierra o entra otra
   // persona, lo que baje aquí ya no le pertenece a nadie que esté dentro.
   const epocaAlEmpezar = epocaSesion()
+
+  /**
+   * Quién está mirando. Decide cuánto historial se baja.
+   *
+   * Con `?.` y `catch` porque no todos los clientes que llegan aquí traen
+   * `auth` —los dobles de las pruebas, sin ir más lejos—. Sin id no se filtra y
+   * se baja todo, que es el comportamiento de siempre: fallar aquí tiene que
+   * costar tráfico, nunca datos que falten.
+   */
+  let miId: string | undefined
+  try {
+    const { data } = await sb.auth.getSession()
+    miId = data?.session?.user?.id
+  } catch {
+    miId = undefined
+  }
 
   /**
    * Antes de bajar nada: preguntar si hay algo que bajar.
@@ -231,7 +258,8 @@ export async function hidratarDesdeNube(): Promise<void> {
    * aplicar-, y entonces se descarga como siempre. Fallar tiene que costar
    * rendimiento, nunca frescura.
    */
-  const firmaPrevia = instantaneaLocal().firmaSync
+  const previo = instantaneaLocal()
+  const firmaPrevia = previo.firmaSync
   const firmaPendiente = pedirFirma(sb)
 
   // Solo se ESPERA la firma cuando hay una previa contra la que compararla. En
@@ -239,10 +267,33 @@ export async function hidratarDesdeNube(): Promise<void> {
   // sería un viaje de ida y vuelta de más justo cuando la persona está mirando
   // la pantalla de carga. Sin previa se pide igual -hace falta para guardarla-
   // pero en paralelo con las lecturas, y no cuesta latencia.
+  let conservar = new Set<ClaveConservable>()
   if (firmaPrevia) {
     const firmaAhora = await firmaPendiente
+    // Nada cambió: ni se construye el snapshot. Es el atajo más barato y el
+    // caso más frecuente con diferencia.
     if (firmaAhora && sinCambios(firmaAhora, firmaPrevia)) return
+    conservar = clavesConservables(firmaAhora, firmaPrevia)
   }
+
+  /**
+   * Las tablas que no hace falta pedir.
+   *
+   * Se DERIVA de `conservar`, y ahí está la única garantía que importa: saltarse
+   * la descarga de una tabla cuyo campo NO se vaya a conservar dejaría ese campo
+   * vacío, y `aplicarSnapshot` reemplaza la instantánea ENTERA. Viniendo las dos
+   * del mismo sitio, no pueden discrepar. No es una convención que alguien deba
+   * recordar: no hay forma de escribirlo mal.
+   */
+  const omitidas = tablasQueNoSePiden(conservar)
+
+  /**
+   * Una respuesta de mentira para lo que no se pide. Su contenido da igual: el
+   * campo se sobrescribe con lo local antes de aplicar nada.
+   */
+  const noPedida = () => Promise.resolve({ data: [] as never[], error: null })
+  const pedir = <T>(tabla: string, hacer: () => T) =>
+    omitidas.has(tabla) ? (noPedida() as unknown as T) : hacer()
 
   const [
     usuarios,
@@ -259,11 +310,33 @@ export async function hidratarDesdeNube(): Promise<void> {
     premiaciones,
   ] = await Promise.all([
     // Columnas necesarias para UI: id, nombre, rol, avatar
-    sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales'),
-    sb.from('perfiles').select('datos'),
+    pedir('usuarios_app', () => sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales')),
+    pedir('perfiles', () => sb.from('perfiles').select('datos')),
     // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
-    sb.from('microciclos').select('id, estado, datos'),
-    sb.from('checkins').select('datos'),
+    // Dos recortes que se suman, y son independientes:
+    //
+    //   QUÉ FILAS  el staff no se baja los cerrados de toda la cartera: hoy son
+    //              el 78 % del peso y crecen sin freno —cada asesorado cierra
+    //              uno por semana, para siempre—. Se traen los estados que las
+    //              pantallas de cartera miran de verdad (`activo` para el
+    //              semáforo, `propuesto` porque `propuestaPreparada` lo busca)
+    //              más TODO lo de quien mira, que es lo que necesitan sus
+    //              propias pantallas de logros y progreso. El historial ajeno se
+    //              pide a demanda: `db.microciclos.historialDe`.
+    //
+    //   SI SE PIDE `pedir` se la salta entera cuando la firma dice que no ha
+    //              cambiado desde la última vez.
+    //
+    // Ver `docs/specs/2026-08-27-donde-truena-a-mil-usuarios.md`.
+    pedir('microciclos', () =>
+      miId
+        ? sb
+            .from('microciclos')
+            .select('id, estado, datos')
+            .or(`estado.in.(activo,propuesto),usuario_id.eq.${miId}`)
+        : sb.from('microciclos').select('id, estado, datos'),
+    ),
+    pedir('checkins', () => sb.from('checkins').select('datos')),
     // Migración 0013, ampliada por la 0039. La nutricionista NO lee la tabla de
     // arriba —ahí viven ánimo, estrés, sueño y comentarios libres, que no son
     // asunto de nutrición— y esta vista le da las cuatro columnas que sí lo son.
@@ -273,14 +346,14 @@ export async function hidratarDesdeNube(): Promise<void> {
     // `SIGNED_IN` cada vez que alguien desbloquea el móvil entre series. Al
     // fusionar gana la fila entera, así que para el asesorado y el coach esto es
     // un no-op: solo cambia lo de quien no puede ver la fila entera.
-    sb.from('checkins_nutricion').select('id,usuario_id,fecha,peso_kg,hambre,alimentacion,hambre_escala'),
-    sb.from('adherencias').select('id,usuario_id,fecha,estado,comentario'),
-    sb.from('planes_nutricionales').select('datos'),
-    sb.from('mensajes').select('id,de_id,para_id,fecha_iso,texto,adjunto_path,adjunto_tipo,leido,origen'),
-    sb.from('cuestionarios').select('id,datos,asignado_a'),
-    sb.from('respuestas').select('id,cuestionario_id,usuario_id,fecha_iso,valores'),
-    sb.from('contenidos').select('datos'),
-    sb.from('premiaciones').select('id,usuario_id,titulo,fecha,nota'),
+    pedir('checkins_nutricion', () => sb.from('checkins_nutricion').select('id,usuario_id,fecha,peso_kg,hambre,alimentacion,hambre_escala')),
+    pedir('adherencias', () => sb.from('adherencias').select('id,usuario_id,fecha,estado,comentario')),
+    pedir('planes_nutricionales', () => sb.from('planes_nutricionales').select('datos')),
+    pedir('mensajes', () => sb.from('mensajes').select('id,de_id,para_id,fecha_iso,texto,adjunto_path,adjunto_tipo,leido,origen')),
+    pedir('cuestionarios', () => sb.from('cuestionarios').select('id,datos,asignado_a')),
+    pedir('respuestas', () => sb.from('respuestas').select('id,cuestionario_id,usuario_id,fecha_iso,valores')),
+    pedir('contenidos', () => sb.from('contenidos').select('datos')),
+    pedir('premiaciones', () => sb.from('premiaciones').select('id,usuario_id,titulo,fecha,nota')),
   ])
 
   // `checkinsNutricion` entra en la lista a propósito, aunque para el asesorado y
@@ -300,7 +373,7 @@ export async function hidratarDesdeNube(): Promise<void> {
   // Solo un "esta tabla no existe" apaga la sincronización. Un 500 pasajero o
   // un corte de wifi NO son eso, y apagarla por ellos dejaba cada vaso de agua
   // encerrado en el móvil de por vida.
-  const hidratacion = await sb.from('hidratacion').select('id,usuario_id,fecha,ml')
+  const hidratacion = await pedir('hidratacion', () => sb.from('hidratacion').select('id,usuario_id,fecha,ml'))
   if (!hidratacion.error) marcarTablaHidratacion(true)
   else if (esTablaInexistente(hidratacion.error)) marcarTablaHidratacion(false)
 
@@ -313,24 +386,24 @@ export async function hidratarDesdeNube(): Promise<void> {
 
   const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa] =
     await Promise.all([
-    sb.from('registro_comida').select('id,cliente_id,asesorado_id,momento,comida,cocinado_por_el,aceite_g,sal_g,confianza').eq('borrado', false),
-    sb.from('registro_item').select('id,cliente_id,registro_id,alimento_id,gramos,fue_pesado,estado_asumido').eq('borrado', false),
-    sb.from('preferencia_estado').select('asesorado_id,familia,estado'),
-    sb.from('prueba_calibracion').select('id,cliente_id,asesorado_id,fecha,alimento_id,gramos_estimados,gramos_reales'),
+    pedir('registro_comida', () => sb.from('registro_comida').select('id,cliente_id,asesorado_id,momento,comida,cocinado_por_el,aceite_g,sal_g,confianza').eq('borrado', false)),
+    pedir('registro_item', () => sb.from('registro_item').select('id,cliente_id,registro_id,alimento_id,gramos,fue_pesado,estado_asumido').eq('borrado', false)),
+    pedir('preferencia_estado', () => sb.from('preferencia_estado').select('asesorado_id,familia,estado')),
+    pedir('prueba_calibracion', () => sb.from('prueba_calibracion').select('id,cliente_id,asesorado_id,fecha,alimento_id,gramos_estimados,gramos_reales')),
     // Migración 0018. El asesorado SÍ puede leer los suyos —la política
     // `visibilidad_lee_lo_suyo` existe justo para esto— y sin bajarlos su app no
     // sabe qué pintarle: le enseñaría todo a quien pidió no verlo. Y sin esta
     // línea la decisión desaparecía también del dispositivo del staff, porque
     // `aplicarSnapshot` reemplaza la base local entera.
-    sb.from('visibilidad_nutricion').select('asesorado_id,ver_composicion,ver_objetivo_calorico,ver_contador_kcal,estado'),
+    pedir('visibilidad_nutricion', () => sb.from('visibilidad_nutricion').select('asesorado_id,ver_composicion,ver_objetivo_calorico,ver_contador_kcal,estado')),
     // Migración 0016, con el `borrado` de la 0035. La asesorada NO los lee
     // -son criterio clínico sobre ella, no suyo- pero su app SÍ los necesita
     // para no proponerle en 'Mi plan' lo que no puede comer, así que la
     // política de staff-y-dueño de la 0016 los deja bajar a las dos.
-    sb.from('perfil_alimentario_veto').select('id,asesorado_id,alimento_id,motivo').eq('borrado', false),
+    pedir('perfil_alimentario_veto', () => sb.from('perfil_alimentario_veto').select('id,asesorado_id,alimento_id,motivo').eq('borrado', false)),
     // Migraciones 0024 y 0042. Solo lo vivo: lo que se sacó de la despensa se
     // conserva arriba —la cola no sabe borrar— pero no vuelve al dispositivo.
-    sb.from('despensa').select('id,asesorado_id,alimento_id,texto_pedido,cantidad_g,agregado_en,origen').eq('borrado', false),
+    pedir('despensa', () => sb.from('despensa').select('id,asesorado_id,alimento_id,texto_pedido,cantidad_g,agregado_en,origen').eq('borrado', false)),
   ])
 
   /**
@@ -564,6 +637,26 @@ export async function hidratarDesdeNube(): Promise<void> {
   // Se prefiere quedarse un momento desactualizado antes que perder un dato:
   // la hidratación se repite sola (al volver a la pestaña, cada 45 s en el
   // staff, en el siguiente SIGNED_IN).
+  /**
+   * Lo que no se bajó vuelve de la copia local.
+   *
+   * ESTE ES EL PUNTO QUE HACE SEGURO TODO LO DEMÁS. `aplicarSnapshot` reemplaza
+   * la instantánea ENTERA, así que un campo que quedó vacío por no haberse
+   * pedido no se quedaría igual: BORRARÍA lo que la persona ya tenía. Aquí se
+   * le devuelve su valor, y por eso `omitidas` se deriva de `conservar` y nunca
+   * al revés.
+   *
+   * `previo` se leyó al empezar, antes de la descarga, y no puede pisar una
+   * escritura posterior: si hubiera habido una, el guardián de la línea de abajo
+   * descarta el snapshot entero.
+   */
+  // Sin `as`: el genérico ata el tipo del campo de origen al del destino. Si
+  // una clave de `FUENTES` dejara de existir en `SeedDb` -por un renombrado,
+  // por ejemplo- esto NO COMPILA. Con un cast se habría tragado el renombrado,
+  // ese campo se quedaría sin restaurar, y la instantánea lo perdería en
+  // silencio. Que es justo el fallo que este bloque existe para evitar.
+  for (const clave of conservar) conservarCampo(snapshot, previo, clave)
+
   if (versionEscrituras() !== versionAlEmpezar) return
 
   aplicarSnapshot(snapshot, epocaAlEmpezar)
