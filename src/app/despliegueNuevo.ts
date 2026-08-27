@@ -66,10 +66,62 @@ const CLAVE = 'alpha-recarga-por-despliegue'
 const VENTANA_MS = 15_000
 
 /**
+ * Tira la caché del service worker y lo suelta, para que la recarga vaya a la
+ * red de verdad.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * POR QUÉ NO BASTA CON RECARGAR, QUE ES LO QUE FALLÓ
+ * ─────────────────────────────────────────────────────────────────────────────
+ * La primera versión de esto solo llamaba a `location.reload()`, y no arreglaba
+ * nada. El motivo: `vite-plugin-pwa` PRECACHEA `index.html`. Así que la recarga
+ * la sirve el service worker viejo desde su caché, devuelve el MISMO
+ * `index.html` de antes, que pide los MISMOS ficheros que ya no existen, y
+ * vuelve a fallar. El freno contra el bucle impedía el segundo intento, y la
+ * persona acababa recargando a mano igual que antes.
+ *
+ * Borrando la caché primero, la recarga no tiene de dónde sacar lo viejo y va a
+ * la red.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * QUÉ NO SE TOCA, Y ES LO QUE IMPORTA
+ * ─────────────────────────────────────────────────────────────────────────────
+ * `caches` es la Cache Storage API, donde el service worker guarda JS, CSS e
+ * imágenes. **No es `localStorage`.** Ni la instantánea (`alpha-db-v2`) ni la
+ * cola de lo que falta por subir (`alpha-cola-sync`) viven ahí, así que esto no
+ * puede perder ni una serie registrada sin señal.
+ *
+ * Y soltar el service worker no deja la app sin funcionamiento offline: se
+ * vuelve a registrar solo en la carga siguiente, que es justo la que viene.
+ */
+async function tirarLoViejoYRecargar(recargar: () => void): Promise<void> {
+  try {
+    if (typeof caches !== 'undefined') {
+      const nombres = await caches.keys()
+      await Promise.all(nombres.map((n) => caches.delete(n)))
+    }
+  } catch {
+    // Sin permiso o sin soporte: se recarga igual, que a veces basta.
+  }
+
+  try {
+    const registros = (await navigator.serviceWorker?.getRegistrations?.()) ?? []
+    await Promise.all(registros.map((r) => r.unregister()))
+  } catch {
+    // Ídem.
+  }
+
+  recargar()
+}
+
+/**
  * Recarga la página, como mucho una vez cada `VENTANA_MS`.
  *
- * Devuelve `true` si recargó. Quien llama usa eso para decidir si merece la pena
- * pintar el aviso o si la página está a punto de irse de todas formas.
+ * Devuelve `true` si va a recargar. Quien llama usa eso para decidir si merece
+ * la pena pintar el aviso o si la página está a punto de irse de todas formas.
+ *
+ * El freno se anota ANTES de la limpieza, que es asíncrona: si llegara un
+ * segundo error mientras se borran las cachés, no debe disparar una segunda
+ * limpieza a la vez.
  *
  * `ahora` y `recargar` se inyectan para poder probar esto sin recargar el
  * navegador de las pruebas.
@@ -95,6 +147,6 @@ export function recargarPorDespliegue(
     // dejar la sección rota sin intentar nada.
   }
 
-  recargar()
+  void tirarLoViejoYRecargar(recargar)
   return true
 }
