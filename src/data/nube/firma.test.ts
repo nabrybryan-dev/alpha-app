@@ -1,6 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
-import { pedirFirma, sinCambios, type FirmaSync } from './firma'
+import {
+  clavesConservables,
+  pedirFirma,
+  sinCambios,
+  tablasQueNoSePiden,
+  type FirmaSync,
+} from './firma'
 
 const clienteQue = (resultado: unknown) =>
   ({ rpc: vi.fn().mockResolvedValue(resultado) }) as unknown as SupabaseClient
@@ -100,5 +106,77 @@ describe('sinCambios', () => {
   it('una tabla que solo existe en la copia local también', () => {
     const previa = { ...base, tabla_que_ya_no_esta: { filas: 1, ultimo: null } }
     expect(sinCambios(base, previa)).toBe(false)
+  })
+})
+
+describe('clavesConservables', () => {
+  const t = (filas: number, ultimo = 'a') => ({ filas, ultimo })
+  const firma = (cambios: Record<string, { filas: number; ultimo: string }> = {}): FirmaSync => ({
+    usuarios_app: t(26),
+    microciclos: t(113),
+    checkins: t(66),
+    checkins_nutricion: t(66),
+    registro_comida: t(159),
+    registro_item: t(528),
+    ...cambios,
+  })
+
+  it('lo que no cambió se conserva; lo que cambió, no', () => {
+    const conservar = clavesConservables(firma({ microciclos: t(114) }), firma())
+
+    expect(conservar.has('usuarios')).toBe(true)
+    expect(conservar.has('microciclos')).toBe(false)
+  })
+
+  /**
+   * `checkins` se arma con DOS fuentes: la tabla y la vista de la
+   * nutricionista. Basta con que una cambie para que el campo entero tenga que
+   * rebajarse — conservar la mitad sería peor que no conservar nada.
+   */
+  it('un campo con dos fuentes necesita que las DOS estén iguales', () => {
+    const soloLaVista = clavesConservables(firma({ checkins_nutricion: t(67) }), firma())
+    expect(soloLaVista.has('checkins')).toBe(false)
+
+    const soloLaTabla = clavesConservables(firma({ checkins: t(67) }), firma())
+    expect(soloLaTabla.has('checkins')).toBe(false)
+  })
+
+  it('lo mismo con registrosComida, que sale de comida e item', () => {
+    const conservar = clavesConservables(firma({ registro_item: t(529) }), firma())
+    expect(conservar.has('registrosComida')).toBe(false)
+  })
+
+  /**
+   * Ante la duda, bajar. Equivocarse de más cuesta una descarga; equivocarse de
+   * menos sirve datos viejos.
+   */
+  it('sin firma previa no se conserva nada', () => {
+    expect(clavesConservables(firma(), undefined).size).toBe(0)
+  })
+
+  it('una tabla que falta en alguna de las dos firmas no se conserva', () => {
+    const sinMicrociclos = { ...firma() }
+    delete (sinMicrociclos as Record<string, unknown>).microciclos
+
+    expect(clavesConservables(sinMicrociclos, firma()).has('microciclos')).toBe(false)
+    expect(clavesConservables(firma(), sinMicrociclos).has('microciclos')).toBe(false)
+  })
+})
+
+describe('tablasQueNoSePiden', () => {
+  /**
+   * LA PROPIEDAD QUE SUJETA EL DISEÑO. Las tablas que no se piden se DERIVAN de
+   * los campos que se conservan. Saltarse la descarga de una tabla cuyo campo
+   * no se va a conservar dejaría ese campo vacío, y `aplicarSnapshot` reemplaza
+   * la instantánea entera: seria un borrado.
+   */
+  it('solo devuelve tablas de campos que se conservan', () => {
+    const omitir = tablasQueNoSePiden(new Set(['checkins', 'usuarios']))
+
+    expect([...omitir].sort()).toEqual(['checkins', 'checkins_nutricion', 'usuarios_app'])
+  })
+
+  it('sin nada que conservar, no se omite ninguna', () => {
+    expect(tablasQueNoSePiden(new Set()).size).toBe(0)
   })
 })
