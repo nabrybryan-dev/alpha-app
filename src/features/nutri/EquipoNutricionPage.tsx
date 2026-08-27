@@ -18,26 +18,57 @@ function fechaAtras(hoy: string, dias: number): string {
   return `${fecha.getFullYear()}-${mes}-${dia}`
 }
 
-/**
- * Panel de la nutricionista (Manuela): evaluación nutricional de todo el
- * equipo — adherencia de 30 días, racha, plan asignado e hidratación de hoy.
- * Solo staff (nutricionista o coach) puede entrar.
- */
-export default function EquipoNutricionPage() {
-  const { usuario } = useSesion()
-  useDbVersion()
-  const hoy = hoyIso()
-  /** El asesorado cuyo panel de vetos está abierto. */
-  const [vetando, setVetando] = useState<{ id: string; nombre: string } | null>(null)
-  const limite = fechaAtras(hoy, 30)
+interface FilaEquipo {
+  usuario: ReturnType<typeof db.usuarios.asesorados>[number]
+  pct: number | undefined
+  registrados: number
+  si: number
+  parcial: number
+  no: number
+  racha: number
+  tienePlan: boolean
+  aguaHoyMl: number
+}
 
-  if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
-    return <Navigate to="/" replace />
+interface DatosEquipo {
+  filas: FilaEquipo[]
+  pendientes: number
+}
+
+/**
+ * Lo ya calculado para el equipo entero. Una sola entrada: esta pantalla mira a
+ * todos, no a una persona, así que no hay nada por lo que trocearla.
+ *
+ * La llave es la versión del estado más el día. `useDbVersion()` sube con
+ * CUALQUIER cambio -escritura local o hidratación desde la nube-, y el día
+ * entra porque la ventana de 30 días y la racha se miden contra hoy.
+ *
+ * Va FUERA del componente y no en un `useMemo` por una razón concreta: arriba
+ * hay un `return` temprano para quien no es staff, y un hook por debajo de un
+ * return condicional viola las reglas de hooks. Una función normal no tiene ese
+ * problema.
+ */
+let memoEquipo: { version: number; hoy: string; datos: DatosEquipo } | undefined
+
+function datosDelEquipo(version: number, hoy: string): DatosEquipo {
+  if (memoEquipo && memoEquipo.version === version && memoEquipo.hoy === hoy) {
+    return memoEquipo.datos
   }
+  const datos = calcularEquipo(hoy)
+  memoEquipo = { version, hoy, datos }
+  return datos
+}
+
+function calcularEquipo(hoy: string): DatosEquipo {
+  const limite = fechaAtras(hoy, 30)
+  // Una sola vez. Antes se pedía la lista de asesorados dos veces -una para el
+  // contador de pendientes y otra para las filas-, y cada llamada filtra la
+  // tabla de usuarios entera.
+  const asesorados = db.usuarios.asesorados()
 
   // Cuántos esperan decisión. Va en el enlace: si no se ve el número, nadie
   // entra a mirar hasta que alguien pregunte.
-  const pendientes = db.usuarios.asesorados().filter((a) => {
+  const pendientes = asesorados.filter((a) => {
     const respuestas = (db.perfilNutricion.byUsuario(a.id)?.respuestas ?? {}) as Respuestas
     return (
       visibilidadDe(db.visibilidad.byUsuario(a.id), senalesDeLaEncuesta(respuestas)).estado ===
@@ -45,19 +76,32 @@ export default function EquipoNutricionPage() {
     )
   }).length
 
-  const filas = db.usuarios
-    .asesorados()
-    .map((a) => {
-      const adherencias = db.nutricion.adherenciasByUsuario(a.id).filter((x) => x.fecha >= limite)
-      const si = adherencias.filter((x) => x.estado === 'si').length
-      const parcial = adherencias.filter((x) => x.estado === 'parcial').length
-      const no = adherencias.filter((x) => x.estado === 'no').length
-      const registrados = adherencias.length
-      const pct = registrados === 0 ? undefined : Math.round(((si + parcial * 0.5) / registrados) * 100)
-      const racha = calcularRacha(
-        db.nutricion.adherenciasByUsuario(a.id).filter((x) => x.estado !== 'no').map((x) => x.fecha),
-        hoy,
-      )
+  const filas = asesorados
+    .map((a): FilaEquipo => {
+      // `adherenciasByUsuario` filtra la lista completa de adherencias. Se
+      // pedía DOS veces por asesorado -una para la ventana de 30 días y otra
+      // para la racha-, así que con 26 asesorados eran 52 recorridos donde
+      // bastan 26.
+      const todas = db.nutricion.adherenciasByUsuario(a.id)
+
+      // Y una sola pasada en vez de cuatro sobre la misma lista.
+      let si = 0
+      let parcial = 0
+      let no = 0
+      let registrados = 0
+      const fechasDeRacha: string[] = []
+      for (const x of todas) {
+        if (x.estado !== 'no') fechasDeRacha.push(x.fecha)
+        if (x.fecha < limite) continue
+        registrados += 1
+        if (x.estado === 'si') si += 1
+        else if (x.estado === 'parcial') parcial += 1
+        else no += 1
+      }
+
+      const pct =
+        registrados === 0 ? undefined : Math.round(((si + parcial * 0.5) / registrados) * 100)
+
       return {
         usuario: a,
         pct,
@@ -65,12 +109,34 @@ export default function EquipoNutricionPage() {
         si,
         parcial,
         no,
-        racha: racha.actual,
+        racha: calcularRacha(fechasDeRacha, hoy).actual,
         tienePlan: Boolean(db.nutricion.planByUsuario(a.id)),
         aguaHoyMl: db.nutricion.hidratacionDe(a.id, hoy),
       }
     })
     .sort((a, b) => (a.pct ?? -1) - (b.pct ?? -1))
+
+  return { filas, pendientes }
+}
+
+/**
+ * Panel de la nutricionista (Manuela): evaluación nutricional de todo el
+ * equipo — adherencia de 30 días, racha, plan asignado e hidratación de hoy.
+ * Solo staff (nutricionista o coach) puede entrar.
+ */
+export default function EquipoNutricionPage() {
+  const { usuario } = useSesion()
+  const version = useDbVersion()
+  const hoy = hoyIso()
+  /** El asesorado cuyo panel de vetos está abierto. */
+  const [vetando, setVetando] = useState<{ id: string; nombre: string } | null>(null)
+
+  if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
+    return <Navigate to="/" replace />
+  }
+
+  const { filas, pendientes } = datosDelEquipo(version, hoy)
+
 
   return (
     <div className="flex flex-col gap-4">
