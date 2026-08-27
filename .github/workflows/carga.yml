@@ -1,0 +1,93 @@
+# Prueba de carga de la hidratación. Se dispara A MANO, nunca sola.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# POR QUÉ VIVE AQUÍ Y NO EN LA MÁQUINA DE NADIE
+# ─────────────────────────────────────────────────────────────────────────────
+# k6 es un binario de Go —un `.exe` en Windows— y la directiva de Control de
+# aplicaciones (WDAC) del equipo de desarrollo bloquea ese tipo de binarios. Es
+# lo mismo que dejó `oxlint` configurado e inservible durante semanas (ver
+# CLAUDE.md §1). El runner de Ubuntu no tiene esa directiva, así que aquí sí
+# corre.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# NUNCA CONTRA PRODUCCIÓN
+# ─────────────────────────────────────────────────────────────────────────────
+# El proyecto de destino se pasa a mano al lanzarlo, y el script se niega a
+# apuntar a la base real salvo que se le fuerce. No es solo por los datos de
+# salud de 26 personas: una prueba de carga ENSUCIA los contadores de `pg_stat`
+# con los que se mide todo el trabajo de escalabilidad, y eso no se puede
+# deshacer. Los `seq_scan` acumulados dejarían de significar «lo que hacen las
+# personas».
+#
+# Lo suyo es una rama de Supabase. Y OJO: una rama nace VACÍA, y sobre cero
+# filas Postgres elige planes distintos —un seq scan sobre nada es gratis—, así
+# que el informe diría que todo va perfecto. Hay que sembrarla con volumen o la
+# prueba mide humo.
+name: Carga
+
+on:
+  workflow_dispatch:
+    inputs:
+      supabase_url:
+        description: 'URL del proyecto DE PRUEBA (no producción)'
+        required: true
+      usuario:
+        description: 'Email del usuario de prueba'
+        required: true
+      proporcion_coach:
+        description: 'Qué parte entra como staff (0 a 1). Un coach descarga la cartera entera'
+        required: false
+        default: '0.05'
+      intervalo:
+        description: 'Segundos entre refrescos. 45 es lo que hace la app'
+        required: false
+        default: '45'
+
+concurrency:
+  group: carga
+  cancel-in-progress: false
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Negarse si apunta a producción
+        # El script ya lo comprueba, pero fallar aquí ahorra levantar k6 entero
+        # y deja el motivo en el primer paso del registro, donde se ve.
+        run: |
+          if [[ "${{ inputs.supabase_url }}" == *"sbzmbiwrnvegrticatza"* ]]; then
+            echo "::error::Esa es la base de PRODUCCIÓN. Usa una rama de Supabase."
+            exit 1
+          fi
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Correr la prueba
+        uses: grafana/run-k6-action@v1
+        env:
+          SUPABASE_URL: ${{ inputs.supabase_url }}
+          # Van por secreto: la anon key es pública, pero la clave de los
+          # usuarios de prueba no, y un registro de Actions es legible por
+          # cualquiera con acceso al repo.
+          ANON_KEY: ${{ secrets.CARGA_ANON_KEY }}
+          USUARIO: ${{ inputs.usuario }}
+          CLAVE: ${{ secrets.CARGA_CLAVE }}
+          PROPORCION_COACH: ${{ inputs.proporcion_coach }}
+          INTERVALO: ${{ inputs.intervalo }}
+        with:
+          path: scripts/carga/hidratacion.k6.js
+
+      - name: Guardar el informe
+        # `if: always()` a propósito: el informe de una corrida que REVENTÓ es
+        # justo el que hay que leer. Es donde está el escalón en el que empezó a
+        # romperse, que es lo que se venía a buscar.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resumen-carga
+          path: resumen-carga.json
+          if-no-files-found: warn
