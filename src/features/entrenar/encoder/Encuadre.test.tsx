@@ -20,6 +20,7 @@ describe('el traductor de motivos salva la ñ del núcleo', () => {
     expect(textoDeMotivo('camara_baja')).toBe('Cámara baja')
     expect(textoDeMotivo('no_cabe')).toBe('No cabe')
     expect(textoDeMotivo('no_es_lateral')).toBe('No es lateral')
+    expect(textoDeMotivo('desvio_sin_disco')).toBe('Muy en diagonal para no llevar disco')
   })
 })
 
@@ -59,18 +60,36 @@ describe('el veredicto es el del núcleo, sin criterio propio de la pantalla', (
     expect(screen.getByText(/Cámara baja · No cabe/)).toBeInTheDocument()
   })
 
-  it('22° de desvío: el núcleo dice buena, y la pantalla NO lo contradice', () => {
-    // Documenta la distancia con el entregable de diseño, que esperaba `dudosa`.
-    // La pantalla no inventa la puerta que falta: enseña la cifra y deja el
-    // criterio donde vive, en `encuadre.js` y sus pruebas.
+  it('22° de desvío sin disco: ya no salen buena (puerta del 2026-08-26)', () => {
+    // Este test documentaba lo contrario. Hasta el 26/08 el núcleo solo miraba
+    // desvío > 30°, así que 22° devolvían `buena` con un 14,7 % de error sin
+    // corregir, y la pantalla solo podía enseñar la cifra sin contradecirlo.
+    // La puerta ya está decidida y vive en `calificarEncuadre`.
     const e = encuadre({ ...FUERA_DEL_EJE, fov: 70 })
-    expect(calificarEncuadre(e).nivel).toBe('buena')
+    expect(calificarEncuadre(e).nivel).toBe('descartada')
     expect(e.errorSinCorregir).toBeGreaterThan(0.14)
 
     render(<Encuadre inicial={FUERA_DEL_EJE} />)
-    expect(screen.getByText('Buena')).toBeInTheDocument()
-    // pero el 14,7 % está a la vista, que es lo que impide la lectura de promesa
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+    // y el 14,7 % se sigue enseñando: el motivo explica, la cifra demuestra
     expect(screen.getByText(/14\.[0-9] %/)).toBeInTheDocument()
+  })
+
+  it('los mismos 22° CON disco pasan: φ se mide de la elipse y se corrige', () => {
+    const e = encuadre({ ...FUERA_DEL_EJE, fov: 70 })
+    expect(calificarEncuadre(e, { hayDisco: true }).nivel).toBe('buena')
+    // Lo que queda tras corregir no depende del ángulo: es el ruido del borde.
+    expect(e.errorCorregido).toBeLessThan(0.02)
+  })
+
+  it('el interruptor de disco cambia el veredicto sin mover la cámara', () => {
+    render(<Encuadre inicial={FUERA_DEL_EJE} />)
+    expect(screen.getByText('Desde aquí no.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText(/Se ve un disco de la barra/))
+
+    expect(screen.getByText('Desde aquí sale una medida en la que se puede confiar.'))
+      .toBeInTheDocument()
   })
 })
 
