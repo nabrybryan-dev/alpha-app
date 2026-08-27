@@ -27,6 +27,8 @@ import { SalonDeMaquinas } from './SalonDeMaquinas'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
+import { VisorPatron } from './visor/VisorPatron'
+import type { Patron } from '../../domain/patrones/catalogo'
 
 interface Descanso {
   hasta: number
@@ -64,6 +66,7 @@ function SesionEnCurso() {
   const { usuario } = useSesion()
   useDbVersion()
   const [demo, setDemo] = useState<Contenido | undefined>()
+  const [patron, setPatron] = useState<Patron | undefined>()
   const [cerrada, setCerrada] = useState(false)
 
   /**
@@ -329,6 +332,7 @@ function SesionEnCurso() {
               notaVisible={notasVisibles.has(ejercicioActual.id)}
               onAlternarNota={() => alternarNota(ejercicioActual.id)}
               onVerDemo={setDemo}
+              onVerPatron={setPatron}
               registroRef={registroRef}
               onGuardarSerie={(serie) => {
                 db.microciclos.registrarSerie(microciclo.id, ejercicioActual.id, serie)
@@ -380,6 +384,18 @@ function SesionEnCurso() {
 
       <Sheet abierto={demo !== undefined} titulo={demo?.titulo ?? ''} onCerrar={() => setDemo(undefined)}>
         {demo && <VisorContenido contenido={demo} />}
+      </Sheet>
+
+      {/* Sin animación de entrada, por el mismo motivo que `HojaMedicion`: al
+          abrirse arranca WebGL y compila los shaders, y los 420 ms de la entrada
+          caerían justo encima del instante más caro. */}
+      <Sheet
+        abierto={patron !== undefined}
+        titulo={patron?.titulo ?? ''}
+        onCerrar={() => setPatron(undefined)}
+        animar={false}
+      >
+        {patron && <VisorPatron patron={patron} />}
       </Sheet>
 
       {frase && (
