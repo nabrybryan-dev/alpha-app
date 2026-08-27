@@ -494,6 +494,59 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- La consola: teclas que sobresalen, cifras hundidas ---------- */
+
+/* Registrar una serie deja de ser rellenar un formulario y pasa a ser operar una
+   consola: la cifra vive HUNDIDA en su hueco y las teclas SOBRESALEN de la
+   placa. Al pulsar una, recorre sus 16 px hasta tocarla — el recorrido de la
+   tecla es literal, no una metafora.
+
+   Las dos sustituyen a `.press` en esos botones, no se apilan con ella: dos
+   reglas peleandose por `transform` las gana la ultima, y el 3D o el hundido
+   desapareceria sin aviso. Por eso llevan el mismo `scale(0.97)`, la misma
+   duracion y la misma curva: el tacto es identico, con recorrido añadido.
+
+   NINGUNA ZONA TOCABLE BAJA DEL PLANO. Hundir encoge —a 900 px de perspectiva,
+   -8 px son un factor 0,9912— y una diana de 44 px hundida se queda en 43,6.
+   Las teclas van de +16 a 0, nunca a negativo. */
+.tecla-3d {
+  transform: translateZ(var(--prof-relieve));
+  box-shadow: var(--sombra-alzado);
+  transition: transform var(--dur-toque) var(--ease-salida);
+}
+
+.tecla-3d:active {
+  transform: translateZ(var(--prof-plano)) scale(0.97);
+}
+
+.pozo-3d {
+  transform: translateZ(var(--prof-hueco));
+  box-shadow: var(--sombra-hundido);
+}
+
+/* El asentado de la consola: entra inclinada y se posa. 240 ms y sin escalonado,
+   porque esto se reproduce despues de CADA serie —unas 25 veces por sesion— y la
+   tabla de frecuencia del estandar dice reducir, no adornar. */
+@keyframes asentar-consola {
+  from {
+    transform: rotateX(3deg) translateZ(-14px);
+  }
+}
+
+.consola-asienta {
+  transform-style: preserve-3d;
+  animation: asentar-consola var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tecla-3d {
+    transition: none;
+  }
+  .consola-asienta {
+    animation: none;
+  }
+}
+
 /* ---------- Una pieza que aparece donde no habia nada ---------- */
 
 /* Para lo que se monta de golpe: los plegables del encoder y la tarjeta de
