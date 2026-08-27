@@ -55,7 +55,7 @@ interface SelloProps {
    *  resultado, `buena` significa «este número decide carga»; en el encuadre, que
    *  todavía no hay número, significa «desde aquí sale una medida en la que se
    *  puede confiar». El sello es el mismo objeto y la frase no. */
-  subtitulo?: string
+  subtitulo?: string | null
   /** Sustituye la palabra del sello.
    *
    *  La tanda juzga CRITERIOS contra umbrales, no tomas: allí las tres materias
@@ -91,6 +91,8 @@ export function SelloCalidad({
       'bg-[var(--hundido)] text-[var(--gris-marca)] ring-1 ring-inset ring-[var(--placa-muerta)] shadow-[var(--sombra-hundido)]',
   }
 
+  const subtituloVisible = subtitulo === null ? null : (subtitulo ?? SUBTITULO[nivel])
+
   return (
     <div className={className}>
       <div
@@ -104,10 +106,12 @@ export function SelloCalidad({
         >
           {titulo ?? TITULO[nivel]}
         </p>
-        {grande && (
-          <p className="mt-1.5 text-[13px] leading-snug opacity-80">
-            {subtitulo ?? SUBTITULO[nivel]}
-          </p>
+        {/* `subtitulo={null}` pide EXPRESAMENTE que no haya frase, y no es lo
+            mismo que omitirlo —omitirlo usa la genérica del sistema—. Hace falta
+            para las pantallas donde el titular YA ES la frase: repetirla debajo
+            sería decir dos veces lo mismo, y dejar un `<p>` vacío deja su margen. */}
+        {grande && subtituloVisible !== null && (
+          <p className="mt-1.5 text-[13px] leading-snug opacity-80">{subtituloVisible}</p>
         )}
       </div>
       {/* Soldado a la placa: en contacto con ella y del mismo ancho. */}
