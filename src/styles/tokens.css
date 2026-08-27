@@ -133,14 +133,32 @@
      levantar la pieza tanto que su propia banda de tinta pasa de 25 y el texto
      deja de leerse. Lo que hay debajo de una pieza sin recorrer no es una
      superficie: es que ahi no hay luz. */
-  --ink-1000: #000000;
-  --ink-900: #08090a;
-  --ink-800: #0f1113;
-  --ink-700: #16181b;
-  --ink-600: #202327;
-  --ink-500: #2a2f35;
-  --ink-400: #3a4048;
+  /* La escala se declara por CANALES y el color se deriva de ellos.
 
+     No es un capricho de formato: Tailwind solo puede aplicar un modificador de
+     opacidad —`bg-ink-900/70`— a un color declarado con el marcador `<alpha-value>`,
+     y eso obliga a la forma `rgb(<canales> / <alpha-value>)`. Mientras estos tonos
+     fueron un hex suelto, Tailwind DESCARTABA el modificador sin avisar: no fallaba
+     el build, no fallaba el typecheck, simplemente no generaba la regla y el
+     elemento se quedaba SIN FONDO. Habia seis sitios asi en el repo.
+
+     Los canales son la unica fuente: el hex de toda la vida sale de ellos, asi que
+     no hay dos numeros que puedan separarse. Es lo unico que `--accion` hace peor,
+     porque alli el hex y los canales estan escritos aparte. */
+  --ink-1000-rgb: 0 0 0;
+  --ink-1000: rgb(var(--ink-1000-rgb));
+  --ink-900-rgb: 8 9 10;
+  --ink-900: rgb(var(--ink-900-rgb));
+  --ink-800-rgb: 15 17 19;
+  --ink-800: rgb(var(--ink-800-rgb));
+  --ink-700-rgb: 22 24 27;
+  --ink-700: rgb(var(--ink-700-rgb));
+  --ink-600-rgb: 32 35 39;
+  --ink-600: rgb(var(--ink-600-rgb));
+  --ink-500-rgb: 42 47 53;
+  --ink-500: rgb(var(--ink-500-rgb));
+  --ink-400-rgb: 58 64 72;
+  --ink-400: rgb(var(--ink-400-rgb));
   /* Escala silver (texto/plata neutro = estado "logrado") */
   --silver-100: #f4f5f6;
   --silver-200: #dfe2e6;
