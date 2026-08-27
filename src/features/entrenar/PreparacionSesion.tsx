@@ -75,17 +75,26 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
             return (
               <div key={tipo}>
                 <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{titulo}</p>
-                <ul className="mt-1.5 flex flex-col gap-1">
+                {/* La escena en el `<ul>` y el `preserve-3d` en cada `<li>`:
+                    `perspective` solo alcanza a los hijos DIRECTOS, y sin ese
+                    eslabón el relieve de la casilla costaría una capa de
+                    composición sin producir un solo píxel de escorzo. */}
+                <ul className="escena-prof mt-1.5 flex flex-col gap-1">
                   {grupo.map((parte) => {
                     const demo = demoDePreparacion(parte, db.contenidos.list())
                     const detalleAbierto = detalles.has(parte.id)
                     return (
-                      <li key={parte.id} className="flex items-start gap-2.5 py-0.5">
+                      <li key={parte.id} className="flex items-start gap-2.5 py-0.5 [transform-style:preserve-3d]">
                         <button
                           type="button"
                           aria-label={parte.hechoEn ? `Desmarcar ${parte.titulo}` : `Marcar ${parte.titulo}`}
                           onClick={() => onMarcar(parte.id)}
-                          className={`press mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-toque ease-salida ${
+                          // Igual que las casillas de los bloques: `tecla-3d` sustituye
+                          // a `press` y a `transition-colors`, y sube a relieve para
+                          // bajar al PLANO, nunca por debajo. Esta diana mide 28 px, la
+                          // más pequeña de la pantalla: es la que menos se puede
+                          // permitir que hundirla la encoja.
+                          className={`tecla-3d mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold ${
                             parte.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >

@@ -22,14 +22,22 @@ export function BloquesSesion({ bloques, esMetabolica, onMarcar }: BloquesSesion
       {marcables.length > 0 && (
     <Card>
       <p className="kicker">{esMetabolica ? 'Bloques de la sesión' : 'Bloques marcables'}</p>
-      <ul className="mt-2 flex flex-col gap-2">
+      {/* La escena va en el `<ul>` y el `preserve-3d` en cada `<li>`, porque
+          `perspective` solo alcanza a los HIJOS DIRECTOS: sin ese eslabón el
+          `translateZ` de la casilla no produce escorzo —solo una capa de
+          composición— y el relieve costaría sin verse. */}
+      <ul className="escena-prof mt-2 flex flex-col gap-2">
         {marcables.map((bloque) => (
-          <li key={bloque.id} className="flex items-start gap-2.5">
+          <li key={bloque.id} className="flex items-start gap-2.5 [transform-style:preserve-3d]">
             <button
               type="button"
               aria-label={bloque.hechoEn ? `Desmarcar ${bloque.titulo}` : `Marcar ${bloque.titulo}`}
               onClick={() => onMarcar(bloque.id)}
-              className={`press mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold transition-colors duration-toque ease-salida ${
+              // `tecla-3d` SUSTITUYE a `press` —las dos escriben `transform`— y
+              // también a `transition-colors`, que ya lleva dentro. La casilla sube a
+              // relieve y baja al PLANO al pulsar, nunca por debajo: hundir encoge, y
+              // una diana ya justa de tamaño no puede permitírselo.
+              className={`tecla-3d mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold ${
                 bloque.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
               }`}
             >

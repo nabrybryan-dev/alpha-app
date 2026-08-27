@@ -98,7 +98,11 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
           la hoja se queda FUERA de el, como hermana posterior. */}
       <div className="escena-prof">
         <div className="consola-asienta">
-      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-accion">
+      {/* `preserve-3d` en el párrafo, que faltaba: la etiqueta de dentro lleva
+          `tecla-3d`, y sin este eslabón el `<p>` aplana a sus hijos y ese
+          `translateZ` no producía escorzo ninguno. Se veía la sombra —eso sí se
+          pinta— así que parecía en relieve sin estarlo: coste sin efecto. */}
+      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-accion [transform-style:preserve-3d]">
         Serie {orden} de {ejercicio.sets}
         {etiqueta && (
           <span className="tecla-3d ml-2 inline-block rounded-tag bg-accion/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-accion">

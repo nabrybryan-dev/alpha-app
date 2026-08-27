@@ -512,7 +512,19 @@ body {
 .tecla-3d {
   transform: translateZ(var(--prof-relieve));
   box-shadow: var(--sombra-alzado);
-  transition: transform var(--dur-toque) var(--ease-salida);
+  /* Las propiedades van ENUMERADAS y no en un `transition` a secas, por una
+     colision que no avisa. Tailwind inyecta sus utilidades en la linea 3 de este
+     mismo archivo, asi que `.tecla-3d` le gana a `transition-colors` por orden
+     con la misma especificidad: un boton con las dos clases perdia la transicion
+     de color entera y el color pasaba a saltar de golpe. No se pone nada en rojo
+     —es una clase ganandole a otra, que es lo que la cascada hace— y en el
+     navegador se ve como un parpadeo que nadie sabe de donde sale.
+
+     Enumerando aqui los colores, el marcado ya no necesita la utilidad: una tecla
+     lleva `tecla-3d` y nada mas. */
+  transition-property: transform, background-color, border-color, color;
+  transition-duration: var(--dur-toque);
+  transition-timing-function: var(--ease-salida);
 }
 
 .tecla-3d:active {
@@ -522,6 +534,22 @@ body {
 .pozo-3d {
   transform: translateZ(var(--prof-hueco));
   box-shadow: var(--sombra-hundido);
+}
+
+/* Lo que espera detras: rieles, colas, colecciones. Es --prof-fondo puesto sobre
+   los HIJOS y no sobre el elemento, para que cada bloque traiga su propia escena.
+
+   Trae su propia escena porque en la pantalla de sesion NO se puede poner una
+   perspectiva en un ancestro comun: de la tarjeta del ejercicio cuelga la hoja de
+   la camara, que es `fixed inset-0`, y un `perspective` arriba la encerraria en
+   una tarjeta de 350 px. Asi cada riel recede por su cuenta y la tarjeta se queda
+   en el plano de delante, sola.
+
+   VA SIEMPRE JUNTO A .escena-prof, nunca sola: la puerta de camara se cuelga de
+   `.escena-prof`, asi que un fondo sin ella seguiria con escorzo durante la toma.
+   Hay un guardian que lo comprueba. */
+.al-fondo > * {
+  transform: translateZ(var(--prof-fondo));
 }
 
 /* El asentado de la consola: entra inclinada y se posa. 240 ms y sin escalonado,
