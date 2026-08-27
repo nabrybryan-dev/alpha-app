@@ -494,6 +494,43 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- El corte entre ejercicios ---------- */
+
+/* Hasta hoy el velo a pantalla completa aparecia DE GOLPE mientras el panel
+   entraba en 480 ms: la capa oscura llegaba antes que su contenido. Su hermano
+   de la misma pantalla —el test post— si funde el suyo. Y el panel era plano:
+   nada decia que fuese una capa POR ENCIMA de la sesion salvo que el fondo se
+   oscurece.
+
+   LA PROFUNDIDAD SE PAGA CON TIEMPO QUE SE QUITA, NO QUE SE AÑADE: 480 -> 360.
+   Es un corte que interrumpe, no un premio; llega, se entiende y se aparta.
+
+   `scale(0.97)` es el de `.press`, y nunca `scale(0)`: un modal que nace de un
+   punto se lee como un truco. El origen va al centro y no al disparador, que es
+   lo que el estandar exime expresamente para los modales. */
+@keyframes corte-entra {
+  from {
+    opacity: 0;
+    transform: rotateX(6deg) translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0deg) translateY(0) scale(1);
+  }
+}
+
+.corte-entra {
+  animation: corte-entra var(--dur-panel) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Con `both` el panel queda entero y plano: se pierde el giro, NO el corte —
+     que es lo que impide seguir registrando series del ejercicio equivocado. */
+  .corte-entra {
+    animation-duration: 1ms;
+  }
+}
+
 /* ---------- La portada del microciclo aterriza ---------- */
 
 /* Es la pieza que MAS deleite tiene permitido: se ve UNA vez por microciclo, y
@@ -1152,6 +1189,19 @@ body {
    tira de leds— y hasta hoy ninguna paraba durante la toma. */
 [data-camara-abierta] * {
   animation-play-state: paused !important;
+}
+
+/* Y el desenfoque se retira mientras se captura. No es una animacion —la regla
+   de arriba no lo alcanza— pero un `backdrop-filter` a pantalla completa es de
+   lo mas caro que se le puede pedir a la GPU: obliga a remuestrear y difuminar
+   la region entera en cada fotograma. El corte entre ejercicios lo lleva, y esa
+   pantalla puede aparecer con la camara viva.
+
+   El contraste no se pierde: debajo del desenfoque siempre hay un velo opaco,
+   que es lo que de verdad garantiza que se lea el texto. */
+[data-camara-abierta] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* `prefers-reduced-motion` NO aplana la profundidad, y es deliberado: la
