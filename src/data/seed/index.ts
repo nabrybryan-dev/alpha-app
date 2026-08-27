@@ -1,3 +1,4 @@
+import type { FirmaSync } from '../nube/firma'
 import type { ItemDespensaDe } from '../../domain/nutricion/despensa'
 import type {
   AdherenciaNutricional,
@@ -56,6 +57,16 @@ export interface SeedDb {
   preferenciasEstado?: PreferenciaEstado[]
   /** Solo en modo nube: lo llena la RPC ranking_disciplina al iniciar sesión. */
   ranking?: FilaRanking[]
+  /**
+   * Qué aspecto tenía el servidor la última vez que se bajó (0049). Opcional:
+   * los snapshots viejos no la traen, y sin ella se descarga como siempre.
+   *
+   * Vive AQUÍ, dentro de la instantánea, y no en una clave suya de
+   * `localStorage`, para que `olvidarDatosLocales` se la lleve con todo lo
+   * demás. Una firma que sobreviviera al cierre de sesión dejaría a la
+   * siguiente persona saltándose descargas por lo que vio la anterior.
+   */
+  firmaSync?: FirmaSync
   mensajes: Mensaje[]
   cuestionarios: Cuestionario[]
   respuestas: Respuesta[]
