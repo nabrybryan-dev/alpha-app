@@ -45,6 +45,28 @@ describe('medir desde dentro de la serie', () => {
     expect(medir).toBeLessThan(guardar)
   })
 
+  it('abrir la camara marca el documento, y cerrarla lo limpia', async () => {
+    // Que la camara este abierta es un hecho global: se publica en el <body> y
+    // lo lee `tokens.css`, que aplana la profundidad y para TODA animacion
+    // mientras se captura a 50 fps. Un gabinete tiene cuatro animaciones
+    // infinitas corriendo a la vez y hasta hoy ninguna paraba durante la toma.
+    const usuario = userEvent.setup()
+    const { unmount } = render(
+      <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="b-cam" onGuardar={() => {}} />,
+    )
+
+    expect(document.body.dataset.camaraAbierta).toBeUndefined()
+
+    await usuario.click(screen.getByRole('button', { name: /Medir con la cámara/i }))
+    expect(document.body.dataset.camaraAbierta).toBe('si')
+
+    // Se desmonta en vez de pulsar el cierre a proposito: lo que hay que
+    // garantizar es que el atributo NO se queda pegado pase lo que pase — si se
+    // filtrara, la app entera se quedaria sin animaciones hasta recargar.
+    unmount()
+    expect(document.body.dataset.camaraAbierta).toBeUndefined()
+  })
+
   it('la hoja llega con el ejercicio, la carga y las reps ya puestos', async () => {
     render(
       <RegistroSerie ejercicio={ejercicio()} orden={1} borradorId="b2" onGuardar={() => {}} />,
