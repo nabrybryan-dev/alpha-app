@@ -946,4 +946,24 @@ select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
              where tgname = 'trg_actualizado_en' and not tgisinternal) = 21
        then 'SI' else 'NO' end
 
+union all
+-- Se lee AL REVES: la señal es que las funciones NO esten. Se borran al
+-- terminar cada carga -`plantilla-carga-microciclo.sql` las recrea con
+-- `create or replace`, asi que borrarlas no pierde nada- y dejarlas puestas es
+-- lo que permitio que el 2026-08-27 dos funciones que ESCRIBEN microciclos
+-- estuvieran al alcance de la anon key.
+--
+-- Ojo: esta señal dira SI en cuanto se borren, aunque nadie haya arreglado el
+-- flujo. La que vigila de verdad es `comprobar-funciones-expuestas.sql`, que hay
+-- que correr DESPUES DE CADA CARGA.
+select '0050 - funciones de carga cerradas', 'ninguna tmp_ viva y search_path en marcar_actualizado',
+       case when not exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname like 'tmp\_%')
+            and exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'marcar_actualizado'
+                 and array_to_string(p.proconfig, ',') like '%search_path=public%')
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
