@@ -127,6 +127,9 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
   const [dist, setDist] = useState(inicial?.dist ?? 2.5)
   const [altura, setAltura] = useState(inicial?.altura ?? 0.95)
   const [desvio, setDesvio] = useState(inicial?.desvio ?? 0)
+  // Lo único que el núcleo no puede deducir del encuadre: si en el cuadro va a
+  // haber un disco de 450 mm con el que medir φ. Por defecto no.
+  const [hayDisco, setHayDisco] = useState(false)
   const fov = inicial?.fov ?? 70
 
   // El cálculo es la fuente de verdad y vive en el núcleo vendorizado, que es
@@ -135,7 +138,7 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
     () => calcular({ dist, altura, desvio, fov, ejeM: alturaCaderaM }),
     [dist, altura, desvio, fov, alturaCaderaM],
   )
-  const calidad = useMemo(() => calificarEncuadre(e), [e])
+  const calidad = useMemo(() => calificarEncuadre(e, { hayDisco }), [e, hayDisco])
 
   const veredicto: Record<string, string> = {
     buena: COPY.encuadre_buena,
@@ -209,6 +212,20 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
           formato={(v) => `${v.toFixed(0)}°`}
           onCambio={setDesvio}
         />
+        <label className="flex h-14 items-center justify-between gap-3 border-t border-hairline">
+          <span className="text-[13px] text-texto">
+            Se ve un disco de la barra
+            <span className="block text-[11.5px] leading-snug text-tenue">
+              Con disco se corrige el ángulo; sin él hay que colocarse más de lado
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={hayDisco}
+            onChange={(ev) => setHayDisco(ev.target.checked)}
+            className="size-5 shrink-0 accent-[var(--rojo)]"
+          />
+        </label>
       </Card>
 
       {/* 4. El par de errores. */}
