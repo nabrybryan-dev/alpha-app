@@ -43,8 +43,28 @@ begin;
 -- Primero revocar y después borrar, y no al revés: si el `drop` fallara por lo
 -- que sea, el `revoke` ya habría cerrado el acceso. Al revés se quedaría abierto.
 
-revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) from public;
-revoke execute on function public.tmp_nuevo_micro(jsonb, int, text, jsonb) from public;
+-- Con guarda porque `revoke` NO admite `if exists`, y estas funciones no las
+-- crea ninguna migración: las crea `plantilla-carga-microciclo.sql` cuando hay
+-- una carga. Sobre una base limpia -el CI aplica las 50 desde cero- no existen,
+-- y un `revoke` a secas aborta la migración entera. Lo cazó el check
+-- `base-de-datos` antes de que esto llegara a main.
+do $cerrar$
+begin
+  if exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = 'tmp_cargar_siguiente'
+  ) then
+    execute 'revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) from public';
+  end if;
+
+  if exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = 'tmp_nuevo_micro'
+  ) then
+    execute 'revoke execute on function public.tmp_nuevo_micro(jsonb, int, text, jsonb) from public';
+  end if;
+end
+$cerrar$;
 
 -- ── 2. Borrarlas, que es lo que manda la regla ───────────────────────────────
 -- Borrarlas es inocuo: `plantilla-carga-microciclo.sql` las recrea con
