@@ -494,6 +494,32 @@ body {
 .entrada-5 { animation-delay: 240ms; }
 .entrada-6 { animation-delay: 300ms; }
 
+/* ---------- La insignia del Salon de Maquinas ---------- */
+
+/* La clase `insignia-salon` ya estaba puesta en el marcado y NO EXISTIA en
+   ninguna hoja: un gancho colgado y vacio, esperando exactamente esto. Por eso
+   aqui no cambia ni una linea de TSX.
+
+   El 0,94 es el 0 % de `.frase-pop`, dentro de la banda 0,9-0,97 que el estandar
+   da al feedback fisico. Nunca se toca el oro del fondo ni se le pone una sombra
+   animada: el oro esta reservado al nivel Elite y no es un acento decorativo. */
+@keyframes insignia-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.insignia-salon {
+  animation: insignia-entra var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insignia-salon {
+    animation-duration: 1ms;
+  }
+}
+
 /* ---------- El aviso de la captura ---------- */
 
 /* `transition` y NO `@keyframes`, y no es un detalle: un segundo aviso que
