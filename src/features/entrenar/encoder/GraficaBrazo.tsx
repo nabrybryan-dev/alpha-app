@@ -110,8 +110,29 @@ export function GraficaBrazo({
     // estado: es el único render de todo el gesto, y es el que necesitan el depth
     // cueing y el texto del botón.
     const fijado = Math.max(-TOPE_GRADOS, Math.min(TOPE_GRADOS, gradosVivos.current))
+    const habiaExcedente = gradosVivos.current !== fijado
     gradosVivos.current = fijado
     setGrados(fijado)
+    // EL EXCEDENTE ELASTICO NO SIEMPRE LO DEVUELVE REACT.
+    //
+    // `setGrados` con el valor que ya estaba no provoca render: React corta antes. Y
+    // `grados` vale exactamente el tope siempre que el arrastre anterior termino
+    // pasado de el. Asi que al SEGUNDO arrastre elastico seguido nadie reescribe el
+    // `transform` y el plano se queda clavado fuera del tope, sin volver nunca. Nada
+    // se pone rojo: el estado es correcto, es el DOM el que quedo por delante.
+    //
+    // Va en el frame siguiente a proposito: para entonces `gestoActivo` ya es false y
+    // la transicion esta de vuelta, asi que el excedente se devuelve animado y no de
+    // un tiron. La opacidad no lo necesita —su `cerca` ya viene recortado a 1, asi que
+    // el gesto dejo escrito exactamente lo que React iba a poner.
+    if (habiaExcedente) {
+      const nodo = planoRef.current
+      if (nodo) {
+        requestAnimationFrame(() => {
+          nodo.style.transform = `rotateY(${fijado.toFixed(2)}deg)`
+        })
+      }
+    }
     // EL EXCEDENTE ELASTICO NO SIEMPRE LO DEVUELVE REACT.
     //
     // `setGrados` con el valor que ya estaba no provoca render: React corta antes. Y
