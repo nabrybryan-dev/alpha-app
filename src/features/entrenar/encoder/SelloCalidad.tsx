@@ -55,7 +55,7 @@ interface SelloProps {
    *  resultado, `buena` significa «este número decide carga»; en el encuadre, que
    *  todavía no hay número, significa «desde aquí sale una medida en la que se
    *  puede confiar». El sello es el mismo objeto y la frase no. */
-  subtitulo?: string
+  subtitulo?: string | null
   /** Sustituye la palabra del sello.
    *
    *  La tanda juzga CRITERIOS contra umbrales, no tomas: allí las tres materias
@@ -117,8 +117,14 @@ export function SelloCalidad({
    * SOLO EN EL SELLO GRANDE. En la version `inline` de una fila de lista, seis
    * grados sobre un chip de 9,5 px serian ruido: alli el estado se lee en la
    * materia, que es justo para lo que se diseño.
+   *
+   * Y ESTO ES LO QUE LO HACE POSIBLE: la placa única. Mientras `descartada`
+   * renderizaba `PlacaHundida` y el resto `SelloCalidad`, al cruzar el umbral el
+   * nodo no cambiaba —se sustituía—, y una transición sobre un nodo que nace ya
+   * en su estado final no interpola nada. El hundido estaba escrito y no se veía.
    */
   const hundiendose = grande && nivel === 'descartada'
+  const subtituloVisible = subtitulo === null ? null : (subtitulo ?? SUBTITULO[nivel])
 
   return (
     <div className={className} style={grande ? { perspective: 'var(--perspectiva)' } : undefined}>
@@ -144,10 +150,12 @@ export function SelloCalidad({
         >
           {titulo ?? TITULO[nivel]}
         </p>
-        {grande && (
-          <p className="mt-1.5 text-[13px] leading-snug opacity-80">
-            {subtitulo ?? SUBTITULO[nivel]}
-          </p>
+        {/* `subtitulo={null}` pide EXPRESAMENTE que no haya frase, y no es lo
+            mismo que omitirlo —omitirlo usa la genérica del sistema—. Hace falta
+            para las pantallas donde el titular YA ES la frase: repetirla debajo
+            sería decir dos veces lo mismo, y dejar un `<p>` vacío deja su margen. */}
+        {grande && subtituloVisible !== null && (
+          <p className="mt-1.5 text-[13px] leading-snug opacity-80">{subtituloVisible}</p>
         )}
       </div>
       {/* Soldado a la placa: en contacto con ella y del mismo ancho. */}

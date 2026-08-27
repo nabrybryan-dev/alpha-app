@@ -8,7 +8,13 @@
  *  La clave del copy en `copys.ts` sí va sin ñ, así que quien traduzca motivo a
  *  texto tiene que salvar esa distancia — y hacerlo en un sitio, no en cada
  *  pantalla. */
-export type MotivoEncuadre = 'no_es_lateral' | 'disco_pequeño' | 'camara_baja' | 'no_cabe'
+export type MotivoEncuadre =
+  | 'no_es_lateral'
+  | 'disco_pequeño'
+  | 'camara_baja'
+  | 'no_cabe'
+  /** Desvío que no se puede deshacer porque no hay disco con el que medir φ. */
+  | 'desvio_sin_disco'
 
 export type NivelEncuadre = 'buena' | 'dudosa' | 'descartada'
 
@@ -63,4 +69,18 @@ export interface CalidadEncuadre {
 export const SEPARACION_DISCOS_M: { min: number; max: number; tipico: number }
 
 export function encuadre(entrada?: EntradaEncuadre): Encuadre
-export function calificarEncuadre(e: Encuadre): CalidadEncuadre
+/** Grados de desvío que rompen el reparto entre ejes, haya disco o no. */
+export const DESVIO_MAX: number
+/** Hasta aquí una toma sin disco sale `buena`: 5,8 % de error. */
+export const DESVIO_BUENO_SIN_DISCO: number
+/** Pasado esto, una toma sin disco se descarta ella sola. */
+export const DESVIO_MAX_SIN_DISCO: number
+
+export interface OpcionesCalificar {
+  /** Si se ve un disco de 450 mm, que es lo que permite medir φ y corregir el
+   *  escorzo. Por defecto `false`: dar por hecho que hay disco sería dar por
+   *  hecho que la corrección ocurrió. */
+  hayDisco?: boolean
+}
+
+export function calificarEncuadre(e: Encuadre, opciones?: OpcionesCalificar): CalidadEncuadre

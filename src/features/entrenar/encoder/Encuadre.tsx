@@ -3,7 +3,7 @@ import { Card } from '../../../components/ui/Card'
 import { COPY } from './copys'
 import { DiagramaEncuadre } from './DiagramaEncuadre'
 import { textoDeMotivo } from './motivosEncuadre'
-import { PlacaHundida, SelloCalidad } from './SelloCalidad'
+import { SelloCalidad } from './SelloCalidad'
 import { calificarEncuadre, encuadre as calcular } from './nucleo/encuadre'
 
 /**
@@ -127,6 +127,9 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
   const [dist, setDist] = useState(inicial?.dist ?? 2.5)
   const [altura, setAltura] = useState(inicial?.altura ?? 0.95)
   const [desvio, setDesvio] = useState(inicial?.desvio ?? 0)
+  // Lo único que el núcleo no puede deducir del encuadre: si en el cuadro va a
+  // haber un disco de 450 mm con el que medir φ. Por defecto no.
+  const [hayDisco, setHayDisco] = useState(false)
   const fov = inicial?.fov ?? 70
 
   // El cálculo es la fuente de verdad y vive en el núcleo vendorizado, que es
@@ -135,7 +138,7 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
     () => calcular({ dist, altura, desvio, fov, ejeM: alturaCaderaM }),
     [dist, altura, desvio, fov, alturaCaderaM],
   )
-  const calidad = useMemo(() => calificarEncuadre(e), [e])
+  const calidad = useMemo(() => calificarEncuadre(e, { hayDisco }), [e, hayDisco])
 
   const veredicto: Record<string, string> = {
     buena: COPY.encuadre_buena,
@@ -161,24 +164,43 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
         <DiagramaEncuadre e={e} alturaCaderaM={alturaCaderaM} />
       </Card>
 
-      {/* 2. La placa. Los motivos ocupan el sitio del veredicto cuando los hay. */}
-      {calidad.nivel === 'descartada' ? (
-        <PlacaHundida titulo={veredicto.descartada}>
-          <p className="font-display text-[15px] font-bold text-texto">
-            {calidad.motivos.map(textoDeMotivo).join(' · ')}
-          </p>
-        </PlacaHundida>
-      ) : (
-        <SelloCalidad nivel={calidad.nivel} subtitulo={veredicto[calidad.nivel]}>
-          {calidad.motivos.length > 0 && (
+      {/* 2. La placa. Los motivos ocupan el sitio del veredicto cuando los hay.
+
+          UN SOLO NODO PARA LOS TRES ESTADOS, y de eso depende que la placa pueda
+          moverse. Hasta hoy `descartada` renderizaba OTRO componente
+          (`PlacaHundida`), asi que al cruzar el umbral arrastrando el desvio el
+          nodo no cambiaba de estado: SE SUSTITUIA. Y una transicion sobre un
+          nodo que nace ya en su estado final no interpola nada — da igual lo bien
+          escrito que este el `transform`.
+
+          Ademas `PlacaHundida` es, por su propio docblock, «para cuando no hay
+          veredicto sino ausencia de medida»: asi la usan los otros cuatro sitios
+          del encoder (sin tendencia, sin medicion, no lo se, no se puede dar).
+          Aqui SI hay veredicto, y era el unico sitio que la usaba para eso.
+
+          Se conserva lo que se veia: el titular sigue siendo la frase —no la
+          palabra «Descartada»—, y los motivos siguen en cuerpo grande y en
+          negrita. Lo unico que cambia de sitio es que ahora van soldados DEBAJO
+          de la placa en vez de dentro, que es como ya se pintan los de `dudosa`
+          en esta misma pantalla. */}
+      <SelloCalidad
+        nivel={calidad.nivel}
+        titulo={calidad.nivel === 'descartada' ? veredicto.descartada : undefined}
+        subtitulo={calidad.nivel === 'descartada' ? null : veredicto[calidad.nivel]}
+      >
+        {calidad.motivos.length > 0 &&
+          (calidad.nivel === 'descartada' ? (
+            <p className="mt-2 font-display text-[15px] font-bold text-texto">
+              {calidad.motivos.map(textoDeMotivo).join(' · ')}
+            </p>
+          ) : (
             <div className="bg-surface-2 px-3 py-3">
               <p className="text-[12.5px] text-tenue">
                 {calidad.motivos.map(textoDeMotivo).join(' · ')}
               </p>
             </div>
-          )}
-        </SelloCalidad>
-      )}
+          ))}
+      </SelloCalidad>
 
       {/* 3. Los tres controles, en una sola tarjeta. */}
       <Card>
@@ -209,6 +231,20 @@ export function Encuadre({ alturaCaderaM, onConfirmar, inicial }: Props) {
           formato={(v) => `${v.toFixed(0)}°`}
           onCambio={setDesvio}
         />
+        <label className="flex h-14 items-center justify-between gap-3 border-t border-hairline">
+          <span className="text-[13px] text-texto">
+            Se ve un disco de la barra
+            <span className="block text-[11.5px] leading-snug text-tenue">
+              Con disco se corrige el ángulo; sin él hay que colocarse más de lado
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={hayDisco}
+            onChange={(ev) => setHayDisco(ev.target.checked)}
+            className="size-5 shrink-0 accent-[var(--rojo)]"
+          />
+        </label>
       </Card>
 
       {/* 4. El par de errores. */}

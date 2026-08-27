@@ -45,6 +45,7 @@ export const COPY = {
   "disco_pequeno": "Disco pequeño",
   "camara_baja": "Cámara baja",
   "no_cabe": "No cabe",
+  "desvio_sin_disco": "Muy en diagonal para no llevar disco",
   "salto_imposible": "Salto imposible",
   "sin_persona": "Sin persona",
   "sin_consenso": "Los dos no coinciden",
