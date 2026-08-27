@@ -106,6 +106,46 @@ export function GraficaBrazo({
     setGrados(fijado)
   }, [])
 
+  /**
+   * UN GUIÑO DE ORBITA al abrir cada medida, y solo uno.
+   *
+   * A 0 grados no hay forma de VER que esto es tridimensional: la orbita se
+   * anuncia con texto —«arrastra para orbitar»— y nada mas. Un giro corto de ida
+   * y vuelta lo enseña en medio segundo.
+   *
+   * Los 12 grados salen de `inclinacionAlPuntero`, y caben de sobra dentro del
+   * TOPE_GRADOS de 25 que esta grafica permite al dedo: el guiño no llega ni a la
+   * mitad de lo que la persona puede hacer, asi que enseña el gesto sin
+   * exagerarlo. Es una pieza que se ORBITA, no una superficie de lectura, y por
+   * eso no lleva el tope de 6 grados de los rotulos.
+   *
+   * LA DEPENDENCIA ES `fotogramas` Y NO EL MONTAJE, y esto costo un fallo:
+   * `PanelPalancas` renderiza `{medida && <Palancas medida={medida} />}` SIN
+   * `key`, asi que al abrir una segunda medida este componente no se remonta —
+   * solo le cambian las props. Con las dependencias vacias el guiño se veria una
+   * vez por SESION, no una por medida, y quien abriera un segundo archivo ya no
+   * lo veria nunca. `medida.porFotograma` es estable mientras no cambie la
+   * medida, asi que no se dispara en re-renders sueltos.
+   *
+   * `fill: 'none'` para que al terminar vuelva a mandar el estado, y el gesto lo
+   * CANCELA: si el dedo llega antes, gana el dedo al instante.
+   */
+  const guino = useRef<Animation | null>(null)
+  useEffect(() => {
+    if (reducido) return
+    const nodo = planoRef.current
+    if (!nodo || typeof nodo.animate !== 'function') return
+    guino.current = nodo.animate(
+      [
+        { transform: 'rotateY(0deg)' },
+        { transform: 'rotateY(-12deg)', offset: 0.5 },
+        { transform: 'rotateY(0deg)' },
+      ],
+      { duration: 520, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'none' },
+    )
+    return () => guino.current?.cancel()
+  }, [reducido, fotogramas])
+
   // Fricción en el borde en vez de pared: pasado el tope, el excedente entra cada vez
   // más amortiguado y se acerca asintóticamente a `TOPE_GRADOS + GIRO_ELASTICO`, así
   // que el dedo siempre obtiene algo de respuesta pero el dato nunca se pierde de
@@ -140,6 +180,14 @@ export function GraficaBrazo({
       if (planoRef.current) {
         planoRef.current.style.transform = `rotateY(${gradosVivos.current.toFixed(2)}deg)`
       }
+      // Y el depth cueing con el, en vez de quedarse quieto hasta soltar. Son un
+      // puñado de nodos —uno por eje presente, tres como mucho—: escribirlos a mano
+      // cuesta menos que un solo render de React, y evita que al soltar el contraste
+      // pegue un salto de hasta el 40 % de golpe.
+      const cerca = Math.min(1, Math.abs(gradosVivos.current) / TOPE_GRADOS)
+      escenaRef.current?.querySelectorAll<SVGGElement>('[data-eje]').forEach((nodo) => {
+        nodo.style.opacity = `${1 - cerca * (nodo.dataset.objetivo === '1' ? 0.1 : 0.4)}`
+      })
     }
     // Se filtra por el mismo puntero: sin esto, LEVANTAR el segundo dedo terminaba el
     // arrastre aunque el primero siguiera apoyado y moviéndose.
@@ -176,6 +224,8 @@ export function GraficaBrazo({
         style={{ perspective: '1000px', height: alto + 26 }}
         onPointerDown={(e) => {
           if (reducido) return
+          // El dedo gana al guiño al instante: si sigue corriendo, se corta.
+          guino.current?.cancel()
           // Un gesto ya empezado no se reancla con un segundo dedo.
           if (arrastre.current) return
           gradosVivos.current = grados
@@ -271,13 +321,26 @@ export function GraficaBrazo({
                 return (
                   <g
                     key={eje}
-                    opacity={lejania}
+                    // El asa por la que el gesto los encuentra para escribirlos en
+                    // vivo, y la opacidad en `style` y NO en el atributo: un estilo en
+                    // linea gana siempre al atributo, asi que si volviera al atributo,
+                    // React y el gesto escribirian en canales distintos y el efecto
+                    // dejaria de moverse SIN que nada se pusiera rojo.
+                    data-eje={eje}
+                    data-objetivo={esObjetivo ? '1' : undefined}
                     // La opacidad va con la MISMA duración y curva que el transform del
                     // plano. Al volver a 0°, dos propiedades del mismo objeto acababan
                     // en momentos distintos: el giro interpolaba y el contraste saltaba
                     // en el primer render. Es justo lo que STANDARDS manda revisar a
                     // cámara lenta — «coordinated properties stay in sync».
-                    style={{ transition: 'opacity var(--dur-base) var(--ease-salida)' }}
+                    style={{
+                      opacity: lejania,
+                      // Durante el gesto la transicion estorba: la opacidad se escribe
+                      // a mano en cada movimiento y una transicion la haria ir con
+                      // retraso respecto al giro. Fuera del gesto vuelve, y con la
+                      // MISMA duracion y curva que el transform del plano.
+                      transition: gestoActivo ? 'none' : 'opacity var(--dur-base) var(--ease-salida)',
+                    }}
                   >
                     {tramosDeEje(fotogramas, eje).map((tramo, i) =>
                       tramo.length > 1 ? (
