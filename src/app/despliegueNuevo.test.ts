@@ -1,0 +1,114 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { esModuloQueYaNoExiste, recargarPorDespliegue } from './despliegueNuevo'
+
+/**
+ * El fallo que la asesorada ve como «Esta sección no se pudo mostrar» y que la
+ * obligaba a salir de la app y volver a entrar. Ver el encabezado del módulo.
+ */
+
+describe('esModuloQueYaNoExiste', () => {
+  /** El que se reportó desde producción, tal cual llegó. */
+  it('reconoce el de Chrome, que es el que se vio', () => {
+    expect(
+      esModuloQueYaNoExiste(
+        new Error(
+          'Failed to fetch dynamically imported module: https://alpha-athletics-app.vercel.app/assets/NutricionLayout-BuMVtoI_.js',
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  /** Cada motor lo dice a su manera, y el equipo usa los tres. */
+  it('reconoce también el de Firefox y el de Safari', () => {
+    expect(
+      esModuloQueYaNoExiste(new Error('error loading dynamically imported module')),
+    ).toBe(true)
+    expect(esModuloQueYaNoExiste(new Error('Importing a module script failed.'))).toBe(true)
+  })
+
+  /**
+   * El cuarto no habla de módulos siquiera. Vercel reescribe todo a
+   * `index.html`, así que pedir un fichero que ya no existe NO da un 404: da
+   * HTML donde se esperaba JavaScript. Sin esta rama, el caso más habitual en
+   * este hosting se escaparía.
+   */
+  it('reconoce el HTML que devuelve el rewrite en vez de un 404', () => {
+    expect(
+      esModuloQueYaNoExiste(
+        new Error(
+          "Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of \"text/html\". Strict MIME type checking is enforced for module scripts per HTML spec.",
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  /**
+   * Y NO se traga cualquier cosa: si recargara ante un error de datos, taparía
+   * un fallo real con una recarga infinita y nadie vería nunca el mensaje.
+   */
+  it('no confunde un error normal de la app', () => {
+    expect(esModuloQueYaNoExiste(new Error("Cannot read properties of undefined"))).toBe(false)
+    expect(esModuloQueYaNoExiste(new Error('Network request failed'))).toBe(false)
+    expect(esModuloQueYaNoExiste(undefined)).toBe(false)
+    expect(esModuloQueYaNoExiste('vaya')).toBe(false)
+  })
+})
+
+describe('recargarPorDespliegue', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+  })
+
+  it('recarga la primera vez', () => {
+    const recargar = vi.fn()
+
+    expect(recargarPorDespliegue(1_000_000, recargar)).toBe(true)
+    expect(recargar).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * EL FRENO CONTRA EL BUCLE. Si la recarga no arreglara el problema —el
+   * servidor sigue sin ese fichero, no hay red— sin este límite la app se
+   * recargaría sola sin parar, y eso es PEOR que el error: al menos el error
+   * deja leer qué pasa y tocar un botón.
+   */
+  it('no recarga dos veces seguidas', () => {
+    const recargar = vi.fn()
+
+    recargarPorDespliegue(1_000_000, recargar)
+    const segunda = recargarPorDespliegue(1_005_000, recargar) // 5 s después
+
+    expect(segunda).toBe(false)
+    expect(recargar).toHaveBeenCalledTimes(1)
+  })
+
+  /** Pasada la ventana sí: un despliegue nuevo horas después merece su recarga. */
+  it('vuelve a recargar pasada la ventana', () => {
+    const recargar = vi.fn()
+
+    recargarPorDespliegue(1_000_000, recargar)
+    const despues = recargarPorDespliegue(1_020_000, recargar) // 20 s después
+
+    expect(despues).toBe(true)
+    expect(recargar).toHaveBeenCalledTimes(2)
+  })
+
+  /**
+   * En modo privado `sessionStorage` puede lanzar. Se prefiere recargar —que
+   * casi siempre arregla— a quedarse sin hacer nada por no poder anotarlo.
+   */
+  it('recarga aunque no pueda anotar el intento', () => {
+    const recargar = vi.fn()
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('bloqueado')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('bloqueado')
+    })
+
+    expect(recargarPorDespliegue(1_000_000, recargar)).toBe(true)
+    expect(recargar).toHaveBeenCalledTimes(1)
+
+    vi.restoreAllMocks()
+  })
+})

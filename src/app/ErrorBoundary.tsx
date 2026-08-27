@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { esModuloQueYaNoExiste, recargarPorDespliegue } from './despliegueNuevo'
 
 interface Props {
   children: ReactNode
@@ -10,6 +11,12 @@ interface State {
   hayError: boolean
   /** Mensaje del error capturado, para diagnóstico (el celular no ve la consola). */
   detalle: string
+  /**
+   * El fallo es «el trozo de código que pido ya no existe», no un fallo de la
+   * app. Cambia el mensaje y lo que hace el botón: aquí reintentar el render no
+   * sirve de nada, hay que recargar la página. Ver `despliegueNuevo.ts`.
+   */
+  esDespliegue: boolean
 }
 
 /**
@@ -19,18 +26,34 @@ interface State {
  * muestra el mensaje del error para poder diagnosticar desde el propio móvil.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hayError: false, detalle: '' }
+  state: State = { hayError: false, detalle: '', esDespliegue: false }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hayError: true, detalle: error?.message ?? 'Error desconocido' }
+    return {
+      hayError: true,
+      detalle: error?.message ?? 'Error desconocido',
+      esDespliegue: esModuloQueYaNoExiste(error),
+    }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
+    // Tras un despliegue, la pestaña vieja pide un fichero que ya no existe.
+    // Recargar es lo único que lo arregla, así que se hace sin molestar a nadie
+    // -con freno contra el bucle dentro de `recargarPorDespliegue`-. Si recarga,
+    // la página está a punto de irse: no merece la pena ensuciar la consola.
+    if (this.state.esDespliegue && recargarPorDespliegue()) return
+
     console.error('Fallo de interfaz contenido por ErrorBoundary', error, info.componentStack)
   }
 
   private reintentar = () => {
-    this.setState({ hayError: false, detalle: '' })
+    // Volver a renderizar pediría EL MISMO fichero que no existe, y fallaría
+    // igual. Por eso «Reintentar» no servía y había que salir de la app.
+    if (this.state.esDespliegue) {
+      window.location.reload()
+      return
+    }
+    this.setState({ hayError: false, detalle: '', esDespliegue: false })
   }
 
   render() {
@@ -63,7 +86,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="p-6 text-center">
-        <p className="text-sm text-tenue">Esta sección no se pudo mostrar.</p>
+        <p className="text-sm text-tenue">
+          {this.state.esDespliegue
+            ? 'Hay una versión nueva de la app. Recarga para seguir.'
+            : 'Esta sección no se pudo mostrar.'}
+        </p>
         {this.state.detalle && (
           <p className="mx-auto mt-1 max-w-xs break-words text-[11px] leading-snug text-tenue opacity-70">
             {this.state.detalle}
@@ -74,7 +101,7 @@ export class ErrorBoundary extends Component<Props, State> {
           onClick={this.reintentar}
           className="mt-3 rounded-xl bg-rojo px-5 py-2 font-display text-sm text-white"
         >
-          Reintentar
+          {this.state.esDespliegue ? 'Recargar' : 'Reintentar'}
         </button>
       </div>
     )
