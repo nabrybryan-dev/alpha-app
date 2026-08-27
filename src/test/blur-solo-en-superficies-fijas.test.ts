@@ -3,35 +3,49 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * El desenfoque no puede volver a montarse sobre algo que scrollea.
+ * Dos reglas de movimiento que el repo ya tenía escritas y nadie hacía cumplir.
  *
- * LA REGLA YA ESTABA ESCRITA, y en el sitio correcto. `tokens.css` lo dice al
- * declarar `.glass-blur`: «el blur solo se aplica en superficies fijas (nav,
- * topbar, sheets) para no castigar el scroll en móvil». Lo que faltaba era algo
- * que lo hiciera cumplir.
+ * ## El desenfoque no puede montarse sobre algo que scrollea
  *
- * EL HUECO QUE CIERRA (2026-08-27). La flecha de volver de la sesión llevaba
+ * `tokens.css` lo dice al declarar `.glass-blur`: «el blur solo se aplica en
+ * superficies fijas (nav, topbar, sheets) para no castigar el scroll en móvil».
+ *
+ * EL HUECO QUE CERRÓ (2026-08-27): la flecha de volver de la sesión llevaba
  * `backdrop-blur` y es `absolute` dentro de `.tarjeta-foto`, que es contenido
- * normal de la página: se desplaza con el scroll. Un `backdrop-filter` ahí
- * obliga al navegador a remuestrear y desenfocar esa región **en cada fotograma
- * del scroll**, y encima sobre una fotografía a sangre. Son 38×38 px, así que
- * el coste es pequeño — pero la pantalla de sesión se scrollea entre serie y
- * serie, y la regla que rompía era del propio repo.
+ * normal de la página y se desplaza con el scroll. Un `backdrop-filter` ahí
+ * obliga a remuestrear y desenfocar esa región **en cada fotograma del scroll**,
+ * y encima sobre una fotografía a sangre. Son 38×38 px, así que el coste es
+ * pequeño — pero la pantalla de sesión se scrollea entre serie y serie, y la
+ * regla que rompía era del propio repo.
  *
  * LA LÍNEA QUE SE TRAZA: dentro de `features/entrenar/` el desenfoque se pide
- * con la clase `.glass-blur`, que existe para eso y está documentada. La
- * utilidad suelta `backdrop-blur` queda fuera. No es que una sea más rápida que
- * la otra —hacen lo mismo—: es que `.glass-blur` obliga a pasar por el sitio
- * donde está escrito cuándo vale usarla, y una utilidad suelta no.
+ * con la clase `.glass-blur`. La utilidad suelta `backdrop-blur` queda fuera.
+ * No es que una sea más rápida —hacen lo mismo—: es que `.glass-blur` obliga a
+ * pasar por el sitio donde está escrito **cuándo** vale usarla.
  *
- * ESTE TEST NO PROHÍBE NADA. Si una superficie fija de verdad la necesita, se
- * añade aquí con su motivo y el test pasa — igual que `emojis-como-iconos`.
+ * ## `transition: all` es hallazgo siempre
+ *
+ * EL HUECO QUE CERRÓ (2026-08-27): la ficha del Salón de Máquinas animaba con
+ * `all` las cuatro propiedades que se escriben debajo, **tres de ellas de
+ * pintado**, y una era un halo de 8 px que se re-rasteriza en cada fotograma por
+ * cada ficha — en la misma pantalla que la cámara.
+ *
+ * Pero lo que de verdad se cierra no es esa ficha: es que `all` arrastra a la
+ * transición **cualquier propiedad que alguien añada mañana**, sin que nadie lo
+ * decida. Nombrarlas obliga a elegir, y elegir es lo que impide que se cuele un
+ * `box-shadow` o un `filter` por la puerta de atrás.
+ *
+ * NINGUNO DE LOS DOS PROHÍBE NADA. Hay listas de permitidos, hoy vacías, para la
+ * excepción que llegue con su motivo — el mismo trato que `emojis-como-iconos`.
  */
 
 const RAIZ = join(process.cwd(), 'src/features/entrenar')
 
 /** Archivos con desenfoque suelto justificado. Vacío, y ojalá siga así. */
-const PERMITIDOS: readonly string[] = []
+const BLUR_PERMITIDO: readonly string[] = []
+
+/** Archivos con `transition: all` justificado. Vacío, y ojalá siga así. */
+const ALL_PERMITIDO: readonly string[] = []
 
 function tsx(dir: string): string[] {
   return readdirSync(dir).flatMap((entrada) => {
@@ -41,24 +55,45 @@ function tsx(dir: string): string[] {
   })
 }
 
-describe('el blur solo va en superficies fijas', () => {
-  it('nadie usa la utilidad suelta `backdrop-blur` dentro de entrenar', () => {
-    const culpables = tsx(RAIZ)
-      .filter((ruta) => !PERMITIDOS.some((p) => ruta.endsWith(p)))
-      .filter((ruta) => {
-        const fuente = readFileSync(ruta, 'utf8')
-        // Solo en código, no en los comentarios que explican por qué no se usa.
-        const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
-        return /\bbackdrop-blur\b/.test(sinComentarios)
-      })
-      .map((ruta) => ruta.slice(RAIZ.length + 1))
+/** El código sin comentarios: lo que explica por qué NO se usa algo no cuenta. */
+function codigo(ruta: string): string {
+  return readFileSync(ruta, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+}
 
+function culpablesDe(patron: RegExp, permitidos: readonly string[]): string[] {
+  return tsx(RAIZ)
+    .filter((ruta) => !permitidos.some((p) => ruta.endsWith(p)))
+    .filter((ruta) => patron.test(codigo(ruta)))
+    .map((ruta) => ruta.slice(RAIZ.length + 1))
+}
+
+describe('las dos reglas de movimiento que el repo ya tenía escritas', () => {
+  it('nadie usa la utilidad suelta `backdrop-blur` dentro de entrenar', () => {
+    const culpables = culpablesDe(/\bbackdrop-blur\b/, BLUR_PERMITIDO)
     expect(
       culpables,
       `Usan \`backdrop-blur\` suelto: ${culpables.join(', ')}.\n` +
         'Si la superficie es FIJA (nav, topbar, sheet), usa la clase `.glass-blur`.\n' +
         'Si scrollea, no lleva desenfoque: sube el fondo a `--ink-900` y ya.\n' +
-        'Y si es una excepción de verdad, añádela a PERMITIDOS con su motivo.',
+        'Y si es una excepción de verdad, añádela a BLUR_PERMITIDO con su motivo.',
+    ).toEqual([])
+  })
+
+  it('nadie transiciona `all`: las propiedades se nombran', () => {
+    // Tres formas de escribirlo, y las tres cuentan: la utilidad de Tailwind, el
+    // CSS suelto, y el objeto de estilo inline —donde `all` va entre comillas y
+    // se escapaba del patrón obvio—.
+    const culpables = culpablesDe(
+      /\btransition-all\b|transition:\s*['"`]?\s*all\b/,
+      ALL_PERMITIDO,
+    )
+    expect(
+      culpables,
+      `Transicionan \`all\`: ${culpables.join(', ')}.\n` +
+        'Nombra las propiedades y quédate con las baratas: opacity y transform.\n' +
+        'Nunca `box-shadow` ni `filter` en la lista: se re-rasterizan cada fotograma.',
     ).toEqual([])
   })
 

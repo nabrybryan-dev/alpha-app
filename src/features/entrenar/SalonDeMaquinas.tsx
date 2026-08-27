@@ -47,7 +47,16 @@ function Ficha({ indice, abierta }: { indice: number; abierta: boolean }) {
     <span
       title={tema.nombre}
       aria-label={`${tema.nombre}${abierta ? ', abierta' : ', pendiente'}`}
-      className="relative block h-[26px] w-[19px] shrink-0 rounded-[4px] border transition-all duration-300"
+      /* `transition-all` es hallazgo siempre, y aqui costaba caro: animaba las
+         cuatro propiedades que se escriben debajo, TRES de ellas de pintado, y
+         el `boxShadow` es un halo de 8 px que se re-rasteriza en cada fotograma
+         por cada ficha. Esta tira vive en la misma pantalla que la camara.
+         Y `all` significa que cualquier propiedad que alguien anada manana
+         entra en la transicion sin que nadie lo decida.
+         Se queda la barata: la opacidad, que es la que de verdad cuenta la
+         historia de «pendiente -> abierta». Borde, fondo y halo cambian de
+         golpe, y a 160 ms nadie los echa en falta. */
+      className="relative block h-[26px] w-[19px] shrink-0 rounded-[4px] border transition-opacity duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)]"
       style={{
         borderColor: abierta ? tema.acento : 'var(--linea)',
         background: abierta ? tema.cuerpo.fondo : 'transparent',

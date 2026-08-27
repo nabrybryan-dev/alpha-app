@@ -53,8 +53,20 @@ export function TarjetaEjercicio({
   const siguienteOrden = ejercicio.series.length + 1
   const contenidoDemo = demoDeEjercicio(ejercicio, db.contenidos.list())
 
+  // SIN la clase `entrada`, y no es un olvido. Esto no es una entrada de
+  // pantalla: `SesionPage` monta la tarjeta con `key={ejercicioActual.id}`, asi
+  // que el keyframe se repetia ENTERO cada vez que se cambia de ejercicio —
+  // desde la barra, desde «A continuacion» y solo al completar uno. Es la banda
+  // de «decenas de veces al dia» de la tabla de frecuencia del estandar, donde
+  // la decision es quitar o reducir drasticamente. Ademas duraba 480 ms, por
+  // encima del techo de 300, y al ser `@keyframes` no se puede interrumpir:
+  // tocar dos ejercicios seguidos lo reiniciaba desde cero.
+  //
+  // Tampoco se sustituye por una `transition`: con `key` hay desmontaje y una
+  // transicion no tiene desde donde salir. El cambio ya se explica solo, con el
+  // contenido y con el desplazamiento.
   return (
-    <div id={`ej-${ejercicio.id}`} className="entrada scroll-mt-4">
+    <div id={`ej-${ejercicio.id}`} className="scroll-mt-4">
       <Card className={completo ? 'opacity-75' : ''}>
         <ExerciseSlotMachine index={indice} total={total} nombre={ejercicio.nombre} categoria={ejercicio.categoria} rango={ejercicio.rango} tecnica={ejercicio.cues || undefined} paused={completo} onRefTap={contenidoDemo ? () => onVerDemo(contenidoDemo) : undefined} refVisual={contenidoDemo ? 'Ver demostración' : undefined} />
 
