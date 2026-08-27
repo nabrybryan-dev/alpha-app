@@ -924,4 +924,26 @@ select '0048 - ranking en cache', 'vista materializada, calculo vivo y sello',
          ) as senales
        ) = 3 then 'SI' else 'NO' end
 
+union all
+-- Tres señales, y las tres hacen falta. La columna sola no dice nada: existia
+-- en siete tablas desde antes y NO habia un solo trigger que la mantuviera, asi
+-- que se rellenaba a mano en los scripts de carga y las escrituras de la app no
+-- la tocaban. Ese era justo el fallo que esta migracion viene a cerrar: sin el
+-- trigger, la firma diria «no cambio» sobre datos que si cambiaron.
+select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
+       case when (
+         select count(*) from (
+           select 1 from information_schema.columns
+            where table_schema = 'public' and table_name = 'usuarios_app'
+              and column_name = 'actualizado_en'
+           union all
+           select 1 from pg_proc p
+            join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname = 'firma_de_sincronizacion'
+         ) as senales
+       ) = 2
+       and (select count(*) from pg_trigger
+             where tgname = 'trg_actualizado_en' and not tgisinternal) = 21
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
