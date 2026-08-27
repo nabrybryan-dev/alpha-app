@@ -90,7 +90,12 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
   }
 
   return (
-    <Sheet abierto={abierto} titulo="Medir la barra" onCerrar={onCerrar}>
+    // `animar={false}` a propósito, y es la única hoja de la app que lo pide: aquí
+    // dentro se abre la cámara, y los 420 ms de `.subir-hoja` caerían justo encima de
+    // `getUserMedia` y de los primeros fotogramas de captura —el instante más caro de
+    // toda la app, y el que decide si la toma sale a 50 fps—. Aquí la ausencia de
+    // entrada es el precio correcto.
+    <Sheet abierto={abierto} titulo="Medir la barra" onCerrar={onCerrar} animar={false}>
       <p className="mb-3 text-sm text-tenue">
         <b className="text-texto">{ejercicio}</b> · {cargaKg} kg · {reps} reps.{' '}
         Ya van puestos: no hay nada que teclear.
@@ -103,7 +108,7 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
             type="button"
             aria-pressed={diametroMm === d.mm}
             onClick={() => elegirDisco(d.mm)}
-            className={`min-h-11 rounded-full border px-3 text-xs font-medium transition-colors ${
+            className={`press min-h-11 rounded-full border px-3 text-xs font-medium ${
               diametroMm === d.mm
                 ? 'border-rojo bg-rojo/15 text-rojo'
                 : 'border-linea bg-surface-2 text-tenue'

@@ -71,7 +71,13 @@ function Control({ etiqueta, valor, min, max, paso, formato, onCambio }: Control
 function ParDeErrores({ sinCorregir, corregido }: { sinCorregir: number; corregido: number }) {
   const tope = Math.max(0.3, sinCorregir * 1.15)
   const pct = (x: number) => `${(100 * x).toFixed(1)} %`
-  const ancho = (x: number) => `${Math.min(100, (100 * x) / tope)}%`
+  // Antes esto devolvía un porcentaje de ANCHURA. La keyframe de entrada ya era
+  // la correcta (`crecer-barra`, que anima `scaleX`), pero el valor que de verdad
+  // cambia —el que sigue a los sliders— viajaba por `width`: maquetación, pintado
+  // y composición en el hilo principal, decenas de veces por segundo mientras el
+  // dedo arrastra, y con la cámara abierta. Es exactamente lo que el comentario de
+  // `crecer-barra` en tokens.css existe para prohibir en esta pantalla.
+  const factor = (x: number) => Math.min(1, (100 * x) / tope / 100)
 
   return (
     <Card>
@@ -87,14 +93,22 @@ function ParDeErrores({ sinCorregir, corregido }: { sinCorregir: number; corregi
             </p>
             <div className="mt-2 h-[6px] overflow-hidden rounded-full bg-[var(--hundido)]">
               {/* El stagger de 60 ms hace que se lean como comparación y no como
-                  dos datos sueltos. Se anima el ancho una sola vez, a la entrada. */}
+                  dos datos sueltos. Entrada y actualización son ya el MISMO gesto
+                  sobre la MISMA propiedad —`transform: scaleX`—, así que el retardo
+                  escalonado sigue valiendo y el seguimiento del slider deja de
+                  costar maquetación.
+                  El relleno es `backwards` y no `both` a propósito: `both`
+                  conserva el último fotograma para siempre, y una animación pisa a
+                  una transición, así que la barra se habría quedado sorda a los
+                  sliders. Con `backwards` la keyframe solo pone el estado PREVIO a
+                  la entrada y al terminar suelta la propiedad, que es cuando la
+                  transición empieza a hacer su trabajo. */}
               <div
-                className="h-full rounded-full motion-safe:animate-[crecer-barra_420ms_cubic-bezier(.16,1,.3,1)_both]"
+                className="h-full w-full origin-left rounded-full transition-transform duration-base ease-salida motion-safe:animate-[crecer-barra_var(--dur-base)_var(--ease-salida)_backwards]"
                 style={{
-                  width: ancho(c.v),
+                  transform: `scaleX(${factor(c.v)})`,
                   background: c.color,
                   animationDelay: `${i * 60}ms`,
-                  transformOrigin: "left",
                 }}
               />
             </div>

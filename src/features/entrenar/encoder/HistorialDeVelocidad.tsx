@@ -41,7 +41,7 @@ export function HistorialDeVelocidad({ usuarioId }: { usuarioId: string }) {
               key={n}
               type="button"
               onClick={() => setElegido(n)}
-              className={`min-h-11 rounded-full px-3 text-[12.5px] ${
+              className={`press min-h-11 rounded-full px-3 text-[12.5px] ${
                 n === ejercicio
                   ? 'border border-rojo bg-rojo/15 font-bold text-rojo'
                   : 'border border-linea text-tenue'

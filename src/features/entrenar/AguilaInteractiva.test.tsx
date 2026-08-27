@@ -40,13 +40,32 @@ describe('AguilaInteractiva', () => {
     expect(animar).toHaveBeenCalledTimes(1)
   })
 
-  it('con movimiento reducido no gira', async () => {
+  // Este test decia `expect(animar).not.toHaveBeenCalled()`, o sea que con la
+  // preferencia activa el toque no hacia NADA. La intencion era buena —que no gire—
+  // pero estaba escrita como «cero», y cero es justo lo que no se puede hacer: el
+  // `.press` que envuelve al aguila tambien queda anulado por la preferencia, asi
+  // que no quedaba ni una sola senal y el elemento sigue anunciandose como boton.
+  // Ahora se comprueba la regla de verdad, que es mas estricta que la anterior y
+  // muerde por los dos lados: tiene que haber acuse, y ese acuse NO puede mover ni
+  // rotar ni escalar nada.
+  it('con movimiento reducido acusa el toque, pero no gira ni escala', async () => {
     reducido = true
     declararMatchMedia()
     const usuario = userEvent.setup()
     render(<AguilaInteractiva />)
     await usuario.click(screen.getByRole('button', { name: 'Águila Alpha' }))
-    expect(animar).not.toHaveBeenCalled()
+
+    expect(animar).toHaveBeenCalledTimes(1)
+    const [fotogramas] = animar.mock.calls[0] as [Array<Record<string, unknown>>]
+    // Ni una sola propiedad de movimiento: ni transform, ni rotate, ni scale.
+    for (const f of fotogramas) {
+      expect(f.transform).toBeUndefined()
+      expect(f.rotate).toBeUndefined()
+      expect(f.scale).toBeUndefined()
+    }
+    // Y si algo que se pueda ver: la opacidad, que es lo que la norma de
+    // accesibilidad manda conservar cuando se quita el movimiento.
+    expect(fotogramas.some((f) => f.opacity !== undefined)).toBe(true)
   })
 
   it('sin matchMedia, tocarla no revienta', async () => {
