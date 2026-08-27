@@ -262,18 +262,41 @@ grant execute on function public.ranking_disciplina() to authenticated;
 commit;
 
 -- ── 6. El cron, aparte y fuera de transacción ────────────────────────────────
--- Va suelto a propósito: si `pg_cron` no estuviera disponible en el proyecto,
--- esto falla y todo lo de arriba sigue en pie. Sin cron el sello envejece a los
--- 30 minutos y la función vuelve al cálculo en vivo: se pierde la mejora, no la
--- corrección.
+--
+-- Va suelto porque no todas las bases donde corre esto tienen `pg_cron`. En
+-- Supabase está; en el Postgres limpio del CI -que aplica las migraciones desde
+-- cero para comprobar que el esquema se levanta de la nada- no.
+--
+-- Se pregunta ANTES en vez de intentar y capturar el error. La diferencia
+-- importa: un `exception when others` se tragaría también un fallo de verdad
+-- -permisos, sintaxis, un `cron.schedule` mal escrito- y lo haría pasar por
+-- «aquí no hay cron». Preguntando, lo único que se silencia es lo que se quería
+-- silenciar, y cualquier otro error sigue tumbando la migración, como debe.
+--
+-- Sin cron no se rompe nada: el sello envejece a los 30 minutos y
+-- `ranking_disciplina()` vuelve al cálculo en vivo. Se pierde la mejora, nunca
+-- la corrección.
 
-create extension if not exists pg_cron;
-
-select cron.schedule(
-  'refrescar-ranking',
-  '*/10 * * * *',
-  $cron$select public.refrescar_ranking_cache();$cron$
-);
+do $cron_setup$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    -- `execute` y no la sentencia directa: `create extension` es una orden de
+    -- utilidad y plpgsql no la admite escrita a pelo. De paso, difiere la
+    -- resolución de `cron.schedule` a después de crear la extensión.
+    execute 'create extension if not exists pg_cron';
+    execute $q$
+      select cron.schedule(
+        'refrescar-ranking',
+        '*/10 * * * *',
+        'select public.refrescar_ranking_cache();'
+      )
+    $q$;
+    raise notice 'Refresco del ranking programado cada 10 minutos.';
+  else
+    raise notice 'pg_cron no esta disponible aqui: sin refresco programado, ranking_disciplina() calculara en vivo. La app sigue correcta, mas lenta.';
+  end if;
+end
+$cron_setup$;
 
 -- ── Comprobación ─────────────────────────────────────────────────────────────
 --
