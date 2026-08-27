@@ -54,7 +54,13 @@ export function TarjetaEjercicio({
   const contenidoDemo = demoDeEjercicio(ejercicio, db.contenidos.list())
 
   return (
-    <div id={`ej-${ejercicio.id}`} className="entrada scroll-mt-4">
+    // Sin `.entrada`. No era una entrada de pantalla: SesionPage le pone
+    // `key={ejercicioActual.id}`, así que el keyframe de 480 ms se repetía ENTERO
+    // en cada cambio de ejercicio —desde la barra, desde «A continuación» y al
+    // completar uno—, que son decenas de veces por sesión. En ese tramo de
+    // frecuencia la decisión es quitar o reducir mucho, y encima un keyframe no se
+    // puede interrumpir: tocar dos ejercicios seguidos reiniciaba desde cero.
+    <div id={`ej-${ejercicio.id}`} className="scroll-mt-4">
       <Card className={completo ? 'opacity-75' : ''}>
         <ExerciseSlotMachine index={indice} total={total} nombre={ejercicio.nombre} categoria={ejercicio.categoria} rango={ejercicio.rango} tecnica={ejercicio.cues || undefined} paused={completo} onRefTap={contenidoDemo ? () => onVerDemo(contenidoDemo) : undefined} refVisual={contenidoDemo ? 'Ver demostración' : undefined} />
 
@@ -108,7 +114,7 @@ export function TarjetaEjercicio({
             )}
           </div>
           {notaVisible && (
-            <p className="entrada mt-2 border-t border-ink-500 pt-2 text-xs leading-snug text-silver-300">
+            <p className="desplegar mt-2 border-t border-ink-500 pt-2 text-xs leading-snug text-silver-300">
               {ejercicio.cues}
             </p>
           )}

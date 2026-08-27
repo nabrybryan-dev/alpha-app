@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { movimientoReducido } from '../../components/ui/movimientoReducido'
 import { Sheet } from '../../components/ui/Sheet'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { preparacionDe } from '../../data/plantillas/preparacionBase'
@@ -129,7 +130,12 @@ function SesionEnCurso() {
         ?.ejercicios.findIndex((e) => e.id === id)
       if (idx !== undefined && idx >= 0) {
         setExIdxManual(idx)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        // Es el desplazamiento más largo que hace esta pantalla y se lanzaba sin
+        // consultar la preferencia. Si `behavior: 'smooth'` honra o no
+        // `prefers-reduced-motion` depende del motor y de la versión, así que no
+        // se delega en el navegador: se decide aquí, con la lectura puntual que
+        // existe justo para manejadores.
+        window.scrollTo({ top: 0, behavior: movimientoReducido() ? 'auto' : 'smooth' })
       }
     }
   }
@@ -201,7 +207,14 @@ function SesionEnCurso() {
           <Link
             to="/entrenar"
             aria-label="Volver a tu ruta de entrenamiento"
-            className="press absolute left-3.5 top-3.5 z-[2] grid h-[38px] w-[38px] place-items-center rounded-boton border border-white/20 bg-black/40 text-white backdrop-blur"
+            // Sin `backdrop-blur`: este botón es `absolute` dentro de la tarjeta
+            // con foto, o sea contenido normal que SE DESPLAZA con el scroll, y un
+            // backdrop-filter ahí obliga a re-muestrear y desenfocar la región en
+            // cada fotograma —encima sobre una fotografía a sangre—. La regla está
+            // escrita en tokens.css: el blur solo va en superficies fijas.
+            // El contraste del icono no lo daba el desenfoque, lo da el velo de
+            // `.tarjeta-foto::after`; el fondo sube a opaco para no perder nada.
+            className="press absolute left-3.5 top-3.5 z-[2] grid h-[38px] w-[38px] place-items-center rounded-boton border border-white/20 bg-ink-900/80 text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
               <path d="m15 18-6-6 6-6" />
@@ -247,7 +260,11 @@ function SesionEnCurso() {
           lista vacíos, y el asesorado abría su sesión y no veía ninguna sección. */}
       {hayEjercicios && !todasRegistradas && (
         <section className="flex flex-col gap-4">
-          <div className="entrada entrada-4 flex items-center justify-between gap-3">
+          {/* `entrada-5` y no `entrada-4`: el bloque de cardio de arriba ya usa
+              el 4, y una sesión de fuerza CON bloques de cardio existe —se tratan
+              como aditivas—, así que las dos aterrizaban a la vez y la cascada se
+              cortaba justo ahí. El paso de 60 ms se mantiene. */}
+          <div className="entrada entrada-5 flex items-center justify-between gap-3">
             <p className="kicker">
               Ejercicio {exIdx + 1} de {sesion.ejercicios.length}
             </p>
@@ -323,7 +340,14 @@ function SesionEnCurso() {
       </Sheet>
 
       {frase && (
-        <div className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center px-4">
+        // `--z-superpuesto` se declaró en tokens.css sin consumidor y con la nota
+        // de que se resolvería «el día que la app tenga toasts o tooltips con capa
+        // propia». Este es ese día: la frase es exactamente eso —fija, transitoria
+        // y sin puntero—, así que deja de apilarse con un `z-50` suelto.
+        <div
+          className="pointer-events-none fixed inset-x-0 top-20 flex justify-center px-4"
+          style={{ zIndex: 'var(--z-superpuesto)' }}
+        >
           <span
             key={frase.n}
             className="frase-pop rounded-full bg-rojo px-5 py-2.5 font-display text-base text-white shadow-xl"
