@@ -966,4 +966,19 @@ select '0050 - funciones de carga cerradas', 'ninguna tmp_ viva y search_path en
                  and array_to_string(p.proconfig, ',') like '%search_path=public%')
        then 'SI' else 'NO' end
 
+union all
+-- Se lee AL REVES, como la 0050: la señal es que las ocho NO esten. Y se acota
+-- a esas ocho por nombre EXACTO a proposito: un `like '%respaldo%'` diria NO en
+-- cuanto alguien creara un respaldo nuevo y legitimo, que es justo lo que hay
+-- que poder hacer sin que una comprobacion se ponga en rojo.
+select '0051 - respaldos que ya cumplieron', 'las ocho auditadas ya no estan',
+       case when not exists (
+         select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relkind = 'r'
+            and c.relname in ('tmp_arreglo_20260824_antes','respaldo_contenidos_20260827',
+                              'respaldo_microciclos_20260827','respaldo_fechainicio_20260825',
+                              'tmp_respaldo_juliana_20260824','tmp_respaldo_dup_20260824',
+                              '_backup_microciclos_20260823','tmp_respaldo_20260824')
+       ) then 'SI' else 'NO' end
+
 order by migracion, senal;
