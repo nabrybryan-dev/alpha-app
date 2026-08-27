@@ -73,6 +73,29 @@ describe('la escala de profundidad', () => {
     expect(sueltos).toEqual([])
   })
 
+  it('`al-fondo` nunca va sin `escena-prof`', () => {
+    // La puerta de cámara se cuelga de `.escena-prof`: es esa clase, y solo esa, la
+    // que `[data-camara-abierta]` aplana. Un `.al-fondo` suelto tendría el escorzo
+    // de la perspectiva que le llegue por herencia y **seguiría escorzando durante
+    // la captura**, que es cuando el presupuesto de fotogramas deja de ser una
+    // metáfora: se pierde la toma.
+    //
+    // Y falla en silencio por partida doble: sin `escena-prof` propia puede que ni
+    // se vea la profundidad, así que quien lo escriba mal no nota nada raro.
+    const sueltos: string[] = []
+
+    for (const { ruta, texto } of ARCHIVOS) {
+      for (const m of texto.matchAll(/className=(?:{`|["'`])([^"'`]*)/g)) {
+        const clases = m[1]
+        if (/\bal-fondo\b/.test(clases) && !/\bescena-prof\b/.test(clases)) {
+          sueltos.push(`${ruta}: «${clases.trim()}»`)
+        }
+      }
+    }
+
+    expect(sueltos).toEqual([])
+  })
+
   it('nadie junta `tecla-3d` con una transición de Tailwind', () => {
     // LA COLISIÓN QUE NO AVISA. Tailwind inyecta sus utilidades en la línea 3 de
     // `tokens.css`, así que `.tecla-3d` —que está mucho más abajo— le gana a

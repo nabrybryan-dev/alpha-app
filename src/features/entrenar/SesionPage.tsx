@@ -298,9 +298,26 @@ function SesionEnCurso() {
             </p>
           </div>
 
-          <SalonDeMaquinas ejercicios={sesion.ejercicios} />
+          {/* UNA SOLA COSA CONTRA EL CRISTAL.
+              La tarjeta del ejercicio se queda en el plano de delante, y todo lo
+              que la acompaña —la colección, el riel de navegación y la cola de lo
+              que viene— recede a `--prof-fondo`. Es el escalón escrito para esto:
+              «otro plano, detrás de la superficie: rieles, colas, lo que espera».
 
-          <BarraEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />
+              Nadie sube: el sujeto no se despega, es el contexto el que se retira.
+              Así no hay dos cosas compitiendo por decir dónde mirar, que es la
+              única regla que `--prof-sujeto` tiene puesta encima.
+
+              Y cada bloque trae SU escena en vez de una común arriba, porque de la
+              tarjeta cuelga la hoja de la cámara, que es `fixed`: una perspectiva
+              en un ancestro compartido la encerraría en una tarjeta de 350 px. */}
+          <div className="escena-prof al-fondo">
+            <SalonDeMaquinas ejercicios={sesion.ejercicios} />
+          </div>
+
+          <div className="escena-prof al-fondo">
+            <BarraEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />
+          </div>
 
           {ejercicioActual && (
             <TarjetaEjercicio
@@ -320,7 +337,9 @@ function SesionEnCurso() {
             />
           )}
 
-          <ProximosEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />
+          <div className="escena-prof al-fondo">
+            <ProximosEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />
+          </div>
         </section>
       )}
 
