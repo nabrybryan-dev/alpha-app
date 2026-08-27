@@ -24,6 +24,35 @@ describe('el catálogo de patrones', () => {
     expect(patronDeCategoria(undefined)).toBeUndefined()
     expect(patronDeCategoria('')).toBeUndefined()
     expect(patronDeCategoria('ACONDICIONAMIENTO')).toBeUndefined()
+    // «Aislamiento» no dice qué gesto es: sin patrón, y así debe quedarse.
+    expect(patronDeCategoria('AISLAMIENTO')).toBeUndefined()
+  })
+
+  it('entiende el vocabulario viejo de categorías', () => {
+    // Las categorías se consolidaron de 51 a 30 nombres, pero por los
+    // microciclos y por el seed de demo siguen circulando los de antes. Sin
+    // esto el botón del visor no sale en media sesión y parece roto.
+    expect(patronDeCategoria('DOMINANTE DE CADERA')?.id).toBe('bisagra_cadera')
+    expect(patronDeCategoria('DOMINANTE DE RODILLA')?.id).toBe('sentadilla')
+    expect(patronDeCategoria('CORE')?.id).toBe('antiextension')
+  })
+
+  it('entiende también las categorías que nombran el músculo', () => {
+    expect(patronDeCategoria('BÍCEPS')?.id).toBe('flexion_codo')
+    expect(patronDeCategoria('Tríceps')?.id).toBe('extension_codo')
+    expect(patronDeCategoria('gemelos')?.id).toBe('flexion_plantar')
+    expect(patronDeCategoria('PECHO')?.id).toBe('empuje_horizontal')
+  })
+
+  it('no crea alias que apunten a un patrón inexistente', () => {
+    // Un alias mal escrito no da error: simplemente deja de haber botón.
+    for (const categoria of ['DOMINANTE DE CADERA', 'DOMINANTE DE RODILLA', 'CORE',
+      'JALON', 'REMO', 'PECHO', 'HOMBRO', 'BICEPS', 'TRICEPS', 'GEMELOS',
+      'ZANCADA', 'GLUTEO', 'ISQUIOS', 'CUADRICEPS', 'ESPALDA', 'BISAGRA',
+      'ABDOMEN', 'DOMINADA', 'PANTORRILLA', 'PIERNA', 'EMPUJE',
+      'CADENA POSTERIOR', 'UNILATERAL DE PIERNA']) {
+      expect(patronDeCategoria(categoria), `alias huérfano: ${categoria}`).toBeDefined()
+    }
   })
 
   it('no guarda cifras de uso: este repositorio es público', () => {

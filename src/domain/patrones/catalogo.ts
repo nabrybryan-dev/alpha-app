@@ -564,6 +564,43 @@ export function normalizarCategoria(texto: string): string {
 }
 
 /**
+ * Categorías que no se llaman igual que su patrón.
+ *
+ * El vocabulario de categorías se consolidó de 51 a 30 nombres, pero por los
+ * microciclos —y por el seed de demo— siguen circulando los de antes, además de
+ * los que nombran el músculo en vez del gesto. Sin esta tabla el botón del
+ * visor no aparece en media sesión, que es peor que no tenerlo: parece roto.
+ *
+ * Es la misma solución que usa `domain/demos.ts` con los vídeos, y por el mismo
+ * motivo. Lo que no está aquí se busca tal cual.
+ */
+const ALIAS: Record<string, string> = {
+  'DOMINANTE DE CADERA': 'BISAGRA DE CADERA',
+  BISAGRA: 'BISAGRA DE CADERA',
+  'CADENA POSTERIOR': 'BISAGRA DE CADERA',
+  ISQUIOS: 'BISAGRA DE CADERA',
+  GLUTEO: 'EXTENSION DE CADERA',
+  'DOMINANTE DE RODILLA': 'SENTADILLA',
+  CUADRICEPS: 'SENTADILLA',
+  PIERNA: 'SENTADILLA',
+  ZANCADA: 'SENTADILLA UNILATERAL',
+  'UNILATERAL DE PIERNA': 'SENTADILLA UNILATERAL',
+  CORE: 'ANTIEXTENSION',
+  ABDOMEN: 'ANTIEXTENSION',
+  JALON: 'TRACCION VERTICAL',
+  DOMINADA: 'TRACCION VERTICAL',
+  REMO: 'TRACCION HORIZONTAL',
+  ESPALDA: 'TRACCION HORIZONTAL',
+  EMPUJE: 'EMPUJE HORIZONTAL',
+  PECHO: 'EMPUJE HORIZONTAL',
+  HOMBRO: 'EMPUJE VERTICAL',
+  BICEPS: 'FLEXION DE CODO',
+  TRICEPS: 'EXTENSION DE CODO',
+  PANTORRILLA: 'FLEXION PLANTAR',
+  GEMELOS: 'FLEXION PLANTAR',
+}
+
+/**
  * El patrón que le toca a un ejercicio.
  *
  * Se busca por la categoría, que es el nombre del patrón de movimiento y ya
@@ -572,6 +609,7 @@ export function normalizarCategoria(texto: string): string {
  */
 export function patronDeCategoria(categoria: string | undefined): Patron | undefined {
   if (!categoria) return undefined
-  const buscada = normalizarCategoria(categoria)
+  const normalizada = normalizarCategoria(categoria)
+  const buscada = ALIAS[normalizada] ?? normalizada
   return PATRONES.find((p) => normalizarCategoria(p.categoria) === buscada)
 }
