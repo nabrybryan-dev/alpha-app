@@ -339,7 +339,7 @@ export const PATRONES: Patron[] = [
     inicio: { hombroFlex: 168, hombroAbd: 24, codoFlex: 4, escapulaElev: 30, caderaFlex: 86, rodillaFlex: 82, toraxFlex: -2 },
     fin: { hombroFlex: 32, hombroAbd: 32, codoFlex: 130, escapulaRetr: 24, escapulaElev: -16, toraxFlex: -16, caderaFlex: 86, rodillaFlex: 82 },
     activacion: { dorsal_ancho: 1, redondo_mayor: 0.9, biceps: 0.8, braquial: 0.7, trapecio_inf: 0.75, romboides: 0.6, deltoides_post: 0.5, braquiorradial: 0.5, recto_abdominal: 0.35 },
-    seguimiento: ['torax', 0.9, [0, 0, 0.05]],
+    seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 22, elevacion: 6 },
   },
   {

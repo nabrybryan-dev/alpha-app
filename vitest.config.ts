@@ -39,6 +39,14 @@ export default defineConfig({
       // El dominio subió de 74,4 a 78,3 al recuperar el motor de ondulación, que
       // llegó con 328 líneas de tests propios.
       //
+      // Vuelto a medir el 2026-08-27 al entrar el visor de patrones:
+      //   · dominio  89,81 líneas · 93,52 ramas · 99,03 funciones
+      //   · global   75,58 líneas · 86,22 ramas · 81,31 funciones
+      // El salto del dominio es casi todo de `domain/patrones/`, que entró al 100 %
+      // de funciones. Se suben los umbrales del dominio; los globales se dejan como
+      // estaban aunque también hayan subido, porque ese salto no es de este cambio
+      // sino de un mes de trabajo, y apretarlos merece su propia tanda.
+      //
       // Van ~1 punto por debajo de lo medido a propósito: el porcentaje oscila unas
       // décimas entre corridas, y un umbral pegado al valor exacto produciría fallos
       // aleatorios. Un gate intermitente se acaba ignorando, que es peor que no
@@ -49,10 +57,10 @@ export default defineConfig({
         functions: 67,
         branches: 77,
         'src/domain/**': {
-          lines: 77,
-          statements: 77,
-          functions: 97,
-          branches: 89,
+          lines: 88,
+          statements: 88,
+          functions: 98,
+          branches: 92,
         },
       },
     },
