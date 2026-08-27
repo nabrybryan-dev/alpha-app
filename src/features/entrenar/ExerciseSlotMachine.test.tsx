@@ -101,6 +101,26 @@ describe('ExerciseSlotMachine', () => {
     expect(screen.getByText('LIBERTY BELL')).toBeInTheDocument()
   })
 
+  it('con movimiento reducido la ventana SIGUE enseñando su parada', () => {
+    // El test que faltaba, y el que habría cazado el fallo: hasta el 27/08 el
+    // `transform` del carrete se tiraba con reducido, y como la ventana lleva
+    // `overflow: hidden` y alto fijo, solo quedaba visible la parada 0 — que
+    // además va a opacidad 0 por no ser la elegida. Quien pedía menos movimiento
+    // veía una ventana negra sin una sola letra.
+    //
+    // Se comprueba el desplazamiento y no el texto: las paradas están TODAS en el
+    // DOM (es un carrete), así que buscar el texto pasaría igual estando roto.
+    conMovimientoReducido(true)
+    const { container } = render(<ExerciseSlotMachine {...BASE} />)
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
+    // El desplazamiento del carrete es el UNICO `translateY(` en linea del
+    // gabinete (los demas centrados usan clases de Tailwind). Antes del arreglo
+    // no habia ninguno: el atributo se escribia como `undefined`.
+    expect(container.innerHTML).toContain('translateY(')
+  })
+
   it('no gira solo: el reloj está anulado por defecto', () => {
     render(<ExerciseSlotMachine {...BASE} />)
     act(() => {

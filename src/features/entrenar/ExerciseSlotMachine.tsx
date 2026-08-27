@@ -236,7 +236,14 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
     <div
       style={{ backgroundImage: tema.marco.fondo, padding: tema.marco.padding, borderRadius: tema.marco.radius }}
     >
+      {/* El gabinete es la escena. La profundidad se reparte como en una maquina
+          de verdad —la marquesina sobresale, los carretes viven detras del
+          cristal, la palanca es lo unico que se agarra— y NADA de aqui dentro
+          cambia de vocabulario: las fuentes y las cinco familias de keyframes
+          del gabinete siguen siendo suyas. Lo unico que entra es la escala de
+          profundidad, que es geometria, no estilo. */}
       <div
+        className="escena-prof"
         style={{
           background: tema.cuerpo.fondo,
           borderRadius: tema.cuerpo.radius,
@@ -246,11 +253,24 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
         }}
       >
         <LineaSuperior index={index} total={total} categoria={categoria} rango={rango} acento={tema.acento} />
-        <Corona tema={tema} />
-        <MarquesinaTema tema={tema} reducido={reducido} bote={bote} />
 
-        <div className="mt-2.5 flex items-stretch gap-2">
-          {tema.carretes && <Carrete tema={tema} off={sideA} spin={spinA} blur={1.6} reducido={reducido} />}
+        {/* RELIEVE (+16): la corona y la marquesina van montadas SOBRE el frontal
+            del mueble, que es donde estan en una maquina fisica. */}
+        <div style={{ transform: 'translateZ(var(--prof-relieve))' }}>
+          <Corona tema={tema} />
+          <MarquesinaTema tema={tema} reducido={reducido} bote={bote} />
+        </div>
+
+        <div className="mt-2.5 flex items-stretch gap-2 [transform-style:preserve-3d]">
+          {/* FONDO (-24): los carretes laterales viven detras del cristal. Son
+              adorno y no llevan un solo glifo que leer, asi que hundirlos no
+              cuesta nada — y es lo que convierte el frontal en un mueble con
+              hondura en vez de una tarjeta con dibujos. */}
+          {tema.carretes && (
+            <div className="flex [transform:translateZ(var(--prof-fondo))]">
+              <Carrete tema={tema} off={sideA} spin={spinA} blur={1.6} reducido={reducido} />
+            </div>
+          )}
 
           <Ventana
             tema={tema}
@@ -264,13 +284,37 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
             onRefTap={onRefTap}
           />
 
-          {tema.carretes && <Carrete tema={tema} off={sideB} spin={spinB} blur={1.4} reducido={reducido} />}
+          {tema.carretes && (
+            <div className="flex [transform:translateZ(var(--prof-fondo))]">
+              <Carrete tema={tema} off={sideB} spin={spinB} blur={1.4} reducido={reducido} />
+            </div>
+          )}
 
-          <Palanca tema={tema} abajo={leverDown} onTirar={tirar} />
+          {/* SUJETO (+40): la palanca, y es la unica cosa a este escalon en toda
+              la escena. Se cumple la regla —uno por escena— y ademas cae en lo
+              correcto: es lo unico del gabinete que se agarra. */}
+          <div className="flex [transform:translateZ(var(--prof-sujeto))]">
+            <Palanca tema={tema} abajo={leverDown} onTirar={tirar} />
+          </div>
         </div>
 
+        {/* La Ventana se queda en el PLANO a proposito, y es la decision que mas
+            se piensa aqui. Fisicamente iria detras del cristal con los carretes,
+            pero es lo unico que hay que LEER y ademas se toca. Hundirla a -24 la
+            pintaria un 2,6 % mas pequena —a 9,5 px de rotulo eso se nota— y
+            romperia la regla de que ninguna zona tocable baja del plano.
+            La lupa de desbordamiento no se ve afectada por nada de esto: mide con
+            `scrollHeight`/`clientHeight`, que son de maquetacion y no los cambia
+            una transformada. El aviso de «ver completo» sigue apareciendo cuando
+            el texto no cabe. */}
         <Paginador tema={tema} paradas={paradas} catIdx={catIdx} onIr={girarA} />
-        <Bandeja tema={tema} credits={credits} win={win} reducido={reducido} />
+
+        {/* HUECO (-8): la bandeja es un hueco en el mueble, que es exactamente lo
+            que es en una maquina. No lleva diana tactil, asi que el encogimiento
+            no le quita a nadie los 44 px. */}
+        <div style={{ transform: 'translateZ(var(--prof-hueco))' }}>
+          <Bandeja tema={tema} credits={credits} win={win} reducido={reducido} />
+        </div>
       </div>
 
       <span className="sr-only">{nombre}</span>
@@ -469,7 +513,10 @@ function Ventana({
   onRefTap?: () => void
 }) {
   const alto = tema.ventana.alto
-  const transicion = snap ? 'none' : reducido ? 'opacity 160ms ease-out' : 'transform .68s cubic-bezier(.14,1.06,.32,1)'
+  // Con reducido no hay transicion que valga: el salto es instantaneo. La rama
+  // que habia aqui declaraba `opacity 160ms` sobre este contenedor, cuya opacidad
+  // no cambia nunca —la que cambia es la del hijo—, asi que estaba muerta.
+  const transicion = snap || reducido ? 'none' : 'transform .68s cubic-bezier(.14,1.06,.32,1)'
   const marca = (lado: 'left' | 'right') => (
     <span
       aria-hidden="true"
@@ -495,9 +542,18 @@ function Ventana({
       {marca('left')}
       {marca('right')}
 
+      {/* El `transform` se escribe SIEMPRE, tambien con movimiento reducido.
+          Hasta hoy se tiraba (`reducido ? undefined`), y como la ventana lleva
+          `overflow: hidden` y alto fijo, solo se veia la parada 0 — que ademas
+          va a opacidad 0 porque no es la elegida. Resultado: quien pide menos
+          movimiento tiraba de la palanca y veia una ventana negra sin una sola
+          letra, justo lo contrario de lo que promete el docblock de este archivo.
+          `pos` ya vale `catIdx` cuando hay reducido, asi que el salto es
+          instantaneo: SE PIERDE EL GIRO, NO EL ARGUMENTO. Es el mismo criterio
+          que GraficaBrazo ya sigue con su modo reducido. */}
       <div
         style={{
-          transform: reducido ? undefined : `translateY(-${pos * alto}px)`,
+          transform: `translateY(-${pos * alto}px)`,
           transition: transicion,
           filter: spin && !reducido ? 'blur(1.2px)' : undefined,
         }}
