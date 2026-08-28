@@ -22,6 +22,7 @@ import {
   type Seguimiento,
 } from './seguimiento'
 import { gravedadAprobada, leerTanda, type Modo, type Referencia } from './tanda'
+import { lecturaDeAngulo } from './motivosEncuadre'
 
 /** 640 de ancho basta para un centroide y deja margen de CPU para ir a 60 fps. */
 const ANCHO_PROCESO = 640
@@ -67,6 +68,22 @@ export interface RefsMedidas {
   angulo: React.RefObject<HTMLElement | null>
   muestras: React.RefObject<HTMLElement | null>
   reloj: React.RefObject<HTMLElement | null>
+  /**
+   * El CONSEJO del angulo, aparte de su valor.
+   *
+   * Existe porque la barra de medidas es una fila de lecturas cortas —«58», «4»— y
+   * en el nodo del angulo se estaba escribiendo una frase entera: «81 incl. endereza
+   * · 124 giro, endereza la diana». En un movil eso desborda la columna, se parte en
+   * cuatro lineas y empuja a fps y marcas fuera de su sitio: la barra que decide si
+   * la toma sirve deja de leerse justo cuando mas falta hace, que es con la camara
+   * abierta y el telefono en el tripode.
+   *
+   * Ninguna informacion se pierde: el valor se queda en su columna y el consejo baja
+   * a su propia linea, donde ademas cabe entero y se lee de un vistazo.
+   *
+   * Opcional para que una pantalla pueda no pintarlo sin romperse.
+   */
+  consejo?: React.RefObject<HTMLElement | null>
 }
 
 /** Los nodos del DOM los declara la PANTALLA y se pasan aquí. Al revés —el hook
@@ -164,11 +181,18 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       // El que manda es el umbral de CALIDAD, no el de geometría: enseñar solo
       // el de 35° fue lo que dejó grabar en verde una sesión entera de tomas
       // que la puerta descartaba después.
-      escribir(
-        medidas.angulo,
-        `${inc.toFixed(0)}° incl.${rota ? ' ✕ endereza' : torcida ? ' ⚠ se descartará' : ''}` +
-          ` · ${giro.toFixed(0)}° giro${girada ? ' ⚠ endereza la diana' : ''}`,
-      )
+      // El valor va a su columna y el consejo a su línea, y el reparto lo decide
+      // `lecturaDeAngulo`, que tiene sus casos en un test. En la columna solo cabe una
+      // cifra: todo lo que sea una frase baja.
+      const lectura = lecturaDeAngulo({
+        inclinacionGrados: inc,
+        giroGrados: giro,
+        escorzoDescarta: rota,
+        escorzoAvisa: torcida,
+        giroAvisa: girada,
+      })
+      escribir(medidas.angulo, lectura.valor)
+      if (medidas.consejo) escribir(medidas.consejo, lectura.consejo)
       // setProperty y no `style.color =`: aquí sí valen las variables CSS
       // —esto es CSS de verdad, no canvas— y el analizador de React no admite
       // asignar a una propiedad anidada de algo que llega por argumento.
@@ -197,6 +221,9 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       escribir(medidas.pixeles, `${(det.cobertura * 100).toFixed(0)} % contorno`)
       escribir(medidas.separacion, `${det.sepPx.toFixed(1)} px`)
       escribir(medidas.angulo, '—')
+      // Sin deteccion no hay consejo: dejarlo pegado del fotograma anterior diria
+      // «endereza la diana» sobre una imagen en la que ya no se ve ninguna.
+      if (medidas.consejo) escribir(medidas.consejo, '')
       ctx.lineWidth = 2
       ctx.strokeStyle = det.fiable ? '#c2c8cf' : '#f5a623'
       ctx.beginPath()
@@ -215,6 +242,10 @@ export function useCaptura(ajustes: Ajustes, nodos: Nodos) {
       medidas.angulo,
       det && Number.isFinite(det.anguloGrados) ? `${det.anguloGrados!.toFixed(1)}°` : '—',
     )
+    // Este camino —el de dos marcas o una— no emite consejo, así que hay que
+    // BORRARLO: si no, el «endereza la diana» del modo de cuatro marcas se queda
+    // pegado señalando algo que ya no se está midiendo.
+    if (medidas.consejo) escribir(medidas.consejo, '')
     if (!det) return
     ctx.lineWidth = 2
     ctx.strokeStyle = esPareja(det) ? '#c2c8cf' : '#f5a623'
