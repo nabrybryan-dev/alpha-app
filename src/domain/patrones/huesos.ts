@@ -137,17 +137,26 @@ export function construirHuesos(): Malla {
       arqueo: 0.016,
     })
     const be = H('escapula' + s)
-    tubo(m, curva([[0, 0.012, 0], [0.012, 0.062, -0.004], [0.004, 0.125, -0.006]], 9), (u) => entre(0.04, 0.017, u), {
+    // La escápula es un hueso PLANO: una lámina que se desliza sobre las
+    // costillas, y por eso no tiene una articulación de verdad con el tórax sino
+    // que la sujetan los músculos.
+    //
+    // Va como elipsoide achatado y no como tubo achatado, que es como estaba: el
+    // tubo lleva la sección girando al seguir la curva, así que la «lámina» se
+    // retorcía y acababa ocupando tanto fondo como ancho. Medida, daba una caja
+    // de 9 × 12 × 8 cm para algo que debería tener dos centímetros de grosor.
+    elipsoide(m, [0.006, 0.066, -0.004], [0.046, 0.062, 0.0068], {
       hueso: be,
       color: COLOR_HUESO,
-      radial: 9,
-      aplanar: 0.3,
+      su: 12,
+      sv: 10,
+      giro: M4.multiplicar(M4.girarZ(grados(-6)), M4.girarY(grados(7))),
     })
-    tubo(m, curva([[-0.03, 0.03, -0.014], [0.006, 0.048, -0.02], [0.038, 0.052, -0.014]], 8), () => 0.011, {
+    tubo(m, curva([[-0.03, 0.03, -0.01], [0.006, 0.048, -0.014], [0.038, 0.052, -0.01]], 8), () => 0.011, {
       hueso: be,
       color: COLOR_HUESO_OSCURO,
       radial: 6,
-      aplanar: 0.55,
+      aplanar: 0.4,
     })
     // Acromion: el techo del hombro y el tope que topa cuando el brazo sube sin
     // que la escápula rote. Es donde acaba la espina, y donde ancla el deltoides.
@@ -250,7 +259,22 @@ export function construirHuesos(): Malla {
       sv: 6,
     })
     const bm = H('mano' + s)
-    elipsoide(m, [0, 0.022, 0], [0.03, 0.026, 0.014], { hueso: bm, color: COLOR_HUESO, su: 10, sv: 7 })
+    // El carpo son ocho huesos CORTOS en dos filas, no un bulto: un hueso corto
+    // mide casi lo mismo en las tres direcciones, y son sus caras planas
+    // deslizando unas sobre otras las que dan a la muñeca el recorrido que
+    // tiene. Dibujado como un solo elipsoide, la muñeca parecía una bisagra.
+    for (const fila of [0, 1]) {
+      const cuantos = fila === 0 ? 4 : 4
+      for (let c = 0; c < cuantos; c++) {
+        const x = (c - (cuantos - 1) / 2) * 0.0132
+        elipsoide(
+          m,
+          [x, 0.011 + fila * 0.0125, -0.002 + Math.abs(x) * 0.15],
+          [0.0058, 0.0056, 0.0055],
+          { hueso: bm, color: fila === 0 ? COLOR_HUESO : COLOR_HUESO_OSCURO, su: 7, sv: 5 },
+        )
+      }
+    }
     for (let f = 0; f < 4; f++) {
       const x = (f - 1.5) * 0.013
       // Los dedos rectos y en abanico son de lo que más delata a un maniquí. En
@@ -371,7 +395,30 @@ export function construirHuesos(): Malla {
     // Rótula: marca la extensión de rodilla de un vistazo.
     elipsoide(m, [0, 0.012, 0.03], [0.022, 0.026, 0.012], { hueso: bti, color: COLOR_HUESO_OSCURO, su: 10, sv: 7 })
     const bpi = H('pie' + s)
-    elipsoide(m, [0, 0.022, -0.028], [0.028, 0.026, 0.034], { hueso: bpi, color: COLOR_HUESO, su: 10, sv: 8 })
+    // El tarso son siete huesos cortos. El astrágalo recibe todo el peso de la
+    // pierna y lo reparte hacia el talón y hacia delante, y por eso el tobillo
+    // aguanta lo que aguanta sin ser una bisagra simple.
+    elipsoide(m, [0, 0.014, -0.014], [0.016, 0.014, 0.017], {
+      hueso: bpi,
+      color: COLOR_HUESO,
+      su: 9,
+      sv: 7,
+    })
+    elipsoide(m, [0, 0.026, -0.034], [0.019, 0.017, 0.022], {
+      hueso: bpi,
+      color: COLOR_HUESO,
+      su: 9,
+      sv: 7,
+    })
+    for (let c = 0; c < 3; c++) {
+      const x = (c - 1) * 0.0125
+      elipsoide(m, [x, 0.03, 0.006], [0.0068, 0.0072, 0.0082], {
+        hueso: bpi,
+        color: COLOR_HUESO_OSCURO,
+        su: 7,
+        sv: 5,
+      })
+    }
     // Tuberosidad del calcáneo: el talón propiamente dicho, donde acaba el
     // tendón de Aquiles. Cuanto más sale hacia atrás, más palanca tiene el
     // tríceps sural para levantar el cuerpo.

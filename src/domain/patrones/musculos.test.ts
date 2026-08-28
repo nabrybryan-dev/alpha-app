@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { Arquitectura } from './anatomia'
 import { PORCION_POR_CLAVE, PORCIONES, radioDePorcion } from './musculos'
 
 describe('el grosor a lo largo del músculo', () => {
@@ -84,6 +85,57 @@ describe('la arquitectura de las fibras', () => {
     for (const { porcion: p, clave } of PORCIONES) {
       if (clave === 'triceps_sural.soleo') continue
       expect(p.penacion ?? 0, clave).toBeLessThanOrEqual(suyo)
+    }
+  })
+})
+
+describe('la silueta según la arquitectura', () => {
+  /** Perfil de grosor a lo largo de la porción, de origen a inserción. */
+  const perfil = (arq: Arquitectura, n = 40) =>
+    Array.from({ length: n + 1 }, (_, i) => radioDePorcion(i / n, 0.02, 1, 1, arq))
+
+  it('hace el convergente ancho en el origen y fino en la inserción', () => {
+    // Un pectoral o un dorsal nacen en una superficie grande y acaban en un
+    // tendón: es la forma la que cuenta que muchas fibras tiran de un solo sitio.
+    const p = perfil('convergente')
+    expect(p[2]).toBeGreaterThan(p[p.length - 3] * 2)
+  })
+
+  it('mantiene el paralelo casi igual de grueso todo el recorrido', () => {
+    // Un recto abdominal o un sartorio no tienen vientre: son una banda. Con el
+    // perfil fusiforme parecían un huso, que es otro músculo.
+    const p = perfil('plano').slice(4, -4)
+    expect(Math.max(...p) / Math.min(...p)).toBeLessThan(1.5)
+  })
+
+  it('le da al fusiforme su vientre en medio', () => {
+    const p = perfil('fusiforme')
+    const medio = p[Math.floor(p.length / 2)]
+    // El perfil tiene un suelo para que ningún extremo quede con radio cero, así
+    // que el salto no puede ser mayor de lo que ese suelo permite.
+    expect(medio).toBeGreaterThan(p[3] * 1.6)
+    expect(medio).toBeGreaterThan(p[p.length - 4] * 1.6)
+  })
+
+  it('le da al penado un vientre más corto y tendones más largos', () => {
+    // Es la diferencia de forma entre un bíceps y un gemelo: el penado mete el
+    // músculo en menos recorrido y deja más tendón a cada lado.
+    const fus = perfil('fusiforme')
+    const bip = perfil('bipenado')
+    const anchoDeVientre = (p: number[]) => {
+      const tope = Math.max(...p)
+      return p.filter((v) => v > tope * 0.8).length
+    }
+    expect(anchoDeVientre(bip)).toBeLessThan(anchoDeVientre(fus))
+  })
+
+  it('nunca deja una porción sin grosor', () => {
+    // Un radio cero parte el tubo en dos y deja un agujero.
+    for (const arq of ['fusiforme', 'unipenado', 'bipenado', 'multipenado', 'convergente', 'plano'] as Arquitectura[]) {
+      for (const v of perfil(arq)) {
+        expect(v, arq).toBeGreaterThan(0)
+        expect(Number.isFinite(v), arq).toBe(true)
+      }
     }
   })
 })

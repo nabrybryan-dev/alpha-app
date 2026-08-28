@@ -17,6 +17,7 @@ import {
   indexarPorciones,
   type Activacion,
   type Anclaje,
+  type Arquitectura,
   type Musculo,
   type Porcion,
   type PorcionLocalizada,
@@ -125,36 +126,67 @@ export function colorDeMusculo(activacion: number): Color {
  * sirve tal cual y basta con poner el cursor a cero.
  */
 /**
+ * Silueta de cada arquitectura, de origen (0) a inserción (1).
+ *
+ * La forma del músculo cuenta cómo está construido antes de que se mueva. Un
+ * pectoral nace en una superficie grande y acaba en un tendón; un recto
+ * abdominal es una banda del mismo grosor de arriba abajo; un gemelo mete el
+ * músculo en poco recorrido y deja tendón largo a los dos lados. Dibujarlos
+ * todos con el mismo huso borra esa diferencia, que es la primera que se ve.
+ */
+const SILUETA: Record<Arquitectura, (t: number) => number> = {
+  // Huso clásico: tendón fino, vientre en medio. Bíceps braquial.
+  fusiforme: (t) => Math.pow(Math.sin(Math.PI * t), 0.55),
+  // Banda de grosor casi constante, apenas afinada en las puntas. Recto
+  // abdominal, oblicuos, transverso.
+  plano: (t) => 0.82 + 0.18 * Math.pow(Math.sin(Math.PI * t), 0.35),
+  // Triángulo: ancho donde nace y estrecho donde acaba. Pectoral, dorsal,
+  // trapecio, glúteo medio.
+  convergente: (t) => Math.pow(1 - t, 0.75) * 0.94 + 0.06,
+  // El vientre ocupa menos recorrido que en un fusiforme y los tendones son más
+  // largos: es lo que se ve al comparar un gemelo con un bíceps.
+  // Exponente MAYOR que el fusiforme, no menor: sube y baja más deprisa, así
+  // que el vientre ocupa menos y queda más tendón a los lados.
+  bipenado: (t) => Math.pow(Math.sin(Math.PI * t), 1.15),
+  // Como el bipenado pero con el vientre corrido hacia la inserción, que es por
+  // donde el músculo se apoya en su tendón. Vastos, tríceps lateral y medial.
+  unipenado: (t) => Math.pow(Math.sin(Math.PI * Math.pow(t, 0.8)), 1.05),
+  // Varios vientres seguidos, uno por cada tendón interno. Deltoides, sóleo,
+  // subescapular.
+  multipenado: (t) =>
+    Math.pow(Math.sin(Math.PI * t), 0.95) * (0.88 + 0.12 * Math.cos(t * Math.PI * 4)),
+}
+
+/**
  * Grosor del músculo a lo largo de su recorrido, de 0 (origen) a 1 (inserción).
  *
- * Dos cosas que se ven y una que no se veía:
+ * Tres cosas que se ven:
  *
- * - **Fusiforme**: fino en los extremos y grueso en el centro. Un músculo no es
- *   un tubo: son dos tendones y un vientre.
+ * - **La silueta de su arquitectura**, según la tabla de arriba.
  * - **Volumen constante**: al acortarse, el vientre engorda con 1/raíz(L).
- * - **El tendón NO engorda.** Esto faltaba. El ensanche se aplicaba al tubo
- *   entero, así que al contraerse crecía también la parte tendinosa y el
- *   músculo se movía como una goma. Un tendón es colágeno: transmite la fuerza
- *   y no cambia de grosor. Ahora el ensanche se pondera por lo carnoso que sea
- *   cada punto, y en las inserciones —que es justo donde el asesorado mira para
- *   entender de dónde nace y dónde acaba— se queda quieto.
+ * - **El tendón NO engorda.** El ensanche se aplicaba al tubo entero, así que al
+ *   contraerse crecía también la parte tendinosa y el músculo se movía como una
+ *   goma. Un tendón es colágeno: transmite la fuerza y no cambia de grosor. El
+ *   ensanche se pondera por lo carnoso que es cada punto, y en las inserciones
+ *   —que es justo donde se mira para entender de dónde nace y dónde acaba— se
+ *   queda quieto.
  */
 export function radioDePorcion(
   t: number,
   radio: number,
   ensanche: number,
   tono: number,
+  arquitectura: Arquitectura = 'fusiforme',
 ): number {
-  const u = Math.sin(Math.PI * limitar(t, 0, 1))
-  // La silueta es ancha: un músculo se ensancha enseguida al salir del tendón.
-  const silueta = Math.pow(u, 0.55)
-  // Pero la parte que se abulta al contraerse es más estrecha que la silueta:
-  // el vientre carnoso ocupa el centro, no todo lo que no es tendón. Con la
-  // misma curva de la silueta, a un uno por ciento del origen ya engordaba un
-  // 8 %, y ahí lo que hay es tendón.
-  const carne = Math.pow(u, 1.6)
+  const u = limitar(t, 0, 1)
+  const silueta = SILUETA[arquitectura](u)
+  // La parte que se abulta al contraerse es más estrecha que la silueta: el
+  // vientre carnoso ocupa el centro, no todo lo que no es tendón. Con la misma
+  // curva, a un uno por ciento del origen ya engordaba un 8 %, y ahí hay tendón.
+  const carne = Math.pow(Math.sin(Math.PI * u), 1.6)
   const engorde = 1 + (ensanche - 1) * carne
-  return radio * (0.3 + 0.7 * silueta) * engorde * tono
+  // El suelo evita que un extremo quede con radio cero y parta el tubo.
+  return radio * (0.22 + 0.78 * silueta) * engorde * tono
 }
 
 /**
@@ -213,7 +245,7 @@ export function construirMusculos(
         tubo(
           m,
           puntos,
-          (t) => radioDePorcion(t, porcion.radio, ensanche, tono),
+          (t) => radioDePorcion(t, porcion.radio, ensanche, tono, porcion.arquitectura ?? 'fusiforme'),
           {
             radial: lados,
             color,
