@@ -133,6 +133,30 @@ function valorDe(pose: Record<string, number>, canal: string): number {
  * Desglose del patrón, articulación por articulación, ordenado por importancia:
  * primero lo que mueve, después lo que sujeta.
  */
+/**
+ * Qué segmento se mueve y cuál se queda quieto, EN ESTE EJERCICIO.
+ *
+ * El catálogo articular declara la relación de manual —«tibia sobre fémur» para
+ * la rodilla— y esa es la de cadena abierta, con el pie libre. Pero en una
+ * sentadilla el pie está clavado en el suelo: la tibia no puede ir a ninguna
+ * parte y es el fémur el que baja sobre ella.
+ *
+ * No es un matiz de vocabulario. Los dos gestos flexionan la rodilla, pero uno
+ * carga el cuádriceps y el otro los isquios, y decir «tibia sobre fémur» en una
+ * sentadilla la hace leer como un curl femoral. En cadena cerrada la relación se
+ * invierte en TODA la cadena, porque el punto fijo está en el extremo.
+ */
+export function segmentosDe(
+  patron: Patron,
+  articulacionId: string,
+): { movil: string; fijo: string } {
+  const a = ARTICULACIONES.find((x) => x.id === articulacionId)
+  if (!a) return { movil: '', fijo: '' }
+  return patron.cadena === 'cerrada'
+    ? { movil: a.segmentoFijo, fijo: a.segmentoMovil }
+    : { movil: a.segmentoMovil, fijo: a.segmentoFijo }
+}
+
 export function accionesDelPatron(patron: Patron): ResumenArticular[] {
   const salida: ResumenArticular[] = []
 

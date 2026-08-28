@@ -163,6 +163,10 @@ export function demostracion(articulacion: Articulacion, eje: EjeArticular): Dem
     // Flotando: el sujeto no se apoya en nada, para que nada distraiga del
     // segmento que se mueve.
     apoyo: 'ninguno',
+    // Abierta: el sujeto flota y el segmento distal va libre, que es justo lo
+    // que se quiere para estudiar la articulación sola. En un ejercicio de
+    // verdad la cadena la decide el ejercicio, no la articulación.
+    cadena: 'abierta',
     pies: [],
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],

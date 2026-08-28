@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID } from './catalogo'
+import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
 import { MUSCULO_POR_ID, PORCION_POR_CLAVE } from './musculos'
-import { apoyarPies, INDICE_HUESO, type Lado } from './esqueleto'
+import { apoyarPies, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type Lado } from './esqueleto'
 import { poseAnimada, RANGO } from './movimiento'
 
 describe('el catálogo de patrones', () => {
@@ -308,5 +308,49 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Salto del tigre')?.id).toBe(
       'traccion_horizontal',
     )
+  })
+})
+
+describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
+  /** Dónde queda cada punto respecto al tobillo, en centímetros. +Z va delante. */
+  const respectoAlTobillo = (patron: Patron, fase: number) => {
+    const pies: Lado[] = patron.pies ?? (patron.apoyo === 'suelo' ? ['D', 'I'] : [])
+    const { pose, desplazamiento, giroRaiz } = poseAnimada(patron, fase, 1, 0)
+    const esq = resolverConApoyo(pose, desplazamiento, giroRaiz, patron.apoyo, patron.alturaApoyo, pies)
+    const z = (h: string, t: number) => puntoDeHueso(esq, h, t)[2] * 100
+    const tobillo = z('tibiaD', 1)
+    return { cadera: z('pelvis', 0) - tobillo, rodilla: z('musloD', 1) - tobillo }
+  }
+
+  it('lleva la cadera ATRÁS en la bisagra', () => {
+    // Es lo que define el gesto y lo que lo separa de agacharse: la cadera se
+    // echa atrás y el tronco baja por consecuencia. Estaba al revés —la cadera
+    // acababa 15 cm por DELANTE del tobillo—, así que el sujeto se doblaba hacia
+    // adelante como quien recoge algo del suelo, que es justo lo que no se
+    // quiere enseñar.
+    const p = PATRON_POR_ID['bisagra_cadera']
+    const arriba = respectoAlTobillo(p, 0)
+    const abajo = respectoAlTobillo(p, 1)
+    expect(abajo.cadera, 'la cadera no retrocede').toBeLessThan(arriba.cadera - 8)
+    // Y la tibia se queda vertical: la rodilla no se adelanta.
+    expect(Math.abs(abajo.rodilla), 'la rodilla se adelanta').toBeLessThan(5)
+  })
+
+  it('lleva la cadera atrás Y la rodilla adelante en la sentadilla', () => {
+    // Aquí sí se adelanta la rodilla: es lo que distingue una sentadilla de una
+    // bisagra, y por eso una carga el cuádriceps y la otra los isquios.
+    const p = PATRON_POR_ID['sentadilla']
+    const arriba = respectoAlTobillo(p, 0)
+    const abajo = respectoAlTobillo(p, 1)
+    expect(abajo.cadera).toBeLessThan(arriba.cadera - 15)
+    expect(abajo.rodilla).toBeGreaterThan(arriba.rodilla + 8)
+  })
+
+  it('separa la bisagra de la sentadilla por dónde va la rodilla', () => {
+    // Si las dos adelantaran la rodilla, el visor estaría enseñando el mismo
+    // gesto dos veces con nombres distintos.
+    const bisagra = respectoAlTobillo(PATRON_POR_ID['bisagra_cadera'], 1)
+    const sentadilla = respectoAlTobillo(PATRON_POR_ID['sentadilla'], 1)
+    expect(sentadilla.rodilla - bisagra.rodilla).toBeGreaterThan(12)
   })
 })

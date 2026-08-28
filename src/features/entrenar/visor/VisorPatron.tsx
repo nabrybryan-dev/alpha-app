@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { M4 } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
-import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL } from '../../../domain/patrones/acciones'
+import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL, segmentosDe } from '../../../domain/patrones/acciones'
 import { NOMBRE_DE_PLANO, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
   CAMPO_VISUAL,
@@ -409,9 +409,15 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
                       No recorre nada: aguanta la posición contra la carga.
                     </p>
                   )}
+                  {/* Qué se mueve sobre qué, EN ESTE ejercicio. En cadena
+                      cerrada se invierte: en una sentadilla el pie está clavado
+                      en el suelo, así que baja el fémur sobre la tibia y no al
+                      revés. Con la relación de manual, la sentadilla se leía
+                      como un curl femoral. */}
                   <p className="mt-1 text-[10px] leading-snug text-silver-500">
-                    {NOMBRE_DE_TIPO[r.articulacion.tipo]}. {r.articulacion.segmentoMovil} sobre{' '}
-                    {r.articulacion.segmentoFijo.toLowerCase()}.
+                    {NOMBRE_DE_TIPO[r.articulacion.tipo]}.{' '}
+                    {segmentosDe(patron, r.articulacion.id).movil} sobre{' '}
+                    {segmentosDe(patron, r.articulacion.id).fijo.toLowerCase()}.
                   </p>
                   {/* Lo que NO puede hacer es la mitad de entender una
                       articulación, y es lo que evita forzarla. */}

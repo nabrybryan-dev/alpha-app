@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accionesDelPatron, accionesPrincipales, fraseDelPatron } from './acciones'
+import { accionesDelPatron, accionesPrincipales, fraseDelPatron, segmentosDe } from './acciones'
 import { ARTICULACIONES, EJE_POR_CANAL, RANGO_POR_CANAL } from './articulaciones'
 import { PATRONES, PATRON_POR_ID } from './catalogo'
 import { poseAnimada } from './movimiento'
@@ -137,5 +137,51 @@ describe('el desglose de un ejercicio', () => {
     const principales = accionesPrincipales(PATRON_POR_ID.sentadilla)
     expect(principales.length).toBeLessThan(todas.length)
     expect(principales.every((r) => r.rol !== 'libre')).toBe(true)
+  })
+})
+
+describe('qué segmento se mueve en cada ejercicio', () => {
+  it('en la sentadilla mueve el fémur sobre la tibia, no al revés', () => {
+    // Es el malentendido que hay que evitar. La rodilla flexiona en los dos
+    // casos, pero en una sentadilla el pie está clavado en el suelo: la tibia no
+    // puede ir a ninguna parte y es el fémur el que baja sobre ella. Decir
+    // «tibia sobre fémur» lo hace leer como un curl femoral, que carga los
+    // isquios en vez del cuádriceps.
+    const s = segmentosDe(PATRON_POR_ID['sentadilla'], 'rodilla')
+    expect(s.movil).toBe('Fémur')
+    expect(s.fijo).toBe('Tibia')
+  })
+
+  it('en la flexión de rodilla mueve la tibia sobre el fémur', () => {
+    // Cadena abierta: el pie va libre y es él quien viaja.
+    const s = segmentosDe(PATRON_POR_ID['flexion_rodilla'], 'rodilla')
+    expect(s.movil).toBe('Tibia')
+    expect(s.fijo).toBe('Fémur')
+  })
+
+  it('en la sentadilla mueve la pelvis sobre el fémur', () => {
+    // Lo mismo un eslabón más arriba: la cadera flexiona, pero lo que se
+    // desplaza es la pelvis hacia atrás, no el muslo hacia delante.
+    const s = segmentosDe(PATRON_POR_ID['sentadilla'], 'cadera')
+    expect(s.movil).toBe('Pelvis')
+    expect(s.fijo).toBe('Fémur')
+  })
+
+  it('en la abducción de cadera mueve el fémur sobre la pelvis', () => {
+    const s = segmentosDe(PATRON_POR_ID['abduccion_cadera'], 'cadera')
+    expect(s.movil).toBe('Fémur')
+    expect(s.fijo).toBe('Pelvis')
+  })
+
+  it('invierte todas las articulaciones en cadena cerrada', () => {
+    // No es un caso especial de la rodilla: en cadena cerrada se invierte la
+    // relación en toda la cadena, porque el punto fijo está en el extremo.
+    for (const p of PATRONES) {
+      for (const a of ARTICULACIONES) {
+        const s = segmentosDe(p, a.id)
+        const esperadoMovil = p.cadena === 'cerrada' ? a.segmentoFijo : a.segmentoMovil
+        expect(s.movil, `${p.id} · ${a.id}`).toBe(esperadoMovil)
+      }
+    }
   })
 })
