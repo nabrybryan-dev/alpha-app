@@ -16,9 +16,12 @@
  */
 
 import { porcionesQueCruzan } from './acciones'
+import { esqueletoEnFase } from './escena'
+import { puntoDeHueso } from './esqueleto'
 import { ARTICULACIONES, type Articulacion, type EjeArticular, type Plano } from './articulaciones'
 import type { Patron } from './catalogo'
 import type { Activacion } from './musculos'
+import type { Pose } from './esqueleto'
 import { INDICE_HUESO } from './esqueleto'
 import { clavePorcion } from './anatomia'
 
@@ -45,6 +48,23 @@ const MARGEN_LIGAMENTO = 0.92
 
 /** Un lado nada más: aislar se entiende mejor que duplicar. */
 const LADO_DEMO = 'D'
+
+/**
+ * La postura de estudio: dónde se coloca el cuerpo para que la articulación
+ * se vea.
+ *
+ * Con el brazo colgando, la muñeca queda pegada a la cadera y mirarla de perfil
+ * es mirar a través del muslo. No se arregla moviendo la cámara —el cuerpo
+ * sigue delante—, sino separando el segmento, que es como se enseña.
+ *
+ * Es puesta en escena, no anatomía: coloca lo que NO se estudia y no toca el
+ * canal que recorre, así que la demostración sigue aislando una sola cosa.
+ */
+const POSTURA_DE_ESTUDIO: Record<string, Pose> = {
+  codo: { ['hombroAbd' + LADO_DEMO]: 38 },
+  radiocubital: { ['hombroAbd' + LADO_DEMO]: 38, ['codoFlex' + LADO_DEMO]: 82 },
+  muneca: { ['hombroAbd' + LADO_DEMO]: 46, ['codoFlex' + LADO_DEMO]: 24 },
+}
 
 /**
  * Los huesos del eje —columna, cráneo, pelvis— son únicos y sus canales no
@@ -88,10 +108,36 @@ function seguimientoDe(articulacion: Articulacion, eje: EjeArticular): Patron['s
   return [articulacion.huesoDistal, 1, desvio]
 }
 
+/**
+ * La cámara va del lado del segmento que se estudia.
+ *
+ * El brazo derecho vive en x negativo, y la cámara sagital estaba fija en x
+ * positivo: el tórax quedaba justo en medio y se veía un amasijo de costillas
+ * con la mano detrás. No se arregla acercándose ni alejándose —el cuerpo sigue
+ * delante—, sino rodeando al sujeto hasta el lado por el que se ve.
+ *
+ * Los huesos del eje quedan en la línea media y les da igual: ahí el azimut se
+ * deja como está.
+ */
+function azimutHaciaElSegmento(patron: Patron, articulacion: Articulacion, azimut: number): number {
+  const lado = ladoDe(articulacion)
+  if (!lado) return azimut
+  const esq = esqueletoEnFase(patron, 0.5)
+  const x = puntoDeHueso(esq, articulacion.huesoDistal + lado, 0.5)[0]
+  if (Math.abs(x) < 0.08) return azimut
+  // El azimut positivo mira desde x positivo: si el segmento está al otro lado,
+  // se cruza al suyo.
+  return Math.sign(x) === Math.sign(Math.sin((azimut * Math.PI) / 180)) ? azimut : -azimut
+}
+
 /** Una demostración: esa articulación, ese eje, y el resto del cuerpo quieto. */
 export function demostracion(articulacion: Articulacion, eje: EjeArticular): Demostracion {
   const [min, max] = eje.rango
   const canal = eje.canal + ladoDe(articulacion)
+  // La postura no puede pisar el canal que se estudia: si el eje elegido es
+  // uno de los que coloca, manda el recorrido.
+  const postura: Pose = { ...POSTURA_DE_ESTUDIO[articulacion.id] }
+  delete postura[canal]
   const desde = min * MARGEN_LIGAMENTO
   const hasta = max * MARGEN_LIGAMENTO
 
@@ -121,9 +167,10 @@ export function demostracion(articulacion: Articulacion, eje: EjeArticular): Dem
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
     // El recorrido va del tope negativo al positivo, así que la demostración
-    // enseña la acción y su contraria en la misma repetición.
-    inicio: { [canal]: desde },
-    fin: { [canal]: hasta },
+    // enseña la acción y su contraria en la misma repetición. La postura va en
+    // las dos poses con el mismo valor: coloca, no recorre.
+    inicio: { ...postura, [canal]: desde },
+    fin: { ...postura, [canal]: hasta },
     activacion: activacionDe(articulacion),
     seguimiento: seguimientoDe(articulacion, eje),
     camara: CAMARA_POR_PLANO[eje.plano],
@@ -133,7 +180,13 @@ export function demostracion(articulacion: Articulacion, eje: EjeArticular): Dem
     foco: articulacion.huesoDistal + ladoDe(articulacion),
   }
 
-  return { id: patron.id, articulacion, eje, patron }
+  // El azimut se decide con el cuerpo ya colocado, así que hace falta el patrón
+  // construido para poder resolverlo.
+  const camara = {
+    ...patron.camara,
+    azimut: azimutHaciaElSegmento(patron, articulacion, patron.camara.azimut),
+  }
+  return { id: patron.id, articulacion, eje, patron: { ...patron, camara } }
 }
 
 /** Todas las acciones que el sujeto puede ejercer, articulación por articulación. */

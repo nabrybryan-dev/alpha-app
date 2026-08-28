@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ARTICULACIONES } from './articulaciones'
 import { DEMOSTRACIONES, DEMOSTRACION_POR_ID, demostracionesDe } from './demostraciones'
-import { esqueletoEnFase } from './escena'
+import { encuadrar, esqueletoEnFase } from './escena'
 import { INDICE_HUESO, puntoDeHueso, resolver } from './esqueleto'
 import { construirMusculos, longitudesEnReposo, PORCION_POR_CLAVE } from './musculos'
 import { poseAnimada, RANGO } from './movimiento'
@@ -18,14 +18,19 @@ describe('el sujeto ejerciendo sus acciones', () => {
 
   it('mueve una sola articulación y deja el resto quieto', () => {
     // Es el punto de aislar: si se mueve algo más, ya no se está viendo esa
-    // acción sino un gesto.
+    // acción sino un gesto. La ficha puede traer además la postura de estudio
+    // —que coloca el brazo donde se vea—, y esa no recorre: vale igual en las
+    // dos poses, así que se mira el recorrido y no la lista de canales.
     for (const d of DEMOSTRACIONES) {
       const canales = new Set([...Object.keys(d.patron.inicio), ...Object.keys(d.patron.fin)])
-      expect(canales.size, d.id).toBe(1)
-      expect([...canales][0].replace(/[DI]$/, ''), d.id).toBe(d.eje.canal)
+      const recorren = [...canales].filter(
+        (c) => (d.patron.inicio[c] ?? 0) !== (d.patron.fin[c] ?? 0),
+      )
+      expect(recorren.length, `${d.id} recorre ${recorren.join(', ')}`).toBe(1)
+      expect(recorren[0].replace(/[DI]$/, ''), d.id).toBe(d.eje.canal)
       // Y el canal tiene que ser uno que la pose de verdad lea.
       const { pose } = poseAnimada(d.patron, 1, 1, 0)
-      expect(pose[[...canales][0]], `${d.id}: el canal no llega a la pose`).toBeDefined()
+      expect(pose[recorren[0]], `${d.id}: el canal no llega a la pose`).toBeDefined()
     }
   })
 
@@ -33,7 +38,9 @@ describe('el sujeto ejerciendo sus acciones', () => {
     // Los últimos grados los sujeta el ligamento, no el músculo. Enseñarlos
     // como recorrido de trabajo invitaría a buscarlos con carga.
     for (const d of DEMOSTRACIONES) {
-      const canal = Object.keys(d.patron.inicio)[0]
+      const canal = Object.keys(d.patron.inicio).find(
+        (c) => d.patron.inicio[c] !== d.patron.fin[c],
+      )!
       const desde = d.patron.inicio[canal]
       const hasta = d.patron.fin[canal]
       const [min, max] = d.eje.rango
@@ -72,8 +79,11 @@ describe('el sujeto ejerciendo sus acciones', () => {
     // Una flexión de perfil, una abducción de frente, un giro desde arriba.
     // Verla desde el ángulo equivocado es la forma más rápida de no entenderla.
     for (const d of DEMOSTRACIONES) {
-      if (d.eje.plano === 'sagital') expect(d.patron.camara.azimut, d.id).toBeGreaterThan(60)
-      if (d.eje.plano === 'frontal') expect(d.patron.camara.azimut, d.id).toBeLessThan(20)
+      // Se mira el azimut en valor absoluto: el signo dice por qué lado se
+      // rodea al sujeto —el del segmento que se estudia, o el tronco lo tapa—
+      // y no cambia desde qué plano se ve la acción.
+      if (d.eje.plano === 'sagital') expect(Math.abs(d.patron.camara.azimut), d.id).toBeGreaterThan(60)
+      if (d.eje.plano === 'frontal') expect(Math.abs(d.patron.camara.azimut), d.id).toBeLessThan(20)
       if (d.eje.plano === 'transverso') expect(d.patron.camara.elevacion, d.id).toBeGreaterThan(40)
     }
   })
@@ -121,5 +131,75 @@ describe('el sujeto ejerciendo sus acciones', () => {
     expect(demostracionesDe('hombro')).toHaveLength(3)
     expect(demostracionesDe('rodilla')).toHaveLength(1)
     expect(demostracionesDe('inexistente')).toHaveLength(0)
+  })
+})
+
+describe('la postura de estudio', () => {
+  it('separa del tronco la articulación del brazo que se estudia', () => {
+    // Con el brazo colgando, la muñeca queda pegada a la cadera y mirarla de
+    // perfil es mirar a través del muslo. No es un problema de cámara: la pose
+    // tiene que poner el segmento donde se vea, que es como se enseña.
+    for (const id of ['codo', 'radiocubital', 'muneca']) {
+      for (const d of demostracionesDe(id)) {
+        const esq = esqueletoEnFase(d.patron, 0.5)
+        const codo = puntoDeHueso(esq, 'antebrazoD', 0)
+        const cadera = puntoDeHueso(esq, 'pelvis', 0)
+        const separacion = Math.hypot(codo[0] - cadera[0], codo[2] - cadera[2])
+        expect(separacion, `${d.id}: el brazo queda a ${(separacion * 100).toFixed(0)} cm del eje`).toBeGreaterThan(
+          0.28,
+        )
+      }
+    }
+  })
+
+  it('deja quieto lo que no se estudia', () => {
+    // La postura de estudio coloca el cuerpo, pero el único canal que RECORRE
+    // sigue siendo el de la articulación elegida: si se moviera otra cosa, la
+    // demostración dejaría de aislar nada.
+    for (const d of DEMOSTRACIONES) {
+      const canales = new Set([...Object.keys(d.patron.inicio), ...Object.keys(d.patron.fin)])
+      const recorren = [...canales].filter(
+        (c) => (d.patron.inicio[c] ?? 0) !== (d.patron.fin[c] ?? 0),
+      )
+      expect(recorren, `${d.id} recorre ${recorren.join(', ')}`).toHaveLength(1)
+    }
+  })
+})
+
+describe('desde dónde se mira', () => {
+  /** Dónde queda la cámara orbital en la pose de partida. */
+  const posicionDeCamara = (d: (typeof DEMOSTRACIONES)[number]) => {
+    const { centro, distancia } = encuadrar(d.patron)
+    const az = (d.patron.camara.azimut * Math.PI) / 180
+    const el = (d.patron.camara.elevacion * Math.PI) / 180
+    return [
+      centro[0] + distancia * Math.cos(el) * Math.sin(az),
+      centro[1] + distancia * Math.sin(el),
+      centro[2] + distancia * Math.cos(el) * Math.cos(az),
+    ] as [number, number, number]
+  }
+
+  it('no deja el tronco entre la cámara y lo que enseña', () => {
+    // La muñeca derecha vive en x negativo y la cámara sagital estaba en x
+    // positivo: el tórax quedaba justo en medio y se veía un amasijo de
+    // costillas con la mano detrás. La cámara va del lado del segmento.
+    for (const d of DEMOSTRACIONES) {
+      const esq = esqueletoEnFase(d.patron, 0.5)
+      const { centro } = encuadrar(d.patron)
+      const cam = posicionDeCamara(d)
+      const torax = puntoDeHueso(esq, 'torax', 0.5)
+      // Distancia del tórax al segmento cámara→centro, solo si queda en medio.
+      const v = V.restar(centro, cam)
+      const w = V.restar(torax, cam)
+      const t = V.punto(v, w) / V.punto(v, v)
+      // Solo tapa si se cruza en el primer tramo del recorrido, es decir, si
+      // está más cerca de la cámara que lo que se quiere ver. El tórax al fondo
+      // no estorba: en el hombro y la escápula es justo el contexto que hace
+      // falta para entender contra qué se mueven.
+      if (t <= 0 || t >= 0.72) continue
+      const cerca = V.largo(V.restar(V.sumar(cam, V.escalar(v, t)), torax))
+      // El tórax mide unos 15 cm de radio: por debajo de eso, tapa.
+      expect(cerca, `${d.id}: el tórax se cruza a ${(cerca * 100).toFixed(0)} cm de la vista`).toBeGreaterThan(0.16)
+    }
   })
 })
