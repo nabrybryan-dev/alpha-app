@@ -1,5 +1,6 @@
 import { grados, V, type Vec3 } from '../patrones/algebra'
 import { Malla, type Color } from '../patrones/malla'
+import { anillo, cuadro, disco, losa } from './geometria'
 
 /**
  * El escenario donde se para el sujeto: una BAHÍA DE MEDIDA.
@@ -111,49 +112,6 @@ const ARRIBA: Vec3 = [0, 1, 0]
 // ---------------------------------------------------------------------------
 
 /**
- * Un rectángulo horizontal a la altura `y`, con la normal hacia arriba.
- *
- * Es la primitiva de casi todo el suelo: retícula, placa y marcas. Va aquí y no en
- * `malla.ts` porque aquella construye volúmenes anatómicos —tubos y elipsoides— y
- * esto es carpintería plana.
- */
-function losa(m: Malla, x0: number, z0: number, x1: number, z1: number, y: number, c: Color): void {
-  const base = m.vertices
-  m.vertice([x0, y, z0], ARRIBA, c, 0)
-  m.vertice([x1, y, z0], ARRIBA, c, 0)
-  m.vertice([x1, y, z1], ARRIBA, c, 0)
-  m.vertice([x0, y, z1], ARRIBA, c, 0)
-  m.cuadro(base, base + 1, base + 2, base + 3)
-}
-
-/** Un disco horizontal de `n` segmentos. */
-function disco(m: Malla, radio: number, y: number, c: Color, n = 64): void {
-  const centro = m.vertices
-  m.vertice([0, y, 0], ARRIBA, c, 0)
-  for (let i = 0; i <= n; i++) {
-    const a = (i / n) * Math.PI * 2
-    m.vertice([Math.cos(a) * radio, y, Math.sin(a) * radio], ARRIBA, c, 0)
-  }
-  for (let i = 0; i < n; i++) m.triangulo(centro, centro + 1 + i, centro + 2 + i)
-}
-
-/** Un anillo plano entre dos radios: el filo de la placa, las marcas del suelo. */
-function anillo(m: Malla, rInt: number, rExt: number, y: number, c: Color, n = 64): void {
-  const base = m.vertices
-  for (let i = 0; i <= n; i++) {
-    const a = (i / n) * Math.PI * 2
-    const co = Math.cos(a)
-    const si = Math.sin(a)
-    m.vertice([co * rInt, y, si * rInt], ARRIBA, c, 0)
-    m.vertice([co * rExt, y, si * rExt], ARRIBA, c, 0)
-  }
-  for (let i = 0; i < n; i++) {
-    const k = base + i * 2
-    m.cuadro(k, k + 1, k + 3, k + 2)
-  }
-}
-
-/**
  * La retícula, recortada al disco del suelo.
  *
  * Cada línea se acorta a la cuerda que le corresponde en la circunferencia, así que
@@ -214,27 +172,39 @@ function placa(m: Malla): void {
 function bordillo(m: Malla, n = 72): void {
   const rInt = RADIO_BAHIA
   const rExt = RADIO_BAHIA + ANCHO_BORDILLO
-  const base = m.vertices
-
-  for (let i = 0; i <= n; i++) {
-    const a = (i / n) * Math.PI * 2
-    const co = Math.cos(a)
-    const si = Math.sin(a)
-    // La normal interior mira al centro; la exterior, afuera.
-    const haciaFuera: Vec3 = [co, 0, si]
-    const haciaDentro: Vec3 = V.escalar(haciaFuera, -1)
-
-    m.vertice([co * rInt, 0, si * rInt], haciaDentro, BORDILLO, 0)
-    m.vertice([co * rInt, ALTO_BORDILLO, si * rInt], haciaDentro, BORDILLO_CANTO, 0)
-    m.vertice([co * rExt, ALTO_BORDILLO, si * rExt], ARRIBA, BORDILLO_CANTO, 0)
-    m.vertice([co * rExt, 0, si * rExt], haciaFuera, BORDILLO, 0)
-  }
+  const arriba: Vec3 = [0, 1, 0]
   for (let i = 0; i < n; i++) {
-    const k = base + i * 4
-    const s = k + 4
-    m.cuadro(k, k + 1, s + 1, s) // cara interior
-    m.cuadro(k + 1, k + 2, s + 2, s + 1) // canto
-    m.cuadro(k + 2, k + 3, s + 3, s + 2) // cara exterior
+    const a0 = (i / n) * Math.PI * 2
+    const a1 = ((i + 1) / n) * Math.PI * 2
+    const punto = (a: number, r: number, y: number): Vec3 => [Math.cos(a) * r, y, Math.sin(a) * r]
+    const haciaFuera: Vec3 = [Math.cos((a0 + a1) / 2), 0, Math.sin((a0 + a1) / 2)]
+    const haciaDentro: Vec3 = [-haciaFuera[0], 0, -haciaFuera[2]]
+    // Cara interior, canto y cara exterior. Cada una declara hacia dónde mira y la
+    // primitiva decide el enrollado: es lo que evita el juego del topo de ir
+    // arreglando caras invisibles una a una.
+    cuadro(
+      m,
+      [punto(a0, rInt, 0), punto(a0, rInt, ALTO_BORDILLO), punto(a1, rInt, ALTO_BORDILLO), punto(a1, rInt, 0)],
+      haciaDentro,
+      BORDILLO,
+    )
+    cuadro(
+      m,
+      [
+        punto(a0, rInt, ALTO_BORDILLO),
+        punto(a0, rExt, ALTO_BORDILLO),
+        punto(a1, rExt, ALTO_BORDILLO),
+        punto(a1, rInt, ALTO_BORDILLO),
+      ],
+      arriba,
+      BORDILLO_CANTO,
+    )
+    cuadro(
+      m,
+      [punto(a0, rExt, 0), punto(a0, rExt, ALTO_BORDILLO), punto(a1, rExt, ALTO_BORDILLO), punto(a1, rExt, 0)],
+      haciaFuera,
+      BORDILLO,
+    )
   }
 }
 
@@ -251,16 +221,19 @@ function barra(m: Malla, cx: number, cz: number, ancho: number, y0: number, y1: 
     const [ax, az] = esquinas[i]
     const [bx, bz] = esquinas[(i + 1) % 4]
     const nr = V.normalizar([(ax + bx) / 2 - cx, 0, (az + bz) / 2 - cz])
-    const k = m.vertices
-    m.vertice([ax, y0, az], nr, c, 0)
-    m.vertice([bx, y0, bz], nr, c, 0)
-    m.vertice([bx, y1, bz], nr, c, 0)
-    m.vertice([ax, y1, az], nr, c, 0)
-    m.cuadro(k, k + 1, k + 2, k + 3)
+    cuadro(m, [[ax, y0, az], [bx, y0, bz], [bx, y1, bz], [ax, y1, az]], nr, c)
   }
-  const t = m.vertices
-  for (const [ex, ez] of esquinas) m.vertice([ex, y1, ez], ARRIBA, c, 0)
-  m.cuadro(t, t + 1, t + 2, t + 3)
+  cuadro(
+    m,
+    [
+      [esquinas[0][0], y1, esquinas[0][1]],
+      [esquinas[1][0], y1, esquinas[1][1]],
+      [esquinas[2][0], y1, esquinas[2][1]],
+      [esquinas[3][0], y1, esquinas[3][1]],
+    ],
+    [0, 1, 0],
+    c,
+  )
 }
 
 /**
@@ -285,13 +258,18 @@ function estadiometro(m: Malla): void {
     const p0: Vec3 = [cx, y, cz]
     const p1: Vec3 = [cx + haciaCentro[0] * largo, y, cz + haciaCentro[2] * largo]
     const g = 0.012
-    const k = m.vertices
     // Una placa fina horizontal: se ve desde arriba y desde el lado.
-    m.vertice([p0[0], y, p0[2] - g], ARRIBA, MARCA, 0)
-    m.vertice([p1[0], y, p1[2] - g], ARRIBA, MARCA, 0)
-    m.vertice([p1[0], y, p1[2] + g], ARRIBA, MARCA, 0)
-    m.vertice([p0[0], y, p0[2] + g], ARRIBA, MARCA, 0)
-    m.cuadro(k, k + 1, k + 2, k + 3)
+    cuadro(
+      m,
+      [
+        [p0[0], y, p0[2] - g],
+        [p1[0], y, p1[2] - g],
+        [p1[0], y, p1[2] + g],
+        [p0[0], y, p0[2] + g],
+      ],
+      ARRIBA,
+      MARCA,
+    )
   }
 }
 

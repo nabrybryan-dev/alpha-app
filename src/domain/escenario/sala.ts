@@ -1,5 +1,6 @@
 import { grados, V, type Vec3 } from '../patrones/algebra'
 import { Malla, type Color } from '../patrones/malla'
+import { cuadro } from './geometria'
 import { BAHIA } from './laboratorio'
 
 /**
@@ -87,22 +88,23 @@ const ARRIBA: Vec3 = [0, 1, 0]
 
 // ---------------------------------------------------------------------------
 
-/** Un rectángulo con normal libre, en el plano que definan sus cuatro esquinas. */
-function cara(m: Malla, p: [Vec3, Vec3, Vec3, Vec3], n: Vec3, c: Color): void {
-  const k = m.vertices
-  for (const v of p) m.vertice(v, n, c, 0)
-  m.cuadro(k, k + 1, k + 2, k + 3)
-}
+/**
+ * Un rectángulo con normal libre. Delega en la primitiva que SE ORIENTA SOLA: se le
+ * dice hacia dónde mira la cara y ella decide el enrollado. Escribir el orden a mano
+ * fue lo que dejó el escenario entero de espaldas y sin dar un solo error.
+ */
+const cara = cuadro
 
 /** Una losa horizontal a la altura `y`. */
 function losa(m: Malla, x0: number, z0: number, x1: number, z1: number, y: number, c: Color): void {
+  // Antihoraria vista desde arriba, o el motor la descarta por trasera.
   cara(
     m,
     [
       [x0, y, z0],
-      [x1, y, z0],
-      [x1, y, z1],
       [x0, y, z1],
+      [x1, y, z1],
+      [x1, y, z0],
     ],
     ARRIBA,
     c,
@@ -279,7 +281,7 @@ function sector(m: Malla, desde: number, hasta: number, r0: number, r1: number, 
   }
   for (let i = 0; i < n; i++) {
     const k = base + i * 2
-    m.cuadro(k, k + 1, k + 3, k + 2)
+    m.cuadro(k, k + 2, k + 3, k + 1)
   }
 }
 
@@ -315,7 +317,7 @@ function estacion(m: Malla): void {
     const nr = V.normalizar([(p0[0] + p1[0]) / 2 - cx, 0, (p0[2] + p1[2]) / 2 - cz])
     cara(
       m,
-      [p0, p1, [p1[0], ALTURA_TRIPODE, p1[2]], [p0[0], ALTURA_TRIPODE, p0[2]]],
+      [p0, [p0[0], ALTURA_TRIPODE, p0[2]], [p1[0], ALTURA_TRIPODE, p1[2]], p1],
       nr,
       TRIPODE,
     )
@@ -409,3 +411,24 @@ export function vistaDeGrabacion(centro: readonly [number, number, number]): {
   const azimut = (Math.atan2(d[0], d[2]) * 180) / Math.PI
   return { azimut, elevacion, distancia }
 }
+
+/**
+ * El encuadre de la SALA, que no es el del cuerpo.
+ *
+ * `encuadrar()` enmarca al sujeto, y hace bien: para estudiar un patrón lo que importa
+ * es el cuerpo. Pero con la sala construida ese encuadre la deja fuera — medido: a la
+ * distancia del patrón el borde inferior del cuadro cae en y = 0,23 m, o sea **por
+ * encima del suelo**, así que el laboratorio entero quedaba recortado y el sujeto
+ * parecía flotar en un vacío. La escena estaba ahí y no se veía.
+ *
+ * Con 34° de campo vertical, para que entren el suelo y algo de pared hace falta un
+ * cuadro de unos 2,8 m de alto centrado en 1,2 — que sale a 4,6 m de distancia. El
+ * sujeto se ve más pequeño, y eso es exactamente el punto: **está DENTRO de un sitio**,
+ * no recortado contra el fondo.
+ */
+export const ENCUADRE_SALA = {
+  /** Metros: el cuadro va del suelo a algo más de dos metros. */
+  distancia: 4.6,
+  /** A la altura del pecho, no de la cadera: deja ver el suelo sin perder la cabeza. */
+  centro: [0, 1.2, 0] as [number, number, number],
+} as const

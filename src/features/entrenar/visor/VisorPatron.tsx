@@ -11,7 +11,7 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, SALA, vistaDeGrabacion, type DatosDeSerie } from '../../../domain/escenario/sala'
+import { construirSala, ENCUADRE_SALA, SALA, vistaDeGrabacion, type DatosDeSerie } from '../../../domain/escenario/sala'
 import { construirTripode, type Colocacion } from '../../../domain/escenario/tripode'
 import { juzgarColocacion, lecturasDeColocacion } from './juzgarColocacion'
 import { Malla } from '../../../domain/patrones/malla'
@@ -209,8 +209,18 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
         orbita = new Orbita(lienzo, () => pintar())
         orbita.azimut = patron.camara.azimut
         orbita.elevacion = patron.camara.elevacion
-        orbita.distancia = encuadre.distancia
-        orbita.centro = encuadre.centro
+        // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
+        // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia
+        // el borde inferior del cuadro cae por encima del suelo y el laboratorio entero
+        // queda recortado: el sujeto parece flotando en un vacío y la escena, que está
+        // construida y renderizada, no se ve. Medido: 0,76 % del lienzo.
+        // Se lee del ref y no de la prop: incluir `datos` en las dependencias de este
+        // efecto recrearía el contexto WebGL cada vez que avanza una serie. El efecto
+        // de sincronización se declara ANTES que este, así que para cuando esto corre
+        // el ref ya está puesto.
+        const conSala = !!estado.current.datos
+        orbita.distancia = conSala ? ENCUADRE_SALA.distancia : encuadre.distancia
+        orbita.centro = conSala ? [...ENCUADRE_SALA.centro] : encuadre.centro
 
         let matrices = resolver({}, [0, 0.95, 0], [0, 0, 0]).matrices
 
@@ -305,7 +315,7 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
               : {
                   azimut: patron.camara.azimut,
                   elevacion: patron.camara.elevacion,
-                  distancia: encuadre.distancia,
+                  distancia: conSala ? ENCUADRE_SALA.distancia : encuadre.distancia,
                 }
           cancelAnimationFrame(viaje)
           const desde = {

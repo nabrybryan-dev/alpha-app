@@ -1,5 +1,6 @@
 import { grados, V, type Vec3 } from '../patrones/algebra'
 import { Malla, type Color } from '../patrones/malla'
+import { cuadro } from './geometria'
 
 /**
  * El trípode con el móvil encima: el objeto que se coloca.
@@ -60,11 +61,12 @@ export function desvioDe(anguloGrados: number): number {
   return Math.min(Math.abs(a - 180), Math.abs(a - 0), Math.abs(a - 360))
 }
 
-function cara(m: Malla, p: [Vec3, Vec3, Vec3, Vec3], n: Vec3, c: Color): void {
-  const k = m.vertices
-  for (const v of p) m.vertice(v, n, c, 0)
-  m.cuadro(k, k + 1, k + 2, k + 3)
-}
+/**
+ * Un rectángulo con normal libre. Delega en la primitiva que SE ORIENTA SOLA: se le
+ * dice hacia dónde mira la cara y ella decide el enrollado. Escribir el orden a mano
+ * fue lo que dejó el escenario entero de espaldas y sin dar un solo error.
+ */
+const cara = cuadro
 
 /** Un prisma de sección cuadrada entre dos puntos, para patas y columna. */
 function viga(m: Malla, a: Vec3, b: Vec3, grosor: number, c: Color): void {
@@ -85,7 +87,7 @@ function viga(m: Malla, a: Vec3, b: Vec3, grosor: number, c: Color): void {
   for (let i = 0; i < 4; i++) {
     const j = (i + 1) % 4
     const nr = V.normalizar(V.cruz(V.restar(A[j], A[i]), eje))
-    cara(m, [A[i], A[j], B[j], B[i]], nr, c)
+    cara(m, [A[i], B[i], B[j], A[j]], nr, c)
   }
 }
 
@@ -155,7 +157,9 @@ export function construirTripode(m: Malla, c: Colocacion): void {
       0,
     )
   }
-  for (let i = 0; i < n; i++) m.triangulo(k, k + 1 + i, k + 2 + i)
+  // El abanico también se enrolla al derecho, o la lente desaparece justo
+  // desde el lado al que apunta — que es el único desde el que importa verla.
+  for (let i = 0; i < n; i++) m.triangulo(k, k + 2 + i, k + 1 + i)
 
   // La mira en el suelo: del pie del trípode a la placa. Enseña que la lente y el
   // sujeto comparten eje, que es la condición de que la medida valga.
@@ -165,9 +169,10 @@ export function construirTripode(m: Malla, c: Colocacion): void {
     const p: Vec3 = [cx, 0.0062, cz]
     const q0 = V.sumar(p, V.escalar(lado, ancho))
     const q1 = V.restar(p, V.escalar(lado, ancho))
+    // Antihoraria vista desde arriba, o el motor la descarta por trasera.
     cara(
       m,
-      [q0, q1, V.sumar(q1, V.escalar(mira, largo)), V.sumar(q0, V.escalar(mira, largo))],
+      [q0, V.sumar(q0, V.escalar(mira, largo)), V.sumar(q1, V.escalar(mira, largo)), q1],
       ARRIBA,
       OJO,
     )
