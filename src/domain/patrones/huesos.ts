@@ -40,37 +40,77 @@ export function construirHuesos(): Malla {
       { hueso: bp, color: COLOR_HUESO, radial: 7 },
     )
   }
-  elipsoide(m, [0, 0.005, -0.052], [0.036, 0.07, 0.026], {
-    hueso: bp,
-    color: COLOR_HUESO_OSCURO,
-    su: 10,
-    sv: 8,
-  })
-
-  // --- Columna: cuerpos vertebrales y apófisis espinosas -------------------
-  const tramoColumna = (hueso: string, n: number, largo: number, r0: number, r1: number, atras: number) => {
+  // Sacro: cinco vértebras soldadas en una cuña. Es ancho arriba, donde recibe
+  // el peso de la columna, y estrecho abajo: esa forma de triángulo es lo que le
+  // permite meterse entre las dos palas ilíacas como una cuña.
+  tubo(
+    m,
+    curva([[0, 0.05, -0.05], [0, 0.005, -0.054], [0, -0.045, -0.046]], 7),
+    (u) => entre(0.034, 0.013, u),
+    { hueso: bp, color: COLOR_HUESO, radial: 8, aplanar: 0.62 },
+  )
+  // --- Columna: vértebras, el hueso IRREGULAR por excelencia ---------------
+  //
+  // Una vértebra no tiene una forma sencilla porque hace tres cosas a la vez:
+  // el cuerpo soporta el peso, el arco protege la médula y las apófisis son
+  // palancas donde tiran los músculos. Esos salientes en varias direcciones son
+  // lo que define a un hueso irregular.
+  const tramoColumna = (
+    hueso: string,
+    n: number,
+    largo: number,
+    r0: number,
+    r1: number,
+    atras: number,
+    /** Cuánto salen las transversas a cada lado. Las torácicas son las mayores:
+     *  ahí se apoyan las costillas. */
+    transversa: number,
+  ) => {
     const b = H(hueso)
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n
       const y = t * largo
       const r = entre(r0, r1, t)
-      elipsoide(m, [0, y, -0.008], [r, (largo / n) * 0.36, r * 0.86], {
+      const alto = (largo / n) * 0.36
+      // Cuerpo vertebral: el cilindro que soporta la carga.
+      elipsoide(m, [0, y, -0.008], [r, alto, r * 0.86], {
         hueso: b,
         color: COLOR_HUESO,
         su: 10,
         sv: 6,
       })
+      // Apófisis espinosa: la que se palpa por la espalda, y de donde tiran
+      // trapecio, romboides y dorsal.
       tubo(
         m,
         curva([[0, y, -0.02], [0, y - (largo / n) * 0.25, -0.02 - atras]], 5),
         (u) => 0.01 * (1 - u * 0.45),
         { hueso: b, color: COLOR_HUESO_OSCURO, radial: 6 },
       )
+      // Apófisis transversas: salen a los lados, y son las que las fichas
+      // nombran como origen del longísimo, del iliocostal y de los escalenos.
+      // Sin ellas esos músculos nacían del aire.
+      for (const lado2 of [1, -1]) {
+        tubo(
+          m,
+          curva(
+            [
+              [lado2 * r * 0.7, y, -0.014],
+              [lado2 * (r + transversa), y + alto * 0.15, -0.016],
+            ],
+            4,
+          ),
+          (u) => 0.0062 * (1 - u * 0.4),
+          { hueso: b, color: COLOR_HUESO_OSCURO, radial: 5 },
+        )
+      }
     }
   }
-  tramoColumna('lumbar', 5, 0.17, 0.026, 0.023, 0.03)
-  tramoColumna('torax', 12, 0.27, 0.022, 0.017, 0.026)
-  tramoColumna('cuello', 7, 0.08, 0.015, 0.013, 0.014)
+  tramoColumna('lumbar', 5, 0.17, 0.026, 0.023, 0.03, 0.019)
+  // Las torácicas llevan las transversas más largas: sobre ellas se apoyan las
+  // costillas, y por eso la caja puede girar sobre la columna.
+  tramoColumna('torax', 12, 0.27, 0.022, 0.017, 0.026, 0.022)
+  tramoColumna('cuello', 7, 0.08, 0.015, 0.013, 0.014, 0.013)
 
   // --- Caja torácica: doce pares de costillas y esternón -------------------
   const bt = H('torax')

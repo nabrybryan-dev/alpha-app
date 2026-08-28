@@ -159,6 +159,34 @@ describe('el esqueleto y sus accidentes', () => {
     }
   })
 
+  it('hace irregulares a los que lo son', () => {
+    // Un hueso irregular no se reconoce por su caja sino por sus SALIENTES: una
+    // vértebra tiene el cuerpo en medio, la espinosa hacia atrás y dos
+    // transversas a los lados, y hace las tres cosas a la vez. Se mide cuánta
+    // geometría vive lejos del eje del hueso en direcciones distintas.
+    const m = construirHuesos()
+    const salientes = (nombre: string) => {
+      const h = INDICE_HUESO[nombre]
+      let atras = 0
+      let lados = 0
+      for (let i = 0; i < m.vertices; i++) {
+        if (m.hueso[i] !== h) continue
+        const x = m.posicion[i * 3]
+        const z = m.posicion[i * 3 + 2]
+        // Los relieves van en color oscuro; el cuerpo, en claro.
+        if (m.color[i * 3] >= 0.8) continue
+        if (z < -0.03) atras++
+        if (Math.abs(x) > 0.024) lados++
+      }
+      return { atras, lados }
+    }
+    for (const n of ['lumbar', 'torax', 'cuello']) {
+      const { atras, lados } = salientes(n)
+      expect(atras, `${n} no tiene apófisis espinosas`).toBeGreaterThan(0)
+      expect(lados, `${n} no tiene apófisis transversas`).toBeGreaterThan(0)
+    }
+  })
+
   it('sigue teniendo huesos para todo el rig', () => {
     expect(Object.keys(INDICE_HUESO).length).toBeGreaterThan(20)
     expect(poseAEuler({})).toBeDefined()
