@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { M4, grados } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
+import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL } from '../../../domain/patrones/acciones'
+import { NOMBRE_DE_PLANO, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
   DURACION_CICLO,
   encuadrar,
@@ -13,8 +15,15 @@ import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
-import { colorDeMusculo, construirMusculos, longitudesEnReposo, MUSCULO_POR_ID } from '../../../domain/patrones/musculos'
+import {
+  activacionDe,
+  colorDeMusculo,
+  construirMusculos,
+  longitudesEnReposo,
+  MUSCULOS,
+} from '../../../domain/patrones/musculos'
 import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
+import { camaraAbierta } from '../camaraAbierta'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
 import { FONDO_ESTUDIO } from './motor'
 
@@ -55,6 +64,14 @@ function precalculado() {
 
 interface VisorPatronProps {
   patron: Patron
+  /**
+   * Si se dibuja la bahía de medida alrededor del sujeto.
+   *
+   * Se puede apagar para mirar solo el cuerpo. No es un modo de depuración: al
+   * estudiar una articulación aislada el escenario es ruido, y en las
+   * demostraciones el sujeto ni siquiera se apoya en el suelo.
+   */
+  conEscenario?: boolean
 }
 
 /**
@@ -64,7 +81,7 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron }: VisorPatronProps) {
+export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -113,6 +130,9 @@ export function VisorPatron({ patron }: VisorPatronProps) {
         }
 
         const { huesos, reposo } = precalculado()
+        // La malla del músculo se reutiliza cuadro a cuadro: la topología no
+        // cambia y reservarla de nuevo cada vez costaba el doble de tiempo.
+        const mallaMusculo = new Malla(16384)
         const traza = trazaDelPatron(patron)
         const encuadre = encuadrar(patron)
         let mostrarEsfera = false
@@ -131,9 +151,10 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
-          const partes = [laboratorio()]
+          const partes = conEscenario ? [laboratorio()] : []
           if (estado.current.capa !== 'musculo') partes.push(huesos)
-          if (estado.current.capa !== 'hueso') partes.push(construirMusculos(esq, patron.activacion, reposo))
+          if (estado.current.capa !== 'hueso')
+            partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
           partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))
           motor.subir(partes)
         }
@@ -155,6 +176,14 @@ export function VisorPatron({ patron }: VisorPatronProps) {
         const arranque = performance.now() / 1000
         const bucle = () => {
           if (!vivo) return
+          // Mientras el encoder captura, este bucle se aparta. No es cuestión de
+          // que se vea peor: por debajo de 50 fps la toma se DESCARTA, y a 30 el
+          // error de pérdida de velocidad se va cinco puntos. Un bucle WebGL al
+          // lado de la captura hace que el asesorado repita la serie.
+          if (camaraAbierta()) {
+            cuadro = requestAnimationFrame(bucle)
+            return
+          }
           const ahora = performance.now() / 1000
           let cambia = false
           if (estado.current.reproduciendo) {
@@ -204,7 +233,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
       redibujar.current = null
       orbita?.destruir()
     }
-  }, [patron])
+  }, [patron, conEscenario])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.
@@ -216,11 +245,29 @@ export function VisorPatron({ patron }: VisorPatronProps) {
     redibujar.current?.()
   }
 
-  const musculos = Object.entries(patron.activacion)
-    .map(([clave, valor]) => ({ id: clave.split(':')[0], valor }))
+  // La musculatura se agrupa por músculo y dentro por porción. Un músculo no es
+  // un bloque: la cabeza larga del bíceps nace en la escápula y la corta en la
+  // coracoides, y esa diferencia es la que explica por qué un ejercicio carga
+  // una y no la otra.
+  const musculos = MUSCULOS.map((musculo) => {
+    const porciones = musculo.porciones
+      .map((porcion) => ({
+        porcion,
+        valor: Math.max(
+          activacionDe(patron.activacion, musculo.id, porcion.id, 'D'),
+          activacionDe(patron.activacion, musculo.id, porcion.id, 'I'),
+        ),
+      }))
+      .filter((p) => p.valor >= 0.2)
+      .sort((a, b) => b.valor - a.valor)
+    return { musculo, porciones, valor: porciones[0]?.valor ?? 0 }
+  })
     .filter((m) => m.valor >= 0.25)
     .sort((a, b) => b.valor - a.valor)
-    .filter((m, i, todos) => todos.findIndex((o) => o.id === m.id) === i)
+
+  // Qué hace cada articulación: se calcula de las poses, no está escrito.
+  const acciones = accionesPrincipales(patron)
+  const frase = fraseDelPatron(patron)
 
   return (
     <div className="flex flex-col gap-3">
@@ -241,7 +288,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
             vez de intuirlo. Los numeros salen de la geometria —no estan escritos dos
             veces— asi que si el paso cambia, la leyenda cambia con el.
             En centimetros porque es la unidad con la que se habla de un recorrido. */}
-        {!error && (
+        {!error && conEscenario && (
           <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-white/35">
             retícula {BAHIA.pasoMenor * 100} cm
             <span className="mx-1 text-white/20">·</span>
@@ -319,6 +366,63 @@ export function VisorPatron({ patron }: VisorPatronProps) {
 
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">
+          Qué hace cada articulación
+        </h4>
+        {/* La frase corta primero: es lo que hay que poder leer de un vistazo
+            antes de entrar en el desglose. */}
+        <p className="mb-2 text-xs leading-snug text-silver-200">{frase}.</p>
+        <ul className="flex flex-col">
+          {acciones.map((r) => (
+            <li key={r.articulacion.id} className="border-b border-white/5">
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-baseline gap-2 py-1.5 text-xs">
+                  <span
+                    className={`w-[52px] shrink-0 text-[9px] font-bold uppercase tracking-[0.08em] ${
+                      r.rol === 'motor' ? 'text-ambar' : 'text-silver-500'
+                    }`}
+                  >
+                    {NOMBRE_DE_ROL[r.rol]}
+                  </span>
+                  <span className="flex-1 text-silver-200">{r.articulacion.nombre}</span>
+                  <span className="text-[10px] text-silver-500">
+                    {r.acciones.length > 0
+                      ? r.acciones.map((a) => a.accion.toLowerCase()).join(' · ')
+                      : 'isometría'}
+                  </span>
+                </summary>
+                <div className="pb-2 pl-[60px] pr-1">
+                  {r.acciones.map((a) => (
+                    <p key={a.eje.canal} className="text-[10px] leading-snug text-silver-400">
+                      {a.accion} de {Math.round(a.desde)}° a {Math.round(a.hasta)}°, en el{' '}
+                      {NOMBRE_DE_PLANO[a.eje.plano].toLowerCase()}.
+                    </p>
+                  ))}
+                  {r.acciones.length === 0 && (
+                    <p className="text-[10px] leading-snug text-silver-400">
+                      No recorre nada: aguanta la posición contra la carga.
+                    </p>
+                  )}
+                  <p className="mt-1 text-[10px] leading-snug text-silver-500">
+                    {NOMBRE_DE_TIPO[r.articulacion.tipo]}. {r.articulacion.segmentoMovil} sobre{' '}
+                    {r.articulacion.segmentoFijo.toLowerCase()}.
+                  </p>
+                  {/* Lo que NO puede hacer es la mitad de entender una
+                      articulación, y es lo que evita forzarla. */}
+                  {r.articulacion.noPuede.map((n) => (
+                    <p key={n} className="mt-1 text-[10px] leading-snug text-silver-500">
+                      {n}
+                    </p>
+                  ))}
+                </div>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {patron.claves.length > 0 && (
+      <div>
+        <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">
           Claves de ejecución
         </h4>
         <ul className="flex flex-col gap-1">
@@ -329,7 +433,9 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           ))}
         </ul>
       </div>
+      )}
 
+      {patron.errores.length > 0 && (
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-rojo">
           Errores frecuentes
@@ -342,30 +448,76 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           ))}
         </ul>
       </div>
+      )}
 
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">
           Musculatura implicada
         </h4>
         <ul className="flex flex-col">
-          {musculos.map((m) => {
-            const [r, g, b] = colorDeMusculo(m.valor).map((x) => Math.round(x * 255))
+          {musculos.map(({ musculo, porciones, valor }) => {
+            const color = (v: number) => {
+              const [r, g, b] = colorDeMusculo(v).map((x) => Math.round(x * 255))
+              return `rgb(${r},${g},${b})`
+            }
+            // Un solo vientre no necesita desplegable: la porción y el músculo
+            // son la misma cosa y abrirlo repetiría el nombre.
+            const desglosa = musculo.porciones.length > 1
             return (
-              <li
-                key={m.id}
-                className="flex items-center gap-2 border-b border-white/5 py-1 text-xs text-silver-200"
-              >
-                {/* El cuadrado lleva el MISMO color que el modelo: el nombre y
-                    lo que se ve en pantalla tienen que ser el mismo dato. */}
-                <i
-                  aria-hidden
-                  className="h-2.5 w-2.5 shrink-0 rounded-sm"
-                  style={{ background: `rgb(${r},${g},${b})` }}
-                />
-                <span className="flex-1">{MUSCULO_POR_ID[m.id]?.nombre ?? m.id}</span>
-                <b className="cifras text-[10px] font-semibold text-silver-400">
-                  {Math.round(m.valor * 100)}%
-                </b>
+              <li key={musculo.id} className="border-b border-white/5">
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 py-1.5 text-xs text-silver-200">
+                    {/* El cuadrado lleva el MISMO color que el modelo: el nombre
+                        y lo que se ve en pantalla tienen que ser el mismo dato. */}
+                    <i
+                      aria-hidden
+                      className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                      style={{ background: color(valor) }}
+                    />
+                    <span className="flex-1">{musculo.nombre}</span>
+                    {desglosa && (
+                      <span className="text-[9px] uppercase tracking-[0.1em] text-silver-500 group-open:hidden">
+                        {porciones.length} de {musculo.porciones.length}
+                      </span>
+                    )}
+                    <b className="cifras text-[10px] font-semibold text-silver-400">
+                      {Math.round(valor * 100)}%
+                    </b>
+                  </summary>
+
+                  <div className="pb-2 pl-[18px] pr-1">
+                    <ul className="mb-2 flex flex-col gap-0.5">
+                      {musculo.acciones.map((a) => (
+                        <li key={a} className="text-[11px] leading-snug text-silver-400">
+                          {a}
+                        </li>
+                      ))}
+                    </ul>
+                    {porciones.map(({ porcion, valor: v }) => (
+                      <div key={porcion.id} className="mb-1.5">
+                        <p className="flex items-center gap-2 text-[11px] text-silver-200">
+                          <i
+                            aria-hidden
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ background: color(v) }}
+                          />
+                          <span className="flex-1">{porcion.nombre}</span>
+                          {porcion.biarticular && (
+                            <span className="text-[9px] uppercase tracking-[0.08em] text-ambar">
+                              Cruza dos articulaciones
+                            </span>
+                          )}
+                          <b className="cifras text-[10px] text-silver-500">
+                            {Math.round(v * 100)}%
+                          </b>
+                        </p>
+                        <p className="pl-[14px] text-[10px] leading-snug text-silver-500">
+                          Desde {porcion.origen.toLowerCase()} hasta {porcion.insercion.toLowerCase()}.
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               </li>
             )
           })}
@@ -373,8 +525,9 @@ export function VisorPatron({ patron }: VisorPatronProps) {
       </div>
 
       <p className="text-[10px] leading-snug text-silver-500">
-        Ejercicios de este patrón: {patron.ejemplos}. Una repetición dura{' '}
-        {DURACION_CICLO.toFixed(1).replace('.', ',')} s con el tempo correcto.
+        {patron.ejemplos && <>Ejercicios de este patrón: {patron.ejemplos}. </>}
+        Una repetición dura {DURACION_CICLO.toFixed(1).replace('.', ',')} s con el tempo
+        correcto.
       </p>
     </div>
   )

@@ -29,12 +29,33 @@ describe('VisorPatron', () => {
   })
 
   it('lista la musculatura implicada por orden de participación', () => {
-    render(<VisorPatron patron={PATRON_POR_ID.bisagra_cadera} />)
-    // El isquiotibial es el agonista de la bisagra: va el primero y al 100 %.
-    const porcentajes = screen.getAllByText(/^\d+%$/).map((n) => Number(n.textContent!.replace('%', '')))
+    const { container } = render(<VisorPatron patron={PATRON_POR_ID.bisagra_cadera} />)
+    // Solo los porcentajes de músculo, no los de las porciones de dentro: esos
+    // se ordenan dentro de su propio músculo y no en la lista general.
+    const porcentajes = Array.from(container.querySelectorAll('summary b')).map((n) =>
+      Number(n.textContent!.replace('%', '')),
+    )
+    expect(porcentajes.length).toBeGreaterThan(3)
     expect(porcentajes[0]).toBe(100)
     expect(porcentajes).toEqual([...porcentajes].sort((a, b) => b - a))
     expect(screen.getByText('Isquiotibiales')).toBeInTheDocument()
+  })
+
+  it('desglosa las porciones con su origen y su inserción', () => {
+    // Es lo que convierte una mancha roja en algo que se puede entender: de
+    // dónde nace el vientre y dónde acaba.
+    render(<VisorPatron patron={PATRON_POR_ID.flexion_codo} />)
+    expect(screen.getByText('Cabeza larga')).toBeInTheDocument()
+    expect(screen.getByText('Cabeza corta')).toBeInTheDocument()
+    expect(screen.getByText(/tubérculo supraglenoideo/i)).toBeInTheDocument()
+    expect(screen.getByText(/apófisis coracoides/i)).toBeInTheDocument()
+  })
+
+  it('avisa de las porciones que cruzan dos articulaciones', () => {
+    // Explica por qué el recto femoral no puede dar todo su recorrido en una
+    // sentadilla: la cadera flexionada ya le ha comido longitud.
+    render(<VisorPatron patron={PATRON_POR_ID.sentadilla} />)
+    expect(screen.getAllByText(/cruza dos articulaciones/i).length).toBeGreaterThan(0)
   })
 
   it('no repite un músculo que trabaja en los dos lados', () => {

@@ -27,7 +27,7 @@ import { SalonDeMaquinas } from './SalonDeMaquinas'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
-import { VisorPatron } from './visor/VisorPatron'
+import { EstudioDelPatron } from './visor/EstudioDelPatron'
 import type { Patron } from '../../domain/patrones/catalogo'
 
 interface Descanso {
@@ -395,7 +395,7 @@ function SesionEnCurso() {
         onCerrar={() => setPatron(undefined)}
         animar={false}
       >
-        {patron && <VisorPatron patron={patron} />}
+        {patron && <EstudioDelPatron patron={patron} />}
       </Sheet>
 
       {frase && (

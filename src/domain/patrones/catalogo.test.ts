@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID } from './catalogo'
-import { MUSCULO_POR_ID } from './musculos'
+import { MUSCULO_POR_ID, PORCION_POR_CLAVE } from './musculos'
 import { INDICE_HUESO } from './esqueleto'
 import { RANGO } from './movimiento'
 
@@ -76,15 +76,72 @@ describe('el catálogo de patrones', () => {
     }
   })
 
-  it('solo activa músculos que existen', () => {
+  it('solo activa músculos y porciones que existen', () => {
+    // Escribir mal una clave no da error: la porción simplemente no se pinta y
+    // el asesorado ve gris un músculo que debería estar trabajando.
     for (const p of PATRONES) {
       for (const clave of Object.keys(p.activacion)) {
-        const id = clave.split(':')[0]
-        expect(MUSCULO_POR_ID[id], `${p.id} activa "${id}"`).toBeDefined()
+        const sinLado = clave.split(':')[0]
+        const existe = sinLado.includes('.')
+          ? PORCION_POR_CLAVE[sinLado] !== undefined
+          : MUSCULO_POR_ID[sinLado] !== undefined
+        expect(existe, `${p.id} activa "${sinLado}", que no existe`).toBe(true)
       }
       // Un patrón sin agonista claro no enseña nada: siempre hay alguien al 100 %.
       const maximo = Math.max(...Object.values(p.activacion))
       expect(maximo, p.id).toBeGreaterThanOrEqual(0.9)
+    }
+  })
+
+  it('no activa un músculo entero y una porción suya en el mismo lado', () => {
+    // La porción gana sobre el músculo, así que las dos claves juntas dejan una
+    // de las dos sin efecto y no hay forma de saber cuál se quiso decir. En
+    // lados distintos sí es legítimo: una zancada detalla la pierna que trabaja
+    // y deja la otra en bloque, porque ahí solo estabiliza.
+    for (const p of PATRONES) {
+      const lado = (c: string) => (c.includes(':') ? c.split(':')[1] : '')
+      for (const clave of Object.keys(p.activacion)) {
+        const sinLado = clave.split(':')[0]
+        if (!sinLado.includes('.')) continue
+        const musculo = sinLado.split('.')[0]
+        const choca = Object.keys(p.activacion).some(
+          (otra) => otra.split(':')[0] === musculo && lado(otra) === lado(clave),
+        )
+        expect(choca, `${p.id} activa "${musculo}" y también "${sinLado}"`).toBe(false)
+      }
+    }
+  })
+
+  it('desglosa por porción donde las cabezas NO se comportan igual', () => {
+    // No es un capricho de detalle: en estos patrones una porción trabaja y
+    // otra no, y activar el músculo en bloque borraría justo lo que distingue
+    // un ejercicio de otro. Donde las porciones sí van a la par —el curl
+    // femoral carga las cuatro por igual— el bloque es lo honesto.
+    const obligatorio: Record<string, string[]> = {
+      sentadilla: ['cuadriceps'],
+      extension_rodilla: ['cuadriceps'],
+      bisagra_cadera: ['isquiotibiales'],
+      extension_cadera: ['isquiotibiales', 'gluteo_mayor'],
+      extension_codo: ['triceps'],
+      flexion_codo: ['biceps'],
+      empuje_vertical: ['triceps', 'deltoides'],
+      empuje_horizontal: ['pectoral_mayor', 'triceps'],
+      empuje_inclinado: ['pectoral_mayor'],
+      abduccion_hombro: ['deltoides'],
+      abduccion_horizontal: ['deltoides'],
+      traccion_vertical: ['trapecio'],
+      traccion_horizontal: ['trapecio'],
+      aduccion_cadera: ['aductores'],
+      flexion_plantar: ['triceps_sural'],
+    }
+    for (const [patron, musculos] of Object.entries(obligatorio)) {
+      const p = PATRON_POR_ID[patron]
+      expect(p, `no existe el patrón ${patron}`).toBeDefined()
+      const claves = Object.keys(p.activacion).map((c) => c.split(':')[0])
+      for (const musculo of musculos) {
+        const desglosado = claves.some((c) => c.startsWith(`${musculo}.`))
+        expect(desglosado, `${patron}: "${musculo}" tiene que ir por porciones`).toBe(true)
+      }
     }
   })
 

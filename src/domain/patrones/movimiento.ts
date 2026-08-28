@@ -22,23 +22,15 @@
 import { entre, limitar, type Vec3 } from './algebra'
 import { mezclarVec, type Pose } from './esqueleto'
 import type { Patron } from './catalogo'
+import { RANGO_POR_CANAL } from './articulaciones'
 
 /**
- * Rangos articulares, en grados. Rangos de referencia de goniometría clínica,
- * redondeados. Funcionan como tope duro, no como orientación.
+ * Topes articulares. Se derivan del catálogo de `articulaciones.ts` para que no
+ * existan dos listas de rangos: la que se le explica al asesorado y la que de
+ * verdad recorta el ángulo tienen que ser la misma, o el visor acabaría
+ * enseñando un límite y aplicando otro.
  */
-export const RANGO: Record<string, [number, number]> = {
-  caderaFlex: [-30, 135], caderaAbd: [-32, 50], caderaRot: [-45, 45],
-  rodillaFlex: [0, 145],
-  tobilloPlantar: [-38, 58],
-  hombroFlex: [-62, 178], hombroAbd: [-12, 180], hombroRot: [-95, 100],
-  codoFlex: [0, 152], antebrazoRot: [-88, 88], muneca: [-75, 82],
-  lumbarFlex: [-28, 62], lumbarLat: [-32, 32], lumbarRot: [-16, 16],
-  toraxFlex: [-32, 48], toraxLat: [-38, 38], toraxRot: [-42, 42],
-  cuelloFlex: [-58, 68], craneoFlex: [-32, 32],
-  escapulaProt: [0, 38], escapulaRetr: [0, 38], escapulaElev: [-18, 48],
-  pelvisBascula: [-28, 28], pelvisLat: [-22, 22], pelvisRot: [-32, 32],
-}
+export const RANGO = RANGO_POR_CANAL
 
 /**
  * Retardo de cada eslabón, en fracción de la repetición. El orden es el de la

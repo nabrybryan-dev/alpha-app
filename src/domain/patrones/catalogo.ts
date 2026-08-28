@@ -18,6 +18,7 @@
  *   activacion            de 0 a 1 por músculo; sufijo ':D' / ':I' si es unilateral
  *   seguimiento           punto cuya trayectoria dibuja el arco del movimiento
  *   camara                ángulo de partida: desde dónde se lee el patrón
+ *   foco                  hueso cuya articulación proximal se encuadra de cerca
  */
 
 import type { Vec3 } from './algebra'
@@ -50,6 +51,16 @@ export interface Patron {
   camara: { azimut: number; elevacion: number }
   /** El patrón contrapone un fallo y su corrección en vez de un recorrido. */
   invertido?: boolean
+  /**
+   * Encuadre de estudio: el hueso distal de la articulación que se quiere ver
+   * de cerca, con su lado (`antebrazoD`).
+   *
+   * Los ejercicios no lo llevan —ahí manda el encuadre por musculatura, que es
+   * lo que enseña el gesto—. Lo usan las demostraciones de una articulación
+   * suelta, donde encuadrar los músculos que la cruzan abarcaría desde la
+   * escápula hasta la mano y dejaría el codo del tamaño de una uña.
+   */
+  foco?: string
 }
 
 export const PATRONES: Patron[] = [
@@ -76,7 +87,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.50, 0],
     inicio: { caderaFlex: 68, rodillaFlex: 122, toraxFlex: 12, hombroFlex: 16, hombroAbd: 18, codoFlex: 74, pelvisBascula: -8 },
     fin: { caderaFlex: 4, rodillaFlex: 88, toraxFlex: 6, pelvisBascula: 16, hombroFlex: 10, hombroAbd: 16, codoFlex: 68 },
-    activacion: { gluteo_mayor: 1, isquios: 0.7, erectores: 0.35, cuadriceps: 0.3, recto_abdominal: 0.35, aductores: 0.4 },
+    activacion: { 'gluteo_mayor.inferior': 1, 'gluteo_mayor.superior': 0.9, 'isquiotibiales.biceps_larga': 0.7, 'isquiotibiales.semitendinoso': 0.65, 'isquiotibiales.semimembranoso': 0.65, 'isquiotibiales.biceps_corta': 0.35, 'aductores.mayor': 0.5, cuadriceps: 0.3, recto_abdominal: 0.35, erectores: 0.3 },
     seguimiento: ['pelvis', 0.4, [0, 0, 0.06]],
     camara: { azimut: 32, elevacion: 6 },
   },
@@ -104,7 +115,7 @@ export const PATRONES: Patron[] = [
     inicio: { hombroFlex: 8, codoFlex: 20, caderaAbd: 4, rodillaFlex: 4 },
     medio: { caderaFlex: 52, rodillaFlex: 78, toraxFlex: 15, caderaAbd: 8, hombroFlex: 18, codoFlex: 30 },
     fin: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
-    activacion: { cuadriceps: 1, gluteo_mayor: 0.95, aductores: 0.65, erectores: 0.7, soleo: 0.45, isquios: 0.35, recto_abdominal: 0.4, gluteo_medio: 0.45 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.55, gluteo_mayor: 0.95, 'aductores.mayor': 0.7, 'aductores.largo': 0.5, erectores: 0.7, 'triceps_sural.soleo': 0.45, isquiotibiales: 0.35, recto_abdominal: 0.4, oblicuos: 0.35, gluteo_medio: 0.45 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
     camara: { azimut: 30, elevacion: 4 },
   },
@@ -131,7 +142,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, -0.12],
     inicio: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
     fin: { caderaFlex: 76, rodillaFlex: 16, toraxFlex: 3, hombroFlex: -10, codoFlex: 3 },
-    activacion: { isquios: 1, gluteo_mayor: 0.9, erectores: 0.85, aductores: 0.4, trapecio_med: 0.35, dorsal_ancho: 0.4, gastrocnemio: 0.25 },
+    activacion: { flexores_carpo: 0.65, extensores_carpo: 0.52, 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.4, gluteo_mayor: 0.9, erectores: 0.85, 'aductores.mayor': 0.4, dorsal_ancho: 0.4, 'trapecio.medio': 0.35, 'triceps_sural.gastro_medial': 0.25, cuadrado_lumbar: 0.4 },
     seguimiento: ['mano', 0.6, [0, 0, 0]],
     camara: { azimut: 78, elevacion: 4 },
   },
@@ -157,7 +168,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.32, 0.05],
     inicio: { rodillaFlex: 2, hombroFlex: 150, codoFlex: 22, caderaFlex: -8 },
     fin: { rodillaFlex: 134, hombroFlex: 150, codoFlex: 18, caderaFlex: -2 },
-    activacion: { isquios: 1, gastrocnemio: 0.55, gluteo_mayor: 0.25 },
+    activacion: { isquiotibiales: 1, 'triceps_sural.gastro_medial': 0.55, 'triceps_sural.gastro_lateral': 0.55, poplíteo: 0.4, gluteo_mayor: 0.25 },
     seguimiento: ['pie', 0.2, [0, 0, 0]],
     camara: { azimut: 62, elevacion: 14 },
   },
@@ -185,7 +196,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.70, 0],
     inicio: { caderaFlexD: 32, rodillaFlexD: 26, caderaFlexI: -24, rodillaFlexI: 26, tobilloPlantarI: 20, hombroFlex: 8, codoFlex: 14 },
     fin: { caderaFlexD: 112, rodillaFlexD: 138, caderaFlexI: -26, rodillaFlexI: 116, tobilloPlantarI: 44, toraxFlex: 15, hombroFlex: 12, codoFlex: 18 },
-    activacion: { 'cuadriceps:D': 1, 'gluteo_mayor:D': 0.9, 'gluteo_medio:D': 0.85, 'aductores:D': 0.5, 'isquios:D': 0.4, 'cuadriceps:I': 0.4, 'gluteo_medio:I': 0.3, oblicuos: 0.4, erectores: 0.5 },
+    activacion: { 'cuadriceps.vasto_lateral:D': 1, 'cuadriceps.vasto_medial:D': 1, 'cuadriceps.vasto_intermedio:D': 0.95, 'cuadriceps.recto:D': 0.5, 'gluteo_mayor:D': 0.9, 'gluteo_medio:D': 0.85, 'gluteo_menor:D': 0.6, 'aductores:D': 0.5, 'isquiotibiales:D': 0.4, 'cuadriceps:I': 0.4, 'gluteo_medio:I': 0.3, oblicuos: 0.4, cuadrado_lumbar: 0.45, erectores: 0.5 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
     camara: { azimut: 52, elevacion: 6 },
   },
@@ -211,7 +222,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { tobilloPlantar: -24, hombroFlex: 4, rodillaFlex: 3 },
     fin: { tobilloPlantar: 46, hombroFlex: 4, rodillaFlex: 0 },
-    activacion: { gastrocnemio: 1, soleo: 0.95, isquios: 0.2, tibial_ant: 0 },
+    activacion: { 'triceps_sural.gastro_medial': 1, 'triceps_sural.gastro_lateral': 1, 'triceps_sural.soleo': 0.95, peroneos: 0.3, isquiotibiales: 0.2 },
     seguimiento: ['tibia', 0.9, [0, 0, 0.04]],
     camara: { azimut: 66, elevacion: 2 },
   },
@@ -236,7 +247,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.52, 0],
     inicio: { caderaFlex: 88, rodillaFlex: 108, toraxFlex: -6, hombroFlex: 22, codoFlex: 44 },
     fin: { caderaFlex: 86, rodillaFlex: 2, toraxFlex: -8, hombroFlex: 20, codoFlex: 40 },
-    activacion: { cuadriceps: 1, tibial_ant: 0.25, recto_abdominal: 0.2 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 1, 'cuadriceps.recto': 0.85, tibial_anterior: 0.25, recto_abdominal: 0.2 },
     seguimiento: ['pie', 0.3, [0, 0, 0]],
     camara: { azimut: 58, elevacion: 8 },
   },
@@ -261,7 +272,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { caderaAbdD: -8, hombroFlex: 6, codoFlex: 12 },
     fin: { caderaAbdD: 48, pelvisLat: -4, hombroFlex: 8, codoFlex: 14 },
-    activacion: { 'gluteo_medio:D': 1, 'tfl:D': 0.85, 'gluteo_mayor:D': 0.5, 'oblicuos:I': 0.4, 'gluteo_medio:I': 0.45, erectores: 0.3 },
+    activacion: { 'gluteo_medio:D': 1, 'gluteo_menor:D': 0.85, 'tfl:D': 0.85, 'gluteo_mayor.superior:D': 0.6, 'cuadrado_lumbar:I': 0.4, 'oblicuos:I': 0.4, 'gluteo_medio:I': 0.45, erectores: 0.3 },
     seguimiento: ['pie', 0.5, [0, 0, 0]],
     camara: { azimut: 5, elevacion: 6 },
   },
@@ -286,7 +297,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { caderaAbdD: 48, caderaAbdI: 8, hombroFlex: 6, codoFlex: 12 },
     fin: { caderaAbdD: -4, caderaAbdI: 6, hombroFlex: 6, codoFlex: 12 },
-    activacion: { 'aductores:D': 1, 'gluteo_mayor:D': 0.3, recto_abdominal: 0.25, 'gluteo_medio:I': 0.4 },
+    activacion: { 'aductores.mayor': 1, 'aductores.largo': 1, 'aductores.gracil': 0.85, 'gluteo_mayor.inferior': 0.3, recto_abdominal: 0.25, 'gluteo_medio:I': 0.4 },
     seguimiento: ['pie', 0.5, [0, 0, 0]],
     camara: { azimut: 8, elevacion: 6 },
   },
@@ -313,7 +324,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, -0.06],
     inicio: { caderaFlex: 58, rodillaFlex: 24, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
     fin: { caderaFlex: 58, rodillaFlex: 24, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaRetr: 32 },
-    activacion: { dorsal_ancho: 1, trapecio_med: 0.9, romboides: 0.9, deltoides_post: 0.8, redondo_mayor: 0.75, biceps: 0.75, braquial: 0.65, braquiorradial: 0.5, erectores: 0.6, trapecio_inf: 0.6, isquios: 0.4 },
+    activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.6, 'trapecio.superior': 0.3, romboides: 0.9, 'deltoides.posterior': 0.8, redondo_mayor: 0.75, biceps: 0.75, braquial: 0.65, braquiorradial: 0.5, erectores: 0.6, isquiotibiales: 0.4, 'manguito.infraespinoso': 0.4 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 68, elevacion: 8 },
   },
@@ -338,7 +349,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.60, 0],
     inicio: { hombroFlex: 168, hombroAbd: 24, codoFlex: 4, escapulaElev: 30, caderaFlex: 86, rodillaFlex: 82, toraxFlex: -2 },
     fin: { hombroFlex: 32, hombroAbd: 32, codoFlex: 130, escapulaRetr: 24, escapulaElev: -16, toraxFlex: -16, caderaFlex: 86, rodillaFlex: 82 },
-    activacion: { dorsal_ancho: 1, redondo_mayor: 0.9, biceps: 0.8, braquial: 0.7, trapecio_inf: 0.75, romboides: 0.6, deltoides_post: 0.5, braquiorradial: 0.5, recto_abdominal: 0.35 },
+    activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.5, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 22, elevacion: 6 },
   },
@@ -363,7 +374,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { hombroAbd: -4, codoFlex: 10, toraxFlex: 4 },
     fin: { hombroAbd: 96, hombroFlex: 14, codoFlex: 20, escapulaElev: 14, toraxFlex: 3 },
-    activacion: { deltoides_med: 1, supraespinoso: 0.85, trapecio_sup: 0.55, serrato: 0.6, deltoides_ant: 0.45, deltoides_post: 0.35, trapecio_inf: 0.4 },
+    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.medio': 1, 'manguito.supraespinoso': 0.85, 'trapecio.superior': 0.55, 'trapecio.inferior': 0.4, serrato: 0.6, 'deltoides.anterior': 0.45, 'deltoides.posterior': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 12, elevacion: 4 },
   },
@@ -390,7 +401,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, -0.05],
     inicio: { caderaFlex: 54, rodillaFlex: 22, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
     fin: { caderaFlex: 54, rodillaFlex: 22, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaRetr: 32 },
-    activacion: { deltoides_post: 1, trapecio_med: 0.9, romboides: 0.85, infraespinoso: 0.65, trapecio_inf: 0.55, deltoides_med: 0.4, erectores: 0.5, isquios: 0.35 },
+    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
   },
@@ -415,7 +426,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { codoFlex: 2, antebrazoRot: 20, hombroFlex: -8 },
     fin: { codoFlex: 150, antebrazoRot: -35, hombroFlex: 16 },
-    activacion: { biceps: 1, braquial: 0.9, braquiorradial: 0.7, deltoides_ant: 0.3, trapecio_sup: 0.2 },
+    activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'biceps.larga': 1, 'biceps.corta': 1, braquial: 0.9, braquiorradial: 0.7, 'deltoides.anterior': 0.3, pronador_redondo: 0.25 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 42, elevacion: 6 },
   },
@@ -440,7 +451,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { hombroFlex: 166, hombroAbd: 14, codoFlex: 148, toraxFlex: -6 },
     fin: { hombroFlex: 168, hombroAbd: 12, codoFlex: 2, toraxFlex: -4 },
-    activacion: { triceps: 1, deltoides_post: 0.3, serrato: 0.35, recto_abdominal: 0.3 },
+    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'triceps.larga': 1, 'triceps.lateral': 0.9, 'triceps.medial': 0.9, serrato: 0.35, recto_abdominal: 0.3, 'deltoides.posterior': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 46, elevacion: 10 },
   },
@@ -465,7 +476,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.95, 0],
     inicio: { hombroAbd: 68, hombroFlex: 18, codoFlex: 118, escapulaElev: 0 },
     fin: { hombroAbd: 172, hombroFlex: 6, codoFlex: 4, escapulaElev: 26, toraxFlex: -4 },
-    activacion: { deltoides_ant: 1, deltoides_med: 0.9, triceps: 0.85, serrato: 0.75, trapecio_sup: 0.6, pectoral_clav: 0.45, supraespinoso: 0.4, recto_abdominal: 0.4, gluteo_mayor: 0.3 },
+    activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'deltoides.anterior': 1, 'deltoides.medio': 0.9, 'deltoides.posterior': 0.3, 'triceps.lateral': 0.85, 'triceps.medial': 0.85, 'triceps.larga': 0.6, serrato: 0.75, 'trapecio.superior': 0.6, 'trapecio.inferior': 0.5, 'manguito.supraespinoso': 0.4, 'pectoral_mayor.clavicular': 0.45, recto_abdominal: 0.4, erectores: 0.35, gluteo_mayor: 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 18, elevacion: 2 },
   },
@@ -491,7 +502,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.40, 0],
     inicio: { lumbarFlex: -24, pelvisBascula: -20, toraxFlex: -10, hombroFlex: 84, codoFlex: 92, rodillaFlex: 6, escapulaRetr: 16 },
     fin: { lumbarFlex: 10, pelvisBascula: 16, toraxFlex: 3, hombroFlex: 88, codoFlex: 90, rodillaFlex: 0, escapulaProt: 22 },
-    activacion: { recto_abdominal: 1, oblicuos: 0.85, serrato: 0.75, gluteo_mayor: 0.55, cuadriceps: 0.4, erectores: 0.3, triceps: 0.3 },
+    activacion: { recto_abdominal: 1, transverso: 0.9, oblicuos: 0.85, serrato: 0.75, gluteo_mayor: 0.55, cuadriceps: 0.4, erectores: 0.3, triceps: 0.3 },
     seguimiento: ['pelvis', 0, [0, 0, 0.05]],
     camara: { azimut: 74, elevacion: 12 },
     invertido: true,
@@ -518,7 +529,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.50, 0],
     inicio: { hombroAbd: 68, hombroFlex: 4, codoFlex: 112, escapulaRetr: 28, caderaFlex: 42, rodillaFlex: 78 },
     fin: { hombroAbd: 32, hombroFlex: 20, codoFlex: 2, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
-    activacion: { pectoral_est: 1, deltoides_ant: 0.85, triceps: 0.8, pectoral_clav: 0.6, serrato: 0.5, biceps: 0.2 },
+    activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.esternocostal': 1, 'pectoral_mayor.clavicular': 0.6, 'pectoral_mayor.abdominal': 0.5, 'deltoides.anterior': 0.85, 'triceps.lateral': 0.8, 'triceps.medial': 0.8, 'triceps.larga': 0.55, serrato: 0.5, biceps: 0.2, 'manguito.subescapular': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 46 },
   },
@@ -544,7 +555,7 @@ export const PATRONES: Patron[] = [
     raizFin: [0, 0.52, 0],
     inicio: { hombroAbd: 64, hombroFlex: 6, codoFlex: 110, escapulaRetr: 28, caderaFlex: 62, rodillaFlex: 84 },
     fin: { hombroAbd: 30, hombroFlex: 24, codoFlex: 2, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
-    activacion: { pectoral_clav: 1, deltoides_ant: 0.95, pectoral_est: 0.7, triceps: 0.75, serrato: 0.5 },
+    activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.clavicular': 1, 'pectoral_mayor.esternocostal': 0.7, 'deltoides.anterior': 0.95, 'triceps.lateral': 0.75, 'triceps.medial': 0.75, serrato: 0.5, 'manguito.subescapular': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 40 },
   },

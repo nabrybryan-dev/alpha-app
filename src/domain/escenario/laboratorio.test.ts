@@ -15,6 +15,20 @@ import { BAHIA, construirLaboratorio } from './laboratorio'
  * 4. Que la retícula mida de verdad, porque su único trabajo es dar escala.
  */
 
+/**
+ * Margen para comparar alturas.
+ *
+ * La malla guarda las posiciones en `Float32Array`, que es lo que consume WebGL,
+ * y ahí el épsilon sobre una altura de 0,3 m ronda los 2·10⁻⁸. Con una
+ * tolerancia de 10⁻⁹ salían veintiún «intrusos» que excedían el bordillo en
+ * doce NANÓMETROS: redondeo del formato, no geometría.
+ *
+ * Diez micras siguen siendo mil veces menos que cualquier intrusión que importe
+ * —lo que este test vigila son cosas de centímetros cruzándose por delante del
+ * sujeto— y dejan de contar el ruido del último bit.
+ */
+const TOLERANCIA = 1e-5
+
 function laboratorio(): Malla {
   const m = new Malla()
   construirLaboratorio(m)
@@ -59,7 +73,7 @@ describe('la bahía de medida', () => {
     const anguloEstadiometro = Math.atan2(Math.sin((215 * Math.PI) / 180), Math.cos((215 * Math.PI) / 180))
 
     const intrusos = posiciones(m).filter(([x, y, z]) => {
-      if (y <= BAHIA.altoBordillo + 1e-9) return false
+      if (y <= BAHIA.altoBordillo + TOLERANCIA) return false
       const r = Math.hypot(x, z)
       if (r > BAHIA.radioBahia) return false
       // Todo lo alto que quede tiene que estar en la columna del estadiómetro.
