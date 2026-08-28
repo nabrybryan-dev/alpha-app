@@ -206,18 +206,23 @@ describe('la movilidad que los patrones dan por supuesta', () => {
    * consecuencia: un patrón puede exigir más recorrido del que la articulación
    * tiene y nadie se entera.
    *
-   * Con la dorsiflexión en sus 20° estándar, cinco patrones piden más. No es
-   * necesariamente un fallo: una sentadilla profunda de verdad exige movilidad
-   * que no todo el mundo tiene, y por eso el déficit de tobillo es lo primero
-   * que se mira cuando alguien no baja. Pero conviene que esté medido y no
-   * crezca solo, así que esto fija el estado de hoy como techo.
+   * La dorsiflexión que se acaba pidiendo es una suma de ángulos:
+   *
+   *     giro de la raíz − flexión de cadera + flexión de rodilla
+   *
+   * Con eso se vio que el remo y el pájaro pedían 30° y 29° por repartir mal la
+   * inclinación: la ponía la rodilla en vez de la cadera, y la tibia acababa a
+   * 30° de la vertical cuando en esos ejercicios va casi recta. Se repartió, y
+   * ahora caben.
+   *
+   * Las dos sentadillas siguen pasándose, y ahí no es un fallo: bajar del todo
+   * exige movilidad que no todo el mundo tiene, y por eso el déficit de tobillo
+   * es lo primero que se mira cuando alguien no baja. Queda medido para que no
+   * crezca solo.
    */
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
     sentadilla_unilateral: 34,
-    traccion_horizontal: 31,
-    abduccion_horizontal: 29,
     sentadilla: 29,
-    bisagra_cadera: 24,
   }
 
   it('no pide más tobillo del que ya pedía', () => {
@@ -239,5 +244,69 @@ describe('la movilidad que los patrones dan por supuesta', () => {
         `${p.id} pide ${pedido.toFixed(1)}° de dorsiflexión y el tope es ${permitido}°`,
       ).toBeLessThanOrEqual(permitido)
     }
+  })
+})
+
+describe('la cobertura sobre los ejercicios de verdad', () => {
+  /**
+   * Muestra de categorías y nombres tomada de los microciclos reales el
+   * 2026-08-28: 2.702 ejercicios en 30 categorías. Aquí van los casos que
+   * deciden, con la forma en que están escritos allí —mayúsculas irregulares,
+   * paréntesis y todo—, porque es justo lo que rompe un emparejado ingenuo.
+   *
+   * Sin datos de nadie: solo el texto de la categoría y el del ejercicio.
+   */
+  const REALES: [string, string, boolean][] = [
+    // Categoría que ya nombra el gesto: manda ella.
+    ['EXTENSIÓN DE CADERA', 'Hip thrust en barra', true],
+    ['ABDUCCIÓN HORIZONTAL', 'Pájaro con mancuernas', true],
+    ['EXTENSIÓN DE HOMBRO', 'Pullover en polea', true],
+    ['ANTIRROTACIÓN', 'Pallof press de rodillas', true],
+    ['RETRACCIÓN ESCAPULAR', 'Band pull apart', true],
+    ['APERTURA DE PECHO', 'Aperturas en banco plano', true],
+    ['ANTIFLEXIÓN LATERAL', 'Paseo del granjero a una mano', true],
+    ['DORSIFLEXIÓN', 'TIBIALIS RAISE (ESPALDA CONTRA PARED)', true],
+    ['FLEXIÓN DE TRONCO', 'CRUNCH EN POLEA ARRODILLADO', true],
+    // Categoría que dice para qué sirve: decide el nombre.
+    ['PREV/REHAB', 'Rotación externa de hombro en polea (manguito rotador)', true],
+    ['PREV/REHAB', 'CONTROL ESCAPULAR + ROTACIÓN EXTERNA', true],
+    ['PREV/REHAB', 'Saltos cortos de tobillo (pogo jumps) a peso corporal', true],
+    ['PREV/REHAB', 'Dead hang activo en barra', true],
+    ['PREV/REHAB', 'Apoyo monopodal con alcance (descalza)', true],
+    ['PREV/REHAB', 'ACTIVACIÓN GLÚTEA PREVIA', true],
+    ['PREV/REHAB', 'Copenhague', true],
+    ['PREV/REHAB', 'Bird-dog lento', true],
+    ['PREV/REHAB', 'Isométrico de gemelo con talón colgando', true],
+    ['POTENCIA · REACTIVA', 'Salto al cajón con bajada caminando', true],
+    ['POTENCIA · REACTIVA', 'Lanzamiento de balón medicinal contra pared', true],
+    ['MOVILIDAD', 'Movilidad torácica con foam roller (movilidad de columna)', true],
+    ['MOVILIDAD', 'Gato-camello', true],
+    // Y lo que no debe tener patrón, que es tan importante como lo que sí.
+    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', false],
+    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', false],
+    ['ACONDICIONAMIENTO', 'Circuito metabólico 40/20', false],
+    ['PREV/REHAB', 'Cribado de banderas rojas (antes de tocar una carga)', false],
+  ]
+
+  it('encuentra patrón para cada ejercicio que lo tiene', () => {
+    for (const [categoria, nombre, esperado] of REALES) {
+      const patron = patronDeCategoria(categoria, nombre)
+      expect(patron !== undefined, `${categoria} · ${nombre}`).toBe(esperado)
+    }
+  })
+
+  it('no enseña un gesto de fuerza para el cardio', () => {
+    // Peor que no tener visor es tener uno que enseñe otra cosa: quien monta en
+    // bicicleta no está haciendo ninguno de los treinta y un patrones.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')).toBeUndefined()
+  })
+
+  it('la categoría manda sobre el nombre cuando dice el gesto', () => {
+    // El nombre lo escribe el coach a mano y admite cualquier cosa; la categoría
+    // es vocabulario cerrado. Un remo llamado «salto del tigre» sigue siendo un
+    // remo.
+    expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Salto del tigre')?.id).toBe(
+      'traccion_horizontal',
+    )
   })
 })

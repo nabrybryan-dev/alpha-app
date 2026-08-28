@@ -141,7 +141,7 @@ export const PATRONES: Patron[] = [
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, -0.12],
     inicio: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
-    fin: { caderaFlex: 76, rodillaFlex: 16, toraxFlex: 3, hombroFlex: -10, codoFlex: 3 },
+    fin: { caderaFlex: 80, rodillaFlex: 14, toraxFlex: 3, hombroFlex: -10, codoFlex: 3 },
     activacion: { flexores_carpo: 0.65, extensores_carpo: 0.52, 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.4, gluteo_mayor: 0.9, erectores: 0.85, 'aductores.mayor': 0.4, dorsal_ancho: 0.4, 'trapecio.medio': 0.35, 'triceps_sural.gastro_medial': 0.25, cuadrado_lumbar: 0.4 },
     seguimiento: ['mano', 0.6, [0, 0, 0]],
     camara: { azimut: 78, elevacion: 4 },
@@ -322,8 +322,8 @@ export const PATRONES: Patron[] = [
     giroFin: [64, 0, 0],
     raizInicio: [0, 0.95, -0.06],
     raizFin: [0, 0.95, -0.06],
-    inicio: { caderaFlex: 58, rodillaFlex: 24, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
-    fin: { caderaFlex: 58, rodillaFlex: 24, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaProt: -32 },
+    inicio: { caderaFlex: 62, rodillaFlex: 16, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
+    fin: { caderaFlex: 62, rodillaFlex: 16, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.6, 'trapecio.superior': 0.3, romboides: 0.9, 'deltoides.posterior': 0.8, redondo_mayor: 0.75, biceps: 0.75, braquial: 0.65, braquiorradial: 0.5, erectores: 0.6, isquiotibiales: 0.4, 'manguito.infraespinoso': 0.4 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 68, elevacion: 8 },
@@ -399,8 +399,8 @@ export const PATRONES: Patron[] = [
     giroFin: [60, 0, 0],
     raizInicio: [0, 0.95, -0.05],
     raizFin: [0, 0.95, -0.05],
-    inicio: { caderaFlex: 54, rodillaFlex: 22, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
-    fin: { caderaFlex: 54, rodillaFlex: 22, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
+    inicio: { caderaFlex: 58, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
+    fin: { caderaFlex: 58, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
@@ -559,6 +559,454 @@ export const PATRONES: Patron[] = [
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 40 },
   },
+  {
+    id: 'extension_hombro',
+    categoria: 'EXTENSIÓN DE HOMBRO',
+    titulo: 'Extensión de hombro',
+    ejemplos: 'Pullover en polea · Jalón con brazo recto · Pullover con mancuerna',
+    resumen:
+      'El brazo baja estirado desde encima de la cabeza hasta el muslo. Es la única forma de cargar el dorsal sin que el codo se lleve el trabajo.',
+    claves: [
+      'El codo se queda casi estirado todo el recorrido: si se dobla, pasa a ser una tracción.',
+      'Arranca con el brazo lo más arriba que llegues sin arquear la espalda.',
+      'Termina llevando la mano al muslo, no a mitad de camino.',
+    ],
+    errores: [
+      'Doblar el codo y convertirlo en un jalón: el dorsal deja de estar solo.',
+      'Arquear la lumbar para ganar recorrido arriba, en vez de ganarlo con el hombro.',
+    ],
+    apoyo: 'suelo',
+    giroInicio: [12, 0, 0],
+    giroFin: [12, 0, 0],
+    raizInicio: [0, 0.95, -0.02],
+    raizFin: [0, 0.95, -0.02],
+    inicio: { hombroFlex: 152, codoFlex: 12, caderaFlex: 14, rodillaFlex: 10, escapulaRotAsc: 34, escapulaElev: 12 },
+    fin: { hombroFlex: 6, codoFlex: 16, caderaFlex: 14, rodillaFlex: 10, escapulaRotAsc: 2, escapulaElev: -8, escapulaProt: -14 },
+    activacion: {
+      'dorsal_ancho.costal': 1,
+      'dorsal_ancho.vertebral': 0.95,
+      'dorsal_ancho.iliaca': 0.85,
+      redondo_mayor: 0.95,
+      'triceps.larga': 0.7,
+      'deltoides.posterior': 0.55,
+      'pectoral_mayor.esternocostal': 0.45,
+      'trapecio.inferior': 0.5,
+      recto_abdominal: 0.4,
+      'triceps.lateral': 0.3,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    camara: { azimut: 84, elevacion: 8 },
+  },
+  {
+    id: 'antirrotacion',
+    categoria: 'ANTIRROTACIÓN',
+    titulo: 'Antirrotación',
+    ejemplos: 'Pallof press de pie · Pallof press arrodillado',
+    resumen:
+      'Las manos salen del pecho hacia delante mientras algo tira de ellas hacia un lado. El tronco no gira, y ese es todo el ejercicio.',
+    claves: [
+      'Los hombros y la cadera miran al frente de principio a fin.',
+      'Cuanto más lejos llegan las manos, más palanca tiene la carga para girarte.',
+      'Aprieta el glúteo: si la pelvis se suelta, el giro empieza abajo.',
+    ],
+    errores: [
+      'Dejar que el tronco acompañe al cable: entonces no es antirrotación, es rotación con peso.',
+      'Sacar la cadera hacia el lado contrario para compensar en vez de aguantar con el abdomen.',
+    ],
+    apoyo: 'suelo',
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { hombroFlex: 42, codoFlex: 118, caderaFlex: 12, rodillaFlex: 14, toraxRot: 10, lumbarRot: 5, escapulaProt: 6 },
+    fin: { hombroFlex: 74, codoFlex: 12, caderaFlex: 12, rodillaFlex: 14, toraxRot: 2, lumbarRot: 1, escapulaProt: 20 },
+    activacion: {
+      'oblicuos.externo': 1,
+      'oblicuos.interno': 1,
+      transverso: 0.95,
+      cuadrado_lumbar: 0.8,
+      recto_abdominal: 0.75,
+      serrato: 0.6,
+      gluteo_mayor: 0.85,
+      gluteo_medio: 0.8,
+      'cuadriceps.vasto_lateral': 0.75,
+      'cuadriceps.vasto_medial': 0.75,
+      'erectores.longisimo': 0.7,
+      'triceps.lateral': 0.5,
+      'deltoides.anterior': 0.45,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    // Menos picado que un plano cenital puro: desde muy arriba el sujeto se ve
+    // en escorzo y no se distingue si el tronco gira, que es lo único que hay
+    // que mirar aquí.
+    camara: { azimut: 34, elevacion: 32 },
+  },
+  {
+    id: 'retraccion_escapular',
+    categoria: 'RETRACCIÓN ESCAPULAR',
+    titulo: 'Retracción escapular',
+    ejemplos: 'Band pull apart · Retracción en polea · Face pull',
+    resumen:
+      'Los omóplatos se juntan sin que el codo haga nada. Es el gesto que sostiene cualquier tracción, y casi nadie lo entrena solo.',
+    claves: [
+      'Junta los omóplatos, no las manos: el movimiento nace en la espalda.',
+      'Los codos se quedan como están; si se doblan, entra el bíceps.',
+      'Sin encoger: el hombro no sube hacia la oreja.',
+    ],
+    errores: [
+      'Encoger los hombros y llamarlo retracción: eso es elevación, y trabaja el trapecio de arriba.',
+      'Arquear la espalda para juntar más: el recorrido lo pone el omóplato, no la lumbar.',
+    ],
+    apoyo: 'suelo',
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { hombroFlex: 78, hombroAbd: 14, codoFlex: 16, escapulaProt: 26, caderaFlex: 6, rodillaFlex: 8 },
+    fin: { hombroFlex: 26, hombroAbd: 62, codoFlex: 20, escapulaProt: -34, caderaFlex: 6, rodillaFlex: 8 },
+    activacion: {
+      'romboides.mayor': 1,
+      'romboides.menor': 1,
+      'trapecio.medio': 1,
+      'trapecio.inferior': 0.8,
+      'deltoides.posterior': 0.75,
+      'manguito.infraespinoso': 0.6,
+      'manguito.redondo_menor': 0.55,
+      'erectores.longisimo': 0.35,
+      'trapecio.superior': 0.3,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    camara: { azimut: 24, elevacion: 46 },
+  },
+  {
+    id: 'apertura_pecho',
+    categoria: 'APERTURA DE PECHO',
+    titulo: 'Apertura de pecho',
+    ejemplos: 'Aperturas con mancuerna · Pec deck · Cruce en polea',
+    resumen:
+      'Los brazos se abren y se cierran en arco, con el codo casi fijo. Carga el pectoral en toda su longitud sin que el tríceps ayude.',
+    claves: [
+      'El codo mantiene su ángulo: es un arco, no un empuje.',
+      'Abre hasta notar el pecho estirado, sin pasarte de la línea del hombro.',
+      'Cierra hasta juntar: la última parte del recorrido es la que más acorta.',
+    ],
+    errores: [
+      'Doblar y estirar el codo, que lo convierte en un press con peor palanca.',
+      'Abrir por detrás de la línea del hombro buscando estiramiento: ahí manda la cápsula, no el músculo.',
+    ],
+    apoyo: 'ninguno',
+    giro: [88, 0, 0],
+    raizInicio: [0, 0.55, 0],
+    raizFin: [0, 0.55, 0],
+    inicio: { hombroAbd: 84, hombroFlex: 8, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
+    fin: { hombroAbd: 16, hombroFlex: 12, codoFlex: 30, hombroRot: 26, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
+    activacion: {
+      'pectoral_mayor.esternocostal': 1,
+      'pectoral_mayor.clavicular': 0.9,
+      'pectoral_mayor.abdominal': 0.7,
+      'deltoides.anterior': 0.75,
+      coracobraquial: 0.6,
+      'biceps.corta': 0.4,
+      serrato: 0.45,
+      pectoral_menor: 0.4,
+      'manguito.subescapular': 0.4,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    camara: { azimut: 18, elevacion: 40 },
+  },
+  {
+    id: 'antiflexion_lateral',
+    categoria: 'ANTIFLEXIÓN LATERAL',
+    titulo: 'Antiflexión lateral',
+    ejemplos: 'Paseo del granjero a una mano · Maleta · Plancha lateral',
+    resumen:
+      'Un peso a un solo lado tira del tronco hacia abajo y hay que impedir que se incline. No se mueve nada: se sostiene.',
+    claves: [
+      'Los dos hombros a la misma altura, como si llevaras una bandeja en la cabeza.',
+      'La cadera del lado cargado no se sube ni se cae.',
+      'Camina o aguanta respirando: si contienes el aire, el abdomen deja de trabajar.',
+    ],
+    errores: [
+      'Inclinarse hacia el peso, que es rendirse a lo que el ejercicio pide resistir.',
+      'Inclinarse al lado contrario para hacer contrapeso: la lumbar acaba comprimida igual.',
+    ],
+    apoyo: 'suelo',
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { lumbarLat: 27, toraxLat: 24, pelvisLat: 18, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, escapulaElev: -14 },
+    fin: { lumbarLat: -1, toraxLat: 0, pelvisLat: -3, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, escapulaElev: 3 },
+    activacion: {
+      cuadrado_lumbar: 1,
+      'oblicuos.externo': 0.95,
+      'oblicuos.interno': 0.95,
+      transverso: 0.8,
+      'erectores.iliocostal': 0.75,
+      'erectores.longisimo': 0.7,
+      gluteo_medio: 0.7,
+      'trapecio.superior': 0.55,
+      flexores_carpo: 0.6,
+      recto_abdominal: 0.4,
+    },
+    seguimiento: ['torax', 1, [0.05, 0, 0]],
+    camara: { azimut: 4, elevacion: 8 },
+    invertido: true,
+  },
+  {
+    id: 'dorsiflexion',
+    categoria: 'DORSIFLEXIÓN',
+    titulo: 'Dorsiflexión',
+    ejemplos: 'Elevación de puntas · Tibialis raise con la espalda en la pared',
+    resumen:
+      'Las puntas de los pies suben con los talones clavados. Es el gemelo al revés, y el que sostiene la rodilla al bajar de un salto.',
+    claves: [
+      'Los talones no se mueven: solo suben las puntas.',
+      'Sube hasta el tope y baja despacio, que es donde de verdad trabaja.',
+      'Si te apoyas en la pared, mantén la cadera pegada para no ayudarte con el tronco.',
+    ],
+    errores: [
+      'Balancear el cuerpo hacia atrás para levantar la punta sin usar la pierna.',
+      'Rango corto: es un músculo pequeño y el recorrido completo es casi todo el estímulo.',
+    ],
+    apoyo: 'suelo',
+    // Sin apoyo plantar a propósito: aquí el talón se queda y la punta sube, así
+    // que forzar la planta horizontal borraría justo el gesto que se enseña.
+    pies: [],
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { tobilloPlantar: 18, rodillaFlex: 14, caderaFlex: 12, hombroFlex: 2, codoFlex: 8 },
+    fin: { tobilloPlantar: -19, rodillaFlex: 14, caderaFlex: 12, hombroFlex: 2, codoFlex: 8 },
+    activacion: {
+      tibial_anterior: 1,
+      'peroneos.largo': 0.35,
+      'cuadriceps.vasto_lateral': 0.3,
+      'cuadriceps.vasto_medial': 0.3,
+      gluteo_mayor: 0.25,
+    },
+    // Se traza la punta del pie y no el final del hueso: es lo que de verdad
+    // sube, y sobre un hueso tan corto la diferencia decide si el arco se ve.
+    seguimiento: ['pieD', 1, [0, 0, 0.05]],
+    camara: { azimut: 86, elevacion: 10 },
+  },
+  {
+    id: 'flexion_tronco',
+    categoria: 'FLEXIÓN DE TRONCO',
+    titulo: 'Flexión de tronco',
+    ejemplos: 'Crunch en polea arrodillado · Crunch abdominal',
+    resumen:
+      'Las costillas se acercan a la cadera enrollando la espalda. La cadera no participa: en cuanto entra, el trabajo se va al psoas.',
+    claves: [
+      'Enrolla la columna vértebra a vértebra, no bajes en bloque.',
+      'La cadera se queda quieta: el recorrido es corto y eso es correcto.',
+      'Suelta el aire al bajar, que es lo que termina de cerrar las costillas.',
+    ],
+    errores: [
+      'Flexionar la cadera en vez de la columna: entonces tira el psoas y la lumbar se comprime.',
+      'Tirar con los brazos del cable o de la nuca para bajar más de lo que da el abdomen.',
+    ],
+    apoyo: 'ninguno',
+    raizInicio: [0, 0.62, 0],
+    raizFin: [0, 0.58, 0],
+    inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 128, codoFlex: 84, cuelloFlex: -8 },
+    fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 120, codoFlex: 88, cuelloFlex: 24 },
+    activacion: {
+      recto_abdominal: 1,
+      'oblicuos.externo': 0.8,
+      'oblicuos.interno': 0.75,
+      transverso: 0.6,
+      esternocleidomastoideo: 0.35,
+      'dorsal_ancho.costal': 0.35,
+      'triceps.larga': 0.3,
+    },
+    seguimiento: ['torax', 1, [0, 0, 0]],
+    camara: { azimut: 84, elevacion: 8 },
+  },
+  {
+    id: 'salto',
+    categoria: 'POTENCIA · REACTIVA',
+    titulo: 'Salto',
+    ejemplos: 'Salto al cajón · Drop squat · Pogo jumps · Salto horizontal',
+    resumen:
+      'Bajar deprisa para poder subir deprisa. Aquí no cuenta el peso movido sino el tiempo: el suelo se empuja en un instante y se aterriza amortiguando.',
+    claves: [
+      'Baja rápido y corto: la potencia sale del rebote, no de bajar mucho.',
+      'Aterriza con la rodilla y la cadera dobladas, nunca con la pierna clavada.',
+      'Si el aterrizaje suena fuerte, estás frenando con la articulación en vez de con el músculo.',
+    ],
+    errores: [
+      'Aterrizar con la rodilla hacia dentro, que es el gesto que más lesiona.',
+      'Encadenar saltos cansado: la potencia se entrena fresco o deja de ser potencia.',
+    ],
+    apoyo: 'suelo',
+    raizInicio: [0, 0.72, 0],
+    raizFin: [0, 1.02, 0],
+    inicio: { caderaFlex: 68, rodillaFlex: 74, tobilloPlantar: -16, toraxFlex: 18, hombroFlex: -34, codoFlex: 26 },
+    fin: { caderaFlex: 4, rodillaFlex: 6, tobilloPlantar: 42, toraxFlex: 2, hombroFlex: 96, codoFlex: 12 },
+    activacion: {
+      'cuadriceps.vasto_lateral': 1,
+      'cuadriceps.vasto_medial': 1,
+      'cuadriceps.recto': 0.85,
+      gluteo_mayor: 1,
+      'triceps_sural.gastro_medial': 0.95,
+      'triceps_sural.gastro_lateral': 0.95,
+      'triceps_sural.soleo': 0.8,
+      'isquiotibiales.biceps_larga': 0.7,
+      'cuadriceps.vasto_intermedio': 0.8,
+      gluteo_medio: 0.6,
+      'erectores.longisimo': 0.5,
+      'deltoides.anterior': 0.4,
+    },
+    seguimiento: ['pelvis', 0.4, [0, 0, 0.04]],
+    camara: { azimut: 78, elevacion: 10 },
+  },
+  {
+    id: 'rotacion_externa_hombro',
+    categoria: 'ROTACIÓN EXTERNA',
+    titulo: 'Rotación externa de hombro',
+    ejemplos: 'Rotación externa en polea · Rotación con banda · Band pull apart',
+    resumen:
+      'El antebrazo gira hacia fuera con el codo pegado al costado. Es poca carga y mucho detalle: sostiene el hombro en todo lo demás que se hace.',
+    claves: [
+      'El codo pegado al costado y doblado a noventa grados, quieto.',
+      'Gira desde el hombro: el antebrazo solo va montado en el giro.',
+      'Carga ligera. Si necesitas impulso, el manguito ya no está trabajando.',
+    ],
+    errores: [
+      'Separar el codo del costado, que cambia el ejercicio al deltoides.',
+      'Girar el tronco para ganar recorrido en vez de girar el hombro.',
+    ],
+    apoyo: 'suelo',
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { hombroRot: -58, codoFlex: 90, hombroAbd: 8, escapulaProt: 12, caderaFlex: 4, rodillaFlex: 6 },
+    fin: { hombroRot: 46, codoFlex: 90, hombroAbd: 10, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 6 },
+    activacion: {
+      'manguito.infraespinoso': 1,
+      'manguito.redondo_menor': 1,
+      'manguito.supraespinoso': 0.6,
+      'deltoides.posterior': 0.65,
+      'romboides.mayor': 0.5,
+      'trapecio.medio': 0.5,
+      'trapecio.inferior': 0.45,
+      'manguito.subescapular': 0.35,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    camara: { azimut: 26, elevacion: 56 },
+  },
+  {
+    id: 'movilidad_toracica',
+    categoria: 'MOVILIDAD',
+    titulo: 'Movilidad torácica',
+    ejemplos: 'Extensión en foam roller · Gato-camello · Rotación torácica',
+    resumen:
+      'La espalda de arriba se abre y se cierra. No se busca fuerza sino recorrido: lo que no da la torácica acaba pidiéndoselo a la lumbar o al hombro.',
+    claves: [
+      'El movimiento es de las costillas hacia arriba, no de la zona baja.',
+      'Ve despacio y respira: aquí manda el tiempo, no la carga.',
+      'Si la lumbar se arquea para ayudar, has perdido el ejercicio.',
+    ],
+    errores: [
+      'Compensar con la lumbar, que ya es la parte de la espalda que más se mueve.',
+      'Buscar el rango a tirones en vez de con recorridos lentos y repetidos.',
+    ],
+    apoyo: 'ninguno',
+    giro: [72, 0, 0],
+    raizInicio: [0, 0.68, 0],
+    raizFin: [0, 0.72, 0],
+    inicio: { toraxFlex: 34, lumbarFlex: 12, cuelloFlex: 26, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 108, codoFlex: 16, escapulaProt: 24 },
+    fin: { toraxFlex: -28, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 116, codoFlex: 12, escapulaProt: -14 },
+    activacion: {
+      'erectores.longisimo': 1,
+      'erectores.espinal': 0.95,
+      'erectores.iliocostal': 0.8,
+      'trapecio.medio': 0.6,
+      'trapecio.inferior': 0.6,
+      recto_abdominal: 0.5,
+      'oblicuos.externo': 0.45,
+      esplenio: 0.5,
+      serrato: 0.4,
+    },
+    seguimiento: ['torax', 1, [0, 0, 0]],
+    camara: { azimut: 82, elevacion: 12 },
+  },
+  {
+    id: 'apoyo_una_pierna',
+    categoria: 'APOYO A UNA PIERNA',
+    titulo: 'Apoyo a una pierna',
+    ejemplos: 'Apoyo monopodal · Monopodal con alcance · Short foot',
+    resumen:
+      'Estar de pie sobre una pierna sin que la cadera se caiga. Parece que no pasa nada, y está trabajando todo el lateral de la cadera y el pie.',
+    claves: [
+      'La cadera del lado que no apoya se queda arriba, a la altura de la otra.',
+      'Reparte el peso en el pie entero, no solo en el borde.',
+      'Mira a un punto fijo: el equilibrio se entrena también con la vista.',
+    ],
+    errores: [
+      'Dejar caer la cadera libre: eso es lo que el glúteo medio tiene que impedir.',
+      'Rodilla hacia dentro, que es la misma falla que aparece luego al aterrizar o al bajar escaleras.',
+    ],
+    apoyo: 'suelo',
+    pies: ['D'],
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { pelvisLat: -21, caderaAbdI: 10, caderaFlexI: 62, rodillaFlexI: 112, lumbarLat: 16, hombroFlex: 12, codoFlex: 14 },
+    fin: { pelvisLat: 6, caderaAbdI: 4, caderaFlexI: 62, rodillaFlexI: 112, lumbarLat: -2, hombroFlex: 16, codoFlex: 12 },
+    activacion: {
+      'gluteo_medio:D': 1,
+      'gluteo_menor:D': 0.95,
+      gluteo_mayor: 0.7,
+      'cuadriceps.vasto_lateral:D': 0.7,
+      'cuadriceps.vasto_medial:D': 0.7,
+      cuadrado_lumbar: 0.7,
+      'oblicuos.externo': 0.6,
+      'triceps_sural.soleo:D': 0.75,
+      tibial_anterior: 0.65,
+      'peroneos.largo:D': 0.7,
+      'erectores.iliocostal': 0.5,
+    },
+    seguimiento: ['pelvis', 0, [0.05, 0, 0]],
+    // De tres cuartos y no de frente. La caída de cadera se lee en el plano
+    // frontal, pero la pierna levantada se flexiona hacia delante y de frente
+    // sale escorzada: parecía que el sujeto estaba de pie sobre las dos.
+    camara: { azimut: 34, elevacion: 10 },
+    invertido: true,
+  },
+  {
+    id: 'suspension',
+    categoria: 'SUSPENSIÓN',
+    titulo: 'Suspensión',
+    ejemplos: 'Dead hang en barra · Colgado activo · Suspensión con agarre',
+    resumen:
+      'Colgarse de la barra y aguantar. Trabaja el agarre y descomprime el hombro, y es el paso previo para quien todavía no hace dominadas.',
+    claves: [
+      'Empieza colgado del todo y después mete los omóplatos hacia abajo.',
+      'Aguanta respirando, sin balancearte.',
+      'La serie termina cuando la mano se abre, no antes.',
+    ],
+    errores: [
+      'Colgar con el hombro totalmente suelto todo el rato: descomprime, pero no entrena nada.',
+      'Balancearse, que le quita el trabajo al agarre y se lo pasa al impulso.',
+    ],
+    apoyo: 'manos',
+    alturaApoyo: 2.28,
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 1.0, 0],
+    inicio: { hombroFlex: 172, codoFlex: 6, escapulaElev: 42, escapulaRotAsc: 48, caderaFlex: 8, rodillaFlex: 22 },
+    fin: { hombroFlex: 168, codoFlex: 8, escapulaElev: -12, escapulaRotAsc: 22, caderaFlex: 6, rodillaFlex: 18, escapulaProt: -16 },
+    activacion: {
+      flexores_carpo: 1,
+      'dorsal_ancho.costal': 0.8,
+      'dorsal_ancho.vertebral': 0.75,
+      'trapecio.inferior': 0.85,
+      'trapecio.medio': 0.7,
+      serrato: 0.6,
+      'romboides.mayor': 0.6,
+      redondo_mayor: 0.55,
+      braquiorradial: 0.6,
+      recto_abdominal: 0.45,
+      'manguito.infraespinoso': 0.4,
+    },
+    // Sin traza a propósito: es una isometría de sostén y no hay trayectoria que
+    // dibujar. El cuerpo sube menos de un centímetro al deprimir el omóplato,
+    // porque en el rig el brazo cuelga del tórax y no de la escápula, así que
+    // cualquier arco aquí sería inventado.
+    camara: { azimut: 80, elevacion: 6 },
+  },
 ]
 
 export const PATRON_POR_ID: Record<string, Patron> = Object.fromEntries(
@@ -618,9 +1066,50 @@ const ALIAS: Record<string, string> = {
  * viene en el microciclo: no hace falta tocar ningún dato ni añadir un campo
  * nuevo para que los microciclos ya cargados tengan visor.
  */
-export function patronDeCategoria(categoria: string | undefined): Patron | undefined {
+/**
+ * Cuando la categoría no es un gesto, sino para qué sirve.
+ *
+ * `PREV/REHAB`, `MOVILIDAD`, `ACONDICIONAMIENTO` y `POTENCIA · REACTIVA` no
+ * nombran un patrón: dicen a qué viene el ejercicio. Dentro caben cosas que no
+ * se parecen en nada —una rotación de manguito y un salto al cajón comparten
+ * categoría—, así que por categoría no se puede acertar.
+ *
+ * Se mira el nombre. El orden importa: gana la primera que encaja, así que lo
+ * específico va antes que lo general.
+ */
+const POR_NOMBRE: [RegExp, string][] = [
+  [/rotaci[oó]n externa|manguito|pull apart|control escapular/, 'rotacion_externa_hombro'],
+  [/salto|pogo|drop squat|aterrizaje|lanzamiento|trineo|reactiv/, 'salto'],
+  [/colgad|dead hang|suspensi[oó]n/, 'suspension'],
+  [/monopodal|equilibrio|short foot|apoyo estable a una pierna/, 'apoyo_una_pierna'],
+  [/movilidad|foam roller|gato-camello|occiput|rom de hombro/, 'movilidad_toracica'],
+  [/activaci[oó]n gl[uú]tea|puente de isquios/, 'extension_cadera'],
+  [/copenhague|cossack/, 'aduccion_cadera'],
+  [/bird-?dog/, 'antiextension'],
+  [/gemelo|talón colgando|talon colgando/, 'flexion_plantar'],
+]
+
+/**
+ * Lo que se queda fuera, y por qué.
+ *
+ * El cardio no tiene un gesto resistido que enseñar en la esfera, y un cribado
+ * de banderas rojas no es un ejercicio. Enseñar aquí un patrón cualquiera sería
+ * peor que no enseñar ninguno.
+ */
+const SIN_PATRON = /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado/
+
+export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined
   const normalizada = normalizarCategoria(categoria)
   const buscada = ALIAS[normalizada] ?? normalizada
-  return PATRONES.find((p) => normalizarCategoria(p.categoria) === buscada)
+  const porCategoria = PATRONES.find((p) => normalizarCategoria(p.categoria) === buscada)
+  if (porCategoria) return porCategoria
+
+  // Solo si la categoría no dio nada: cuando la categoría nombra el gesto, es
+  // más fiable que el nombre del ejercicio, que lo escribe el coach a mano.
+  if (!nombre) return undefined
+  const texto = nombre.toLowerCase()
+  if (SIN_PATRON.test(texto)) return undefined
+  const id = POR_NOMBRE.find(([re]) => re.test(texto))?.[1]
+  return id ? PATRON_POR_ID[id] : undefined
 }
