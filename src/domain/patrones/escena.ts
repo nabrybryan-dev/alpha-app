@@ -58,20 +58,26 @@ const ESTANCAMIENTO = { centro: 0.42, ancho: 0.17, freno: 0.62 }
 const ASENTAMIENTO = { amplitud: 0.015, ciclos: 2.2, apagado: 6.5 }
 
 /**
- * La curva de la subida, tabulada.
+ * La curva de la subida, tabulada por punto de atasco.
  *
  * El frenado hay que definirlo sobre la VELOCIDAD y después integrar. Restarle
  * una campana a la posición no sirve: lo que frena en la primera mitad lo
  * acelera en la segunda, y queda un ritmo raro en vez de un valle. Como la
- * integral de una gaussiana no es elemental, se tabula una vez al cargar el
- * módulo y se interpola; son 129 números y se calculan una sola vez.
+ * integral de una gaussiana no es elemental, se tabula.
+ *
+ * Se guarda una tabla por cada punto distinto —hoy son cuatro contando el valor
+ * por defecto— porque el atasco no cae en el mismo sitio en cada ejercicio.
  */
 const MUESTRAS_SUBIDA = 128
-const SUBIDA: number[] = (() => {
+const TABLAS = new Map<number, number[]>()
+
+function curvaDeSubida(centro: number): number[] {
+  const guardada = TABLAS.get(centro)
+  if (guardada) return guardada
   // Velocidad base: la de un `suavizar`, que arranca y termina parada.
   const velocidad = (k: number): number => {
     const base = 6 * k * (1 - k)
-    const x = (k - ESTANCAMIENTO.centro) / ESTANCAMIENTO.ancho
+    const x = (k - centro) / ESTANCAMIENTO.ancho
     return base * (1 - ESTANCAMIENTO.freno * Math.exp(-x * x))
   }
   const tabla = [0]
@@ -85,14 +91,17 @@ const SUBIDA: number[] = (() => {
   }
   // Se normaliza para que el tramo termine exactamente en 1: si no, el cambio
   // de fase daría un salto justo al llegar arriba.
-  return tabla.map((v) => v / suma)
-})()
+  const normalizada = tabla.map((v) => v / suma)
+  TABLAS.set(centro, normalizada)
+  return normalizada
+}
 
 /** Avance de la subida en su fase local, interpolando la tabla. */
-function avanceDeSubida(k: number): number {
+function avanceDeSubida(k: number, centro: number): number {
+  const tabla = curvaDeSubida(centro)
   const x = limitar(k, 0, 1) * MUESTRAS_SUBIDA
   const i = Math.min(Math.floor(x), MUESTRAS_SUBIDA - 1)
-  return SUBIDA[i] + (SUBIDA[i + 1] - SUBIDA[i]) * (x - i)
+  return tabla[i] + (tabla[i + 1] - tabla[i]) * (x - i)
 }
 
 export const DURACION_CICLO = CICLO.reduce((s, f) => s + f.duracion, 0)
@@ -103,12 +112,13 @@ export interface FaseDelCiclo {
   sentido: number
 }
 
-export function faseDeTiempo(t: number): FaseDelCiclo {
+export function faseDeTiempo(t: number, patron?: Patron): FaseDelCiclo {
+  const centro = patron?.estancamiento ?? ESTANCAMIENTO.centro
   let u = ((t % DURACION_CICLO) + DURACION_CICLO) % DURACION_CICLO
   for (const f of CICLO) {
     if (u < f.duracion) {
       const k = f.duracion > 0 ? u / f.duracion : 0
-      const avance = f.subiendo ? avanceDeSubida(k) : f.suave ? suavizar(k) : k
+      const avance = f.subiendo ? avanceDeSubida(k, centro) : f.suave ? suavizar(k) : k
       let fase = f.desde + (f.hasta - f.desde) * avance
       if (f.asienta) {
         // Siempre resta: el cuerpo cede y vuelve. Se apaga sola dentro de la

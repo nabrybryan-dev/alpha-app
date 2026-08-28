@@ -340,3 +340,54 @@ describe('la focal de la cámara', () => {
     }
   })
 })
+
+describe('dónde se atasca cada ejercicio', () => {
+  /** Fase de la subida en la que la velocidad toca su mínimo. */
+  const dondeFrena = (patron: Patron): number => {
+    const n = 400
+    let peor = { k: 0, v: Infinity }
+    for (let i = 1; i <= n; i++) {
+      const k0 = ((i - 1) / n) * 1.2
+      const k1 = (i / n) * 1.2
+      const v = (faseDeTiempo(k1, patron).fase - faseDeTiempo(k0, patron).fase) / (k1 - k0)
+      // Se ignoran los extremos, donde la velocidad es baja por el arranque y la
+      // llegada y no por el brazo de momento.
+      const k = k1 / 1.2
+      if (k > 0.12 && k < 0.88 && v < peor.v) peor = { k, v }
+    }
+    return peor.k
+  }
+
+  it('atasca la sentadilla poco después de salir del hoyo', () => {
+    // La fuerza es mínima en los primeros 15 cm sobre la posición más baja de la
+    // barra, que en un recorrido de medio metro cae en torno al primer cuarto.
+    expect(dondeFrena(PATRON_POR_ID['sentadilla'])).toBeLessThan(0.35)
+  })
+
+  it('atasca la extensión de cadera casi al arrancar', () => {
+    // En el hip thrust el momento extensor es máximo con la cadera cerca de 90°
+    // —es decir, abajo— y decae hacia la extensión completa. Es el ejercicio
+    // donde antes cuesta.
+    const k = dondeFrena(PATRON_POR_ID['extension_cadera'])
+    expect(k).toBeLessThan(0.3)
+    expect(k).toBeLessThan(dondeFrena(PATRON_POR_ID['empuje_horizontal']))
+  })
+
+  it('atasca el empuje horizontal más arriba que la sentadilla', () => {
+    // En el banca el mínimo de velocidad queda bastante por encima del pecho,
+    // no justo al despegar.
+    expect(dondeFrena(PATRON_POR_ID['empuje_horizontal'])).toBeGreaterThan(
+      dondeFrena(PATRON_POR_ID['sentadilla']),
+    )
+  })
+
+  it('deja un punto por defecto para el que no lo declara', () => {
+    // La mayoría de patrones no tienen medida publicada: se les deja el valor
+    // de en medio en vez de inventarles uno por ejercicio.
+    const sinDeclarar = PATRONES.filter((p) => p.estancamiento === undefined)
+    expect(sinDeclarar.length).toBeGreaterThan(20)
+    for (const p of sinDeclarar.slice(0, 5)) {
+      expect(dondeFrena(p), p.id).toBeCloseTo(dondeFrena(sinDeclarar[0]), 1)
+    }
+  })
+})

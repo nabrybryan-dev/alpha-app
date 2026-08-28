@@ -188,7 +188,7 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           const ahora = performance.now() / 1000
           let cambia = false
           if (estado.current.reproduciendo) {
-            const { fase: f, sentido } = faseDeTiempo(ahora - arranque)
+            const { fase: f, sentido } = faseDeTiempo(ahora - arranque, patron)
             estado.current.reloj = ahora - arranque
             estado.current.sentido = sentido
             if (Math.abs(f - estado.current.fase) > 0.0015) {

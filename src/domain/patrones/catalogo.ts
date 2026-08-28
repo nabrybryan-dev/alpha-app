@@ -61,12 +61,24 @@ export interface Patron {
    * escápula hasta la mano y dejaría el codo del tamaño de una uña.
    */
   foco?: string
+  /**
+   * Dónde se atasca la subida, de 0 (nada más arrancar) a 1 (al final).
+   *
+   * El punto en el que la barra se frena no cae en el mismo sitio en cada
+   * ejercicio, porque depende de cómo empeora el brazo de momento. Solo se
+   * declara donde hay medida publicada; el resto usa el valor de en medio, que
+   * es preferible a inventarle un número a cada patrón.
+   */
+  estancamiento?: number
 }
 
 export const PATRONES: Patron[] = [
   {
     id: 'extension_cadera',
     categoria: 'EXTENSIÓN DE CADERA',
+    // En el hip thrust el momento extensor es máximo con la cadera cerca de 90°
+    // —abajo— y decae hacia la extensión completa: cuesta nada más arrancar.
+    estancamiento: 0.16,
     titulo: 'Extensión de cadera',
     ejemplos: 'Empuje de cadera · Patada de glúteo en polea · Empuje de cadera con barra',
     resumen:
@@ -94,6 +106,9 @@ export const PATRONES: Patron[] = [
   {
     id: 'sentadilla',
     categoria: 'SENTADILLA',
+    // La fuerza es mínima en los primeros 15 cm sobre la posición más baja de la
+    // barra, que en un recorrido de medio metro cae en el primer cuarto.
+    estancamiento: 0.24,
     titulo: 'Sentadilla',
     ejemplos: 'Prensa de piernas a 45° · Sentadilla hack · Sentadilla en Smith',
     resumen:
@@ -510,6 +525,9 @@ export const PATRONES: Patron[] = [
   {
     id: 'empuje_horizontal',
     categoria: 'EMPUJE HORIZONTAL',
+    // En el banca el mínimo de velocidad queda bastante por encima del pecho, no
+    // al despegar: ahí los músculos trabajan en una longitud mala.
+    estancamiento: 0.52,
     titulo: 'Empuje horizontal',
     ejemplos: 'Press de pecho con mancuernas · Press de pecho con barra',
     resumen:
