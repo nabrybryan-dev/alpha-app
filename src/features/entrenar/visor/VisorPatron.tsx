@@ -12,6 +12,7 @@ import {
   trazaDelPatron,
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
+import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import {
@@ -34,6 +35,26 @@ type Capa = 'ambas' | 'musculo' | 'hueso'
  * base contra la que se mide cuánto se acorta cada músculo.
  */
 let huesosCache: ReturnType<typeof construirHuesos> | null = null
+
+/**
+ * La bahía de medida: el suelo, la placa, el bordillo y el estadiómetro.
+ *
+ * Se cachea como los huesos y por el mismo motivo: es geometría fija que no depende
+ * del patrón ni de la fase, así que reconstruirla en cada cambio de capa serían miles
+ * de vértices recalculados para dibujar exactamente lo mismo.
+ *
+ * Va con hueso 0 —la identidad— así que entra en la misma malla que el sujeto y se
+ * dibuja en la misma llamada. El motor no se entera de que existe.
+ */
+let laboratorioCache: Malla | null = null
+
+function laboratorio(): Malla {
+  if (!laboratorioCache) {
+    laboratorioCache = new Malla()
+    construirLaboratorio(laboratorioCache)
+  }
+  return laboratorioCache
+}
 let reposoCache: Record<string, number> | null = null
 function precalculado() {
   huesosCache ??= construirHuesos()
@@ -119,7 +140,10 @@ export function VisorPatron({ patron }: VisorPatronProps) {
         const construir = () => {
           const esq = esqueletoEnFase(patron, estado.current.fase, estado.current.sentido, estado.current.reloj)
           matrices = esq.matrices
-          const partes = []
+          // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
+          // orden de las partes, así que ponerlo delante deja el sujeto al final del
+          // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
+          const partes = [laboratorio()]
           if (estado.current.capa !== 'musculo') partes.push(huesos)
           if (estado.current.capa !== 'hueso')
             partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
@@ -249,6 +273,18 @@ export function VisorPatron({ patron }: VisorPatronProps) {
         {error && (
           <p className="absolute inset-0 grid place-content-center px-6 text-center text-xs text-silver-300">
             {error}
+          </p>
+        )}
+        {/* LA LEYENDA DE LA RETICULA. Sin ella el suelo es un fondo bonito; con ella
+            es un instrumento: se puede LEER cuanto bajo la cadera contando cuadros en
+            vez de intuirlo. Los numeros salen de la geometria —no estan escritos dos
+            veces— asi que si el paso cambia, la leyenda cambia con el.
+            En centimetros porque es la unidad con la que se habla de un recorrido. */}
+        {!error && (
+          <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-white/35">
+            retícula {BAHIA.pasoMenor * 100} cm
+            <span className="mx-1 text-white/20">·</span>
+            {BAHIA.pasoMayor * 100} cm
           </p>
         )}
         {!error && (
