@@ -272,7 +272,17 @@ export const MODELOS_INFERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
     segmentosMoviles: ['pie'],
     referencia: 'pierna',
     vista: 'lateral',
-    ejes: [M('tobillo', 'principal', 'dorsiflexion', ['Pantorrillas'], [30, 45])],
+    // Quien dorsiflexiona es el TIBIAL ANTERIOR, y no tiene grupo en el PANEL.
+    // Hasta el 2026-08-27 aquí ponía `Pantorrillas`, que es su antagonista: el
+    // tríceps sural plantiflexiona. El error venía de la fuente de verdad y se
+    // corrigió en la taxonomía el mismo día (§3bis nota 4), donde DORSIFLEXIÓN
+    // pasó a no acreditar volumen a nadie.
+    ejes: [
+      {
+        ...M('tobillo', 'principal', 'dorsiflexion', [], [30, 45]),
+        motorSinGrupo: 'tibial anterior',
+      },
+    ],
     linea: { origen: 'carga-externa' },
     marcas: ['rodilla', 'tobillo'],
     alineacion: {

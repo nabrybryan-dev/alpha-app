@@ -135,9 +135,9 @@ export const IMPLEMENTOS: Readonly<Record<Implemento, PerfilDeImplemento>> = {
       'ninguno de los tres orígenes de la tabla la describe',
     porQue:
       'En una prensa de 45° la fuerza va a lo largo del raíl, no hacia abajo, y además el ' +
-      'respaldo se lleva parte de la reacción. Son 9 vídeos del corpus y ni siquiera tienen ' +
-      'categoría en la taxonomía de 32: hoy heredarían el modelo de la sentadilla, que es de ' +
-      'otro ejercicio.',
+      'respaldo se lleva parte de la reacción. Son 9 vídeos del corpus, y la taxonomía sí los ' +
+      'clasifica —van a la familia de la sentadilla—: el problema es justo ese, que así ' +
+      'heredan un modelo de palanca que es de otro ejercicio.',
   },
 
   polea: {

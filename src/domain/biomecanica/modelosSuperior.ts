@@ -333,4 +333,78 @@ export const MODELOS_SUPERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
       porQue: 'Si el codo baja, el dorsal entra a ayudar y el tríceps deja de ser el que manda.',
     },
   },
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Muñeca
+  //
+  // Las dos entraron en la taxonomía el 2026-08-26 (34 categorías) y salieron
+  // de ESTE corpus: dos curls de muñeca que ninguna de las 32 anteriores sabía
+  // nombrar. Tienen modelo porque son mecánica de palanca de manual —antebrazo
+  // fijo, mano que gira, carga en la mano—, pero llevan las dos advertencias
+  // que la tabla puede dar y no todo el mundo espera: su motor no tiene grupo
+  // en el PANEL, y su brazo externo es el más corto del gimnasio.
+  // ───────────────────────────────────────────────────────────────────────────
+  'FLEXIÓN DE MUÑECA': {
+    patron: 'FLEXIÓN DE MUÑECA',
+    cadena: 'abierta',
+    anclaje: 'el antebrazo, apoyado en el muslo o en el banco',
+    segmentosMoviles: ['mano'],
+    referencia: 'antebrazo',
+    vista: 'lateral',
+    ejes: [
+      {
+        ...M('muñeca', 'principal', 'flexion', [], [10, 20],
+          'El brazo interno de los flexores es de los más cortos del cuerpo: el tendón pasa ' +
+          'muy pegado al eje, y por eso la muñeca mueve poca carga con mucha tensión.'),
+        motorSinGrupo: 'flexores del antebrazo',
+      },
+      M('codo', 'estabilizador', 'isometrico', ['Bíceps'], [20, 40],
+        'Sostiene el ángulo. Si el codo se abre, el recorrido deja de ser de la muñeca.'),
+    ],
+    linea: { origen: 'carga-externa' },
+    marcas: ['codo', 'muñeca'],
+    alineacion: {
+      regla: 'el antebrazo apoyado y quieto',
+      toleranciaMm: 15,
+      porQue:
+        'Es lo único que garantiza que lo que gira sea la mano. Sin apoyo, el codo aporta ' +
+        'recorrido y el ángulo medido no es el de la muñeca.',
+    },
+    limite:
+      'El brazo externo de la muñeca ronda los 70 mm —media mano—, y el ruido absoluto de la ' +
+      'única medida limpia del proyecto (remo, 290 mm ± 12) sería aquí cerca del 17 % en vez ' +
+      'del 4 %. Vale para el recorrido; no para comparar cargas entre sesiones.',
+  },
+
+  'EXTENSIÓN DE MUÑECA': {
+    patron: 'EXTENSIÓN DE MUÑECA',
+    cadena: 'abierta',
+    anclaje: 'el antebrazo, apoyado en el muslo o en el banco',
+    segmentosMoviles: ['mano'],
+    referencia: 'antebrazo',
+    vista: 'lateral',
+    ejes: [
+      {
+        ...M('muñeca', 'principal', 'extension', [], [10, 18],
+          'Aún más corto que el de los flexores, y es la razón mecánica de que la extensión ' +
+          'mueva menos peso que la flexión con el mismo antebrazo.'),
+        motorSinGrupo: 'extensores del antebrazo',
+      },
+      M('codo', 'estabilizador', 'isometrico', ['Bíceps'], [20, 40],
+        'Sostiene el ángulo. Si el codo se abre, el recorrido deja de ser de la muñeca.'),
+    ],
+    linea: { origen: 'carga-externa' },
+    marcas: ['codo', 'muñeca'],
+    alineacion: {
+      regla: 'el antebrazo apoyado y quieto',
+      toleranciaMm: 15,
+      porQue:
+        'Es lo único que garantiza que lo que gira sea la mano. Sin apoyo, el codo aporta ' +
+        'recorrido y el ángulo medido no es el de la muñeca.',
+    },
+    limite:
+      'El brazo externo de la muñeca ronda los 70 mm —media mano—, y el ruido absoluto de la ' +
+      'única medida limpia del proyecto (remo, 290 mm ± 12) sería aquí cerca del 17 % en vez ' +
+      'del 4 %. Vale para el recorrido; no para comparar cargas entre sesiones.',
+  },
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORIAS, grupoPrimario, ORDEN_GRUPOS, type Categoria } from '../taxonomia'
+import {
+  aportesDeCategoria,
+  CATEGORIAS,
+  grupoPrimario,
+  ORDEN_GRUPOS,
+  type Categoria,
+} from '../taxonomia'
 import { REGLAS_DE_EJE } from './reglas'
 import {
   EJES_DERIVADOS,
@@ -26,7 +32,7 @@ function modelo(categoria: Categoria): ModeloDePalanca {
 }
 
 describe('cobertura de la matriz', () => {
-  it('los 32 patrones de la taxonomía tienen entrada', () => {
+  it('los 34 patrones de la taxonomía tienen entrada', () => {
     for (const categoria of CATEGORIAS) {
       expect(MODELOS_DE_PALANCA).toHaveProperty(categoria)
     }
@@ -61,7 +67,29 @@ describe('invariantes de cada modelo', () => {
     for (const categoria of conModelo) {
       for (const eje of modelo(categoria).ejes) {
         if (eje.protagonismo !== 'principal') continue
-        expect(eje.motores.length, `${categoria} · ${eje.articulacion}`).toBeGreaterThan(0)
+        // O un grupo del PANEL, o el nombre del músculo que no tiene grupo. Lo
+        // que no vale es dejarlo en blanco: la muñeca y la dorsiflexión existen.
+        const declarado = eje.motores.length > 0 || (eje.motorSinGrupo ?? '').length > 0
+        expect(declarado, `${categoria} · ${eje.articulacion}`).toBe(true)
+      }
+    }
+  })
+
+  /**
+   * El error que esto caza ya ocurrió: la DORSIFLEXIÓN declaró `Pantorrillas`
+   * —su ANTAGONISTA— hasta el 2026-08-27, y ningún test lo vio. Podía pasar
+   * porque el grupo existe y la taxonomía había dejado de acreditarle volumen,
+   * así que la comprobación que cruzaba las dos tablas se saltaba esa fila
+   * entera. Cuando la taxonomía no le da grupo a un patrón, el eje que manda
+   * tiene que decir el músculo por su nombre y no coger el grupo más cercano.
+   */
+  it('un patrón sin grupo en la taxonomía no se inventa uno en el eje que manda', () => {
+    for (const categoria of conModelo) {
+      if (aportesDeCategoria(categoria).length > 0) continue
+      for (const eje of modelo(categoria).ejes) {
+        if (eje.protagonismo !== 'principal') continue
+        expect(eje.motores, `${categoria} · ${eje.articulacion}`).toEqual([])
+        expect(eje.motorSinGrupo, `${categoria} · ${eje.articulacion}`).toBeTruthy()
       }
     }
   })

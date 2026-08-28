@@ -10,7 +10,7 @@
  *
  * Se apoya en dos cosas que ya existen y no las duplica:
  *
- *   1. `domain/taxonomia.ts` — los 32 patrones y qué grupo muscular trabaja en
+ *   1. `domain/taxonomia.ts` — los 34 patrones y qué grupo muscular trabaja en
  *      cada uno. Aquí NO se vuelve a decidir eso: se toma de allí y se añade
  *      **sobre qué eje** genera ese grupo su momento.
  *   2. `Cerebro Alpha/wiki/conocimiento/perfiles-de-resistencia.md` §2.1 — la
@@ -262,7 +262,11 @@ export function planDeMedida(categoria: string, nombreEjercicio = ''): PlanDeMed
     // Sin implemento declarado no se sabe, y no saber se parece más a que valga
     // que a que no: el patrón por defecto de la tabla es peso libre.
     brazoPorDistanciaHorizontal: perfil ? perfil.distanciaHorizontalVale : true,
-    limites: [...(perfil?.limite ? [perfil.limite] : []), ...(unilateral ? [LIMITE_UNILATERAL] : [])],
+    limites: [
+      ...(modelo.limite ? [modelo.limite] : []),
+      ...(perfil?.limite ? [perfil.limite] : []),
+      ...(unilateral ? [LIMITE_UNILATERAL] : []),
+    ],
   }
 }
 

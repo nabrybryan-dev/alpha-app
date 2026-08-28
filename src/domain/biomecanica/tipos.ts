@@ -121,6 +121,21 @@ export interface Eje {
   /** Los grupos de `taxonomia.ts` que generan el momento interno en este eje. */
   motores: readonly Grupo[]
   /**
+   * El músculo que mueve este eje cuando **no tiene grupo** en el PANEL.
+   *
+   * Dos ejes reales se quedan fuera de los doce grupos: la muñeca —la mueven
+   * los flexores y extensores del antebrazo, y no hay grupo «Antebrazo»— y la
+   * dorsiflexión del tobillo, que es del tibial anterior. Ninguno de los dos
+   * acredita volumen en `taxonomia.ts`, y por eso `motores` va vacío.
+   *
+   * Va escrito y no en blanco porque la alternativa ya falló: la dorsiflexión
+   * declaró `Pantorrillas` hasta el 2026-08-27, que es el ANTAGONISTA —el
+   * tríceps sural plantiflexiona—, y ningún test lo vio porque el grupo existía
+   * y la taxonomía ya no acreditaba nada que contrastar. Un hueco declarado se
+   * revisa; uno rellenado con el grupo más cercano se hereda.
+   */
+  motorSinGrupo?: string
+  /**
    * Brazo de momento interno en mm, como RANGO. De tabla, no medible con la
    * cámara, y variable con el ángulo articular: el patrón cualitativo es
    * consenso, los milímetros son orientativos (perfiles-de-resistencia §5.1).
@@ -168,6 +183,12 @@ export interface ModeloDePalanca {
    * horizontal NO basta. El texto dice qué falta para cerrar el cálculo.
    */
   dosApoyos?: string
+  /**
+   * Lo que este patrón no puede prometer por sí mismo, salga con el implemento
+   * que salga. Sale en `limites` junto a los del implemento, porque quien pinta
+   * la pantalla no tiene por qué saber de dónde vino cada advertencia.
+   */
+  limite?: string
 }
 
 /** Atajo para escribir la tabla sin repetir los nombres de campo en 29 entradas. */
