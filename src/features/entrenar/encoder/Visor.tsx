@@ -72,6 +72,7 @@ export function Visor({ ajustes, children }: VisorProps) {
   const marcasRef = useRef<HTMLElement>(null)
   const escalaRef = useRef<HTMLElement>(null)
   const anguloRef = useRef<HTMLElement>(null)
+  const consejoRef = useRef<HTMLElement>(null)
   const muestrasRef = useRef<HTMLElement>(null)
   const relojRef = useRef<HTMLElement>(null)
 
@@ -84,6 +85,7 @@ export function Visor({ ajustes, children }: VisorProps) {
       marcas: marcasRef,
       separacion: escalaRef,
       angulo: anguloRef,
+      consejo: consejoRef,
       muestras: muestrasRef,
       reloj: relojRef,
     },
@@ -249,6 +251,16 @@ export function Visor({ ajustes, children }: VisorProps) {
           <Medida nombre="marcas" valorRef={marcasRef} principal />
           <Medida nombre="ángulo" valorRef={anguloRef} principal />
         </div>
+        {/* El consejo del ángulo, en su propia línea.
+            Estaba metido dentro del valor, y en un móvil la frase entera desbordaba la
+            columna, se partía en cuatro líneas y empujaba a fps y marcas fuera de sitio
+            — o sea que la barra que decide si la toma sirve dejaba de leerse justo con
+            la cámara abierta y el teléfono en el trípode.
+            Vacío cuando no hay nada que decir, así que no ocupa alto de más. */}
+        <p
+          ref={consejoRef as React.RefObject<HTMLParagraphElement>}
+          className="px-4 pt-1.5 text-[11px] font-bold leading-snug text-ambar empty:hidden"
+        />
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 px-4 pb-3 pt-2">
           <Medida nombre="escala" valorRef={escalaRef} />
           <Medida nombre="píxeles" valorRef={pixelesRef} />

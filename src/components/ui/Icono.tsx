@@ -234,3 +234,30 @@ export function IconoPausa({ className }: IconoProps) {
     </Icono>
   )
 }
+
+/**
+ * El visor anatómico: una figura de pie dentro de una caja en perspectiva.
+ *
+ * Existe porque el acceso a lo único que esta app tiene y no tiene ninguna otra —el
+ * cuerpo en 3D, con su esqueleto y sus músculos— era texto gris de diez píxeles al
+ * final de una fila de enlaces secundarios. Su hermano de al lado, el vídeo de técnica,
+ * sí llevaba icono. Tres personas seguidas no encontraron el botón: eso no es que no
+ * miren, es que no está.
+ *
+ * La caja se dibuja abierta —solo tres aristas— para que se lea como un espacio y no
+ * como un paquete, que es justo lo que hay dentro: una sala con alguien de pie.
+ */
+export function IconoCuerpo3D({ className }: IconoProps) {
+  return (
+    <Icono className={className}>
+      {/* La caja: suelo en perspectiva y la arista vertical del fondo. */}
+      <path d="M3 17.5 L12 21 L21 17.5 L12 14 Z" opacity="0.55" />
+      <path d="M3 17.5 V9.5 M21 17.5 V9.5" opacity="0.4" />
+      {/* La figura: cabeza, tronco, brazos y piernas. */}
+      <circle cx="12" cy="4.4" r="1.7" />
+      <path d="M12 6.1 V11.4" />
+      <path d="M9.2 8.2 L12 7.3 L14.8 8.2" />
+      <path d="M12 11.4 L10.2 15.3 M12 11.4 L13.8 15.3" />
+    </Icono>
+  )
+}

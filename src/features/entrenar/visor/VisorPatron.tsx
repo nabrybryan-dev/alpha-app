@@ -13,6 +13,9 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
+import { construirSala, ENCUADRE_SALA, SALA, vistaDeGrabacion, type DatosDeSerie } from '../../../domain/escenario/sala'
+import { construirTripode, type Colocacion } from '../../../domain/escenario/tripode'
+import { juzgarColocacion, lecturasDeColocacion } from './juzgarColocacion'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import {
@@ -22,9 +25,10 @@ import {
   longitudesEnReposo,
   MUSCULOS,
 } from '../../../domain/patrones/musculos'
-import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
+import { movimientoReducido, useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 import { camaraAbierta } from '../camaraAbierta'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
+import { textoDeMotivo } from '../encoder/motivosEncuadre'
 import { FONDO_ESTUDIO } from './motor'
 
 type Capa = 'ambas' | 'musculo' | 'hueso'
@@ -55,6 +59,50 @@ function laboratorio(): Malla {
   }
   return laboratorioCache
 }
+
+/**
+ * La sala se cachea POR SUS NÚMEROS, no a secas.
+ *
+ * Las paredes y la estación de grabación no cambian nunca, pero los marcadores llevan
+ * cifras de siete segmentos hechas de geometría: cambiar un número es reconstruir esos
+ * dígitos. Cachear por el trío evita rehacer la sala entera en cada fotograma y a la
+ * vez deja que el marcador reaccione cuando la serie avanza — que es el único momento
+ * en que TIENE que cambiar.
+ */
+let salaCache: { clave: string; malla: Malla } | null = null
+
+function sala(datos: DatosDeSerie): Malla {
+  const clave = `${datos.series}|${datos.reps}|${datos.rir}`
+  if (!salaCache || salaCache.clave !== clave) {
+    const malla = new Malla()
+    construirSala(malla, datos)
+    salaCache = { clave, malla }
+  }
+  return salaCache.malla
+}
+/**
+ * El trípode se cachea POR SU COLOCACIÓN. Mientras no se mueva, es geometría fija; en
+ * cuanto el asesorado toca un mando, hay que rehacerlo — y solo a él, no la sala entera.
+ */
+let tripodeCache: { clave: string; malla: Malla } | null = null
+
+function tripode(c: Colocacion): Malla {
+  const clave = `${c.anguloGrados.toFixed(1)}|${c.distancia.toFixed(2)}|${c.altura.toFixed(2)}`
+  if (!tripodeCache || tripodeCache.clave !== clave) {
+    const malla = new Malla()
+    construirTripode(malla, c)
+    tripodeCache = { clave, malla }
+  }
+  return tripodeCache.malla
+}
+
+/** La colocación de partida: la que la sala propone y la puerta aprueba. */
+const COLOCACION_INICIAL: Colocacion = {
+  anguloGrados: SALA.estacion.anguloGrados,
+  distancia: SALA.estacion.distancia,
+  altura: SALA.estacion.altura,
+}
+
 let reposoCache: Record<string, number> | null = null
 function precalculado() {
   huesosCache ??= construirHuesos()
@@ -65,7 +113,14 @@ function precalculado() {
 interface VisorPatronProps {
   patron: Patron
   /**
-   * Si se dibuja la bahía de medida alrededor del sujeto.
+   * Los números de la serie que se está haciendo. Opcional a propósito: sin ellos la
+   * sala no se construye y el visor se queda con la bahía, que es lo que hace falta
+   * cuando esto se abre solo para estudiar el patrón y no para entrenar.
+   */
+  datos?: DatosDeSerie
+  /**
+   * Si se dibuja el escenario alrededor del sujeto —la bahía, y con `datos` también
+   * la sala y el trípode.
    *
    * Se puede apagar para mirar solo el cuerpo. No es un modo de depuración: al
    * estudiar una articulación aislada el escenario es ruido, y en las
@@ -81,7 +136,7 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
+export function VisorPatron({ patron, datos, conEscenario = true }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -89,12 +144,47 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
   const [girando, setGirando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reducido = useMovimientoReducido()
+  /**
+   * Sala, trípode y sus mandos van juntos, y cuelgan de las dos cosas: sin escenario no
+   * hay dónde ponerlos —el explorador mira una articulación sola, sin suelo— y sin los
+   * números de la serie no hay marcador que enseñar.
+   */
+  const haySala = conEscenario && !!datos
 
   // Todo lo que cambia sesenta veces por segundo va por referencia y no por
   // estado: meterlo en `useState` volvería a renderizar el árbol en cada cuadro.
-  const estado = useRef({ fase: 0, sentido: 1, reloj: 0, reproduciendo: true, girando: false, capa: 'ambas' as Capa })
+  const estado = useRef({
+    fase: 0,
+    sentido: 1,
+    reloj: 0,
+    reproduciendo: true,
+    girando: false,
+    capa: 'ambas' as Capa,
+    // Los números del marcador viven aquí y no en las dependencias del efecto que
+    // monta la escena: incluirlos ahí recrearía el contexto WebGL entero cada vez
+    // que avanza una serie. Van por referencia y se repinta, como la capa.
+    datos: undefined as DatosDeSerie | undefined,
+    colocacion: COLOCACION_INICIAL,
+  })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
+  /**
+   * Lleva la cámara a una vista concreta. La rellena el mismo efecto, porque la órbita
+   * vive dentro de él y no tiene sentido sacarla: lo que se necesita fuera es la orden,
+   * no el objeto.
+   */
+  const irAVista = useRef<((a: 'grabacion' | 'patron') => void) | null>(null)
+  const [enGrabacion, setEnGrabacion] = useState(false)
+  const [colocacion, setColocacion] = useState<Colocacion>(COLOCACION_INICIAL)
+  /** Si el ejercicio lleva barra con discos. El núcleo no puede adivinarlo, y cambia
+   *  el tope de 12° a 30°: dar por hecho que hay disco sería dar por hecho la
+   *  corrección del escorzo, así que arranca en «no». */
+  const [hayDisco, setHayDisco] = useState(false)
+
+  // El juicio y las lecturas se derivan en el render: son aritmética de cámara, cuestan
+  // microsegundos, y derivarlas evita el estado duplicado que se queda viejo.
+  const veredicto = juzgarColocacion(colocacion, hayDisco)
+  const lecturas = lecturasDeColocacion(colocacion)
 
   // Los controles se copian al ref en un efecto y no durante el render: tocar
   // `ref.current` mientras se renderiza es justo lo que prohíbe `react-hooks/refs`.
@@ -104,8 +194,14 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
     estado.current.reproduciendo = reproduciendo && !reducido
     estado.current.girando = girando
     estado.current.capa = capa
+    estado.current.datos = haySala ? datos : undefined
+    estado.current.colocacion = colocacion
+    // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
+    // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
+    // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo
+    // mudo de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa])
+  }, [reproduciendo, reducido, girando, capa, haySala, datos, colocacion])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -140,8 +236,18 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
         orbita = new Orbita(lienzo, () => pintar())
         orbita.azimut = patron.camara.azimut
         orbita.elevacion = patron.camara.elevacion
-        orbita.distancia = encuadre.distancia
-        orbita.centro = encuadre.centro
+        // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
+        // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia
+        // el borde inferior del cuadro cae por encima del suelo y el laboratorio entero
+        // queda recortado: el sujeto parece flotando en un vacío y la escena, que está
+        // construida y renderizada, no se ve. Medido: 0,76 % del lienzo.
+        // Se lee del ref y no de la prop: incluir `datos` en las dependencias de este
+        // efecto recrearía el contexto WebGL cada vez que avanza una serie. El efecto
+        // de sincronización se declara ANTES que este, así que para cuando esto corre
+        // el ref ya está puesto.
+        const conSala = !!estado.current.datos
+        orbita.distancia = conSala ? ENCUADRE_SALA.distancia : encuadre.distancia
+        orbita.centro = conSala ? [...ENCUADRE_SALA.centro] : encuadre.centro
 
         let matrices = resolver({}, [0, 0.95, 0], [0, 0, 0]).matrices
 
@@ -152,6 +258,13 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
           const partes = conEscenario ? [laboratorio()] : []
+          // La sala y el trípode cuelgan de la bahía: sin escenario no hay dónde
+          // ponerlos, y sin números no hay marcador que enseñar.
+          const d = estado.current.datos
+          if (d) {
+            partes.push(sala(d))
+            partes.push(tripode(estado.current.colocacion))
+          }
           if (estado.current.capa !== 'musculo') partes.push(huesos)
           if (estado.current.capa !== 'hueso')
             partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
@@ -212,6 +325,67 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           construir()
           pintar()
         }
+
+        /**
+         * El viaje a una vista, interpolado.
+         *
+         * Teletransportar la cámara desorienta: se pierde de dónde venías, y aquí eso
+         * importa porque el sentido de la vista de grabación es entender la RELACIÓN
+         * entre dónde está el móvil y dónde está el sujeto. El recorrido es la
+         * explicación.
+         *
+         * El azimut se interpola por el camino corto —la diferencia se normaliza a
+         * ±180°— o girar de −170° a 170° daría una vuelta entera de 340 en vez de los
+         * 20 que hay de verdad.
+         *
+         * Con movimiento reducido no se viaja: se llega. La vista es información, no
+         * decoración, así que no puede perderse — lo que se pierde es el trayecto.
+         */
+        let viaje = 0
+        irAVista.current = (adonde) => {
+          // El destino se resuelve AQUÍ y no fuera, porque depende de `orbita.centro`,
+          // que es el encuadre propio de este patrón. Calcularlo fuera obligaría a
+          // adivinar ese centro, y una vista de grabación calculada contra un centro
+          // que no es el real enseñaría un encuadre que el móvil no va a tener.
+          const destino =
+            adonde === 'grabacion'
+              ? vistaDeGrabacion(orbita.centro)
+              : {
+                  azimut: patron.camara.azimut,
+                  elevacion: patron.camara.elevacion,
+                  distancia: conSala ? ENCUADRE_SALA.distancia : encuadre.distancia,
+                }
+          cancelAnimationFrame(viaje)
+          const desde = {
+            azimut: orbita.azimut,
+            elevacion: orbita.elevacion,
+            distancia: orbita.distancia,
+          }
+          let giro = destino.azimut - desde.azimut
+          giro = ((((giro + 180) % 360) + 360) % 360) - 180
+
+          if (movimientoReducido()) {
+            orbita.azimut = destino.azimut
+            orbita.elevacion = destino.elevacion
+            orbita.distancia = destino.distancia
+            pintar()
+            return
+          }
+
+          const DURACION = 520
+          const arranque = performance.now()
+          const paso = (ahora: number) => {
+            const t = Math.min(1, (ahora - arranque) / DURACION)
+            // La curva de salida del sistema: rápido al principio y posándose al final.
+            const e = 1 - Math.pow(1 - t, 3)
+            orbita.azimut = desde.azimut + giro * e
+            orbita.elevacion = desde.elevacion + (destino.elevacion - desde.elevacion) * e
+            orbita.distancia = desde.distancia + (destino.distancia - desde.distancia) * e
+            pintar()
+            if (t < 1) viaje = requestAnimationFrame(paso)
+          }
+          viaje = requestAnimationFrame(paso)
+        }
         construir()
         pintar()
         cuadro = requestAnimationFrame(bucle)
@@ -231,6 +405,7 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
       cancelAnimationFrame(cuadro)
       window.removeEventListener('resize', alRedimensionar)
       redibujar.current = null
+      irAVista.current = null
       orbita?.destruir()
     }
   }, [patron, conEscenario])
@@ -295,6 +470,38 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
             {BAHIA.pasoMayor * 100} cm
           </p>
         )}
+        {/* EL ENCUADRE, cuando se mira desde el trípode.
+            Dos escuadras y un punto rojo: es lo que dice «esto ya no es una vista
+            libre, es la cámara». Sin esa señal la vista de grabación se confunde con
+            cualquier otro ángulo de la órbita, y entonces no enseña nada. */}
+        {enGrabacion && !error && (
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <span className="absolute left-4 top-4 h-5 w-5 border-l-2 border-t-2 border-rojo/70" />
+            <span className="absolute right-4 top-4 h-5 w-5 border-r-2 border-t-2 border-rojo/70" />
+            <span className="absolute bottom-4 left-4 h-5 w-5 border-b-2 border-l-2 border-rojo/70" />
+            <span className="absolute bottom-4 right-4 h-5 w-5 border-b-2 border-r-2 border-rojo/70" />
+            <span className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-rojo">
+              <span className="h-1.5 w-1.5 rounded-full bg-rojo" />
+              encuadre
+            </span>
+          </div>
+        )}
+        {/* DÓNDE VA EL MÓVIL DE VERDAD.
+            La marca del suelo no es decoración: es la posición desde la que el encoder
+            puede medir. El sujeto mira a +Z, así que su plano sagital es X=0, y una
+            sola cámara no da los grados de libertad del plano frontal — de perfil es
+            el ÚNICO sitio desde el que sale una velocidad de barra que valga.
+            El ±  es la tolerancia real que aplica la puerta de encuadre, no un número
+            de adorno: sin un disco a la vista solo se admiten 12° de desvío. */}
+        {!error && haySala && (
+          <p className="pointer-events-none absolute right-3 top-2 text-right font-mono text-[9px] uppercase leading-relaxed tracking-[0.1em] text-white/35">
+            trípode {SALA.estacion.distancia.toFixed(1).replace('.', ',')} m
+            <span className="mx-1 text-white/20">·</span>
+            {SALA.estacion.altura.toFixed(1).replace('.', ',')} m alto
+            <br />
+            de perfil ±{SALA.tolerancia.sinDisco}°
+          </p>
+        )}
         {!error && (
           <p className="pointer-events-none absolute bottom-2 left-3 text-[9px] uppercase tracking-[0.12em] text-silver-400">
             Arrastra para girar
@@ -330,6 +537,27 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           aria-label="Fase del movimiento"
           className="h-1 min-w-[110px] flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-ambar"
         />
+        {/* ENTRAR A GRABAR.
+            No abre un menú ni explica nada: lleva la cámara EXACTAMENTE a donde va a
+            estar el móvil —mismo ángulo, misma distancia, misma altura— y desde ahí se
+            ve el encuadre real antes de plantar el trípode. Si el sujeto no cabe o el
+            disco queda de canto, se descubre aquí y no con la serie ya hecha.
+            Solo aparece cuando hay sala, porque sin sala no hay estación. */}
+        {haySala && (
+          <button
+            type="button"
+            onClick={() => {
+              irAVista.current?.(enGrabacion ? 'patron' : 'grabacion')
+              setEnGrabacion((v) => !v)
+            }}
+            aria-pressed={enGrabacion}
+            className={`press rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+              enGrabacion ? 'border-rojo/60 bg-rojo/15 text-rojo' : 'border-ink-500 text-silver-300'
+            }`}
+          >
+            {enGrabacion ? 'Salir' : 'Ver desde la cámara'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setGirando((v) => !v)}
@@ -354,6 +582,109 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           ))}
         </div>
       </div>
+
+      {/* EL ENSAYO DE COLOCACION.
+          Solo con la camara puesta: fuera de ese modo estos mandos serian ruido.
+          El veredicto se dice con MATERIA —placa llena, hueca o hundida— y no con
+          verde y rojo, que es la regla de marca de toda la app: no hay verde, y el
+          rojo es color de marca y no de error. Es el mismo vocabulario del sello de
+          calidad del encoder, y se lee a tres metros y en escala de grises. */}
+      {enGrabacion && haySala && (
+        <div className="flex flex-col gap-2.5 rounded-xl border border-ink-500 bg-ink-800 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-silver-500">
+              Colocacion del tripode
+            </span>
+            <span
+              className="cifras rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em]"
+              style={
+                veredicto.nivel === 'buena'
+                  ? { background: 'var(--placa)', color: 'var(--ink-900)' }
+                  : veredicto.nivel === 'dudosa'
+                    ? { border: '1px solid var(--placa)', color: 'var(--placa)' }
+                    : {
+                        background: 'var(--hundido)',
+                        color: 'var(--placa-muerta)',
+                        boxShadow: 'var(--sombra-hundido)',
+                      }
+              }
+            >
+              {veredicto.nivel}
+            </span>
+          </div>
+
+          {/* Los numeros salen del MISMO calculo que juzga, no de una cuenta paralela:
+              ver un ancho de escena distinto del que aplica la puerta seria peor que
+              no verlo. */}
+          <p className="cifras text-[10.5px] leading-relaxed text-silver-400">
+            desvio {lecturas.desvio.toFixed(0)}deg
+            <span className="mx-1.5 text-silver-600">/</span>
+            escena {lecturas.anchoEscenaM.toFixed(1)} m
+            <span className="mx-1.5 text-silver-600">/</span>
+            disco {lecturas.discoPx.toFixed(0)} px
+          </p>
+
+          {veredicto.motivos.length > 0 && (
+            <p className="text-[11px] leading-snug text-ambar">
+              {veredicto.motivos.map((m) => textoDeMotivo(m)).join(' · ')}
+            </p>
+          )}
+
+          <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-silver-400">
+            <span className="w-[62px] shrink-0">Angulo</span>
+            <input
+              type="range"
+              min={150}
+              max={210}
+              value={Math.round(colocacion.anguloGrados)}
+              onChange={(e) => setColocacion((c) => ({ ...c, anguloGrados: Number(e.target.value) }))}
+              className="h-1 flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-rojo"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-silver-400">
+            <span className="w-[62px] shrink-0">Distancia</span>
+            <input
+              type="range"
+              min={16}
+              max={45}
+              value={Math.round(colocacion.distancia * 10)}
+              onChange={(e) => setColocacion((c) => ({ ...c, distancia: Number(e.target.value) / 10 }))}
+              className="h-1 flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-rojo"
+            />
+            <span className="cifras w-[46px] shrink-0 text-right text-silver-300">
+              {colocacion.distancia.toFixed(1)} m
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-silver-400">
+            <span className="w-[62px] shrink-0">Altura</span>
+            <input
+              type="range"
+              min={30}
+              max={160}
+              value={Math.round(colocacion.altura * 100)}
+              onChange={(e) => setColocacion((c) => ({ ...c, altura: Number(e.target.value) / 100 }))}
+              className="h-1 flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-rojo"
+            />
+            <span className="cifras w-[46px] shrink-0 text-right text-silver-300">
+              {colocacion.altura.toFixed(2)} m
+            </span>
+          </label>
+
+          {/* El nucleo no puede adivinar si el ejercicio lleva barra con discos, y la
+              diferencia es el doble de margen: 30deg contra 12. Arranca en «no» porque
+              dar por hecho el disco seria dar por hecha la correccion del escorzo. */}
+          <button
+            type="button"
+            onClick={() => setHayDisco((v) => !v)}
+            aria-pressed={hayDisco}
+            className={`press self-start rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+              hayDisco ? 'border-silver-400 text-silver-100' : 'border-ink-500 text-silver-500'
+            }`}
+          >
+            {hayDisco ? 'Con disco a la vista' : 'Sin disco a la vista'}
+          </button>
+        </div>
+      )}
 
       {reducido && (
         <p className="text-[10px] leading-snug text-silver-400">

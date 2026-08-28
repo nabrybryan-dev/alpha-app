@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { accionesPrincipales } from '../../../domain/patrones/acciones'
 import type { Patron } from '../../../domain/patrones/catalogo'
+import type { DatosDeSerie } from '../../../domain/escenario/sala'
 import { ExploradorAnatomico } from './ExploradorAnatomico'
 import { VisorPatron } from './VisorPatron'
 
@@ -18,6 +19,12 @@ import { VisorPatron } from './VisorPatron'
  */
 export interface EstudioDelPatronProps {
   patron: Patron
+  /**
+   * Los números de la serie en curso. Van al visor del ejercicio, que es donde
+   * levantan la sala y los marcadores; la vista de una articulación no los usa
+   * porque ahí no hay escenario que rotular.
+   */
+  datos?: DatosDeSerie
 }
 
 type Vista = 'ejercicio' | 'articulacion'
@@ -35,7 +42,7 @@ function articulacionProtagonista(patron: Patron): string | undefined {
   return (mueve ?? principales[0])?.articulacion.id
 }
 
-export function EstudioDelPatron({ patron }: EstudioDelPatronProps) {
+export function EstudioDelPatron({ patron, datos }: EstudioDelPatronProps) {
   const [vista, setVista] = useState<Vista>('ejercicio')
 
   return (
@@ -69,7 +76,7 @@ export function EstudioDelPatron({ patron }: EstudioDelPatronProps) {
           contexto WebGL, y dos a la vez es el doble de trabajo por cuadro en un
           móvil que además está grabando la serie. */}
       {vista === 'ejercicio' ? (
-        <VisorPatron patron={patron} />
+        <VisorPatron patron={patron} datos={datos} />
       ) : (
         <ExploradorAnatomico articulacionInicial={articulacionProtagonista(patron)} />
       )}

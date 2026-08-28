@@ -7,7 +7,7 @@ import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domai
 import { CheckDibujado } from './CheckDibujado'
 import { ExerciseSlotMachine } from './ExerciseSlotMachine'
 import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
-import { IconoVideo } from '../../components/ui/Icono'
+import { IconoVideo, IconoCuerpo3D } from '../../components/ui/Icono'
 import { esAlFallo } from '../../domain/objetivoDeIntensidad'
 
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
@@ -138,13 +138,22 @@ export function TarjetaEjercicio({
               {notaVisible ? 'Ocultar ejecución ▴' : 'Ver notas de ejecución ▾'}
             </button>
             <span className="ml-auto flex items-center gap-3">
+              {/* EL ACCESO AL CUERPO EN 3D.
+                  Era texto gris de diez píxeles sin icono, al final de una fila de
+                  enlaces secundarios, mientras su hermano de al lado —el vídeo de
+                  técnica— sí llevaba icono. Tres personas seguidas no lo encontraron;
+                  eso no es que no miren, es que no está.
+                  Ahora lleva icono como su hermano, filete y el acento de marca: es lo
+                  único que esta app tiene y no tiene ninguna otra, y estaba escondido
+                  en el control menos visible de la tarjeta. */}
               {patron && (
                 <button
                   type="button"
                   onClick={() => onVerPatron(patron)}
-                  className="press text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                  className="press flex items-center gap-1.5 rounded-lg border border-accion/35 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-accion"
                 >
-                  Patrón 3D
+                  <IconoCuerpo3D className="h-[14px] w-[14px]" />
+                  Ver en 3D
                 </button>
               )}
               {contenidoDemo && (
