@@ -10,6 +10,7 @@
  */
 
 import { grados, limitar, M4, type Mat4, type Vec3 } from '../../../domain/patrones/algebra'
+import { GLSL_ACABADO } from '../../../domain/patrones/color'
 import type { Malla } from '../../../domain/patrones/malla'
 
 /** Cuántas matrices de hueso caben en el shader. El esqueleto usa 22. */
@@ -49,10 +50,12 @@ void main() {
 
 const FS = `
 precision mediump float;
+${GLSL_ACABADO}
 varying vec3 v_nrm;
 varying vec3 v_col;
 varying vec3 v_mundo;
 uniform vec3 u_ojo;
+uniform float u_suelo;
 void main() {
   vec3 N = normalize(v_nrm);
   vec3 V = normalize(u_ojo - v_mundo);
@@ -69,14 +72,32 @@ void main() {
   float borde = pow(1.0 - max(dot(N, V), 0.0), 2.6);
   float brillo = pow(max(dot(N, normalize(L1 + V)), 0.0), 26.0) * 0.30;
 
-  vec3 c = v_col * (vec3(0.245, 0.268, 0.300) + d1 * 0.85 + envuelve)
-         + v_col * d2 * vec3(0.72, 0.82, 1.0);
+  // Ambiente por hemisferios en vez de un gris plano: lo que mira hacia arriba
+  // recibe cielo y lo que mira hacia abajo recibe rebote del suelo, más oscuro.
+  // Es lo que da volumen a las cavidades sin necesidad de calcular oclusión: un
+  // ambiente constante aplana la figura y la deja como un recorte.
+  float cielo = N.y * 0.5 + 0.5;
+  vec3 ambiente = aLineal(mix(vec3(0.126, 0.140, 0.162), vec3(0.300, 0.330, 0.372), cielo));
+
+  // Oscurecimiento de contacto. Lo que está a ras de suelo recibe menos luz del
+  // entorno porque el propio suelo se la tapa, y es lo que posa la figura en vez
+  // de dejarla flotando. Se hace sobre el cuerpo y no proyectando una sombra en
+  // el plano: la cámara mira casi a la altura del sujeto, así que una mancha en
+  // el suelo se ve de canto y no aparece por muy grande y negra que sea.
+  float contacto = clamp(v_mundo.y / 0.26, 0.0, 1.0);
+  ambiente *= mix(1.0, 0.34 + 0.66 * contacto, u_suelo);
+
+  vec3 base = aLineal(v_col);
+  vec3 c = base * (ambiente + d1 * 0.85 + envuelve)
+         + base * d2 * vec3(0.72, 0.82, 1.0);
   c += vec3(1.0, 0.97, 0.92) * brillo;
   c += vec3(0.62, 0.72, 0.86) * borde * 0.30;
 
   // Bruma con la distancia: da profundidad sin ocultar nada.
   float niebla = clamp((length(u_ojo - v_mundo) - 1.6) / 4.2, 0.0, 1.0);
-  gl_FragColor = vec4(mix(c, vec3(0.300, 0.334, 0.376), niebla * 0.40), 1.0);
+  c = mix(c, aLineal(vec3(0.300, 0.334, 0.376)), niebla * 0.40);
+
+  gl_FragColor = vec4(acabado(c), 1.0);
 }`
 
 function compilar(gl: WebGLRenderingContext, tipo: number, fuente: string): WebGLShader {
@@ -185,7 +206,18 @@ export class Motor {
     gl.vertexAttribPointer(loc, tam, gl.FLOAT, false, 0, 0)
   }
 
-  dibujar(matrices: Mat4[], vista: Mat4, proyeccion: Mat4, ojo: Vec3): void {
+  /**
+   * @param haySuelo si el sujeto se apoya en algo. Sin suelo debajo no puede
+   *   haber oclusión de contacto, y aplicarla dejaría las piernas oscurecidas
+   *   sin motivo en las demostraciones, donde el sujeto flota a propósito.
+   */
+  dibujar(
+    matrices: Mat4[],
+    vista: Mat4,
+    proyeccion: Mat4,
+    ojo: Vec3,
+    haySuelo: boolean,
+  ): void {
     const gl = this.gl
     gl.clearColor(FONDO_RGB[0], FONDO_RGB[1], FONDO_RGB[2], 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -204,6 +236,7 @@ export class Motor {
     gl.uniformMatrix4fv(u('u_huesos'), false, plano)
     gl.uniformMatrix4fv(u('u_vista'), false, new Float32Array(vista))
     gl.uniformMatrix4fv(u('u_proyeccion'), false, new Float32Array(proyeccion))
+    gl.uniform1f(u('u_suelo'), haySuelo ? 1 : 0)
     gl.uniform3fv(u('u_ojo'), new Float32Array(ojo))
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)

@@ -58,6 +58,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // El acabado de imagen corre en la TARJETA, no en TypeScript: el shader recibe
+  // `GLSL_ACABADO`, que es texto generado con estos mismos coeficientes. Las
+  // versiones en TS existen para poder probar la curva —que no se puede ejecutar
+  // desde un test— y son el espejo de la que se inyecta. Borrarlas dejaría el
+  // tonemapping sin una sola prueba.
+  'src/domain/patrones/color.ts#acabado':
+    'Espejo en TS de la curva que corre en el shader. Es lo que hace probable el ' +
+    'tonemapping; el GLSL se genera con los mismos coeficientes.',
+  'src/domain/patrones/color.ts#aLineal':
+    'Espejo en TS de la linealizacion del shader. Su test es el que fija que ida y ' +
+    'vuelta se cancelan, que es lo que fallaba cuando la imagen salia lavada.',
   // Donde cae el pico de exigencia externa de cada una de las 32 categorias.
   // Nacio para decidir si el cue llevaba el ancla de «parciales en reserva»; ese
   // uso se RETIRO el 2026-08-25 porque contradecia el metodo -en Alpha las
