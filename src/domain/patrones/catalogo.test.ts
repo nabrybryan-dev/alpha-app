@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID } from './catalogo'
 import { MUSCULO_POR_ID, PORCION_POR_CLAVE } from './musculos'
-import { INDICE_HUESO } from './esqueleto'
-import { RANGO } from './movimiento'
+import { apoyarPies, INDICE_HUESO, type Lado } from './esqueleto'
+import { poseAnimada, RANGO } from './movimiento'
 
 describe('el catálogo de patrones', () => {
   it('no repite identificadores ni categorías', () => {
@@ -195,5 +195,49 @@ describe('el catálogo de patrones', () => {
 
   it('indexa por id sin perder ninguno', () => {
     expect(Object.keys(PATRON_POR_ID)).toHaveLength(PATRONES.length)
+  })
+})
+
+describe('la movilidad que los patrones dan por supuesta', () => {
+  /**
+   * El apoyo plantar calcula el ángulo de tobillo DESPUÉS de que se apliquen
+   * los topes, para que la planta quede horizontal pase lo que pase. Eso está
+   * bien —si no, los pies se clavarían o flotarían—, pero tiene una
+   * consecuencia: un patrón puede exigir más recorrido del que la articulación
+   * tiene y nadie se entera.
+   *
+   * Con la dorsiflexión en sus 20° estándar, cinco patrones piden más. No es
+   * necesariamente un fallo: una sentadilla profunda de verdad exige movilidad
+   * que no todo el mundo tiene, y por eso el déficit de tobillo es lo primero
+   * que se mira cuando alguien no baja. Pero conviene que esté medido y no
+   * crezca solo, así que esto fija el estado de hoy como techo.
+   */
+  const TECHO_DE_DORSIFLEXION: Record<string, number> = {
+    sentadilla_unilateral: 34,
+    traccion_horizontal: 31,
+    abduccion_horizontal: 29,
+    sentadilla: 29,
+    bisagra_cadera: 24,
+  }
+
+  it('no pide más tobillo del que ya pedía', () => {
+    const tope = Math.abs(RANGO['tobilloPlantar'][0])
+    for (const p of PATRONES) {
+      const pies: Lado[] = p.pies ?? (p.apoyo === 'suelo' ? ['D', 'I'] : [])
+      if (!pies.length) continue
+      let peor = 0
+      for (let i = 0; i <= 20; i++) {
+        const { pose, desplazamiento, giroRaiz } = poseAnimada(p, i / 20, 1, 0)
+        const r = apoyarPies(pose, desplazamiento, giroRaiz, pies)
+        for (const c of ['tobilloPlantarD', 'tobilloPlantarI'])
+          if (r[c] !== undefined && r[c] < peor) peor = r[c]
+      }
+      const pedido = Math.abs(peor)
+      const permitido = TECHO_DE_DORSIFLEXION[p.id] ?? tope
+      expect(
+        pedido,
+        `${p.id} pide ${pedido.toFixed(1)}° de dorsiflexión y el tope es ${permitido}°`,
+      ).toBeLessThanOrEqual(permitido)
+    }
   })
 })

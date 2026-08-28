@@ -47,15 +47,6 @@ export interface EjeArticular {
   negativo: string
   /** Grados. El primero es el tope negativo. */
   rango: [number, number]
-  /**
-   * El rango es una cifra de referencia, no una medida acordada.
-   *
-   * Los ejes que se añadieron para tapar un hueco del modelo entran con valores
-   * de manual a la espera de que un preparador ponga los suyos. Marcarlo es la
-   * diferencia entre un dato y una suposición: sin esto, un número puesto para
-   * salir del paso se lee igual que uno decidido.
-   */
-  provisional?: boolean
 }
 
 export interface Articulacion {
@@ -118,11 +109,12 @@ export const ARTICULACIONES: Articulacion[] = [
     huesoProximal: 'tibia',
     huesoDistal: 'pie',
     ejes: [
-      { canal: 'tobilloPlantar', plano: 'sagital', positivo: 'Flexión plantar', negativo: 'Dorsiflexión', rango: [-38, 58] },
+      { canal: 'tobilloPlantar', plano: 'sagital', positivo: 'Flexión plantar', negativo: 'Dorsiflexión', rango: [-20, 50] },
     ],
     noPuede: [
       'La dorsiflexión se acaba pronto, hacia los 38°, y es lo que despega el talón en una sentadilla profunda.',
       'Llevar el pie hacia dentro o hacia fuera no es del tobillo: es de la articulación subastragalina, por debajo.',
+      'La dorsiflexión se acaba hacia los 20°, y es el freno de la sentadilla profunda: cuando se agota, el talón se despega o la rodilla se va hacia dentro.',
     ],
   },
   {
@@ -160,7 +152,7 @@ export const ARTICULACIONES: Articulacion[] = [
       // Sin esto no se puede explicar por qué el brazo sube por encima de la
       // cabeza: los últimos 60° de esa elevación los pone la escápula girando,
       // no el hombro. Es lo que pasa en un press por encima de la cabeza.
-      { canal: 'escapulaRotAsc', plano: 'frontal', positivo: 'Rotación ascendente', negativo: 'Rotación descendente', rango: [-12, 60], provisional: true },
+      { canal: 'escapulaRotAsc', plano: 'frontal', positivo: 'Rotación ascendente', negativo: 'Rotación descendente', rango: [-12, 60] },
     ],
     noPuede: [
       'No es una articulación de verdad: la escápula se desliza sobre las costillas y la sujetan los músculos.',
@@ -214,7 +206,7 @@ export const ARTICULACIONES: Articulacion[] = [
       // Una condílea tiene dos grados de libertad y aquí faltaba el segundo.
       // Se desvía más hacia el cubital que hacia el radial, y no es simetría
       // rota: el radio topa antes con el carpo.
-      { canal: 'munecaDesv', plano: 'frontal', positivo: 'Desviación cubital', negativo: 'Desviación radial', rango: [-20, 35], provisional: true },
+      { canal: 'munecaDesv', plano: 'frontal', positivo: 'Desviación cubital', negativo: 'Desviación radial', rango: [-20, 40] },
     ],
     noPuede: [
       'No rota sobre sí misma: lo que parece giro de muñeca viene del antebrazo.',
@@ -271,8 +263,8 @@ export const ARTICULACIONES: Articulacion[] = [
       // Es el movimiento que más se usa del cuello y no estaba. No se notaba
       // porque ningún ejercicio lo mueve a propósito: lo movía la capa que
       // estabiliza la mirada, y esa solo lo inclina.
-      { canal: 'cuelloRot', plano: 'transverso', positivo: 'Rotación', negativo: 'Rotación contraria', rango: [-80, 80], provisional: true },
-      { canal: 'cuelloIncl', plano: 'frontal', positivo: 'Inclinación', negativo: 'Inclinación contraria', rango: [-45, 45], provisional: true },
+      { canal: 'cuelloRot', plano: 'transverso', positivo: 'Rotación', negativo: 'Rotación contraria', rango: [-80, 80] },
+      { canal: 'cuelloIncl', plano: 'frontal', positivo: 'Inclinación', negativo: 'Inclinación contraria', rango: [-45, 45] },
     ],
     noPuede: [
       'Su trabajo aquí es sostener la mirada, y por eso compensa la inclinación del tronco casi sin que se note.',
