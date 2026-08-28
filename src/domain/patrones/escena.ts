@@ -91,6 +91,13 @@ const CAMPO_VISUAL = grados(34)
  * Que el plano recorte es correcto: los primeros planos son la forma de mirar
  * una articulación.
  */
+/**
+ * Cuántas veces el segmento móvil cabe en el cuadro cuando se estudia una
+ * articulación. Con 1 el antebrazo tocaría los bordes; el margen deja ver a la
+ * vez el hueso de arriba, que es contra el que se mueve.
+ */
+const HOLGURA_DEL_FOCO = 1.12
+
 export function encuadrar(patron: Patron): Encuadre {
   const cuerpo: Vec3[] = []
   const activo: Vec3[] = []
@@ -133,6 +140,36 @@ export function encuadrar(patron: Patron): Encuadre {
   }
 
   const todo = caja(cuerpo)
+
+  // Estudio de una articulación: se encuadra la articulación misma, no lo que
+  // la mueve. Se toman el hueso que gira y el que le hace de base, a lo largo
+  // de toda la repetición, para que el segmento no se salga al final del
+  // recorrido.
+  // Un nombre de hueso que no existe se ignora en vez de mandar la cámara al
+  // infinito: `puntoDeHueso` de un hueso desconocido devuelve NaN, y un NaN
+  // dentro de la caja envenena el centro y la distancia sin lanzar nada.
+  if (patron.foco !== undefined && INDICE_HUESO[patron.foco] !== undefined) {
+    const padre = ESQUELETO.find((h) => h.nombre === patron.foco)?.padre
+    const enFoco: Vec3[] = []
+    for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
+      const esq = esqueletoEnFase(patron, fase)
+      for (const hueso of [patron.foco, padre]) {
+        if (hueso === undefined || hueso === null) continue
+        for (const t of [0, 0.5, 1]) enFoco.push(puntoDeHueso(esq, hueso, t))
+      }
+    }
+    // Un nombre de hueso que no existe no deja puntos: se cae al encuadre de
+    // siempre en vez de mandar la cámara al infinito.
+    if (enFoco.length) {
+      const zonaFoco = caja(enFoco)
+      const radioFoco = limitar(zonaFoco.radio * HOLGURA_DEL_FOCO, 0.2, todo.radio)
+      return {
+        centro: zonaFoco.centro,
+        distancia: (radioFoco / Math.tan(CAMPO_VISUAL / 2)) * 1.06 + 0.22,
+      }
+    }
+  }
+
   const zona = activo.length ? caja(activo) : todo
   const centro = V.entre(zona.centro, todo.centro, 0.34)
   const radio = limitar(zona.radio * 2.0, 0.42, todo.radio * 1.05)
