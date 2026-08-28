@@ -47,6 +47,15 @@ export interface EjeArticular {
   negativo: string
   /** Grados. El primero es el tope negativo. */
   rango: [number, number]
+  /**
+   * El rango es una cifra de referencia, no una medida acordada.
+   *
+   * Los ejes que se añadieron para tapar un hueco del modelo entran con valores
+   * de manual a la espera de que un preparador ponga los suyos. Marcarlo es la
+   * diferencia entre un dato y una suposición: sin esto, un número puesto para
+   * salir del paso se lee igual que uno decidido.
+   */
+  provisional?: boolean
 }
 
 export interface Articulacion {
@@ -143,13 +152,20 @@ export const ARTICULACIONES: Articulacion[] = [
     huesoProximal: 'torax',
     huesoDistal: 'escapula',
     ejes: [
-      { canal: 'escapulaProt', plano: 'transverso', positivo: 'Protracción', negativo: 'Retracción', rango: [0, 38] },
-      { canal: 'escapulaRetr', plano: 'transverso', positivo: 'Retracción', negativo: 'Protracción', rango: [0, 38] },
+      // Protracción y retracción son el mismo eje en dos sentidos, no dos ejes.
+      // Estuvieron separados en `escapulaProt` y `escapulaRetr`, y eso hacía que
+      // la app anunciara tres grados de libertad y ofreciera dos botones iguales.
+      { canal: 'escapulaProt', plano: 'transverso', positivo: 'Protracción', negativo: 'Retracción', rango: [-38, 38] },
       { canal: 'escapulaElev', plano: 'frontal', positivo: 'Elevación', negativo: 'Descenso', rango: [-18, 48] },
+      // Sin esto no se puede explicar por qué el brazo sube por encima de la
+      // cabeza: los últimos 60° de esa elevación los pone la escápula girando,
+      // no el hombro. Es lo que pasa en un press por encima de la cabeza.
+      { canal: 'escapulaRotAsc', plano: 'frontal', positivo: 'Rotación ascendente', negativo: 'Rotación descendente', rango: [-12, 60], provisional: true },
     ],
     noPuede: [
       'No es una articulación de verdad: la escápula se desliza sobre las costillas y la sujetan los músculos.',
       'Por eso, si el serrato no entra, se despega y el hombro se queda sin base para empujar.',
+      'No puede quedarse quieta mientras el brazo sube del todo: pasados los 90°, si no rota, el hombro se pincha.',
     ],
   },
   {
@@ -195,9 +211,14 @@ export const ARTICULACIONES: Articulacion[] = [
     huesoDistal: 'mano',
     ejes: [
       { canal: 'muneca', plano: 'sagital', positivo: 'Flexión', negativo: 'Extensión', rango: [-75, 82] },
+      // Una condílea tiene dos grados de libertad y aquí faltaba el segundo.
+      // Se desvía más hacia el cubital que hacia el radial, y no es simetría
+      // rota: el radio topa antes con el carpo.
+      { canal: 'munecaDesv', plano: 'frontal', positivo: 'Desviación cubital', negativo: 'Desviación radial', rango: [-20, 35], provisional: true },
     ],
     noPuede: [
       'No rota sobre sí misma: lo que parece giro de muñeca viene del antebrazo.',
+      'No se desvía y flexiona a tope a la vez: en el extremo de una, la otra pierde recorrido.',
       'En casi todo empuje su trabajo es no moverse, y aguantar la carga alineada con el antebrazo.',
     ],
   },
@@ -247,9 +268,16 @@ export const ARTICULACIONES: Articulacion[] = [
     huesoDistal: 'cuello',
     ejes: [
       { canal: 'cuelloFlex', plano: 'sagital', positivo: 'Flexión', negativo: 'Extensión', rango: [-58, 68] },
+      // Es el movimiento que más se usa del cuello y no estaba. No se notaba
+      // porque ningún ejercicio lo mueve a propósito: lo movía la capa que
+      // estabiliza la mirada, y esa solo lo inclina.
+      { canal: 'cuelloRot', plano: 'transverso', positivo: 'Rotación', negativo: 'Rotación contraria', rango: [-80, 80], provisional: true },
+      { canal: 'cuelloIncl', plano: 'frontal', positivo: 'Inclinación', negativo: 'Inclinación contraria', rango: [-45, 45], provisional: true },
     ],
     noPuede: [
       'Su trabajo aquí es sostener la mirada, y por eso compensa la inclinación del tronco casi sin que se note.',
+      'Casi la mitad del giro lo pone la primera vértebra sobre la segunda, no el cuello entero.',
+      'No gira del todo con la barbilla pegada al pecho: en flexión completa la rotación se frena.',
     ],
   },
   {

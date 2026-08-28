@@ -109,7 +109,9 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
   // hacia atrás, que es el error que hacía leer una bisagra como sentadilla.
   fijar('lumbar', g('lumbarFlex'), -g('lumbarRot'), g('lumbarLat'))
   fijar('torax', g('toraxFlex'), -g('toraxRot'), g('toraxLat'))
-  fijar('cuello', g('cuelloFlex'), 0, 0)
+  // El cuello gira y se inclina, no solo flexiona. El giro va en Y y la
+  // inclinación en Z, igual que en el resto de la columna.
+  fijar('cuello', g('cuelloFlex'), g('cuelloRot'), g('cuelloIncl'))
   fijar('craneo', g('craneoFlex'), 0, 0)
   fijar('pelvis', -g('pelvisBascula'), -g('pelvisRot'), g('pelvisLat'))
 
@@ -129,13 +131,18 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
     // La escápula gira sobre el tórax; el rig no la traslada, así que la
     // elevación se expresa como rotación. Con 15 cm de hueso, 25° suben su
     // extremo unos seis centímetros, que es el recorrido real de un encogimiento.
+    // La rotación ascendente es la que sube el extremo externo de la escápula
+    // y lleva la glenoides hacia arriba: sin ella el brazo no pasa de la
+    // horizontal sin pinzar. Va en el mismo eje frontal que la elevación, con
+    // más recorrido, y por eso pesa más que ella.
     fijar(
       'escapula' + s,
       0,
       0,
       k *
-        ((g('escapulaProt' + s, g('escapulaProt')) - g('escapulaRetr' + s, g('escapulaRetr'))) * 0.55 -
-          g('escapulaElev' + s, g('escapulaElev')) * 0.8),
+        (g('escapulaProt' + s, g('escapulaProt')) * 0.55 -
+          g('escapulaElev' + s, g('escapulaElev')) * 0.8 -
+          g('escapulaRotAsc' + s, g('escapulaRotAsc')) * 0.9),
     )
     fijar('clavicula' + s, 0, k * g('escapulaProt' + s, g('escapulaProt')) * 0.5, -k * g('escapulaElev' + s, g('escapulaElev')) * 0.6)
 
@@ -148,7 +155,13 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
       abdHombro,
       -k * g('antebrazoRot' + s, g('antebrazoRot')),
     )
-    e['mano' + s] = sagital(-g('muneca' + s, g('muneca')), abdHombro)
+    // La desviación comparte hueso con la flexión, así que entra en la misma
+    // composición sagital: el tercer argumento es el giro dentro del plano.
+    e['mano' + s] = sagital(
+      -g('muneca' + s, g('muneca')),
+      abdHombro,
+      k * g('munecaDesv' + s, g('munecaDesv')) * 0.9,
+    )
   }
   return e
 }
