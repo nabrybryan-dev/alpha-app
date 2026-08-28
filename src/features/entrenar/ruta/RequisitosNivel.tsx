@@ -11,8 +11,11 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
   if (!siguienteNivel) return null
 
   return (
+    // Esta sección era la única superficie del área sin una sola línea de movimiento
+    // ni de profundidad — se le pasó por alto a la auditoría, que construyó su
+    // inventario desde lo que se mueve y por eso no ve lo que está quieto.
     <section
-      className="rounded-tarjeta border border-accion/30 px-4 py-3.5"
+      className="escena-prof rounded-tarjeta border border-accion/30 px-4 py-3.5"
       style={{ background: 'color-mix(in srgb, var(--accion) 7%, var(--ink-700))' }}
     >
       <h3 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-accion">
@@ -25,6 +28,17 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
               className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] ${
                 r.cumplido ? 'border-accion bg-accion text-white' : 'border-ink-400 text-ink-400'
               }`}
+              // El estado ya se decía con MATERIA —círculo lleno frente a círculo
+              // hueco—, que es la regla de la marca y por eso aquí no hay semáforo.
+              // La profundidad no cambia ese lenguaje: lo lleva al volumen. Lo
+              // cumplido se queda en el plano; lo pendiente se hunde a
+              // `--prof-hueco`, que es literalmente «materia que falta dentro de la
+              // misma placa». Ninguno de los dos es tocable — la fila entera no lo
+              // es —, así que hundir no roza el mínimo táctil.
+              style={{
+                transform: `translateZ(var(${r.cumplido ? '--prof-plano' : '--prof-hueco'}))`,
+                boxShadow: r.cumplido ? undefined : 'var(--sombra-hundido)',
+              }}
             >
               {r.cumplido ? (
                 <CheckDibujado className="h-3 w-3" />

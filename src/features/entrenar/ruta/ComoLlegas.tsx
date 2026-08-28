@@ -21,7 +21,7 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
   const t = tono(indice)
 
   return (
-    <section className="rounded-tarjeta border border-ink-500 bg-ink-800 px-4 py-3.5">
+    <section className="escena-prof rounded-tarjeta border border-ink-500 bg-ink-800 px-4 py-3.5">
       <div className="flex items-baseline justify-between gap-2.5">
         <h3 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-silver-500">
           Cómo llegas esta semana
@@ -34,7 +34,10 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Índice de recuperación"
-        className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
+        // El carril hundido (`--prof-hueco`): lo que le falta al indice es materia
+        // que falta. Mismo gesto que la barra de progreso de nivel y que las de
+        // competencias, para que las cuatro se lean como el mismo instrumento.
+        className="pozo-3d mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
       >
         {/* El relleno va por `scaleX` y no por `width`: width relayoutea en cada
             fotograma y esta pantalla corre con la pieza cinemática haciendo scrub

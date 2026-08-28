@@ -38,6 +38,21 @@
 -- CABECERA_ONDULADA), transcrita a POSIX: si cambia alla, cambia aqui — mismo
 -- pacto que `comprobar-alineacion.sql`.
 --
+--
+-- GRAMATICA AMPLIADA el 2026-08-26. Se leen tres formas mas de la ranura de
+-- repeticiones —`A 12` sin la palabra, `x12`, y `A 11 REPS (10-12)` con el rango
+-- en parentesis— y dos unidades mas: TOTALES EN BARRA y DE CADA UNO. Contrastado
+-- contra las 901 prescripciones distintas de produccion comparando con el parser
+-- ANTERIOR sacado de git: 735 identicas, 0 regresiones, 66 nuevas.
+--
+-- Y el anclaje que lo hace seguro: el `A 12` sin palabra exige `;` PEGADO
+-- despues. Sin eso, `10KG A 20 PASOS` daria 20 repeticiones y
+-- `70KG A 12-15 + 5 PARCIALES` daria 12 — dos formas donde el numero que sigue
+-- a la `A` no son repeticiones.
+--
+-- Esta gramatica la comparten tres piezas y cambian juntas: este archivo,
+-- src/domain/prescripcion.ts y supabase/comprobar-alineacion.sql.
+--
 -- Ensayo en seco: correr primero el SELECT del final del archivo.
 
 update public.microciclos m
@@ -51,26 +66,28 @@ update public.microciclos m
                when jsonb_typeof(e.val) = 'object'
                 and e.val->'cargaKg' is null
                 and jsonb_array_length(coalesce(e.val->'seriesPrescritas','[]'::jsonb)) = 0
-                and coalesce(e.val->>'prescripcion','') ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*\d+\s*SERIES?'
+                and coalesce(e.val->>'prescripcion','') ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s*,?\s*(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?\s*(?:A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s*\(\s*\d+\s*-\s*\d+\s*\))?|A\s+\d+(?:\s*-\s*\d+)?(?=\s*;)|[x×]\s*\d+(?:\s*-\s*\d+)?)(?:\s+(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?(?:\s*\([^)]*\))?\s*;\s*\d+\s*SERIES?'
                then e.val || (
                  select jsonb_build_object(
                    'cargaKg', to_jsonb(replace(g.m[1], ',', '.')::numeric),
                    'unidadCarga', case
-                     when upper(coalesce(g.m[2], g.m[4], '')) like 'TOTAL%' then 'total'
-                     when upper(regexp_replace(coalesce(g.m[2], g.m[4], ''), '\s+', ' ', 'g')) = 'POR MANO' then 'por mano'
-                     when upper(regexp_replace(coalesce(g.m[2], g.m[4], ''), '\s+', ' ', 'g'))
+                     when upper(coalesce(g.m[2], g.m[3], '')) like 'TOTAL%' then 'total'
+                     when upper(regexp_replace(coalesce(g.m[2], g.m[3], ''), '\s+', ' ', 'g')) = 'POR MANO' then 'por mano'
+                     when upper(regexp_replace(coalesce(g.m[2], g.m[3], ''), '\s+', ' ', 'g'))
                           in ('POR PIERNA', 'POR LADO', 'CADA LADO') then 'por lado'
+                     -- «DE CADA UNO» describe dos movimientos por serie, no una
+                     -- carga por lado: los kilos son los que se cogen, y punto.
                      else 'kg'
                    end,
                    'notaCoach', trim(regexp_replace(
                      e.val->>'prescripcion',
-                     '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*\d+\s*SERIES?(?:\s*\(([^)]*)\))?\s*\.?\s*',
+                     '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s*,?\s*(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?\s*(?:A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s*\(\s*\d+\s*-\s*\d+\s*\))?|A\s+\d+(?:\s*-\s*\d+)?(?=\s*;)|[x×]\s*\d+(?:\s*-\s*\d+)?)(?:\s+(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?(?:\s*\([^)]*\))?\s*;\s*\d+\s*SERIES?(?:\s*\(([^)]*)\))?\s*\.?\s*',
                      '', 'i'))
                  )
                  from (
                    select regexp_match(
                      e.val->>'prescripcion',
-                     '^\s*(\d+(?:[.,]\d+)?)\s*KGS?\y(?:\s+(TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+(\d+(?:\s*-\s*\d+)?)\s*REPS?(?:\s+(TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*(\d+)\s*SERIES?(?:\s*\(([^)]*)\))?\s*\.?\s*',
+                     '^\s*(\d+(?:[.,]\d+)?)\s*KGS?\y(?:\s*,?\s*(TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?\s*(?:A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s*\(\s*\d+\s*-\s*\d+\s*\))?|A\s+\d+(?:\s*-\s*\d+)?(?=\s*;)|[x×]\s*\d+(?:\s*-\s*\d+)?)(?:\s+(TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?(?:\s*\([^)]*\))?\s*;\s*\d+\s*SERIES?',
                      'i') as m
                  ) g
                )
@@ -102,7 +119,7 @@ update public.microciclos m
         and (
           (e2->'cargaKg' is null
             and jsonb_array_length(coalesce(e2->'seriesPrescritas','[]'::jsonb)) = 0
-            and coalesce(e2->>'prescripcion','') ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*\d+\s*SERIES?')
+            and coalesce(e2->>'prescripcion','') ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s*,?\s*(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?\s*(?:A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s*\(\s*\d+\s*-\s*\d+\s*\))?|A\s+\d+(?:\s*-\s*\d+)?(?=\s*;)|[x×]\s*\d+(?:\s*-\s*\d+)?)(?:\s+(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?(?:\s*\([^)]*\))?\s*;\s*\d+\s*SERIES?')
           or
           (jsonb_array_length(coalesce(e2->'seriesPrescritas','[]'::jsonb)) > 0
             and e2->'notaCoach' is null
@@ -126,7 +143,7 @@ update public.microciclos m
 -- )
 -- select estado,
 --        count(*) filter (where carga is null and escalera = 0
---          and pres ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*\d+\s*SERIES?') as rellenaria,
+--          and pres ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s*,?\s*(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?\s*(?:A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s*\(\s*\d+\s*-\s*\d+\s*\))?|A\s+\d+(?:\s*-\s*\d+)?(?=\s*;)|[x×]\s*\d+(?:\s*-\s*\d+)?)(?:\s+(?:TOTAL(?:ES)?(?:\s+EN\s+BARRA)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO|DE\s+CADA\s+UNO))?(?:\s*\([^)]*\))?\s*;\s*\d+\s*SERIES?') as rellenaria,
 --        count(*) filter (where escalera > 0 and nota is null
 --          and pres ~* '^\s*ONDULACI[ÓO]N\s+ASCENDENTE:') as onduladas
 --   from ej group by estado;
