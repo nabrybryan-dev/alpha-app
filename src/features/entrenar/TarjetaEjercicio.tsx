@@ -57,8 +57,10 @@ export function TarjetaEjercicio({
   const siguienteOrden = ejercicio.series.length + 1
   const contenidoDemo = demoDeEjercicio(ejercicio, db.contenidos.list())
   // El patrón sale de la categoría, que el ejercicio ya trae: los microciclos
-  // que están cargados tienen visor sin tocar ni un dato.
-  const patron = patronDeCategoria(ejercicio.categoria)
+  // que están cargados tienen visor sin tocar ni un dato. El nombre es el plan B
+  // para las categorías que dicen para qué sirve el ejercicio en vez de qué
+  // gesto es, como PREV/REHAB, donde caben un manguito y un salto al cajón.
+  const patron = patronDeCategoria(ejercicio.categoria, ejercicio.nombre)
 
   return (
     // Sin `.entrada`. No era una entrada de pantalla: SesionPage le pone
