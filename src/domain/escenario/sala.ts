@@ -138,8 +138,16 @@ function pared(m: Malla, n = 96): void {
 // Cifras de siete segmentos
 // ---------------------------------------------------------------------------
 
-/** Qué segmentos enciende cada dígito, en el orden a,b,c,d,e,f,g. */
-const SEGMENTOS: Record<number, string> = {
+/**
+ * Qué segmentos enciende cada signo, en el orden a,b,c,d,e,f,g.
+ *
+ * Hay una F, y no es un capricho: **el fallo NO es RIR 0**. RIR 0 es la última
+ * repetición completa con la parcial en reserva; el fallo es meterse en esa parcial, y
+ * es la unidad de cuenta del método. Enseñar un cero donde la prescripción dice FALLO
+ * sería decir otra cosa — así que el marcador lo dice con su letra, que además un
+ * display de siete segmentos sabe dibujar.
+ */
+const SEGMENTOS: Record<string, string> = {
   0: 'abcdef',
   1: 'bc',
   2: 'abdeg',
@@ -150,6 +158,7 @@ const SEGMENTOS: Record<number, string> = {
   7: 'abc',
   8: 'abcdefg',
   9: 'abcdfg',
+  F: 'aefg',
 }
 
 /**
@@ -164,7 +173,7 @@ const SEGMENTOS: Record<number, string> = {
  */
 function digito(
   m: Malla,
-  valor: number,
+  valor: string,
   alto: number,
   colocar: (x: number, y: number) => Vec3,
   normal: Vec3,
@@ -202,7 +211,7 @@ function anchoDe(n: number, alto: number): number {
  * Los tres van juntos y en ese orden porque es el orden en que se leen durante la
  * serie: cuántas llevo, de cuántas, y con cuánto margen las estoy haciendo.
  */
-function marcador(m: Malla, anguloGrados: number, series: number, reps: number, rir: number): void {
+function marcador(m: Malla, anguloGrados: number, series: number, reps: number, rir: number | 'FALLO'): void {
   const a = grados(anguloGrados)
   const co = Math.cos(a)
   const si = Math.sin(a)
@@ -213,10 +222,13 @@ function marcador(m: Malla, anguloGrados: number, series: number, reps: number, 
   const tang: Vec3 = [-si, 0, co]
 
   const alto = 0.44
+  const acotar = (v: number, cifras: number) =>
+    String(Math.max(0, Math.min(cifras === 1 ? 9 : 99, Math.round(v)))).padStart(cifras, '0')
   const grupos = [
-    { valor: series, cifras: 2 },
-    { valor: reps, cifras: 2 },
-    { valor: rir, cifras: 1 },
+    { texto: acotar(series, 2), cifras: 2 },
+    { texto: acotar(reps, 2), cifras: 2 },
+    // El fallo se escribe con su letra. Un cero aquí diría «RIR 0», que es otra cosa.
+    { texto: rir === 'FALLO' ? 'F' : acotar(rir, 1), cifras: 1 },
   ]
   const hueco = alto * 0.62
   const anchoTotal =
@@ -244,12 +256,8 @@ function marcador(m: Malla, anguloGrados: number, series: number, reps: number, 
 
   let u = -anchoTotal / 2
   for (const g of grupos) {
-    const texto = String(Math.max(0, Math.min(g.cifras === 1 ? 9 : 99, Math.round(g.valor)))).padStart(
-      g.cifras,
-      '0',
-    )
-    for (const ch of texto) {
-      digito(m, Number(ch), alto, (x, y) => pon(u + x, ALTO_PANEL + y, 0.02), haciaDentro)
+    for (const ch of g.texto) {
+      digito(m, ch, alto, (x, y) => pon(u + x, ALTO_PANEL + y, 0.02), haciaDentro)
       u += alto * 0.56 + alto * 0.16
     }
     u += hueco - alto * 0.16
@@ -350,7 +358,8 @@ export function construirSala(m: Malla, datos: DatosDeSerie): void {
 export interface DatosDeSerie {
   series: number
   reps: number
-  rir: number
+  /** El RIR objetivo, o el FALLO — que NO es lo mismo que un RIR 0. */
+  rir: number | 'FALLO'
 }
 
 /** Las medidas de la sala, para anclar interfaz al espacio. */

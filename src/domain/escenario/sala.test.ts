@@ -138,3 +138,29 @@ describe('la vista desde el trípode', () => {
     expect(Math.abs(v.elevacion)).toBeLessThan(8)
   })
 })
+
+describe('el marcador y el fallo', () => {
+  it('el FALLO se dice con su letra, no con un cero', () => {
+    // REGLA DEL MÉTODO, y por eso está en un test y no en un comentario: el fallo NO es
+    // RIR 0. RIR 0 es la última repetición completa con la parcial en reserva; el fallo
+    // es meterse en esa parcial. Un cero en la pared donde la prescripción dice FALLO
+    // estaría diciendo otra cosa, y encima la que el asesorado va a ejecutar.
+    const conFallo = new Malla()
+    construirSala(conFallo, { series: 3, reps: 8, rir: 'FALLO' })
+    const conCero = new Malla()
+    construirSala(conCero, { series: 3, reps: 8, rir: 0 })
+    expect(conFallo.color).not.toEqual(conCero.color)
+  })
+
+  it('un RIR fuera de rango se acota en vez de romper el display', () => {
+    // Un dígito solo tiene diez signos. Si llegara un 12, `SEGMENTOS` no lo encontraría
+    // y el hueco saldría con todos los segmentos apagados: un panel en blanco que
+    // parece una avería del display en vez de un dato raro.
+    const m = new Malla()
+    construirSala(m, { series: 99, reps: 99, rir: 12 })
+    expect(m.vertices).toBeGreaterThan(0)
+    const apagado = new Malla()
+    construirSala(apagado, { series: 99, reps: 99, rir: 9 })
+    expect(m.color).toEqual(apagado.color)
+  })
+})

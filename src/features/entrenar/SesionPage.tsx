@@ -395,7 +395,26 @@ function SesionEnCurso() {
         onCerrar={() => setPatron(undefined)}
         animar={false}
       >
-        {patron && <VisorPatron patron={patron} />}
+        {/* LOS NÚMEROS DE LA SERIE VAN AL VISOR, y sin ellos no hay sala.
+            Estaban sin conectar: el visor se montaba solo con el patrón, así que la
+            sala, los marcadores de pared, el trípode y la vista de grabación no se
+            construían — se veía el suelo de la bahía y nada más. El fallo era mudo
+            porque la prop es opcional a propósito, para poder abrir el visor a
+            estudiar un patrón sin estar entrenando. */}
+        {patron && (
+          <VisorPatron
+            patron={patron}
+            datos={
+              ejercicioActual
+                ? {
+                    series: ejercicioActual.sets,
+                    reps: ejercicioActual.repsDiana,
+                    rir: ejercicioActual.rirObjetivo,
+                  }
+                : undefined
+            }
+          />
+        )}
       </Sheet>
 
       {frase && (
