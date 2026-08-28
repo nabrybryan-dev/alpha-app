@@ -14,36 +14,49 @@ import { Malla } from './malla'
  * tirones justo en la pantalla donde el asesorado mira cómo se hace un
  * ejercicio.
  *
- * **El umbral es 20 ms y no 16 a propósito.** Este test corre junto a los otros
- * doscientos archivos y la máquina está saturada: aislado mide 5-6 ms y con la
- * suite entera en paralelo llega a 13. Un número pegado al valor real daría
- * fallos aleatorios, y un guardián intermitente se acaba ignorando, que es peor
- * que no tenerlo.
+ * **Se mide en relativo, no en milisegundos.** Un umbral absoluto aquí es un
+ * gate intermitente: aislado el cuadro sale en 5 ms y con los doscientos
+ * archivos de la suite en paralelo llega a 14, así que el número dependía de lo
+ * cargada que estuviera la máquina más que del código. Y un guardián que falla
+ * a ratos se acaba ignorando, que es peor que no tenerlo.
  *
- * Lo que este test caza es la **regresión grande**, no el milisegundo: al
- * detallar la anatomía por porciones el coste pasó de 4 a 35 ms de golpe y esto
- * es lo que lo destapó. Si vuelve a dispararse, algo se ha vuelto a construir
- * de más en cada cuadro.
+ * La referencia es construir el esqueleto, que es geometría fija y del mismo
+ * orden de tamaño. Si la máquina va lenta, las dos medidas se ralentizan igual
+ * y la proporción se mantiene.
+ *
+ * Lo que esto caza es la **regresión grande**: al detallar la anatomía por
+ * porciones el coste pasó de 4 a 35 ms de golpe, y fue este test el que lo
+ * destapó. Si vuelve a dispararse, algo se construye de más en cada cuadro.
  */
 describe('el coste de un cuadro', () => {
   const reposo = longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0]))
 
   it('construye la musculatura de cualquier patrón sin dispararse', () => {
-    const medidas: [string, number][] = []
+    const cronometrar = (veces: number, fn: () => void): number => {
+      fn() // la primera pasada mide la compilación, no el trabajo
+      const t0 = performance.now()
+      for (let i = 0; i < veces; i++) fn()
+      return (performance.now() - t0) / veces
+    }
+
+    // La referencia: el esqueleto entero, que son unos nueve mil vértices de
+    // geometría fija. Se mide aquí y no antes para que sufra la misma carga.
+    const referencia = cronometrar(5, () => construirHuesos())
+
     // Se mide reutilizando la malla, que es como corre en la app: la topología
     // no cambia entre cuadros y reservarla de nuevo cada vez costaba el doble.
     const malla = new Malla(16384)
-    for (const p of PATRONES) {
+    const medidas: [string, number][] = PATRONES.map((p) => {
       const esq = esqueletoEnFase(p, 0.5)
-      // Se descarta la primera pasada: mide la compilación, no el trabajo.
-      construirMusculos(esq, p.activacion, reposo, malla)
-      const t0 = performance.now()
-      const veces = 5
-      for (let i = 0; i < veces; i++) construirMusculos(esq, p.activacion, reposo, malla)
-      medidas.push([p.id, (performance.now() - t0) / veces])
-    }
-    const peor = medidas.sort((a, b) => b[1] - a[1])[0]
-    expect(peor[1], `${peor[0]} tarda ${peor[1].toFixed(1)} ms`).toBeLessThan(20)
+      return [p.id, cronometrar(5, () => construirMusculos(esq, p.activacion, reposo, malla))]
+    })
+
+    const [peorId, peor] = medidas.sort((a, b) => b[1] - a[1])[0]
+    const veces = peor / referencia
+    expect(
+      veces,
+      `${peorId} cuesta ${veces.toFixed(1)}× el esqueleto (${peor.toFixed(1)} ms frente a ${referencia.toFixed(1)})`,
+    ).toBeLessThan(4)
   })
 
   it('mantiene la malla dentro de índices de 16 bits', () => {

@@ -64,6 +64,14 @@ function precalculado() {
 
 interface VisorPatronProps {
   patron: Patron
+  /**
+   * Si se dibuja la bahía de medida alrededor del sujeto.
+   *
+   * Se puede apagar para mirar solo el cuerpo. No es un modo de depuración: al
+   * estudiar una articulación aislada el escenario es ruido, y en las
+   * demostraciones el sujeto ni siquiera se apoya en el suelo.
+   */
+  conEscenario?: boolean
 }
 
 /**
@@ -73,7 +81,7 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron }: VisorPatronProps) {
+export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -143,7 +151,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
-          const partes = [laboratorio()]
+          const partes = conEscenario ? [laboratorio()] : []
           if (estado.current.capa !== 'musculo') partes.push(huesos)
           if (estado.current.capa !== 'hueso')
             partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
@@ -225,7 +233,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
       redibujar.current = null
       orbita?.destruir()
     }
-  }, [patron])
+  }, [patron, conEscenario])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.
@@ -280,7 +288,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
             vez de intuirlo. Los numeros salen de la geometria —no estan escritos dos
             veces— asi que si el paso cambia, la leyenda cambia con el.
             En centimetros porque es la unidad con la que se habla de un recorrido. */}
-        {!error && (
+        {!error && conEscenario && (
           <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-white/35">
             retícula {BAHIA.pasoMenor * 100} cm
             <span className="mx-1 text-white/20">·</span>
@@ -412,6 +420,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
         </ul>
       </div>
 
+      {patron.claves.length > 0 && (
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">
           Claves de ejecución
@@ -424,7 +433,9 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           ))}
         </ul>
       </div>
+      )}
 
+      {patron.errores.length > 0 && (
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-rojo">
           Errores frecuentes
@@ -437,6 +448,7 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           ))}
         </ul>
       </div>
+      )}
 
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">
@@ -513,8 +525,9 @@ export function VisorPatron({ patron }: VisorPatronProps) {
       </div>
 
       <p className="text-[10px] leading-snug text-silver-500">
-        Ejercicios de este patrón: {patron.ejemplos}. Una repetición dura{' '}
-        {DURACION_CICLO.toFixed(1).replace('.', ',')} s con el tempo correcto.
+        {patron.ejemplos && <>Ejercicios de este patrón: {patron.ejemplos}. </>}
+        Una repetición dura {DURACION_CICLO.toFixed(1).replace('.', ',')} s con el tempo
+        correcto.
       </p>
     </div>
   )

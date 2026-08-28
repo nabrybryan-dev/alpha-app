@@ -18,6 +18,7 @@
  *   activacion            de 0 a 1 por músculo; sufijo ':D' / ':I' si es unilateral
  *   seguimiento           punto cuya trayectoria dibuja el arco del movimiento
  *   camara                ángulo de partida: desde dónde se lee el patrón
+ *   foco                  hueso cuya articulación proximal se encuadra de cerca
  */
 
 import type { Vec3 } from './algebra'
@@ -50,6 +51,16 @@ export interface Patron {
   camara: { azimut: number; elevacion: number }
   /** El patrón contrapone un fallo y su corrección en vez de un recorrido. */
   invertido?: boolean
+  /**
+   * Encuadre de estudio: el hueso distal de la articulación que se quiere ver
+   * de cerca, con su lado (`antebrazoD`).
+   *
+   * Los ejercicios no lo llevan —ahí manda el encuadre por musculatura, que es
+   * lo que enseña el gesto—. Lo usan las demostraciones de una articulación
+   * suelta, donde encuadrar los músculos que la cruzan abarcaría desde la
+   * escápula hasta la mano y dejaría el codo del tamaño de una uña.
+   */
+  foco?: string
 }
 
 export const PATRONES: Patron[] = [

@@ -494,4 +494,82 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
       },
     ],
   },
+  {
+    id: 'esternocleidomastoideo',
+    nombre: 'Esternocleidomastoideo',
+    grupo: 'tronco',
+    acciones: [
+      'Flexiona el cuello y gira la cabeza hacia el lado contrario.',
+      'Los dos a la vez adelantan la cabeza; es el que se marca al mirar hacia abajo.',
+    ],
+    porciones: [
+      {
+        id: 'esternal',
+        nombre: 'Fascículo esternal',
+        origen: 'Manubrio del esternón',
+        insercion: 'Apófisis mastoides del temporal',
+        desde: ['torax', 0.26, [0.014, 0, 0.082]],
+        hasta: ['craneo', 0.30, [0.040, 0, -0.014]],
+        radio: 0.011, aplanar: 0.7, biarticular: true,
+      },
+      {
+        id: 'clavicular',
+        nombre: 'Fascículo clavicular',
+        origen: 'Tercio medial de la clavícula',
+        insercion: 'Apófisis mastoides, con el fascículo esternal',
+        desde: ['clavicula', 0.24, [0.004, 0, 0.010]],
+        hasta: ['craneo', 0.28, [0.042, 0, -0.010]],
+        radio: 0.010, aplanar: 0.7, biarticular: true,
+      },
+    ],
+  },
+  {
+    id: 'escalenos',
+    nombre: 'Escalenos',
+    grupo: 'tronco',
+    acciones: [
+      'Inclinan el cuello de lado y elevan las dos primeras costillas.',
+      'Cuando cuesta respirar, tiran del tórax hacia arriba.',
+    ],
+    porciones: [
+      {
+        id: 'unico',
+        nombre: 'Haz común',
+        origen: 'Apófisis transversas de las vértebras cervicales',
+        insercion: 'Primera y segunda costillas',
+        desde: ['cuello', 0.55, [0.024, 0, 0.006]],
+        hasta: ['torax', 0.86, [0.046, 0, 0.030]],
+        radio: 0.009, aplanar: 0.65,
+      },
+    ],
+  },
+  {
+    id: 'esplenio',
+    nombre: 'Esplenio y suboccipitales',
+    grupo: 'tronco',
+    acciones: [
+      'Extienden el cuello y sostienen la cabeza contra su propio peso.',
+      'Son los que aguantan cuando el tronco se inclina y la mirada se queda al frente.',
+    ],
+    porciones: [
+      {
+        id: 'esplenio',
+        nombre: 'Esplenio de la cabeza',
+        origen: 'Ligamento nucal y apófisis espinosas cervicales bajas',
+        insercion: 'Apófisis mastoides y línea nucal del occipital',
+        desde: ['torax', 0.96, [0.014, 0, -0.032]],
+        hasta: ['craneo', 0.22, [0.030, 0, -0.048]],
+        radio: 0.011, aplanar: 0.55, biarticular: true,
+      },
+      {
+        id: 'suboccipitales',
+        nombre: 'Suboccipitales',
+        origen: 'Axis y atlas',
+        insercion: 'Línea nucal inferior del occipital',
+        desde: ['cuello', 0.86, [0.012, 0, -0.024]],
+        hasta: ['craneo', 0.12, [0.018, 0, -0.042]],
+        radio: 0.008, aplanar: 0.6,
+      },
+    ],
+  },
 ]
