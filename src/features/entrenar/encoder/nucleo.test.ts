@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import huellas from './nucleo/huellas.json'
+import { buscarHerramientas, COMO_ENCONTRARLAS } from '../../../../scripts/herramientasEncoder.mjs'
 
 /* El núcleo de `nucleo/` entra verbatim desde el repo de las herramientas, donde
  * lo validan 56 casos de prueba que aquí no existen. Un parche hecho en esta
@@ -43,33 +44,10 @@ describe('el nucleo vendorizado', () => {
   })
 })
 
-/**
- * Dónde está el repo de las herramientas, si es que está.
- *
- * No hay una ruta fija: la app y las herramientas son dos repos y cada máquina
- * los pone donde quiere. Se prueban las colocaciones conocidas y se admite una
- * variable de entorno para el resto, incluido el CI el día que quiera montarlo.
- */
-function buscarHerramientas(): string | null {
-  // Si alguien pone la variable, MANDA: es el único candidato. Buscar por detrás
-  // «por si acaso» haría que apuntar a un sitio equivocado se resolviera solo y
-  // en silencio, y entonces no habría forma de comprobar que el salto funciona.
-  const declarado = process.env.ENCODER_HERRAMIENTAS
-  if (declarado) return existsSync(join(declarado, 'analisis.js')) ? declarado : null
-
-  const raiz = join(aqui, '..', '..', '..', '..')
-  const candidatos = [
-    // `dev/alpha-app` junto a `dev/cerebro-alpha`, que es como está hoy.
-    join(raiz, '..', 'cerebro-alpha', 'herramientas', 'encoder-camara'),
-    // La colocación que asume el script de allí: la app DENTRO de cerebro-alpha.
-    join(raiz, '..', 'herramientas', 'encoder-camara'),
-  ]
-  for (const c of candidatos) {
-    if (existsSync(join(c, 'analisis.js'))) return c
-  }
-  return null
-}
-
+/* La búsqueda vive en `scripts/herramientasEncoder.mjs` porque también la
+ * necesita `medir-palancas.mjs`, que cruza al otro repo para medir un vídeo.
+ * Dos copias de una búsqueda de rutas es cómo una acaba mirando donde la otra
+ * ya no. */
 const herramientas = buscarHerramientas()
 
 /* Un `skip` no se ve. Vitest lo pinta en gris junto a los cientos de tests que
@@ -87,8 +65,7 @@ if (!herramientas) {
     copia siga al dia. Ha derivado en silencio dos veces: el 23 de agosto de 2026 y
     otra vez el 25, esa con 188 lineas de diferencia y la app midiendo sin velocidad
     media propulsiva.
-    En el CI es normal y no pasa nada. En tu maquina, no: clona cerebro-alpha al lado,
-    o pon ENCODER_HERRAMIENTAS=<ruta a herramientas/encoder-camara>.
+    En el CI es normal y no pasa nada. En tu maquina, no: ${COMO_ENCONTRARLAS}
 
     Para sincronizar:  node herramientas/encoder-camara/sincronizar-nucleo.mjs --aplicar
 `,
