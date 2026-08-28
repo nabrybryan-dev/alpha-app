@@ -15,7 +15,7 @@
 import { ARTICULACIONES, type Articulacion, type EjeArticular } from './articulaciones'
 import type { Patron } from './catalogo'
 import { apoyarPies, ESQUELETO, type Lado, type Pose } from './esqueleto'
-import { activacionDe, PORCIONES } from './musculos'
+import { activacionDe, PORCIONES, type PorcionLocalizada } from './musculos'
 import { poseAnimada } from './movimiento'
 
 /**
@@ -86,7 +86,7 @@ function ancestros(hueso: string): string[] {
  * el otro por debajo de ella. Es lo que decide si puede sujetarla: un músculo
  * que no la cruza no puede hacer nada por ella, por mucho que esté cerca.
  */
-function cruza(huesoA: string, huesoB: string, art: Articulacion): boolean {
+export function cruza(huesoA: string, huesoB: string, art: Articulacion): boolean {
   // Basta con mirar el lado distal: un anclaje está por debajo de la
   // articulación si el hueso distal aparece en su cadena hacia la raíz. Exigir
   // además que el otro contuviera el hueso proximal era demasiado estricto y
@@ -94,6 +94,15 @@ function cruza(huesoA: string, huesoB: string, art: Articulacion): boolean {
   // salen del húmero y cruzan la muñeca igual.
   const porDebajo = (hueso: string) => ancestros(hueso).includes(art.huesoDistal)
   return porDebajo(huesoA) !== porDebajo(huesoB)
+}
+
+/**
+ * Las porciones musculares que cruzan una articulación, es decir, las únicas
+ * que pueden moverla o sujetarla. Un músculo que no la cruza no puede hacer
+ * nada por ella, por mucho que esté al lado.
+ */
+export function porcionesQueCruzan(art: Articulacion): PorcionLocalizada[] {
+  return PORCIONES.filter(({ porcion }) => cruza(porcion.desde[0], porcion.hasta[0], art))
 }
 
 /** Cuánta activación tiene el músculo más solicitado que cruza la articulación. */

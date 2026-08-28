@@ -126,11 +126,16 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
     e['pie' + s] = sagital(g('tobilloPlantar' + s, g('tobilloPlantar')), abdCadera)
 
     // Escápula: protracción la separa de la columna, elevación la sube.
+    // La escápula gira sobre el tórax; el rig no la traslada, así que la
+    // elevación se expresa como rotación. Con 15 cm de hueso, 25° suben su
+    // extremo unos seis centímetros, que es el recorrido real de un encogimiento.
     fijar(
       'escapula' + s,
       0,
       0,
-      k * (g('escapulaProt' + s, g('escapulaProt')) - g('escapulaRetr' + s, g('escapulaRetr'))) * 0.55,
+      k *
+        ((g('escapulaProt' + s, g('escapulaProt')) - g('escapulaRetr' + s, g('escapulaRetr'))) * 0.55 -
+          g('escapulaElev' + s, g('escapulaElev')) * 0.8),
     )
     fijar('clavicula' + s, 0, k * g('escapulaProt' + s, g('escapulaProt')) * 0.5, -k * g('escapulaElev' + s, g('escapulaElev')) * 0.6)
 
