@@ -60,8 +60,16 @@ export const MODELOS_INFERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
       M('cadera', 'estabilizador', 'abduccion', ['Glúteos'], [30, 50],
         'En unilateral la pelvis cae hacia el lado libre y el glúteo medio lo frena. ' +
         'Ese momento frontal NO se ve en el plano sagital: la cámara de lado no lo mide.', 'frontal'),
-      M('tobillo', 'secundario', 'dorsiflexion', ['Pantorrillas'], [40, 55],
-        'La dorsiflexión disponible limita cuánto puede avanzar la rodilla, y con ello el reparto.'),
+      // `accion` es lo que hace el MÚSCULO en la fase concéntrica, y el tríceps
+      // sural plantiflexiona: en la subida empuja el suelo, igual que en la
+      // sentadilla a dos piernas. Aquí ponía `dorsiflexion` por lo que dice la
+      // nota —el RANGO de dorsiflexión disponible—, que es otra cosa: un tope
+      // articular no es una acción muscular, y confundirlos deja al tríceps
+      // sural declarado como motor de lo que frena.
+      M('tobillo', 'secundario', 'flexion-plantar', ['Pantorrillas'], [40, 55],
+        'El RANGO de dorsiflexión disponible —no la acción— limita cuánto puede avanzar la ' +
+        'rodilla, y con ello el reparto entre rodilla y cadera. Con poco tobillo, el torso se ' +
+        'inclina para compensar y el ejercicio se va al glúteo sin que nadie lo haya decidido.'),
       M('lumbar', 'estabilizador', 'isometrico', ['Lumbares', 'Abdomen'], [50, 60],
         'Aquí el torso no es un acompañante: su ángulo ES la variante. Vertical manda el ' +
         'glúteo, inclinado manda el aductor, y el eje lumbar es el que lo delata.'),
