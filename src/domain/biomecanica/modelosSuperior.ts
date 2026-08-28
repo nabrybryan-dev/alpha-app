@@ -26,8 +26,11 @@ export const MODELOS_SUPERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
       M('codo', 'principal', 'extension', ['Tríceps'], [20, 25]),
       M('escapula', 'estabilizador', 'retraccion', ['Espalda'], [20, 40],
         'La escápula es la base sobre la que empuja el húmero. Si no está fija, el hombro empuja desde el aire.'),
-      M('muñeca', 'estabilizador', 'isometrico', [], [15, 25],
-        'Sin grupo propio en la taxonomía. Si la barra no cae sobre el codo, aquí aparece un momento que nadie quiere.'),
+      {
+        ...M('muñeca', 'estabilizador', 'isometrico', [], [15, 25],
+          'Si la barra no cae sobre el codo, aquí aparece un momento que nadie quiere.'),
+        motorSinGrupo: 'flexores del antebrazo',
+      },
     ],
     linea: { origen: 'carga-externa' },
     marcas: ['hombro', 'codo', 'muñeca'],
@@ -53,9 +56,12 @@ export const MODELOS_SUPERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
         'Cuanto más vertical el respaldo, más flexión y menos aducción: el reparto se corre al deltoides anterior.'),
       M('codo', 'principal', 'extension', ['Tríceps'], [20, 25]),
       M('escapula', 'estabilizador', 'retraccion', ['Espalda'], [20, 40]),
-      M('muñeca', 'estabilizador', 'isometrico', [], [15, 25],
-        'Como en el banco plano: si la barra no cae sobre el codo, aquí aparece un momento ' +
-        'que nadie quiere y parte de la fuerza se gasta en sostenerla.'),
+      {
+        ...M('muñeca', 'estabilizador', 'isometrico', [], [15, 25],
+          'Como en el banco plano: si la barra no cae sobre el codo, aquí aparece un momento ' +
+          'que nadie quiere y parte de la fuerza se gasta en sostenerla.'),
+        motorSinGrupo: 'flexores del antebrazo',
+      },
     ],
     linea: { origen: 'carga-externa' },
     marcas: ['hombro', 'codo', 'muñeca'],
@@ -79,9 +85,12 @@ export const MODELOS_SUPERIOR: Partial<Record<Categoria, ModeloDePalanca | null>
       M('lumbar', 'estabilizador', 'isometrico', ['Abdomen', 'Lumbares'], [50, 60],
         'La carga está por encima de la cabeza: cualquier desvío por delante se paga en la lumbar con un brazo largo.'),
       M('escapula', 'secundario', 'retraccion', ['Espalda'], [20, 40]),
-      M('muñeca', 'estabilizador', 'isometrico', [], [15, 25],
-        'Con la carga por encima de la cabeza, una muñeca caída manda la barra por delante ' +
-        'del codo y de paso alarga el brazo en la lumbar.'),
+      {
+        ...M('muñeca', 'estabilizador', 'isometrico', [], [15, 25],
+          'Con la carga por encima de la cabeza, una muñeca caída manda la barra por delante ' +
+          'del codo y de paso alarga el brazo en la lumbar.'),
+        motorSinGrupo: 'flexores del antebrazo',
+      },
     ],
     linea: { origen: 'carga-externa' },
     marcas: ['tobillo', 'cadera', 'hombro', 'codo', 'muñeca'],

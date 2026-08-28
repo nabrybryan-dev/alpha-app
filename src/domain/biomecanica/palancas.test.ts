@@ -63,10 +63,18 @@ describe('invariantes de cada modelo', () => {
     }
   })
 
-  it('un eje principal siempre declara qué músculo genera su momento', () => {
+  /**
+   * Vale para TODOS los ejes, no solo para el que manda.
+   *
+   * Cuatro ejes lo decían en la nota —«el psoas no tiene grupo», «sin grupo
+   * propio en la taxonomía»— y una nota es prosa: no cruza al encoder, no llega
+   * a la pantalla y nadie la comprueba. Con el campo, el hueco viaja con el
+   * plan y se puede pintar; sin él, la muñeca de un press llegaba al otro lado
+   * sin músculo y sin grupo, en blanco, que se lee igual que un olvido.
+   */
+  it('todo eje declara qué músculo genera su momento, con grupo o sin él', () => {
     for (const categoria of conModelo) {
       for (const eje of modelo(categoria).ejes) {
-        if (eje.protagonismo !== 'principal') continue
         // O un grupo del PANEL, o el nombre del músculo que no tiene grupo. Lo
         // que no vale es dejarlo en blanco: la muñeca y la dorsiflexión existen.
         const declarado = eje.motores.length > 0 || (eje.motorSinGrupo ?? '').length > 0
@@ -90,6 +98,41 @@ describe('invariantes de cada modelo', () => {
         if (eje.protagonismo !== 'principal') continue
         expect(eje.motores, `${categoria} · ${eje.articulacion}`).toEqual([])
         expect(eje.motorSinGrupo, `${categoria} · ${eje.articulacion}`).toBeTruthy()
+      }
+    }
+  })
+
+  /**
+   * Ningún grupo puede ser el motor de lo que lo estira.
+   *
+   * El anterior caza el hueco —un patrón al que la taxonomía no le da grupo—,
+   * y **no habría cazado el segundo caso**, que apareció el 2026-08-28 en un
+   * patrón con grupos de sobra: la SENTADILLA UNILATERAL declaraba
+   * `Pantorrillas` moviendo una `dorsiflexion`. Era el mismo error escrito en
+   * otro sitio, y por eso hace falta mirarlo por la pareja músculo↔acción y no
+   * por la fila.
+   *
+   * La lista empieza con una entrada a propósito. Es la que ya ocurrió dos
+   * veces y la que está verificada contra el criterio del coach (taxonomía
+   * §3bis nota 4: el tibial anterior dorsiflexiona, el tríceps sural
+   * plantiflexiona). Inventar más parejas «obvias» sin comprobarlas es cómo un
+   * guardián empieza a dar rojos falsos, que enseñan a ignorarlo.
+   */
+  const NO_LO_HACE: Partial<Record<string, readonly string[]>> = {
+    // El tríceps sural cruza el tobillo por detrás: tira del talón hacia arriba.
+    // Lo que dorsiflexiona es el tibial anterior, que no tiene grupo en el PANEL.
+    Pantorrillas: ['dorsiflexion'],
+  }
+
+  it('ningún músculo aparece moviendo la acción de su antagonista', () => {
+    for (const categoria of conModelo) {
+      for (const eje of modelo(categoria).ejes) {
+        for (const grupo of eje.motores) {
+          expect(
+            NO_LO_HACE[grupo] ?? [],
+            `${categoria} · ${eje.articulacion}: ${grupo} no hace ${eje.accion}`,
+          ).not.toContain(eje.accion)
+        }
       }
     }
   })

@@ -89,15 +89,15 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   // La tabla de palancas dejó de ser un módulo huérfano el 2026-08-24: la
   // consume `scripts/corpus-video.mjs`, que la choca contra el catálogo de 168
   // vídeos reales de gimnasio y es lo que destapó que faltaba el implemento.
-  // La pantalla de palancas ya existe (#112, 2026-08-25), pero NO entra por aquí:
-  // se alimenta de `medidaDePalancas.ts` con los brazos que `brazo-por-fotograma.mjs`
-  // ya midió fuera de la app, y qué eje mirar lo eligió a mano quien lanzó la
-  // medida. Estas dos entradas se enchufan el día que esa elección la haga la
-  // tabla. Diseño: docs/specs/2026-08-24-palancas-y-paralelogramo-diseno.md.
+  // La elección del eje YA la hace la tabla desde el 2026-08-28 (#187): la cadena
+  // entera pasa por `medir-palancas.mjs`. Lo que dejó a estas dos sin usar es que
+  // el eje viaja DENTRO del plan (`planDeMedida` → `ejeObjetivo`), así que nadie
+  // necesita preguntarlo por separado. No es que esperen a algo: es que la vía
+  // buena pasa por otro sitio, y aquí se quedan por lo que dice cada una.
   'src/domain/biomecanica/palancas.ts#ejePrincipal':
-    'El eje que manda, para etiquetar una serie en pantalla. Espera a que la ' +
-    'exportación de la medida elija el eje por tabla en vez de a mano; el informe ' +
-    'del corpus usa planDeMedida, que ya lo lleva dentro.',
+    'El eje que manda, sin construir el plan entero. Hoy nadie lo pide suelto porque ' +
+    'el plan ya lo lleva; queda para etiquetar una serie en pantalla, que es el único ' +
+    'sitio donde hará falta el eje y no el plan.',
   'src/domain/biomecanica/palancas.ts#MODELOS_DE_PALANCA':
     'La tabla entera, para recorrerla. La usan los tests de invariantes y el día ' +
     'que el selector de ejercicio de la pantalla lea de aquí.',
