@@ -29,12 +29,14 @@ attribute vec3 a_pos;
 attribute vec3 a_nrm;
 attribute vec3 a_col;
 attribute float a_hueso;
+attribute float a_fibra;
 uniform mat4 u_huesos[${MAX_HUESOS}];
 uniform mat4 u_vista;
 uniform mat4 u_proyeccion;
 varying vec3 v_nrm;
 varying vec3 v_col;
 varying vec3 v_mundo;
+varying float v_fibra;
 void main() {
   // El índice llega como float porque WebGL1 no tiene atributos enteros, y el
   // array de uniforms no admite indexación dinámica: de ahí el bucle.
@@ -45,6 +47,7 @@ void main() {
   v_mundo = p.xyz;
   v_nrm = normalize(mat3(B) * a_nrm);
   v_col = a_col;
+  v_fibra = a_fibra;
   gl_Position = u_proyeccion * u_vista * p;
 }`
 
@@ -54,11 +57,28 @@ ${GLSL_ACABADO}
 varying vec3 v_nrm;
 varying vec3 v_col;
 varying vec3 v_mundo;
+varying float v_fibra;
 uniform vec3 u_ojo;
 uniform float u_suelo;
 void main() {
   vec3 N = normalize(v_nrm);
   vec3 V = normalize(u_ojo - v_mundo);
+
+  // El relieve de las fibras. v_fibra es la distancia recorrida A LO LARGO de
+  // la fibra, así que un seno sobre ella dibuja los fascículos en su dirección
+  // real: a lo largo en un fusiforme y oblicuos en un penado. Se perturba la
+  // normal y no el color, porque una fibra se ve por cómo coge la luz y no
+  // porque esté pintada; pintada se vería como una tela estampada.
+  if (v_fibra != 0.0) {
+    float onda = sin(v_fibra * 220.0);
+    // Se inclina la normal sobre un eje transversal fijo. Podría sacarse la
+    // dirección exacta con derivadas de pantalla, pero eso pide una extensión
+    // de WebGL 1 que no está en todas partes, y el relieve se lee igual: la
+    // ONDA ya va en la dirección de la fibra, que es lo que se quiere ver.
+    vec3 eje = abs(N.y) > 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    vec3 lateral = normalize(cross(N, eje));
+    N = normalize(N + lateral * onda * 0.16);
+  }
   // Los tubos abiertos no tienen dentro ni fuera: se gira la normal hacia quien mira.
   if (dot(N, V) < 0.0) N = -N;
 
@@ -134,7 +154,7 @@ export class Motor {
     this.programa = p
 
     this.buffers = {}
-    for (const n of ['pos', 'nrm', 'col', 'hueso', 'idx']) {
+    for (const n of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'idx']) {
       const b = gl.createBuffer()
       if (!b) throw new Error('no se pudo crear el buffer')
       this.buffers[n] = b
@@ -165,6 +185,7 @@ export class Motor {
     const nrm: number[] = []
     const col: number[] = []
     const hueso: number[] = []
+    const fibra: number[] = []
     const idx: number[] = []
     let base = 0
     for (const m of mallas) {
@@ -172,6 +193,7 @@ export class Motor {
       nrm.push(...m.normal)
       col.push(...m.color)
       hueso.push(...m.hueso)
+      fibra.push(...m.fibra)
       for (const i of m.indice) idx.push(i + base)
       base += m.vertices
     }
@@ -183,6 +205,7 @@ export class Motor {
     poner(this.buffers.nrm, nrm)
     poner(this.buffers.col, col)
     poner(this.buffers.hueso, hueso)
+    poner(this.buffers.fibra, fibra)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
     // Por encima de 65 535 vértices hacen falta índices de 32 bits. La malla
@@ -224,6 +247,7 @@ export class Motor {
     gl.useProgram(this.programa)
 
     this.atributo('a_pos', this.buffers.pos, 3)
+    this.atributo('a_fibra', this.buffers.fibra, 1)
     this.atributo('a_nrm', this.buffers.nrm, 3)
     this.atributo('a_col', this.buffers.col, 3)
     this.atributo('a_hueso', this.buffers.hueso, 1)

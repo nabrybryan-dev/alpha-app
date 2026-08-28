@@ -84,6 +84,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'convergente',
         nombre: 'Vientre único',
         origen: 'Cara glútea del ilion, por debajo del glúteo medio',
         insercion: 'Borde anterior del trocánter mayor',
@@ -176,6 +177,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'iliaco',
+        arquitectura: 'convergente',
         nombre: 'Ilíaco',
         origen: 'Fosa ilíaca',
         insercion: 'Trocánter menor del fémur, junto al psoas',
@@ -199,6 +201,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'recto',
+        arquitectura: 'bipenado',
+        penacion: 14,
         nombre: 'Recto femoral',
         origen: 'Espina ilíaca anteroinferior',
         insercion: 'Rótula y tuberosidad tibial, por el tendón rotuliano',
@@ -209,6 +213,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'vasto_lateral',
+        arquitectura: 'unipenado',
+        penacion: 18,
         nombre: 'Vasto lateral',
         origen: 'Trocánter mayor y labio lateral de la línea áspera',
         insercion: 'Borde lateral de la rótula',
@@ -219,6 +225,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'vasto_medial',
+        arquitectura: 'unipenado',
+        penacion: 22,
         nombre: 'Vasto medial',
         origen: 'Labio medial de la línea áspera',
         insercion: 'Borde medial de la rótula',
@@ -229,6 +237,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'vasto_intermedio',
+        arquitectura: 'unipenado',
+        penacion: 15,
         nombre: 'Vasto intermedio',
         origen: 'Caras anterior y lateral del cuerpo del fémur',
         insercion: 'Base de la rótula, bajo el recto femoral',
@@ -260,6 +270,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'biceps_corta',
+        arquitectura: 'unipenado',
+        penacion: 12,
         nombre: 'Bíceps femoral · cabeza corta',
         origen: 'Labio lateral de la línea áspera del fémur',
         insercion: 'Cabeza del peroné, con la cabeza larga',
@@ -279,6 +291,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'semimembranoso',
+        arquitectura: 'unipenado',
+        penacion: 15,
         nombre: 'Semimembranoso',
         origen: 'Tuberosidad isquiática, por delante del semitendinoso',
         insercion: 'Cóndilo medial de la tibia',
@@ -319,6 +333,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'gastro_medial',
+        arquitectura: 'bipenado',
+        penacion: 22,
         nombre: 'Gastrocnemio medial',
         origen: 'Cóndilo medial del fémur',
         insercion: 'Calcáneo, por el tendón de Aquiles',
@@ -329,6 +345,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'gastro_lateral',
+        arquitectura: 'bipenado',
+        penacion: 20,
         nombre: 'Gastrocnemio lateral',
         origen: 'Cóndilo lateral del fémur',
         insercion: 'Calcáneo, por el tendón de Aquiles',
@@ -339,6 +357,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'soleo',
+        arquitectura: 'multipenado',
+        penacion: 28,
         nombre: 'Sóleo',
         origen: 'Línea del sóleo de la tibia y cabeza del peroné',
         insercion: 'Calcáneo, por el tendón de Aquiles',
@@ -360,6 +380,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'unipenado',
+        penacion: 10,
         nombre: 'Vientre único',
         origen: 'Cóndilo lateral y cara lateral de la tibia',
         insercion: 'Primer cuneiforme y base del primer metatarsiano',
@@ -377,6 +399,8 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'largo',
+        arquitectura: 'unipenado',
+        penacion: 12,
         nombre: 'Peroneo largo',
         origen: 'Cabeza y dos tercios superiores del peroné',
         insercion: 'Base del primer metatarsiano, por la planta',
@@ -440,6 +464,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'plano',
         nombre: 'Vientre con sus intersecciones',
         origen: 'Cresta del pubis y sínfisis púbica',
         insercion: 'Cartílagos costales 5.º a 7.º y apéndice xifoides',
@@ -461,6 +486,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'externo',
+        arquitectura: 'plano',
         nombre: 'Oblicuo externo',
         origen: 'Caras externas de las costillas 5.ª a 12.ª',
         insercion: 'Cresta ilíaca y línea alba',
@@ -471,6 +497,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
       },
       {
         id: 'interno',
+        arquitectura: 'plano',
         nombre: 'Oblicuo interno',
         origen: 'Cresta ilíaca, ligamento inguinal y fascia toracolumbar',
         insercion: 'Costillas 10.ª a 12.ª y línea alba',
@@ -488,6 +515,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'plano',
         nombre: 'Vientre único',
         origen: 'Cresta ilíaca, fascia toracolumbar y cartílagos costales bajos',
         insercion: 'Línea alba',
@@ -509,6 +537,7 @@ export const MUSCULOS_INFERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'plano',
         nombre: 'Vientre único',
         origen: 'Cresta ilíaca y ligamento iliolumbar',
         insercion: '12.ª costilla y apófisis transversas lumbares',

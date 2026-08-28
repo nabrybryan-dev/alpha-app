@@ -157,6 +157,22 @@ export function radioDePorcion(
   return radio * (0.3 + 0.7 * silueta) * engorde * tono
 }
 
+/**
+ * Cómo van las fibras de una porción, en lo que el dibujo necesita saber.
+ *
+ * Un fusiforme no lleva ángulo: sus fibras corren a lo largo. Los penados sí, y
+ * los bipenados además invierten el sentido en la mitad opuesta, que es lo que
+ * les da la espiga.
+ */
+function fibraDe(porcion: Porcion): { penacion: number; bilateral: boolean } {
+  const arq = porcion.arquitectura ?? 'fusiforme'
+  const grados = porcion.penacion ?? 0
+  return {
+    penacion: (grados * Math.PI) / 180,
+    bilateral: arq === 'bipenado' || arq === 'multipenado',
+  }
+}
+
 export function construirMusculos(
   esq: EsqueletoResuelto,
   activacion: Activacion,
@@ -185,13 +201,27 @@ export function construirMusculos(
         // el poplíteo o el redondo menor son tubos de un centímetro.
         const grande = porcion.radio >= 0.018
         const anillos = grande ? 12 : porcion.radio >= 0.013 ? 10 : 8
-        const lados = grande ? 7 : porcion.radio >= 0.013 ? 6 : 5
+        // Los penados necesitan más lados. La estría oblicua varía alrededor del
+        // tubo, y con siete muestras esa variación se pierde entre vértice y
+        // vértice: el músculo salía rayado a lo largo, como si fuera fusiforme.
+        // Solo se paga en los penados, que son doce de las cincuenta y cinco.
+        const oblicua = (porcion.penacion ?? 0) > 0
+        const lados = oblicua
+          ? grande ? 14 : 12
+          : grande ? 7 : porcion.radio >= 0.013 ? 6 : 5
         const puntos = curva(control, anillos)
         tubo(
           m,
           puntos,
           (t) => radioDePorcion(t, porcion.radio, ensanche, tono),
-          { radial: lados, color, hueso: 0, aplanar: porcion.aplanar ?? 1, tapar: true },
+          {
+            radial: lados,
+            color,
+            hueso: 0,
+            aplanar: porcion.aplanar ?? 1,
+            tapar: true,
+            fibra: fibraDe(porcion),
+          },
         )
       }
     }
