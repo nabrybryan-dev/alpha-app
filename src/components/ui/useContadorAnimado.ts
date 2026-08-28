@@ -9,11 +9,28 @@ const facilidad = (t: number) => 1 - Math.pow(1 - t, 4)
  * garantiza el valor final aunque el navegador congele los frames.
  * El llamador redondea/formatea el resultado.
  */
-export function useContadorAnimado(objetivo: number, duracionMs = 900): number {
+export function useContadorAnimado(
+  objetivo: number,
+  duracionMs = 900,
+  /**
+   * Arrancar YA en el objetivo en vez de contar desde cero al montar.
+   *
+   * El comportamiento de siempre —subir desde 0— es el de un marcador: cuenta lo
+   * conseguido y la cuenta ES el mensaje. Pero hay cifras que no son un marcador
+   * sino el ESTADO DE UN MANDO: los kilos que vas a levantar, las reps, el RIR.
+   * Ahí contar desde cero al montar diría algo falso —«empiezas en 0 y subes»—
+   * cuando el valor ya venía puesto por la prescripción del coach.
+   *
+   * Con esto la cifra solo se mueve cuando CAMBIA, que es lo que se quiere de un
+   * mando: reacciona a una causa y el resto del tiempo está quieta.
+   */
+  arrancarEnObjetivo = false,
+): number {
   const reducido = movimientoReducido()
-  const [valor, setValor] = useState(() => (reducido ? objetivo : 0))
+  const inicial = reducido || arrancarEnObjetivo ? objetivo : 0
+  const [valor, setValor] = useState(() => inicial)
   // Último valor realmente mostrado: punto de partida de la siguiente animación.
-  const mostradoRef = useRef(reducido ? objetivo : 0)
+  const mostradoRef = useRef(inicial)
 
   useEffect(() => {
     if (movimientoReducido()) {

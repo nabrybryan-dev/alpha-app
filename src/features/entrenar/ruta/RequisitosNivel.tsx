@@ -23,10 +23,10 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
       </h3>
       <ul className="mt-3 flex flex-col gap-2.5">
         {requisitos.map((r) => (
-          <li key={r.id} className="flex items-start gap-3">
+          <li key={r.id} className="escena-prof flex items-start gap-3">
             <span
               className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-[1.5px] ${
-                r.cumplido ? 'border-accion bg-accion text-white' : 'border-ink-400 text-ink-400'
+                r.cumplido ? 'border-accion bg-accion text-white' : 'pozo-3d border-ink-400 text-ink-400'
               }`}
               // El estado ya se decía con MATERIA —círculo lleno frente a círculo
               // hueco—, que es la regla de la marca y por eso aquí no hay semáforo.
@@ -35,10 +35,9 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
               // `--prof-hueco`, que es literalmente «materia que falta dentro de la
               // misma placa». Ninguno de los dos es tocable — la fila entera no lo
               // es —, así que hundir no roza el mínimo táctil.
-              style={{
-                transform: `translateZ(var(${r.cumplido ? '--prof-plano' : '--prof-hueco'}))`,
-                boxShadow: r.cumplido ? undefined : 'var(--sombra-hundido)',
-              }}
+              // Lo pendiente es un POZO —`.pozo-3d` trae escalon, sombra y cara— y lo
+              // cumplido se queda en el plano, sin nada. La diferencia deja de ser
+              // «relleno o vacio» y pasa a ser «materia o hueco», que es la regla.
             >
               {r.cumplido ? (
                 <CheckDibujado className="h-3 w-3" />

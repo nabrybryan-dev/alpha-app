@@ -30,7 +30,7 @@ export function BloqueEnCurso({ bloque, sesion }: Props) {
         </span>
       </div>
 
-      <div className="mt-3 flex gap-[5px]" aria-hidden="true">
+      <div className="escena-prof mt-3 flex gap-[5px]" aria-hidden="true">
         {segmentos.map((hecha, i) => (
           <span
             key={i}
