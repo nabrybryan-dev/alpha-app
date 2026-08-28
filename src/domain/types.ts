@@ -229,7 +229,12 @@ export interface EscenarioRojo {
 }
 
 export interface EscenariosDelDia {
-  verde: EscenarioVerde
+  /**
+   * Sin definir: el asesorado no tiene verde autorizado (p. ej. vetado de
+   * subida). El rojo se conserva SIEMPRE — no depende de que exista el verde
+   * (decisión del coach, B-7, 2026-08-28: el vetado no pierde el paracaídas).
+   */
+  verde?: EscenarioVerde
   rojo: EscenarioRojo
 }
 

@@ -331,7 +331,7 @@ export interface AjusteDelDia {
  * Convierte la decisión del cruce en el ajuste concreto — SOLO por los caminos
  * que el coach dejó escritos.
  *
- * Tres reglas que no se negocian:
+ * Cuatro reglas que no se negocian:
  *
  * 1. **Sin `escenarios` en la prescripción no hay ajuste**, valga lo que valga
  *    el cruce. La pre-autorización es el mecanismo, no un adorno: un bucle que
@@ -340,6 +340,13 @@ export interface AjusteDelDia {
  *    `techoCargaKg`, y si ya está ahí, el verde no propone nada — lo dice.
  * 3. **El rojo afloja con `aflojar`, nunca sumando**, porque el objetivo puede
  *    ser `FALLO` y el escalón de debajo del fallo es RIR 0, no «FALLO+1».
+ * 4. **El rojo se conserva SIEMPRE; el verde no.** `escenarios.verde` es
+ *    opcional (decisión del coach, B-7, 2026-08-28): un asesorado vetado de
+ *    subida puede traer solo el camino rojo escrito, y sigue conservando el
+ *    paracaídas. Si el cruce da verde y no hay `verde` escrito, no se propone
+ *    nada — «sin verde autorizado» — nunca se inventa un escalón. La
+ *    excepción de técnica/velocidad que flexibiliza ese veto queda fuera de
+ *    este módulo (fuera de alcance del domingo, SEMANA.md).
  */
 export function aplicarEscenario(
   ejercicio: EjercicioPrescrito,
@@ -357,6 +364,12 @@ export function aplicarEscenario(
 
   if (decision.escenario === 'verde') {
     const v = ejercicio.escenarios.verde
+    if (!v) {
+      return sinCambio(
+        'Rendimiento por encima con contexto bueno, pero el ejercicio solo trae el camino rojo ' +
+          'escrito: sin verde autorizado no se propone nada.',
+      )
+    }
     const base = ejercicio.cargaKg
     let cargaKg: number | undefined
     if (typeof base === 'number' && typeof v.deltaCargaKg === 'number') {

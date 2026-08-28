@@ -229,6 +229,29 @@ describe('aplicarEscenario — solo por los caminos que el coach dejo escritos',
   })
 })
 
+describe('aplicarEscenario — el rojo se conserva siempre (B-7, 2026-08-28)', () => {
+  // Solo el camino rojo escrito: el veto de subida no autoriza verde, pero el
+  // asesorado vetado no pierde el paracaídas.
+  const soloRojo = {
+    rojo: { deltaRir: 1, quitarUltimaSerie: true, sueloRir: 1 },
+  }
+  const verde = { escenario: 'verde', rendimiento: 'por_encima', contexto: 'bueno', motivo: 'x' } as const
+  const rojo = { escenario: 'rojo', rendimiento: 'por_debajo', contexto: 'malo', motivo: 'x' } as const
+
+  it('el asesorado vetado conserva el paracaidas: dia rojo con solo-rojo aplica el rojo igual', () => {
+    const a = aplicarEscenario(ejercicio({ escenarios: soloRojo }), rojo)
+    expect(a.rirObjetivo).toBe(3)
+    expect(a.sets).toBe(2)
+  })
+
+  it('con solo-rojo escrito, un dia verde no propone nada: motivo "sin verde autorizado"', () => {
+    const a = aplicarEscenario(ejercicio({ escenarios: soloRojo }), verde)
+    expect(a.cargaKg).toBeUndefined()
+    expect(a.sets).toBeUndefined()
+    expect(a.motivo).toContain('sin verde autorizado')
+  })
+})
+
 describe('la velocidad, cuando existe, manda sobre el RIR', () => {
   const vel = (pvPct: number, extra: Partial<VelocidadDeSerie> = {}): VelocidadDeSerie => ({
     pvPct, hayEscala: false, calidad: 'buena', ...extra,
