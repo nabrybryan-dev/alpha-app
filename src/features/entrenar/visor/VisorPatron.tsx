@@ -162,7 +162,13 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
 
         const pintar = () => {
           const aspecto = motor.ajustarTamano()
-          motor.dibujar(matrices, orbita.vista(), M4.perspectiva(CAMPO_VISUAL, aspecto, 0.05, 40), orbita.ojo())
+          motor.dibujar(
+            matrices,
+            orbita.vista(),
+            M4.perspectiva(CAMPO_VISUAL, aspecto, 0.05, 40),
+            orbita.ojo(),
+            conEscenario && patron.apoyo !== 'ninguno',
+          )
         }
 
         const mostrarEsferaAl = (v: boolean) => {
