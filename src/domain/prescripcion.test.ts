@@ -284,3 +284,74 @@ describe('ida y vuelta · parsear y volver a componer no pierde nada', () => {
     })
   }
 })
+
+describe('las tres formas de escribir las repeticiones', () => {
+  /**
+   * Contrastado contra las 901 prescripciones distintas de produccion el
+   * 2026-08-26, comparando el parser nuevo con el ANTERIOR sacado de git —sin
+   * transcribir la expresion a mano, que es donde se cuelan los errores—:
+   * **735 identicas, 0 regresiones, 0 cambios de extraccion, 39 nuevas**.
+   */
+  it('la canonica «A 12 REPS» sigue leyendose igual', () => {
+    const r = parsearPrescripcion('40KG A 12 REPS; 3 SERIES (RIR 2). MANTEN.')
+    expect(r).toMatchObject({ reconocida: true, cargaKg: 40, repsDiana: 12, sets: 3, rirObjetivo: 2 })
+    expect(r.notaCoach).toBe('MANTEN.')
+  })
+
+  it('«A 12» sin la palabra REPS', () => {
+    const r = parsearPrescripcion('100KG A 12; 2 SERIES (RIR 2). MANTEN.')
+    expect(r).toMatchObject({ reconocida: true, cargaKg: 100, repsDiana: 12, sets: 2 })
+    expect(r.notaCoach).toBe('MANTEN.')
+  })
+
+  it('«x13», con la equis pegada o separada', () => {
+    expect(parsearPrescripcion('117.5KG x13 (RIR 2); 3 SERIES. PROGRESA.')).toMatchObject({
+      reconocida: true, cargaKg: 117.5, repsDiana: 13, sets: 3,
+    })
+    expect(parsearPrescripcion('170KG x 15; 3 SERIES.')).toMatchObject({
+      reconocida: true, cargaKg: 170, repsDiana: 15, sets: 3,
+    })
+  })
+
+  it('el rango entre parentesis tras REPS se lee y se descarta', () => {
+    // Duplica lo que ya dice el campo `rango`; la diana es el primer numero.
+    const r = parsearPrescripcion('12.5KG A 11 REPS (10-12); 2 SERIES (RIR 1). NOTA.')
+    expect(r).toMatchObject({ reconocida: true, cargaKg: 12.5, repsDiana: 11, sets: 2, rirObjetivo: 1 })
+    expect(r.notaCoach).toBe('NOTA.')
+  })
+
+  it('unidades nuevas: TOTALES EN BARRA y DE CADA UNO', () => {
+    expect(parsearPrescripcion('35KG TOTALES EN BARRA A 10 REPS; 3 SERIES (RIR 3).')).toMatchObject({
+      reconocida: true, cargaKg: 35, unidadCarga: 'total', repsDiana: 10,
+    })
+    // «DE CADA UNO» describe dos movimientos por serie, no una carga por lado:
+    // los 3,4 kg son los que se cogen.
+    expect(parsearPrescripcion('3.4KG A 15 REPS DE CADA UNO; 2 SERIES.')).toMatchObject({
+      reconocida: true, cargaKg: 3.4, unidadCarga: 'kg', repsDiana: 15,
+    })
+  })
+
+  /**
+   * EL ANCLAJE QUE HACE SEGURO EL «A 12» SIN PALABRA, y sin el la ampliacion
+   * seria peligrosa: exige `;` inmediatamente despues. Estas dos frases llevan
+   * un numero tras la `A` que **no son repeticiones**, y ninguna entra.
+   */
+  it('«A N» sin punto y coma pegado NO se lee, y es lo que salva a los pasos', () => {
+    // 20 son PASOS de un paseo del granjero, no repeticiones.
+    expect(parsearPrescripcion('10KG A 20 PASOS; 3 SERIES (RIR 2).').reconocida).toBe(false)
+    // 12-15 son reps pero luego vienen 5 parciales: la cabecera no cuenta eso.
+    expect(parsearPrescripcion('70KG A 12-15 + 5 PARCIALES; 3 SERIES (RIR 1).').reconocida).toBe(false)
+  })
+
+  it('los drop sets siguen fuera: no tienen UNA carga', () => {
+    // Igual que un ondulado, un drop set no cabe en un solo `cargaKg`.
+    expect(parsearPrescripcion('170KG x15, BAJAS A 85KG x10 HASTA EL FALLO; 3 SERIES.').reconocida).toBe(false)
+    expect(parsearPrescripcion('95KG x8 -> 65KG x6 -> 48KG x FALLO; 2 SERIES.').reconocida).toBe(false)
+  })
+
+  it('las de tecnica con dos puntos siguen fuera', () => {
+    expect(
+      parsearPrescripcion('80KG TOTAL (40 CADA UNA): 6 REPS + PAUSA 15-20 SEG + 3-4 REPS; 3 SERIES.').reconocida,
+    ).toBe(false)
+  })
+})

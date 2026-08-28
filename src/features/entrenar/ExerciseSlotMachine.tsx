@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type Ref } from 'react'
 import { useMovimientoReducido } from '../../components/ui/movimientoReducido'
-import { camaraAbierta } from './camaraAbierta'
+import { alAbrirseLaCamara, camaraAbierta } from './camaraAbierta'
 import { cargarFuentesDelGabinete } from './fuentesDelGabinete'
 import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './slotThemes'
 
@@ -30,10 +30,48 @@ import { SIMBOLOS, temaDeEjercicio, type ClaveSimbolo, type SlotTheme } from './
 
 /** Milisegundos que dura el destello de premio. */
 const PREMIO_MS = 780
+/**
+ * Lo que dura el asiento del carrete central: los `.68s` de la transicion de
+ * `Ventana`, escritos aqui en numero porque la Web Animations API no lee CSS.
+ */
+const ASIENTO_MS = 680
+/**
+ * La curva del asiento. Es la del propio archivo (`Carrete` y `Ventana`), la
+ * unica del gabinete con un pelin de rebote — el `1.06`.
+ */
+const CURVA_ASIENTO = 'cubic-bezier(.14,1.06,.32,1)'
+/**
+ * Un carrete NO se desliza: da saltos de fila. `steps(1, jump-end)` sostiene el
+ * fotograma durante todo su tramo y salta al final, que es exactamente lo que
+ * hacia el `setTimeout` que habia aqui — con la diferencia de que ahora el salto
+ * lo da el compositor y no un render de React.
+ */
+const SALTO_DE_FILA = 'steps(1, jump-end)'
+
 /** Cada cuánto sube el bote de las marquesinas LED. */
 const BOTE_MS = 2600
 /** Créditos con los que arranca la máquina. */
 const CREDITOS_INICIALES = 25
+
+/**
+ * Los fotogramas de un carrete que avanza `pasos` filas, de una en una y dando
+ * la vuelta al llegar al final de la tira.
+ *
+ * La formula de la fila es la misma de siempre —`(desde + k) % filas`—, y eso es
+ * lo que hace que el giro se vea IGUAL que antes: no se reinterpreta el
+ * movimiento, se transcribe. Cada fotograma lleva su propia curva de salto, asi
+ * que no hay interpolacion entre filas.
+ */
+function fotogramasDeCarrete(desde: number, pasos: number, filas: number, altoFila: number): Keyframe[] {
+  const marcos: Keyframe[] = []
+  for (let k = 0; k <= pasos; k += 1) {
+    marcos.push({
+      transform: `translateY(-${((desde + k) % filas) * altoFila}px)`,
+      easing: SALTO_DE_FILA,
+    })
+  }
+  return marcos
+}
 
 export interface ExerciseSlotMachineProps {
   index: number
@@ -113,10 +151,40 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
   const [credits, setCredits] = useState(CREDITOS_INICIALES)
   const [jackTick, setJackTick] = useState(0)
   const relojes = useRef<number[]>([])
+  // Hay una tirada EN MARCHA ahora mismo. No sirve mirar `relojes`: los
+  // temporizadores que ya dispararon siguen en la lista, así que una tirada
+  // terminada se vería igual que una viva.
+  const enMarcha = useRef(false)
+  // La parada a la que va la tirada. Se guarda porque hace falta fuera de
+  // `girarA`: quien corta el giro a mitad tiene que enseñar el dato al que iba,
+  // no el que hubiera quedado a medio camino.
+  const paradaBuscada = useRef(0)
+  /**
+   * La fila que cada carrete tiene puesta AHORA. Va en un ref y no se lee del
+   * estado por un motivo concreto: `girarA` es un `useCallback` cuyas
+   * dependencias no incluyen las posiciones, asi que su cierre se quedaria
+   * mirando para siempre los valores del primer render — cero — y la segunda
+   * tirada arrancaria desde donde no esta.
+   */
+  const fila = useRef({ izquierdo: 0, derecho: 0, ventana: 0 })
+  /** Los tres carretes. La animacion se escribe sobre el nodo que se mueve. */
+  const carreteIzquierdo = useRef<HTMLDivElement>(null)
+  const carreteDerecho = useRef<HTMLDivElement>(null)
+  const ventana = useRef<HTMLDivElement>(null)
+  const animaciones = useRef<Animation[]>([])
 
+  /**
+   * Se van los temporizadores Y las animaciones. Las dos cosas juntas, porque
+   * `[data-camara-abierta] * { animation-play-state: paused }` de `tokens.css`
+   * **no** para una animacion de la Web Animations API: esa regla es para
+   * animaciones declaradas en CSS. Desde que el giro vive aqui, esta funcion es
+   * lo unico que lo detiene.
+   */
   const limpiar = useCallback(() => {
     relojes.current.forEach((r) => clearTimeout(r))
     relojes.current = []
+    animaciones.current.forEach((a) => a.cancel())
+    animaciones.current = []
   }, [])
   const programar = useCallback((fn: () => void, ms: number) => {
     relojes.current.push(window.setTimeout(fn, ms))
@@ -132,69 +200,184 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
     (destino: number) => {
       if (paradas.length < 2) return
       const objetivo = ((destino % paradas.length) + paradas.length) % paradas.length
+      paradaBuscada.current = objetivo
       limpiar()
       setCredits((c) => (c <= 1 ? CREDITOS_INICIALES : c - 1))
 
-      // El giro se salta entero con movimiento reducido y con la camara
-      // capturando: en los dos casos se va directo a la parada, que es lo que de
-      // verdad hay que enseñar. Se pierde el giro, no el argumento.
+      const filas = paradas.length * 2
+      const simbolos = tema.simbolos.length
+      const alto = tema.ventana.alto
+
+      // El giro se salta entero en tres casos, y en los tres se va directo a la
+      // parada, que es lo que de verdad hay que enseñar. Se pierde el giro, no el
+      // argumento.
       //
-      // La puerta de `tokens.css` NO cubre esto, y conviene saber por que: para
-      // animaciones con `animation-play-state`, y este giro no es una animacion
-      // sino una cadena de temporizadores que hace un `setState` por paso — 38 a
-      // 62 renders completos del gabinete en poco mas de un segundo. Ninguna
-      // regla de CSS puede pararlo. Quien programa trabajo repetido tiene que
-      // preguntar el.
-      if (reducido || camaraAbierta()) {
+      //  - Movimiento reducido, por respeto a la preferencia.
+      //  - Camara capturando: la puerta de `tokens.css` NO cubre este giro
+      //    —`animation-play-state` no para una animacion de la WAAPI igual que no
+      //    paraba los temporizadores de antes—, asi que se pregunta aqui.
+      //  - Sin Web Animations API en el elemento. No hay navegador de hoy que le
+      //    falte; el caso real es `jsdom`, que no la implementa. La ventana llega
+      //    igual a su parada, deslizandose con la transicion de CSS: se degrada a
+      //    menos movimiento, nunca a un dato equivocado.
+      if (reducido || camaraAbierta() || typeof ventana.current?.animate !== 'function') {
         setCatIdx(objetivo)
+        // Y la ventana tambien se mueve. Antes solo se tocaba `catIdx`, asi que
+        // con la camara abierta el paginador decia una parada y la ventana
+        // enseñaba otra; no se veia porque la hoja de medicion tapa la palanca.
+        fila.current = { ...fila.current, ventana: objetivo * 2 }
+        setROff(objetivo * 2)
         return
       }
 
+      // Cuantas filas avanza cada carrete. Es la misma cuenta que llevaba la
+      // cadena de temporizadores (`round(hasta / paso)`), asi que el giro dura lo
+      // mismo y para en el mismo sitio.
+      const pasosDe = (paso: number, hasta: number) => Math.max(1, Math.round(hasta / paso))
+      const pasoIzquierdo = tema.step * 0.72
+      const pasoDerecho = tema.step * 0.88
+      const pasosIzquierdo = pasosDe(pasoIzquierdo, tema.brake * 0.5)
+      const pasosDerecho = pasosDe(pasoDerecho, tema.brake * 0.76)
+      const pasosVentana = pasosDe(tema.step, tema.brake)
+
+      const desde = fila.current
+      const filaFinal = {
+        izquierdo: (desde.izquierdo + pasosIzquierdo) % simbolos,
+        derecho: (desde.derecho + pasosDerecho) % simbolos,
+        ventana: objetivo * 2,
+      }
+      fila.current = filaFinal
+
+      enMarcha.current = true
       setSnap(true)
       setSpinC(true)
       setSpinA(true)
       setSpinB(true)
+      // EL ESTADO SALTA YA AL FINAL, y sin esto no se entiende el resto: React
+      // pinta los tres carretes en su posicion de destino, y la animacion se
+      // pone por encima recorriendo el camino (una animacion gana a un estilo en
+      // linea). Cuando termina, con `fill` por defecto, el elemento cae en el
+      // estilo de React — que ya es el mismo pixel donde acaba la animacion. Ni
+      // salto al empezar ni salto al acabar, y CERO renders por el medio.
+      //
+      // El `snap` de esta misma tanda es el que impide que la transicion de CSS
+      // intente deslizar ese salto por debajo.
+      setSideA(filaFinal.izquierdo)
+      setSideB(filaFinal.derecho)
+      setROff(filaFinal.ventana)
 
-      const filas = paradas.length * 2
-      const correr = (
-        avanzar: () => void,
-        detener: () => void,
-        paso: number,
-        hasta: number,
-      ) => {
-        let restante = Math.max(1, Math.round(hasta / paso))
-        const tic = () => {
-          avanzar()
-          restante -= 1
-          if (restante > 0) programar(tic, paso)
-          else detener()
-        }
-        programar(tic, paso)
+      const animar = (nodo: HTMLDivElement | null, marcos: Keyframe[], opciones: KeyframeAnimationOptions) => {
+        if (!nodo) return undefined
+        const animacion = nodo.animate(marcos, opciones)
+        animaciones.current.push(animacion)
+        return animacion
       }
 
-      correr(() => setSideA((o) => o + 1), () => setSpinA(false), tema.step * 0.72, tema.brake * 0.5)
-      correr(() => setSideB((o) => o + 1), () => setSpinB(false), tema.step * 0.88, tema.brake * 0.76)
-      correr(
-        () => setROff((o) => o + 1),
-        () => {
-          setSpinC(false)
-          setSnap(false)
-          setCatIdx(objetivo)
-          setROff((o) => {
-            // Media fila por paso: pares = paradas, impares = símbolos.
-            const destinoFila = objetivo * 2
-            const restante = ((destinoFila - (o % filas)) + filas) % filas
-            return o + restante + filas
-          })
-          setWin(true)
-          programar(() => setWin(false), PREMIO_MS)
-        },
-        tema.step,
-        tema.brake,
+      // Los laterales: saltan sus filas y se quedan donde caigan. Cada uno se
+      // desenfoca al terminar EL SUYO —al 50 % y al 76 % del frenado—, que es el
+      // escalonado que produce la tension. Se cuelga de la animacion y no de un
+      // temporizador aparte para que no puedan separarse ni un fotograma.
+      const izquierdo = animar(
+        carreteIzquierdo.current,
+        fotogramasDeCarrete(desde.izquierdo, pasosIzquierdo, simbolos, alto / 2),
+        { duration: pasosIzquierdo * pasoIzquierdo },
       )
+      // Sin carrete (DIAMOND SALON y CASH BONANZA no los llevan) no hay nada que
+      // desenfocar: se apaga ya, o se quedaria encendido para siempre.
+      if (izquierdo) izquierdo.onfinish = () => setSpinA(false)
+      else setSpinA(false)
+
+      const derecho = animar(
+        carreteDerecho.current,
+        fotogramasDeCarrete(desde.derecho, pasosDerecho, simbolos, alto / 2),
+        { duration: pasosDerecho * pasoDerecho },
+      )
+      if (derecho) derecho.onfinish = () => setSpinB(false)
+      else setSpinB(false)
+
+      // El central: primero los saltos y despues el asiento. Van en dos
+      // animaciones encadenadas, no en una sola con dos tramos, porque el
+      // instante en que acaban los saltos es tambien el del premio y el del
+      // desenfoque, y colgarlo de un temporizador en paralelo lo dejaria a merced
+      // del estrangulamiento de las pestañas de fondo.
+      const saltos = animar(
+        ventana.current,
+        fotogramasDeCarrete(desde.ventana, pasosVentana, filas, alto),
+        // `forwards` sostiene la ultima fila el fotograma que tarda en arrancar
+        // el asiento; sin el, el carrete parpadearia a su destino y volveria.
+        { duration: pasosVentana * tema.step, fill: 'forwards' },
+      )
+      if (!saltos) {
+        enMarcha.current = false
+        return
+      }
+      saltos.onfinish = () => {
+        setSpinC(false)
+        setSnap(false)
+        setCatIdx(objetivo)
+        setWin(true)
+        programar(() => setWin(false), PREMIO_MS)
+
+        const asiento = animar(
+          ventana.current,
+          [
+            { transform: `translateY(-${((desde.ventana + pasosVentana) % filas) * alto}px)` },
+            { transform: `translateY(-${filaFinal.ventana * alto}px)` },
+          ],
+          { duration: ASIENTO_MS, easing: CURVA_ASIENTO },
+        )
+        // El orden importa: primero se pone el asiento encima y despues se
+        // retira el que sostenia la fila. Al reves habria un fotograma en el
+        // destino antes de volver a salir hacia el.
+        saltos.cancel()
+        if (asiento) asiento.onfinish = () => { enMarcha.current = false }
+        else enMarcha.current = false
+      }
     },
-    [limpiar, paradas.length, programar, reducido, tema.brake, tema.step],
+    // El alto de la ventana y cuántos símbolos trae la máquina entran aquí desde
+    // que el giro se escribe en píxeles: la WAAPI no entiende de filas.
+    [limpiar, paradas.length, programar, reducido, tema.brake, tema.step, tema.simbolos.length, tema.ventana.alto],
   )
+
+  /**
+   * La puerta de arriba se pregunta UNA VEZ, al arrancar la tirada. Si la cámara
+   * se abre con el giro ya en marcha, nada lo para solo: `animation-play-state`
+   * no alcanza ni a un `setTimeout` ni a una animación de la Web Animations API,
+   * así que el gabinete seguiría moviéndose hasta `brake` + el asiento —1,76 s en
+   * LIBERTY BELL— encima de una captura que necesita 50 fps para que la toma no
+   * se descarte.
+   *
+   * Y no es rebuscado: el giro se dispara a los 60 ms de montar CADA ejercicio,
+   * y abrir la cámara es un toque que cae donde caiga.
+   *
+   * Se termina como termina el modo reducido: SE PIERDE EL GIRO, NO EL
+   * ARGUMENTO. Y desde que el estado salta al destino en el primer render, aquí
+   * no hay que colocar nada: al cancelar las animaciones, el estilo de React
+   * —que ya es la parada de destino— queda a la vista de golpe.
+   */
+  const cortarTirada = useCallback(() => {
+    if (!enMarcha.current) return
+    enMarcha.current = false
+    limpiar()
+    setSpinA(false)
+    setSpinB(false)
+    setSpinC(false)
+    // El apagado del premio es un temporizador, y acaba de cancelarse con los
+    // demás. Puede estar encendido de la tirada anterior —`girarA` limpia el
+    // apagado pendiente y no toca `win`—, y sin esta línea se quedaría así para
+    // siempre.
+    setWin(false)
+    // `catIdx` SÍ hace falta: no se mueve hasta que acaban los saltos, así que
+    // sin esto el paginador y el aviso hablado se quedarían en la parada
+    // anterior mientras la ventana enseña la nueva.
+    setCatIdx(paradaBuscada.current)
+    // La ventana ya está en su fila desde el primer render. Se repite aquí para
+    // que cortar siga colocándola aunque un día se deshaga ese adelanto.
+    fila.current = { ...fila.current, ventana: paradaBuscada.current * 2 }
+    setROff(paradaBuscada.current * 2)
+  }, [limpiar])
+
+  useEffect(() => alAbrirseLaCamara(cortarTirada), [cortarTirada])
 
   // Las tipografías del gabinete se piden aquí, no en la hoja de estilos: son
   // 314 KB que solo hacen falta en la pantalla de entrenar. Ver
@@ -279,7 +462,7 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
               hondura en vez de una tarjeta con dibujos. */}
           {tema.carretes && (
             <div className="flex [transform:translateZ(var(--prof-fondo))]">
-              <Carrete tema={tema} off={sideA} spin={spinA} blur={1.6} reducido={reducido} />
+              <Carrete tema={tema} off={sideA} spin={spinA} blur={1.6} reducido={reducido} movil={carreteIzquierdo} />
             </div>
           )}
 
@@ -293,11 +476,12 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
             win={win}
             catIdx={catIdx}
             onRefTap={onRefTap}
+            movil={ventana}
           />
 
           {tema.carretes && (
             <div className="flex [transform:translateZ(var(--prof-fondo))]">
-              <Carrete tema={tema} off={sideB} spin={spinB} blur={1.4} reducido={reducido} />
+              <Carrete tema={tema} off={sideB} spin={spinB} blur={1.4} reducido={reducido} movil={carreteDerecho} />
             </div>
           )}
 
@@ -496,7 +680,15 @@ function MarquesinaTema({ tema, reducido, bote }: { tema: SlotTheme; reducido: b
   )
 }
 
-function Carrete({ tema, off, spin, blur, reducido }: { tema: SlotTheme; off: number; spin: boolean; blur: number; reducido: boolean }) {
+function Carrete({ tema, off, spin, blur, reducido, movil }: {
+  tema: SlotTheme
+  off: number
+  spin: boolean
+  blur: number
+  reducido: boolean
+  /** El nodo que se mueve. Es donde se escribe la animacion del giro. */
+  movil?: Ref<HTMLDivElement>
+}) {
   const s = tema.simbolos
   return (
     <div
@@ -505,6 +697,7 @@ function Carrete({ tema, off, spin, blur, reducido }: { tema: SlotTheme; off: nu
       aria-hidden="true"
     >
       <div
+        ref={movil}
         style={{
           transform: reducido ? undefined : `translateY(-${(off % s.length) * (tema.ventana.alto / 2)}px)`,
           filter: spin && !reducido ? `blur(${blur}px)` : undefined,
@@ -522,7 +715,7 @@ function Carrete({ tema, off, spin, blur, reducido }: { tema: SlotTheme; off: nu
 }
 
 function Ventana({
-  tema, paradas, pos, spin, snap, reducido, win, catIdx, onRefTap,
+  tema, paradas, pos, spin, snap, reducido, win, catIdx, onRefTap, movil,
 }: {
   tema: SlotTheme
   paradas: Parada[]
@@ -533,6 +726,8 @@ function Ventana({
   win: boolean
   catIdx: number
   onRefTap?: () => void
+  /** El nodo que se mueve. Es donde se escribe la animacion del giro. */
+  movil?: Ref<HTMLDivElement>
 }) {
   const alto = tema.ventana.alto
   // Con reducido no hay transicion que valga: el salto es instantaneo. La rama
@@ -574,6 +769,7 @@ function Ventana({
           instantaneo: SE PIERDE EL GIRO, NO EL ARGUMENTO. Es el mismo criterio
           que GraficaBrazo ya sigue con su modo reducido. */}
       <div
+        ref={movil}
         style={{
           transform: `translateY(-${pos * alto}px)`,
           transition: transicion,

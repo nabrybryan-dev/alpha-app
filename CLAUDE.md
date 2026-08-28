@@ -154,6 +154,18 @@ Reglas que quedan:
     — el relleno de cerrados del 2026-08-25 (`rellenar-carga.sql`) la subió de 50 a
     190 comparables; su límite restante es el registro (16 %).
 
+  - `supabase/comprobar-cabecera-no-canonica.sql` — ¿alguna prescripción **activa**
+    lleva la carga en una forma que el parser no sabe leer? Cero filas. Cuando la
+    frase empieza por kilos pero no encaja en `{CARGA}KG A {REPS} REPS; {N} SERIES`,
+    `cargaKg` se queda vacío y el ejercicio se vuelve **invisible** para
+    `comprobar-alineacion-ejecutada.sql`: no falla nada, simplemente deja de estar
+    vigilado — que es peor, porque no se nota. Excluye a propósito las frases de
+    técnica y las de PASOS: ahí la carga NO se debe extraer (un drop set no tiene
+    UNA carga, y unos pasos no son repeticiones). Nace de medir, el 2026-08-25, que
+    las formas sueltas (`A 12;` sin REPS, `x13`, `REPS (10-12)`) son **77 en julio y
+    0 en agosto** — un estilo que se dejó solo, así que se vigila en vez de ampliar
+    la gramática del dominio.
+
   Y dos más, que no se leen igual que las anteriores:
   - `supabase/comprobar-sesiones-perdidas.sql` — ¿le falta al microciclo nuevo
     alguna sesión que tenía el viejo? Aquí el contrato **no es «cero filas»**:

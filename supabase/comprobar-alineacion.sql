@@ -57,11 +57,11 @@ with ejercicios as (
          (regexp_match(e->>'prescripcion',
             '^\s*(\d+([.,]\d+)?)\s*KGS?\y', 'i'))[1]                as carga_frase,
          (regexp_match(e->>'prescripcion',
-            '^\s*\d+([.,]\d+)?\s*KGS?\y[^;]*?\yA\s+(\d+)', 'i'))[2] as reps_frase,
+            '^\s*\d+([.,]\d+)?\s*KGS?\y[^;]*?(?:\yA\s+|[x×]\s*)(\d+)', 'i'))[2] as reps_frase,
          (regexp_match(e->>'prescripcion',
             '^\s*\d+([.,]\d+)?\s*KGS?\y[^;]*;\s*(\d+)\s*SERIES?', 'i'))[2] as sets_frase,
          (regexp_match(e->>'prescripcion',
-            '^\s*\d+([.,]\d+)?\s*KGS?\y[^;]*;\s*\d+\s*SERIES?\s*\(RIR\s+(\d+)\)', 'i'))[2] as rir_frase
+            '^\s*\d+([.,]\d+)?\s*KGS?\y[^;]*(?:\(RIR\s+(\d+)\))?\s*;\s*\d+\s*SERIES?(?:\s*\(RIR\s+(\d+)\))?', 'i'))[2] as rir_frase
     from public.microciclos m
     join public.usuarios_app u on u.id = m.usuario_id,
          jsonb_array_elements(m.datos->'sesiones')  s,
