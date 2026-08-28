@@ -12,11 +12,14 @@ import {
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, SALA, vistaDeGrabacion, type DatosDeSerie } from '../../../domain/escenario/sala'
+import { construirTripode, type Colocacion } from '../../../domain/escenario/tripode'
+import { juzgarColocacion, lecturasDeColocacion } from './juzgarColocacion'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import { colorDeMusculo, construirMusculos, longitudesEnReposo, MUSCULO_POR_ID } from '../../../domain/patrones/musculos'
 import { movimientoReducido, useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
+import { textoDeMotivo } from '../encoder/motivosEncuadre'
 import { FONDO_ESTUDIO } from './motor'
 
 type Capa = 'ambas' | 'musculo' | 'hueso'
@@ -68,6 +71,29 @@ function sala(datos: DatosDeSerie): Malla {
   }
   return salaCache.malla
 }
+/**
+ * El trípode se cachea POR SU COLOCACIÓN. Mientras no se mueva, es geometría fija; en
+ * cuanto el asesorado toca un mando, hay que rehacerlo — y solo a él, no la sala entera.
+ */
+let tripodeCache: { clave: string; malla: Malla } | null = null
+
+function tripode(c: Colocacion): Malla {
+  const clave = `${c.anguloGrados.toFixed(1)}|${c.distancia.toFixed(2)}|${c.altura.toFixed(2)}`
+  if (!tripodeCache || tripodeCache.clave !== clave) {
+    const malla = new Malla()
+    construirTripode(malla, c)
+    tripodeCache = { clave, malla }
+  }
+  return tripodeCache.malla
+}
+
+/** La colocación de partida: la que la sala propone y la puerta aprueba. */
+const COLOCACION_INICIAL: Colocacion = {
+  anguloGrados: SALA.estacion.anguloGrados,
+  distancia: SALA.estacion.distancia,
+  altura: SALA.estacion.altura,
+}
+
 let reposoCache: Record<string, number> | null = null
 function precalculado() {
   huesosCache ??= construirHuesos()
@@ -114,6 +140,7 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
     // monta la escena: incluirlos ahí recrearía el contexto WebGL entero cada vez
     // que avanza una serie. Van por referencia y se repinta, como la capa.
     datos: undefined as DatosDeSerie | undefined,
+    colocacion: COLOCACION_INICIAL,
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
@@ -124,6 +151,16 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
    */
   const irAVista = useRef<((a: 'grabacion' | 'patron') => void) | null>(null)
   const [enGrabacion, setEnGrabacion] = useState(false)
+  const [colocacion, setColocacion] = useState<Colocacion>(COLOCACION_INICIAL)
+  /** Si el ejercicio lleva barra con discos. El núcleo no puede adivinarlo, y cambia
+   *  el tope de 12° a 30°: dar por hecho que hay disco sería dar por hecho la
+   *  corrección del escorzo, así que arranca en «no». */
+  const [hayDisco, setHayDisco] = useState(false)
+
+  // El juicio y las lecturas se derivan en el render: son aritmética de cámara, cuestan
+  // microsegundos, y derivarlas evita el estado duplicado que se queda viejo.
+  const veredicto = juzgarColocacion(colocacion, hayDisco)
+  const lecturas = lecturasDeColocacion(colocacion)
 
   // Los controles se copian al ref en un efecto y no durante el render: tocar
   // `ref.current` mientras se renderiza es justo lo que prohíbe `react-hooks/refs`.
@@ -134,12 +171,13 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
     estado.current.girando = girando
     estado.current.capa = capa
     estado.current.datos = datos
+    estado.current.colocacion = colocacion
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo
     // mudo de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, datos])
+  }, [reproduciendo, reducido, girando, capa, datos, colocacion])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -184,7 +222,10 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
           const partes = [laboratorio()]
           const d = estado.current.datos
-          if (d) partes.push(sala(d))
+          if (d) {
+            partes.push(sala(d))
+            partes.push(tripode(estado.current.colocacion))
+          }
           if (estado.current.capa !== 'musculo') partes.push(huesos)
           if (estado.current.capa !== 'hueso') partes.push(construirMusculos(esq, patron.activacion, reposo))
           partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))
@@ -475,6 +516,109 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
           ))}
         </div>
       </div>
+
+      {/* EL ENSAYO DE COLOCACION.
+          Solo con la camara puesta: fuera de ese modo estos mandos serian ruido.
+          El veredicto se dice con MATERIA —placa llena, hueca o hundida— y no con
+          verde y rojo, que es la regla de marca de toda la app: no hay verde, y el
+          rojo es color de marca y no de error. Es el mismo vocabulario del sello de
+          calidad del encoder, y se lee a tres metros y en escala de grises. */}
+      {enGrabacion && datos && (
+        <div className="flex flex-col gap-2.5 rounded-xl border border-ink-500 bg-ink-800 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-silver-500">
+              Colocacion del tripode
+            </span>
+            <span
+              className="cifras rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em]"
+              style={
+                veredicto.nivel === 'buena'
+                  ? { background: 'var(--placa)', color: 'var(--ink-900)' }
+                  : veredicto.nivel === 'dudosa'
+                    ? { border: '1px solid var(--placa)', color: 'var(--placa)' }
+                    : {
+                        background: 'var(--hundido)',
+                        color: 'var(--placa-muerta)',
+                        boxShadow: 'var(--sombra-hundido)',
+                      }
+              }
+            >
+              {veredicto.nivel}
+            </span>
+          </div>
+
+          {/* Los numeros salen del MISMO calculo que juzga, no de una cuenta paralela:
+              ver un ancho de escena distinto del que aplica la puerta seria peor que
+              no verlo. */}
+          <p className="cifras text-[10.5px] leading-relaxed text-silver-400">
+            desvio {lecturas.desvio.toFixed(0)}deg
+            <span className="mx-1.5 text-silver-600">/</span>
+            escena {lecturas.anchoEscenaM.toFixed(1)} m
+            <span className="mx-1.5 text-silver-600">/</span>
+            disco {lecturas.discoPx.toFixed(0)} px
+          </p>
+
+          {veredicto.motivos.length > 0 && (
+            <p className="text-[11px] leading-snug text-ambar">
+              {veredicto.motivos.map((m) => textoDeMotivo(m)).join(' · ')}
+            </p>
+          )}
+
+          <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-silver-400">
+            <span className="w-[62px] shrink-0">Angulo</span>
+            <input
+              type="range"
+              min={150}
+              max={210}
+              value={Math.round(colocacion.anguloGrados)}
+              onChange={(e) => setColocacion((c) => ({ ...c, anguloGrados: Number(e.target.value) }))}
+              className="h-1 flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-rojo"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-silver-400">
+            <span className="w-[62px] shrink-0">Distancia</span>
+            <input
+              type="range"
+              min={16}
+              max={45}
+              value={Math.round(colocacion.distancia * 10)}
+              onChange={(e) => setColocacion((c) => ({ ...c, distancia: Number(e.target.value) / 10 }))}
+              className="h-1 flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-rojo"
+            />
+            <span className="cifras w-[46px] shrink-0 text-right text-silver-300">
+              {colocacion.distancia.toFixed(1)} m
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.1em] text-silver-400">
+            <span className="w-[62px] shrink-0">Altura</span>
+            <input
+              type="range"
+              min={30}
+              max={160}
+              value={Math.round(colocacion.altura * 100)}
+              onChange={(e) => setColocacion((c) => ({ ...c, altura: Number(e.target.value) / 100 }))}
+              className="h-1 flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-rojo"
+            />
+            <span className="cifras w-[46px] shrink-0 text-right text-silver-300">
+              {colocacion.altura.toFixed(2)} m
+            </span>
+          </label>
+
+          {/* El nucleo no puede adivinar si el ejercicio lleva barra con discos, y la
+              diferencia es el doble de margen: 30deg contra 12. Arranca en «no» porque
+              dar por hecho el disco seria dar por hecha la correccion del escorzo. */}
+          <button
+            type="button"
+            onClick={() => setHayDisco((v) => !v)}
+            aria-pressed={hayDisco}
+            className={`press self-start rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+              hayDisco ? 'border-silver-400 text-silver-100' : 'border-ink-500 text-silver-500'
+            }`}
+          >
+            {hayDisco ? 'Con disco a la vista' : 'Sin disco a la vista'}
+          </button>
+        </div>
+      )}
 
       {reducido && (
         <p className="text-[10px] leading-snug text-silver-400">
