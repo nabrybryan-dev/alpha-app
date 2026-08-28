@@ -88,8 +88,11 @@ export const MODELOS_CORE: Partial<Record<Categoria, ModeloDePalanca | null>> = 
     vista: 'lateral',
     ejes: [
       M('lumbar', 'principal', 'flexion', ['Abdomen'], [40, 60]),
-      M('cadera', 'secundario', 'flexion', [], [30, 50],
-        'El psoas no tiene grupo en la taxonomía. Si la cadera hace el trabajo, el abdomen apenas se acorta.'),
+      {
+        ...M('cadera', 'secundario', 'flexion', [], [30, 50],
+          'Si la cadera hace el trabajo, el abdomen apenas se acorta.'),
+        motorSinGrupo: 'psoas',
+      },
     ],
     linea: { origen: 'centro-de-masas' },
     marcas: ['hombro', 'cadera', 'rodilla'],
