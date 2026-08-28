@@ -75,6 +75,21 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/taxonomia.ts#tieneTecnicaDeclarada':
     'Detecta tecnica o recorrido declarados en la prescripcion. Espera a la captura de ' +
     'SerieRegistrada.extra en RegistroSerie.tsx.',
+  // La tabla de palancas dejó de ser un módulo huérfano el 2026-08-24: la
+  // consume `scripts/corpus-video.mjs`, que la choca contra el catálogo de 168
+  // vídeos reales de gimnasio y es lo que destapó que faltaba el implemento.
+  // La pantalla de palancas ya existe (#112, 2026-08-25), pero NO entra por aquí:
+  // se alimenta de `medidaDePalancas.ts` con los brazos que `brazo-por-fotograma.mjs`
+  // ya midió fuera de la app, y qué eje mirar lo eligió a mano quien lanzó la
+  // medida. Estas dos entradas se enchufan el día que esa elección la haga la
+  // tabla. Diseño: docs/specs/2026-08-24-palancas-y-paralelogramo-diseno.md.
+  'src/domain/biomecanica/palancas.ts#ejePrincipal':
+    'El eje que manda, para etiquetar una serie en pantalla. Espera a que la ' +
+    'exportación de la medida elija el eje por tabla en vez de a mano; el informe ' +
+    'del corpus usa planDeMedida, que ya lo lleva dentro.',
+  'src/domain/biomecanica/palancas.ts#MODELOS_DE_PALANCA':
+    'La tabla entera, para recorrerla. La usan los tests de invariantes y el día ' +
+    'que el selector de ejercicio de la pantalla lea de aquí.',
   // La guarda del relleno masivo de carga, que se corre desde el SQL Editor y
   // no desde la app: si componer los campos devuelve el MISMO texto, guardar no
   // cambia ni una letra de lo que el asesorado va a leer; si no, el ejercicio se
@@ -106,11 +121,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/nutricion/embarazo.ts#puedeQuedarEmbarazada':
     'La encuesta ya recoge «no puedo quedar embarazada» (PR #41), pero todavía nadie ' +
     'consulta la respuesta para saltarse las preguntas del ciclo.',
-  'src/domain/taxonomia.ts#grupoPrimario':
-    'Llegó con la taxonomía por acción articular (PR #44, 2026-08-15). Devuelve el grupo ' +
-    'que recibe el trabajo directo, «para etiquetar, no para contar», y todavía no hay ' +
-    'pantalla que etiquete: la rejilla de volumen pinta los aportes fraccionados, no el ' +
-    'grupo primario. Enchufarla ahí o borrarla — lo decide quien escribió la taxonomía.',
 
   // Línea base heredada del 2026-08-12: medida, no auditada. Al tocar cualquiera de
   // estos módulos, resolver su entrada (enchufarla, borrarla o escribirle el motivo).
