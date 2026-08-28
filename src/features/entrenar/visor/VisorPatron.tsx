@@ -11,6 +11,7 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
+import { construirSala, SALA, type DatosDeSerie } from '../../../domain/escenario/sala'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import { colorDeMusculo, construirMusculos, longitudesEnReposo, MUSCULO_POR_ID } from '../../../domain/patrones/musculos'
@@ -46,6 +47,27 @@ function laboratorio(): Malla {
   }
   return laboratorioCache
 }
+
+/**
+ * La sala se cachea POR SUS NÚMEROS, no a secas.
+ *
+ * Las paredes y la estación de grabación no cambian nunca, pero los marcadores llevan
+ * cifras de siete segmentos hechas de geometría: cambiar un número es reconstruir esos
+ * dígitos. Cachear por el trío evita rehacer la sala entera en cada fotograma y a la
+ * vez deja que el marcador reaccione cuando la serie avanza — que es el único momento
+ * en que TIENE que cambiar.
+ */
+let salaCache: { clave: string; malla: Malla } | null = null
+
+function sala(datos: DatosDeSerie): Malla {
+  const clave = `${datos.series}|${datos.reps}|${datos.rir}`
+  if (!salaCache || salaCache.clave !== clave) {
+    const malla = new Malla()
+    construirSala(malla, datos)
+    salaCache = { clave, malla }
+  }
+  return salaCache.malla
+}
 let reposoCache: Record<string, number> | null = null
 function precalculado() {
   huesosCache ??= construirHuesos()
@@ -55,6 +77,12 @@ function precalculado() {
 
 interface VisorPatronProps {
   patron: Patron
+  /**
+   * Los números de la serie que se está haciendo. Opcional a propósito: sin ellos la
+   * sala no se construye y el visor se queda con la bahía, que es lo que hace falta
+   * cuando esto se abre solo para estudiar el patrón y no para entrenar.
+   */
+  datos?: DatosDeSerie
 }
 
 /**
@@ -64,7 +92,7 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron }: VisorPatronProps) {
+export function VisorPatron({ patron, datos }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -75,7 +103,18 @@ export function VisorPatron({ patron }: VisorPatronProps) {
 
   // Todo lo que cambia sesenta veces por segundo va por referencia y no por
   // estado: meterlo en `useState` volvería a renderizar el árbol en cada cuadro.
-  const estado = useRef({ fase: 0, sentido: 1, reloj: 0, reproduciendo: true, girando: false, capa: 'ambas' as Capa })
+  const estado = useRef({
+    fase: 0,
+    sentido: 1,
+    reloj: 0,
+    reproduciendo: true,
+    girando: false,
+    capa: 'ambas' as Capa,
+    // Los números del marcador viven aquí y no en las dependencias del efecto que
+    // monta la escena: incluirlos ahí recrearía el contexto WebGL entero cada vez
+    // que avanza una serie. Van por referencia y se repinta, como la capa.
+    datos: undefined as DatosDeSerie | undefined,
+  })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
 
@@ -87,8 +126,13 @@ export function VisorPatron({ patron }: VisorPatronProps) {
     estado.current.reproduciendo = reproduciendo && !reducido
     estado.current.girando = girando
     estado.current.capa = capa
+    estado.current.datos = datos
+    // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
+    // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
+    // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo
+    // mudo de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa])
+  }, [reproduciendo, reducido, girando, capa, datos])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -132,6 +176,8 @@ export function VisorPatron({ patron }: VisorPatronProps) {
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
           const partes = [laboratorio()]
+          const d = estado.current.datos
+          if (d) partes.push(sala(d))
           if (estado.current.capa !== 'musculo') partes.push(huesos)
           if (estado.current.capa !== 'hueso') partes.push(construirMusculos(esq, patron.activacion, reposo))
           partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))
@@ -246,6 +292,22 @@ export function VisorPatron({ patron }: VisorPatronProps) {
             retícula {BAHIA.pasoMenor * 100} cm
             <span className="mx-1 text-white/20">·</span>
             {BAHIA.pasoMayor * 100} cm
+          </p>
+        )}
+        {/* DÓNDE VA EL MÓVIL DE VERDAD.
+            La marca del suelo no es decoración: es la posición desde la que el encoder
+            puede medir. El sujeto mira a +Z, así que su plano sagital es X=0, y una
+            sola cámara no da los grados de libertad del plano frontal — de perfil es
+            el ÚNICO sitio desde el que sale una velocidad de barra que valga.
+            El ±  es la tolerancia real que aplica la puerta de encuadre, no un número
+            de adorno: sin un disco a la vista solo se admiten 12° de desvío. */}
+        {!error && datos && (
+          <p className="pointer-events-none absolute right-3 top-2 text-right font-mono text-[9px] uppercase leading-relaxed tracking-[0.1em] text-white/35">
+            trípode {SALA.estacion.distancia.toFixed(1).replace('.', ',')} m
+            <span className="mx-1 text-white/20">·</span>
+            {SALA.estacion.altura.toFixed(1).replace('.', ',')} m alto
+            <br />
+            de perfil ±{SALA.tolerancia.sinDisco}°
           </p>
         )}
         {!error && (
