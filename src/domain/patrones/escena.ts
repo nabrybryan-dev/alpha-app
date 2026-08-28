@@ -9,7 +9,7 @@ import { grados, limitar, suavizar, V, type Vec3 } from './algebra'
 import type { Patron } from './catalogo'
 import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type EsqueletoResuelto, type Lado } from './esqueleto'
 import { flecha, Malla, tuboDiscontinuo, type Color } from './malla'
-import { MUSCULOS, trazadoDeFasciculo } from './musculos'
+import { activacionDe, PORCIONES, trazadoDeFasciculo } from './musculos'
 import { poseAnimada } from './movimiento'
 
 export const AMBAR: Color = [0.91, 0.698, 0.235]
@@ -94,27 +94,25 @@ const CAMPO_VISUAL = grados(34)
 export function encuadrar(patron: Patron): Encuadre {
   const cuerpo: Vec3[] = []
   const activo: Vec3[] = []
-  const agonistas = MUSCULOS.filter((m) => {
-    const a = Math.max(
-      patron.activacion[m.id] ?? 0,
-      patron.activacion[m.id + ':D'] ?? 0,
-      patron.activacion[m.id + ':I'] ?? 0,
-    )
-    return a >= 0.7
-  })
+  // Se encuadra la PORCIÓN que trabaja, no el músculo entero: en un curl manda
+  // el bíceps, pero en un press militar mandan la cabeza lateral y la medial
+  // del tríceps y no la larga, que ahí solo acompaña.
+  const agonistas = PORCIONES.filter(({ musculo, porcion }) =>
+    (['D', 'I'] as Lado[]).some(
+      (lado) => activacionDe(patron.activacion, musculo.id, porcion.id, lado) >= 0.7,
+    ),
+  )
 
   for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
     const esq = esqueletoEnFase(patron, fase)
     for (const h of ESQUELETO) {
       for (const t of [0, 0.5, 1]) cuerpo.push(puntoDeHueso(esq, h.nombre, t))
     }
-    for (const m of agonistas) {
+    for (const { musculo, porcion } of agonistas) {
       for (const lado of ['D', 'I'] as Lado[]) {
-        const propio = patron.activacion[m.id + ':' + lado]
         // En un patrón unilateral solo cuenta el lado que de verdad trabaja.
-        if (propio === undefined && patron.activacion[m.id] === undefined) continue
-        if (propio !== undefined && propio < 0.7) continue
-        for (const p of trazadoDeFasciculo(esq, m, lado, 0)) activo.push(p)
+        if (activacionDe(patron.activacion, musculo.id, porcion.id, lado) < 0.7) continue
+        for (const p of trazadoDeFasciculo(esq, porcion, lado, 0)) activo.push(p)
       }
     }
   }

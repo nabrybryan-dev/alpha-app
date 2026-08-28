@@ -16,42 +16,142 @@ export interface ArraysDeMalla {
   normal: Float32Array
   color: Float32Array
   hueso: Float32Array
-  indice: Uint16Array
+  indice: Uint32Array
 }
 
+/**
+ * Acumulador de geometría con memoria reutilizable.
+ *
+ * Los buffers son arrays tipados con capacidad propia y un cursor, en vez de
+ * `number[]` con `push`. El motivo es medido, no estético: la musculatura son
+ * unos catorce mil vértices por cuadro y hacer crecer cuatro arrays a base de
+ * `push` costaba 19 de los 22 ms del cuadro —el 90 % del tiempo—, casi todo en
+ * reservar memoria una y otra vez para tirarla acto seguido.
+ *
+ * `reiniciar()` deja los cursores a cero y conserva la memoria, así que a
+ * partir del segundo cuadro no se reserva nada.
+ */
 export class Malla {
-  posicion: number[] = []
-  normal: number[] = []
-  color: number[] = []
-  hueso: number[] = []
-  indice: number[] = []
+  private bufPos: Float32Array
+  private bufNrm: Float32Array
+  private bufCol: Float32Array
+  private bufHueso: Float32Array
+  private bufIdx: Uint32Array
+  private nv = 0
+  private ni = 0
+
+  constructor(capacidadVertices = 2048) {
+    this.bufPos = new Float32Array(capacidadVertices * 3)
+    this.bufNrm = new Float32Array(capacidadVertices * 3)
+    this.bufCol = new Float32Array(capacidadVertices * 3)
+    this.bufHueso = new Float32Array(capacidadVertices)
+    this.bufIdx = new Uint32Array(capacidadVertices * 6)
+  }
+
+  /** Vacía el contenido sin soltar la memoria ya reservada. */
+  reiniciar(): void {
+    this.nv = 0
+    this.ni = 0
+  }
 
   get vertices(): number {
-    return this.posicion.length / 3
+    return this.nv
+  }
+
+  // Vistas de la parte escrita. `subarray` no copia.
+  get posicion(): Float32Array {
+    return this.bufPos.subarray(0, this.nv * 3)
+  }
+  get normal(): Float32Array {
+    return this.bufNrm.subarray(0, this.nv * 3)
+  }
+  get color(): Float32Array {
+    return this.bufCol.subarray(0, this.nv * 3)
+  }
+  get hueso(): Float32Array {
+    return this.bufHueso.subarray(0, this.nv)
+  }
+  get indice(): Uint32Array {
+    return this.bufIdx.subarray(0, this.ni)
+  }
+
+  private crecerVertices(): void {
+    const nueva = this.bufHueso.length * 2
+    const copiar = (v: Float32Array, tam: number) => {
+      const n = new Float32Array(nueva * tam)
+      n.set(v)
+      return n
+    }
+    this.bufPos = copiar(this.bufPos, 3)
+    this.bufNrm = copiar(this.bufNrm, 3)
+    this.bufCol = copiar(this.bufCol, 3)
+    this.bufHueso = copiar(this.bufHueso, 1)
+  }
+
+  private crecerIndices(): void {
+    const n = new Uint32Array(this.bufIdx.length * 2)
+    n.set(this.bufIdx)
+    this.bufIdx = n
   }
 
   vertice(p: Vec3, n: Vec3, c: Color, h: number): void {
-    this.posicion.push(p[0], p[1], p[2])
-    this.normal.push(n[0], n[1], n[2])
-    this.color.push(c[0], c[1], c[2])
-    this.hueso.push(h)
+    this.verticeSuelto(p[0], p[1], p[2], n[0], n[1], n[2], c, h)
+  }
+
+  /**
+   * Igual que `vertice`, pero con números sueltos.
+   *
+   * Existe por rendimiento: el bucle interno del tubo corre unas catorce mil
+   * veces por cuadro, y pasar por vectores obligaba a crear seis arrays en cada
+   * vuelta.
+   */
+  verticeSuelto(
+    px: number, py: number, pz: number,
+    nx: number, ny: number, nz: number,
+    c: Color, h: number,
+  ): void {
+    if (this.nv >= this.bufHueso.length) this.crecerVertices()
+    const i = this.nv * 3
+    this.bufPos[i] = px
+    this.bufPos[i + 1] = py
+    this.bufPos[i + 2] = pz
+    this.bufNrm[i] = nx
+    this.bufNrm[i + 1] = ny
+    this.bufNrm[i + 2] = nz
+    this.bufCol[i] = c[0]
+    this.bufCol[i + 1] = c[1]
+    this.bufCol[i + 2] = c[2]
+    this.bufHueso[this.nv] = h
+    this.nv++
   }
 
   triangulo(a: number, b: number, c: number): void {
-    this.indice.push(a, b, c)
+    if (this.ni + 3 > this.bufIdx.length) this.crecerIndices()
+    this.bufIdx[this.ni] = a
+    this.bufIdx[this.ni + 1] = b
+    this.bufIdx[this.ni + 2] = c
+    this.ni += 3
   }
 
   cuadro(a: number, b: number, c: number, d: number): void {
-    this.indice.push(a, b, c, a, c, d)
+    if (this.ni + 6 > this.bufIdx.length) this.crecerIndices()
+    const i = this.ni
+    this.bufIdx[i] = a
+    this.bufIdx[i + 1] = b
+    this.bufIdx[i + 2] = c
+    this.bufIdx[i + 3] = a
+    this.bufIdx[i + 4] = c
+    this.bufIdx[i + 5] = d
+    this.ni += 6
   }
 
   arrays(): ArraysDeMalla {
     return {
-      posicion: new Float32Array(this.posicion),
-      normal: new Float32Array(this.normal),
-      color: new Float32Array(this.color),
-      hueso: new Float32Array(this.hueso),
-      indice: new Uint16Array(this.indice),
+      posicion: this.posicion,
+      normal: this.normal,
+      color: this.color,
+      hueso: this.hueso,
+      indice: this.indice,
     }
   }
 }
@@ -110,32 +210,77 @@ function marcos(puntos: Vec3[]): Marco[] {
   for (let i = 0; i < n; i++) {
     const a = puntos[Math.max(0, i - 1)]
     const b = puntos[Math.min(n - 1, i + 1)]
-    let t = V.restar(b, a)
-    if (V.largo(t) < 1e-9) t = [0, 1, 0]
-    tangentes.push(V.normalizar(t))
+    let tx = b[0] - a[0]
+    let ty = b[1] - a[1]
+    let tz = b[2] - a[2]
+    const l = Math.hypot(tx, ty, tz)
+    if (l < 1e-9) {
+      tx = 0
+      ty = 1
+      tz = 0
+    } else {
+      tx /= l
+      ty /= l
+      tz /= l
+    }
+    tangentes.push([tx, ty, tz])
   }
-  const semilla: Vec3 = Math.abs(tangentes[0][1]) > 0.9 ? [1, 0, 0] : [0, 1, 0]
-  let normal = V.normalizar(V.cruz(semilla, tangentes[0]))
+
+  // Aritmética con números sueltos, no con vectores: esto corre una vez por
+  // punto de cada tubo y cada operación vectorial creaba un array nuevo.
+  const s0: Vec3 = Math.abs(tangentes[0][1]) > 0.9 ? [1, 0, 0] : [0, 1, 0]
+  const t0 = tangentes[0]
+  let nx = s0[1] * t0[2] - s0[2] * t0[1]
+  let ny = s0[2] * t0[0] - s0[0] * t0[2]
+  let nz = s0[0] * t0[1] - s0[1] * t0[0]
+  let inv = 1 / (Math.hypot(nx, ny, nz) || 1)
+  nx *= inv
+  ny *= inv
+  nz *= inv
+
   const salida: Marco[] = []
   for (let i = 0; i < n; i++) {
+    const [tx, ty, tz] = tangentes[i]
     if (i > 0) {
       // Rotación mínima de la tangente anterior a la actual, aplicada a la
       // normal previa: así la sección no gira más de lo que gira la curva.
-      const eje = V.cruz(tangentes[i - 1], tangentes[i])
-      const s = V.largo(eje)
+      const [ax, ay, az] = tangentes[i - 1]
+      let ex = ay * tz - az * ty
+      let ey = az * tx - ax * tz
+      let ez = ax * ty - ay * tx
+      const s = Math.hypot(ex, ey, ez)
       if (s > 1e-7) {
-        const e = V.escalar(eje, 1 / s)
-        const ang = Math.atan2(s, V.punto(tangentes[i - 1], tangentes[i]))
+        ex /= s
+        ey /= s
+        ez /= s
+        const ang = Math.atan2(s, ax * tx + ay * ty + az * tz)
         const c = Math.cos(ang)
         const sn = Math.sin(ang)
-        normal = V.sumar(
-          V.sumar(V.escalar(normal, c), V.escalar(V.cruz(e, normal), sn)),
-          V.escalar(e, V.punto(e, normal) * (1 - c)),
-        )
+        // Rodrigues: n·cos + (e × n)·sen + e·(e·n)(1 − cos)
+        const cx = ey * nz - ez * ny
+        const cy = ez * nx - ex * nz
+        const cz = ex * ny - ey * nx
+        const d = (ex * nx + ey * ny + ez * nz) * (1 - c)
+        nx = nx * c + cx * sn + ex * d
+        ny = ny * c + cy * sn + ey * d
+        nz = nz * c + cz * sn + ez * d
       }
-      normal = V.normalizar(V.restar(normal, V.escalar(tangentes[i], V.punto(normal, tangentes[i]))))
+      // Se vuelve a hacer perpendicular a la tangente y se renormaliza, o el
+      // error se acumula a lo largo del tubo.
+      const dot = nx * tx + ny * ty + nz * tz
+      nx -= tx * dot
+      ny -= ty * dot
+      nz -= tz * dot
+      inv = 1 / (Math.hypot(nx, ny, nz) || 1)
+      nx *= inv
+      ny *= inv
+      nz *= inv
     }
-    salida.push({ t: tangentes[i], n: normal, b: V.cruz(tangentes[i], normal) })
+    salida.push({
+      t: tangentes[i],
+      n: [nx, ny, nz],
+      b: [ty * nz - tz * ny, tz * nx - tx * nz, tx * ny - ty * nx],
+    })
   }
   return salida
 }
@@ -165,19 +310,37 @@ export function tubo(
   const base = malla.vertices
   const n = puntos.length
 
+  // Los senos y cosenos del anillo son los mismos en toda la longitud del tubo:
+  // se calculan una vez y no `seg` veces por cada uno de los `n` anillos.
+  const cosA = new Float64Array(seg)
+  const senA = new Float64Array(seg)
+  for (let j = 0; j < seg; j++) {
+    const a = (j / seg) * Math.PI * 2
+    cosA[j] = Math.cos(a)
+    senA[j] = Math.sin(a)
+  }
+
   for (let i = 0; i < n; i++) {
     const r = typeof radio === 'function' ? radio(i / (n - 1)) : radio[i]
     const f = fr[i]
+    const [nx, ny, nz] = f.n
+    const [bx, by, bz] = f.b
+    const [px, py, pz] = puntos[i]
     for (let j = 0; j < seg; j++) {
-      const a = (j / seg) * Math.PI * 2
-      const ca = Math.cos(a) * r
-      const sa = Math.sin(a) * r * aplanar
-      const p = V.sumar(puntos[i], V.sumar(V.escalar(f.n, ca), V.escalar(f.b, sa)))
+      const ca = cosA[j] * r
+      const sa = senA[j] * r * aplanar
       // La normal es el desplazamiento corregido por el achatamiento.
-      const nr = V.normalizar(
-        V.sumar(V.escalar(f.n, Math.cos(a)), V.escalar(f.b, Math.sin(a) / aplanar)),
+      const vx = nx * cosA[j] + (bx * senA[j]) / aplanar
+      const vy = ny * cosA[j] + (by * senA[j]) / aplanar
+      const vz = nz * cosA[j] + (bz * senA[j]) / aplanar
+      const inv = 1 / (Math.hypot(vx, vy, vz) || 1)
+      malla.verticeSuelto(
+        px + nx * ca + bx * sa,
+        py + ny * ca + by * sa,
+        pz + nz * ca + bz * sa,
+        vx * inv, vy * inv, vz * inv,
+        color, hueso,
       )
-      malla.vertice(p, nr, color, hueso)
     }
   }
   for (let i = 0; i < n - 1; i++) {

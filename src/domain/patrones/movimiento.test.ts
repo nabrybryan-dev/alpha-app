@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID } from './catalogo'
 import { canalEnFase, poseAnimada, RANGO, retardoDe } from './movimiento'
 import { puntoDeHueso, resolver, resolverConApoyo, type Lado } from './esqueleto'
-import { construirMusculos, longitudesEnReposo, trazadoDeFasciculo, MUSCULO_POR_ID } from './musculos'
+import { construirMusculos, longitudesEnReposo, trazadoDeFasciculo, PORCION_POR_CLAVE } from './musculos'
 import { V } from './algebra'
 
 const reposo = longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0]))
@@ -137,7 +137,7 @@ describe('el acortamiento muscular', () => {
     const largoEn = (fase: number): number => {
       const { pose, desplazamiento, giroRaiz } = poseAnimada(p, fase, 1, 0)
       const esq = resolverConApoyo(pose, desplazamiento, giroRaiz, p.apoyo, p.alturaApoyo, piesDe(p))
-      const trazado = trazadoDeFasciculo(esq, MUSCULO_POR_ID.biceps, 'D', 0)
+      const trazado = trazadoDeFasciculo(esq, PORCION_POR_CLAVE['biceps.larga'].porcion, 'D', 0)
       let l = 0
       for (let i = 1; i < trazado.length; i++) l += V.largo(V.restar(trazado[i], trazado[i - 1]))
       return l
@@ -150,7 +150,7 @@ describe('el acortamiento muscular', () => {
     const largoEn = (fase: number): number => {
       const { pose, desplazamiento, giroRaiz } = poseAnimada(p, fase, 1, 0)
       const esq = resolverConApoyo(pose, desplazamiento, giroRaiz, p.apoyo, p.alturaApoyo, piesDe(p))
-      const trazado = trazadoDeFasciculo(esq, MUSCULO_POR_ID.triceps, 'D', 0)
+      const trazado = trazadoDeFasciculo(esq, PORCION_POR_CLAVE['triceps.larga'].porcion, 'D', 0)
       let l = 0
       for (let i = 1; i < trazado.length; i++) l += V.largo(V.restar(trazado[i], trazado[i - 1]))
       return l
