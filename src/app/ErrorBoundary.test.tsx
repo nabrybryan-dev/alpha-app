@@ -93,6 +93,64 @@ describe('ErrorBoundary · el trozo que ya no existe', () => {
 
     // Y el botón recarga de verdad, que es lo que «Reintentar» no hacía.
     await userEvent.click(screen.getByRole('button', { name: 'Recargar' }))
-    expect(recargas).toBe(1)
+    await vi.waitFor(() => expect(recargas).toBe(1))
+  })
+
+  /**
+   * EL BOTÓN TAMBIÉN TIENE QUE LIMPIAR, y es el caso que más lo necesita.
+   *
+   * A este botón solo se llega cuando la recarga automática ya se intentó y el
+   * freno la paró: o sea, cuando el service worker sigue siendo el viejo. Si el
+   * botón recargase pelado -como hacía-, ese service worker volvería a servir su
+   * `index.html` cacheado, se pedirían los mismos ficheros que ya no existen y
+   * la persona acabaría cerrando la app a mano, que es de donde venimos.
+   */
+  it('el botón tira la caché ANTES de recargar, no solo recarga', async () => {
+    const orden: string[] = []
+
+    vi.stubGlobal('caches', {
+      keys: () => Promise.resolve(['workbox-precache-v2']),
+      delete: (n: string) => {
+        orden.push('cache:' + n)
+        return Promise.resolve(true)
+      },
+    })
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      serviceWorker: {
+        getRegistrations: () =>
+          Promise.resolve([
+            {
+              unregister: () => {
+                orden.push('unregister')
+                return Promise.resolve(true)
+              },
+            },
+          ]),
+      },
+    })
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload: () => orden.push('reload') },
+    })
+
+    // El freno ya paró la recarga automática: por eso hay botón que pulsar.
+    sessionStorage.setItem('alpha-recarga-por-despliegue', String(Date.now()))
+
+    render(
+      <ErrorBoundary>
+        <Explota mensaje={ERROR_DE_DESPLIEGUE} />
+      </ErrorBoundary>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Recargar' }))
+    await vi.waitFor(() => expect(orden).toContain('reload'))
+
+    expect(orden).toContain('cache:workbox-precache-v2')
+    // El orden es TODO el arreglo: recargar antes de limpiar no serviría.
+    expect(orden[orden.length - 1]).toBe('reload')
+    expect(orden.indexOf('unregister')).toBeLessThan(orden.indexOf('reload'))
+
+    vi.unstubAllGlobals()
   })
 })

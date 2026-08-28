@@ -92,8 +92,15 @@ const VENTANA_MS = 15_000
  *
  * Y soltar el service worker no deja la app sin funcionamiento offline: se
  * vuelve a registrar solo en la carga siguiente, que es justo la que viene.
+ *
+ * Se exporta porque hacen falta LAS DOS puertas: la recarga automatica de aqui
+ * abajo, y el boton que pulsa la persona cuando el freno ya la ha frenado. Si
+ * el boton recargase pelado -como hacia-, en el unico caso en que el arreglo
+ * hace falta volveria a servir el `index.html` viejo y a fallar igual.
  */
-async function tirarLoViejoYRecargar(recargar: () => void): Promise<void> {
+export async function tirarLoViejoYRecargar(
+  recargar: () => void = () => window.location.reload(),
+): Promise<void> {
   try {
     if (typeof caches !== 'undefined') {
       const nombres = await caches.keys()
