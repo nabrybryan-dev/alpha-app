@@ -6,15 +6,22 @@
  * poco más. Eso valida coherencia interna, no que la tabla sirva para lo que se
  * construyó — decirle a una cámara qué mirar en un gimnasio de verdad.
  *
- * Este script lee el catálogo de 168 vídeos de WhatsApp (grabados por el
+ * Este script lee el catálogo del corpus de vídeos de WhatsApp —grabados por el
  * asesorado, no por nosotros: móvil en el suelo, gente cruzando, discos
- * tapando) y para cada uno pregunta `planDeMedida`. Lo que sale no es una nota
+ * tapando— y para cada uno pregunta `planDeMedida`. Lo que sale no es una nota
  * de la tabla: es el reparto entre lo que HOY se puede medir en ese corpus y lo
- * que no, y por qué motivo concreto.
+ * que no, y por qué motivo concreto. Cuántos son lo dice la cabecera del
+ * informe, contando: eran 168 al escribir esto y 173 desde que el coach mandó
+ * cinco más, así que aquí no va escrito.
  *
- *     node --experimental-strip-types scripts/corpus-video.mjs catalogo.tsv
+ *     npx vite-node scripts/corpus-video.mjs -- <catalogo.tsv>
  *
- * Las columnas del catálogo salen de mirar los 168 uno a uno:
+ * Con `node --experimental-strip-types` NO arranca: la tabla importa
+ * `../taxonomia` sin extensión y el resolutor de Node no la encuentra. El
+ * catálogo vive en el otro repo:
+ * `cerebro-alpha/herramientas/encoder-camara/banco/corpus-gimnasio.tsv`.
+ *
+ * Las columnas salen de mirar los vídeos uno a uno:
  *   id, ejercicio, patron, implemento, vista, altura_camara, calidad, nota
  */
 
@@ -38,6 +45,12 @@ const A_CATEGORIA = {
   'abduccion horizontal': 'ABDUCCIÓN HORIZONTAL',
   'flexion de codo': 'FLEXIÓN DE CODO',
   'extension de codo': 'EXTENSIÓN DE CODO',
+  // Las dos de muñeca las abrió ESTE corpus: al catalogar los 168 aparecieron dos
+  // curls de muñeca que ninguna de las 32 categorías de entonces sabía nombrar.
+  // La taxonomía creció a 34 el 2026-08-26 y el vocabulario del gimnasio ya tiene
+  // dónde caer.
+  'flexion de muneca': 'FLEXIÓN DE MUÑECA',
+  'extension de muneca': 'EXTENSIÓN DE MUÑECA',
   antiextension: 'ANTIEXTENSIÓN',
 }
 
@@ -46,8 +59,11 @@ const A_CATEGORIA = {
  * catalogó: son ejercicios que existen en el gimnasio y no en la tabla.
  */
 const SIN_CATEGORIA = {
-  prensa: 'la prensa no es una categoría: su carga va por un raíl inclinado, no por la vertical',
-  'flexion de muneca': 'no hay categoría de muñeca en la taxonomía de 32',
+  // La prensa SÍ se clasifica —la taxonomía la lleva a la familia de la sentadilla—,
+  // y por eso no se le da entrada aquí: heredaría el modelo de palanca de la
+  // sentadilla, que es de otro ejercicio. Lo que le falta no es categoría, es
+  // origen de la línea de fuerza: la carga corre por un raíl inclinado.
+  prensa: 'la carga va por un raíl inclinado y no por la vertical: hereda el modelo equivocado',
   'levantamiento olimpico':
     'del suelo a por encima de la cabeza no es UN patrón: es una bisagra y un empuje encadenados, ' +
     'y forzarlo a uno de los dos da un número que no es de ese ejercicio',
@@ -55,7 +71,7 @@ const SIN_CATEGORIA = {
 
 const ruta = process.argv[2]
 if (!ruta) {
-  console.error('Uso: node --experimental-strip-types scripts/corpus-video.mjs <catalogo.tsv>')
+  console.error('Uso: npx vite-node scripts/corpus-video.mjs -- <catalogo.tsv>')
   process.exit(2)
 }
 

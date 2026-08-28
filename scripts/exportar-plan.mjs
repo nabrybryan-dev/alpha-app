@@ -1,7 +1,7 @@
 /**
  * El plan de medida de un ejercicio, en JSON, para que lo coma el encoder.
  *
- *     node --experimental-strip-types scripts/exportar-plan.mjs "BISAGRA DE CADERA" "peso muerto con barra"
+ *     npx vite-node scripts/exportar-plan.mjs -- "BISAGRA DE CADERA" "peso muerto con barra"
  *
  * Existe por una razón de costura, no de comodidad. La tabla de palancas es el
  * dominio de la app y vive en TypeScript; el encoder de cámara es una
@@ -23,7 +23,7 @@ import { planDeMedida } from '../src/domain/biomecanica/palancas.ts'
 
 const [categoria, nombre = ''] = process.argv.slice(2)
 if (!categoria) {
-  console.error('Uso: node --experimental-strip-types scripts/exportar-plan.mjs <CATEGORÍA> [nombre del ejercicio]')
+  console.error('Uso: npx vite-node scripts/exportar-plan.mjs -- <CATEGORÍA> [nombre del ejercicio]')
   process.exit(2)
 }
 

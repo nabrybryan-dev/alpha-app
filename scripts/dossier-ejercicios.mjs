@@ -1,7 +1,7 @@
 /**
  * Un expediente biomecánico por ejercicio, con los vídeos que lo prueban.
  *
- *     node --experimental-strip-types scripts/dossier-ejercicios.mjs <catalogo.tsv> > EJERCICIOS.md
+ *     npx vite-node scripts/dossier-ejercicios.mjs -- <catalogo.tsv> > EJERCICIOS.md
  *
  * Sale de cruzar dos cosas que ya existen y no se habían juntado:
  *
@@ -44,7 +44,7 @@ const A_CATEGORIA = {
 
 const ruta = process.argv[2]
 if (!ruta) {
-  console.error('Uso: node --experimental-strip-types scripts/dossier-ejercicios.mjs <catalogo.tsv>')
+  console.error('Uso: npx vite-node scripts/dossier-ejercicios.mjs -- <catalogo.tsv>')
   process.exit(2)
 }
 
@@ -113,7 +113,7 @@ for (const [cat, lista] of [...porPatron].sort((a, b) => b[1].length - a[1].leng
   const sinModelo = cat.startsWith('SIN MODELO')
   if (sinModelo) {
     p('⚠ **Este patrón no tiene modelo en la tabla**, así que de aquí no sale ninguna')
-    p('medida. No es un descuido: o la taxonomía de 32 no lo contempla —la prensa va')
+    p('medida. No es un descuido: o la taxonomía no le da patrón propio —la prensa va')
     p('por un raíl inclinado y no hereda el modelo de la sentadilla— o el ejercicio no')
     p('se pudo clasificar de un vistazo al catalogarlo.')
     p()
