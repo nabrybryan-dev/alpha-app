@@ -246,3 +246,67 @@ describe('la movilidad que los patrones dan por supuesta', () => {
     }
   })
 })
+
+describe('la cobertura sobre los ejercicios de verdad', () => {
+  /**
+   * Muestra de categorías y nombres tomada de los microciclos reales el
+   * 2026-08-28: 2.702 ejercicios en 30 categorías. Aquí van los casos que
+   * deciden, con la forma en que están escritos allí —mayúsculas irregulares,
+   * paréntesis y todo—, porque es justo lo que rompe un emparejado ingenuo.
+   *
+   * Sin datos de nadie: solo el texto de la categoría y el del ejercicio.
+   */
+  const REALES: [string, string, boolean][] = [
+    // Categoría que ya nombra el gesto: manda ella.
+    ['EXTENSIÓN DE CADERA', 'Hip thrust en barra', true],
+    ['ABDUCCIÓN HORIZONTAL', 'Pájaro con mancuernas', true],
+    ['EXTENSIÓN DE HOMBRO', 'Pullover en polea', true],
+    ['ANTIRROTACIÓN', 'Pallof press de rodillas', true],
+    ['RETRACCIÓN ESCAPULAR', 'Band pull apart', true],
+    ['APERTURA DE PECHO', 'Aperturas en banco plano', true],
+    ['ANTIFLEXIÓN LATERAL', 'Paseo del granjero a una mano', true],
+    ['DORSIFLEXIÓN', 'TIBIALIS RAISE (ESPALDA CONTRA PARED)', true],
+    ['FLEXIÓN DE TRONCO', 'CRUNCH EN POLEA ARRODILLADO', true],
+    // Categoría que dice para qué sirve: decide el nombre.
+    ['PREV/REHAB', 'Rotación externa de hombro en polea (manguito rotador)', true],
+    ['PREV/REHAB', 'CONTROL ESCAPULAR + ROTACIÓN EXTERNA', true],
+    ['PREV/REHAB', 'Saltos cortos de tobillo (pogo jumps) a peso corporal', true],
+    ['PREV/REHAB', 'Dead hang activo en barra', true],
+    ['PREV/REHAB', 'Apoyo monopodal con alcance (descalza)', true],
+    ['PREV/REHAB', 'ACTIVACIÓN GLÚTEA PREVIA', true],
+    ['PREV/REHAB', 'Copenhague', true],
+    ['PREV/REHAB', 'Bird-dog lento', true],
+    ['PREV/REHAB', 'Isométrico de gemelo con talón colgando', true],
+    ['POTENCIA · REACTIVA', 'Salto al cajón con bajada caminando', true],
+    ['POTENCIA · REACTIVA', 'Lanzamiento de balón medicinal contra pared', true],
+    ['MOVILIDAD', 'Movilidad torácica con foam roller (movilidad de columna)', true],
+    ['MOVILIDAD', 'Gato-camello', true],
+    // Y lo que no debe tener patrón, que es tan importante como lo que sí.
+    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', false],
+    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', false],
+    ['ACONDICIONAMIENTO', 'Circuito metabólico 40/20', false],
+    ['PREV/REHAB', 'Cribado de banderas rojas (antes de tocar una carga)', false],
+  ]
+
+  it('encuentra patrón para cada ejercicio que lo tiene', () => {
+    for (const [categoria, nombre, esperado] of REALES) {
+      const patron = patronDeCategoria(categoria, nombre)
+      expect(patron !== undefined, `${categoria} · ${nombre}`).toBe(esperado)
+    }
+  })
+
+  it('no enseña un gesto de fuerza para el cardio', () => {
+    // Peor que no tener visor es tener uno que enseñe otra cosa: quien monta en
+    // bicicleta no está haciendo ninguno de los treinta y un patrones.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')).toBeUndefined()
+  })
+
+  it('la categoría manda sobre el nombre cuando dice el gesto', () => {
+    // El nombre lo escribe el coach a mano y admite cualquier cosa; la categoría
+    // es vocabulario cerrado. Un remo llamado «salto del tigre» sigue siendo un
+    // remo.
+    expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Salto del tigre')?.id).toBe(
+      'traccion_horizontal',
+    )
+  })
+})
