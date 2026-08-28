@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '../../../components/ui/Badge'
 import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
@@ -12,6 +12,7 @@ import { acusarToque } from './acusarToque'
 import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
+import { marcarCamaraAbierta } from '../camaraAbierta'
 import {
   aCsv,
   anadirATanda,
@@ -151,6 +152,34 @@ export default function EncoderPage() {
     },
   })
   const { resultado } = captura
+
+  /**
+   * LA PUERTA DE CÁMARA ESTABA MUERTA EN ESTA PANTALLA.
+   *
+   * `marcarCamaraAbierta()` es lo que enciende `[data-camara-abierta]`, y de ese
+   * atributo cuelga toda la puerta de `tokens.css`: aplana la profundidad, PAUSA
+   * todas las animaciones y quita todos los `backdrop-filter`. Hasta hoy la llamaba
+   * un solo sitio en toda la app —`RegistroSerie`—, así que aquí, que es la pantalla
+   * cuyo trabajo ES capturar, la cámara grababa con la interfaz entera moviéndose.
+   *
+   * Y aquí pesa MÁS que en la sesión, no menos: al lado corre `GraficaBrazo` con su
+   * propio `requestAnimationFrame`, y el bucle de captura ya hace un `getImageData`
+   * por fotograma en el hilo principal.
+   *
+   * Lo que se juega no es que se vea peor. El bucle pide 60 fps y la puerta descarta
+   * la toma por debajo de 50: a 30 fps el error de %PV se va 5 puntos, que es la
+   * diferencia entre un dato que sirve para decidir carga y uno que no. Un fallo deja
+   * la toma en `dudosa`; dos la matan. O sea que una animación que robe fotogramas
+   * aquí no molesta: **hace que el asesorado repita la serie de pie**.
+   *
+   * Cuelga de `camaraAbierta` y no del montaje de la página: la puerta tiene que estar
+   * puesta mientras la cámara capture, y ni un segundo más — si se quedara pegada, la
+   * app entera se queda sin animaciones hasta recargar.
+   */
+  useEffect(() => {
+    if (!captura.camaraAbierta) return
+    return marcarCamaraAbierta()
+  }, [captura.camaraAbierta])
 
   function alTocarVisor(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
