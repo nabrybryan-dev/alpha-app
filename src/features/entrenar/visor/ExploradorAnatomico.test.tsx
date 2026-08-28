@@ -72,18 +72,3 @@ describe('el arranque dirigido', () => {
   })
 })
 
-describe('los rangos que aún no son medidas', () => {
-  it('avisa cuando el recorrido es una cifra de referencia', async () => {
-    const usuario = userEvent.setup()
-    render(<ExploradorAnatomico articulacionInicial="muneca" />)
-    // La desviación de muñeca entró con valores de manual, a la espera de los
-    // del preparador. Enseñarla como un dato cerrado sería mentir.
-    await usuario.click(screen.getByRole('button', { name: /Desviación cubital/i }))
-    expect(screen.getByText(/por confirmar/i)).toBeInTheDocument()
-  })
-
-  it('no avisa en los rangos que sí están acordados', () => {
-    render(<ExploradorAnatomico articulacionInicial="codo" />)
-    expect(screen.queryByText(/por confirmar/i)).not.toBeInTheDocument()
-  })
-})

@@ -54,14 +54,6 @@ export function ExploradorAnatomico({ articulacionInicial }: ExploradorAnatomico
           {elegida.articulacion.ejes.length === 1
             ? 'un grado de libertad'
             : `${elegida.articulacion.ejes.length} grados de libertad`}
-          {/* Un rango de referencia no es una medida acordada, y quien mira esto
-              tiene que poder distinguirlo: el recorrido que se enseña decide
-              hasta dónde se cree que se puede llegar. */}
-          {elegida.eje.provisional && (
-            <span className="ml-1.5 rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-silver-500">
-              recorrido por confirmar
-            </span>
-          )}
         </p>
       </header>
 

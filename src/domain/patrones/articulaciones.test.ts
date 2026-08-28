@@ -114,14 +114,4 @@ describe('el catálogo articular', () => {
     }
   })
 
-  it('marca los rangos que todavía esperan el número de un preparador', () => {
-    // Los ejes que se añadieron para tapar un hueco llevan cifras de referencia,
-    // no medidas. Que se note es la diferencia entre un dato y una suposición.
-    const provisionales = ARTICULACIONES.flatMap((a) =>
-      a.ejes.filter((e) => e.provisional).map((e) => e.canal),
-    )
-    for (const c of provisionales) expect(RANGO_POR_CANAL[c], c).toBeDefined()
-    // Si algún día no queda ninguno, este test sobra: quítalo con el último.
-    expect(provisionales.length).toBeGreaterThan(0)
-  })
 })

@@ -220,7 +220,7 @@ export const PATRONES: Patron[] = [
     pies: [],
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { tobilloPlantar: -24, hombroFlex: 4, rodillaFlex: 3 },
+    inicio: { tobilloPlantar: -20, hombroFlex: 4, rodillaFlex: 3 },
     fin: { tobilloPlantar: 46, hombroFlex: 4, rodillaFlex: 0 },
     activacion: { 'triceps_sural.gastro_medial': 1, 'triceps_sural.gastro_lateral': 1, 'triceps_sural.soleo': 0.95, peroneos: 0.3, isquiotibiales: 0.2 },
     seguimiento: ['tibia', 0.9, [0, 0, 0.04]],
