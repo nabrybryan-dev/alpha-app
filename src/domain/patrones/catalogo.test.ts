@@ -206,18 +206,23 @@ describe('la movilidad que los patrones dan por supuesta', () => {
    * consecuencia: un patrón puede exigir más recorrido del que la articulación
    * tiene y nadie se entera.
    *
-   * Con la dorsiflexión en sus 20° estándar, cinco patrones piden más. No es
-   * necesariamente un fallo: una sentadilla profunda de verdad exige movilidad
-   * que no todo el mundo tiene, y por eso el déficit de tobillo es lo primero
-   * que se mira cuando alguien no baja. Pero conviene que esté medido y no
-   * crezca solo, así que esto fija el estado de hoy como techo.
+   * La dorsiflexión que se acaba pidiendo es una suma de ángulos:
+   *
+   *     giro de la raíz − flexión de cadera + flexión de rodilla
+   *
+   * Con eso se vio que el remo y el pájaro pedían 30° y 29° por repartir mal la
+   * inclinación: la ponía la rodilla en vez de la cadera, y la tibia acababa a
+   * 30° de la vertical cuando en esos ejercicios va casi recta. Se repartió, y
+   * ahora caben.
+   *
+   * Las dos sentadillas siguen pasándose, y ahí no es un fallo: bajar del todo
+   * exige movilidad que no todo el mundo tiene, y por eso el déficit de tobillo
+   * es lo primero que se mira cuando alguien no baja. Queda medido para que no
+   * crezca solo.
    */
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
     sentadilla_unilateral: 34,
-    traccion_horizontal: 31,
-    abduccion_horizontal: 29,
     sentadilla: 29,
-    bisagra_cadera: 24,
   }
 
   it('no pide más tobillo del que ya pedía', () => {
