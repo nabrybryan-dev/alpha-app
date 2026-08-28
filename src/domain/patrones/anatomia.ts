@@ -80,8 +80,16 @@ export interface Porcion {
   radio: number
   /** Achatamiento de la sección: 1 es redondo, 0,4 es una lámina. */
   aplanar?: number
-  /** Cómo van las fibras. Si no se dice, fusiforme. */
-  arquitectura?: Arquitectura
+  /**
+   * Cómo van las fibras. Obligatorio a propósito.
+   *
+   * Era opcional con fusiforme por defecto, y así veintiocho de las setenta
+   * porciones acababan de huso sin que nadie lo hubiera decidido —entre ellas el
+   * glúteo mayor, que es una masa de fibras paralelas, y los aductores, que son
+   * triangulares—. Con el campo obligatorio, añadir una porción obliga a mirar
+   * cómo está construida.
+   */
+  arquitectura: Arquitectura
   /**
    * Ángulo de la fibra con el eje del músculo, en grados.
    *

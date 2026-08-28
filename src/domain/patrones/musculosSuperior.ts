@@ -26,7 +26,8 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
         insercion: 'Tercio lateral de la clavícula',
         desde: ['cuello', 0.55, [0.006, 0, -0.026]],
         hasta: ['clavicula', 0.82, [0.002, 0, -0.014]],
-        radio: 0.016, aplanar: 0.5,
+        radio: 0.016, aplanar: 0.5, fasciculos: 3,
+        abanicoDesde: [0, 0.055, 0.008],
       },
       {
         id: 'medio',
@@ -36,7 +37,8 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
         insercion: 'Acromion y espina de la escápula',
         desde: ['torax', 0.80, [0.010, 0, -0.034]],
         hasta: ['escapula', 0.42, [-0.024, 0, -0.016]],
-        radio: 0.017, aplanar: 0.4,
+        radio: 0.017, aplanar: 0.4, fasciculos: 2,
+        abanicoDesde: [0, 0.040, 0],
       },
       {
         id: 'inferior',
@@ -46,7 +48,8 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
         insercion: 'Extremo medial de la espina de la escápula',
         desde: ['torax', 0.34, [0.010, 0, -0.036]],
         hasta: ['escapula', 0.16, [-0.010, 0, -0.014]],
-        radio: 0.015, aplanar: 0.4,
+        radio: 0.015, aplanar: 0.4, fasciculos: 3,
+        abanicoDesde: [0, 0.070, 0],
       },
     ],
   },
@@ -118,7 +121,8 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
         insercion: 'Apófisis coracoides de la escápula',
         desde: ['torax', 0.34, [0.052, 0, 0.062]],
         hasta: ['escapula', 0.80, [0.030, 0, 0.014]],
-        radio: 0.011, aplanar: 0.55,
+        radio: 0.011, aplanar: 0.55, fasciculos: 2,
+        abanicoDesde: [0.010, 0.028, 0],
       },
     ],
   },
@@ -205,6 +209,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
       },
       {
         id: 'redondo_menor',
+        arquitectura: 'fusiforme',
         nombre: 'Redondo menor',
         origen: 'Borde lateral de la escápula',
         insercion: 'Faceta inferior del troquíter',
@@ -233,6 +238,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'fusiforme',
         nombre: 'Vientre único',
         origen: 'Ángulo inferior de la escápula',
         insercion: 'Cresta del tubérculo menor del húmero',
@@ -284,7 +290,8 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
         desde: ['torax', 0.16, [0.070, 0, 0.010]],
         hasta: ['brazo', 0.13, [0.010, 0, 0.016]],
         via: [['torax', 0.40, [0.098, 0, -0.002]]],
-        radio: 0.016, aplanar: 0.42,
+        radio: 0.016, aplanar: 0.42, fasciculos: 2,
+        abanicoDesde: [0.008, 0.034, 0],
       },
     ],
   },
@@ -327,7 +334,8 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
         insercion: 'Cresta del tubérculo mayor, en la parte más alta de la inserción',
         desde: ['torax', 0.10, [0.026, 0, 0.070]],
         hasta: ['brazo', 0.17, [0.008, 0, -0.018]],
-        radio: 0.014, aplanar: 0.45,
+        radio: 0.014, aplanar: 0.45, fasciculos: 2,
+        abanicoDesde: [0.008, 0.028, 0],
       },
     ],
   },
@@ -339,6 +347,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'fusiforme',
         nombre: 'Vientre único',
         origen: 'Apófisis coracoides de la escápula',
         insercion: 'Cara medial del húmero, en su tercio medio',
@@ -361,6 +370,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'larga',
+        arquitectura: 'fusiforme',
         nombre: 'Cabeza larga',
         origen: 'Tubérculo supraglenoideo de la escápula',
         insercion: 'Tuberosidad del radio',
@@ -371,6 +381,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
       },
       {
         id: 'corta',
+        arquitectura: 'fusiforme',
         nombre: 'Cabeza corta',
         origen: 'Apófisis coracoides de la escápula',
         insercion: 'Tuberosidad del radio, con la cabeza larga',
@@ -392,6 +403,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'fusiforme',
         nombre: 'Vientre único',
         origen: 'Mitad distal de la cara anterior del húmero',
         insercion: 'Tuberosidad del cúbito',
@@ -409,6 +421,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'fusiforme',
         nombre: 'Vientre único',
         origen: 'Cresta supracondílea lateral del húmero',
         insercion: 'Apófisis estiloides del radio',
@@ -430,6 +443,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'larga',
+        arquitectura: 'fusiforme',
         nombre: 'Cabeza larga',
         origen: 'Tubérculo infraglenoideo de la escápula',
         insercion: 'Olécranon del cúbito',
@@ -472,6 +486,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'fusiforme',
         nombre: 'Vientre único',
         origen: 'Epicóndilo medial del húmero y apófisis coronoides',
         insercion: 'Cara lateral del radio, en su tercio medio',
@@ -538,6 +553,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'esternal',
+        arquitectura: 'fusiforme',
         nombre: 'Fascículo esternal',
         origen: 'Manubrio del esternón',
         insercion: 'Apófisis mastoides del temporal',
@@ -547,6 +563,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
       },
       {
         id: 'clavicular',
+        arquitectura: 'fusiforme',
         nombre: 'Fascículo clavicular',
         origen: 'Tercio medial de la clavícula',
         insercion: 'Apófisis mastoides, con el fascículo esternal',
@@ -567,6 +584,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
     porciones: [
       {
         id: 'unico',
+        arquitectura: 'fusiforme',
         nombre: 'Haz común',
         origen: 'Apófisis transversas de las vértebras cervicales',
         insercion: 'Primera y segunda costillas',
@@ -597,6 +615,7 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
       },
       {
         id: 'suboccipitales',
+        arquitectura: 'fusiforme',
         nombre: 'Suboccipitales',
         origen: 'Axis y atlas',
         insercion: 'Línea nucal inferior del occipital',

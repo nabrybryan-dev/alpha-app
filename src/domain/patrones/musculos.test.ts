@@ -139,3 +139,45 @@ describe('la silueta según la arquitectura', () => {
     }
   })
 })
+
+describe('los grupos musculares, uno por uno', () => {
+  it('declara la arquitectura de todas las porciones', () => {
+    // El campo es obligatorio en el tipo, así que esto no puede fallar por
+    // olvido. Se comprueba igual porque una porción nueva podría entrar con un
+    // valor puesto para salir del paso.
+    for (const { porcion, clave } of PORCIONES) {
+      expect(porcion.arquitectura, `${clave} sin arquitectura`).toBeTruthy()
+    }
+  })
+
+  it('da abanico a todos los convergentes', () => {
+    // Un convergente sin fascículos repartidos es un tubo triangular: lo que lo
+    // define es que nace en una superficie ancha y todo acaba en el mismo sitio.
+    // Sin el abanico, esa idea no se ve.
+    for (const { porcion, clave } of PORCIONES) {
+      if (porcion.arquitectura !== 'convergente') continue
+      expect(porcion.fasciculos ?? 1, `${clave} converge sin abanico`).toBeGreaterThan(1)
+      expect(porcion.abanicoDesde, `${clave} no dice por dónde se reparte`).toBeDefined()
+    }
+  })
+
+  it('no reparte el abanico más allá de lo que mide el hueso', () => {
+    // El vector va en metros: un cero de más manda los fascículos a medio metro
+    // del origen y el músculo sale disparado.
+    for (const { porcion, clave } of PORCIONES) {
+      const a = porcion.abanicoDesde ?? porcion.abanicoHasta
+      if (!a) continue
+      const largo = Math.hypot(a[0], a[1], a[2])
+      expect(largo, `${clave} reparte ${(largo * 100).toFixed(0)} cm`).toBeLessThan(0.2)
+    }
+  })
+
+  it('reparte cada familia sin dejar ninguna vacía', () => {
+    // Si una arquitectura se queda sin porciones es que se declaró un tipo que
+    // nadie usa, y entonces sobra del modelo.
+    const familias = new Set(PORCIONES.map((p) => p.porcion.arquitectura))
+    for (const f of ['fusiforme', 'unipenado', 'bipenado', 'multipenado', 'convergente', 'plano']) {
+      expect(familias.has(f as never), `nadie es ${f}`).toBe(true)
+    }
+  })
+})
