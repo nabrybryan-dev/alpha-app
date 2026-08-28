@@ -22,6 +22,7 @@ function StepperControlado({
   decimal = false,
   minimo,
   maximo,
+  cifraViva = false,
   alCambiar,
 }: {
   inicial: number
@@ -29,6 +30,7 @@ function StepperControlado({
   decimal?: boolean
   minimo?: number
   maximo?: number
+  cifraViva?: boolean
   alCambiar?: (n: number) => void
 }) {
   const [valor, setValor] = useState(inicial)
@@ -41,6 +43,7 @@ function StepperControlado({
       decimal={decimal}
       minimo={minimo}
       maximo={maximo}
+      cifraViva={cifraViva}
       onCambiar={(n) => {
         setValor(n)
         alCambiar?.(n)
@@ -139,5 +142,61 @@ describe('Stepper', () => {
     await usuario.type(campo(), '99')
     await usuario.tab()
     expect(campo()).toHaveValue('20')
+  })
+})
+
+/**
+ * La cifra viva: la respuesta es proporcional a la causa.
+ *
+ * Esto es lo que separa una reacción de un adorno, y por eso está fijado en un test y
+ * no solo en un comentario. Un toque de `+` mueve la cifra un paso y tiene que ser
+ * INSTANTÁNEO: un mando que se lo piensa cuando lo tocas se siente roto, no bonito.
+ * Un salto grande que llega de fuera —la prescripción del ejercicio siguiente, o el
+ * valor que vuelve de medir con la cámara— sí recorre la distancia.
+ *
+ * Y va apagada por defecto porque este stepper lo comparten nutrición y bienestar,
+ * donde la cifra es el resultado de una cuenta y viajar no dice nada. Ocho tests de
+ * esas dos áreas se pusieron en rojo el día que se encendió para todos: la prueba de
+ * que la primitiva es compartida y de que el opt-in no es timidez.
+ */
+describe('Stepper · la cifra viva', () => {
+  it('sin pedirla, el valor de fuera se ve al instante', () => {
+    const { rerender } = render(
+      <Stepper etiqueta="Carga" valor={20} paso={1} sufijo="kg" onCambiar={vi.fn()} />,
+    )
+    rerender(<Stepper etiqueta="Carga" valor={90} paso={1} sufijo="kg" onCambiar={vi.fn()} />)
+    expect(campo()).toHaveValue('90')
+  })
+
+  it('con `cifraViva`, un salto grande NO aterriza de golpe: viaja', () => {
+    const { rerender } = render(
+      <Stepper etiqueta="Carga" valor={20} paso={1} sufijo="kg" cifraViva onCambiar={vi.fn()} />,
+    )
+    rerender(
+      <Stepper etiqueta="Carga" valor={90} paso={1} sufijo="kg" cifraViva onCambiar={vi.fn()} />,
+    )
+    // 70 pasos se topan en el techo de 360 ms, así que en el primer fotograma la cifra
+    // todavía está de camino. Si esto empieza a dar '90', la animación dejó de existir.
+    expect(campo()).not.toHaveValue('90')
+  })
+
+  it('con `cifraViva`, un paso suelto llega a su valor y no se queda por el camino', async () => {
+    const usuario = userEvent.setup()
+    render(<StepperControlado inicial={20} paso={1} cifraViva />)
+    await usuario.click(screen.getByLabelText('Subir Carga'))
+
+    // LO QUE SE AFIRMA AQUÍ, Y LO QUE NO.
+    //
+    // Se afirma que la cifra ATERRIZA: que meter la animación por medio no deja el
+    // mando mostrando un valor viejo. Es la mitad que de verdad puede romperse — la
+    // otra ya la cubre el hook, con su red de seguridad por si el navegador congela
+    // los fotogramas.
+    //
+    // NO se afirma que sea instantáneo, aunque lo sea: los 20 ms de un paso caen por
+    // debajo de un fotograma, y el reloj de `requestAnimationFrame` en jsdom no es el
+    // de un navegador. Un `expect` síncrono aquí no mediría la rapidez — mediría
+    // cuándo le apeteció correr al rAF de jsdom, que es un dato sin significado. Esa
+    // mitad se comprueba con el dedo, no aquí.
+    await screen.findByDisplayValue('21')
   })
 })

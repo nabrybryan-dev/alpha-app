@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '../../../components/ui/Badge'
 import { Card } from '../../../components/ui/Card'
 import { gLocal } from './nucleo/analisis'
@@ -12,6 +12,7 @@ import { acusarToque } from './acusarToque'
 import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { SelloCalidad } from './SelloCalidad'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
+import { marcarCamaraAbierta } from '../camaraAbierta'
 import {
   aCsv,
   anadirATanda,
@@ -152,6 +153,34 @@ export default function EncoderPage() {
   })
   const { resultado } = captura
 
+  /**
+   * LA PUERTA DE CÁMARA ESTABA MUERTA EN ESTA PANTALLA.
+   *
+   * `marcarCamaraAbierta()` es lo que enciende `[data-camara-abierta]`, y de ese
+   * atributo cuelga toda la puerta de `tokens.css`: aplana la profundidad, PAUSA
+   * todas las animaciones y quita todos los `backdrop-filter`. Hasta hoy la llamaba
+   * un solo sitio en toda la app —`RegistroSerie`—, así que aquí, que es la pantalla
+   * cuyo trabajo ES capturar, la cámara grababa con la interfaz entera moviéndose.
+   *
+   * Y aquí pesa MÁS que en la sesión, no menos: al lado corre `GraficaBrazo` con su
+   * propio `requestAnimationFrame`, y el bucle de captura ya hace un `getImageData`
+   * por fotograma en el hilo principal.
+   *
+   * Lo que se juega no es que se vea peor. El bucle pide 60 fps y la puerta descarta
+   * la toma por debajo de 50: a 30 fps el error de %PV se va 5 puntos, que es la
+   * diferencia entre un dato que sirve para decidir carga y uno que no. Un fallo deja
+   * la toma en `dudosa`; dos la matan. O sea que una animación que robe fotogramas
+   * aquí no molesta: **hace que el asesorado repita la serie de pie**.
+   *
+   * Cuelga de `camaraAbierta` y no del montaje de la página: la puerta tiene que estar
+   * puesta mientras la cámara capture, y ni un segundo más — si se quedara pegada, la
+   * app entera se queda sin animaciones hasta recargar.
+   */
+  useEffect(() => {
+    if (!captura.camaraAbierta) return
+    return marcarCamaraAbierta()
+  }, [captura.camaraAbierta])
+
   function alTocarVisor(ev: React.MouseEvent<HTMLCanvasElement>) {
     const capa = ev.currentTarget
     // El acuse va PRIMERO, antes de decidir si el punto vale. El caso que se
@@ -248,7 +277,17 @@ export default function EncoderPage() {
   const criterios = criteriosDeLaTanda(tanda)
 
   return (
-    <div className="flex flex-col gap-4">
+    // El hueco de la barra de navegación, que esta pantalla no reservaba. Sin él, lo
+    // último de la página queda DEBAJO de la barra: en un iPhone tapaba «Abrir
+    // cámara», que es el primer botón que hay que pulsar aquí y encima está en el
+    // gimnasio, con el móvil en el trípode y las manos ocupadas.
+    //
+    // Sale de `--tope-nav` y no de un número suelto porque la barra baja
+    // `env(safe-area-inset-bottom)`: son 0 px en un escritorio y ~34 en un iPhone con
+    // barra de gestos, así que cualquier `padding` fijo cuadra en el portátil y falla
+    // justo en el aparato donde se usa. Es el mismo fallo que ya documenta CLAUDE.md
+    // con el CTA de la sesión, y la Ruta ya lo hace así (`RutaPage.tsx:138`).
+    <div className="flex flex-col gap-4" style={{ paddingBottom: 'var(--tope-nav)' }}>
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold tracking-tight">Encoder de cámara</h1>
