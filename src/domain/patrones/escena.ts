@@ -24,11 +24,76 @@ export const ARO: Color = [0.4, 0.47, 0.545]
  * lineal enseñaría un tempo que nadie debería copiar.
  */
 const CICLO = [
-  { duracion: 1.2, desde: 0, hasta: 1, suave: true },
-  { duracion: 0.35, desde: 1, hasta: 1, suave: false },
+  { duracion: 1.2, desde: 0, hasta: 1, suave: true, subiendo: true },
+  { duracion: 0.35, desde: 1, hasta: 1, suave: false, asienta: true },
   { duracion: 1.9, desde: 1, hasta: 0, suave: true },
   { duracion: 0.3, desde: 0, hasta: 0, suave: false },
 ]
+
+/**
+ * La región de estancamiento de la concéntrica.
+ *
+ * Un levantamiento real no sube a velocidad de interpolación. Pasado el
+ * arranque hay un tramo donde el brazo de momento empeora y la barra se
+ * enlentece; en la sentadilla está descrito y medido, y cualquiera que entrene
+ * lo reconoce sin que se lo expliquen. Sin esto la subida se lee como una
+ * animación, que es justo lo que delata a un maniquí por muy correctos que sean
+ * los ángulos.
+ *
+ * `freno` resta avance en forma de campana, así que la velocidad cae ahí y se
+ * recupera después. Es pequeño a propósito: tiene que frenar, nunca retroceder
+ * —eso sería fallar la repetición, que no es lo que se enseña.
+ */
+const ESTANCAMIENTO = { centro: 0.42, ancho: 0.17, freno: 0.62 }
+
+/**
+ * Cuánto acomoda el cuerpo al llegar arriba, y en cuánto se apaga.
+ *
+ * Follow-through: nada llega a su tope y se congela de golpe. El tejido y la
+ * carga siguen un instante y se asientan. Va siempre hacia abajo —el cuerpo
+ * cede y vuelve, no se pasa de largo— porque pasarse del bloqueo sería
+ * hiperextender, y por debajo del 2 % para que no se lea como una repetición
+ * fallada.
+ */
+const ASENTAMIENTO = { amplitud: 0.015, ciclos: 2.2, apagado: 6.5 }
+
+/**
+ * La curva de la subida, tabulada.
+ *
+ * El frenado hay que definirlo sobre la VELOCIDAD y después integrar. Restarle
+ * una campana a la posición no sirve: lo que frena en la primera mitad lo
+ * acelera en la segunda, y queda un ritmo raro en vez de un valle. Como la
+ * integral de una gaussiana no es elemental, se tabula una vez al cargar el
+ * módulo y se interpola; son 129 números y se calculan una sola vez.
+ */
+const MUESTRAS_SUBIDA = 128
+const SUBIDA: number[] = (() => {
+  // Velocidad base: la de un `suavizar`, que arranca y termina parada.
+  const velocidad = (k: number): number => {
+    const base = 6 * k * (1 - k)
+    const x = (k - ESTANCAMIENTO.centro) / ESTANCAMIENTO.ancho
+    return base * (1 - ESTANCAMIENTO.freno * Math.exp(-x * x))
+  }
+  const tabla = [0]
+  let suma = 0
+  for (let i = 1; i <= MUESTRAS_SUBIDA; i++) {
+    // Trapecio: con 128 tramos el error es despreciable para lo que se ve.
+    const a = (i - 1) / MUESTRAS_SUBIDA
+    const b = i / MUESTRAS_SUBIDA
+    suma += ((velocidad(a) + velocidad(b)) / 2) * (b - a)
+    tabla.push(suma)
+  }
+  // Se normaliza para que el tramo termine exactamente en 1: si no, el cambio
+  // de fase daría un salto justo al llegar arriba.
+  return tabla.map((v) => v / suma)
+})()
+
+/** Avance de la subida en su fase local, interpolando la tabla. */
+function avanceDeSubida(k: number): number {
+  const x = limitar(k, 0, 1) * MUESTRAS_SUBIDA
+  const i = Math.min(Math.floor(x), MUESTRAS_SUBIDA - 1)
+  return SUBIDA[i] + (SUBIDA[i + 1] - SUBIDA[i]) * (x - i)
+}
 
 export const DURACION_CICLO = CICLO.reduce((s, f) => s + f.duracion, 0)
 
@@ -43,10 +108,17 @@ export function faseDeTiempo(t: number): FaseDelCiclo {
   for (const f of CICLO) {
     if (u < f.duracion) {
       const k = f.duracion > 0 ? u / f.duracion : 0
-      return {
-        fase: f.desde + (f.hasta - f.desde) * (f.suave ? suavizar(k) : k),
-        sentido: f.hasta >= f.desde ? 1 : -1,
+      const avance = f.subiendo ? avanceDeSubida(k) : f.suave ? suavizar(k) : k
+      let fase = f.desde + (f.hasta - f.desde) * avance
+      if (f.asienta) {
+        // Siempre resta: el cuerpo cede y vuelve. Se apaga sola dentro de la
+        // pausa, así que al empezar a bajar ya está quieta.
+        fase -=
+          ASENTAMIENTO.amplitud *
+          Math.exp(-ASENTAMIENTO.apagado * k) *
+          Math.abs(Math.sin(k * ASENTAMIENTO.ciclos * Math.PI))
       }
+      return { fase, sentido: f.hasta >= f.desde ? 1 : -1 }
     }
     u -= f.duracion
   }
@@ -78,7 +150,20 @@ export interface Encuadre {
   distancia: number
 }
 
-const CAMPO_VISUAL = grados(34)
+/**
+ * El campo visual de la cámara, y por qué es estrecho.
+ *
+ * Un campo ancho exagera lo que está cerca del objetivo: la mano que se
+ * adelanta en un press sale enorme y la figura se lee deformada. En cine la
+ * figura humana se mira con el equivalente a un 85 mm, que ronda los 22-25°;
+ * esto estaba en 34°, más cerca de un gran angular.
+ *
+ * Estrecharlo no recorta nada, porque la distancia de la cámara se calcula con
+ * este mismo valor: el sujeto ocupa lo mismo en pantalla y lo único que cambia
+ * es la perspectiva. Lo lee también `VisorPatron` para construir la proyección;
+ * estuvo escrito dos veces, y dos copias de un número así divergen solas.
+ */
+export const CAMPO_VISUAL = grados(26)
 
 /**
  * Encuadre automático.

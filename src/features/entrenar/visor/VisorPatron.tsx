@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { M4, grados } from '../../../domain/patrones/algebra'
+import { M4 } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
 import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL } from '../../../domain/patrones/acciones'
 import { NOMBRE_DE_PLANO, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
+  CAMPO_VISUAL,
   DURACION_CICLO,
   encuadrar,
   esqueletoEnFase,
@@ -161,7 +162,7 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
 
         const pintar = () => {
           const aspecto = motor.ajustarTamano()
-          motor.dibujar(matrices, orbita.vista(), M4.perspectiva(grados(34), aspecto, 0.05, 40), orbita.ojo())
+          motor.dibujar(matrices, orbita.vista(), M4.perspectiva(CAMPO_VISUAL, aspecto, 0.05, 40), orbita.ojo())
         }
 
         const mostrarEsferaAl = (v: boolean) => {
