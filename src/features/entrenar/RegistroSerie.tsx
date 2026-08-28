@@ -123,10 +123,10 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo en dos columnas.
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
-      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad onCambiar={(v) => cambiar({ cargaKg: v })} />
+      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad cifraViva onCambiar={(v) => cambiar({ cargaKg: v })} />
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad onCambiar={(v) => cambiar({ reps: v })} />
-        <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} profundidad onCambiar={(v) => cambiar({ rir: v })} />
+        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad cifraViva onCambiar={(v) => cambiar({ reps: v })} />
+        <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} profundidad cifraViva onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
       {/* Medir va ANTES de guardar, y no es un detalle de orden: se mide la

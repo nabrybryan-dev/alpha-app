@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID } from './catalogo'
-import { MUSCULO_POR_ID } from './musculos'
-import { INDICE_HUESO } from './esqueleto'
-import { RANGO } from './movimiento'
+import { MUSCULO_POR_ID, PORCION_POR_CLAVE } from './musculos'
+import { apoyarPies, INDICE_HUESO, type Lado } from './esqueleto'
+import { poseAnimada, RANGO } from './movimiento'
 
 describe('el catálogo de patrones', () => {
   it('no repite identificadores ni categorías', () => {
@@ -76,15 +76,72 @@ describe('el catálogo de patrones', () => {
     }
   })
 
-  it('solo activa músculos que existen', () => {
+  it('solo activa músculos y porciones que existen', () => {
+    // Escribir mal una clave no da error: la porción simplemente no se pinta y
+    // el asesorado ve gris un músculo que debería estar trabajando.
     for (const p of PATRONES) {
       for (const clave of Object.keys(p.activacion)) {
-        const id = clave.split(':')[0]
-        expect(MUSCULO_POR_ID[id], `${p.id} activa "${id}"`).toBeDefined()
+        const sinLado = clave.split(':')[0]
+        const existe = sinLado.includes('.')
+          ? PORCION_POR_CLAVE[sinLado] !== undefined
+          : MUSCULO_POR_ID[sinLado] !== undefined
+        expect(existe, `${p.id} activa "${sinLado}", que no existe`).toBe(true)
       }
       // Un patrón sin agonista claro no enseña nada: siempre hay alguien al 100 %.
       const maximo = Math.max(...Object.values(p.activacion))
       expect(maximo, p.id).toBeGreaterThanOrEqual(0.9)
+    }
+  })
+
+  it('no activa un músculo entero y una porción suya en el mismo lado', () => {
+    // La porción gana sobre el músculo, así que las dos claves juntas dejan una
+    // de las dos sin efecto y no hay forma de saber cuál se quiso decir. En
+    // lados distintos sí es legítimo: una zancada detalla la pierna que trabaja
+    // y deja la otra en bloque, porque ahí solo estabiliza.
+    for (const p of PATRONES) {
+      const lado = (c: string) => (c.includes(':') ? c.split(':')[1] : '')
+      for (const clave of Object.keys(p.activacion)) {
+        const sinLado = clave.split(':')[0]
+        if (!sinLado.includes('.')) continue
+        const musculo = sinLado.split('.')[0]
+        const choca = Object.keys(p.activacion).some(
+          (otra) => otra.split(':')[0] === musculo && lado(otra) === lado(clave),
+        )
+        expect(choca, `${p.id} activa "${musculo}" y también "${sinLado}"`).toBe(false)
+      }
+    }
+  })
+
+  it('desglosa por porción donde las cabezas NO se comportan igual', () => {
+    // No es un capricho de detalle: en estos patrones una porción trabaja y
+    // otra no, y activar el músculo en bloque borraría justo lo que distingue
+    // un ejercicio de otro. Donde las porciones sí van a la par —el curl
+    // femoral carga las cuatro por igual— el bloque es lo honesto.
+    const obligatorio: Record<string, string[]> = {
+      sentadilla: ['cuadriceps'],
+      extension_rodilla: ['cuadriceps'],
+      bisagra_cadera: ['isquiotibiales'],
+      extension_cadera: ['isquiotibiales', 'gluteo_mayor'],
+      extension_codo: ['triceps'],
+      flexion_codo: ['biceps'],
+      empuje_vertical: ['triceps', 'deltoides'],
+      empuje_horizontal: ['pectoral_mayor', 'triceps'],
+      empuje_inclinado: ['pectoral_mayor'],
+      abduccion_hombro: ['deltoides'],
+      abduccion_horizontal: ['deltoides'],
+      traccion_vertical: ['trapecio'],
+      traccion_horizontal: ['trapecio'],
+      aduccion_cadera: ['aductores'],
+      flexion_plantar: ['triceps_sural'],
+    }
+    for (const [patron, musculos] of Object.entries(obligatorio)) {
+      const p = PATRON_POR_ID[patron]
+      expect(p, `no existe el patrón ${patron}`).toBeDefined()
+      const claves = Object.keys(p.activacion).map((c) => c.split(':')[0])
+      for (const musculo of musculos) {
+        const desglosado = claves.some((c) => c.startsWith(`${musculo}.`))
+        expect(desglosado, `${patron}: "${musculo}" tiene que ir por porciones`).toBe(true)
+      }
     }
   })
 
@@ -138,5 +195,49 @@ describe('el catálogo de patrones', () => {
 
   it('indexa por id sin perder ninguno', () => {
     expect(Object.keys(PATRON_POR_ID)).toHaveLength(PATRONES.length)
+  })
+})
+
+describe('la movilidad que los patrones dan por supuesta', () => {
+  /**
+   * El apoyo plantar calcula el ángulo de tobillo DESPUÉS de que se apliquen
+   * los topes, para que la planta quede horizontal pase lo que pase. Eso está
+   * bien —si no, los pies se clavarían o flotarían—, pero tiene una
+   * consecuencia: un patrón puede exigir más recorrido del que la articulación
+   * tiene y nadie se entera.
+   *
+   * Con la dorsiflexión en sus 20° estándar, cinco patrones piden más. No es
+   * necesariamente un fallo: una sentadilla profunda de verdad exige movilidad
+   * que no todo el mundo tiene, y por eso el déficit de tobillo es lo primero
+   * que se mira cuando alguien no baja. Pero conviene que esté medido y no
+   * crezca solo, así que esto fija el estado de hoy como techo.
+   */
+  const TECHO_DE_DORSIFLEXION: Record<string, number> = {
+    sentadilla_unilateral: 34,
+    traccion_horizontal: 31,
+    abduccion_horizontal: 29,
+    sentadilla: 29,
+    bisagra_cadera: 24,
+  }
+
+  it('no pide más tobillo del que ya pedía', () => {
+    const tope = Math.abs(RANGO['tobilloPlantar'][0])
+    for (const p of PATRONES) {
+      const pies: Lado[] = p.pies ?? (p.apoyo === 'suelo' ? ['D', 'I'] : [])
+      if (!pies.length) continue
+      let peor = 0
+      for (let i = 0; i <= 20; i++) {
+        const { pose, desplazamiento, giroRaiz } = poseAnimada(p, i / 20, 1, 0)
+        const r = apoyarPies(pose, desplazamiento, giroRaiz, pies)
+        for (const c of ['tobilloPlantarD', 'tobilloPlantarI'])
+          if (r[c] !== undefined && r[c] < peor) peor = r[c]
+      }
+      const pedido = Math.abs(peor)
+      const permitido = TECHO_DE_DORSIFLEXION[p.id] ?? tope
+      expect(
+        pedido,
+        `${p.id} pide ${pedido.toFixed(1)}° de dorsiflexión y el tope es ${permitido}°`,
+      ).toBeLessThanOrEqual(permitido)
+    }
   })
 })

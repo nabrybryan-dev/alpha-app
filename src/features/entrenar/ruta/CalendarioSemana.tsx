@@ -151,7 +151,10 @@ export function CalendarioSemana({ dias, titulo }: Props) {
               }`}
               style={
                 activo
-                  ? { background: 'color-mix(in srgb, var(--accion) 14%, var(--ink-700))' }
+                  ? // `backgroundColor` y no `background`: el abreviado reinicia
+                    // `background-image` y el dia seleccionado —justo el que mas
+                    // tiene que destacar— perderia la cara iluminada de la tecla.
+                    { backgroundColor: 'color-mix(in srgb, var(--accion) 14%, var(--ink-700))' }
                   : undefined
               }
             >

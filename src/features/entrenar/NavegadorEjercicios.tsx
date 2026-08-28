@@ -23,11 +23,25 @@ export function BarraEjercicios({ ejercicios, exIdx, onIr }: NavegadorProps) {
         const enCurso = !hecho && ej.series.length > 0
         const actual = idx === exIdx
         return (
-          <button key={ej.id} type="button" aria-label={`Ir a ${ej.nombre}`} onClick={() => onIr(idx)} className="press flex-1 py-1.5">
+          <button
+            key={ej.id}
+            type="button"
+            aria-label={`Ir a ${ej.nombre}`}
+            onClick={() => onIr(idx)}
+            // La escena va en el BOTON, que es el padre directo del tramo. El boton
+            // se queda en el plano —es la zona tocable— y lo que se hunde es el
+            // tramo de dentro, que no lo es.
+            className="escena-prof press flex-1 py-1.5"
+          >
+            {/* Lo que falta se HUNDE, lo hecho se queda en el plano: es el mismo
+                argumento del carril de una barra —lo pendiente es materia que
+                falta— y dice el avance con volumen además de con color, que es lo
+                que la marca pide en vez de un semáforo. */}
             <span
               className={`block h-1.5 rounded-full transition-colors duration-toque ease-salida ${
                 hecho ? 'bg-accion' : enCurso ? 'bg-logrado' : 'bg-ink-500'
               } ${actual ? 'ring-2 ring-accion/50' : ''}`}
+              style={{ transform: `translateZ(var(${hecho ? '--prof-plano' : '--prof-hueco'}))` }}
             />
           </button>
         )
@@ -53,9 +67,18 @@ export function ProximosEjercicios({ ejercicios, exIdx, onIr }: NavegadorProps) 
             <button
               type="button"
               onClick={() => onIr(idx)}
-              className="press flex w-full items-center gap-3 rounded-tarjeta border border-ink-500 bg-ink-800 px-3.5 py-3 text-left"
+              // La escena en el boton, que es el padre directo del troquel. La
+              // TARJETA se queda en el plano y no se hunde con el resto: es la zona
+              // tocable, y la escala prohíbe bajar del plano cualquier cosa que se
+              // toque —hundir encoge, y encoger una diana la acerca al mínimo—.
+              className="escena-prof press flex w-full items-center gap-3 rounded-tarjeta border border-ink-500 bg-ink-800 px-3.5 py-3 text-left"
             >
-              <span className="cifras grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-600 text-sm font-bold text-silver-400">
+              {/* El número del ejercicio, troquelado en la tarjeta: es un dato que
+                  se lee, no un botón. `--prof-hueco` es literalmente «cifras,
+                  troqueles, notas al pie». */}
+              <span
+                className="pozo-3d cifras grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-600 text-sm font-bold text-silver-400"
+              >
                 {idx + 1}
               </span>
               <span className="min-w-0 flex-1">

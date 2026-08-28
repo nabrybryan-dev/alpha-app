@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PATRONES, PATRON_POR_ID } from './catalogo'
+import { PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
+import { DEMOSTRACIONES, DEMOSTRACION_POR_ID } from './demostraciones'
 import {
   DURACION_CICLO,
   encuadrar,
@@ -161,5 +162,73 @@ describe('la geometría ósea', () => {
     expect(a.posicion.length).toBe(malla.vertices * 3)
     expect(a.hueso.length).toBe(malla.vertices)
     expect(a.indice.length).toBe(malla.indice.length)
+  })
+})
+
+describe('el encuadre con foco en una articulación', () => {
+  const conFoco = (patron: Patron, foco: string): Patron => ({ ...patron, foco })
+  const demoCodo = DEMOSTRACION_POR_ID['demo-codo-codoFlex'].patron
+
+  it('se acerca mucho más que el encuadre por musculatura', () => {
+    // La musculatura que cruza el codo nace en la escápula y llega a la mano,
+    // así que encuadrarla deja el codo del tamaño de una uña. Estudiar una
+    // articulación pide un primer plano de ESA articulación.
+    const ancho = encuadrar({ ...demoCodo, foco: undefined })
+    const cerca = encuadrar(demoCodo)
+    expect(cerca.distancia).toBeLessThan(ancho.distancia * 0.75)
+  })
+
+  it('centra en la articulación, no en la línea media del cuerpo', () => {
+    const { centro } = encuadrar(demoCodo)
+    // El codo derecho está claramente fuera del eje del cuerpo. Un centro
+    // pegado a x≈0 significaría que se está mirando el tronco.
+    expect(Math.abs(centro[0])).toBeGreaterThan(0.12)
+  })
+
+  it('mantiene el segmento móvil dentro del cuadro durante toda la repetición', () => {
+    // Un encuadre apretado en la pose inicial deja el antebrazo fuera cuando
+    // el codo llega a los 152°: hay que medir el recorrido entero.
+    const { centro, distancia } = encuadrar(demoCodo)
+    for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
+      const esq = esqueletoEnFase(demoCodo, fase)
+      for (const t of [0, 0.5, 1]) {
+        const p = puntoDeHueso(esq, 'antebrazoD', t)
+        const d = Math.hypot(p[0] - centro[0], p[1] - centro[1], p[2] - centro[2])
+        expect(d, `antebrazo fuera del cuadro en fase ${fase}`).toBeLessThan(distancia)
+      }
+    }
+  })
+
+  it('deja el encuadre por musculatura intacto en los ejercicios', () => {
+    // Los diecinueve patrones no llevan foco: su encuadre es el de siempre.
+    for (const p of PATRONES) expect(p.foco, p.id).toBeUndefined()
+  })
+
+  it('ignora un foco que no corresponde a ningún hueso', () => {
+    // Viene de datos; que un nombre mal escrito deje la cámara en el infinito
+    // sería peor que encuadrar de más.
+    const raro = encuadrar(conFoco(demoCodo, 'peroneD'))
+    expect(Number.isFinite(raro.distancia)).toBe(true)
+    expect(raro.distancia).toBeGreaterThan(0)
+  })
+})
+
+describe('el encuadre de las articulaciones pequeñas', () => {
+  it('no se pega tanto que se pierda el contexto', () => {
+    // La muñeca enfoca la mano, que mide unos diez centímetros, y con la
+    // holgura sola la cámara se metía dentro del antebrazo: se veía un
+    // amasijo de tubos donde no se distinguía ni la mano. Hace falta un suelo:
+    // sin ver el hueso de al lado no se entiende contra qué se mueve.
+    for (const d of DEMOSTRACIONES) {
+      const { distancia } = encuadrar(d.patron)
+      expect(distancia, `${d.id} encuadra a ${distancia.toFixed(2)}`).toBeGreaterThan(0.75)
+    }
+  })
+
+  it('sigue dando primeros planos donde los hay que dar', () => {
+    // El suelo no puede comerse la ganancia: el codo tiene que seguir viéndose
+    // de cerca, no como el cuerpo entero.
+    const codo = encuadrar(DEMOSTRACION_POR_ID['demo-codo-codoFlex'].patron)
+    expect(codo.distancia).toBeLessThan(1.8)
   })
 })

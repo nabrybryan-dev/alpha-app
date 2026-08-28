@@ -27,7 +27,7 @@ import { SalonDeMaquinas } from './SalonDeMaquinas'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
-import { VisorPatron } from './visor/VisorPatron'
+import { EstudioDelPatron } from './visor/EstudioDelPatron'
 import type { Patron } from '../../domain/patrones/catalogo'
 
 interface Descanso {
@@ -402,7 +402,7 @@ function SesionEnCurso() {
             porque la prop es opcional a propósito, para poder abrir el visor a
             estudiar un patrón sin estar entrenando. */}
         {patron && (
-          <VisorPatron
+          <EstudioDelPatron
             patron={patron}
             datos={
               ejercicioActual
@@ -414,8 +414,7 @@ function SesionEnCurso() {
                 : undefined
             }
           />
-        )}
-      </Sheet>
+        )}      </Sheet>
 
       {frase && (
         // `--z-superpuesto` se declaró en tokens.css sin consumidor y con la nota
