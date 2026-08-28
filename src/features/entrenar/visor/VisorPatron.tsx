@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { M4, grados } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
+import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL } from '../../../domain/patrones/acciones'
+import { NOMBRE_DE_PLANO, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
   DURACION_CICLO,
   encuadrar,
@@ -20,6 +22,7 @@ import {
   MUSCULOS,
 } from '../../../domain/patrones/musculos'
 import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
+import { camaraAbierta } from '../camaraAbierta'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
 import { FONDO_ESTUDIO } from './motor'
 
@@ -141,6 +144,14 @@ export function VisorPatron({ patron }: VisorPatronProps) {
         const arranque = performance.now() / 1000
         const bucle = () => {
           if (!vivo) return
+          // Mientras el encoder captura, este bucle se aparta. No es cuestión de
+          // que se vea peor: por debajo de 50 fps la toma se DESCARTA, y a 30 el
+          // error de pérdida de velocidad se va cinco puntos. Un bucle WebGL al
+          // lado de la captura hace que el asesorado repita la serie.
+          if (camaraAbierta()) {
+            cuadro = requestAnimationFrame(bucle)
+            return
+          }
           const ahora = performance.now() / 1000
           let cambia = false
           if (estado.current.reproduciendo) {
@@ -221,6 +232,10 @@ export function VisorPatron({ patron }: VisorPatronProps) {
   })
     .filter((m) => m.valor >= 0.25)
     .sort((a, b) => b.valor - a.valor)
+
+  // Qué hace cada articulación: se calcula de las poses, no está escrito.
+  const acciones = accionesPrincipales(patron)
+  const frase = fraseDelPatron(patron)
 
   return (
     <div className="flex flex-col gap-3">
@@ -304,6 +319,62 @@ export function VisorPatron({ patron }: VisorPatronProps) {
       )}
 
       <p className="text-xs leading-snug text-silver-300">{patron.resumen}</p>
+
+      <div>
+        <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">
+          Qué hace cada articulación
+        </h4>
+        {/* La frase corta primero: es lo que hay que poder leer de un vistazo
+            antes de entrar en el desglose. */}
+        <p className="mb-2 text-xs leading-snug text-silver-200">{frase}.</p>
+        <ul className="flex flex-col">
+          {acciones.map((r) => (
+            <li key={r.articulacion.id} className="border-b border-white/5">
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-baseline gap-2 py-1.5 text-xs">
+                  <span
+                    className={`w-[52px] shrink-0 text-[9px] font-bold uppercase tracking-[0.08em] ${
+                      r.rol === 'motor' ? 'text-ambar' : 'text-silver-500'
+                    }`}
+                  >
+                    {NOMBRE_DE_ROL[r.rol]}
+                  </span>
+                  <span className="flex-1 text-silver-200">{r.articulacion.nombre}</span>
+                  <span className="text-[10px] text-silver-500">
+                    {r.acciones.length > 0
+                      ? r.acciones.map((a) => a.accion.toLowerCase()).join(' · ')
+                      : 'isometría'}
+                  </span>
+                </summary>
+                <div className="pb-2 pl-[60px] pr-1">
+                  {r.acciones.map((a) => (
+                    <p key={a.eje.canal} className="text-[10px] leading-snug text-silver-400">
+                      {a.accion} de {Math.round(a.desde)}° a {Math.round(a.hasta)}°, en el{' '}
+                      {NOMBRE_DE_PLANO[a.eje.plano].toLowerCase()}.
+                    </p>
+                  ))}
+                  {r.acciones.length === 0 && (
+                    <p className="text-[10px] leading-snug text-silver-400">
+                      No recorre nada: aguanta la posición contra la carga.
+                    </p>
+                  )}
+                  <p className="mt-1 text-[10px] leading-snug text-silver-500">
+                    {NOMBRE_DE_TIPO[r.articulacion.tipo]}. {r.articulacion.segmentoMovil} sobre{' '}
+                    {r.articulacion.segmentoFijo.toLowerCase()}.
+                  </p>
+                  {/* Lo que NO puede hacer es la mitad de entender una
+                      articulación, y es lo que evita forzarla. */}
+                  {r.articulacion.noPuede.map((n) => (
+                    <p key={n} className="mt-1 text-[10px] leading-snug text-silver-500">
+                      {n}
+                    </p>
+                  ))}
+                </div>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <div>
         <h4 className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-silver-500">

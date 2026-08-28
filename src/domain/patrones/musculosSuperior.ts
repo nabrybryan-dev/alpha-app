@@ -452,4 +452,46 @@ export const MUSCULOS_SUPERIOR: Musculo[] = [
       },
     ],
   },
+  {
+    id: 'flexores_carpo',
+    nombre: 'Flexores del carpo',
+    grupo: 'codo',
+    acciones: [
+      'Cierran la muñeca y sostienen el agarre.',
+      'En casi todo ejercicio su trabajo es NO moverse: aguantan la muñeca alineada con el antebrazo.',
+    ],
+    porciones: [
+      {
+        id: 'unico',
+        nombre: 'Masa flexora',
+        origen: 'Epicóndilo medial del húmero',
+        insercion: 'Bases de los metacarpianos, por la palma',
+        desde: ['brazo', 0.96, [-0.014, 0, -0.010]],
+        hasta: ['mano', 0.10, [-0.006, 0, -0.010]],
+        via: [['antebrazo', 0.45, [-0.014, 0, -0.014]]],
+        radio: 0.013, aplanar: 0.7, biarticular: true,
+      },
+    ],
+  },
+  {
+    id: 'extensores_carpo',
+    nombre: 'Extensores del carpo',
+    grupo: 'codo',
+    acciones: [
+      'Abren la muñeca y equilibran a los flexores.',
+      'Son los que evitan que la muñeca se doble hacia atrás con la barra encima.',
+    ],
+    porciones: [
+      {
+        id: 'unico',
+        nombre: 'Masa extensora',
+        origen: 'Epicóndilo lateral del húmero',
+        insercion: 'Bases de los metacarpianos, por el dorso',
+        desde: ['brazo', 0.94, [0.016, 0, 0.008]],
+        hasta: ['mano', 0.10, [0.006, 0, 0.010]],
+        via: [['antebrazo', 0.45, [0.016, 0, 0.012]]],
+        radio: 0.012, aplanar: 0.7, biarticular: true,
+      },
+    ],
+  },
 ]
