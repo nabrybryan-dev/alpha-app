@@ -17,9 +17,13 @@
  * puede medir y qué: el eje que manda, contra qué línea, desde dónde hay que
  * mirar, qué marcas hacen falta, y —lo que más importa— **qué no se puede
  * prometer**.
+ *
+ * Esto imprime el plan para mirarlo o guardarlo. Para medir un vídeo de verdad
+ * está `medir-palancas.mjs`, que hace la cadena entera y no deja que nadie
+ * tenga que acordarse de pasar el plan correcto.
  */
 
-import { planDeMedida } from '../src/domain/biomecanica/palancas.ts'
+import { planExportable } from '../src/domain/biomecanica/planExportable.ts'
 
 const [categoria, nombre = ''] = process.argv.slice(2)
 if (!categoria) {
@@ -27,41 +31,14 @@ if (!categoria) {
   process.exit(2)
 }
 
-const plan = planDeMedida(categoria, nombre)
+/* La forma exacta del JSON vive en `planExportable`, no aquí: la comparte con
+ * `medir-palancas.mjs`, que le pasa el mismo plan al encoder sin que nadie lo
+ * vea. Dos proyecciones que tienen que ser idénticas dejan de serlo el día que
+ * alguien toque una. */
+const plan = planExportable(categoria, nombre)
 if (!plan) {
   console.error(`Sin modelo de palanca para «${categoria}». No hay plan que exportar, y eso es la respuesta.`)
   process.exit(1)
 }
 
-console.log(
-  JSON.stringify(
-    {
-      categoria,
-      nombre,
-      grupoObjetivo: plan.grupoObjetivo,
-      ejeObjetivo: plan.ejeObjetivo,
-      // Solo lo que el encoder usa de cada eje: articulación, quién manda y qué
-      // músculo genera el momento. El resto de la ficha es para la pantalla.
-      ejes: plan.ejes.map((e) => ({
-        articulacion: e.articulacion,
-        protagonismo: e.protagonismo,
-        accion: e.accion,
-        motores: e.motores,
-        brazoInternoMm: e.brazoInternoMm,
-        regla: e.regla ? { tipo: e.regla.tipo, regla: e.regla.regla, toleranciaMm: e.regla.toleranciaMm } : undefined,
-      })),
-      marcas: plan.marcas,
-      linea: plan.linea,
-      vista: plan.vista,
-      alineacion: plan.alineacion,
-      implemento: plan.implemento,
-      unilateral: plan.unilateral,
-      brazoPorDistanciaHorizontal: plan.brazoPorDistanciaHorizontal,
-      necesitaRepartoDeApoyos: plan.necesitaRepartoDeApoyos,
-      limites: plan.limites,
-      fueraDeVista: plan.fueraDeVista,
-    },
-    null,
-    2,
-  ),
-)
+console.log(JSON.stringify(plan, null, 2))
