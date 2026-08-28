@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Malla } from '../patrones/malla'
 import { construirLaboratorio } from './laboratorio'
-import { construirSala, SALA } from './sala'
+import { construirSala, SALA, vistaDeGrabacion } from './sala'
 
 /**
  * La sala se prueba contra las cuatro cosas que la harían inservible sin que se note
@@ -99,5 +99,42 @@ describe('la sala', () => {
     const m = sala()
     const invasores = posiciones(m).filter(([x, y, z]) => Math.hypot(x, z) < 1.0 && y > 0.02)
     expect(invasores).toEqual([])
+  })
+})
+
+describe('la vista desde el trípode', () => {
+  it('pone el ojo exactamente donde va el móvil', () => {
+    // El contrato: los tres parámetros que devuelve, metidos en la fórmula de la
+    // órbita, tienen que reproducir la posición de la estación. Si esto se desvía, la
+    // app estaría enseñando un encuadre que no es el que va a tener el teléfono — que
+    // es peor que no enseñar ninguno.
+    const centro: [number, number, number] = [0, 0.9, 0]
+    const v = vistaDeGrabacion(centro)
+    const r = (g: number) => (g * Math.PI) / 180
+    const ojo = [
+      centro[0] + Math.sin(r(v.azimut)) * Math.cos(r(v.elevacion)) * v.distancia,
+      centro[1] + Math.sin(r(v.elevacion)) * v.distancia,
+      centro[2] + Math.cos(r(v.azimut)) * Math.cos(r(v.elevacion)) * v.distancia,
+    ]
+    const a = r(SALA.estacion.anguloGrados)
+    expect(ojo[0]).toBeCloseTo(Math.cos(a) * SALA.estacion.distancia, 6)
+    expect(ojo[1]).toBeCloseTo(SALA.estacion.altura, 6)
+    expect(ojo[2]).toBeCloseTo(Math.sin(a) * SALA.estacion.distancia, 6)
+  })
+
+  it('mira al sujeto de perfil, que es lo único que sabe medir una cámara sola', () => {
+    // El sujeto mira a +Z. Un azimut de ±90° coloca el ojo sobre el eje X, o sea
+    // perpendicular al plano sagital. Cualquier otro valor y la velocidad de barra
+    // saldría proyectada sobre un plano que una sola cámara no puede resolver.
+    const v = vistaDeGrabacion([0, 0.9, 0])
+    expect(Math.abs(Math.abs(v.azimut) - 90)).toBeLessThan(0.001)
+  })
+
+  it('el trípode está casi a la altura de la escena, no en picado', () => {
+    // Un metro de trípode contra un centro de escena a 0,9: la cámara mira casi
+    // horizontal. Si esta elevación se dispara, alguien movió la altura del trípode a
+    // algo que no se sostiene con un móvil.
+    const v = vistaDeGrabacion([0, 0.9, 0])
+    expect(Math.abs(v.elevacion)).toBeLessThan(8)
   })
 })

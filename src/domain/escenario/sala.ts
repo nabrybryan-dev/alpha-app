@@ -363,3 +363,40 @@ export const SALA = {
   /** La tolerancia de encuadre del encoder, en grados de desvío. */
   tolerancia: { conDisco: CONO_CON_DISCO, sinDisco: CONO_SIN_DISCO },
 } as const
+
+/**
+ * La vista desde el trípode: lo que va a ver el móvil.
+ *
+ * Es la pieza que convierte la sala en ensayo. Tocar «grabar» no abre un menú: lleva la
+ * cámara EXACTAMENTE a donde va a estar el teléfono —mismo ángulo, misma distancia,
+ * misma altura— y desde ahí se ve el encuadre real antes de plantar el trípode. Si el
+ * sujeto no cabe, o el disco queda de canto, se descubre aquí y no con la serie hecha.
+ *
+ * La órbita del motor sitúa el ojo en
+ *
+ *     centro + [sin(az)·cos(el), sin(el), cos(az)·cos(el)] · distancia
+ *
+ * así que hay que resolver los tres parámetros que ponen ese ojo en la estación. El
+ * azimut sale de que la estación está sobre el eje X y el sujeto mira a +Z; la
+ * elevación, de la diferencia entre la altura del móvil y la del centro de la escena
+ * —pequeña, porque un trípode a un metro está casi a la altura de las caderas.
+ */
+export function vistaDeGrabacion(centro: readonly [number, number, number]): {
+  azimut: number
+  elevacion: number
+  distancia: number
+} {
+  const a = grados(SALA.estacion.anguloGrados)
+  const ojo: Vec3 = [
+    Math.cos(a) * SALA.estacion.distancia,
+    SALA.estacion.altura,
+    Math.sin(a) * SALA.estacion.distancia,
+  ]
+  const d: Vec3 = [ojo[0] - centro[0], ojo[1] - centro[1], ojo[2] - centro[2]]
+  const distancia = V.largo(d) || 1
+  // `asin` del componente vertical: la elevación es el ángulo sobre el plano del suelo.
+  const elevacion = (Math.asin(d[1] / distancia) * 180) / Math.PI
+  // Y el azimut, del par (x, z) — en ese orden, que es el que usa la órbita.
+  const azimut = (Math.atan2(d[0], d[2]) * 180) / Math.PI
+  return { azimut, elevacion, distancia }
+}

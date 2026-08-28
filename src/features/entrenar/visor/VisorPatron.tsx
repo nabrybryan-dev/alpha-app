@@ -11,11 +11,11 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, SALA, type DatosDeSerie } from '../../../domain/escenario/sala'
+import { construirSala, SALA, vistaDeGrabacion, type DatosDeSerie } from '../../../domain/escenario/sala'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import { colorDeMusculo, construirMusculos, longitudesEnReposo, MUSCULO_POR_ID } from '../../../domain/patrones/musculos'
-import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
+import { movimientoReducido, useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
 import { FONDO_ESTUDIO } from './motor'
 
@@ -117,6 +117,13 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
+  /**
+   * Lleva la cámara a una vista concreta. La rellena el mismo efecto, porque la órbita
+   * vive dentro de él y no tiene sentido sacarla: lo que se necesita fuera es la orden,
+   * no el objeto.
+   */
+  const irAVista = useRef<((a: 'grabacion' | 'patron') => void) | null>(null)
+  const [enGrabacion, setEnGrabacion] = useState(false)
 
   // Los controles se copian al ref en un efecto y no durante el render: tocar
   // `ref.current` mientras se renderiza es justo lo que prohíbe `react-hooks/refs`.
@@ -229,6 +236,67 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
           construir()
           pintar()
         }
+
+        /**
+         * El viaje a una vista, interpolado.
+         *
+         * Teletransportar la cámara desorienta: se pierde de dónde venías, y aquí eso
+         * importa porque el sentido de la vista de grabación es entender la RELACIÓN
+         * entre dónde está el móvil y dónde está el sujeto. El recorrido es la
+         * explicación.
+         *
+         * El azimut se interpola por el camino corto —la diferencia se normaliza a
+         * ±180°— o girar de −170° a 170° daría una vuelta entera de 340 en vez de los
+         * 20 que hay de verdad.
+         *
+         * Con movimiento reducido no se viaja: se llega. La vista es información, no
+         * decoración, así que no puede perderse — lo que se pierde es el trayecto.
+         */
+        let viaje = 0
+        irAVista.current = (adonde) => {
+          // El destino se resuelve AQUÍ y no fuera, porque depende de `orbita.centro`,
+          // que es el encuadre propio de este patrón. Calcularlo fuera obligaría a
+          // adivinar ese centro, y una vista de grabación calculada contra un centro
+          // que no es el real enseñaría un encuadre que el móvil no va a tener.
+          const destino =
+            adonde === 'grabacion'
+              ? vistaDeGrabacion(orbita.centro)
+              : {
+                  azimut: patron.camara.azimut,
+                  elevacion: patron.camara.elevacion,
+                  distancia: encuadre.distancia,
+                }
+          cancelAnimationFrame(viaje)
+          const desde = {
+            azimut: orbita.azimut,
+            elevacion: orbita.elevacion,
+            distancia: orbita.distancia,
+          }
+          let giro = destino.azimut - desde.azimut
+          giro = ((((giro + 180) % 360) + 360) % 360) - 180
+
+          if (movimientoReducido()) {
+            orbita.azimut = destino.azimut
+            orbita.elevacion = destino.elevacion
+            orbita.distancia = destino.distancia
+            pintar()
+            return
+          }
+
+          const DURACION = 520
+          const arranque = performance.now()
+          const paso = (ahora: number) => {
+            const t = Math.min(1, (ahora - arranque) / DURACION)
+            // La curva de salida del sistema: rápido al principio y posándose al final.
+            const e = 1 - Math.pow(1 - t, 3)
+            orbita.azimut = desde.azimut + giro * e
+            orbita.elevacion = desde.elevacion + (destino.elevacion - desde.elevacion) * e
+            orbita.distancia = desde.distancia + (destino.distancia - desde.distancia) * e
+            pintar()
+            if (t < 1) viaje = requestAnimationFrame(paso)
+          }
+          viaje = requestAnimationFrame(paso)
+        }
         construir()
         pintar()
         cuadro = requestAnimationFrame(bucle)
@@ -248,6 +316,7 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
       cancelAnimationFrame(cuadro)
       window.removeEventListener('resize', alRedimensionar)
       redibujar.current = null
+      irAVista.current = null
       orbita?.destruir()
     }
   }, [patron])
@@ -293,6 +362,22 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
             <span className="mx-1 text-white/20">·</span>
             {BAHIA.pasoMayor * 100} cm
           </p>
+        )}
+        {/* EL ENCUADRE, cuando se mira desde el trípode.
+            Dos escuadras y un punto rojo: es lo que dice «esto ya no es una vista
+            libre, es la cámara». Sin esa señal la vista de grabación se confunde con
+            cualquier otro ángulo de la órbita, y entonces no enseña nada. */}
+        {enGrabacion && !error && (
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <span className="absolute left-4 top-4 h-5 w-5 border-l-2 border-t-2 border-rojo/70" />
+            <span className="absolute right-4 top-4 h-5 w-5 border-r-2 border-t-2 border-rojo/70" />
+            <span className="absolute bottom-4 left-4 h-5 w-5 border-b-2 border-l-2 border-rojo/70" />
+            <span className="absolute bottom-4 right-4 h-5 w-5 border-b-2 border-r-2 border-rojo/70" />
+            <span className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-rojo">
+              <span className="h-1.5 w-1.5 rounded-full bg-rojo" />
+              encuadre
+            </span>
+          </div>
         )}
         {/* DÓNDE VA EL MÓVIL DE VERDAD.
             La marca del suelo no es decoración: es la posición desde la que el encoder
@@ -345,6 +430,27 @@ export function VisorPatron({ patron, datos }: VisorPatronProps) {
           aria-label="Fase del movimiento"
           className="h-1 min-w-[110px] flex-1 cursor-pointer appearance-none rounded bg-ink-500 accent-ambar"
         />
+        {/* ENTRAR A GRABAR.
+            No abre un menú ni explica nada: lleva la cámara EXACTAMENTE a donde va a
+            estar el móvil —mismo ángulo, misma distancia, misma altura— y desde ahí se
+            ve el encuadre real antes de plantar el trípode. Si el sujeto no cabe o el
+            disco queda de canto, se descubre aquí y no con la serie ya hecha.
+            Solo aparece cuando hay sala, porque sin sala no hay estación. */}
+        {datos && (
+          <button
+            type="button"
+            onClick={() => {
+              irAVista.current?.(enGrabacion ? 'patron' : 'grabacion')
+              setEnGrabacion((v) => !v)
+            }}
+            aria-pressed={enGrabacion}
+            className={`press rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+              enGrabacion ? 'border-rojo/60 bg-rojo/15 text-rojo' : 'border-ink-500 text-silver-300'
+            }`}
+          >
+            {enGrabacion ? 'Salir' : 'Ver desde la cámara'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setGirando((v) => !v)}
