@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
-import { DEMOSTRACION_POR_ID } from './demostraciones'
+import { DEMOSTRACIONES, DEMOSTRACION_POR_ID } from './demostraciones'
 import {
   DURACION_CICLO,
   encuadrar,
@@ -210,5 +210,25 @@ describe('el encuadre con foco en una articulación', () => {
     const raro = encuadrar(conFoco(demoCodo, 'peroneD'))
     expect(Number.isFinite(raro.distancia)).toBe(true)
     expect(raro.distancia).toBeGreaterThan(0)
+  })
+})
+
+describe('el encuadre de las articulaciones pequeñas', () => {
+  it('no se pega tanto que se pierda el contexto', () => {
+    // La muñeca enfoca la mano, que mide unos diez centímetros, y con la
+    // holgura sola la cámara se metía dentro del antebrazo: se veía un
+    // amasijo de tubos donde no se distinguía ni la mano. Hace falta un suelo:
+    // sin ver el hueso de al lado no se entiende contra qué se mueve.
+    for (const d of DEMOSTRACIONES) {
+      const { distancia } = encuadrar(d.patron)
+      expect(distancia, `${d.id} encuadra a ${distancia.toFixed(2)}`).toBeGreaterThan(0.75)
+    }
+  })
+
+  it('sigue dando primeros planos donde los hay que dar', () => {
+    // El suelo no puede comerse la ganancia: el codo tiene que seguir viéndose
+    // de cerca, no como el cuerpo entero.
+    const codo = encuadrar(DEMOSTRACION_POR_ID['demo-codo-codoFlex'].patron)
+    expect(codo.distancia).toBeLessThan(1.8)
   })
 })
