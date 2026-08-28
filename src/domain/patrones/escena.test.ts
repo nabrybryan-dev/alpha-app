@@ -3,6 +3,7 @@ import { PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
 import { DEMOSTRACIONES, DEMOSTRACION_POR_ID } from './demostraciones'
 import {
   DURACION_CICLO,
+  CAMPO_VISUAL,
   encuadrar,
   esqueletoEnFase,
   faseDeTiempo,
@@ -11,7 +12,7 @@ import {
 } from './escena'
 import { construirHuesos } from './huesos'
 import { ESQUELETO, puntoDeHueso } from './esqueleto'
-import { V } from './algebra'
+import { grados, V } from './algebra'
 
 describe('el tempo de la repetición', () => {
   it('arranca abajo y sube en la fase concéntrica', () => {
@@ -31,8 +32,13 @@ describe('el tempo de la repetición', () => {
   })
 
   it('hace pausa arriba antes de empezar a bajar', () => {
-    expect(faseDeTiempo(1.3).fase).toBe(1)
-    expect(faseDeTiempo(1.5).fase).toBe(1)
+    // Arriba se para, pero no se congela: el asentamiento hace que la fase
+    // ronde el 1 en vez de clavarse en él. Hasta que se añadió, esto exigía un
+    // 1 exacto y eso era justo lo que hacía que el tope pareciese un maniquí.
+    expect(faseDeTiempo(1.3).fase).toBeCloseTo(1, 1)
+    expect(faseDeTiempo(1.5).fase).toBeCloseTo(1, 2)
+    // Y no se pasa del tope: pasarse del bloqueo sería hiperextender.
+    for (const t of [1.25, 1.3, 1.4, 1.5]) expect(faseDeTiempo(t).fase).toBeLessThanOrEqual(1)
   })
 
   it('se repite sin saltos y aguanta tiempos negativos', () => {
@@ -230,5 +236,158 @@ describe('el encuadre de las articulaciones pequeñas', () => {
     // de cerca, no como el cuerpo entero.
     const codo = encuadrar(DEMOSTRACION_POR_ID['demo-codo-codoFlex'].patron)
     expect(codo.distancia).toBeLessThan(1.8)
+  })
+})
+
+describe('el ritmo de un levantamiento', () => {
+  // Los tramos del ciclo, por tiempo. Filtrar por `sentido` mezclaba el final de
+  // un ciclo con el principio del siguiente.
+  const SUBIDA: [number, number] = [0, 1.2]
+  const ARRIBA: [number, number] = [1.2, 1.55]
+  const BAJADA: [number, number] = [1.55, 3.45]
+
+  /** Muestrea un tramo y devuelve fase y velocidad de fase. */
+  const tramo = ([a, b]: [number, number], n = 300) => {
+    const puntos = Array.from({ length: n + 1 }, (_, i) => {
+      const t = a + ((b - a) * i) / n
+      return { t, fase: faseDeTiempo(t).fase }
+    })
+    const vel: number[] = []
+    for (let i = 1; i < puntos.length; i++) {
+      const dt = puntos[i].t - puntos[i - 1].t
+      vel.push((puntos[i].fase - puntos[i - 1].fase) / dt)
+    }
+    return { puntos, vel }
+  }
+
+  it('frena en la región de estancamiento al subir', () => {
+    // Un levantamiento real no sube a velocidad de interpolación: hay un tramo,
+    // pasado el arranque, donde el brazo de momento empeora y la barra se
+    // enlentece. Está documentado en la sentadilla y cualquiera que entrene lo
+    // reconoce; sin él, la subida se lee como una animación y no como un gesto.
+    const { vel } = tramo(SUBIDA)
+    const tercio = Math.floor(vel.length / 3)
+    const arranque = Math.max(...vel.slice(0, tercio))
+    const medio = Math.min(...vel.slice(tercio, tercio * 2))
+    expect(medio, `arranque ${arranque.toFixed(2)} vs medio ${medio.toFixed(2)}`).toBeLessThan(
+      arranque * 0.75,
+    )
+  })
+
+  it('no retrocede mientras sube', () => {
+    // El estancamiento frena, no da marcha atrás: la barra no baja a mitad de
+    // subida salvo que se falle la repetición, y eso no es lo que se enseña.
+    const { puntos } = tramo(SUBIDA)
+    for (let i = 1; i < puntos.length; i++) {
+      expect(puntos[i].fase, `retrocede en t=${puntos[i].t.toFixed(2)}`).toBeGreaterThanOrEqual(
+        puntos[i - 1].fase - 1e-9,
+      )
+    }
+  })
+
+  it('baja sin estancamiento', () => {
+    // Bajar es ceder contra la gravedad: no hay punto de atasco. Meterle uno
+    // sería inventar un fenómeno que no ocurre.
+    const { vel } = tramo(BAJADA)
+    const rapidez = vel.map(Math.abs)
+    const tercio = Math.floor(rapidez.length / 3)
+    const pico = Math.max(...rapidez)
+    const medio = Math.min(...rapidez.slice(tercio, tercio * 2))
+    expect(medio).toBeGreaterThan(pico * 0.75)
+  })
+
+  it('se asienta al llegar arriba en vez de clavarse', () => {
+    // Follow-through: el cuerpo llega al tope y acomoda, no se congela de golpe.
+    // Es pequeño —si se nota como un rebote parece que se falla la repetición—
+    // pero es lo que separa a una persona de un maniquí.
+    const { puntos } = tramo(ARRIBA, 400)
+    const minimo = Math.min(...puntos.map((p) => p.fase))
+    expect(1 - minimo, 'el asentamiento no existe').toBeGreaterThan(0.004)
+    expect(1 - minimo, 'el asentamiento se nota como un rebote').toBeLessThan(0.05)
+  })
+
+  it('empieza y termina el ciclo abajo del todo', () => {
+    // Sin esto el bucle daría un salto visible al reiniciarse.
+    expect(faseDeTiempo(0).fase).toBeCloseTo(0, 3)
+    expect(faseDeTiempo(DURACION_CICLO - 1e-4).fase).toBeCloseTo(0, 2)
+  })
+})
+
+describe('la focal de la cámara', () => {
+  it('mira con una focal de retrato y no de gran angular', () => {
+    // Un campo visual ancho exagera lo que está cerca del objetivo: la mano que
+    // se adelanta sale enorme y el cuerpo se deforma. En cine la figura humana
+    // se mira con el equivalente a un 85 mm, que ronda los 22-25° de campo. A
+    // 34° el sujeto salía con la perspectiva estirada.
+    expect(CAMPO_VISUAL).toBeGreaterThan(grados(20))
+    expect(CAMPO_VISUAL).toBeLessThan(grados(30))
+  })
+
+  it('mantiene el encuadre al cambiar la focal', () => {
+    // Estrechar el campo sin alejar la cámara recortaría el sujeto. Como la
+    // distancia se calcula a partir del mismo campo, el tamaño en pantalla se
+    // conserva y lo único que cambia es la perspectiva, que es de lo que se
+    // trata.
+    for (const p of PATRONES) {
+      const { radio, distancia } = (() => {
+        const e = encuadrar(p)
+        // Semiángulo que ocupa el sujeto desde la cámara: es lo que decide el
+        // tamaño en pantalla, y tiene que caber en el campo visual.
+        return { radio: (e.distancia - 0.22) * Math.tan(CAMPO_VISUAL / 2), distancia: e.distancia }
+      })()
+      const ocupa = 2 * Math.atan(radio / (distancia - 0.22))
+      expect(ocupa / CAMPO_VISUAL, p.id).toBeCloseTo(1, 5)
+    }
+  })
+})
+
+describe('dónde se atasca cada ejercicio', () => {
+  /** Fase de la subida en la que la velocidad toca su mínimo. */
+  const dondeFrena = (patron: Patron): number => {
+    const n = 400
+    let peor = { k: 0, v: Infinity }
+    for (let i = 1; i <= n; i++) {
+      const k0 = ((i - 1) / n) * 1.2
+      const k1 = (i / n) * 1.2
+      const v = (faseDeTiempo(k1, patron).fase - faseDeTiempo(k0, patron).fase) / (k1 - k0)
+      // Se ignoran los extremos, donde la velocidad es baja por el arranque y la
+      // llegada y no por el brazo de momento.
+      const k = k1 / 1.2
+      if (k > 0.12 && k < 0.88 && v < peor.v) peor = { k, v }
+    }
+    return peor.k
+  }
+
+  it('atasca la sentadilla poco después de salir del hoyo', () => {
+    // La fuerza es mínima en los primeros 15 cm sobre la posición más baja de la
+    // barra, que en un recorrido de medio metro cae en torno al primer cuarto.
+    expect(dondeFrena(PATRON_POR_ID['sentadilla'])).toBeLessThan(0.35)
+  })
+
+  it('atasca la extensión de cadera casi al arrancar', () => {
+    // En el hip thrust el momento extensor es máximo con la cadera cerca de 90°
+    // —es decir, abajo— y decae hacia la extensión completa. Es el ejercicio
+    // donde antes cuesta.
+    const k = dondeFrena(PATRON_POR_ID['extension_cadera'])
+    expect(k).toBeLessThan(0.3)
+    expect(k).toBeLessThan(dondeFrena(PATRON_POR_ID['empuje_horizontal']))
+  })
+
+  it('atasca el empuje horizontal más arriba que la sentadilla', () => {
+    // En el banca el mínimo de velocidad queda bastante por encima del pecho,
+    // no justo al despegar.
+    expect(dondeFrena(PATRON_POR_ID['empuje_horizontal'])).toBeGreaterThan(
+      dondeFrena(PATRON_POR_ID['sentadilla']),
+    )
+  })
+
+  it('deja un punto por defecto para el que no lo declara', () => {
+    // La mayoría de patrones no tienen medida publicada: se les deja el valor
+    // de en medio en vez de inventarles uno por ejercicio.
+    const sinDeclarar = PATRONES.filter((p) => p.estancamiento === undefined)
+    expect(sinDeclarar.length).toBeGreaterThan(20)
+    for (const p of sinDeclarar.slice(0, 5)) {
+      expect(dondeFrena(p), p.id).toBeCloseTo(dondeFrena(sinDeclarar[0]), 1)
+    }
   })
 })

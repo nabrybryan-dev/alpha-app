@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { M4, grados } from '../../../domain/patrones/algebra'
+import { M4 } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
 import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL } from '../../../domain/patrones/acciones'
 import { NOMBRE_DE_PLANO, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
+  CAMPO_VISUAL,
   DURACION_CICLO,
   encuadrar,
   esqueletoEnFase,
@@ -161,7 +162,7 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
 
         const pintar = () => {
           const aspecto = motor.ajustarTamano()
-          motor.dibujar(matrices, orbita.vista(), M4.perspectiva(grados(34), aspecto, 0.05, 40), orbita.ojo())
+          motor.dibujar(matrices, orbita.vista(), M4.perspectiva(CAMPO_VISUAL, aspecto, 0.05, 40), orbita.ojo())
         }
 
         const mostrarEsferaAl = (v: boolean) => {
@@ -187,7 +188,7 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           const ahora = performance.now() / 1000
           let cambia = false
           if (estado.current.reproduciendo) {
-            const { fase: f, sentido } = faseDeTiempo(ahora - arranque)
+            const { fase: f, sentido } = faseDeTiempo(ahora - arranque, patron)
             estado.current.reloj = ahora - arranque
             estado.current.sentido = sentido
             if (Math.abs(f - estado.current.fase) > 0.0015) {

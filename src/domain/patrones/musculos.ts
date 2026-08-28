@@ -124,6 +124,39 @@ export function colorDeMusculo(activacion: number): Color {
  * siempre —solo cambian las posiciones—, así que el buffer del cuadro anterior
  * sirve tal cual y basta con poner el cursor a cero.
  */
+/**
+ * Grosor del músculo a lo largo de su recorrido, de 0 (origen) a 1 (inserción).
+ *
+ * Dos cosas que se ven y una que no se veía:
+ *
+ * - **Fusiforme**: fino en los extremos y grueso en el centro. Un músculo no es
+ *   un tubo: son dos tendones y un vientre.
+ * - **Volumen constante**: al acortarse, el vientre engorda con 1/raíz(L).
+ * - **El tendón NO engorda.** Esto faltaba. El ensanche se aplicaba al tubo
+ *   entero, así que al contraerse crecía también la parte tendinosa y el
+ *   músculo se movía como una goma. Un tendón es colágeno: transmite la fuerza
+ *   y no cambia de grosor. Ahora el ensanche se pondera por lo carnoso que sea
+ *   cada punto, y en las inserciones —que es justo donde el asesorado mira para
+ *   entender de dónde nace y dónde acaba— se queda quieto.
+ */
+export function radioDePorcion(
+  t: number,
+  radio: number,
+  ensanche: number,
+  tono: number,
+): number {
+  const u = Math.sin(Math.PI * limitar(t, 0, 1))
+  // La silueta es ancha: un músculo se ensancha enseguida al salir del tendón.
+  const silueta = Math.pow(u, 0.55)
+  // Pero la parte que se abulta al contraerse es más estrecha que la silueta:
+  // el vientre carnoso ocupa el centro, no todo lo que no es tendón. Con la
+  // misma curva de la silueta, a un uno por ciento del origen ya engordaba un
+  // 8 %, y ahí lo que hay es tendón.
+  const carne = Math.pow(u, 1.6)
+  const engorde = 1 + (ensanche - 1) * carne
+  return radio * (0.3 + 0.7 * silueta) * engorde * tono
+}
+
 export function construirMusculos(
   esq: EsqueletoResuelto,
   activacion: Activacion,
@@ -157,11 +190,7 @@ export function construirMusculos(
         tubo(
           m,
           puntos,
-          (t) => {
-            // Perfil fusiforme: tendón fino en los extremos, vientre al centro.
-            const vientre = Math.pow(Math.sin(Math.PI * limitar(t, 0, 1)), 0.55)
-            return porcion.radio * (0.3 + 0.7 * vientre) * ensanche * tono
-          },
+          (t) => radioDePorcion(t, porcion.radio, ensanche, tono),
           { radial: lados, color, hueso: 0, aplanar: porcion.aplanar ?? 1, tapar: true },
         )
       }
