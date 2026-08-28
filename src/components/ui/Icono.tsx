@@ -210,3 +210,27 @@ export function IconoCamara({ className }: IconoProps) {
     </Icono>
   )
 }
+
+/* ---------- Reproducción ----------
+   El visor de patrones necesita reproducir y pausar. Van aquí, y no como
+   caracteres sueltos de triángulo y doble barra, porque un glifo que abre una
+   etiqueta hace de icono: no hereda el trazo, no casa de tamaño con el resto y
+   cada plataforma lo dibuja a su manera. */
+
+/** Reproducir. */
+export function IconoReproducir({ className }: IconoProps) {
+  return (
+    <Icono className={className}>
+      <path d="M8 5.6v12.8L18.4 12Z" />
+    </Icono>
+  )
+}
+
+/** Pausa. */
+export function IconoPausa({ className }: IconoProps) {
+  return (
+    <Icono className={className}>
+      <path d="M9.2 5.5v13M14.8 5.5v13" />
+    </Icono>
+  )
+}

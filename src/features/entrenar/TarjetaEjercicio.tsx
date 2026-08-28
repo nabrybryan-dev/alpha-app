@@ -2,6 +2,7 @@ import { Card } from '../../components/ui/Card'
 import { db } from '../../data/dbInstance'
 import { ejercicioCompleto } from '../../domain/cumplimiento'
 import { demoDeEjercicio } from '../../domain/demos'
+import { patronDeCategoria, type Patron } from '../../domain/patrones/catalogo'
 import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
 import { ExerciseSlotMachine } from './ExerciseSlotMachine'
@@ -24,6 +25,8 @@ interface TarjetaEjercicioProps {
   notaVisible: boolean
   onAlternarNota: () => void
   onVerDemo: (contenido: Contenido) => void
+  /** Abre el modelo 3D del patrón de movimiento del ejercicio. */
+  onVerPatron: (patron: Patron) => void
   onGuardarSerie: (serie: SerieRegistrada) => void
   registroRef: React.Ref<RegistroSerieHandle>
   /** Posición del ejercicio en la sesión: la cabecera-gabinete la muestra. */
@@ -44,6 +47,7 @@ export function TarjetaEjercicio({
   notaVisible,
   onAlternarNota,
   onVerDemo,
+  onVerPatron,
   onGuardarSerie,
   registroRef,
   indice,
@@ -52,6 +56,9 @@ export function TarjetaEjercicio({
   const completo = ejercicioCompleto(ejercicio)
   const siguienteOrden = ejercicio.series.length + 1
   const contenidoDemo = demoDeEjercicio(ejercicio, db.contenidos.list())
+  // El patrón sale de la categoría, que el ejercicio ya trae: los microciclos
+  // que están cargados tienen visor sin tocar ni un dato.
+  const patron = patronDeCategoria(ejercicio.categoria)
 
   return (
     // Sin `.entrada`. No era una entrada de pantalla: SesionPage le pone
@@ -128,16 +135,27 @@ export function TarjetaEjercicio({
             >
               {notaVisible ? 'Ocultar ejecución ▴' : 'Ver notas de ejecución ▾'}
             </button>
-            {contenidoDemo && (
-              <button
-                type="button"
-                onClick={() => onVerDemo(contenidoDemo)}
-                className="press ml-auto flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
-              >
-                <IconoVideo className="h-[13px] w-[13px]" />
-                Técnica
-              </button>
-            )}
+            <span className="ml-auto flex items-center gap-3">
+              {patron && (
+                <button
+                  type="button"
+                  onClick={() => onVerPatron(patron)}
+                  className="press text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                >
+                  Patrón 3D
+                </button>
+              )}
+              {contenidoDemo && (
+                <button
+                  type="button"
+                  onClick={() => onVerDemo(contenidoDemo)}
+                  className="press flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                >
+                  <IconoVideo className="h-[13px] w-[13px]" />
+                  Técnica
+                </button>
+              )}
+            </span>
           </div>
           {notaVisible && (
             <p className="desplegar mt-2 border-t border-ink-500 pt-2 text-xs leading-snug text-silver-300">
