@@ -260,7 +260,13 @@
   --silver-200: #dfe2e6;
   --silver-300: #c2c8cf;
   --silver-400: #9aa1ab;
-  --silver-500: #6f7782;
+  /* El 500 se declara por canales, como la escala ink: es el unico tono de la
+     escala al que se le pide opacidad (el tirador del panel del salon lo usa al
+     60 %), y sin `<alpha-value>` Tailwind descartaba la clase entera y el
+     elemento se quedaba SIN color. El hex se deriva de los canales para que
+     siga habiendo una sola fuente del color: 111 119 130 es #6f7782. */
+  --silver-500-rgb: 111 119 130;
+  --silver-500: rgb(var(--silver-500-rgb));
 
   /* Superficies claras (Hoy/Bienestar/Progreso) */
   --bone-50: #fbfaf8;
@@ -1485,6 +1491,89 @@ body {
 
 [data-camara-abierta] .escena-prof * {
   transform-style: flat;
+}
+
+/* ============ LA SALA RESPIRA ============
+   «Asi se ve aunque sin movimiento todavia», dijo Bryan del salon sin sujeto. Una
+   habitacion vacia y quieta es un dibujo; lo que la convierte en un sitio es que
+   la luz se mueva un poco. Dos movimientos, y ni uno mas.
+
+   LAS TRES REGLAS QUE CUMPLEN, porque una animacion infinita en un movil con la
+   pantalla encendida durante una hora se paga:
+
+   1. BARATO. Ninguna de las dos toca la geometria de la sala: no se reproyecta un
+      trazado ni corre JavaScript por fotograma. Son dos <div> vacios con un
+      degradado, uno animando `transform` y el otro `opacity` — las dos unicas
+      propiedades que el compositor resuelve sin volver a pintar. `will-change` las
+      promociona a su capa, asi que cada fotograma es una composicion y no un
+      repintado. La alternativa evidente —animar la opacidad de la reticula dentro
+      del SVG— se descarto midiendo: son 199 segmentos de trazo entre la reticula
+      menor y la mayor, y si el compositor no promociona esa animacion se
+      rerrasterizan enteros sesenta veces por segundo.
+   2. NO COMPITEN CON LA INFORMACION. Las dos van DEBAJO de los datos en el arbol y
+      ninguna pasa por encima de un texto: una luz que cruzara un rotulo lo haria
+      parpadear. Las amplitudes son cortas y los tiempos largos —veintiun segundos
+      la luz, siete y medio el suelo—, muy por debajo del ritmo al que se lee.
+   3. SE APAGAN SOLAS DONDE DEBEN. Con `prefers-reduced-motion: reduce` se quedan
+      quietas, abajo. Y mientras el encoder graba las pausa la regla
+      `[data-camara-abierta] *` de mas abajo, igual que a las demas del area. */
+
+@keyframes sala-luz-va {
+  from { transform: translate3d(-13%, 0, 0); }
+  to { transform: translate3d(13%, 0, 0); }
+}
+
+/* La lampara del muro. `inset` la deja SOLO sobre la pared: el 24 % de abajo es
+   suelo —el rodapie del trazado cae al 83 % del alto— y una luz de pared derramada
+   sobre el disco no dice pared, dice mancha. Se sale por los cuatro costados para
+   que el borde del degradado nunca entre en cuadro al desplazarse.
+
+   `alternate` con `--ease-mov` es lo que la hace respirar en vez de barrer: la
+   curva frena en los extremos, asi que la luz se demora a un lado antes de volver. */
+.sala-luz {
+  position: absolute;
+  inset: -14% -30% 24% -30%;
+  pointer-events: none;
+  background: radial-gradient(
+    52% 60% at 50% 42%,
+    rgb(var(--silver-500-rgb) / 0.16),
+    rgb(var(--silver-500-rgb) / 0.05) 46%,
+    transparent 72%
+  );
+  will-change: transform;
+  animation: sala-luz-va 21s var(--ease-mov) infinite alternate;
+}
+
+@keyframes sala-aliento {
+  0%, 100% { opacity: 0.34; }
+  50% { opacity: 1; }
+}
+
+/* El aliento del suelo. Apoyado en el disco, arrancando justo donde el trazado pone
+   el rodapie, sube y baja muy despacio: la reticula no cambia de forma —no se
+   reproyecta nada— pero los cuadros parecen tomar aire. */
+.sala-aliento {
+  position: absolute;
+  inset: 74% 4% 0 4%;
+  pointer-events: none;
+  background: radial-gradient(
+    72% 120% at 50% 34%,
+    rgb(var(--silver-500-rgb) / 0.14),
+    transparent 70%
+  );
+  will-change: opacity;
+  animation: sala-aliento 7.5s var(--ease-mov) infinite;
+}
+
+/* Con movimiento reducido la sala se queda quieta, y se queda BIEN: la luz sin
+   transformar esta centrada en el muro y el aliento sin animar esta al 100 %, que
+   es el fotograma mas favorable de los dos. Apagar no puede dejar la pantalla peor
+   que encender. */
+@media (prefers-reduced-motion: reduce) {
+  .sala-luz,
+  .sala-aliento {
+    animation: none;
+  }
 }
 
 /* El degradado de la cara TAMBIEN se apaga con la camara. No por fotogramas —es

@@ -1,10 +1,9 @@
-import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
-import { LienzoCinematico } from '../../components/ui/LienzoCinematico'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { resumenMicrociclo } from '../../domain/cumplimiento'
 import { cargaPorGrupo } from '../../domain/fatiga'
+import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import {
@@ -18,21 +17,31 @@ import {
   type DatosRuta,
 } from '../../domain/rutaEntrenamiento'
 import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
-import { PortadaMicrociclo } from './PortadaMicrociclo'
-import { BloqueEnCurso } from './ruta/BloqueEnCurso'
-import { CabeceraNivel } from './ruta/CabeceraNivel'
-import { CalendarioSemana } from './ruta/CalendarioSemana'
-import { ComoLlegas } from './ruta/ComoLlegas'
-import { CompetenciasEvaluadas } from './ruta/CompetenciasEvaluadas'
-import { EscalaAlfa } from './ruta/EscalaAlfa'
-import { RequisitosNivel } from './ruta/RequisitosNivel'
-import { TarjetaProgresoNivel } from './ruta/TarjetaProgresoNivel'
-import { IconoCamara } from '../../components/ui/Icono'
+import { SalonEntrenar } from './salon/SalonEntrenar'
 
 /**
- * Vista macro de la pestaña Entrenar: dónde está la persona en su ruta de
- * largo plazo. La sesión es el segundo nivel (`/entrenar/sesion/:id`) y su
- * botón atrás vuelve aquí.
+ * La pestaña Entrenar. Este archivo CALCULA; quien pinta es el salón.
+ *
+ * Antes esto era también la maqueta: doce bloques en una columna con scroll, escritos
+ * aquí mismo. Ahora la pantalla es `salon/SalonEntrenar` —el sujeto en el centro, lo
+ * corto en las paredes, el registro en el suelo y lo largo en el panel de abajo— y lo
+ * que queda en este archivo es exactamente lo que ya hacía: leer del `db`, pasar los
+ * datos por el dominio y entregar el resultado. Ni un bloque se perdió por el camino:
+ * los doce bajaron al panel inferior, que monta LOS MISMOS componentes de `ruta/`.
+ *
+ * La sesión sigue siendo el segundo nivel (`/entrenar/sesion/:id`) y su botón atrás
+ * vuelve aquí.
+ *
+ * ## Los tres estados, y dónde vive cada uno
+ *
+ * - **Sin microciclo activo** — el `EmptyState` de abajo. Es de este archivo porque solo
+ *   aquí se sabe: hay que leer los microciclos de la persona para descubrirlo. No es una
+ *   urgencia; parte de la cartera está inactiva a propósito.
+ * - **Carga** — el `Suspense` con el que el router envuelve esta página, que existe
+ *   porque `RutaPage` se monta con `lazy()`. Sigue siendo el mismo, y por eso el salón se
+ *   monta DENTRO de este componente y no como una ruta aparte: colgarlo del router por su
+ *   cuenta lo habría dejado fuera de esa envoltura.
+ * - **Error** — el `ErrorBoundary` de esa misma envoltura del router.
  */
 export default function RutaPage() {
   const { usuario } = useSesion()
@@ -85,127 +94,34 @@ export default function RutaPage() {
 
   const semana = armarSemana(microciclo, hoy)
   const destacada = sesionDestacada(semana)
+  // La sesión que manda hoy, entera: de ella salen el ejercicio de las paredes y el del
+  // registro del suelo. Es la misma que ya se buscaba para saber si estaba empezada; lo
+  // único nuevo es que ahora se guarda en vez de tirarse.
+  const sesionDeHoy = destacada
+    ? microciclo.sesiones.find((s) => s.id === destacada.sesionId)
+    : undefined
   const sesionCta = destacada
     ? {
         id: destacada.sesionId,
         nombre: destacada.titulo,
         esDeHoy: destacada.esDeHoy,
-        empezada:
-          microciclo.sesiones
-            .find((s) => s.id === destacada.sesionId)
-            ?.ejercicios.some((e) => e.series.length > 0) ?? false,
+        empezada: sesionDeHoy?.ejercicios.some((e) => e.series.length > 0) ?? false,
       }
     : undefined
 
   return (
-    // Entrenar es superficie oscura siempre, como la sesión: la pantalla se usa
-    // en el gimnasio y no debe cambiar de piel con el tema de la app.
-    //
-    // LA TINTA YA NO LA PONE ESTE DIV. La pone `LienzoCinematico`, que es una capa
-    // fija en `--z-lienzo` con el fondo de tinta y la pieza asomando por arriba.
-    // Si este contenedor siguiera llevando `bg-ink-900`, taparía la pieza entera.
-    <>
-      {/* B · Órbita. La cámara rodea al atleta sentado entre series, y aquí quien
-          la conduce es el scroll: bajar por la pantalla equivale a rodearlo. Las
-          tarjetas suben por delante y lo ocultan de verdad — no hay recorte a 16:9
-          ni caja con borde, la pieza se pierde bajo el contenido. */}
-      <LienzoCinematico secuencia="orbita" altura={352} />
-
-      <div
-        className="-mx-4 -mt-4"
-        style={{ position: 'relative', zIndex: 'var(--z-contenido)' }}
-      >
-        {/* La ventana por la que se ve la pieza en reposo. 178 px deja ver la mitad
-            de los 352 y hace que se lea como escena; con los 60 px que dejaba el
-            `pt-3` original parecía una textura del fondo. */}
-        <div className="h-[178px]" aria-hidden="true" />
-
-        {/* EL CONTENIDO ES UNA LÁMINA OPACA, y esto es la regla dura hecha
-            estructura: el texto no puede caer sobre la pieza porque sube una
-            superficie de tinta que la tapa. Sin esto, al hacer scroll el titular
-            «NIVEL 03 · RENDIMIENTO» —que va suelto, no dentro de una tarjeta—
-            quedaba escrito encima del atleta.
-            El degradado de 40 px es el CANTO de esa lámina, no un velo para poder
-            escribir encima: por debajo de él ya no hay pieza, hay tinta. */}
-        <div className="relative">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 -top-10 h-10"
-            style={{ background: 'linear-gradient(180deg, transparent, var(--ink-900))' }}
-          />
-          <div
-            className="flex min-h-dvh flex-col gap-3.5 bg-ink-900 px-4 pt-1"
-            style={{ paddingBottom: 'var(--tope-nav)' }}
-          >
-      {/* El letrero de inicio de semana: se ve una vez por microciclo y
-          desaparece al empezar. Va antes de las rutinas, a propósito. */}
-      <PortadaMicrociclo microciclo={microciclo} />
-
-      <CabeceraNivel nivel={ruta.nivelActual} />
-
-      {/* La mesa de trabajo del encoder: la tanda entera, los criterios y el
-          CSV. Medir se mide dentro de la serie; esto es para ver el conjunto y
-          exportarlo. Discreto a propósito — está en pruebas. */}
-      <Link
-        to="/entrenar/encoder"
-        className="press flex items-center justify-between rounded-bloque border border-white/10 bg-ink-700 px-4 py-3 text-sm text-tenue"
-      >
-        <span className="flex items-center gap-2">
-          <IconoCamara className="h-[18px] w-[18px] shrink-0" />
-          <span>
-            <b className="text-texto">Encoder</b> · tanda y criterios
-          </span>
-        </span>
-        <span className="rounded-tag bg-ambar/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ambar">
-          en pruebas
-        </span>
-      </Link>
-
-      <div className="entrada entrada-2">
-        <TarjetaProgresoNivel
-          pct={progresoAlSiguiente(requisitos)}
-          nivelActual={ruta.nivelActual}
-          siguienteNivel={ruta.siguienteNivel}
-          estadisticas={estadisticasCalculadas(datos)}
-        />
-      </div>
-
-      <div className="entrada entrada-3">
-        <ComoLlegas recuperacion={recuperacion} />
-      </div>
-
-      <div className="entrada entrada-4">
-        <BloqueEnCurso bloque={ruta.bloque} sesion={sesionCta} />
-      </div>
-
-      <div className="entrada entrada-5">
-        <CalendarioSemana
-          dias={semana}
-          titulo={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
-        />
-      </div>
-
-      <div className="entrada entrada-6">
-        <CompetenciasEvaluadas competencias={competencias} />
-      </div>
-
-      {/* Los dos ultimos bloques entran SIN retardo, y no es un descuido. La
-          escala solo llega a `.entrada-6` y aqui hay siete bloques mas la
-          cabecera, asi que antes habia dos pares compartiendo retardo — que no
-          es una decision, es que se acabaron las clases. Estos dos caen por
-          debajo del pliegue en un movil: nadie los ve entrar, y el escalonado
-          es decorativo por definicion. Estirar la escala habria puesto el
-          ultimo a 420 ms de retardo sobre contenido que se esta leyendo. */}
-      <div className="entrada">
-        <RequisitosNivel requisitos={requisitos} siguienteNivel={ruta.siguienteNivel} />
-      </div>
-
-      <div className="entrada">
-        <EscalaAlfa niveles={ruta.escala} />
-      </div>
-    </div>
-        </div>
-      </div>
-    </>
+    <SalonEntrenar
+      microciclo={microciclo}
+      ruta={ruta}
+      recuperacion={recuperacion}
+      progresoPct={progresoAlSiguiente(requisitos)}
+      estadisticas={estadisticasCalculadas(datos)}
+      competencias={competencias}
+      requisitos={requisitos}
+      semana={semana}
+      sesionCta={sesionCta}
+      notas={notasDelMicrociclo(microciclo)}
+      sesion={sesionDeHoy}
+    />
   )
 }
