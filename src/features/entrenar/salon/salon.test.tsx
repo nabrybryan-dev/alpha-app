@@ -429,21 +429,57 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     expect(panel.querySelector('button')!.getAttribute('aria-expanded')).toBe('true')
   })
 
+  /**
+   * PLEGAR Y DESPLEGAR, MEDIDO SOBRE UN RECUADRO QUE SIGUE EXISTIENDO.
+   *
+   * Este test plegaba el recuadro `escala-alfa`. Desde el 29-ago la Escala Alfa vive en
+   * Progreso y ese recuadro no se monta: el test se caía al leer `querySelector` de `null`,
+   * o sea que estaba rojo por la mudanza, no por el plegado. Lo que protegía —que un
+   * recuadro nace abierto, se pliega al tocarlo y NO desaparece al plegarse— no tiene nada
+   * que ver con qué bloque lleve dentro.
+   *
+   * Así que se mide sobre `calendario`, que es un bloque de la Ruta que sigue en el panel y
+   * tiene contenido de verdad dentro. Se comprueba el texto de su encabezado además del
+   * `aria-expanded` para que no pueda pasar sobre un recuadro vacío.
+   */
   it('los recuadros nacen abiertos y se pliegan al tocarlos, sin perder el hueco', async () => {
     const usuario = userEvent.setup()
     montarConFuerza()
     await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
-    const escala = salon.querySelector('[data-recuadro="escala-alfa"]') as HTMLElement
-    const boton = escala.querySelector('button[aria-expanded]') as HTMLButtonElement
+    const caja = salon.querySelector('[data-recuadro="calendario"]') as HTMLElement
+    expect(caja, 'no hay recuadro «calendario» en el panel abierto').not.toBeNull()
+    const boton = caja.querySelector('button[aria-expanded]') as HTMLButtonElement
 
-    expect(escala.textContent).toMatch(/Escala Alfa/)
+    expect(caja.textContent).toMatch(/La semana/)
     await usuario.click(boton)
     expect(boton.getAttribute('aria-expanded')).toBe('false')
     // El recuadro sigue en el panel: plegar es comodidad de quien ya leyó, no borrar.
-    expect(salon.querySelector('[data-recuadro="escala-alfa"]')).not.toBeNull()
+    expect(salon.querySelector('[data-recuadro="calendario"]')).not.toBeNull()
     await usuario.click(boton)
     expect(boton.getAttribute('aria-expanded')).toBe('true')
+  })
+
+  /**
+   * Y LAS DOS QUE SE MUDARON NO ESTÁN AQUÍ, NI SIQUIERA DE REBOTE.
+   *
+   * El reverso de la mudanza del 29-ago. Sin esta comprobación, devolverlas al panel sin
+   * quitarlas de Progreso dejaría el mismo dato calculado y pintado en dos pantallas: el
+   * día que alguien ajuste una, la otra seguiría enseñando la cifra vieja y nadie tendría
+   * un rojo que se lo dijera. Que estén ENTERAS en Progreso lo mide
+   * `src/features/progreso/ProgresoPage.test.tsx`.
+   */
+  it('la Escala Alfa y las competencias ya no están en el panel: se fueron a Progreso', async () => {
+    const usuario = userEvent.setup()
+    montarConFuerza()
+    await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+
+    expect(salon.querySelector('[data-recuadro="escala-alfa"]')).toBeNull()
+    expect(salon.querySelector('[data-recuadro="competencias"]')).toBeNull()
+    // Ni por su marca ni por su texto: un bloque puede colarse sin `data-recuadro`.
+    expect(salon.textContent).not.toMatch(/Escala Alfa/)
+    expect(salon.textContent).not.toMatch(/Competencias evaluadas/)
   })
 
   it('lo que las paredes recortaron está ÍNTEGRO abajo, con su huella', async () => {

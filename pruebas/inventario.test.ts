@@ -39,6 +39,7 @@ function fuente(ruta: string): string {
 const PANEL_INFERIOR = fuente('src/features/entrenar/salon/panel/PanelInferior.tsx')
 const SALON = fuente('src/features/entrenar/salon/SalonEntrenar.tsx')
 const RUTA_PAGE = fuente('src/features/entrenar/RutaPage.tsx')
+const PROGRESO = fuente('src/features/progreso/ProgresoPage.tsx')
 
 /**
  * Dónde vive cada bloque de la pantalla vieja dentro del salón.
@@ -47,11 +48,23 @@ const RUTA_PAGE = fuente('src/features/entrenar/RutaPage.tsx')
  *
  * - `recuadro:<clave>` — baja al panel inferior con ese `data-recuadro`.
  * - `hueco:<clave>`    — es uno de los cinco huecos de `huecos.ts`.
+ * - `progreso:<clave>` — ya no vive en Entrenar: se mudó a la pestaña **Progreso** y allí
+ *                        lleva ese `data-bloque`.
  * - `rutaPage`         — se queda en `RutaPage.tsx`, fuera del salón, porque solo ahí se
  *                        sabe (es el caso del estado «sin microciclo activo»).
  *
  * El mapa tiene que cubrir CADA UNO de los bloques del inventario: un bloque sin entrada aquí es
  * un bloque del que nadie ha decidido nada, y eso es exactamente lo que hay que cazar.
+ *
+ * ## Mudarse no es perderse — pero hay que mirar la casa nueva
+ *
+ * El 29-ago, por decisión de Bryan, «Competencias evaluadas» y «Escala Alfa» salieron del
+ * panel del salón y entraron en Progreso. La tentación al ver el rojo era borrar sus dos
+ * líneas de este mapa: la suite se habría quedado verde con la información en ningún sitio,
+ * que es el fallo exacto que este archivo existe para impedir. Así que no se borran: se
+ * REDIRIGEN, y el destino se comprueba igual de duro que el origen —el `data-bloque` en
+ * `ProgresoPage.tsx` y el montaje del mismo componente de `ruta/`—. Los DATOS en el DOM de
+ * Progreso los mide `src/features/progreso/ProgresoPage.test.tsx`.
  */
 const SITIO_EN_EL_SALON: Record<string, string> = {
   'Pieza cinemática': 'hueco:centro',
@@ -63,9 +76,9 @@ const SITIO_EN_EL_SALON: Record<string, string> = {
   'Cómo llegas': 'recuadro:como-llegas',
   'Bloque en curso': 'recuadro:bloque-en-curso',
   'Calendario de la semana': 'recuadro:calendario',
-  'Competencias evaluadas': 'recuadro:competencias',
+  'Competencias evaluadas': 'progreso:competencias',
   'Requisitos de nivel': 'recuadro:requisitos',
-  'Escala Alfa': 'recuadro:escala-alfa',
+  'Escala Alfa': 'progreso:escala-alfa',
   'Estado sin microciclo': 'rutaPage',
 }
 
@@ -105,31 +118,55 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
       expect(PANEL_INFERIOR).toContain(`clave="${clave}"`)
       return
     }
+    if (tipo === 'progreso') {
+      // En su casa nueva, y con la marca puesta a mano: un bloque que apareciera en
+      // Progreso de rebote, arrastrado por otro componente, no cuenta como decidido.
+      expect(PROGRESO).toContain(`data-bloque="${clave}"`)
+      // Y que ya NO esté en el panel del salón. Sin esto, el día que alguien lo devuelva a
+      // Entrenar sin avisar, el mapa seguiría diciendo que vive en Progreso y nadie lo
+      // desmentiría: estaría en los dos sitios, o en el que no toca.
+      expect(PANEL_INFERIOR).not.toContain(`clave="${clave}"`)
+      return
+    }
     expect(SALON).toContain(`data-hueco="${clave}"`)
   })
 
   /**
-   * Los doce recuadros del panel, contados.
+   * Los doce recuadros del panel, contados — y de dónde sale cada uno.
    *
-   * `PanelInferior.tsx` documenta doce bloques en su tabla de cabecera. Once son bloques del
-   * inventario; el doceavo —`ejercicio`— es NUEVO: lleva los textos completos que
-   * `contenidoPared()` recortó para las paredes. Contar aquí evita el fallo silencioso de
-   * que alguien quite un recuadro y el panel siga pareciendo lleno.
+   * Siguen siendo doce, pero ya no son los mismos doce, y la cuenta sola no lo habría
+   * notado: salieron `competencias` y `escala-alfa` camino de Progreso, y entraron los
+   * cuadros verdes del encargo —`antes`, `patron`— junto al de `ejercicio`. Doce menos dos
+   * más tres no da doce; el que falta es que `ejercicio` ya estaba. Por eso aquí no se
+   * cuenta y se calla: se comprueba que los NUEVE que el mapa manda al panel están, que los
+   * que se mudaron NO están, y que el total cuadra con la suma de los dos grupos.
    */
-  it('el panel monta doce recuadros: los once bloques que bajaron más el del ejercicio', () => {
+  it('el panel monta doce recuadros: los nueve del inventario más los tres del salón', () => {
     const claves = [...PANEL_INFERIOR.matchAll(/clave="([a-z-]+)"/g)].map((m) => m[1])
     expect(new Set(claves).size).toBe(claves.length) // ninguno repetido
-    expect(claves).toHaveLength(12)
-    const delInventario = bloquesDelInventario()
-      .map((b) => SITIO_EN_EL_SALON[b])
+
+    const sitios = bloquesDelInventario().map((b) => SITIO_EN_EL_SALON[b])
+    const alPanel = sitios
       .filter((s) => s.startsWith('recuadro:'))
       .map((s) => s.slice('recuadro:'.length))
-    expect(claves).toEqual(expect.arrayContaining(delInventario))
-    expect(claves).toContain('ejercicio')
+    const aProgreso = sitios
+      .filter((s) => s.startsWith('progreso:'))
+      .map((s) => s.slice('progreso:'.length))
+    expect(alPanel).toHaveLength(9)
+    expect(aProgreso).toHaveLength(2)
+
+    // Los del inventario que siguen aquí, todos.
+    expect(claves).toEqual(expect.arrayContaining(alPanel))
+    // Los que se fueron, ninguno: si volviera alguno sin cambiar el mapa, se vería.
+    for (const clave of aProgreso) expect(claves).not.toContain(clave)
+    // Y los tres que no vienen del inventario, sino del encargo del salón: la prescripción
+    // entera, lo de antes de entrenar y las notas de ejecución.
+    for (const clave of ['ejercicio', 'antes', 'patron']) expect(claves).toContain(clave)
+    expect(claves).toHaveLength(alPanel.length + 3)
   })
 
   /**
-   * Los ocho de `ruta/` bajan montando EL MISMO componente, no una copia adaptada.
+   * Los de `ruta/` bajan montando EL MISMO componente, no una copia adaptada.
    *
    * Es la única forma de poder afirmar que no se perdió un dato dentro de un bloque. Una
    * versión «adaptada al panel» de `CalendarioSemana` sería una segunda maqueta, y lo que
@@ -141,13 +178,44 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
     ['ComoLlegas', '../../ruta/ComoLlegas'],
     ['BloqueEnCurso', '../../ruta/BloqueEnCurso'],
     ['CalendarioSemana', '../../ruta/CalendarioSemana'],
-    ['CompetenciasEvaluadas', '../../ruta/CompetenciasEvaluadas'],
     ['RequisitosNivel', '../../ruta/RequisitosNivel'],
-    ['EscalaAlfa', '../../ruta/EscalaAlfa'],
     ['NotasDeLaSemana', '../../NotasDeLaSemana'],
   ])('el panel monta el %s de la Ruta, no una copia', (componente, ruta) => {
     expect(PANEL_INFERIOR).toContain(`import { ${componente} } from '${ruta}'`)
     expect(PANEL_INFERIOR).toContain(`<${componente}`)
+  })
+
+  /**
+   * Y LOS DOS QUE SE MUDARON MONTAN EL MISMO COMPONENTE EN PROGRESO.
+   *
+   * La misma exigencia que se le hacía al panel, ahora en la casa nueva: si Progreso los
+   * hubiera reescrito «a su manera», la mudanza sería una copia, y una copia se separa del
+   * original al primer arreglo sin que nadie vea qué dato se quedó por el camino. La
+   * comprobación de que además se pintan CON DATOS está en
+   * `src/features/progreso/ProgresoPage.test.tsx`.
+   */
+  it.each([
+    ['CompetenciasEvaluadas', '../entrenar/ruta/CompetenciasEvaluadas'],
+    ['EscalaAlfa', '../entrenar/ruta/EscalaAlfa'],
+  ])('Progreso monta el %s de la Ruta, no una copia', (componente, ruta) => {
+    expect(PROGRESO).toContain(`import { ${componente} } from '${ruta}'`)
+    expect(PROGRESO).toContain(`<${componente}`)
+    // Y el panel del salón ya no lo monta: si estuviera en los dos sitios, los dos se
+    // separarían con el tiempo y cada pantalla enseñaría un número distinto.
+    expect(PANEL_INFERIOR).not.toContain(`<${componente}`)
+  })
+
+  /**
+   * Los números de Progreso salen de las MISMAS cuentas que los de la Ruta.
+   *
+   * Es el riesgo que trae toda mudanza en este repo: no perder el bloque, sino que la casa
+   * nueva se ponga a calcular por su cuenta. Dos pantallas con cifras creíbles y distintas
+   * no las desmiente nadie. `calculosDeLaRuta()` es el único sitio donde se arman.
+   */
+  it('Progreso calcula las competencias con calculosDeLaRuta, no con cuentas propias', () => {
+    expect(PROGRESO).toContain("from '../entrenar/ruta/calculosDeLaRuta'")
+    expect(PROGRESO).toContain('calculosDeLaRuta(')
+    expect(PROGRESO).not.toContain('competenciasCalculadas(')
   })
 
   /**

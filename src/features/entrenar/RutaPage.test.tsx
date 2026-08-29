@@ -9,14 +9,18 @@ import RutaPage from './RutaPage'
 
 /**
  * `/entrenar` ya no es una columna de texto: es el salón, con el sujeto en el centro y
- * TODO lo largo dentro del panel de abajo, que arranca CERRADO a propósito.
+ * con todo lo largo dentro del panel de abajo, que arranca CERRADO a propósito.
  *
- * Estos tests protegen exactamente lo mismo que protegían cuando existía la columna —que
- * se llega al nivel, al bloque y a la escala; que están los siete días con hoy
- * seleccionado; que una sesión de la agenda lleva a su pantalla; y que no se promete un
- * nivel sin decir cuánto falta—, solo que ahora hay que ABRIR EL PANEL para verlo. El
- * cambio es de sitio, no de contenido: si algo de esto desapareciera del panel, estos
- * cuatro se ponen rojos igual que antes.
+ * Estos tests protegen lo mismo que protegían cuando existía la columna —que se llega al
+ * nivel y al bloque; que están los siete días con hoy seleccionado; que una sesión de la
+ * agenda lleva a su pantalla; y que no se promete un nivel sin decir cuánto falta—, solo
+ * que ahora hay que ABRIR EL PANEL para verlo. El cambio es de sitio, no de contenido: si
+ * algo de esto desapareciera del panel, estos cuatro se ponen rojos igual que antes.
+ *
+ * La Escala Alfa y las competencias evaluadas ya no se buscan aquí: el 29-ago se mudaron a
+ * la pestaña Progreso. Quien las defiende ahora es
+ * `src/features/progreso/ProgresoPage.test.tsx`; lo que queda en este archivo es la otra
+ * mitad de esa mudanza —que en el panel ya NO están—, para que no acaben en dos sitios.
  */
 function renderizar() {
   return render(
@@ -53,7 +57,21 @@ function recuadro(clave: string): HTMLElement {
 describe('RutaPage', () => {
   beforeEach(() => localStorage.clear())
 
-  it('el panel trae el nivel, el bloque y la escala', async () => {
+  /**
+   * LO QUE EL PANEL SIGUE TRAYENDO — Y LO QUE SE FUE A PROGRESO.
+   *
+   * Este test exigía además la Escala Alfa y las competencias evaluadas DENTRO del panel.
+   * Desde el 29-ago no están ahí: por decisión de Bryan viven en la pestaña Progreso. Se
+   * comprobó en el DOM que este mismo test monta —con el panel abierto no hay ni un
+   * `[data-recuadro="escala-alfa"]` ni un `[data-recuadro="competencias"]`—, así que las dos
+   * aserciones defendían una disposición que ya no existe: son viejas, no un fallo.
+   *
+   * No se borran y ya está, que sería quedarse verde sin mirar dónde acabó la información.
+   * Se sustituyen por su reverso —que aquí YA NO están— y la comprobación de que están
+   * enteras en su casa nueva vive en `src/features/progreso/ProgresoPage.test.tsx`, con los
+   * nombres, los porcentajes y los peldaños medidos contra el dominio.
+   */
+  it('el panel trae el nivel y el bloque; la escala y las competencias ya no', async () => {
     const usuario = userEvent.setup()
     renderizar()
 
@@ -69,10 +87,14 @@ describe('RutaPage', () => {
     // El título del recuadro y el encabezado del bloque dicen lo mismo, así que se
     // cuentan las apariciones en vez de exigir una sola.
     expect(within(recuadro('bloque-en-curso')).getAllByText('Bloque en curso').length).toBeGreaterThan(0)
-    expect(within(recuadro('escala-alfa')).getAllByText('Escala Alfa').length).toBeGreaterThan(0)
-    expect(
-      within(recuadro('competencias')).getAllByText('Competencias evaluadas').length,
-    ).toBeGreaterThan(0)
+
+    // Y las dos que se mudaron no están aquí ni por su recuadro ni por su texto. Lo segundo
+    // importa: un bloque puede colarse sin marca, arrastrado por otro componente, y sería
+    // exactamente el estado que no se quiere —el mismo dato en dos pantallas, separándose.
+    expect(document.querySelector('[data-recuadro="escala-alfa"]')).toBeNull()
+    expect(document.querySelector('[data-recuadro="competencias"]')).toBeNull()
+    expect(screen.queryByText('Escala Alfa')).toBeNull()
+    expect(screen.queryByText('Competencias evaluadas')).toBeNull()
   })
 
   it('el panel pinta los 7 días de la semana y arranca con hoy seleccionado', async () => {

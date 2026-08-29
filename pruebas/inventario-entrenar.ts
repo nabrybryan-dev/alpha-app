@@ -24,6 +24,16 @@
  * - `origen` — la ruta del archivo que lo pintaba. Con ella se puede volver al código y
  *   comprobar la entrada sin fiarse de esta lista.
  *
+ * ## Dos bloques ya no viven en `/entrenar`, y siguen en la lista
+ *
+ * El 29-ago, por decisión de Bryan, «Competencias evaluadas» y «Escala Alfa» se fueron a la
+ * pestaña **Progreso**. No se borran de aquí por eso: esta lista dice qué información existe
+ * y de dónde venía, no en qué pantalla acabó. Quién la guarda ahora lo dice el mapa
+ * `SITIO_EN_EL_SALON` de `inventario.test.ts`, que a esos dos los sigue hasta Progreso y
+ * exige verlos ALLÍ —marca propia, mismo componente, mismas cuentas—. Borrarlos habría
+ * dejado la suite en verde con la información en ningún sitio, que es justo el fallo contra
+ * el que se escribió todo esto.
+ *
  * ## Lo que este archivo NO demuestra
  *
  * Que el dato se VEA bien. Un inventario prueba presencia, no legibilidad: si un texto está
@@ -140,7 +150,11 @@ export const INVENTARIO_ENTRENAR: readonly EntradaDeInventario[] = [
 
   // ── Escala Alfa ───────────────────────────────────────────────────────────
   { bloque: 'Escala Alfa', dato: 'Título «Escala Alfa»', origen: ESCALA },
-  { bloque: 'Escala Alfa', dato: 'Los cinco peldaños con su número', origen: ESCALA },
+  // Siete, no cinco: contados en `src/data/ruta/contenidoRuta.ts` el 29-ago. Aquí decía
+  // «los cinco» porque se copió del comentario de cabecera de `EscalaAlfa.tsx`, que dice
+  // «los 5 niveles» y lleva tiempo desmentido por el dato. El número no se vuelve a escribir
+  // a mano en ningún test: se compara el DOM con la escala que devuelve el repositorio.
+  { bloque: 'Escala Alfa', dato: 'Cada peldaño de la escala con su número', origen: ESCALA },
   { bloque: 'Escala Alfa', dato: 'El nombre de cada peldaño', origen: ESCALA },
   { bloque: 'Escala Alfa', dato: 'La descripción de cada peldaño', origen: ESCALA },
   { bloque: 'Escala Alfa', dato: 'El nivel de método: Principiante / Intermedio / Avanzado', origen: ESCALA },
