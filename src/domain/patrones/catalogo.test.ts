@@ -223,6 +223,9 @@ describe('la movilidad que los patrones dan por supuesta', () => {
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
     sentadilla_unilateral: 34,
     sentadilla: 29,
+    // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
+    // deprisa y profundo es de los gestos que más tobillo piden.
+    salto: 25,
   }
 
   it('no pide más tobillo del que ya pedía', () => {

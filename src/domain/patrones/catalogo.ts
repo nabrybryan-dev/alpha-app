@@ -87,12 +87,23 @@ export interface Patron {
    * ejercicio contrario.
    */
   cadena: 'cerrada' | 'abierta'
+  /**
+   * Puntos del cuerpo que TAMBIÉN apoyan, además de los pies: el hueso y dónde.
+   *
+   * El equilibrio se comprueba contra la base de apoyo, y la base no siempre
+   * son solo los pies. En el hip thrust los hombros descansan en el banco; en
+   * la búlgara, el pie trasero va sobre otro. Sin declararlo, la física exige
+   * una plomada que el ejercicio real no necesita.
+   */
+  apoyosExtra?: [string, number][]
 }
 
 export const PATRONES: Patron[] = [
   {
     id: 'extension_cadera',
     cadena: 'cerrada',
+    // Los hombros descansan en el banco: la base no son solo los pies.
+    apoyosExtra: [['torax', 1]],
     categoria: 'EXTENSIÓN DE CADERA',
     // En el hip thrust el momento extensor es máximo con la cadera cerca de 90°
     // —abajo— y decae hacia la extensión completa: cuesta nada más arrancar.
@@ -151,7 +162,9 @@ export const PATRONES: Patron[] = [
     fin: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.55, gluteo_mayor: 0.95, 'aductores.mayor': 0.7, 'aductores.largo': 0.5, erectores: 0.7, 'triceps_sural.soleo': 0.45, isquiotibiales: 0.35, recto_abdominal: 0.4, oblicuos: 0.35, gluteo_medio: 0.45 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
-    camara: { azimut: 30, elevacion: 4 },
+    // De lado, no de frente: a 30 grados la profundidad no se lee y la bajada
+    // parece que el sujeto se aplasta en vez de echar la cadera atras.
+    camara: { azimut: 72, elevacion: 6 },
   },
   {
     id: 'bisagra_cadera',
@@ -211,6 +224,8 @@ export const PATRONES: Patron[] = [
   {
     id: 'sentadilla_unilateral',
     cadena: 'cerrada',
+    // El pie trasero apoya en el banco y también sostiene.
+    apoyosExtra: [['pieI', 0.5]],
     categoria: 'SENTADILLA UNILATERAL',
     titulo: 'Sentadilla unilateral',
     ejemplos: 'Sentadilla búlgara con mancuernas · Búlgara en Smith · Zancada con mancuernas',
@@ -364,8 +379,8 @@ export const PATRONES: Patron[] = [
     giroFin: [64, 0, 0],
     raizInicio: [0, 0.95, -0.06],
     raizFin: [0, 0.95, -0.06],
-    inicio: { caderaFlex: 62, rodillaFlex: 16, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
-    fin: { caderaFlex: 62, rodillaFlex: 16, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaProt: -32 },
+    inicio: { caderaFlex: 70, rodillaFlex: 16, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
+    fin: { caderaFlex: 70, rodillaFlex: 16, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.6, 'trapecio.superior': 0.3, romboides: 0.9, 'deltoides.posterior': 0.8, redondo_mayor: 0.75, biceps: 0.75, braquial: 0.65, braquiorradial: 0.5, erectores: 0.6, isquiotibiales: 0.4, 'manguito.infraespinoso': 0.4 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 68, elevacion: 8 },
@@ -444,8 +459,8 @@ export const PATRONES: Patron[] = [
     giroFin: [60, 0, 0],
     raizInicio: [0, 0.95, -0.05],
     raizFin: [0, 0.95, -0.05],
-    inicio: { caderaFlex: 58, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
-    fin: { caderaFlex: 58, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
+    inicio: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
+    fin: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
@@ -679,8 +694,8 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroFlex: 42, codoFlex: 118, caderaFlex: 12, rodillaFlex: 14, toraxRot: 10, lumbarRot: 5, escapulaProt: 6 },
-    fin: { hombroFlex: 74, codoFlex: 12, caderaFlex: 12, rodillaFlex: 14, toraxRot: 2, lumbarRot: 1, escapulaProt: 20 },
+    inicio: { hombroFlex: 42, codoFlex: 118, caderaFlex: 4, rodillaFlex: 6, toraxRot: 10, lumbarRot: 5, escapulaProt: 6 },
+    fin: { hombroFlex: 74, codoFlex: 12, caderaFlex: 4, rodillaFlex: 6, toraxRot: 2, lumbarRot: 1, escapulaProt: 20 },
     activacion: {
       'oblicuos.externo': 1,
       'oblicuos.interno': 1,
@@ -797,8 +812,8 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { lumbarLat: 27, toraxLat: 24, pelvisLat: 18, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, escapulaElev: -14 },
-    fin: { lumbarLat: -1, toraxLat: 0, pelvisLat: -3, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, escapulaElev: 3 },
+    inicio: { lumbarLat: 27, toraxLat: 24, pelvisLat: 18, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, rodillaFlex: 6, escapulaElev: -14 },
+    fin: { lumbarLat: -1, toraxLat: 0, pelvisLat: -3, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, rodillaFlex: 6, escapulaElev: 3 },
     activacion: {
       cuadrado_lumbar: 1,
       'oblicuos.externo': 0.95,
@@ -849,7 +864,7 @@ export const PATRONES: Patron[] = [
     },
     // Se traza la punta del pie y no el final del hueso: es lo que de verdad
     // sube, y sobre un hueso tan corto la diferencia decide si el arco se ve.
-    seguimiento: ['pieD', 1, [0, 0, 0.05]],
+    seguimiento: ['pieD', 1, [0, 0, 0.075]],
     camara: { azimut: 86, elevacion: 10 },
   },
   {
@@ -906,7 +921,9 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.72, 0],
     raizFin: [0, 1.02, 0],
-    inicio: { caderaFlex: 68, rodillaFlex: 74, tobilloPlantar: -16, toraxFlex: 18, hombroFlex: -34, codoFlex: 26 },
+    giroInicio: [40, 0, 0],
+    giroFin: [0, 0, 0],
+    inicio: { caderaFlex: 92, rodillaFlex: 74, tobilloPlantar: -16, toraxFlex: 18, hombroFlex: -34, codoFlex: 26 },
     fin: { caderaFlex: 4, rodillaFlex: 6, tobilloPlantar: 42, toraxFlex: 2, hombroFlex: 96, codoFlex: 12 },
     activacion: {
       'cuadriceps.vasto_lateral': 1,

@@ -11,6 +11,7 @@ import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type Esqueleto
 import { flecha, Malla, tuboDiscontinuo, type Color } from './malla'
 import { activacionDe, PORCIONES, trazadoDeFasciculo } from './musculos'
 import { poseAnimada } from './movimiento'
+import { plomada } from './gravedad'
 
 export const AMBAR: Color = [0.91, 0.698, 0.235]
 export const AMBAR_APAGADO: Color = [0.47, 0.4, 0.23]
@@ -294,6 +295,25 @@ export function trazaDelPatron(patron: Patron): Vec3[] | null {
  * Guías: el arco ámbar del movimiento y, mientras se gira, la esfera que indica
  * que la figura se puede orbitar.
  */
+/**
+ * La plomada del peso: la línea vertical del centro de masas al suelo.
+ *
+ * Es la física de Newton hecha visible. La resultante del peso de todos los
+ * segmentos —la ley del paralelogramo aplicada a fuerzas paralelas— cae por
+ * esta línea, y verla dentro del apoyo es ver POR QUÉ la cadera se echa atrás
+ * cuando la rodilla va adelante: no es estilo, es equilibrio. Solo se dibuja
+ * con suelo, porque tumbado no hay plomada que guardar.
+ */
+export function lineaDePeso(esq: EsqueletoResuelto): Malla {
+  const m = new Malla(256)
+  const { desde, hasta } = plomada(esq)
+  const GRIS: Color = [0.55, 0.58, 0.64]
+  const APAGADO: Color = [0.4, 0.43, 0.48]
+  tuboDiscontinuo(m, [desde, hasta], 0.004, GRIS, APAGADO, 1, 0.045, 0.03)
+  flecha(m, [hasta[0], hasta[1] + 0.05, hasta[2]], hasta, 0.004, GRIS)
+  return m
+}
+
 export function guias(
   traza: Vec3[] | null,
   fase: number,

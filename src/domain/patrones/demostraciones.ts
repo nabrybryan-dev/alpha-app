@@ -202,7 +202,110 @@ export const DEMOSTRACION_POR_ID: Record<string, Demostracion> = Object.fromEntr
   DEMOSTRACIONES.map((d) => [d.id, d]),
 )
 
-/** Las demostraciones de una articulación concreta. */
-export function demostracionesDe(articulacionId: string): Demostracion[] {
-  return DEMOSTRACIONES.filter((d) => d.articulacion.id === articulacionId)
+/**
+ * Variantes de CADENA CERRADA para las articulaciones del apoyo.
+ *
+ * La demostración de siempre aísla con el segmento distal libre: la tibia
+ * columpiándose para la rodilla, la pierna subiendo para la cadera. Eso es
+ * correcto llegando de un curl femoral o de una elevación de pierna — pero
+ * llegando de una sentadilla es el gesto CONTRARIO: ahí el pie está clavado en
+ * el suelo, la tibia no puede ir a ninguna parte y lo que se mueve es el fémur
+ * sobre ella, con la pelvis bajando. Enseñar la abierta como «lo que hace la
+ * rodilla en la sentadilla» hace leer el músculo equivocado.
+ *
+ * Solo existen para las tres articulaciones que apoyan. Un curl de bíceps en
+ * cadena cerrada sería una dominada: existe, pero no está modelada, y mejor la
+ * abierta de siempre que una cerrada inventada.
+ */
+const CERRADAS: Record<string, () => Patron> = {
+  'rodilla.rodillaFlex': () => ({
+    id: 'demo-rodilla-rodillaFlex-cerrada',
+    categoria: '',
+    titulo: 'Rodilla: flexión y extensión, con el pie fijo',
+    ejemplos: '',
+    resumen:
+      'El pie está clavado en el suelo, así que la tibia apenas se mueve: es el ' +
+      'fémur el que gira sobre ella y la pelvis baja con él. Es lo que hace la ' +
+      'rodilla dentro de una sentadilla, y el cuádriceps es quien frena la bajada.',
+    claves: [],
+    errores: [],
+    apoyo: 'suelo',
+    cadena: 'cerrada',
+    pies: ['D', 'I'],
+    // El tronco y el fémur se inclinan atrás JUNTOS mientras la rodilla dobla:
+    // es la única forma de que el pie se quede y el peso no se vaya de la base.
+    giroInicio: [0, 0, 0],
+    giroFin: [-34, 0, 0],
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { rodillaFlex: 2 },
+    fin: { rodillaFlex: 96 },
+    activacion: activacionDe(ARTICULACIONES.find((a) => a.id === 'rodilla')!),
+    seguimiento: ['musloD', 1, [0.06, 0, 0]],
+    camara: { azimut: 86, elevacion: 6 },
+  }),
+  'cadera.caderaFlex': () => ({
+    id: 'demo-cadera-caderaFlex-cerrada',
+    categoria: '',
+    titulo: 'Cadera: flexión y extensión, con el pie fijo',
+    ejemplos: '',
+    resumen:
+      'El pie no se mueve: la pelvis se echa atrás y el tronco baja por ' +
+      'consecuencia, con la tibia casi vertical. Es la bisagra de cadera — lo ' +
+      'que hace esta articulación en un peso muerto.',
+    claves: [],
+    errores: [],
+    apoyo: 'suelo',
+    cadena: 'cerrada',
+    giroInicio: [-2, 0, 0],
+    giroFin: [82, 0, 0],
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, -0.04],
+    inicio: { caderaFlex: -2, rodillaFlex: 12 },
+    fin: { caderaFlex: 94, rodillaFlex: 12 },
+    activacion: activacionDe(ARTICULACIONES.find((a) => a.id === 'cadera')!),
+    seguimiento: ['pelvis', 0, [0, 0, -0.08]],
+    camara: { azimut: 86, elevacion: 6 },
+  }),
+  'tobillo.tobilloPlantar': () => ({
+    id: 'demo-tobillo-tobilloPlantar-cerrada',
+    categoria: '',
+    titulo: 'Tobillo: flexión plantar, con la punta fija',
+    ejemplos: '',
+    resumen:
+      'La punta del pie queda en el suelo y el talón sube, llevándose el cuerpo ' +
+      'entero. Es la elevación de talones: el tríceps sural levantando el peso ' +
+      'con la palanca más corta del cuerpo.',
+    claves: [],
+    errores: [],
+    apoyo: 'suelo',
+    cadena: 'cerrada',
+    // Sin aplanar el pie: aquí el talón tiene que despegar. La altura la
+    // corrige el apoyo, así que el cuerpo sube con él.
+    pies: [],
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { tobilloPlantar: -2 },
+    fin: { tobilloPlantar: 42 },
+    activacion: activacionDe(ARTICULACIONES.find((a) => a.id === 'tobillo')!),
+    seguimiento: ['pieD', 0, [0, 0, -0.04]],
+    camara: { azimut: 86, elevacion: 6 },
+  }),
+}
+
+/**
+ * Las demostraciones de una articulación, respetando la cadena del ejercicio
+ * del que se viene. Sin contexto, las abiertas de siempre.
+ */
+export function demostracionesDe(
+  articulacionId: string,
+  cadena: 'cerrada' | 'abierta' = 'abierta',
+): Demostracion[] {
+  const abiertas = DEMOSTRACIONES.filter((d) => d.articulacion.id === articulacionId)
+  if (cadena !== 'cerrada') return abiertas
+  return abiertas.map((d) => {
+    const variante = CERRADAS[`${articulacionId}.${d.eje.canal}`]
+    if (!variante) return d
+    return { ...d, id: variante().id, patron: variante() }
+  })
 }

@@ -271,7 +271,33 @@ export function resolverConApoyo(
     }
   }
   const objetivo = altura ?? 0
-  return resolver(conPies, [desplazamiento[0], desplazamiento[1] + (objetivo - y), desplazamiento[2]], giroRaiz)
+
+  // Y el ancla HORIZONTAL, que faltaba. La corrección de altura evita que el
+  // sujeto se hunda o flote, pero nadie impedía que los pies PATINARAN: en una
+  // sentadilla la base se iba medio metro hacia adelante entre el arranque y el
+  // fondo, así que el sujeto entero derrapaba por el suelo en vez de moverse
+  // sobre sus apoyos. Un pie plantado es un ancla en las tres dimensiones, no
+  // solo en la vertical: el punto medio de los apoyos se lleva siempre al mismo
+  // sitio, y es el cuerpo el que se desplaza alrededor de ellos — que es
+  // exactamente lo que significa cadena cerrada.
+  let cx = 0
+  let cz = 0
+  let n = 0
+  for (const h of huesos) {
+    for (const t of [0, 1]) {
+      const p = puntoDeHueso(esq, h, t)
+      cx += p[0]
+      cz += p[2]
+      n++
+    }
+  }
+  cx /= n
+  cz /= n
+  return resolver(
+    conPies,
+    [desplazamiento[0] - cx, desplazamiento[1] + (objetivo - y), desplazamiento[2] - cz],
+    giroRaiz,
+  )
 }
 
 export function mezclarVec(a: Vec3 | undefined, b: Vec3 | undefined, t: number): Vec3 {

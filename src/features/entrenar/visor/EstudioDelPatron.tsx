@@ -71,7 +71,7 @@ export function EstudioDelPatron({ patron }: EstudioDelPatronProps) {
       {vista === 'ejercicio' ? (
         <VisorPatron patron={patron} />
       ) : (
-        <ExploradorAnatomico articulacionInicial={articulacionProtagonista(patron)} />
+        <ExploradorAnatomico articulacionInicial={articulacionProtagonista(patron)} cadena={patron.cadena} />
       )}
     </div>
   )

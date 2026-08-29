@@ -10,6 +10,7 @@ import {
   esqueletoEnFase,
   faseDeTiempo,
   guias,
+  lineaDePeso,
   trazaDelPatron,
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
@@ -153,6 +154,9 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
           const partes = conEscenario ? [laboratorio()] : []
+          // La plomada del peso: dónde cae la resultante. Con suelo, porque
+          // tumbado no hay equilibrio que enseñar.
+          if (conEscenario && patron.apoyo === 'suelo') partes.push(lineaDePeso(esq))
           if (estado.current.capa !== 'musculo') partes.push(huesos)
           if (estado.current.capa !== 'hueso')
             partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
