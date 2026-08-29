@@ -184,7 +184,7 @@ function pared(m: Malla, n = 96): void {
  *
  * Hay una F, y no es un capricho: **el fallo NO es RIR 0**. RIR 0 es la última
  * repetición completa con la parcial en reserva; el fallo es meterse en esa parcial, y
- * es la unidad de cuenta del método. Enseñar un cero donde la prescripción dice FALLO
+ * es la unidad de cuenta de esta casa. Enseñar un cero donde la prescripción dice FALLO
  * sería decir otra cosa — así que el marcador lo dice con su letra, que además un
  * display de siete segmentos sabe dibujar.
  */

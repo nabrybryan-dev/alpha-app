@@ -12,7 +12,7 @@ import { cuadro } from './sala'
  *
  * Antes la estación era una huella pintada en el suelo. Una huella dice DÓNDE, y no
  * dice nada de lo demás: a qué altura, mirando a dónde, si el sujeto cabe. Un trípode
- * con su móvil dice las tres cosas de un vistazo, y sobre todo **se puede mover**.
+ * con su móvil dice las tres cosas de un vistazo, y además **se puede mover**.
  *
  * Ese es el salto. La puerta de encuadre del encoder hoy solo habla DESPUÉS: grabas,
  * y te dice que la toma no valía. Aquí se puede ensayar antes, con la misma regla, y
