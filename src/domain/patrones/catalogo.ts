@@ -186,7 +186,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'FLEXIÓN DE RODILLA',
     titulo: 'Flexión de rodilla',
-    ejemplos: 'Flexión de rodilla en máquina (sentado) · Flexión de rodilla en máquina (tumbado)',
+    ejemplos: 'Flexión de rodilla tumbado en máquina · Flexión de rodilla de pie (unilateral)',
     resumen:
       'El talón viaja hacia el glúteo. Aísla el isquio en su otra función: la que la bisagra de cadera no entrena.',
     claves: [
@@ -483,7 +483,7 @@ export const PATRONES: Patron[] = [
     titulo: 'Extensión de codo',
     ejemplos: 'Extensión de codo en polea · Extensión de codo unilateral',
     resumen:
-      'El antebrazo se separa del brazo. El tríceps es dos tercios del volumen del brazo, y su cabeza larga solo se estira con el hombro flexionado.',
+      'El antebrazo empuja hacia abajo con el codo clavado al costado. El tríceps es dos tercios del volumen del brazo; aquí mandan sus cabezas lateral y medial, porque la larga trabaja acortada con el brazo pegado.',
     claves: [
       'Extiende del todo y aprieta un instante al final.',
       'El codo apunta al frente y se queda ahí, quieto.',
@@ -496,9 +496,16 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroFlex: 166, hombroAbd: 14, codoFlex: 148, toraxFlex: -6 },
-    fin: { hombroFlex: 168, hombroAbd: 12, codoFlex: 2, toraxFlex: -4 },
-    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'triceps.larga': 1, 'triceps.lateral': 0.9, 'triceps.medial': 0.9, serrato: 0.35, recto_abdominal: 0.3, 'deltoides.posterior': 0.3 },
+    // Pushdown en polea, que es lo que dicen sus ejemplos y lo que se programa:
+    // el codo pegado al costado y quieto, el antebrazo empujando hacia abajo.
+    // Estaba modelado con los brazos sobre la cabeza —extensión francesa—, un
+    // ejercicio real pero distinto del que las fichas prometen.
+    inicio: { hombroFlex: 24, hombroAbd: 6, codoFlex: 132, toraxFlex: 4, caderaFlex: 8, rodillaFlex: 10 },
+    fin: { hombroFlex: 16, hombroAbd: 6, codoFlex: 6, toraxFlex: 4, caderaFlex: 8, rodillaFlex: 10 },
+    // En el pushdown mandan la lateral y la medial: la cabeza larga cruza el
+    // hombro, y con el brazo pegado al costado trabaja acortada y pierde
+    // protagonismo. Era al reves cuando el patron estaba sobre la cabeza.
+    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'triceps.larga': 0.6, 'triceps.lateral': 1, 'triceps.medial': 1, serrato: 0.35, recto_abdominal: 0.3, 'deltoides.posterior': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 46, elevacion: 10 },
   },
@@ -580,8 +587,8 @@ export const PATRONES: Patron[] = [
     giro: [-88, 0, 0],
     raizInicio: [0, 0.50, 0],
     raizFin: [0, 0.50, 0],
-    inicio: { hombroAbd: 68, hombroFlex: 4, codoFlex: 112, escapulaProt: -28, caderaFlex: 42, rodillaFlex: 78 },
-    fin: { hombroAbd: 32, hombroFlex: 20, codoFlex: 2, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
+    inicio: { hombroAbd: 42, hombroFlex: 62, codoFlex: 100, escapulaProt: -28, caderaFlex: 42, rodillaFlex: 78 },
+    fin: { hombroAbd: 18, hombroFlex: 88, codoFlex: 4, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.esternocostal': 1, 'pectoral_mayor.clavicular': 0.6, 'pectoral_mayor.abdominal': 0.5, 'deltoides.anterior': 0.85, 'triceps.lateral': 0.8, 'triceps.medial': 0.8, 'triceps.larga': 0.55, serrato: 0.5, biceps: 0.2, 'manguito.subescapular': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 46 },
@@ -607,8 +614,8 @@ export const PATRONES: Patron[] = [
     giro: [-52, 0, 0],
     raizInicio: [0, 0.52, 0],
     raizFin: [0, 0.52, 0],
-    inicio: { hombroAbd: 64, hombroFlex: 6, codoFlex: 110, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
-    fin: { hombroAbd: 30, hombroFlex: 24, codoFlex: 2, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
+    inicio: { hombroAbd: 38, hombroFlex: 66, codoFlex: 102, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
+    fin: { hombroAbd: 16, hombroFlex: 92, codoFlex: 6, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.clavicular': 1, 'pectoral_mayor.esternocostal': 0.7, 'deltoides.anterior': 0.95, 'triceps.lateral': 0.75, 'triceps.medial': 0.75, serrato: 0.5, 'manguito.subescapular': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 40 },
@@ -749,11 +756,13 @@ export const PATRONES: Patron[] = [
       'Abrir por detrás de la línea del hombro buscando estiramiento: ahí manda la cápsula, no el músculo.',
     ],
     apoyo: 'ninguno',
-    giro: [88, 0, 0],
+    // Boca ARRIBA, como el press de banca: el giro estaba en +88 y el sujeto
+    // hacía las aperturas boca abajo, con las manos bajando en el cierre.
+    giro: [-88, 0, 0],
     raizInicio: [0, 0.55, 0],
     raizFin: [0, 0.55, 0],
-    inicio: { hombroAbd: 84, hombroFlex: 8, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
-    fin: { hombroAbd: 16, hombroFlex: 12, codoFlex: 30, hombroRot: 26, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
+    inicio: { hombroAbd: 78, hombroFlex: 74, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
+    fin: { hombroAbd: -12, hombroFlex: 90, codoFlex: 34, hombroRot: 0, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
     activacion: {
       'pectoral_mayor.esternocostal': 1,
       'pectoral_mayor.clavicular': 0.9,
@@ -863,8 +872,8 @@ export const PATRONES: Patron[] = [
     apoyo: 'ninguno',
     raizInicio: [0, 0.62, 0],
     raizFin: [0, 0.58, 0],
-    inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 128, codoFlex: 84, cuelloFlex: -8 },
-    fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 120, codoFlex: 88, cuelloFlex: 24 },
+    inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 148, codoFlex: 142, cuelloFlex: -8 },
+    fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 144, codoFlex: 140, cuelloFlex: 24 },
     activacion: {
       recto_abdominal: 1,
       'oblicuos.externo': 0.8,
@@ -969,11 +978,16 @@ export const PATRONES: Patron[] = [
       'Buscar el rango a tirones en vez de con recorridos lentos y repetidos.',
     ],
     apoyo: 'ninguno',
-    giro: [72, 0, 0],
+    // La raíz se inclina MÁS cuando la columna se extiende. Es la cadena
+    // cerrada hecha a mano: las manos están plantadas, así que el arco de la
+    // espalda no puede levantar el tronco entero —se hunde entre los apoyos,
+    // que es la vaca del gato-camello—. Sin esto las manos subían un metro.
+    giroInicio: [72, 0, 0],
+    giroFin: [92, 0, 0],
     raizInicio: [0, 0.68, 0],
     raizFin: [0, 0.72, 0],
     inicio: { toraxFlex: 34, lumbarFlex: 12, cuelloFlex: 26, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 108, codoFlex: 16, escapulaProt: 24 },
-    fin: { toraxFlex: -28, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 116, codoFlex: 12, escapulaProt: -14 },
+    fin: { toraxFlex: -20, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 106, codoFlex: 12, escapulaProt: -14 },
     activacion: {
       'erectores.longisimo': 1,
       'erectores.espinal': 0.95,
