@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useImperativeHandle, useState, type Ref } from 'react'
 import { Stepper } from '../../../../components/ui/Stepper'
 import { db } from '../../../../data/dbInstance'
 import { etiquetaDeSerie } from '../../../../domain/calendario'
-import { rirDeTabla } from '../../../../domain/objetivoDeIntensidad'
-import { seriePrescrita } from '../../../../domain/ondulacion'
-import { cargaSugerida } from '../../../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../../../domain/types'
-import { borrarClave, escribirJSON, leerJSON } from '../../../../lib/persistencia'
+import { borrarClave, escribirJSON } from '../../../../lib/persistencia'
+import { claveDeBorrador, leerBorrador, type BorradorDeSerie } from './borrador'
 
 /**
  * EL REGISTRO EN EL SUELO DEL SALÓN.
@@ -41,13 +39,9 @@ import { borrarClave, escribirJSON, leerJSON } from '../../../../lib/persistenci
  * abrir un segundo camino de escritura que el resto de la app no ve.
  */
 
-/** Cuando no hay nada de dónde deducir la carga, el stepper arranca aquí. */
-const CARGA_POR_DEFECTO_KG = 20
-
-interface Borrador {
-  cargaKg: number
-  reps: number
-  rir: number
+/** Lo que la barra del suelo necesita poder hacer desde fuera: guardar. */
+export interface RegistroSerieSalonHandle {
+  guardar: () => void
 }
 
 export interface RegistroSerieSalonProps {
@@ -56,29 +50,36 @@ export interface RegistroSerieSalonProps {
   ejercicio: EjercicioPrescrito
   /** Se llama DESPUÉS de escribir, con la serie que se acaba de guardar. */
   onGuardado?: (serie: SerieRegistrada) => void
+  /**
+   * Si pinta su propio botón de guardar.
+   *
+   * En el salón la acción vive en la barra del suelo, que está siempre a la vista aunque
+   * los mandos estén plegados: dos botones «Guardar serie 3» en la misma pantalla serían
+   * dos formas de hacer lo mismo y ninguna de las dos diría cuál manda. Por defecto va
+   * puesto, que es como lo monta cualquiera que use esta pieza suelta.
+   */
+  mostrarBoton?: boolean
+  /** Mando desde fuera: lo usa la barra del suelo para guardar sin abrir los mandos. */
+  ref?: Ref<RegistroSerieSalonHandle>
 }
 
 export function RegistroSerieSalon({
   microcicloId,
   ejercicio,
   onGuardado,
+  mostrarBoton = true,
+  ref,
 }: RegistroSerieSalonProps) {
   // La serie que toca es la siguiente a las ya registradas. Misma cuenta que la tarjeta
   // de la sesión: `series.length + 1`, no un contador propio que pueda desincronizarse.
   const orden = ejercicio.series.length + 1
   const completo = orden > ejercicio.sets
-  const prescrita = seriePrescrita(ejercicio, orden)
-  const clave = `alpha-serie-${microcicloId}-${ejercicio.id}-${orden}`
-
-  const [borrador, setBorrador] = useState<Borrador>(() =>
-    leerJSON<Borrador>(clave, {
-      cargaKg: cargaSugerida(ejercicio, prescrita) ?? CARGA_POR_DEFECTO_KG,
-      reps: prescrita?.reps ?? ejercicio.repsDiana,
-      // Con el objetivo en `FALLO` el stepper arranca en 0, y es lo correcto: la parte
-      // contada de una serie al fallo termina en la última repetición COMPLETA, que es
-      // RIR 0. La parcial que viene después no es una repetición en reserva.
-      rir: prescrita?.rir ?? rirDeTabla(ejercicio.rirObjetivo),
-    }),
+  // La clave y los valores de partida los pone `registro/borrador.ts`, que es de donde los
+  // leen también la barra del suelo y el módulo de la cámara. Escritos aquí, cada uno de
+  // los tres tendría su plantilla y se separarían sin que nada se pusiera rojo.
+  const clave = claveDeBorrador(microcicloId, ejercicio.id, orden)
+  const [borrador, setBorrador] = useState<BorradorDeSerie>(() =>
+    leerBorrador(microcicloId, ejercicio, orden),
   )
 
   // El borrador se remonta cuando cambia la serie: el estado inicial de `useState` solo
@@ -89,7 +90,7 @@ export function RegistroSerieSalon({
     escribirJSON(clave, borrador)
   }, [clave, borrador])
 
-  const cambiar = (parche: Partial<Borrador>) => setBorrador((b) => ({ ...b, ...parche }))
+  const cambiar = (parche: Partial<BorradorDeSerie>) => setBorrador((b) => ({ ...b, ...parche }))
 
   const guardar = () => {
     const serie: SerieRegistrada = {
@@ -103,6 +104,11 @@ export function RegistroSerieSalon({
     borrarClave(clave) // ya quedó en la base; el borrador deja de hacer falta
     onGuardado?.(serie)
   }
+
+  // El mando de fuera va DESPUÉS de definir `guardar` y antes del retorno temprano: un
+  // hook detrás de un `return` es lo que prohíbe la regla de los hooks, y con el ejercicio
+  // completo este componente sí retorna antes.
+  useImperativeHandle(ref, () => ({ guardar }))
 
   if (completo) {
     return (
@@ -170,14 +176,16 @@ export function RegistroSerieSalon({
         />
       </div>
 
-      <button
-        type="button"
-        onClick={guardar}
-        className="press mt-2.5 w-full rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white"
-        style={{ boxShadow: 'var(--glow-accion)' }}
-      >
-        Guardar serie {orden}
-      </button>
+      {mostrarBoton && (
+        <button
+          type="button"
+          onClick={guardar}
+          className="press mt-2.5 w-full rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white"
+          style={{ boxShadow: 'var(--glow-accion)' }}
+        >
+          Guardar serie {orden}
+        </button>
+      )}
     </div>
   )
 }

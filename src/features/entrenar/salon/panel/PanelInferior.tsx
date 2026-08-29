@@ -1,27 +1,27 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type {
-  Competencia,
   DiaRuta,
   MiniEstadistica,
   RequisitoNivel,
   RutaAsesorado,
 } from '../../../../domain/rutaEntrenamiento'
 import type { Recuperacion } from '../../../../domain/readiness'
-import type { ItemMarcable, Microciclo } from '../../../../domain/types'
+import type { ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
+import type { Patron } from '../../../../domain/patrones/catalogo'
 import type { TextoDePanel } from '../paredes/contenidoPared'
 import { CabeceraNivel } from '../../ruta/CabeceraNivel'
 import { TarjetaProgresoNivel } from '../../ruta/TarjetaProgresoNivel'
 import { ComoLlegas } from '../../ruta/ComoLlegas'
 import { BloqueEnCurso } from '../../ruta/BloqueEnCurso'
 import { CalendarioSemana } from '../../ruta/CalendarioSemana'
-import { CompetenciasEvaluadas } from '../../ruta/CompetenciasEvaluadas'
 import { RequisitosNivel } from '../../ruta/RequisitosNivel'
-import { EscalaAlfa } from '../../ruta/EscalaAlfa'
 import { NotasDeLaSemana } from '../../NotasDeLaSemana'
 import { Recuadro, SinDatos } from './recuadros/Recuadro'
 import { RecuadroMicrociclo } from './recuadros/RecuadroMicrociclo'
 import { RecuadroEncoder } from './recuadros/RecuadroEncoder'
 import { RecuadroEjercicio } from './recuadros/RecuadroEjercicio'
+import { RecuadroAntes } from './recuadros/RecuadroAntes'
+import { RecuadroPatron } from './recuadros/RecuadroPatron'
 
 /**
  * EL PANEL DE ABAJO: lo largo, íntegro, a un dedo de distancia.
@@ -30,30 +30,39 @@ import { RecuadroEjercicio } from './recuadros/RecuadroEjercicio'
  * que hace HONESTO el recorte de las paredes. Sin él, dejar un campo en 42 caracteres
  * sería perder texto; con él, es solo moverlo.
  *
- * Dentro bajan los **doce bloques** que la pantalla `/entrenar` pintaba en una columna
- * con scroll —ninguno se queda por el camino— más los textos completos que
- * `contenidoPared()` mandó abajo. Cada uno en su recuadro, cada recuadro marcado con
- * `data-recuadro` para poder contarlos desde fuera.
+ * Dentro bajan **doce recuadros**. Los cuatro primeros son los que Bryan marcó en verde
+ * —lo que solo aparece al deslizar hacia abajo—; los ocho de después son los bloques de la
+ * Ruta que ya vivían aquí. Cada uno con su marca `data-recuadro`, para poder contarlos
+ * desde fuera sin leer un solo texto.
  *
- * ## Los doce bloques, y de dónde viene cada uno
+ * ## Los doce, y qué trae cada uno
  *
- * | `data-recuadro`  | Venía de                                    |
- * | ---------------- | ------------------------------------------- |
- * | `microciclo`     | `PortadaMicrociclo`                         |
- * | `notas`          | `NotasDeLaSemana`                           |
- * | `nivel`          | `ruta/CabeceraNivel`                        |
- * | `progreso-nivel` | `ruta/TarjetaProgresoNivel`                 |
- * | `como-llegas`    | `ruta/ComoLlegas`                           |
- * | `bloque-en-curso`| `ruta/BloqueEnCurso`                        |
- * | `calendario`     | `ruta/CalendarioSemana`                     |
- * | `competencias`   | `ruta/CompetenciasEvaluadas`                |
- * | `requisitos`     | `ruta/RequisitosNivel`                      |
- * | `escala-alfa`    | `ruta/EscalaAlfa`                           |
- * | `encoder`        | el enlace suelto al encoder de `RutaPage`   |
- * | `ejercicio`      | `alPanel` de `contenidoPared()`             |
+ * | `data-recuadro`  | Qué trae                                                     |
+ * | ---------------- | ------------------------------------------------------------ |
+ * | `antes`          | Calentamiento, movilidad y activación (`PreparacionSesion`)   |
+ * | `notas`          | Notas de la semana del coach (`NotasDeLaSemana`)              |
+ * | `ejercicio`      | La prescripción entera: `alPanel` de `contenidoPared()`       |
+ * | `patron`         | Notas de ejecución: qué mueve y qué sujeta cada articulación  |
+ * | `microciclo`     | `PortadaMicrociclo`                                           |
+ * | `nivel`          | `ruta/CabeceraNivel`                                          |
+ * | `progreso-nivel` | `ruta/TarjetaProgresoNivel`                                   |
+ * | `como-llegas`    | `ruta/ComoLlegas`                                             |
+ * | `bloque-en-curso`| `ruta/BloqueEnCurso`                                          |
+ * | `calendario`     | `ruta/CalendarioSemana`                                       |
+ * | `requisitos`     | `ruta/RequisitosNivel`                                        |
+ * | `encoder`        | el enlace suelto al encoder de `RutaPage`                     |
  *
- * Ocho de los doce montan EL MISMO COMPONENTE que pintaba la Ruta, sin copiar su
- * maquetación ni reescribir sus textos. No es pereza: es la única forma de poder afirmar
+ * ## Los dos que se han ido, y adónde
+ *
+ * `competencias` y `escala-alfa` ya no están aquí: se han mudado a la pestaña **Progreso**,
+ * por decisión de Bryan del 29-ago. No se han borrado y no se ha perdido una línea —los
+ * mismos dos componentes, `ruta/CompetenciasEvaluadas` y `ruta/EscalaAlfa`, se montan allí
+ * con los mismos datos—. El motivo es de sitio, no de contenido: valorar cómo vas es una
+ * pregunta que se hace entre sesiones, no con el cronómetro corriendo, y el panel del salón
+ * es lo que se abre EN mitad del entrenamiento.
+ *
+ * Siete de los doce montan EL MISMO COMPONENTE que pintaba la Ruta o la sesión, sin copiar
+ * su maquetación ni reescribir sus textos. No es pereza: es la única forma de poder afirmar
  * que no se perdió nada. Una versión «adaptada al panel» de `CalendarioSemana` sería una
  * segunda maqueta que se separa de la primera al primer arreglo, y la información que se
  * pierde en esa deriva no la ve nadie.
@@ -75,7 +84,6 @@ export interface PanelInferiorProps {
   /** Porcentaje de progreso al siguiente nivel, ya calculado por el dominio. */
   progresoPct: number
   estadisticas: readonly MiniEstadistica[]
-  competencias: readonly Competencia[]
   requisitos: readonly RequisitoNivel[]
   semana: readonly DiaRuta[]
   sesionCta?: { id: string; nombre: string; empezada: boolean; esDeHoy: boolean }
@@ -86,6 +94,10 @@ export interface PanelInferiorProps {
   bloquesCardio?: readonly ItemMarcable[]
   /** El nombre del ejercicio del que se está ampliando el detalle. */
   nombreEjercicio?: string
+  /** La sesión de hoy: de ella sale el bloque de antes de entrenar. */
+  sesion?: Sesion
+  /** El patrón del ejercicio en curso: de él salen las notas de ejecución. */
+  patron?: Patron
 }
 
 /** Cuánto hay que arrastrar hacia arriba para que el panel suba. */
@@ -102,7 +114,6 @@ export function PanelInferior(props: PanelInferiorProps) {
     recuperacion,
     progresoPct,
     estadisticas,
-    competencias,
     requisitos,
     semana,
     sesionCta,
@@ -110,6 +121,8 @@ export function PanelInferior(props: PanelInferiorProps) {
     alPanel,
     bloquesCardio,
     nombreEjercicio,
+    sesion,
+    patron,
   } = props
 
   const [abierto, setAbierto] = useState(false)
@@ -165,8 +178,13 @@ export function PanelInferior(props: PanelInferiorProps) {
   return (
     <div
       data-hueco="panelInferior"
-      className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col justify-end"
-      style={{ zIndex: 'var(--z-elevado)' }}
+      className="pointer-events-none absolute inset-x-0 flex flex-col justify-end"
+      // El borde de abajo del panel es el borde de arriba de la barra de navegación, no
+      // el de la pantalla. Con `bottom: 0` el tirador quedaba DEBAJO de la barra —tapado
+      // por ella, imposible de agarrar—, y no se veía en los tests porque en jsdom no hay
+      // maquetación: la comprobación de que el panel abre pulsa el botón por su nombre
+      // accesible, y un botón tapado se pulsa igual.
+      style={{ zIndex: 'var(--z-elevado)', bottom: 'var(--tope-nav)' }}
     >
       <div
         // La hoja es una superficie FIJA —vive pegada al borde de abajo del salón, que
@@ -204,10 +222,17 @@ export function PanelInferior(props: PanelInferiorProps) {
         {abierto && (
           <div
             className="flex flex-col gap-2.5 overflow-y-auto px-3"
-            style={{ paddingBottom: 'calc(var(--tope-nav) + 1rem)' }}
+            // Un dedo de aire al final de la lista. La barra de navegación ya no se
+            // descuenta aquí: ahora la descuenta el propio panel, que empieza encima de
+            // ella. Sumarla dos veces dejaba un hueco muerto al final del panel.
+            style={{ paddingBottom: '1rem' }}
           >
-            <Recuadro clave="microciclo" titulo="Empieza tu microciclo">
-              <RecuadroMicrociclo microciclo={microciclo} />
+            {/* LOS CUATRO VERDES PRIMERO. Son los que el encargo pone tras el gesto de
+                bajar, y van arriba del todo porque son los que se buscan: lo que hay que
+                hacer antes de empezar, lo que el coach dejó dicho, la prescripción entera
+                y cómo se ejecuta el gesto. */}
+            <Recuadro clave="antes" titulo="Antes de entrenar" pie="Calentamiento, movilidad y activación.">
+              <RecuadroAntes microciclo={microciclo} sesion={sesion} />
             </Recuadro>
 
             <Recuadro clave="notas" titulo="Notas de la semana">
@@ -216,6 +241,18 @@ export function PanelInferior(props: PanelInferiorProps) {
               ) : (
                 <SinDatos motivo="Esta semana el coach no ha dejado ninguna nota antes de empezar." />
               )}
+            </Recuadro>
+
+            <Recuadro clave="ejercicio" titulo="La prescripción del coach" pie={nombreEjercicio}>
+              <RecuadroEjercicio alPanel={alPanel} bloquesCardio={bloquesCardio} />
+            </Recuadro>
+
+            <Recuadro clave="patron" titulo="Notas de ejecución y técnica" pie="Qué mueve y qué sujeta cada articulación.">
+              <RecuadroPatron patron={patron} />
+            </Recuadro>
+
+            <Recuadro clave="microciclo" titulo="Empieza tu microciclo">
+              <RecuadroMicrociclo microciclo={microciclo} />
             </Recuadro>
 
             <Recuadro clave="nivel" titulo="Tu ruta de entrenamiento">
@@ -257,14 +294,6 @@ export function PanelInferior(props: PanelInferiorProps) {
               />
             </Recuadro>
 
-            <Recuadro clave="competencias" titulo="Competencias evaluadas">
-              {competencias.length > 0 ? (
-                <CompetenciasEvaluadas competencias={competencias} />
-              ) : (
-                <SinDatos motivo="Todavía no hay series registradas ni valoraciones del coach con las que valorar ninguna competencia." />
-              )}
-            </Recuadro>
-
             <Recuadro
               clave="requisitos"
               titulo={
@@ -280,21 +309,10 @@ export function PanelInferior(props: PanelInferiorProps) {
               )}
             </Recuadro>
 
-            <Recuadro clave="escala-alfa" titulo="Escala Alfa">
-              <EscalaAlfa niveles={ruta.escala} />
-            </Recuadro>
-
             <Recuadro clave="encoder" titulo="Encoder" pie="La tanda entera, los criterios y el CSV.">
               <RecuadroEncoder />
             </Recuadro>
 
-            <Recuadro
-              clave="ejercicio"
-              titulo="El ejercicio, entero"
-              pie={nombreEjercicio}
-            >
-              <RecuadroEjercicio alPanel={alPanel} bloquesCardio={bloquesCardio} />
-            </Recuadro>
           </div>
         )}
       </div>

@@ -14,76 +14,93 @@ import { VisorPatron } from '../visor/VisorPatron'
 import { capaTrasArrastre } from '../capas/gestoVertical'
 import { CAPAS_W, SUELO_DEL_SALON, type NivelW } from './huecos'
 import { contenidoPared } from './paredes/contenidoPared'
-import { PanelPared } from './paredes/PanelPared'
+import { ParedesDelSalon } from './paredes/ParedesDelSalon'
+import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
+import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
-import { RegistroSerieSalon } from './registro/RegistroSerieSalon'
+import { BarraRegistro } from './registro/BarraRegistro'
 import { SalaVacia } from './sinPatron/SalaVacia'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 
 /**
- * EL SALÓN: la pantalla `/entrenar`, con el sujeto en el centro.
+ * EL SALÓN: la pantalla `/entrenar`, y la primera que se ve al tocar ENTRENAR.
  *
- * Antes esto era una columna con scroll —doce bloques, unos ciento veinte nodos de texto,
- * todos al mismo nivel y todos compitiendo—. Ahora es una habitación a pantalla completa:
- * el sujeto anatómico ocupa el centro, lo corto y esencial del ejercicio va colgado en
- * las paredes, la única acción del salón está en el suelo, y **todo lo largo sigue
- * estando**, a un dedo de distancia, en el panel que sube desde el borde de abajo.
+ * No hay pantalla de aterrizaje: tocar ENTRENAR abre esto, ya con el ejercicio de hoy, el
+ * cronómetro corriendo y la serie en curso. Lo que antes era la vista macro —nivel, semana,
+ * calendario— vive en el panel de abajo, a un dedo; las competencias y la Escala Alfa se han
+ * ido a Progreso.
  *
- * Nada de lo que la app decía ha dejado de decirse. Lo que ha cambiado es dónde está.
+ * ## Lo que se ve sin scroll y sin tocar nada
+ *
+ * Las cinco cosas del encargo, a la vez, y cada una marcada en el DOM para que se puedan
+ * contar desde fuera con `data-testigo`:
+ *
+ * 1. **la sala con sus paredes** (`sala`) — `sala/ArquitecturaSala`, la habitación en
+ *    perspectiva de un punto dibujada a pantalla completa sobre el lienzo. Los días sin
+ *    sujeto, la habitación es `sinPatron/SalaVacia`, que ya existía.
+ * 2. **las letras y los datos en 3D sobre esas paredes** (`letras3D`) — el hueco `paredes`
+ *    entero, escorzado con los grados de `ESCORZO_DE_PARED`.
+ * 3. **el sujeto en medio** (`sujeto`) — el lienzo del visor, a sangre y detrás de todo.
+ * 4. **la cámara a un lado** (`camara`) — el módulo del encuadre, al pie del muro
+ *    izquierdo; el trípode de verdad está dentro de la escena, que lo monta el visor.
+ * 5. **los implementos alrededor** (`implementos`) — al pie del muro derecho.
+ *
+ * ## EL SUJETO VA A PANTALLA COMPLETA, y qué hubo que hacer para eso
+ *
+ * `VisorPatron` no es solo un lienzo: debajo del suyo pinta su columna de estudio —los
+ * mandos de fase y órbita, el rótulo de la capa y la lista de qué mueve y qué sujeta cada
+ * articulación—. Montado dentro del salón, esa columna era lo que Bryan vio: «debajo del
+ * salón seguía habiendo una columna de texto», y el lienzo, encajonado entre ella y los
+ * rótulos, quedaba en una franja de menos de la mitad de la pantalla.
+ *
+ * El visor no se toca: se monta, no se reescribe. Así que el envoltorio hace dos cosas, las
+ * dos con variantes que alcanzan a sus hijos y ninguna dentro de su código:
+ *
+ * - estira el lienzo hasta ocupar el envoltorio entero, que es `inset-0` del salón;
+ * - esconde lo que el visor pinta DEBAJO del lienzo.
+ *
+ * **Nada de eso se pierde**: la explicación de la articulación y la lista MUEVE/SUJETA
+ * bajan al recuadro `patron` del panel, calculadas de las mismas funciones del dominio; y
+ * el estudio con sus mandos —fase, órbita, capas— sigue abriéndose desde la tarjeta del
+ * ejercicio en la pantalla de sesión. Lo que cambia es dónde está, no si existe.
  *
  * ## Los cinco huecos, y ni uno más
  *
- * El reparto no lo decide este archivo: lo declara `huecos.ts`, que es la frontera entre
- * el motor y la interfaz. Aquí solo se montan los cinco, cada uno con su marca
- * `data-hueco` para que se pueda auditar desde fuera:
- *
- * - `centro` — el sujeto, o el aviso de que este ejercicio no tiene modelo;
- * - `paredes` — los ocho campos cortos de `contenidoPared()`;
- * - `registro` — carga, repeticiones y RIR, en el suelo;
- * - `panelInferior` — lo largo, íntegro, deslizando hacia arriba;
- * - `sinPatron` — la MISMA sala con el centro vacío, cuando no hay sujeto que enseñar.
+ * El reparto lo declara `huecos.ts`, que es la frontera entre el motor y la interfaz. Aquí
+ * solo se montan los cinco, cada uno con su marca `data-hueco`: `centro` (el sujeto y la
+ * habitación), `paredes` (los rótulos, los campos, la cámara y el material), `registro` (la
+ * serie en curso, colapsada a una barra), `panelInferior` (lo largo, íntegro) y `sinPatron`
+ * (la misma sala con el centro vacío).
  *
  * ## La regla dura de la vista inicial
  *
  * Con el panel bajado, **no hay un solo nodo de texto por encima del canvas fuera de los
- * huecos declarados**. Ni títulos sueltos, ni tarjetas, ni una barra de estado. Por eso
- * cada cosa que se pinta cuelga de un contenedor con `data-hueco`, el tirador del panel
- * lleva su nombre en `aria-label` en vez de escrito, y la escalera del eje W es una
- * columna de peldaños sin letras. La comprobación es mecánica: quitar del árbol los
- * subárboles `[data-hueco]` tiene que dejar el salón sin texto.
+ * huecos declarados**. La comprobación es mecánica: quitar del árbol los subárboles
+ * `[data-hueco]` tiene que dejar el salón sin texto.
  *
  * ## La cuarta dimensión, y qué hace de verdad
  *
- * A los tres ejes del espacio se le suma W, que ATRAVIESA el cuerpo en vez de rodearlo:
- * el dedo en horizontal orbita —ese gesto lo sirve el propio visor sobre su canvas— y el
- * dedo en vertical sube y baja por las cinco capas, de la piel al hueso. Los dos gestos
- * son ortogonales a propósito: orbitar nunca cambia de capa y cambiar de capa nunca mueve
- * la cámara, porque un gesto que hiciera las dos cosas dejaría al asesorado sin saber si
- * se ha movido él o se ha movido el cuerpo.
+ * A los tres ejes del espacio se le suma W, que ATRAVIESA el cuerpo en vez de rodearlo: el
+ * dedo en horizontal orbita —ese gesto lo sirve el propio visor sobre su lienzo— y el dedo
+ * en vertical sube y baja por las cinco capas, de la piel al hueso. Los dos gestos son
+ * ortogonales a propósito: orbitar nunca cambia de capa y cambiar de capa nunca mueve la
+ * cámara, porque un gesto que hiciera las dos cosas dejaría al asesorado sin saber si se ha
+ * movido él o se ha movido el cuerpo.
  *
- * **Lo que W hace, dicho sin adornos:** el escalón es estado de este salón y sale por
- * cuatro sitios a la vez. Tres son señales de dónde estás —`data-w`, la escalera de
- * peldaños y el velo que cierra la habitación según se entra— y el cuarto es el que
- * cuenta: viaja al `VisorPatron` como prop `w`, y con él el visor deja de dibujar
- * siempre lo mismo. Quien manda entonces es `capas/nivelesAnatomicos.ts`, que declara
- * qué músculos, huesos y porciones pasivas se ven en cada nivel; el visor solo lo
- * obedece. Sin esa prop el modelo era el mismo en las cinco capas y el eje era un velo
- * con una escalera al lado.
- *
- * Las tres señales se quedan **además** del modelo, no en su lugar: el cuerpo cambiando
- * dice qué estás viendo, pero no cuánto queda por debajo ni cómo salir; eso lo dicen los
- * peldaños.
+ * El escalón es estado de este salón y sale por cuatro sitios a la vez: `data-w`, la
+ * escalera de peldaños, el velo que cierra la habitación según se entra, y —el que cuenta—
+ * la prop `w` que viaja al `VisorPatron`, con la que el visor deja de dibujar siempre lo
+ * mismo y obedece a `capas/nivelesAnatomicos.ts`.
  *
  * **Y sin sujeto no hay eje.** Las cuatro salidas cuelgan de `conEjeW`: sin cuerpo que
- * atravesar no se monta la escalera, no se pinta el velo y el gesto vertical ni se
- * escucha. W es la profundidad del cuerpo, no un ajuste de la pantalla.
+ * atravesar no se monta la escalera, no se pinta el velo y el gesto vertical ni se escucha.
+ * W es la profundidad del cuerpo, no un ajuste de la pantalla.
  *
  * ## La aritmética del gesto no vive aquí
  *
- * Cuántos píxeles son un escalón, hacia dónde entra el dedo y dónde están los topes lo
- * dice `capas/gestoVertical.ts` con una función pura. Este archivo pone el origen del
- * arrastre y lo vuelve a poner cuando la capa cambia —que es cómo el módulo prescribe
- * encadenar saltos en un mismo contacto— pero no suma ni recorta. Un segundo umbral
+ * Cuántos píxeles son un escalón, hacia dónde entra el dedo y dónde están los topes lo dice
+ * `capas/gestoVertical.ts` con una función pura. Este archivo pone el origen del arrastre y
+ * lo vuelve a poner cuando la capa cambia, pero no suma ni recorta. Un segundo umbral
  * escrito aquí sería un segundo eje W que se separaría del primero al primer ajuste.
  */
 
@@ -94,17 +111,25 @@ export interface SalonEntrenarProps {
   /** Progreso al siguiente nivel, ya calculado por el dominio. */
   progresoPct: number
   estadisticas: readonly MiniEstadistica[]
+  /**
+   * Las competencias evaluadas.
+   *
+   * Se siguen recibiendo aunque el salón ya no las pinte: desde el 29-ago viven en la
+   * pestaña Progreso, que las calcula con las mismas funciones del dominio. La prop se
+   * queda porque quien monta el salón las tiene a mano y quitarla obligaría a tocar a todos
+   * los que lo montan por un cambio que es de sitio, no de datos.
+   */
   competencias: readonly Competencia[]
   requisitos: readonly RequisitoNivel[]
   semana: readonly DiaRuta[]
   sesionCta?: { id: string; nombre: string; empezada: boolean; esDeHoy: boolean }
   notas: ItemMarcable[]
   /**
-   * La sesión que manda hoy: de ella salen el ejercicio de las paredes y el del registro.
+   * La sesión que manda hoy: de ella salen el ejercicio, el cronómetro y el material.
    *
    * Opcional porque la semana puede no tener ninguna pendiente. Sin sesión el salón sigue
    * abriéndose —el panel es la Ruta entera y esa no depende de que haya sesión hoy—, pero
-   * las paredes y el suelo se quedan vacíos: no hay ejercicio del que hablar.
+   * las paredes se quedan casi vacías: no hay ejercicio del que hablar.
    */
   sesion?: Sesion
 }
@@ -114,6 +139,33 @@ function ejercicioEnCurso(sesion: Sesion | undefined): EjercicioPrescrito | unde
   if (!sesion) return undefined
   return sesion.ejercicios.find((e) => !ejercicioCompleto(e)) ?? sesion.ejercicios[0]
 }
+
+/**
+ * CÓMO SE ESTIRA EL VISOR HASTA LLENAR EL SALÓN, sin tocar el visor.
+ *
+ * Las variantes de hijo ganan por especificidad a las utilidades que el visor lleva
+ * puestas: `.envoltorio canvas` son dos elementos y una clase, y `.h-\[46vh\]` es una clase
+ * sola. Por eso no hace falta forzar nada.
+ *
+ * - `[&>div]` es la raíz del visor: se estira y se le quita la separación entre bloques.
+ * - `[&>div>div:first-child]` es la caja del lienzo: se estira y pierde las esquinas
+ *   redondeadas, que a pantalla completa no pintan nada.
+ * - `[&_canvas]` es el lienzo: alto completo y sin los topes que lo dejaban en 420 px.
+ * - `[&>div>*:not(:first-child)]` es todo lo que el visor pinta DEBAJO del lienzo: la
+ *   columna de estudio. Se esconde aquí y baja íntegra al recuadro `patron` del panel.
+ * - `[&_p.bottom-2]` son las dos leyendas que el visor apoya en las esquinas de abajo del
+ *   lienzo. A pantalla completa caen justo donde está el mobiliario del suelo. El aviso de
+ *   error del visor NO lleva esa clase, así que sigue viéndose: es el único texto de ahí
+ *   dentro que no se puede esconder.
+ */
+const SUJETO_A_SANGRE = [
+  'absolute inset-0',
+  '[&>div]:h-full [&>div]:gap-0',
+  '[&>div>div:first-child]:h-full [&>div>div:first-child]:rounded-none',
+  '[&_canvas]:h-full [&_canvas]:max-h-none [&_canvas]:min-h-0',
+  '[&>div>*:not(:first-child)]:hidden',
+  '[&_p.bottom-2]:hidden',
+].join(' ')
 
 export function SalonEntrenar(props: SalonEntrenarProps) {
   const { microciclo, sesion } = props
@@ -133,20 +185,18 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     [ejercicio],
   )
   const contenido = useMemo(() => (ejercicio ? contenidoPared(ejercicio) : undefined), [ejercicio])
+  // El ritmo lleva dentro el tiempo del cronómetro, leído de donde lo guarda el propio
+  // cronómetro: un segundo reloj daría dos duraciones de la misma sesión.
+  const ritmo = useRitmoDelSalon(sesion)
 
   /**
    * EL EJE W SOLO EXISTE SI HAY CUERPO QUE ATRAVESAR.
    *
-   * Bryan lo vio en el iPhone: los cinco peldaños encendidos a la derecha de una
-   * pantalla sin sujeto. Atravesar la nada. W no es un ajuste de la pantalla —no cambia
-   * el brillo, ni el detalle, ni la cámara—: es la profundidad DEL CUERPO, de la piel al
-   * hueso. Sin cuerpo no hay piel ni hay hueso, así que no hay escalón que subir, y una
-   * escalera que responde al dedo sin cambiar nada de lo que se ve es peor que no tener
-   * escalera: enseña un mando roto.
-   *
-   * De ahí que las cuatro salidas del eje —el gesto vertical, el velo, la escalera y la
-   * prop que viaja al visor— cuelguen todas de esta condición, y no solo la escalera.
-   * Dejar el gesto vivo con la escalera escondida sería mover un estado que ya no se ve.
+   * Bryan lo vio en el iPhone: los cinco peldaños encendidos a la derecha de una pantalla
+   * sin sujeto. Atravesar la nada. W no es un ajuste de la pantalla —no cambia el brillo,
+   * ni el detalle, ni la cámara—: es la profundidad DEL CUERPO, de la piel al hueso. Sin
+   * cuerpo no hay piel ni hay hueso, así que no hay escalón que subir, y una escalera que
+   * responde al dedo sin cambiar nada de lo que se ve es peor que no tener escalera.
    *
    * `data-w` se queda puesto en las dos ramas: es la capa en la que ESTÁ el salón, y sin
    * sujeto es la piel —el escalón 0—, que es justo lo que `huecos.ts` declara para este
@@ -160,9 +210,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    *
    * `x` e `y` son el ORIGEN del arrastre, que es lo que `capaTrasArrastre` mide, y
    * `capaAlOrigen` la capa que había en ese punto. Guardar la capa aquí en vez de leerla
-   * del estado deja el manejador fuera del ciclo de repintado: entre dos `pointermove`
-   * seguidos no ha tenido por qué correr un render, y una `w` de hace un cuadro haría
-   * que el segundo escalón de un mismo dedo saliera del primero.
+   * del estado deja el manejador fuera del ciclo de repintado.
    */
   const gesto = useRef({ vivo: false, x: 0, y: 0, capaAlOrigen: 0 as NivelW })
 
@@ -173,11 +221,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   /**
    * El eje W, sin robarle el gesto a la órbita.
    *
-   * Este manejador está en el ENVOLTORIO del visor y no en su canvas: los eventos del
-   * canvas burbujean hasta aquí, así que se pueden leer sin interceptarlos. No se llama
-   * ni a `preventDefault` ni a `stopPropagation` — el visor sigue recibiendo su arrastre
-   * intacto y sigue orbitando. Si en algún momento el gesto se declara horizontal, este
-   * lado se retira del todo hasta que se levante el dedo.
+   * Este manejador está en el ENVOLTORIO del visor y no en su lienzo: los eventos del
+   * lienzo burbujean hasta aquí, así que se pueden leer sin interceptarlos. No se llama ni
+   * a `preventDefault` ni a `stopPropagation` — el visor sigue recibiendo su arrastre
+   * intacto y sigue orbitando. Si el gesto se declara horizontal, este lado se retira del
+   * todo hasta que se levante el dedo.
    */
   const alMoverDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
     const g = gesto.current
@@ -189,13 +237,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       g.vivo = false
       return
     }
-    // El umbral, el sentido del dedo y los topes 0 y 4 los pone `gestoVertical.ts`. Aquí
-    // no se compara contra ningún número: si la capa no ha cambiado, el arrastre todavía
-    // no llega y no hay nada que hacer.
+    // El umbral, el sentido del dedo y los topes 0 y 4 los pone `gestoVertical.ts`.
     const siguiente = capaTrasArrastre(dy, g.capaAlOrigen)
     if (siguiente === g.capaAlOrigen) return
-    // El origen se muda al punto donde cambió la capa, que es lo que el módulo prescribe
-    // para encadenar escalones sin levantar el dedo: cada escalón vuelve a costar un
+    // El origen se muda al punto donde cambió la capa: cada escalón vuelve a costar un
     // arrastre entero, así que un resbalón largo no atropella tres capas de una vez.
     g.x = e.clientX
     g.y = e.clientY
@@ -214,87 +259,91 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     <div
       data-salon="entrenar"
       data-w={w}
-      className="fixed inset-0 overflow-hidden bg-ink-900"
+      className="fixed inset-0 overflow-hidden bg-ink-1000"
       style={{ zIndex: 'var(--z-elevado)' }}
     >
       {/* ------------------------------------------------------------------ centro */}
       <div
         data-hueco="centro"
-        className="absolute inset-0 flex items-center justify-center"
+        className="absolute inset-0"
         onPointerDown={conEjeW ? alBajarDedo : undefined}
         onPointerMove={conEjeW ? alMoverDedo : undefined}
         onPointerUp={conEjeW ? alSoltarDedo : undefined}
         onPointerCancel={conEjeW ? alSoltarDedo : undefined}
       >
         {conSujeto && patron ? (
-          <div className="w-full px-2">
-            {/* EL VISOR SE MONTA, NO SE REESCRIBE. Los números de la serie van al
-                marcador de la pared de la sala 3D, que es la misma constante con la que
-                se construye la estación de grabación: ninguna cifra escrita dos veces.
+          <>
+            {/* EL SUJETO, A SANGRE Y POR DEBAJO DE TODA LA INTERFAZ. El visor se monta, no se reescribe:
+                los números de la serie van al marcador de la pared de la sala 3D, que es
+                la misma constante con la que se construye la estación de grabación, y `w`
+                es la cuarta dimensión llegando al modelo. */}
+            <div data-testigo="sujeto" className={SUJETO_A_SANGRE}>
+              <VisorPatron
+                patron={patron}
+                w={w}
+                datos={
+                  ejercicio
+                    ? {
+                        series: ejercicio.sets,
+                        reps: ejercicio.repsDiana,
+                        rir: ejercicio.rirObjetivo,
+                      }
+                    : undefined
+                }
+              />
+            </div>
 
-                Y `w` es la cuarta dimensión llegando al modelo: el visor la resuelve
-                contra `nivelesAnatomicos.ts` y dibuja las piezas de ESE nivel. El patrón
-                no cambia con ella —el sujeto sigue ejecutando su gesto capa a capa—
-                porque el eje decide qué se ve, no qué se hace. */}
-            <VisorPatron
-              patron={patron}
-              w={w}
-              datos={
-                ejercicio
-                  ? {
-                      series: ejercicio.sets,
-                      reps: ejercicio.repsDiana,
-                      rir: ejercicio.rirObjetivo,
-                    }
-                  : undefined
-              }
-            />
-          </div>
+            {/* LA HABITACIÓN, por encima del lienzo y por debajo de los rótulos. Trazo y
+                degradado: no tapa al sujeto, lo enmarca. */}
+            <ArquitecturaSala />
+          </>
         ) : (
-          // El hueco `sinPatron` de `huecos.ts`: MISMO SALÓN, con su sala y sus paredes,
-          // y sin sujeto en el centro. Dos piezas y ni una más: `SalaVacia` pone la
-          // habitación —muro, riel del panel, suelo con retícula y bordillo, trazados
-          // con los números de `SALA` y `BAHIA`— y `SalonSinSujeto` cuelga de los muros
-          // la prescripción de cardio. Ninguna de las dos abre un contexto WebGL: sin
-          // gesto que enseñar no hay nada que animar ni que orbitar.
+          // El hueco `sinPatron` de `huecos.ts`: MISMO SALÓN, con su sala y sus paredes, y
+          // sin sujeto en el centro. `SalaVacia` pone la habitación —muro, riel, suelo con
+          // retícula y bordillo— y `SalonSinSujeto` cuelga de los muros la prescripción de
+          // cardio, DENTRO de ella y no como hermana tendida por encima.
           //
-          // UNA DENTRO DE LA OTRA, Y NO UNA AL LADO DE LA OTRA. Aquí estaba el fallo que
-          // Bryan fotografió: montadas como hermanas, las dos se tendían sobre la pantalla
-          // entera, así que los cuatro datos se anclaban al borde de arriba del SALÓN
-          // mientras la habitación empezaba un tercio más abajo. Salían cuatro tarjetas
-          // planas sobre negro con una franja vacía debajo — el dashboard que este salón
-          // vino a quitar, reubicado arriba. Anidadas, el `inset-0` de la prescripción es
-          // el rectángulo de la sala, y colgar un dato del muro vuelve a ser meterlo en la
-          // caja del muro.
-          //
-          // Y el hueco se estira de arriba abajo en vez de dejar que la sala se centre:
-          // sin franja libre por encima del techo no queda sitio donde nada pueda flotar.
-          // Cuánto se le deja al suelo lo dice `SUELO_DEL_SALON`, y son dos medidas porque
-          // con ejercicio abajo está la tarjeta del registro y sin él no.
-          <div
-            data-hueco="sinPatron"
-            className="absolute inset-x-0 top-0"
-            style={{
-              bottom: ejercicio ? SUELO_DEL_SALON.conRegistro : SUELO_DEL_SALON.sinRegistro,
-            }}
-          >
-            <SalaVacia>
-              <SalonSinSujeto ejercicio={ejercicio} bloques={sesion?.bloquesCardio} />
-            </SalaVacia>
-          </div>
+          // Arriba se le deja libre la banda de los rótulos del muro: el día, el
+          // cronómetro y la marquesina cuelgan ahí también los días sin sujeto, y la sala
+          // empieza justo debajo en vez de pasarles por detrás.
+          <>
+            <div
+              data-hueco="sinPatron"
+              data-testigo="sala"
+              className="absolute inset-x-0 top-[9rem]"
+              // Las dos medidas de `SUELO_DEL_SALON`, y ahora por un motivo algo distinto
+              // del que están escritas: lo que ocupa el suelo con ejercicio ya no es la
+              // tarjeta del registro —que es una barra— sino la barra MÁS la cámara MÁS la
+              // tira de «a continuación», que suman parecido. Sin ejercicio abajo solo
+              // queda el material, y la sala se estira casi hasta el borde. Comprobado en
+              // el navegador a 430 px: con la medida larga quedaba una franja negra entre
+              // el suelo de la sala y el material.
+              style={{
+                bottom: ejercicio ? SUELO_DEL_SALON.conRegistro : SUELO_DEL_SALON.sinRegistro,
+              }}
+            >
+              <SalaVacia>
+                <SalonSinSujeto ejercicio={ejercicio} bloques={sesion?.bloquesCardio} />
+              </SalaVacia>
+            </div>
+
+            {/* EL AMBIENTE, TAMBIÉN LOS DÍAS SIN SUJETO. El acabado del salón no puede
+                depender de si hoy toca cardio: el contraluz rojo, las dos luces, la bruma
+                y el grano se pintan igual. Lo que no se pinta es la habitación en trazo
+                —`SalaVacia` ya trae la suya— ni el claroscuro, que multiplicando sobre un
+                muro casi negro no tendría nada que hundir. */}
+            <ArquitecturaSala variante="salaVacia" />
+          </>
         )}
 
         {/* EL VELO Y LA ESCALERA, las dos señales de dónde estás en el eje W. Van juntas
             bajo la MISMA condición que la prop que viaja al visor: si no hay cuerpo que
-            atravesar, no se pintan. Un velo que se cierra sobre una habitación vacía y
-            una escalera que no cambia nada de lo que se ve son dos mandos que mienten. */}
+            atravesar, no se pintan. */}
         {conEjeW && (
           <>
-            {/* EL VELO DE W. Acusa el escalón: cuanto más adentro, más se cierra la
-                habitación alrededor del centro. Ahora el modelo también cambia con `w`,
-                así que el velo ya no es lo único que responde al gesto — se queda porque
-                hace otra cosa: apagar el entorno mientras se entra deja el cuerpo solo
-                en el cuadro. */}
+            {/* EL VELO DE W. Cuanto más adentro, más se cierra la habitación alrededor del
+                centro: apagar el entorno mientras se entra deja el cuerpo solo en el
+                cuadro. */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 transition-opacity duration-base ease-salida"
@@ -304,13 +353,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               }}
             />
 
-            {/* LA ESCALERA DEL EJE W. Cinco peldaños, sin una sola letra: el nombre de
-                cada capa va en `aria-label`, que es un atributo y no un nodo de texto,
-                así que la regla de la vista inicial se cumple sin dejar a nadie sin
-                saber qué es esto. Es la alternativa con el dedo quieto al arrastre
-                vertical — y la única forma de recorrer el eje con teclado. */}
+            {/* LA ESCALERA DEL EJE W. Cinco peldaños, sin una sola letra: el nombre de cada
+                capa va en `aria-label`, que es un atributo y no un nodo de texto. Va al
+                borde derecho y a la altura de la franja libre —entre la tabla de series y
+                el material—, que es la única banda del cuadro donde no cruza nada. */}
             <div
-              className="absolute right-1.5 top-1/2 flex -translate-y-1/2 flex-col gap-1.5"
+              className="absolute right-1 top-[46%] flex -translate-y-1/2 flex-col gap-1.5"
               role="group"
               aria-label="Capa del cuerpo"
             >
@@ -321,10 +369,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                   aria-label={capa.nombre}
                   aria-pressed={w === capa.w}
                   onClick={() => setW(capa.w)}
-                  className={`h-7 w-7 rounded-full border transition-colors duration-base ${
-                    w === capa.w
-                      ? 'border-accion bg-accion/25'
-                      : 'border-white/15 bg-ink-900/60'
+                  className={`press h-7 w-7 rounded-full border transition-colors duration-base ${
+                    w === capa.w ? 'border-accion bg-accion/25' : 'border-white/15 bg-ink-900/60'
                   }`}
                 >
                   <span
@@ -341,34 +387,38 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       </div>
 
       {/* ----------------------------------------------------------------- paredes */}
-      {contenido && (
-        <div data-hueco="paredes" className="pointer-events-none absolute inset-0">
-          <PanelPared contenido={contenido} />
-        </div>
-      )}
+      <ParedesDelSalon
+        microciclo={microciclo}
+        sesion={sesion}
+        ejercicio={ejercicio}
+        contenido={contenido}
+        ritmo={ritmo}
+        notas={props.notas}
+      />
 
-      {/* El suelo y el borde de abajo van dentro de un marco con hueco para la barra de
-          navegación. Para un hijo absoluto el bloque contenedor es la CAJA DE RELLENO,
-          así que `bottom: 0` aquí significa «justo encima de la nav» sin tener que
-          repetir el `calc()` en cada pieza. */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ paddingBottom: 'var(--tope-nav)' }}
-      >
+      {/* EL SUELO Y EL BORDE DE ABAJO.
+          Aquí había un marco con `padding-bottom` del alto de la barra de navegación, con
+          la idea de que `bottom: 0` significara «justo encima de la nav». **No lo
+          significa**: el bloque contenedor de un hijo absoluto es la caja de RELLENO, que
+          incluye el relleno, así que el `padding` no descontaba nada y todo lo que se
+          apoyaba en `bottom` aterrizaba DEBAJO de la barra. Se ve en el navegador y no en
+          los tests, porque en jsdom no hay maquetación. Ahora la barra se suma donde toca,
+          una vez por pieza. */}
+      <div className="pointer-events-none absolute inset-0">
         {/* ---------------------------------------------------------------- registro */}
+        {/* La serie en curso, colapsada a una barra: qué serie es, con cuánto, cuántas
+            reps y qué RIR, más el botón de guardar. Los mandos para cambiarlo están a un
+            toque, debajo. Antes esto era una tarjeta grande y permanente que se comía el
+            tercio inferior del cuerpo. */}
         {ejercicio && (
           <div
             data-hueco="registro"
-            className="pointer-events-auto absolute inset-x-0 bottom-[52px] px-3"
+            className="pointer-events-auto absolute inset-x-0 px-3"
+            // Encima de la barra de navegación y encima del tirador del panel, que asoma
+            // desde el borde: son los dos que comparten esta franja.
+            style={{ bottom: 'calc(var(--tope-nav) + 2.25rem)' }}
           >
-            <RegistroSerieSalon
-              // La `key` remonta el registro cuando cambia la serie: el borrador arranca
-              // en `useState`, que solo corre en el primer montaje, y sin remontar la
-              // serie 2 saldría con lo que se tecleó en la 1.
-              key={`${ejercicio.id}-${ejercicio.series.length + 1}`}
-              microcicloId={microciclo.id}
-              ejercicio={ejercicio}
-            />
+            <BarraRegistro microcicloId={microciclo.id} ejercicio={ejercicio} />
           </div>
         )}
 
@@ -379,7 +429,6 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           recuperacion={props.recuperacion}
           progresoPct={props.progresoPct}
           estadisticas={props.estadisticas}
-          competencias={props.competencias}
           requisitos={props.requisitos}
           semana={props.semana}
           sesionCta={props.sesionCta}
@@ -387,6 +436,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           alPanel={contenido?.alPanel ?? []}
           bloquesCardio={sesion?.bloquesCardio}
           nombreEjercicio={ejercicio?.nombre}
+          sesion={sesion}
+          patron={patron}
         />
       </div>
     </div>
