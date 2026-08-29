@@ -16,6 +16,21 @@ export interface ArraysDeMalla {
   normal: Float32Array
   color: Float32Array
   hueso: Float32Array
+  /**
+   * Distancia medida ATRAVESANDO las fibras, en metros.
+   *
+   * Es lo que permite estriar el músculo en la dirección real de sus fibras. Va
+   * en transversal y no a lo largo por una razón geométrica: el sombreado dibuja
+   * las líneas donde este número es constante, y esas líneas salen
+   * perpendiculares a la dirección en la que crece. Midiendo a lo largo de la
+   * fibra se obtenía el patrón contrario —anillos cruzando el músculo— que es
+   * exactamente lo que no se quería.
+   *
+   * Es un solo número por vértice, no una dirección: lo que hace falta es la
+   * fase de la estría, y calcularla al construir sale gratis porque ahí ya se
+   * conoce el ángulo de penación.
+   */
+  fibra: Float32Array
   indice: Uint32Array
 }
 
@@ -36,6 +51,7 @@ export class Malla {
   private bufNrm: Float32Array
   private bufCol: Float32Array
   private bufHueso: Float32Array
+  private bufFibra: Float32Array
   private bufIdx: Uint32Array
   private nv = 0
   private ni = 0
@@ -45,6 +61,7 @@ export class Malla {
     this.bufNrm = new Float32Array(capacidadVertices * 3)
     this.bufCol = new Float32Array(capacidadVertices * 3)
     this.bufHueso = new Float32Array(capacidadVertices)
+    this.bufFibra = new Float32Array(capacidadVertices)
     this.bufIdx = new Uint32Array(capacidadVertices * 6)
   }
 
@@ -71,6 +88,9 @@ export class Malla {
   get hueso(): Float32Array {
     return this.bufHueso.subarray(0, this.nv)
   }
+  get fibra(): Float32Array {
+    return this.bufFibra.subarray(0, this.nv)
+  }
   get indice(): Uint32Array {
     return this.bufIdx.subarray(0, this.ni)
   }
@@ -86,6 +106,7 @@ export class Malla {
     this.bufNrm = copiar(this.bufNrm, 3)
     this.bufCol = copiar(this.bufCol, 3)
     this.bufHueso = copiar(this.bufHueso, 1)
+    this.bufFibra = copiar(this.bufFibra, 1)
   }
 
   private crecerIndices(): void {
@@ -109,6 +130,12 @@ export class Malla {
     px: number, py: number, pz: number,
     nx: number, ny: number, nz: number,
     c: Color, h: number,
+    /**
+     * Distancia recorrida a lo largo de la fibra, en metros. Va al final y con
+     * valor por defecto para no tocar a los muchos llamadores que dibujan hueso
+     * o guías, donde no hay fibra que estriar.
+     */
+    fibra = 0,
   ): void {
     if (this.nv >= this.bufHueso.length) this.crecerVertices()
     const i = this.nv * 3
@@ -122,6 +149,7 @@ export class Malla {
     this.bufCol[i + 1] = c[1]
     this.bufCol[i + 2] = c[2]
     this.bufHueso[this.nv] = h
+    this.bufFibra[this.nv] = fibra
     this.nv++
   }
 
@@ -151,6 +179,7 @@ export class Malla {
       normal: this.normal,
       color: this.color,
       hueso: this.hueso,
+      fibra: this.fibra,
       indice: this.indice,
     }
   }
@@ -292,6 +321,16 @@ export interface OpcionesTubo {
   /** Achata la sección: músculos planos (dorsal, pectoral) y placas óseas. */
   aplanar?: number
   tapar?: boolean
+  /**
+   * Cómo van las fibras dentro del tubo, para poder estriarlo en su dirección.
+   *
+   * `penacion` es el ángulo en radianes que forma la fibra con el eje: cero es
+   * una fibra que corre a lo largo, y los penados del cuerpo humano rondan los
+   * 10° a 30°. `bilateral` invierte el ángulo en la mitad opuesta, que es lo que
+   * distingue un bipenado —fibras en espiga hacia un tendón central— de un
+   * unipenado, donde todas van al mismo lado.
+   */
+  fibra?: { penacion: number; bilateral?: boolean }
 }
 
 /** Tubo de radio variable a lo largo de una polilínea. */
@@ -320,9 +359,22 @@ export function tubo(
     senA[j] = Math.sin(a)
   }
 
+  // Coordenada transversal a la fibra. Se acumula la longitud real recorrida
+  // para que la estría tenga el mismo paso en un músculo largo y en uno corto.
+  const pen = opciones.fibra?.penacion ?? 0
+  const cosPen = Math.cos(pen)
+  const senPen = Math.sin(pen)
+  const bilateral = opciones.fibra?.bilateral ?? false
+  let recorrido = 0
+
   for (let i = 0; i < n; i++) {
     const r = typeof radio === 'function' ? radio(i / (n - 1)) : radio[i]
     const f = fr[i]
+    if (i > 0) {
+      const [ax, ay, az] = puntos[i - 1]
+      const [bx2, by2, bz2] = puntos[i]
+      recorrido += Math.hypot(bx2 - ax, by2 - ay, bz2 - az)
+    }
     const [nx, ny, nz] = f.n
     const [bx, by, bz] = f.b
     const [px, py, pz] = puntos[i]
@@ -340,6 +392,13 @@ export function tubo(
         pz + nz * ca + bz * sa,
         vx * inv, vy * inv, vz * inv,
         color, hueso,
+        // Perpendicular a la fibra: al girar la fibra un ángulo, esta gira con
+        // ella, así que las estrías salen inclinadas lo mismo. En un fusiforme
+        // queda pura vuelta al tubo, que dibuja las fibras a lo largo. En un
+        // bipenado el giro cambia de sentido en la mitad opuesta y forman
+        // espiga, que es la seña de la arquitectura.
+        (j / seg) * 2 * Math.PI * r * cosPen -
+          (bilateral && cosA[j] < 0 ? -1 : 1) * recorrido * senPen,
       )
     }
   }

@@ -58,6 +58,16 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // El equilibrio es un CONTRATO, no una función de la app: `desequilibrio`
+  // mide cuántos centímetros se sale el peso del apoyo y lo consume la batería
+  // de gravedad, que es quien exige que todos los patrones de pie se sostengan.
+  // La app dibuja la plomada (centroDeMasas y plomada sí tienen consumidor);
+  // el número queda para el guardián.
+  'src/domain/patrones/gravedad.ts#desequilibrio':
+    'Contrato de equilibrio: lo ejecuta gravedad.test.ts sobre los 31 patrones. ' +
+    'La app dibuja la plomada; el numero es del guardian.',
+  'src/domain/patrones/gravedad.ts#_soloParaTests':
+    'Las fracciones de masa, expuestas para que el test compruebe que suman 1.',
   // El acabado de imagen corre en la TARJETA, no en TypeScript: el shader recibe
   // `GLSL_ACABADO`, que es texto generado con estos mismos coeficientes. Las
   // versiones en TS existen para poder probar la curva —que no se puede ejecutar

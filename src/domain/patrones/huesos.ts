@@ -40,37 +40,77 @@ export function construirHuesos(): Malla {
       { hueso: bp, color: COLOR_HUESO, radial: 7 },
     )
   }
-  elipsoide(m, [0, 0.005, -0.052], [0.036, 0.07, 0.026], {
-    hueso: bp,
-    color: COLOR_HUESO_OSCURO,
-    su: 10,
-    sv: 8,
-  })
-
-  // --- Columna: cuerpos vertebrales y apófisis espinosas -------------------
-  const tramoColumna = (hueso: string, n: number, largo: number, r0: number, r1: number, atras: number) => {
+  // Sacro: cinco vértebras soldadas en una cuña. Es ancho arriba, donde recibe
+  // el peso de la columna, y estrecho abajo: esa forma de triángulo es lo que le
+  // permite meterse entre las dos palas ilíacas como una cuña.
+  tubo(
+    m,
+    curva([[0, 0.05, -0.05], [0, 0.005, -0.054], [0, -0.045, -0.046]], 7),
+    (u) => entre(0.034, 0.013, u),
+    { hueso: bp, color: COLOR_HUESO, radial: 8, aplanar: 0.62 },
+  )
+  // --- Columna: vértebras, el hueso IRREGULAR por excelencia ---------------
+  //
+  // Una vértebra no tiene una forma sencilla porque hace tres cosas a la vez:
+  // el cuerpo soporta el peso, el arco protege la médula y las apófisis son
+  // palancas donde tiran los músculos. Esos salientes en varias direcciones son
+  // lo que define a un hueso irregular.
+  const tramoColumna = (
+    hueso: string,
+    n: number,
+    largo: number,
+    r0: number,
+    r1: number,
+    atras: number,
+    /** Cuánto salen las transversas a cada lado. Las torácicas son las mayores:
+     *  ahí se apoyan las costillas. */
+    transversa: number,
+  ) => {
     const b = H(hueso)
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n
       const y = t * largo
       const r = entre(r0, r1, t)
-      elipsoide(m, [0, y, -0.008], [r, (largo / n) * 0.36, r * 0.86], {
+      const alto = (largo / n) * 0.36
+      // Cuerpo vertebral: el cilindro que soporta la carga.
+      elipsoide(m, [0, y, -0.008], [r, alto, r * 0.86], {
         hueso: b,
         color: COLOR_HUESO,
         su: 10,
         sv: 6,
       })
+      // Apófisis espinosa: la que se palpa por la espalda, y de donde tiran
+      // trapecio, romboides y dorsal.
       tubo(
         m,
         curva([[0, y, -0.02], [0, y - (largo / n) * 0.25, -0.02 - atras]], 5),
         (u) => 0.01 * (1 - u * 0.45),
         { hueso: b, color: COLOR_HUESO_OSCURO, radial: 6 },
       )
+      // Apófisis transversas: salen a los lados, y son las que las fichas
+      // nombran como origen del longísimo, del iliocostal y de los escalenos.
+      // Sin ellas esos músculos nacían del aire.
+      for (const lado2 of [1, -1]) {
+        tubo(
+          m,
+          curva(
+            [
+              [lado2 * r * 0.7, y, -0.014],
+              [lado2 * (r + transversa), y + alto * 0.15, -0.016],
+            ],
+            4,
+          ),
+          (u) => 0.0062 * (1 - u * 0.4),
+          { hueso: b, color: COLOR_HUESO_OSCURO, radial: 5 },
+        )
+      }
     }
   }
-  tramoColumna('lumbar', 5, 0.17, 0.026, 0.023, 0.03)
-  tramoColumna('torax', 12, 0.27, 0.022, 0.017, 0.026)
-  tramoColumna('cuello', 7, 0.08, 0.015, 0.013, 0.014)
+  tramoColumna('lumbar', 5, 0.17, 0.026, 0.023, 0.03, 0.019)
+  // Las torácicas llevan las transversas más largas: sobre ellas se apoyan las
+  // costillas, y por eso la caja puede girar sobre la columna.
+  tramoColumna('torax', 12, 0.27, 0.022, 0.017, 0.026, 0.022)
+  tramoColumna('cuello', 7, 0.08, 0.015, 0.013, 0.014, 0.013)
 
   // --- Caja torácica: doce pares de costillas y esternón -------------------
   const bt = H('torax')
@@ -137,17 +177,42 @@ export function construirHuesos(): Malla {
       arqueo: 0.016,
     })
     const be = H('escapula' + s)
-    tubo(m, curva([[0, 0.012, 0], [0.012, 0.062, -0.004], [0.004, 0.125, -0.006]], 9), (u) => entre(0.04, 0.017, u), {
+    // La escápula es un hueso PLANO: una lámina que se desliza sobre las
+    // costillas, y por eso no tiene una articulación de verdad con el tórax sino
+    // que la sujetan los músculos.
+    //
+    // Va como elipsoide achatado y no como tubo achatado, que es como estaba: el
+    // tubo lleva la sección girando al seguir la curva, así que la «lámina» se
+    // retorcía y acababa ocupando tanto fondo como ancho. Medida, daba una caja
+    // de 9 × 12 × 8 cm para algo que debería tener dos centímetros de grosor.
+    elipsoide(m, [0.006, 0.066, -0.004], [0.046, 0.062, 0.0068], {
       hueso: be,
       color: COLOR_HUESO,
-      radial: 9,
-      aplanar: 0.3,
+      su: 12,
+      sv: 10,
+      giro: M4.multiplicar(M4.girarZ(grados(-6)), M4.girarY(grados(7))),
     })
-    tubo(m, curva([[-0.03, 0.03, -0.014], [0.006, 0.048, -0.02], [0.038, 0.052, -0.014]], 8), () => 0.011, {
+    tubo(m, curva([[-0.03, 0.03, -0.01], [0.006, 0.048, -0.014], [0.038, 0.052, -0.01]], 8), () => 0.011, {
       hueso: be,
       color: COLOR_HUESO_OSCURO,
       radial: 6,
-      aplanar: 0.55,
+      aplanar: 0.4,
+    })
+    // Acromion: el techo del hombro y el tope que topa cuando el brazo sube sin
+    // que la escápula rote. Es donde acaba la espina, y donde ancla el deltoides.
+    elipsoide(m, [0.046, 0.048, -0.01], [0.016, 0.009, 0.013], {
+      hueso: be,
+      color: COLOR_HUESO_OSCURO,
+      su: 9,
+      sv: 7,
+    })
+    // Coracoides: el gancho de delante. De aquí tiran la cabeza corta del bíceps,
+    // el coracobraquial y el pectoral menor, y por eso los tres se mueven juntos.
+    elipsoide(m, [0.028, 0.043, 0.022], [0.011, 0.008, 0.013], {
+      hueso: be,
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
     })
   }
 
@@ -167,6 +232,42 @@ export function construirHuesos(): Malla {
       su: 12,
       sv: 9,
     })
+    // Tubérculo mayor: el relieve lateral donde acaban supraespinoso,
+    // infraespinoso y redondo menor. Es lo que roza bajo el acromion cuando el
+    // hombro se pinza.
+    elipsoide(m, [k * 0.023, 0.006, -0.002], [0.012, 0.014, 0.012], {
+      hueso: H('brazo' + s),
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
+    })
+    // Tubérculo menor: delante, para el subescapular. Entre los dos corre el
+    // tendón de la cabeza larga del bíceps.
+    elipsoide(m, [k * 0.004, 0.008, 0.021], [0.009, 0.012, 0.009], {
+      hueso: H('brazo' + s),
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
+    })
+    // Tuberosidad deltoidea: la cresta de media diáfisis donde acaba el
+    // deltoides. Sin ella el músculo más grande del hombro parecía morir en un
+    // tubo liso.
+    elipsoide(m, [k * 0.016, 0.135, 0.002], [0.008, 0.03, 0.009], {
+      hueso: H('brazo' + s),
+      color: COLOR_HUESO_OSCURO,
+      su: 7,
+      sv: 8,
+    })
+    // Epicóndilos: los dos bultos del codo. De ellos nacen los flexores y los
+    // extensores del carpo, y son lo que se palpa al buscar un codo de tenista.
+    for (const lado2 of [1, -1]) {
+      elipsoide(m, [k * lado2 * 0.019, 0.3, 0], [0.011, 0.011, 0.012], {
+        hueso: H('brazo' + s),
+        color: COLOR_HUESO_OSCURO,
+        su: 8,
+        sv: 6,
+      })
+    }
     // Radio y cúbito por separado: así se ve la pronosupinación.
     huesoLargo(m, [k * 0.013, 0.004, 0], [k * 0.007, 0.26, 0.004], 0.0105, {
       hueso: H('antebrazo' + s),
@@ -180,8 +281,40 @@ export function construirHuesos(): Malla {
       epifisisA: 1.5,
       epifisisB: 1.8,
     })
+    // Olécranon: el pico del codo. Es el que topa con su fosa y detiene la
+    // extensión en cero, que es hueso contra hueso y no músculo — el catálogo
+    // articular lo dice con esas palabras, así que tiene que verse.
+    elipsoide(m, [-k * 0.013, 0.002, -0.016], [0.012, 0.016, 0.013], {
+      hueso: H('antebrazo' + s),
+      color: COLOR_HUESO_OSCURO,
+      su: 9,
+      sv: 7,
+    })
+    // Tuberosidad del radio: donde tira el bíceps. Está en la cara interna, y de
+    // ahí que supinar cambie tanto la palanca del músculo.
+    elipsoide(m, [k * 0.014, 0.042, 0.007], [0.008, 0.013, 0.008], {
+      hueso: H('antebrazo' + s),
+      color: COLOR_HUESO_OSCURO,
+      su: 7,
+      sv: 6,
+    })
     const bm = H('mano' + s)
-    elipsoide(m, [0, 0.022, 0], [0.03, 0.026, 0.014], { hueso: bm, color: COLOR_HUESO, su: 10, sv: 7 })
+    // El carpo son ocho huesos CORTOS en dos filas, no un bulto: un hueso corto
+    // mide casi lo mismo en las tres direcciones, y son sus caras planas
+    // deslizando unas sobre otras las que dan a la muñeca el recorrido que
+    // tiene. Dibujado como un solo elipsoide, la muñeca parecía una bisagra.
+    for (const fila of [0, 1]) {
+      const cuantos = fila === 0 ? 4 : 4
+      for (let c = 0; c < cuantos; c++) {
+        const x = (c - (cuantos - 1) / 2) * 0.0132
+        elipsoide(
+          m,
+          [x, 0.011 + fila * 0.0125, -0.002 + Math.abs(x) * 0.15],
+          [0.0058, 0.0056, 0.0055],
+          { hueso: bm, color: fila === 0 ? COLOR_HUESO : COLOR_HUESO_OSCURO, su: 7, sv: 5 },
+        )
+      }
+    }
     for (let f = 0; f < 4; f++) {
       const x = (f - 1.5) * 0.013
       // Los dedos rectos y en abanico son de lo que más delata a un maniquí. En
@@ -228,6 +361,41 @@ export function construirHuesos(): Malla {
       epifisisB: 2.0,
       arqueo: 0.01,
     })
+    // Trocánter mayor: el bulto que se palpa en la cadera. Ahí acaban glúteo
+    // medio y menor, y de ahí nace el vasto lateral. Es el accidente óseo que
+    // más veces nombran las fichas después de la cresta ilíaca.
+    elipsoide(m, [-k * 0.035, 0.028, -0.004], [0.019, 0.026, 0.018], {
+      hueso: bmu,
+      color: COLOR_HUESO_OSCURO,
+      su: 10,
+      sv: 8,
+    })
+    // Trocánter menor: hacia dentro y atrás, donde acaba el psoas ilíaco. Es lo
+    // que explica que el psoas flexione la cadera y además la rote.
+    elipsoide(m, [k * 0.016, 0.072, -0.014], [0.011, 0.013, 0.011], {
+      hueso: bmu,
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
+    })
+    // Línea áspera: la cresta de la cara posterior. No es un bulto sino un
+    // reborde a lo largo, y es de donde tiran los vastos y los aductores.
+    tubo(
+      m,
+      curva([[0, 0.11, -0.017], [0, 0.25, -0.021], [0, 0.39, -0.016]], 7),
+      (u) => entre(0.005, 0.0035, u),
+      { hueso: bmu, color: COLOR_HUESO_OSCURO, radial: 5, aplanar: 0.5 },
+    )
+    // Cóndilos femorales: los dos apoyos de la rodilla, y el origen de los dos
+    // gemelos. Con un extremo liso no se entendia de donde salen.
+    for (const lado2 of [1, -1]) {
+      elipsoide(m, [lado2 * 0.019, 0.443, -0.006], [0.017, 0.02, 0.021], {
+        hueso: bmu,
+        color: COLOR_HUESO_OSCURO,
+        su: 9,
+        sv: 7,
+      })
+    }
     const bti = H('tibia' + s)
     huesoLargo(m, [k * 0.01, 0.006, 0], [k * 0.006, 0.425, 0], 0.0165, {
       hueso: bti,
@@ -241,10 +409,65 @@ export function construirHuesos(): Malla {
       epifisisA: 1.5,
       epifisisB: 1.9,
     })
+    // Tuberosidad tibial: donde acaba el tendón rotuliano y, con él, todo el
+    // cuádriceps. Es el punto por el que la rodilla se estira.
+    elipsoide(m, [k * 0.008, 0.045, 0.019], [0.011, 0.015, 0.009], {
+      hueso: bti,
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
+    })
+    // Maléolos: los dos bultos del tobillo. El de dentro es más alto que el de
+    // fuera, y esa diferencia es la que hace que el tobillo se tuerza siempre
+    // hacia el mismo lado.
+    elipsoide(m, [k * 0.014, 0.417, 0], [0.01, 0.016, 0.011], {
+      hueso: bti,
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
+    })
+    elipsoide(m, [-k * 0.026, 0.428, -0.004], [0.009, 0.017, 0.01], {
+      hueso: bti,
+      color: COLOR_HUESO_OSCURO,
+      su: 8,
+      sv: 6,
+    })
     // Rótula: marca la extensión de rodilla de un vistazo.
     elipsoide(m, [0, 0.012, 0.03], [0.022, 0.026, 0.012], { hueso: bti, color: COLOR_HUESO_OSCURO, su: 10, sv: 7 })
     const bpi = H('pie' + s)
-    elipsoide(m, [0, 0.022, -0.028], [0.028, 0.026, 0.034], { hueso: bpi, color: COLOR_HUESO, su: 10, sv: 8 })
+    // El tarso son siete huesos cortos. El astrágalo recibe todo el peso de la
+    // pierna y lo reparte hacia el talón y hacia delante, y por eso el tobillo
+    // aguanta lo que aguanta sin ser una bisagra simple.
+    elipsoide(m, [0, 0.014, -0.014], [0.016, 0.014, 0.017], {
+      hueso: bpi,
+      color: COLOR_HUESO,
+      su: 9,
+      sv: 7,
+    })
+    elipsoide(m, [0, 0.026, -0.034], [0.019, 0.017, 0.022], {
+      hueso: bpi,
+      color: COLOR_HUESO,
+      su: 9,
+      sv: 7,
+    })
+    for (let c = 0; c < 3; c++) {
+      const x = (c - 1) * 0.0125
+      elipsoide(m, [x, 0.03, 0.006], [0.0068, 0.0072, 0.0082], {
+        hueso: bpi,
+        color: COLOR_HUESO_OSCURO,
+        su: 7,
+        sv: 5,
+      })
+    }
+    // Tuberosidad del calcáneo: el talón propiamente dicho, donde acaba el
+    // tendón de Aquiles. Cuanto más sale hacia atrás, más palanca tiene el
+    // tríceps sural para levantar el cuerpo.
+    elipsoide(m, [0, 0.03, -0.052], [0.018, 0.019, 0.014], {
+      hueso: bpi,
+      color: COLOR_HUESO_OSCURO,
+      su: 9,
+      sv: 7,
+    })
     for (let f = 0; f < 5; f++) {
       const x = (f - 2) * 0.014
       tubo(

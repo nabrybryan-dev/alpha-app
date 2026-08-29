@@ -45,6 +45,30 @@ export const NOMBRE_DE_GRUPO: Record<Grupo, string> = {
  * que contar la misma historia: si el texto dice «tuberosidad isquiática» y la
  * geometría sale del fémur, el visor está mintiendo con letra pequeña.
  */
+/**
+ * Cómo se ordenan las fibras dentro de la porción.
+ *
+ * No es un detalle de manual: decide qué se ve al contraerse. En un fusiforme
+ * las fibras corren a lo largo y el vientre se acorta entero; en un penado van
+ * oblicuas a un tendón, así que el músculo engorda mucho y se acorta poco. Un
+ * gemelo y un bíceps se mueven distinto porque están construidos distinto, y
+ * dibujarlos los dos como un tubo liso borra justamente eso.
+ *
+ * - `fusiforme`  fibras a lo largo del eje. Bíceps braquial.
+ * - `unipenado`  todas a un lado del tendón, oblicuas. Vasto lateral.
+ * - `bipenado`   a los dos lados de un tendón central. Recto femoral, gemelo.
+ * - `multipenado` varios tendones dentro del mismo músculo. Deltoides.
+ * - `convergente` nacen anchas y confluyen en un tendón. Pectoral, dorsal.
+ * - `plano`      láminas paralelas anchas. Oblicuos, transverso.
+ */
+export type Arquitectura =
+  | 'fusiforme'
+  | 'unipenado'
+  | 'bipenado'
+  | 'multipenado'
+  | 'convergente'
+  | 'plano'
+
 export interface Porcion {
   id: string
   nombre: string
@@ -56,6 +80,24 @@ export interface Porcion {
   radio: number
   /** Achatamiento de la sección: 1 es redondo, 0,4 es una lámina. */
   aplanar?: number
+  /**
+   * Cómo van las fibras. Obligatorio a propósito.
+   *
+   * Era opcional con fusiforme por defecto, y así veintiocho de las setenta
+   * porciones acababan de huso sin que nadie lo hubiera decidido —entre ellas el
+   * glúteo mayor, que es una masa de fibras paralelas, y los aductores, que son
+   * triangulares—. Con el campo obligatorio, añadir una porción obliga a mirar
+   * cómo está construida.
+   */
+  arquitectura: Arquitectura
+  /**
+   * Ángulo de la fibra con el eje del músculo, en grados.
+   *
+   * Cero es una fibra paralela al eje. Los penados del cuerpo humano rondan los
+   * 10° a 30°, y cuanto mayor es, más fuerza cabe en el mismo volumen a costa de
+   * recorrido. Solo se declara donde la arquitectura no es fusiforme.
+   */
+  penacion?: number
   /** Fascículos visibles dentro de la porción, para los músculos en abanico. */
   fasciculos?: number
   abanicoDesde?: Vec3

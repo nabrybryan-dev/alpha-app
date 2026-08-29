@@ -70,11 +70,40 @@ export interface Patron {
    * es preferible a inventarle un número a cada patrón.
    */
   estancamiento?: number
+  /**
+   * Si el extremo de la cadena está fijo contra algo que no se mueve.
+   *
+   * **Cerrada**: el pie está en el suelo o la mano en una barra fija, así que lo
+   * que se mueve es el cuerpo. En una sentadilla la tibia no puede irse a
+   * ninguna parte: es el fémur el que baja sobre ella, y la pelvis la que se
+   * mueve sobre el fémur.
+   *
+   * **Abierta**: el extremo va libre y se mueve él. En una extensión de rodilla
+   * el fémur está quieto contra el asiento y la tibia sube.
+   *
+   * No es una etiqueta de manual: decide **qué segmento hay que decir que se
+   * mueve**. Sin esto el desglose contaba siempre lo mismo —«tibia sobre
+   * fémur»— y en una sentadilla eso se lee como un curl femoral, que es el
+   * ejercicio contrario.
+   */
+  cadena: 'cerrada' | 'abierta'
+  /**
+   * Puntos del cuerpo que TAMBIÉN apoyan, además de los pies: el hueso y dónde.
+   *
+   * El equilibrio se comprueba contra la base de apoyo, y la base no siempre
+   * son solo los pies. En el hip thrust los hombros descansan en el banco; en
+   * la búlgara, el pie trasero va sobre otro. Sin declararlo, la física exige
+   * una plomada que el ejercicio real no necesita.
+   */
+  apoyosExtra?: [string, number][]
 }
 
 export const PATRONES: Patron[] = [
   {
     id: 'extension_cadera',
+    cadena: 'cerrada',
+    // Los hombros descansan en el banco: la base no son solo los pies.
+    apoyosExtra: [['torax', 1]],
     categoria: 'EXTENSIÓN DE CADERA',
     // En el hip thrust el momento extensor es máximo con la cadera cerca de 90°
     // —abajo— y decae hacia la extensión completa: cuesta nada más arrancar.
@@ -105,6 +134,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'sentadilla',
+    cadena: 'cerrada',
     categoria: 'SENTADILLA',
     // La fuerza es mínima en los primeros 15 cm sobre la posición más baja de la
     // barra, que en un recorrido de medio metro cae en el primer cuarto.
@@ -132,10 +162,13 @@ export const PATRONES: Patron[] = [
     fin: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.55, gluteo_mayor: 0.95, 'aductores.mayor': 0.7, 'aductores.largo': 0.5, erectores: 0.7, 'triceps_sural.soleo': 0.45, isquiotibiales: 0.35, recto_abdominal: 0.4, oblicuos: 0.35, gluteo_medio: 0.45 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
-    camara: { azimut: 30, elevacion: 4 },
+    // De lado, no de frente: a 30 grados la profundidad no se lee y la bajada
+    // parece que el sujeto se aplasta en vez de echar la cadera atras.
+    camara: { azimut: 72, elevacion: 6 },
   },
   {
     id: 'bisagra_cadera',
+    cadena: 'cerrada',
     categoria: 'BISAGRA DE CADERA',
     titulo: 'Bisagra de cadera',
     ejemplos: 'Peso muerto rumano · Peso muerto rumano con mancuernas · Peso muerto parcial desde rack',
@@ -156,16 +189,17 @@ export const PATRONES: Patron[] = [
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, -0.12],
     inicio: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
-    fin: { caderaFlex: 80, rodillaFlex: 14, toraxFlex: 3, hombroFlex: -10, codoFlex: 3 },
+    fin: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: -10, codoFlex: 3 },
     activacion: { flexores_carpo: 0.65, extensores_carpo: 0.52, 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.4, gluteo_mayor: 0.9, erectores: 0.85, 'aductores.mayor': 0.4, dorsal_ancho: 0.4, 'trapecio.medio': 0.35, 'triceps_sural.gastro_medial': 0.25, cuadrado_lumbar: 0.4 },
     seguimiento: ['mano', 0.6, [0, 0, 0]],
     camara: { azimut: 78, elevacion: 4 },
   },
   {
     id: 'flexion_rodilla',
+    cadena: 'abierta',
     categoria: 'FLEXIÓN DE RODILLA',
     titulo: 'Flexión de rodilla',
-    ejemplos: 'Flexión de rodilla en máquina (sentado) · Flexión de rodilla en máquina (tumbado)',
+    ejemplos: 'Flexión de rodilla tumbado en máquina · Flexión de rodilla de pie (unilateral)',
     resumen:
       'El talón viaja hacia el glúteo. Aísla el isquio en su otra función: la que la bisagra de cadera no entrena.',
     claves: [
@@ -189,6 +223,9 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'sentadilla_unilateral',
+    cadena: 'cerrada',
+    // El pie trasero apoya en el banco y también sostiene.
+    apoyosExtra: [['pieI', 0.5]],
     categoria: 'SENTADILLA UNILATERAL',
     titulo: 'Sentadilla unilateral',
     ejemplos: 'Sentadilla búlgara con mancuernas · Búlgara en Smith · Zancada con mancuernas',
@@ -217,6 +254,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'flexion_plantar',
+    cadena: 'cerrada',
     categoria: 'FLEXIÓN PLANTAR',
     titulo: 'Flexión plantar',
     ejemplos: 'Elevación de talones en máquina · Elevación de talones sentado',
@@ -243,6 +281,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'extension_rodilla',
+    cadena: 'abierta',
     categoria: 'EXTENSIÓN DE RODILLA',
     titulo: 'Extensión de rodilla',
     ejemplos: 'Extensión de rodilla en máquina',
@@ -268,6 +307,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'abduccion_cadera',
+    cadena: 'abierta',
     categoria: 'ABDUCCIÓN DE CADERA',
     titulo: 'Abducción de cadera',
     ejemplos: 'Abducción de cadera en máquina · Abducción de cadera en polea',
@@ -293,6 +333,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'aduccion_cadera',
+    cadena: 'abierta',
     categoria: 'ADUCCIÓN DE CADERA',
     titulo: 'Aducción de cadera',
     ejemplos: 'Aducción de cadera en máquina · Plancha copenhague',
@@ -318,6 +359,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'traccion_horizontal',
+    cadena: 'abierta',
     categoria: 'TRACCIÓN HORIZONTAL',
     titulo: 'Tracción horizontal',
     ejemplos: 'Remo en máquina · Remo con barra · Remo con mancuernas (unilateral)',
@@ -337,14 +379,15 @@ export const PATRONES: Patron[] = [
     giroFin: [64, 0, 0],
     raizInicio: [0, 0.95, -0.06],
     raizFin: [0, 0.95, -0.06],
-    inicio: { caderaFlex: 62, rodillaFlex: 16, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
-    fin: { caderaFlex: 62, rodillaFlex: 16, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaProt: -32 },
+    inicio: { caderaFlex: 70, rodillaFlex: 16, hombroFlex: 78, codoFlex: 6, escapulaProt: 28 },
+    fin: { caderaFlex: 70, rodillaFlex: 16, hombroFlex: 2, hombroAbd: 8, codoFlex: 112, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.6, 'trapecio.superior': 0.3, romboides: 0.9, 'deltoides.posterior': 0.8, redondo_mayor: 0.75, biceps: 0.75, braquial: 0.65, braquiorradial: 0.5, erectores: 0.6, isquiotibiales: 0.4, 'manguito.infraespinoso': 0.4 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 68, elevacion: 8 },
   },
   {
     id: 'traccion_vertical',
+    cadena: 'abierta',
     categoria: 'TRACCIÓN VERTICAL',
     titulo: 'Tracción vertical',
     ejemplos: 'Jalón al pecho en polea (prono / neutro / unilateral)',
@@ -370,6 +413,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'abduccion_hombro',
+    cadena: 'abierta',
     categoria: 'ABDUCCIÓN DE HOMBRO',
     titulo: 'Abducción de hombro',
     ejemplos: 'Elevación lateral con mancuernas · Elevación lateral en polea',
@@ -395,6 +439,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'abduccion_horizontal',
+    cadena: 'abierta',
     categoria: 'ABDUCCIÓN HORIZONTAL',
     titulo: 'Abducción horizontal',
     ejemplos: 'Apertura inversa en máquina · Face pull en polea alta',
@@ -414,14 +459,15 @@ export const PATRONES: Patron[] = [
     giroFin: [60, 0, 0],
     raizInicio: [0, 0.95, -0.05],
     raizFin: [0, 0.95, -0.05],
-    inicio: { caderaFlex: 58, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
-    fin: { caderaFlex: 58, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
+    inicio: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
+    fin: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
   },
   {
     id: 'flexion_codo',
+    cadena: 'abierta',
     categoria: 'FLEXIÓN DE CODO',
     titulo: 'Flexión de codo',
     ejemplos: 'Curl de bíceps con barra Z · Curl martillo',
@@ -447,11 +493,12 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'extension_codo',
+    cadena: 'abierta',
     categoria: 'EXTENSIÓN DE CODO',
     titulo: 'Extensión de codo',
     ejemplos: 'Extensión de codo en polea · Extensión de codo unilateral',
     resumen:
-      'El antebrazo se separa del brazo. El tríceps es dos tercios del volumen del brazo, y su cabeza larga solo se estira con el hombro flexionado.',
+      'El antebrazo empuja hacia abajo con el codo clavado al costado. El tríceps es dos tercios del volumen del brazo; aquí mandan sus cabezas lateral y medial, porque la larga trabaja acortada con el brazo pegado.',
     claves: [
       'Extiende del todo y aprieta un instante al final.',
       'El codo apunta al frente y se queda ahí, quieto.',
@@ -464,14 +511,22 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroFlex: 166, hombroAbd: 14, codoFlex: 148, toraxFlex: -6 },
-    fin: { hombroFlex: 168, hombroAbd: 12, codoFlex: 2, toraxFlex: -4 },
-    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'triceps.larga': 1, 'triceps.lateral': 0.9, 'triceps.medial': 0.9, serrato: 0.35, recto_abdominal: 0.3, 'deltoides.posterior': 0.3 },
+    // Pushdown en polea, que es lo que dicen sus ejemplos y lo que se programa:
+    // el codo pegado al costado y quieto, el antebrazo empujando hacia abajo.
+    // Estaba modelado con los brazos sobre la cabeza —extensión francesa—, un
+    // ejercicio real pero distinto del que las fichas prometen.
+    inicio: { hombroFlex: 24, hombroAbd: 6, codoFlex: 132, toraxFlex: 4, caderaFlex: 8, rodillaFlex: 10 },
+    fin: { hombroFlex: 16, hombroAbd: 6, codoFlex: 6, toraxFlex: 4, caderaFlex: 8, rodillaFlex: 10 },
+    // En el pushdown mandan la lateral y la medial: la cabeza larga cruza el
+    // hombro, y con el brazo pegado al costado trabaja acortada y pierde
+    // protagonismo. Era al reves cuando el patron estaba sobre la cabeza.
+    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'triceps.larga': 0.6, 'triceps.lateral': 1, 'triceps.medial': 1, serrato: 0.35, recto_abdominal: 0.3, 'deltoides.posterior': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 46, elevacion: 10 },
   },
   {
     id: 'empuje_vertical',
+    cadena: 'abierta',
     categoria: 'EMPUJE VERTICAL',
     titulo: 'Empuje vertical',
     ejemplos: 'Press de hombro con mancuernas · Press de hombro en máquina · Press militar',
@@ -497,6 +552,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'antiextension',
+    cadena: 'cerrada',
     categoria: 'ANTIEXTENSIÓN',
     titulo: 'Antiextensión',
     ejemplos: 'Plancha a peso corporal · Dead bug en el suelo',
@@ -524,6 +580,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'empuje_horizontal',
+    cadena: 'abierta',
     categoria: 'EMPUJE HORIZONTAL',
     // En el banca el mínimo de velocidad queda bastante por encima del pecho, no
     // al despegar: ahí los músculos trabajan en una longitud mala.
@@ -545,14 +602,15 @@ export const PATRONES: Patron[] = [
     giro: [-88, 0, 0],
     raizInicio: [0, 0.50, 0],
     raizFin: [0, 0.50, 0],
-    inicio: { hombroAbd: 68, hombroFlex: 4, codoFlex: 112, escapulaProt: -28, caderaFlex: 42, rodillaFlex: 78 },
-    fin: { hombroAbd: 32, hombroFlex: 20, codoFlex: 2, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
+    inicio: { hombroAbd: 42, hombroFlex: 62, codoFlex: 100, escapulaProt: -28, caderaFlex: 42, rodillaFlex: 78 },
+    fin: { hombroAbd: 18, hombroFlex: 88, codoFlex: 4, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.esternocostal': 1, 'pectoral_mayor.clavicular': 0.6, 'pectoral_mayor.abdominal': 0.5, 'deltoides.anterior': 0.85, 'triceps.lateral': 0.8, 'triceps.medial': 0.8, 'triceps.larga': 0.55, serrato: 0.5, biceps: 0.2, 'manguito.subescapular': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 46 },
   },
   {
     id: 'empuje_inclinado',
+    cadena: 'abierta',
     categoria: 'EMPUJE INCLINADO',
     titulo: 'Empuje inclinado',
     ejemplos: 'Press de pecho con barra en banco inclinado · Press inclinado con mancuernas',
@@ -571,14 +629,15 @@ export const PATRONES: Patron[] = [
     giro: [-52, 0, 0],
     raizInicio: [0, 0.52, 0],
     raizFin: [0, 0.52, 0],
-    inicio: { hombroAbd: 64, hombroFlex: 6, codoFlex: 110, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
-    fin: { hombroAbd: 30, hombroFlex: 24, codoFlex: 2, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
+    inicio: { hombroAbd: 38, hombroFlex: 66, codoFlex: 102, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
+    fin: { hombroAbd: 16, hombroFlex: 92, codoFlex: 6, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.clavicular': 1, 'pectoral_mayor.esternocostal': 0.7, 'deltoides.anterior': 0.95, 'triceps.lateral': 0.75, 'triceps.medial': 0.75, serrato: 0.5, 'manguito.subescapular': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 40 },
   },
   {
     id: 'extension_hombro',
+    cadena: 'abierta',
     categoria: 'EXTENSIÓN DE HOMBRO',
     titulo: 'Extensión de hombro',
     ejemplos: 'Pullover en polea · Jalón con brazo recto · Pullover con mancuerna',
@@ -617,6 +676,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'antirrotacion',
+    cadena: 'abierta',
     categoria: 'ANTIRROTACIÓN',
     titulo: 'Antirrotación',
     ejemplos: 'Pallof press de pie · Pallof press arrodillado',
@@ -634,8 +694,8 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroFlex: 42, codoFlex: 118, caderaFlex: 12, rodillaFlex: 14, toraxRot: 10, lumbarRot: 5, escapulaProt: 6 },
-    fin: { hombroFlex: 74, codoFlex: 12, caderaFlex: 12, rodillaFlex: 14, toraxRot: 2, lumbarRot: 1, escapulaProt: 20 },
+    inicio: { hombroFlex: 42, codoFlex: 118, caderaFlex: 4, rodillaFlex: 6, toraxRot: 10, lumbarRot: 5, escapulaProt: 6 },
+    fin: { hombroFlex: 74, codoFlex: 12, caderaFlex: 4, rodillaFlex: 6, toraxRot: 2, lumbarRot: 1, escapulaProt: 20 },
     activacion: {
       'oblicuos.externo': 1,
       'oblicuos.interno': 1,
@@ -659,6 +719,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'retraccion_escapular',
+    cadena: 'abierta',
     categoria: 'RETRACCIÓN ESCAPULAR',
     titulo: 'Retracción escapular',
     ejemplos: 'Band pull apart · Retracción en polea · Face pull',
@@ -694,6 +755,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'apertura_pecho',
+    cadena: 'abierta',
     categoria: 'APERTURA DE PECHO',
     titulo: 'Apertura de pecho',
     ejemplos: 'Aperturas con mancuerna · Pec deck · Cruce en polea',
@@ -709,11 +771,13 @@ export const PATRONES: Patron[] = [
       'Abrir por detrás de la línea del hombro buscando estiramiento: ahí manda la cápsula, no el músculo.',
     ],
     apoyo: 'ninguno',
-    giro: [88, 0, 0],
+    // Boca ARRIBA, como el press de banca: el giro estaba en +88 y el sujeto
+    // hacía las aperturas boca abajo, con las manos bajando en el cierre.
+    giro: [-88, 0, 0],
     raizInicio: [0, 0.55, 0],
     raizFin: [0, 0.55, 0],
-    inicio: { hombroAbd: 84, hombroFlex: 8, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
-    fin: { hombroAbd: 16, hombroFlex: 12, codoFlex: 30, hombroRot: 26, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
+    inicio: { hombroAbd: 78, hombroFlex: 74, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
+    fin: { hombroAbd: -12, hombroFlex: 90, codoFlex: 34, hombroRot: 0, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
     activacion: {
       'pectoral_mayor.esternocostal': 1,
       'pectoral_mayor.clavicular': 0.9,
@@ -730,6 +794,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'antiflexion_lateral',
+    cadena: 'cerrada',
     categoria: 'ANTIFLEXIÓN LATERAL',
     titulo: 'Antiflexión lateral',
     ejemplos: 'Paseo del granjero a una mano · Maleta · Plancha lateral',
@@ -747,8 +812,8 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { lumbarLat: 27, toraxLat: 24, pelvisLat: 18, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, escapulaElev: -14 },
-    fin: { lumbarLat: -1, toraxLat: 0, pelvisLat: -3, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, escapulaElev: 3 },
+    inicio: { lumbarLat: 27, toraxLat: 24, pelvisLat: 18, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, rodillaFlex: 6, escapulaElev: -14 },
+    fin: { lumbarLat: -1, toraxLat: 0, pelvisLat: -3, hombroFlex: 4, codoFlex: 6, caderaFlex: 4, rodillaFlex: 6, escapulaElev: 3 },
     activacion: {
       cuadrado_lumbar: 1,
       'oblicuos.externo': 0.95,
@@ -767,6 +832,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'dorsiflexion',
+    cadena: 'cerrada',
     categoria: 'DORSIFLEXIÓN',
     titulo: 'Dorsiflexión',
     ejemplos: 'Elevación de puntas · Tibialis raise con la espalda en la pared',
@@ -798,11 +864,12 @@ export const PATRONES: Patron[] = [
     },
     // Se traza la punta del pie y no el final del hueso: es lo que de verdad
     // sube, y sobre un hueso tan corto la diferencia decide si el arco se ve.
-    seguimiento: ['pieD', 1, [0, 0, 0.05]],
+    seguimiento: ['pieD', 1, [0, 0, 0.075]],
     camara: { azimut: 86, elevacion: 10 },
   },
   {
     id: 'flexion_tronco',
+    cadena: 'abierta',
     categoria: 'FLEXIÓN DE TRONCO',
     titulo: 'Flexión de tronco',
     ejemplos: 'Crunch en polea arrodillado · Crunch abdominal',
@@ -820,8 +887,8 @@ export const PATRONES: Patron[] = [
     apoyo: 'ninguno',
     raizInicio: [0, 0.62, 0],
     raizFin: [0, 0.58, 0],
-    inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 128, codoFlex: 84, cuelloFlex: -8 },
-    fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 120, codoFlex: 88, cuelloFlex: 24 },
+    inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 148, codoFlex: 142, cuelloFlex: -8 },
+    fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 144, codoFlex: 140, cuelloFlex: 24 },
     activacion: {
       recto_abdominal: 1,
       'oblicuos.externo': 0.8,
@@ -836,6 +903,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'salto',
+    cadena: 'cerrada',
     categoria: 'POTENCIA · REACTIVA',
     titulo: 'Salto',
     ejemplos: 'Salto al cajón · Drop squat · Pogo jumps · Salto horizontal',
@@ -853,7 +921,9 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.72, 0],
     raizFin: [0, 1.02, 0],
-    inicio: { caderaFlex: 68, rodillaFlex: 74, tobilloPlantar: -16, toraxFlex: 18, hombroFlex: -34, codoFlex: 26 },
+    giroInicio: [40, 0, 0],
+    giroFin: [0, 0, 0],
+    inicio: { caderaFlex: 92, rodillaFlex: 74, tobilloPlantar: -16, toraxFlex: 18, hombroFlex: -34, codoFlex: 26 },
     fin: { caderaFlex: 4, rodillaFlex: 6, tobilloPlantar: 42, toraxFlex: 2, hombroFlex: 96, codoFlex: 12 },
     activacion: {
       'cuadriceps.vasto_lateral': 1,
@@ -874,6 +944,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'rotacion_externa_hombro',
+    cadena: 'abierta',
     categoria: 'ROTACIÓN EXTERNA',
     titulo: 'Rotación externa de hombro',
     ejemplos: 'Rotación externa en polea · Rotación con banda · Band pull apart',
@@ -908,6 +979,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'movilidad_toracica',
+    cadena: 'cerrada',
     categoria: 'MOVILIDAD',
     titulo: 'Movilidad torácica',
     ejemplos: 'Extensión en foam roller · Gato-camello · Rotación torácica',
@@ -923,11 +995,16 @@ export const PATRONES: Patron[] = [
       'Buscar el rango a tirones en vez de con recorridos lentos y repetidos.',
     ],
     apoyo: 'ninguno',
-    giro: [72, 0, 0],
+    // La raíz se inclina MÁS cuando la columna se extiende. Es la cadena
+    // cerrada hecha a mano: las manos están plantadas, así que el arco de la
+    // espalda no puede levantar el tronco entero —se hunde entre los apoyos,
+    // que es la vaca del gato-camello—. Sin esto las manos subían un metro.
+    giroInicio: [72, 0, 0],
+    giroFin: [92, 0, 0],
     raizInicio: [0, 0.68, 0],
     raizFin: [0, 0.72, 0],
     inicio: { toraxFlex: 34, lumbarFlex: 12, cuelloFlex: 26, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 108, codoFlex: 16, escapulaProt: 24 },
-    fin: { toraxFlex: -28, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 116, codoFlex: 12, escapulaProt: -14 },
+    fin: { toraxFlex: -20, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 106, codoFlex: 12, escapulaProt: -14 },
     activacion: {
       'erectores.longisimo': 1,
       'erectores.espinal': 0.95,
@@ -944,6 +1021,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'apoyo_una_pierna',
+    cadena: 'cerrada',
     categoria: 'APOYO A UNA PIERNA',
     titulo: 'Apoyo a una pierna',
     ejemplos: 'Apoyo monopodal · Monopodal con alcance · Short foot',
@@ -986,6 +1064,7 @@ export const PATRONES: Patron[] = [
   },
   {
     id: 'suspension',
+    cadena: 'cerrada',
     categoria: 'SUSPENSIÓN',
     titulo: 'Suspensión',
     ejemplos: 'Dead hang en barra · Colgado activo · Suspensión con agarre',

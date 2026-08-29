@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID } from './catalogo'
+import { normalizarCategoria, patronDeCategoria, PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
 import { MUSCULO_POR_ID, PORCION_POR_CLAVE } from './musculos'
-import { apoyarPies, INDICE_HUESO, type Lado } from './esqueleto'
+import { apoyarPies, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type Lado } from './esqueleto'
 import { poseAnimada, RANGO } from './movimiento'
 
 describe('el catálogo de patrones', () => {
@@ -223,6 +223,9 @@ describe('la movilidad que los patrones dan por supuesta', () => {
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
     sentadilla_unilateral: 34,
     sentadilla: 29,
+    // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
+    // deprisa y profundo es de los gestos que más tobillo piden.
+    salto: 25,
   }
 
   it('no pide más tobillo del que ya pedía', () => {
@@ -308,5 +311,108 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Salto del tigre')?.id).toBe(
       'traccion_horizontal',
     )
+  })
+})
+
+describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
+  /** Dónde queda cada punto respecto al tobillo, en centímetros. +Z va delante. */
+  const respectoAlTobillo = (patron: Patron, fase: number) => {
+    const pies: Lado[] = patron.pies ?? (patron.apoyo === 'suelo' ? ['D', 'I'] : [])
+    const { pose, desplazamiento, giroRaiz } = poseAnimada(patron, fase, 1, 0)
+    const esq = resolverConApoyo(pose, desplazamiento, giroRaiz, patron.apoyo, patron.alturaApoyo, pies)
+    const z = (h: string, t: number) => puntoDeHueso(esq, h, t)[2] * 100
+    const tobillo = z('tibiaD', 1)
+    return { cadera: z('pelvis', 0) - tobillo, rodilla: z('musloD', 1) - tobillo }
+  }
+
+  it('lleva la cadera ATRÁS en la bisagra', () => {
+    // Es lo que define el gesto y lo que lo separa de agacharse: la cadera se
+    // echa atrás y el tronco baja por consecuencia. Estaba al revés —la cadera
+    // acababa 15 cm por DELANTE del tobillo—, así que el sujeto se doblaba hacia
+    // adelante como quien recoge algo del suelo, que es justo lo que no se
+    // quiere enseñar.
+    const p = PATRON_POR_ID['bisagra_cadera']
+    const arriba = respectoAlTobillo(p, 0)
+    const abajo = respectoAlTobillo(p, 1)
+    expect(abajo.cadera, 'la cadera no retrocede').toBeLessThan(arriba.cadera - 8)
+    // Y la tibia se queda vertical: la rodilla no se adelanta.
+    expect(Math.abs(abajo.rodilla), 'la rodilla se adelanta').toBeLessThan(5)
+  })
+
+  it('lleva la cadera atrás Y la rodilla adelante en la sentadilla', () => {
+    // Aquí sí se adelanta la rodilla: es lo que distingue una sentadilla de una
+    // bisagra, y por eso una carga el cuádriceps y la otra los isquios.
+    const p = PATRON_POR_ID['sentadilla']
+    const arriba = respectoAlTobillo(p, 0)
+    const abajo = respectoAlTobillo(p, 1)
+    expect(abajo.cadera).toBeLessThan(arriba.cadera - 15)
+    expect(abajo.rodilla).toBeGreaterThan(arriba.rodilla + 8)
+  })
+
+  it('separa la bisagra de la sentadilla por dónde va la rodilla', () => {
+    // Si las dos adelantaran la rodilla, el visor estaría enseñando el mismo
+    // gesto dos veces con nombres distintos.
+    const bisagra = respectoAlTobillo(PATRON_POR_ID['bisagra_cadera'], 1)
+    const sentadilla = respectoAlTobillo(PATRON_POR_ID['sentadilla'], 1)
+    expect(sentadilla.rodilla - bisagra.rodilla).toBeGreaterThan(12)
+  })
+})
+
+describe('la trayectoria de la mano en los gestos de brazo', () => {
+  const mano = (patron: Patron, fase: number) => {
+    const { pose, desplazamiento, giroRaiz } = poseAnimada(patron, fase, 1, 0)
+    const pies: Lado[] = patron.pies ?? (patron.apoyo === 'suelo' ? ['D', 'I'] : [])
+    const esq = resolverConApoyo(pose, desplazamiento, giroRaiz, patron.apoyo, patron.alturaApoyo, pies)
+    return puntoDeHueso(esq, 'manoD', 0.5)
+  }
+
+  it('en el press de banca la mano SUBE, perpendicular al pecho', () => {
+    // Estaba mal de raíz: el bloqueo dejaba el brazo a lo largo del cuerpo
+    // (hombroFlex 20°) y la mano acababa junto a la cadera, moviéndose 11 cm.
+    // Tumbado, el press va perpendicular al tronco: el brazo bloquea a 90°.
+    const a = mano(PATRON_POR_ID['empuje_horizontal'], 0)
+    const b = mano(PATRON_POR_ID['empuje_horizontal'], 1)
+    expect(b[1] - a[1], 'la mano no sube').toBeGreaterThan(0.25)
+    expect(Math.abs(b[2] - a[2]), 'la mano se arrastra a lo largo del cuerpo').toBeLessThan(0.2)
+  })
+
+  it('en el inclinado la mano sube en diagonal', () => {
+    const a = mano(PATRON_POR_ID['empuje_inclinado'], 0)
+    const b = mano(PATRON_POR_ID['empuje_inclinado'], 1)
+    expect(b[1] - a[1]).toBeGreaterThan(0.15)
+  })
+
+  it('en la apertura la mano abre lateral y cierra SOBRE el pecho', () => {
+    // El sujeto estaba boca abajo -giro +88 cuando el banca usa -88- y al
+    // cerrar el arco las manos BAJABAN. Boca arriba, la mano parte abierta
+    // lejos del eje y acaba arriba, sobre el pecho.
+    const a = mano(PATRON_POR_ID['apertura_pecho'], 0)
+    const b = mano(PATRON_POR_ID['apertura_pecho'], 1)
+    expect(Math.abs(a[0]), 'no abre: parte pegada al cuerpo').toBeGreaterThan(0.4)
+    expect(b[1] - a[1], 'al cerrar la mano no sube').toBeGreaterThan(0.3)
+    expect(Math.abs(b[0]), 'no cierra: acaba lejos del eje').toBeLessThan(0.25)
+  })
+
+  it('en el crunch las manos van a la cabeza y viajan con ella', () => {
+    // Estaban estiradas al cielo, a 2,5 m, buscando un cable que en el gesto
+    // real se sujeta contra las sienes.
+    const p = PATRON_POR_ID['flexion_tronco']
+    for (const f of [0, 1]) {
+      const m = mano(p, f)
+      const { pose, desplazamiento, giroRaiz } = poseAnimada(p, f, 1, 0)
+      const esq = resolverConApoyo(pose, desplazamiento, giroRaiz, p.apoyo, p.alturaApoyo, [])
+      const cabeza = puntoDeHueso(esq, 'craneo', 0.5)
+      const d = Math.hypot(m[0] - cabeza[0], m[1] - cabeza[1], m[2] - cabeza[2])
+      expect(d, `en fase ${f} la mano está a ${(d * 100).toFixed(0)} cm de la cabeza`).toBeLessThan(0.35)
+    }
+  })
+
+  it('en el gato-camello las manos se quedan plantadas', () => {
+    // Cadena cerrada de verdad: el arco de la espalda no puede levantar el
+    // tronco entero, porque las manos están en el suelo. Subían un metro.
+    const p = PATRON_POR_ID['movilidad_toracica']
+    const a = mano(p, 0)
+    const b = mano(p, 1)
+    expect(Math.abs(b[1] - a[1]), 'las manos se despegan').toBeLessThan(0.15)
   })
 })

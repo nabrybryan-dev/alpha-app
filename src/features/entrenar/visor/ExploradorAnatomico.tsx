@@ -27,18 +27,25 @@ export interface ExploradorAnatomicoProps {
    * pantalla en blanco: viene de fuera y no se puede confiar en él.
    */
   articulacionInicial?: string
+  /**
+   * La cadena del ejercicio del que se viene. Con `cerrada`, las
+   * articulaciones del apoyo se demuestran con el pie fijo —el fémur bajando
+   * sobre la tibia, la pelvis echándose atrás— que es lo que de verdad hacen
+   * dentro de una sentadilla o un peso muerto.
+   */
+  cadena?: 'cerrada' | 'abierta'
 }
 
-export function ExploradorAnatomico({ articulacionInicial }: ExploradorAnatomicoProps = {}) {
+export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }: ExploradorAnatomicoProps = {}) {
   // Por defecto el codo: es la bisagra más clara y su límite —el olécranon
   // topando con su fosa— explica de una vez qué significa un grado de libertad.
   const [elegida, setElegida] = useState<Demostracion>(
     () =>
-      (articulacionInicial ? demostracionesDe(articulacionInicial)[0] : undefined) ??
+      (articulacionInicial ? demostracionesDe(articulacionInicial, cadena)[0] : undefined) ??
       DEMOSTRACION_POR_ID['demo-codo-codoFlex'] ??
       DEMOSTRACIONES[0],
   )
-  const hermanas = demostracionesDe(elegida.articulacion.id)
+  const hermanas = demostracionesDe(elegida.articulacion.id, cadena)
 
   return (
     <div className="flex flex-col gap-3">
@@ -65,7 +72,7 @@ export function ExploradorAnatomico({ articulacionInicial }: ExploradorAnatomico
             <button
               key={a.id}
               type="button"
-              onClick={() => setElegida(demostracionesDe(a.id)[0])}
+              onClick={() => setElegida(demostracionesDe(a.id, cadena)[0])}
               aria-pressed={activa}
               className={`press shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] ${
                 activa
