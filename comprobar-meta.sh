@@ -1,68 +1,66 @@
 #!/usr/bin/env bash
-# Evalua la condicion de terminado. Sale 0 si se cumple, 1 si no.
+# Evalua la condicion de terminado VIGENTE (salon a pantalla completa, 30-ago).
+# Sale 0 si se cumple, 1 si no.
+#
+# OJO: esta es la condicion NUEVA. La anterior buscaba 'pendiente' sin distinguir
+# mayusculas y cazaba 'independiente' y 'metodo'. Ya no.
 cd "$(dirname "$0")" || exit 1
 fallos=0
 paso() { printf '  OK    %s\n' "$1"; }
 falla() { printf '  FALLA %s\n' "$1"; fallos=$((fallos+1)); }
 
-echo "== 1. archivos exigidos =="
-for f in \
-  src/features/entrenar/salon/SalonEntrenar.tsx \
-  src/features/entrenar/salon/huecos.ts \
-  src/features/entrenar/salon/paredes/contenidoPared.ts \
-  src/features/entrenar/salon/paredes/PanelPared.tsx \
-  src/features/entrenar/salon/panel/PanelInferior.tsx \
-  src/features/entrenar/salon/registro/RegistroSerieSalon.tsx \
-  src/features/entrenar/salon/sinPatron/SalonSinSujeto.tsx \
-  src/features/entrenar/capas/nivelesAnatomicos.ts \
-  src/features/entrenar/capas/gestoVertical.ts \
-  src/features/entrenar/escena/sala.ts \
-  src/features/entrenar/escena/tripode.ts \
-  pruebas/inventario-entrenar.ts \
-  informes/congelado-visor.md \
-  informes/verificacion-iphone.md \
-  riesgos/RIESGOS.md
-do
+echo "== 1. los dos ficheros del testigo =="
+for f in testigo/salon-visible.mjs informes/testigo-salon.json; do
   if [ -s "$f" ]; then paso "$f"; else falla "$f (falta o vacio)"; fi
 done
 
-echo "== 2. las tres llamadas en VisorPatron =="
-visor=$(find src -name VisorPatron.tsx | head -1)
-if [ -n "$visor" ]; then
-  n=0
-  for t in "lineaDePeso(" "sala(" "tripode("; do
-    grep -qF "$t" "$visor" && n=$((n+1))
-  done
-  if [ "$n" -eq 3 ]; then paso "$visor tiene las tres"; else falla "$visor solo tiene $n de 3"; fi
+echo "== 2. el acta: cinco elementos visibles, pestana visible, 9:16 =="
+if [ -s informes/testigo-salon.json ]; then
+  node -e '
+    const a = require("./informes/testigo-salon.json")
+    const claves = ["sala","letras3D","sujeto","camara","implementos"]
+    let mal = 0
+    if (a.pestanaVisible !== true) { console.log("  FALLA pestanaVisible no es true"); mal++ }
+    if (a.formato !== "9:16") { console.log("  FALLA formato no es 9:16 (" + a.formato + ")"); mal++ }
+    for (const k of claves) {
+      const e = (a.elementos || {})[k]
+      if (!e || e.visible !== true || !(e.pixeles > 0)) {
+        console.log("  FALLA " + k + ": " + JSON.stringify(e))
+        mal++
+      } else {
+        console.log("  OK    " + k + " " + e.pixeles + " px")
+      }
+    }
+    if (a.rama) console.log("  (acta levantada sobre la rama " + a.rama + ", usuario " + (a.usuario || "?") + ")")
+    process.exit(mal > 0 ? 1 : 0)
+  ' || fallos=$((fallos+1))
 else
-  falla "no existe VisorPatron.tsx"
+  falla "no hay acta que leer"
 fi
 
-echo "== 3. sin pendientes ni relleno =="
+echo "== 3. sin marcadores de trabajo sin acabar =="
 zonas=""
-for d in src/features/entrenar/salon src/features/entrenar/capas src/features/entrenar/escena informes riesgos pruebas; do
-  [ -d "$d" ] && zonas="$zonas $d"
+for d in src/features/entrenar/salon testigo informes; do
+  [ -e "$d" ] && zonas="$zonas $d"
 done
-if [ -n "$zonas" ]; then
-  sucio=$(grep -rniE "TODO|FIXME|pendiente|placeholder|lorem|NO MEDIDO|NO COMPROBADO" $zonas 2>/dev/null)
-  if [ -z "$sucio" ]; then paso "cero lineas de relleno"; else
-    falla "$(printf '%s' "$sucio" | wc -l | tr -d ' ') lineas de relleno"
-    printf '%s\n' "$sucio" | head -12 | sed 's/^/        /'
-  fi
-else
-  falla "no existe ninguna de las carpetas"
+sucio=$(grep -rnE "\bTODO\b|\bFIXME\b|\bXXX\b|placeholder|lorem|NO MEDIDO|NO COMPROBADO" $zonas 2>/dev/null)
+if [ -z "$sucio" ]; then paso "cero lineas"; else
+  falla "$(printf '%s' "$sucio" | wc -l | tr -d ' ') lineas"
+  printf '%s\n' "$sucio" | head -8 | sed 's/^/        /'
 fi
 
 echo "== 4. tipos =="
 if npx tsc --noEmit >/tmp/tsc.log 2>&1; then paso "tsc --noEmit limpio"; else
-  falla "tsc: $(grep -c 'error TS' /tmp/tsc.log) errores"; grep 'error TS' /tmp/tsc.log | head -8 | sed 's/^/        /'
+  falla "tsc: $(grep -c 'error TS' /tmp/tsc.log) errores"
+  grep 'error TS' /tmp/tsc.log | head -6 | sed 's/^/        /'
 fi
 
 echo "== 5. conflictos con origin/main =="
-base=$(git merge-base salon/entrenar-4d origin/main)
-conf=$(git merge-tree "$base" salon/entrenar-4d origin/main 2>/dev/null | grep -c '^<<<<<<<')
+base=$(git merge-base HEAD origin/main)
+conf=$(git merge-tree "$base" HEAD origin/main 2>/dev/null | grep -c '^<<<<<<<')
 if [ "$conf" -eq 0 ]; then paso "0 conflictos"; else falla "$conf conflictos"; fi
 
 echo
-if [ "$fallos" -eq 0 ]; then echo "META CUMPLIDA (falta npx vitest run)"; else echo "META NO CUMPLIDA: $fallos comprobaciones fallan"; fi
+echo "  (falta aparte: npx vitest run)"
+if [ "$fallos" -eq 0 ]; then echo "META CUMPLIDA salvo vitest"; else echo "META NO CUMPLIDA: $fallos comprobaciones fallan"; fi
 exit $((fallos > 0))

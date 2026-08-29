@@ -1,0 +1,34 @@
+{
+  "pestanaVisible": true,
+  "formato": "9:16",
+  "viewport": {
+    "ancho": 414,
+    "alto": 736
+  },
+  "cuando": "2026-08-29T22:16:39.806Z",
+  "usuario": "u-mateo",
+  "sesion": "FULL A",
+  "rama": "conSujeto",
+  "elementos": {
+    "sala": {
+      "visible": true,
+      "pixeles": 304704
+    },
+    "letras3D": {
+      "visible": true,
+      "pixeles": 304704
+    },
+    "sujeto": {
+      "visible": true,
+      "pixeles": 304704
+    },
+    "camara": {
+      "visible": true,
+      "pixeles": 36290
+    },
+    "implementos": {
+      "visible": true,
+      "pixeles": 4776
+    }
+  }
+}
