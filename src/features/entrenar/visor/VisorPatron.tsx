@@ -15,7 +15,7 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
+import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
 import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
@@ -364,7 +364,6 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
           avisarDeLaCamara()
         })
         orbita.azimut = patron.camara.azimut
-        orbita.elevacion = patron.camara.elevacion
         // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
         // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia el
         // borde inferior del cuadro cae por encima del suelo y la sala entera queda
@@ -377,6 +376,15 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
         const conSala = !!estado.current.datos
         orbita.distancia = conSala ? ENCUADRE_SALA.distancia : encuadre.distancia
         orbita.centro = conSala ? [...ENCUADRE_SALA.centro] : encuadre.centro
+        // Y LA ELEVACIÓN SE ACOTA, pero solo con sala. El ángulo del patrón se eligió
+        // para ver el MOVIMIENTO —lo tumbado se estudia desde arriba, y por eso el
+        // catálogo llega a 56°— y ahí sigue mandando cuando el visor monta el patrón
+        // solo. Dentro del salón manda otra cosa: a partir de 32° la cámara no ve ni un
+        // punto del muro de 6,8 m, y los cuadros colgados quedaban fuera de la pantalla.
+        // El tope vive en `ENCUADRE_SALA` con el motivo y el número medidos.
+        orbita.elevacion = conSala
+          ? elevacionDelSalon(patron.camara.elevacion)
+          : patron.camara.elevacion
 
         let matrices = resolver({}, [0, 0.95, 0], [0, 0, 0]).matrices
 

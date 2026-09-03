@@ -1,0 +1,55 @@
+{
+  "viewport": {
+    "ancho": 390,
+    "alto": 844
+  },
+  "lienzo": {
+    "ancho": 390,
+    "alto": 844
+  },
+  "cuadros": [
+    {
+      "clave": "ejercicio",
+      "x": 270,
+      "y": 26,
+      "ancho": 163,
+      "alto": 179,
+      "sobraArriba": -26,
+      "sobraAbajo": -639,
+      "sobraIzquierda": -270,
+      "sobraDerecha": 43,
+      "cuerpoPx": 8.6,
+      "topePx": 206,
+      "texto": "EjercicioPress inclinado en multipowerTécnicaBanco a 30°, baja a la parte alta del…Series3"
+    },
+    {
+      "clave": "series",
+      "x": -26,
+      "y": 30,
+      "ancho": 128,
+      "alto": 58,
+      "sobraArriba": -30,
+      "sobraAbajo": -756,
+      "sobraIzquierda": 26,
+      "sobraDerecha": -288,
+      "cuerpoPx": 7,
+      "topePx": 74,
+      "texto": "Series registradas1— · —2— · —3— · —"
+    },
+    {
+      "clave": "registro",
+      "x": -25,
+      "y": 154,
+      "ancho": 149,
+      "alto": 58,
+      "sobraArriba": -154,
+      "sobraAbajo": -633,
+      "sobraIzquierda": 25,
+      "sobraDerecha": -266,
+      "cuerpoPx": 7.8,
+      "topePx": 59,
+      "texto": "Serie 1 de 320 kg·9 reps·RIR 2Guardar1Serie 1 de 3Carga−kg+Reps−+RIR−+"
+    }
+  ],
+  "usuario": "u-valentina"
+}

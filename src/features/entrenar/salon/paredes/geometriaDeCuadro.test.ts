@@ -8,7 +8,8 @@ import {
   type SitioDePared,
 } from './geometriaDeCuadro'
 import { SITIOS, sitioEn } from './sitiosDeLaPared'
-import { ENCUADRE_SALA } from '../../escena/sala'
+import { ENCUADRE_SALA, elevacionDelSalon } from '../../escena/sala'
+import { PATRONES } from '../../../../domain/patrones/catalogo'
 
 /**
  * QUE LOS CUADROS ESTÉN EN LA PANTALLA. No que estén en el DOM: en la pantalla.
@@ -146,5 +147,52 @@ describe('asentarEnLaBanda', () => {
     const { sitio, cabe } = asentarEnLaBanda(CUADRO_DEL_EJERCICIO, CAMARA(2), ANCHO, ALTO)
     expect(cabe).toBe(true)
     expect(sitio.altura).toBe(CUADRO_DEL_EJERCICIO.altura)
+  })
+})
+
+/**
+ * LA PRUEBA QUE CIERRA EL CASO: el catálogo ENTERO, cuadro a cuadro.
+ *
+ * No un patrón de ejemplo ni una lista de elevaciones escrita a mano: los 32 patrones tal
+ * y como están en `domain/patrones/catalogo.ts`, cada uno contra los nueve sitios de la
+ * pared. Si mañana entra un patrón nuevo con la cámara a 50°, esta prueba se pone en rojo
+ * sola — que es la diferencia entre haber arreglado el caso de hoy y haber arreglado el
+ * problema.
+ *
+ * Con la elevación acotada por `elevacionDelSalon()`, que es el tope del salón decidido el
+ * 2026-09-03: el ángulo del patrón sigue mandando cuando el visor monta el patrón solo.
+ */
+describe('el salón entero, contra el catálogo', () => {
+  it('ningún patrón deja un cuadro colgando fuera de la pantalla', () => {
+    const fallos: string[] = []
+    for (const patron of PATRONES) {
+      const camara: CamaraDelSalon = {
+        azimut: patron.camara.azimut,
+        elevacion: elevacionDelSalon(patron.camara.elevacion),
+        distancia: ENCUADRE_SALA.distancia,
+      }
+      for (const [clave, relativo] of Object.entries(SITIOS)) {
+        const sitio = sitioEn(relativo, patron.camara.azimut)
+        const { cabe } = asentarEnLaBanda(sitio, camara, ANCHO, ALTO)
+        if (!cabe) fallos.push(`${patron.id} · ${clave} (${patron.camara.elevacion}°)`)
+      }
+    }
+    expect(fallos, `cuadros fuera de la pantalla: ${fallos.join(' · ')}`).toEqual([])
+  })
+
+  /**
+   * Y LA MITAD QUE NO SE PUEDE PERDER: el tope es del SALÓN, no del patrón. El estudio del
+   * patrón sigue entrando por el ángulo que se eligió para ver el movimiento — hasta 56°,
+   * porque lo tumbado se mira desde arriba.
+   */
+  it('el tope no toca el ángulo de estudio del patrón', () => {
+    const tumbados = PATRONES.filter((p) => p.camara.elevacion > ENCUADRE_SALA.elevacionMaxima)
+    expect(tumbados.length, 'ya no hay patrones por encima del tope: revisa el catálogo').toBeGreaterThan(0)
+    for (const p of tumbados) {
+      expect(elevacionDelSalon(p.camara.elevacion)).toBe(ENCUADRE_SALA.elevacionMaxima)
+      // El catálogo conserva el suyo: esto es lo que se rompería si alguien "arreglara"
+      // el problema bajando los grados en `catalogo.ts` en vez de acotarlos en el salón.
+      expect(p.camara.elevacion).toBeGreaterThan(ENCUADRE_SALA.elevacionMaxima)
+    }
   })
 })

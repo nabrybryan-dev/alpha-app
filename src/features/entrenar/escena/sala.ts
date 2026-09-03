@@ -478,4 +478,40 @@ export const ENCUADRE_SALA = {
   distancia: 4.6,
   /** A la altura del pecho, no de la cadera: deja ver el suelo sin perder la cabeza. */
   centro: [0, 1.2, 0] as [number, number, number],
+  /**
+   * CUÁNTO PUEDE INCLINARSE LA CÁMARA DEL SALÓN HACIA EL SUELO, en grados.
+   *
+   * **Es del SALÓN, no del patrón.** Cada patrón trae su elevación de estudio
+   * (`patron.camara.elevacion`) y en el catálogo va de 2° a 56°, porque un ejercicio
+   * tumbado se estudia desde arriba. Ese ángulo sigue mandando cuando el visor monta el
+   * patrón solo, que es para lo que se eligió: ver el movimiento.
+   *
+   * Pero el salón no es un estudio, es una habitación, y una habitación tiene paredes.
+   * Medido el 2026-09-03: **a partir de 32° no se ve ni un punto del muro** de 6,8 m —el
+   * cono de la cámara cae entero sobre el suelo—, así que los cuadros colgados quedaban
+   * entre 629 y 861 px por encima de la pantalla y el salón se abría sin una letra
+   * dentro. A 46°, la altura de muro más alta que entra en el cuadro es −1,98 m.
+   *
+   * **Diez y no doce**: doce es donde se corta el cuadro del ejercicio, que es el más
+   * alto de los nueve. El techo real está clavado en `geometriaDeCuadro.test.ts`, y si
+   * alguien le añade un campo baja y esa prueba lo dice.
+   *
+   * Lo que se paga: un press tumbado se ve casi de perfil en vez de desde arriba. Lo
+   * decidió Bryan el 2026-09-03, viendo las dos capturas. Y lo que NO toca: el ángulo y
+   * la distancia de la estación de grabación, que son el contrato de medida del encoder
+   * y no se mueven por motivos de encuadre.
+   */
+  elevacionMaxima: 10,
 } as const
+
+/**
+ * La elevación con la que el SALÓN mira al sujeto, dada la del patrón.
+ *
+ * Función y no un `Math.min` suelto en el visor por una razón práctica: el visor monta
+ * la órbita dentro del efecto que crea el contexto WebGL, y jsdom no tiene WebGL — ahí
+ * dentro no hay prueba que llegue. Sacada aquí, la regla se comprueba contra el catálogo
+ * entero sin abrir un navegador.
+ */
+export function elevacionDelSalon(elevacionDelPatron: number): number {
+  return Math.min(elevacionDelPatron, ENCUADRE_SALA.elevacionMaxima)
+}
