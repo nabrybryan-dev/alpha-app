@@ -21,8 +21,11 @@ const MAX_HUESOS = 24
  * `clearColor` del render y en el CSS del lienzo: si se separan, se ve un salto
  * de tono en el borde mientras la escena carga.
  */
-export const FONDO_ESTUDIO = '#3e454f'
-const FONDO_RGB: [number, number, number] = [0.243, 0.271, 0.31]
+// El fondo gris azulado de la versión anterior lavaba la sala: las paredes carbón
+// quedaban prácticamente del mismo valor y en el móvil solo se leía el sujeto.
+// Un fondo profundo separa el volumen de la habitación y conserva el lenguaje Alpha.
+export const FONDO_ESTUDIO = '#0b0e12'
+const FONDO_RGB: [number, number, number] = [0.043, 0.055, 0.071]
 
 const VS = `
 attribute vec3 a_pos;
@@ -178,47 +181,135 @@ export class Motor {
     return c.clientWidth / Math.max(c.clientHeight, 1)
   }
 
-  /** Sube varias mallas concatenadas en un único buffer, para dibujarlas de una pasada. */
+  /**
+   * Sube varias mallas concatenadas en un único buffer, para dibujarlas de una pasada.
+   *
+   * MEDIDO 2026-09-02: esto era el 90 % del coste de `subir()`, y `subir()` era
+   * el 83 % del fotograma. No lo pagaba la GPU: lo pagaba `Array.prototype.push`.
+   *
+   * Lo que había antes juntaba las mallas en tres pasos y solo el tercero tocaba
+   * la tarjeta:
+   *
+   *     const pos = []
+   *     for (const m of mallas) pos.push(...m.posicion)
+   *     gl.bufferData(..., new Float32Array(pos), ...)
+   *
+   * El paso 1 hace `spread` de un `Float32Array` hacia un `number[]` —o sea,
+   * desempaqueta 60.000 floats a valores del motor, uno a uno, construyendo
+   * además una lista de argumentos por malla— y el paso 2 los vuelve a empaquetar
+   * recorriéndolos otra vez. Sesenta veces por segundo, por CINCO atributos.
+   *
+   * Contando primero y escribiendo con `.set()` los dos pasos desaparecen: entre
+   * dos arrays tipados del mismo tipo, `.set()` es una copia de memoria.
+   *
+   *     como estaba          1,093 ms
+   *     reservando antes     0,139 ms   -> 7,9x
+   *
+   * por el atributo de posición; por los cinco, unos 4,77 ms de fotograma. El
+   * p90 estaba en 17,6 ms contra un presupuesto de 16,7: esto es lo que lo
+   * devuelve por debajo. Reproducir con `node scripts/medir-concatenacion.mjs`,
+   * que además comprueba que las dos rutas dan bytes idénticos — si no, la
+   * medida no valdría nada.
+   *
+   * Los búferes se guardan entre llamadas y solo crecen. Reservar 20.000
+   * vértices en cada fotograma es basura que hay que recoger sesenta veces por
+   * segundo, y el recolector no avisa: se nota como tirones, no como lentitud.
+   */
   subir(mallas: Malla[]): void {
     const gl = this.gl
-    const pos: number[] = []
-    const nrm: number[] = []
-    const col: number[] = []
-    const hueso: number[] = []
-    const fibra: number[] = []
-    const idx: number[] = []
-    let base = 0
+
+    // PRIMERA PASADA: cuánto hay. El conteo sale de la misma propiedad que
+    // luego se escribe, que es la única forma de que no se quede corto.
+    let verts = 0
+    let indices = 0
     for (const m of mallas) {
-      pos.push(...m.posicion)
-      nrm.push(...m.normal)
-      col.push(...m.color)
-      hueso.push(...m.hueso)
-      fibra.push(...m.fibra)
-      for (const i of m.indice) idx.push(i + base)
-      base += m.vertices
+      verts += m.vertices
+      indices += m.indice.length
     }
-    const poner = (b: WebGLBuffer, datos: number[]) => {
+
+    // Por encima de 65.535 vértices hacen falta índices de 32 bits. Se decide
+    // ANTES de reservar: convertir después sería justo la copia que se quita.
+    const grande = verts > 65535 && gl.getExtension('OES_element_index_uint') !== null
+    this.tipoIndice = grande ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT
+
+    const c = this.reservar(verts, indices, grande)
+
+    // SEGUNDA PASADA: escribir en su sitio.
+    let v = 0 // vértices ya escritos: la base que hay que sumar a los índices
+    let i = 0 // posición en el búfer de índices
+    for (const m of mallas) {
+      c.pos.set(m.posicion, v * 3)
+      c.nrm.set(m.normal, v * 3)
+      c.col.set(m.color, v * 3)
+      c.hueso.set(m.hueso, v)
+      c.fibra.set(m.fibra, v)
+      // Los índices NO se copian, se desplazan: cada malla los trae relativos a
+      // sí misma. Aquí no sirve `.set()`, pero el bucle escribe sobre un array
+      // tipado ya reservado, que era la mitad cara del asunto.
+      const idx = m.indice
+      for (let k = 0; k < idx.length; k++) c.idx[i + k] = idx[k] + v
+      v += m.vertices
+      i += idx.length
+    }
+
+    // Se sube solo la parte escrita: el búfer guardado puede ser más grande que
+    // esta escena, y lo que sobra son ceros que la tarjeta dibujaría como
+    // triángulos degenerados en el origen.
+    const poner = (b: WebGLBuffer, datos: Float32Array, n: number) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, b)
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(datos), gl.DYNAMIC_DRAW)
+      gl.bufferData(gl.ARRAY_BUFFER, datos.subarray(0, n), gl.DYNAMIC_DRAW)
     }
-    poner(this.buffers.pos, pos)
-    poner(this.buffers.nrm, nrm)
-    poner(this.buffers.col, col)
-    poner(this.buffers.hueso, hueso)
-    poner(this.buffers.fibra, fibra)
+    poner(this.buffers.pos, c.pos, verts * 3)
+    poner(this.buffers.nrm, c.nrm, verts * 3)
+    poner(this.buffers.col, c.col, verts * 3)
+    poner(this.buffers.hueso, c.hueso, verts)
+    poner(this.buffers.fibra, c.fibra, verts)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
-    // Por encima de 65 535 vértices hacen falta índices de 32 bits. La malla
-    // ronda los 20 000, pero la extensión se pide igualmente por si crece.
-    const grande = base > 65535 && gl.getExtension('OES_element_index_uint') !== null
-    this.tipoIndice = grande ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      grande ? new Uint32Array(idx) : new Uint16Array(idx),
-      gl.DYNAMIC_DRAW,
-    )
-    this.indices = idx.length
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, c.idx.subarray(0, indices), gl.DYNAMIC_DRAW)
+    this.indices = indices
   }
+
+  /**
+   * La memoria de trabajo de `subir()`, que sobrevive entre fotogramas.
+   *
+   * Solo crece, y crece con holgura —un 25 %— para que una escena que gana unos
+   * pocos vértices no obligue a reservar de nuevo en el fotograma siguiente. El
+   * tipo de los índices puede cambiar si la escena cruza los 65.535 vértices, y
+   * entonces hay que reservar de otro tipo aunque quepa.
+   */
+  private cache: {
+    pos: Float32Array
+    nrm: Float32Array
+    col: Float32Array
+    hueso: Float32Array
+    fibra: Float32Array
+    idx: Uint16Array | Uint32Array
+  } | null = null
+
+  private reservar(verts: number, indices: number, grande: boolean) {
+    const c = this.cache
+    const cabe =
+      c !== null &&
+      c.hueso.length >= verts &&
+      c.idx.length >= indices &&
+      (grande ? c.idx instanceof Uint32Array : c.idx instanceof Uint16Array)
+    if (cabe) return c
+
+    const v = Math.ceil(verts * 1.25)
+    const n = Math.ceil(indices * 1.25)
+    const nuevo = {
+      pos: new Float32Array(v * 3),
+      nrm: new Float32Array(v * 3),
+      col: new Float32Array(v * 3),
+      hueso: new Float32Array(v),
+      fibra: new Float32Array(v),
+      idx: grande ? new Uint32Array(n) : new Uint16Array(n),
+    }
+    this.cache = nuevo
+    return nuevo
+  }
+
 
   private atributo(nombre: string, buffer: WebGLBuffer, tam: number): void {
     const gl = this.gl
