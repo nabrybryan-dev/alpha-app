@@ -71,6 +71,14 @@ export function CuadroDePared({
   return (
     <div
       data-cuadro={clave}
+      // EL TOPE DE ALTO QUE ESTE CUADRO PROMETE, en píxeles de esta pantalla.
+      //
+      // `sitio.alto` es un tope declarado en metros, y de él sale la altura a la que se
+      // cuelga (`asentarEnLaBanda`). Si el contenido crece por encima, el cuadro se sale
+      // por arriba y el cálculo sigue diciendo que cabe — un tope escrito y no medido se
+      // separa del contenido a la primera. Sacándolo aquí, `testigo/cuadros-en-pantalla.mjs`
+      // compara el alto de VERDAD con el prometido y lo dice en voz alta.
+      data-alto-tope={Math.round(sitio.alto * c.escala)}
       style={{ ...estilo, fontSize: `${cuerpo}px`, pointerEvents: interactivo ? 'auto' : 'none', maxWidth: `${sitio.ancho * c.escala}px` }}
     >
       <div

@@ -151,13 +151,13 @@ export const HUECOS = {
   /**
    * LAS PAREDES — lo corto y esencial del ejercicio.
    *
-   * Los ocho campos que `contenidoPared()` devuelve, ninguno de más de `TOPE_PARED`
+   * Los nueve campos que `contenidoPared()` devuelve, ninguno de más de `TOPE_PARED`
    * caracteres: nombre, técnica, colocación del móvil, distancia, brazo de momento,
    * velocidad, series×reps y RIR. Es lo que hay que poder leer sin dejar de mirar al
    * sujeto. Todo lo que no cupo aquí está íntegro en `panelInferior`.
    */
   paredes: {
-    contiene: 'Los ocho campos cortos del ejercicio, uno por panel de pared.',
+    contiene: 'Los nueve campos cortos del ejercicio, uno por panel de pared.',
     ancla: 'pared',
     gesto: 'orbitar',
     topeDeTexto: TOPE_PARED,

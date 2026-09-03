@@ -15,7 +15,7 @@ import {
 import { CamaraDelSalon } from '../camara/CamaraDelSalon'
 import { BarraRegistro } from '../registro/BarraRegistro'
 import { CuadroDePared } from './CuadroDePared'
-import type { CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
+import { asentarEnLaBanda, type CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
 import { SITIOS, sitioEn } from './sitiosDeLaPared'
 
 /**
@@ -38,7 +38,7 @@ import { SITIOS, sitioEn } from './sitiosDeLaPared'
  *
  * Es exactamente lo contrario de lo que Bryan fotografió: «el sujeto ocupaba una franja
  * estrecha arriba, cortado por el borde, con ocho paneles encajonándolo por los dos lados».
- * Los ocho paneles siguen estando —los cuatro de ejecutar en el muro izquierdo y los cuatro
+ * Los paneles siguen estando —los cinco de ejecutar en el muro izquierdo y los cuatro
  * de medir dentro del módulo de la cámara— pero ya no encajonan: bordean.
  *
  * ## Y por qué esta capa no recibe el puntero
@@ -69,7 +69,7 @@ export interface ParedesDelSalonProps {
   sesion: Sesion | undefined
   /** El ejercicio del que habla el salón. Sin él no hay tabla, ni cámara, ni campos. */
   ejercicio: EjercicioPrescrito | undefined
-  /** Los ocho campos cortos, cuando hay ejercicio del que sacarlos. */
+  /** Los nueve campos cortos, cuando hay ejercicio del que sacarlos. */
   contenido: ContenidoDePared | undefined
   /** El ritmo ya calculado por el dominio, con el tiempo del cronómetro dentro. */
   ritmo: RitmoSesion | undefined
@@ -102,7 +102,18 @@ export function ParedesDelSalon({
   azimutDeEntrada,
 }: ParedesDelSalonProps) {
   const vienen = loQueViene(sesion, ejercicio)
-  const donde = (sitio: (typeof SITIOS)[keyof typeof SITIOS]) => sitioEn(sitio, azimutDeEntrada)
+  /**
+   * DÓNDE CUELGA CADA CUADRO, ya asentado en la banda que la cámara alcanza.
+   *
+   * `sitioEn` resuelve el azimut contra el ángulo de entrada y `asentarEnLaBanda` baja el
+   * cuadro por su muro lo justo para que no se salga por arriba. Lo segundo hace falta
+   * porque las alturas de `sitiosDeLaPared.ts` se midieron con la cámara a 6°, y la
+   * elevación la pone cada patrón: va de 2° a 56° en el catálogo, porque un ejercicio
+   * tumbado se estudia desde arriba. Sin asentar, un press inclinado abría el salón con
+   * los tres cuadros entre 629 y 861 px POR ENCIMA de la pantalla — medido el 2026-09-03.
+   */
+  const donde = (sitio: (typeof SITIOS)[keyof typeof SITIOS]) =>
+    asentarEnLaBanda(sitioEn(sitio, azimutDeEntrada), camara, lienzo.ancho, lienzo.alto).sitio
 
   return (
     <div

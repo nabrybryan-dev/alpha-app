@@ -8,14 +8,14 @@ import { TOPE_PARED } from '../huecos'
 /**
  * LO QUE VA EN LAS PAREDES, y lo que se va al panel de abajo.
  *
- * Función pura: entra la prescripción de un ejercicio y salen ocho textos cortos —uno
+ * Función pura: entra la prescripción de un ejercicio y salen nueve textos cortos —uno
  * por panel de pared— más el arrastre de todo lo que no cupo. Sin React, sin red, sin
  * reloj y sin azar: los mismos datos dan siempre la misma salida, que es la condición
  * para poder demostrar con una huella que no se perdió nada.
  *
  * ## Recortar no es tirar
  *
- * Ninguno de los ocho campos pasa de `TOPE_PARED` caracteres, porque una pared se lee
+ * Ninguno de los nueve campos pasa de `TOPE_PARED` caracteres, porque una pared se lee
  * de reojo y en escorzo mientras la cámara orbita. Pero el recorte solo cambia DÓNDE
  * está el texto, nunca si existe:
  *
@@ -35,7 +35,7 @@ import { TOPE_PARED } from '../huecos'
  * se construye la estación de grabación en 3D. Ninguna cifra se escribe dos veces.
  */
 
-/** Los ocho paneles de pared, en el orden en que se cuelgan alrededor del sujeto. */
+/** Los nueve paneles de pared, en el orden en que se cuelgan alrededor del sujeto. */
 export const CAMPOS_DE_PARED = [
   'nombre',
   'tecnica',
@@ -44,10 +44,11 @@ export const CAMPOS_DE_PARED = [
   'brazoDeMomento',
   'velocidad',
   'seriesReps',
+  'carga',
   'rir',
 ] as const
 
-/** La clave de uno de los ocho paneles. */
+/** La clave de uno de los nueve paneles. */
 export type ClaveDeCampo = (typeof CAMPOS_DE_PARED)[number]
 
 /**
@@ -75,6 +76,7 @@ export interface ContenidoDePared {
   brazoDeMomento: string
   velocidad: string
   seriesReps: string
+  carga: string
   rir: string
   /** Todo lo que no cabía arriba, entero. Vacío si todo cupo. */
   alPanel: TextoDePanel[]
@@ -196,7 +198,7 @@ interface Campo {
 // ---------------------------------------------------------------------------
 
 /**
- * Los ocho textos de pared de un ejercicio, más lo que no cupo.
+ * Los nueve textos de pared de un ejercicio, más lo que no cupo.
  *
  * @param ejercicio La prescripción tal cual la guarda el microciclo.
  */
@@ -356,7 +358,51 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
     })
   }
 
-  // 8. RIR ------------------------------------------------------------------
+  // 8. CARGA ----------------------------------------------------------------
+  //
+  // Los kilos vivían SOLO en el mando de registrar, que es un botón plegado: para saber
+  // cuánto poner en la barra había que desplegar un control. En una pared de gimnasio la
+  // carga es de lo primero que se mira, y va con las series y el RIR — los tres juntos
+  // son la prescripción de la serie.
+  //
+  // `cargaKg` sin definir **NO es carga cero**: es «esta prescripción no lleva kilos»
+  // —porcentajes, peso corporal, tiempo—. Escribir «0 kg» ahí sería decir una carga que
+  // el coach no puso, así que la pared dice que no los lleva. Es la misma distinción que
+  // guarda el propio tipo en `domain/types.ts`.
+  const cargasOnduladas = ondulado.map((s) => s.cargaKg).filter((k) => Number.isFinite(k))
+  if (ejercicio.cargaKg !== undefined) {
+    const kilos = `${cifra(ejercicio.cargaKg)} kg${matizDeUnidad(ejercicio.unidadCarga)}`
+    campos.push({
+      clave: 'carga',
+      titulo: 'Carga',
+      completo: `${kilos}. Es la carga con la que se entra a la serie; el mando de registrar la deja cambiar antes de guardar.`,
+      corto: kilos,
+    })
+  } else if (cargasOnduladas.length > 0) {
+    // En un ondulado no hay UNA carga: hay una por serie, y ya salen enteras en el campo
+    // de series. Aquí va la horquilla, que es lo que se necesita para cargar la barra.
+    const menor = Math.min(...cargasOnduladas)
+    const mayor = Math.max(...cargasOnduladas)
+    const horquilla =
+      menor === mayor ? `${cifra(menor)} kg` : `${cifra(menor)} a ${cifra(mayor)} kg`
+    campos.push({
+      clave: 'carga',
+      titulo: 'Carga',
+      completo: `Ondulado: de ${cifra(menor)} a ${cifra(mayor)} kg, serie a serie. La de cada serie está en el campo de series.`,
+      corto: horquilla,
+    })
+  } else {
+    campos.push({
+      clave: 'carga',
+      titulo: 'Carga',
+      completo:
+        'Esta prescripción no lleva kilos: la intensidad la manda el RIR, el peso ' +
+        'corporal o el tiempo. No es carga cero, es que no hay número que poner.',
+      corto: 'Sin kilos',
+    })
+  }
+
+  // 9. RIR ------------------------------------------------------------------
   // `FALLO` NO es `RIR 0`, y por eso el texto sale de `textoDeObjetivo()` y no de una
   // plantilla local: un cero aquí diría otra cosa que la que el coach prescribió.
   const objetivo = ejercicio.rirObjetivo
@@ -402,13 +448,6 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
     { titulo: 'Prescripción', texto: ejercicio.prescripcion },
     { titulo: 'Nota del coach', texto: ejercicio.notaCoach },
     {
-      titulo: 'Carga',
-      texto:
-        ejercicio.cargaKg !== undefined
-          ? `${cifra(ejercicio.cargaKg)} kg${matizDeUnidad(ejercicio.unidadCarga)}`
-          : undefined,
-    },
-    {
       titulo: 'Etiquetas de las series',
       texto: ejercicio.etiquetasSeries?.length ? ejercicio.etiquetasSeries.join(' · ') : undefined,
     },
@@ -446,6 +485,7 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
     brazoDeMomento: pared.brazoDeMomento,
     velocidad: pared.velocidad,
     seriesReps: pared.seriesReps,
+    carga: pared.carga,
     rir: pared.rir,
     alPanel,
   }

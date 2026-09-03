@@ -378,8 +378,12 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     expect(salon.querySelector('[data-cuadro="registro"]')).not.toBeNull()
     expect(huecos).toContain('centro')
     expect(huecos).toContain('panelInferior')
-    // CUATRO paneles de pared, no ocho. Los otros cuatro —los del encuadre: dónde va el
+    // CINCO paneles de pared, no nueve. Los otros cuatro —los del encuadre: dónde va el
     // móvil, a qué distancia, qué palanca y qué velocidad— bajaron al panel el 2026-09-02.
+    //
+    // Eran cuatro hasta el 2026-09-03, cuando la CARGA subió a la pared: estaba solo dentro
+    // del mando de registrar, que es un botón plegado, y para ver los kilos había que
+    // desplegar un control. Series, carga y RIR se leen juntos o no se leen.
     //
     // No es un recorte de contenido, es el reparto del §1 de `SEMANA-2.md`: en la pared va
     // la lista amarilla, y de la cámara ahí solo entra «medir con la cámara». Puestos en la
@@ -387,7 +391,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     // a la altura de las piernas del sujeto, y la captura del 2-sep enseña el resultado:
     // once paneles opacos y del cuerpo una astilla. Los implementos 3D aportaban 36 píxeles
     // no porque no se dibujaran, sino porque esto los tapaba.
-    expect(salon.querySelectorAll('[data-campo][data-tope]')).toHaveLength(4)
+    expect(salon.querySelectorAll('[data-campo][data-tope]')).toHaveLength(5)
   })
 
   /**

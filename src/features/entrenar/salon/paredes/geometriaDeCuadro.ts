@@ -61,6 +61,19 @@ export interface SitioDePared {
   altura: number
   /** Ancho del cuadro en metros. Decide cuánto ocupa y cuánto texto cabe. */
   ancho: number
+  /**
+   * Alto del cuadro en metros. **Es un tope declarado, no el alto real.**
+   *
+   * El alto de verdad lo pone el texto y solo se sabe después de maquetar, así que no
+   * puede entrar en un cálculo que decide DÓNDE colgarlo —sería un bucle—. Este número
+   * es lo que el marco promete no pasar, igual que `ancho` promete el ancho, y sirve
+   * para una sola cosa: saber dónde cae el BORDE DE ARRIBA antes de dibujarlo.
+   *
+   * Que la promesa se cumpla se comprueba desde fuera, con
+   * `testigo/cuadros-en-pantalla.mjs`, que mide el alto de verdad en la pantalla y lo
+   * compara con éste. Un tope escrito y no medido se separa del contenido a la primera.
+   */
+  alto: number
 }
 
 const grados = (g: number) => (g * Math.PI) / 180
@@ -148,6 +161,93 @@ export function proyectarCuadro(
   const visible = px + medio > -40 && px - medio < ancho + 40 && Math.abs(giro % 360) < 110
 
   return { x: px, y: py, escala, giro, z, visible }
+}
+
+/**
+ * EL MARGEN QUE UN CUADRO GUARDA CON EL BORDE DE ARRIBA, en píxeles.
+ *
+ * Doce y no cero: un cuadro que acaba justo en el filo se lee como cortado aunque esté
+ * entero, porque el ojo no ve el marco de arriba.
+ */
+export const MARGEN_ARRIBA = 12
+
+/**
+ * HASTA DÓNDE SE PUEDE BAJAR UN CUADRO SIN QUE LO TAPE EL CUERPO, en metros.
+ *
+ * La cabeza del sujeto llega a 1,75 m y el cuerpo ocupa el tercio central del cuadro. Un
+ * cuadro colgado por debajo de 1,9 m queda medio tapado por él — que es exactamente el
+ * número que `sitiosDeLaPared.ts` tenía escrito como banda útil, y aquí es el suelo del
+ * asentado. Un cuadro que ya se declara más bajo (el mando de registrar, a 1,5 m) es
+ * suyo ese suelo: el asentado solo BAJA cuadros, nunca los sube.
+ */
+export const SUELO_DE_CUADRO = 1.9
+
+/**
+ * BAJA UN CUADRO POR SU MURO HASTA QUE ENTRA ENTERO EN EL CUADRO DE LA PANTALLA.
+ *
+ * ## Por qué hace falta, y no es un retoque
+ *
+ * Las alturas de `sitiosDeLaPared.ts` se midieron con la cámara del salón a **6°**, que
+ * es la elevación de los patrones DE PIE. Pero la elevación no es una constante del
+ * salón: la pone cada patrón (`patron.camara.elevacion`) y en el catálogo va de 2° a
+ * 56°, porque un ejercicio tumbado se estudia desde arriba. Cuanto más se inclina la
+ * cámara hacia el suelo, más sube el muro en la pantalla — y a partir de unos 12° un
+ * cuadro colgado a 2,24 m sale POR ENCIMA del borde de arriba. Medido el 2026-09-03 con
+ * un press inclinado: los tres cuadros del salón caían entre 629 y 861 px por encima de
+ * la pantalla, o sea que el salón se abría sin una sola letra dentro.
+ *
+ * Esto lo arregla en el único sitio donde se puede arreglar sin mentir: la altura a la
+ * que cuelga. **Solo baja, nunca sube**, y no baja de `SUELO_DE_CUADRO`, que es donde el
+ * cuerpo del sujeto empieza a taparlo.
+ *
+ * ## Por qué el cuadro no se despega de la pared al hacerlo
+ *
+ * Porque la altura NO puede depender de hacia dónde mira el dedo. Si se calculara con el
+ * azimut de cada fotograma, el cuadro subiría y bajaría por el muro mientras la cámara
+ * orbita — que es exactamente el «flotar» que este archivo existe para evitar.
+ *
+ * Así que se resuelve con una cámara CANÓNICA: la que mira ese cuadro de frente
+ * (`azimut = sitio.azimut - 180`), con la elevación y la distancia reales. Dos
+ * propiedades, y las dos hacen falta:
+ *
+ * - **es estable**: no depende del azimut de la órbita, así que el cuadro se queda
+ *   clavado en su punto del muro toda la sesión (la elevación no cambia: el dedo en
+ *   horizontal orbita el azimut y el vertical es el eje W);
+ * - **es el caso peor**: de frente el cuadro está en su punto más LEJANO —el muro de
+ *   enfrente— y ahí es donde más alto sale en la pantalla. Si cabe de frente, cabe
+ *   visto de lado.
+ *
+ * ## Lo que NO puede arreglar
+ *
+ * A partir de unos 32° de elevación **no hay ninguna altura del muro que se vea**: el
+ * cono de la cámara cae entero sobre el suelo y la pared de enfrente queda fuera por
+ * arriba, incluso su zócalo. Ahí esto devuelve el cuadro en su suelo y `cabe` en falso,
+ * y lo que hay que decidir no es una altura: es dónde va la información cuando lo que
+ * se ve es el suelo. Está anotado como decisión abierta.
+ */
+export function asentarEnLaBanda(
+  sitio: SitioDePared,
+  camara: CamaraDelSalon,
+  ancho: number,
+  alto: number,
+): { sitio: SitioDePared; cabe: boolean } {
+  const suelo = Math.min(sitio.altura, SUELO_DE_CUADRO)
+  // La cámara canónica: este cuadro de frente, con la elevación y la distancia de verdad.
+  const deFrente: CamaraDelSalon = { ...camara, azimut: sitio.azimut - 180 }
+  let altura = sitio.altura
+  // Doce vueltas: la corrección usa `escala` como píxeles por metro, que se queda corta
+  // cuando la cámara está muy inclinada (el muro se acorta con el coseno), así que
+  // converge por abajo en vez de pasarse. Con doce sobra para cualquier elevación real.
+  for (let i = 0; i < 12; i++) {
+    const c = proyectarCuadro({ ...sitio, altura }, deFrente, ancho, alto)
+    if (!(c.escala > 0)) break
+    const bordeDeArriba = c.y - (sitio.alto / 2) * c.escala
+    if (bordeDeArriba >= MARGEN_ARRIBA) return { sitio: { ...sitio, altura }, cabe: true }
+    // Bajarlo por el muro lo baja en la pantalla: `py` decrece con la altura.
+    altura -= (MARGEN_ARRIBA - bordeDeArriba) / c.escala
+    if (altura <= suelo) return { sitio: { ...sitio, altura: suelo }, cabe: false }
+  }
+  return { sitio: { ...sitio, altura: Math.max(altura, suelo) }, cabe: false }
 }
 
 /**

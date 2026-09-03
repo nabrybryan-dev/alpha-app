@@ -31,6 +31,17 @@ import type { SitioDePared } from './geometriaDeCuadro'
  * 1,2 m el texto deja de caber; por encima de 2,2 m tapa la sala.
  */
 
+/**
+ * ## El alto, también en metros, y también un tope
+ *
+ * `alto` acompaña a `ancho` desde el 2026-09-03 y sirve para una sola cosa: saber dónde
+ * cae el borde de ARRIBA del cuadro antes de dibujarlo, que es lo que necesita
+ * `asentarEnLaBanda()` para no dejarlo colgando por encima de la pantalla. Es un tope
+ * declarado, no el alto real —el real lo pone el texto y solo se sabe al maquetar—, y que
+ * el contenido lo respete se comprueba midiendo la pantalla con
+ * `testigo/cuadros-en-pantalla.mjs`, no fiándose de este número.
+ */
+
 /** Un sitio de la pared, con su desvío respecto al ángulo de entrada. */
 export interface SitioRelativo extends Omit<SitioDePared, 'azimut'> {
   /** Grados de desvío respecto al azimut de entrada del patrón. */
@@ -74,19 +85,23 @@ export interface SitioRelativo extends Omit<SitioDePared, 'azimut'> {
  */
 export const SITIOS = {
   /** Qué ejercicio, cómo se hace, cuántas series y hasta dónde. El cuadro grande. */
-  ejercicio: { desvio: -8, altura: 2.24, ancho: 1.0 },
+  // `alto` 1,25 y no 1,0: con los cinco campos el cuadro midió 238 px en un 390×844 y el
+  // tope declarado eran 208 — lo cazó `testigo/cuadros-en-pantalla.mjs` a la primera
+  // corrida, que es para lo que está. Los 1,25 dejan sitio a un nombre de ejercicio que
+  // ocupe dos líneas.
+  ejercicio: { desvio: -8, altura: 2.24, ancho: 1.0, alto: 1.25 },
   /** Lo que ya se levantó hoy. Enfrente y a la derecha, como un marcador de pabellón. */
-  series: { desvio: 8, altura: 2.24, ancho: 0.78 },
+  series: { desvio: 8, altura: 2.24, ancho: 0.78, alto: 0.45 },
   /** Microciclo y nombre del día: la cabecera de la sesión. Alto y centrado. */
-  dia: { desvio: -34, altura: 2.45, ancho: 1.05 },
+  dia: { desvio: -34, altura: 2.45, ancho: 1.05, alto: 0.3 },
   /** El cronómetro, junto a la cabecera y a su misma altura. */
-  cronometro: { desvio: 34, altura: 2.45, ancho: 1.0 },
+  cronometro: { desvio: 34, altura: 2.45, ancho: 1.0, alto: 0.36 },
   /** El ritmo de la sesión y la marquesina de avisos: una banda ancha y baja. */
-  ritmo: { desvio: 42, altura: 2.4, ancho: 1.3 },
+  ritmo: { desvio: 42, altura: 2.4, ancho: 1.3, alto: 0.44 },
   /** La estación de grabación. Cuelga junto al trípode, que está a 180° de la entrada. */
-  camara: { desvio: 150, altura: 2.3, ancho: 1.5 },
+  camara: { desvio: 150, altura: 2.3, ancho: 1.5, alto: 0.6 },
   /** Lo que viene después. En el muro de detrás: se consulta al terminar, no durante. */
-  siguientes: { desvio: 180, altura: 2.4, ancho: 1.8 },
+  siguientes: { desvio: 180, altura: 2.4, ancho: 1.8, alto: 0.44 },
   /**
    * Registrar la serie. A un LADO del sujeto, nunca encima.
    *
@@ -103,12 +118,17 @@ export const SITIOS = {
    * Desvío POSITIVO: en esta convención el positivo cae a la izquierda del cuadro, y ahí
    * es donde queda sitio — a la derecha ya cuelga la ficha del ejercicio.
    */
-  registro: { desvio: 7.5, altura: 1.5, ancho: 0.92 },
+  registro: { desvio: 7.5, altura: 1.5, ancho: 0.92, alto: 0.36 },
   /** El eje W: los cinco escalones del cuerpo, en su propia columna del muro. */
-  ejeW: { desvio: 62, altura: 2.3, ancho: 0.62 },
+  ejeW: { desvio: 62, altura: 2.3, ancho: 0.62, alto: 0.5 },
 } as const satisfies Record<string, SitioRelativo>
 
 /** Resuelve un sitio relativo contra el ángulo desde el que se entró al salón. */
 export function sitioEn(sitio: SitioRelativo, azimutDeEntrada: number): SitioDePared {
-  return { azimut: azimutDeEntrada + 180 + sitio.desvio, altura: sitio.altura, ancho: sitio.ancho }
+  return {
+    azimut: azimutDeEntrada + 180 + sitio.desvio,
+    altura: sitio.altura,
+    ancho: sitio.ancho,
+    alto: sitio.alto,
+  }
 }

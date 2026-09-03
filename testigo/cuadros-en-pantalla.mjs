@@ -1,0 +1,206 @@
+#!/usr/bin/env node
+/**
+ * DÓNDE CAE CADA CUADRO DE LA PARED, en píxeles y en la pantalla de verdad.
+ *
+ * El acta de `salon-visible.mjs` dice si una marca PINTA. Esto dice otra cosa que también
+ * hacía falta y no estaba: **por dónde se sale**. Un cuadro colgado en el muro se coloca
+ * por su centro (`translate(-50%,-50%)`) y su alto lo pone el texto que lleva dentro, así
+ * que nadie sabe de antemano si el borde de arriba se va del lienzo — y desde fuera, un
+ * cuadro medio cortado por arriba se ve igual de mal que uno mal colocado.
+ *
+ * De cada `[data-cuadro]` saca su rectángulo ya proyectado y **cuánto sobresale por cada
+ * lado**. Positivo = se sale. Con eso se puede decidir una altura de pared con un número
+ * en vez de con la vista.
+ *
+ *   npm run dev            (en otra terminal)
+ *   node testigo/cuadros-en-pantalla.mjs --foto=informes/cuadros.png
+ *
+ * Opciones: `--ancho`/`--alto` (el viewport emulado, por defecto el iPhone de Bryan,
+ * 390×844), `--url`, `--puerto`, `--chrome`, `--usuario`, `--foto`, `--conservar`.
+ *
+ * Se emula `prefers-reduced-motion: reduce` ANTES de navegar, igual que el testigo: no es
+ * por el ruido —aquí no se resta nada— sino porque el salón entra con una transición y
+ * medir a mitad de ella mide la animación, no la colocación.
+ */
+
+import { writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { arrancarChrome, Devtools, esperar, objetivoDePagina, comoExpresion } from './comun.mjs'
+
+const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
+// El iPhone de Bryan. El testigo mide en 414×736 porque ése era el suyo cuando se escribió;
+// aquí se mide en el estrecho y alto, que es donde los cuadros lo tienen más difícil.
+const ANCHO = 390
+const ALTO = 844
+
+const CANDIDATOS = ['u-valentina', 'u-mateo', 'u-sara']
+
+function leerOpciones(argv) {
+  const o = {
+    url: 'http://localhost:5173/entrenar',
+    puerto: 9223,
+    chrome: '',
+    ancho: ANCHO,
+    alto: ALTO,
+    usuario: '',
+    foto: '',
+    conservar: false,
+    sinReducir: false,
+  }
+  for (const bruto of argv.slice(2)) {
+    const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
+    const valor = resto.join('=')
+    if (nombre === 'url') o.url = valor
+    else if (nombre === 'puerto') o.puerto = Number(valor)
+    else if (nombre === 'chrome') o.chrome = valor
+    else if (nombre === 'ancho') o.ancho = Number(valor)
+    else if (nombre === 'alto') o.alto = Number(valor)
+    else if (nombre === 'usuario') o.usuario = valor
+    else if (nombre === 'foto') o.foto = valor
+    else if (nombre === 'conservar') o.conservar = true
+    else if (nombre === 'sin-reducir') o.sinReducir = true
+  }
+  o.cola = o.usuario ? [o.usuario] : CANDIDATOS
+  return o
+}
+
+/** Qué rama montó el salón. La de cardio no cuelga cuadros de ejercicio. */
+const RAMA_EN_PAGINA = () => {
+  const n = document.querySelector('[data-rama-salon]')
+  return n ? n.getAttribute('data-rama-salon') : ''
+}
+
+/** Los rectángulos, y por dónde se sale cada uno. */
+const MEDIR_EN_PAGINA = () => {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const lienzo = document.querySelector('canvas')
+  const cl = lienzo ? lienzo.getBoundingClientRect() : null
+  const cuadros = [...document.querySelectorAll('[data-cuadro]')].map((n) => {
+    const r = n.getBoundingClientRect()
+    return {
+      clave: n.getAttribute('data-cuadro'),
+      x: Math.round(r.left),
+      y: Math.round(r.top),
+      ancho: Math.round(r.width),
+      alto: Math.round(r.height),
+      // Positivo = se sale por ese lado, en píxeles.
+      sobraArriba: Math.round(-r.top),
+      sobraAbajo: Math.round(r.bottom - vh),
+      sobraIzquierda: Math.round(-r.left),
+      sobraDerecha: Math.round(r.right - vw),
+      cuerpoPx: Math.round(parseFloat(getComputedStyle(n).fontSize) * 10) / 10,
+      // El alto que el cuadro PROMETE no pasar, sacado de `sitio.alto` ya en pixeles.
+      // Si el alto real lo supera, la colocacion esta decidiendo con un numero falso.
+      topePx: Number(n.getAttribute('data-alto-tope') || 0),
+      texto: (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90),
+    }
+  })
+  return {
+    viewport: { ancho: vw, alto: vh },
+    lienzo: cl ? { ancho: Math.round(cl.width), alto: Math.round(cl.height) } : null,
+    cuadros,
+  }
+}
+
+async function esperarCuadros(dt) {
+  const limite = Date.now() + 20_000
+  while (Date.now() < limite) {
+    const n = await dt.evaluar('document.querySelectorAll("[data-cuadro]").length')
+    if (n > 0) return n
+    await esperar(300)
+  }
+  return 0
+}
+
+async function main() {
+  const o = leerOpciones(process.argv)
+  const { proceso } = await arrancarChrome(o)
+  let dt = null
+  try {
+    const objetivo = await objetivoDePagina(o.puerto)
+    dt = await Devtools.conectar(objetivo.webSocketDebuggerUrl)
+    await dt.pedir('Page.enable')
+    await dt.pedir('Runtime.enable')
+    await dt.pedir('Emulation.setDeviceMetricsOverride', {
+      width: o.ancho,
+      height: o.alto,
+      deviceScaleFactor: 1,
+      mobile: true,
+      screenWidth: o.ancho,
+      screenHeight: o.alto,
+    })
+    await dt.pedir('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+    if (!o.sinReducir) {
+      await dt.pedir('Emulation.setEmulatedMedia', {
+        features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+      })
+    }
+    await dt.pedir('Page.bringToFront')
+
+    let medido = ''
+    for (const id of o.cola) {
+      const raiz = new URL(o.url).origin
+      const primera = new Promise((r) => dt.al('Page.loadEventFired', r))
+      await dt.pedir('Page.navigate', { url: raiz })
+      await Promise.race([primera, esperar(30_000)])
+      await dt.evaluar(comoExpresion((u) => localStorage.setItem('alpha-usuario', u), id))
+      const cargada = new Promise((r) => dt.al('Page.loadEventFired', r))
+      await dt.pedir('Page.navigate', { url: o.url })
+      await Promise.race([cargada, esperar(30_000)])
+      medido = id
+      const cuantos = await esperarCuadros(dt)
+      if (cuantos > 0) break
+      const rama = await dt.evaluar(comoExpresion(RAMA_EN_PAGINA))
+      console.log(`   ${id} no cuelga cuadros (rama "${rama}"): se prueba el siguiente.`)
+    }
+
+    // El salón entra con una transición; se le deja terminar antes de leer rectángulos.
+    await esperar(2500)
+    await dt.pedir('Page.bringToFront')
+
+    const acta = await dt.evaluar(comoExpresion(MEDIR_EN_PAGINA))
+    acta.usuario = medido
+
+    if (o.foto) {
+      const ruta = resolve(RAIZ, o.foto)
+      const png = await dt.pedir('Page.captureScreenshot', {
+        format: 'png',
+        captureBeyondViewport: false,
+        fromSurface: true,
+      })
+      writeFileSync(ruta, Buffer.from(png.data, 'base64'))
+      console.log(`  foto en ${ruta}`)
+    }
+
+    console.log(
+      `\n  ${acta.viewport.ancho}×${acta.viewport.alto}  ·  asesorado ${acta.usuario}  ·  ` +
+        `${acta.cuadros.length} cuadros\n`,
+    )
+    const col = (t, n) => String(t).padStart(n)
+    console.log(
+      '  cuadro        x     y   ancho  alto   tope   ↑sobra ↓sobra ←sobra →sobra  cuerpo',
+    )
+    for (const c of acta.cuadros) {
+      const marca = c.sobraArriba > 0 || c.sobraAbajo > 0 ? ' ←SE SALE' : ''
+      const pasado = c.topePx > 0 && c.alto > c.topePx ? ` ←PASA EL TOPE (+${c.alto - c.topePx} px)` : ''
+      console.log(
+        `  ${c.clave.padEnd(12)}${col(c.x, 4)}${col(c.y, 6)}${col(c.ancho, 7)}${col(c.alto, 6)}` +
+          `${col(c.topePx, 7)}${col(c.sobraArriba, 8)}${col(c.sobraAbajo, 7)}${col(c.sobraIzquierda, 7)}` +
+          `${col(c.sobraDerecha, 7)}${col(c.cuerpoPx, 8)}${marca}${pasado}`,
+      )
+    }
+    console.log('')
+    writeFileSync(join(RAIZ, 'informes', 'cuadros-en-pantalla.json'), JSON.stringify(acta, null, 2))
+  } finally {
+    if (dt) dt.cerrar()
+    if (!o.conservar) proceso.kill()
+  }
+}
+
+main().catch((e) => {
+  console.error(e.message)
+  process.exit(1)
+})

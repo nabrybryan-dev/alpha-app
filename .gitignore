@@ -23,3 +23,8 @@ supabase/.temp/
 # pueden sacar. Ver `docs/diseno/`.
 docs/diseno/*/salon-*.html
 docs/diseno/*/previa.html
+
+# Las capturas del testigo de cuadros. Se regeneran con
+# `node testigo/cuadros-en-pantalla.mjs --foto=...` y pesan más que lo que prueban:
+# lo que vale la pena guardar son los NÚMEROS, y ésos van al informe.
+informes/*.png
