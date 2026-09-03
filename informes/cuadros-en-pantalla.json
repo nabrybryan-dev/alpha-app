@@ -20,7 +20,7 @@
       "sobraDerecha": -40,
       "cuerpoPx": 15,
       "topePx": 244,
-      "texto": "M22UPPER BCronómetro de sesión00:00:04Toca para pausarPress inclinado en multipowerTécnica"
+      "texto": "M22UPPER BCronómetro de sesión00:00:02Toca para pausarPress inclinado en multipowerTécnica"
     },
     {
       "clave": "series",
@@ -35,6 +35,20 @@
       "cuerpoPx": 11.3,
       "topePx": 100,
       "texto": "Series registradas1— · —2— · —3— · —"
+    },
+    {
+      "clave": "camara",
+      "x": 40,
+      "y": 328,
+      "ancho": 232,
+      "alto": 76,
+      "sobraArriba": -328,
+      "sobraAbajo": -440,
+      "sobraIzquierda": -40,
+      "sobraDerecha": -117,
+      "cuerpoPx": 12.1,
+      "topePx": 80,
+      "texto": "Cámara del encuadreMedir con la cámara"
     },
     {
       "clave": "registro",

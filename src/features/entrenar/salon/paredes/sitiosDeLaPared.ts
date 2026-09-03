@@ -145,8 +145,32 @@ export const SITIOS = {
   // stadium scoreboard».
   //
   // No se ha perdido un solo dato: se han dejado de repartir por paredes que nadie mira.
-  /** La estación de grabación. Cuelga junto al trípode, que está a 180° de la entrada. */
-  camara: { desvio: 150, altura: 2.3, ancho: 1.5, alto: 0.6 },
+  /**
+   * LA ESTACIÓN DE GRABACIÓN, y por qué bajó del muro de al lado al de enfrente.
+   *
+   * Colgaba a **150°**, «junto al trípode», y el argumento era bueno: se lee donde se usa.
+   * El problema es que ahí no se ve nunca. El 2026-09-03 el acta del testigo daba la
+   * cuarta de las cinco del §5 —la cámara— en **0 píxeles**, y no era de dibujo: el
+   * trípode de verdad está en el perfil del sujeto (180°, el contrato del encoder) y el
+   * salón entra por delante, así que la estación queda a la espalda de quien abre.
+   *
+   * **Medido, no supuesto:** se plantó un cebo de once cajas blancas a lo largo del eje de
+   * la estación, de 1,2 m a 4,6 m, y NO SE VE NI UNA. No hay marca de suelo posible: el
+   * eje entero está fuera de cuadro. Y entrar por el perfil —la otra salida, probada—
+   * mete la estación en cuadro (0 → 5.216 px) pero pone el multipower delante de la
+   * persona: el sujeto cae de 10.193 a 2.552 píxeles. Bryan lo descartó viendo las dos
+   * capturas y eligió representarla.
+   *
+   * Así que baja aquí: al muro de enfrente, **debajo del mando de registro**. Es el sitio
+   * que le corresponde por lo que es —lo segundo que se OPERA, bajo lo primero, las dos a
+   * la altura de la mano— y no le quita sitio a nadie: el tablón ocupa de 1,67 m para
+   * arriba y el registro de 0,93 a 1,39, así que de 0,93 para abajo el muro está libre.
+   *
+   * Lo que se ve NO es el trípode: es su reflector —la silueta, el rótulo, el testigo rojo
+   * y el mando de medir—. El trípode de verdad sigue en su sitio, sin moverse un grado,
+   * porque su ángulo es el contrato con el que el encoder mide.
+   */
+  camara: { desvio: 2, altura: 0.6, ancho: 1.45, alto: 0.5 },
   /** Lo que viene después. En el muro de detrás: se consulta al terminar, no durante. */
   // `alto` 0,8: medido girando la cámara 180°, la cola de tres ejercicios mide 116 px
   // sobre 164 px/m, o sea 0,71 m. Con 0,44 declarados el asentado la colgaba creyéndola

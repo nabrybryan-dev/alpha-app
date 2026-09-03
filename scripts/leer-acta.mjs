@@ -24,8 +24,35 @@ import { readFileSync } from 'node:fs'
 const ACTA = 'informes/testigo-salon.json'
 /** Los cinco del §5 de SEMANA-2.md. Si falta uno, no esta. */
 const CLAVES = ['sala', 'letras3D', 'sujeto', 'camara', 'implementos']
-/** Los que son geometria del motor y por tanto se miden sobre el canvas. */
-const DE_ESCENA = ['sala', 'sujeto', 'camara', 'implementos']
+/**
+ * Los que son geometria del motor y por tanto se miden sobre el canvas.
+ *
+ * `camara` SALIO DE AQUI el 2026-09-03, y conviene entender que no es aflojar la regla:
+ * la regla sigue entera para los tres que quedan. Lo que cambio es la NATURALEZA de la
+ * cuarta. El tripode 3D esta en el perfil del sujeto —el angulo con el que mide el
+ * encoder, que no se toca— y por tanto a la espalda de quien entra: medido con un cebo
+ * de once cajas a lo largo de su eje, no se ve ni una. Exigirle pixeles de lienzo era
+ * exigir que se dibujara algo que se decidio no dibujar.
+ *
+ * Bryan decidio representarla: el reflector —silueta del tripode, rotulo, testigo rojo y
+ * el mando de medir— bajo al muro de enfrente, y eso es interfaz sobre la pared, igual
+ * que `letras3D`. Que ESE nodo se vea al entrar lo vigila ademas
+ * `geometriaDeCuadro.test.ts`, que lo tiene en la lista de los que se ven al entrar y
+ * comprueba que el proyector lo da por visible de verdad, no solo dentro del rectangulo.
+ */
+const DE_ESCENA = ['sala', 'sujeto', 'implementos']
+
+/**
+ * A QUIEN SE LE EXIGE EL SUELO DEL 0,25 %.
+ *
+ * A los tres de escena y ADEMAS a `camara`, aunque ya no sea escena. Sacarla de
+ * `DE_ESCENA` la libraba de dos cosas a la vez y solo una estaba decidida: no tiene que
+ * pintar sobre el lienzo, cierto, pero sigue siendo una de las CINCO del §5, y «visible»
+ * con doce pixeles no es haberla visto. `letras3D` se queda fuera porque no es un
+ * elemento sino una capa entera, y su cuenta —304.704 px, el viewport completo— no dice
+ * nada de si un rotulo concreto se lee.
+ */
+const CON_SUELO = [...DE_ESCENA, 'camara']
 
 /**
  * EL SUELO DE «SE VE», en tanto por uno del cuadro.
@@ -87,7 +114,7 @@ for (const clave of CLAVES) {
   }
   const cuadro = (acta.viewport?.ancho ?? 0) * (acta.viewport?.alto ?? 0)
   const suelo = Math.round(cuadro * SUELO_DE_VISIBLE)
-  if (DE_ESCENA.includes(clave) && cuadro > 0 && e.pixeles < suelo) {
+  if (CON_SUELO.includes(clave) && cuadro > 0 && e.pixeles < suelo) {
     falla(
       `${clave} solo pone ${e.pixeles} px de ${cuadro} (${((e.pixeles / cuadro) * 100).toFixed(2)} %): ` +
         `se dibuja, pero por debajo de ${suelo} px no se VE`,

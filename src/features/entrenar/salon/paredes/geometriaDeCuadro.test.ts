@@ -216,7 +216,19 @@ describe('el salón entero, contra el catálogo', () => {
  */
 describe('la pared no se pisa a sí misma', () => {
   /** Los que caen dentro de la ventana al abrir. Los demás se encuentran girando. */
-  const AL_ENTRAR = ['ejercicio', 'registro'] as const
+  /**
+   * QUÉ SE VE AL ENTRAR. `camara` entró el 2026-09-03, y con ella una lección.
+   *
+   * La lista tenía dos y el salón montaba tres: `series` falta a propósito —cuelga a −15°,
+   * en su propio muro, y se encuentra girando—, pero nadie lo había escrito, así que no se
+   * distinguía de un olvido. Ahora la ausencia está dicha aquí y comprobada abajo.
+   *
+   * `camara` es la representación de la estación de grabación —el reflector, no el
+   * trípode—, y desde que bajó al muro de enfrente es lo cuarto que se ve sin tocar nada,
+   * que es lo que pide el §5. Si alguien la vuelve a colgar de un muro lateral, estas dos
+   * pruebas se ponen rojas en vez de dejar la pantalla sin una de las cinco.
+   */
+  const AL_ENTRAR = ['ejercicio', 'registro', 'camara'] as const
 
   it('los cuadros que se ven al entrar no se solapan', () => {
     const camara = CAMARA(6)
@@ -256,6 +268,27 @@ describe('la pared no se pisa a sí misma', () => {
    * cuadro de 1 m ya se come el 42 % del ancho de la pantalla, así que esto se agota
    * antes de lo que parece: el reparto viejo, medido, no dejaba entrar entero NI UNO.
    */
+  /**
+   * Y LO PRIMERO: QUE SE VEAN. Esta comprobación nació en falso verde.
+   *
+   * La prueba de ancho existía desde el 2026-09-03 y solo miraba el rectángulo proyectado.
+   * Al meter `camara` en la lista se probó a devolverla a su muro viejo —150°, a la
+   * espalda de quien entra— y la prueba SIGUIÓ EN VERDE: un cuadro que está detrás
+   * proyecta números que caen dentro de la pantalla igual, porque el proyector le da
+   * `escala 0` y `x` en el centro. Los píxeles no distinguen «delante» de «detrás»; el
+   * proyector sí, y ya lo decía en su `visible`. Nadie lo estaba leyendo.
+   */
+  it('los cuadros que se ven al entrar se ven de verdad', () => {
+    const camara = CAMARA(6)
+    for (const clave of AL_ENTRAR) {
+      const sitio = sitioEn(SITIOS[clave], 0)
+      const c = proyectarCuadro(sitio, { ...camara, azimut: 0 }, ANCHO, ALTO)
+      expect(c.visible, `${clave} no se ve al entrar (giro ${Math.round(c.giro)}°, z ${c.z.toFixed(2)})`).toBe(true)
+      expect(c.escala, `${clave} proyecta con escala cero`).toBeGreaterThan(0)
+    }
+  })
+
+  /** Y QUE NO SE SALGA NINGUNO por los lados. */
   it('los cuadros que se ven al entrar caben de ancho', () => {
     const camara = CAMARA(6)
     for (const clave of AL_ENTRAR) {

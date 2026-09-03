@@ -408,7 +408,28 @@ const ENCENDER_EN_PAGINA = () => {
  * Ahora se le pide al visor que deje esa parte fuera del dibujo —atributo `data-sin` en
  * el lienzo— y se cuenta la diferencia. Es la misma resta, aplicada donde hacía falta.
  */
-const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia']
+const PARTES_DE_ESCENA = ['sala', 'implementos', 'sujeto', 'bahia']
+
+/**
+ * `camara` SALIÓ DE ESTA LISTA EL 2026-09-03, y no por comodidad.
+ *
+ * Medía el trípode del lienzo, y el trípode está en el PERFIL del sujeto —180°, el ángulo
+ * con el que el encoder mide, que no se mueve por motivos de encuadre—. El salón entra por
+ * delante, así que el trípode queda a la espalda de quien abre: se plantó un cebo de once
+ * cajas blancas a lo largo de su eje, de 1,2 m a 4,6 m, y no se ve ni una. Con la cámara
+ * ahí dentro, el acta iba a decir «falta la cámara» en cada corrida, para siempre, por algo
+ * que se decidió no dibujar. Un rojo permanente no es rigor: se vuelve ruido y se acaba
+ * ignorando, que es como se cuela el rojo de verdad.
+ *
+ * Bryan decidió el 2026-09-03 —viendo la captura de entrar por el perfil, que mete el
+ * trípode en cuadro y pone el multipower delante de la persona— **representar** la
+ * estación en vez de enseñarla: el reflector (silueta, rótulo, testigo rojo y el mando de
+ * medir) bajó al muro de enfrente. Eso es un NODO, y lleva su `data-testigo="camara"`
+ * puesto desde que se construyó, así que el acta lo mide como mide las letras del muro.
+ *
+ * Lo que ya NO certifica esta acta: que el trípode 3D se vea. No se ve, a propósito, y
+ * quien lo mueva tiene enfrente `geometriaDeCuadro.test.ts`, que exige que el reflector sí.
+ */
 
 const PARTES_EN_PAGINA = () => {
   const c = document.querySelector('[data-salon="entrenar"] canvas')
