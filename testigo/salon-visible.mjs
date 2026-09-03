@@ -132,7 +132,21 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import zlib from 'node:zlib'
+import {
+  arrancarChrome,
+  buscarChrome,
+  comoExpresion,
+  CONGELAR_EN_PAGINA,
+  contarAporte,
+  contarNoNegros,
+  Devtools,
+  esperar,
+  mascaraDeCambio,
+  objetivoDePagina,
+  unirRects,
+  UMBRAL_CAMBIO,
+  UMBRAL_NO_NEGRO,
+} from './comun.mjs'
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -150,14 +164,11 @@ const CLAVES_POR_DEFECTO = ['sala', 'letras3D', 'sujeto', 'camara', 'implementos
 // PRIMERO que monte la rama `conSujeto`, no el que más elementos encienda.
 const CANDIDATOS_POR_DEFECTO = ['u-valentina', 'u-mateo', 'u-sara']
 
-// Cuánto tiene que cambiar un píxel para contarlo. El PNG es sin pérdida, así que
-// el ruido de compresión no existe; 8 sobre 765 solo descarta el redondeo del
-// antialiasing sobre bordes de texto.
-const UMBRAL_CAMBIO = 8
-// Un píxel cuenta como "no negro" si su canal más alto pasa de aquí. El entorno es
-// negro mate a propósito, así que el listón va bajo: buscamos si hay algo pintado,
-// no si está iluminado.
-const UMBRAL_NO_NEGRO = 10
+// Cuanto se le da al visor para reconstruir la malla y repintar tras cambiar
+// `data-sin`. No es holgura de cortesia: con 220 ms la foto de "restaurada" salia con
+// la parte todavia fuera, el residuo empataba clavado con el aporte y una pieza que si
+// se dibujaba quedaba declarada invisible por un empate.
+const ESPERA_DE_ESCENA = 500
 
 // ---------------------------------------------------------------- argumentos
 
@@ -167,6 +178,10 @@ function leerArgumentos(argv) {
     puerto: 9222,
     chrome: '',
     salida: join(RAIZ, 'informes', 'testigo-salon.json'),
+    // El viewport va en las opciones y no lo supone `arrancarChrome`: desde que el motor
+    // de medida es común, el tamaño de la ventana es del encargo y no del motor.
+    ancho: ANCHO,
+    alto: ALTO,
     claves: CLAVES_POR_DEFECTO,
     usuario: '',
     candidatos: CANDIDATOS_POR_DEFECTO,
@@ -187,6 +202,8 @@ function leerArgumentos(argv) {
     else if (nombre === 'claves') opciones.claves = valor.split(',').filter(Boolean)
     else if (nombre === 'usuario') opciones.usuario = valor
     else if (nombre === 'candidatos') opciones.candidatos = valor.split(',').filter(Boolean)
+    else if (nombre === 'foto') opciones.foto = valor
+    else if (nombre === 'sin-partes') opciones.sinPartes = valor
     else if (nombre === 'sin-buscar-sujeto') opciones.buscarSujeto = false
     else if (nombre === 'prueba-ciega') {
       opciones.ciega = valor
@@ -217,262 +234,6 @@ function leerArgumentos(argv) {
 
 // ------------------------------------------------------------------- Chrome
 
-function buscarChrome(preferido) {
-  const candidatos = [
-    preferido,
-    process.env.CHROME_PATH,
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-    `${process.env.LOCALAPPDATA ?? ''}/Google/Chrome/Application/chrome.exe`,
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/usr/bin/google-chrome',
-  ].filter(Boolean)
-  for (const ruta of candidatos) if (existsSync(ruta)) return ruta
-  throw new Error(
-    'no encuentro Chrome. Pásalo con --chrome="C:/ruta/chrome.exe" o en CHROME_PATH.',
-  )
-}
-
-function esperar(ms) {
-  return new Promise((r) => setTimeout(r, ms))
-}
-
-async function arrancarChrome(opciones) {
-  const binario = buscarChrome(opciones.chrome)
-  // Perfil aparte y desechable: ni se toca el Chrome del usuario ni sus pestañas.
-  const perfil = join(tmpdir(), `testigo-salon-${process.pid}`)
-  mkdirSync(perfil, { recursive: true })
-  const proceso = spawn(
-    binario,
-    [
-      `--remote-debugging-port=${opciones.puerto}`,
-      `--user-data-dir=${perfil}`,
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-features=Translate,MediaRouter',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding',
-      '--disable-background-timer-throttling',
-      // La ventana algo mayor que el viewport emulado: cabe el cromo del navegador
-      // sin que el 414x736 se recorte.
-      `--window-size=${ANCHO + 16},${ALTO + 120}`,
-      '--window-position=0,0',
-      'about:blank',
-    ],
-    { stdio: 'ignore', detached: false },
-  )
-
-  const limite = Date.now() + 30_000
-  while (Date.now() < limite) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${opciones.puerto}/json/version`)
-      if (r.ok) return { proceso, perfil }
-    } catch {
-      /* Chrome aún no abrió el puerto; se reintenta. */
-    }
-    await esperar(200)
-  }
-  proceso.kill()
-  throw new Error(`Chrome no abrió el puerto ${opciones.puerto} en 30 s`)
-}
-
-async function objetivoDePagina(puerto) {
-  const limite = Date.now() + 15_000
-  while (Date.now() < limite) {
-    const lista = await (await fetch(`http://127.0.0.1:${puerto}/json/list`)).json()
-    const pagina = lista.find((t) => t.type === 'page' && t.webSocketDebuggerUrl)
-    if (pagina) return pagina
-    await esperar(200)
-  }
-  throw new Error('Chrome no expuso ninguna pestaña')
-}
-
-// ------------------------------------------------------- protocolo DevTools
-
-class Devtools {
-  constructor(ws) {
-    this.ws = ws
-    this.contador = 0
-    this.enEspera = new Map()
-    this.oyentes = new Map()
-    ws.addEventListener('message', (ev) => {
-      const msg = JSON.parse(ev.data)
-      if (msg.id !== undefined) {
-        const enCurso = this.enEspera.get(msg.id)
-        if (!enCurso) return
-        this.enEspera.delete(msg.id)
-        if (msg.error) enCurso.rechazar(new Error(`${msg.error.message} (${msg.error.code})`))
-        else enCurso.resolver(msg.result)
-      } else {
-        for (const f of this.oyentes.get(msg.method) ?? []) f(msg.params)
-      }
-    })
-  }
-
-  static async conectar(url) {
-    const ws = new WebSocket(url)
-    await new Promise((resolver, rechazar) => {
-      ws.addEventListener('open', resolver, { once: true })
-      ws.addEventListener('error', () => rechazar(new Error('no pude abrir el WebSocket')), {
-        once: true,
-      })
-    })
-    return new Devtools(ws)
-  }
-
-  pedir(orden, params = {}) {
-    const id = ++this.contador
-    return new Promise((resolver, rechazar) => {
-      this.enEspera.set(id, { resolver, rechazar })
-      this.ws.send(JSON.stringify({ id, method: orden, params }))
-      setTimeout(() => {
-        if (this.enEspera.delete(id)) rechazar(new Error(`${orden} no respondió en 60 s`))
-      }, 60_000)
-    })
-  }
-
-  al(evento, fn) {
-    const lista = this.oyentes.get(evento) ?? []
-    lista.push(fn)
-    this.oyentes.set(evento, lista)
-  }
-
-  /** Evalúa una función de la página y devuelve su valor ya deserializado. */
-  async evaluar(fuente) {
-    const r = await this.pedir('Runtime.evaluate', {
-      expression: fuente,
-      returnByValue: true,
-      awaitPromise: true,
-    })
-    if (r.exceptionDetails) {
-      throw new Error(
-        `la página lanzó: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`,
-      )
-    }
-    return r.result.value
-  }
-
-  async captura() {
-    const r = await this.pedir('Page.captureScreenshot', {
-      format: 'png',
-      captureBeyondViewport: false,
-      fromSurface: true,
-    })
-    return decodificarPng(Buffer.from(r.data, 'base64'))
-  }
-
-  cerrar() {
-    try {
-      this.ws.close()
-    } catch {
-      /* ya estaba cerrado */
-    }
-  }
-}
-
-// --------------------------------------------------------------- PNG a RGB
-
-/**
- * Decodifica un PNG de 8 bits sin entrelazar a un Buffer RGB plano.
- * Se hace a mano porque el encargo prohíbe dependencias que haya que instalar y
- * `zlib` ya viene con Node; lo único que falta es deshacer los filtros por línea.
- */
-function decodificarPng(buf) {
-  if (buf.readUInt32BE(0) !== 0x89504e47) throw new Error('la captura no es un PNG')
-  let p = 8
-  let ancho = 0
-  let alto = 0
-  let profundidad = 0
-  let tipoColor = 0
-  const trozos = []
-  while (p + 8 <= buf.length) {
-    const largo = buf.readUInt32BE(p)
-    const etiqueta = buf.toString('ascii', p + 4, p + 8)
-    const datos = buf.subarray(p + 8, p + 8 + largo)
-    if (etiqueta === 'IHDR') {
-      ancho = datos.readUInt32BE(0)
-      alto = datos.readUInt32BE(4)
-      profundidad = datos[8]
-      tipoColor = datos[9]
-      if (datos[12] !== 0) throw new Error('PNG entrelazado, no lo sé leer')
-    } else if (etiqueta === 'IDAT') trozos.push(datos)
-    else if (etiqueta === 'IEND') break
-    p += 12 + largo
-  }
-  if (profundidad !== 8) throw new Error(`profundidad de bit ${profundidad}, esperaba 8`)
-  const canales = { 0: 1, 2: 3, 4: 2, 6: 4 }[tipoColor]
-  if (!canales) throw new Error(`tipo de color ${tipoColor}, no lo sé leer`)
-
-  const crudo = zlib.inflateSync(Buffer.concat(trozos))
-  const paso = ancho * canales
-  const rgb = Buffer.alloc(ancho * alto * 3)
-  let anterior = Buffer.alloc(paso)
-  let q = 0
-  for (let y = 0; y < alto; y++) {
-    const filtro = crudo[q++]
-    const linea = Buffer.from(crudo.subarray(q, q + paso))
-    q += paso
-    for (let i = 0; i < paso; i++) {
-      const a = i >= canales ? linea[i - canales] : 0
-      const b = anterior[i]
-      const c = i >= canales ? anterior[i - canales] : 0
-      let v = linea[i]
-      if (filtro === 1) v += a
-      else if (filtro === 2) v += b
-      else if (filtro === 3) v += (a + b) >> 1
-      else if (filtro === 4) {
-        const pa = Math.abs(b - c)
-        const pb = Math.abs(a - c)
-        const pc = Math.abs(a + b - 2 * c)
-        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c
-      }
-      linea[i] = v & 255
-    }
-    for (let x = 0; x < ancho; x++) {
-      const s = x * canales
-      const d = (y * ancho + x) * 3
-      if (canales >= 3) {
-        rgb[d] = linea[s]
-        rgb[d + 1] = linea[s + 1]
-        rgb[d + 2] = linea[s + 2]
-      } else {
-        rgb[d] = linea[s]
-        rgb[d + 1] = linea[s]
-        rgb[d + 2] = linea[s]
-      }
-    }
-    anterior = linea
-  }
-  return { ancho, alto, rgb }
-}
-
-/** Máscara de los píxeles que difieren entre dos capturas del mismo tamaño. */
-function mascaraDeCambio(a, b) {
-  const n = a.ancho * a.alto
-  const mascara = new Uint8Array(n)
-  let cuenta = 0
-  for (let i = 0; i < n; i++) {
-    const d = i * 3
-    const delta =
-      Math.abs(a.rgb[d] - b.rgb[d]) +
-      Math.abs(a.rgb[d + 1] - b.rgb[d + 1]) +
-      Math.abs(a.rgb[d + 2] - b.rgb[d + 2])
-    if (delta > UMBRAL_CAMBIO) {
-      mascara[i] = 1
-      cuenta++
-    }
-  }
-  return { mascara, cuenta }
-}
-
-// -------------------------------------------------- lo que corre EN LA PÁGINA
-
-/**
- * Se serializa tal cual y se evalúa dentro de la página. Devuelve, EN UNA SOLA
- * llamada, el `visibilityState` y las geometrías: si se leyeran por separado, el
- * número podría venir de un instante en que la pestaña estaba delante y el estado
- * de otro en que ya no.
- */
 const MEDIR_EN_PAGINA = (claves) => {
   const ancho = Math.round(window.innerWidth)
   const alto = Math.round(window.innerHeight)
@@ -612,15 +373,6 @@ const MEDIR_EN_PAGINA = (claves) => {
  * Las transiciones se anulan por lo mismo: apagar un nodo puede disparar una y
  * teñir de cambio a los vecinos.
  */
-const CONGELAR_EN_PAGINA = () => {
-  const hoja = document.createElement('style')
-  hoja.id = 'testigo-congelador'
-  hoja.textContent =
-    '*,*::before,*::after{animation-play-state:paused !important;transition:none !important}'
-  document.head.appendChild(hoja)
-  return document.getAnimations ? document.getAnimations().length : -1
-}
-
 const CEGAR_EN_PAGINA = (clave) => {
   const hoja = document.createElement('style')
   hoja.textContent = `[data-testigo="${clave}"]{opacity:0.002 !important}`
@@ -643,59 +395,69 @@ const ENCENDER_EN_PAGINA = () => {
 }
 
 /** Convierte una función de arriba en la expresión que se manda a la página. */
-function comoExpresion(fn, ...args) {
-  return `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`
+/**
+ * LAS PARTES DE LA ESCENA, que no son nodos y por eso se apagan de otra forma.
+ *
+ * La sala, la estación, el hierro y el cuerpo son geometría dentro de UN solo
+ * `<canvas>`: no hay nodo que esconder, así que el apagado de siempre —poner
+ * `visibility: hidden` a un elemento— no puede tocarlas. Antes esto se disimulaba
+ * midiendo las capas SVG/HTML que se dibujan encima, y por eso el acta del 29-ago daba
+ * `sala` e `implementos` en verde mientras `construirSala` y `construirImplementos` no
+ * tenían una sola llamada: certificaba el cartel y no la sala.
+ *
+ * Ahora se le pide al visor que deje esa parte fuera del dibujo —atributo `data-sin` en
+ * el lienzo— y se cuenta la diferencia. Es la misma resta, aplicada donde hacía falta.
+ */
+const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia']
+
+const PARTES_EN_PAGINA = () => {
+  const c = document.querySelector('[data-salon="entrenar"] canvas')
+  if (!c) return '(sin lienzo)'
+  return c.dataset.partes || '(sin dato)'
 }
 
-// ------------------------------------------------------------------ medida
-
-function unirRects(rects, ancho, alto) {
-  const mascara = new Uint8Array(ancho * alto)
-  let area = 0
-  for (const r of rects) {
-    for (let y = r.y; y < r.y + r.h; y++) {
-      const fila = y * ancho
-      for (let x = r.x; x < r.x + r.w; x++) {
-        if (!mascara[fila + x]) {
-          mascara[fila + x] = 1
-          area++
-        }
-      }
-    }
-  }
-  return { mascara, area }
+const LIENZO_EN_PAGINA = () => {
+  const c = document.querySelector('[data-salon="entrenar"] canvas')
+  if (!c) return null
+  const r = c.getBoundingClientRect()
+  return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
 }
 
-function contarNoNegros(captura, mascara) {
-  let cuenta = 0
-  let maximo = 0
-  for (let i = 0; i < mascara.length; i++) {
-    if (!mascara[i]) continue
-    const d = i * 3
-    const l = Math.max(captura.rgb[d], captura.rgb[d + 1], captura.rgb[d + 2])
-    if (l > UMBRAL_NO_NEGRO) cuenta++
-    if (l > maximo) maximo = l
-  }
-  return { cuenta, maximo }
+const OMITIR_EN_PAGINA = (parte) => {
+  const c = document.querySelector('[data-salon="entrenar"] canvas')
+  if (!c) return 0
+  c.dataset.sin = parte
+  return 1
 }
 
-function contarAporte(antes, despues, churn, dentroDe) {
-  const n = antes.ancho * antes.alto
-  let total = 0
-  let dentro = 0
-  for (let i = 0; i < n; i++) {
-    if (churn[i]) continue
-    const d = i * 3
-    const delta =
-      Math.abs(antes.rgb[d] - despues.rgb[d]) +
-      Math.abs(antes.rgb[d + 1] - despues.rgb[d + 1]) +
-      Math.abs(antes.rgb[d + 2] - despues.rgb[d + 2])
-    if (delta > UMBRAL_CAMBIO) {
-      total++
-      if (dentroDe[i]) dentro++
-    }
-  }
-  return { total, dentro }
+const RESTAURAR_ESCENA_EN_PAGINA = () => {
+  const c = document.querySelector('[data-salon="entrenar"] canvas')
+  if (c) delete c.dataset.sin
+  return 1
+}
+
+/** En qué escalón del eje W está el salón ahora mismo. */
+const CAPA_W_EN_PAGINA = () => {
+  const s = document.querySelector('[data-salon="entrenar"]')
+  const v = s && s.getAttribute('data-w')
+  return v === null || v === undefined ? -1 : Number(v)
+}
+
+/**
+ * Pulsa el peldaño `w` de la escalera, por el mismo camino que un dedo.
+ *
+ * Se pulsa el botón y no se sintetiza un arrastre a propósito: el arrastre depende del
+ * umbral de `gestoVertical.ts`, de la altura del viewport y de que el navegador entregue
+ * los tres eventos en orden. El botón llama al MISMO `setW`, y lo que se quiere probar
+ * es que el eje mueva el cuerpo, no que el reconocedor de gestos acierte.
+ */
+const PULSAR_W_EN_PAGINA = (w) => {
+  const grupo = document.querySelector('[role="group"][aria-label="Capa del cuerpo"]')
+  if (!grupo) return -1
+  const botones = grupo.querySelectorAll('button')
+  if (!botones[w]) return -2
+  botones[w].click()
+  return botones.length
 }
 
 const SONDEO_EN_PAGINA = () => ({
@@ -741,6 +503,21 @@ async function medir(opciones) {
       screenHeight: ALTO,
     })
     await dt.pedir('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+    // SE MIDE CON EL MOVIMIENTO REDUCIDO, y esto no es un atajo: es la unica forma de
+    // que la resta signifique algo.
+    //
+    // El congelador de la pagina para las animaciones CSS, pero el sujeto no se mueve
+    // por CSS: lo mueve un bucle de `requestAnimationFrame` dentro del lienzo. Con el
+    // gesto corriendo, TODOS los pixeles del cuerpo cambian solos entre dos capturas, se
+    // van a la mascara de inquietos y quedan descontados — asi que apagar el sujeto no
+    // cambiaba nada medible y el acta del 2-sep lo daba por invisible teniendolo delante.
+    //
+    // `prefers-reduced-motion: reduce` es un ajuste de persona, no un interruptor de
+    // pruebas: el visor ya lo respeta y deja el modelo quieto en su fotograma. Se emula
+    // ANTES de navegar porque el hook lo lee al montar.
+    await dt.pedir('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+    })
     // La pestaña, delante. Sin esto `visibilityState` puede valer 'hidden', y
     // lo que se mida después es un número falso con buena cara.
     await dt.pedir('Page.bringToFront')
@@ -830,15 +607,65 @@ async function medir(opciones) {
       const bruto = lectura.elementos[clave]
       const { mascara, area } = unirRects(bruto.rects, ANCHO, ALTO)
 
+      const esEscena = PARTES_DE_ESCENA.includes(clave)
+
+      // Una parte de la escena no tiene rectángulo propio: su máscara es el lienzo
+      // entero, que es donde puede aparecer o desaparecer un píxel suyo.
+      let mascaraUsada = mascara
+      let areaUsada = area
+      if (esEscena) {
+        const r = await dt.evaluar(comoExpresion(LIENZO_EN_PAGINA))
+        if (r) {
+          const x0 = Math.max(0, Math.floor(r.left))
+          const y0 = Math.max(0, Math.floor(r.top))
+          const x1 = Math.min(ANCHO, Math.ceil(r.right))
+          const y1 = Math.min(ALTO, Math.ceil(r.bottom))
+          const u = unirRects(x1 > x0 && y1 > y0 ? [{ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }] : [], ANCHO, ALTO)
+          mascaraUsada = u.mascara
+          areaUsada = u.area
+        } else {
+          mascaraUsada = new Uint8Array(ANCHO * ALTO)
+          areaUsada = 0
+        }
+      }
+
       const antes = await dt.captura()
-      const apagados = await dt.evaluar(comoExpresion(APAGAR_EN_PAGINA, clave))
+      const apagados = esEscena
+        ? await dt.evaluar(comoExpresion(OMITIR_EN_PAGINA, clave))
+        : await dt.evaluar(comoExpresion(APAGAR_EN_PAGINA, clave))
+      // El visor repinta al ver el atributo, pero lo hace en su propio fotograma: sin
+      // esta espera la foto de después sale con la escena todavía entera.
+      if (esEscena) await esperar(ESPERA_DE_ESCENA)
+      // Que la malla haya cambiado de verdad. Una parte puede pedirse fuera y seguir
+      // dentro —el atributo se pone, nadie reconstruye— y desde fuera eso se ve igual
+      // que una pieza que no se dibuja: cero pixeles. Son dos fallos distintos.
+      const partesTrasApagar = esEscena ? await dt.evaluar(comoExpresion(PARTES_EN_PAGINA)) : null
       const despues = await dt.captura()
-      await dt.evaluar(comoExpresion(ENCENDER_EN_PAGINA))
+      if (esEscena) await dt.evaluar(comoExpresion(RESTAURAR_ESCENA_EN_PAGINA))
+      else await dt.evaluar(comoExpresion(ENCENDER_EN_PAGINA))
+      if (esEscena) await esperar(ESPERA_DE_ESCENA)
       const restaurada = await dt.captura()
 
-      const aporte = contarAporte(antes, despues, churn, mascara)
-      const residuo = contarAporte(antes, restaurada, churn, mascara)
-      const noNegros = contarNoNegros(antes, mascara)
+      const aporte = contarAporte(antes, despues, churn, mascaraUsada)
+      const residuo = contarAporte(antes, restaurada, churn, mascaraUsada)
+
+      // SEGUNDA LECTURA, con el cuerpo fuera. Una pieza puede estar en la escena y no
+      // aportar un pixel porque el sujeto la tapa entera: apagarla no cambia nada, y sin
+      // esta lectura el acta no distingue "no se dibuja" de "se dibuja detras del
+      // cuerpo". Son dos fallos distintos y se arreglan en sitios distintos.
+      let aporteSinCuerpo = null
+      if (esEscena && clave !== 'sujeto' && aporte.total <= residuo.total) {
+        await dt.evaluar(comoExpresion(OMITIR_EN_PAGINA, 'sujeto'))
+        await esperar(ESPERA_DE_ESCENA)
+        const soloEscena = await dt.captura()
+        await dt.evaluar(comoExpresion(OMITIR_EN_PAGINA, `sujeto,${clave}`))
+        await esperar(ESPERA_DE_ESCENA)
+        const sinLosDos = await dt.captura()
+        await dt.evaluar(comoExpresion(RESTAURAR_ESCENA_EN_PAGINA))
+        await esperar(ESPERA_DE_ESCENA)
+        aporteSinCuerpo = contarAporte(soloEscena, sinLosDos, churn, mascaraUsada).dentro
+      }
+      const noNegros = contarNoNegros(antes, mascaraUsada)
 
       // EL CONTROL. `residuo` compara la captura de partida con la de después de
       // restaurar: dos fotos del MISMO estado, separadas por lo mismo que separa a las
@@ -847,29 +674,79 @@ async function medir(opciones) {
       // mover MÁS píxeles que eso. Sin este control, el reloj corriendo bastaría para
       // que cualquier cosa saliera visible.
       const pintaAlgo = aporte.total > residuo.total
-      const visible = bruto.conEstilosOk > 0 && area > 0 && pintaAlgo
+      // Una parte de la escena no pasa por `cadenaEncendida`: no tiene cadena de
+      // estilos que revisar porque no tiene nodo. Lo que la da por pintada es lo mismo
+      // de siempre —mover más píxeles que el ruido de fondo—, que era lo que importaba.
+      const visible = esEscena ? areaUsada > 0 && pintaAlgo : bruto.conEstilosOk > 0 && area > 0 && pintaAlgo
 
       detalle[clave] = {
         visible,
-        pixeles: visible ? area : 0,
+        enLienzo: esEscena,
+        pixeles: visible ? (esEscena ? aporte.dentro : area) : 0,
         enDom: bruto.enDom,
         conEstilosOk: bruto.conEstilosOk,
         apagados,
-        areaRecortada: area,
+        areaRecortada: areaUsada,
         aportePintado: aporte.total,
         aporteDentroDelRect: aporte.dentro,
         noNegrosEnRect: noNegros.cuenta,
         canalMaximoEnRect: noNegros.maximo,
         residuoTrasRestaurar: residuo.total,
+        aporteSinCuerpo,
+        partesTrasApagar,
         lienzos: bruto.lienzos,
         motivos: bruto.motivos,
       }
+    }
+
+    // ── EL EJE W ────────────────────────────────────────────────────────────
+    // Que la escalera de cinco peldaños se pinte no prueba nada: los botones pueden
+    // estar perfectos y el eje muerto —es exactamente el fallo que ya convivió con
+    // 3.016 pruebas en verde—. Lo único que lo prueba es que al pasar de la piel al
+    // hueso CAMBIEN píxeles dentro del cuerpo. Se mide como todo lo demás: dos fotos,
+    // el ruido de fondo descontado, y la máscara puesta donde está el sujeto.
+    console.log('  vertices por parte de la malla: ' + (await dt.evaluar(comoExpresion(PARTES_EN_PAGINA))))
+
+    // La foto, cuando se pide. Un numero dice si una pieza aporta pixeles; no dice si
+    // lo que aporta se PARECE a un implemento. Para eso hay que mirarla.
+    // Para mirar una pieza sola: se apaga el resto de la escena antes del retrato. Un
+    // numero dice cuantos pixeles pone; solo la foto dice si eso PARECE lo que dice ser.
+    if (opciones.sinPartes) {
+      await dt.evaluar(comoExpresion(OMITIR_EN_PAGINA, opciones.sinPartes))
+      await esperar(ESPERA_DE_ESCENA)
+    }
+    if (opciones.foto) {
+      const png = await dt.pedir('Page.captureScreenshot', { format: 'png' })
+      writeFileSync(opciones.foto, Buffer.from(png.data, 'base64'))
+      console.log('  foto en ' + opciones.foto)
+    }
+
+    const ejeW = { desde: -1, hasta: -1, cambioEnSujeto: 0, ruido: 0, botones: 0 }
+    {
+      const rectSujeto = unirRects(lectura.elementos.sujeto ? lectura.elementos.sujeto.rects : [], ANCHO, ALTO)
+      ejeW.desde = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
+      const antes = await dt.captura()
+      ejeW.botones = await dt.evaluar(comoExpresion(PULSAR_W_EN_PAGINA, 4))
+      await esperar(320)
+      const despues = await dt.captura()
+      ejeW.hasta = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
+      // El control, igual que en los elementos: se vuelve a la piel y se compara la
+      // foto de partida con la de después de volver. Es cuánto se mueve la pantalla
+      // sola en ese rato; para dar el eje por vivo hay que superarlo.
+      await dt.evaluar(comoExpresion(PULSAR_W_EN_PAGINA, 0))
+      await esperar(320)
+      const vuelta = await dt.captura()
+      const cambio = contarAporte(antes, despues, churn, rectSujeto.mascara)
+      const ruido = contarAporte(antes, vuelta, churn, rectSujeto.mascara)
+      ejeW.ruido = ruido.dentro
+      ejeW.cambioEnSujeto = cambio.dentro > ruido.dentro ? cambio.dentro : 0
     }
 
     return {
       arranque,
       lectura,
       detalle,
+      ejeW,
       churnCuenta,
       capturaAncho: previa.ancho,
       capturaAlto: previa.alto,
@@ -918,14 +795,15 @@ function imprimir(resultado, opciones) {
   )
   console.log('')
   console.log(
-    '  marca         visible  píxeles   nodos  aporte   dentro   no-negros  máx  residuo',
+    '  marca         visible  píxeles   nodos  aporte   dentro   no-negros  máx  residuo  sinCuerpo',
   )
   for (const [clave, d] of Object.entries(detalle)) {
     console.log(
       `  ${clave.padEnd(13)} ${String(d.visible).padEnd(8)} ${String(d.pixeles).padStart(7)}` +
         `  ${String(d.enDom).padStart(5)} ${String(d.aportePintado).padStart(7)}` +
         ` ${String(d.aporteDentroDelRect).padStart(8)} ${String(d.noNegrosEnRect).padStart(11)}` +
-        ` ${String(d.canalMaximoEnRect).padStart(4)} ${String(d.residuoTrasRestaurar).padStart(8)}`,
+        ` ${String(d.canalMaximoEnRect).padStart(4)} ${String(d.residuoTrasRestaurar).padStart(8)}` +
+        ` ${String(d.aporteSinCuerpo === null || d.aporteSinCuerpo === undefined ? '-' : d.aporteSinCuerpo).padStart(10)}`,
     )
     for (const l of d.lienzos) {
       console.log(
@@ -933,6 +811,7 @@ function imprimir(resultado, opciones) {
           `canal máximo ${l.maximo}${l.error ? ` — el 2D no lo dejó leer: ${l.error}` : ''}`,
       )
     }
+    if (d.partesTrasApagar) console.log(`      malla con la parte fuera: ${d.partesTrasApagar}`)
     for (const m of d.motivos) console.log(`      apagado por: ${m}`)
   }
   console.log('')
@@ -944,6 +823,10 @@ function actaDe(resultado, opciones) {
     elementos[clave] = {
       visible: resultado.detalle[clave].visible,
       pixeles: resultado.detalle[clave].pixeles,
+      // Sobre QUE se midio. Sin este campo el acta no distingue haber certificado la
+      // sala del motor de haber certificado la capa que se pinta encima, y esa
+      // diferencia es la que dejo pasar `construirSala` sin una sola llamada.
+      enLienzo: resultado.detalle[clave].enLienzo === true,
     }
   }
   const { ancho, alto } = resultado.lectura
@@ -966,6 +849,7 @@ function actaDe(resultado, opciones) {
     sesion: resultado.lectura.sesion || '(el muro no rotula día)',
     rama: resultado.lectura.rama,
     elementos,
+    ejeW: resultado.ejeW,
   }
 }
 

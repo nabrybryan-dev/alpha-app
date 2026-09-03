@@ -1,0 +1,37 @@
+{
+  "cuando": "2026-09-02T21:05:46.667Z",
+  "viewport": {
+    "ancho": 414,
+    "alto": 736
+  },
+  "usuario": "u-valentina",
+  "minimoDeCasilla": 2400,
+  "total": 26,
+  "quietas": 0,
+  "pantallas": [
+    {
+      "ruta": "/",
+      "casillas": 8,
+      "quietas": 0,
+      "lasQuietas": []
+    },
+    {
+      "ruta": "/bienestar",
+      "casillas": 3,
+      "quietas": 0,
+      "lasQuietas": []
+    },
+    {
+      "ruta": "/nutricion",
+      "casillas": 12,
+      "quietas": 0,
+      "lasQuietas": []
+    },
+    {
+      "ruta": "/progreso",
+      "casillas": 3,
+      "quietas": 0,
+      "lasQuietas": []
+    }
+  ]
+}

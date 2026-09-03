@@ -180,20 +180,23 @@ export const HUECOS = {
   },
 
   /**
-   * EL REGISTRO — anotar la serie que se acaba de hacer.
+   * EL REGISTRO YA NO ES UN HUECO: es un cuadro de la pared, dentro de `paredes`.
    *
-   * Es la única acción del salón, y por eso va al suelo y no a una pared: se alcanza
-   * con el pulgar sin girar la cámara ni abrir nada. Tiene que estar disponible en
-   * TODAS las capas de W — quien acaba de levantar no debería tener que volver a la
-   * piel para apuntar sus repeticiones.
+   * Se mudó el 2026-09-02 por petición de Bryan —«este también va explicado gráficamente
+   * en el esqueleto»—, con el resto de las casillas. Deja de ser una barra pegada al
+   * borde de abajo y pasa a colgar del muro de enfrente a 1,16 m, que es la altura a la
+   * que se opera algo en un gimnasio.
+   *
+   * LO QUE SE PIERDE, y hay que decirlo porque este hueco lo llevaba escrito como
+   * requisito: ya NO está garantizado que se alcance «con el pulgar sin girar la cámara».
+   * Colgado de un muro, si el asesorado orbita hasta ponerse de espaldas a él, el mando
+   * de guardar se le va de cuadro y tiene que volver. Era el precio de que la información
+   * viva EN el salón y no encima, y es una decisión tomada, no un descuido: si en el
+   * campo resulta que estorba, la salida es duplicar el mando —no devolver la barra—,
+   * porque lo que Bryan rechazó fue tener casillas pegadas a los lados.
+   *
+   * Sigue estando en TODAS las capas de W: el cuadro no depende del escalón del cuerpo.
    */
-  registro: {
-    contiene: 'Registrar la serie hecha: carga, repeticiones y RIR.',
-    ancla: 'suelo',
-    gesto: 'ninguno',
-    topeDeTexto: TOPE_PARED,
-    visibleEnW: TODO_W,
-  },
 
   /**
    * EL PANEL DE ABAJO — lo largo, íntegro.

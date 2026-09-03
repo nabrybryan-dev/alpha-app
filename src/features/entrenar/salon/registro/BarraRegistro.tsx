@@ -43,11 +43,13 @@ import { RegistroSerieSalon, type RegistroSerieSalonHandle } from './RegistroSer
  */
 
 export interface BarraRegistroProps {
+  /** `true` si cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
+  enCuadro?: boolean
   microcicloId: string
   ejercicio: EjercicioPrescrito
 }
 
-export function BarraRegistro({ microcicloId, ejercicio }: BarraRegistroProps) {
+export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: BarraRegistroProps) {
   const [abierta, setAbierta] = useState(false)
   const registro = useRef<RegistroSerieSalonHandle>(null)
 
@@ -57,17 +59,17 @@ export function BarraRegistro({ microcicloId, ejercicio }: BarraRegistroProps) {
   const etiqueta = completo ? undefined : etiquetaDeSerie(ejercicio, orden)
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-stretch gap-1.5">
+    <div className={enCuadro ? "flex flex-col gap-[0.35em]" : "flex flex-col gap-1.5"}>
+      <div className={enCuadro ? "flex items-stretch gap-[0.35em]" : "flex items-stretch gap-1.5"}>
         <button
           type="button"
           aria-expanded={abierta}
           onClick={() => setAbierta((v) => !v)}
-          className="press flex min-w-0 flex-1 items-center gap-2 rounded-[12px] border border-accion/35 bg-ink-900/90 px-3 py-2 text-left"
+          className={`press flex min-w-0 flex-1 items-center rounded-[0.6em] border border-accion/35 bg-ink-900/90 text-left ${enCuadro ? "gap-[0.5em] px-[0.6em] py-[0.4em]" : "gap-2 px-3 py-2"}`}
         >
           <span className="min-w-0 flex-1">
             <span className="flex items-baseline gap-1.5">
-              <span className="text-[9px] font-bold uppercase leading-none tracking-[0.18em] text-accion">
+              <span className={`font-bold uppercase leading-none tracking-[0.18em] text-accion ${enCuadro ? "text-[0.78em]" : "text-[9px]"}`}>
                 {completo ? `${ejercicio.sets} series hechas` : `Serie ${orden} de ${ejercicio.sets}`}
               </span>
               {etiqueta && (
@@ -77,7 +79,7 @@ export function BarraRegistro({ microcicloId, ejercicio }: BarraRegistroProps) {
               )}
             </span>
             {!completo && (
-              <span className="cifras mt-1 block text-[12px] font-semibold leading-none text-silver-100">
+              <span className={`cifras block font-semibold leading-none text-silver-100 ${enCuadro ? "mt-[0.35em] text-[1em]" : "mt-1 text-[12px]"}`}>
                 {String(borrador.cargaKg).replace('.', ',')} kg
                 <span className="mx-1.5 text-silver-500">·</span>
                 {borrador.reps} reps
@@ -90,7 +92,7 @@ export function BarraRegistro({ microcicloId, ejercicio }: BarraRegistroProps) {
               dice `aria-expanded`, y escribirlo además sería ruido para el lector. */}
           <span
             aria-hidden="true"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-white/15 text-silver-400 transition-transform duration-base ease-salida"
+            className={`grid shrink-0 place-items-center rounded-full border border-white/15 text-silver-400 transition-transform duration-base ease-salida ${enCuadro ? "h-[1.6em] w-[1.6em]" : "h-6 w-6"}`}
             style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -103,7 +105,7 @@ export function BarraRegistro({ microcicloId, ejercicio }: BarraRegistroProps) {
           <button
             type="button"
             onClick={() => registro.current?.guardar()}
-            className="press shrink-0 rounded-[12px] bg-accion px-3.5 font-display text-[13px] uppercase leading-none tracking-wide text-white"
+            className={`press shrink-0 rounded-[0.6em] bg-accion font-display uppercase leading-none tracking-wide text-white ${enCuadro ? "px-[0.8em] text-[0.95em]" : "px-3.5 text-[13px]"}`}
             style={{ boxShadow: 'var(--glow-accion)' }}
           >
             Guardar

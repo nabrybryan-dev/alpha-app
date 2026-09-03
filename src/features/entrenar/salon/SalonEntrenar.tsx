@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { ejercicioCompleto } from '../../../domain/cumplimiento'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
 import type {
@@ -10,7 +10,11 @@ import type {
 } from '../../../domain/rutaEntrenamiento'
 import type { Recuperacion } from '../../../domain/readiness'
 import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../domain/types'
+import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
+import { ENCUADRE_SALA } from '../escena/sala'
+import type { CamaraDelSalon as EstadoDeCamara } from './paredes/geometriaDeCuadro'
+import { implementosDeSesion } from './implementos/implementosDeSesion'
 import { capaTrasArrastre } from '../capas/gestoVertical'
 import { CAPAS_W, SUELO_DEL_SALON, type NivelW } from './huecos'
 import { contenidoPared } from './paredes/contenidoPared'
@@ -18,7 +22,6 @@ import { ParedesDelSalon } from './paredes/ParedesDelSalon'
 import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
 import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
-import { BarraRegistro } from './registro/BarraRegistro'
 import { SalaVacia } from './sinPatron/SalaVacia'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 
@@ -168,8 +171,36 @@ const SUJETO_A_SANGRE = [
 ].join(' ')
 
 export function SalonEntrenar(props: SalonEntrenarProps) {
-  const { microciclo, sesion } = props
+  const { microciclo, sesion: sesionProp } = props
+  // La demo necesita una sesión con sujeto para poder inspeccionar el salón 3D.
+  // En producción se conserva estrictamente la sesión calculada para el día.
+  const sesion =
+    import.meta.env.MODE === 'demo' && (!sesionProp || sesionProp.ejercicios.length === 0)
+      ? microciclo.sesiones.find((s) => s.ejercicios.length > 0)
+      : sesionProp
   const ejercicio = ejercicioEnCurso(sesion)
+
+  /*
+   * MIENTRAS QUEDA TRABAJO POR HACER, LA APP BAJA EL RUIDO.
+   *
+   * Es el §15 de la petición de Bryan: reducir estímulos durante una serie
+   * pesada. La señal es que esta pantalla está montada Y el ejercicio en curso
+   * aún tiene series pendientes — o sea, el asesorado está entrenando ahora
+   * mismo, no repasando lo que hizo. En ese rato se apagan el pulso de las
+   * llamadas a la acción, el halo y el relieve 3D de los botones; lo que informa
+   * se queda.
+   *
+   * Se apaga al desmontar y no solo al terminar el ejercicio, porque salir de
+   * `/entrenar` a media sesión es lo normal —mirar la receta, contestar un
+   * mensaje— y dejar la app en modo sobrio por haber estado entrenando hace
+   * media hora sería un fallo silencioso de los que no se reportan.
+   */
+  const { declararSerie } = useMovimiento()
+  const entrenando = ejercicio !== undefined && !ejercicioCompleto(ejercicio)
+  useEffect(() => {
+    declararSerie(entrenando)
+    return () => declararSerie(false)
+  }, [declararSerie, entrenando])
 
   /**
    * Con sujeto o sin él, y quién lo decide.
@@ -205,6 +236,43 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const conEjeW = conSujeto && !!patron
 
   const [w, setW] = useState<NivelW>(0)
+
+  /**
+   * DÓNDE MIRA LA CÁMARA, para que las paredes puedan colgar sus cuadros.
+   *
+   * Arranca en el ángulo del patrón —el mismo con el que el visor monta la órbita— para
+   * que en el primer fotograma los cuadros ya estén donde van. Sin ese valor de partida
+   * saldrían todos amontonados en el centro y saltarían a su sitio al primer aviso, que
+   * es exactamente el parpadeo que delata que la interfaz no está en la escena.
+   */
+  const [camara, setCamara] = useState<EstadoDeCamara>(() => ({
+    azimut: patron?.camara.azimut ?? 0,
+    elevacion: patron?.camara.elevacion ?? 6,
+    distancia: ENCUADRE_SALA.distancia,
+  }))
+  const [lienzo, setLienzo] = useState({ ancho: 414, alto: 736 })
+  const marcoRef = useRef<HTMLDivElement>(null)
+
+  // El lienzo se mide del DOM y no se supone: la distancia focal sale de su alto, y con
+  // un alto supuesto los cuadros caerían en un sitio y la sala se dibujaría en otro.
+  useEffect(() => {
+    const el = marcoRef.current
+    if (!el) return
+    const medir = () => setLienzo({ ancho: el.clientWidth, alto: el.clientHeight })
+    medir()
+    // LA GUARDA NO SOBRA. `ResizeObserver` no existe en jsdom, y sin esto los tests del
+    // salón se caían con «ResizeObserver is not defined» — diez a la vez. Es la misma
+    // lección que ya está escrita para `matchMedia` en `movimientoReducido`: lo que el
+    // navegador de verdad trae, el de las pruebas puede no traerlo, y una medida es
+    // exactamente lo que se puede tomar una vez si no hay con qué observar.
+    if (typeof ResizeObserver !== 'function') {
+      window.addEventListener('resize', medir)
+      return () => window.removeEventListener('resize', medir)
+    }
+    const observador = new ResizeObserver(medir)
+    observador.observe(el)
+    return () => observador.disconnect()
+  }, [])
   /**
    * El arrastre en curso sobre el centro. Vive en un ref: no repinta hasta que decide.
    *
@@ -259,6 +327,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     <div
       data-salon="entrenar"
       data-w={w}
+      ref={marcoRef}
       className="fixed inset-0 overflow-hidden bg-ink-1000"
       style={{ zIndex: 'var(--z-elevado)' }}
     >
@@ -281,6 +350,17 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                nombreEjercicio={ejercicio?.nombre}
+                alMirar={(c) =>
+                  // Se compara antes de guardar: el bucle avisa en cada fotograma que
+                  // cambia algo, y guardar un objeto nuevo cada vez re-renderizaría las
+                  // paredes sesenta veces por segundo aunque la cámara esté quieta.
+                  setCamara((v) =>
+                    v.azimut === c.azimut && v.elevacion === c.elevacion && v.distancia === c.distancia
+                      ? v
+                      : c,
+                  )
+                }
                 datos={
                   ejercicio
                     ? {
@@ -394,7 +474,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         contenido={contenido}
         ritmo={ritmo}
         notas={props.notas}
-      />
+          camara={camara}
+          lienzo={lienzo}
+          azimutDeEntrada={patron?.camara.azimut ?? 0}
+        />
 
       {/* EL SUELO Y EL BORDE DE ABAJO.
           Aquí había un marco con `padding-bottom` del alto de la barra de navegación, con
@@ -410,17 +493,6 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             reps y qué RIR, más el botón de guardar. Los mandos para cambiarlo están a un
             toque, debajo. Antes esto era una tarjeta grande y permanente que se comía el
             tercio inferior del cuerpo. */}
-        {ejercicio && (
-          <div
-            data-hueco="registro"
-            className="pointer-events-auto absolute inset-x-0 px-3"
-            // Encima de la barra de navegación y encima del tirador del panel, que asoma
-            // desde el borde: son los dos que comparten esta franja.
-            style={{ bottom: 'calc(var(--tope-nav) + 2.25rem)' }}
-          >
-            <BarraRegistro microcicloId={microciclo.id} ejercicio={ejercicio} />
-          </div>
-        )}
 
         {/* ----------------------------------------------------------- panelInferior */}
         <PanelInferior
@@ -434,6 +506,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           sesionCta={props.sesionCta}
           notas={props.notas}
           alPanel={contenido?.alPanel ?? []}
+          contenido={contenido}
+          material={implementosDeSesion(sesion)}
           bloquesCardio={sesion?.bloquesCardio}
           nombreEjercicio={ejercicio?.nombre}
           sesion={sesion}

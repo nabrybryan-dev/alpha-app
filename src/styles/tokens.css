@@ -214,6 +214,53 @@
      `var()`, así que allí va escrita literal, con una nota que apunte aquí. */
   --ease-rebote: cubic-bezier(0.34, 1.2, 0.4, 1);
 
+  /* ============ LOS CINCO PESOS — física de verdad, no curvas a ojo ============
+
+     La jerarquía de movimiento de la app, de protagonista a microinteracción,
+     expresada como MASA. Cada muelle es la solución muestreada de un oscilador
+     amortiguado real (masa, rigidez, amortiguación), no una Bézier tanteada.
+
+     Por qué hace falta: una `cubic-bezier` tiene dos puntos de control, así que
+     sobrepasa UNA vez y ya. Un muelle sobrepasa, vuelve, sobrepasa menos y se
+     asienta — y esa cola es lo que hace que algo parezca tener peso.
+
+     Se leen así: cuanta más masa, más tarda en asentarse. Y lo pesado NO rebota
+     (`protagonista` no sobrepasa nada), lo ligero sí (`microinteraccion` llega
+     al 110 % y vuelve). Es al revés de lo que uno tiende a hacer a ojo, y es lo
+     que separa «con peso» de «rebotón».
+
+     ## Por qué esto es un @supports y no dos declaraciones seguidas
+
+     El patrón de respaldo de CSS —declarar la propiedad dos veces y que el
+     navegador viejo se quede con la primera— **NO funciona a través de `var()`**.
+     La sustitución de variables ocurre después de parsear, así que un valor que
+     resulte inválido al sustituir no cae a la declaración anterior: deja la
+     propiedad como si nadie la hubiera puesto. Con `--muelle-x: linear(...)` en
+     un Safari 17.1, el resultado no sería la Bézier de respaldo: sería ninguna
+     curva.
+
+     Así que el respaldo va aquí, en la variable, y la mejora se aplica encima
+     solo si el navegador sabe parsear `linear()`. Quien consume escribe
+     `var(--muelle-informativo)` y no se entera de nada.
+
+     NO SE EDITAN A MANO: salen de `scripts/generar-muelles.mjs`, donde está
+     escrito por qué cada muelle vale lo que vale. `npm run verify` comprueba
+     que la hoja no se haya separado de su origen. */
+
+  /* Respaldo para Safari < 17.2 y cualquier navegador sin `linear()`. Son las
+     Bézier que ya existían: se pierde la cola del muelle, no la animación. */
+  --dur-protagonista: 455ms;
+  --muelle-protagonista: var(--ease-salida);
+  --dur-informativo: 542ms;
+  --muelle-informativo: var(--ease-salida);
+  --dur-transicional: 471ms;
+  --muelle-transicional: var(--ease-cajon);
+  --dur-ambiental: 792ms;
+  --muelle-ambiental: var(--ease-salida);
+  --dur-microinteraccion: 459ms;
+  --muelle-microinteraccion: var(--ease-rebote);
+
+
   /* ============ Design System Alfa (handoff) ============
      Fuentes: display Archivo expandido, UI Hanken Grotesk, datos JetBrains Mono */
   --font-display: 'Archivo', system-ui, sans-serif;
@@ -390,6 +437,25 @@
   --dur-base: 240ms;
   --dur-panel: 360ms;
   --dur-escena: 520ms;
+
+  /* LA FUGA: a qué distancia está el ojo de las casillas.
+     Sale de `FichaPanini`, que ya usaba 900 px para su inclinación holográfica y es de
+     donde salió `useInclinacionAlPuntero`. Un solo número para toda la app: dos fugas
+     distintas en la misma pantalla se leen como dos escenas pegadas, y nadie sabría
+     decir por qué le chirría. Más corta exagera y marea; más larga aplana hasta que el
+     giro deja de notarse. */
+  --fuga: 900px;
+}
+
+/* Los muelles de verdad, si el navegador sabe `linear()`. Generado. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+  --muelle-protagonista: linear(0, 0.0106, 0.039, 0.0802, 0.1305, 0.1868, 0.2464, 0.3074, 0.3681, 0.4275, 0.4846, 0.5388, 0.5897, 0.637, 0.6806, 0.7205, 0.7567, 0.7893, 0.8186, 0.8447, 0.8679, 0.8883, 0.9062, 0.9218, 0.9353, 0.947, 0.957, 0.9655, 0.9728, 0.9789, 0.9839, 0.9882, 0.9916, 0.9945, 1);
+  --muelle-informativo: linear(0, 0.0215, 0.0763, 0.1523, 0.2403, 0.333, 0.4254, 0.5137, 0.5957, 0.6698, 0.7354, 0.7923, 0.8408, 0.8814, 0.9148, 0.9418, 0.9631, 0.9797, 0.9922, 1.0013, 1.0076, 1.0118, 1.0142, 1.0154, 1.0156, 1.0151, 1.0141, 1.0129, 1.0115, 1.01, 1.0086, 1.0072, 1.006, 1.0049, 1);
+  --muelle-transicional: linear(0, 0.0204, 0.0724, 0.1444, 0.2276, 0.3154, 0.403, 0.4871, 0.5655, 0.637, 0.7008, 0.7569, 0.8053, 0.8466, 0.8814, 0.9101, 0.9337, 0.9527, 0.9677, 0.9795, 0.9885, 0.9952, 1.0001, 1.0034, 1.0057, 1.007, 1.0077, 1.0079, 1.0077, 1.0072, 1.0067, 1.006, 1.0053, 1.0046, 1);
+  --muelle-ambiental: linear(0, 0.0137, 0.0494, 0.1, 0.1602, 0.2258, 0.2936, 0.3612, 0.4269, 0.4896, 0.5483, 0.6027, 0.6526, 0.6979, 0.7386, 0.7749, 0.8072, 0.8356, 0.8606, 0.8823, 0.9011, 0.9174, 0.9313, 0.9433, 0.9534, 0.962, 0.9692, 0.9752, 0.9802, 0.9844, 0.9878, 0.9906, 0.9929, 0.9948, 1);
+  --muelle-microinteraccion: linear(0, 0.0342, 0.1217, 0.2421, 0.3784, 0.5173, 0.6492, 0.7673, 0.8679, 0.9492, 1.0113, 1.0555, 1.0839, 1.0989, 1.1034, 1.0999, 1.0909, 1.0785, 1.0644, 1.05, 1.0364, 1.0241, 1.0137, 1.0053, 0.9989, 0.9943, 0.9913, 0.9898, 0.9893, 0.9897, 0.9906, 0.9919, 0.9933, 0.9948, 1);
+  }
 }
 
 html {
@@ -536,12 +602,73 @@ body {
 
 .press {
   /* Los 160 ms que estaban escritos aquí a mano son exactamente `--dur-toque`:
-     la escala de duraciones se dedujo de lo que la app ya hacía, no al revés. */
-  transition: transform var(--dur-toque) var(--ease-salida);
+     la escala de duraciones se dedujo de lo que la app ya hacía, no al revés.
+
+     Al SOLTAR se usa el muelle de microinteracción, que sobrepasa un 10 % y
+     vuelve: es el nivel 5 de la jerarquía, el único que puede permitirse una
+     chispa. Al PULSAR (`:active`, abajo) se conserva la curva seca — un dedo
+     que baja no rebota, y un muelle en la ida haría que la tecla pareciera
+     resistirse al toque. La física va en la vuelta. */
+  transition: transform var(--dur-microinteraccion) var(--muelle-microinteraccion);
 }
 
 .press:active {
   transform: scale(0.97);
+  /* La ida es seca y corta: el dedo ya está ahí, no hay nada que simular. */
+  transition: transform var(--dur-toque) var(--ease-salida);
+}
+
+/* ---------- El relieve de las casillas ---------- */
+
+/* Una casilla es un cuadro donde se decide segmentar informacion, y hasta hoy eso eran
+   cuatro lineas y un fondo: planas. El testigo de `testigo/casillas-quietas.mjs` contó
+   25 de 26 sin un solo diseno en tres dimensiones.
+
+   `.relieve` le da profundidad y respuesta: en reposo vive en su plano, al recibir el
+   dedo o el foco se acerca y gira sobre su eje horizontal, y al pulsarla se hunde.
+
+   SUSTITUYE A `.press`, no se apila con ella. Es la misma leccion que dejo escrita
+   `.tecla-3d` unas lineas mas abajo: dos reglas peleandose por `transform` las gana la
+   ultima, y entonces el 3D o el tacto desaparece sin que nada avise. Por eso el
+   `scale(0.97)` del pulsado esta aqui dentro, con la misma curva y la misma duracion.
+
+   La `perspective` va DENTRO de la funcion `transform` y no como propiedad del padre: la
+   propiedad solo alcanza a los hijos directos, asi que puesta un nivel mas arriba se
+   paga y no se ve. Dentro de la funcion, cada casilla se basta sola.
+
+   NINGUNA ZONA TOCABLE BAJA DEL PLANO. A 900 px de fuga, +14 px agrandan un 1,6 % y el
+   hundido de pulsar queda en 0,974 — el mismo de `.press`. Una diana de 44 px sigue
+   midiendo 43 al tocarla. */
+.relieve {
+  transform: perspective(var(--fuga)) translateZ(0);
+  transform-style: preserve-3d;
+  transition:
+    transform var(--dur-base) var(--ease-salida),
+    box-shadow var(--dur-base) var(--ease-salida);
+}
+
+.relieve:hover,
+.relieve:focus-within {
+  transform: perspective(var(--fuga)) translateZ(14px) rotateX(4deg);
+  box-shadow: 0 18px 38px -22px rgb(0 0 0 / 0.75);
+}
+
+.relieve:active {
+  transform: perspective(var(--fuga)) translateZ(4px) rotateX(-1.5deg) scale(0.97);
+  /* Igual que `.press`: la ida seca, la vuelta con muelle (declarada arriba). */
+  transition-duration: var(--dur-toque);
+  transition-timing-function: var(--ease-salida);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relieve,
+  .relieve:hover,
+  .relieve:focus-within,
+  .relieve:active {
+    transform: none;
+    transition: none;
+    box-shadow: none;
+  }
 }
 
 /* ---------- Entradas coreografiadas ---------- */
@@ -563,16 +690,20 @@ body {
 @keyframes entrada-suave {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: perspective(var(--fuga)) translateY(14px) translateZ(-56px) rotateX(-9deg);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: perspective(var(--fuga)) translateY(0) translateZ(0) rotateX(0deg);
   }
 }
 
 .entrada {
-  animation: entrada-suave 480ms var(--ease-salida) both;
+  /* Nivel 3 de la jerarquía: cambio de sección. Firme, con un sobrepaso mínimo
+     (llega al 100,8 %) — lo justo para que la pantalla parezca ASENTARSE en su
+     sitio en vez de frenar en seco. Los 480 ms de antes eran a ojo; ahora la
+     duración sale de cuándo el muelle deja de moverse. */
+  animation: entrada-suave var(--dur-transicional) var(--muelle-transicional) both;
 }
 
 .entrada-1 { animation-delay: 0ms; }
@@ -619,8 +750,10 @@ body {
      Enumerando aqui los colores, el marcado ya no necesita la utilidad: una tecla
      lleva `tecla-3d` y nada mas. */
   transition-property: transform, background-color, border-color, color;
-  transition-duration: var(--dur-toque);
-  transition-timing-function: var(--ease-salida);
+  /* La tecla vuelve con muelle; el color no debe rebotar, pero comparte
+     transición y un sobrepaso de color no se percibe. */
+  transition-duration: var(--dur-microinteraccion);
+  transition-timing-function: var(--muelle-microinteraccion);
 }
 
 /* Al pulsar no basta con bajar: la tecla PIERDE su cara iluminada y su sombra
@@ -709,9 +842,14 @@ body {
 .aparece-pieza {
   opacity: 1;
   transform: translateY(0);
+  /* Nivel 2 de la jerarquía: informativo. Un dato tiene cuerpo —sobrepasa un
+     1,6 % y vuelve— pero no hace gracias: quien lo mira está a mitad de una
+     serie. La opacidad se deja en la curva seca a propósito: un sobrepaso de
+     opacidad pasaría de 1 y el navegador lo recorta, así que el rebote se vería
+     como una pausa en vez de como un movimiento. */
   transition:
     opacity var(--dur-base) var(--ease-salida),
-    transform var(--dur-base) var(--ease-salida);
+    transform var(--dur-informativo) var(--muelle-informativo);
 }
 
 @starting-style {
@@ -744,7 +882,7 @@ body {
 }
 
 .insignia-salon {
-  animation: insignia-entra var(--dur-base) var(--ease-salida) both;
+  animation: insignia-entra var(--dur-informativo) var(--muelle-informativo) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -859,7 +997,7 @@ body {
   transform: translateY(16px);
   transition:
     opacity 600ms var(--ease-salida),
-    transform 600ms var(--ease-salida);
+    transform var(--dur-informativo) var(--muelle-informativo);
 }
 
 .revelar.revelado {
@@ -1224,7 +1362,9 @@ body {
 }
 
 .subir-hoja {
-  animation: subir-hoja 420ms var(--ease-cajon) both;
+  /* Nivel 3: transicional. Una hoja que sube es un cambio de contexto, y el
+     muelle la hace parar contra el tope en vez de frenar en el aire. */
+  animation: subir-hoja var(--dur-transicional) var(--muelle-transicional) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1623,4 +1763,57 @@ body {
   .escena-prof * {
     transition-duration: 1ms !important;
   }
+}
+
+/* ============ MOVIMIENTO ADAPTATIVO — el §15, hecho interruptor ============
+
+   `src/lib/movimientoAdaptativo.ts` escribe `data-movimiento` en `<html>` y
+   aquí se decide qué se apaga en cada nivel. La gracia de tenerlo centralizado
+   es que ningún componente necesita saber si el aparato va justo o si el
+   asesorado está a mitad de una serie: escribe su animación una vez y el nivel
+   la modera.
+
+   La jerarquía se apaga de abajo arriba, y ese orden es el criterio entero:
+   primero se va lo AMBIENTAL (no informa de nada), después lo transicional, y
+   lo que informa —que algo apareció, que algo se guardó— es lo último que se
+   toca, porque quitarlo no calma la pantalla: la vuelve mentirosa. */
+
+/* ---- SOBRIO: serie pesada en curso, o aparato justo ---- */
+/* Se va el ambiente. Los datos siguen moviéndose para poder seguirlos. */
+[data-movimiento='sobrio'] .cta-pulso::after,
+[data-movimiento='sobrio'] .pulso-halo {
+  animation: none;
+}
+
+[data-movimiento='sobrio'] {
+  /* El muelle ambiental se aplana a una curva seca: las luces y la profundidad
+     dejan de respirar sin que nada deje de funcionar. */
+  --muelle-ambiental: var(--ease-salida);
+  --dur-ambiental: var(--dur-base);
+}
+
+/* El relieve 3D se queda plano: es adorno, y en mitad de una serie el pulgar
+   solo necesita saber que el botón respondió. Se conserva la escala del toque,
+   que es la parte que informa. */
+[data-movimiento='sobrio'] .relieve,
+[data-movimiento='sobrio'] .relieve:hover,
+[data-movimiento='sobrio'] .relieve:focus-within {
+  transform: none;
+}
+
+[data-movimiento='sobrio'] .relieve:active {
+  transform: scale(0.97);
+}
+
+/* ---- MÍNIMO: lo pidió el sistema ---- */
+/* No es «menos»: es que no se mueve nada. Se deja 1ms en vez de `none` porque
+   hay código que espera el evento `animationend` para limpiar, y con `none` ese
+   evento no llega nunca y el elemento se queda a medias. */
+[data-movimiento='minimo'] *,
+[data-movimiento='minimo'] *::before,
+[data-movimiento='minimo'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
 }

@@ -22,6 +22,11 @@ import { RecuadroEncoder } from './recuadros/RecuadroEncoder'
 import { RecuadroEjercicio } from './recuadros/RecuadroEjercicio'
 import { RecuadroAntes } from './recuadros/RecuadroAntes'
 import { RecuadroPatron } from './recuadros/RecuadroPatron'
+import { ImplementosDelSalon } from '../implementos/ImplementosDelSalon'
+import type { ImplementosDeSesion } from '../implementos/implementosDeSesion'
+import { MuroDeCampos } from '../paredes/PanelPared'
+import { MURO_DERECHO } from '../paredes/muros'
+import type { ContenidoDePared } from '../paredes/contenidoPared'
 
 /**
  * EL PANEL DE ABAJO: lo largo, íntegro, a un dedo de distancia.
@@ -43,7 +48,7 @@ import { RecuadroPatron } from './recuadros/RecuadroPatron'
  * | `notas`          | Notas de la semana del coach (`NotasDeLaSemana`)              |
  * | `ejercicio`      | La prescripción entera: `alPanel` de `contenidoPared()`       |
  * | `patron`         | Notas de ejecución: qué mueve y qué sujeta cada articulación  |
- * | `microciclo`     | `PortadaMicrociclo`                                           |
+ * | `microciclo`     | `recuadros/RecuadroMicrociclo`                                |
  * | `nivel`          | `ruta/CabeceraNivel`                                          |
  * | `progreso-nivel` | `ruta/TarjetaProgresoNivel`                                   |
  * | `como-llegas`    | `ruta/ComoLlegas`                                             |
@@ -98,6 +103,16 @@ export interface PanelInferiorProps {
   sesion?: Sesion
   /** El patrón del ejercicio en curso: de él salen las notas de ejecución. */
   patron?: Patron
+  /**
+   * Los campos del encuadre, que antes vivían pegados al trípode en la pared.
+   *
+   * Bajaron el 2026-09-02: no están en la lista amarilla del §1 de `SEMANA-2.md` —ahí solo
+   * entra «medir con la cámara»— y en la pared costaban medio ancho de pantalla a la altura
+   * de las piernas del sujeto.
+   */
+  contenido?: ContenidoDePared
+  /** El material escrito de la sesión. El hierro de verdad lo dibuja el motor. */
+  material?: ImplementosDeSesion
 }
 
 /** Cuánto hay que arrastrar hacia arriba para que el panel suba. */
@@ -123,6 +138,8 @@ export function PanelInferior(props: PanelInferiorProps) {
     nombreEjercicio,
     sesion,
     patron,
+    contenido,
+    material,
   } = props
 
   const [abierto, setAbierto] = useState(false)
@@ -246,6 +263,26 @@ export function PanelInferior(props: PanelInferiorProps) {
             <Recuadro clave="ejercicio" titulo="La prescripción del coach" pie={nombreEjercicio}>
               <RecuadroEjercicio alPanel={alPanel} bloquesCardio={bloquesCardio} />
             </Recuadro>
+
+            {contenido && (
+              <Recuadro
+                clave="encuadre"
+                titulo="El encuadre de hoy"
+                pie="Dónde va el móvil, a qué distancia, qué palanca y qué velocidad."
+              >
+                <MuroDeCampos contenido={contenido} campos={MURO_DERECHO} lado="izquierda" />
+              </Recuadro>
+            )}
+
+            {material && (
+              <Recuadro
+                clave="material"
+                titulo="Material de la sesión"
+                pie="Lo que hay que tener a mano. El hierro, alrededor del sujeto, lo dibuja la sala."
+              >
+                <ImplementosDelSalon material={material} />
+              </Recuadro>
+            )}
 
             <Recuadro clave="patron" titulo="Notas de ejecución y técnica" pie="Qué mueve y qué sujeta cada articulación.">
               <RecuadroPatron patron={patron} />

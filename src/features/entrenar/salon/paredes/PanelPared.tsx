@@ -120,6 +120,8 @@ export function PanelCampo({ campo, texto, lado, denso = false }: PanelCampoProp
 }
 
 export interface MuroDeCamposProps {
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco y el escorzo los pone el cuadro. */
+  enCuadro?: boolean
   /** Los ocho textos cortos, tal como los devuelve `contenidoPared()`. */
   contenido: ContenidoDePared
   /** Qué campos cuelga esta columna. */

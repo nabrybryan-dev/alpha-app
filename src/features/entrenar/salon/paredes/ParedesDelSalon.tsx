@@ -13,8 +13,10 @@ import {
   TablaDeSeries,
 } from './RotulosDelSalon'
 import { CamaraDelSalon } from '../camara/CamaraDelSalon'
-import { ImplementosDelSalon } from '../implementos/ImplementosDelSalon'
-import { implementosDeSesion } from '../implementos/implementosDeSesion'
+import { BarraRegistro } from '../registro/BarraRegistro'
+import { CuadroDePared } from './CuadroDePared'
+import type { CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
+import { SITIOS, sitioEn } from './sitiosDeLaPared'
 
 /**
  * LAS PAREDES DEL SALÓN: todo lo que cuelga del muro, colocado.
@@ -61,21 +63,6 @@ import { implementosDeSesion } from '../implementos/implementosDeSesion'
  * Así que la barra se suma explícitamente, una vez por pieza, y el marco con relleno se
  * retira para que nadie vuelva a confiar en él.
  */
-const SUELO = {
-  /**
-   * El material, los días sin ejercicio: pegado al borde, con la sala estirada encima.
-   *
-   * Cae justo debajo del suelo de la sala. `SUELO_DEL_SALON.sinRegistro` deja la
-   * habitación a `--tope-nav + 3.5rem` del borde y la fila de material mide 1.5rem, así
-   * que 1.75rem la deja rozando el bordillo sin montarse encima. Medido en el navegador a
-   * 430 px: con un cuarto de rem más, la fila se comía la esquina del suelo.
-   */
-  borde: 'calc(var(--tope-nav) + 1.75rem)',
-  /** La tira de «a continuación», justo encima de la barra del registro. */
-  cola: 'calc(var(--tope-nav) + 6.5rem)',
-  /** La cámara y el material, apoyados sobre el rodapié. */
-  mobiliario: 'calc(var(--tope-nav) + 8.5rem)',
-} as const
 
 export interface ParedesDelSalonProps {
   microciclo: Microciclo
@@ -88,6 +75,19 @@ export interface ParedesDelSalonProps {
   ritmo: RitmoSesion | undefined
   /** Las notas de la semana del coach: pasan por la marquesina con su título literal. */
   notas: readonly ItemMarcable[]
+  /**
+   * Dónde mira la cámara del salón AHORA MISMO, tal y como la deja la órbita.
+   *
+   * Es lo que convierte estos paneles en cuadros colgados de un muro en vez de tarjetas
+   * pegadas al cristal. Si esta cámara y la que dibuja la escena no fueran la misma, los
+   * cuadros flotarían: medio grado de desfase ya se nota, porque el ojo compara el cuadro
+   * con el suelo que tiene detrás.
+   */
+  camara: EstadoDeCamara
+  /** El lienzo en píxeles CSS. De él salen la distancia focal y el centro del cuadro. */
+  lienzo: { ancho: number; alto: number }
+  /** El ángulo desde el que se entra al salón, que es el que pone el patrón. */
+  azimutDeEntrada: number
 }
 
 export function ParedesDelSalon({
@@ -97,102 +97,76 @@ export function ParedesDelSalon({
   contenido,
   ritmo,
   notas,
+  camara,
+  lienzo,
+  azimutDeEntrada,
 }: ParedesDelSalonProps) {
-  const material = implementosDeSesion(sesion)
   const vienen = loQueViene(sesion, ejercicio)
-  // A QUÉ ALTURA SE APOYA EL MOBILIARIO DEL SUELO.
-  //
-  // Con ejercicio, abajo hay tres cosas apiladas —la barra del registro, la tira de «a
-  // continuación» y el módulo de la cámara—, así que el material sube por encima de todas.
-  // Sin ejercicio no hay ni barra ni cámara: el material baja al borde y la habitación se
-  // queda con esos ciento cincuenta píxeles, que es lo que había que ganar. Medido en el
-  // navegador a 430 px: con la altura de siempre quedaba una franja negra entre el suelo de
-  // la sala y el material.
-  const alturaDelSuelo = ejercicio ? SUELO.mobiliario : SUELO.borde
+  const donde = (sitio: (typeof SITIOS)[keyof typeof SITIOS]) => sitioEn(sitio, azimutDeEntrada)
 
   return (
     <div
       data-hueco="paredes"
       data-testigo="letras3D"
-      className="pointer-events-none absolute inset-0"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      {/* ------------------------------------------------------- la banda de arriba */}
-      {/* El muro del fondo, a la altura de la mirada: quién eres hoy, cuánto llevas y por
-          dónde vas. Los tres datos que se buscan al levantar la vista de la barra. */}
-      <div className="absolute inset-x-0 top-0 flex flex-col gap-1 px-2 pt-2">
-        <div className="flex items-start justify-between gap-2">
-          <RotuloDelDia microciclo={microciclo} sesion={sesion} className="max-w-[54%]" />
-          {sesion && (
-            <RotuloCronometro sesionId={sesion.id} className="pointer-events-auto max-w-[42%]" />
-          )}
-        </div>
+      {/* LA CABECERA DE LA SESIÓN, alta y de frente: quién eres hoy y cuánto llevas.
+          Van juntas y arriba porque es lo que se mira al levantar la vista de la barra. */}
+      <CuadroDePared clave="dia" sitio={donde(SITIOS.dia)} camara={camara} lienzo={lienzo}>
+        <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
+      </CuadroDePared>
 
-        {ritmo && <RotuloDeRitmo linea={lineaDeRitmo(ritmo)} className="max-w-[78%]" />}
+      {sesion && (
+        <CuadroDePared clave="cronometro" sitio={donde(SITIOS.cronometro)} camara={camara} lienzo={lienzo} interactivo>
+          <RotuloCronometro sesionId={sesion.id} enCuadro />
+        </CuadroDePared>
+      )}
 
-        {/* LA MARQUESINA, cruzando el muro de lado a lado. Es lo único de las paredes que
-            ocupa el ancho entero, y por eso funciona: una banda no encajona, separa. */}
-        {ritmo && <Marquesina avisos={avisosDelSalon(ritmo, ejercicio, notas)} className="mt-0.5" />}
-      </div>
+      {ritmo && (
+        <CuadroDePared clave="ritmo" sitio={donde(SITIOS.ritmo)} camara={camara} lienzo={lienzo}>
+          <RotuloDeRitmo linea={lineaDeRitmo(ritmo)} enCuadro />
+          <Marquesina avisos={avisosDelSalon(ritmo, ejercicio, notas)} className="mt-[0.4em]" />
+        </CuadroDePared>
+      )}
 
-      {/* ------------------------------------------------------------ muro izquierdo */}
-      {/* Los cuatro campos de EJECUTAR: qué ejercicio, cómo se hace, cuántas series y
-          hasta dónde. Un tercio del ancho, pegados al borde y escorzados hacia dentro. */}
+      {/* EL CUADRO GRANDE: qué ejercicio, cómo se hace, cuántas series y hasta dónde.
+          A la izquierda del muro de enfrente, que es donde cae la vista al entrar. */}
       {contenido && (
-        <MuroDeCampos
-          contenido={contenido}
-          campos={MURO_IZQUIERDO}
-          lado="izquierda"
-          className="absolute left-2 top-[9.5rem] w-[33%]"
-        />
+        <CuadroDePared clave="ejercicio" sitio={donde(SITIOS.ejercicio)} camara={camara} lienzo={lienzo}>
+          <MuroDeCampos contenido={contenido} campos={MURO_IZQUIERDO} lado="izquierda" enCuadro />
+        </CuadroDePared>
       )}
 
-      {/* -------------------------------------------------------------- muro derecho */}
-      {/* La memoria de la sesión: lo que ya se levantó y lo que falta por levantar. */}
+      {/* LO QUE YA SE LEVANTÓ, enfrente y a la derecha, como el marcador de un pabellón. */}
       {ejercicio && (
-        <TablaDeSeries ejercicio={ejercicio} className="absolute right-2 top-[9.5rem] w-[33%]" />
+        <CuadroDePared clave="series" sitio={donde(SITIOS.series)} camara={camara} lienzo={lienzo}>
+          <TablaDeSeries ejercicio={ejercicio} enCuadro />
+        </CuadroDePared>
       )}
 
-      {/* --------------------------------------------------------- el suelo del salón */}
-      {/* La cámara a un lado y el material al otro, los dos apoyados sobre el rodapié que
-          traza la arquitectura de la sala. Es mobiliario, así que va abajo y no a la
-          altura de la mirada: en un gimnasio el trípode y los discos están en el suelo. */}
+      {/* LA ESTACIÓN DE GRABACIÓN, colgada junto al trípode: se lee donde se usa. */}
       {contenido && ejercicio && (
-        <CamaraDelSalon
-          contenido={contenido}
-          ejercicio={ejercicio}
-          microcicloId={microciclo.id}
-          className="absolute left-2 w-[46%]"
-          style={{ bottom: SUELO.mobiliario }}
-        />
+        <CuadroDePared clave="camara" sitio={donde(SITIOS.camara)} camara={camara} lienzo={lienzo} interactivo>
+          <CamaraDelSalon ejercicio={ejercicio} microcicloId={microciclo.id} enCuadro />
+        </CuadroDePared>
       )}
 
-      {/* EL ESTANTE DEL MATERIAL, arrimado al muro derecho y creciendo hacia arriba desde
-          el rodapié. Dos medidas y las dos son de colocación, que es lo que decide esta
-          capa:
+      {/* REGISTRAR LA SERIE, colgado del muro de enfrente y a la altura de la mano.
+          Bryan lo pidió el 2026-09-02 con el resto: «este también va explicado
+          gráficamente en el esqueleto». Deja de ser una barra pegada al borde de abajo y
+          pasa a ser lo que es —un mando del salón—, delante del sujeto y a 1,5 m, que es
+          la altura a la que se apoya la mano en un gimnasio. Va con el puntero abierto: es
+          lo único de las paredes con lo que se OPERA, no que se lee. */}
+      {ejercicio && (
+        <CuadroDePared clave="registro" sitio={donde(SITIOS.registro)} camara={camara} lienzo={lienzo} interactivo>
+          <BarraRegistro microcicloId={microciclo.id} ejercicio={ejercicio} enCuadro />
+        </CuadroDePared>
+      )}
 
-          - `right-10` y no `right-2`, que es donde estaba. El carril del borde derecho ya
-            tiene dueño: la escalera del eje W, cinco botones de 28 px centrados al 46 % de
-            la altura (`SalonEntrenar`), que ocupan de 382 a 410 px en una pantalla de 414.
-            Mientras el material era una tira de 24 px al pie no se rozaban; apilado en
-            columna sí, y una sesión con cuatro implementos habría subido justo por debajo
-            de los peldaños. Dejarle el carril libre a la escalera cuesta 40 px de margen y
-            evita que dos piezas se peleen por el mismo sitio el día que el material crece.
-          - `max-w-[52%]`, que es el tope de la regla de colocación —ninguna columna lateral
-            pasa del tercio y pico— y a la vez el ancho con el que envuelven los nombres
-            largos del dominio («máquina guiada vertical (Smith)»). El ancho real lo pone el
-            `w-fit` del propio estante: esto es un techo, no una medida. */}
-      <ImplementosDelSalon
-        material={material}
-        className="absolute right-10 max-w-[52%]"
-        style={{ bottom: alturaDelSuelo }}
-      />
-
-      {/* ------------------------------------------------------------ a continuación */}
-      <AContinuacion
-        ejercicios={vienen}
-        className="absolute inset-x-2"
-        style={{ bottom: SUELO.cola }}
-      />
+      {/* LO QUE VIENE DESPUÉS, en el muro de detrás: se consulta al terminar, no durante. */}
+      <CuadroDePared clave="siguientes" sitio={donde(SITIOS.siguientes)} camara={camara} lienzo={lienzo}>
+        <AContinuacion ejercicios={vienen} enCuadro />
+      </CuadroDePared>
     </div>
   )
 }

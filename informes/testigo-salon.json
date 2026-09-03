@@ -5,30 +5,42 @@
     "ancho": 414,
     "alto": 736
   },
-  "cuando": "2026-08-29T22:16:39.806Z",
-  "usuario": "u-mateo",
-  "sesion": "FULL A",
+  "cuando": "2026-09-03T01:26:16.196Z",
+  "usuario": "u-valentina",
+  "sesion": "(el muro no rotula día)",
   "rama": "conSujeto",
   "elementos": {
     "sala": {
       "visible": true,
-      "pixeles": 304704
+      "pixeles": 109701,
+      "enLienzo": true
     },
     "letras3D": {
       "visible": true,
-      "pixeles": 304704
+      "pixeles": 304704,
+      "enLienzo": false
     },
     "sujeto": {
       "visible": true,
-      "pixeles": 304704
+      "pixeles": 16977,
+      "enLienzo": true
     },
     "camara": {
       "visible": true,
-      "pixeles": 36290
+      "pixeles": 734,
+      "enLienzo": true
     },
     "implementos": {
       "visible": true,
-      "pixeles": 4776
+      "pixeles": 16199,
+      "enLienzo": true
     }
+  },
+  "ejeW": {
+    "desde": 0,
+    "hasta": 4,
+    "cambioEnSujeto": 23732,
+    "ruido": 0,
+    "botones": 5
   }
 }

@@ -44,7 +44,7 @@ export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCal
   const debePesar = queDebePesar(pruebas, diasPesando)
 
   return (
-    <section className="rounded-3xl border border-linea bg-surface-1 p-4">
+    <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="font-display text-sm text-texto">Tu ojo</h3>
         <span className="cifras text-[11px] text-tenue">

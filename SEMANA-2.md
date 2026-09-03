@@ -149,6 +149,27 @@ recomendaciones no se tocan; cualquier recorte de texto se comunica antes.
 **Cero casillas quietas.** En las cuatro pantallas no queda ni un elemento sin movimiento
 ni transición, y eso lo cuenta un script.
 
+**Qué es una casilla y qué es quieta** — definido por Bryan el 2026-09-02, y escrito aquí
+porque de esas dos frases sale todo lo que el script puede contar:
+
+> Una casilla sería **un cuadro con líneas en donde se decide segmentar información**.
+> Éstas deben tener movimiento dinámico e interacción **en las tres dimensiones**, con
+> giros, desplazamientos, desintegraciones en sus bloques, y adornos interactivos y
+> gráficos. Sin movimiento me refiero a casillas que **no tienen ningún tipo de interfaz
+> o diseño en tres dimensiones** que le den movimiento.
+
+Dos consecuencias que el script ya aplica y conviene no perder:
+
+- Las casillas **no se marcan a mano**. Se buscan por su forma —borde o fondo propio,
+  esquina redondeada y tamaño de cuadro, no de chip— porque aquí lo que se cuenta son
+  AUSENCIAS: con marcas a mano, la que se olvide marcar no aparece como pendiente y el
+  contador da cero por la razón contraria.
+- **Una `transition: transform` no cuenta.** La clase `press` del sistema la pone en casi
+  todo y es un achique al pulsar, en dos dimensiones. La primera corrida del testigo dio
+  cero quietas por contarla, y no era que se movieran. Cuenta la profundidad declarada
+  —matriz 3D, `preserve-3d`, `perspective`— o que la casilla mueva píxeles de verdad con
+  la pantalla ya asentada.
+
 Más: las gráficas llevan efectos cinematográficos que den profundidad —profundidad de
 campo, contraluz que separa del fondo, claroscuro y grano—, del mismo estándar que el
 pendiente 1.

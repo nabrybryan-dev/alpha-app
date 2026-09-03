@@ -7,8 +7,13 @@ import { RecetaSheet, type RecetaRegistro } from './RecetaSheet'
  * que le tientan. En vez de prohibírselas, la app le dice la porción exacta que
  * sí entra en su plan de hoy. El coach hace de traductor.
  *
- * TODO: filtrar por objetivo y alergias del asesorado. Fase 1 sirve el mismo
- * feed a todos, en el orden del archivo.
+ * EL FEED ES EL MISMO PARA TODOS, y es una decisión de alcance, no un descuido.
+ *
+ * Filtrar por objetivo y alergias pide dos cosas que la Fase 1 no tiene: el listado de
+ * alergias de cada asesorado y una regla escrita de qué receta encaja con qué objetivo.
+ * Inventar cualquiera de las dos aquí sería peor que no filtrar — una receta escondida
+ * por una alergia que nadie declaró se parece mucho a una app que sabe algo que no sabe.
+ * Mientras tanto sirve el archivo en su orden, que es lo que el coach ya revisó.
  */
 
 const COLOR_CATEGORIA: Record<Receta['categoria'], string> = {
@@ -144,7 +149,7 @@ function TarjetaReceta({ receta, onAbrir }: { receta: Receta; onAbrir: () => voi
       type="button"
       onClick={onAbrir}
       style={{ scrollSnapAlign: 'start' }}
-      className="press w-[132px] shrink-0 overflow-hidden rounded-[15px] border border-linea bg-surface-2 text-left transition-transform duration-200 hover:-translate-y-0.5"
+      className="relieve w-[132px] shrink-0 overflow-hidden rounded-[15px] border border-linea bg-surface-2 text-left"
     >
       <span className="relative block h-[176px] w-full">
         <img src={receta.media.thumbnail} alt="" className="h-full w-full object-cover" />

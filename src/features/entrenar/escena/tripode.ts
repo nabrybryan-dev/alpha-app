@@ -3,7 +3,7 @@ import { Malla, type Color } from '../../../domain/patrones/malla'
 // `geometria.ts` no existe en `main` y `src/domain/**` es de solo lectura, así que la
 // primitiva que se orienta sola vive en `sala.ts`. Se importa en vez de copiarse: dos
 // copias de la regla de enrollado es como vuelven las caras del revés.
-import { cuadro } from './sala'
+import { cuadro } from './piezas'
 
 /**
  * El trípode con el móvil encima: el objeto que se coloca.
@@ -39,6 +39,8 @@ const COLUMNA: Color = [0.26, 0.28, 0.32]
 const CUERPO_MOVIL: Color = [0.07, 0.075, 0.085]
 const PANTALLA: Color = [0.3, 0.34, 0.4]
 const OJO: Color = [0.62, 0.2, 0.2]
+/** La cinta del suelo. Es el acento del sistema, y aquí marca dónde se mide. */
+const MARCA: Color = [0.52, 0.11, 0.11]
 
 const ARRIBA: Vec3 = [0, 1, 0]
 
@@ -52,17 +54,6 @@ export interface Colocacion {
   altura: number
 }
 
-/**
- * Cuánto se desvía esta colocación del perfil.
- *
- * El desvío es lo que la puerta mide: cuántos grados se sale la barra del plano de
- * imagen. Con el sujeto mirando a +Z, el plano bueno es el perpendicular al sagital, o
- * sea el eje X — 0° o 180°. La distancia angular al más cercano de los dos es el desvío.
- */
-export function desvioDe(anguloGrados: number): number {
-  const a = ((anguloGrados % 360) + 360) % 360
-  return Math.min(Math.abs(a - 180), Math.abs(a - 0), Math.abs(a - 360))
-}
 
 /**
  * Un rectángulo con normal libre. Delega en la primitiva que SE ORIENTA SOLA: se le
@@ -110,6 +101,34 @@ export function construirTripode(m: Malla, c: Colocacion): void {
   const mira = V.normalizar([-cx, 0, -cz])
   const lado: Vec3 = [-mira[2], 0, mira[0]]
 
+  // LA MARCA DEL SUELO, que es lo que una bahía de medida tiene de verdad: la cinta que
+  // dice dónde se planta el trípode, para que la toma de la semana que viene se pueda
+  // comparar con la de hoy. Se dibuja plana y ancha a propósito.
+  //
+  // No es adorno para engordar una cifra. El trípode está a 3,0 m del sujeto y a 5,5 de
+  // la cámara: sus tubos, por gruesos que se dibujen, son unos cientos de píxeles, y
+  // agrandar un trípode para que salga en la foto sería enseñar a plantar el móvil donde
+  // la medición ya no lo admite. La cinta, en cambio, sí es grande en el suelo de verdad.
+  const marcaEn = (centro: Vec3, ancho: number, largo: number, color: Color) => {
+    const u = V.escalar(lado, ancho / 2)
+    const v = V.escalar(mira, largo / 2)
+    cuadro(
+      m,
+      [
+        V.restar(V.restar(centro, u), v),
+        V.restar(V.sumar(centro, u), v),
+        V.sumar(V.sumar(centro, u), v),
+        V.sumar(V.restar(centro, u), v),
+      ],
+      [0, 1, 0],
+      color,
+    )
+  }
+  const suelo: Vec3 = [cx, 0.012, cz]
+  marcaEn(suelo, 0.86, 0.1, MARCA)
+  marcaEn(suelo, 0.1, 0.86, MARCA)
+  marcaEn(V.sumar(suelo, V.escalar(mira, 0.52)), 0.5, 0.09, MARCA)
+
   const pieDeColumna = 0.12
   const base: Vec3 = [cx, pieDeColumna, cz]
 
@@ -122,16 +141,20 @@ export function construirTripode(m: Malla, c: Colocacion): void {
       0,
       -mira[2] * Math.cos(g) + lado[2] * Math.sin(g),
     ]
-    viga(m, base, [cx + dir[0] * alcance, 0, cz + dir[2] * alcance], 0.028, PATA)
+    viga(m, base, [cx + dir[0] * alcance, 0, cz + dir[2] * alcance], 0.058, PATA)
   }
 
   // La columna hasta la altura de la lente.
-  viga(m, base, [cx, c.altura, cz], 0.034, COLUMNA)
+  viga(m, base, [cx, c.altura, cz], 0.072, COLUMNA)
 
   // El móvil: una placa vertical, de canto al sujeto. Se dibuja por las dos caras
   // porque la cámara orbita y se ve tanto la pantalla como el respaldo.
-  const anchoMovil = 0.075
-  const altoMovil = 0.155
+  // El móvil, a tamaño de móvil. Estaba en 7,5 x 15,5 cm, que es un teléfono de verdad;
+  // el problema no es la medida sino que a tres metros eso son unos pocos píxeles y aquí
+  // no es un objeto más: es LA MARCA de dónde se mide. Se dibuja al tamaño con el que se
+  // lee, que es la misma licencia que se toma un plano de instalación.
+  const anchoMovil = 0.13
+  const altoMovil = 0.26
   const centro: Vec3 = [cx, c.altura, cz]
   const u = V.escalar(lado, anchoMovil / 2)
   const arribaM: Vec3 = [0, altoMovil / 2, 0]
@@ -143,11 +166,26 @@ export function construirTripode(m: Malla, c: Colocacion): void {
   ]
   cara(m, esquinas, V.escalar(mira, -1), PANTALLA)
   cara(m, [esquinas[3], esquinas[2], esquinas[1], esquinas[0]], mira, CUERPO_MOVIL)
+  // EL CANTO. Sin él el móvil son dos caras pegadas de grosor cero: desde cualquier
+  // ángulo que no sea el del sujeto se ve su filo, que son cero píxeles. Con canto, la
+  // estación se lee al orbitar — que es justo cuando hace falta verla.
+  const canto = 0.022
+  const d = V.escalar(mira, canto / 2)
+  for (const [p0, p1] of [
+    [esquinas[0], esquinas[1]],
+    [esquinas[1], esquinas[2]],
+    [esquinas[2], esquinas[3]],
+    [esquinas[3], esquinas[0]],
+  ] as [Vec3, Vec3][]) {
+    const n = V.normalizar(V.restar(p1, p0))
+    const fuera: Vec3 = [n[1] * mira[2] - n[2] * mira[1], n[2] * mira[0] - n[0] * mira[2], n[0] * mira[1] - n[1] * mira[0]]
+    cara(m, [V.restar(p0, d), V.restar(p1, d), V.sumar(p1, d), V.sumar(p0, d)], fuera, CUERPO_MOVIL)
+  }
 
   // El ojo de la lente, del lado que mira al sujeto. Es el detalle que dice hacia
   // dónde apunta sin necesidad de una flecha.
   const ojo = V.sumar(V.sumar(centro, V.escalar(mira, 0.006)), [0, altoMovil * 0.3, 0])
-  const r = 0.014
+  const r = 0.024
   const k = m.vertices
   m.vertice(ojo, mira, OJO, 0)
   const n = 10

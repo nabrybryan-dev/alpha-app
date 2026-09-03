@@ -132,16 +132,21 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
   })
 
   /**
-   * Los doce recuadros del panel, contados — y de dónde sale cada uno.
+   * Los catorce recuadros del panel, contados — y de dónde sale cada uno.
    *
-   * Siguen siendo doce, pero ya no son los mismos doce, y la cuenta sola no lo habría
-   * notado: salieron `competencias` y `escala-alfa` camino de Progreso, y entraron los
-   * cuadros verdes del encargo —`antes`, `patron`— junto al de `ejercicio`. Doce menos dos
-   * más tres no da doce; el que falta es que `ejercicio` ya estaba. Por eso aquí no se
-   * cuenta y se calla: se comprueba que los NUEVE que el mapa manda al panel están, que los
-   * que se mudaron NO están, y que el total cuadra con la suma de los dos grupos.
+   * La cuenta sola nunca habría notado los cambios, y ya van dos: salieron `competencias`
+   * y `escala-alfa` camino de Progreso, entraron los cuadros verdes del encargo —`antes`,
+   * `patron`— junto al de `ejercicio`, y el 2026-09-02 bajaron de la pared otros dos,
+   * `encuadre` y `material`. Por eso aquí no se cuenta a secas: se comprueba que los NUEVE
+   * que el mapa manda al panel están, que los que se mudaron NO están, y que el total
+   * cuadra con la suma de los grupos.
+   *
+   * Los dos últimos bajaron por el reparto del §1 de `SEMANA-2.md`: los campos del encuadre
+   * y el estante del material no están en la lista amarilla, y en la pared ocupaban juntos
+   * el 98 % del ancho a la altura de las piernas del sujeto — tapando los implementos 3D
+   * hasta dejarlos en 36 píxeles.
    */
-  it('el panel monta doce recuadros: los nueve del inventario más los tres del salón', () => {
+  it('el panel monta catorce recuadros: los nueve del inventario más los cinco del salón', () => {
     const claves = [...PANEL_INFERIOR.matchAll(/clave="([a-z-]+)"/g)].map((m) => m[1])
     expect(new Set(claves).size).toBe(claves.length) // ninguno repetido
 
@@ -159,10 +164,12 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
     expect(claves).toEqual(expect.arrayContaining(alPanel))
     // Los que se fueron, ninguno: si volviera alguno sin cambiar el mapa, se vería.
     for (const clave of aProgreso) expect(claves).not.toContain(clave)
-    // Y los tres que no vienen del inventario, sino del encargo del salón: la prescripción
-    // entera, lo de antes de entrenar y las notas de ejecución.
-    for (const clave of ['ejercicio', 'antes', 'patron']) expect(claves).toContain(clave)
-    expect(claves).toHaveLength(alPanel.length + 3)
+    // Y los cinco que no vienen del inventario, sino del encargo del salón: la prescripción
+    // entera, lo de antes de entrenar, las notas de ejecución, y los dos que bajaron de la
+    // pared en el reparto —el encuadre y el material—.
+    const DEL_SALON = ['ejercicio', 'antes', 'patron', 'encuadre', 'material']
+    for (const clave of DEL_SALON) expect(claves).toContain(clave)
+    expect(claves).toHaveLength(alPanel.length + DEL_SALON.length)
   })
 
   /**

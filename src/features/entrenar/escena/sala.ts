@@ -1,5 +1,7 @@
 import { grados, V, type Vec3 } from '../../../domain/patrones/algebra'
 import { Malla, type Color } from '../../../domain/patrones/malla'
+import { cuadro } from './piezas'
+import { construirMobiliario } from './mobiliario'
 import { BAHIA } from '../../../domain/escenario/laboratorio'
 
 /**
@@ -20,27 +22,6 @@ import { BAHIA } from '../../../domain/escenario/laboratorio'
  */
 
 /** Producto vectorial de los dos lados de un triángulo: la normal de su enrollado. */
-function normalDelEnrollado(a: Vec3, b: Vec3, c: Vec3): Vec3 {
-  const u: Vec3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
-  const v: Vec3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]
-  return [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
-}
-
-/**
- * Un cuadrilátero que mira hacia `n`, en el orden que haga falta.
- *
- * Si el orden recibido produce una cara de espaldas, se invierte. El llamante escribe
- * las esquinas como le resulte natural y declara hacia dónde mira; el resto lo decide
- * la geometría.
- */
-export function cuadro(m: Malla, p: [Vec3, Vec3, Vec3, Vec3], n: Vec3, c: Color): void {
-  const w = normalDelEnrollado(p[0], p[1], p[2])
-  const alReves = w[0] * n[0] + w[1] * n[1] + w[2] * n[2] < 0
-  const orden = alReves ? [p[3], p[2], p[1], p[0]] : p
-  const base = m.vertices
-  for (const v of orden) m.vertice(v, n, c, 0)
-  m.cuadro(base, base + 1, base + 2, base + 3)
-}
 
 /**
  * La sala que envuelve la bahía, y la estación desde la que se graba.
@@ -85,6 +66,9 @@ export function cuadro(m: Malla, p: [Vec3, Vec3, Vec3, Vec3], n: Vec3, c: Color)
 
 /** Radio de la pared. POR ENCIMA del tope de órbita (6,5) a propósito: la cámara
  *  siempre queda dentro y ninguna pared se interpone jamás. */
+// La pared a 7 m quedaba demasiado cerca del encuadre móvil (la cámara está a 4,6 m):
+// se convertía en una banda curva gigante y no se reconocía como habitación. Abrimos el
+// radio para que suelo, paredes y estación se lean alrededor del sujeto.
 const RADIO_SALA = 7.0
 
 /** Alto de la pared. Suficiente para que no se vea el borde superior desde la
@@ -94,6 +78,9 @@ const ALTO_SALA = 4.2
 /** Dónde se cuelgan los marcadores: a la altura de la mirada de quien está de pie. */
 const ALTO_PANEL = 1.85
 
+// La primera versión usaba valores casi negros: en un móvil el contraste del canvas
+// aplastaba paredes, paneles y material contra el fondo y solo se distinguía el sujeto.
+// Estos valores siguen siendo carbón, pero dejan leer el volumen de la sala y sus bordes.
 const PARED: Color = [0.062, 0.068, 0.078]
 const ZOCALO: Color = [0.095, 0.104, 0.12]
 const PANEL: Color = [0.042, 0.046, 0.054]
@@ -389,10 +376,31 @@ function estacion(m: Malla): void {
  * Los números se pasan desde fuera porque son los de la serie que se está haciendo:
  * la sala no sabe de entrenamiento, solo sabe dibujar lo que le den.
  */
-export function construirSala(m: Malla, datos: DatosDeSerie): void {
+export function construirSala(m: Malla, datos: DatosDeSerie, azimutDeEntrada?: number): void {
   pared(m)
-  for (const a of [90, 210, 330]) marcador(m, a, datos.series, datos.reps, datos.rir)
+  // TRES MARCADORES FIJOS, COMO EN UN PABELLÓN — más uno en el muro que se está mirando.
+  //
+  // Los tres de siempre cuelgan a 90°, 210° y 330°, que son ángulos de la SALA y no del
+  // ejercicio. Eso está bien para que la sala tenga marcadores mires donde mires, y mal
+  // para lo único que importa al abrir: con la sentadilla se entra a 72°, el muro de
+  // enfrente cae en 252°, y el marcador más cercano queda a más de cuarenta grados. O
+  // sea: las cifras estaban en la pared y no se veían.
+  //
+  // El cuarto se cuelga enfrente de quien entra. Es lo que permitió quitar el letrero que
+  // flotaba sobre el sujeto: los números que Bryan quería «literal en una pared» ya no
+  // necesitan un panel encima del cuerpo, porque están en la pared de verdad y en
+  // geometría de siete segmentos, no en HTML.
+  const angulos = [90, 210, 330]
+  if (azimutDeEntrada !== undefined) {
+    // El azimut de la órbita mide desde +Z; el de la sala, desde +X. La media vuelta pone
+    // el muro de enfrente, y los 90 traducen entre las dos convenciones.
+    angulos.push(90 - (azimutDeEntrada + 180))
+  }
+  for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir)
   estacion(m)
+  // EL HIERRO. Va el último porque es lo que menos cambia: la pared y los marcadores se
+  // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato.
+  construirMobiliario(m, RADIO_SALA, ALTO_SALA)
 }
 
 /** Los números de la serie que se está haciendo, que son los que van al marcador. */

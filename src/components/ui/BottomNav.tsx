@@ -83,6 +83,11 @@ export function BottomNav() {
       // `--z-nav` se definió con 40 justamente para no mover esta barra.
       style={{ bottom: 'var(--hueco-nav)', zIndex: 'var(--z-nav)' }}
     >
+      {/* El relieve va en las PESTAÑAS y no en el cristal. Un `transform` sobre una
+          superficie con `backdrop-filter` le rompe el desenfoque —en tema claro la barra
+          se quedaba en un pegote gris con las etiquetas lavadas—, y esa es la misma
+          frontera que ya vigila `blur-solo-en-superficies-fijas`. Puesto en cada pestaña
+          la profundidad se nota donde se toca, que es donde sirve. */}
       <div className="glass glass-blur flex w-full max-w-[22rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
         {pestanas.map((p) => (
           <NavLink
@@ -96,7 +101,7 @@ export function BottomNav() {
             // el resto de la app. Donde no esté soportada, navega igual.
             viewTransition
             className={({ isActive }) =>
-              `press relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-0.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] transition-colors duration-200 ease-salida ${
+              `relieve relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-0.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] ${
                 isActive ? 'text-rojo' : 'text-tenue'
               }`
             }

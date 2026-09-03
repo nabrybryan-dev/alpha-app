@@ -36,12 +36,25 @@ function giro(lado: 'izquierda' | 'derecha'): string {
 function Rotulo({
   lado,
   className = '',
+  enCuadro,
   children,
 }: {
   lado: 'izquierda' | 'derecha'
   className?: string
+  /**
+   * `true` cuando el rótulo ya cuelga de un `CuadroDePared`.
+   *
+   * Entonces suelta TODO lo suyo: el marco, el fondo, la perspectiva y el escorzo. Los
+   * pone el cuadro, que además los saca de la cámara real del salón en vez de un ángulo
+   * fijo. Dejarlos puestos daría una caja dentro de otra caja y dos escorzos peleándose:
+   * el del cuadro, que es el bueno porque sale de la escena, y el de aquí, que era una
+   * aproximación de cuando estos rótulos vivían pegados al borde de la pantalla.
+   */
+  enCuadro?: boolean
   children: React.ReactNode
 }) {
+  if (enCuadro) return <div className={lado === 'derecha' ? 'text-right' : ''}>{children}</div>
+
   return (
     <div
       style={{
@@ -70,13 +83,16 @@ export function RotuloDelDia({
   microciclo,
   sesion,
   className,
+  enCuadro,
 }: {
   microciclo: Microciclo
   sesion: Sesion | undefined
   className?: string
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
+  enCuadro?: boolean
 }) {
   return (
-    <Rotulo lado="izquierda" className={className}>
+    <Rotulo lado="izquierda" className={className} enCuadro={enCuadro}>
       <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-accion">
         Microciclo M{microciclo.numero}
       </p>
@@ -99,9 +115,11 @@ export function RotuloDelDia({
  * hace desde fuera con variantes que alcanzan a los hijos —no se toca el componente— y por
  * eso el selector es de dos niveles: gana por especificidad sin necesidad de forzar nada.
  */
-export function RotuloCronometro({ sesionId, className }: { sesionId: string; className?: string }) {
+export function RotuloCronometro({ sesionId, className, enCuadro }: { sesionId: string; className?: string
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
+  enCuadro?: boolean }) {
   return (
-    <Rotulo lado="derecha" className={className}>
+    <Rotulo lado="derecha" className={className} enCuadro={enCuadro}>
       <div className="[&_.kicker]:text-[7.5px] [&_.kicker]:tracking-[0.2em] [&_button]:text-[26px] [&_p:last-child]:text-[7px] [&_p:last-child]:tracking-[0.14em] [&>div]:py-0">
         <CronometroSesion sesionId={sesionId} />
       </div>
@@ -110,9 +128,11 @@ export function RotuloCronometro({ sesionId, className }: { sesionId: string; cl
 }
 
 /** DURACIÓN ESTIMADA, BLOQUE EN CURSO Y EJERCICIO N DE N, en una línea del muro. */
-export function RotuloDeRitmo({ linea, className }: { linea: string; className?: string }) {
+export function RotuloDeRitmo({ linea, className, enCuadro }: { linea: string; className?: string
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
+  enCuadro?: boolean }) {
   return (
-    <Rotulo lado="izquierda" className={className}>
+    <Rotulo lado="izquierda" className={className} enCuadro={enCuadro}>
       <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
         Ritmo de la sesión
       </p>
@@ -162,13 +182,16 @@ export function Marquesina({ avisos, className }: { avisos: AvisosDelSalon; clas
 export function TablaDeSeries({
   ejercicio,
   className,
+  enCuadro,
 }: {
   ejercicio: EjercicioPrescrito
   className?: string
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
+  enCuadro?: boolean
 }) {
   const pendientes = Math.max(0, ejercicio.sets - ejercicio.series.length)
   return (
-    <Rotulo lado="derecha" className={className}>
+    <Rotulo lado="derecha" className={className} enCuadro={enCuadro}>
       <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
         Series registradas
       </p>
@@ -210,9 +233,12 @@ export function AContinuacion({
   ejercicios,
   className,
   style,
+  enCuadro,
 }: {
   ejercicios: readonly EjercicioPrescrito[]
   className?: string
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
+  enCuadro?: boolean
   style?: React.CSSProperties
 }) {
   if (ejercicios.length === 0) return null
@@ -220,7 +246,14 @@ export function AContinuacion({
   const resto = ejercicios.length - visibles.length
 
   return (
-    <div style={style} className={`flex items-center gap-1.5 overflow-hidden ${className ?? ''}`}>
+    <div
+      style={style}
+      className={
+        enCuadro
+          ? 'flex flex-col items-start gap-[0.35em]'
+          : `flex items-center gap-1.5 overflow-hidden ${className ?? ''}`
+      }
+    >
       <span className="shrink-0 text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
         A continuación
       </span>

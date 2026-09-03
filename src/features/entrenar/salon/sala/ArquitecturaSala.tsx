@@ -100,9 +100,22 @@ export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaPro
         <div
           className="absolute inset-0"
           style={{
-            mixBlendMode: 'multiply',
+            // SIN `mix-blend-mode`, y esto no es una preferencia: es el fallo que Bryan
+            // vio en su iPhone el 2026-09-02.
+            //
+            // Esta capa era un radial BLANCO en `multiply`: en Chrome multiplica sobre el
+            // lienzo, deja el centro intacto y hunde los bordes a negro. En Safari de iOS,
+            // blendear sobre un `<canvas>` que cuelga de un contenedor `position: fixed`
+            // no compone — y entonces el radial blanco se pinta OPACO encima de todo. La
+            // pantalla entera era una mancha blanca con el sujeto, el hierro y los cuadros
+            // detrás. No es que se viera mal: no se veía nada.
+            //
+            // El mismo efecto sin depender de blendear: una viñeta OSCURA en composición
+            // normal. El centro se deja transparente —el lienzo se ve tal cual— y los
+            // bordes caen a negro con alfa. Es lo que hace el claroscuro, dicho al derecho
+            // en vez de al revés, y no hay modo de composición que pueda fallar.
             background:
-              'radial-gradient(64% 46% at 50% 41%, #ffffff 0%, #cdd2d8 30%, #6a7079 56%, #23272c 78%, #05070a 100%)',
+              'radial-gradient(64% 46% at 50% 41%, rgba(5,7,10,0) 0%, rgba(5,7,10,0.12) 30%, rgba(5,7,10,0.45) 56%, rgba(5,7,10,0.8) 78%, rgba(5,7,10,0.96) 100%)',
           }}
         />
       )}
@@ -115,9 +128,12 @@ export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaPro
       <div
         className="absolute inset-0"
         style={{
-          mixBlendMode: 'screen',
+          // Por el mismo motivo que el claroscuro: sin `screen`. Un rojo en `screen`
+          // ACLARA lo que hay debajo; el mismo rojo con alfa lo TIÑE. Sobre un fondo casi
+          // negro las dos cosas se parecen mucho, y una de las dos no depende de que el
+          // navegador sepa componer capas encima de un lienzo.
           background:
-            'radial-gradient(46% 30% at 50% 38%, rgb(var(--rojo-rgb) / 0.42) 0%, rgb(var(--rojo-rgb) / 0.16) 45%, transparent 74%)',
+            'radial-gradient(46% 30% at 50% 38%, rgb(var(--rojo-rgb) / 0.3) 0%, rgb(var(--rojo-rgb) / 0.11) 45%, transparent 74%)',
         }}
       />
 
@@ -128,9 +144,11 @@ export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaPro
       <div
         className="absolute inset-0"
         style={{
-          mixBlendMode: 'soft-light',
+          // Sin `soft-light`. En composición normal un blanco al 85 % lavaría la sala,
+          // así que baja a alfas de una cifra: la clave y el relleno siguen estando y ya
+          // no pueden convertirse en dos manchas si el modo de composición no se aplica.
           background:
-            'radial-gradient(40% 34% at 22% 16%, rgba(255,255,255,0.85) 0%, transparent 70%), radial-gradient(46% 40% at 82% 88%, rgba(190,205,225,0.36) 0%, transparent 72%)',
+            'radial-gradient(40% 34% at 22% 16%, rgba(255,255,255,0.07) 0%, transparent 70%), radial-gradient(46% 40% at 82% 88%, rgba(190,205,225,0.05) 0%, transparent 72%)',
         }}
       />
 
@@ -223,8 +241,11 @@ export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaPro
       {/* EL GRANO. Última capa y la más floja: en `overlay` se mete en los medios tonos y
           deja los negros negros, que es como se comporta el grano de película. */}
       <div
-        className="absolute inset-0 opacity-[0.07]"
-        style={{ mixBlendMode: 'overlay', backgroundImage: GRANO, backgroundSize: '140px 140px' }}
+        className="absolute inset-0 opacity-[0.035]"
+        // Sin `overlay`, y con la opacidad bajada para compensar: en composición normal
+        // el ruido se suma en vez de meterse en los medios tonos, así que al 7 % se vería
+        // como una gasa gris. Al 3,5 % hace de grano y no de velo.
+        style={{ backgroundImage: GRANO, backgroundSize: '140px 140px' }}
       />
     </div>
   )

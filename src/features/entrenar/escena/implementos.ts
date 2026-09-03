@@ -5,7 +5,7 @@ import { modeloDePalanca, planDeMedida } from '../../../domain/biomecanica/palan
 import type { Articulacion } from '../../../domain/biomecanica/tipos'
 // La primitiva que se orienta sola vive en `sala.ts` y se importa, no se copia:
 // dos copias de la regla de enrollado es como vuelven las caras del revés.
-import { cuadro } from './sala'
+import { caja, cilindro, manto, tapa } from './piezas'
 
 /**
  * LOS IMPLEMENTOS: la barra, la mancuerna y la máquina.
@@ -85,15 +85,14 @@ const FILO: Color = [0.42, 0.115, 0.125]
 /** La cabeza de la mancuerna, hexagonal y mate. */
 const CABEZA: Color = [0.155, 0.165, 0.19]
 /** Bastidor de máquina: más oscuro que la barra, para que no le robe la mirada. */
-const BASTIDOR: Color = [0.105, 0.113, 0.128]
+const BASTIDOR: Color = [0.20, 0.215, 0.245]
 /** La pila de placas. Gris medio: se tiene que leer que son muchas y apiladas. */
-const PLACA: Color = [0.175, 0.187, 0.212]
+const PLACA: Color = [0.30, 0.32, 0.36]
 /** Tapizado del respaldo y de los rodillos. */
-const TAPIZADO: Color = [0.082, 0.085, 0.095]
+const TAPIZADO: Color = [0.15, 0.155, 0.17]
 /** El cable de la polea. Fino y claro, porque su DIRECCIÓN es el dato. */
 const CABLE: Color = [0.34, 0.36, 0.40]
 
-const ARRIBA: Vec3 = [0, 1, 0]
 
 // ---------------------------------------------------------------------------
 // Medidas. Las de un gimnasio real, en metros.
@@ -125,17 +124,11 @@ const RADIO_CABEZA = 0.075
 // Primitivas. Todas pasan por `cuadro`, que SE ORIENTA SOLA.
 // ---------------------------------------------------------------------------
 
-const cara = cuadro
 
 /**
  * Base perpendicular a un eje. La misma receta que usa `viga` en `tripode.ts`:
  * una auxiliar que no sea paralela al eje, y dos cruces.
  */
-function base(eje: Vec3): { u: Vec3; w: Vec3 } {
-  const aux: Vec3 = Math.abs(eje[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0]
-  const u = V.normalizar(V.cruz(eje, aux))
-  return { u, w: V.normalizar(V.cruz(eje, u)) }
-}
 
 /**
  * Un disco plano que mira hacia `n`.
@@ -146,81 +139,9 @@ function base(eje: Vec3): { u: Vec3; w: Vec3 } {
  * error — la GPU tira la cara en silencio y el disco desaparece exactamente
  * desde el lado desde el que importa verlo.
  */
-function tapa(m: Malla, centro: Vec3, n: Vec3, radio: number, c: Color, seg = 16): void {
-  const { u, w } = base(n)
-  const k = m.vertices
-  m.vertice(centro, n, c, 0)
-  for (let i = 0; i <= seg; i++) {
-    const a = (i / seg) * Math.PI * 2
-    m.vertice(
-      V.sumar(centro, V.sumar(V.escalar(u, Math.cos(a) * radio), V.escalar(w, Math.sin(a) * radio))),
-      n,
-      c,
-      0,
-    )
-  }
-  for (let i = 0; i < seg; i++) m.triangulo(k, k + 1 + i, k + 2 + i)
-}
 
-/** El manto de un cilindro entre dos puntos, sin tapas. */
-function manto(m: Malla, a: Vec3, b: Vec3, radio: number, c: Color, seg = 12): void {
-  const eje = V.normalizar(V.restar(b, a))
-  const { u, w } = base(eje)
-  const en = (p: Vec3, ang: number): Vec3 =>
-    V.sumar(p, V.sumar(V.escalar(u, Math.cos(ang) * radio), V.escalar(w, Math.sin(ang) * radio)))
-  for (let i = 0; i < seg; i++) {
-    const a0 = (i / seg) * Math.PI * 2
-    const a1 = ((i + 1) / seg) * Math.PI * 2
-    const medio = (a0 + a1) / 2
-    const n = V.sumar(V.escalar(u, Math.cos(medio)), V.escalar(w, Math.sin(medio)))
-    cara(m, [en(a, a0), en(b, a0), en(b, a1), en(a, a1)], n, c)
-  }
-}
 
-/** Cilindro cerrado. Las tapas se pueden quitar cuando quedan dentro de otra pieza. */
-function cilindro(
-  m: Malla,
-  a: Vec3,
-  b: Vec3,
-  radio: number,
-  c: Color,
-  seg = 12,
-  tapar = true,
-): void {
-  manto(m, a, b, radio, c, seg)
-  if (!tapar) return
-  const eje = V.normalizar(V.restar(b, a))
-  tapa(m, b, eje, radio, c, seg)
-  tapa(m, a, V.escalar(eje, -1), radio, c, seg)
-}
 
-/**
- * Una caja con giro alrededor del eje vertical. Es el ladrillo de las máquinas:
- * bastidores, placas, respaldos y bases se construyen con cajas.
- */
-function caja(m: Malla, centro: Vec3, medias: Vec3, giroY: number, c: Color): void {
-  const g = grados(giroY)
-  const ex: Vec3 = [Math.cos(g), 0, -Math.sin(g)]
-  const ez: Vec3 = [Math.sin(g), 0, Math.cos(g)]
-  const ey = ARRIBA
-  const p = (sx: number, sy: number, sz: number): Vec3 =>
-    V.sumar(
-      centro,
-      V.sumar(
-        V.escalar(ex, sx * medias[0]),
-        V.sumar(V.escalar(ey, sy * medias[1]), V.escalar(ez, sz * medias[2])),
-      ),
-    )
-  const caras: [Vec3, [Vec3, Vec3, Vec3, Vec3]][] = [
-    [ez, [p(-1, -1, 1), p(1, -1, 1), p(1, 1, 1), p(-1, 1, 1)]],
-    [V.escalar(ez, -1), [p(1, -1, -1), p(-1, -1, -1), p(-1, 1, -1), p(1, 1, -1)]],
-    [ex, [p(1, -1, 1), p(1, -1, -1), p(1, 1, -1), p(1, 1, 1)]],
-    [V.escalar(ex, -1), [p(-1, -1, -1), p(-1, -1, 1), p(-1, 1, 1), p(-1, 1, -1)]],
-    [ey, [p(-1, 1, 1), p(1, 1, 1), p(1, 1, -1), p(-1, 1, -1)]],
-    [V.escalar(ey, -1), [p(-1, -1, -1), p(1, -1, -1), p(1, -1, 1), p(-1, -1, 1)]],
-  ]
-  for (const [n, q] of caras) cara(m, q, n, c)
-}
 
 // ---------------------------------------------------------------------------
 // Los constructores de malla. Cada uno recibe geometría ya resuelta: ninguno
@@ -356,10 +277,23 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
       manto(m, a, b, 0.045, BASTIDOR, 8)
       tapa(m, b, dir, 0.045, BASTIDOR, 8)
     }
-    // El carro: la plataforma donde apoyan los pies, sobre el raíl.
+    // El carro: la plataforma donde apoyan los pies, sobre el raíl. Se dibuja con canto
+    // —no como una chapa— porque de frente una chapa horizontal se ve de perfil y
+    // desaparece: es la mitad de lo que dejaba esta máquina en 36 píxeles.
     const carro = v.agarre ?? V.sumar(pie, V.escalar(dir, 0.5))
-    caja(m, carro, [0.42, 0.05, 0.26], 0, PLACA)
-    caja(m, [c[0], 0.06, c[2] - 0.35], [0.5, 0.06, 0.4], g, BASTIDOR)
+    caja(m, carro, [0.44, 0.05, 0.26], 0, PLACA)
+    // La plataforma de los pies, perpendicular al raíl y de cara a quien empuja. Es la
+    // pieza que más silueta da, y la que dice de un vistazo qué máquina es.
+    const plato = V.sumar(carro, V.escalar(dir, 0.16))
+    caja(m, [plato[0], plato[1] + 0.24, plato[2] + 0.2], [0.42, 0.3, 0.055], 0, PLACA)
+    // EL RESPALDO Y EL ASIENTO, en el extremo bajo del raíl. Sin ellos la prensa es un
+    // raíl suelto: no hay dónde tumbarse, y en pantalla no hay nada por encima del suelo.
+    const asiento: Vec3 = [c[0], 0.42, c[2] - 0.62]
+    caja(m, asiento, [0.3, 0.06, 0.34], g, TAPIZADO)
+    caja(m, [asiento[0], asiento[1] + 0.32, asiento[2] - 0.3], [0.3, 0.34, 0.08], g, TAPIZADO)
+    caja(m, [asiento[0], 0.2, asiento[2]], [0.1, 0.22, 0.1], g, BASTIDOR)
+    // La base, con canto suficiente para leerse contra el suelo.
+    caja(m, [c[0], 0.09, c[2] - 0.35], [0.5, 0.09, 0.44], g, BASTIDOR)
     return
   }
 

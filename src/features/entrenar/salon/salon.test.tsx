@@ -128,7 +128,9 @@ describe('/entrenar es el salón', () => {
     // `centro`, `paredes`, `registro` y `panelInferior` siempre; `sinPatron` solo cuando el
     // ejercicio no tiene modelo. Lo que no puede aparecer es un hueco que no esté en el
     // contrato: en cuanto se admite un sexto sitio «provisional» vuelve la columna.
-    const declarados = ['paredes', 'centro', 'registro', 'panelInferior', 'sinPatron']
+    // `registro` ya no está: desde el 2026-09-02 el mando de guardar cuelga del muro
+    // dentro de `paredes`, como un cuadro más. Ver el motivo en `huecos.ts`.
+    const declarados = ['paredes', 'centro', 'panelInferior', 'sinPatron']
     for (const hueco of huecos) expect(declarados).toContain(hueco)
     expect(huecos).toContain('centro')
     expect(huecos).toContain('panelInferior')
@@ -147,6 +149,21 @@ describe('/entrenar es el salón', () => {
    * está» se quedaría verde el día que la escalera desapareciera para siempre.
    */
   it('sin sujeto en el centro no hay eje W: no se pinta la escalera', async () => {
+    // LA SESIÓN SE FIJA AQUÍ, y no se hereda del calendario.
+    //
+    // Este caso nació el 29-ago apoyándose en que ese día el seed destacaba la sesión
+    // metabólica. Qué sesión toca lo decide la FECHA, así que el test daba verde o rojo
+    // según el día en que se corriera: el 2-sep cayó en una de fuerza, el salón montó
+    // sujeto y reventó en la línea de guarda de abajo — sin haber llegado a evaluar su
+    // criterio ni una vez. Un test que depende del calendario no prueba lo que dice.
+    //
+    // Se arregla fijando el escenario, NO invirtiendo el criterio: se vacían los
+    // ejercicios de todas las sesiones, así que caiga el día que caiga no hay cuerpo
+    // que poner en el centro. Lo que se comprueba sigue siendo lo mismo.
+    const real = db.microciclos.byUsuario.bind(db.microciclos)
+    vi.spyOn(db.microciclos, 'byUsuario').mockImplementation((id: string) =>
+      real(id).map((m) => ({ ...m, sesiones: (m.sesiones ?? []).map((s) => ({ ...s, ejercicios: [] })) })),
+    )
     renderizarEntrenar()
     const salon = await esperarAlSalon()
     // Primero, que el centro esté de verdad SIN sujeto: si el salón no hubiera llegado a
@@ -351,16 +368,26 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     localStorage.clear()
   })
 
-  it('enciende paredes y registro, que con la sesión metabólica no salen', () => {
+  it('enciende paredes y el cuadro del registro, que con la metabólica no salen', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
     expect(huecos).toContain('paredes')
-    expect(huecos).toContain('registro')
+    // El registro dejó de ser un hueco propio y ahora es un cuadro DENTRO de `paredes`,
+    // así que lo que se comprueba es que el mando esté montado, no que tenga hueco.
+    expect(salon.querySelector('[data-cuadro="registro"]')).not.toBeNull()
     expect(huecos).toContain('centro')
     expect(huecos).toContain('panelInferior')
-    // Los ocho paneles de pared, contados: uno por campo de `contenidoPared()`.
-    expect(salon.querySelectorAll('[data-campo][data-tope]')).toHaveLength(8)
+    // CUATRO paneles de pared, no ocho. Los otros cuatro —los del encuadre: dónde va el
+    // móvil, a qué distancia, qué palanca y qué velocidad— bajaron al panel el 2026-09-02.
+    //
+    // No es un recorte de contenido, es el reparto del §1 de `SEMANA-2.md`: en la pared va
+    // la lista amarilla, y de la cámara ahí solo entra «medir con la cámara». Puestos en la
+    // pared, esos cuatro campos y el estante del material ocupaban juntos el 98 % del ancho
+    // a la altura de las piernas del sujeto, y la captura del 2-sep enseña el resultado:
+    // once paneles opacos y del cuerpo una astilla. Los implementos 3D aportaban 36 píxeles
+    // no porque no se dibujaran, sino porque esto los tapaba.
+    expect(salon.querySelectorAll('[data-campo][data-tope]')).toHaveLength(4)
   })
 
   /**
@@ -388,7 +415,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     expect(peldanos.filter((p) => p.getAttribute('aria-pressed') === 'true')).toHaveLength(1)
   })
 
-  it('y la regla dura se sigue cumpliendo con los cuatro huecos llenos', () => {
+  it('y la regla dura se sigue cumpliendo con los huecos llenos', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
 
@@ -397,7 +424,9 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
 
     const copia = salon.cloneNode(true) as HTMLElement
     const huecos = Array.from(copia.querySelectorAll('[data-hueco]'))
-    expect(huecos.length).toBeGreaterThanOrEqual(4)
+    // TRES y no cuatro: `registro` dejó de ser hueco propio y ahora cuelga del muro
+    // dentro de `paredes`. Quedan `paredes`, `centro` y `panelInferior`.
+    expect(huecos.length).toBeGreaterThanOrEqual(3)
     for (const hueco of huecos) hueco.remove()
 
     const sobrantes = nodosDeTexto(copia)
@@ -407,7 +436,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     ).toEqual([])
   })
 
-  it('el panel sube con un toque y trae los doce recuadros, todos interactivos', async () => {
+  it('el panel sube con un toque y trae los catorce recuadros, todos interactivos', async () => {
     const usuario = userEvent.setup()
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
@@ -418,7 +447,10 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
 
     const recuadros = Array.from(salon.querySelectorAll('[data-recuadro]'))
-    expect(recuadros).toHaveLength(12)
+    // Catorce, no doce: los dos que bajaron de la pared en el reparto del §1 —«El encuadre
+    // de hoy» con sus cuatro campos, y «Material de la sesión»—. Lo que baja de la pared
+    // aterriza aquí; nada se tira.
+    expect(recuadros).toHaveLength(14)
     // Cada recuadro trae un elemento interactivo real: el título ES el botón que pliega. No
     // es una promesa que haya que ir comprobando bloque a bloque, es estructura.
     for (const r of recuadros) {

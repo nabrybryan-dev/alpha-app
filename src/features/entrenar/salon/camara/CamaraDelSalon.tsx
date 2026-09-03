@@ -2,9 +2,6 @@ import { useState } from 'react'
 import type { EjercicioPrescrito } from '../../../../domain/types'
 import { IconoCamara } from '../../../../components/ui/Icono'
 import { HojaMedicion } from '../../encoder/HojaMedicion'
-import { MuroDeCampos } from '../paredes/PanelPared'
-import { MURO_DERECHO } from '../paredes/muros'
-import type { ContenidoDePared } from '../paredes/contenidoPared'
 import { leerBorrador } from '../registro/borrador'
 
 /**
@@ -40,7 +37,8 @@ import { leerBorrador } from '../registro/borrador'
  */
 
 export interface CamaraDelSalonProps {
-  contenido: ContenidoDePared
+  /** `true` si ya cuelga de un `CuadroDePared`: la colocación la pone el cuadro. */
+  enCuadro?: boolean
   ejercicio: EjercicioPrescrito
   microcicloId: string
   className?: string
@@ -49,7 +47,6 @@ export interface CamaraDelSalonProps {
 }
 
 export function CamaraDelSalon({
-  contenido,
   ejercicio,
   microcicloId,
   className = '',
@@ -89,11 +86,15 @@ export function CamaraDelSalon({
         </p>
       </div>
 
-      {/* Los cuatro campos del encuadre, en su versión de una línea: dentro del módulo de
-          la cámara no hay sitio para el rótulo encima del texto, y encima del suelo del
-          salón tampoco. Siguen siendo los mismos paneles auditables. */}
-      <MuroDeCampos contenido={contenido} campos={MURO_DERECHO} lado="izquierda" denso />
+      {/* LOS CUATRO CAMPOS DEL ENCUADRE YA NO ESTÁN AQUÍ, y no se han perdido: bajaron al
+          panel, a «El encuadre de hoy».
 
+          Estaban en la pared y no pertenecen a la lista amarilla del §1 de `SEMANA-2.md`
+          —ahí solo entra «medir con la cámara»—. Puestos aquí ocupaban, con el estante del
+          material enfrente, el 98 % del ancho a la altura de las piernas del sujeto: la
+          captura del 2-sep enseña once paneles opacos y del cuerpo una astilla. Los
+          implementos 3D aportaban 36 píxeles no porque no se dibujaran, sino porque esto
+          los tapaba. */}
       <button
         type="button"
         onClick={() => setMidiendo(true)}

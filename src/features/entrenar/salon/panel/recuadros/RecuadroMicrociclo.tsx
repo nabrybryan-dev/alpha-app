@@ -5,9 +5,11 @@ import type { Microciclo } from '../../../../../domain/types'
 /**
  * EL LETRERO DE INICIO DE SEMANA, dicho de forma que no caduque.
  *
- * En la Ruta esto es `PortadaMicrociclo`: un cartel que sale UNA VEZ por microciclo y se
- * marca como visto al cerrarlo. Esa regla es buena para un cartel —«un cartel que sale
- * cada día deja de leerse a los dos días»— pero lo que el cartel LLEVA no es un aviso:
+ * Esto sustituye al cartel de la Ruta —`PortadaMicrociclo`, que desde que el salón ocupó
+ * la pantalla de aterrizaje ya no se monta y sobrevive solo como origen documentado del
+ * inventario de mudanza—. Aquel salía UNA VEZ por microciclo y se marcaba como visto al
+ * cerrarlo. Esa regla es buena para un cartel —«un cartel que sale cada día deja de
+ * leerse a los dos días»— pero lo que el cartel LLEVA no es un aviso:
  * son el número del microciclo, cuántas sesiones tiene, cuántas series se van a hacer,
  * qué grupos se trabajan, cuál es el foco y la frase de la semana. Datos del plan.
  *
