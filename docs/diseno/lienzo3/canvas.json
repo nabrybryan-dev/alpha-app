@@ -1,0 +1,26 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "El salón · muro de enfrente" },
+    { "file": "Panel.dc.html", "x": 490, "y": 0, "w": 390, "h": 844, "title": "El panel de abajo" },
+    { "file": "Reflector.dc.html", "x": 980, "y": 0, "w": 390, "h": 560, "title": "El reflector de la cámara" },
+    { "file": "Sistema.dc.html", "x": 0, "y": 990, "w": 620, "h": 800, "title": "Vocabulario del muro" },
+    { "file": "Muros.dc.html", "x": 720, "y": 990, "w": 800, "h": 640, "title": "Los otros muros" }
+  ],
+  "annotations": [
+    {
+      "id": "regla",
+      "x": 0,
+      "y": -190,
+      "w": 480,
+      "text": "LO QUE SE LEE ES LUZ SOBRE EL MURO.\nLO QUE SE TOCA ES MATERIA.\n\nSin marcos, sin fondos, sin esquinas redondeadas para la información: un dato no es un objeto, es luz sobre el hormigón. El mando sí tiene cuerpo, porque se aprieta con el dedo."
+    },
+    {
+      "id": "ventana",
+      "x": 980,
+      "y": 640,
+      "w": 390,
+      "text": "La ventana horizontal de un 390x844 son 12,18 grados: 2,37 m de pared a los 11,1 m del muro de enfrente. Ahi cabe UNA composicion, no cuatro cuadros. Medido el 3-sep."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

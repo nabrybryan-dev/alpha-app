@@ -132,7 +132,7 @@ export function PanelCampo({
         <p className={`muro-rotulo text-[0.62em] ${denso ? 'shrink-0' : ''}`}>{ROTULO[campo]}</p>
       )}
       <p className={`${cuerpo} ${denso ? 'min-w-0 flex-1' : esTitular ? '' : 'mt-[0.32em]'}`}>
-        {texto}
+        {esTitular ? <Cascada texto={texto} /> : esCifra ? <Cifra texto={texto} /> : texto}
       </p>
     </>
   )
@@ -287,4 +287,58 @@ function agrupar(
   // entero con el rótulo pegado a la izquierda, que se lee peor que apilado.
   for (const b of bloques) if (b.enFila && b.campos.length < 2) b.enFila = false
   return bloques
+}
+
+/**
+ * EL TITULAR SE ENCIENDE PALABRA A PALABRA.
+ *
+ * Bryan lo pidió el 2026-09-03: «que cada letra que queramos resaltar tenga motion
+ * graphics». Por PALABRA y no por letra, y la diferencia importa: una cascada letra a
+ * letra sobre «PRESS INCLINADO EN MULTIPOWER» son veintiocho animaciones para leer una
+ * frase, y el ojo persigue las letras en vez de leerlas. Por palabra, la cascada dice el
+ * orden de lectura, que es para lo que sirve.
+ *
+ * ## Lo que hace que se REPITA cuando toca
+ *
+ * La `key` lleva el texto dentro. Al pasar de ejercicio, React desmonta las palabras
+ * viejas y monta otras, así que la animación arranca sola — sin efecto, sin estado y sin
+ * un reloj que mantener. Y mientras el ejercicio no cambia, no se vuelve a disparar: una
+ * pared que reanima su rótulo en cada repintado es una pared que parpadea.
+ *
+ * ## El espacio va FUERA del `<span>`
+ *
+ * `display: inline-block` colapsa el espacio de dentro, así que un separador escrito
+ * dentro de la palabra desaparece y el titular sale pegado. Fuera es un nodo de texto y
+ * sobrevive — que además es lo que mantiene el `textContent` legible para las pruebas y
+ * para un lector de pantalla.
+ */
+function Cascada({ texto }: { texto: string }) {
+  const palabras = texto.split(/\s+/).filter(Boolean)
+  return (
+    <>
+      {palabras.map((palabra, i) => (
+        <Fragment key={`${texto}|${i}`}>
+          {i > 0 ? ' ' : null}
+          <span className="muro-palabra" style={{ animationDelay: `${i * 48}ms` }}>
+            {palabra}
+          </span>
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
+/**
+ * UNA CIFRA QUE CAMBIA PASA COMO PASA UN MARCADOR: entra desde arriba, se pasa y vuelve.
+ *
+ * Mismo truco que la cascada y por el mismo motivo: la `key` es el valor, así que cuando
+ * la carga pasa de 42,5 a 45 el nodo se sustituye y el gesto arranca solo. Si el valor no
+ * cambia, no se mueve nada — que es la mitad del trabajo de una animación de dato.
+ */
+function Cifra({ texto }: { texto: string }) {
+  return (
+    <span key={texto} className="muro-cifra-cambia inline-block">
+      {texto}
+    </span>
+  )
 }

@@ -93,7 +93,13 @@ export function CuadroDePared({
           El que SÍ conserva cuerpo es el interactivo, y no por variar: lo que se aprieta
           con el dedo tiene que parecer un aparato. Es la regla entera de esta capa —lo
           que se lee es luz, lo que se toca es materia— y está escrita en `tokens.css`. */}
-      <div className={interactivo ? 'muro-reflector px-[0.7em] py-[0.55em]' : 'muro-derrame px-[0.7em] py-[0.5em]'}>
+      {/* `muro-entra`: el cuadro SUBE Y SE ASIENTA al montarse, con el peso de
+          protagonista —lo pesado no rebota—. Se dispara solo, sin efecto ni estado:
+          un cuadro que sale de la ventana se desmonta y al volver a entrar vuelve a
+          encenderse, que es lo que hace una luz cuando la miras. */}
+      <div
+        className={`muro-entra ${interactivo ? 'muro-reflector px-[0.7em] py-[0.55em]' : 'muro-derrame px-[0.7em] py-[0.5em]'}`}
+      >
         {children}
       </div>
     </div>

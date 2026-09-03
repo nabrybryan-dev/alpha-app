@@ -2003,3 +2003,129 @@ body {
     inset 0 -1px 0 rgb(var(--ink-1000-rgb) / 0.9),
     0 0.5em 1.1em -0.5em rgb(var(--ink-1000-rgb) / 0.95);
 }
+
+/* ===========================================================================
+   EL MURO · MOVIMIENTO — la luz se enciende, no aparece
+   ===========================================================================
+
+   Bryan lo pidió el 2026-09-03: «más interfaces dinámicas de movimiento, y que
+   cada letra que queramos resaltar tenga motion graphics». Esta capa lo hace con
+   LOS CINCO PESOS que ya existen, no con curvas nuevas: cada cosa del muro se
+   mueve con la masa que le corresponde, y esa correspondencia es el diseño.
+
+   | Qué                        | Peso              | Por qué                     |
+   | -------------------------- | ----------------- | --------------------------- |
+   | el tablón entero           | protagonista      | es lo más pesado: se asienta y NO rebota |
+   | el titular, palabra a palabra | informativo    | un dato tiene cuerpo: sobrepasa un pelo |
+   | las juntas de luz          | transicional      | es una línea encendiéndose, no un objeto |
+   | el derrame y el reflector  | ambiental         | luz de sala: nunca llama la atención |
+   | una cifra que cambia       | microinteracción  | lo ligero rebota: llega al 110 % y vuelve |
+
+   Está al revés de lo que se hace a ojo, y es lo que separa «con peso» de
+   «rebotón». Hay una prueba que se pone en rojo si alguien lo invierte.
+
+   ## Todo se anima en el compositor
+
+   `transform` y `opacity` y nada más. Esto vive ENCIMA del lienzo del sujeto,
+   que repinta a sesenta por segundo: una animación que toque maquetación aquí
+   se cobra en el fotograma del motor, no en el suyo.
+   ------------------------------------------------------------------------- */
+
+/* EL TABLÓN ENTRA. Sube y se asienta, sin sobrepasar: es lo más pesado que hay
+   en la pared. `both` para que no parpadee en el primer fotograma. */
+@keyframes muro-entra {
+  from { opacity: 0; transform: translateY(14px); }
+}
+
+.muro-entra {
+  animation: muro-entra var(--dur-protagonista) var(--muelle-protagonista) both;
+}
+
+/* LA JUNTA SE TRAZA desde el centro hacia los dos extremos, que es por donde se
+   apaga. Una junta que apareciera de golpe sería una regla dibujada; trazada,
+   es el reflector encendiéndose a lo largo del muro. */
+@keyframes muro-junta-traza {
+  from { transform: scaleX(0); opacity: 0; }
+}
+
+.muro-junta {
+  transform-origin: center;
+  animation: muro-junta-traza var(--dur-transicional) var(--muelle-transicional) both;
+}
+
+/* EL TITULAR, PALABRA A PALABRA. El retardo lo pone quien lo escribe, por
+   índice: es la cascada. Cada palabra sube y sobrepasa un pelo —peso
+   informativo— así que el titular se lee como algo que se ENCIENDE en la pared,
+   no como un texto que ya estaba. */
+@keyframes muro-palabra-entra {
+  from { opacity: 0; transform: translateY(0.5em); }
+}
+
+.muro-palabra {
+  display: inline-block;
+  animation: muro-palabra-entra var(--dur-informativo) var(--muelle-informativo) both;
+}
+
+/* UNA CIFRA QUE CAMBIA. Lo ligero rebota: entra desde arriba, se pasa y vuelve,
+   con el destello del filamento al encenderse. Es el gesto de un marcador que
+   pasa de número, y por eso el resplandor va en la MISMA animación que el
+   desplazamiento — un display no se mueve y luego brilla. */
+@keyframes muro-cifra-cambia {
+  from {
+    opacity: 0;
+    transform: translateY(-0.42em);
+    text-shadow: 0 0 1.4em rgb(var(--accion-rgb) / 0.95);
+  }
+  60% { text-shadow: 0 0 0.9em rgb(var(--accion-rgb) / 0.7); }
+}
+
+.muro-cifra-cambia {
+  animation: muro-cifra-cambia var(--dur-microinteraccion) var(--muelle-microinteraccion) both;
+}
+
+/* EL DERRAME RESPIRA. Muy despacio y muy poco: es luz de sala, y en cuanto se
+   nota deja de ser luz y pasa a ser un efecto. Solo `opacity`, así que no
+   reproyecta nada. */
+@keyframes muro-aliento {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+
+.muro-derrame::before,
+.muro-reflector::before {
+  will-change: opacity;
+  animation: muro-aliento 9s var(--muelle-ambiental) infinite;
+}
+
+/* El cono del reflector respira medio compás por detrás del resto de la sala.
+   Dos luces que laten a la vez se leen como un parpadeo de la pantalla. */
+.muro-reflector::before {
+  animation-duration: 11s;
+  animation-delay: -3.5s;
+}
+
+/* ---------------------------------------------------------------------------
+   LO QUE SE APAGA, Y CÓMO
+   ---------------------------------------------------------------------------
+   Con movimiento reducido no se «anima menos»: no se anima. Y se apaga en el
+   fotograma BUENO — la junta trazada entera, el titular puesto, la cifra a la
+   vista—, porque apagar no puede dejar la pantalla peor que encender.
+   Ambiental es lo primero que cae en `sobrio`: es lo único que no informa. */
+[data-movimiento='sobrio'] .muro-derrame::before,
+[data-movimiento='sobrio'] .muro-reflector::before {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .muro-entra,
+  .muro-junta,
+  .muro-palabra,
+  .muro-cifra-cambia {
+    animation-duration: 1ms;
+  }
+
+  .muro-derrame::before,
+  .muro-reflector::before {
+    animation: none;
+  }
+}
