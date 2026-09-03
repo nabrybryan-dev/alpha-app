@@ -108,7 +108,10 @@ export function CamaraDelSalon({
       <button
         type="button"
         onClick={() => setMidiendo(true)}
-        className="press muro-mando flex items-center justify-center gap-[0.5em] py-[0.62em] text-[0.72em] font-bold uppercase tracking-[0.16em] text-silver-100"
+        // `self-start`: un mando no ocupa el ancho de la pared. A ancho completo era una
+        // barra de interfaz cruzando el muro; recogido a su texto es un aparato colgado
+        // debajo del rótulo, que es lo que se quería.
+        className="press muro-mando flex items-center gap-[0.55em] self-start px-[1em] py-[0.68em] text-[0.72em] font-bold uppercase tracking-[0.16em] text-silver-100"
       >
         <IconoCamara className="h-[1.35em] w-[1.35em] shrink-0 text-accion" />
         Medir con la cámara

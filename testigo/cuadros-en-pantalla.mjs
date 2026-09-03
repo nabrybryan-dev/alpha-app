@@ -48,6 +48,7 @@ function leerOpciones(argv) {
     foto: '',
     conservar: false,
     sinReducir: false,
+    girar: 0,
   }
   for (const bruto of argv.slice(2)) {
     const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
@@ -61,6 +62,7 @@ function leerOpciones(argv) {
     else if (nombre === 'foto') o.foto = valor
     else if (nombre === 'conservar') o.conservar = true
     else if (nombre === 'sin-reducir') o.sinReducir = true
+    else if (nombre === 'girar') o.girar = Number(valor)
   }
   o.cola = o.usuario ? [o.usuario] : CANDIDATOS
   return o
@@ -160,6 +162,43 @@ async function main() {
     // El salón entra con una transición; se le deja terminar antes de leer rectángulos.
     await esperar(2500)
     await dt.pedir('Page.bringToFront')
+
+    // GIRAR LA CÁMARA, arrastrando de verdad sobre el lienzo.
+    //
+    // Hace falta porque la mitad de lo que cuelga de las paredes NO se ve al entrar: la
+    // cámara está a 150° del ángulo de entrada, «a continuación» a 180°. Sin poder girar,
+    // esas piezas se rediseñan a ciegas — y una pieza que no se ha visto no está
+    // verificada.
+    //
+    // El arrastre es el de verdad, no una llamada al motor: `Orbita` escucha
+    // `pointermove` y hace `azimut -= deltaX * 0.42`, así que girar N grados son
+    // `-N / 0.42` píxeles. En VERTICAL no se mueve ni un píxel, porque el mismo gesto
+    // cambia la elevación y eso falsearía la medida.
+    if (o.girar) {
+      const totalPx = -o.girar / 0.42
+      const pasos = Math.max(1, Math.ceil(Math.abs(totalPx) / 260))
+      const y = Math.round(o.alto * 0.42)
+      for (let i = 0; i < pasos; i++) {
+        const dx = totalPx / pasos
+        const x0 = Math.round(o.ancho / 2 - dx / 2)
+        const x1 = Math.round(x0 + dx)
+        await dt.pedir('Input.dispatchMouseEvent', { type: 'mousePressed', x: x0, y, button: 'left', clickCount: 1, buttons: 1 })
+        // En tramos: un salto único puede pasar por encima de la captura del puntero.
+        for (let k = 1; k <= 8; k++) {
+          await dt.pedir('Input.dispatchMouseEvent', {
+            type: 'mouseMoved',
+            x: Math.round(x0 + ((x1 - x0) * k) / 8),
+            y,
+            button: 'left',
+            buttons: 1,
+          })
+        }
+        await dt.pedir('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x1, y, button: 'left', buttons: 0 })
+        await esperar(120)
+      }
+      await esperar(700)
+      console.log(`  cámara girada ${o.girar}° (${Math.round(totalPx)} px de arrastre en ${pasos} tramos)`)
+    }
 
     const acta = await dt.evaluar(comoExpresion(MEDIR_EN_PAGINA))
     acta.usuario = medido

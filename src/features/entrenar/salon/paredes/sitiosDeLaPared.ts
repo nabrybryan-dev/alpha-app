@@ -126,7 +126,11 @@ export const SITIOS = {
    * en el descanso, no durante la repetición, así que buscarla girando un poco la cabeza
    * es lo que se hace en una sala de verdad.
    */
-  series: { desvio: -15, altura: 2.3, ancho: 0.9, alto: 0.5 },
+  // 1,3 m de ancho y no 0,9: el cuerpo de letra sale de `ancho × escala × 0,052` y con
+  // 0,9 m caía en 7,6 px, o sea el suelo del acotado. En pantalla eso es una mancha gris:
+  // se distinguía que había algo escrito y no qué. Aquí no compite con nadie —está sola
+  // en su muro— así que puede ocupar lo que necesita para leerse.
+  series: { desvio: -15, altura: 2.3, ancho: 1.3, alto: 0.6 },
   // LA CABECERA, EL CRONÓMETRO Y EL RITMO YA NO SON SITIOS.
   //
   // Colgaban en ±34 y 42, o sea a tres y cuatro anchos de pantalla de la ventana visible:
@@ -144,7 +148,10 @@ export const SITIOS = {
   /** La estación de grabación. Cuelga junto al trípode, que está a 180° de la entrada. */
   camara: { desvio: 150, altura: 2.3, ancho: 1.5, alto: 0.6 },
   /** Lo que viene después. En el muro de detrás: se consulta al terminar, no durante. */
-  siguientes: { desvio: 180, altura: 2.4, ancho: 1.8, alto: 0.44 },
+  // `alto` 0,8: medido girando la cámara 180°, la cola de tres ejercicios mide 116 px
+  // sobre 164 px/m, o sea 0,71 m. Con 0,44 declarados el asentado la colgaba creyéndola
+  // la mitad de alta de lo que es. Lo cazó el tope del testigo, que es para lo que está.
+  siguientes: { desvio: 180, altura: 2.4, ancho: 1.8, alto: 0.8 },
   /**
    * Registrar la serie. A un LADO del sujeto, nunca encima.
    *

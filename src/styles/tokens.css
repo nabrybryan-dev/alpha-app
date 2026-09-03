@@ -1965,18 +1965,22 @@ body {
   inset: -30% -46% -120% -46%;
   pointer-events: none;
   z-index: -1;
-  clip-path: polygon(38% 0%, 62% 0%, 100% 100%, 0% 100%);
+  /* EL CONO ABRE HACIA ARRIBA, y el primer intento lo tenía del revés.
+     El foco está en el SUELO —es donde se planta el trípode—, así que la mancha nace
+     estrecha abajo, junto a la fuente, y se ensancha subiendo por la pared. Al revés se
+     leía como un embudo colgado del techo, que es otra cosa y encima no está ahí. */
+  clip-path: polygon(0% 0%, 100% 0%, 64% 100%, 36% 100%);
   background:
     linear-gradient(
       to top,
-      rgb(var(--silver-500-rgb) / 0.22),
-      rgb(var(--silver-500-rgb) / 0.07) 46%,
-      transparent 78%
+      rgb(var(--silver-500-rgb) / 0.05),
+      rgb(var(--silver-500-rgb) / 0.19) 52%,
+      rgb(var(--silver-500-rgb) / 0.24) 88%
     ),
     radial-gradient(
-      70% 52% at 50% 96%,
-      rgb(var(--accion-rgb) / 0.16),
-      transparent 70%
+      64% 46% at 50% 4%,
+      rgb(var(--accion-rgb) / 0.18),
+      transparent 72%
     );
 }
 
