@@ -49,6 +49,7 @@ function leerOpciones(argv) {
     conservar: false,
     sinReducir: false,
     girar: 0,
+    panel: false,
   }
   for (const bruto of argv.slice(2)) {
     const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
@@ -63,6 +64,7 @@ function leerOpciones(argv) {
     else if (nombre === 'conservar') o.conservar = true
     else if (nombre === 'sin-reducir') o.sinReducir = true
     else if (nombre === 'girar') o.girar = Number(valor)
+    else if (nombre === 'panel') o.panel = true
   }
   o.cola = o.usuario ? [o.usuario] : CANDIDATOS
   return o
@@ -198,6 +200,29 @@ async function main() {
       }
       await esperar(700)
       console.log(`  cámara girada ${o.girar}° (${Math.round(totalPx)} px de arrastre en ${pasos} tramos)`)
+    }
+
+    // ABRIR EL PANEL DE ABAJO. Es la otra mitad de la pantalla y no se ve sin el gesto:
+    // el tirador no tiene texto —su nombre va en `aria-label`— así que se busca por ahí,
+    // que es como lo encuentra quien navega con lector.
+    if (o.panel) {
+      // Un `click()` sintético NO lo abre, y eso es correcto: el tirador alterna en
+      // `pointerup` y solo si antes hubo un `pointerdown` —es la manija del arrastre—.
+      // Así que se toca de verdad, con el ratón del protocolo, en el centro del tirador.
+      const donde = await dt.evaluar(
+        `(() => { const b = [...document.querySelectorAll('button[aria-label]')]` +
+          `.find((n) => /Abrir el panel/i.test(n.getAttribute('aria-label') || '')); ` +
+          `if (!b) return null; const r = b.getBoundingClientRect(); ` +
+          `return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } })()`,
+      )
+      if (!donde) {
+        console.log('   no encontré el tirador del panel')
+      } else {
+        await dt.pedir('Input.dispatchMouseEvent', { type: 'mousePressed', x: donde.x, y: donde.y, button: 'left', clickCount: 1, buttons: 1 })
+        await esperar(60)
+        await dt.pedir('Input.dispatchMouseEvent', { type: 'mouseReleased', x: donde.x, y: donde.y, button: 'left', buttons: 0 })
+        await esperar(1000)
+      }
     }
 
     const acta = await dt.evaluar(comoExpresion(MEDIR_EN_PAGINA))

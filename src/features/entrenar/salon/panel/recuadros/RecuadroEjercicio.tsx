@@ -44,44 +44,63 @@ export function RecuadroEjercicio({ alPanel, bloquesCardio = [] }: RecuadroEjerc
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      {/* SIN CAJAS DENTRO DE LA CAJA.
+          =============================================================================
+          Cada texto era un `rounded-[10px] border border-ink-500 bg-ink-700`: tarjetas
+          dentro del recuadro, que a su vez era una tarjeta. Tres marcos para leer un
+          párrafo. Aquí es lo que es —un rótulo y su texto— con aire entre ellos: el
+          espacio dice dónde acaba uno, que es lo que hacía el borde y sin cobrar peso
+          visual. Es la misma regla de la hoja, un nivel más adentro. */}
       {alPanel.map((t) => (
         <article
           key={`${t.campo ?? 'extra'}-${t.huella}`}
           data-huella={t.huella}
           data-campo={t.campo}
-          className="rounded-[10px] border border-ink-500 bg-ink-700 px-3 py-2.5"
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-silver-500">
+          <p className="text-[9.5px] font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
             {t.titulo}
           </p>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-silver-200">{t.texto}</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-silver-200">{t.texto}</p>
         </article>
       ))}
 
       {bloquesCardio.length > 0 && (
         <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-silver-500">
+          <p className="text-[9.5px] font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
             Los bloques de la sesión
           </p>
-          <ul className="flex flex-col gap-2">
-            {bloquesCardio.map((b) => (
-              <li
-                key={b.id}
-                className="rounded-[10px] border border-ink-500 border-l-[3px] border-l-accion bg-ink-700 px-3 py-2.5"
-              >
-                <p className="text-[12.5px] font-bold leading-snug text-silver-100">{b.titulo}</p>
-                {b.indicaciones && (
-                  <p className="mt-1.5 text-[12px] leading-relaxed text-silver-400">
-                    {b.indicaciones}
-                  </p>
-                )}
-                {b.duracionMin !== undefined && (
-                  <p className="cifras mt-1.5 text-[11px] text-silver-500">{b.duracionMin} min</p>
-                )}
+          {/* El bloque se marca con su NÚMERO en rojo, no con un filete de acento a la
+              izquierda. Un contenedor redondeado con una barra de color al costado es el
+              tic visual más repetido que hay, y además el número informa: dice por cuál
+              vas. La barra solo decoraba. */}
+          <ol className="mt-3 flex flex-col gap-3.5">
+            {bloquesCardio.map((b, i) => (
+              <li key={b.id} className="flex gap-3">
+                <span
+                  aria-hidden="true"
+                  className="cifras shrink-0 pt-[1px] text-[11px] font-bold leading-none text-accion"
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-bold leading-snug text-silver-100">
+                    {b.titulo}
+                  </span>
+                  {b.indicaciones && (
+                    <span className="mt-1.5 block text-[12.5px] leading-relaxed text-silver-400">
+                      {b.indicaciones}
+                    </span>
+                  )}
+                  {b.duracionMin !== undefined && (
+                    <span className="cifras mt-1.5 block text-[11px] text-silver-500">
+                      {b.duracionMin} min
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       )}
     </div>

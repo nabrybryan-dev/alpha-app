@@ -120,6 +120,18 @@ export function ParedesDelSalon({
       data-hueco="paredes"
       data-testigo="letras3D"
       className="pointer-events-none absolute inset-0 overflow-hidden"
+      // `isolation: isolate` — Y NO SOBRA.
+      //
+      // Cada cuadro lleva un `z-index` que sale de su PROFUNDIDAD en la sala, para que
+      // lo lejano quede detrás: `1000 - z * 20`, o sea valores de hasta ~800. Eso ordena
+      // bien los cuadros entre ellos y es un desastre fuera, porque la escala de la app
+      // llega a `--z-elevado: 20`. Medido el 2026-09-03 abriendo el panel: el tablón del
+      // muro se pintaba ENCIMA de la hoja, con su texto cruzado sobre el del panel.
+      //
+      // Aislando aquí, esos números vuelven a significar lo que significan —el orden de
+      // los cuadros entre sí— y no compiten con nada de fuera. La capa entera se coloca
+      // con `--z-contenido`, que es el escalón que le toca.
+      style={{ isolation: 'isolate', zIndex: 'var(--z-contenido)' }}
     >
       {/* EL TABLÓN DEL MURO DE ENFRENTE — una sola composición, no cuatro fragmentos.
           =================================================================================

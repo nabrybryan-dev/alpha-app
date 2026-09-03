@@ -2129,3 +2129,63 @@ body {
     animation: none;
   }
 }
+
+/* ===========================================================================
+   LA HOJA DEL SALÓN — el panel de abajo deja de ser doce tarjetas
+   ===========================================================================
+
+   Bajaban doce `rounded-[14px] border border-ink-500 bg-ink-800` apilados: doce
+   tarjetas de aplicación una encima de otra, que es exactamente lo que Bryan
+   señaló arriba en las paredes y aquí seguía sin tocar.
+
+   El panel NO es una pared —es un cajón que sube y se lee de cerca—, así que
+   aquí sí hay materia: la hoja tiene cuerpo. Lo que se quita es que cada bloque
+   sea un objeto suelto. Es UNA hoja continua con juntas de luz entre secciones
+   y una numeración corrida, como un parte de entrenamiento bajo una lámpara.
+
+   ## La numeración va con un contador de CSS, no con una prop
+
+   Tres de los doce recuadros son condicionales: el del encuadre y el del
+   material solo bajan si hay ejercicio, y los de la ruta dependen del nivel. Un
+   índice pasado desde fuera se desincroniza en cuanto uno falta y numera 01, 02,
+   04. `counter-increment` cuenta lo que SE PINTA, así que no puede saltarse un
+   número — y nadie tiene que acordarse de nada al añadir el recuadro trece.
+   ------------------------------------------------------------------------- */
+
+.hoja-del-salon {
+  counter-reset: seccion-de-hoja;
+}
+
+.hoja-del-salon [data-recuadro] {
+  counter-increment: seccion-de-hoja;
+}
+
+/* El número de la sección. Generado, y por eso `aria-hidden` no hace falta: el
+   contenido de `::before` no entra en el árbol de accesibilidad como texto del
+   botón, y el título ya dice lo que la sección es. */
+.hoja-numero::before {
+  content: counter(seccion-de-hoja, decimal-leading-zero);
+}
+
+/* LA JUNTA ENTRE TRAMOS. La misma del muro, pero abierta a lo ancho de la hoja:
+   aquí no hay perspectiva que la acorte, y una junta que se apagara a un quinto
+   del ancho parecería un subrayado.
+
+   Se pone con `+` y no escribiendo un `<hr>` entre cada par de recuadros por lo
+   mismo que la numeración es un contador: tres de los doce son condicionales.
+   Escritos a mano, el día que uno no baje quedaría una junta suelta separando
+   nada — y eso no lo rompe ninguna prueba, simplemente se ve mal. El selector
+   solo puede acertar: la junta existe si y solo si hay un tramo antes. */
+.hoja-del-salon > [data-recuadro] + [data-recuadro]::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-bottom: 1.15rem;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--silver-500-rgb) / 0.42) 8%,
+    rgb(var(--silver-500-rgb) / 0.42) 92%,
+    transparent
+  );
+}

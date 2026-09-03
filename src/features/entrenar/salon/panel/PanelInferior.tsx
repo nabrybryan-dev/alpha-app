@@ -238,7 +238,11 @@ export function PanelInferior(props: PanelInferiorProps) {
 
         {abierto && (
           <div
-            className="flex flex-col gap-2.5 overflow-y-auto px-3"
+            // `hoja-del-salon`: enciende el contador que numera los tramos y las juntas
+            // de luz que los separan (`tokens.css`, LA HOJA DEL SALÓN). El aire sube de
+            // `gap-2.5` a `gap-5` porque sin marcos hace falta más espacio entre bloques:
+            // el borde ya no dice dónde acaba uno, lo dice el aire.
+            className="hoja-del-salon flex flex-col gap-5 overflow-y-auto px-5"
             // Un dedo de aire al final de la lista. La barra de navegación ya no se
             // descuenta aquí: ahora la descuenta el propio panel, que empieza encima de
             // ella. Sumarla dos veces dejaba un hueco muerto al final del panel.

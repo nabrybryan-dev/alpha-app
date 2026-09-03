@@ -1,7 +1,16 @@
 import { useId, useState, type ReactNode } from 'react'
 
 /**
- * EL RECUADRO: la caja en la que baja al panel cada uno de los bloques de la Ruta.
+ * UNA SECCIÓN DE LA HOJA. Antes era una caja; ahora es un tramo.
+ *
+ * Bajaban doce `rounded-[14px] border border-ink-500 bg-ink-800` apilados: doce tarjetas
+ * de aplicación una encima de otra. Bryan lo señaló el 2026-09-03 —«extraído de la
+ * aplicación y pegado literal»— y aquí seguía sin tocar. El panel NO es una pared, es un
+ * cajón que sube y se lee de cerca, así que la HOJA sí tiene cuerpo; lo que se quita es
+ * que cada bloque sea un objeto suelto con su propio marco.
+ *
+ * Lo que queda: un número corrido, un rótulo serigrafiado y una junta de luz separando
+ * tramos. Las tres cosas viven en `tokens.css` bajo `LA HOJA DEL SALÓN`.
  *
  * Es una sola pieza y hace una sola cosa, pero esa cosa es la que sostiene una regla del
  * encargo: **cada recuadro lleva al menos un elemento interactivo real**. Aquí no es una
@@ -38,30 +47,38 @@ export function Recuadro({ clave, titulo, pie, children }: RecuadroProps) {
   const idContenido = useId()
 
   return (
-    <section
-      data-recuadro={clave}
-      className="overflow-hidden rounded-[14px] border border-ink-500 bg-ink-800"
-    >
+    <section data-recuadro={clave}>
       <h3>
         <button
           type="button"
           aria-expanded={abierto}
           aria-controls={idContenido}
           onClick={() => setAbierto((v) => !v)}
-          className="press flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
+          className="press flex w-full items-baseline gap-3 py-0.5 text-left"
         >
-          <span className="min-w-0">
-            <span className="block text-[11px] font-bold uppercase tracking-[0.16em] text-silver-500">
+          {/* EL NÚMERO. Es lo único de la cabecera que lleva color de marca, y lleva el
+              peso de la jerarquía: en una hoja larga, el número es por dónde vas. Sale de
+              un contador de CSS y no de una prop — tres de los doce recuadros son
+              condicionales, y un índice pasado desde fuera numeraría 01, 02, 04. */}
+          <span
+            className="hoja-numero cifras shrink-0 text-[11px] font-bold leading-none text-accion"
+            aria-hidden="true"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
               {titulo}
             </span>
-            {pie && <span className="mt-1 block text-[11px] text-silver-400">{pie}</span>}
+            {pie && <span className="mt-1.5 block text-[11.5px] leading-snug text-silver-400">{pie}</span>}
           </span>
           {/* El acuse de plegado va con MATERIA y no con un semáforo: una flecha que
               gira. `aria-hidden` porque el estado ya lo dice `aria-expanded` del botón;
-              anunciarlo dos veces es ruido para quien navega con lector. */}
+              anunciarlo dos veces es ruido para quien navega con lector.
+              Sin círculo: en la hoja el chevron va suelto, porque una pastilla con borde
+              alrededor de cada título son doce pastillas — la caja que se acaba de
+              quitar, devuelta por la puerta de atrás. */}
           <span
             aria-hidden="true"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-ink-400 text-silver-400 transition-transform duration-base ease-salida"
+            className="shrink-0 self-center text-silver-500 transition-transform duration-base ease-salida"
             style={{ transform: abierto ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -72,7 +89,7 @@ export function Recuadro({ clave, titulo, pie, children }: RecuadroProps) {
       </h3>
 
       {abierto && (
-        <div id={idContenido} className="border-t border-ink-600 px-3.5 py-3.5">
+        <div id={idContenido} className="mt-3">
           {children}
         </div>
       )}

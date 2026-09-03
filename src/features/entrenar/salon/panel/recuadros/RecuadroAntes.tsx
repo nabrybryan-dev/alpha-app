@@ -46,11 +46,26 @@ export function RecuadroAntes({
 
   return (
     <>
+      {/* LA TARJETA DE LA SESIÓN, SIN SU TARJETA.
+          =========================================================================
+          `PreparacionSesion` es el MISMO bloque que corre en `/entrenar/sesion/:id` y
+          ahí lleva su `Card` con marco y su título «Antes de entrenar» — bien puesto,
+          porque allí es un bloque suelto en una columna. Dentro de la hoja del salón
+          esos dos elementos sobran: el marco es la caja que la hoja acaba de quitar, y
+          el título repite el rótulo del tramo, que ya dice «01 · ANTES DE ENTRENAR».
+
+          Se apaga desde FUERA con variantes que alcanzan a los hijos, no tocando el
+          componente: es el mismo truco que el cronómetro del muro, y por el mismo
+          motivo — una versión «adaptada al panel» sería una segunda maqueta que se
+          separa de la primera al primer arreglo, y lo que se pierda en esa deriva no lo
+          ve nadie. El contador de partes (`Badge`) SÍ se queda: dice cuántas llevas. */}
+      <div className="[&>div]:border-0 [&>div]:bg-transparent [&>div]:p-0 [&_.kicker]:sr-only">
       <PreparacionSesion
         partes={partes}
         onMarcar={(parteId) => db.microciclos.marcarParte(microciclo.id, sesion.id, parteId)}
         onVerDemo={setDemo}
       />
+      </div>
       <Sheet abierto={demo !== undefined} titulo={demo?.titulo ?? ''} onCerrar={() => setDemo(undefined)}>
         {demo && <VisorContenido contenido={demo} />}
       </Sheet>
