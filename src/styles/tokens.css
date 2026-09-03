@@ -2105,6 +2105,106 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   EL RELEVO: el muro enseña lo de AHORA, no todo a la vez
+   ---------------------------------------------------------------------------
+   El tablón era una caja con siete bandas de texto apiladas y Bryan lo dijo
+   mirándola: «no me gusta cómo están agrupados, la jerarquía visual está muy
+   cargada». La salida que eligió el 2026-09-03 es agrupar por TIEMPO: el muro
+   anuncia qué toca —nombre y técnica—, se retira, y deja encendida la
+   prescripción de la serie.
+
+   Aquí solo vive el relevo entre esas dos capas. Los pesos son los de la tabla
+   de arriba y no se eligen a ojo: el anuncio se retira con peso TRANSICIONAL
+   —es una capa que cede el sitio, no un objeto que se va—, el dato vivo entra
+   con peso INFORMATIVO —tiene cuerpo, sobrepasa un pelo— y los puntos de las
+   capas plegadas laten en AMBIENTAL, que es lo único que no informa.
+   ------------------------------------------------------------------------- */
+
+/* LA ESCENA DEL TABLÓN. `perspective` va en el padre DIRECTO de lo que escorza:
+   puesta más arriba, el `translateZ` de las capas se aplica igual y no escorza
+   — se paga el coste sin ver el efecto y sin que nada se ponga en rojo. */
+.muro-escena {
+  perspective: 900px;
+  perspective-origin: 50% 40%;
+}
+
+/* EL ANUNCIO SE RETIRA HACIA EL MURO. No se desvanece: se va hacia atrás, que
+   es de donde vino. Un fundido a cero se lee como que algo se ha perdido; irse
+   al fondo se lee como que ha pasado. */
+@keyframes muro-anuncio-sale {
+  to {
+    opacity: 0;
+    transform: translateZ(var(--prof-hueco)) translateY(-0.3em);
+  }
+}
+
+.muro-anuncio[data-saliendo] {
+  animation: muro-anuncio-sale var(--dur-transicional) var(--muelle-transicional) both;
+}
+
+/* EL DATO VIVO SUBE Y SE QUEDA PROUD DEL MURO. La profundidad final va DENTRO
+   del fotograma de llegada y no en un `transform` aparte: dos reglas peleándose
+   por `transform` las gana la última, y la profundidad desaparecería sin aviso
+   — el mismo choque que este archivo documenta entre `.tecla-3d` y `.press`. */
+@keyframes muro-vivo-entra {
+  from {
+    opacity: 0;
+    transform: translateZ(var(--prof-hueco)) translateY(0.6em);
+  }
+  to {
+    opacity: 1;
+    transform: translateZ(var(--prof-relieve)) translateY(0);
+  }
+}
+
+.muro-vivo {
+  animation: muro-vivo-entra var(--dur-informativo) var(--muelle-informativo) both;
+}
+
+/* LAS CIFRAS, A CUERPO DE MARCADOR. Es un `em` sobre el cuadro, así que crece y
+   encoge con la distancia a la pared como todo lo demás del muro: la
+   prescripción de la serie se lee desde el banco, que es a dos metros. */
+.muro-vivo-cifras {
+  font-size: 1.5em;
+  margin-top: 0.25em;
+}
+
+/* LA RANURA DE ABAJO entra cuando hay algo que decir y con el mismo peso con el
+   que se fue el anuncio: es la misma clase de suceso, una capa que aparece. */
+@keyframes muro-ranura-entra {
+  from { opacity: 0; transform: translateY(0.5em); }
+}
+
+.muro-ranura {
+  margin-top: 0.45em;
+  animation: muro-ranura-entra var(--dur-transicional) var(--muelle-transicional) both;
+}
+
+/* LAS CAPAS PLEGADAS. Tres puntos que laten desfasados, en ambiental.
+   Dicen que hay más y que está abajo. Sin ellos, plegar se lee como perder. */
+@keyframes muro-capa-late {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 0.7; }
+}
+
+.muro-capas {
+  display: flex;
+  gap: 0.34em;
+  margin-top: 0.55em;
+}
+
+.muro-capas span {
+  width: 0.22em;
+  height: 0.22em;
+  border-radius: 50%;
+  background: var(--silver-500);
+  animation: muro-capa-late 3.4s var(--muelle-ambiental) infinite;
+}
+
+.muro-capas span:nth-child(2) { animation-delay: 0.45s; }
+.muro-capas span:nth-child(3) { animation-delay: 0.9s; }
+
+/* ---------------------------------------------------------------------------
    LO QUE SE APAGA, Y CÓMO
    ---------------------------------------------------------------------------
    Con movimiento reducido no se «anima menos»: no se anima. Y se apaga en el
@@ -2112,7 +2212,8 @@ body {
    vista—, porque apagar no puede dejar la pantalla peor que encender.
    Ambiental es lo primero que cae en `sobrio`: es lo único que no informa. */
 [data-movimiento='sobrio'] .muro-derrame::before,
-[data-movimiento='sobrio'] .muro-reflector::before {
+[data-movimiento='sobrio'] .muro-reflector::before,
+[data-movimiento='sobrio'] .muro-capas span {
   animation: none;
 }
 
@@ -2120,12 +2221,16 @@ body {
   .muro-entra,
   .muro-junta,
   .muro-palabra,
-  .muro-cifra-cambia {
+  .muro-cifra-cambia,
+  .muro-vivo,
+  .muro-ranura,
+  .muro-anuncio[data-saliendo] {
     animation-duration: 1ms;
   }
 
   .muro-derrame::before,
-  .muro-reflector::before {
+  .muro-reflector::before,
+  .muro-capas span {
     animation: none;
   }
 }

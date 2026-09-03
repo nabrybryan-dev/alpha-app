@@ -33,6 +33,39 @@ const EN_LA_IZQUIERDA = new Set<ClaveDeCampo>(['nombre', 'tecnica', 'seriesReps'
 /** Los cinco campos de EJECUTAR, colgados del muro izquierdo. */
 export const MURO_IZQUIERDO = CAMPOS_DE_PARED.filter((c) => EN_LA_IZQUIERDA.has(c))
 
+/**
+ * EL REPARTO POR TIEMPO: qué se anuncia y qué se queda vivo.
+ *
+ * Los cinco campos del muro izquierdo no cambian —siguen siendo cinco y siguen colgando
+ * del mismo muro—; lo que se decidió el 2026-09-03 es CUÁNDO se ve cada uno. El nombre y
+ * la técnica son lo que hay que leer UNA vez, al llegar al ejercicio: se anuncian y se
+ * retiran. Las tres cifras son la prescripción de la serie que estás a punto de hacer: se
+ * quedan.
+ *
+ * Se derivan del mismo array del contrato que `MURO_IZQUIERDO`, y por lo mismo: escritas a
+ * mano, olvidar un campo no rompería nada —simplemente dejaría de verse en los dos
+ * estados, que es la forma más silenciosa de perder un dato—. Filtrando, cada campo del
+ * muro cae en una capa y en una sola.
+ */
+const EN_EL_ANUNCIO_SET = new Set<ClaveDeCampo>(['nombre', 'tecnica'])
+
+/** Lo que el muro ANUNCIA al llegar al ejercicio, y luego retira. */
+export const EN_EL_ANUNCIO = MURO_IZQUIERDO.filter((c) => EN_EL_ANUNCIO_SET.has(c))
+
+/** Lo que el muro deja ENCENDIDO: la prescripción de la serie en curso. */
+export const EN_LO_VIVO = MURO_IZQUIERDO.filter((c) => !EN_EL_ANUNCIO_SET.has(c))
+
+/**
+ * Y DE ESAS TRES, LA QUE MANDA. Va sola y a cuerpo de marcador.
+ *
+ * Series y repeticiones es lo que decide qué haces AHORA; la carga y el RIR la matizan.
+ * Puestas las tres al mismo cuerpo en una fila, a 1,5em partían palabras —«3 × (8-» /
+ * «10)»—: con 2,37 m de muro visible no caben tres columnas de cifra grande, cabe una.
+ * Es un array de uno y no una constante suelta para que `MuroDeCampos` lo reciba como
+ * recibe cualquier otro grupo, con su `data-campo` y su `data-tope` puestos igual.
+ */
+export const LA_CIFRA_VIVA: readonly ClaveDeCampo[] = EN_LO_VIVO.filter((c) => c === 'seriesReps')
+
 /** Los cuatro campos de MEDIR: se los lleva el módulo de la cámara, que es donde se usan. */
 export const MURO_DERECHO = CAMPOS_DE_PARED.filter((c) => !EN_LA_IZQUIERDA.has(c))
 
@@ -66,4 +99,16 @@ export const CIFRAS_DEL_MURO: ReadonlySet<ClaveDeCampo> = new Set<ClaveDeCampo>(
  * abajo, íntegra, y eso lo garantiza la invariante de `contenidoPared()`. Aquí va la
  * primera indicación, que es la que ordena el resto.
  */
-export const EN_UNA_LINEA: ReadonlySet<ClaveDeCampo> = new Set<ClaveDeCampo>(['tecnica'])
+export const EN_UNA_LINEA: ReadonlySet<ClaveDeCampo> = new Set<ClaveDeCampo>([
+  'tecnica',
+  // LAS TRES CIFRAS ENTRARON EL 2026-09-03, y por la misma cuenta que la técnica.
+  //
+  // Con el rótulo ENCIMA, cada cifra gasta dos líneas de muro: seis para tres datos que
+  // se leen de un vistazo. Es lo que quedaba de la pantalla que Bryan describió como «la
+  // jerarquía visual está muy cargada» — el muro tenía siete bandas y cuatro eran
+  // rótulos. Al lado, las tres caben en dos líneas y siguen diciendo lo mismo: «3 ×
+  // (8-10)» necesita la palabra SERIES delante, y la sigue teniendo.
+  'seriesReps',
+  'carga',
+  'rir',
+])

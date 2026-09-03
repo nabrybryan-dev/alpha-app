@@ -145,24 +145,18 @@ export function RotuloCronometro({ sesionId, className, enCuadro }: { sesionId: 
   )
 }
 
-/** DURACIÓN ESTIMADA, BLOQUE EN CURSO Y EJERCICIO N DE N, en una línea del muro. */
-export function RotuloDeRitmo({ linea, className, enCuadro }: { linea: string; className?: string
-  /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
-  enCuadro?: boolean }) {
-  return (
-    <Rotulo lado="izquierda" className={className} enCuadro={enCuadro}>
-      {/* SIN TÍTULO. «Ritmo de la sesión» encima de «≈ 58m · Bloque de fuerza · Ejercicio
-          1/5» es una etiqueta que repite lo que la línea ya dice, y en un tablón cada
-          línea cuesta altura de muro. La línea entra directamente en la ranura de avisos,
-          que es donde se lee lo que cambia con el tiempo. */}
-      <p className="cifras muro-dato text-[0.82em] font-semibold leading-none">{linea}</p>
-    </Rotulo>
-  )
-}
-
-/** El color con el que la marquesina acusa cómo se va de tiempo. */
+/**
+ * El color con el que la marquesina acusa cómo se va de tiempo.
+ *
+ * `acelerado` era AZUL, y el 2026-09-03 Bryan lo señaló sin nombrarlo: la marquesina era
+ * lo único de la pantalla que no parecía de esta sala. No lo parecía porque no lo es —el
+ * salón es negro mate con acento carmín y la escala de plata; el azul es un color de la
+ * app, y en el muro se leía como una notificación pegada—. Ir acelerado no es un error,
+ * así que tampoco puede ir en carmín: se dice en plata clara, que es como se dice todo lo
+ * que informa sin urgir. El ámbar se queda donde estaba, que es donde sí hay que aflojar.
+ */
 const TINTE = {
-  acelerado: 'text-azul',
+  acelerado: 'text-silver-100',
   'en-ritmo': 'text-silver-200',
   lento: 'text-ambar',
 } as const

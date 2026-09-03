@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { EN_EL_ANUNCIO, EN_LO_VIVO, MURO_IZQUIERDO } from './paredes/muros'
 import { SessionProvider } from '../../../app/SessionProvider'
 import { ThemeProvider } from '../../../app/ThemeProvider'
 import { AppRouter } from '../../../app/router'
@@ -369,6 +370,11 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
   })
 
   it('enciende paredes y el cuadro del registro, que con la metabólica no salen', () => {
+    // Relojes falsos SOLO en esta prueba: el tablón se anuncia 5,5 s y hay que llegar a
+    // su estado de reposo sin esperarlos de verdad. Se devuelven al final para no
+    // contagiar a las pruebas que sí usan `userEvent`, que necesita el reloj real.
+    vi.useFakeTimers()
+    try {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
@@ -378,20 +384,36 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     expect(salon.querySelector('[data-cuadro="registro"]')).not.toBeNull()
     expect(huecos).toContain('centro')
     expect(huecos).toContain('panelInferior')
-    // CINCO paneles de pared, no nueve. Los otros cuatro —los del encuadre: dónde va el
-    // móvil, a qué distancia, qué palanca y qué velocidad— bajaron al panel el 2026-09-02.
+    // CINCO paneles de pared, no nueve — pero YA NO A LA VEZ, y por eso esto se cuenta
+    // por capas desde el 2026-09-03.
     //
-    // Eran cuatro hasta el 2026-09-03, cuando la CARGA subió a la pared: estaba solo dentro
-    // del mando de registrar, que es un botón plegado, y para ver los kilos había que
-    // desplegar un control. Series, carga y RIR se leen juntos o no se leen.
+    // Los otros cuatro —los del encuadre: dónde va el móvil, a qué distancia, qué palanca
+    // y qué velocidad— bajaron al panel el 2026-09-02, y la CARGA subió a la pared el
+    // 2026-09-03 porque series, carga y RIR se leen juntos o no se leen.
     //
-    // No es un recorte de contenido, es el reparto del §1 de `SEMANA-2.md`: en la pared va
-    // la lista amarilla, y de la cámara ahí solo entra «medir con la cámara». Puestos en la
-    // pared, esos cuatro campos y el estante del material ocupaban juntos el 98 % del ancho
-    // a la altura de las piernas del sujeto, y la captura del 2-sep enseña el resultado:
-    // once paneles opacos y del cuerpo una astilla. Los implementos 3D aportaban 36 píxeles
-    // no porque no se dibujaran, sino porque esto los tapaba.
-    expect(salon.querySelectorAll('[data-campo][data-tope]')).toHaveLength(5)
+    // Lo que cambió después es CUÁNDO se ve cada uno: el tablón agrupa por tiempo, así que
+    // al montarse anuncia el ejercicio —nombre y técnica— y en reposo deja encendida la
+    // prescripción de la serie. Contar cinco en un solo instante volvería a exigir la
+    // pantalla cargada que Bryan rechazó; contar la UNIÓN es lo que impide que plegar se
+    // convierta en perder. Los grupos salen de `muros.ts`, no de una lista escrita aquí:
+    // dos listas separadas se desincronizan y esta prueba dejaría de vigilar nada.
+    const camposVisibles = () =>
+      Array.from(salon.querySelectorAll('[data-campo][data-tope]')).map((n) =>
+        n.getAttribute('data-campo'),
+      )
+
+    expect(camposVisibles()).toEqual([...EN_EL_ANUNCIO])
+
+    act(() => {
+      vi.advanceTimersByTime(6500)
+    })
+    expect(camposVisibles()).toEqual([...EN_LO_VIVO])
+
+    // Y la unión son los cinco del muro, sin repetidos y sin perder ninguno.
+    expect([...EN_EL_ANUNCIO, ...EN_LO_VIVO].sort()).toEqual([...MURO_IZQUIERDO].sort())
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   /**

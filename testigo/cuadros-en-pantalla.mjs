@@ -51,6 +51,7 @@ function leerOpciones(argv) {
     girar: 0,
     panel: false,
     ver: '',
+    espera: 0,
   }
   for (const bruto of argv.slice(2)) {
     const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
@@ -66,6 +67,7 @@ function leerOpciones(argv) {
     else if (nombre === 'sin-reducir') o.sinReducir = true
     else if (nombre === 'girar') o.girar = Number(valor)
     else if (nombre === 'panel') o.panel = true
+    else if (nombre === 'espera') o.espera = Number(valor)
     else if (nombre === 'ver') {
       o.panel = true
       o.ver = valor
@@ -228,6 +230,15 @@ async function main() {
         await dt.pedir('Input.dispatchMouseEvent', { type: 'mouseReleased', x: donde.x, y: donde.y, button: 'left', buttons: 0 })
         await esperar(1000)
       }
+    }
+
+    // ESPERAR ANTES DE MEDIR. El tablón del muro agrupa por TIEMPO: anuncia el ejercicio
+    // 5,5 s y luego se retira dejando la prescripción de la serie. Sin poder esperar, el
+    // testigo solo sabe retratar la primera de las dos capas — y la que se ve el 95 % del
+    // tiempo es la otra.
+    if (o.espera > 0) {
+      await esperar(o.espera)
+      console.log(`  esperados ${o.espera} ms antes de medir`)
     }
 
     // DESPLAZAR LA HOJA HASTA UN TRAMO. El panel abierto son trece recuadros en una

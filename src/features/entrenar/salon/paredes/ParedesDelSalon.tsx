@@ -1,20 +1,12 @@
 import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
 import type { RitmoSesion } from '../../../../domain/ritmoSesion'
-import { avisosDelSalon, lineaDeRitmo, loQueViene } from './avisosDelSalon'
-import { MuroDeCampos } from './PanelPared'
-import { MURO_IZQUIERDO } from './muros'
+import { loQueViene } from './avisosDelSalon'
 import type { ContenidoDePared } from './contenidoPared'
-import {
-  AContinuacion,
-  Marquesina,
-  RotuloCronometro,
-  RotuloDeRitmo,
-  RotuloDelDia,
-  TablaDeSeries,
-} from './RotulosDelSalon'
+import { AContinuacion, TablaDeSeries } from './RotulosDelSalon'
 import { CamaraDelSalon } from '../camara/CamaraDelSalon'
 import { BarraRegistro } from '../registro/BarraRegistro'
 import { CuadroDePared } from './CuadroDePared'
+import { TablonDelMuro } from './TablonDelMuro'
 import { asentarEnLaBanda, type CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
 import { SITIOS, sitioEn } from './sitiosDeLaPared'
 
@@ -147,30 +139,26 @@ export function ParedesDelSalon({
           11,1 m del muro de enfrente son **2,37 m de pared**. Ahí no caben cuatro cuadros.
           Cabe uno.
 
-          Así que es UNO, con jerarquía dentro y en el orden en que se mira: de quién es
-          hoy la sesión y cuánto llevas → qué toca ahora → con qué cifras → qué avisa. Es
-          lo que hace el marcador de un pabellón, y es lo que pedía el documento de
-          referencia: «in the visual language of a stadium scoreboard». */}
+          Así que es UNO. Pero un cuadro no es una lista: apiladas dentro, sus siete
+          bandas volvían a ser una página web, ordenada solo por el cuerpo de letra. El
+          2026-09-03 Bryan eligió ordenarlas por TIEMPO, y esa máquina —anuncio, relevo,
+          vivo— vive en `TablonDelMuro`, que es quien decide qué se ve cuándo. Aquí solo
+          se decide DÓNDE cuelga. */}
       {contenido && (
         <CuadroDePared clave="ejercicio" sitio={donde(SITIOS.ejercicio)} camara={camara} lienzo={lienzo}>
-          {/* La cabecera, en una línea: a la izquierda quién eres hoy, a la derecha
-              cuánto llevas. Van juntas porque se leen juntas al levantar la vista. */}
-          <div className="flex items-start justify-between gap-[0.8em]">
-            <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
-            {sesion && <RotuloCronometro sesionId={sesion.id} enCuadro />}
-          </div>
-          <hr className="muro-junta my-[0.45em]" aria-hidden="true" />
-          <MuroDeCampos contenido={contenido} campos={MURO_IZQUIERDO} lado="izquierda" enCuadro />
-          {/* LA RANURA DE ABAJO: una sola línea con lo que cambia con el tiempo.
-              El ritmo y los avisos eran dos bloques con su título cada uno —cuatro líneas
-              de muro— y dicen lo mismo: cómo vas. Aquí el ritmo es la primera frase y los
-              avisos pasan detrás, por la misma ranura. */}
-          {ritmo && (
-            <div className="mt-[0.45em]">
-              <RotuloDeRitmo linea={lineaDeRitmo(ritmo)} enCuadro />
-              <Marquesina avisos={avisosDelSalon(ritmo, ejercicio, notas)} className="mt-[0.3em]" />
-            </div>
-          )}
+          <TablonDelMuro
+            // LA LLAVE ES EL EJERCICIO, y no es una optimización: es lo que hace que el
+            // tablón vuelva a ANUNCIARSE al cambiar de ejercicio. Sin ella el muro se
+            // quedaría en su estado de reposo enseñando la prescripción de un ejercicio
+            // nuevo que nunca dijo cuál es.
+            key={ejercicio?.id ?? 'sin-ejercicio'}
+            contenido={contenido}
+            microciclo={microciclo}
+            sesion={sesion}
+            ejercicio={ejercicio}
+            ritmo={ritmo}
+            notas={notas}
+          />
         </CuadroDePared>
       )}
 
