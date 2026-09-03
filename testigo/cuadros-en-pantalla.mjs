@@ -50,6 +50,7 @@ function leerOpciones(argv) {
     sinReducir: false,
     girar: 0,
     panel: false,
+    ver: '',
   }
   for (const bruto of argv.slice(2)) {
     const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
@@ -65,6 +66,10 @@ function leerOpciones(argv) {
     else if (nombre === 'sin-reducir') o.sinReducir = true
     else if (nombre === 'girar') o.girar = Number(valor)
     else if (nombre === 'panel') o.panel = true
+    else if (nombre === 'ver') {
+      o.panel = true
+      o.ver = valor
+    }
   }
   o.cola = o.usuario ? [o.usuario] : CANDIDATOS
   return o
@@ -223,6 +228,23 @@ async function main() {
         await dt.pedir('Input.dispatchMouseEvent', { type: 'mouseReleased', x: donde.x, y: donde.y, button: 'left', buttons: 0 })
         await esperar(1000)
       }
+    }
+
+    // DESPLAZAR LA HOJA HASTA UN TRAMO. El panel abierto son trece recuadros en una
+    // columna con scroll: la foto de arriba no dice NADA de los de abajo, y los bloques
+    // de la Ruta viven todos del octavo para abajo. `--ver=nivel` lleva ese tramo al
+    // borde de arriba de la hoja; sin esto, media hoja se sigue diseñando de memoria,
+    // que es el error del reflector otra vez.
+    if (o.ver) {
+      const puesto = await dt.evaluar(
+        '(() => { const n = document.querySelector(' +
+          `'[data-recuadro="${o.ver}"]'` +
+          '); if (!n) return null; n.scrollIntoView({ block: "start", behavior: "instant" }); ' +
+          'return Math.round(n.getBoundingClientRect().top) })()',
+      )
+      if (puesto === null) console.log(`   no encontré el recuadro «${o.ver}»`)
+      else console.log(`  hoja desplazada hasta «${o.ver}» (arriba en y=${puesto})`)
+      await esperar(400)
     }
 
     const acta = await dt.evaluar(comoExpresion(MEDIR_EN_PAGINA))

@@ -188,7 +188,14 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
     ['RequisitosNivel', '../../ruta/RequisitosNivel'],
     ['NotasDeLaSemana', '../../NotasDeLaSemana'],
   ])('el panel monta el %s de la Ruta, no una copia', (componente, ruta) => {
-    expect(PANEL_INFERIOR).toContain(`import { ${componente} } from '${ruta}'`)
+    // Se busca el componente DENTRO de la llave de su import, no la línea entera: el
+    // 2026-09-03 `ComoLlegas` pasó a traerse también su función de tono —la cifra del
+    // índice subió al rótulo del tramo y el color tenía que subir con ella— y esta
+    // prueba se puso roja sin que nada estuviera mal. Lo que tiene que vigilar es el
+    // ORIGEN del componente; qué más venga de ese mismo archivo no es asunto suyo.
+    const linea = PANEL_INFERIOR.split('\n').find((l) => l.includes(`} from '${ruta}'`))
+    expect(linea, `no hay import desde '${ruta}'`).toBeDefined()
+    expect(linea).toMatch(new RegExp(`[{,]\\s*${componente}\\s*[,}]`))
     expect(PANEL_INFERIOR).toContain(`<${componente}`)
   })
 
@@ -247,5 +254,64 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
     for (const fn of ['cargaPorGrupo', 'formatearSeries', 'fraseDelMicrociclo']) {
       expect(recuadro, `RecuadroMicrociclo no usa ${fn}`).toContain(fn)
     }
+  })
+
+  /**
+   * LOS BLOQUES DE LA RUTA ENTRAN EN LA HOJA SIN MARCO NI ROTULO PROPIOS.
+   *
+   * Los seis venian de una pantalla que era una columna de tarjetas, y cada uno traia lo
+   * suyo: un `<section>` con borde y fondo, y dentro un `<h3>` con su titulo. Dentro del
+   * panel eso se convertia en una caja dentro de una caja y en el titulo dicho dos veces
+   * seguidas —el rotulo del tramo, y dos lineas mas abajo el mismo texto—. Bryan lo
+   * senalo el 2026-09-03 mirando la pantalla, no el codigo.
+   *
+   * La prueba mira la etiqueta RAIZ de cada bloque y solo esa: por dentro sí hay objetos
+   * con marco —las siete teclas del calendario, sus filas de agenda— y eso es correcto,
+   * son objetos de verdad. Lo que no puede volver es que el BLOQUE sea una tarjeta.
+   *
+   * `<h3>` es la forma exacta que tenia el eco, así que se prohíbe por nombre. El `<h2>`
+   * de `CabeceraNivel` se queda: no repite el rotulo del tramo, dice el nivel.
+   */
+  const BLOQUES_DE_LA_RUTA = [
+    'CabeceraNivel',
+    'TarjetaProgresoNivel',
+    'ComoLlegas',
+    'BloqueEnCurso',
+    'CalendarioSemana',
+    'RequisitosNivel',
+  ]
+
+  /**
+   * El codigo sin sus comentarios.
+   *
+   * Hace falta porque las dos comprobaciones de abajo buscan formas que se NOMBRAN al
+   * explicar por que se fueron: el comentario de `ComoLlegas` dice «el `<h3>` decia por
+   * segunda vez lo que el rotulo acababa de decir», y sin esto la prueba lo cazaba a el.
+   * Un falso rojo cuesta mas que un falso verde: se vuelve ruido y acaba en `skip`.
+   */
+  function sinComentarios(codigo: string): string {
+    return codigo.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+  }
+
+  /** Las clases de la etiqueta raiz, saltandose los comentarios que la preceden. */
+  function claseRaiz(codigo: string): string {
+    const cuerpo = sinComentarios(codigo).slice(sinComentarios(codigo).indexOf('return ('))
+    const etiqueta = cuerpo.match(/<(?:section|header|div|article)([^>]*)>/)
+    if (!etiqueta) return ''
+    const clase = etiqueta[1].match(/className="([^"]*)"/)
+    return clase ? clase[1] : ''
+  }
+
+  it.each(BLOQUES_DE_LA_RUTA)('%s entra en la hoja sin marco propio', (componente) => {
+    const clase = claseRaiz(fuente(`src/features/entrenar/ruta/${componente}.tsx`))
+    for (const marca of ['border', 'rounded', 'bg-ink', 'shadow-']) {
+      expect(clase, `${componente} vuelve a ser una tarjeta: "${clase}"`).not.toContain(marca)
+    }
+  })
+
+  it.each(BLOQUES_DE_LA_RUTA)('%s no repite el rotulo de su tramo', (componente) => {
+    expect(sinComentarios(fuente(`src/features/entrenar/ruta/${componente}.tsx`))).not.toContain(
+      '<h3',
+    )
   })
 })

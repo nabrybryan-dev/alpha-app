@@ -39,10 +39,23 @@ export interface RecuadroProps {
   titulo: string
   /** Una línea de contexto bajo el título. Opcional. */
   pie?: string
+  /**
+   * LA CIFRA DEL TRAMO, a la derecha del título.
+   *
+   * Nace con los bloques de la Ruta y resuelve un problema suyo: cada uno traía su
+   * propia fila de cabecera —título repetido a la izquierda, número a la derecha—, así
+   * que quitarle el título repetido dejaba el número huérfano. Sube aquí, y de paso
+   * gana algo que antes no tenía: **el número sobrevive al plegado**. Un tramo cerrado
+   * seguía diciendo «Cómo llegas esta semana» y nada más; ahora sigue diciendo 88.
+   *
+   * Va como nodo y no como texto porque el color lo pone el dato —el tono de
+   * recuperación es verde, ámbar o plata— y esa decisión no es de la hoja.
+   */
+  cifra?: ReactNode
   children: ReactNode
 }
 
-export function Recuadro({ clave, titulo, pie, children }: RecuadroProps) {
+export function Recuadro({ clave, titulo, pie, cifra, children }: RecuadroProps) {
   const [abierto, setAbierto] = useState(true)
   const idContenido = useId()
 
@@ -70,6 +83,11 @@ export function Recuadro({ clave, titulo, pie, children }: RecuadroProps) {
             </span>
             {pie && <span className="mt-1.5 block text-[11.5px] leading-snug text-silver-400">{pie}</span>}
           </span>
+          {cifra !== undefined && (
+            <span className="cifras shrink-0 self-center text-[13px] font-bold leading-none">
+              {cifra}
+            </span>
+          )}
           {/* El acuse de plegado va con MATERIA y no con un semáforo: una flecha que
               gira. `aria-hidden` porque el estado ya lo dice `aria-expanded` del botón;
               anunciarlo dos veces es ruido para quien navega con lector.

@@ -16,17 +16,14 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
   const seguro = Math.max(0, Math.min(100, Math.round(pct)))
 
   return (
-    // La escena la abre la tarjeta y no la página: cada bloque de la Ruta trae la
-    // suya, igual que hacen los rieles de la sesión. Así ningún ancestro común crea
-    // un bloque contenedor para lo que pueda venir `fixed` desde dentro.
-    <section className="escena-prof rounded-[18px] border border-ink-500 bg-ink-700 p-4 shadow-brillo">
-      <div className="flex items-baseline justify-between gap-2.5">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-silver-500">
-          {siguienteNivel ? `Progreso al nivel ${siguienteNivel.numero}` : 'Nivel máximo alcanzado'}
-        </h3>
-        <span className="cifras text-[15px] font-bold text-accion">{seguro}%</span>
-      </div>
-
+    // La escena la abre el bloque y no la página: cada bloque de la Ruta trae la suya,
+    // igual que hacen los rieles de la sesión. Así ningún ancestro común crea un bloque
+    // contenedor para lo que pueda venir `fixed` desde dentro.
+    //
+    // El marco (`rounded-[18px] border bg-ink-700 shadow-brillo`) y la cabecera se
+    // fueron el 2026-09-03: dentro de la hoja del salón eran una tarjeta dentro de otra
+    // y un título repetido. El porcentaje no se perdió — está en el rótulo del tramo.
+    <section className="escena-prof">
       <div
         role="progressbar"
         aria-valuenow={seguro}
@@ -35,7 +32,7 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
         aria-label={
           siguienteNivel ? `Progreso al nivel ${siguienteNivel.numero}` : 'Progreso de nivel'
         }
-        className="pozo-3d mt-2.5 h-2 overflow-hidden rounded-full bg-ink-500"
+        className="pozo-3d h-2 overflow-hidden rounded-full bg-ink-500"
         // El halo se ha movido del relleno AL CARRIL. Estaba sobre el elemento que
         // recorre, así que había que volver a rasterizar un anillo de 3 px más una
         // sombra de 24 px en cada fotograma del recorrido; y una sombra sobre algo
@@ -68,16 +65,15 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
       {/* La escena va aqui y no solo en la seccion: `perspective` alcanza a los HIJOS
             DIRECTOS, y estas tres cifras son nietas. Sin esto el `translateZ` se
             aplica igual y no escorza — se ve exactamente plano, sin ningun aviso. */}
-      <div className="escena-prof mt-3.5 grid grid-cols-3 gap-2">
+      {/* LAS TRES CIFRAS, ya sin caja.
+          Eran tres recuadros hundidos con borde y fondo propios: tres objetos dentro de
+          un bloque que a su vez estaba dentro de un tramo de la hoja: tres marcos para
+          leer tres números. Ahora las separa una junta de luz —la misma que separa los
+          tramos— y el hundido se va con la caja, porque `--prof-hueco` troquela SOBRE
+          una placa y aquí ya no hay placa que troquelar. */}
+      <div className="escena-prof mt-3.5 grid grid-cols-3 divide-x divide-white/10">
         {estadisticas.map((e) => (
-          // Las tres cifras van TROQUELADAS en la placa, no posadas encima: son datos
-          // que se leen, y `--prof-hueco` es exactamente «cifras, troqueles, notas al
-          // pie». Ninguna de las tres es tocable, así que hundirlas no roza la regla
-          // de que ninguna diana baje del plano.
-          <div
-            key={e.etiqueta}
-            className="pozo-3d rounded-[11px] border border-ink-500 bg-ink-800 px-2.5 py-2.5"
-          >
+          <div key={e.etiqueta} className="px-3 first:pl-0 last:pr-0">
             <p className="cifras text-base font-bold leading-none text-silver-100">{e.valor}</p>
             <p className="mt-1.5 text-[9.5px] font-bold uppercase leading-tight tracking-[0.12em] text-silver-500">
               {e.etiqueta}

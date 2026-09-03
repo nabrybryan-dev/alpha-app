@@ -1,9 +1,10 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import type {
-  DiaRuta,
-  MiniEstadistica,
-  RequisitoNivel,
-  RutaAsesorado,
+import {
+  resumenSemana,
+  type DiaRuta,
+  type MiniEstadistica,
+  type RequisitoNivel,
+  type RutaAsesorado,
 } from '../../../../domain/rutaEntrenamiento'
 import type { Recuperacion } from '../../../../domain/readiness'
 import type { ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
@@ -11,7 +12,7 @@ import type { Patron } from '../../../../domain/patrones/catalogo'
 import type { TextoDePanel } from '../paredes/contenidoPared'
 import { CabeceraNivel } from '../../ruta/CabeceraNivel'
 import { TarjetaProgresoNivel } from '../../ruta/TarjetaProgresoNivel'
-import { ComoLlegas } from '../../ruta/ComoLlegas'
+import { ComoLlegas, tonoDeRecuperacion } from '../../ruta/ComoLlegas'
 import { BloqueEnCurso } from '../../ruta/BloqueEnCurso'
 import { CalendarioSemana } from '../../ruta/CalendarioSemana'
 import { RequisitosNivel } from '../../ruta/RequisitosNivel'
@@ -141,6 +142,9 @@ export function PanelInferior(props: PanelInferiorProps) {
     contenido,
     material,
   } = props
+
+  /** Las sesiones hechas de las programadas. Sube al rótulo del tramo de «La semana». */
+  const sesionesDeLaSemana = resumenSemana(semana)
 
   const [abierto, setAbierto] = useState(false)
   /** Píxeles que el dedo lleva recorridos EN ESTE arrastre. Negativo es hacia arriba. */
@@ -307,6 +311,7 @@ export function PanelInferior(props: PanelInferiorProps) {
                   ? `Progreso al nivel ${ruta.siguienteNivel.numero}`
                   : 'Nivel máximo alcanzado'
               }
+              cifra={<span className="text-accion">{Math.max(0, Math.min(100, Math.round(progresoPct)))}%</span>}
             >
               <TarjetaProgresoNivel
                 pct={progresoPct}
@@ -316,7 +321,17 @@ export function PanelInferior(props: PanelInferiorProps) {
               />
             </Recuadro>
 
-            <Recuadro clave="como-llegas" titulo="Cómo llegas esta semana">
+            <Recuadro
+              clave="como-llegas"
+              titulo="Cómo llegas esta semana"
+              cifra={
+                recuperacion.indice === undefined ? undefined : (
+                  <span className={tonoDeRecuperacion(recuperacion.indice).clase}>
+                    {recuperacion.indice}
+                  </span>
+                )
+              }
+            >
               {recuperacion.indice === undefined ? (
                 <SinDatos motivo="Aún no hay check-ins de bienestar en la ventana: sin ellos el índice de recuperación no se puede calcular, y una cifra inventada no es contexto." />
               ) : (
@@ -324,15 +339,29 @@ export function PanelInferior(props: PanelInferiorProps) {
               )}
             </Recuadro>
 
-            <Recuadro clave="bloque-en-curso" titulo="Bloque en curso">
+            <Recuadro
+              clave="bloque-en-curso"
+              titulo="Bloque en curso"
+              cifra={
+                <span className="text-silver-300">
+                  {ruta.bloque.semana}/{ruta.bloque.semanasTotales}
+                </span>
+              }
+            >
               <BloqueEnCurso bloque={ruta.bloque} sesion={sesionCta} />
             </Recuadro>
 
-            <Recuadro clave="calendario" titulo="La semana">
-              <CalendarioSemana
-                dias={semana}
-                titulo={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
-              />
+            <Recuadro
+              clave="calendario"
+              titulo="La semana"
+              pie={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
+              cifra={
+                <span className="text-silver-400">
+                  {sesionesDeLaSemana.completadas}/{sesionesDeLaSemana.programadas}
+                </span>
+              }
+            >
+              <CalendarioSemana dias={semana} />
             </Recuadro>
 
             <Recuadro

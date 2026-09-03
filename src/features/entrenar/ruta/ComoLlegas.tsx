@@ -1,5 +1,17 @@
 import type { Recuperacion } from '../../../domain/readiness'
 
+/**
+ * El tono del índice: cómo se llama y de qué color va.
+ *
+ * Se exporta porque la cifra ya no vive dentro de este bloque —subió al rótulo del
+ * tramo, en la hoja del salón— y el color tiene que subir con ella. Un 88 en plata
+ * cuando el texto de abajo dice «Recuperado» en verde son dos afirmaciones distintas
+ * sobre el mismo dato.
+ */
+export function tonoDeRecuperacion(indice: number): { texto: string; clase: string; barra: string } {
+  return tono(indice)
+}
+
 function tono(indice: number): { texto: string; clase: string; barra: string } {
   if (indice >= 70) return { texto: 'Recuperado', clase: 'text-accion', barra: 'bg-accion' }
   if (indice >= 50) return { texto: 'En trabajo', clase: 'text-silver-200', barra: 'bg-silver-200' }
@@ -21,13 +33,11 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
   const t = tono(indice)
 
   return (
-    <section className="escena-prof rounded-tarjeta border border-ink-500 bg-ink-800 px-4 py-3.5">
-      <div className="flex items-baseline justify-between gap-2.5">
-        <h3 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-silver-500">
-          Cómo llegas esta semana
-        </h3>
-        <span className={`cifras text-[13px] font-bold ${t.clase}`}>{indice}</span>
-      </div>
+    // Sin marco y sin cabecera propia. El bloque entró en el salón dentro de un tramo de
+    // la hoja, que ya le pone número, rótulo y la cifra a la derecha; el marco de aquí
+    // era una tarjeta dentro de otra y el `<h3>` decía por segunda vez lo que el rótulo
+    // acababa de decir. Queda `escena-prof` porque la barra sigue hundiéndose.
+    <section className="escena-prof">
       <div
         role="progressbar"
         aria-valuenow={indice}
@@ -37,7 +47,7 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
         // El carril hundido (`--prof-hueco`): lo que le falta al indice es materia
         // que falta. Mismo gesto que la barra de progreso de nivel y que las de
         // competencias, para que las cuatro se lean como el mismo instrumento.
-        className="pozo-3d mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
+        className="pozo-3d h-[5px] overflow-hidden rounded-full bg-ink-500"
       >
         {/* El relleno va por `scaleX` y no por `width`: width relayoutea en cada
             fotograma y esta pantalla corre con la pieza cinemática haciendo scrub
