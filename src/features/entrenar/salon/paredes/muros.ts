@@ -55,3 +55,15 @@ export const CIFRAS_DEL_MURO: ReadonlySet<ClaveDeCampo> = new Set<ClaveDeCampo>(
   'carga',
   'rir',
 ])
+
+/**
+ * LOS QUE VAN EN UNA LÍNEA, con el rótulo al lado y no encima.
+ *
+ * `tecnica` es el único campo del tablón que es PROSA, y apilado se llevaba dos líneas de
+ * muro —el rótulo y el texto— de las siete que caben. Con el rótulo al lado ocupa una.
+ *
+ * No es sitio para el cue entero y nunca lo fue: la versión larga vive en el panel de
+ * abajo, íntegra, y eso lo garantiza la invariante de `contenidoPared()`. Aquí va la
+ * primera indicación, que es la que ordena el resto.
+ */
+export const EN_UNA_LINEA: ReadonlySet<ClaveDeCampo> = new Set<ClaveDeCampo>(['tecnica'])

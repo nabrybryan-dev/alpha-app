@@ -166,10 +166,16 @@ export function proyectarCuadro(
 /**
  * EL MARGEN QUE UN CUADRO GUARDA CON EL BORDE DE ARRIBA, en píxeles.
  *
- * Doce y no cero: un cuadro que acaba justo en el filo se lee como cortado aunque esté
- * entero, porque el ojo no ve el marco de arriba.
+ * Veintiocho y no cero: un cuadro que acaba justo en el filo se lee como cortado aunque
+ * esté entero, porque el ojo no ve el marco de arriba. Empezó en doce y se subió el
+ * 2026-09-03 mirando la pantalla: con doce, el tablón de enfrente quedaba a 11 px del
+ * borde y la composición se leía apretada contra el techo — un rótulo de pared necesita
+ * aire por arriba o parece que se le acabó el sitio.
+ *
+ * Cuesta elevación: cada píxel de margen es muro que ya no se puede usar. Con 28 el techo
+ * del salón baja de 10° a lo que diga `geometriaDeCuadro.test.ts`, que lo tiene clavado.
  */
-export const MARGEN_ARRIBA = 12
+export const MARGEN_ARRIBA = 28
 
 /**
  * HASTA DÓNDE SE PUEDE BAJAR UN CUADRO SIN QUE LO TAPE EL CUERPO, en metros.

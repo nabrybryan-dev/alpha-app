@@ -492,16 +492,22 @@ export const ENCUADRE_SALA = {
    * entre 629 y 861 px por encima de la pantalla y el salón se abría sin una letra
    * dentro. A 46°, la altura de muro más alta que entra en el cuadro es −1,98 m.
    *
-   * **Diez y no doce**: doce es donde se corta el cuadro del ejercicio, que es el más
-   * alto de los nueve. El techo real está clavado en `geometriaDeCuadro.test.ts`, y si
-   * alguien le añade un campo baja y esa prueba lo dice.
+   * **Ocho.** Empezó en diez, y bajó a ocho el mismo día al componer el tablón: enfrente
+   * ya no cuelgan cuatro cuadros pequeños sino uno grande —cabecera, cronómetro,
+   * ejercicio, cifras y avisos en una sola composición—, y un tablón más alto necesita
+   * más muro. Los otros dos grados los paga el margen con el borde de arriba, que subió
+   * de 12 a 28 px porque a 12 la composición se leía apretada contra el techo.
+   *
+   * El techo real está clavado en `geometriaDeCuadro.test.ts`, y si alguien le añade una
+   * línea al tablón baja y esa prueba lo dice. La cuenta al día de hoy: 18 de los 32
+   * patrones entran por debajo del tope y a 14 se les acota la entrada.
    *
    * Lo que se paga: un press tumbado se ve casi de perfil en vez de desde arriba. Lo
    * decidió Bryan el 2026-09-03, viendo las dos capturas. Y lo que NO toca: el ángulo y
    * la distancia de la estación de grabación, que son el contrato de medida del encoder
    * y no se mueven por motivos de encuadre.
    */
-  elevacionMaxima: 10,
+  elevacionMaxima: 8,
 } as const
 
 /**

@@ -60,30 +60,33 @@ export function CamaraDelSalon({
     <div
       data-testigo="camara"
       style={style}
-      className={`pointer-events-auto flex flex-col gap-1 ${className}`}
+      className={`pointer-events-auto flex flex-col gap-[0.45em] ${className}`}
     >
-      {/* EL TRÍPODE, en silueta. Cuatro trazos: las tres patas, la columna y el cuerpo de
-          la cámara mirando al centro del cuadro. Es lo que hace que el módulo se lea como
-          un aparato apoyado en el suelo del salón y no como un botón más. */}
-      <div className="flex items-center gap-1.5">
+      {/* LA CABECERA DEL REFLECTOR: el trípode en silueta y el rótulo, dentro del cono.
+
+          El trípode no se cambia —es lo que dice que esto es un aparato del salón y no un
+          botón—, pero deja de ir junto a una etiqueta de interfaz y pasa a ir junto a un
+          rótulo serigrafiado en el muro. El punto rojo del testigo de grabación late: es
+          lo que hace que el reflector parezca encendido y no dibujado. */}
+      <div className="flex items-center gap-[0.5em]">
         <svg
           viewBox="0 0 24 26"
           aria-hidden="true"
-          className="h-6 w-[22px] shrink-0 text-accion"
+          className="h-[2.1em] w-[1.9em] shrink-0 text-accion"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.4"
           strokeLinecap="round"
           strokeLinejoin="round"
+          style={{ filter: 'drop-shadow(0 0 0.35em rgb(var(--accion-rgb) / 0.5))' }}
         >
           <path d="M12 12v6" />
           <path d="M12 18 6 25M12 18l6 7M12 18v7" />
           <rect x="4" y="4" width="12" height="8" rx="1.5" />
           <path d="m16 7 4-2v6l-4-2" />
         </svg>
-        <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
-          Cámara del encuadre
-        </p>
+        <p className="muro-rotulo text-[0.62em]">Cámara del encuadre</p>
+        <span className="punto-vivo ml-auto h-[0.42em] w-[0.42em] shrink-0 rounded-full bg-accion" aria-hidden="true" />
       </div>
 
       {/* LOS CUATRO CAMPOS DEL ENCUADRE YA NO ESTÁN AQUÍ, y no se han perdido: bajaron al
@@ -95,12 +98,19 @@ export function CamaraDelSalon({
           captura del 2-sep enseña once paneles opacos y del cuerpo una astilla. Los
           implementos 3D aportaban 36 píxeles no porque no se dibujaran, sino porque esto
           los tapaba. */}
+      {/* EL MANDO. Lo único de este módulo que se toca, y por eso lo único con cuerpo.
+
+          Materia de aparato —canto de 2 px, filo de luz arriba, sombra proyectada
+          abajo— y no la tarjeta redondeada de antes. La regla de la capa: lo que se lee
+          es luz sobre el muro, lo que se toca es materia. Si el botón tuviera el mismo
+          aspecto que el rótulo de encima, tocar dejaría de ser evidente. */}
+      <hr className="muro-junta muro-junta-viva" aria-hidden="true" />
       <button
         type="button"
         onClick={() => setMidiendo(true)}
-        className="press flex items-center justify-center gap-1.5 rounded-[9px] border border-white/15 bg-white/5 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-silver-100"
+        className="press muro-mando flex items-center justify-center gap-[0.5em] py-[0.62em] text-[0.72em] font-bold uppercase tracking-[0.16em] text-silver-100"
       >
-        <IconoCamara className="h-[15px] w-[15px] shrink-0" />
+        <IconoCamara className="h-[1.35em] w-[1.35em] shrink-0 text-accion" />
         Medir con la cámara
       </button>
 

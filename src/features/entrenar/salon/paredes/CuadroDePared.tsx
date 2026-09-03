@@ -81,13 +81,19 @@ export function CuadroDePared({
       data-alto-tope={Math.round(sitio.alto * c.escala)}
       style={{ ...estilo, fontSize: `${cuerpo}px`, pointerEvents: interactivo ? 'auto' : 'none', maxWidth: `${sitio.ancho * c.escala}px` }}
     >
-      <div
-        className="overflow-hidden rounded-[6px] border border-white/12 bg-ink-900/80 px-[0.7em] py-[0.55em] shadow-[0_0.5em_1.2em_-0.6em_rgba(0,0,0,0.9)]"
-        // El marco por dentro: un filo claro arriba y sombra abajo, que es como se ve un
-        // cuadro con luz cenital. Va en `style` y no en clases porque las medidas son
-        // relativas al tamaño del cuadro, y ése cambia con la distancia.
-        style={{ boxShadow: 'inset 0 0.08em 0 rgba(255,255,255,0.07), 0 0.5em 1.2em -0.6em rgba(0,0,0,0.9)' }}
-      >
+      {/* SIN CAJA, y es lo que separa esto de un dashboard.
+
+          Aquí hubo un marco de 1 px, un fondo `ink-900/80` y unas esquinas de 6 px. Con
+          eso, cada dato del salón era una tarjeta de la app re-colgada de una pared —lo
+          que Bryan describió el 2026-09-03 como «extraído de la aplicación y pegado
+          literal en las paredes»—. Un dato no es un objeto: es luz que cae sobre el
+          hormigón, y la luz no tiene canto. Lo que la sustituye es `.muro-derrame`, que
+          se sale del bloque por los cuatro lados justamente para no tener filo.
+
+          El que SÍ conserva cuerpo es el interactivo, y no por variar: lo que se aprieta
+          con el dedo tiene que parecer un aparato. Es la regla entera de esta capa —lo
+          que se lee es luz, lo que se toca es materia— y está escrita en `tokens.css`. */}
+      <div className={interactivo ? 'muro-reflector px-[0.7em] py-[0.55em]' : 'muro-derrame px-[0.7em] py-[0.5em]'}>
         {children}
       </div>
     </div>

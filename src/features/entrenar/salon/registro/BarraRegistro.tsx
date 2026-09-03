@@ -65,11 +65,11 @@ export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: Bar
           type="button"
           aria-expanded={abierta}
           onClick={() => setAbierta((v) => !v)}
-          className={`press flex min-w-0 flex-1 items-center rounded-[0.6em] border border-accion/35 bg-ink-900/90 text-left ${enCuadro ? "gap-[0.5em] px-[0.6em] py-[0.4em]" : "gap-2 px-3 py-2"}`}
+          className={`press flex min-w-0 flex-1 items-center text-left ${enCuadro ? "muro-mando gap-[0.5em] px-[0.7em] py-[0.5em]" : "gap-2 rounded-[0.6em] border border-accion/35 bg-ink-900/90 px-3 py-2"}`}
         >
           <span className="min-w-0 flex-1">
             <span className="flex items-baseline gap-1.5">
-              <span className={`font-bold uppercase leading-none tracking-[0.18em] text-accion ${enCuadro ? "text-[0.78em]" : "text-[9px]"}`}>
+              <span className={enCuadro ? 'muro-rotulo text-[0.6em] text-accion' : 'text-[9px] font-bold uppercase leading-none tracking-[0.18em] text-accion'}>
                 {completo ? `${ejercicio.sets} series hechas` : `Serie ${orden} de ${ejercicio.sets}`}
               </span>
               {etiqueta && (
@@ -78,21 +78,44 @@ export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: Bar
                 </span>
               )}
             </span>
-            {!completo && (
-              <span className={`cifras block font-semibold leading-none text-silver-100 ${enCuadro ? "mt-[0.35em] text-[1em]" : "mt-1 text-[12px]"}`}>
-                {String(borrador.cargaKg).replace('.', ',')} kg
-                <span className="mx-1.5 text-silver-500">·</span>
-                {borrador.reps} reps
-                <span className="mx-1.5 text-silver-500">·</span>
-                RIR {borrador.rir}
-              </span>
-            )}
+            {!completo &&
+              // EN EL MURO, los tres números se leen como el tablón de enfrente: rótulo
+              // arriba y cifra debajo, en tres columnas. La línea corrida con puntos
+              // —«20 kg · 9 reps · RIR 2»— es una línea de app: cabe en una tarjeta y en
+              // un mando de pared se aplasta contra el botón. Fuera del muro se queda como
+              // estaba, porque ahí sí es una barra.
+              (enCuadro ? (
+                <span className="mt-[0.4em] flex items-baseline gap-[0.7em]">
+                  {[
+                    { rotulo: 'Carga', valor: `${String(borrador.cargaKg).replace('.', ',')} kg` },
+                    { rotulo: 'Reps', valor: String(borrador.reps) },
+                    { rotulo: 'RIR', valor: String(borrador.rir) },
+                  ].map((c) => (
+                    // `whitespace-nowrap`: sin él «20 kg» partía en dos líneas dentro de
+                    // su columna y el mando crecía de alto por un espacio.
+                    <span key={c.rotulo} className="flex flex-col gap-[0.22em] whitespace-nowrap">
+                      <span className="muro-rotulo text-[0.48em]">{c.rotulo}</span>
+                      <span className="cifras muro-dato text-[0.92em] font-semibold leading-none">
+                        {c.valor}
+                      </span>
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <span className="cifras mt-1 block text-[12px] font-semibold leading-none text-silver-100">
+                  {String(borrador.cargaKg).replace('.', ',')} kg
+                  <span className="mx-1.5 text-silver-500">·</span>
+                  {borrador.reps} reps
+                  <span className="mx-1.5 text-silver-500">·</span>
+                  RIR {borrador.rir}
+                </span>
+              ))}
           </span>
           {/* La flecha acusa el plegado con materia, no con un rótulo: el estado ya lo
               dice `aria-expanded`, y escribirlo además sería ruido para el lector. */}
           <span
             aria-hidden="true"
-            className={`grid shrink-0 place-items-center rounded-full border border-white/15 text-silver-400 transition-transform duration-base ease-salida ${enCuadro ? "h-[1.6em] w-[1.6em]" : "h-6 w-6"}`}
+            className={`grid shrink-0 place-items-center rounded-full text-silver-400 transition-transform duration-base ease-salida ${enCuadro ? "h-[1.5em] w-[1.5em] border border-silver-500/45" : "h-6 w-6 border border-white/15"}`}
             style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -105,8 +128,18 @@ export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: Bar
           <button
             type="button"
             onClick={() => registro.current?.guardar()}
-            className={`press shrink-0 rounded-[0.6em] bg-accion font-display uppercase leading-none tracking-wide text-white ${enCuadro ? "px-[0.8em] text-[0.95em]" : "px-3.5 text-[13px]"}`}
-            style={{ boxShadow: 'var(--glow-accion)' }}
+            // UN INTERRUPTOR ENCENDIDO, no una pastilla. Canto de 2 px como el resto de la
+            // materia del muro, y el resplandor rojo hacia FUERA: es lo que dice que este
+            // trozo de aparato está vivo y que lo que hace es guardar.
+            className={`press shrink-0 font-display uppercase leading-none tracking-wide text-white ${enCuadro ? "rounded-[2px] px-[0.9em] text-[0.95em]" : "rounded-[0.6em] px-3.5 text-[13px]"}`}
+            style={{
+              background: enCuadro
+                ? 'linear-gradient(180deg, var(--accion), var(--accion-osc))'
+                : 'var(--accion)',
+              boxShadow: enCuadro
+                ? '0 0 1.4em -0.2em rgb(var(--accion-rgb) / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.28)'
+                : 'var(--glow-accion)',
+            }}
           >
             Guardar
             <span className="cifras ml-1">{orden}</span>

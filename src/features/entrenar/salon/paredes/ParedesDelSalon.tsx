@@ -121,34 +121,49 @@ export function ParedesDelSalon({
       data-testigo="letras3D"
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      {/* LA CABECERA DE LA SESIÓN, alta y de frente: quién eres hoy y cuánto llevas.
-          Van juntas y arriba porque es lo que se mira al levantar la vista de la barra. */}
-      <CuadroDePared clave="dia" sitio={donde(SITIOS.dia)} camara={camara} lienzo={lienzo}>
-        <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
-      </CuadroDePared>
+      {/* EL TABLÓN DEL MURO DE ENFRENTE — una sola composición, no cuatro fragmentos.
+          =================================================================================
 
-      {sesion && (
-        <CuadroDePared clave="cronometro" sitio={donde(SITIOS.cronometro)} camara={camara} lienzo={lienzo} interactivo>
-          <RotuloCronometro sesionId={sesion.id} enCuadro />
-        </CuadroDePared>
-      )}
+          Aquí colgaban cuatro cuadros distintos: la cabecera del día, el cronómetro, el
+          ritmo con su marquesina y la ficha del ejercicio. Cada uno con su caja, y tres de
+          ellos a ±34° y 42° del ángulo de entrada — o sea, a varias pantallas de distancia
+          de lo que se ve al abrir. Bryan lo describió el 2026-09-03 como «partes extraídas
+          de la aplicación y pegadas literal en las paredes», y tenía razón: eran
+          componentes de app re-colgados de un muro, sin composición entre ellos.
 
-      {ritmo && (
-        <CuadroDePared clave="ritmo" sitio={donde(SITIOS.ritmo)} camara={camara} lienzo={lienzo}>
-          <RotuloDeRitmo linea={lineaDeRitmo(ritmo)} enCuadro />
-          <Marquesina avisos={avisosDelSalon(ritmo, ejercicio, notas)} className="mt-[0.4em]" />
-        </CuadroDePared>
-      )}
+          Medido el mismo día: la ventana horizontal de un 390×844 son 12,18°, que a los
+          11,1 m del muro de enfrente son **2,37 m de pared**. Ahí no caben cuatro cuadros.
+          Cabe uno.
 
-      {/* EL CUADRO GRANDE: qué ejercicio, cómo se hace, cuántas series y hasta dónde.
-          A la izquierda del muro de enfrente, que es donde cae la vista al entrar. */}
+          Así que es UNO, con jerarquía dentro y en el orden en que se mira: de quién es
+          hoy la sesión y cuánto llevas → qué toca ahora → con qué cifras → qué avisa. Es
+          lo que hace el marcador de un pabellón, y es lo que pedía el documento de
+          referencia: «in the visual language of a stadium scoreboard». */}
       {contenido && (
         <CuadroDePared clave="ejercicio" sitio={donde(SITIOS.ejercicio)} camara={camara} lienzo={lienzo}>
+          {/* La cabecera, en una línea: a la izquierda quién eres hoy, a la derecha
+              cuánto llevas. Van juntas porque se leen juntas al levantar la vista. */}
+          <div className="flex items-start justify-between gap-[0.8em]">
+            <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
+            {sesion && <RotuloCronometro sesionId={sesion.id} enCuadro />}
+          </div>
+          <hr className="muro-junta my-[0.45em]" aria-hidden="true" />
           <MuroDeCampos contenido={contenido} campos={MURO_IZQUIERDO} lado="izquierda" enCuadro />
+          {/* LA RANURA DE ABAJO: una sola línea con lo que cambia con el tiempo.
+              El ritmo y los avisos eran dos bloques con su título cada uno —cuatro líneas
+              de muro— y dicen lo mismo: cómo vas. Aquí el ritmo es la primera frase y los
+              avisos pasan detrás, por la misma ranura. */}
+          {ritmo && (
+            <div className="mt-[0.45em]">
+              <RotuloDeRitmo linea={lineaDeRitmo(ritmo)} enCuadro />
+              <Marquesina avisos={avisosDelSalon(ritmo, ejercicio, notas)} className="mt-[0.3em]" />
+            </div>
+          )}
         </CuadroDePared>
       )}
 
-      {/* LO QUE YA SE LEVANTÓ, enfrente y a la derecha, como el marcador de un pabellón. */}
+      {/* LO QUE YA SE LEVANTÓ. Fuera de la ventana de entrada, a un giro corto: es la
+          memoria de la sesión y se consulta en el descanso, no durante la repetición. */}
       {ejercicio && (
         <CuadroDePared clave="series" sitio={donde(SITIOS.series)} camara={camara} lienzo={lienzo}>
           <TablaDeSeries ejercicio={ejercicio} enCuadro />

@@ -1817,3 +1817,185 @@ body {
   transition-duration: 1ms !important;
   scroll-behavior: auto !important;
 }
+
+/* ===========================================================================
+   EL MURO — la información como LUZ, no como tarjeta
+   ===========================================================================
+
+   Bryan lo dijo el 2026-09-03 y tenía razón: lo que colgaba de las paredes del
+   salón eran los componentes de la app re-colgados de un muro. Marco de 1 px,
+   fondo `ink-900/85`, esquinas de 9 px. Eso es cromo de aplicación pegado encima
+   de una habitación, y se lee como lo que es.
+
+   La dirección la fija su propio documento de referencia
+   (`docs/diseno/prompts-salon.md`): «data panels INTEGRATED INTO THE
+   ARCHITECTURE rather than overlaid on top, in the visual language of a stadium
+   scoreboard: seven-segment numerals glowing deep red and cold white, IN
+   PERSPECTIVE with the wall surface».
+
+   De ahí sale la regla de esta capa, y es una frase:
+
+       LO QUE SE LEE ES LUZ SOBRE EL MURO. LO QUE SE TOCA ES MATERIA.
+
+   Un dato no tiene caja porque un dato no es un objeto: es luz que cae sobre el
+   hormigón. Un mando SÍ tiene cuerpo, porque un mando se aprieta con el dedo.
+   Mezclarlos es lo que hacía que todo pareciera pegado.
+
+   ## Por qué nada de esto usa `mix-blend-mode`
+
+   Porque no compone en Safari de iOS sobre un `<canvas>` dentro de un
+   contenedor fijo, y eso ya dejó la pantalla en blanco una vez. La luz se hace
+   con alfa y degradados, que es lo mismo dicho al derecho.
+
+   ## Por qué tampoco usa desenfoque
+
+   `backdrop-filter` sobre el lienzo del sujeto obliga a remuestrear la región en
+   CADA fotograma de la órbita. La regla de la casa lo prohíbe fuera de las
+   superficies fijas, y aquí además sería el peor sitio posible.
+   ------------------------------------------------------------------------- */
+
+/* EL DERRAME. La luz que cae sobre el muro detrás de un bloque de información.
+
+   Va en un pseudoelemento y se sale del bloque por los cuatro lados, para que
+   NO tenga borde: en cuanto se le ve el canto vuelve a ser un panel. Dos capas
+   superpuestas y las dos sin filo — un velo de tinta que da suelo de contraste
+   cuando detrás pasa la luz roja de la sala, y encima el derrame frío. */
+.muro-derrame {
+  position: relative;
+}
+
+.muro-derrame::before {
+  content: '';
+  position: absolute;
+  inset: -70% -34% -85% -34%;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(
+      58% 46% at 50% 34%,
+      rgb(var(--ink-1000-rgb) / 0.82),
+      rgb(var(--ink-1000-rgb) / 0.42) 44%,
+      transparent 72%
+    ),
+    radial-gradient(
+      44% 34% at 50% 10%,
+      rgb(var(--silver-500-rgb) / 0.2),
+      transparent 68%
+    );
+}
+
+/* LA JUNTA DE LUZ. Un filete que se apaga en los dos extremos.
+
+   Es lo que da estructura sin encerrar: separa dos bloques como los separaría
+   una junta del hormigón cogiendo el reflector, y a diferencia de un borde no
+   tiene esquinas — no dibuja una caja porque no se cierra por ningún lado. */
+.muro-junta {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--silver-500-rgb) / 0.55) 18%,
+    rgb(var(--silver-500-rgb) / 0.55) 82%,
+    transparent
+  );
+}
+
+/* La junta del lado del acento: la misma luz, en rojo. Marca el bloque que
+   manda —el ejercicio en curso— sin ponerle un marco de color. */
+.muro-junta-viva {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--accion-rgb) / 0.75) 14%,
+    rgb(var(--accion-rgb) / 0.3) 62%,
+    transparent
+  );
+}
+
+/* EL RÓTULO. Serigrafía en el muro: no emite, así que no lleva derrame.
+   Es la diferencia entre lo que está PINTADO en la pared y lo que está
+   ENCENDIDO sobre ella, y se nota aunque nadie sepa nombrarla. */
+.muro-rotulo {
+  color: var(--silver-500);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* EL DATO. Luz fría sobre el hormigón: el halo es el derrame en la superficie,
+   no un efecto. Corto a propósito —0,42em— porque una luz que se derrama medio
+   metro no ilumina, empasta. */
+.muro-dato {
+  color: var(--silver-100);
+  text-shadow: 0 0 0.42em rgb(var(--silver-500-rgb) / 0.55);
+}
+
+/* La cifra del marcador: rojo profundo y encendido, en la letra de la marca.
+   Es el mismo lenguaje que los dígitos de siete segmentos que la sala construye
+   en geometría — lo que no cabe en siete segmentos se dice así. */
+.muro-cifra {
+  font-family: var(--font-display);
+  color: var(--accion);
+  text-shadow: 0 0 0.5em rgb(var(--accion-rgb) / 0.45);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* EL REFLECTOR. Un cono de luz proyectado sobre el muro.
+
+   Es la respuesta a lo que Bryan pidió para la cámara: «esa información debería
+   aparecer como cuando tú tienes un reflector y aparece todo bien integrado en
+   la pared». No es una ficha con un botón: es una mancha de luz que sale del
+   suelo —de donde está el trípode— y se abre hacia arriba contra la pared, con
+   la información dentro.
+
+   El `clip-path` es el cono, y por eso la mancha no es un óvalo: un reflector
+   apoyado en el suelo abre hacia arriba. Los degradados van dentro del cono, así
+   que el filo del recorte queda siempre en la parte apagada y no se ve. */
+.muro-reflector {
+  position: relative;
+}
+
+.muro-reflector::before {
+  content: '';
+  position: absolute;
+  inset: -30% -46% -120% -46%;
+  pointer-events: none;
+  z-index: -1;
+  clip-path: polygon(38% 0%, 62% 0%, 100% 100%, 0% 100%);
+  background:
+    linear-gradient(
+      to top,
+      rgb(var(--silver-500-rgb) / 0.22),
+      rgb(var(--silver-500-rgb) / 0.07) 46%,
+      transparent 78%
+    ),
+    radial-gradient(
+      70% 52% at 50% 96%,
+      rgb(var(--accion-rgb) / 0.16),
+      transparent 70%
+    );
+}
+
+/* EL MANDO. Lo único de las paredes que se OPERA, y por eso es lo único con
+   cuerpo: un aparato atornillado al muro.
+
+   Materia de aparato y no de tarjeta web: canto vivo (2 px, no 9), un filo de
+   luz arriba y sombra proyectada abajo, que es lo que hace que sobresalga de la
+   pared en vez de flotar sobre ella. Si esto tuviera el mismo aspecto que un
+   dato, tocar dejaría de ser evidente. */
+.muro-mando {
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--ink-800-rgb) / 0.96),
+    rgb(var(--ink-1000-rgb) / 0.96)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(var(--silver-500-rgb) / 0.45),
+    inset 0 -1px 0 rgb(var(--ink-1000-rgb) / 0.9),
+    0 0.5em 1.1em -0.5em rgb(var(--ink-1000-rgb) / 0.95);
+}

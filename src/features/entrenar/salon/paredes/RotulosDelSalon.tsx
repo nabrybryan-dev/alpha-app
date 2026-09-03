@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
 import { textoDeObjetivo } from '../../../../domain/objetivoDeIntensidad'
 import { ESCORZO_DE_PARED } from '../huecos'
@@ -64,13 +65,14 @@ function Rotulo({
       className={className}
     >
       <div
-        // Sin desenfoque, por lo mismo que los campos del ejercicio: esto cuelga sobre el
-        // lienzo del sujeto, que se está animando, y un `backdrop-filter` obligaría a
-        // remuestrear la región en cada fotograma.
-        className={`rounded-[9px] border border-white/10 bg-ink-900/85 px-2.5 py-1.5 ${
+        // Sin marco y sin fondo: `.muro-derrame` es luz sin canto. Y sin desenfoque, por
+        // lo mismo que los campos del ejercicio — esto cuelga sobre el lienzo del sujeto,
+        // que se está animando, y un `backdrop-filter` obligaría a remuestrear la región
+        // en cada fotograma.
+        className={`muro-derrame px-2.5 py-1.5 ${
           lado === 'izquierda' ? 'origin-left text-left' : 'origin-right text-right'
         }`}
-        style={{ transform: giro(lado), boxShadow: '0 6px 18px -12px rgba(0,0,0,.9)' }}
+        style={{ transform: giro(lado) }}
       >
         {children}
       </div>
@@ -93,11 +95,16 @@ export function RotuloDelDia({
 }) {
   return (
     <Rotulo lado="izquierda" className={className} enCuadro={enCuadro}>
-      <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-accion">
-        Microciclo M{microciclo.numero}
-      </p>
-      <p className="mt-0.5 font-display text-[15px] uppercase leading-none text-silver-100">
-        {sesion?.nombre ?? 'Sin sesión hoy'}
+      {/* LA CABECERA NO COMPITE CON EL EJERCICIO. A 1,15em «UPPER B» y «PRESS INCLINADO
+          EN MULTIPOWER» tenían el mismo peso y se leían como un solo bloque de texto: el
+          ojo no sabía cuál era el titular. La cabecera dice DE QUIÉN es la sesión —se lee
+          una vez al entrar—; el ejercicio se lee en cada serie. Así que va en una línea,
+          pequeña y en plata, con el microciclo delante en vez de encima. */}
+      <p className="flex items-baseline gap-[0.5em] leading-none">
+        <span className="muro-rotulo text-[0.56em] text-accion">M{microciclo.numero}</span>
+        <span className="font-display text-[0.82em] uppercase tracking-[0.08em] text-silver-400">
+          {sesion?.nombre ?? 'Sin sesión hoy'}
+        </span>
       </p>
     </Rotulo>
   )
@@ -120,7 +127,18 @@ export function RotuloCronometro({ sesionId, className, enCuadro }: { sesionId: 
   enCuadro?: boolean }) {
   return (
     <Rotulo lado="derecha" className={className} enCuadro={enCuadro}>
-      <div className="[&_.kicker]:text-[7.5px] [&_.kicker]:tracking-[0.2em] [&_button]:text-[26px] [&_p:last-child]:text-[7px] [&_p:last-child]:tracking-[0.14em] [&>div]:py-0">
+      {/* El cronómetro pasa a la letra del marcador: es una CIFRA de la pared, no un
+          número de interfaz. Las variantes alcanzan a los hijos —no se toca el
+          componente, que es el mismo que corre en la pantalla de sesión— y ganan por
+          especificidad sin forzar nada. */}
+      {/* En el tablón el reloj NO puede gritar más que el ejercicio. A 2,4em lo hacía: la
+          hora era lo primero que se leía de la pared, y lo primero es qué toca. Baja a
+          1,45em y la coletilla «toca para pausar» se esconde — el botón conserva su
+          `aria-label`, así que no se pierde para quien lo necesita, y en una pared una
+          instrucción de interfaz es ruido: un reloj de gimnasio no lleva escrito cómo se
+          usa. El rótulo también se esconde: al lado del nombre del día, «cronómetro de
+          sesión» sobre unas cifras que cuentan no informa a nadie. */}
+      <div className="text-right [&_.kicker]:hidden [&_button]:muro-cifra [&_button]:text-[1.45em] [&_p:last-child]:hidden [&>div]:py-0">
         <CronometroSesion sesionId={sesionId} />
       </div>
     </Rotulo>
@@ -133,12 +151,11 @@ export function RotuloDeRitmo({ linea, className, enCuadro }: { linea: string; c
   enCuadro?: boolean }) {
   return (
     <Rotulo lado="izquierda" className={className} enCuadro={enCuadro}>
-      <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
-        Ritmo de la sesión
-      </p>
-      <p className="cifras mt-0.5 text-[10.5px] font-semibold leading-none text-silver-200">
-        {linea}
-      </p>
+      {/* SIN TÍTULO. «Ritmo de la sesión» encima de «≈ 58m · Bloque de fuerza · Ejercicio
+          1/5» es una etiqueta que repite lo que la línea ya dice, y en un tablón cada
+          línea cuesta altura de muro. La línea entra directamente en la ranura de avisos,
+          que es donde se lee lo que cambia con el tiempo. */}
+      <p className="cifras muro-dato text-[0.82em] font-semibold leading-none">{linea}</p>
     </Rotulo>
   )
 }
@@ -160,11 +177,15 @@ const TINTE = {
 export function Marquesina({ avisos, className }: { avisos: AvisosDelSalon; className?: string }) {
   const tira = `${avisos.frases.join('  ·  ')}  ·  `
   return (
-    <div className={`overflow-hidden border-y border-white/10 bg-ink-900/70 py-1 ${className ?? ''}`}>
-      <span className={`ticker-pista text-[10px] font-medium ${TINTE[avisos.estado]}`}>
+    <div className={`overflow-hidden py-[0.3em] ${className ?? ''}`}>
+      {/* Una junta de luz arriba y otra abajo en vez de dos bordes: el aviso pasa por una
+          RANURA del muro, no por una banda pegada encima. */}
+      <hr className="muro-junta mb-[0.3em]" aria-hidden="true" />
+      <span className={`ticker-pista text-[0.82em] font-medium ${TINTE[avisos.estado]}`}>
         <span>{tira}</span>
         <span aria-hidden="true">{tira}</span>
       </span>
+      <hr className="muro-junta mt-[0.3em]" aria-hidden="true" />
     </div>
   )
 }
@@ -192,25 +213,31 @@ export function TablaDeSeries({
   const pendientes = Math.max(0, ejercicio.sets - ejercicio.series.length)
   return (
     <Rotulo lado="derecha" className={className} enCuadro={enCuadro}>
-      <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
-        Series registradas
-      </p>
-      <ul className="mt-1 flex flex-col gap-[3px]">
+      <p className="muro-rotulo text-[0.62em]">Series registradas</p>
+      <ul className="mt-[0.4em] flex flex-col gap-[0.28em]">
         {ejercicio.series.map((serie) => (
           <li
             key={serie.orden}
-            className="cifras flex items-baseline justify-end gap-1.5 text-[10px] leading-none text-silver-200"
+            className="cifras flex items-baseline justify-end gap-[0.5em] text-[0.9em] leading-none"
           >
-            <span className="text-silver-500">{serie.orden}</span>
-            <span className="font-semibold">{String(serie.cargaKg).replace('.', ',')} kg</span>
+            {/* El número de serie va en rojo encendido y el resto en luz fría: es el
+                mismo reparto de color que los dígitos de siete segmentos que la sala
+                construye en geometría, para que las dos cosas se lean como una. */}
+            <span className="muro-cifra text-[1em]">{serie.orden}</span>
+            <span className="muro-dato font-semibold">
+              {String(serie.cargaKg).replace('.', ',')} kg
+            </span>
             <span className="text-silver-400">× {serie.reps}</span>
             <span className="text-silver-500">RIR {serie.rir}</span>
           </li>
         ))}
+        {/* Las que faltan se quedan como peldaños apagados —igual que los segmentos que
+            no encienden en un display— y no se esconden: ver los huecos es lo que dice
+            cuánto queda. */}
         {Array.from({ length: pendientes }, (_, i) => (
           <li
             key={`pendiente-${i}`}
-            className="cifras flex items-baseline justify-end gap-1.5 text-[10px] leading-none text-silver-500/60"
+            className="cifras flex items-baseline justify-end gap-[0.5em] text-[0.9em] leading-none text-silver-500/55"
           >
             <span>{ejercicio.series.length + i + 1}</span>
             <span aria-hidden="true">— · —</span>
@@ -254,24 +281,23 @@ export function AContinuacion({
           : `flex items-center gap-1.5 overflow-hidden ${className ?? ''}`
       }
     >
-      <span className="shrink-0 text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
-        A continuación
-      </span>
-      {visibles.map((ejercicio) => (
-        <span
-          key={ejercicio.id}
-          className="min-w-0 truncate rounded-full border border-white/10 bg-ink-900/85 px-2 py-1 text-[9.5px] leading-none text-silver-300"
-        >
-          {ejercicio.nombre}
-          <span className="ml-1 text-silver-500">
-            {ejercicio.sets}×{ejercicio.repsDiana} {textoDeObjetivo(ejercicio.rirObjetivo)}
+      <span className="muro-rotulo shrink-0 text-[0.62em]">A continuación</span>
+      {/* SIN PASTILLAS. Cada ejercicio era una cápsula con borde y fondo —tres tarjetas
+          diminutas colgadas de un muro—. Aquí son líneas de luz separadas por una junta:
+          una cola escrita en la pared, que es lo que es. */}
+      {visibles.map((ejercicio, i) => (
+        <Fragment key={ejercicio.id}>
+          {enCuadro && i > 0 && <hr className="muro-junta w-full" aria-hidden="true" />}
+          <span className="muro-dato min-w-0 truncate text-[0.86em] leading-[1.25]">
+            {ejercicio.nombre}
+            <span className="muro-cifra ml-[0.5em] text-[0.92em]">
+              {ejercicio.sets}×{ejercicio.repsDiana} {textoDeObjetivo(ejercicio.rirObjetivo)}
+            </span>
           </span>
-        </span>
+        </Fragment>
       ))}
       {resto > 0 && (
-        <span className="shrink-0 rounded-full border border-white/10 bg-ink-900/85 px-2 py-1 text-[9.5px] leading-none text-silver-500">
-          +{resto}
-        </span>
+        <span className="muro-rotulo shrink-0 text-[0.62em]">y {resto} más</span>
       )}
     </div>
   )

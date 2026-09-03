@@ -1,5 +1,6 @@
+import { Fragment } from 'react'
 import type { ClaveDeCampo, ContenidoDePared } from './contenidoPared'
-import { CIFRAS_DEL_MURO } from './muros'
+import { CIFRAS_DEL_MURO, EN_UNA_LINEA } from './muros'
 import { ESCORZO_DE_PARED, TOPE_PARED } from '../huecos'
 
 /**
@@ -73,6 +74,18 @@ export interface PanelCampoProps {
   denso?: boolean
   /** Clases extra de la caja. Sirve para que quepa en una fila (`min-w-0 flex-1`). */
   className?: string
+  /**
+   * `true` cuando el campo ya cuelga de un `CuadroDePared`.
+   *
+   * Entonces suelta TODO lo suyo: la caja, el fondo, la sombra y el escorzo. Es la misma
+   * regla que ya tenían los rótulos del muro y que a estos campos se les había olvidado,
+   * y no era cosmética: el cuadro ya gira con la cámara de la escena, así que el
+   * `rotateY` de aquí se aplicaba ENCIMA — dos escorzos sobre el mismo plano, uno bueno
+   * y otro aproximado de cuando estos campos vivían pegados al borde de la pantalla.
+   *
+   * Y la caja sobraba por lo mismo que sobraba la del cuadro: un dato no es un objeto.
+   */
+  enCuadro?: boolean
 }
 
 /**
@@ -82,19 +95,74 @@ export interface PanelCampoProps {
  * cuántos caracteres se contó, el primer párrafo es el rótulo y el segundo el texto. Esa
  * forma no se toca aunque cambie el sitio donde cuelga.
  */
-export function PanelCampo({ campo, texto, lado, denso = false, className = '' }: PanelCampoProps) {
+export function PanelCampo({
+  campo,
+  texto,
+  lado,
+  denso: densoPedido = false,
+  className = '',
+  enCuadro = false,
+}: PanelCampoProps) {
+  // EL NOMBRE DEL EJERCICIO MANDA, y los demás campos le hacen sitio.
+  //
+  // Antes los nueve campos tenían la misma caja, el mismo cuerpo y el mismo peso: una
+  // lista, no una jerarquía. En una pared de gimnasio lo primero que se lee a tres metros
+  // es QUÉ toca, y después con cuánto. Aquí eso son tres escalones —titular, cifra,
+  // apunte— y no un tamaño de letra repetido nueve veces.
+  const esTitular = campo === 'nombre'
+  const esCifra = CIFRAS_DEL_MURO.has(campo)
+  // La prosa va con el rótulo AL LADO. Apilada se lleva dos líneas de muro, y en un
+  // tablón de siete líneas eso es el 29 % del sitio para un texto que además está
+  // recortado: el largo vive entero en el panel de abajo.
+  const denso = densoPedido || EN_UNA_LINEA.has(campo)
+
+  const cuerpo = esTitular
+    ? 'font-display text-[1.08em] uppercase leading-[1.08] tracking-[0.01em] muro-dato'
+    : esCifra
+      ? 'muro-cifra text-[1.08em] uppercase'
+      : 'text-[0.86em] font-medium leading-[1.28] text-silver-400'
+
+  const contenido = (
+    <>
+      {/* El rótulo del titular no se escribe: «EJERCICIO» encima del nombre del
+          ejercicio es una etiqueta que no informa a nadie que esté mirando la pared de
+          un gimnasio. Los demás sí lo llevan, porque «3 × (8-10)» solo se entiende con
+          la palabra SERIES delante. */}
+      {!esTitular && (
+        <p className={`muro-rotulo text-[0.62em] ${denso ? 'shrink-0' : ''}`}>{ROTULO[campo]}</p>
+      )}
+      <p className={`${cuerpo} ${denso ? 'min-w-0 flex-1' : esTitular ? '' : 'mt-[0.32em]'}`}>
+        {texto}
+      </p>
+    </>
+  )
+
+  // DENTRO DE UN CUADRO no hay caja ni escorzo propios: los pone el cuadro, y los suyos
+  // salen de la cámara de verdad de la escena en vez de un ángulo fijo.
+  if (enCuadro) {
+    return (
+      <div
+        data-campo={campo}
+        data-tope={TOPE_PARED}
+        className={`${denso ? 'flex items-baseline gap-2' : ''} ${
+          lado === 'izquierda' ? 'text-left' : 'text-right'
+        } ${className}`}
+      >
+        {contenido}
+      </div>
+    )
+  }
+
   return (
     <div
       data-campo={campo}
       data-tope={TOPE_PARED}
-      // Sin desenfoque, y con el fondo en `--ink-900` casi opaco. Esta caja no es una
-      // superficie fija: cuelga del muro y se escorza con la cámara, que orbita sobre el
-      // sujeto. Un `backdrop-filter` aquí obliga a remuestrear la región en CADA
-      // fotograma de la órbita, y encima sobre el lienzo del sujeto — que es lo mismo que
-      // la regla del repo prohíbe para el scroll, pero peor.
-      className={`rounded-[9px] border border-white/10 bg-ink-900/85 ${
-        denso ? 'flex items-baseline gap-2 px-2 py-1' : 'px-2 py-1.5'
-      } ${lado === 'izquierda' ? 'origin-left text-left' : 'origin-right text-right'} ${className}`}
+      // Suelto —fuera de un cuadro— sí lleva su derrame y su escorzo, porque entonces no
+      // hay nadie encima que se los dé. Sigue sin ser una tarjeta: `.muro-derrame` es luz
+      // sin canto, no un panel con marco.
+      className={`muro-derrame ${denso ? 'flex items-baseline gap-2 px-2 py-1' : 'px-2 py-1.5'} ${
+        lado === 'izquierda' ? 'origin-left text-left' : 'origin-right text-right'
+      } ${className}`}
       // La pared se INCLINA hacia el centro, y no es decoración: un rótulo plano pegado al
       // borde se lee como una etiqueta flotando sobre la imagen; escorzado se lee como un
       // muro alrededor del sujeto. Los grados los pone `ESCORZO_DE_PARED` en `huecos.ts` y
@@ -102,23 +170,9 @@ export function PanelCampo({ campo, texto, lado, denso = false, className = '' }
       // mismo muro, y dos números iguales en dos archivos se separan al primer ajuste.
       style={{
         transform: `rotateY(${lado === 'izquierda' ? ESCORZO_DE_PARED.grados : -ESCORZO_DE_PARED.grados}deg)`,
-        boxShadow: '0 6px 18px -12px rgba(0,0,0,.9)',
       }}
     >
-      <p
-        className={`text-[7.5px] font-bold uppercase leading-none tracking-[0.16em] text-silver-500 ${
-          denso ? 'shrink-0' : ''
-        }`}
-      >
-        {ROTULO[campo]}
-      </p>
-      <p
-        className={`text-[10.5px] font-semibold leading-snug text-silver-200 ${
-          denso ? 'min-w-0 flex-1' : 'mt-0.5'
-        }`}
-      >
-        {texto}
-      </p>
+      {contenido}
     </div>
   )
 }
@@ -142,35 +196,67 @@ export interface MuroDeCamposProps {
  * DIRECTOS, así que puesta más arriba el `rotateY` de los paneles se aplicaría igual y NO
  * escorzaría — se pagaría el coste sin ver el efecto, y sin que nada se pusiera en rojo.
  */
-export function MuroDeCampos({ contenido, campos, lado, denso, className = '' }: MuroDeCamposProps) {
+export function MuroDeCampos({
+  contenido,
+  campos,
+  lado,
+  denso,
+  className = '',
+  enCuadro = false,
+}: MuroDeCamposProps) {
+  const bloques = agrupar(campos)
   return (
     <div
-      className={`flex flex-col gap-1 ${className}`}
-      style={{
-        perspective: `${ESCORZO_DE_PARED.perspectiva}px`,
-        perspectiveOrigin: lado === 'izquierda' ? 'right center' : 'left center',
-      }}
+      className={`flex flex-col ${enCuadro ? 'gap-[0.5em]' : 'gap-1'} ${className}`}
+      // La perspectiva solo cuando estos campos van sueltos. Dentro de un cuadro el
+      // escorzo lo pone el cuadro, que lo saca de la cámara de la escena; declararla aquí
+      // además sería pagarla sin verla, porque `perspective` alcanza a los HIJOS DIRECTOS.
+      style={
+        enCuadro
+          ? undefined
+          : {
+              perspective: `${ESCORZO_DE_PARED.perspectiva}px`,
+              perspectiveOrigin: lado === 'izquierda' ? 'right center' : 'left center',
+            }
+      }
     >
-      {agrupar(campos).map((bloque) =>
-        bloque.enFila ? (
-          <div key={bloque.campos.join('+')} className="flex gap-1">
-            {bloque.campos.map((campo) => (
+      {bloques.map((bloque, i) => (
+        <Fragment key={bloque.campos.join('+')}>
+          {/* LA JUNTA DE LUZ, y solo dentro de un cuadro. Es lo que separa dos bloques
+              cuando ninguno tiene caja: una línea que se apaga en los dos extremos, como
+              una junta del hormigón cogiendo el reflector. A diferencia de un borde no
+              tiene esquinas, así que no vuelve a dibujar la tarjeta que se quitó. */}
+          {enCuadro && i > 0 && (
+            <hr className={`muro-junta ${bloque.enFila ? 'muro-junta-viva' : ''}`} aria-hidden="true" />
+          )}
+          {bloque.enFila ? (
+            <div className={enCuadro ? 'flex gap-[0.7em]' : 'flex gap-1'}>
+              {bloque.campos.map((campo) => (
+                <PanelCampo
+                  key={campo}
+                  campo={campo}
+                  texto={contenido[campo]}
+                  lado={lado}
+                  denso={denso}
+                  enCuadro={enCuadro}
+                  className="min-w-0 flex-1"
+                />
+              ))}
+            </div>
+          ) : (
+            bloque.campos.map((campo) => (
               <PanelCampo
                 key={campo}
                 campo={campo}
                 texto={contenido[campo]}
                 lado={lado}
                 denso={denso}
-                className="min-w-0 flex-1"
+                enCuadro={enCuadro}
               />
-            ))}
-          </div>
-        ) : (
-          bloque.campos.map((campo) => (
-            <PanelCampo key={campo} campo={campo} texto={contenido[campo]} lado={lado} denso={denso} />
-          ))
-        ),
-      )}
+            ))
+          )}
+        </Fragment>
+      ))}
     </div>
   )
 }

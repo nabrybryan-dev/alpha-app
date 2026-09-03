@@ -49,12 +49,30 @@ export interface SitioRelativo extends Omit<SitioDePared, 'azimut'> {
 }
 
 /**
- * El reparto.
+ * EL REPARTO, rehecho el 2026-09-03 con el campo horizontal MEDIDO.
  *
- * En el muro de enfrente —el que se ve al entrar— van las dos cosas que se miran sin
- * buscar: qué toca ahora y qué se acaba de levantar. Lo demás se reparte a los lados y
- * detrás, y se encuentra girando. Es lo que Bryan pidió: que el salón se pueda recorrer y
- * que la información esté EN él, no encima.
+ * ## La franja de muro que cabe en pantalla mide 2,37 m
+ *
+ * El campo visual son 26° verticales, y en un 390 × 844 eso deja **12,18° horizontales**.
+ * A los 11,1 m que hay del ojo al muro de enfrente, esos 12,18° son **2,37 m de pared**.
+ * Ésa es toda la superficie de la que se puede colgar algo que se vea al abrir.
+ *
+ * El reparto anterior no lo sabía. Repartía por desvíos de ±8, ±34, 42, 62, 150 y 180, y
+ * medido el 2026-09-03: **al abrir no entraba entero ni un cuadro** — tres se cortaban por
+ * poco y el resto estaban fuera por cientos de píxeles. Un cuadro de 1 m ya se come el
+ * 42 % del ancho, así que en el muro de enfrente no caben dos cosas: cabe **una**.
+ *
+ * ## Y entonces el muro de enfrente deja de ser un tablón de anuncios
+ *
+ * Enfrente va **una sola composición**, la que hay que leer sin buscar: qué ejercicio,
+ * cómo se hace y con qué cifras. Debajo, el mando —lo único que se opera— y a un lado
+ * para no caer en la vertical del sujeto. Las cifras de la serie NO se repiten aquí: ya
+ * están en el marcador de siete segmentos que la sala construye en geometría, en el mismo
+ * muro y a 1,85 m.
+ *
+ * Todo lo demás cuelga fuera de la ventana y **se encuentra girando**, que es lo que Bryan
+ * pidió desde el principio: que el salón se pueda recorrer. Un cuadro que no se ve al
+ * abrir no está perdido — está en la pared de al lado, como en una sala de verdad.
  */
 /**
  * LA BANDA ÚTIL DEL MURO, medida y no elegida.
@@ -84,20 +102,45 @@ export interface SitioRelativo extends Omit<SitioDePared, 'azimut'> {
  * hace en una sala de verdad.
  */
 export const SITIOS = {
-  /** Qué ejercicio, cómo se hace, cuántas series y hasta dónde. El cuadro grande. */
-  // `alto` 1,25 y no 1,0: con los cinco campos el cuadro midió 238 px en un 390×844 y el
-  // tope declarado eran 208 — lo cazó `testigo/cuadros-en-pantalla.mjs` a la primera
-  // corrida, que es para lo que está. Los 1,25 dejan sitio a un nombre de ejercicio que
-  // ocupe dos líneas.
-  ejercicio: { desvio: -8, altura: 2.24, ancho: 1.0, alto: 1.25 },
-  /** Lo que ya se levantó hoy. Enfrente y a la derecha, como un marcador de pabellón. */
-  series: { desvio: 8, altura: 2.24, ancho: 0.78, alto: 0.45 },
-  /** Microciclo y nombre del día: la cabecera de la sesión. Alto y centrado. */
-  dia: { desvio: -34, altura: 2.45, ancho: 1.05, alto: 0.3 },
-  /** El cronómetro, junto a la cabecera y a su misma altura. */
-  cronometro: { desvio: 34, altura: 2.45, ancho: 1.0, alto: 0.36 },
-  /** El ritmo de la sesión y la marquesina de avisos: una banda ancha y baja. */
-  ritmo: { desvio: 42, altura: 2.4, ancho: 1.3, alto: 0.44 },
+  /**
+   * LA COMPOSICIÓN DE ENFRENTE: qué ejercicio, cómo se hace y sus cifras.
+   *
+   * **Desvío 0**, o sea centrado en el muro que se ve al entrar. Estuvo en −8 y ahí se
+   * cortaba: 8° de muro son 0,95 m, y con el cuadro midiendo otro medio metro el borde
+   * derecho caía fuera de la ventana de 2,37 m.
+   *
+   * **1,7 m de ancho** —el 72 % de la franja visible— y no 1,0: enfrente no hay dos
+   * cuadros compitiendo, hay uno, así que puede ocupar el sitio de los dos. Ancho, el
+   * nombre del ejercicio cabe en una línea y el cuadro baja de alto, que es lo que lo
+   * saca del borde de arriba.
+   *
+   * Centrado no lo tapa el sujeto porque está a 2,24 m: por encima de la cabeza, que es
+   * donde un gimnasio de verdad cuelga su tablón.
+   */
+  ejercicio: { desvio: 0, altura: 2.42, ancho: 1.9, alto: 1.5 },
+  /**
+   * Lo que ya se levantó hoy. **Fuera de la ventana de entrada, a un giro corto.**
+   *
+   * Estuvo enfrente y a la derecha, peleando con la ficha del ejercicio por la misma
+   * franja de 2,37 m; se cortaba por la izquierda. Es la memoria de la sesión: se consulta
+   * en el descanso, no durante la repetición, así que buscarla girando un poco la cabeza
+   * es lo que se hace en una sala de verdad.
+   */
+  series: { desvio: -15, altura: 2.3, ancho: 0.9, alto: 0.5 },
+  // LA CABECERA, EL CRONÓMETRO Y EL RITMO YA NO SON SITIOS.
+  //
+  // Colgaban en ±34 y 42, o sea a tres y cuatro anchos de pantalla de la ventana visible:
+  // no se veían nunca al abrir, y cuando se veían eran tres fragmentos sueltos flotando
+  // cada uno por su lado. Bryan lo dijo el 2026-09-03: «como si hubieses extraído todas
+  // las partes de la aplicación y las hubieses pegado literal en las paredes».
+  //
+  // Con 2,37 m de muro visible no caben cuatro cuadros: cabe UNO. Así que la cabecera, el
+  // cronómetro, el ejercicio, sus cifras y la marquesina son ahora un solo TABLÓN
+  // compuesto, con jerarquía dentro — que es exactamente lo que hace el marcador de un
+  // pabellón, y lo que el documento de referencia pedía con «in the visual language of a
+  // stadium scoreboard».
+  //
+  // No se ha perdido un solo dato: se han dejado de repartir por paredes que nadie mira.
   /** La estación de grabación. Cuelga junto al trípode, que está a 180° de la entrada. */
   camara: { desvio: 150, altura: 2.3, ancho: 1.5, alto: 0.6 },
   /** Lo que viene después. En el muro de detrás: se consulta al terminar, no durante. */
@@ -118,7 +161,12 @@ export const SITIOS = {
    * Desvío POSITIVO: en esta convención el positivo cae a la izquierda del cuadro, y ahí
    * es donde queda sitio — a la derecha ya cuelga la ficha del ejercicio.
    */
-  registro: { desvio: 7.5, altura: 1.5, ancho: 0.92, alto: 0.36 },
+  // A 1,20 m y no a 1,55: medido en pantalla, a 1,55 el mando se MONTABA ENCIMA de la
+  // fila de cifras del tablón —29 px de solape— porque el tablón, al asentarse contra el
+  // margen de arriba, había bajado su borde inferior hasta ahí. Dos cuadros de la misma
+  // pared no pueden ocupar el mismo trozo de muro, y eso ahora lo vigila una prueba.
+  // 1,20 m es además la altura a la que se apoya la mano en un banco.
+  registro: { desvio: 2, altura: 1.16, ancho: 1.45, alto: 0.46 },
   /** El eje W: los cinco escalones del cuerpo, en su propia columna del muro. */
   ejeW: { desvio: 62, altura: 2.3, ancho: 0.62, alto: 0.5 },
 } as const satisfies Record<string, SitioRelativo>
