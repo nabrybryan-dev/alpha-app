@@ -910,7 +910,21 @@ export function escalaDeLaBarra(cerca, lejos, diametroMm = 450) {
     mmPorPxEn(x) {
       if (!Number.isFinite(x) || cerca.x === lejos.x) return (mmCerca + mmLejos) / 2
       const t = Math.max(0, Math.min(1, (x - cerca.x) / (lejos.x - cerca.x)))
-      return mmCerca + t * (mmLejos - mmCerca)
+      // Se interpola el INVERSO, y no es un refinamiento: es lo unico exacto.
+      //
+      // mm/px es proporcional a la profundidad Z, y en una camara pinhole lo que
+      // resulta AFIN en la coordenada de imagen es 1/Z, no Z. Para una barra recta
+      // sale despejando: Z(x) = C / (x*Dz - f*Dx). O sea que mm/px es HIPERBOLICA
+      // en x, y la recta que se trazaba antes entre los dos extremos siempre pasa
+      // por encima de ella.
+      //
+      // Siempre por encima: el error no se promedia entre videos, los infla todos
+      // en la misma direccion. Medido sobre los saltos que da el corpus real
+      // (wiki/motor-velocidad/escala-por-disco.md): +1,4 % a 27 % de salto, +3,5 %
+      // a 46 %, +10,8 % a 98 %. Interpolando el inverso el error es exactamente
+      // cero para cualquier salto y cualquier orientacion de la barra.
+      const pxPorMm = 1 / mmCerca + t * (1 / mmLejos - 1 / mmCerca)
+      return 1 / pxPorMm
     },
   }
 }
