@@ -11,30 +11,16 @@
     {
       "clave": "ejercicio",
       "x": 40,
-      "y": 67,
+      "y": 70,
       "ancho": 309,
-      "alto": 83,
-      "sobraArriba": -67,
-      "sobraAbajo": -693,
+      "alto": 78,
+      "sobraArriba": -70,
+      "sobraAbajo": -696,
       "sobraIzquierda": -40,
       "sobraDerecha": -40,
       "cuerpoPx": 15,
       "topePx": 138,
-      "texto": "M22FULL CSSSEEENNNTTTAAADDDIIILLLLLLAAAGGGOOOBBBLLLEEETTTCronómetro de sesión00:00:04Toca "
-    },
-    {
-      "clave": "camara",
-      "x": 41,
-      "y": 366,
-      "ancho": 232,
-      "alto": 76,
-      "sobraArriba": -366,
-      "sobraAbajo": -402,
-      "sobraIzquierda": -41,
-      "sobraDerecha": -118,
-      "cuerpoPx": 12.1,
-      "topePx": 80,
-      "texto": "Cámara del encuadreMedir con la cámara"
+      "texto": "Sala 05SSSEEENNNTTTAAADDDIIILLLLLLAAAGGGOOOBBBLLLEEETTTSesiónCronómetro de sesión00:00:04T"
     }
   ],
   "usuario": "u-valentina"

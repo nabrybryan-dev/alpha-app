@@ -1,11 +1,11 @@
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
-import { CamaraDelSalon } from '../camara/CamaraDelSalon'
 import { CuadroDePared } from './CuadroDePared'
 import { TablonDelMuro } from './TablonDelMuro'
 import { asentarEnLaBanda, type CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
 import { SITIOS, sitioEn } from './sitiosDeLaPared'
 import { cargaAnterior } from './cargaAnterior'
+import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 
 /**
  * LAS PAREDES DEL SALÓN: todo lo que cuelga del muro, colocado.
@@ -54,7 +54,6 @@ import { cargaAnterior } from './cargaAnterior'
  */
 
 export interface ParedesDelSalonProps {
-  microciclo: Microciclo
   sesion: Sesion | undefined
   /** El ejercicio del que habla el salón. Sin él no hay tabla, ni cámara, ni campos. */
   ejercicio: EjercicioPrescrito | undefined
@@ -62,6 +61,12 @@ export interface ParedesDelSalonProps {
   contenido: ContenidoDePared | undefined
   /** El microciclo anterior. De él sale «la semana pasada» del muro, que es un hecho. */
   microcicloPrevio?: Microciclo
+  /** Qué cuenta el reloj de la pared: lo decide el mando y se lee aquí. */
+  modo: ModoDelReloj
+  anclas: AnclasDelReloj
+  alTerminarLaCuenta: () => void
+  /** Si el mando ha pedido la carga en el hueco del reloj. */
+  cargaEnLaPared?: boolean
   /**
    * Dónde mira la cámara del salón AHORA MISMO, tal y como la deja la órbita.
    *
@@ -78,11 +83,14 @@ export interface ParedesDelSalonProps {
 }
 
 export function ParedesDelSalon({
-  microciclo,
   sesion,
   ejercicio,
   contenido,
   microcicloPrevio,
+  modo,
+  anclas,
+  alTerminarLaCuenta,
+  cargaEnLaPared,
   camara,
   lienzo,
   azimutDeEntrada,
@@ -146,10 +154,13 @@ export function ParedesDelSalon({
             // nuevo que nunca dijo cuál es.
             key={ejercicio?.id ?? 'sin-ejercicio'}
             contenido={contenido}
-            microciclo={microciclo}
             sesion={sesion}
             ejercicio={ejercicio}
             cargaPrevia={cargaAnterior(microcicloPrevio, ejercicio)}
+            modo={modo}
+            anclas={anclas}
+            alTerminarLaCuenta={alTerminarLaCuenta}
+            cargaEnLaPared={cargaEnLaPared}
           />
         </CuadroDePared>
       )}
@@ -176,12 +187,21 @@ export function ParedesDelSalon({
           borde izquierdo desde el commit anterior; dejar además un mando en la pared era
           tener el mismo gesto en dos sitios y un cuadro más tapando el muro. */}
 
-      {/* LA ESTACIÓN DE GRABACIÓN, colgada junto al trípode: se lee donde se usa. */}
-      {contenido && ejercicio && (
-        <CuadroDePared clave="camara" sitio={donde(SITIOS.camara)} camara={camara} lienzo={lienzo} interactivo>
-          <CamaraDelSalon ejercicio={ejercicio} microcicloId={microciclo.id} enCuadro />
-        </CuadroDePared>
-      )}
+      {/* LA CÁMARA YA NO CUELGA DE NINGÚN MURO.
+          =================================================================================
+
+          Colgaba de enfrente, debajo del registro, con la idea de que los dos aparatos que
+          se OPERAN quedaran uno bajo el otro a la altura de la mano. La idea era buena y el
+          resultado, medido el 2026-09-04, era el contrario: un reflector con silueta de
+          trípode, rótulo, testigo latiendo y una pastilla negra ocupaba media pared y era
+          lo más parecido a un recorte de aplicación que quedaba en pantalla.
+
+          Ahora es un mando desnudo, hermano del del reloj, y vive donde viven los mandos:
+          al alcance del pulgar y fuera de la pared. El trípode de VERDAD sigue en la sala,
+          dibujado por el motor con su cono de tolerancia — lo que se quitó fue el dibujo
+          del trípode en la pared, que era la copia.
+
+          Así el muro se queda con UN solo cuadro: el del ejercicio. */}
 
     </div>
   )

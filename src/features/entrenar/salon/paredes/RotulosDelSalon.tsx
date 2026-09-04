@@ -1,4 +1,3 @@
-import type { Microciclo, Sesion } from '../../../../domain/types'
 import { ESCORZO_DE_PARED } from '../huecos'
 import { CronometroSesion } from '../../CronometroSesion'
 
@@ -77,66 +76,69 @@ function Rotulo({
   )
 }
 
-/** MICROCICLO Y NOMBRE DEL DÍA. El primero de los rótulos amarillos. */
+/**
+ * EL CÓDIGO DE SALA: una línea diminuta y nada más.
+ *
+ * ## Qué decía antes y por qué sobraba
+ *
+ * Decía el microciclo y el nombre de la sesión —«M22 FULL C»—, y desde que existe la banda
+ * de arriba eso estaba escrito dos veces en la misma pantalla, a cuatro centímetros.
+ * Después dijo el grupo del ejercicio —«M22 DOMINANTE DE RODILLA»— y entonces partía en
+ * dos líneas, que en un muro es peor: el rótulo pequeño se convertía en un párrafo.
+ *
+ * ## Lo que dice ahora
+ *
+ * El número de la sala. Se lee de un vistazo, no compite con el nombre del ejercicio y no
+ * repite nada de lo que ya está en pantalla. Es lo que lleva escrito una sala de verdad
+ * encima de la puerta: cuál es, y punto.
+ *
+ * Va en letra de máquina, en gris de marca y con el espaciado muy abierto, que es como se
+ * rotula un número de sala y no como se escribe un titular. La letra MÍNIMA es el encargo:
+ * lo que tiene que verse en esta pantalla es la sala, no lo que está escrito en ella.
+ */
 export function RotuloDelDia({
-  microciclo,
-  sesion,
+  numeroDeSala,
   className,
   enCuadro,
 }: {
-  microciclo: Microciclo
-  sesion: Sesion | undefined
+  /** El número de sala. Sale del orden de la sesión en la semana, no de un contador. */
+  numeroDeSala: number
   className?: string
   /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
   enCuadro?: boolean
 }) {
   return (
     <Rotulo lado="izquierda" className={className} enCuadro={enCuadro}>
-      {/* LA CABECERA NO COMPITE CON EL EJERCICIO. A 1,15em «UPPER B» y «PRESS INCLINADO
-          EN MULTIPOWER» tenían el mismo peso y se leían como un solo bloque de texto: el
-          ojo no sabía cuál era el titular. La cabecera dice DE QUIÉN es la sesión —se lee
-          una vez al entrar—; el ejercicio se lee en cada serie. Así que va en una línea,
-          pequeña y en plata, con el microciclo delante en vez de encima. */}
-      <p className="flex items-baseline gap-[0.5em] leading-none">
-        <span className="muro-rotulo text-[0.56em] text-accion">M{microciclo.numero}</span>
-        <span className="font-display text-[0.82em] uppercase tracking-[0.08em] text-silver-400">
-          {sesion?.nombre ?? 'Sin sesión hoy'}
-        </span>
+      <p className="muro-rotulo text-[0.5em] text-gris-marca">
+        Sala {String(numeroDeSala).padStart(2, '0')}
       </p>
     </Rotulo>
   )
 }
 
-/**
- * EL CRONÓMETRO DE SESIÓN, colgado del muro derecho.
- *
- * Es el MISMO componente que corre en la pantalla de sesión: el mismo estado, la misma
- * clave de almacenamiento y la misma pausa al tocarlo. Un segundo cronómetro para el salón
- * daría dos duraciones de la misma sesión, y esa duración acaba subiendo con el test post.
- *
- * Lo único que cambia es el tamaño: en la sesión ocupa el ancho de la pantalla y aquí
- * cuelga de una pared, así que la cifra baja de `text-6xl` a algo que quepa en el muro. Se
- * hace desde fuera con variantes que alcanzan a los hijos —no se toca el componente— y por
- * eso el selector es de dos niveles: gana por especificidad sin necesidad de forzar nada.
- */
 export function RotuloCronometro({ sesionId, className, enCuadro }: { sesionId: string; className?: string
   /** `true` si ya cuelga de un `CuadroDePared`: el marco lo pone el cuadro. */
   enCuadro?: boolean }) {
   return (
     <Rotulo lado="derecha" className={className} enCuadro={enCuadro}>
-      {/* El cronómetro pasa a la letra del marcador: es una CIFRA de la pared, no un
-          número de interfaz. Las variantes alcanzan a los hijos —no se toca el
-          componente, que es el mismo que corre en la pantalla de sesión— y ganan por
-          especificidad sin forzar nada. */}
-      {/* En el tablón el reloj NO puede gritar más que el ejercicio. A 2,4em lo hacía: la
-          hora era lo primero que se leía de la pared, y lo primero es qué toca. Baja a
-          1,45em y la coletilla «toca para pausar» se esconde — el botón conserva su
-          `aria-label`, así que no se pierde para quien lo necesita, y en una pared una
-          instrucción de interfaz es ruido: un reloj de gimnasio no lleva escrito cómo se
-          usa. El rótulo también se esconde: al lado del nombre del día, «cronómetro de
-          sesión» sobre unas cifras que cuentan no informa a nadie. */}
-      <div className="text-right [&_.kicker]:hidden [&_button]:muro-cifra [&_button]:text-[1.45em] [&_p:last-child]:hidden [&>div]:py-0">
-        <CronometroSesion sesionId={sesionId} />
+      {/* EL RELOJ VA EN TRAZO, como el nombre del ejercicio que tiene al lado. Era la
+          única mancha sólida que quedaba en el muro, y una mancha es lo que tapa la sala.
+
+          Encima, su etiqueta diminuta: sin ella la cifra no dice QUÉ cuenta, y el mando
+          puede cambiarlo a descanso o a excéntrico — la regla del salón es que todo lo que
+          cambia se lee en la pared, así que la pared tiene que decir qué está contando.
+
+          El componente es el mismo que corre en la pantalla de sesión: se monta, no se
+          reescribe. Lo que cambia son las variantes que alcanzan a sus hijos —la cifra a
+          trazo, el rótulo propio a la vista y la coletilla «toca para pausar» escondida—.
+          En una pared, una instrucción de interfaz es ruido: un reloj de gimnasio no lleva
+          escrito cómo se usa, y el botón conserva su `aria-label` para quien lo necesita. */}
+      <div className="text-right">
+        <p className="muro-rotulo text-[0.5em] text-gris-marca">Sesión</p>
+        <div className="mt-[0.1em] [&_.kicker]:hidden [&_button]:muro-reloj [&_button]:text-[1.45em] [&_p:last-child]:hidden [&>div]:py-0">
+          <CronometroSesion sesionId={sesionId} />
+        </div>
+        <span className="muro-filete-reloj" aria-hidden="true" />
       </div>
     </Rotulo>
   )

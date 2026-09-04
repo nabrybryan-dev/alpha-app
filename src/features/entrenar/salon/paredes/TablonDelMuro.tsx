@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
+import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
 import { MuroDeCampos } from './PanelPared'
 import { TOPE_PARED } from '../huecos'
@@ -7,6 +7,7 @@ import { EN_OTRO_SITIO } from './muros'
 import { RotuloDelDia } from './RotulosDelSalon'
 import { RotuloEnTrazo } from './RotuloEnTrazo'
 import { HuecoDeDatos } from './HuecoDeDatos'
+import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 
 /**
  * EL TABLÓN DEL MURO DE ENFRENTE: lo mismo, pero no a la vez.
@@ -68,7 +69,6 @@ export type EstadoDelTablon = 'anuncio' | 'relevo' | 'vivo'
 
 export interface TablonDelMuroProps {
   contenido: ContenidoDePared
-  microciclo: Microciclo
   sesion?: Sesion
   ejercicio?: EjercicioPrescrito
   /**
@@ -76,14 +76,29 @@ export interface TablonDelMuroProps {
    * entonces la línea no se pinta: un 0 kg ahí sería una carga que nadie levantó.
    */
   cargaPrevia?: number
+  /** Qué cuenta el reloj de la pared. Lo pone el mando; el muro solo lo enseña. */
+  modo: ModoDelReloj
+  anclas: AnclasDelReloj
+  alTerminarLaCuenta: () => void
+  /**
+   * Si el mando ha pedido la carga.
+   *
+   * Se suma a la que sale sola durante el anuncio: son las dos formas de preguntar «¿con
+   * cuánto?», una automática al llegar y otra a voluntad. La pared no distingue de dónde
+   * viene la petición, y no debe: el hueco enseña carga o enseña reloj.
+   */
+  cargaEnLaPared?: boolean
 }
 
 export function TablonDelMuro({
   contenido,
-  microciclo,
   sesion,
   ejercicio,
   cargaPrevia,
+  modo,
+  anclas,
+  alTerminarLaCuenta,
+  cargaEnLaPared = false,
 }: TablonDelMuroProps) {
   const [estado, setEstado] = useState<EstadoDelTablon>('anuncio')
 
@@ -107,6 +122,7 @@ export function TablonDelMuro({
   }, [])
 
   const anunciando = estado === 'anuncio' || estado === 'relevo'
+  const conCarga = anunciando || cargaEnLaPared
   return (
     // LA ESCENA DEL TABLÓN. `perspective` va AQUÍ y no más arriba porque alcanza solo a los
     // HIJOS DIRECTOS: puesta en un ancestro, el `translateZ` de las capas se aplicaría
@@ -126,7 +142,7 @@ export function TablonDelMuro({
           cronómetro —lo único que corre— daba un salto al cambiar de ejercicio. */}
       <div className="muro-fila">
         <div className="min-w-0">
-          <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
+          <RotuloDelDia numeroDeSala={sesion?.orden ?? 1} enCuadro />
           {/* EL NOMBRE SIGUE SIENDO UN CAMPO DEL MURO, y por eso lleva su marca.
               La auditoría de «no se perdió nada» cuenta `data-campo`: sin estos dos
               atributos, mudar el nombre del anuncio al rótulo se leería desde fuera
@@ -135,13 +151,16 @@ export function TablonDelMuro({
             <RotuloEnTrazo nombre={contenido.nombre} />
           </div>
         </div>
-        <div data-campo={anunciando ? 'carga' : undefined} data-tope={anunciando ? TOPE_PARED : undefined}>
+        <div data-campo={conCarga ? 'carga' : undefined} data-tope={conCarga ? TOPE_PARED : undefined}>
           <HuecoDeDatos
-            muestra={anunciando ? 'carga' : 'reloj'}
+            muestra={conCarga ? 'carga' : 'reloj'}
             sesion={sesion}
             ejercicio={ejercicio}
             textoDeCarga={contenido.carga}
             cargaPrevia={cargaPrevia}
+            modo={modo}
+            anclas={anclas}
+            alTerminarLaCuenta={alTerminarLaCuenta}
           />
         </div>
       </div>

@@ -2201,6 +2201,41 @@ body {
   transform: translateZ(-1.1em);
 }
 
+/* EL RELOJ, EN TRAZO. Como el nombre del ejercicio que tiene al lado y por lo
+   mismo: dos cosas escritas en la misma pared se escriben con la misma materia,
+   o se leen como dos capas pegadas. Relleno era la única mancha sólida que
+   quedaba en el muro, y la mancha es lo que tapa la sala.
+
+   `tabular-nums` no es adorno: sin él la cifra cambia de ancho al pasar de
+   «1:09» a «1:10» y el reloj baila de lado cada segundo. */
+.muro-reloj {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 0.028em rgb(var(--silver-300-rgb) / 0.42);
+}
+
+/* En cuenta atrás el trazo se pone en el acento: es lo único de la pared que
+   pide algo —parar— y el rojo es la acción. */
+.muro-reloj-vivo {
+  -webkit-text-stroke: 0.028em rgb(var(--accion-rgb) / 0.72);
+}
+
+/* El filete bajo el reloj, apagándose hacia dentro. Marca el borde del bloque
+   sin dibujarle una caja, igual que el del hueco de la carga. */
+.muro-filete-reloj {
+  display: block;
+  width: 3.4em;
+  height: 1px;
+  margin: 0.32em 0 0 auto;
+  background: linear-gradient(270deg, rgb(var(--silver-500-rgb) / 0.45), transparent);
+}
+
 /* LOS KILOS DEL MURO: en trazo, como el rótulo, y por lo mismo.
 
    Rellenos serían dos manchas rojas sobre la pared. En trazo son un número

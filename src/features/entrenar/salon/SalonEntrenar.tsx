@@ -32,7 +32,11 @@ import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
 import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGuardar'
-import { DescansoTimer } from '../DescansoTimer'
+import { Joystick } from './mando/Joystick'
+import { CamaraDelSalon } from './camara/CamaraDelSalon'
+import { duracionDelModo, type ModoDelReloj } from './mando/relojDelMuro'
+import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
+import { BarraDeSesion } from './rumbo/BarraDeSesion'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
@@ -284,14 +288,47 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const [estacionFija, setEstacionFija] = useState<ClaveDeEstacion | undefined>(undefined)
   /** La frase que sale sobre la sala al guardar. `null` = no hay nada que celebrar ahora. */
   const [logro, setLogro] = useState<{ rotulo: string; frase: string } | null>(null)
-  /** El descanso en curso, cuando lo arrancó una serie guardada. */
-  const [descanso, setDescanso] = useState<{ hasta: number; totalSeg: number } | null>(null)
+  /**
+   * QUÉ CUENTA EL RELOJ DE LA PARED, y desde cuándo.
+   *
+   * Un solo reloj y un ancla, no tres cronómetros. El modo lo pone el mando —o lo pone
+   * guardar una serie, que arranca el descanso— y la pared lo enseña. Es la regla del
+   * salón: todo lo que cambia se lee en la pared, nunca sobre el mando.
+   */
+  const [modoReloj, setModoReloj] = useState<ModoDelReloj>('sesion')
+  const [cuenta, setCuenta] = useState<{ desde: number; duracion: number } | null>(null)
+  /**
+   * Cuándo se abrió el salón. De aquí cuenta hacia arriba el modo sesión.
+   *
+   * Va en `useState` con inicializador y no en `useRef(Date.now())`: llamar a `Date.now()`
+   * como argumento de `useRef` es una llamada impura EN CADA render —se evalúa siempre,
+   * aunque el ref ya tenga valor— y `react-hooks/purity` es error en este repo. El
+   * inicializador perezoso solo corre en el primer montaje, que es lo que se quiere.
+   */
+  const [abierto] = useState(() => Date.now())
+  /**
+   * Si la carga está ocupando el hueco del reloj.
+   *
+   * Es un dato que se CONSULTA, no un modo en el que se esté: se pide, se lee y se va
+   * sola. Un cuarto modo del reloj para los kilos habría dejado la pared enseñando un
+   * número que no cambia mientras el tiempo, que sí, no se ve.
+   */
+  const [cargaEnLaPared, setCargaEnLaPared] = useState(false)
   /** Cuántas series se han guardado en esta visita. Solo sortea la frase. */
   const seriesDeLaVisita = useRef(0)
 
   // LA FRASE SE RETIRA SOLA. No lleva botón de cerrar y no lo va a llevar: es un acuse,
   // no un aviso — algo que se lee de reojo mientras se suelta la barra. Un mando para
   // quitarla convertiría celebrar una serie en una tarea más.
+  // LA CARGA SE RETIRA SOLA. Cuatro segundos y pico: lo que se tarda en leer dos cifras y
+  // volver a la barra. Sin esto, pedir la carga apagaría el reloj para el resto de la
+  // sesión y habría que acordarse de devolverlo.
+  useEffect(() => {
+    if (!cargaEnLaPared) return
+    const id = window.setTimeout(() => setCargaEnLaPared(false), 4200)
+    return () => window.clearTimeout(id)
+  }, [cargaEnLaPared])
+
   useEffect(() => {
     if (!logro) return
     const id = window.setTimeout(() => setLogro(null), LOGRO_MS)
@@ -404,6 +441,25 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * escribir —que la devuelve precisamente por esto— y así la cuenta sale de series
    * escritas y no de sumarle uno a un contador propio.
    */
+  /**
+   * CUANDO LA CUENTA CRUZA EL CERO.
+   *
+   * El reloj vuelve a contar la sesión y, si lo que terminó era el descanso, salta el
+   * aviso sobre la sala: «a la barra». No se avisa al terminar el excéntrico —ese número
+   * es una referencia de cómo bajar, no una cuenta que haya que respetar— y avisar de él
+   * enseñaría que esta pantalla interrumpe por cualquier cosa.
+   */
+  const alTerminarLaCuenta = () => {
+    const eraDescanso = modoReloj === 'descanso'
+    setModoReloj('sesion')
+    setCuenta(null)
+    if (!eraDescanso || !ejercicio) return
+    setLogro({
+      rotulo: 'Descanso terminado',
+      frase: `A la barra. Toca la serie ${ejercicio.series.length + 1}`,
+    })
+  }
+
   const alGuardarSerie = (serie: SerieRegistrada) => {
     setFichaAbierta(false)
     if (!ejercicio) return
@@ -414,11 +470,15 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // usando enteras; lo que cambia es la superficie sobre la que se escriben.
     const pasa = loQuePasaAlGuardar(yaEscrito, sinEmoji(frasePorSerie(seriesDeLaVisita.current)))
     setLogro({ rotulo: pasa.rotulo, frase: pasa.frase })
-    setDescanso(
-      pasa.descansoSeg > 0
-        ? { hasta: Date.now() + pasa.descansoSeg * 1000, totalSeg: pasa.descansoSeg }
-        : null,
-    )
+    // EL DESCANSO SE LEE EN LA PARED, no en una barra flotante. Era un cronómetro propio
+    // pegado al borde de abajo con sus mandos de pausa y +15 s; ahora es un MODO del reloj
+    // del muro, que es donde el diseño de la sala pone el tiempo. Lo que se pierde: pausar
+    // y añadir quince segundos. Lo que se gana: una barra menos tapando el salón, y un
+    // solo sitio donde mirar el tiempo en vez de dos.
+    if (pasa.descansoSeg > 0) {
+      setCuenta({ desde: Date.now(), duracion: pasa.descansoSeg })
+      setModoReloj('descanso')
+    }
     // El ejercicio que se acaba de cerrar se queda en la sala mientras se lee que se
     // cerró. `ejercicioEnCurso` ya habría pasado al siguiente sin esto.
     if (pasa.cierraElEjercicio) setRetenido(yaEscrito)
@@ -584,11 +644,14 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
       {/* ----------------------------------------------------------------- paredes */}
       <ParedesDelSalon
-        microciclo={microciclo}
         sesion={sesion}
         ejercicio={ejercicio}
         contenido={contenido}
           microcicloPrevio={props.microcicloPrevio}
+          modo={modoReloj}
+          anclas={{ abierto, cuenta: cuenta?.desde, duracion: cuenta?.duracion }}
+          alTerminarLaCuenta={alTerminarLaCuenta}
+          cargaEnLaPared={cargaEnLaPared}
           camara={camara}
           lienzo={lienzo}
           azimutDeEntrada={patron?.camara.azimut ?? 0}
@@ -632,28 +695,65 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
-        {/* ------------------------------------------------------------- descanso
-            EL DESCANSO ARRANCA SOLO al guardar, y es el mismo cronómetro de la pantalla de
-            sesión: se monta, no se reescribe. Un segundo cronómetro de descanso con sus
-            propias pausas y su propio +15 s se separaría del primero al primer arreglo. */}
-        {descanso && (
-          // ABAJO, NO ARRIBA. `DescansoTimer` no se coloca solo —en la pantalla de sesión
-          // lo coloca su contenedor— y aquí, sin sitio, aterrizaba en la esquina superior:
-          // encima del rótulo del muro y del cronómetro, tapando las dos cosas que dicen
-          // dónde estás. Va sobre la barra de navegación, que es donde está la mano.
-          <div
-            className="pointer-events-auto absolute inset-x-3"
-            style={{ zIndex: 'var(--z-elevado)', bottom: 'calc(var(--tope-nav) + 0.75rem)' }}
-          >
-            <DescansoTimer
-              hasta={descanso.hasta}
-              totalSeg={descanso.totalSeg}
-              onCerrar={() => setDescanso(null)}
-              onMas15={() =>
-                setDescanso((d) =>
-                  d ? { hasta: d.hasta + 15_000, totalSeg: d.totalSeg + 15 } : d,
-                )
-              }
+        {/* ----------------------------------------------------------------- rumbo
+            LAS DOS BANDAS QUE DICEN DÓNDE ESTÁS EN LA SEMANA Y EN LA SESIÓN. Arriba, de
+            quién es el día y qué toca; abajo, un punto por ejercicio con el actual
+            encendido. Son las únicas dos capas del salón que no viven en el espacio, y por
+            eso son también las más finas: sin caja, sin fondo y sin borde. */}
+        <div className="pointer-events-none absolute inset-x-5 top-[46px]">
+          <BarraDeSesion sesion={sesion} semana={props.semana} />
+        </div>
+
+        <div
+          className="pointer-events-none absolute inset-x-5"
+          // POR ENCIMA DEL TIRADOR DEL PANEL. A 1,35rem los puntos existían, medían
+          // 350x4 y estaban a y 740 — y `elementFromPoint` devolvía el botón del tirador:
+          // se pintaban debajo de él. Un elemento que está en el DOM, tiene tamaño y no se
+          // ve es el fallo más callado que hay, y solo lo dice preguntarle al navegador
+          // quién manda en ese píxel.
+          style={{ bottom: 'calc(var(--tope-nav) + 3.4rem)' }}
+        >
+          <PuntosDeEjercicio sesion={sesion} ejercicioId={ejercicio?.id} />
+        </div>
+
+        {/* ----------------------------------------------------------------- mando
+            EL MANDO DEL RELOJ. Va desnudo —sin aro, sin etiquetas y sin flechas— y en la
+            esquina donde cae el pulgar. Se tira a la izquierda y la pared cuenta el
+            descanso; a la derecha, el excéntrico; hacia arriba enseña la carga; abajo o al
+            centro vuelve al tiempo de sesión.
+
+            TODO LO QUE CAMBIA SE LEE EN LA PARED, y por eso el mando no dice nada: si
+            rotulara sus cuatro salidas habría dos sitios donde mirar para una sola cosa, y
+            la mano ya sabe dónde está sin verlo. */}
+        {ejercicio && (
+          // LOS DOS MANDOS, UNO SOBRE OTRO Y AL ALCANCE DEL PULGAR. El del reloj y el de
+          // la cámara: los dos únicos aparatos que se OPERAN en este salón, con la misma
+          // materia y el mismo tamaño. Todo lo demás se lee.
+          <div className="absolute bottom-[calc(var(--tope-nav)+4.5rem)] right-3 flex flex-col items-center gap-2.5">
+            <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />
+            <Joystick
+              encendido={modoReloj !== 'sesion' || cargaEnLaPared}
+              onSoltar={(rumbo) => {
+                if (rumbo === 'arriba') {
+                  // La carga ocupa el hueco del reloj un rato y se va sola: es un dato que
+                  // se consulta, no un modo en el que se esté.
+                  setCargaEnLaPared(true)
+                  return
+                }
+                if (rumbo === 'izquierda' || rumbo === 'derecha') {
+                  const modo: ModoDelReloj = rumbo === 'izquierda' ? 'descanso' : 'excentrico'
+                  const duracion = duracionDelModo(modo, ejercicio)
+                  // Sin duración no hay cuenta que arrancar —un ejercicio sin descanso
+                  // pautado, por ejemplo—: el reloj se queda como está en vez de plantar
+                  // un 0:00 que no cuenta nada.
+                  if (duracion <= 0) return
+                  setCuenta({ desde: Date.now(), duracion })
+                  setModoReloj(modo)
+                  return
+                }
+                setModoReloj('sesion')
+                setCuenta(null)
+              }}
             />
           </div>
         )}

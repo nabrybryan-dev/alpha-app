@@ -109,6 +109,8 @@ export type AnclaDeHueco =
   | 'borde-inferior'
   /** El borde izquierdo, de donde se tira hacia dentro para sacar la ficha. */
   | 'borde-izquierdo'
+  /** El borde superior: la única banda que no vive en el espacio de la sala. */
+  | 'borde-superior'
 
 /** Con qué gesto se llega a un hueco. */
 export type GestoDeHueco =
@@ -180,6 +182,27 @@ export const HUECOS = {
     ancla: 'orbita',
     gesto: 'atravesar',
     topeDeTexto: 0,
+    visibleEnW: TODO_W,
+  },
+
+  /**
+   * EL RUMBO — de quién es el día y qué sesión toca.
+   *
+   * La única capa del salón que NO vive en el espacio, y es deliberado: el día y el nombre
+   * de la sesión no son del ejercicio ni de la serie, son de dónde estás en la SEMANA.
+   * Colgados de un muro se irían de cuadro al orbitar, y la pregunta que contestan —«¿esto
+   * es lo de hoy?»— tiene que poder contestarse mirando la pantalla, no buscando la pared
+   * correcta.
+   *
+   * Por eso es también la más fina que hay: dos líneas sin caja, sin fondo y sin borde,
+   * pegadas al borde de arriba. Un hueco que no está en el espacio tiene que pesar menos
+   * que los que sí, o se lee como una barra de aplicación montada encima de la sala.
+   */
+  rumbo: {
+    contiene: 'De quién es el día y qué sesión toca. Nada del ejercicio.',
+    ancla: 'borde-superior',
+    gesto: 'ninguno',
+    topeDeTexto: TOPE_PARED,
     visibleEnW: TODO_W,
   },
 

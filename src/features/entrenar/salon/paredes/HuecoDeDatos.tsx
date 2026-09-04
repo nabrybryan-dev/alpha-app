@@ -1,5 +1,7 @@
 import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
 import { RotuloCronometro } from './RotulosDelSalon'
+import { CuentaAtrasDelMuro } from '../mando/CuentaAtrasDelMuro'
+import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 
 /**
  * EL HUECO DE LA DERECHA DEL MURO: un sitio, dos contenidos, nunca los dos.
@@ -50,6 +52,16 @@ export interface HuecoDeDatosProps {
   textoDeCarga: string
   /** Con cuánto levantó la última vez. Ausente = no hay con qué comparar. */
   cargaPrevia?: number
+  /**
+   * QUÉ ESTÁ CONTANDO EL RELOJ. Lo decide el mando, y se lee aquí — nunca sobre el mando.
+   *
+   * En `sesion` es el cronómetro de siempre, el mismo que corre en la pantalla de sesión:
+   * se monta, no se reescribe. En los otros dos es una cuenta atrás contra un instante.
+   */
+  modo: ModoDelReloj
+  anclas: AnclasDelReloj
+  /** Se llama cuando la cuenta atrás cruza el cero. */
+  alTerminarLaCuenta: () => void
 }
 
 export function HuecoDeDatos({
@@ -58,11 +70,18 @@ export function HuecoDeDatos({
   ejercicio,
   textoDeCarga,
   cargaPrevia,
+  modo,
+  anclas,
+  alTerminarLaCuenta,
 }: HuecoDeDatosProps) {
   if (muestra === 'reloj') {
     return (
-      <div className="muro-hueco" data-hueco-muro="reloj">
-        {sesion && <RotuloCronometro sesionId={sesion.id} enCuadro />}
+      <div className="muro-hueco" data-hueco-muro="reloj" data-modo={modo}>
+        {modo === 'sesion' ? (
+          sesion && <RotuloCronometro sesionId={sesion.id} enCuadro />
+        ) : (
+          <CuentaAtrasDelMuro modo={modo} anclas={anclas} alTerminar={alTerminarLaCuenta} />
+        )}
       </div>
     )
   }

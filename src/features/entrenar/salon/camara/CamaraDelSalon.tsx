@@ -57,64 +57,36 @@ export function CamaraDelSalon({
   const borrador = leerBorrador(microcicloId, ejercicio, orden)
 
   return (
-    <div
-      data-testigo="camara"
-      style={style}
-      className={`pointer-events-auto flex flex-col gap-[0.45em] ${className}`}
-    >
-      {/* LA CABECERA DEL REFLECTOR: el trípode en silueta y el rótulo, dentro del cono.
+    <div data-testigo="camara" style={style} className={`pointer-events-auto ${className}`}>
+      {/* UN MANDO DESNUDO, y nada más.
 
-          El trípode no se cambia —es lo que dice que esto es un aparato del salón y no un
-          botón—, pero deja de ir junto a una etiqueta de interfaz y pasa a ir junto a un
-          rótulo serigrafiado en el muro. El punto rojo del testigo de grabación late: es
-          lo que hace que el reflector parezca encendido y no dibujado. */}
-      <div className="flex items-center gap-[0.5em]">
-        <svg
-          viewBox="0 0 24 26"
-          aria-hidden="true"
-          className="h-[2.1em] w-[1.9em] shrink-0 text-accion"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ filter: 'drop-shadow(0 0 0.35em rgb(var(--accion-rgb) / 0.5))' }}
-        >
-          <path d="M12 12v6" />
-          <path d="M12 18 6 25M12 18l6 7M12 18v7" />
-          <rect x="4" y="4" width="12" height="8" rx="1.5" />
-          <path d="m16 7 4-2v6l-4-2" />
-        </svg>
-        <p className="muro-rotulo text-[0.62em]">Cámara del encuadre</p>
-        <span className="punto-vivo ml-auto h-[0.42em] w-[0.42em] shrink-0 rounded-full bg-accion" aria-hidden="true" />
-      </div>
+          Aquí había un reflector: un cono de luz sobre el muro con la silueta del trípode,
+          el rótulo «CÁMARA DEL ENCUADRE», un testigo rojo latiendo y una pastilla negra
+          que decía «MEDIR CON LA CÁMARA». Estaba bien resuelto y era, al final, lo más
+          parecido a un recorte de aplicación que quedaba en pantalla — y ocupaba media
+          pared a la altura de las piernas del sujeto.
 
-      {/* LOS CUATRO CAMPOS DEL ENCUADRE YA NO ESTÁN AQUÍ, y no se han perdido: bajaron al
-          panel, a «El encuadre de hoy».
+          El encargo del 2026-09-04 es que la letra sea MÍNIMA y que no haya textos
+          interrumpiendo la sala. Así que la cámara se dice como se dicen los mandos de
+          este salón: un disco de 52 px con su icono y su nombre en la etiqueta, hermano
+          del mando del reloj. No se pierde nada —abre la misma hoja de medición, con el
+          mismo encoder y la misma tanda— y se recupera media pared.
 
-          Estaban en la pared y no pertenecen a la lista amarilla del §1 de `SEMANA-2.md`
-          —ahí solo entra «medir con la cámara»—. Puestos aquí ocupaban, con el estante del
-          material enfrente, el 98 % del ancho a la altura de las piernas del sujeto: la
-          captura del 2-sep enseña once paneles opacos y del cuerpo una astilla. Los
-          implementos 3D aportaban 36 píxeles no porque no se dibujaran, sino porque esto
-          los tapaba. */}
-      {/* EL MANDO. Lo único de este módulo que se toca, y por eso lo único con cuerpo.
-
-          Materia de aparato —canto de 2 px, filo de luz arriba, sombra proyectada
-          abajo— y no la tarjeta redondeada de antes. La regla de la capa: lo que se lee
-          es luz sobre el muro, lo que se toca es materia. Si el botón tuviera el mismo
-          aspecto que el rótulo de encima, tocar dejaría de ser evidente. */}
-      <hr className="muro-junta muro-junta-viva" aria-hidden="true" />
+          EL TRÍPODE DE VERDAD SIGUE EN LA SALA. Lo dibuja el motor, en su sitio y con su
+          cono de tolerancia: lo que se ha quitado es el dibujo del trípode EN LA PARED,
+          que era la copia. La estación se sigue viendo porque está construida. */}
       <button
         type="button"
         onClick={() => setMidiendo(true)}
-        // `self-start`: un mando no ocupa el ancho de la pared. A ancho completo era una
-        // barra de interfaz cruzando el muro; recogido a su texto es un aparato colgado
-        // debajo del rótulo, que es lo que se quería.
-        className="press muro-mando flex items-center gap-[0.55em] self-start px-[1em] py-[0.68em] text-[0.72em] font-bold uppercase tracking-[0.16em] text-silver-100"
+        aria-label="Medir esta serie con la cámara"
+        className="press grid h-[52px] w-[52px] place-items-center rounded-full border"
+        style={{
+          borderColor: 'rgb(var(--accion-rgb) / 0.55)',
+          background: 'rgb(var(--ink-1000-rgb) / 0.6)',
+          color: 'var(--accion)',
+        }}
       >
-        <IconoCamara className="h-[1.35em] w-[1.35em] shrink-0 text-accion" />
-        Medir con la cámara
+        <IconoCamara className="h-5 w-5" />
       </button>
 
       {/* La hoja de medición es la MISMA que abre el registro de la sesión: mismo encoder,
