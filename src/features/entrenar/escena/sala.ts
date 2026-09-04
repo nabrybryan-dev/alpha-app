@@ -76,17 +76,28 @@ const RADIO_SALA = 7.0
 const ALTO_SALA = 4.2
 
 /** Dónde se cuelgan los marcadores: a la altura de la mirada de quien está de pie. */
-const ALTO_PANEL = 1.85
+// 1,62 y no 1,85 desde el 2026-09-03: a 1,85 el marcador caía justo bajo el tablón del
+// DOM y se le rozaba. Bajarlo lo deja solo en su banda de muro, que es lo que hace que se
+// lea como un display de la sala y no como un fondo del texto.
+const ALTO_PANEL = 1.62
 
 // La primera versión usaba valores casi negros: en un móvil el contraste del canvas
 // aplastaba paredes, paneles y material contra el fondo y solo se distinguía el sujeto.
 // Estos valores siguen siendo carbón, pero dejan leer el volumen de la sala y sus bordes.
 const PARED: Color = [0.062, 0.068, 0.078]
 const ZOCALO: Color = [0.095, 0.104, 0.12]
-const PANEL: Color = [0.042, 0.046, 0.054]
+const PANEL: Color = [0.028, 0.03, 0.036]
 const MARCO: Color = [0.2, 0.22, 0.26]
-const SEGMENTO_VIVO: Color = [0.86, 0.2, 0.2]
-const SEGMENTO_APAGADO: Color = [0.115, 0.122, 0.135]
+// El segmento encendido. Sube de 0,86 a 1,0 el 2026-09-03: estas cifras dejaron de ser
+// decorado del fondo y pasaron a ser LO QUE SE LEE —la prescripción de la serie ya no se
+// escribe en el DOM—, así que tienen que ganarle al mapeo de tonos igual que se lo gana
+// un display de verdad en una sala a oscuras.
+const SEGMENTO_VIVO: Color = [1.0, 0.24, 0.24]
+// El segmento APAGADO baja de 0,115 a 0,055 el 2026-09-03. No es un ajuste de gusto: el
+// contraste de un display es la distancia entre lo encendido y lo apagado, y sobre el muro
+// hay un degradado de luz que sube el negro. Con el apagado tan claro, las cifras se leían
+// como una textura del fondo en vez de como un número.
+const SEGMENTO_APAGADO: Color = [0.055, 0.058, 0.066]
 
 // ---------------------------------------------------------------------------
 // La estación de grabación
@@ -249,7 +260,16 @@ function marcador(m: Malla, anguloGrados: number, series: number, reps: number, 
   // El eje horizontal del panel: tangente a la pared.
   const tang: Vec3 = [-si, 0, co]
 
-  const alto = 0.44
+  // EL CUERPO DE LAS CIFRAS, y por qué 0,38 y no 0,44.
+  //
+  // A 0,44 el panel entero mide 2,29 m y el muro que se ve en un 390×844 son 2,37: el
+  // 97 %. Medido el 2026-09-03 apagando la capa de letras con `--sin-letras`, el marcador
+  // salía CORTADO por los dos lados — cabía sobre el papel y no en la pantalla. A 0,38 seguía rozando los dos bordes en
+  // la pantalla de verdad; a 0,30 el panel ocupa el 66 % del muro visible, entra entero, y
+  // el dígito mide 49 px de alto — más que cualquier cifra que la interfaz haya escrito
+  // nunca ahí. El número sale de mirar la captura, no de la cuenta: la cuenta decía que a
+  // 0,38 cabía.
+  const alto = 0.3
   const acotar = (v: number, cifras: number) =>
     String(Math.max(0, Math.min(cifras === 1 ? 9 : 99, Math.round(v)))).padStart(cifras, '0')
   const grupos = [
@@ -492,11 +512,13 @@ export const ENCUADRE_SALA = {
    * entre 629 y 861 px por encima de la pantalla y el salón se abría sin una letra
    * dentro. A 46°, la altura de muro más alta que entra en el cuadro es −1,98 m.
    *
-   * **Ocho.** Empezó en diez, y bajó a ocho el mismo día al componer el tablón: enfrente
-   * ya no cuelgan cuatro cuadros pequeños sino uno grande —cabecera, cronómetro,
-   * ejercicio, cifras y avisos en una sola composición—, y un tablón más alto necesita
-   * más muro. Los otros dos grados los paga el margen con el borde de arriba, que subió
-   * de 12 a 28 px porque a 12 la composición se leía apretada contra el techo.
+   * **Diez otra vez.** Fue diez, bajó a ocho el 2026-09-03 al componer el tablón —un
+   * tablón más alto necesita más muro— y vuelve a diez el mismo día, cuando las cifras se
+   * mudaron a la geometría del muro y el tablón pasó de declarar 1,5 m a 0,85. Los dos
+   * grados no se recuperan por gusto: cada grado que este tope sube es un patrón más que
+   * entra en el salón con su ángulo de estudio intacto. El número lo mide
+   * `geometriaDeCuadro.test.ts`, que lo recalcula y lo compara; si alguien vuelve a
+   * engordar el tablón, esa prueba lo dice y este número baja.
    *
    * El techo real está clavado en `geometriaDeCuadro.test.ts`, y si alguien le añade una
    * línea al tablón baja y esa prueba lo dice. La cuenta al día de hoy: 18 de los 32
@@ -507,7 +529,7 @@ export const ENCUADRE_SALA = {
    * la distancia de la estación de grabación, que son el contrato de medida del encoder
    * y no se mueven por motivos de encuadre.
    */
-  elevacionMaxima: 8,
+  elevacionMaxima: 10,
 } as const
 
 /**

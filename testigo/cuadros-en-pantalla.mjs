@@ -52,6 +52,7 @@ function leerOpciones(argv) {
     panel: false,
     ver: '',
     espera: 0,
+    sinLetras: false,
   }
   for (const bruto of argv.slice(2)) {
     const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
@@ -68,6 +69,7 @@ function leerOpciones(argv) {
     else if (nombre === 'girar') o.girar = Number(valor)
     else if (nombre === 'panel') o.panel = true
     else if (nombre === 'espera') o.espera = Number(valor)
+    else if (nombre === 'sin-letras') o.sinLetras = true
     else if (nombre === 'ver') {
       o.panel = true
       o.ver = valor
@@ -230,6 +232,20 @@ async function main() {
         await dt.pedir('Input.dispatchMouseEvent', { type: 'mouseReleased', x: donde.x, y: donde.y, button: 'left', buttons: 0 })
         await esperar(1000)
       }
+    }
+
+    // APAGAR LA CAPA DE LETRAS. Qué dice la SALA por sí sola, sin la interfaz encima.
+    //
+    // Nace de la corrección de Bryan del 2026-09-03: «los agregas como recortes de la app».
+    // La sala ya escribe cifras en geometría —paneles de siete segmentos de 0,44 m—, y la
+    // pregunta que no se podía contestar era si esas cifras se leen, porque el tablón del
+    // DOM se pinta justo encima. Esto las deja solas.
+    if (o.sinLetras) {
+      await dt.evaluar(
+        `(() => { const n = document.querySelector('[data-testigo="letras3D"]');` +
+          ' if (n) n.style.visibility = "hidden"; return !!n })()',
+      )
+      console.log('  capa de letras apagada: se mide lo que dice la sala sola')
     }
 
     // ESPERAR ANTES DE MEDIR. El tablón del muro agrupa por TIEMPO: anuncia el ejercicio

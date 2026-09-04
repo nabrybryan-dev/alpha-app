@@ -117,7 +117,15 @@ export const SITIOS = {
    * Centrado no lo tapa el sujeto porque está a 2,24 m: por encima de la cabeza, que es
    * donde un gimnasio de verdad cuelga su tablón.
    */
-  ejercicio: { desvio: 0, altura: 2.42, ancho: 1.9, alto: 1.5 },
+  // `alto` 0,85 desde el 2026-09-03, y era 1,5.
+  //
+  // El tope declarado decide cuánto BAJA el asentado para que el cuadro no se salga por
+  // arriba, así que un tope demasiado generoso no es conservador: es un cuadro colgado más
+  // abajo de donde le toca. Con 1,5 el tablón caía sobre el marcador de siete segmentos del
+  // muro —el que ahora escribe la prescripción— y le pintaba el texto encima. Su contenido
+  // real, ya sin las cifras que dice la sala, son 119 px = 0,73 m; 0,85 deja margen sin
+  // mentir. El testigo compara este número con el alto de verdad en cada corrida.
+  ejercicio: { desvio: 0, altura: 2.42, ancho: 1.9, alto: 0.85 },
   /**
    * Lo que ya se levantó hoy. **Fuera de la ventana de entrada, a un giro corto.**
    *

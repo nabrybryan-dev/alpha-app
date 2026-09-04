@@ -3,7 +3,7 @@ import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../..
 import type { RitmoSesion } from '../../../../domain/ritmoSesion'
 import type { ContenidoDePared } from './contenidoPared'
 import { MuroDeCampos } from './PanelPared'
-import { EN_EL_ANUNCIO, EN_LO_VIVO, LA_CIFRA_VIVA } from './muros'
+import { EN_EL_ANUNCIO, EN_GEOMETRIA_DEL_MURO, EN_LO_VIVO } from './muros'
 import { RotuloDelDia, RotuloCronometro, Marquesina } from './RotulosDelSalon'
 import { avisosDelSalon, lineaDeRitmo } from './avisosDelSalon'
 
@@ -148,30 +148,24 @@ export function TablonDelMuro({
               Serie {ejercicio.series.length + 1} de {ejercicio.sets}
             </p>
           )}
-          {/* LA CIFRA QUE MANDA, sola y a cuerpo de marcador; debajo las dos que la
-              acompañan, a cuerpo normal.
-              Las tres juntas en una fila a 1,5em PARTÍAN PALABRAS —«3 × (8-» / «10)»— y
-              una prescripción cortada a la mitad no se lee de un vistazo, que es lo único
-              que este bloque tiene que hacer. Con 2,37 m de muro no caben tres columnas de
-              cifra grande: cabe una.
-              Van por `MuroDeCampos` y no escritas a mano para que sigan llevando su
-              `data-campo` y su `data-tope`: lo que se audita desde fuera no puede depender
-              de en qué estado esté el muro. */}
-          <div className="muro-vivo-cifras">
-            <MuroDeCampos contenido={contenido} campos={LA_CIFRA_VIVA} lado="izquierda" enCuadro />
-          </div>
+          {/* LO QUE DICE EL MURO NO SE ESCRIBE AQUÍ.
+              Series, repeticiones y RIR los escribe la sala en siete segmentos, a 62 px
+              de alto y enfrente de quien entra. Estos nodos se montan y no se ven: son
+              para el lector de pantalla y para la auditoría. */}
           <MuroDeCampos
             contenido={contenido}
-            campos={EN_LO_VIVO.filter((c) => !LA_CIFRA_VIVA.includes(c))}
+            campos={EN_GEOMETRIA_DEL_MURO}
             lado="izquierda"
             enCuadro
-            className="mt-[0.35em]"
+            soloParaLector
           />
+
+          {/* Y EN LETRA, solo lo que la geometría no puede escribir. La carga suele ser
+              una frase —«SIN KILOS», «con la barra»— y siete segmentos no escriben eso. */}
+          <MuroDeCampos contenido={contenido} campos={EN_LO_VIVO} lado="izquierda" enCuadro />
         </div>
       )}
 
-      {/* LA RANURA DE ABAJO: solo cuando hay algo que decir, y solo en reposo.
-          Durante el anuncio no cabe —y no compite: lo que importa entonces es qué toca—. */}
       {/* LA RANURA DE ABAJO: UNA línea, y por ella pasa todo lo que cambia con el tiempo.
           Es lo que este muro decía que hacía y no hacía. El ritmo iba en un rótulo fijo y
           los avisos en una banda debajo: dos bloques apilados que dicen lo mismo —cómo

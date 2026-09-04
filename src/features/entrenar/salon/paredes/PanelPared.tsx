@@ -72,6 +72,13 @@ export interface PanelCampoProps {
    * quepan dentro del módulo de la cámara sin comerse el suelo del salón.
    */
   denso?: boolean
+  /**
+   * `true` cuando este campo **lo escribe la sala en geometría** y el DOM no debe
+   * repetirlo. El nodo se monta igual, con su marca y su texto, y solo deja de verse: por
+   * los lectores de pantalla, que no leen una malla, y por la auditoría, que cuenta
+   * `data-campo`.
+   */
+  soloParaLector?: boolean
   /** Clases extra de la caja. Sirve para que quepa en una fila (`min-w-0 flex-1`). */
   className?: string
   /**
@@ -100,6 +107,7 @@ export function PanelCampo({
   texto,
   lado,
   denso: densoPedido = false,
+  soloParaLector = false,
   className = '',
   enCuadro = false,
 }: PanelCampoProps) {
@@ -136,6 +144,22 @@ export function PanelCampo({
       </p>
     </>
   )
+
+  // LO QUE DICE LA SALA NO SE ESCRIBE ENCIMA — pero tampoco se borra.
+  //
+  // Series y RIR los escribe el muro en geometría de siete segmentos desde el #183, y
+  // hasta el 2026-09-03 el DOM los repetía justo encima en tipografía de app. Repetirlos
+  // era taparlos. Pero borrarlos del DOM se llevaría por delante dos cosas que no son
+  // decorado: un lector de pantalla no lee una malla, y la auditoría de «no se perdió
+  // nada» cuenta `data-campo`. Así que el nodo se queda, con su marca y su texto, y solo
+  // deja de verse: `.sr-only` es la clase del sistema para exactamente esto.
+  if (soloParaLector) {
+    return (
+      <div data-campo={campo} data-tope={TOPE_PARED} data-en-geometria="" className="sr-only">
+        {contenido}
+      </div>
+    )
+  }
 
   // DENTRO DE UN CUADRO no hay caja ni escorzo propios: los pone el cuadro, y los suyos
   // salen de la cámara de verdad de la escena en vez de un ángulo fijo.
@@ -186,6 +210,8 @@ export interface MuroDeCamposProps {
   campos: readonly ClaveDeCampo[]
   lado: 'izquierda' | 'derecha'
   denso?: boolean
+  /** `true` si esta columna la escribe la sala: se monta y no se ve. */
+  soloParaLector?: boolean
   className?: string
 }
 
@@ -201,6 +227,7 @@ export function MuroDeCampos({
   campos,
   lado,
   denso,
+  soloParaLector,
   className = '',
   enCuadro = false,
 }: MuroDeCamposProps) {
@@ -238,6 +265,7 @@ export function MuroDeCampos({
                   texto={contenido[campo]}
                   lado={lado}
                   denso={denso}
+                  soloParaLector={soloParaLector}
                   enCuadro={enCuadro}
                   className="min-w-0 flex-1"
                 />
@@ -251,6 +279,7 @@ export function MuroDeCampos({
                 texto={contenido[campo]}
                 lado={lado}
                 denso={denso}
+                soloParaLector={soloParaLector}
                 enCuadro={enCuadro}
               />
             ))

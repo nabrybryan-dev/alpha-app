@@ -52,19 +52,35 @@ const EN_EL_ANUNCIO_SET = new Set<ClaveDeCampo>(['nombre', 'tecnica'])
 /** Lo que el muro ANUNCIA al llegar al ejercicio, y luego retira. */
 export const EN_EL_ANUNCIO = MURO_IZQUIERDO.filter((c) => EN_EL_ANUNCIO_SET.has(c))
 
-/** Lo que el muro deja ENCENDIDO: la prescripción de la serie en curso. */
-export const EN_LO_VIVO = MURO_IZQUIERDO.filter((c) => !EN_EL_ANUNCIO_SET.has(c))
-
 /**
- * Y DE ESAS TRES, LA QUE MANDA. Va sola y a cuerpo de marcador.
+ * LO QUE ESCRIBE LA SALA, en geometría, y por eso ya no se escribe encima.
  *
- * Series y repeticiones es lo que decide qué haces AHORA; la carga y el RIR la matizan.
- * Puestas las tres al mismo cuerpo en una fila, a 1,5em partían palabras —«3 × (8-» /
- * «10)»—: con 2,37 m de muro visible no caben tres columnas de cifra grande, cabe una.
- * Es un array de uno y no una constante suelta para que `MuroDeCampos` lo reciba como
- * recibe cualquier otro grupo, con su `data-campo` y su `data-tope` puestos igual.
+ * `construirSala()` cuelga marcadores de SIETE SEGMENTOS en los muros —geometría de
+ * verdad, no tipografía— y uno de ellos justo enfrente de quien entra, con las series, las
+ * repeticiones y el RIR. Llevaba ahí desde el #183.
+ *
+ * El 2026-09-03, apagando la capa de letras con `testigo/cuadros-en-pantalla.mjs
+ * --sin-letras`, se vio lo que nadie había mirado: **el muro ya decía `03 09 2` en cifras
+ * de 62 px, y el tablón del DOM se pintaba justo encima**. La interfaz no estaba añadiendo
+ * información: estaba tapando la que la sala ya daba, y encima la repetía en tipografía de
+ * app. Es exactamente lo que Bryan lleva señalando tres veces —«se ven como recortes de la
+ * aplicación»—, y la salida no era rediseñar el recorte otra vez: era quitarlo.
+ *
+ * **No desaparecen del DOM**: se quedan invisibles. Una malla no la lee un lector de
+ * pantalla, y la auditoría de «no se perdió nada» cuenta `data-campo`. Se ven en el muro,
+ * se oyen igual que antes, y se siguen pudiendo contar desde fuera.
  */
-export const LA_CIFRA_VIVA: readonly ClaveDeCampo[] = EN_LO_VIVO.filter((c) => c === 'seriesReps')
+const EN_GEOMETRIA = new Set<ClaveDeCampo>(['seriesReps', 'rir'])
+
+/** Los campos que dice la SALA en siete segmentos. En el DOM van, pero no se ven. */
+export const EN_GEOMETRIA_DEL_MURO = MURO_IZQUIERDO.filter((c) => EN_GEOMETRIA.has(c))
+
+/** Lo que el muro deja ENCENDIDO en letra: lo que la geometría no puede escribir. */
+export const EN_LO_VIVO = MURO_IZQUIERDO.filter(
+  (c) => !EN_EL_ANUNCIO_SET.has(c) && !EN_GEOMETRIA.has(c),
+)
+
+
 
 /** Los cuatro campos de MEDIR: se los lleva el módulo de la cámara, que es donde se usan. */
 export const MURO_DERECHO = CAMPOS_DE_PARED.filter((c) => !EN_LA_IZQUIERDA.has(c))

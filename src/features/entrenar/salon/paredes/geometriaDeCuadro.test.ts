@@ -124,27 +124,30 @@ describe('asentarEnLaBanda', () => {
   /**
    * EL TECHO DE ELEVACIÓN, CLAVADO EN UNA PRUEBA.
    *
-   * El cuadro del ejercicio es el más alto de los nueve —lleva cinco campos— y por eso es
-   * el que decide hasta dónde llega el salón: **8°**, que cubre 18 de los 32 patrones del
-   * catálogo. Por encima ya no hay altura de muro que lo deje entero sin meterlo en el
-   * cuerpo del sujeto.
+   * El cuadro del ejercicio es el más alto del muro de enfrente y por eso es el que decide
+   * hasta dónde llega el salón: **10°**. Por encima ya no hay altura de muro que lo deje
+   * entero sin meterlo en el cuerpo del sujeto.
    *
-   * Fueron 10 hasta que enfrente dejó de haber cuatro cuadros pequeños y pasó a haber un
-   * tablón compuesto. Un tablón más alto necesita más muro, y el muro que se ve no da
-   * más de sí: es el mismo presupuesto, gastado en otra cosa.
+   * El número ha ido y vuelto, y el viaje explica de qué depende. Fueron 10; bajó a 8 el
+   * 2026-09-03 al componer el tablón —cuatro cuadros pequeños pasaron a ser uno grande, y
+   * un tablón más alto necesita más muro—; y volvió a 10 el mismo día, cuando las cifras
+   * se mudaron a la GEOMETRÍA del muro. Series, repeticiones y RIR los escribe ahora la
+   * sala en siete segmentos, así que el tablón dejó de declarar 1,5 m de alto y declara
+   * 0,85. Cada grado que este techo sube es un patrón más que entra en el salón con su
+   * ángulo de estudio intacto: quitar información de la pantalla se paga en grados.
    *
    * Está escrito como prueba y no como comentario porque es el número que hay que mirar
    * cuando se le añada un campo: si el techo baja, el que lo baje se entera aquí y no en
    * el teléfono de Bryan. Y si sube, también — subirlo es la forma de que el salón valga
    * para más patrones.
    */
-  it('el techo del cuadro del ejercicio son 8° de elevación', () => {
+  it('el techo del cuadro del ejercicio son 10° de elevación', () => {
     let techo = -1
     for (let e = 0; e <= 60; e++) {
       if (!asentarEnLaBanda(CUADRO_DEL_EJERCICIO, CAMARA(e), ANCHO, ALTO).cabe) break
       techo = e
     }
-    expect(techo).toBe(8)
+    expect(techo).toBe(10)
   })
 
   it('a las elevaciones bajas deja la altura declarada como está', () => {

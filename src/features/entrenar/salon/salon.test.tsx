@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EN_EL_ANUNCIO, EN_LO_VIVO, MURO_IZQUIERDO } from './paredes/muros'
+import { EN_EL_ANUNCIO, EN_GEOMETRIA_DEL_MURO, EN_LO_VIVO, MURO_IZQUIERDO } from './paredes/muros'
 import { SessionProvider } from '../../../app/SessionProvider'
 import { ThemeProvider } from '../../../app/ThemeProvider'
 import { AppRouter } from '../../../app/router'
@@ -407,10 +407,21 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     act(() => {
       vi.advanceTimersByTime(6500)
     })
-    expect(camposVisibles()).toEqual([...EN_LO_VIVO])
+    // En reposo el DOM lleva los de geometría —montados y sin ver— y los que solo puede
+    // escribir la letra. Los primeros van marcados: si alguien los volviera a hacer
+    // visibles, estaría repitiendo encima de las cifras del muro, que es de lo que se
+    // salió el 2026-09-03.
+    expect(camposVisibles()).toEqual([...EN_GEOMETRIA_DEL_MURO, ...EN_LO_VIVO])
+    for (const clave of EN_GEOMETRIA_DEL_MURO) {
+      const nodo = salon.querySelector(`[data-campo="${clave}"]`)
+      expect(nodo?.getAttribute('data-en-geometria'), `${clave} ya no lo escribe la sala`).toBe('')
+      expect(nodo?.className, `${clave} se ve, y lo dice el muro`).toContain('sr-only')
+    }
 
     // Y la unión son los cinco del muro, sin repetidos y sin perder ninguno.
-    expect([...EN_EL_ANUNCIO, ...EN_LO_VIVO].sort()).toEqual([...MURO_IZQUIERDO].sort())
+    expect([...EN_EL_ANUNCIO, ...EN_GEOMETRIA_DEL_MURO, ...EN_LO_VIVO].sort()).toEqual(
+      [...MURO_IZQUIERDO].sort(),
+    )
     } finally {
       vi.useRealTimers()
     }

@@ -11,16 +11,16 @@
     {
       "clave": "ejercicio",
       "x": 40,
-      "y": 74,
-      "ancho": 309,
-      "alto": 154,
-      "sobraArriba": -74,
-      "sobraAbajo": -615,
+      "y": 38,
+      "ancho": 310,
+      "alto": 119,
+      "sobraArriba": -38,
+      "sobraAbajo": -686,
       "sobraIzquierda": -40,
       "sobraDerecha": -40,
       "cuerpoPx": 15,
-      "topePx": 244,
-      "texto": "M22UPPER BCronómetro de sesión00:00:09Toca para pausarSerie 1 de 3Series3 × (8-10)CargaSin"
+      "topePx": 139,
+      "texto": "M22UPPER BCronómetro de sesión00:00:30Toca para pausarSerie 1 de 3Series3 × (8-10)FalloRIR"
     },
     {
       "clave": "series",
