@@ -70,6 +70,10 @@ export interface ParedesDelSalonProps {
   notas: readonly ItemMarcable[]
   /** El microciclo anterior. De él sale «la semana pasada» del muro, que es un hecho. */
   microcicloPrevio?: Microciclo
+  /** Sacar la ficha de la serie. El mando de la pared la llama; no la contiene. */
+  onAbrirFicha: () => void
+  /** Si la ficha ya está fuera, para que el mando lo diga. */
+  fichaAbierta: boolean
   /**
    * Dónde mira la cámara del salón AHORA MISMO, tal y como la deja la órbita.
    *
@@ -93,6 +97,8 @@ export function ParedesDelSalon({
   ritmo,
   notas,
   microcicloPrevio,
+  onAbrirFicha,
+  fichaAbierta,
   camara,
   lienzo,
   azimutDeEntrada,
@@ -190,7 +196,13 @@ export function ParedesDelSalon({
           lo único de las paredes con lo que se OPERA, no que se lee. */}
       {ejercicio && (
         <CuadroDePared clave="registro" sitio={donde(SITIOS.registro)} camara={camara} lienzo={lienzo} interactivo>
-          <BarraRegistro microcicloId={microciclo.id} ejercicio={ejercicio} enCuadro />
+          <BarraRegistro
+            microcicloId={microciclo.id}
+            ejercicio={ejercicio}
+            enCuadro
+            onAbrirFicha={onAbrirFicha}
+            fichaAbierta={fichaAbierta}
+          />
         </CuadroDePared>
       )}
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render } from '@testing-library/react'
-import { cuerpoDelRotulo, lineasDelRotulo, RotuloEnTrazo } from './RotuloEnTrazo'
+import { RotuloEnTrazo } from './RotuloEnTrazo'
+import { cuerpoDelRotulo, lineasDelRotulo } from './rotuloDelMuro'
 
 /**
  * EL RÓTULO DEL MURO, PROBADO.

@@ -1,9 +1,7 @@
-import { useRef, useState } from 'react'
 import { ejercicioCompleto } from '../../../../domain/cumplimiento'
 import { etiquetaDeSerie } from '../../../../domain/calendario'
 import type { EjercicioPrescrito } from '../../../../domain/types'
 import { leerBorrador } from './borrador'
-import { RegistroSerieSalon, type RegistroSerieSalonHandle } from './RegistroSerieSalon'
 
 /**
  * LA SERIE EN CURSO, COLAPSADA A UNA BARRA.
@@ -19,20 +17,23 @@ import { RegistroSerieSalon, type RegistroSerieSalonHandle } from './RegistroSer
  * repeticiones y su RIR— más el botón de guardar. Los mandos para cambiar esos tres
  * números están a un toque, debajo.
  *
- * ## Los mandos se montan aunque estén plegados
+ ## LOS MANDOS SE FUERON AL CAJÓN, y este mando se quedó con lo que sabe hacer
  *
- * `RegistroSerieSalon` está siempre en el árbol y se esconde con `hidden`, no se
- * desmonta. Dos motivos, y el segundo es el que manda: el borrador vive en su estado y
- * remontarlo en cada plegado lo volvería a leer del almacenamiento —perdiendo lo tecleado
- * si el efecto que persiste aún no había corrido—; y el botón de guardar de la barra
- * necesita poder llamarle, y a un componente desmontado no se le llama.
+ * Los tres steppers vivían aquí dentro y se desplegaban hacia abajo. Dos costes, y el
+ * segundo es el que decidió: el cuadro está colgado a 1,62 m del muro, así que crecer lo
+ * empuja contra el marcador de siete segmentos; y un panel que brota de un cuadro de pared
+ * convierte la pared en formulario, que es justo de lo que este salón lleva saliendo.
  *
- * ## Un solo botón de guardar
+ * Ahora llenar y guardar viven en `CajonDeSerie`, que entra desde el borde izquierdo. Este
+ * mando se queda con las dos cosas que sí son de la pared: DECIR qué serie toca y con qué,
+ * y ser lo que se toca para sacar la ficha.
  *
- * El de la barra. `RegistroSerieSalon` sabe pintar el suyo —y lo pinta cuando se usa
- * suelto, que es como está probado— pero aquí se le apaga: dos botones «Guardar serie 3»
- * en la misma pantalla son dos formas de hacer lo mismo, y el día que una de las dos deje
- * de funcionar nadie sabrá cuál era la buena.
+ * ## Un solo `RegistroSerieSalon` en la pantalla, y no es una preferencia
+ *
+ * Antes había uno montado y escondido aquí. Si además hubiera otro en el cajón, los dos
+ * leerían el mismo borrador al montarse y llevarían su propio estado a partir de ahí: se
+ * teclea 82,5 en el cajón, el escondido sigue creyendo 80, y guardar desde el sitio
+ * equivocado escribe el número viejo. No falla, no avisa, y queda en la base.
  *
  * ## El resumen se lee del mismo borrador que escriben los mandos
  *
@@ -47,12 +48,19 @@ export interface BarraRegistroProps {
   enCuadro?: boolean
   microcicloId: string
   ejercicio: EjercicioPrescrito
+  /** Sacar la ficha. La pared no la contiene: la llama. */
+  onAbrirFicha: () => void
+  /** Si la ficha está fuera, para que el mando lo diga y no repita el gesto. */
+  fichaAbierta: boolean
 }
 
-export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: BarraRegistroProps) {
-  const [abierta, setAbierta] = useState(false)
-  const registro = useRef<RegistroSerieSalonHandle>(null)
-
+export function BarraRegistro({
+  microcicloId,
+  ejercicio,
+  enCuadro = false,
+  onAbrirFicha,
+  fichaAbierta,
+}: BarraRegistroProps) {
   const completo = ejercicioCompleto(ejercicio)
   const orden = ejercicio.series.length + 1
   const borrador = leerBorrador(microcicloId, ejercicio, orden)
@@ -63,8 +71,8 @@ export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: Bar
       <div className={enCuadro ? "flex items-stretch gap-[0.35em]" : "flex items-stretch gap-1.5"}>
         <button
           type="button"
-          aria-expanded={abierta}
-          onClick={() => setAbierta((v) => !v)}
+          aria-expanded={fichaAbierta}
+          onClick={onAbrirFicha}
           className={`press flex min-w-0 flex-1 items-center text-left ${enCuadro ? "muro-mando gap-[0.5em] px-[0.7em] py-[0.5em]" : "gap-2 rounded-[0.6em] border border-accion/35 bg-ink-900/90 px-3 py-2"}`}
         >
           <span className="min-w-0 flex-1">
@@ -116,21 +124,27 @@ export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: Bar
           <span
             aria-hidden="true"
             className={`grid shrink-0 place-items-center rounded-full text-silver-400 transition-transform duration-base ease-salida ${enCuadro ? "h-[1.5em] w-[1.5em] border border-silver-500/45" : "h-6 w-6 border border-white/15"}`}
-            style={{ transform: abierta ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            style={{ transform: fichaAbierta ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
+            {/* La flecha apunta a la IZQUIERDA, que es de donde sale la ficha. Apuntando
+                hacia arriba decía «esto se despliega», que es lo que ya no hace. */}
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 15 6-6 6 6" />
+              <path d="m15 6-6 6 6 6" />
             </svg>
           </span>
         </button>
 
         {!completo && (
+          // EL BOTÓN DE ABRIR LA FICHA. Deja de decir «Guardar» y pasa a decir qué saca,
+          // porque guardar ya no ocurre aquí: llenar y guardar están los dos en la ficha,
+          // que es lo que hace que no haya dos sitios donde escribir la misma serie.
+          //
+          // Sigue siendo el mismo interruptor encendido: canto de 2 px y resplandor rojo
+          // hacia fuera, que es lo que dice que este trozo de aparato está vivo.
           <button
             type="button"
-            onClick={() => registro.current?.guardar()}
-            // UN INTERRUPTOR ENCENDIDO, no una pastilla. Canto de 2 px como el resto de la
-            // materia del muro, y el resplandor rojo hacia FUERA: es lo que dice que este
-            // trozo de aparato está vivo y que lo que hace es guardar.
+            onClick={onAbrirFicha}
+            aria-label={`Anotar la serie ${orden}`}
             className={`press shrink-0 font-display uppercase leading-none tracking-wide text-white ${enCuadro ? "rounded-[2px] px-[0.9em] text-[0.95em]" : "rounded-[0.6em] px-3.5 text-[13px]"}`}
             style={{
               background: enCuadro
@@ -141,26 +155,10 @@ export function BarraRegistro({ microcicloId, ejercicio , enCuadro = false}: Bar
                 : 'var(--glow-accion)',
             }}
           >
-            Guardar
+            Anotar
             <span className="cifras ml-1">{orden}</span>
           </button>
         )}
-      </div>
-
-      {/* Los mandos. Montados siempre, escondidos mientras la barra está plegada: `hidden`
-          los saca del árbol de accesibilidad y del cuadro, pero no del árbol de React. */}
-      <div hidden={!abierta}>
-        <RegistroSerieSalon
-          // La `key` remonta el registro cuando cambia la serie: el borrador arranca en
-          // `useState`, que solo corre en el primer montaje, y sin remontar la serie 2
-          // saldría con lo que se tecleó en la 1.
-          key={`${ejercicio.id}-${orden}`}
-          ref={registro}
-          microcicloId={microcicloId}
-          ejercicio={ejercicio}
-          mostrarBoton={false}
-          onGuardado={() => setAbierta(false)}
-        />
       </div>
     </div>
   )

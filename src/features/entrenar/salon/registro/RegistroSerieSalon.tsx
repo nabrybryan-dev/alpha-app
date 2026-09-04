@@ -123,9 +123,11 @@ export function RegistroSerieSalon({
   const etiqueta = etiquetaDeSerie(ejercicio, orden)
 
   return (
-    // Sin desenfoque y con el fondo opaco, por lo mismo que las paredes: el suelo se
-    // pinta sobre el lienzo del sujeto, que se mueve mientras se registra la serie.
-    <div className="rounded-[14px] border border-accion/35 bg-ink-900 px-3 py-2.5">
+    // SIN CAJA. La tenía —borde rojo, fondo de tinta y esquinas de 14 px— porque vivía
+    // suelta sobre el lienzo del sujeto y necesitaba respaldo propio. Desde que la ficha
+    // es un cajón, el respaldo lo pone el cajón: dejar la caja aquí dentro era una tarjeta
+    // dentro de otra, que es lo que este salón lleva quitando desde el 2026-09-02.
+    <div>
       <p className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-accion">
         <span>
           Serie {orden} de {ejercicio.sets}
@@ -153,7 +155,11 @@ export function RegistroSerieSalon({
         cifraViva
         onCambiar={(v) => cambiar({ cargaKg: v })}
       />
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      {/* LOS TRES, UNO DEBAJO DE OTRO. Reps y RIR iban en dos columnas, que cabían en la
+          barra ancha de antes y NO caben en los 232 px del cajón: cada mando quedaba en
+          110 px, los dos botones de 44 se comían el sitio y la cifra —lo único que importa
+          de un mando— desaparecía. Se vio en la foto; en el DOM estaba y medía cero. */}
+      <div className="mt-2 flex flex-col gap-2">
         <Stepper
           etiqueta="Reps"
           valor={borrador.reps}

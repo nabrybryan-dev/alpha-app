@@ -1,4 +1,4 @@
-import type { LecturaDePrescripcion } from '../lecturaDeLaPrescripcion'
+import { cuerpoDeLaCifra, type LecturaDePrescripcion } from '../lecturaDeLaPrescripcion'
 
 /**
  * LA LECTURA LARGA, MAQUETADA: una fila por prescripción, tres niveles dentro.
@@ -27,19 +27,6 @@ import type { LecturaDePrescripcion } from '../lecturaDeLaPrescripcion'
  * No se resalta ni se abre sola: se pone donde se lee primero. Es lo que hace que el panel
  * conteste a la pregunta con la que se bajó, en vez de obligar a buscarla entre cuatro.
  */
-
-/**
- * EL CUERPO DE LA CIFRA, en píxeles, según lo larga que sea.
- *
- * La columna son 86 px fijos. Un número de una o dos cifras entra a cuerpo entero; a
- * partir de ahí baja, porque lo que no puede pasar es que parta. `FALLO` son cinco
- * letras en una tipografía expandida: a 30 px se sale, a 20 entra.
- */
-export function cuerpoDeLaCifra(cifra: string): number {
-  if (cifra.length <= 2) return 30
-  if (cifra.length <= 3) return 26
-  return 20
-}
 
 export interface LecturaLargaProps {
   lecturas: readonly LecturaDePrescripcion[]

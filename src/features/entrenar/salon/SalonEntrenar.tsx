@@ -9,7 +9,13 @@ import type {
   RutaAsesorado,
 } from '../../../domain/rutaEntrenamiento'
 import type { Recuperacion } from '../../../domain/readiness'
-import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../domain/types'
+import type {
+  EjercicioPrescrito,
+  ItemMarcable,
+  Microciclo,
+  SerieRegistrada,
+  Sesion,
+} from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
 import { ENCUADRE_SALA } from '../escena/sala'
@@ -22,6 +28,11 @@ import { ParedesDelSalon } from './paredes/ParedesDelSalon'
 import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
 import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
+import { CajonDeSerie } from './registro/CajonDeSerie'
+import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGuardar'
+import { DescansoTimer } from '../DescansoTimer'
+import { frasePorSerie } from '../frasesMotivacionales'
+import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 
@@ -183,7 +194,19 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     import.meta.env.MODE === 'demo' && (!sesionProp || sesionProp.ejercicios.length === 0)
       ? microciclo.sesiones.find((s) => s.ejercicios.length > 0)
       : sesionProp
-  const ejercicio = ejercicioEnCurso(sesion)
+  /**
+   * EL EJERCICIO QUE ENSEÑA EL SALÓN.
+   *
+   * Normalmente es el primero incompleto de la sesión, así que al guardar la última serie
+   * la sala pasa sola al siguiente. Pero «sola» quería decir EN EL MISMO FOTOGRAMA: la
+   * frase «Press de banca · completado» salía sobre un salón que ya estaba anunciando otro
+   * ejercicio, y lo que se leía era el nombre de uno con el rótulo del otro.
+   *
+   * Por eso el que acaba de cerrarse se RETIENE 900 ms. No es una animación: es que lo que
+   * se celebra es el ejercicio, no la pantalla, y hay que poder verlo mientras se dice.
+   */
+  const [retenido, setRetenido] = useState<EjercicioPrescrito | null>(null)
+  const ejercicio = retenido ?? ejercicioEnCurso(sesion)
 
   /*
    * MIENTRAS QUEDA TRABAJO POR HACER, LA APP BAJA EL RUIDO.
@@ -241,6 +264,37 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const conEjeW = conSujeto && !!patron
 
   const [w, setW] = useState<NivelW>(0)
+  /**
+   * Si la ficha de la serie está fuera.
+   *
+   * Vive aquí y no dentro del cajón porque hay DOS sitios que la abren —el mando de la
+   * pared y el propio asidero del borde— y uno que la cierra sola: guardar. Con el estado
+   * dentro del cajón, el mando de la pared no podría sacarlo.
+   */
+  const [fichaAbierta, setFichaAbierta] = useState(false)
+  /** La frase que sale sobre la sala al guardar. `null` = no hay nada que celebrar ahora. */
+  const [logro, setLogro] = useState<{ rotulo: string; frase: string } | null>(null)
+  /** El descanso en curso, cuando lo arrancó una serie guardada. */
+  const [descanso, setDescanso] = useState<{ hasta: number; totalSeg: number } | null>(null)
+  /** Cuántas series se han guardado en esta visita. Solo sortea la frase. */
+  const seriesDeLaVisita = useRef(0)
+
+  // LA FRASE SE RETIRA SOLA. No lleva botón de cerrar y no lo va a llevar: es un acuse,
+  // no un aviso — algo que se lee de reojo mientras se suelta la barra. Un mando para
+  // quitarla convertiría celebrar una serie en una tarea más.
+  useEffect(() => {
+    if (!logro) return
+    const id = window.setTimeout(() => setLogro(null), LOGRO_MS)
+    return () => window.clearTimeout(id)
+  }, [logro])
+
+  // Y el ejercicio retenido suelta el sitio antes que la frase: la sala cambia mientras se
+  // sigue leyendo lo que se cerró, que es el relevo y no un corte.
+  useEffect(() => {
+    if (!retenido) return
+    const id = window.setTimeout(() => setRetenido(null), RELEVO_MS)
+    return () => window.clearTimeout(id)
+  }, [retenido])
 
   /**
    * DÓNDE MIRA LA CÁMARA, para que las paredes puedan colgar sus cuadros.
@@ -325,6 +379,40 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     gesto.current.vivo = false
   }
 
+  /**
+   * LO QUE SALE AL GUARDAR UNA SERIE.
+   *
+   * Tres cosas y en este orden: la ficha se cierra, sale la frase sobre la sala, y arranca
+   * el descanso pautado —salvo que la serie fuera la última, porque el descanso es el que
+   * va ENTRE series del mismo ejercicio—. Pasar al siguiente ejercicio no se programa
+   * aquí: `ejercicioEnCurso` es el primero incompleto de la sesión, así que la sala cambia
+   * sola en cuanto la base se actualiza.
+   *
+   * QUÉ SE LE PASA A LA DECISIÓN, y por qué no es el ejercicio de las props. El de las
+   * props es el de ANTES de guardar: preguntarle si el ejercicio quedó completo diría que
+   * no justo en la última serie. Se compone con la serie que `RegistroSerieSalon` acaba de
+   * escribir —que la devuelve precisamente por esto— y así la cuenta sale de series
+   * escritas y no de sumarle uno a un contador propio.
+   */
+  const alGuardarSerie = (serie: SerieRegistrada) => {
+    setFichaAbierta(false)
+    if (!ejercicio) return
+    seriesDeLaVisita.current += 1
+    const yaEscrito = { ...ejercicio, series: [...ejercicio.series, serie] }
+    // SIN EMOJI: la frase sale a 32 px sobre el muro, y un pictograma ahí es un dibujo de
+    // otro sistema pegado en una pared de hormigón. La pantalla de sesión las sigue
+    // usando enteras; lo que cambia es la superficie sobre la que se escriben.
+    const pasa = loQuePasaAlGuardar(yaEscrito, sinEmoji(frasePorSerie(seriesDeLaVisita.current)))
+    setLogro({ rotulo: pasa.rotulo, frase: pasa.frase })
+    setDescanso(
+      pasa.descansoSeg > 0
+        ? { hasta: Date.now() + pasa.descansoSeg * 1000, totalSeg: pasa.descansoSeg }
+        : null,
+    )
+    // El ejercicio que se acaba de cerrar se queda en la sala mientras se lee que se
+    // cerró. `ejercicioEnCurso` ya habría pasado al siguiente sin esto.
+    if (pasa.cierraElEjercicio) setRetenido(yaEscrito)
+  }
   return (
     // `fixed inset-0`: el salón ES la pantalla. Va a `--z-elevado` (20) y no más arriba a
     // propósito — la barra de navegación vive en `--z-nav` (40) y tiene que seguir por
@@ -480,6 +568,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         ritmo={ritmo}
         notas={props.notas}
           microcicloPrevio={props.microcicloPrevio}
+          onAbrirFicha={() => setFichaAbierta(true)}
+          fichaAbierta={fichaAbierta}
           camara={camara}
           lienzo={lienzo}
           azimutDeEntrada={patron?.camara.azimut ?? 0}
@@ -499,6 +589,71 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             reps y qué RIR, más el botón de guardar. Los mandos para cambiarlo están a un
             toque, debajo. Antes esto era una tarjeta grande y permanente que se comía el
             tercio inferior del cuerpo. */}
+
+        {/* ---------------------------------------------------------------- logro
+            LA FRASE, SOBRE LA SALA Y SIN CAJA. Un resplandor rojo desde el centro y dos
+            líneas: de qué serie se habla y la frase. No captura el dedo —`pointer-events`
+            apagado— porque durante esos 2,4 s la persona está soltando la barra, no
+            mirando la pantalla: si tapara el gesto, celebrar costaría un toque. */}
+        {logro && (
+          <div
+            data-logro
+            aria-live="polite"
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 px-9 text-center"
+            style={{
+              zIndex: 'var(--z-elevado)',
+              background:
+                'radial-gradient(circle at 50% 45%, rgb(var(--accion-rgb) / 0.16), rgb(var(--ink-1000-rgb) / 0.94) 62%)',
+            }}
+          >
+            <p className="muro-rotulo text-[10.5px] text-accion">{logro.rotulo}</p>
+            <p className="font-display text-[32px] font-black uppercase leading-tight text-texto">
+              {logro.frase}
+            </p>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- descanso
+            EL DESCANSO ARRANCA SOLO al guardar, y es el mismo cronómetro de la pantalla de
+            sesión: se monta, no se reescribe. Un segundo cronómetro de descanso con sus
+            propias pausas y su propio +15 s se separaría del primero al primer arreglo. */}
+        {descanso && (
+          // ABAJO, NO ARRIBA. `DescansoTimer` no se coloca solo —en la pantalla de sesión
+          // lo coloca su contenedor— y aquí, sin sitio, aterrizaba en la esquina superior:
+          // encima del rótulo del muro y del cronómetro, tapando las dos cosas que dicen
+          // dónde estás. Va sobre la barra de navegación, que es donde está la mano.
+          <div
+            className="pointer-events-auto absolute inset-x-3"
+            style={{ zIndex: 'var(--z-elevado)', bottom: 'calc(var(--tope-nav) + 0.75rem)' }}
+          >
+            <DescansoTimer
+              hasta={descanso.hasta}
+              totalSeg={descanso.totalSeg}
+              onCerrar={() => setDescanso(null)}
+              onMas15={() =>
+                setDescanso((d) =>
+                  d ? { hasta: d.hasta + 15_000, totalSeg: d.totalSeg + 15 } : d,
+                )
+              }
+            />
+          </div>
+        )}
+
+        {/* --------------------------------------------------------------- ficha
+            LA FICHA DE LA SERIE, que entra desde el borde izquierdo. Va aquí y no colgada
+            de un muro a propósito: no es un cuadro de la sala, es algo que se saca DELANTE
+            de ella y se guarda. Y va antes del panel de abajo en el árbol para que, si los
+            dos estuvieran fuera, la ficha no tape la hoja: lo último que se abrió manda. */}
+        {ejercicio && (
+          <CajonDeSerie
+            microcicloId={props.microciclo.id}
+            ejercicio={ejercicio}
+            abierto={fichaAbierta}
+            onAbrir={() => setFichaAbierta(true)}
+            onCerrar={() => setFichaAbierta(false)}
+            onGuardado={alGuardarSerie}
+          />
+        )}
 
         {/* ----------------------------------------------------------- panelInferior */}
         <PanelInferior

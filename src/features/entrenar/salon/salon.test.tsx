@@ -1,7 +1,9 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { HUECOS } from './huecos'
+import type { EjercicioPrescrito, Sesion } from '../../../domain/types'
 import {
   EN_EL_ANUNCIO,
   EN_EL_HUECO,
@@ -133,12 +135,16 @@ describe('/entrenar es el salón', () => {
     renderizarEntrenar()
     const salon = await esperarAlSalon()
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
-    // `centro`, `paredes`, `registro` y `panelInferior` siempre; `sinPatron` solo cuando el
-    // ejercicio no tiene modelo. Lo que no puede aparecer es un hueco que no esté en el
-    // contrato: en cuanto se admite un sexto sitio «provisional» vuelve la columna.
-    // `registro` ya no está: desde el 2026-09-02 el mando de guardar cuelga del muro
-    // dentro de `paredes`, como un cuadro más. Ver el motivo en `huecos.ts`.
-    const declarados = ['paredes', 'centro', 'panelInferior', 'sinPatron']
+    // `centro` y `panelInferior` siempre; `paredes` y `ficha` cuando hay ejercicio del que
+    // hablar; `sinPatron` solo cuando el ejercicio no tiene modelo. Lo que no puede
+    // aparecer es un hueco que no esté en el contrato: en cuanto se admite un sitio
+    // «provisional» de más vuelve la columna con scroll por la puerta de atrás.
+    //
+    // LA LISTA SALE DE `HUECOS`, NO ESCRITA AQUÍ. Estaba escrita a mano y por eso esta
+    // prueba se puso roja el día que la ficha volvió a ser un hueco: no porque el salón
+    // montara algo indebido, sino porque la copia de la lista se había quedado atrás. Dos
+    // listas paralelas se desincronizan, y la que miente es siempre la de la prueba.
+    const declarados = Object.keys(HUECOS)
     for (const hueco of huecos) expect(declarados).toContain(hueco)
     expect(huecos).toContain('centro')
     expect(huecos).toContain('panelInferior')
@@ -339,38 +345,48 @@ describe('/entrenar es el salón', () => {
  * panel abajo. Se monta el componente y no la ruta porque lo que se elige es el dato de
  * entrada, no el camino.
  */
-describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', () => {
-  function montarConFuerza() {
-    const usuario = db.usuarios.byId('u-valentina')!
-    const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')!
-    const sesion = microciclo.sesiones.find((s) => s.ejercicios.length > 0)!
-    const ruta = db.ruta.byUsuario(usuario.id)
-    const hoy = hoyIso()
-    const datos: DatosRuta = {
-      microcicloNumero: microciclo.numero,
-      sesionesRegistradas: 0,
-      sesionesTotales: microciclo.sesiones.length,
-      seriesPorGrupo: cargaPorGrupo(microciclo).map((g) => g.seriesPautadas),
-    }
-    const requisitos = requisitosParaPeldano(2, datos)
-    render(
-      <MemoryRouter>
-        <SalonEntrenar
-          microciclo={microciclo}
-          ruta={ruta}
-          recuperacion={indiceRecuperacion(db.bienestar.byUsuario(usuario.id), hoy)}
-          progresoPct={progresoAlSiguiente(requisitos)}
-          estadisticas={estadisticasCalculadas(datos)}
-          competencias={competenciasCalculadas(datos)}
-          requisitos={requisitos}
-          semana={armarSemana(microciclo, hoy)}
-          notas={notasDelMicrociclo(microciclo)}
-          sesion={sesion}
-        />
-      </MemoryRouter>,
-    )
-    return { microciclo, sesion }
+/**
+ * MONTA EL SALÓN CON UN EJERCICIO DE FUERZA.
+ *
+ * Vive fuera de los `describe` porque la usan dos: el de los cinco huecos y el de la
+ * ficha de la serie. Copiada en cada uno, el día que el salón pida una prop más una de
+ * las dos copias se quedaría montando otro salón.
+ */
+function montarConFuerza(elegirSesion?: (s: Sesion) => boolean) {
+  const usuario = db.usuarios.byId('u-valentina')!
+  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')!
+  const sesion =
+    (elegirSesion && microciclo.sesiones.find(elegirSesion)) ??
+    microciclo.sesiones.find((s) => s.ejercicios.length > 0)!
+  const ruta = db.ruta.byUsuario(usuario.id)
+  const hoy = hoyIso()
+  const datos: DatosRuta = {
+    microcicloNumero: microciclo.numero,
+    sesionesRegistradas: 0,
+    sesionesTotales: microciclo.sesiones.length,
+    seriesPorGrupo: cargaPorGrupo(microciclo).map((g) => g.seriesPautadas),
   }
+  const requisitos = requisitosParaPeldano(2, datos)
+  render(
+    <MemoryRouter>
+      <SalonEntrenar
+        microciclo={microciclo}
+        ruta={ruta}
+        recuperacion={indiceRecuperacion(db.bienestar.byUsuario(usuario.id), hoy)}
+        progresoPct={progresoAlSiguiente(requisitos)}
+        estadisticas={estadisticasCalculadas(datos)}
+        competencias={competenciasCalculadas(datos)}
+        requisitos={requisitos}
+        semana={armarSemana(microciclo, hoy)}
+        notas={notasDelMicrociclo(microciclo)}
+        sesion={sesion}
+      />
+    </MemoryRouter>,
+  )
+  return { microciclo, sesion }
+}
+
+describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', () => {
 
   beforeEach(() => {
     localStorage.clear()
@@ -606,5 +622,61 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
         `la pared «${panel.getAttribute('data-campo')}» se pasa del tope: ${texto}`,
       ).toBeLessThanOrEqual(tope)
     }
+  })
+})
+
+/**
+ * LA FICHA DE LA SERIE, DE PUNTA A PUNTA.
+ *
+ * Las reglas de qué pasa al guardar están probadas sueltas en `despuesDeGuardar.test.ts`.
+ * Esto prueba la otra mitad, la que un módulo puro no puede: que la ficha sale del borde
+ * izquierdo, que lo que se guarda desde ella llega a la base, y que después SALE ALGO —la
+ * frase y el descanso—. Sin esta, las reglas podrían ser perfectas y no estar enchufadas.
+ */
+describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', () => {
+  it('el asidero saca la ficha, y guardar desde ella escribe la serie y arranca el descanso', async () => {
+    // LA SESIÓN TIENE QUE TENER TRABAJO PENDIENTE. La que el seed destaca está entera —el
+    // salón se abre en «3 series registradas»— y la ficha de un ejercicio terminado no
+    // tiene botón de guardar. Esta prueba fallaba por el sitio equivocado hasta que se
+    // miró qué había DENTRO del cajón.
+    const { microciclo, sesion } = montarConFuerza((s) =>
+      s.ejercicios.some((e: EjercicioPrescrito) => e.series.length < e.sets),
+    )
+    // El mismo que enseña el salón: el primero incompleto, no el primero del array.
+    const ejercicio = sesion.ejercicios.find((e) => e.series.length < e.sets) ?? sesion.ejercicios[0]
+    const seriesAntes = ejercicio.series.length
+
+    // LA FICHA NO ESTÁ FUERA AL ABRIR EL SALÓN. Si lo estuviera, taparía la sala entera
+    // desde el primer fotograma — que es de lo que este salón vino a salir.
+    const cajon = document.querySelector('[data-cajon="serie"]') as HTMLElement
+    expect(cajon).not.toBeNull()
+    expect(cajon.style.visibility).toBe('hidden')
+
+    // Se abre con el asidero. Con teclado el gesto es un toque: no hay dedo que arrastrar,
+    // y un cajón que solo se abre arrastrando sería un cajón sin llave para quien navega
+    // con teclado o con lector.
+    const asidero = document.querySelector('[data-asidero="ficha"]') as HTMLElement
+    fireEvent.keyDown(asidero, { key: 'Enter' })
+    await waitFor(() => expect(cajon.style.visibility).toBe('visible'))
+
+    // Guardar desde DENTRO de la ficha. El botón es el de `RegistroSerieSalon`, que es el
+    // que ya está probado: aquí lo que se comprueba es que está enchufado.
+    const guardar = within(cajon).getByRole('button', { name: /guardar/i })
+    fireEvent.click(guardar)
+
+    await waitFor(() => {
+      const despues = db.microciclos
+        .byUsuario('u-valentina')
+        .find((m) => m.id === microciclo.id)!
+        .sesiones.find((s) => s.id === sesion.id)!
+        .ejercicios.find((e) => e.id === ejercicio.id)!
+      expect(despues.series.length).toBe(seriesAntes + 1)
+    })
+
+    // Y SALE ALGO. La frase sobre la sala y el descanso corriendo: guardar una serie sin
+    // acuse deja al asesorado sin saber si se guardó, y mirando el teléfono en vez de
+    // soltando la barra.
+    await waitFor(() => expect(document.querySelector('[data-logro]')).not.toBeNull())
+    expect(cajon.style.visibility).toBe('hidden')
   })
 })

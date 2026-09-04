@@ -142,3 +142,16 @@ function intensidadDe(ejercicio: EjercicioPrescrito): LecturaDePrescripcion {
       'Si terminaste y no sabrías decir cuántas te quedaban, probablemente te quedaban más de las que crees.',
   }
 }
+
+/**
+ * EL CUERPO DE LA CIFRA, en píxeles, según lo larga que sea.
+ *
+ * La columna son 86 px fijos. Un número de una o dos cifras entra a cuerpo entero; a
+ * partir de ahí baja, porque lo que no puede pasar es que parta. `FALLO` son cinco
+ * letras en una tipografía expandida: a 30 px se sale, a 20 entra.
+ */
+export function cuerpoDeLaCifra(cifra: string): number {
+  if (cifra.length <= 2) return 30
+  if (cifra.length <= 3) return 26
+  return 20
+}

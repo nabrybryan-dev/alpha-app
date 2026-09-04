@@ -107,6 +107,8 @@ export type AnclaDeHueco =
   | 'suelo'
   /** El borde inferior de la pantalla, de donde se tira hacia arriba con el dedo. */
   | 'borde-inferior'
+  /** El borde izquierdo, de donde se tira hacia dentro para sacar la ficha. */
+  | 'borde-izquierdo'
 
 /** Con qué gesto se llega a un hueco. */
 export type GestoDeHueco =
@@ -116,6 +118,8 @@ export type GestoDeHueco =
   | 'atravesar'
   /** Dedo en vertical desde el borde de abajo: subir el panel. */
   | 'deslizar-arriba'
+  /** Dedo en horizontal desde el borde izquierdo: sacar la ficha de la serie. */
+  | 'deslizar-derecha'
   /** Sin gesto: está puesto y se queda puesto. */
   | 'ninguno'
 
@@ -180,7 +184,37 @@ export const HUECOS = {
   },
 
   /**
-   * EL REGISTRO YA NO ES UN HUECO: es un cuadro de la pared, dentro de `paredes`.
+   * LA FICHA DE LA SERIE — el registro vuelve a ser un hueco, y ahora es un CAJÓN.
+   *
+   * Estuvo en el borde de abajo, se mudó a la pared el 2026-09-02 —«este también va
+   * explicado gráficamente en el esqueleto»— y ahí destapó dos cosas. La primera es de
+   * sitio: los mandos se desplegaban dentro del cuadro, que cuelga a 1,62 m, y al crecer
+   * empujaban contra el marcador de siete segmentos del muro. La segunda es de fondo: un
+   * formulario que brota de un cuadro de pared convierte la pared en formulario.
+   *
+   * Así que la pared se queda con lo que sí es suyo —DECIR qué serie toca y con qué— y
+   * llenar y guardar salen a un cajón que entra desde el borde izquierdo. Es un hueco y no
+   * un cuadro porque tiene las tres cosas que definen uno: un ancla física (el borde), un
+   * gesto propio (tirar hacia dentro) y contenido que no se recorta.
+   *
+   * SU GESTO NO PISA A NINGUNO. El horizontal sobre el sujeto orbita y el vertical sobre
+   * el sujeto es el eje W; por eso el asidero es una franja de 24 px pegada al borde y no
+   * la pantalla entera. Dentro de esa franja el arrastre es del cajón; fuera sigue siendo
+   * de la cámara. Y es hermano del panel de abajo a propósito: el mismo verbo —tirar de un
+   * borde— en dos ejes, así que descubrir uno enseña el otro.
+   *
+   * `topeDeTexto: 0` porque aquí no se recorta nada: son tres rótulos y tres cifras.
+   */
+  ficha: {
+    contiene: 'La ficha de la serie: qué carga, cuántas repeticiones, qué RIR, y guardar.',
+    ancla: 'borde-izquierdo',
+    gesto: 'deslizar-derecha',
+    topeDeTexto: 0,
+    visibleEnW: TODO_W,
+  },
+
+  /**
+   * EL REGISTRO YA NO ES UNA BARRA NI UN CUADRO SUELTO: es la `ficha` de aquí arriba.
    *
    * Se mudó el 2026-09-02 por petición de Bryan —«este también va explicado gráficamente
    * en el esqueleto»—, con el resto de las casillas. Deja de ser una barra pegada al
