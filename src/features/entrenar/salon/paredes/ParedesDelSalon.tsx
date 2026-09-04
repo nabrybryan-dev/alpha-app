@@ -1,10 +1,6 @@
-import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
-import type { RitmoSesion } from '../../../../domain/ritmoSesion'
-import { loQueViene } from './avisosDelSalon'
+import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
-import { AContinuacion, TablaDeSeries } from './RotulosDelSalon'
 import { CamaraDelSalon } from '../camara/CamaraDelSalon'
-import { BarraRegistro } from '../registro/BarraRegistro'
 import { CuadroDePared } from './CuadroDePared'
 import { TablonDelMuro } from './TablonDelMuro'
 import { asentarEnLaBanda, type CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
@@ -64,16 +60,8 @@ export interface ParedesDelSalonProps {
   ejercicio: EjercicioPrescrito | undefined
   /** Los nueve campos cortos, cuando hay ejercicio del que sacarlos. */
   contenido: ContenidoDePared | undefined
-  /** El ritmo ya calculado por el dominio, con el tiempo del cronómetro dentro. */
-  ritmo: RitmoSesion | undefined
-  /** Las notas de la semana del coach: pasan por la marquesina con su título literal. */
-  notas: readonly ItemMarcable[]
   /** El microciclo anterior. De él sale «la semana pasada» del muro, que es un hecho. */
   microcicloPrevio?: Microciclo
-  /** Sacar la ficha de la serie. El mando de la pared la llama; no la contiene. */
-  onAbrirFicha: () => void
-  /** Si la ficha ya está fuera, para que el mando lo diga. */
-  fichaAbierta: boolean
   /**
    * Dónde mira la cámara del salón AHORA MISMO, tal y como la deja la órbita.
    *
@@ -94,16 +82,11 @@ export function ParedesDelSalon({
   sesion,
   ejercicio,
   contenido,
-  ritmo,
-  notas,
   microcicloPrevio,
-  onAbrirFicha,
-  fichaAbierta,
   camara,
   lienzo,
   azimutDeEntrada,
 }: ParedesDelSalonProps) {
-  const vienen = loQueViene(sesion, ejercicio)
   /**
    * DÓNDE CUELGA CADA CUADRO, ya asentado en la banda que la cámara alcanza.
    *
@@ -166,20 +149,32 @@ export function ParedesDelSalon({
             microciclo={microciclo}
             sesion={sesion}
             ejercicio={ejercicio}
-            ritmo={ritmo}
-            notas={notas}
             cargaPrevia={cargaAnterior(microcicloPrevio, ejercicio)}
           />
         </CuadroDePared>
       )}
 
-      {/* LO QUE YA SE LEVANTÓ. Fuera de la ventana de entrada, a un giro corto: es la
-          memoria de la sesión y se consulta en el descanso, no durante la repetición. */}
-      {ejercicio && (
-        <CuadroDePared clave="series" sitio={donde(SITIOS.series)} camara={camara} lienzo={lienzo}>
-          <TablaDeSeries ejercicio={ejercicio} enCuadro />
-        </CuadroDePared>
-      )}
+      {/* LO QUE YA SE LEVANTÓ Y LO QUE VIENE DESPUÉS YA NO CUELGAN DE NINGÚN MURO.
+          =================================================================================
+
+          Eran dos cuadros más —la tabla de series registradas y «a continuación»— y los
+          dos decían con letra lo que ahora dice el salón sin ella:
+
+          - lo levantado lo cuenta la ESTACIÓN DE SERIES, que pasa de «3» a «2/3» en cuanto
+            hay algo registrado y es la única de las cuatro que se mueve durante el
+            ejercicio;
+          - lo que viene lo cuentan los PUNTOS del borde de abajo, uno por ejercicio, con
+            el actual encendido.
+
+          No es que se hayan quitado datos: es que dos tablas de texto colgadas de dos
+          muros distintos se han convertido en una cifra que ya estaba y en cuatro puntos
+          de cuatro píxeles. Es exactamente lo que Bryan pidió el 2026-09-04 —«desaparecer
+          la mayor cantidad de letras y cuadros que estén tapando el salón»—, y el sitio
+          donde va cada cosa es el que marca el diseño de la sala.
+
+          EL MANDO DE REGISTRAR TAMPOCO. Llenar y guardar viven en el cajón que sale del
+          borde izquierdo desde el commit anterior; dejar además un mando en la pared era
+          tener el mismo gesto en dos sitios y un cuadro más tapando el muro. */}
 
       {/* LA ESTACIÓN DE GRABACIÓN, colgada junto al trípode: se lee donde se usa. */}
       {contenido && ejercicio && (
@@ -188,28 +183,6 @@ export function ParedesDelSalon({
         </CuadroDePared>
       )}
 
-      {/* REGISTRAR LA SERIE, colgado del muro de enfrente y a la altura de la mano.
-          Bryan lo pidió el 2026-09-02 con el resto: «este también va explicado
-          gráficamente en el esqueleto». Deja de ser una barra pegada al borde de abajo y
-          pasa a ser lo que es —un mando del salón—, delante del sujeto y a 1,5 m, que es
-          la altura a la que se apoya la mano en un gimnasio. Va con el puntero abierto: es
-          lo único de las paredes con lo que se OPERA, no que se lee. */}
-      {ejercicio && (
-        <CuadroDePared clave="registro" sitio={donde(SITIOS.registro)} camara={camara} lienzo={lienzo} interactivo>
-          <BarraRegistro
-            microcicloId={microciclo.id}
-            ejercicio={ejercicio}
-            enCuadro
-            onAbrirFicha={onAbrirFicha}
-            fichaAbierta={fichaAbierta}
-          />
-        </CuadroDePared>
-      )}
-
-      {/* LO QUE VIENE DESPUÉS, en el muro de detrás: se consulta al terminar, no durante. */}
-      <CuadroDePared clave="siguientes" sitio={donde(SITIOS.siguientes)} camara={camara} lienzo={lienzo}>
-        <AContinuacion ejercicios={vienen} enCuadro />
-      </CuadroDePared>
     </div>
   )
 }

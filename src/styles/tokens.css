@@ -2294,6 +2294,89 @@ body {
   color: var(--gris-marca);
 }
 
+/* ---------------------------------------------------------------------------
+   LAS CUATRO ESTACIONES: la cifra entra, se lee y se retira
+   ---------------------------------------------------------------------------
+   Esto no es una animación decorativa: es lo que mantiene el salón despejado.
+   La prescripción se lee UNA vez, al llegar al ejercicio, y después queda el
+   poste con su base, que no tapa nada. Cuatro números permanentes alrededor del
+   cuerpo serían otra vez el dashboard con un muñeco dentro.
+
+   La cifra viene del fondo girada, se posa, se queda quieta tres segundos y se
+   va por donde vino. Los porcentajes reparten esos tres tiempos dentro de los
+   3,7 s del ciclo: entra hasta el 19 %, se está hasta el 81 %, y se retira.
+   ------------------------------------------------------------------------- */
+
+@keyframes estacion-cifra {
+  0% {
+    opacity: 0;
+    transform: translateZ(-120px) rotateX(-40deg) scale(0.86);
+    filter: blur(6px);
+  }
+  19% {
+    opacity: 1;
+    transform: translateZ(40px) rotateX(-8deg) scale(1);
+    filter: blur(0);
+  }
+  81% {
+    opacity: 1;
+    transform: translateZ(40px) rotateX(-8deg) scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateZ(-60px) rotateX(-30deg) scale(0.94);
+    filter: blur(4px);
+  }
+}
+
+/* EL CARTEL. La perspectiva va aquí, en el padre DIRECTO de lo que escorza: un
+   nivel más arriba se paga y no se ve. Y el botón se desnuda —sin fondo, sin
+   borde, sin radio—: es una cifra plantada en el suelo, no un control. */
+.estacion-cartel {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  perspective: 420px;
+  perspective-origin: 50% 110%;
+  transform-style: preserve-3d;
+  transition: opacity var(--dur-informativo) var(--muelle-informativo);
+}
+
+.estacion-cifra {
+  display: block;
+  transform-style: preserve-3d;
+  transform-origin: 50% 100%;
+  animation: estacion-cifra 3700ms var(--muelle-informativo) both;
+}
+
+/* LA CIFRA, con el relieve de las cinco capas del muro: es la misma materia que
+   el marcador de la sala, no una tipografía de app puesta encima. */
+.estacion-numero {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 52px;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  text-shadow:
+    0 1px 0 rgb(0 0 0 / 0.6),
+    1px 2px 0 #2a2d31,
+    2px 3px 0 #22252a,
+    3px 5px 0 #1a1c20,
+    6px 12px 22px rgb(0 0 0 / 0.85);
+}
+
+/* Una cifra larga —«FALLO», «3/4»— no puede partir el renglón: baja de cuerpo. */
+.estacion-numero {
+  white-space: nowrap;
+}
+
 /* LA FILA DEL MURO: rótulo a la izquierda, el hueco de datos a la derecha.
 
    `flex-end` y no `center`: los dos bloques se alinean por su BASE, que es como
@@ -2334,23 +2417,7 @@ body {
    del fotograma de llegada y no en un `transform` aparte: dos reglas peleándose
    por `transform` las gana la última, y la profundidad desaparecería sin aviso
    — el mismo choque que este archivo documenta entre `.tecla-3d` y `.press`. */
-@keyframes muro-vivo-entra {
-  from {
-    opacity: 0;
-    transform: translateZ(var(--prof-hueco)) translateY(0.6em);
-  }
-  to {
-    opacity: 1;
-    transform: translateZ(var(--prof-relieve)) translateY(0);
-  }
-}
 
-.muro-vivo {
-  /* Aire bajo el rótulo. Pegado, lo primero del bloque vivo se leía como una
-     tercera línea del nombre del ejercicio. */
-  margin-top: 0.3em;
-  animation: muro-vivo-entra var(--dur-informativo) var(--muelle-informativo) both;
-}
 
 /* LAS CIFRAS, A CUERPO DE MARCADOR. Es un `em` sobre el cuadro, así que crece y
    encoge con la distancia a la pared como todo lo demás del muro: la
@@ -2362,14 +2429,7 @@ body {
 
 /* LA RANURA DE ABAJO entra cuando hay algo que decir y con el mismo peso con el
    que se fue el anuncio: es la misma clase de suceso, una capa que aparece. */
-@keyframes muro-ranura-entra {
-  from { opacity: 0; transform: translateY(0.5em); }
-}
 
-.muro-ranura {
-  margin-top: 0.45em;
-  animation: muro-ranura-entra var(--dur-transicional) var(--muelle-transicional) both;
-}
 
 /* LAS CAPAS PLEGADAS. Tres puntos que laten desfasados, en ambiental.
    Dicen que hay más y que está abajo. Sin ellos, plegar se lee como perder. */
@@ -2413,8 +2473,6 @@ body {
   .muro-junta,
   .muro-palabra,
   .muro-cifra-cambia,
-  .muro-vivo,
-  .muro-ranura,
   .muro-trazo-letra,
   .muro-hueco-entra,
   .muro-anuncio[data-saliendo] {
@@ -2433,6 +2491,17 @@ body {
   .muro-reflector::before,
   .muro-capas span {
     animation: none;
+  }
+
+  /* LA CIFRA SE QUEDA PUESTA, no desaparece. Con movimiento reducido, una
+     animación que TERMINA en `opacity: 0` deja la prescripción invisible para
+     siempre: apagarla sin más habría dejado el salón sin las cuatro cifras. Se
+     anula el ciclo y se fija el estado legible a mano. */
+  .estacion-cifra {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
   }
 }
 

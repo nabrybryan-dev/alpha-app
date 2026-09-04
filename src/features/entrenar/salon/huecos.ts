@@ -184,6 +184,31 @@ export const HUECOS = {
   },
 
   /**
+   * LAS CUATRO ESTACIONES — la prescripción rodea al sujeto en vez de colgar del muro.
+   *
+   * Series, repeticiones, descanso y RIR dejan de ser campos de un cuadro de pared y pasan
+   * a ser cuatro objetos del suelo alrededor del cuerpo, cada uno con su poste, su base y
+   * un cartel que siempre mira a cámara. Es donde el diseño de la sala las pone, y donde
+   * se leen sin apartar la vista del centro.
+   *
+   * SU GESTO ES ORBITAR, y por eso están aquí y no pegadas a la pantalla: giran con la
+   * cámara, las de la espalda se apagan y las de atrás se levantan por encima de las de
+   * delante. Un panel que no se moviera al orbitar sería interfaz sobre el cristal.
+   *
+   * Y NO SE QUEDAN ESCRITAS. La cifra entra, se lee tres segundos y se retira; lo que
+   * permanece es el poste con su base, que no tapa nada. Ese ciclo es lo que permite
+   * quitar de la pared los cuadros que llevaban estos mismos datos sin perderlos: la
+   * prescripción se enseña cuando se necesita, no todo el rato.
+   */
+  estaciones: {
+    contiene: 'Series, repeticiones, descanso y RIR, en cuatro postes alrededor del sujeto.',
+    ancla: 'suelo',
+    gesto: 'orbitar',
+    topeDeTexto: TOPE_PARED,
+    visibleEnW: TODO_W,
+  },
+
+  /**
    * LA FICHA DE LA SERIE — el registro vuelve a ser un hueco, y ahora es un CAJÓN.
    *
    * Estuvo en el borde de abajo, se mudó a la pared el 2026-09-02 —«este también va

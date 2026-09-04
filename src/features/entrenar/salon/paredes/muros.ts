@@ -34,35 +34,24 @@ const EN_LA_IZQUIERDA = new Set<ClaveDeCampo>(['nombre', 'tecnica', 'seriesReps'
 export const MURO_IZQUIERDO = CAMPOS_DE_PARED.filter((c) => EN_LA_IZQUIERDA.has(c))
 
 /**
- * EL REPARTO POR TIEMPO: qué se anuncia y qué se queda vivo.
+ * EL REPARTO, DESPUÉS DE VACIAR EL MURO.
  *
- * Los cinco campos del muro izquierdo no cambian —siguen siendo cinco y siguen colgando
- * del mismo muro—; lo que se decidió el 2026-09-03 es CUÁNDO se ve cada uno. El nombre y
- * la técnica son lo que hay que leer UNA vez, al llegar al ejercicio: se anuncian y se
- * retiran. Las tres cifras son la prescripción de la serie que estás a punto de hacer: se
- * quedan.
+ * De los cinco campos que colgaban del muro izquierdo, en el muro se quedan DOS. Los otros
+ * tres no se han perdido: se han ido al sitio que les da el diseño de la sala, y ese sitio
+ * es mejor que una banda de texto en la pared.
  *
- * Se derivan del mismo array del contrato que `MURO_IZQUIERDO`, y por lo mismo: escritas a
- * mano, olvidar un campo no rompería nada —simplemente dejaría de verse en los dos
- * estados, que es la forma más silenciosa de perder un dato—. Filtrando, cada campo del
- * muro cae en una capa y en una sola.
- */
-const EN_EL_ANUNCIO_SET = new Set<ClaveDeCampo>(['tecnica'])
-
-/** Lo que el muro ANUNCIA al llegar al ejercicio, y luego retira. */
-export const EN_EL_ANUNCIO = MURO_IZQUIERDO.filter((c) => EN_EL_ANUNCIO_SET.has(c))
-
-/**
- * EL NOMBRE SE SALE DEL ANUNCIO Y PASA A SER ROTULACIÓN.
+ * - **nombre** → escrito en trazo, permanente. Es rotulación: dice dónde estás.
+ * - **carga** → el hueco que comparte con el cronómetro, mientras el muro anuncia.
+ * - **seriesReps** y **rir** → las CUATRO ESTACIONES alrededor del cuerpo, que además las
+ *   retiran a los 3,7 s. Ahí es donde se leen sin apartar la vista del centro.
+ * - **tecnica** → la lectura larga de abajo, bajo «cómo se hace». Es un párrafo entero, y
+ *   en el muro salía recortado a 42 caracteres: la pared enseñaba un trozo y obligaba a
+ *   bajar igual.
  *
- * Estaba dentro del anuncio: se leía cinco segundos y medio y se retiraba con la técnica.
- * Servía para «qué toca ahora» y fallaba en lo otro que hace un nombre en una sala —decir
- * DÓNDE estás—: pasados seis segundos el salón no decía de qué ejercicio era, y quien
- * levanta la vista entre series no está llegando, está en medio.
- *
- * Un aviso se pliega; un rótulo no. Así que el nombre se queda escrito en el muro, en
- * trazo, con el canto de sus dos ecos (`RotuloEnTrazo`). Sigue siendo un campo del muro y
- * sigue contándose en la auditoría: cambia la capa en la que vive, no si existe.
+ * Todos siguen contándose. La auditoría de «no se perdió nada» cuenta `data-campo`, y los
+ * tres que se fueron siguen montados en el muro con `soloParaLector`: invisibles, audibles
+ * y contables. Es el mismo mecanismo con el que las cifras se mudaron a la geometría del
+ * muro el 2026-09-03 — se ven donde toca, se oyen igual, y se pueden contar desde fuera.
  */
 const EN_EL_ROTULO_SET = new Set<ClaveDeCampo>(['nombre'])
 
@@ -70,17 +59,12 @@ const EN_EL_ROTULO_SET = new Set<ClaveDeCampo>(['nombre'])
 export const EN_EL_ROTULO = MURO_IZQUIERDO.filter((c) => EN_EL_ROTULO_SET.has(c))
 
 /**
- * LA CARGA SE VA AL HUECO QUE COMPARTE CON EL RELOJ.
+ * LA CARGA COMPARTE HUECO CON EL RELOJ.
  *
- * Subió a la pared el 2026-09-03 con el argumento de que series, carga y RIR se leen
- * juntos. Las otras dos se fueron a la geometría del muro el mismo día, así que la carga
- * se quedó sola en letra: una cifra de app al lado de un marcador de siete segmentos que
- * decía las otras dos.
- *
- * Y hay un momento en que sí manda, que es el único: al llegar a la barra, antes de la
- * primera serie. Por eso ocupa el hueco de la derecha mientras el muro anuncia, con los
- * kilos de hoy y los de la semana pasada debajo —que es la comparación que convierte la
- * cifra en una decisión—, y después le devuelve el sitio al cronómetro.
+ * Hay un momento en que manda, y es uno solo: al llegar a la barra, antes de la primera
+ * serie. Ocupa el hueco de la derecha mientras el muro anuncia —con los kilos de hoy y los
+ * de la semana pasada debajo, que es la comparación que convierte la cifra en decisión— y
+ * después le devuelve el sitio al cronómetro, que es lo único que corre.
  */
 const EN_EL_HUECO_SET = new Set<ClaveDeCampo>(['carga'])
 
@@ -88,49 +72,16 @@ const EN_EL_HUECO_SET = new Set<ClaveDeCampo>(['carga'])
 export const EN_EL_HUECO = MURO_IZQUIERDO.filter((c) => EN_EL_HUECO_SET.has(c))
 
 /**
- * LO QUE ESCRIBE LA SALA, en geometría, y por eso ya no se escribe encima.
+ * LOS QUE SE DICEN FUERA DEL MURO, y por eso aquí van montados y sin ver.
  *
- * `construirSala()` cuelga marcadores de SIETE SEGMENTOS en los muros —geometría de
- * verdad, no tipografía— y uno de ellos justo enfrente de quien entra, con las series, las
- * repeticiones y el RIR. Llevaba ahí desde el #183.
- *
- * El 2026-09-03, apagando la capa de letras con `testigo/cuadros-en-pantalla.mjs
- * --sin-letras`, se vio lo que nadie había mirado: **el muro ya decía `03 09 2` en cifras
- * de 62 px, y el tablón del DOM se pintaba justo encima**. La interfaz no estaba añadiendo
- * información: estaba tapando la que la sala ya daba, y encima la repetía en tipografía de
- * app. Es exactamente lo que Bryan lleva señalando tres veces —«se ven como recortes de la
- * aplicación»—, y la salida no era rediseñar el recorte otra vez: era quitarlo.
- *
- * **No desaparecen del DOM**: se quedan invisibles. Una malla no la lee un lector de
- * pantalla, y la auditoría de «no se perdió nada» cuenta `data-campo`. Se ven en el muro,
- * se oyen igual que antes, y se siguen pudiendo contar desde fuera.
+ * Una malla no la lee un lector de pantalla y un cartel que se retira a los 3,7 s tampoco
+ * está siempre. Estos nodos existen para las dos cosas que no son mirar: oír y contar.
+ * Volver a hacerlos visibles sería escribir en la pared lo que ya dicen las estaciones y
+ * la lectura de abajo, que es de lo que se salió.
  */
-const EN_GEOMETRIA = new Set<ClaveDeCampo>(['seriesReps', 'rir'])
-
-/** Los campos que dice la SALA en siete segmentos. En el DOM van, pero no se ven. */
-export const EN_GEOMETRIA_DEL_MURO = MURO_IZQUIERDO.filter((c) => EN_GEOMETRIA.has(c))
-
-/**
- * Lo que el muro deja ENCENDIDO en letra, y hoy no es nada.
- *
- * No es un descuido ni una lista que se quedó vacía: es el final del camino que empezó el
- * 2026-09-03. De los cinco campos del muro, el nombre se quedó escrito en trazo, la
- * técnica se anuncia y se retira, series y RIR los dice la sala en siete segmentos y la
- * carga comparte hueco con el reloj. En reposo, la pared no repite ninguno.
- *
- * Se deriva igual que los demás —no se escribe `[]`— porque el día que un campo salga de
- * otra capa tiene que caer AQUÍ solo, y verse. Una lista vacía escrita a mano se lo
- * tragaría en silencio, que es la forma más callada de perder un dato.
- */
-export const EN_LO_VIVO = MURO_IZQUIERDO.filter(
-  (c) =>
-    !EN_EL_ANUNCIO_SET.has(c) &&
-    !EN_EL_ROTULO_SET.has(c) &&
-    !EN_EL_HUECO_SET.has(c) &&
-    !EN_GEOMETRIA.has(c),
+export const EN_OTRO_SITIO = MURO_IZQUIERDO.filter(
+  (c) => !EN_EL_ROTULO_SET.has(c) && !EN_EL_HUECO_SET.has(c),
 )
-
-
 
 /** Los cuatro campos de MEDIR: se los lleva el módulo de la cámara, que es donde se usan. */
 export const MURO_DERECHO = CAMPOS_DE_PARED.filter((c) => !EN_LA_IZQUIERDA.has(c))

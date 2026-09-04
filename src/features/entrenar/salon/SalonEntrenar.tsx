@@ -29,6 +29,8 @@ import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
 import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
+import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
+import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
 import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGuardar'
 import { DescansoTimer } from '../DescansoTimer'
 import { frasePorSerie } from '../frasesMotivacionales'
@@ -272,6 +274,14 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * dentro del cajón, el mando de la pared no podría sacarlo.
    */
   const [fichaAbierta, setFichaAbierta] = useState(false)
+  /**
+   * La estación que el asesorado dejó fija, si dejó alguna.
+   *
+   * Las cuatro cifras se retiran solas a los 3,7 s —es lo que mantiene el salón
+   * despejado—, así que tocar una es la única forma de volver a mirar un dato sin esperar
+   * al siguiente ciclo. Tocarla otra vez la suelta.
+   */
+  const [estacionFija, setEstacionFija] = useState<ClaveDeEstacion | undefined>(undefined)
   /** La frase que sale sobre la sala al guardar. `null` = no hay nada que celebrar ahora. */
   const [logro, setLogro] = useState<{ rotulo: string; frase: string } | null>(null)
   /** El descanso en curso, cuando lo arrancó una serie guardada. */
@@ -509,6 +519,19 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </>
         )}
 
+        {/* LAS CUATRO ESTACIONES, alrededor del cuerpo y sobre el suelo de la sala.
+            El suelo se sitúa al 78 % del alto: es donde se apoyan los pies del sujeto en
+            el encuadre del salón, y de ahí para arriba crecen el poste y su cartel. */}
+        {conSujeto && (
+          <EstacionesDelSujeto
+            ejercicio={ejercicio}
+            azimut={camara.azimut - (patron?.camara.azimut ?? 0)}
+            suelo={Math.round(lienzo.alto * 0.78)}
+            foco={estacionFija}
+            onEnfocar={(clave) => setEstacionFija((v) => (v === clave ? undefined : clave))}
+          />
+        )}
+
         {/* EL VELO Y LA ESCALERA, las dos señales de dónde estás en el eje W. Van juntas
             bajo la MISMA condición que la prop que viaja al visor: si no hay cuerpo que
             atravesar, no se pintan. */}
@@ -565,11 +588,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         sesion={sesion}
         ejercicio={ejercicio}
         contenido={contenido}
-        ritmo={ritmo}
-        notas={props.notas}
           microcicloPrevio={props.microcicloPrevio}
-          onAbrirFicha={() => setFichaAbierta(true)}
-          fichaAbierta={fichaAbierta}
           camara={camara}
           lienzo={lienzo}
           azimutDeEntrada={patron?.camara.azimut ?? 0}
@@ -672,6 +691,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           bloquesCardio={sesion?.bloquesCardio}
           nombreEjercicio={ejercicio?.nombre}
           ejercicio={ejercicio}
+          ritmo={ritmo}
           sesion={sesion}
           patron={patron}
         />

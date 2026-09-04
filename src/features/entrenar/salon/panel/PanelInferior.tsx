@@ -7,6 +7,8 @@ import {
   type RutaAsesorado,
 } from '../../../../domain/rutaEntrenamiento'
 import type { Recuperacion } from '../../../../domain/readiness'
+import type { RitmoSesion } from '../../../../domain/ritmoSesion'
+import { avisosDelSalon, lineaDeRitmo } from '../paredes/avisosDelSalon'
 import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
 import type { Patron } from '../../../../domain/patrones/catalogo'
 import type { TextoDePanel } from '../paredes/contenidoPared'
@@ -108,6 +110,15 @@ export interface PanelInferiorProps {
   ejercicio?: EjercicioPrescrito
   /** La sesión de hoy: de ella sale el bloque de antes de entrenar. */
   sesion?: Sesion
+  /**
+   * El ritmo de la sesión y los avisos que lo acompañan.
+   *
+   * Bajaron del muro el 2026-09-04. Iban en una marquesina corrida a lo ancho de la pared
+   * —lo único del salón que se movía sin que nadie lo pidiera— y dicen cómo va LA SESIÓN,
+   * no la serie que estás a punto de hacer: se leen cuando se baja a mirar, no mientras se
+   * levanta.
+   */
+  ritmo?: RitmoSesion
   /** El patrón del ejercicio en curso: de él salen las notas de ejecución. */
   patron?: Patron
   /**
@@ -145,6 +156,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     nombreEjercicio,
     ejercicio,
     sesion,
+    ritmo,
     patron,
     contenido,
     material,
@@ -274,6 +286,20 @@ export function PanelInferior(props: PanelInferiorProps) {
                 <SinDatos motivo="Esta semana el coach no ha dejado ninguna nota antes de empezar." />
               )}
             </Recuadro>
+
+            {/* CÓMO VA LA SESIÓN, en una línea y lo primero de la hoja.
+                Bajó del muro: allí era una marquesina corrida y aquí es lo que era —una
+                frase que se lee al bajar a mirar—. El ritmo primero y los avisos detrás,
+                por la misma pista: en dos bloques apilados decían lo mismo dos veces. */}
+            {ritmo && (
+              <Recuadro clave="ritmo" titulo="Cómo va la sesión">
+                <p className="text-[13.5px] leading-relaxed text-silver-200">
+                  {[lineaDeRitmo(ritmo), ...avisosDelSalon(ritmo, ejercicio, notas).frases].join(
+                    '  ·  ',
+                  )}
+                </p>
+              </Recuadro>
+            )}
 
             <Recuadro clave="ejercicio" titulo="La prescripción del coach" pie={nombreEjercicio}>
               <RecuadroEjercicio ejercicio={ejercicio} alPanel={alPanel} bloquesCardio={bloquesCardio} />

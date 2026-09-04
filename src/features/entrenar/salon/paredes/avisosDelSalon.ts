@@ -1,5 +1,5 @@
 import { formatoDuracion, type EstadoRitmo, type RitmoSesion } from '../../../../domain/ritmoSesion'
-import type { EjercicioPrescrito, ItemMarcable, Sesion } from '../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable } from '../../../../domain/types'
 
 /**
  * LA MARQUESINA DE AVISOS, y de dónde sale cada aviso.
@@ -93,20 +93,3 @@ export function avisosDelSalon(
   return { frases, estado: ritmo.estado }
 }
 
-/**
- * Los ejercicios que quedan después del que se está haciendo.
- *
- * «A continuación» es el rótulo que dice que la sesión tiene un después, y sin él el salón
- * se lee como si el ejercicio en curso fuera todo lo que hay. Se cuenta desde el que está
- * en el cuadro, no desde el primero sin registrar: son la misma cosa mientras nadie navegue
- * a mano, y el salón no tiene navegación a mano.
- */
-export function loQueViene(
-  sesion: Sesion | undefined,
-  ejercicio: EjercicioPrescrito | undefined,
-): readonly EjercicioPrescrito[] {
-  if (!sesion || !ejercicio) return []
-  const idx = sesion.ejercicios.findIndex((e) => e.id === ejercicio.id)
-  if (idx === -1) return []
-  return sesion.ejercicios.slice(idx + 1)
-}

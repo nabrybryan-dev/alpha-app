@@ -4,14 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HUECOS } from './huecos'
 import type { EjercicioPrescrito, Sesion } from '../../../domain/types'
-import {
-  EN_EL_ANUNCIO,
-  EN_EL_HUECO,
-  EN_EL_ROTULO,
-  EN_GEOMETRIA_DEL_MURO,
-  EN_LO_VIVO,
-  MURO_IZQUIERDO,
-} from './paredes/muros'
+import { EN_EL_HUECO, EN_EL_ROTULO, EN_OTRO_SITIO, MURO_IZQUIERDO } from './paredes/muros'
 import { SessionProvider } from '../../../app/SessionProvider'
 import { ThemeProvider } from '../../../app/ThemeProvider'
 import { AppRouter } from '../../../app/router'
@@ -402,9 +395,13 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     const huecos = Array.from(salon.querySelectorAll('[data-hueco]')).map((h) => h.getAttribute('data-hueco'))
     expect(huecos).toContain('paredes')
-    // El registro dejó de ser un hueco propio y ahora es un cuadro DENTRO de `paredes`,
-    // así que lo que se comprueba es que el mando esté montado, no que tenga hueco.
-    expect(salon.querySelector('[data-cuadro="registro"]')).not.toBeNull()
+    // EL MANDO DE REGISTRAR YA NO CUELGA DE NINGÚN MURO. Llenar y guardar viven en la
+    // ficha que sale del borde izquierdo, así que lo que se comprueba es que la ficha
+    // esté montada — un cuadro más en la pared era el mismo gesto en dos sitios.
+    expect(salon.querySelector('[data-cajon="serie"]')).not.toBeNull()
+    expect(salon.querySelector('[data-cuadro="registro"]'), 'el mando volvió al muro').toBeNull()
+    // Y LAS CUATRO ESTACIONES ESTÁN, que es donde vive ahora la prescripción.
+    expect(salon.querySelectorAll('[data-estacion]')).toHaveLength(4)
     expect(huecos).toContain('centro')
     expect(huecos).toContain('panelInferior')
     // CINCO paneles de pared, no nueve — pero YA NO A LA VEZ, y por eso esto se cuenta
@@ -425,39 +422,31 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
         n.getAttribute('data-campo'),
       )
 
-    // AL ABRIR: el rótulo del ejercicio, la carga en el hueco de la derecha y la técnica
-    // que se anuncia. El orden es el del DOM —columna izquierda, columna derecha, y
-    // debajo el anuncio—, así que se escribe en ese orden y no ordenado alfabéticamente:
-    // si alguien mueve un bloque de sitio, esta prueba lo dice.
-    expect(camposVisibles()).toEqual([...EN_EL_ROTULO, ...EN_EL_HUECO, ...EN_EL_ANUNCIO])
+    // AL ABRIR: el rótulo del ejercicio y la carga en el hueco de la derecha, más los
+    // tres que se dicen FUERA del muro y aquí van montados sin ver. El orden es el del
+    // DOM —columna izquierda, columna derecha, y debajo los mudos—, así que se escribe en
+    // ese orden y no alfabéticamente: si alguien mueve un bloque de sitio, esto lo dice.
+    expect(camposVisibles()).toEqual([...EN_EL_ROTULO, ...EN_EL_HUECO, ...EN_OTRO_SITIO])
 
     act(() => {
       vi.advanceTimersByTime(6500)
     })
-    // En reposo el DOM lleva los de geometría —montados y sin ver— y los que solo puede
-    // escribir la letra. Los primeros van marcados: si alguien los volviera a hacer
-    // visibles, estaría repitiendo encima de las cifras del muro, que es de lo que se
-    // salió el 2026-09-03.
-    // EN REPOSO: el rótulo SIGUE escrito —es rotulación, no un aviso— y con él solo los
-    // de geometría, que van montados y sin ver. La carga le ha devuelto el hueco al
-    // cronómetro.
-    expect(camposVisibles()).toEqual([...EN_EL_ROTULO, ...EN_GEOMETRIA_DEL_MURO, ...EN_LO_VIVO])
-    for (const clave of EN_GEOMETRIA_DEL_MURO) {
+    // EN REPOSO la carga le devuelve el hueco al cronómetro. El rótulo SIGUE escrito —es
+    // rotulación, no un aviso— y los mudos siguen montados.
+    expect(camposVisibles()).toEqual([...EN_EL_ROTULO, ...EN_OTRO_SITIO])
+
+    // LOS QUE SE DICEN FUERA VAN MARCADOS Y NO SE VEN. Si alguien los volviera a hacer
+    // visibles estaría escribiendo en la pared lo que ya dicen las cuatro estaciones y la
+    // lectura de abajo, que es exactamente de lo que se salió el 2026-09-04.
+    for (const clave of EN_OTRO_SITIO) {
       const nodo = salon.querySelector(`[data-campo="${clave}"]`)
-      expect(nodo?.getAttribute('data-en-geometria'), `${clave} ya no lo escribe la sala`).toBe('')
-      expect(nodo?.className, `${clave} se ve, y lo dice el muro`).toContain('sr-only')
+      expect(nodo?.className, `${clave} se ve, y ya lo dice otro sitio`).toContain('sr-only')
     }
 
-    // Y la unión son los cinco del muro, sin repetidos y sin perder ninguno.
-    expect(
-      [
-        ...EN_EL_ROTULO,
-        ...EN_EL_HUECO,
-        ...EN_EL_ANUNCIO,
-        ...EN_GEOMETRIA_DEL_MURO,
-        ...EN_LO_VIVO,
-      ].sort(),
-    ).toEqual([...MURO_IZQUIERDO].sort())
+    // Y la unión siguen siendo los cinco del muro, sin repetidos y sin perder ninguno.
+    expect([...EN_EL_ROTULO, ...EN_EL_HUECO, ...EN_OTRO_SITIO].sort()).toEqual(
+      [...MURO_IZQUIERDO].sort(),
+    )
     } finally {
       vi.useRealTimers()
     }
@@ -509,7 +498,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     ).toEqual([])
   })
 
-  it('el panel sube con un toque y trae los catorce recuadros, todos interactivos', async () => {
+  it('el panel sube con un toque y trae los quince recuadros, todos interactivos', async () => {
     const usuario = userEvent.setup()
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
@@ -520,10 +509,11 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
 
     const recuadros = Array.from(salon.querySelectorAll('[data-recuadro]'))
-    // Catorce, no doce: los dos que bajaron de la pared en el reparto del §1 —«El encuadre
-    // de hoy» con sus cuatro campos, y «Material de la sesión»—. Lo que baja de la pared
-    // aterriza aquí; nada se tira.
-    expect(recuadros).toHaveLength(14)
+    // Quince, y cada uno llegó bajando de la pared: los dos del reparto del §1 —«El
+    // encuadre de hoy» con sus cuatro campos y «Material de la sesión»— y, desde el
+    // 2026-09-04, «Cómo va la sesión», que era la marquesina corrida del muro. Lo que baja
+    // de la pared aterriza aquí; nada se tira.
+    expect(recuadros).toHaveLength(15)
     // Cada recuadro trae un elemento interactivo real: el título ES el botón que pliega. No
     // es una promesa que haya que ir comprobando bloque a bloque, es estructura.
     for (const r of recuadros) {

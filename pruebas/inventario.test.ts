@@ -146,7 +146,7 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
    * el 98 % del ancho a la altura de las piernas del sujeto — tapando los implementos 3D
    * hasta dejarlos en 36 píxeles.
    */
-  it('el panel monta catorce recuadros: los nueve del inventario más los cinco del salón', () => {
+  it('el panel monta quince recuadros: los nueve del inventario más los seis del salón', () => {
     const claves = [...PANEL_INFERIOR.matchAll(/clave="([a-z-]+)"/g)].map((m) => m[1])
     expect(new Set(claves).size).toBe(claves.length) // ninguno repetido
 
@@ -164,10 +164,12 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
     expect(claves).toEqual(expect.arrayContaining(alPanel))
     // Los que se fueron, ninguno: si volviera alguno sin cambiar el mapa, se vería.
     for (const clave of aProgreso) expect(claves).not.toContain(clave)
-    // Y los cinco que no vienen del inventario, sino del encargo del salón: la prescripción
-    // entera, lo de antes de entrenar, las notas de ejecución, y los dos que bajaron de la
-    // pared en el reparto —el encuadre y el material—.
-    const DEL_SALON = ['ejercicio', 'antes', 'patron', 'encuadre', 'material']
+    // Y los SEIS que no vienen del inventario, sino del encargo del salón: la prescripción
+    // entera, lo de antes de entrenar, las notas de ejecución, los dos que bajaron de la
+    // pared en el reparto —el encuadre y el material— y, desde el 2026-09-04, «cómo va la
+    // sesión»: era la marquesina corrida del muro, y dice cómo va LA SESIÓN, no la serie
+    // que estás a punto de hacer. Se lee al bajar a mirar, no mientras se levanta.
+    const DEL_SALON = ['ejercicio', 'antes', 'patron', 'encuadre', 'material', 'ritmo']
     for (const clave of DEL_SALON) expect(claves).toContain(clave)
     expect(claves).toHaveLength(alPanel.length + DEL_SALON.length)
   })

@@ -11,30 +11,16 @@
     {
       "clave": "ejercicio",
       "x": 40,
-      "y": 43,
+      "y": 67,
       "ancho": 309,
-      "alto": 132,
-      "sobraArriba": -43,
-      "sobraAbajo": -669,
+      "alto": 83,
+      "sobraArriba": -67,
+      "sobraAbajo": -693,
       "sobraIzquierda": -40,
       "sobraDerecha": -40,
       "cuerpoPx": 15,
       "topePx": 138,
-      "texto": "M22FULL CSSSEEENNNTTTAAADDDIIILLLLLLAAAGGGOOOBBBLLLEEETTTCronómetro de sesión00:00:03Toca "
-    },
-    {
-      "clave": "series",
-      "x": 386,
-      "y": 96,
-      "ancho": 209,
-      "alto": 61,
-      "sobraArriba": -96,
-      "sobraAbajo": -687,
-      "sobraIzquierda": -386,
-      "sobraDerecha": 204,
-      "cuerpoPx": 11.2,
-      "topePx": 100,
-      "texto": "Series registradas1— · —2— · —3— · —"
+      "texto": "M22FULL CSSSEEENNNTTTAAADDDIIILLLLLLAAAGGGOOOBBBLLLEEETTTCronómetro de sesión00:00:04Toca "
     },
     {
       "clave": "camara",
@@ -49,20 +35,6 @@
       "cuerpoPx": 12.1,
       "topePx": 80,
       "texto": "Cámara del encuadreMedir con la cámara"
-    },
-    {
-      "clave": "registro",
-      "x": 40,
-      "y": 285,
-      "ancho": 233,
-      "alto": 57,
-      "sobraArriba": -285,
-      "sobraAbajo": -501,
-      "sobraIzquierda": -40,
-      "sobraDerecha": -117,
-      "cuerpoPx": 12.1,
-      "topePx": 74,
-      "texto": "Serie 1 de 3Carga20 kgReps12RIR2Guardar1Serie 1 de 3Carga−kg+Reps−+RIR−+"
     }
   ],
   "usuario": "u-valentina"

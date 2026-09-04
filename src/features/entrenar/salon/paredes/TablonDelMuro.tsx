@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
-import type { RitmoSesion } from '../../../../domain/ritmoSesion'
+import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
 import { MuroDeCampos } from './PanelPared'
 import { TOPE_PARED } from '../huecos'
-import { EN_EL_ANUNCIO, EN_GEOMETRIA_DEL_MURO, EN_LO_VIVO } from './muros'
-import { RotuloDelDia, Marquesina } from './RotulosDelSalon'
+import { EN_OTRO_SITIO } from './muros'
+import { RotuloDelDia } from './RotulosDelSalon'
 import { RotuloEnTrazo } from './RotuloEnTrazo'
 import { HuecoDeDatos } from './HuecoDeDatos'
-import { avisosDelSalon, lineaDeRitmo } from './avisosDelSalon'
 
 /**
  * EL TABLÓN DEL MURO DE ENFRENTE: lo mismo, pero no a la vez.
@@ -73,8 +71,6 @@ export interface TablonDelMuroProps {
   microciclo: Microciclo
   sesion?: Sesion
   ejercicio?: EjercicioPrescrito
-  ritmo?: RitmoSesion
-  notas: readonly ItemMarcable[]
   /**
    * Con cuánto levantó este ejercicio la última vez. Ausente = no hay con qué comparar, y
    * entonces la línea no se pinta: un 0 kg ahí sería una carga que nadie levantó.
@@ -87,8 +83,6 @@ export function TablonDelMuro({
   microciclo,
   sesion,
   ejercicio,
-  ritmo,
-  notas,
   cargaPrevia,
 }: TablonDelMuroProps) {
   const [estado, setEstado] = useState<EstadoDelTablon>('anuncio')
@@ -113,16 +107,6 @@ export function TablonDelMuro({
   }, [])
 
   const anunciando = estado === 'anuncio' || estado === 'relevo'
-  // La ranura del muro lleva SIEMPRE el ritmo como primera frase, y detrás los avisos
-  // que haya. Se compone aquí y no en la vista para que el estado —el tinte de la
-  // banda— y las frases salgan del mismo sitio y no puedan discrepar.
-  const ranura = ritmo
-    ? (() => {
-        const avisos = avisosDelSalon(ritmo, ejercicio, notas)
-        return { ...avisos, frases: [lineaDeRitmo(ritmo), ...avisos.frases] }
-      })()
-    : undefined
-
   return (
     // LA ESCENA DEL TABLÓN. `perspective` va AQUÍ y no más arriba porque alcanza solo a los
     // HIJOS DIRECTOS: puesta en un ancestro, el `translateZ` de las capas se aplicaría
@@ -164,69 +148,38 @@ export function TablonDelMuro({
 
       <hr className="muro-junta my-[0.45em]" aria-hidden="true" />
 
-      {anunciando && (
-        // EL ANUNCIO. Entra palabra a palabra y se va de una pieza.
-        //
-        // El escalonado no se pone aquí: lo trae `PanelCampo`, que ya parte el titular en
-        // palabras con `.muro-palabra` y su retardo por índice. Repetirlo en este nivel
-        // sería una segunda cascada compitiendo con la que ya existe.
-        <div className="muro-anuncio" data-saliendo={estado === 'relevo' ? '' : undefined}>
-          <MuroDeCampos contenido={contenido} campos={EN_EL_ANUNCIO} lado="izquierda" enCuadro />
-        </div>
-      )}
+      {/* LOS TRES QUE SE FUERON, montados y sin ver. Una malla no la lee un lector de
+          pantalla, y un cartel que se retira a los 3,7 s tampoco está siempre: estos nodos
+          existen para las dos cosas que no son mirar —oír y contar—. La auditoría de «no
+          se perdió nada» cuenta `data-campo`, así que sin ellos mudar un campo se leería
+          desde fuera exactamente igual que haberlo borrado. */}
+      <MuroDeCampos
+        contenido={contenido}
+        campos={EN_OTRO_SITIO}
+        lado="izquierda"
+        enCuadro
+        soloParaLector
+      />
 
-      {estado !== 'anuncio' && (
-        // EL DATO VIVO. Sube mientras el anuncio se retira.
-        <div className="muro-vivo">
-          {/* «SERIE N DE M» YA NO SE ESCRIBE AQUÍ, y no se ha perdido.
-              Estaba en el muro y está —desde antes— en el mando de registrar, a un palmo
-              por debajo y en la misma pantalla: dos veces la misma frase, que es la queja
-              de fondo de este salón. El mando es su sitio, porque ahí es donde esa serie
-              se guarda.
+      {/* Y NADA MÁS. El muro tenía debajo tres capas más —el anuncio con la técnica, el
+          dato vivo, y una ranura corrida con el ritmo y los avisos— más tres puntos que
+          decían que había algo plegado. Siete bandas de texto en 218 px.
 
-              Y quitarlo no es solo higiene: el rótulo permanente del ejercicio ocupa muro,
-              y el bloque en reposo había subido a 136 px contra un tope declarado de 138.
-              Sin esta línea vuelve a caber con aire, y el salón no paga un grado de
-              elevación por ello. */}
-          {/* LO QUE DICE EL MURO NO SE ESCRIBE AQUÍ.
-              Series, repeticiones y RIR los escribe la sala en siete segmentos, a 62 px
-              de alto y enfrente de quien entra. Estos nodos se montan y no se ven: son
-              para el lector de pantalla y para la auditoría. */}
-          <MuroDeCampos
-            contenido={contenido}
-            campos={EN_GEOMETRIA_DEL_MURO}
-            lado="izquierda"
-            enCuadro
-            soloParaLector
-          />
+          Se han ido las tres, y cada una a su sitio:
 
-          {/* Y EN LETRA, solo lo que la geometría no puede escribir. La carga suele ser
-              una frase —«SIN KILOS», «con la barra»— y siete segmentos no escriben eso. */}
-          <MuroDeCampos contenido={contenido} campos={EN_LO_VIVO} lado="izquierda" enCuadro />
-        </div>
-      )}
+          - LA TÉCNICA baja a la lectura larga, bajo «cómo se hace». Es un párrafo que se
+            lee una vez y entero, y en el muro salía recortado a 42 caracteres con puntos
+            suspensivos: la pared enseñaba un trozo y obligaba a bajar igual.
+          - EL RITMO Y LOS AVISOS bajan al panel. Son de cómo va la sesión, no de la serie
+            que estás a punto de hacer, y una marquesina corrida en la pared es lo único
+            del salón que se movía sin que nadie lo pidiera.
+          - LAS CIFRAS ya las dicen las cuatro estaciones alrededor del cuerpo, y las dicen
+            solo cuando hay que leerlas.
 
-      {/* LA RANURA DE ABAJO: UNA línea, y por ella pasa todo lo que cambia con el tiempo.
-          Es lo que este muro decía que hacía y no hacía. El ritmo iba en un rótulo fijo y
-          los avisos en una banda debajo: dos bloques apilados que dicen lo mismo —cómo
-          vas—, y entre los dos se llevaban tres líneas del muro, porque «≈ 58m · Bloque de
-          fuerza · Ejercicio 1/5» no cabe en 309 px y parte. Puestos en la misma pista, el
-          ritmo es la primera frase y los avisos pasan detrás: una línea, y no se pierde
-          ninguno. */}
-      {estado === 'vivo' && ranura && (
-        <div className="muro-ranura">
-          <Marquesina avisos={ranura} />
-        </div>
-      )}
-
-      {/* LAS CAPAS PLEGADAS. Tres puntos que laten muy despacio.
-          No son un adorno: dicen que hay más y dónde —la ficha íntegra vive en el panel de
-          abajo—. Sin ellos, plegar se lee como perder. */}
-      {estado === 'vivo' && (
-        <p className="muro-capas" aria-hidden="true">
-          <span /> <span /> <span />
-        </p>
-      )}
+          Lo que queda en el muro es lo que el diseño de la sala pone en él y nada más: el
+          código de sala, el nombre del ejercicio en trazo, y el hueco que se turnan el
+          cronómetro y la carga. Un muro con dos cosas escritas deja ver la sala; uno con
+          siete es una página web colgada de una pared. */}
     </div>
   )
 }
