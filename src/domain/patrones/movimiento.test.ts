@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID } from './catalogo'
-import { canalEnFase, poseAnimada, RANGO, retardoDe } from './movimiento'
-import { puntoDeHueso, resolver, resolverConApoyo, type Lado } from './esqueleto'
+import { canalEnFase, hermiteMonotona, poseAnimada, RANGO, retardoDe } from './movimiento'
+import { ALTURA_DEL_TOBILLO, puntoDeHueso, resolver, resolverConApoyo, type Lado } from './esqueleto'
 import { construirMusculos, longitudesEnReposo, trazadoDeFasciculo, PORCION_POR_CLAVE } from './musculos'
 import { V } from './algebra'
 
@@ -107,7 +107,8 @@ describe('cada patrón, en toda la repetición', () => {
           if (p.apoyo === 'suelo' && pies.length) {
             for (const lado of pies) {
               for (const t of [0, 0.5, 1]) {
-                const y = puntoDeHueso(esq, 'pie' + lado, t, [0, 0, -0.03])[1]
+                // La PLANTA, no el hueso: la sonda va hacia +Z local, a la altura del tobillo.
+                const y = puntoDeHueso(esq, 'pie' + lado, t, [0, 0, ALTURA_DEL_TOBILLO])[1]
                 expect(y, `pie${lado} bajo el suelo en la fase ${fase}`).toBeGreaterThan(-0.02)
               }
             }
@@ -156,5 +157,68 @@ describe('el acortamiento muscular', () => {
       return l
     }
     expect(largoEn(1)).toBeGreaterThan(largoEn(0))
+  })
+})
+
+describe('la trayectoria por las tres poses', () => {
+  // Un canal con pose intermedia de verdad: la rodilla de la sentadilla adelanta pronto.
+  const sentadilla = PATRONES.find((p) => p.id === 'sentadilla')!
+  const conMedio = PATRONES.filter((p) => p.medio)
+
+  it('pasa EXACTAMENTE por las tres poses del catálogo', () => {
+    for (const p of conMedio) {
+      for (const canal of Object.keys(p.medio!)) {
+        expect(canalEnFase(p, canal, 0), `${p.id}.${canal} al inicio`).toBeCloseTo(p.inicio[canal] ?? 0, 9)
+        expect(canalEnFase(p, canal, 0.5), `${p.id}.${canal} en medio`).toBeCloseTo(p.medio![canal], 9)
+        expect(canalEnFase(p, canal, 1), `${p.id}.${canal} al final`).toBeCloseTo(p.fin[canal] ?? 0, 9)
+      }
+    }
+  })
+
+  it('la velocidad articular NO salta en la pose de en medio', () => {
+    // Era dos rectas con un codo: la pendiente cambiaba de golpe a mitad de recorrido en
+    // cada repetición. Se mide la derivada numérica por los dos lados de 0,5 y se exige
+    // que sean la misma, con una tolerancia relativa al tamaño del movimiento.
+    const h = 1e-4
+    for (const p of conMedio) {
+      for (const canal of Object.keys(p.medio!)) {
+        const izquierda = (canalEnFase(p, canal, 0.5) - canalEnFase(p, canal, 0.5 - h)) / h
+        const derecha = (canalEnFase(p, canal, 0.5 + h) - canalEnFase(p, canal, 0.5)) / h
+        const recorrido = Math.abs((p.fin[canal] ?? 0) - (p.inicio[canal] ?? 0)) + 1
+        expect(Math.abs(derecha - izquierda) / recorrido, `${p.id}.${canal} tiene codo`).toBeLessThan(0.02)
+      }
+    }
+  })
+
+  it('no rebasa ninguna pose por el camino: la rodilla no se hiperextiende', () => {
+    for (const p of conMedio) {
+      for (const canal of Object.keys(p.medio!)) {
+        const a = p.inicio[canal] ?? 0
+        const m = p.medio![canal]
+        const b = p.fin[canal] ?? 0
+        for (let f = 0; f <= 1; f += 0.01) {
+          const v = canalEnFase(p, canal, f)
+          const lo = f <= 0.5 ? Math.min(a, m) : Math.min(m, b)
+          const hi = f <= 0.5 ? Math.max(a, m) : Math.max(m, b)
+          expect(v, `${p.id}.${canal} rebasa en f=${f.toFixed(2)}`).toBeGreaterThanOrEqual(lo - 1e-9)
+          expect(v, `${p.id}.${canal} rebasa en f=${f.toFixed(2)}`).toBeLessThanOrEqual(hi + 1e-9)
+        }
+      }
+    }
+  })
+
+  it('cuando la pose de en medio es la media, la curva ES la recta', () => {
+    // Los patrones sin curvatura real no cambian ni una décima.
+    for (let f = 0; f <= 1; f += 0.05) {
+      expect(hermiteMonotona(10, 55, 100, f)).toBeCloseTo(10 + 90 * f, 9)
+    }
+  })
+
+  it('la rodilla de la sentadilla sigue adelantando pronto', () => {
+    // La razón de la pose intermedia: a mitad de recorrido la rodilla ya lleva más de la
+    // mitad de su flexión. La curva nueva tiene que conservar eso, no solo suavizarlo.
+    const a = sentadilla.inicio.rodillaFlex ?? 0
+    const b = sentadilla.fin.rodillaFlex ?? 0
+    expect(canalEnFase(sentadilla, 'rodillaFlex', 0.5)).toBeGreaterThan((a + b) / 2)
   })
 })

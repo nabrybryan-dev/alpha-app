@@ -77,16 +77,76 @@ function limitarCanal(canal: string, v: number): number {
   return r ? limitar(v, r[0], r[1]) : v
 }
 
-/** Valor de un canal en una fase dada, interpolando inicio → medio → fin. */
+/**
+ * Valor de un canal en una fase dada, pasando por inicio → medio → fin.
+ *
+ * ## Por qué ya no son dos rectas
+ *
+ * Hasta el 2026-09-04 esto era `entre(a, medio)` hasta la mitad y `entre(medio, b)`
+ * después: dos segmentos rectos con un CODO en la pose de en medio. El reloj de la
+ * repetición ya era suave —freno en el estancamiento, asentamiento arriba, bajada más
+ * lenta— pero el ángulo de cada articulación cambiaba de pendiente de golpe a mitad de
+ * recorrido, en todos los canales con pose intermedia y en todas las repeticiones. Es la
+ * firma de un maniquí: velocidad articular discontinua, por muy correctos que sean los
+ * ángulos. Bryan lo pidió como «que los movimientos sean mucho más naturales».
+ *
+ * ## Qué es ahora
+ *
+ * Un cúbico de Hermite MONÓTONO (Fritsch–Carlson) por los tres puntos. Tres propiedades,
+ * y las tres hacen falta:
+ *
+ * - **pasa exactamente por las tres poses**: el catálogo sigue mandando;
+ * - **la pendiente es continua en la pose de en medio**: se acabó el codo;
+ * - **no rebasa ninguna pose**: una rodilla que tiene que llegar a 139° no pasa por 142°
+ *   por el camino. Un spline corriente sí lo haría, y un rebase de tres grados en el
+ *   tope de una sentadilla es una rodilla que se hiperextiende en cada repetición.
+ *
+ * En los extremos la tangente es la secante de su lado y NO cero. Cero suavizaría otra
+ * vez el arranque, y el arranque ya lo suaviza el reloj de la repetición: dos suavizados
+ * encadenados dan un sujeto que tarda en arrancar y se lee como pesado. Cada capa hace lo
+ * suyo — el reloj el tiempo, esta curva el espacio.
+ *
+ * Cuando la pose de en medio es exactamente la media de los extremos, la curva ES la
+ * recta: los patrones sin curvatura real no cambian ni una décima.
+ */
 export function canalEnFase(patron: Patron, canal: string, f: number): number {
   const a = patron.inicio[canal] ?? 0
   const b = patron.fin[canal] ?? 0
   const medio = patron.medio?.[canal]
   if (medio === undefined) return entre(a, b, f)
-  // La pose intermedia deja curvar la trayectoria donde el punto medio real no
-  // es la media de los extremos: la rodilla de una sentadilla adelanta pronto y
-  // después es la cadera la que sigue bajando.
-  return f < 0.5 ? entre(a, medio, f / 0.5) : entre(medio, b, (f - 0.5) / 0.5)
+  return hermiteMonotona(a, medio, b, limitar(f, 0, 1))
+}
+
+/**
+ * Cúbico de Hermite monótono por (0, a), (0,5, m) y (1, b).
+ *
+ * Las pendientes de los extremos son las secantes de su tramo. La del medio es la MEDIA
+ * ARMÓNICA de las dos secantes cuando tienen el mismo signo, y cero cuando cambian de
+ * signo o alguna es nula: es la regla de Fritsch–Carlson y lo que garantiza que la curva
+ * nunca se sale del intervalo entre poses consecutivas.
+ */
+export function hermiteMonotona(a: number, m: number, b: number, f: number): number {
+  const h = 0.5
+  const s1 = (m - a) / h
+  const s2 = (b - m) / h
+  const d0 = s1
+  const d2 = s2
+  const d1 = s1 * s2 <= 0 ? 0 : (2 * s1 * s2) / (s1 + s2)
+  // Tramo y parámetro local en [0, 1].
+  const primero = f < h
+  const t = primero ? f / h : (f - h) / h
+  const p0 = primero ? a : m
+  const p1 = primero ? m : b
+  const t0 = primero ? d0 : d1
+  const t1 = primero ? d1 : d2
+  const t2 = t * t
+  const t3 = t2 * t
+  return (
+    (2 * t3 - 3 * t2 + 1) * p0 +
+    (t3 - 2 * t2 + t) * h * t0 +
+    (-2 * t3 + 3 * t2) * p1 +
+    (t3 - t2) * h * t1
+  )
 }
 
 export interface PoseCompleta {

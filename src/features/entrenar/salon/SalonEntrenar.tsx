@@ -35,7 +35,7 @@ import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
 import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGuardar'
 import { Joystick } from './mando/Joystick'
 import { CamaraDelSalon } from './camara/CamaraDelSalon'
-import { duracionDelModo, type ModoDelReloj } from './mando/relojDelMuro'
+import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './mando/relojDelMuro'
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
 import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
@@ -680,6 +680,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                       }
                     : undefined
                 }
+                // EL SUJETO BAJA EN LO QUE CUENTA LA PARED. El mando del reloj pone la
+                // pared a contar el excéntrico a `SEGUNDOS_DE_EXCENTRICO` por repetición;
+                // si el sujeto bajara en otro tiempo, el salón enseñaría dos tempos.
+                tempo={{ excentricaSeg: SEGUNDOS_DE_EXCENTRICO }}
               />
             </div>
 

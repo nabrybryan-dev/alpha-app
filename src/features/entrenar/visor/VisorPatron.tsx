@@ -17,6 +17,7 @@ import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
 import { pasoDelVaiven } from './vaivenDeLaSala'
+import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
 import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
@@ -227,6 +228,12 @@ interface VisorPatronProps {
    * el valor y NO provoca un render por cada grado —de eso se encarga el que escucha.
    */
   alMirar?: (camara: { azimut: number; elevacion: number; distancia: number }) => void
+  /**
+   * El tempo prescrito de la repetición. Sin él, el sujeto baja en los 1,9 s de siempre;
+   * con él, baja en lo que cuenta la pared del salón, para que las dos cifras de tiempo
+   * que enseña el salón sean la misma.
+   */
+  tempo?: TempoDeRepeticion
 }
 
 /**
@@ -236,7 +243,7 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjercicio, alMirar }: VisorPatronProps) {
+export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjercicio, alMirar, tempo }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -293,6 +300,8 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
     ultimoDedo: 0,
     /** Si el sistema pide menos movimiento. Entonces el objetivo del vaivén es siempre 0. */
     reducido: false,
+    /** El tempo prescrito. Va por referencia, como los datos: cambiar el tempo no recrea WebGL. */
+    tempo: undefined as TempoDeRepeticion | undefined,
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
@@ -310,12 +319,13 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
     estado.current.nombreEjercicio = nombreEjercicio
     estado.current.alMirar = alMirar
     estado.current.reducido = reducido
+    estado.current.tempo = tempo
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar])
+  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -520,7 +530,7 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
           const ahora = performance.now() / 1000
           let cambia = false
           if (estado.current.reproduciendo) {
-            const { fase: f, sentido } = faseDeTiempo(ahora - arranque, patron)
+            const { fase: f, sentido } = faseDeTiempo(ahora - arranque, patron, estado.current.tempo)
             estado.current.reloj = ahora - arranque
             estado.current.sentido = sentido
             if (Math.abs(f - estado.current.fase) > 0.0015) {

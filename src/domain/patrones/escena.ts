@@ -107,16 +107,43 @@ function avanceDeSubida(k: number, centro: number): number {
 
 export const DURACION_CICLO = CICLO.reduce((s, f) => s + f.duracion, 0)
 
+/**
+ * EL TEMPO PRESCRITO, cuando lo hay.
+ *
+ * El ciclo de arriba es el de una repetición bien hecha sin más datos: baja en 1,9 s. Pero
+ * la pared del salón cuenta el excéntrico a `SEGUNDOS_DE_EXCENTRICO` por repetición, y si
+ * el sujeto baja en 1,9 s mientras el reloj de la pared dice 3, el salón se contradice a
+ * sí mismo en la única cifra de tiempo que enseña. Con esto la bajada del sujeto ES la que
+ * cuenta la pared. Sin tempo, todo sigue como estaba.
+ */
+export interface TempoDeRepeticion {
+  /** Segundos de la fase excéntrica —la bajada—. */
+  excentricaSeg?: number
+}
+
+function cicloCon(tempo?: TempoDeRepeticion) {
+  const bajada = tempo?.excentricaSeg
+  if (bajada === undefined || !(bajada > 0)) return CICLO
+  return CICLO.map((f) => (f.desde === 1 && f.hasta === 0 ? { ...f, duracion: bajada } : f))
+}
+
+/** Cuánto dura una repetición entera con ese tempo. */
+export function duracionDelCiclo(tempo?: TempoDeRepeticion): number {
+  return cicloCon(tempo).reduce((s, f) => s + f.duracion, 0)
+}
+
 export interface FaseDelCiclo {
   fase: number
   /** +1 en la fase concéntrica, −1 en la excéntrica. */
   sentido: number
 }
 
-export function faseDeTiempo(t: number, patron?: Patron): FaseDelCiclo {
+export function faseDeTiempo(t: number, patron?: Patron, tempo?: TempoDeRepeticion): FaseDelCiclo {
   const centro = patron?.estancamiento ?? ESTANCAMIENTO.centro
-  let u = ((t % DURACION_CICLO) + DURACION_CICLO) % DURACION_CICLO
-  for (const f of CICLO) {
+  const ciclo = cicloCon(tempo)
+  const duracion = duracionDelCiclo(tempo)
+  let u = ((t % duracion) + duracion) % duracion
+  for (const f of ciclo) {
     if (u < f.duracion) {
       const k = f.duracion > 0 ? u / f.duracion : 0
       const avance = f.subiendo ? avanceDeSubida(k, centro) : f.suave ? suavizar(k) : k
