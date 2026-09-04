@@ -677,12 +677,30 @@ export function anguloDeCamara(relacion) {
  * ajuste dice que el disco ocupa más de eso, lo que se ha ajustado no es un disco
  * de una serie grabada.
  *
- * Medido sobre el banco: el peor caso BUENO ocupa 0,406, así que 0,50 deja un 23 %
- * de margen y no tira ni uno. Atrapa 6 de 29 malos. Es una reja de plausibilidad,
- * no un detector: no arregla el ajuste, impide que un ajuste absurdo salga con
- * cara de medida.
+ * ## El umbral, y el error que costó ponerlo bien
+ *
+ * El primer intento fue 0,50, elegido midiendo «¿cuántos casos BUENOS tira?» con
+ * bueno = «el detector acertó dentro del 5 %». Con esa definición no tiraba
+ * ninguno, y era una medida mal planteada: las cuatro escenas `--grande` del
+ * banco tienen una VERDAD de 0,667 —el disco de verdad ocupa el 67 % del lado
+ * corto— y el detector las fallaba por un 9-19 %, así que contaban como malas y
+ * rechazarlas parecía un acierto. No lo era: son escenas legítimas que la reja
+ * rechazaba por ser lo que son, y ningún detector las habría salvado.
+ *
+ * La pregunta correcta no es a quién tira HOY sino **a quién tiraría siempre**:
+ * cuántas escenas tienen la verdad por encima del umbral. Eso no depende del
+ * detector (`banco/donde-va-la-reja.mjs`).
+ *
+ * Verdad máxima del banco: 0,667. De un fotograma real de gimnasio: 0,298. Se
+ * elige **0,75**, por encima de la máxima, para no rechazar nada legítimo. El
+ * 0,30 de los fotogramas reales NO justifica bajarlo: son 16 fotogramas de dos
+ * escenas, y no son el mundo.
+ *
+ * A 0,75 esta reja atrapa poco por su cuenta —el trabajo de verdad lo hace la de
+ * «cabe en el encuadre»—, y se queda igual: es un techo físico, barato, que no
+ * cuesta ni una medida buena.
  */
-export const FRACCION_MARCO_MAX = 0.5
+export const FRACCION_MARCO_MAX = 0.75
 
 /**
  * ¿Lo que el usuario tocó es un disco?
