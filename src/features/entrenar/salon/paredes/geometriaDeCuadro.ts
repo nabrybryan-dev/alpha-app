@@ -1,5 +1,6 @@
 import { CAMPO_VISUAL } from '../../../../domain/patrones/escena'
 import { ENCUADRE_SALA, SALA } from '../../escena/sala'
+import { puntoEnElSuelo } from '../../escena/carta'
 
 /**
  * DÓNDE CAE UN CUADRO COLGADO EN LA PARED, visto desde la cámara del salón.
@@ -130,8 +131,12 @@ export function proyectarCuadro(
     r[0] * f[1] - r[1] * f[0],
   ]
 
-  const a = grados(sitio.azimut)
-  const p: [number, number, number] = [Math.sin(a) * radio, sitio.altura, Math.cos(a) * radio]
+  // EL PUNTO DEL MURO SALE DE LA CARTA, no de una fórmula propia. Es la misma convención
+  // que usa la órbita —0 en +Z, creciendo hacia +X— y la razón de que esté en un solo sitio
+  // es que `sala.ts` usa la OTRA (0 en +X): dos fórmulas sueltas con el seno y el coseno
+  // cambiados se leen igual y cuelgan el cuadro un cuarto de vuelta más allá.
+  const [px0, , pz0] = puntoEnElSuelo(radio, sitio.azimut)
+  const p: [number, number, number] = [px0, sitio.altura, pz0]
   const d: [number, number, number] = [p[0] - ojo[0], p[1] - ojo[1], p[2] - ojo[2]]
   const z = d[0] * f[0] + d[1] * f[1] + d[2] * f[2]
   const x = d[0] * r[0] + d[1] * r[1] + d[2] * r[2]

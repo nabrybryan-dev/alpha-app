@@ -10,14 +10,14 @@
   "cuadros": [
     {
       "clave": "ejercicio",
-      "x": 40,
+      "x": 7,
       "y": 70,
       "ancho": 309,
-      "alto": 78,
+      "alto": 79,
       "sobraArriba": -70,
       "sobraAbajo": -696,
-      "sobraIzquierda": -40,
-      "sobraDerecha": -40,
+      "sobraIzquierda": -7,
+      "sobraDerecha": -74,
       "cuerpoPx": 15,
       "topePx": 138,
       "texto": "Sala 05SSSEEENNNTTTAAADDDIIILLLLLLAAAGGGOOOBBBLLLEEETTTSesiónCronómetro de sesión00:00:04T"

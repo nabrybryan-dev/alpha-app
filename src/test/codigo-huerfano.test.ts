@@ -241,6 +241,20 @@ const HUERFANOS_DE_ENTRENAR: Record<string, string> = {
   'src/features/entrenar/capas/mallaDelNivel.ts#huesosParcialesDeNivel':
     'Canario del eje W: hoy devuelve vacío a propósito y se comprueba en mallaDelNivel.test.ts.',
 
+  // LA CARTA DEL ESPACIO. `puntoEnElSuelo` sí lo consume el proyector de los cuadros;
+  // estos tres son la parte de la carta que existe para AFIRMAR, no para dibujar: el
+  // índice de medidas y las dos fórmulas que fijan las dos convenciones de ángulo que
+  // conviven en el salón (cámara con 0 en +Z, sala con 0 en +X). Su consumidor es
+  // `escena/carta.test.ts`, que las contrasta contra el esqueleto resuelto, la sala y el
+  // proyector reales. Borrarlas dejaría las convenciones otra vez solo en comentarios,
+  // que es de donde salió el sujeto hundido 10,6 cm sin que nada se pusiera en rojo.
+  'src/features/entrenar/escena/carta.ts#CARTA':
+    'Índice del espacio: metros, grados y radios con su fuente. Lo contrasta carta.test.ts.',
+  'src/features/entrenar/escena/carta.ts#azimutDe':
+    'La convención de la cámara en una fórmula, clavada por carta.test.ts contra el proyector.',
+  'src/features/entrenar/escena/carta.ts#azimutDeCamaraDesdeSala':
+    'La relación entre las dos convenciones (cámara = 90 − sala), clavada por carta.test.ts contra sala.ts.',
+
   // La pantalla de aterrizaje que el salón sustituyó (commit 25ea6ca). No se monta, y
   // aun así NO se borra: `pruebas/inventario-entrenar.ts` la nombra como el origen
   // documentado de seis bloques de la mudanza, y el test de inventario comprueba que
