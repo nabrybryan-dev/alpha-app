@@ -664,6 +664,27 @@ export function anguloDeCamara(relacion) {
 }
 
 /**
+ * Cuanto del lado corto del encuadre puede ocupar un disco, como mucho.
+ *
+ * NO es una señal de forma, y por eso existe: las de forma ya se midieron y no
+ * separan —una pila de discos coaxiales ES redonda y se ajusta de maravilla, así
+ * que `cobertura`, `redondez` y `esquinas` dan lo mismo para la cara del primer
+ * disco que para la pila entera (`banco/calidad-vs-error.mjs`)—.
+ *
+ * El argumento es físico, no estadístico. Un disco mide 450 mm. Para que ocupara
+ * la mitad del lado corto, ese lado tendría que abarcar 0,9 m en el plano del
+ * atleta — y ahí no cabe ni la barra, que mide 2,2 m, ni la persona de pie. Si el
+ * ajuste dice que el disco ocupa más de eso, lo que se ha ajustado no es un disco
+ * de una serie grabada.
+ *
+ * Medido sobre el banco: el peor caso BUENO ocupa 0,406, así que 0,50 deja un 23 %
+ * de margen y no tira ni uno. Atrapa 6 de 29 malos. Es una reja de plausibilidad,
+ * no un detector: no arregla el ajuste, impide que un ajuste absurdo salga con
+ * cara de medida.
+ */
+export const FRACCION_MARCO_MAX = 0.5
+
+/**
  * ¿Lo que el usuario tocó es un disco?
  *
  * Un disco da radios consistentes en todas las direcciones. Una mancuerna, una
@@ -711,6 +732,32 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
   if (redondez > 0.16) {
     return { tipo: 'no-circular', motivo: 'el contorno no es redondo', redondez, cobertura, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
   }
+  // ── Dos rejas que NO miran la forma ────────────────────────────────────────
+  //
+  // Hasta aquí todo lo comprobado es forma, y la forma no distingue la cara del
+  // primer disco de la pila entera: las dos son redondas y las dos se ajustan
+  // bien. Medido, el peor fallo del banco (+247 % de escala) pasa las tres
+  // comprobaciones de arriba con los tres indicadores dentro de lo normal.
+  //
+  // Y no hay nadie detrás que lo cace: el rastreador acota la búsqueda a
+  // `radioEsperado × (1 ± 0,25)` y luego compara contra ese mismo radio, así que
+  // HEREDA la semilla y la certifica —con la semilla envenenada devuelve
+  // `fiable: true`, y con la buena `fiable: false`—. Ver `banco/semilla-envenenada.mjs`.
+  //
+  // Estas dos son lo único que puede auditar el arranque, porque no salen del
+  // contorno sino del encuadre.
+  const desborda = circulo.x - circulo.r < 0 || circulo.x + circulo.r > ancho ||
+                   circulo.y - circulo.r < 0 || circulo.y + circulo.r > alto
+  if (desborda) {
+    // Un disco más ancho que la propia imagen no es un disco. Es la comprobación
+    // más tonta posible y por eso vale: no depende del contraste ni de la luz.
+    return { tipo: 'desconocida', motivo: 'el disco ajustado no cabe en el encuadre', cobertura, redondez, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+  const fraccion = (circulo.r * 2) / Math.min(ancho, alto)
+  if (fraccion > FRACCION_MARCO_MAX) {
+    return { tipo: 'desconocida', motivo: 'el disco ajustado se come el encuadre: no cabría la serie', cobertura, redondez, fraccion, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+
   return {
     tipo: 'disco',
     // `r` es el SEMIEJE MAYOR, que es la escala inmune al escorzo: el diámetro
