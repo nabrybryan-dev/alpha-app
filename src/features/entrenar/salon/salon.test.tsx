@@ -460,21 +460,30 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
    * atravesar: la sesión de fuerza. Si el arreglo de la interfaz se pasara de frenada y
    * apagara el eje también con sujeto, este se pone rojo.
    */
-  it('con sujeto, el eje W tiene sus cinco peldaños, y ninguno lleva texto escrito', () => {
+  it('con sujeto, el eje W se puede atravesar con el dedo', () => {
+    // LA ESCALERA SE FUE el 2026-09-04: cinco botones pegados al borde, el último mando de
+    // aplicación que quedaba sobre la sala. Lo que se comprueba ya no es que existan cinco
+    // peldaños, sino lo que esos peldaños servían para hacer — que con cuerpo en el centro
+    // se puede entrar en él. Si el arreglo de la interfaz se hubiera pasado de frenada y
+    // apagado también el gesto, esto se pone rojo.
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     // Que hay cuerpo: el visor montado es la condición de la que cuelga el eje.
     expect(salon.querySelector('canvas'), 'no hay sujeto en el centro con la sesión de fuerza').not.toBeNull()
+    expect(salon.getAttribute('data-w')).toBe('0')
 
-    const escalera = salon.querySelector('[role="group"][aria-label="Capa del cuerpo"]')
-    expect(escalera).not.toBeNull()
-    const peldanos = Array.from((escalera as HTMLElement).querySelectorAll('button'))
-    expect(peldanos).toHaveLength(5)
-    for (const p of peldanos) {
-      expect(p.getAttribute('aria-label')?.length).toBeGreaterThan(0)
-      expect((p.textContent ?? '').trim()).toBe('')
-    }
-    expect(peldanos.filter((p) => p.getAttribute('aria-pressed') === 'true')).toHaveLength(1)
+    const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+    // Un `PointerEvent` de jsdom no transporta `clientX`/`clientY`; un `MouseEvent` con el
+    // mismo tipo sí, y React lo entrega igual a `onPointerDown`.
+    const dedo = (tipo: string, y: number) =>
+      fireEvent(centro, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: 200, clientY: y }))
+    dedo('pointerdown', 400)
+    dedo('pointermove', 200)
+    dedo('pointerup', 200)
+
+    expect(salon.getAttribute('data-w'), 'el dedo no entró en el cuerpo').toBe('1')
+    // Y NO HAY MANDOS DE CAPA sobre la sala: si vuelven, esto lo dice.
+    expect(salon.querySelector('[role="group"][aria-label="Capa del cuerpo"]')).toBeNull()
   })
 
   it('y la regla dura se sigue cumpliendo con los huecos llenos', () => {

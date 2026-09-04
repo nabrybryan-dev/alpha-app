@@ -1,5 +1,4 @@
-import { render, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { fireEvent, render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, hoyIso } from '../../../data/dbInstance'
@@ -101,10 +100,44 @@ function ultimasProps(): PropsDelVisor {
   return ultima as PropsDelVisor
 }
 
-function peldano(salon: HTMLElement, nombre: string): HTMLElement {
-  const escalera = salon.querySelector('[role="group"][aria-label="Capa del cuerpo"]')
-  if (!escalera) throw new Error('la escalera del eje W no está en el salón')
-  return within(escalera as HTMLElement).getByRole('button', { name: nombre })
+/**
+ * ATRAVESAR EL CUERPO, CON EL GESTO QUE HAY.
+ *
+ * Antes esto pulsaba un peldaño de la escalera del eje W. La escalera se quitó el
+ * 2026-09-04 —cinco botones tapando la sala— y las capas se recorren con el dedo sobre el
+ * cuerpo: arrastrando en vertical, o hundiendo el dedo. Aquí se conduce por el arrastre,
+ * que lleva a una capa concreta en un gesto; la aritmética del hundir se prueba pura en
+ * `capas/hundirEnElCuerpo.test.ts`.
+ *
+ * ## POR QUÉ NO SE USA `fireEvent.pointerDown`
+ *
+ * Porque en jsdom **un `PointerEvent` no transporta `clientX` ni `clientY`**: llegan como
+ * `undefined`, el desplazamiento sale `NaN` y el gesto no se mueve — sin error, sin aviso,
+ * y con el manejador ejecutándose entero. Costó una vuelta y se caza igual que todo lo
+ * demás: imprimiendo lo que llega, no leyendo el código.
+ *
+ * Un `MouseEvent` con el tipo `pointerdown` sí lleva las coordenadas y burbujea igual, así
+ * que React lo entrega a `onPointerDown` sin enterarse. Es la misma familia de agujeros
+ * que `jsdom` no tener `animate`: el entorno de prueba no falla, hace menos.
+ */
+function dedo(nodo: Element, tipo: string, x: number, y: number) {
+  fireEvent(nodo, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: x, clientY: y }))
+}
+
+function atravesarHasta(salon: HTMLElement, capa: number) {
+  const centro = salon.querySelector('[data-hueco="centro"]')
+  if (!centro) throw new Error('el salón no tiene hueco centro')
+  const actual = Number(salon.getAttribute('data-w') ?? 0)
+  const escalones = capa - actual
+  if (escalones === 0) return
+  // Hacia dentro se arrastra hacia ARRIBA (dy negativa). El umbral lo pone
+  // `gestoVertical.ts`; aquí se pasa de largo a propósito para no depender del número.
+  const dy = escalones > 0 ? -200 : 200
+  for (let i = 0; i < Math.abs(escalones); i++) {
+    dedo(centro, 'pointerdown', 200, 400)
+    dedo(centro, 'pointermove', 200, 400 + dy)
+    dedo(centro, 'pointerup', 200, 400 + dy)
+  }
 }
 
 describe('el salón le pasa la capa al visor', () => {
@@ -125,10 +158,9 @@ describe('el salón le pasa la capa al visor', () => {
   })
 
   it('la capa que recibe el visor es la del salón, escalón a escalón', async () => {
-    const usuario = userEvent.setup()
     const salon = montarSalonConSujeto()
     for (const capa of CAPAS_W) {
-      await usuario.click(peldano(salon, capa.nombre))
+      atravesarHasta(salon, capa.w)
       expect(salon.getAttribute('data-w'), `el salón no se movió a la capa ${capa.w}`).toBe(
         String(capa.w),
       )
@@ -143,10 +175,9 @@ describe('el salón le pasa la capa al visor', () => {
     // burla al tipo —un `undefined` de un estado a medio inicializar, un número salido
     // de una aritmética— que apagaría el filtro y devolvería el cuerpo entero sin que
     // nada se rompa.
-    const usuario = userEvent.setup()
     const salon = montarSalonConSujeto()
     for (const capa of [...CAPAS_W].reverse()) {
-      await usuario.click(peldano(salon, capa.nombre))
+      atravesarHasta(salon, capa.w)
     }
     expect(espia.recibidas.length).toBeGreaterThan(CAPAS_W.length)
     for (const props of espia.recibidas) {
@@ -158,11 +189,10 @@ describe('el salón le pasa la capa al visor', () => {
     // El eje decide QUÉ se ve del cuerpo, no QUÉ cuerpo ni qué gesto. Se compara por
     // identidad y no por contenido: dos objetos iguales pero distintos remontarían la
     // escena entera en el visor, que es la otra forma de perder el gesto.
-    const usuario = userEvent.setup()
     const salon = montarSalonConSujeto()
     const patronAlEmpezar = ultimasProps().patron
     for (const capa of CAPAS_W) {
-      await usuario.click(peldano(salon, capa.nombre))
+      atravesarHasta(salon, capa.w)
       expect(ultimasProps().patron).toBe(patronAlEmpezar)
     }
   })

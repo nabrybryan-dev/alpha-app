@@ -22,7 +22,8 @@ import { ENCUADRE_SALA } from '../escena/sala'
 import type { CamaraDelSalon as EstadoDeCamara } from './paredes/geometriaDeCuadro'
 import { implementosDeSesion } from './implementos/implementosDeSesion'
 import { capaTrasArrastre } from '../capas/gestoVertical'
-import { CAPAS_W, SUELO_DEL_SALON, type NivelW } from './huecos'
+import { capaTrasHundir, ESCALON_MS, ESPERA, siguePresionando } from '../capas/hundirEnElCuerpo'
+import { SUELO_DEL_SALON, type NivelW } from './huecos'
 import { contenidoPared } from './paredes/contenidoPared'
 import { ParedesDelSalon } from './paredes/ParedesDelSalon'
 import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
@@ -235,8 +236,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * el gesto es de la cámara, y en cuanto se cruzan el cuerpo lo dice —se levanta— y pasa
    * a ser del ejercicio.
    */
-  const [armado, setArmado] = useState(false)
+  const [hundiendo, setHundiendo] = useState(false)
+  /** El reloj de la espera: lo que separa tocar de hundir. */
   const reloj = useRef(0)
+  /** El que va bajando de capa mientras el dedo aguanta. */
+  const bomba = useRef(0)
   /**
    * El ejercicio al que el asesorado navegó a mano. `null` = el que toca.
    *
@@ -380,6 +384,16 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     return () => window.clearTimeout(id)
   }, [cargaEnLaPared])
 
+  // Los dos relojes del gesto se paran al salir del salón. Un intervalo vivo después de
+  // desmontar sigue llamando a `setW` sobre un componente que ya no está.
+  useEffect(
+    () => () => {
+      window.clearTimeout(reloj.current)
+      window.clearInterval(bomba.current)
+    },
+    [],
+  )
+
   useEffect(() => {
     if (!logro) return
     const id = window.setTimeout(() => setLogro(null), LOGRO_MS)
@@ -442,10 +456,24 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
   const alBajarDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
     gesto.current = { vivo: true, x: e.clientX, y: e.clientY, capaAlOrigen: w }
-    // Dos segundos quieto sobre el cuerpo y queda armado. El reloj se cancela en cuanto el
-    // dedo se mueve de verdad: si no, orbitar despacio armaría el sujeto sin querer.
+    // HUNDIRSE: aguantar el dedo sobre el cuerpo lo va atravesando capa a capa. El primer
+    // escalón tarda `ESPERA` —eso es lo que separa tocar de hundir, y lo que impide que
+    // empezar a orbitar cambie de capa— y a partir de ahí cae uno cada `ESCALON_MS`.
     window.clearTimeout(reloj.current)
-    reloj.current = window.setTimeout(() => setArmado(true), 2000)
+    window.clearInterval(bomba.current)
+    const desde = w
+    const t0 = Date.now()
+    reloj.current = window.setTimeout(() => {
+      setHundiendo(true)
+      const entrar = () => {
+        const capa = capaTrasHundir(Date.now() - t0, desde)
+        setW(capa)
+        // Al fondo se para: hundir solo entra. Para salir se arrastra hacia arriba.
+        if (capa >= 4) window.clearInterval(bomba.current)
+      }
+      entrar()
+      bomba.current = window.setInterval(entrar, ESCALON_MS)
+    }, ESPERA)
   }
 
   /**
@@ -463,9 +491,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     const dx = e.clientX - g.x
     const dy = e.clientY - g.y
 
-    // CON EL SUJETO ARMADO, tirar a un lado cambia de ejercicio. Cuarenta píxeles: menos
+    // TIRAR A UN LADO CON EL DEDO HUNDIDO cambia de ejercicio. Cuarenta píxeles: menos
     // sería un temblor de la mano que ya está apoyada en el cuerpo.
-    if (armado && Math.abs(dx) > 40 && sesionEnPantalla) {
+    if (hundiendo && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && sesionEnPantalla) {
       const total = sesionEnPantalla.ejercicios.length
       if (total > 1) {
         const actual =
@@ -481,8 +509,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       return
     }
 
-    // Si el dedo se mueve, deja de estar quieto: el sujeto ya no se arma.
-    if (Math.hypot(dx, dy) > 8) window.clearTimeout(reloj.current)
+    // Si el dedo se mueve, deja de ser una presión y pasa a ser un arrastre: hundirse se
+    // cancela y el gesto vuelve a ser de la órbita o del eje W, según su dirección.
+    if (!siguePresionando(dx, dy)) {
+      window.clearTimeout(reloj.current)
+      window.clearInterval(bomba.current)
+    }
 
     // Horizontal: es una órbita y no es nuestra. Ortogonalidad, hecha código.
     if (Math.abs(dx) > Math.abs(dy)) {
@@ -503,7 +535,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const alSoltarDedo = () => {
     gesto.current.vivo = false
     window.clearTimeout(reloj.current)
-    setArmado(false)
+    window.clearInterval(bomba.current)
+    setHundiendo(false)
   }
 
   /**
@@ -596,12 +629,15 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 arrastre cambió de ejercicio en vez de orbitar. */}
             <div
               data-testigo="sujeto"
-              data-armado={armado ? '' : undefined}
+              data-hundiendo={hundiendo ? '' : undefined}
               className={SUJETO_A_SANGRE}
               style={{
                 transition: 'transform var(--dur-informativo) var(--muelle-informativo), filter var(--dur-informativo)',
-                transform: armado ? 'translateY(-22px) scale(1.06)' : undefined,
-                filter: armado ? 'drop-shadow(0 0 22px rgb(var(--accion-rgb) / 0.7))' : undefined,
+                // Mientras el dedo está dentro, el cuerpo lo dice: crece un pelo y se le
+                // enciende un halo. Un gesto de presión sin acuse es invisible — y peor,
+                // quien lo dispare sin querer no sabrá por qué cambió la capa.
+                transform: hundiendo ? 'scale(1.04)' : undefined,
+                filter: hundiendo ? 'drop-shadow(0 0 22px rgb(var(--accion-rgb) / 0.55))' : undefined,
               }}
             >
               <VisorPatron
@@ -703,35 +739,26 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               }}
             />
 
-            {/* LA ESCALERA DEL EJE W. Cinco peldaños, sin una sola letra: el nombre de cada
-                capa va en `aria-label`, que es un atributo y no un nodo de texto. Va al
-                borde derecho y a la altura de la franja libre —entre la tabla de series y
-                el material—, que es la única banda del cuadro donde no cruza nada. */}
-            <div
-              className="absolute right-1 top-[46%] flex -translate-y-1/2 flex-col gap-1.5"
-              role="group"
-              aria-label="Capa del cuerpo"
-            >
-              {CAPAS_W.map((capa) => (
-                <button
-                  key={capa.id}
-                  type="button"
-                  aria-label={capa.nombre}
-                  aria-pressed={w === capa.w}
-                  onClick={() => setW(capa.w)}
-                  className={`press h-7 w-7 rounded-full border transition-colors duration-base ${
-                    w === capa.w ? 'border-accion bg-accion/25' : 'border-white/15 bg-ink-900/60'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`mx-auto block h-1.5 w-1.5 rounded-full ${
-                      w >= capa.w ? 'bg-accion' : 'bg-silver-500/50'
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
+            {/* LA ESCALERA DEL EJE W SE HA IDO, y el gesto se queda.
+                =========================================================================
+
+                Eran cinco botones pegados al borde derecho: un mando de aplicación sobre
+                la sala, y el último que quedaba. Bryan lo marcó el 2026-09-04 —«esos
+                botones de la derecha, quítalos»— con el criterio de fondo de toda esta
+                tanda: la interacción del entrenamiento se hace TOCANDO el salón, no
+                pulsando controles puestos encima de él.
+
+                Atravesar el cuerpo ya se hacía con el dedo —arrastre vertical sobre el
+                sujeto— y ahora se hace además HUNDIENDO: mantener el dedo sobre el cuerpo
+                se va metiendo capa a capa, de la piel al hueso. La escalera no aportaba un
+                camino que no existiera; aportaba cinco círculos tapando la sala.
+
+                Lo que se pierde y hay que decirlo: con teclado ya no hay forma de cambiar
+                de capa. El velo sigue diciendo en cuál estás y `data-w` sigue saliendo al
+                DOM, pero un gesto de presión no tiene equivalente de teclado.
+                // DECISIÓN PENDIENTE: si hace falta, el sitio no es devolver la escalera
+                // —es que las capas se puedan recorrer desde la ficha del ejercicio, que ya
+                // es una superficie de controles con nombre. */}
           </>
         )}
       </div>

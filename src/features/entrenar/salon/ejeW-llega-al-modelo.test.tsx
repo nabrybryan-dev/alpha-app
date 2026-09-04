@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, hoyIso } from '../../../data/dbInstance'
@@ -92,10 +91,44 @@ function montarSalonConSujeto(): HTMLElement {
 }
 
 /** El peldaño de la escalera del eje W que corresponde a un nivel. */
-function peldano(salon: HTMLElement, nombre: string): HTMLElement {
-  const escalera = salon.querySelector('[role="group"][aria-label="Capa del cuerpo"]')
-  if (!escalera) throw new Error('la escalera del eje W no está en el salón')
-  return within(escalera as HTMLElement).getByRole('button', { name: nombre })
+/**
+ * ATRAVESAR EL CUERPO, CON EL GESTO QUE HAY.
+ *
+ * Antes esto pulsaba un peldaño de la escalera del eje W. La escalera se quitó el
+ * 2026-09-04 —cinco botones tapando la sala— y las capas se recorren con el dedo sobre el
+ * cuerpo: arrastrando en vertical, o hundiendo el dedo. Aquí se conduce por el arrastre,
+ * que lleva a una capa concreta en un gesto; la aritmética del hundir se prueba pura en
+ * `capas/hundirEnElCuerpo.test.ts`.
+ *
+ * ## POR QUÉ NO SE USA `fireEvent.pointerDown`
+ *
+ * Porque en jsdom **un `PointerEvent` no transporta `clientX` ni `clientY`**: llegan como
+ * `undefined`, el desplazamiento sale `NaN` y el gesto no se mueve — sin error, sin aviso,
+ * y con el manejador ejecutándose entero. Costó una vuelta y se caza igual que todo lo
+ * demás: imprimiendo lo que llega, no leyendo el código.
+ *
+ * Un `MouseEvent` con el tipo `pointerdown` sí lleva las coordenadas y burbujea igual, así
+ * que React lo entrega a `onPointerDown` sin enterarse. Es la misma familia de agujeros
+ * que `jsdom` no tener `animate`: el entorno de prueba no falla, hace menos.
+ */
+function dedo(nodo: Element, tipo: string, x: number, y: number) {
+  fireEvent(nodo, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: x, clientY: y }))
+}
+
+function atravesarHasta(salon: HTMLElement, capa: number) {
+  const centro = salon.querySelector('[data-hueco="centro"]')
+  if (!centro) throw new Error('el salón no tiene hueco centro')
+  const actual = Number(salon.getAttribute('data-w') ?? 0)
+  const escalones = capa - actual
+  if (escalones === 0) return
+  // Hacia dentro se arrastra hacia ARRIBA (dy negativa). El umbral lo pone
+  // `gestoVertical.ts`; aquí se pasa de largo a propósito para no depender del número.
+  const dy = escalones > 0 ? -200 : 200
+  for (let i = 0; i < Math.abs(escalones); i++) {
+    dedo(centro, 'pointerdown', 200, 400)
+    dedo(centro, 'pointermove', 200, 400 + dy)
+    dedo(centro, 'pointerup', 200, 400 + dy)
+  }
 }
 
 describe('la capa del salón llega al modelo', () => {
@@ -132,11 +165,10 @@ describe('la capa del salón llega al modelo', () => {
     // Es (a) visto desde la pantalla: los cinco escalones no son cinco números, son
     // cinco niveles distintos llegando al modelo. Si alguien quita `w={w}` del salón, el
     // rótulo desaparece y esto se cae entero.
-    const usuario = userEvent.setup()
     const salon = montarSalonConSujeto()
     const vistos: string[] = []
     for (const nivel of NIVELES_ANATOMICOS) {
-      await usuario.click(peldano(salon, nivel.nombre))
+      atravesarHasta(salon, nivel.w)
       expect(salon.getAttribute('data-w')).toBe(String(nivel.w))
       // El rótulo del visor, no el del peldaño: se busca por texto.
       const resumen = within(salon).getByText(nivel.resumen)
@@ -153,7 +185,6 @@ describe('la capa del salón llega al modelo', () => {
     // la fase del movimiento ni cambia de patrón. Si el visor se remontara al cambiar
     // `w` —por ejemplo metiéndola en las dependencias del efecto que crea el contexto
     // WebGL— el deslizador volvería a 0 y esto se pondría rojo.
-    const usuario = userEvent.setup()
     const salon = montarSalonConSujeto()
     const lienzo = within(salon).getByLabelText(/Modelo tridimensional del patrón/i)
     const patronAlEmpezar = lienzo.getAttribute('aria-label')
@@ -172,7 +203,7 @@ describe('la capa del salón llega al modelo', () => {
     )
 
     for (const nivel of NIVELES_ANATOMICOS) {
-      await usuario.click(peldano(salon, nivel.nombre))
+      atravesarHasta(salon, nivel.w)
       expect(within(salon).getByText(nivel.resumen)).toBeInTheDocument()
       // El mismo patrón, capa a capa: el eje decide qué se ve, no qué se hace.
       expect(

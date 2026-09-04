@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { db, hoyIso } from '../../../../data/dbInstance'
@@ -217,9 +217,15 @@ describe('el salón sin patrón de movimiento', () => {
       montarSalon(sesionCon(ejercicio({ categoria, nombre: patron.ejemplos })))
       const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
       expect(hayVisor(), `no hay cuerpo que atravesar en ${categoria}`).toBe(true)
-      const peldanos = salon.querySelectorAll('[role="group"][aria-label="Capa del cuerpo"] button')
-      expect(peldanos, `sin escalera con ${categoria}`).toHaveLength(5)
-      expect(salon.querySelectorAll('button[aria-pressed="true"]')).toHaveLength(1)
+      // La escalera de cinco botones se fue el 2026-09-04. Lo que prueba lo mismo es que
+      // el eje se pueda ATRAVESAR: con cuerpo en el centro, el dedo entra.
+      const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+      const dedo = (tipo: string, y: number) =>
+        fireEvent(centro, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: 200, clientY: y }))
+      dedo('pointerdown', 400)
+      dedo('pointermove', 200)
+      dedo('pointerup', 200)
+      expect(salon.getAttribute('data-w'), `no se pudo atravesar con ${categoria}`).toBe('1')
     },
   )
 
