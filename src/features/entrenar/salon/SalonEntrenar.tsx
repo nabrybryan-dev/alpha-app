@@ -369,6 +369,15 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * número que no cambia mientras el tiempo, que sí, no se ve.
    */
   const [cargaEnLaPared, setCargaEnLaPared] = useState(false)
+  /**
+   * CUÁNTO HA SUBIDO EL PANEL, de 0 a 1. Lo dice el propio panel.
+   *
+   * La sala se RETIRA mientras la lectura sube: es lo que convierte abrir el panel en
+   * acercarse a lo que ya estaba —el salón sigue ahí, un poco más lejos— en vez de tapar
+   * una pantalla con otra. Sin esto, la hoja se comía el salón de golpe y lo que quedaba
+   * detrás era un fondo, no una sala.
+   */
+  const [avanceDelPanel, setAvanceDelPanel] = useState(0)
   /** Cuántas series se han guardado en esta visita. Solo sortea la frase. */
   const seriesDeLaVisita = useRef(0)
 
@@ -611,6 +620,14 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       <div
         data-hueco="centro"
         className="absolute inset-0"
+        // LA SALA SE ALEJA MIENTRAS SUBE LA LECTURA. Un 12 % es lo que basta: más y el
+        // salón se lee como una miniatura, menos y no se nota que se ha retirado. Solo
+        // `transform` —nada de `top` ni de `width`— para que sea una capa compuesta y no
+        // una remaquetación por fotograma mientras el dedo arrastra.
+        style={{
+          transform: `scale(${(1 - avanceDelPanel * 0.12).toFixed(4)})`,
+          transition: 'transform var(--dur-base) var(--ease-salida)',
+        }}
         onPointerDown={conEjeW ? alBajarDedo : undefined}
         onPointerMove={conEjeW ? alMoverDedo : undefined}
         onPointerUp={conEjeW ? alSoltarDedo : undefined}
@@ -938,6 +955,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           ritmo={ritmo}
           sesion={sesion}
           patron={patron}
+          onAvance={setAvanceDelPanel}
         />
       </div>
     </div>

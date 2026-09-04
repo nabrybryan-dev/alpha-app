@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   resumenSemana,
   type DiaRuta,
@@ -131,6 +131,15 @@ export interface PanelInferiorProps {
   contenido?: ContenidoDePared
   /** El material escrito de la sesión. El hierro de verdad lo dibuja el motor. */
   material?: ImplementosDeSesion
+  /**
+   * CUÁNTO HA SUBIDO EL PANEL, de 0 a 1.
+   *
+   * Se avisa hacia fuera porque la sala tiene que RETIRARSE mientras la lectura sube: es
+   * el gesto del kit —el salón se aleja conforme subes— y es lo que convierte abrir un
+   * panel en acercarse a lo que ya estaba, en vez de tapar una pantalla con otra. El panel
+   * sabe cuánto ha subido; la sala sabe alejarse. Ninguno puede hacer las dos cosas solo.
+   */
+  onAvance?: (avance: number) => void
 }
 
 /** Cuánto hay que arrastrar hacia arriba para que el panel suba. */
@@ -157,6 +166,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     ejercicio,
     sesion,
     ritmo,
+    onAvance,
     patron,
     contenido,
     material,
@@ -214,6 +224,23 @@ export function PanelInferior(props: PanelInferiorProps) {
   const seguimiento = arrastrando
     ? Math.max(-UMBRAL_ABRIR, Math.min(UMBRAL_CERRAR, abierto ? Math.max(0, recorrido) : recorrido))
     : 0
+
+  /**
+   * CUÁNTO HA SUBIDO, de 0 a 1, contando también el arrastre en curso.
+   *
+   * Abierto es 1 y cerrado es 0; durante el gesto es la fracción del umbral que lleva
+   * recorrida. Se calcula aquí y no en quien escucha porque los dos umbrales —abrir y
+   * cerrar— viven aquí: repetidos fuera, se separarían del gesto al primer ajuste.
+   */
+  const avance = abierto
+    ? 1 - Math.min(1, Math.max(0, seguimiento) / UMBRAL_CERRAR)
+    : Math.min(1, Math.max(0, -seguimiento) / UMBRAL_ABRIR)
+
+  // Se avisa en un efecto y no durante el render: llamar a la prop mientras se renderiza
+  // haría que el padre se actualizara en mitad del render del hijo.
+  useEffect(() => {
+    onAvance?.(avance)
+  }, [avance, onAvance])
 
   return (
     <div

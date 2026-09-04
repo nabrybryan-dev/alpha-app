@@ -16,6 +16,7 @@ import {
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
+import { pasoDelVaiven } from './vaivenDeLaSala'
 import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
@@ -275,6 +276,23 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
     // contexto WebGL en vez de reconstruir una malla.
     nombreEjercicio: undefined as string | undefined,
     alMirar: undefined as VisorPatronProps['alMirar'],
+    /**
+     * EL VAIVÉN: cuánto se ha desviado la cámara respirando, en grados.
+     *
+     * Sin tocar nada, la sala respira. No es un adorno: es lo que separa una escena 3D
+     * VIVA de una foto en perspectiva. Un salón absolutamente quieto se lee como una
+     * imagen fija, y entonces nadie prueba a girarlo — el movimiento ambiental es la
+     * única pista de que esto se mueve antes de que alguien lo toque.
+     *
+     * Se guarda el desvío ACUMULADO y no el objetivo, porque el azimut es del dedo: cada
+     * fotograma se le suma la diferencia entre el vaivén nuevo y el viejo, así que
+     * arrastrar y respirar se suman sin pelearse y soltar no da un salto.
+     */
+    vaiven: 0,
+    /** Cuándo tocó el dedo por última vez. De aquí sale si la sala está quieta. */
+    ultimoDedo: 0,
+    /** Si el sistema pide menos movimiento. Entonces el objetivo del vaivén es siempre 0. */
+    reducido: false,
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
@@ -291,6 +309,7 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
     estado.current.w = w
     estado.current.nombreEjercicio = nombreEjercicio
     estado.current.alMirar = alMirar
+    estado.current.reducido = reducido
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
@@ -475,6 +494,14 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
           construir()
           pintar()
         }
+        // EL DEDO APAGA EL VAIVÉN. Se anota en los dos eventos y no solo al bajar: un
+        // arrastre largo pasa de 1,5 s, y sin anotar el movimiento la sala empezaría a
+        // respirar por debajo del dedo que la está girando.
+        const anotarDedo = () => {
+          estado.current.ultimoDedo = performance.now()
+        }
+        lienzo.addEventListener('pointerdown', anotarDedo)
+        lienzo.addEventListener('pointermove', anotarDedo)
         lienzo.addEventListener('pointerdown', () => mostrarEsferaAl(true))
         lienzo.addEventListener('pointerup', () => mostrarEsferaAl(estado.current.girando))
         lienzo.addEventListener('pointercancel', () => mostrarEsferaAl(estado.current.girando))
@@ -507,8 +534,25 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
             mostrarEsfera = true
             cambia = true
           }
+          // EL VAIVÉN SE APLICA ANTES DE PINTAR, y esto costó una medida.
+          //
+          // Estaba después, en una rama `if (!cambia && ...)`, y era CÓDIGO MUERTO: el
+          // sujeto está ejecutando su gesto, así que `cambia` es cierto en todos los
+          // fotogramas y esa rama no corría nunca. La sala salía perfectamente quieta y
+          // nada se ponía en rojo — se cazó midiendo la transformación del cuadro del muro
+          // seis veces seguidas y viendo que las seis eran idénticas.
+          //
+          // Sumado aquí, el desvío entra en el mismo pintado que ya se iba a hacer: no
+          // cuesta un fotograma más. Y cuando el modelo está en pausa, `respiro` es lo
+          // único que pide pintar — SIN reconstruir, porque la cámara no cambia ninguna
+          // malla y reconstruir la sala para desviarla una centésima de grado es el mismo
+          // error que costó 4,77 ms de fotograma en agosto.
+          const respiro = aplicarVaiven()
           if (cambia) {
             construir()
+            pintar()
+            avisarDeLaCamara()
+          } else if (respiro) {
             pintar()
             avisarDeLaCamara()
           }
@@ -518,6 +562,27 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
         // Se avisa con el MISMO estado con el que se acaba de dibujar. Avisar antes dejaría
         // los cuadros de la pared un fotograma por detrás de la sala, y ese desfase se ve
         // como un temblor al arrastrar el dedo — el cuadro persiguiendo a su muro.
+        /**
+         * RESPIRAR: acerca el vaivén a su objetivo y devuelve si la cámara se movió.
+         *
+         * La aritmética vive en `vaivenDeLaSala.ts` y no aquí: dentro de este efecto solo
+         * se podría probar montando WebGL, y en jsdom no hay WebGL. Aquí queda lo único
+         * que es de este sitio — sumarle el desvío al azimut de la órbita.
+         */
+        const aplicarVaiven = () => {
+          // LEE SU PROPIO RELOJ, Y EN MILISEGUNDOS. El `ahora` de este bucle es
+          // `performance.now() / 1000` —SEGUNDOS, porque la fase del gesto se calcula
+          // así— y pasárselo dejaba el vaivén con `ahora = 2`: nunca se cumplía «llevas
+          // 1500 sin tocar», el objetivo era siempre cero y la sala salía perfectamente
+          // quieta sin que nada se pusiera en rojo. Dos relojes en la misma función y en
+          // unidades distintas es el fallo, no el número.
+          const paso = pasoDelVaiven(estado.current, performance.now())
+          if (paso.desvio === 0) return false
+          estado.current.vaiven = paso.vaiven
+          orbita.azimut += paso.desvio
+          return true
+        }
+
         const avisarDeLaCamara = () => {
           estado.current.alMirar?.({
             azimut: orbita.azimut,
