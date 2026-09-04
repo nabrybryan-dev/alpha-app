@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Sheet } from '../../../components/ui/Sheet'
 import { gLocal } from './nucleo/analisis'
 import { anadirATanda, leerTanda, type Medicion } from './tanda'
+import { huellaDeSerieMedida } from '../../../domain/patrones/huella'
+import type { VelocidadDeSerie } from '../../../domain/types'
 import type { Ajustes } from './useCaptura'
 import { Visor } from './Visor'
 import { ResultadoSerie } from './ResultadoSerie'
@@ -56,9 +58,20 @@ interface HojaMedicionProps {
   ejercicio: string
   cargaKg: number
   reps: number
+  /**
+   * LA MEDIDA, DE VUELTA A QUIEN ABRIÓ LA HOJA.
+   *
+   * La hoja guardaba en la tanda —`localStorage`, de este teléfono— y ahí se quedaba.
+   * `historial.ts` lee `SerieRegistrada.velocidad` desde agosto y NADIE la escribía: la
+   * medición nunca llegaba a la serie, y una serie que viaja a la base sin su medida es
+   * una serie sin memoria. Con esto, quien monta la hoja recibe lo que hay que guardar
+   * con la serie —el %PV, la calidad, y la huella de la última repetición— y decide dónde.
+   * La tanda sigue igual: es el banco de medida, no la memoria del asesorado.
+   */
+  onMedida?: (velocidad: VelocidadDeSerie) => void
 }
 
-export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: HojaMedicionProps) {
+export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps, onMedida }: HojaMedicionProps) {
   // El disco se recuerda entre series: en una sesión no cambias de disco cada
   // vez, y volver a elegirlo nueve veces es tiempo que cuenta en el criterio.
   // Leer en el inicializador es seguro AQUÍ y conviene comprobarlo antes de
@@ -166,6 +179,15 @@ export function HojaMedicion({ abierto, onCerrar, ejercicio, cargaKg, reps }: Ho
               nota: '',
             }
             setGuardadas(anadirATanda(fila).length)
+            // Y a la serie. Lo que se guarda es lo que `VelocidadDeSerie` admite —lo que
+            // no depende de la escala— más la huella, que va normalizada por lo mismo.
+            onMedida?.({
+              pvPct: s.pvPct,
+              hayEscala: s.hayEscala,
+              calidad: s.calidad.nivel,
+              inclinacionMax: s.inclinacionMax,
+              huella: huellaDeSerieMedida(s.serie, s.reps),
+            })
             setUltimoAviso(
               s.reps.length === reps
                 ? `Guardada. ${s.reps.length} repeticiones, como dijiste.`

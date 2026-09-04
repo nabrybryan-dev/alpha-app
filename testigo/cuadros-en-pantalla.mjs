@@ -16,7 +16,9 @@
  *   node testigo/cuadros-en-pantalla.mjs --foto=informes/cuadros.png
  *
  * Opciones: `--ancho`/`--alto` (el viewport emulado, por defecto el iPhone de Bryan,
- * 390×844), `--url`, `--puerto`, `--chrome`, `--usuario`, `--foto`, `--conservar`.
+ * 390×844), `--url`, `--puerto`, `--chrome`, `--usuario`, `--foto`, `--conservar`,
+ * `--fantasma` (siembra en la demo una serie medida del ejercicio que está en el muro,
+ * para que el sujeto tenga un fantasma que enseñar).
  *
  * Se emula `prefers-reduced-motion: reduce` ANTES de navegar, igual que el testigo: no es
  * por el ruido —aquí no se resta nada— sino porque el salón entra con una transición y
@@ -37,6 +39,54 @@ const ALTO = 844
 
 const CANDIDATOS = ['u-valentina', 'u-mateo', 'u-sara']
 
+/**
+ * SEMBRAR UNA HUELLA en la demo, desde dentro de la página.
+ *
+ * El fantasma solo se ve si alguna serie del ejercicio TRAE una medida del encoder, y la
+ * demo de Valentina no trae ninguna: nadie grabó. Esto registra, con el mismo `db` que usa
+ * la app, una serie medida del ejercicio que el muro está enseñando —se lee del DOM, no se
+ * adivina—, con una repetición «pesada»: bajada rápida y una subida que se frena en su
+ * primer tercio. Es lo que se quiere ver contra la repetición ideal del sujeto.
+ *
+ * Va por `import()` del módulo de la app en el servidor de desarrollo, así que es la MISMA
+ * instancia de `db` y el salón se entera por `useDbVersion()` sin recargar. No hay ningún
+ * código de demo en la app para esto; es el testigo el que sabe hacerlo.
+ */
+const SEMBRAR_FANTASMA = async () => {
+  const { db } = await import('/src/data/dbInstance.ts')
+  const usuarioId = localStorage.getItem('alpha-usuario')
+  const micro = db.microciclos.byUsuario(usuarioId).find((m) => m.estado === 'activo')
+  if (!micro) return 'sin microciclo activo'
+  const rotulo = document.querySelector('[data-campo="nombre"]')
+  const visto = (rotulo?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
+  let elegido = null
+  for (const sesion of micro.sesiones) {
+    for (const e of sesion.ejercicios) {
+      const n = e.nombre.replace(/\s+/g, ' ').trim().toLowerCase()
+      // El rótulo del muro va en trazo con dos ecos: cada letra sale tres veces seguidas
+      // y sin espacios («ssseeennn…»). Se compara contra esa forma y contra la llana.
+      const enTrazo = n.replace(/\s/g, '').split('').map((c) => c + c + c).join('')
+      if (n && (visto.includes(n) || visto.includes(enTrazo))) elegido = elegido || e
+    }
+  }
+  if (!elegido) return 'no encontré en el microciclo el ejercicio del muro: «' + visto.slice(0, 60) + '»'
+  const hechas = elegido.series.length
+  if (hechas >= elegido.sets) return 'el ejercicio ya está completo'
+  const fase = []
+  for (let k = 0; k < 24; k++) {
+    const u = k / 23
+    fase.push(u < 0.35 ? 1 - u / 0.35 : Math.pow((u - 0.35) / 0.65, 1.8))
+  }
+  db.microciclos.registrarSerie(micro.id, elegido.id, {
+    orden: hechas + 1,
+    cargaKg: 60,
+    reps: 8,
+    rir: 2,
+    velocidad: { pvPct: 18, hayEscala: false, calidad: 'buena', huella: { duracionSeg: 3.4, fase } },
+  })
+  return 'huella sembrada en «' + elegido.nombre + '» (serie ' + (hechas + 1) + ')'
+}
+
 function leerOpciones(argv) {
   const o = {
     url: 'http://localhost:5173/entrenar',
@@ -53,6 +103,7 @@ function leerOpciones(argv) {
     ver: '',
     espera: 0,
     sinLetras: false,
+    fantasma: false,
   }
   for (const bruto of argv.slice(2)) {
     const [nombre, ...resto] = bruto.replace(/^--/, '').split('=')
@@ -70,6 +121,7 @@ function leerOpciones(argv) {
     else if (nombre === 'panel') o.panel = true
     else if (nombre === 'espera') o.espera = Number(valor)
     else if (nombre === 'sin-letras') o.sinLetras = true
+    else if (nombre === 'fantasma') o.fantasma = true
     else if (nombre === 'ver') {
       o.panel = true
       o.ver = valor
@@ -173,6 +225,12 @@ async function main() {
     // El salón entra con una transición; se le deja terminar antes de leer rectángulos.
     await esperar(2500)
     await dt.pedir('Page.bringToFront')
+
+    if (o.fantasma) {
+      const dicho = await dt.evaluar(comoExpresion(SEMBRAR_FANTASMA))
+      console.log(`  fantasma: ${dicho}`)
+      await esperar(800)
+    }
 
     // GIRAR LA CÁMARA, arrastrando de verdad sobre el lienzo.
     //

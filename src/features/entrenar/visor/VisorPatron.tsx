@@ -171,7 +171,7 @@ function precalculado() {
  * resta de siempre aplicada donde hacía falta. No es un modo de depuración escondido:
  * sin el atributo no cambia nada, y el atributo solo lo pone quien levanta el acta.
  */
-const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia'] as const
+const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia', 'fantasma'] as const
 
 function partesOmitidas(lienzo: HTMLCanvasElement | null): Set<string> {
   const crudo = lienzo?.dataset.sin

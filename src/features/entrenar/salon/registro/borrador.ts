@@ -1,8 +1,8 @@
 import { rirDeTabla } from '../../../../domain/objetivoDeIntensidad'
 import { seriePrescrita } from '../../../../domain/ondulacion'
 import { cargaSugerida } from '../../../../domain/prescripcion'
-import type { EjercicioPrescrito } from '../../../../domain/types'
-import { leerJSON } from '../../../../lib/persistencia'
+import type { EjercicioPrescrito, VelocidadDeSerie } from '../../../../domain/types'
+import { escribirJSON, leerJSON } from '../../../../lib/persistencia'
 
 /**
  * EL BORRADOR DE LA SERIE EN CURSO: una clave, un origen, y nadie más que los escriba.
@@ -28,6 +28,15 @@ export interface BorradorDeSerie {
   cargaKg: number
   reps: number
   rir: number
+  /**
+   * La medición del encoder de ESTA serie, si se grabó antes de guardarla.
+   *
+   * Vive en el borrador porque la cámara se usa ANTES de anotar la serie: la hoja de
+   * medición cierra, la persona se sienta, y guarda cuando guarda. El borrador es lo único
+   * que sobrevive a ese hueco, y es lo que `guardar()` lee para que la serie registrada
+   * viaje con su medida.
+   */
+  velocidad?: VelocidadDeSerie
 }
 
 /** Cuando no hay nada de dónde deducir la carga, el borrador arranca aquí. */
@@ -65,4 +74,22 @@ export function leerBorrador(
     claveDeBorrador(microcicloId, ejercicio.id, orden),
     borradorDePartida(ejercicio, orden),
   )
+}
+
+/**
+ * ANOTAR LA MEDIDA EN EL BORRADOR de una serie que todavía no se ha guardado.
+ *
+ * Lee lo que haya, le suma la medición y lo vuelve a escribir en la MISMA clave que usa el
+ * registro: cuando `guardar()` la lea, la serie sale con su `velocidad`. Se escribe aquí y
+ * no en el estado del registro porque la cámara y el registro son componentes hermanos,
+ * y el borrador persistido es lo único que los dos ven.
+ */
+export function anotarVelocidadEnBorrador(
+  microcicloId: string,
+  ejercicio: EjercicioPrescrito,
+  orden: number,
+  velocidad: VelocidadDeSerie,
+): void {
+  const clave = claveDeBorrador(microcicloId, ejercicio.id, orden)
+  escribirJSON(clave, { ...leerBorrador(microcicloId, ejercicio, orden), velocidad })
 }

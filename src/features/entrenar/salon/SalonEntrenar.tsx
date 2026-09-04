@@ -31,6 +31,7 @@ import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
+import { huellaDeReferencia } from './paredes/huellaDeReferencia'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
 import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGuardar'
 import { Joystick } from './mando/Joystick'
@@ -684,6 +685,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // pared a contar el excéntrico a `SEGUNDOS_DE_EXCENTRICO` por repetición;
                 // si el sujeto bajara en otro tiempo, el salón enseñaría dos tempos.
                 tempo={{ excentricaSeg: SEGUNDOS_DE_EXCENTRICO }}
+                // EL FANTASMA: lo que se hizo, sobre lo que hay que hacer. Hoy si hay medida
+                // de hoy; la semana pasada si no; nada si no hay ninguna. No se inventa.
+                fantasma={huellaDeReferencia(ejercicio, props.microcicloPrevio)?.huella}
+                // EL FANTASMA: lo que se hizo, sobre lo que hay que hacer. Hoy si hay medida
+                // de hoy; la semana pasada si no; nada si no hay ninguna. No se inventa.
               />
             </div>
 

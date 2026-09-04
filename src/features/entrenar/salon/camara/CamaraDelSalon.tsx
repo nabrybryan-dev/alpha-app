@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { EjercicioPrescrito } from '../../../../domain/types'
 import { IconoCamara } from '../../../../components/ui/Icono'
 import { HojaMedicion } from '../../encoder/HojaMedicion'
-import { leerBorrador } from '../registro/borrador'
+import { anotarVelocidadEnBorrador, leerBorrador } from '../registro/borrador'
 
 /**
  * LA CÁMARA DEL ENCUADRE, DENTRO DEL SALÓN: el punto 4 de los cinco del encargo.
@@ -97,6 +97,8 @@ export function CamaraDelSalon({
         ejercicio={ejercicio.nombre}
         cargaKg={borrador.cargaKg}
         reps={borrador.reps}
+        // La medida va al borrador de ESTA serie: cuando se guarde, viajará con ella.
+        onMedida={(velocidad) => anotarVelocidadEnBorrador(microcicloId, ejercicio, orden, velocidad)}
       />
     </div>
   )

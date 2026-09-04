@@ -93,11 +93,17 @@ export function RegistroSerieSalon({
   const cambiar = (parche: Partial<BorradorDeSerie>) => setBorrador((b) => ({ ...b, ...parche }))
 
   const guardar = () => {
+    // LA MEDIDA SE RELEE DEL BORRADOR PERSISTIDO, no del estado. La cámara la anota
+    // después de que este componente leyera el borrador al montarse, así que el estado
+    // no la tiene: la tiene la clave. Si no hay medida, la serie sale sin `velocidad`,
+    // que es lo normal —hoy casi nadie graba.
+    const velocidad = leerBorrador(microcicloId, ejercicio, orden).velocidad ?? borrador.velocidad
     const serie: SerieRegistrada = {
       orden,
       cargaKg: borrador.cargaKg,
       reps: borrador.reps,
       rir: borrador.rir,
+      ...(velocidad ? { velocidad } : {}),
     }
     // LA MISMA LLAMADA QUE LA SESIÓN. Ver la cabecera del archivo.
     db.microciclos.registrarSerie(microcicloId, ejercicio.id, serie)

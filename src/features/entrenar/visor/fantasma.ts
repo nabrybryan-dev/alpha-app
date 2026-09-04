@@ -25,16 +25,14 @@
  * pantalla, no como una repetición.
  */
 
-export interface HuellaDeRepeticion {
-  /** Cuánto duró la repetición, en segundos. Manda el reloj de la persona, no el del patrón. */
-  duracionSeg: number
-  /**
-   * La fase de la barra, de 0 (abajo) a 1 (arriba), a intervalos iguales a lo largo de la
-   * repetición. La primera muestra es el instante 0 y la última el instante `duracionSeg`.
-   * Con menos de dos muestras no hay trayectoria.
-   */
-  fase: number[]
-}
+import type { HuellaDeRepeticion } from '../../../domain/patrones/huella'
+
+/**
+ * El tipo vive en `domain/patrones/huella.ts`, junto a cómo se calcula desde el encoder:
+ * la huella viaja en la serie registrada, y `domain/types.ts` no puede importar de
+ * `features/`. Aquí se reexporta para que quien pinta no tenga que saber dónde nace.
+ */
+export type { HuellaDeRepeticion }
 
 /**
  * La fase del fantasma en el instante `t`, en bucle.

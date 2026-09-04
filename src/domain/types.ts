@@ -1,5 +1,6 @@
 import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
 import type { Confianza } from './nutricion/dia'
+import type { HuellaDeRepeticion } from './patrones/huella'
 
 export type Rol = 'asesorado' | 'coach' | 'nutricionista'
 
@@ -107,6 +108,15 @@ export interface VelocidadDeSerie {
    *  solo se cancela si la escala es CONSTANTE: si la referencia se movió entre la
    *  primera repetición y la última, el cociente queda contaminado. */
   inclinacionMax?: number
+  /**
+   * LA ÚLTIMA REPETICIÓN, tal como la hizo: la barra normalizada a lo largo del tiempo.
+   *
+   * Es lo que permite ver un FANTASMA sobre el sujeto —lo que se hizo, superpuesto a lo
+   * que había que hacer— hoy y la semana que viene. Veinticuatro muestras: cabe en la fila
+   * y basta para moverse sin tirones. Ausente = esa serie se midió sin trayectoria
+   * utilizable, o antes de que esto existiera. No se rellena nunca con una ideal.
+   */
+  huella?: HuellaDeRepeticion
 }
 
 export interface SerieRegistrada {

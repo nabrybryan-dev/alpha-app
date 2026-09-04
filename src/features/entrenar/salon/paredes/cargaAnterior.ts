@@ -37,12 +37,12 @@ export function cargaAnterior(
   ejercicio: EjercicioPrescrito | undefined,
 ): number | undefined {
   if (!previo || !ejercicio) return undefined
-  const buscado = normalizar(ejercicio.nombre)
+  const buscado = normalizarNombre(ejercicio.nombre)
   if (!buscado) return undefined
 
   for (const sesion of previo.sesiones) {
     for (const otro of sesion.ejercicios) {
-      if (normalizar(otro.nombre) !== buscado) continue
+      if (normalizarNombre(otro.nombre) !== buscado) continue
       // La última por `orden`, no la última del array: el array llega en el orden en que
       // se escribió y una serie corregida se reescribe en su sitio.
       const ultima = [...otro.series].sort((a, b) => a.orden - b.orden).at(-1)
@@ -52,8 +52,8 @@ export function cargaAnterior(
   return undefined
 }
 
-/** Sin acentos, sin mayúsculas y sin espacios de más. */
-function normalizar(nombre: string): string {
+/** Sin acentos, sin mayúsculas y sin espacios de más. Lo comparten la carga y la huella de referencia. */
+export function normalizarNombre(nombre: string): string {
   return nombre
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

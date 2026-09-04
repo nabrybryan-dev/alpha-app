@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../../../data/dbInstance'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../../../domain/types'
+import { anotarVelocidadEnBorrador } from './borrador'
 import { RegistroSerieSalon } from './RegistroSerieSalon'
 
 /**
@@ -107,6 +108,36 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       reps: 9,
       rir: 1,
     })
+  })
+
+  /**
+   * LA MEDIDA DEL ENCODER VIAJA CON LA SERIE.
+   *
+   * `historial.ts` lee `SerieRegistrada.velocidad` desde agosto y nadie la escribía. La
+   * cámara del salón la anota en el borrador DESPUÉS de que el registro se haya montado
+   * —la hoja de medición se abre con la serie a medias—, así que el registro no puede
+   * fiarse de su estado: tiene que releer el borrador al guardar. Esto lo prueba con la
+   * secuencia real: montar, medir, guardar.
+   */
+  it('si la cámara anotó una medida después de montar, la serie viaja con ella', async () => {
+    const usuario = userEvent.setup()
+    montar()
+    await teclear(usuario, carga(), '80')
+
+    const velocidad = {
+      pvPct: 14,
+      hayEscala: false,
+      calidad: 'buena',
+      huella: { duracionSeg: 2.4, fase: [1, 0.5, 0, 0.5, 1] },
+    }
+    anotarVelocidadEnBorrador(MICROCICLO, ejercicio(), 1, velocidad)
+
+    await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+
+    expect(espia).toHaveBeenCalledTimes(1)
+    const serie = espia.mock.calls[0][2] as SerieRegistrada
+    expect(serie.cargaKg).toBe(80)
+    expect(serie.velocidad).toEqual(velocidad)
   })
 
   it('avisa a quien lo monta con la misma serie que escribió', async () => {
