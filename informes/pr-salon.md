@@ -63,9 +63,41 @@ Y un agujero del entorno de prueba que costó una vuelta: **en jsdom un `Pointer
 transporta `clientX` ni `clientY`**. Llegan vacías, el desplazamiento sale `NaN` y el
 manejador se ejecuta entero sin mover nada.
 
+## Segunda tanda: precisión, movimiento y el fantasma
+
+Bryan pidió después «precisar más las dimensiones del salón cuadridimensional, los grados de
+las acciones musculares, y que al prescribir técnica desde el encoder se vea la diferencia
+entre lo que la persona hizo y lo que tenía que hacer, o lo que hizo la semana pasada».
+Cuatro commits:
+
+- **La carta del espacio** (`escena/carta.ts`): el plano cartesiano declarado en un sitio y
+  contrastado con los objetos de verdad (`carta.test.ts`, 15 pruebas). Destapó que el sujeto
+  estaba **hundido 10,6 cm** en la placa —la sonda de la suela apuntaba hacia arriba por un
+  signo— y que conviven **dos convenciones de ángulo** (cámara = 90° − sala), ahora con
+  prueba en vez de con comentarios.
+- **El movimiento**: la trayectoria por las tres poses ya no tiene codo (Hermite monótono,
+  Fritsch–Carlson) y la bajada dura lo que cuenta la pared (`tempo`).
+- **El fantasma, parte A** (motor): mezcla alfa en dos tandas, horneado en CPU, un segundo
+  cuerpo translúcido desde una huella.
+- **El fantasma, parte B** (la huella real): la hoja de medición devuelve `VelocidadDeSerie`
+  con la huella de la última repetición; la cámara la anota en el borrador; `guardar()` la
+  relee y la serie viaja con ella. Cierra un agujero de agosto: `historial.ts` leía
+  `SerieRegistrada.velocidad` y **nadie la escribía**. El salón enseña la huella de hoy, o la
+  de la semana pasada por nombre, y si no hay ninguna no inventa un fantasma.
+
+Visto en Chrome real con GPU: sin medida no hay fantasma; con huella, el fantasma queda de
+pie sobre el suelo mientras el sujeto baja. Y una hora de diagnóstico que queda dicha para
+no repetirla: **el sujeto del salón NO está roto**. La capa W=0 («piel») son músculos pálidos
+sin huesos, y a 4,6 m parece un haz de puntas; medido fotograma a fotograma, la caja es la de
+un cuerpo sano (1,57 m de pie, 0,85 m en el fondo, sin NaN, hueso 0, alfa 1).
+
+Pendiente y dicho: el fantasma es de la **barra** (una fase por instante), no articular; el
+articular necesita la pista de pose del encoder, que vive en `cerebro-alpha` y no cruza la
+aduana todavía. Y las fuerzas —el brazo de momento sobre el cuerpo— siguen siendo spec.
+
 ## Estado
 
-`npm run verify` en verde: **3.179 pruebas**, 0 errores, 6 avisos (delta cero). Cuatro
+`npm run verify`: **3.228 pruebas** en verde, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
 guardianes del repo cazaron la limpieza y los cuatro están atendidos: código huérfano,
 clases de animación sin consumir, el inventario de recuadros y la auditoría de campos —los
 que salieron del muro siguen montados con `sr-only`, así que se oyen y se cuentan.
