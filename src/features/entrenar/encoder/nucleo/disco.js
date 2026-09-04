@@ -797,6 +797,34 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
  * barra no puede saltar 40 cm entre dos fotogramas a 60 fps —serían 24 m/s—, así
  * que un ajuste que caiga fuera de la ventana es un error de detección, no un
  * movimiento, y se descarta en vez de guardarlo.
+ *
+ * ## ⚠ `radioEsperado` tiene que ser el del ARRANQUE, no el del fotograma anterior
+ *
+ * Encadenarlo —pasar el radio que devolvió el fotograma anterior— parece lo
+ * natural y **se dispara**. Medido sobre tres series reales de 90 fotogramas
+ * (`banco/serie-con-dos-semillas.py`):
+ *
+ *     encadenado   el radio va de 94 px a 220 px en 18 fotogramas (menos de un
+ *                  segundo) y ahí se queda clavado. Deriva del 150-180 % en las
+ *                  tres series, con las dos semillas —la buena y la de hoy—.
+ *     anclado      deriva de −2 %, 13 % y 8 %. Y además recupera el seguimiento:
+ *                  la serie que encadenada se perdía a los 52 fotogramas, llega
+ *                  a los 90.
+ *
+ * El mecanismo: cada fotograma admite hasta un ±25 % (`toleranciaRadio`) y la
+ * comprobación de `radio_incoherente` se hace **contra esa misma referencia**. Si
+ * la referencia es el fotograma anterior, un sesgo del 7 % por fotograma nunca la
+ * dispara y en veinte fotogramas ha multiplicado el radio por dos. Ahí engancha
+ * una estructura mayor del encuadre y se queda: **estable y equivocada**, que es
+ * la firma que ya salió en `banco/semilla-envenenada.mjs`.
+ *
+ * Se nota además en el recorrido: encadenado, la serie 104 daba 38 px de subida y
+ * bajada —el rastreador se había agarrado a algo quieto—; anclado da 97 px, que
+ * es la barra de verdad.
+ *
+ * No se cambia el comportamiento por dentro: la función es sin estado y la
+ * referencia la elige quien llama. Lo que hay es este contrato, y el check
+ * «la referencia es el arranque, no el anterior» de `pruebas-disco.mjs`.
  */
 export function detectarDisco(datos, ancho, alto, prediccion, radioEsperado, opciones = {}) {
   const { saltoMaxPx = 40, toleranciaRadio = 0.25, minCobertura = 0.6, coberturaBuena = 0.9 } = opciones
