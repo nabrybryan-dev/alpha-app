@@ -37,6 +37,7 @@ import { CamaraDelSalon } from './camara/CamaraDelSalon'
 import { duracionDelModo, type ModoDelReloj } from './mando/relojDelMuro'
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
+import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
@@ -212,7 +213,57 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * se celebra es el ejercicio, no la pantalla, y hay que poder verlo mientras se dice.
    */
   const [retenido, setRetenido] = useState<EjercicioPrescrito | null>(null)
-  const ejercicio = retenido ?? ejercicioEnCurso(sesion)
+  /**
+   * EL DÍA QUE SE ESTÁ MIRANDO, cuando no es hoy.
+   *
+   * `null` = hoy, que es como se abre siempre. Elegir otro día en el tambor no navega a
+   * otra pantalla ni cambia nada en la base: cambia QUÉ SALA se está viendo. Es la
+   * diferencia entre consultar la semana y empezar la sesión de otro día por error.
+   */
+  /**
+   * EL SUJETO, ARMADO.
+   *
+   * Mantener el dedo dos segundos sobre el cuerpo lo levanta, lo agranda un pelo y le pone
+   * un halo. A partir de ahí, tirar a un lado pasa al ejercicio siguiente o al anterior.
+   *
+   * ## Por qué hay que armarlo y no basta con tirar
+   *
+   * Porque el arrastre horizontal sobre el sujeto YA está cogido: es la órbita. Un gesto
+   * que hiciera las dos cosas dejaría al asesorado sin saber si se ha movido él o ha
+   * cambiado de ejercicio, que es exactamente el problema que este salón resolvió
+   * separando la órbita del eje W. Los dos segundos son la frontera: mientras no se cruzan
+   * el gesto es de la cámara, y en cuanto se cruzan el cuerpo lo dice —se levanta— y pasa
+   * a ser del ejercicio.
+   */
+  const [armado, setArmado] = useState(false)
+  const reloj = useRef(0)
+  /**
+   * El ejercicio al que el asesorado navegó a mano. `null` = el que toca.
+   *
+   * Se guarda el ÍNDICE y no el ejercicio: guardando el objeto, registrar una serie lo
+   * dejaría obsoleto —la base devuelve otro— y el salón seguiría enseñando el de antes.
+   */
+  const [ejercicioManual, setEjercicioManual] = useState<number | null>(null)
+
+  const [diaElegido, setDiaElegido] = useState<number | null>(null)
+  const [semanaAbierta, setSemanaAbierta] = useState(false)
+  /**
+   * La sesión del día elegido, si hay uno.
+   *
+   * Sale del MISMO reparto que pinta la semana —`armarSemana`, ya calculado por el
+   * dominio— y no de un segundo cruce por nombre de día: dos formas de repartir sesiones
+   * en días se separan, y entonces el tambor abriría una sesión y el calendario diría otra.
+   */
+  const sesionDelDiaElegido =
+    diaElegido === null
+      ? undefined
+      : microciclo.sesiones.find((s) => s.id === props.semana[diaElegido]?.sesionId)
+  const sesionEnPantalla = sesionDelDiaElegido ?? sesion
+  const ejercicio =
+    retenido ??
+    (ejercicioManual !== null
+      ? (sesionEnPantalla?.ejercicios[ejercicioManual] ?? ejercicioEnCurso(sesionEnPantalla))
+      : ejercicioEnCurso(sesionEnPantalla))
 
   /*
    * MIENTRAS QUEDA TRABAJO POR HACER, LA APP BAJA EL RUIDO.
@@ -388,8 +439,13 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    */
   const gesto = useRef({ vivo: false, x: 0, y: 0, capaAlOrigen: 0 as NivelW })
 
+
   const alBajarDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
     gesto.current = { vivo: true, x: e.clientX, y: e.clientY, capaAlOrigen: w }
+    // Dos segundos quieto sobre el cuerpo y queda armado. El reloj se cancela en cuanto el
+    // dedo se mueve de verdad: si no, orbitar despacio armaría el sujeto sin querer.
+    window.clearTimeout(reloj.current)
+    reloj.current = window.setTimeout(() => setArmado(true), 2000)
   }
 
   /**
@@ -406,6 +462,28 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     if (!g.vivo) return
     const dx = e.clientX - g.x
     const dy = e.clientY - g.y
+
+    // CON EL SUJETO ARMADO, tirar a un lado cambia de ejercicio. Cuarenta píxeles: menos
+    // sería un temblor de la mano que ya está apoyada en el cuerpo.
+    if (armado && Math.abs(dx) > 40 && sesionEnPantalla) {
+      const total = sesionEnPantalla.ejercicios.length
+      if (total > 1) {
+        const actual =
+          ejercicioManual ??
+          Math.max(0, sesionEnPantalla.ejercicios.findIndex((x) => x.id === ejercicio?.id))
+        // El módulo se hace con la suma para que tirar hacia atrás en el primero no dé −1.
+        setEjercicioManual((actual + (dx < 0 ? 1 : -1) + total) % total)
+        // El origen se muda: cada ejercicio cuesta un tirón entero, así que un arrastre
+        // largo no atropella tres de una vez.
+        g.x = e.clientX
+        g.y = e.clientY
+      }
+      return
+    }
+
+    // Si el dedo se mueve, deja de estar quieto: el sujeto ya no se arma.
+    if (Math.hypot(dx, dy) > 8) window.clearTimeout(reloj.current)
+
     // Horizontal: es una órbita y no es nuestra. Ortogonalidad, hecha código.
     if (Math.abs(dx) > Math.abs(dy)) {
       g.vivo = false
@@ -424,6 +502,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
   const alSoltarDedo = () => {
     gesto.current.vivo = false
+    window.clearTimeout(reloj.current)
+    setArmado(false)
   }
 
   /**
@@ -509,7 +589,21 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 los números de la serie van al marcador de la pared de la sala 3D, que es
                 la misma constante con la que se construye la estación de grabación, y `w`
                 es la cuarta dimensión llegando al modelo. */}
-            <div data-testigo="sujeto" className={SUJETO_A_SANGRE}>
+            {/* EL CUERPO ACUSA QUE ESTÁ ARMADO: se levanta 22 px, crece un 6 % y se le
+                enciende un halo. Sin eso, mantener el dedo dos segundos no tendría ninguna
+                consecuencia visible y el gesto sería invisible — nadie descubre lo que no
+                se ve, y peor: quien lo armara sin querer no sabría por qué el siguiente
+                arrastre cambió de ejercicio en vez de orbitar. */}
+            <div
+              data-testigo="sujeto"
+              data-armado={armado ? '' : undefined}
+              className={SUJETO_A_SANGRE}
+              style={{
+                transition: 'transform var(--dur-informativo) var(--muelle-informativo), filter var(--dur-informativo)',
+                transform: armado ? 'translateY(-22px) scale(1.06)' : undefined,
+                filter: armado ? 'drop-shadow(0 0 22px rgb(var(--accion-rgb) / 0.7))' : undefined,
+              }}
+            >
               <VisorPatron
                 patron={patron}
                 w={w}
@@ -644,7 +738,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
       {/* ----------------------------------------------------------------- paredes */}
       <ParedesDelSalon
-        sesion={sesion}
+        sesion={sesionEnPantalla}
         ejercicio={ejercicio}
         contenido={contenido}
           microcicloPrevio={props.microcicloPrevio}
@@ -695,13 +789,36 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           </div>
         )}
 
+        {/* LA SEMANA, EN UN TAMBOR. Se abre tocando el día y se cierra al elegir uno o al
+            tocar fuera. Elegir NO empieza esa sesión: cambia qué sala se está viendo. */}
+        {semanaAbierta && (
+          <div className="pointer-events-auto absolute inset-0" style={{ zIndex: 'var(--z-elevado)' }}>
+            <TamborDeLaSemana
+              semana={props.semana}
+              diaActual={diaElegido ?? props.semana.findIndex((d) => d.esHoy)}
+              onElegir={(i) => {
+                // Volver a HOY no se guarda como «un día elegido»: si se guardara, el
+                // salón dejaría de seguir a la sesión de hoy cuando la agenda cambiara.
+                setDiaElegido(props.semana[i]?.esHoy ? null : i)
+                setSemanaAbierta(false)
+              }}
+              onCerrar={() => setSemanaAbierta(false)}
+            />
+          </div>
+        )}
+
         {/* ----------------------------------------------------------------- rumbo
             LAS DOS BANDAS QUE DICEN DÓNDE ESTÁS EN LA SEMANA Y EN LA SESIÓN. Arriba, de
             quién es el día y qué toca; abajo, un punto por ejercicio con el actual
             encendido. Son las únicas dos capas del salón que no viven en el espacio, y por
             eso son también las más finas: sin caja, sin fondo y sin borde. */}
         <div className="pointer-events-none absolute inset-x-5 top-[46px]">
-          <BarraDeSesion sesion={sesion} semana={props.semana} />
+          <BarraDeSesion
+            sesion={sesionEnPantalla}
+            semana={props.semana}
+            diaElegido={diaElegido}
+            onAbrirSemana={() => setSemanaAbierta(true)}
+          />
         </div>
 
         <div
@@ -713,7 +830,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // quién manda en ese píxel.
           style={{ bottom: 'calc(var(--tope-nav) + 3.4rem)' }}
         >
-          <PuntosDeEjercicio sesion={sesion} ejercicioId={ejercicio?.id} />
+          <PuntosDeEjercicio sesion={sesionEnPantalla} ejercicioId={ejercicio?.id} />
         </div>
 
         {/* ----------------------------------------------------------------- mando

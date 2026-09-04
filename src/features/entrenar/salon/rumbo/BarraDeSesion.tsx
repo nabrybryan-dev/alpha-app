@@ -28,10 +28,24 @@ export interface BarraDeSesionProps {
   semana: readonly DiaRuta[]
   /** Abrir la semana. Sin esto el día no se pinta como mando. */
   onAbrirSemana?: () => void
+  /**
+   * El día que se está mirando, cuando NO es hoy.
+   *
+   * La banda tiene que decirlo. Sin esto, mirar el jueves desde el lunes se ve exactamente
+   * igual que estar en el jueves, y el asesorado empezaría a anotar series en la sesión
+   * equivocada creyendo que es la suya de hoy.
+   */
+  diaElegido?: number | null
 }
 
-export function BarraDeSesion({ sesion, semana, onAbrirSemana }: BarraDeSesionProps) {
-  const hoy = semana.find((d) => d.esHoy)
+export function BarraDeSesion({
+  sesion,
+  semana,
+  onAbrirSemana,
+  diaElegido = null,
+}: BarraDeSesionProps) {
+  const mirando = diaElegido === null ? semana.find((d) => d.esHoy) : semana[diaElegido]
+  const hoy = mirando
   // El nombre del día en su forma larga: la rejilla del calendario usa abreviaturas de
   // tres letras porque tiene siete columnas de 40 px; aquí hay sitio y se lee mejor.
   const dia = hoy?.dia
