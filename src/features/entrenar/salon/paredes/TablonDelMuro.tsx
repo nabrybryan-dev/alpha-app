@@ -3,8 +3,11 @@ import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../..
 import type { RitmoSesion } from '../../../../domain/ritmoSesion'
 import type { ContenidoDePared } from './contenidoPared'
 import { MuroDeCampos } from './PanelPared'
+import { TOPE_PARED } from '../huecos'
 import { EN_EL_ANUNCIO, EN_GEOMETRIA_DEL_MURO, EN_LO_VIVO } from './muros'
-import { RotuloDelDia, RotuloCronometro, Marquesina } from './RotulosDelSalon'
+import { RotuloDelDia, Marquesina } from './RotulosDelSalon'
+import { RotuloEnTrazo } from './RotuloEnTrazo'
+import { HuecoDeDatos } from './HuecoDeDatos'
 import { avisosDelSalon, lineaDeRitmo } from './avisosDelSalon'
 
 /**
@@ -72,6 +75,11 @@ export interface TablonDelMuroProps {
   ejercicio?: EjercicioPrescrito
   ritmo?: RitmoSesion
   notas: readonly ItemMarcable[]
+  /**
+   * Con cuánto levantó este ejercicio la última vez. Ausente = no hay con qué comparar, y
+   * entonces la línea no se pinta: un 0 kg ahí sería una carga que nadie levantó.
+   */
+  cargaPrevia?: number
 }
 
 export function TablonDelMuro({
@@ -81,6 +89,7 @@ export function TablonDelMuro({
   ejercicio,
   ritmo,
   notas,
+  cargaPrevia,
 }: TablonDelMuroProps) {
   const [estado, setEstado] = useState<EstadoDelTablon>('anuncio')
 
@@ -120,11 +129,37 @@ export function TablonDelMuro({
     // igual y no escorzaría — se pagaría el coste sin ver el efecto y sin que nada se
     // pusiera en rojo. Es la misma trampa que documenta `MuroDeCampos`.
     <div className="muro-escena" data-tablon={estado}>
-      {/* LA CABECERA, en los tres estados. De quién es la sesión y cuánto llevas: se leen
-          juntas al levantar la vista, y son lo único que no se pliega. */}
-      <div className="flex items-start justify-between gap-[0.8em]">
-        <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
-        {sesion && <RotuloCronometro sesionId={sesion.id} enCuadro />}
+      {/* LA FILA DEL MURO: UNA fila, DOS columnas, y las dos apoyadas en la misma línea.
+          =================================================================================
+
+          A la izquierda, la identidad de dónde estás: de quién es la sesión —el «código de
+          sala»— y encima el nombre del ejercicio en trazo, que es lo que hace que la
+          pared diga algo aunque no la mires. A la derecha, el ÚNICO hueco del muro que
+          cambia de contenido: el cronómetro casi siempre, la carga mientras se anuncia.
+
+          `flex-end` alinea las dos columnas por su BASE. Con `center`, un nombre que pasa
+          de una línea a dos movía el hueco de la derecha media línea hacia abajo, y el
+          cronómetro —lo único que corre— daba un salto al cambiar de ejercicio. */}
+      <div className="muro-fila">
+        <div className="min-w-0">
+          <RotuloDelDia microciclo={microciclo} sesion={sesion} enCuadro />
+          {/* EL NOMBRE SIGUE SIENDO UN CAMPO DEL MURO, y por eso lleva su marca.
+              La auditoría de «no se perdió nada» cuenta `data-campo`: sin estos dos
+              atributos, mudar el nombre del anuncio al rótulo se leería desde fuera
+              exactamente igual que haberlo borrado. */}
+          <div data-campo="nombre" data-tope={TOPE_PARED}>
+            <RotuloEnTrazo nombre={contenido.nombre} />
+          </div>
+        </div>
+        <div data-campo={anunciando ? 'carga' : undefined} data-tope={anunciando ? TOPE_PARED : undefined}>
+          <HuecoDeDatos
+            muestra={anunciando ? 'carga' : 'reloj'}
+            sesion={sesion}
+            ejercicio={ejercicio}
+            textoDeCarga={contenido.carga}
+            cargaPrevia={cargaPrevia}
+          />
+        </div>
       </div>
 
       <hr className="muro-junta my-[0.45em]" aria-hidden="true" />
@@ -143,11 +178,16 @@ export function TablonDelMuro({
       {estado !== 'anuncio' && (
         // EL DATO VIVO. Sube mientras el anuncio se retira.
         <div className="muro-vivo">
-          {ejercicio && (
-            <p className="muro-rotulo text-[0.58em]">
-              Serie {ejercicio.series.length + 1} de {ejercicio.sets}
-            </p>
-          )}
+          {/* «SERIE N DE M» YA NO SE ESCRIBE AQUÍ, y no se ha perdido.
+              Estaba en el muro y está —desde antes— en el mando de registrar, a un palmo
+              por debajo y en la misma pantalla: dos veces la misma frase, que es la queja
+              de fondo de este salón. El mando es su sitio, porque ahí es donde esa serie
+              se guarda.
+
+              Y quitarlo no es solo higiene: el rótulo permanente del ejercicio ocupa muro,
+              y el bloque en reposo había subido a 136 px contra un tope declarado de 138.
+              Sin esta línea vuelve a caber con aire, y el salón no paga un grado de
+              elevación por ello. */}
           {/* LO QUE DICE EL MURO NO SE ESCRIBE AQUÍ.
               Series, repeticiones y RIR los escribe la sala en siete segmentos, a 62 px
               de alto y enfrente de quien entra. Estos nodos se montan y no se ven: son

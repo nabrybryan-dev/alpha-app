@@ -9,6 +9,7 @@ import { CuadroDePared } from './CuadroDePared'
 import { TablonDelMuro } from './TablonDelMuro'
 import { asentarEnLaBanda, type CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
 import { SITIOS, sitioEn } from './sitiosDeLaPared'
+import { cargaAnterior } from './cargaAnterior'
 
 /**
  * LAS PAREDES DEL SALÓN: todo lo que cuelga del muro, colocado.
@@ -67,6 +68,8 @@ export interface ParedesDelSalonProps {
   ritmo: RitmoSesion | undefined
   /** Las notas de la semana del coach: pasan por la marquesina con su título literal. */
   notas: readonly ItemMarcable[]
+  /** El microciclo anterior. De él sale «la semana pasada» del muro, que es un hecho. */
+  microcicloPrevio?: Microciclo
   /**
    * Dónde mira la cámara del salón AHORA MISMO, tal y como la deja la órbita.
    *
@@ -89,6 +92,7 @@ export function ParedesDelSalon({
   contenido,
   ritmo,
   notas,
+  microcicloPrevio,
   camara,
   lienzo,
   azimutDeEntrada,
@@ -158,6 +162,7 @@ export function ParedesDelSalon({
             ejercicio={ejercicio}
             ritmo={ritmo}
             notas={notas}
+            cargaPrevia={cargaAnterior(microcicloPrevio, ejercicio)}
           />
         </CuadroDePared>
       )}

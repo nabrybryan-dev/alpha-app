@@ -125,6 +125,11 @@ export interface SalonEntrenarProps {
   competencias: readonly Competencia[]
   requisitos: readonly RequisitoNivel[]
   semana: readonly DiaRuta[]
+  /**
+   * El microciclo ANTERIOR, para que el muro pueda decir con cuánto se levantó la semana
+   * pasada. Es un hecho del histórico, no un cálculo: sin él la línea no se pinta.
+   */
+  microcicloPrevio?: Microciclo
   sesionCta?: { id: string; nombre: string; empezada: boolean; esDeHoy: boolean }
   notas: ItemMarcable[]
   /**
@@ -474,6 +479,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         contenido={contenido}
         ritmo={ritmo}
         notas={props.notas}
+          microcicloPrevio={props.microcicloPrevio}
           camara={camara}
           lienzo={lienzo}
           azimutDeEntrada={patron?.camara.azimut ?? 0}
@@ -510,6 +516,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           material={implementosDeSesion(sesion)}
           bloquesCardio={sesion?.bloquesCardio}
           nombreEjercicio={ejercicio?.nombre}
+          ejercicio={ejercicio}
           sesion={sesion}
           patron={patron}
         />

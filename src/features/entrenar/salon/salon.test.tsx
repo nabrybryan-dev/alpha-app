@@ -2,7 +2,14 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EN_EL_ANUNCIO, EN_GEOMETRIA_DEL_MURO, EN_LO_VIVO, MURO_IZQUIERDO } from './paredes/muros'
+import {
+  EN_EL_ANUNCIO,
+  EN_EL_HUECO,
+  EN_EL_ROTULO,
+  EN_GEOMETRIA_DEL_MURO,
+  EN_LO_VIVO,
+  MURO_IZQUIERDO,
+} from './paredes/muros'
 import { SessionProvider } from '../../../app/SessionProvider'
 import { ThemeProvider } from '../../../app/ThemeProvider'
 import { AppRouter } from '../../../app/router'
@@ -402,7 +409,11 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
         n.getAttribute('data-campo'),
       )
 
-    expect(camposVisibles()).toEqual([...EN_EL_ANUNCIO])
+    // AL ABRIR: el rótulo del ejercicio, la carga en el hueco de la derecha y la técnica
+    // que se anuncia. El orden es el del DOM —columna izquierda, columna derecha, y
+    // debajo el anuncio—, así que se escribe en ese orden y no ordenado alfabéticamente:
+    // si alguien mueve un bloque de sitio, esta prueba lo dice.
+    expect(camposVisibles()).toEqual([...EN_EL_ROTULO, ...EN_EL_HUECO, ...EN_EL_ANUNCIO])
 
     act(() => {
       vi.advanceTimersByTime(6500)
@@ -411,7 +422,10 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     // escribir la letra. Los primeros van marcados: si alguien los volviera a hacer
     // visibles, estaría repitiendo encima de las cifras del muro, que es de lo que se
     // salió el 2026-09-03.
-    expect(camposVisibles()).toEqual([...EN_GEOMETRIA_DEL_MURO, ...EN_LO_VIVO])
+    // EN REPOSO: el rótulo SIGUE escrito —es rotulación, no un aviso— y con él solo los
+    // de geometría, que van montados y sin ver. La carga le ha devuelto el hueco al
+    // cronómetro.
+    expect(camposVisibles()).toEqual([...EN_EL_ROTULO, ...EN_GEOMETRIA_DEL_MURO, ...EN_LO_VIVO])
     for (const clave of EN_GEOMETRIA_DEL_MURO) {
       const nodo = salon.querySelector(`[data-campo="${clave}"]`)
       expect(nodo?.getAttribute('data-en-geometria'), `${clave} ya no lo escribe la sala`).toBe('')
@@ -419,9 +433,15 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     }
 
     // Y la unión son los cinco del muro, sin repetidos y sin perder ninguno.
-    expect([...EN_EL_ANUNCIO, ...EN_GEOMETRIA_DEL_MURO, ...EN_LO_VIVO].sort()).toEqual(
-      [...MURO_IZQUIERDO].sort(),
-    )
+    expect(
+      [
+        ...EN_EL_ROTULO,
+        ...EN_EL_HUECO,
+        ...EN_EL_ANUNCIO,
+        ...EN_GEOMETRIA_DEL_MURO,
+        ...EN_LO_VIVO,
+      ].sort(),
+    ).toEqual([...MURO_IZQUIERDO].sort())
     } finally {
       vi.useRealTimers()
     }

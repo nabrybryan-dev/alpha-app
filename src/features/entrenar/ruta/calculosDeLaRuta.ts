@@ -53,6 +53,15 @@ export interface CalculosDeLaRuta {
   sesionDeHoy: Sesion | undefined
   /** Lo que el botón grande propone, cuando hay algo que proponer. */
   sesionCta?: { id: string; nombre: string; empezada: boolean; esDeHoy: boolean }
+  /**
+   * El microciclo ANTERIOR, entero.
+   *
+   * Ya se leía aquí para comparar la fuerza; sale también porque el muro del salón enseña
+   * «la semana pasada» debajo de la carga de hoy, y ese número es un HECHO —con cuánto
+   * levantó— y no un cálculo. Sale el microciclo y no la cifra ya resuelta porque quien
+   * sabe de qué ejercicio se habla es el salón, no esto.
+   */
+  microcicloPrevio: Microciclo | undefined
 }
 
 export function calculosDeLaRuta(
@@ -112,6 +121,7 @@ export function calculosDeLaRuta(
     estadisticas: estadisticasCalculadas(datos),
     progresoPct: progresoAlSiguiente(requisitos),
     semana,
+    microcicloPrevio: previo,
     sesionDeHoy,
     sesionCta,
   }

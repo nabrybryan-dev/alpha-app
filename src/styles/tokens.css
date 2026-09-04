@@ -2128,6 +2128,194 @@ body {
   perspective-origin: 50% 40%;
 }
 
+/* ---------------------------------------------------------------------------
+   EL RÓTULO EN TRAZO: el nombre del ejercicio, escrito EN el muro
+   ---------------------------------------------------------------------------
+   Una letra rellena es tinta ENCIMA del muro; una letra en trazo con dos ecos
+   detrás es una letra que tiene CANTO, y deja ver la pared por dentro. Es la
+   diferencia entre un titular de página web colgado de una pared y un rótulo de
+   nave, que es la queja que este salón lleva corrigiendo desde el 2026-09-03.
+
+   Todo va en `em`. `CuadroDePared` fija el cuerpo con `ancho x escala x 0,052`,
+   así que el rótulo encoge cuando la cámara se aleja: un grosor de trazo en
+   píxeles se quedaría clavado y a dos metros sería tan gordo como la letra.
+   ------------------------------------------------------------------------- */
+
+.muro-trazo {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin: 0.12em 0 0;
+  /* La perspectiva la pone `.muro-escena`, que es el padre de la fila. Aquí solo
+     se declara que los hijos viven en ese espacio: sin esto, el `translateZ` de
+     los ecos se aplicaría en plano y el canto no existiría. */
+  transform-style: preserve-3d;
+}
+
+.muro-trazo-linea {
+  display: block;
+  white-space: nowrap;
+  transform-style: preserve-3d;
+}
+
+/* LA LETRA SE LEVANTA DEL SUELO. Peso INFORMATIVO: tiene cuerpo y sobrepasa un
+   pelo, como el dato vivo del muro. El origen abajo es lo que hace que gire
+   sobre su base en vez de voltear sobre el centro. */
+@keyframes muro-trazo-letra-entra {
+  from {
+    opacity: 0;
+    transform: translateZ(-2em) translateY(0.5em) rotateX(-96deg);
+  }
+}
+
+.muro-trazo-letra {
+  display: inline-block;
+  position: relative;
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
+  color: transparent;
+  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.42);
+  animation: muro-trazo-letra-entra var(--dur-informativo) var(--muelle-informativo) both;
+}
+
+/* LOS DOS ECOS: el grosor del rótulo, no una sombra. Van más tenues cuanto más
+   al fondo, que es lo que hace que se lean como el mismo trazo alejándose y no
+   como tres rótulos superpuestos. */
+.muro-trazo-eco {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  pointer-events: none;
+}
+
+.muro-trazo-eco-1 {
+  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.16);
+  transform: translateZ(-0.55em);
+}
+
+.muro-trazo-eco-2 {
+  -webkit-text-stroke: 0.032em rgb(var(--silver-300-rgb) / 0.07);
+  transform: translateZ(-1.1em);
+}
+
+/* LOS KILOS DEL MURO: en trazo, como el rótulo, y por lo mismo.
+
+   Rellenos serían dos manchas rojas sobre la pared. En trazo son un número
+   grande que deja ver el muro, y sobre todo son del MISMO material que el
+   nombre del ejercicio que tienen al lado: dos cosas escritas en la misma
+   pared se escriben igual, o se leen como dos capas pegadas.
+
+   `tabular-nums` no es cosmético: sin él, «77,5» y «80» tienen anchos
+   distintos y el número BAILA de lado al cambiar de serie. Un marcador no
+   baila. */
+.muro-kilos {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 2em;
+  line-height: 0.88;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 0.026em rgb(var(--accion-rgb) / 0.78);
+}
+
+/* La de la semana pasada es la MISMA cifra, más pequeña y en plata: es un
+   hecho del pasado, no la acción de hoy. El rojo marca acción y foco, y lo
+   que se levantó la semana pasada no es ninguna de las dos cosas. */
+.muro-kilos-previo {
+  font-size: 1.03em;
+  -webkit-text-stroke: 0.03em rgb(var(--silver-300-rgb) / 0.34);
+}
+
+/* La unidad no compite con la cifra: va a un tercio y separada, que es como se
+   rotula una unidad en un instrumento. */
+.muro-kilos-unidad {
+  font-size: 0.32em;
+  letter-spacing: 0.1em;
+}
+
+/* EL FILETE. La línea bajo el dato, que se apaga hacia dentro: marca el borde
+   del bloque sin dibujarle una caja. Va alineado a la derecha porque el hueco
+   entero lo está. */
+.muro-filete {
+  display: block;
+  width: 4.2em;
+  height: 1px;
+  margin: 0.4em 0 0 auto;
+  background: linear-gradient(270deg, rgb(var(--silver-500-rgb) / 0.5), transparent);
+}
+
+/* El rótulo del bloque que manda, en el rojo de acción. Solo lo lleva «Carga a
+   usar»: es lo único del hueco que pide hacer algo —cargar la barra—. */
+.muro-rotulo-vivo {
+  color: rgb(var(--accion-rgb) / 0.85);
+}
+
+/* EL RELEVO DEL HUECO. La carga entra con peso informativo, igual que el dato
+   vivo del muro: es el mismo gesto —algo que sube y se queda— y usar otro peso
+   aquí haría que dos cosas que pasan a la vez en la misma pared se movieran con
+   dos leyes distintas. */
+@keyframes muro-hueco-entra {
+  from { opacity: 0; transform: translateY(0.45em); }
+}
+
+.muro-hueco-entra {
+  animation: muro-hueco-entra var(--dur-informativo) var(--muelle-informativo) both;
+}
+
+/* LA CIFRA DE LA LECTURA LARGA. La misma del muro, abajo y en su tamaño de
+   panel: la columna de cifras es la costura entre el salón y su lectura. En
+   otra letra, el panel dejaría de ser el mismo salón visto de cerca. */
+.muro-cifra-panel {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.6), 1px 2px 0 #2a2d31, 2px 3px 0 #22252a;
+}
+
+/* EL MATIZ DE LA CIFRA: el rango o la unidad, debajo y en tenue. Ni es la
+   cifra ni es el rótulo — es en qué se mide o dentro de qué horquilla vale. */
+.muro-cifra-matiz {
+  margin-top: 3px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  color: var(--gris-marca);
+}
+
+/* LA FILA DEL MURO: rótulo a la izquierda, el hueco de datos a la derecha.
+
+   `flex-end` y no `center`: los dos bloques se alinean por su BASE, que es como
+   se alinea la rotulación de una pared de verdad —todo apoyado en la misma
+   línea— y es lo que impide que el hueco de la derecha flote a media altura
+   cuando el nombre pasa de una línea a dos. */
+.muro-fila {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.7em;
+  transform-style: preserve-3d;
+}
+
+/* El hueco de la derecha no se encoge nunca: es el único sitio del muro donde
+   se alternan dos contenidos, y si el rótulo largo se lo comiera, la cifra que
+   cambia —el reloj— sería la que desaparece. */
+.muro-hueco {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
 /* EL ANUNCIO SE RETIRA HACIA EL MURO. No se desvanece: se va hacia atrás, que
    es de donde vino. Un fundido a cero se lee como que algo se ha perdido; irse
    al fondo se lee como que ha pasado. */
@@ -2158,6 +2346,9 @@ body {
 }
 
 .muro-vivo {
+  /* Aire bajo el rótulo. Pegado, lo primero del bloque vivo se leía como una
+     tercera línea del nombre del ejercicio. */
+  margin-top: 0.3em;
   animation: muro-vivo-entra var(--dur-informativo) var(--muelle-informativo) both;
 }
 
@@ -2224,8 +2415,18 @@ body {
   .muro-cifra-cambia,
   .muro-vivo,
   .muro-ranura,
+  .muro-trazo-letra,
+  .muro-hueco-entra,
   .muro-anuncio[data-saliendo] {
     animation-duration: 1ms;
+  }
+
+  /* El rótulo se queda QUIETO Y ENTERO, no vacío: sin esto las letras acaban su
+     animación de 1 ms en su estado final igual, pero el giro de 96 grados llega
+     a pintarse un fotograma y se ve un tirón. Anulado el fotograma de partida,
+     el rótulo simplemente ya está escrito. */
+  .muro-trazo-letra {
+    animation-name: none;
   }
 
   .muro-derrame::before,

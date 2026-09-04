@@ -1,6 +1,8 @@
 import type { TextoDePanel } from '../../paredes/contenidoPared'
-import type { ItemMarcable } from '../../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable } from '../../../../../domain/types'
 import { SinDatos } from './Recuadro'
+import { lecturaDeLaPrescripcion, type LecturaDePrescripcion } from '../lecturaDeLaPrescripcion'
+import { LecturaLarga } from './LecturaLarga'
 
 /**
  * LO QUE LAS PAREDES NO PUDIERON LLEVAR, íntegro.
@@ -23,6 +25,16 @@ import { SinDatos } from './Recuadro'
  * párrafos a ojo, no.
  */
 export interface RecuadroEjercicioProps {
+  /**
+   * El ejercicio en curso. De él sale LA LECTURA LARGA: las cuatro prescripciones con su
+   * qué, su por qué y su señal.
+   *
+   * Va antes que `alPanel` y no lo sustituye. Son dos cosas distintas: `alPanel` es el
+   * texto ÍNTEGRO que la pared tuvo que recortar —lo que hace honesto el recorte— y la
+   * lectura es lo que alguien baja a buscar entre series. Sin la primera, recortar sería
+   * perder; sin la segunda, el panel es un sobrante.
+   */
+  ejercicio?: EjercicioPrescrito
   /** Los textos completos que `contenidoPared()` mandó abajo. */
   alPanel: readonly TextoDePanel[]
   /**
@@ -34,10 +46,19 @@ export interface RecuadroEjercicioProps {
    * lo demás.
    */
   bloquesCardio?: readonly ItemMarcable[]
+  /** La prescripción que el asesorado tocó en el salón. Sube a primera fila. */
+  foco?: LecturaDePrescripcion['id']
 }
 
-export function RecuadroEjercicio({ alPanel, bloquesCardio = [] }: RecuadroEjercicioProps) {
-  if (alPanel.length === 0 && bloquesCardio.length === 0) {
+export function RecuadroEjercicio({
+  ejercicio,
+  alPanel,
+  bloquesCardio = [],
+  foco,
+}: RecuadroEjercicioProps) {
+  const lecturas = lecturaDeLaPrescripcion(ejercicio)
+
+  if (lecturas.length === 0 && alPanel.length === 0 && bloquesCardio.length === 0) {
     return (
       <SinDatos motivo="Todo lo prescrito de este ejercicio cabía entero en las paredes: aquí no queda nada por ampliar." />
     )
@@ -45,6 +66,9 @@ export function RecuadroEjercicio({ alPanel, bloquesCardio = [] }: RecuadroEjerc
 
   return (
     <div className="flex flex-col gap-4">
+      {/* LO PRIMERO: las cuatro prescripciones explicadas. Es a lo que se baja. */}
+      <LecturaLarga lecturas={lecturas} foco={foco} />
+
       {/* SIN CAJAS DENTRO DE LA CAJA.
           =============================================================================
           Cada texto era un `rounded-[10px] border border-ink-500 bg-ink-700`: tarjetas

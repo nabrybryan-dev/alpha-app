@@ -65,6 +65,7 @@ export default function RutaPage() {
       sesionCta={calculos.sesionCta}
       notas={notasDelMicrociclo(microciclo)}
       sesion={calculos.sesionDeHoy}
+      microcicloPrevio={calculos.microcicloPrevio}
     />
   )
 }

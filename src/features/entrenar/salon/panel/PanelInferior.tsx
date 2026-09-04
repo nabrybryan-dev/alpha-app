@@ -7,7 +7,7 @@ import {
   type RutaAsesorado,
 } from '../../../../domain/rutaEntrenamiento'
 import type { Recuperacion } from '../../../../domain/readiness'
-import type { ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable, Microciclo, Sesion } from '../../../../domain/types'
 import type { Patron } from '../../../../domain/patrones/catalogo'
 import type { TextoDePanel } from '../paredes/contenidoPared'
 import { CabeceraNivel } from '../../ruta/CabeceraNivel'
@@ -101,6 +101,11 @@ export interface PanelInferiorProps {
   bloquesCardio?: readonly ItemMarcable[]
   /** El nombre del ejercicio del que se está ampliando el detalle. */
   nombreEjercicio?: string
+  /**
+   * El ejercicio en curso, entero. De él sale la lectura larga de las cuatro
+   * prescripciones: qué es cada número, por qué importa y qué señal mirar.
+   */
+  ejercicio?: EjercicioPrescrito
   /** La sesión de hoy: de ella sale el bloque de antes de entrenar. */
   sesion?: Sesion
   /** El patrón del ejercicio en curso: de él salen las notas de ejecución. */
@@ -138,6 +143,7 @@ export function PanelInferior(props: PanelInferiorProps) {
     alPanel,
     bloquesCardio,
     nombreEjercicio,
+    ejercicio,
     sesion,
     patron,
     contenido,
@@ -270,7 +276,7 @@ export function PanelInferior(props: PanelInferiorProps) {
             </Recuadro>
 
             <Recuadro clave="ejercicio" titulo="La prescripción del coach" pie={nombreEjercicio}>
-              <RecuadroEjercicio alPanel={alPanel} bloquesCardio={bloquesCardio} />
+              <RecuadroEjercicio ejercicio={ejercicio} alPanel={alPanel} bloquesCardio={bloquesCardio} />
             </Recuadro>
 
             {contenido && (
