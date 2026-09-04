@@ -100,6 +100,11 @@ function glDeMentira() {
     useProgram: () => {},
     enable: () => {},
     cullFace: () => {},
+    // La mezcla alfa y la máscara de profundidad, que el motor pide desde que dibuja el
+    // fantasma en dos tandas. Aquí no hacen nada: estas pruebas miran los búferes, no
+    // el dibujo, y un `gl` de mentira que no tenga el método rompe el constructor.
+    blendFunc: () => {},
+    depthMask: () => {},
     depthFunc: () => {},
     clearColor: () => {},
     // La extensión de índices de 32 bits se declara disponible: es lo que hace

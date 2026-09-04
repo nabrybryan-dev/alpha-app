@@ -17,6 +17,9 @@ import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
 import { pasoDelVaiven } from './vaivenDeLaSala'
+import { faseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
+import { hornear } from '../../../domain/patrones/malla'
+import type { Activacion } from '../../../domain/patrones/anatomia'
 import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
 import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
@@ -45,6 +48,19 @@ type Capa = 'ambas' | 'musculo' | 'hueso'
  * base contra la que se mide cuánto se acorta cada músculo.
  */
 let huesosCache: ReturnType<typeof construirHuesos> | null = null
+
+/**
+ * EL FANTASMA TIENE SUS PROPIOS HUESOS. Comparte `construirHuesos()` como fábrica pero no
+ * la instancia: el alfa es de la malla, y una malla no puede ser opaca para el sujeto y
+ * translúcida para el fantasma a la vez.
+ */
+let huesosFantasma: ReturnType<typeof construirHuesos> | null = null
+
+/** Cuánto se ve a través del fantasma. Menos y se pierde; más y parece otro atleta. */
+const ALFA_DEL_FANTASMA = 0.38
+
+/** Sin activación: el fantasma va en el color del músculo pasivo, apagado. Es un rastro. */
+const SIN_ACTIVACION: Activacion = {}
 
 /**
  * La bahía de medida: el suelo, la placa, el bordillo y el estadiómetro.
@@ -234,6 +250,14 @@ interface VisorPatronProps {
    * que enseña el salón sean la misma.
    */
   tempo?: TempoDeRepeticion
+  /**
+   * LA REPETICIÓN QUE SE HIZO, para verla sobre la que había que hacer.
+   *
+   * Con huella se dibuja un segundo cuerpo translúcido, con el esqueleto del patrón y el
+   * TIEMPO de la persona. Sin huella no se dibuja nada y no cuesta nada: es la ruta de
+   * siempre.
+   */
+  fantasma?: HuellaDeRepeticion
 }
 
 /**
@@ -243,7 +267,7 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjercicio, alMirar, tempo }: VisorPatronProps) {
+export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjercicio, alMirar, tempo, fantasma }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -302,6 +326,8 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
     reducido: false,
     /** El tempo prescrito. Va por referencia, como los datos: cambiar el tempo no recrea WebGL. */
     tempo: undefined as TempoDeRepeticion | undefined,
+    /** La huella del fantasma. Por referencia, por lo mismo. */
+    fantasma: undefined as HuellaDeRepeticion | undefined,
   })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
@@ -320,12 +346,13 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
     estado.current.alMirar = alMirar
     estado.current.reducido = reducido
     estado.current.tempo = tempo
+    estado.current.fantasma = fantasma
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo])
+  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -381,6 +408,11 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
         // La malla del músculo se reutiliza cuadro a cuadro: la topología no
         // cambia y reservarla de nuevo cada vez costaba el doble de tiempo.
         const mallaMusculo = new Malla(16384)
+        // LAS DEL FANTASMA. Dos por pieza: la que se construye en espacio de hueso y la
+        // horneada, que es la que se sube. Reutilizadas por lo mismo que `mallaMusculo`.
+        const mallaFantasma = new Malla(16384)
+        const fantasmaHorneado = new Malla(16384)
+        const huesosFantasmaHorneados = new Malla(4096)
         const traza = trazaDelPatron(patron)
         const encuadre = encuadrar(patron)
         let mostrarEsfera = false
@@ -473,6 +505,33 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
             for (const m of mallasDelSujeto(nivelW, patron)) {
               if (m.pieza === 'huesos') partes.push(huesos)
               else partes.push(construirMusculosDeNivel(nivelW, esq, patron, reposo, mallaMusculo))
+            }
+          }
+          // EL FANTASMA: el mismo esqueleto, en la fase que marca la HUELLA de la persona
+          // y no la del patrón. Translúcido y apagado —sin activación, así que el color es
+          // el del músculo pasivo— para que se lea como lo que es: un rastro de lo que se
+          // hizo, no un segundo atleta.
+          //
+          // SE HORNEA. El motor tiene una sola paleta de huesos por dibujo, la del sujeto;
+          // el fantasma está en otra fase y necesita las suyas. En vez de un segundo
+          // dibujo, sus mallas se transforman aquí con las matrices de SU esqueleto y se
+          // suben con hueso 0, que es la identidad.
+          const huella = estado.current.fantasma
+          if (huella && !sin.has('fantasma')) {
+            const tFantasma = estado.current.reloj
+            const faseF = faseDeHuella(huella, tFantasma)
+            if (faseF !== undefined) {
+              const esqF = esqueletoEnFase(patron, faseF, sentidoDeHuella(huella, tFantasma), tFantasma)
+              huesosFantasma ??= construirHuesos()
+              const hF = hornear(huesosFantasma, esqF.matrices, huesosFantasmaHorneados)
+              hF.alfa = ALFA_DEL_FANTASMA
+              const mF = hornear(
+                construirMusculos(esqF, SIN_ACTIVACION, reposo, mallaFantasma),
+                esqF.matrices,
+                fantasmaHorneado,
+              )
+              mF.alfa = ALFA_DEL_FANTASMA
+              partes.push(hF, mF)
             }
           }
           partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))

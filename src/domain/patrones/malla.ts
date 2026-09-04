@@ -56,6 +56,21 @@ export class Malla {
   private nv = 0
   private ni = 0
 
+  /**
+   * CUÁNTO SE VE A TRAVÉS DE ESTA MALLA: 1 es opaca, 0 invisible.
+   *
+   * Es de la malla entera y no de cada vértice, a propósito. Lo único translúcido que
+   * hay en el salón es el FANTASMA —el cuerpo que enseña lo que se hizo, superpuesto al
+   * que enseña lo que había que hacer— y un fantasma es translúcido entero o no es un
+   * fantasma. Un alfa por vértice costaría un sexto array en cada malla y sesenta copias
+   * más por segundo para una cosa que nadie necesita vértice a vértice.
+   *
+   * El motor lo lee al subir: rellena el atributo con este valor para todos los vértices
+   * de la malla, ordena las opacas delante y dibuja las translúcidas después sin escribir
+   * profundidad. Ninguna malla de las que ya existían cambia: nace en 1.
+   */
+  alfa = 1
+
   constructor(capacidadVertices = 2048) {
     this.bufPos = new Float32Array(capacidadVertices * 3)
     this.bufNrm = new Float32Array(capacidadVertices * 3)
@@ -590,3 +605,45 @@ export function flecha(malla: Malla, desde: Vec3, hasta: Vec3, r: number, color:
   })
 }
 
+/**
+ * HORNEAR UNA MALLA: aplicarle sus matrices de hueso en la CPU y dejarla sin hueso.
+ *
+ * ## Para qué
+ *
+ * El motor tiene UNA paleta de matrices de hueso por dibujo —la del sujeto— y cada
+ * vértice dice a qué hueso pertenece. Eso vale para un cuerpo. Un segundo cuerpo en otra
+ * fase —el fantasma— necesita sus propias matrices, y no hay segunda paleta: o se hace un
+ * segundo dibujo con otro juego de uniformes, o se transforma el segundo cuerpo ANTES de
+ * subirlo y se le pone hueso 0, que es la identidad. Esto es lo segundo. Cuesta recorrer
+ * sus vértices una vez por fotograma, que es lo mismo que ya cuesta construirlos.
+ *
+ * ## Qué conserva
+ *
+ * Color, fibra, índices y alfa salen iguales. Solo cambian posición y normal, y la normal
+ * se lleva como DIRECCIÓN —sin la traslación—: llevarla como punto la descuadraría y el
+ * sombreado del fantasma saldría iluminado desde un sitio distinto al del sujeto.
+ *
+ * `destino` se reutiliza para no reservar memoria en cada fotograma, por lo mismo que
+ * `construirMusculos` acepta una malla para reutilizar.
+ */
+export function hornear(origen: Malla, matrices: Mat4[], destino?: Malla): Malla {
+  const d = destino ?? new Malla(Math.max(2048, origen.vertices))
+  d.reiniciar()
+  d.alfa = origen.alfa
+  const pos = origen.posicion
+  const nrm = origen.normal
+  const col = origen.color
+  const hueso = origen.hueso
+  const fibra = origen.fibra
+  const n = origen.vertices
+  for (let v = 0; v < n; v++) {
+    const m = matrices[hueso[v]] ?? matrices[0]
+    const i = v * 3
+    const p = M4.transformarPunto(m, [pos[i], pos[i + 1], pos[i + 2]])
+    const q = M4.transformarDireccion(m, [nrm[i], nrm[i + 1], nrm[i + 2]])
+    d.verticeSuelto(p[0], p[1], p[2], q[0], q[1], q[2], [col[i], col[i + 1], col[i + 2]], 0, fibra[v])
+  }
+  const idx = origen.indice
+  for (let k = 0; k + 2 < idx.length; k += 3) d.triangulo(idx[k], idx[k + 1], idx[k + 2])
+  return d
+}

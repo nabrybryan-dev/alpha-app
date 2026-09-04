@@ -33,6 +33,7 @@ attribute vec3 a_nrm;
 attribute vec3 a_col;
 attribute float a_hueso;
 attribute float a_fibra;
+attribute float a_alfa;
 uniform mat4 u_huesos[${MAX_HUESOS}];
 uniform mat4 u_vista;
 uniform mat4 u_proyeccion;
@@ -40,6 +41,7 @@ varying vec3 v_nrm;
 varying vec3 v_col;
 varying vec3 v_mundo;
 varying float v_fibra;
+varying float v_alfa;
 void main() {
   // El índice llega como float porque WebGL1 no tiene atributos enteros, y el
   // array de uniforms no admite indexación dinámica: de ahí el bucle.
@@ -51,6 +53,7 @@ void main() {
   v_nrm = normalize(mat3(B) * a_nrm);
   v_col = a_col;
   v_fibra = a_fibra;
+  v_alfa = a_alfa;
   gl_Position = u_proyeccion * u_vista * p;
 }`
 
@@ -61,6 +64,7 @@ varying vec3 v_nrm;
 varying vec3 v_col;
 varying vec3 v_mundo;
 varying float v_fibra;
+varying float v_alfa;
 uniform vec3 u_ojo;
 uniform float u_suelo;
 void main() {
@@ -120,7 +124,7 @@ void main() {
   float niebla = clamp((length(u_ojo - v_mundo) - 1.6) / 4.2, 0.0, 1.0);
   c = mix(c, aLineal(vec3(0.300, 0.334, 0.376)), niebla * 0.40);
 
-  gl_FragColor = vec4(acabado(c), 1.0);
+  gl_FragColor = vec4(acabado(c), v_alfa);
 }`
 
 function compilar(gl: WebGLRenderingContext, tipo: number, fuente: string): WebGLShader {
@@ -157,7 +161,7 @@ export class Motor {
     this.programa = p
 
     this.buffers = {}
-    for (const n of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'idx']) {
+    for (const n of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'idx']) {
       const b = gl.createBuffer()
       if (!b) throw new Error('no se pudo crear el buffer')
       this.buffers[n] = b
@@ -166,6 +170,12 @@ export class Motor {
     gl.enable(gl.DEPTH_TEST)
     gl.enable(gl.CULL_FACE)
     gl.cullFace(gl.BACK)
+    // LA MEZCLA, encendida siempre y sin coste para lo opaco: con alfa 1 la fórmula
+    // devuelve el color tal cual. Lo que la hace segura es el ORDEN de dibujo, que
+    // decide `subir()`: opacas primero con profundidad, translúcidas después sin
+    // escribirla. Al revés, un fantasma dibujado antes taparía al sujeto con su alfa.
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
   }
 
   ajustarTamano(): number {
@@ -215,8 +225,14 @@ export class Motor {
    * vértices en cada fotograma es basura que hay que recoger sesenta veces por
    * segundo, y el recolector no avisa: se nota como tirones, no como lentitud.
    */
-  subir(mallas: Malla[]): void {
+  subir(entrantes: Malla[]): void {
     const gl = this.gl
+
+    // LAS OPACAS DELANTE Y LAS TRANSLÚCIDAS DETRÁS, en un orden que `dibujar()` pueda
+    // partir en dos: es lo que hace que la mezcla alfa sea correcta sin ordenar
+    // triángulos. La función es pura y se prueba sin WebGL.
+    const { ordenadas: mallas, indicesOpacos } = ordenarPorOpacidad(entrantes)
+    this.indicesOpacos = indicesOpacos
 
     // PRIMERA PASADA: cuánto hay. El conteo sale de la misma propiedad que
     // luego se escribe, que es la única forma de que no se quede corto.
@@ -243,6 +259,8 @@ export class Motor {
       c.col.set(m.color, v * 3)
       c.hueso.set(m.hueso, v)
       c.fibra.set(m.fibra, v)
+      // El alfa es de la malla entera: se rellena, no se copia.
+      c.alfa.fill(m.alfa, v, v + m.vertices)
       // Los índices NO se copian, se desplazan: cada malla los trae relativos a
       // sí misma. Aquí no sirve `.set()`, pero el bucle escribe sobre un array
       // tipado ya reservado, que era la mitad cara del asunto.
@@ -260,6 +278,7 @@ export class Motor {
       gl.bufferData(gl.ARRAY_BUFFER, datos.subarray(0, n), gl.DYNAMIC_DRAW)
     }
     poner(this.buffers.pos, c.pos, verts * 3)
+    poner(this.buffers.alfa, c.alfa, verts)
     poner(this.buffers.nrm, c.nrm, verts * 3)
     poner(this.buffers.col, c.col, verts * 3)
     poner(this.buffers.hueso, c.hueso, verts)
@@ -284,6 +303,7 @@ export class Motor {
     col: Float32Array
     hueso: Float32Array
     fibra: Float32Array
+    alfa: Float32Array
     idx: Uint16Array | Uint32Array
   } | null = null
 
@@ -304,12 +324,16 @@ export class Motor {
       col: new Float32Array(v * 3),
       hueso: new Float32Array(v),
       fibra: new Float32Array(v),
+      alfa: new Float32Array(v),
       idx: grande ? new Uint32Array(n) : new Uint16Array(n),
     }
     this.cache = nuevo
     return nuevo
   }
 
+
+  /** Cuántos índices son de mallas opacas. Lo pone `subir()`; lo parte `dibujar()`. */
+  private indicesOpacos = 0
 
   private atributo(nombre: string, buffer: WebGLBuffer, tam: number): void {
     const gl = this.gl
@@ -342,6 +366,7 @@ export class Motor {
     this.atributo('a_nrm', this.buffers.nrm, 3)
     this.atributo('a_col', this.buffers.col, 3)
     this.atributo('a_hueso', this.buffers.hueso, 1)
+    this.atributo('a_alfa', this.buffers.alfa, 1)
 
     const plano = new Float32Array(MAX_HUESOS * 16)
     for (let i = 0; i < Math.min(matrices.length, MAX_HUESOS); i++) {
@@ -355,7 +380,19 @@ export class Motor {
     gl.uniform3fv(u('u_ojo'), new Float32Array(ojo))
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
-    gl.drawElements(gl.TRIANGLES, this.indices, this.tipoIndice, 0)
+    // DOS TANDAS. Lo opaco con profundidad, como siempre. Lo translúcido después y SIN
+    // escribir profundidad: si el fantasma escribiera la suya, la parte del sujeto que
+    // queda detrás de él desaparecería en vez de verse a través. El desplazamiento del
+    // segundo `drawElements` va en BYTES, y el tamaño del índice lo decide `subir()`.
+    const opacos = Math.min(this.indicesOpacos, this.indices)
+    gl.drawElements(gl.TRIANGLES, opacos, this.tipoIndice, 0)
+    const translucidos = this.indices - opacos
+    if (translucidos > 0) {
+      const bytes = this.tipoIndice === gl.UNSIGNED_INT ? 4 : 2
+      gl.depthMask(false)
+      gl.drawElements(gl.TRIANGLES, translucidos, this.tipoIndice, opacos * bytes)
+      gl.depthMask(true)
+    }
   }
 }
 
@@ -453,4 +490,23 @@ export class Orbita {
   vista(): Mat4 {
     return M4.mirarDesde(this.ojo(), this.centro, [0, 1, 0])
   }
+}
+
+/**
+ * LAS OPACAS PRIMERO, y dónde acaban.
+ *
+ * Es la única regla que hace que la mezcla alfa salga bien sin ordenar triángulos: todo
+ * lo opaco se dibuja con profundidad y después, encima, lo translúcido sin escribirla.
+ * Devuelve las mallas en ese orden —estable: entre iguales se conserva el de llegada— y
+ * cuántos ÍNDICES suman las opacas, que es el punto exacto donde `dibujar()` parte las dos
+ * tandas.
+ *
+ * Es una función suelta y pura a propósito: el motor necesita WebGL para existir, y en
+ * jsdom no hay WebGL. Esto se prueba con cuatro mallas de mentira.
+ */
+export function ordenarPorOpacidad(mallas: Malla[]): { ordenadas: Malla[]; indicesOpacos: number } {
+  const opacas = mallas.filter((m) => m.alfa >= 1)
+  const translucidas = mallas.filter((m) => m.alfa < 1)
+  const indicesOpacos = opacas.reduce((n, m) => n + m.indice.length, 0)
+  return { ordenadas: [...opacas, ...translucidas], indicesOpacos }
 }

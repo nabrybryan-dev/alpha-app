@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { entre, grados, limitar, M4, suavizar, V, type Vec3 } from './algebra'
-import { curva, elipsoide, flecha, huesoLargo, Malla, tubo, tuboDiscontinuo } from './malla'
+import { curva, elipsoide, flecha, hornear, huesoLargo, Malla, tubo, tuboDiscontinuo } from './malla'
 
 describe('el álgebra', () => {
   it('opera sobre vectores', () => {
@@ -212,5 +212,50 @@ describe('la construcción de malla', () => {
     const m = new Malla()
     flecha(m, [1, 1, 1], [1, 1, 1], 0.02, [1, 1, 0])
     expect(m.vertices).toBe(0)
+  })
+})
+
+describe('hornear', () => {
+  it('lleva cada vértice a su hueso y lo deja sin hueso, conservando color, fibra e índices', () => {
+    const origen = new Malla(16)
+    // Un triángulo colgado del hueso 1, con fibra y color propios.
+    origen.verticeSuelto(0, 0, 0, 0, 1, 0, [0.2, 0.4, 0.6], 1, 0.11)
+    origen.verticeSuelto(1, 0, 0, 0, 1, 0, [0.2, 0.4, 0.6], 1, 0.22)
+    origen.verticeSuelto(0, 0, 1, 0, 1, 0, [0.2, 0.4, 0.6], 1, 0.33)
+    origen.triangulo(0, 1, 2)
+    origen.alfa = 0.5
+    // La paleta: la identidad en 0 y una traslación de dos metros en Y en 1.
+    const matrices = [M4.identidad(), M4.trasladar(0, 2, 0)]
+
+    const h = hornear(origen, matrices)
+    expect(h.vertices).toBe(3)
+    expect(Array.from(h.hueso)).toEqual([0, 0, 0])
+    expect(h.posicion[1]).toBeCloseTo(2, 9)
+    expect(h.posicion[4]).toBeCloseTo(2, 9)
+    // La normal es una DIRECCIÓN: la traslación no la mueve.
+    expect(Array.from(h.normal.subarray(0, 3))).toEqual([0, 1, 0])
+    expect(Array.from(h.color.subarray(0, 3)).map((v) => Math.round(v * 10) / 10)).toEqual([0.2, 0.4, 0.6])
+    expect(Array.from(h.fibra).map((v) => Math.round(v * 100) / 100)).toEqual([0.11, 0.22, 0.33])
+    expect(Array.from(h.indice)).toEqual([0, 1, 2])
+    expect(h.alfa).toBe(0.5)
+  })
+
+  it('reutiliza el destino sin dejar restos del fotograma anterior', () => {
+    const a = new Malla(8)
+    a.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    a.verticeSuelto(1, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    a.verticeSuelto(0, 0, 1, 0, 1, 0, [1, 1, 1], 0)
+    a.triangulo(0, 1, 2)
+    const destino = new Malla(8)
+    hornear(a, [M4.identidad()], destino)
+    const b = new Malla(8)
+    b.verticeSuelto(5, 5, 5, 0, 1, 0, [1, 1, 1], 0)
+    b.verticeSuelto(6, 5, 5, 0, 1, 0, [1, 1, 1], 0)
+    b.verticeSuelto(5, 5, 6, 0, 1, 0, [1, 1, 1], 0)
+    b.triangulo(0, 1, 2)
+    const h = hornear(b, [M4.identidad()], destino)
+    expect(h).toBe(destino)
+    expect(h.vertices).toBe(3)
+    expect(h.posicion[0]).toBe(5)
   })
 })
