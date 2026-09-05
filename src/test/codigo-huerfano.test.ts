@@ -37,6 +37,18 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'que a su vez espera a comprobar-ids-de-ejercicio.sql. Ver ' +
     'docs/superpowers/specs/2026-08-25-atributos-por-ejercicio.md §4.',
 
+  // Las dos escaleras preautorizadas de un ejercicio (§8 punto 1 del supuesto del
+  // 2026-08-25). Derivan del rango y el RIR que el coach ya escribio, no de un
+  // porcentaje inventado. Sin enchufar A PROPOSITO: quien las escribiria es el
+  // agente 3 al prescribir, y eso NO se toca hasta que Bryan decida las dos cosas
+  // que el modulo se niega a elegir por el —cuantos escalones suelta el rojo, y
+  // si el techo sale del rango o del microciclo siguiente—. Medido: con la regla
+  // del rango, 219 de los 555 ejercicios activos tendrian escalera verde.
+  'src/domain/escaleras.ts':
+    'Deriva `escenarios` (verde/rojo) de un ejercicio. Espera las dos decisiones de ' +
+    'politica del coach y el conducto del agente 3. Ver ' +
+    'docs/specs/2026-09-04-las-dos-escaleras.md.',
+
   // NI `bucleDelDia.ts` NI `corridaEnSombra.ts` van ya en esta lista (2026-09-04),
   // y conviene saber por que antes de volver a añadirlos: el primero lo importa el
   // segundo, y al segundo lo importa `scripts/corrida-en-sombra.mjs`. Los dos
