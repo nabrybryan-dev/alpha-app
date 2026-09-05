@@ -166,3 +166,23 @@ describe('la política que eligió el coach', () => {
     expect(derivarEscaleras(ej(), { sueloRir: 3 }).escenarios).toBeUndefined()
   })
 })
+
+describe('un dato roto no da un techo', () => {
+  /**
+   * Se vio en el ensayo en seco contra la cartera real, antes de escribir nada:
+   * 10 ejercicios (2,1 %) tienen la diana FUERA de su propio rango. Uno de ellos
+   * —«rango 8-10, diana 12»— salía con un techo del +25 %, calculado sobre un
+   * hueco de cuatro repeticiones que nadie escribió. El margen no era prudente:
+   * era inventado con cara de calculado.
+   */
+  it('la diana por encima del máximo del rango no genera escalera', () => {
+    const r = derivarEscaleras(ej({ rango: '8-10', repsDiana: 12 }), { ...POLITICA_DEL_COACH, sueloRir: 3 })
+    expect(r.escenarios).toBeUndefined()
+    expect(r.faltan.join(' ')).toContain('FUERA de su rango')
+  })
+
+  it('y la diana en el máximo exacto SÍ la genera: ahí el rango es real', () => {
+    const r = derivarEscaleras(ej({ rango: '8-10', repsDiana: 10 }), { ...POLITICA_DEL_COACH, sueloRir: 3 })
+    expect(r.escenarios?.verde.techoCargaKg).toBeGreaterThan(100)
+  })
+})

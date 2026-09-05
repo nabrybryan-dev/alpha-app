@@ -29,6 +29,12 @@ const MUTACIONES = [
     nuevo: 'cargaAOtrasReps(carga, ejercicio.repsDiana, rango.min, objetivo),',
   },
   {
+    nombre: 'una diana FUERA de su rango se cuela y fabrica techo',
+    archivo: FUENTE,
+    viejo: '} else if (ejercicio.repsDiana > rango.max) {',
+    nuevo: '} else if (false) {',
+  },
+  {
     nombre: 'una diana ya en el extremo duro se cuela igual',
     archivo: FUENTE,
     viejo: '} else if (ejercicio.repsDiana <= rango.min) {',

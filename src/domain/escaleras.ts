@@ -130,6 +130,17 @@ export function derivarEscaleras(
   } else if (esAlFallo(objetivo)) {
     // Al fallo el coeficiente no informa: no hay reserva que convertir en carga.
     faltan.push('verde: el objetivo es FALLO, y el techo se calcula con el RIR pautado')
+  } else if (ejercicio.repsDiana > rango.max) {
+    // La diana FUERA de su propio rango. Son 10 ejercicios de la cartera activa
+    // (2,1 %) y se vio mirando el ensayo en seco antes de escribir nada: una
+    // «sentadilla búlgara, rango 8-10, diana 12» daba un techo del +25 % sacado
+    // de un hueco de cuatro repeticiones que el coach NUNCA escribió. Derivar de
+    // un dato roto no da un techo prudente: da un margen inventado con cara de
+    // calculado. El arreglo es el dato, no la fórmula.
+    faltan.push(
+      `verde: la diana (${ejercicio.repsDiana}) está FUERA de su rango ` +
+        `(${rango.min}-${rango.max}): el dato está roto y de un dato roto no sale un techo`,
+    )
   } else if (ejercicio.repsDiana <= rango.min) {
     faltan.push(
       `verde: la diana (${ejercicio.repsDiana}) ya está en el extremo duro del rango ` +
