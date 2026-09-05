@@ -5,14 +5,14 @@
     "ancho": 414,
     "alto": 736
   },
-  "cuando": "2026-09-05T22:41:33.005Z",
+  "cuando": "2026-09-05T23:29:00.868Z",
   "usuario": "u-mateo",
   "sesion": "(el muro no rotula día)",
   "rama": "conSujeto",
   "elementos": {
     "sala": {
       "visible": true,
-      "pixeles": 182368,
+      "pixeles": 182281,
       "enLienzo": true
     },
     "letras3D": {
@@ -40,7 +40,7 @@
     "desde": 0,
     "hasta": 0,
     "cambioEnSujeto": 0,
-    "ruido": 2,
+    "ruido": 0,
     "botones": -1
   }
 }

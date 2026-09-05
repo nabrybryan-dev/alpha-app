@@ -48,6 +48,25 @@ la que después entran las piezas horneadas en Blender.
 5. **La imagen** es `public/texturas/suelo-goma.jpg`: 1024², 77 KB, sacada de la
    escena de Blender (Poly Haven `anti_skid_tiles`, CC0, desaturada y oscurecida a goma).
 
+## Lo que vino después, el mismo día
+
+El suelo estampado fue la puerta. Por ella entró, esa misma tarde:
+
+- **Las piezas hechas fuera** (`escena/piezas3d.ts`, formato `.pieza` v2 propio, no
+  glTF): seis arrays y un nombre de textura, binario alineado a 4 bytes, con una
+  bandera `horneada` por parte.
+- **La sala del gimnasio entera** (`public/piezas/sala-gimnasio.pieza`, 4,3 MB, 76.409
+  vértices) con la luz horneada por vértice en el exportador (`scripts/blender/`) —esta
+  instalación de Blender no trae Cycles— y reacomodada para que la cámara orbite: sujeto
+  al origen, pilares a las esquinas, lo que estorba pegado a los muros LARGOS (en los
+  cortos solo quedan 90 cm entre la órbita y la pared). Con ella cargada, la sala de
+  cajas no se construye y los marcadores se cuelgan de sus paredes planas.
+- **Búferes estáticos** (`Motor.subirEstaticas`): medido, con la sala dentro cada
+  fotograma subía 6,34 MB; lo que no cambia se sube una vez y baja a 0,94.
+
+Tres guardianes sobre la pieza real (`piezas3d.test.ts`): nada de pie a menos de 4,4 m
+del sujeto por debajo de 3,1 m, nada bajo el suelo, sala de 16 × 11 × 3,8.
+
 ## Qué NO se hace
 
 - No se carga glTF ni piezas de fuera todavía. Eso es el paso siguiente y necesita

@@ -437,6 +437,8 @@ export function VisorPatron({
     let alRecuperarContexto: (() => void) | undefined
     let dejarDeCargarTexturas: (() => void) | undefined
     let dejarDeCargarPiezas: (() => void) | undefined
+    /** Si las piezas están ahora mismo en los búferes estáticos de ESTE motor. */
+    let estaticasSubidas = false
 
     // El motor se carga aparte para no meter WebGL en el paquete inicial: la
     // mayoría de las sesiones no abren el visor ni una vez.
@@ -457,8 +459,9 @@ export function VisorPatron({
         alRecuperarContexto = () => {
           setError(null)
           try {
-            // Al perder el contexto la tarjeta olvida todo, también lo estático.
-            if (piezasCache.length > 0) motor.subirEstaticas(piezasCache)
+            // Al perder el contexto la tarjeta olvida todo, también lo estático:
+            // `construir()` lo vuelve a subir porque se le dice que ya no está.
+            estaticasSubidas = false
             construir()
             pintar()
           } catch {
@@ -575,6 +578,16 @@ export function VisorPatron({
             }
             if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
           }
+          // EL INTERRUPTOR «sala» APAGA TAMBIÉN LO ESTÁTICO. El testigo mide la sala
+          // apagándola y contando qué píxeles cambian; con la sala en sus propios búferes
+          // el interruptor de arriba ya no la tocaba, y el acta dio «sala: 0 px» con la
+          // sala entera en pantalla (2026-09-05). Se sube o se vacía solo cuando cambia:
+          // al llegar las piezas, al apagar o encender la capa, y al recuperar el contexto.
+          const quiereEstaticas = !!d && !sin.has('sala') && piezasCache.length > 0
+          if (quiereEstaticas !== estaticasSubidas) {
+            motor.subirEstaticas(quiereEstaticas ? piezasCache : [])
+            estaticasSubidas = quiereEstaticas
+          }
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
           // de ESTA fase, así que si el sujeto baja, la barra baja con él. Un implemento
           // que no siguiera al cuerpo sería una calcomanía, y se notaría al primer ciclo.
@@ -690,16 +703,17 @@ export function VisorPatron({
             .join(',')
           pintar()
         })
-        // LAS PIEZAS. Si ya están en la caché —el visor se montó antes— se suben a los
-        // búferes estáticos de ESTE motor, que es nuevo; si no, se piden y cada una que
-        // llega se suma y se reconstruye: la sala aparece en el fotograma siguiente.
-        if (piezasCache.length > 0) motor.subirEstaticas(piezasCache)
+        // LAS PIEZAS. Si ya están en la caché —el visor se montó antes— `construir()` las
+        // sube a los búferes estáticos de ESTE motor, que es nuevo; si no, se piden y
+        // cada una que llega se suma y se reconstruye: la sala aparece en el fotograma
+        // siguiente.
         if (piezasCache.length === 0) {
           dejarDeCargarPiezas = cargarPiezas((nombre, mallas) => {
             if (!vivo) return
             piezasCache = [...piezasCache, ...mallas]
             piezasCargadas.add(nombre)
-            motor.subirEstaticas(piezasCache)
+            // La caché cambió: lo que haya en la tarjeta ya no es lo que hay que dibujar.
+            estaticasSubidas = false
             lienzo.dataset.piezas = [...(lienzo.dataset.piezas?.split(',') ?? []), nombre]
               .filter(Boolean)
               .join(',')
