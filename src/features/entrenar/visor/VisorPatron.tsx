@@ -18,6 +18,7 @@ import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laborator
 import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
+import { cargarPiezas } from './piezas'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -126,6 +127,13 @@ function suelo(): Malla {
   }
   return sueloCache
 }
+
+/**
+ * LAS PIEZAS HECHAS EN BLENDER, ya leídas y colocadas. Se cargan una vez por vida de la
+ * app: leer treinta mil vértices cada vez que el visor se monta sería pagar dos veces lo
+ * mismo. Vacío hasta que llegan; el salón se abre igual y las piezas aparecen.
+ */
+let piezasCache: Malla[] = []
 
 /**
  * Los implementos se cachean POR EL EJERCICIO, pero se CONSTRUYEN cada fotograma.
@@ -425,6 +433,7 @@ export function VisorPatron({
     let alPerderContexto: ((e: Event) => void) | undefined
     let alRecuperarContexto: (() => void) | undefined
     let dejarDeCargarTexturas: (() => void) | undefined
+    let dejarDeCargarPiezas: (() => void) | undefined
 
     // El motor se carga aparte para no meter WebGL en el paquete inicial: la
     // mayoría de las sesiones no abren el visor ni una vez.
@@ -550,7 +559,7 @@ export function VisorPatron({
           if (d) {
             // El suelo va con la sala: es sala, y el testigo que apaga «sala» para medir
             // tiene que apagar también lo que hay debajo de los pies.
-            if (!sin.has('sala')) partes.push(suelo(), sala(d, patron.camara.azimut))
+            if (!sin.has('sala')) partes.push(suelo(), sala(d, patron.camara.azimut), ...piezasCache)
             if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
           }
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
@@ -668,6 +677,19 @@ export function VisorPatron({
             .join(',')
           pintar()
         })
+        // LAS PIEZAS, si aún no están. Cada una que llega se suma a la caché y se
+        // reconstruye: el rack aparece en la pared en el fotograma siguiente.
+        if (piezasCache.length === 0) {
+          dejarDeCargarPiezas = cargarPiezas((nombre, mallas) => {
+            if (!vivo) return
+            piezasCache = [...piezasCache, ...mallas]
+            lienzo.dataset.piezas = [...(lienzo.dataset.piezas?.split(',') ?? []), nombre]
+              .filter(Boolean)
+              .join(',')
+            construir()
+            pintar()
+          })
+        }
 
         const mostrarEsferaAl = (v: boolean) => {
           mostrarEsfera = v
@@ -811,6 +833,7 @@ export function VisorPatron({
       cancelado = true
       vivo = false
       dejarDeCargarTexturas?.()
+      dejarDeCargarPiezas?.()
       cancelAnimationFrame(cuadro)
       window.removeEventListener('resize', alRedimensionar)
       observador?.disconnect()

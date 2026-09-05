@@ -13,9 +13,12 @@
  * abrirse con conexión mala, que es la del gimnasio.
  */
 
+import { TEXTURAS_DE_LAS_PIEZAS } from './piezas'
+
 /** Nombre → ruta pública. Las rutas son de `public/texturas/`. */
 export const TEXTURAS_DEL_SALON = {
   'suelo-goma': '/texturas/suelo-goma.jpg',
+  ...TEXTURAS_DE_LAS_PIEZAS,
 } as const
 
 export type NombreDeTextura = keyof typeof TEXTURAS_DEL_SALON

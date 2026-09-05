@@ -1,0 +1,116 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import { colocar, escribirPieza, leerPieza, type PartePieza } from './piezas3d'
+
+/**
+ * EL FORMATO `.pieza`, probado por los dos lados.
+ *
+ * Ida y vuelta: lo que escribe `escribirPieza` lo lee `leerPieza` byte a byte. Y la
+ * pieza REAL que exportó Blender —`public/piezas/rack-sentadillas.pieza`— se lee con las
+ * cuentas que se esperan de un rack: dos texturas, ocho mil y pico vértices, apoyado en
+ * el suelo y de dos metros y medio. Si el exportador de Python y este lector se separan
+ * en un byte, la segunda prueba lo dice.
+ */
+
+function parte(textura: string | null, triangulos: number, semilla: number): PartePieza {
+  const nV = triangulos * 3
+  const posicion = new Float32Array(nV * 3)
+  const normal = new Float32Array(nV * 3)
+  const color = new Float32Array(nV * 3)
+  const uv = new Float32Array(nV * 2)
+  const indice = new Uint32Array(triangulos * 3)
+  for (let v = 0; v < nV; v++) {
+    for (let k = 0; k < 3; k++) {
+      posicion[v * 3 + k] = Math.sin(semilla + v * 0.3 + k)
+      normal[v * 3 + k] = Math.cos(semilla + v * 0.7 + k)
+      color[v * 3 + k] = ((semilla + v + k) % 7) / 7
+    }
+    uv[v * 2] = (v % 5) / 5
+    uv[v * 2 + 1] = (v % 3) / 3
+  }
+  for (let i = 0; i < indice.length; i++) indice[i] = i
+  return { textura, posicion, normal, color, uv, indice }
+}
+
+describe('el formato .pieza', () => {
+  it('ida y vuelta: lo escrito se lee igual, con su textura', () => {
+    const partes = [parte('rack-acero', 4, 1), parte(null, 2, 2), parte('x', 1, 3)]
+    const mallas = leerPieza(escribirPieza(partes))
+    expect(mallas).toHaveLength(3)
+    mallas.forEach((m, i) => {
+      const p = partes[i]
+      expect(m.textura).toBe(p.textura)
+      expect(m.vertices).toBe(p.posicion.length / 3)
+      expect(Array.from(m.posicion)).toEqual(Array.from(p.posicion))
+      expect(Array.from(m.normal)).toEqual(Array.from(p.normal))
+      expect(Array.from(m.color)).toEqual(Array.from(p.color))
+      expect(Array.from(m.uv)).toEqual(Array.from(p.uv))
+      expect(Array.from(m.indice)).toEqual(Array.from(p.indice))
+    })
+  })
+
+  it('los arrays quedan alineados a 4 bytes sea cual sea el largo del nombre', () => {
+    // Un nombre de 1, 2, 3 y 5 letras: si el relleno estuviera mal, `Float32Array`
+    // sobre un desplazamiento impar lanza, o lee basura.
+    for (const nombre of ['a', 'ab', 'abc', 'abcde']) {
+      const m = leerPieza(escribirPieza([parte(nombre, 2, 9), parte('otra', 1, 4)]))
+      expect(m[0].textura).toBe(nombre)
+      expect(m[1].textura).toBe('otra')
+      expect(m[1].vertices).toBe(3)
+    }
+  })
+
+  it('rechaza lo que no es una pieza en vez de dibujarlo a medias', () => {
+    const basura = new Uint8Array([80, 78, 71, 13, 0, 0, 0, 0]).buffer
+    expect(() => leerPieza(basura)).toThrow(/no es una pieza/)
+  })
+
+  it('`colocar` gira y traslada las posiciones, gira las normales, y no toca el original', () => {
+    const [m] = leerPieza(escribirPieza([parte('t', 1, 5)]))
+    const antes = Array.from(m.posicion)
+    const [c] = colocar([m], { x: 10, z: 0, giroY: Math.PI / 2 })
+    // Un cuarto de vuelta lleva +Z a +X: la componente z de la posición pasa a x.
+    expect(c.posicion[0]).toBeCloseTo(antes[2] + 10, 5)
+    expect(c.posicion[1]).toBeCloseTo(antes[1], 5)
+    expect(c.normal[0]).toBeCloseTo(m.normal[2], 5)
+    expect(c.textura).toBe('t')
+    expect(Array.from(m.posicion)).toEqual(antes)
+  })
+})
+
+describe('la pieza real del rack', () => {
+  const bytes = readFileSync('public/piezas/rack-sentadillas.pieza')
+  const mallas = leerPieza(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+
+  it('trae dos partes, una por imagen, y las imágenes tienen nombre', () => {
+    expect(mallas.map((m) => m.textura).sort()).toEqual(['rack-acero', 'rack-barra'])
+  })
+
+  it('tiene los vértices de un rack, todos finitos, apoyado en el suelo y de 2,5 m', () => {
+    const total = mallas.reduce((n, m) => n + m.vertices, 0)
+    expect(total).toBeGreaterThan(8000)
+    expect(total).toBeLessThan(40000)
+    let yMin = Infinity
+    let yMax = -Infinity
+    for (const m of mallas) {
+      expect(m.posicion.every(Number.isFinite)).toBe(true)
+      expect(m.normal.every(Number.isFinite)).toBe(true)
+      for (let i = 1; i < m.posicion.length; i += 3) {
+        yMin = Math.min(yMin, m.posicion[i])
+        yMax = Math.max(yMax, m.posicion[i])
+      }
+    }
+    expect(yMin).toBeCloseTo(0, 2)
+    expect(yMax).toBeGreaterThan(2.3)
+    expect(yMax).toBeLessThan(2.7)
+  })
+
+  it('las coordenadas de textura caben en la imagen', () => {
+    for (const m of mallas) {
+      for (let i = 0; i < m.uv.length; i++) {
+        expect(m.uv[i]).toBeGreaterThan(-0.05)
+        expect(m.uv[i]).toBeLessThan(1.05)
+      }
+    }
+  })
+})
