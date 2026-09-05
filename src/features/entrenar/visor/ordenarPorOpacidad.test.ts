@@ -67,3 +67,60 @@ describe('ordenarPorOpacidad', () => {
     expect(new Malla(8).encima).toBe(false)
   })
 })
+
+describe('los tramos por textura', () => {
+  // El motor cambia de textura entre un `drawElements` y el siguiente, así que las
+  // mallas que comparten textura tienen que quedar CONTIGUAS dentro de su tanda. Y sin
+  // texturas tiene que salir lo de siempre: un tramo por tanda, nada que cambiar.
+  const conTextura = (t: string | null, alfa: number, triangulos: number) => {
+    const m = malla(alfa, triangulos)
+    m.textura = t
+    return m
+  }
+
+  it('sin texturas hay un tramo por tanda y cubre todos los índices', () => {
+    const cuerpo = malla(1, 3)
+    const fantasma = malla(0.4, 2)
+    const { tramos } = ordenarPorOpacidad([cuerpo, fantasma])
+    expect(tramos).toEqual([
+      { textura: null, desde: 0, cuantos: 9, tanda: 'opaca' },
+      { textura: null, desde: 9, cuantos: 6, tanda: 'translucida' },
+    ])
+  })
+
+  it('deja contiguas las mallas que comparten textura, sin sacarlas de su tanda', () => {
+    const suelo = conTextura('suelo-goma', 1, 2)
+    const cuerpo = conTextura(null, 1, 3)
+    const pared = conTextura('hormigon', 1, 1)
+    const suelo2 = conTextura('suelo-goma', 1, 1)
+    const fantasma = conTextura(null, 0.4, 2)
+    const { ordenadas, tramos, indicesOpacos } = ordenarPorOpacidad([suelo, cuerpo, pared, suelo2, fantasma])
+    // Las sin textura primero —son la mayoría y no cambian de estado—, después cada
+    // textura en su orden de llegada, y las translúcidas siguen detrás de todo lo opaco.
+    expect(ordenadas).toEqual([cuerpo, suelo, suelo2, pared, fantasma])
+    expect(indicesOpacos).toBe(21)
+    expect(tramos).toEqual([
+      { textura: null, desde: 0, cuantos: 9, tanda: 'opaca' },
+      { textura: 'suelo-goma', desde: 9, cuantos: 9, tanda: 'opaca' },
+      { textura: 'hormigon', desde: 18, cuantos: 3, tanda: 'opaca' },
+      { textura: null, desde: 21, cuantos: 6, tanda: 'translucida' },
+    ])
+  })
+
+  it('los tramos no se solapan ni dejan hueco', () => {
+    const mallas = [
+      conTextura('a', 1, 2), conTextura(null, 1, 1), conTextura('b', 0.5, 3),
+      conTextura('a', 0.5, 1), conTextura(null, 1, 4),
+    ]
+    mallas[4].encima = true
+    const { tramos } = ordenarPorOpacidad(mallas)
+    let cursor = 0
+    for (const t of tramos) {
+      expect(t.desde).toBe(cursor)
+      expect(t.cuantos).toBeGreaterThan(0)
+      cursor += t.cuantos
+    }
+    expect(cursor).toBe(mallas.reduce((n, m) => n + m.indice.length, 0))
+    expect(tramos[tramos.length - 1].tanda).toBe('encima')
+  })
+})

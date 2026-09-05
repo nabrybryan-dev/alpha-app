@@ -38,6 +38,7 @@ function comoEraAntes(mallas: Malla[]) {
   const col: number[] = []
   const hueso: number[] = []
   const fibra: number[] = []
+  const uv: number[] = []
   const idx: number[] = []
   let base = 0
   const meter = (destino: number[], origen: Float32Array) => {
@@ -49,6 +50,7 @@ function comoEraAntes(mallas: Malla[]) {
     meter(col, m.color)
     meter(hueso, m.hueso)
     meter(fibra, m.fibra)
+    meter(uv, m.uv)
     for (const i of m.indice) idx.push(i + base)
     base += m.vertices
   }
@@ -59,6 +61,7 @@ function comoEraAntes(mallas: Malla[]) {
     col: new Float32Array(col),
     hueso: new Float32Array(hueso),
     fibra: new Float32Array(fibra),
+    uv: new Float32Array(uv),
     idx: grande ? new Uint32Array(idx) : new Uint16Array(idx),
   }
 }
@@ -111,12 +114,25 @@ function glDeMentira() {
     // La extensión de índices de 32 bits se declara disponible: es lo que hace
     // que el camino de más de 65.535 vértices se pueda probar de verdad.
     getExtension: () => ({}),
+    // Las texturas. El constructor crea una blanca de 1×1 para las mallas que no
+    // llevan ninguna; aquí no se mira nada de eso, pero sin los métodos no se construye.
+    createTexture: () => ({}),
+    bindTexture: () => {},
+    texImage2D: () => {},
+    texParameteri: () => {},
+    activeTexture: () => {},
+    generateMipmap: () => {},
+    pixelStorei: () => {},
 
     createBuffer: () => {
       const b = {}
-      // Los búferes se crean en el orden de `['pos','nrm','col','hueso','fibra','idx']`,
-      // que es como el constructor los pide.
-      const orden = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'idx']
+      // Los búferes se crean en el orden en que el constructor los pide. OJO: hasta el
+      // 2026-09-05 esta lista no tenía `alfa` y todo pasaba de casualidad —el búfer de
+      // alfa se llamaba `idx` y el de índices `extra6`, y como los índices se detectan
+      // por su DESTINO y no por su nombre, el segundo pisaba al primero en el sitio
+      // correcto—. Ahora la lista es la real, y si el constructor cambia el orden esta
+      // prueba lo dice en vez de seguir en verde por accidente.
+      const orden = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx']
       nombres.set(b, orden[nombres.size] ?? `extra${nombres.size}`)
       return b
     },
@@ -168,6 +184,9 @@ function mallaDePrueba(semilla: number, triangulos: number): Malla {
         [0.2 + (semilla % 4) * 0.1, 0.5, 0.9],
         semilla % 5,
         f * 0.013,
+        // Coordenadas de textura distintas por vértice: si `subir()` las
+        // desplazara o las olvidara, la comparación byte a byte lo ve.
+        Math.cos(f * 0.07), Math.sin(f * 0.19),
       )
     }
     m.triangulo(base, base + 1, base + 2)
@@ -177,7 +196,7 @@ function mallaDePrueba(semilla: number, triangulos: number): Malla {
 }
 
 function comparar(subidas: Map<string, ArrayBufferView>, esperado: ReturnType<typeof comoEraAntes>) {
-  for (const clave of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'idx'] as const) {
+  for (const clave of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'uv', 'idx'] as const) {
     const dio = subidas.get(clave)
     expect(dio, `no se subió el búfer «${clave}»`).toBeDefined()
     expect(Array.from(dio as unknown as ArrayLike<number>), `el búfer «${clave}» no coincide`).toEqual(

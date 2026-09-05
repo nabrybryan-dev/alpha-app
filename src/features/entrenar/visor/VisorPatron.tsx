@@ -16,6 +16,8 @@ import {
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
+import { construirSuelo } from '../escena/suelo'
+import { cargarTexturas } from './texturas'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -108,6 +110,21 @@ function sala(datos: DatosDeSerie, azimutDeEntrada: number): Malla {
     salaCache = { clave, malla }
   }
   return salaCache.malla
+}
+
+/**
+ * EL SUELO no cambia nunca —ni con la serie, ni con el ejercicio, ni con el ángulo—, así
+ * que se construye una vez para toda la vida de la app. Lleva su imagen: es la primera
+ * malla del salón que se estampa, y la que hace que la sala tenga goma bajo los pies.
+ */
+let sueloCache: Malla | null = null
+
+function suelo(): Malla {
+  if (!sueloCache) {
+    sueloCache = new Malla(128)
+    construirSuelo(sueloCache, SALA.radio)
+  }
+  return sueloCache
 }
 
 /**
@@ -407,6 +424,7 @@ export function VisorPatron({
     let observador: MutationObserver | undefined
     let alPerderContexto: ((e: Event) => void) | undefined
     let alRecuperarContexto: (() => void) | undefined
+    let dejarDeCargarTexturas: (() => void) | undefined
 
     // El motor se carga aparte para no meter WebGL en el paquete inicial: la
     // mayoría de las sesiones no abren el visor ni una vez.
@@ -530,7 +548,9 @@ export function VisorPatron({
           }
           const d = estado.current.datos
           if (d) {
-            if (!sin.has('sala')) partes.push(sala(d, patron.camara.azimut))
+            // El suelo va con la sala: es sala, y el testigo que apaga «sala» para medir
+            // tiene que apagar también lo que hay debajo de los pies.
+            if (!sin.has('sala')) partes.push(suelo(), sala(d, patron.camara.azimut))
             if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
           }
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
@@ -634,6 +654,13 @@ export function VisorPatron({
             conEscenario && patron.apoyo !== 'ninguno',
           )
         }
+
+        // LAS IMÁGENES llegan cuando llegan. Cada una que entra vuelve a pintar: el suelo
+        // pasa de blanco a goma en el primer fotograma que la tiene, sin esperar a que el
+        // asesorado toque nada. Se cancela al desmontar para no pintar sobre un motor muerto.
+        dejarDeCargarTexturas = cargarTexturas(motor, () => {
+          if (vivo) pintar()
+        })
 
         const mostrarEsferaAl = (v: boolean) => {
           mostrarEsfera = v
@@ -776,6 +803,7 @@ export function VisorPatron({
     return () => {
       cancelado = true
       vivo = false
+      dejarDeCargarTexturas?.()
       cancelAnimationFrame(cuadro)
       window.removeEventListener('resize', alRedimensionar)
       observador?.disconnect()

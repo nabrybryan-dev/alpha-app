@@ -34,6 +34,7 @@ attribute vec3 a_col;
 attribute float a_hueso;
 attribute float a_fibra;
 attribute float a_alfa;
+attribute vec2 a_uv;
 uniform mat4 u_huesos[${MAX_HUESOS}];
 uniform mat4 u_vista;
 uniform mat4 u_proyeccion;
@@ -42,6 +43,7 @@ varying vec3 v_col;
 varying vec3 v_mundo;
 varying float v_fibra;
 varying float v_alfa;
+varying vec2 v_uv;
 void main() {
   // El índice llega como float porque WebGL1 no tiene atributos enteros, y el
   // array de uniforms no admite indexación dinámica: de ahí el bucle.
@@ -54,6 +56,7 @@ void main() {
   v_col = a_col;
   v_fibra = a_fibra;
   v_alfa = a_alfa;
+  v_uv = a_uv;
   gl_Position = u_proyeccion * u_vista * p;
 }`
 
@@ -65,8 +68,13 @@ varying vec3 v_col;
 varying vec3 v_mundo;
 varying float v_fibra;
 varying float v_alfa;
+varying vec2 v_uv;
 uniform vec3 u_ojo;
 uniform float u_suelo;
+// La imagen estampada sobre la malla, y si esta malla lleva alguna. Cuando no lleva, la
+// textura enlazada es un píxel blanco y u_conTextura vale 0: el color queda tal cual.
+uniform sampler2D u_textura;
+uniform float u_conTextura;
 void main() {
   vec3 N = normalize(v_nrm);
   vec3 V = normalize(u_ojo - v_mundo);
@@ -114,7 +122,11 @@ void main() {
   float contacto = clamp(v_mundo.y / 0.26, 0.0, 1.0);
   ambiente *= mix(1.0, 0.34 + 0.66 * contacto, u_suelo);
 
-  vec3 base = aLineal(v_col);
+  // La superficie: el color del vértice POR la muestra de la imagen. Las dos se pasan a
+  // lineal antes de multiplicar, que es donde la luz suma bien; una imagen JPEG viene en
+  // gamma, como los colores de los vértices.
+  vec3 muestra = aLineal(texture2D(u_textura, v_uv).rgb);
+  vec3 base = aLineal(v_col) * mix(vec3(1.0), muestra, u_conTextura);
   vec3 c = base * (ambiente + d1 * 0.85 + envuelve)
          + base * d2 * vec3(0.72, 0.82, 1.0);
   c += vec3(1.0, 0.97, 0.92) * brillo;
@@ -161,7 +173,9 @@ export class Motor {
     this.programa = p
 
     this.buffers = {}
-    for (const n of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'idx']) {
+    // El orden es un contrato: `motor.subir.test.ts` nombra los búferes por el orden en
+    // que se crean. Si se cambia aquí, se cambia allí.
+    for (const n of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx']) {
       const b = gl.createBuffer()
       if (!b) throw new Error('no se pudo crear el buffer')
       this.buffers[n] = b
@@ -176,6 +190,68 @@ export class Motor {
     // escribirla. Al revés, un fantasma dibujado antes taparía al sujeto con su alfa.
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+    this.blanca = this.texturaDeUnPixelBlanco()
+  }
+
+  /**
+   * LA TEXTURA DE LAS MALLAS SIN IMAGEN: un píxel blanco.
+   *
+   * El shader siempre muestrea `u_textura`, lleve la malla imagen o no: un `if` por
+   * fragmento cuesta más que una lectura de un píxel, y así el programa es uno solo. Lo
+   * que apaga la imagen es `u_conTextura`, no la textura enlazada; este píxel existe para
+   * que enlazar «nada» sea enlazar algo válido, que WebGL 1 exige.
+   */
+  private texturaDeUnPixelBlanco(): WebGLTexture {
+    const gl = this.gl
+    const t = gl.createTexture()
+    if (!t) throw new Error('no se pudo crear la textura')
+    gl.bindTexture(gl.TEXTURE_2D, t)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]))
+    return t
+  }
+
+  /**
+   * CARGA UNA IMAGEN Y LA DEJA LISTA PARA ESTAMPAR, por su nombre.
+   *
+   * Una malla la pide poniendo el mismo nombre en `Malla.textura`. Si la imagen aún no
+   * ha llegado cuando se dibuja, la malla sale en blanco y sin queja: es el caso normal
+   * los primeros milisegundos del salón, y la goma del suelo aparece cuando aparece.
+   *
+   * Con lados potencia de dos la imagen se REPITE y lleva mipmaps —un suelo de 14 m con
+   * una baldosa de medio metro necesita las dos cosas; sin mipmaps, de lejos hierve—.
+   * Con otro tamaño WebGL 1 no admite ni una cosa ni la otra, y se pinza al borde. Las
+   * imágenes de `public/texturas/` son de 1024 a propósito.
+   */
+  cargarTextura(nombre: string, imagen: HTMLImageElement | HTMLCanvasElement | ImageBitmap): void {
+    const gl = this.gl
+    const t = gl.createTexture()
+    if (!t) throw new Error('no se pudo crear la textura')
+    gl.bindTexture(gl.TEXTURE_2D, t)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, imagen)
+    const ancho = 'naturalWidth' in imagen ? imagen.naturalWidth : imagen.width
+    const alto = 'naturalHeight' in imagen ? imagen.naturalHeight : imagen.height
+    const potenciaDeDos = (n: number) => n > 0 && (n & (n - 1)) === 0
+    if (potenciaDeDos(ancho) && potenciaDeDos(alto)) {
+      gl.generateMipmap(gl.TEXTURE_2D)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+      // Filtrado anisotrópico si lo hay: es lo que mantiene nítidas las juntas del suelo
+      // vistas de canto, que es como se ve casi todo el suelo desde la altura de los ojos.
+      const ext = gl.getExtension('EXT_texture_filter_anisotropic')
+      if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, 4)
+    } else {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    }
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    this.texturas.set(nombre, t)
+  }
+
+  /** Si la imagen con ese nombre ya está cargada. */
+  tieneTextura(nombre: string): boolean {
+    return this.texturas.has(nombre)
   }
 
   ajustarTamano(): number {
@@ -231,9 +307,8 @@ export class Motor {
     // LAS OPACAS DELANTE Y LAS TRANSLÚCIDAS DETRÁS, en un orden que `dibujar()` pueda
     // partir en dos: es lo que hace que la mezcla alfa sea correcta sin ordenar
     // triángulos. La función es pura y se prueba sin WebGL.
-    const { ordenadas: mallas, indicesOpacos, indicesEncima } = ordenarPorOpacidad(entrantes)
-    this.indicesOpacos = indicesOpacos
-    this.indicesEncima = indicesEncima
+    const { ordenadas: mallas, tramos } = ordenarPorOpacidad(entrantes)
+    this.tramos = tramos
 
     // PRIMERA PASADA: cuánto hay. El conteo sale de la misma propiedad que
     // luego se escribe, que es la única forma de que no se quede corto.
@@ -260,6 +335,7 @@ export class Motor {
       c.col.set(m.color, v * 3)
       c.hueso.set(m.hueso, v)
       c.fibra.set(m.fibra, v)
+      c.uv.set(m.uv, v * 2)
       // El alfa es de la malla entera: se rellena, no se copia.
       c.alfa.fill(m.alfa, v, v + m.vertices)
       // Los índices NO se copian, se desplazan: cada malla los trae relativos a
@@ -284,6 +360,7 @@ export class Motor {
     poner(this.buffers.col, c.col, verts * 3)
     poner(this.buffers.hueso, c.hueso, verts)
     poner(this.buffers.fibra, c.fibra, verts)
+    poner(this.buffers.uv, c.uv, verts * 2)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, c.idx.subarray(0, indices), gl.DYNAMIC_DRAW)
@@ -305,6 +382,7 @@ export class Motor {
     hueso: Float32Array
     fibra: Float32Array
     alfa: Float32Array
+    uv: Float32Array
     idx: Uint16Array | Uint32Array
   } | null = null
 
@@ -326,17 +404,19 @@ export class Motor {
       hueso: new Float32Array(v),
       fibra: new Float32Array(v),
       alfa: new Float32Array(v),
+      uv: new Float32Array(v * 2),
       idx: grande ? new Uint32Array(n) : new Uint16Array(n),
     }
     this.cache = nuevo
     return nuevo
   }
 
-
-  /** Cuántos índices son de mallas opacas. Lo pone `subir()`; lo parte `dibujar()`. */
-  private indicesOpacos = 0
-  /** Cuántos índices, al final del búfer, se dibujan ENCIMA sin profundidad. */
-  private indicesEncima = 0
+  /** Los tramos de dibujo, por tanda y por textura. Los pone `subir()`; los recorre `dibujar()`. */
+  private tramos: TramoDeDibujo[] = []
+  /** Las imágenes cargadas, por el nombre con el que las piden las mallas. */
+  private texturas = new Map<string, WebGLTexture>()
+  /** La textura de las mallas que no llevan imagen: un píxel blanco. */
+  private blanca: WebGLTexture
 
   private atributo(nombre: string, buffer: WebGLBuffer, tam: number): void {
     const gl = this.gl
@@ -370,6 +450,7 @@ export class Motor {
     this.atributo('a_col', this.buffers.col, 3)
     this.atributo('a_hueso', this.buffers.hueso, 1)
     this.atributo('a_alfa', this.buffers.alfa, 1)
+    this.atributo('a_uv', this.buffers.uv, 2)
 
     const plano = new Float32Array(MAX_HUESOS * 16)
     for (let i = 0; i < Math.min(matrices.length, MAX_HUESOS); i++) {
@@ -381,34 +462,87 @@ export class Motor {
     gl.uniformMatrix4fv(u('u_proyeccion'), false, new Float32Array(proyeccion))
     gl.uniform1f(u('u_suelo'), haySuelo ? 1 : 0)
     gl.uniform3fv(u('u_ojo'), new Float32Array(ojo))
+    gl.activeTexture(gl.TEXTURE0)
+    gl.uniform1i(u('u_textura'), 0)
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
-    // DOS TANDAS. Lo opaco con profundidad, como siempre. Lo translúcido después y SIN
-    // escribir profundidad: si el fantasma escribiera la suya, la parte del sujeto que
-    // queda detrás de él desaparecería en vez de verse a través. El desplazamiento del
-    // segundo `drawElements` va en BYTES, y el tamaño del índice lo decide `subir()`.
+    // POR TRAMOS. Cada tramo es una tanda —opaca, translúcida, encima— y una textura, y
+    // entre uno y otro solo cambia lo que cambia. Sin texturas hay un tramo por tanda,
+    // que es exactamente lo que había antes:
+    //
+    // - lo OPACO con profundidad, como siempre;
+    // - lo TRANSLÚCIDO después y SIN escribir profundidad: si el fantasma escribiera la
+    //   suya, la parte del sujeto que queda detrás de él desaparecería en vez de verse a
+    //   través;
+    // - lo que va ENCIMA del cuerpo —el brazo de momento, el arco del par— sin prueba de
+    //   profundidad, para que se lea entero aunque la carne lo tape. Va lo último para
+    //   no dejar su profundidad escrita.
+    //
+    // El desplazamiento de `drawElements` va en BYTES, y el tamaño del índice lo decide
+    // `subir()`. Al salir, la profundidad queda como entró: el fotograma siguiente empieza
+    // como siempre.
     const bytes = this.tipoIndice === gl.UNSIGNED_INT ? 4 : 2
-    const opacos = Math.min(this.indicesOpacos, this.indices)
-    gl.drawElements(gl.TRIANGLES, opacos, this.tipoIndice, 0)
-    const encima = Math.min(this.indicesEncima, this.indices - opacos)
-    const translucidos = this.indices - opacos - encima
-    if (translucidos > 0) {
-      gl.depthMask(false)
-      gl.drawElements(gl.TRIANGLES, translucidos, this.tipoIndice, opacos * bytes)
-      gl.depthMask(true)
+    let tandaActual: TandaDeDibujo = 'opaca'
+    for (const t of this.tramos) {
+      const cuantos = Math.min(t.cuantos, this.indices - t.desde)
+      if (cuantos <= 0) continue
+      if (t.tanda !== tandaActual) {
+        tandaActual = t.tanda
+        if (t.tanda === 'translucida') gl.depthMask(false)
+        if (t.tanda === 'encima') {
+          gl.disable(gl.DEPTH_TEST)
+          gl.depthMask(false)
+        }
+      }
+      const textura = t.textura === null ? undefined : this.texturas.get(t.textura)
+      gl.bindTexture(gl.TEXTURE_2D, textura ?? this.blanca)
+      gl.uniform1f(u('u_conTextura'), textura ? 1 : 0)
+      gl.drawElements(gl.TRIANGLES, cuantos, this.tipoIndice, t.desde * bytes)
     }
-    // TERCERA TANDA: lo que va ENCIMA del cuerpo —el brazo de momento, el arco del par—
-    // sin prueba de profundidad, para que se lea entero aunque la carne lo tape. Va la
-    // última para no dejar su profundidad escrita, y con la prueba otra vez encendida al
-    // salir: el fotograma siguiente empieza como siempre.
-    if (encima > 0) {
-      gl.disable(gl.DEPTH_TEST)
-      gl.depthMask(false)
-      gl.drawElements(gl.TRIANGLES, encima, this.tipoIndice, (opacos + translucidos) * bytes)
+    if (tandaActual !== 'opaca') {
       gl.depthMask(true)
       gl.enable(gl.DEPTH_TEST)
     }
   }
+}
+
+/** Las tres tandas de dibujo, en el orden en que se pintan. */
+export type TandaDeDibujo = 'opaca' | 'translucida' | 'encima'
+
+/** Un `drawElements`: qué tanda, qué textura, desde qué índice y cuántos. */
+export interface TramoDeDibujo {
+  textura: string | null
+  desde: number
+  cuantos: number
+  tanda: TandaDeDibujo
+}
+
+/**
+ * Deja contiguas las mallas que comparten textura, sin alterar nada más.
+ *
+ * Las que no llevan imagen van primero —son la carne, el hueso, las guías: casi todo—
+ * y después cada textura en el orden en que apareció. Estable dentro de cada grupo.
+ */
+function agruparPorTextura(mallas: Malla[]): Malla[] {
+  const grupos = new Map<string | null, Malla[]>([[null, []]])
+  for (const m of mallas) {
+    const g = grupos.get(m.textura)
+    if (g) g.push(m)
+    else grupos.set(m.textura, [m])
+  }
+  return [...grupos.values()].flat()
+}
+
+/** Los tramos de una tanda: uno por cada textura distinta, en el orden de las mallas. */
+function tramosDe(mallas: Malla[], tanda: TandaDeDibujo, desde: number): TramoDeDibujo[] {
+  const tramos: TramoDeDibujo[] = []
+  for (const m of mallas) {
+    const ultimo = tramos[tramos.length - 1]
+    if (ultimo && ultimo.textura === m.textura) ultimo.cuantos += m.indice.length
+    else tramos.push({ textura: m.textura, desde, cuantos: m.indice.length, tanda })
+    desde += m.indice.length
+  }
+  return tramos.filter((t) => t.cuantos > 0)
 }
 
 /**
@@ -564,14 +698,27 @@ export function ordenarPorOpacidad(mallas: Malla[]): {
   indicesOpacos: number
   /** Cuántos índices, al FINAL, son de mallas `encima`: se dibujan sin profundidad. */
   indicesEncima: number
+  /**
+   * Los `drawElements`, en orden. Dentro de cada tanda, las mallas que comparten
+   * textura van seguidas y salen en un solo tramo: es lo que permite cambiar de imagen
+   * entre tramo y tramo sin partir la tanda en mil dibujos.
+   */
+  tramos: TramoDeDibujo[]
 } {
-  const opacas = mallas.filter((m) => !m.encima && m.alfa >= 1)
-  const translucidas = mallas.filter((m) => !m.encima && m.alfa < 1)
-  const encima = mallas.filter((m) => m.encima)
+  const opacas = agruparPorTextura(mallas.filter((m) => !m.encima && m.alfa >= 1))
+  const translucidas = agruparPorTextura(mallas.filter((m) => !m.encima && m.alfa < 1))
+  const encima = agruparPorTextura(mallas.filter((m) => m.encima))
   const cuenta = (xs: Malla[]) => xs.reduce((n, m) => n + m.indice.length, 0)
+  const indicesOpacos = cuenta(opacas)
+  const indicesTranslucidos = cuenta(translucidas)
   return {
     ordenadas: [...opacas, ...translucidas, ...encima],
-    indicesOpacos: cuenta(opacas),
+    indicesOpacos,
     indicesEncima: cuenta(encima),
+    tramos: [
+      ...tramosDe(opacas, 'opaca', 0),
+      ...tramosDe(translucidas, 'translucida', indicesOpacos),
+      ...tramosDe(encima, 'encima', indicesOpacos + indicesTranslucidos),
+    ],
   }
 }
