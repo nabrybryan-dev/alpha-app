@@ -434,6 +434,17 @@ export class Orbita {
    * pellizco ya era de dos dedos, así que la cámara entera cae en la misma mano.
    */
   arrastreConUnDedo = true
+  /**
+   * CUÁNTO SE RETIRA LA CÁMARA, como múltiplo de su distancia: 1 es donde está, 1,136 es
+   * la sala «al 88 %» del kit, 0,96 es acercarse un pelo.
+   *
+   * Existe para que la sala se aleje POR LA CÁMARA y no por un `scale()` de CSS sobre el
+   * lienzo. Un `transform` no vuelve a dibujar la escena: reescala la imagen ya pintada,
+   * como ampliar una foto, y eso es lo que Bryan veía como «pixelea cuando se dan
+   * movimientos» (2026-09-05). Va aparte de `distancia` para que el pellizco de dos dedos
+   * siga editando la suya y las dos cosas se compongan sin pisarse.
+   */
+  retirada = 1
   private limpiezas: (() => void)[] = []
 
   constructor(
@@ -523,10 +534,11 @@ export class Orbita {
   ojo(): Vec3 {
     const a = grados(this.azimut)
     const e = grados(this.elevacion)
+    const d = this.distancia * this.retirada
     return [
-      this.centro[0] + Math.sin(a) * Math.cos(e) * this.distancia,
-      this.centro[1] + Math.sin(e) * this.distancia,
-      this.centro[2] + Math.cos(a) * Math.cos(e) * this.distancia,
+      this.centro[0] + Math.sin(a) * Math.cos(e) * d,
+      this.centro[1] + Math.sin(e) * d,
+      this.centro[2] + Math.cos(a) * Math.cos(e) * d,
     ]
   }
 

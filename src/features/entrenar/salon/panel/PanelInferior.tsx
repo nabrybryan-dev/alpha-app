@@ -254,12 +254,14 @@ export function PanelInferior(props: PanelInferiorProps) {
       style={{ zIndex: 'var(--z-elevado)', bottom: 'var(--tope-nav)' }}
     >
       <div
-        // La hoja es una superficie FIJA —vive pegada al borde de abajo del salón, que
-        // es `fixed inset-0`, y no se desplaza con ningún scroll—, así que el desenfoque
-        // se pide por `.glass-blur`, que es la vía sancionada de `tokens.css` y la que
-        // `[data-camara-abierta]` sabe apagar mientras el encoder mide. La utilidad
-        // suelta `backdrop-blur-sm` se saltaba las dos cosas.
-        className="glass-blur pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t border-white/10 bg-ink-900/95"
+        // SIN CRISTAL ESMERILADO. Hasta el 2026-09-05 esta hoja llevaba `.glass-blur`
+        // —un `backdrop-filter: blur(20px)`— y al subir sobre el salón desenfocaba y
+        // saturaba todo lo que tenía detrás: el «se cubre todo como si nublara» que veía
+        // Bryan. Y costaba lo que `ArquitecturaSala.tsx` ya avisaba: remuestrear la región
+        // del lienzo en cada fotograma mientras el dedo arrastra. Con el fondo al 95 % el
+        // desenfoque no aportaba nada que se viera; lo que se ve es la sala, quieta y
+        // nítida, por debajo del borde de la hoja.
+        className="pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t border-white/10 bg-ink-900/95"
         style={{
           maxHeight: abierto ? '84dvh' : undefined,
           transform: `translateY(${seguimiento}px)`,

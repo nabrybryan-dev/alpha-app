@@ -263,6 +263,14 @@ interface VisorPatronProps {
    */
   orbitaConUnDedo?: boolean
   /**
+   * CUÁNTO SE RETIRA LA CÁMARA, como múltiplo de su distancia (1 = donde está).
+   *
+   * Es la palanca con la que el salón se aleja al subir la lectura y se acerca un pelo al
+   * hundir el dedo, y sustituye a dos `scale()` de CSS que reescalaban el lienzo ya
+   * pintado. La cámara llega al objetivo suavizada en el propio bucle: no salta.
+   */
+  retirada?: number
+  /**
    * LA REPETICIÓN QUE SE HIZO, para verla sobre la que había que hacer.
    *
    * Con huella se dibuja un segundo cuerpo translúcido, con el esqueleto del patrón y el
@@ -289,6 +297,7 @@ export function VisorPatron({
   tempo,
   fantasma,
   orbitaConUnDedo = true,
+  retirada = 1,
 }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
@@ -318,6 +327,10 @@ export function VisorPatron({
     // una serie. Van por referencia y se repinta, como la capa.
     datos: undefined as DatosDeSerie | undefined,
     colocacion: COLOCACION_INICIAL,
+    // El objetivo de retirada de la cámara. Por referencia y no en las dependencias del
+    // efecto que monta la escena, por lo mismo que `datos`: cambiarlo no puede recrear el
+    // contexto WebGL. El bucle lo lee y acerca la cámara un poco cada fotograma.
+    retirada: 1,
     // El escalón de W va por referencia y NO en las dependencias del efecto que monta
     // la escena, por lo mismo que la capa y los números de la serie: recrear el
     // contexto WebGL al atravesar el cuerpo mataría la animación en cada capa, y el
@@ -369,12 +382,13 @@ export function VisorPatron({
     estado.current.reducido = reducido
     estado.current.tempo = tempo
     estado.current.fantasma = fantasma
+    estado.current.retirada = retirada
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma])
+  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma, retirada])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -655,11 +669,24 @@ export function VisorPatron({
           // malla y reconstruir la sala para desviarla una centésima de grado es el mismo
           // error que costó 4,77 ms de fotograma en agosto.
           const respiro = aplicarVaiven()
+          // LA CÁMARA SE RETIRA SUAVIZADA, en el mismo bucle y sin reconstruir nada: un
+          // quinto del camino que le queda en cada fotograma, que a 60 fps son unos 200 ms
+          // hasta no notarse — lo que duraba la transición de CSS a la que sustituye.
+          const objetivo = estado.current.retirada
+          const falta = objetivo - orbita.retirada
+          let acerca = false
+          if (Math.abs(falta) > 0.0005) {
+            orbita.retirada += falta * 0.2
+            acerca = true
+          } else if (orbita.retirada !== objetivo) {
+            orbita.retirada = objetivo
+            acerca = true
+          }
           if (cambia) {
             construir()
             pintar()
             avisarDeLaCamara()
-          } else if (respiro) {
+          } else if (respiro || acerca) {
             pintar()
             avisarDeLaCamara()
           }

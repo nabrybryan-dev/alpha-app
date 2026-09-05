@@ -650,14 +650,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       <div
         data-hueco="centro"
         className="absolute inset-0"
-        // LA SALA SE ALEJA MIENTRAS SUBE LA LECTURA. Un 12 % es lo que basta: más y el
-        // salón se lee como una miniatura, menos y no se nota que se ha retirado. Solo
-        // `transform` —nada de `top` ni de `width`— para que sea una capa compuesta y no
-        // una remaquetación por fotograma mientras el dedo arrastra.
-        style={{
-          transform: `scale(${(1 - avanceDelPanel * 0.12).toFixed(4)})`,
-          transition: 'transform var(--dur-base) var(--ease-salida)',
-        }}
+        // LA SALA SE ALEJA MIENTRAS SUBE LA LECTURA, y lo hace LA CÁMARA (`retirada`, más
+        // abajo), no un `scale()` de CSS aquí. Lo hubo hasta el 2026-09-05: un `transform`
+        // no vuelve a dibujar la escena, reescala la imagen ya pintada —como ampliar una
+        // foto— y eso es lo que Bryan veía como «pixelea cuando se dan movimientos». Este
+        // nodo ya no lleva transform ni filter, y `salon.test.tsx` lo vigila.
         onPointerDown={conEjeW ? alBajarDedo : undefined}
         onPointerMove={conEjeW ? alMoverDedo : undefined}
         onPointerUp={conEjeW ? alSoltarDedo : undefined}
@@ -669,23 +666,18 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 los números de la serie van al marcador de la pared de la sala 3D, que es
                 la misma constante con la que se construye la estación de grabación, y `w`
                 es la cuarta dimensión llegando al modelo. */}
-            {/* EL CUERPO ACUSA QUE ESTÁ ARMADO: se levanta 22 px, crece un 6 % y se le
-                enciende un halo. Sin eso, mantener el dedo dos segundos no tendría ninguna
-                consecuencia visible y el gesto sería invisible — nadie descubre lo que no
-                se ve, y peor: quien lo armara sin querer no sabría por qué el siguiente
-                arrastre cambió de ejercicio en vez de orbitar. */}
+            {/* EL CUERPO ACUSA QUE ESTÁ ARMADO: la cámara se le acerca un pelo y se
+                enciende un halo. Sin eso, mantener el dedo no tendría ninguna consecuencia
+                visible y el gesto sería invisible — nadie descubre lo que no se ve.
+                Hasta el 2026-09-05 el acuse era `scale(1.04)` + `drop-shadow` SOBRE EL
+                LIENZO: el scale reescalaba la imagen pintada y el drop-shadow hacía una
+                copia desenfocada del lienzo entero en rojo — ese era el «se nubla todo»
+                mientras el dedo estaba dentro. El acercamiento lo hace ahora la cámara
+                (`retirada`) y el halo es un nodo aparte que no toca el lienzo. */}
             <div
               data-testigo="sujeto"
               data-hundiendo={hundiendo ? '' : undefined}
               className={SUJETO_A_SANGRE}
-              style={{
-                transition: 'transform var(--dur-informativo) var(--muelle-informativo), filter var(--dur-informativo)',
-                // Mientras el dedo está dentro, el cuerpo lo dice: crece un pelo y se le
-                // enciende un halo. Un gesto de presión sin acuse es invisible — y peor,
-                // quien lo dispare sin querer no sabrá por qué cambió la capa.
-                transform: hundiendo ? 'scale(1.04)' : undefined,
-                filter: hundiendo ? 'drop-shadow(0 0 22px rgb(var(--accion-rgb) / 0.55))' : undefined,
-              }}
             >
               <VisorPatron
                 patron={patron}
@@ -694,6 +686,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // lado pasa de ejercicio, y se orbita con dos dedos, donde ya vivía el
                 // pellizco. En el estudio del patrón sigue orbitando con uno.
                 orbitaConUnDedo={false}
+                // La sala se retira al 88 % con la lectura arriba (1 / 0,88 = 1,136 de
+                // distancia) y se acerca un 4 % con el dedo dentro. Se componen.
+                retirada={(1 + avanceDelPanel * 0.136) * (hundiendo ? 0.96 : 1)}
                 nombreEjercicio={ejercicio?.nombre}
                 alMirar={(c) =>
                   // Se compara antes de guardar: el bucle avisa en cada fotograma que
@@ -725,6 +720,19 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // de hoy; la semana pasada si no; nada si no hay ninguna. No se inventa.
               />
             </div>
+            {/* EL HALO DEL DEDO DENTRO: un nodo propio con una sombra interior, encima del
+                lienzo y sin tocarlo. `pointer-events: none` para que no se coma el gesto.
+                Con `opacity` y no con montarlo/desmontarlo, para que entre y salga suave. */}
+            <div
+              aria-hidden="true"
+              data-halo="hundiendo"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                boxShadow: 'inset 0 0 90px rgb(var(--accion-rgb) / 0.45)',
+                opacity: hundiendo ? 1 : 0,
+                transition: 'opacity var(--dur-informativo)',
+              }}
+            />
 
             {/* LA HABITACIÓN, por encima del lienzo y por debajo de los rótulos. Trazo y
                 degradado: no tapa al sujeto, lo enmarca. */}

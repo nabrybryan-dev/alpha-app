@@ -556,6 +556,58 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     expect(puntos[2].getAttribute('data-punto'), 'tocar el punto no llevó a su ejercicio').toBe('aqui')
   })
 
+  /**
+   * NADA REESCALA NI DESENFOCA EL LIENZO.
+   *
+   * Bryan, 2026-09-05: «pixelea cuando se dan movimientos y se suele cubrir todo como si
+   * nublara». Las causas estaban aquí, en estilos sobre el lienzo: un `scale()` del hueco
+   * entero al subir el panel (reescala la imagen ya pintada, como ampliar una foto), un
+   * `scale(1.04)` más un `drop-shadow` del sujeto mientras el dedo estaba dentro (el
+   * drop-shadow hace una copia desenfocada del lienzo entero en rojo: ese era el «se
+   * nubla»), y un `backdrop-filter: blur(20px)` en la hoja del panel. Ahora la sala se
+   * retira y se acerca POR LA CÁMARA, el halo es un nodo aparte, y la hoja es opaca.
+   */
+  it('con el dedo dentro, el sujeto no lleva transform ni filter: el acuse es un halo aparte', () => {
+    vi.useFakeTimers()
+    try {
+      montarConFuerza()
+      const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+      const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+      const sujeto = salon.querySelector('[data-testigo="sujeto"]') as HTMLElement
+      const halo = salon.querySelector('[data-halo="hundiendo"]') as HTMLElement
+      expect(halo, 'el halo del dedo dentro no está montado').not.toBeNull()
+      expect(halo.style.opacity).toBe('0')
+
+      fireEvent(centro, new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 200, clientY: 400 }))
+      act(() => {
+        vi.advanceTimersByTime(400) // más que ESPERA: el dedo ya está dentro
+      })
+      expect(sujeto.hasAttribute('data-hundiendo'), 'el dedo no llegó a hundirse').toBe(true)
+      // Lo que NO puede haber sobre el lienzo mientras el dedo está dentro:
+      expect(sujeto.style.transform, 'un scale() sobre el lienzo lo reescala pintado').toBe('')
+      expect(sujeto.style.filter, 'un filter sobre el lienzo lo desenfoca entero').toBe('')
+      expect(centro.style.transform).toBe('')
+      // Y lo que sí: el halo encendido, en su propio nodo.
+      expect(halo.style.opacity).toBe('1')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('con el panel arriba, la sala se retira por la cámara y no por un scale(); y la hoja no lleva cristal esmerilado', async () => {
+    const usuario = userEvent.setup()
+    montarConFuerza()
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+    const panel = salon.querySelector('[data-hueco="panelInferior"]') as HTMLElement
+
+    await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
+
+    expect(centro.style.transform, 'el hueco del centro volvió a llevar un scale()').toBe('')
+    expect(centro.style.filter).toBe('')
+    expect(panel.querySelector('.glass-blur'), 'la hoja del panel volvió a llevar backdrop-filter').toBeNull()
+  })
+
   it('y la regla dura se sigue cumpliendo con los huecos llenos', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
