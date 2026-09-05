@@ -200,9 +200,20 @@ contexto WebGL está como debe (antialias con 4 muestras, lienzo a 2×). Lo que 
 el tope de `devicePixelRatio` a 2 — en un teléfono de 3× el lienzo se pinta al 66 %, y si
 sigue viéndose blando en reposo, la causa es esa y es un canje de coste.
 
+**El cuadro se calcula contra el cuerpo.** La cámara del salón miraba siempre al mismo
+punto —4,6 m hacia [0, 1,2, 0]—, que encuadra a alguien de pie y a nadie más: proyectando
+los 31 patrones sobre 390×844 **se salían del cuadro los 31**, de 21 px a 750. Y todos por
+los lados: el campo horizontal son 12,2°, menos de un metro a esa distancia, y un cuerpo
+tumbado mide 1,8. `encuadreDelSalon` mira al centro del cuerpo, se retira lo justo sin salir
+de la sala (7 m de radio) y abre el objetivo lo que falte hasta 45°. Los 31 caben. **Girar
+está descartado y lo descartó una foto**: los números decían que arreglaba el press (316 px
+→ 17) y la captura enseñó la máquina plantada delante de la persona — caber en el cuadro no
+es verse. Queda clavado en una prueba: el encuadre no expone azimut. Lo que sigue abierto,
+y es otro problema: en los ejercicios de máquina la máquina tapa a la persona.
+
 ## Estado
 
-`npm run verify`: **3.300 pruebas** en verde de 3.301, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
+`npm run verify`: **3.310 pruebas** en verde de 3.311, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
 guardianes del repo cazaron la limpieza y los cuatro están atendidos: código huérfano,
 clases de animación sin consumir, el inventario de recuadros y la auditoría de campos —los
 que salieron del muro siguen montados con `sr-only`, así que se oyen y se cuentan.
