@@ -493,7 +493,7 @@ export default function EncoderPage() {
         </button>
         {palancasAbierto && (
           <div className="aparece-pieza mt-3 border-t border-hairline pt-3">
-            <PanelPalancas />
+            <PanelPalancas ejercicio={ejercicio} />
           </div>
         )}
       </Card>

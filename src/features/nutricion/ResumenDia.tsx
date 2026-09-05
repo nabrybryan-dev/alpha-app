@@ -51,7 +51,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
   const restan = meta.kcal - kcal
 
   return (
-    <section className="rounded-3xl border border-linea bg-surface-1 p-4">
+    <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
       {visibilidad.verContadorKcal && (
         <div className="flex items-center gap-4">
           <AnilloMacro

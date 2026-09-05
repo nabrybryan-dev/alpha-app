@@ -26,7 +26,7 @@ export function TiraSemana({ fecha, conRegistro, onElegir }: TiraSemanaProps) {
             onClick={() => onElegir(dia)}
             aria-pressed={activo}
             aria-label={dia}
-            className={`press flex flex-1 flex-col items-center gap-0.5 rounded-2xl border py-2 transition-colors ${
+            className={`relieve flex flex-1 flex-col items-center gap-0.5 rounded-2xl border py-2 transition-colors ${
               activo
                 ? 'border-accion bg-accion/15 text-texto'
                 : 'border-linea bg-surface-2 text-tenue'

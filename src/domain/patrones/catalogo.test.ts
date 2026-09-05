@@ -222,7 +222,14 @@ describe('la movilidad que los patrones dan por supuesta', () => {
    */
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
     sentadilla_unilateral: 34,
-    sentadilla: 29,
+    // 29 → 31 el 2026-09-04, y no por aflojar: la trayectoria entre poses pasó de dos
+    // rectas con codo a un cúbico monótono (`hermiteMonotona`), y la sentadilla pasó a
+    // pedir 30,1°. Las tres poses del catálogo no cambiaron ni una décima —lo afirma
+    // `movimiento.test.ts`—; lo que cambió es cómo se llega de una a otra: la rodilla
+    // adelanta a la cadera a media bajada, que es lo que la pose intermedia pedía, y el
+    // pie plano deriva un grado más de tobillo justo ahí. La valla sigue siendo una
+    // valla: si vuelve a crecer, esto lo dice.
+    sentadilla: 31,
     // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
     // deprisa y profundo es de los gestos que más tobillo piden.
     salto: 25,

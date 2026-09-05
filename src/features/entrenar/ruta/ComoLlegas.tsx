@@ -1,10 +1,5 @@
 import type { Recuperacion } from '../../../domain/readiness'
-
-function tono(indice: number): { texto: string; clase: string; barra: string } {
-  if (indice >= 70) return { texto: 'Recuperado', clase: 'text-accion', barra: 'bg-accion' }
-  if (indice >= 50) return { texto: 'En trabajo', clase: 'text-silver-200', barra: 'bg-silver-200' }
-  return { texto: 'Fatiga acumulada', clase: 'text-ambar', barra: 'bg-ambar' }
-}
+import { tonoDeRecuperacion } from './tonoDeRecuperacion'
 
 /**
  * Cómo llega la persona esta semana, según el índice de Hooper adaptado de sus
@@ -13,21 +8,24 @@ function tono(indice: number): { texto: string; clase: string; barra: string } {
  * Va aparte de las competencias a propósito: las competencias dicen qué sabe
  * hacer y esto dice cómo amaneció. Metido entre ellas, una mala semana se leería
  * como si hubiera perdido nivel, que es justo lo contrario de lo que pasa.
+ *
+ * La CIFRA del índice ya no está aquí: subió al rótulo de su tramo en la hoja del salón,
+ * donde sobrevive al plegado. El nombre y el color siguen saliendo de la misma función,
+ * que vive en `tonoDeRecuperacion.ts` para que el panel pueda pintar la cifra del mismo
+ * color sin que este archivo exporte nada que no sea un componente.
  */
 export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
   const { indice, dias } = recuperacion
   if (indice === undefined) return null
 
-  const t = tono(indice)
+  const t = tonoDeRecuperacion(indice)
 
   return (
-    <section className="escena-prof rounded-tarjeta border border-ink-500 bg-ink-800 px-4 py-3.5">
-      <div className="flex items-baseline justify-between gap-2.5">
-        <h3 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-silver-500">
-          Cómo llegas esta semana
-        </h3>
-        <span className={`cifras text-[13px] font-bold ${t.clase}`}>{indice}</span>
-      </div>
+    // Sin marco y sin cabecera propia. El bloque entró en el salón dentro de un tramo de
+    // la hoja, que ya le pone número, rótulo y la cifra a la derecha; el marco de aquí
+    // era una tarjeta dentro de otra y el `<h3>` decía por segunda vez lo que el rótulo
+    // acababa de decir. Queda `escena-prof` porque la barra sigue hundiéndose.
+    <section className="escena-prof">
       <div
         role="progressbar"
         aria-valuenow={indice}
@@ -37,7 +35,7 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
         // El carril hundido (`--prof-hueco`): lo que le falta al indice es materia
         // que falta. Mismo gesto que la barra de progreso de nivel y que las de
         // competencias, para que las cuatro se lean como el mismo instrumento.
-        className="pozo-3d mt-2.5 h-[5px] overflow-hidden rounded-full bg-ink-500"
+        className="pozo-3d h-[5px] overflow-hidden rounded-full bg-ink-500"
       >
         {/* El relleno va por `scaleX` y no por `width`: width relayoutea en cada
             fotograma y esta pantalla corre con la pieza cinemática haciendo scrub

@@ -1,0 +1,27 @@
+{
+  "viewport": {
+    "ancho": 390,
+    "alto": 844
+  },
+  "lienzo": {
+    "ancho": 390,
+    "alto": 844
+  },
+  "cuadros": [
+    {
+      "clave": "ejercicio",
+      "x": 7,
+      "y": 70,
+      "ancho": 309,
+      "alto": 79,
+      "sobraArriba": -70,
+      "sobraAbajo": -696,
+      "sobraIzquierda": -7,
+      "sobraDerecha": -74,
+      "cuerpoPx": 15,
+      "topePx": 138,
+      "texto": "Sala 05SSSEEENNNTTTAAADDDIIILLLLLLAAAGGGOOOBBBLLLEEETTTSesiónCronómetro de sesión00:00:04T"
+    }
+  ],
+  "usuario": "u-valentina"
+}

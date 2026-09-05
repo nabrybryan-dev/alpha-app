@@ -1,0 +1,101 @@
+{
+ "artboards": [
+  {
+   "file": "Main.dc.html",
+   "title": "El salón · piel",
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "Orbita.dc.html",
+   "title": "Orbitado 48°",
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "W1.dc.html",
+   "title": "W1 · músculo superficial",
+   "x": 0,
+   "y": 990,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "W2.dc.html",
+   "title": "W2 · músculo profundo",
+   "x": 470,
+   "y": 990,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "W3.dc.html",
+   "title": "W3 · tendón",
+   "x": 940,
+   "y": 990,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "W4.dc.html",
+   "title": "W4 · hueso",
+   "x": 1410,
+   "y": 990,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "Cadena.dc.html",
+   "title": "La cadena cinética",
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "Estacion.dc.html",
+   "title": "La estación",
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  }
+ ],
+ "annotations": [
+  {
+   "id": "fila-sala",
+   "x": -430,
+   "y": 0,
+   "w": 380,
+   "text": "FILA 1 — LA SALA ES REAL\n\nUna bahía de medida amueblada: jaula con la barra en los ganchos, árbol de discos, banco, mancuernas, panelado de muro, luminarias corriendo hacia el fondo y dos tiras rojas.\n\nTodo eso vive en el motor, en metros, y pasa por la misma proyección que el sujeto. Por eso al orbitar gira la habitación entera y no queda telón pintado detrás del cuerpo.\n\nY las marcas rojas del suelo no son decoración: son el cajón de los pies, los carriles y la circunferencia de la estación de grabación."
+  },
+  {
+   "id": "fila-w",
+   "x": -430,
+   "y": 990,
+   "w": 380,
+   "text": "FILA 2 — LA CUARTA DIMENSIÓN\n\nArrastrar en vertical no cambia de pantalla: atraviesa el cuerpo. La sala se queda donde está y se apaga; lo que cambia es a qué profundidad se está mirando al mismo sujeto, en la misma postura, en el mismo sitio de la sala.\n\nCada escalón dice lo que prescribe, no lo que se llama: agonista en carmín, sinergista en coral, pasivo apagado. Eso es lo que quiere decir que el sujeto ES la prescripción."
+  },
+  {
+   "id": "cadena",
+   "x": 1410,
+   "y": -300,
+   "w": 390,
+   "text": "LA CADENA CINÉTICA\n\nEs el único tablero donde la barra va sobre los trapecios: el implemento pertenece al sujeto, no a la sala.\n\nLa línea blanca es la vertical de la carga; los dos tramos rojos cortos son los brazos de momento en rodilla y cadera. Eso es exactamente lo que el encoder mide desde la estación, y es la razón de que el sitio del móvil esté marcado en el suelo."
+  },
+  {
+   "id": "estacion",
+   "x": 940,
+   "y": -300,
+   "w": 390,
+   "text": "LA ESTACIÓN NO ES UN ADORNO\n\nOrbitar hasta el trípode pone la cámara donde va a estar el teléfono: mismo ángulo, misma distancia, misma altura. El juicio del encuadre lo hace calificarEncuadre() del núcleo del encoder, no una copia.\n\nDos puertas que nacen iguales se separan al primer ajuste, y entonces el ensayo enseñaría a plantar el móvil donde la medición ya no lo admite."
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ }
+}

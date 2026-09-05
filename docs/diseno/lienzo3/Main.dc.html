@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,700;125,800;125,900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Hanken Grotesk', system-ui, sans-serif; background: #08090a; }
+    a { color: #ff1e1e; } a:hover { color: #c8121a; }
+  </style>
+
+  <style>
+    /* LOS CINCO PESOS, tal cual salen de `scripts/generar-muelles.mjs`: muelles
+       amortiguados muestreados, no Béziers tanteadas. Lo pesado se asienta y NO
+       rebota; lo ligero llega al 110 % y vuelve. */
+    :root {
+      --dur-protagonista: 455ms;
+      --dur-informativo: 542ms;
+      --dur-transicional: 471ms;
+      --dur-ambiental: 792ms;
+      --dur-microinteraccion: 459ms;
+      --muelle-protagonista: linear(0, 0.0106, 0.039, 0.0802, 0.1305, 0.1868, 0.2464, 0.3074, 0.3681, 0.4275, 0.4846, 0.5388, 0.5897, 0.637, 0.6806, 0.7205, 0.7567, 0.7893, 0.8186, 0.8447, 0.8679, 0.8883, 0.9062, 0.9218, 0.9353, 0.947, 0.957, 0.9655, 0.9728, 0.9789, 0.9839, 0.9882, 0.9916, 0.9945, 1);
+      --muelle-informativo: linear(0, 0.0215, 0.0763, 0.1523, 0.2403, 0.333, 0.4254, 0.5137, 0.5957, 0.6698, 0.7354, 0.7923, 0.8408, 0.8814, 0.9148, 0.9418, 0.9631, 0.9797, 0.9922, 1.0013, 1.0076, 1.0118, 1.0142, 1.0154, 1.0156, 1.0151, 1.0141, 1.0129, 1.0115, 1.01, 1.0086, 1.0072, 1.006, 1.0049, 1);
+      --muelle-transicional: linear(0, 0.0204, 0.0724, 0.1444, 0.2276, 0.3154, 0.403, 0.4871, 0.5655, 0.637, 0.7008, 0.7569, 0.8053, 0.8466, 0.8814, 0.9101, 0.9337, 0.9527, 0.9677, 0.9795, 0.9885, 0.9952, 1.0001, 1.0034, 1.0057, 1.007, 1.0077, 1.0079, 1.0077, 1.0072, 1.0067, 1.006, 1.0053, 1.0046, 1);
+      --muelle-ambiental: linear(0, 0.0137, 0.0494, 0.1, 0.1602, 0.2258, 0.2936, 0.3612, 0.4269, 0.4896, 0.5483, 0.6027, 0.6526, 0.6979, 0.7386, 0.7749, 0.8072, 0.8356, 0.8606, 0.8823, 0.9011, 0.9174, 0.9313, 0.9433, 0.9534, 0.962, 0.9692, 0.9752, 0.9802, 0.9844, 0.9878, 0.9906, 0.9929, 0.9948, 1);
+      --muelle-microinteraccion: linear(0, 0.0342, 0.1217, 0.2421, 0.3784, 0.5173, 0.6492, 0.7673, 0.8679, 0.9492, 1.0113, 1.0555, 1.0839, 1.0989, 1.1034, 1.0999, 1.0909, 1.0785, 1.0644, 1.05, 1.0364, 1.0241, 1.0137, 1.0053, 0.9989, 0.9943, 0.9913, 0.9898, 0.9893, 0.9897, 0.9906, 0.9919, 0.9933, 0.9948, 1);
+    }
+
+    @keyframes muro-entra { from { opacity: 0; transform: translateY(14px); } }
+    @keyframes muro-junta-traza { from { transform: scaleX(0); opacity: 0; } }
+    @keyframes muro-palabra-entra { from { opacity: 0; transform: translateY(0.5em); } }
+    @keyframes muro-aliento { 0%, 100% { opacity: 0.82; } 50% { opacity: 1; } }
+    @keyframes muro-cifra-rueda {
+      0%, 86% { opacity: 1; transform: translateY(0); text-shadow: 0 0 0.5em rgba(255,30,30,0.45); }
+      88% { opacity: 0; transform: translateY(0.42em); }
+      90% { opacity: 0; transform: translateY(-0.42em); text-shadow: 0 0 1.4em rgba(255,30,30,0.95); }
+      100% { opacity: 1; transform: translateY(0); text-shadow: 0 0 0.5em rgba(255,30,30,0.45); }
+    }
+    @keyframes muro-testigo { 0%, 100% { opacity: 0.34; } 50% { opacity: 1; } }
+    @keyframes muro-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    .m-entra { animation: muro-entra var(--dur-protagonista) var(--muelle-protagonista) both; }
+    .m-junta { transform-origin: center; animation: muro-junta-traza var(--dur-transicional) var(--muelle-transicional) both; }
+    .m-palabra { display: inline-block; animation: muro-palabra-entra var(--dur-informativo) var(--muelle-informativo) both; }
+    .m-aliento { animation: muro-aliento 9s var(--muelle-ambiental) infinite; }
+    .m-cifra { display: inline-block; animation: muro-cifra-rueda 7s var(--muelle-microinteraccion) infinite; }
+    .m-testigo { animation: muro-testigo 1.6s var(--muelle-ambiental) infinite; }
+    .m-ticker { display: inline-flex; white-space: nowrap; animation: muro-ticker 17s linear infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .m-entra, .m-junta, .m-palabra, .m-cifra, .m-aliento, .m-testigo, .m-ticker { animation: none; }
+    }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #08090a; color: #f4f5f6;">
+
+  <!-- LA SALA. No es el motor: es su atmósfera, con la misma paleta. El muro de enfrente
+       recibe la luz roja del techo, el suelo lleva su retícula en fuga y el rodapié
+       separa los dos planos. -->
+  <div style="position: absolute; inset: 0; background: radial-gradient(58% 34% at 50% 33%, rgba(255,30,30,0.16), rgba(255,30,30,0.05) 46%, transparent 74%);"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 96px; background: linear-gradient(to bottom, rgba(111,119,130,0.13), transparent);"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 560px; height: 1px; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.4) 20%, rgba(111,119,130,0.4) 80%, transparent);"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 561px; bottom: 0; background: linear-gradient(to bottom, #0b0c0e, #000);"></div>
+  <svg viewBox="0 0 390 283" style="position: absolute; left: 0; top: 561px; width: 390px; height: 283px;" aria-hidden="true">
+    <g stroke="rgba(111,119,130,0.22)" stroke-width="1" fill="none">
+      <path d="M-40 283 L150 0" /><path d="M60 283 L172 0" /><path d="M170 283 L195 0" />
+      <path d="M280 283 L218 0" /><path d="M430 283 L240 0" />
+      <path d="M0 26 H390" /><path d="M0 62 H390" /><path d="M0 110 H390" /><path d="M0 176 H390" /><path d="M0 262 H390" />
+    </g>
+  </svg>
+
+  <!-- El sujeto y el hierro, insinuados. En el motor son geometría; aquí son la masa que
+       ocupa el centro, que es lo que la composición necesita para juzgarse. -->
+  <div style="position: absolute; left: 46px; top: 430px; width: 300px; height: 150px; background: radial-gradient(52% 60% at 50% 60%, rgba(194,200,207,0.10), transparent 72%); filter: blur(1px);"></div>
+  <div style="position: absolute; left: 96px; top: 486px; width: 200px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, #202327, #2b2f34 40%, #202327);"></div>
+  <div style="position: absolute; left: 168px; top: 452px; width: 26px; height: 78px; border-radius: 4px; background: linear-gradient(180deg, #8f1119, #5a0b10);"></div>
+  <div style="position: absolute; left: 84px; top: 512px; width: 224px; height: 30px; border-radius: 3px; background: linear-gradient(180deg, #15181b, #0b0d0f);"></div>
+
+  <!-- ================================================================
+       EL TABLÓN DEL MURO DE ENFRENTE
+       Una sola composición: de quién es hoy la sesión y cuánto llevas →
+       qué toca → con qué cifras → qué avisa. Sin marco y sin fondo: el
+       derrame es luz sobre el hormigón, y por eso se sale por los cuatro
+       lados — en cuanto se le ve el canto vuelve a ser un panel.
+       ================================================================ -->
+  <div style="position: absolute; left: 40px; top: 44px; width: 310px;">
+    <div class="m-aliento" style="position: absolute; left: -34%; right: -34%; top: -62%; bottom: -70%; background: radial-gradient(58% 46% at 50% 34%, rgba(0,0,0,0.82), rgba(0,0,0,0.42) 44%, transparent 72%), radial-gradient(44% 34% at 50% 10%, rgba(111,119,130,0.20), transparent 68%);"></div>
+
+    <div class="m-entra" style="position: relative; display: flex; flex-direction: column; gap: 9px;">
+
+      <!-- Cabecera: quién eres hoy · cuánto llevas. En una línea, en plata, para que no
+           compita con el titular — a igual peso, el ojo no sabe cuál es el titular. -->
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px;">
+        <div style="display: flex; align-items: baseline; gap: 9px; min-width: 0;">
+          <span style="font-family: 'Hanken Grotesk', system-ui, sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.22em; color: #ff1e1e;">M22</span>
+          <span style="font-family: Archivo, system-ui, sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa1ab;">Upper B</span>
+        </div>
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 22px; font-weight: 700; letter-spacing: 0.02em; color: #ff1e1e; text-shadow: 0 0 11px rgba(255,30,30,0.45); font-variant-numeric: tabular-nums; animation-duration: 4s;" class="m-cifra">00:14:32</span>
+      </div>
+
+      <hr class="m-junta" style="height: 1px; border: 0; margin: 0; animation-delay: 180ms; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.55) 18%, rgba(111,119,130,0.55) 82%, transparent);">
+
+      <!-- El titular. Es lo que se lee en cada serie, así que es lo más grande. -->
+      <div>
+        <p style="margin: 0; font-family: Archivo, system-ui, sans-serif; font-size: 21px; font-weight: 900; line-height: 1.06; letter-spacing: 0.01em; text-transform: uppercase; color: #f4f5f6; text-shadow: 0 0 9px rgba(111,119,130,0.55);"><span class="m-palabra" style="animation-delay: 200ms;">Press</span> <span class="m-palabra" style="animation-delay: 248ms;">inclinado</span><br><span class="m-palabra" style="animation-delay: 296ms;">en</span> <span class="m-palabra" style="animation-delay: 344ms;">multipower</span></p>
+        <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 8px;">
+          <span style="flex-shrink: 0; font-size: 8.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Técnica</span>
+          <span style="min-width: 0; font-size: 12px; font-weight: 500; line-height: 1.3; color: #9aa1ab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Banco a 30°, baja a la parte alta del pecho</span>
+        </div>
+      </div>
+
+      <hr class="m-junta" style="height: 1px; border: 0; margin: 0; animation-delay: 420ms; background: linear-gradient(90deg, transparent, rgba(255,30,30,0.75) 14%, rgba(255,30,30,0.30) 62%, transparent);">
+
+      <!-- Las tres cifras de la prescripción, en fila. Apiladas se llevaban tres líneas
+           de muro y son tres valores de dos palabras. En rojo encendido, que es el mismo
+           lenguaje que los dígitos de siete segmentos que la sala construye en geometría. -->
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <span style="font-size: 8.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Series</span>
+          <span class="m-cifra" style="font-family: Archivo, system-ui, sans-serif; font-size: 16px; font-weight: 800; line-height: 1; color: #ff1e1e; text-shadow: 0 0 9px rgba(255,30,30,0.45); animation-delay: 0ms;">3 × 8-10</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <span style="font-size: 8.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Carga</span>
+          <span class="m-cifra" style="font-family: Archivo, system-ui, sans-serif; font-size: 16px; font-weight: 800; line-height: 1; color: #ff1e1e; text-shadow: 0 0 9px rgba(255,30,30,0.45); animation-delay: 900ms;">42,5 kg</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <span style="font-size: 8.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Fallo</span>
+          <span class="m-cifra" style="font-family: Archivo, system-ui, sans-serif; font-size: 16px; font-weight: 800; line-height: 1; color: #ff1e1e; text-shadow: 0 0 9px rgba(255,30,30,0.45); animation-delay: 1800ms;">RIR 2</span>
+        </div>
+      </div>
+
+      <hr class="m-junta" style="height: 1px; border: 0; margin: 0; animation-delay: 560ms; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.55) 18%, rgba(111,119,130,0.55) 82%, transparent);">
+
+      <!-- La ranura: lo único que cambia con el tiempo. Una línea, no un bloque. -->
+      <div style="display: flex; align-items: baseline; gap: 10px; overflow: hidden;">
+        <span style="flex-shrink: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 500; color: #c2c8cf; font-variant-numeric: tabular-nums;">≈ 58m</span>
+        <span style="flex-shrink: 0; width: 3px; height: 3px; border-radius: 50%; background: #6f7782;"></span>
+        <span style="flex-shrink: 0; font-size: 10.5px; font-weight: 500; color: #9aa1ab;">Bloque de fuerza · 1/5</span>
+        <span style="min-width: 0; font-size: 10.5px; font-weight: 500; color: #4da3ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">· Vas acelerado</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       EL MANDO. Lo único de la pared que se OPERA, y por eso lo único
+       con cuerpo: canto de 2 px, filo de luz arriba, sombra proyectada.
+       Si tuviera el mismo aspecto que un dato, tocar dejaría de ser
+       evidente.
+       ================================================================ -->
+  <div class="m-entra" style="position: absolute; left: 24px; top: 292px; display: flex; align-items: stretch; gap: 7px; animation-delay: 320ms;">
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 11px 14px; border-radius: 2px; background: linear-gradient(180deg, rgba(15,17,19,0.96), rgba(0,0,0,0.96)); box-shadow: inset 0 1px 0 rgba(111,119,130,0.45), inset 0 -1px 0 rgba(0,0,0,0.9), 0 9px 20px -9px rgba(0,0,0,0.95);">
+      <span style="font-size: 8px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #ff1e1e;">Serie 2 de 3</span>
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 4px; white-space: nowrap;">
+          <span style="font-size: 7.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Carga</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 700; line-height: 1; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55); font-variant-numeric: tabular-nums;">42,5</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; white-space: nowrap;">
+          <span style="font-size: 7.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Reps</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 700; line-height: 1; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55); font-variant-numeric: tabular-nums;">9</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; white-space: nowrap;">
+          <span style="font-size: 7.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">RIR</span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 700; line-height: 1; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55); font-variant-numeric: tabular-nums;">2</span>
+        </div>
+        <span style="display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(111,119,130,0.45); color: #9aa1ab; align-self: center;">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6" /></svg>
+        </span>
+      </div>
+    </div>
+    <!-- El interruptor. Encendido y hacia fuera: dice que este trozo de aparato está vivo. -->
+    <button type="button" style="align-self: stretch; padding: 0 17px; border: 0; border-radius: 2px; font-family: Archivo, system-ui, sans-serif; font-size: 13px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; cursor: pointer; background: linear-gradient(180deg, #ff1e1e, #c8121a); box-shadow: 0 0 22px -3px rgba(255,30,30,0.75), inset 0 1px 0 rgba(255,255,255,0.28);">Guardar</button>
+  </div>
+
+  <!-- El eje W: cinco escalones, piel → superficial → profundo → tendón → hueso. -->
+  <div style="position: absolute; right: 12px; top: 300px; display: flex; flex-direction: column; gap: 14px;">
+    <span class="m-testigo" style="display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,30,30,0.85); box-shadow: 0 0 14px -2px rgba(255,30,30,0.6); animation-duration: 2.8s;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #ff1e1e;"></span></span>
+    <span style="display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(111,119,130,0.35);"><span style="width: 4px; height: 4px; border-radius: 50%; background: #6f7782;"></span></span>
+    <span style="display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(111,119,130,0.35);"><span style="width: 4px; height: 4px; border-radius: 50%; background: #6f7782;"></span></span>
+    <span style="display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(111,119,130,0.35);"><span style="width: 4px; height: 4px; border-radius: 50%; background: #6f7782;"></span></span>
+    <span style="display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(111,119,130,0.35);"><span style="width: 4px; height: 4px; border-radius: 50%; background: #6f7782;"></span></span>
+  </div>
+
+  <!-- La tirilla de arrastre del panel de abajo. No es la barra de navegación del
+       sistema: eso lo pinta el teléfono y no se dibuja. -->
+  <div style="position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); width: 74px; height: 3px; border-radius: 2px; background: rgba(194,200,207,0.32);"></div>
+</div>
+</x-dc>
+</body>
+</html>

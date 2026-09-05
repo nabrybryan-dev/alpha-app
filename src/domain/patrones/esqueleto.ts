@@ -233,6 +233,26 @@ export function apoyarPies(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3, lad
   return salida
 }
 
+/**
+ * A QUÉ ALTURA DEL SUELO ESTÁ EL TOBILLO, en metros.
+ *
+ * El pie de este esqueleto es un hueso horizontal que sale del tobillo, sin suela. Para
+ * apoyarlo hay que sondear más abajo del hueso —donde estaría la planta— y ese «más abajo»
+ * tiene un número: la articulación del tobillo queda a 7–8 cm de la planta en un adulto,
+ * y es exactamente lo que la cadena de huesos ya deja entre el tobillo y Y = 0 con la
+ * pelvis a 0,95 (0,95 + 0,005 − 0,45 − 0,43 = 0,075). Con esta sonda el solver deja el
+ * tobillo donde la cadena lo pone y el sujeto mide lo que dice medir.
+ *
+ * EL SIGNO ES HACIA +Z LOCAL, y esto costó una medida el 2026-09-04. El pie lleva un reposo
+ * de −90° sobre X, así que su −Z local apunta hacia ARRIBA en el mundo. La sonda estaba
+ * escrita como `−0,03` creyendo que bajaba: subía 3 cm por encima del tobillo, el solver
+ * pisaba ESE punto contra el suelo, y el cuerpo entero se hundía 10,6 cm — el tobillo a
+ * 3 cm bajo la placa, la pelvis a 0,844 y la coronilla a 1,584 en TODOS los patrones. Se
+ * veía «casi bien», que es como se ven los errores de signo. Lo cazó `escena/carta.test.ts`
+ * contrastando el esqueleto resuelto con las medidas que él mismo declara.
+ */
+export const ALTURA_DEL_TOBILLO = 0.075
+
 export type Apoyo = 'suelo' | 'manos' | 'ninguno'
 
 const SONDAS: Record<string, string[]> = {
@@ -266,7 +286,7 @@ export function resolverConApoyo(
     // Se muestrea a lo largo del hueso porque en flexión plantar el punto más
     // bajo del pie deja de ser el talón y pasa a ser la cabeza del metatarso.
     for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-      const p = puntoDeHueso(esq, h, t, [0, 0, h.startsWith('pie') ? -0.03 : 0])
+      const p = puntoDeHueso(esq, h, t, [0, 0, h.startsWith('pie') ? ALTURA_DEL_TOBILLO : 0])
       y = apoyo === 'manos' ? Math.max(y, p[1]) : Math.min(y, p[1])
     }
   }

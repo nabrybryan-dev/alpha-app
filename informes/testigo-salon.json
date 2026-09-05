@@ -1,0 +1,46 @@
+{
+  "pestanaVisible": true,
+  "formato": "9:16",
+  "viewport": {
+    "ancho": 414,
+    "alto": 736
+  },
+  "cuando": "2026-09-05T18:32:53.246Z",
+  "usuario": "u-mateo",
+  "sesion": "(el muro no rotula día)",
+  "rama": "conSujeto",
+  "elementos": {
+    "sala": {
+      "visible": true,
+      "pixeles": 106548,
+      "enLienzo": true
+    },
+    "letras3D": {
+      "visible": true,
+      "pixeles": 304704,
+      "enLienzo": false
+    },
+    "sujeto": {
+      "visible": true,
+      "pixeles": 4606,
+      "enLienzo": true
+    },
+    "camara": {
+      "visible": true,
+      "pixeles": 2704,
+      "enLienzo": false
+    },
+    "implementos": {
+      "visible": true,
+      "pixeles": 3656,
+      "enLienzo": true
+    }
+  },
+  "ejeW": {
+    "desde": 0,
+    "hasta": 0,
+    "cambioEnSujeto": 0,
+    "ruido": 1,
+    "botones": -1
+  }
+}

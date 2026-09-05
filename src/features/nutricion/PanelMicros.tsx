@@ -33,7 +33,7 @@ const redondear = (valor: number) => (valor >= 100 ? Math.round(valor) : Number(
 
 export function PanelMicros({ total, condiciones = [], nombresDelDia = [] }: PanelMicrosProps) {
   return (
-    <section className="rounded-3xl border border-linea bg-surface-1 p-4">
+    <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
       <div className="mb-3 flex items-baseline justify-between">
         <h3 className="font-display text-sm text-texto">Micronutrientes clave</h3>
         <span className="text-[10px] uppercase tracking-wide text-tenue">TCAC · USDA</span>

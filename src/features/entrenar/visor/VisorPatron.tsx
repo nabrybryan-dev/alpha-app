@@ -15,6 +15,19 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
+import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
+import { encuadreDelSalon } from '../escena/encuadreDelSalon'
+import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
+import { pasoDelVaiven } from './vaivenDeLaSala'
+import { faseDeHuella, poseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
+import { hornear } from '../../../domain/patrones/malla'
+import { brazosDeMomento } from '../../../domain/biomecanica/brazosDeMomento'
+import { planDeMedida } from '../../../domain/biomecanica/palancas'
+import { mallasDeFuerzas } from '../../../domain/patrones/fuerzas'
+import type { Activacion } from '../../../domain/patrones/anatomia'
+import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
+import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
+import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import {
@@ -26,6 +39,9 @@ import {
 } from '../../../domain/patrones/musculos'
 import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
 import { camaraAbierta } from '../camaraAbierta'
+import type { NivelW } from '../salon/huecos'
+import { NIVEL_POR_W } from '../capas/nivelesAnatomicos'
+import { construirMusculosDeNivel, mallasDelSujeto } from '../capas/mallaDelNivel'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
 import { FONDO_ESTUDIO } from './motor'
 
@@ -37,6 +53,19 @@ type Capa = 'ambas' | 'musculo' | 'hueso'
  * base contra la que se mide cuánto se acorta cada músculo.
  */
 let huesosCache: ReturnType<typeof construirHuesos> | null = null
+
+/**
+ * EL FANTASMA TIENE SUS PROPIOS HUESOS. Comparte `construirHuesos()` como fábrica pero no
+ * la instancia: el alfa es de la malla, y una malla no puede ser opaca para el sujeto y
+ * translúcida para el fantasma a la vez.
+ */
+let huesosFantasma: ReturnType<typeof construirHuesos> | null = null
+
+/** Cuánto se ve a través del fantasma. Menos y se pierde; más y parece otro atleta. */
+const ALFA_DEL_FANTASMA = 0.38
+
+/** Sin activación: el fantasma va en el color del músculo pasivo, apagado. Es un rastro. */
+const SIN_ACTIVACION: Activacion = {}
 
 /**
  * La bahía de medida: el suelo, la placa, el bordillo y el estadiómetro.
@@ -57,6 +86,71 @@ function laboratorio(): Malla {
   }
   return laboratorioCache
 }
+
+/**
+ * La sala se cachea POR SUS NÚMEROS, no a secas.
+ *
+ * Las paredes y la estación de grabación no cambian nunca, pero los marcadores llevan
+ * cifras de siete segmentos hechas de geometría: cambiar un número es reconstruir esos
+ * dígitos. Cachear por el trío evita rehacer la sala entera en cada fotograma y a la
+ * vez deja que el marcador reaccione cuando la serie avanza — que es el único momento
+ * en que TIENE que cambiar.
+ */
+let salaCache: { clave: string; malla: Malla } | null = null
+
+function sala(datos: DatosDeSerie, azimutDeEntrada: number): Malla {
+  // El ángulo entra en la clave: si no, cambiar de ejercicio dejaría el marcador del muro
+  // de enfrente colgado donde lo puso el ejercicio anterior.
+  const clave = `${datos.series}|${datos.reps}|${datos.rir}|${azimutDeEntrada}`
+  if (!salaCache || salaCache.clave !== clave) {
+    const malla = new Malla()
+    construirSala(malla, datos, azimutDeEntrada)
+    salaCache = { clave, malla }
+  }
+  return salaCache.malla
+}
+
+/**
+ * Los implementos se cachean POR EL EJERCICIO, pero se CONSTRUYEN cada fotograma.
+ *
+ * La diferencia importa y es la razón de que aquí solo se guarde la escena y no la
+ * malla: un implemento cuelga del esqueleto de la fase que se está dibujando —si el
+ * sujeto baja, la barra baja con él—, así que su geometría cambia sesenta veces por
+ * segundo. Lo que no cambia es QUÉ implementos hay, y eso es lo que se cachea.
+ */
+let escenaImplementosCache: { clave: string; escena: EscenaDeImplementos } | null = null
+
+function escenaDeImplementos(categoria: string, nombre: string): EscenaDeImplementos {
+  const clave = `${categoria}|${nombre}`
+  if (!escenaImplementosCache || escenaImplementosCache.clave !== clave) {
+    escenaImplementosCache = { clave, escena: implementosDeEscena(categoria, nombre) }
+  }
+  return escenaImplementosCache.escena
+}
+
+/**
+ * El trípode se cachea POR SU COLOCACIÓN. Mientras no se mueva, es geometría fija; en
+ * cuanto el asesorado toca un mando, hay que rehacerlo — y solo a él, no la sala entera.
+ */
+let tripodeCache: { clave: string; malla: Malla } | null = null
+
+function tripode(c: Colocacion): Malla {
+  const clave = `${c.anguloGrados.toFixed(1)}|${c.distancia.toFixed(2)}|${c.altura.toFixed(2)}`
+  if (!tripodeCache || tripodeCache.clave !== clave) {
+    const malla = new Malla()
+    construirTripode(malla, c)
+    tripodeCache = { clave, malla }
+  }
+  return tripodeCache.malla
+}
+
+/** La colocación de partida: la que la sala propone y la puerta de encuadre aprueba. */
+const COLOCACION_INICIAL: Colocacion = {
+  anguloGrados: SALA.estacion.anguloGrados,
+  distancia: SALA.estacion.distancia,
+  altura: SALA.estacion.altura,
+}
+
 let reposoCache: Record<string, number> | null = null
 function precalculado() {
   huesosCache ??= construirHuesos()
@@ -64,16 +158,128 @@ function precalculado() {
   return { huesos: huesosCache, reposo: reposoCache }
 }
 
+/**
+ * QUÉ PARTES DE LA ESCENA SE DEJAN FUERA DE ESTE DIBUJO.
+ *
+ * Se lee del atributo `data-sin` del propio lienzo —una lista separada por comas— y
+ * existe por un problema que no tiene otra salida: el testigo comprueba que un elemento
+ * se ve APAGÁNDOLO y contando los píxeles que cambian, y eso funciona mientras cada
+ * elemento sea un nodo del DOM. La sala, el hierro y la estación no lo son: son
+ * geometría dentro de un único `<canvas>`, y no hay nodo que esconder.
+ *
+ * Hasta el 2026-09-02 el acta lo resolvía midiendo las capas SVG/HTML que se pintan
+ * ENCIMA del lienzo, y por eso daba `sala` e `implementos` en verde mientras
+ * `construirSala` y `construirImplementos` no tenían una sola llamada: certificaba el
+ * cartel, no la sala.
+ *
+ * Con esto el testigo apaga una PARTE de la malla y vuelve a medir, que es la misma
+ * resta de siempre aplicada donde hacía falta. No es un modo de depuración escondido:
+ * sin el atributo no cambia nada, y el atributo solo lo pone quien levanta el acta.
+ */
+const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia', 'fantasma', 'fuerzas'] as const
+
+function partesOmitidas(lienzo: HTMLCanvasElement | null): Set<string> {
+  const crudo = lienzo?.dataset.sin
+  if (!crudo) return new Set()
+  return new Set(
+    crudo
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => (PARTES_DE_ESCENA as readonly string[]).includes(t)),
+  )
+}
+
 interface VisorPatronProps {
   patron: Patron
   /**
-   * Si se dibuja la bahía de medida alrededor del sujeto.
+   * Los números de la serie que se está haciendo, que son los que van al marcador de
+   * la pared. Opcional a propósito: sin ellos no se construyen ni la sala ni el
+   * trípode, y el visor se queda con la bahía — que es lo que hace falta cuando esto
+   * se abre para estudiar el patrón y no para entrenar.
+   */
+  datos?: DatosDeSerie
+  /**
+   * Si se dibuja el escenario alrededor del sujeto: la bahía de medida y, cuando hay
+   * `datos`, también la sala y el trípode.
    *
    * Se puede apagar para mirar solo el cuerpo. No es un modo de depuración: al
    * estudiar una articulación aislada el escenario es ruido, y en las
    * demostraciones el sujeto ni siquiera se apoya en el suelo.
    */
   conEscenario?: boolean
+  /**
+   * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
+   *
+   * Opcional a propósito, y sin él NO PASA NADA: el visor dibuja lo mismo que dibujaba
+   * antes de que W existiera —el cuerpo entero, con el selector de tres botones— porque
+   * `SesionPage` y el explorador lo abren así y no tienen por qué enterarse del eje.
+   *
+   * Con él, quien manda es `nivelesAnatomicos.ts`: cada nivel enciende sus piezas y sus
+   * porciones y apaga las demás. El selector de músculo/hueso desaparece entonces, y no
+   * por ahorrar sitio: son dos mandos sobre lo mismo, y dejar los dos deja al asesorado
+   * sin saber cuál gana —la capa 4 con el botón «Músculo» pulsado no tiene respuesta.
+   */
+  w?: NivelW
+  /**
+   * El nombre del ejercicio, para saber CON QUÉ se hace.
+   *
+   * Solo el nombre, y no su categoría, por algo que costó medirlo: la categoría que
+   * trae el ejercicio es de la taxonomía vieja de la base —`DOMINANTE DE RODILLA`,
+   * `AISLAMIENTO`— y la tabla de palancas habla la canónica —`SENTADILLA`,
+   * `BISAGRA DE CADERA`—. Pasada en crudo, `implementosDeEscena` devolvía cero piezas
+   * para la sentadilla y el peso muerto, o sea el sujeto con las manos vacías en los
+   * dos ejercicios más frecuentes. La traducción ya existe y ya está hecha aquí: es
+   * `patron.categoria`, que `patronDeCategoria` resolvió con sus alias.
+   *
+   * Va aparte de `datos` porque son dos cosas distintas: `datos` son los números del
+   * marcador —cambian con cada serie— y esto es QUÉ implementos hay —cambia con el
+   * ejercicio—. Mezclarlos reconstruiría la barra cada vez que avanza una serie.
+   */
+  nombreEjercicio?: string
+  /**
+   * Avisa de dónde está mirando la cámara, cada vez que se mueve.
+   *
+   * Existe para que los CUADROS DE LA PARED puedan colgarse del muro de verdad. Un panel
+   * colocado con porcentajes está pegado a la pantalla; para estar pegado a la pared hay
+   * que pasarlo por esta misma cámara —mismo azimut, misma elevación, misma distancia—, y
+   * si los dos números no salen del mismo sitio el cuadro flota. Flotar medio grado ya se
+   * nota, porque el ojo compara el cuadro con el suelo que tiene detrás.
+   *
+   * Se llama en el bucle, así que tiene que ser barato y estable: quien lo reciba guarda
+   * el valor y NO provoca un render por cada grado —de eso se encarga el que escucha.
+   */
+  alMirar?: (camara: { azimut: number; elevacion: number; distancia: number }) => void
+  /**
+   * El tempo prescrito de la repetición. Sin él, el sujeto baja en los 1,9 s de siempre;
+   * con él, baja en lo que cuenta la pared del salón, para que las dos cifras de tiempo
+   * que enseña el salón sean la misma.
+   */
+  tempo?: TempoDeRepeticion
+  /**
+   * SI UN SOLO DEDO ORBITA. En el estudio del patrón sí; en el SALÓN no.
+   *
+   * En el salón el dedo suelto es de navegar —deslizar de lado pasa de ejercicio— y la
+   * cámara se maneja con dos dedos, que es como lo resuelven las apps que meten un modelo
+   * 3D dentro de algo por lo que se navega. Se pasa desde fuera para que este visor no
+   * tenga que saber en qué pantalla está.
+   */
+  orbitaConUnDedo?: boolean
+  /**
+   * CUÁNTO SE RETIRA LA CÁMARA, como múltiplo de su distancia (1 = donde está).
+   *
+   * Es la palanca con la que el salón se aleja al subir la lectura y se acerca un pelo al
+   * hundir el dedo, y sustituye a dos `scale()` de CSS que reescalaban el lienzo ya
+   * pintado. La cámara llega al objetivo suavizada en el propio bucle: no salta.
+   */
+  retirada?: number
+  /**
+   * LA REPETICIÓN QUE SE HIZO, para verla sobre la que había que hacer.
+   *
+   * Con huella se dibuja un segundo cuerpo translúcido, con el esqueleto del patrón y el
+   * TIEMPO de la persona. Sin huella no se dibuja nada y no cuesta nada: es la ruta de
+   * siempre.
+   */
+  fantasma?: HuellaDeRepeticion
 }
 
 /**
@@ -83,7 +289,18 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
+export function VisorPatron({
+  patron,
+  datos,
+  conEscenario = true,
+  w,
+  nombreEjercicio,
+  alMirar,
+  tempo,
+  fantasma,
+  orbitaConUnDedo = true,
+  retirada = 1,
+}: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -91,10 +308,67 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
   const [girando, setGirando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const reducido = useMovimientoReducido()
+  /**
+   * La sala y el trípode cuelgan de las dos cosas: sin escenario no hay dónde ponerlos
+   * —el explorador mira una articulación sola, sin suelo— y sin los números de la serie
+   * no hay marcador que enseñar.
+   */
+  const haySala = conEscenario && !!datos
 
   // Todo lo que cambia sesenta veces por segundo va por referencia y no por
   // estado: meterlo en `useState` volvería a renderizar el árbol en cada cuadro.
-  const estado = useRef({ fase: 0, sentido: 1, reloj: 0, reproduciendo: true, girando: false, capa: 'ambas' as Capa })
+  const estado = useRef({
+    fase: 0,
+    sentido: 1,
+    reloj: 0,
+    reproduciendo: true,
+    girando: false,
+    capa: 'ambas' as Capa,
+    // Los números del marcador viven aquí y no en las dependencias del efecto que monta
+    // la escena: incluirlos ahí recrearía el contexto WebGL entero cada vez que avanza
+    // una serie. Van por referencia y se repinta, como la capa.
+    datos: undefined as DatosDeSerie | undefined,
+    colocacion: COLOCACION_INICIAL,
+    // El campo visual con el que se proyecta cuando hay sala. Por referencia, como todo lo
+    // que el bucle lee: cambiarlo no puede recrear el contexto WebGL.
+    campoDelSalon: undefined as number | undefined,
+    // El objetivo de retirada de la cámara. Por referencia y no en las dependencias del
+    // efecto que monta la escena, por lo mismo que `datos`: cambiarlo no puede recrear el
+    // contexto WebGL. El bucle lo lee y acerca la cámara un poco cada fotograma.
+    retirada: 1,
+    // El escalón de W va por referencia y NO en las dependencias del efecto que monta
+    // la escena, por lo mismo que la capa y los números de la serie: recrear el
+    // contexto WebGL al atravesar el cuerpo mataría la animación en cada capa, y el
+    // encargo dice justo lo contrario —en las cinco el sujeto sigue ejecutando su
+    // gesto—. Así, cambiar de capa es reconstruir la malla y seguir con el mismo bucle.
+    w: undefined as NivelW | undefined,
+    // El ejercicio va por referencia como los números y la capa: si entrara en las
+    // dependencias del efecto que monta la escena, cambiar de ejercicio recrearía el
+    // contexto WebGL en vez de reconstruir una malla.
+    nombreEjercicio: undefined as string | undefined,
+    alMirar: undefined as VisorPatronProps['alMirar'],
+    /**
+     * EL VAIVÉN: cuánto se ha desviado la cámara respirando, en grados.
+     *
+     * Sin tocar nada, la sala respira. No es un adorno: es lo que separa una escena 3D
+     * VIVA de una foto en perspectiva. Un salón absolutamente quieto se lee como una
+     * imagen fija, y entonces nadie prueba a girarlo — el movimiento ambiental es la
+     * única pista de que esto se mueve antes de que alguien lo toque.
+     *
+     * Se guarda el desvío ACUMULADO y no el objetivo, porque el azimut es del dedo: cada
+     * fotograma se le suma la diferencia entre el vaivén nuevo y el viejo, así que
+     * arrastrar y respirar se suman sin pelearse y soltar no da un salto.
+     */
+    vaiven: 0,
+    /** Cuándo tocó el dedo por última vez. De aquí sale si la sala está quieta. */
+    ultimoDedo: 0,
+    /** Si el sistema pide menos movimiento. Entonces el objetivo del vaivén es siempre 0. */
+    reducido: false,
+    /** El tempo prescrito. Va por referencia, como los datos: cambiar el tempo no recrea WebGL. */
+    tempo: undefined as TempoDeRepeticion | undefined,
+    /** La huella del fantasma. Por referencia, por lo mismo. */
+    fantasma: undefined as HuellaDeRepeticion | undefined,
+  })
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
 
@@ -106,8 +380,20 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
     estado.current.reproduciendo = reproduciendo && !reducido
     estado.current.girando = girando
     estado.current.capa = capa
+    estado.current.datos = haySala ? datos : undefined
+    estado.current.w = w
+    estado.current.nombreEjercicio = nombreEjercicio
+    estado.current.alMirar = alMirar
+    estado.current.reducido = reducido
+    estado.current.tempo = tempo
+    estado.current.fantasma = fantasma
+    estado.current.retirada = retirada
+    // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
+    // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
+    // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
+    // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa])
+  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma, retirada])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -118,6 +404,9 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
     let vivo = true
     let cuadro = 0
     let cancelado = false
+    let observador: MutationObserver | undefined
+    let alPerderContexto: ((e: Event) => void) | undefined
+    let alRecuperarContexto: (() => void) | undefined
 
     // El motor se carga aparte para no meter WebGL en el paquete inicial: la
     // mayoría de las sesiones no abren el visor ni una vez.
@@ -131,19 +420,81 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           return
         }
 
+        alPerderContexto = (e: Event) => {
+          e.preventDefault()
+          setError('El visor 3D se pausó por falta de memoria. Vuelve a intentarlo.')
+        }
+        alRecuperarContexto = () => {
+          setError(null)
+          try {
+            construir()
+            pintar()
+          } catch {
+            setError('Este navegador no pudo recuperar el modelo 3D.')
+          }
+        }
+        // El atributo se pone desde fuera, así que nadie vuelve a renderizar por él:
+        // sin este observador el testigo pediría apagar la sala, sacaría la foto, y la
+        // sala seguiría ahí. Daría cero píxeles de diferencia y firmaría que no se ve.
+        observador = new MutationObserver(() => {
+          construir()
+          pintar()
+        })
+        observador.observe(lienzo, { attributes: true, attributeFilter: ['data-sin'] })
+
+        lienzo.addEventListener('webglcontextlost', alPerderContexto)
+        lienzo.addEventListener('webglcontextrestored', alRecuperarContexto)
+
         const { huesos, reposo } = precalculado()
         // La malla del músculo se reutiliza cuadro a cuadro: la topología no
         // cambia y reservarla de nuevo cada vez costaba el doble de tiempo.
         const mallaMusculo = new Malla(16384)
+        // LAS DEL FANTASMA. Dos por pieza: la que se construye en espacio de hueso y la
+        // horneada, que es la que se sube. Reutilizadas por lo mismo que `mallaMusculo`.
+        const mallaFantasma = new Malla(16384)
+        const fantasmaHorneado = new Malla(16384)
+        const huesosFantasmaHorneados = new Malla(4096)
         const traza = trazaDelPatron(patron)
         const encuadre = encuadrar(patron)
         let mostrarEsfera = false
 
-        orbita = new Orbita(lienzo, () => pintar())
+        // Al arrastrar el dedo la órbita repinta por su cuenta, y ahí también hay que
+        // avisar: si no, los cuadros de la pared se quedan clavados mientras la sala gira
+        // debajo — que es exactamente lo contrario de estar colgados de ella.
+        orbita = new Orbita(lienzo, () => {
+          pintar()
+          avisarDeLaCamara()
+        })
+        orbita.arrastreConUnDedo = orbitaConUnDedo
+        // EL CUADRO DEL SALÓN SE CALCULA CONTRA EL CUERPO. Mirar siempre a [0, 1,2, 0] a
+        // 4,6 m encuadra bien a una persona de pie y a nadie más: medido el 2026-09-05, se
+        // salían del cuadro los 31 patrones, hasta 750 px. `encuadreDelSalon` mira al
+        // centro del cuerpo, se retira lo justo sin salir de la sala, y solo gira si aún no
+        // cabe. Sin sala manda `encuadrar()`, que es de estudiar el cuerpo y no un sitio.
+        const enSalon = estado.current.datos ? encuadreDelSalon(patron) : undefined
         orbita.azimut = patron.camara.azimut
-        orbita.elevacion = patron.camara.elevacion
-        orbita.distancia = encuadre.distancia
-        orbita.centro = encuadre.centro
+        // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
+        // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia el
+        // borde inferior del cuadro cae por encima del suelo y la sala entera queda
+        // recortada: el sujeto parecería flotando en un vacío y el escenario, que está
+        // construido y renderizado, no se vería.
+        // Se lee del ref y no de la prop porque incluir `datos` en las dependencias de
+        // este efecto recrearía el contexto WebGL cada vez que avanza una serie. El
+        // efecto de sincronización se declara ANTES que éste, así que para cuando esto
+        // corre el ref ya está puesto.
+        const conSala = !!estado.current.datos
+        orbita.distancia = enSalon ? enSalon.distancia : encuadre.distancia
+        orbita.centro = enSalon ? [...enSalon.centro] : encuadre.centro
+        estado.current.campoDelSalon = enSalon?.campo
+        // Y LA ELEVACIÓN SE ACOTA, pero solo con sala. El ángulo del patrón se eligió
+        // para ver el MOVIMIENTO —lo tumbado se estudia desde arriba, y por eso el
+        // catálogo llega a 56°— y ahí sigue mandando cuando el visor monta el patrón
+        // solo. Dentro del salón manda otra cosa: a partir de 32° la cámara no ve ni un
+        // punto del muro de 6,8 m, y los cuadros colgados quedaban fuera de la pantalla.
+        // El tope vive en `ENCUADRE_SALA` con el motivo y el número medidos.
+        orbita.elevacion = conSala
+          ? elevacionDelSalon(patron.camara.elevacion)
+          : patron.camara.elevacion
 
         let matrices = resolver({}, [0, 0.95, 0], [0, 0, 0]).matrices
 
@@ -153,14 +504,120 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
-          const partes = conEscenario ? [laboratorio()] : []
+          const partes = conEscenario && !partesOmitidas(lienzo).has('bahia') ? [laboratorio()] : []
           // La plomada del peso: dónde cae la resultante. Con suelo, porque
           // tumbado no hay equilibrio que enseñar.
           if (conEscenario && patron.apoyo === 'suelo') partes.push(lineaDePeso(esq))
-          if (estado.current.capa !== 'musculo') partes.push(huesos)
-          if (estado.current.capa !== 'hueso')
-            partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
+          // LA SALA Y EL TRÍPODE, que se quedan JUNTO a la plomada y no en su lugar.
+          // En la rama del PR #183 estas dos llamadas sustituían a `lineaDePeso`, y esa
+          // era una pérdida encubierta: la plomada dice dónde cae la resultante —el
+          // equilibrio— y la sala dice dónde estás y desde dónde se graba. Son dos
+          // datos distintos y ninguno responde por el otro, así que van los tres.
+          // Cuelgan de la bahía: sin escenario no hay dónde ponerlos, y sin números no
+          // hay marcador que enseñar.
+          const sin = partesOmitidas(lienzo)
+          // LAS FUERZAS: el brazo de momento de cada eje que gira, de la articulación a la
+          // vertical de la carga, y el arco del par. Salen del plan de medida del ejercicio
+          // —el mismo que manda al encoder qué mirar— y se miden sobre ESTE esqueleto, en
+          // esta fase: si el sujeto baja, el brazo crece con él.
+          if (conEscenario && !sin.has('fuerzas')) {
+            const plan = planDeMedida(patron.categoria, estado.current.nombreEjercicio ?? '')
+            if (plan) {
+              // El ojo va porque el arco vive en el plano real del giro: de canto no se ve,
+              // y en vez de dejar una astilla de 3 px se afina hasta retirarse.
+              for (const m of mallasDeFuerzas(brazosDeMomento(esq, plan), orbita.ojo())) if (m.vertices > 0) partes.push(m)
+            }
+          }
+          const d = estado.current.datos
+          if (d) {
+            if (!sin.has('sala')) partes.push(sala(d, patron.camara.azimut))
+            if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
+          }
+          // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
+          // de ESTA fase, así que si el sujeto baja, la barra baja con él. Un implemento
+          // que no siguiera al cuerpo sería una calcomanía, y se notaría al primer ciclo.
+          if (conEscenario && !sin.has('implementos')) {
+            const escenaHierro = escenaDeImplementos(patron.categoria, estado.current.nombreEjercicio ?? '')
+            // EL HIERRO Y EL APARATO VAN EN DOS MALLAS. Lo que se lleva en las manos —barra,
+            // mancuernas, disco— siempre opaco. El aparato —máquina, polea, raíles— se
+            // vuelve TRANSLÚCIDO cuando se planta entre la cámara y la persona: medido con
+            // esta misma cámara, en el press de pecho en máquina tapaba el 36 % del cuerpo
+            // y en la elevación lateral en polea el 19 %; el resto no llega al 7 %. Un
+            // aparato que tapa a la persona cuenta el ejercicio al revés.
+            const { hierro, aparato } = partirImplementos(escenaHierro)
+            const mallaHierro = new Malla()
+            construirImplementos(mallaHierro, hierro, esq)
+            if (mallaHierro.vertices > 0) partes.push(mallaHierro)
+            if (aparato.piezas.length) {
+              const mallaAparato = new Malla()
+              construirImplementos(mallaAparato, aparato, esq)
+              if (estado.current.datos && aparatoTapaAlCuerpo(patron, aparato)) mallaAparato.alfa = ALFA_DEL_APARATO_QUE_TAPA
+              if (mallaAparato.vertices > 0) partes.push(mallaAparato)
+            }
+          }
+          // EL SUJETO. Dos rutas, y la de arriba es la de siempre: sin `w` no se
+          // consulta el eje ni se importa nada de `capas/`, y lo que se sube es
+          // exactamente lo que se subía antes —el cuerpo entero, mandado por el
+          // selector de tres botones—. Quien ya usa el visor no nota este cambio.
+          const nivelW = estado.current.w
+          if (sin.has('sujeto')) {
+            // El cuerpo fuera: es la única parte cuyo apagado ya sabía hacer el testigo
+            // escondiendo un nodo, pero se trata igual que las demás para que las cuatro
+            // se midan por el mismo camino y una no pueda salir buena por otra razón.
+          } else if (nivelW === undefined) {
+            if (estado.current.capa !== 'musculo') partes.push(huesos)
+            if (estado.current.capa !== 'hueso')
+              partes.push(construirMusculos(esq, patron.activacion, reposo, mallaMusculo))
+          } else {
+            // Con `w`, la lista de mallas NO se decide aquí: se lee de
+            // `mallasDelSujeto()`, que es la misma función pura que se puede examinar
+            // sin pintar un píxel. Que la pantalla y la comprobación salgan del mismo
+            // sitio es lo que impide que una diga una cosa y la otra otra.
+            for (const m of mallasDelSujeto(nivelW, patron)) {
+              if (m.pieza === 'huesos') partes.push(huesos)
+              else partes.push(construirMusculosDeNivel(nivelW, esq, patron, reposo, mallaMusculo))
+            }
+          }
+          // EL FANTASMA: el mismo esqueleto, en la fase que marca la HUELLA de la persona
+          // y no la del patrón. Translúcido y apagado —sin activación, así que el color es
+          // el del músculo pasivo— para que se lea como lo que es: un rastro de lo que se
+          // hizo, no un segundo atleta.
+          //
+          // SE HORNEA. El motor tiene una sola paleta de huesos por dibujo, la del sujeto;
+          // el fantasma está en otra fase y necesita las suyas. En vez de un segundo
+          // dibujo, sus mallas se transforman aquí con las matrices de SU esqueleto y se
+          // suben con hueso 0, que es la identidad.
+          const huella = estado.current.fantasma
+          if (huella && !sin.has('fantasma')) {
+            const tFantasma = estado.current.reloj
+            const faseF = faseDeHuella(huella, tFantasma)
+            if (faseF !== undefined) {
+              // Si la huella trae ángulos, el fantasma dobla lo que se dobló: la pose medida
+              // se sobrepone a la del patrón. Si solo trae la barra, posa la técnica del
+              // patrón a la fase medida.
+              const esqF = esqueletoEnFase(patron, faseF, sentidoDeHuella(huella, tFantasma), tFantasma, poseDeHuella(huella, tFantasma))
+              huesosFantasma ??= construirHuesos()
+              const hF = hornear(huesosFantasma, esqF.matrices, huesosFantasmaHorneados)
+              hF.alfa = ALFA_DEL_FANTASMA
+              const mF = hornear(
+                construirMusculos(esqF, SIN_ACTIVACION, reposo, mallaFantasma),
+                esqF.matrices,
+                fantasmaHorneado,
+              )
+              mF.alfa = ALFA_DEL_FANTASMA
+              partes.push(hF, mF)
+            }
+          }
           partes.push(guias(traza, estado.current.fase, orbita.centro, mostrarEsfera))
+          // QUE SE ACABA DE CONSTRUIR, dicho en el propio lienzo.
+          //
+          // Un vértice puede existir en la malla y no llegar nunca a la pantalla, y
+          // desde fuera las dos cosas se ven igual: cero píxeles. Sin este dato, saber
+          // cuál de las dos era pedía adivinar. Es una cuenta, no un mando: no cambia
+          // nada de lo que se dibuja y se lee igual desde el inspector que desde el acta.
+          if (lienzo) {
+            lienzo.dataset.partes = partes.map((m) => m.vertices).join(',')
+          }
           motor.subir(partes)
         }
 
@@ -169,7 +626,10 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           motor.dibujar(
             matrices,
             orbita.vista(),
-            M4.perspectiva(CAMPO_VISUAL, aspecto, 0.05, 40),
+            // EL OBJETIVO LO PONE EL ENCUADRE cuando hay sala: los ejercicios tumbados
+            // necesitan un gran angular para caber de ancho, y lo que sobra es sitio por
+            // arriba. Sin sala manda el campo de siempre.
+            M4.perspectiva(estado.current.campoDelSalon ?? CAMPO_VISUAL, aspecto, 0.05, 40),
             orbita.ojo(),
             conEscenario && patron.apoyo !== 'ninguno',
           )
@@ -180,6 +640,14 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           construir()
           pintar()
         }
+        // EL DEDO APAGA EL VAIVÉN. Se anota en los dos eventos y no solo al bajar: un
+        // arrastre largo pasa de 1,5 s, y sin anotar el movimiento la sala empezaría a
+        // respirar por debajo del dedo que la está girando.
+        const anotarDedo = () => {
+          estado.current.ultimoDedo = performance.now()
+        }
+        lienzo.addEventListener('pointerdown', anotarDedo)
+        lienzo.addEventListener('pointermove', anotarDedo)
         lienzo.addEventListener('pointerdown', () => mostrarEsferaAl(true))
         lienzo.addEventListener('pointerup', () => mostrarEsferaAl(estado.current.girando))
         lienzo.addEventListener('pointercancel', () => mostrarEsferaAl(estado.current.girando))
@@ -198,7 +666,7 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
           const ahora = performance.now() / 1000
           let cambia = false
           if (estado.current.reproduciendo) {
-            const { fase: f, sentido } = faseDeTiempo(ahora - arranque, patron)
+            const { fase: f, sentido } = faseDeTiempo(ahora - arranque, patron, estado.current.tempo)
             estado.current.reloj = ahora - arranque
             estado.current.sentido = sentido
             if (Math.abs(f - estado.current.fase) > 0.0015) {
@@ -212,19 +680,88 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
             mostrarEsfera = true
             cambia = true
           }
+          // EL VAIVÉN SE APLICA ANTES DE PINTAR, y esto costó una medida.
+          //
+          // Estaba después, en una rama `if (!cambia && ...)`, y era CÓDIGO MUERTO: el
+          // sujeto está ejecutando su gesto, así que `cambia` es cierto en todos los
+          // fotogramas y esa rama no corría nunca. La sala salía perfectamente quieta y
+          // nada se ponía en rojo — se cazó midiendo la transformación del cuadro del muro
+          // seis veces seguidas y viendo que las seis eran idénticas.
+          //
+          // Sumado aquí, el desvío entra en el mismo pintado que ya se iba a hacer: no
+          // cuesta un fotograma más. Y cuando el modelo está en pausa, `respiro` es lo
+          // único que pide pintar — SIN reconstruir, porque la cámara no cambia ninguna
+          // malla y reconstruir la sala para desviarla una centésima de grado es el mismo
+          // error que costó 4,77 ms de fotograma en agosto.
+          const respiro = aplicarVaiven()
+          // LA CÁMARA SE RETIRA SUAVIZADA, en el mismo bucle y sin reconstruir nada: un
+          // quinto del camino que le queda en cada fotograma, que a 60 fps son unos 200 ms
+          // hasta no notarse — lo que duraba la transición de CSS a la que sustituye.
+          const objetivo = estado.current.retirada
+          const falta = objetivo - orbita.retirada
+          let acerca = false
+          if (Math.abs(falta) > 0.0005) {
+            orbita.retirada += falta * 0.2
+            acerca = true
+          } else if (orbita.retirada !== objetivo) {
+            orbita.retirada = objetivo
+            acerca = true
+          }
           if (cambia) {
             construir()
             pintar()
+            avisarDeLaCamara()
+          } else if (respiro || acerca) {
+            pintar()
+            avisarDeLaCamara()
           }
           cuadro = requestAnimationFrame(bucle)
+        }
+
+        // Se avisa con el MISMO estado con el que se acaba de dibujar. Avisar antes dejaría
+        // los cuadros de la pared un fotograma por detrás de la sala, y ese desfase se ve
+        // como un temblor al arrastrar el dedo — el cuadro persiguiendo a su muro.
+        /**
+         * RESPIRAR: acerca el vaivén a su objetivo y devuelve si la cámara se movió.
+         *
+         * La aritmética vive en `vaivenDeLaSala.ts` y no aquí: dentro de este efecto solo
+         * se podría probar montando WebGL, y en jsdom no hay WebGL. Aquí queda lo único
+         * que es de este sitio — sumarle el desvío al azimut de la órbita.
+         */
+        const aplicarVaiven = () => {
+          // LEE SU PROPIO RELOJ, Y EN MILISEGUNDOS. El `ahora` de este bucle es
+          // `performance.now() / 1000` —SEGUNDOS, porque la fase del gesto se calcula
+          // así— y pasárselo dejaba el vaivén con `ahora = 2`: nunca se cumplía «llevas
+          // 1500 sin tocar», el objetivo era siempre cero y la sala salía perfectamente
+          // quieta sin que nada se pusiera en rojo. Dos relojes en la misma función y en
+          // unidades distintas es el fallo, no el número.
+          const paso = pasoDelVaiven(estado.current, performance.now())
+          if (paso.desvio === 0) return false
+          estado.current.vaiven = paso.vaiven
+          orbita.azimut += paso.desvio
+          return true
+        }
+
+        const avisarDeLaCamara = () => {
+          estado.current.alMirar?.({
+            azimut: orbita.azimut,
+            elevacion: orbita.elevacion,
+            distancia: orbita.distancia,
+          })
         }
 
         redibujar.current = () => {
           construir()
           pintar()
+          avisarDeLaCamara()
         }
-        construir()
-        pintar()
+        try {
+          construir()
+          pintar()
+          avisarDeLaCamara()
+        } catch {
+          setError('Este navegador no pudo dibujar el modelo 3D.')
+        }
         cuadro = requestAnimationFrame(bucle)
       })
       .catch(() => setError('No se pudo cargar el modelo 3D.'))
@@ -241,10 +778,18 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
       vivo = false
       cancelAnimationFrame(cuadro)
       window.removeEventListener('resize', alRedimensionar)
+      observador?.disconnect()
+      if (alPerderContexto) lienzo.removeEventListener('webglcontextlost', alPerderContexto)
+      if (alRecuperarContexto) lienzo.removeEventListener('webglcontextrestored', alRecuperarContexto)
       redibujar.current = null
       orbita?.destruir()
     }
-  }, [patron, conEscenario])
+    // `orbitaConUnDedo` entra en las dependencias aunque en la práctica no cambie —el
+    // salón siempre pasa `false` y el estudio siempre `true`—: la órbita lo lee UNA vez, al
+    // construirse, así que si algún día cambiara en caliente sin rehacer el motor, el dedo
+    // se quedaría con el comportamiento de la pantalla anterior. Un aviso del linter menos
+    // y un fallo raro menos.
+  }, [patron, conEscenario, orbitaConUnDedo])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.
@@ -275,6 +820,9 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
   })
     .filter((m) => m.valor >= 0.25)
     .sort((a, b) => b.valor - a.valor)
+
+  /** El nivel de W en el que se está, o `null` cuando el visor se abre sin eje. */
+  const nivel = w === undefined ? null : NIVEL_POR_W[w]
 
   // Qué hace cada articulación: se calcula de las poses, no está escrito.
   const acciones = accionesPrincipales(patron)
@@ -349,22 +897,36 @@ export function VisorPatron({ patron, conEscenario = true }: VisorPatronProps) {
         >
           Orbitar
         </button>
-        <div className="flex overflow-hidden rounded-lg border border-ink-500">
-          {(['ambas', 'musculo', 'hueso'] as Capa[]).map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCapa(c)}
-              aria-pressed={capa === c}
-              className={`press px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
-                capa === c ? 'bg-white/10 text-silver-100' : 'text-silver-400'
-              }`}
-            >
-              {c === 'ambas' ? 'Ambas' : c === 'musculo' ? 'Músculo' : 'Hueso'}
-            </button>
-          ))}
-        </div>
+        {/* MÚSCULO/HUESO Y EL EJE W SON EL MISMO MANDO, así que no salen los dos: con
+            `w` puesto lo que se ve del cuerpo lo decide la capa, y el selector se
+            cambia por el rótulo de en qué capa se está —que es el dato que hace falta
+            cuando el dedo ya ha atravesado dos veces y no se sabe dónde se ha parado. */}
+        {nivel ? (
+          <p className="rounded-lg border border-ink-500 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-silver-300">
+            {nivel.nombre}
+          </p>
+        ) : (
+          <div className="flex overflow-hidden rounded-lg border border-ink-500">
+            {(['ambas', 'musculo', 'hueso'] as Capa[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCapa(c)}
+                aria-pressed={capa === c}
+                className={`press px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+                  capa === c ? 'bg-white/10 text-silver-100' : 'text-silver-400'
+                }`}
+              >
+                {c === 'ambas' ? 'Ambas' : c === 'musculo' ? 'Músculo' : 'Hueso'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {nivel && (
+        <p className="text-[10px] leading-snug text-silver-400">{nivel.resumen}</p>
+      )}
 
       {reducido && (
         <p className="text-[10px] leading-snug text-silver-400">

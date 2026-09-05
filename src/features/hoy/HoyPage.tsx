@@ -140,7 +140,7 @@ export default function HoyPage() {
 
       {/* Check-in del día */}
       {checkinHoy ? (
-        <div className="entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
+        <div className="relieve entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
             <CheckDibujado className="h-3.5 w-3.5" />
           </span>
@@ -149,7 +149,7 @@ export default function HoyPage() {
       ) : (
         <Link
           to="/bienestar"
-          className="press entrada entrada-2 flex items-center gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
+          className="relieve entrada entrada-2 flex items-center gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline bg-surface-2 text-rojo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -221,7 +221,7 @@ export default function HoyPage() {
       <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
         <Link
           to="/logros"
-          className="press rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
+          className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
         >
           <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
           <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
@@ -229,7 +229,7 @@ export default function HoyPage() {
             <span className="text-sm font-medium text-tenue"> d</span>
           </p>
         </Link>
-        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+        <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
           <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
             Peso{microciclo ? ` M${microciclo.numero}` : ''}
           </p>
@@ -238,7 +238,7 @@ export default function HoyPage() {
             <span className="text-sm font-medium text-tenue"> kg</span>
           </p>
         </div>
-        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+        <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
           <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
           <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
             {adherenciaPct ?? '—'}

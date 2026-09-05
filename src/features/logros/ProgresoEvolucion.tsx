@@ -206,7 +206,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Gráfico de evolución con toggle Peso / Fuerza */}
-      <div className="rounded-bloque border border-ink-500 bg-ink-800 p-4">
+      <div className="relieve rounded-bloque border border-ink-500 bg-ink-800 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-silver-500">
@@ -255,7 +255,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
           dónde se está quedando corta —que es justo lo que abre conversación en
           la revisión—. */}
       {grupos.length > 0 && (
-        <div className="rounded-bloque border border-ink-500 bg-ink-800 p-4">
+        <div className="relieve rounded-bloque border border-ink-500 bg-ink-800 p-4">
           <div className="mb-1 flex items-center justify-between">
             <span className="font-display text-sm text-silver-100">Volumen por grupo</span>
             <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">
