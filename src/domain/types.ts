@@ -33,6 +33,14 @@ export interface MedidaCorporal {
   masaMagraKg?: number
 }
 
+/** Ver `Perfil.neat`. Los dos campos son opcionales por separado. */
+export interface GastoPorPasos {
+  /** kcal/día que gasta hoy, con los pasos que viene registrando. */
+  kcalDia?: number
+  /** kcal/día que gastaría en su meta de pasos. */
+  kcalDiaEnMeta?: number
+}
+
 export interface Perfil {
   usuarioId: string
   objetivos: string
@@ -52,6 +60,21 @@ export interface Perfil {
   faseEnergetica?: string
   proteinaGkg?: number
   pasosObjetivo?: number
+  /**
+   * Lo que esos pasos GASTAN, en kcal al día. Es la otra mitad de
+   * `pasosObjetivo`: para quien está en «déficit por NEAT», el número que decide
+   * la estrategia no es cuántos pasos da, es cuántas kcal salen de darlos. Sin
+   * él, «sube los pasos» es una orden sin magnitud.
+   *
+   * ESTIMACIÓN, NO MEDIDA — y por eso se pinta marcada como estimada. Sale de
+   * una fórmula sobre los pasos que la persona registra en su check-in
+   * (`km = pasos / 1450`, `kcal = 0,5 × peso × km`, el coste neto de caminar),
+   * no de un acelerómetro. Los dos campos son opcionales por separado: se puede
+   * saber lo que gasta hoy sin haberle fijado meta todavía.
+   *
+   * Viaja dentro de `perfiles.datos` (JSONB), así que no necesita migración.
+   */
+  neat?: GastoPorPasos
   /**
    * Lo que el coach valora mirando la ejecución y la app no puede deducir
    * (hoy, la técnica). El resto de competencias de la Ruta se calculan solas.
