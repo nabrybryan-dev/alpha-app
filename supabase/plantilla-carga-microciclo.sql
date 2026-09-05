@@ -209,6 +209,15 @@ create or replace function public.tmp_nuevo_micro(
                        -- La ondulación guardada era de la prescripción vieja:
                        -- si este ejercicio se ajusta, deja de valer.
                        - (case when aj.v is null then '' else 'seriesPrescritas' end)
+                       -- Y LAS ESCALERAS, por lo mismo y con más filo. Un
+                       -- `techoCargaKg` se calcula CONTRA UNA CARGA CONCRETA:
+                       -- heredado sobre otra deja de ser un techo. Probado en
+                       -- seco el 2026-09-04 — bajando de 100 a 80 kg, el techo
+                       -- viejo de 112,5 seguía puesto: pasaba de autorizar un
+                       -- 12,5 % a autorizar un 40 %. Es el fósil de julio otra
+                       -- vez, y hoy no ha mordido solo porque en producción
+                       -- todavía no hay ni un ejercicio con escaleras.
+                       - (case when aj.v is null then '' else 'escenarios' end)
                        -- Con frase nueva, los campos que la describían dejan de
                        -- valer. Se borran y se vuelven a derivar de la frase
                        -- justo debajo; los que no se puedan leer quedan fuera,
@@ -232,6 +241,33 @@ create or replace function public.tmp_nuevo_micro(
                        || case when aj.v ? 'carga'  then jsonb_build_object('cargaKg', (aj.v->>'carga')::numeric) else '{}'::jsonb end
                        || case when aj.v ? 'unidad' then jsonb_build_object('unidadCarga', aj.v->>'unidad') else '{}'::jsonb end
                        || case when aj.v ? 'nota'   then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
+                       -- LAS ESCALERAS DEL BUCLE DEL DÍA, traducidas al pasar.
+                       --
+                       -- El ③ las escribe en el vocabulario del contrato
+                       -- (`techo_carga_kg`) y la app las lee en el suyo
+                       -- (`techoCargaKg`). La traducción vive AQUÍ, en la única
+                       -- costura por la que pasan, y no en los dos lados: dos
+                       -- vocabularios que se traducen en dos sitios divergen.
+                       --
+                       -- Lo que no venga se queda fuera en vez de ir a null: un
+                       -- `serieExtra: null` diría «no hay serie extra» y lo que
+                       -- pasa es que nadie lo dijo. Y el verde puede faltar
+                       -- entero (B-7, Bryan 2026-08-28: con la carga vetada no
+                       -- hay subida que preautorizar), el rojo no.
+                       || case when aj.v ? 'escenarios' then jsonb_build_object('escenarios',
+                            (case when aj.v->'escenarios' ? 'verde' then jsonb_build_object('verde',
+                               (case when aj.v->'escenarios'->'verde' ? 'delta_carga_kg'
+                                     then jsonb_build_object('deltaCargaKg', aj.v->'escenarios'->'verde'->'delta_carga_kg') else '{}'::jsonb end)
+                            || (case when aj.v->'escenarios'->'verde' ? 'serie_extra'
+                                     then jsonb_build_object('serieExtra', aj.v->'escenarios'->'verde'->'serie_extra') else '{}'::jsonb end)
+                            || jsonb_build_object('techoCargaKg', aj.v->'escenarios'->'verde'->'techo_carga_kg')
+                            ) else '{}'::jsonb end)
+                         || jsonb_build_object('rojo',
+                               jsonb_build_object('deltaRir', aj.v->'escenarios'->'rojo'->'delta_rir',
+                                                  'sueloRir', aj.v->'escenarios'->'rojo'->'suelo_rir')
+                            || (case when aj.v->'escenarios'->'rojo' ? 'quitar_ultima_serie'
+                                     then jsonb_build_object('quitarUltimaSerie', aj.v->'escenarios'->'rojo'->'quitar_ultima_serie') else '{}'::jsonb end))
+                          ) else '{}'::jsonb end
                      ) order by ord)
                    from jsonb_array_elements(s->'ejercicios') with ordinality as t(e, ord)
                    left join lateral (
