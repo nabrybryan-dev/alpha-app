@@ -32,19 +32,41 @@ select 'senal 4 · politicas' as senal,
        case when count(*) = 4 then 'OK (4)' else 'FALLO: ' || count(*) || ' politicas' end as veredicto
   from pg_policies where schemaname = 'public' and tablename = 'motivo_sin_plan';
 
--- 5 · LA QUE PROTEGE: ningún asesorado sin microciclo activo puede quedarse sin
---     motivo. Si esta se pone roja, la mesa del sábado está a punto de mezclar
---     «inactivo a propósito» con «cortado por no suministrar».
+-- 5 · LA QUE PROTEGE: nadie sin microciclo activo puede quedarse sin motivo. Si
+--     esta se pone roja, la mesa del sábado está a punto de mezclar «inactivo a
+--     propósito» con «cortado por no suministrar».
 --     Nombra a quién le falta, porque «hay 1» no es accionable.
+--
+-- ⚠ EL PREDICADO NO ES `rol = 'asesorado'`, Y ASÍ NACIÓ ESTA SEÑAL EL 2026-09-05.
+-- Ese mismo día se descubrió por qué está mal: **Manuela Quintero tiene
+-- `rol = 'nutricionista'` y es asesorada a la vez** —microciclo activo, 68 % de
+-- registro, 7 check-ins—. Con el filtro por rol, el día que se quedara sin plan
+-- esta señal habría dicho OK, que es exactamente el falso verde que la señal
+-- existe para impedir. Medido con señuelo: simulando que pierde su activo, el
+-- predicado viejo NO la caza y el nuevo SÍ.
+--
+-- El de fondo es que el sistema tiene UN campo de rol, así que «es staff» y «es
+-- asesorada» no se pueden decir a la vez. Mientras siga así, la pregunta que sí
+-- se puede hacer es: **¿tuvo microciclos alguna vez, o no es staff?**
+--
+--   · tuvo microciclos  -> fue cliente, da igual su rol (caza a Manuela)
+--   · no es staff       -> es un alta que aún no tiene el primero
+--                          (`alta_sin_programar`)
+--   · staff sin microciclos -> el coach: fuera, y correctamente
+--
+-- LÍMITE DECLARADO: a un miembro del staff que se dé de alta como asesorado y
+-- todavía no tenga su primer microciclo, esto NO lo caza. No se puede, con un
+-- solo campo de rol. Se dice aquí en vez de fingir que está cubierto.
 select 'senal 5 · nadie sin plan se queda sin motivo' as senal,
        case when c.n = 0 then 'OK'
             else 'FALLO: ' || c.n || ' sin motivo (' || c.quienes || ')' end as veredicto
   from (
     select count(*) as n, coalesce(string_agg(u.nombre, ', '), '') as quienes
       from public.usuarios_app u
-     where u.rol = 'asesorado'
-       and not exists (select 1 from public.microciclos m
+     where not exists (select 1 from public.microciclos m
                         where m.usuario_id = u.id and m.estado = 'activo')
+       and ( exists (select 1 from public.microciclos m where m.usuario_id = u.id)
+             or u.rol not in ('coach', 'nutricionista') )
        and not exists (select 1 from public.motivo_sin_plan s where s.usuario_id = u.id)
   ) c;
 
