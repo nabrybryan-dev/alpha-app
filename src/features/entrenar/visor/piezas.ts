@@ -29,7 +29,10 @@ export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
   // A 150°: entre los marcadores fijos de 90° y 210°, que cuelgan a 1,62 m y no se pueden
   // tapar. A 250° el rack caía justo delante del marcador de enfrente del press y se
   // comía el último dígito (visto el 2026-09-05).
-  'rack-sentadillas': { ruta: '/piezas/rack-sentadillas.pieza', anguloGrados: 150, radio: 5.7 },
+  // Radio 6,2: el rack mide 1,55 de fondo, así que va de 5,4 a 7,0 —pegado al muro y a
+  // 0,8 m de la órbita—. A 5,7 su cara cercana quedaba a 30 cm de la cámara y al orbitar
+  // llenaba la pantalla entera (visto el 2026-09-05).
+  'rack-sentadillas': { ruta: '/piezas/rack-sentadillas.pieza', anguloGrados: 150, radio: 6.2 },
 }
 
 /** Las imágenes que piden las piezas, para `TEXTURAS_DEL_SALON`. */
