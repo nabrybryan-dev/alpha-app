@@ -3,6 +3,10 @@ import { crearMockDb, suscribirse } from './mockDb'
 import { crearDbSincronizada } from './nube/sync'
 import type { Db } from './repos'
 
+// Se reexporta desde `lib/fecha` para que `mockDb` pueda usar la MISMA funcion sin
+// cerrar el circulo de imports. Las 22 pantallas que lo importan de aqui no cambian.
+export { hoyIso } from '../lib/fecha'
+
 export const db: Db = crearDbSincronizada(crearMockDb())
 
 export function idCoach(): string {
@@ -20,11 +24,4 @@ function getVersion(): number {
 
 export function useDbVersion(): number {
   return useSyncExternalStore(suscribirse, getVersion)
-}
-
-export function hoyIso(): string {
-  const d = new Date()
-  const mes = String(d.getMonth() + 1).padStart(2, '0')
-  const dia = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${mes}-${dia}`
 }

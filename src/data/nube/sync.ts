@@ -248,6 +248,7 @@ export function crearDbSincronizada(local: Db): Db {
       registrarSerie: (microcicloId, ejercicioId, serie) => {
         local.microciclos.registrarSerie(microcicloId, ejercicioId, serie)
         subirSeries(local, microcicloId, ejercicioId)
+        subirFechaDeSesion(local, microcicloId, sesionDelEjercicio(local, microcicloId, ejercicioId))
       },
       guardarTestPost: (microcicloId, sesionId, test) => {
         local.microciclos.guardarTestPost(microcicloId, sesionId, test)
@@ -258,10 +259,12 @@ export function crearDbSincronizada(local: Db): Db {
           claveRpc: `${microcicloId}:${sesionId}`,
           payload: { p_microciclo_id: microcicloId, p_sesion_id: sesionId, p_test: test },
         })
+        subirFechaDeSesion(local, microcicloId, sesionId)
       },
       marcarParte: (microcicloId, sesionId, parteId) => {
         local.microciclos.marcarParte(microcicloId, sesionId, parteId)
         subirPreparacion(local, microcicloId, sesionId)
+        subirFechaDeSesion(local, microcicloId, sesionId)
       },
     },
 
@@ -846,6 +849,44 @@ function subirPreparacion(local: Db, microcicloId: string, sesionId: string): vo
       p_preparacion: sesion.preparacion ?? null,
       p_bloques_cardio: sesion.bloquesCardio ?? null,
     },
+  })
+}
+
+/** La sesion a la que pertenece un ejercicio; `registrarSerie` solo trae el id del ejercicio. */
+function sesionDelEjercicio(
+  local: Db,
+  microcicloId: string,
+  ejercicioId: string,
+): string | undefined {
+  return microcicloLocal(local, microcicloId)?.sesiones.find((s) =>
+    s.ejercicios.some((e) => e.id === ejercicioId),
+  )?.id
+}
+
+/**
+ * Sube la fecha de la sesion, que la puso `mockDb` al tocarla por primera vez.
+ *
+ * VA DETRAS de la escritura de verdad y en su propia operacion, a proposito: si
+ * se colgara de `fijar_preparacion_sesion` o de `fijar_series_ejercicio` habria
+ * que tocar esas dos funciones y su firma, y son las que ya estan probadas en
+ * produccion desde agosto. Una operacion mas en la cola es barata; una firma
+ * cambiada no.
+ *
+ * La clave de la cola es `rpc:fijar_fecha_sesion:<micro>:<sesion>` —el nombre de
+ * la funcion ya la separa de sus hermanas—, asi que varias marcas seguidas en la
+ * misma sesion colapsan en un solo envio. Y aunque no colapsaran daria igual:
+ * la funcion de SQL no pisa una fecha que ya este puesta.
+ */
+function subirFechaDeSesion(local: Db, microcicloId: string, sesionId?: string): void {
+  if (!sesionId) return
+  const fecha = microcicloLocal(local, microcicloId)?.sesiones.find((s) => s.id === sesionId)?.fecha
+  if (!fecha) return
+  encolar({
+    tabla: 'microciclos',
+    tipo: 'rpc',
+    funcion: 'fijar_fecha_sesion',
+    claveRpc: `${microcicloId}:${sesionId}`,
+    payload: { p_microciclo_id: microcicloId, p_sesion_id: sesionId, p_fecha: fecha },
   })
 }
 

@@ -6,8 +6,10 @@ import type {
   Microciclo,
   RegistroComida,
   SerieRegistrada,
+  Sesion,
   TestPostSesion,
 } from '../domain/types'
+import { hoyIso } from '../lib/fecha'
 import { construirRanking } from '../domain/ranking'
 import { crearContenidoRepo } from './contenido/contenidoRepo'
 import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBase'
@@ -16,6 +18,22 @@ import { crearRutaRepo } from './ruta/rutaRepo'
 import { seedDb, type SeedDb } from './seed'
 import { esCuotaLlena, marcarSinEspacio } from './sinEspacio'
 import { diasAtras } from './seed/fechas'
+
+/**
+ * Le pone fecha a la sesion la PRIMERA vez que se toca, y solo esa vez.
+ *
+ * Las tres escrituras del asesorado —marcar preparacion, anotar una serie y
+ * guardar el test— pasan por aqui. Cual de las tres llega primero da igual: lo
+ * que se fija es el dia en que la persona aparecio, y ese dia no cambia porque
+ * el jueves anote una serie que le faltaba del martes.
+ *
+ * **No sobrescribe nunca.** Si ya hay fecha, la sesion sale tal cual y quien
+ * llama lo nota comparando la referencia: asi el sync sabe si hay algo nuevo que
+ * subir sin tener que preguntarlo aparte.
+ */
+function conFecha(sesion: Sesion, hoy = hoyIso()): Sesion {
+  return sesion.fecha ? sesion : { ...sesion, fecha: hoy }
+}
 
 const CLAVE = 'alpha-db-v2'
 
@@ -346,19 +364,26 @@ export function crearMockDb(): Db {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
-            sesiones: m.sesiones.map((s) => ({
-              ...s,
-              ejercicios: s.ejercicios.map((e) =>
-                e.id === ejercicioId
-                  ? {
-                      ...e,
-                      series: [...e.series.filter((x) => x.orden !== serie.orden), serie].sort(
-                        (a, b) => a.orden - b.orden,
-                      ),
-                    }
-                  : e,
-              ),
-            })),
+            // Solo se fecha la sesion DONDE ESTA el ejercicio: `map` recorre todas,
+            // y sellarlas todas pondria la de hoy en las cinco de la semana.
+            sesiones: m.sesiones.map((s) =>
+              s.ejercicios.some((e) => e.id === ejercicioId)
+                ? conFecha({
+                    ...s,
+                    ejercicios: s.ejercicios.map((e) =>
+                      e.id === ejercicioId
+                        ? {
+                            ...e,
+                            series: [
+                              ...e.series.filter((x) => x.orden !== serie.orden),
+                              serie,
+                            ].sort((a, b) => a.orden - b.orden),
+                          }
+                        : e,
+                    ),
+                  })
+                : s,
+            ),
           })),
         )
       },
@@ -366,7 +391,9 @@ export function crearMockDb(): Db {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
-            sesiones: m.sesiones.map((s) => (s.id === sesionId ? { ...s, testPost: test } : s)),
+            sesiones: m.sesiones.map((s) =>
+              s.id === sesionId ? conFecha({ ...s, testPost: test }) : s,
+            ),
           })),
         )
       },
@@ -381,7 +408,11 @@ export function crearMockDb(): Db {
             sesiones: m.sesiones.map((s) => {
               if (s.id !== sesionId) return s
               const preparacion = s.preparacion ?? plantillaPreparacion(patronDeSesion(s.nombre))
-              return { ...s, preparacion: preparacion.map(alternar), bloquesCardio: s.bloquesCardio?.map(alternar) }
+              return conFecha({
+                ...s,
+                preparacion: preparacion.map(alternar),
+                bloquesCardio: s.bloquesCardio?.map(alternar),
+              })
             }),
           })),
         )
