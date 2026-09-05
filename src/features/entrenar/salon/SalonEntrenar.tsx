@@ -39,6 +39,12 @@ import { Joystick } from './mando/Joystick'
 import { CamaraDelSalon } from './camara/CamaraDelSalon'
 import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './mando/relojDelMuro'
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
+import {
+  duenoDelGesto,
+  ejercicioTrasBarrido,
+  ejerciciosQueAvanza,
+  type DuenoDelGesto,
+} from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
 import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { frasePorSerie } from '../frasesMotivacionales'
@@ -462,11 +468,27 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * `capaAlOrigen` la capa que había en ese punto. Guardar la capa aquí en vez de leerla
    * del estado deja el manejador fuera del ciclo de repintado.
    */
-  const gesto = useRef({ vivo: false, x: 0, y: 0, capaAlOrigen: 0 as NivelW })
+  const gesto = useRef({
+    vivo: false,
+    x: 0,
+    y: 0,
+    capaAlOrigen: 0 as NivelW,
+    /** De quién es este contacto. Se decide en los primeros píxeles y ya no cambia. */
+    dueno: 'sin-decidir' as DuenoDelGesto,
+    /** El origen del BARRIDO, que se muda a cada salto para no atropellar tres ejercicios. */
+    xBarrido: 0,
+  })
 
 
   const alBajarDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
-    gesto.current = { vivo: true, x: e.clientX, y: e.clientY, capaAlOrigen: w }
+    gesto.current = {
+      vivo: true,
+      x: e.clientX,
+      y: e.clientY,
+      capaAlOrigen: w,
+      dueno: 'sin-decidir',
+      xBarrido: e.clientX,
+    }
     // HUNDIRSE: aguantar el dedo sobre el cuerpo lo va atravesando capa a capa. El primer
     // escalón tarda `ESPERA` —eso es lo que separa tocar de hundir, y lo que impide que
     // empezar a orbitar cambie de capa— y a partir de ahí cae uno cada `ESCALON_MS`.
@@ -502,35 +524,40 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     const dx = e.clientX - g.x
     const dy = e.clientY - g.y
 
-    // TIRAR A UN LADO CON EL DEDO HUNDIDO cambia de ejercicio. Cuarenta píxeles: menos
-    // sería un temblor de la mano que ya está apoyada en el cuerpo.
-    if (hundiendo && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && sesionEnPantalla) {
-      const total = sesionEnPantalla.ejercicios.length
-      if (total > 1) {
-        const actual =
-          ejercicioManual ??
-          Math.max(0, sesionEnPantalla.ejercicios.findIndex((x) => x.id === ejercicio?.id))
-        // El módulo se hace con la suma para que tirar hacia atrás en el primero no dé −1.
-        setEjercicioManual((actual + (dx < 0 ? 1 : -1) + total) % total)
-        // El origen se muda: cada ejercicio cuesta un tirón entero, así que un arrastre
-        // largo no atropella tres de una vez.
-        g.x = e.clientX
-        g.y = e.clientY
-      }
-      return
-    }
-
-    // Si el dedo se mueve, deja de ser una presión y pasa a ser un arrastre: hundirse se
-    // cancela y el gesto vuelve a ser de la órbita o del eje W, según su dirección.
-    if (!siguePresionando(dx, dy)) {
+    // DE QUIÉN ES ESTE CONTACTO. Se decide una vez, en los primeros píxeles, y no vuelve a
+    // cambiar hasta que se levanta el dedo: sin ese bloqueo, un mismo arrastre cambiaría de
+    // capa un poco, saltaría de ejercicio, y volvería a cambiar de capa.
+    if (g.dueno === 'sin-decidir') {
+      g.dueno = duenoDelGesto(dx, dy)
+      if (g.dueno === 'sin-decidir') return
+      // En cuanto se sabe que es un gesto y no una presión, hundirse se cancela.
       window.clearTimeout(reloj.current)
       window.clearInterval(bomba.current)
     }
 
-    // Horizontal: es una órbita y no es nuestra. Ortogonalidad, hecha código.
-    if (Math.abs(dx) > Math.abs(dy)) {
-      g.vivo = false
+    // DESLIZAR DE LADO PASA DE EJERCICIO, sin tener que hundir el dedo antes. Hasta el
+    // 2026-09-05 había que apoyarlo 320 ms y solo entonces tirar, y por eso Bryan no podía
+    // moverse por la app. La cámara ya no compite por este gesto: se orbita con dos dedos.
+    if (g.dueno === 'barrido') {
+      if (!sesionEnPantalla) return
+      const total = sesionEnPantalla.ejercicios.length
+      if (total < 2) return
+      const avance = ejerciciosQueAvanza(e.clientX - g.xBarrido)
+      if (avance === 0) return
+      const actual =
+        ejercicioManual ??
+        Math.max(0, sesionEnPantalla.ejercicios.findIndex((x) => x.id === ejercicio?.id))
+      setEjercicioManual(ejercicioTrasBarrido(actual, avance, total))
+      // El origen se muda al punto donde saltó: cada ejercicio cuesta un barrido entero.
+      g.xBarrido = e.clientX
       return
+    }
+
+    // Si el dedo se mueve, deja de ser una presión y pasa a ser un arrastre: hundirse se
+    // cancela y el gesto pasa a ser del eje W.
+    if (!siguePresionando(dx, dy)) {
+      window.clearTimeout(reloj.current)
+      window.clearInterval(bomba.current)
     }
     // El umbral, el sentido del dedo y los topes 0 y 4 los pone `gestoVertical.ts`.
     const siguiente = capaTrasArrastre(dy, g.capaAlOrigen)
@@ -545,6 +572,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
 
   const alSoltarDedo = () => {
     gesto.current.vivo = false
+    gesto.current.dueno = 'sin-decidir'
     window.clearTimeout(reloj.current)
     window.clearInterval(bomba.current)
     setHundiendo(false)
@@ -662,6 +690,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
+                // lado pasa de ejercicio, y se orbita con dos dedos, donde ya vivía el
+                // pellizco. En el estudio del patrón sigue orbitando con uno.
+                orbitaConUnDedo={false}
                 nombreEjercicio={ejercicio?.nombre}
                 alMirar={(c) =>
                   // Se compara antes de guardar: el bucle avisa en cada fotograma que
@@ -885,7 +917,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           // quién manda en ese píxel.
           style={{ bottom: 'calc(var(--tope-nav) + 3.4rem)' }}
         >
-          <PuntosDeEjercicio sesion={sesionEnPantalla} ejercicioId={ejercicio?.id} />
+          <PuntosDeEjercicio
+            sesion={sesionEnPantalla}
+            ejercicioId={ejercicio?.id}
+            alIr={setEjercicioManual}
+          />
         </div>
 
         {/* ----------------------------------------------------------------- mando

@@ -254,6 +254,15 @@ interface VisorPatronProps {
    */
   tempo?: TempoDeRepeticion
   /**
+   * SI UN SOLO DEDO ORBITA. En el estudio del patrón sí; en el SALÓN no.
+   *
+   * En el salón el dedo suelto es de navegar —deslizar de lado pasa de ejercicio— y la
+   * cámara se maneja con dos dedos, que es como lo resuelven las apps que meten un modelo
+   * 3D dentro de algo por lo que se navega. Se pasa desde fuera para que este visor no
+   * tenga que saber en qué pantalla está.
+   */
+  orbitaConUnDedo?: boolean
+  /**
    * LA REPETICIÓN QUE SE HIZO, para verla sobre la que había que hacer.
    *
    * Con huella se dibuja un segundo cuerpo translúcido, con el esqueleto del patrón y el
@@ -270,7 +279,17 @@ interface VisorPatronProps {
  * complemento del vídeo de técnica: el vídeo enseña cómo se hace y esto enseña
  * qué pasa por dentro mientras se hace.
  */
-export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjercicio, alMirar, tempo, fantasma }: VisorPatronProps) {
+export function VisorPatron({
+  patron,
+  datos,
+  conEscenario = true,
+  w,
+  nombreEjercicio,
+  alMirar,
+  tempo,
+  fantasma,
+  orbitaConUnDedo = true,
+}: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
   const [reproduciendo, setReproduciendo] = useState(true)
@@ -427,6 +446,7 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
           pintar()
           avisarDeLaCamara()
         })
+        orbita.arrastreConUnDedo = orbitaConUnDedo
         orbita.azimut = patron.camara.azimut
         // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
         // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia el
@@ -712,7 +732,12 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
       redibujar.current = null
       orbita?.destruir()
     }
-  }, [patron, conEscenario])
+    // `orbitaConUnDedo` entra en las dependencias aunque en la práctica no cambie —el
+    // salón siempre pasa `false` y el estudio siempre `true`—: la órbita lo lee UNA vez, al
+    // construirse, así que si algún día cambiara en caliente sin rehacer el motor, el dedo
+    // se quedaría con el comportamiento de la pantalla anterior. Un aviso del linter menos
+    // y un fallo raro menos.
+  }, [patron, conEscenario, orbitaConUnDedo])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.

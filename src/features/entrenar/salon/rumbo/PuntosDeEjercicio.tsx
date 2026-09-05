@@ -21,6 +21,18 @@ import type { Sesion } from '../../../../domain/types'
  * que faltan. Con solo dos —hecho y no hecho— el punto de «aquí estoy» se confundiría con
  * el siguiente pendiente, que es justo la pregunta que esto contesta.
  *
+ * ## Y SE TOCAN
+ *
+ * Desde el 2026-09-05 cada punto es un botón que salta a su ejercicio. Antes eran `span`s:
+ * decían por dónde ibas y no dejaban ir a ningún sitio, que es la mitad de lo que hace una
+ * banda de puntos en cualquier carrusel. Es la vía directa —deslizar de lado avanza de uno
+ * en uno; el punto lleva al quinto sin pasar por los otros cuatro—, y la única que existe
+ * para quien navega con teclado o con lector de pantalla, porque un barrido ahí no llega.
+ *
+ * El área que se toca es de 44 px aunque el punto mida uno de alto: es el mínimo con el que
+ * un dedo acierta, y se consigue con relleno transparente, sin que la banda crezca ni ocupe
+ * más sala. Sin eso serían seis píxeles de diana y no acertaría nadie.
+ *
  * ## Sin una letra
  *
  * El nombre de cada ejercicio va en `aria-label`, que es un atributo y no un nodo de
@@ -31,11 +43,13 @@ import type { Sesion } from '../../../../domain/types'
 
 export interface PuntosDeEjercicioProps {
   sesion: Sesion | undefined
+  /** Saltar a un ejercicio por su posición. Sin esto los puntos solo informan. */
+  alIr?: (indice: number) => void
   /** El ejercicio que el salón está enseñando ahora mismo. */
   ejercicioId?: string
 }
 
-export function PuntosDeEjercicio({ sesion, ejercicioId }: PuntosDeEjercicioProps) {
+export function PuntosDeEjercicio({ sesion, ejercicioId, alIr }: PuntosDeEjercicioProps) {
   const ejercicios = sesion?.ejercicios ?? []
   // Con uno solo no hay recorrido que enseñar: un punto suelto no orienta, decora.
   if (ejercicios.length < 2) return null
@@ -47,15 +61,13 @@ export function PuntosDeEjercicio({ sesion, ejercicioId }: PuntosDeEjercicioProp
       aria-label="Por dónde vas en la sesión"
       className="flex items-center justify-center gap-1.5"
     >
-      {ejercicios.map((e) => {
+      {ejercicios.map((e, i) => {
         const aqui = e.id === ejercicioId
         const hecho = ejercicioCompleto(e)
-        return (
+        const punto = (
           <span
-            key={e.id}
             data-punto={aqui ? 'aqui' : hecho ? 'hecho' : 'falta'}
-            aria-label={e.nombre}
-            className="h-1 rounded-full transition-[width,background-color] duration-base ease-salida"
+            className="block h-1 rounded-full transition-[width,background-color] duration-base ease-salida"
             style={{
               width: aqui ? '18px' : '6px',
               background: aqui
@@ -65,6 +77,27 @@ export function PuntosDeEjercicio({ sesion, ejercicioId }: PuntosDeEjercicioProp
                   : 'var(--linea-fuerte, #4a4a4d)',
             }}
           />
+        )
+        if (!alIr) {
+          return (
+            <span key={e.id} aria-label={e.nombre}>
+              {punto}
+            </span>
+          )
+        }
+        return (
+          <button
+            key={e.id}
+            type="button"
+            onClick={() => alIr(i)}
+            aria-label={e.nombre}
+            aria-current={aqui ? 'true' : undefined}
+            // La diana de 44 px sin que la banda engorde: el relleno es transparente y
+            // el margen negativo se lo devuelve al hueco entre puntos.
+            className="press -my-[21px] flex items-center py-[21px]"
+          >
+            {punto}
+          </button>
         )
       })}
     </div>

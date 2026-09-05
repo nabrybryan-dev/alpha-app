@@ -423,6 +423,17 @@ export class Orbita {
   giroAutomatico = false
   private arrastre: { x: number; y: number; az: number; el: number } | null = null
   private pellizco: number | null = null
+  private centroDeDosDedos: { x: number; y: number; az: number; el: number } | null = null
+  /**
+   * SI UN SOLO DEDO ORBITA.
+   *
+   * En el estudio del patrón sí: allí no hay nada más que hacer con el dedo. En el SALÓN
+   * no, y se apaga desde fuera: allí el dedo suelto es de navegar —deslizar de lado pasa de
+   * ejercicio, como en cualquier carrusel— y la cámara se maneja con dos dedos, que es la
+   * convención de las apps que meten un modelo 3D dentro de algo por lo que se navega. El
+   * pellizco ya era de dos dedos, así que la cámara entera cae en la misma mano.
+   */
+  arrastreConUnDedo = true
   private limpiezas: (() => void)[] = []
 
   constructor(
@@ -439,9 +450,11 @@ export class Orbita {
     }
 
     escuchar('pointerdown', (e) => {
+      // El giro automático se para al tocar, orbite o no: el dedo encima manda.
+      this.giroAutomatico = false
+      if (!this.arrastreConUnDedo) return
       el.setPointerCapture(e.pointerId)
       this.arrastre = { x: e.clientX, y: e.clientY, az: this.azimut, el: this.elevacion }
-      this.giroAutomatico = false
     })
     escuchar('pointermove', (e) => {
       if (!this.arrastre) return
@@ -479,11 +492,26 @@ export class Orbita {
           this.alCambiar()
         }
         this.pellizco = d
+        // Y ORBITAR CON DOS DEDOS: lo que mueve la cámara es el punto medio entre ellos,
+        // así que acercar y girar salen del mismo contacto sin estorbarse —el pellizco
+        // cambia la distancia entre los dedos y la órbita cambia dónde está su centro—.
+        // Es lo que deja el dedo suelto libre para navegar por los ejercicios.
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        if (!this.centroDeDosDedos) {
+          this.centroDeDosDedos = { x: cx, y: cy, az: this.azimut, el: this.elevacion }
+        } else {
+          const c = this.centroDeDosDedos
+          this.azimut = c.az - (cx - c.x) * 0.42
+          this.elevacion = limitar(c.el + (cy - c.y) * 0.32, -78, 78)
+          this.alCambiar()
+        }
       },
       { passive: false },
     )
     escuchar('touchend', () => {
       this.pellizco = null
+      this.centroDeDosDedos = null
     })
   }
 

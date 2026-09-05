@@ -486,6 +486,76 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     expect(salon.querySelector('[role="group"][aria-label="Capa del cuerpo"]')).toBeNull()
   })
 
+  /**
+   * DESLIZAR DE LADO PASA DE EJERCICIO.
+   *
+   * Es lo que Bryan no podía hacer el 2026-09-05: «no me deja desplazarme entre
+   * ejercicios». Y no le fallaba a él —estaba escondido detrás de aguantar el dedo 320 ms
+   * hasta que el cuerpo empezaba a hundirse—. La regla pura vive en `gestoHorizontal.ts` y
+   * se prueba sola; aquí se comprueba el CABLE, que es lo que se rompe al mover código.
+   */
+  it('deslizar de lado pasa de ejercicio, sin aguantar el dedo antes', () => {
+    montarConFuerza((s) => s.ejercicios.length > 1)
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    // Sin este `expect` la prueba se saldría por la puerta de atrás el día que la sesión
+    // de prueba tuviera un solo ejercicio: verde sin haber probado nada.
+    const puntos = Array.from(salon.querySelectorAll('[data-punto]'))
+    expect(puntos.length, 'la sesión de prueba no tiene recorrido que barrer').toBeGreaterThan(1)
+
+    const antes = salon.querySelectorAll('[data-punto="aqui"]').length
+    expect(antes, 'no hay un punto marcando dónde estás').toBe(1)
+    const indiceDe = () =>
+      Array.from(salon.querySelectorAll('[data-punto]')).findIndex(
+        (p) => p.getAttribute('data-punto') === 'aqui',
+      )
+    const partida = indiceDe()
+
+    const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+    const dedo = (tipo: string, x: number, y: number) =>
+      fireEvent(centro, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: x, clientY: y }))
+
+    // Un deslizamiento hacia la izquierda, sin pausa previa: 70 px, que pasa del paso.
+    dedo('pointerdown', 300, 400)
+    dedo('pointermove', 230, 402)
+    dedo('pointerup', 230, 402)
+
+    expect(indiceDe(), 'el deslizamiento no pasó de ejercicio').toBe(partida + 1)
+  })
+
+  it('un arrastre vertical NO cambia de ejercicio: ese gesto es del eje W', () => {
+    montarConFuerza((s) => s.ejercicios.length > 1)
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    expect(salon.querySelectorAll('[data-punto]').length).toBeGreaterThan(1)
+    const indiceDe = () =>
+      Array.from(salon.querySelectorAll('[data-punto]')).findIndex(
+        (p) => p.getAttribute('data-punto') === 'aqui',
+      )
+    const partida = indiceDe()
+
+    const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
+    const dedo = (tipo: string, x: number, y: number) =>
+      fireEvent(centro, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: x, clientY: y }))
+    dedo('pointerdown', 200, 400)
+    dedo('pointermove', 206, 200)
+    dedo('pointerup', 206, 200)
+
+    expect(indiceDe(), 'un gesto vertical se llevó el ejercicio').toBe(partida)
+    expect(salon.getAttribute('data-w'), 'y el eje W sí tenía que moverse').toBe('1')
+  })
+
+  /** La vía directa, y la única que existe para quien navega con teclado o lector. */
+  it('los puntos se tocan y saltan a su ejercicio', () => {
+    montarConFuerza((s) => s.ejercicios.length > 2)
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    const botones = Array.from(salon.querySelectorAll('button[data-punto], button > [data-punto]'))
+      .map((n) => (n.tagName === 'BUTTON' ? n : n.parentElement) as HTMLElement)
+    expect(botones.length, 'hacen falta tres puntos para probar el salto directo').toBeGreaterThan(2)
+
+    fireEvent.click(botones[2])
+    const puntos = Array.from(salon.querySelectorAll('[data-punto]'))
+    expect(puntos[2].getAttribute('data-punto'), 'tocar el punto no llevó a su ejercicio').toBe('aqui')
+  })
+
   it('y la regla dura se sigue cumpliendo con los huecos llenos', () => {
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
