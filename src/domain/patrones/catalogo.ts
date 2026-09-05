@@ -189,7 +189,14 @@ export const PATRONES: Patron[] = [
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, -0.12],
     inicio: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
-    fin: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: -10, codoFlex: 3 },
+    // EL BRAZO CUELGA, y por eso `hombroFlex` acompaña al giro del tronco en vez de
+    // quedarse en −10: con el tronco a 84° y el hombro en −10 las manos SUBÍAN de 86 a
+    // 103 cm al bajar el peso muerto, o sea la barra se iba hacia arriba y hacia atrás.
+    // Con peso libre eso no existe. Medido el 2026-09-05 barriendo el ángulo: a 64 la
+    // carga baja 41 cm con 9 de deriva (razón 0,23) y las manos acaban a 45 cm del suelo,
+    // media espinilla. Va 20° por detrás de la vertical del hombro a propósito: es la
+    // clave que el propio patrón escribe —«la barra roza el muslo todo el recorrido»—.
+    fin: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: 64, codoFlex: 3 },
     activacion: { flexores_carpo: 0.65, extensores_carpo: 0.52, 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.4, gluteo_mayor: 0.9, erectores: 0.85, 'aductores.mayor': 0.4, dorsal_ancho: 0.4, 'trapecio.medio': 0.35, 'triceps_sural.gastro_medial': 0.25, cuadrado_lumbar: 0.4 },
     seguimiento: ['mano', 0.6, [0, 0, 0]],
     camara: { azimut: 78, elevacion: 4 },

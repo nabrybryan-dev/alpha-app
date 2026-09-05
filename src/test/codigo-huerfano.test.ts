@@ -25,6 +25,17 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // El contrato de trayectorias: que ningun patron contradiga a su propio implemento.
+  // No lo importa la app y no es un descuido: es una regla que se hace cumplir desde una
+  // prueba, como una regla de linter, no una funcion que alguien llame en un fotograma. Se
+  // enchufara el dia que la traza ambar del salon se dibuje DESDE la demanda —la vertical
+  // de la carga con peso libre, la linea del cable con polea— en vez de seguir la punta de
+  // un hueso, que es lo que dejaba a la barra del peso muerto subiendo mientras bajaba.
+  'src/domain/patrones/demandaDeTrayectoria.ts':
+    'Contrato de la trayectoria de la carga contra el implemento del patron. Lo hace ' +
+    'cumplir demandaDeTrayectoria.test.ts sobre los 31 patrones; la app lo usara cuando ' +
+    'la traza se dibuje desde la demanda y no desde un hueso.',
+
   // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
   // 2026-08-25 y sin enchufar a proposito: se apoya en la tabla
   // `estandarizado_ejercicio` (migracion 0043), y esa migracion NO se aplica
