@@ -41,6 +41,7 @@ describe('cargarPiezas', () => {
     // El primer vértice estaba en el origen: colocado, cae en la x de su sitio.
     const rack = PIEZAS_DEL_SALON['rack-sentadillas']
     expect(llegadas['rack-sentadillas']).toBeCloseTo(sitioDe(rack).x, 5)
+    expect(llegadas['sala-gimnasio']).toBeCloseTo(0, 5)
   })
 
   it('cancelada, una pieza que llega tarde no se entrega', async () => {
@@ -68,7 +69,14 @@ describe('cargarPiezas', () => {
     expect(Math.hypot(s.x, s.z)).toBeCloseTo(rack.radio, 6)
   })
 
-  it('las imágenes del rack están en la lista', () => {
-    expect(Object.keys(TEXTURAS_DE_LAS_PIEZAS).sort()).toEqual(['rack-acero', 'rack-barra'])
+  it('las imágenes del rack y de la sala están en la lista', () => {
+    expect(Object.keys(TEXTURAS_DE_LAS_PIEZAS).sort()).toEqual([
+      'gym-atlas', 'hormigon', 'metal-placa', 'rack-acero', 'rack-barra',
+    ])
+  })
+
+  it('la sala entera va centrada: radio cero, sin giro', () => {
+    const sala = PIEZAS_DEL_SALON['sala-gimnasio']
+    expect(sitioDe(sala)).toEqual({ x: 0, z: 0, giroY: -0 })
   })
 })

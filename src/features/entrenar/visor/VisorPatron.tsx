@@ -18,7 +18,7 @@ import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laborator
 import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
-import { cargarPiezas } from './piezas'
+import { cargarPiezas, SALA_GIMNASIO } from './piezas'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -101,13 +101,14 @@ function laboratorio(): Malla {
  */
 let salaCache: { clave: string; malla: Malla } | null = null
 
-function sala(datos: DatosDeSerie, azimutDeEntrada: number): Malla {
+function sala(datos: DatosDeSerie, azimutDeEntrada: number, deBlender: boolean): Malla {
   // El ángulo entra en la clave: si no, cambiar de ejercicio dejaría el marcador del muro
-  // de enfrente colgado donde lo puso el ejercicio anterior.
-  const clave = `${datos.series}|${datos.reps}|${datos.rir}|${azimutDeEntrada}`
+  // de enfrente colgado donde lo puso el ejercicio anterior. Y si la sala de Blender ya
+  // llegó: la de cajas se deja de construir y los marcadores cambian de pared.
+  const clave = `${datos.series}|${datos.reps}|${datos.rir}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}`
   if (!salaCache || salaCache.clave !== clave) {
     const malla = new Malla()
-    construirSala(malla, datos, azimutDeEntrada)
+    construirSala(malla, datos, azimutDeEntrada, deBlender ? { salaDeBlender: SALA_GIMNASIO } : {})
     salaCache = { clave, malla }
   }
   return salaCache.malla
@@ -134,6 +135,8 @@ function suelo(): Malla {
  * mismo. Vacío hasta que llegan; el salón se abre igual y las piezas aparecen.
  */
 let piezasCache: Malla[] = []
+/** Qué piezas han llegado, por nombre: decide si la sala de cajas se sigue construyendo. */
+const piezasCargadas = new Set<string>()
 
 /**
  * Los implementos se cachean POR EL EJERCICIO, pero se CONSTRUYEN cada fotograma.
@@ -559,7 +562,13 @@ export function VisorPatron({
           if (d) {
             // El suelo va con la sala: es sala, y el testigo que apaga «sala» para medir
             // tiene que apagar también lo que hay debajo de los pies.
-            if (!sin.has('sala')) partes.push(suelo(), sala(d, patron.camara.azimut), ...piezasCache)
+            if (!sin.has('sala')) {
+              // Con la sala de Blender cargada, ni el disco de goma ni la sala de cajas: el
+              // suelo y las paredes vienen dentro de la pieza, y dos suelos en y = 0 pelean.
+              const deBlender = piezasCargadas.has(SALA_GIMNASIO.nombre)
+              if (!deBlender) partes.push(suelo())
+              partes.push(sala(d, patron.camara.azimut, deBlender), ...piezasCache)
+            }
             if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
           }
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
@@ -683,6 +692,7 @@ export function VisorPatron({
           dejarDeCargarPiezas = cargarPiezas((nombre, mallas) => {
             if (!vivo) return
             piezasCache = [...piezasCache, ...mallas]
+            piezasCargadas.add(nombre)
             lienzo.dataset.piezas = [...(lienzo.dataset.piezas?.split(',') ?? []), nombre]
               .filter(Boolean)
               .join(',')

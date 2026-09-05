@@ -35,10 +35,18 @@ import { Malla } from '../../../domain/patrones/malla'
  */
 
 const MAGIA = 'PIEZ'
-const VERSION = 1
+/**
+ * Versión 2 añade, después del nombre de textura, un `u32` de banderas: el bit 0 dice si
+ * la luz viene grabada en el color (`horneada`). La versión 1 se sigue leyendo —sin
+ * banderas, todo a cero— para no invalidar las piezas ya exportadas.
+ */
+const VERSION = 2
+const BANDERA_HORNEADA = 1
 
 export interface PartePieza {
   textura: string | null
+  /** Si el color ya trae la luz de Blender y el motor no debe iluminar. */
+  horneada?: boolean
   posicion: Float32Array
   normal: Float32Array
   color: Float32Array
@@ -61,7 +69,9 @@ export function leerPieza(bytes: ArrayBuffer): Malla[] {
   const magia = String.fromCharCode(vista.getUint8(0), vista.getUint8(1), vista.getUint8(2), vista.getUint8(3))
   if (magia !== MAGIA) throw new Error(`no es una pieza: cabecera «${magia}»`)
   const version = vista.getUint16(4, true)
-  if (version !== VERSION) throw new Error(`versión de pieza ${version}; se esperaba ${VERSION}`)
+  if (version !== 1 && version !== VERSION) {
+    throw new Error(`versión de pieza ${version}; se esperaba ${VERSION}`)
+  }
   const nPartes = vista.getUint16(6, true)
   let pos = 8
   const mallas: Malla[] = []
@@ -70,6 +80,11 @@ export function leerPieza(bytes: ArrayBuffer): Malla[] {
     const largo = vista.getUint16(pos, true)
     const nombre = largo > 0 ? decodificador.decode(new Uint8Array(bytes, pos + 2, largo)) : null
     pos += 2 + largo + relleno(2 + largo)
+    let banderas = 0
+    if (version >= 2) {
+      banderas = vista.getUint32(pos, true)
+      pos += 4
+    }
     const nV = vista.getUint32(pos, true)
     const nI = vista.getUint32(pos + 4, true)
     pos += 8
@@ -98,6 +113,7 @@ export function leerPieza(bytes: ArrayBuffer): Malla[] {
     }
     for (let k = 0; k + 2 < indice.length; k += 3) m.triangulo(indice[k], indice[k + 1], indice[k + 2])
     m.textura = nombre
+    m.horneada = (banderas & BANDERA_HORNEADA) !== 0
     mallas.push(m)
   }
   return mallas
@@ -114,7 +130,7 @@ export function escribirPieza(partes: PartePieza[]): ArrayBuffer {
   let total = 8
   for (let i = 0; i < partes.length; i++) {
     const p = partes[i]
-    total += 2 + nombres[i].length + relleno(2 + nombres[i].length) + 8
+    total += 2 + nombres[i].length + relleno(2 + nombres[i].length) + 4 + 8
     total += (p.posicion.length + p.normal.length + p.color.length + p.uv.length + p.indice.length) * 4
   }
   const bytes = new ArrayBuffer(total)
@@ -133,6 +149,8 @@ export function escribirPieza(partes: PartePieza[]): ArrayBuffer {
     vista.setUint16(pos, nombres[i].length, true)
     octetos.set(nombres[i], pos + 2)
     pos += 2 + nombres[i].length + relleno(2 + nombres[i].length)
+    vista.setUint32(pos, p.horneada ? BANDERA_HORNEADA : 0, true)
+    pos += 4
     vista.setUint32(pos, p.posicion.length / 3, true)
     vista.setUint32(pos + 4, p.indice.length, true)
     pos += 8
@@ -176,6 +194,7 @@ export function colocar(mallas: Malla[], en: { x: number; z: number; giroY: numb
     const idx = m.indice
     for (let k = 0; k + 2 < idx.length; k += 3) d.triangulo(idx[k], idx[k + 1], idx[k + 2])
     d.textura = m.textura
+    d.horneada = m.horneada
     d.alfa = m.alfa
     return d
   })

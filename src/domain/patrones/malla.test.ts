@@ -241,6 +241,14 @@ describe('las coordenadas de textura', () => {
     expect(new Malla(8).textura).toBeNull()
   })
 
+  it('una malla nace sin la luz grabada, y `hornear` conserva la bandera', () => {
+    expect(new Malla(8).horneada).toBe(false)
+    const m = new Malla(8)
+    m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.horneada = true
+    expect(hornear(m, [M4.identidad()]).horneada).toBe(true)
+  })
+
   it('`arrays()` las incluye', () => {
     const m = new Malla(4)
     m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0, 0, 0.5, 0.5)

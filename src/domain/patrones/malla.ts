@@ -96,6 +96,16 @@ export class Malla {
    */
   textura: string | null = null
 
+  /**
+   * SI LA LUZ YA VIENE GRABADA EN EL COLOR de los vértices.
+   *
+   * Una pieza horneada en Blender trae en su color lo que le llega de cada foco, con sus
+   * sombras: el motor la enseña tal cual y no la vuelve a iluminar. Es lo que permite que
+   * el gimnasio tenga veintiséis luces y el teléfono no calcule ninguna. Nace en `false`:
+   * el cuerpo, el hierro y las guías se iluminan como siempre.
+   */
+  horneada = false
+
   constructor(capacidadVertices = 2048) {
     this.bufPos = new Float32Array(capacidadVertices * 3)
     this.bufNrm = new Float32Array(capacidadVertices * 3)
@@ -676,6 +686,7 @@ export function hornear(origen: Malla, matrices: Mat4[], destino?: Malla): Malla
   d.reiniciar()
   d.alfa = origen.alfa
   d.textura = origen.textura
+  d.horneada = origen.horneada
   const pos = origen.posicion
   const nrm = origen.normal
   const col = origen.color

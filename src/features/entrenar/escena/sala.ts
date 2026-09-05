@@ -250,15 +250,37 @@ function anchoDe(n: number, alto: number): number {
  * Los tres van juntos y en ese orden porque es el orden en que se leen durante la
  * serie: cuántas llevo, de cuántas, y con cuánto margen las estoy haciendo.
  */
-function marcador(m: Malla, anguloGrados: number, series: number, reps: number, rir: number | 'FALLO'): void {
+function marcador(
+  m: Malla,
+  anguloGrados: number,
+  series: number,
+  reps: number,
+  rir: number | 'FALLO',
+  /**
+   * La sala rectangular de Blender, si la hay. Entonces el panel se cuelga del muro plano
+   * que el rayo encuentra en esa dirección, PARALELO a ese muro —un panel tangente al
+   * cilindro atraviesa una pared plana por las puntas— y sin salirse por la esquina.
+   */
+  rect?: { medioAncho: number; medioFondo: number },
+): void {
   const a = grados(anguloGrados)
   const co = Math.cos(a)
   const si = Math.sin(a)
+  // Dónde está el muro en esa dirección, y hacia dónde mira. En el cilindro, la normal es
+  // la radial; en el rectángulo, la del muro plano que se ha encontrado.
+  const radioDelMuro = rect ? radioDelMuroRectangular(rect.medioAncho, rect.medioFondo, anguloGrados) : RADIO_SALA
+  let coN = co
+  let siN = si
+  if (rect) {
+    const muroLargo = Math.abs(radioDelMuro * co) >= rect.medioAncho - 1e-6
+    coN = muroLargo ? Math.sign(co) : 0
+    siN = muroLargo ? 0 : Math.sign(si)
+  }
   // Un pelo por dentro de la pared para que no pelee con ella por el mismo píxel.
-  const r = RADIO_SALA - 0.02
-  const haciaDentro: Vec3 = [-co, 0, -si]
+  const r = radioDelMuro - 0.02
+  const haciaDentro: Vec3 = [-coN, 0, -siN]
   // El eje horizontal del panel: tangente a la pared.
-  const tang: Vec3 = [-si, 0, co]
+  const tang: Vec3 = [-siN, 0, coN]
 
   // EL CUERPO DE LAS CIFRAS, y por qué 0,38 y no 0,44.
   //
@@ -284,10 +306,22 @@ function marcador(m: Malla, anguloGrados: number, series: number, reps: number, 
 
   // Fondo del panel y su marco, para que las cifras no floten sobre la pared.
   const margen = alto * 0.42
+  // El centro del panel: donde el rayo toca el muro. En el rectángulo se corre a lo largo
+  // del muro lo justo para que las puntas no se metan en la pared de al lado.
+  let cx = co * r
+  let cz = si * r
+  if (rect) {
+    const medioPanel = anchoTotal / 2 + margen + 0.05
+    const tope = (coN !== 0 ? rect.medioFondo : rect.medioAncho) - medioPanel
+    const alTangente = cx * tang[0] + cz * tang[2]
+    const acotado = Math.max(-tope, Math.min(tope, alTangente))
+    cx += tang[0] * (acotado - alTangente)
+    cz += tang[2] * (acotado - alTangente)
+  }
   const pon = (u: number, v: number, prof: number): Vec3 => [
-    co * (r - prof) + tang[0] * u,
+    cx + haciaDentro[0] * prof + tang[0] * u,
     v,
-    si * (r - prof) + tang[2] * u,
+    cz + haciaDentro[2] * prof + tang[2] * u,
   ]
   const u0 = -anchoTotal / 2 - margen
   const u1 = anchoTotal / 2 + margen
@@ -396,8 +430,39 @@ function estacion(m: Malla): void {
  * Los números se pasan desde fuera porque son los de la serie que se está haciendo:
  * la sala no sabe de entrenamiento, solo sabe dibujar lo que le den.
  */
-export function construirSala(m: Malla, datos: DatosDeSerie, azimutDeEntrada?: number): void {
-  pared(m)
+export interface OpcionesDeSala {
+  /**
+   * LA SALA HECHA EN BLENDER, si está cargada. Entonces la pared y el hierro de cajas no
+   * se construyen —los trae la pieza— y los marcadores se cuelgan del muro rectangular
+   * de esa sala, a la distancia que toque en cada dirección, en vez de en el cilindro.
+   */
+  salaDeBlender?: { medioAncho: number; medioFondo: number }
+}
+
+/**
+ * A qué distancia queda el muro de una sala RECTANGULAR en una dirección dada.
+ *
+ * Es lo que permite colgar los marcadores de las paredes de la sala de Blender: un
+ * rayo desde el centro en el ángulo pedido choca antes con el muro largo o con el corto,
+ * y el marcador se pone justo ahí. Pura, y probada contra las cuatro paredes.
+ */
+export function radioDelMuroRectangular(medioAncho: number, medioFondo: number, anguloGrados: number): number {
+  const a = grados(anguloGrados)
+  const co = Math.abs(Math.cos(a))
+  const si = Math.abs(Math.sin(a))
+  const porAncho = co > 1e-9 ? medioAncho / co : Infinity
+  const porFondo = si > 1e-9 ? medioFondo / si : Infinity
+  return Math.min(porAncho, porFondo)
+}
+
+export function construirSala(
+  m: Malla,
+  datos: DatosDeSerie,
+  azimutDeEntrada?: number,
+  opciones: OpcionesDeSala = {},
+): void {
+  const blender = opciones.salaDeBlender
+  if (!blender) pared(m)
   // TRES MARCADORES FIJOS, COMO EN UN PABELLÓN — más uno en el muro que se está mirando.
   //
   // Los tres de siempre cuelgan a 90°, 210° y 330°, que son ángulos de la SALA y no del
@@ -416,11 +481,12 @@ export function construirSala(m: Malla, datos: DatosDeSerie, azimutDeEntrada?: n
     // el muro de enfrente, y los 90 traducen entre las dos convenciones.
     angulos.push(90 - (azimutDeEntrada + 180))
   }
-  for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir)
+  for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir, blender)
   estacion(m)
   // EL HIERRO. Va el último porque es lo que menos cambia: la pared y los marcadores se
-  // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato.
-  construirMobiliario(m, RADIO_SALA, ALTO_SALA)
+  // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato. Con la
+  // sala de Blender no hace falta: el hierro viene dentro de la pieza.
+  if (!blender) construirMobiliario(m, RADIO_SALA, ALTO_SALA)
 }
 
 /** Los números de la serie que se está haciendo, que son los que van al marcador. */

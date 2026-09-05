@@ -83,8 +83,22 @@ describe('los tramos por textura', () => {
     const fantasma = malla(0.4, 2)
     const { tramos } = ordenarPorOpacidad([cuerpo, fantasma])
     expect(tramos).toEqual([
-      { textura: null, desde: 0, cuantos: 9, tanda: 'opaca' },
-      { textura: null, desde: 9, cuantos: 6, tanda: 'translucida' },
+      { textura: null, horneada: false, desde: 0, cuantos: 9, tanda: 'opaca' },
+      { textura: null, horneada: false, desde: 9, cuantos: 6, tanda: 'translucida' },
+    ])
+  })
+
+  it('una malla con la luz grabada va en su propio tramo aunque comparta textura', () => {
+    const viva = conTextura('acero', 1, 2)
+    const horneada = conTextura('acero', 1, 1)
+    horneada.horneada = true
+    const cuerpo = conTextura(null, 1, 1)
+    const { ordenadas, tramos } = ordenarPorOpacidad([horneada, cuerpo, viva])
+    expect(ordenadas).toEqual([cuerpo, horneada, viva])
+    expect(tramos).toEqual([
+      { textura: null, horneada: false, desde: 0, cuantos: 3, tanda: 'opaca' },
+      { textura: 'acero', horneada: true, desde: 3, cuantos: 3, tanda: 'opaca' },
+      { textura: 'acero', horneada: false, desde: 6, cuantos: 6, tanda: 'opaca' },
     ])
   })
 
@@ -100,10 +114,10 @@ describe('los tramos por textura', () => {
     expect(ordenadas).toEqual([cuerpo, suelo, suelo2, pared, fantasma])
     expect(indicesOpacos).toBe(21)
     expect(tramos).toEqual([
-      { textura: null, desde: 0, cuantos: 9, tanda: 'opaca' },
-      { textura: 'suelo-goma', desde: 9, cuantos: 9, tanda: 'opaca' },
-      { textura: 'hormigon', desde: 18, cuantos: 3, tanda: 'opaca' },
-      { textura: null, desde: 21, cuantos: 6, tanda: 'translucida' },
+      { textura: null, horneada: false, desde: 0, cuantos: 9, tanda: 'opaca' },
+      { textura: 'suelo-goma', horneada: false, desde: 9, cuantos: 9, tanda: 'opaca' },
+      { textura: 'hormigon', horneada: false, desde: 18, cuantos: 3, tanda: 'opaca' },
+      { textura: null, horneada: false, desde: 21, cuantos: 6, tanda: 'translucida' },
     ])
   })
 

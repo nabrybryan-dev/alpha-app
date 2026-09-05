@@ -25,7 +25,16 @@ export interface PiezaDelSalon {
   radio: number
 }
 
+/**
+ * LA SALA ENTERA HECHA EN BLENDER: 16 × 11 m con el sujeto en el centro. Cuando esta
+ * pieza está cargada, la sala de cajas no se construye y los marcadores se cuelgan de
+ * sus paredes. Las medidas son las del exportador; si cambian allí, cambian aquí.
+ */
+export const SALA_GIMNASIO = { nombre: 'sala-gimnasio', medioAncho: 8, medioFondo: 5.5 } as const
+
 export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
+  // Radio 0: la sala ya viene centrada en el sujeto y con sus paredes en su sitio.
+  [SALA_GIMNASIO.nombre]: { ruta: '/piezas/sala-gimnasio.pieza', anguloGrados: 0, radio: 0 },
   // A 150°: entre los marcadores fijos de 90° y 210°, que cuelgan a 1,62 m y no se pueden
   // tapar. A 250° el rack caía justo delante del marcador de enfrente del press y se
   // comía el último dígito (visto el 2026-09-05).
@@ -39,6 +48,9 @@ export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
 export const TEXTURAS_DE_LAS_PIEZAS = {
   'rack-acero': '/texturas/rack-acero.jpg',
   'rack-barra': '/texturas/rack-barra.jpg',
+  hormigon: '/texturas/hormigon.jpg',
+  'metal-placa': '/texturas/metal-placa.jpg',
+  'gym-atlas': '/texturas/gym-atlas.jpg',
 } as const
 
 /** Dónde queda una pieza de la sala, en coordenadas del motor. */

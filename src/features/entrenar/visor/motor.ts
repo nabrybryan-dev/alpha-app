@@ -75,6 +75,9 @@ uniform float u_suelo;
 // textura enlazada es un píxel blanco y u_conTextura vale 0: el color queda tal cual.
 uniform sampler2D u_textura;
 uniform float u_conTextura;
+// Si la luz ya viene grabada en el color: la pieza se enseña tal cual, sin volver a
+// iluminarla. Solo se le suma la bruma de la distancia, que es de la sala y no de la luz.
+uniform float u_horneada;
 void main() {
   vec3 N = normalize(v_nrm);
   vec3 V = normalize(u_ojo - v_mundo);
@@ -136,6 +139,7 @@ void main() {
   // veces más— y las juntas del suelo desaparecían bajo una lámina gris-azul. Lo que lleva
   // imagen es escenario, y el escenario no se recorta contra nada: sin contraluz.
   c += vec3(0.62, 0.72, 0.86) * borde * 0.30 * (1.0 - u_conTextura);
+  c = mix(c, base, u_horneada);
 
   // Bruma con la distancia: da profundidad sin ocultar nada.
   float niebla = clamp((length(u_ojo - v_mundo) - 1.6) / 4.2, 0.0, 1.0);
@@ -502,6 +506,7 @@ export class Motor {
       const textura = t.textura === null ? undefined : this.texturas.get(t.textura)
       gl.bindTexture(gl.TEXTURE_2D, textura ?? this.blanca)
       gl.uniform1f(u('u_conTextura'), textura ? 1 : 0)
+      gl.uniform1f(u('u_horneada'), t.horneada ? 1 : 0)
       gl.drawElements(gl.TRIANGLES, cuantos, this.tipoIndice, t.desde * bytes)
     }
     if (tandaActual !== 'opaca') {
@@ -517,34 +522,44 @@ export type TandaDeDibujo = 'opaca' | 'translucida' | 'encima'
 /** Un `drawElements`: qué tanda, qué textura, desde qué índice y cuántos. */
 export interface TramoDeDibujo {
   textura: string | null
+  /** Si la luz viene grabada en el color y no hay que iluminar. */
+  horneada: boolean
   desde: number
   cuantos: number
   tanda: TandaDeDibujo
 }
 
+/** La clave de agrupación: lo que tiene que ser igual para dibujarse de una pasada. */
+const claveDeTramo = (m: Malla) => `${m.horneada ? 'h' : 'v'}|${m.textura ?? ''}`
+
 /**
- * Deja contiguas las mallas que comparten textura, sin alterar nada más.
+ * Deja contiguas las mallas que se dibujan igual —misma textura, misma bandera de luz
+ * grabada—, sin alterar nada más.
  *
- * Las que no llevan imagen van primero —son la carne, el hueso, las guías: casi todo—
- * y después cada textura en el orden en que apareció. Estable dentro de cada grupo.
+ * Las vivas sin imagen van primero —son la carne, el hueso, las guías: casi todo— y
+ * después cada combinación en el orden en que apareció. Estable dentro de cada grupo.
  */
 function agruparPorTextura(mallas: Malla[]): Malla[] {
-  const grupos = new Map<string | null, Malla[]>([[null, []]])
+  const grupos = new Map<string, Malla[]>([['v|', []]])
   for (const m of mallas) {
-    const g = grupos.get(m.textura)
+    const k = claveDeTramo(m)
+    const g = grupos.get(k)
     if (g) g.push(m)
-    else grupos.set(m.textura, [m])
+    else grupos.set(k, [m])
   }
   return [...grupos.values()].flat()
 }
 
-/** Los tramos de una tanda: uno por cada textura distinta, en el orden de las mallas. */
+/** Los tramos de una tanda: uno por cada combinación distinta, en el orden de las mallas. */
 function tramosDe(mallas: Malla[], tanda: TandaDeDibujo, desde: number): TramoDeDibujo[] {
   const tramos: TramoDeDibujo[] = []
   for (const m of mallas) {
     const ultimo = tramos[tramos.length - 1]
-    if (ultimo && ultimo.textura === m.textura) ultimo.cuantos += m.indice.length
-    else tramos.push({ textura: m.textura, desde, cuantos: m.indice.length, tanda })
+    if (ultimo && ultimo.textura === m.textura && ultimo.horneada === m.horneada) {
+      ultimo.cuantos += m.indice.length
+    } else {
+      tramos.push({ textura: m.textura, horneada: m.horneada, desde, cuantos: m.indice.length, tanda })
+    }
     desde += m.indice.length
   }
   return tramos.filter((t) => t.cuantos > 0)

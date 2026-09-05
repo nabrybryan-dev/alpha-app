@@ -60,6 +60,29 @@ describe('el formato .pieza', () => {
     }
   })
 
+  it('la bandera de luz grabada viaja en el formato, y `colocar` la conserva', () => {
+    const partes = [{ ...parte('a', 1, 1), horneada: true }, parte('b', 1, 2)]
+    const mallas = leerPieza(escribirPieza(partes))
+    expect(mallas.map((m) => m.horneada)).toEqual([true, false])
+    expect(colocar(mallas, { x: 1, z: 1, giroY: 0.3 }).map((m) => m.horneada)).toEqual([true, false])
+  })
+
+  it('sigue leyendo la versión 1, sin banderas', () => {
+    // La versión 1 no lleva el u32 de banderas: se fabrica a mano a partir de una v2
+    // quitándole esos cuatro bytes y bajando el número de versión.
+    const v2 = new Uint8Array(escribirPieza([parte('t', 1, 4)]))
+    const largo = 1
+    const cabecera = 8 + 2 + largo + 1 // 'PIEZ' + versión + nPartes + u16 + 't' + relleno
+    const v1 = new Uint8Array(v2.length - 4)
+    v1.set(v2.subarray(0, cabecera), 0)
+    v1.set(v2.subarray(cabecera + 4), cabecera)
+    new DataView(v1.buffer).setUint16(4, 1, true)
+    const [m] = leerPieza(v1.buffer)
+    expect(m.textura).toBe('t')
+    expect(m.horneada).toBe(false)
+    expect(m.vertices).toBe(3)
+  })
+
   it('rechaza lo que no es una pieza en vez de dibujarlo a medias', () => {
     const basura = new Uint8Array([80, 78, 71, 13, 0, 0, 0, 0]).buffer
     expect(() => leerPieza(basura)).toThrow(/no es una pieza/)
