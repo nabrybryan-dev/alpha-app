@@ -32,7 +32,7 @@ import { importacionesDe } from '../../scripts/codigo-huerfano.mjs'
  */
 
 const RAIZ = resolve(__dirname, '..')
-const EN_SOMBRA = ['bucleDelDia', 'corridaEnSombra']
+const EN_SOMBRA = ['bucleDelDia', 'corridaEnSombra', 'balanceDeLaSombra']
 /** Las dos capas por las que algo llega a los ojos de una persona. */
 const CAPAS_DE_PANTALLA = ['features', 'data']
 

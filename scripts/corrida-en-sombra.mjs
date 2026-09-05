@@ -6,18 +6,22 @@
  * El `<export.json>` lo produce `supabase/exportar-corrida-en-sombra.sql`, y
  * **vive fuera del repo**: lleva el entrenamiento de personas reales.
  *
- * QUÉ CONTESTA, y qué no. Contesta la primera mitad del §7.1 del supuesto del
- * 2026-08-25: ¿se dispara el cruce, cuántas veces y en qué dirección? La segunda
- * mitad —¿el ajuste habría reducido la discrepancia?— **no se puede contestar
- * hasta que las prescripciones traigan `escenarios`**, las dos escaleras que el
- * coach preautoriza (§8 punto 1). Por eso el informe imprime `sin camino escrito`
- * como una fila propia: es la medida de cuánto está esperando esa decisión.
+ * QUÉ CONTESTA. Las **dos mitades** del §7.1 del supuesto del 2026-08-25:
+ *
+ *   1. ¿Se dispara el cruce, cuántas veces y en qué dirección?
+ *   2. ¿El ajuste habría acercado el plan a lo que la persona hizo, o lo habría
+ *      perseguido? — desde que las escaleras entraron en producción el 4-sep.
+ *
+ * El informe sigue imprimiendo `sin camino escrito` como fila propia: mide
+ * cuántos ejercicios siguen sin escaleras, y mientras eso no sea cero la segunda
+ * mitad se contesta solo sobre una parte.
  *
  * No inventa nada: el cruce lo hace `src/domain/bucleDelDia.ts`, el mismo módulo
  * que decidiría en vivo. Este archivo solo lee, adapta y cuenta.
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
+import { balanceDeLaSombra } from '../src/domain/balanceDeLaSombra.ts'
 import { corridaEnSombra } from '../src/domain/corridaEnSombra.ts'
 
 const [ruta, ...banderas] = process.argv.slice(2)
@@ -103,6 +107,10 @@ const total = {
   sinSeries: 0,
   sinContexto: 0,
   propagaciones: 0,
+  balance: {
+    con: { pares: 0, acercan: 0, alejan: 0, errOrig: 0, errAjus: 0, seriesPares: 0, seriesAcercan: 0 },
+    sin: { pares: 0, acercan: 0, alejan: 0, errOrig: 0, errAjus: 0, seriesPares: 0, seriesAcercan: 0 },
+  },
 }
 const porPersona = []
 
@@ -128,6 +136,19 @@ for (const persona of datos.gente ?? []) {
   }))
 
   const informe = corridaEnSombra(microciclos, checkins)
+  // Las DOS variantes del día malo: Bryan eligió recortar la última serie
+  // sabiendo que mezcla dos palancas, y en sombra separarlas es gratis.
+  const conRecorte = balanceDeLaSombra(microciclos, checkins, { conRecorteDeSerie: true })
+  const sinRecorte = balanceDeLaSombra(microciclos, checkins, { conRecorteDeSerie: false })
+  for (const [clave, b] of [['con', conRecorte], ['sin', sinRecorte]]) {
+    total.balance[clave].pares += b.paresMedidos
+    total.balance[clave].acercan += b.acercan
+    total.balance[clave].alejan += b.alejan
+    total.balance[clave].errOrig += b.errorMedioOriginal * b.paresMedidos
+    total.balance[clave].errAjus += b.errorMedioAjustado * b.paresMedidos
+    total.balance[clave].seriesPares += b.series.paresMedidos
+    total.balance[clave].seriesAcercan += b.series.acercan
+  }
   total.personas += 1
   total.sesionesMiradas += informe.sesionesMiradas
   total.sesionesCruzables += informe.sesionesCruzables
@@ -158,6 +179,33 @@ console.log(`    cruces que pedian actuar y no tenian escaleras escritas: ${tota
 console.log(`    (mientras siga en ${total.sinCaminoEscrito}, la segunda mitad del §7.1 no se puede medir)`)
 console.log(`\n  REGLA DEL MARTES: ${total.propagaciones} propagaciones de fatiga a una sesion posterior`)
 console.log(`\n  Sesiones con las DOS mitades del cruce: ${total.sesionesCruzables} de ${total.sesionesMiradas}\n`)
+
+console.log('  ¿EL AJUSTE ACERCABA O PERSEGUIA? — la segunda mitad del §7.1')
+console.log('    Se compara la carga que el bucle habria propuesto el dia D contra lo que la')
+console.log('    persona movio LA VEZ SIGUIENTE que le toco ese ejercicio. Esa vez ocurrio de')
+console.log('    verdad y bajo la prescripcion original: no es un contrafactual. Lo que NO')
+console.log('    captura: si hubiera visto el plan ajustado, quiza habria hecho otra cosa.')
+for (const [etiqueta, b] of [
+  ['con recorte de serie (lo que eligio el coach)', total.balance.con],
+  ['sin recorte, para ver la otra palanca sola', total.balance.sin],
+]) {
+  console.log(`
+    ${etiqueta}`)
+  if (b.pares === 0) {
+    console.log('      en carga: 0 pares medibles')
+  } else {
+    console.log(`      pares en carga     ${b.pares}`)
+    console.log(`      acercan / alejan   ${b.acercan} / ${b.alejan}   (${pct(b.acercan, b.pares).trim()} acercando)`)
+    console.log(`      error medio        ${(b.errOrig / b.pares).toFixed(2)} kg -> ${(b.errAjus / b.pares).toFixed(2)} kg`)
+  }
+  // El ROJO no mueve kilos nunca: afloja RIR y series. Su vara son las series.
+  console.log(
+    b.seriesPares === 0
+      ? '      en series (el rojo): 0 pares medibles'
+      : `      en series (el rojo) ${b.seriesAcercan} de ${b.seriesPares} acercan`,
+  )
+}
+console.log()
 
 if (detalle) {
   console.log('  POR PERSONA (id acortado)')
