@@ -1,3 +1,11 @@
+> **Para retomar este hilo.** Sesiones, de la más vieja a la más nueva: la del muro y la
+> estación (3-sep), la del fantasma articular (4-sep,
+> https://claude.ai/code/session_018AcBuSR9b9ePtiakvTTkHa) y la que cerró las fuerzas y la
+> segunda tanda de la demo (4 y 5-sep,
+> https://claude.ai/code/session_01AqXvdfadhGqxJos95iD3gd). Worktree `dev/alpha-salon`, rama
+> `salon/entrenar-4d`. La vista previa de cada commit la construye Vercel (SSO del equipo).
+> Decisión de Bryan del 5-sep: el tope de resolución a 2× se queda como está, anotado.
+
 El salón de `/entrenar` pasa a seguir el kit «Sala de entrenamiento» del handoff. Lo que el
 kit aporta es **cómo se distribuye la información**; la sala, su mobiliario, sus espacios y
 el sujeto no se han tocado.
