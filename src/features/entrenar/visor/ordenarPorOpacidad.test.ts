@@ -51,4 +51,19 @@ describe('ordenarPorOpacidad', () => {
   it('una malla nace opaca: el alfa por defecto es 1', () => {
     expect(new Malla(8).alfa).toBe(1)
   })
+
+  it('lo marcado `encima` va al FINAL, aunque sea opaco, y se cuenta aparte', () => {
+    const cuerpo = malla(1, 3)
+    const fantasma = malla(0.4, 2)
+    const fuerzas = malla(1, 4)
+    fuerzas.encima = true
+    const { ordenadas, indicesOpacos, indicesEncima } = ordenarPorOpacidad([fuerzas, cuerpo, fantasma])
+    expect(ordenadas).toEqual([cuerpo, fantasma, fuerzas])
+    expect(indicesOpacos).toBe(9)
+    expect(indicesEncima).toBe(12)
+  })
+
+  it('una malla nace debajo: `encima` es false por defecto', () => {
+    expect(new Malla(8).encima).toBe(false)
+  })
 })

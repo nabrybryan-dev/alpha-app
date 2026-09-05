@@ -115,13 +115,59 @@ Foto local `informes/fantasma-articular.png`: el fantasma con esqueleto, casi de
 sujeto en el fondo. Lo que sigue pendiente son las fuerzas —el brazo de momento sobre el
 cuerpo—, que siguen siendo spec.
 
+### Las fuerzas sobre el cuerpo
+
+Lo que quedaba de spec. Primero un lienzo con tres caminos (`docs/diseno/lienzo4/`):
+**A · Brazo y par** (una varilla de la articulación a la vertical de la carga y un arco que
+barre con el par), **B · Calor articular** (cero líneas, la articulación se enciende) y
+**C · Vector de carga** (la flecha se alarga al frenar). Bryan eligió A; B y C quedan
+**descartadas para esta tanda, no muertas**.
+
+- `domain/biomecanica/brazosDeMomento.ts`: el brazo de momento externo de cada eje medido
+  sobre el esqueleto que se está dibujando — con peso libre, la distancia horizontal de la
+  articulación a la vertical de la carga (`perfiles-de-resistencia.md` §2.1). Los ejes salen
+  del plan de medida del ejercicio, el mismo que le dice al encoder qué mirar; los
+  estabilizadores no giran y no entran. Con cable no se dibuja nada: la línea la fija el
+  cable, no la gravedad.
+- `domain/patrones/fuerzas.ts`: la varilla, la marca del eje, el arco del par y la vertical
+  de la carga a trazos — en GEOMETRÍA, como los dígitos del muro, y nunca como texto encima
+  del salón.
+- `Malla.encima` y una **tercera tanda** en el motor, sin prueba de profundidad: el eje de
+  la cadera vive dentro del glúteo y con profundidad la varilla se veía a trozos. Una
+  varilla a trozos no mide nada.
+
+**El primer dibujo se despegaba, y las tres causas se midieron.** El aro tenía un radio fijo
+en centímetros, así que al doblarse el sujeto —de 655 px de alto a 409— el mismo aro pasaba
+del 6 % de su altura al 16 % y parecía crecer al alejarse la cámara. El arco lo llevaban
+también los ejes secundarios, y el del tobillo salía tumbado sobre la línea del suelo (y =
+850 de una pantalla de 844), al lado de los pies: una rueda apoyada en el salón. Y el tope
+de barrido en 150° lo cerraba en círculo.
+
+**El arreglo, con la decisión de Bryan dentro.** El radio sale del hueso que cuelga del eje
+(32 % del fémur, de la tibia, del brazo), así que encoge y crece con la persona. El arco es
+sólo del eje principal; los secundarios se quedan con la varilla. El tope baja a 110°. Y el
+arco **sigue girando en el plano real del giro**, no de cara a la cámara, sabiendo el canje:
+de canto un aro es un palito. Medido sobre el catálogo con la cámara del salón, de frente el
+arco mide 26–71 px de ancho y de canto no pasa de 3 px (elevaciones laterales 0,02–0,19 de
+cara; press militar 0,29). Así que **de canto se retira**, y se retira adelgazando el trazo
+—no desapareciendo de golpe—, para que al orbitar no dé un salto. Lo que queda entonces es
+la varilla, la marca y la vertical, que se leen desde cualquier sitio.
+
+Los cuatro guardianes nuevos se vieron **rojos** quitando el arreglo uno a uno. El del tope
+del barrido **nació verde** —devolver el 150° pasaba sin que nada chistara— y se escribió
+antes de contarlo. Fotos locales `informes/antes-b.png` y `informes/ahora-b.png`, el mismo
+instante de la sentadilla con los dos dibujos.
+
+Lo que sigue siendo spec: la cifra en centímetros del brazo, que iría en la letra mínima y
+apagable, y el vector de la dirección C, que necesita la aceleración del encoder.
+
 ## Estado
 
-`npm run verify`: **3.250 pruebas** en verde, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
+`npm run verify`: **3.272 pruebas** en verde de 3.273, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
 guardianes del repo cazaron la limpieza y los cuatro están atendidos: código huérfano,
 clases de animación sin consumir, el inventario de recuadros y la auditoría de campos —los
 que salieron del muro siguen montados con `sr-only`, así que se oyen y se cuentan.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_018AcBuSR9b9ePtiakvTTkHa
+https://claude.ai/code/session_01AqXvdfadhGqxJos95iD3gd

@@ -231,8 +231,9 @@ export class Motor {
     // LAS OPACAS DELANTE Y LAS TRANSLÚCIDAS DETRÁS, en un orden que `dibujar()` pueda
     // partir en dos: es lo que hace que la mezcla alfa sea correcta sin ordenar
     // triángulos. La función es pura y se prueba sin WebGL.
-    const { ordenadas: mallas, indicesOpacos } = ordenarPorOpacidad(entrantes)
+    const { ordenadas: mallas, indicesOpacos, indicesEncima } = ordenarPorOpacidad(entrantes)
     this.indicesOpacos = indicesOpacos
+    this.indicesEncima = indicesEncima
 
     // PRIMERA PASADA: cuánto hay. El conteo sale de la misma propiedad que
     // luego se escribe, que es la única forma de que no se quede corto.
@@ -334,6 +335,8 @@ export class Motor {
 
   /** Cuántos índices son de mallas opacas. Lo pone `subir()`; lo parte `dibujar()`. */
   private indicesOpacos = 0
+  /** Cuántos índices, al final del búfer, se dibujan ENCIMA sin profundidad. */
+  private indicesEncima = 0
 
   private atributo(nombre: string, buffer: WebGLBuffer, tam: number): void {
     const gl = this.gl
@@ -384,14 +387,26 @@ export class Motor {
     // escribir profundidad: si el fantasma escribiera la suya, la parte del sujeto que
     // queda detrás de él desaparecería en vez de verse a través. El desplazamiento del
     // segundo `drawElements` va en BYTES, y el tamaño del índice lo decide `subir()`.
+    const bytes = this.tipoIndice === gl.UNSIGNED_INT ? 4 : 2
     const opacos = Math.min(this.indicesOpacos, this.indices)
     gl.drawElements(gl.TRIANGLES, opacos, this.tipoIndice, 0)
-    const translucidos = this.indices - opacos
+    const encima = Math.min(this.indicesEncima, this.indices - opacos)
+    const translucidos = this.indices - opacos - encima
     if (translucidos > 0) {
-      const bytes = this.tipoIndice === gl.UNSIGNED_INT ? 4 : 2
       gl.depthMask(false)
       gl.drawElements(gl.TRIANGLES, translucidos, this.tipoIndice, opacos * bytes)
       gl.depthMask(true)
+    }
+    // TERCERA TANDA: lo que va ENCIMA del cuerpo —el brazo de momento, el arco del par—
+    // sin prueba de profundidad, para que se lea entero aunque la carne lo tape. Va la
+    // última para no dejar su profundidad escrita, y con la prueba otra vez encendida al
+    // salir: el fotograma siguiente empieza como siempre.
+    if (encima > 0) {
+      gl.disable(gl.DEPTH_TEST)
+      gl.depthMask(false)
+      gl.drawElements(gl.TRIANGLES, encima, this.tipoIndice, (opacos + translucidos) * bytes)
+      gl.depthMask(true)
+      gl.enable(gl.DEPTH_TEST)
     }
   }
 }
@@ -504,9 +519,19 @@ export class Orbita {
  * Es una función suelta y pura a propósito: el motor necesita WebGL para existir, y en
  * jsdom no hay WebGL. Esto se prueba con cuatro mallas de mentira.
  */
-export function ordenarPorOpacidad(mallas: Malla[]): { ordenadas: Malla[]; indicesOpacos: number } {
-  const opacas = mallas.filter((m) => m.alfa >= 1)
-  const translucidas = mallas.filter((m) => m.alfa < 1)
-  const indicesOpacos = opacas.reduce((n, m) => n + m.indice.length, 0)
-  return { ordenadas: [...opacas, ...translucidas], indicesOpacos }
+export function ordenarPorOpacidad(mallas: Malla[]): {
+  ordenadas: Malla[]
+  indicesOpacos: number
+  /** Cuántos índices, al FINAL, son de mallas `encima`: se dibujan sin profundidad. */
+  indicesEncima: number
+} {
+  const opacas = mallas.filter((m) => !m.encima && m.alfa >= 1)
+  const translucidas = mallas.filter((m) => !m.encima && m.alfa < 1)
+  const encima = mallas.filter((m) => m.encima)
+  const cuenta = (xs: Malla[]) => xs.reduce((n, m) => n + m.indice.length, 0)
+  return {
+    ordenadas: [...opacas, ...translucidas, ...encima],
+    indicesOpacos: cuenta(opacas),
+    indicesEncima: cuenta(encima),
+  }
 }

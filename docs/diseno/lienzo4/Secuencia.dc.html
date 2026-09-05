@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,900&family=JetBrains+Mono:wght@500&display=swap">
+  <style>
+    body { margin: 0; background: #0b0e12; color: #f2f2f2; font-family: 'Hanken Grotesk', system-ui, sans-serif; }
+    a { color: #ff1e1e; } a:hover { color: #8f1119; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 500; }
+    .display { font-family: 'Archivo', Impact, system-ui, sans-serif; font-stretch: 125%; font-weight: 900; text-transform: uppercase; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 420px; background: #0b0e12; display: flex; flex-direction: column; gap: 10px; padding: 18px 16px; box-sizing: border-box;">
+  <div style="display: flex; align-items: baseline; justify-content: space-between;">
+    <span class="display" style="font-size: 12px; color: #f2f2f2;">El brazo crece con la bajada</span>
+    <span class="mono" style="font-size: 9px; letter-spacing: 0.14em; color: #a8a8ad;">CADERA · GOBLET</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; flex-grow: 1;">
+    <!-- ARRIBA -->
+    <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+      <svg width="112" height="300" viewBox="110 372 170 340" style="background: #0d1116; border-radius: 6px;">
+        <line x1="110" y1="690" x2="280" y2="690" stroke="rgba(255,255,255,0.12)"></line>
+        <g stroke="#cfc4b4" stroke-width="15" stroke-linecap="round" fill="none">
+          <line x1="152" y1="690" x2="204" y2="690"></line>
+          <line x1="185" y1="690" x2="190" y2="600"></line>
+          <line x1="190" y1="600" x2="188" y2="520"></line>
+          <line x1="188" y1="520" x2="192" y2="400"></line>
+          <line x1="192" y1="400" x2="205" y2="440"></line>
+          <line x1="205" y1="440" x2="200" y2="470"></line>
+        </g>
+        <circle cx="196" cy="376" r="17" fill="#cfc4b4"></circle>
+        <circle cx="200" cy="470" r="13" fill="#2a2d31" stroke="#8a8f95" stroke-width="2"></circle>
+        <line x1="200" y1="483" x2="200" y2="690" stroke="#f5a623" stroke-width="2" stroke-dasharray="7 6"></line>
+        <line x1="188" y1="520" x2="200" y2="520" stroke="#ff1e1e" stroke-width="1.6"></line>
+        <path d="M 176 520 A 12 12 0 0 1 180 512" stroke="#ff1e1e" stroke-width="2.2" fill="none"></path>
+        <circle cx="188" cy="520" r="3.2" fill="#ff1e1e"></circle>
+        <circle cx="190" cy="600" r="3.2" fill="#ff1e1e"></circle>
+      </svg>
+      <div class="mono" style="font-size: 9.5px; letter-spacing: 0.1em; color: #a8a8ad; display: flex; gap: 6px;"><span>ARRIBA</span><span style="color: #ff1e1e;">3 CM</span></div>
+    </div>
+    <!-- MEDIO -->
+    <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+      <svg width="112" height="300" viewBox="110 372 170 340" style="background: #0d1116; border-radius: 6px;">
+        <line x1="110" y1="690" x2="280" y2="690" stroke="rgba(255,255,255,0.12)"></line>
+        <g stroke="#cfc4b4" stroke-width="15" stroke-linecap="round" fill="none">
+          <line x1="150" y1="690" x2="205" y2="690"></line>
+          <line x1="185" y1="690" x2="222" y2="610"></line>
+          <line x1="222" y1="610" x2="180" y2="548"></line>
+          <line x1="180" y1="548" x2="208" y2="420"></line>
+          <line x1="208" y1="420" x2="238" y2="458"></line>
+          <line x1="238" y1="458" x2="228" y2="492"></line>
+        </g>
+        <circle cx="218" cy="394" r="17" fill="#cfc4b4"></circle>
+        <circle cx="228" cy="492" r="13" fill="#2a2d31" stroke="#8a8f95" stroke-width="2"></circle>
+        <line x1="228" y1="505" x2="228" y2="690" stroke="#f5a623" stroke-width="2" stroke-dasharray="7 6"></line>
+        <line x1="180" y1="548" x2="228" y2="548" stroke="#ff1e1e" stroke-width="1.6"></line>
+        <line x1="222" y1="610" x2="228" y2="610" stroke="#ff1e1e" stroke-width="1.6"></line>
+        <path d="M 162 548 A 18 18 0 0 1 176 531" stroke="#ff1e1e" stroke-width="2.2" fill="none"></path>
+        <circle cx="180" cy="548" r="3.2" fill="#ff1e1e"></circle>
+        <circle cx="222" cy="610" r="3.2" fill="#ff1e1e"></circle>
+      </svg>
+      <div class="mono" style="font-size: 9.5px; letter-spacing: 0.1em; color: #a8a8ad; display: flex; gap: 6px;"><span>MEDIO</span><span style="color: #ff1e1e;">12 CM</span></div>
+    </div>
+    <!-- FONDO -->
+    <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+      <svg width="112" height="300" viewBox="110 372 170 340" style="background: #0d1116; border-radius: 6px;">
+        <line x1="110" y1="690" x2="280" y2="690" stroke="rgba(255,255,255,0.12)"></line>
+        <g stroke="#cfc4b4" stroke-width="15" stroke-linecap="round" fill="none">
+          <line x1="150" y1="690" x2="205" y2="690"></line>
+          <line x1="185" y1="690" x2="240" y2="600"></line>
+          <line x1="240" y1="600" x2="170" y2="560"></line>
+          <line x1="170" y1="560" x2="215" y2="430"></line>
+          <line x1="215" y1="430" x2="245" y2="470"></line>
+          <line x1="245" y1="470" x2="235" y2="505"></line>
+        </g>
+        <circle cx="228" cy="402" r="17" fill="#cfc4b4"></circle>
+        <circle cx="235" cy="505" r="13" fill="#2a2d31" stroke="#8a8f95" stroke-width="2"></circle>
+        <line x1="235" y1="518" x2="235" y2="690" stroke="#f5a623" stroke-width="2" stroke-dasharray="7 6"></line>
+        <line x1="170" y1="560" x2="235" y2="560" stroke="#ff1e1e" stroke-width="1.6"></line>
+        <line x1="240" y1="600" x2="235" y2="600" stroke="#ff1e1e" stroke-width="1.6"></line>
+        <path d="M 148 560 A 22 22 0 0 1 170 538" stroke="#ff1e1e" stroke-width="2.4" fill="none"></path>
+        <circle cx="170" cy="560" r="3.2" fill="#ff1e1e"></circle>
+        <circle cx="240" cy="600" r="3.2" fill="#ff1e1e"></circle>
+      </svg>
+      <div class="mono" style="font-size: 9.5px; letter-spacing: 0.1em; color: #a8a8ad; display: flex; gap: 6px;"><span>FONDO</span><span style="color: #ff1e1e;">18 CM</span></div>
+    </div>
+  </div>
+  <div class="mono" style="font-size: 9px; letter-spacing: 0.06em; color: #a8a8ad; line-height: 1.4;">La rodilla apenas se separa de la plomada en la goblet: la carga va delante del pecho. El arco de la cadera barre lo que crece el brazo.</div>
+</div>
+</x-dc>
+</body>
+</html>

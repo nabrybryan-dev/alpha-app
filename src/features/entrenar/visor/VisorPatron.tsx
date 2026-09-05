@@ -19,6 +19,9 @@ import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSeri
 import { pasoDelVaiven } from './vaivenDeLaSala'
 import { faseDeHuella, poseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
 import { hornear } from '../../../domain/patrones/malla'
+import { brazosDeMomento } from '../../../domain/biomecanica/brazosDeMomento'
+import { planDeMedida } from '../../../domain/biomecanica/palancas'
+import { mallasDeFuerzas } from '../../../domain/patrones/fuerzas'
 import type { Activacion } from '../../../domain/patrones/anatomia'
 import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
 import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
@@ -171,7 +174,7 @@ function precalculado() {
  * resta de siempre aplicada donde hacía falta. No es un modo de depuración escondido:
  * sin el atributo no cambia nada, y el atributo solo lo pone quien levanta el acta.
  */
-const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia', 'fantasma'] as const
+const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia', 'fantasma', 'fuerzas'] as const
 
 function partesOmitidas(lienzo: HTMLCanvasElement | null): Set<string> {
   const crudo = lienzo?.dataset.sin
@@ -467,6 +470,18 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
           // Cuelgan de la bahía: sin escenario no hay dónde ponerlos, y sin números no
           // hay marcador que enseñar.
           const sin = partesOmitidas(lienzo)
+          // LAS FUERZAS: el brazo de momento de cada eje que gira, de la articulación a la
+          // vertical de la carga, y el arco del par. Salen del plan de medida del ejercicio
+          // —el mismo que manda al encoder qué mirar— y se miden sobre ESTE esqueleto, en
+          // esta fase: si el sujeto baja, el brazo crece con él.
+          if (conEscenario && !sin.has('fuerzas')) {
+            const plan = planDeMedida(patron.categoria, estado.current.nombreEjercicio ?? '')
+            if (plan) {
+              // El ojo va porque el arco vive en el plano real del giro: de canto no se ve,
+              // y en vez de dejar una astilla de 3 px se afina hasta retirarse.
+              for (const m of mallasDeFuerzas(brazosDeMomento(esq, plan), orbita.ojo())) if (m.vertices > 0) partes.push(m)
+            }
+          }
           const d = estado.current.datos
           if (d) {
             if (!sin.has('sala')) partes.push(sala(d, patron.camara.azimut))

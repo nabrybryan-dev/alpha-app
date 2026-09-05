@@ -28,3 +28,5 @@ docs/diseno/*/previa.html
 # `node testigo/cuadros-en-pantalla.mjs --foto=...` y pesan más que lo que prueban:
 # lo que vale la pena guardar son los NÚMEROS, y ésos van al informe.
 informes/*.png
+# El lienzo de diseño se guarda en docs/diseno/; aquí queda solo el montaje que se abre.
+informes/diseno-fuerzas/

@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "A · Brazo y par", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Secuencia.dc.html", "title": "A · Durante la repetición", "x": 480, "y": 0, "w": 390, "h": 420 },
+    { "file": "DireccionB.dc.html", "title": "B · Calor articular", "x": 960, "y": 0, "w": 390, "h": 560 },
+    { "file": "DireccionC.dc.html", "title": "C · Vector de carga", "x": 1440, "y": 0, "w": 390, "h": 560 }
+  ],
+  "annotations": [
+    { "id": "que-es", "x": 0, "y": -250, "w": 390, "text": "LAS FUERZAS SOBRE EL CUERPO\n\nCon peso libre la carga tira siempre vertical: la plomada ámbar ya está en la sala. El brazo de momento externo de cada eje es la distancia HORIZONTAL de la articulación a esa plomada (segmentos-ejes-y-palancas.md). Es lo único nuevo que se dibuja, y se dibuja en la escena —geometría, como los dígitos del muro—, no como texto encima del salón." },
+    { "id": "a-motivo", "x": 0, "y": -110, "w": 390, "text": "A · Brazo y par. El segmento rojo mide; el arco en la articulación enseña el par (barre más cuanto más largo el brazo). Una cifra por eje, 10,5 px, apagable. Tradeoff: dos cifras más en un salón que quiere letra mínima." },
+    { "id": "a-secuencia", "x": 480, "y": -110, "w": 390, "text": "Lo mismo a lo largo de la repetición: el brazo de cadera crece al bajar y el arco barre con él. La rodilla apenas se separa de la plomada en la goblet: es el dato que la persona ve sin leer." },
+    { "id": "b-motivo", "x": 960, "y": -110, "w": 390, "text": "B · Calor articular. Cero letras: la articulación se enciende en rojo según su par, y la cifra solo aparece al hundir el dedo en ella (mismo gesto que las capas). Tradeoff: sin la línea no se ve DÓNDE está la plomada respecto al eje, solo cuánto pesa." },
+    { "id": "c-motivo", "x": 1440, "y": -110, "w": 390, "text": "C · Vector de carga. La fuerza es m·(g+a): el tramo sólido es el peso; el punteado, lo que añade el frenado (se alarga al frenar la bajada, se acorta al ceder). Una sola cifra: el múltiplo de g. Tradeoff: la aceleración sale del encoder; sin medida el vector sería solo el peso, y habría que decirlo." }
+  ],
+  "launch": { "view": "canvas" }
+}

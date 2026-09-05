@@ -99,6 +99,7 @@ function glDeMentira() {
     getProgramInfoLog: () => '',
     useProgram: () => {},
     enable: () => {},
+    disable: () => {},
     cullFace: () => {},
     // La mezcla alfa y la máscara de profundidad, que el motor pide desde que dibuja el
     // fantasma en dos tandas. Aquí no hacen nada: estas pruebas miran los búferes, no

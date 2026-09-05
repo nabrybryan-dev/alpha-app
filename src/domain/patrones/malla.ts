@@ -71,6 +71,17 @@ export class Malla {
    */
   alfa = 1
 
+  /**
+   * SI SE DIBUJA ENCIMA DE TODO, sin prueba de profundidad.
+   *
+   * Es para lo que se enseña SOBRE el cuerpo y tiene que leerse aunque el cuerpo lo tape:
+   * el brazo de momento y el arco del par, que viven dentro de la carne de la cadera. Con
+   * profundidad se veían a trozos —lo que asomaba entre dos músculos— y un brazo a trozos
+   * no mide nada. El motor las dibuja en una tercera tanda, después de lo translúcido, con
+   * la prueba de profundidad apagada. Nace en `false`: nada de lo que existía cambia.
+   */
+  encima = false
+
   constructor(capacidadVertices = 2048) {
     this.bufPos = new Float32Array(capacidadVertices * 3)
     this.bufNrm = new Float32Array(capacidadVertices * 3)
