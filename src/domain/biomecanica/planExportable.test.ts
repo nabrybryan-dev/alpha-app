@@ -51,6 +51,27 @@ describe('el plan que cruza a la herramienta', () => {
   })
 
   /**
+   * La postura entra por la misma puerta que el implemento, y por la misma
+   * razón: los dos deciden si el número que va a salir habla del atleta. La
+   * diferencia es que el implemento se lee del nombre y la postura no se puede
+   * adivinar — el mismo empuje horizontal se hace tumbado en un banco y de pie
+   * en una polea.
+   */
+  it('la postura declarada entra como un límite más', () => {
+    const tumbado = planExportable('EMPUJE HORIZONTAL', 'press de banca con barra', 'tumbado')
+    expect(tumbado?.limites.some((t) => t.includes('541 %'))).toBe(true)
+
+    const dePie = planExportable('EMPUJE HORIZONTAL', 'press de banca con barra', 'de-pie-de-lado')
+    expect(dePie?.limites.some((t) => t.includes('dispersó'))).toBe(false)
+  })
+
+  it('sin postura declarada, el plan no inventa ninguna', () => {
+    const conPostura = planExportable('BISAGRA DE CADERA', 'peso muerto con barra', 'de-pie-escorzo')
+    const sinPostura = planExportable('BISAGRA DE CADERA', 'peso muerto con barra')
+    expect(conPostura?.limites.length).toBe((sinPostura?.limites.length ?? 0) + 1)
+  })
+
+  /**
    * El contrato de la costura, escrito una vez.
    *
    * Al otro lado hay JavaScript en otro repositorio que lee estas claves

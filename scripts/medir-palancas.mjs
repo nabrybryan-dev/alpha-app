@@ -37,12 +37,14 @@ import { spawnSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { COMO_GRABAR, esPostura, fiabilidadDeEscala, POSTURAS } from '../src/domain/biomecanica/escala.ts'
 import { planExportable } from '../src/domain/biomecanica/planExportable.ts'
 import { buscarHerramientas, COMO_ENCONTRARLAS } from './herramientasEncoder.mjs'
 
 const USO =
   'Uso: npx vite-node scripts/medir-palancas.mjs -- <pista.json> <altura_cm> ' +
-  '--categoria "<CATEGORÍA>" [--nombre "<nombre del ejercicio>"] [--salida <medida.json>]'
+  '--categoria "<CATEGORÍA>" [--nombre "<nombre del ejercicio>"] [--salida <medida.json>] ' +
+  '[--postura de-pie-de-lado|de-pie-escorzo|apoyado-a-media-altura|tumbado]'
 
 /** Una opción con valor: `--nombre X`. Devuelve `undefined` si no está. */
 function opcion(args, nombre) {
@@ -61,16 +63,41 @@ const [rutaPista, alturaCm] = sueltos
 const categoria = opcion(args, 'categoria')
 const nombre = opcion(args, 'nombre') ?? ''
 const salida = opcion(args, 'salida')
+const postura = opcion(args, 'postura')
 
 if (!rutaPista || !alturaCm || !categoria) {
   console.error(USO)
   process.exit(2)
 }
 
+/* La postura, ANTES de tocar el vídeo. Es lo único que decide si el ancla de la
+ * escala existe, la tabla no puede adivinarla —el mismo empuje se hace tumbado
+ * en un banco y de pie en una polea— y un press de banca no da una medida peor:
+ * no da ninguna. Decirlo aquí ahorra el minuto de CPU y, sobre todo, evita
+ * devolver milímetros que ningún guardián posterior distingue de los buenos. */
+if (postura) {
+  if (!esPostura(postura)) {
+    console.error(`Postura desconocida: «${postura}». Las medidas son: ${POSTURAS.join(', ')}.`)
+    process.exit(2)
+  }
+  const veredicto = fiabilidadDeEscala(postura)
+  if (veredicto.nivel === 'imposible') {
+    console.error(veredicto.porQue)
+    process.exit(1)
+  }
+  if (veredicto.nivel === 'orientativa') console.error(`⚠ ${veredicto.porQue}
+`)
+} else {
+  /* No se supone `de-pie-de-lado` por defecto: suponer la postura buena es
+   * exactamente cómo saldría una medida imposible con cara de medida. */
+  console.error(`(sin --postura: nadie ha dicho cómo se grabó. La que se sostiene es ${COMO_GRABAR})
+`)
+}
+
 /* El plan primero, y antes de tocar el vídeo: si este ejercicio no tiene
  * palanca que medir, no hay nada que rastrear y decirlo cuesta un segundo en
  * vez de un minuto de CPU. */
-const plan = planExportable(categoria, nombre)
+const plan = planExportable(categoria, nombre, postura)
 if (!plan) {
   console.error(
     `«${categoria}» no tiene modelo de palanca, así que no hay nada que medir en este vídeo.\n` +

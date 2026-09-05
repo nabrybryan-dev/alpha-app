@@ -23,11 +23,22 @@
  * tenga que acordarse de pasar el plan correcto.
  */
 
+import { esPostura, POSTURAS } from '../src/domain/biomecanica/escala.ts'
 import { planExportable } from '../src/domain/biomecanica/planExportable.ts'
 
-const [categoria, nombre = ''] = process.argv.slice(2)
+const [categoria, nombre = '', postura] = process.argv.slice(2)
 if (!categoria) {
-  console.error('Uso: npx vite-node scripts/exportar-plan.mjs -- <CATEGORÍA> [nombre del ejercicio]')
+  console.error(
+    'Uso: npx vite-node scripts/exportar-plan.mjs -- <CATEGORÍA> [nombre del ejercicio] [postura]',
+  )
+  process.exit(2)
+}
+
+/* La postura es opcional, pero mal escrita NO se ignora: caer en «no declarada»
+ * por una letra es cómo un press de banca acabaría con un plan que no le
+ * corresponde. */
+if (postura !== undefined && !esPostura(postura)) {
+  console.error(`Postura desconocida: «${postura}». Las medidas son: ${POSTURAS.join(', ')}.`)
   process.exit(2)
 }
 
@@ -35,7 +46,7 @@ if (!categoria) {
  * `medir-palancas.mjs`, que le pasa el mismo plan al encoder sin que nadie lo
  * vea. Dos proyecciones que tienen que ser idénticas dejan de serlo el día que
  * alguien toque una. */
-const plan = planExportable(categoria, nombre)
+const plan = planExportable(categoria, nombre, postura)
 if (!plan) {
   console.error(`Sin modelo de palanca para «${categoria}». No hay plan que exportar, y eso es la respuesta.`)
   process.exit(1)
