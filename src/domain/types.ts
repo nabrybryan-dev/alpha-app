@@ -312,6 +312,27 @@ export interface Sesion {
   /** Día de la semana programado ("LUNES"…"DOMINGO"). Si falta, se intenta
    *  deducir del nombre de la sesión (p. ej. "FULL BODY A (LUNES)"). */
   dia?: string
+  /**
+   * El día LOCAL en que esta sesión se tocó por primera vez (`AAAA-MM-DD`).
+   *
+   * **No es lo mismo que `dia`, y por eso son dos campos.** `dia` es el hueco de
+   * la semana que el plan pidió —"MARTES"—; `fecha` es el martes concreto en que
+   * la persona apareció. Medido el 2026-09-04 sobre la cartera entera: de 607
+   * sesiones, `dia` estaba puesto en 312 y **ninguna era una fecha**. Sin ella no
+   * se puede emparejar el check-in de un día con la sesión de ese día, que es el
+   * cruce del que vive `bucleDelDia`.
+   *
+   * **La escribe la app, no el plan, y una sola vez:** la pone la primera acción
+   * que ocurre dentro de la sesión —marcar un calentamiento, anotar una serie o
+   * guardar el test— y a partir de ahí no se toca. Si alguien abre la sesión el
+   * martes y anota el jueves, manda el martes: es el mismo criterio que la casa
+   * ya usaba con la primera marca de `preparacion`, que hasta hoy era el único
+   * rastro fechado que dejaba el asesorado.
+   *
+   * Se compara carácter a carácter con `CheckinDiario.fecha` porque las dos
+   * salen de `hoyIso()`: fecha local del dispositivo, nunca UTC.
+   */
+  fecha?: string
   tipo?: 'fuerza' | 'metabolica'
   preparacion?: PartePreparacion[]
   bloquesCardio?: ItemMarcable[]

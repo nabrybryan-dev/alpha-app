@@ -63,7 +63,8 @@ select u.nombre,
        sum(d.marcas_fosiles)                                     as marcas_fosiles,
        sum(d.marcas_reales)                                      as marcas_reales,
        count(*) filter (where d.test_sospechoso)                 as tests_heredados,
-       count(*) filter (where d.test_en_ceros)                   as tests_en_ceros
+       count(*) filter (where d.test_en_ceros)                   as tests_en_ceros,
+       count(*) filter (where d.fecha_fosil)                     as fechas_fosiles
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id
   cross join lateral jsonb_array_elements(m.datos->'sesiones') s
@@ -94,12 +95,20 @@ select u.nombre,
         and coalesce((s->'testPost'->>'duracionMin')::numeric,0) = 0
         and coalesce((s->'testPost'->>'rpeSesion')::numeric,0)  = 0
         and coalesce((s->'testPost'->>'prsEntrada')::numeric,0) = 0)
-        as test_en_ceros
+        as test_en_ceros,
+      -- `fecha` (2026-09-04) es el dia en que la persona aparecio, y por tanto
+      -- ejecucion: si es ANTERIOR al arranque del microciclo, viene heredada de
+      -- la semana pasada. Es el fosil mas dificil de ver de todos, porque no
+      -- rompe nada — solo empareja el check-in de un dia con la sesion de otro.
+      ((s->>'fecha') is not null
+        and (s->>'fecha')::date < (m.datos->>'fechaInicio')::date)
+        as fecha_fosil
   ) d
  -- sin filtro de `rol`: ver la nota de cabecera (2026-08-24)
  group by u.nombre
 having sum(d.marcas_fosiles) > 0
     or count(*) filter (where d.test_sospechoso) > 0
+    or count(*) filter (where d.fecha_fosil) > 0
  order by marcas_fosiles desc, u.nombre;
 -- Cero filas  ->  no hay herencia. Es el estado que debe dejar cada carga.
 
