@@ -26,6 +26,7 @@
  */
 
 import type { HuellaDeRepeticion } from '../../../domain/patrones/huella'
+import type { Pose } from '../../../domain/patrones/esqueleto'
 
 /**
  * El tipo vive en `domain/patrones/huella.ts`, junto a cómo se calcula desde el encoder:
@@ -64,3 +65,37 @@ export function sentidoDeHuella(huella: HuellaDeRepeticion, t: number): number {
 }
 
 const limitar01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v)
+
+/**
+ * LA POSE MEDIDA del fantasma en el instante `t`: los canales articulares de la huella,
+ * interpolados igual que la fase. `undefined` cuando la huella es solo de barra —entonces
+ * el fantasma posa con la técnica del patrón a la fase medida, que es lo que había.
+ *
+ * Los canales salen sin sufijo de lado; `esqueletoEnFase()` los sobrepone a los del
+ * patrón quitando también los de cada lado, para que un `rodillaFlexD` del patrón no le
+ * gane a la rodilla que de verdad se midió.
+ */
+export function poseDeHuella(huella: HuellaDeRepeticion, t: number): Pose | undefined {
+  const canales = huella.articular
+  if (!canales || !(huella.duracionSeg > 0) || !Number.isFinite(t)) return undefined
+  const pose: Pose = {}
+  let alguno = false
+  for (const [canal, valores] of Object.entries(canales)) {
+    const v = muestraEn(valores, huella.duracionSeg, t)
+    if (v === undefined) continue
+    pose[canal] = v
+    alguno = true
+  }
+  return alguno ? pose : undefined
+}
+
+/** Un canal muestreado a intervalos iguales, leído en `t` con bucle e interpolación lineal. */
+function muestraEn(valores: number[], duracionSeg: number, t: number): number | undefined {
+  const n = valores.length
+  if (n < 2) return undefined
+  const u = ((t % duracionSeg) + duracionSeg) % duracionSeg
+  const x = (u / duracionSeg) * (n - 1)
+  const i = Math.min(Math.floor(x), n - 2)
+  const k = x - i
+  return valores[i] + (valores[i + 1] - valores[i]) * k
+}

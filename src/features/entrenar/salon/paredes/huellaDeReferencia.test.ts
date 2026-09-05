@@ -71,6 +71,17 @@ describe('huellaDeReferencia', () => {
     expect(r.huella.fase[1]).toBe(0.7)
   })
 
+  it('la huella articular del vídeo manda sobre las de barra, de hoy y de la semana pasada', () => {
+    const hoy = ejercicio({ series: [serie(1, 0.3)] })
+    const previo = microciclo([ejercicio({ series: [serie(1, 0.1)] })])
+    const articular = { duracionSeg: 2.4, fase: [1, 0, 1], articular: { rodillaFlex: [0, 115, 0] } }
+    const r = huellaDeReferencia(hoy, previo, articular)!
+    expect(r.cuando).toBe('video')
+    expect(r.huella).toBe(articular)
+    // Una «articular» sin ángulos no manda: vuelve a la de hoy.
+    expect(huellaDeReferencia(hoy, previo, { duracionSeg: 2, fase: [1, 0, 1] })!.cuando).toBe('hoy')
+  })
+
   it('sin medida en ningún sitio, no hay fantasma', () => {
     expect(huellaDeReferencia(ejercicio(), microciclo([ejercicio()]))).toBeUndefined()
     expect(huellaDeReferencia(ejercicio(), undefined)).toBeUndefined()

@@ -91,13 +91,33 @@ no repetirla: **el sujeto del salón NO está roto**. La capa W=0 («piel») son
 sin huesos, y a 4,6 m parece un haz de puntas; medido fotograma a fotograma, la caja es la de
 un cuerpo sano (1,57 m de pie, 0,85 m en el fondo, sin NaN, hueso 0, alfa 1).
 
-Pendiente y dicho: el fantasma es de la **barra** (una fase por instante), no articular; el
-articular necesita la pista de pose del encoder, que vive en `cerebro-alpha` y no cruza la
-aduana todavía. Y las fuerzas —el brazo de momento sobre el cuerpo— siguen siendo spec.
+### El fantasma ARTICULAR
+
+Bryan pidió cerrar lo que quedaba pendiente: que el fantasma no repita la técnica ideal a
+otro ritmo sino que **doble lo que se dobló**. Sin cruzar la aduana: la app acepta tal cual
+el `pista.json` que ya escribe `articulaciones.py` (**se pasan datos, no código**, la misma
+frontera que `importarMedida.ts`), y el dominio lo convierte:
+
+- `domain/patrones/huellaArticular.ts`: de la pista sagital a ángulos por muestra en los
+  canales del rig —rodilla, cadera, tronco (40/60 lumbar/tórax), hombro, codo—, con la
+  última repetición encontrada por histéresis sobre la vertical de la carga (muñecas si se
+  ven, si no la cadera). El tobillo no se lee: lo resuelve `apoyarPies()`.
+- `HuellaDeRepeticion.articular`, `poseDeHuella()`, y `esqueletoEnFase(…, medida)` que
+  sobrepone los canales medidos quitando sus dos lados.
+- Entra por el panel de palancas del encoder, atada al ejercicio escrito ahí; se guarda por
+  nombre (`huellasArticulares.ts`) y en el salón manda sobre las huellas de barra.
+- Probado contra **verdad sintética** (`pistaSintetica.ts`, como `cuerpo-sintetico.py`):
+  rodilla 0→120 se lee 0→120, un canal quieto sale plano, la ventana es la última
+  repetición. El sintético tenía el brazo colgando de la vertical en vez del tronco y leía
+  2·tronco + hombro: lo cazó la prueba del canal plano.
+
+Foto local `informes/fantasma-articular.png`: el fantasma con esqueleto, casi de pie, sobre el
+sujeto en el fondo. Lo que sigue pendiente son las fuerzas —el brazo de momento sobre el
+cuerpo—, que siguen siendo spec.
 
 ## Estado
 
-`npm run verify`: **3.228 pruebas** en verde, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
+`npm run verify`: **3.250 pruebas** en verde, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
 guardianes del repo cazaron la limpieza y los cuatro están atendidos: código huérfano,
 clases de animación sin consumir, el inventario de recuadros y la auditoría de campos —los
 que salieron del muro siguen montados con `sr-only`, así que se oyen y se cuentan.

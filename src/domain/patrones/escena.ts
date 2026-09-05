@@ -7,7 +7,7 @@
 
 import { grados, limitar, suavizar, V, type Vec3 } from './algebra'
 import type { Patron } from './catalogo'
-import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type EsqueletoResuelto, type Lado } from './esqueleto'
+import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type EsqueletoResuelto, type Lado, type Pose } from './esqueleto'
 import { flecha, Malla, tuboDiscontinuo, type Color } from './malla'
 import { activacionDe, PORCIONES, trazadoDeFasciculo } from './musculos'
 import { poseAnimada } from './movimiento'
@@ -166,15 +166,37 @@ export function faseDeTiempo(t: number, patron?: Patron, tempo?: TempoDeRepetici
 const piesDe = (p: Patron): Lado[] => p.pies ?? (p.apoyo === 'suelo' ? ['D', 'I'] : [])
 
 /** Resuelve el esqueleto de un patrón en una fase concreta. */
+/**
+ * SOBREPONER UNA POSE MEDIDA a la del patrón.
+ *
+ * Un canal medido llega sin lado —la pista es sagital— y tiene que mandar sobre los
+ * dos: si el patrón trae `rodillaFlexD`, `poseAEuler()` lo prefiere al `rodillaFlex`
+ * genérico y la rodilla medida no se vería. Por eso al poner el canal se quitan sus dos
+ * variantes de lado. Lo que la medida no trae —tobillo, escápula, cuello— se queda como
+ * lo hace el patrón: es lo único que hay para esas articulaciones.
+ */
+export function sobreponerMedida(pose: Pose, medida: Pose): Pose {
+  const salida: Pose = { ...pose }
+  for (const [canal, valor] of Object.entries(medida)) {
+    if (!Number.isFinite(valor)) continue
+    delete salida[`${canal}D`]
+    delete salida[`${canal}I`]
+    salida[canal] = valor
+  }
+  return salida
+}
+
 export function esqueletoEnFase(
   patron: Patron,
   fase: number,
   sentido = 1,
   reloj = 0,
+  /** Canales medidos que mandan sobre los del patrón: el fantasma articular. */
+  medida?: Pose,
 ): EsqueletoResuelto {
   const { pose, desplazamiento, giroRaiz } = poseAnimada(patron, fase, sentido, reloj)
   return resolverConApoyo(
-    pose,
+    medida ? sobreponerMedida(pose, medida) : pose,
     desplazamiento,
     giroRaiz,
     patron.apoyo,

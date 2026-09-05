@@ -18,7 +18,8 @@
  * Opciones: `--ancho`/`--alto` (el viewport emulado, por defecto el iPhone de Bryan,
  * 390×844), `--url`, `--puerto`, `--chrome`, `--usuario`, `--foto`, `--conservar`,
  * `--fantasma` (siembra en la demo una serie medida del ejercicio que está en el muro,
- * para que el sujeto tenga un fantasma que enseñar).
+ * para que el sujeto tenga un fantasma que enseñar; `--fantasma=articular` guarda además
+ * una huella articular sintética, y el fantasma dobla las rodillas que dice la pista).
  *
  * Se emula `prefers-reduced-motion: reduce` ANTES de navegar, igual que el testigo: no es
  * por el ruido —aquí no se resta nada— sino porque el salón entra con una transición y
@@ -52,13 +53,16 @@ const CANDIDATOS = ['u-valentina', 'u-mateo', 'u-sara']
  * instancia de `db` y el salón se entera por `useDbVersion()` sin recargar. No hay ningún
  * código de demo en la app para esto; es el testigo el que sabe hacerlo.
  */
-const SEMBRAR_FANTASMA = async () => {
+const SEMBRAR_FANTASMA = async (modo) => {
   const { db } = await import('/src/data/dbInstance.ts')
   const usuarioId = localStorage.getItem('alpha-usuario')
   const micro = db.microciclos.byUsuario(usuarioId).find((m) => m.estado === 'activo')
   if (!micro) return 'sin microciclo activo'
+  // El rótulo del muro se retira a los 5,5 s (agrupa por tiempo): si en este instante está
+  // vacío, se busca el nombre en toda la pantalla, que lo repite en la lectura de abajo.
   const rotulo = document.querySelector('[data-campo="nombre"]')
-  const visto = (rotulo?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
+  let visto = (rotulo?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
+  if (!visto) visto = (document.body.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
   let elegido = null
   for (const sesion of micro.sesiones) {
     for (const e of sesion.ejercicios) {
@@ -76,6 +80,15 @@ const SEMBRAR_FANTASMA = async () => {
   for (let k = 0; k < 24; k++) {
     const u = k / 23
     fase.push(u < 0.35 ? 1 - u / 0.35 : Math.pow((u - 0.35) / 0.65, 1.8))
+  }
+  if (modo === 'articular') {
+    // La huella ARTICULAR: la pista sintética de la app pasada por su propio lector, y
+    // guardada por nombre de ejercicio como lo haría el panel de palancas. La serie de
+    // barra se registra igual, debajo: es lo que hace que el salón vuelva a pintar.
+    const { pistaSintetica } = await import('/src/domain/patrones/pistaSintetica.ts')
+    const { huellaDePista } = await import('/src/domain/patrones/huellaArticular.ts')
+    const { guardarHuellaArticular } = await import('/src/features/entrenar/encoder/huellasArticulares.ts')
+    guardarHuellaArticular(elegido.nombre, huellaDePista(pistaSintetica({ rodillaMax: 95, periodoSeg: 3 })))
   }
   db.microciclos.registrarSerie(micro.id, elegido.id, {
     orden: hechas + 1,
@@ -121,7 +134,7 @@ function leerOpciones(argv) {
     else if (nombre === 'panel') o.panel = true
     else if (nombre === 'espera') o.espera = Number(valor)
     else if (nombre === 'sin-letras') o.sinLetras = true
-    else if (nombre === 'fantasma') o.fantasma = true
+    else if (nombre === 'fantasma') o.fantasma = valor === 'articular' ? 'articular' : 'barra'
     else if (nombre === 'ver') {
       o.panel = true
       o.ver = valor
@@ -227,7 +240,7 @@ async function main() {
     await dt.pedir('Page.bringToFront')
 
     if (o.fantasma) {
-      const dicho = await dt.evaluar(comoExpresion(SEMBRAR_FANTASMA))
+      const dicho = await dt.evaluar(comoExpresion(SEMBRAR_FANTASMA, o.fantasma))
       console.log(`  fantasma: ${dicho}`)
       await esperar(800)
     }

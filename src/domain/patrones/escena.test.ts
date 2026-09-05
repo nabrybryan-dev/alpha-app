@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
 import { DEMOSTRACIONES, DEMOSTRACION_POR_ID } from './demostraciones'
+import { sobreponerMedida } from './escena'
 import {
   DURACION_CICLO,
   duracionDelCiclo,
@@ -416,5 +417,26 @@ describe('el tempo prescrito', () => {
     for (const malo of [0, -2, Number.NaN]) {
       expect(duracionDelCiclo({ excentricaSeg: malo })).toBeCloseTo(DURACION_CICLO, 9)
     }
+  })
+})
+
+describe('la pose medida manda sobre la del patrón', () => {
+  it('sobreponerMedida quita los dos lados del canal que se mide', () => {
+    const pose = sobreponerMedida({ rodillaFlexD: 10, rodillaFlexI: 12, caderaFlex: 30, codoFlexD: 5 }, { rodillaFlex: 100 })
+    expect(pose).toEqual({ caderaFlex: 30, codoFlexD: 5, rodillaFlex: 100 })
+  })
+
+  it('un valor que no es número no toca nada', () => {
+    expect(sobreponerMedida({ rodillaFlexD: 10 }, { rodillaFlex: NaN })).toEqual({ rodillaFlexD: 10 })
+  })
+
+  it('esqueletoEnFase con medida mueve la rodilla; sin medida es el de siempre', () => {
+    const patron = PATRON_POR_ID.sentadilla
+    const sinMedida = esqueletoEnFase(patron, 0.5, 1, 0)
+    const igual = esqueletoEnFase(patron, 0.5, 1, 0, undefined)
+    const conMedida = esqueletoEnFase(patron, 0.5, 1, 0, { rodillaFlex: 5, caderaFlex: 5 })
+    expect(puntoDeHueso(igual, 'tibiaD', 1)).toEqual(puntoDeHueso(sinMedida, 'tibiaD', 1))
+    // Con la rodilla casi extendida, la cadera queda más alta que a media sentadilla.
+    expect(puntoDeHueso(conMedida, 'pelvis', 0)[1]).toBeGreaterThan(puntoDeHueso(sinMedida, 'pelvis', 0)[1] + 0.1)
   })
 })

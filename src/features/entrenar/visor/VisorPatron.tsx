@@ -17,7 +17,7 @@ import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
 import { pasoDelVaiven } from './vaivenDeLaSala'
-import { faseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
+import { faseDeHuella, poseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
 import { hornear } from '../../../domain/patrones/malla'
 import type { Activacion } from '../../../domain/patrones/anatomia'
 import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
@@ -521,7 +521,10 @@ export function VisorPatron({ patron, datos, conEscenario = true, w, nombreEjerc
             const tFantasma = estado.current.reloj
             const faseF = faseDeHuella(huella, tFantasma)
             if (faseF !== undefined) {
-              const esqF = esqueletoEnFase(patron, faseF, sentidoDeHuella(huella, tFantasma), tFantasma)
+              // Si la huella trae ángulos, el fantasma dobla lo que se dobló: la pose medida
+              // se sobrepone a la del patrón. Si solo trae la barra, posa la técnica del
+              // patrón a la fase medida.
+              const esqF = esqueletoEnFase(patron, faseF, sentidoDeHuella(huella, tFantasma), tFantasma, poseDeHuella(huella, tFantasma))
               huesosFantasma ??= construirHuesos()
               const hF = hornear(huesosFantasma, esqF.matrices, huesosFantasmaHorneados)
               hF.alfa = ALFA_DEL_FANTASMA

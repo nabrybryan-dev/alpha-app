@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { faseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
+import { faseDeHuella, poseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
 
 /**
  * LA HUELLA, PROBADA.
@@ -57,5 +57,28 @@ describe('sentidoDeHuella', () => {
   it('sube en la primera mitad y baja en la segunda', () => {
     expect(sentidoDeHuella(subeYBaja, 0.4)).toBe(1)
     expect(sentidoDeHuella(subeYBaja, 1.4)).toBe(-1)
+  })
+})
+
+describe('poseDeHuella', () => {
+  const conArticular: HuellaDeRepeticion = {
+    duracionSeg: 2,
+    fase: [1, 0, 1],
+    articular: { rodillaFlex: [0, 120, 0], codoFlex: [30, 30, 30] },
+  }
+
+  it('sin canales articulares no hay pose medida: el fantasma posa con el patrón', () => {
+    expect(poseDeHuella({ duracionSeg: 2, fase: [1, 0, 1] }, 0.5)).toBeUndefined()
+    expect(poseDeHuella({ duracionSeg: 2, fase: [1, 0, 1], articular: {} }, 0.5)).toBeUndefined()
+  })
+
+  it('lee cada canal en su instante e interpola entre muestras', () => {
+    expect(poseDeHuella(conArticular, 1)!.rodillaFlex).toBeCloseTo(120, 6)
+    expect(poseDeHuella(conArticular, 0.5)!.rodillaFlex).toBeCloseTo(60, 6)
+    expect(poseDeHuella(conArticular, 0.5)!.codoFlex).toBeCloseTo(30, 6)
+  })
+
+  it('va en bucle: a los 2,5 s es lo mismo que a los 0,5', () => {
+    expect(poseDeHuella(conArticular, 2.5)!.rodillaFlex).toBeCloseTo(poseDeHuella(conArticular, 0.5)!.rodillaFlex, 6)
   })
 })

@@ -41,6 +41,18 @@ export interface HuellaDeRepeticion {
    * Con menos de dos muestras no hay trayectoria.
    */
   fase: number[]
+  /**
+   * LO ARTICULAR: los ángulos que la persona hizo, canal a canal, en las MISMAS muestras
+   * que `fase`. Las claves son los canales anatómicos de `Pose` (`rodillaFlex`,
+   * `caderaFlex`, `toraxFlex`, `lumbarFlex`, `hombroFlex`, `codoFlex`), en grados y sin
+   * sufijo de lado: la pista es sagital y un lado vale por los dos.
+   *
+   * Ausente en la huella que sale del encoder de barra —que solo ve la barra— y presente
+   * en la que sale de una pista de pose (`huellaArticular.ts`). Con esto el fantasma no
+   * repite la técnica ideal a otro ritmo: dobla la rodilla lo que se dobló y se inclina
+   * lo que se inclinó.
+   */
+  articular?: Record<string, number[]>
 }
 
 /** Lo que hace falta del análisis: la trayectoria y dónde empieza y acaba cada repetición. */
