@@ -72,5 +72,13 @@ la que después entran las piezas horneadas en Blender.
 - El oscurecimiento de contacto del shader (`u_suelo`) baja el ambiente a ras de
   suelo: el suelo nuevo está en `y = 0` y le toca entero. Es goma oscura, así que sirve,
   pero si la textura sale más negra de lo que es, la causa es esa y no la imagen.
+- **Medido al primer intento: el suelo salía gris claro con la imagen puesta.** No era
+  la imagen —un espía sobre `drawElements` enseñó el tramo del suelo con su textura
+  enlazada y `u_conTextura = 1`—. Era el CONTRALUZ del shader, pensado para despegar la
+  figura del fondo: en un suelo visto de canto todo es borde, y sumaba 0,12 azulado
+  donde la goma aportaba 0,02. Regla que quedó: lo que lleva imagen es escenario y no
+  recibe contraluz. Cuando entren las paredes y las máquinas horneadas, mirar cada
+  término aditivo del shader con la misma lupa: cualquiera que no multiplique por el
+  color base tapa la imagen.
 - Una textura que no sea potencia de dos no admite repetición en WebGL 1. La imagen es
   1024² a propósito.

@@ -658,8 +658,15 @@ export function VisorPatron({
         // LAS IMÁGENES llegan cuando llegan. Cada una que entra vuelve a pintar: el suelo
         // pasa de blanco a goma en el primer fotograma que la tiene, sin esperar a que el
         // asesorado toque nada. Se cancela al desmontar para no pintar sobre un motor muerto.
-        dejarDeCargarTexturas = cargarTexturas(motor, () => {
-          if (vivo) pintar()
+        dejarDeCargarTexturas = cargarTexturas(motor, (nombre) => {
+          if (!vivo) return
+          // QUÉ IMÁGENES HAN LLEGADO, dicho en el propio lienzo, como `data-partes`. Un
+          // suelo blanco puede ser una imagen que no llegó o una que llegó y no se
+          // estampa, y desde fuera las dos cosas se ven igual. Es una cuenta, no un mando.
+          lienzo.dataset.texturas = [...(lienzo.dataset.texturas?.split(',') ?? []), nombre]
+            .filter(Boolean)
+            .join(',')
+          pintar()
         })
 
         const mostrarEsferaAl = (v: boolean) => {

@@ -33,7 +33,8 @@ interface MotorQueEstampa {
  */
 export function cargarTexturas(
   motor: MotorQueEstampa,
-  alCargar: () => void,
+  /** Se llama con el nombre de cada imagen que ya está en el motor. */
+  alCargar: (nombre: string) => void,
   crearImagen: () => HTMLImageElement = () => new Image(),
 ): () => void {
   let cancelado = false
@@ -42,7 +43,7 @@ export function cargarTexturas(
     imagen.onload = () => {
       if (cancelado) return
       motor.cargarTextura(nombre, imagen)
-      alCargar()
+      alCargar(nombre)
     }
     // Sin la imagen se dibuja en blanco. No es un fallo que merezca parar el salón.
     imagen.onerror = () => {}

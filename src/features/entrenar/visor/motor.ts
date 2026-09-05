@@ -130,7 +130,12 @@ void main() {
   vec3 c = base * (ambiente + d1 * 0.85 + envuelve)
          + base * d2 * vec3(0.72, 0.82, 1.0);
   c += vec3(1.0, 0.97, 0.92) * brillo;
-  c += vec3(0.62, 0.72, 0.86) * borde * 0.30;
+  // EL CONTRALUZ ES DE LA FIGURA, no del escenario. Separa la silueta del fondo, y en un
+  // cuerpo se ve en el borde. En un suelo visto de canto TODO es borde: medido el
+  // 2026-09-05, sobre la goma aportaba 0,12 azulado donde la imagen aportaba 0,02 —cinco
+  // veces más— y las juntas del suelo desaparecían bajo una lámina gris-azul. Lo que lleva
+  // imagen es escenario, y el escenario no se recorta contra nada: sin contraluz.
+  c += vec3(0.62, 0.72, 0.86) * borde * 0.30 * (1.0 - u_conTextura);
 
   // Bruma con la distancia: da profundidad sin ocultar nada.
   float niebla = clamp((length(u_ojo - v_mundo) - 1.6) / 4.2, 0.0, 1.0);
