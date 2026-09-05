@@ -457,6 +457,8 @@ export function VisorPatron({
         alRecuperarContexto = () => {
           setError(null)
           try {
+            // Al perder el contexto la tarjeta olvida todo, también lo estático.
+            if (piezasCache.length > 0) motor.subirEstaticas(piezasCache)
             construir()
             pintar()
           } catch {
@@ -567,7 +569,9 @@ export function VisorPatron({
               // suelo y las paredes vienen dentro de la pieza, y dos suelos en y = 0 pelean.
               const deBlender = piezasCargadas.has(SALA_GIMNASIO.nombre)
               if (!deBlender) partes.push(suelo())
-              partes.push(sala(d, patron.camara.azimut, deBlender), ...piezasCache)
+              // Las piezas NO van aquí: son estáticas y viven en sus propios búferes,
+              // subidas una vez cuando llegan. Aquí solo va lo que cambia.
+              partes.push(sala(d, patron.camara.azimut, deBlender))
             }
             if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
           }
@@ -686,13 +690,16 @@ export function VisorPatron({
             .join(',')
           pintar()
         })
-        // LAS PIEZAS, si aún no están. Cada una que llega se suma a la caché y se
-        // reconstruye: el rack aparece en la pared en el fotograma siguiente.
+        // LAS PIEZAS. Si ya están en la caché —el visor se montó antes— se suben a los
+        // búferes estáticos de ESTE motor, que es nuevo; si no, se piden y cada una que
+        // llega se suma y se reconstruye: la sala aparece en el fotograma siguiente.
+        if (piezasCache.length > 0) motor.subirEstaticas(piezasCache)
         if (piezasCache.length === 0) {
           dejarDeCargarPiezas = cargarPiezas((nombre, mallas) => {
             if (!vivo) return
             piezasCache = [...piezasCache, ...mallas]
             piezasCargadas.add(nombre)
+            motor.subirEstaticas(piezasCache)
             lienzo.dataset.piezas = [...(lienzo.dataset.piezas?.split(',') ?? []), nombre]
               .filter(Boolean)
               .join(',')

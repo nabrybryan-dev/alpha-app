@@ -148,6 +148,16 @@ void main() {
   gl_FragColor = vec4(acabado(c), v_alfa);
 }`
 
+const NOMBRES_DE_BUFFER = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx'] as const
+
+/** Un juego de búferes en la tarjeta con lo que hace falta para dibujarlo. */
+interface JuegoDeBuffers {
+  buffers: Record<string, WebGLBuffer>
+  indices: number
+  tipoIndice: number
+  tramos: TramoDeDibujo[]
+}
+
 function compilar(gl: WebGLRenderingContext, tipo: number, fuente: string): WebGLShader {
   const s = gl.createShader(tipo)
   if (!s) throw new Error('no se pudo crear el shader')
@@ -181,14 +191,20 @@ export class Motor {
     }
     this.programa = p
 
-    this.buffers = {}
     // El orden es un contrato: `motor.subir.test.ts` nombra los búferes por el orden en
-    // que se crean. Si se cambia aquí, se cambia allí.
-    for (const n of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx']) {
-      const b = gl.createBuffer()
-      if (!b) throw new Error('no se pudo crear el buffer')
-      this.buffers[n] = b
+    // que se crean. Si se cambia aquí, se cambia allí. Primero los ocho de lo que cambia
+    // cada fotograma, después los ocho de lo que se sube una vez.
+    const crear = () => {
+      const buffers: Record<string, WebGLBuffer> = {}
+      for (const n of NOMBRES_DE_BUFFER) {
+        const b = gl.createBuffer()
+        if (!b) throw new Error('no se pudo crear el buffer')
+        buffers[n] = b
+      }
+      return buffers
     }
+    this.buffers = crear()
+    this.estaticas = { buffers: crear(), indices: 0, tipoIndice: gl.UNSIGNED_SHORT, tramos: [] }
     this.tipoIndice = gl.UNSIGNED_SHORT
     gl.enable(gl.DEPTH_TEST)
     gl.enable(gl.CULL_FACE)
@@ -311,13 +327,56 @@ export class Motor {
    * segundo, y el recolector no avisa: se nota como tirones, no como lentitud.
    */
   subir(entrantes: Malla[]): void {
+    const { tramos } = this.empaquetar(entrantes, this.buffers, (verts, indices, grande) =>
+      this.reservar(verts, indices, grande),
+    )
+    this.tramos = tramos
+  }
+
+  /**
+   * SUBE LO QUE NO CAMBIA, y lo deja en la tarjeta.
+   *
+   * La sala del gimnasio son 76.000 vértices que no se mueven nunca. Pasarlos por
+   * `subir()` cada fotograma era copiarlos en JavaScript y subirlos otra vez sesenta veces
+   * por segundo —medido el 2026-09-05: 6,34 MB por fotograma con la sala dentro, contra
+   * menos de dos del sujeto solo—. En el ASUS pasa; en un teléfono es la diferencia entre
+   * fluido y a tirones. Esto se llama UNA vez, cuando las piezas llegan, y `dibujar()` las
+   * pinta desde sus propios búferes antes de lo que cambia. Con la lista vacía no dibuja
+   * nada, que es como nace.
+   */
+  subirEstaticas(mallas: Malla[]): void {
+    const e = this.estaticas
+    const { tramos, indices, tipoIndice } = this.empaquetar(mallas, e.buffers, (verts, n, grande) => ({
+      pos: new Float32Array(verts * 3),
+      nrm: new Float32Array(verts * 3),
+      col: new Float32Array(verts * 3),
+      hueso: new Float32Array(verts),
+      fibra: new Float32Array(verts),
+      alfa: new Float32Array(verts),
+      uv: new Float32Array(verts * 2),
+      idx: grande ? new Uint32Array(n) : new Uint16Array(n),
+    }))
+    e.tramos = tramos
+    e.indices = indices
+    e.tipoIndice = tipoIndice
+  }
+
+  /**
+   * Concatena las mallas en la memoria que le den y las sube a los búferes que le den.
+   * Es el cuerpo común de `subir()` y `subirEstaticas()`: la única diferencia entre las
+   * dos es de dónde sale la memoria y a qué juego de búferes va.
+   */
+  private empaquetar(
+    entrantes: Malla[],
+    buffers: Record<string, WebGLBuffer>,
+    memoria: (verts: number, indices: number, grande: boolean) => NonNullable<Motor['cache']>,
+  ): { tramos: TramoDeDibujo[]; indices: number; tipoIndice: number } {
     const gl = this.gl
 
     // LAS OPACAS DELANTE Y LAS TRANSLÚCIDAS DETRÁS, en un orden que `dibujar()` pueda
     // partir en dos: es lo que hace que la mezcla alfa sea correcta sin ordenar
     // triángulos. La función es pura y se prueba sin WebGL.
     const { ordenadas: mallas, tramos } = ordenarPorOpacidad(entrantes)
-    this.tramos = tramos
 
     // PRIMERA PASADA: cuánto hay. El conteo sale de la misma propiedad que
     // luego se escribe, que es la única forma de que no se quede corto.
@@ -331,9 +390,10 @@ export class Motor {
     // Por encima de 65.535 vértices hacen falta índices de 32 bits. Se decide
     // ANTES de reservar: convertir después sería justo la copia que se quita.
     const grande = verts > 65535 && gl.getExtension('OES_element_index_uint') !== null
-    this.tipoIndice = grande ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT
+    const tipoIndice = grande ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT
+    if (buffers === this.buffers) this.tipoIndice = tipoIndice
 
-    const c = this.reservar(verts, indices, grande)
+    const c = memoria(verts, indices, grande)
 
     // SEGUNDA PASADA: escribir en su sitio.
     let v = 0 // vértices ya escritos: la base que hay que sumar a los índices
@@ -363,17 +423,18 @@ export class Motor {
       gl.bindBuffer(gl.ARRAY_BUFFER, b)
       gl.bufferData(gl.ARRAY_BUFFER, datos.subarray(0, n), gl.DYNAMIC_DRAW)
     }
-    poner(this.buffers.pos, c.pos, verts * 3)
-    poner(this.buffers.alfa, c.alfa, verts)
-    poner(this.buffers.nrm, c.nrm, verts * 3)
-    poner(this.buffers.col, c.col, verts * 3)
-    poner(this.buffers.hueso, c.hueso, verts)
-    poner(this.buffers.fibra, c.fibra, verts)
-    poner(this.buffers.uv, c.uv, verts * 2)
+    poner(buffers.pos, c.pos, verts * 3)
+    poner(buffers.alfa, c.alfa, verts)
+    poner(buffers.nrm, c.nrm, verts * 3)
+    poner(buffers.col, c.col, verts * 3)
+    poner(buffers.hueso, c.hueso, verts)
+    poner(buffers.fibra, c.fibra, verts)
+    poner(buffers.uv, c.uv, verts * 2)
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.idx)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, c.idx.subarray(0, indices), gl.DYNAMIC_DRAW)
-    this.indices = indices
+    if (buffers === this.buffers) this.indices = indices
+    return { tramos, indices, tipoIndice }
   }
 
   /**
@@ -422,6 +483,8 @@ export class Motor {
 
   /** Los tramos de dibujo, por tanda y por textura. Los pone `subir()`; los recorre `dibujar()`. */
   private tramos: TramoDeDibujo[] = []
+  /** Lo que se subió una vez y se dibuja siempre: ver `subirEstaticas()`. */
+  private estaticas: JuegoDeBuffers
   /** Las imágenes cargadas, por el nombre con el que las piden las mallas. */
   private texturas = new Map<string, WebGLTexture>()
   /** La textura de las mallas que no llevan imagen: un píxel blanco. */
@@ -434,6 +497,51 @@ export class Motor {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
     gl.enableVertexAttribArray(loc)
     gl.vertexAttribPointer(loc, tam, gl.FLOAT, false, 0, 0)
+  }
+
+  /** Apunta los siete atributos del shader a un juego de búferes. */
+  private enlazar(buffers: Record<string, WebGLBuffer>): void {
+    this.atributo('a_pos', buffers.pos, 3)
+    this.atributo('a_fibra', buffers.fibra, 1)
+    this.atributo('a_nrm', buffers.nrm, 3)
+    this.atributo('a_col', buffers.col, 3)
+    this.atributo('a_hueso', buffers.hueso, 1)
+    this.atributo('a_alfa', buffers.alfa, 1)
+    this.atributo('a_uv', buffers.uv, 2)
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buffers.idx)
+  }
+
+  /**
+   * Recorre los tramos de un juego de búferes ya enlazado. Cada tramo es una tanda
+   * —opaca, translúcida, encima— y una textura, y entre uno y otro solo cambia lo que
+   * cambia. Al salir, la profundidad queda como entró.
+   */
+  private dibujarTramos(tramos: TramoDeDibujo[], indices: number, tipoIndice: number): void {
+    const gl = this.gl
+    const u = (n: string) => gl.getUniformLocation(this.programa, n)
+    const bytes = tipoIndice === gl.UNSIGNED_INT ? 4 : 2
+    let tandaActual: TandaDeDibujo = 'opaca'
+    for (const t of tramos) {
+      const cuantos = Math.min(t.cuantos, indices - t.desde)
+      if (cuantos <= 0) continue
+      if (t.tanda !== tandaActual) {
+        tandaActual = t.tanda
+        if (t.tanda === 'translucida') gl.depthMask(false)
+        if (t.tanda === 'encima') {
+          gl.disable(gl.DEPTH_TEST)
+          gl.depthMask(false)
+        }
+      }
+      const textura = t.textura === null ? undefined : this.texturas.get(t.textura)
+      gl.bindTexture(gl.TEXTURE_2D, textura ?? this.blanca)
+      gl.uniform1f(u('u_conTextura'), textura ? 1 : 0)
+      gl.uniform1f(u('u_horneada'), t.horneada ? 1 : 0)
+      gl.drawElements(gl.TRIANGLES, cuantos, tipoIndice, t.desde * bytes)
+    }
+    if (tandaActual !== 'opaca') {
+      gl.depthMask(true)
+      gl.enable(gl.DEPTH_TEST)
+    }
   }
 
   /**
@@ -453,14 +561,6 @@ export class Motor {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.useProgram(this.programa)
 
-    this.atributo('a_pos', this.buffers.pos, 3)
-    this.atributo('a_fibra', this.buffers.fibra, 1)
-    this.atributo('a_nrm', this.buffers.nrm, 3)
-    this.atributo('a_col', this.buffers.col, 3)
-    this.atributo('a_hueso', this.buffers.hueso, 1)
-    this.atributo('a_alfa', this.buffers.alfa, 1)
-    this.atributo('a_uv', this.buffers.uv, 2)
-
     const plano = new Float32Array(MAX_HUESOS * 16)
     for (let i = 0; i < Math.min(matrices.length, MAX_HUESOS); i++) {
       plano.set(matrices[i], i * 16)
@@ -474,10 +574,8 @@ export class Motor {
     gl.activeTexture(gl.TEXTURE0)
     gl.uniform1i(u('u_textura'), 0)
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.idx)
-    // POR TRAMOS. Cada tramo es una tanda —opaca, translúcida, encima— y una textura, y
-    // entre uno y otro solo cambia lo que cambia. Sin texturas hay un tramo por tanda,
-    // que es exactamente lo que había antes:
+    // PRIMERO LO ESTÁTICO, DESPUÉS LO QUE CAMBIA, cada uno desde sus búferes. Y dentro de
+    // cada uno, POR TRAMOS. Sin texturas hay un tramo por tanda, que es lo que había:
     //
     // - lo OPACO con profundidad, como siempre;
     // - lo TRANSLÚCIDO después y SIN escribir profundidad: si el fantasma escribiera la
@@ -487,32 +585,15 @@ export class Motor {
     //   profundidad, para que se lea entero aunque la carne lo tape. Va lo último para
     //   no dejar su profundidad escrita.
     //
-    // El desplazamiento de `drawElements` va en BYTES, y el tamaño del índice lo decide
-    // `subir()`. Al salir, la profundidad queda como entró: el fotograma siguiente empieza
-    // como siempre.
-    const bytes = this.tipoIndice === gl.UNSIGNED_INT ? 4 : 2
-    let tandaActual: TandaDeDibujo = 'opaca'
-    for (const t of this.tramos) {
-      const cuantos = Math.min(t.cuantos, this.indices - t.desde)
-      if (cuantos <= 0) continue
-      if (t.tanda !== tandaActual) {
-        tandaActual = t.tanda
-        if (t.tanda === 'translucida') gl.depthMask(false)
-        if (t.tanda === 'encima') {
-          gl.disable(gl.DEPTH_TEST)
-          gl.depthMask(false)
-        }
-      }
-      const textura = t.textura === null ? undefined : this.texturas.get(t.textura)
-      gl.bindTexture(gl.TEXTURE_2D, textura ?? this.blanca)
-      gl.uniform1f(u('u_conTextura'), textura ? 1 : 0)
-      gl.uniform1f(u('u_horneada'), t.horneada ? 1 : 0)
-      gl.drawElements(gl.TRIANGLES, cuantos, this.tipoIndice, t.desde * bytes)
+    // La sala estática es toda opaca y va delante: la prueba de profundidad hace el resto,
+    // y el fantasma translúcido del sujeto sigue dibujándose el último, sobre las dos.
+    const e = this.estaticas
+    if (e.indices > 0) {
+      this.enlazar(e.buffers)
+      this.dibujarTramos(e.tramos, e.indices, e.tipoIndice)
     }
-    if (tandaActual !== 'opaca') {
-      gl.depthMask(true)
-      gl.enable(gl.DEPTH_TEST)
-    }
+    this.enlazar(this.buffers)
+    this.dibujarTramos(this.tramos, this.indices, this.tipoIndice)
   }
 }
 

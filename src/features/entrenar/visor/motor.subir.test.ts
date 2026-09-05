@@ -131,13 +131,17 @@ function glDeMentira() {
       // alfa se llamaba `idx` y el de índices `extra6`, y como los índices se detectan
       // por su DESTINO y no por su nombre, el segundo pisaba al primero en el sitio
       // correcto—. Ahora la lista es la real, y si el constructor cambia el orden esta
-      // prueba lo dice en vez de seguir en verde por accidente.
-      const orden = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx']
+      // prueba lo dice en vez de seguir en verde por accidente. Los ocho segundos son
+      // los de lo ESTÁTICO —la sala—, que se sube una vez y se dibuja siempre.
+      const base = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx']
+      const orden = [...base, ...base.map((n) => `e_${n}`)]
       nombres.set(b, orden[nombres.size] ?? `extra${nombres.size}`)
       return b
     },
-    bindBuffer: (destino: number, b: object) => {
-      destinoIndices = destino === 0x8893
+    bindBuffer: (_destino: number, b: object) => {
+      // Se apunta por el NOMBRE del búfer y no por el destino: los índices dinámicos y los
+      // estáticos van los dos a ELEMENT_ARRAY_BUFFER y son dos búferes distintos.
+      destinoIndices = false
       destinoArray = nombres.get(b) ?? null
     },
     bufferData: (_destino: number, datos: ArrayBufferView) => {
@@ -265,6 +269,31 @@ describe('Motor.subir()', () => {
     motor.subir(mallas)
     expect(subidas.get('idx')).toBeInstanceOf(Uint32Array)
     comparar(subidas, comoEraAntes(mallas))
+  })
+
+  it('lo estático va a sus propios búferes y `subir()` no lo pisa', () => {
+    // La sala se sube UNA vez. Si `subir()` —que corre cada fotograma— escribiera en los
+    // mismos búferes, la sala desaparecería en el segundo fotograma o el sujeto se
+    // dibujaría con los índices de la sala.
+    const { motor, subidas } = motorDeMentira()
+    const sala = [mallaDePrueba(7, 30)]
+    motor.subirEstaticas(sala)
+    const esperadoSala = comoEraAntes(sala)
+    for (const clave of ['pos', 'nrm', 'col', 'hueso', 'fibra', 'uv', 'idx'] as const) {
+      expect(Array.from(subidas.get(`e_${clave}`) as unknown as ArrayLike<number>)).toEqual(
+        Array.from(esperadoSala[clave]),
+      )
+    }
+    const sujeto = [mallaDePrueba(2, 5)]
+    motor.subir(sujeto)
+    comparar(subidas, comoEraAntes(sujeto))
+    // Los de la sala siguen intactos después de subir el sujeto.
+    expect(Array.from(subidas.get('e_pos') as unknown as ArrayLike<number>)).toEqual(Array.from(esperadoSala.pos))
+  })
+
+  it('sin estáticas no se crea nada de más: nace con los dieciséis búferes y ya', () => {
+    const { subidas } = motorDeMentira()
+    expect(subidas.size).toBe(0)
   })
 
   it('vuelve a 16 bits si la escena siguiente es pequeña', () => {
