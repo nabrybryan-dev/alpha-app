@@ -57,8 +57,8 @@ import { ENCUADRE_SALA, elevacionDelSalon } from './sala'
  */
 
 /** El ancho y el alto contra los que se encuadra. Es el teléfono de referencia del salón. */
-const ANCHO = 390
-const ALTO = 844
+export const ANCHO = 390
+export const ALTO = 844
 
 /**
  * Cuánto respira el cuerpo contra el borde, en píxeles.
@@ -114,7 +114,7 @@ function puntosDelCuerpo(patron: Patron): Vec3[] {
   return puntos
 }
 
-function ojoDe(azimut: number, elevacion: number, distancia: number, centro: Vec3): Vec3 {
+export function ojoDe(azimut: number, elevacion: number, distancia: number, centro: Vec3): Vec3 {
   const a = grados(azimut)
   const e = grados(elevacion)
   return [
@@ -122,6 +122,28 @@ function ojoDe(azimut: number, elevacion: number, distancia: number, centro: Vec
     centro[1] + Math.sin(e) * distancia,
     centro[2] + Math.cos(a) * Math.cos(e) * distancia,
   ]
+}
+
+/** Un punto del mundo en la pantalla de referencia, y a qué distancia de la cámara. */
+export function proyectar(vista: number[], proy: number[], p: Vec3): { x: number; y: number; z: number } | null {
+  const v = M4.transformarPunto(vista, p)
+  const w = -v[2]
+  if (w <= 0.01) return null
+  return {
+    x: ((proy[0] * v[0]) / w) * 0.5 * ANCHO + ANCHO / 2,
+    y: ALTO / 2 - ((proy[5] * v[1]) / w) * 0.5 * ALTO,
+    z: w,
+  }
+}
+
+/** La cámara del salón para un patrón, ya encuadrado: la vista y la proyección. */
+export function camaraDelSalon(patron: Patron): { vista: number[]; proy: number[] } {
+  const e = encuadreDelSalon(patron)
+  const elevacion = elevacionDelSalon(patron.camara.elevacion)
+  return {
+    vista: M4.mirarDesde(ojoDe(patron.camara.azimut, elevacion, e.distancia, e.centro), e.centro, [0, 1, 0]),
+    proy: M4.perspectiva(e.campo, ANCHO / ALTO, 0.05, 40),
+  }
 }
 
 /**

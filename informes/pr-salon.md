@@ -211,9 +211,19 @@ está descartado y lo descartó una foto**: los números decían que arreglaba e
 es verse. Queda clavado en una prueba: el encuadre no expone azimut. Lo que sigue abierto,
 y es otro problema: en los ejercicios de máquina la máquina tapa a la persona.
 
+**El aparato que tapa se vuelve translúcido.** Con el press por fin en el cuadro, la
+máquina era una plancha gris con dos manos asomando. La regla no es por tipo de máquina
+—el remo lleva la misma de placas y tapa el 0 %— ni por caja de pantalla —el Smith «solapa»
+el 100 % y no tapa nada—: se cuentan puntos del cuerpo con un vértice del aparato encima y
+más cerca, con la misma cámara del encuadre, en la peor de tres fases (el press de hombro
+tapa 0 % a media repetición y 24 % arriba). Medido sobre los 24 ejemplos con aparato: 36,
+24, 19, 14 y 10 por un lado; 5, 2 y ceros por el otro. Umbral en el hueco, 8 %. Lo que se
+lleva en las manos va siempre opaco; el aparato que tapa baja al 30 % y sigue diciendo
+dónde está. Cuatro señuelos en rojo.
+
 ## Estado
 
-`npm run verify`: **3.310 pruebas** en verde de 3.311, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
+`npm run verify`: **3.319 pruebas** en verde de 3.320, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
 guardianes del repo cazaron la limpieza y los cuatro están atendidos: código huérfano,
 clases de animación sin consumir, el inventario de recuadros y la auditoría de campos —los
 que salieron del muro siguen montados con `sr-only`, así que se oyen y se cuentan.

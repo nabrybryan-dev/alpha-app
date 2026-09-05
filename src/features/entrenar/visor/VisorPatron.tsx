@@ -17,6 +17,7 @@ import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
+import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
 import { faseDeHuella, poseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
 import { hornear } from '../../../domain/patrones/malla'
@@ -536,13 +537,23 @@ export function VisorPatron({
           // de ESTA fase, así que si el sujeto baja, la barra baja con él. Un implemento
           // que no siguiera al cuerpo sería una calcomanía, y se notaría al primer ciclo.
           if (conEscenario && !sin.has('implementos')) {
-            const hierro = new Malla()
-            construirImplementos(
-              hierro,
-              escenaDeImplementos(patron.categoria, estado.current.nombreEjercicio ?? ''),
-              esq,
-            )
-            partes.push(hierro)
+            const escenaHierro = escenaDeImplementos(patron.categoria, estado.current.nombreEjercicio ?? '')
+            // EL HIERRO Y EL APARATO VAN EN DOS MALLAS. Lo que se lleva en las manos —barra,
+            // mancuernas, disco— siempre opaco. El aparato —máquina, polea, raíles— se
+            // vuelve TRANSLÚCIDO cuando se planta entre la cámara y la persona: medido con
+            // esta misma cámara, en el press de pecho en máquina tapaba el 36 % del cuerpo
+            // y en la elevación lateral en polea el 19 %; el resto no llega al 7 %. Un
+            // aparato que tapa a la persona cuenta el ejercicio al revés.
+            const { hierro, aparato } = partirImplementos(escenaHierro)
+            const mallaHierro = new Malla()
+            construirImplementos(mallaHierro, hierro, esq)
+            if (mallaHierro.vertices > 0) partes.push(mallaHierro)
+            if (aparato.piezas.length) {
+              const mallaAparato = new Malla()
+              construirImplementos(mallaAparato, aparato, esq)
+              if (estado.current.datos && aparatoTapaAlCuerpo(patron, aparato)) mallaAparato.alfa = ALFA_DEL_APARATO_QUE_TAPA
+              if (mallaAparato.vertices > 0) partes.push(mallaAparato)
+            }
           }
           // EL SUJETO. Dos rutas, y la de arriba es la de siempre: sin `w` no se
           // consulta el eje ni se importa nada de `capas/`, y lo que se sube es
