@@ -161,9 +161,48 @@ instante de la sentadilla con los dos dibujos.
 Lo que sigue siendo spec: la cifra en centímetros del brazo, que iría en la letra mínima y
 apagable, y el vector de la dirección C, que necesita la aceleración del encoder.
 
+### La segunda tanda del 5 de septiembre: lo que Bryan vio en la demo
+
+Tres cosas, en el orden en que las pidió, y las tres medidas antes de tocarlas.
+
+**La trayectoria responde a la carga.** En el peso muerto las manos SUBÍAN de 86 a 103 cm
+mientras el ejercicio bajaba: el brazo se quedaba pegado al tronco (`hombroFlex: -10`) con
+el tronco tumbado 84°. Con 64, la carga baja 41 cm con 9 de deriva y acaba a 45 cm del
+suelo. Y para que no vuelva a pasar en ningún ejercicio, un contrato
+(`demandaDeTrayectoria.ts`) que comprueba que ningún patrón contradiga a su implemento —la
+demanda sale de los `ejemplos` que cada patrón ya lista y de su `cadena`, no de una tabla
+nueva—. Cazó también el empuje de cadera: subía 15 cm y se iba 14 de lado sobre la
+pelvis, que es donde descansa esa barra (medido en las manos daba 2,17: un número falso que
+parecía un resultado); el fallo era el RANGO, 64° de cadera donde el ejercicio recorre 85,
+y con 88 sube 28 con 7 de deriva. La cadena abierta sigue sin guardián y se dice por qué:
+tres leyes medidas, y la mejor —que el eje que gira no viaje— es tautológica en este rig
+(el húmero cuelga del tórax por un punto fijo: 3·10⁻¹⁶ m). La tautología va clavada en una
+prueba, no en prosa: si el rig gana traslación escapular, se pone roja sola. Hallazgo de
+paso: `raizInicio`/`raizFin` no son palanca con apoyo en el suelo — el solver ancla los
+apoyos en las tres dimensiones y se come la traslación de la pelvis.
+
+**Deslizar de lado pasa de ejercicio, sin trámite.** Hasta hoy había que apoyar el dedo
+sobre el cuerpo, aguantarlo 320 ms y solo entonces tirar: por eso Bryan «no podía
+desplazarse». Los primeros 12 px deciden de quién es el gesto y ya no cambia de dueño hasta
+soltar; cada ejercicio cuesta 56 px y un arrastre largo avanza uno. La cámara se va a DOS
+dedos, donde ya vivía el pellizco —la convención de las apps que meten un modelo 3D dentro
+de algo por lo que se navega—; en el estudio del patrón un dedo sigue orbitando. Y los
+puntos de la ruleta se tocan: cada uno salta a su ejercicio, con diana de 44 px sin que la
+banda engorde. Comprobado en Chrome: tres deslizamientos, tres ejercicios.
+
+**Nada reescala ni desenfoca el lienzo.** El «pixelea en movimiento y se nubla» eran
+cuatro estilos sobre el lienzo WebGL: un `scale(0.88)` del hueco al subir el panel, un
+`scale(1.04)` más un `drop-shadow` del sujeto con el dedo dentro —copia desenfocada del
+lienzo entero: ese era el nublado—, y `backdrop-filter: blur(20px)` en la hoja del panel.
+Ahora la sala se retira y se acerca POR LA CÁMARA (`Orbita.retirada`, suavizada en el
+bucle), el halo es un nodo aparte, y la hoja es opaca. Medido antes/después por CDP; el
+contexto WebGL está como debe (antialias con 4 muestras, lienzo a 2×). Lo que NO se tocó:
+el tope de `devicePixelRatio` a 2 — en un teléfono de 3× el lienzo se pinta al 66 %, y si
+sigue viéndose blando en reposo, la causa es esa y es un canje de coste.
+
 ## Estado
 
-`npm run verify`: **3.272 pruebas** en verde de 3.273, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
+`npm run verify`: **3.300 pruebas** en verde de 3.301, 0 errores, 6 avisos (delta cero). El único rojo local es `nucleo.test.ts` —el `disco.js` de las herramientas del encoder lo está tocando otra sesión— y en el CI no corre porque allí no está ese repo. Cuatro
 guardianes del repo cazaron la limpieza y los cuatro están atendidos: código huérfano,
 clases de animación sin consumir, el inventario de recuadros y la auditoría de campos —los
 que salieron del muro siguen montados con `sr-only`, así que se oyen y se cuentan.
