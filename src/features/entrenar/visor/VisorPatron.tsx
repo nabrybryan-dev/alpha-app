@@ -15,7 +15,8 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, elevacionDelSalon, ENCUADRE_SALA, SALA, type DatosDeSerie } from '../escena/sala'
+import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
+import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { pasoDelVaiven } from './vaivenDeLaSala'
 import { faseDeHuella, poseDeHuella, sentidoDeHuella, type HuellaDeRepeticion } from './fantasma'
 import { hornear } from '../../../domain/patrones/malla'
@@ -327,6 +328,9 @@ export function VisorPatron({
     // una serie. Van por referencia y se repinta, como la capa.
     datos: undefined as DatosDeSerie | undefined,
     colocacion: COLOCACION_INICIAL,
+    // El campo visual con el que se proyecta cuando hay sala. Por referencia, como todo lo
+    // que el bucle lee: cambiarlo no puede recrear el contexto WebGL.
+    campoDelSalon: undefined as number | undefined,
     // El objetivo de retirada de la cámara. Por referencia y no en las dependencias del
     // efecto que monta la escena, por lo mismo que `datos`: cambiarlo no puede recrear el
     // contexto WebGL. El bucle lo lee y acerca la cámara un poco cada fotograma.
@@ -461,6 +465,12 @@ export function VisorPatron({
           avisarDeLaCamara()
         })
         orbita.arrastreConUnDedo = orbitaConUnDedo
+        // EL CUADRO DEL SALÓN SE CALCULA CONTRA EL CUERPO. Mirar siempre a [0, 1,2, 0] a
+        // 4,6 m encuadra bien a una persona de pie y a nadie más: medido el 2026-09-05, se
+        // salían del cuadro los 31 patrones, hasta 750 px. `encuadreDelSalon` mira al
+        // centro del cuerpo, se retira lo justo sin salir de la sala, y solo gira si aún no
+        // cabe. Sin sala manda `encuadrar()`, que es de estudiar el cuerpo y no un sitio.
+        const enSalon = estado.current.datos ? encuadreDelSalon(patron) : undefined
         orbita.azimut = patron.camara.azimut
         // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
         // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia el
@@ -472,8 +482,9 @@ export function VisorPatron({
         // efecto de sincronización se declara ANTES que éste, así que para cuando esto
         // corre el ref ya está puesto.
         const conSala = !!estado.current.datos
-        orbita.distancia = conSala ? ENCUADRE_SALA.distancia : encuadre.distancia
-        orbita.centro = conSala ? [...ENCUADRE_SALA.centro] : encuadre.centro
+        orbita.distancia = enSalon ? enSalon.distancia : encuadre.distancia
+        orbita.centro = enSalon ? [...enSalon.centro] : encuadre.centro
+        estado.current.campoDelSalon = enSalon?.campo
         // Y LA ELEVACIÓN SE ACOTA, pero solo con sala. El ángulo del patrón se eligió
         // para ver el MOVIMIENTO —lo tumbado se estudia desde arriba, y por eso el
         // catálogo llega a 56°— y ahí sigue mandando cuando el visor monta el patrón
@@ -604,7 +615,10 @@ export function VisorPatron({
           motor.dibujar(
             matrices,
             orbita.vista(),
-            M4.perspectiva(CAMPO_VISUAL, aspecto, 0.05, 40),
+            // EL OBJETIVO LO PONE EL ENCUADRE cuando hay sala: los ejercicios tumbados
+            // necesitan un gran angular para caber de ancho, y lo que sobra es sitio por
+            // arriba. Sin sala manda el campo de siempre.
+            M4.perspectiva(estado.current.campoDelSalon ?? CAMPO_VISUAL, aspecto, 0.05, 40),
             orbita.ojo(),
             conEscenario && patron.apoyo !== 'ninguno',
           )
