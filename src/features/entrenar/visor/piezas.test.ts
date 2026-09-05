@@ -39,8 +39,6 @@ describe('cargarPiezas', () => {
     await espera()
     expect(pedidas).toEqual(Object.values(PIEZAS_DEL_SALON).map((p) => p.ruta))
     // El primer vértice estaba en el origen: colocado, cae en la x de su sitio.
-    const rack = PIEZAS_DEL_SALON['rack-sentadillas']
-    expect(llegadas['rack-sentadillas']).toBeCloseTo(sitioDe(rack).x, 5)
     expect(llegadas['sala-gimnasio']).toBeCloseTo(0, 5)
   })
 
@@ -61,12 +59,12 @@ describe('cargarPiezas', () => {
     expect(llegadas).toBe(0)
   })
 
-  it('el rack queda entre la órbita y el muro, tangente a la pared', () => {
-    const rack = PIEZAS_DEL_SALON['rack-sentadillas']
-    expect(rack.radio).toBeGreaterThan(4.6)
-    expect(rack.radio).toBeLessThan(7)
-    const s = sitioDe(rack)
-    expect(Math.hypot(s.x, s.z)).toBeCloseTo(rack.radio, 6)
+  it('una pieza suelta queda a su radio, tangente a la pared', () => {
+    const pieza = { ruta: '/x', anguloGrados: 150, radio: 6.2 }
+    const s = sitioDe(pieza)
+    expect(Math.hypot(s.x, s.z)).toBeCloseTo(6.2, 6)
+    // A 150° la tangente lleva el eje local Z a (−sen 150°, cos 150°): giro −150°.
+    expect(s.giroY).toBeCloseTo((-150 * Math.PI) / 180, 9)
   })
 
   it('las imágenes del rack y de la sala están en la lista', () => {

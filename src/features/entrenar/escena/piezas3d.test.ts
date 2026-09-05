@@ -101,39 +101,54 @@ describe('el formato .pieza', () => {
   })
 })
 
-describe('la pieza real del rack', () => {
-  const bytes = readFileSync('public/piezas/rack-sentadillas.pieza')
+describe('la pieza real de la sala del gimnasio', () => {
+  const bytes = readFileSync('public/piezas/sala-gimnasio.pieza')
   const mallas = leerPieza(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
 
-  it('trae dos partes, una por imagen, y las imágenes tienen nombre', () => {
-    expect(mallas.map((m) => m.textura).sort()).toEqual(['rack-acero', 'rack-barra'])
+  it('trae una parte por imagen más las de color plano, todas con la luz grabada', () => {
+    const texturas = new Set(mallas.map((m) => m.textura))
+    for (const t of ['suelo-goma', 'hormigon', 'gym-atlas', 'rack-acero', 'rack-barra', null]) {
+      expect(texturas.has(t), `falta la parte «${t}»`).toBe(true)
+    }
+    expect(mallas.every((m) => m.horneada)).toBe(true)
   })
 
-  it('tiene los vértices de un rack, todos finitos, apoyado en el suelo y de 2,5 m', () => {
+  it('es una sala de 16 × 11 × 3,8 con el suelo en cero, y cabe en un teléfono', () => {
     const total = mallas.reduce((n, m) => n + m.vertices, 0)
-    expect(total).toBeGreaterThan(8000)
-    expect(total).toBeLessThan(40000)
-    let yMin = Infinity
-    let yMax = -Infinity
+    expect(total).toBeGreaterThan(30000)
+    expect(total).toBeLessThan(120000)
+    const min = [Infinity, Infinity, Infinity]
+    const max = [-Infinity, -Infinity, -Infinity]
     for (const m of mallas) {
       expect(m.posicion.every(Number.isFinite)).toBe(true)
       expect(m.normal.every(Number.isFinite)).toBe(true)
-      for (let i = 1; i < m.posicion.length; i += 3) {
-        yMin = Math.min(yMin, m.posicion[i])
-        yMax = Math.max(yMax, m.posicion[i])
+      expect(m.color.every(Number.isFinite)).toBe(true)
+      for (let i = 0; i < m.posicion.length; i += 3) {
+        for (let k = 0; k < 3; k++) {
+          min[k] = Math.min(min[k], m.posicion[i + k])
+          max[k] = Math.max(max[k], m.posicion[i + k])
+        }
       }
     }
-    expect(yMin).toBeCloseTo(0, 2)
-    expect(yMax).toBeGreaterThan(2.3)
-    expect(yMax).toBeLessThan(2.7)
+    expect(max[0] - min[0]).toBeCloseTo(16.2, 0)
+    expect(max[2] - min[2]).toBeCloseTo(11.2, 0)
+    expect(min[1]).toBeGreaterThan(-0.15)
+    expect(max[1]).toBeCloseTo(3.9, 0)
   })
 
-  it('las coordenadas de textura caben en la imagen', () => {
+  it('nada vive dentro de la órbita de la cámara salvo el suelo, el techo y lo del centro', () => {
+    // La cámara orbita a 4,6 m del sujeto y como mucho a 2 m de alto. Lo que esté de pie
+    // a menos de 4,4 m de la vertical del origen se le cruza por delante. Se toleran el
+    // suelo y las marcas planas del centro —plataforma, LED del suelo: nada que levante
+    // más de 12 cm— y lo que cuelga del techo por encima de 3,1 m: conductos con sus
+    // abrazaderas, tiras y sus cables, que la cámara no alcanza.
+    let intrusos = 0
     for (const m of mallas) {
-      for (let i = 0; i < m.uv.length; i++) {
-        expect(m.uv[i]).toBeGreaterThan(-0.05)
-        expect(m.uv[i]).toBeLessThan(1.05)
+      for (let i = 0; i < m.posicion.length; i += 3) {
+        const [x, y, z] = [m.posicion[i], m.posicion[i + 1], m.posicion[i + 2]]
+        if (y > 0.12 && y < 3.1 && Math.hypot(x, z) < 4.4) intrusos++
       }
     }
+    expect(intrusos).toBe(0)
   })
 })

@@ -33,15 +33,11 @@ export interface PiezaDelSalon {
 export const SALA_GIMNASIO = { nombre: 'sala-gimnasio', medioAncho: 8, medioFondo: 5.5 } as const
 
 export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
-  // Radio 0: la sala ya viene centrada en el sujeto y con sus paredes en su sitio.
+  // Radio 0: la sala ya viene centrada en el sujeto y con sus paredes en su sitio. El rack
+  // y la máquina de poleas vienen DENTRO, con la misma luz horneada que la sala: el rack
+  // fue una pieza aparte durante una tarde, sin luz y a 150°, hasta que el exportador
+  // aprendió a llevarse los conjuntos de Sketchfab enteros.
   [SALA_GIMNASIO.nombre]: { ruta: '/piezas/sala-gimnasio.pieza', anguloGrados: 0, radio: 0 },
-  // A 150°: entre los marcadores fijos de 90° y 210°, que cuelgan a 1,62 m y no se pueden
-  // tapar. A 250° el rack caía justo delante del marcador de enfrente del press y se
-  // comía el último dígito (visto el 2026-09-05).
-  // Radio 6,2: el rack mide 1,55 de fondo, así que va de 5,4 a 7,0 —pegado al muro y a
-  // 0,8 m de la órbita—. A 5,7 su cara cercana quedaba a 30 cm de la cámara y al orbitar
-  // llenaba la pantalla entera (visto el 2026-09-05).
-  'rack-sentadillas': { ruta: '/piezas/rack-sentadillas.pieza', anguloGrados: 150, radio: 6.2 },
 }
 
 /** Las imágenes que piden las piezas, para `TEXTURAS_DEL_SALON`. */
