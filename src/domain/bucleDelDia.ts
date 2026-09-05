@@ -37,8 +37,11 @@ import type { EjercicioPrescrito } from './types'
  * El despliegue pactado (§7 del supuesto) empieza calculando **sin enseñar**: un
  * microciclo entero guardando qué escenario se habría pisado cada día, y el
  * cierre compara si esos ajustes habrían reducido la discrepancia o la habrían
- * perseguido. El número manda. Hasta entonces, nada de esto llega a una
- * pantalla — el módulo está declarado en MODULOS_SIN_ENCHUFAR.
+ * perseguido. El número manda. Hasta entonces, **nada de esto llega a una
+ * pantalla**, y eso sigue siendo cierto: desde el 2026-09-04 este módulo SÍ tiene
+ * consumidor —`corridaEnSombra.ts`, que lo reproduce sobre la historia—, pero
+ * ese consumidor lo usa un script que se corre a mano. Ni `features/` ni `data/`
+ * lo importan, y ahí es donde se mide si algo está enchufado de verdad.
  */
 
 /** El umbral del coach: «más de un veinte por ciento» (2026-08-25). */
