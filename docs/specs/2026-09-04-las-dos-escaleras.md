@@ -63,21 +63,34 @@ había supuesto lo contrario y el test me corrigió; queda escrito en su encabez
 O sea que **casi la mitad de la cartera pide ya el extremo duro**: por esta regla no le
 queda nada autorizado por encima, y eso no lo arregla el bucle — lo reescribe el coach.
 
-## Las decisiones que faltan, y son de Bryan
+## Las tres decisiones, contestadas por Bryan el 2026-09-04
 
-1. **¿Cuántos escalones de RIR suelta el día malo?** Uno o dos. El módulo no tiene un
-   defecto con opinión.
-2. **¿El día malo recorta además la última serie?**
-3. **¿De dónde sale el techo cuando la diana ya está en el extremo duro?** Hoy: no hay
-   escalera (219 de 555). La alternativa que no inventa números tampoco es tomar el techo
-   del **microciclo siguiente** que la periodización ya calcula — cubre a todos, pero
-   necesita que ese microciclo exista.
+Viven en `POLITICA_DEL_COACH` (`src/domain/escaleras.ts`), como constante y **no** como
+valor por defecto: el módulo sigue negándose a elegir, y así una decisión del coach no se
+disfraza nunca de aritmética.
+
+1. **Un escalón de RIR**, no dos. El ajuste más pequeño que se nota, y nunca por debajo
+   del suelo escrito en la ficha.
+2. **Sí se recorta la última serie.** Se le dijo el precio y lo aceptó: con dos palancas
+   moviéndose a la vez, la comparación no puede separar cuál de las dos ayudó.
+   **Deuda anotada:** cuando la segunda mitad del §7.1 se pueda medir, esa comparación se
+   corre **dos veces**, con recorte y sin él. En sombra no cuesta nada.
+3. **El techo sale del rango, y punto.** Sin margen no hay escalera: 219 de 555 tendrían
+   verde y el resto ejecuta lo pautado. No se toca ni una prescripción para esto. La
+   alternativa que se descartó —el techo del microciclo siguiente— sigue siendo válida si
+   algún día se quiere cobertura completa.
+
+## Lo que sigue abierto, y no es de política
+
+- **Los 10 ejercicios con la diana fuera de su propio rango** (2,1 %). Defecto de dato.
+- **Que el ③ escriba las escaleras al prescribir.** Es el conducto que falta para que esto
+  llegue a producción; hasta entonces el módulo queda sin enchufar a propósito.
 
 ## Lo que NO se hizo
 
-**No se enchufa nada.** El módulo está en `MODULOS_SIN_ENCHUFAR` a propósito: quien
-escribiría las escaleras es el agente ③ al prescribir, y eso no se toca hasta que las tres
-preguntas de arriba tengan respuesta.
+**No se enchufa nada todavía.** El módulo sigue en `MODULOS_SIN_ENCHUFAR`: las tres
+preguntas ya tienen respuesta, pero falta el conducto —que el ③ escriba las escaleras al
+prescribir— y ese vive en `cerebro-alpha`, no aquí.
 
 ## Visto romperse
 

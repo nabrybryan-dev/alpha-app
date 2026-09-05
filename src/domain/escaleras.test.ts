@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { aplicarEscenario, escenarioDelDia } from './bucleDelDia'
-import { derivarEscaleras } from './escaleras'
+import { derivarEscaleras, POLITICA_DEL_COACH } from './escaleras'
 import { coeficiente1rm } from './ondulacion'
 import type { EjercicioPrescrito } from './types'
 
@@ -136,5 +136,33 @@ describe('el remate: con escaleras el bucle deja de estar bloqueado', () => {
     const ajuste = aplicarEscenario(enElTecho, escenarioDelDia(enElTecho, senalesBuenas))
     expect(ajuste.cargaKg).toBeUndefined()
     expect(ajuste.motivo).toContain('techo')
+  })
+})
+
+/**
+ * La decisión de Bryan del 2026-09-04, escrita como prueba.
+ *
+ * No es ceremonia: `POLITICA_DEL_COACH` es lo único de este archivo que NO sale
+ * de la aritmética, así que es lo único que puede cambiar sin que nada más se
+ * queje. Si alguien la toca, que sea a sabiendas.
+ */
+describe('la política que eligió el coach', () => {
+  it('un escalón de RIR, no dos', () => {
+    expect(POLITICA_DEL_COACH.deltaRir).toBe(1)
+  })
+
+  it('el día malo SÍ recorta la última serie', () => {
+    expect(POLITICA_DEL_COACH.quitarUltimaSerie).toBe(true)
+  })
+
+  it('con ella, un ejercicio con suelo en la ficha saca sus dos escaleras', () => {
+    const r = derivarEscaleras(ej(), { ...POLITICA_DEL_COACH, sueloRir: 3 })
+    expect(r.escenarios?.rojo).toEqual({ deltaRir: 1, sueloRir: 3, quitarUltimaSerie: true })
+    expect(r.faltan).toEqual([])
+  })
+
+  it('y sigue sin elegir por él: la política se pasa, no se asume', () => {
+    // Sin pasarla, no hay rojo. El módulo no se la aplica solo.
+    expect(derivarEscaleras(ej(), { sueloRir: 3 }).escenarios).toBeUndefined()
   })
 })

@@ -39,8 +39,36 @@ import type { EjercicioPrescrito, EscenariosDelDia } from './types'
  * ## Lo que sigue siendo decisión de Bryan
  *
  * `deltaRir` (uno o dos escalones) y `quitarUltimaSerie` son política, no
- * aritmética: entran por parámetro y este módulo no elige por él.
+ * aritmética: entran por parámetro y este módulo no elige por él. Lo que Bryan
+ * decidió el 2026-09-04 vive en `POLITICA_DEL_COACH`, aquí abajo.
  */
+
+/**
+ * La política que eligió Bryan el **2026-09-04**, con las tres preguntas delante.
+ *
+ * Va como constante y no como valor por defecto de `derivarEscaleras` a
+ * propósito: el módulo sigue **negándose a elegir** —quien la pasa es quien
+ * llama—, y así una decisión del coach no se disfraza nunca de aritmética.
+ *
+ * 1. **Un escalón de RIR**, no dos. El ajuste más pequeño que se nota, y nunca
+ *    por debajo del suelo escrito en la ficha.
+ * 2. **Sí se recorta la última serie.** Se le dijo el precio y lo aceptó: con dos
+ *    palancas moviéndose a la vez, la corrida en sombra no podrá separar cuál de
+ *    las dos ayudó.
+ *
+ *    **Deuda anotada, no pagada:** cuando la segunda mitad del §7.1 se pueda
+ *    medir —hace falta que el ③ escriba las escaleras—, esa comparación tiene
+ *    que correrse DOS VECES, con recorte y sin él. En sombra no cuesta nada y
+ *    devuelve la nitidez que estas dos palancas juntas quitan. Hoy no está
+ *    hecho porque no hay nada que comparar todavía.
+ * 3. **El techo sale del rango, y punto.** Cuando la diana ya está en el extremo
+ *    duro no hay escalera: 219 de los 555 ejercicios activos tendrían verde y el
+ *    resto ejecuta lo pautado. No se toca ni una prescripción suya para esto.
+ */
+export const POLITICA_DEL_COACH = {
+  deltaRir: 1,
+  quitarUltimaSerie: true,
+} as const
 
 export interface OpcionesDeEscalera {
   /**
