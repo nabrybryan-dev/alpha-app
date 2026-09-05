@@ -981,4 +981,17 @@ select '0051 - respaldos que ya cumplieron', 'las ocho auditadas ya no estan',
                               '_backup_microciclos_20260823','tmp_respaldo_20260824')
        ) then 'SI' else 'NO' end
 
+union all
+-- La funcion existe, no se salta la RLS y `anon` no la puede llamar. Las tres
+-- cosas en una senal porque las tres tienen que darse: una funcion que ESCRIBE
+-- microciclos y nace ejecutable por la anon key es el agujero de siempre.
+select '0052 - la sesion lleva fecha', 'fijar_fecha_sesion existe, invoker y cerrada a anon',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'fijar_fecha_sesion'
+                 and p.prosecdef = false)
+            and not has_function_privilege('anon',
+                  'public.fijar_fecha_sesion(text,text,text)', 'execute')
+       then 'SI' else 'NO' end
+
 order by migracion, senal;

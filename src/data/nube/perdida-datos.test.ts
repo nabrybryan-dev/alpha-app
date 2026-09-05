@@ -166,6 +166,11 @@ function colaEnDisco(): OperacionPendiente[] {
   return JSON.parse(localStorage.getItem('alpha-cola-sync') ?? '[]') as OperacionPendiente[]
 }
 
+/** Solo las llamadas que suben series de un ejercicio. */
+function seriesEnCola(): OperacionPendiente[] {
+  return colaEnDisco().filter((o) => o.funcion === 'fijar_series_ejercicio')
+}
+
 function seriesDe(m: Microciclo | undefined): number[] {
   return (m?.sesiones[0].ejercicios[0].series ?? []).map((s) => s.orden)
 }
@@ -276,7 +281,7 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
    * hace falta igual: lo que la sostiene es que el local NO se pise.
    */
   it('la serie borrada por el snapshot NO debe desaparecer también de la cola de sync', async () => {
-    const { hidratar, sync, db } = await appEnModoNube()
+    const { hidratar, db } = await appEnModoNube()
     const peticiones = fetchConFreno()
 
     const enCurso = hidratar.hidratarDesdeNube()
@@ -285,7 +290,11 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
     await vi.waitFor(() => expect(peticiones.some((p) => tablaDe(p.url) === 'hidratacion')).toBe(true))
 
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(1, 42.5))
-    expect(sync.pendientesDeSync()).toBe(1)
+    // Se cuenta LA OPERACION DE LAS SERIES, no el total de la cola: desde el
+    // 2026-09-04 anotar una serie encola tambien la fecha de la sesion, y un
+    // total clavado a 1 convertiria este guardian en un detector de operaciones
+    // nuevas en vez de un detector de series perdidas, que es lo suyo.
+    expect(seriesEnCola()).toHaveLength(1)
 
     // La hidratación termina, pero la SUBIDA del microciclo sigue en vuelo:
     // wifi de gimnasio. La serie 1 solo vive ya dentro de esa operación.
@@ -295,8 +304,10 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
     // Valentina sigue entrenando y registra la serie 2.
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(2, 42.5))
 
-    const opMicrociclo = colaEnDisco().find((o) => o.tabla === 'microciclos')
-    const series = (opMicrociclo?.payload.p_series ?? []) as { orden: number }[]
+    // Por `funcion` y no por `tabla`: sobre `microciclos` hay ya tres llamadas
+    // distintas y `find` cogeria la primera que pasara por ahi.
+    const opSeries = seriesEnCola()[0]
+    const series = (opSeries?.payload.p_series ?? []) as { orden: number }[]
     expect(series.map((s) => s.orden)).toEqual([1, 2])
   })
 })
@@ -408,8 +419,10 @@ describe('cerrar sesión con escrituras sin subir', () => {
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(2, 45))
     await sync.colaEnReposo()
 
-    // El intento de subida falló: sigue pendiente.
-    expect(sync.pendientesDeSync()).toBe(1)
+    // El intento de subida falló: sigue pendiente. Se mira que HAYA pendientes,
+    // no cuántos: lo que este test defiende es que el entreno sea rescatable, y
+    // el número exacto de operaciones no es suyo.
+    expect(sync.pendientesDeSync()).toBeGreaterThan(0)
 
     // --- Secuencia exacta de SessionProvider al cerrar sesión ---
     await sync.procesarCola() // "subir lo pendiente antes de salir"

@@ -49,7 +49,14 @@ $fn$;
 revoke execute on function public.tmp_sin_marcas(jsonb) from public;
 
 -- Deja una sesión lista para estrenar: sin marcas de preparación, sin marcas
--- de cardio y sin test post. NO toca ejercicios (de eso se encarga quien llama).
+-- de cardio, sin test post y SIN FECHA. NO toca ejercicios (de eso se encarga
+-- quien llama).
+--
+-- `fecha` entró en `Sesion` el 2026-09-04 y es un campo de ejecución de pleno
+-- derecho: dice el día en que la persona apareció. Heredarla sería el fósil de
+-- julio otra vez y con la peor cara de todas — una semana que nadie ha empezado
+-- naciendo con el día del martes pasado escrito, y el cruce del check-in con la
+-- sesión emparejando dos días distintos sin que nada falle a la vista.
 create or replace function public.tmp_sesion_en_limpio(p_s jsonb)
 returns jsonb language sql immutable as $fn$
   select (
@@ -59,6 +66,7 @@ returns jsonb language sql immutable as $fn$
                 else con_cardio
            end
          ) - 'testPost'          -- inofensivo si la clave no está
+           - 'fecha'             -- el día en que se tocó la sesión ANTERIOR
     from (
       select case when p_s ? 'bloquesCardio'
                   then jsonb_set(p_s, '{bloquesCardio}',
