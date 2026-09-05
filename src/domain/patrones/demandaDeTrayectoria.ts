@@ -26,15 +26,37 @@ import type { Vec3 } from './algebra'
  *   los pies o la espalda están apoyados y **el cuerpo se mueve alrededor de la carga**. La
  *   carga baja recta, porque si se fuera de lado el conjunto se caería. Se mide la deriva
  *   horizontal contra el recorrido vertical.
- * - **Cadena ABIERTA con peso libre** (curl, elevación lateral, apertura): aquí **todavía no
- *   se comprueba nada, y se dice por qué**. El extremo proximal está fijo y el segmento gira,
- *   así que la carga describe un arco y eso es correcto. La ley que parecía servir —que el
- *   arco mantenga su radio— se midió el 2026-09-05 y NO se sostiene: en un remo el radio de
- *   la mano al hombro va de 34 a 56 cm con toda la razón, porque el codo dobla a la vez. Y
- *   medirlo contra el hueso de al lado es tautológico —el rig calcula la mano DESDE el codo,
- *   así que sale constante siempre— y el guardián nacería verde. La ley verdadera sería que
- *   el eje que gira no se traslade (que el codo no viaje en un curl), y eso pide un margen
- *   por ejercicio que aún no está medido. Antes que un número inventado, un hueco declarado.
+ * - **Cadena ABIERTA con peso libre** (curl, elevación lateral, apertura): aquí **sigue sin
+ *   comprobarse nada, y ya van TRES leyes medidas y descartadas**. El extremo proximal está
+ *   fijo y el segmento gira, así que la carga describe un arco y eso es correcto.
+ *
+ *   1. *Que el arco mantenga su radio.* Medida el 2026-09-05: NO se sostiene. En un remo el
+ *      radio de la mano al hombro va de 34 a 56 cm con toda la razón, porque el codo dobla
+ *      a la vez.
+ *   2. *Ese mismo radio contra el hueso inmediatamente proximal.* Tautológica: el rig
+ *      calcula la mano DESDE el codo, así que sale constante siempre y el guardián nacería
+ *      verde sin poder ponerse rojo nunca.
+ *   3. *Que el eje que gira no se traslade* —que el codo no viaje en un curl, que el hombro
+ *      no se vaya de sitio en una elevación lateral—. Es la que parecía buena y se midió el
+ *      2026-09-05 sobre los ocho patrones de cadena abierta, con el eje que declara
+ *      `planDeMedida` y la posición **relativa al tronco** a lo largo de las 21 fases. Sale
+ *      tautológica también, y por una razón del rig que conviene tener escrita: en seis de
+ *      los ocho el eje principal es el HOMBRO, y `brazoD`/`brazoI` cuelgan del `torax` con
+ *      un `desde` constante, así que el hombro **no se puede mover** respecto al tronco.
+ *      No es que los patrones cumplan la ley: es que no la pueden incumplir. Medido:
+ *      3·10⁻¹⁶ m, que es el error de coma flotante, en remo, elevación lateral, press de
+ *      hombro, press de banca, press inclinado y apertura. Del resto, `extension_hombro` no
+ *      tiene eje que medir —su modelo declara línea de cable— y solo queda `flexion_codo`
+ *      con un número de verdad: 12,4 cm. **Un solo punto no es una calibración**, así que
+ *      el umbral saldría de mi criterio y no de la medida, que es justo lo que no se hace
+ *      aquí. Referida a la PELVIS en vez de al tronco la ley deja de ser tautológica —entra
+ *      la columna— pero tampoco separa: seis patrones entre 0,6 y 1,0 cm, el curl en
+ *      12,1 cm, y ninguno de los ocho está señalado como malo, así que no hay dos grupos
+ *      que distinguir. La prueba `demandaDeTrayectoria.test.ts` deja clavada esa medida: el
+ *      día que el rig gane traslación escapular se pondrá roja y la ley pasará a ser
+ *      medible.
+ *
+ *   Antes que un número inventado, un hueco declarado.
  * - **Polea y máquina**: la línea la fija el cable o el riel, no la gravedad. Aquí no se
  *   comprueba ninguna de las dos: comprobarlo sería exigirle a una polea que se comporte
  *   como una barra.
@@ -175,7 +197,8 @@ export function juzgarTrayectoria(patron: Patron): Veredicto {
       ...base,
       cumple: true,
       medida: `v=${(r.vertical * 100).toFixed(0)}cm h=${(r.deriva * 100).toFixed(0)}cm`,
-      motivo: 'el arco es legítimo; la ley que lo acotaría no está medida todavía',
+      motivo:
+        'el arco es legítimo; las tres leyes que lo acotarían se midieron y ninguna se sostiene',
     }
   }
 

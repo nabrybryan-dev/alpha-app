@@ -126,7 +126,21 @@ export const PATRONES: Patron[] = [
     giroFin: [-74, 0, 0],
     raizInicio: [0, 0.34, 0],
     raizFin: [0, 0.50, 0],
-    inicio: { caderaFlex: 68, rodillaFlex: 122, toraxFlex: 12, hombroFlex: 16, hombroAbd: 18, codoFlex: 74, pelvisBascula: -8 },
+    // LA CADERA ARRANCA CERRADA, y de ahí sale todo el recorrido. Con `caderaFlex` en 68
+    // la pelvis —que es donde descansa la barra— subía 15 cm y se iba 14 de lado: una
+    // razón de 0,97, o sea que la barra viajaba tanto hacia atrás como hacia arriba, y con
+    // peso libre eso no existe. El fallo era el rango: 64° de cadera en un empuje que en
+    // el gimnasio recorre 85. Medido el 2026-09-05 barriendo el ángulo con el resto del
+    // patrón intacto (giro −52→−74, rodilla 122→88): 68→ v=15 h=14 r=0,97 · 76→ v=20
+    // h=11 r=0,56 · 80→ v=22 h=10 r=0,43 · 84→ v=25 h=9 r=0,34 · **88→ v=28 h=7 r=0,27**
+    // · 92→ v=31 h=7 r=0,23. Se elige 88 porque es el que cae en los 28 cm de recorrido
+    // que tiene el empuje real, no el que más baja la razón. De propina, el hombro
+    // apoyado en el banco deja de resbalar: su altura variaba 22 cm y ahora varía 8,7.
+    // `raizInicio`/`raizFin` NO sirven aquí: con `apoyo: 'suelo'` el solver ancla el punto
+    // medio de los apoyos en las tres dimensiones y se come cualquier traslación de la
+    // pelvis. Comprobado barriéndolas ±30 cm en z y ±20 cm en y: las tres cifras salen
+    // idénticas hasta la cuarta decimal de centímetro. No son palanca de nada.
+    inicio: { caderaFlex: 88, rodillaFlex: 122, toraxFlex: 12, hombroFlex: 16, hombroAbd: 18, codoFlex: 74, pelvisBascula: -8 },
     fin: { caderaFlex: 4, rodillaFlex: 88, toraxFlex: 6, pelvisBascula: 16, hombroFlex: 10, hombroAbd: 16, codoFlex: 68 },
     activacion: { 'gluteo_mayor.inferior': 1, 'gluteo_mayor.superior': 0.9, 'isquiotibiales.biceps_larga': 0.7, 'isquiotibiales.semitendinoso': 0.65, 'isquiotibiales.semimembranoso': 0.65, 'isquiotibiales.biceps_corta': 0.35, 'aductores.mayor': 0.5, cuadriceps: 0.3, recto_abdominal: 0.35, erectores: 0.3 },
     seguimiento: ['pelvis', 0.4, [0, 0, 0.06]],
