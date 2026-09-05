@@ -218,6 +218,36 @@ const VARIANTES: Partial<Record<Categoria, readonly { patron: RegExp; aportes: r
     { patron: /TORSO VERTICAL/, aportes: [directo('Glúteos'), indirecto('Cuádriceps')] },
     { patron: /IPSILATERAL/, aportes: [directo('Glúteos'), indirecto('Cuádriceps')] },
   ],
+  /**
+   * Dos variantes más, con la biomecánica detrás (Bryan, 2026-09-04).
+   *
+   * Salen de la investigación del cerebro (agentes/evidencia/BIOMECANICA-*-CANDIDATO.md)
+   * y son DISCRETAS Y ORDINALES a propósito: la evidencia da el orden —qué grupo es
+   * protagonista—, no el número. Un tercer valor de aporte (0,25, ×0,7) quedó rechazado:
+   * sería un número en la escala equivocada.
+   *
+   * SENTADILLA (profunda): hipertrofia medida por resonancia, completa vs media —
+   * aductores +6,2 % vs +2,7 %, glúteo +6,7 % vs +2,2 %, cuádriceps IGUAL (Kubo 2019).
+   * ⚠ La profunda pasa de contar 2,0 a 3,0 series fraccionadas, y acerca a Glúteos y
+   * Aductores a su techo sin que nadie entrene distinto. Bryan lo aprobó sabiéndolo.
+   *
+   * BISAGRA DE CADERA (barra hexagonal): baja el momento pico de lumbar, cadera y tobillo
+   * y sube el de rodilla, levantando MÁS peso (265 vs 245 kg, Swinton 2011). Es la
+   * respuesta medida al «peso muerto con isquio cerrado»: no una consigna técnica, sino
+   * cambiar de barra. El isquio baja a secundario y la rodilla entra como protagonista.
+   *
+   * Espejo exacto de `agentes/taxonomia.py` (VARIANTES) en cerebro-alpha: van a los dos
+   * sitios o no van.
+   */
+  SENTADILLA: [
+    { patron: /PROFUNDA/, aportes: [directo('Cuádriceps'), directo('Glúteos'), directo('Aductores')] },
+  ],
+  'BISAGRA DE CADERA': [
+    {
+      patron: /HEXAGONAL/,
+      aportes: [directo('Cuádriceps'), directo('Glúteos'), indirecto('Isquios'), indirecto('Lumbares')],
+    },
+  ],
 }
 
 function normalizar(texto: string): string {
