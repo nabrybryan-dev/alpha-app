@@ -664,6 +664,45 @@ export function anguloDeCamara(relacion) {
 }
 
 /**
+ * Cuanto del lado corto del encuadre puede ocupar un disco, como mucho.
+ *
+ * NO es una señal de forma, y por eso existe: las de forma ya se midieron y no
+ * separan —una pila de discos coaxiales ES redonda y se ajusta de maravilla, así
+ * que `cobertura`, `redondez` y `esquinas` dan lo mismo para la cara del primer
+ * disco que para la pila entera (`banco/calidad-vs-error.mjs`)—.
+ *
+ * El argumento es físico, no estadístico. Un disco mide 450 mm. Para que ocupara
+ * la mitad del lado corto, ese lado tendría que abarcar 0,9 m en el plano del
+ * atleta — y ahí no cabe ni la barra, que mide 2,2 m, ni la persona de pie. Si el
+ * ajuste dice que el disco ocupa más de eso, lo que se ha ajustado no es un disco
+ * de una serie grabada.
+ *
+ * ## El umbral, y el error que costó ponerlo bien
+ *
+ * El primer intento fue 0,50, elegido midiendo «¿cuántos casos BUENOS tira?» con
+ * bueno = «el detector acertó dentro del 5 %». Con esa definición no tiraba
+ * ninguno, y era una medida mal planteada: las cuatro escenas `--grande` del
+ * banco tienen una VERDAD de 0,667 —el disco de verdad ocupa el 67 % del lado
+ * corto— y el detector las fallaba por un 9-19 %, así que contaban como malas y
+ * rechazarlas parecía un acierto. No lo era: son escenas legítimas que la reja
+ * rechazaba por ser lo que son, y ningún detector las habría salvado.
+ *
+ * La pregunta correcta no es a quién tira HOY sino **a quién tiraría siempre**:
+ * cuántas escenas tienen la verdad por encima del umbral. Eso no depende del
+ * detector (`banco/donde-va-la-reja.mjs`).
+ *
+ * Verdad máxima del banco: 0,667. De un fotograma real de gimnasio: 0,298. Se
+ * elige **0,75**, por encima de la máxima, para no rechazar nada legítimo. El
+ * 0,30 de los fotogramas reales NO justifica bajarlo: son 16 fotogramas de dos
+ * escenas, y no son el mundo.
+ *
+ * A 0,75 esta reja atrapa poco por su cuenta —el trabajo de verdad lo hace la de
+ * «cabe en el encuadre»—, y se queda igual: es un techo físico, barato, que no
+ * cuesta ni una medida buena.
+ */
+export const FRACCION_MARCO_MAX = 0.75
+
+/**
  * ¿Lo que el usuario tocó es un disco?
  *
  * Un disco da radios consistentes en todas las direcciones. Una mancuerna, una
@@ -711,6 +750,32 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
   if (redondez > 0.16) {
     return { tipo: 'no-circular', motivo: 'el contorno no es redondo', redondez, cobertura, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
   }
+  // ── Dos rejas que NO miran la forma ────────────────────────────────────────
+  //
+  // Hasta aquí todo lo comprobado es forma, y la forma no distingue la cara del
+  // primer disco de la pila entera: las dos son redondas y las dos se ajustan
+  // bien. Medido, el peor fallo del banco (+247 % de escala) pasa las tres
+  // comprobaciones de arriba con los tres indicadores dentro de lo normal.
+  //
+  // Y no hay nadie detrás que lo cace: el rastreador acota la búsqueda a
+  // `radioEsperado × (1 ± 0,25)` y luego compara contra ese mismo radio, así que
+  // HEREDA la semilla y la certifica —con la semilla envenenada devuelve
+  // `fiable: true`, y con la buena `fiable: false`—. Ver `banco/semilla-envenenada.mjs`.
+  //
+  // Estas dos son lo único que puede auditar el arranque, porque no salen del
+  // contorno sino del encuadre.
+  const desborda = circulo.x - circulo.r < 0 || circulo.x + circulo.r > ancho ||
+                   circulo.y - circulo.r < 0 || circulo.y + circulo.r > alto
+  if (desborda) {
+    // Un disco más ancho que la propia imagen no es un disco. Es la comprobación
+    // más tonta posible y por eso vale: no depende del contraste ni de la luz.
+    return { tipo: 'desconocida', motivo: 'el disco ajustado no cabe en el encuadre', cobertura, redondez, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+  const fraccion = (circulo.r * 2) / Math.min(ancho, alto)
+  if (fraccion > FRACCION_MARCO_MAX) {
+    return { tipo: 'desconocida', motivo: 'el disco ajustado se come el encuadre: no cabría la serie', cobertura, redondez, fraccion, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+
   return {
     tipo: 'disco',
     // `r` es el SEMIEJE MAYOR, que es la escala inmune al escorzo: el diámetro
@@ -732,6 +797,34 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
  * barra no puede saltar 40 cm entre dos fotogramas a 60 fps —serían 24 m/s—, así
  * que un ajuste que caiga fuera de la ventana es un error de detección, no un
  * movimiento, y se descarta en vez de guardarlo.
+ *
+ * ## ⚠ `radioEsperado` tiene que ser el del ARRANQUE, no el del fotograma anterior
+ *
+ * Encadenarlo —pasar el radio que devolvió el fotograma anterior— parece lo
+ * natural y **se dispara**. Medido sobre tres series reales de 90 fotogramas
+ * (`banco/serie-con-dos-semillas.py`):
+ *
+ *     encadenado   el radio va de 94 px a 220 px en 18 fotogramas (menos de un
+ *                  segundo) y ahí se queda clavado. Deriva del 150-180 % en las
+ *                  tres series, con las dos semillas —la buena y la de hoy—.
+ *     anclado      deriva de −2 %, 13 % y 8 %. Y además recupera el seguimiento:
+ *                  la serie que encadenada se perdía a los 52 fotogramas, llega
+ *                  a los 90.
+ *
+ * El mecanismo: cada fotograma admite hasta un ±25 % (`toleranciaRadio`) y la
+ * comprobación de `radio_incoherente` se hace **contra esa misma referencia**. Si
+ * la referencia es el fotograma anterior, un sesgo del 7 % por fotograma nunca la
+ * dispara y en veinte fotogramas ha multiplicado el radio por dos. Ahí engancha
+ * una estructura mayor del encuadre y se queda: **estable y equivocada**, que es
+ * la firma que ya salió en `banco/semilla-envenenada.mjs`.
+ *
+ * Se nota además en el recorrido: encadenado, la serie 104 daba 38 px de subida y
+ * bajada —el rastreador se había agarrado a algo quieto—; anclado da 97 px, que
+ * es la barra de verdad.
+ *
+ * No se cambia el comportamiento por dentro: la función es sin estado y la
+ * referencia la elige quien llama. Lo que hay es este contrato, y el check
+ * «la referencia es el arranque, no el anterior» de `pruebas-disco.mjs`.
  */
 export function detectarDisco(datos, ancho, alto, prediccion, radioEsperado, opciones = {}) {
   const { saltoMaxPx = 40, toleranciaRadio = 0.25, minCobertura = 0.6, coberturaBuena = 0.9 } = opciones
@@ -910,7 +1003,21 @@ export function escalaDeLaBarra(cerca, lejos, diametroMm = 450) {
     mmPorPxEn(x) {
       if (!Number.isFinite(x) || cerca.x === lejos.x) return (mmCerca + mmLejos) / 2
       const t = Math.max(0, Math.min(1, (x - cerca.x) / (lejos.x - cerca.x)))
-      return mmCerca + t * (mmLejos - mmCerca)
+      // Se interpola el INVERSO, y no es un refinamiento: es lo unico exacto.
+      //
+      // mm/px es proporcional a la profundidad Z, y en una camara pinhole lo que
+      // resulta AFIN en la coordenada de imagen es 1/Z, no Z. Para una barra recta
+      // sale despejando: Z(x) = C / (x*Dz - f*Dx). O sea que mm/px es HIPERBOLICA
+      // en x, y la recta que se trazaba antes entre los dos extremos siempre pasa
+      // por encima de ella.
+      //
+      // Siempre por encima: el error no se promedia entre videos, los infla todos
+      // en la misma direccion. Medido sobre los saltos que da el corpus real
+      // (wiki/motor-velocidad/escala-por-disco.md): +1,4 % a 27 % de salto, +3,5 %
+      // a 46 %, +10,8 % a 98 %. Interpolando el inverso el error es exactamente
+      // cero para cualquier salto y cualquier orientacion de la barra.
+      const pxPorMm = 1 / mmCerca + t * (1 / mmLejos - 1 / mmCerca)
+      return 1 / pxPorMm
     },
   }
 }

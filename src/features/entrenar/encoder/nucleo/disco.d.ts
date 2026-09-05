@@ -13,6 +13,11 @@ export interface EstructuraDesconocida {
   cobertura: number
   redondez?: number
   ajuste?: AjusteCircunferencia
+  /**
+   * Cuánto del lado corto del encuadre ocupaba el disco ajustado. Solo viene
+   * cuando el rechazo fue por eso, o sea por pasarse de `FRACCION_MARCO_MAX`.
+   */
+  fraccion?: number
 }
 
 export interface EstructuraDisco {
@@ -66,6 +71,15 @@ export function detectarDisco(
   radioEsperado: number,
   opciones?: { radioMax?: number },
 ): ResultadoDisco
+
+/**
+ * Cuánto del lado corto del encuadre puede ocupar un disco, como mucho.
+ *
+ * Reja de plausibilidad sobre el ARRANQUE, y a propósito no mira la forma: las
+ * señales de forma no distinguen la cara del primer disco de la pila entera,
+ * porque una pila de discos coaxiales también es redonda y se ajusta bien.
+ */
+export const FRACCION_MARCO_MAX: number
 
 export const DIAMETROS_DISCO_MM: ReadonlyArray<{ etiqueta: string; mm: number }>
 
