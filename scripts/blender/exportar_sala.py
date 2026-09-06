@@ -216,10 +216,20 @@ def emision_de(m):
     # nada, y tratarlo como emisor dejaba el rack negro y sin luz.
     if f <= 0.0 or float(c.max()) < 0.02:
         return None
-    return np.clip(c * min(f / 4.0, 1.2), 0, 1.2)
+    # LA FUERZA VA ENTERA. Estaba recortada a 1,2 lineal, que tras AgX da 0,83: gris claro.
+    # Medido contra el render de Bryan: alli las tiras son BLANCO PURO —el 2,96 % de la
+    # imagen pasa de 0,95— y en la app no habia ni un pixel. Un LED que no se quema no
+    # parece un LED. El tope de 6 es donde la curva ya esta plana (0,984).
+    return np.clip(c * f, 0, 6.0)
 
 def albedo_y_textura(m):
-    """(albedo rgb, nombre de textura o None, receta de uv o None)."""
+    """(albedo rgb, nombre de textura o None, receta de uv o None).
+
+    UN METAL NO DIFUNDE. El espejo y el cromo tienen albedo alto —0,92 el espejo— y en un
+    horneado difuso eso los deja BLANCOS: era la mancha del espejo de la izquierda que
+    Bryan vio. Lo que ilumina un espejo en el render es su REFLEJO, que aqui no se calcula,
+    asi que su parte difusa se apaga en proporcion a lo metalico que sea. Un espejo queda
+    oscuro con la luz que le llega de refilon, que es lo que se ve en el render."""
     if not m or not m.use_nodes:
         return np.array([0.5, 0.5, 0.5]), None, None
     ph = POLYHAVEN.get(m.name)
@@ -228,7 +238,11 @@ def albedo_y_textura(m):
     b = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
     if not b:
         return np.array([0.5, 0.5, 0.5]), None, None
-    return np.array(b.inputs["Base Color"].default_value[:3], dtype=np.float64), None, None
+    alb = np.array(b.inputs["Base Color"].default_value[:3], dtype=np.float64)
+    met = float(b.inputs["Metallic"].default_value)
+    if not b.inputs["Metallic"].is_linked and met > 0.05:
+        alb = alb * (1.0 - 0.82 * met)
+    return alb, None, None
 
 # ---------------------------------------------------------------- 3) recorrer
 partes = {}    # (tex, emisivo) -> arrays
@@ -386,13 +400,29 @@ def a_pantalla(col):
     """Luz lineal -> el color que Blender enseña. Por canal."""
     return np.stack([np.interp(col[:, k], RAMPA, MIRADA) for k in range(3)], axis=1)
 
-# La escala absoluta de mi cuenta de luz no es la de Cycles: se calibra una vez para que
-# la mediana caiga donde cae en el render, y a partir de ahí manda la curva.
+# LA EXPOSICION SE CALIBRA CONTRA EL RENDER, no a ojo.
+#
+# Medido el 2026-09-05 sobre el render que Bryan aprobo y sobre una captura de la app:
+#
+#     render de Bryan   mediana 0,168   p90 0,414   blancos 2,96 %
+#     la app            mediana 0,281   p90 0,641   blancos 0,06 %
+#
+# La app salia mas clara de tono medio y SIN brillos: justo lo contrario de un sitio en
+# penumbra con tiras de LED. Se busca la ganancia lineal cuya mediana en pantalla cae en
+# 0,168, invirtiendo la tabla de la mirada — no multiplicando por un numero a ojo, porque
+# AgX no es lineal y bajar el doble no baja el doble.
+MEDIANA_DEL_RENDER = 0.168
+
+def lineal_de_pantalla(valor):
+    """La inversa de la mirada: que luz lineal produce ese valor en pantalla."""
+    return float(np.interp(valor, MIRADA, RAMPA))
+
 todo = np.concatenate([np.array(p["col"]).reshape(-1, 3) for (tex, em), p in partes.items() if not em])
 lum = todo @ np.array([0.2126, 0.7152, 0.0722])
-p90 = float(np.percentile(lum, 90))
-ganancia = 0.9 / max(p90, 1e-6)
-print("luminancia p50=%.3f p90=%.3f -> ganancia %.2f" % (float(np.percentile(lum, 50)), p90, ganancia))
+mediana_lineal = float(np.median(lum))
+ganancia = lineal_de_pantalla(MEDIANA_DEL_RENDER) / max(mediana_lineal, 1e-6)
+print("mediana lineal %.4f -> objetivo %.3f en pantalla (%.4f lineal) -> ganancia %.2f" % (
+    mediana_lineal, MEDIANA_DEL_RENDER, lineal_de_pantalla(MEDIANA_DEL_RENDER), ganancia))
 
 # ---------------------------------------------------------------- 5) escribir
 def alinear(n):
