@@ -994,4 +994,27 @@ select '0052 - la sesion lleva fecha', 'fijar_fecha_sesion existe, invoker y cer
                   'public.fijar_fecha_sesion(text,text,text)', 'execute')
        then 'SI' else 'NO' end
 
+union all
+-- Dos señales en una, y hacen falta las dos. La columna se busca POR SU CHECK y
+-- no por su nombre: una columna `sexo` sin el check dejaría entrar la 'M' o la
+-- 'F' de una carga, y la app no dibujaría nada con ellas. Y el trigger tiene
+-- que nombrarla: `proteger_perfil` compara `datos` y solo `datos`, así que una
+-- columna fuera del blob se le escapaba y el asesorado podía escribirla por la
+-- API. Diría NO con la migración a medias (columna sí, función no).
+select '0056 - el sexo en la ficha', 'columna con check (hombre, mujer) y proteger_perfil la vigila',
+       case when exists (
+              select 1 from pg_constraint c
+                join pg_class t on t.oid = c.conrelid
+                join pg_namespace n on n.oid = t.relnamespace
+               where n.nspname = 'public' and t.relname = 'perfiles'
+                 and c.contype = 'c'
+                 and pg_get_constraintdef(c.oid) like '%sexo%'
+                 and pg_get_constraintdef(c.oid) like '%hombre%'
+                 and pg_get_constraintdef(c.oid) like '%mujer%')
+            and exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'proteger_perfil'
+                 and p.prosrc like '%new.sexo%')
+       then 'SI' else 'NO' end
+
 order by migracion, senal;

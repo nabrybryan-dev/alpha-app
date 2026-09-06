@@ -142,6 +142,76 @@ select pruebas.afirmar(
   'la prueba de calibración no se guardó'
 );
 
+-- ─────────────────── La ficha (0056): el sexo lo pone el coach ───────────────────
+-- Tres cosas, y las tres son las que `sync.ts` da por hechas: el coach escribe la
+-- columna; el vocabulario lo cierra la base; y la escritura del asesorado —que
+-- NO nombra la columna, a propósito— la deja como está y no puede cambiarla.
+reset role;
+select pruebas.soy('33333333-3333-3333-3333-333333333333');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 7. El coach indica el sexo. Es el envío de `subirPerfil(..., 'coach')`: el blob
+--    sin el sexo dentro, y el sexo en su columna.
+insert into public.perfiles (usuario_id, datos, sexo)
+values ('11111111-1111-1111-1111-111111111111', '{"usuarioId": "u-a", "medidas": []}'::jsonb, 'mujer')
+on conflict (usuario_id) do update set datos = excluded.datos, sexo = excluded.sexo;
+
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 'mujer',
+  'el coach no pudo indicar el sexo en la ficha'
+);
+
+-- 8. Un valor fuera del vocabulario no entra: ni la 'M' de la encuesta de
+--    nutrición, que es otra cosa. Si entrara, la app no dibujaría nada con ella.
+do $$
+begin
+  begin
+    update public.perfiles set sexo = 'M'
+     where usuario_id = '11111111-1111-1111-1111-111111111111';
+    raise exception 'FALLO: la base aceptó un sexo fuera de (hombre, mujer)';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+end $$;
+
+-- ─────────────────── Otra vez como la asesorada A ───────────────────
+reset role;
+select pruebas.soy('11111111-1111-1111-1111-111111111111');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 9. Registrar una medida —su única escritura sobre la ficha— no borra lo que
+--    puso el coach: la sentencia no nombra la columna.
+update public.perfiles
+   set datos = '{"usuarioId": "u-a", "medidas": [{"fecha": "2026-09-06", "alturaCm": 165, "perimetros": {}}]}'::jsonb
+ where usuario_id = '11111111-1111-1111-1111-111111111111';
+
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 'mujer',
+  'la medida de la asesorada borró el sexo que puso el coach'
+);
+
+-- 10. Y no puede cambiarlo ella: `proteger_perfil` lo vigila desde la 0056. Sin
+--     esto la columna se le escapaba al trigger, que solo mira `datos`.
+do $$
+begin
+  begin
+    update public.perfiles set sexo = 'hombre'
+     where usuario_id = '11111111-1111-1111-1111-111111111111';
+    raise exception 'FALLO: la asesorada cambió el sexo de su propia ficha';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+end $$;
+
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 'mujer',
+  'el sexo cambió aunque el trigger dijera que no'
+);
+
 reset role;
 
 commit;
