@@ -6,7 +6,16 @@ import {
   DEMOSTRACION_POR_ID,
   type Demostracion,
 } from '../../../domain/patrones/demostraciones'
+import { SEXOS, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
 import { VisorPatron } from './VisorPatron'
+
+/** Lo que se ve en el botón, y lo que lee quien no ve: el símbolo solo no dice nada. */
+const SIMBOLO_DE_SEXO: Record<Sexo, string> = { neutro: 'Neutro', hombre: '♂', mujer: '♀' }
+const NOMBRE_DE_SEXO: Record<Sexo, string> = {
+  neutro: 'Huesos neutros',
+  hombre: 'Huesos de hombre',
+  mujer: 'Huesos de mujer',
+}
 
 /**
  * El sujeto, aislado, ejerciendo una acción cada vez.
@@ -50,6 +59,9 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
   const [hueso, setHueso] = useState(false)
   const [musculo, setMusculo] = useState(false)
   const [piel, setPiel] = useState(false)
+  // Con qué huesos se dibuja el sujeto. Neutro es el de siempre; la app no sabe el sexo
+  // de nadie, así que aquí se elige a mano.
+  const [sexo, setSexo] = useState<Sexo>('neutro')
   // Memorizado porque un array nuevo cada render reiniciaría el efecto que lo carga.
   const atlas = useMemo(
     () => [
@@ -148,6 +160,28 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
             {nombre}
           </button>
         ))}
+
+        {/* EL SEXO DEL SUJETO: con qué huesos se dibuja el que se mueve. Neutro es el de
+            siempre; hombre y mujer llevan las longitudes medidas en los dos atlas
+            (`juegoDeHuesos.ts`). Va junto a la anatomía real porque es la misma pregunta
+            —¿de quién es este cuerpo?— y se elige a mano porque la app no sabe el sexo de
+            nadie. */}
+        <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-silver-500">Huesos</span>
+        {SEXOS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setSexo(s)}
+            aria-pressed={sexo === s}
+            aria-label={NOMBRE_DE_SEXO[s]}
+            title={NOMBRE_DE_SEXO[s]}
+            className={`press rounded-lg border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${
+              sexo === s ? 'border-ambar/45 bg-ambar/15 text-ambar' : 'border-ink-500 text-silver-500'
+            }`}
+          >
+            {SIMBOLO_DE_SEXO[s]}
+          </button>
+        ))}
       </div>
 
       {/* La anatomía real ocupa más que el muñeco —es carne, no palos— y llega hasta los
@@ -158,6 +192,7 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
         conEscenario={false}
         atlas={atlas}
         retirada={atlas.length > 0 ? 1.35 : 1}
+        sexo={sexo}
       />
     </div>
   )

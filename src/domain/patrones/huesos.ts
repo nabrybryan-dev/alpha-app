@@ -4,13 +4,18 @@
  * Se construye UNA vez, en el espacio local de cada hueso, y después el shader
  * la mueve con la matriz correspondiente. Por eso el esqueleto no cuesta nada
  * aunque la pose cambie sesenta veces por segundo.
+ *
+ * Los relieves están escritos en metros DEL SUJETO NEUTRO: el húmero corre de 0,005
+ * a 0,31 porque el brazo neutro mide 0,31. Con otro juego de huesos —el de un varón o
+ * el de una mujer, ver `juegoDeHuesos.ts`— cada hueso se estira al final a lo largo
+ * de su eje hasta su largo nuevo, y los relieves se van con él.
  */
 
 import { entre, grados, M4, type Vec3 } from './algebra'
-import { COLOR_HUESO, COLOR_HUESO_OSCURO, INDICE_HUESO, LADO, type Lado } from './esqueleto'
+import { COLOR_HUESO, COLOR_HUESO_OSCURO, ESQUELETO, INDICE_HUESO, LADO, type DefinicionHueso, type Lado } from './esqueleto'
 import { curva, elipsoide, huesoLargo, Malla, tubo } from './malla'
 
-export function construirHuesos(): Malla {
+export function construirHuesos(huesos: readonly DefinicionHueso[] = ESQUELETO): Malla {
   const m = new Malla()
   const H = (n: string): number => INDICE_HUESO[n]
   const lados: Lado[] = ['D', 'I']
@@ -477,6 +482,45 @@ export function construirHuesos(): Malla {
         { hueso: bpi, color: COLOR_HUESO, radial: 5 },
       )
     }
+  }
+  return estirarAlJuego(m, huesos)
+}
+
+/**
+ * LA GEOMETRÍA SIGUE AL JUEGO DE HUESOS.
+ *
+ * Cada hueso se estira a lo largo de su eje —el +Y local, que es por donde corre todo
+ * hueso de este rig— en la razón entre su largo en el juego y su largo neutro. Así la
+ * tuberosidad deltoidea sigue a media diáfisis, los cóndilos siguen en el extremo y la
+ * diáfisis del fémur llega justo a la rodilla, que es donde la matriz del siguiente
+ * hueso la espera. Lo que no es largo —el grosor, la anchura de la caja, el cráneo en
+ * planta— no se toca, porque nada lo ha medido.
+ *
+ * La normal se transforma como manda una escala no uniforme, con la inversa
+ * traspuesta: se DIVIDE en Y y se vuelve a normalizar, o la luz delataría un fémur
+ * estirado como si fuera un tubo aplastado.
+ *
+ * Con el neutro no se toca ni un byte: es el mismo objeto y se devuelve tal cual.
+ */
+function estirarAlJuego(m: Malla, huesos: readonly DefinicionHueso[]): Malla {
+  if (huesos === ESQUELETO) return m
+  const largoDe = new Map(huesos.map((h) => [h.nombre, h.largo]))
+  // Por hueco de matriz: el 0 es la identidad y no se estira.
+  const razon = [1, ...ESQUELETO.map((h) => (largoDe.get(h.nombre) ?? h.largo) / h.largo)]
+  const posicion = m.posicion
+  const normal = m.normal
+  const hueso = m.hueso
+  for (let i = 0; i < m.vertices; i++) {
+    const e = razon[hueso[i]]
+    if (e === 1) continue
+    posicion[i * 3 + 1] *= e
+    const nx = normal[i * 3]
+    const ny = normal[i * 3 + 1] / e
+    const nz = normal[i * 3 + 2]
+    const largo = Math.hypot(nx, ny, nz) || 1
+    normal[i * 3] = nx / largo
+    normal[i * 3 + 1] = ny / largo
+    normal[i * 3 + 2] = nz / largo
   }
   return m
 }
