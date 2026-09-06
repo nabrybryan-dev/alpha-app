@@ -1,7 +1,9 @@
 /**
  * Esqueleto articulado del visor de patrones.
  *
- * Proporciones de un sujeto de ~1,70 m con el suelo en Y=0. El sujeto mira
+ * Proporciones de un sujeto de ~1,70 m con el suelo en Y=0. Desde el 2026-09-06 las
+ * proporciones por defecto son las de un varón real (`juegoDeHuesos.ts`); la definición
+ * original vive en `huesosNeutros.ts`. El sujeto mira
  * hacia +Z y su lado DERECHO anatómico cae en −X: es lo que ve el asesorado si
  * se mira al espejo, que es la referencia con la que corrige su técnica.
  *
@@ -12,50 +14,17 @@
 
 import { grados, M4, V, type Mat4, type Vec3 } from './algebra'
 import type { Color } from './malla'
+import { ESQUELETO, PLANTA_NEUTRA, type DefinicionHueso } from './huesosNeutros'
+import { HUESOS_POR_DEFECTO } from './juegoDeHuesos'
+
+// Se re-exportan para que quien los importaba de aquí siga encontrándolos: el dato se
+// mudó a `huesosNeutros.ts` para romper un ciclo de imports, no para cambiar de sitio.
+export { ESQUELETO }
+export type { DefinicionHueso }
 
 export const COLOR_HUESO: Color = [0.855, 0.835, 0.783]
 export const COLOR_HUESO_OSCURO: Color = [0.7, 0.685, 0.64]
 
-export interface DefinicionHueso {
-  nombre: string
-  padre: string | null
-  /** Desplazamiento desde el origen del padre. */
-  desde: Vec3
-  largo: number
-  reposo: Vec3
-}
-
-const d = grados
-
-export const ESQUELETO: DefinicionHueso[] = [
-  { nombre: 'pelvis', padre: null, desde: [0, 0.95, 0], largo: 0.1, reposo: [0, 0, 0] },
-  { nombre: 'lumbar', padre: 'pelvis', desde: [0, 0.06, -0.005], largo: 0.17, reposo: [0, 0, 0] },
-  { nombre: 'torax', padre: 'lumbar', desde: [0, 0.17, 0], largo: 0.28, reposo: [0, 0, 0] },
-  { nombre: 'cuello', padre: 'torax', desde: [0, 0.27, -0.015], largo: 0.08, reposo: [0, 0, 0] },
-  { nombre: 'craneo', padre: 'cuello', desde: [0, 0.08, 0], largo: 0.16, reposo: [0, 0, 0] },
-
-  { nombre: 'claviculaD', padre: 'torax', desde: [-0.02, 0.245, 0.035], largo: 0.155, reposo: [0, 0, d(72)] },
-  { nombre: 'claviculaI', padre: 'torax', desde: [0.02, 0.245, 0.035], largo: 0.155, reposo: [0, 0, d(-72)] },
-  { nombre: 'escapulaD', padre: 'torax', desde: [-0.055, 0.235, -0.045], largo: 0.15, reposo: [0, 0, d(160)] },
-  { nombre: 'escapulaI', padre: 'torax', desde: [0.055, 0.235, -0.045], largo: 0.15, reposo: [0, 0, d(-160)] },
-
-  // El brazo cuelga del TÓRAX, no de la clavícula. La clavícula lleva un reposo
-  // de 72° en Z, así que el húmero heredaba un eje X casi vertical: rotar sobre
-  // él no era flexión de hombro sino rotación axial, y la pose salía torcida.
-  { nombre: 'brazoD', padre: 'torax', desde: [-0.168, 0.232, 0.008], largo: 0.31, reposo: [d(180), 0, 0] },
-  { nombre: 'brazoI', padre: 'torax', desde: [0.168, 0.232, 0.008], largo: 0.31, reposo: [d(180), 0, 0] },
-  { nombre: 'antebrazoD', padre: 'brazoD', desde: [0, 0.31, 0], largo: 0.26, reposo: [0, 0, 0] },
-  { nombre: 'antebrazoI', padre: 'brazoI', desde: [0, 0.31, 0], largo: 0.26, reposo: [0, 0, 0] },
-  { nombre: 'manoD', padre: 'antebrazoD', desde: [0, 0.26, 0], largo: 0.18, reposo: [0, 0, 0] },
-  { nombre: 'manoI', padre: 'antebrazoI', desde: [0, 0.26, 0], largo: 0.18, reposo: [0, 0, 0] },
-
-  { nombre: 'musloD', padre: 'pelvis', desde: [-0.088, 0.005, 0], largo: 0.45, reposo: [d(180), 0, 0] },
-  { nombre: 'musloI', padre: 'pelvis', desde: [0.088, 0.005, 0], largo: 0.45, reposo: [d(180), 0, 0] },
-  { nombre: 'tibiaD', padre: 'musloD', desde: [0, 0.45, 0], largo: 0.43, reposo: [0, 0, 0] },
-  { nombre: 'tibiaI', padre: 'musloI', desde: [0, 0.45, 0], largo: 0.43, reposo: [0, 0, 0] },
-  { nombre: 'pieD', padre: 'tibiaD', desde: [0, 0.43, 0], largo: 0.22, reposo: [d(-90), 0, 0] },
-  { nombre: 'pieI', padre: 'tibiaI', desde: [0, 0.43, 0], largo: 0.22, reposo: [d(-90), 0, 0] },
-]
 
 /** Índice del hueso en el array de matrices. El 0 queda para la identidad. */
 export const INDICE_HUESO: Record<string, number> = {}
@@ -193,7 +162,7 @@ export function resolver(
    * mismos padres, y solo cambia `desde` y `largo`; por eso `INDICE_HUESO` vale para
    * todos y las matrices salen en el mismo hueco.
    */
-  huesos: readonly DefinicionHueso[] = ESQUELETO,
+  huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO,
 ): EsqueletoResuelto {
   const eul = poseAEuler(pose)
   const mundo: Record<string, Mat4> = {}
@@ -248,7 +217,7 @@ export function apoyarPies(
   desplazamiento: Vec3,
   giroRaiz: Vec3,
   lados: Lado[],
-  huesos: readonly DefinicionHueso[] = ESQUELETO,
+  huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO,
 ): Pose {
   const esq = resolver(pose, desplazamiento, giroRaiz, huesos)
   const salida: Pose = { ...pose }
@@ -282,7 +251,12 @@ export function apoyarPies(
  * veía «casi bien», que es como se ven los errores de signo. Lo cazó `escena/carta.test.ts`
  * contrastando el esqueleto resuelto con las medidas que él mismo declara.
  */
-export const ALTURA_DEL_TOBILLO = 0.075
+export const ALTURA_DEL_TOBILLO = PLANTA_NEUTRA
+
+/** Del tobillo a la planta con ESTOS huesos: la del pie del juego, o la neutra. */
+export function plantaDe(huesos: readonly DefinicionHueso[]): number {
+  return huesos.find((h) => h.nombre === 'pieD')?.planta ?? PLANTA_NEUTRA
+}
 
 export type Apoyo = 'suelo' | 'manos' | 'ninguno'
 
@@ -305,7 +279,7 @@ export function resolverConApoyo(
   apoyo: Apoyo,
   altura: number | undefined,
   pies: Lado[],
-  huesos: readonly DefinicionHueso[] = ESQUELETO,
+  huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO,
 ): EsqueletoResuelto {
   const conPies = pies.length ? apoyarPies(pose, desplazamiento, giroRaiz, pies, huesos) : pose
   const esq = resolver(conPies, desplazamiento, giroRaiz, huesos)
@@ -318,7 +292,7 @@ export function resolverConApoyo(
     // Se muestrea a lo largo del hueso porque en flexión plantar el punto más
     // bajo del pie deja de ser el talón y pasa a ser la cabeza del metatarso.
     for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-      const p = puntoDeHueso(esq, h, t, [0, 0, h.startsWith('pie') ? ALTURA_DEL_TOBILLO : 0])
+      const p = puntoDeHueso(esq, h, t, [0, 0, h.startsWith('pie') ? plantaDe(huesos) : 0])
       y = apoyo === 'manos' ? Math.max(y, p[1]) : Math.min(y, p[1])
     }
   }

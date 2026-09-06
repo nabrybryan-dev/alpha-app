@@ -46,7 +46,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { brotliCompressSync, constants } from 'node:zlib'
 import { pathToFileURL } from 'node:url'
 import { escribirPieza, type PartePieza } from '../../src/features/entrenar/escena/piezas3d'
-import { ESQUELETO, puntoDeHueso, resolver } from '../../src/domain/patrones/esqueleto'
+import { puntoDeHueso, resolver } from '../../src/domain/patrones/esqueleto'
+import { esqueletoDe, type Sexo } from '../../src/domain/patrones/juegoDeHuesos'
 
 /** Cuánto se conserva de cada estructura, y el error máximo que se le tolera. */
 const RECORTE = 0.15
@@ -189,10 +190,11 @@ interface Grupo {
  * manifiesto. Así que del femenino sale UNA pieza, la piel, y no un esqueleto que sería
  * una columna con dos rodillas flotando.
  */
-const FUENTES: Record<string, { manifiesto: string; prefijo: string; grupos: Record<string, Grupo> }> = {
+const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo; grupos: Record<string, Grupo> }> = {
   masculino: {
     manifiesto: 'atlas.json',
     prefijo: 'body',
+    sexo: 'hombre',
     grupos: {
       // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
       // superponerlos no parezcan dos anatomías distintas.
@@ -203,6 +205,7 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; grupos: Rec
   femenino: {
     manifiesto: 'atlas-female.json',
     prefijo: 'female',
+    sexo: 'mujer',
     grupos: {
       // Solo la superficie. Las otras 16 piezas «integumentary» son tejido interno de la
       // mama (lóbulos, conductos), que no es piel ni se ve desde fuera.
@@ -229,38 +232,42 @@ async function main() {
   const { MeshoptSimplifier } = await import(pathToFileURL(`${dir}/node_modules/meshoptimizer/index.js`).href)
   await MeshoptSimplifier.ready
 
-  // NUESTRO esqueleto en reposo, para sacar de él las alturas de referencia.
-  const esq = resolver({}, [0, 0, 0], [0, 0, 0])
-  const huesos = ESQUELETO.map((h) => ({
-    nombre: h.nombre,
-    a: puntoDeHueso(esq, h.nombre, 0) as number[],
-    b: puntoDeHueso(esq, h.nombre, 1) as number[],
-  }))
-  const punto = (n: string, extremo: 0 | 1) => huesos.find((h) => h.nombre === n)![extremo === 0 ? 'a' : 'b']
-  const nuestro = (n: string, extremo: 0 | 1) => punto(n, extremo)[1]
-
-  /** A qué hueso nuestro pertenece una estructura: el segmento más cercano a su centro. */
-  const huesoDe = (p: ParteDelAtlas) => {
-    const c = p.bounds[0].map((v, k) => (v + p.bounds[1][k]) / 2)
-    let mejor = huesos[0].nombre
-    let dm = Infinity
-    for (const h of huesos) {
-      const ab = [h.b[0] - h.a[0], h.b[1] - h.a[1], h.b[2] - h.a[2]]
-      const ap = [c[0] - h.a[0], c[1] - h.a[1], c[2] - h.a[2]]
-      const l2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2 || 1e-9
-      const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / l2))
-      const d = Math.hypot(c[0] - (h.a[0] + ab[0] * t), c[1] - (h.a[1] + ab[1] * t), c[2] - (h.a[2] + ab[2] * t))
-      if (d < dm) {
-        dm = d
-        mejor = h.nombre
-      }
-    }
-    return mejor
-  }
-
   mkdirSync('public/piezas', { recursive: true })
 
   for (const [sexo, fuente] of Object.entries(FUENTES)) {
+    // NUESTRO esqueleto en reposo, para sacar de él las alturas de referencia.
+    // Cada atlas se encaja contra el juego de huesos de SU sexo: el masculino contra el
+    // varón —que desde el 2026-09-06 es el defecto y tiene sus mismas medidas, así que el
+    // estirado sale casi nulo— y la piel femenina contra la mujer.
+    const definicion = esqueletoDe(fuente.sexo)
+    const esq = resolver({}, [0, 0, 0], [0, 0, 0], definicion)
+    const huesos = definicion.map((h) => ({
+      nombre: h.nombre,
+      a: puntoDeHueso(esq, h.nombre, 0) as number[],
+      b: puntoDeHueso(esq, h.nombre, 1) as number[],
+    }))
+    const punto = (n: string, extremo: 0 | 1) => huesos.find((h) => h.nombre === n)![extremo === 0 ? 'a' : 'b']
+    const nuestro = (n: string, extremo: 0 | 1) => punto(n, extremo)[1]
+
+    /** A qué hueso nuestro pertenece una estructura: el segmento más cercano a su centro. */
+    const huesoDe = (p: ParteDelAtlas) => {
+      const c = p.bounds[0].map((v, k) => (v + p.bounds[1][k]) / 2)
+      let mejor = huesos[0].nombre
+      let dm = Infinity
+      for (const h of huesos) {
+        const ab = [h.b[0] - h.a[0], h.b[1] - h.a[1], h.b[2] - h.a[2]]
+        const ap = [c[0] - h.a[0], c[1] - h.a[1], c[2] - h.a[2]]
+        const l2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2 || 1e-9
+        const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / l2))
+        const d = Math.hypot(c[0] - (h.a[0] + ab[0] * t), c[1] - (h.a[1] + ab[1] * t), c[2] - (h.a[2] + ab[2] * t))
+        if (d < dm) {
+          dm = d
+          mejor = h.nombre
+        }
+      }
+      return mejor
+    }
+
     const manifiesto = JSON.parse(readFileSync(`${dir}/${fuente.manifiesto}`, 'utf8')) as Manifiesto
     const trozos = manifiesto.chunks.map((_, i) => readFileSync(`${dir}/${fuente.prefijo}-${i}.bin`))
 

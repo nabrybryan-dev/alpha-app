@@ -1,3 +1,4 @@
+import { HUESOS_POR_DEFECTO, JUEGOS, SEXO_POR_DEFECTO } from '../../../domain/patrones/juegoDeHuesos'
 import { BAHIA } from '../../../domain/escenario/laboratorio'
 import { ENCUADRE_SALA, SALA } from './sala'
 
@@ -67,11 +68,16 @@ import { ENCUADRE_SALA, SALA } from './sala'
  * error, no una convención implícita.
  */
 
-/** La talla del sujeto de referencia, en metros. Las proporciones del esqueleto salen de ella. */
-export const TALLA = 1.7
+/**
+ * La talla y la pelvis del sujeto POR DEFECTO, leídas del juego de huesos que manda y no
+ * copiadas: hasta el 2026-09-06 eran 1,70 y 0,95 escritos a mano —el neutro—, y ese día
+ * el defecto pasó a ser el varón real (1,714 y 0,907) por decisión de Bryan. Si mañana
+ * cambia el defecto, la carta cambia con él en vez de quedarse describiendo a otro sujeto.
+ */
+export const TALLA = JUEGOS[SEXO_POR_DEFECTO].coronilla
 
-/** Dónde está la pelvis de pie, en metros sobre el suelo. Es la raíz del esqueleto. */
-export const ALTURA_DE_LA_PELVIS = 0.95
+/** Dónde nace la pelvis de pie, en metros sobre el suelo. Es la raíz del esqueleto. */
+export const ALTURA_DE_LA_PELVIS = HUESOS_POR_DEFECTO.find((h) => h.nombre === 'pelvis')!.desde[1]
 
 /**
  * LA CARTA. Todo en metros y grados, y todo con su fuente: cada número apunta al objeto

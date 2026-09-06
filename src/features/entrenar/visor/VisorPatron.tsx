@@ -14,7 +14,7 @@ import {
   trazaDelPatron,
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
-import { esqueletoDe, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
+import { esqueletoDe, SEXO_POR_DEFECTO, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
@@ -390,7 +390,7 @@ export function VisorPatron({
   fantasma,
   orbitaConUnDedo = true,
   retirada = 1,
-  sexo = 'neutro',
+  sexo = SEXO_POR_DEFECTO,
 }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)

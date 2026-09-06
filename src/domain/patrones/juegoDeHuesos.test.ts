@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { PATRON_POR_ID } from './catalogo'
 import { encuadrar, esqueletoEnFase, trazaDelPatron } from './escena'
-import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolver, type DefinicionHueso } from './esqueleto'
+import { ALTURA_DEL_TOBILLO, ESQUELETO, INDICE_HUESO, puntoDeHueso, resolver, resolverConApoyo, type DefinicionHueso } from './esqueleto'
 import { construirHuesos } from './huesos'
-import { esqueletoDe, JUEGOS, SEXOS } from './juegoDeHuesos'
+import { esqueletoDe, HUESOS_POR_DEFECTO, JUEGOS, SEXO_POR_DEFECTO, SEXOS } from './juegoDeHuesos'
 import type { Malla } from './malla'
 import { construirMusculos, longitudesEnReposo } from './musculos'
 
@@ -86,15 +86,34 @@ function extension(m: Malla, nombre: string, eje: 0 | 1 | 2): number {
   return max - min
 }
 
+describe('el juego por defecto', () => {
+  it('es el varón real, por decisión de Bryan del 2026-09-06, y es UNA palabra', () => {
+    expect(SEXO_POR_DEFECTO).toBe('hombre')
+    expect(esqueletoDe()).toBe(esqueletoDe('hombre'))
+    expect(HUESOS_POR_DEFECTO).toBe(esqueletoDe('hombre'))
+    expect(SEXOS[0]).toBe(SEXO_POR_DEFECTO)
+  })
+
+  it('sin parámetro, todo resuelve con el varón: matrices, malla, encuadre y traza', () => {
+    const p = PATRON_POR_ID.sentadilla
+    expect(resolver({}, [0, 0, 0], [0, 0, 0]).matrices).toStrictEqual(
+      resolver({}, [0, 0, 0], [0, 0, 0], esqueletoDe('hombre')).matrices,
+    )
+    expect(esqueletoEnFase(p, 0.5).matrices).toStrictEqual(esqueletoEnFase(p, 0.5, 1, 0, undefined, esqueletoDe('hombre')).matrices)
+    expect(huella(construirHuesos().posicion)).toBe(huella(construirHuesos(esqueletoDe('hombre')).posicion))
+    expect(encuadrar(p)).toStrictEqual(encuadrar(p, esqueletoDe('hombre')))
+    expect(trazaDelPatron(p)).toStrictEqual(trazaDelPatron(p, esqueletoDe('hombre')))
+  })
+})
+
 describe('el juego neutro', () => {
-  it('es el esqueleto de hoy, el mismo objeto, y es el que sale sin pedir nada', () => {
+  it('es el esqueleto de siempre, el mismo objeto, y se pide por su nombre', () => {
     expect(esqueletoDe('neutro')).toBe(ESQUELETO)
-    expect(esqueletoDe()).toBe(ESQUELETO)
   })
 
   it('mide lo que el sujeto medía cuando se le comparó con los atlas', () => {
     // Es la columna «sujeto actual» de la tabla del encargo, al milímetro.
-    const a = alturas()
+    const a = alturas(esqueletoDe('neutro'))
     expect(a.tobillo).toBeCloseTo(0.076, 3)
     expect(a.rodilla).toBeCloseTo(0.505, 3)
     expect(a.cadera).toBeCloseTo(0.955, 3)
@@ -183,26 +202,22 @@ describe('los juegos con medida', () => {
   })
 })
 
-describe('sin juego, o con el neutro, nada cambia', () => {
+describe('el neutro sigue siendo lo de antes, byte a byte', () => {
+  // Hasta el 2026-09-06 estas huellas se comprobaban TAMBIÉN sin parámetro. Ese día el
+  // defecto pasó a ser el varón (decisión de Bryan) y el neutro se pide por su nombre: lo
+  // que estas huellas protegen es que el neutro no se mueva, no que sea el defecto.
+  const neutro = esqueletoDe('neutro')
+
   it('la pose vacía da las matrices de antes, byte a byte', () => {
-    expect(huellaDeMatrices(resolver({}, [0, 0, 0], [0, 0, 0]).matrices)).toBe(DE_ANTES.poseVaciaEnElSuelo)
-    expect(huellaDeMatrices(resolver({}, [0, 0, 0], [0, 0, 0], esqueletoDe('neutro')).matrices)).toBe(
-      DE_ANTES.poseVaciaEnElSuelo,
-    )
-    expect(huellaDeMatrices(resolver({}, [0, 0.95, 0], [0, 0, 0]).matrices)).toBe(DE_ANTES.poseVaciaA095)
+    expect(huellaDeMatrices(resolver({}, [0, 0, 0], [0, 0, 0], neutro).matrices)).toBe(DE_ANTES.poseVaciaEnElSuelo)
+    expect(huellaDeMatrices(resolver({}, [0, 0.95, 0], [0, 0, 0], neutro).matrices)).toBe(DE_ANTES.poseVaciaA095)
   })
 
-  it('dos patrones dan las matrices de antes, con parámetro y sin él', () => {
-    const sentadilla = esqueletoEnFase(PATRON_POR_ID.sentadilla, 0.5)
+  it('dos patrones dan las matrices de antes', () => {
+    const sentadilla = esqueletoEnFase(PATRON_POR_ID.sentadilla, 0.5, 1, 0, undefined, neutro)
     expect(huellaDeMatrices([...sentadilla.matrices, sentadilla.raiz])).toBe(DE_ANTES.sentadillaAMedias)
-    const sentadillaNeutra = esqueletoEnFase(PATRON_POR_ID.sentadilla, 0.5, 1, 0, undefined, esqueletoDe('neutro'))
-    expect(sentadillaNeutra.matrices).toStrictEqual(sentadilla.matrices)
-    expect(sentadillaNeutra.raiz).toStrictEqual(sentadilla.raiz)
-
-    const banca = esqueletoEnFase(PATRON_POR_ID.empuje_horizontal, 0.25)
+    const banca = esqueletoEnFase(PATRON_POR_ID.empuje_horizontal, 0.25, 1, 0, undefined, ESQUELETO)
     expect(huellaDeMatrices([...banca.matrices, banca.raiz])).toBe(DE_ANTES.bancaAUnCuarto)
-    const bancaNeutra = esqueletoEnFase(PATRON_POR_ID.empuje_horizontal, 0.25, 1, 0, undefined, ESQUELETO)
-    expect(bancaNeutra.matrices).toStrictEqual(banca.matrices)
   })
 
   it('los largos de los veintiún huesos son los de antes, número a número', () => {
@@ -210,7 +225,7 @@ describe('sin juego, o con el neutro, nada cambia', () => {
     // está escrita a mano: una tibia tocada en una diezmilésima de milímetro pasaba los
     // guardianes de arriba y de abajo. Se caza aquí, exacto y sin tolerancia. Visto en
     // rojo con la tibia en 0,4300001.
-    const largos = Object.values(resolver({}, [0, 0, 0], [0, 0, 0]).largo)
+    const largos = Object.values(resolver({}, [0, 0, 0], [0, 0, 0], neutro).largo)
     expect(largos).toStrictEqual([
       0.1, 0.17, 0.28, 0.08, 0.16,
       0.155, 0.155, 0.15, 0.15,
@@ -220,17 +235,16 @@ describe('sin juego, o con el neutro, nada cambia', () => {
   })
 
   it('la malla ósea es la de antes, vértice a vértice', () => {
-    for (const malla of [construirHuesos(), construirHuesos(esqueletoDe('neutro'))]) {
-      expect(malla.vertices).toBe(DE_ANTES.vertices)
-      expect(huella(malla.posicion)).toBe(DE_ANTES.mallaPosiciones)
-      expect(huella(malla.normal)).toBe(DE_ANTES.mallaNormales)
-    }
+    const malla = construirHuesos(neutro)
+    expect(malla.vertices).toBe(DE_ANTES.vertices)
+    expect(huella(malla.posicion)).toBe(DE_ANTES.mallaPosiciones)
+    expect(huella(malla.normal)).toBe(DE_ANTES.mallaNormales)
   })
 
-  it('el encuadre y la traza tampoco cambian', () => {
+  it('y el defecto de verdad se separa del neutro: si no, el cambio de Bryan no habría entrado', () => {
     const p = PATRON_POR_ID.sentadilla
-    expect(encuadrar(p, esqueletoDe('neutro'))).toStrictEqual(encuadrar(p))
-    expect(trazaDelPatron(p, ESQUELETO)).toStrictEqual(trazaDelPatron(p))
+    expect(encuadrar(p, neutro)).not.toStrictEqual(encuadrar(p))
+    expect(huella(construirHuesos().posicion)).not.toBe(DE_ANTES.mallaPosiciones)
   })
 
   it('y el guardián no está vacío: con el hombre las matrices SÍ cambian', () => {
@@ -276,7 +290,8 @@ describe('los músculos siguen anclándose', () => {
 })
 
 describe('la geometría ósea sigue al juego', () => {
-  const neutro = construirHuesos()
+  // El neutro por su nombre: sin parámetro ya sale el varón, y la razón sería 1.
+  const neutro = construirHuesos(esqueletoDe('neutro'))
   const hombre = construirHuesos(esqueletoDe('hombre'))
 
   it('estira cada hueso largo justo en la razón de su largo, y no toca su grosor', () => {
@@ -308,5 +323,29 @@ describe('la geometría ósea sigue al juego', () => {
       const l = Math.hypot(hombre.normal[i * 3], hombre.normal[i * 3 + 1], hombre.normal[i * 3 + 2])
       expect(Math.abs(l - 1), `normal ${i}`).toBeLessThan(1e-5)
     }
+  })
+})
+
+describe('la planta del pie va por sexo', () => {
+  // Bryan, 2026-09-06: «por sexo». Es la distancia del tobillo (base de la tibia) al SUELO
+  // de cada atlas: 7,2 cm el varón (su calcáneo queda en 0,010, el tejido del talón no está
+  // modelado), 7,4 la mujer (hasta la planta de su piel), 7,5 el neutro de siempre. Medida
+  // así, el sujeto plantado por el solver cae exacto en las alturas de su tabla.
+  it('cada juego lleva su planta, medida hasta el suelo de su atlas', () => {
+    expect(JUEGOS.hombre.planta).toBeCloseTo(0.072, 6)
+    expect(JUEGOS.neutro.planta).toBe(ALTURA_DEL_TOBILLO)
+    expect(JUEGOS.mujer.planta).toBeCloseTo(0.074, 6)
+    expect(esqueletoDe('hombre').find((h) => h.nombre === 'pieD')?.planta).toBeCloseTo(0.072, 6)
+    expect(esqueletoDe('neutro').find((h) => h.nombre === 'pieD')?.planta).toBeUndefined()
+  })
+
+  it('de pie en el suelo, el varón cae exacto en su tabla: tobillo, cadera y coronilla', () => {
+    // Es lo que la planta compra: plantado por el solver, el sujeto mide lo que su atlas.
+    const esq = resolverConApoyo({}, [0, 0, 0], [0, 0, 0], 'suelo', undefined, ['D', 'I'], esqueletoDe('hombre'))
+    expect(puntoDeHueso(esq, 'tibiaD', 1)[1]).toBeCloseTo(REFERENCIA.hombre.tobillo!, 3)
+    expect(puntoDeHueso(esq, 'musloD', 0)[1]).toBeCloseTo(REFERENCIA.hombre.cadera!, 2)
+    expect(puntoDeHueso(esq, 'craneo', 1)[1]).toBeCloseTo(REFERENCIA.hombre.coronilla!, 2)
+    const neutro = resolverConApoyo({}, [0, 0, 0], [0, 0, 0], 'suelo', undefined, ['D', 'I'], esqueletoDe('neutro'))
+    expect(puntoDeHueso(neutro, 'tibiaD', 1)[1]).toBeCloseTo(ALTURA_DEL_TOBILLO, 3)
   })
 })

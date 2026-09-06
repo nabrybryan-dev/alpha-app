@@ -10,7 +10,7 @@
  *
  * Tres juegos:
  *
- *  - `neutro`: el esqueleto de hoy, tal cual. ES EL QUE SE USA POR DEFECTO y no cambia
+ *  - `neutro`: el esqueleto de hoy, tal cual. ya NO es el que se usa por defecto (desde el 2026-09-06 lo es el varón) y no cambia
  *    ni un byte, porque cada patrón, cada prueba y cada foto aprobada están hechos con
  *    él. `esqueletoDe('neutro')` devuelve el mismo objeto `ESQUELETO`.
  *  - `hombre`: BodyParts3D 4.0, el varón adulto del atlas que ya está dentro de la app.
@@ -37,12 +37,12 @@
  * anchura de cadera, grosor de nada— se queda como en el neutro.
  */
 
-import { ESQUELETO, type DefinicionHueso } from './esqueleto'
+import { ESQUELETO, PLANTA_NEUTRA, type DefinicionHueso } from './huesosNeutros'
 
 export type Sexo = 'neutro' | 'hombre' | 'mujer'
 
 /** En el orden en que se ofrecen: primero el que se usa si nadie elige. */
-export const SEXOS: readonly Sexo[] = ['neutro', 'hombre', 'mujer']
+export const SEXOS: readonly Sexo[] = ['hombre', 'mujer', 'neutro']
 
 export interface JuegoDeHuesos {
   sexo: Sexo
@@ -58,6 +58,8 @@ export interface JuegoDeHuesos {
   antebrazo: number
   /** Del eje del cuerpo al centro de la cabeza del húmero: media anchura de hombros. */
   medioHombro: number
+  /** Del tobillo a la planta del pie: lo que hay que hundir el tobillo para pisar el suelo. */
+  planta: number
 }
 
 const POR_NOMBRE: Record<string, DefinicionHueso> = Object.fromEntries(
@@ -82,6 +84,7 @@ const NEUTRO: JuegoDeHuesos = {
   humero: POR_NOMBRE.brazoD.largo,
   antebrazo: POR_NOMBRE.antebrazoD.largo,
   medioHombro: -POR_NOMBRE.brazoD.desde[0],
+  planta: PLANTA_NEUTRA,
 }
 
 /**
@@ -98,6 +101,11 @@ const HOMBRE: JuegoDeHuesos = {
   humero: 0.305,
   antebrazo: 0.226,
   medioHombro: 0.19,
+  // Del tobillo (base de la tibia, a 0,072) al SUELO del atlas, no al calcáneo (0,010):
+  // el atlas no modela el tejido blando del talón y deja ese centímetro entre el hueso y
+  // el suelo. Medido así, las alturas de arriba (0,912, 1,714) quedan referidas al suelo y
+  // el sujeto plantado por el solver cae exacto en ellas.
+  planta: 0.072,
 }
 
 /**
@@ -121,6 +129,8 @@ const MUJER: JuegoDeHuesos = {
   humero: HOMBRE.humero * ESCALA_MUJER_SOBRE_HOMBRE,
   antebrazo: HOMBRE.antebrazo * ESCALA_MUJER_SOBRE_HOMBRE,
   medioHombro: HOMBRE.medioHombro * ESCALA_MUJER_SOBRE_HOMBRE,
+  // MEDIDA, no supuesta: de la base de la tibia (0,074) a la planta de la piel (0,000).
+  planta: 0.074,
 }
 
 export const JUEGOS: Record<Sexo, JuegoDeHuesos> = { neutro: NEUTRO, hombre: HOMBRE, mujer: MUJER }
@@ -183,7 +193,7 @@ export function esqueletoConJuego(juego: JuegoDeHuesos): DefinicionHueso[] {
       case 'tibia':
         return { ...h, desde: [x, juego.femur, z], largo: juego.tibia }
       case 'pie':
-        return { ...h, desde: [x, juego.tibia, z] }
+        return { ...h, desde: [x, juego.tibia, z], planta: juego.planta }
       default:
         return { ...h, desde: [x, y, z] }
     }
@@ -199,7 +209,7 @@ const ESQUELETO_POR_SEXO = new Map<Sexo, readonly DefinicionHueso[]>()
  *
  * El neutro es `ESQUELETO` mismo, no una copia: ni un byte de diferencia por defecto.
  */
-export function esqueletoDe(sexo: Sexo = 'neutro'): readonly DefinicionHueso[] {
+export function esqueletoDe(sexo: Sexo = SEXO_POR_DEFECTO): readonly DefinicionHueso[] {
   if (sexo === 'neutro') return ESQUELETO
   let esqueleto = ESQUELETO_POR_SEXO.get(sexo)
   if (!esqueleto) {
@@ -208,3 +218,22 @@ export function esqueletoDe(sexo: Sexo = 'neutro'): readonly DefinicionHueso[] {
   }
   return esqueleto
 }
+
+/**
+ * EL JUEGO POR DEFECTO ES EL VARÓN REAL. Decisión de Bryan del 2026-09-06.
+ *
+ * Hasta ese día el defecto era el neutro —las proporciones inventadas de siempre— y se
+ * mantuvo así a propósito para no mover ninguna pantalla aprobada. Bryan eligió lo
+ * contrario: que el muñeco de todos los ejercicios sea anatómicamente cierto, aunque
+ * cambie lo que ya había visto, y que la mujer salga cuando la ficha lo diga.
+ *
+ * Lo que se paga: las piernas quedan unos cinco centímetros más cortas y la cadera más
+ * baja en todos los patrones. Lo que se gana: el atlas masculino encaja sin deformarse,
+ * porque ahora el sujeto TIENE sus medidas.
+ *
+ * `HUESOS_POR_DEFECTO` es lo que usan `resolver()`, `esqueletoEnFase()` y
+ * `construirHuesos()` cuando nadie les pasa un juego. Cambiar el defecto es cambiar UNA
+ * palabra aquí; el neutro sigue existiendo y se puede pedir por su nombre.
+ */
+export const SEXO_POR_DEFECTO: Sexo = 'hombre'
+export const HUESOS_POR_DEFECTO: readonly DefinicionHueso[] = esqueletoDe(SEXO_POR_DEFECTO)

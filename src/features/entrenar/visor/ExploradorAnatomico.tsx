@@ -6,7 +6,7 @@ import {
   DEMOSTRACION_POR_ID,
   type Demostracion,
 } from '../../../domain/patrones/demostraciones'
-import { SEXOS, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
+import { SEXO_POR_DEFECTO, SEXOS, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
 import { VisorPatron } from './VisorPatron'
 
 /**
@@ -65,7 +65,7 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
   const [piel, setPiel] = useState(false)
   // Con qué huesos se dibuja el sujeto. Neutro es el de siempre; la app no sabe el sexo
   // de nadie, así que aquí se elige a mano.
-  const [sexo, setSexo] = useState<Sexo>('neutro')
+  const [sexo, setSexo] = useState<Sexo>(SEXO_POR_DEFECTO)
   // Memorizado porque un array nuevo cada render reiniciaría el efecto que lo carga.
   const atlas = useMemo(
     () => [

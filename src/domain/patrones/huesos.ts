@@ -12,10 +12,12 @@
  */
 
 import { entre, grados, M4, type Vec3 } from './algebra'
-import { COLOR_HUESO, COLOR_HUESO_OSCURO, ESQUELETO, INDICE_HUESO, LADO, type DefinicionHueso, type Lado } from './esqueleto'
+import { COLOR_HUESO, COLOR_HUESO_OSCURO, INDICE_HUESO, LADO, type DefinicionHueso, type Lado } from './esqueleto'
+import { HUESOS_POR_DEFECTO } from './juegoDeHuesos'
+import { ESQUELETO } from './huesosNeutros'
 import { curva, elipsoide, huesoLargo, Malla, tubo } from './malla'
 
-export function construirHuesos(huesos: readonly DefinicionHueso[] = ESQUELETO): Malla {
+export function construirHuesos(huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO): Malla {
   const m = new Malla()
   const H = (n: string): number => INDICE_HUESO[n]
   const lados: Lado[] = ['D', 'I']

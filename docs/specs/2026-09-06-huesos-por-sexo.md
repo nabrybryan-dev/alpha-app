@@ -110,3 +110,13 @@ teléfono.
 3. Si el brazo femenino supuesto vale hasta que haya un atlas femenino con brazo.
 4. Si la planta bajo el tobillo (7,5 cm, `ALTURA_DEL_TOBILLO`) debe ir por sexo (el varón
    del atlas tiene 6,2 cm entre planta y tobillo).
+
+## Decisión posterior (mismo día): el defecto es el varón
+
+Bryan eligió, en selección múltiple, que el muñeco por defecto sea el varón real y la mujer
+cuando la ficha lo diga; que el sexo vaya en la ficha y lo rellene el coach; que se busque
+otra fuente femenina con brazo; y que la planta del pie vaya por sexo. Aplicado:
+`SEXO_POR_DEFECTO = 'hombre'`, `HUESOS_POR_DEFECTO`, `planta` en cada juego (0,062 el
+varón, 0,075 el neutro, la mujer supuesta), y el convertidor del atlas encaja cada fuente
+contra el esqueleto de su sexo (el estirado sale casi nulo: ya coinciden). Los guardianes
+del neutro siguen, pidiéndolo por su nombre.

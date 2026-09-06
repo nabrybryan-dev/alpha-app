@@ -73,12 +73,12 @@ describe('el arranque dirigido', () => {
 })
 
 describe('el sexo del sujeto', () => {
-  it('arranca en neutro, que es el cuerpo de siempre', () => {
-    // Nadie pidió que cambie lo que ya se ve: los patrones y las fotos aprobadas están
-    // hechos con el neutro, y así se abre.
+  it('arranca en el hombre, que es el defecto desde el 2026-09-06', () => {
+    // Bryan decidió que el muñeco de todos los ejercicios sea el varón real, aunque cambie
+    // lo que ya había visto; el neutro sigue ahí, por su nombre.
     render(<ExploradorAnatomico />)
-    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'false')
   })
 
