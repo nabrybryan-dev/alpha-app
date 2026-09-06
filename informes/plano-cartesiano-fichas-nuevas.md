@@ -163,6 +163,22 @@ Categoría **EXTENSIÓN DE MUÑECA** · cadena **abierta** · apoyo **ninguno** 
 
 ---
 
+## Y el otro hueco de la física: 22 familias con cuerpo y sin flechas
+
+Tener sujeto no basta. Sin modelo mecánico el salón dibuja el cuerpo moviéndose y **ni una
+sola flecha de fuerza**, que es la mitad de lo prometido. Medido sobre producción: **22 de
+las 150 familias con sujeto** acababan sin plan de medida —el 15 % de lo que se prescribe—
+y casi todas de PREV/REHAB, que es donde el asesorado más necesita entender qué sostiene.
+
+La causa era de índice, no de biomecánica: la tabla de modelos va por categoría canónica y
+cuatro fichas del catálogo tienen categorías que no están en la taxonomía, así que no se
+las podía ni nombrar. Ahora quedan **3**, las de `MOVILIDAD`, escritas `null` a propósito.
+
+Lo que más importa de esos cuatro modelos no es el número: es **dónde se pone la cámara**.
+Dos no se graban de lado. La rotación del manguito ocurre en el plano transverso —de perfil
+el recorrido se proyecta sobre un punto y la medida sale cero con cara de dato— y el apoyo
+a una pierna se rompe en el plano frontal, con la pelvis cayendo hacia el lado libre.
+
 ## Lo que estas hojas destaparon
 
 - **El brazo de momento de la muñeca salía 0 en las cinco fases — y ya no.** No era que no
@@ -192,11 +208,17 @@ Categoría **EXTENSIÓN DE MUÑECA** · cadena **abierta** · apoyo **ninguno** 
 
 ## Lo que sigue abierto y no es de esta tanda
 
-- **Cuatro patrones se dibujan sin ninguna flecha de fuerza** —`salto`,
-  `rotacion_externa_hombro`, `apoyo_una_pierna` y `suspension`— porque su categoría no está
-  en la lista canónica y la tabla de modelos ni siquiera los puede nombrar. Es un hueco.
-  `movilidad_toracica` sí es canónica y su modelo está escrito `null` a propósito: una
-  movilidad no tiene carga contra la que medir palanca. Eso es una decisión.
+- **El retardo distal se come recorrido en TODO el catálogo.** Cada canal se lee en
+  `fase − retardo` y la fase va topada a 1, así que un canal con retardo nunca llega a leer
+  su fase final: la ficha declara un ángulo que el salón no enseña nunca. Medido: **70 de
+  91 canales** con 15° o más pierden algo, mediana del 3 %, y el techo son las dos muñecas
+  con 12 grados enteros. Cerrarlo cambia cómo se mueve el catálogo entero, así que va
+  medido y no arreglado.
+- **En `movilidad_toracica` el cuello declara 48° y hace 12.** No es el retardo: es la capa
+  que mantiene la cabeza mirando al frente, que se aplica DESPUÉS de la pose de la ficha.
+  En casi todo el catálogo eso está bien —nadie quiere un maniquí mirándose los pies en una
+  sentadilla— pero aquí el cuello es parte de lo que se enseña. También medido y no
+  arreglado: tocar esa capa afecta a los 36 patrones.
 - **Once de los 90 ejemplos del catálogo no declaran implemento**, y faltan a propósito: un
   paseo del granjero se hace con mancuernas o con barra hexagonal, y un press militar con
   barra o con mancuernas. `undefined` no es lo mismo que `barra`. Para bajar esa lista hay
