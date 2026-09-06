@@ -164,7 +164,15 @@ describe('dónde queda el mueble', () => {
     expect(apoyo.hasta[0]).toBe('musloD')
   })
 
-  it('las patas llegan al suelo y el mueble tiene volumen', () => {
+  it('el mueble tiene el alto de un mueble, no el de un taburete de bar', () => {
+    // Las patas van ACOTADAS, y el porqué no es de dibujo: los patrones sin apoyo plantar
+    // viven a la altura que diga su `raizInicio`, que en el catálogo es un desplazamiento
+    // sobre la altura de pie y no una cota real —un sujeto sentado sale a 1,46 m—. Sin tope,
+    // el asiento del curl de muñeca salía con patas de metro y medio.
+    //
+    // Lo que se exige entonces no es que toque el suelo, sino que **mida lo que mide un
+    // mueble**: un banco de gimnasio son 45 cm y un banco romano llega a 90 por su parte
+    // alta. Y donde el sujeto sí está a su altura real, el mueble llega al suelo solo.
     for (const p of PATRONES) {
       const apoyo = bancoDe(p)
       if (!apoyo?.conPatas) continue
@@ -172,8 +180,22 @@ describe('dónde queda el mueble', () => {
       construirBanco(malla, apoyo, esqueletoEnFase(p, 0.5), [0, 0, 0], [0, 0, 0])
       expect(malla.vertices, `${p.id} no dibuja nada`).toBeGreaterThan(20)
       let masBajo = Infinity
+      let masAlto = -Infinity
+      for (let i = 0; i < malla.vertices; i++) {
+        masBajo = Math.min(masBajo, malla.posicion[i * 3 + 1])
+        masAlto = Math.max(masAlto, malla.posicion[i * 3 + 1])
+      }
+      expect(masAlto - masBajo, `${p.id}: el mueble mide ${(masAlto - masBajo).toFixed(2)} m`).toBeLessThan(1.15)
+    }
+    // Y los que están a su altura real llegan al suelo, que es la mitad que importa: si el
+    // tope se comiera también estos, el banco de la banca quedaría flotando.
+    for (const id of ['empuje_horizontal', 'apertura_pecho', 'extension_cadera', 'sentadilla_unilateral']) {
+      const p = PATRON_POR_ID[id]
+      const malla = new Malla(512)
+      construirBanco(malla, bancoDe(p)!, esqueletoEnFase(p, 0.5), [0, 0, 0], [0, 0, 0])
+      let masBajo = Infinity
       for (let i = 0; i < malla.vertices; i++) masBajo = Math.min(masBajo, malla.posicion[i * 3 + 1])
-      expect(masBajo, `${p.id}: el mueble no llega al suelo`).toBeLessThan(0.08)
+      expect(masBajo, `${id}: el mueble no llega al suelo`).toBeLessThan(0.08)
     }
   })
 })

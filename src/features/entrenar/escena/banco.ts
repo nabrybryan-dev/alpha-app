@@ -197,6 +197,13 @@ export function apoyoQueSostiene(
 const CARNE = 0.1
 /** Media altura del acolchado. */
 const GROSOR = 0.045
+/**
+ * Lo más largo que puede ser una pata, en metros.
+ *
+ * Un banco de gimnasio mide 45 cm y un banco romano llega a 90 por su parte alta, así que
+ * 62 cm cubre el mueble real con holgura y corta lo que solo es altura postiza del catálogo.
+ */
+const PATA_MAXIMA = 0.62
 
 export function construirBanco(
   m: Malla,
@@ -220,15 +227,26 @@ export function construirBanco(
   manto(m, p, q, GROSOR + 0.02, tapizado, 8)
 
   if (!apoyo.conPatas) return
-  // Las patas: desde los dos extremos del acolchado hasta el suelo. Son lo que dice que el
-  // mueble está apoyado en algo y no colgando, y lo que da la silueta a contraluz.
+
+  // LAS PATAS, ACOTADAS. Bajan desde los dos extremos del acolchado, pero **no más de
+  // `PATA_MAXIMA`**, y eso no es un capricho de dibujo: los patrones sin apoyo plantar viven
+  // a la altura que diga su `raizInicio`, que en el catálogo es un desplazamiento sobre la
+  // altura de pie y no una cota real —un sujeto sentado sale a 1,46 m—. Sin tope, el asiento
+  // del curl de muñeca salía con patas de metro y medio: un taburete de bar.
+  //
+  // Con el tope, el mueble es un objeto con su propia base que acompaña al cuerpo. Y el día
+  // que el catálogo baje a esos patrones al suelo, las patas llegarán solas: el tope solo
+  // recorta lo que sobra.
+  const alturaDePata = (extremo: Vec3): number => Math.min(extremo[1] - GROSOR, PATA_MAXIMA)
   for (const extremo of [p, q]) {
-    const alto = extremo[1] - GROSOR
+    const alto = alturaDePata(extremo)
     if (alto <= 0.05) continue
-    caja(m, [extremo[0], alto / 2, extremo[2]], [0.05, alto / 2, 0.05], 0, bastidor)
+    caja(m, [extremo[0], extremo[1] - GROSOR - alto / 2, extremo[2]], [0.05, alto / 2, 0.05], 0, bastidor)
   }
-  // Y el pie, que apoya de verdad en el suelo: sin él las patas nacen de una línea.
-  const medio: Vec3 = [(p[0] + q[0]) / 2, 0.03, (p[2] + q[2]) / 2]
+  // Y el pie, que es lo que apoya de verdad: sin él las patas nacen de una línea. Va a la
+  // altura donde acaban las patas, no en el suelo, para que el mueble no se estire.
+  const base = Math.min(p[1] - GROSOR - alturaDePata(p), q[1] - GROSOR - alturaDePata(q))
+  const medio: Vec3 = [(p[0] + q[0]) / 2, base + 0.03, (p[2] + q[2]) / 2]
   const largo = Math.hypot(q[0] - p[0], q[2] - p[2]) / 2 + 0.08
   caja(m, medio, [Math.max(0.12, largo * 0.5), 0.03, Math.max(0.14, largo)], 0, bastidor)
 }
