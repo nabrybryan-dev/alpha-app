@@ -185,7 +185,7 @@ export const PATRONES: Patron[] = [
     cadena: 'cerrada',
     categoria: 'BISAGRA DE CADERA',
     titulo: 'Bisagra de cadera',
-    ejemplos: 'Peso muerto rumano con barra · Peso muerto rumano con mancuernas · Peso muerto parcial desde rack',
+    ejemplos: 'Peso muerto rumano con barra · Peso muerto rumano con mancuernas · Peso muerto parcial con barra desde rack',
     resumen:
       'La cadera se echa atrás con la rodilla casi fija. Es el patrón que separa a quien entrena isquios de quien se hace daño en la espalda.',
     claves: [
@@ -517,7 +517,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'EXTENSIÓN DE CODO',
     titulo: 'Extensión de codo',
-    ejemplos: 'Extensión de codo en polea · Extensión de codo unilateral',
+    ejemplos: 'Extensión de codo en polea · Extensión de codo unilateral en polea',
     resumen:
       'El antebrazo empuja hacia abajo con el codo clavado al costado. El tríceps es dos tercios del volumen del brazo; aquí mandan sus cabezas lateral y medial, porque la larga trabaja acortada con el brazo pegado.',
     claves: [
@@ -550,7 +550,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'EMPUJE VERTICAL',
     titulo: 'Empuje vertical',
-    ejemplos: 'Press de hombro con mancuernas · Press de hombro en máquina · Press militar',
+    ejemplos: 'Press de hombro con mancuernas · Press de hombro en máquina · Press militar con barra',
     resumen:
       'El brazo empuja por encima de la cabeza. Exige que la escápula rote hacia arriba: sin eso, el hombro pellizca antes de llegar al final.',
     claves: [
@@ -700,7 +700,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'ANTIRROTACIÓN',
     titulo: 'Antirrotación',
-    ejemplos: 'Pallof press en polea de pie · Pallof press arrodillado · Pallof press con banda',
+    ejemplos: 'Pallof press en polea de pie · Pallof press en polea arrodillado · Pallof press con banda',
     resumen:
       'Las manos salen del pecho hacia delante mientras algo tira de ellas hacia un lado. El tronco no gira, y ese es todo el ejercicio.',
     claves: [
@@ -743,7 +743,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'RETRACCIÓN ESCAPULAR',
     titulo: 'Retracción escapular',
-    ejemplos: 'Band pull apart · Retracción en polea · Face pull',
+    ejemplos: 'Band pull apart · Retracción en polea · Face pull en polea',
     resumen:
       'Los omóplatos se juntan sin que el codo haga nada. Es el gesto que sostiene cualquier tracción, y casi nadie lo entrena solo.',
     claves: [
@@ -1187,7 +1187,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'ROTACIÓN DE CADERA',
     titulo: 'Rotación de cadera',
-    ejemplos: '90/90 de cadera · Rotación externa de cadera sentado · Rotación interna en el suelo',
+    ejemplos: '90/90 de cadera · Rotación externa de cadera sentado · Rotación interna de cadera en el suelo',
     resumen:
       'Los dos fémures giran dentro de la cadera pasando de un lado al otro. Es el grado de libertad que ningún ejercicio de fuerza entrena y el primero que se pierde.',
     claves: [

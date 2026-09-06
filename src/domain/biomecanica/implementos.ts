@@ -276,7 +276,14 @@ const DETECCION: readonly { patron: RegExp; implemento: Implemento }[] = [
   { patron: /GATO.?CAMELLO|FOAM ROLLER|ROTACION TORACICA|MOVILIDAD/, implemento: 'peso-corporal' },
   { patron: /BANCO ROMANO|HIPEREXTENSION|BANCO 45|REVERSE HYPER/, implemento: 'peso-corporal' },
   { patron: /ELEVACION DE PUNTAS|TIBIALIS|TIBIAL ANTERIOR|DORSIFLEXION/, implemento: 'peso-corporal' },
-  { patron: /90\/90|COPENHAGUE|CURL NORDICO|NORDICO|FLEXIONES|SENTADILLA A LA PARED/, implemento: 'peso-corporal' },
+  { patron: /90\/90|ROTACION (EXTERNA|INTERNA) DE CADERA|COPENHAGUE|CURL NORDICO|NORDICO|FLEXIONES|SENTADILLA A LA PARED/, implemento: 'peso-corporal' },
+  // Un CRUNCH a secas es peso corporal. El de polea y el que lleva disco ganan antes, por
+  // las reglas explícitas de arriba: aquí solo cae el que no dice nada, que es el que en el
+  // censo de producción se escribe «CRUNCH» y punto.
+  { patron: /CRUNCH/, implemento: 'peso-corporal' },
+  // Y el PEC DECK es el nombre de la máquina, no del gesto: no existe un pec deck con
+  // mancuernas. Igual la contractora. Dos familias más del censo que dejan de estar mudas.
+  { patron: /PEC.?DECK|PECK.?DECK|CONTRACTORA?/, implemento: 'maquina' },
 ]
 
 /**

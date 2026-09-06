@@ -223,47 +223,43 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
 })
 
 describe('quién declara con qué se hace el ejercicio', () => {
-  it('de los 90 ejemplos del catálogo, 79 declaran implemento y 11 no', () => {
+  it('de los 90 ejemplos del catálogo, 88 declaran implemento y 2 no', () => {
     // El otro barrido cuenta quién tiene SUJETO; este cuenta quién tiene IMPLEMENTO, que es
     // lo que decide si además se le puede dibujar una flecha de fuerza. Un patrón con cuerpo
     // y sin implemento se ve moverse y no se puede medir.
     //
-    // Eran 37 de 89 sin declarar el 2026-09-06. Los 26 que entraron son la banda —que no
-    // existía en la tabla— y las familias que son peso corporal por definición: saltos,
-    // planchas, equilibrios, colgados, movilidad, banco romano, elevación de puntas y el
-    // 90/90.
+    // Eran 37 de 89 sin declarar el 2026-09-06 por la mañana. Se cerraron en dos tandas y de
+    // dos formas distintas, que es la parte que conviene tener escrita:
+    //
+    //   · Por FAMILIA, cuando el nombre ya dice el implemento aunque no lo nombre: la banda
+    //     —que ni siquiera existía en la tabla—, los saltos, las planchas, los equilibrios,
+    //     los colgados, la movilidad, el banco romano, un crunch a secas y el pec deck, que
+    //     es el nombre de la máquina y no del gesto.
+    //   · Por APELLIDO, poniéndoselo al ejemplo, que es lo correcto cuando el gesto admite
+    //     varios implementos y aquí se elige uno para dibujarlo: «Press militar CON BARRA»,
+    //     «Face pull EN POLEA», «Peso muerto parcial CON BARRA desde rack».
     const ejemplos = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
     const sin = ejemplos.filter((n) => !implementoDe(n))
     expect(ejemplos).toHaveLength(90)
-    expect(sin).toHaveLength(11)
+    expect(sin).toHaveLength(2)
   })
 
-  it('los que faltan faltan a propósito: el nombre no dice con qué se hace', () => {
-    // `undefined` no es lo mismo que `barra`, y es la respuesta honesta cuando el nombre no
-    // declara nada: un paseo del granjero se hace con mancuernas o con barra hexagonal, y un
-    // press militar con barra o con mancuernas. Suponer es exactamente cómo entraría un
+  it('los dos que faltan faltan a propósito, y son el mismo ejercicio', () => {
+    // `undefined` no es lo mismo que `barra`: un paseo del granjero se hace con mancuernas o
+    // con barra hexagonal y el nombre no lo dice. Suponer es exactamente cómo entraría un
     // Smith por la puerta de atrás con el modelo equivocado.
     //
-    // Va clavado para que nadie cierre el hueco adivinando: para bajar esta lista hay que
-    // ponerle apellido al ejemplo, no ampliar la tabla de detección.
+    // Y en este caso hay una segunda razón, MEDIDA: ponerle «con mancuerna» le da implemento
+    // de peso libre, y con peso libre se enciende la ley de trayectoria de
+    // `demandaDeTrayectoria` — que sobre un porteo da razón 1,12 y lo marca como incumplido.
+    // No porque el gesto esté mal: porque un porteo CAMINA, y esa ley mide la deriva contra
+    // el mundo. El día que se le declare implemento hay que medirla contra la pelvis.
+    //
+    // Va clavado para que nadie cierre el hueco adivinando.
     const sin = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim())).filter(
       (n) => !implementoDe(n),
     )
-    expect(sin.sort()).toEqual(
-      [
-        'Crunch abdominal',
-        'Extensión de codo unilateral',
-        'Face pull',
-        'Maleta',
-        'Pallof press arrodillado',
-        'Paseo del granjero a una mano',
-        'Pec deck',
-        'Peso muerto parcial desde rack',
-        'Press militar',
-        'Rotación externa de cadera sentado',
-        'Rotación interna en el suelo',
-      ].sort(),
-    )
+    expect(sin.sort()).toEqual(['Maleta', 'Paseo del granjero a una mano'])
   })
 
   it('los 27 del seed declaran los 27, y solo una ficha se queda sin implemento', () => {
