@@ -163,13 +163,16 @@ describe('los juegos con medida', () => {
     expect(m.tibia).toBeCloseTo(0.415 - 0.074, 6)
   })
 
-  it('deja escrito el brazo femenino como supuesto: el del varón a su estatura', () => {
-    // El atlas femenino no trae húmero ni radio. Si algún día lo trae, este test cambia
-    // con el número y el supuesto desaparece del código.
+  it('el húmero femenino lleva la razón medida en Utah; antebrazo y hombros siguen supuestos', () => {
+    // 40 mujeres y 48 hombres con el húmero entero (Zenodo 14590062): húmero/estatura
+    // 0,1623 contra 0,1630. A igual estatura, el 99,6 %. Si alguien vuelve a poner el
+    // factor en 1, o lo cambia sin cambiar la fuente, esto lo dice.
     const escala = JUEGOS.mujer.coronilla / JUEGOS.hombre.coronilla
-    expect(JUEGOS.mujer.humero).toBeCloseTo(JUEGOS.hombre.humero * escala, 9)
+    expect(JUEGOS.mujer.humero).toBeCloseTo(JUEGOS.hombre.humero * escala * (0.1623 / 0.163), 9)
+    expect(JUEGOS.mujer.humero).toBeLessThan(JUEGOS.hombre.humero * escala)
     expect(JUEGOS.mujer.antebrazo).toBeCloseTo(JUEGOS.hombre.antebrazo * escala, 9)
     expect(JUEGOS.mujer.medioHombro).toBeCloseTo(JUEGOS.hombre.medioHombro * escala, 9)
+    expect(JUEGOS.mujer.fuente).toMatch(/Utah/)
     expect(JUEGOS.mujer.fuente).toMatch(/supuesto/i)
   })
 

@@ -109,24 +109,43 @@ const HOMBRE: JuegoDeHuesos = {
 }
 
 /**
- * SUPUESTO DEL BRAZO FEMENINO. El atlas femenino no trae húmero ni radio —sus 91 piezas
- * de esqueleto son la columna, dos rodillas y tejido óseo suelto—, así que el brazo y
- * los hombros de la mujer son los del varón escalados a su estatura (1,666 / 1,714).
- * Es una proporción, no una medida: el día que haya un atlas femenino con brazo, estos
- * tres números se sustituyen y el supuesto se borra.
+ * EL BRAZO FEMENINO: el húmero, medido en 40 mujeres; antebrazo y hombros, supuestos.
+ *
+ * El atlas femenino no trae húmero ni radio —sus 91 piezas de esqueleto son la columna,
+ * dos rodillas y tejido óseo suelto—, así que el brazo y los hombros de la mujer se
+ * construyeron como los del varón escalados a su estatura (1,666 / 1,714). Bryan no dio
+ * por bueno un brazo supuesto, y el 2026-09-06 se midió contra datos reales:
+ *
+ *   Henninger Lab, Universidad de Utah — «3D models of the human scapula and humerus
+ *   with defined anatomic landmarks» (Zenodo 14590062, CC BY 4.0). Húmeros ENTEROS por
+ *   TAC, largo funcional (centro de la cabeza → punto medio de los epicóndilos):
+ *     mujeres  n=40   266,1 ± 16,3 mm   estatura 1640 ± 78 mm   húmero/estatura 0,1623
+ *     hombres  n=48   287,2 ± 17,3 mm   estatura 1764 ± 94 mm   húmero/estatura 0,1630
+ *
+ * A igual estatura, el húmero de la mujer es el 99,6 % del del hombre: el supuesto
+ * «escalar por la estatura» queda validado con un margen de 1 mm, y aquí se aplica el
+ * factor medido en vez de darlo por 1. Ojo con las definiciones: el 0,305 del varón es
+ * del TOPE del hueso al codo (así mide el rig); el de Utah, del centro de la cabeza al
+ * codo. Por eso se usa la razón entre sexos y no el largo absoluto.
+ *
+ * Antebrazo y anchura de hombros siguen siendo supuestos: Utah no trae radio ni cúbito, y
+ * la escápula no da anchura de hombros sin el tórax.
  */
 const ESCALA_MUJER_SOBRE_HOMBRE = 1.666 / 1.714
+/** Húmero/estatura de las mujeres partido por el de los hombres, Utah 2026-09-06. */
+const HUMERO_MUJER_SOBRE_HOMBRE_A_IGUAL_ESTATURA = 0.1623 / 0.163
 
 const MUJER: JuegoDeHuesos = {
   sexo: 'mujer',
   fuente:
-    'Human Reference Atlas v1.5 (3D Reference Organ Set for Female) para pierna, ' +
-    'cadera y estatura; el brazo es un SUPUESTO: el del varón a su estatura.',
+    'Human Reference Atlas v1.5 (3D Reference Organ Set for Female) para pierna, cadera y ' +
+    'estatura; húmero por la razón mujer/hombre medida en Utah (Zenodo 14590062, n=40/48); ' +
+    'antebrazo y hombros son un SUPUESTO: los del varón a su estatura.',
   cadera: 0.833,
   coronilla: 1.666,
   femur: 0.418,
   tibia: 0.341,
-  humero: HOMBRE.humero * ESCALA_MUJER_SOBRE_HOMBRE,
+  humero: HOMBRE.humero * ESCALA_MUJER_SOBRE_HOMBRE * HUMERO_MUJER_SOBRE_HOMBRE_A_IGUAL_ESTATURA,
   antebrazo: HOMBRE.antebrazo * ESCALA_MUJER_SOBRE_HOMBRE,
   medioHombro: HOMBRE.medioHombro * ESCALA_MUJER_SOBRE_HOMBRE,
   // MEDIDA, no supuesta: de la base de la tibia (0,074) a la planta de la piel (0,000).

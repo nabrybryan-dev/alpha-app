@@ -46,6 +46,14 @@ nombran igual, porque saber cuál obliga y cuál no es lo primero que se pierde.
 La **sala** —muros, techo, pilares, conductos, rótulos, luces— está construida por
 nosotros en `scripts/blender/`.
 
+## Medidas que no se ven pero están dentro
+
+El largo del húmero femenino del sujeto 3D sale de la razón mujer/hombre medida en
+**«3D models of the human scapula and humerus with defined anatomic landmarks»**, Henninger
+Lab, Universidad de Utah (Zenodo 14590062, CC BY 4.0): 40 mujeres y 48 hombres con el húmero
+entero por TAC. No se distribuye ningún modelo de ese paquete; solo un número derivado, y se
+cita igual.
+
 ## Descargadas y disponibles, todavía sin usar en la escena
 
 No hace falta citarlas mientras no se vean, pero si entran, entran también en la lista:
