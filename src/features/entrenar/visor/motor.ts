@@ -128,7 +128,8 @@ void main() {
   // La superficie: el color del vértice POR la muestra de la imagen. Las dos se pasan a
   // lineal antes de multiplicar, que es donde la luz suma bien; una imagen JPEG viene en
   // gamma, como los colores de los vértices.
-  vec3 muestra = aLineal(texture2D(u_textura, v_uv).rgb);
+  vec3 muestraPantalla = texture2D(u_textura, v_uv).rgb;
+  vec3 muestra = aLineal(muestraPantalla);
   vec3 base = aLineal(v_col) * mix(vec3(1.0), muestra, u_conTextura);
   vec3 c = base * (ambiente + d1 * 0.85 + envuelve)
          + base * d2 * vec3(0.72, 0.82, 1.0);
@@ -139,13 +140,25 @@ void main() {
   // veces más— y las juntas del suelo desaparecían bajo una lámina gris-azul. Lo que lleva
   // imagen es escenario, y el escenario no se recorta contra nada: sin contraluz.
   c += vec3(0.62, 0.72, 0.86) * borde * 0.30 * (1.0 - u_conTextura);
-  c = mix(c, base, u_horneada);
 
   // Bruma con la distancia: da profundidad sin ocultar nada.
   float niebla = clamp((length(u_ojo - v_mundo) - 1.6) / 4.2, 0.0, 1.0);
   c = mix(c, aLineal(vec3(0.300, 0.334, 0.376)), niebla * 0.40);
 
-  gl_FragColor = vec4(acabado(c), v_alfa);
+  // LO HORNEADO SALE TAL CUAL, y esto es lo que hace que la app enseñe la sala que se
+  // aprobó en Blender y no una versión suya. Su color ya viene con la mirada de Blender
+  // aplicada —AgX y su contraste—, así que:
+  //
+  //   - no se pasa a lineal ni se vuelve a mapear: el motor usa ACES, que es otra curva,
+  //     y volver a comprimir unos blancos ya comprimidos apaga las tiras de LED;
+  //   - no lleva niebla: la que se ve en el render ya está horneada en el color, y
+  //     echarle otra encima lavaba el fondo de gris azulado.
+  //
+  // La textura se multiplica en el MISMO espacio en el que viene, sin pasar por lineal:
+  // es el color de pantalla por la luz de pantalla, que es como se compone un horneado.
+  vec3 horneado = v_col * mix(vec3(1.0), muestraPantalla, u_conTextura);
+
+  gl_FragColor = vec4(mix(acabado(c), horneado, u_horneada), v_alfa);
 }`
 
 const NOMBRES_DE_BUFFER = ['pos', 'nrm', 'col', 'hueso', 'fibra', 'alfa', 'uv', 'idx'] as const

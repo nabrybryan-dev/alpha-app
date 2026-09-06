@@ -347,11 +347,51 @@ print("fundidos: %d de %d" % (stats["fundidos"], stats["vertices"]))
 
 print("vertices: %d  rayos: %d  (%.0f s)" % (stats["vertices"], stats["rayos"], time.time() - t0))
 
-# ---------------------------------------------------------------- 4) exposicion
+# ---------------------------------------------------------------- 4) LA MIRADA DE BLENDER
+#
+# Lo que se ha calculado hasta aqui es luz LINEAL. Lo que Bryan aprobo es lo que sale por
+# la pantalla de Blender, que es esa luz pasada por su transformacion de vista —AgX con su
+# contraste—. Si la app recibe lineal y le aplica su propia curva (ACES), enseña otra sala.
+#
+# Asi que la curva se le pide a Blender: se fabrica una rampa de valores lineales, se
+# GUARDA con `save_render` —que aplica la vista de la escena— y se lee de vuelta. Eso da
+# una tabla lineal -> pantalla exacta, sin reimplementar AgX ni adivinarla.
+import tempfile
+
+def tabla_de_la_mirada(n=512, maximo=6.0):
+    valores = np.linspace(0.0, maximo, n, dtype=np.float32)
+    img = bpy.data.images.new("_rampa", n, 1, float_buffer=True)
+    px = np.zeros(n * 4, dtype=np.float32)
+    px[0::4] = valores; px[1::4] = valores; px[2::4] = valores; px[3::4] = 1.0
+    img.pixels.foreach_set(px)
+    ruta = os.path.join(tempfile.gettempdir(), "_rampa_mirada.png")
+    img.file_format = "PNG"
+    img.save_render(ruta)
+    leida = bpy.data.images.load(ruta)
+    # Sin esto Blender devolvería la PNG convertida a lineal y se desharía justo lo que
+    # se quería medir.
+    leida.colorspace_settings.name = "Non-Color"
+    out = np.empty(n * 4, dtype=np.float32)
+    leida.pixels.foreach_get(out)
+    bpy.data.images.remove(leida); bpy.data.images.remove(img)
+    return valores, out[0::4].copy()
+
+RAMPA, MIRADA = tabla_de_la_mirada()
+print("mirada: %s -> lineal 0 da %.3f, 0,18 da %.3f, 1,0 da %.3f, 6,0 da %.3f" % (
+    esc.view_settings.view_transform,
+    float(np.interp(0.0, RAMPA, MIRADA)), float(np.interp(0.18, RAMPA, MIRADA)),
+    float(np.interp(1.0, RAMPA, MIRADA)), float(np.interp(6.0, RAMPA, MIRADA))))
+
+def a_pantalla(col):
+    """Luz lineal -> el color que Blender enseña. Por canal."""
+    return np.stack([np.interp(col[:, k], RAMPA, MIRADA) for k in range(3)], axis=1)
+
+# La escala absoluta de mi cuenta de luz no es la de Cycles: se calibra una vez para que
+# la mediana caiga donde cae en el render, y a partir de ahí manda la curva.
 todo = np.concatenate([np.array(p["col"]).reshape(-1, 3) for (tex, em), p in partes.items() if not em])
 lum = todo @ np.array([0.2126, 0.7152, 0.0722])
 p90 = float(np.percentile(lum, 90))
-ganancia = 0.62 / max(p90, 1e-6)
+ganancia = 0.9 / max(p90, 1e-6)
 print("luminancia p50=%.3f p90=%.3f -> ganancia %.2f" % (float(np.percentile(lum, 50)), p90, ganancia))
 
 # ---------------------------------------------------------------- 5) escribir
@@ -366,8 +406,9 @@ for (tex, em), p in partes.items():
     pos = np.array(p["pos"], dtype=np.float32)
     nrm = np.array(p["nrm"], dtype=np.float32)
     col = np.array(p["col"], dtype=np.float32).reshape(-1, 3)
-    if not em:
-        col = np.clip(col * ganancia, 0, 1.5)
+    # Todo pasa por la mirada de Blender, tambien lo emisivo: una tira de LED en el render
+    # no es blanco puro, es lo que AgX hace con un valor alto, y ahi esta su color.
+    col = a_pantalla(np.clip(col * (1.0 if em else ganancia), 0, 6.0)).astype(np.float32)
     uv = np.array(p["uv"], dtype=np.float32)
     idx = np.array(p["idx"], dtype=np.uint32)
     nV = len(pos) // 3

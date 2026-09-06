@@ -18,7 +18,7 @@ import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laborator
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
-import { cargarPiezas, SALA_GIMNASIO } from './piezas'
+import { anunciarSalaDeBlender, cargarPiezas, SALA_GIMNASIO } from './piezas'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -730,6 +730,8 @@ export function VisorPatron({
             piezasCargadas.add(nombre)
             // La caché cambió: lo que haya en la tarjeta ya no es lo que hay que dibujar.
             estaticasSubidas = false
+            // Y la interfaz deja de pintar su propia sala encima de ésta.
+            if (nombre === SALA_GIMNASIO.nombre) anunciarSalaDeBlender()
             lienzo.dataset.piezas = [...(lienzo.dataset.piezas?.split(',') ?? []), nombre]
               .filter(Boolean)
               .join(',')

@@ -49,6 +49,40 @@ export const TEXTURAS_DE_LAS_PIEZAS = {
   'gym-atlas': '/texturas/gym-atlas.jpg',
 } as const
 
+/**
+ * SI LA SALA DEL GIMNASIO YA ESTÁ EN PANTALLA, para que la interfaz deje de dibujar la
+ * suya encima.
+ *
+ * `ArquitecturaSala` pinta una habitación en SVG —paredes, suelo, retícula— y una viñeta
+ * que hunde los bordes a negro. Con la sala de cajas eso era lo que la hacía legible.
+ * Encima de la sala de Blender es una SEGUNDA sala, con otra perspectiva y otra luz, y es
+ * lo que Bryan veía como «no se ve igual»: medido el 2026-09-05, esa capa por sí sola
+ * apagaba el gimnasio entero.
+ *
+ * Es un almacén de tres líneas y no un contexto de React porque quien lo escribe está
+ * dentro de un efecto que crea el contexto WebGL —no hay estado de React ahí— y quien lo
+ * lee es un componente muy lejano en el árbol.
+ */
+let salaCargada = false
+const oyentesDeLaSala = new Set<() => void>()
+
+export function salaDeBlenderCargada(): boolean {
+  return salaCargada
+}
+
+export function anunciarSalaDeBlender(): void {
+  if (salaCargada) return
+  salaCargada = true
+  for (const f of oyentesDeLaSala) f()
+}
+
+export function suscribirseALaSalaDeBlender(f: () => void): () => void {
+  oyentesDeLaSala.add(f)
+  return () => {
+    oyentesDeLaSala.delete(f)
+  }
+}
+
 /** Dónde queda una pieza de la sala, en coordenadas del motor. */
 export function sitioDe(p: PiezaDelSalon): { x: number; z: number; giroY: number } {
   const a = (p.anguloGrados * Math.PI) / 180
