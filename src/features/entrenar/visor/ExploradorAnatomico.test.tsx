@@ -72,3 +72,25 @@ describe('el arranque dirigido', () => {
   })
 })
 
+describe('el sexo del sujeto', () => {
+  it('arranca en neutro, que es el cuerpo de siempre', () => {
+    // Nadie pidió que cambie lo que ya se ve: los patrones y las fotos aprobadas están
+    // hechos con el neutro, y así se abre.
+    render(<ExploradorAnatomico />)
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('deja elegir los huesos de una mujer o de un hombre, y anuncia cuál manda', async () => {
+    const usuario = userEvent.setup()
+    render(<ExploradorAnatomico />)
+    await usuario.click(screen.getByRole('button', { name: 'Huesos de mujer' }))
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'false')
+    await usuario.click(screen.getByRole('button', { name: 'Huesos de hombre' }))
+    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+

@@ -14,6 +14,7 @@ import {
   trazaDelPatron,
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
+import { esqueletoDe, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
@@ -52,18 +53,21 @@ import { FONDO_ESTUDIO } from './motor'
 type Capa = 'ambas' | 'musculo' | 'hueso'
 
 /**
- * Se calculan una sola vez para toda la vida de la app: el esqueleto es
- * geometría fija —la mueve el shader— y las longitudes en reposo son la línea
- * base contra la que se mide cuánto se acorta cada músculo.
+ * Se calculan una sola vez POR JUEGO DE HUESOS para toda la vida de la app: el esqueleto
+ * es geometría fija —la mueve el shader— y las longitudes en reposo son la línea base
+ * contra la que se mide cuánto se acorta cada músculo. Un juego es un sexo (ver
+ * `juegoDeHuesos.ts`); el neutro es el de siempre y es el único que se calcula si nadie
+ * elige otro.
  */
-let huesosCache: ReturnType<typeof construirHuesos> | null = null
+const sujetoCache = new Map<Sexo, { huesos: Malla; reposo: Record<string, number> }>()
 
 /**
  * EL FANTASMA TIENE SUS PROPIOS HUESOS. Comparte `construirHuesos()` como fábrica pero no
  * la instancia: el alfa es de la malla, y una malla no puede ser opaca para el sujeto y
- * translúcida para el fantasma a la vez.
+ * translúcida para el fantasma a la vez. También por juego: el fantasma es el mismo
+ * cuerpo en otro tiempo, no otro cuerpo.
  */
-let huesosFantasma: ReturnType<typeof construirHuesos> | null = null
+const fantasmaCache = new Map<Sexo, Malla>()
 
 /** Cuánto se ve a través del fantasma. Menos y se pierde; más y parece otro atleta. */
 const ALFA_DEL_FANTASMA = 0.38
@@ -201,11 +205,26 @@ const COLOCACION_INICIAL: Colocacion = {
   altura: SALA.estacion.altura,
 }
 
-let reposoCache: Record<string, number> | null = null
-function precalculado() {
-  huesosCache ??= construirHuesos()
-  reposoCache ??= longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0]))
-  return { huesos: huesosCache, reposo: reposoCache }
+function precalculado(sexo: Sexo) {
+  let sujeto = sujetoCache.get(sexo)
+  if (!sujeto) {
+    const definicion = esqueletoDe(sexo)
+    sujeto = {
+      huesos: construirHuesos(definicion),
+      reposo: longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion)),
+    }
+    sujetoCache.set(sexo, sujeto)
+  }
+  return sujeto
+}
+
+function huesosDelFantasma(sexo: Sexo): Malla {
+  let malla = fantasmaCache.get(sexo)
+  if (!malla) {
+    malla = construirHuesos(esqueletoDe(sexo))
+    fantasmaCache.set(sexo, malla)
+  }
+  return malla
 }
 
 /**
@@ -339,6 +358,17 @@ interface VisorPatronProps {
    * siempre.
    */
   fantasma?: HuellaDeRepeticion
+  /**
+   * CON QUÉ HUESOS SE DIBUJA EL SUJETO: los de un hombre, los de una mujer, o los
+   * neutros de siempre. Opcional, y sin él NO PASA NADA: `neutro` es el esqueleto con el
+   * que están hechos todos los patrones y todas las fotos aprobadas. Las medidas y sus
+   * fuentes viven en `juegoDeHuesos.ts`.
+   *
+   * Lo cambia el estudio del cuerpo. El salón sigue en neutro: su encuadre y la oclusión
+   * de los aparatos se miden sobre el patrón sin juego, y así se quedan hasta que la
+   * app sepa el sexo de cada persona —hoy no lo guarda en ningún sitio.
+   */
+  sexo?: Sexo
 }
 
 /**
@@ -360,6 +390,7 @@ export function VisorPatron({
   fantasma,
   orbitaConUnDedo = true,
   retirada = 1,
+  sexo = 'neutro',
 }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
@@ -562,7 +593,11 @@ export function VisorPatron({
         lienzo.addEventListener('webglcontextlost', alPerderContexto)
         lienzo.addEventListener('webglcontextrestored', alRecuperarContexto)
 
-        const { huesos, reposo } = precalculado()
+        // EL JUEGO DE HUESOS va a todo lo que resuelve el sujeto —malla, reposo, traza,
+        // encuadre y cada fotograma— o la carne se dibujaría sobre unas articulaciones y
+        // el hueso sobre otras.
+        const definicion = esqueletoDe(sexo)
+        const { huesos, reposo } = precalculado(sexo)
         // La malla del músculo se reutiliza cuadro a cuadro: la topología no
         // cambia y reservarla de nuevo cada vez costaba el doble de tiempo.
         const mallaMusculo = new Malla(16384)
@@ -571,8 +606,8 @@ export function VisorPatron({
         const mallaFantasma = new Malla(16384)
         const fantasmaHorneado = new Malla(16384)
         const huesosFantasmaHorneados = new Malla(4096)
-        const traza = trazaDelPatron(patron)
-        const encuadre = encuadrar(patron)
+        const traza = trazaDelPatron(patron, definicion)
+        const encuadre = encuadrar(patron, definicion)
         let mostrarEsfera = false
 
         // Al arrastrar el dedo la órbita repinta por su cuenta, y ahí también hay que
@@ -620,10 +655,17 @@ export function VisorPatron({
           m[INDICE_RAIZ] = esq.raiz
           return m
         }
-        let matrices = conRaiz(resolver({}, [0, 0.95, 0], [0, 0, 0]))
+        let matrices = conRaiz(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion))
 
         const construir = () => {
-          const esq = esqueletoEnFase(patron, estado.current.fase, estado.current.sentido, estado.current.reloj)
+          const esq = esqueletoEnFase(
+            patron,
+            estado.current.fase,
+            estado.current.sentido,
+            estado.current.reloj,
+            undefined,
+            definicion,
+          )
           matrices = conRaiz(esq)
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
@@ -753,9 +795,15 @@ export function VisorPatron({
               // Si la huella trae ángulos, el fantasma dobla lo que se dobló: la pose medida
               // se sobrepone a la del patrón. Si solo trae la barra, posa la técnica del
               // patrón a la fase medida.
-              const esqF = esqueletoEnFase(patron, faseF, sentidoDeHuella(huella, tFantasma), tFantasma, poseDeHuella(huella, tFantasma))
-              huesosFantasma ??= construirHuesos()
-              const hF = hornear(huesosFantasma, esqF.matrices, huesosFantasmaHorneados)
+              const esqF = esqueletoEnFase(
+                patron,
+                faseF,
+                sentidoDeHuella(huella, tFantasma),
+                tFantasma,
+                poseDeHuella(huella, tFantasma),
+                definicion,
+              )
+              const hF = hornear(huesosDelFantasma(sexo), esqF.matrices, huesosFantasmaHorneados)
               hF.alfa = ALFA_DEL_FANTASMA
               const mF = hornear(
                 construirMusculos(esqF, SIN_ACTIVACION, reposo, mallaFantasma),
@@ -983,7 +1031,7 @@ export function VisorPatron({
     // construirse, así que si algún día cambiara en caliente sin rehacer el motor, el dedo
     // se quedaría con el comportamiento de la pantalla anterior. Un aviso del linter menos
     // y un fallo raro menos.
-  }, [patron, conEscenario, orbitaConUnDedo])
+  }, [patron, conEscenario, orbitaConUnDedo, sexo])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.
