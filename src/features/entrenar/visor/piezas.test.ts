@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { escribirPieza } from '../escena/piezas3d'
-import { cargarPiezas, PIEZAS_DEL_SALON, sitioDe } from './piezas'
+import { afterEach, describe, expect, it } from 'vitest'
+import { escribirPieza, leerPieza } from '../escena/piezas3d'
+import { cargarPiezas, PIEZAS_DEL_SALON, sitioDe, traerDeRed } from './piezas'
 import { TEXTURAS_DEL_SALON } from './texturas'
 
 /**
@@ -79,5 +79,66 @@ describe('cargarPiezas', () => {
   it('la sala entera va centrada: radio cero, sin giro', () => {
     const sala = PIEZAS_DEL_SALON['sala-gimnasio']
     expect(sitioDe(sala)).toEqual({ x: 0, z: 0, giroY: -0 })
+  })
+})
+
+/**
+ * LA PIEZA COMPRIMIDA. El salón pide primero el `.gz` y lo descomprime en el navegador,
+ * porque la vista previa está detrás del SSO del equipo y no hay forma de comprobar si el
+ * servidor comprime: un `curl` al archivo devuelve el 302 del portal, no el archivo. Esto
+ * mide lo único que sí está en nuestra mano.
+ */
+describe('traerDeRed', () => {
+  const original = globalThis.fetch
+
+  async function comprimir(bytes: ArrayBuffer): Promise<Uint8Array> {
+    // A mano y no con `new Blob(...).stream()`: el `Blob` de jsdom no sabe hacer flujos.
+    const fuente = new ReadableStream({
+      start(c) {
+        c.enqueue(new Uint8Array(bytes))
+        c.close()
+      },
+    })
+    const flujo = fuente.pipeThrough(new CompressionStream('gzip'))
+    return new Uint8Array(await new Response(flujo).arrayBuffer())
+  }
+
+  afterEach(() => {
+    globalThis.fetch = original
+  })
+
+  it('pide el `.gz` y devuelve la pieza descomprimida', async () => {
+    const cruda = piezaDeUnTriangulo()
+    const apretada = await comprimir(cruda)
+    expect(apretada.byteLength).toBeLessThan(cruda.byteLength)
+    const pedidas: string[] = []
+    globalThis.fetch = (async (ruta: string) => {
+      pedidas.push(ruta)
+      return new Response(apretada)
+    }) as typeof fetch
+
+    const bytes = await traerDeRed('/piezas/x.pieza')
+    expect(pedidas).toEqual(['/piezas/x.pieza.gz'])
+    expect(new Uint8Array(bytes)).toEqual(new Uint8Array(cruda))
+    // Y se lee como la pieza que es, no como bytes sueltos.
+    expect(leerPieza(bytes)[0].textura).toBe('rack-acero')
+  })
+
+  it('si el `.gz` no está, pide la pieza suelta en vez de dejar el salón sin sala', async () => {
+    const cruda = piezaDeUnTriangulo()
+    const pedidas: string[] = []
+    globalThis.fetch = (async (ruta: string) => {
+      pedidas.push(ruta)
+      return ruta.endsWith('.gz') ? new Response(null, { status: 404 }) : new Response(cruda)
+    }) as typeof fetch
+
+    const bytes = await traerDeRed('/piezas/x.pieza')
+    expect(pedidas).toEqual(['/piezas/x.pieza.gz', '/piezas/x.pieza'])
+    expect(new Uint8Array(bytes)).toEqual(new Uint8Array(cruda))
+  })
+
+  it('un 404 en las dos sí es un fallo, y se cuenta', async () => {
+    globalThis.fetch = (async () => new Response(null, { status: 404 })) as typeof fetch
+    await expect(traerDeRed('/piezas/x.pieza')).rejects.toThrow(/404/)
   })
 })

@@ -84,7 +84,30 @@ export function sitioDe(p: PiezaDelSalon): { x: number; z: number; giroY: number
 
 type Traer = (ruta: string) => Promise<ArrayBuffer>
 
-const traerDeRed: Traer = async (ruta) => {
+/**
+ * LA PIEZA VIAJA COMPRIMIDA, Y LA DESCOMPRIME EL NAVEGADOR.
+ *
+ * Medido: la sala son 1,50 MB, y con gzip 0,79. Lo normal sería dejar que lo comprimiera
+ * el servidor, pero **no se puede comprobar**: la vista previa está detrás del SSO del
+ * equipo y devuelve un 302 antes de llegar al archivo. Comprimirla nosotros no depende de
+ * cómo esté configurado el CDN, y se mide desde el navegador.
+ *
+ * `DecompressionStream` existe en Chrome y en Safari desde iOS 16.4. Si no está —o si el
+ * `.gz` no llega—, se pide la pieza sin comprimir: el salón se abre igual, solo tarda lo
+ * que tardaba.
+ */
+export const traerDeRed: Traer = async (ruta) => {
+  const puedeDescomprimir = typeof DecompressionStream !== 'undefined'
+  if (puedeDescomprimir) {
+    try {
+      const r = await fetch(`${ruta}.gz`)
+      if (r.ok && r.body) {
+        return await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
+      }
+    } catch {
+      // Sin comprimir también vale. No es un fallo que merezca dejar al salón sin sala.
+    }
+  }
   const r = await fetch(ruta)
   if (!r.ok) throw new Error(`${ruta}: ${r.status}`)
   return r.arrayBuffer()

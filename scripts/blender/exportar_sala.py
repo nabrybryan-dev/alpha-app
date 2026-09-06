@@ -484,7 +484,14 @@ os.makedirs(DESTINO, exist_ok=True)
 ruta = os.path.join(DESTINO, NOMBRE + ".pieza")
 with open(ruta, "wb") as f:
     f.write(out)
-print("escrito", ruta, "%.1f MB" % (len(out) / 1e6))
+# Y comprimida, que es la que pide la app: el navegador la descomprime solo (la suelta
+# se queda al lado para el Safari que no sabe). Si esta se queda vieja, el telefono
+# abriria la sala ANTERIOR sin que fallara nada: lo vigila `piezas3d.test.ts`.
+import gzip
+with gzip.open(ruta + ".gz", "wb", compresslevel=9) as f:
+    f.write(bytes(out))
+print("escrito %s  %.2f MB  (comprimida %.2f MB)" % (
+    ruta, len(out) / 1e6, os.path.getsize(ruta + ".gz") / 1e6))
 
 # ---------------------------------------------------------------- 6) las imagenes
 def exportar_polyhaven(mat_nombre, receta):

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { colocar, escribirPieza, leerPieza, type PartePieza } from './piezas3d'
 
@@ -177,6 +178,16 @@ describe('la pieza real de la sala del gimnasio', () => {
     expect(max[2] - min[2]).toBeCloseTo(11.2, 0)
     expect(min[1]).toBeGreaterThan(-0.15)
     expect(max[1]).toBeCloseTo(3.9, 0)
+  })
+
+  it('la copia comprimida es la MISMA pieza, y pesa la mitad', () => {
+    // El salón pide `sala-gimnasio.pieza.gz` y solo cae a la suelta si no está. Si alguien
+    // reexporta la sala y se olvida de comprimirla, el teléfono seguiría abriendo la
+    // ANTERIOR sin que nada fallara: la vieja se lee perfectamente. Esto es lo único que
+    // lo impide. Se regenera con `gzip -9 -c` (o lo hace ya `scripts/blender/exportar_sala.py`).
+    const apretada = readFileSync('public/piezas/sala-gimnasio.pieza.gz')
+    expect(Buffer.compare(gunzipSync(apretada), bytes)).toBe(0)
+    expect(apretada.byteLength).toBeLessThan(bytes.byteLength * 0.6)
   })
 
   it('nada vive dentro de la órbita de la cámara salvo el suelo, el techo y lo del centro', () => {
