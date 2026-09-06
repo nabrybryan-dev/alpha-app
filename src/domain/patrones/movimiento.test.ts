@@ -77,9 +77,17 @@ describe('las capas de movimiento', () => {
   it('no le añade contrapeso al brazo que ya trabaja', () => {
     const p = PATRON_POR_ID.flexion_codo
     const { pose } = poseAnimada(p, 0.5, 1, 0)
-    // Sin el contrapeso, el codo a media fase es el de la ficha con su retardo.
+    // Sin el contrapeso, el codo a media fase es el de la ficha con su retardo. La fórmula
+    // del retardo cambió el 2026-09-06 —se REESCALA sobre la ventana disponible en vez de
+    // restarse a secas, para que el canal recorra su rango entero y no pegue un salto al
+    // cambiar de sentido—, así que la fase efectiva es `(fase − retardo) / (1 − retardo)`.
+    // Lo que este test afirma no ha cambiado: que al codo del curl no se le suma contrapeso.
+    const retardo = 0.068
     expect(pose.codoFlexD).toBeUndefined()
-    expect(pose.codoFlex).toBeCloseTo(canalEnFase(p, 'codoFlex', 0.5 - 0.068), 5)
+    expect(pose.codoFlex).toBeCloseTo(
+      canalEnFase(p, 'codoFlex', (0.5 - retardo) / (1 - retardo)),
+      5,
+    )
   })
 })
 

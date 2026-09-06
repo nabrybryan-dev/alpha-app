@@ -65,8 +65,14 @@ const huellaDeMatrices = (m: number[][]): string => huella(m.flat())
 const DE_ANTES = {
   poseVaciaEnElSuelo: '3fe4c00bf3b4db61d5c415bead8ad07142c66b30a601960efaf1b58aae173456',
   poseVaciaA095: 'd3c44c58b213f117e1c256816f510c167dc7b95dcafb58c30b96ac1772e31775',
-  sentadillaAMedias: '6b60ab14f3b72513b4f7aaaf57c5a2daeb17a42e01a888ef43974cd099e6c332',
-  bancaAUnCuarto: 'a606b86e3f70b8b2d4d5ebd932d8b3a13535eb367dafe360317bf2d82e6ce446',
+  // Estas DOS se recalcularon el 2026-09-06 —las otras cuatro no se movieron, que es la
+  // parte importante: la malla y los largos siguen siendo byte a byte los de antes—.
+  // Cambiaron porque ese día cambió la fórmula del retardo distal en `movimiento.ts`, o
+  // sea el TEMPO, que es justo uno de los dos motivos que el comentario de arriba admite.
+  // Las dos huellas son de una pose A MEDIA repetición, así que dependen de cómo se llega
+  // de una pose a otra; las de pose vacía, que no dependen del tempo, están intactas.
+  sentadillaAMedias: '287994a218d0aa3d6e20ad3ab5d4ff7d71256e81c3d4d8ec2ca219f580dc8b02',
+  bancaAUnCuarto: '12c2d7e09afb0097d614aab48122d0461939185a381754049662db00c6b2f384',
   mallaPosiciones: '937e6ef37abad1c9f8d7984cf97f950ceea8b5d011bc53065a4e3a6aa42dc735',
   mallaNormales: '49a584d7433163348e5aa09f6f3b980bb6c85b31041ad4100514cded0192cebc',
   vertices: 13774,

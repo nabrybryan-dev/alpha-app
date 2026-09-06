@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { PATRONES } from '../src/domain/patrones/catalogo'
 import { CATEGORIAS } from '../src/domain/taxonomia'
 import { poseAnimada } from '../src/domain/patrones/movimiento'
+import { duracionDelCiclo, faseDeTiempo } from '../src/domain/patrones/escena'
 import { informeDelPlano, planoDe, planoDeId } from './plano-cartesiano'
 
 /**
@@ -147,78 +148,101 @@ describe('lo que el plano dice de TODO el catálogo', () => {
 })
 
 describe('lo que la ficha declara y lo que el motor llega a enseñar', () => {
-  /** El recorrido REAL de un canal a lo largo del ciclo entero, muestreado fino. */
-  function recorridoVisto(patron: (typeof PATRONES)[number], canal: string): number {
+  /**
+   * El recorrido de un canal Y su tirón más grande, sobre el CICLO REAL.
+   *
+   * Muestrear con el sentido fijo en «subiendo» es lo que hizo que este archivo contara mal
+   * el defecto la primera vez: el ciclo baja con el sentido invertido, y el retardo cambiaba
+   * de signo con él. Con el sentido fijo parecía que el ángulo declarado no se alcanzaba
+   * nunca; con el ciclo entero se veía que sí se alcanzaba — de un salto.
+   */
+  function enElCiclo(patron: (typeof PATRONES)[number], canal: string): { rango: number; salto: number } {
+    const duracion = duracionDelCiclo()
+    const MUESTRAS = 600
     let mn = Infinity
     let mx = -Infinity
-    for (let i = 0; i <= 200; i++) {
-      const v = poseAnimada(patron, i / 200, 1, 0).pose[canal]
+    let salto = 0
+    let previo: number | undefined
+    for (let i = 0; i <= MUESTRAS; i++) {
+      const { fase, sentido } = faseDeTiempo((i / MUESTRAS) * duracion, patron)
+      const v = poseAnimada(patron, fase, sentido, 0).pose[canal]
       if (v === undefined) continue
       mn = Math.min(mn, v)
       mx = Math.max(mx, v)
+      if (previo !== undefined) salto = Math.max(salto, Math.abs(v - previo))
+      previo = v
     }
-    return mx - mn
+    return { rango: mx - mn, salto }
   }
 
-  /** Todos los canales que declaran al menos 15° de recorrido, con lo que pierden. */
-  function perdidas(): { id: string; canal: string; declarado: number; visto: number; parte: number }[] {
+  /** Todos los canales que declaran al menos 15° de recorrido. */
+  function canalesConRecorrido(): { id: string; canal: string; declarado: number }[] {
     const salida = []
     for (const patron of PATRONES) {
       for (const canal of new Set([...Object.keys(patron.inicio), ...Object.keys(patron.fin)])) {
         const declarado = Math.abs((patron.fin[canal] ?? 0) - (patron.inicio[canal] ?? 0))
-        if (declarado < 15) continue
-        const visto = recorridoVisto(patron, canal)
-        salida.push({ id: patron.id, canal, declarado, visto, parte: (declarado - visto) / declarado })
+        if (declarado >= 15) salida.push({ id: patron.id, canal, declarado })
       }
     }
     return salida
   }
 
-  it('el retardo distal se come parte del recorrido, y cuanto más lejos de la cadera, más', () => {
-    // MEDIDO Y NO ARREGLADO, a propósito: arreglarlo cambia cómo se mueve TODO el catálogo
-    // y esa decisión no es de esta tanda.
+  it('ningún canal pega un tirón al cambiar de sentido', () => {
+    // EL DEFECTO QUE ESTE ARCHIVO DEJÓ MEDIDO Y QUE SE ARREGLÓ EL 2026-09-06.
     //
-    // El mecanismo está en una línea de `poseAnimada`: cada canal se lee en
-    // `fase − retardo`, y la fase va topada a 1. O sea que un canal con retardo nunca
-    // llega a leer su fase final: **la ficha declara un ángulo que el salón no enseña
-    // nunca**. Cuanto más distal, mayor el retardo y mayor lo que se pierde.
+    // El retardo distal se restaba a la fase con un signo que depende del sentido, y la
+    // fase va topada a 1. Consecuencia: subiendo, el canal no llegaba a su ángulo final;
+    // y en el instante en que el ciclo cambiaba de sentido, la resta cambiaba de signo y el
+    // canal **saltaba de golpe** a ese ángulo. La muñeca hacía 12,5 grados en 9 milésimas de
+    // segundo, dos veces por repetición. Un tirón, no una animación.
     //
-    // Se descubrió persiguiendo los 13° que faltaban en la muñeca, y resultó no ser de la
-    // muñeca: es de todo el catálogo. Medido el 2026-09-06 sobre los canales que declaran
-    // 15° o más — 70 de 91 pierden algo, con una mediana del 3 % y un techo del 11 % en
-    // las dos muñecas, que son lo más distal que hay.
+    // Lo que lo escondía: el recorrido COMPLETO sí aparecía, así que ninguna prueba de rango
+    // lo veía. Solo se caza midiendo entre fotogramas contiguos.
     //
-    // Va clavado en la MEDIANA y en el número de afectados y no canal a canal: lo que hay
-    // que vigilar es que la pérdida no crezca, no cada decimal.
-    const todas = perdidas().filter((x) => x.id !== 'movilidad_toracica' || x.canal !== 'cuelloFlex')
-    expect(todas).toHaveLength(90)
-    expect(todas.filter((x) => x.parte > 0.01)).toHaveLength(69)
-    const partes = todas.map((x) => x.parte).sort((a, b) => a - b)
-    expect(partes[Math.floor(partes.length / 2)]).toBeLessThan(0.05)
-    // Y el TECHO se mide en GRADOS, no en tanto por ciento, porque el porcentaje aquí
-    // engaña: el que peor sale en proporción es `salto toraxFlex` con un 17,7 %, y son
-    // 2,8° sobre 16 declarados — nadie ve eso. Los que de verdad se notan son las dos
-    // muñecas, que pierden 12 grados enteros. Un cociente con el denominador pequeño
-    // fabrica un peor caso que no lo es.
-    const enGrados = todas.map((x) => x.declarado - x.visto)
-    expect(Math.max(...enGrados)).toBeLessThan(14)
+    // Arreglado reescalando el retardo sobre la ventana disponible (`movimiento.ts` §1), lo
+    // que además hace la función continua en los dos cambios de sentido. Medido: el mayor
+    // tirón del catálogo pasó de 12,55° a 1,39°, y ese 1,39 no es un salto sino la parte más
+    // rápida de la sentadilla.
+    const peor = canalesConRecorrido()
+      .map((x) => ({ ...x, ...enElCiclo(PATRONES.find((p) => p.id === x.id)!, x.canal) }))
+      .sort((a, b) => b.salto - a.salto)[0]
+    expect(peor.salto, `${peor.id} ${peor.canal} pega un tirón`).toBeLessThan(3)
   })
 
-  it('en la movilidad torácica el cuello declara 48° y hace 12: se lo come otra capa', () => {
-    // El caso aparte, y no es el retardo: 74 % no lo explica ningún retardo. Lo que pasa
-    // es que `movimiento.ts` mantiene la cabeza mirando al frente cuando el tronco se
-    // inclina, y esa capa se aplica DESPUÉS de la pose de la ficha. En casi todo el
-    // catálogo eso está bien —nadie quiere un maniquí mirándose los pies en una
-    // sentadilla— pero aquí el cuello es parte de lo que se enseña: la ficha lo lleva de
-    // +26 a −22 a propósito, y de eso se ve una cuarta parte.
+  it('cada canal recorre entero el ángulo que su ficha declara', () => {
+    // La otra mitad del mismo arreglo: antes el tobillo se quedaba un 8,2 % corto y la
+    // muñeca un 11 % —el retardo de cada uno, exactamente— porque la ventana de fase que
+    // les quedaba era `1 − retardo`. Ahora la recorren entera.
     //
-    // Medido y no arreglado: tocar la capa de la cabeza afecta a los 36 patrones.
+    // Tiene consecuencias fuera de aquí y conviene saberlo: la sentadilla pasó a pedir 33,4°
+    // de dorsiflexión en vez de 30,1, y la búlgara 38 en vez de 33. No es que pidan más — es
+    // que hasta hoy no se estaban enseñando enteras. Está escrito en `catalogo.test.ts`.
+    for (const { id, canal, declarado } of canalesConRecorrido()) {
+      const patron = PATRONES.find((p) => p.id === id)!
+      const { rango } = enElCiclo(patron, canal)
+      expect(declarado - rango, `${id} ${canal}: declara ${declarado}° y hace ${rango.toFixed(1)}°`).toBeLessThan(3)
+    }
+  })
+
+  it('en la movilidad torácica el cuello hace los 48° que declara', () => {
+    // El segundo defecto que este archivo dejó medido, y que NO era el retardo: hacía 11 de
+    // los 48 declarados. Tampoco lo sobrescribía nadie — la capa que mantiene la cabeza
+    // mirando al frente es una RESTA proporcional a la inclinación del tronco, y en este
+    // patrón el tronco se inclina 52 grados a lo largo de la repetición: la resta se movía
+    // 32 en sentido contrario y el tope del cuello se comía el resto. Un ejercicio de
+    // movilidad de la espalda alta con el cuello quieto.
+    //
+    // Arreglado con la regla que este mismo archivo ya aplicaba a los brazos: una capa no se
+    // pelea con un canal que el patrón mueve a propósito. Si la ficha declara cuello, la
+    // compensación se aparta; el cráneo sigue compensando siempre, que es el ajuste fino.
     const patron = PATRONES.find((p) => p.id === 'movilidad_toracica')!
-    const declarado = Math.abs((patron.fin.cuelloFlex ?? 0) - (patron.inicio.cuelloFlex ?? 0))
-    expect(declarado).toBe(48)
-    const visto = recorridoVisto(patron, 'cuelloFlex')
-    expect(visto).toBeGreaterThan(10)
-    expect(visto).toBeLessThan(16)
+    expect(Math.abs((patron.fin.cuelloFlex ?? 0) - (patron.inicio.cuelloFlex ?? 0))).toBe(48)
+    expect(enElCiclo(patron, 'cuelloFlex').rango).toBeGreaterThan(46)
+    // Y donde el patrón NO declara cuello, la compensación sigue en pie: en una bisagra de
+    // cadera el tronco se va a 84° y la cabeza tiene que seguir mirando al frente.
+    const bisagra = PATRONES.find((p) => p.id === 'bisagra_cadera')!
+    expect(bisagra.inicio.cuelloFlex).toBeUndefined()
+    expect(enElCiclo(bisagra, 'cuelloFlex').rango).toBeGreaterThan(20)
   })
 })
 

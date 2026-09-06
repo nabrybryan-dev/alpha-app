@@ -221,7 +221,11 @@ describe('la movilidad que los patrones dan por supuesta', () => {
    * crezca solo.
    */
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
-    sentadilla_unilateral: 34,
+    // 34 → 39 el 2026-09-06, por lo mismo que la sentadilla de abajo: el retardo distal
+    // dejó de recortar el recorrido y la búlgara pasó a pedir 38,0°. Es la que más tobillo
+    // pide de todo el catálogo, y tiene sentido — el pie de delante carga solo, con la
+    // tibia muy inclinada y la rodilla muy por delante de la punta.
+    sentadilla_unilateral: 39,
     // 29 → 31 el 2026-09-04, y no por aflojar: la trayectoria entre poses pasó de dos
     // rectas con codo a un cúbico monótono (`hermiteMonotona`), y la sentadilla pasó a
     // pedir 30,1°. Las tres poses del catálogo no cambiaron ni una décima —lo afirma
@@ -229,7 +233,20 @@ describe('la movilidad que los patrones dan por supuesta', () => {
     // adelanta a la cadera a media bajada, que es lo que la pose intermedia pedía, y el
     // pie plano deriva un grado más de tobillo justo ahí. La valla sigue siendo una
     // valla: si vuelve a crecer, esto lo dice.
-    sentadilla: 31,
+    //
+    // 31 → 34 el 2026-09-06, y tampoco por aflojar: ese día el retardo distal dejó de
+    // RECORTAR el recorrido. Hasta entonces cada canal se leía en `fase − retardo` con la
+    // fase topada a 1, así que el tobillo se quedaba un 8,2 % corto y la rodilla un 4,2 %
+    // — la sentadilla pedía 30,1° de dorsiflexión porque **no se estaba enseñando entera**.
+    // Las tres poses del catálogo siguen sin cambiar ni una décima; lo que cambió es que
+    // ahora se llega a ellas. O sea que estos 33,4° son los que la pose declarada pedía
+    // desde siempre, medidos por primera vez.
+    //
+    // Y dice algo del ejercicio, no solo del código: 33° de dobladura de tobillo es mucho,
+    // y es justo por lo que el déficit de tobillo es lo primero que se mira cuando alguien
+    // no baja. Si Bryan quiere una sentadilla de demostración menos profunda, se toca la
+    // ficha; la valla se queda donde está para que se note.
+    sentadilla: 34,
     // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
     // deprisa y profundo es de los gestos que más tobillo piden.
     salto: 25,
