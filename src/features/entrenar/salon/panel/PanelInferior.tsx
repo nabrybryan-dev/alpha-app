@@ -22,6 +22,7 @@ import { RequisitosNivel } from '../../ruta/RequisitosNivel'
 import { NotasDeLaSemana } from '../../NotasDeLaSemana'
 import { Recuadro, SinDatos } from './recuadros/Recuadro'
 import { RecuadroMicrociclo } from './recuadros/RecuadroMicrociclo'
+import { RecuadroCreditos } from './recuadros/RecuadroCreditos'
 import { RecuadroEncoder } from './recuadros/RecuadroEncoder'
 import { RecuadroEjercicio } from './recuadros/RecuadroEjercicio'
 import { RecuadroAntes } from './recuadros/RecuadroAntes'
@@ -443,6 +444,14 @@ export function PanelInferior(props: PanelInferiorProps) {
 
             <Recuadro clave="encoder" titulo="Encoder" pie="La tanda entera, los criterios y el CSV.">
               <RecuadroEncoder />
+            </Recuadro>
+
+            <Recuadro
+              clave="creditos"
+              titulo="El gimnasio"
+              pie="El equipamiento es de otros y su licencia obliga a nombrarlos."
+            >
+              <RecuadroCreditos />
             </Recuadro>
 
           </div>

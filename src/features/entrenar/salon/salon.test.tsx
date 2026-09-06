@@ -629,7 +629,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     ).toEqual([])
   })
 
-  it('el panel sube con un toque y trae los quince recuadros, todos interactivos', async () => {
+  it('el panel sube con un toque y trae los dieciséis recuadros, todos interactivos', async () => {
     const usuario = userEvent.setup()
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
@@ -640,11 +640,13 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
 
     const recuadros = Array.from(salon.querySelectorAll('[data-recuadro]'))
-    // Quince, y cada uno llegó bajando de la pared: los dos del reparto del §1 —«El
+    // Dieciséis. Quince llegaron bajando de la pared: los dos del reparto del §1 —«El
     // encuadre de hoy» con sus cuatro campos y «Material de la sesión»— y, desde el
     // 2026-09-04, «Cómo va la sesión», que era la marquesina corrida del muro. Lo que baja
-    // de la pared aterriza aquí; nada se tira.
-    expect(recuadros).toHaveLength(15)
+    // de la pared aterriza aquí; nada se tira. El decimosexto, «El gimnasio», no bajó de
+    // ningún sitio: lo pide la licencia CC Attribution de los modelos 3D, que obliga a
+    // nombrar al autor de forma visible. Quitarlo no es una decisión de diseño.
+    expect(recuadros).toHaveLength(16)
     // Cada recuadro trae un elemento interactivo real: el título ES el botón que pliega. No
     // es una promesa que haya que ir comprobando bloque a bloque, es estructura.
     for (const r of recuadros) {
