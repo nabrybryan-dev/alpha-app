@@ -56,7 +56,7 @@ export interface PerfilDeImplemento {
    * Dónde entra la carga en el cuerpo. La tabla de `modelos.ts` da por hecho
    * que está en las manos, y en tres implementos no lo está.
    */
-  aplicacion: 'manos' | 'tobillo' | 'hombros' | 'pelvis' | 'pies' | 'cuerpo'
+  aplicacion: 'manos' | 'tobillo' | 'hombros' | 'pelvis' | 'pies' | 'cuerpo' | 'espalda'
   /** Cuántas masas independientes hay. Dos no es una con el doble de peso. */
   cargas: 1 | 2
   /**
@@ -219,6 +219,19 @@ const DETECCION: readonly { patron: RegExp; implemento: Implemento }[] = [
   { patron: /MAQUINA|SELECTORIZAD/, implemento: 'maquina' },
   { patron: /PESO CORPORAL|SIN PESO|LASTRE/, implemento: 'peso-corporal' },
   { patron: /BARRA|BARBELL/, implemento: 'barra' },
+  // LAS FAMILIAS QUE IMPLICAN SU IMPLEMENTO, al final y no antes: cualquier palabra
+  // explícita de arriba gana. Un curl femoral es una máquina por definición —no existe
+  // un curl femoral con barra—, un curl inclinado o martillo son de mancuernas, una
+  // plancha con carga lleva un disco en la espalda y una dominada asistida es una
+  // máquina. Medido el 2026-09-06: eran 6 de los 27 nombres del seed —el 22 %— y los seis
+  // se resuelven por familia sin tener que renombrar una prescripción. La regla sigue
+  // siendo que el nombre declare; esto solo recoge lo que el nombre ya dice de otra forma.
+  { patron: /DOMINADA.*ASISTID|ASISTID.*DOMINADA|PULL.?UP ASISTID/, implemento: 'maquina' },
+  { patron: /DOMINADA|PULL.?UP|CHIN.?UP|FONDOS?( EN PARALELAS)?$/, implemento: 'peso-corporal' },
+  { patron: /CURL FEMORAL|LEG CURL|FLEXION (DE )?RODILLA (TUMBAD|SENTAD|DE PIE)/, implemento: 'maquina' },
+  { patron: /CURL.*(INCLINAD|MARTILLO|CONCENTRAD|ALTERN)/, implemento: 'mancuernas' },
+  { patron: /PLANCHA CON (CARGA|PESO)/, implemento: 'disco' },
+  { patron: /(GEMELO|TALON|TALONES|PANTORRILLA|CALF).*(DE PIE|SENTAD|PARAD)|(DE PIE|SENTAD|PARAD).*(GEMELO|TALON|TALONES|PANTORRILLA|CALF)/, implemento: 'maquina' },
 ]
 
 /**

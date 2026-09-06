@@ -27,6 +27,13 @@ const DETECCION = [
   [/MAQUINA|SELECTORIZAD/, 'maquina'],
   [/PESO CORPORAL|SIN PESO|LASTRE/, 'peso-corporal'],
   [/BARRA|BARBELL/, 'barra'],
+  // Las familias que implican su implemento, como en `implementos.ts`: al final.
+  [/DOMINADA.*ASISTID|ASISTID.*DOMINADA|PULL.?UP ASISTID/, 'maquina'],
+  [/DOMINADA|PULL.?UP|CHIN.?UP|FONDOS?( EN PARALELAS)?$/, 'peso-corporal'],
+  [/CURL FEMORAL|LEG CURL|FLEXION (DE )?RODILLA (TUMBAD|SENTAD|DE PIE)/, 'maquina'],
+  [/CURL.*(INCLINAD|MARTILLO|CONCENTRAD|ALTERN)/, 'mancuernas'],
+  [/PLANCHA CON (CARGA|PESO)/, 'disco'],
+  [/(GEMELO|TALON|TALONES|PANTORRILLA|CALF).*(DE PIE|SENTAD|PARAD)|(DE PIE|SENTAD|PARAD).*(GEMELO|TALON|TALONES|PANTORRILLA|CALF)/, 'maquina'],
 ]
 
 const normalizar = (t) =>

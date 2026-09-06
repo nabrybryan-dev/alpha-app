@@ -17,7 +17,7 @@ import { IMPLEMENTOS, implementoDe } from './implementos'
 
 const donde = (categoria: string, nombre: string) => {
   const implemento = implementoDe(nombre)
-  return aplicacionDeLaCarga(categoria, implemento, implemento ? IMPLEMENTOS[implemento] : undefined)
+  return aplicacionDeLaCarga(categoria, implemento, implemento ? IMPLEMENTOS[implemento] : undefined, nombre)
 }
 
 describe('la sentadilla', () => {
@@ -72,7 +72,7 @@ describe('lo que no cambia', () => {
   })
 
   it('sin implemento declarado devuelve el defecto y no inventa un apoyo', () => {
-    expect(donde('SENTADILLA', 'Curl femoral sentado')).toBe('manos')
+    expect(donde('SENTADILLA', 'Abducción de cadera tumbada')).toBe('manos')
     expect(porQueSeApoya('SENTADILLA', undefined)).toBeUndefined()
   })
 
@@ -86,5 +86,55 @@ describe('el motivo', () => {
     expect(porQueSeApoya('SENTADILLA', 'barra')).toMatch(/trapecio/)
     expect(porQueSeApoya('EXTENSIÓN DE CADERA', 'barra')).toMatch(/pliegue de la cadera/)
     expect(porQueSeApoya('EMPUJE HORIZONTAL', 'barra')).toBeUndefined()
+  })
+})
+
+/**
+ * POR EL NOMBRE, porque la categoría no siempre distingue.
+ *
+ * Medido el 2026-09-06 sobre el seed: 16 de 25 ejercicios llevan la taxonomía antigua
+ * («DOMINANTE DE CADERA», «AISLAMIENTO», «CORE»), que `categoriaCanonica` deja en blanco a
+ * propósito. Con las excepciones colgando solo de la categoría, el hip thrust con barra del
+ * seed iba a las MANOS —a la altura de la cadera, como la sentadilla que vio Bryan— y nada
+ * lo decía. Y hay pares que ni la categoría nueva separa: buenos días y peso muerto son los
+ * dos bisagra de cadera, y uno lleva la barra en el trapecio y el otro en las manos.
+ */
+describe('las excepciones que se reconocen por el nombre', () => {
+  it('el hip thrust con barra va a la pelvis aunque su categoría sea la antigua', () => {
+    expect(donde('DOMINANTE DE CADERA', 'Hip thrust con barra')).toBe('pelvis')
+    expect(donde('DOMINANTE DE CADERA', 'Empuje de cadera con mancuerna')).toBe('pelvis')
+    // Y el peso muerto rumano, con la MISMA categoría antigua, sigue en las manos.
+    expect(donde('DOMINANTE DE CADERA', 'Peso muerto rumano con barra')).toBe('manos')
+  })
+
+  it('la sentadilla y la zancada con barra van al trapecio aunque la categoría sea la antigua', () => {
+    expect(donde('DOMINANTE DE RODILLA', 'Sentadilla con barra')).toBe('hombros')
+    expect(donde('DOMINANTE DE RODILLA', 'Zancada con barra')).toBe('hombros')
+    expect(donde('DOMINANTE DE RODILLA', 'Sentadilla búlgara en Smith')).toBe('hombros')
+    // Con mancuernas siguen en las manos: el nombre manda, pero solo para la barra.
+    expect(donde('DOMINANTE DE RODILLA', 'Zancada con mancuernas')).toBe('manos')
+  })
+
+  it('los buenos días llevan la barra en el trapecio, y el peso muerto en las manos', () => {
+    expect(donde('BISAGRA DE CADERA', 'Buenos días con barra')).toBe('hombros')
+    expect(donde('BISAGRA DE CADERA', 'Peso muerto con barra')).toBe('manos')
+  })
+
+  it('la elevación de gemelo de pie carga sobre los hombros; sentado, no', () => {
+    expect(donde('AISLAMIENTO', 'Elevación de gemelo de pie en máquina')).toBe('hombros')
+    expect(donde('AISLAMIENTO', 'Elevación de gemelo de pie en Smith')).toBe('hombros')
+    expect(donde('AISLAMIENTO', 'Elevación de gemelo sentado en máquina')).toBe('manos')
+  })
+
+  it('la plancha con disco lo lleva en la espalda', () => {
+    expect(donde('CORE', 'Plancha con disco en la espalda')).toBe('espalda')
+    // Y «plancha con carga», que es como lo escribe el seed: la familia ya dice disco.
+    expect(donde('CORE', 'Plancha con carga')).toBe('espalda')
+    expect(porQueSeApoya('CORE', 'disco', 'Plancha con disco en la espalda')).toMatch(/espalda/)
+  })
+
+  it('sin nombre, la excepción por categoría sigue valiendo igual que antes', () => {
+    expect(aplicacionDeLaCarga('SENTADILLA', 'barra', IMPLEMENTOS.barra)).toBe('hombros')
+    expect(aplicacionDeLaCarga('EMPUJE HORIZONTAL', 'barra', IMPLEMENTOS.barra)).toBe('manos')
   })
 })

@@ -43,14 +43,69 @@ export type Aplicacion = PerfilDeImplemento['aplicacion']
 const SE_APOYAN: readonly Implemento[] = ['barra', 'mancuernas', 'disco', 'guiado-vertical', 'maquina']
 
 interface Excepcion {
-  /** Categorías del catálogo de patrones, tal como las escribe `catalogo.ts`. */
+  /**
+   * Categorías del catálogo de patrones, tal como las escribe `catalogo.ts`. Vacío si la
+   * excepción se reconoce solo por el nombre.
+   */
   categorias: readonly string[]
+  /**
+   * O el NOMBRE del ejercicio, que es donde esta casa escribe la prescripción. Hace falta
+   * porque la categoría no siempre distingue: en la taxonomía antigua un hip thrust y un
+   * peso muerto rumano son los dos «DOMINANTE DE CADERA» —uno la apoya en la pelvis y el
+   * otro la lleva en las manos—, y «buenos días» y «peso muerto» son los dos bisagra.
+   * Medido el 2026-09-06 sobre el seed: 16 de 25 ejercicios llevan categoría antigua, así
+   * que una excepción que solo mire la categoría no dispara nunca para ellos.
+   */
+  nombres?: RegExp
   implementos: readonly Implemento[]
   aplicacion: Aplicacion
   porQue: string
 }
 
+/** Sin tildes ni mayúsculas, como `implementoDe`: el nombre se escribe de muchas formas. */
+const normalizar = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
+
 const EXCEPCIONES: readonly Excepcion[] = [
+  {
+    // Por el nombre y no por la categoría: en la taxonomía antigua comparte categoría con
+    // el peso muerto rumano, que la lleva en las manos.
+    categorias: [],
+    nombres: /HIP THRUST|EMPUJE DE CADERA|PUENTE DE GLUTEO|ELEVACION DE CADERA/,
+    implementos: SE_APOYAN,
+    aplicacion: 'pelvis',
+    porQue:
+      'En un empuje de cadera la barra —o la mancuerna, o el disco— descansa sobre el ' +
+      'pliegue de la cadera. Se reconoce por el nombre porque su categoría antigua, ' +
+      '«dominante de cadera», es la misma que la del peso muerto rumano.',
+  },
+  {
+    categorias: [],
+    nombres: /SENTADILLA|SQUAT|BULGARA|ZANCADA|LUNGE|SPLIT SQUAT|BUENOS DIAS|GOOD MORNING/,
+    implementos: ['barra', 'guiado-vertical'],
+    aplicacion: 'hombros',
+    porQue:
+      'Sentadillas, zancadas, búlgaras y buenos días con barra —libre o en Smith— llevan la ' +
+      'barra sobre el trapecio. Por el nombre, porque la categoría antigua «dominante de ' +
+      'rodilla» no llega al modelo, y un buenos días comparte categoría con el peso muerto.',
+  },
+  {
+    categorias: [],
+    nombres: /(GEMELO|TALON|TALONES|PANTORRILLA|CALF).*(DE PIE|PARAD)|(DE PIE|PARAD).*(GEMELO|TALON|TALONES|PANTORRILLA|CALF)/,
+    implementos: ['barra', 'guiado-vertical', 'maquina'],
+    aplicacion: 'hombros',
+    porQue:
+      'La elevación de gemelo de pie carga sobre los hombros: la barra en el trapecio o las ' +
+      'hombreras de la máquina. Sentado no entra aquí, ahí el acolchado va sobre las rodillas.',
+  },
+  {
+    categorias: [],
+    nombres: /PLANCHA|PLANK/,
+    implementos: ['disco', 'mancuernas', 'barra'],
+    aplicacion: 'espalda',
+    porQue:
+      'Una plancha con carga lleva el disco sobre la espalda: no hay mano libre que lo ' +
+      'sostenga. Las manos están en el suelo.',
+  },
   {
     categorias: ['SENTADILLA', 'SENTADILLA UNILATERAL'],
     // La barra libre y la del Smith se apoyan igual. Una goblet con disco o unas
@@ -80,29 +135,36 @@ const EXCEPCIONES: readonly Excepcion[] = [
  * hay carga que colocar y se devuelve el defecto —`manos`—, pero quien llama no debería
  * dibujar nada: un nombre que no dice con qué se hace no autoriza a suponerlo.
  */
+/** La excepción que aplica, si alguna: por nombre primero, por categoría después. */
+function excepcionDe(categoria: string, implemento: Implemento, nombre: string): Excepcion | undefined {
+  // La categoría llega a veces en su forma vieja —`DOMINANTE DE CADERA`— y a veces con
+  // tildes o en minúsculas. Se compara por la canónica, como el resto de la casa.
+  const canonica = categoriaCanonica(categoria) ?? categoria.toUpperCase().trim()
+  const n = normalizar(nombre)
+  return EXCEPCIONES.find((e) => {
+    if (!e.implementos.includes(implemento)) return false
+    if (e.nombres && n && e.nombres.test(n)) return true
+    return e.categorias.some((c) => (categoriaCanonica(c) ?? c) === canonica)
+  })
+}
+
 export function aplicacionDeLaCarga(
   categoria: string,
   implemento: Implemento | undefined,
   perfil: PerfilDeImplemento | undefined,
+  nombre = '',
 ): Aplicacion {
   const porDefecto = perfil?.aplicacion ?? 'manos'
   if (!implemento) return porDefecto
-  // La categoría llega a veces en su forma vieja —`DOMINANTE DE CADERA`— y a veces con
-  // tildes o en minúsculas. Se compara por la canónica, como el resto de la casa.
-  const canonica = categoriaCanonica(categoria) ?? categoria.toUpperCase().trim()
-  for (const e of EXCEPCIONES) {
-    const coincide = e.categorias.some((c) => (categoriaCanonica(c) ?? c) === canonica)
-    if (coincide && e.implementos.includes(implemento)) return e.aplicacion
-  }
-  return porDefecto
+  return excepcionDe(categoria, implemento, nombre)?.aplicacion ?? porDefecto
 }
 
 /** Por qué la carga de este ejercicio entra por ahí, si es una excepción. Para el aviso. */
-export function porQueSeApoya(categoria: string, implemento: Implemento | undefined): string | undefined {
+export function porQueSeApoya(
+  categoria: string,
+  implemento: Implemento | undefined,
+  nombre = '',
+): string | undefined {
   if (!implemento) return undefined
-  const canonica = categoriaCanonica(categoria) ?? categoria.toUpperCase().trim()
-  return EXCEPCIONES.find(
-    (e) =>
-      e.categorias.some((c) => (categoriaCanonica(c) ?? c) === canonica) && e.implementos.includes(implemento),
-  )?.porQue
+  return excepcionDe(categoria, implemento, nombre)?.porQue
 }

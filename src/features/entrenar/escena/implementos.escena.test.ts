@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { Malla } from '../../../domain/patrones/malla'
+import { resolver } from '../../../domain/patrones/esqueleto'
 import { PATRON_POR_ID } from '../../../domain/patrones/catalogo'
-import { AVISO_SIN_IMPLEMENTO, implementosDeEscena } from './implementos'
+import { AVISO_SIN_IMPLEMENTO, AVISO_SIN_MODELO, construirPieza, implementosDeEscena } from './implementos'
 
 /**
  * LA ESCENA NO CONTRADICE A LA PRESCRIPCIÓN.
@@ -50,14 +52,14 @@ describe('dónde pone la escena la carga', () => {
 
 describe('sin implemento declarado no se dibuja ninguno', () => {
   it('un curl femoral sentado no lleva barra', () => {
-    const e = escena('flexion_rodilla', 'Curl femoral sentado')
+    const e = escena('flexion_rodilla', 'Abducción de cadera tumbada')
     expect(e.piezas).toEqual([])
     expect(e.supuesto).toBe(true)
     expect(e.avisos).toContain(AVISO_SIN_IMPLEMENTO)
   })
 
   it('una plancha con carga tampoco', () => {
-    expect(escena('antiextension', 'Plancha con carga').piezas).toEqual([])
+    expect(escena('antiextension', 'Dead bug').piezas).toEqual([])
   })
 
   it('y cuando el nombre sí lo dice, se dibuja y no se declara supuesto', () => {
@@ -65,5 +67,54 @@ describe('sin implemento declarado no se dibuja ninguno', () => {
     expect(e.piezas.length).toBeGreaterThan(0)
     expect(e.supuesto).toBe(false)
     expect(e.avisos).not.toContain(AVISO_SIN_IMPLEMENTO)
+  })
+})
+
+/**
+ * LA TAXONOMÍA ANTIGUA TAMBIÉN ENTRENA CON ALGO EN LAS MANOS.
+ *
+ * `categoriaCanonica` deja en blanco «DOMINANTE DE CADERA», «AISLAMIENTO» y «CORE» a
+ * propósito —no hay patrón que medir— y hasta hoy eso vaciaba la escena entera: 16 de los
+ * 25 ejercicios del seed, hip thrust y peso muerto incluidos, sin implemento y sin aviso.
+ * El implemento no sale del patrón, sale del nombre; lo que no hay es medida, y eso se dice.
+ */
+describe('sin modelo de palancas, el implemento sigue saliendo del nombre', () => {
+  it('el hip thrust con barra de la taxonomía antigua dibuja la barra sobre la pelvis', () => {
+    const e = implementosDeEscena('DOMINANTE DE CADERA', 'Hip thrust con barra')
+    expect(e.piezas.map((p) => p.pieza)).toEqual(['barra'])
+    expect(e.piezas[0].agarres[0].hueso).toBe('pelvis')
+    expect(e.avisos).toContain(AVISO_SIN_MODELO)
+    expect(e.supuesto).toBe(false)
+  })
+
+  it('la prensa y el curl en máquina dibujan su máquina', () => {
+    expect(implementosDeEscena('DOMINANTE DE RODILLA', 'Prensa 45° pies altos').piezas[0].forma).toBe('rail-inclinado')
+    expect(implementosDeEscena('AISLAMIENTO', 'Curl femoral sentado en máquina').piezas[0].forma).toBe('placas')
+  })
+
+  it('y sin implemento en el nombre sigue sin dibujar nada, ahora con los dos avisos', () => {
+    const e = implementosDeEscena('AISLAMIENTO', 'Abducción de cadera tumbada')
+    expect(e.piezas).toEqual([])
+    expect(e.avisos).toEqual([AVISO_SIN_MODELO, AVISO_SIN_IMPLEMENTO])
+    expect(e.supuesto).toBe(true)
+  })
+})
+
+describe('la barra fija es una estructura', () => {
+  it('llega hasta el suelo: una dominada no cuelga de una barra que flota', () => {
+    // Bryan lo vio el 2026-09-06: la barra de las dominadas era una barra olímpica, con sus
+    // mangas, suspendida en el aire. Lo que la hace fija es lo que la sujeta.
+    const e = implementosDeEscena('TRACCIÓN VERTICAL', 'Dominadas asistidas en máquina')
+    expect(e.piezas[0].pieza).toBe('barra-fija')
+    const m = new Malla(4096)
+    construirPieza(m, e.piezas[0], resolver({}, [0, 0, 0], [0, 0, 0]))
+    let minY = Infinity
+    let maxY = -Infinity
+    for (let i = 1; i < m.posicion.length; i += 3) {
+      minY = Math.min(minY, m.posicion[i])
+      maxY = Math.max(maxY, m.posicion[i])
+    }
+    expect(minY, 'no llega al suelo').toBeLessThan(0.02)
+    expect(maxY, 'no está a la altura de las manos').toBeGreaterThan(0.6)
   })
 })

@@ -3,6 +3,7 @@ import { Malla, type Color } from '../../../domain/patrones/malla'
 import { puntoDeHueso, type EsqueletoResuelto } from '../../../domain/patrones/esqueleto'
 import { modeloDePalanca, planDeMedida } from '../../../domain/biomecanica/palancas'
 import { aplicacionDeLaCarga, porQueSeApoya } from '../../../domain/biomecanica/aplicacionDeLaCarga'
+import { esUnilateral, implementoDe, IMPLEMENTOS, type Implemento, type PerfilDeImplemento } from '../../../domain/biomecanica/implementos'
 import type { Articulacion } from '../../../domain/biomecanica/tipos'
 // La primitiva que se orienta sola vive en `sala.ts` y se importa, no se copia:
 // dos copias de la regla de enrollado es como vuelven las caras del revés.
@@ -191,6 +192,33 @@ export function construirBarra(m: Malla, b: BarraConDiscos): void {
     manto(m, caraInterior, dentro, b.radioDisco, FILO, 16)
     tapa(m, dentro, V.escalar(eje, -signo), b.radioDisco * 0.94, CAUCHO, 16)
     tapa(m, caraInterior, V.escalar(eje, signo), b.radioDisco * 0.94, CAUCHO, 16)
+  }
+}
+
+/**
+ * LA BARRA FIJA: una estructura, no una barra olímpica flotando.
+ *
+ * Una dominada se hace colgado de una barra anclada —a un rack, a la pared, al techo—, y
+ * hasta hoy se dibujaba con `construirBarra` sin discos: una barra olímpica con sus
+ * mangas, suspendida en el aire. Bryan lo vio el 2026-09-06 en las dominadas asistidas:
+ * «una barra olímpica flotando». Lo que la hace fija es lo que la sujeta, y eso es lo que
+ * se dibuja: la barra, más ancha que las manos, y dos montantes hasta el suelo con su pie.
+ *
+ * Los montantes bajan hasta y = 0 del mundo del sujeto: en el salón es el suelo, y en una
+ * demostración —donde el sujeto flota— siguen siendo los pies de la estructura.
+ */
+export function construirBarraFija(m: Malla, agarreA: Vec3, agarreB: Vec3): void {
+  const eje = V.normalizar(V.restar(agarreB, agarreA))
+  const vuelo = 0.3
+  const extA = V.restar(agarreA, V.escalar(eje, vuelo))
+  const extB = V.sumar(agarreB, V.escalar(eje, vuelo))
+  // La barra: lisa, sin mangas. Una barra de dominadas no lleva discos.
+  manto(m, extA, extB, RADIO_BARRA * 1.15, ACERO, 10)
+  for (const ext of [extA, extB]) {
+    // El montante, del extremo de la barra al suelo, y el pie que lo planta.
+    const alto = Math.max(ext[1], 0.1)
+    caja(m, [ext[0], alto / 2, ext[2]], [0.03, alto / 2, 0.03], 0, BASTIDOR)
+    caja(m, [ext[0], 0.03, ext[2]], [0.16, 0.03, 0.3], 0, BASTIDOR)
   }
 }
 
@@ -396,8 +424,6 @@ export interface EscenaDeImplementos {
   supuesto: boolean
 }
 
-const SIN_IMPLEMENTOS: EscenaDeImplementos = { piezas: [], avisos: [], supuesto: false }
-
 /**
  * Lo que se dice cuando el nombre del ejercicio no declara con qué se hace.
  *
@@ -441,6 +467,9 @@ const AGARRE_POR_APLICACION: Record<string, readonly PuntoDeAgarre[]> = {
     { hueso: 'tibiaD', t: 1, desvio: [0, 0, 0] },
     { hueso: 'tibiaI', t: 1, desvio: [0, 0, 0] },
   ],
+  // Sobre la espalda, entre las escápulas: el disco de una plancha con carga. El desvío en
+  // −Z es el dorso, el mismo lado por el que se apoya la barra de la sentadilla.
+  espalda: [{ hueso: 'torax', t: 0.45, desvio: [0, 0, -0.09] }],
   cuerpo: [],
 }
 
@@ -480,6 +509,19 @@ function poleaAlta(articulacion: Articulacion | undefined, accion: string | unde
 }
 
 /**
+ * Lo que se dice cuando la categoría no llega al modelo de palancas.
+ *
+ * La taxonomía antigua —«DOMINANTE DE CADERA», «AISLAMIENTO», «CORE»— es ambigua por
+ * construcción y `categoriaCanonica` la deja en blanco a propósito: no hay patrón que medir.
+ * Pero el implemento no sale del patrón, sale del NOMBRE, y un hip thrust con barra lleva
+ * barra diga lo que diga su categoría. Medido el 2026-09-06: 16 de los 25 ejercicios del
+ * seed están en esta situación y salían con las manos vacías.
+ */
+export const AVISO_SIN_MODELO =
+  'la categoría no llega al modelo de palancas: se dibuja el implemento que declara el ' +
+  'nombre, pero no hay medida que prometer'
+
+/**
  * Qué implementos van en la escena de este ejercicio y dónde se enganchan.
  *
  * Pura: no toca una malla ni necesita un esqueleto. Cuanto decide sale de
@@ -489,7 +531,17 @@ function poleaAlta(articulacion: Articulacion | undefined, accion: string | unde
 export function implementosDeEscena(categoria: string, nombreEjercicio = ''): EscenaDeImplementos {
   const plan = planDeMedida(categoria, nombreEjercicio)
   const modelo = modeloDePalanca(categoria, nombreEjercicio)
-  if (!plan || !modelo) return SIN_IMPLEMENTOS
+
+  // SIN MODELO, EL IMPLEMENTO SIGUE SALIENDO DEL NOMBRE. Antes esto devolvía la escena
+  // vacía y dieciséis de veinticinco ejercicios entrenaban con las manos vacías sin que
+  // nada lo dijera. Lo que no hay es medida, y eso sí se dice.
+  if (!plan || !modelo) {
+    const implemento = implementoDe(nombreEjercicio)
+    if (implemento === undefined) {
+      return { piezas: [], avisos: [AVISO_SIN_MODELO, AVISO_SIN_IMPLEMENTO], supuesto: true }
+    }
+    return armar(categoria, nombreEjercicio, implemento, IMPLEMENTOS[implemento], esUnilateral(nombreEjercicio), poleaAltaPorNombre(nombreEjercicio), [AVISO_SIN_MODELO])
+  }
 
   // Cadena cerrada con las manos en algo fijo: la barra NO la lleva el sujeto,
   // está clavada al mundo y es él quien sube. Dibujarla en las manos de una
@@ -515,7 +567,6 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
     }
   }
 
-  const perfil = plan.perfilDeImplemento
   // SIN IMPLEMENTO DECLARADO NO SE DIBUJA NADA.
   //
   // Hasta el 2026-09-05 aquí se suponía barra, con su comentario diciendo que suponer es
@@ -529,20 +580,48 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
   if (plan.implemento === undefined) {
     return { piezas: [], avisos: [...plan.limites, AVISO_SIN_IMPLEMENTO], supuesto: true }
   }
-  const piezas = PIEZAS_POR_IMPLEMENTO[plan.implemento] ?? []
-  if (piezas.length === 0) return { piezas: [], avisos: plan.limites, supuesto: false }
+  const principal = plan.ejes[0]
+  return armar(
+    categoria,
+    nombreEjercicio,
+    plan.implemento,
+    plan.perfilDeImplemento,
+    plan.unilateral,
+    poleaAlta(principal?.articulacion, principal?.accion),
+    plan.limites,
+  )
+}
+
+/**
+ * Sin modelo no hay eje que diga si la polea es alta, así que lo dice el nombre: jalones,
+ * pullovers y extensiones de tríceps tiran desde arriba; lo demás, desde abajo. Es la misma
+ * regla gruesa que `poleaAlta`, y se equivoca de la misma forma visible.
+ */
+function poleaAltaPorNombre(nombre: string): boolean {
+  return /JAL[OÓ]N|PULLOVER|TR[IÍ]CEPS|POLEA ALTA|FACE PULL|BRAZO RECTO/i.test(nombre)
+}
+
+/** La escena a partir de lo decidido: qué implemento, dónde entra, cuántas masas. */
+function armar(
+  categoria: string,
+  nombreEjercicio: string,
+  implemento: Implemento,
+  perfil: PerfilDeImplemento | undefined,
+  unilateral: boolean,
+  alto: boolean,
+  avisos: readonly string[],
+): EscenaDeImplementos {
+  const piezas = PIEZAS_POR_IMPLEMENTO[implemento] ?? []
+  if (piezas.length === 0) return { piezas: [], avisos, supuesto: false }
 
   // DÓNDE ENTRA LA CARGA lo decide el ejercicio, no solo el implemento: la misma barra va
   // en las manos en un press, sobre el trapecio en una sentadilla y sobre la pelvis en un
   // empuje de cadera. Ver `domain/biomecanica/aplicacionDeLaCarga.ts`.
-  const aplicacion = aplicacionDeLaCarga(categoria, plan.implemento, perfil)
+  const aplicacion = aplicacionDeLaCarga(categoria, implemento, perfil, nombreEjercicio)
   let agarres = AGARRE_POR_APLICACION[aplicacion] ?? MANOS
   // La lateralidad es ortogonal al implemento, igual que en la tabla: con la
   // carga a un lado hay UN agarre, sea mancuerna, polea o prensa.
-  if (plan.unilateral && agarres.length === 2) agarres = [agarres[0]]
-
-  const principal = plan.ejes[0]
-  const alto = poleaAlta(principal?.articulacion, principal?.accion)
+  if (unilateral && agarres.length === 2) agarres = [agarres[0]]
 
   const salida: ImplementoEnEscena[] = piezas.map(({ pieza, forma }) => {
     // Una masa (`cargas: 1`) es una pieza rígida que las dos manos comparten;
@@ -556,11 +635,11 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
       rigida,
       radioDisco: pieza === 'barra' || pieza === 'disco' ? RADIO_DISCO : 0,
       porQue:
-        `implemento «${perfil?.nombre ?? plan.implemento}»` +
+        `implemento «${perfil?.nombre ?? implemento}»` +
         `, carga aplicada en ${aplicacion}` +
-        (porQueSeApoya(categoria, plan.implemento) ? ' (se apoya en el cuerpo)' : '') +
+        (porQueSeApoya(categoria, implemento, nombreEjercicio) ? ' (se apoya en el cuerpo)' : '') +
         `, ${perfil?.cargas ?? 1} masa(s)` +
-        (plan.unilateral ? ', a un solo lado' : ''),
+        (unilateral ? ', a un solo lado' : ''),
     }
     if (pieza !== 'maquina') return base
     return {
@@ -573,7 +652,7 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
   // `supuesto` es siempre falso a partir de aquí: sin implemento declarado se salió
   // arriba sin dibujar nada. El campo se queda porque quien lo lee distingue «no hay
   // implemento porque no se sabe» de «no hay implemento porque este ejercicio no lleva».
-  return { piezas: salida, avisos: plan.limites, supuesto: false }
+  return { piezas: salida, avisos, supuesto: false }
 }
 
 /**
@@ -629,18 +708,17 @@ export function construirPieza(m: Malla, p: ImplementoEnEscena, esq: EsqueletoRe
   if (puntos.length === 0 && !p.enElSuelo) return
 
   switch (p.pieza) {
-    case 'barra':
     case 'barra-fija': {
+      const [a, b] = puntos.length >= 2 ? puntos : ejeTransversal(puntos[0], esq)
+      construirBarraFija(m, a, b)
+      break
+    }
+    case 'barra': {
       // Con un solo agarre —unilateral, o la carga sobre los hombros— no hay dos
       // manos que definan el eje. Se toma el eje transversal del sujeto, que es
       // el que una barra sigue siempre: cruzada, nunca en el plano sagital.
       const [a, b] = puntos.length >= 2 ? puntos : ejeTransversal(puntos[0], esq)
-      construirBarra(m, {
-        agarreA: a,
-        agarreB: b,
-        radioDisco: p.pieza === 'barra-fija' ? 0 : p.radioDisco,
-        vuelo: p.pieza === 'barra-fija' ? 0.55 : VUELO,
-      })
+      construirBarra(m, { agarreA: a, agarreB: b, radioDisco: p.radioDisco, vuelo: VUELO })
       break
     }
     case 'disco': {
