@@ -38,6 +38,45 @@ describe('brazosDeMomento', () => {
     expect(de(1, 'cadera')).toBeGreaterThan(de(0, 'cadera'))
   })
 
+  it('el curl de muñeca tiene palanca, y la tiene máxima a media flexión', () => {
+    // El guardián que faltaba, y que nació ROJO: hasta el 2026-09-06 la carga se ponía en
+    // el ARRANQUE del hueso de la mano, que es exactamente donde está el eje de la muñeca,
+    // así que la distancia entre los dos era cero por construcción — cero en las cinco
+    // fases, en los dos patrones de muñeca, por mucho que su modelo mecánico existiera.
+    //
+    // Un cero que sale de la geometría del rig y no del ejercicio es un cero que miente, y
+    // encima es invisible: no falla nada, simplemente no se dibuja ninguna flecha.
+    //
+    // Y no basta con que sea distinto de cero. La forma de la curva es lo que dice que el
+    // punto de agarre está donde toca: con el antebrazo apoyado, el brazo externo es la
+    // distancia horizontal de la muñeca a la carga, que es máxima cuando la mano pasa por
+    // la horizontal —a media flexión— y se acorta en los dos extremos del recorrido.
+    const curl = PATRON_POR_ID.flexion_muneca
+    const planCurl = planDeMedida(curl.categoria, 'Curl de muñeca con barra sentado')!
+    const serie = [0, 0.25, 0.5, 0.75, 1].map(
+      (fase) =>
+        brazosDeMomento(esqueletoEnFase(curl, fase), planCurl).find(
+          (x) => x.articulacion === 'muñeca',
+        )!.metros,
+    )
+    expect(serie.every((m) => m > 0.02)).toBe(true)
+    const medio = Math.max(serie[1], serie[2], serie[3])
+    expect(medio).toBeGreaterThan(serie[0])
+    expect(medio).toBeGreaterThan(serie[4])
+  })
+
+  it('el agarre está en la palma, y eso NO mueve los ejercicios de cadena cerrada', () => {
+    // La contraprueba de que el punto de agarre no es un ajuste a ojo: si se hubiera
+    // elegido para que saliera un número bonito, movería todo. Mueve donde el agarre manda
+    // —un curl de bíceps pasa de 24 a 33 cm— y no mueve donde la carga va sobre los
+    // hombros. En la sentadilla las manos solo sujetan la barra al cuello.
+    const arriba = brazosDeMomento(esqueletoEnFase(sentadilla, 0), plan)
+    const abajo = brazosDeMomento(esqueletoEnFase(sentadilla, 1), plan)
+    for (const b of [...arriba, ...abajo]) {
+      expect(b.metros, `${b.articulacion} se disparó con el agarre`).toBeLessThan(0.35)
+    }
+  })
+
   it('el pie está a la altura del eje y sobre la vertical de la carga', () => {
     const esq = esqueletoEnFase(sentadilla, 0.6)
     const carga = puntoDeCarga(esq)!
