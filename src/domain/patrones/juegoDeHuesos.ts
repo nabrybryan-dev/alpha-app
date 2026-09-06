@@ -126,14 +126,81 @@ const MUJER: JuegoDeHuesos = {
 export const JUEGOS: Record<Sexo, JuegoDeHuesos> = { neutro: NEUTRO, hombre: HOMBRE, mujer: MUJER }
 
 /**
- * El esqueleto de un sexo, listo para `resolver()`, `esqueletoEnFase()` y
- * `construirHuesos()`.
+ * El esqueleto que sale de un juego: los veintiún huesos de `ESQUELETO` con los largos
+ * y los orígenes que el juego manda.
  *
- * AÚN NO SIGUE AL JUEGO: por ahora devuelve el neutro para los tres, y los guardianes de
- * `juegoDeHuesos.test.ts` que piden la rodilla del varón a 0,449 están en rojo a
- * propósito. Es el rastro de por qué existen.
+ * Cómo se reparte lo que el juego NO nombra hueso por hueso:
+ *
+ * - EL TRONCO ENTERO —pelvis, columna, cuello y cráneo, y la altura a la que cuelgan
+ *   clavículas, escápulas y brazos— se estira con UN solo factor: lo que va de la
+ *   cadera a la coronilla en el juego, partido por lo mismo en el neutro. Con él, el
+ *   varón de BodyParts3D clava la coronilla (1,714) y deja el hombro a 4 mm de su
+ *   altura medida (1,411 contra 1,415), el codo a 2 mm y la muñeca a menos de 1 mm.
+ *   Un segundo factor para cabeza y cuello mejoraría esos 4 mm a cambio de un número
+ *   más que la mujer no puede aportar, porque su atlas no trae hombro.
+ * - Cada hueso que NACE EN LA PUNTA de su padre —tibia, pie, antebrazo, mano; y en el
+ *   eje, tórax y cráneo— se recoloca al largo nuevo del padre: la rodilla está donde
+ *   termina el fémur de ESTE juego, no donde terminaba el del neutro.
+ * - LA CLAVÍCULA crece con los hombros para seguir llegando a la cabeza del húmero, y
+ *   la escápula se desplaza hacia fuera lo mismo que el hombro.
+ * - Lo que no tiene medida no se toca: mano, pie, anchura de cadera, ningún `reposo`.
+ */
+export function esqueletoConJuego(juego: JuegoDeHuesos): DefinicionHueso[] {
+  const n = NEUTRO
+  const tronco = (juego.coronilla - juego.cadera) / (n.coronilla - n.cadera)
+  const hombro = juego.medioHombro - n.medioHombro
+  const raizDeClavicula = Math.abs(POR_NOMBRE.claviculaD.desde[0])
+  const clavicula = (juego.medioHombro - raizDeClavicula) / (n.medioHombro - raizDeClavicula)
+  const alturaDelMuslo = POR_NOMBRE.musloD.desde[1]
+
+  return ESQUELETO.map((h): DefinicionHueso => {
+    const [x, y, z] = h.desde
+    const signo = Math.sign(x)
+    switch (h.nombre.replace(/[DI]$/, '')) {
+      case 'pelvis':
+        return { ...h, desde: [x, juego.cadera - alturaDelMuslo, z], largo: h.largo * tronco }
+      case 'lumbar':
+      case 'torax':
+      case 'cuello':
+      case 'craneo':
+        return { ...h, desde: [x, y * tronco, z], largo: h.largo * tronco }
+      case 'clavicula':
+        return { ...h, desde: [x, y * tronco, z], largo: h.largo * clavicula }
+      case 'escapula':
+        return { ...h, desde: [x + signo * hombro, y * tronco, z] }
+      case 'brazo':
+        return { ...h, desde: [signo * juego.medioHombro, y * tronco, z], largo: juego.humero }
+      case 'antebrazo':
+        return { ...h, desde: [x, juego.humero, z], largo: juego.antebrazo }
+      case 'mano':
+        return { ...h, desde: [x, juego.antebrazo, z] }
+      case 'muslo':
+        return { ...h, desde: [x, y, z], largo: juego.femur }
+      case 'tibia':
+        return { ...h, desde: [x, juego.femur, z], largo: juego.tibia }
+      case 'pie':
+        return { ...h, desde: [x, juego.tibia, z] }
+      default:
+        return { ...h, desde: [x, y, z] }
+    }
+  })
+}
+
+const ESQUELETO_POR_SEXO = new Map<Sexo, readonly DefinicionHueso[]>()
+
+/**
+ * El esqueleto de un sexo, listo para `resolver()`, `esqueletoEnFase()` y
+ * `construirHuesos()`. Siempre el mismo objeto para el mismo sexo, que es lo que
+ * permite al visor cachear por juego la malla y las longitudes en reposo.
+ *
+ * El neutro es `ESQUELETO` mismo, no una copia: ni un byte de diferencia por defecto.
  */
 export function esqueletoDe(sexo: Sexo = 'neutro'): readonly DefinicionHueso[] {
-  void sexo
-  return ESQUELETO
+  if (sexo === 'neutro') return ESQUELETO
+  let esqueleto = ESQUELETO_POR_SEXO.get(sexo)
+  if (!esqueleto) {
+    esqueleto = esqueletoConJuego(JUEGOS[sexo])
+    ESQUELETO_POR_SEXO.set(sexo, esqueleto)
+  }
+  return esqueleto
 }
