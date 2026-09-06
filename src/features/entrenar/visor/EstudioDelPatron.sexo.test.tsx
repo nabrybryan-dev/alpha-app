@@ -38,13 +38,13 @@ describe('el sexo de la ficha en el estudio del cuerpo', () => {
     espia.recibidas.length = 0
   })
 
-  it('sin dato, el visor no recibe sexo y el selector arranca en neutro', async () => {
+  it('sin dato, el visor no recibe sexo y el selector arranca en el defecto, el hombre', async () => {
     const usuario = userEvent.setup()
     render(<EstudioDelPatron patron={patron} />)
     expect(ultimoSexo()).toBeUndefined()
 
     await usuario.click(screen.getByRole('button', { name: /una articulación/i }))
-    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('con mujer en la ficha, el visor la recibe tal cual', () => {
