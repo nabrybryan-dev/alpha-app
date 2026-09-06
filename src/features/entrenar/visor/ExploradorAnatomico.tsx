@@ -143,8 +143,8 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
         ))}
       </div>
 
-      {/* La anatomía real ocupa más que el muñeco —es carne, no palos—, así que la cámara
-          se retira un poco para que el cuerpo entero siga cabiendo. Sin ella, igual. */}
+      {/* La anatomía real ocupa más que el muñeco —es carne, no palos— y llega hasta los
+          pies, así que la cámara se retira para que el cuerpo entero quepa. Sin ella, igual. */}
       <VisorPatron
         key={elegida.id}
         patron={elegida.patron}

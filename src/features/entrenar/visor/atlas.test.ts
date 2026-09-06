@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { brotliDecompressSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
+import { puntoDeHueso, resolver } from '../../../domain/patrones/esqueleto'
 import { leerPieza } from '../escena/piezas3d'
 import { CREDITOS_DEL_GIMNASIO } from './creditos'
 import { PIEZAS_DEL_ATLAS } from './piezas'
@@ -44,22 +45,32 @@ describe('las piezas del atlas', () => {
     expect(porNombre['atlas-musculos']).toBeGreaterThan(300)
   })
 
-  it('vienen a la escala del sujeto, no en metros de persona', () => {
-    // Sin esto el atlas mide 1,709 y el sujeto 0,555: tres veces, y en pantalla solo entra
-    // el tórax. La caja de las dos piezas juntas tiene que parecerse a la del sujeto.
-    let min = Infinity
-    let max = -Infinity
-    for (const p of PIEZAS) {
-      for (const m of p.mallas) {
-        for (let i = 1; i < m.posicion.length; i += 3) {
-          min = Math.min(min, m.posicion[i])
-          max = Math.max(max, m.posicion[i])
-        }
+  it('encaja con nuestro esqueleto: cadera, rodilla, tobillo y hombro en su sitio', () => {
+    // Los dos cuerpos miden lo mismo, así que aquí no se comprueba una escala sino un
+    // ENCAJE. El atlas trae al varón de referencia: cadera a 0,912, rodilla a 0,449; el
+    // nuestro las tiene a 0,955 y 0,505 —tiene las piernas más cortas—. El convertidor
+    // estira por tramos entre articulaciones para llevarlas a las nuestras. Si alguien
+    // quita ese estirado, la rodilla se va 5,6 cm y el fémur atraviesa la rótula del
+    // muñeco sin que falle nada más.
+    const esq = resolver({}, [0, 0, 0], [0, 0, 0])
+    const alturaDe = (hueso: string, extremo: 0 | 1) => (puntoDeHueso(esq, hueso, extremo) as number[])[1]
+
+    // Se mide sobre la pieza del esqueleto, que es donde están los huesos largos.
+    const mallas = PIEZAS.find((p) => p.nombre === 'atlas-esqueleto')!.mallas
+    let suelo = Infinity
+    let techo = -Infinity
+    for (const m of mallas) {
+      for (let i = 1; i < m.posicion.length; i += 3) {
+        suelo = Math.min(suelo, m.posicion[i])
+        techo = Math.max(techo, m.posicion[i])
       }
     }
-    expect(max - min, 'el atlas no está a la escala del sujeto').toBeCloseTo(0.555, 1)
-    // Y plantado a la altura del sujeto, no en cero: sus pies están donde los del muñeco.
-    expect(min).toBeCloseTo(-0.092, 1)
+    // De pie en el suelo, no flotando ni hundido, y a la estatura del sujeto.
+    expect(suelo, 'el atlas no está de pie en el suelo').toBeCloseTo(0, 1)
+    expect(techo, 'el atlas no llega a la estatura del sujeto').toBeCloseTo(alturaDe('craneo', 1), 0)
+    // Y no es una escala global disfrazada: el hombro apenas se movió (3 mm) mientras la
+    // rodilla subía 5,6 cm. Si esto fuera un escalado uniforme, no podrían pasar las dos.
+    expect(techo - suelo).toBeGreaterThan(1.5)
   })
 
   it('pesa lo que se dijo, y la copia comprimida es la MISMA pieza', () => {

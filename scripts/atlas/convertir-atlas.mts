@@ -46,6 +46,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { brotliCompressSync, constants } from 'node:zlib'
 import { pathToFileURL } from 'node:url'
 import { escribirPieza, type PartePieza } from '../../src/features/entrenar/escena/piezas3d'
+import { ESQUELETO, puntoDeHueso, resolver } from '../../src/domain/patrones/esqueleto'
 
 /** Cuánto se conserva de cada estructura, y el error máximo que se le tolera. */
 const RECORTE = 0.15
@@ -54,22 +55,70 @@ const ERROR_MAXIMO = 0.03
 const MINIMO_TRIANGULOS = 24
 
 /**
- * EL ATLAS NO ESTÁ EN LA MISMA ESCALA QUE NUESTRO SUJETO, y eso no se ve venir.
+ * EL ENCAJE CON NUESTRO SUJETO, hueso por hueso.
  *
- * El atlas viene en metros de persona: 1,709 m de alto, de pie, con los pies en y=0. El
- * sujeto de `domain/patrones/` NO está en metros: medido sobre su esqueleto en reposo,
- * ocupa de y=−0,092 a y=0,463, o sea **0,555 m**. Son tres veces distintos y a distinta
- * altura, así que puestos uno al lado del otro sin tocar nada, del atlas solo entra el
- * tórax en el cuadro —que es exactamente lo que pasó la primera vez—.
+ * Los dos miden lo mismo —el atlas va de 0,005 a 1,714 y nuestro esqueleto de 0,076 a
+ * 1,690— así que NO hay que escalar nada. (Un rato creí que sí: medí `construirHuesos()`,
+ * que dibuja en el espacio LOCAL de cada hueso, y tomé aquellos números por la estatura.
+ * La altura la pone la matriz del hueso, no la malla.)
  *
- * Por eso la escala se hornea aquí y no en la app: es una propiedad del dato, no una
- * decisión de pantalla, y hacerlo al escribir la pieza sale gratis en tiempo de dibujo.
+ * Lo que sí baila son las proporciones, y medidas contra los huesos largos del atlas —que
+ * traen su nombre— resulta que casi todo encaja ya:
+ *
+ *   hombro  1,415 → 1,412   (3 mm)
+ *   codo    1,110 → 1,104   (6 mm)
+ *   tobillo 0,072 → 0,076   (4 mm)
+ *   muñeca  0,884 → 0,846   (3,8 cm)
+ *   cadera  0,912 → 0,955   (4,3 cm)
+ *   rodilla 0,449 → 0,505   (5,6 cm)
+ *
+ * O sea: el tronco y el brazo ya coinciden, y lo que no coincide es que **nuestro sujeto
+ * tiene las piernas más cortas** y la mano más larga. Así que en vez de escalar el cuerpo
+ * entero se estira por TRAMOS entre esos puntos: cada altura del atlas se lleva a la
+ * altura que le toca en nuestro esqueleto, interpolando entre referencias. Es continuo por
+ * construcción —no hay saltos ni costuras, que es lo que pasaría atando cada hueso por su
+ * cuenta— y respeta la anatomía dentro de cada tramo.
+ *
+ * El brazo va con su propia lista porque cuelga: a la altura de la cadera hay a la vez
+ * pelvis y muñeca, y cada una tiene que ir a un sitio distinto. Con una sola lista, mover
+ * la cadera arrastraría la muñeca.
+ *
+ * Las referencias NO están escritas a mano: salen de los huesos largos del atlas por su
+ * nombre (fémur, tibia, húmero, radio, calcáneo) y de `puntoDeHueso()` en el nuestro. Si
+ * cambia cualquiera de los dos esqueletos, esto se recalcula solo.
  */
-const ALTO_DEL_SUJETO = 0.555
-const ALTO_DEL_ATLAS = 1.709
-const ESCALA = ALTO_DEL_SUJETO / ALTO_DEL_ATLAS
-/** Dónde tiene los pies el sujeto: el atlas se planta a su misma altura, no en cero. */
-const SUELO_DEL_SUJETO = -0.092
+
+/** Una referencia: la misma articulación en los dos cuerpos. */
+type Referencia = { atlas: number; nuestro: number }
+
+/** Interpola por tramos: fuera del rango, traslada con la pendiente del tramo extremo. */
+function estirar(y: number, refs: Referencia[]): number {
+  if (y <= refs[0].atlas) return refs[0].nuestro + (y - refs[0].atlas)
+  for (let i = 1; i < refs.length; i++) {
+    if (y <= refs[i].atlas) {
+      const a = refs[i - 1]
+      const b = refs[i]
+      const t = (y - a.atlas) / (b.atlas - a.atlas || 1e-9)
+      return a.nuestro + t * (b.nuestro - a.nuestro)
+    }
+  }
+  const u = refs[refs.length - 1]
+  return u.nuestro + (y - u.atlas)
+}
+
+/** Cuánto estira el tramo donde cae esa altura: hace falta para corregir la normal. */
+function pendiente(y: number, refs: Referencia[]): number {
+  for (let i = 1; i < refs.length; i++) {
+    if (y <= refs[i].atlas) {
+      const a = refs[i - 1]
+      const b = refs[i]
+      return (b.nuestro - a.nuestro) / (b.atlas - a.atlas || 1e-9)
+    }
+  }
+  return 1
+}
+
+const DEL_BRAZO = new Set(['brazoD', 'brazoI', 'antebrazoD', 'antebrazoI', 'manoD', 'manoI'])
 
 const GRUPOS: Record<string, { sistemas: string[]; color: [number, number, number] }> = {
   // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
@@ -135,6 +184,65 @@ async function main() {
   }
   const trozos = manifiesto.chunks.map((_, i) => readFileSync(`${dir}/body-${i}.bin`))
 
+  // NUESTRO esqueleto en reposo, para sacar de él las alturas de referencia.
+  const esq = resolver({}, [0, 0, 0], [0, 0, 0])
+  const huesos = ESQUELETO.map((h) => ({
+    nombre: h.nombre,
+    a: puntoDeHueso(esq, h.nombre, 0) as number[],
+    b: puntoDeHueso(esq, h.nombre, 1) as number[],
+  }))
+  const nuestro = (n: string, extremo: 0 | 1) => (extremo === 0 ? huesos : huesos).find((h) => h.nombre === n)![extremo === 0 ? 'a' : 'b'][1]
+
+  // Y las del ATLAS, de sus huesos largos por su nombre. Si alguno no está, se para: una
+  // referencia inventada movería el cuerpo entero sin que nadie lo notara.
+  const caja = (re: RegExp) => {
+    const suyas = manifiesto.parts.filter((p) => re.test(p.name))
+    if (suyas.length === 0) throw new Error(`no encuentro «${re}» en el atlas: no puedo encajarlo`)
+    return {
+      abajo: Math.min(...suyas.map((p) => p.bounds[0][1])),
+      arriba: Math.max(...suyas.map((p) => p.bounds[1][1])),
+    }
+  }
+  const femur = caja(/^(Right|Left) femur$/)
+  const tibia = caja(/^(Right|Left) tibia$/)
+  const humero = caja(/^(Right|Left) humerus$/)
+  const radio = caja(/^(Right|Left) radius$/)
+  const calcaneo = caja(/^(Right|Left) calcaneus$/)
+
+  const DEL_CUERPO: Referencia[] = [
+    { atlas: calcaneo.abajo, nuestro: 0 },
+    { atlas: tibia.abajo, nuestro: nuestro('tibiaD', 1) },
+    { atlas: (femur.abajo + tibia.arriba) / 2, nuestro: nuestro('musloD', 1) },
+    { atlas: femur.arriba, nuestro: nuestro('musloD', 0) },
+    { atlas: humero.arriba, nuestro: nuestro('brazoD', 0) },
+  ]
+  const DEL_BRAZO_REFS: Referencia[] = [
+    { atlas: radio.abajo, nuestro: nuestro('manoD', 0) },
+    { atlas: (radio.arriba + humero.abajo) / 2, nuestro: nuestro('antebrazoD', 0) },
+    { atlas: humero.arriba, nuestro: nuestro('brazoD', 0) },
+  ]
+  console.log('referencias del cuerpo:', DEL_CUERPO.map((r) => `${r.atlas.toFixed(3)}→${r.nuestro.toFixed(3)}`).join('  '))
+  console.log('referencias del brazo :', DEL_BRAZO_REFS.map((r) => `${r.atlas.toFixed(3)}→${r.nuestro.toFixed(3)}`).join('  '))
+
+  /** A qué hueso nuestro pertenece una estructura: el segmento más cercano a su centro. */
+  const huesoDe = (p: ParteDelAtlas) => {
+    const c = p.bounds[0].map((v, k) => (v + p.bounds[1][k]) / 2)
+    let mejor = huesos[0].nombre
+    let dm = Infinity
+    for (const h of huesos) {
+      const ab = [h.b[0] - h.a[0], h.b[1] - h.a[1], h.b[2] - h.a[2]]
+      const ap = [c[0] - h.a[0], c[1] - h.a[1], c[2] - h.a[2]]
+      const l2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2 || 1e-9
+      const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / l2))
+      const d = Math.hypot(c[0] - (h.a[0] + ab[0] * t), c[1] - (h.a[1] + ab[1] * t), c[2] - (h.a[2] + ab[2] * t))
+      if (d < dm) {
+        dm = d
+        mejor = h.nombre
+      }
+    }
+    return mejor
+  }
+
   mkdirSync('public/piezas', { recursive: true })
   for (const [nombre, grupo] of Object.entries(GRUPOS)) {
     const suyas = manifiesto.parts.filter((p) => grupo.sistemas.includes(p.system))
@@ -144,6 +252,7 @@ async function main() {
     let errorMaximo = 0
 
     suyas.forEach((p, i) => {
+      const refs = DEL_BRAZO.has(huesoDe(p)) ? DEL_BRAZO_REFS : DEL_CUERPO
       const b = trozos[p.chunk]
       const bruto = {
         pos: new Float32Array(b.buffer.slice(b.byteOffset + p.positions, b.byteOffset + p.positions + p.vertexCount * 12)),
@@ -169,12 +278,22 @@ async function main() {
       for (let viejo = 0; viejo < remap.length; viejo++) {
         const n = remap[viejo]
         if (n === 0xffffffff) continue
-        // A la escala del sujeto y a su altura. La normal no se toca: escalar por igual en
-        // los tres ejes no la gira.
-        posicion[n * 3] = pos[viejo * 3] * ESCALA
-        posicion[n * 3 + 1] = pos[viejo * 3 + 1] * ESCALA + SUELO_DEL_SUJETO
-        posicion[n * 3 + 2] = pos[viejo * 3 + 2] * ESCALA
-        nrm.set(normal.subarray(viejo * 3, viejo * 3 + 3), n * 3)
+        // La altura se lleva a la de nuestro esqueleto; el ancho y el fondo no se tocan:
+        // los dos cuerpos ya coinciden en eso y estirarlos sería deformar la anatomía.
+        const y = pos[viejo * 3 + 1]
+        posicion[n * 3] = pos[viejo * 3]
+        posicion[n * 3 + 1] = estirar(y, refs)
+        posicion[n * 3 + 2] = pos[viejo * 3 + 2]
+        // La normal se corrige por el estirado: al comprimir en Y, la normal se inclina al
+        // revés —dividiendo, no multiplicando— o la luz delataría un muslo aplastado.
+        const k = pendiente(y, refs) || 1
+        const nx = normal[viejo * 3]
+        const ny = normal[viejo * 3 + 1] / k
+        const nz = normal[viejo * 3 + 2]
+        const largoN = Math.hypot(nx, ny, nz) || 1
+        nrm[n * 3] = nx / largoN
+        nrm[n * 3 + 1] = ny / largoN
+        nrm[n * 3 + 2] = nz / largoN
       }
 
       // Variación de tono por estructura: dos músculos pegados con el mismo color exacto
