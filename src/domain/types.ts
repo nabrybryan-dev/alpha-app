@@ -344,7 +344,20 @@ export interface Microciclo {
   id: string
   usuarioId: string
   numero: number
-  cadenciaDias: 8 | 15
+  /**
+   * Cuántos días dura el microciclo. **7 entró el 2026-09-06 y no es un tercer
+   * sabor: es la única longitud que cabe en una semana.**
+   *
+   * Con 8 días el bloque empieza un día más tarde cada vez, así que unos días
+   * fijos de lunes a domingo se descuadran solos — y por eso hay asesorados cuyas
+   * sesiones se llaman D1…D4 y NUNCA han tenido `dia`. No se le olvidó a nadie:
+   * `armarSemana()` ya las reparte por `orden` justamente porque esto pasa.
+   *
+   * ⚠ ACORTARLO SUBE LA CARGA SEMANAL SIN TOCAR UNA SERIE. Las mismas 80 series
+   * pasan de 70 por semana con cadencia 8 a 80 con cadencia 7, un +14 %. Al
+   * cambiar este número hay que mirar el volumen por SEMANA, no por microciclo.
+   */
+  cadenciaDias: 7 | 8 | 15
   estado: 'activo' | 'cerrado' | 'propuesto'
   fechaInicio: string
   sesiones: Sesion[]
@@ -647,3 +660,4 @@ export interface PreferenciaEstado {
   familia: string
   estado: 'crudo' | 'cocido' | 'seco'
 }
+
