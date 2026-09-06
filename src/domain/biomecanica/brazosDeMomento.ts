@@ -112,6 +112,15 @@ function centroDe(
  * Los ejercicios de cadena cerrada apenas se mueven —en una sentadilla la barra va sobre
  * los hombros y las manos solo la sujetan— y eso es la comprobación de que el número nuevo
  * no es un ajuste a ojo: cambia donde el agarre manda y no cambia donde no.
+ *
+ * ## Y el 0,45 no se eligió: ya estaba escrito en la otra mitad de la app
+ *
+ * `features/entrenar/escena/implementos.ts` coloca la barra en `manoD`/`manoI` a **t = 0,45**
+ * desde antes que esto, y es lo que el asesorado ve en pantalla. O sea que la app **dibujaba
+ * la barra en la palma y la medía en la muñeca**: dos capas mirando el mismo agarre y
+ * contestando distinto, con 8 cm de diferencia. Aquí no se importa esa constante —el dominio
+ * no depende de `features`— pero si una de las dos cambia, la otra tiene que cambiar con
+ * ella o el número vuelve a describir un agarre que no se ve.
  */
 const AGARRE = 0.45
 
