@@ -40,14 +40,6 @@ export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
   [SALA_GIMNASIO.nombre]: { ruta: '/piezas/sala-gimnasio.pieza', anguloGrados: 0, radio: 0 },
 }
 
-/** Las imágenes que piden las piezas, para `TEXTURAS_DEL_SALON`. */
-export const TEXTURAS_DE_LAS_PIEZAS = {
-  'rack-acero': '/texturas/rack-acero.jpg',
-  'rack-barra': '/texturas/rack-barra.jpg',
-  hormigon: '/texturas/hormigon.jpg',
-  'metal-placa': '/texturas/metal-placa.jpg',
-  'gym-atlas': '/texturas/gym-atlas.jpg',
-} as const
 
 /**
  * SI LA SALA DEL GIMNASIO YA ESTÁ EN PANTALLA, para que la interfaz deje de dibujar la

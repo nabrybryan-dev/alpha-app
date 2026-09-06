@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { escribirPieza } from '../escena/piezas3d'
-import { cargarPiezas, PIEZAS_DEL_SALON, sitioDe, TEXTURAS_DE_LAS_PIEZAS } from './piezas'
+import { cargarPiezas, PIEZAS_DEL_SALON, sitioDe } from './piezas'
+import { TEXTURAS_DEL_SALON } from './texturas'
 
 /**
  * LA CARGA DE LAS PIEZAS, sin red. Se inyecta un `traer` de mentira que resuelve con una
@@ -67,9 +68,11 @@ describe('cargarPiezas', () => {
     expect(s.giroY).toBeCloseTo((-150 * Math.PI) / 180, 9)
   })
 
-  it('las imágenes del rack y de la sala están en la lista', () => {
-    expect(Object.keys(TEXTURAS_DE_LAS_PIEZAS).sort()).toEqual([
-      'gym-atlas', 'hormigon', 'metal-placa', 'rack-acero', 'rack-barra',
+  it('todas las imágenes que la sala usa están declaradas, con su color medio', () => {
+    // Si el exportador empieza a usar una textura nueva y nadie la declara aquí, la parte
+    // se dibuja con la luz desnuda: blanca. Esta lista es la que lo impide.
+    expect(Object.keys(TEXTURAS_DEL_SALON).sort()).toEqual([
+      'gym-atlas', 'hormigon', 'rack-acero', 'rack-barra', 'suelo-goma',
     ])
   })
 

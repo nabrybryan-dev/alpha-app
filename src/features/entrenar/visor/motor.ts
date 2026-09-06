@@ -262,6 +262,10 @@ export class Motor {
    */
   cargarTextura(nombre: string, imagen: HTMLImageElement | HTMLCanvasElement | ImageBitmap): void {
     const gl = this.gl
+    // Sustituye a la plana si la había: se libera para no dejarla ocupando memoria de la
+    // tarjeta durante el resto de la sesión.
+    const anterior = this.texturas.get(nombre)
+    if (anterior) gl.deleteTexture(anterior)
     const t = gl.createTexture()
     if (!t) throw new Error('no se pudo crear la textura')
     gl.bindTexture(gl.TEXTURE_2D, t)
@@ -284,6 +288,33 @@ export class Motor {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    this.texturas.set(nombre, t)
+  }
+
+  /**
+   * EL COLOR MEDIO DE UNA IMAGEN QUE TODAVÍA NO HA LLEGADO: un píxel de ese color.
+   *
+   * Sin esto, una malla horneada que espera su textura se dibuja BLANCA, y no por un
+   * fallo del motor: el horneado lleva albedo 1 —el color oscuro del suelo o del hormigón
+   * vive en la imagen, no en el vértice—, así que sin imagen lo que queda es la luz
+   * desnuda. En el ASUS no se veía porque las imágenes llegan en un parpadeo; en el móvil
+   * de Bryan, con LTE, la sala apareció en blanco (2026-09-05).
+   *
+   * Con el color medio puesto desde el primer fotograma, lo que falta es el DETALLE —las
+   * juntas del suelo, el grano del hormigón—, no el color. Y cuando la imagen llega,
+   * sustituye a ésta sin que se note un salto de tono.
+   */
+  cargarTexturaPlana(nombre: string, rgb: readonly [number, number, number]): void {
+    if (this.texturas.has(nombre)) return
+    const gl = this.gl
+    const t = gl.createTexture()
+    if (!t) throw new Error('no se pudo crear la textura')
+    gl.bindTexture(gl.TEXTURE_2D, t)
+    const px = new Uint8Array([rgb[0], rgb[1], rgb[2], 255])
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, px)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     this.texturas.set(nombre, t)
   }
 
