@@ -312,3 +312,18 @@ describe('hornear', () => {
     expect(h.posicion[0]).toBe(5)
   })
 })
+
+describe('colgarDe', () => {
+  it('cuelga todos los vértices del hueso que se le dice, y solo los que existen', () => {
+    // Lo que llega hecho (una pieza, el atlas) nace en el hueco 0 —el mundo— y hay que
+    // colgarlo del sujeto entero después. Si esto se saltara un vértice, esa esquina se
+    // quedaría en el suelo mientras el resto del cuerpo flota con la demostración.
+    const m = new Malla(8)
+    m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.verticeSuelto(1, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.verticeSuelto(0, 0, 1, 0, 1, 0, [1, 1, 1], 0)
+    m.triangulo(0, 1, 2)
+    m.colgarDe(22)
+    expect(Array.from(m.hueso)).toEqual([22, 22, 22])
+  })
+})

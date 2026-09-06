@@ -32,7 +32,8 @@ import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
 import { construirImplementos, implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
-import { resolver } from '../../../domain/patrones/esqueleto'
+import { INDICE_RAIZ, resolver, type EsqueletoResuelto } from '../../../domain/patrones/esqueleto'
+import type { Mat4 } from '../../../domain/patrones/algebra'
 import {
   activacionDe,
   colorDeMusculo,
@@ -460,6 +461,9 @@ export function VisorPatron({
     if (!atlas || atlas.length === 0 || atlasCargado.size > 0) return
     return cargarPiezas(
       (nombre, mallas) => {
+        // Cada vértice cuelga de la RAÍZ del sujeto, no del mundo: así el atlas va con él
+        // cuando la demostración lo hace flotar o el press lo tumba.
+        for (const m of mallas) m.colgarDe(INDICE_RAIZ)
         atlasCache = [...atlasCache, ...mallas]
         atlasCargado.add(nombre)
         atlasPorCapa.set(nombre.replace('atlas-', ''), mallas)
@@ -609,11 +613,18 @@ export function VisorPatron({
           ? elevacionDelSalon(patron.camara.elevacion)
           : patron.camara.elevacion
 
-        let matrices = resolver({}, [0, 0.95, 0], [0, 0, 0]).matrices
+        // LA RAÍZ VA EN SU HUECO. Los atlas cuelgan de ella (ver `INDICE_RAIZ`): sin esto
+        // se quedan en el mundo y el sujeto se va con su desplazamiento sin ellos.
+        const conRaiz = (esq: EsqueletoResuelto): Mat4[] => {
+          const m = [...esq.matrices]
+          m[INDICE_RAIZ] = esq.raiz
+          return m
+        }
+        let matrices = conRaiz(resolver({}, [0, 0.95, 0], [0, 0, 0]))
 
         const construir = () => {
           const esq = esqueletoEnFase(patron, estado.current.fase, estado.current.sentido, estado.current.reloj)
-          matrices = esq.matrices
+          matrices = conRaiz(esq)
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.

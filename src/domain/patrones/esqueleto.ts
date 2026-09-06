@@ -63,6 +63,17 @@ ESQUELETO.forEach((h, i) => {
   INDICE_HUESO[h.nombre] = i + 1
 })
 
+/**
+ * EL HUECO DE LA RAÍZ: la matriz que coloca al sujeto entero —desplazamiento, giro y la
+ * corrección de apoyo— sin ningún hueso encima. Es el hueco que sigue a los huesos.
+ *
+ * Existe para lo que se pega al sujeto pero no a un hueso: el atlas anatómico. Clavado al
+ * mundo (hueco 0), el atlas se quedaba en el suelo mientras el sujeto de una demostración
+ * flota 0,95 m más arriba, y de la piel solo asomaba la coronilla bajo sus pies. Colgado de
+ * la raíz va donde vaya el sujeto, también tumbado en un press de banca.
+ */
+export const INDICE_RAIZ = ESQUELETO.length + 1
+
 /** Multiplicador del eje X según el lado. La derecha del sujeto cae en −X. */
 export const LADO: Record<'D' | 'I', number> = { D: -1, I: 1 }
 export type Lado = 'D' | 'I'
@@ -74,6 +85,8 @@ export interface EsqueletoResuelto {
   mundo: Record<string, Mat4>
   matrices: Mat4[]
   largo: Record<string, number>
+  /** La matriz raíz sola, para lo que sigue al sujeto entero: ver `INDICE_RAIZ`. */
+  raiz: Mat4
 }
 
 /**
@@ -193,6 +206,7 @@ export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): Esqu
     mundo,
     matrices,
     largo: Object.fromEntries(ESQUELETO.map((h) => [h.nombre, h.largo])),
+    raiz,
   }
 }
 

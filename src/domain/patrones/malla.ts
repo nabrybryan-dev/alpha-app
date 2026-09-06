@@ -122,6 +122,17 @@ export class Malla {
     this.ni = 0
   }
 
+  /**
+   * Cuelga TODOS los vértices del mismo hueso.
+   *
+   * Para lo que llega ya construido —una pieza de Blender, el atlas anatómico— y tiene que
+   * seguir al sujeto entero: se cuelga de `INDICE_RAIZ` y va donde vaya él, también
+   * tumbado. Lo que se construye vértice a vértice ya dice su hueso al nacer.
+   */
+  colgarDe(hueso: number): void {
+    this.bufHueso.fill(hueso, 0, this.nv)
+  }
+
   get vertices(): number {
     return this.nv
   }
