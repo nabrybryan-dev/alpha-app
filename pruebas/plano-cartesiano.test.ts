@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PATRONES } from '../src/domain/patrones/catalogo'
 import { CATEGORIAS } from '../src/domain/taxonomia'
+import { poseAnimada } from '../src/domain/patrones/movimiento'
 import { informeDelPlano, planoDe, planoDeId } from './plano-cartesiano'
 
 /**
@@ -142,6 +143,82 @@ describe('lo que el plano dice de TODO el catálogo', () => {
       const esperado = patron.cadena === 'cerrada' ? 'Pelvis' : 'Fémur'
       expect(cadera.movil, `${patron.id}: cadena ${patron.cadena}`).toBe(esperado)
     }
+  })
+})
+
+describe('lo que la ficha declara y lo que el motor llega a enseñar', () => {
+  /** El recorrido REAL de un canal a lo largo del ciclo entero, muestreado fino. */
+  function recorridoVisto(patron: (typeof PATRONES)[number], canal: string): number {
+    let mn = Infinity
+    let mx = -Infinity
+    for (let i = 0; i <= 200; i++) {
+      const v = poseAnimada(patron, i / 200, 1, 0).pose[canal]
+      if (v === undefined) continue
+      mn = Math.min(mn, v)
+      mx = Math.max(mx, v)
+    }
+    return mx - mn
+  }
+
+  /** Todos los canales que declaran al menos 15° de recorrido, con lo que pierden. */
+  function perdidas(): { id: string; canal: string; declarado: number; visto: number; parte: number }[] {
+    const salida = []
+    for (const patron of PATRONES) {
+      for (const canal of new Set([...Object.keys(patron.inicio), ...Object.keys(patron.fin)])) {
+        const declarado = Math.abs((patron.fin[canal] ?? 0) - (patron.inicio[canal] ?? 0))
+        if (declarado < 15) continue
+        const visto = recorridoVisto(patron, canal)
+        salida.push({ id: patron.id, canal, declarado, visto, parte: (declarado - visto) / declarado })
+      }
+    }
+    return salida
+  }
+
+  it('el retardo distal se come parte del recorrido, y cuanto más lejos de la cadera, más', () => {
+    // MEDIDO Y NO ARREGLADO, a propósito: arreglarlo cambia cómo se mueve TODO el catálogo
+    // y esa decisión no es de esta tanda.
+    //
+    // El mecanismo está en una línea de `poseAnimada`: cada canal se lee en
+    // `fase − retardo`, y la fase va topada a 1. O sea que un canal con retardo nunca
+    // llega a leer su fase final: **la ficha declara un ángulo que el salón no enseña
+    // nunca**. Cuanto más distal, mayor el retardo y mayor lo que se pierde.
+    //
+    // Se descubrió persiguiendo los 13° que faltaban en la muñeca, y resultó no ser de la
+    // muñeca: es de todo el catálogo. Medido el 2026-09-06 sobre los canales que declaran
+    // 15° o más — 70 de 91 pierden algo, con una mediana del 3 % y un techo del 11 % en
+    // las dos muñecas, que son lo más distal que hay.
+    //
+    // Va clavado en la MEDIANA y en el número de afectados y no canal a canal: lo que hay
+    // que vigilar es que la pérdida no crezca, no cada decimal.
+    const todas = perdidas().filter((x) => x.id !== 'movilidad_toracica' || x.canal !== 'cuelloFlex')
+    expect(todas).toHaveLength(90)
+    expect(todas.filter((x) => x.parte > 0.01)).toHaveLength(69)
+    const partes = todas.map((x) => x.parte).sort((a, b) => a - b)
+    expect(partes[Math.floor(partes.length / 2)]).toBeLessThan(0.05)
+    // Y el TECHO se mide en GRADOS, no en tanto por ciento, porque el porcentaje aquí
+    // engaña: el que peor sale en proporción es `salto toraxFlex` con un 17,7 %, y son
+    // 2,8° sobre 16 declarados — nadie ve eso. Los que de verdad se notan son las dos
+    // muñecas, que pierden 12 grados enteros. Un cociente con el denominador pequeño
+    // fabrica un peor caso que no lo es.
+    const enGrados = todas.map((x) => x.declarado - x.visto)
+    expect(Math.max(...enGrados)).toBeLessThan(14)
+  })
+
+  it('en la movilidad torácica el cuello declara 48° y hace 12: se lo come otra capa', () => {
+    // El caso aparte, y no es el retardo: 74 % no lo explica ningún retardo. Lo que pasa
+    // es que `movimiento.ts` mantiene la cabeza mirando al frente cuando el tronco se
+    // inclina, y esa capa se aplica DESPUÉS de la pose de la ficha. En casi todo el
+    // catálogo eso está bien —nadie quiere un maniquí mirándose los pies en una
+    // sentadilla— pero aquí el cuello es parte de lo que se enseña: la ficha lo lleva de
+    // +26 a −22 a propósito, y de eso se ve una cuarta parte.
+    //
+    // Medido y no arreglado: tocar la capa de la cabeza afecta a los 36 patrones.
+    const patron = PATRONES.find((p) => p.id === 'movilidad_toracica')!
+    const declarado = Math.abs((patron.fin.cuelloFlex ?? 0) - (patron.inicio.cuelloFlex ?? 0))
+    expect(declarado).toBe(48)
+    const visto = recorridoVisto(patron, 'cuelloFlex')
+    expect(visto).toBeGreaterThan(10)
+    expect(visto).toBeLessThan(16)
   })
 })
 
