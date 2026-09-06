@@ -110,41 +110,23 @@ describe('las cinco fichas nuevas, en el plano', () => {
 })
 
 describe('lo que el plano dice de TODO el catálogo', () => {
-  it('cinco patrones no tienen modelo de palanca, y son los cinco cuya categoría no es canónica', () => {
-    // La media pieza que ninguna de las dos capas comprobaba. La biomecánica tiene
-    // escrito un modelo mecánico para las 34 categorías CANÓNICAS de `taxonomia.ts`; el
-    // catálogo 3D tiene fichas cuya categoría a veces no está en esa lista. Donde no
-    // coinciden, el salón dibuja el sujeto y **ni una sola flecha de fuerza**: no hay
-    // brazo de momento que medir porque no hay modelo que lo pida.
+  it('solo un patrón se queda sin modelo de palanca, y es una decisión, no un hueco', () => {
+    // Esta prueba nació el 2026-09-06 diciendo CINCO, y ese día se puso roja: era el
+    // recuento de un hueco, no de una decisión, y el hueco se cerró unas horas después.
     //
-    // Medido el 2026-09-06: son cinco, y las cinco fichas nuevas NO están entre ellas
-    // —sus cinco modelos ya existían escritos y sin ficha a la que aplicarse—. Va
-    // clavado: si alguien añade una ficha con categoría inventada, este test se pone
-    // rojo antes de que el hueco llegue a producción.
+    // La tabla mecánica va indexada por las 34 categorías CANÓNICAS de `taxonomia.ts`, y
+    // el catálogo 3D tiene fichas con categorías que no están ahí. Cuatro se dibujaban sin
+    // ninguna flecha de fuerza por ese desajuste de índice —salto, rotación externa de
+    // hombro, apoyo a una pierna y suspensión, que son 19 de las 150 familias que se
+    // prescriben de verdad—, y ahora las nombra `MODELOS_DE_FICHA`.
+    //
+    // El que queda es distinto: `movilidad_toracica` SÍ tiene categoría canónica y su
+    // modelo está escrito `null` a propósito, porque una movilidad no tiene carga contra
+    // la que medir palanca. Va clavado a uno para que un hueco nuevo no se pueda esconder
+    // detrás de esa excepción.
     const sinModelo = PATRONES.filter((p) => planoDe(p).linea === 'sin modelo de palanca')
-    expect(sinModelo.map((p) => p.id)).toEqual([
-      'salto',
-      'rotacion_externa_hombro',
-      'movilidad_toracica',
-      'apoyo_una_pierna',
-      'suspension',
-    ])
-    // Y no por la misma razón, que es lo que hay que tener escrito antes de decidir qué
-    // hacer con ellos. Cuatro tienen una categoría que NO está en la lista canónica de
-    // `taxonomia.ts`, así que la tabla de modelos ni siquiera los puede nombrar: son un
-    // hueco. `movilidad_toracica` sí es canónica —`MOVILIDAD`— y su modelo está escrito
-    // como `null` a propósito: una movilidad no tiene carga contra la que medir palanca.
-    // Ese no es un hueco, es una decisión.
-    const canonicas = CATEGORIAS as readonly string[]
-    expect(sinModelo.filter((p) => !canonicas.includes(p.categoria)).map((p) => p.id)).toEqual([
-      'salto',
-      'rotacion_externa_hombro',
-      'apoyo_una_pierna',
-      'suspension',
-    ])
-    expect(sinModelo.filter((p) => canonicas.includes(p.categoria)).map((p) => p.id)).toEqual([
-      'movilidad_toracica',
-    ])
+    expect(sinModelo.map((p) => p.id)).toEqual(['movilidad_toracica'])
+    expect(CATEGORIAS as readonly string[]).toContain(sinModelo[0].categoria)
   })
 
   it('la cadena de la ficha no contradice a la del modelo mecánico', () => {

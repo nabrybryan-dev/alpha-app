@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { implementoDe } from '../src/domain/biomecanica/implementos'
+import { modeloDePalanca, planDeMedida } from '../src/domain/biomecanica/palancas'
 import { PATRONES, patronDeCategoria } from '../src/domain/patrones/catalogo'
 import { CATEGORIAS } from '../src/domain/taxonomia'
 import type { EjercicioPrescrito } from '../src/domain/types'
@@ -272,6 +273,78 @@ describe('quién declara con qué se hace el ejercicio', () => {
     // salón. Solo uno se queda sin: el paseo del granjero, y a propósito — ver arriba.
     const fichas = PATRONES.filter((p) => !implementoDe(p.ejemplos.split('·')[0].trim()))
     expect(fichas.map((p) => p.id)).toEqual(['antiflexion_lateral'])
+  })
+})
+
+describe('quién tiene modelo mecánico, y por tanto flechas de fuerza', () => {
+  it('de las 150 familias con sujeto, solo 3 se quedan sin plan de medida', () => {
+    // El tercer barrido. Tener sujeto no basta: sin modelo mecánico el salón dibuja el
+    // cuerpo moviéndose y NI UNA SOLA FLECHA, que es la mitad de lo que se prometió.
+    //
+    // Eran 22 el 2026-09-06 —el 15 % de lo que se prescribe—, y casi todas de PREV/REHAB:
+    // manguito, apoyo monopodal, suspensión y trabajo reactivo. La causa era de índice: la
+    // tabla de modelos va por categoría CANÓNICA y esas fichas tienen categorías que no
+    // están en la taxonomía, así que no se las podía ni nombrar. `MODELOS_DE_FICHA` las
+    // nombra.
+    //
+    // Las tres que quedan son MOVILIDAD, cuyo modelo está escrito `null` a propósito: una
+    // movilidad no tiene carga contra la que medir palanca. Eso no es un hueco.
+    const conSujeto = ejerciciosDeProduccion().filter((c) => patronDeCategoria(c.categoria, c.nombre))
+    const sinPlan = conSujeto.filter((c) => {
+      const p = patronDeCategoria(c.categoria, c.nombre)!
+      return !planDeMedida(p.categoria, c.nombre ?? '')
+    })
+    expect(conSujeto).toHaveLength(150)
+    expect(sinPlan.map((c) => `${c.categoria} · ${c.nombre}`)).toEqual([
+      'MOVILIDAD · MOVILIDAD',
+      'MOVILIDAD · DISLOCACION',
+      'MOVILIDAD · FOAM ROLLER',
+    ])
+  })
+
+  it('los cuatro modelos de ficha piden la cámara donde su eje se ve girar', () => {
+    // Lo que hace útil el recuento de arriba: que exista un plan no basta si pide la
+    // cámara donde el gesto no se ve. Dos de los cuatro NO se graban de lado, y eso es lo
+    // que el modelo tiene que decir antes de que alguien plante el móvil:
+    //
+    // - la rotación del manguito ocurre en el plano transverso: de perfil el recorrido
+    //   entero se proyecta sobre un punto y la medida sale cero con cara de dato;
+    // - el apoyo a una pierna se rompe en el plano frontal —la pelvis cae hacia el lado
+    //   libre— y de perfil no se ve caer nada.
+    const vista = (categoria: string) => modeloDePalanca(categoria)?.vista
+    expect(vista('POTENCIA · REACTIVA')).toBe('lateral')
+    expect(vista('ROTACIÓN EXTERNA')).toBe('cenital')
+    expect(vista('APOYO A UNA PIERNA')).toBe('frontal')
+    expect(vista('SUSPENSIÓN')).toBe('frontal')
+    // Y ninguno mide contra una barra que no existe: los tres de peso corporal van contra
+    // el centro de masas y el del manguito contra la línea del cable.
+    const linea = (categoria: string) => modeloDePalanca(categoria)?.linea.origen
+    expect(linea('POTENCIA · REACTIVA')).toBe('centro-de-masas')
+    expect(linea('APOYO A UNA PIERNA')).toBe('centro-de-masas')
+    expect(linea('SUSPENSIÓN')).toBe('centro-de-masas')
+    expect(linea('ROTACIÓN EXTERNA')).toBe('cable')
+  })
+
+  it('el `patron` prestado de esos cuatro no les cuela los consejos de otro ejercicio', () => {
+    // LA TRAMPA LATENTE, clavada antes de que muerda. `ModeloDePalanca.patron` es de tipo
+    // `Categoria` y estas cuatro claves no lo son, así que cada una declara la canónica
+    // cuya mecánica comparte —el salto declara SENTADILLA—. Pero `conReglas()` usa ese
+    // campo para pegarle a cada eje el consejo escrito para ESE patrón: si el salto
+    // ganara un eje lumbar, heredaría «el ángulo del torso constante durante todo el
+    // descenso», que es un consejo de sentadilla dicho sobre un salto.
+    //
+    // Hoy no pasa porque ningún eje coincide, y esta prueba es lo que hace que se sepa el
+    // día que alguien añada uno.
+    for (const categoria of [
+      'POTENCIA · REACTIVA',
+      'ROTACIÓN EXTERNA',
+      'APOYO A UNA PIERNA',
+      'SUSPENSIÓN',
+    ]) {
+      const modelo = modeloDePalanca(categoria)!
+      const heredadas = modelo.ejes.filter((e) => e.regla).map((e) => e.articulacion)
+      expect(heredadas, `${categoria} hereda consejos de ${modelo.patron}`).toEqual([])
+    }
   })
 })
 
