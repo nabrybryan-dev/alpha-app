@@ -244,8 +244,14 @@ describe('la movilidad que los patrones dan por supuesta', () => {
     //
     // Y dice algo del ejercicio, no solo del código: 33° de dobladura de tobillo es mucho,
     // y es justo por lo que el déficit de tobillo es lo primero que se mira cuando alguien
-    // no baja. Si Bryan quiere una sentadilla de demostración menos profunda, se toca la
-    // ficha; la valla se queda donde está para que se note.
+    // no baja.
+    //
+    // DECIDIDO POR BRYAN el 2026-09-06: la sentadilla de demostración **se queda profunda**.
+    // La pose no se toca. Lo que se pedía a cambio era que no se perdiera la naturalidad del
+    // gesto, y eso está medido: el retardo de la rodilla respecto a la cadera sigue siendo
+    // 5,7° al empezar a bajar (antes 6,4) y se cierra a 0 al llegar al fondo, en vez de
+    // quedarse clavado en 5. Que la cadena converja al final es MÁS parecido a un cuerpo, no
+    // menos: nadie termina una sentadilla con el tobillo todavía moviéndose.
     sentadilla: 34,
     // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
     // deprisa y profundo es de los gestos que más tobillo piden.
