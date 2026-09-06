@@ -1,105 +1,68 @@
 /**
- * Cuánto cuesta poner los implementos en la escena, pieza a pieza.
+ * ¿CUÁNTOS EJERCICIOS REALES NO DICEN CON QUÉ SE HACEN?
  *
- *     npx vite-node scripts/medir-implementos.mjs
+ * `implementoDe()` lee el implemento del NOMBRE del ejercicio. Cuando el nombre no lo
+ * declara, la escena venía suponiendo barra —y por eso a una sentadilla que no lleva
+ * barra le salía una barra—. Antes de cambiar esa suposición hay que saber a cuántos
+ * afecta: si son cuatro, se arreglan los nombres; si son la mitad, el arreglo es otro.
  *
- * Construye la escena de varios patrones distintos y cuenta los vértices y los
- * triángulos que añade CADA implemento por separado, contra el coste del sujeto
- * y el del escenario que ya estaban.
+ * Lee los nombres del seed (Valentina y los demás perfiles de prueba), que es lo único
+ * que hay en el repo — las prescripciones reales viven en Supabase y no se commitean.
  *
- * Se cuenta pieza a pieza y no de golpe porque el total no dice nada útil: lo
- * que hay que saber es si una prensa cuesta como una barra, y con un solo
- * número esa pregunta no tiene respuesta. Además el reparto es la comprobación
- * de que la parte pura decide de verdad: si una sentadilla en barra y una
- * prensa devolvieran lo mismo, se vería aquí antes que en la pantalla.
+ *     node scripts/medir-implementos.mjs
  */
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 
-import { Malla } from '../src/domain/patrones/malla.ts'
-import { resolver } from '../src/domain/patrones/esqueleto.ts'
-import {
-  implementosDeEscena,
-  construirPieza,
-} from '../src/features/entrenar/escena/implementos.ts'
-import { PATRONES } from '../src/domain/patrones/catalogo.ts'
-import { esqueletoEnFase } from '../src/domain/patrones/escena.ts'
-import { construirHuesos } from '../src/domain/patrones/huesos.ts'
-import { construirSala } from '../src/features/entrenar/escena/sala.ts'
-import { construirLaboratorio } from '../src/domain/escenario/laboratorio.ts'
+const CARPETA = 'src/data/seed'
 
-/** Los tres casos: peso libre, guiado y cable. Son las tres medidas distintas. */
-const CASOS = [
-  { categoria: 'SENTADILLA', nombre: 'SENTADILLA TRASERA CON BARRA' },
-  { categoria: 'EMPUJE HORIZONTAL', nombre: 'PRESS BANCA CON MANCUERNAS' },
-  { categoria: 'SENTADILLA', nombre: 'PRENSA A 45 GRADOS' },
-  { categoria: 'TRACCIÓN VERTICAL', nombre: 'JALÓN AL PECHO EN POLEA' },
-  { categoria: 'TRACCIÓN VERTICAL', nombre: 'DOMINADA ESTRICTA' },
-  { categoria: 'EXTENSIÓN DE CADERA', nombre: 'PATADA DE GLÚTEO EN POLEA CON TOBILLERA' },
+/** Los mismos patrones que `src/domain/biomecanica/implementos.ts`, en el mismo orden. */
+const DETECCION = [
+  [/TOBILLERA|EN EL TOBILLO/, 'polea-tobillera'],
+  [/SMITH|MULTIPOWER|MULTIFUERZA/, 'guiado-vertical'],
+  [/PRENSA|HACK/, 'guiado-inclinado'],
+  [/MANCUERNA/, 'mancuernas'],
+  [/GOBLET|COPA|CON DISCO|CON PLACA/, 'disco'],
+  [/POLEA|CABLE|JALON|CRUCE/, 'polea'],
+  [/MAQUINA|SELECTORIZAD/, 'maquina'],
+  [/PESO CORPORAL|SIN PESO|LASTRE/, 'peso-corporal'],
+  [/BARRA|BARBELL/, 'barra'],
 ]
 
-function medir(construir) {
-  const m = new Malla(4096)
-  construir(m)
-  return { vertices: m.vertices, triangulos: m.indice.length / 3 }
+const normalizar = (t) =>
+  t.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim()
+
+const implementoDe = (nombre) => {
+  const n = normalizar(nombre)
+  if (!n) return undefined
+  return DETECCION.find(([p]) => p.test(n))?.[1]
 }
 
-const patronDe = (categoria) => PATRONES.find((p) => p.categoria === categoria)
-
-console.log('COSTE DE CADA IMPLEMENTO, EN VÉRTICES Y TRIÁNGULOS')
-console.log('')
-
-// Las referencias contra las que se lee todo lo demás.
-const esqueleto = construirHuesos()
-console.log(
-  `referencia · esqueleto del sujeto      ${String(esqueleto.vertices).padStart(6)} vértices  ` +
-    `${String(esqueleto.indice.length / 3).padStart(6)} triángulos`,
-)
-const lab = medir((m) => construirLaboratorio(m))
-console.log(
-  `referencia · bahía de medida           ${String(lab.vertices).padStart(6)} vértices  ` +
-    `${String(lab.triangulos).padStart(6)} triángulos`,
-)
-const salaM = medir((m) => construirSala(m, { series: 3, reps: 8, rir: 2 }))
-console.log(
-  `referencia · sala con marcadores       ${String(salaM.vertices).padStart(6)} vértices  ` +
-    `${String(salaM.triangulos).padStart(6)} triángulos`,
-)
-console.log('')
-
-let totalMax = 0
-for (const caso of CASOS) {
-  const escena = implementosDeEscena(caso.categoria, caso.nombre)
-  const patron = patronDe(caso.categoria)
-  // El esqueleto de la fase media: es donde la barra está más lejos del reposo.
-  const esq = patron ? esqueletoEnFase(patron, 0.5, 1, 0) : resolver({}, [0, 0.95, 0], [0, 0, 0])
-
-  console.log(`${caso.nombre}  [${caso.categoria}]`)
-  if (escena.supuesto) {
-    console.log('    el nombre no declara implemento: la escena supone peso libre')
+// Los ejercicios del seed van en llamadas `ej({ ... categoria: 'X' ... nombre: 'Y' ... })`.
+// Se emparejan los dos campos de la MISMA llamada: sin eso, un nombre suelto no dice de
+// qué patrón es y la cuenta por categoría saldría inventada.
+const ejercicios = []
+for (const archivo of readdirSync(CARPETA).filter((f) => f.endsWith('.ts'))) {
+  const texto = readFileSync(join(CARPETA, archivo), 'utf8')
+  for (const m of texto.matchAll(/categoria:\s*'([^']+)',\s*nombre:\s*'([^']+)'/g)) {
+    ejercicios.push({ categoria: m[1], nombre: m[2] })
   }
-  if (escena.piezas.length === 0) {
-    console.log('    sin implementos (el patrón no lleva carga externa que dibujar)')
-  }
-  let suma = 0
-  for (const pieza of escena.piezas) {
-    const r = medir((m) => construirPieza(m, pieza, esq))
-    suma += r.vertices
-    const etiqueta = pieza.forma ? `${pieza.pieza}/${pieza.forma}` : pieza.pieza
-    console.log(
-      `    ${etiqueta.padEnd(24)} ${String(r.vertices).padStart(5)} vértices  ` +
-        `${String(r.triangulos).padStart(5)} triángulos   agarres: ${pieza.agarres
-          .map((a) => a.hueso)
-          .join(' + ') || 'ninguno (va en el suelo)'}`,
-    )
-    console.log(`      ${pieza.porQue}`)
-  }
-  if (suma > totalMax) totalMax = suma
-  console.log(`    suma de la escena        ${String(suma).padStart(5)} vértices`)
-  for (const aviso of escena.avisos) console.log(`    aviso: ${aviso}`)
-  console.log('')
+}
+const nombres = new Set(ejercicios.map((e) => e.nombre))
+
+const porImplemento = new Map()
+const sinDeclarar = []
+for (const e of ejercicios) {
+  const i = implementoDe(e.nombre) ?? '(no declara)'
+  porImplemento.set(i, (porImplemento.get(i) ?? 0) + 1)
+  if (i === '(no declara)') sinDeclarar.push(`${e.nombre}   [${e.categoria}]`)
 }
 
-console.log(`El caso más caro de los medidos añade ${totalMax} vértices.`)
-console.log(
-  `Sobre el esqueleto solo (${esqueleto.vertices} vértices) eso es un ` +
-    `${((totalMax / esqueleto.vertices) * 100).toFixed(1)} % más.`,
-)
+console.log(`ejercicios en el seed: ${ejercicios.length} (${nombres.size} nombres distintos)\n`)
+for (const [i, c] of [...porImplemento].sort((a, b) => b[1] - a[1])) {
+  const pct = ((c / ejercicios.length) * 100).toFixed(0)
+  console.log(`  ${String(c).padStart(3)}  ${pct.padStart(3)}%  ${i}`)
+}
+console.log(`\nlos que HOY salen con una barra que nadie pidió (${sinDeclarar.length}):`)
+for (const n of sinDeclarar.slice(0, 25)) console.log('   ', n)
+if (sinDeclarar.length > 25) console.log(`    ... y ${sinDeclarar.length - 25} más`)

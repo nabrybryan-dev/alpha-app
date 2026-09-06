@@ -2,6 +2,7 @@ import { grados, V, type Vec3 } from '../../../domain/patrones/algebra'
 import { Malla, type Color } from '../../../domain/patrones/malla'
 import { puntoDeHueso, type EsqueletoResuelto } from '../../../domain/patrones/esqueleto'
 import { modeloDePalanca, planDeMedida } from '../../../domain/biomecanica/palancas'
+import { aplicacionDeLaCarga, porQueSeApoya } from '../../../domain/biomecanica/aplicacionDeLaCarga'
 import type { Articulacion } from '../../../domain/biomecanica/tipos'
 // La primitiva que se orienta sola vive en `sala.ts` y se importa, no se copia:
 // dos copias de la regla de enrollado es como vuelven las caras del revés.
@@ -397,6 +398,17 @@ export interface EscenaDeImplementos {
 
 const SIN_IMPLEMENTOS: EscenaDeImplementos = { piezas: [], avisos: [], supuesto: false }
 
+/**
+ * Lo que se dice cuando el nombre del ejercicio no declara con qué se hace.
+ *
+ * No es una disculpa: es el dato. La prescripción de esta casa vive en el nombre, así que
+ * un nombre que no lo dice es una prescripción incompleta, y el sitio donde se arregla es
+ * el nombre —no la escena inventándose una barra—.
+ */
+export const AVISO_SIN_IMPLEMENTO =
+  'el nombre del ejercicio no dice con qué se hace, así que no se dibuja ningún implemento: ' +
+  'suponer una barra contradiría a la prescripción'
+
 /** Las dos manos, a media palma. Es donde se cierra el agarre. */
 const MANOS: readonly PuntoDeAgarre[] = [
   { hueso: 'manoD', t: 0.45, desvio: [0, 0, 0] },
@@ -504,15 +516,26 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
   }
 
   const perfil = plan.perfilDeImplemento
-  // Sin implemento declarado no se sabe con qué se hace. La tabla dice que
-  // suponer barra ahí es cómo entraría un Smith con el modelo equivocado, así
-  // que se supone peso libre —el defecto de la tabla— y se DECLARA supuesto.
-  const supuesto = plan.implemento === undefined
-  const clave = plan.implemento ?? 'barra'
-  const piezas = PIEZAS_POR_IMPLEMENTO[clave] ?? []
-  if (piezas.length === 0) return { piezas: [], avisos: plan.limites, supuesto }
+  // SIN IMPLEMENTO DECLARADO NO SE DIBUJA NADA.
+  //
+  // Hasta el 2026-09-05 aquí se suponía barra, con su comentario diciendo que suponer es
+  // malo. El efecto: un curl femoral sentado, unas dominadas asistidas y una plancha con
+  // carga salían con una barra olímpica en las manos. Medido con
+  // `scripts/medir-implementos.mjs`: 6 de los 27 ejercicios del seed, el 22 %.
+  //
+  // Dibujar el implemento equivocado es peor que no dibujar ninguno: contradice a la
+  // prescripción que el asesorado está leyendo. Sin nombre que lo declare, la escena
+  // calla y lo dice en un aviso.
+  if (plan.implemento === undefined) {
+    return { piezas: [], avisos: [...plan.limites, AVISO_SIN_IMPLEMENTO], supuesto: true }
+  }
+  const piezas = PIEZAS_POR_IMPLEMENTO[plan.implemento] ?? []
+  if (piezas.length === 0) return { piezas: [], avisos: plan.limites, supuesto: false }
 
-  const aplicacion = perfil?.aplicacion ?? 'manos'
+  // DÓNDE ENTRA LA CARGA lo decide el ejercicio, no solo el implemento: la misma barra va
+  // en las manos en un press, sobre el trapecio en una sentadilla y sobre la pelvis en un
+  // empuje de cadera. Ver `domain/biomecanica/aplicacionDeLaCarga.ts`.
+  const aplicacion = aplicacionDeLaCarga(categoria, plan.implemento, perfil)
   let agarres = AGARRE_POR_APLICACION[aplicacion] ?? MANOS
   // La lateralidad es ortogonal al implemento, igual que en la tabla: con la
   // carga a un lado hay UN agarre, sea mancuerna, polea o prensa.
@@ -533,8 +556,9 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
       rigida,
       radioDisco: pieza === 'barra' || pieza === 'disco' ? RADIO_DISCO : 0,
       porQue:
-        `implemento «${perfil?.nombre ?? 'peso libre supuesto'}»` +
+        `implemento «${perfil?.nombre ?? plan.implemento}»` +
         `, carga aplicada en ${aplicacion}` +
+        (porQueSeApoya(categoria, plan.implemento) ? ' (se apoya en el cuerpo)' : '') +
         `, ${perfil?.cargas ?? 1} masa(s)` +
         (plan.unilateral ? ', a un solo lado' : ''),
     }
@@ -546,7 +570,10 @@ export function implementosDeEscena(categoria: string, nombreEjercicio = ''): Es
     }
   })
 
-  return { piezas: salida, avisos: plan.limites, supuesto }
+  // `supuesto` es siempre falso a partir de aquí: sin implemento declarado se salió
+  // arriba sin dibujar nada. El campo se queda porque quien lo lee distingue «no hay
+  // implemento porque no se sabe» de «no hay implemento porque este ejercicio no lleva».
+  return { piezas: salida, avisos: plan.limites, supuesto: false }
 }
 
 /**
