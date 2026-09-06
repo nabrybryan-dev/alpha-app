@@ -36,12 +36,29 @@ import { Malla } from '../../../domain/patrones/malla'
 
 const MAGIA = 'PIEZ'
 /**
- * Versión 2 añade, después del nombre de textura, un `u32` de banderas: el bit 0 dice si
- * la luz viene grabada en el color (`horneada`). La versión 1 se sigue leyendo —sin
- * banderas, todo a cero— para no invalidar las piezas ya exportadas.
+ * Versiones del formato. Se leen todas; se escribe la última.
+ *
+ * - **1**: seis arrays de `float32` y nada más.
+ * - **2**: añade un `u32` de banderas por parte. Bit 0: la luz viene grabada en el color.
+ * - **3**: **los números se guardan en el tamaño que necesitan**, no en 32 bits. Medido
+ *   sobre la sala del gimnasio: 4,34 MB, de los cuales 0,92 en posiciones, 0,92 en
+ *   normales, 0,92 en color, 0,61 en coordenadas y 0,98 en índices. Nada de eso pide
+ *   `float32`:
+ *
+ *       posición   u16 con mínimo y escala por parte → 0,25 mm en una sala de 16 m
+ *       normal     i8 → menos de medio grado, y lo horneado ni las usa
+ *       color      u8 → es un color de PANTALLA: 255 pasos es toda su precisión
+ *       uv         u16 con mínimo y escala → 1/65535 de la imagen
+ *       índice     u16 mientras la parte no pase de 65.535 vértices
+ *
+ *   Y una parte sin textura no guarda coordenadas: eran ceros. En la app se descomprime a
+ *   los mismos `Float32Array` de siempre — esto encoge la DESCARGA, que es lo que le hacía
+ *   esperar a Bryan con LTE, no la memoria de la tarjeta.
  */
-const VERSION = 2
+const VERSION = 3
 const BANDERA_HORNEADA = 1
+const BANDERA_SIN_UV = 2
+const BANDERA_INDICES_32 = 4
 
 export interface PartePieza {
   textura: string | null
@@ -69,8 +86,8 @@ export function leerPieza(bytes: ArrayBuffer): Malla[] {
   const magia = String.fromCharCode(vista.getUint8(0), vista.getUint8(1), vista.getUint8(2), vista.getUint8(3))
   if (magia !== MAGIA) throw new Error(`no es una pieza: cabecera «${magia}»`)
   const version = vista.getUint16(4, true)
-  if (version !== 1 && version !== VERSION) {
-    throw new Error(`versión de pieza ${version}; se esperaba ${VERSION}`)
+  if (version < 1 || version > VERSION) {
+    throw new Error(`versión de pieza ${version}; se esperaba ${VERSION} o anterior`)
   }
   const nPartes = vista.getUint16(6, true)
   let pos = 8
@@ -93,12 +110,63 @@ export function leerPieza(bytes: ArrayBuffer): Malla[] {
       pos += n * 4
       return a
     }
-    const posicion = f32(nV * 3)
-    const normal = f32(nV * 3)
-    const color = f32(nV * 3)
-    const uv = f32(nV * 2)
-    const indice = new Uint32Array(bytes, pos, nI)
-    pos += nI * 4
+
+    let posicion: Float32Array
+    let normal: Float32Array
+    let color: Float32Array
+    let uv: Float32Array
+    let indice: Uint32Array | Uint16Array
+    if (version >= 3) {
+      const sinUv = (banderas & BANDERA_SIN_UV) !== 0
+      const base = f32(3)
+      const escala = f32(3)
+      const uvBase = sinUv ? new Float32Array(2) : f32(2)
+      const uvEscala = sinUv ? new Float32Array(2) : f32(2)
+
+      // Cada bloque empieza alineado a 4 y termina rellenando hasta el siguiente múltiplo:
+      // sin eso, un `Uint16Array` sobre un desplazamiento impar lanza.
+      const avanzar = (bytesDelBloque: number) => {
+        pos += bytesDelBloque
+        pos += relleno(pos)
+      }
+
+      const crudoPos = new Uint16Array(bytes, pos, nV * 3)
+      avanzar(nV * 6)
+      posicion = new Float32Array(nV * 3)
+      for (let i = 0; i < nV * 3; i++) posicion[i] = base[i % 3] + (crudoPos[i] / 65535) * escala[i % 3]
+
+      const crudoNrm = new Int8Array(bytes, pos, nV * 3)
+      avanzar(nV * 3)
+      normal = new Float32Array(nV * 3)
+      for (let i = 0; i < nV * 3; i++) normal[i] = crudoNrm[i] / 127
+
+      const crudoCol = new Uint8Array(bytes, pos, nV * 3)
+      avanzar(nV * 3)
+      color = new Float32Array(nV * 3)
+      for (let i = 0; i < nV * 3; i++) color[i] = crudoCol[i] / 255
+
+      uv = new Float32Array(nV * 2)
+      if (!sinUv) {
+        const crudoUv = new Uint16Array(bytes, pos, nV * 2)
+        avanzar(nV * 4)
+        for (let i = 0; i < nV * 2; i++) uv[i] = uvBase[i % 2] + (crudoUv[i] / 65535) * uvEscala[i % 2]
+      }
+
+      if ((banderas & BANDERA_INDICES_32) !== 0) {
+        indice = new Uint32Array(bytes, pos, nI)
+        avanzar(nI * 4)
+      } else {
+        indice = new Uint16Array(bytes, pos, nI)
+        avanzar(nI * 2)
+      }
+    } else {
+      posicion = f32(nV * 3)
+      normal = f32(nV * 3)
+      color = f32(nV * 3)
+      uv = f32(nV * 2)
+      indice = new Uint32Array(bytes, pos, nI)
+      pos += nI * 4
+    }
 
     const m = new Malla(Math.max(8, nV))
     for (let v = 0; v < nV; v++) {
@@ -127,12 +195,51 @@ export function leerPieza(bytes: ArrayBuffer): Malla[] {
 export function escribirPieza(partes: PartePieza[]): ArrayBuffer {
   const codificador = new TextEncoder()
   const nombres = partes.map((p) => codificador.encode(p.textura ?? ''))
-  let total = 8
-  for (let i = 0; i < partes.length; i++) {
-    const p = partes[i]
-    total += 2 + nombres[i].length + relleno(2 + nombres[i].length) + 4 + 8
-    total += (p.posicion.length + p.normal.length + p.color.length + p.uv.length + p.indice.length) * 4
+  /** El rango de un array por componentes, para el mínimo y la escala de la cuantización. */
+  const rango = (a: Float32Array, comp: number) => {
+    const min = new Float32Array(comp).fill(Infinity)
+    const max = new Float32Array(comp).fill(-Infinity)
+    for (let i = 0; i < a.length; i++) {
+      const k = i % comp
+      if (a[i] < min[k]) min[k] = a[i]
+      if (a[i] > max[k]) max[k] = a[i]
+    }
+    const esc = new Float32Array(comp)
+    for (let k = 0; k < comp; k++) {
+      if (!Number.isFinite(min[k])) min[k] = 0
+      // Escala cero —una parte plana en ese eje— dividiría por cero al leer.
+      esc[k] = Math.max(max[k] - min[k], 1e-9)
+    }
+    return { min, esc }
   }
+
+  const preparadas = partes.map((p, i) => {
+    const nV = p.posicion.length / 3
+    const sinUv = p.textura === null || p.uv.every((v) => v === 0)
+    const indices32 = nV > 65535
+    return {
+      p,
+      nV,
+      sinUv,
+      indices32,
+      nombre: nombres[i],
+      pos: rango(p.posicion, 3),
+      uv: sinUv ? null : rango(p.uv, 2),
+    }
+  })
+
+  let total = 8
+  for (const q of preparadas) {
+    total += 2 + q.nombre.length + relleno(2 + q.nombre.length) + 4 + 8
+    total += 24 + (q.sinUv ? 0 : 16)
+    total += q.nV * 6 + relleno(q.nV * 6)
+    total += q.nV * 3 + relleno(q.nV * 3)
+    total += q.nV * 3 + relleno(q.nV * 3)
+    if (!q.sinUv) total += q.nV * 4 + relleno(q.nV * 4)
+    const bytesIdx = q.p.indice.length * (q.indices32 ? 4 : 2)
+    total += bytesIdx + relleno(bytesIdx)
+  }
+
   const bytes = new ArrayBuffer(total)
   const vista = new DataView(bytes)
   const octetos = new Uint8Array(bytes)
@@ -140,25 +247,73 @@ export function escribirPieza(partes: PartePieza[]): ArrayBuffer {
   vista.setUint16(4, VERSION, true)
   vista.setUint16(6, partes.length, true)
   let pos = 8
-  const meter = (a: Float32Array | Uint32Array) => {
-    octetos.set(new Uint8Array(a.buffer, a.byteOffset, a.byteLength), pos)
-    pos += a.byteLength
+  const alinear = () => {
+    pos += relleno(pos)
   }
-  for (let i = 0; i < partes.length; i++) {
-    const p = partes[i]
-    vista.setUint16(pos, nombres[i].length, true)
-    octetos.set(nombres[i], pos + 2)
-    pos += 2 + nombres[i].length + relleno(2 + nombres[i].length)
-    vista.setUint32(pos, p.horneada ? BANDERA_HORNEADA : 0, true)
+  for (const q of preparadas) {
+    vista.setUint16(pos, q.nombre.length, true)
+    octetos.set(q.nombre, pos + 2)
+    pos += 2 + q.nombre.length + relleno(2 + q.nombre.length)
+    const banderas =
+      (q.p.horneada ? BANDERA_HORNEADA : 0) |
+      (q.sinUv ? BANDERA_SIN_UV : 0) |
+      (q.indices32 ? BANDERA_INDICES_32 : 0)
+    vista.setUint32(pos, banderas, true)
     pos += 4
-    vista.setUint32(pos, p.posicion.length / 3, true)
-    vista.setUint32(pos + 4, p.indice.length, true)
+    vista.setUint32(pos, q.nV, true)
+    vista.setUint32(pos + 4, q.p.indice.length, true)
     pos += 8
-    meter(p.posicion)
-    meter(p.normal)
-    meter(p.color)
-    meter(p.uv)
-    meter(p.indice)
+
+    for (let k = 0; k < 3; k++) vista.setFloat32(pos + k * 4, q.pos.min[k], true)
+    for (let k = 0; k < 3; k++) vista.setFloat32(pos + 12 + k * 4, q.pos.esc[k], true)
+    pos += 24
+    if (q.uv) {
+      for (let k = 0; k < 2; k++) vista.setFloat32(pos + k * 4, q.uv.min[k], true)
+      for (let k = 0; k < 2; k++) vista.setFloat32(pos + 8 + k * 4, q.uv.esc[k], true)
+      pos += 16
+    }
+
+    const crudoPos = new Uint16Array(bytes, pos, q.nV * 3)
+    for (let i = 0; i < q.nV * 3; i++) {
+      const k = i % 3
+      crudoPos[i] = Math.round(((q.p.posicion[i] - q.pos.min[k]) / q.pos.esc[k]) * 65535)
+    }
+    pos += q.nV * 6
+    alinear()
+
+    const crudoNrm = new Int8Array(bytes, pos, q.nV * 3)
+    for (let i = 0; i < q.nV * 3; i++) {
+      crudoNrm[i] = Math.max(-127, Math.min(127, Math.round(q.p.normal[i] * 127)))
+    }
+    pos += q.nV * 3
+    alinear()
+
+    const crudoCol = new Uint8Array(bytes, pos, q.nV * 3)
+    for (let i = 0; i < q.nV * 3; i++) {
+      crudoCol[i] = Math.max(0, Math.min(255, Math.round(q.p.color[i] * 255)))
+    }
+    pos += q.nV * 3
+    alinear()
+
+    if (q.uv) {
+      const crudoUv = new Uint16Array(bytes, pos, q.nV * 2)
+      for (let i = 0; i < q.nV * 2; i++) {
+        const k = i % 2
+        crudoUv[i] = Math.round(((q.p.uv[i] - q.uv.min[k]) / q.uv.esc[k]) * 65535)
+      }
+      pos += q.nV * 4
+      alinear()
+    }
+
+    if (q.indices32) {
+      new Uint32Array(bytes, pos, q.p.indice.length).set(q.p.indice)
+      pos += q.p.indice.length * 4
+    } else {
+      const crudoIdx = new Uint16Array(bytes, pos, q.p.indice.length)
+      for (let i = 0; i < q.p.indice.length; i++) crudoIdx[i] = q.p.indice[i]
+      pos += q.p.indice.length * 2
+    }
+    alinear()
   }
   return bytes
 }

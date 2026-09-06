@@ -33,7 +33,10 @@ function parte(textura: string | null, triangulos: number, semilla: number): Par
 }
 
 describe('el formato .pieza', () => {
-  it('ida y vuelta: lo escrito se lee igual, con su textura', () => {
+  it('ida y vuelta: lo escrito se lee dentro de la precisión de cada campo', () => {
+    // La versión 3 guarda cada número en el tamaño que necesita, así que la vuelta ya no
+    // es byte a byte: es dentro de una tolerancia que se declara AQUÍ y que es lo que hace
+    // honesto el ahorro. Si alguien recorta más de la cuenta, esto se pone rojo.
     const partes = [parte('rack-acero', 4, 1), parte(null, 2, 2), parte('x', 1, 3)]
     const mallas = leerPieza(escribirPieza(partes))
     expect(mallas).toHaveLength(3)
@@ -41,12 +44,37 @@ describe('el formato .pieza', () => {
       const p = partes[i]
       expect(m.textura).toBe(p.textura)
       expect(m.vertices).toBe(p.posicion.length / 3)
-      expect(Array.from(m.posicion)).toEqual(Array.from(p.posicion))
-      expect(Array.from(m.normal)).toEqual(Array.from(p.normal))
-      expect(Array.from(m.color)).toEqual(Array.from(p.color))
-      expect(Array.from(m.uv)).toEqual(Array.from(p.uv))
+      // Posición: u16 sobre el rango de la parte. Con estas mallas de ±1 el paso es
+      // microscópico; en la sala de 16 m son 0,25 mm.
+      const rango = Math.max(...p.posicion) - Math.min(...p.posicion)
+      const paso = rango / 65535
+      for (let k = 0; k < p.posicion.length; k++) {
+        expect(Math.abs(m.posicion[k] - p.posicion[k]), `posición ${k}`).toBeLessThanOrEqual(paso)
+      }
+      // Normal: i8, menos de medio grado.
+      for (let k = 0; k < p.normal.length; k++) expect(Math.abs(m.normal[k] - p.normal[k])).toBeLessThan(1 / 127)
+      // Color: u8, que es toda la precisión que tiene un color de pantalla.
+      for (let k = 0; k < p.color.length; k++) expect(Math.abs(m.color[k] - p.color[k])).toBeLessThan(1 / 255)
+      // Los índices son exactos: redondearlos sería cambiar la malla.
       expect(Array.from(m.indice)).toEqual(Array.from(p.indice))
     })
+  })
+
+  it('una parte sin textura no guarda coordenadas: eran ceros', () => {
+    const conUv = escribirPieza([parte('t', 40, 1)]).byteLength
+    const sinTextura = { ...parte(null, 40, 1), uv: new Float32Array(240) }
+    const sinUv = escribirPieza([sinTextura]).byteLength
+    expect(sinUv).toBeLessThan(conUv)
+    // Y al leerla, las coordenadas vuelven a cero sin que nadie las haya guardado.
+    const [m] = leerPieza(escribirPieza([sinTextura]))
+    expect(Array.from(m.uv).every((v) => v === 0)).toBe(true)
+  })
+
+  it('pesa menos de la mitad que la versión de floats', () => {
+    // 44 bytes por vértice (tres arrays de 12 y uno de 8) más 4 por índice, contra 16 y 2.
+    const p = parte('t', 500, 7)
+    const comoAntes = (p.posicion.length + p.normal.length + p.color.length + p.uv.length) * 4 + p.indice.length * 4
+    expect(escribirPieza([p]).byteLength).toBeLessThan(comoAntes / 2)
   })
 
   it('los arrays quedan alineados a 4 bytes sea cual sea el largo del nombre', () => {
@@ -67,20 +95,35 @@ describe('el formato .pieza', () => {
     expect(colocar(mallas, { x: 1, z: 1, giroY: 0.3 }).map((m) => m.horneada)).toEqual([true, false])
   })
 
-  it('sigue leyendo la versión 1, sin banderas', () => {
-    // La versión 1 no lleva el u32 de banderas: se fabrica a mano a partir de una v2
-    // quitándole esos cuatro bytes y bajando el número de versión.
-    const v2 = new Uint8Array(escribirPieza([parte('t', 1, 4)]))
-    const largo = 1
-    const cabecera = 8 + 2 + largo + 1 // 'PIEZ' + versión + nPartes + u16 + 't' + relleno
-    const v1 = new Uint8Array(v2.length - 4)
-    v1.set(v2.subarray(0, cabecera), 0)
-    v1.set(v2.subarray(cabecera + 4), cabecera)
-    new DataView(v1.buffer).setUint16(4, 1, true)
-    const [m] = leerPieza(v1.buffer)
+  it('sigue leyendo la versión 1, sin banderas y con todo en floats', () => {
+    // Se fabrica a mano, byte a byte, en vez de derivarla de la que se escribe hoy: una
+    // pieza v1 vieja tiene que seguir abriéndose, y si el lector se rompe para ella esto
+    // lo dice. Cabecera + una parte de un triángulo con textura «t».
+    const p = parte('t', 1, 4)
+    const cabecera = 8 + 4 // 'PIEZ' + u16 versión + u16 partes + (u16 largo + 't' + relleno)
+    const datos = (3 * 3 * 3 + 3 * 2 + 3) * 4 // pos+nrm+col (9 cada uno) + uv (6) + idx (3)
+    const bytes = new ArrayBuffer(cabecera + 8 + datos)
+    const v = new DataView(bytes)
+    for (let i = 0; i < 4; i++) v.setUint8(i, 'PIEZ'.charCodeAt(i))
+    v.setUint16(4, 1, true)
+    v.setUint16(6, 1, true)
+    v.setUint16(8, 1, true)
+    v.setUint8(10, 't'.charCodeAt(0))
+    v.setUint32(12, 3, true)
+    v.setUint32(16, 3, true)
+    let pos = 20
+    for (const a of [p.posicion, p.normal, p.color, p.uv]) {
+      new Float32Array(bytes, pos, a.length).set(a)
+      pos += a.byteLength
+    }
+    new Uint32Array(bytes, pos, 3).set(p.indice)
+
+    const [m] = leerPieza(bytes)
     expect(m.textura).toBe('t')
     expect(m.horneada).toBe(false)
     expect(m.vertices).toBe(3)
+    // Y en la v1 no hay cuantización: los floats vuelven exactos.
+    expect(Array.from(m.posicion)).toEqual(Array.from(p.posicion))
   })
 
   it('rechaza lo que no es una pieza en vez de dibujarlo a medias', () => {

@@ -428,24 +428,57 @@ print("mediana lineal %.4f -> objetivo %.3f en pantalla (%.4f lineal) -> gananci
 def alinear(n):
     return (4 - n % 4) % 4
 
-out = bytearray(b"PIEZ") + struct.pack("<HH", 2, len(partes))
+# FORMATO 3: cada numero en el tamano que necesita, no en 32 bits.
+#
+# Medido sobre esta misma sala: 4,34 MB, de los cuales 0,92 en posiciones, 0,92 en
+# normales, 0,92 en color, 0,61 en coordenadas y 0,98 en indices. Nada de eso pide float32
+# —un color de PANTALLA tiene 255 pasos, no 4.000 millones—, y lo que le hacia esperar a
+# Bryan con LTE era la DESCARGA. La app lo descomprime a los mismos floats de siempre.
+BANDERA_HORNEADA, BANDERA_SIN_UV, BANDERA_INDICES_32 = 1, 2, 4
+
+out = bytearray(b"PIEZ") + struct.pack("<HH", 3, len(partes))
+resumen = []
 for (tex, em), p in partes.items():
     nombre = (tex or "").encode("utf-8")
-    out += struct.pack("<H", len(nombre)) + nombre + b"\0" * alinear(2 + len(nombre))
-    out += struct.pack("<I", 1)   # horneada: siempre, la luz ya va en el color
-    pos = np.array(p["pos"], dtype=np.float32)
-    nrm = np.array(p["nrm"], dtype=np.float32)
+    pos = np.array(p["pos"], dtype=np.float32).reshape(-1, 3)
+    nrm = np.array(p["nrm"], dtype=np.float32).reshape(-1, 3)
     col = np.array(p["col"], dtype=np.float32).reshape(-1, 3)
     # Todo pasa por la mirada de Blender, tambien lo emisivo: una tira de LED en el render
     # no es blanco puro, es lo que AgX hace con un valor alto, y ahi esta su color.
     col = a_pantalla(np.clip(col * (1.0 if em else ganancia), 0, 6.0)).astype(np.float32)
-    uv = np.array(p["uv"], dtype=np.float32)
+    uv = np.array(p["uv"], dtype=np.float32).reshape(-1, 2)
     idx = np.array(p["idx"], dtype=np.uint32)
-    nV = len(pos) // 3
+    nV = len(pos)
+    sin_uv = tex is None or not np.any(uv)
+    idx32 = nV > 65535
+
+    banderas = BANDERA_HORNEADA | (BANDERA_SIN_UV if sin_uv else 0) | (BANDERA_INDICES_32 if idx32 else 0)
+    out += struct.pack("<H", len(nombre)) + nombre + b"\0" * alinear(2 + len(nombre))
+    out += struct.pack("<I", banderas)
     out += struct.pack("<II", nV, len(idx))
-    out += pos.astype("<f4").tobytes() + nrm.astype("<f4").tobytes() + col.astype("<f4").reshape(-1).tobytes()
-    out += uv.astype("<f4").tobytes() + idx.astype("<u4").tobytes()
-    print("parte tex=%-12s emisiva=%-5s vertices=%7d" % (tex, em, nV))
+
+    pmin = pos.min(axis=0)
+    pesc = np.maximum(pos.max(axis=0) - pmin, 1e-9)
+    out += pmin.astype("<f4").tobytes() + pesc.astype("<f4").tobytes()
+    if not sin_uv:
+        umin = uv.min(axis=0)
+        uesc = np.maximum(uv.max(axis=0) - umin, 1e-9)
+        out += umin.astype("<f4").tobytes() + uesc.astype("<f4").tobytes()
+
+    def bloque(datos):
+        b = datos.tobytes()
+        return b + b"\0" * alinear(len(b))
+
+    out += bloque(np.round((pos - pmin) / pesc * 65535).astype("<u2"))
+    out += bloque(np.clip(np.round(nrm * 127), -127, 127).astype("<i1"))
+    out += bloque(np.clip(np.round(col * 255), 0, 255).astype("<u1"))
+    if not sin_uv:
+        out += bloque(np.round((uv - umin) / uesc * 65535).astype("<u2"))
+    out += bloque(idx.astype("<u4" if idx32 else "<u2"))
+    resumen.append("parte tex=%-12s emisiva=%-5s vertices=%7d %s" % (
+        tex, em, nV, "(sin uv)" if sin_uv else ""))
+for r in resumen:
+    print(r)
 
 os.makedirs(DESTINO, exist_ok=True)
 ruta = os.path.join(DESTINO, NOMBRE + ".pieza")
