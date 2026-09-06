@@ -96,7 +96,10 @@ De pie sobre el suelo (`resolverConApoyo`, planta a 7,5 cm bajo el tobillo) el v
 
 `VisorPatron` recibe `sexo?: Sexo` (por defecto `neutro`) y lo pasa a todo lo que
 resuelve el sujeto: malla, reposo, traza, encuadre, cada fotograma y el fantasma. El
-explorador anatómico enseña un selector ♂ / ♀ / Neutro junto a «Anatomía real».
+explorador anatómico enseña un selector Neutro / Hombre / Mujer junto a «Anatomía real».
+Con palabras y no con ♂/♀: el guardián `emojis-como-iconos.test.ts` no deja símbolos
+haciendo de icono, porque los dibuja el sistema operativo y salen distintos en cada
+teléfono.
 
 ## Lo que queda por decidir (Bryan)
 
