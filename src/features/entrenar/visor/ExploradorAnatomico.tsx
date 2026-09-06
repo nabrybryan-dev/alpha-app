@@ -10,7 +10,10 @@ import { SEXOS, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
 import { VisorPatron } from './VisorPatron'
 
 /** Lo que se ve en el botón, y lo que lee quien no ve: el símbolo solo no dice nada. */
-const SIMBOLO_DE_SEXO: Record<Sexo, string> = { neutro: 'Neutro', hombre: '♂', mujer: '♀' }
+// Con palabras y no con los símbolos de hombre y mujer: `emojis-como-iconos.test.ts` no deja
+// símbolos haciendo de icono, porque los dibuja el sistema operativo y salen distintos en
+// cada teléfono. (La sesión que lo escribió los puso igual, y el guardián la cazó al fusionar.)
+const SIMBOLO_DE_SEXO: Record<Sexo, string> = { neutro: 'Neutro', hombre: 'Hombre', mujer: 'Mujer' }
 const NOMBRE_DE_SEXO: Record<Sexo, string> = {
   neutro: 'Huesos neutros',
   hombre: 'Huesos de hombre',

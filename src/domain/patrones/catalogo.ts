@@ -1125,6 +1125,215 @@ export const PATRONES: Patron[] = [
     // cualquier arco aquí sería inventado.
     camara: { azimut: 80, elevacion: 6 },
   },
+  {
+    id: 'flexion_hombro',
+    cadena: 'abierta',
+    categoria: 'FLEXIÓN DE HOMBRO',
+    titulo: 'Flexión de hombro',
+    ejemplos: 'Elevación frontal con mancuernas · Elevación frontal con disco · Elevación frontal en polea',
+    resumen:
+      'El brazo sube por delante con el codo casi recto. Es el deltoides anterior en su función pura, la que el press esconde detrás del tríceps.',
+    claves: [
+      'Sube hasta la altura de los ojos, no más: por encima el trabajo se va al trapecio.',
+      'El codo se queda con la misma flexión de principio a fin.',
+      'Aprieta el abdomen: si la lumbar se arquea, el peso ya lo lleva la espalda.',
+    ],
+    errores: [
+      'Balancear el tronco atrás para lanzar la carga desde la cadera.',
+      'Encoger el hombro hacia la oreja al final del recorrido.',
+    ],
+    apoyo: 'suelo',
+    // SIN contra hacia atrás, y esto se escribió al revés antes de medirlo.
+    //
+    // El razonamiento de partida era el de manual: los brazos son el 10 % de la
+    // masa, al subirlos su centro se va 28 cm por delante del hombro, luego el
+    // peso se sale del pie y hay que echar la cadera atrás. Se le puso −3° y el
+    // guardián de equilibrio lo cazó igual, así que se subió a −9°… y empeoró.
+    // Barrido el 2026-09-06 sobre las cinco fases: sin contra ninguna, el peso
+    // se queda DENTRO del apoyo todo el recorrido (−1,7 cm en el peor punto,
+    // margen 4); con −3° se va a −4,1 y con −9° a −14,1. El signo dice dónde:
+    // detrás del talón, no delante de la punta.
+    //
+    // El motivo importa y no es del gesto: `centroDeMasas` pesa el CUERPO, no la
+    // carga. La mancuerna que justifica la contra no está en la suma, así que
+    // inclinarse atrás aquí es tirarse hacia atrás sin nada que lo compense. La
+    // base del pie llega bastante por delante del tobillo y absorbe el brazo
+    // sola. El día que la carga entre en la plomada, esto se vuelve a medir.
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { hombroFlex: 2, codoFlex: 14, escapulaRotAsc: 2, caderaFlex: 4, rodillaFlex: 6, lumbarFlex: -4 },
+    // 94° de hombro con 22 de rotación ascendente de escápula: el reparto
+    // escapulohumeral de siempre, tres de húmero por uno de escápula.
+    fin: { hombroFlex: 96, codoFlex: 14, escapulaRotAsc: 22, caderaFlex: 4, rodillaFlex: 6, lumbarFlex: -4 },
+    activacion: {
+      'deltoides.anterior': 1,
+      'deltoides.medio': 0.45,
+      'pectoral_mayor.clavicular': 0.6,
+      'manguito.supraespinoso': 0.45,
+      serrato: 0.55,
+      'trapecio.superior': 0.45,
+      'trapecio.inferior': 0.4,
+      coracobraquial: 0.4,
+      'biceps.corta': 0.3,
+      flexores_carpo: 0.35,
+      recto_abdominal: 0.4,
+      'erectores.longisimo': 0.45,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    camara: { azimut: 76, elevacion: 6 },
+  },
+  {
+    id: 'rotacion_cadera',
+    cadena: 'abierta',
+    categoria: 'ROTACIÓN DE CADERA',
+    titulo: 'Rotación de cadera',
+    ejemplos: '90/90 de cadera · Rotación externa de cadera sentado · Rotación interna en el suelo',
+    resumen:
+      'Los dos fémures giran dentro de la cadera pasando de un lado al otro. Es el grado de libertad que ningún ejercicio de fuerza entrena y el primero que se pierde.',
+    claves: [
+      'Las dos rodillas mantienen su ángulo: lo que gira es la cadera, no la rodilla.',
+      'Siéntate erguido; en cuanto la espalda se redondea el giro lo hace la lumbar.',
+      'Ve y vuelve despacio. Aquí se busca recorrido, no carga.',
+    ],
+    errores: [
+      'Girar el tronco para llevar la rodilla al suelo en vez de girar el fémur.',
+      'Ayudarse con las manos empujando la rodilla más allá de lo que la cadera da.',
+    ],
+    // Sentado en el suelo: el peso lo lleva la pelvis, no los pies, así que aquí
+    // no hay plomada que cumplir.
+    apoyo: 'ninguno',
+    raizInicio: [0, 0.30, 0],
+    raizFin: [0, 0.30, 0],
+    // Las dos caderas giran A LA VEZ y en sentidos opuestos: es lo que hace el
+    // 90/90 y por eso los canales van por lado. 80° de recorrido en cada una,
+    // dentro de los ±45 que el catálogo articular admite.
+    inicio: { caderaRotD: 40, caderaRotI: -40, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 8, hombroFlex: 14, codoFlex: 20 },
+    fin: { caderaRotD: -40, caderaRotI: 40, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 8, hombroFlex: 14, codoFlex: 20 },
+    activacion: {
+      'gluteo_medio.posterior': 1,
+      'gluteo_medio.anterior': 0.6,
+      gluteo_menor: 0.75,
+      'gluteo_mayor.superior': 0.8,
+      'gluteo_mayor.inferior': 0.55,
+      tfl: 0.6,
+      'aductores.largo': 0.5,
+      'aductores.mayor': 0.45,
+      'psoas_iliaco.iliaco': 0.4,
+      oblicuos: 0.35,
+    },
+    // La tibia barre el arco: el fémur gira sobre su eje y desde fuera lo único
+    // que se ve moverse es la espinilla.
+    seguimiento: ['tibiaD', 1, [0, 0, 0]],
+    // DESDE ARRIBA, y es la única cámara posible: un giro en el plano
+    // transverso visto de perfil es una línea. Con la elevación baja el arco de
+    // `fuerzas.ts` sale de canto y se retira, que es justo lo que hay que ver.
+    camara: { azimut: 12, elevacion: 62 },
+  },
+  {
+    id: 'extension_lumbar',
+    cadena: 'cerrada',
+    categoria: 'EXTENSIÓN LUMBAR',
+    titulo: 'Extensión lumbar',
+    ejemplos: 'Extensión lumbar en banco romano · Hiperextensión a 45° · Extensión de espalda en máquina',
+    resumen:
+      'El tronco sube desde colgando hasta la línea del cuerpo. La mitad del recorrido la pone la cadera y la otra mitad la espalda: por eso entrena glúteo e isquio tanto como erectores.',
+    claves: [
+      'Sube hasta alinearte con las piernas y para ahí; pasarse no añade nada.',
+      'Deja que la espalda se enrolle al bajar: el recorrido de la columna es parte del ejercicio.',
+      'Si añades peso, sujétalo contra el pecho, no detrás de la nuca.',
+    ],
+    errores: [
+      'Llegar arriba a tirones y rebotar en la hiperextensión.',
+      'Hacerlo todo con la cadera y dejar la espalda rígida, que es otro ejercicio.',
+    ],
+    apoyo: 'ninguno',
+    // Tumbado boca abajo sobre el banco: el cuerpo entero va a 45°, y lo que se
+    // mueve dentro de esa inclinación es la columna y la cadera.
+    giro: [45, 0, 0],
+    raizInicio: [0, 0.72, 0],
+    raizFin: [0, 0.72, 0],
+    inicio: { lumbarFlex: 52, toraxFlex: 34, caderaFlex: 46, rodillaFlex: 4, hombroFlex: 6, codoFlex: 118, cuelloFlex: 22 },
+    fin: { lumbarFlex: -18, toraxFlex: -12, caderaFlex: 6, rodillaFlex: 4, hombroFlex: 6, codoFlex: 118, cuelloFlex: -10 },
+    activacion: {
+      'erectores.iliocostal': 1,
+      'erectores.longisimo': 1,
+      'erectores.espinal': 0.9,
+      cuadrado_lumbar: 0.7,
+      'gluteo_mayor.superior': 0.8,
+      'gluteo_mayor.inferior': 0.75,
+      'isquiotibiales.biceps_larga': 0.75,
+      'isquiotibiales.semitendinoso': 0.7,
+      'isquiotibiales.semimembranoso': 0.7,
+      'dorsal_ancho.iliaca': 0.4,
+      'trapecio.medio': 0.35,
+      transverso: 0.4,
+    },
+    seguimiento: ['torax', 1, [0, 0, 0]],
+    camara: { azimut: 84, elevacion: 8 },
+  },
+  {
+    id: 'flexion_muneca',
+    cadena: 'abierta',
+    categoria: 'FLEXIÓN DE MUÑECA',
+    titulo: 'Flexión de muñeca',
+    ejemplos: 'Curl de muñeca con barra sentado · Curl de muñeca con mancuernas',
+    resumen:
+      'La mano se cierra hacia el antebrazo con el codo apoyado. Es el músculo del agarre, y el agarre es lo que decide dónde termina un peso muerto.',
+    claves: [
+      'El antebrazo no se mueve: apóyalo en el muslo o en el banco y déjalo ahí.',
+      'Abre la mano abajo y ciérrala al subir: el recorrido empieza en los dedos.',
+      'Poco peso y recorrido entero; es una articulación pequeña.',
+    ],
+    errores: [
+      'Levantar el codo para ayudarse con el bíceps.',
+      'Rango de dos dedos, que es el error clásico y deja el ejercicio en nada.',
+    ],
+    apoyo: 'ninguno',
+    raizInicio: [0, 0.55, 0],
+    raizFin: [0, 0.55, 0],
+    // 114° de recorrido dentro de los −75/+82 de la muñeca. El codo a 92° y el
+    // antebrazo apoyado son lo que hace que el brazo de momento sea la mano.
+    inicio: { muneca: -52, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    fin: { muneca: 62, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    activacion: {
+      flexores_carpo: 1,
+      pronador_redondo: 0.5,
+      braquiorradial: 0.3,
+      extensores_carpo: 0.3,
+    },
+    seguimiento: ['manoD', 1, [0, 0, 0]],
+    camara: { azimut: 88, elevacion: 10 },
+  },
+  {
+    id: 'extension_muneca',
+    cadena: 'abierta',
+    categoria: 'EXTENSIÓN DE MUÑECA',
+    titulo: 'Extensión de muñeca',
+    ejemplos: 'Curl inverso de muñeca con barra · Extensión de muñeca con mancuerna',
+    resumen:
+      'El dorso de la mano sube hacia el antebrazo. Es el lado que casi nadie entrena y el que se queja: la epicondilitis vive justo ahí.',
+    claves: [
+      'Palma hacia abajo y antebrazo apoyado, quieto.',
+      'Sube sin apretar el puño: el que trabaja es el dorso, no el agarre.',
+      'Baja controlando; el freno es la mitad útil de la repetición.',
+    ],
+    errores: [
+      'Girar el antebrazo a medio camino y convertirlo en un curl.',
+      'Cargar de más: con esta musculatura el peso alto solo compra compensación.',
+    ],
+    apoyo: 'ninguno',
+    raizInicio: [0, 0.55, 0],
+    raizFin: [0, 0.55, 0],
+    inicio: { muneca: 58, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    fin: { muneca: -48, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    activacion: {
+      extensores_carpo: 1,
+      braquiorradial: 0.55,
+      flexores_carpo: 0.3,
+    },
+    seguimiento: ['manoD', 1, [0, 0, 0]],
+    camara: { azimut: 88, elevacion: 10 },
+  },
 ]
 
 export const PATRON_POR_ID: Record<string, Patron> = Object.fromEntries(
@@ -1196,15 +1405,40 @@ const ALIAS: Record<string, string> = {
  * específico va antes que lo general.
  */
 const POR_NOMBRE: [RegExp, string][] = [
-  [/rotaci[oó]n externa|manguito|pull apart|control escapular/, 'rotacion_externa_hombro'],
-  [/salto|pogo|drop squat|aterrizaje|lanzamiento|trineo|reactiv/, 'salto'],
+  // VA PRIMERO, antes que la rotación externa de HOMBRO: los dos gestos se
+  // llaman igual y se diferencian solo por la articulación que nombran. Con el
+  // orden al revés un 90/90 enseñaba el manguito del hombro, que fue el defecto
+  // que dejó clavado `cobertura-de-patrones.test.ts` antes de existir la ficha.
+  [/rotaci[oó]n (externa|interna) de cadera|90\/90/, 'rotacion_cadera'],
+  [/rotaci[oó]n externa|manguito|rotador|pull apart|control escapular/, 'rotacion_externa_hombro'],
+  [/salto|pogo|drop squat|aterrizaje|lanzamiento|trineo|reactiv|pliometr/, 'salto'],
+  // El swing es una bisagra de cadera lanzada, no acondicionamiento: comparte
+  // categoría con la cinta y no comparte nada más.
+  [/swing/, 'bisagra_cadera'],
+  [/banco romano|hiperextensi[oó]n|extensi[oó]n lumbar|extensi[oó]n de espalda/, 'extension_lumbar'],
+  [/elevaci[oó]n(es)? frontal|frontal raise/, 'flexion_hombro'],
   [/colgad|dead hang|suspensi[oó]n/, 'suspension'],
-  [/monopodal|equilibrio|short foot|apoyo estable a una pierna/, 'apoyo_una_pierna'],
+  [/monopodal|equilibrio|short foot|apoyo estable|arco plantar/, 'apoyo_una_pierna'],
   [/movilidad|foam roller|gato-camello|occiput|rom de hombro/, 'movilidad_toracica'],
-  [/activaci[oó]n gl[uú]tea|puente de isquios/, 'extension_cadera'],
-  [/copenhague|cossack/, 'aduccion_cadera'],
-  [/bird-?dog/, 'antiextension'],
-  [/gemelo|talón colgando|talon colgando/, 'flexion_plantar'],
+  [/activaci[oó]n gl[uú]tea|puente de isquios|patada de gl[uú]teo|kickback/, 'extension_cadera'],
+  [/copenhague|cossack|aducci[oó]n de cadera|aductor/, 'aduccion_cadera'],
+  [/bird-?dog|isometr[ií]a de sost[eé]n|plancha|hollow/, 'antiextension'],
+  [/gemelo|talón colgando|talon colgando|tibial posterior/, 'flexion_plantar'],
+  // ─── Lo que llega con la categoría AISLAMIENTO ───────────────────────────
+  //
+  // `AISLAMIENTO` es de la misma familia que `PREV/REHAB`: no dice el gesto,
+  // dice para qué sirve. Dentro caben un curl femoral y una elevación lateral,
+  // que no se parecen en nada. Medido el 2026-09-06, era el agujero MÁS grande
+  // del barrido: 8 de los 27 ejercicios del seed —el 30 %— se quedaban sin
+  // sujeto por esto, y ninguno necesitaba una ficha nueva. Necesitaban que
+  // alguien mirara el nombre.
+  [/curl femoral|leg curl/, 'flexion_rodilla'],
+  [/abducci[oó]n de cadera|abductor/, 'abduccion_cadera'],
+  [/elevaci[oó]n(es)? lateral|lateral raise/, 'abduccion_hombro'],
+  [/curl de b[ií]ceps|curl b[ií]ceps|curl martillo|curl concentrado|curl predicador/, 'flexion_codo'],
+  [/extensi[oó]n de tr[ií]ceps|press franc[eé]s|patada de tr[ií]ceps|jal[oó]n de tr[ií]ceps/, 'extension_codo'],
+  [/curl de mu[ñn]eca/, 'flexion_muneca'],
+  [/curl inverso de mu[ñn]eca|extensi[oó]n de mu[ñn]eca/, 'extension_muneca'],
 ]
 
 /**
@@ -1214,7 +1448,8 @@ const POR_NOMBRE: [RegExp, string][] = [
  * de banderas rojas no es un ejercicio. Enseñar aquí un patrón cualquiera sería
  * peor que no enseñar ninguno.
  */
-const SIN_PATRON = /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado/
+const SIN_PATRON =
+  /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado|escaladora|hiit|tabata|erg[oó]metro|remo ergom|caminata|trote|carrera continua/
 
 export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined
