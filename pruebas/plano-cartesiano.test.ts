@@ -34,8 +34,11 @@ describe('las cinco fichas nuevas, en el plano', () => {
   it('la elevación frontal sube la mano y casi no la desplaza de lado', () => {
     const p = planoDeId('flexion_hombro')
     expect(p.traza?.hueso).toBe('manoD')
-    // Sube de la cadera (76 cm) a la altura de los ojos (157 cm), medido el 2026-09-06:
-    // 80 cm de recorrido, y el gesto entero está en la vertical.
+    // Sube de la cadera (80 cm) a la altura de los ojos (155 cm): 76 cm de recorrido, y el
+    // gesto entero está en la vertical. Medido el 2026-09-06 **con el varón real como juego
+    // de huesos por defecto** (commit 7eed7a0). Con el neutro anterior daba 80 cm, así que
+    // el umbral va holgado a propósito: lo que se afirma es la FORMA del gesto —sube mucho,
+    // no se va de lado—, no la estatura del muñeco que lo hace.
     expect(p.traza!.vertical).toBeGreaterThan(50)
     // Y el barrido frontal es de 5 cm y no de cero: no lo pone la ficha, lo pone la capa
     // de contrapeso de `movimiento.ts`, que mece un poco lo que no trabaja. Lo que

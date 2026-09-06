@@ -6,7 +6,10 @@ dónde pasa el punto seguido en los tres ejes del mundo, y cuánto brazo de pala
 queda a cada eje en cada fase.
 
 **Nada de este informe está escrito a mano.** Sale de
-`pruebas/plano-cartesiano.test.ts`, que se puede volver a correr:
+`pruebas/plano-cartesiano.test.ts`, que se puede volver a correr. Las cifras están medidas
+con el **varón real** como juego de huesos por defecto (commit `7eed7a0`); con el cuerpo
+neutro anterior cambian unos centímetros —el brazo subía 80 en vez de 76— sin que cambie
+nada de lo que dicen:
 
 ```
 npx vitest run pruebas/plano-cartesiano.test.ts
