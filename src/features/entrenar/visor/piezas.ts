@@ -30,7 +30,7 @@ export interface PiezaDelSalon {
  * pieza está cargada, la sala de cajas no se construye y los marcadores se cuelgan de
  * sus paredes. Las medidas son las del exportador; si cambian allí, cambian aquí.
  */
-export const SALA_GIMNASIO = { nombre: 'sala-gimnasio', medioAncho: 8, medioFondo: 5.5 } as const
+export const SALA_GIMNASIO = { nombre: 'sala-gimnasio', medioAncho: 8, medioFondo: 5.5, alto: 3.8 } as const
 
 export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
   // Radio 0: la sala ya viene centrada en el sujeto y con sus paredes en su sitio. El rack

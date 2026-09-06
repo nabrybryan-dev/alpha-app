@@ -455,6 +455,50 @@ export function radioDelMuroRectangular(medioAncho: number, medioFondo: number, 
   return Math.min(porAncho, porFondo)
 }
 
+/**
+ * HASTA DÓNDE PUEDE ALEJARSE LA CÁMARA SIN SALIRSE DE LA SALA.
+ *
+ * La órbita se aleja hasta 6,5 m. En la sala cilíndrica de 7 m eso siempre caía dentro; en
+ * la sala rectangular de Blender, **el muro corto está a 5,5**, así que al alejarse hacia
+ * el fondo la cámara se salía de la habitación y se veían las paredes desde fuera,
+ * atravesándose unas con otras. Lo vio Bryan navegando el 2026-09-05: «se cruzan paredes
+ * que no se debían cruzar».
+ *
+ * El tope no es un número: **depende de hacia dónde se mire**. Mirando al muro largo caben
+ * 8 metros; al corto, 5,5. Y depende de la elevación, porque lo que acerca la cámara a la
+ * pared es su distancia HORIZONTAL, no la que la separa del sujeto.
+ *
+ * Devuelve una función porque el centro de la órbita se mueve con el ejercicio —el encuadre
+ * mira al centro del cuerpo— y el tope hay que recalcularlo con él.
+ */
+export function topeDeDistanciaEnSala(
+  sala: { medioAncho: number; medioFondo: number; alto: number },
+  margen = 0.35,
+): (centro: readonly [number, number, number], azimutGrados: number, elevacionGrados: number) => number {
+  const limX = sala.medioAncho - margen
+  const limZ = sala.medioFondo - margen
+  const limY = sala.alto - margen
+  return (centro, azimutGrados, elevacionGrados) => {
+    const a = grados(azimutGrados)
+    const e = grados(elevacionGrados)
+    // La misma cuenta que `Orbita.ojo()`: el ojo va en centro + [sen a·cos e, sen e, cos a·cos e]·d.
+    const dir: Vec3 = [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)]
+    const limites = [limX, limY, limZ]
+    let tope = Infinity
+    for (let k = 0; k < 3; k++) {
+      const v = dir[k]
+      // Casi paralelo a esa pared: nunca la alcanza por ese eje.
+      if (Math.abs(v) < 1e-6) continue
+      // El suelo no cuenta como pared: por debajo la limita la elevación, no la sala.
+      const limite = v > 0 ? limites[k] : k === 1 ? Infinity : -limites[k]
+      if (!Number.isFinite(limite)) continue
+      const d = (limite - centro[k]) / v
+      if (d > 0) tope = Math.min(tope, d)
+    }
+    return tope
+  }
+}
+
 export function construirSala(
   m: Malla,
   datos: DatosDeSerie,

@@ -680,6 +680,17 @@ export class Orbita {
    * siga editando la suya y las dos cosas se compongan sin pisarse.
    */
   retirada = 1
+  /**
+   * HASTA DÓNDE SE PUEDE ALEJAR, según hacia dónde mire. Lo pone quien sabe de la sala; el
+   * motor solo lo aplica. Sin él —el estudio del patrón, sin habitación alrededor— la
+   * cámara se aleja lo que diga el pellizco, como siempre.
+   *
+   * Se acota en `ojo()` y no al pellizcar, a propósito: al girar la cámara con la
+   * distancia ya fijada, el tope cambia solo, y acotar únicamente al pellizcar dejaría
+   * salirse a quien gire después. Así `distancia` conserva lo que pidió el dedo y se
+   * respeta en cuanto el giro vuelve a un sitio donde cabe.
+   */
+  topeDeDistancia: ((centro: Vec3, azimut: number, elevacion: number) => number) | null = null
   private limpiezas: (() => void)[] = []
 
   constructor(
@@ -766,10 +777,19 @@ export class Orbita {
     this.limpiezas = []
   }
 
+  /** La distancia que de verdad se usa: la pedida, acotada por la sala si la hay. */
+  distanciaEfectiva(): number {
+    const d = this.distancia * this.retirada
+    const tope = this.topeDeDistancia?.(this.centro, this.azimut, this.elevacion)
+    // Un tope minúsculo dejaría la cámara dentro del sujeto: nunca por debajo del mínimo
+    // del pellizco, que es lo más cerca que la interfaz deja ponerse a mano.
+    return tope === undefined || tope === null ? d : Math.max(Math.min(d, tope), 1.1)
+  }
+
   ojo(): Vec3 {
     const a = grados(this.azimut)
     const e = grados(this.elevacion)
-    const d = this.distancia * this.retirada
+    const d = this.distanciaEfectiva()
     return [
       this.centro[0] + Math.sin(a) * Math.cos(e) * d,
       this.centro[1] + Math.sin(e) * d,

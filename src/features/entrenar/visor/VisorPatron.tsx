@@ -15,7 +15,7 @@ import {
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, elevacionDelSalon, SALA, type DatosDeSerie } from '../escena/sala'
+import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
 import { cargarPiezas, SALA_GIMNASIO } from './piezas'
@@ -137,6 +137,8 @@ function suelo(): Malla {
 let piezasCache: Malla[] = []
 /** Qué piezas han llegado, por nombre: decide si la sala de cajas se sigue construyendo. */
 const piezasCargadas = new Set<string>()
+/** El tope de la cámara para la sala de Blender. Se calcula una vez: la sala no cambia. */
+const topeDeSalaDeBlender = topeDeDistanciaEnSala(SALA_GIMNASIO)
 
 /**
  * Los implementos se cachean POR EL EJERCICIO, pero se CONSTRUYEN cada fotograma.
@@ -587,6 +589,11 @@ export function VisorPatron({
           if (quiereEstaticas !== estaticasSubidas) {
             motor.subirEstaticas(quiereEstaticas ? piezasCache : [])
             estaticasSubidas = quiereEstaticas
+            // CON PAREDES, LA CÁMARA NO SALE DE LA SALA. La sala de Blender es rectangular
+            // y su muro corto está a 5,5 m: alejándose los 6,5 del pellizco, la cámara se
+            // salía y se veían las paredes desde fuera. Sin sala —el estudio del patrón—
+            // no hay tope, que es como estaba.
+            orbita.topeDeDistancia = quiereEstaticas ? topeDeSalaDeBlender : null
           }
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
           // de ESTA fase, así que si el sujeto baja, la barra baja con él. Un implemento
