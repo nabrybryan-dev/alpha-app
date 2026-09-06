@@ -9,8 +9,12 @@ import {
 import { SEXOS, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
 import { VisorPatron } from './VisorPatron'
 
-/** Lo que se ve en el botón, y lo que lee quien no ve: el símbolo solo no dice nada. */
-const SIMBOLO_DE_SEXO: Record<Sexo, string> = { neutro: 'Neutro', hombre: '♂', mujer: '♀' }
+/**
+ * Lo que se ve en el botón, y lo que lee quien no ve. Con palabras y no con ♂/♀ a
+ * propósito: un símbolo lo dibuja el sistema operativo, distinto en cada teléfono, y el
+ * guardián de `emojis-como-iconos.test.ts` lo cazó a la primera.
+ */
+const ETIQUETA_DE_SEXO: Record<Sexo, string> = { neutro: 'Neutro', hombre: 'Hombre', mujer: 'Mujer' }
 const NOMBRE_DE_SEXO: Record<Sexo, string> = {
   neutro: 'Huesos neutros',
   hombre: 'Huesos de hombre',
@@ -179,7 +183,7 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
               sexo === s ? 'border-ambar/45 bg-ambar/15 text-ambar' : 'border-ink-500 text-silver-500'
             }`}
           >
-            {SIMBOLO_DE_SEXO[s]}
+            {ETIQUETA_DE_SEXO[s]}
           </button>
         ))}
       </div>
