@@ -395,7 +395,9 @@ function SesionEnCurso() {
         onCerrar={() => setPatron(undefined)}
         animar={false}
       >
-        {patron && <EstudioDelPatron patron={patron} />}
+        {/* El sexo de la ficha, tal cual: sin dato no se pasa nada y el estudio usa
+            su defecto. Se lee aquí y no en un estado, para que la ficha mande. */}
+        {patron && <EstudioDelPatron patron={patron} sexo={db.perfiles.byUsuario(usuario.id)?.sexo} />}
       </Sheet>
 
       {frase && (

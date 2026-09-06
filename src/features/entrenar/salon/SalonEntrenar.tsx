@@ -15,6 +15,7 @@ import type {
   Microciclo,
   SerieRegistrada,
   Sesion,
+  SexoDeFicha,
 } from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
@@ -167,6 +168,13 @@ export interface SalonEntrenarProps {
    * las paredes se quedan casi vacías: no hay ejercicio del que hablar.
    */
   sesion?: Sesion
+  /**
+   * El sexo de la ficha, si el coach lo indicó: con él el sujeto se dibuja con los
+   * huesos de un hombre o de una mujer. Sin dato no se pasa nada y el visor usa su
+   * defecto, que es el neutro de siempre. Es dato de la ficha, no del salón: lo lee
+   * quien monta el salón (`RutaPage`) y llega hasta `VisorPatron` sin transformarlo.
+   */
+  sexo?: SexoDeFicha
 }
 
 /** El ejercicio del que habla el salón: el primero que queda por terminar. */
@@ -682,6 +690,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                // LOS HUESOS DE ESTA PERSONA: lo que el coach indicó en su ficha. Sin dato
+                // el visor usa su defecto, que es el neutro de siempre.
+                sexo={props.sexo}
                 // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
                 // lado pasa de ejercicio, y se orbita con dos dedos, donde ya vivía el
                 // pellizco. En el estudio del patrón sigue orbitando con uno.

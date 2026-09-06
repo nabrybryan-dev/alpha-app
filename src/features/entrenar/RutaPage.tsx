@@ -66,6 +66,9 @@ export default function RutaPage() {
       notas={notasDelMicrociclo(microciclo)}
       sesion={calculos.sesionDeHoy}
       microcicloPrevio={calculos.microcicloPrevio}
+      // De la ficha, tal cual: 'mujer' es 'mujer', 'hombre' es 'hombre', y sin dato no
+      // se pasa nada, para que el visor decida su defecto y no esta pantalla.
+      sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
     />
   )
 }
