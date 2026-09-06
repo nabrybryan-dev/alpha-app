@@ -56,11 +56,23 @@ ninguna ficha a la que aplicarse.
 
 Lo que sí faltaba era decir **con qué se hace** cada ejercicio, que es lo que decide si
 además de moverse se le puede dibujar una flecha: de los 90 ejemplos del catálogo, **37 no
-declaraban implemento**. Ahora son 11, y los que faltan faltan a propósito. En el camino
-entró en la tabla la **banda elástica**, que no existía y se estaba usando —band pull
-apart, rotación con banda, tibial posterior, apertura de banda—: es el único implemento
-cuya resistencia depende de la posición y no del peso, y por eso su brazo no sale de la
-distancia horizontal.
+declaraban implemento**. Ahora son **2**, y los dos callan a propósito.
+
+Se cerraron de dos formas distintas, y la diferencia importa. **Por familia**, cuando el
+nombre ya dice el implemento aunque no lo nombre: la **banda elástica** —que ni existía en
+la tabla y se estaba usando: band pull apart, rotación con banda, tibial posterior—, los
+saltos, las planchas, los equilibrios, los colgados, la movilidad, el banco romano, un
+crunch a secas y el pec deck, que es el nombre de la máquina y no del gesto. Y **por
+apellido**, poniéndoselo al ejemplo, que es lo correcto cuando el gesto admite varios
+implementos y aquí se elige uno para dibujarlo: press militar *con barra*, face pull *en
+polea*, peso muerto parcial *con barra* desde rack.
+
+Los dos que quedan son el mismo ejercicio —el paseo del granjero y la maleta— y callan por
+dos razones. La de siempre: se hace con mancuernas o con barra hexagonal y el nombre no lo
+dice. Y una **medida**: ponerle apellido le da implemento de peso libre, y con peso libre
+se enciende la ley de trayectoria, que sobre un porteo da razón 1,12 y lo marca como
+incumplido. No porque el gesto esté mal — porque un porteo **camina**, y esa ley mide la
+deriva contra el mundo.
 
 Donde no salen es en cinco patrones del catálogo, y por dos motivos distintos que
 conviene no confundir:
@@ -219,10 +231,9 @@ a una pierna se rompe en el plano frontal, con la pelvis cayendo hacia el lado l
   En casi todo el catálogo eso está bien —nadie quiere un maniquí mirándose los pies en una
   sentadilla— pero aquí el cuello es parte de lo que se enseña. También medido y no
   arreglado: tocar esa capa afecta a los 36 patrones.
-- **Once de los 90 ejemplos del catálogo no declaran implemento**, y faltan a propósito: un
-  paseo del granjero se hace con mancuernas o con barra hexagonal, y un press militar con
-  barra o con mancuernas. `undefined` no es lo mismo que `barra`. Para bajar esa lista hay
-  que ponerle apellido al ejemplo, no ampliar la tabla de detección.
+- **Dos de los 90 ejemplos del catálogo no declaran implemento**, y son el mismo ejercicio:
+  el paseo del granjero y la maleta. `undefined` no es lo mismo que `barra`, y aquí además
+  ponerle apellido enciende una ley que no le corresponde (ver arriba).
 - **El paseo del granjero CAMINA.** El día que se le declare implemento, su deriva hay que
   medirla contra la PELVIS y no contra el mundo, o la ley de trayectoria dará un número
   correcto que no significa nada.
