@@ -1,3 +1,4 @@
+import { brotliCompressSync } from 'node:zlib'
 import { afterEach, describe, expect, it } from 'vitest'
 import { escribirPieza, leerPieza } from '../escena/piezas3d'
 import { cargarPiezas, PIEZAS_DEL_SALON, sitioDe, traerDeRed } from './piezas'
@@ -83,57 +84,58 @@ describe('cargarPiezas', () => {
 })
 
 /**
- * LA PIEZA COMPRIMIDA. El salón pide primero el `.gz` y lo descomprime en el navegador,
- * porque la vista previa está detrás del SSO del equipo y no hay forma de comprobar si el
- * servidor comprime: un `curl` al archivo devuelve el 302 del portal, no el archivo. Esto
- * mide lo único que sí está en nuestra mano.
+ * LA PIEZA COMPRIMIDA. El salón pide primero el `.br` —548 KB contra los 915 que Vercel
+ * mandaba por su cuenta— y deja que lo abra el navegador. Lo que aquí se comprueba es lo
+ * que puede salir mal: que llegue algo que NO es una pieza (un servidor que no ponga la
+ * cabecera devuelve el brotli en crudo con un 200) y que eso no deje el salón sin sala.
  */
 describe('traerDeRed', () => {
   const original = globalThis.fetch
-
-  async function comprimir(bytes: ArrayBuffer): Promise<Uint8Array> {
-    // A mano y no con `new Blob(...).stream()`: el `Blob` de jsdom no sabe hacer flujos.
-    const fuente = new ReadableStream({
-      start(c) {
-        c.enqueue(new Uint8Array(bytes))
-        c.close()
-      },
-    })
-    const flujo = fuente.pipeThrough(new CompressionStream('gzip'))
-    return new Uint8Array(await new Response(flujo).arrayBuffer())
-  }
 
   afterEach(() => {
     globalThis.fetch = original
   })
 
-  it('pide el `.gz` y devuelve la pieza descomprimida', async () => {
+  it('pide el `.br` y, si llega una pieza, es la que usa', async () => {
     const cruda = piezaDeUnTriangulo()
-    const apretada = await comprimir(cruda)
-    expect(apretada.byteLength).toBeLessThan(cruda.byteLength)
     const pedidas: string[] = []
     globalThis.fetch = (async (ruta: string) => {
       pedidas.push(ruta)
-      return new Response(apretada)
+      // Como hace el navegador: la cabecera `Content-Encoding: br` ya la abrió.
+      return new Response(cruda)
     }) as typeof fetch
 
     const bytes = await traerDeRed('/piezas/x.pieza')
-    expect(pedidas).toEqual(['/piezas/x.pieza.gz'])
-    expect(new Uint8Array(bytes)).toEqual(new Uint8Array(cruda))
-    // Y se lee como la pieza que es, no como bytes sueltos.
+    expect(pedidas).toEqual(['/piezas/x.pieza.br'])
     expect(leerPieza(bytes)[0].textura).toBe('rack-acero')
   })
 
-  it('si el `.gz` no está, pide la pieza suelta en vez de dejar el salón sin sala', async () => {
+  it('si el `.br` llega SIN abrir, no lo traga: pide la suelta', async () => {
+    // Es lo que pasa en el servidor de desarrollo, que no pone la cabecera. Sin la
+    // comprobación de la firma, `leerPieza` reventaría y el salón se quedaría sin sala.
+    const cruda = piezaDeUnTriangulo()
+    const enCrudo = brotliCompressSync(Buffer.from(cruda))
+    const pedidas: string[] = []
+    globalThis.fetch = (async (ruta: string) => {
+      pedidas.push(ruta)
+      return new Response(ruta.endsWith('.br') ? enCrudo : cruda)
+    }) as typeof fetch
+
+    const bytes = await traerDeRed('/piezas/x.pieza')
+    expect(pedidas).toEqual(['/piezas/x.pieza.br', '/piezas/x.pieza'])
+    expect(new Uint8Array(bytes)).toEqual(new Uint8Array(cruda))
+  })
+
+  it('si el `.br` no está, pide la suelta en vez de dejar el salón sin sala', async () => {
     const cruda = piezaDeUnTriangulo()
     const pedidas: string[] = []
     globalThis.fetch = (async (ruta: string) => {
       pedidas.push(ruta)
-      return ruta.endsWith('.gz') ? new Response(null, { status: 404 }) : new Response(cruda)
+      return ruta.endsWith('.br') ? new Response(null, { status: 404 }) : new Response(cruda)
     }) as typeof fetch
 
     const bytes = await traerDeRed('/piezas/x.pieza')
-    expect(pedidas).toEqual(['/piezas/x.pieza.gz', '/piezas/x.pieza'])
+    expect(pedidas).toEqual(['/piezas/x.pieza.br', '/piezas/x.pieza'])
     expect(new Uint8Array(bytes)).toEqual(new Uint8Array(cruda))
   })
 

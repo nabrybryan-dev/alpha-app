@@ -484,49 +484,11 @@ os.makedirs(DESTINO, exist_ok=True)
 ruta = os.path.join(DESTINO, NOMBRE + ".pieza")
 with open(ruta, "wb") as f:
     f.write(out)
-# Y comprimida, que es la que pide la app: el navegador la descomprime solo (la suelta
-# se queda al lado para el Safari que no sabe). Si esta se queda vieja, el telefono
-# abriria la sala ANTERIOR sin que fallara nada: lo vigila `piezas3d.test.ts`.
-import gzip
-with gzip.open(ruta + ".gz", "wb", compresslevel=9) as f:
-    f.write(bytes(out))
-print("escrito %s  %.2f MB  (comprimida %.2f MB)" % (
-    ruta, len(out) / 1e6, os.path.getsize(ruta + ".gz") / 1e6))
-
-# ---------------------------------------------------------------- 6) las imagenes
-def exportar_polyhaven(mat_nombre, receta):
-    if receta.get("ya"):
-        return
-    m = bpy.data.materials.get(mat_nombre)
-    img = None
-    for n in m.node_tree.nodes:
-        if n.type == "TEX_IMAGE" and n.image and ("diff" in n.image.name.lower() or "atlas" in n.image.name.lower() or mat_nombre == "gym_environment"):
-            img = n.image; break
-    if img is None:
-        for n in m.node_tree.nodes:
-            if n.type == "TEX_IMAGE" and n.image: img = n.image; break
-    if img is None:
-        print("sin imagen para", mat_nombre); return
-    w, h = img.size
-    px = np.empty(w * h * 4, dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(h, w, 4)
-    rgb = px[:, :, :3]
-    if "sat" in receta:
-        g = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
-        rgb = g[:, :, None] * (1 - receta["sat"]) + rgb * receta["sat"]
-    if "mult" in receta:
-        # el multiplicar de los nodos es en lineal; aqui se aplica sobre sRGB con la
-        # raiz, que es lo que deja el mismo tono visible
-        rgb = rgb * np.array(receta["mult"], dtype=np.float32) ** (1 / 2.2)
-    px[:, :, :3] = np.clip(rgb, 0, 1)
-    sal = bpy.data.images.new("_export_" + receta["tex"], w, h)
-    sal.pixels.foreach_set(px.reshape(-1))
-    sal.scale(1024, 1024)
-    sal.filepath_raw = os.path.join(TEXTURAS, receta["tex"] + ".jpg")
-    sal.file_format = "JPEG"; esc.render.image_settings.quality = 82; sal.save()
-    bpy.data.images.remove(sal)
-    print("textura", receta["tex"] + ".jpg")
-
-for nombre_mat, receta in POLYHAVEN.items():
-    if (receta["tex"], False) in partes or (receta["tex"], True) in partes:
-        exportar_polyhaven(nombre_mat, receta)
-print("hecho en %.0f s" % (time.time() - t0))
+# Y comprimida, que es la que pide la app: brotli al maximo, que el navegador abre solo
+# gracias a la cabecera de `vercel.json`. Si esta se queda vieja, el telefono abriria la
+# sala ANTERIOR sin que fallara nada: lo vigila `piezas3d.test.ts`.
+import subprocess
+raiz = os.path.dirname(os.path.dirname(DESTINO))
+subprocess.run(["node", os.path.join(raiz, "scripts", "comprimir-pieza.mjs"), ruta],
+               cwd=raiz, shell=True, check=False)
+print("escrito %s  %.2f MB" % (ruta, len(out) / 1e6))

@@ -85,28 +85,37 @@ export function sitioDe(p: PiezaDelSalon): { x: number; z: number; giroY: number
 type Traer = (ruta: string) => Promise<ArrayBuffer>
 
 /**
- * LA PIEZA VIAJA COMPRIMIDA, Y LA DESCOMPRIME EL NAVEGADOR.
+ * LA PIEZA VIAJA COMPRIMIDA, Y LA ABRE EL PROPIO NAVEGADOR.
  *
- * Medido: la sala son 1,50 MB, y con gzip 0,79. Lo normal sería dejar que lo comprimiera
- * el servidor, pero **no se puede comprobar**: la vista previa está detrás del SSO del
- * equipo y devuelve un 302 antes de llegar al archivo. Comprimirla nosotros no depende de
- * cómo esté configurado el CDN, y se mide desde el navegador.
+ * Medido el 2026-09-06 sobre la vista previa: la sala suelta son 1,50 MB y Vercel ya la
+ * mandaba comprimida, **915 KB** por el cable. Su compresor va rápido, no apretado. La
+ * misma pieza con brotli al máximo son **548 KB**, un 40 % menos, y no hay que
+ * descomprimir nada a mano: se sirve `.pieza.br` con la cabecera `Content-Encoding: br`
+ * (`vercel.json`) y el navegador la abre él solo, como abre cualquier página.
  *
- * `DecompressionStream` existe en Chrome y en Safari desde iOS 16.4. Si no está —o si el
- * `.gz` no llega—, se pide la pieza sin comprimir: el salón se abre igual, solo tarda lo
- * que tardaba.
+ * Por eso hay que comprobar que lo que llega ES una pieza. Donde nadie pone esa cabecera
+ * —el servidor de desarrollo, por ejemplo— el `.br` llega en crudo con un 200 tan
+ * tranquilo, y sin esta comprobación el salón se quedaría sin sala en local. Cuatro bytes
+ * bastan: toda pieza empieza por `PIEZ`.
  */
+const FIRMA = 'PIEZ'
+
+function esUnaPieza(bytes: ArrayBuffer): boolean {
+  if (bytes.byteLength < 4) return false
+  const c = new Uint8Array(bytes, 0, 4)
+  return FIRMA.split('').every((letra, i) => c[i] === letra.charCodeAt(0))
+}
+
 export const traerDeRed: Traer = async (ruta) => {
-  const puedeDescomprimir = typeof DecompressionStream !== 'undefined'
-  if (puedeDescomprimir) {
-    try {
-      const r = await fetch(`${ruta}.gz`)
-      if (r.ok && r.body) {
-        return await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
-      }
-    } catch {
-      // Sin comprimir también vale. No es un fallo que merezca dejar al salón sin sala.
+  try {
+    const r = await fetch(`${ruta}.br`)
+    if (r.ok) {
+      const bytes = await r.arrayBuffer()
+      if (esUnaPieza(bytes)) return bytes
     }
+  } catch {
+    // Sin comprimir también vale: son 915 KB en vez de 548. No es un fallo que merezca
+    // dejar al salón sin sala.
   }
   const r = await fetch(ruta)
   if (!r.ok) throw new Error(`${ruta}: ${r.status}`)
