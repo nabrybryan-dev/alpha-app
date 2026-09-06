@@ -247,6 +247,10 @@ a una pierna se rompe en el plano frontal, con la pelvis cayendo hacia el lado l
 - **El paseo del granjero CAMINA.** El día que se le declare implemento, su deriva hay que
   medirla contra la PELVIS y no contra el mundo, o la ley de trayectoria dará un número
   correcto que no significa nada.
-- **El empuje de trineo sigue saliendo como un salto.** Defecto anterior, medido y
-  deliberadamente no tocado: la decisión de si un trineo merece ficha propia o merece
-  quedarse sin sujeto es de Bryan.
+- **El empuje de trineo salía como un salto** — CERRADO el 2026-09-06. La migración 0038 lo
+  clasifica como acondicionamiento y la lista por nombre lo llevaba a `salto`, así que al
+  asesorado al que se le manda empujar un trineo veinte metros le salía un muñeco saltando.
+  Decisión de Bryan: **quitarle el muñeco antes que darle ficha propia**. Va declarado en
+  `SIN_PATRON` con su motivo, que no es el del cardio: en una elíptica no hay gesto
+  resistido que enseñar, y en un trineo lo hay — lo que falta es la ficha. El día que
+  alguien la escriba hay que sacarlo de esa lista, y el test se pondrá rojo pidiéndolo.
