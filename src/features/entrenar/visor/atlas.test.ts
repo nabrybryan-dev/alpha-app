@@ -36,8 +36,11 @@ const PIEZAS = Object.entries(PIEZAS_DEL_ATLAS).map(([nombre, p]) => {
 })
 
 describe('las piezas del atlas', () => {
-  it('están las dos, con sus estructuras separadas y con nombre propio', () => {
-    expect(PIEZAS.map((p) => p.nombre).sort()).toEqual(['atlas-esqueleto', 'atlas-musculos'])
+  it('están las tres, con sus estructuras separadas y con nombre propio', () => {
+    // Esqueleto y musculatura vienen del atlas masculino (BodyParts3D); la piel, del
+    // femenino (Human Reference Atlas), que es lo unico de cuerpo que ese atlas trae.
+    expect(PIEZAS.map((p) => p.nombre).sort()).toEqual(['atlas-esqueleto', 'atlas-musculos', 'atlas-piel'])
+    expect(PIEZAS.find((p) => p.nombre === 'atlas-piel')!.mallas.length).toBe(1)
     // Una estructura por malla, no una masa fundida: es lo que permitirá mañana encender un
     // músculo solo. Fundirlas ahorraría llamadas de dibujo y perdería la anatomía.
     const porNombre = Object.fromEntries(PIEZAS.map((p) => [p.nombre, p.mallas.length]))

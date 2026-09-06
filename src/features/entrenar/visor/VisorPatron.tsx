@@ -264,7 +264,7 @@ interface VisorPatronProps {
    * cómo se contrae. Apagada por defecto: pesa 1 MB y solo la quiere quien viene a
    * estudiar el cuerpo.
    */
-  atlas?: readonly ('esqueleto' | 'musculos')[]
+  atlas?: readonly ('esqueleto' | 'musculos' | 'piel')[]
   /**
    * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
    *
@@ -405,7 +405,7 @@ export function VisorPatron({
     retirada: 1,
     // Qué capas del atlas anatómico se piden. Por referencia como todo lo demás:
     // encender la musculatura no puede recrear el contexto WebGL.
-    atlas: undefined as readonly ('esqueleto' | 'musculos')[] | undefined,
+    atlas: undefined as readonly ('esqueleto' | 'musculos' | 'piel')[] | undefined,
     // El escalón de W va por referencia y NO en las dependencias del efecto que monta
     // la escena, por lo mismo que la capa y los números de la serie: recrear el
     // contexto WebGL al atravesar el cuerpo mataría la animación en cada capa, y el

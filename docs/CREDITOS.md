@@ -31,7 +31,8 @@ llegar a su ficha). Los cuatro se vieron fallar a propósito el 2026-09-06.
 
 | Obra | Autor | Licencia |
 |---|---|---|
-| BodyParts3D 4.0 | The Database Center for Life Science (DBCLS) | CC Attribution 4.0 |
+| BodyParts3D 4.0 (esqueleto y musculatura) | The Database Center for Life Science (DBCLS) | CC Attribution 4.0 |
+| 3D Reference Organ Set for Female v1.5 (la piel) | Kristen Browne y Heidi Schlehlein, Human Reference Atlas / HuBMAP | CC Attribution 4.0 |
 | Human Atlas (adaptación) | Ashe Magalhaes | CC Attribution / código MIT |
 
 Comprobada en la [página oficial de licencia](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html),

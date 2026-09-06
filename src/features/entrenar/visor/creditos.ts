@@ -69,6 +69,13 @@ export const CREDITOS_DEL_GIMNASIO: readonly FuenteDelGimnasio[] = [
     queEs: 'La anatomía real: 296 huesos y 402 músculos con su nombre, en el estudio del cuerpo.',
   },
   {
+    obra: '3D Reference Organ Set for Female v1.5 (Human Reference Atlas, HuBMAP)',
+    autor: 'Kristen Browne y Heidi Schlehlein',
+    licencia: 'CC Attribution',
+    enlace: 'https://doi.org/10.48539/HBM352.BTSQ.586',
+    queEs: 'La piel del cuerpo femenino, en el estudio del cuerpo.',
+  },
+  {
     obra: 'Human Atlas (adaptación y agrupación por sistemas)',
     autor: 'Ashe Magalhaes',
     licencia: 'CC Attribution',

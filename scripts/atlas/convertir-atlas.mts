@@ -120,13 +120,6 @@ function pendiente(y: number, refs: Referencia[]): number {
 
 const DEL_BRAZO = new Set(['brazoD', 'brazoI', 'antebrazoD', 'antebrazoI', 'manoD', 'manoI'])
 
-const GRUPOS: Record<string, { sistemas: string[]; color: [number, number, number] }> = {
-  // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
-  // superponerlos no parezcan dos anatomías distintas.
-  esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783] },
-  musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22] },
-}
-
 interface ParteDelAtlas {
   id: string
   name: string
@@ -171,18 +164,70 @@ function coser(pos: Float32Array, normalI16: Int16Array, indice: Uint32Array, ve
   return { pos: new Float32Array(p), normal, indice: Uint32Array.from(indice, (i) => nuevo[i]) }
 }
 
+/** Un grupo de estructuras que sale como una pieza: por sistema anatómico o por nombre exacto. */
+interface Grupo {
+  sistemas?: string[]
+  nombres?: string[]
+  color: [number, number, number]
+  /** Cuánto se conserva. Una piel es UNA superficie grande y aguanta menos recorte que un hueso. */
+  recorte: number
+  /**
+   * Si los brazos se cuelgan al lado del cuerpo. El atlas femenino viene en posición
+   * anatómica —brazos abiertos unos 18°— y nuestro sujeto los lleva colgando a 7°. Sin
+   * esto, la piel del brazo queda fuera del brazo.
+   */
+  colgarBrazos?: boolean
+}
+
+/**
+ * DOS FUENTES, y no son simétricas. Es la primera cosa que hay que saber del femenino.
+ *
+ * El masculino (BodyParts3D) trae 296 huesos y 402 músculos con nombre. El femenino
+ * (Human Reference Atlas, HuBMAP) trae órganos y **una piel entera**, pero de músculos
+ * solo tiene 16 —y son los del ojo— y de esqueleto 91 piezas que son la columna y las dos
+ * rodillas: sin cráneo, sin costillas, sin brazos, sin pies. Medido el 2026-09-06 sobre su
+ * manifiesto. Así que del femenino sale UNA pieza, la piel, y no un esqueleto que sería
+ * una columna con dos rodillas flotando.
+ */
+const FUENTES: Record<string, { manifiesto: string; prefijo: string; grupos: Record<string, Grupo> }> = {
+  masculino: {
+    manifiesto: 'atlas.json',
+    prefijo: 'body',
+    grupos: {
+      // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
+      // superponerlos no parezcan dos anatomías distintas.
+      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: 0.15 },
+      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: 0.15 },
+    },
+  },
+  femenino: {
+    manifiesto: 'atlas-female.json',
+    prefijo: 'female',
+    grupos: {
+      // Solo la superficie. Las otras 16 piezas «integumentary» son tejido interno de la
+      // mama (lóbulos, conductos), que no es piel ni se ve desde fuera.
+      piel: { nombres: ['skin of body'], color: [0.72, 0.6, 0.53], recorte: 0.3, colgarBrazos: true },
+    },
+  },
+}
+
+interface Manifiesto {
+  parts: ParteDelAtlas[]
+  chunks: { url: string }[]
+}
+
+/** Interpolación suave entre 0 y 1: para que el giro del brazo no arranque la axila. */
+function suave(t: number): number {
+  const x = Math.max(0, Math.min(1, t))
+  return x * x * (3 - 2 * x)
+}
+
 async function main() {
   const dir = process.argv[2]
-  if (!dir) throw new Error('falta la carpeta del atlas (con atlas.json y body-*.bin)')
+  if (!dir) throw new Error('falta la carpeta del atlas (con atlas.json, atlas-female.json y los .bin)')
 
   const { MeshoptSimplifier } = await import(pathToFileURL(`${dir}/node_modules/meshoptimizer/index.js`).href)
   await MeshoptSimplifier.ready
-
-  const manifiesto = JSON.parse(readFileSync(`${dir}/atlas.json`, 'utf8')) as {
-    parts: ParteDelAtlas[]
-    chunks: { url: string }[]
-  }
-  const trozos = manifiesto.chunks.map((_, i) => readFileSync(`${dir}/body-${i}.bin`))
 
   // NUESTRO esqueleto en reposo, para sacar de él las alturas de referencia.
   const esq = resolver({}, [0, 0, 0], [0, 0, 0])
@@ -191,38 +236,8 @@ async function main() {
     a: puntoDeHueso(esq, h.nombre, 0) as number[],
     b: puntoDeHueso(esq, h.nombre, 1) as number[],
   }))
-  const nuestro = (n: string, extremo: 0 | 1) => (extremo === 0 ? huesos : huesos).find((h) => h.nombre === n)![extremo === 0 ? 'a' : 'b'][1]
-
-  // Y las del ATLAS, de sus huesos largos por su nombre. Si alguno no está, se para: una
-  // referencia inventada movería el cuerpo entero sin que nadie lo notara.
-  const caja = (re: RegExp) => {
-    const suyas = manifiesto.parts.filter((p) => re.test(p.name))
-    if (suyas.length === 0) throw new Error(`no encuentro «${re}» en el atlas: no puedo encajarlo`)
-    return {
-      abajo: Math.min(...suyas.map((p) => p.bounds[0][1])),
-      arriba: Math.max(...suyas.map((p) => p.bounds[1][1])),
-    }
-  }
-  const femur = caja(/^(Right|Left) femur$/)
-  const tibia = caja(/^(Right|Left) tibia$/)
-  const humero = caja(/^(Right|Left) humerus$/)
-  const radio = caja(/^(Right|Left) radius$/)
-  const calcaneo = caja(/^(Right|Left) calcaneus$/)
-
-  const DEL_CUERPO: Referencia[] = [
-    { atlas: calcaneo.abajo, nuestro: 0 },
-    { atlas: tibia.abajo, nuestro: nuestro('tibiaD', 1) },
-    { atlas: (femur.abajo + tibia.arriba) / 2, nuestro: nuestro('musloD', 1) },
-    { atlas: femur.arriba, nuestro: nuestro('musloD', 0) },
-    { atlas: humero.arriba, nuestro: nuestro('brazoD', 0) },
-  ]
-  const DEL_BRAZO_REFS: Referencia[] = [
-    { atlas: radio.abajo, nuestro: nuestro('manoD', 0) },
-    { atlas: (radio.arriba + humero.abajo) / 2, nuestro: nuestro('antebrazoD', 0) },
-    { atlas: humero.arriba, nuestro: nuestro('brazoD', 0) },
-  ]
-  console.log('referencias del cuerpo:', DEL_CUERPO.map((r) => `${r.atlas.toFixed(3)}→${r.nuestro.toFixed(3)}`).join('  '))
-  console.log('referencias del brazo :', DEL_BRAZO_REFS.map((r) => `${r.atlas.toFixed(3)}→${r.nuestro.toFixed(3)}`).join('  '))
+  const punto = (n: string, extremo: 0 | 1) => huesos.find((h) => h.nombre === n)![extremo === 0 ? 'a' : 'b']
+  const nuestro = (n: string, extremo: 0 | 1) => punto(n, extremo)[1]
 
   /** A qué hueso nuestro pertenece una estructura: el segmento más cercano a su centro. */
   const huesoDe = (p: ParteDelAtlas) => {
@@ -244,94 +259,186 @@ async function main() {
   }
 
   mkdirSync('public/piezas', { recursive: true })
-  for (const [nombre, grupo] of Object.entries(GRUPOS)) {
-    const suyas = manifiesto.parts.filter((p) => grupo.sistemas.includes(p.system))
-    const salida: PartePieza[] = []
-    let triOriginal = 0
-    let triFinal = 0
-    let errorMaximo = 0
 
-    suyas.forEach((p, i) => {
-      const refs = DEL_BRAZO.has(huesoDe(p)) ? DEL_BRAZO_REFS : DEL_CUERPO
-      const b = trozos[p.chunk]
-      const bruto = {
-        pos: new Float32Array(b.buffer.slice(b.byteOffset + p.positions, b.byteOffset + p.positions + p.vertexCount * 12)),
-        nrm: new Int16Array(b.buffer.slice(b.byteOffset + p.normals, b.byteOffset + p.normals + p.vertexCount * 6)),
-        idx: new Uint32Array(b.buffer.slice(b.byteOffset + p.indices, b.byteOffset + p.indices + p.indexCount * 4)),
+  for (const [sexo, fuente] of Object.entries(FUENTES)) {
+    const manifiesto = JSON.parse(readFileSync(`${dir}/${fuente.manifiesto}`, 'utf8')) as Manifiesto
+    const trozos = manifiesto.chunks.map((_, i) => readFileSync(`${dir}/${fuente.prefijo}-${i}.bin`))
+
+    // Las referencias del ATLAS, de sus huesos largos por su nombre. Fémur y tibia son
+    // obligatorios —sin ellos no hay encaje y se para: una referencia inventada movería el
+    // cuerpo entero sin que nadie lo notara—. Los del brazo y el calcáneo son opcionales
+    // porque el femenino no los trae: entonces el suelo es lo más bajo de la pieza y la
+    // coronilla lo más alto.
+    const caja = (re: RegExp) => {
+      const suyas = manifiesto.parts.filter((p) => re.test(p.name))
+      if (suyas.length === 0) return null
+      return {
+        abajo: Math.min(...suyas.map((p) => p.bounds[0][1])),
+        arriba: Math.max(...suyas.map((p) => p.bounds[1][1])),
       }
-      triOriginal += p.indexCount / 3
+    }
+    const femur = caja(/^(Right|Left) femur$/)
+    const tibia = caja(/^(Right|Left) tibia$/)
+    if (!femur || !tibia) throw new Error(`${sexo}: sin fémur o tibia en el atlas no puedo encajarlo`)
+    const humero = caja(/^(Right|Left) humerus$/)
+    const radio = caja(/^(Right|Left) radius$/)
+    const calcaneo = caja(/^(Right|Left) calcaneus$/)
+    const todas = manifiesto.parts
+    const suelo = calcaneo?.abajo ?? Math.min(...todas.map((p) => p.bounds[0][1]))
+    const coronilla = Math.max(...todas.map((p) => p.bounds[1][1]))
 
-      const { pos, normal, indice } = coser(bruto.pos, bruto.nrm, bruto.idx, p.vertexCount)
-      const objetivo = Math.max(MINIMO_TRIANGULOS * 3, Math.floor((p.indexCount * RECORTE) / 3) * 3)
-      const [simplificado, error] = MeshoptSimplifier.simplify(
-        indice,
-        pos,
-        3,
-        Math.min(indice.length, objetivo),
-        ERROR_MAXIMO,
+    const DEL_CUERPO: Referencia[] = [
+      { atlas: suelo, nuestro: 0 },
+      { atlas: tibia.abajo, nuestro: nuestro('tibiaD', 1) },
+      { atlas: (femur.abajo + tibia.arriba) / 2, nuestro: nuestro('musloD', 1) },
+      { atlas: femur.arriba, nuestro: nuestro('musloD', 0) },
+      humero
+        ? { atlas: humero.arriba, nuestro: nuestro('brazoD', 0) }
+        : { atlas: coronilla, nuestro: nuestro('craneo', 1) },
+    ]
+    const DEL_BRAZO_REFS: Referencia[] | null =
+      humero && radio
+        ? [
+            { atlas: radio.abajo, nuestro: nuestro('manoD', 0) },
+            { atlas: (radio.arriba + humero.abajo) / 2, nuestro: nuestro('antebrazoD', 0) },
+            { atlas: humero.arriba, nuestro: nuestro('brazoD', 0) },
+          ]
+        : null
+    console.log(`[${sexo}] referencias del cuerpo:`, DEL_CUERPO.map((r) => `${r.atlas.toFixed(3)}→${r.nuestro.toFixed(3)}`).join('  '))
+    if (DEL_BRAZO_REFS) console.log(`[${sexo}] referencias del brazo :`, DEL_BRAZO_REFS.map((r) => `${r.atlas.toFixed(3)}→${r.nuestro.toFixed(3)}`).join('  '))
+
+    for (const [nombre, grupo] of Object.entries(fuente.grupos)) {
+      const suyas = manifiesto.parts.filter((p) =>
+        grupo.sistemas ? grupo.sistemas.includes(p.system) : (grupo.nombres ?? []).includes(p.name),
       )
-      errorMaximo = Math.max(errorMaximo, error)
+      if (suyas.length === 0) throw new Error(`${sexo}/${nombre}: no hay estructuras que exportar`)
+      const salida: PartePieza[] = []
+      let triOriginal = 0
+      let triFinal = 0
+      let errorMaximo = 0
 
-      const [remap, cuantos] = MeshoptSimplifier.compactMesh(simplificado)
-      const posicion = new Float32Array(cuantos * 3)
-      const nrm = new Float32Array(cuantos * 3)
-      for (let viejo = 0; viejo < remap.length; viejo++) {
-        const n = remap[viejo]
-        if (n === 0xffffffff) continue
-        // La altura se lleva a la de nuestro esqueleto; el ancho y el fondo no se tocan:
-        // los dos cuerpos ya coinciden en eso y estirarlos sería deformar la anatomía.
-        const y = pos[viejo * 3 + 1]
-        posicion[n * 3] = pos[viejo * 3]
-        posicion[n * 3 + 1] = estirar(y, refs)
-        posicion[n * 3 + 2] = pos[viejo * 3 + 2]
-        // La normal se corrige por el estirado: al comprimir en Y, la normal se inclina al
-        // revés —dividiendo, no multiplicando— o la luz delataría un muslo aplastado.
-        const k = pendiente(y, refs) || 1
-        const nx = normal[viejo * 3]
-        const ny = normal[viejo * 3 + 1] / k
-        const nz = normal[viejo * 3 + 2]
-        const largoN = Math.hypot(nx, ny, nz) || 1
-        nrm[n * 3] = nx / largoN
-        nrm[n * 3 + 1] = ny / largoN
-        nrm[n * 3 + 2] = nz / largoN
-      }
+      suyas.forEach((p, i) => {
+        const refs = DEL_BRAZO_REFS && DEL_BRAZO.has(huesoDe(p)) ? DEL_BRAZO_REFS : DEL_CUERPO
+        const b = trozos[p.chunk]
+        const bruto = {
+          pos: new Float32Array(b.buffer.slice(b.byteOffset + p.positions, b.byteOffset + p.positions + p.vertexCount * 12)),
+          nrm: new Int16Array(b.buffer.slice(b.byteOffset + p.normals, b.byteOffset + p.normals + p.vertexCount * 6)),
+          idx: new Uint32Array(b.buffer.slice(b.byteOffset + p.indices, b.byteOffset + p.indices + p.indexCount * 4)),
+        }
+        triOriginal += p.indexCount / 3
 
-      // Variación de tono por estructura: dos músculos pegados con el mismo color exacto
-      // se leen como uno solo. Es un ±6 %, lo justo para que se distinga el borde.
-      const v = 1 + ((i * 37) % 13) / 100 - 0.06
-      const color = new Float32Array(cuantos * 3)
-      for (let k = 0; k < cuantos; k++) {
-        color[k * 3] = grupo.color[0] * v
-        color[k * 3 + 1] = grupo.color[1] * v
-        color[k * 3 + 2] = grupo.color[2] * v
-      }
+        const { pos, normal, indice } = coser(bruto.pos, bruto.nrm, bruto.idx, p.vertexCount)
 
-      salida.push({
-        textura: null,
-        posicion,
-        normal: nrm,
-        color,
-        uv: new Float32Array(cuantos * 2),
-        indice: simplificado,
-        horneada: false,
+        // COLGAR LOS BRAZOS. Se mide el ángulo del brazo de la piel a la altura de la
+        // muñeca y se gira lo que haga falta alrededor del hombro, con un peso que crece
+        // con la distancia al hombro: en la axila no se mueve nada, en la mano gira entero.
+        // Es lo que impide que el giro arranque la piel del costado.
+        if (grupo.colgarBrazos) {
+          const yMuneca = nuestro('manoD', 0)
+          for (const lado of [-1, 1]) {
+            const hombro = punto(lado < 0 ? 'brazoD' : 'brazoI', 0)
+            const mano = punto(lado < 0 ? 'manoD' : 'manoI', 0)
+            let sx = 0
+            let n = 0
+            for (let v = 0; v < pos.length; v += 3) {
+              if (pos[v] * lado > 0.17 && Math.abs(pos[v + 1] - yMuneca) < 0.02) {
+                sx += pos[v]
+                n++
+              }
+            }
+            if (n === 0) continue
+            const anguloAtlas = Math.atan2((sx / n - hombro[0]) * lado, hombro[1] - yMuneca)
+            const anguloNuestro = Math.atan2((mano[0] - hombro[0]) * lado, hombro[1] - mano[1])
+            const giro = (anguloNuestro - anguloAtlas) * lado
+            for (let v = 0; v < pos.length; v += 3) {
+              if (pos[v] * lado < 0.17 || pos[v + 1] > hombro[1] + 0.02) continue
+              const dx = pos[v] - hombro[0]
+              const dy = pos[v + 1] - hombro[1]
+              const peso = suave((Math.hypot(dx, dy) - 0.1) / 0.15)
+              const a = giro * peso
+              const c = Math.cos(a)
+              const s = Math.sin(a)
+              pos[v] = hombro[0] + dx * c - dy * s
+              pos[v + 1] = hombro[1] + dx * s + dy * c
+              const nx = normal[v]
+              const ny = normal[v + 1]
+              normal[v] = nx * c - ny * s
+              normal[v + 1] = nx * s + ny * c
+            }
+          }
+        }
+
+        const objetivo = Math.max(MINIMO_TRIANGULOS * 3, Math.floor((p.indexCount * grupo.recorte) / 3) * 3)
+        const [simplificado, error] = MeshoptSimplifier.simplify(
+          indice,
+          pos,
+          3,
+          Math.min(indice.length, objetivo),
+          ERROR_MAXIMO,
+        )
+        errorMaximo = Math.max(errorMaximo, error)
+
+        const [remap, cuantos] = MeshoptSimplifier.compactMesh(simplificado)
+        const posicion = new Float32Array(cuantos * 3)
+        const nrm = new Float32Array(cuantos * 3)
+        for (let viejo = 0; viejo < remap.length; viejo++) {
+          const n = remap[viejo]
+          if (n === 0xffffffff) continue
+          // La altura se lleva a la de nuestro esqueleto; el ancho y el fondo no se tocan:
+          // los dos cuerpos ya coinciden en eso y estirarlos sería deformar la anatomía.
+          const y = pos[viejo * 3 + 1]
+          posicion[n * 3] = pos[viejo * 3]
+          posicion[n * 3 + 1] = estirar(y, refs)
+          posicion[n * 3 + 2] = pos[viejo * 3 + 2]
+          // La normal se corrige por el estirado: al comprimir en Y, la normal se inclina al
+          // revés —dividiendo, no multiplicando— o la luz delataría un muslo aplastado.
+          const k = pendiente(y, refs) || 1
+          const nx = normal[viejo * 3]
+          const ny = normal[viejo * 3 + 1] / k
+          const nz = normal[viejo * 3 + 2]
+          const largoN = Math.hypot(nx, ny, nz) || 1
+          nrm[n * 3] = nx / largoN
+          nrm[n * 3 + 1] = ny / largoN
+          nrm[n * 3 + 2] = nz / largoN
+        }
+
+        // Variación de tono por estructura: dos músculos pegados con el mismo color exacto
+        // se leen como uno solo. Es un ±6 %, lo justo para que se distinga el borde.
+        const v = 1 + ((i * 37) % 13) / 100 - 0.06
+        const color = new Float32Array(cuantos * 3)
+        for (let k = 0; k < cuantos; k++) {
+          color[k * 3] = grupo.color[0] * v
+          color[k * 3 + 1] = grupo.color[1] * v
+          color[k * 3 + 2] = grupo.color[2] * v
+        }
+
+        salida.push({
+          textura: null,
+          posicion,
+          normal: nrm,
+          color,
+          uv: new Float32Array(cuantos * 2),
+          indice: simplificado,
+          horneada: false,
+        })
+        triFinal += simplificado.length / 3
       })
-      triFinal += simplificado.length / 3
-    })
 
-    const bytes = escribirPieza(salida)
-    const ruta = `public/piezas/atlas-${nombre}.pieza`
-    writeFileSync(ruta, Buffer.from(bytes))
-    const br = brotliCompressSync(Buffer.from(bytes), {
-      params: {
-        [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
-        [constants.BROTLI_PARAM_SIZE_HINT]: bytes.byteLength,
-      },
-    })
-    writeFileSync(`${ruta}.br`, br)
-    console.log(
-      `${ruta}  ${suyas.length} estructuras · ${triOriginal.toLocaleString('es')} → ${triFinal.toLocaleString('es')} triángulos · ` +
-        `${(bytes.byteLength / 1e6).toFixed(2)} MB → ${(br.length / 1e6).toFixed(2)} MB comprimida · error máx ${(errorMaximo * 100).toFixed(2)} %`,
-    )
+      const bytes = escribirPieza(salida)
+      const ruta = `public/piezas/atlas-${nombre}.pieza`
+      writeFileSync(ruta, Buffer.from(bytes))
+      const br = brotliCompressSync(Buffer.from(bytes), {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
+          [constants.BROTLI_PARAM_SIZE_HINT]: bytes.byteLength,
+        },
+      })
+      writeFileSync(`${ruta}.br`, br)
+      console.log(
+        `${ruta}  ${suyas.length} estructuras · ${triOriginal.toLocaleString('es')} → ${triFinal.toLocaleString('es')} triángulos · ` +
+          `${(bytes.byteLength / 1e6).toFixed(2)} MB → ${(br.length / 1e6).toFixed(2)} MB comprimida · error máx ${(errorMaximo * 100).toFixed(2)} %`,
+      )
+    }
   }
 }
 

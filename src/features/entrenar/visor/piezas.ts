@@ -76,6 +76,9 @@ export const PIEZAS_DEL_SALON: Record<string, PiezaDelSalon> = {
 export const PIEZAS_DEL_ATLAS: Record<string, PiezaDelSalon> = {
   'atlas-esqueleto': { ruta: '/piezas/atlas-esqueleto.pieza', anguloGrados: 0, radio: 0 },
   'atlas-musculos': { ruta: '/piezas/atlas-musculos.pieza', anguloGrados: 0, radio: 0 },
+  // La piel es del atlas FEMENINO (Human Reference Atlas). Es lo único que ese atlas trae
+  // de cuerpo: sus músculos son 16 y del ojo, y su esqueleto la columna y dos rodillas.
+  'atlas-piel': { ruta: '/piezas/atlas-piel.pieza', anguloGrados: 0, radio: 0 },
 }
 
 /**

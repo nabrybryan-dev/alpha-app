@@ -49,10 +49,15 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
   // La anatomía de verdad, apagada de salida: pesa 1 MB y no se baja hasta que se pide.
   const [hueso, setHueso] = useState(false)
   const [musculo, setMusculo] = useState(false)
+  const [piel, setPiel] = useState(false)
   // Memorizado porque un array nuevo cada render reiniciaría el efecto que lo carga.
   const atlas = useMemo(
-    () => [...(hueso ? (['esqueleto'] as const) : []), ...(musculo ? (['musculos'] as const) : [])],
-    [hueso, musculo],
+    () => [
+      ...(hueso ? (['esqueleto'] as const) : []),
+      ...(musculo ? (['musculos'] as const) : []),
+      ...(piel ? (['piel'] as const) : []),
+    ],
+    [hueso, musculo, piel],
   )
 
   return (
@@ -128,6 +133,8 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
         {([
           ['Esqueleto', hueso, setHueso],
           ['Musculatura', musculo, setMusculo],
+          // La piel es la del atlas femenino: es lo único que ese atlas trae de cuerpo.
+          ['Piel', piel, setPiel],
         ] as const).map(([nombre, activo, poner]) => (
           <button
             key={nombre}
