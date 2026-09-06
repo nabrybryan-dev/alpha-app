@@ -205,6 +205,20 @@ describe('sin juego, o con el neutro, nada cambia', () => {
     expect(bancaNeutra.matrices).toStrictEqual(banca.matrices)
   })
 
+  it('los largos de los veintiún huesos son los de antes, número a número', () => {
+    // Las matrices no llevan el largo —solo el `desde` de cada hijo—, y la malla neutra
+    // está escrita a mano: una tibia tocada en una diezmilésima de milímetro pasaba los
+    // guardianes de arriba y de abajo. Se caza aquí, exacto y sin tolerancia. Visto en
+    // rojo con la tibia en 0,4300001.
+    const largos = Object.values(resolver({}, [0, 0, 0], [0, 0, 0]).largo)
+    expect(largos).toStrictEqual([
+      0.1, 0.17, 0.28, 0.08, 0.16,
+      0.155, 0.155, 0.15, 0.15,
+      0.31, 0.31, 0.26, 0.26, 0.18, 0.18,
+      0.45, 0.45, 0.43, 0.43, 0.22, 0.22,
+    ])
+  })
+
   it('la malla ósea es la de antes, vértice a vértice', () => {
     for (const malla of [construirHuesos(), construirHuesos(esqueletoDe('neutro'))]) {
       expect(malla.vertices).toBe(DE_ANTES.vertices)

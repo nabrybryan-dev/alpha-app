@@ -147,11 +147,15 @@ export const JUEGOS: Record<Sexo, JuegoDeHuesos> = { neutro: NEUTRO, hombre: HOM
  */
 export function esqueletoConJuego(juego: JuegoDeHuesos): DefinicionHueso[] {
   const n = NEUTRO
-  const tronco = (juego.coronilla - juego.cadera) / (n.coronilla - n.cadera)
+  // El muslo nace unos milímetros por encima del origen de la pelvis y ese tramo no se
+  // estira; el factor se mide desde el origen de la pelvis para que la coronilla caiga
+  // exacta y no medio milímetro más arriba.
+  const alturaDelMuslo = POR_NOMBRE.musloD.desde[1]
+  const tronco =
+    (juego.coronilla - juego.cadera + alturaDelMuslo) / (n.coronilla - n.cadera + alturaDelMuslo)
   const hombro = juego.medioHombro - n.medioHombro
   const raizDeClavicula = Math.abs(POR_NOMBRE.claviculaD.desde[0])
   const clavicula = (juego.medioHombro - raizDeClavicula) / (n.medioHombro - raizDeClavicula)
-  const alturaDelMuslo = POR_NOMBRE.musloD.desde[1]
 
   return ESQUELETO.map((h): DefinicionHueso => {
     const [x, y, z] = h.desde
