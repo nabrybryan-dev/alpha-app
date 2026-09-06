@@ -22,6 +22,7 @@ export const perfilMateo: Perfil = {
   diasEntrenamiento: 4,
   tiempoSesionMin: 90,
   somatotipo: 'Ectomorfo',
+  sexo: 'hombre',
   volumenSemanal: {
     Pecho: 'Alto',
     Espalda: 'Alto',
@@ -45,6 +46,7 @@ export const perfilSara: Perfil = {
   diasEntrenamiento: 3,
   tiempoSesionMin: 75,
   somatotipo: 'Endomorfa',
+  sexo: 'mujer',
   volumenSemanal: {
     Glúteo: 'Alto',
     Espalda: 'Normal',

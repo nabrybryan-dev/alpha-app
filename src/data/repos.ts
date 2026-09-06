@@ -22,6 +22,7 @@ import type {
   RegistroItem,
   Respuesta,
   SerieRegistrada,
+  SexoDeFicha,
   TestPostSesion,
   Usuario,
   ValoracionCompetencia,
@@ -58,6 +59,13 @@ export interface PerfilesRepo {
    * que es una acción del coach, y no en el teléfono del asesorado.
    */
   guardarPeldano(usuarioId: string, peldano: number, ascensoIso: string): void
+  /**
+   * Guarda el sexo con el que se dibuja el sujeto 3D de esta persona, o lo
+   * quita (`undefined` = sin indicar, y el sujeto vuelve al neutro). **SOLO
+   * STAFF**, como el peldaño: el trigger `proteger_perfil` (0008, ampliado en la
+   * 0056) no deja al asesorado tocarlo. Solo escribe si la ficha existe.
+   */
+  guardarSexo(usuarioId: string, sexo: SexoDeFicha | undefined): void
 }
 
 export interface MicrociclosRepo {

@@ -36,6 +36,8 @@ export const perfilValentina: Perfil = {
   diasEntrenamiento: 5,
   tiempoSesionMin: 150,
   somatotipo: 'Mesomorfa',
+  // Lo indicó el coach en la ficha: el salón la dibuja con huesos de mujer.
+  sexo: 'mujer',
   faseEnergetica: 'Déficit 10-15%',
   proteinaGkg: 2,
   pasosObjetivo: 9000,

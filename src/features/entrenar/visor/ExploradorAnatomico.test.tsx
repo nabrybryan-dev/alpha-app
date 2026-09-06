@@ -92,5 +92,15 @@ describe('el sexo del sujeto', () => {
     expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'false')
   })
+
+  it('arranca en lo que diga la ficha si el coach lo indicó, y se sigue pudiendo cambiar', async () => {
+    // Es el valor de salida, no una orden: el estudio es para mirar.
+    const usuario = userEvent.setup()
+    render(<ExploradorAnatomico sexoInicial="mujer" />)
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'false')
+    await usuario.click(screen.getByRole('button', { name: 'Huesos neutros' }))
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'true')
+  })
 })
 

@@ -27,6 +27,7 @@ import { aIso } from '../../domain/nutricion/semana'
 import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube, supabase } from '../supabase'
 import { microciclosDe } from './hidratar'
+import { datosDePerfil, type FilaPerfilDelAsesorado, type FilaPerfilDelCoach } from './perfilEnNube'
 import { encolar } from './procesador'
 
 // Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
@@ -162,13 +163,37 @@ function idDeDespensa(usuarioId: string, item: ItemDespensa): string {
   return `${usuarioId}:${claveDe(item)}`
 }
 
-function subirPerfil(local: Db, usuarioId: string): void {
+/**
+ * Sube la ficha de una persona: el blob `datos` y, según QUIÉN escribe, la
+ * columna `sexo` (0056). Los dos envíos son literales a propósito —con sus
+ * claves a la vista— porque `contrato-payloads.test.ts` los lee del archivo y
+ * los cruza con el esquema de las migraciones.
+ *
+ * - EL COACH la manda siempre, con lo que haya en local. La cola funde los
+ *   upserts de la misma fila (`integrarEnCola`): si fijar el sexo y guardar una
+ *   valoración sin red dejaran dos envíos, el segundo pisaría al primero, y sin
+ *   la columna el sexo moriría en la cola.
+ * - EL ASESORADO (sus medidas) NO la nombra. Su copia puede ser vieja —hidrató
+ *   antes de que el coach la rellenara— y mandarla escribiría `null` encima; y
+ *   el trigger `proteger_perfil` rechazaría el envío entero, medida incluida.
+ *   Un upsert que no nombra la columna la deja como está.
+ */
+function subirPerfil(local: Db, usuarioId: string, quien: 'coach' | 'asesorado'): void {
   const perfil = local.perfiles.byUsuario(usuarioId)
   if (!perfil) return
+  const datos = datosDePerfil(perfil)
+  if (quien === 'coach') {
+    encolar({
+      tabla: 'perfiles',
+      tipo: 'upsert',
+      payload: { usuario_id: usuarioId, datos, sexo: perfil.sexo ?? null } satisfies FilaPerfilDelCoach,
+    })
+    return
+  }
   encolar({
     tabla: 'perfiles',
     tipo: 'upsert',
-    payload: { usuario_id: usuarioId, datos: perfil },
+    payload: { usuario_id: usuarioId, datos } satisfies FilaPerfilDelAsesorado,
   })
 }
 
@@ -182,15 +207,19 @@ export function crearDbSincronizada(local: Db): Db {
       ...local.perfiles,
       agregarMedida: (usuarioId, medida) => {
         local.perfiles.agregarMedida(usuarioId, medida)
-        subirPerfil(local, usuarioId)
+        subirPerfil(local, usuarioId, 'asesorado')
       },
       guardarValoracion: (usuarioId, valoracion) => {
         local.perfiles.guardarValoracion(usuarioId, valoracion)
-        subirPerfil(local, usuarioId)
+        subirPerfil(local, usuarioId, 'coach')
       },
       guardarPeldano: (usuarioId, peldano, ascensoIso) => {
         local.perfiles.guardarPeldano(usuarioId, peldano, ascensoIso)
-        subirPerfil(local, usuarioId)
+        subirPerfil(local, usuarioId, 'coach')
+      },
+      guardarSexo: (usuarioId, sexo) => {
+        local.perfiles.guardarSexo(usuarioId, sexo)
+        subirPerfil(local, usuarioId, 'coach')
       },
     },
 

@@ -47,9 +47,19 @@ export interface ExploradorAnatomicoProps {
    * dentro de una sentadilla o un peso muerto.
    */
   cadena?: 'cerrada' | 'abierta'
+  /**
+   * Con qué huesos ARRANCA el selector: el sexo de la ficha de quien mira, si
+   * el coach lo indicó. Es el valor de salida, no una orden: el selector de
+   * abajo sigue existiendo y se puede cambiar a mano. Sin dato, el defecto (el varón).
+   */
+  sexoInicial?: Sexo
 }
 
-export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }: ExploradorAnatomicoProps = {}) {
+export function ExploradorAnatomico({
+  articulacionInicial,
+  cadena = 'abierta',
+  sexoInicial,
+}: ExploradorAnatomicoProps = {}) {
   // Por defecto el codo: es la bisagra más clara y su límite —el olécranon
   // topando con su fosa— explica de una vez qué significa un grado de libertad.
   const [elegida, setElegida] = useState<Demostracion>(
@@ -63,9 +73,10 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
   const [hueso, setHueso] = useState(false)
   const [musculo, setMusculo] = useState(false)
   const [piel, setPiel] = useState(false)
-  // Con qué huesos se dibuja el sujeto. Neutro es el de siempre; la app no sabe el sexo
-  // de nadie, así que aquí se elige a mano.
-  const [sexo, setSexo] = useState<Sexo>(SEXO_POR_DEFECTO)
+  // Con qué huesos se dibuja el sujeto. Arranca en el de la ficha si el coach lo indicó
+  // (`sexoInicial`) y, si no hay dato, en el defecto de la casa —el varón real desde el
+  // 2026-09-06—; en los dos casos se puede cambiar a mano aquí mismo.
+  const [sexo, setSexo] = useState<Sexo>(sexoInicial ?? SEXO_POR_DEFECTO)
   // Memorizado porque un array nuevo cada render reiniciaría el efecto que lo carga.
   const atlas = useMemo(
     () => [
@@ -168,8 +179,9 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
         {/* EL SEXO DEL SUJETO: con qué huesos se dibuja el que se mueve. Neutro es el de
             siempre; hombre y mujer llevan las longitudes medidas en los dos atlas
             (`juegoDeHuesos.ts`). Va junto a la anatomía real porque es la misma pregunta
-            —¿de quién es este cuerpo?— y se elige a mano porque la app no sabe el sexo de
-            nadie. */}
+            —¿de quién es este cuerpo?—. Arranca en lo que el coach indicó en la ficha
+            (`sexoInicial`) y se puede cambiar a mano: el estudio es para mirar, y mirar
+            el otro cuerpo también enseña. */}
         <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-silver-500">Huesos</span>
         {SEXOS.map((s) => (
           <button
