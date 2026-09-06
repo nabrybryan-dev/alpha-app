@@ -220,17 +220,27 @@ a una pierna se rompe en el plano frontal, con la pelvis cayendo hacia el lado l
 
 ## Lo que sigue abierto y no es de esta tanda
 
-- **El retardo distal se come recorrido en TODO el catálogo.** Cada canal se lee en
-  `fase − retardo` y la fase va topada a 1, así que un canal con retardo nunca llega a leer
-  su fase final: la ficha declara un ángulo que el salón no enseña nunca. Medido: **70 de
-  91 canales** con 15° o más pierden algo, mediana del 3 %, y el techo son las dos muñecas
-  con 12 grados enteros. Cerrarlo cambia cómo se mueve el catálogo entero, así que va
-  medido y no arreglado.
-- **En `movilidad_toracica` el cuello declara 48° y hace 12.** No es el retardo: es la capa
-  que mantiene la cabeza mirando al frente, que se aplica DESPUÉS de la pose de la ficha.
-  En casi todo el catálogo eso está bien —nadie quiere un maniquí mirándose los pies en una
-  sentadilla— pero aquí el cuello es parte de lo que se enseña. También medido y no
-  arreglado: tocar esa capa afecta a los 36 patrones.
+- **El muñeco daba un tirón de 12 grados dos veces por repetición** — CERRADO el 2026-09-06,
+  y con una corrección a lo que este informe decía antes. Se había reportado que las fichas
+  declaraban ángulos que el salón no enseñaba nunca, y estaba mal medido: la muestra se tomó
+  con el sentido fijo en «subiendo» y el ciclo real **baja con el sentido invertido**. El
+  recorrido completo sí aparecía; aparecía **de un salto**. El retardo distal se restaba a
+  la fase con un signo que depende del sentido, así que en el cambio de sentido el canal
+  saltaba a su extremo: 12,55 grados en 9 milésimas, dos veces por repetición. Como el rango
+  completo salía, ninguna prueba de rango lo veía. Arreglado reescalando el retardo sobre la
+  ventana disponible, que además hace la función continua: el mayor tirón del catálogo pasa
+  de 12,55° a 1,39°.
+- **El cuello de `movilidad_toracica`, de 11 grados a los 48 que declara** — CERRADO. No lo
+  sobrescribía nadie: la capa que mantiene la cabeza mirando al frente es una resta
+  proporcional a la inclinación del tronco, y ahí el tronco se inclina 52 grados, así que la
+  resta se movía 32 en sentido contrario y el tope del cuello se comía el resto. Se arregla
+  con la regla que ese archivo ya aplicaba a los brazos: una capa no se pelea con un canal
+  que el patrón mueve a propósito.
+- **Y la consecuencia, que no se esconde:** la sentadilla pasa a pedir **33,4° de
+  dorsiflexión** en vez de 30,1 y la búlgara 38 en vez de 33. No piden más — es que hasta
+  hoy no se enseñaban enteras. Treinta y tres grados de tobillo es mucho, y es justo por lo
+  que el déficit de tobillo es lo primero que se mira cuando alguien no baja. Si la
+  sentadilla de demostración debe ser menos profunda, se toca la ficha.
 - **Dos de los 90 ejemplos del catálogo no declaran implemento**, y son el mismo ejercicio:
   el paseo del granjero y la maleta. `undefined` no es lo mismo que `barra`, y aquí además
   ponerle apellido enciende una ley que no le corresponde (ver arriba).
