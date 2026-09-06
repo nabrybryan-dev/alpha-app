@@ -80,14 +80,20 @@ const SIN_ACTIVACION: Activacion = {}
  * Va con hueso 0 —la identidad— así que entra en la misma malla que el sujeto y se
  * dibuja en la misma llamada. El motor no se entera de que existe.
  */
-let laboratorioCache: Malla | null = null
+let laboratorioCache: { soloMarcas: boolean; malla: Malla } | null = null
 
-function laboratorio(): Malla {
-  if (!laboratorioCache) {
-    laboratorioCache = new Malla()
-    construirLaboratorio(laboratorioCache)
+/**
+ * @param soloMarcas con la sala del gimnasio puesta, solo la placa y el eje sagital: el
+ *   suelo, la retícula, el bordillo y el estadiómetro competían con ella —otra estética
+ *   encima de la suya— y el gimnasio ya da suelo y plataforma. Ver `OpcionesDeLaboratorio`.
+ */
+function laboratorio(soloMarcas: boolean): Malla {
+  if (!laboratorioCache || laboratorioCache.soloMarcas !== soloMarcas) {
+    const malla = new Malla()
+    construirLaboratorio(malla, { soloMarcasDeMedida: soloMarcas })
+    laboratorioCache = { soloMarcas, malla }
   }
-  return laboratorioCache
+  return laboratorioCache.malla
 }
 
 /**
@@ -541,7 +547,10 @@ export function VisorPatron({
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
-          const partes = conEscenario && !partesOmitidas(lienzo).has('bahia') ? [laboratorio()] : []
+          // Con la sala de Blender cargada, la bahía se queda solo con lo que MIDE.
+          const conSalaDeBlender = piezasCargadas.has(SALA_GIMNASIO.nombre)
+          const partes =
+            conEscenario && !partesOmitidas(lienzo).has('bahia') ? [laboratorio(conSalaDeBlender)] : []
           // La plomada del peso: dónde cae la resultante. Con suelo, porque
           // tumbado no hay equilibrio que enseñar.
           if (conEscenario && patron.apoyo === 'suelo') partes.push(lineaDePeso(esq))
