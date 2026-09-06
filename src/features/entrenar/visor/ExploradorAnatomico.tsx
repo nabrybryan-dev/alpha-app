@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ARTICULACIONES, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
   demostracionesDe,
@@ -46,6 +46,14 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
       DEMOSTRACIONES[0],
   )
   const hermanas = demostracionesDe(elegida.articulacion.id, cadena)
+  // La anatomía de verdad, apagada de salida: pesa 1 MB y no se baja hasta que se pide.
+  const [hueso, setHueso] = useState(false)
+  const [musculo, setMusculo] = useState(false)
+  // Memorizado porque un array nuevo cada render reiniciaría el efecto que lo carga.
+  const atlas = useMemo(
+    () => [...(hueso ? (['esqueleto'] as const) : []), ...(musculo ? (['musculos'] as const) : [])],
+    [hueso, musculo],
+  )
 
   return (
     <div className="flex flex-col gap-3">
@@ -111,7 +119,39 @@ export function ExploradorAnatomico({ articulacionInicial, cadena = 'abierta' }:
       {/* `key` fuerza el remontaje al cambiar de acción: el visor calcula el
           encuadre y la traza al montarse, y sin esto se quedaría con los de la
           articulación anterior. */}
-      <VisorPatron key={elegida.id} patron={elegida.patron} conEscenario={false} />
+      {/* LA ANATOMÍA REAL, encima del sujeto que se mueve.
+          No sustituye al muñeco: el muñeco se contrae y esto no, es una postura fija de un
+          varón adulto de referencia. Sirve para ver CÓMO ES un músculo, no cómo trabaja.
+          Por eso son dos interruptores y no un modo: se miran juntos. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-[0.12em] text-silver-500">Anatomía real</span>
+        {([
+          ['Esqueleto', hueso, setHueso],
+          ['Musculatura', musculo, setMusculo],
+        ] as const).map(([nombre, activo, poner]) => (
+          <button
+            key={nombre}
+            type="button"
+            onClick={() => poner(!activo)}
+            aria-pressed={activo}
+            className={`press rounded-lg border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${
+              activo ? 'border-ambar/45 bg-ambar/15 text-ambar' : 'border-ink-500 text-silver-500'
+            }`}
+          >
+            {nombre}
+          </button>
+        ))}
+      </div>
+
+      {/* La anatomía real ocupa más que el muñeco —es carne, no palos—, así que la cámara
+          se retira un poco para que el cuerpo entero siga cabiendo. Sin ella, igual. */}
+      <VisorPatron
+        key={elegida.id}
+        patron={elegida.patron}
+        conEscenario={false}
+        atlas={atlas}
+        retirada={atlas.length > 0 ? 1.35 : 1}
+      />
     </div>
   )
 }

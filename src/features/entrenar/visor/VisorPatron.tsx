@@ -18,7 +18,7 @@ import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laborator
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
-import { anunciarSalaDeBlender, cargarPiezas, SALA_GIMNASIO } from './piezas'
+import { anunciarSalaDeBlender, cargarPiezas, PIEZAS_DEL_ATLAS, SALA_GIMNASIO } from './piezas'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -143,6 +143,19 @@ function suelo(): Malla {
 let piezasCache: Malla[] = []
 /** Qué piezas han llegado, por nombre: decide si la sala de cajas se sigue construyendo. */
 const piezasCargadas = new Set<string>()
+/**
+ * EL ATLAS ANATÓMICO, en su propia caché y a propósito.
+ *
+ * No entra en `piezasCache` porque no es escenario: se pide solo cuando alguien abre el
+ * cuerpo para estudiarlo, y quien entra a entrenar no paga su megabyte. Compartir caché
+ * habría hecho que apagar la sala apagara también la anatomía, que son dos decisiones
+ * distintas.
+ */
+let atlasCache: Malla[] = []
+const atlasCargado = new Set<string>()
+/** Qué mallas son de cada capa, para poder encender solo el esqueleto o solo el músculo. */
+const atlasPorCapa = new Map<string, Malla[]>()
+
 /** El tope de la cámara para la sala de Blender. Se calcula una vez: la sala no cambia. */
 const topeDeSalaDeBlender = topeDeDistanciaEnSala(SALA_GIMNASIO)
 
@@ -244,6 +257,15 @@ interface VisorPatronProps {
    */
   conEscenario?: boolean
   /**
+   * LA ANATOMÍA DE VERDAD, superpuesta: `esqueleto`, `musculos`, las dos, o nada.
+   *
+   * Es geometría real de BodyParts3D, no el sujeto procedimental. No se mueve con el
+   * patrón —es una postura fija— así que sirve para MIRAR cómo es un músculo, no para ver
+   * cómo se contrae. Apagada por defecto: pesa 1 MB y solo la quiere quien viene a
+   * estudiar el cuerpo.
+   */
+  atlas?: readonly ('esqueleto' | 'musculos')[]
+  /**
    * EL CUARTO EJE: en qué escalón de W está el sujeto, de la piel (0) al hueso (4).
    *
    * Opcional a propósito, y sin él NO PASA NADA: el visor dibuja lo mismo que dibujaba
@@ -329,6 +351,7 @@ export function VisorPatron({
   patron,
   datos,
   conEscenario = true,
+  atlas,
   w,
   nombreEjercicio,
   alMirar,
@@ -353,6 +376,14 @@ export function VisorPatron({
 
   // Todo lo que cambia sesenta veces por segundo va por referencia y no por
   // estado: meterlo en `useState` volvería a renderizar el árbol en cada cuadro.
+  /**
+   * EL ATLAS SE PIDE EN SU PROPIO EFECTO, no en el que monta la escena.
+   *
+   * Si viviera dentro del montaje solo se cargaría cuando el visor naciera ya con la
+   * anatomía encendida, y encenderla después —que es lo normal: se abre el cuerpo y
+   * ENTONCES se pide el músculo— no habría pedido nada nunca. El bucle de dibujo se entera
+   * solo: su firma de lo estático incluye cuántas mallas hay en la caché.
+   */
   const estado = useRef({
     fase: 0,
     sentido: 1,
@@ -372,6 +403,9 @@ export function VisorPatron({
     // efecto que monta la escena, por lo mismo que `datos`: cambiarlo no puede recrear el
     // contexto WebGL. El bucle lo lee y acerca la cámara un poco cada fotograma.
     retirada: 1,
+    // Qué capas del atlas anatómico se piden. Por referencia como todo lo demás:
+    // encender la musculatura no puede recrear el contexto WebGL.
+    atlas: undefined as readonly ('esqueleto' | 'musculos')[] | undefined,
     // El escalón de W va por referencia y NO en las dependencias del efecto que monta
     // la escena, por lo mismo que la capa y los números de la serie: recrear el
     // contexto WebGL al atravesar el cuerpo mataría la animación en cada capa, y el
@@ -408,6 +442,34 @@ export function VisorPatron({
   /** La rellena el efecto que monta la escena; sirve para repintar desde fuera. */
   const redibujar = useRef<(() => void) | null>(null)
 
+  /**
+   * EL ATLAS SE PIDE EN SU PROPIO EFECTO, no en el que monta la escena.
+   *
+   * Si viviera dentro del montaje solo se cargaría cuando el visor naciera ya con la
+   * anatomía encendida, y encenderla después —que es lo normal: se abre el cuerpo y
+   * ENTONCES se pide el músculo— no habría pedido nada nunca.
+   *
+   * **Y al llegar hay que pedir un redibujado.** Este es el fallo que costó la tarde: el
+   * bucle de dibujo no gira siempre —se para con la pestaña detrás, y en una demostración
+   * pausada no gira en absoluto—, así que las piezas llegaban, entraban en la caché, y no
+   * las miraba nadie hasta el siguiente cuadro, que no venía nunca. Se veía como que el
+   * atlas no cargaba: se descargaba entero y no se dibujaba. `redibujar` es el mismo
+   * timbre que usa cualquier cambio de propiedad.
+   */
+  useEffect(() => {
+    if (!atlas || atlas.length === 0 || atlasCargado.size > 0) return
+    return cargarPiezas(
+      (nombre, mallas) => {
+        atlasCache = [...atlasCache, ...mallas]
+        atlasCargado.add(nombre)
+        atlasPorCapa.set(nombre.replace('atlas-', ''), mallas)
+        redibujar.current?.()
+      },
+      undefined,
+      PIEZAS_DEL_ATLAS,
+    )
+  }, [atlas])
+
   // Los controles se copian al ref en un efecto y no durante el render: tocar
   // `ref.current` mientras se renderiza es justo lo que prohíbe `react-hooks/refs`.
   // Y hay que repintar aquí, porque en pausa no corre el bucle: sin esto,
@@ -424,12 +486,13 @@ export function VisorPatron({
     estado.current.tempo = tempo
     estado.current.fantasma = fantasma
     estado.current.retirada = retirada
+    estado.current.atlas = atlas
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma, retirada])
+  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -445,8 +508,15 @@ export function VisorPatron({
     let alRecuperarContexto: (() => void) | undefined
     let dejarDeCargarTexturas: (() => void) | undefined
     let dejarDeCargarPiezas: (() => void) | undefined
-    /** Si las piezas están ahora mismo en los búferes estáticos de ESTE motor. */
-    let estaticasSubidas = false
+    /**
+     * QUÉ hay ahora mismo en los búferes estáticos de ESTE motor, como firma.
+     *
+     * Era un booleano cuando lo estático era solo la sala. Con el atlas encima ya no basta
+     * con «sí o no»: encender la musculatura sobre el esqueleto no cambia si hay algo
+     * subido, cambia QUÉ hay subido, y con un booleano ese cambio no se habría subido
+     * nunca.
+     */
+    let estaticasSubidas = ''
 
     // El motor se carga aparte para no meter WebGL en el paquete inicial: la
     // mayoría de las sesiones no abren el visor ni una vez.
@@ -469,7 +539,7 @@ export function VisorPatron({
           try {
             // Al perder el contexto la tarjeta olvida todo, también lo estático:
             // `construir()` lo vuelve a subir porque se le dice que ya no está.
-            estaticasSubidas = false
+            estaticasSubidas = ''
             construir()
             pintar()
           } catch {
@@ -594,15 +664,21 @@ export function VisorPatron({
           // el interruptor de arriba ya no la tocaba, y el acta dio «sala: 0 px» con la
           // sala entera en pantalla (2026-09-05). Se sube o se vacía solo cuando cambia:
           // al llegar las piezas, al apagar o encender la capa, y al recuperar el contexto.
-          const quiereEstaticas = !!d && !sin.has('sala') && piezasCache.length > 0
-          if (quiereEstaticas !== estaticasSubidas) {
-            motor.subirEstaticas(quiereEstaticas ? piezasCache : [])
-            estaticasSubidas = quiereEstaticas
+          const quiereSala = !!d && !sin.has('sala') && piezasCache.length > 0
+          // El atlas va por los MISMOS búferes estáticos —es geometría que no cambia— pero
+          // con su propio interruptor, y obedeciendo al testigo igual que la sala: lo que
+          // sale del búfer dinámico tiene que seguir apagándose con `data-sin`.
+          const capasDelAtlas = sin.has('atlas') ? [] : (estado.current.atlas ?? [])
+          const delAtlas = capasDelAtlas.flatMap((c) => atlasPorCapa.get(c) ?? [])
+          const firmaEstaticas = `${quiereSala ? 'sala' : ''}|${capasDelAtlas.join(',')}|${atlasCache.length}`
+          if (firmaEstaticas !== estaticasSubidas) {
+            motor.subirEstaticas([...(quiereSala ? piezasCache : []), ...delAtlas])
+            estaticasSubidas = firmaEstaticas
             // CON PAREDES, LA CÁMARA NO SALE DE LA SALA. La sala de Blender es rectangular
             // y su muro corto está a 5,5 m: alejándose los 6,5 del pellizco, la cámara se
             // salía y se veían las paredes desde fuera. Sin sala —el estudio del patrón—
             // no hay tope, que es como estaba.
-            orbita.topeDeDistancia = quiereEstaticas ? topeDeSalaDeBlender : null
+            orbita.topeDeDistancia = quiereSala ? topeDeSalaDeBlender : null
           }
           // EL HIERRO. Va después de la sala y antes del sujeto: cuelga del esqueleto
           // de ESTA fase, así que si el sujeto baja, la barra baja con él. Un implemento
@@ -729,7 +805,7 @@ export function VisorPatron({
             piezasCache = [...piezasCache, ...mallas]
             piezasCargadas.add(nombre)
             // La caché cambió: lo que haya en la tarjeta ya no es lo que hay que dibujar.
-            estaticasSubidas = false
+            estaticasSubidas = ''
             // Y la interfaz deja de pintar su propia sala encima de ésta.
             if (nombre === SALA_GIMNASIO.nombre) anunciarSalaDeBlender()
             lienzo.dataset.piezas = [...(lienzo.dataset.piezas?.split(',') ?? []), nombre]

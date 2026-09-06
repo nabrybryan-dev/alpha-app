@@ -62,6 +62,20 @@ export const CREDITOS_DEL_GIMNASIO: readonly FuenteDelGimnasio[] = [
     queEs: 'La máquina de poleas.',
   },
   {
+    obra: 'BodyParts3D 4.0',
+    autor: 'The Database Center for Life Science (DBCLS)',
+    licencia: 'CC Attribution',
+    enlace: 'https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html',
+    queEs: 'La anatomía real: 296 huesos y 402 músculos con su nombre, en el estudio del cuerpo.',
+  },
+  {
+    obra: 'Human Atlas (adaptación y agrupación por sistemas)',
+    autor: 'Ashe Magalhaes',
+    licencia: 'CC Attribution',
+    enlace: 'https://github.com/ashemag/human-atlas',
+    queEs: 'De ahí salen las estructuras ya nombradas, agrupadas y puestas en metros.',
+  },
+  {
     obra: 'anti_skid_tiles · concrete_wall_008 · metal_plate_02',
     autor: 'Poly Haven',
     licencia: 'CC0',
