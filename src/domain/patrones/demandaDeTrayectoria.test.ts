@@ -29,7 +29,23 @@ import type { Vec3 } from './algebra'
  * que lo saque de aquí, en vez de dejar una excepción muerta que ya no excusa nada.
  */
 const DEUDA: Record<string, string> = {
-  // VACÍA desde el 2026-09-05. La única entrada que tuvo fue el empuje de cadera —subía
+  // ENTRÓ Y SALIÓ EL MISMO DÍA, el 2026-09-06, y la salida es la parte que conviene tener
+  // escrita. La entrada fue `antiflexion_lateral` con razón 1,12 (v=16 cm h=18 cm), y se
+  // atribuyó al cambio del sujeto por defecto al varón —tibia más corta, más avance por
+  // paso—. No era eso: el disparo lo provocó una edición sin commitear que estaba en el
+  // mismo árbol de trabajo y que cambiaba los `ejemplos` del patrón, de «Paseo del granjero
+  // a una mano» a «...con mancuerna a una mano». Ese apellido es lo que le da implemento de
+  // peso libre, y con peso libre la ley se enciende. Revertido el ejemplo, el patrón vuelve
+  // a cumplir y la entrada pasó a ser una excepción muerta — que es justo lo que el
+  // trinquete de abajo obliga a borrar.
+  //
+  // Lo que queda como aviso, y sigue siendo verdad: el paseo del granjero CAMINA, así que
+  // el día que se le declare implemento habrá que medir su deriva respecto a la PELVIS y no
+  // respecto al mundo. Y la causa de un rojo se comprueba con `git status` antes de
+  // escribirla: dos sesiones en el mismo árbol hacen que el cambio de una explique el
+  // número de la otra.
+  //
+  // La única entrada anterior fue el empuje de cadera —subía
   // 15 cm y se iba 14 de lado, razón 0,97 sobre la pelvis— y se cerró abriendo el rango de
   // cadera de 68° a 88°, que es el del empuje real: v=28cm h=7cm razón=0,27. La lista se
   // queda en pie porque es el mecanismo, no el caso: la próxima deuda entra aquí con su

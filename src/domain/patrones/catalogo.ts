@@ -109,7 +109,7 @@ export const PATRONES: Patron[] = [
     // —abajo— y decae hacia la extensión completa: cuesta nada más arrancar.
     estancamiento: 0.16,
     titulo: 'Extensión de cadera',
-    ejemplos: 'Empuje de cadera · Patada de glúteo en polea · Empuje de cadera con barra',
+    ejemplos: 'Empuje de cadera con barra · Patada de glúteo en polea · Empuje de cadera con disco',
     resumen:
       'La cadera pasa de flexión a alineación con el tronco. Es el patrón más prescrito de todo Alpha y el que más glúteo produce por repetición.',
     claves: [
@@ -185,7 +185,7 @@ export const PATRONES: Patron[] = [
     cadena: 'cerrada',
     categoria: 'BISAGRA DE CADERA',
     titulo: 'Bisagra de cadera',
-    ejemplos: 'Peso muerto rumano · Peso muerto rumano con mancuernas · Peso muerto parcial desde rack',
+    ejemplos: 'Peso muerto rumano con barra · Peso muerto rumano con mancuernas · Peso muerto parcial desde rack',
     resumen:
       'La cadera se echa atrás con la rodilla casi fija. Es el patrón que separa a quien entrena isquios de quien se hace daño en la espalda.',
     claves: [
@@ -700,7 +700,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'ANTIRROTACIÓN',
     titulo: 'Antirrotación',
-    ejemplos: 'Pallof press de pie · Pallof press arrodillado',
+    ejemplos: 'Pallof press en polea de pie · Pallof press arrodillado · Pallof press con banda',
     resumen:
       'Las manos salen del pecho hacia delante mientras algo tira de ellas hacia un lado. El tronco no gira, y ese es todo el ejercicio.',
     claves: [

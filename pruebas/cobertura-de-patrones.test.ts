@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { implementoDe } from '../src/domain/biomecanica/implementos'
 import { PATRONES, patronDeCategoria } from '../src/domain/patrones/catalogo'
 import { CATEGORIAS } from '../src/domain/taxonomia'
 import type { EjercicioPrescrito } from '../src/domain/types'
@@ -217,6 +218,60 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     expect(patronDeCategoria('AISLAMIENTO', 'Rotación externa de hombro en polea')?.id).toBe(
       'rotacion_externa_hombro',
     )
+  })
+})
+
+describe('quién declara con qué se hace el ejercicio', () => {
+  it('de los 90 ejemplos del catálogo, 79 declaran implemento y 11 no', () => {
+    // El otro barrido cuenta quién tiene SUJETO; este cuenta quién tiene IMPLEMENTO, que es
+    // lo que decide si además se le puede dibujar una flecha de fuerza. Un patrón con cuerpo
+    // y sin implemento se ve moverse y no se puede medir.
+    //
+    // Eran 37 de 89 sin declarar el 2026-09-06. Los 26 que entraron son la banda —que no
+    // existía en la tabla— y las familias que son peso corporal por definición: saltos,
+    // planchas, equilibrios, colgados, movilidad, banco romano, elevación de puntas y el
+    // 90/90.
+    const ejemplos = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
+    const sin = ejemplos.filter((n) => !implementoDe(n))
+    expect(ejemplos).toHaveLength(90)
+    expect(sin).toHaveLength(11)
+  })
+
+  it('los que faltan faltan a propósito: el nombre no dice con qué se hace', () => {
+    // `undefined` no es lo mismo que `barra`, y es la respuesta honesta cuando el nombre no
+    // declara nada: un paseo del granjero se hace con mancuernas o con barra hexagonal, y un
+    // press militar con barra o con mancuernas. Suponer es exactamente cómo entraría un
+    // Smith por la puerta de atrás con el modelo equivocado.
+    //
+    // Va clavado para que nadie cierre el hueco adivinando: para bajar esta lista hay que
+    // ponerle apellido al ejemplo, no ampliar la tabla de detección.
+    const sin = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim())).filter(
+      (n) => !implementoDe(n),
+    )
+    expect(sin.sort()).toEqual(
+      [
+        'Crunch abdominal',
+        'Extensión de codo unilateral',
+        'Face pull',
+        'Maleta',
+        'Pallof press arrodillado',
+        'Paseo del granjero a una mano',
+        'Pec deck',
+        'Peso muerto parcial desde rack',
+        'Press militar',
+        'Rotación externa de cadera sentado',
+        'Rotación interna en el suelo',
+      ].sort(),
+    )
+  })
+
+  it('los 27 del seed declaran los 27, y solo una ficha se queda sin implemento', () => {
+    // El seed es lo que ve el asesorado de demo: ahí no puede faltar ninguno.
+    expect(ejerciciosDelSeed().filter((c) => !implementoDe(c.nombre ?? ''))).toHaveLength(0)
+    // Y del catálogo, el PRIMER ejemplo es el que decide con qué se dibuja el patrón en el
+    // salón. Solo uno se queda sin: el paseo del granjero, y a propósito — ver arriba.
+    const fichas = PATRONES.filter((p) => !implementoDe(p.ejemplos.split('·')[0].trim()))
+    expect(fichas.map((p) => p.id)).toEqual(['antiflexion_lateral'])
   })
 })
 
