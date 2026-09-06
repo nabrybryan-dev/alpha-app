@@ -66,7 +66,13 @@ describe('el aparato que tapa a la persona', () => {
   it('lo que va en las manos nunca es aparato: la barra y las mancuernas quedan opacas', () => {
     const { hierro, aparato } = partirImplementos(implementosDeEscena(PATRON_POR_ID.empuje_horizontal.categoria, 'Press de pecho con barra'))
     expect(hierro.piezas.map((p) => p.pieza)).toContain('barra')
-    expect(aparato.piezas).toHaveLength(0)
+    // Y el aparato NO lleva nada de lo que va en las manos. Desde el 2026-09-06 sí lleva el
+    // banco —un press de banca tiene banco, y ese banco visto de lado tapa medio tronco, que
+    // es justo el caso para el que existe la translucidez—, así que lo que se afirma es
+    // quién NO está, no que esté vacío.
+    expect(aparato.piezas.map((p) => p.pieza)).not.toContain('barra')
+    expect(aparato.piezas.map((p) => p.pieza)).not.toContain('mancuerna')
+    expect(aparato.piezas.map((p) => p.pieza)).toEqual(['banco'])
   })
 
   it('translúcido no es invisible: el aparato sigue diciendo dónde está', () => {

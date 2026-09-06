@@ -53,7 +53,11 @@ describe('dónde pone la escena la carga', () => {
 describe('sin implemento declarado no se dibuja ninguno', () => {
   it('un curl femoral sentado no lleva barra', () => {
     const e = escena('flexion_rodilla', 'Abducción de cadera tumbada')
-    expect(e.piezas).toEqual([])
+    // Lo que se afirma es que no se dibuja ningún IMPLEMENTO. Desde el 2026-09-06 la escena
+    // puede traer además el MUEBLE que sostiene al sujeto —aquí la camilla que su anclaje
+    // declara—, y eso no es un implemento: nadie levanta una camilla. Sin este filtro la
+    // prueba diría que dibujar el banco es dibujar una barra.
+    expect(e.piezas.filter((x) => x.pieza !== 'banco')).toEqual([])
     expect(e.supuesto).toBe(true)
     expect(e.avisos).toContain(AVISO_SIN_IMPLEMENTO)
   })

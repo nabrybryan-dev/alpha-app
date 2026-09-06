@@ -4,7 +4,7 @@ import { puntoDeHueso } from '../../../domain/patrones/esqueleto'
 import { Malla } from '../../../domain/patrones/malla'
 import type { Vec3 } from '../../../domain/patrones/algebra'
 import { camaraDelSalon, proyectar } from './encuadreDelSalon'
-import { construirImplementos, type EscenaDeImplementos } from './implementos'
+import { construirImplementos, type EscenaDeImplementos, type ImplementoEnEscena } from './implementos'
 
 /**
  * EL APARATO QUE TAPA A LA PERSONA SE VUELVE TRANSLÚCIDO.
@@ -68,9 +68,14 @@ export function partirImplementos(escena: EscenaDeImplementos): {
   hierro: EscenaDeImplementos
   aparato: EscenaDeImplementos
 } {
+  // EL BANCO VA CON EL APARATO, no con el hierro. Un banco bajo un sujeto tumbado, visto
+  // de lado, le tapa medio tronco: es exactamente el caso para el que existe la
+  // translucidez. La barra que lleva en las manos no, porque cruza por delante y se lee
+  // como parte del gesto.
+  const esAparato = (p: ImplementoEnEscena) => p.pieza === 'maquina' || p.pieza === 'banco'
   return {
-    hierro: { ...escena, piezas: escena.piezas.filter((p) => p.pieza !== 'maquina') },
-    aparato: { ...escena, piezas: escena.piezas.filter((p) => p.pieza === 'maquina') },
+    hierro: { ...escena, piezas: escena.piezas.filter((p) => !esAparato(p)) },
+    aparato: { ...escena, piezas: escena.piezas.filter(esAparato) },
   }
 }
 

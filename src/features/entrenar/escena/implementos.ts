@@ -8,6 +8,8 @@ import type { Articulacion } from '../../../domain/biomecanica/tipos'
 // La primitiva que se orienta sola vive en `sala.ts` y se importa, no se copia:
 // dos copias de la regla de enrollado es como vuelven las caras del revés.
 import { caja, cilindro, manto, tapa } from './piezas'
+import { apoyoQueSostiene, construirBanco, type ApoyoDelCuerpo } from './banco'
+import { patronDeCategoria } from '../../../domain/patrones/catalogo'
 
 /**
  * LOS IMPLEMENTOS: la barra, la mancuerna y la máquina.
@@ -371,7 +373,7 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
 // La parte pura: qué implementos y dónde.
 // ---------------------------------------------------------------------------
 
-export type Pieza = 'barra' | 'mancuerna' | 'disco' | 'barra-fija' | 'maquina'
+export type Pieza = 'barra' | 'mancuerna' | 'disco' | 'barra-fija' | 'maquina' | 'banco'
 
 /**
  * Un punto del sujeto por el que entra la carga, en coordenadas de hueso.
@@ -404,6 +406,12 @@ export interface ImplementoEnEscena {
   radioDisco: number
   /** Dónde se planta la pieza cuando no la lleva el sujeto, con él en el origen. */
   enElSuelo?: { centro: Vec3; giroGrados: number; alturaDeCarga: number }
+  /**
+   * Qué parte del cuerpo sostiene, cuando la pieza es un mueble. Va en huesos y no en
+   * metros a propósito: un banco se calcula CONTRA EL CUERPO —ver `banco.ts`—, porque la
+   * altura a la que el catálogo pone a cada sujeto no es la misma.
+   */
+  apoyo?: ApoyoDelCuerpo
   /** De dónde salió esta decisión. Es la trazabilidad, no un adorno. */
   porQue: string
 }
@@ -529,6 +537,32 @@ export const AVISO_SIN_MODELO =
  * módulo aporta es saber qué hueso es cada parte del cuerpo.
  */
 export function implementosDeEscena(categoria: string, nombreEjercicio = ''): EscenaDeImplementos {
+  const escena = piezasQueSeLlevan(categoria, nombreEjercicio)
+
+  // Y ENCIMA, EL MUEBLE QUE LO SOSTIENE. Va aquí y no dentro de `piezasQueSeLlevan` porque
+  // no es un implemento: nadie levanta un banco. Es lo que hace que el sujeto no flote.
+  //
+  // Se pregunta DESPUÉS de armar las piezas porque la respuesta depende de ellas: donde ya
+  // hay máquina no va banco, que la máquina trae su asiento y su respaldo y se
+  // atravesarían. Ver `banco.ts`.
+  const hayMaquina = escena.piezas.some((p) => p.pieza === 'maquina')
+  const apoyo = apoyoQueSostiene(
+    patronDeCategoria(categoria, nombreEjercicio),
+    modeloDePalanca(categoria, nombreEjercicio),
+    hayMaquina,
+  )
+  if (!apoyo) return escena
+  return {
+    ...escena,
+    piezas: [
+      ...escena.piezas,
+      { pieza: 'banco', agarres: [], rigida: false, radioDisco: 0, apoyo, porQue: apoyo.porQue },
+    ],
+  }
+}
+
+/** Lo que el sujeto lleva encima o tiene delante: la parte de siempre de este módulo. */
+function piezasQueSeLlevan(categoria: string, nombreEjercicio: string): EscenaDeImplementos {
   const plan = planDeMedida(categoria, nombreEjercicio)
   const modelo = modeloDePalanca(categoria, nombreEjercicio)
 
@@ -705,6 +739,12 @@ export function construirImplementos(
 /** Un solo implemento. Se expone para poder contar su coste por separado. */
 export function construirPieza(m: Malla, p: ImplementoEnEscena, esq: EsqueletoResuelto): void {
   const puntos = p.agarres.map((a) => puntoDeHueso(esq, a.hueso, a.t, a.desvio))
+  // El banco no se agarra: se apoya uno en él. Sale antes de la guarda de agarres, que
+  // existe para las piezas que el sujeto sujeta o que se plantan en el suelo.
+  if (p.pieza === 'banco') {
+    if (p.apoyo) construirBanco(m, p.apoyo, esq, TAPIZADO, BASTIDOR)
+    return
+  }
   if (puntos.length === 0 && !p.enElSuelo) return
 
   switch (p.pieza) {
