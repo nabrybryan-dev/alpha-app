@@ -72,14 +72,20 @@ function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrit
 }
 
 /**
- * El cardio de producción, que es lo que hoy cae —correctamente— al camino sin sujeto.
+ * Lo que hoy cae —correctamente— al camino sin sujeto, con los nombres del clasificador de
+ * `supabase/migrations/0038_taxonomia_final.sql`.
  *
- * Los nombres son los del clasificador de `supabase/migrations/0038_taxonomia_final.sql`,
- * los mismos nueve que el barrido de patrones deja fuera. Se afirma que NO tienen patrón
- * dentro del propio test, preguntándoselo al dominio: si un día alguno lo tuviera, este
- * archivo se pondría rojo en vez de seguir probando el camino equivocado.
+ * Nueve son cardio: en una elíptica no hay gesto resistido que enseñar. El décimo, el
+ * TRINEO, está aquí por otra razón y conviene no confundirlas: un empuje de trineo SÍ es un
+ * gesto enseñable, lo que no tiene es ficha. Hasta el 2026-09-06 le salía el muñeco del
+ * salto, y se le quitó por decisión de Bryan —antes sin muñeco que con el de otro—. El día
+ * que alguien le escriba su ficha, sale de esta lista.
+ *
+ * Se afirma que NO tienen patrón dentro del propio test, preguntándoselo al dominio: si un
+ * día alguno lo tuviera, este archivo se pondría rojo en vez de seguir probando el camino
+ * equivocado.
  */
-const CARDIO_DE_PRODUCCION = [
+const SIN_SUJETO_DE_PRODUCCION = [
   'CARDIO',
   'BICICLETA',
   'CINTA',
@@ -89,11 +95,12 @@ const CARDIO_DE_PRODUCCION = [
   'CIRCUITO',
   'TABATA',
   'ERGOMETRO',
+  'TRINEO',
 ]
 
 function ejerciciosSinPatron(): EjercicioPrescrito[] {
-  const cardio = CARDIO_DE_PRODUCCION.map((nombre) =>
-    ejercicio({ id: `e-cardio-${nombre}`, categoria: 'ACONDICIONAMIENTO', nombre }),
+  const cardio = SIN_SUJETO_DE_PRODUCCION.map((nombre) =>
+    ejercicio({ id: `e-sin-sujeto-${nombre}`, categoria: 'ACONDICIONAMIENTO', nombre }),
   )
   return [...ejerciciosDelSeedSinPatron(), ...cardio]
 }

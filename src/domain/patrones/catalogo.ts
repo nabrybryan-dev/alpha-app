@@ -1411,7 +1411,14 @@ const POR_NOMBRE: [RegExp, string][] = [
   // que dejó clavado `cobertura-de-patrones.test.ts` antes de existir la ficha.
   [/rotaci[oó]n (externa|interna) de cadera|90\/90/, 'rotacion_cadera'],
   [/rotaci[oó]n externa|manguito|rotador|pull apart|control escapular/, 'rotacion_externa_hombro'],
-  [/salto|pogo|drop squat|aterrizaje|lanzamiento|trineo|reactiv|pliometr/, 'salto'],
+  // SIN `trineo`, y es la parte importante de esta línea. Estuvo aquí hasta el 2026-09-06
+  // porque un empuje de trineo se agrupa con lo reactivo cuando se habla de potencia, y el
+  // efecto era que **al asesorado al que se le manda empujar un trineo le salía un muñeco
+  // saltando**, con las flechas de fuerza de un salto. Es el peor tipo de defecto: un hueco
+  // se ve venir porque sale el aviso de «sin modelo», y esto se veía como si estuviera bien.
+  // Ahora está declarado abajo, en `SIN_PATRON`. Decisión de Bryan: quitarle el muñeco antes
+  // que darle ficha propia, que es trabajo de otra tanda.
+  [/salto|pogo|drop squat|aterrizaje|lanzamiento|reactiv|pliometr/, 'salto'],
   // El swing es una bisagra de cadera lanzada, no acondicionamiento: comparte
   // categoría con la cinta y no comparte nada más.
   [/swing/, 'bisagra_cadera'],
@@ -1447,9 +1454,17 @@ const POR_NOMBRE: [RegExp, string][] = [
  * El cardio no tiene un gesto resistido que enseñar en la esfera, y un cribado
  * de banderas rojas no es un ejercicio. Enseñar aquí un patrón cualquiera sería
  * peor que no enseñar ninguno.
+ *
+ * El TRINEO entra el 2026-09-06 y no por la misma razón que la cinta: un empuje de
+ * trineo **sí** es un gesto resistido y enseñable —tronco muy inclinado, cadera y
+ * rodilla empujando contra el suelo, el cuerpo cayendo hacia delante contra la
+ * resistencia—, lo que pasa es que no tiene ficha. Hasta hoy caía en la lista por
+ * nombre y le salía el muñeco del SALTO. Está aquí como hueco DECLARADO, no como
+ * «esto no se puede enseñar»: el día que alguien le escriba su ficha, se saca de esta
+ * lista. Decisión de Bryan de ese día: antes sin muñeco que con el muñeco de otro.
  */
 const SIN_PATRON =
-  /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado|escaladora|hiit|tabata|erg[oó]metro|remo ergom|caminata|trote|carrera continua/
+  /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado|escaladora|hiit|tabata|erg[oó]metro|remo ergom|caminata|trote|carrera continua|trineo|sled/
 
 export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined

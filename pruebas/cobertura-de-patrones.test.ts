@@ -105,17 +105,22 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     expect(reparto.sinPatron).toHaveLength(0)
   })
 
-  it('las 159 familias de nombre de producción: 150 con sujeto y 9 sin, y las 9 son cardio', () => {
+  it('las 159 familias de nombre de producción: 149 con sujeto y 10 sin', () => {
     // 2026-09-06: eran 140 y 19. Las diez que entraron son las seis de PREV/REHAB, las
     // dos de EXTENSIÓN LUMBAR, el 90/90 y el swing —que es una bisagra de cadera
     // lanzada y compartía categoría con la cinta sin compartir nada más—.
     //
-    // Las nueve que quedan son cardio, y quedarse fuera es lo CORRECTO: no hay gesto
+    // De las diez que quedan, NUEVE son cardio y quedarse fuera es lo CORRECTO: no hay gesto
     // resistido que enseñar en una elíptica. La diferencia con antes es que ahora está
     // declarado en `SIN_PATRON` en vez de caerse por no encajar en ninguna regla.
+    //
+    // La décima es el TRINEO, y no está por la misma razón: un empuje de trineo sí es un
+    // gesto enseñable, lo que no tiene es ficha. Hasta el 2026-09-06 caía en la lista por
+    // nombre y le salía el muñeco del SALTO — un patrón EQUIVOCADO, que es peor que ninguno
+    // porque no se ve venir. Decisión de Bryan: antes sin muñeco que con el de otro.
     const reparto = repartir(ejerciciosDeProduccion())
     expect(reparto.casos).toHaveLength(159)
-    expect(reparto.conPatron).toHaveLength(150)
+    expect(reparto.conPatron).toHaveLength(149)
     expect(reparto.sinPatron.map((c) => `${c.categoria} · ${c.nombre}`)).toEqual([
       'ACONDICIONAMIENTO · CARDIO',
       'ACONDICIONAMIENTO · BICICLETA',
@@ -126,6 +131,7 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
       'ACONDICIONAMIENTO · CIRCUITO',
       'ACONDICIONAMIENTO · TABATA',
       'ACONDICIONAMIENTO · ERGOMETRO',
+      'ACONDICIONAMIENTO · TRINEO',
     ])
   })
 
@@ -165,17 +171,28 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     expect(de('Extensión de tríceps en polea con cuerda')).toBe('extension_codo')
   })
 
-  it('el trineo del acondicionamiento sale como un SALTO', () => {
-    // Uno de los dos sitios del censo donde la lista por nombre contradice a la categoría
-    // (el otro es la rotación de cadera, aquí abajo):
-    // la migración 0038 clasifica TRINEO como ACONDICIONAMIENTO —empuje de trineo, sin
-    // gesto que enseñar— y `POR_NOMBRE` lo lleva a `salto` porque comparte lista con el
-    // trabajo reactivo. Un empuje de trineo enseñaría a un sujeto saltando.
+  it('el trineo ya no sale como un SALTO: sale sin muñeco', () => {
+    // EL DEFECTO QUE ESTE ARCHIVO DEJÓ MEDIDO Y QUE SE CERRÓ EL 2026-09-06.
     //
-    // Queda escrito como test para que sea un hecho medido y no una impresión. No se
-    // arregla desde aquí: la lista vive en `src/domain/`, que esta capa no toca.
-    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Empuje de trineo 20 m')?.id).toBe('salto')
-    // Y el resto del cardio del censo no enseña ningún gesto, que es lo correcto.
+    // La migración 0038 clasifica TRINEO como ACONDICIONAMIENTO —empuje de trineo, en el
+    // mismo saco que la cinta— y la lista por nombre lo llevaba a `salto`, porque compartía
+    // línea con el trabajo reactivo. Al asesorado al que se le manda empujar un trineo le
+    // salía un muñeco saltando, con las flechas de fuerza de un salto.
+    //
+    // No se arregló dándole ficha propia —que se puede, y un empuje de trineo enseñaría algo
+    // que en un vídeo no se ve: que la fuerza sale del ángulo del cuerpo y no de los
+    // brazos— sino quitándole el muñeco. Decisión de Bryan: antes sin muñeco que con el de
+    // otro. Está DECLARADO en `SIN_PATRON`, así que el día que alguien le escriba su ficha
+    // hay que sacarlo de ahí y este test se pondrá rojo pidiéndolo.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Empuje de trineo 20 m')).toBeUndefined()
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'TRINEO')).toBeUndefined()
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Arrastre de trineo')).toBeUndefined()
+    // Y los saltos de verdad siguen saliendo, que es lo que hace útil lo de arriba: se quitó
+    // el trineo de la regla, no la regla.
+    expect(patronDeCategoria('PREV/REHAB', 'Salto al cajón')?.id).toBe('salto')
+    expect(patronDeCategoria('PREV/REHAB', 'Pliometría de escalón')?.id).toBe('salto')
+    expect(patronDeCategoria('POTENCIA · REACTIVA', 'Drop squat')?.id).toBe('salto')
+    // Y el resto del cardio del censo tampoco enseña gesto, que es lo correcto.
     expect(patronDeCategoria('ACONDICIONAMIENTO', 'HIIT en bicicleta 30/30')).toBeUndefined()
   })
 
@@ -273,7 +290,7 @@ describe('quién declara con qué se hace el ejercicio', () => {
 })
 
 describe('quién tiene modelo mecánico, y por tanto flechas de fuerza', () => {
-  it('de las 150 familias con sujeto, solo 3 se quedan sin plan de medida', () => {
+  it('de las 149 familias con sujeto, solo 3 se quedan sin plan de medida', () => {
     // El tercer barrido. Tener sujeto no basta: sin modelo mecánico el salón dibuja el
     // cuerpo moviéndose y NI UNA SOLA FLECHA, que es la mitad de lo que se prometió.
     //
@@ -290,7 +307,7 @@ describe('quién tiene modelo mecánico, y por tanto flechas de fuerza', () => {
       const p = patronDeCategoria(c.categoria, c.nombre)!
       return !planDeMedida(p.categoria, c.nombre ?? '')
     })
-    expect(conSujeto).toHaveLength(150)
+    expect(conSujeto).toHaveLength(149)
     expect(sinPlan.map((c) => `${c.categoria} · ${c.nombre}`)).toEqual([
       'MOVILIDAD · MOVILIDAD',
       'MOVILIDAD · DISLOCACION',
