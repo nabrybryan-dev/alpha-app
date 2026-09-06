@@ -183,7 +183,18 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
  * Cinemática directa: recorre el esqueleto en orden —los padres van antes que
  * los hijos por construcción— y acumula matrices de mundo.
  */
-export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): EsqueletoResuelto {
+export function resolver(
+  pose: Pose,
+  desplazamiento: Vec3,
+  giroRaiz: Vec3,
+  /**
+   * Con qué huesos: los de siempre si no se dice. Un juego por sexo —ver
+   * `juegoDeHuesos.ts`— trae los mismos veintiún huesos, en el mismo orden y con los
+   * mismos padres, y solo cambia `desde` y `largo`; por eso `INDICE_HUESO` vale para
+   * todos y las matrices salen en el mismo hueco.
+   */
+  huesos: readonly DefinicionHueso[] = ESQUELETO,
+): EsqueletoResuelto {
   const eul = poseAEuler(pose)
   const mundo: Record<string, Mat4> = {}
   const matrices: Mat4[] = [M4.identidad()]
@@ -193,7 +204,7 @@ export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): Esqu
     M4.trasladar(desplazamiento[0], desplazamiento[1], desplazamiento[2]),
     M4.euler(grados(giroRaiz[0]), grados(giroRaiz[1]), grados(giroRaiz[2])),
   )
-  for (const h of ESQUELETO) {
+  for (const h of huesos) {
     const e = eul[h.nombre] ?? M4.identidad()
     const local = M4.multiplicar(
       M4.trasladar(h.desde[0], h.desde[1], h.desde[2]),
@@ -205,7 +216,7 @@ export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): Esqu
   return {
     mundo,
     matrices,
-    largo: Object.fromEntries(ESQUELETO.map((h) => [h.nombre, h.largo])),
+    largo: Object.fromEntries(huesos.map((h) => [h.nombre, h.largo])),
     raiz,
   }
 }
@@ -232,8 +243,14 @@ export function puntoDeHueso(
  * pies clavados en el suelo o flotando. Se mide la inclinación real del pie y
  * se corrige el tobillo, que es hoja del árbol y no arrastra a nadie.
  */
-export function apoyarPies(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3, lados: Lado[]): Pose {
-  const esq = resolver(pose, desplazamiento, giroRaiz)
+export function apoyarPies(
+  pose: Pose,
+  desplazamiento: Vec3,
+  giroRaiz: Vec3,
+  lados: Lado[],
+  huesos: readonly DefinicionHueso[] = ESQUELETO,
+): Pose {
+  const esq = resolver(pose, desplazamiento, giroRaiz, huesos)
   const salida: Pose = { ...pose }
   for (const s of lados) {
     const m = esq.mundo['pie' + s]
@@ -288,15 +305,16 @@ export function resolverConApoyo(
   apoyo: Apoyo,
   altura: number | undefined,
   pies: Lado[],
+  huesos: readonly DefinicionHueso[] = ESQUELETO,
 ): EsqueletoResuelto {
-  const conPies = pies.length ? apoyarPies(pose, desplazamiento, giroRaiz, pies) : pose
-  const esq = resolver(conPies, desplazamiento, giroRaiz)
+  const conPies = pies.length ? apoyarPies(pose, desplazamiento, giroRaiz, pies, huesos) : pose
+  const esq = resolver(conPies, desplazamiento, giroRaiz, huesos)
   if (apoyo === 'ninguno') return esq
-  const huesos = SONDAS[apoyo]
-  if (!huesos) return esq
+  const sondas = SONDAS[apoyo]
+  if (!sondas) return esq
 
   let y = apoyo === 'manos' ? -Infinity : Infinity
-  for (const h of huesos) {
+  for (const h of sondas) {
     // Se muestrea a lo largo del hueso porque en flexión plantar el punto más
     // bajo del pie deja de ser el talón y pasa a ser la cabeza del metatarso.
     for (const t of [0, 0.25, 0.5, 0.75, 1]) {
@@ -317,7 +335,7 @@ export function resolverConApoyo(
   let cx = 0
   let cz = 0
   let n = 0
-  for (const h of huesos) {
+  for (const h of sondas) {
     for (const t of [0, 1]) {
       const p = puntoDeHueso(esq, h, t)
       cx += p[0]
@@ -331,6 +349,7 @@ export function resolverConApoyo(
     conPies,
     [desplazamiento[0] - cx, desplazamiento[1] + (objetivo - y), desplazamiento[2] - cz],
     giroRaiz,
+    huesos,
   )
 }
 
