@@ -233,17 +233,21 @@ describe('dónde queda el mueble', () => {
 })
 
 describe('el mueble y la oclusión', () => {
-  it('el banco va con el APARATO, que es lo que se vuelve translúcido cuando tapa', () => {
-    // Un banco bajo un sujeto tumbado, visto de lado, le tapa medio tronco. Es exactamente
-    // el caso para el que existe la translucidez; la barra de las manos no, porque cruza por
-    // delante y se lee como parte del gesto.
+  it('el banco va con lo OPACO: un mueble translúcido dice que no hay mueble', () => {
+    // Esto estaba al revés, con esta frase: «un banco bajo un sujeto tumbado, visto de lado,
+    // le tapa medio tronco». La medida la desmintió el 2026-09-06 —ningún mueble del
+    // catálogo pasa del 2 %, porque lo que sostiene queda DEBAJO del cuerpo y no entre el
+    // cuerpo y la cámara— y el efecto de tenerlo en el grupo del aparato se vio en una
+    // captura de Bryan: la decisión de translucidez se toma para el grupo entero, así que la
+    // máquina del curl femoral —que tapa el 36 %— arrastraba a la camilla, y el sujeto
+    // volvía a parecer que flotaba. El porqué, con los números, en `oclusionDelAparato.ts`.
     const escena = implementosDeEscena(
       PATRON_POR_ID.empuje_horizontal.categoria,
       primerEjemplo(PATRON_POR_ID.empuje_horizontal),
     )
     const { hierro, aparato } = partirImplementos(escena)
-    expect(aparato.piezas.map((p) => p.pieza)).toContain('banco')
-    expect(hierro.piezas.map((p) => p.pieza)).not.toContain('banco')
+    expect(hierro.piezas.map((p) => p.pieza)).toContain('banco')
+    expect(aparato.piezas.map((p) => p.pieza)).not.toContain('banco')
   })
 })
 

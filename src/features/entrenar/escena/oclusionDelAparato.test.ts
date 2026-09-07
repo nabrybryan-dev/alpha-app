@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PATRON_POR_ID } from '../../../domain/patrones/catalogo'
+import { PATRONES, PATRON_POR_ID } from '../../../domain/patrones/catalogo'
 import { implementosDeEscena } from './implementos'
 import {
   ALFA_DEL_APARATO_QUE_TAPA,
@@ -79,13 +79,41 @@ describe('el aparato que tapa a la persona', () => {
   it('lo que va en las manos nunca es aparato: la barra y las mancuernas quedan opacas', () => {
     const { hierro, aparato } = partirImplementos(implementosDeEscena(PATRON_POR_ID.empuje_horizontal.categoria, 'Press de pecho con barra'))
     expect(hierro.piezas.map((p) => p.pieza)).toContain('barra')
-    // Y el aparato NO lleva nada de lo que va en las manos. Desde el 2026-09-06 sí lleva el
-    // banco —un press de banca tiene banco, y ese banco visto de lado tapa medio tronco, que
-    // es justo el caso para el que existe la translucidez—, así que lo que se afirma es
-    // quién NO está, no que esté vacío.
     expect(aparato.piezas.map((p) => p.pieza)).not.toContain('barra')
     expect(aparato.piezas.map((p) => p.pieza)).not.toContain('mancuerna')
-    expect(aparato.piezas.map((p) => p.pieza)).toEqual(['banco'])
+  })
+
+  it('Y EL MUEBLE QUE SOSTIENE TAMPOCO: un banco translúcido dice que no hay banco', () => {
+    // Esto se dio la vuelta el 2026-09-06, ese mismo día, y la vuelta la dio una medida
+    // contra la frase que estaba escrita. Decía que «un banco visto de lado tapa medio
+    // tronco». Medido pieza a pieza sobre el catálogo entero: un banco NO PASA DEL 2 %
+    // —búlgara 2, press inclinado 2, banco romano 2, el resto 0—, porque un mueble que
+    // sostiene queda debajo del cuerpo y no entre el cuerpo y la cámara.
+    //
+    // Y estando en el grupo del aparato hacía daño, porque la decisión se toma para el grupo
+    // entero: en el curl femoral la máquina tapa el 36 % y arrastraba a la camilla, así que
+    // la camilla salía translúcida y el sujeto volvía a parecer que flotaba — el defecto que
+    // la camilla venía a arreglar. Lo vio asus-f4 en la captura que mandó Bryan.
+    const conCamilla = implementosDeEscena(PATRON_POR_ID.flexion_rodilla.categoria, 'Flexión de rodilla tumbado en máquina')
+    expect(conCamilla.piezas.map((p) => p.pieza)).toContain('banco')
+    const { hierro, aparato } = partirImplementos(conCamilla)
+    expect(hierro.piezas.map((p) => p.pieza), 'la camilla tiene que ir con lo opaco').toContain('banco')
+    expect(aparato.piezas.map((p) => p.pieza)).not.toContain('banco')
+    // Y la máquina de ese mismo patrón sí tapa, para que se vea que no se ha desactivado
+    // la regla entera: lo que se ha sacado del grupo es el mueble, no el aparato.
+    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.flexion_rodilla, aparato)).toBe(true)
+  })
+
+  it('y ningún mueble del catálogo llegaba al umbral por su cuenta', () => {
+    // La medida que sostiene la decisión de arriba. Si algún día un mueble sí tapara, esto
+    // se pone rojo y habrá que decidir otra vez —con el dato delante, no con la frase.
+    for (const p of PATRONES) {
+      const escena = implementosDeEscena(p.categoria, p.ejemplos.split('·')[0].trim())
+      const muebles = escena.piezas.filter((x) => x.pieza === 'banco')
+      if (muebles.length === 0) continue
+      const tapa = parteDelCuerpoTapada(p, { ...escena, piezas: muebles })
+      expect(tapa, `${p.id}: su mueble tapa el ${(tapa * 100).toFixed(0)} %`).toBeLessThan(0.05)
+    }
   })
 
   it('translúcido no es invisible: el aparato sigue diciendo dónde está', () => {
