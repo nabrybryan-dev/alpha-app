@@ -34,5 +34,8 @@ informes/*.png
 # máscara) ya van en `testigo-partir-el-visor.json`. Las rutas quedan escritas en
 # el JSON aunque el archivo no esté versionado, para quien vuelva a correrlo.
 informes/partir-el-visor/*.png
+# Y para `testigo/tiempo-de-la-repeticion.mjs`: las diez máscaras y las dos capturas de
+# evidencia se regeneran corriendo el script; los números van en `testigo-tiempo.json`.
+informes/tiempo-de-la-repeticion/*.png
 # El lienzo de diseño se guarda en docs/diseno/; aquí queda solo el montaje que se abre.
 informes/diseno-fuerzas/
