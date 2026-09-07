@@ -9,6 +9,7 @@
  * lógica pura.
  */
 
+import { duenoDelGesto, type DuenoDelGesto, type ModoDeArrastre } from '../capas/gestoHorizontal'
 import { grados, limitar, M4, type Mat4, type Vec3 } from '../../../domain/patrones/algebra'
 import { GLSL_ACABADO } from '../../../domain/patrones/color'
 import type { Malla } from '../../../domain/patrones/malla'
@@ -700,7 +701,14 @@ export class Orbita {
   distancia = 3.1
   centro: Vec3 = [0, 0.9, 0]
   giroAutomatico = false
-  private arrastre: { x: number; y: number; az: number; el: number } | null = null
+  private arrastre: {
+    x: number
+    y: number
+    az: number
+    el: number
+    modo: ModoDeArrastre
+    dueno: DuenoDelGesto
+  } | null = null
   private pellizco: number | null = null
   private centroDeDosDedos: { x: number; y: number; az: number; el: number } | null = null
   /**
@@ -712,7 +720,7 @@ export class Orbita {
    * convención de las apps que meten un modelo 3D dentro de algo por lo que se navega. El
    * pellizco ya era de dos dedos, así que la cámara entera cae en la misma mano.
    */
-  arrastreConUnDedo = true
+  arrastreConUnDedo: boolean | ((x: number, y: number) => ModoDeArrastre) = true
   /**
    * CUÁNTO SE RETIRA LA CÁMARA, como múltiplo de su distancia: 1 es donde está, 1,136 es
    * la sala «al 88 %» del kit, 0,96 es acercarse un pelo.
@@ -735,6 +743,31 @@ export class Orbita {
    * respeta en cuanto el giro vuelve a un sitio donde cabe.
    */
   topeDeDistancia: ((centro: Vec3, azimut: number, elevacion: number) => number) | null = null
+  /**
+   * HASTA DÓNDE PUEDE INCLINARSE LA CÁMARA A MANO. En el estudio del patrón, casi todo
+   * (±78°): no hay techo ni suelo que atravesar. En el salón los pone la sala
+   * (`topesDeElevacion`): medido el 2026-09-06 con toques emulados, con ±78° el dedo dejaba
+   * la cámara a −78°, mirando la sala desde debajo del suelo.
+   */
+  elevacionMin = -78
+  elevacionMax = 78
+  /** Cuántos dedos hay en la pantalla. Con dos, el arrastre de uno se suelta. */
+  private dedos = 0
+  /**
+   * SI SE CAPTURA EL PUNTERO al arrastrar. Sobre el lienzo sí: el dedo puede salirse de él
+   * y el giro sigue. Sobre la raíz del salón NO: capturar retarga los eventos a la raíz, y
+   * los manejadores del salón —que viven en un nodo de dentro— dejan de ver el movimiento;
+   * medido el 2026-09-06, el eje W y el hundido se quedaban sordos en cuanto la cámara
+   * capturaba. La raíz es toda la pantalla: no hace falta capturar para no perder el dedo.
+   */
+  capturarPuntero = true
+  /** El viaje en curso hacia otra cámara (cambiar de ejercicio), o ninguno. */
+  private viaje: {
+    desde: { az: number; el: number; d: number }
+    hasta: { az: number; el: number; d: number }
+    t0: number
+    ms: number
+  } | null = null
   private limpiezas: (() => void)[] = []
 
   constructor(
@@ -751,16 +784,45 @@ export class Orbita {
     }
 
     escuchar('pointerdown', (e) => {
-      // El giro automático se para al tocar, orbite o no: el dedo encima manda.
+      // El giro automático se para al tocar, orbite o no: el dedo encima manda. Y un viaje
+      // a medias también: la cámara es de quien la toca.
       this.giroAutomatico = false
-      if (!this.arrastreConUnDedo) return
-      el.setPointerCapture(e.pointerId)
-      this.arrastre = { x: e.clientX, y: e.clientY, az: this.azimut, el: this.elevacion }
+      this.viaje = null
+      // SI ESTE DEDO ORBITA lo decide quien monta el visor: un booleano, o una función del
+      // punto donde nace el dedo (en el salón, fuera del cuerpo sí, sobre el cuerpo no).
+      // Un mando que se arrastra (joystick, tambor, cajón, panel) no orbita.
+      const objetivo = e.target as Element | null
+      if (objetivo?.closest?.('[data-no-orbita]')) return
+      const modo: ModoDeArrastre =
+        typeof this.arrastreConUnDedo === 'function'
+          ? this.arrastreConUnDedo(e.clientX, e.clientY)
+          : this.arrastreConUnDedo
+            ? 'todo'
+            : 'nada'
+      if (modo === 'nada' || this.dedos >= 2) return
+      if (this.capturarPuntero) el.setPointerCapture?.(e.pointerId)
+      this.arrastre = { x: e.clientX, y: e.clientY, az: this.azimut, el: this.elevacion, modo, dueno: 'sin-decidir' }
     })
     escuchar('pointermove', (e) => {
-      if (!this.arrastre) return
-      this.azimut = this.arrastre.az - (e.clientX - this.arrastre.x) * 0.42
-      this.elevacion = limitar(this.arrastre.el + (e.clientY - this.arrastre.y) * 0.32, -78, 78)
+      const a = this.arrastre
+      if (!a || this.dedos >= 2) return
+      const dx = e.clientX - a.x
+      const dy = e.clientY - a.y
+      if (a.modo === 'solo-azimut') {
+        // SOBRE EL CUERPO el dedo se reparte con el eje W: lo horizontal gira, lo vertical
+        // atraviesa, y los primeros píxeles deciden de una vez (`duenoDelGesto`).
+        if (a.dueno === 'sin-decidir') a.dueno = duenoDelGesto(dx, dy)
+        if (a.dueno === 'sin-decidir') return
+        if (a.dueno === 'no-es-barrido') {
+          this.arrastre = null
+          return
+        }
+        this.azimut = a.az - dx * 0.42
+        this.alCambiar()
+        return
+      }
+      this.azimut = a.az - dx * 0.42
+      this.elevacion = limitar(a.el + dy * 0.32, this.elevacionMin, this.elevacionMax)
       this.alCambiar()
     })
     const soltar = () => {
@@ -776,6 +838,16 @@ export class Orbita {
         this.alCambiar()
       },
       { passive: false },
+    )
+    escuchar(
+      'touchstart',
+      (e) => {
+        this.dedos = e.touches.length
+        // Con el segundo dedo la cámara es de los dos: el arrastre de uno se suelta, o los
+        // dos manejadores se pelearían por el mismo azimut (medido el 2026-09-06).
+        if (this.dedos >= 2) this.arrastre = null
+      },
+      { passive: true },
     )
     // Pellizco táctil. Sin esto el visor es inservible en móvil, que es donde
     // el asesorado lo va a abrir de verdad.
@@ -804,16 +876,54 @@ export class Orbita {
         } else {
           const c = this.centroDeDosDedos
           this.azimut = c.az - (cx - c.x) * 0.42
-          this.elevacion = limitar(c.el + (cy - c.y) * 0.32, -78, 78)
+          this.elevacion = limitar(c.el + (cy - c.y) * 0.32, this.elevacionMin, this.elevacionMax)
           this.alCambiar()
         }
       },
       { passive: false },
     )
-    escuchar('touchend', () => {
+    escuchar('touchend', (e) => {
+      this.dedos = e.touches.length
       this.pellizco = null
       this.centroDeDosDedos = null
     })
+    escuchar('touchcancel', (e) => {
+      this.dedos = e.touches.length
+      this.pellizco = null
+      this.centroDeDosDedos = null
+    })
+  }
+  /**
+   * VIAJAR a otra cámara en vez de saltar a ella. Al cambiar de ejercicio el visor pone el
+   * ángulo de estudio del patrón nuevo; hasta el 2026-09-06 lo ponía de golpe, y con el
+   * dedo en la sala eso era «se pierde el diseño y se va para otro lado». Un dedo encima
+   * corta el viaje: la cámara es de quien la toca.
+   */
+  viajarA(hasta: { azimut: number; elevacion: number; distancia: number }, ms = 520): void {
+    this.viaje = {
+      desde: { az: this.azimut, el: this.elevacion, d: this.distancia },
+      hasta: { az: hasta.azimut, el: hasta.elevacion, d: hasta.distancia },
+      t0: performance.now(),
+      ms,
+    }
+  }
+  /** Un paso del viaje. Devuelve si la cámara se movió. */
+  avanzarViaje(ahora = performance.now()): boolean {
+    const v = this.viaje
+    if (!v) return false
+    const t = Math.min(1, Math.max(0, (ahora - v.t0) / v.ms))
+    const s = 1 - Math.pow(1 - t, 3)
+    // El azimut va por el camino corto: de 350° a 10° son 20°, no 340.
+    const vuelta = (((v.hasta.az - v.desde.az) % 360) + 540) % 360 - 180
+    this.azimut = v.desde.az + vuelta * s
+    this.elevacion = v.desde.el + (v.hasta.el - v.desde.el) * s
+    this.distancia = v.desde.d + (v.hasta.d - v.desde.d) * s
+    if (t >= 1) this.viaje = null
+    return true
+  }
+  /** Si hay un viaje en marcha. */
+  viajando(): boolean {
+    return this.viaje !== null
   }
 
   destruir(): void {

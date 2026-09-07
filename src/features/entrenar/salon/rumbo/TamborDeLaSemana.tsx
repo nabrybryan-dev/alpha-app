@@ -121,7 +121,7 @@ export function TamborDeLaSemana({
   }
 
   return (
-    <div
+    <div data-no-orbita
       data-hueco="semana"
       role="dialog"
       aria-label="Tu semana"

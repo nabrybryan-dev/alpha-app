@@ -244,7 +244,7 @@ export function PanelInferior(props: PanelInferiorProps) {
   }, [avance, onAvance])
 
   return (
-    <div
+    <div data-no-orbita
       data-hueco="panelInferior"
       className="pointer-events-none absolute inset-x-0 flex flex-col justify-end"
       // El borde de abajo del panel es el borde de arriba de la barra de navegación, no

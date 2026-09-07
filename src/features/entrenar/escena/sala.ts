@@ -675,3 +675,35 @@ export const ENCUADRE_SALA = {
 export function elevacionDelSalon(elevacionDelPatron: number): number {
   return Math.min(elevacionDelPatron, ENCUADRE_SALA.elevacionMaxima)
 }
+
+/** Cuánto aire se deja bajo el techo y sobre el suelo al inclinar la cámara a mano. */
+export const HOLGURA_DEL_TECHO = 0.45
+export const HOLGURA_DEL_SUELO = 0.25
+/** Y los topes que no se cruzan ni con todo el aire del mundo: un poco desde abajo, y no
+ *  tanto desde arriba que el muro de enfrente se vaya de la pantalla. */
+export const INCLINACION_A_MANO = { min: -6, max: 22 }
+
+/**
+ * HASTA DÓNDE SE PUEDE INCLINAR LA CÁMARA A MANO DENTRO DE LA SALA.
+ *
+ * La entrada de cada patrón se acota a `ENCUADRE_SALA.elevacionMaxima` para que el tablón
+ * del muro entre en el cuadro. Orbitar con el dedo es otra cosa: quien gira quiere ver la
+ * sala y puede perder el tablón un momento; lo que no puede es meter la cámara bajo el
+ * suelo ni por encima del techo. Medido el 2026-09-06 con toques emulados: con los ±78°
+ * del estudio, el dedo dejaba la cámara a −78°, mirando la sala desde debajo del suelo.
+ *
+ * Se calcula contra el centro y la distancia reales: el ojo está a
+ * `centro.y + distancia · sin(elevación)`, así que un sujeto colgado de una barra —centro
+ * más alto— llega antes al techo con el mismo ángulo.
+ */
+export function topesDeElevacion(centro: readonly number[], distancia: number): { min: number; max: number } {
+  const d = Math.max(distancia, 0.01)
+  const seno = (v: number) => Math.max(-1, Math.min(1, v))
+  const aGrados = (r: number) => (r * 180) / Math.PI
+  const arriba = aGrados(Math.asin(seno((ALTO_SALA - HOLGURA_DEL_TECHO - centro[1]) / d)))
+  const abajo = aGrados(Math.asin(seno((HOLGURA_DEL_SUELO - centro[1]) / d)))
+  return {
+    min: Math.max(INCLINACION_A_MANO.min, abajo),
+    max: Math.min(INCLINACION_A_MANO.max, arriba),
+  }
+}

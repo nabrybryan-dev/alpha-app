@@ -2337,9 +2337,13 @@ body {
    poste con su base, que no tapa nada. Cuatro números permanentes alrededor del
    cuerpo serían otra vez el dashboard con un muñeco dentro.
 
-   La cifra viene del fondo girada, se posa, se queda quieta tres segundos y se
-   va por donde vino. Los porcentajes reparten esos tres tiempos dentro de los
-   3,7 s del ciclo: entra hasta el 19 %, se está hasta el 81 %, y se retira.
+   La cifra viene del fondo girada, se posa, se queda quieta tres segundos, se va
+   por donde vino, y VUELVE: el ciclo son 5 s —0,4 s de entrada, 3 s quieta, 0,4 s
+   de salida y 1,2 s de nada— y no termina nunca. Hasta el 2026-09-06 entraba una
+   sola vez (3,7 s) y ya no volvía; Bryan: «se reflejan al principio y luego se
+   pierden… que se reflejen tres segundos, dejen de reflejarse dos, y vuelvan». Al
+   tocar una se queda fija (`data-fija`), no en pausa: pausar un ciclo que pasa por
+   «nada» la dejaría invisible la mitad de las veces.
    ------------------------------------------------------------------------- */
 
 @keyframes estacion-cifra {
@@ -2348,20 +2352,25 @@ body {
     transform: translateZ(-120px) rotateX(-40deg) scale(0.86);
     filter: blur(6px);
   }
-  19% {
+  8% {
     opacity: 1;
     transform: translateZ(40px) rotateX(-8deg) scale(1);
     filter: blur(0);
   }
-  81% {
+  68% {
     opacity: 1;
     transform: translateZ(40px) rotateX(-8deg) scale(1);
     filter: blur(0);
   }
-  100% {
+  76% {
     opacity: 0;
     transform: translateZ(-60px) rotateX(-30deg) scale(0.94);
     filter: blur(4px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateZ(-120px) rotateX(-40deg) scale(0.86);
+    filter: blur(6px);
   }
 }
 
@@ -2386,7 +2395,15 @@ body {
   display: block;
   transform-style: preserve-3d;
   transform-origin: 50% 100%;
-  animation: estacion-cifra 3700ms var(--muelle-informativo) both;
+  animation: estacion-cifra 5000ms var(--muelle-informativo) infinite both;
+}
+
+/* Fija al tocarla: sin animación y posada, mire cuando mire el ciclo. */
+.estacion-cifra[data-fija] {
+  animation: none;
+  opacity: 1;
+  transform: translateZ(40px) rotateX(-8deg) scale(1);
+  filter: none;
 }
 
 /* LA CIFRA, con el relieve de las cinco capas del muro: es la misma materia que

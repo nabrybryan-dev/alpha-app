@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import type { ModoDeArrastre } from '../capas/gestoHorizontal'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { M4 } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
 import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL, segmentosDe } from '../../../domain/patrones/acciones'
@@ -24,7 +25,7 @@ import {
 import { juegoConProporciones } from '../../../domain/patrones/estatura'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
+import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
 import { anunciarSalaDeBlender, cargarPiezas, PIEZAS_DEL_ATLAS, SALA_GIMNASIO } from './piezas'
@@ -42,12 +43,7 @@ import { implementosDeEscena, type EscenaDeImplementos } from '../escena/impleme
 import { construirImplementos } from '../escena/dibujarImplementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
-import {
-  INDICE_RAIZ,
-  resolver,
-  type DefinicionHueso,
-  type EsqueletoResuelto,
-} from '../../../domain/patrones/esqueleto'
+import { type DefinicionHueso, type EsqueletoResuelto, INDICE_RAIZ, puntoDeHueso, resolver } from '../../../domain/patrones/esqueleto'
 import type { Mat4 } from '../../../domain/patrones/algebra'
 import {
   activacionDe,
@@ -130,6 +126,11 @@ function laboratorio(soloMarcas: boolean): Malla {
  * en que TIENE que cambiar.
  */
 let salaCache: { clave: string; malla: Malla } | null = null
+
+/** La elevación heredada de la cámara anterior, dentro de los topes de la órbita nueva. */
+function limitarElevacion(elevacion: number, orbita: { elevacionMin: number; elevacionMax: number }): number {
+  return Math.min(Math.max(elevacion, orbita.elevacionMin), orbita.elevacionMax)
+}
 
 function sala(datos: DatosDeSerie, azimutDeEntrada: number, deBlender: boolean): Malla {
   // El ángulo entra en la clave: si no, cambiar de ejercicio dejaría el marcador del muro
@@ -379,7 +380,17 @@ interface VisorPatronProps {
    * Se llama en el bucle, así que tiene que ser barato y estable: quien lo reciba guarda
    * el valor y NO provoca un render por cada grado —de eso se encarga el que escucha.
    */
-  alMirar?: (camara: { azimut: number; elevacion: number; distancia: number }) => void
+  alMirar?: (camara: {
+    azimut: number
+    elevacion: number
+    distancia: number
+    /**
+     * El cuerpo en píxeles de PANTALLA (coordenadas de cliente), con la cámara de este
+     * fotograma. Lo usa el salón para decidir de quién es un dedo: sobre el cuerpo, del
+     * cuerpo; fuera, de la cámara (`dedoEnElCuerpo.ts`). Sin cuerpo resuelto, nada.
+     */
+    cuerpo?: { x0: number; y0: number; x1: number; y1: number }
+  }) => void
   /**
    * El tempo prescrito de la repetición. Sin él, el sujeto baja en los 1,9 s de siempre;
    * con él, baja en lo que cuenta la pared del salón, para que las dos cifras de tiempo
@@ -394,7 +405,15 @@ interface VisorPatronProps {
    * 3D dentro de algo por lo que se navega. Se pasa desde fuera para que este visor no
    * tenga que saber en qué pantalla está.
    */
-  orbitaConUnDedo?: boolean
+  orbitaConUnDedo?: boolean | ((x: number, y: number) => ModoDeArrastre)
+  /**
+   * DÓNDE ESCUCHA LA CÁMARA. Por defecto, en su lienzo. El salón le pasa su raíz: los
+   * carteles, los cuadros y el resto de la interfaz viven ENCIMA del lienzo, y un dedo que
+   * nace sobre un cartel —o dos dedos, uno en cada— no llegaba nunca al lienzo (medido el
+   * 2026-09-06: en el salón la órbita a dos dedos no había funcionado jamás). Se lee al
+   * montar; no es una dependencia del efecto.
+   */
+  superficieDeGesto?: RefObject<HTMLElement | null>
   /**
    * CUÁNTO SE RETIRA LA CÁMARA, como múltiplo de su distancia (1 = donde está).
    *
@@ -463,6 +482,7 @@ export function VisorPatron({
   tempo,
   fantasma,
   orbitaConUnDedo = true,
+  superficieDeGesto,
   retirada = 1,
   sexo = SEXO_POR_DEFECTO,
   estaturaCm,
@@ -511,6 +531,8 @@ export function VisorPatron({
     // efecto que monta la escena, por lo mismo que `datos`: cambiarlo no puede recrear el
     // contexto WebGL. El bucle lo lee y acerca la cámara un poco cada fotograma.
     retirada: 1,
+    /** La última cámara avisada: al cambiar de patrón se parte de ella y se viaja. */
+    camaraAnterior: undefined as { azimut: number; elevacion: number; distancia: number } | undefined,
     // Qué capas del atlas anatómico se piden. Por referencia como todo lo demás:
     // encender la musculatura no puede recrear el contexto WebGL.
     atlas: undefined as readonly ('esqueleto' | 'musculos' | 'piel')[] | undefined,
@@ -611,6 +633,7 @@ export function VisorPatron({
 
     let motor: import('./motor').Motor
     let orbita: import('./motor').Orbita
+    let ultimoEsq: EsqueletoResuelto | undefined
     let vivo = true
     let cuadro = 0
     let cancelado = false
@@ -689,11 +712,12 @@ export function VisorPatron({
         // Al arrastrar el dedo la órbita repinta por su cuenta, y ahí también hay que
         // avisar: si no, los cuadros de la pared se quedan clavados mientras la sala gira
         // debajo — que es exactamente lo contrario de estar colgados de ella.
-        orbita = new Orbita(lienzo, () => {
+        orbita = new Orbita(superficieDeGesto?.current ?? lienzo, () => {
           pintar()
           avisarDeLaCamara()
         })
         orbita.arrastreConUnDedo = orbitaConUnDedo
+        orbita.capturarPuntero = !superficieDeGesto?.current
         // EL CUADRO DEL SALÓN SE CALCULA CONTRA EL CUERPO. Mirar siempre a [0, 1,2, 0] a
         // 4,6 m encuadra bien a una persona de pie y a nadie más: medido el 2026-09-05, se
         // salían del cuadro los 31 patrones, hasta 750 px. `encuadreDelSalon` mira al
@@ -723,6 +747,24 @@ export function VisorPatron({
         orbita.elevacion = conSala
           ? elevacionDelSalon(patron.camara.elevacion)
           : patron.camara.elevacion
+        // A MANO, la inclinación tiene suelo y techo dentro de la sala (`topesDeElevacion`);
+        // sin sala, el estudio del patrón deja casi todo.
+        if (conSala) {
+          const topes = topesDeElevacion(orbita.centro, orbita.distancia)
+          orbita.elevacionMin = topes.min
+          orbita.elevacionMax = topes.max
+        }
+        // CAMBIAR DE EJERCICIO NO DA UN SALTO. Si había una cámara —la de antes de cambiar,
+        // que puede ser la que dejó el dedo—, se parte de ella y se VIAJA a la del patrón
+        // nuevo. Bryan, 2026-09-06: «se pierde el diseño y se va para otro lado».
+        const anterior = estado.current.camaraAnterior
+        if (conSala && anterior) {
+          const destino = { azimut: orbita.azimut, elevacion: orbita.elevacion, distancia: orbita.distancia }
+          orbita.azimut = anterior.azimut
+          orbita.elevacion = limitarElevacion(anterior.elevacion, orbita)
+          orbita.distancia = anterior.distancia
+          orbita.viajarA(destino)
+        }
 
         // LA RAÍZ VA EN SU HUECO. Los atlas cuelgan de ella (ver `INDICE_RAIZ`): sin esto
         // se quedan en el mundo y el sujeto se va con su desplazamiento sin ellos.
@@ -743,6 +785,7 @@ export function VisorPatron({
             definicion,
           )
           matrices = conRaiz(esq)
+          ultimoEsq = esq
           // El escenario va PRIMERO, y no da igual: los índices se concatenan en el
           // orden de las partes, así que ponerlo delante deja el sujeto al final del
           // búfer — que es donde conviene cuando lo que cambia en cada fotograma es él.
@@ -1010,6 +1053,7 @@ export function VisorPatron({
           // malla y reconstruir la sala para desviarla una centésima de grado es el mismo
           // error que costó 4,77 ms de fotograma en agosto.
           const respiro = aplicarVaiven()
+          const viaja = orbita.avanzarViaje(performance.now())
           // LA CÁMARA SE RETIRA SUAVIZADA, en el mismo bucle y sin reconstruir nada: un
           // quinto del camino que le queda en cada fotograma, que a 60 fps son unos 200 ms
           // hasta no notarse — lo que duraba la transición de CSS a la que sustituye.
@@ -1027,7 +1071,7 @@ export function VisorPatron({
             construir()
             pintar()
             avisarDeLaCamara()
-          } else if (respiro || acerca) {
+          } else if (respiro || acerca || viaja) {
             pintar()
             avisarDeLaCamara()
           }
@@ -1058,12 +1102,41 @@ export function VisorPatron({
           return true
         }
 
+        /**
+         * EL CUERPO EN LA PANTALLA: la caja de los huesos resueltos, pasada por la cámara de
+         * este fotograma, en coordenadas de cliente. Es lo que le deja al salón decidir si
+         * un dedo nace sobre el cuerpo o fuera de él.
+         */
+        const cuadroDelCuerpo = () => {
+          const esq = ultimoEsq
+          if (!esq) return undefined
+          const rect = lienzo.getBoundingClientRect()
+          if (rect.width < 1 || rect.height < 1) return undefined
+          const vista = orbita.vista()
+          const proy = M4.perspectiva(estado.current.campoDelSalon ?? CAMPO_VISUAL, rect.width / rect.height, 0.05, 40)
+          let x0 = Infinity
+          let y0 = Infinity
+          let x1 = -Infinity
+          let y1 = -Infinity
+          for (const hueso of Object.keys(esq.mundo)) {
+            for (const tt of [0, 1]) {
+              const v = M4.transformarPunto(vista, puntoDeHueso(esq, hueso, tt))
+              const w = -v[2]
+              if (w <= 0.01) continue
+              const x = rect.left + (((proy[0] * v[0]) / w) * 0.5 + 0.5) * rect.width
+              const y = rect.top + (0.5 - ((proy[5] * v[1]) / w) * 0.5) * rect.height
+              if (x < x0) x0 = x
+              if (x > x1) x1 = x
+              if (y < y0) y0 = y
+              if (y > y1) y1 = y
+            }
+          }
+          return Number.isFinite(x0) ? { x0, y0, x1, y1 } : undefined
+        }
         const avisarDeLaCamara = () => {
-          estado.current.alMirar?.({
-            azimut: orbita.azimut,
-            elevacion: orbita.elevacion,
-            distancia: orbita.distancia,
-          })
+          const camara = { azimut: orbita.azimut, elevacion: orbita.elevacion, distancia: orbita.distancia }
+          estado.current.camaraAnterior = camara
+          estado.current.alMirar?.({ ...camara, cuerpo: cuadroDelCuerpo() })
         }
 
         redibujar.current = () => {
@@ -1112,7 +1185,7 @@ export function VisorPatron({
     // deciden con qué huesos se construye el sujeto, y el motor los lee UNA vez aquí. Sin
     // esto, abrir el visor de un asesorado y luego el de otro más alto dibujaría al
     // segundo con el cuerpo del primero — y no fallaría nada: se vería mal y ya.
-  }, [patron, conEscenario, orbitaConUnDedo, sexo, estaturaCm, proporciones])
+  }, [patron, conEscenario, orbitaConUnDedo, sexo, estaturaCm, proporciones, superficieDeGesto])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.
