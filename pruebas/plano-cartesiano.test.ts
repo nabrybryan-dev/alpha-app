@@ -89,24 +89,13 @@ describe('las cinco fichas nuevas, en el plano', () => {
     // entero hay que pedir más del que se quiere ver.
     expect(eje(flexion)!.recorrido).toBeGreaterThan(90)
     expect(eje(extension)!.recorrido).toBeGreaterThan(90)
-    // LAS DOS SUBEN LA MANO, y desde el 2026-09-06 eso es correcto y hay que explicarlo.
-    //
-    // El curl inverso iba de flexionada a extendida, o sea la mano BAJANDO en el tramo 0→1
-    // que el repo llama concéntrica: coseno +0,99 contra la gravedad, la carga cayendo en la
-    // fase en la que se supone que se levanta. Se dio la vuelta.
-    //
-    // Lo que ahora las separa no es el signo del canal sino el antebrazo, y el rig no lo
-    // sabe girar: en un curl inverso la palma va ABAJO, así que «mano colgando» y «mano
-    // arriba» son los mismos dos extremos recorridos desde el otro lado del antebrazo. Se
-    // probó poner `antebrazoRot: 180` en los dos patrones y el coseno no se movió ni una
-    // centésima, porque `poseAEuler` recompone la rotación de la mano desde la abducción del
-    // hombro y ahí se pierde el giro del padre. Deuda declarada, en `catalogo.ts`.
-    //
-    // Así que lo que se afirma es lo que hoy es verdad: los dos recorren su rango entero y
-    // los dos SUBEN la carga cuando toca empujar. Lo que las distingue en pantalla es la
-    // musculatura que se enciende, y eso sí se comprueba —abajo, con la activación.
+    // SENTIDOS OPUESTOS EN EL CANAL, Y LA MISMA CARGA SUBIENDO. Desde el 2026-09-07 el curl
+    // inverso va con la palma abajo (`antebrazoRot: -178`), y con la palma abajo el canal
+    // `muneca` funciona al revés: positivo cuelga, negativo levanta. Así que el canal va de
+    // +48 a −58 —hasta < desde— mientras la mano SUBE igual que en el curl normal. Es lo que
+    // separa a las dos fichas en pantalla, y lo que anoche no se podía dibujar.
     expect(eje(flexion)!.hasta).toBeGreaterThan(eje(flexion)!.desde)
-    expect(eje(extension)!.hasta).toBeGreaterThan(eje(extension)!.desde)
+    expect(eje(extension)!.hasta).toBeLessThan(eje(extension)!.desde)
     expect(Object.keys(PATRON_POR_ID.flexion_muneca.activacion)[0]).toBe('flexores_carpo')
     expect(Object.keys(PATRON_POR_ID.extension_muneca.activacion)[0]).toBe('extensores_carpo')
   })
