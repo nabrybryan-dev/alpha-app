@@ -60,6 +60,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'politica del coach y el conducto del agente 3. Ver ' +
     'docs/specs/2026-09-04-las-dos-escaleras.md.',
 
+  // La definición corporal única: el cuerpo del que salen malla, traza, cámara y cálculos.
+  // Entra por la capa de dominio y la enchufa la de interfaz, que es la dueña de
+  // `VisorPatron.tsx` —hoy el visor saca la malla del cuerpo de la persona y las matrices
+  // de `esqueletoDe(sexo)`, o sea de dos cuerpos a la vez—. El cambio está escrito línea
+  // por línea en el spec; **esta entrada se borra el día que el visor lo aplique**, y el
+  // test de abajo («la lista de excepciones no guarda entradas ya resueltas») lo exige.
+  'src/domain/patrones/definicionCorporal.ts':
+    'Una sola definición corporal (malla, traza, cámara y cálculos del MISMO cuerpo). ' +
+    'Espera a que VisorPatron.tsx la enchufe; el cambio está línea por línea en ' +
+    'docs/specs/2026-09-08-definicion-corporal.md §3.',
+
   // NI `bucleDelDia.ts` NI `corridaEnSombra.ts` van ya en esta lista (2026-09-04),
   // y conviene saber por que antes de volver a añadirlos: el primero lo importa el
   // segundo, y al segundo lo importa `scripts/corrida-en-sombra.mjs`. Los dos
