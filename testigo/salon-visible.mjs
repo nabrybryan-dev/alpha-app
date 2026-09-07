@@ -134,6 +134,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   arrancarChrome,
+  bajarDedo,
   buscarChrome,
   comoExpresion,
   CONGELAR_EN_PAGINA,
@@ -142,7 +143,9 @@ import {
   Devtools,
   esperar,
   mascaraDeCambio,
+  moverDedo,
   objetivoDePagina,
+  soltarDedo,
   unirRects,
   UMBRAL_CAMBIO,
   UMBRAL_NO_NEGRO,
@@ -465,12 +468,13 @@ const CAPA_W_EN_PAGINA = () => {
 }
 
 /**
- * Pulsa el peldaño `w` de la escalera, por el mismo camino que un dedo.
+ * Pulsa el peldaño `w` de la escalera de botones, por el mismo camino que un dedo.
  *
- * Se pulsa el botón y no se sintetiza un arrastre a propósito: el arrastre depende del
- * umbral de `gestoVertical.ts`, de la altura del viewport y de que el navegador entregue
- * los tres eventos en orden. El botón llama al MISMO `setW`, y lo que se quiere probar
- * es que el eje mueva el cuerpo, no que el reconocedor de gestos acierte.
+ * ESTE CAMINO YA NO EXISTE EN LA APP DESDE EL 2026-09-04: Bryan quitó la escalera de
+ * botones y la sustituyó por el gesto de hundir el dedo en el cuerpo
+ * (`capas/hundirEnElCuerpo.ts`). Se deja vivo aquí —y se sigue probando primero, más
+ * abajo— por si algún día vuelve: no hay motivo para que este testigo deje de saber
+ * medirlo. Devuelve -1 si el grupo no está, que es justo lo que pasa hoy.
  */
 const PULSAR_W_EN_PAGINA = (w) => {
   const grupo = document.querySelector('[role="group"][aria-label="Capa del cuerpo"]')
@@ -480,6 +484,44 @@ const PULSAR_W_EN_PAGINA = (w) => {
   botones[w].click()
   return botones.length
 }
+
+/** ¿Existe todavía la escalera de botones vieja? Sin nodo que pulsar, no hay nada que medir por ahí. */
+const GRUPO_W_EN_PAGINA = () => !!document.querySelector('[role="group"][aria-label="Capa del cuerpo"]')
+
+/**
+ * ¿Sigue vivo el gesto de hundirse AHORA MISMO? Lo marca `SalonEntrenar.tsx` con
+ * `data-hundiendo` en el mismo nodo `[data-testigo="sujeto"]` que ya mide este script.
+ * Salió de `testigo/partir-el-visor.mjs`, que la usa para el mismo calibrado.
+ */
+const HUNDIENDO_ACTIVO_EN_PAGINA = () =>
+  document.querySelector('[data-testigo="sujeto"]')?.hasAttribute('data-hundiendo') ?? false
+
+/**
+ * Ecos de `capas/hundirEnElCuerpo.ts` y `capas/gestoVertical.ts` — no se importan, este
+ * script no carga TypeScript, así que si esos números cambian ahí hay que reconsiderar
+ * estos aquí. Igual que ya avisa `partir-el-visor.mjs` sobre los mismos dos archivos.
+ */
+const ESPERA_DE_HUNDIR_MS = 320 // hundirEnElCuerpo.ts: ESPERA
+const ESCALON_DE_HUNDIR_MS = 450 // hundirEnElCuerpo.ts: ESCALON_MS
+const CAPA_MAS_PROFUNDA = 4 // hundirEnElCuerpo.ts: MAS_ADENTRO: la capa del hueso
+const UMBRAL_DE_ARRASTRE_PX = 72 // gestoVertical.ts: UMBRAL_DE_CAPA
+
+/**
+ * Rejilla para encontrar el cuerpo en pantalla, en fracción de ancho/alto. La misma que
+ * usa `partir-el-visor.mjs` para el mismo calibrado, y por la misma razón: el rectángulo
+ * de `[data-testigo="sujeto"]` es a sangre —toda la pantalla— y no dice dónde cae la
+ * silueta que de verdad reconoce `dedoEnElCuerpo.ts`. En cruz y centrada porque un
+ * sujeto de pie en un encuadre vertical cae cerca del medio casi siempre.
+ */
+const PUNTOS_CUERPO_CANDIDATOS = [
+  [0.5, 0.46],
+  [0.5, 0.56],
+  [0.5, 0.36],
+  [0.4, 0.5],
+  [0.6, 0.5],
+  [0.5, 0.66],
+  [0.5, 0.26],
+]
 
 const SONDEO_EN_PAGINA = () => ({
   salon: !!document.querySelector('[data-salon="entrenar"]'),
@@ -721,11 +763,21 @@ async function medir(opciones) {
     }
 
     // ── EL EJE W ────────────────────────────────────────────────────────────
-    // Que la escalera de cinco peldaños se pinte no prueba nada: los botones pueden
-    // estar perfectos y el eje muerto —es exactamente el fallo que ya convivió con
-    // 3.016 pruebas en verde—. Lo único que lo prueba es que al pasar de la piel al
-    // hueso CAMBIEN píxeles dentro del cuerpo. Se mide como todo lo demás: dos fotos,
-    // el ruido de fondo descontado, y la máscara puesta donde está el sujeto.
+    // Que la escalera se pinte —botones o gesto— no prueba nada: puede estar perfecta y
+    // el eje muerto —es exactamente el fallo que ya convivió con 3.016 pruebas en
+    // verde—. Lo único que lo prueba es que al pasar de la piel al hueso CAMBIEN
+    // píxeles dentro del cuerpo. Se mide como todo lo demás: dos fotos, el ruido de
+    // fondo descontado, y la máscara puesta donde está el sujeto.
+    //
+    // DESDE EL 2026-09-04 LA ESCALERA DE BOTONES (`role=group[aria-label="Capa del
+    // cuerpo"]`) NO EXISTE: la capa se recorre hundiendo el dedo en el cuerpo y
+    // sosteniéndolo (`capas/hundirEnElCuerpo.ts`). Este tramo prueba PRIMERO el camino
+    // viejo por si algún día vuelve, y si no lo encuentra prueba el gesto de verdad. Si
+    // no encuentra NINGUNO de los dos, no se inventa un cero: `ejeW.medido` sale
+    // `false`, se dice en voz alta por qué, y el testigo termina en rojo. Un acta con
+    // `botones:-1` y `cambioEnSujeto:0` SIN este campo es indistinguible de «no cambió»
+    // — y ese silencio es justo el que dejó pasar el acta del 7-sep con el sujeto
+    // delante y el eje ya migrado al gesto.
     console.log('  vertices por parte de la malla: ' + (await dt.evaluar(comoExpresion(PARTES_EN_PAGINA))))
 
     // La foto, cuando se pide. Un numero dice si una pieza aporta pixeles; no dice si
@@ -742,12 +794,24 @@ async function medir(opciones) {
       console.log('  foto en ' + opciones.foto)
     }
 
-    const ejeW = { desde: -1, hasta: -1, cambioEnSujeto: 0, ruido: 0, botones: 0 }
-    {
-      const rectSujeto = unirRects(lectura.elementos.sujeto ? lectura.elementos.sujeto.rects : [], ANCHO, ALTO)
+    const rectSujeto = unirRects(lectura.elementos.sujeto ? lectura.elementos.sujeto.rects : [], ANCHO, ALTO)
+    const ejeW = {
+      medido: false,
+      metodo: 'ninguno',
+      desde: -1,
+      hasta: -1,
+      capas: -1,
+      botones: -1,
+      cambioEnSujeto: 0,
+      ruido: 0,
+    }
+
+    const hayGrupoViejo = await dt.evaluar(comoExpresion(GRUPO_W_EN_PAGINA))
+    if (hayGrupoViejo) {
+      // ── EL CAMINO VIEJO, por si la escalera de botones vuelve algún día ──
       ejeW.desde = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
       const antes = await dt.captura()
-      ejeW.botones = await dt.evaluar(comoExpresion(PULSAR_W_EN_PAGINA, 4))
+      const botones = await dt.evaluar(comoExpresion(PULSAR_W_EN_PAGINA, 4))
       await esperar(320)
       const despues = await dt.captura()
       ejeW.hasta = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
@@ -761,6 +825,118 @@ async function medir(opciones) {
       const ruido = contarAporte(antes, vuelta, churn, rectSujeto.mascara)
       ejeW.ruido = ruido.dentro
       ejeW.cambioEnSujeto = cambio.dentro > ruido.dentro ? cambio.dentro : 0
+      ejeW.capas = botones
+      ejeW.botones = botones
+      ejeW.metodo = 'botones'
+      ejeW.medido = botones > 0
+    } else if (rectSujeto.area > 0) {
+      // ── EL GESTO DE VERDAD ──
+      // Se busca en una rejilla el punto donde apoyar el dedo hace aparecer
+      // `data-hundiendo` — el mismo calibrado desechable de `partir-el-visor.mjs`,
+      // porque el rectángulo de `[data-testigo="sujeto"]` es a sangre (toda la
+      // pantalla) y no dice dónde cae la silueta que de verdad reconoce
+      // `dedoEnElCuerpo.ts`.
+      let punto = null
+      for (const [fx, fy] of PUNTOS_CUERPO_CANDIDATOS) {
+        const x = Math.round(ANCHO * fx)
+        const y = Math.round(ALTO * fy)
+        await bajarDedo(dt, x, y)
+        await esperar(ESPERA_DE_HUNDIR_MS + 220)
+        const activo = await dt.evaluar(comoExpresion(HUNDIENDO_ACTIVO_EN_PAGINA))
+        await soltarDedo(dt)
+        if (activo) {
+          punto = { x, y }
+          break
+        }
+        await esperar(150)
+      }
+
+      if (!punto) {
+        console.error(
+          '  EL EJE W NO SE PUDO MEDIR: no encontré ni el grupo de botones viejo ni un ' +
+            'punto de la rejilla que dispare data-hundiendo. O no hay cuerpo que ' +
+            'atravesar, o el gesto está roto.',
+        )
+      } else {
+        // EL CALIBRADO PUEDE HABER DEJADO EL EJE FUERA DE LA PIEL: probar un punto ya
+        // implica aguantar más de `ESPERA_DE_HUNDIR_MS`, así que el candidato que activó
+        // `data-hundiendo` ya cruzó el primer escalón antes de soltar. Se resetea con el
+        // MISMO arrastre hacia abajo que usa la vuelta más abajo — es inofensivo si ya
+        // estaba en la piel, porque `capaTrasArrastre` no baja de 0 — para que `antes` y
+        // `ejeW.desde` describan de verdad el punto de partida.
+        const arrastrarHaciaLaPiel = async (x, y, desdeCapa) => {
+          await bajarDedo(dt, x, y)
+          const pasoPx = 20
+          const totalPx = UMBRAL_DE_ARRASTRE_PX * (desdeCapa + 1) + 40
+          for (let recorrido = pasoPx; recorrido <= totalPx; recorrido += pasoPx) {
+            await moverDedo(dt, x, y + recorrido)
+            await esperar(30)
+          }
+          await soltarDedo(dt)
+          // El halo y el acercamiento de cámara (`retirada`) desaparecen con un lerp
+          // (`orbita.retirada += falta * 0.2` en `VisorPatron.tsx`, no es instantáneo):
+          // sin este respiro la foto siguiente todavía saldría a mitad de zoom.
+          await esperar(500)
+        }
+
+        const capaTrasCalibrado = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
+        if (capaTrasCalibrado > 0) await arrastrarHaciaLaPiel(punto.x, punto.y, capaTrasCalibrado)
+
+        ejeW.desde = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
+        const antes = await dt.captura()
+        await bajarDedo(dt, punto.x, punto.y)
+        // Aguanta hasta el fondo: la espera de `hundirEnElCuerpo.ts` más un escalón por
+        // cada capa que falte hasta el hueso, y un margen para no depender de que el
+        // redondeo del intervalo caiga del lado bueno.
+        const escalonesQueFaltan = Math.max(0, CAPA_MAS_PROFUNDA - ejeW.desde)
+        await esperar(ESPERA_DE_HUNDIR_MS + ESCALON_DE_HUNDIR_MS * escalonesQueFaltan + 250)
+        const despues = await dt.captura()
+        ejeW.hasta = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
+
+        // LA VUELTA. Hundirse no da marcha atrás —«se para en el hueso y no da la
+        // vuelta», `capaTrasHundir` en `hundirEnElCuerpo.ts`—, así que para volver a la
+        // piel hace falta el OTRO gesto: el arrastre vertical de `gestoVertical.ts`. Y
+        // tiene que ser un TOQUE NUEVO, soltando antes: `alBajarDedo` en
+        // `SalonEntrenar.tsx` fija `capaAlOrigen = w` SOLO al bajar el dedo, y mientras
+        // se aguanta hundido el intervalo mueve `w` sin tocar esa referencia — medido
+        // con un guion aparte: seguir arrastrando sin soltar calcula el escalón contra
+        // la capa de CUANDO SE TOCÓ (la piel), no contra la actual (el hueso), y
+        // `capaTrasArrastre` devuelve la piel otra vez sin mover un pelo. Soltar y
+        // volver a bajar resincroniza `capaAlOrigen` con el `w` real antes de arrastrar.
+        //
+        // Y solo DESPUÉS de soltar ESTE segundo toque —con su respiro para el lerp de la
+        // cámara— se captura `vuelta`: si se capturara con el dedo aún puesto, o con la
+        // cámara a mitad de camino, la resta contra `antes` —sin dedo, sin zoom—
+        // mediría la cámara moviéndose, no el eje W. Es la misma trampa que delató
+        // `residuoTrasRestaurar` en los elementos: sin esperar a que la escena quede
+        // COMO ESTABA, el control mide otra cosa y no dice nada.
+        await soltarDedo(dt)
+        await esperar(80)
+        await arrastrarHaciaLaPiel(punto.x, punto.y, ejeW.hasta)
+        const vuelta = await dt.captura()
+        const capaAlVolver = await dt.evaluar(comoExpresion(CAPA_W_EN_PAGINA))
+        if (capaAlVolver !== ejeW.desde) {
+          console.error(
+            `  aviso: la vuelta dejó el eje en la capa ${capaAlVolver}, no en la ${ejeW.desde} ` +
+              'de partida — el arrastre de salida no completó todos los escalones.',
+          )
+        }
+
+        const cambio = contarAporte(antes, despues, churn, rectSujeto.mascara)
+        const ruido = contarAporte(antes, vuelta, churn, rectSujeto.mascara)
+        ejeW.ruido = ruido.dentro
+        ejeW.cambioEnSujeto = cambio.dentro > ruido.dentro ? cambio.dentro : 0
+        ejeW.capas = ejeW.hasta - ejeW.desde + 1
+        ejeW.botones = ejeW.capas
+        ejeW.metodo = 'gesto'
+        ejeW.medido = ejeW.hasta > ejeW.desde
+      }
+    } else {
+      console.error(
+        '  EL EJE W NO SE PUDO MEDIR: no hay sujeto en pantalla (rectángulo vacío), así ' +
+          'que no hay cuerpo que atravesar. Correcto en un día sin patrón; no lo es si ' +
+          'se esperaba un asesorado con pesas hoy.',
+      )
     }
 
     return {
@@ -795,7 +971,7 @@ async function medir(opciones) {
 // ------------------------------------------------------------------ salida
 
 function imprimir(resultado, opciones) {
-  const { lectura, detalle, churnCuenta } = resultado
+  const { lectura, detalle, churnCuenta, ejeW } = resultado
   console.log('')
   console.log(`  url               ${opciones.url}`)
   console.log(`  ruta servida      ${lectura.tituloDeRuta}`)
@@ -835,6 +1011,11 @@ function imprimir(resultado, opciones) {
     if (d.partesTrasApagar) console.log(`      malla con la parte fuera: ${d.partesTrasApagar}`)
     for (const m of d.motivos) console.log(`      apagado por: ${m}`)
   }
+  console.log('')
+  console.log(
+    `  eje W             medido=${ejeW.medido} metodo=${ejeW.metodo} desde=${ejeW.desde} ` +
+      `hasta=${ejeW.hasta} capas=${ejeW.capas} cambioEnSujeto=${ejeW.cambioEnSujeto} ruido=${ejeW.ruido}`,
+  )
   console.log('')
 }
 
@@ -958,6 +1139,20 @@ async function principal() {
     process.exitCode = 1
   } else if (faltan.length) {
     console.error(`  Faltan en pantalla: ${faltan.map(([k]) => k).join(', ')}`)
+    process.exitCode = 1
+  }
+
+  // NUNCA MÁS UN CERO SILENCIOSO. `ejeW.medido:false` significa que este testigo no
+  // encontró ni el grupo de botones viejo ni el gesto de hundir el dedo: no sabe si el
+  // eje W vive o no, y un acta que se queda callada sobre eso es indistinguible de un
+  // «no cambió». Se falla en voz alta, con exit distinto de 0, aunque todo lo demás
+  // haya salido en verde.
+  if (!acta.ejeW.medido) {
+    console.error(
+      `  El eje W no se pudo medir (metodo=${acta.ejeW.metodo}): ni el grupo de botones ` +
+        'viejo respondió, ni ningún punto de la rejilla disparó el gesto de hundirse. ' +
+        'Esto NO es "cambioEnSujeto: 0" — es "no lo sé", y no se firma como si fuera lo mismo.',
+    )
     process.exitCode = 1
   }
 }

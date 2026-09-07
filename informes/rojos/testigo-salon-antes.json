@@ -5,14 +5,14 @@
     "ancho": 414,
     "alto": 736
   },
-  "cuando": "2026-09-07T18:11:41.581Z",
+  "cuando": "2026-09-07T15:27:15.386Z",
   "usuario": "u-valentina",
   "sesion": "(el muro no rotula día)",
   "rama": "conSujeto",
   "elementos": {
     "sala": {
       "visible": true,
-      "pixeles": 293279,
+      "pixeles": 289367,
       "enLienzo": true
     },
     "letras3D": {
@@ -37,13 +37,10 @@
     }
   },
   "ejeW": {
-    "medido": true,
-    "metodo": "gesto",
     "desde": 0,
-    "hasta": 4,
-    "capas": 5,
-    "botones": 5,
-    "cambioEnSujeto": 211478,
-    "ruido": 1
+    "hasta": 0,
+    "cambioEnSujeto": 0,
+    "ruido": 0,
+    "botones": -1
   }
 }
