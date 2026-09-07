@@ -60,6 +60,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
     'politica del coach y el conducto del agente 3. Ver ' +
     'docs/specs/2026-09-04-las-dos-escaleras.md.',
 
+  // La definición corporal única: el cuerpo del que salen malla, traza, cámara y cálculos.
+  // Entra por la capa de dominio y la enchufa la de interfaz, que es la dueña de
+  // `VisorPatron.tsx` —hoy el visor saca la malla del cuerpo de la persona y las matrices
+  // de `esqueletoDe(sexo)`, o sea de dos cuerpos a la vez—. El cambio está escrito línea
+  // por línea en el spec; **esta entrada se borra el día que el visor lo aplique**, y el
+  // test de abajo («la lista de excepciones no guarda entradas ya resueltas») lo exige.
+  'src/domain/patrones/definicionCorporal.ts':
+    'Una sola definición corporal (malla, traza, cámara y cálculos del MISMO cuerpo). ' +
+    'Espera a que VisorPatron.tsx la enchufe; el cambio está línea por línea en ' +
+    'docs/specs/2026-09-08-definicion-corporal.md §3.',
+
   // NI `bucleDelDia.ts` NI `corridaEnSombra.ts` van ya en esta lista (2026-09-04),
   // y conviene saber por que antes de volver a añadirlos: el primero lo importa el
   // segundo, y al segundo lo importa `scripts/corrida-en-sombra.mjs`. Los dos
@@ -142,6 +153,15 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/prescripcion.ts#componerCoincide':
     'Guarda del relleno masivo de carga. Se ejecuta desde SQL, no desde la app, ' +
     'pero comparte regla con componerPrescripcion y separarlas ya costó 128 ejercicios.',
+  // El validador de las ocho medidas de la ficha. El módulo NO está huérfano —`types.ts`
+  // lo importa para el campo `MedidaCorporal.cuerpo`— pero su función de entrada la llama
+  // el FORMULARIO, y el formulario es de la capa de interfaz. La tabla `MEDIDAS`, que es
+  // con la que se pintan los ocho campos, ya la consume este mismo módulo.
+  // Se borra el día que la ficha pida las ocho medidas.
+  'src/domain/medidas.ts#revisarMedidas':
+    'Valida las ocho medidas de la ficha (claves, rangos y claves de más). Espera al ' +
+    'formulario, que es de features/. Ver docs/specs/2026-09-08-medidas-en-el-dominio.md.',
+
   // Lo que espera a una función ya planeada y todavía sin construir:
   'src/domain/nutricion/techos.ts#DIAS_ENTRE_RACIONES':
     'Espera al aviso de frecuencia: «comiste hígado hace 5 días, deja pasar dos ' +

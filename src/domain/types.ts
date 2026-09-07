@@ -1,4 +1,5 @@
 import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
+import type { MedidasDelCuerpo } from './medidas'
 import type { Confianza } from './nutricion/dia'
 import type { HuellaDeRepeticion } from './patrones/huella'
 
@@ -39,6 +40,23 @@ export interface MedidaCorporal {
   perimetros: Record<string, number>
   pgPct?: number
   masaMagraKg?: number
+  /**
+   * LAS OCHO MEDIDAS DE LA FICHA: seis longitudes de segmento y dos perímetros, en cm.
+   *
+   * Van aparte de `perimetros` a propósito. `perimetros` tiene las claves abiertas y por
+   * eso en la app conviven «Cadera» y «Glúteos» para el mismo dato: un mapa así no se
+   * puede consultar, porque nadie sabe si la persona no tiene el dato o lo tiene con otro
+   * nombre. Las ocho de aquí están cerradas, tienen rango y se validan en
+   * `domain/medidas.ts`; lo que no es una de ellas se rechaza.
+   *
+   * Opcional entero, y cada clave opcional dentro: alguien puede tomarse el fémur y no la
+   * cintura, y lo que falta no se rellena.
+   *
+   * Viajan a la nube dentro del mismo objeto que el resto de la medida —`registrar_medida`
+   * (0057) mete el jsonb entero, no columna a columna— así que no hacen falta ni migración
+   * ni cambios en `data/nube/`. Ver `docs/specs/2026-09-08-medidas-en-el-dominio.md`.
+   */
+  cuerpo?: MedidasDelCuerpo
 }
 
 export interface Perfil {
