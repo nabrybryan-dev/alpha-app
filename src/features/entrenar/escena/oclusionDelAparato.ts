@@ -4,7 +4,8 @@ import { puntoDeHueso } from '../../../domain/patrones/esqueleto'
 import { Malla } from '../../../domain/patrones/malla'
 import type { Vec3 } from '../../../domain/patrones/algebra'
 import { camaraDelSalon, proyectar } from './encuadreDelSalon'
-import { construirImplementos, type EscenaDeImplementos, type ImplementoEnEscena } from './implementos'
+import { type EscenaDeImplementos, type ImplementoEnEscena } from './implementos'
+import { construirImplementos } from './dibujarImplementos'
 
 /**
  * EL APARATO QUE TAPA A LA PERSONA SE VUELVE TRANSLÚCIDO.

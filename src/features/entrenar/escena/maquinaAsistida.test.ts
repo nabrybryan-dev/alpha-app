@@ -4,7 +4,8 @@ import { PATRON_POR_ID, patronDeCategoria } from '../../../domain/patrones/catal
 import { esqueletoEnFase } from '../../../domain/patrones/escena'
 import { puntoDeHueso } from '../../../domain/patrones/esqueleto'
 import { modeloDePalanca } from '../../../domain/biomecanica/palancas'
-import { construirPieza, implementosDeEscena } from './implementos'
+import { implementosDeEscena } from './implementos'
+import { construirPieza } from './dibujarImplementos'
 import { barraDe, RODILLERA, rodilleraBajo, techoSobre } from './maquinaAsistida'
 
 /**
@@ -37,10 +38,10 @@ describe('la dominada asistida es su propia ficha', () => {
     expect(patronDeCategoria('TRACCIÓN VERTICAL', 'Dominadas asistidas')?.id).toBe('dominada_asistida')
     expect(patronDeCategoria('TRACCIÓN VERTICAL', 'Dominada asistida en máquina (neutro)')?.id).toBe('dominada_asistida')
     expect(patronDeCategoria('DOMINADA', 'Pull-up asistido')?.id).toBe('dominada_asistida')
-    // La categoría sigue mandando: un jalón es un jalón, y la dominada a secas se queda donde
-    // estaba (que sea un jalón sentado es un hueco conocido, no de esta tanda).
+    // La categoría sigue mandando: un jalón es un jalón; y la dominada a secas tiene desde esa
+    // misma noche su propia ficha colgando (`dominada.test.ts`).
     expect(patronDeCategoria('TRACCIÓN VERTICAL', 'Jalón al pecho en polea')?.id).toBe('traccion_vertical')
-    expect(patronDeCategoria('TRACCIÓN VERTICAL', 'Dominadas')?.id).toBe('traccion_vertical')
+    expect(patronDeCategoria('TRACCIÓN VERTICAL', 'Dominadas')?.id).toBe('dominada')
     // Y por su propia categoría, como toda ficha del catálogo.
     expect(patronDeCategoria('DOMINADA ASISTIDA')?.id).toBe('dominada_asistida')
   })

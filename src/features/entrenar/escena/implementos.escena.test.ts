@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { Malla } from '../../../domain/patrones/malla'
 import { resolver } from '../../../domain/patrones/esqueleto'
 import { PATRON_POR_ID } from '../../../domain/patrones/catalogo'
-import { AVISO_SIN_IMPLEMENTO, AVISO_SIN_MODELO, construirPieza, implementosDeEscena } from './implementos'
+import { AVISO_SIN_IMPLEMENTO, AVISO_SIN_MODELO, implementosDeEscena } from './implementos'
+import { construirPieza } from './dibujarImplementos'
 
 /**
  * LA ESCENA NO CONTRADICE A LA PRESCRIPCIÓN.

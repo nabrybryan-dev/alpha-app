@@ -198,6 +198,8 @@ export const MODELOS_DE_FICHA: Readonly<Record<string, ModeloDePalanca>> = {
     },
   },
 
+  /** La dominada a secas (`dominada`): cuelga con las piernas estiradas. Su mecánica, la de siempre. */
+  DOMINADA: mecanicaDeLaDominada(),
   /** Ficha propia (`dominada_asistida`) porque su sujeto se arrodilla en la máquina. */
   'DOMINADA ASISTIDA': mecanicaDeLaDominada(),
 

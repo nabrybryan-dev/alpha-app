@@ -433,6 +433,39 @@ export const PATRONES: Patron[] = [
     camara: { azimut: 22, elevacion: 6 },
   },
   {
+    // NACE el 2026-09-06 de noche, tras la asistida. La categoría DOMINADA se traducía por alias
+    // a TRACCIÓN VERTICAL —un jalón SENTADO—, así que una dominada a secas heredaba esa postura:
+    // el implemento salía bien (la barra fija) pero el sujeto estaba sentado en el aire, y
+    // desde que los `raizInicio` bajaron al suelo (bc8e1ca), PLANTADO en el suelo agarrado a
+    // una barra sobre la cabeza. Aquí cuelga de las manos (`apoyo: 'manos'`), con las piernas
+    // estiradas; la asistida de abajo es su hermana arrodillada.
+    id: 'dominada',
+    cadena: 'cerrada',
+    categoria: 'DOMINADA',
+    titulo: 'Dominada',
+    ejemplos: 'Dominadas (prono / supino / neutro) · Pull-up con lastre',
+    resumen:
+      'Colgado de la barra, el cuerpo entero sube hasta pasar la barbilla. Es la tracción vertical con el peso propio: las manos no se mueven, y lo que gira es todo lo demás.',
+    claves: [
+      'Antes de tirar, baja los hombros: primero desciende la escápula, después dobla el codo.',
+      'Sube hasta que la barbilla pase la barra, sin echar la cabeza atrás.',
+      'Piernas juntas y quietas: el cuerpo sube en bloque, sin patalear.',
+    ],
+    errores: [
+      'Balancearse para arrancar: el impulso le quita el trabajo al dorsal.',
+      'Quedarse a medio recorrido arriba, o no estirar del todo abajo.',
+    ],
+    apoyo: 'manos',
+    alturaApoyo: 2.28,
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 1.4, 0],
+    inicio: { hombroFlex: 172, hombroAbd: 24, codoFlex: 6, escapulaElev: 36, escapulaRotAsc: 42, caderaFlex: 8, rodillaFlex: 20, toraxFlex: -4 },
+    fin: { hombroFlex: 46, hombroAbd: 30, codoFlex: 132, escapulaElev: -14, escapulaRotAsc: 18, escapulaProt: -22, caderaFlex: 14, rodillaFlex: 28, toraxFlex: -14 },
+    activacion: { flexores_carpo: 0.85, extensores_carpo: 0.55, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.6, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.45 },
+    seguimiento: ['pelvis', 0, [0.05, 0, 0]],
+    camara: { azimut: 38, elevacion: 8 },
+  },
+  {
     // NACE el 2026-09-06 a petición de Bryan, con vídeo de referencia (ver
     // `escena/maquinaAsistida.ts`). Hasta entonces «Dominadas asistidas» caía en la tracción
     // vertical de arriba: un jalón SENTADO, así que el sujeto salía sentado en el aire
@@ -1407,7 +1440,6 @@ const ALIAS: Record<string, string> = {
   CORE: 'ANTIEXTENSION',
   ABDOMEN: 'ANTIEXTENSION',
   JALON: 'TRACCION VERTICAL',
-  DOMINADA: 'TRACCION VERTICAL',
   REMO: 'TRACCION HORIZONTAL',
   ESPALDA: 'TRACCION HORIZONTAL',
   EMPUJE: 'EMPUJE HORIZONTAL',
@@ -1504,9 +1536,12 @@ const POR_NOMBRE: [RegExp, string][] = [
  * categoría YA dio una ficha, y el nombre elige entre esa y sus variantes.
  */
 const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
+  // El orden importa: la asistida antes que la dominada a secas, que también dice «dominada».
   traccion_vertical: [
     [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],
+    [/dominada|(pull|chin)[- ]?up/, 'dominada'],
   ],
+  dominada: [[/asistid/, 'dominada_asistida']],
 }
 
 const SIN_PATRON =

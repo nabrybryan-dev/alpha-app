@@ -240,7 +240,7 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
 })
 
 describe('quién declara con qué se hace el ejercicio', () => {
-  it('de los 91 ejemplos del catálogo, 89 declaran implemento y 2 no', () => {
+  it('de los 93 ejemplos del catálogo, 91 declaran implemento y 2 no', () => {
     // El otro barrido cuenta quién tiene SUJETO; este cuenta quién tiene IMPLEMENTO, que es
     // lo que decide si además se le puede dibujar una flecha de fuerza. Un patrón con cuerpo
     // y sin implemento se ve moverse y no se puede medir.
@@ -257,7 +257,7 @@ describe('quién declara con qué se hace el ejercicio', () => {
     //     «Face pull EN POLEA», «Peso muerto parcial CON BARRA desde rack».
     const ejemplos = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
     const sin = ejemplos.filter((n) => !implementoDe(n))
-    expect(ejemplos).toHaveLength(91)
+    expect(ejemplos).toHaveLength(93)
     expect(sin).toHaveLength(2)
   })
 
