@@ -56,7 +56,7 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 67 categorías y le salen 64 con patrón y 3 sin sujeto', () => {
+  it('recorre 72 categorías y le salen 69 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron ese día son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
@@ -77,8 +77,10 @@ describe('el barrido de categorías', () => {
     const reparto = repartir(categoriasDelRepo())
     // Y la 64 es FACE PULL (2026-09-07, tarde): de pie, cuerda desde arriba, con la flexión
     // de codo integrada en la rotación externa y la abducción horizontal, que Bryan pidió.
-    expect(reparto.casos).toHaveLength(67)
-    expect(reparto.conPatron).toHaveLength(64)
+    // Y de la 65 a la 69, el cardio (2026-09-07, tarde): caminata, carrera, escaladora,
+    // bicicleta y elíptica, que Bryan pidió con sujeto. Cambio de decisión, no deriva.
+    expect(reparto.casos).toHaveLength(72)
+    expect(reparto.conPatron).toHaveLength(69)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
@@ -119,28 +121,28 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     expect(reparto.sinPatron).toHaveLength(0)
   })
 
-  it('las 159 familias de nombre de producción: 149 con sujeto y 10 sin', () => {
+  it('las 159 familias de nombre de producción: 153 con sujeto y 6 sin', () => {
+    // 153 desde el 2026-09-07: cuatro familias de cardio de la cartera —cinta o elíptica en
+    // zona 2, bicicleta, caminadora, escaladora— tienen sujeto desde que Bryan lo pidió.
     // 2026-09-06: eran 140 y 19. Las diez que entraron son las seis de PREV/REHAB, las
     // dos de EXTENSIÓN LUMBAR, el 90/90 y el swing —que es una bisagra de cadera
     // lanzada y compartía categoría con la cinta sin compartir nada más—.
     //
-    // De las diez que quedan, NUEVE son cardio y quedarse fuera es lo CORRECTO: no hay gesto
-    // resistido que enseñar en una elíptica. La diferencia con antes es que ahora está
-    // declarado en `SIN_PATRON` en vez de caerse por no encajar en ninguna regla.
+    // De las seis que quedan, CUATRO son cardio SIN modalidad o sin ficha —«CARDIO» a
+    // secas, HIIT, TABATA, ERGÓMETRO— y quedarse fuera es lo correcto: no hay gesto que
+    // enseñar sin saber sobre qué se corre, y el ergómetro de remo no tiene ficha todavía.
+    // Bicicleta, cinta, escaladora y elíptica SALIERON de esta lista el 2026-09-07, cuando
+    // Bryan pidió el cardio con sujeto; hasta entonces estaban aquí por decisión suya.
     //
-    // La décima es el TRINEO, y no está por la misma razón: un empuje de trineo sí es un
-    // gesto enseñable, lo que no tiene es ficha. Hasta el 2026-09-06 caía en la lista por
-    // nombre y le salía el muñeco del SALTO — un patrón EQUIVOCADO, que es peor que ninguno
-    // porque no se ve venir. Decisión de Bryan: antes sin muñeco que con el de otro.
+    // La quinta es el CIRCUITO, y la sexta el TRINEO: un empuje de trineo sí es un gesto
+    // enseñable, lo que no tiene es ficha. Hasta el 2026-09-06 caía en la lista por nombre y
+    // le salía el muñeco del SALTO — un patrón EQUIVOCADO, que es peor que ninguno porque no
+    // se ve venir. Decisión de Bryan: antes sin muñeco que con el de otro.
     const reparto = repartir(ejerciciosDeProduccion())
     expect(reparto.casos).toHaveLength(159)
-    expect(reparto.conPatron).toHaveLength(149)
+    expect(reparto.conPatron).toHaveLength(153)
     expect(reparto.sinPatron.map((c) => `${c.categoria} · ${c.nombre}`)).toEqual([
       'ACONDICIONAMIENTO · CARDIO',
-      'ACONDICIONAMIENTO · BICICLETA',
-      'ACONDICIONAMIENTO · CINTA',
-      'ACONDICIONAMIENTO · ESCALADORA',
-      'ACONDICIONAMIENTO · ELIPTICA',
       'ACONDICIONAMIENTO · HIIT',
       'ACONDICIONAMIENTO · CIRCUITO',
       'ACONDICIONAMIENTO · TABATA',
@@ -271,7 +273,10 @@ describe('quién declara con qué se hace el ejercicio', () => {
     //   · Por APELLIDO, poniéndoselo al ejemplo, que es lo correcto cuando el gesto admite
     //     varios implementos y aquí se elige uno para dibujarlo: «Press militar CON BARRA»,
     //     «Face pull EN POLEA», «Peso muerto parcial CON BARRA desde rack».
-    const ejemplos = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
+    // LAS FICHAS CÍCLICAS NO ENTRAN EN ESTE RECUENTO: el cardio no lleva carga, así que no
+    // tiene implemento de carga ni flecha de fuerza que dibujar, y contarlo aquí sería
+    // contar como hueco lo que es la naturaleza del ejercicio. La cinta la pone la escena.
+    const ejemplos = PATRONES.filter((p) => !p.ciclo).flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
     const sin = ejemplos.filter((n) => !implementoDe(n))
     // 96 desde el 2026-09-06: los tres de la ficha de PRENSA; 99 desde el 2026-09-07, los
     // tres de la apertura inversa en máquina. Todos declaran implemento, así que los que no
@@ -294,7 +299,7 @@ describe('quién declara con qué se hace el ejercicio', () => {
     // el mundo. El día que se le declare implemento hay que medirla contra la pelvis.
     //
     // Va clavado para que nadie cierre el hueco adivinando.
-    const sin = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim())).filter(
+    const sin = PATRONES.filter((p) => !p.ciclo).flatMap((p) => p.ejemplos.split('·').map((e) => e.trim())).filter(
       (n) => !implementoDe(n),
     )
     expect(sin.sort()).toEqual(['Maleta', 'Paseo del granjero a una mano'])
@@ -305,13 +310,13 @@ describe('quién declara con qué se hace el ejercicio', () => {
     expect(ejerciciosDelSeed().filter((c) => !implementoDe(c.nombre ?? ''))).toHaveLength(0)
     // Y del catálogo, el PRIMER ejemplo es el que decide con qué se dibuja el patrón en el
     // salón. Solo uno se queda sin: el paseo del granjero, y a propósito — ver arriba.
-    const fichas = PATRONES.filter((p) => !implementoDe(p.ejemplos.split('·')[0].trim()))
+    const fichas = PATRONES.filter((p) => !p.ciclo && !implementoDe(p.ejemplos.split('·')[0].trim()))
     expect(fichas.map((p) => p.id)).toEqual(['antiflexion_lateral'])
   })
 })
 
 describe('quién tiene modelo mecánico, y por tanto flechas de fuerza', () => {
-  it('de las 149 familias con sujeto, solo 3 se quedan sin plan de medida', () => {
+  it('de las 149 familias con sujeto y carga, solo 3 se quedan sin plan de medida', () => {
     // El tercer barrido. Tener sujeto no basta: sin modelo mecánico el salón dibuja el
     // cuerpo moviéndose y NI UNA SOLA FLECHA, que es la mitad de lo que se prometió.
     //
@@ -323,7 +328,12 @@ describe('quién tiene modelo mecánico, y por tanto flechas de fuerza', () => {
     //
     // Las tres que quedan son MOVILIDAD, cuyo modelo está escrito `null` a propósito: una
     // movilidad no tiene carga contra la que medir palanca. Eso no es un hueco.
-    const conSujeto = ejerciciosDeProduccion().filter((c) => patronDeCategoria(c.categoria, c.nombre))
+    // LAS FICHAS CÍCLICAS NO ENTRAN (2026-09-07): el cardio no lleva carga, así que no hay
+    // palanca que medir ni flecha que dibujar. Es la naturaleza del ejercicio, no un hueco.
+    const conSujeto = ejerciciosDeProduccion().filter((c) => {
+      const p = patronDeCategoria(c.categoria, c.nombre)
+      return p !== undefined && !p.ciclo
+    })
     const sinPlan = conSujeto.filter((c) => {
       const p = patronDeCategoria(c.categoria, c.nombre)!
       return !planDeMedida(p.categoria, c.nombre ?? '')
