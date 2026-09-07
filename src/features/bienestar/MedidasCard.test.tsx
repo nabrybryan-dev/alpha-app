@@ -49,7 +49,7 @@ function etiquetasDeLosCampos(): string[] {
     const etiqueta = campo.closest('label')?.querySelector('span')
     // Solo los nodos de TEXTO sueltos del `span`: la ayuda de cómo se mide cuelga de un
     // `span` de dentro y no es parte de la etiqueta.
-    const sueltos = [...(etiqueta?.childNodes ?? [])]
+    const sueltos = Array.from(etiqueta?.childNodes ?? [])
       .filter((n) => n.nodeType === Node.TEXT_NODE)
       .map((n) => n.textContent ?? '')
       .join('')

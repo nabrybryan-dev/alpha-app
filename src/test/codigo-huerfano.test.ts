@@ -291,6 +291,18 @@ const HUERFANOS_DE_ENTRENAR: Record<string, string> = {
   // no puede pintar puntos y esta función no tiene a quién dárselos.
   'src/features/entrenar/encoder/historial.ts#tomasDeLasSeries':
     'Historial del encoder sin fuente de datos hasta que juzgarColocacion.ts llegue a esta rama.',
+
+  // LA VELOCIDAD DE LA DEMOSTRACIÓN, construida y sin gesto todavía. El mando del tiempo
+  // se pidió con tres palancas —pausar, ir a fase y velocidad— y las dos primeras ya las
+  // usa el disco del salón (`salon/mando/Joystick.tsx`). Para la tercera hace falta
+  // decidir un gesto, y un gesto se decide con una mano encima de un teléfono, no aquí.
+  // Se deja construida y probada por el tipo porque la parte difícil es que cambiar la
+  // velocidad NO dé un salto en mitad del gesto, y eso ya está resuelto y escrito en
+  // `docs/specs/2026-09-08-tiempo-de-la-repeticion.md`.
+  'src/features/entrenar/visor/controlDelTiempo.ts#ponerLaVelocidad':
+    'Palanca del mando del tiempo a la espera de gesto; ver el spec de 2026-09-08.',
+  'src/features/entrenar/visor/controlDelTiempo.ts#laVelocidad':
+    'Palanca del mando del tiempo a la espera de gesto; ver el spec de 2026-09-08.',
 }
 
 const huerfanosEntrenar = buscarHuerfanos({
