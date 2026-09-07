@@ -98,9 +98,10 @@ $ npx vitest run src/features/entrenar/salon/mando/tiempoDeLaRepeticion.test.tsx
  ✓ aguantar el disco para la demostración y el dedo la lleva de 0 a 1 y de vuelta
  ✓ el descanso y el reloj de sesión valen lo mismo antes y después
  ✓ un tirón corto sigue cambiando lo que cuenta la pared, y no toca la repetición
+ ✓ si el salón se cierra con el dedo puesto, la demostración no se queda congelada
  ✓ el recorrido empieza donde está el sujeto, no en el principio del gesto
  Test Files  1 passed (1)
-      Tests  4 passed (4)
+      Tests  5 passed (5)
 
 $ npx vitest run src/features/entrenar/salon/salon.test.tsx
  Test Files  1 passed (1)
@@ -110,6 +111,13 @@ $ npx vitest run src/features/entrenar/salon/salon.test.tsx
 La primera prueba mide el recorrido en 24 pasos —doce de ida y doce de vuelta— y exige
 que ningún salto pase de 0,1 de fase: un recorrido a trompicones no sirve para lo que se
 quiere, que es pararse en el punto donde el codo pasa por 90°.
+
+La cuarta se vio fallar a propósito antes de darla por buena: quitando la limpieza del
+desmontaje del `Joystick`, `expected true to be false`. Cubre el caso que dejaría la peor
+avería posible y muda —el salón se cierra con el dedo todavía encima, `alSoltarDedo` no
+corre nunca, y como el mando del tiempo es de módulo y sobrevive al componente, el
+siguiente que abriera el salón vería un sujeto congelado sin un solo error en ninguna
+parte.
 
 La tercera existe para que la segunda signifique algo: si el instrumento no supiera mover
 el rótulo del muro, «vale lo mismo antes y después» sería verde en vacío. Con un tirón

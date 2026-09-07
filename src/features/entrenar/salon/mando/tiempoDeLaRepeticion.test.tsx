@@ -189,6 +189,22 @@ describe('el tiempo de la repetición, desde el disco', () => {
     await waitFor(() => expect(rotuloDelMuro()).toBe(rotuloDelModo('descanso')))
   })
 
+  it('si el salón se cierra con el dedo puesto, la demostración no se queda congelada', async () => {
+    // Se navega a otra pestaña sin levantar el dedo: `alSoltarDedo` no corre nunca. Como
+    // el mando del tiempo es de módulo y sobrevive al componente, sin la limpieza del
+    // desmontaje el siguiente que abriera el salón vería un sujeto parado para siempre.
+    const { unmount } = renderizarEntrenar()
+    const disco = await esperarAlDisco()
+    dedo(disco, 'pointerdown', 200, 600)
+    act(() => {
+      vi.advanceTimersByTime(ESPERA_DEL_RECORRIDO + 40)
+    })
+    expect(repeticionPausada()).toBe(true)
+
+    unmount()
+    expect(repeticionPausada()).toBe(false)
+  })
+
   it('el recorrido empieza donde está el sujeto, no en el principio del gesto', async () => {
     renderizarEntrenar()
     const disco = await esperarAlDisco()

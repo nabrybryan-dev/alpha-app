@@ -94,9 +94,32 @@ export function Joystick({
   const recorriendo = useRef(false)
   const faseAlAgarrar = useRef(0)
 
-  // El temporizador se limpia al desmontar: un salón que se cierra a mitad de una espera
-  // no puede dejar un `setTimeout` vivo que pause una demostración que ya no existe.
-  useEffect(() => () => window.clearTimeout(espera.current), [])
+  /**
+   * Al desmontar se limpia el temporizador Y se devuelve el tiempo si estaba tomado.
+   *
+   * Lo segundo no sobra: si el salón se cierra con el dedo todavía encima —se navega a
+   * otra pestaña sin levantarlo—, `alSoltarDedo` no llega a correr nunca y la
+   * demostración se queda pausada PARA SIEMPRE, porque el mando del tiempo es de módulo y
+   * sobrevive al componente. El siguiente que abriera el salón vería un sujeto congelado
+   * y ningún error en ninguna parte.
+   *
+   * El aviso va por referencia porque el efecto se declara con dependencias vacías: sin
+   * ella se llamaría al primer `onSoltarElTiempo` que hubo, no al de ahora.
+   */
+  const soltarElTiempoRef = useRef(onSoltarElTiempo)
+  useEffect(() => {
+    soltarElTiempoRef.current = onSoltarElTiempo
+  }, [onSoltarElTiempo])
+  useEffect(
+    () => () => {
+      window.clearTimeout(espera.current)
+      if (recorriendo.current) {
+        recorriendo.current = false
+        soltarElTiempoRef.current?.()
+      }
+    },
+    [],
+  )
 
   const pintar = (x: number, y: number, suave: boolean) => {
     const nodo = disco.current
