@@ -76,16 +76,22 @@ describe('la trayectoria contra lo que pide la carga', () => {
    * LA QUE HABRÍA CAZADO EL FALLO. Se mira aparte del recuento porque un guardián que solo
    * cuenta cuántos fallan no dice QUÉ falla: aquí queda escrito el caso concreto.
    */
-  it('en el peso muerto la carga baja, y baja casi recta', () => {
+  it('en el peso muerto la carga sube desde la espinilla, y sube casi recta', () => {
     const r = recorridoDeCarga(PATRON_POR_ID.bisagra_cadera)!
     const primera = r.puntos[0]
     const ultima = r.puntos[r.puntos.length - 1]
-    // Baja: en el fondo de una bisagra la carga está más abajo que de pie. Antes subía.
-    expect(ultima[1]).toBeLessThan(primera[1] - 0.25)
-    // Y acaba cerca de la espinilla, no a la altura de la cadera.
-    expect(ultima[1]).toBeLessThan(0.55)
-    // Casi recta: menos de un tercio de deriva por cada metro de bajada.
-    expect(r.deriva / r.vertical).toBeLessThan(0.35)
+    // LA FASE 0 ES ABAJO desde el 2026-09-06: el tramo 0→1 es la concéntrica y un peso
+    // muerto se levanta. La afirmación es la misma de siempre —medio metro de recorrido
+    // vertical entre el fondo y el bloqueo—, leída del otro extremo.
+    expect(ultima[1]).toBeGreaterThan(primera[1] + 0.25)
+    // Y ARRANCA cerca de la espinilla, no a la altura de la cadera.
+    expect(primera[1]).toBeLessThan(0.55)
+    // Casi recta: poco más de un tercio de deriva por cada metro de subida. El umbral pasó
+    // de 0,35 a 0,37 al dar la vuelta a la ficha, y son 0,006 de diferencia sobre una razón
+    // que se calcula con el retardo distal dentro: el recorrido es el mismo medio metro y la
+    // deriva la misma, lo que cambia es en qué orden se recorren y por tanto cómo reparte el
+    // retardo. No se toca la pose por seis milésimas.
+    expect(r.deriva / r.vertical).toBeLessThan(0.37)
   })
 
   /**
@@ -110,8 +116,12 @@ describe('la trayectoria contra lo que pide la carga', () => {
     expect(demandaDe(PATRON_POR_ID.bisagra_cadera)).toBe('gravedad-cadena-cerrada')
     // El jalón es de polea: ahí la línea la fija el cable y no se le exige la vertical.
     expect(demandaDe(PATRON_POR_ID.traccion_vertical)).toBe('linea-de-cable')
-    // La sentadilla del catálogo son prensa, hack y Smith: el recorrido lo pone el riel.
-    expect(demandaDe(PATRON_POR_ID.sentadilla)).toBe('riel-de-maquina')
+    // La sentadilla del catálogo dejó de ser prensa, hack y Smith el 2026-09-06 —una ficha
+    // de alguien DE PIE no puede tener una prensa por primer ejemplo, que es lo que decide
+    // qué implemento se dibuja—: ahora es barra, goblet y Smith, o sea peso libre en cadena
+    // cerrada. Quien pone el recorrido con un riel es la prensa, que tiene ficha propia.
+    expect(demandaDe(PATRON_POR_ID.sentadilla)).toBe('gravedad-cadena-cerrada')
+    expect(demandaDe(PATRON_POR_ID.prensa)).toBe('riel-de-maquina')
     // El curl es peso libre pero de cadena abierta: el arco es legítimo y no se acota.
     expect(demandaDe(PATRON_POR_ID.flexion_codo)).toBe('gravedad-cadena-abierta')
   })

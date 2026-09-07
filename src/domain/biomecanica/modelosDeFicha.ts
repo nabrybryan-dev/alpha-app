@@ -60,6 +60,54 @@ function mecanicaDeLaDominada(): ModeloDePalanca {
  * y eso cambia cómo se cuenta el volumen de todo el mundo. Esa decisión es de Bryan.
  */
 export const MODELOS_DE_FICHA: Readonly<Record<string, ModeloDePalanca>> = {
+  /**
+   * LA PRENSA, que nace con ficha propia el 2026-09-06.
+   *
+   * Comparte los tres ejes de la sentadilla —es el mismo gesto— y se separa en lo único que
+   * de verdad la distingue: el tronco no sostiene nada. Ahí está su valor y su límite, y por
+   * eso el modelo va aparte en vez de heredar el de SENTADILLA: el anclaje es el respaldo,
+   * no el suelo, y la línea la fija el raíl y no la vertical.
+   */
+  PRENSA: {
+    patron: 'SENTADILLA',
+    cadena: 'cerrada',
+    anclaje: 'la espalda contra el respaldo y los pies contra el carro',
+    segmentosMoviles: ['muslo', 'pierna'],
+    referencia: 'vertical',
+    vista: 'lateral',
+    ejes: [
+      M(
+        'rodilla',
+        'principal',
+        'extension',
+        ['Cuádriceps'],
+        [40, 50],
+        'Con la espalda apoyada, la rodilla se lleva más proporción del trabajo que en una ' +
+          'sentadilla libre: no hay tronco que sostener ni equilibrio que gastar.',
+      ),
+      M('cadera', 'principal', 'extension', ['Glúteos', 'Aductores'], [50, 70]),
+      M('tobillo', 'estabilizador', 'isometrico', ['Pantorrillas'], [40, 55]),
+    ],
+    linea: {
+      origen: 'carga-externa',
+      nota:
+        'El carro corre por un raíl a 45°, así que la fuerza NO va hacia abajo: va a lo ' +
+        'largo del raíl. Es la dirección que ninguna vertical describe.',
+    },
+    marcas: ['tobillo', 'rodilla', 'cadera'],
+    alineacion: {
+      regla: 'la cadera pegada al asiento en todo el recorrido',
+      toleranciaMm: 25,
+      porQue:
+        'El fallo de la prensa tiene nombre: bajar hasta que la pelvis se enrolla y despega ' +
+        'del respaldo. Ahí la carga deja de ir por las piernas y pasa por la lumbar.',
+    },
+    limite:
+      'el raíl fija la dirección de la fuerza, así que el brazo de momento NO sale de la ' +
+      'distancia horizontal a la vertical de la carga: sale de la distancia al raíl. Y el ' +
+      'peso de las placas no es el peso que llega al pie: el ángulo del raíl lo reparte',
+  },
+
   'POTENCIA · REACTIVA': {
     patron: 'SENTADILLA',
     cadena: 'cerrada',

@@ -283,7 +283,9 @@ export function resolverConApoyo(
 ): EsqueletoResuelto {
   const conPies = pies.length ? apoyarPies(pose, desplazamiento, giroRaiz, pies, huesos) : pose
   const esq = resolver(conPies, desplazamiento, giroRaiz, huesos)
-  if (apoyo === 'ninguno') return esq
+  if (apoyo === 'ninguno') {
+    return sobreElSuelo(esq, conPies, desplazamiento, giroRaiz, huesos, altura ?? 0)
+  }
   const sondas = SONDAS[apoyo]
   if (!sondas) return esq
 
@@ -322,6 +324,63 @@ export function resolverConApoyo(
   return resolver(
     conPies,
     [desplazamiento[0] - cx, desplazamiento[1] + (objetivo - y), desplazamiento[2] - cz],
+    giroRaiz,
+    huesos,
+  )
+}
+
+/**
+ * NADA POR DEBAJO DEL SUELO, cuando no hay ningún apoyo que anclar.
+ *
+ * `apoyo: 'ninguno'` —sentado, tumbado, en una máquina— no corregía la altura: la ponía a
+ * mano `raizInicio`, y el sujeto quedaba donde ese número lo dejara. Medido el 2026-09-06
+ * sobre el catálogo entero con `scripts/medir-resistencia.mjs`, **nueve patrones tenían los
+ * pies entre 2,5 y 6 cm bajo la goma del suelo**: los dos de muñeca, la rotación de cadera,
+ * la extensión de rodilla, el jalón, la plancha, el press inclinado, el crunch y la
+ * movilidad torácica. No se veía como un fallo de altura sino como un suelo mal dibujado.
+ *
+ * Solo SUBE, nunca baja, y esa asimetría es deliberada:
+ *
+ * - Subir arregla un pie hundido y no rompe nada, porque los muebles de estos patrones se
+ *   construyen CONTRA EL CUERPO (`banco.ts`): al subir el sujeto, su banco sube con él.
+ * - Bajar sería otra cosa. Alguien tumbado con los pies a 15 cm del suelo no está mal
+ *   dibujado: está en un banco alto. Bajarlo hasta tocar el suelo metería el banco dentro.
+ *
+ * Y no se aplica con `suelo` ni con `manos` a propósito: ahí SÍ hay un punto anclado, y
+ * subir el cuerpo entero para salvar una rodilla despegaría el pie que estaba plantado.
+ * Cuando algo se hunde en un patrón de pie, lo que está mal es la pose —fue el caso de la
+ * búlgara, cuya rodilla trasera llegaba a 7,5 cm bajo el suelo— y se arregla en la ficha.
+ */
+function sobreElSuelo(
+  esq: EsqueletoResuelto,
+  pose: Pose,
+  desplazamiento: Vec3,
+  giroRaiz: Vec3,
+  huesos: readonly DefinicionHueso[],
+  objetivo: number,
+): EsqueletoResuelto {
+  const planta = plantaDe(huesos)
+  let masBajo = Infinity
+  for (const hueso of huesos) {
+    const esPie = hueso.nombre.startsWith('pie')
+    for (const t of [0, 0.5, 1]) {
+      masBajo = Math.min(masBajo, puntoDeHueso(esq, hueso.nombre, t)[1])
+      // EL PIE SE MIDE DOS VECES, y esto no es redundancia. La planta está 7,5 cm por el
+      // +Z LOCAL del hueso, que apunta hacia abajo solo mientras el pie esté horizontal;
+      // en flexión plantar —una plancha de puntillas, una elevación de talones— apunta
+      // hacia atrás, y entonces el punto de contacto ya no es la planta sino la punta del
+      // propio hueso. Se toma el menor de los dos y se acabó el caso especial.
+      if (esPie) {
+        masBajo = Math.min(masBajo, puntoDeHueso(esq, hueso.nombre, t, [0, 0, planta])[1])
+      }
+    }
+  }
+  // Medio milímetro de margen: por debajo de eso es ruido de coma flotante, y volver a
+  // resolver el esqueleto entero por medio milímetro cuesta más de lo que arregla.
+  if (!(masBajo < objetivo - 0.0005)) return esq
+  return resolver(
+    pose,
+    [desplazamiento[0], desplazamiento[1] + (objetivo - masBajo), desplazamiento[2]],
     giroRaiz,
     huesos,
   )

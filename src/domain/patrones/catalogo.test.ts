@@ -345,6 +345,18 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
 })
 
 describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
+  /**
+   * ARRIBA ES LA FASE 1 Y ABAJO LA 0, y desde el 2026-09-06 no al revés.
+   *
+   * El repo declara que el tramo 0→1 es la concéntrica —1,2 s con punto de atasco frente a
+   * 1,9 s «bajando frenando»—, así que la sentadilla, la bisagra y la búlgara se dieron la
+   * vuelta: antes arrancaban de pie y caían durante la fase que se supone que empuja. Lo
+   * que estas tres pruebas afirman del GESTO no cambia ni una coma; lo que cambia es de
+   * qué extremo se lee cada cosa.
+   */
+  const ABAJO = 0
+  const ARRIBA = 1
+
   /** Dónde queda cada punto respecto al tobillo, en centímetros. +Z va delante. */
   const respectoAlTobillo = (patron: Patron, fase: number) => {
     const pies: Lado[] = patron.pies ?? (patron.apoyo === 'suelo' ? ['D', 'I'] : [])
@@ -362,8 +374,8 @@ describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
     // adelante como quien recoge algo del suelo, que es justo lo que no se
     // quiere enseñar.
     const p = PATRON_POR_ID['bisagra_cadera']
-    const arriba = respectoAlTobillo(p, 0)
-    const abajo = respectoAlTobillo(p, 1)
+    const arriba = respectoAlTobillo(p, ARRIBA)
+    const abajo = respectoAlTobillo(p, ABAJO)
     expect(abajo.cadera, 'la cadera no retrocede').toBeLessThan(arriba.cadera - 8)
     // Y la tibia se queda vertical: la rodilla no se adelanta.
     expect(Math.abs(abajo.rodilla), 'la rodilla se adelanta').toBeLessThan(5)
@@ -373,8 +385,8 @@ describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
     // Aquí sí se adelanta la rodilla: es lo que distingue una sentadilla de una
     // bisagra, y por eso una carga el cuádriceps y la otra los isquios.
     const p = PATRON_POR_ID['sentadilla']
-    const arriba = respectoAlTobillo(p, 0)
-    const abajo = respectoAlTobillo(p, 1)
+    const arriba = respectoAlTobillo(p, ARRIBA)
+    const abajo = respectoAlTobillo(p, ABAJO)
     expect(abajo.cadera).toBeLessThan(arriba.cadera - 15)
     expect(abajo.rodilla).toBeGreaterThan(arriba.rodilla + 8)
   })
@@ -382,8 +394,8 @@ describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
   it('separa la bisagra de la sentadilla por dónde va la rodilla', () => {
     // Si las dos adelantaran la rodilla, el visor estaría enseñando el mismo
     // gesto dos veces con nombres distintos.
-    const bisagra = respectoAlTobillo(PATRON_POR_ID['bisagra_cadera'], 1)
-    const sentadilla = respectoAlTobillo(PATRON_POR_ID['sentadilla'], 1)
+    const bisagra = respectoAlTobillo(PATRON_POR_ID['bisagra_cadera'], ABAJO)
+    const sentadilla = respectoAlTobillo(PATRON_POR_ID['sentadilla'], ABAJO)
     expect(sentadilla.rodilla - bisagra.rodilla).toBeGreaterThan(12)
   })
 })

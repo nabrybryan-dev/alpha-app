@@ -71,7 +71,14 @@ const DE_ANTES = {
   // sea el TEMPO, que es justo uno de los dos motivos que el comentario de arriba admite.
   // Las dos huellas son de una pose A MEDIA repetición, así que dependen de cómo se llega
   // de una pose a otra; las de pose vacía, que no dependen del tempo, están intactas.
-  sentadillaAMedias: '287994a218d0aa3d6e20ad3ab5d4ff7d71256e81c3d4d8ec2ca219f580dc8b02',
+  //
+  // Y LA DE LA SENTADILLA, otra vez esa misma noche, por el segundo motivo que el
+  // comentario admite: la ficha se dio la vuelta —la fase 0 pasó a ser el fondo, porque el
+  // tramo 0→1 es la concéntrica y de una sentadilla se sube— y con ella se retocó la pose
+  // de en medio, que es exactamente la que esta huella fotografía. La de la banca, que no
+  // se tocó, sigue siendo la misma: es lo que dice que el cambio fue de la ficha y no del
+  // motor.
+  sentadillaAMedias: 'f78afe1b40369c55cfa7f1a853c302b810628c2c7438c6ba147558a99832eecf',
   bancaAUnCuarto: '12c2d7e09afb0097d614aab48122d0461939185a381754049662db00c6b2f384',
   mallaPosiciones: '937e6ef37abad1c9f8d7984cf97f950ceea8b5d011bc53065a4e3a6aa42dc735',
   mallaNormales: '49a584d7433163348e5aa09f6f3b980bb6c85b31041ad4100514cded0192cebc',

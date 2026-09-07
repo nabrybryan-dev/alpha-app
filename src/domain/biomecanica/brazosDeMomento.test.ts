@@ -34,8 +34,10 @@ describe('brazosDeMomento', () => {
     const planBisagra = planDeMedida(bisagra.categoria, 'Peso muerto rumano')!
     const de = (fase: number, art: string) =>
       brazosDeMomento(esqueletoEnFase(bisagra, fase), planBisagra).find((x) => x.articulacion === art)!.metros
-    expect(de(1, 'lumbar')).toBeGreaterThan(de(0, 'lumbar') + 0.03)
-    expect(de(1, 'cadera')).toBeGreaterThan(de(0, 'cadera'))
+    // EL FONDO ES LA FASE 0 desde el 2026-09-06: el tramo 0→1 es la concéntrica, y un peso
+    // muerto se levanta en la concéntrica. Lo que se afirma del gesto no cambia.
+    expect(de(0, 'lumbar')).toBeGreaterThan(de(1, 'lumbar') + 0.03)
+    expect(de(0, 'cadera')).toBeGreaterThan(de(1, 'cadera'))
   })
 
   it('el curl de muñeca tiene palanca, y la tiene máxima a media flexión', () => {

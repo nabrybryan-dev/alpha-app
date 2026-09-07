@@ -23,25 +23,35 @@ describe('el retardo distal', () => {
   it('hace que la rodilla vaya por detrás de la cadera a media repetición', () => {
     const p = PATRON_POR_ID.sentadilla
     const { pose } = poseAnimada(p, 0.5, 1, 0)
-    // A mitad de bajada la rodilla todavía no ha llegado a donde le tocaría si
-    // ambas articulaciones se interpolaran con la misma fase.
+    // A media repetición la rodilla todavía no ha llegado a donde le tocaría si ambas
+    // articulaciones se interpolaran con la misma fase. Se mide como AVANCE desde el
+    // arranque y no como «menor que», porque el canal no siempre crece: desde el
+    // 2026-09-06 la fase 0 de la sentadilla es el fondo, así que la rodilla va de 139° a
+    // 4° y «ir por detrás» significa haber estirado menos, no valer menos.
+    const arranque = p.inicio.rodillaFlex ?? 0
     const rodillaSinRetardo = canalEnFase(p, 'rodillaFlex', 0.5)
-    expect(pose.rodillaFlex).toBeLessThan(rodillaSinRetardo)
+    expect(Math.abs(pose.rodillaFlex - arranque)).toBeLessThan(
+      Math.abs(rodillaSinRetardo - arranque),
+    )
   })
 
   it('cambia de signo al bajar, porque el retardo es en el tiempo', () => {
     const p = PATRON_POR_ID.sentadilla
-    const subiendo = poseAnimada(p, 0.5, 1, 0).pose.rodillaFlex
-    const bajando = poseAnimada(p, 0.5, -1, 0).pose.rodillaFlex
-    expect(bajando).toBeGreaterThan(subiendo)
+    const arranque = p.inicio.rodillaFlex ?? 0
+    // Subiendo, lo distal va por detrás; bajando, por delante. Otra vez en avance: lo que
+    // se afirma es que el retardo se INVIERTE, y eso no depende del signo del canal.
+    const subiendo = poseAnimada(p, 0.5, 1, 0).pose.rodillaFlex - arranque
+    const bajando = poseAnimada(p, 0.5, -1, 0).pose.rodillaFlex - arranque
+    expect(Math.abs(bajando)).toBeGreaterThan(Math.abs(subiendo))
   })
 })
 
 describe('las capas de movimiento', () => {
   it('mantiene la cabeza mirando al frente cuando el tronco se inclina', () => {
     // La bisagra lleva el tronco casi horizontal; sin compensar, la mirada
-    // acabaría clavada en el suelo.
-    const { pose } = poseAnimada(PATRON_POR_ID.bisagra_cadera, 1, 1, 0)
+    // acabaría clavada en el suelo. **En la fase 0**, que desde el 2026-09-06 es la de
+    // abajo: el tramo 0→1 es la concéntrica y el peso muerto se levanta, no se deja caer.
+    const { pose } = poseAnimada(PATRON_POR_ID.bisagra_cadera, 0, 1, 0)
     expect(pose.cuelloFlex).toBeLessThan(-20)
   })
 

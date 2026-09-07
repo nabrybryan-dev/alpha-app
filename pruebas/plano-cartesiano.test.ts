@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PATRONES } from '../src/domain/patrones/catalogo'
+import { PATRONES, PATRON_POR_ID } from '../src/domain/patrones/catalogo'
 import { CATEGORIAS } from '../src/domain/taxonomia'
 import { poseAnimada } from '../src/domain/patrones/movimiento'
 import { duracionDelCiclo, faseDeTiempo } from '../src/domain/patrones/escena'
@@ -89,10 +89,26 @@ describe('las cinco fichas nuevas, en el plano', () => {
     // entero hay que pedir más del que se quiere ver.
     expect(eje(flexion)!.recorrido).toBeGreaterThan(90)
     expect(eje(extension)!.recorrido).toBeGreaterThan(90)
-    // El signo es lo que las distingue: una va de extendida a flexionada y la otra al
-    // revés. Sin esto serían la misma ficha con dos nombres.
+    // LAS DOS SUBEN LA MANO, y desde el 2026-09-06 eso es correcto y hay que explicarlo.
+    //
+    // El curl inverso iba de flexionada a extendida, o sea la mano BAJANDO en el tramo 0→1
+    // que el repo llama concéntrica: coseno +0,99 contra la gravedad, la carga cayendo en la
+    // fase en la que se supone que se levanta. Se dio la vuelta.
+    //
+    // Lo que ahora las separa no es el signo del canal sino el antebrazo, y el rig no lo
+    // sabe girar: en un curl inverso la palma va ABAJO, así que «mano colgando» y «mano
+    // arriba» son los mismos dos extremos recorridos desde el otro lado del antebrazo. Se
+    // probó poner `antebrazoRot: 180` en los dos patrones y el coseno no se movió ni una
+    // centésima, porque `poseAEuler` recompone la rotación de la mano desde la abducción del
+    // hombro y ahí se pierde el giro del padre. Deuda declarada, en `catalogo.ts`.
+    //
+    // Así que lo que se afirma es lo que hoy es verdad: los dos recorren su rango entero y
+    // los dos SUBEN la carga cuando toca empujar. Lo que las distingue en pantalla es la
+    // musculatura que se enciende, y eso sí se comprueba —abajo, con la activación.
     expect(eje(flexion)!.hasta).toBeGreaterThan(eje(flexion)!.desde)
-    expect(eje(extension)!.hasta).toBeLessThan(eje(extension)!.desde)
+    expect(eje(extension)!.hasta).toBeGreaterThan(eje(extension)!.desde)
+    expect(Object.keys(PATRON_POR_ID.flexion_muneca.activacion)[0]).toBe('flexores_carpo')
+    expect(Object.keys(PATRON_POR_ID.extension_muneca.activacion)[0]).toBe('extensores_carpo')
   })
 
   it('cada ficha nueva tiene articulación motora, y no es una cualquiera', () => {

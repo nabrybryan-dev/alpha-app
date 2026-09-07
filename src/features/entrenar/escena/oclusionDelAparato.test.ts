@@ -39,7 +39,20 @@ describe('el aparato que tapa a la persona', () => {
    * la volviera «placas → translúcida siempre», esto se pone rojo.
    */
   it('la misma máquina de placas NO tapa en el remo ni en la elevación de talones: no se vuelve translúcida', () => {
-    expect(parteDelCuerpoTapada(PATRON_POR_ID.traccion_horizontal, aparatoDe('traccion_horizontal', 'Remo en máquina'))).toBe(0)
+    // EL REMO PASÓ DE 0 A 7,1 % el 2026-09-06, y no es un empeoramiento: es que la máquina
+    // se movió al sitio que le toca. Hasta ese día la de placas se plantaba SIEMPRE detrás
+    // del sujeto con un número escrito a mano, y por eso desde el ángulo del remo no tapaba
+    // nada: estaba a la espalda del que rema, tirando en la misma dirección en la que él
+    // tiraba. Ahora se coloca contra el gesto —delante de quien rema, que es donde está la
+    // pila de un remo de verdad— y desde ahí se le cruza por delante un 7,1 % del cuerpo.
+    //
+    // Sigue por debajo del 8 % del umbral, así que la regla que este test protege se
+    // mantiene entera: **no es «placas → translúcida siempre»**. Pero va justo: si alguien
+    // toca la colocación y esto se pone rojo, lo que hay que mirar es si el aparato empezó a
+    // taparle la cara al sujeto, no si el umbral se quedó corto.
+    expect(
+      parteDelCuerpoTapada(PATRON_POR_ID.traccion_horizontal, aparatoDe('traccion_horizontal', 'Remo en máquina')),
+    ).toBeLessThan(UMBRAL_DE_OCLUSION)
     expect(aparatoTapaAlCuerpo(PATRON_POR_ID.traccion_horizontal, aparatoDe('traccion_horizontal', 'Remo en máquina'))).toBe(false)
     expect(aparatoTapaAlCuerpo(PATRON_POR_ID.flexion_plantar, aparatoDe('flexion_plantar', 'Elevación de talones en máquina'))).toBe(false)
   })

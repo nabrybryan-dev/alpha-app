@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID, type Patron } from '../../../domain/patrones/catalogo'
 import { esqueletoEnFase } from '../../../domain/patrones/escena'
 import { puntoDeHueso } from '../../../domain/patrones/esqueleto'
+import { PLANTA_NEUTRA } from '../../../domain/patrones/huesosNeutros'
 import { Malla } from '../../../domain/patrones/malla'
 import { construirBanco, type ApoyoDelCuerpo } from './banco'
 import { implementosDeEscena } from './implementos'
@@ -217,12 +218,24 @@ describe('el mueble y la oclusión', () => {
 
 describe('el sujeto y el suelo', () => {
   /** El punto más bajo del cuerpo a lo largo del ciclo, en metros. */
+  /**
+   * El punto mas bajo del cuerpo, con la sonda buena.
+   *
+   * Los pies se miden DOS VECES —el hueso y la planta, 7,5 cm por su +Z local— y se toma el
+   * menor: con el pie horizontal manda la planta y con el pie de puntillas manda la punta
+   * del hueso. Medir solo el hueso, como hacia esta funcion hasta el 2026-09-06, deja al
+   * que esta sentado en el suelo con el tobillo a 7,5 cm y parece que flota.
+   */
   function loMasBajo(p: Patron): number {
     let mn = Infinity
     for (let i = 0; i <= 20; i++) {
       const esq = esqueletoEnFase(p, i / 20)
       for (const hueso of Object.keys(esq.mundo)) {
-        for (const t of [0, 1]) mn = Math.min(mn, puntoDeHueso(esq, hueso, t)[1])
+        const esPie = hueso.startsWith('pie')
+        for (const t of [0, 1]) {
+          mn = Math.min(mn, puntoDeHueso(esq, hueso, t)[1])
+          if (esPie) mn = Math.min(mn, puntoDeHueso(esq, hueso, t, [0, 0, PLANTA_NEUTRA])[1])
+        }
       }
     }
     return mn
@@ -267,7 +280,6 @@ describe('el sujeto y el suelo', () => {
     // La primera versión de esta tanda iba a bajarlos a todos.
     const enElSuelo = [
       'antiextension',
-      'movilidad_toracica',
       'rotacion_cadera',
       'flexion_tronco',
       'extension_rodilla',
@@ -275,16 +287,40 @@ describe('el sujeto y el suelo', () => {
       'flexion_muneca',
       'extension_muneca',
       'empuje_inclinado',
-      'flexion_rodilla',
     ]
+    // DOS CENTIMETROS, no siete. El margen de antes tapaba media suela porque la sonda de
+    // este archivo medía solo el HUESO del pie, y la planta va 7,5 cm por debajo: alguien
+    // sentado en el suelo daba 7,2 y parecía que flotaba. Con la sonda buena —el menor
+    // entre el hueso y la planta— los ocho de arriba caen en el suelo con holgura.
     for (const id of enElSuelo) {
-      expect(loMasBajo(PATRON_POR_ID[id]), `${id} no llega al suelo`).toBeLessThan(0.07)
+      expect(loMasBajo(PATRON_POR_ID[id]), `${id} no llega al suelo`).toBeLessThan(0.02)
+    }
+    // Y DOS QUE ESTABAN EN ESA LISTA Y NO DEBIAN ESTAR, cada uno por su motivo. Salieron al
+    // afinar la sonda el 2026-09-06; con el margen viejo pasaban los dos por poco.
+    //
+    //   · `flexion_rodilla` es un curl femoral TUMBADO EN SU MAQUINA: sus 6,3 cm son la
+    //     camilla, no un fallo. Estaba en el grupo equivocado desde que se escribió la lista.
+    //   · `movilidad_toracica` —el gato-camello— SÍ flota: 4,7 cm, con las manos a 21 cm y
+    //     las rodillas a 32 del suelo. Es deuda DECLARADA Y MEDIDA, no un umbral relajado
+    //     para que pase: el cuadrúpedo necesita el hombro por encima de la cadera —el brazo
+    //     entero mide 57 cm y el fémur 45— y hoy la ficha lo pone 15 cm por debajo, así que
+    //     manos y rodillas no pueden tocar el suelo a la vez. Se arregla reescribiendo su
+    //     pose, que es tanda propia. La cota de abajo es lo que impide que la deuda crezca
+    //     en silencio; la de arriba, que se quede escrita cuando alguien la pague.
+    const noTocanElSuelo: Record<string, number> = { flexion_rodilla: 0.08, movilidad_toracica: 0.06 }
+    for (const [id, techo] of Object.entries(noTocanElSuelo)) {
+      const y = loMasBajo(PATRON_POR_ID[id])
+      expect(y, `${id} cambió de altura: ${(y * 100).toFixed(1)} cm`).toBeLessThan(techo)
+      expect(y, `${id} ya toca el suelo: quítalo de la lista de deuda`).toBeGreaterThan(0.02)
     }
     // Y los que descansan sobre algo se quedan a su altura: el banco de la banca, el
     // acolchado del banco romano, y la barra de la que uno cuelga.
+    // Diez centímetros, no quince: con la sonda buena el que cuelga de la barra pasa de 15,3
+    // a 12,8 —los 7,5 cm de planta que antes no se contaban, con el pie en punta—. Sigue sin
+    // tocar el suelo por un palmo, que es lo que esta línea afirma.
     const sobreUnMueble = ['empuje_horizontal', 'extension_lumbar', 'suspension', 'apertura_pecho']
     for (const id of sobreUnMueble) {
-      expect(loMasBajo(PATRON_POR_ID[id]), `${id} se cayó al suelo`).toBeGreaterThan(0.15)
+      expect(loMasBajo(PATRON_POR_ID[id]), `${id} se cayó al suelo`).toBeGreaterThan(0.1)
     }
   })
 })

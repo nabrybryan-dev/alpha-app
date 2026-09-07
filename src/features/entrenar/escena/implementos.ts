@@ -1,10 +1,13 @@
-import type { Vec3 } from '../../../domain/patrones/algebra'
+import { V, type Vec3 } from '../../../domain/patrones/algebra'
 import { modeloDePalanca, planDeMedida } from '../../../domain/biomecanica/palancas'
 import { aplicacionDeLaCarga, porQueSeApoya } from '../../../domain/biomecanica/aplicacionDeLaCarga'
 import { esUnilateral, implementoDe, IMPLEMENTOS, type Implemento, type PerfilDeImplemento } from '../../../domain/biomecanica/implementos'
 import type { Articulacion } from '../../../domain/biomecanica/tipos'
 import { apoyoQueSostiene, type ApoyoDelCuerpo } from './banco'
-import { patronDeCategoria } from '../../../domain/patrones/catalogo'
+import { patronDeCategoria, type Patron } from '../../../domain/patrones/catalogo'
+import { esqueletoEnFase } from '../../../domain/patrones/escena'
+import { puntoDeHueso } from '../../../domain/patrones/esqueleto'
+import { anclajeQueSeOpone } from './lineaDeResistencia'
 import { RADIO_DISCO } from './dibujarImplementos'
 
 /**
@@ -118,8 +121,16 @@ export interface ImplementoEnEscena {
    */
   rigida: boolean
   radioDisco: number
-  /** Dónde se planta la pieza cuando no la lleva el sujeto, con él en el origen. */
-  enElSuelo?: { centro: Vec3; giroGrados: number; alturaDeCarga: number }
+  /**
+   * Dónde se planta la pieza cuando no la lleva el sujeto, con él en el origen.
+   *
+   * `centro` es dónde APOYA en el suelo y `anclaje` dónde ENTREGA la carga —la polea, o el
+   * eje sobre el que gira el brazo—. Hasta el 2026-09-06 eran el mismo punto en vertical, y
+   * por eso la colocación no podía obedecer al gesto: una polea que tiene que quedar encima
+   * del sujeto exigía plantar la columna dentro de él. Separados, la columna se aparta y el
+   * brazo superior la alcanza, que es como está hecha una torre de poleas de verdad.
+   */
+  enElSuelo?: { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3 }
   /**
    * Qué parte del cuerpo sostiene, cuando la pieza es un mueble. Va en huesos y no en
    * metros a propósito: un banco se calcula CONTRA EL CUERPO —ver `banco.ts`—, porque la
@@ -294,7 +305,9 @@ function piezasQueSeLlevan(categoria: string, nombreEjercicio: string): EscenaDe
           agarres: MANOS,
           rigida: true,
           radioDisco: 0,
-          enElSuelo: { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 0 },
+          // La asistida se construye contra el cuerpo —su rodillera sube con él—, así que
+          // no entrega la carga en ningún punto fijo del suelo: el anclaje es el origen.
+          enElSuelo: { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 0, anclaje: [0, 0, 0] },
           porQue:
             'dominada asistida: las manos fijas en la barra y las rodillas en la rodillera de la ' +
             'máquina, que sube y baja con el cuerpo',
@@ -418,7 +431,7 @@ function armar(
     return {
       ...base,
       radioDisco: 0,
-      enElSuelo: sueloDeMaquina(forma, alto),
+      enElSuelo: sueloDeMaquina(forma, alto, categoria, nombreEjercicio, agarres),
     }
   })
 
@@ -429,30 +442,96 @@ function armar(
 }
 
 /**
+ * POR DÓNDE PASA LA CARGA a lo largo de la concéntrica, en metros de mundo.
+ *
+ * Es lo que permite colocar el aparato contra el gesto en vez de en un sitio fijo. Se
+ * resuelve con el esqueleto NEUTRO y no con el del asesorado: la máquina de un gimnasio no
+ * se muda de sitio porque entre alguien más alto, y meter aquí el juego de huesos obligaría
+ * a rehacer la escena de implementos cada vez que cambia de persona, que es justo lo que la
+ * caché del visor evita.
+ */
+function caminoDeLaCarga(
+  patron: Patron | undefined,
+  agarres: readonly PuntoDeAgarre[],
+): Vec3[] {
+  if (!patron || agarres.length === 0) return []
+  const N = 9
+  const camino: Vec3[] = []
+  for (let i = 0; i < N; i++) {
+    const esq = esqueletoEnFase(patron, i / (N - 1))
+    let suma: Vec3 = [0, 0, 0]
+    for (const a of agarres) suma = V.sumar(suma, puntoDeHueso(esq, a.hueso, a.t, a.desvio))
+    camino.push(V.escalar(suma, 1 / agarres.length))
+  }
+  return camino
+}
+
+/**
  * Dónde se planta cada máquina, con el sujeto en el origen y mirando a +Z.
  *
- * Ninguna se planta en −X. Ése es el sitio del trípode —`SALA.estacion` lo pone
- * a 180°, perpendicular al plano sagital— y es el único plano desde el que una
- * cámara puede medir. Una máquina ahí taparía la toma, que es el fallo que la
- * escena existe para evitar.
+ * ## Las dos que se calculan, y por qué dejaron de ser una tabla
+ *
+ * La polea y la máquina de placas **se colocan contra el gesto**, no en un sitio de
+ * memoria. Lo pidió Bryan el 2026-09-06 y el motivo es que un aparato que no se opone al
+ * movimiento no es un aparato: medido con `scripts/medir-resistencia.mjs` sobre el catálogo
+ * entero, con los números a mano de antes **13 de 27 no se oponían** —el remo tiraba desde
+ * detrás del que rema, la extensión de rodilla empujaba de canto, la abducción de cadera
+ * casi de lado—. Ver `lineaDeResistencia.ts`, que es donde está la regla y su medida.
+ *
+ * Si el recorrido no da para decidir —una carga que no se mueve, un arco que en realidad es
+ * una recta— se cae a la colocación de siempre. Es peor, pero es la de antes, y se ve.
+ *
+ * ## Las dos que no
+ *
+ * El Smith envuelve al sujeto y la prensa se apoya donde apoyan los pies: ahí la geometría
+ * de la máquina fija la colocación y no hay nada que resolver.
+ *
+ * Ninguna se planta en −X. Ése es el sitio del trípode —`SALA.estacion` lo pone a 180°,
+ * perpendicular al plano sagital— y es el único plano desde el que una cámara puede medir.
+ * Una máquina ahí taparía la toma, que es el fallo que la escena existe para evitar.
  */
 function sueloDeMaquina(
   forma: FormaDeMaquina | undefined,
   alto: boolean,
-): { centro: Vec3; giroGrados: number; alturaDeCarga: number } {
+  categoria: string,
+  nombreEjercicio: string,
+  agarres: readonly PuntoDeAgarre[],
+): { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3 } {
+  if (forma === 'polea' || forma === 'placas') {
+    const camino = caminoDeLaCarga(patronDeCategoria(categoria, nombreEjercicio), agarres)
+    const resuelto = anclajeQueSeOpone(camino, forma)
+    if (resuelto) {
+      return {
+        centro: resuelto.centro,
+        giroGrados: giroHacia(resuelto.centro),
+        alturaDeCarga: resuelto.alturaDeCarga,
+        anclaje: resuelto.anclaje,
+      }
+    }
+  }
   switch (forma) {
     case 'rail-vertical':
       // El Smith envuelve al sujeto: su centro es el suyo.
-      return { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 1.35 }
+      return { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 1.35, anclaje: [0, 1.35, 0] }
     case 'rail-inclinado':
       // La prensa se apoya donde apoyan los pies: delante, en +Z.
-      return { centro: [0, 0, 0.55], giroGrados: 0, alturaDeCarga: 0.6 }
+      return { centro: [0, 0, 0.55], giroGrados: 0, alturaDeCarga: 0.6, anclaje: [0, 0.6, 0.55] }
     case 'polea':
       // La columna, delante y a la vista: la tabla exige que el anclaje entre
       // en el encuadre, porque sin él no hay dirección de cable ni brazo.
-      return { centro: [0, 0, 1.15], giroGrados: 180, alturaDeCarga: alto ? 2.2 : 0.32 }
+      return {
+        centro: [0, 0, 1.15],
+        giroGrados: 180,
+        alturaDeCarga: alto ? 2.2 : 0.32,
+        anclaje: [0, alto ? 2.2 : 0.32, 1.15],
+      }
     default:
       // La de placas, detrás: el cuerpo va apoyado en ella.
-      return { centro: [0, 0, -0.72], giroGrados: 0, alturaDeCarga: 1.15 }
+      return { centro: [0, 0, -0.72], giroGrados: 0, alturaDeCarga: 1.15, anclaje: [0, 1.15, -0.72] }
   }
+}
+
+/** Que el bastidor mire al sujeto: es lo que hace que la pila quede por fuera y no en medio. */
+function giroHacia(centro: Vec3): number {
+  return (Math.atan2(-centro[0], -centro[2]) * 180) / Math.PI
 }

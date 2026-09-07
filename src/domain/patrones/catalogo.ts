@@ -154,7 +154,10 @@ export const PATRONES: Patron[] = [
     // barra, que en un recorrido de medio metro cae en el primer cuarto.
     estancamiento: 0.24,
     titulo: 'Sentadilla',
-    ejemplos: 'Prensa de piernas a 45° · Sentadilla hack · Sentadilla en Smith',
+    // LOS TRES EJEMPLOS ERAN MÁQUINAS, y el primero manda: es el que decide qué implemento
+    // se dibuja. Así que la ficha de la sentadilla —un sujeto de pie— venía saliendo con
+    // una prensa de piernas alrededor. La prensa tiene ficha propia desde el 2026-09-06.
+    ejemplos: 'Sentadilla con barra · Sentadilla goblet con mancuerna · Sentadilla en Smith',
     resumen:
       'Cadera y rodilla se flexionan a la vez mientras el tronco aguanta. Es el patrón que más masa de cuádriceps y glúteo mueve por sesión.',
     claves: [
@@ -167,18 +170,75 @@ export const PATRONES: Patron[] = [
       'Redondear la zona lumbar al final del recorrido para ganar profundidad.',
     ],
     apoyo: 'suelo',
-    giroInicio: [0, 0, 0],
-    giroFin: [16, 0, 0],
-    raizInicio: [0, 0.95, 0],
-    raizFin: [0, 0.60, 0.02],
-    inicio: { hombroFlex: 8, codoFlex: 20, caderaAbd: 4, rodillaFlex: 4 },
-    medio: { caderaFlex: 52, rodillaFlex: 78, toraxFlex: 15, caderaAbd: 8, hombroFlex: 18, codoFlex: 30 },
-    fin: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
+    // LA FASE 0 ES EL FONDO, no el bloqueo, y esto se dio la vuelta el 2026-09-06.
+    //
+    // `faseDeTiempo` le da 1,2 s con punto de atasco al tramo 0→1 y 1,9 s «bajando
+    // frenando» al 1→0: el repo declara que **0→1 es la concéntrica**. Con el bloqueo en 0
+    // esta ficha animaba la sentadilla cayendo en 1,2 s —con el atasco dentro de la
+    // caída— y levantándose en 1,9. Lo cazó `pruebas/la-resistencia-se-opone.test.ts`
+    // midiendo la barra contra la gravedad: coseno +1,00, o sea la carga bajando en la
+    // fase en la que se supone que se empuja. Y encaja el `estancamiento` de arriba, que
+    // ya estaba escrito como «los primeros 15 cm SOBRE la posición más baja»: con el
+    // fondo en la fase 0, ese primer cuarto es el 0,24 que declara.
+    giroInicio: [16, 0, 0],
+    giroFin: [0, 0, 0],
+    raizInicio: [0, 0.60, 0.02],
+    raizFin: [0, 0.95, 0],
+    inicio: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
+    // LA POSE DE EN MEDIO SE RETOCÓ AL DAR LA VUELTA A LA FICHA, y el motivo se mide.
+    //
+    // Estaba en cadera 52 / rodilla 78, o sea el punto medio de una BAJADA con la rodilla
+    // doblándose pronto. Leído en el otro sentido —que es el que ahora corre—, eso mismo
+    // dice que al subir **la cadera se adelanta y la rodilla se queda doblada**: las
+    // caderas disparadas, que es un fallo, no una técnica. Y no era solo feo: el tobillo
+    // llegaba a pedir 38,8° de dorsiflexión a mitad de subida, 4,8 por encima del tope
+    // articular del propio rig, porque con la cadera arriba y la tibia todavía inclinada
+    // el pie no da más de sí. Medido fase a fase con `apoyarPies`.
+    //
+    // Con 60/76 el peor tobillo del recorrido baja a 33,8° —dentro de rango— y la rodilla
+    // sigue más doblada que la cadera en el punto medio, que es lo que separa una
+    // sentadilla de una bisagra. La profundidad NO se toca: sigue siendo la que Bryan
+    // decidió el 2026-09-06, y en el fondo el tobillo solo pide 29°.
+    medio: { caderaFlex: 60, rodillaFlex: 76, toraxFlex: 15, caderaAbd: 8, hombroFlex: 18, codoFlex: 30 },
+    fin: { hombroFlex: 8, codoFlex: 20, caderaAbd: 4, rodillaFlex: 4 },
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.55, gluteo_mayor: 0.95, 'aductores.mayor': 0.7, 'aductores.largo': 0.5, erectores: 0.7, 'triceps_sural.soleo': 0.45, isquiotibiales: 0.35, recto_abdominal: 0.4, oblicuos: 0.35, gluteo_medio: 0.45 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
     // De lado, no de frente: a 30 grados la profundidad no se lee y la bajada
     // parece que el sujeto se aplasta en vez de echar la cadera atras.
     camara: { azimut: 72, elevacion: 6 },
+  },
+  {
+    id: 'prensa',
+    cadena: 'cerrada',
+    categoria: 'PRENSA',
+    titulo: 'Prensa de piernas',
+    ejemplos: 'Prensa de piernas a 45° · Sentadilla hack · Prensa horizontal',
+    resumen:
+      'Cadera y rodilla empujan un carro que corre por un rail, con la espalda apoyada. Mueve casi lo mismo que la sentadilla sin pedirle nada al tronco ni al equilibrio.',
+    claves: [
+      'La espalda entera pegada al respaldo: si la cadera se despega abajo, la lumbar paga.',
+      'Empuja con el pie entero, no con la punta.',
+      'Rodilla casi extendida arriba, sin bloquear de golpe.',
+    ],
+    errores: [
+      'Bajar hasta que la pelvis se enrolla y despega del asiento.',
+      'Ayudarse con las manos en las rodillas, que le quita al cuadriceps lo que venia a hacer.',
+    ],
+    apoyo: 'ninguno',
+    // TUMBADO A 45 GRADOS, que es el angulo del rail que dibuja la escena
+    // (`construirMaquina`, forma `rail-inclinado`). El sujeto va reclinado sobre el
+    // respaldo y los pies suben por el rail: en +Y y +Z a la vez, que es lo que hace que el
+    // carro se le oponga. Hasta el 2026-09-06 la prensa era el primer ejemplo de la ficha
+    // de SENTADILLA, asi que se dibujaba la maquina alrededor de alguien de pie y sus pies
+    // no recorrian ni 3 mm: el aparato no se oponia a nada.
+    giro: [-45, 0, 0],
+    raizInicio: [0, -0.16, 0.54],
+    raizFin: [0, -0.16, 0.54],
+    inicio: { caderaFlex: 132, rodillaFlex: 112, caderaAbd: 7, tobilloPlantar: -12, hombroFlex: 8, codoFlex: 62, toraxFlex: 4 },
+    fin: { caderaFlex: 92, rodillaFlex: 14, caderaAbd: 5, tobilloPlantar: -6, hombroFlex: 8, codoFlex: 62, toraxFlex: 2 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.45, gluteo_mayor: 0.85, 'aductores.mayor': 0.6, 'aductores.largo': 0.45, isquiotibiales: 0.3, 'triceps_sural.soleo': 0.35, recto_abdominal: 0.3 },
+    seguimiento: ['pie', 0.55, [0, 0, 0]],
+    camara: { azimut: 74, elevacion: 12 },
   },
   {
     id: 'bisagra_cadera',
@@ -198,11 +258,14 @@ export const PATRONES: Patron[] = [
       'Perder la espalda neutra abajo, que es donde la carga sobre el disco es máxima.',
     ],
     apoyo: 'suelo',
-    giroInicio: [-4, 0, 0],
-    giroFin: [84, 0, 0],
-    raizInicio: [0, 0.95, 0],
-    raizFin: [0, 0.95, -0.12],
-    inicio: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
+    // LA FASE 0 ES ABAJO, con la barra a media espinilla. Se dio la vuelta el 2026-09-06
+    // por lo mismo que la sentadilla: el tramo 0→1 es la concéntrica —1,2 s con punto de
+    // atasco— y esta ficha lo usaba para BAJAR el peso muerto, así que la barra caía
+    // rápido y se levantaba despacio. Coseno medido contra la gravedad: +1,00.
+    giroInicio: [84, 0, 0],
+    giroFin: [-4, 0, 0],
+    raizInicio: [0, 0.95, -0.12],
+    raizFin: [0, 0.95, 0],
     // EL BRAZO CUELGA, y por eso `hombroFlex` acompaña al giro del tronco en vez de
     // quedarse en −10: con el tronco a 84° y el hombro en −10 las manos SUBÍAN de 86 a
     // 103 cm al bajar el peso muerto, o sea la barra se iba hacia arriba y hacia atrás.
@@ -210,7 +273,8 @@ export const PATRONES: Patron[] = [
     // carga baja 41 cm con 9 de deriva (razón 0,23) y las manos acaban a 45 cm del suelo,
     // media espinilla. Va 20° por detrás de la vertical del hombro a propósito: es la
     // clave que el propio patrón escribe —«la barra roza el muslo todo el recorrido»—.
-    fin: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: 64, codoFlex: 3 },
+    inicio: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: 64, codoFlex: 3 },
+    fin: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
     activacion: { flexores_carpo: 0.65, extensores_carpo: 0.52, 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.4, gluteo_mayor: 0.9, erectores: 0.85, 'aductores.mayor': 0.4, dorsal_ancho: 0.4, 'trapecio.medio': 0.35, 'triceps_sural.gastro_medial': 0.25, cuadrado_lumbar: 0.4 },
     seguimiento: ['mano', 0.6, [0, 0, 0]],
     camara: { azimut: 78, elevacion: 4 },
@@ -263,12 +327,35 @@ export const PATRONES: Patron[] = [
     ],
     apoyo: 'suelo',
     pies: ['D'],
-    giroInicio: [4, 0, 0],
-    giroFin: [12, 0, 0],
-    raizInicio: [0, 0.95, 0],
-    raizFin: [0, 0.70, 0],
-    inicio: { caderaFlexD: 32, rodillaFlexD: 26, caderaFlexI: -24, rodillaFlexI: 26, tobilloPlantarI: 20, hombroFlex: 8, codoFlex: 14 },
-    fin: { caderaFlexD: 112, rodillaFlexD: 138, caderaFlexI: -26, rodillaFlexI: 116, tobilloPlantarI: 44, toraxFlex: 15, hombroFlex: 12, codoFlex: 18 },
+    // LA FASE 0 ES EL FONDO. Igual que la sentadilla y la bisagra: el tramo 0→1 es la
+    // concéntrica, y con el fondo en la fase 1 la búlgara caía en 1,2 s y se levantaba en
+    // 1,9. Coseno de las mancuernas contra la gravedad: +1,00.
+    //
+    // Y EL FONDO SUBIÓ 21 CM, que es lo que Bryan vio a ojo. La pose de abajo era cadera
+    // 112 / rodilla 138 con el giro a 12°, y con el pie de delante plantado eso dejaba la
+    // pelvis a 28 cm del suelo —una profundidad que ningún cuerpo alcanza— con la RODILLA
+    // DE ATRÁS 7 cm POR DEBAJO DE LA GOMA y el pie trasero 5,5. Medido con
+    // `scripts/medir-resistencia.mjs`.
+    //
+    // Ahora baja a 49 cm, que es el muslo de delante pasado de la paralela, y la rodilla de
+    // atrás se queda a 15 cm del suelo: cerca, sin cruzarlo. La pierna de atrás además se
+    // reescribió para que **el tobillo caiga siempre a la misma altura** —47 cm abajo, 46
+    // arriba—, porque va apoyado en un banco y un pie apoyado no sube y baja: antes recorría
+    // 10 cm de altura y 11 de fondo, o sea patinaba sobre el banco. El banco lo dibuja
+    // `banco.ts` a partir de `apoyosExtra`, así que sale a la altura que el pie marque.
+    giroInicio: [12, 0, 0],
+    giroFin: [4, 0, 0],
+    raizInicio: [0, 0.70, 0],
+    raizFin: [0, 0.95, 0],
+    // Y LAS MANCUERNAS CUELGAN, que es lo mismo que ya tiene escrito la bisagra. `hombroFlex`
+    // va NEGATIVO y compensando la inclinación del tronco (12° de giro + 15 de tórax abajo,
+    // 4 + 15 arriba), porque el brazo de alguien que sujeta un peso lo pone la gravedad y no
+    // el tronco: si acompaña al tronco, la mancuerna se va hacia delante al bajar. Medido
+    // con `demandaDeTrayectoria`: con el hombro acompañando, la carga derivaba 21 cm de lado
+    // por cada 43 de bajada —razón 0,50, el doble del tope de 0,35— y colgando de verdad se
+    // queda en 8 cm sobre 31, razón 0,25.
+    inicio: { caderaFlexD: 92, rodillaFlexD: 106, caderaFlexI: -30, rodillaFlexI: 107, tobilloPlantarI: 30, toraxFlex: 15, hombroFlex: -27, codoFlex: 14 },
+    fin: { caderaFlexD: 26, rodillaFlexD: 22, caderaFlexI: -13, rodillaFlexI: 77, tobilloPlantarI: 22, toraxFlex: 15, hombroFlex: -19, codoFlex: 14 },
     activacion: { 'cuadriceps.vasto_lateral:D': 1, 'cuadriceps.vasto_medial:D': 1, 'cuadriceps.vasto_intermedio:D': 0.95, 'cuadriceps.recto:D': 0.5, 'gluteo_mayor:D': 0.9, 'gluteo_medio:D': 0.85, 'gluteo_menor:D': 0.6, 'aductores:D': 0.5, 'isquiotibiales:D': 0.4, 'cuadriceps:I': 0.4, 'gluteo_medio:I': 0.3, oblicuos: 0.4, cuadrado_lumbar: 0.45, erectores: 0.5 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
     camara: { azimut: 52, elevacion: 6 },
@@ -1390,8 +1477,22 @@ export const PATRONES: Patron[] = [
     apoyo: 'ninguno',
     raizInicio: [0, -0.49, 0],
     raizFin: [0, -0.49, 0],
-    inicio: { muneca: 58, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
-    fin: { muneca: -48, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    // LA MANO SUBE EN LA CONCENTRICA, y aqui hay que decir lo que el rig NO sabe hacer.
+    //
+    // En un curl inverso el antebrazo va PRONADO —palma abajo—, la mano cuelga y lo que
+    // sube es el dorso. Con la palma abajo, «mano colgando» y «mano subiendo» son los
+    // mismos dos extremos del canal `muneca` que en el curl normal, solo que recorridos
+    // desde el otro lado del antebrazo. Y ese giro del antebrazo el rig no lo propaga: se
+    // probó el 2026-09-06 poniendo `antebrazoRot: 180` en los dos patrones de muñeca y el
+    // coseno no se movió ni una centésima, porque `poseAEuler` recompone la rotación de la
+    // mano a partir de la abducción del hombro y ahí se pierde el giro del padre.
+    //
+    // Así que se corrige lo que sí es falso —la carga bajaba en la fase que el repo llama
+    // concéntrica, coseno +0,99— y se deja escrito lo que queda debiendo: mientras el
+    // antebrazo no ruede, estos dos patrones comparten silueta y lo único que los separa
+    // en pantalla es la musculatura que se enciende y las claves que se leen.
+    inicio: { muneca: -48, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    fin: { muneca: 58, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
     activacion: {
       extensores_carpo: 1,
       braquiorradial: 0.55,
@@ -1536,6 +1637,9 @@ const POR_NOMBRE: [RegExp, string][] = [
  * categoría YA dio una ficha, y el nombre elige entre esa y sus variantes.
  */
 const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
+  // La prensa llega SIEMPRE con categoria de sentadilla —«DOMINANTE DE RODILLA» en el
+  // seed—, asi que sin esta linea la ficha nueva no la veria nadie.
+  sentadilla: [[/prensa|leg ?press|hack/, 'prensa']],
   // El orden importa: la asistida antes que la dominada a secas, que también dice «dominada».
   traccion_vertical: [
     [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],

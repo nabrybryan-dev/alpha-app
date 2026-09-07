@@ -185,8 +185,28 @@ export interface VolumenDeMaquina {
   giroGrados: number
   /** La altura a la que la máquina entrega la carga al cuerpo. */
   alturaDeCarga: number
+  /**
+   * DÓNDE ENTREGA LA CARGA: la polea del cable, o el eje sobre el que gira el brazo.
+   *
+   * No tiene por qué caer sobre la vertical de `centro`, y ésa es la novedad del
+   * 2026-09-06: la torre se aparta del sujeto y un brazo superior la alcanza, igual que un
+   * jalón de verdad, para que la polea pueda quedar donde la física la pide —encima del
+   * que jala, detrás del que abre— sin que la columna se le plante dentro.
+   */
+  anclaje?: Vec3
   /** El punto del cuerpo al que llega el cable o el carro, si llega a alguno. */
   agarre?: Vec3
+  /**
+   * EL CUERPO, para las maquinas que hay que construir contra el —hoy solo la prensa.
+   *
+   * Es la misma regla del banco (`banco.ts`): la altura a la que el catalogo pone a cada
+   * sujeto no es la misma, asi que un asiento en coordenadas fijas deja a uno flotando y a
+   * otro dentro del tapizado. Con la prensa ademas hay una razon geometrica: el rail y el
+   * asiento tienen que ser compatibles con una persona sentada, y cuando los dos se
+   * escriben a mano no lo son. Medido el 2026-09-06, el rail dibujado arrancaba 62 cm por
+   * delante y 30 cm por debajo de donde caian los pies de alguien sentado en su asiento.
+   */
+  cuerpo?: { pelvis: Vec3; torax: Vec3 }
 }
 
 /**
@@ -223,8 +243,13 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
     // raíl, no hacia abajo. Por eso el raíl se dibuja: es la dirección que
     // ninguno de los tres orígenes de línea de la tabla sabe describir.
     const dir: Vec3 = [0, Math.sin(grados(45)), Math.cos(grados(45))]
-    const pie: Vec3 = [c[0], 0.12, c[2]]
-    const alto = V.sumar(pie, V.escalar(dir, 2.05))
+    // EL RAIL SE ALINEA CON LOS PIES, no con un punto fijo del suelo. El carro corre por
+    // el rail y los pies van sobre el carro, asi que si el rail no pasa por donde pasan
+    // los pies, la maquina no toca al sujeto: es el fallo que tenia esta pieza hasta el
+    // 2026-09-06, cuando la prensa era la ficha de la sentadilla y los pies no se movian.
+    const carro = v.agarre ?? V.sumar([c[0], 0.12, c[2]], V.escalar(dir, 0.5))
+    const pie = V.restar(carro, V.escalar(dir, 0.78))
+    const alto = V.sumar(pie, V.escalar(dir, 2.3))
     for (const lado of [-1, 1]) {
       const o: Vec3 = [lado * 0.36, 0, 0]
       const a = V.sumar(pie, o)
@@ -235,20 +260,29 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
     // El carro: la plataforma donde apoyan los pies, sobre el raíl. Se dibuja con canto
     // —no como una chapa— porque de frente una chapa horizontal se ve de perfil y
     // desaparece: es la mitad de lo que dejaba esta máquina en 36 píxeles.
-    const carro = v.agarre ?? V.sumar(pie, V.escalar(dir, 0.5))
     caja(m, carro, [0.44, 0.05, 0.26], 0, PLACA)
     // La plataforma de los pies, perpendicular al raíl y de cara a quien empuja. Es la
     // pieza que más silueta da, y la que dice de un vistazo qué máquina es.
     const plato = V.sumar(carro, V.escalar(dir, 0.16))
     caja(m, [plato[0], plato[1] + 0.24, plato[2] + 0.2], [0.42, 0.3, 0.055], 0, PLACA)
-    // EL RESPALDO Y EL ASIENTO, en el extremo bajo del raíl. Sin ellos la prensa es un
-    // raíl suelto: no hay dónde tumbarse, y en pantalla no hay nada por encima del suelo.
-    const asiento: Vec3 = [c[0], 0.42, c[2] - 0.62]
+    // EL RESPALDO Y EL ASIENTO, debajo de quien se sienta. Sin ellos la prensa es un rail
+    // suelto: no hay donde tumbarse, y en pantalla no hay nada por encima del suelo.
+    const asiento: Vec3 = v.cuerpo
+      ? [v.cuerpo.pelvis[0], v.cuerpo.pelvis[1] - 0.09, v.cuerpo.pelvis[2]]
+      : [c[0], 0.42, c[2] - 0.62]
     caja(m, asiento, [0.3, 0.06, 0.34], g, TAPIZADO)
-    caja(m, [asiento[0], asiento[1] + 0.32, asiento[2] - 0.3], [0.3, 0.34, 0.08], g, TAPIZADO)
-    caja(m, [asiento[0], 0.2, asiento[2]], [0.1, 0.22, 0.1], g, BASTIDOR)
+    if (v.cuerpo) {
+      // El respaldo sigue al tronco: se dibuja como una tabla detras de el, entre la
+      // pelvis y el torax, en vez de una caja vertical que atravesaria a un sujeto
+      // reclinado.
+      const medio = V.escalar(V.sumar(v.cuerpo.pelvis, v.cuerpo.torax), 0.5)
+      caja(m, [medio[0], medio[1], medio[2] - 0.17], [0.3, 0.34, 0.07], g, TAPIZADO)
+    } else {
+      caja(m, [asiento[0], asiento[1] + 0.32, asiento[2] - 0.3], [0.3, 0.34, 0.08], g, TAPIZADO)
+    }
+    caja(m, [asiento[0], asiento[1] / 2, asiento[2]], [0.1, asiento[1] / 2, 0.1], g, BASTIDOR)
     // La base, con canto suficiente para leerse contra el suelo.
-    caja(m, [c[0], 0.09, c[2] - 0.35], [0.5, 0.09, 0.44], g, BASTIDOR)
+    caja(m, [asiento[0], 0.09, asiento[2] - 0.28], [0.5, 0.09, 0.44], g, BASTIDOR)
     return
   }
 
@@ -259,7 +293,12 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
     // dirección no hay brazo. Por eso la columna se dibuja entera, con su polea.
     caja(m, [c[0], v.alturaDeCarga / 2, c[2]], [0.06, v.alturaDeCarga / 2, 0.06], g, BASTIDOR)
     caja(m, [c[0], 0.05, c[2]], [0.16, 0.05, 0.32], g, BASTIDOR)
-    const polea: Vec3 = [c[0], v.alturaDeCarga, c[2]]
+    const polea: Vec3 = v.anclaje ?? [c[0], v.alturaDeCarga, c[2]]
+    // EL BRAZO SUPERIOR, que es lo que permite que la polea no esté sobre la columna. Sin
+    // él la polea de un jalón tendría que ir en el suelo o la columna sobre la cabeza del
+    // sujeto; con él, la torre se aparta y el cable sigue llegando desde arriba.
+    const alto: Vec3 = [c[0], v.alturaDeCarga, c[2]]
+    if (V.largo(V.restar(polea, alto)) > 0.04) manto(m, alto, polea, 0.035, BASTIDOR, 8)
     cilindro(m, V.sumar(polea, [-0.03, 0, 0]), V.sumar(polea, [0.03, 0, 0]), 0.055, PLACA, 10)
     // La pila de placas, pegada a la columna.
     for (let i = 0; i < 8; i++) {
@@ -280,7 +319,10 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
   // El respaldo, que es lo que dice que el cuerpo va apoyado y no libre.
   caja(m, [c[0], 0.62, c[2] + 0.26], [0.22, 0.3, 0.06], g, TAPIZADO)
   if (v.agarre) {
-    const codo: Vec3 = [c[0], v.alturaDeCarga, c[2]]
+    // El eje del brazo va donde la carga gira, que desde el 2026-09-06 lo calcula
+    // `anclajeQueSeOpone` ajustando una circunferencia al recorrido: así el brazo dibujado
+    // es RÍGIDO —mide lo mismo en las once fases— en vez de estirarse como una goma.
+    const codo: Vec3 = v.anclaje ?? [c[0], v.alturaDeCarga, c[2]]
     manto(m, codo, v.agarre, 0.022, BASTIDOR, 8)
     cilindro(
       m,
@@ -367,6 +409,11 @@ export function construirPieza(m: Malla, p: ImplementoEnEscena, esq: EsqueletoRe
         centro: s.centro,
         giroGrados: s.giroGrados,
         alturaDeCarga: s.alturaDeCarga,
+        anclaje: s.anclaje,
+        cuerpo:
+          p.forma === 'rail-inclinado'
+            ? { pelvis: puntoDeHueso(esq, 'pelvis', 0), torax: puntoDeHueso(esq, 'torax', 1) }
+            : undefined,
         agarre: puntos.length >= 2 ? V.escalar(V.sumar(puntos[0], puntos[1]), 0.5) : puntos[0],
       })
       break
