@@ -1,0 +1,60 @@
+{
+  "cuando": "2026-09-07T17:18:46.665Z",
+  "usuario": "u-valentina",
+  "duracionPedidaMs": 180000,
+  "bitacora": [
+    "[0s] sesión arrancada con \"u-valentina\" — 180 s por delante",
+    "[8s] cambio de ejercicio 1/3 (punto 1)",
+    "[36s] inmersión 1/2 (~900 ms de toque sostenido)",
+    "[70s] cambio de ejercicio 2/3 (punto 2)",
+    "[102s] vuelta desde segundo plano (visibilitychange: hidden → visible)",
+    "[131s] inmersión 2/2 (~900 ms más de toque sostenido, sigue desde donde quedó)",
+    "[160s] cambio de ejercicio 3/3 (punto 0)",
+    "[180s] sesión completada: 180 s reales"
+  ],
+  "resumen": {
+    "fpsMedio": 60,
+    "p50Ms": 16.8,
+    "p95Ms": 26.5,
+    "fotogramasLentos": 54,
+    "cambiosDeEjercicio": 2,
+    "capas": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "vueltasDeFondo": 1
+  },
+  "camposDelEncargoPresentes": [
+    "fpsMedio",
+    "p50Ms",
+    "p95Ms",
+    "fotogramasLentos",
+    "cambiosDeEjercicio",
+    "capas",
+    "vueltasDeFondo"
+  ],
+  "todosLosCamposDelEncargoPresentes": true,
+  "informeOriginal": {
+    "fps": 60,
+    "fotograma": {
+      "p50": 16.8,
+      "p95": 26.5
+    },
+    "lentos": 54,
+    "memoriaMb": 75.6,
+    "cambiosDeEjercicio": 2,
+    "capasVisitadas": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "vueltasDeSegundoPlano": 1,
+    "muestras": 7200,
+    "segundos": 182.2
+  }
+}

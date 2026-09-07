@@ -359,3 +359,108 @@ export function contarAporte(antes, despues, churn, dentroDe) {
   }
   return { total, dentro }
 }
+
+// ------------------------------------------------------------------ toques
+
+/**
+ * Salió de `testigo/partir-el-visor.mjs` el 2026-09-07 por la misma razón que sacó todo
+ * lo de arriba de `salon-visible.mjs`: dos testigos que necesitan tocar la pantalla de
+ * verdad —no con `.click()` en la página, que prueba el DOM y no el dedo— no pueden cada
+ * uno inventarse su propio `Input.dispatchTouchEvent`.
+ *
+ * Van por el protocolo de toque, no de ratón: `pointerType` es lo que decide, en el
+ * salón, si un contacto cuenta como el primer dedo o el segundo (`dedos.current += 1`
+ * solo con `e.pointerType === 'touch'`), y un `mousePressed` de DevTools nunca pone ese
+ * valor.
+ */
+
+/** Un toque limpio: baja y sube el dedo en el mismo punto, sin arrastre de por medio. */
+export async function tocar(dt, x, y) {
+  await dt.pedir('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
+  await dt.pedir('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+}
+
+/** Baja el dedo y lo deja apoyado en `(x, y)`. Quien llama decide cuánto sostenerlo. */
+export async function bajarDedo(dt, x, y) {
+  await dt.pedir('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] })
+}
+
+/** Levanta el dedo que quedó apoyado tras `bajarDedo`. */
+export async function soltarDedo(dt) {
+  await dt.pedir('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+}
+
+// ------------------------------------------------------------- gris a PNG
+
+/**
+ * Tabla y CRC32 de la especificación PNG — cada trozo (`IHDR`, `IDAT`, `IEND`) lleva el
+ * suyo, y sin él Chrome y cualquier visor de imágenes rechazan el archivo entero.
+ */
+const TABLA_CRC = (() => {
+  const t = new Uint32Array(256)
+  for (let n = 0; n < 256; n++) {
+    let c = n
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    t[n] = c >>> 0
+  }
+  return t
+})()
+
+function crc32(buf) {
+  let c = 0xffffffff
+  for (let i = 0; i < buf.length; i++) c = TABLA_CRC[(c ^ buf[i]) & 0xff] ^ (c >>> 8)
+  return (c ^ 0xffffffff) >>> 0
+}
+
+function trozoPng(tipo, datos) {
+  const largo = Buffer.alloc(4)
+  largo.writeUInt32BE(datos.length, 0)
+  const cuerpo = Buffer.concat([Buffer.from(tipo, 'ascii'), datos])
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(cuerpo), 0)
+  return Buffer.concat([largo, cuerpo, crc])
+}
+
+/**
+ * Lo común a codificar cualquier PNG sin pérdida de `canales` bytes por píxel: arma las
+ * filas con su byte de filtro «ninguno» delante —no hace falta ganar nada comprimiendo
+ * distinto para lo que esto sirve, que es poder abrir el archivo, no que pese poco— y las
+ * envuelve en los tres trozos que un PNG necesita para ser un PNG.
+ */
+function codificarPng(ancho, alto, canales, tipoColor, datos) {
+  const paso = ancho * canales
+  const crudo = Buffer.alloc((paso + 1) * alto)
+  for (let y = 0; y < alto; y++) {
+    crudo[y * (paso + 1)] = 0 // filtro «ninguno»
+    for (let x = 0; x < paso; x++) crudo[y * (paso + 1) + 1 + x] = datos[y * paso + x]
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(ancho, 0)
+  ihdr.writeUInt32BE(alto, 4)
+  ihdr[8] = 8 // profundidad de bit
+  ihdr[9] = tipoColor
+  ihdr[10] = 0
+  ihdr[11] = 0
+  ihdr[12] = 0
+  const idat = zlib.deflateSync(crudo)
+  const firma = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  return Buffer.concat([firma, trozoPng('IHDR', ihdr), trozoPng('IDAT', idat), trozoPng('IEND', Buffer.alloc(0))])
+}
+
+/**
+ * Codifica un mapa de un byte por píxel (0-255, escala de grises) a un PNG de verdad —
+ * para una máscara de cambio (blanco donde algo cambió, negro donde no) que se pueda
+ * abrir y mirar directamente, en vez de quedarse solo como un número en un JSON.
+ */
+export function codificarPngGris(ancho, alto, gris) {
+  return codificarPng(ancho, alto, 1, 0, gris)
+}
+
+/**
+ * Codifica un buffer RGB plano (el mismo formato que devuelve `decodificarPng`) a un PNG
+ * de verdad. Sirve para volver a guardar en disco una captura que ya se decodificó para
+ * medir, sin tener que pedirle a Chrome una segunda captura solo para tener el archivo.
+ */
+export function codificarPngRgb(ancho, alto, rgb) {
+  return codificarPng(ancho, alto, 3, 2, rgb)
+}
