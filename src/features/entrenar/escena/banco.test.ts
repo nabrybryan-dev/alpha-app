@@ -315,6 +315,9 @@ describe('el sujeto y el suelo', () => {
     // La primera versión de esta tanda iba a bajarlos a todos.
     const enElSuelo = [
       'antiextension',
+      // El gato-camello vuelve a esta lista el 2026-09-07: estuvo en la de deuda un día,
+      // flotando 4,7 cm, hasta que se reescribió su pose a cuatro patas de verdad.
+      'movilidad_toracica',
       'rotacion_cadera',
       'flexion_tronco',
       'extension_rodilla',
@@ -330,19 +333,14 @@ describe('el sujeto y el suelo', () => {
     for (const id of enElSuelo) {
       expect(loMasBajo(PATRON_POR_ID[id]), `${id} no llega al suelo`).toBeLessThan(0.02)
     }
-    // Y DOS QUE ESTABAN EN ESA LISTA Y NO DEBIAN ESTAR, cada uno por su motivo. Salieron al
-    // afinar la sonda el 2026-09-06; con el margen viejo pasaban los dos por poco.
+    // Y UNO QUE ESTABA EN ESA LISTA Y NO DEBÍA ESTAR: `flexion_rodilla` es un curl femoral
+    // TUMBADO EN SU MÁQUINA, y sus 6,3 cm son la camilla, no un fallo. Estaba en el grupo
+    // equivocado desde que se escribió la lista; salió al afinar la sonda el 2026-09-06.
     //
-    //   · `flexion_rodilla` es un curl femoral TUMBADO EN SU MAQUINA: sus 6,3 cm son la
-    //     camilla, no un fallo. Estaba en el grupo equivocado desde que se escribió la lista.
-    //   · `movilidad_toracica` —el gato-camello— SÍ flota: 4,7 cm, con las manos a 21 cm y
-    //     las rodillas a 32 del suelo. Es deuda DECLARADA Y MEDIDA, no un umbral relajado
-    //     para que pase: el cuadrúpedo necesita el hombro por encima de la cadera —el brazo
-    //     entero mide 57 cm y el fémur 45— y hoy la ficha lo pone 15 cm por debajo, así que
-    //     manos y rodillas no pueden tocar el suelo a la vez. Se arregla reescribiendo su
-    //     pose, que es tanda propia. La cota de abajo es lo que impide que la deuda crezca
-    //     en silencio; la de arriba, que se quede escrita cuando alguien la pague.
-    const noTocanElSuelo: Record<string, number> = { flexion_rodilla: 0.08, movilidad_toracica: 0.06 }
+    // Aquí estuvo también el gato-camello, un día, como deuda medida (4,7 cm flotando, con
+    // el hombro 15 cm por debajo de la cadera). Se pagó el 2026-09-07 reescribiendo la pose,
+    // y el trinquete de abajo fue el que pidió sacarlo de aquí. Para eso está.
+    const noTocanElSuelo: Record<string, number> = { flexion_rodilla: 0.08 }
     for (const [id, techo] of Object.entries(noTocanElSuelo)) {
       const y = loMasBajo(PATRON_POR_ID[id])
       expect(y, `${id} cambió de altura: ${(y * 100).toFixed(1)} cm`).toBeLessThan(techo)
