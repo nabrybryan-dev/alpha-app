@@ -93,15 +93,3 @@ $ npx vitest run src/features/bienestar/MedidasCard.test.tsx
 La primera cuenta los campos por su papel (`getAllByRole('textbox')`) y compara la lista
 de etiquetas con las ocho, en orden: si alguien añade una novena, sale en rojo por las dos
 mitades —la cuenta y la lista—.
-
-## Qué queda
-
-- **Esta es la mitad de interfaz.** Que las ocho lleguen a `perfiles` y se validen allí es
-  de la capa de datos; aquí quedan escritas las claves para que pueda hacerlo.
-- **Nadie usa todavía las seis longitudes para dibujar el sujeto.** El visor ya sabe
-  recibir `ProporcionesDelCuerpo` (fémur, tibia y torso como razones), y hoy esas
-  proporciones salen de una pista de pose medida (`cuerpoDelAsesorado`), no de la ficha.
-  Enchufar estas medidas ahí es el paso siguiente y no es de esta tarea.
-- **Un solo lado.** Se pide una tibia, un fémur, un antebrazo y un brazo, no izquierdo y
-  derecho. Una asimetría real existe y no se va a ver aquí; pedir dieciséis campos para
-  cazarla habría hundido el formulario.

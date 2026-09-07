@@ -167,19 +167,7 @@ reemplace `registrar_medida` con `create or replace` (molde: la propia 0057) y s
 `supabase/comprobar-migraciones.sql`. Hoy la validación vive en el dominio, que es donde
 está el formulario que la enseña.
 
-## 6. Lo que queda pendiente, y no es de esta tanda
-
-Estas ocho medidas y `ProporcionesDelCuerpo` (`patrones/huellaArticular.ts`) hablan de lo
-mismo por dos caminos: las primeras son centímetros de cinta, las segundas son razones
-sacadas de una pista de pose. Cuando las dos existan para la misma persona habrá que
-decidir cuál manda —la respuesta probable es la cinta, porque está en centímetros y la
-pista solo da razones— y llevarlas a `definicionDe` (`patrones/definicionCorporal.ts`), que
-es hoy el único sitio del que sale un cuerpo.
-
-Está apuntado también en `docs/specs/2026-09-08-definicion-corporal.md` §5. Aquí se dice
-para que no se decida de pasada dentro de otro cambio.
-
-## 7. Cómo se comprueba
+## 6. Cómo se comprueba
 
 ```
 npx vitest run src/domain/medidas.test.ts
