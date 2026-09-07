@@ -360,6 +360,15 @@ export function aplicarEscenario(
 
   if (decision.escenario === 'verde') {
     const v = ejercicio.escenarios.verde
+    // SIN CAMINO VERDE ESCRITO NO HAY SUBIDA, aunque el día venga bueno. Es lo normal en la
+    // cartera —el freno viaja siempre, la subida solo cuando el coach la autoriza— y hasta
+    // el 2026-09-07 esta línea lo daba por hecho y reventaba.
+    if (!v) {
+      return sinCambio(
+        'El cruce dio verde, pero el ejercicio solo trae escrito el camino rojo: sin subida ' +
+          'autorizada por adelantado no hay ajuste. Se anota para que el coach decida si escribirla.',
+      )
+    }
     const base = ejercicio.cargaKg
     let cargaKg: number | undefined
     if (typeof base === 'number' && typeof v.deltaCargaKg === 'number') {
