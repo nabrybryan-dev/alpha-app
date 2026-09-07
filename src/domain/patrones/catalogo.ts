@@ -52,6 +52,15 @@ export interface Patron {
   /** El patrón contrapone un fallo y su corrección en vez de un recorrido. */
   invertido?: boolean
   /**
+   * RITMO CÍCLICO: una zancada, una pedalada, un peldaño. No es una repetición.
+   *
+   * Con esto declarado, `faseDeTiempo` deja de usar el tempo de repetición —1,2 s con punto
+   * de atasco, pausa, 1,9 s frenando, pausa— y corre dos medios ciclos iguales y suaves de
+   * `periodoSeg / 2`, sin atasco, sin asentamiento y sin pararse en ningún extremo. La fase
+   * 0 es un lado delante y la fase 1 su espejo. Nace el 2026-09-07 con el cardio.
+   */
+  ciclo?: { periodoSeg: number }
+  /**
    * Encuadre de estudio: el hueso distal de la articulación que se quiere ver
    * de cerca, con su lado (`antebrazoD`).
    *
@@ -775,6 +784,156 @@ export const PATRONES: Patron[] = [
     // De tres cuartos y algo alto: de perfil los codos se tapan entre sí, y de frente no se
     // ve que el cable baja.
     camara: { azimut: 38, elevacion: 22 },
+  },
+  // ───────────────────────────────────────────────────────────────────────────
+  // EL CARDIO, con sujeto y con máquina (Bryan, 2026-09-07).
+  //
+  // Revierte una decisión anterior suya, escrita en `SalonSinSujeto.tsx`: «sin sujeto
+  // ejecutando en el centro» para el cardio. Se deja dicho aquí para que nadie lo lea como
+  // deriva. Lo que sigue sin sujeto: el cribado, el trineo y el circuito sin modalidad.
+  //
+  // Las cinco son CÍCLICAS —`ciclo.periodoSeg`, no una repetición—: la fase 0 es la pierna
+  // derecha delante y la izquierda atrás, la fase 1 es su espejo, canal a canal. Lo vigila
+  // `pruebas/el-ciclo-es-simetrico.test.ts`. Y no pasan por `IMPLEMENTOS`: esa tabla
+  // clasifica implementos de CARGA, y una cinta no aporta carga; la máquina es una pieza de
+  // escena propia, construida contra el cuerpo.
+  // ───────────────────────────────────────────────────────────────────────────
+  {
+    id: 'caminata_en_cinta',
+    cadena: 'cerrada',
+    categoria: 'CAMINATA EN CINTA',
+    titulo: 'Caminata en cinta',
+    ejemplos: 'Caminadora en zona 2 · Cinta con pendiente · Caminata a ritmo conversacional',
+    resumen:
+      'Andar sobre la cinta: la zancada natural, el talón que entra primero y el brazo contrario que acompaña. Es el cardio de menor impacto y el que más horas suma.',
+    claves: [
+      'Talón, planta y punta: el pie entra por el talón y despega por los dedos.',
+      'Los brazos van solos, contrarios a la pierna; no te agarres a las barandillas.',
+      'Ritmo al que puedas hablar frases enteras: eso es zona 2.',
+    ],
+    errores: [
+      'Agarrarse a las barandillas, que quita la mitad del trabajo y encorva la espalda.',
+      'Mirar a los pies: la cabeza alta y la vista al frente.',
+    ],
+    apoyo: 'ninguno',
+    ciclo: { periodoSeg: 1.1 },
+    raizInicio: [0, 0, 0],
+    raizFin: [0, 0, 0],
+    inicio: { caderaFlexD: 26, caderaFlexI: -12, rodillaFlexD: 8, rodillaFlexI: 38, tobilloPlantarD: -8, tobilloPlantarI: 22, hombroFlexD: -18, hombroFlexI: 22, codoFlex: 22, toraxFlex: 3 },
+    fin: { caderaFlexD: -12, caderaFlexI: 26, rodillaFlexD: 38, rodillaFlexI: 8, tobilloPlantarD: 22, tobilloPlantarI: -8, hombroFlexD: 22, hombroFlexI: -18, codoFlex: 22, toraxFlex: 3 },
+    // Al andar el que más trabaja es el gemelo en el despegue; el resto acompaña a poca intensidad.
+    activacion: { 'triceps_sural.gastro_medial': 1, 'triceps_sural.soleo': 0.9, gluteo_medio: 0.6, gluteo_mayor: 0.5, 'cuadriceps.vasto_lateral': 0.4, 'cuadriceps.vasto_medial': 0.4, isquiotibiales: 0.4, tibial_anterior: 0.5, erectores: 0.3 },
+    seguimiento: ['pie', 0.5, [0, 0, 0]],
+    camara: { azimut: 70, elevacion: 8 },
+  },
+  {
+    id: 'carrera_en_cinta',
+    cadena: 'cerrada',
+    categoria: 'CARRERA EN CINTA',
+    titulo: 'Carrera',
+    ejemplos: 'Carrera en cinta · Trote suave · Intervalos de carrera',
+    resumen:
+      'Correr: hay un instante en que ningún pie toca el suelo. La rodilla sube más, el talón se recoge y los brazos se doblan y bombean.',
+    claves: [
+      'Pies bajo la cadera, pasos cortos y frecuentes: la zancada larga frena.',
+      'Codos a noventa grados, manos sueltas, hombros bajos.',
+      'Tronco un poco adelante desde el tobillo, no desde la cintura.',
+    ],
+    errores: [
+      'Aterrizar con el pie muy por delante del cuerpo, con la pierna estirada.',
+      'Encoger los hombros y cerrar los puños.',
+    ],
+    apoyo: 'ninguno',
+    ciclo: { periodoSeg: 0.72 },
+    raizInicio: [0, 0.02, 0],
+    raizFin: [0, 0.02, 0],
+    inicio: { caderaFlexD: 42, caderaFlexI: -18, rodillaFlexD: 32, rodillaFlexI: 92, tobilloPlantarD: -4, tobilloPlantarI: 32, hombroFlexD: -26, hombroFlexI: 42, codoFlex: 88, toraxFlex: 8 },
+    fin: { caderaFlexD: -18, caderaFlexI: 42, rodillaFlexD: 92, rodillaFlexI: 32, tobilloPlantarD: 32, tobilloPlantarI: -4, hombroFlexD: 42, hombroFlexI: -26, codoFlex: 88, toraxFlex: 8 },
+    activacion: { 'triceps_sural.gastro_medial': 1, 'triceps_sural.gastro_lateral': 0.9, 'triceps_sural.soleo': 0.85, gluteo_mayor: 0.8, isquiotibiales: 0.75, 'cuadriceps.vasto_lateral': 0.65, 'cuadriceps.vasto_medial': 0.65, 'cuadriceps.recto': 0.5, gluteo_medio: 0.6, tibial_anterior: 0.5, erectores: 0.4, recto_abdominal: 0.3 },
+    seguimiento: ['pie', 0.5, [0, 0, 0]],
+    camara: { azimut: 70, elevacion: 8 },
+  },
+  {
+    id: 'escaladora',
+    cadena: 'cerrada',
+    categoria: 'ESCALADORA',
+    titulo: 'Escaladora',
+    ejemplos: 'Escaladora a ritmo constante · Escaladora en zona 2 · Subir escaleras',
+    resumen:
+      'Subir peldaños que bajan: cada paso es una subida de escalón con el cuerpo entero. Glúteo y cuádriceps, sin impacto.',
+    claves: [
+      'Pisa el peldaño entero y empuja con el talón, no con la punta.',
+      'Manos apoyadas en las barandillas para el equilibrio, no para cargar el peso.',
+      'Tronco un poco adelante, espalda larga, sin doblarte por la cintura.',
+    ],
+    errores: [
+      'Colgarse de las barandillas: el peso lo tienen que llevar las piernas.',
+      'Pasos cortos de puntillas, que lo convierten en un ejercicio de gemelo.',
+    ],
+    apoyo: 'ninguno',
+    ciclo: { periodoSeg: 1.2 },
+    raizInicio: [0, 0, 0],
+    raizFin: [0, 0, 0],
+    inicio: { caderaFlexD: 72, caderaFlexI: 18, rodillaFlexD: 88, rodillaFlexI: 14, tobilloPlantarD: -6, tobilloPlantarI: 14, hombroFlexD: 42, hombroFlexI: 42, codoFlex: 32, toraxFlex: 14 },
+    fin: { caderaFlexD: 18, caderaFlexI: 72, rodillaFlexD: 14, rodillaFlexI: 88, tobilloPlantarD: 14, tobilloPlantarI: -6, hombroFlexD: 42, hombroFlexI: 42, codoFlex: 32, toraxFlex: 14 },
+    activacion: { gluteo_mayor: 1, 'cuadriceps.vasto_lateral': 0.9, 'cuadriceps.vasto_medial': 0.9, 'cuadriceps.vasto_intermedio': 0.8, gluteo_medio: 0.6, isquiotibiales: 0.4, 'triceps_sural.gastro_medial': 0.5, 'triceps_sural.soleo': 0.6, erectores: 0.4 },
+    seguimiento: ['pie', 0.5, [0, 0, 0]],
+    camara: { azimut: 64, elevacion: 10 },
+  },
+  {
+    id: 'bicicleta_estatica',
+    cadena: 'cerrada',
+    categoria: 'BICICLETA ESTÁTICA',
+    titulo: 'Bicicleta estática',
+    ejemplos: 'Bicicleta en zona 2 · Bicicleta estática · Rodillo suave',
+    resumen:
+      'Pedalear sentado: la cadera y la rodilla se abren y se cierran en círculo, sin impacto y con el peso en el sillín. Es el cardio que menos pide a la rodilla.',
+    claves: [
+      'El sillín a la altura de la cadera: con el pedal abajo la rodilla queda casi estirada.',
+      'Pedalea redondo, empujando y recogiendo, no a pistones.',
+      'Manos ligeras en el manillar, hombros lejos de las orejas.',
+    ],
+    errores: [
+      'Sillín bajo, con la rodilla muy doblada arriba: es lo que duele.',
+      'Balancear la cadera de lado a lado para llegar al pedal.',
+    ],
+    apoyo: 'ninguno',
+    ciclo: { periodoSeg: 1.0 },
+    // Sentado en el sillín, con el tronco inclinado hacia el manillar.
+    raizInicio: [0, -0.12, 0],
+    raizFin: [0, -0.12, 0],
+    inicio: { caderaFlexD: 98, caderaFlexI: 62, rodillaFlexD: 108, rodillaFlexI: 48, tobilloPlantarD: 6, tobilloPlantarI: 26, hombroFlexD: 58, hombroFlexI: 58, codoFlex: 28, toraxFlex: 24, lumbarFlex: 10 },
+    fin: { caderaFlexD: 62, caderaFlexI: 98, rodillaFlexD: 48, rodillaFlexI: 108, tobilloPlantarD: 26, tobilloPlantarI: 6, hombroFlexD: 58, hombroFlexI: 58, codoFlex: 28, toraxFlex: 24, lumbarFlex: 10 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.recto': 0.6, gluteo_mayor: 0.6, isquiotibiales: 0.5, 'triceps_sural.gastro_medial': 0.45, 'triceps_sural.soleo': 0.5, tibial_anterior: 0.3 },
+    seguimiento: ['pie', 0.5, [0, 0, 0]],
+    camara: { azimut: 72, elevacion: 8 },
+  },
+  {
+    id: 'eliptica',
+    cadena: 'cerrada',
+    categoria: 'ELÍPTICA',
+    titulo: 'Elíptica',
+    ejemplos: 'Elíptica en zona 2 · Elíptica a ritmo constante',
+    resumen:
+      'Los pies no se despegan nunca de las plataformas y dibujan un óvalo; los brazos empujan y tiran de las barras al contrario. Todo el cuerpo, cero impacto.',
+    claves: [
+      'Talones apoyados en las plataformas todo el recorrido.',
+      'Empuja la barra con el brazo contrario a la pierna que baja.',
+      'Cuerpo erguido y mirada al frente: no te cuelgues de las barras.',
+    ],
+    errores: [
+      'Ir de puntillas, con los talones en el aire.',
+      'Dejar los brazos muertos en las barras y hacerlo solo con las piernas.',
+    ],
+    apoyo: 'ninguno',
+    ciclo: { periodoSeg: 1.2 },
+    raizInicio: [0, 0.04, 0],
+    raizFin: [0, 0.04, 0],
+    inicio: { caderaFlexD: 38, caderaFlexI: 6, rodillaFlexD: 44, rodillaFlexI: 16, tobilloPlantarD: 0, tobilloPlantarI: 8, hombroFlexD: 16, hombroFlexI: 62, codoFlexD: 40, codoFlexI: 26, toraxFlex: 4 },
+    fin: { caderaFlexD: 6, caderaFlexI: 38, rodillaFlexD: 16, rodillaFlexI: 44, tobilloPlantarD: 8, tobilloPlantarI: 0, hombroFlexD: 62, hombroFlexI: 16, codoFlexD: 26, codoFlexI: 40, toraxFlex: 4 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, gluteo_mayor: 0.7, isquiotibiales: 0.45, 'triceps_sural.soleo': 0.4, 'deltoides.anterior': 0.35, 'deltoides.posterior': 0.35, dorsal_ancho: 0.3, 'pectoral_mayor.esternocostal': 0.3, 'triceps.lateral': 0.3, biceps: 0.3 },
+    seguimiento: ['pie', 0.5, [0, 0, 0]],
+    camara: { azimut: 66, elevacion: 8 },
   },
   {
     id: 'flexion_codo',
@@ -1772,6 +1931,13 @@ const POR_NOMBRE: [RegExp, string][] = [
   // ANTES que el curl femoral a secas: «Curl femoral sentado» llega con categoría
   // AISLAMIENTO, y ahí las variantes por nombre no entran —solo lo hacen cuando la
   // categoría ha acertado una ficha—, así que la silla hay que elegirla aquí.
+  // EL CARDIO, desde el 2026-09-07 (Bryan). El orden es el de `bloqueDeCardio.ts`: de la
+  // modalidad más específica a la más general, y la carrera antes que la cinta.
+  [/escaladora|stair|subir escaleras/, 'escaladora'],
+  [/el[ií]ptica|elliptical/, 'eliptica'],
+  [/bici|bicicleta|ciclo\b|spinning|rodillo|pedale/, 'bicicleta_estatica'],
+  [/carrera|correr|trote|trotar|running|sprint/, 'carrera_en_cinta'],
+  [/caminadora|cinta|caminata|zona 2|liss|treadmill/, 'caminata_en_cinta'],
   // El face pull llega también como PREV/REHAB o como HOMBRO: ahí manda el nombre.
   [/face ?pull|jal[oó]n a la cara|tir[oó]n a la cara/, 'face_pull'],
   [/curl femoral sentad|leg curl sentad|flexi[oó]n de rodilla sentad/, 'flexion_rodilla_sentado'],
@@ -1831,8 +1997,17 @@ const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
   dominada: [[/asistid/, 'dominada_asistida']],
 }
 
+/**
+ * EL CARDIO SALIÓ DE ESTA LISTA el 2026-09-07. Bryan pidió «integrar los ejercicios de la
+ * parte cardiovascular como patrones de movimiento», y eso revierte su decisión anterior
+ * —«sin sujeto ejecutando en el centro», escrita en `SalonSinSujeto.tsx`—. Se queda sin
+ * sujeto lo que sigue sin tener gesto que enseñar: el cribado, el trineo (hueco declarado),
+ * el circuito y el HIIT sin modalidad, el ergómetro de remo (sin ficha todavía) y «cardio»
+ * a secas —esa palabra ya no está aquí: «Bicicleta (cardio)» tiene ficha, y «cardio» solo
+ * no encaja en ninguna línea de `POR_NOMBRE`, que es lo que la deja sin sujeto—.
+ */
 const SIN_PATRON =
-  /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado|escaladora|hiit|tabata|erg[oó]metro|remo ergom|caminata|trote|carrera continua|trineo|sled/
+  /circuito|cribado|hiit|tabata|erg[oó]metro|remo ergom|trineo|sled/
 
 export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined

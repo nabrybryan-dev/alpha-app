@@ -21,6 +21,15 @@ import { ESCORZO_DE_PARED, TOPE_PARED } from '../huecos'
  * > su prescripción (minutos, zona, ritmo, descanso), pero **sin sujeto ejecutando en el
  * > centro**. La pantalla no cambia de naturaleza según el día.
  *
+ * **CAMBIO DE DECISIÓN, 2026-09-07 — lo pidió Bryan:** el cardio SÍ lleva sujeto desde ese
+ * día («integrar los ejercicios de la parte cardiovascular como patrones de movimiento»).
+ * Caminata, carrera, escaladora, bicicleta y elíptica tienen ficha cíclica y máquina, y el
+ * salón las pinta cuando `patronDeBloque` reconoce la modalidad en el bloque. Lo que sigue
+ * viniendo aquí, sin sujeto, es lo que sigue sin gesto que enseñar: el cribado, el trineo,
+ * el circuito y el HIIT sin modalidad, y los bloques que no son cardio —notas del coach,
+ * pasos diarios, estiramientos—. No es deriva: es la decisión nueva escrita encima de la
+ * vieja, para que el guardián de la vista inicial no las confunda.
+ *
  * Así que ahora esto no ocupa el centro: lo **rodea**. Los cuatro datos cuelgan de los
  * dos muros, con el mismo escorzo, el mismo fondo opaco y el mismo tope que los ocho
  * paneles del ejercicio —`ESCORZO_DE_PARED` y `TOPE_PARED` salen de `huecos.ts`, que es

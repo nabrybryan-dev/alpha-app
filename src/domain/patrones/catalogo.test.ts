@@ -315,8 +315,8 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     ['MOVILIDAD', 'Movilidad torácica con foam roller (movilidad de columna)', true],
     ['MOVILIDAD', 'Gato-camello', true],
     // Y lo que no debe tener patrón, que es tan importante como lo que sí.
-    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', false],
-    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', false],
+    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', true] /* cardio con sujeto desde el 2026-09-07 */,
+    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', true] /* cardio con sujeto desde el 2026-09-07 */,
     ['ACONDICIONAMIENTO', 'Circuito metabólico 40/20', false],
     ['PREV/REHAB', 'Cribado de banderas rojas (antes de tocar una carga)', false],
   ]
@@ -328,10 +328,17 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     }
   })
 
-  it('no enseña un gesto de fuerza para el cardio', () => {
-    // Peor que no tener visor es tener uno que enseñe otra cosa: quien monta en
-    // bicicleta no está haciendo ninguno de los treinta y un patrones.
-    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')).toBeUndefined()
+  it('el cardio tiene su propio sujeto, y no un gesto de fuerza prestado', () => {
+    // Hasta el 2026-09-07 esto afirmaba lo contrario: «quien monta en bicicleta no está
+    // haciendo ninguno de los treinta y un patrones», y era verdad. Ese día Bryan pidió
+    // integrar el cardio como patrones de movimiento, y ahora la bicicleta tiene ficha
+    // propia —cíclica, no una repetición—. Lo que sigue siendo verdad: nunca un gesto de
+    // fuerza prestado, y lo que no tiene ficha sigue sin sujeto.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')?.id).toBe('bicicleta_estatica')
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Cinta 30 min zona 2')?.id).toBe('caminata_en_cinta')
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Circuito metabólico 40/20')).toBeUndefined()
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Remo ergómetro 2000 m')).toBeUndefined()
+    expect(patronDeCategoria('PREV/REHAB', 'Cribado de banderas rojas')).toBeUndefined()
   })
 
   it('el curl femoral SENTADO va a su silla, venga con la categoría que venga', () => {

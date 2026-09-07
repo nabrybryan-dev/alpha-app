@@ -84,7 +84,17 @@ import { RADIO_DISCO } from './dibujarImplementos'
  * (`maquinaAsistida.ts`). Nace el 2026-09-06 porque Bryan pidió ver la máquina, no solo la
  * barra.
  */
-export type FormaDeMaquina = 'placas' | 'rail-vertical' | 'rail-inclinado' | 'polea' | 'asistida'
+export type FormaDeMaquina =
+  | 'placas'
+  | 'rail-vertical'
+  | 'rail-inclinado'
+  | 'polea'
+  | 'asistida'
+  // LAS DE CARDIO, desde el 2026-09-07. No cargan al sujeto: lo sostienen mientras se mueve.
+  | 'cinta'
+  | 'escaladora'
+  | 'bicicleta'
+  | 'eliptica'
 
 // ---------------------------------------------------------------------------
 // La parte pura: qué implementos y dónde.
@@ -270,7 +280,43 @@ export const AVISO_SIN_MODELO =
  * `planDeMedida` y `modeloDePalanca`, que son la tabla, y lo único que este
  * módulo aporta es saber qué hueso es cada parte del cuerpo.
  */
+/**
+ * La máquina de una ficha CÍCLICA, por su id. Va aparte de `IMPLEMENTOS` a propósito: esa
+ * tabla clasifica implementos de CARGA —dónde entra el peso y qué le hace a la medida— y una
+ * cinta no aporta carga. `implementosDeSesion.ts` ya lo dejó escrito; aquí solo se decide qué
+ * aparato se dibuja, y se construye contra el cuerpo como el banco y la prensa.
+ */
+const MAQUINA_DE_CARDIO: Readonly<Record<string, FormaDeMaquina>> = {
+  caminata_en_cinta: 'cinta',
+  carrera_en_cinta: 'cinta',
+  escaladora: 'escaladora',
+  bicicleta_estatica: 'bicicleta',
+  eliptica: 'eliptica',
+}
+
 export function implementosDeEscena(categoria: string, nombreEjercicio = ''): EscenaDeImplementos {
+  // EL CARDIO no lleva carga: ni barra, ni polea, ni banco. Lleva su máquina, y nada más.
+  const patronCiclico = patronDeCategoria(categoria, nombreEjercicio)
+  if (patronCiclico?.ciclo) {
+    const forma = MAQUINA_DE_CARDIO[patronCiclico.id]
+    return {
+      piezas: forma
+        ? [
+            {
+              pieza: 'maquina',
+              forma,
+              agarres: [],
+              rigida: true,
+              radioDisco: 0,
+              enElSuelo: { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 0, anclaje: [0, 0, 0], guia: 'recta' },
+              porQue: `ficha cíclica «${patronCiclico.id}»: la máquina sostiene al sujeto, no lo carga`,
+            },
+          ]
+        : [],
+      avisos: [],
+      supuesto: false,
+    }
+  }
   const escena = piezasQueSeLlevan(categoria, nombreEjercicio)
 
   // Y ENCIMA, EL MUEBLE QUE LO SOSTIENE. Va aquí y no dentro de `piezasQueSeLlevan` porque
