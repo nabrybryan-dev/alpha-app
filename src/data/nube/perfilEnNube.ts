@@ -45,18 +45,13 @@ export type FilaPerfilDelCoach = {
   [COLUMNA_SEXO]: SexoDeFicha | null
 }
 
-/**
- * La fila que sube el ASESORADO (sus medidas): el blob y NADA MÁS.
- *
- * No nombra la columna a propósito. Su copia del sexo puede ser vieja —hidrató
- * antes de que el coach lo rellenara— y mandarla escribiría `null` encima; y
- * el trigger `proteger_perfil` (0056) rechazaría el envío entero, medida
- * incluida. Un upsert que no nombra la columna la deja como está.
+/*
+ * EL ASESORADO NO SUBE FILA (desde la 0057). Hasta el 2026-09-06 subía `{usuario_id, datos}`
+ * sin nombrar la columna —su copia del sexo podía ser vieja—, y ese blob entero era
+ * justamente lo que `proteger_perfil` rechazaba a quien no tenía ficha. Su medida viaja
+ * ahora en una llamada (`registrar_medida`, ver `subirMedida` en sync.ts) que no lleva ni
+ * la columna ni la fila: el servidor estrena la ficha o mete la medida en la que hay.
  */
-export type FilaPerfilDelAsesorado = {
-  usuario_id: string
-  datos: DatosDePerfil
-}
 
 /** La ficha sin el sexo dentro: lo que va en `datos`. */
 export function datosDePerfil(perfil: Perfil): DatosDePerfil {

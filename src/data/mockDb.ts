@@ -1,3 +1,4 @@
+import { perfilVacio } from '../domain/perfilVacio'
 import { agregar as agregarItem, quitar as quitarItem } from '../domain/nutricion/despensa'
 import type {
   CheckinDiario,
@@ -261,16 +262,7 @@ export function crearMockDb(): Db {
               )
             : [
                 ...estado.perfiles,
-                {
-                  usuarioId,
-                  objetivos: '',
-                  edad: 0,
-                  diasEntrenamiento: 0,
-                  tiempoSesionMin: 0,
-                  somatotipo: '',
-                  volumenSemanal: {},
-                  medidas: [medida],
-                },
+                perfilVacio(usuarioId, [medida]),
               ],
         }))
       },

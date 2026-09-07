@@ -60,14 +60,16 @@ describe('la columna del sexo, contra la migración', () => {
     expect(hidratar).not.toMatch(/from\('perfiles'\)/)
   })
 
-  it('sync.ts sube la columna con este nombre en el envío del coach, y el del asesorado no la nombra', () => {
-    const envios = enviosDeSync(readFileSync(join(NUBE, 'sync.ts'), 'utf8')).filter(
-      (e) => e.tabla === TABLA_PERFILES && e.tipo === 'upsert',
-    )
-    expect(envios).toHaveLength(2)
-    expect(envios.every((e) => !e.incompleto)).toBe(true)
-    expect(envios.filter((e) => e.claves.includes(COLUMNA_SEXO))).toHaveLength(1)
-    expect(envios.filter((e) => !e.claves.includes(COLUMNA_SEXO))).toHaveLength(1)
+  it('sync.ts sube la columna con este nombre en el envío del coach; el asesorado ya no sube fila (0057)', () => {
+    const todos = enviosDeSync(readFileSync(join(NUBE, 'sync.ts'), 'utf8')).filter((e) => e.tabla === TABLA_PERFILES)
+    const filas = todos.filter((e) => e.tipo === 'upsert')
+    expect(filas).toHaveLength(1)
+    expect(filas.every((e) => !e.incompleto)).toBe(true)
+    expect(filas[0].claves).toContain(COLUMNA_SEXO)
+    // La medida del asesorado es una llamada, y su carga no nombra ni la columna ni la fila.
+    const llamadas = todos.filter((e) => e.tipo === 'rpc')
+    expect(llamadas.map((e) => e.funcion)).toEqual(['registrar_medida'])
+    expect(llamadas[0].claves).toEqual(['p_medida'])
   })
 })
 

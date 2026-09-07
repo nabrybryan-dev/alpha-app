@@ -91,14 +91,14 @@ describe('el sexo de la ficha sube al servidor', () => {
     expect(fichasEnCola()[0].payload.sexo).toBe('mujer')
   })
 
-  it('la medida del asesorado NO nombra la columna: su copia puede ser vieja', async () => {
+  it('la medida del asesorado no sube ficha ninguna: viaja sola, y el sexo ni se nombra (0057)', async () => {
     const { db } = await dbEnModoNube()
     db.perfiles.agregarMedida(ASESORADA, { fecha: '2026-09-06', alturaCm: 165, perimetros: {} })
 
-    expect(fichasEnCola()).toHaveLength(1)
-    const { payload } = fichasEnCola()[0]
-    expect('sexo' in payload).toBe(false)
-    expect('sexo' in (payload.datos as object)).toBe(false)
-    expect((payload.datos as { medidas: unknown[] }).medidas.length).toBeGreaterThan(0)
+    expect(fichasEnCola()).toHaveLength(0)
+    const llamadas = cola().filter((o) => o.tabla === 'perfiles' && o.tipo === 'rpc')
+    expect(llamadas).toHaveLength(1)
+    expect(llamadas[0].funcion).toBe('registrar_medida')
+    expect('sexo' in llamadas[0].payload).toBe(false)
   })
 })

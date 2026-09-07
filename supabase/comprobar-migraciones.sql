@@ -1017,4 +1017,20 @@ select '0056 - el sexo en la ficha', 'columna con check (hombre, mujer) y proteg
                  and p.prosrc like '%new.sexo%')
        then 'SI' else 'NO' end
 
+union all
+-- Las dos cosas de la 0057: la función que mete la medida y el trigger que admite el
+-- estreno de la ficha (el blob con `usuarioId` y nada más). Con la función sin el
+-- trigger, la primera medida de quien no tiene ficha seguiría rechazada; con el
+-- trigger sin la función, el cliente nuevo llamaría a una RPC inexistente y la cola
+-- descartaría la medida. Diría NO con cualquiera de las dos a medias.
+select '0057 - el asesorado estrena su ficha', 'registrar_medida existe y proteger_perfil admite el estreno',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'registrar_medida')
+            and exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'proteger_perfil'
+                 and p.prosrc like '%usuarioId%')
+       then 'SI' else 'NO' end
+
 order by migracion, senal;

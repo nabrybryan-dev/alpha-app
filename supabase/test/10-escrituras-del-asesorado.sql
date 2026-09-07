@@ -214,6 +214,61 @@ select pruebas.afirmar(
 
 reset role;
 
+-- ─────────────────── Como la asesorada B, que NO tiene ficha ───────────────────
+select pruebas.soy('22222222-2222-2222-2222-222222222222');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 11. Su primera medida crea la ficha (0057). Antes era imposible: la app subía la
+--     ficha entera con valores por defecto y `proteger_perfil` la rechazaba, así que
+--     quien no tenía ficha nunca pudo registrar nada; el 2026-09-06 eran tres.
+select public.registrar_medida('{"fecha": "2026-09-06", "alturaCm": 170, "perimetros": {}}'::jsonb);
+
+select pruebas.afirmar(
+  (select datos from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222')
+    = '{"usuarioId": "22222222-2222-2222-2222-222222222222", "medidas": [{"fecha": "2026-09-06", "alturaCm": 170, "perimetros": {}}]}'::jsonb,
+  'la primera medida no estrenó la ficha con solo usuarioId y medidas'
+);
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222') is null,
+  'la ficha estrenada nació con sexo, y eso solo lo pone el coach'
+);
+
+-- 12. La misma fecha SUSTITUYE (corregir un dato el mismo día); otra fecha se AÑADE; y
+--     quedan ordenadas por fecha aunque lleguen desordenadas.
+select public.registrar_medida('{"fecha": "2026-09-06", "alturaCm": 171, "perimetros": {}}'::jsonb);
+select public.registrar_medida('{"fecha": "2026-08-30", "alturaCm": 170, "perimetros": {}}'::jsonb);
+
+select pruebas.afirmar(
+  (select datos -> 'medidas' from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222')
+    = '[{"fecha": "2026-08-30", "alturaCm": 170, "perimetros": {}}, {"fecha": "2026-09-06", "alturaCm": 171, "perimetros": {}}]'::jsonb,
+  'la medida repetida no sustituyó, o la nueva no se añadió en orden'
+);
+
+-- 13. La medida de B no toca la ficha de A: la función no recibe a quién, lo saca de
+--     la sesión.
+select pruebas.afirmar(
+  (select jsonb_array_length(datos -> 'medidas') from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 1,
+  'registrar una medida como B cambió las medidas de A'
+);
+
+-- 14. Y el camino viejo sigue cerrado: un blob con más que medidas y usuarioId no entra.
+--     Es lo que subía la app hasta hoy.
+do $$
+begin
+  begin
+    insert into public.perfiles (usuario_id, datos)
+    values ('22222222-2222-2222-2222-222222222222', '{"usuarioId": "22222222-2222-2222-2222-222222222222", "objetivos": "", "medidas": []}'::jsonb)
+    on conflict (usuario_id) do update set datos = excluded.datos;
+    raise exception 'FALLO: la asesorada escribió su ficha entera';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+end $$;
+
+reset role;
+
 commit;
 
 \echo 'OK · las escrituras del asesorado funcionan'
