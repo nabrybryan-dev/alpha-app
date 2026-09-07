@@ -7,6 +7,7 @@ import { Chip } from '../../components/ui/Chip'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Semaforo } from '../../components/ui/Semaforo'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { UMBRAL_DOLOR_QUE_AVISA } from '../../domain/senales/dolor'
 import type { Microciclo } from '../../domain/types'
 import { GenerarMicrocicloSheet } from './GenerarMicrocicloSheet'
 import { PautadoVsRealizado } from './PautadoVsRealizado'
@@ -219,6 +220,14 @@ export default function AsesoradoDetallePage() {
                   {c.estres === 'MUCHO' && <Badge tono="rojo">Estrés alto</Badge>}
                   {c.cansancio === 'MUCHO' && <Badge tono="ambar">Muy cansada</Badge>}
                   {c.calidadSueno === 'MALA' && <Badge tono="rojo">Durmió mal</Badge>}
+                  {/* El dolor se enseña siempre que lo haya, no solo cuando avisa:
+                      un 2 sostenido en la rodilla que se vigila es justo el dato
+                      con el que se decide un reingreso. */}
+                  {c.dolor !== undefined && c.dolor > 0 && (
+                    <Badge tono={c.dolor >= UMBRAL_DOLOR_QUE_AVISA ? 'rojo' : 'ambar'}>
+                      Dolor {c.dolor}/10{c.dolorDonde ? ` · ${c.dolorDonde}` : ''}
+                    </Badge>
+                  )}
                 </div>
                 {c.comentarios && <p className="mt-1 text-xs italic text-tenue">"{c.comentarios}"</p>}
               </Card>
