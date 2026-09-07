@@ -127,11 +127,13 @@ describe('lo que el plano dice de TODO el catálogo', () => {
     // hombro, apoyo a una pierna y suspensión, que son 19 de las 150 familias que se
     // prescriben de verdad—, y ahora las nombra `MODELOS_DE_FICHA`.
     //
+    // Y LAS CINCO DEL CARDIO no cuentan aquí (2026-09-07): no llevan carga, así que no hay
+    // palanca que medir. Es la naturaleza del ejercicio, no un hueco.
     // El que queda es distinto: `movilidad_toracica` SÍ tiene categoría canónica y su
     // modelo está escrito `null` a propósito, porque una movilidad no tiene carga contra
     // la que medir palanca. Va clavado a uno para que un hueco nuevo no se pueda esconder
     // detrás de esa excepción.
-    const sinModelo = PATRONES.filter((p) => planoDe(p).linea === 'sin modelo de palanca')
+    const sinModelo = PATRONES.filter((p) => !p.ciclo).filter((p) => planoDe(p).linea === 'sin modelo de palanca')
     expect(sinModelo.map((p) => p.id)).toEqual(['movilidad_toracica'])
     expect(CATEGORIAS as readonly string[]).toContain(sinModelo[0].categoria)
   })

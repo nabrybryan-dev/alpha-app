@@ -8,6 +8,7 @@ import { cargaPorGrupo } from '../../../../domain/fatiga'
 import { notasDelMicrociclo } from '../../../../domain/notasDeLaSemana'
 import { requisitosParaPeldano } from '../../../../domain/nivelesAlfa'
 import { PATRONES, patronDeCategoria } from '../../../../domain/patrones/catalogo'
+import { patronDeLosBloques } from '../../../../domain/patrones/bloqueDeCardio'
 import { indiceRecuperacion } from '../../../../domain/readiness'
 import {
   armarSemana,
@@ -85,24 +86,29 @@ function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrit
  * día alguno lo tuviera, este archivo se pondría rojo en vez de seguir probando el camino
  * equivocado.
  */
-const SIN_SUJETO_DE_PRODUCCION = [
-  'CARDIO',
-  'BICICLETA',
-  'CINTA',
-  'ESCALADORA',
-  'ELIPTICA',
-  'HIIT',
-  'CIRCUITO',
-  'TABATA',
-  'ERGOMETRO',
-  'TRINEO',
-]
+const SIN_SUJETO_DE_PRODUCCION = ['CARDIO', 'HIIT', 'CIRCUITO', 'TABATA', 'TRINEO']
+
+/**
+ * Y LOS QUE SALIERON DE ESA LISTA EL 2026-09-07, porque Bryan pidió el cardio con sujeto:
+ * bicicleta, cinta, escaladora y elíptica tienen ficha cíclica y máquina. Se afirman aparte
+ * y al revés —montan el visor— para que la lista de arriba no pueda volver a crecer sin que
+ * alguien lo decida.
+ */
+// El ERGÓMETRO se pasó a esta lista el 2026-09-07 por la noche: era el único de los seis sin
+// sujeto con un gesto de verdad que enseñar, y ahora tiene ficha y máquina.
+const CARDIO_CON_SUJETO = ['BICICLETA', 'CINTA', 'ESCALADORA', 'ELIPTICA', 'ERGOMETRO']
 
 function ejerciciosSinPatron(): EjercicioPrescrito[] {
-  const cardio = SIN_SUJETO_DE_PRODUCCION.map((nombre) =>
+  const sinModalidad = SIN_SUJETO_DE_PRODUCCION.map((nombre) =>
     ejercicio({ id: `e-sin-sujeto-${nombre}`, categoria: 'ACONDICIONAMIENTO', nombre }),
   )
-  return [...ejerciciosDelSeedSinPatron(), ...cardio]
+  return [...ejerciciosDelSeedSinPatron(), ...sinModalidad]
+}
+
+function ejerciciosDeCardioConSujeto(): EjercicioPrescrito[] {
+  return CARDIO_CON_SUJETO.map((nombre) =>
+    ejercicio({ id: `e-cardio-${nombre}`, categoria: 'ACONDICIONAMIENTO', nombre }),
+  )
 }
 
 /** Los ejercicios del seed que el catálogo deja SIN patrón. Desde el 2026-09-06, ninguno. */
@@ -186,10 +192,16 @@ describe('quién decide si hay sujeto', () => {
       ...ejerciciosSinPatron(),
     ]
     expect(casos.length).toBeGreaterThan(PATRONES.length)
-    // Y que los del cardio siguen SIN patrón de verdad, no por un nombre que dejó de
+    // Y que los sin modalidad siguen SIN patrón de verdad, no por un nombre que dejó de
     // existir: si alguno ganara ficha, el bloque de abajo estaría probando otra cosa.
     for (const e of ejerciciosSinPatron()) {
       expect(patronDeCategoria(e.categoria, e.nombre), `${e.nombre} ya tiene patrón`).toBeUndefined()
+    }
+    // Y al revés: los cuatro de cardio con sujeto tienen ficha, y es cíclica.
+    for (const e of ejerciciosDeCardioConSujeto()) {
+      const p = patronDeCategoria(e.categoria, e.nombre)
+      expect(p, `${e.nombre} perdió su ficha`).toBeDefined()
+      expect(p?.ciclo, `${e.nombre}: su ficha no es cíclica`).toBeDefined()
     }
     for (const e of casos) {
       expect(
@@ -219,12 +231,45 @@ describe('el salón sin patrón de movimiento', () => {
     },
   )
 
-  it('con la sesión metabólica del seed el centro dice que no hay modelo', () => {
-    montarSalon(sesionMetabolicaDelSeed())
+  it.each(ejerciciosDeCardioConSujeto().map((e) => [e.nombre, e] as const))(
+    'con «%s» monta el VISOR: el cardio tiene sujeto desde el 2026-09-07',
+    (_nombre, e) => {
+      // Hasta ese día esta lista estaba en el `it.each` de arriba, afirmando lo contrario.
+      // Lo pidió Bryan; el cambio de decisión está escrito en `SalonSinSujeto.tsx`.
+      montarSalon(sesionCon(e))
+      expect(hayVisor(), 'el cardio con modalidad tiene sujeto').toBe(true)
+      expect(haySinSujeto()).toBe(false)
+      expect(document.querySelector('[data-hueco="sinPatron"]')).toBeNull()
+    },
+  )
+
+  it('con la sesión metabólica del seed, el trote del calentamiento ocupa el centro', () => {
+    // La sesión metabólica del seed no tiene ejercicios y sí bloques de cardio; el primero
+    // que nombra una modalidad es «5 min trote suave», y el trote es una carrera. Hasta el
+    // 2026-09-07 esto afirmaba «Sin modelo 3D para este ejercicio»; ahora el centro lo ocupa
+    // el sujeto del bloque, y su ficha es la que dice `patronDeLosBloques`.
+    const sesion = sesionMetabolicaDelSeed()
+    expect(patronDeLosBloques(sesion.bloquesCardio)?.id).toBe('carrera_en_cinta')
+    montarSalon(sesion)
+    expect(hayVisor()).toBe(true)
+    expect(haySinSujeto()).toBe(false)
+  })
+
+  it('y un bloque que no es cardio sigue sin sujeto: no se inventa uno para llenar el centro', () => {
+    const sesion: Sesion = {
+      id: 's-notas',
+      nombre: 'SESIÓN DE NOTAS',
+      orden: 1,
+      ejercicios: [],
+      bloquesCardio: [
+        { id: 'b1', titulo: 'LO PRIMERO: TU ESPALDA MANDA ESTA SEMANA', indicaciones: 'Léelo antes de empezar.' },
+        { id: 'b2', titulo: 'PASOS: 10.000 AL DÍA COMO PISO', indicaciones: 'Repártelos en caminatas cortas.' },
+      ],
+    }
+    montarSalon(sesion)
     expect(haySinSujeto()).toBe(true)
     expect(hayVisor()).toBe(false)
-    expect(screen.getByText(/Sin modelo 3D para este ejercicio/)).toBeInTheDocument()
-    expect(screen.getByText(/No hay gesto resistido que enseñar/)).toBeInTheDocument()
+    expect(document.querySelector('[data-hueco="sinPatron"]')).not.toBeNull()
   })
 
   /**
@@ -241,7 +286,15 @@ describe('el salón sin patrón de movimiento', () => {
    * escalera vuelva entera en cuanto hay patrón se comprueba en el test siguiente.
    */
   it('y el resto del salón sigue en pie, pero el eje W se apaga con el sujeto', () => {
-    montarSalon(sesionMetabolicaDelSeed())
+    // Desde el 2026-09-07 la sesión metabólica del seed SÍ tiene sujeto (el trote), así que
+    // el día sin sujeto se monta con una sesión de notas, que es lo que este test mide.
+    montarSalon({
+      id: 's-notas',
+      nombre: 'SESIÓN DE NOTAS',
+      orden: 1,
+      ejercicios: [],
+      bloquesCardio: [{ id: 'b1', titulo: 'STRETCHING FINAL DE SEMANA — 1×10 min', indicaciones: '10 min globales.' }],
+    })
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     expect(salon).not.toBeNull()
     // El panel de abajo, que es donde vive lo largo, sigue estando.
