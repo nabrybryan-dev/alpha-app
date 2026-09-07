@@ -252,7 +252,12 @@ describe('la movilidad que los patrones dan por supuesta', () => {
     // 5,7° al empezar a bajar (antes 6,4) y se cierra a 0 al llegar al fondo, en vez de
     // quedarse clavado en 5. Que la cadena converja al final es MÁS parecido a un cuerpo, no
     // menos: nadie termina una sentadilla con el tobillo todavía moviéndose.
-    sentadilla: 34,
+    // 34 → 35 el 2026-09-07: la rodilla pasó a ser una bisagra colgada del fémur (`esqueleto.ts`)
+    // y con la cadera abierta 8° eso mueve la tibia lo justo para que el pie plano derive
+    // 34,8° en vez de 34,0°. Es el único patrón del catálogo al que el cambio de rodilla le
+    // llega —la abducción de cadera es pequeña en todos los demás— y la valla sigue siendo
+    // una valla: si vuelve a crecer, esto lo dice.
+    sentadilla: 35,
     // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
     // deprisa y profundo es de los gestos que más tobillo piden.
     salto: 25,

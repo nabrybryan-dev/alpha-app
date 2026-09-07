@@ -77,9 +77,18 @@ describe('el cuadro del salón se calcula contra el cuerpo', () => {
     }
   })
 
-  /** El que Bryan señaló, con su nombre y su número. */
-  it('el press de pecho en máquina deja de salirse: de 316 px a cero', () => {
-    expect(comoEstaba('empuje_horizontal')).toBeGreaterThan(300)
+  /**
+   * El que Bryan señaló, con su nombre y su número. Se salía 316 px con la cámara fija, y el
+   * cuadro calculado lo metió entero.
+   *
+   * EL 316 YA NO SE PUEDE REPRODUCIR, y por una buena razón: el 2026-09-07 el press se
+   * recolocó —codos recogidos a 55° del tronco en vez de abiertos a 87°, antebrazo al techo—
+   * y con los brazos dentro, hasta la cámara fija pierde solo 172 px. Así que lo que se
+   * afirma es la relación, no el número: con la cámara fija se salía, y con el cuadro
+   * calculado no se sale nada.
+   */
+  it('el press de pecho en máquina deja de salirse', () => {
+    expect(comoEstaba('empuje_horizontal')).toBeGreaterThan(100)
     expect(comoEsta('empuje_horizontal')).toBe(0)
   })
 
@@ -113,8 +122,11 @@ describe('el cuadro del salón se calcula contra el cuerpo', () => {
   it('quien cabe con el objetivo de siempre no lo abre', () => {
     expect(encuadreDelSalon(PATRON_POR_ID.sentadilla).campo).toBe(CAMPO_VISUAL)
     expect(encuadreDelSalon(PATRON_POR_ID.bisagra_cadera).campo).toBe(CAMPO_VISUAL)
-    // Y el tumbado sí lo abre, porque de ancho no cabe de ninguna otra forma.
-    expect(encuadreDelSalon(PATRON_POR_ID.empuje_horizontal).campo).toBeGreaterThan(CAMPO_VISUAL)
+    // Y EL PRESS DE BANCA SE PASÓ A ESTE LADO EL 2026-09-07: con los codos recogidos ya cabe
+    // con el objetivo de siempre. Era el ejemplo del que sí lo abría; ahora ese papel lo hace
+    // la apertura de pecho, que de brazo a brazo mide dos metros y no cabe de otra forma.
+    expect(encuadreDelSalon(PATRON_POR_ID.empuje_horizontal).campo).toBe(CAMPO_VISUAL)
+    expect(encuadreDelSalon(PATRON_POR_ID.apertura_pecho).campo).toBeGreaterThan(CAMPO_VISUAL)
   })
 
   it('el objetivo no se abre más allá del gran angular medido', () => {

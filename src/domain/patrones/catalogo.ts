@@ -657,8 +657,19 @@ export const PATRONES: Patron[] = [
     //    mientras subía. La clave pide el codo «ligeramente por delante del cuerpo», que es
     //    el plano escapular, y un plano no se entra a mitad de camino: se está en él desde
     //    abajo. Ahora es constante, y el gesto ocurre en un solo plano.
-    inicio: { hombroAbd: -4, hombroFlex: 18, codoFlex: 10, toraxFlex: 4 },
-    fin: { hombroAbd: 90, hombroFlex: 18, codoFlex: 18, escapulaRotAsc: 14, toraxFlex: 3 },
+    // EN EL PLANO ESCAPULAR, Y SIN SALIRSE DE ÉL (2026-09-07, Bryan). La ficha ya decía en sus
+    // claves «codo ligeramente por delante del cuerpo, no clavado al lado», y hacía lo
+    // contrario: medido sobre el hueso, el húmero arrancaba a 32° del plano frontal y se iba
+    // cerrando hasta −2° arriba. O sea que terminaba EXACTAMENTE en el plano frontal puro, a
+    // la altura del hombro, que es la postura que pellizca.
+    //
+    // Ahora el plano se queda entre 28° y 30° en todo el recorrido, y lo que lo fija es la
+    // rotación del húmero (−30), no la flexión: así el que eleva sigue siendo `hombroAbd`
+    // —8 → 84— y el desglose articular sigue leyendo el gesto como una ABDUCCIÓN, que es el
+    // nombre del patrón. Con la flexión haciendo el trabajo el brazo llegaba igual de alto y
+    // el texto de la app pasaba a decir «flexión de hombro».
+    inicio: { hombroAbd: 8, hombroFlex: 1, hombroRot: -30, codoFlex: 10, toraxFlex: 4 },
+    fin: { hombroAbd: 84, hombroFlex: 0, hombroRot: -30, codoFlex: 18, escapulaRotAsc: 14, toraxFlex: 3 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.medio': 1, 'manguito.supraespinoso': 0.85, 'trapecio.superior': 0.55, 'trapecio.inferior': 0.4, serrato: 0.6, 'deltoides.anterior': 0.45, 'deltoides.posterior': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 12, elevacion: 4 },
@@ -1014,11 +1025,33 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroAbd: 68, hombroFlex: 18, codoFlex: 118, escapulaElev: 0 },
-    fin: { hombroAbd: 172, hombroFlex: 6, codoFlex: 4, escapulaElev: 26, toraxFlex: -4 },
+    // EL PLANO ESCAPULAR, MEDIDO. Bryan, 2026-09-07: «la flexión de hombro se debe dar en un
+    // plano escapular alineado con el codo; el codo debe mantener una flexión e irse
+    // extendiendo a medida que sube, y además debe haber una breve aducción horizontal».
+    // Hasta ese día el press subía por abducción (68° → 172°): arrancaba con los codos en
+    // cruz (4° de azimut, las manos a 158 cm), el antebrazo iba TUMBADO a media subida (84°
+    // de la vertical, la mano al lado del codo y no encima) y el brazo acababa 12 cm POR
+    // DETRÁS del hombro. Era el press que la propia ficha desaconseja en sus claves.
+    //
+    // Las tres poses salieron de un barrido sobre el esqueleto resuelto
+    // (`scripts/medir-press.mjs`), buscando a la vez la elevación, el azimut del húmero
+    // respecto al plano frontal y el antebrazo vertical con la mano encima del codo. Y las
+    // tres van por LA MISMA RUTA de Euler —abducción casi nula, la elevación la pone
+    // `hombroFlex`—: con rutas distintas cada pose era buena y la interpolación pasaba el
+    // brazo por detrás del cuerpo. Lo que sale, fase a fase:
+    //   arranque  húmero a 51° · azimut 39° · codo 53°  · antebrazo a 10° de la vertical
+    //   medio     húmero a 109° · azimut 48° · codo 109° · antebrazo a 12° (la aducción)
+    //   arriba    húmero a 169° · azimut 28° · codo 176° · antebrazo a 9°
+    // La mano va siempre ~31 cm encima del codo y acaba 3 cm por DELANTE del hombro, no
+    // detrás; las manos, de 83 cm a 58 cm (mancuernas). `hombroRot` arriba en 0: con 30 la
+    // mano acababa 6 cm detrás del hombro y con −25 el húmero giraba 65° por el camino.
+    inicio: { hombroAbd: 2, hombroFlex: 50, hombroRot: 40, codoFlex: 130, escapulaElev: 0 },
+    medio: { hombroAbd: 2, hombroFlex: 110, hombroRot: 30, codoFlex: 68, escapulaElev: 10, toraxFlex: -2 },
+    fin: { hombroAbd: 2, hombroFlex: 172, hombroRot: 0, codoFlex: 4, escapulaElev: 26, toraxFlex: -4 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'deltoides.anterior': 1, 'deltoides.medio': 0.9, 'deltoides.posterior': 0.3, 'triceps.lateral': 0.85, 'triceps.medial': 0.85, 'triceps.larga': 0.6, serrato: 0.75, 'trapecio.superior': 0.6, 'trapecio.inferior': 0.5, 'manguito.supraespinoso': 0.4, 'pectoral_mayor.clavicular': 0.45, recto_abdominal: 0.4, erectores: 0.35, gluteo_mayor: 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
-    camara: { azimut: 18, elevacion: 2 },
+    // Tres cuartos, no de frente: a 18° el codo adelantado no se lee y el press parece en cruz.
+    camara: { azimut: 34, elevacion: 4 },
   },
   {
     id: 'antiextension',
@@ -1072,8 +1105,14 @@ export const PATRONES: Patron[] = [
     giro: [-88, 0, 0],
     raizInicio: [0, 0.50, 0],
     raizFin: [0, 0.50, 0],
-    inicio: { hombroAbd: 42, hombroFlex: 62, codoFlex: 100, escapulaProt: -28, caderaFlex: 42, rodillaFlex: 78 },
-    fin: { hombroAbd: 18, hombroFlex: 88, codoFlex: 4, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
+    // RECOLOCADO EL 2026-09-07, con la bisagra del codo ya arreglada. Antes el húmero
+    // abría a 87° del tronco —los «codos a 90°» que la propia ficha llama error— y el
+    // antebrazo apuntaba a la cabeza en vez de al techo, porque el codo, con el hombro
+    // abducido, se estiraba solo. Ahora el húmero se queda a 55° del tronco y casi en el
+    // plano del banco (15°), y el que apunta al techo es el antebrazo, que es como se ve
+    // un press desde el lado. Los canales salen de `scripts/ajustar-brazo.mjs`.
+    inicio: { hombroAbd: 48, hombroFlex: 0, hombroRot: -15, codoFlex: 100, escapulaProt: -28, caderaFlex: 42, rodillaFlex: 78 },
+    fin: { hombroAbd: 38, hombroFlex: 87, hombroRot: -35, codoFlex: 4, escapulaProt: 12, caderaFlex: 42, rodillaFlex: 78 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.esternocostal': 1, 'pectoral_mayor.clavicular': 0.6, 'pectoral_mayor.abdominal': 0.5, 'deltoides.anterior': 0.85, 'triceps.lateral': 0.8, 'triceps.medial': 0.8, 'triceps.larga': 0.55, serrato: 0.5, biceps: 0.2, 'manguito.subescapular': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 46 },
@@ -1099,8 +1138,11 @@ export const PATRONES: Patron[] = [
     giro: [-52, 0, 0],
     raizInicio: [0, -0.4, 0],
     raizFin: [0, -0.4, 0],
-    inicio: { hombroAbd: 38, hombroFlex: 66, codoFlex: 102, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
-    fin: { hombroAbd: 16, hombroFlex: 92, codoFlex: 6, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
+    // Recolocado igual que el press plano el 2026-09-07: húmero a 55° del tronco en el
+    // plano del banco y antebrazo al techo. La diagonal de la mano la pone la inclinación
+    // del tronco (`giro`), no una pose distinta.
+    inicio: { hombroAbd: 48, hombroFlex: 3, hombroRot: -20, codoFlex: 102, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
+    fin: { hombroAbd: 40, hombroFlex: 84, hombroRot: -38, codoFlex: 6, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.clavicular': 1, 'pectoral_mayor.esternocostal': 0.7, 'deltoides.anterior': 0.95, 'triceps.lateral': 0.75, 'triceps.medial': 0.75, serrato: 0.5, 'manguito.subescapular': 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 34, elevacion: 40 },
