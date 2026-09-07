@@ -26,6 +26,11 @@ export interface EstudioDelPatronProps {
    * su defecto, que es el neutro de siempre.
    */
   sexo?: SexoDeFicha
+  /**
+   * La estatura de la ficha, en centímetros, para que el sujeto tenga la talla de la
+   * persona. Sin dato, el del atlas: no medido no es una estimación.
+   */
+  estaturaCm?: number
 }
 
 type Vista = 'ejercicio' | 'articulacion'
@@ -43,7 +48,7 @@ function articulacionProtagonista(patron: Patron): string | undefined {
   return (mueve ?? principales[0])?.articulacion.id
 }
 
-export function EstudioDelPatron({ patron, sexo }: EstudioDelPatronProps) {
+export function EstudioDelPatron({ patron, sexo, estaturaCm }: EstudioDelPatronProps) {
   const [vista, setVista] = useState<Vista>('ejercicio')
 
   return (
@@ -77,7 +82,7 @@ export function EstudioDelPatron({ patron, sexo }: EstudioDelPatronProps) {
           contexto WebGL, y dos a la vez es el doble de trabajo por cuadro en un
           móvil que además está grabando la serie. */}
       {vista === 'ejercicio' ? (
-        <VisorPatron patron={patron} sexo={sexo} />
+        <VisorPatron patron={patron} sexo={sexo} estaturaCm={estaturaCm} />
       ) : (
         <ExploradorAnatomico
           articulacionInicial={articulacionProtagonista(patron)}

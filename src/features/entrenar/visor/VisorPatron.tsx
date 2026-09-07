@@ -14,7 +14,14 @@ import {
   trazaDelPatron,
 } from '../../../domain/patrones/escena'
 import { construirHuesos } from '../../../domain/patrones/huesos'
-import { esqueletoDe, SEXO_POR_DEFECTO, type Sexo } from '../../../domain/patrones/juegoDeHuesos'
+import {
+  esqueletoConJuego,
+  esqueletoDe,
+  JUEGOS,
+  SEXO_POR_DEFECTO,
+  type Sexo,
+} from '../../../domain/patrones/juegoDeHuesos'
+import { juegoParaEstatura } from '../../../domain/patrones/estatura'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
@@ -34,7 +41,12 @@ import { implementosDeEscena, type EscenaDeImplementos } from '../escena/impleme
 import { construirImplementos } from '../escena/dibujarImplementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
-import { INDICE_RAIZ, resolver, type EsqueletoResuelto } from '../../../domain/patrones/esqueleto'
+import {
+  INDICE_RAIZ,
+  resolver,
+  type DefinicionHueso,
+  type EsqueletoResuelto,
+} from '../../../domain/patrones/esqueleto'
 import type { Mat4 } from '../../../domain/patrones/algebra'
 import {
   activacionDe,
@@ -60,7 +72,12 @@ type Capa = 'ambas' | 'musculo' | 'hueso'
  * `juegoDeHuesos.ts`); el neutro es el de siempre y es el único que se calcula si nadie
  * elige otro.
  */
-const sujetoCache = new Map<Sexo, { huesos: Malla; reposo: Record<string, number> }>()
+/**
+ * Las cachés van por SEXO Y ESTATURA, no por sexo. Desde el 2026-09-06 el sujeto se dibuja
+ * con la talla del asesorado, así que dos personas del mismo sexo y distinta altura son dos
+ * esqueletos distintos y no pueden compartir malla. La clave la arma `claveDelSujeto`.
+ */
+const sujetoCache = new Map<string, { huesos: Malla; reposo: Record<string, number> }>()
 
 /**
  * EL FANTASMA TIENE SUS PROPIOS HUESOS. Comparte `construirHuesos()` como fábrica pero no
@@ -68,7 +85,7 @@ const sujetoCache = new Map<Sexo, { huesos: Malla; reposo: Record<string, number
  * translúcida para el fantasma a la vez. También por juego: el fantasma es el mismo
  * cuerpo en otro tiempo, no otro cuerpo.
  */
-const fantasmaCache = new Map<Sexo, Malla>()
+const fantasmaCache = new Map<string, Malla>()
 
 /** Cuánto se ve a través del fantasma. Menos y se pierde; más y parece otro atleta. */
 const ALFA_DEL_FANTASMA = 0.38
@@ -206,24 +223,43 @@ const COLOCACION_INICIAL: Colocacion = {
   altura: SALA.estacion.altura,
 }
 
-function precalculado(sexo: Sexo) {
-  let sujeto = sujetoCache.get(sexo)
+const claveDelSujeto = (sexo: Sexo, estaturaCm?: number): string =>
+  estaturaCm === undefined ? sexo : `${sexo}|${estaturaCm}`
+
+/**
+ * Los huesos con los que se dibuja a ESTA persona: su sexo y su estatura.
+ *
+ * Sin estatura devuelve el juego del atlas tal cual —`esqueletoDe`, el camino de siempre—,
+ * y eso importa: no medido no es cero ni «lo que suele medir la gente». Con estatura, el
+ * juego se escala entero (ver `domain/patrones/estatura.ts`, que también explica lo que un
+ * escalado por estatura NO puede hacer: individualizar las proporciones).
+ */
+function definicionDelSujeto(sexo: Sexo, estaturaCm?: number): readonly DefinicionHueso[] {
+  if (estaturaCm === undefined) return esqueletoDe(sexo)
+  const juego = juegoParaEstatura(JUEGOS[sexo], estaturaCm)
+  return juego === JUEGOS[sexo] ? esqueletoDe(sexo) : esqueletoConJuego(juego)
+}
+
+function precalculado(sexo: Sexo, estaturaCm?: number) {
+  const clave = claveDelSujeto(sexo, estaturaCm)
+  let sujeto = sujetoCache.get(clave)
   if (!sujeto) {
-    const definicion = esqueletoDe(sexo)
+    const definicion = definicionDelSujeto(sexo, estaturaCm)
     sujeto = {
       huesos: construirHuesos(definicion),
       reposo: longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion)),
     }
-    sujetoCache.set(sexo, sujeto)
+    sujetoCache.set(clave, sujeto)
   }
   return sujeto
 }
 
-function huesosDelFantasma(sexo: Sexo): Malla {
-  let malla = fantasmaCache.get(sexo)
+function huesosDelFantasma(sexo: Sexo, estaturaCm?: number): Malla {
+  const clave = claveDelSujeto(sexo, estaturaCm)
+  let malla = fantasmaCache.get(clave)
   if (!malla) {
-    malla = construirHuesos(esqueletoDe(sexo))
-    fantasmaCache.set(sexo, malla)
+    malla = construirHuesos(definicionDelSujeto(sexo, estaturaCm))
+    fantasmaCache.set(clave, malla)
   }
   return malla
 }
@@ -370,6 +406,18 @@ interface VisorPatronProps {
    * app sepa el sexo de cada persona —hoy no lo guarda en ningún sitio.
    */
   sexo?: Sexo
+  /**
+   * LA ESTATURA DEL ASESORADO, en centímetros, para que el sujeto tenga SU talla.
+   *
+   * Sale de la medida más reciente de su ficha (`estaturaVigente`). Opcional, y sin ella
+   * el sujeto es el del atlas: no medido no es una estimación.
+   *
+   * Lo que da y lo que no: con la estatura sola el juego se escala PROPORCIONALMENTE, así
+   * que alguien de 1,60 deja de verse como uno de 1,90 —que era el error grande— pero dos
+   * personas de la misma altura con fémures distintos siguen viéndose iguales. Eso pide
+   * medir el fémur y hoy no se mide. Está escrito en `domain/patrones/estatura.ts`.
+   */
+  estaturaCm?: number
 }
 
 /**
@@ -392,6 +440,7 @@ export function VisorPatron({
   orbitaConUnDedo = true,
   retirada = 1,
   sexo = SEXO_POR_DEFECTO,
+  estaturaCm,
 }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
@@ -598,7 +647,7 @@ export function VisorPatron({
         // encuadre y cada fotograma— o la carne se dibujaría sobre unas articulaciones y
         // el hueso sobre otras.
         const definicion = esqueletoDe(sexo)
-        const { huesos, reposo } = precalculado(sexo)
+        const { huesos, reposo } = precalculado(sexo, estaturaCm)
         // La malla del músculo se reutiliza cuadro a cuadro: la topología no
         // cambia y reservarla de nuevo cada vez costaba el doble de tiempo.
         const mallaMusculo = new Malla(16384)
@@ -804,7 +853,7 @@ export function VisorPatron({
                 poseDeHuella(huella, tFantasma),
                 definicion,
               )
-              const hF = hornear(huesosDelFantasma(sexo), esqF.matrices, huesosFantasmaHorneados)
+              const hF = hornear(huesosDelFantasma(sexo, estaturaCm), esqF.matrices, huesosFantasmaHorneados)
               hF.alfa = ALFA_DEL_FANTASMA
               const mF = hornear(
                 construirMusculos(esqF, SIN_ACTIVACION, reposo, mallaFantasma),
@@ -1032,7 +1081,12 @@ export function VisorPatron({
     // construirse, así que si algún día cambiara en caliente sin rehacer el motor, el dedo
     // se quedaría con el comportamiento de la pantalla anterior. Un aviso del linter menos
     // y un fallo raro menos.
-  }, [patron, conEscenario, orbitaConUnDedo, sexo])
+    //
+    // Y `estaturaCm` va con `sexo` por el mismo motivo por el que va `sexo`: los dos
+    // deciden con qué huesos se construye el sujeto, y el motor los lee UNA vez aquí. Sin
+    // esto, abrir el visor de un asesorado y luego el de otro más alto dibujaría al
+    // segundo con el cuerpo del primero — y no fallaría nada: se vería mal y ya.
+  }, [patron, conEscenario, orbitaConUnDedo, sexo, estaturaCm])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { estaturaVigente } from '../../domain/patrones/estatura'
 import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
@@ -397,7 +398,13 @@ function SesionEnCurso() {
       >
         {/* El sexo de la ficha, tal cual: sin dato no se pasa nada y el estudio usa
             su defecto. Se lee aquí y no en un estado, para que la ficha mande. */}
-        {patron && <EstudioDelPatron patron={patron} sexo={db.perfiles.byUsuario(usuario.id)?.sexo} />}
+        {patron && (
+          <EstudioDelPatron
+            patron={patron}
+            sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
+            estaturaCm={estaturaVigente(db.perfiles.byUsuario(usuario.id)?.medidas)}
+          />
+        )}
       </Sheet>
 
       {frase && (

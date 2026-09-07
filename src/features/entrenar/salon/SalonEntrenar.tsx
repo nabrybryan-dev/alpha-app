@@ -175,6 +175,8 @@ export interface SalonEntrenarProps {
    * quien monta el salón (`RutaPage`) y llega hasta `VisorPatron` sin transformarlo.
    */
   sexo?: SexoDeFicha
+  /** La estatura de la ficha, en centímetros: el sujeto se dibuja con la talla de la persona. */
+  estaturaCm?: number
 }
 
 /** El ejercicio del que habla el salón: el primero que queda por terminar. */
@@ -693,6 +695,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // LOS HUESOS DE ESTA PERSONA: lo que el coach indicó en su ficha. Sin dato
                 // el visor usa su defecto, que es el neutro de siempre.
                 sexo={props.sexo}
+                estaturaCm={props.estaturaCm}
                 // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
                 // lado pasa de ejercicio, y se orbita con dos dedos, donde ya vivía el
                 // pellizco. En el estudio del patrón sigue orbitando con uno.

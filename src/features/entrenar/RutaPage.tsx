@@ -1,4 +1,5 @@
 import { useSesion } from '../../app/SessionProvider'
+import { estaturaVigente } from '../../domain/patrones/estatura'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
@@ -69,6 +70,9 @@ export default function RutaPage() {
       // De la ficha, tal cual: 'mujer' es 'mujer', 'hombre' es 'hombre', y sin dato no
       // se pasa nada, para que el visor decida su defecto y no esta pantalla.
       sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
+      // Y su estatura, de la medida más reciente que la traiga. Misma regla que el sexo:
+      // sin dato no se pasa nada y el visor usa el sujeto del atlas.
+      estaturaCm={estaturaVigente(db.perfiles.byUsuario(usuario.id)?.medidas)}
     />
   )
 }
