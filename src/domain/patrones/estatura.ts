@@ -1,3 +1,4 @@
+import type { ProporcionesDelCuerpo } from './huellaArticular'
 import type { JuegoDeHuesos } from './juegoDeHuesos'
 
 /**
@@ -97,4 +98,68 @@ export function estaturaVigente(
   const conAltura = medidas.filter((m) => Number.isFinite(m.alturaCm))
   if (!conAltura.length) return undefined
   return [...conAltura].sort((a, b) => (a.fecha < b.fecha ? 1 : -1))[0].alturaCm
+}
+
+/**
+ * EL CUERPO DE LA PERSONA: su estatura Y SUS PALANCAS.
+ *
+ * Es la mitad que faltaba. `juegoParaEstatura` arregla el error grande —que uno de 1,60 se
+ * vea como uno de 1,90— pero deja dos personas de la misma altura con el mismo cuerpo, y
+ * eso es justo lo que NO es verdad: «una sentadilla con fémur largo no es la misma
+ * sentadilla». Con las proporciones que salen de su pista de pose
+ * (`proporcionesDePista`), el sujeto pasa a tener las palancas de la persona.
+ *
+ * ## Cómo se reparte, y por qué así
+ *
+ * La estatura MANDA y no se toca: es el único número medido en metros que hay, y salir de
+ * la ficha con 1,72 para acabar dibujando 1,68 sería estropear el dato bueno con el
+ * aproximado. Así que lo que hacen las proporciones es **repartir** esa estatura, no
+ * cambiarla.
+ *
+ * De los cinco segmentos que la pista mide, tres levantan del suelo —fémur, tibia y
+ * tronco— y dos no —húmero y antebrazo—. Entonces:
+ *
+ *  1. La altura disponible del tobillo a la coronilla es `estatura − planta`, y se reparte
+ *     entre fémur, tibia y tronco según las razones de la persona, renormalizadas entre
+ *     esos tres.
+ *  2. Los brazos NO caben en ese reparto porque no suman altura, así que se atan al fémur:
+ *     si la persona tiene el húmero 1,1 veces su fémur, el muñeco también.
+ *
+ * ## Lo que sigue sin medirse
+ *
+ * `medioHombro` —la media anchura de hombros— no está en la pista: una toma sagital no ve
+ * la anchura. Se queda escalada con la estatura, o sea con la proporción del atlas. Y la
+ * `planta` tampoco se mide: es hueso y tejido bajo el tobillo, y en la pista el pie casi
+ * siempre está tapado.
+ *
+ * Se dicen las dos en vez de repartirlas también: un número repartido a ojo se mezcla con
+ * los medidos y ya no se distingue cuál era cuál.
+ */
+export function juegoConProporciones(
+  juego: JuegoDeHuesos,
+  proporciones: ProporcionesDelCuerpo | undefined,
+  estaturaCm: number | undefined,
+): JuegoDeHuesos {
+  const base = juegoParaEstatura(juego, estaturaCm)
+  if (!proporciones) return base
+  const { femur, tibia, torso } = proporciones
+  const enPie = femur + tibia + torso
+  if (!(enPie > 0) || !(proporciones.femur > 0)) return base
+
+  // Lo que hay del tobillo a la coronilla: la estatura menos lo que el pie hunde el tobillo.
+  const disponible = base.coronilla - base.planta
+  const femurNuevo = (disponible * femur) / enPie
+  const tibiaNueva = (disponible * tibia) / enPie
+  // Los brazos se atan al fémur, que es el segmento mejor visto de la pista en una
+  // sentadilla y el que más manda en la geometría del gesto.
+  const porFemur = femurNuevo / proporciones.femur
+  return {
+    ...base,
+    fuente: `${base.fuente} Y REPARTIDA con las proporciones de su pista de pose (${proporciones.fotogramas} fotogramas): fémur, tibia y tronco por sus razones medidas; brazos atados al fémur; anchura de hombros y planta sin medir, del atlas.`,
+    femur: femurNuevo,
+    tibia: tibiaNueva,
+    humero: porFemur * proporciones.humero,
+    antebrazo: porFemur * proporciones.antebrazo,
+    cadera: base.planta + tibiaNueva + femurNuevo,
+  }
 }

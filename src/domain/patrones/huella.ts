@@ -1,3 +1,4 @@
+import type { ProporcionesDelCuerpo } from './huellaArticular'
 /**
  * LA HUELLA DE UNA REPETICIÓN: lo que la barra hizo, reducido a lo que se puede guardar.
  *
@@ -53,6 +54,20 @@ export interface HuellaDeRepeticion {
    * lo que se inclinó.
    */
   articular?: Record<string, number[]>
+  /**
+   * CÓMO ES EL CUERPO de quien hizo la repetición: las razones entre sus segmentos.
+   *
+   * Sale de la misma pista que `articular` y viaja con ella porque es el único sitio donde
+   * el cuerpo de la persona queda registrado: la pista de pose no se guarda —se lee, se
+   * saca lo que hace falta y se tira—, así que si esto no viajara aquí, se perdería.
+   *
+   * Sin escala a propósito: son fracciones que suman 1. La escala la pone la estatura de
+   * la ficha, que sí está medida en centímetros. Ver `proporcionesDePista`.
+   *
+   * Ausente en la huella del encoder de barra, que solo ve la barra, y en las tomas que no
+   * dan para medir el cuerpo. Ausente NO es «proporciones normales».
+   */
+  proporciones?: ProporcionesDelCuerpo
 }
 
 /** Lo que hace falta del análisis: la trayectoria y dónde empieza y acaba cada repetición. */

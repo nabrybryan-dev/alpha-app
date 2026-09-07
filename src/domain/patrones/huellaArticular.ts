@@ -269,6 +269,102 @@ function remuestrear(muestras: AngulosDeFotograma[], leer: (a: AngulosDeFotogram
  * La huella articular de la última repetición de una pista, o `undefined` si la pista no
  * da para una: sin rodilla ni cadera visibles no hay pose que enseñar.
  */
+/**
+ * LAS PROPORCIONES DEL CUERPO, que es lo que la pista sabe y nadie le preguntaba.
+ *
+ * Hasta el 2026-09-06 esta pista se leía solo para sacar ÁNGULOS, y los puntos —que están
+ * en píxeles y traen los largos de cada segmento— se tiraban al terminar. Con ellos el
+ * sujeto del salón puede dejar de tener el cuerpo del atlas y tener el de la persona.
+ *
+ * ## Por qué se devuelven RAZONES y no centímetros
+ *
+ * Porque la escala es el problema abierto del encoder y aquí no hace falta resolverlo. La
+ * pista está en píxeles y no se sabe cuántos son un metro —la estatura como ancla se midió
+ * y no sirve (0 de 61); el disco sí, pero no siempre hay disco—. Pero **una razón no tiene
+ * escala**: si el fémur mide 1,2 veces la tibia, eso es verdad en píxeles y en metros.
+ *
+ * Así que de aquí salen las proporciones, y el tamaño lo pone la estatura de la ficha, que
+ * sí está medida. Es el reparto honesto: cada dato aporta lo que sabe.
+ *
+ * ## Por qué el percentil 90 y no la media
+ *
+ * Porque la pista es una PROYECCIÓN. Un fémur que apunta a la cámara sale corto, nunca
+ * largo: el escorzo solo puede restar. Así que la media de los fotogramas subestima
+ * siempre, y lo que se parece al largo real es lo más largo que se le ve — cuando el
+ * segmento pasa perpendicular a la cámara, que en una sentadilla de perfil pasa.
+ *
+ * El máximo a secas no vale: un fotograma con el detector saltando da un largo imposible y
+ * se lo lleva todo. El percentil 90 se queda con lo largo y descarta el pico suelto.
+ */
+export interface ProporcionesDelCuerpo {
+  /** Cada segmento como fracción de la suma de los cinco. Suman 1. */
+  femur: number
+  tibia: number
+  humero: number
+  antebrazo: number
+  torso: number
+  /** Cuántos fotogramas midieron el segmento peor visto. Pocos, no es una medida. */
+  fotogramas: number
+}
+
+/** Con menos de esto por segmento, la razón la decide el ruido y no el cuerpo. */
+const FOTOGRAMAS_PARA_PROPORCION = 10
+
+/** Los cinco segmentos, y los dos puntos que los definen en la pista. */
+const SEGMENTOS: readonly [keyof Omit<ProporcionesDelCuerpo, 'fotogramas'>, string, string][] = [
+  ['femur', 'cadera', 'rodilla'],
+  ['tibia', 'rodilla', 'tobillo'],
+  ['humero', 'hombro', 'codo'],
+  ['antebrazo', 'codo', 'muneca'],
+  ['torso', 'cadera', 'hombro'],
+]
+
+function percentil(valores: number[], p: number): number {
+  const orden = [...valores].sort((a, b) => a - b)
+  const i = Math.min(orden.length - 1, Math.max(0, Math.round(p * (orden.length - 1))))
+  return orden[i]
+}
+
+/**
+ * Las proporciones del cuerpo de una pista, o `undefined` si no da para medirlas.
+ *
+ * `undefined` no es cero: significa que esta toma no sirve para saber cómo es la persona,
+ * y entonces el sujeto sigue siendo el del atlas. Repetir la toma de perfil lo arregla.
+ */
+export function proporcionesDePista(pista: PistaDePose): ProporcionesDelCuerpo | undefined {
+  const largos: Record<string, number[]> = {}
+  for (const f of pista.fotogramas) {
+    for (const [nombre, a, b] of SEGMENTOS) {
+      // Los dos lados valen: la pista es sagital y se toma el lado que se vea.
+      for (const l of LADOS) {
+        const pa = punto(f, `${a}_${l}`)
+        const pb = punto(f, `${b}_${l}`)
+        if (!pa || !pb) continue
+        const d = Math.hypot(pa[0] - pb[0], pa[1] - pb[1])
+        if (d > 0) (largos[nombre] ??= []).push(d)
+      }
+    }
+  }
+  const medidos: Record<string, number> = {}
+  let peor = Infinity
+  for (const [nombre] of SEGMENTOS) {
+    const v = largos[nombre]
+    if (!v || v.length < FOTOGRAMAS_PARA_PROPORCION) return undefined
+    medidos[nombre] = percentil(v, 0.9)
+    peor = Math.min(peor, v.length)
+  }
+  const suma = Object.values(medidos).reduce((s, x) => s + x, 0)
+  if (!(suma > 0)) return undefined
+  return {
+    femur: medidos.femur / suma,
+    tibia: medidos.tibia / suma,
+    humero: medidos.humero / suma,
+    antebrazo: medidos.antebrazo / suma,
+    torso: medidos.torso / suma,
+    fotogramas: peor,
+  }
+}
+
 export function huellaDePista(pista: PistaDePose, muestras = MUESTRAS): HuellaDeRepeticion | undefined {
   const fotogramas = [...pista.fotogramas].filter((f) => Number.isFinite(f.t)).sort((a, b) => a.t - b.t)
   const enManos = cargaEnLasManos(fotogramas)
@@ -314,5 +410,8 @@ export function huellaDePista(pista: PistaDePose, muestras = MUESTRAS): HuellaDe
   if (hombro) articular.hombroFlex = hombro
   if (codo) articular.codoFlex = codo
 
-  return { duracionSeg, fase, articular }
+  // Y de paso, CÓMO ES EL CUERPO: los puntos ya están leídos y esta es la única ocasión de
+  // preguntárselo — la pista no se guarda en ningún sitio. Ver `proporcionesDePista`.
+  const proporciones = proporcionesDePista(pista)
+  return { duracionSeg, fase, articular, proporciones }
 }
