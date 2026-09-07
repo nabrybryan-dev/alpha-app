@@ -1,8 +1,10 @@
-import { semanaEsAdelantada } from '../../../../domain/rutaEntrenamiento'
 import { hoyIso } from '../../../../data/dbInstance'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   resumenSemana,
+  semanaEsAdelantada,
+  semanaEsVencida,
+  ultimoDiaDe,
   type DiaRuta,
   type MiniEstadistica,
   type RequisitoNivel,
@@ -34,6 +36,12 @@ import type { ImplementosDeSesion } from '../implementos/implementosDeSesion'
 import { MuroDeCampos } from '../paredes/PanelPared'
 import { MURO_DERECHO } from '../paredes/muros'
 import type { ContenidoDePared } from '../paredes/contenidoPared'
+
+/** «7 sep», para el pie del calendario. Sin fecha, nada: no se inventa un día. */
+function fechaCorta(fechaIso: string | undefined): string {
+  if (!fechaIso) return ''
+  return new Date(`${fechaIso}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+}
 
 /**
  * EL PANEL DE ABAJO: lo largo, íntegro, a un dedo de distancia.
@@ -422,10 +430,16 @@ export function PanelInferior(props: PanelInferiorProps) {
               // «Próxima semana» cuando el microciclo aún no ha arrancado (#209, de main): la
               // rejilla es la de la semana que VIENE y ningún día está marcado como hoy; sin
               // decirlo, la persona busca el día en el que está y no lo encuentra.
+              // Y «terminó el …» cuando ya venció y no ha llegado el siguiente: las sesiones
+              // se quedan a propósito —entrenar el plan viejo es mejor que nada—, pero sin
+              // decirlo la semana vieja es idéntica a una nueva. Un asesorado la vio así
+              // trece días seguidos.
               pie={
                 semanaEsAdelantada(microciclo, hoyIso())
                   ? `Próxima semana · Microciclo ${microciclo.numero}`
-                  : `Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`
+                  : semanaEsVencida(microciclo, hoyIso())
+                    ? `El microciclo ${microciclo.numero} terminó el ${fechaCorta(ultimoDiaDe(microciclo))} · tu coach prepara el siguiente`
+                    : `Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`
               }
               cifra={
                 <span className="text-silver-400">

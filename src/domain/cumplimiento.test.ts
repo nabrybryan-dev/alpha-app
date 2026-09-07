@@ -190,6 +190,38 @@ describe('semaforoAsesorado', () => {
   it('rojo con 4 o más días sin registrar', () => {
     expect(semaforoAsesorado({ diasSinRegistrar: 5, readinessBaja: true }).color).toBe('rojo')
   })
+
+  /**
+   * ROJO A PROPÓSITO contra el código anterior al 2026-09-07.
+   *
+   * Un asesorado con el microciclo vencido hace trece días, que seguía
+   * registrando el plan viejo, salía VERDE en la lista del coach: «Al día».
+   * Registrar sí estaba al día; lo que no estaba era la programación, y eso es
+   * cosa del coach, no del asesorado. El semáforo tiene que decirlo.
+   */
+  it('ámbar con el microciclo vencido, aunque registre al día', () => {
+    const s = semaforoAsesorado({ diasSinRegistrar: 0, readinessBaja: false, microcicloVencidoHaceDias: 13 })
+    expect(s.color).toBe('ambar')
+    expect(s.motivo).toBe('Microciclo vencido hace 13 días')
+  })
+
+  it('el día que vence cuenta como 1, en singular', () => {
+    expect(
+      semaforoAsesorado({ diasSinRegistrar: 0, readinessBaja: false, microcicloVencidoHaceDias: 1 }).motivo,
+    ).toBe('Microciclo vencido hace 1 día')
+  })
+
+  it('el rojo por no registrar sigue mandando sobre el vencimiento', () => {
+    // Las dos cosas pasan a la vez con frecuencia; la que pide acción hoy es la
+    // de la persona que lleva días sin dar señales.
+    const s = semaforoAsesorado({ diasSinRegistrar: 5, readinessBaja: false, microcicloVencidoHaceDias: 13 })
+    expect(s.color).toBe('rojo')
+    expect(s.motivo).toBe('5 días sin registrar')
+  })
+
+  it('sin vencimiento (undefined o 0) no cambia nada', () => {
+    expect(semaforoAsesorado({ diasSinRegistrar: 0, readinessBaja: false, microcicloVencidoHaceDias: 0 }).color).toBe('verde')
+  })
 })
 
 describe('desviacionRir con el objetivo en FALLO', () => {
