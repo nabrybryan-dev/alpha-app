@@ -82,18 +82,50 @@ function detalleDeSesion(sesion: Sesion): string {
 }
 
 /**
- * Reparte las sesiones del microciclo en los 7 días de la semana de `hoyIso`.
+ * ¿La rejilla está enseñando una semana que todavía no ha empezado?
+ *
+ * Sirve para que la pantalla lo DIGA. Una semana adelantada no tiene día de
+ * hoy, así que sin aviso parece la de siempre con todo por hacer.
+ */
+export function semanaEsAdelantada(microciclo: Microciclo, hoyIso: string): boolean {
+  return Boolean(microciclo.fechaInicio) && hoyIso < microciclo.fechaInicio
+}
+
+/**
+ * Reparte las sesiones del microciclo en los 7 días de su semana.
  *
  * Las sesiones que traen `dia` caen en su día exacto. Las que no —el Excel no
  * siempre lo trae— se colocan por `orden` en los primeros huecos libres: es lo
  * mismo que ya hacía la lista de sesiones, y así el calendario nunca sale vacío
  * por un campo que el coach no llenó.
+ *
+ * LA REJILLA SE ANCLA AL MICROCICLO CUANDO ESTE AÚN NO HA EMPEZADO (2026-09-06).
+ *
+ * Antes se anclaba siempre a la semana natural de hoy, y eso escondía el plan
+ * hasta el día en que arrancaba: el domingo 6-sep se cargaron catorce
+ * microciclos que empezaban el lunes 7 y las catorce cuentas decían «Descanso»
+ * los siete días. Los planes estaban bien; no se podían ver.
+ *
+ * Importa porque la revisión ocurre la víspera. Si el plan no se ve hasta que
+ * ya corre, un error de programación se descubre con la gente entrenándolo —y
+ * eso pasó—. Adelantarlo también sirve al asesorado: sabe el domingo qué le
+ * espera.
+ *
+ * NO SE TOCA EL CANDADO DE `yaEmpezo`, y es la clave de que esto sea seguro:
+ * al anclar a la semana del arranque, todos los días dibujados caen en el
+ * bloque o antes de él, nunca después. El fallo del 24-ago sigue siendo
+ * imposible por dos vías independientes, no por una.
  */
 export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
   const inicio = inicioSemanaDe(microciclo)
-  const dowHoy = new Date(`${hoyIso}T00:00:00`).getDay()
-  const desplazamiento = inicio === 'DOMINGO' ? dowHoy : (dowHoy + 6) % 7
-  const primerDia = sumarDias(hoyIso, -desplazamiento)
+  // El ancla es hoy mientras el microciclo corra, y su arranque si aún no ha
+  // empezado. Cuando hoy cae en la misma semana natural que el arranque —el
+  // caso de agosto: lunes 24 con bloque del martes 25— las dos anclas dan la
+  // MISMA rejilla, así que ahí no cambia nada.
+  const ancla = semanaEsAdelantada(microciclo, hoyIso) ? microciclo.fechaInicio : hoyIso
+  const dowAncla = new Date(`${ancla}T00:00:00`).getDay()
+  const desplazamiento = inicio === 'DOMINGO' ? dowAncla : (dowAncla + 6) % 7
+  const primerDia = sumarDias(ancla, -desplazamiento)
 
   const conDia = new Map<DiaSemana, Sesion>()
   const sinDia: Sesion[] = []

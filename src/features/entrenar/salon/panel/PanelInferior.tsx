@@ -1,3 +1,5 @@
+import { semanaEsAdelantada } from '../../../../domain/rutaEntrenamiento'
+import { hoyIso } from '../../../../data/dbInstance'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   resumenSemana,
@@ -417,7 +419,14 @@ export function PanelInferior(props: PanelInferiorProps) {
             <Recuadro
               clave="calendario"
               titulo="La semana"
-              pie={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
+              // «Próxima semana» cuando el microciclo aún no ha arrancado (#209, de main): la
+              // rejilla es la de la semana que VIENE y ningún día está marcado como hoy; sin
+              // decirlo, la persona busca el día en el que está y no lo encuentra.
+              pie={
+                semanaEsAdelantada(microciclo, hoyIso())
+                  ? `Próxima semana · Microciclo ${microciclo.numero}`
+                  : `Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`
+              }
               cifra={
                 <span className="text-silver-400">
                   {sesionesDeLaSemana.completadas}/{sesionesDeLaSemana.programadas}
