@@ -6,29 +6,22 @@ import { accionesPrincipales, fraseDelPatron, NOMBRE_DE_ROL, segmentosDe } from 
 import { NOMBRE_DE_PLANO, NOMBRE_DE_TIPO } from '../../../domain/patrones/articulaciones'
 import {
   CAMPO_VISUAL,
-  DURACION_CICLO,
   encuadrar,
   esqueletoEnFase,
-  faseDeTiempo,
   guias,
   lineaDePeso,
   trazaDelPatron,
 } from '../../../domain/patrones/escena'
-import { construirHuesos } from '../../../domain/patrones/huesos'
 import {
-  esqueletoConJuego,
-  esqueletoDe,
-  JUEGOS,
   SEXO_POR_DEFECTO,
   type Sexo,
 } from '../../../domain/patrones/juegoDeHuesos'
-import { juegoConProporciones } from '../../../domain/patrones/estatura'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
-import { anunciarSalaDeBlender, cargarPiezas, PIEZAS_DEL_ATLAS, SALA_GIMNASIO } from './piezas'
+import { anunciarSalaDeBlender, PIEZAS_DEL_ATLAS, SALA_GIMNASIO } from './piezas'
 import { encuadreDelSalon } from '../escena/encuadreDelSalon'
 import { ALFA_DEL_APARATO_QUE_TAPA, aparatoTapaAlCuerpo, partirImplementos } from '../escena/oclusionDelAparato'
 import { pasoDelVaiven } from './vaivenDeLaSala'
@@ -38,18 +31,16 @@ import { brazosDeMomento } from '../../../domain/biomecanica/brazosDeMomento'
 import { planDeMedida } from '../../../domain/biomecanica/palancas'
 import { mallasDeFuerzas } from '../../../domain/patrones/fuerzas'
 import type { Activacion } from '../../../domain/patrones/anatomia'
-import type { TempoDeRepeticion } from '../../../domain/patrones/escena'
 import { implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirImplementos } from '../escena/dibujarImplementos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
-import { type DefinicionHueso, type EsqueletoResuelto, INDICE_RAIZ, puntoDeHueso, resolver } from '../../../domain/patrones/esqueleto'
+import { type EsqueletoResuelto, INDICE_RAIZ, puntoDeHueso, resolver } from '../../../domain/patrones/esqueleto'
 import type { Mat4 } from '../../../domain/patrones/algebra'
 import {
   activacionDe,
   colorDeMusculo,
   construirMusculos,
-  longitudesEnReposo,
   MUSCULOS,
 } from '../../../domain/patrones/musculos'
 import { useMovimientoReducido } from '../../../components/ui/movimientoReducido'
@@ -59,30 +50,11 @@ import { NIVEL_POR_W } from '../capas/nivelesAnatomicos'
 import { construirMusculosDeNivel, mallasDelSujeto } from '../capas/mallaDelNivel'
 import { IconoPausa, IconoReproducir } from '../../../components/ui/Icono'
 import { FONDO_ESTUDIO } from './motor'
+import { atlasCache, atlasCargado, atlasPorCapa, cargarPiezas } from './cargaDelAtlas'
+import { DURACION_CICLO, faseDeTiempo, type TempoDeRepeticion } from './controlDelTiempo'
+import { esqueletoDe, huesosDelFantasma, precalculado } from './definicionCorporal'
 
 type Capa = 'ambas' | 'musculo' | 'hueso'
-
-/**
- * Se calculan una sola vez POR JUEGO DE HUESOS para toda la vida de la app: el esqueleto
- * es geometría fija —la mueve el shader— y las longitudes en reposo son la línea base
- * contra la que se mide cuánto se acorta cada músculo. Un juego es un sexo (ver
- * `juegoDeHuesos.ts`); el neutro es el de siempre y es el único que se calcula si nadie
- * elige otro.
- */
-/**
- * Las cachés van por SEXO Y ESTATURA, no por sexo. Desde el 2026-09-06 el sujeto se dibuja
- * con la talla del asesorado, así que dos personas del mismo sexo y distinta altura son dos
- * esqueletos distintos y no pueden compartir malla. La clave la arma `claveDelSujeto`.
- */
-const sujetoCache = new Map<string, { huesos: Malla; reposo: Record<string, number> }>()
-
-/**
- * EL FANTASMA TIENE SUS PROPIOS HUESOS. Comparte `construirHuesos()` como fábrica pero no
- * la instancia: el alfa es de la malla, y una malla no puede ser opaca para el sujeto y
- * translúcida para el fantasma a la vez. También por juego: el fantasma es el mismo
- * cuerpo en otro tiempo, no otro cuerpo.
- */
-const fantasmaCache = new Map<string, Malla>()
 
 /** Cuánto se ve a través del fantasma. Menos y se pierde; más y parece otro atleta. */
 const ALFA_DEL_FANTASMA = 0.38
@@ -168,18 +140,6 @@ function suelo(): Malla {
 let piezasCache: Malla[] = []
 /** Qué piezas han llegado, por nombre: decide si la sala de cajas se sigue construyendo. */
 const piezasCargadas = new Set<string>()
-/**
- * EL ATLAS ANATÓMICO, en su propia caché y a propósito.
- *
- * No entra en `piezasCache` porque no es escenario: se pide solo cuando alguien abre el
- * cuerpo para estudiarlo, y quien entra a entrenar no paga su megabyte. Compartir caché
- * habría hecho que apagar la sala apagara también la anatomía, que son dos decisiones
- * distintas.
- */
-let atlasCache: Malla[] = []
-const atlasCargado = new Set<string>()
-/** Qué mallas son de cada capa, para poder encender solo el esqueleto o solo el músculo. */
-const atlasPorCapa = new Map<string, Malla[]>()
 
 /** El tope de la cámara para la sala de Blender. Se calcula una vez: la sala no cambia. */
 const topeDeSalaDeBlender = topeDeDistanciaEnSala(SALA_GIMNASIO)
@@ -223,62 +183,6 @@ const COLOCACION_INICIAL: Colocacion = {
   anguloGrados: SALA.estacion.anguloGrados,
   distancia: SALA.estacion.distancia,
   altura: SALA.estacion.altura,
-}
-
-const claveDelSujeto = (
-  sexo: Sexo,
-  estaturaCm?: number,
-  proporciones?: ProporcionesDelCuerpo,
-): string => {
-  if (estaturaCm === undefined && !proporciones) return sexo
-  // Las proporciones entran por sus tres razones que levantan del suelo, redondeadas: dos
-  // lecturas que difieran en una milésima son el mismo cuerpo y no merecen otra malla.
-  const forma = proporciones
-    ? `|${proporciones.femur.toFixed(3)},${proporciones.tibia.toFixed(3)},${proporciones.torso.toFixed(3)}`
-    : ''
-  return `${sexo}|${estaturaCm ?? '-'}${forma}`
-}
-
-/**
- * Los huesos con los que se dibuja a ESTA persona: su sexo y su estatura.
- *
- * Sin estatura devuelve el juego del atlas tal cual —`esqueletoDe`, el camino de siempre—,
- * y eso importa: no medido no es cero ni «lo que suele medir la gente». Con estatura, el
- * juego se escala entero (ver `domain/patrones/estatura.ts`, que también explica lo que un
- * escalado por estatura NO puede hacer: individualizar las proporciones).
- */
-function definicionDelSujeto(
-  sexo: Sexo,
-  estaturaCm?: number,
-  proporciones?: ProporcionesDelCuerpo,
-): readonly DefinicionHueso[] {
-  if (estaturaCm === undefined && !proporciones) return esqueletoDe(sexo)
-  const juego = juegoConProporciones(JUEGOS[sexo], proporciones, estaturaCm)
-  return juego === JUEGOS[sexo] ? esqueletoDe(sexo) : esqueletoConJuego(juego)
-}
-
-function precalculado(sexo: Sexo, estaturaCm?: number, proporciones?: ProporcionesDelCuerpo) {
-  const clave = claveDelSujeto(sexo, estaturaCm, proporciones)
-  let sujeto = sujetoCache.get(clave)
-  if (!sujeto) {
-    const definicion = definicionDelSujeto(sexo, estaturaCm, proporciones)
-    sujeto = {
-      huesos: construirHuesos(definicion),
-      reposo: longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion)),
-    }
-    sujetoCache.set(clave, sujeto)
-  }
-  return sujeto
-}
-
-function huesosDelFantasma(sexo: Sexo, estaturaCm?: number, proporciones?: ProporcionesDelCuerpo): Malla {
-  const clave = claveDelSujeto(sexo, estaturaCm, proporciones)
-  let malla = fantasmaCache.get(clave)
-  if (!malla) {
-    malla = construirHuesos(definicionDelSujeto(sexo, estaturaCm, proporciones))
-    fantasmaCache.set(clave, malla)
-  }
-  return malla
 }
 
 /**
@@ -594,11 +498,6 @@ export function VisorPatron({
     if (!atlas || atlas.length === 0 || atlasCargado.size > 0) return
     return cargarPiezas(
       (nombre, mallas) => {
-        // Cada vértice cuelga de la RAÍZ del sujeto, no del mundo: así el atlas va con él
-        // cuando la demostración lo hace flotar o el press lo tumba.
-        for (const m of mallas) m.colgarDe(INDICE_RAIZ)
-        atlasCache = [...atlasCache, ...mallas]
-        atlasCargado.add(nombre)
         atlasPorCapa.set(nombre.replace('atlas-', ''), mallas)
         redibujar.current?.()
       },
