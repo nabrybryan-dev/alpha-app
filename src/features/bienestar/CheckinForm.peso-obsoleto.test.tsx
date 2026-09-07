@@ -71,6 +71,7 @@ function marcarTodos() {
     fireEvent.click(opciones[opciones.length - 1]) // última opción (BUENA / MUCHO)
   }
   marcarHambre()
+  fireEvent.click(screen.getByRole('button', { name: 'Dolor 0 de 10' })) // «sin dolor» también se marca
 }
 
 

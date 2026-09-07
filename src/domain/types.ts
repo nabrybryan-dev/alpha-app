@@ -410,6 +410,17 @@ export interface CheckinDiario {
   horasSueno?: number
   calidadSueno?: Cualitativo3
   alimentacion?: Cualitativo3
+  /**
+   * El dolor del día, de 0 a 10 (EVA). Opcional en el tipo porque los check-ins
+   * anteriores a este campo no lo tienen; el formulario lo exige desde ahora.
+   *
+   * Un ajuste clínico puede condicionar su reingreso a «EVA ≤2 en todas las
+   * sesiones»; sin este número esa puerta se abría —o no— sin ningún dato
+   * detrás. El cero se marca a propósito: «sin dolor» es una medición.
+   */
+  dolor?: number
+  /** Dónde duele, en palabras de la persona. Solo tiene sentido con `dolor` > 0. */
+  dolorDonde?: string
   comentarios?: string
 }
 
