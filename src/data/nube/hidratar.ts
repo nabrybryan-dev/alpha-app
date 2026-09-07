@@ -124,6 +124,25 @@ function parqCribado<K extends ParqDeCribado>(
 }
 
 /**
+ * Los cribados del servidor, más los de este teléfono que todavía no han subido.
+ *
+ * POR QUÉ HACE FALTA. `aplicarSnapshot` reemplaza la base local ENTERA. Quien contesta
+ * el cribado sin señal lo tiene solo aquí, esperando en la cola; si la siguiente
+ * hidratación trae la lista del servidor sin él, su respuesta desaparece de la pantalla
+ * —y volvería a pedírsele—. Y `conPendientes` no puede rescatarlo, porque la operación
+ * es una RPC y las RPC no se funden (`fusion.ts`): solo la medida del 0057 sabe hacerlo.
+ *
+ * MANDA EL SERVIDOR CUANDO TIENE FILA. La de arriba puede ser el volcado del expediente
+ * que hizo el coach, y esa gana sobre lo que este teléfono creyera. Solo se conserva la
+ * local cuando el servidor **no** tiene ninguna para esa persona.
+ */
+function conCribadosSinSubir(delServidor: readonly Cribado[]): Cribado[] {
+  const arriba = new Set(delServidor.map((c) => c.usuarioId))
+  const locales = (instantaneaLocal().cribados ?? []).filter((c) => !arriba.has(c.usuarioId))
+  return [...delServidor, ...locales]
+}
+
+/**
  * Los microciclos del servidor, con la COLUMNA `estado` mandando sobre el blob.
  *
  * ────────────────────────────────────────────────────────────────────────────
@@ -659,9 +678,17 @@ export async function hidratarDesdeNube(): Promise<void> {
     // El cribado (0058). Con la migración sin aplicar esto da 42P01 y se conserva lo
     // local, igual que la hidratación y el registro de comidas: la app sigue andando
     // y lo contestado se queda en el dispositivo hasta que la tabla exista.
+    //
+    // MANDA EL SERVIDOR CUANDO TIENE FILA, Y SE CONSERVA LA LOCAL CUANDO NO. Lo
+    // primero porque la fila de arriba puede ser el volcado del expediente que hizo el
+    // coach, y esa gana sobre lo que este teléfono creyera. Lo segundo porque
+    // `aplicarSnapshot` reemplaza la base local entera: sin conservar la local, quien
+    // contesta sin señal ve desaparecer su respuesta en la siguiente hidratación
+    // —`conPendientes` no puede rescatarla, porque las RPC no se funden—.
     cribados: cribados.error
       ? (instantaneaLocal().cribados ?? [])
-      : conPendientes('cribado', cribados.data ?? []).map(
+      : conCribadosSinSubir(
+          (cribados.data ?? []).map(
           (f): Cribado => ({
             usuarioId: f.usuario_id as string,
             fecha: String(f.fecha),
@@ -687,6 +714,7 @@ export async function hidratarDesdeNube(): Promise<void> {
               ? {}
               : { actualizadoEn: String(f.actualizado_en) }),
           }),
+          ),
         ),
     pruebasCalibracion: calibraciones.error
       ? (instantaneaLocal().pruebasCalibracion ?? [])

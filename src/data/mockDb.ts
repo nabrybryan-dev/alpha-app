@@ -808,16 +808,23 @@ export function crearMockDb(): Db {
       byUsuario: (usuarioId) =>
         (ref.actual.cribados ?? []).find((c) => c.usuarioId === usuarioId),
       contestar: (cribado) => {
-        mutar((estado) => {
-          // Se contesta UNA vez. Si ya hay fila, se deja la que está: cambiar una
-          // respuesta es del coach, no de quien la contestó (0058). Sin esta guarda,
-          // un segundo envío del formulario —un doble toque, una pantalla que se
-          // remonta— reescribiría en silencio un dato que es una puerta clínica.
-          if ((estado.cribados ?? []).some((c) => c.usuarioId === cribado.usuarioId)) {
-            return estado
-          }
-          return { ...estado, cribados: [...(estado.cribados ?? []), cribado] }
-        })
+        // Se contesta UNA vez. Si ya hay fila, se deja la que está: cambiar una
+        // respuesta es del coach, no de quien la contestó (0058). Sin esta guarda, un
+        // segundo envío —un doble toque, una pantalla que se remonta— reescribiría un
+        // dato que es una puerta clínica.
+        //
+        // Pero NO se calla: devuelve `ya_estaba` para que la pantalla pueda decirlo. Un
+        // rechazo silencioso sobre un dato de salud es peor que un error a la vista,
+        // porque la persona se va creyendo que contestó.
+        const yaEstaba = (ref.actual.cribados ?? []).some(
+          (c) => c.usuarioId === cribado.usuarioId,
+        )
+        if (yaEstaba) return 'ya_estaba'
+        mutar((estado) => ({
+          ...estado,
+          cribados: [...(estado.cribados ?? []), cribado],
+        }))
+        return 'guardado'
       },
     },
 

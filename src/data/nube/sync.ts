@@ -519,41 +519,58 @@ export function crearDbSincronizada(local: Db): Db {
     cribado: {
       ...local.cribado,
       contestar: (cribado) => {
-        // El local manda: si ya había fila, `contestar` no hace nada y aquí tampoco
-        // se encola. Se comprueba leyendo DESPUÉS de escribir, para no duplicar la
-        // regla de «se contesta una vez» en dos sitios que podrían separarse.
-        const antes = local.cribado.byUsuario(cribado.usuarioId)
-        local.cribado.contestar(cribado)
-        if (antes) return
+        const resultado = local.cribado.contestar(cribado)
+        // El local manda: si ya había fila aquí, no se encola nada y se devuelve el
+        // `ya_estaba` para que la pantalla lo diga.
+        if (resultado === 'ya_estaba') return resultado
         encolar({
-          // Sin `onConflict`: `usuario_id` ES la clave primaria de la tabla, que es
-          // lo que Supabase usa por defecto.
+          // ────────────────────────────────────────────────────────────────────
+          // RPC Y NO `upsert`, Y LA DIFERENCIA CUESTA UN DATO DE SALUD
+          // ────────────────────────────────────────────────────────────────────
+          // PostgREST traduce un `upsert` a `insert … on conflict do update`. Basta
+          // con que exista fila arriba y no en la instantánea de este teléfono —el
+          // coach volcó su expediente mientras ella tenía la app abierta, o contesta
+          // en el móvil y en la tablet— para que la rama de UPDATE necesite una
+          // política de UPDATE de esa sesión. La única es la del coach: el asesorado
+          // recibe 42501, la cola lo reintenta ocho veces, lo descarta en silencio, y
+          // `AvisoSinSincronizar` le dice que no se perdió nada. Pierde el dato Y le
+          // miente, que sobre salud es lo peor de las dos.
+          //
+          // `contestar_cribado` hace `on conflict do nothing`: no intenta ningún
+          // UPDATE, así que no hay 42501. Si ya había fila, gana la de la base y la
+          // operación termina bien.
+          //
+          // El `usuario_id` NO viaja: la función lo saca de `auth.uid()`. Y las claves
+          // del payload son exactamente las que la función espera —PostgREST elige la
+          // función por el conjunto exacto de claves, así que una de más la deja sin
+          // función—.
           tabla: 'cribado',
-          tipo: 'upsert',
+          tipo: 'rpc',
+          funcion: 'contestar_cribado',
           payload: {
-            usuario_id: cribado.usuarioId,
-            fecha: cribado.fecha,
-            fuente: cribado.fuente,
-            // `?? null` y no `?? 'ausente'`: lo que no se preguntó viaja como nulo.
-            // La tabla lo admite, y el CHECK de la 0058 exige los doce solo cuando
-            // la fuente es `app` — así una fila a medias no puede colarse como
-            // cribado completo.
-            diagnostico: cribado.diagnostico ?? null,
-            quien_lo_lleva: cribado.quienLoLleva ?? null,
-            tratamiento_activo: cribado.tratamientoActivo ?? null,
-            medicacion_cronica: cribado.medicacionCronica ?? null,
-            autorizacion_sanitaria: cribado.autorizacionSanitaria ?? null,
-            restricciones_explicitas: cribado.restriccionesExplicitas ?? null,
-            sintomas_con_esfuerzo: cribado.sintomasConEsfuerzo ?? null,
-            nivel_funcional: cribado.nivelFuncional ?? null,
-            que_le_han_dicho_que_no_haga: cribado.queLeHanDichoQueNoHaga ?? null,
-            parq_enfermedad_cardiaca: cribado.parqEnfermedadCardiaca ?? null,
-            parq_medicamento_presion: cribado.parqMedicamentoPresion ?? null,
-            parq_huesos_articulaciones: cribado.parqHuesosArticulaciones ?? null,
-            detalle: cribado.detalle,
-            actualizado_en: new Date().toISOString(),
+            p_cribado: {
+              fecha: cribado.fecha,
+              // `?? null` y no `?? 'ausente'`: lo que no se preguntó viaja como nulo.
+              // El CHECK de la 0058 exige los doce cuando la fuente es `app`, así que
+              // una respuesta a medias se rechaza arriba en vez de colarse como
+              // cribado completo.
+              diagnostico: cribado.diagnostico ?? null,
+              quien_lo_lleva: cribado.quienLoLleva ?? null,
+              tratamiento_activo: cribado.tratamientoActivo ?? null,
+              medicacion_cronica: cribado.medicacionCronica ?? null,
+              autorizacion_sanitaria: cribado.autorizacionSanitaria ?? null,
+              restricciones_explicitas: cribado.restriccionesExplicitas ?? null,
+              sintomas_con_esfuerzo: cribado.sintomasConEsfuerzo ?? null,
+              nivel_funcional: cribado.nivelFuncional ?? null,
+              que_le_han_dicho_que_no_haga: cribado.queLeHanDichoQueNoHaga ?? null,
+              parq_enfermedad_cardiaca: cribado.parqEnfermedadCardiaca ?? null,
+              parq_medicamento_presion: cribado.parqMedicamentoPresion ?? null,
+              parq_huesos_articulaciones: cribado.parqHuesosArticulaciones ?? null,
+              detalle: cribado.detalle,
+            },
           },
         })
+        return resultado
       },
     },
 

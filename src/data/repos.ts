@@ -255,6 +255,23 @@ export interface CuestionariosRepo {
 }
 
 /**
+ * Qué pasó al contestar el cribado.
+ *
+ * Existe porque `void` no bastaba: cuando ya había fila, `contestar` no hacía nada y no
+ * lo decía, así que la pantalla podía dar por bueno un envío que no llegó a ninguna
+ * parte. Sobre un dato de salud, un rechazo silencioso es peor que un error.
+ */
+export type ResultadoCribado =
+  /** Se guardó y va camino del servidor. */
+  | 'guardado'
+  /**
+   * Ya había uno. No se pisa —cambiarlo es del coach— y quien llame **tiene que
+   * decírselo a la persona**: «esto ya estaba contestado, tu coach lo tiene». Si además
+   * quiere corregirlo, ese camino todavía no existe: ver `src/features/cribado/README.md`.
+   */
+  | 'ya_estaba'
+
+/**
  * El cribado de salud, uno por persona (migración 0058).
  *
  * No hay `actualizar`, y es a propósito: cambiar una respuesta es del coach, no de
@@ -265,8 +282,11 @@ export interface CuestionariosRepo {
  */
 export interface CribadoRepo {
   byUsuario(usuarioId: string): Cribado | undefined
-  /** Lo contesta una vez. Si ya hay fila, no se pisa: se ignora. */
-  contestar(cribado: Cribado): void
+  /**
+   * Lo contesta una vez. Devuelve qué pasó, y el que llama **no puede ignorarlo**: un
+   * `'ya_estaba'` tratado como éxito es exactamente la pantalla que miente.
+   */
+  contestar(cribado: Cribado): ResultadoCribado
 }
 
 export interface ContenidosRepo {
