@@ -9,9 +9,9 @@ import { implementosDeEscena } from './implementos'
 /**
  * EL CARDIO TIENE SU MÁQUINA, Y LA MÁQUINA ESTÁ DONDE ESTÁ EL CUERPO.
  *
- * Las cinco fichas cíclicas (Bryan, 2026-09-07) no llevan carga, así que no pasan por la
- * tabla de implementos: reciben una máquina propia —cinta, escaladora, bicicleta,
- * elíptica— y NADA más: ni barra, ni polea, ni banco. Y la máquina se construye contra el
+ * Las seis fichas cíclicas (Bryan, 2026-09-07) no llevan carga, así que no pasan por la
+ * tabla de implementos: reciben una máquina propia —cinta, escaladora, bicicleta, elíptica
+ * y el ergómetro de remo— y NADA más: ni barra, ni polea, ni banco. Y la máquina se construye contra el
  * cuerpo, como el banco y la prensa, así que lo que se comprueba no es dónde está sino que
  * ABARCA al sujeto: su huella en el suelo contiene los dos pies en las tres fases que se
  * miran, y no hay un solo vértice bajo la goma.
@@ -26,7 +26,7 @@ describe('la máquina del cardio', () => {
     for (const p of ciclicos) {
       const piezas = implementosDeEscena(p.categoria, primerEjemplo(p)).piezas
       expect(piezas.map((x) => x.pieza), p.id).toEqual(['maquina'])
-      expect(['cinta', 'escaladora', 'bicicleta', 'eliptica'], p.id).toContain(piezas[0].forma)
+      expect(['cinta', 'escaladora', 'bicicleta', 'eliptica', 'remo'], p.id).toContain(piezas[0].forma)
     }
   })
 

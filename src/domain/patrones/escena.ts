@@ -147,20 +147,25 @@ export interface TempoDeRepeticion {
  *
  * Una zancada, una pedalada o un peldaño no tienen concéntrica ni excéntrica: los dos
  * medios ciclos son iguales, no hay punto de atasco, no hay asentamiento y no se para en
- * ningún extremo. Con el tempo de repetición un sujeto caminando COJEARÍA —la pierna
+ * ningún extremo. El remo es el otro caso: cíclico también, pero con las dos mitades de
+ * distinta duración, y lo dice con `empujeSeg`. Con el tempo de repetición un sujeto caminando COJEARÍA —la pierna
  * derecha adelantaría en 1,2 s y la izquierda en 1,9— y se quedaría clavado dos veces por
  * zancada. Dos tramos suaves e iguales, y nada más. Nace el 2026-09-07 con el cardio.
  */
-function cicloDe(periodoSeg: number): Tramo[] {
-  const medio = periodoSeg / 2
+function cicloDe(periodoSeg: number, empujeSeg?: number): Tramo[] {
+  // EL REMO NO TIENE LAS DOS MITADES IGUALES, y esa es su técnica: el empuje es corto y
+  // fuerte y la vuelta al frente es larga y suave. Los remeros lo llaman «ratio» y es lo
+  // primero que se corrige. Cuando la ficha declara `empujeSeg` se respeta; cuando no —una
+  // zancada, una pedalada—, las dos mitades duran lo mismo, que es lo correcto ahí.
+  const ida = empujeSeg && empujeSeg > 0 && empujeSeg < periodoSeg ? empujeSeg : periodoSeg / 2
   return [
-    { duracion: medio, desde: 0, hasta: 1, suave: true },
-    { duracion: medio, desde: 1, hasta: 0, suave: true },
+    { duracion: ida, desde: 0, hasta: 1, suave: true },
+    { duracion: periodoSeg - ida, desde: 1, hasta: 0, suave: true },
   ]
 }
 
 function cicloCon(tempo?: TempoDeRepeticion, patron?: Patron): Tramo[] {
-  if (patron?.ciclo && patron.ciclo.periodoSeg > 0) return cicloDe(patron.ciclo.periodoSeg)
+  if (patron?.ciclo && patron.ciclo.periodoSeg > 0) return cicloDe(patron.ciclo.periodoSeg, patron.ciclo.empujeSeg)
   const bajada = tempo?.excentricaSeg
   if (bajada === undefined || !(bajada > 0)) return CICLO
   return CICLO.map((f) => (f.desde === 1 && f.hasta === 0 ? { ...f, duracion: bajada } : f))

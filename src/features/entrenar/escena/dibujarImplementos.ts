@@ -284,6 +284,26 @@ function construirMaquinaDeCardio(m: Malla, v: VolumenDeMaquina): void {
     return
   }
 
+  if (v.forma === 'remo') {
+    // Un carril largo con el carro debajo de la pelvis, la caja del volante delante con los
+    // reposapiés, y la cadena del volante al mango que llevan las manos.
+    const pelvis = v.cuerpo?.pelvis ?? [centroX, 0.4, centroZ]
+    const frente: Vec3 = [centroX, 0.1, Math.max(...pies.map((p) => p[2])) + 0.34]
+    caja(m, [centroX, 0.16, centroZ + 0.1], [0.05, 0.03, 1.0], 0, BASTIDOR)
+    caja(m, [centroX, 0.06, centroZ - 0.75], [0.24, 0.05, 0.16], 0, BASTIDOR)
+    caja(m, [pelvis[0], pelvis[1] - 0.07, pelvis[2]], [0.16, 0.035, 0.2], 0, TAPIZADO)
+    caja(m, [frente[0], 0.32, frente[2] + 0.12], [0.22, 0.3, 0.16], 0, BASTIDOR)
+    cilindro(m, [frente[0] - 0.03, 0.5, frente[2] + 0.12], [frente[0] + 0.03, 0.5, frente[2] + 0.12], 0.15, PLACA, 14)
+    for (const [tob, punta] of [e.pieD, e.pieI]) {
+      const c: Vec3 = [(tob[0] + punta[0]) / 2, (tob[1] + punta[1]) / 2 - 0.02, (tob[2] + punta[2]) / 2 + 0.04]
+      caja(m, c, [0.09, 0.13, 0.03], 0, PLACA)
+    }
+    const mango: Vec3 = [(e.manoD[0] + e.manoI[0]) / 2, (e.manoD[1] + e.manoI[1]) / 2, (e.manoD[2] + e.manoI[2]) / 2]
+    manto(m, [frente[0], 0.5, frente[2] + 0.05], mango, 0.008, BASTIDOR, 6)
+    cilindro(m, e.manoD, e.manoI, 0.014, BASTIDOR, 8)
+    return
+  }
+
   if (v.forma === 'eliptica') {
     // Una plataforma bajo cada pie —van con él— y una barra a cada mano; el eje detrás.
     for (const [tob, punta] of [e.pieD, e.pieI]) {
@@ -311,7 +331,7 @@ function construirMaquinaDeCardio(m: Malla, v: VolumenDeMaquina): void {
  * distingue.
  */
 export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
-  if (v.forma === 'cinta' || v.forma === 'escaladora' || v.forma === 'bicicleta' || v.forma === 'eliptica') {
+  if (v.forma === 'cinta' || v.forma === 'escaladora' || v.forma === 'bicicleta' || v.forma === 'eliptica' || v.forma === 'remo') {
     construirMaquinaDeCardio(m, v)
     return
   }

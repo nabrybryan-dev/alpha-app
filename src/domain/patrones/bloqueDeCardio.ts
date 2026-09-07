@@ -23,6 +23,9 @@ import type { ItemMarcable } from '../types'
  * de carrera —la cinta la pone la escena, no la ficha—.
  */
 const MODALIDADES: readonly { patron: RegExp; id: string }[] = [
+  // El ergómetro el primero: «remo ergómetro» lleva la palabra remo, y el remo a secas es
+  // un ejercicio de fuerza. Ver la misma nota en `catalogo.ts`.
+  { patron: /erg[oó]metro|ergometro|remo ergom|remo indoor|concept ?2/, id: 'remo_ergometro' },
   { patron: /escaladora|stair|escaleras/, id: 'escaladora' },
   { patron: /el[ií]ptica|elliptical/, id: 'eliptica' },
   { patron: /bici|bicicleta|ciclo|spinning|rodillo|pedale/, id: 'bicicleta_estatica' },
