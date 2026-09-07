@@ -245,13 +245,6 @@ select pruebas.afirmar(
   'la medida repetida no sustituyó, o la nueva no se añadió en orden'
 );
 
--- 13. La medida de B no toca la ficha de A: la función no recibe a quién, lo saca de
---     la sesión.
-select pruebas.afirmar(
-  (select jsonb_array_length(datos -> 'medidas') from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 1,
-  'registrar una medida como B cambió las medidas de A'
-);
-
 -- 14. Y el camino viejo sigue cerrado: un blob con más que medidas y usuarioId no entra.
 --     Es lo que subía la app hasta hoy.
 do $$
@@ -268,6 +261,14 @@ begin
 end $$;
 
 reset role;
+
+-- 13. La medida de B no tocó la ficha de A: la función no recibe a quién, lo saca de la
+--     sesión. Se mira SIN rol —como postgres, que salta la RLS— porque como B la fila de A
+--     ni se ve, y un `null = 1` habría dado FALLO sin que fallara nada (el primer CI lo hizo).
+select pruebas.afirmar(
+  (select jsonb_array_length(datos -> 'medidas') from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 1,
+  'registrar una medida como B cambió las medidas de A'
+);
 
 commit;
 
