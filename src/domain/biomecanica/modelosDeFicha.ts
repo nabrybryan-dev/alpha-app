@@ -1,4 +1,16 @@
 import { M, type ModeloDePalanca } from './tipos'
+import { VARIANTES } from './modelos'
+
+/**
+ * La mecánica de la dominada, tal cual la declara la variante de TRACCIÓN VERTICAL: manos
+ * fijas al mundo, el cuerpo gira, línea desde el centro de masas. La ficha de la dominada
+ * asistida la reutiliza en vez de copiarla: lo que se descuenta es peso, no mecánica.
+ */
+function mecanicaDeLaDominada(): ModeloDePalanca {
+  const dominada = VARIANTES['TRACCIÓN VERTICAL']?.find((v) => v.modelo.variante === 'DOMINADA')
+  if (!dominada) throw new Error('la variante DOMINADA de TRACCIÓN VERTICAL ya no existe')
+  return dominada.modelo
+}
 
 /**
  * LOS PATRONES QUE NO TIENEN CATEGORÍA CANÓNICA, y por qué necesitan tabla propia.
@@ -185,6 +197,9 @@ export const MODELOS_DE_FICHA: Readonly<Record<string, ModeloDePalanca>> = {
         'la referencia es la cresta ilíaca, que sí se marca en la piel.',
     },
   },
+
+  /** Ficha propia (`dominada_asistida`) porque su sujeto se arrodilla en la máquina. */
+  'DOMINADA ASISTIDA': mecanicaDeLaDominada(),
 
   SUSPENSIÓN: {
     patron: 'TRACCIÓN VERTICAL',

@@ -56,15 +56,15 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 62 categorías y le salen 59 con patrón y 3 sin sujeto', () => {
+  it('recorre 63 categorías y le salen 60 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
     // del catálogo: son las tres categorías que no nombran un gesto sino un para
     // qué, y ahí decide el nombre del ejercicio a propósito.
     const reparto = repartir(categoriasDelRepo())
-    expect(reparto.casos).toHaveLength(62)
-    expect(reparto.conPatron).toHaveLength(59)
+    expect(reparto.casos).toHaveLength(63)
+    expect(reparto.conPatron).toHaveLength(60)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
@@ -240,7 +240,7 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
 })
 
 describe('quién declara con qué se hace el ejercicio', () => {
-  it('de los 90 ejemplos del catálogo, 88 declaran implemento y 2 no', () => {
+  it('de los 91 ejemplos del catálogo, 89 declaran implemento y 2 no', () => {
     // El otro barrido cuenta quién tiene SUJETO; este cuenta quién tiene IMPLEMENTO, que es
     // lo que decide si además se le puede dibujar una flecha de fuerza. Un patrón con cuerpo
     // y sin implemento se ve moverse y no se puede medir.
@@ -257,7 +257,7 @@ describe('quién declara con qué se hace el ejercicio', () => {
     //     «Face pull EN POLEA», «Peso muerto parcial CON BARRA desde rack».
     const ejemplos = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
     const sin = ejemplos.filter((n) => !implementoDe(n))
-    expect(ejemplos).toHaveLength(90)
+    expect(ejemplos).toHaveLength(91)
     expect(sin).toHaveLength(2)
   })
 

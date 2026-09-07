@@ -108,7 +108,9 @@ describe('la barra fija es una estructura', () => {
   it('llega hasta el suelo: una dominada no cuelga de una barra que flota', () => {
     // Bryan lo vio el 2026-09-06: la barra de las dominadas era una barra olímpica, con sus
     // mangas, suspendida en el aire. Lo que la hace fija es lo que la sujeta.
-    const e = implementosDeEscena('TRACCIÓN VERTICAL', 'Dominadas asistidas en máquina')
+    // Desde el 2026-09-06 la ASISTIDA tiene su máquina (`maquinaAsistida.test.ts`); la barra
+    // fija es de la dominada a secas.
+    const e = implementosDeEscena('TRACCIÓN VERTICAL', 'Dominadas')
     expect(e.piezas[0].pieza).toBe('barra-fija')
     const m = new Malla(4096)
     construirPieza(m, e.piezas[0], resolver({}, [0, 0, 0], [0, 0, 0]))

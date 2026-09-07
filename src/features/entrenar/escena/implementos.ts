@@ -1,5 +1,5 @@
 import { grados, V, type Vec3 } from '../../../domain/patrones/algebra'
-import { Malla, type Color } from '../../../domain/patrones/malla'
+import { Malla } from '../../../domain/patrones/malla'
 import { puntoDeHueso, type EsqueletoResuelto } from '../../../domain/patrones/esqueleto'
 import { modeloDePalanca, planDeMedida } from '../../../domain/biomecanica/palancas'
 import { aplicacionDeLaCarga, porQueSeApoya } from '../../../domain/biomecanica/aplicacionDeLaCarga'
@@ -8,6 +8,8 @@ import type { Articulacion } from '../../../domain/biomecanica/tipos'
 // La primitiva que se orienta sola vive en `sala.ts` y se importa, no se copia:
 // dos copias de la regla de enrollado es como vuelven las caras del revés.
 import { caja, cilindro, manto, tapa } from './piezas'
+import { ACERO, BASTIDOR, CABEZA, CABLE, CAUCHO, FILO, MANGA, PLACA, TAPIZADO } from './materia'
+import { construirMaquinaAsistida } from './maquinaAsistida'
 import { apoyoQueSostiene, construirBanco, type ApoyoDelCuerpo } from './banco'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
 
@@ -73,29 +75,7 @@ import { patronDeCategoria } from '../../../domain/patrones/catalogo'
  * objeto le hace a la medida lo sigue diciendo la tabla, con sus palabras.
  */
 
-// ---------------------------------------------------------------------------
-// Materia. Negro mate y acentos rojo profundo, contra la iluminación fija del
-// motor (dos luces y bruma azulada). Un color elegido a ojo fuera sale distinto.
-// ---------------------------------------------------------------------------
-
-/** El acero de la barra: claro para que el contraluz la separe del fondo. */
-const ACERO: Color = [0.36, 0.385, 0.43]
-/** La manga, un punto más apagada que la barra: es donde no se agarra. */
-const MANGA: Color = [0.26, 0.28, 0.32]
-/** Caucho de disco. Casi negro: el disco es masa, no brillo. */
-const CAUCHO: Color = [0.055, 0.06, 0.068]
-/** El filo del disco lleva el rojo de la marca. Es el único acento de la barra. */
-const FILO: Color = [0.42, 0.115, 0.125]
-/** La cabeza de la mancuerna, hexagonal y mate. */
-const CABEZA: Color = [0.155, 0.165, 0.19]
-/** Bastidor de máquina: más oscuro que la barra, para que no le robe la mirada. */
-const BASTIDOR: Color = [0.20, 0.215, 0.245]
-/** La pila de placas. Gris medio: se tiene que leer que son muchas y apiladas. */
-const PLACA: Color = [0.30, 0.32, 0.36]
-/** Tapizado del respaldo y de los rodillos. */
-const TAPIZADO: Color = [0.15, 0.155, 0.17]
-/** El cable de la polea. Fino y claro, porque su DIRECCIÓN es el dato. */
-const CABLE: Color = [0.34, 0.36, 0.40]
+// La materia (acero, caucho, bastidor, tapizado…) vive en `materia.ts`.
 
 
 // ---------------------------------------------------------------------------
@@ -250,8 +230,13 @@ export function construirMancuerna(m: Malla, agarre: Vec3, eje: Vec3): void {
   }
 }
 
-/** Las cuatro formas de máquina que la tabla de implementos distingue. */
-export type FormaDeMaquina = 'placas' | 'rail-vertical' | 'rail-inclinado' | 'polea'
+/**
+ * Las cuatro formas de máquina que la tabla de implementos distingue, y una quinta que no
+ * distingue la MEDIDA sino el sujeto: la de dominada asistida carga con él arrodillado
+ * (`maquinaAsistida.ts`). Nace el 2026-09-06 porque Bryan pidió ver la máquina, no solo la
+ * barra.
+ */
+export type FormaDeMaquina = 'placas' | 'rail-vertical' | 'rail-inclinado' | 'polea' | 'asistida'
 
 export interface VolumenDeMaquina {
   forma: FormaDeMaquina
@@ -566,6 +551,31 @@ function piezasQueSeLlevan(categoria: string, nombreEjercicio: string): EscenaDe
   const plan = planDeMedida(categoria, nombreEjercicio)
   const modelo = modeloDePalanca(categoria, nombreEjercicio)
 
+  // LA DOMINADA ASISTIDA ES UNA MÁQUINA QUE CARGA CON EL SUJETO. Lo decide la ficha del
+  // patrón y no el nombre a secas, para que «Dominadas asistidas» bajo TRACCIÓN VERTICAL y
+  // la ficha abierta desde el catálogo (categoría DOMINADA ASISTIDA, sin nombre) den lo
+  // mismo. Hasta el 2026-09-06 salía la barra fija de una dominada a secas, con el sujeto
+  // sentado en el aire; Bryan pidió la máquina. Ver `maquinaAsistida.ts`.
+  if (patronDeCategoria(categoria, nombreEjercicio)?.id === 'dominada_asistida') {
+    return {
+      piezas: [
+        {
+          pieza: 'maquina',
+          forma: 'asistida',
+          agarres: MANOS,
+          rigida: true,
+          radioDisco: 0,
+          enElSuelo: { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 0 },
+          porQue:
+            'dominada asistida: las manos fijas en la barra y las rodillas en la rodillera de la ' +
+            'máquina, que sube y baja con el cuerpo',
+        },
+      ],
+      avisos: plan?.limites ?? [AVISO_SIN_MODELO],
+      supuesto: false,
+    }
+  }
+
   // SIN MODELO, EL IMPLEMENTO SIGUE SALIENDO DEL NOMBRE. Antes esto devolvía la escena
   // vacía y dieciséis de veinticinco ejercicios entrenaban con las manos vacías sin que
   // nada lo dijera. Lo que no hay es medida, y eso sí se dice.
@@ -782,6 +792,11 @@ export function construirPieza(m: Malla, p: ImplementoEnEscena, esq: EsqueletoRe
     case 'maquina': {
       const s = p.enElSuelo
       if (!s) break
+      if (p.forma === 'asistida') {
+        // La única máquina que se construye contra el cuerpo: su rodillera sube con él.
+        construirMaquinaAsistida(m, esq, puntos)
+        break
+      }
       construirMaquina(m, {
         forma: p.forma ?? 'placas',
         centro: s.centro,
