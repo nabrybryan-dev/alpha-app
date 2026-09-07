@@ -1,7 +1,7 @@
 import { colocar, leerPieza } from '../escena/piezas3d'
 import { INDICE_RAIZ } from '../../../domain/patrones/esqueleto'
 import type { Malla } from '../../../domain/patrones/malla'
-import { PIEZAS_DEL_SALON, sitioDe, type PiezaDelSalon } from './piezas'
+import { PIEZAS_DEL_ATLAS, PIEZAS_DEL_SALON, sitioDe, type PiezaDelSalon } from './piezas'
 
 /**
  * CÓMO LLEGAN LAS PIEZAS, y dónde se guarda el atlas anatómico mientras llegan.
@@ -59,11 +59,41 @@ export const traerDeRed: Traer = async (ruta) => {
 }
 
 /**
- * Pide todas las piezas y las va entregando colocadas según llegan.
+ * QUÉ PIEZAS HAN LLEGADO YA Y SE HAN ENTREGADO, por su nombre.
  *
- * Devuelve la función que cancela: al desmontar, una pieza que llegue tarde no toca
- * nada. `traer` se inyecta para poder probarlo sin red. Una pieza que falla no para el
- * salón: se queda sin ella y se sigue, como con las imágenes.
+ * Es de módulo y no de cada llamada a propósito: es la memoria de lo que ya está en la
+ * app, y es lo que hace que volver a pedir el atlas no vuelva a bajar el megabyte entero.
+ * Una pieza entra aquí cuando sus bytes llegaron, se leyeron bien Y se entregaron. Si la
+ * llamada estaba cancelada —el visor se desmontó por el camino— NO entra: nadie la
+ * guardó, así que sigue faltando.
+ */
+const entregadas = new Set<string>()
+
+/**
+ * Pide las piezas QUE FALTAN y las va entregando colocadas según llegan.
+ *
+ * ## Por pieza, y no en bloque
+ *
+ * Hasta el 2026-09-08 esto pedía la lista entera cada vez y el visor se protegía de las
+ * repeticiones con un `if (atlasCargado.size > 0) return`: en cuanto UNA pieza llegaba,
+ * el efecto se cortaba y las que hubieran fallado no se pedían nunca más. Con la sala
+ * —una sola pieza— eso no se notaba; con el atlas, que son tres, una descarga a medias se
+ * quedaba a medias para siempre y el cuerpo aparecía sin músculos sin que nada fallara.
+ *
+ * Ahora cada pieza va por su cuenta: la que ya está no se vuelve a pedir, la que falló
+ * queda pendiente y se vuelve a pedir a la primera ocasión —cuando el visor vuelve a
+ * llamar, o cuando el navegador avisa de que hay red otra vez—.
+ *
+ * ## La reconexión
+ *
+ * Un gimnasio es un sótano con LTE malo, así que «sin red al abrir» no es un caso raro:
+ * es el caso normal de la primera visita. El evento `online` es la única señal fiable de
+ * que volvió la red, y reintentar ahí cuesta cero mientras no falte nada — el bucle
+ * recorre la lista y no pide ninguna.
+ *
+ * Devuelve la función que cancela: al desmontar, una pieza que llegue tarde no toca nada
+ * y deja de escucharse la reconexión. `traer` se inyecta para poder probarlo sin red. Una
+ * pieza que falla no para el salón: se sigue sin ella, como con las imágenes.
  */
 export function cargarPiezas(
   alLlegar: (nombre: string, mallas: Malla[]) => void,
@@ -71,16 +101,39 @@ export function cargarPiezas(
   lista: Record<string, PiezaDelSalon> = PIEZAS_DEL_SALON,
 ): () => void {
   let cancelado = false
-  for (const [nombre, pieza] of Object.entries(lista)) {
-    traer(pieza.ruta)
-      .then((bytes) => {
-        if (cancelado) return
-        alLlegar(nombre, colocar(leerPieza(bytes), sitioDe(pieza)))
-      })
-      .catch(() => {})
+  // En vuelo POR LLAMADA y no por módulo: si fuera de módulo, una llamada cancelada
+  // dejaría su pieza marcada como «ya se está pidiendo» y la llamada siguiente se la
+  // saltaría — y la que resolviera estaría cancelada. La pieza se perdería entre las dos.
+  const pidiendo = new Set<string>()
+
+  const pedirLasQueFaltan = () => {
+    if (cancelado) return
+    for (const [nombre, pieza] of Object.entries(lista)) {
+      if (entregadas.has(nombre) || pidiendo.has(nombre)) continue
+      pidiendo.add(nombre)
+      traer(pieza.ruta)
+        .then((bytes) => {
+          pidiendo.delete(nombre)
+          if (cancelado) return
+          // Se coloca ANTES de darla por entregada: si los bytes no son una pieza,
+          // `leerPieza` lanza, entra por el `catch` y queda pendiente de otro intento.
+          const mallas = colocar(leerPieza(bytes), sitioDe(pieza))
+          entregadas.add(nombre)
+          alLlegar(nombre, mallas)
+        })
+        .catch(() => {
+          pidiendo.delete(nombre)
+        })
+    }
   }
+
+  pedirLasQueFaltan()
+  const alVolverLaRed = () => pedirLasQueFaltan()
+  // La guarda no sobra: lo que el navegador trae, el entorno de pruebas puede no traerlo.
+  if (typeof window !== 'undefined') window.addEventListener('online', alVolverLaRed)
   return () => {
     cancelado = true
+    if (typeof window !== 'undefined') window.removeEventListener('online', alVolverLaRed)
   }
 }
 
@@ -103,14 +156,20 @@ class AlmacenDelAtlas {
   set(capa: string, mallas: Malla[]): void {
     for (const m of mallas) m.colgarDe(INDICE_RAIZ)
     atlasCache.push(...mallas)
-    atlasCargado.add(capa)
     this.porCapa.set(capa, mallas)
+    // El atlas se da por cargado CUANDO ESTÁN LAS TRES, y no capa a capa. Ver `atlasCargado`.
+    if (CAPAS_DEL_ATLAS.every((c) => this.porCapa.has(c))) {
+      for (const c of CAPAS_DEL_ATLAS) atlasCargado.add(c)
+    }
   }
 
   get(capa: string): Malla[] | undefined {
     return this.porCapa.get(capa)
   }
 }
+
+/** Las capas que tiene el atlas: los nombres de sus piezas, sin el prefijo. */
+const CAPAS_DEL_ATLAS = Object.keys(PIEZAS_DEL_ATLAS).map((n) => n.replace('atlas-', ''))
 
 /**
  * TODAS LAS MALLAS DEL ATLAS, en una lista plana.
@@ -121,7 +180,18 @@ class AlmacenDelAtlas {
  */
 export const atlasCache: Malla[] = []
 
-/** Qué capas del atlas han llegado. Decide si hace falta pedir algo. */
+/**
+ * LAS CAPAS DEL ATLAS, Y SOLO CUANDO ESTÁN TODAS.
+ *
+ * Se llena de golpe con la última pieza que llega, no una a una, y la diferencia es todo
+ * el asunto: quien lo lee es el visor, y lo lee para decidir si hace falta pedir algo. Con
+ * dos piezas de tres la respuesta correcta es SÍ. Hasta el 2026-09-08 se llenaba pieza a
+ * pieza, así que la primera que llegaba cortaba el efecto y la que faltaba no se pedía
+ * nunca más: el cuerpo se abría sin músculos y no fallaba nada.
+ *
+ * Vacío no significa «no hay nada dibujado»: las capas que hayan llegado están en
+ * `atlasPorCapa` y se dibujan. Significa «al atlas todavía le falta una pieza».
+ */
 export const atlasCargado = new Set<string>()
 
 /** Qué mallas son de cada capa, para poder encender solo el esqueleto o solo el músculo. */
