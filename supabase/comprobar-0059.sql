@@ -40,7 +40,7 @@ select indexname, indexdef
 --
 -- begin;
 --   insert into public.microciclos (id, usuario_id, numero, estado, datos)
---   values ('t-0058-a', '<uuid de prueba>', 901, 'activo', '{}'::jsonb);
+--   values ('t-0059-a', '<uuid de prueba>', 901, 'activo', '{}'::jsonb);
 --   insert into public.microciclos (id, usuario_id, numero, estado, datos)
---   values ('t-0058-b', '<uuid de prueba>', 902, 'activo', '{}'::jsonb);  -- debe fallar
+--   values ('t-0059-b', '<uuid de prueba>', 902, 'activo', '{}'::jsonb);  -- debe fallar
 -- rollback;
