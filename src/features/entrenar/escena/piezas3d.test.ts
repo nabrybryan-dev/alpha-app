@@ -205,4 +205,63 @@ describe('la pieza real de la sala del gimnasio', () => {
     }
     expect(intrusos).toBe(0)
   })
+
+  it('en catorce de los treinta y seis ángulos, detrás del sujeto solo hay muro', () => {
+    // LO QUE HAY DETRÁS, VUELTA COMPLETA. Medido el 2026-09-06, y es una regresión de una
+    // decisión escrita: `mobiliario.ts` puso diez estaciones a 36° de distancia justamente
+    // porque «se mire por donde se mire tiene que haber algo detrás del sujeto», después de
+    // medir que cuatro muebles buenos en cuatro ángulos se quedaban todos fuera de cuadro.
+    //
+    // Con la sala de Blender ese mobiliario **no se dibuja**: `construirSala` se lo salta
+    // porque «el hierro viene dentro de la pieza» (`sala.ts`). Y viene, pero apelotonado en
+    // dos racimos —alrededor de 50-130° y de 220-310°—, así que la otra mitad de la órbita
+    // enseña al sujeto contra hormigón pelado.
+    //
+    // El número que lo dice: en los ángulos flacos lo único que hay detrás son **54
+    // vértices de la parte `hormigon`**, que es la pared; en el mejor, 23.028 de rack. Un
+    // factor de cuatrocientos.
+    //
+    // Va CLAVADO y no arreglado: taparlo es o redistribuir el hierro en el .blend y
+    // reexportar 1,5 MB, o volver a encender un mobiliario procedural que rellene los
+    // huecos. Las dos son decisión de Bryan. Lo que esta prueba impide es que empeore sin
+    // que nadie se entere, y que alguien «arregle» el reparto y no se note que mejoró.
+    const D = 4.6
+    const MEDIO_CAMPO = ((14.8 / 2) * Math.PI) / 180
+    const dePie: [number, number][] = []
+    const soloMuro: [number, number][] = []
+    for (const m of mallas) {
+      for (let i = 0; i < m.vertices; i++) {
+        const y = m.posicion[i * 3 + 1]
+        if (y <= 0.35 || y >= 2.6) continue
+        const par: [number, number] = [m.posicion[i * 3], m.posicion[i * 3 + 2]]
+        dePie.push(par)
+        if (m.textura === 'hormigon') soloMuro.push(par)
+      }
+    }
+    const cuenta = (g: number, puntos: [number, number][]): number => {
+      const a = (g * Math.PI) / 180
+      const camX = Math.sin(a) * D
+      const camZ = Math.cos(a) * D
+      let n = 0
+      for (const [x, z] of puntos) {
+        const dx = x - camX
+        const dz = z - camZ
+        const prof = dx * -Math.sin(a) + dz * -Math.cos(a)
+        if (prof < D + 0.5) continue
+        const lat = dx * -Math.cos(a) - dz * -Math.sin(a)
+        if (Math.abs(Math.atan2(lat, prof)) < MEDIO_CAMPO) n++
+      }
+      return n
+    }
+    const angulos = Array.from({ length: 36 }, (_, i) => i * 10)
+    // Primero, lo que SÍ se cumple: no hay un solo ángulo con la nada absoluta detrás.
+    for (const g of angulos) {
+      expect(cuenta(g, dePie), `azimut ${g}° no tiene nada detrás`).toBeGreaterThan(0)
+    }
+    // Y lo que no: en cuántos, todo lo que hay es pared.
+    const flacos = angulos.filter((g) => cuenta(g, dePie) === cuenta(g, soloMuro))
+    expect(flacos).toHaveLength(14)
+    expect(cuenta(180, dePie)).toBeLessThan(100)
+    expect(Math.max(...angulos.map((g) => cuenta(g, dePie)))).toBeGreaterThan(20000)
+  })
 })
