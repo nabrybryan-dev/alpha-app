@@ -605,8 +605,21 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroAbd: -4, codoFlex: 10, toraxFlex: 4 },
-    fin: { hombroAbd: 96, hombroFlex: 14, codoFlex: 20, escapulaElev: 14, toraxFlex: 3 },
+    // TRES ARREGLOS DEL 2026-09-06, y los tres salen de sus propias tres frases.
+    //
+    // 1. `escapulaElev: 14` era **el error que esta ficha desaconseja**, animado: «Encoger
+    //    el trapecio y subir el hombro entero con el brazo». Lo que sí ocurre en una
+    //    elevación lateral —y lo que hay que enseñar— es la ROTACIÓN ASCENDENTE de la
+    //    escápula, que es otro canal y otro gesto: el omóplato gira para dejar sitio al
+    //    húmero en vez de encogerse hacia la oreja.
+    // 2. Subía a 96°, seis grados por encima del hombro, contra su propia clave: «Sube
+    //    hasta la altura del hombro, ni un dedo más».
+    // 3. `hombroFlex` iba de 0 a 14 durante el recorrido, o sea el brazo cambiaba de plano
+    //    mientras subía. La clave pide el codo «ligeramente por delante del cuerpo», que es
+    //    el plano escapular, y un plano no se entra a mitad de camino: se está en él desde
+    //    abajo. Ahora es constante, y el gesto ocurre en un solo plano.
+    inicio: { hombroAbd: -4, hombroFlex: 18, codoFlex: 10, toraxFlex: 4 },
+    fin: { hombroAbd: 90, hombroFlex: 18, codoFlex: 18, escapulaRotAsc: 14, toraxFlex: 3 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.medio': 1, 'manguito.supraespinoso': 0.85, 'trapecio.superior': 0.55, 'trapecio.inferior': 0.4, serrato: 0.6, 'deltoides.anterior': 0.45, 'deltoides.posterior': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 12, elevacion: 4 },
@@ -633,8 +646,11 @@ export const PATRONES: Patron[] = [
     giroFin: [60, 0, 0],
     raizInicio: [0, 0.95, -0.05],
     raizFin: [0, 0.95, -0.05],
-    inicio: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
-    fin: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
+    // EL CODO, QUIETO: «Doblar el codo progresivamente y convertirlo en un remo» es el
+    // primer error que esta ficha declara, y la ficha lo hacía —14° a 22°—. En una apertura
+    // inversa el codo es una bisagra bloqueada; el que se dobla está remando.
+    inicio: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 18, escapulaProt: 26 },
+    fin: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 18, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
@@ -950,8 +966,13 @@ export const PATRONES: Patron[] = [
     giro: [-88, 0, 0],
     raizInicio: [0, 0.55, 0],
     raizFin: [0, 0.55, 0],
-    inicio: { hombroAbd: 78, hombroFlex: 74, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
-    fin: { hombroAbd: -12, hombroFlex: 90, codoFlex: 34, hombroRot: 0, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
+    // EL CODO NO CAMBIA DE ÁNGULO, que es literalmente la primera clave de esta ficha —«El
+    // codo mantiene su ángulo: es un arco, no un empuje»— y su primer error —«Doblar y
+    // estirar el codo, que lo convierte en un press con peor palanca»—. Iba de 26° a 34°.
+    // Ocho grados no rompen nada por sí solos, pero es la ficha contradiciéndose a sí misma
+    // en el único detalle que separa una apertura de un press.
+    inicio: { hombroAbd: 78, hombroFlex: 74, codoFlex: 30, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
+    fin: { hombroAbd: -12, hombroFlex: 90, codoFlex: 30, hombroRot: 0, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
     activacion: {
       'pectoral_mayor.esternocostal': 1,
       'pectoral_mayor.clavicular': 0.9,
@@ -1136,7 +1157,13 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroRot: -58, codoFlex: 90, hombroAbd: 8, escapulaProt: 12, caderaFlex: 4, rodillaFlex: 6 },
+    // LAS DOS MANOS SE MONTABAN UNA ENCIMA DE LA OTRA. Con −58° de rotación interna y los
+    // dos codos pegados al costado, los antebrazos cruzaban la barriga y las manos se
+    // quedaban a **4,7 cm** una de otra: un cuerpo atravesándose, que es lo primero que ve
+    // el ojo. Y no era rango que se perdiera, era rango imposible: con el codo al costado,
+    // lo que frena la rotación interna es el propio abdomen, no la cápsula. Medido con
+    // `scripts/medir-gestos.mjs`.
+    inicio: { hombroRot: -26, codoFlex: 90, hombroAbd: 8, escapulaProt: 12, caderaFlex: 4, rodillaFlex: 6 },
     fin: { hombroRot: 46, codoFlex: 90, hombroAbd: 10, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 6 },
     activacion: {
       'manguito.infraespinoso': 1,
