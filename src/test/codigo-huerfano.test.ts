@@ -153,15 +153,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/prescripcion.ts#componerCoincide':
     'Guarda del relleno masivo de carga. Se ejecuta desde SQL, no desde la app, ' +
     'pero comparte regla con componerPrescripcion y separarlas ya costó 128 ejercicios.',
-  // El validador de las ocho medidas de la ficha. El módulo NO está huérfano —`types.ts`
-  // lo importa para el campo `MedidaCorporal.cuerpo`— pero su función de entrada la llama
-  // el FORMULARIO, y el formulario es de la capa de interfaz. La tabla `MEDIDAS`, que es
-  // con la que se pintan los ocho campos, ya la consume este mismo módulo.
-  // Se borra el día que la ficha pida las ocho medidas.
-  'src/domain/medidas.ts#revisarMedidas':
-    'Valida las ocho medidas de la ficha (claves, rangos y claves de más). Espera al ' +
-    'formulario, que es de features/. Ver docs/specs/2026-09-08-medidas-en-el-dominio.md.',
-
   // Lo que espera a una función ya planeada y todavía sin construir:
   'src/domain/nutricion/techos.ts#DIAS_ENTRE_RACIONES':
     'Espera al aviso de frecuencia: «comiste hígado hace 5 días, deja pasar dos ' +

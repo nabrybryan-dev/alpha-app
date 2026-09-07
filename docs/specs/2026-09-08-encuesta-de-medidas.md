@@ -12,18 +12,23 @@ iguales — y el fémur es justo lo que cambia el brazo de momento de una sentad
 lo que la app enseña. Está escrito en `domain/patrones/estatura.ts`: lo que un escalado por
 estatura NO puede hacer es individualizar las proporciones.
 
-Las ocho, en el orden en que se piden:
+Las ocho, en el orden en que se piden. **Ni el orden, ni la etiqueta, ni el protocolo, ni
+el rango están escritos en el formulario**: salen de la tabla `MEDIDAS` de
+`src/domain/medidas.ts`, que es la única fuente (la trajo la capa de datos, PR #226). Esta
+tabla es una copia para leer, no una segunda definición:
 
-| # | Etiqueta en pantalla | Clave guardada | Cómo se mide |
+| # | Clave en `MedidaCorporal.cuerpo` | Etiqueta en pantalla | Rango que admite el dominio |
 |---|---|---|---|
-| 1 | Longitud de tibia y peroné (cm) | `Tibia y peroné` | de extremo a extremo, del tobillo a la rodilla |
-| 2 | Longitud del fémur (cm) | `Fémur` | del trocánter a la rodilla |
-| 3 | Longitud del torso (cm) | `Torso` | del hueco del cuello al ombligo, de pie y recto |
-| 4 | Longitud del antebrazo (cm) | `Antebrazo` | del codo a la muñeca |
-| 5 | Longitud del brazo (cm) | `Brazo` | del hombro al codo |
-| 6 | Ancho clavicular (cm) | `Ancho clavicular` | de punta a punta de los hombros, por delante |
-| 7 | Cintura (cm) | `Cintura` | en la parte más estrecha, sin apretar |
-| 8 | Caderas (cm) | `Caderas` | en la parte más ancha |
+| 1 | `tibiaCm` | Tibia y peroné (cm) | 22–56 |
+| 2 | `femurCm` | Fémur (cm) | 27–69 |
+| 3 | `torsoCm` | Torso (cm) | 32–79 |
+| 4 | `antebrazoCm` | Antebrazo (cm) | 14–34 |
+| 5 | `brazoCm` | Brazo (cm) | 19–46 |
+| 6 | `anchoClavicularCm` | Ancho clavicular (cm) | 24–57 |
+| 7 | `cinturaCm` | Cintura (cm) | 40–200 |
+| 8 | `caderasCm` | Caderas (cm) | 50–200 |
+
+Cómo se toma cada una también sale de ahí (`comoSeMide`) y se pinta bajo su etiqueta.
 
 Y **ninguna otra**. Un formulario que pide once cosas se rellena a medias, y una medida a
 medias no se puede comparar con la de dentro de tres meses.
@@ -32,30 +37,25 @@ Cada campo lleva su protocolo al lado, no en un pie de página. Una longitud sin
 no es una medida: el fémur medido desde la cadera y desde el trocánter son dos números
 distintos, y el que se compara dentro de tres meses tiene que salir del mismo sitio.
 
-## Las claves, para la capa de datos
+## Dónde se guarda, y quién dice que está bien
 
-Se guardan dentro de `medidas[].perimetros`, que ya viaja a `perfiles` como JSONB
-(`MedidaCorporal.perimetros: Record<string, number>`). **No hace falta tocar
-`src/domain`**: el tipo ya admite cualquier clave.
+Las ocho van en **`MedidaCorporal.cuerpo`** (`MedidasDelCuerpo`, del PR #226), no en
+`perimetros`. La diferencia es la razón de ser de las dos mitades: `perimetros` tiene las
+claves abiertas, y por eso en la app conviven «Cadera» y «Glúteos» —o «Brazo» y «Brazos»—
+para el mismo dato; un mapa así no se puede consultar, porque nadie sabe si a la persona
+le falta el dato o lo tiene con otro nombre. `cuerpo` tiene el catálogo cerrado.
 
-Las claves son las ocho de la columna del medio: `Tibia y peroné`, `Fémur`, `Torso`,
-`Antebrazo`, `Brazo`, `Ancho clavicular`, `Cintura`, `Caderas`. Tres cosas que la capa de
-datos necesita saber:
-
-1. **Son nombres de persona, con tildes y espacios, y es a propósito.** Es la convención
-   que ya tienen los registros viejos (`Glúteos`, `Abdomen medio`) y hay dos pantallas más
-   que imprimen la clave TAL CUAL: `coach/AsesoradoDetallePage.tsx` y
-   `logros/ProgresoEvolucion.tsx`. Con claves de máquina esas pantallas dirían
-   `tibiaPerone`.
-2. **No se renombran.** Un renombrado parte el historial en dos sin que nada falle: las
-   medidas viejas se quedan con su clave y la comparación con la anterior deja de
-   encontrarse.
-3. **`Cintura` es la misma clave de siempre**, así que la serie no se corta. `Caderas` NO
-   lo es: los registros viejos usan `Cadera` (singular) y los que se guarden desde hoy
-   usan `Caderas`. Se ha elegido el plural porque es como lo pide el encargo; quien quiera
-   unir las dos series tendrá que hacerlo a mano, y por eso queda escrito aquí.
-
-Las que se dejen vacías **no se guardan**: un cero inventado es peor que un hueco.
+- **La ficha ya no escribe en `perimetros`.** Guarda `{}` y deja intacto lo que hubiera.
+  El resumen de la tarjeta sigue enseñando esos perímetros viejos, al lado de las ocho
+  nuevas, para que a quien lleva meses midiéndose no se le borre la pantalla.
+- **Antes de guardar se llama a `revisarMedidas(cuerpo)`.** Con un reparo no se guarda
+  nada, el borde del campo se pone en rojo y el mensaje del dominio se pinta TAL CUAL
+  debajo. Reescribirlo aquí sería una tercera versión de la regla. El reparo se va al
+  tocar el campo: dejarlo puesto mientras se corrige convierte un aviso en un regaño.
+- **El botón no se apaga por un valor fuera de rango**, y es a propósito: un botón apagado
+  no dice por qué. Solo se apaga con las ocho en blanco, que no es un error sino un
+  formulario sin empezar.
+- Las que se dejen vacías **no se guardan**: un cero inventado es peor que un hueco.
 
 ## El peso ya no está aquí
 
@@ -80,24 +80,40 @@ $ npx vitest run src/features/bienestar/MedidasCard.test.tsx
  ✓ la encuesta de medidas > pide exactamente ocho, con estas etiquetas y ninguna otra
  ✓ la encuesta de medidas > ya no pide el peso: eso es del check-in del día
  ✓ la encuesta de medidas > cada medida dice CÓMO se toma: una longitud sin protocolo no es una medida
- ✓ la encuesta de medidas > guarda con las claves estables, tal y como viajan a `perfiles`
+ ✓ la encuesta de medidas > guarda en `cuerpo`, con las claves del dominio, y deja `perimetros` en paz
+ ✓ la encuesta de medidas > una toma completa llega entera: las ocho claves en `cuerpo`
+ ✓ la encuesta de medidas > una medida fuera de rango no se guarda, y lo dice con las palabras del dominio
  ✓ la encuesta de medidas > no deja guardar una medición vacía
  ✓ la encuesta de medidas > con una sola medida escrita ya deja guardar
  ✓ la encuesta de medidas > a quien tiene la composición apagada no le enseña el kilaje de antes
  ✓ la encuesta de medidas > y sí se lo enseña a quien sí ve su composición
  ✓ la columna de la pieza E (6 tests)
  Test Files  1 passed (1)
-      Tests  14 passed (14)
+      Tests  16 passed (16)
 ```
 
 La primera cuenta los campos por su papel (`getAllByRole('textbox')`) y compara la lista
-de etiquetas con las ocho, en orden: si alguien añade una novena, sale en rojo por las dos
-mitades —la cuenta y la lista—.
+de etiquetas **contra `MEDIDAS` del dominio**, en su orden. Comparar contra ocho nombres
+escritos en el test dejaría el test verde el día que la ficha y el dominio dejaran de
+decir lo mismo, que es justo el fallo que hay que cazar: no da error, se ve como un campo
+que no deja guardar sin decir por qué.
+
+La del rango mete el fémur en milímetros —la trampa más frecuente de un campo de
+centímetros— y comprueba tres cosas: que no se guarda, que el aviso lleva las palabras del
+dominio (su etiqueta y su rango) y que está debajo de SU campo. Después lo corrige y
+comprueba que entonces sí entra. No cuenta filas para saber si se guardó: `agregarMedida`
+reemplaza la medición del mismo día, así que contar no distingue «no se guardó» de «se
+guardó encima» — se compara el contenido.
 
 ## Qué queda
 
-- **Esta es la mitad de interfaz.** Que las ocho lleguen a `perfiles` y se validen allí es
-  de la capa de datos; aquí quedan escritas las claves para que pueda hacerlo.
+- **Las dos mitades ya encajan.** El catálogo, los rangos y el validador son de la capa de
+  datos (`src/domain/medidas.ts`, PR #226) y este formulario los consume: no hay una sola
+  etiqueta ni un solo rango escritos dos veces. Al llamar la ficha a `revisarMedidas`, su
+  entrada en `HUERFANOS_DE_ENTRENAR` deja de hacer falta y se ha quitado.
+- **Los registros viejos no se migran.** Lo que hay en `perimetros` («Cadera», «Glúteos»,
+  «Abdomen medio») se queda donde está y se sigue enseñando; nadie lo traduce a las claves
+  nuevas. Unir las dos series es una decisión de datos, no de la ficha.
 - **Nadie usa todavía las seis longitudes para dibujar el sujeto.** El visor ya sabe
   recibir `ProporcionesDelCuerpo` (fémur, tibia y torso como razones), y hoy esas
   proporciones salen de una pista de pose medida (`cuerpoDelAsesorado`), no de la ficha.

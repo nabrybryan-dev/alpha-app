@@ -4,6 +4,13 @@ import { FondoLoop } from '../../components/ui/FondoLoop'
 import { IconoRegla } from '../../components/ui/Icono'
 import { db, hoyIso } from '../../data/dbInstance'
 import type { MedidaCorporal } from '../../domain/types'
+import {
+  MEDIDAS,
+  revisarMedidas,
+  type ClaveDeMedida,
+  type MedidasDelCuerpo,
+  type ReparoDeMedida,
+} from '../../domain/medidas'
 import { direccion } from '../../lib/direccionesVisuales'
 import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
@@ -17,25 +24,19 @@ import { CheckDibujado } from '../entrenar/CheckDibujado'
  * Con la estatura sola, dos personas de 1,75 con fémures distintos se dibujan iguales, y
  * eso cambia el brazo de momento de cada ejercicio — que es lo que la app enseña.
  *
- * `clave` es lo que se guarda y NO se renombra: viaja dentro de `medidas` a `perfiles`, y
- * dos pantallas más (`coach/AsesoradoDetallePage` y `logros/ProgresoEvolucion`) la
- * imprimen tal cual. Por eso son nombres de persona y no identificadores: es la convención
- * que ya tenían los registros viejos (`Glúteos`, `Abdomen medio`).
+ * ## Aquí no hay una lista de medidas, y eso es lo importante
  *
- * `ayuda` no es adorno: una longitud sin protocolo no es una medida. Medir el fémur desde
- * la cadera «por encima» y desde el trocánter dan dos números distintos, y el que se
- * compara con el de dentro de tres meses tiene que salir del mismo sitio.
+ * Las ocho —su orden, su etiqueta, cómo se toma cada una y entre qué dos números es
+ * posible— viven en `domain/medidas.ts` y este formulario las PINTA. Tenerlas escritas
+ * también aquí sería tener dos catálogos: el día que el rango del fémur cambiara, el
+ * dominio rechazaría lo que la ficha sigue pidiendo, y eso no fallaría en ningún test —se
+ * vería como un campo que no deja guardar sin decir por qué.
+ *
+ * Y lo que se escribe se valida con `revisarMedidas` ANTES de guardar. No es un lujo: la
+ * trampa más frecuente de un campo de centímetros es el número en la escala equivocada
+ * —el fémur en milímetros, la coma corrida— y eso, guardado, no se distingue de un dato
+ * bueno.
  */
-const MEDIDAS = [
-  { clave: 'Tibia y peroné', etiqueta: 'Longitud de tibia y peroné', ayuda: 'de extremo a extremo, del tobillo a la rodilla' },
-  { clave: 'Fémur', etiqueta: 'Longitud del fémur', ayuda: 'del trocánter (el hueso que sobresale en la cadera) a la rodilla' },
-  { clave: 'Torso', etiqueta: 'Longitud del torso', ayuda: 'del hueco del cuello al ombligo, de pie y recto' },
-  { clave: 'Antebrazo', etiqueta: 'Longitud del antebrazo', ayuda: 'del codo a la muñeca' },
-  { clave: 'Brazo', etiqueta: 'Longitud del brazo', ayuda: 'del hombro al codo' },
-  { clave: 'Ancho clavicular', etiqueta: 'Ancho clavicular', ayuda: 'de punta a punta de los hombros, por delante' },
-  { clave: 'Cintura', etiqueta: 'Cintura', ayuda: 'en la parte más estrecha, sin apretar' },
-  { clave: 'Caderas', etiqueta: 'Caderas', ayuda: 'en la parte más ancha' },
-] as const
 
 interface MedidasCardProps {
   usuarioId: string
@@ -133,20 +134,23 @@ function ColumnaFisico() {
 export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
   const [abierto, setAbierto] = useState(false)
   const [guardado, setGuardado] = useState(false)
-  const [valores, setValores] = useState<Record<string, string>>({})
+  const [valores, setValores] = useState<Partial<Record<ClaveDeMedida, string>>>({})
+  /** Lo que el dominio ha dicho que está mal, para pintarlo bajo su campo. */
+  const [reparos, setReparos] = useState<ReparoDeMedida[]>([])
 
   const perfil = db.perfiles.byUsuario(usuarioId)
   const medidas = perfil?.medidas ?? []
   const ultima = medidas[medidas.length - 1] as MedidaCorporal | undefined
   const previa = medidas[medidas.length - 2] as MedidaCorporal | undefined
 
-  const medidasEscritas = (): Record<string, number> => {
-    const escritas: Record<string, number> = {}
+  /** Lo escrito, con las claves del dominio. Lo que se dejó en blanco, no va. */
+  const cuerpoEscrito = (): MedidasDelCuerpo => {
+    const cuerpo: MedidasDelCuerpo = {}
     for (const { clave } of MEDIDAS) {
       const v = numeroDe(valores[clave] ?? '')
-      if (v !== undefined) escritas[clave] = v
+      if (v !== undefined) cuerpo[clave] = v
     }
-    return escritas
+    return cuerpo
   }
 
   /**
@@ -154,11 +158,22 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
    *
    * Sin esta condición se guardaría una medición vacía: una fila con fecha y nada más,
    * que ensucia el historial del coach y no dice nada de nadie.
+   *
+   * Que estén DENTRO DE RANGO no se comprueba aquí, y es a propósito: un botón apagado no
+   * dice por qué. El reparo se enseña al intentar guardar, con el mensaje que escribe el
+   * dominio, debajo del campo que lo tiene.
    */
-  const puedeGuardar = Object.keys(medidasEscritas()).length > 0
+  const puedeGuardar = Object.keys(cuerpoEscrito()).length > 0
 
   const guardar = () => {
     if (!puedeGuardar) return
+    const cuerpo = cuerpoEscrito()
+    // EL DOMINIO DECIDE SI ESTO SE PUEDE GUARDAR. La ficha no repite sus rangos: los pide.
+    const reparosDelDominio = revisarMedidas(cuerpo)
+    if (reparosDelDominio.length > 0) {
+      setReparos(reparosDelDominio)
+      return
+    }
     db.perfiles.agregarMedida(usuarioId, {
       fecha: hoyIso(),
       // SIN PESO, Y NO POR OLVIDO. La báscula ya se pregunta en el check-in diario, que es
@@ -166,11 +181,17 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
       // aquí otra vez la convertía en la cuarta superficie de peso de la app. Ausente no
       // es cero: esta medición no trae peso porque no se midió aquí.
       alturaCm: ultima?.alturaCm ?? 0,
-      perimetros: medidasEscritas(),
+      // `perimetros` SE QUEDA VACÍO Y NO SE TOCA. Es el mapa de claves abiertas donde
+      // conviven «Cadera» y «Glúteos» para el mismo dato; las ocho de la ficha van en
+      // `cuerpo`, que tiene el catálogo cerrado. Lo que ya esté guardado ahí se sigue
+      // enseñando, pero no se escribe nada nuevo.
+      perimetros: {},
+      cuerpo,
     })
     setAbierto(false)
     setGuardado(true)
     setValores({})
+    setReparos([])
   }
 
   return (
@@ -206,8 +227,19 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
         )}
       </div>
 
-      {ultima && Object.keys(ultima.perimetros).length > 0 && !abierto && (
+      {/* EL RESUMEN LEE LAS DOS COSAS: las ocho de la ficha (`cuerpo`) y lo que hubiera
+          en `perimetros` de antes. Sin la primera lista, una toma recién guardada dejaría
+          la tarjeta con la fecha y nada debajo; sin la segunda, el historial viejo de
+          quien lleva meses midiéndose desaparecería de la pantalla. */}
+      {ultima && !abierto && (ultima.cuerpo || Object.keys(ultima.perimetros).length > 0) && (
         <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 border-t border-hairline pt-2.5">
+          {MEDIDAS.filter(({ clave }) => ultima.cuerpo?.[clave] !== undefined).map(({ clave, etiqueta }) => (
+            <span key={clave} className="text-xs text-tenue">
+              {etiqueta}{' '}
+              <span className="cifras font-bold text-texto">{ultima.cuerpo?.[clave]}</span>
+              <Delta actual={ultima.cuerpo?.[clave] ?? 0} previa={previa?.cuerpo?.[clave]} />
+            </span>
+          ))}
           {Object.entries(ultima.perimetros).map(([nombre, cm]) => (
             <span key={nombre} className="text-xs text-tenue">
               {nombre} <span className="cifras font-bold text-texto">{cm}</span>
@@ -233,27 +265,63 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
           <div className="flex gap-3">
             <ColumnaFisico />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              {MEDIDAS.map(({ clave, etiqueta, ayuda }) => (
-                <label key={clave} className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 flex-1 text-xs text-tenue">
-                    {etiqueta} (cm)
-                    {/* CÓMO SE MIDE, al lado del campo y no en un pie de página. Una
-                        longitud sin protocolo no es una medida: el fémur medido desde la
-                        cadera y desde el trocánter son dos números distintos, y el que se
-                        compara dentro de tres meses tiene que salir del mismo sitio. */}
-                    <span className="mt-0.5 block text-[10px] leading-snug text-tenue/70">{ayuda}</span>
-                  </span>
-                  <input
-                    inputMode="decimal"
-                    value={valores[clave] ?? ''}
-                    onChange={(e) => setValores((prev) => ({ ...prev, [clave]: e.target.value }))}
-                    placeholder={ultima?.perimetros[clave] ? String(ultima.perimetros[clave]) : '—'}
-                    className="w-24 shrink-0 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
-                  />
-                </label>
-              ))}
+              {/* LAS OCHO SALEN DE LA TABLA DEL DOMINIO, en su orden. Ni la etiqueta ni
+                  el protocolo están escritos aquí: escribirlos otra vez sería tener dos
+                  catálogos que pueden decir cosas distintas. */}
+              {MEDIDAS.map(({ clave, etiqueta, comoSeMide, unidad }) => {
+                const reparo = reparos.find((r) => r.campo === clave)
+                return (
+                  <label key={clave} className="flex flex-col gap-1">
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 flex-1 text-xs text-tenue">
+                        {etiqueta} ({unidad})
+                        {/* CÓMO SE MIDE, al lado del campo y no en un pie de página. Una
+                            longitud sin protocolo no es una medida: el fémur medido desde
+                            la cadera y desde el trocánter son dos números distintos, y el
+                            que se compara dentro de tres meses tiene que salir del mismo
+                            sitio. */}
+                        <span className="mt-0.5 block text-[10px] leading-snug text-tenue/70">
+                          {comoSeMide}
+                        </span>
+                      </span>
+                      <input
+                        inputMode="decimal"
+                        value={valores[clave] ?? ''}
+                        onChange={(e) => {
+                          setValores((prev) => ({ ...prev, [clave]: e.target.value }))
+                          // El reparo se va al tocar el campo: dejarlo puesto mientras se
+                          // corrige convierte un aviso en un regaño.
+                          if (reparo) setReparos((prev) => prev.filter((r) => r.campo !== clave))
+                        }}
+                        placeholder={ultima?.cuerpo?.[clave] !== undefined ? String(ultima.cuerpo[clave]) : '—'}
+                        aria-invalid={reparo ? true : undefined}
+                        className={`w-24 shrink-0 rounded-lg border bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:outline-none ${
+                          reparo ? 'border-rojo' : 'border-hairline focus:border-rojo'
+                        }`}
+                      />
+                    </span>
+                    {/* EL REPARO, CON LAS PALABRAS DEL DOMINIO Y DEBAJO DE SU CAMPO. Tal
+                        cual viene: es el sitio donde está escrito qué es posible y qué no,
+                        y reescribir el mensaje aquí sería una tercera versión de la regla. */}
+                    {reparo && (
+                      <span role="alert" className="text-[10px] leading-snug text-rojo">
+                        {reparo.motivo}
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
             </div>
           </div>
+          {/* UN REPARO QUE NO ES DE NINGÚN CAMPO no se puede pintar debajo de ninguno, y
+              tampoco se puede tragar: sería un botón que no guarda y no dice por qué. */}
+          {reparos
+            .filter((r) => !MEDIDAS.some((m) => m.clave === r.campo))
+            .map((r) => (
+              <p key={r.campo || 'todo'} role="alert" className="mt-2 text-[10px] leading-snug text-rojo">
+                {r.motivo}
+              </p>
+            ))}
           <p className="mt-2 text-[10px] text-tenue">
             Anota al menos una; las que dejes vacías no se guardan. Mídete siempre en las
             mismas condiciones (en ayunas, misma hora) y con la cinta apoyada sin apretar.

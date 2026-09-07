@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db } from '../../data/dbInstance'
+import { MEDIDAS, MEDIDA_POR_CLAVE } from '../../domain/medidas'
 import { direccion } from '../../lib/direccionesVisuales'
 import { MedidasCard } from './MedidasCard'
 
@@ -22,6 +23,14 @@ import { MedidasCard } from './MedidasCard'
  * que decide si el resumen enseña el kilaje de una medición anterior — la migración 0018
  * apaga las cifras de composición corporal a quien tiene un antecedente de conducta
  * alimentaria, y enseñarlo en el resumen sería dejarlo entrar por la puerta de atrás.
+ *
+ * ## Las etiquetas se comparan contra el DOMINIO, no contra una lista escrita aquí
+ *
+ * `MEDIDAS` (en `domain/medidas.ts`) es la única fuente: el orden, la etiqueta, cómo se
+ * mide y el rango. Si este archivo repitiera los ocho nombres, el test seguiría verde el
+ * día que la ficha y el dominio dejaran de decir lo mismo — que es exactamente el fallo
+ * que hay que cazar, porque no da error: se ve como un campo que no deja guardar sin
+ * decir por qué.
  */
 
 const ASESORADA = 'u-valentina'
@@ -31,22 +40,14 @@ const abrir = (verPeso?: boolean) =>
 
 const medidas = () => db.perfiles.byUsuario(ASESORADA)?.medidas ?? []
 
-/** Las ocho, en el orden en que se piden. */
-const LAS_OCHO = [
-  'Longitud de tibia y peroné (cm)',
-  'Longitud del fémur (cm)',
-  'Longitud del torso (cm)',
-  'Longitud del antebrazo (cm)',
-  'Longitud del brazo (cm)',
-  'Ancho clavicular (cm)',
-  'Cintura (cm)',
-  'Caderas (cm)',
-]
+/** Las ocho, en el orden y con las palabras que dice el dominio. */
+const LAS_OCHO = MEDIDAS.map((m) => `${m.etiqueta} (${m.unidad})`)
 
 /** El texto de la etiqueta de cada campo, sin la ayuda de cómo se mide. */
 function etiquetasDeLosCampos(): string[] {
   return screen.getAllByRole('textbox').map((campo) => {
-    const etiqueta = campo.closest('label')?.querySelector('span')
+    // La etiqueta es el `span` que va justo antes del campo, dentro de su misma fila.
+    const etiqueta = campo.previousElementSibling
     // Solo los nodos de TEXTO sueltos del `span`: la ayuda de cómo se mide cuelga de un
     // `span` de dentro y no es parte de la etiqueta.
     const sueltos = Array.from(etiqueta?.childNodes ?? [])
@@ -74,7 +75,9 @@ describe('la encuesta de medidas', () => {
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     expect(screen.queryByText(/Peso \(kg\)/)).toBeNull()
-    expect(screen.queryByLabelText(/Peso/i)).toBeNull()
+    // Por el principio del nombre: «peso» aparece dentro de cómo se mide el fémur («con
+    // el peso repartido»), y un `/Peso/i` suelto lo cazaría a él.
+    expect(screen.queryByLabelText(/^Peso/i)).toBeNull()
   })
 
   it('cada medida dice CÓMO se toma: una longitud sin protocolo no es una medida', async () => {
@@ -88,7 +91,7 @@ describe('la encuesta de medidas', () => {
     expect(screen.getByText(/de extremo a extremo/i)).toBeTruthy()
   })
 
-  it('guarda con las claves estables, tal y como viajan a `perfiles`', async () => {
+  it('guarda en `cuerpo`, con las claves del dominio, y deja `perimetros` en paz', async () => {
     abrir()
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
     const campos = screen.getAllByRole('textbox')
@@ -97,11 +100,58 @@ describe('la encuesta de medidas', () => {
     await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
 
     const [ultima] = medidas().slice(-1)
-    expect(ultima.perimetros).toEqual({ 'Fémur': 44.5, Cintura: 72 })
-    // Las vacías no se guardan: un cero inventado es peor que un hueco.
-    expect(Object.keys(ultima.perimetros)).toHaveLength(2)
+    expect(ultima.cuerpo).toEqual({ femurCm: 44.5, cinturaCm: 72 })
+    // `perimetros` es el mapa de claves abiertas donde conviven «Cadera» y «Glúteos»: la
+    // ficha ya no escribe ahí.
+    expect(ultima.perimetros).toEqual({})
     // Y sin peso: ausente no es cero.
     expect(ultima.pesoKg).toBeUndefined()
+  })
+
+  it('una toma completa llega entera: las ocho claves en `cuerpo`', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    const campos = screen.getAllByRole('textbox')
+    // A cada una, un número que el dominio da por posible: el medio de su rango.
+    const esperado: Record<string, number> = {}
+    for (const [i, m] of MEDIDAS.entries()) {
+      const valor = Math.round((m.minimo + m.maximo) / 2)
+      await userEvent.type(campos[i], String(valor))
+      esperado[m.clave] = valor
+    }
+    await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    const [ultima] = medidas().slice(-1)
+    expect(ultima.cuerpo).toEqual(esperado)
+    expect(Object.keys(ultima.cuerpo ?? {})).toHaveLength(8)
+  })
+
+  it('una medida fuera de rango no se guarda, y lo dice con las palabras del dominio', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    // Se compara el CONTENIDO de la última medición y no cuántas hay: `agregarMedida`
+    // reemplaza la del mismo día, así que contar filas no distingue «no se guardó» de
+    // «se guardó encima».
+    const antes = JSON.stringify(medidas().slice(-1))
+    // El fémur en milímetros: la trampa más frecuente de un campo de centímetros, y
+    // guardada no se distingue de un dato bueno.
+    const femur = MEDIDA_POR_CLAVE.femurCm
+    await userEvent.type(screen.getAllByRole('textbox')[1], String(femur.maximo + 380))
+    await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    expect(JSON.stringify(medidas().slice(-1))).toBe(antes)
+    // El mensaje es el que escribe el dominio, tal cual, y va debajo de su campo.
+    const aviso = screen.getByRole('alert')
+    expect(aviso.textContent).toContain(femur.etiqueta)
+    expect(aviso.textContent).toContain(`${femur.minimo}–${femur.maximo}`)
+    expect(aviso.previousSibling?.contains(screen.getAllByRole('textbox')[1])).toBe(true)
+
+    // Y al corregirlo, el aviso se va y ya se guarda.
+    await userEvent.clear(screen.getAllByRole('textbox')[1])
+    await userEvent.type(screen.getAllByRole('textbox')[1], '44')
+    expect(screen.queryByRole('alert')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    expect(medidas().slice(-1)[0].cuerpo).toEqual({ femurCm: 44 })
   })
 
   it('no deja guardar una medición vacía', async () => {
