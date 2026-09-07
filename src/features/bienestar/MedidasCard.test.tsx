@@ -6,131 +6,142 @@ import { direccion } from '../../lib/direccionesVisuales'
 import { MedidasCard } from './MedidasCard'
 
 /**
- * «Mis medidas» era la CUARTA superficie de peso de la app, y la última que
- * seguía pidiéndolo a todo el mundo.
+ * LA ENCUESTA DE MEDIDAS: OCHO, Y NI UNA MÁS.
  *
- * La migración 0018 apaga las cifras de composición corporal a quien tiene un
- * antecedente de conducta alimentaria. El check-in ya lo respetaba; esta tarjeta
- * no, porque `MedidaCorporal.pesoKg` era obligatorio en el tipo. A esa persona
- * se le seguía ofreciendo una báscula aquí.
+ * Hasta el 2026-09-08 esta tarjeta pedía la báscula y cinco perímetros de estética
+ * —cintura, cadera, abdomen, muslo, brazo—. Ahora pide ocho medidas, y seis son longitudes
+ * de hueso: son las que le faltan al sujeto 3D del salón para dejar de ser el muñeco del
+ * atlas y ser esta persona. Con la estatura sola, dos personas de 1,75 con fémures
+ * distintos se dibujan iguales.
  *
- * Lo que NO se hace es esconderle la tarjeta entera: su plan sí le pide
- * perímetros, y quitárselos por proteger lo otro sería cambiar un daño por otro.
+ * Que sean EXACTAMENTE ocho es la mitad del encargo. Un formulario que pide once cosas se
+ * rellena a medias, y una medida a medias no se puede comparar con la de dentro de tres
+ * meses.
+ *
+ * El peso ya no está: lo pregunta el check-in del día. Lo que sigue estando es `verPeso`,
+ * que decide si el resumen enseña el kilaje de una medición anterior — la migración 0018
+ * apaga las cifras de composición corporal a quien tiene un antecedente de conducta
+ * alimentaria, y enseñarlo en el resumen sería dejarlo entrar por la puerta de atrás.
  */
 
-const VALENTINA = 'u-valentina'
+const ASESORADA = 'u-valentina'
 
 const abrir = (verPeso?: boolean) =>
-  render(<MedidasCard usuarioId={VALENTINA} {...(verPeso === undefined ? {} : { verPeso })} />)
+  render(<MedidasCard usuarioId={ASESORADA} {...(verPeso === undefined ? {} : { verPeso })} />)
 
-/** Cuántas medidas tiene guardadas ahora mismo. */
-const medidas = () => db.perfiles.byUsuario(VALENTINA)?.medidas ?? []
+const medidas = () => db.perfiles.byUsuario(ASESORADA)?.medidas ?? []
 
-describe('la tarjeta de medidas', () => {
+/** Las ocho, en el orden en que se piden. */
+const LAS_OCHO = [
+  'Longitud de tibia y peroné (cm)',
+  'Longitud del fémur (cm)',
+  'Longitud del torso (cm)',
+  'Longitud del antebrazo (cm)',
+  'Longitud del brazo (cm)',
+  'Ancho clavicular (cm)',
+  'Cintura (cm)',
+  'Caderas (cm)',
+]
+
+/** El texto de la etiqueta de cada campo, sin la ayuda de cómo se mide. */
+function etiquetasDeLosCampos(): string[] {
+  return screen.getAllByRole('textbox').map((campo) => {
+    const etiqueta = campo.closest('label')?.querySelector('span')
+    // Solo los nodos de TEXTO sueltos del `span`: la ayuda de cómo se mide cuelga de un
+    // `span` de dentro y no es parte de la etiqueta.
+    const sueltos = Array.from(etiqueta?.childNodes ?? [])
+      .filter((n) => n.nodeType === Node.TEXT_NODE)
+      .map((n) => n.textContent ?? '')
+      .join('')
+    return sueltos.replace(/\s+/g, ' ').trim()
+  })
+}
+
+describe('la encuesta de medidas', () => {
   beforeEach(() => localStorage.clear())
 
-  describe('con la composición corporal a la vista', () => {
-    it('pide el peso, y es obligatorio', async () => {
-      abrir(true)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+  it('pide exactamente ocho, con estas etiquetas y ninguna otra', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-      expect(screen.getByText(/Peso \(kg\)/)).toBeTruthy()
-      expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled()
-    })
-
-    it('con el peso escrito ya deja guardar', async () => {
-      abrir(true)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-      await userEvent.type(screen.getByLabelText(/Peso \(kg\)/), '56')
-
-      expect(screen.getByRole('button', { name: /guardar/i })).toBeEnabled()
-    })
-
-    /** Quien no pase la prop se comporta como antes: nada cambia por defecto. */
-    it('por defecto se comporta igual', async () => {
-      abrir()
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-      expect(screen.getByText(/Peso \(kg\)/)).toBeTruthy()
-    })
+    const campos = screen.getAllByRole('textbox')
+    expect(campos).toHaveLength(8)
+    expect(etiquetasDeLosCampos()).toEqual(LAS_OCHO)
   })
 
-  describe('con la composición corporal apagada', () => {
-    it('no le pide el peso', async () => {
-      abrir(false)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+  it('ya no pide el peso: eso es del check-in del día', async () => {
+    abrir(true)
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
-      expect(screen.queryByText(/Peso \(kg\)/)).toBeNull()
-      expect(screen.queryByLabelText(/Peso \(kg\)/)).toBeNull()
+    expect(screen.queryByText(/Peso \(kg\)/)).toBeNull()
+    expect(screen.queryByLabelText(/Peso/i)).toBeNull()
+  })
+
+  it('cada medida dice CÓMO se toma: una longitud sin protocolo no es una medida', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    // El fémur es el caso que lo justifica: medido desde la cadera y desde el trocánter
+    // salen dos números distintos, y el que se compara dentro de tres meses tiene que
+    // salir del mismo sitio.
+    expect(screen.getByText(/trocánter/i)).toBeTruthy()
+    expect(screen.getByText(/de extremo a extremo/i)).toBeTruthy()
+  })
+
+  it('guarda con las claves estables, tal y como viajan a `perfiles`', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    const campos = screen.getAllByRole('textbox')
+    await userEvent.type(campos[1], '44,5') // el fémur, con coma: así se escribe aquí
+    await userEvent.type(campos[6], '72')
+    await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    const [ultima] = medidas().slice(-1)
+    expect(ultima.perimetros).toEqual({ 'Fémur': 44.5, Cintura: 72 })
+    // Las vacías no se guardan: un cero inventado es peor que un hueco.
+    expect(Object.keys(ultima.perimetros)).toHaveLength(2)
+    // Y sin peso: ausente no es cero.
+    expect(ultima.pesoKg).toBeUndefined()
+  })
+
+  it('no deja guardar una medición vacía', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled()
+  })
+
+  it('con una sola medida escrita ya deja guardar', async () => {
+    abrir()
+    await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    await userEvent.type(screen.getAllByRole('textbox')[0], '41')
+
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeEnabled()
+  })
+
+  it('a quien tiene la composición apagada no le enseña el kilaje de antes', () => {
+    db.perfiles.agregarMedida(ASESORADA, {
+      fecha: '2026-12-31',
+      pesoKg: 56,
+      alturaCm: 165,
+      perimetros: { Cintura: 72 },
     })
+    abrir(false)
 
-    /** Quitarle los perímetros sería cambiar un daño por otro. */
-    it('pero sigue pudiendo anotar sus perímetros', async () => {
-      abrir(false)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
+    expect(screen.getByText(/Última: 2026-12-31/)).toBeTruthy()
+    expect(screen.queryByText(/56 kg/)).toBeNull()
+  })
 
-      expect(screen.getByText('Cintura (cm)')).toBeTruthy()
-      expect(screen.getByText('Cadera (cm)')).toBeTruthy()
+  it('y sí se lo enseña a quien sí ve su composición', () => {
+    db.perfiles.agregarMedida(ASESORADA, {
+      fecha: '2026-12-31',
+      pesoKg: 56,
+      alturaCm: 165,
+      perimetros: {},
     })
+    abrir(true)
 
-    it('guarda la medición sin peso', async () => {
-      abrir(false)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-      const cintura = screen.getAllByPlaceholderText('—')[0]
-      await userEvent.type(cintura, '72')
-      await userEvent.click(screen.getByRole('button', { name: /guardar/i }))
-
-      const [ultima] = medidas().slice(-1)
-      expect(ultima.pesoKg).toBeUndefined()
-      expect(ultima.perimetros.Cintura).toBe(72)
-    })
-
-    /**
-     * Sin peso hace falta otra condición, o se guardaría una fila con fecha y
-     * nada más: ensucia el historial del coach y no dice nada de nadie.
-     */
-    it('no deja guardar una medición vacía', async () => {
-      abrir(false)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-
-      expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled()
-    })
-
-    it('con un perímetro escrito ya deja guardar', async () => {
-      abrir(false)
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
-      await userEvent.type(screen.getAllByPlaceholderText('—')[0], '72')
-
-      expect(screen.getByRole('button', { name: /guardar/i })).toBeEnabled()
-    })
-
-    /**
-     * Enseñar el kilaje del resumen dejaría entrar por la puerta de atrás lo
-     * que el formulario acaba de dejar de pedir.
-     */
-    it('tampoco le enseña el kilaje de una medición anterior', () => {
-      db.perfiles.agregarMedida(VALENTINA, {
-        fecha: '2026-12-31',
-        pesoKg: 56,
-        alturaCm: 165,
-        perimetros: { Cintura: 72 },
-      })
-      abrir(false)
-
-      expect(screen.getByText(/Última: 2026-12-31/)).toBeTruthy()
-      expect(screen.queryByText(/56 kg/)).toBeNull()
-    })
-
-    it('y sí se lo enseña a quien sí ve su composición', () => {
-      db.perfiles.agregarMedida(VALENTINA, {
-        fecha: '2026-12-31',
-        pesoKg: 56,
-        alturaCm: 165,
-        perimetros: {},
-      })
-      abrir(true)
-
-      expect(screen.getByText(/56 kg/)).toBeTruthy()
-    })
+    expect(screen.getByText(/56 kg/)).toBeTruthy()
   })
 })
 

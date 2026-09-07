@@ -1,13 +1,11 @@
-import type { Malla } from '../../../domain/patrones/malla'
-import { colocar, leerPieza } from '../escena/piezas3d'
-
 /**
- * LAS PIEZAS DEL SALÓN: qué hay, dónde va cada una, y cómo llegan.
+ * LAS PIEZAS DEL SALÓN: qué hay y dónde va cada una.
  *
- * Es la lista de piezas hechas en Blender que se plantan en la sala, con su sitio. Se
- * piden al montar el visor; cada una que llega se lee, se coloca y se avisa para
- * reconstruir. Hasta que llega, la sala está como estaba: el salón se abre igual y el
- * rack aparece cuando aparece.
+ * Es la lista de piezas hechas en Blender que se plantan en la sala, con su sitio. Cómo
+ * llegan —pedirlas, comprobarlas, colocarlas y avisar— vive desde el 2026-09-08 en
+ * `cargaDelAtlas.ts`: esto es un catálogo, y un catálogo no toca la red. Hasta que una
+ * pieza llega, la sala está como estaba: el salón se abre igual y el rack aparece cuando
+ * aparece.
  *
  * ## Dónde se plantan
  *
@@ -120,70 +118,4 @@ export function sitioDe(p: PiezaDelSalon): { x: number; z: number; giroY: number
   const a = (p.anguloGrados * Math.PI) / 180
   // Tangente a la pared: girar el eje local Z hasta la dirección (−sen a, cos a).
   return { x: Math.cos(a) * p.radio, z: Math.sin(a) * p.radio, giroY: -a }
-}
-
-type Traer = (ruta: string) => Promise<ArrayBuffer>
-
-/**
- * LA PIEZA VIAJA COMPRIMIDA, Y LA ABRE EL PROPIO NAVEGADOR.
- *
- * Medido el 2026-09-06 sobre la vista previa: la sala suelta son 1,50 MB y Vercel ya la
- * mandaba comprimida, **915 KB** por el cable. Su compresor va rápido, no apretado. La
- * misma pieza con brotli al máximo son **548 KB**, un 40 % menos, y no hay que
- * descomprimir nada a mano: se sirve `.pieza.br` con la cabecera `Content-Encoding: br`
- * (`vercel.json`) y el navegador la abre él solo, como abre cualquier página.
- *
- * Por eso hay que comprobar que lo que llega ES una pieza. Donde nadie pone esa cabecera
- * —el servidor de desarrollo, por ejemplo— el `.br` llega en crudo con un 200 tan
- * tranquilo, y sin esta comprobación el salón se quedaría sin sala en local. Cuatro bytes
- * bastan: toda pieza empieza por `PIEZ`.
- */
-const FIRMA = 'PIEZ'
-
-function esUnaPieza(bytes: ArrayBuffer): boolean {
-  if (bytes.byteLength < 4) return false
-  const c = new Uint8Array(bytes, 0, 4)
-  return FIRMA.split('').every((letra, i) => c[i] === letra.charCodeAt(0))
-}
-
-export const traerDeRed: Traer = async (ruta) => {
-  try {
-    const r = await fetch(`${ruta}.br`)
-    if (r.ok) {
-      const bytes = await r.arrayBuffer()
-      if (esUnaPieza(bytes)) return bytes
-    }
-  } catch {
-    // Sin comprimir también vale: son 915 KB en vez de 548. No es un fallo que merezca
-    // dejar al salón sin sala.
-  }
-  const r = await fetch(ruta)
-  if (!r.ok) throw new Error(`${ruta}: ${r.status}`)
-  return r.arrayBuffer()
-}
-
-/**
- * Pide todas las piezas y las va entregando colocadas según llegan.
- *
- * Devuelve la función que cancela: al desmontar, una pieza que llegue tarde no toca
- * nada. `traer` se inyecta para poder probarlo sin red. Una pieza que falla no para el
- * salón: se queda sin ella y se sigue, como con las imágenes.
- */
-export function cargarPiezas(
-  alLlegar: (nombre: string, mallas: Malla[]) => void,
-  traer: Traer = traerDeRed,
-  lista: Record<string, PiezaDelSalon> = PIEZAS_DEL_SALON,
-): () => void {
-  let cancelado = false
-  for (const [nombre, pieza] of Object.entries(lista)) {
-    traer(pieza.ruta)
-      .then((bytes) => {
-        if (cancelado) return
-        alLlegar(nombre, colocar(leerPieza(bytes), sitioDe(pieza)))
-      })
-      .catch(() => {})
-  }
-  return () => {
-    cancelado = true
-  }
 }

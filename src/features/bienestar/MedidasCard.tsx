@@ -8,7 +8,34 @@ import { direccion } from '../../lib/direccionesVisuales'
 import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 
-const PERIMETROS = ['Cintura', 'Cadera', 'Abdomen', 'Muslo', 'Brazo'] as const
+/**
+ * LAS OCHO MEDIDAS, Y SOLO ESTAS OCHO.
+ *
+ * Hasta el 2026-09-08 esto eran cinco perímetros de estética —cintura, cadera, abdomen,
+ * muslo, brazo— y la báscula. Ahora son ocho, y seis de ellas son LONGITUDES DE HUESO: son
+ * las que le faltan al sujeto 3D para dejar de ser el muñeco del atlas y ser esta persona.
+ * Con la estatura sola, dos personas de 1,75 con fémures distintos se dibujan iguales, y
+ * eso cambia el brazo de momento de cada ejercicio — que es lo que la app enseña.
+ *
+ * `clave` es lo que se guarda y NO se renombra: viaja dentro de `medidas` a `perfiles`, y
+ * dos pantallas más (`coach/AsesoradoDetallePage` y `logros/ProgresoEvolucion`) la
+ * imprimen tal cual. Por eso son nombres de persona y no identificadores: es la convención
+ * que ya tenían los registros viejos (`Glúteos`, `Abdomen medio`).
+ *
+ * `ayuda` no es adorno: una longitud sin protocolo no es una medida. Medir el fémur desde
+ * la cadera «por encima» y desde el trocánter dan dos números distintos, y el que se
+ * compara con el de dentro de tres meses tiene que salir del mismo sitio.
+ */
+const MEDIDAS = [
+  { clave: 'Tibia y peroné', etiqueta: 'Longitud de tibia y peroné', ayuda: 'de extremo a extremo, del tobillo a la rodilla' },
+  { clave: 'Fémur', etiqueta: 'Longitud del fémur', ayuda: 'del trocánter (el hueso que sobresale en la cadera) a la rodilla' },
+  { clave: 'Torso', etiqueta: 'Longitud del torso', ayuda: 'del hueco del cuello al ombligo, de pie y recto' },
+  { clave: 'Antebrazo', etiqueta: 'Longitud del antebrazo', ayuda: 'del codo a la muñeca' },
+  { clave: 'Brazo', etiqueta: 'Longitud del brazo', ayuda: 'del hombro al codo' },
+  { clave: 'Ancho clavicular', etiqueta: 'Ancho clavicular', ayuda: 'de punta a punta de los hombros, por delante' },
+  { clave: 'Cintura', etiqueta: 'Cintura', ayuda: 'en la parte más estrecha, sin apretar' },
+  { clave: 'Caderas', etiqueta: 'Caderas', ayuda: 'en la parte más ancha' },
+] as const
 
 interface MedidasCardProps {
   usuarioId: string
@@ -94,13 +121,18 @@ function ColumnaFisico() {
 }
 
 /**
- * Registro de medidas corporales por el propio asesorado (peso + perímetros).
- * Guarda en el perfil y sincroniza a la nube — el coach las ve en su panel.
+ * Registro de las ocho medidas del cuerpo, tomadas por el propio asesorado.
+ *
+ * Guarda en el perfil y sincroniza a la nube — el coach las ve en su panel, y seis de las
+ * ocho son las que le dan al sujeto 3D del salón las proporciones de ESTA persona.
+ *
+ * El peso NO está aquí y no es un olvido: lo pregunta el check-in del día, que es donde
+ * tiene sentido —el peso se mueve cada día y un fémur no—. `verPeso` sigue mandando sobre
+ * el kilaje del resumen, que es lo único de composición corporal que queda en la tarjeta.
  */
 export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
   const [abierto, setAbierto] = useState(false)
   const [guardado, setGuardado] = useState(false)
-  const [peso, setPeso] = useState('')
   const [valores, setValores] = useState<Record<string, string>>({})
 
   const perfil = db.perfiles.byUsuario(usuarioId)
@@ -108,40 +140,36 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
   const ultima = medidas[medidas.length - 1] as MedidaCorporal | undefined
   const previa = medidas[medidas.length - 2] as MedidaCorporal | undefined
 
-  const pesoNum = verPeso ? numeroDe(peso) : undefined
-
-  const perimetrosEscritos = (): Record<string, number> => {
-    const perimetros: Record<string, number> = {}
-    for (const clave of PERIMETROS) {
+  const medidasEscritas = (): Record<string, number> => {
+    const escritas: Record<string, number> = {}
+    for (const { clave } of MEDIDAS) {
       const v = numeroDe(valores[clave] ?? '')
-      if (v !== undefined) perimetros[clave] = v
+      if (v !== undefined) escritas[clave] = v
     }
-    return perimetros
+    return escritas
   }
 
   /**
-   * Con báscula manda el peso; sin ella, al menos un perímetro.
+   * Al menos una medida escrita.
    *
-   * Sin esta segunda condición, quitar el peso dejaría guardar una medición
-   * vacía: una fila con fecha y nada más, que ensucia el historial del coach y
-   * no dice nada de nadie.
+   * Sin esta condición se guardaría una medición vacía: una fila con fecha y nada más,
+   * que ensucia el historial del coach y no dice nada de nadie.
    */
-  const puedeGuardar = verPeso
-    ? pesoNum !== undefined
-    : Object.keys(perimetrosEscritos()).length > 0
+  const puedeGuardar = Object.keys(medidasEscritas()).length > 0
 
   const guardar = () => {
     if (!puedeGuardar) return
     db.perfiles.agregarMedida(usuarioId, {
       fecha: hoyIso(),
-      // Ausente, no cero: a esta persona no se le pidió la báscula.
-      ...(pesoNum !== undefined ? { pesoKg: pesoNum } : {}),
+      // SIN PESO, Y NO POR OLVIDO. La báscula ya se pregunta en el check-in diario, que es
+      // donde tiene sentido —el peso se mueve cada día y estas medidas no—, y pedirla
+      // aquí otra vez la convertía en la cuarta superficie de peso de la app. Ausente no
+      // es cero: esta medición no trae peso porque no se midió aquí.
       alturaCm: ultima?.alturaCm ?? 0,
-      perimetros: perimetrosEscritos(),
+      perimetros: medidasEscritas(),
     })
     setAbierto(false)
     setGuardado(true)
-    setPeso('')
     setValores({})
   }
 
@@ -205,37 +233,31 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
           <div className="flex gap-3">
             <ColumnaFisico />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              {verPeso && (
-                <label className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-tenue">Peso (kg) *</span>
+              {MEDIDAS.map(({ clave, etiqueta, ayuda }) => (
+                <label key={clave} className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 flex-1 text-xs text-tenue">
+                    {etiqueta} (cm)
+                    {/* CÓMO SE MIDE, al lado del campo y no en un pie de página. Una
+                        longitud sin protocolo no es una medida: el fémur medido desde la
+                        cadera y desde el trocánter son dos números distintos, y el que se
+                        compara dentro de tres meses tiene que salir del mismo sitio. */}
+                    <span className="mt-0.5 block text-[10px] leading-snug text-tenue/70">{ayuda}</span>
+                  </span>
                   <input
                     inputMode="decimal"
-                    value={peso}
-                    onChange={(e) => setPeso(e.target.value)}
-                    placeholder={ultima?.pesoKg !== undefined ? String(ultima.pesoKg) : 'kg'}
-                    className="w-24 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
-                  />
-                </label>
-              )}
-              {PERIMETROS.map((nombre) => (
-                <label key={nombre} className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-tenue">{nombre} (cm)</span>
-                  <input
-                    inputMode="decimal"
-                    value={valores[nombre] ?? ''}
-                    onChange={(e) => setValores((prev) => ({ ...prev, [nombre]: e.target.value }))}
-                    placeholder={ultima?.perimetros[nombre] ? String(ultima.perimetros[nombre]) : '—'}
-                    className="w-24 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
+                    value={valores[clave] ?? ''}
+                    onChange={(e) => setValores((prev) => ({ ...prev, [clave]: e.target.value }))}
+                    placeholder={ultima?.perimetros[clave] ? String(ultima.perimetros[clave]) : '—'}
+                    className="w-24 shrink-0 rounded-lg border border-hairline bg-surface-2 px-3 py-2 text-right text-sm text-texto focus:border-rojo focus:outline-none"
                   />
                 </label>
               ))}
             </div>
           </div>
           <p className="mt-2 text-[10px] text-tenue">
-            {verPeso
-              ? '* El peso es obligatorio; los perímetros que dejes vacíos no se guardan. '
-              : 'Anota al menos un perímetro; los que dejes vacíos no se guardan. '}
-            Mídete siempre en las mismas condiciones (en ayunas, misma hora).
+            Anota al menos una; las que dejes vacías no se guardan. Mídete siempre en las
+            mismas condiciones (en ayunas, misma hora) y con la cinta apoyada sin apretar.
+            El peso se apunta en el check-in del día, no aquí.
           </p>
           <div className="mt-1 flex gap-2">
             <button
