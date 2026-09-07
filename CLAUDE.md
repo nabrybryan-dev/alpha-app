@@ -9,6 +9,22 @@ inestable) y el **staff** (coach y nutricionista). Maneja **datos reales de salu
 
 ---
 
+## ⚠ Antes de crear un archivo o elegir un número de migración: comprueba qué está reclamado
+
+Lo que hay en disco no incluye lo que otra rama piensa escribir.
+
+1. **Número de migración.** Antes de numerar, mira las ramas vivas y los contratos de
+   trabajo en curso: el siguiente número puede estar ya reclamado por una rama que
+   todavía no ha aterrizado. Dos migraciones con el mismo número no dan conflicto de
+   git y se descubren en producción.
+2. **Archivos que otro ya declaró.** Si otro trabajo dejó por escrito qué rutas va a
+   tocar, léelo antes de empezar. No cuesta nada y evita rebasar a ciegas.
+3. **De dónde se lee.** Lo que lea este repo desde fuera se lee de `origin/main`
+   (`git show origin/main:<ruta>`), no del árbol de trabajo: hay varios worktrees
+   abiertos y un checkout local puede ir muy por detrás.
+
+Si «¿esto ya lo reclamó alguien?» no tiene respuesta escrita, pregunta antes de suponer.
+
 ## 1. Restricción de la máquina — NO NEGOCIABLE
 
 La directiva de **Control de aplicaciones (WDAC)** de este equipo **bloquea los
