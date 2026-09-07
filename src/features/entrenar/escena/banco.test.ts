@@ -214,3 +214,77 @@ describe('el mueble y la oclusión', () => {
     expect(hierro.piezas.map((p) => p.pieza)).not.toContain('banco')
   })
 })
+
+describe('el sujeto y el suelo', () => {
+  /** El punto más bajo del cuerpo a lo largo del ciclo, en metros. */
+  function loMasBajo(p: Patron): number {
+    let mn = Infinity
+    for (let i = 0; i <= 20; i++) {
+      const esq = esqueletoEnFase(p, i / 20)
+      for (const hueso of Object.keys(esq.mundo)) {
+        for (const t of [0, 1]) mn = Math.min(mn, puntoDeHueso(esq, hueso, t)[1])
+      }
+    }
+    return mn
+  }
+
+  it('nadie se hunde en el suelo más que el grosor de una suela', () => {
+    // La plancha estaba TRES CENTÍMETROS por debajo. Poco, pero es un cuerpo atravesando el
+    // suelo, y una vez que hay mueble debajo se ve. Corregido.
+    //
+    // El tope no es cero y conviene decir por qué: la sentadilla baja 8,5 mm, y eso NO es de
+    // esta tanda. `apoyarPies` planta la PLANTA en el suelo, y el punto que se mide aquí es
+    // el extremo del hueso del pie, que queda un poco por debajo de ella al bascular. Es del
+    // orden de una suela, no se ve, y arreglarlo es tocar el apoyo plantar de los 36
+    // patrones. Queda medido para que no crezca.
+    //
+    // Y hay una excepción de verdad, medida y NO arreglada: la búlgara mete 7,5 cm. Es el
+    // pie de atrás, que va sobre un banco y cuyo extremo del hueso queda por debajo del
+    // apoyo; `apoyarPies` solo planta el de delante. Se ve poco porque el pie trasero está
+    // detrás del cuerpo, pero es de verdad y arreglarlo es tocar esa ficha. Queda escrito
+    // con su número para que no crezca.
+    const HUNDIMIENTO: Record<string, number> = { sentadilla_unilateral: 0.08 }
+    for (const p of PATRONES) {
+      expect(loMasBajo(p), `${p.id} se hunde en el suelo`).toBeGreaterThan(
+        -(HUNDIMIENTO[p.id] ?? 0.01),
+      )
+    }
+  })
+
+  it('quien no se apoya en un mueble toca el suelo, y quien sí, no', () => {
+    // EL DEFECTO QUE EL MUEBLE DESTAPÓ, y que hasta el 2026-09-06 escondía el encuadre: los
+    // patrones sin apoyo plantar viven donde diga su `raizInicio`, y en el catálogo eso era
+    // un desplazamiento sobre la altura de pie, no una cota. Resultado: **siete patrones
+    // flotaban entre 0,80 y 1,10 m**, y tres de ellos estaban un metro por encima de su
+    // PROPIA máquina, que sí se dibuja a ras de suelo.
+    //
+    // La corrección no fue de ojo: a cada uno se le restó exactamente lo que flotaba, para
+    // que su punto más bajo —el pie del que está sentado, la rodilla del que se arrodilla—
+    // quede en el suelo.
+    //
+    // Y aquí van los DOS grupos, porque la mitad interesante es la segunda: quien se tumba
+    // en un banco o cuelga de una barra NO toca el suelo, y bajarlo sería el error contrario.
+    // La primera versión de esta tanda iba a bajarlos a todos.
+    const enElSuelo = [
+      'antiextension',
+      'movilidad_toracica',
+      'rotacion_cadera',
+      'flexion_tronco',
+      'extension_rodilla',
+      'traccion_vertical',
+      'flexion_muneca',
+      'extension_muneca',
+      'empuje_inclinado',
+      'flexion_rodilla',
+    ]
+    for (const id of enElSuelo) {
+      expect(loMasBajo(PATRON_POR_ID[id]), `${id} no llega al suelo`).toBeLessThan(0.07)
+    }
+    // Y los que descansan sobre algo se quedan a su altura: el banco de la banca, el
+    // acolchado del banco romano, y la barra de la que uno cuelga.
+    const sobreUnMueble = ['empuje_horizontal', 'extension_lumbar', 'suspension', 'apertura_pecho']
+    for (const id of sobreUnMueble) {
+      expect(loMasBajo(PATRON_POR_ID[id]), `${id} se cayó al suelo`).toBeGreaterThan(0.15)
+    }
+  })
+})

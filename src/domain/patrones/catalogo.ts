@@ -318,8 +318,8 @@ export const PATRONES: Patron[] = [
       'Parar antes de la extensión completa, justo donde el cuádriceps más trabaja.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.52, 0],
-    raizFin: [0, 0.52, 0],
+    raizInicio: [0, -0.45, 0],
+    raizFin: [0, -0.45, 0],
     inicio: { caderaFlex: 88, rodillaFlex: 108, toraxFlex: -6, hombroFlex: 22, codoFlex: 44 },
     fin: { caderaFlex: 86, rodillaFlex: 2, toraxFlex: -8, hombroFlex: 20, codoFlex: 40 },
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 1, 'cuadriceps.recto': 0.85, tibial_anterior: 0.25, recto_abdominal: 0.2 },
@@ -424,13 +424,46 @@ export const PATRONES: Patron[] = [
       'Tirar de la barra a la nuca, que castiga el hombro sin dar más dorsal.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.60, 0],
-    raizFin: [0, 0.60, 0],
+    raizInicio: [0, -0.48, 0],
+    raizFin: [0, -0.48, 0],
     inicio: { hombroFlex: 168, hombroAbd: 24, codoFlex: 4, escapulaElev: 30, caderaFlex: 86, rodillaFlex: 82, toraxFlex: -2 },
     fin: { hombroFlex: 32, hombroAbd: 32, codoFlex: 130, escapulaProt: -24, escapulaElev: -16, toraxFlex: -16, caderaFlex: 86, rodillaFlex: 82 },
     activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.5, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 22, elevacion: 6 },
+  },
+  {
+    // NACE el 2026-09-06 a petición de Bryan, con vídeo de referencia (ver
+    // `escena/maquinaAsistida.ts`). Hasta entonces «Dominadas asistidas» caía en la tracción
+    // vertical de arriba: un jalón SENTADO, así que el sujeto salía sentado en el aire
+    // agarrado a una barra fija. Aquí cuelga de las manos —`apoyo: 'manos'`, como la
+    // suspensión— y se arrodilla: la rodillera de la máquina va bajo las espinillas y
+    // sube con él. Es cadena cerrada: las manos no se mueven, el cuerpo sí.
+    id: 'dominada_asistida',
+    cadena: 'cerrada',
+    categoria: 'DOMINADA ASISTIDA',
+    titulo: 'Dominada asistida',
+    ejemplos: 'Dominadas asistidas en máquina (prono / neutro / supino)',
+    resumen:
+      'Una dominada con parte del peso descontado: las manos fijas en la barra, las rodillas sobre la rodillera de la máquina y el cuerpo entero subiendo. Es el patrón que enseña a hacer dominadas antes de poder hacerlas.',
+    claves: [
+      'Antes de tirar, baja los hombros: primero desciende la escápula, después dobla el codo.',
+      'Sube hasta que la barbilla pase la barra, sin echar la cabeza atrás.',
+      'Cuerpo en línea sobre la rodillera: el tronco no se dobla para buscar la barra.',
+    ],
+    errores: [
+      'Poner tanta asistencia que el ejercicio deja de ser una dominada.',
+      'Balancearse o empujar con las rodillas contra la rodillera para arrancar.',
+    ],
+    apoyo: 'manos',
+    alturaApoyo: 2.15,
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 1.35, 0],
+    inicio: { hombroFlex: 170, hombroAbd: 26, codoFlex: 6, escapulaElev: 34, escapulaRotAsc: 40, caderaFlex: 10, rodillaFlex: 100, toraxFlex: -4 },
+    fin: { hombroFlex: 46, hombroAbd: 30, codoFlex: 132, escapulaElev: -14, escapulaRotAsc: 18, escapulaProt: -22, caderaFlex: 12, rodillaFlex: 100, toraxFlex: -14 },
+    activacion: { flexores_carpo: 0.7, extensores_carpo: 0.5, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.55, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.4 },
+    seguimiento: ['pelvis', 0, [0.05, 0, 0]],
+    camara: { azimut: 38, elevacion: 8 },
   },
   {
     id: 'abduccion_hombro',
@@ -590,8 +623,8 @@ export const PATRONES: Patron[] = [
     ],
     apoyo: 'ninguno',
     giro: [86, 0, 0],
-    raizInicio: [0, 0.44, 0],
-    raizFin: [0, 0.40, 0],
+    raizInicio: [0, 0.49, 0],
+    raizFin: [0, 0.45, 0],
     inicio: { lumbarFlex: -24, pelvisBascula: -20, toraxFlex: -10, hombroFlex: 84, codoFlex: 92, rodillaFlex: 6, escapulaProt: -16 },
     fin: { lumbarFlex: 10, pelvisBascula: 16, toraxFlex: 3, hombroFlex: 88, codoFlex: 90, rodillaFlex: 0, escapulaProt: 22 },
     activacion: { recto_abdominal: 1, transverso: 0.9, oblicuos: 0.85, serrato: 0.75, gluteo_mayor: 0.55, cuadriceps: 0.4, erectores: 0.3, triceps: 0.3 },
@@ -648,8 +681,8 @@ export const PATRONES: Patron[] = [
     ],
     apoyo: 'ninguno',
     giro: [-52, 0, 0],
-    raizInicio: [0, 0.52, 0],
-    raizFin: [0, 0.52, 0],
+    raizInicio: [0, -0.4, 0],
+    raizFin: [0, -0.4, 0],
     inicio: { hombroAbd: 38, hombroFlex: 66, codoFlex: 102, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
     fin: { hombroAbd: 16, hombroFlex: 92, codoFlex: 6, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.clavicular': 1, 'pectoral_mayor.esternocostal': 0.7, 'deltoides.anterior': 0.95, 'triceps.lateral': 0.75, 'triceps.medial': 0.75, serrato: 0.5, 'manguito.subescapular': 0.3 },
@@ -906,8 +939,8 @@ export const PATRONES: Patron[] = [
       'Tirar con los brazos del cable o de la nuca para bajar más de lo que da el abdomen.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.62, 0],
-    raizFin: [0, 0.58, 0],
+    raizInicio: [0, -0.43, 0],
+    raizFin: [0, -0.47, 0],
     inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 148, codoFlex: 142, cuelloFlex: -8 },
     fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 144, codoFlex: 140, cuelloFlex: 24 },
     activacion: {
@@ -1202,8 +1235,8 @@ export const PATRONES: Patron[] = [
     // Sentado en el suelo: el peso lo lleva la pelvis, no los pies, así que aquí
     // no hay plomada que cumplir.
     apoyo: 'ninguno',
-    raizInicio: [0, 0.30, 0],
-    raizFin: [0, 0.30, 0],
+    raizInicio: [0, -0.49, 0],
+    raizFin: [0, -0.49, 0],
     // Las dos caderas giran A LA VEZ y en sentidos opuestos: es lo que hace el
     // 90/90 y por eso los canales van por lado. 80° de recorrido en cada una,
     // dentro de los ±45 que el catálogo articular admite.
@@ -1289,8 +1322,8 @@ export const PATRONES: Patron[] = [
       'Rango de dos dedos, que es el error clásico y deja el ejercicio en nada.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.55, 0],
-    raizFin: [0, 0.55, 0],
+    raizInicio: [0, -0.49, 0],
+    raizFin: [0, -0.49, 0],
     // 114° de recorrido dentro de los −75/+82 de la muñeca. El codo a 92° y el
     // antebrazo apoyado son lo que hace que el brazo de momento sea la mano.
     inicio: { muneca: -52, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
@@ -1322,8 +1355,8 @@ export const PATRONES: Patron[] = [
       'Cargar de más: con esta musculatura el peso alto solo compra compensación.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.55, 0],
-    raizFin: [0, 0.55, 0],
+    raizInicio: [0, -0.49, 0],
+    raizFin: [0, -0.49, 0],
     inicio: { muneca: 58, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
     fin: { muneca: -48, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
     activacion: {
@@ -1463,6 +1496,19 @@ const POR_NOMBRE: [RegExp, string][] = [
  * «esto no se puede enseñar»: el día que alguien le escriba su ficha, se saca de esta
  * lista. Decisión de Bryan de ese día: antes sin muñeco que con el muñeco de otro.
  */
+/**
+ * VARIANTES POR NOMBRE DENTRO DE UNA CATEGORÍA. `TRACCIÓN VERTICAL` es un jalón sentado, y
+ * una dominada asistida se prescribe con esa misma categoría (así viene en el seed); pero
+ * su sujeto cuelga de la barra y se arrodilla en una máquina, así que tiene ficha propia.
+ * No es lo mismo que `POR_NOMBRE`, que solo entra cuando la categoría no da nada: aquí la
+ * categoría YA dio una ficha, y el nombre elige entre esa y sus variantes.
+ */
+const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
+  traccion_vertical: [
+    [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],
+  ],
+}
+
 const SIN_PATRON =
   /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado|escaladora|hiit|tabata|erg[oó]metro|remo ergom|caminata|trote|carrera continua|trineo|sled/
 
@@ -1471,7 +1517,13 @@ export function patronDeCategoria(categoria: string | undefined, nombre?: string
   const normalizada = normalizarCategoria(categoria)
   const buscada = ALIAS[normalizada] ?? normalizada
   const porCategoria = PATRONES.find((p) => normalizarCategoria(p.categoria) === buscada)
-  if (porCategoria) return porCategoria
+  if (porCategoria) {
+    // La categoría sigue mandando sobre el nombre; el nombre solo elige ENTRE las fichas
+    // de esa misma categoría. Ver `VARIANTES_POR_NOMBRE`.
+    const texto = (nombre ?? '').toLowerCase()
+    const variante = VARIANTES_POR_NOMBRE[porCategoria.id]?.find(([re]) => re.test(texto))?.[1]
+    return variante ? PATRON_POR_ID[variante] : porCategoria
+  }
 
   // Solo si la categoría no dio nada: cuando la categoría nombra el gesto, es
   // más fiable que el nombre del ejercicio, que lo escribe el coach a mano.
