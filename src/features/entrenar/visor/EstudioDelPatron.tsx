@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { accionesPrincipales } from '../../../domain/patrones/acciones'
 import type { Patron } from '../../../domain/patrones/catalogo'
+import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import type { SexoDeFicha } from '../../../domain/types'
 import { ExploradorAnatomico } from './ExploradorAnatomico'
 import { VisorPatron } from './VisorPatron'
@@ -31,6 +32,8 @@ export interface EstudioDelPatronProps {
    * persona. Sin dato, el del atlas: no medido no es una estimación.
    */
   estaturaCm?: number
+  /** Y sus proporciones, si alguna serie suya trae pista de pose. */
+  proporciones?: ProporcionesDelCuerpo
 }
 
 type Vista = 'ejercicio' | 'articulacion'
@@ -48,7 +51,7 @@ function articulacionProtagonista(patron: Patron): string | undefined {
   return (mueve ?? principales[0])?.articulacion.id
 }
 
-export function EstudioDelPatron({ patron, sexo, estaturaCm }: EstudioDelPatronProps) {
+export function EstudioDelPatron({ patron, sexo, estaturaCm, proporciones }: EstudioDelPatronProps) {
   const [vista, setVista] = useState<Vista>('ejercicio')
 
   return (
@@ -82,7 +85,7 @@ export function EstudioDelPatron({ patron, sexo, estaturaCm }: EstudioDelPatronP
           contexto WebGL, y dos a la vez es el doble de trabajo por cuadro en un
           móvil que además está grabando la serie. */}
       {vista === 'ejercicio' ? (
-        <VisorPatron patron={patron} sexo={sexo} estaturaCm={estaturaCm} />
+        <VisorPatron patron={patron} sexo={sexo} estaturaCm={estaturaCm} proporciones={proporciones} />
       ) : (
         <ExploradorAnatomico
           articulacionInicial={articulacionProtagonista(patron)}

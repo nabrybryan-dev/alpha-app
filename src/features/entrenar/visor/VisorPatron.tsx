@@ -21,7 +21,8 @@ import {
   SEXO_POR_DEFECTO,
   type Sexo,
 } from '../../../domain/patrones/juegoDeHuesos'
-import { juegoParaEstatura } from '../../../domain/patrones/estatura'
+import { juegoConProporciones } from '../../../domain/patrones/estatura'
+import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
 import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, type DatosDeSerie } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
@@ -223,8 +224,19 @@ const COLOCACION_INICIAL: Colocacion = {
   altura: SALA.estacion.altura,
 }
 
-const claveDelSujeto = (sexo: Sexo, estaturaCm?: number): string =>
-  estaturaCm === undefined ? sexo : `${sexo}|${estaturaCm}`
+const claveDelSujeto = (
+  sexo: Sexo,
+  estaturaCm?: number,
+  proporciones?: ProporcionesDelCuerpo,
+): string => {
+  if (estaturaCm === undefined && !proporciones) return sexo
+  // Las proporciones entran por sus tres razones que levantan del suelo, redondeadas: dos
+  // lecturas que difieran en una milésima son el mismo cuerpo y no merecen otra malla.
+  const forma = proporciones
+    ? `|${proporciones.femur.toFixed(3)},${proporciones.tibia.toFixed(3)},${proporciones.torso.toFixed(3)}`
+    : ''
+  return `${sexo}|${estaturaCm ?? '-'}${forma}`
+}
 
 /**
  * Los huesos con los que se dibuja a ESTA persona: su sexo y su estatura.
@@ -234,17 +246,21 @@ const claveDelSujeto = (sexo: Sexo, estaturaCm?: number): string =>
  * juego se escala entero (ver `domain/patrones/estatura.ts`, que también explica lo que un
  * escalado por estatura NO puede hacer: individualizar las proporciones).
  */
-function definicionDelSujeto(sexo: Sexo, estaturaCm?: number): readonly DefinicionHueso[] {
-  if (estaturaCm === undefined) return esqueletoDe(sexo)
-  const juego = juegoParaEstatura(JUEGOS[sexo], estaturaCm)
+function definicionDelSujeto(
+  sexo: Sexo,
+  estaturaCm?: number,
+  proporciones?: ProporcionesDelCuerpo,
+): readonly DefinicionHueso[] {
+  if (estaturaCm === undefined && !proporciones) return esqueletoDe(sexo)
+  const juego = juegoConProporciones(JUEGOS[sexo], proporciones, estaturaCm)
   return juego === JUEGOS[sexo] ? esqueletoDe(sexo) : esqueletoConJuego(juego)
 }
 
-function precalculado(sexo: Sexo, estaturaCm?: number) {
-  const clave = claveDelSujeto(sexo, estaturaCm)
+function precalculado(sexo: Sexo, estaturaCm?: number, proporciones?: ProporcionesDelCuerpo) {
+  const clave = claveDelSujeto(sexo, estaturaCm, proporciones)
   let sujeto = sujetoCache.get(clave)
   if (!sujeto) {
-    const definicion = definicionDelSujeto(sexo, estaturaCm)
+    const definicion = definicionDelSujeto(sexo, estaturaCm, proporciones)
     sujeto = {
       huesos: construirHuesos(definicion),
       reposo: longitudesEnReposo(resolver({}, [0, 0.95, 0], [0, 0, 0], definicion)),
@@ -254,11 +270,11 @@ function precalculado(sexo: Sexo, estaturaCm?: number) {
   return sujeto
 }
 
-function huesosDelFantasma(sexo: Sexo, estaturaCm?: number): Malla {
-  const clave = claveDelSujeto(sexo, estaturaCm)
+function huesosDelFantasma(sexo: Sexo, estaturaCm?: number, proporciones?: ProporcionesDelCuerpo): Malla {
+  const clave = claveDelSujeto(sexo, estaturaCm, proporciones)
   let malla = fantasmaCache.get(clave)
   if (!malla) {
-    malla = construirHuesos(definicionDelSujeto(sexo, estaturaCm))
+    malla = construirHuesos(definicionDelSujeto(sexo, estaturaCm, proporciones))
     fantasmaCache.set(clave, malla)
   }
   return malla
@@ -418,6 +434,15 @@ interface VisorPatronProps {
    * medir el fémur y hoy no se mide. Está escrito en `domain/patrones/estatura.ts`.
    */
   estaturaCm?: number
+  /**
+   * LAS PROPORCIONES DE SU CUERPO, de su propia pista de pose.
+   *
+   * Es lo que la estatura sola no puede dar: dos personas de 1,75 con fémures distintos.
+   * Salen de `proporcionesDePista` y llegan hasta aquí dentro de la huella de una serie
+   * medida (`cuerpoDelAsesorado`). Sin ellas el muñeco tiene su talla con la forma del
+   * atlas, que ya es mucho mejor que nada y no es una estimación de su forma.
+   */
+  proporciones?: ProporcionesDelCuerpo
 }
 
 /**
@@ -441,6 +466,7 @@ export function VisorPatron({
   retirada = 1,
   sexo = SEXO_POR_DEFECTO,
   estaturaCm,
+  proporciones,
 }: VisorPatronProps) {
   const lienzoRef = useRef<HTMLCanvasElement>(null)
   const [fase, setFase] = useState(0)
@@ -647,7 +673,7 @@ export function VisorPatron({
         // encuadre y cada fotograma— o la carne se dibujaría sobre unas articulaciones y
         // el hueso sobre otras.
         const definicion = esqueletoDe(sexo)
-        const { huesos, reposo } = precalculado(sexo, estaturaCm)
+        const { huesos, reposo } = precalculado(sexo, estaturaCm, proporciones)
         // La malla del músculo se reutiliza cuadro a cuadro: la topología no
         // cambia y reservarla de nuevo cada vez costaba el doble de tiempo.
         const mallaMusculo = new Malla(16384)
@@ -853,7 +879,7 @@ export function VisorPatron({
                 poseDeHuella(huella, tFantasma),
                 definicion,
               )
-              const hF = hornear(huesosDelFantasma(sexo, estaturaCm), esqF.matrices, huesosFantasmaHorneados)
+              const hF = hornear(huesosDelFantasma(sexo, estaturaCm, proporciones), esqF.matrices, huesosFantasmaHorneados)
               hF.alfa = ALFA_DEL_FANTASMA
               const mF = hornear(
                 construirMusculos(esqF, SIN_ACTIVACION, reposo, mallaFantasma),
@@ -1086,7 +1112,7 @@ export function VisorPatron({
     // deciden con qué huesos se construye el sujeto, y el motor los lee UNA vez aquí. Sin
     // esto, abrir el visor de un asesorado y luego el de otro más alto dibujaría al
     // segundo con el cuerpo del primero — y no fallaría nada: se vería mal y ya.
-  }, [patron, conEscenario, orbitaConUnDedo, sexo, estaturaCm])
+  }, [patron, conEscenario, orbitaConUnDedo, sexo, estaturaCm, proporciones])
 
   // El deslizador manda sobre la reproducción: si alguien lo mueve es porque
   // quiere mirar un punto concreto del recorrido.

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { ejercicioCompleto } from '../../../domain/cumplimiento'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
+import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import type {
   Competencia,
   DiaRuta,
@@ -177,6 +178,8 @@ export interface SalonEntrenarProps {
   sexo?: SexoDeFicha
   /** La estatura de la ficha, en centímetros: el sujeto se dibuja con la talla de la persona. */
   estaturaCm?: number
+  /** Y sus proporciones, si alguna serie suya trae pista de pose. */
+  proporciones?: ProporcionesDelCuerpo
 }
 
 /** El ejercicio del que habla el salón: el primero que queda por terminar. */
@@ -696,6 +699,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 // el visor usa su defecto, que es el neutro de siempre.
                 sexo={props.sexo}
                 estaturaCm={props.estaturaCm}
+                proporciones={props.proporciones}
                 // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
                 // lado pasa de ejercicio, y se orbita con dos dedos, donde ya vivía el
                 // pellizco. En el estudio del patrón sigue orbitando con uno.

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { estaturaVigente } from '../../domain/patrones/estatura'
+import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
 import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
@@ -65,6 +65,11 @@ export default function SesionPage() {
 function SesionEnCurso() {
   const { sesionId } = useParams()
   const { usuario } = useSesion()
+  // Su talla y su forma, en un solo sitio. Ver `cuerpoDelAsesorado`.
+  const cuerpo = cuerpoDelAsesorado(
+    db.perfiles.byUsuario(usuario.id),
+    db.microciclos.byUsuario(usuario.id),
+  )
   useDbVersion()
   const [demo, setDemo] = useState<Contenido | undefined>()
   const [patron, setPatron] = useState<Patron | undefined>()
@@ -402,7 +407,8 @@ function SesionEnCurso() {
           <EstudioDelPatron
             patron={patron}
             sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
-            estaturaCm={estaturaVigente(db.perfiles.byUsuario(usuario.id)?.medidas)}
+            estaturaCm={cuerpo.estaturaCm}
+            proporciones={cuerpo.proporciones}
           />
         )}
       </Sheet>

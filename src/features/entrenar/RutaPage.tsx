@@ -1,5 +1,5 @@
 import { useSesion } from '../../app/SessionProvider'
-import { estaturaVigente } from '../../domain/patrones/estatura'
+import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
@@ -52,6 +52,12 @@ export default function RutaPage() {
   }
 
   const calculos = calculosDeLaRuta(usuario.id, microciclo, hoy)
+  // Cómo es el cuerpo de esta persona: su talla, de la ficha, y su forma, de la última
+  // serie suya con pista de pose. Se lee aquí y no en un estado para que mande el dato.
+  const cuerpo = cuerpoDelAsesorado(
+    db.perfiles.byUsuario(usuario.id),
+    db.microciclos.byUsuario(usuario.id),
+  )
 
   return (
     <SalonEntrenar
@@ -72,7 +78,11 @@ export default function RutaPage() {
       sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
       // Y su estatura, de la medida más reciente que la traiga. Misma regla que el sexo:
       // sin dato no se pasa nada y el visor usa el sujeto del atlas.
-      estaturaCm={estaturaVigente(db.perfiles.byUsuario(usuario.id)?.medidas)}
+      estaturaCm={cuerpo.estaturaCm}
+      // Y su FORMA, de la última serie suya que traiga pista de pose. Sin ella el muñeco
+      // tiene su talla con las proporciones del atlas, que no es una estimación de las
+      // suyas: es el cuerpo de siempre, y se sabe.
+      proporciones={cuerpo.proporciones}
     />
   )
 }
