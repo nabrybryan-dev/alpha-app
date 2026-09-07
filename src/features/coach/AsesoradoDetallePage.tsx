@@ -13,6 +13,7 @@ import { GenerarMicrocicloSheet } from './GenerarMicrocicloSheet'
 import { PautadoVsRealizado } from './PautadoVsRealizado'
 import { RejillaDeVolumen } from './RejillaDeVolumen'
 import { resumenAsesorado } from './resumenAsesorado'
+import { SexoDeLaFicha } from './SexoDeLaFicha'
 import { IconoEstrella } from '../../components/ui/Icono'
 
 const PESTANAS = ['Resumen', 'Entrenamiento', 'Vida', 'Nutrición', 'Cuestionarios'] as const
@@ -122,6 +123,7 @@ export default function AsesoradoDetallePage() {
                   sesión · {perfil.somatotipo}
                 </p>
               </Card>
+              <SexoDeLaFicha usuarioId={usuario.id} sexo={perfil.sexo} />
               <Card>
                 <p className="kicker">Volumen semanal por grupo</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">

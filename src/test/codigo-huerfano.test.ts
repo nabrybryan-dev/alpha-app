@@ -25,6 +25,17 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // El contrato de trayectorias: que ningun patron contradiga a su propio implemento.
+  // No lo importa la app y no es un descuido: es una regla que se hace cumplir desde una
+  // prueba, como una regla de linter, no una funcion que alguien llame en un fotograma. Se
+  // enchufara el dia que la traza ambar del salon se dibuje DESDE la demanda —la vertical
+  // de la carga con peso libre, la linea del cable con polea— en vez de seguir la punta de
+  // un hueso, que es lo que dejaba a la barra del peso muerto subiendo mientras bajaba.
+  'src/domain/patrones/demandaDeTrayectoria.ts':
+    'Contrato de la trayectoria de la carga contra el implemento del patron. Lo hace ' +
+    'cumplir demandaDeTrayectoria.test.ts sobre los 31 patrones; la app lo usara cuando ' +
+    'la traza se dibuje desde la demanda y no desde un hueso.',
+
   // La derivacion de «esta asentada la tecnica de este ejercicio». Construida el
   // 2026-08-25 y sin enchufar a proposito: se apoya en la tabla
   // `estandarizado_ejercicio` (migracion 0043), y esa migracion NO se aplica
@@ -218,6 +229,107 @@ describe('el dominio no acumula código sin enchufar', () => {
     const perfilCalculado = buscarHuerfanos({ raizProyecto: process.cwd() })
     expect(perfilCalculado.modulos.length + perfilCalculado.exportaciones.length).toBeGreaterThan(0)
     expect(Object.keys(MODULOS_SIN_ENCHUFAR).length + Object.keys(EXPORTACIONES_SIN_USO).length).toBeGreaterThan(15)
+  })
+})
+
+/**
+ * LA SEGUNDA VIGILANCIA: `src/features/entrenar`, y con OTRA regla de consumo.
+ *
+ * El dominio se vigila contra `['src', 'scripts']` porque ahí un script que importa un
+ * módulo es un consumidor legítimo. En el área de entrenar no vale, y esto costó
+ * medirlo: el 2-sep `construirSala` llevaba días sin una sola llamada desde la app —el
+ * salón dibujaba una capa SVG encima y la sala 3D no se montaba— y el detector no lo
+ * señalaba, porque `scripts/medir-implementos.mjs` la importa para un banco de medida.
+ * `construirImplementos` estaba igual: 31 KB de geometría que nadie construía.
+ *
+ * Un banco de pruebas que enciende una máquina una vez al mes no la pone en uso. Si
+ * `scripts/` avala, cualquier función muerta en producción queda blanqueada por tener
+ * un benchmark, y entonces el inventario no inventaría nada. Aquí el consumidor tiene
+ * que ser la aplicación.
+ */
+const HUERFANOS_DE_ENTRENAR: Record<string, string> = {
+  // Las declaraciones del núcleo vendorizado del encoder. No las importa la app: son
+  // los tipos con los que TypeScript lee los `.mjs` de `nucleo/`, que vienen del repo
+  // de herramientas y no se editan aquí (ver `nucleo/ORIGEN.md`).
+  'src/features/entrenar/encoder/nucleo/analisis.d.ts': 'Declaración del núcleo vendorizado: la consume tsc, no la app.',
+  'src/features/entrenar/encoder/nucleo/disco.d.ts': 'Declaración del núcleo vendorizado: la consume tsc, no la app.',
+  'src/features/entrenar/encoder/nucleo/encuadre.d.ts': 'Declaración del núcleo vendorizado: la consume tsc, no la app.',
+  'src/features/entrenar/encoder/nucleo/reloj-fotograma.d.ts': 'Declaración del núcleo vendorizado: la consume tsc, no la app.',
+
+  // Un CANARIO, y por eso vive solo en su test: devuelve los huesos que un nivel del
+  // eje W declara y no se pueden encender por separado. Hoy sale vacío porque los tres
+  // niveles con hueso encienden el rig entero. El día que uno pida media pelvis, lo
+  // dirá esta lista en vez de decirlo una pantalla rara.
+  'src/features/entrenar/capas/mallaDelNivel.ts#huesosParcialesDeNivel':
+    'Canario del eje W: hoy devuelve vacío a propósito y se comprueba en mallaDelNivel.test.ts.',
+
+  // LA CARTA DEL ESPACIO. `puntoEnElSuelo` sí lo consume el proyector de los cuadros;
+  // estos tres son la parte de la carta que existe para AFIRMAR, no para dibujar: el
+  // índice de medidas y las dos fórmulas que fijan las dos convenciones de ángulo que
+  // conviven en el salón (cámara con 0 en +Z, sala con 0 en +X). Su consumidor es
+  // `escena/carta.test.ts`, que las contrasta contra el esqueleto resuelto, la sala y el
+  // proyector reales. Borrarlas dejaría las convenciones otra vez solo en comentarios,
+  // que es de donde salió el sujeto hundido 10,6 cm sin que nada se pusiera en rojo.
+  'src/features/entrenar/escena/carta.ts#CARTA':
+    'Índice del espacio: metros, grados y radios con su fuente. Lo contrasta carta.test.ts.',
+  'src/features/entrenar/escena/carta.ts#azimutDe':
+    'La convención de la cámara en una fórmula, clavada por carta.test.ts contra el proyector.',
+  'src/features/entrenar/escena/carta.ts#azimutDeCamaraDesdeSala':
+    'La relación entre las dos convenciones (cámara = 90 − sala), clavada por carta.test.ts contra sala.ts.',
+
+  // La pantalla de aterrizaje que el salón sustituyó (commit 25ea6ca). No se monta, y
+  // aun así NO se borra: `pruebas/inventario-entrenar.ts` la nombra como el origen
+  // documentado de seis bloques de la mudanza, y el test de inventario comprueba que
+  // ese archivo existe. Mientras la mudanza se esté verificando, borrarla dejaría sin
+  // poder comprobar que el bloque llegó entero. Se va con el inventario, no antes.
+  'src/features/entrenar/PortadaMicrociclo.tsx':
+    'Origen documentado del inventario de mudanza (pruebas/inventario-entrenar.ts); se retira cuando se retire el inventario.',
+
+  // El historial del encoder está escrito y todavía no tiene fuente de datos: se
+  // alimentará cuando `juzgarColocacion.ts` entre en esta rama, que es la precondición
+  // para poder comparar dos tomas (mismo sitio del móvil). Hasta entonces la pantalla
+  // no puede pintar puntos y esta función no tiene a quién dárselos.
+  'src/features/entrenar/encoder/historial.ts#tomasDeLasSeries':
+    'Historial del encoder sin fuente de datos hasta que juzgarColocacion.ts llegue a esta rama.',
+}
+
+const huerfanosEntrenar = buscarHuerfanos({
+  raizProyecto: process.cwd(),
+  carpetaVigilada: 'src/features/entrenar',
+  carpetasConsumidoras: ['src'],
+})
+
+describe('el área de entrenar no acumula código sin enchufar', () => {
+  const listar = (claves: string[]) => claves.map((c) => '  - ' + c).join('\n')
+
+  it('nada de src/features/entrenar queda sin llamar desde la app', () => {
+    const todos = [...huerfanosEntrenar.modulos, ...huerfanosEntrenar.exportaciones].map((h) => h.clave)
+    const nuevos = todos.filter((c) => !(c in HUERFANOS_DE_ENTRENAR))
+
+    expect(
+      nuevos,
+      'Esto no lo llama nadie desde la app:\n' +
+        listar(nuevos) +
+        '\n\nEnchúfalo, bórralo, o añádelo a HUERFANOS_DE_ENTRENAR con el motivo. Que lo ' +
+        'importe un script de scripts/ NO cuenta: un banco de medida no pone nada en uso.',
+    ).toEqual([])
+  })
+
+  it('la lista de excepciones de entrenar no guarda entradas ya resueltas', () => {
+    const vivos = new Set([...huerfanosEntrenar.modulos, ...huerfanosEntrenar.exportaciones].map((h) => h.clave))
+    const sobran = Object.keys(HUERFANOS_DE_ENTRENAR).filter((c) => !vivos.has(c))
+    expect(sobran, 'Estas entradas ya no hacen falta:\n' + listar(sobran)).toEqual([])
+  })
+
+  it('vigila la carpeta de verdad, no una ruta que no existe', () => {
+    // Si la ruta se rompe, las listas salen vacías y el test de arriba pasa sin mirar
+    // nada. Éste lo ancla: sin consumidores, la carpeta entera sale huérfana.
+    const conBarrer = buscarHuerfanos({
+      raizProyecto: process.cwd(),
+      carpetaVigilada: 'src/features/entrenar',
+      carpetasConsumidoras: [],
+    })
+    expect(conBarrer.modulos.length).toBeGreaterThan(20)
   })
 })
 

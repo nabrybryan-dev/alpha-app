@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
 import { DEMOSTRACIONES, DEMOSTRACION_POR_ID } from './demostraciones'
+import { sobreponerMedida } from './escena'
 import {
   DURACION_CICLO,
+  duracionDelCiclo,
   CAMPO_VISUAL,
   encuadrar,
   esqueletoEnFase,
@@ -389,5 +391,52 @@ describe('dónde se atasca cada ejercicio', () => {
     for (const p of sinDeclarar.slice(0, 5)) {
       expect(dondeFrena(p), p.id).toBeCloseTo(dondeFrena(sinDeclarar[0]), 1)
     }
+  })
+})
+
+describe('el tempo prescrito', () => {
+  it('sin tempo, el ciclo es el de siempre', () => {
+    expect(duracionDelCiclo()).toBeCloseTo(DURACION_CICLO, 9)
+    expect(faseDeTiempo(0.6, undefined, undefined).fase).toBeCloseTo(faseDeTiempo(0.6).fase, 9)
+  })
+
+  it('con excéntrica de 3 s, la bajada dura 3 s y la subida no cambia', () => {
+    const tempo = { excentricaSeg: 3 }
+    // El ciclo crece exactamente en lo que crece la bajada (1,9 → 3).
+    expect(duracionDelCiclo(tempo)).toBeCloseTo(DURACION_CICLO - 1.9 + 3, 9)
+    // La subida es la misma: al mismo tiempo, la misma fase.
+    expect(faseDeTiempo(0.6, undefined, tempo).fase).toBeCloseTo(faseDeTiempo(0.6).fase, 9)
+    // Y a mitad de la bajada nueva —1,2 + 0,35 + 1,5— la fase ronda la mitad.
+    const mitadDeBajada = faseDeTiempo(1.2 + 0.35 + 1.5, undefined, tempo)
+    expect(mitadDeBajada.sentido).toBe(-1)
+    expect(mitadDeBajada.fase).toBeGreaterThan(0.35)
+    expect(mitadDeBajada.fase).toBeLessThan(0.65)
+  })
+
+  it('un tempo sin sentido no rompe el ciclo', () => {
+    for (const malo of [0, -2, Number.NaN]) {
+      expect(duracionDelCiclo({ excentricaSeg: malo })).toBeCloseTo(DURACION_CICLO, 9)
+    }
+  })
+})
+
+describe('la pose medida manda sobre la del patrón', () => {
+  it('sobreponerMedida quita los dos lados del canal que se mide', () => {
+    const pose = sobreponerMedida({ rodillaFlexD: 10, rodillaFlexI: 12, caderaFlex: 30, codoFlexD: 5 }, { rodillaFlex: 100 })
+    expect(pose).toEqual({ caderaFlex: 30, codoFlexD: 5, rodillaFlex: 100 })
+  })
+
+  it('un valor que no es número no toca nada', () => {
+    expect(sobreponerMedida({ rodillaFlexD: 10 }, { rodillaFlex: NaN })).toEqual({ rodillaFlexD: 10 })
+  })
+
+  it('esqueletoEnFase con medida mueve la rodilla; sin medida es el de siempre', () => {
+    const patron = PATRON_POR_ID.sentadilla
+    const sinMedida = esqueletoEnFase(patron, 0.5, 1, 0)
+    const igual = esqueletoEnFase(patron, 0.5, 1, 0, undefined)
+    const conMedida = esqueletoEnFase(patron, 0.5, 1, 0, { rodillaFlex: 5, caderaFlex: 5 })
+    expect(puntoDeHueso(igual, 'tibiaD', 1)).toEqual(puntoDeHueso(sinMedida, 'tibiaD', 1))
+    // Con la rodilla casi extendida, la cadera queda más alta que a media sentadilla.
+    expect(puntoDeHueso(conMedida, 'pelvis', 0)[1]).toBeGreaterThan(puntoDeHueso(sinMedida, 'pelvis', 0)[1] + 0.1)
   })
 })

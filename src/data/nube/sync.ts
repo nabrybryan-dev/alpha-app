@@ -17,7 +17,7 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
-import type { Mensaje, Microciclo } from '../../domain/types'
+import type { MedidaCorporal, Mensaje, Microciclo } from '../../domain/types'
 import {
   condicionesDeclaradas,
   type RespuestasDeEmbarazo,
@@ -27,6 +27,7 @@ import { aIso } from '../../domain/nutricion/semana'
 import { borrar as borrarDeposito, leer as leerDeposito } from '../../lib/depositoAdjuntos'
 import { modoNube, supabase } from '../supabase'
 import { microciclosDe } from './hidratar'
+import { datosDePerfil, type FilaPerfilDelCoach } from './perfilEnNube'
 import { encolar } from './procesador'
 
 // Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
@@ -162,13 +163,51 @@ function idDeDespensa(usuarioId: string, item: ItemDespensa): string {
   return `${usuarioId}:${claveDe(item)}`
 }
 
+/**
+ * Sube la ficha de una persona: el blob `datos` y, según QUIÉN escribe, la
+ * columna `sexo` (0056). Los dos envíos son literales a propósito —con sus
+ * claves a la vista— porque `contrato-payloads.test.ts` los lee del archivo y
+ * los cruza con el esquema de las migraciones.
+ *
+ * - EL COACH la manda siempre, con lo que haya en local. La cola funde los
+ *   upserts de la misma fila (`integrarEnCola`): si fijar el sexo y guardar una
+ *   valoración sin red dejaran dos envíos, el segundo pisaría al primero, y sin
+ *   la columna el sexo moriría en la cola.
+ * - EL ASESORADO ya no sube fila ninguna: su medida viaja sola (`subirMedida`).
+ */
 function subirPerfil(local: Db, usuarioId: string): void {
   const perfil = local.perfiles.byUsuario(usuarioId)
   if (!perfil) return
+  const datos = datosDePerfil(perfil)
   encolar({
     tabla: 'perfiles',
     tipo: 'upsert',
-    payload: { usuario_id: usuarioId, datos: perfil },
+    payload: { usuario_id: usuarioId, datos, sexo: perfil.sexo ?? null } satisfies FilaPerfilDelCoach,
+  })
+}
+
+/**
+ * LA MEDIDA DEL ASESORADO VIAJA SOLA (0057).
+ *
+ * Hasta el 2026-09-06 subía la ficha ENTERA con la medida dentro, y el trigger
+ * `proteger_perfil` la comparaba con la de la nube. A quien no tenía ficha se le
+ * rechazaba SIEMPRE: la app fabricaba una con valores por defecto y el trigger solo
+ * admite «nada más que medidas». La cola lo reintentaba tres veces y lo descartaba en
+ * silencio; el día que se midió eran tres asesorados activos con la medida en el móvil y
+ * no en la nube. Ahora la mete el servidor: `registrar_medida` crea la ficha si no
+ * existe y sustituye la de la misma fecha si ya había.
+ *
+ * La clave colapsa dos registros del mismo día en uno —manda el último, igual que en
+ * local— y `fila` deja que la fusión de lectura la ponga sobre la ficha descargada.
+ */
+function subirMedida(usuarioId: string, medida: MedidaCorporal): void {
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'rpc',
+    funcion: 'registrar_medida',
+    claveRpc: `${usuarioId}:${medida.fecha}`,
+    fila: usuarioId,
+    payload: { p_medida: medida },
   })
 }
 
@@ -182,7 +221,7 @@ export function crearDbSincronizada(local: Db): Db {
       ...local.perfiles,
       agregarMedida: (usuarioId, medida) => {
         local.perfiles.agregarMedida(usuarioId, medida)
-        subirPerfil(local, usuarioId)
+        subirMedida(usuarioId, medida)
       },
       guardarValoracion: (usuarioId, valoracion) => {
         local.perfiles.guardarValoracion(usuarioId, valoracion)
@@ -190,6 +229,10 @@ export function crearDbSincronizada(local: Db): Db {
       },
       guardarPeldano: (usuarioId, peldano, ascensoIso) => {
         local.perfiles.guardarPeldano(usuarioId, peldano, ascensoIso)
+        subirPerfil(local, usuarioId)
+      },
+      guardarSexo: (usuarioId, sexo) => {
+        local.perfiles.guardarSexo(usuarioId, sexo)
         subirPerfil(local, usuarioId)
       },
     },

@@ -36,6 +36,12 @@ export interface OperacionPendiente {
    */
   claveRpc?: string
   /**
+   * La identidad de la fila que esta llamada toca, para la fusión de lectura
+   * (`fusion.ts`). Las RPC no la pueden llevar en el `payload`: PostgREST elige la
+   * función por el conjunto exacto de claves, y una de más la deja sin función.
+   */
+  fila?: string
+  /**
    * Columna sobre la que resolver el conflicto del upsert. Sin esto, Supabase
    * usa la clave primaria, y las tablas del registro de comidas la generan en
    * el servidor: el movil no la conoce, asi que cada reintento insertaria una

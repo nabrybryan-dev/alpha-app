@@ -5,7 +5,6 @@ import type {
   Cuestionario,
   Mensaje,
   Microciclo,
-  Perfil,
   PlanNutricional,
   PremiacionCoach,
   Respuesta,
@@ -37,6 +36,7 @@ import {
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
 import { sanearMicrociclo, sanearPlan } from './saneado'
+import { perfilesDe, SELECCION_PERFILES, TABLA_PERFILES, type FilaPerfil } from './perfilEnNube'
 import { conPendientes, marcarTablaHidratacion, marcarTablaRegistro } from './sync'
 
 interface FilaUsuario {
@@ -311,7 +311,10 @@ export async function hidratarDesdeNube(): Promise<void> {
   ] = await Promise.all([
     // Columnas necesarias para UI: id, nombre, rol, avatar
     pedir('usuarios_app', () => sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales')),
-    pedir('perfiles', () => sb.from('perfiles').select('datos')),
+    // El blob y la columna `sexo` (0056). La selección sale de `perfilEnNube.ts`,
+    // que es el único sitio que nombra la columna, y `perfilEnNube.test.ts` la
+    // comprueba contra la migración: una columna inventada aquí no avisa.
+    pedir(TABLA_PERFILES, () => sb.from(TABLA_PERFILES).select(SELECCION_PERFILES)),
     // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
     // Dos recortes que se suman, y son independientes:
     //
@@ -423,6 +426,8 @@ export async function hidratarDesdeNube(): Promise<void> {
   // cumplimiento agregado por asesorado, nunca datos personales.
   const ranking = await sb.rpc('ranking_disciplina')
 
+  const filasDePerfil = (perfiles.data ?? []) as FilaPerfil[]
+
   const snapshot: SeedDb = {
     // Lo que el servidor decia justo antes de esta descarga. Se guarda DESPUES
     // de pedir los datos y no antes: si algo cambiara en medio, la firma vieja
@@ -436,7 +441,10 @@ export async function hidratarDesdeNube(): Promise<void> {
         avatarIniciales: u.avatar_iniciales || u.nombre.slice(0, 2).toUpperCase(),
       }),
     ),
-    perfiles: conPendientes('perfiles', perfiles.data ?? []).map((f) => f.datos as Perfil),
+    // Con las pendientes encima Y con las filas del servidor a mano: el upsert
+    // pendiente del asesorado no nombra `sexo`, y sin el respaldo la ficha lo
+    // olvidaría hasta la siguiente descarga. Ver `perfilesDe`.
+    perfiles: perfilesDe(conPendientes(TABLA_PERFILES, filasDePerfil), filasDePerfil),
     microciclos: microciclosDe(conPendientes('microciclos', microciclos.data ?? [])),
     checkins: fusionarCheckins(
       conPendientes('checkins', checkins.data ?? []).map((f) => f.datos as CheckinDiario),

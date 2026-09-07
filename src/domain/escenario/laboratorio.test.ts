@@ -112,3 +112,56 @@ describe('la bahía de medida', () => {
     expect(BAHIA.radioPlaca * 2).toBeGreaterThan(0.6)
   })
 })
+
+/**
+ * CON LA SALA DEL GIMNASIO, LA BAHÍA SE QUEDA SOLO CON LO QUE MIDE.
+ *
+ * Este módulo se escribió explicando «por qué una bahía y no un gimnasio», con dos
+ * razones: que un gimnasio dibujado disfrazaría lo que la app es, y que unas paredes
+ * taparían al sujeto en media vuelta. Las dos caducaron el 2026-09-05 —Bryan pidió el
+ * gimnasio, y lo de las paredes se arregló acotando la órbita—, y lo que quedaba era el
+ * suelo, la retícula, el bordillo y el estadiómetro compitiendo con la sala: otra
+ * estética y otro suelo encima del suyo. Bryan, viéndolo: «se ve de una forma, y la
+ * navegación no se ve igual».
+ *
+ * Lo que la sala NO puede dar se queda, y esto lo clava: la placa —dónde se planta el
+ * sujeto— y el eje sagital, que es el único plano que una cámara sola puede medir.
+ */
+describe('la bahía con la sala del gimnasio puesta', () => {
+  const soloMarcas = (): Malla => {
+    const m = new Malla()
+    construirLaboratorio(m, { soloMarcasDeMedida: true })
+    return m
+  }
+
+  it('es una fracción de la entera: se van el suelo, la retícula, el bordillo y el estadiómetro', () => {
+    const entera = laboratorio()
+    const marcas = soloMarcas()
+    expect(marcas.vertices).toBeGreaterThan(0)
+    // Medido el 2026-09-05: 200 vértices contra 1.574, el 13 %. El umbral es una quinta
+    // parte y no el número exacto, para que añadir una marca de medida no ponga esto rojo
+    // — lo que vigila es que no vuelvan el suelo y la retícula, que son el grueso.
+    expect(marcas.vertices).toBeLessThan(entera.vertices / 5)
+  })
+
+  it('la placa sigue estando, y es lo que impide que el sujeto parezca flotar', () => {
+    const m = soloMarcas()
+    let radioMaximo = 0
+    for (const [x, , z] of posiciones(m)) radioMaximo = Math.max(radioMaximo, Math.hypot(x, z))
+    // El eje sagital es más largo que la placa, así que el radio máximo es el suyo; lo que
+    // se comprueba de la placa es que hay geometría dentro de su radio.
+    const dentroDeLaPlaca = posiciones(m).filter(([x, , z]) => Math.hypot(x, z) <= BAHIA.radioPlaca + 1e-6)
+    expect(dentroDeLaPlaca.length).toBeGreaterThan(8)
+    expect(radioMaximo).toBeGreaterThan(BAHIA.radioPlaca)
+  })
+
+  it('nada se levanta del suelo: el bordillo y el estadiómetro eran lo único vertical', () => {
+    // Es la comprobación que importa para que deje de competir con la sala: cualquier cosa
+    // de pie aquí volvería a cruzarse por delante del gimnasio.
+    for (const [, y] of posiciones(soloMarcas())) expect(y).toBeLessThan(0.02)
+  })
+
+  it('todo sigue con el hueso identidad', () => {
+    for (const h of soloMarcas().hueso) expect(h).toBe(0)
+  })
+})

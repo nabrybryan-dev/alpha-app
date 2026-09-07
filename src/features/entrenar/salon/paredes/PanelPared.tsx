@@ -1,0 +1,373 @@
+import { Fragment } from 'react'
+import type { ClaveDeCampo, ContenidoDePared } from './contenidoPared'
+import { CIFRAS_DEL_MURO, EN_UNA_LINEA } from './muros'
+import { ESCORZO_DE_PARED, TOPE_PARED } from '../huecos'
+
+/**
+ * LOS NUEVE CAMPOS DEL EJERCICIO, COLGADOS DE LOS MUROS.
+ *
+ * Es el hueco `paredes` de `huecos.ts`: lo corto y esencial del ejercicio, a la altura de
+ * la mirada y al borde del cuadro. No decide nada — los nueve textos vienen ya repartidos y
+ * ya recortados de `contenidoPared()`, que es la función pura donde vive la invariante de
+ * que lo que no cabe aquí está íntegro en el panel de abajo.
+ *
+ * ## Qué cambió, y por qué
+ *
+ * Antes salían juntos, en dos columnas del 42 % pegadas al borde de arriba. En el
+ * iPhone eso era lo que Bryan describió como «ocho paneles encajonando al sujeto por los
+ * dos lados»: dos tercios del ancho ocupados por tarjetas y el cuerpo asomando por el
+ * pasillo del medio. Siguen estando todos —no se ha perdido un solo campo— pero ya no
+ * salen juntos ni deciden ellos la maqueta:
+ *
+ * - los cinco de EJECUTAR (`MURO_IZQUIERDO`: qué ejercicio, cómo se hace, cuántas series,
+ *   con cuánta carga y hasta dónde) cuelgan del muro izquierdo, en columna estrecha;
+ * - los cuatro de MEDIR (`MURO_DERECHO`: dónde va el móvil, a qué distancia, qué palanca y
+ *   qué velocidad) se los lleva el módulo de la cámara, que es de quien son: son los
+ *   ajustes del encuadre, y leerlos junto al trípode es leerlos donde se usan.
+ *
+ * Este archivo exporta las tres piezas de esa repartición —el panel suelto, la columna del
+ * muro y las dos listas— y no monta ninguna maqueta de pantalla completa. Quién va dónde
+ * lo decide `SalonEntrenar`, que es el que sabe qué más hay en el cuadro.
+ *
+ * ## Por qué no toca los textos
+ *
+ * Ni recorta, ni añade puntos suspensivos, ni reordena. Si esta capa recortara por su
+ * cuenta habría dos sitios decidiendo el mismo tope y se separarían al primer ajuste —
+ * exactamente lo que `TOPE_PARED` está puesto en `huecos.ts` para evitar. Aquí el tope
+ * solo se USA: para poder auditarlo desde fuera con `data-tope`.
+ *
+ * ## Por qué no recibe el puntero
+ *
+ * Toda la capa va con `pointer-events-none`. Las paredes se leen mientras la cámara
+ * orbita, y el gesto de orbitar es un arrastre horizontal sobre el sujeto: una pared que
+ * capturase el puntero se comería el arrastre justo en el borde de la pantalla, que es
+ * donde el pulgar empieza el gesto. No hay nada que tocar en una pared; lo tocable son el
+ * suelo (el registro), el módulo de la cámara y el borde de abajo (el panel).
+ */
+
+/** El rótulo corto de cada panel. El título largo viaja con el texto en `alPanel`. */
+const ROTULO: Record<ClaveDeCampo, string> = {
+  nombre: 'Ejercicio',
+  tecnica: 'Técnica',
+  colocacionMovil: 'Móvil',
+  distancia: 'Distancia',
+  brazoDeMomento: 'Palanca',
+  velocidad: 'Velocidad',
+  seriesReps: 'Series',
+  carga: 'Carga',
+  rir: 'Fallo',
+}
+
+export interface PanelCampoProps {
+  campo: ClaveDeCampo
+  texto: string
+  /** Hacia dónde se escorza el panel. El muro se inclina HACIA el centro del cuadro. */
+  lado: 'izquierda' | 'derecha'
+  /**
+   * La versión de una sola línea, para cuando el panel va dentro de otro módulo.
+   *
+   * El rótulo y el texto siguen siendo dos párrafos —la auditoría lee el segundo, y esa
+   * lectura no puede depender de dónde esté colgado el panel—, pero se ponen en una fila
+   * en vez de uno debajo del otro. Es lo que permite que los cuatro campos de medida
+   * quepan dentro del módulo de la cámara sin comerse el suelo del salón.
+   */
+  denso?: boolean
+  /**
+   * `true` cuando este campo **lo escribe la sala en geometría** y el DOM no debe
+   * repetirlo. El nodo se monta igual, con su marca y su texto, y solo deja de verse: por
+   * los lectores de pantalla, que no leen una malla, y por la auditoría, que cuenta
+   * `data-campo`.
+   */
+  soloParaLector?: boolean
+  /** Clases extra de la caja. Sirve para que quepa en una fila (`min-w-0 flex-1`). */
+  className?: string
+  /**
+   * `true` cuando el campo ya cuelga de un `CuadroDePared`.
+   *
+   * Entonces suelta TODO lo suyo: la caja, el fondo, la sombra y el escorzo. Es la misma
+   * regla que ya tenían los rótulos del muro y que a estos campos se les había olvidado,
+   * y no era cosmética: el cuadro ya gira con la cámara de la escena, así que el
+   * `rotateY` de aquí se aplicaba ENCIMA — dos escorzos sobre el mismo plano, uno bueno
+   * y otro aproximado de cuando estos campos vivían pegados al borde de la pantalla.
+   *
+   * Y la caja sobraba por lo mismo que sobraba la del cuadro: un dato no es un objeto.
+   */
+  enCuadro?: boolean
+}
+
+/**
+ * UN CAMPO COLGADO DEL MURO.
+ *
+ * Estructura fija y auditada desde fuera: `data-campo` dice cuál es, `data-tope` con
+ * cuántos caracteres se contó, el primer párrafo es el rótulo y el segundo el texto. Esa
+ * forma no se toca aunque cambie el sitio donde cuelga.
+ */
+export function PanelCampo({
+  campo,
+  texto,
+  lado,
+  denso: densoPedido = false,
+  soloParaLector = false,
+  className = '',
+  enCuadro = false,
+}: PanelCampoProps) {
+  // EL NOMBRE DEL EJERCICIO MANDA, y los demás campos le hacen sitio.
+  //
+  // Antes los nueve campos tenían la misma caja, el mismo cuerpo y el mismo peso: una
+  // lista, no una jerarquía. En una pared de gimnasio lo primero que se lee a tres metros
+  // es QUÉ toca, y después con cuánto. Aquí eso son tres escalones —titular, cifra,
+  // apunte— y no un tamaño de letra repetido nueve veces.
+  const esTitular = campo === 'nombre'
+  const esCifra = CIFRAS_DEL_MURO.has(campo)
+  // La prosa va con el rótulo AL LADO. Apilada se lleva dos líneas de muro, y en un
+  // tablón de siete líneas eso es el 29 % del sitio para un texto que además está
+  // recortado: el largo vive entero en el panel de abajo.
+  const denso = densoPedido || EN_UNA_LINEA.has(campo)
+
+  const cuerpo = esTitular
+    ? 'font-display text-[1.08em] uppercase leading-[1.08] tracking-[0.01em] muro-dato'
+    : esCifra
+      ? 'muro-cifra text-[1.08em] uppercase'
+      : 'text-[0.86em] font-medium leading-[1.28] text-silver-400'
+
+  const contenido = (
+    <>
+      {/* El rótulo del titular no se escribe: «EJERCICIO» encima del nombre del
+          ejercicio es una etiqueta que no informa a nadie que esté mirando la pared de
+          un gimnasio. Los demás sí lo llevan, porque «3 × (8-10)» solo se entiende con
+          la palabra SERIES delante. */}
+      {!esTitular && (
+        <p className={`muro-rotulo text-[0.62em] ${denso ? 'shrink-0' : ''}`}>{ROTULO[campo]}</p>
+      )}
+      <p className={`${cuerpo} ${denso ? 'min-w-0 flex-1' : esTitular ? '' : 'mt-[0.32em]'}`}>
+        {esTitular ? <Cascada texto={texto} /> : esCifra ? <Cifra texto={texto} /> : texto}
+      </p>
+    </>
+  )
+
+  // LO QUE DICE LA SALA NO SE ESCRIBE ENCIMA — pero tampoco se borra.
+  //
+  // Series y RIR los escribe el muro en geometría de siete segmentos desde el #183, y
+  // hasta el 2026-09-03 el DOM los repetía justo encima en tipografía de app. Repetirlos
+  // era taparlos. Pero borrarlos del DOM se llevaría por delante dos cosas que no son
+  // decorado: un lector de pantalla no lee una malla, y la auditoría de «no se perdió
+  // nada» cuenta `data-campo`. Así que el nodo se queda, con su marca y su texto, y solo
+  // deja de verse: `.sr-only` es la clase del sistema para exactamente esto.
+  if (soloParaLector) {
+    return (
+      <div data-campo={campo} data-tope={TOPE_PARED} data-en-geometria="" className="sr-only">
+        {contenido}
+      </div>
+    )
+  }
+
+  // DENTRO DE UN CUADRO no hay caja ni escorzo propios: los pone el cuadro, y los suyos
+  // salen de la cámara de verdad de la escena en vez de un ángulo fijo.
+  if (enCuadro) {
+    return (
+      <div
+        data-campo={campo}
+        data-tope={TOPE_PARED}
+        className={`${denso ? 'flex items-baseline gap-2' : ''} ${
+          lado === 'izquierda' ? 'text-left' : 'text-right'
+        } ${className}`}
+      >
+        {contenido}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      data-campo={campo}
+      data-tope={TOPE_PARED}
+      // Suelto —fuera de un cuadro— sí lleva su derrame y su escorzo, porque entonces no
+      // hay nadie encima que se los dé. Sigue sin ser una tarjeta: `.muro-derrame` es luz
+      // sin canto, no un panel con marco.
+      className={`muro-derrame ${denso ? 'flex items-baseline gap-2 px-2 py-1' : 'px-2 py-1.5'} ${
+        lado === 'izquierda' ? 'origin-left text-left' : 'origin-right text-right'
+      } ${className}`}
+      // La pared se INCLINA hacia el centro, y no es decoración: un rótulo plano pegado al
+      // borde se lee como una etiqueta flotando sobre la imagen; escorzado se lee como un
+      // muro alrededor del sujeto. Los grados los pone `ESCORZO_DE_PARED` en `huecos.ts` y
+      // no este archivo: la pared del ejercicio y la de la prescripción sin sujeto son el
+      // mismo muro, y dos números iguales en dos archivos se separan al primer ajuste.
+      style={{
+        transform: `rotateY(${lado === 'izquierda' ? ESCORZO_DE_PARED.grados : -ESCORZO_DE_PARED.grados}deg)`,
+      }}
+    >
+      {contenido}
+    </div>
+  )
+}
+
+export interface MuroDeCamposProps {
+  /** `true` si ya cuelga de un `CuadroDePared`: el marco y el escorzo los pone el cuadro. */
+  enCuadro?: boolean
+  /** Los nueve textos cortos, tal como los devuelve `contenidoPared()`. */
+  contenido: ContenidoDePared
+  /** Qué campos cuelga esta columna. */
+  campos: readonly ClaveDeCampo[]
+  lado: 'izquierda' | 'derecha'
+  denso?: boolean
+  /** `true` si esta columna la escribe la sala: se monta y no se ve. */
+  soloParaLector?: boolean
+  className?: string
+}
+
+/**
+ * UNA COLUMNA DE MURO: varios campos colgados del mismo plano.
+ *
+ * La `perspective` va en ESTA columna y no en un ancestro común: alcanza solo a los HIJOS
+ * DIRECTOS, así que puesta más arriba el `rotateY` de los paneles se aplicaría igual y NO
+ * escorzaría — se pagaría el coste sin ver el efecto, y sin que nada se pusiera en rojo.
+ */
+export function MuroDeCampos({
+  contenido,
+  campos,
+  lado,
+  denso,
+  soloParaLector,
+  className = '',
+  enCuadro = false,
+}: MuroDeCamposProps) {
+  const bloques = agrupar(campos)
+  return (
+    <div
+      className={`flex flex-col ${enCuadro ? 'gap-[0.5em]' : 'gap-1'} ${className}`}
+      // La perspectiva solo cuando estos campos van sueltos. Dentro de un cuadro el
+      // escorzo lo pone el cuadro, que lo saca de la cámara de la escena; declararla aquí
+      // además sería pagarla sin verla, porque `perspective` alcanza a los HIJOS DIRECTOS.
+      style={
+        enCuadro
+          ? undefined
+          : {
+              perspective: `${ESCORZO_DE_PARED.perspectiva}px`,
+              perspectiveOrigin: lado === 'izquierda' ? 'right center' : 'left center',
+            }
+      }
+    >
+      {bloques.map((bloque, i) => (
+        <Fragment key={bloque.campos.join('+')}>
+          {/* LA JUNTA DE LUZ, y solo dentro de un cuadro. Es lo que separa dos bloques
+              cuando ninguno tiene caja: una línea que se apaga en los dos extremos, como
+              una junta del hormigón cogiendo el reflector. A diferencia de un borde no
+              tiene esquinas, así que no vuelve a dibujar la tarjeta que se quitó. */}
+          {enCuadro && i > 0 && (
+            <hr className={`muro-junta ${bloque.enFila ? 'muro-junta-viva' : ''}`} aria-hidden="true" />
+          )}
+          {bloque.enFila ? (
+            <div className={enCuadro ? 'flex gap-[0.7em]' : 'flex gap-1'}>
+              {bloque.campos.map((campo) => (
+                <PanelCampo
+                  key={campo}
+                  campo={campo}
+                  texto={contenido[campo]}
+                  lado={lado}
+                  denso={denso}
+                  soloParaLector={soloParaLector}
+                  enCuadro={enCuadro}
+                  className="min-w-0 flex-1"
+                />
+              ))}
+            </div>
+          ) : (
+            bloque.campos.map((campo) => (
+              <PanelCampo
+                key={campo}
+                campo={campo}
+                texto={contenido[campo]}
+                lado={lado}
+                denso={denso}
+                soloParaLector={soloParaLector}
+                enCuadro={enCuadro}
+              />
+            ))
+          )}
+        </Fragment>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * PARTE LA LISTA EN BLOQUES: lo que va en columna y lo que va en una fila.
+ *
+ * Las cifras que vengan SEGUIDAS se juntan en una fila; todo lo demás se apila. Agrupar
+ * por vecindad y no por una segunda lista escrita a mano tiene una consecuencia que
+ * importa: el orden lo sigue mandando `CAMPOS_DE_PARED` y esto no puede reordenar ni
+ * perder un campo — lo que entra, sale, y en el mismo orden.
+ *
+ * Existe porque con los cinco campos apilados el cuadro del ejercicio medía 249 px de 844
+ * —el 30 % de la pantalla— y rozaba el borde de arriba. Series, carga y RIR son tres
+ * valores de dos palabras: en fila ocupan una altura en vez de tres.
+ */
+function agrupar(
+  campos: readonly ClaveDeCampo[],
+): { enFila: boolean; campos: ClaveDeCampo[] }[] {
+  const bloques: { enFila: boolean; campos: ClaveDeCampo[] }[] = []
+  for (const campo of campos) {
+    const enFila = CIFRAS_DEL_MURO.has(campo)
+    const ultimo = bloques[bloques.length - 1]
+    if (ultimo && ultimo.enFila === enFila) ultimo.campos.push(campo)
+    else bloques.push({ enFila, campos: [campo] })
+  }
+  // Una cifra sola no es una fila: es un panel normal, y en fila se estiraría al ancho
+  // entero con el rótulo pegado a la izquierda, que se lee peor que apilado.
+  for (const b of bloques) if (b.enFila && b.campos.length < 2) b.enFila = false
+  return bloques
+}
+
+/**
+ * EL TITULAR SE ENCIENDE PALABRA A PALABRA.
+ *
+ * Bryan lo pidió el 2026-09-03: «que cada letra que queramos resaltar tenga motion
+ * graphics». Por PALABRA y no por letra, y la diferencia importa: una cascada letra a
+ * letra sobre «PRESS INCLINADO EN MULTIPOWER» son veintiocho animaciones para leer una
+ * frase, y el ojo persigue las letras en vez de leerlas. Por palabra, la cascada dice el
+ * orden de lectura, que es para lo que sirve.
+ *
+ * ## Lo que hace que se REPITA cuando toca
+ *
+ * La `key` lleva el texto dentro. Al pasar de ejercicio, React desmonta las palabras
+ * viejas y monta otras, así que la animación arranca sola — sin efecto, sin estado y sin
+ * un reloj que mantener. Y mientras el ejercicio no cambia, no se vuelve a disparar: una
+ * pared que reanima su rótulo en cada repintado es una pared que parpadea.
+ *
+ * ## El espacio va FUERA del `<span>`
+ *
+ * `display: inline-block` colapsa el espacio de dentro, así que un separador escrito
+ * dentro de la palabra desaparece y el titular sale pegado. Fuera es un nodo de texto y
+ * sobrevive — que además es lo que mantiene el `textContent` legible para las pruebas y
+ * para un lector de pantalla.
+ */
+function Cascada({ texto }: { texto: string }) {
+  const palabras = texto.split(/\s+/).filter(Boolean)
+  return (
+    <>
+      {palabras.map((palabra, i) => (
+        <Fragment key={`${texto}|${i}`}>
+          {i > 0 ? ' ' : null}
+          <span className="muro-palabra" style={{ animationDelay: `${i * 48}ms` }}>
+            {palabra}
+          </span>
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
+/**
+ * UNA CIFRA QUE CAMBIA PASA COMO PASA UN MARCADOR: entra desde arriba, se pasa y vuelve.
+ *
+ * Mismo truco que la cascada y por el mismo motivo: la `key` es el valor, así que cuando
+ * la carga pasa de 42,5 a 45 el nodo se sustituye y el gesto arranca solo. Si el valor no
+ * cambia, no se mueve nada — que es la mitad del trabajo de una animación de dato.
+ */
+function Cifra({ texto }: { texto: string }) {
+  return (
+    <span key={texto} className="muro-cifra-cambia inline-block">
+      {texto}
+    </span>
+  )
+}

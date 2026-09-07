@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
 import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
@@ -64,6 +65,11 @@ export default function SesionPage() {
 function SesionEnCurso() {
   const { sesionId } = useParams()
   const { usuario } = useSesion()
+  // Su talla y su forma, en un solo sitio. Ver `cuerpoDelAsesorado`.
+  const cuerpo = cuerpoDelAsesorado(
+    db.perfiles.byUsuario(usuario.id),
+    db.microciclos.byUsuario(usuario.id),
+  )
   useDbVersion()
   const [demo, setDemo] = useState<Contenido | undefined>()
   const [patron, setPatron] = useState<Patron | undefined>()
@@ -395,7 +401,16 @@ function SesionEnCurso() {
         onCerrar={() => setPatron(undefined)}
         animar={false}
       >
-        {patron && <EstudioDelPatron patron={patron} />}
+        {/* El sexo de la ficha, tal cual: sin dato no se pasa nada y el estudio usa
+            su defecto. Se lee aquí y no en un estado, para que la ficha mande. */}
+        {patron && (
+          <EstudioDelPatron
+            patron={patron}
+            sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
+            estaturaCm={cuerpo.estaturaCm}
+            proporciones={cuerpo.proporciones}
+          />
+        )}
       </Sheet>
 
       {frase && (

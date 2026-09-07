@@ -142,7 +142,133 @@ select pruebas.afirmar(
   'la prueba de calibración no se guardó'
 );
 
+-- ─────────────────── La ficha (0056): el sexo lo pone el coach ───────────────────
+-- Tres cosas, y las tres son las que `sync.ts` da por hechas: el coach escribe la
+-- columna; el vocabulario lo cierra la base; y la escritura del asesorado —que
+-- NO nombra la columna, a propósito— la deja como está y no puede cambiarla.
 reset role;
+select pruebas.soy('33333333-3333-3333-3333-333333333333');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 7. El coach indica el sexo. Es el envío de `subirPerfil(..., 'coach')`: el blob
+--    sin el sexo dentro, y el sexo en su columna.
+insert into public.perfiles (usuario_id, datos, sexo)
+values ('11111111-1111-1111-1111-111111111111', '{"usuarioId": "u-a", "medidas": []}'::jsonb, 'mujer')
+on conflict (usuario_id) do update set datos = excluded.datos, sexo = excluded.sexo;
+
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 'mujer',
+  'el coach no pudo indicar el sexo en la ficha'
+);
+
+-- 8. Un valor fuera del vocabulario no entra: ni la 'M' de la encuesta de
+--    nutrición, que es otra cosa. Si entrara, la app no dibujaría nada con ella.
+do $$
+begin
+  begin
+    update public.perfiles set sexo = 'M'
+     where usuario_id = '11111111-1111-1111-1111-111111111111';
+    raise exception 'FALLO: la base aceptó un sexo fuera de (hombre, mujer)';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+end $$;
+
+-- ─────────────────── Otra vez como la asesorada A ───────────────────
+reset role;
+select pruebas.soy('11111111-1111-1111-1111-111111111111');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 9. Registrar una medida —su única escritura sobre la ficha— no borra lo que
+--    puso el coach: la sentencia no nombra la columna.
+update public.perfiles
+   set datos = '{"usuarioId": "u-a", "medidas": [{"fecha": "2026-09-06", "alturaCm": 165, "perimetros": {}}]}'::jsonb
+ where usuario_id = '11111111-1111-1111-1111-111111111111';
+
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 'mujer',
+  'la medida de la asesorada borró el sexo que puso el coach'
+);
+
+-- 10. Y no puede cambiarlo ella: `proteger_perfil` lo vigila desde la 0056. Sin
+--     esto la columna se le escapaba al trigger, que solo mira `datos`.
+do $$
+begin
+  begin
+    update public.perfiles set sexo = 'hombre'
+     where usuario_id = '11111111-1111-1111-1111-111111111111';
+    raise exception 'FALLO: la asesorada cambió el sexo de su propia ficha';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+end $$;
+
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 'mujer',
+  'el sexo cambió aunque el trigger dijera que no'
+);
+
+reset role;
+
+-- ─────────────────── Como la asesorada B, que NO tiene ficha ───────────────────
+select pruebas.soy('22222222-2222-2222-2222-222222222222');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 11. Su primera medida crea la ficha (0057). Antes era imposible: la app subía la
+--     ficha entera con valores por defecto y `proteger_perfil` la rechazaba, así que
+--     quien no tenía ficha nunca pudo registrar nada; el 2026-09-06 eran tres.
+select public.registrar_medida('{"fecha": "2026-09-06", "alturaCm": 170, "perimetros": {}}'::jsonb);
+
+select pruebas.afirmar(
+  (select datos from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222')
+    = '{"usuarioId": "22222222-2222-2222-2222-222222222222", "medidas": [{"fecha": "2026-09-06", "alturaCm": 170, "perimetros": {}}]}'::jsonb,
+  'la primera medida no estrenó la ficha con solo usuarioId y medidas'
+);
+select pruebas.afirmar(
+  (select sexo from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222') is null,
+  'la ficha estrenada nació con sexo, y eso solo lo pone el coach'
+);
+
+-- 12. La misma fecha SUSTITUYE (corregir un dato el mismo día); otra fecha se AÑADE; y
+--     quedan ordenadas por fecha aunque lleguen desordenadas.
+select public.registrar_medida('{"fecha": "2026-09-06", "alturaCm": 171, "perimetros": {}}'::jsonb);
+select public.registrar_medida('{"fecha": "2026-08-30", "alturaCm": 170, "perimetros": {}}'::jsonb);
+
+select pruebas.afirmar(
+  (select datos -> 'medidas' from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222')
+    = '[{"fecha": "2026-08-30", "alturaCm": 170, "perimetros": {}}, {"fecha": "2026-09-06", "alturaCm": 171, "perimetros": {}}]'::jsonb,
+  'la medida repetida no sustituyó, o la nueva no se añadió en orden'
+);
+
+-- 14. Y el camino viejo sigue cerrado: un blob con más que medidas y usuarioId no entra.
+--     Es lo que subía la app hasta hoy.
+do $$
+begin
+  begin
+    insert into public.perfiles (usuario_id, datos)
+    values ('22222222-2222-2222-2222-222222222222', '{"usuarioId": "22222222-2222-2222-2222-222222222222", "objetivos": "", "medidas": []}'::jsonb)
+    on conflict (usuario_id) do update set datos = excluded.datos;
+    raise exception 'FALLO: la asesorada escribió su ficha entera';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+end $$;
+
+reset role;
+
+-- 13. La medida de B no tocó la ficha de A: la función no recibe a quién, lo saca de la
+--     sesión. Se mira SIN rol —como postgres, que salta la RLS— porque como B la fila de A
+--     ni se ve, y un `null = 1` habría dado FALLO sin que fallara nada (el primer CI lo hizo).
+select pruebas.afirmar(
+  (select jsonb_array_length(datos -> 'medidas') from public.perfiles where usuario_id = '11111111-1111-1111-1111-111111111111') = 1,
+  'registrar una medida como B cambió las medidas de A'
+);
 
 commit;
 

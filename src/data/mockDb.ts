@@ -1,9 +1,11 @@
+import { perfilVacio } from '../domain/perfilVacio'
 import { agregar as agregarItem, quitar as quitarItem } from '../domain/nutricion/despensa'
 import type {
   CheckinDiario,
   EstadoAdherencia,
   ItemMarcable,
   Microciclo,
+  Perfil,
   RegistroComida,
   SerieRegistrada,
   Sesion,
@@ -260,16 +262,7 @@ export function crearMockDb(): Db {
               )
             : [
                 ...estado.perfiles,
-                {
-                  usuarioId,
-                  objetivos: '',
-                  edad: 0,
-                  diasEntrenamiento: 0,
-                  tiempoSesionMin: 0,
-                  somatotipo: '',
-                  volumenSemanal: {},
-                  medidas: [medida],
-                },
+                perfilVacio(usuarioId, [medida]),
               ],
         }))
       },
@@ -279,6 +272,20 @@ export function crearMockDb(): Db {
           perfiles: estado.perfiles.map((p) =>
             p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
           ),
+        }))
+      },
+      guardarSexo: (usuarioId, sexo) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) => {
+            if (p.usuarioId !== usuarioId) return p
+            // «Sin indicar» es que la clave NO esté, no que valga undefined: así
+            // la ficha guardada es idéntica a una que nunca lo tuvo.
+            const copia: Perfil = { ...p }
+            if (sexo) copia.sexo = sexo
+            else delete copia.sexo
+            return copia
+          }),
         }))
       },
       guardarValoracion: (usuarioId, valoracion) => {
