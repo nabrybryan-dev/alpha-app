@@ -1,4 +1,4 @@
--- 0058 · Un solo microciclo activo por persona, garantizado por la base.
+-- 0059 · Un solo microciclo activo por persona, garantizado por la base.
 --
 -- QUÉ FALLABA (R-01 del informe de riesgos del 2026-08-28, verificado el 2026-09-07).
 -- `0001_esquema.sql:55-63` crea `microciclos_usuario` como índice NO único, y no hay
@@ -33,7 +33,7 @@
 -- ⚠ COMPROBAR ESO OTRA VEZ ANTES DE CORRER ESTO. Si alguien tiene dos activos en el
 -- momento de aplicarla, la creación del índice FALLA y no se aplica nada. Eso es lo
 -- correcto —no queremos que elija una fila por nosotros—, pero conviene saberlo antes y
--- no descubrirlo a mitad. La consulta está en `supabase/comprobar-0058.sql`.
+-- no descubrirlo a mitad. La consulta está en `supabase/comprobar-0059.sql`.
 
 create unique index if not exists microciclos_un_activo_por_usuario
   on public.microciclos (usuario_id)

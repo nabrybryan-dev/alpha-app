@@ -1,4 +1,4 @@
--- Comprobación de la migración 0058 (un solo microciclo activo por persona).
+-- Comprobación de la migración 0059 (un solo microciclo activo por persona).
 -- Las consultas 1 y 2 tienen que devolver CERO filas. La 3 tiene que devolver UNA.
 --
 -- ORDEN: la 1 se corre ANTES de aplicar la migración; si devuelve filas, la creación del
