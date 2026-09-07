@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
 import { ThemeProvider } from '../../app/ThemeProvider'
 import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
@@ -21,6 +21,7 @@ function renderizar() {
 
 describe('RutaPage', () => {
   beforeEach(() => localStorage.clear())
+  afterEach(() => vi.useRealTimers())
 
   it('abre en la vista macro: nivel, bloque y escala', async () => {
     renderizar()
@@ -66,5 +67,30 @@ describe('RutaPage', () => {
       requisitosParaPeldano(4, { microcicloNumero: 22, sesionesRegistradas: 0, sesionesTotales: 0, seriesPorGrupo: [] }).length,
     )
     expect(panel?.textContent).toMatch(/cansado/i)
+  })
+  /**
+   * LA VÍSPERA. El domingo 6-sep se cargaron catorce microciclos que arrancaban
+   * el lunes 7, y las catorce cuentas decían «Descanso» los siete días.
+   *
+   * Ahora la rejilla se adelanta a la semana que viene, y por eso NINGÚN día
+   * está marcado como hoy. Rotularla «Semana 3» sería mentir: la persona busca
+   * el día en el que está y no lo encuentra. El título lo dice.
+   *
+   * Para llegar aquí se atrasa el reloj DESPUÉS de sembrar: el seed fecha su
+   * microciclo con `diasAtras(7)` sobre la hora real, así que retrasar «hoy»
+   * treinta días deja el arranque en el futuro sin tocar el seed.
+   */
+  it('si el microciclo aún no ha empezado, el calendario se rotula como la próxima semana', async () => {
+    vi.setSystemTime(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+    renderizar()
+
+    expect(await screen.findByText(/Próxima semana · Microciclo/)).toBeInTheDocument()
+    expect(screen.queryByText(/^Semana \d+ · Microciclo/)).not.toBeInTheDocument()
+  })
+
+  it('y con el microciclo ya en marcha el título sigue siendo el de siempre', async () => {
+    renderizar()
+    expect(await screen.findByText(/^Semana \d+ · Microciclo/)).toBeInTheDocument()
+    expect(screen.queryByText(/Próxima semana/)).not.toBeInTheDocument()
   })
 })
