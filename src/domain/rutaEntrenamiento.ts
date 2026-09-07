@@ -92,6 +92,34 @@ export function semanaEsAdelantada(microciclo: Microciclo, hoyIso: string): bool
 }
 
 /**
+ * El último día que el microciclo cubre, según su cadencia.
+ *
+ * Misma cuenta que `evaluarCierre` (activación): vence cuando hoy alcanza
+ * `fechaInicio + cadenciaDias`, así que el último día DENTRO es la víspera.
+ * Sin fecha de inicio o sin cadencia no se inventa un fin —la misma regla que
+ * `yaEmpezo`: un campo ausente degrada a la conducta de antes, no marca a nadie
+ * como vencido por error.
+ */
+export function ultimoDiaDe(microciclo: Microciclo): string | undefined {
+  if (!microciclo.fechaInicio || !microciclo.cadenciaDias) return undefined
+  return sumarDias(microciclo.fechaInicio, microciclo.cadenciaDias - 1)
+}
+
+/**
+ * ¿La rejilla está enseñando una semana que YA TERMINÓ?
+ *
+ * Es la otra mitad de `semanaEsAdelantada`, y sirve para lo mismo: que la
+ * pantalla lo DIGA. Un microciclo vencido sigue repartiendo sus sesiones por
+ * nombre de día —a propósito, ver `armarSemana`—, así que sin aviso la semana
+ * vieja es indistinguible de una nueva. El 7-sep-2026 un asesorado llevaba
+ * trece días viendo su M5 como si fuera el M6.
+ */
+export function semanaEsVencida(microciclo: Microciclo, hoyIso: string): boolean {
+  const ultimo = ultimoDiaDe(microciclo)
+  return ultimo !== undefined && hoyIso > ultimo
+}
+
+/**
  * Reparte las sesiones del microciclo en los 7 días de su semana.
  *
  * Las sesiones que traen `dia` caen en su día exacto. Las que no —el Excel no
@@ -151,8 +179,10 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
    * SOLO SE ACOTA POR ABAJO, y es deliberado. El mismo descuadre tiene una
    * segunda mitad —un microciclo ya vencido sigue repartiendo sesiones de la
    * semana pasada— pero esa afecta a quien YA está entrenando y taparla le
-   * dejaría la semana en blanco. Es una decisión distinta, con otro riesgo, y va
-   * en su propia tanda. Aquí solo se impide ofrecer lo que aún no ha empezado.
+   * dejaría la semana en blanco: entrenar el plan viejo es mejor que nada.
+   * Desde el 2026-09-07 esa segunda mitad NO se tapa pero SÍ se dice: la
+   * pantalla pregunta `semanaEsVencida` y lo escribe, y el semáforo del coach
+   * se pone en ámbar. Aquí solo se impide ofrecer lo que aún no ha empezado.
    *
    * Si falta `fechaInicio`, NO se acota: degradar a la conducta de antes es
    * preferible a dejar a alguien sin semana por un campo ausente.
