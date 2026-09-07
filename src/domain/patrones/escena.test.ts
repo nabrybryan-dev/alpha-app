@@ -16,6 +16,49 @@ import { construirHuesos } from './huesos'
 import { ESQUELETO, puntoDeHueso } from './esqueleto'
 import { grados, V } from './algebra'
 
+describe('el ritmo cíclico: una zancada no es una repetición', () => {
+  /**
+   * EL CARDIO ENTRA AL SALÓN (Bryan, 2026-09-07) y trae un problema de tempo antes que de
+   * pose. `faseDeTiempo` es una repetición: 1,2 s con punto de atasco, pausa arriba, 1,9 s
+   * frenando, pausa abajo. Una zancada, una pedalada o un peldaño no tienen nada de eso:
+   * los dos medios ciclos son iguales, no hay atasco, no hay asentamiento y no se para en
+   * ningún extremo. Con el tempo de repetición, un sujeto caminando cojearía —la pierna
+   * derecha adelantaría en 1,2 s y la izquierda en 1,9— y se quedaría clavado dos veces por
+   * zancada. La ficha declara `ciclo: { periodoSeg }` y el motor la trata como lo que es.
+   */
+  const ciclico = { ...PATRON_POR_ID.flexion_codo, ciclo: { periodoSeg: 1.2 } }
+
+  it('dura lo que dice su periodo, y no lo que dura una repetición', () => {
+    expect(duracionDelCiclo(undefined, ciclico)).toBeCloseTo(1.2, 9)
+  })
+
+  it('los dos medios ciclos son espejo: fase(t) = fase(T − t)', () => {
+    for (let t = 0; t <= 0.6; t += 0.05) {
+      expect(faseDeTiempo(t, ciclico).fase).toBeCloseTo(faseDeTiempo(1.2 - t, ciclico).fase, 6)
+    }
+  })
+
+  it('no se para en ningún extremo: la fase cambia entre dos instantes cualesquiera', () => {
+    for (let t = 0; t < 1.2; t += 0.02) {
+      const a = faseDeTiempo(t, ciclico).fase
+      const b = faseDeTiempo(t + 0.02, ciclico).fase
+      expect(Math.abs(b - a), `parado en t=${t.toFixed(2)}`).toBeGreaterThan(0.002)
+    }
+  })
+
+  it('llega al extremo justo a mitad de periodo, sin asentamiento que lo pase de largo', () => {
+    expect(faseDeTiempo(0.6, ciclico).fase).toBeCloseTo(1, 6)
+    expect(faseDeTiempo(0, ciclico).fase).toBeCloseTo(0, 6)
+    let maximo = 0
+    for (let t = 0; t < 1.2; t += 0.01) maximo = Math.max(maximo, faseDeTiempo(t, ciclico).fase)
+    expect(maximo).toBeLessThanOrEqual(1 + 1e-9)
+  })
+
+  it('y una ficha sin `ciclo` sigue siendo la repetición de siempre', () => {
+    expect(duracionDelCiclo(undefined, PATRON_POR_ID.flexion_codo)).toBeCloseTo(DURACION_CICLO, 9)
+  })
+})
+
 describe('el tempo de la repetición', () => {
   it('arranca abajo y sube en la fase concéntrica', () => {
     expect(faseDeTiempo(0)).toEqual({ fase: 0, sentido: 1 })

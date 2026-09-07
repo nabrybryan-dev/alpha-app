@@ -52,6 +52,15 @@ export interface Patron {
   /** El patrón contrapone un fallo y su corrección en vez de un recorrido. */
   invertido?: boolean
   /**
+   * RITMO CÍCLICO: una zancada, una pedalada, un peldaño. No es una repetición.
+   *
+   * Con esto declarado, `faseDeTiempo` deja de usar el tempo de repetición —1,2 s con punto
+   * de atasco, pausa, 1,9 s frenando, pausa— y corre dos medios ciclos iguales y suaves de
+   * `periodoSeg / 2`, sin atasco, sin asentamiento y sin pararse en ningún extremo. La fase
+   * 0 es un lado delante y la fase 1 su espejo. Nace el 2026-09-07 con el cardio.
+   */
+  ciclo?: { periodoSeg: number }
+  /**
    * Encuadre de estudio: el hueso distal de la articulación que se quiere ver
    * de cerca, con su lado (`antebrazoD`).
    *
