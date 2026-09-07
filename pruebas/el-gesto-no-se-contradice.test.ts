@@ -152,12 +152,19 @@ describe('y lo que la elevación lateral sí hace, lo hace donde toca', () => {
     expect(PATRON_POR_ID.abduccion_hombro.fin.hombroAbd).toBeLessThanOrEqual(90)
   })
 
-  it('y ocurre en UN plano: no se entra al plano escapular a mitad de camino', () => {
+  it('y ocurre en UN plano, que se mide en el hueso y no en el canal', () => {
     // «Codo ligeramente por delante del cuerpo» es una posición de partida, no un destino.
     // Con `hombroFlex` yendo de 0 a 14 el brazo cambiaba de plano mientras subía, que es
     // exactamente lo que Bryan describió como «conjugan muchos planos».
+    //
+    // ESTO SE MEDÍA EN EL CANAL hasta el 2026-09-07, y era una regla equivocada: pedía
+    // `hombroFlex > 10` en el arranque, como si el plano lo pusiera ese canal. Los tres
+    // canales del hombro son ángulos de Euler encadenados, así que el plano lo puede fijar
+    // igual de bien la rotación del húmero —que es lo que hace ahora la ficha, y deja la
+    // abducción como única motora, que es el nombre del patrón—. Lo que importa es dónde
+    // acaba el hueso, y de eso responde `pruebas/el-hombro-se-mueve-en-su-plano.test.ts`:
+    // el húmero se queda entre 20° y 40° del plano frontal en todo el recorrido.
     const p = PATRON_POR_ID.abduccion_hombro
     expect(Math.abs((p.fin.hombroFlex ?? 0) - (p.inicio.hombroFlex ?? 0))).toBeLessThanOrEqual(4)
-    expect(p.inicio.hombroFlex ?? 0).toBeGreaterThan(10)
   })
 })

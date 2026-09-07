@@ -22,20 +22,41 @@ const aparatoDe = (id: string, nombre: string) =>
   partirImplementos(implementosDeEscena(PATRON_POR_ID[id].categoria, nombre)).aparato
 
 describe('el aparato que tapa a la persona', () => {
-  /** El caso que lo empezó todo, con el nombre que lleva en la demo. */
-  it('en el press de pecho en máquina la máquina tapa mucho más del umbral', () => {
-    // Era «más de un cuarto» (36 %) con UN brazo grueso al punto medio de las manos. Desde
-    // el 2026-09-07 la máquina de press tiene un brazo por mano —como una Hammer, con los dos
-    // ejes en espejo detrás de los hombros— y dos brazos finos tapan menos que uno gordo:
-    // 21,4 %. Sigue casi al triple del umbral del 8 %, que es lo que este caso afirma: la
-    // máquina se planta entre la cámara y la persona y se vuelve translúcida.
+  /**
+   * EL CASO QUE LO EMPEZÓ TODO, y que el 2026-09-07 dejó de ocurrir. El press de pecho en
+   * máquina tapaba el 36 % de la persona (21 % desde que la máquina tiene un brazo por mano)
+   * y por eso existe la translucidez. Ese día el press se recolocó —codos recogidos, antebrazo
+   * al techo— y la máquina, que se coloca contra el recorrido de las manos, se fue con ellos:
+   * ahora tapa 0 %. No se borra el caso, se le da la vuelta y se deja escrito, porque el
+   * número de antes era el que justificaba la función entera.
+   */
+  it('el press de pecho en máquina ya no se planta delante de la persona', () => {
     const tapado = parteDelCuerpoTapada(PATRON_POR_ID.empuje_horizontal, aparatoDe('empuje_horizontal', 'Press de pecho en máquina'))
-    expect(tapado).toBeGreaterThan(UMBRAL_DE_OCLUSION * 2)
-    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.empuje_horizontal, aparatoDe('empuje_horizontal', 'Press de pecho en máquina'))).toBe(true)
+    expect(tapado).toBeLessThan(UMBRAL_DE_OCLUSION)
+    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.empuje_horizontal, aparatoDe('empuje_horizontal', 'Press de pecho en máquina'))).toBe(false)
   })
 
-  it('en la elevación lateral en polea la columna se planta delante del hombro', () => {
-    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.abduccion_hombro, aparatoDe('abduccion_hombro', 'Elevación lateral en polea'))).toBe(true)
+  /**
+   * Y quien lleva ahora el caso grande es la APERTURA INVERSA EN MÁQUINA: 38,1 %, casi cinco
+   * veces el tope. Tiene sentido que sea ella: la pec deck inversa se mira de frente y sus dos
+   * brazos barren justo por delante del pecho. Es el caso que justifica la translucidez ahora
+   * que el press de banca dejó de taparse.
+   */
+  it('en la apertura inversa en máquina la máquina tapa mucho más del umbral', () => {
+    const tapado = parteDelCuerpoTapada(PATRON_POR_ID.apertura_inversa_maquina, aparatoDe('apertura_inversa_maquina', 'Apertura inversa en máquina'))
+    expect(tapado).toBeGreaterThan(UMBRAL_DE_OCLUSION * 2)
+    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.apertura_inversa_maquina, aparatoDe('apertura_inversa_maquina', 'Apertura inversa en máquina'))).toBe(true)
+  })
+
+  /**
+   * LA ELEVACIÓN LATERAL SALIÓ DE ESTA LISTA EL 2026-09-07 y se queda escrito: su columna de
+   * polea tapaba el hombro porque el brazo subía por el plano frontal puro, con la polea
+   * plantada justo en la línea de la cámara. Ahora sube por el plano escapular —el codo
+   * adelantado 30°, que es lo que pide su propia clave— y la polea se coloca contra ESE
+   * recorrido, así que se le va de en medio: 4,8 %. Quien lleva el caso es la de arriba.
+   */
+  it('la elevación lateral en polea ya no tiene la columna delante del hombro', () => {
+    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.abduccion_hombro, aparatoDe('abduccion_hombro', 'Elevación lateral en polea'))).toBe(false)
   })
 
   /**
@@ -63,12 +84,30 @@ describe('el aparato que tapa a la persona', () => {
   })
 
   /**
-   * SE MIRA LA PEOR FASE, NO UNA. El press de hombro en máquina tapa 0 % a media
-   * repetición y 24 % arriba: medirlo en una sola fase lo dejaba opaco y tapando.
+   * SE MIRA LA PEOR FASE, NO UNA — y el press de hombro es donde se ve, porque el aparato
+   * tapa distinto en cada punto del recorrido.
+   *
+   * EL PRESS DEJÓ DE ESTAR TAPADO EL 2026-09-07, y no por tocar la oclusión: por la ficha.
+   * Hasta ese día el press subía en cruz por el plano frontal y los dos brazos de la máquina
+   * —uno por mano, con el eje detrás del hombro— cruzaban por delante de la cabeza: 24 %
+   * arriba, 0 % a media repetición. Ahora sube por el plano escapular, con el codo adelantado
+   * unos 45°, así que los brazos pasan a los LADOS de la cabeza: 4,8 % arriba, 4,8 % abajo,
+   * 2,4 % en medio. Por debajo del 8 % del umbral, así que ya no se vuelve translúcida, y
+   * está bien: lo que hay entre la cámara y la persona es aire.
+   *
+   * Lo que este caso sigue protegiendo es la REGLA, no el número: el peor punto del
+   * recorrido manda. Si alguien volviera a medir una sola fase y le tocara la de en medio,
+   * la cuenta bajaría a 2,4 % y esto se pondría rojo.
    */
-  it('el press de hombro en máquina tapa en el final del gesto, y con eso basta', () => {
-    expect(parteDelCuerpoTapada(PATRON_POR_ID.empuje_vertical, aparatoDe('empuje_vertical', 'Press de hombro en máquina'))).toBeGreaterThan(0.15)
-    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.empuje_vertical, aparatoDe('empuje_vertical', 'Press de hombro en máquina'))).toBe(true)
+  it('mide el press de hombro en su peor fase, que no es la de en medio', () => {
+    const patron = PATRON_POR_ID.empuje_vertical
+    const aparato = aparatoDe('empuje_vertical', 'Press de hombro en máquina')
+    const soloEnMedio = { ...patron, inicio: patron.medio!, fin: patron.medio!, medio: undefined }
+    const peor = parteDelCuerpoTapada(patron, aparato)
+    expect(peor).toBeGreaterThan(parteDelCuerpoTapada(soloEnMedio, aparato))
+    // Y sí se le cruza a la cámara: 9,5 % en la peor fase contra 2,4 % en la de en medio.
+    expect(peor).toBeGreaterThan(UMBRAL_DE_OCLUSION)
+    expect(aparatoTapaAlCuerpo(patron, aparato)).toBe(true)
   })
 
   /** Y la caja de pantalla engaña: el Smith flanquea al cuerpo, lo «solapa» entero y no lo tapa. */

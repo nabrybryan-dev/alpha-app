@@ -251,7 +251,13 @@ const DETECCION: readonly { patron: RegExp; implemento: Implemento }[] = [
   // siendo que el nombre declare; esto solo recoge lo que el nombre ya dice de otra forma.
   { patron: /DOMINADA.*ASISTID|ASISTID.*DOMINADA|PULL.?UP ASISTID/, implemento: 'maquina' },
   { patron: /DOMINADA|PULL.?UP|CHIN.?UP|FONDOS?( EN PARALELAS)?$/, implemento: 'peso-corporal' },
-  { patron: /CURL FEMORAL|LEG CURL|FLEXION (DE )?RODILLA (TUMBAD|SENTAD|DE PIE)/, implemento: 'maquina' },
+  // «ACOSTADO» y «EN MAQUINA» entran desde el 2026-09-07: «FLEXION DE RODILLA ACOSTADO» salia
+  // sin implemento y solo con camilla. Y la extension de rodilla va aqui por la misma razon
+  // que el curl femoral: en esta casa no existe sin maquina, asi que un nombre que no lo
+  // diga —«Extension de rodilla», «EXTENSION DE RODILLA, ARCO PARCIAL 90→45»— no es una
+  // prescripcion incompleta, es la maquina dada por supuesta. Medido ese dia sobre los
+  // nombres reales: tres de ellos salian con el sujeto sentado en el aire.
+  { patron: /CURL FEMORAL|LEG CURL|FLEXION (DE )?RODILLA( (TUMBAD|SENTAD|ACOSTAD|DE PIE|EN MAQUINA))?|EXTENSION (DE )?RODILLA|LEG EXTENSION/, implemento: 'maquina' },
   { patron: /CURL.*(INCLINAD|MARTILLO|CONCENTRAD|ALTERN)/, implemento: 'mancuernas' },
   { patron: /PLANCHA CON (CARGA|PESO)/, implemento: 'disco' },
   { patron: /(GEMELO|TALON|TALONES|PANTORRILLA|CALF).*(DE PIE|SENTAD|PARAD)|(DE PIE|SENTAD|PARAD).*(GEMELO|TALON|TALONES|PANTORRILLA|CALF)/, implemento: 'maquina' },
