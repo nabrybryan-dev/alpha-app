@@ -13,6 +13,7 @@ import {
   competenciasCalculadas,
   estadisticasCalculadas,
   progresoAlSiguiente,
+  semanaEsAdelantada,
   sesionDestacada,
   valoracionesACompetencias,
   type DatosRuta,
@@ -84,6 +85,11 @@ export default function RutaPage() {
   ]
 
   const semana = armarSemana(microciclo, hoy)
+  // Cuando el microciclo todavía no ha arrancado, la rejilla es la de la semana
+  // que VIENE y ningún día está marcado como hoy. Hay que decirlo en el título:
+  // un calendario de siete días sin día actual, rotulado «Semana 3», se lee como
+  // si fuera esta semana y la persona no encuentra el día en el que está.
+  const adelantada = semanaEsAdelantada(microciclo, hoy)
   const destacada = sesionDestacada(semana)
   const sesionCta = destacada
     ? {
@@ -181,7 +187,11 @@ export default function RutaPage() {
       <div className="entrada entrada-5">
         <CalendarioSemana
           dias={semana}
-          titulo={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
+          titulo={
+            adelantada
+              ? `Próxima semana · Microciclo ${microciclo.numero}`
+              : `Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`
+          }
         />
       </div>
 
