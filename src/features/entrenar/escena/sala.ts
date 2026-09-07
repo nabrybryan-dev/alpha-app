@@ -1,7 +1,7 @@
 import { grados, V, type Vec3 } from '../../../domain/patrones/algebra'
 import { Malla, type Color } from '../../../domain/patrones/malla'
 import { cuadro } from './piezas'
-import { construirMobiliario } from './mobiliario'
+import { construirMobiliario, construirRellenoDeMuro } from './mobiliario'
 import { BAHIA } from '../../../domain/escenario/laboratorio'
 
 /**
@@ -499,6 +499,18 @@ export function topeDeDistanciaEnSala(
   }
 }
 
+/**
+ * Los ángulos de la ÓRBITA en que la sala de Blender no deja nada detrás del sujeto.
+ *
+ * Medido sobre `public/piezas/sala-gimnasio.pieza`, que es lo que se descarga: en estos
+ * once, todo lo que queda en el cuadro por detrás son vértices de la parte `hormigon`. La
+ * lista va aquí escrita a mano y no se calcula en ejecución a propósito —recorrer 38.000
+ * vértices por 36 ángulos no es trabajo de un fotograma— y `piezas3d.test.ts` la comprueba
+ * contra la pieza real: si alguien reexporta la sala y mueve el hierro, se pone rojo
+ * pidiendo que se actualice.
+ */
+export const ANGULOS_SIN_FONDO = [0, 10, 20, 170, 180, 190, 200, 210, 330, 340, 350] as const
+
 export function construirSala(
   m: Malla,
   datos: DatosDeSerie,
@@ -528,9 +540,19 @@ export function construirSala(
   for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir, blender)
   estacion(m)
   // EL HIERRO. Va el último porque es lo que menos cambia: la pared y los marcadores se
-  // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato. Con la
-  // sala de Blender no hace falta: el hierro viene dentro de la pieza.
-  if (!blender) construirMobiliario(m, RADIO_SALA, ALTO_SALA)
+  // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato.
+  //
+  // Con la sala de Blender el hierro viene dentro de la pieza… casi. Medido el 2026-09-06
+  // sobre la pieza que se descarga: viene apelotonado en los dos muros largos, y en ONCE de
+  // los 36 ángulos de la órbita lo único que queda detrás del sujeto es hormigón pelado.
+  // Eso tira por tierra la regla que `mobiliario.ts` dejó escrita tras medirla —«se mire por
+  // donde se mire tiene que haber algo detrás»— así que esos once se rellenan aquí.
+  //
+  // No con las estaciones de siempre: su anillo es circular y esta sala es rectangular, y
+  // contra un muro corto no cabe ni un árbol de discos. Cabe un estante de pared, y es lo
+  // que va. El porqué, con los números pieza a pieza, está en `mobiliario.ts`.
+  if (blender) construirRellenoDeMuro(m, ANGULOS_SIN_FONDO, blender.medioAncho, blender.medioFondo)
+  else construirMobiliario(m, RADIO_SALA, ALTO_SALA)
 }
 
 /** Los números de la serie que se está haciendo, que son los que van al marcador. */

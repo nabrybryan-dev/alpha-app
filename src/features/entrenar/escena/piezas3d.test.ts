@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { brotliDecompressSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
+import { Malla } from '../../../domain/patrones/malla'
+import { construirRellenoDeMuro } from './mobiliario'
+import { ANGULOS_SIN_FONDO } from './sala'
 import { colocar, escribirPieza, leerPieza, type PartePieza } from './piezas3d'
 
 /**
@@ -206,38 +209,23 @@ describe('la pieza real de la sala del gimnasio', () => {
     expect(intrusos).toBe(0)
   })
 
-  it('en once de los treinta y seis ángulos, detrás del sujeto solo hay muro', () => {
-    // LO QUE HAY DETRÁS, VUELTA COMPLETA. Medido el 2026-09-06, y es una regresión de una
-    // decisión escrita: `mobiliario.ts` puso diez estaciones a 36° de distancia justamente
-    // porque «se mire por donde se mire tiene que haber algo detrás del sujeto», después de
-    // medir que cuatro muebles buenos en cuatro ángulos se quedaban todos fuera de cuadro.
+  it('la pieza sola deja once ángulos con solo muro detrás, y la app los rellena todos', () => {
+    // LO QUE HAY DETRÁS, VUELTA COMPLETA. `mobiliario.ts` puso diez estaciones a 36° de
+    // distancia después de medir que cuatro muebles buenos en cuatro ángulos se quedaban
+    // TODOS fuera de cuadro: por la rendija de 14,8° que deja un 9:16 solo se ve una franja
+    // de 2,6 m. La regla que salió de ahí: «se mire por donde se mire tiene que haber algo
+    // detrás del sujeto».
     //
-    // Con la sala de Blender ese mobiliario **no se dibuja**: `construirSala` se lo salta
-    // porque «el hierro viene dentro de la pieza» (`sala.ts`). Y viene, pero apelotonado en
-    // dos racimos —alrededor de 50-130° y de 220-310°—, así que la otra mitad de la órbita
-    // enseña al sujeto contra hormigón pelado.
+    // Con la sala de Blender ese mobiliario no se dibuja —«el hierro viene dentro de la
+    // pieza»— y viene, pero apelotonado en los dos muros largos. Medido el 2026-09-06:
+    // catorce ángulos con solo hormigón detrás. Bajaron a once al arreglar `empujar_fuera`
+    // en el exportador, y los once que quedan NO los arregla ninguna regla de colocación:
+    // contra un muro corto, entre la órbita (4,6) y la pared (5,5), **no cabe nada de
+    // gimnasio**. Ni un árbol de discos, que necesita 5,29 y tiene 5,16.
     //
-    // El número que lo dice: en los ángulos flacos lo único que hay detrás son **54
-    // vértices de la parte `hormigon`**, que es la pared; en el mejor, 23.028 de rack. Un
-    // factor de cuatrocientos.
-    //
-    // ERAN CATORCE Y SON ONCE desde el 2026-09-06. Lo que bajó tres fue arreglar un error
-    // de concepto en `exportar_sala.py`: `empujar_fuera` mandaba todo a los muros largos
-    // porque en los cortos «solo quedan 90 cm entre la órbita y la pared». Correcto para un
-    // rack y falso para una mancuerna — y de los 66 conjuntos del gimnasio, 46 miden menos
-    // de 80 cm. El tope era un radio fijo de 5,8, que resultó ser **el radio de un rack
-    // disfrazado de regla general**; ahora es lo que ese número quería decir: la cara
-    // cercana del objeto no invade la órbita, o sea centro ≥ 4,6 + 0,35 + media huella. Para
-    // un rack sigue dando 5,8; para una mancuerna, 5,15, que cabe contra un muro corto.
-    //
-    // Los once que quedan NO los arregla esa regla y conviene saber por qué: solo actúa
-    // sobre lo que estaba DENTRO de la órbita, y casi todo el hierro ya estaba fuera —donde
-    // lo puso quien montó la sala, que es contra los muros largos—. Bajarlos de once exige
-    // MOVER aparatos que no están mal puestos, o sea rediseñar la sala, y eso es decisión
-    // de Bryan y no de una regla.
-    //
-    // Lo que esta prueba impide es que empeore sin que nadie se entere, y que alguien
-    // redistribuya y no se note que mejoró.
+    // Lo que sí cabe es un estante de pared, y es lo que la app dibuja encima. Esta prueba
+    // afirma las tres cosas: cuántos deja la pieza, que la lista escrita en `sala.ts`
+    // coincide con ellos, y que con el relleno no queda ninguno.
     const D = 4.6
     const MEDIO_CAMPO = ((14.8 / 2) * Math.PI) / 180
     const dePie: [number, number][] = []
@@ -267,14 +255,32 @@ describe('la pieza real de la sala del gimnasio', () => {
       return n
     }
     const angulos = Array.from({ length: 36 }, (_, i) => i * 10)
-    // Primero, lo que SÍ se cumple: no hay un solo ángulo con la nada absoluta detrás.
+    // 1 · Ningún ángulo tiene la NADA absoluta detrás: eso la pieza sí lo cumple.
     for (const g of angulos) {
       expect(cuenta(g, dePie), `azimut ${g}° no tiene nada detrás`).toBeGreaterThan(0)
     }
-    // Y lo que no: en cuántos, todo lo que hay es pared.
+    // 2 · Pero en once, todo lo que hay es pared. Y la lista que la app usa para
+    //     rellenarlos tiene que ser EXACTAMENTE esa: si alguien reexporta la sala y mueve
+    //     el hierro, esto se pone rojo pidiendo que se actualice `ANGULOS_SIN_FONDO`.
     const flacos = angulos.filter((g) => cuenta(g, dePie) === cuenta(g, soloMuro))
     expect(flacos).toHaveLength(11)
-    expect(cuenta(180, dePie)).toBeLessThan(100)
-    expect(Math.max(...angulos.map((g) => cuenta(g, dePie)))).toBeGreaterThan(20000)
+    expect([...ANGULOS_SIN_FONDO]).toEqual(flacos)
+    // 3 · Y con el relleno de la app, ninguno. Es la medida que dice que sirvió.
+    const relleno = new Malla(20000)
+    construirRellenoDeMuro(relleno, ANGULOS_SIN_FONDO, 8, 5.5)
+    const conRelleno = [...dePie]
+    for (let i = 0; i < relleno.vertices; i++) {
+      const x = relleno.posicion[i * 3]
+      const y = relleno.posicion[i * 3 + 1]
+      const z = relleno.posicion[i * 3 + 2]
+      // El estante no puede invadir la órbita ni salirse de la sala.
+      expect(Math.hypot(x, z), 'el relleno invade la órbita').toBeGreaterThan(4.4)
+      expect(Math.abs(x), 'el relleno se sale de la sala').toBeLessThan(8.01)
+      expect(Math.abs(z), 'el relleno se sale de la sala').toBeLessThan(5.51)
+      if (y > 0.35 && y < 2.6) conRelleno.push([x, z])
+    }
+    expect(angulos.filter((g) => cuenta(g, conRelleno) === cuenta(g, soloMuro))).toEqual([])
+    // Y cuesta lo que cuesta un adorno, no lo que cuesta reexportar 1,5 MB.
+    expect(relleno.vertices).toBeLessThan(2000)
   })
 })

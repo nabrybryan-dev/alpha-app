@@ -39,12 +39,17 @@ describe('radioDelMuroRectangular', () => {
 describe('construirSala con la sala de Blender', () => {
   const datos = { series: 3, reps: 8, rir: 2 as const }
 
-  it('no levanta la pared ni el hierro: son muchos menos vértices', () => {
+  it('no levanta la pared ni las estaciones: sigue siendo una fracción de la sala de cajas', () => {
+    // Con la pieza de Blender no se dibuja ni el muro ni las diez estaciones del anillo.
+    // Desde el 2026-09-06 sí se dibuja UNA cosa: los estantes de muro de los once ángulos en
+    // que la pieza deja al sujeto contra hormigón pelado (`ANGULOS_SIN_FONDO`). Son mil y
+    // pico vértices, así que el ahorro sigue siendo el de antes con otro margen: lo que se
+    // afirma es que no ha vuelto el mobiliario entero por la puerta de atrás.
     const cajas = new Malla()
     construirSala(cajas, datos, 72)
     const blender = new Malla()
     construirSala(blender, datos, 72, { salaDeBlender: { medioAncho: 8, medioFondo: 5.5 } })
-    expect(blender.vertices).toBeLessThan(cajas.vertices / 2)
+    expect(blender.vertices).toBeLessThan(cajas.vertices * 0.75)
     expect(blender.vertices).toBeGreaterThan(0)
   })
 

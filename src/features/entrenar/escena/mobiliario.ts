@@ -180,6 +180,98 @@ function luces(m: Malla, alto: number): void {
 }
 
 /**
+ * EL RELLENO DE MURO: lo único que cabe contra los muros cortos.
+ *
+ * Nace el 2026-09-06, de medir la sala de Blender por los 36 ángulos de la órbita. Con
+ * esa sala, `construirSala` **se salta este módulo entero** —«el hierro viene dentro de la
+ * pieza»— y el hierro viene, pero apelotonado en los dos muros largos. Resultado: en once
+ * de los 36 ángulos, lo único detrás del sujeto son 54 vértices de hormigón. La pared
+ * pelada. Justo lo que las diez estaciones de aquí abajo existían para evitar.
+ *
+ * ## Por qué no vale reencender las estaciones de siempre
+ *
+ * Porque su anillo es CIRCULAR, a 5,95 m, y la sala de Blender es rectangular: 16 × 11. En
+ * la dirección de los muros cortos ese anillo sale por la pared, que está a 5,5.
+ *
+ * Y no es que haya que acercarlas: **contra un muro corto no cabe nada de gimnasio**, y eso
+ * está medido pieza a pieza. Entre la órbita (4,6) y la pared (5,5) hay 90 cm, y para que
+ * la cara cercana de un objeto no invada la órbita su centro tiene que ir a
+ * `4,6 + holgura + media huella`:
+ *
+ *     banco de 2,00 m       necesita 5,95     no cabe
+ *     rack de dominadas     necesita 5,93     no cabe
+ *     banco abdominal       necesita 5,65     no cabe
+ *     árbol de discos       necesita 5,29     no cabe (por 13 cm)
+ *     estante de muro       necesita 5,08     CABE, con 27 cm de sobra
+ *
+ * O sea que la única forma de tapar esos ángulos es algo **pegado a la pared y de poco
+ * fondo**. No es una simplificación: es la respuesta de la geometría de la sala.
+ *
+ * ## Y va en código, no en la pieza
+ *
+ * Cuesta unos pocos cientos de vértices y **cero bytes de descarga**, frente a reexportar
+ * 1,5 MB. Además no toca ningún modelo con licencia, así que no arrastra créditos.
+ */
+const FONDO_ESTANTE = 0.13
+/** Media anchura del estante: es lo que se sale por la pared si se coloca por el centro. */
+const ANCHO_ESTANTE = 0.87
+/** Lo que tiene que sobrar entre la órbita de la cámara y la cara cercana del estante. */
+const HOLGURA = 0.35
+const ORBITA = 4.6
+/** Dos estantes seguidos no se pisan: a 5,3 m, veinte grados son 1,85 m. */
+const SEPARACION_GRADOS = 20
+
+/** Un estante de pared: dos montantes, una barra, una balda y discos apoyados. */
+function estanteDeMuro(m: Malla, az: number, r: number): void {
+  for (const dl of [-0.82, 0.82]) pieza(m, az, r, dl, 1.0, [0.05, 0.9, 0.05], ACERO_OSCURO)
+  pieza(m, az, r, 0, 1.62, [0.87, 0.05, 0.05], ACERO)
+  pieza(m, az, r, 0, 1.18, [0.87, 0.04, 0.11], ACERO_OSCURO)
+  pieza(m, az, r, 0, 0.48, [0.87, 0.04, FONDO_ESTANTE], ACERO_OSCURO)
+  // Los discos de canto en la balda baja y las barras cruzadas arriba: es lo que hace que
+  // esto se lea como gimnasio y no como una estantería.
+  for (const dl of [-0.5, 0, 0.5]) pieza(m, az, r, dl, 0.74, [0.22, 0.22, 0.04], GOMA)
+  for (const y of [1.35, 1.45]) pieza(m, az, r, 0, y, [0.72, 0.02, 0.02], CROMO)
+}
+
+/**
+ * Estantes de muro en los ángulos donde la sala no deja nada detrás del sujeto.
+ *
+ * `azimutsDeCamara` son ángulos de la ÓRBITA; el estante va en el opuesto, que es lo que
+ * la cámara tiene enfrente. Se colocan a la distancia del muro en esa dirección menos su
+ * fondo, y se salta el que no quepa o el que pise al anterior.
+ */
+export function construirRellenoDeMuro(
+  m: Malla,
+  azimutsDeCamara: readonly number[],
+  medioAncho: number,
+  medioFondo: number,
+): void {
+  const puestos: number[] = []
+  for (const camara of azimutsDeCamara) {
+    const az = (camara + 180) % 360
+    const a = (az * Math.PI) / 180
+    const sin = Math.abs(Math.sin(a))
+    const cos = Math.abs(Math.cos(a))
+    // HASTA DÓNDE PUEDE LLEGAR EL ESTANTE ENTERO, no su centro. Colocarlo por el centro a
+    // «la pared menos el fondo» funciona en los ángulos rectos y falla en los oblicuos: a
+    // 200° el estante quedaba con el centro dentro y una esquina 30 cm más allá del muro.
+    // Un estante de 1,74 m de ancho puesto en diagonal ocupa en cada eje su fondo Y parte
+    // de su ancho, así que el radio se despeja de las dos paredes y se toma el menor.
+    const cabeEnX = sin > 1e-6 ? (medioAncho - 0.02 - cos * ANCHO_ESTANTE) / sin - FONDO_ESTANTE : Infinity
+    const cabeEnZ = cos > 1e-6 ? (medioFondo - 0.02 - sin * ANCHO_ESTANTE) / cos - FONDO_ESTANTE : Infinity
+    const radio = Math.min(cabeEnX, cabeEnZ)
+    if (radio < ORBITA + HOLGURA + FONDO_ESTANTE) continue
+    const separado = puestos.every((p) => {
+      const d = Math.abs(((az - p + 540) % 360) - 180)
+      return d >= SEPARACION_GRADOS
+    })
+    if (!separado) continue
+    puestos.push(az)
+    estanteDeMuro(m, az, radio)
+  }
+}
+
+/**
  * Todo el mobiliario de la sala.
  *
  * El radio y el alto llegan desde `sala.ts` para que el hierro no tenga que saberse los
