@@ -629,7 +629,10 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'ABDUCCIÓN HORIZONTAL',
     titulo: 'Abducción horizontal',
-    ejemplos: 'Apertura inversa en máquina · Face pull en polea alta',
+    // EL PRIMER EJEMPLO DECIDE EL IMPLEMENTO, y esta ficha va DE PIE, doblada por la cadera:
+    // es la apertura inversa con mancuernas y el face pull. La de máquina se hace sentado
+    // de frente al aparato y tiene ficha propia desde el 2026-09-07 (`apertura_inversa_maquina`).
+    ejemplos: 'Apertura inversa con mancuernas · Face pull en polea alta',
     resumen:
       'Con el brazo a la altura del hombro, se abre hacia fuera. Es el contrapeso directo de todo el volumen de empuje horizontal.',
     claves: [
@@ -654,6 +657,39 @@ export const PATRONES: Patron[] = [
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
+  },
+  {
+    id: 'apertura_inversa_maquina',
+    cadena: 'abierta',
+    categoria: 'APERTURA INVERSA EN MÁQUINA',
+    titulo: 'Apertura inversa en máquina',
+    ejemplos: 'Apertura inversa en máquina · Pec deck inverso · Deltoides posterior en máquina',
+    resumen:
+      'Sentado de cara a la máquina, con el pecho en el apoyo, los brazos se abren en horizontal a la altura del hombro. El mismo gesto que la apertura inversa de pie, sin tener que sostener el tronco.',
+    claves: [
+      'El pecho pegado al apoyo todo el recorrido: si se despega, el tronco está remando.',
+      'Abre con el codo, a la altura del hombro; la mano solo acompaña.',
+      'Junta los omóplatos al final, sin encoger el trapecio.',
+    ],
+    errores: [
+      'Doblar el codo progresivamente y convertirlo en un remo.',
+      'Bajar el codo por debajo del hombro, que mete al dorsal y saca al deltoides posterior.',
+    ],
+    apoyo: 'ninguno',
+    // SENTADO, ERGUIDO Y DE FRENTE A LA MÁQUINA. Es lo que separa esta ficha de la de pie, y
+    // lo que resuelve la deuda que tenía anoche la apertura inversa: con el tronco doblado
+    // a 60°, el brazo de la máquina —que sale del hombro, porque ahí gira la carga— tenía
+    // que cruzar el tronco para llegar a la mano, y pasaba a 2,3 cm de su eje. Erguido, el
+    // brazo va horizontal a la altura del hombro y no hay tronco en medio: la mano barre un
+    // arco alrededor de un eje vertical, que es exactamente cómo está hecha una pec deck.
+    raizInicio: [0, -0.45, 0],
+    raizFin: [0, -0.45, 0],
+    inicio: { caderaFlex: 88, rodillaFlex: 92, toraxFlex: 2, hombroFlex: 90, hombroAbd: 6, codoFlex: 18, escapulaProt: 24 },
+    fin: { caderaFlex: 88, rodillaFlex: 92, toraxFlex: 2, hombroFlex: 88, hombroAbd: 92, codoFlex: 18, escapulaProt: -30 },
+    activacion: { flexores_carpo: 0.4, extensores_carpo: 0.32, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.5, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.35 },
+    seguimiento: ['mano', 0.5, [0, 0, 0]],
+    // Desde arriba: el arco es horizontal y de perfil se proyecta sobre un punto.
+    camara: { azimut: 30, elevacion: 52 },
   },
   {
     id: 'flexion_codo',
@@ -1200,12 +1236,30 @@ export const PATRONES: Patron[] = [
     // cerrada hecha a mano: las manos están plantadas, así que el arco de la
     // espalda no puede levantar el tronco entero —se hunde entre los apoyos,
     // que es la vaca del gato-camello—. Sin esto las manos subían un metro.
-    giroInicio: [72, 0, 0],
-    giroFin: [92, 0, 0],
-    raizInicio: [0, 0.68, 0],
-    raizFin: [0, 0.72, 0],
-    inicio: { toraxFlex: 34, lumbarFlex: 12, cuelloFlex: 26, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 108, codoFlex: 16, escapulaProt: 24 },
-    fin: { toraxFlex: -20, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 88, rodillaFlex: 92, hombroFlex: 106, codoFlex: 12, escapulaProt: -14 },
+    // A CUATRO PATAS DE VERDAD, desde el 2026-09-07. Hasta entonces el gato-camello
+    // FLOTABA: las manos a 21 cm del suelo y las rodillas a 32, con el hombro 15 cm por
+    // debajo de la cadera. No era un número mal puesto: la geometría no cerraba, porque el
+    // brazo entero mide 57 cm y el fémur 45, así que para que manos y rodillas toquen a la
+    // vez el hombro tiene que quedar POR ENCIMA de la cadera, y la ficha lo ponía debajo.
+    //
+    // Estos números salen de un barrido por parejas —gato y camello a la vez— que exige
+    // cinco cosas medidas sobre el esqueleto resuelto: muñeca y rodilla a la misma altura,
+    // la mano plana (punta a la altura de la muñeca), que la RODILLA sea lo más bajo de la
+    // pierna —tobillo, punta del pie y planta por encima de ella, que es lo que hacía que
+    // los pies atravesaran el suelo y la guardia subiera el cuerpo entero 22 cm—, el hombro
+    // por encima de la cadera, y que manos y rodillas NO SE MUEVAN de sitio entre las dos
+    // fases, porque están apoyadas: la distancia muñeca-rodilla queda en 25,2 cm en el gato
+    // y 26,1 en el camello. La raíz se desplaza por fase para que la rodilla caiga en el
+    // mismo punto del suelo en las dos. La pelvis bascula 40° entre gato y camello, que es
+    // el gesto: en el gato se mete, en el camello se saca. Muñeca al tope de su rango (−75)
+    // y tobillo cerca del suyo (40/50), que es lo que cuesta poner un rig de pie a cuatro
+    // patas.
+    giroInicio: [60, 0, 0],
+    giroFin: [100, 0, 0],
+    raizInicio: [0, 0.004, -0.838],
+    raizFin: [0, 0.614, -0.978],
+    inicio: { toraxFlex: 34, lumbarFlex: 12, cuelloFlex: 26, caderaFlex: 66, rodillaFlex: 115, tobilloPlantar: 40, hombroFlex: 85, codoFlex: 6, muneca: -75, escapulaProt: 24 },
+    fin: { toraxFlex: -20, lumbarFlex: -6, cuelloFlex: -22, caderaFlex: 110, rodillaFlex: 115, tobilloPlantar: 50, hombroFlex: 55, codoFlex: 6, muneca: -75, escapulaProt: -14 },
     activacion: {
       'erectores.longisimo': 1,
       'erectores.espinal': 0.95,
@@ -1504,22 +1558,19 @@ export const PATRONES: Patron[] = [
     apoyo: 'ninguno',
     raizInicio: [0, -0.49, 0],
     raizFin: [0, -0.49, 0],
-    // LA MANO SUBE EN LA CONCENTRICA, y aqui hay que decir lo que el rig NO sabe hacer.
+    // LA PALMA ABAJO, desde el 2026-09-07. Un curl inverso es un curl con el antebrazo
+    // PRONADO: la mano cuelga y lo que sube es el dorso. Hasta anoche eso no se podía
+    // dibujar —`antebrazoRot` giraba el antebrazo alrededor del codo como una manecilla en
+    // vez de rodarlo sobre su eje, y la mano no se enteraba—, así que los dos patrones de
+    // muñeca compartían silueta. Arreglado en `esqueleto.ts`.
     //
-    // En un curl inverso el antebrazo va PRONADO —palma abajo—, la mano cuelga y lo que
-    // sube es el dorso. Con la palma abajo, «mano colgando» y «mano subiendo» son los
-    // mismos dos extremos del canal `muneca` que en el curl normal, solo que recorridos
-    // desde el otro lado del antebrazo. Y ese giro del antebrazo el rig no lo propaga: se
-    // probó el 2026-09-06 poniendo `antebrazoRot: 180` en los dos patrones de muñeca y el
-    // coseno no se movió ni una centésima, porque `poseAEuler` recompone la rotación de la
-    // mano a partir de la abducción del hombro y ahí se pierde el giro del padre.
-    //
-    // Así que se corrige lo que sí es falso —la carga bajaba en la fase que el repo llama
-    // concéntrica, coseno +0,99— y se deja escrito lo que queda debiendo: mientras el
-    // antebrazo no ruede, estos dos patrones comparten silueta y lo único que los separa
-    // en pantalla es la musculatura que se enciende y las claves que se leen.
-    inicio: { muneca: -48, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
-    fin: { muneca: 58, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    // Los 180° no son un exceso: el cero del rig es la posición anatómica, palma al frente
+    // —con el codo a 90°, palma ARRIBA—, y de ahí a palma abajo hay media vuelta. Con la
+    // palma abajo, `muneca` positivo deja la mano colgando y negativo la levanta, al revés
+    // que en el curl normal; por eso el recorrido va de +48 a −58 y la carga SUBE de 0 a 1,
+    // que es lo que exige `la-resistencia-se-opone`.
+    inicio: { muneca: 48, antebrazoRot: -178, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    fin: { muneca: -58, antebrazoRot: -178, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
     activacion: {
       extensores_carpo: 1,
       braquiorradial: 0.55,
@@ -1668,6 +1719,10 @@ const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
   // La prensa llega SIEMPRE con categoria de sentadilla —«DOMINANTE DE RODILLA» en el
   // seed—, asi que sin esta linea la ficha nueva no la veria nadie.
   sentadilla: [[/prensa|leg ?press|hack/, 'prensa']],
+  // La apertura inversa llega con categoría ABDUCCIÓN HORIZONTAL diga lo que diga el nombre;
+  // la de máquina se sienta de frente al aparato y es otra ficha. El face pull NO entra: es
+  // polea, y de pie.
+  abduccion_horizontal: [[/m[aá]quina|pec ?deck|peck ?deck|contractor/, 'apertura_inversa_maquina']],
   // El orden importa: la asistida antes que la dominada a secas, que también dice «dominada».
   traccion_vertical: [
     [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],

@@ -78,8 +78,17 @@ const DE_ANTES = {
   // de en medio, que es exactamente la que esta huella fotografía. La de la banca, que no
   // se tocó, sigue siendo la misma: es lo que dice que el cambio fue de la ficha y no del
   // motor.
-  sentadillaAMedias: 'f78afe1b40369c55cfa7f1a853c302b810628c2c7438c6ba147558a99832eecf',
-  bancaAUnCuarto: '12c2d7e09afb0097d614aab48122d0461939185a381754049662db00c6b2f384',
+  //
+  // Y OTRA VEZ el 2026-09-07, por el primer motivo: otro rig. `antebrazoRot` pasó de girar
+  // el antebrazo alrededor del codo —como una manecilla, en el marco del padre— a rodarlo
+  // sobre su propio eje, que es lo que significa pronar. La sentadilla no prona nada, pero
+  // la capa `VIDA` de `movimiento.ts` le da 6,5° de antebrazo a toda pose que no mueva ese
+  // canal, así que sus antebrazos ahora ruedan un poco en vez de balancearse un poco. Le
+  // pasa igual a la banca, por la misma capa. Las CUATRO huellas de pose vacía no se
+  // movieron —ahí no hay capa de vida—, y eso es lo que dice que el cambio es el que se
+  // cuenta y no otro.
+  sentadillaAMedias: 'a3b004c658004381cda5dfd8ac33018d2de11bb7d3d345d0344eb374c81d9bbb',
+  bancaAUnCuarto: '0b9c03cb74f609069d0d55f2dbeecfeb399405719281e66ed2c0f3f069099c5f',
   mallaPosiciones: '937e6ef37abad1c9f8d7984cf97f950ceea8b5d011bc53065a4e3a6aa42dc735',
   mallaNormales: '49a584d7433163348e5aa09f6f3b980bb6c85b31041ad4100514cded0192cebc',
   vertices: 13774,

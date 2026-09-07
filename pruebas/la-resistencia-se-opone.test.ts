@@ -85,7 +85,9 @@ function veredictos(nombreForzado?: string): Veredicto[] {
       // La barra fija de una dominada no se mueve: el que sube es el cuerpo, y su
       // resistencia —el propio peso— la mide `gravedad.ts`, no esto.
       if (pieza.pieza === 'barra-fija') continue
-      const camino = caminoDeLaCarga(patron, pieza)
+      const camino = pieza.enElSuelo?.porLado
+        ? caminoDeLaCarga(patron, { ...pieza, agarres: [pieza.agarres[0]] })
+        : caminoDeLaCarga(patron, pieza)
       const gesto = unitario(V.restar(camino[camino.length - 1], camino[0]))
       // Un isométrico no tiene dirección contra la que oponerse. La antiextensión y la
       // suspensión están ahí para eso: se sostienen, no se recorren.
@@ -223,7 +225,7 @@ describe('el brazo de la máquina tiene tamaño de máquina, y no atraviesa a na
    * Se declara con las DOS cotas a propósito: la de arriba impide que empeore en silencio y
    * la de abajo obliga a borrar la entrada el día que alguien dibuje el varillaje.
    */
-  const DEUDA: Record<string, number> = { abduccion_horizontal: 0.05 }
+  const DEUDA: Record<string, number> = {}
 
   it.each(conBrazo.map((c) => [c.patron.id, c] as const))('%s', (_id, { patron, pieza }) => {
     const anclaje = pieza.enElSuelo!.anclaje
@@ -231,9 +233,17 @@ describe('el brazo de la máquina tiene tamaño de máquina, y no atraviesa a na
     let masCerca = Infinity
     for (const f of FASES) {
       const esq = esqueletoEnFase(patron, f)
-      let suma: Vec3 = [0, 0, 0]
-      for (const a of pieza.agarres) suma = V.sumar(suma, puntoDeHueso(esq, a.hueso, a.t, a.desvio))
-      const pad = V.escalar(suma, 1 / pieza.agarres.length)
+      // CON UN BRAZO POR MANO se mide el brazo que hay —del eje a SU mano—, no uno
+      // imaginario del eje al punto medio, que es justo el que no existe en una pec deck.
+      let pad: Vec3
+      if (pieza.enElSuelo!.porLado) {
+        const a = pieza.agarres[0]
+        pad = puntoDeHueso(esq, a.hueso, a.t, a.desvio)
+      } else {
+        let suma: Vec3 = [0, 0, 0]
+        for (const a of pieza.agarres) suma = V.sumar(suma, puntoDeHueso(esq, a.hueso, a.t, a.desvio))
+        pad = V.escalar(suma, 1 / pieza.agarres.length)
+      }
       masLargo = Math.max(masLargo, V.largo(V.restar(pad, anclaje)))
       // El brazo entero, no solo sus dos puntas: lo que se veía en la foto era el TRAMO DE
       // EN MEDIO cruzando la cadera, con las dos puntas fuera del cuerpo.

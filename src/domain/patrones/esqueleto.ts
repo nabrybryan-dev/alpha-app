@@ -132,11 +132,26 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
     const abdHombro = -k * (g('hombroAbd' + s, g('hombroAbd')) + grados(7))
     fijar('brazo' + s, -g('hombroFlex' + s, g('hombroFlex')), -k * g('hombroRot' + s, g('hombroRot')), abdHombro)
 
-    e['antebrazo' + s] = sagital(
-      -g('codoFlex' + s, g('codoFlex')),
-      abdHombro,
-      -k * g('antebrazoRot' + s, g('antebrazoRot')),
-    )
+    // LA PRONACIÓN ES UN GIRO SOBRE EL PROPIO ANTEBRAZO, y hasta el 2026-09-07 no lo era.
+    // Iba como tercer argumento de `sagital`, que lo mete en `M4.euler(rx, ry, 0)`, y ese
+    // euler es Ry·Rx·Rz: la Y se aplica ANTES de la flexión, en el marco del padre. Con el
+    // codo a 90° eso no rueda el antebrazo: lo hace girar alrededor del codo como una
+    // manecilla, y la mano sigue flexionando en el mismo plano del mundo. Medido: con 0°,
+    // 90° y 180° la punta de la mano subía y bajaba exactamente lo mismo. Por eso los dos
+    // patrones de muñeca compartían silueta —un curl inverso es un curl con la palma abajo,
+    // y no había palma abajo—. Ahora rueda sobre su propio eje Y, después de flexionar, y
+    // la mano lo hereda.
+    //
+    // Y SIN GIRO, LOS MISMOS BYTES DE ANTES. `juegoDeHuesos.test.ts` guarda las matrices
+    // byte a byte, y aquí se cuela algo que no es un redondeo: el código viejo metía
+    // `-k * 0` en el euler, que para un lado es **−0**, y −0 y +0 valen lo mismo pero no
+    // son el mismo byte. Medido: con el giro a cero, la huella de la sentadilla cambiaba
+    // solo por eso. Así que cuando no hay pronación se le pasa al euler exactamente el cero
+    // con signo de siempre, y la vuelta sobre el propio eje solo se multiplica cuando hay
+    // algo que multiplicar.
+    const pronacion = -k * g('antebrazoRot' + s, g('antebrazoRot'))
+    const antebrazo = sagital(-g('codoFlex' + s, g('codoFlex')), abdHombro, pronacion === 0 ? pronacion : 0)
+    e['antebrazo' + s] = pronacion === 0 ? antebrazo : M4.multiplicar(antebrazo, M4.girarY(pronacion))
     // La desviación comparte hueso con la flexión, así que entra en la misma
     // composición sagital: el tercer argumento es el giro dentro del plano.
     e['mano' + s] = sagital(

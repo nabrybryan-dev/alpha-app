@@ -56,7 +56,7 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 64 categorías y le salen 61 con patrón y 3 sin sujeto', () => {
+  it('recorre 65 categorías y le salen 62 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron ese día son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
@@ -67,9 +67,13 @@ describe('el barrido de categorías', () => {
     // ya caía en SENTADILLA— sino que deja de enseñar el gesto equivocado: la ficha de la
     // sentadilla dibuja a alguien DE PIE, y con la prensa por primer ejemplo le salía la
     // máquina alrededor, con los pies sin moverse ni tres milímetros.
+    // La 62 es APERTURA INVERSA EN MÁQUINA (2026-09-07): la apertura inversa se hace sentado
+    // de frente al aparato, y la ficha de pie con el tronco doblado dejaba el brazo de la
+    // máquina cruzando el tronco. Como con la prensa: no cubre nada que estuviera descubierto,
+    // deja de enseñar el gesto equivocado.
     const reparto = repartir(categoriasDelRepo())
-    expect(reparto.casos).toHaveLength(64)
-    expect(reparto.conPatron).toHaveLength(61)
+    expect(reparto.casos).toHaveLength(65)
+    expect(reparto.conPatron).toHaveLength(62)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
@@ -262,9 +266,10 @@ describe('quién declara con qué se hace el ejercicio', () => {
     //     «Face pull EN POLEA», «Peso muerto parcial CON BARRA desde rack».
     const ejemplos = PATRONES.flatMap((p) => p.ejemplos.split('·').map((e) => e.trim()))
     const sin = ejemplos.filter((n) => !implementoDe(n))
-    // 96 desde el 2026-09-06: los tres de la ficha de PRENSA. Los tres declaran implemento,
-    // así que los que no lo declaran siguen siendo los dos de siempre.
-    expect(ejemplos).toHaveLength(96)
+    // 96 desde el 2026-09-06: los tres de la ficha de PRENSA; 99 desde el 2026-09-07, los
+    // tres de la apertura inversa en máquina. Todos declaran implemento, así que los que no
+    // lo declaran siguen siendo los dos de siempre.
+    expect(ejemplos).toHaveLength(99)
     expect(sin).toHaveLength(2)
   })
 
