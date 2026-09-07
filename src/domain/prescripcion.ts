@@ -27,8 +27,11 @@ const UNIDADES =
 /**
  * La ranura de repeticiones, y las tres formas en que aparece escrita.
  *
- * `A 12 REPS` es la canónica y la **única que el compositor genera**. Las otras
- * dos se leen pero no se escriben:
+ * `A 12 REPS` es la canónica y la **única que el compositor genera** —junto a su
+ * hermana por tiempo, `A 30 SEG` / `A 2 MIN`, desde el 2026-09-07: un ejercicio
+ * cuyo `rango` va en segundos no lleva repeticiones, y escribirle «A 1 REPS» era
+ * exactamente lo que la persona leía en una plancha de 30 s—. Las otras dos se
+ * leen pero no se escriben:
  *
  * - **`A 12`, sin la palabra** — 28 casos, todos de julio de 2026.
  * - **`x12`**, con la equis pegada o separada — 27 casos, también de julio.
@@ -49,7 +52,8 @@ const UNIDADES =
  * la `A` **no son repeticiones**. Con el `;` pegado, ninguna de las dos entra.
  */
 const REPS =
-  '(?:A\\s+(\\d+(?:\\s*-\\s*\\d+)?)\\s*REPS?(?:\\s*\\(\\s*\\d+\\s*-\\s*\\d+\\s*\\))?' +
+  '(?:A\\s+(\\d+(?:\\s*-\\s*\\d+)?)\\s*(?:REPS?|SEG(?:UNDOS?)?|MIN(?:UTOS?)?)\\b' +
+  '(?:\\s*\\(\\s*\\d+\\s*-\\s*\\d+\\s*\\))?' +
   '|A\\s+(\\d+(?:\\s*-\\s*\\d+)?)(?=\\s*;)' +
   '|[x×]\\s*(\\d+(?:\\s*-\\s*\\d+)?))'
 
@@ -62,6 +66,12 @@ const REPS =
  * commit: esta función, `supabase/rellenar-carga.sql` y
  * `supabase/comprobar-alineacion.sql`. Dos implementaciones del mismo patrón
  * divergen en silencio — es el modo M-1 con otra ropa.
+ *
+ * La unidad de tiempo (2026-09-07) no rompió el reparto: `comprobar-alineacion`
+ * lee el número que sigue a la A sin mirar la unidad, así que ya contaba
+ * «A 30 SEG» como 30; `comprobar-cabecera-no-canonica` sí la aprendió; y
+ * `rellenar-carga` es el relleno de agosto, que solo toca donde falta `cargaKg`
+ * y no se reescribe.
  */
 const CABECERA = new RegExp(
   '^\\s*(\\d+(?:[.,]\\d+)?)\\s*KGS?\\b' +
@@ -235,14 +245,33 @@ export function componerPrescripcion(ejercicio: EjercicioPrescrito): string {
 
   if (typeof ejercicio.cargaKg === 'number' && Number.isFinite(ejercicio.cargaKg)) {
     const reps = ejercicio.repsDiana
+    const unidad = esPorTiempo(ejercicio.rango) ? unidadDeTiempo(ejercicio.rango) : 'REPS'
     const cabecera =
       `${numero(ejercicio.cargaKg)}KG${sufijoUnidad(ejercicio.unidadCarga)}` +
-      ` A ${typeof reps === 'number' ? reps : String(reps).toUpperCase()} REPS;` +
+      ` A ${typeof reps === 'number' ? reps : String(reps).toUpperCase()} ${unidad};` +
       ` ${ejercicio.sets} SERIES${parentesisRir(ejercicio.rirObjetivo)}.`
     return pegarNota(cabecera, ejercicio.notaCoach)
   }
 
   return ejercicio.prescripcion
+}
+
+/**
+ * ¿El ejercicio va por tiempo? Lo dice el `rango` —«30 seg», «20 s», «2 min»—,
+ * no la diana: la diana es un número y no sabe en qué unidad está.
+ *
+ * Y esa unidad es la de `repsDiana` entera: la cifra de la estación del salón, el
+ * valor que ofrece el registro y lo que mide el reloj del muro. Un M7 real llegó
+ * con cuatro ejercicios por tiempo a diana 1 y frase «A 1 REPS» (2026-09-07): la
+ * persona veía «1» en la estación y leía una repetición. El generador de la app
+ * ya escribía 30 en la escalera (`rangoReps("30 seg")`); ahora la frase también.
+ */
+export function esPorTiempo(rango: string | undefined): boolean {
+  return /\b(seg|segundos?|s|min|minutos?)\b/i.test(rango ?? '')
+}
+
+function unidadDeTiempo(rango: string | undefined): 'SEG' | 'MIN' {
+  return /\bmin/i.test(rango ?? '') ? 'MIN' : 'SEG'
 }
 
 function cabeceraOndulada(series: SeriePrescrita[]): string {
