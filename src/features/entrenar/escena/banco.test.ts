@@ -32,7 +32,7 @@ const bancoDe = (p: Patron): ApoyoDelCuerpo | undefined =>
   implementosDeEscena(p.categoria, primerEjemplo(p)).piezas.find((x) => x.pieza === 'banco')?.apoyo
 
 describe('quién recibe mueble', () => {
-  it('los ocho que lo necesitan, y ni uno más', () => {
+  it('los nueve que lo necesitan, y ni uno más', () => {
     const conMueble = PATRONES.filter((p) => bancoDe(p)).map((p) => p.id)
     expect(conMueble.sort()).toEqual(
       [
@@ -49,6 +49,10 @@ describe('quién recibe mueble', () => {
         // Y por geometría: tumbado y sin apoyo en el suelo, aunque su anclaje no nombre
         // ningún mueble.
         'apertura_pecho',
+        // El noveno entra el 2026-09-06 y es el único que va tumbado EN UNA MÁQUINA: el
+        // curl femoral. Hasta ese día la regla «donde hay máquina no hay mueble» se lo
+        // quitaba, y el sujeto salía boca abajo flotando a 32 cm del suelo.
+        'flexion_rodilla',
       ].sort(),
     )
   })
@@ -69,16 +73,43 @@ describe('quién recibe mueble', () => {
     expect(bancoDe(PATRON_POR_ID.rotacion_cadera)).toBeUndefined()
   })
 
-  it('donde ya hay máquina no se pone banco: se atravesarían', () => {
+  it('donde ya hay máquina no se pone banco: se atravesarían — salvo si va tumbado', () => {
     // `construirMaquina` ya dibuja asiento y respaldo. Es la frontera del módulo, y se
     // comprueba sobre los patrones que de verdad reciben máquina en el catálogo.
+    //
+    // LA EXCEPCIÓN LA MANDÓ BRYAN EL 2026-09-06, con una foto del iPhone: el curl femoral
+    // tumbado salía con el sujeto boca abajo FLOTANDO a 32 cm del suelo, sin nada debajo.
+    // Y era correcto según esta regla —hay máquina, luego no hay mueble—, solo que el
+    // asiento y el respaldo de una máquina de placas sostienen a quien se SIENTA, y a quien
+    // se tumba no le sostienen nada. Los treinta centímetros de respaldo le quedaban a la
+    // altura de la rodilla.
     const conMaquina = PATRONES.filter((p) =>
       implementosDeEscena(p.categoria, primerEjemplo(p)).piezas.some((x) => x.pieza === 'maquina'),
     )
     expect(conMaquina.length).toBeGreaterThan(8)
+    const tumbados = ['flexion_rodilla']
     for (const p of conMaquina) {
+      if (tumbados.includes(p.id)) {
+        const camilla = bancoDe(p)!
+        expect(camilla, `${p.id} entrena tumbado en la máquina y no tiene camilla`).toBeDefined()
+        // De la mitad del tórax a la mitad del muslo: el tronco y los fémures, con la
+        // rodilla en el borde. Es lo que apoya en un curl femoral.
+        expect(camilla.desde[0]).toBe('torax')
+        expect(camilla.hasta[0]).toBe('musloD')
+        continue
+      }
       expect(bancoDe(p), `${p.id} lleva máquina Y banco`).toBeUndefined()
     }
+  })
+
+  it('y de pie doblado por la cadera NO es tumbado, aunque el tronco esté horizontal', () => {
+    // La apertura inversa declara 60° de giro y el remo en máquina deja el tronco a 27° de
+    // la horizontal, y los dos se hacen DE PIE. Una camilla debajo sería un mueble en el
+    // aire. Lo que los separa no es el ángulo del tronco sino el pie en el suelo.
+    expect(bancoDe(PATRON_POR_ID.abduccion_horizontal)).toBeUndefined()
+    expect(bancoDe(PATRON_POR_ID.traccion_horizontal)).toBeUndefined()
+    expect(PATRON_POR_ID.abduccion_horizontal.apoyo).toBe('suelo')
+    expect(PATRON_POR_ID.traccion_horizontal.apoyo).toBe('suelo')
   })
 
   it('el hip thrust apoya los HOMBROS, no el tronco entero', () => {

@@ -108,9 +108,19 @@ export function direccionDeResistencia(
     const d = unitario(V.restar(anclaje, punto))
     return d && { direccion: d, origen: 'cable' }
   }
-  // Máquina de placas: el almohadillado va en la punta de un brazo que gira sobre su eje,
+  // Máquina de placas, y aquí hay DOS mecánicas distintas bajo el mismo nombre.
+  //
+  // Con `guia: 'giro'` el almohadillado va en la punta de un brazo que gira sobre su eje,
   // así que la fuerza es PERPENDICULAR al brazo, no a lo largo de él. Cuál de las dos
   // perpendiculares lo decide el gesto, y eso lo resuelve `oposicion` con el signo.
+  //
+  // Con `guia: 'recta'` no hay brazo que gire: la carga sube por una guía y empuja A LO
+  // LARGO de ella, como las hombreras de una elevación de talones de pie. Ahí la fuerza va
+  // del punto de carga hacia el anclaje, igual que un cable, y se juzga igual.
+  if (pieza.enElSuelo?.guia === 'recta') {
+    const recta = unitario(V.restar(anclaje, punto))
+    return recta && { direccion: recta, origen: 'raíl' }
+  }
   const brazo = unitario(V.restar(punto, anclaje))
   return brazo && { direccion: brazo, origen: 'brazo' }
 }
@@ -156,6 +166,15 @@ export interface AnclajeResuelto {
   /** Dónde se apoya en el suelo la columna o el bastidor. */
   centro: Vec3
   alturaDeCarga: number
+  /**
+   * CÓMO entrega la carga: girando alrededor de un eje, o empujando por una recta.
+   *
+   * No es un detalle de dibujo, decide la DIRECCIÓN de la fuerza. En una máquina de brazo la
+   * fuerza sale perpendicular al brazo; en una de guía recta, a lo largo de la guía.
+   * Confundir las dos es lo que hacía que una elevación de talones de pie —donde las
+   * hombreras suben rectas— se midiera como si el acolchado girase alrededor de algo.
+   */
+  guia: 'giro' | 'recta'
   porQue: string
 }
 
@@ -235,9 +254,40 @@ export function centroDelArco(camino: readonly Vec3[]): Vec3 | undefined {
   const cy = -E / 2
   if (!Number.isFinite(cx) || !Number.isFinite(cy)) return undefined
   const radio = Math.hypot(cx, cy)
-  // Un radio absurdo es un arco que en realidad era una recta.
-  if (!(radio > 0.05) || radio > 4) return undefined
+  // UN RADIO DE BRAZO DE MÁQUINA, o no hay brazo. Por arriba: el segmento más largo que
+  // gira alrededor de una articulación humana es la pierna entera, 88 cm, así que por
+  // encima de 1,2 m lo que se ha ajustado no es un arco sino una recta con una
+  // circunferencia enorme por detrás. Se midió el 2026-09-06: la apertura inversa sacaba un
+  // radio de 2,13 m, o sea un brazo de máquina de dos metros que salía del sujeto y se iba
+  // a plantar la columna a 2,30 m por delante de él. Por abajo, menos de 15 cm no es un
+  // brazo que gira: es una carga que sube recta —el acolchado de una elevación de talones
+  // de pie— y ésa la mueve la gravedad por un raíl, no una leva.
+  if (!(radio > 0.15) || radio > 1.2) return undefined
   return V.sumar(a, V.sumar(V.escalar(e1, cx), V.escalar(e2, cy)))
+}
+
+/**
+ * De dos ejes candidatos, el que deja el brazo MÁS RÍGIDO contra el recorrido real.
+ *
+ * Con la carga entrando por dos puntos hay dos respuestas defendibles y no se puede elegir a
+ * priori: el eje de la articulación de un lado —la cadera de una abducción, donde el
+ * almohadillado va en cada muslo— o ese mismo eje llevado al plano sagital —la columna
+ * central de una apertura inversa, donde los dos brazos giran sobre el mismo pivote—. Se
+ * mide cuál de los dos mantiene constante la distancia al punto de carga, que es lo que hace
+ * que el brazo dibujado sea una pieza de acero y no una goma.
+ */
+function masRigido(candidatos: readonly Vec3[], camino: readonly Vec3[]): Vec3 {
+  let mejor = candidatos[0]
+  let menorHorquilla = Infinity
+  for (const c of candidatos) {
+    const largos = camino.map((p) => Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]))
+    const horquilla = Math.max(...largos) - Math.min(...largos)
+    if (horquilla < menorHorquilla) {
+      menorHorquilla = horquilla
+      mejor = c
+    }
+  }
+  return mejor
 }
 
 /** Aparta del sujeto lo que se apoya en el suelo, sin mover el punto de entrega. */
@@ -256,41 +306,94 @@ function baseLibre(anclaje: Vec3, camino: readonly Vec3[]): Vec3 {
 export function anclajeQueSeOpone(
   camino: readonly Vec3[],
   forma: FormaDeMaquina,
+  /**
+   * EL RECORRIDO DE UN SOLO LADO, cuando la carga entra por dos puntos.
+   *
+   * El arco hay que ajustarlo aquí y no en `camino`, y esto costó una medida: con los dos
+   * lados promediados, **dos brazos que se abren en simétrico dan un punto medio que va en
+   * línea recta**, porque lo que uno se lleva a la derecha el otro se lo lleva a la
+   * izquierda. La apertura inversa salía así con un radio de 2,13 m —o sea, sin arco— y su
+   * máquina se plantaba a 2,30 m del sujeto con un brazo de dos metros que le cruzaba el
+   * pecho. Medido de un lado, el arco es el del hombro y sale a 40 cm.
+   *
+   * El eje resultante se lleva al plano sagital, que es donde está la columna de una
+   * máquina bilateral: los dos lados giran sobre el mismo eje central.
+   */
+  caminoDeUnLado?: readonly Vec3[],
 ): AnclajeResuelto | undefined {
   if (camino.length < 2) return undefined
   const gesto = unitario(V.restar(camino[camino.length - 1], camino[0]))
   if (!gesto) return undefined
 
   if (forma === 'placas') {
-    const eje = centroDelArco(camino)
-    if (!eje) return undefined
-    return seOpone(
-      {
-        anclaje: eje,
-        centro: baseLibre(eje, camino),
-        alturaDeCarga: Math.max(0.12, eje[1]),
-        porQue:
-          'el eje del brazo va en el centro del arco que traza la carga, que es el eje de la ' +
-          'articulación que trabaja: así el brazo es rígido y su fuerza sale perpendicular al gesto',
-      },
-      camino,
-      gesto,
-      forma,
-    )
+    // TRES CANDIDATOS A EJE, y gana el que se mida mejor. El de un lado, ese mismo llevado
+    // al plano sagital —la columna central de una máquina bilateral— y el del recorrido
+    // promediado, que es el que se usaba antes. Ninguno de los tres es el correcto siempre:
+    // en una apertura inversa el promedio no tiene arco (los dos brazos se abren en
+    // simétrico y su punto medio va en línea recta) y en una aducción de cadera el de un
+    // lado deja el brazo estirándose 18 cm. Así que se prueban y se mide, en vez de elegir.
+    const deUnLado = caminoDeUnLado && caminoDeUnLado.length >= 3 ? caminoDeUnLado : undefined
+    const candidatos: Vec3[] = []
+    const lado = deUnLado && centroDelArco(deUnLado)
+    if (lado) candidatos.push(lado, [0, lado[1], lado[2]])
+    const promedio = centroDelArco(camino)
+    if (promedio) candidatos.push(promedio)
+    const eje = candidatos.length > 0 ? masRigido(candidatos, camino) : undefined
+    if (eje) {
+      const conBrazo = seOpone(
+        {
+          anclaje: eje,
+          centro: baseLibre(eje, camino),
+          alturaDeCarga: Math.max(0.12, eje[1]),
+          guia: 'giro',
+          porQue:
+            'el eje del brazo va en el centro del arco que traza la carga, que es el eje de la ' +
+            'articulación que trabaja: así el brazo es rígido y su fuerza sale perpendicular al gesto',
+        },
+        camino,
+        gesto,
+        forma,
+      )
+      if (conBrazo) return conBrazo
+    }
+    // SIN ARCO NO HAY BRAZO, y eso no es un fallo: hay máquinas que no giran. Cuando la
+    // carga va casi recta —las hombreras de una elevación de talones de pie, el acolchado
+    // de una apertura inversa— lo que hay es una guía, y una guía se coloca igual que una
+    // polea: en la prolongación del gesto hacia atrás.
+    return enLaProlongacion(camino, gesto, forma, 'recta', 0.95)
   }
 
   if (forma !== 'polea') return undefined
+  return enLaProlongacion(camino, gesto, forma, 'giro', DISTANCIA_DE_POLEA)
+}
+
+/**
+ * El anclaje puesto en la prolongación del gesto hacia atrás, a `lejos` metros.
+ *
+ * Es literalmente la frase de Bryan en un vector: si la carga sube, el anclaje queda abajo;
+ * si la mano se abre hacia la derecha, queda a la izquierda. Lo comparten la polea y la
+ * máquina de guía recta porque su mecánica, para esto, es la misma: la fuerza va por la
+ * línea que une la carga con el anclaje.
+ */
+function enLaProlongacion(
+  camino: readonly Vec3[],
+  gesto: Vec3,
+  forma: FormaDeMaquina,
+  guia: 'giro' | 'recta',
+  lejos: number,
+): AnclajeResuelto | undefined {
   const medio = camino[Math.floor(camino.length / 2)]
-  const crudo = V.restar(medio, V.escalar(gesto, DISTANCIA_DE_POLEA))
+  const crudo = V.restar(medio, V.escalar(gesto, lejos))
   const anclaje: Vec3 = [crudo[0], Math.min(POLEA_MAXIMA, Math.max(POLEA_MINIMA, crudo[1])), crudo[2]]
   return seOpone(
     {
       anclaje,
       centro: baseLibre(anclaje, camino),
       alturaDeCarga: anclaje[1],
+      guia,
       porQue:
-        'la polea se planta en la prolongación del gesto hacia atrás, para que el cable tire ' +
-        'justo en contra de la dirección en la que se hace fuerza',
+        'se planta en la prolongación del gesto hacia atrás, para que la fuerza vaya justo en ' +
+        'contra de la dirección en la que se hace fuerza',
     },
     camino,
     gesto,
@@ -320,7 +423,21 @@ function seOpone(
 ): AnclajeResuelto | undefined {
   const medio = camino[Math.floor(camino.length / 2)]
   const r = direccionDeResistencia(
-    { pieza: 'maquina', forma, agarres: [], rigida: true, radioDisco: 0, porQue: '', enElSuelo: { centro: resuelto.centro, giroGrados: 0, alturaDeCarga: resuelto.alturaDeCarga, anclaje: resuelto.anclaje } },
+    {
+      pieza: 'maquina',
+      forma,
+      agarres: [],
+      rigida: true,
+      radioDisco: 0,
+      porQue: '',
+      enElSuelo: {
+        centro: resuelto.centro,
+        giroGrados: 0,
+        alturaDeCarga: resuelto.alturaDeCarga,
+        anclaje: resuelto.anclaje,
+        guia: resuelto.guia,
+      },
+    },
     medio,
   )
   if (!r) return undefined

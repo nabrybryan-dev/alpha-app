@@ -162,6 +162,106 @@ describe('el brazo de una máquina es rígido', () => {
   )
 })
 
+describe('el brazo de la máquina tiene tamaño de máquina, y no atraviesa a nadie', () => {
+  /**
+   * EL GUARDIÁN QUE FALTABA, y lo destapó una foto. Bryan mandó el 2026-09-06 una captura
+   * del curl femoral desde el iPhone: el brazo de la máquina salía del suelo, **cruzaba el
+   * cuerpo por la cadera** y subía hasta la pila de placas. Dos causas, las dos medibles:
+   *
+   * - el acolchado se dibujaba en las MANOS —la aplicación por defecto— cuando en un curl
+   *   femoral el rodillo va en el tobillo, así que el brazo tenía que atravesar al sujeto
+   *   entero para llegar;
+   * - y sin arco que ajustar, el eje caía en la colocación de reserva —1,15 m de alto,
+   *   72 cm por detrás—, que con alguien tumbado a 32 cm del suelo queda por encima de él.
+   *
+   * El coseno no lo cazaba: una barra colocada donde sea, si queda perpendicular al gesto,
+   * saca un coseno correcto. Lo que hay que exigirle además es que sea una pieza de una
+   * máquina real y que no ocupe el sitio del cuerpo.
+   */
+  const LARGO_MAXIMO = 1.25
+  /** Un tronco adulto mide unos 32 cm de ancho, así que del eje al costado hay 16. */
+  const HOLGURA = 0.12
+
+  /** Distancia de un punto al eje del tronco: el segmento de la pelvis a la base del cuello. */
+  function alEjeDelTronco(esq: EsqueletoResuelto, q: Vec3): number {
+    const a = puntoDeHueso(esq, 'pelvis', 0)
+    const b = puntoDeHueso(esq, 'torax', 1)
+    const ab: Vec3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
+    const aq: Vec3 = [q[0] - a[0], q[1] - a[1], q[2] - a[2]]
+    const largo2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2
+    const t = Math.max(0, Math.min(1, (aq[0] * ab[0] + aq[1] * ab[1] + aq[2] * ab[2]) / largo2))
+    return Math.hypot(q[0] - (a[0] + ab[0] * t), q[1] - (a[1] + ab[1] * t), q[2] - (a[2] + ab[2] * t))
+  }
+
+  // SOLO LAS DE PLACAS, y la distincion importa: el «brazo» de una polea es un CABLE, y un
+  // cable puede medir metro y medio y puede rozar el cuerpo —en un jalon pasa por delante de
+  // la cara, en una extension de triceps por encima del hombro— sin que nada este mal. Lo
+  // que no puede atravesar a nadie ni medir dos metros es una pieza de acero.
+  const conBrazo = PATRONES.flatMap((patron) => {
+    const escena = implementosDeEscena(patron.categoria, primerEjemplo(patron))
+    const pieza = escena.piezas.find(
+      (x) => x.pieza === 'maquina' && x.forma === 'placas' && x.enElSuelo && x.agarres.length > 0,
+    )
+    return pieza ? [{ patron, pieza }] : []
+  })
+
+  it('hay máquinas de placas que medir', () => {
+    expect(conBrazo.length).toBeGreaterThan(5)
+  })
+
+  /**
+   * LA DEUDA, medida y con las dos cotas puestas.
+   *
+   * La apertura inversa en máquina es el único caso del catálogo en el que el eje natural
+   * del gesto cae DENTRO del cuerpo y no hay dónde ponerlo: los dos brazos giran alrededor
+   * de sus hombros, y una máquina no puede tener el pivote dentro del pecho de quien la usa.
+   * Una pec deck real lo resuelve con una columna DETRÁS y un varillaje que sube, cruza por
+   * encima y baja hasta cada almohadilla —una pieza doblada, no un segmento—, y eso el
+   * dibujo todavía no lo sabe hacer: hoy traza una recta del anclaje a la almohadilla y esa
+   * recta le pasa a 2,3 cm del eje del tronco.
+   *
+   * Se declara con las DOS cotas a propósito: la de arriba impide que empeore en silencio y
+   * la de abajo obliga a borrar la entrada el día que alguien dibuje el varillaje.
+   */
+  const DEUDA: Record<string, number> = { abduccion_horizontal: 0.05 }
+
+  it.each(conBrazo.map((c) => [c.patron.id, c] as const))('%s', (_id, { patron, pieza }) => {
+    const anclaje = pieza.enElSuelo!.anclaje
+    let masLargo = 0
+    let masCerca = Infinity
+    for (const f of FASES) {
+      const esq = esqueletoEnFase(patron, f)
+      let suma: Vec3 = [0, 0, 0]
+      for (const a of pieza.agarres) suma = V.sumar(suma, puntoDeHueso(esq, a.hueso, a.t, a.desvio))
+      const pad = V.escalar(suma, 1 / pieza.agarres.length)
+      masLargo = Math.max(masLargo, V.largo(V.restar(pad, anclaje)))
+      // El brazo entero, no solo sus dos puntas: lo que se veía en la foto era el TRAMO DE
+      // EN MEDIO cruzando la cadera, con las dos puntas fuera del cuerpo.
+      for (let k = 1; k < 10; k++) {
+        const q = V.sumar(anclaje, V.escalar(V.restar(pad, anclaje), k / 10))
+        masCerca = Math.min(masCerca, alEjeDelTronco(esq, q))
+      }
+    }
+    expect(
+      masLargo,
+      `${patron.id}: el brazo mide ${(masLargo * 100).toFixed(0)} cm — ninguna máquina tiene uno así`,
+    ).toBeLessThan(LARGO_MAXIMO)
+    const debe = DEUDA[patron.id]
+    if (debe !== undefined) {
+      expect(masCerca, `${patron.id}: la deuda creció, ahora pasa a ${(masCerca * 100).toFixed(1)} cm`).toBeLessThan(debe)
+      expect(
+        masCerca,
+        `${patron.id}: el brazo ya no atraviesa a nadie. Bórralo de DEUDA en vez de dejar la excepción.`,
+      ).toBeLessThan(HOLGURA)
+      return
+    }
+    expect(
+      masCerca,
+      `${patron.id}: el brazo pasa a ${(masCerca * 100).toFixed(1)} cm del eje del tronco, o sea por dentro`,
+    ).toBeGreaterThan(HOLGURA)
+  })
+})
+
 describe('con peso libre, el coseno delata una ficha animada al revés', () => {
   // Aquí no hay nada que colocar: la gravedad tira hacia abajo y punto. Así que un coseno
   // positivo solo puede querer decir que la carga BAJA de la fase 0 a la 1, o sea que la

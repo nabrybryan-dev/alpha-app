@@ -323,6 +323,12 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
     // `anclajeQueSeOpone` ajustando una circunferencia al recorrido: así el brazo dibujado
     // es RÍGIDO —mide lo mismo en las once fases— en vez de estirarse como una goma.
     const codo: Vec3 = v.anclaje ?? [c[0], v.alturaDeCarga, c[2]]
+    // EL TIRANTE QUE UNE EL BASTIDOR CON EL EJE. Desde que el eje va donde la carga gira
+    // —en la articulación que trabaja— deja de caer sobre la vertical del bastidor, y sin
+    // esta pieza el brazo sale flotando al lado del sujeto con la máquina a un metro, sin
+    // nada que los una. En una máquina real es el travesaño que sujeta el pivote.
+    const alto: Vec3 = [c[0], v.alturaDeCarga, c[2]]
+    if (V.largo(V.restar(codo, alto)) > 0.06) manto(m, alto, codo, 0.03, BASTIDOR, 8)
     manto(m, codo, v.agarre, 0.022, BASTIDOR, 8)
     cilindro(
       m,

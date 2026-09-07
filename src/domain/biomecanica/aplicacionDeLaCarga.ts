@@ -118,6 +118,25 @@ const EXCEPCIONES: readonly Excepcion[] = [
       'carga en las manos el modelo la pone a la altura de la cadera, que es donde no está.',
   },
   {
+    // EL RODILLO VA EN EL TOBILLO, y esto lo destapó una foto de Bryan del 2026-09-06: el
+    // curl femoral tumbado salía con el brazo de la máquina llegando a las MANOS, o sea un
+    // listón diagonal que atravesaba el cuerpo por la cadera. Es la aplicación por defecto
+    // —`manos`— aplicada a un ejercicio donde las manos solo se agarran a los asideros.
+    //
+    // Va por nombre además de por categoría porque el curl femoral llega casi siempre con
+    // categoría `AISLAMIENTO`, que no dice nada.
+    categorias: ['FLEXIÓN DE RODILLA', 'EXTENSIÓN DE RODILLA'],
+    nombres:
+      /CURL FEMORAL|LEG CURL|FLEXION (DE )?RODILLA|EXTENSION (DE )?RODILLA|LEG EXTENSION|CUADRICEPS EN MAQUINA|PATADA DE GLUTEO|KICKBACK/,
+    implementos: ['maquina', 'polea', 'polea-tobillera', 'guiado-vertical'],
+    aplicacion: 'tobillo',
+    porQue:
+      'En un curl femoral o una extensión de rodilla el acolchado de la máquina empuja el ' +
+      'TOBILLO: es el extremo de la palanca que gira, y por eso el brazo de la máquina se ' +
+      'dibuja de la rodilla al tobillo. Las manos solo se agarran a los asideros para no ' +
+      'despegar la cadera del apoyo.',
+  },
+  {
     categorias: ['EXTENSIÓN DE CADERA'],
     implementos: SE_APOYAN,
     aplicacion: 'pelvis',

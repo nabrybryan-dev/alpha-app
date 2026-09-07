@@ -130,7 +130,14 @@ export interface ImplementoEnEscena {
    * del sujeto exigía plantar la columna dentro de él. Separados, la columna se aparta y el
    * brazo superior la alcanza, que es como está hecha una torre de poleas de verdad.
    */
-  enElSuelo?: { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3 }
+  enElSuelo?: {
+    centro: Vec3
+    giroGrados: number
+    alturaDeCarga: number
+    anclaje: Vec3
+    /** Si la carga llega girando sobre un eje o empujando por una recta. Ver `lineaDeResistencia.ts`. */
+    guia: 'giro' | 'recta'
+  }
   /**
    * Qué parte del cuerpo sostiene, cuando la pieza es un mueble. Va en huesos y no en
    * metros a propósito: un banco se calcula CONTRA EL CUERPO —ver `banco.ts`—, porque la
@@ -307,7 +314,7 @@ function piezasQueSeLlevan(categoria: string, nombreEjercicio: string): EscenaDe
           radioDisco: 0,
           // La asistida se construye contra el cuerpo —su rodillera sube con él—, así que
           // no entrega la carga en ningún punto fijo del suelo: el anclaje es el origen.
-          enElSuelo: { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 0, anclaje: [0, 0, 0] },
+          enElSuelo: { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 0, anclaje: [0, 0, 0], guia: 'giro' },
           porQue:
             'dominada asistida: las manos fijas en la barra y las rodillas en la rodillera de la ' +
             'máquina, que sube y baja con el cuerpo',
@@ -466,6 +473,11 @@ function caminoDeLaCarga(
   return camino
 }
 
+/** El mismo recorrido, pero de UN SOLO lado. Ver `anclajeQueSeOpone`: el arco se pierde al promediar. */
+function caminoDeUnLado(patron: Patron | undefined, agarres: readonly PuntoDeAgarre[]): Vec3[] {
+  return agarres.length < 2 ? [] : caminoDeLaCarga(patron, [agarres[0]])
+}
+
 /**
  * Dónde se planta cada máquina, con el sujeto en el origen y mirando a +Z.
  *
@@ -496,26 +508,28 @@ function sueloDeMaquina(
   categoria: string,
   nombreEjercicio: string,
   agarres: readonly PuntoDeAgarre[],
-): { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3 } {
+): { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3; guia: 'giro' | 'recta' } {
   if (forma === 'polea' || forma === 'placas') {
-    const camino = caminoDeLaCarga(patronDeCategoria(categoria, nombreEjercicio), agarres)
-    const resuelto = anclajeQueSeOpone(camino, forma)
+    const patron = patronDeCategoria(categoria, nombreEjercicio)
+    const camino = caminoDeLaCarga(patron, agarres)
+    const resuelto = anclajeQueSeOpone(camino, forma, caminoDeUnLado(patron, agarres))
     if (resuelto) {
       return {
         centro: resuelto.centro,
         giroGrados: giroHacia(resuelto.centro),
         alturaDeCarga: resuelto.alturaDeCarga,
         anclaje: resuelto.anclaje,
+        guia: resuelto.guia,
       }
     }
   }
   switch (forma) {
     case 'rail-vertical':
       // El Smith envuelve al sujeto: su centro es el suyo.
-      return { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 1.35, anclaje: [0, 1.35, 0] }
+      return { centro: [0, 0, 0], giroGrados: 0, alturaDeCarga: 1.35, anclaje: [0, 1.35, 0], guia: 'recta' }
     case 'rail-inclinado':
       // La prensa se apoya donde apoyan los pies: delante, en +Z.
-      return { centro: [0, 0, 0.55], giroGrados: 0, alturaDeCarga: 0.6, anclaje: [0, 0.6, 0.55] }
+      return { centro: [0, 0, 0.55], giroGrados: 0, alturaDeCarga: 0.6, anclaje: [0, 0.6, 0.55], guia: 'recta' }
     case 'polea':
       // La columna, delante y a la vista: la tabla exige que el anclaje entre
       // en el encuadre, porque sin él no hay dirección de cable ni brazo.
@@ -524,10 +538,11 @@ function sueloDeMaquina(
         giroGrados: 180,
         alturaDeCarga: alto ? 2.2 : 0.32,
         anclaje: [0, alto ? 2.2 : 0.32, 1.15],
+        guia: 'giro',
       }
     default:
       // La de placas, detrás: el cuerpo va apoyado en ella.
-      return { centro: [0, 0, -0.72], giroGrados: 0, alturaDeCarga: 1.15, anclaje: [0, 1.15, -0.72] }
+      return { centro: [0, 0, -0.72], giroGrados: 0, alturaDeCarga: 1.15, anclaje: [0, 1.15, -0.72], guia: 'giro' }
   }
 }
 

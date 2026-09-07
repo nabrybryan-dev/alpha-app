@@ -135,7 +135,17 @@ export function apoyoQueSostiene(
   modelo: ModeloDePalanca | undefined,
   hayMaquina: boolean,
 ): ApoyoDelCuerpo | undefined {
-  if (hayMaquina) return undefined
+  // 0. QUIEN ESTÁ TUMBADO NECESITA CAMILLA, tenga máquina o no tenga.
+  //
+  //    La regla de abajo —«donde hay máquina no va mueble»— se escribió para no dibujar dos
+  //    asientos encima, y para un sujeto SENTADO es correcta: la máquina de placas trae su
+  //    asiento y su respaldo. Pero a un curl femoral tumbado esos treinta centímetros de
+  //    respaldo no le sostienen nada, y el 2026-09-06 Bryan mandó la foto: el sujeto boca
+  //    abajo flotando a 32 cm del suelo, sin nada debajo.
+  //
+  //    Se distingue por el giro que la ficha ya declara, igual que la regla 5 de abajo: es
+  //    un dato del catálogo, no una estimación.
+  if (hayMaquina) return tumbadoEnMaquina(patron)
 
   // 1. Lo que el propio patrón declara que apoya ADEMÁS de los pies. Es la vía más
   //    directa que hay: `apoyosExtra` existe porque el equilibrio no se puede comprobar
@@ -180,17 +190,44 @@ export function apoyoQueSostiene(
   //    El sujeto tumbado se reconoce por el giro de la raíz que la ficha declara, que es un
   //    dato del catálogo y no una estimación: entre 60 y 120 grados el cuerpo está acostado.
   const giro = patron?.giroInicio ?? patron?.giro
-  const tumbado = giro !== undefined && Math.abs(giro[0]) >= 60 && Math.abs(giro[0]) <= 120
-  if (tumbado) {
+  if (estaTumbado(patron)) {
     return {
       desde: ['pelvis', 0.1],
       hasta: ['torax', 1],
       ancho: 0.15,
       conPatas: true,
-      porQue: `el sujeto va tumbado (giro ${Math.round(giro[0])}°) y no apoya en el suelo`,
+      porQue: `el sujeto va tumbado (giro ${Math.round(giro![0])}°) y no apoya en el suelo`,
     }
   }
   return undefined
+}
+
+/** El sujeto va acostado: el giro de la raíz que la ficha declara ronda el cuarto de vuelta. */
+function estaTumbado(patron: Patron | undefined): boolean {
+  const giro = patron?.giroInicio ?? patron?.giro
+  return giro !== undefined && Math.abs(giro[0]) >= 60 && Math.abs(giro[0]) <= 120
+}
+
+/**
+ * La camilla de quien entrena tumbado EN una máquina.
+ *
+ * De la mitad del tórax a la mitad del muslo, que es lo que apoya en un curl femoral o en
+ * una extensión de rodilla: el tronco entero y los fémures, con la rodilla justo en el borde
+ * —por eso llega a 0,85 del muslo y no al final—. Ancha, porque una camilla lo es.
+ */
+function tumbadoEnMaquina(patron: Patron | undefined): ApoyoDelCuerpo | undefined {
+  // QUIEN PISA EL SUELO NO ESTÁ TUMBADO, aunque tenga el tronco muy inclinado. Es la misma
+  // línea que la regla 2 de más abajo y aquí vale por dos casos: la apertura inversa declara
+  // 60° de giro y el remo en máquina 27° de tronco medido, y los dos se hacen DE PIE,
+  // doblados por la cadera. Una camilla debajo de un remo sería un mueble en el aire.
+  if (!estaTumbado(patron) || patron?.apoyo === 'suelo') return undefined
+  return {
+    desde: ['torax', 0.85],
+    hasta: ['musloD', 0.85],
+    ancho: 0.17,
+    conPatas: true,
+    porQue: 'el sujeto entrena tumbado en la máquina y el respaldo de la pila no le sostiene',
+  }
 }
 
 /** Cuánto se separa el acolchado del hueso que sostiene: la carne de en medio. */
