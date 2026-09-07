@@ -361,6 +361,36 @@ export const PATRONES: Patron[] = [
     camara: { azimut: 52, elevacion: 6 },
   },
   {
+    id: 'flexion_rodilla_sentado',
+    cadena: 'abierta',
+    categoria: 'FLEXIÓN DE RODILLA SENTADO',
+    titulo: 'Flexión de rodilla sentado',
+    ejemplos: 'Flexión de rodilla sentado en máquina · Curl femoral sentado',
+    resumen:
+      'El mismo curl femoral, sentado y con la cadera flexionada: el isquio arranca más largo que tumbado, y por eso esta versión le pide más recorrido útil.',
+    claves: [
+      'El muslo sujeto por el acolchado y la espalda en el respaldo: si la cadera se levanta, el glúteo está ayudando.',
+      'Lleva el talón hacia el asiento sin tirar con la punta del pie.',
+      'Baja controlando hasta casi estirar, sin bloquear la rodilla.',
+    ],
+    errores: [
+      'Despegar la cadera del asiento para ganar recorrido.',
+      'Soltar la bajada, que es la mitad del ejercicio.',
+    ],
+    apoyo: 'ninguno',
+    // SENTADO, no tumbado. Hasta el 2026-09-07 «Curl femoral sentado» y «FLEXIÓN DE RODILLA
+    // SENTADO» caían en la ficha tumbada —giro 90, boca abajo, con camilla—: un «sentado»
+    // boca abajo. Bryan lo vio en el iPhone. La misma silla que la extensión de rodilla,
+    // con la rodilla yendo de casi estirada delante a doblada bajo el asiento.
+    raizInicio: [0, -0.45, 0],
+    raizFin: [0, -0.45, 0],
+    inicio: { caderaFlex: 86, rodillaFlex: 6, toraxFlex: -6, hombroFlex: 22, codoFlex: 44 },
+    fin: { caderaFlex: 88, rodillaFlex: 112, toraxFlex: -8, hombroFlex: 20, codoFlex: 40 },
+    activacion: { 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.9, 'triceps_sural.gastro_medial': 0.35, 'triceps_sural.gastro_lateral': 0.3, gluteo_mayor: 0.2 },
+    seguimiento: ['pie', 0.3, [0, 0, 0]],
+    camara: { azimut: 58, elevacion: 8 },
+  },
+  {
     id: 'flexion_plantar',
     cadena: 'cerrada',
     categoria: 'FLEXIÓN PLANTAR',
@@ -1684,7 +1714,14 @@ const POR_NOMBRE: [RegExp, string][] = [
   // del barrido: 8 de los 27 ejercicios del seed —el 30 %— se quedaban sin
   // sujeto por esto, y ninguno necesitaba una ficha nueva. Necesitaban que
   // alguien mirara el nombre.
+  // ANTES que el curl femoral a secas: «Curl femoral sentado» llega con categoría
+  // AISLAMIENTO, y ahí las variantes por nombre no entran —solo lo hacen cuando la
+  // categoría ha acertado una ficha—, así que la silla hay que elegirla aquí.
+  [/curl femoral sentad|leg curl sentad|flexi[oó]n de rodilla sentad/, 'flexion_rodilla_sentado'],
   [/curl femoral|leg curl/, 'flexion_rodilla'],
+  // «Extensión de rodilla» llega también con categoría AISLAMIENTO, y sin esta línea se
+  // quedaba sin sujeto. Medido el 2026-09-07 sobre los nombres reales.
+  [/extensi[oó]n de rodilla|leg extension|extensi[oó]n de cu[aá]driceps/, 'extension_rodilla'],
   [/abducci[oó]n de cadera|abductor/, 'abduccion_cadera'],
   [/elevaci[oó]n(es)? lateral|lateral raise/, 'abduccion_hombro'],
   [/curl de b[ií]ceps|curl b[ií]ceps|curl martillo|curl concentrado|curl predicador/, 'flexion_codo'],
@@ -1723,6 +1760,9 @@ const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
   // la de máquina se sienta de frente al aparato y es otra ficha. El face pull NO entra: es
   // polea, y de pie.
   abduccion_horizontal: [[/m[aá]quina|pec ?deck|peck ?deck|contractor/, 'apertura_inversa_maquina']],
+  // El curl femoral SENTADO tiene otra silla y otra ficha; el tumbado y el de pie siguen en la
+  // de siempre.
+  flexion_rodilla: [[/sentad/, 'flexion_rodilla_sentado']],
   // El orden importa: la asistida antes que la dominada a secas, que también dice «dominada».
   traccion_vertical: [
     [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],
