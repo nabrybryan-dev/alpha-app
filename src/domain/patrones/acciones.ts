@@ -119,14 +119,23 @@ function tensionSobre(patron: Patron, art: Articulacion): number {
 
 // --- Cálculo ----------------------------------------------------------------
 
-function valorDe(pose: Record<string, number>, canal: string): number {
-  // Un canal puede venir por lado; se toma el que más se mueve de los dos.
-  const d = pose[canal + 'D']
-  const i = pose[canal + 'I']
-  if (d !== undefined || i !== undefined) {
-    return Math.abs(d ?? 0) >= Math.abs(i ?? 0) ? (d ?? 0) : (i ?? 0)
-  }
-  return pose[canal] ?? 0
+/**
+ * De dónde a dónde va un canal entre las dos poses. Un canal puede venir por lado, y
+ * entonces se toma EL LADO QUE MÁS SE MUEVE, elegido una sola vez con las dos poses
+ * delante. Hasta el 2026-09-07 se elegía el lado en cada pose por separado —el de mayor
+ * valor absoluto—, y una marcha en espejo (D: 26→−12, I: −12→26) leía 26 en el inicio
+ * y 26 en el fin: cero recorrido, «caminata_en_cinta no mueve nada».
+ */
+function tramoDe(
+  poseInicio: Record<string, number>,
+  poseFin: Record<string, number>,
+  canal: string,
+): { desde: number; hasta: number } {
+  const lados = ['D', 'I']
+    .filter((l) => poseInicio[canal + l] !== undefined || poseFin[canal + l] !== undefined)
+    .map((l) => ({ desde: poseInicio[canal + l] ?? 0, hasta: poseFin[canal + l] ?? 0 }))
+  if (lados.length === 0) return { desde: poseInicio[canal] ?? 0, hasta: poseFin[canal] ?? 0 }
+  return lados.reduce((a, b) => (Math.abs(b.hasta - b.desde) > Math.abs(a.hasta - a.desde) ? b : a))
 }
 
 /**
@@ -180,8 +189,7 @@ export function accionesDelPatron(patron: Patron): ResumenArticular[] {
       // aquí: en una bisagra, que la pelvis rote sobre el fémur ya se está
       // diciendo como «flexión de cadera», y contarlo dos veces —una como cadera
       // y otra como pelvis— confunde en vez de explicar.
-      const desde = valorDe(poseInicio, eje.canal)
-      const hasta = valorDe(poseFin, eje.canal)
+      const { desde, hasta } = tramoDe(poseInicio, poseFin, eje.canal)
       const recorrido = Math.abs(hasta - desde)
       if (recorrido < 3) continue
       acciones.push({

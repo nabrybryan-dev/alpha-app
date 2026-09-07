@@ -76,16 +76,36 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
     pose[clave] !== undefined ? grados(pose[clave]) : porDefecto
 
   /**
-   * Flexión en el plano sagital del CUERPO, no en el eje ya girado del hueso
-   * padre. Sin esto, con el hombro abducido —un press de banca— cada codo se
-   * doblaba hacia un lado distinto: la abducción lleva signo opuesto por lado y
-   * arrastraba consigo el eje sobre el que después gira el codo.
+   * UNA BISAGRA COLGADA DE SU HUESO PADRE: el codo gira sobre el eje del húmero, la rodilla
+   * sobre el del fémur. Es un `Rx` a secas en el marco del padre, y `ry` es el giro dentro
+   * de ese mismo plano (la desviación de la muñeca).
+   *
+   * ## Qué había antes, y qué costaba
+   *
+   * Hasta el 2026-09-07 esto deshacía la abducción del padre, flexionaba en el plano sagital
+   * del CUERPO y la volvía a poner: `Rz(-abd)·Rx(-flexión)·Rz(abd)`. Nació para que los dos
+   * codos no se doblaran «hacia lados distintos» con el hombro abducido —pero es que un
+   * cuerpo ES simétrico: el codo derecho y el izquierdo se doblan en espejo—.
+   *
+   * Lo que costaba se puede escribir en una línea. Encadenando las matrices, el ángulo que
+   * de verdad formaban húmero y antebrazo NO era el escrito:
+   *
+   *     cos(codo real) = sin²(abducción) + cos²(abducción) · cos(codo escrito)
+   *
+   * Con el hombro pegado al costado no pasaba nada. Con el hombro a 90° —cualquier press,
+   * cualquier apertura— daba `cos = 1`: **el codo desaparecía**, el antebrazo se alineaba
+   * con el húmero por muy doblado que dijera la ficha. Medido sobre el catálogo entero el
+   * 2026-09-07: el press de banca escribía el codo a 100° y enseñaba 60°; el jalón al pecho
+   * escribía 130 y enseñaba 90; la apertura de pecho escribía 30 —«el codo mantiene su
+   * ángulo», dice su propia clave— y enseñaba 3, un brazo recto. Seis patrones perdían más
+   * de 15°. Es el «hacen acciones en el codo que no puede hacer» de Bryan.
+   *
+   * Ahora el ángulo del codo ES el que escribe la ficha, en cualquier postura del hombro, y
+   * hacia dónde apunta el antebrazo lo decide la rotación del húmero, que es de donde sale
+   * en un cuerpo de verdad. La rodilla iba igual de mal por la abducción de cadera, pero ahí
+   * los ángulos son pequeños y solo la sentadilla perdía 10°.
    */
-  const sagital = (rx: number, giroPadre: number, ry = 0): Mat4 =>
-    M4.multiplicar(
-      M4.girarZ(-giroPadre),
-      M4.multiplicar(M4.euler(rx, ry, 0), M4.girarZ(giroPadre)),
-    )
+  const sagital = (rx: number, _giroPadre: number, ry = 0): Mat4 => M4.euler(rx, ry, 0)
 
   // Tronco. Flexión positiva es hacia delante; el signo negativo lo echaba
   // hacia atrás, que es el error que hacía leer una bisagra como sentadilla.

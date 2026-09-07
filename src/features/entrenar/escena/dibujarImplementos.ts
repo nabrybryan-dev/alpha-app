@@ -214,6 +214,108 @@ export interface VolumenDeMaquina {
    * delante y 30 cm por debajo de donde caian los pies de alguien sentado en su asiento.
    */
   cuerpo?: { pelvis: Vec3; torax: Vec3 }
+  /** Los dos pies (tobillo y punta) y las dos manos, para las máquinas de cardio. */
+  extremidades?: { pieD: [Vec3, Vec3]; pieI: [Vec3, Vec3]; manoD: Vec3; manoI: Vec3 }
+}
+
+/**
+ * LAS MÁQUINAS DE CARDIO, construidas contra el cuerpo.
+ *
+ * Ninguna se planta en un sitio fijo: la cinta va bajo los pies, la escaladora pone sus
+ * peldaños donde pisan, la bici su sillín bajo la pelvis y sus pedales en los pies, y la
+ * elíptica sus plataformas en los pies y sus barras en las manos. Es la misma regla del
+ * banco y de la prensa: la altura a la que el catálogo pone a cada sujeto no es la misma, y
+ * una máquina en coordenadas fijas deja a uno flotando y a otro dentro del tapizado.
+ */
+function construirMaquinaDeCardio(m: Malla, v: VolumenDeMaquina): void {
+  const e = v.extremidades
+  if (!e) return
+  const [tobD, puntaD] = e.pieD
+  const [tobI, puntaI] = e.pieI
+  const pies = [tobD, puntaD, tobI, puntaI]
+  const bajo = Math.min(...pies.map((p) => p[1]))
+  const centroX = (tobD[0] + tobI[0]) / 2
+  const centroZ = (tobD[2] + tobI[2] + puntaD[2] + puntaI[2]) / 4
+
+  if (v.forma === 'cinta') {
+    // La banda bajo los pies, larga en Z para que la zancada quepa entera; el bastidor
+    // delante con la consola, a la altura de las manos.
+    // La banda a 4,5 cm y el bastidor debajo, a ras: ni un vertice bajo la goma del suelo.
+    const y = Math.max(0.045, bajo - 0.09)
+    caja(m, [centroX, y, centroZ], [0.42, 0.02, 0.95], 0, PLACA)
+    caja(m, [centroX, y - 0.025, centroZ], [0.46, 0.02, 1.0], 0, BASTIDOR)
+    for (const lado of [-1, 1]) {
+      caja(m, [centroX + lado * 0.36, 0.55, centroZ + 0.78], [0.03, 0.55, 0.03], 0, BASTIDOR)
+      caja(m, [centroX + lado * 0.36, 0.98, centroZ + 0.3], [0.03, 0.03, 0.5], 0, BASTIDOR)
+    }
+    caja(m, [centroX, 1.22, centroZ + 0.8], [0.38, 0.2, 0.06], 0, PLACA)
+    return
+  }
+
+  if (v.forma === 'escaladora') {
+    // Tres peldaños que suben hacia delante, el de en medio bajo el pie más alto; las
+    // barandillas a la altura de las manos.
+    const pisa = Math.max(0.02, bajo - 0.07)
+    for (let k = 0; k < 3; k++) {
+      caja(m, [centroX, pisa + k * 0.18 + 0.02, centroZ - 0.15 + k * 0.26], [0.3, 0.02, 0.15], 0, PLACA)
+    }
+    caja(m, [centroX, 0.3, centroZ + 0.1], [0.32, 0.3, 0.42], 0, BASTIDOR)
+    for (const lado of [-1, 1]) {
+      const alto = (e.manoD[1] + e.manoI[1]) / 2
+      caja(m, [centroX + lado * 0.36, alto / 2, centroZ + 0.3], [0.025, alto / 2, 0.025], 0, BASTIDOR)
+      caja(m, [centroX + lado * 0.36, alto, centroZ], [0.025, 0.025, 0.42], 0, BASTIDOR)
+    }
+    return
+  }
+
+  if (v.forma === 'bicicleta') {
+    // El sillín bajo la pelvis, el manillar en las manos, la biela entre los dos pies.
+    const pelvis = v.cuerpo?.pelvis ?? [centroX, 0.9, centroZ]
+    const eje: Vec3 = [centroX, (tobD[1] + tobI[1]) / 2, (tobD[2] + tobI[2]) / 2]
+    caja(m, [pelvis[0], pelvis[1] - 0.09, pelvis[2] - 0.04], [0.09, 0.03, 0.14], 0, TAPIZADO)
+    manto(m, [pelvis[0], pelvis[1] - 0.12, pelvis[2] - 0.04], [eje[0], eje[1] + 0.06, eje[2] - 0.12], 0.03, BASTIDOR, 8)
+    manto(m, [eje[0], 0.12, eje[2]], [eje[0], eje[1], eje[2]], 0.03, BASTIDOR, 8)
+    caja(m, [eje[0], 0.05, eje[2]], [0.3, 0.05, 0.42], 0, BASTIDOR)
+    cilindro(m, [eje[0] - 0.12, eje[1], eje[2]], [eje[0] + 0.12, eje[1], eje[2]], 0.04, PLACA, 10)
+    for (const tob of [tobD, tobI]) manto(m, eje, [tob[0], tob[1], tob[2]], 0.012, BASTIDOR, 6)
+    const manillar: Vec3 = [(e.manoD[0] + e.manoI[0]) / 2, (e.manoD[1] + e.manoI[1]) / 2, (e.manoD[2] + e.manoI[2]) / 2]
+    manto(m, [eje[0], eje[1] + 0.1, eje[2] + 0.05], [manillar[0], manillar[1] - 0.04, manillar[2]], 0.03, BASTIDOR, 8)
+    cilindro(m, e.manoD, e.manoI, 0.015, BASTIDOR, 8)
+    return
+  }
+
+  if (v.forma === 'remo') {
+    // Un carril largo con el carro debajo de la pelvis, la caja del volante delante con los
+    // reposapiés, y la cadena del volante al mango que llevan las manos.
+    const pelvis = v.cuerpo?.pelvis ?? [centroX, 0.4, centroZ]
+    const frente: Vec3 = [centroX, 0.1, Math.max(...pies.map((p) => p[2])) + 0.34]
+    caja(m, [centroX, 0.16, centroZ + 0.1], [0.05, 0.03, 1.0], 0, BASTIDOR)
+    caja(m, [centroX, 0.06, centroZ - 0.75], [0.24, 0.05, 0.16], 0, BASTIDOR)
+    caja(m, [pelvis[0], pelvis[1] - 0.07, pelvis[2]], [0.16, 0.035, 0.2], 0, TAPIZADO)
+    caja(m, [frente[0], 0.32, frente[2] + 0.12], [0.22, 0.3, 0.16], 0, BASTIDOR)
+    cilindro(m, [frente[0] - 0.03, 0.5, frente[2] + 0.12], [frente[0] + 0.03, 0.5, frente[2] + 0.12], 0.15, PLACA, 14)
+    for (const [tob, punta] of [e.pieD, e.pieI]) {
+      const c: Vec3 = [(tob[0] + punta[0]) / 2, (tob[1] + punta[1]) / 2 - 0.02, (tob[2] + punta[2]) / 2 + 0.04]
+      caja(m, c, [0.09, 0.13, 0.03], 0, PLACA)
+    }
+    const mango: Vec3 = [(e.manoD[0] + e.manoI[0]) / 2, (e.manoD[1] + e.manoI[1]) / 2, (e.manoD[2] + e.manoI[2]) / 2]
+    manto(m, [frente[0], 0.5, frente[2] + 0.05], mango, 0.008, BASTIDOR, 6)
+    cilindro(m, e.manoD, e.manoI, 0.014, BASTIDOR, 8)
+    return
+  }
+
+  if (v.forma === 'eliptica') {
+    // Una plataforma bajo cada pie —van con él— y una barra a cada mano; el eje detrás.
+    for (const [tob, punta] of [e.pieD, e.pieI]) {
+      const c: Vec3 = [(tob[0] + punta[0]) / 2, Math.min(tob[1], punta[1]) - 0.04, (tob[2] + punta[2]) / 2]
+      caja(m, c, [0.08, 0.02, 0.18], 0, PLACA)
+    }
+    const eje: Vec3 = [centroX, 0.45, centroZ - 0.55]
+    caja(m, [eje[0], 0.06, eje[2]], [0.3, 0.06, 0.3], 0, BASTIDOR)
+    caja(m, [eje[0], eje[1] / 2, eje[2]], [0.06, eje[1] / 2, 0.06], 0, BASTIDOR)
+    for (const mano of [e.manoD, e.manoI]) manto(m, [eje[0], eje[1], eje[2] + 0.3], mano, 0.02, BASTIDOR, 8)
+    return
+  }
 }
 
 /**
@@ -229,6 +331,10 @@ export interface VolumenDeMaquina {
  * distingue.
  */
 export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
+  if (v.forma === 'cinta' || v.forma === 'escaladora' || v.forma === 'bicicleta' || v.forma === 'eliptica' || v.forma === 'remo') {
+    construirMaquinaDeCardio(m, v)
+    return
+  }
   const c = v.centro
   const g = v.giroGrados
 
@@ -447,9 +553,15 @@ export function construirPieza(m: Malla, p: ImplementoEnEscena, esq: EsqueletoRe
         agarres: puntos,
         porLado: s.porLado,
         cuerpo:
-          p.forma === 'rail-inclinado'
+          p.forma === 'rail-inclinado' || p.forma === 'bicicleta'
             ? { pelvis: puntoDeHueso(esq, 'pelvis', 0), torax: puntoDeHueso(esq, 'torax', 1) }
             : undefined,
+        extremidades: {
+          pieD: [puntoDeHueso(esq, 'tibiaD', 1), puntoDeHueso(esq, 'pieD', 1)],
+          pieI: [puntoDeHueso(esq, 'tibiaI', 1), puntoDeHueso(esq, 'pieI', 1)],
+          manoD: puntoDeHueso(esq, 'manoD', 0.45),
+          manoI: puntoDeHueso(esq, 'manoI', 0.45),
+        },
         agarre: puntos.length >= 2 ? V.escalar(V.sumar(puntos[0], puntos[1]), 0.5) : puntos[0],
       })
       break
