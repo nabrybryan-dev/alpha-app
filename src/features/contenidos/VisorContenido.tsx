@@ -1,8 +1,10 @@
 import type { Contenido } from '../../domain/types'
+import { esVideoDirecto } from '../../lib/videoDirecto'
 import { idDeYoutube } from '../../lib/youtube'
 
 export function VisorContenido({ contenido }: { contenido: Contenido }) {
   const videoId = contenido.tipo === 'video' ? idDeYoutube(contenido.url) : undefined
+  const directo = contenido.tipo === 'video' && esVideoDirecto(contenido.url)
 
   return (
     <div className="flex flex-col gap-3">
@@ -19,6 +21,18 @@ export function VisorContenido({ contenido }: { contenido: Contenido }) {
             allowFullScreen
           />
         </div>
+      ) : directo ? (
+        // `playsInline` es lo que evita que el iPhone se lleve el vídeo a pantalla
+        // completa al tocarlo; `preload="metadata"` trae la duración y el primer
+        // fotograma sin descargar los megas hasta que la persona le da al play.
+        <video
+          src={contenido.url}
+          title={contenido.titulo}
+          controls
+          playsInline
+          preload="metadata"
+          className="aspect-video w-full rounded-xl border border-linea bg-black"
+        />
       ) : contenido.tipo === 'imagen' && contenido.url ? (
         <img
           src={contenido.url}
