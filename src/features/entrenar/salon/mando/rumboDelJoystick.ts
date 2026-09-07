@@ -40,6 +40,47 @@ export function rumboDelJoystick(dx: number, dy: number): RumboDelMando {
   return dy < 0 ? 'arriba' : 'abajo'
 }
 
+/**
+ * CUÁNTO HAY QUE AGUANTAR EL DISCO PARA QUEDARSE CON EL TIEMPO DE LA REPETICIÓN.
+ *
+ * Cuatrocientos veinte milisegundos, y el número separa dos gestos que salen del mismo
+ * contacto: un tirón —el que cambia lo que cuenta la pared— se hace y se suelta en menos
+ * de eso; aguantar es otra intención. Es el mismo reparto que ya usa el cuerpo entre tocar
+ * y hundirse (`capas/hundirEnElCuerpo.ts`, 320 ms), un pelo más largo porque aquí el
+ * tirón corto tiene que seguir siendo cómodo.
+ *
+ * Solo se toma el tiempo si el dedo NO ha salido de la zona muerta cuando vence: quien ya
+ * está tirando hacia un lado está pidiendo otra cosa.
+ */
+export const ESPERA_DEL_RECORRIDO = 420
+
+/**
+ * CUÁNTO DEDO ES UNA REPETICIÓN ENTERA, en píxeles.
+ *
+ * Ciento ochenta: algo menos de la mitad del ancho de un teléfono, así que la repetición
+ * entera cabe en un barrido del pulgar sin soltar y sin llegar al borde. Más corto y cada
+ * píxel salta media fase —no se puede parar en el punto que se quiere mirar—; más largo y
+ * no se llega al final sin recolocar la mano.
+ */
+export const RECORRIDO_COMPLETO = 180
+
+/**
+ * EN QUÉ FASE DEJA EL DEDO LA DEMOSTRACIÓN.
+ *
+ * De 0 (arriba, antes de bajar) a 1 (el fondo del recorrido). Hacia la derecha avanza el
+ * gesto y hacia la izquierda se rebobina, que es el sentido en el que se lee una línea de
+ * tiempo en cualquier reproductor.
+ *
+ * Es proporcional y con topes, no circular: pasarse por la derecha deja la fase en 1 y
+ * quieta. Dar la vuelta al llegar al final convertiría un dedo que se pasa un poco en una
+ * repetición entera hacia atrás.
+ */
+export function faseDelRecorrido(dx: number, faseAlAgarrar: number): number {
+  const base = Number.isFinite(faseAlAgarrar) ? faseAlAgarrar : 0
+  if (!Number.isFinite(dx)) return Math.min(1, Math.max(0, base))
+  return Math.min(1, Math.max(0, base + dx / RECORRIDO_COMPLETO))
+}
+
 /** Dónde se pinta el disco mientras el dedo lo lleva, ya amarrado. */
 export function tiroDelDisco(dx: number, dy: number): { x: number; y: number } {
   const largo = Math.hypot(dx, dy)

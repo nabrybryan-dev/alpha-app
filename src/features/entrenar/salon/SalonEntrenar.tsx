@@ -39,6 +39,7 @@ import { leerHuellaArticular } from '../encoder/huellasArticulares'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
 import { LOGRO_MS, RELEVO_MS, loQuePasaAlGuardar } from './registro/despuesDeGuardar'
 import { Joystick } from './mando/Joystick'
+import { faseAhora, irALaFase, pausarLaRepeticion, reanudarLaRepeticion } from '../visor/controlDelTiempo'
 import { CamaraDelSalon } from './camara/CamaraDelSalon'
 import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './mando/relojDelMuro'
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
@@ -1018,6 +1019,16 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             <CamaraDelSalon ejercicio={ejercicio} microcicloId={props.microciclo.id} />
             <Joystick
               encendido={modoReloj !== 'sesion' || cargaEnLaPared}
+              // EL TIEMPO DE LA REPETICIÓN, que no es el de la pared. Aguantar el disco
+              // para la demostración y el dedo la recorre; al soltar, sigue por donde la
+              // dejaron. Ni el descanso ni el reloj de sesión se enteran: este gesto no
+              // emite rumbo, así que `onSoltar` —el que cambia de modo— no llega a correr.
+              onTomarElTiempo={() => {
+                pausarLaRepeticion()
+                return faseAhora()
+              }}
+              onRecorrer={irALaFase}
+              onSoltarElTiempo={reanudarLaRepeticion}
               onSoltar={(rumbo) => {
                 if (rumbo === 'arriba') {
                   // La carga ocupa el hueco del reloj un rato y se va sola: es un dato que
