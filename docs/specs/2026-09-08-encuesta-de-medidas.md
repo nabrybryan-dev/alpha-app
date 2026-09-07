@@ -105,19 +105,3 @@ comprueba que entonces sí entra. No cuenta filas para saber si se guardó: `agr
 reemplaza la medición del mismo día, así que contar no distingue «no se guardó» de «se
 guardó encima» — se compara el contenido.
 
-## Qué queda
-
-- **Las dos mitades ya encajan.** El catálogo, los rangos y el validador son de la capa de
-  datos (`src/domain/medidas.ts`, PR #226) y este formulario los consume: no hay una sola
-  etiqueta ni un solo rango escritos dos veces. Al llamar la ficha a `revisarMedidas`, su
-  entrada en `HUERFANOS_DE_ENTRENAR` deja de hacer falta y se ha quitado.
-- **Los registros viejos no se migran.** Lo que hay en `perimetros` («Cadera», «Glúteos»,
-  «Abdomen medio») se queda donde está y se sigue enseñando; nadie lo traduce a las claves
-  nuevas. Unir las dos series es una decisión de datos, no de la ficha.
-- **Nadie usa todavía las seis longitudes para dibujar el sujeto.** El visor ya sabe
-  recibir `ProporcionesDelCuerpo` (fémur, tibia y torso como razones), y hoy esas
-  proporciones salen de una pista de pose medida (`cuerpoDelAsesorado`), no de la ficha.
-  Enchufar estas medidas ahí es el paso siguiente y no es de esta tarea.
-- **Un solo lado.** Se pide una tibia, un fémur, un antebrazo y un brazo, no izquierdo y
-  derecho. Una asimetría real existe y no se va a ver aquí; pedir dieciséis campos para
-  cazarla habría hundido el formulario.

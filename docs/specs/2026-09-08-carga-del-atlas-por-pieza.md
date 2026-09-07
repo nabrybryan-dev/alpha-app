@@ -21,7 +21,7 @@ Dos cosas, las dos en `visor/cargaDelAtlas.ts`, y ninguna en `VisorPatron.tsx`.
 
 **1. `cargarPiezas` pide LO QUE FALTA, no la lista.** Hay una memoria de módulo
 (`entregadas`) con las piezas cuyos bytes llegaron, se leyeron bien y se entregaron. Cada
-llamada recorre la lista y se salta las que ya están; la que falló queda pendiente y se
+llamada recorre la lista y se salta las que ya están; la que falló sigue faltando y se
 vuelve a pedir en la siguiente ocasión. Una pieza que llega con la llamada ya cancelada
 —el visor se desmontó por el camino— **no** se da por entregada: nadie la guardó, así que
 sigue faltando.
@@ -75,17 +75,3 @@ Las tres pruebas del cargador usan listas con nombres propios (`falla-*`, `sinre
 `unavez-*`) y no las piezas de verdad: la memoria de lo que ya llegó es de módulo —tiene
 que serlo, o volver a abrir la anatomía se bajaría el megabyte otra vez— y dos pruebas
 sobre la misma pieza se contaminarían la una a la otra.
-
-## Qué queda
-
-- **El reintento no tiene espera ni cuenta atrás.** Se reintenta cuando el visor vuelve a
-  pedir (cada vez que se enciende o apaga una capa del cuerpo, que es cuando cambia la
-  prop `atlas`) y cuando el navegador avisa de que hay red. No hay backoff: un bucle de
-  reintentos por temporizador contra un CDN caído es un martillo, y aquí lo que falta se
-  ve —el cuerpo sin músculos— así que la persona ya tiene un motivo para tocar algo.
-- **Nadie avisa de que falta una pieza.** Si el esqueleto llega y los músculos no, el
-  cuerpo se abre sin músculos y no lo dice. Ponerle un aviso es de la capa de interfaz y
-  no entra en esta tarea; queda escrito aquí para que se decida a propósito.
-- **La sala del salón pasa por el mismo cargador** y se lleva la mejora de balde: hoy es
-  una sola pieza, así que lo único que cambia para ella es que no se vuelve a pedir si ya
-  está.

@@ -122,17 +122,3 @@ parte.
 La tercera existe para que la segunda signifique algo: si el instrumento no supiera mover
 el rótulo del muro, «vale lo mismo antes y después» sería verde en vacío. Con un tirón
 corto a la izquierda el muro pasa a contar el descanso, y eso se ve.
-
-## Qué queda
-
-- **La velocidad no tiene mando todavía.** `ponerLaVelocidad` está construida y probada
-  por el tipo, pero ningún gesto la llama: el disco solo pausa y recorre. Cuando se decida
-  el gesto (lo natural sería el eje vertical del mismo disco mientras se recorre) ya hay
-  dónde enchufarlo, y el cambio no dará saltos.
-- **El estado del tiempo es de módulo**, así que dos visores a la vez compartirían mando.
-  Hoy solo hay uno montado a la vez; si algún día hay dos, esto pide un identificador.
-- **Nadie avisa de que la demostración está pausada** más que la propia demostración. Es a
-  propósito —un cartel encima del sujeto rompería la regla del salón— pero conviene que la
-  decisión esté escrita: si alguien la echa de menos, el sitio es la pared, no el mando.
-- **El testigo con toque emulado lo levanta la capa de pruebas.** Aquí queda dicho el
-  selector, el gesto y las coordenadas.

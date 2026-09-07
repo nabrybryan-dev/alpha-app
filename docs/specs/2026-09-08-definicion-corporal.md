@@ -235,17 +235,3 @@ alguien pase medio cuerpo.
   `npx vite-node informes/definicion-corporal.mjs`.
 - `src/domain/patrones/juegoDeHuesos.test.ts` — sin tocar, 26 en verde: el camino por
   defecto no se movió.
-
-## 5. Lo que sigue sin resolverse
-
-- **La anchura de hombros y la planta del pie no se miden** (ya lo decía `estatura.ts`).
-  Siguen escaladas con la estatura, o sea con la proporción del atlas.
-- **`encuadrar()` recorre `ESQUELETO`** —el juego neutro— para juntar los puntos del cuerpo,
-  y `patron.foco` busca el padre del hueso ahí mismo. Hoy da igual porque los tres juegos
-  tienen los mismos nombres y los mismos padres, pero es un tercer sitio del que sale una
-  lista de huesos y conviene que deje de serlo.
-- **Las proporciones solo salen de una pista de pose.** Cuando la ficha pida las ocho
-  medidas con cinta (ver `2026-09-08-medidas-en-el-dominio.md`), habrá una segunda fuente
-  para fémur, tibia, torso y antebrazo, y habrá que decidir cuál manda. La respuesta
-  probable es la cinta —está medida en centímetros, la pista solo da razones— pero eso es
-  otra tanda y no se decide de pasada.

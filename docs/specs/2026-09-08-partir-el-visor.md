@@ -221,22 +221,3 @@ Mientras eso siga así, `todoCero` de ese testigo no puede llegar a `true` ni co
 de `main` a los dos lados, y el acta que deja
 (`informes/testigo-partir-el-visor.json`, `todoCero: false`) está midiendo su propio arnés.
 
-## Qué queda
-
-- **El estado de React del tiempo no se movió.** `const [fase, setFase]` y
-  `const [reproduciendo, setReproduciendo]` siguen dentro de `VisorPatron`, porque son
-  estado del componente (mandan sobre su deslizador y su botón) y sacarlos obligaba a
-  añadir una llamada a un hook — una línea que no es un import, y el contrato de esta
-  tarea dice que estos dos archivos solo pierden líneas. `controlDelTiempo.ts` se queda
-  con la aritmética y con el sitio donde el mando del salón va a poder pausar y recorrer
-  la demostración (tarea `tiempo-de-la-repeticion`).
-- **`cargaDelAtlas.ts` todavía carga como cargaba**: una descarga parcial no se puede
-  reintentar porque el efecto del visor se corta con `atlasCargado.size > 0`. Eso lo
-  arregla la tarea siguiente (`carga-del-atlas`), que es la que le pone carga, error y
-  reintento POR PIEZA.
-- **El eje W del testigo no mide nada desde que la escalera es un gesto.**
-  `PULSAR_W_EN_PAGINA` busca `[role="group"][aria-label="Capa del cuerpo"]`, que ya no
-  existe en el salón: el acta sale con `ejeW.botones: -1` y `cambioEnSujeto: 0`. No es de
-  esta tarea —`testigo/` no se toca aquí—, pero conviene que alguien lo sepa: hoy ese
-  trozo del acta certifica un grupo de botones que se retiró. El medidor de esta tarea sí
-  atraviesa el cuerpo, y lo hace por donde lo hace un dedo.
