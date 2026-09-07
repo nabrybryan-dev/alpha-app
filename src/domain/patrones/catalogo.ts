@@ -662,7 +662,7 @@ export const PATRONES: Patron[] = [
     // EL PRIMER EJEMPLO DECIDE EL IMPLEMENTO, y esta ficha va DE PIE, doblada por la cadera:
     // es la apertura inversa con mancuernas y el face pull. La de máquina se hace sentado
     // de frente al aparato y tiene ficha propia desde el 2026-09-07 (`apertura_inversa_maquina`).
-    ejemplos: 'Apertura inversa con mancuernas · Face pull en polea alta',
+    ejemplos: 'Apertura inversa con mancuernas · Pájaro con mancuernas en banco inclinado',
     resumen:
       'Con el brazo a la altura del hombro, se abre hacia fuera. Es el contrapeso directo de todo el volumen de empuje horizontal.',
     claves: [
@@ -720,6 +720,61 @@ export const PATRONES: Patron[] = [
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     // Desde arriba: el arco es horizontal y de perfil se proyecta sobre un punto.
     camara: { azimut: 30, elevacion: 52 },
+  },
+  {
+    id: 'face_pull',
+    cadena: 'abierta',
+    categoria: 'FACE PULL',
+    titulo: 'Face pull',
+    ejemplos: 'Face pull en polea alta · Face pull con cuerda en polea · Face pull con banda',
+    resumen:
+      'La cuerda viene de arriba y se tira hacia la cara abriendo los codos. Tres gestos a la vez —abducción horizontal, rotación externa y flexión de codo— que es justo lo que el manguito y el deltoides posterior necesitan después de tanto empuje.',
+    claves: [
+      'Codos altos y hacia fuera: la cuerda llega a la altura de los ojos, no del pecho.',
+      'Separa los extremos de la cuerda al final, con los nudillos hacia atrás: ahí está la rotación externa.',
+      'El tronco quieto; lo que se mueve son los hombros y los codos.',
+    ],
+    errores: [
+      'Tirar con los codos bajos y convertirlo en un remo al pecho.',
+      'Echar el cuerpo atrás para ganar recorrido.',
+    ],
+    apoyo: 'suelo',
+    // DE PIE Y ERGUIDO, con la polea POR ENCIMA de la cabeza. Lo pidió Bryan el 2026-09-07:
+    // «la trayectoria del cable viene desde arriba hacia abajo, y debes integrar una flexión
+    // de codo mientras se hace la rotación externa y la abducción horizontal». Hasta ese día
+    // el face pull caía en la ficha de la apertura inversa de pie: tronco doblado a 60°, codo
+    // bloqueado, sin rotación, y el cable donde la oposición lo pusiera contra ESE gesto.
+    //
+    // La polea no se coloca a mano: sale de `anclajeQueSeOpone` contra el recorrido de las
+    // manos, que va de delante-arriba a las orejas, así que la polea queda delante y arriba
+    // y el cable baja hacia la cara. Los tres gestos van en los tres canales del hombro y
+    // el codo, de la fase 0 a la 1, a la vez.
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    //
+    // LA POSE FINAL SALIÓ DE UN BARRIDO, no de la anatomía de manual, y hay que decir por
+    // qué. Se buscó la mano derecha junto a la oreja y POR ENCIMA del codo —antebrazo
+    // vertical— con el codo alto y hacia fuera, barriendo flexión, abducción, rotación y
+    // codo sobre el esqueleto resuelto. La mejor respuesta: hombro 85 / rotación externa
+    // 35 / codo 100, con la mano a (−0,41, 1,69, 0,07) y el codo 20 cm más afuera que al
+    // arrancar. Y el canal `hombroAbd` se queda en 0 a propósito: en este rig, con el
+    // brazo elevado, subir la abducción no lleva la mano a la oreja sino hacia fuera y
+    // hacia atrás —a 65° acababa 40 cm por detrás de la cabeza—. La abducción horizontal
+    // del face pull se VE (el codo se abre) pero la produce el giro del húmero, no ese
+    // canal; el desglose por articulaciones no la va a listar.
+    //
+    // Y EL ARRANQUE VA ALTO —brazos estirados hacia la polea, por encima de la cara— por la
+    // trayectoria del cable, no por estética: la polea se planta en la prolongación del
+    // gesto hacia atrás, así que si las manos no BAJAN durante el tirón la polea cae a su
+    // misma altura y el cable llega plano. Con el arranque a 108° la polea quedó a 1,58 m,
+    // por debajo de unas manos a 1,65. Con 125° las manos arrancan a 1,85 y el cable baja.
+    inicio: { hombroFlex: 125, hombroAbd: 4, hombroRot: -22, codoFlex: 12, escapulaProt: 18, caderaFlex: 4, rodillaFlex: 8, toraxFlex: 2 },
+    fin: { hombroFlex: 85, hombroAbd: 4, hombroRot: 35, codoFlex: 100, escapulaProt: -28, caderaFlex: 4, rodillaFlex: 8, toraxFlex: 0 },
+    activacion: { flexores_carpo: 0.45, extensores_carpo: 0.4, 'deltoides.posterior': 1, 'manguito.infraespinoso': 0.9, 'manguito.redondo_menor': 0.85, 'trapecio.medio': 0.85, 'trapecio.inferior': 0.6, romboides: 0.8, 'biceps.larga': 0.4, braquial: 0.35, 'deltoides.medio': 0.4 },
+    seguimiento: ['mano', 0.5, [0, 0, 0]],
+    // De tres cuartos y algo alto: de perfil los codos se tapan entre sí, y de frente no se
+    // ve que el cable baja.
+    camara: { azimut: 38, elevacion: 22 },
   },
   {
     id: 'flexion_codo',
@@ -1717,6 +1772,8 @@ const POR_NOMBRE: [RegExp, string][] = [
   // ANTES que el curl femoral a secas: «Curl femoral sentado» llega con categoría
   // AISLAMIENTO, y ahí las variantes por nombre no entran —solo lo hacen cuando la
   // categoría ha acertado una ficha—, así que la silla hay que elegirla aquí.
+  // El face pull llega también como PREV/REHAB o como HOMBRO: ahí manda el nombre.
+  [/face ?pull|jal[oó]n a la cara|tir[oó]n a la cara/, 'face_pull'],
   [/curl femoral sentad|leg curl sentad|flexi[oó]n de rodilla sentad/, 'flexion_rodilla_sentado'],
   [/curl femoral|leg curl/, 'flexion_rodilla'],
   // «Extensión de rodilla» llega también con categoría AISLAMIENTO, y sin esta línea se
@@ -1757,9 +1814,12 @@ const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
   // seed—, asi que sin esta linea la ficha nueva no la veria nadie.
   sentadilla: [[/prensa|leg ?press|hack/, 'prensa']],
   // La apertura inversa llega con categoría ABDUCCIÓN HORIZONTAL diga lo que diga el nombre;
-  // la de máquina se sienta de frente al aparato y es otra ficha. El face pull NO entra: es
-  // polea, y de pie.
-  abduccion_horizontal: [[/m[aá]quina|pec ?deck|peck ?deck|contractor/, 'apertura_inversa_maquina']],
+  // la de máquina se sienta de frente al aparato y es otra ficha. Y el face pull, desde el
+  // 2026-09-07, también: de pie, erguido, con la cuerda bajando desde una polea alta.
+  abduccion_horizontal: [
+    [/face ?pull|jal[oó]n a la cara|tir[oó]n a la cara/, 'face_pull'],
+    [/m[aá]quina|pec ?deck|peck ?deck|contractor/, 'apertura_inversa_maquina'],
+  ],
   // El curl femoral SENTADO tiene otra silla y otra ficha; el tumbado y el de pie siguen en la
   // de siempre.
   flexion_rodilla: [[/sentad/, 'flexion_rodilla_sentado']],
