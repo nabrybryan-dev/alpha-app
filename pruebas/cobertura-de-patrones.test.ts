@@ -56,7 +56,7 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 66 categorías y le salen 63 con patrón y 3 sin sujeto', () => {
+  it('recorre 67 categorías y le salen 64 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron ese día son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
@@ -75,8 +75,10 @@ describe('el barrido de categorías', () => {
     // la ficha tumbada. Como la prensa y la apertura inversa: deja de enseñar el gesto
     // equivocado, no cubre nada que estuviera descubierto.
     const reparto = repartir(categoriasDelRepo())
-    expect(reparto.casos).toHaveLength(66)
-    expect(reparto.conPatron).toHaveLength(63)
+    // Y la 64 es FACE PULL (2026-09-07, tarde): de pie, cuerda desde arriba, con la flexión
+    // de codo integrada en la rotación externa y la abducción horizontal, que Bryan pidió.
+    expect(reparto.casos).toHaveLength(67)
+    expect(reparto.conPatron).toHaveLength(64)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
@@ -274,8 +276,9 @@ describe('quién declara con qué se hace el ejercicio', () => {
     // 96 desde el 2026-09-06: los tres de la ficha de PRENSA; 99 desde el 2026-09-07, los
     // tres de la apertura inversa en máquina. Todos declaran implemento, así que los que no
     // lo declaran siguen siendo los dos de siempre.
-    // 101 desde la tarde del 2026-09-07: los dos del curl femoral sentado.
-    expect(ejemplos).toHaveLength(101)
+    // 101 desde la tarde del 2026-09-07: los dos del curl femoral sentado; 104 con los tres
+    // del face pull, que declaran los tres (polea, polea, banda).
+    expect(ejemplos).toHaveLength(104)
     expect(sin).toHaveLength(2)
   })
 
