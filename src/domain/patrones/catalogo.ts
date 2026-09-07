@@ -1618,7 +1618,8 @@ const POR_NOMBRE: [RegExp, string][] = [
   [/banco romano|hiperextensi[oó]n|extensi[oó]n lumbar|extensi[oó]n de espalda/, 'extension_lumbar'],
   [/elevaci[oó]n(es)? frontal|frontal raise/, 'flexion_hombro'],
   [/colgad|dead hang|suspensi[oó]n/, 'suspension'],
-  [/monopodal|equilibrio|short foot|apoyo estable|arco plantar/, 'apoyo_una_pierna'],
+  // «unipodal» desde el 2026-09-07: dos nombres reales de PREV/REHAB se quedaban sin sujeto.
+  [/monopodal|unipodal|equilibrio|short foot|apoyo estable|arco plantar/, 'apoyo_una_pierna'],
   [/movilidad|foam roller|gato-camello|occiput|rom de hombro/, 'movilidad_toracica'],
   [/activaci[oó]n gl[uú]tea|puente de isquios|patada de gl[uú]teo|kickback/, 'extension_cadera'],
   [/copenhague|cossack|aducci[oó]n de cadera|aductor/, 'aduccion_cadera'],
