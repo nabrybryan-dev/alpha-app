@@ -1,9 +1,31 @@
+
+  partir-el-visor: origin/main  vs  origin/main
+
+  creando worktree de origin/main en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-4MUwHr\base ...
+  creando worktree de origin/main en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-4MUwHr\nueva ...
+
+  [base] npm install en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-4MUwHr\base ...
+  [base] arrancando vite en :5192 ...
+(node:43232) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  [base] arrancando Chrome en :9353 ...
+
+  [nueva] npm install en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-4MUwHr\nueva ...
+  [nueva] arrancando vite en :5192 ...
+  [nueva] arrancando Chrome en :9353 ...
+  patronA          pixelesCambiados=  1240  caja=(40,102)-(753,1656)
+  patronB          pixelesCambiados=  1249  caja=(40,102)-(753,1656)
+  capaIntermedia   pixelesCambiados=  1245  caja=(41,102)-(753,1656)
+  capaProfunda     pixelesCambiados=  1252  caja=(40,102)-(753,1656)
+
+  TOTAL: hay escenarios con píxeles distintos — ver arriba y las máscaras
+
 {
-  "cuando": "2026-09-07T18:52:35.404Z",
+  "cuando": "2026-09-07T18:23:12.443Z",
   "refBase": "origin/main",
-  "refNueva": "fix/interfaz-pixeles",
+  "refNueva": "origin/main",
   "commitBase": "cf0d9153e593d85401089ef6c0320b293b4a8129",
-  "commitNueva": "870380657cb9b786045fbfa7f9559115d2c1f1b4",
+  "commitNueva": "cf0d9153e593d85401089ef6c0320b293b4a8129",
   "viewport": {
     "ancho": 390,
     "alto": 844,
@@ -25,13 +47,13 @@
     {
       "clave": "patronA",
       "titulo": "Patrón A — el ejercicio con el que abre la sesión",
-      "pixelesCambiados": 1150033,
+      "pixelesCambiados": 1240,
       "totalPixeles": 1316640,
       "cajaCambio": {
-        "x0": 0,
-        "y0": 0,
-        "x1": 779,
-        "y1": 1687
+        "x0": 40,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1656
       },
       "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronA-base.png",
       "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronA-nueva.png",
@@ -41,13 +63,13 @@
     {
       "clave": "patronB",
       "titulo": "Patrón B — tras tocar el segundo punto de la tira de ejercicios",
-      "pixelesCambiados": 59646,
+      "pixelesCambiados": 1249,
       "totalPixeles": 1316640,
       "cajaCambio": {
-        "x0": 0,
-        "y0": 0,
-        "x1": 779,
-        "y1": 1687
+        "x0": 40,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1656
       },
       "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronB-base.png",
       "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronB-nueva.png",
@@ -57,13 +79,13 @@
     {
       "clave": "capaIntermedia",
       "titulo": "Capa intermedia — a los 900 ms de toque sostenido",
-      "pixelesCambiados": 1139946,
+      "pixelesCambiados": 1245,
       "totalPixeles": 1316640,
       "cajaCambio": {
-        "x0": 0,
-        "y0": 0,
-        "x1": 779,
-        "y1": 1687
+        "x0": 41,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1656
       },
       "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaIntermedia-base.png",
       "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaIntermedia-nueva.png",
@@ -73,13 +95,13 @@
     {
       "clave": "capaProfunda",
       "titulo": "Capa profunda — a los 1800 ms de toque sostenido",
-      "pixelesCambiados": 1133125,
+      "pixelesCambiados": 1252,
       "totalPixeles": 1316640,
       "cajaCambio": {
-        "x0": 0,
-        "y0": 0,
-        "x1": 779,
-        "y1": 1687
+        "x0": 40,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1656
       },
       "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaProfunda-base.png",
       "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaProfunda-nueva.png",
@@ -89,3 +111,12 @@
   ],
   "todoCero": false
 }
+
+---
+Nota (2026-09-07, sesión de pruebas): una corrida previa del MISMO control, con el
+MISMO código sin arreglar, dio los cuatro escenarios en 0 (todoCero: true) en vez de
+~1250. El fallo es intermitente -- depende de si Google Fonts tarda o no en llegar
+entre el lanzamiento de Chrome "base" y el de "nueva" sobre el MISMO perfil de disco
+compartido (testigo/comun.mjs:63, antes del arreglo). Por eso "una corrida no decide
+nada": esta acta de arriba es la corrida que SÍ reprodujo el rojo (1240/1249/1245/1252
+px, caja consistente en las cuatro), guardada tal cual salió.
