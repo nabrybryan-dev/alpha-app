@@ -334,6 +334,25 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')).toBeUndefined()
   })
 
+  it('el curl femoral SENTADO va a su silla, venga con la categoría que venga', () => {
+    // Bryan, 2026-09-07, desde el iPhone: «la flexión de rodilla sentado le hace falta la
+    // máquina». Lo que había era peor que faltar la máquina: los nombres «sentado» caían en
+    // la ficha TUMBADA (giro 90, boca abajo, con camilla), y «Curl femoral sentado» —que
+    // llega con categoría AISLAMIENTO— seguía cayendo ahí incluso después de crear la ficha
+    // sentada, porque las variantes por nombre solo entran cuando la categoría ha
+    // acertado, y AISLAMIENTO no acierta nada. Esta prueba nació roja por ese caso.
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'FLEXIÓN DE RODILLA SENTADO')?.id).toBe('flexion_rodilla_sentado')
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'Flexión de rodilla en máquina (sentado)')?.id).toBe('flexion_rodilla_sentado')
+    expect(patronDeCategoria('AISLAMIENTO', 'Curl femoral sentado')?.id).toBe('flexion_rodilla_sentado')
+    // Y el tumbado y el de pie se quedan donde estaban.
+    expect(patronDeCategoria('AISLAMIENTO', 'Curl femoral tumbado')?.id).toBe('flexion_rodilla')
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'FLEXIÓN DE RODILLA ACOSTADO')?.id).toBe('flexion_rodilla')
+  })
+
+  it('la extensión de rodilla tiene sujeto aunque llegue como AISLAMIENTO', () => {
+    expect(patronDeCategoria('AISLAMIENTO', 'Extensión de rodilla')?.id).toBe('extension_rodilla')
+  })
+
   it('la categoría manda sobre el nombre cuando dice el gesto', () => {
     // El nombre lo escribe el coach a mano y admite cualquier cosa; la categoría
     // es vocabulario cerrado. Un remo llamado «salto del tigre» sigue siendo un

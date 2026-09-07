@@ -56,7 +56,7 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 65 categorías y le salen 62 con patrón y 3 sin sujeto', () => {
+  it('recorre 66 categorías y le salen 63 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron ese día son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
@@ -71,9 +71,12 @@ describe('el barrido de categorías', () => {
     // de frente al aparato, y la ficha de pie con el tronco doblado dejaba el brazo de la
     // máquina cruzando el tronco. Como con la prensa: no cubre nada que estuviera descubierto,
     // deja de enseñar el gesto equivocado.
+    // La 63 es FLEXIÓN DE RODILLA SENTADO (2026-09-07, tarde): «Curl femoral sentado» caía en
+    // la ficha tumbada. Como la prensa y la apertura inversa: deja de enseñar el gesto
+    // equivocado, no cubre nada que estuviera descubierto.
     const reparto = repartir(categoriasDelRepo())
-    expect(reparto.casos).toHaveLength(65)
-    expect(reparto.conPatron).toHaveLength(62)
+    expect(reparto.casos).toHaveLength(66)
+    expect(reparto.conPatron).toHaveLength(63)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
@@ -170,7 +173,9 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     // bisagra de cadera contaría igual en el porcentaje y sería el defecto de la
     // rotación de cadera otra vez.
     const de = (nombre: string) => patronDeCategoria('AISLAMIENTO', nombre)?.id
-    expect(de('Curl femoral sentado')).toBe('flexion_rodilla')
+    // Sentado: su propia silla desde el 2026-09-07. Antes caía en la ficha tumbada —boca
+    // abajo con camilla— y Bryan lo vio en el iPhone.
+    expect(de('Curl femoral sentado')).toBe('flexion_rodilla_sentado')
     expect(de('Curl femoral tumbado')).toBe('flexion_rodilla')
     expect(de('Abducción de cadera en máquina')).toBe('abduccion_cadera')
     expect(de('Elevaciones laterales con mancuernas')).toBe('abduccion_hombro')
@@ -269,7 +274,8 @@ describe('quién declara con qué se hace el ejercicio', () => {
     // 96 desde el 2026-09-06: los tres de la ficha de PRENSA; 99 desde el 2026-09-07, los
     // tres de la apertura inversa en máquina. Todos declaran implemento, así que los que no
     // lo declaran siguen siendo los dos de siempre.
-    expect(ejemplos).toHaveLength(99)
+    // 101 desde la tarde del 2026-09-07: los dos del curl femoral sentado.
+    expect(ejemplos).toHaveLength(101)
     expect(sin).toHaveLength(2)
   })
 

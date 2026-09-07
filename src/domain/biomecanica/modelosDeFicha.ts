@@ -61,6 +61,34 @@ function mecanicaDeLaDominada(): ModeloDePalanca {
  */
 export const MODELOS_DE_FICHA: Readonly<Record<string, ModeloDePalanca>> = {
   /**
+   * EL CURL FEMORAL SENTADO, con ficha propia desde el 2026-09-07. La misma mecánica que
+   * FLEXIÓN DE RODILLA —el propio modelo lo dice: «tumbado y sentado no son el mismo
+   * ejercicio»— con el fémur sujeto por el acolchado en vez de por la camilla, y la cadera
+   * flexionada, que es lo que alarga el isquio desde el arranque.
+   */
+  'FLEXIÓN DE RODILLA SENTADO': {
+    patron: 'FLEXIÓN DE RODILLA',
+    cadena: 'abierta',
+    anclaje: 'el fémur, bajo el acolchado del asiento',
+    segmentosMoviles: ['pierna'],
+    referencia: 'muslo',
+    vista: 'lateral',
+    ejes: [
+      M('rodilla', 'principal', 'flexion', ['Isquios'], [30, 40]),
+      M('cadera', 'secundario', 'isometrico', ['Glúteos'], [50, 70],
+        'Sentado la cadera va a 90°: el isquio arranca largo y eso cambia la fuerza disponible ' +
+          'respecto al tumbado.'),
+    ],
+    linea: { origen: 'cable' },
+    marcas: ['cadera', 'rodilla', 'tobillo'],
+    alineacion: {
+      regla: 'la pelvis pegada al asiento',
+      toleranciaMm: 20,
+      porQue: 'Si la cadera se levanta, el recorrido lo hace la pelvis y el isquio se acorta menos de lo que parece.',
+    },
+  },
+
+  /**
    * LA APERTURA INVERSA SENTADA, con ficha propia desde el 2026-09-07.
    *
    * Los mismos dos ejes que ABDUCCIÓN HORIZONTAL —es el mismo gesto— y lo único que cambia
