@@ -79,7 +79,7 @@ const ALTO_SALA = 4.2
 // 1,62 y no 1,85 desde el 2026-09-03: a 1,85 el marcador caía justo bajo el tablón del
 // DOM y se le rozaba. Bajarlo lo deja solo en su banda de muro, que es lo que hace que se
 // lea como un display de la sala y no como un fondo del texto.
-const ALTO_PANEL = 1.62
+const ALTO_PANEL = 1.36
 
 // La primera versión usaba valores casi negros: en un móvil el contraste del canvas
 // aplastaba paredes, paneles y material contra el fondo y solo se distinguía el sujeto.
@@ -661,7 +661,10 @@ export const ENCUADRE_SALA = {
    * la distancia de la estación de grabación, que son el contrato de medida del encoder
    * y no se mueven por motivos de encuadre.
    */
-  elevacionMaxima: 10,
+  // Nueve desde el 2026-09-06: la prescripción volvió al muro, grande y sin retirarse, por
+  // orden de Bryan («pegada en la pared y muy grande»). El tablón declara 1,2 m en vez de
+  // 0,85 y el techo baja un grado; `geometriaDeCuadro.test.ts` lo recalcula.
+  elevacionMaxima: 9,
 } as const
 
 /**

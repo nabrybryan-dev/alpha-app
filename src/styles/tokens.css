@@ -2429,6 +2429,35 @@ body {
   white-space: nowrap;
 }
 
+/* LA PRESCRIPCIÓN EN EL MURO (2026-09-06): las cuatro cifras en fila bajo el nombre,
+   grandes y con el relieve del marcador de la sala. No se retiran: Bryan las quiere
+   pegadas a la pared. */
+.muro-prescripcion {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-top: 0.3em;
+}
+
+.muro-prescripcion-cifra {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--texto);
+  text-shadow:
+    0 1px 0 rgb(0 0 0 / 0.6),
+    1px 2px 0 #2a2d31,
+    2px 3px 0 #22252a,
+    3px 5px 0 #1a1c20,
+    6px 12px 22px rgb(0 0 0 / 0.85);
+}
+
 /* LA FILA DEL MURO: rótulo a la izquierda, el hueco de datos a la derecha.
 
    `flex-end` y no `center`: los dos bloques se alinean por su BASE, que es como

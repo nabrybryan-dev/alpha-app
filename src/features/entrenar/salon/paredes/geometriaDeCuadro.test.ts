@@ -141,13 +141,16 @@ describe('asentarEnLaBanda', () => {
    * el teléfono de Bryan. Y si sube, también — subirlo es la forma de que el salón valga
    * para más patrones.
    */
-  it('el techo del cuadro del ejercicio son 10° de elevación', () => {
+  // NUEVE desde el 2026-09-06: la prescripción grande volvió al muro (Bryan: «pegada en
+  // la pared y muy grande»); el tablón declara 1,2 m y el techo baja un grado. Es el precio
+  // que este comentario anunciaba, pagado a sabiendas.
+  it('el techo del cuadro del ejercicio son 9° de elevación', () => {
     let techo = -1
     for (let e = 0; e <= 60; e++) {
       if (!asentarEnLaBanda(CUADRO_DEL_EJERCICIO, CAMARA(e), ANCHO, ALTO).cabe) break
       techo = e
     }
-    expect(techo).toBe(10)
+    expect(techo).toBe(9)
   })
 
   it('a las elevaciones bajas deja la altura declarada como está', () => {
