@@ -390,6 +390,19 @@ export async function soltarDedo(dt) {
   await dt.pedir('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
 }
 
+/**
+ * Mueve el dedo que quedó apoyado tras `bajarDedo` a `(x, y)`, SIN soltarlo.
+ *
+ * Salió de `testigo/tiempo-de-la-repeticion.mjs` el 2026-09-08 por la misma razón que las
+ * tres de arriba: ese testigo ya mandaba `touchMove` diez veces seguidas para recorrer el
+ * mando, y `testigo/salon-visible.mjs` necesitó exactamente lo mismo para arrastrar hacia
+ * abajo y salir del eje W después de hundirse — dos copias de la misma línea se separan al
+ * primer ajuste, igual que ya se explicó arriba para `tocar`.
+ */
+export async function moverDedo(dt, x, y) {
+  await dt.pedir('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] })
+}
+
 // ------------------------------------------------------------- gris a PNG
 
 /**

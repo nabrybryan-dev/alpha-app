@@ -92,6 +92,7 @@ import {
   Devtools,
   esperar,
   mascaraDeCambio,
+  moverDedo,
   objetivoDePagina,
   soltarDedo,
 } from './comun.mjs'
@@ -262,7 +263,7 @@ async function unIntento(dt, opciones, usuario) {
   // ---- recorrer: diez pasos de 18 px, con toque SOSTENIDO (touchMove, no soltar) ----
   for (let paso = 1; paso <= PASOS; paso++) {
     const x = rect.x + Math.round(paso * PASO_PX)
-    await dt.pedir('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: rect.y }] })
+    await moverDedo(dt, x, rect.y)
     await esperar(80) // que el fotograma siguiente ya haya subido la pose nueva
     capturas.push(await dt.captura())
   }
