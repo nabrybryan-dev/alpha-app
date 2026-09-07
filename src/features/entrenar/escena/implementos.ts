@@ -137,6 +137,8 @@ export interface ImplementoEnEscena {
     anclaje: Vec3
     /** Si la carga llega girando sobre un eje o empujando por una recta. Ver `lineaDeResistencia.ts`. */
     guia: 'giro' | 'recta'
+    /** Un brazo por mano, con el eje del segundo en espejo del primero. Ver `AnclajeResuelto`. */
+    porLado?: boolean
   }
   /**
    * Qué parte del cuerpo sostiene, cuando la pieza es un mueble. Va en huesos y no en
@@ -508,7 +510,7 @@ function sueloDeMaquina(
   categoria: string,
   nombreEjercicio: string,
   agarres: readonly PuntoDeAgarre[],
-): { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3; guia: 'giro' | 'recta' } {
+): { centro: Vec3; giroGrados: number; alturaDeCarga: number; anclaje: Vec3; guia: 'giro' | 'recta'; porLado?: boolean } {
   if (forma === 'polea' || forma === 'placas') {
     const patron = patronDeCategoria(categoria, nombreEjercicio)
     const camino = caminoDeLaCarga(patron, agarres)
@@ -520,6 +522,7 @@ function sueloDeMaquina(
         alturaDeCarga: resuelto.alturaDeCarga,
         anclaje: resuelto.anclaje,
         guia: resuelto.guia,
+        porLado: resuelto.porLado,
       }
     }
   }

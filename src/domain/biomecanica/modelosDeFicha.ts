@@ -61,6 +61,39 @@ function mecanicaDeLaDominada(): ModeloDePalanca {
  */
 export const MODELOS_DE_FICHA: Readonly<Record<string, ModeloDePalanca>> = {
   /**
+   * LA APERTURA INVERSA SENTADA, con ficha propia desde el 2026-09-07.
+   *
+   * Los mismos dos ejes que ABDUCCIÓN HORIZONTAL —es el mismo gesto— y lo único que cambia
+   * es el anclaje: el pecho contra el apoyo de la máquina, no el tronco sosteniéndose solo.
+   * Por eso va aparte y no hereda: el tronco deja de ser un estabilizador que se mide.
+   */
+  'APERTURA INVERSA EN MÁQUINA': {
+    patron: 'ABDUCCIÓN HORIZONTAL',
+    cadena: 'abierta',
+    anclaje: 'el pecho contra el apoyo de la máquina',
+    segmentosMoviles: ['brazo'],
+    referencia: 'torso',
+    vista: 'frontal',
+    ejes: [
+      M('hombro', 'principal', 'abduccion', ['Hombros', 'Espalda'], [20, 30], undefined, 'frontal'),
+      M('escapula', 'secundario', 'retraccion', ['Espalda'], [20, 40], undefined, 'frontal'),
+    ],
+    linea: {
+      origen: 'carga-externa',
+      nota: 'El brazo de la máquina gira sobre un eje vertical: la fuerza es horizontal, perpendicular al brazo.',
+    },
+    marcas: ['hombro', 'codo', 'muñeca'],
+    alineacion: {
+      regla: 'el pecho pegado al apoyo y el codo a la altura del hombro',
+      toleranciaMm: 25,
+      porQue: 'Despegar el pecho convierte la apertura en un remo; bajar el codo mete al dorsal.',
+    },
+    limite:
+      'la leva de la máquina decide cuánto de las placas llega a la mano en cada punto del ' +
+      'arco, y eso no se ve desde fuera: el brazo de momento se mide, el peso no se convierte',
+  },
+
+  /**
    * LA PRENSA, que nace con ficha propia el 2026-09-06.
    *
    * Comparte los tres ejes de la sentadilla —es el mismo gesto— y se separa en lo único que
