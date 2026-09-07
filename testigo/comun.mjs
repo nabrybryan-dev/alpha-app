@@ -24,7 +24,7 @@
  */
 
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import zlib from 'node:zlib'
@@ -59,9 +59,20 @@ export function esperar(ms) {
 
 export async function arrancarChrome(opciones) {
   const binario = buscarChrome(opciones.chrome)
-  // Perfil aparte y desechable: ni se toca el Chrome del usuario ni sus pestañas.
-  const perfil = join(tmpdir(), `testigo-salon-${process.pid}`)
-  mkdirSync(perfil, { recursive: true })
+  // Perfil aparte y desechable, y DISTINTO POR LANZAMIENTO — no por pid.
+  //
+  // Hasta el 2026-09-08 el nombre era `testigo-salon-${process.pid}`, y un mismo proceso
+  // Node que arranca Chrome dos veces seguidas (como hace `partir-el-visor.mjs`, una vez
+  // por rama) le daba a las DOS el mismo directorio: el primer Chrome lo estrenaba frío
+  // y el segundo lo heredaba con la caché de disco ya tibia —fuentes de Google
+  // (`index.html:28`, `display=swap`) entre otras cosas—. Eso hacía que "la misma rama
+  // contra sí misma" no diera cero: `partir-el-visor.mjs --ref-base=origin/main
+  // --ref-nueva=origin/main` medía 1278/1253/1276/1265 píxeles de diferencia que eran del
+  // ARNÉS, no del código —la rampa de antialiasing de un texto que en un lado ya tenía la
+  // tipografía cargada y en el otro no—. `mkdtempSync` da un directorio nuevo y con
+  // nombre único en cada llamada, así que dos Chrome del mismo proceso ya no comparten
+  // caché entre sí.
+  const perfil = mkdtempSync(join(tmpdir(), 'testigo-salon-'))
   const proceso = spawn(
     binario,
     [
@@ -173,6 +184,30 @@ export class Devtools {
   }
 
   async captura() {
+    // LAS FUENTES DE GOOGLE LLEGAN TARDE, A PROPÓSITO (`index.html:28`,
+    // `display=swap`): la primera pintura sale con la tipografía de sistema y cambia
+    // sola en cuanto el `@font-face` termina de cargar. Sin esperar aquí, dos capturas
+    // de la MISMA página en dos momentos de caché distintos —un perfil recién estrenado
+    // contra uno con las fuentes ya en disco— pueden salir con el texto en fuentes
+    // distintas: antialiasing y métricas de más, no un cambio de verdad. Es la causa que
+    // dejaba `testigo/partir-el-visor.mjs --ref-base=origin/main --ref-nueva=origin/main`
+    // —MISMO código a los dos lados— sin dar cero. Un frame extra después, porque
+    // `fonts.ready` resuelve antes de que ese fotograma llegue a pintarse.
+    //
+    // LO QUE ESTO NO ARREGLA: si la petición de la fuente FALLA de verdad —no que tarde,
+    // que falle— (una red que se corta a medio TLS, típico en un perfil recién estrenado
+    // sin caché de DNS ni de conexión), `fonts.ready` también se resuelve: una
+    // carga fallida es un estado tan «asentado» como una que cargó bien, y el navegador no
+    // reintenta solo. Medido el 2026-09-08 con `--control` (misma rama a los dos lados):
+    // tres corridas de cuatro salieron con las CUATRO capturas en 0 px, y una salió con la
+    // PRIMERA captura del checkout —justo la que sigue al arranque más frío de Chrome— en
+    // ~105.000 px, siempre la tipografía de sistema contra la de marca, nunca la escena
+    // 3D. Es una falla de red de esta máquina, no del arnés ni del código: no hay
+    // reintento aquí porque un reintento con umbral inventado sería tan arbitrario como no
+    // esperar nada.
+    await this.evaluar(
+      'document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => r(true))))',
+    )
     const r = await this.pedir('Page.captureScreenshot', {
       format: 'png',
       captureBeyondViewport: false,

@@ -54,6 +54,20 @@
  *                                       que este mismo script da cuando SÍ son iguales—
  *                                       no vale para nada: daría cero siempre. Sale 0 si
  *                                       lo vio en las cuatro, 1 si no.
+ *   --control                           EL COMPLEMENTO DE `--prueba-ciega`: la prueba de
+ *                                       que este testigo sabe decir QUE SÍ son iguales.
+ *                                       Compara `--ref-base` CONSIGO MISMA (ignora
+ *                                       `--ref-nueva`), SIN pintar ningún cebo, y exige
+ *                                       que los cuatro escenarios den 0 píxeles distintos
+ *                                       — si no, sale 1 y hay que mirar la máscara: el
+ *                                       ruido es del arnés, nunca del código, porque los
+ *                                       dos lados son literalmente el mismo commit. Nació
+ *                                       el 2026-09-08 porque este control daba ~1.265
+ *                                       píxeles de diferencia consigo mismo: dos perfiles
+ *                                       de Chrome del mismo proceso compartían caché de
+ *                                       disco, y las capturas no esperaban a que las
+ *                                       fuentes de Google terminaran de cargar (ver
+ *                                       `comun.mjs`).
  *
  * =============================================================================
  * QUÉ SE TOCA, Y EN QUÉ ORDEN — cuatro escenarios, cada uno con su propia navegación
@@ -197,7 +211,9 @@ function leerArgumentos(argv) {
     conservarWorktrees: false,
     sinInforme: false,
     pruebaCiega: false,
+    control: false,
   }
+  let salidaExplicita = false
   for (const bruto of argv.slice(2)) {
     const [nombre, valor] = bruto.replace(/^--/, '').split('=')
     if (nombre === 'ref-base') opciones.refBase = valor
@@ -206,18 +222,33 @@ function leerArgumentos(argv) {
     else if (nombre === 'depuracion') opciones.depuracion = Number(valor)
     else if (nombre === 'chrome') opciones.chrome = valor
     else if (nombre === 'candidatos') opciones.candidatos = valor.split(',').filter(Boolean)
-    else if (nombre === 'salida') opciones.salida = valor
-    else if (nombre === 'fotos') opciones.fotos = valor
+    else if (nombre === 'salida') {
+      opciones.salida = valor
+      salidaExplicita = true
+    } else if (nombre === 'fotos') opciones.fotos = valor
     else if (nombre === 'limite-listo') opciones.limiteListo = Number(valor)
     else if (nombre === 'asiento') opciones.asiento = Number(valor)
     else if (nombre === 'conservar-worktrees') opciones.conservarWorktrees = true
     else if (nombre === 'sin-informe') opciones.sinInforme = true
     else if (nombre === 'prueba-ciega') opciones.pruebaCiega = true
+    else if (nombre === 'control') opciones.control = true
   }
   // La ciega compara una rama CONSIGO MISMA y le pinta un cebo encima solo al lado
   // «nueva»: no necesita una segunda rama de verdad, así que se fuerza aquí y no hace
   // falta acordarse de pasar `--ref-nueva` igual que `--ref-base` para probarla.
   if (opciones.pruebaCiega) opciones.refNueva = opciones.refBase
+  // EL CONTROL es el complemento de la ciega: la MISMA rama a los dos lados, SIN cebo.
+  // La ciega prueba que el testigo sabe decir «distinto»; el control prueba que sabe
+  // decir «igual» — que no es gratis: hasta el 2026-09-08 este mismo control daba
+  // ~1.265 píxeles de diferencia consigo mismo, y eran del arnés (perfil de Chrome
+  // compartido entre los dos lanzamientos + fuentes de Google sin esperar su carga),
+  // no del código. Un testigo que nunca puede dar cero tampoco prueba nada.
+  if (opciones.control) {
+    opciones.refNueva = opciones.refBase
+    if (!salidaExplicita) {
+      opciones.salida = join(RAIZ, 'informes', 'testigo-partir-el-visor-control.json')
+    }
+  }
   return opciones
 }
 
@@ -658,11 +689,16 @@ async function principal() {
     escenarios,
     todoCero,
     ...(opciones.pruebaCiega ? { pruebaCiega: true, vioElCebo } : {}),
+    ...(opciones.control ? { control: true } : {}),
   }
 
   if (opciones.pruebaCiega) {
     console.log(
       `\n  PRUEBA CIEGA: ${vioElCebo ? 'el testigo vio el cebo en las cuatro capturas. Sabe decir que no.' : 'NO vio el cebo en las cuatro. Este testigo no vale: daría cero siempre.'}\n`,
+    )
+  } else if (opciones.control) {
+    console.log(
+      `\n  CONTROL (${opciones.refBase} contra sí misma, sin cebo): ${todoCero ? 'los cuatro escenarios dan 0 píxeles distintos. El instrumento sabe decir «igual».' : 'NO dio cero — ver arriba y las máscaras. Esto es ruido del arnés, no del código, y hay que arreglarlo aquí, no forzarlo.'}\n`,
     )
   } else {
     console.log(`\n  TOTAL: ${todoCero ? 'los cuatro escenarios dan 0 píxeles distintos' : 'hay escenarios con píxeles distintos — ver arriba y las máscaras'}\n`)
