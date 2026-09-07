@@ -56,7 +56,7 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 72 categorías y le salen 69 con patrón y 3 sin sujeto', () => {
+  it('recorre 73 categorías y le salen 70 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron ese día son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
@@ -79,8 +79,11 @@ describe('el barrido de categorías', () => {
     // de codo integrada en la rotación externa y la abducción horizontal, que Bryan pidió.
     // Y de la 65 a la 69, el cardio (2026-09-07, tarde): caminata, carrera, escaladora,
     // bicicleta y elíptica, que Bryan pidió con sujeto. Cambio de decisión, no deriva.
-    expect(reparto.casos).toHaveLength(72)
-    expect(reparto.conPatron).toHaveLength(69)
+    // Y la 70 es el ergómetro de remo (2026-09-07, noche): era el único hueco de los seis
+    // sin sujeto que tenía un gesto de verdad que enseñar. Los otros cinco son formatos
+    // —circuito, HIIT, tabata, trineo, «cardio» a secas—, no movimientos.
+    expect(reparto.casos).toHaveLength(73)
+    expect(reparto.conPatron).toHaveLength(70)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
@@ -121,7 +124,7 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     expect(reparto.sinPatron).toHaveLength(0)
   })
 
-  it('las 159 familias de nombre de producción: 153 con sujeto y 6 sin', () => {
+  it('las 159 familias de nombre de producción: 154 con sujeto y 5 sin', () => {
     // 153 desde el 2026-09-07: cuatro familias de cardio de la cartera —cinta o elíptica en
     // zona 2, bicicleta, caminadora, escaladora— tienen sujeto desde que Bryan lo pidió.
     // 2026-09-06: eran 140 y 19. Las diez que entraron son las seis de PREV/REHAB, las
@@ -140,13 +143,12 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     // se ve venir. Decisión de Bryan: antes sin muñeco que con el de otro.
     const reparto = repartir(ejerciciosDeProduccion())
     expect(reparto.casos).toHaveLength(159)
-    expect(reparto.conPatron).toHaveLength(153)
+    expect(reparto.conPatron).toHaveLength(154)
     expect(reparto.sinPatron.map((c) => `${c.categoria} · ${c.nombre}`)).toEqual([
       'ACONDICIONAMIENTO · CARDIO',
       'ACONDICIONAMIENTO · HIIT',
       'ACONDICIONAMIENTO · CIRCUITO',
       'ACONDICIONAMIENTO · TABATA',
-      'ACONDICIONAMIENTO · ERGOMETRO',
       'ACONDICIONAMIENTO · TRINEO',
     ])
   })

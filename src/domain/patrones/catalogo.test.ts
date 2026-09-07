@@ -342,7 +342,10 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')?.id).toBe('bicicleta_estatica')
     expect(patronDeCategoria('ACONDICIONAMIENTO', 'Cinta 30 min zona 2')?.id).toBe('caminata_en_cinta')
     expect(patronDeCategoria('ACONDICIONAMIENTO', 'Circuito metabólico 40/20')).toBeUndefined()
-    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Remo ergómetro 2000 m')).toBeUndefined()
+    // El ergómetro ganó ficha propia el 2026-09-07 por la noche, y va ANTES que el remo de
+    // fuerza en la lista de nombres: «remo ergómetro» lleva la palabra remo.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Remo ergómetro 2000 m')?.id).toBe('remo_ergometro')
+    expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Remo con barra')?.id).toBe('traccion_horizontal')
     expect(patronDeCategoria('PREV/REHAB', 'Cribado de banderas rojas')).toBeUndefined()
   })
 

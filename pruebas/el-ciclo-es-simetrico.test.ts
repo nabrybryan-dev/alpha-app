@@ -17,6 +17,25 @@ import { PATRONES, type Patron } from '../src/domain/patrones/catalogo'
 
 const ciclicos = PATRONES.filter((p) => p.ciclo)
 
+/**
+ * HAY DOS CLASES DE CICLO, y solo una es un espejo.
+ *
+ * **De zancada**: andar, correr, pedalear, la escaladora, la elíptica. Un lado va delante y
+ * el otro detrás, y la fase 1 es la fase 0 cambiada de lado. Estas son las que se comprueban
+ * canal a canal aquí abajo.
+ *
+ * **De dos tiempos**: el remo en ergómetro (2026-09-07). Los dos lados hacen lo mismo A LA
+ * VEZ, y las dos mitades del ciclo son la ida y la vuelta del mismo gesto: el empuje corto y
+ * la vuelta al frente larga. Pedirle simetría de espejo sería pedirle que remara con un solo
+ * brazo. Se reconocen porque declaran `empujeSeg`, que es justo lo que dice que sus dos
+ * mitades no son iguales.
+ *
+ * La partición se afirma con las dos listas llenas: si alguien metiera `empujeSeg` en todas
+ * las fichas, la de zancada se quedaría vacía y este archivo dejaría de mirar nada.
+ */
+const deZancada = ciclicos.filter((p) => p.ciclo?.empujeSeg === undefined)
+const deDosTiempos = ciclicos.filter((p) => p.ciclo?.empujeSeg !== undefined)
+
 function porLado(pose: Record<string, number>): Map<string, { D?: number; I?: number }> {
   const salida = new Map<string, { D?: number; I?: number }>()
   for (const [canal, valor] of Object.entries(pose)) {
@@ -53,12 +72,13 @@ describe('el instrumento distingue, que es lo primero', () => {
   })
 })
 
-describe('las fichas cíclicas son su propio espejo', () => {
-  it('hay fichas cíclicas: las cinco del cardio', () => {
-    expect(ciclicos.length).toBeGreaterThanOrEqual(5)
+describe('las fichas de zancada son su propio espejo', () => {
+  it('las hay de las dos clases, y ninguna lista está vacía', () => {
+    expect(deZancada.length).toBeGreaterThanOrEqual(5)
+    expect(deDosTiempos.length).toBeGreaterThanOrEqual(1)
   })
 
-  it.each(ciclicos.map((p) => [p.id, p] as const))('%s', (_id, p) => {
+  it.each(deZancada.map((p) => [p.id, p] as const))('%s', (_id, p) => {
     expect(espejo(p), espejo(p).join(' · ')).toEqual([])
   })
 
@@ -66,10 +86,26 @@ describe('las fichas cíclicas son su propio espejo', () => {
     // Una ficha con las dos piernas iguales pasaría el espejo —es simétrica— y no sería una
     // zancada sino un salto a pies juntos. Lo que separa a las dos piernas en la fase 0
     // tiene que ser grande.
-    for (const p of ciclicos) {
+    for (const p of deZancada) {
       const d = p.inicio.caderaFlexD ?? 0
       const i = p.inicio.caderaFlexI ?? 0
       expect(Math.abs(d - i), `${p.id}: las dos caderas van juntas`).toBeGreaterThan(20)
     }
+  })
+})
+
+describe('las de dos tiempos van con los dos lados a la vez, y con la ida más corta que la vuelta', () => {
+  it.each(deDosTiempos.map((p) => [p.id, p] as const))('%s no tiene un lado que haga otra cosa', (_id, p) => {
+    // Lo contrario de la zancada: aquí NO puede haber canales por lado, porque los dos
+    // brazos tiran del mismo mango y los dos pies empujan la misma placa.
+    const porLado = [...Object.keys(p.inicio), ...Object.keys(p.fin)].filter((c) => /[DI]$/.test(c))
+    expect(porLado, `${p.id} tiene canales por lado: ${porLado.join(', ')}`).toEqual([])
+  })
+
+  it.each(deDosTiempos.map((p) => [p.id, p] as const))('%s empuja más rápido de lo que vuelve', (_id, p) => {
+    const empuje = p.ciclo?.empujeSeg ?? 0
+    const periodo = p.ciclo?.periodoSeg ?? 0
+    expect(empuje, `${p.id}: el empuje no cabe en el ciclo`).toBeGreaterThan(0)
+    expect(empuje).toBeLessThan(periodo / 2)
   })
 })

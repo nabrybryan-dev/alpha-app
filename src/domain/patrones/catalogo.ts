@@ -58,8 +58,12 @@ export interface Patron {
    * de atasco, pausa, 1,9 s frenando, pausa— y corre dos medios ciclos iguales y suaves de
    * `periodoSeg / 2`, sin atasco, sin asentamiento y sin pararse en ningún extremo. La fase
    * 0 es un lado delante y la fase 1 su espejo. Nace el 2026-09-07 con el cardio.
+   *
+   * `empujeSeg` es para el otro tipo de ciclo, el de dos tiempos desiguales: en el remo el
+   * empuje es corto y la vuelta al frente es larga, y esa proporción es la técnica del
+   * gesto. Sin `empujeSeg` las dos mitades duran lo mismo, que es lo que quiere una zancada.
    */
-  ciclo?: { periodoSeg: number }
+  ciclo?: { periodoSeg: number; empujeSeg?: number }
   /**
    * Encuadre de estudio: el hueso distal de la articulación que se quiere ver
    * de cerca, con su lado (`antebrazoD`).
@@ -918,6 +922,39 @@ export const PATRONES: Patron[] = [
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.recto': 0.6, gluteo_mayor: 0.6, isquiotibiales: 0.5, 'triceps_sural.gastro_medial': 0.45, 'triceps_sural.soleo': 0.5, tibial_anterior: 0.3 },
     seguimiento: ['pie', 0.5, [0, 0, 0]],
     camara: { azimut: 72, elevacion: 8 },
+  },
+  {
+    id: 'remo_ergometro',
+    cadena: 'cerrada',
+    categoria: 'REMO EN ERGÓMETRO',
+    titulo: 'Remo en ergómetro',
+    ejemplos: 'Remo ergómetro 2000 m · Remo en ergómetro · Intervalos en remo',
+    resumen:
+      'Sentado, empuja con las piernas, abre la cadera y termina tirando con los brazos. Es el cardio que más masa muscular mete a la vez, y el orden importa: piernas, tronco, brazos.',
+    claves: [
+      'Empuja con las piernas primero: el mango no se mueve hasta que la rodilla se abre.',
+      'La espalda va firme y se inclina desde la cadera, no se redondea.',
+      'La vuelta al frente es al revés y sin prisa: brazos, tronco, rodillas.',
+    ],
+    errores: [
+      'Tirar con los brazos desde el principio: las piernas son las que empujan.',
+      'Volver al frente con las rodillas antes que las manos, que obliga a saltar el mango por encima.',
+    ],
+    apoyo: 'ninguno',
+    // DOS TIEMPOS DESIGUALES, que es la técnica del remo: el empuje corto y la vuelta larga.
+    // La proporción es la de manual —uno a dos— y por eso `empujeSeg` es un tercio del ciclo.
+    ciclo: { periodoSeg: 2.4, empujeSeg: 0.8 },
+    // Sentado en el carro del ergómetro, que va bajo, con los pies enganchados por delante.
+    raizInicio: [0, -0.52, 0.2],
+    raizFin: [0, -0.52, -0.19],
+    // Fase 0, el ATAQUE: rodillas encogidas contra el pecho, tronco inclinado adelante desde
+    // la cadera, brazos estirados al mango. Fase 1, el FINAL: piernas abiertas, tronco
+    // ligeramente atrás y el mango en las costillas bajas, con el omóplato recogido.
+    inicio: { caderaFlex: 134, rodillaFlex: 126, tobilloPlantar: -10, toraxFlex: 20, lumbarFlex: 4, hombroFlex: 52, codoFlex: 6, escapulaProt: 22 },
+    fin: { caderaFlex: 84, rodillaFlex: 8, tobilloPlantar: 10, toraxFlex: -14, lumbarFlex: -6, hombroFlex: -12, codoFlex: 96, escapulaProt: -22 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.9, gluteo_mayor: 0.9, isquiotibiales: 0.6, erectores: 0.8, dorsal_ancho: 0.85, 'trapecio.medio': 0.7, 'trapecio.inferior': 0.5, romboides: 0.65, 'deltoides.posterior': 0.6, biceps: 0.55, braquial: 0.45, 'triceps_sural.soleo': 0.5, recto_abdominal: 0.4, flexores_carpo: 0.4 },
+    seguimiento: ['mano', 0.5, [0, 0, 0]],
+    camara: { azimut: 74, elevacion: 8 },
   },
   {
     id: 'eliptica',
@@ -1975,6 +2012,11 @@ const POR_NOMBRE: [RegExp, string][] = [
   // categoría ha acertado una ficha—, así que la silla hay que elegirla aquí.
   // EL CARDIO, desde el 2026-09-07 (Bryan). El orden es el de `bloqueDeCardio.ts`: de la
   // modalidad más específica a la más general, y la carrera antes que la cinta.
+  //
+  // EL ERGÓMETRO VA EL PRIMERO DE TODOS, y no por capricho: «remo ergómetro» lleva la
+  // palabra remo, y el remo a secas es una tracción horizontal de fuerza. Si esta línea
+  // bajara, un remo de 2000 metros se dibujaría como un remo con barra.
+  [/erg[oó]metro|ergometro|remoergometro|remo ergom|remo indoor|concept ?2/, 'remo_ergometro'],
   [/escaladora|stair|subir escaleras/, 'escaladora'],
   [/el[ií]ptica|elliptical/, 'eliptica'],
   [/bici|bicicleta|ciclo\b|spinning|rodillo|pedale/, 'bicicleta_estatica'],
@@ -2044,12 +2086,12 @@ const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
  * parte cardiovascular como patrones de movimiento», y eso revierte su decisión anterior
  * —«sin sujeto ejecutando en el centro», escrita en `SalonSinSujeto.tsx`—. Se queda sin
  * sujeto lo que sigue sin tener gesto que enseñar: el cribado, el trineo (hueco declarado),
- * el circuito y el HIIT sin modalidad, el ergómetro de remo (sin ficha todavía) y «cardio»
+ * el circuito y el HIIT sin modalidad, y «cardio»
  * a secas —esa palabra ya no está aquí: «Bicicleta (cardio)» tiene ficha, y «cardio» solo
  * no encaja en ninguna línea de `POR_NOMBRE`, que es lo que la deja sin sujeto—.
  */
 const SIN_PATRON =
-  /circuito|cribado|hiit|tabata|erg[oó]metro|remo ergom|trineo|sled/
+  /circuito|cribado|hiit|tabata|trineo|sled/
 
 export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined

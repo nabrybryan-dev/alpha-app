@@ -86,7 +86,7 @@ function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrit
  * día alguno lo tuviera, este archivo se pondría rojo en vez de seguir probando el camino
  * equivocado.
  */
-const SIN_SUJETO_DE_PRODUCCION = ['CARDIO', 'HIIT', 'CIRCUITO', 'TABATA', 'ERGOMETRO', 'TRINEO']
+const SIN_SUJETO_DE_PRODUCCION = ['CARDIO', 'HIIT', 'CIRCUITO', 'TABATA', 'TRINEO']
 
 /**
  * Y LOS QUE SALIERON DE ESA LISTA EL 2026-09-07, porque Bryan pidió el cardio con sujeto:
@@ -94,7 +94,9 @@ const SIN_SUJETO_DE_PRODUCCION = ['CARDIO', 'HIIT', 'CIRCUITO', 'TABATA', 'ERGOM
  * y al revés —montan el visor— para que la lista de arriba no pueda volver a crecer sin que
  * alguien lo decida.
  */
-const CARDIO_CON_SUJETO = ['BICICLETA', 'CINTA', 'ESCALADORA', 'ELIPTICA']
+// El ERGÓMETRO se pasó a esta lista el 2026-09-07 por la noche: era el único de los seis sin
+// sujeto con un gesto de verdad que enseñar, y ahora tiene ficha y máquina.
+const CARDIO_CON_SUJETO = ['BICICLETA', 'CINTA', 'ESCALADORA', 'ELIPTICA', 'ERGOMETRO']
 
 function ejerciciosSinPatron(): EjercicioPrescrito[] {
   const sinModalidad = SIN_SUJETO_DE_PRODUCCION.map((nombre) =>

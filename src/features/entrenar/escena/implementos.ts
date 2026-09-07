@@ -95,6 +95,7 @@ export type FormaDeMaquina =
   | 'escaladora'
   | 'bicicleta'
   | 'eliptica'
+  | 'remo'
 
 // ---------------------------------------------------------------------------
 // La parte pura: qué implementos y dónde.
@@ -292,6 +293,7 @@ const MAQUINA_DE_CARDIO: Readonly<Record<string, FormaDeMaquina>> = {
   escaladora: 'escaladora',
   bicicleta_estatica: 'bicicleta',
   eliptica: 'eliptica',
+  remo_ergometro: 'remo',
 }
 
 export function implementosDeEscena(categoria: string, nombreEjercicio = ''): EscenaDeImplementos {
