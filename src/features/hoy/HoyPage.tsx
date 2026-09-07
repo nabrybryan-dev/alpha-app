@@ -10,6 +10,10 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
+import { CribadoForm } from '../cribado/CribadoForm'
+import { necesitaCribado } from '../cribado/necesitaCribado'
+import { preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
+import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
@@ -36,6 +40,7 @@ export default function HoyPage() {
   // ya se arregló DENTRO de Entrenar entre su botón y su calendario.
   const sugerida = microciclo ? sesionDestacada(armarSemana(microciclo, hoy)) : undefined
   const siguienteSesion = microciclo?.sesiones.find((s) => s.id === sugerida?.sesionId)
+  const preguntaPendiente = preguntaDelDia(db, usuario.id)
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
@@ -126,6 +131,29 @@ export default function HoyPage() {
       <div className="entrada entrada-2">
         <AvisoSinSincronizar usuarioId={usuario.id} />
       </div>
+
+      {/* La puerta clínica y la pregunta de la cadena van arriba del todo, y no
+          bloquean la pantalla: si su plan de hoy ya está prescrito, cerrarle el día
+          por un formulario cuesta una sesión — y quien lo paga es la adherencia,
+          que va por delante de casi todo en la jerarquía del método. Que el cribado
+          sin contestar impida ENTRENAR o solo impida PROGRAMAR es una regla que
+          todavía no está escrita; hasta que lo esté, se pide primero y se deja pasar. */}
+      {necesitaCribado(db, usuario) && (
+        <div className="entrada entrada-2">
+          <CribadoForm usuarioId={usuario.id} contestar={db.cribado.contestar} hoyIso={hoy} />
+        </div>
+      )}
+
+      {preguntaPendiente && (
+        <div className="entrada entrada-2">
+          <TarjetaPregunta
+            pregunta={preguntaPendiente}
+            onResponder={(valores) =>
+              db.cuestionarios.responder(preguntaPendiente.id, usuario.id, valores)
+            }
+          />
+        </div>
+      )}
 
       {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
           álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
