@@ -206,7 +206,7 @@ describe('la pieza real de la sala del gimnasio', () => {
     expect(intrusos).toBe(0)
   })
 
-  it('en catorce de los treinta y seis ángulos, detrás del sujeto solo hay muro', () => {
+  it('en once de los treinta y seis ángulos, detrás del sujeto solo hay muro', () => {
     // LO QUE HAY DETRÁS, VUELTA COMPLETA. Medido el 2026-09-06, y es una regresión de una
     // decisión escrita: `mobiliario.ts` puso diez estaciones a 36° de distancia justamente
     // porque «se mire por donde se mire tiene que haber algo detrás del sujeto», después de
@@ -221,10 +221,23 @@ describe('la pieza real de la sala del gimnasio', () => {
     // vértices de la parte `hormigon`**, que es la pared; en el mejor, 23.028 de rack. Un
     // factor de cuatrocientos.
     //
-    // Va CLAVADO y no arreglado: taparlo es o redistribuir el hierro en el .blend y
-    // reexportar 1,5 MB, o volver a encender un mobiliario procedural que rellene los
-    // huecos. Las dos son decisión de Bryan. Lo que esta prueba impide es que empeore sin
-    // que nadie se entere, y que alguien «arregle» el reparto y no se note que mejoró.
+    // ERAN CATORCE Y SON ONCE desde el 2026-09-06. Lo que bajó tres fue arreglar un error
+    // de concepto en `exportar_sala.py`: `empujar_fuera` mandaba todo a los muros largos
+    // porque en los cortos «solo quedan 90 cm entre la órbita y la pared». Correcto para un
+    // rack y falso para una mancuerna — y de los 66 conjuntos del gimnasio, 46 miden menos
+    // de 80 cm. El tope era un radio fijo de 5,8, que resultó ser **el radio de un rack
+    // disfrazado de regla general**; ahora es lo que ese número quería decir: la cara
+    // cercana del objeto no invade la órbita, o sea centro ≥ 4,6 + 0,35 + media huella. Para
+    // un rack sigue dando 5,8; para una mancuerna, 5,15, que cabe contra un muro corto.
+    //
+    // Los once que quedan NO los arregla esa regla y conviene saber por qué: solo actúa
+    // sobre lo que estaba DENTRO de la órbita, y casi todo el hierro ya estaba fuera —donde
+    // lo puso quien montó la sala, que es contra los muros largos—. Bajarlos de once exige
+    // MOVER aparatos que no están mal puestos, o sea rediseñar la sala, y eso es decisión
+    // de Bryan y no de una regla.
+    //
+    // Lo que esta prueba impide es que empeore sin que nadie se entere, y que alguien
+    // redistribuya y no se note que mejoró.
     const D = 4.6
     const MEDIO_CAMPO = ((14.8 / 2) * Math.PI) / 180
     const dePie: [number, number][] = []
@@ -260,7 +273,7 @@ describe('la pieza real de la sala del gimnasio', () => {
     }
     // Y lo que no: en cuántos, todo lo que hay es pared.
     const flacos = angulos.filter((g) => cuenta(g, dePie) === cuenta(g, soloMuro))
-    expect(flacos).toHaveLength(14)
+    expect(flacos).toHaveLength(11)
     expect(cuenta(180, dePie)).toBeLessThan(100)
     expect(Math.max(...angulos.map((g) => cuenta(g, dePie)))).toBeGreaterThan(20000)
   })

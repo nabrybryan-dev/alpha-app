@@ -12,7 +12,9 @@ from mathutils import Vector, Matrix
 DESTINO = r"C:\Users\ASUS\dev\alpha-salon\public\piezas"
 TEXTURAS = r"C:\Users\ASUS\dev\alpha-salon\public\texturas"
 NOMBRE = "sala-gimnasio"
-RADIO_MINIMO = 5.8          # fuera de la orbita (4,6) con margen
+# RADIO_MINIMO (5,8) se retiro el 2026-09-06: era el radio de un rack disfrazado de
+# regla general. Lo sustituye `ORBITA + HOLGURA + media huella`, que es lo que aquel
+# numero queria decir. Ver `empujar_fuera`.
 LIMITE = (7.3, 4.9)         # medio ancho / medio fondo utiles, dentro del muro
 SUBDIVIDIR = {"suelo": 5, "techo": 4, "muro_fondo": 4, "muro_frente": 4, "muro_izq": 4, "muro_der": 4}
 
@@ -47,20 +49,56 @@ def raiz_de(o):
         o = o.parent
     return o
 
-def empujar_fuera(p):
-    """Un punto XY dentro de la orbita se lleva a la banda junto a los MUROS LARGOS.
+ORBITA = 4.6                # radio de la camara
+HOLGURA = 0.35              # lo que tiene que sobrar entre la orbita y la cara cercana
+MEDIO_ANCHO, MEDIO_FONDO = 8.0, 5.5   # los muros de la sala
 
-    Radialmente no vale: en los muros cortos (y = 5,5) solo quedan 90 cm entre la
-    orbita (4,6) y la pared, y lo que se empujaba ahi se salia de la sala o seguia
-    dentro de la orbita. Junto a los muros largos (x = 8) hay 3,3 m."""
+def empujar_fuera(p, media_huella=0.86):
+    """Un punto XY dentro de la orbita se lleva contra el MURO MAS CERCANO EN QUE QUEPA.
+
+    Hasta el 2026-09-06 esto mandaba TODO a los muros largos (x = 7,0), con este
+    motivo: en los muros cortos (y = 5,5) solo quedan 90 cm entre la orbita (4,6) y
+    la pared, y lo que se empujaba ahi se salia o seguia dentro de la orbita.
+
+    El motivo es correcto para un rack y falso para una mancuerna, y esa diferencia
+    costaba media sala. Medido sobre la pieza que se descarga: en CATORCE de los 36
+    angulos de orbita, lo unico que quedaba detras del sujeto eran 54 vertices de
+    hormigon —la pared pelada—, mientras en el mejor habia 23.028 de rack. Y eso
+    tira por tierra la regla que `mobiliario.ts` dejo escrita despues de medirla:
+    «se mire por donde se mire tiene que haber algo detras del sujeto».
+
+    Asi que el tope deja de ser un radio fijo y pasa a ser lo que ese radio queria
+    decir: **que la cara cercana del objeto no invada la orbita**. El centro tiene
+    que ir, como poco, a `ORBITA + HOLGURA + media huella`. Para un rack de 1,7 m
+    eso da 5,8 —el numero viejo, que era el de un rack— y para una mancuerna de
+    40 cm da 5,15, que cabe de sobra contra un muro corto.
+
+    De los 66 conjuntos del gimnasio, 46 miden menos de 80 cm."""
     r = p.length
-    if r >= RADIO_MINIMO or r < 1e-6:
+    minimo = ORBITA + HOLGURA + media_huella
+    if r >= minimo or r < 1e-6:
         return Vector((0.0, 0.0, 0.0))
-    # A 7,0 y no a 6,4: centrado a 6,4, la cara cercana del rack quedaba a 5,6 —un metro
-    # de la orbita— y al girar la camara llenaba la pantalla. Pegado al muro, sobra 1,5 m.
-    lado = 1.0 if p.x >= 0 else -1.0
-    q = Vector((lado * 7.0, max(-4.2, min(4.2, p.y)), 0.0))
-    return q - p
+
+    # Los cuatro muros, cada uno con el radio maximo al que se puede pegar algo sin
+    # atravesarlo, y el punto al que iria este objeto en cada uno.
+    candidatos = []
+    for eje, signo in ((0, 1.0), (0, -1.0), (1, 1.0), (1, -1.0)):
+        limite = (MEDIO_ANCHO if eje == 0 else MEDIO_FONDO) - media_huella - 0.1
+        if limite < minimo:
+            continue  # en ese muro NO cabe: es lo que le pasa a un rack en el muro corto
+        if eje == 0:
+            q = Vector((signo * limite, max(-4.2, min(4.2, p.y)), 0.0))
+        else:
+            q = Vector((max(-6.4, min(6.4, p.x)), signo * limite, 0.0))
+        candidatos.append(((q - p).length, q))
+    if not candidatos:
+        # No cabe en ninguno: se queda donde estaba antes, contra el muro largo.
+        lado = 1.0 if p.x >= 0 else -1.0
+        return Vector((lado * 7.0, max(-4.2, min(4.2, p.y)), 0.0)) - p
+    # El mas cercano, para no teletransportar el gimnasio: cada cosa se arrima al muro
+    # que ya tenia al lado.
+    candidatos.sort(key=lambda c: c[0])
+    return candidatos[0][1] - p
 
 _desplazamiento_de_raiz = {}
 
@@ -76,7 +114,7 @@ def desplazamiento_de_conjunto(raiz):
                 w = c.matrix_world @ Vector(e)
                 xs.append(w.x); ys.append(w.y)
     centro = Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, 0.0))
-    d = empujar_fuera(centro)
+    d = empujar_fuera(centro, max(max(xs) - min(xs), max(ys) - min(ys)) / 2)
     _desplazamiento_de_raiz[raiz.name] = d
     print("conjunto %s centro (%.2f, %.2f) -> mueve (%.2f, %.2f)" % (raiz.name, centro.x, centro.y, d.x, d.y))
     return d
@@ -99,7 +137,10 @@ def desplazamiento(o):
     if n == "mampara_marco_sup" or n.startswith("mampara_"):
         return Vector((6.0 - o.location.x, 0.0, 0.0))
     if n.startswith(("gym_", "detalle_")):
-        d = empujar_fuera(Vector((o.location.x, o.location.y, 0.0)))
+        caja = [o.matrix_world @ Vector(e) for e in o.bound_box]
+        media = max(max(c.x for c in caja) - min(c.x for c in caja),
+                    max(c.y for c in caja) - min(c.y for c in caja)) / 2
+        d = empujar_fuera(Vector((o.location.x, o.location.y, 0.0)), media)
         # NADA SE HUNDE: los discos apoyados de canto se colocaron por su centro, asi que
         # la mitad quedaba bajo el suelo. Lo que asome por debajo se sube hasta apoyar.
         zmin = min((o.matrix_world @ Vector(e)).z for e in o.bound_box)
