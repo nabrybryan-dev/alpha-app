@@ -284,6 +284,25 @@ describe('/entrenar es el salón', () => {
       expect(tirador.getAttribute('aria-label')).toBe('Abrir el panel con todo el detalle')
     })
 
+    it('con el panel bajado no hay hoja oscura sobre la sala, solo la manija; la hoja aparece al abrir y no se corre de lado', async () => {
+      // Bryan, 2026-09-07, desde el iPhone: «una barra negra completa que no está acorde
+      // al diseño». En el kit el panel bajado no tiene fondo: solo la manija sobre la sala.
+      const usuario = userEvent.setup()
+      renderizarEntrenar()
+      const salon = await esperarAlSalon()
+      const panel = salon.querySelector('[data-hueco="panelInferior"]') as HTMLElement
+      const hoja = panel.firstElementChild as HTMLElement
+      expect(hoja.className, 'la hoja bajada volvió a llevar fondo oscuro').not.toContain('bg-ink-900/95')
+      expect(hoja.style.boxShadow).toBe('none')
+
+      await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
+      expect(hoja.className, 'la hoja abierta tiene que llevar su fondo').toContain('bg-ink-900/95')
+      // Y la lista no se puede desplazar de lado: el resplandor de las cifras se sale de su
+      // recuadro 70 px y, sin esto, el iPhone dejaba correr el contenido y lo cortaba.
+      const lista = panel.querySelector('.hoja-del-salon') as HTMLElement
+      expect(lista.className).toContain('overflow-x-hidden')
+    })
+
     /**
      * Y ahora la misma regla mirando la PANTALLA, no solo el salón.
      *

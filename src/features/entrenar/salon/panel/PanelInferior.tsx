@@ -253,6 +253,18 @@ export function PanelInferior(props: PanelInferiorProps) {
     onAvance?.(avance)
   }, [avance, onAvance])
 
+  /**
+   * SIN HOJA CUANDO ESTÁ BAJADO.
+   *
+   * Hasta el 2026-09-07 el panel bajado era una banda oscura de 29 px con las esquinas
+   * redondas cruzando la sala de lado a lado, justo encima de la barra de navegación.
+   * Bryan, desde su iPhone: «una barra negra completa que no está acorde al diseño». Y no
+   * lo está: en el kit, con el panel bajado solo se ve la manija sobre la sala, sin fondo.
+   * La hoja aparece con el gesto —en cuanto `avance` pasa de cero— y se queda mientras
+   * está abierta, que es cuando hay algo que leer encima de ella.
+   */
+  const conHoja = abierto || avance > 0
+
   return (
     <div data-no-orbita
       data-hueco="panelInferior"
@@ -272,12 +284,14 @@ export function PanelInferior(props: PanelInferiorProps) {
         // del lienzo en cada fotograma mientras el dedo arrastra. Con el fondo al 95 % el
         // desenfoque no aportaba nada que se viera; lo que se ve es la sala, quieta y
         // nítida, por debajo del borde de la hoja.
-        className="pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t border-white/10 bg-ink-900/95"
+        className={`pointer-events-auto flex flex-col overflow-hidden rounded-t-[20px] border-t ${
+          conHoja ? 'border-white/10 bg-ink-900/95' : 'border-transparent bg-transparent'
+        }`}
         style={{
           maxHeight: abierto ? '84dvh' : undefined,
           transform: `translateY(${seguimiento}px)`,
           transition: arrastrando ? 'none' : 'transform var(--dur-base) var(--ease-salida)',
-          boxShadow: '0 -18px 40px -24px rgba(0,0,0,.95)',
+          boxShadow: conHoja ? '0 -18px 40px -24px rgba(0,0,0,.95)' : 'none',
         }}
       >
         {/* EL TIRADOR. Sin una letra: el nombre va en `aria-label`, que no es un nodo de
@@ -293,9 +307,13 @@ export function PanelInferior(props: PanelInferiorProps) {
           onPointerCancel={alLevantarDedo}
           className="flex w-full shrink-0 touch-none items-center justify-center py-3"
         >
+          {/* Bajado, la manija va sola sobre la sala —suelo claro o muro oscuro—, así que
+              lleva un halo oscuro alrededor para leerse en los dos. */}
           <span
             aria-hidden="true"
-            className="h-1 w-11 rounded-full bg-silver-500/60 transition-colors duration-base"
+            className={`h-1 w-11 rounded-full transition-colors duration-base ${
+              conHoja ? 'bg-silver-500/60' : 'bg-silver-200 shadow-[0_0_0_3px_rgba(0,0,0,.35)]'
+            }`}
           />
         </button>
 
@@ -305,7 +323,14 @@ export function PanelInferior(props: PanelInferiorProps) {
             // de luz que los separan (`tokens.css`, LA HOJA DEL SALÓN). El aire sube de
             // `gap-2.5` a `gap-5` porque sin marcos hace falta más espacio entre bloques:
             // el borde ya no dice dónde acaba uno, lo dice el aire.
-            className="hoja-del-salon flex flex-col gap-5 overflow-y-auto px-5"
+            // `overflow-x-hidden` no es decorativo. Medido el 2026-09-07 en un móvil
+            // emulado: la lista abierta medía 459 px de ancho desplazable en una pantalla
+            // de 390, porque el resplandor de las cifras (`.muro-derrame::before`, con
+            // `inset` negativo del 34 % a cada lado) se sale de su recuadro. Solo con
+            // `overflow-y-auto` el eje X también queda desplazable, y en el iPhone un
+            // arrastre de lado corría el contenido 70 px y lo cortaba por la izquierda:
+            // «existen unos espacios de más cuando me despliego».
+            className="hoja-del-salon flex flex-col gap-5 overflow-x-hidden overflow-y-auto px-5"
             // Un dedo de aire al final de la lista. La barra de navegación ya no se
             // descuenta aquí: ahora la descuenta el propio panel, que empieza encima de
             // ella. Sumarla dos veces dejaba un hueco muerto al final del panel.
