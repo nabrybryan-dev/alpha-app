@@ -33,7 +33,19 @@ export const ARO: Color = [0.4, 0.47, 0.545]
  * Ver el tempo correcto es parte de lo que hay que enseñar. Una interpolación
  * lineal enseñaría un tempo que nadie debería copiar.
  */
-const CICLO = [
+/** Un tramo del ciclo: de qué fase a qué fase, en cuántos segundos, y cómo se recorre. */
+interface Tramo {
+  duracion: number
+  desde: number
+  hasta: number
+  suave: boolean
+  /** La subida de una repetición, con su punto de atasco. */
+  subiendo?: boolean
+  /** La pausa de arriba, con el asentamiento del tejido. */
+  asienta?: boolean
+}
+
+const CICLO: Tramo[] = [
   { duracion: 1.2, desde: 0, hasta: 1, suave: true, subiendo: true },
   { duracion: 0.35, desde: 1, hasta: 1, suave: false, asienta: true },
   { duracion: 1.9, desde: 1, hasta: 0, suave: true },
@@ -130,15 +142,38 @@ export interface TempoDeRepeticion {
   excentricaSeg?: number
 }
 
-function cicloCon(tempo?: TempoDeRepeticion) {
+/**
+ * EL RITMO CÍCLICO, para las fichas que no son una repetición.
+ *
+ * Una zancada, una pedalada o un peldaño no tienen concéntrica ni excéntrica: los dos
+ * medios ciclos son iguales, no hay punto de atasco, no hay asentamiento y no se para en
+ * ningún extremo. El remo es el otro caso: cíclico también, pero con las dos mitades de
+ * distinta duración, y lo dice con `empujeSeg`. Con el tempo de repetición un sujeto caminando COJEARÍA —la pierna
+ * derecha adelantaría en 1,2 s y la izquierda en 1,9— y se quedaría clavado dos veces por
+ * zancada. Dos tramos suaves e iguales, y nada más. Nace el 2026-09-07 con el cardio.
+ */
+function cicloDe(periodoSeg: number, empujeSeg?: number): Tramo[] {
+  // EL REMO NO TIENE LAS DOS MITADES IGUALES, y esa es su técnica: el empuje es corto y
+  // fuerte y la vuelta al frente es larga y suave. Los remeros lo llaman «ratio» y es lo
+  // primero que se corrige. Cuando la ficha declara `empujeSeg` se respeta; cuando no —una
+  // zancada, una pedalada—, las dos mitades duran lo mismo, que es lo correcto ahí.
+  const ida = empujeSeg && empujeSeg > 0 && empujeSeg < periodoSeg ? empujeSeg : periodoSeg / 2
+  return [
+    { duracion: ida, desde: 0, hasta: 1, suave: true },
+    { duracion: periodoSeg - ida, desde: 1, hasta: 0, suave: true },
+  ]
+}
+
+function cicloCon(tempo?: TempoDeRepeticion, patron?: Patron): Tramo[] {
+  if (patron?.ciclo && patron.ciclo.periodoSeg > 0) return cicloDe(patron.ciclo.periodoSeg, patron.ciclo.empujeSeg)
   const bajada = tempo?.excentricaSeg
   if (bajada === undefined || !(bajada > 0)) return CICLO
   return CICLO.map((f) => (f.desde === 1 && f.hasta === 0 ? { ...f, duracion: bajada } : f))
 }
 
-/** Cuánto dura una repetición entera con ese tempo. */
-export function duracionDelCiclo(tempo?: TempoDeRepeticion): number {
-  return cicloCon(tempo).reduce((s, f) => s + f.duracion, 0)
+/** Cuánto dura una repetición entera con ese tempo — o un ciclo entero, si la ficha es cíclica. */
+export function duracionDelCiclo(tempo?: TempoDeRepeticion, patron?: Patron): number {
+  return cicloCon(tempo, patron).reduce((s, f) => s + f.duracion, 0)
 }
 
 export interface FaseDelCiclo {
@@ -149,8 +184,8 @@ export interface FaseDelCiclo {
 
 export function faseDeTiempo(t: number, patron?: Patron, tempo?: TempoDeRepeticion): FaseDelCiclo {
   const centro = patron?.estancamiento ?? ESTANCAMIENTO.centro
-  const ciclo = cicloCon(tempo)
-  const duracion = duracionDelCiclo(tempo)
+  const ciclo = cicloCon(tempo, patron)
+  const duracion = duracionDelCiclo(tempo, patron)
   let u = ((t % duracion) + duracion) % duracion
   for (const f of ciclo) {
     if (u < f.duracion) {
