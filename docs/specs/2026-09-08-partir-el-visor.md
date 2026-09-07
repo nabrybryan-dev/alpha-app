@@ -65,6 +65,13 @@ Las seis líneas añadidas entre los dos archivos son:
 No cambia tampoco lo que el asesorado ve: ni el JSX del visor, ni el orden en que se
 suben las mallas, ni un número.
 
+Y no cambia **nada fuera del visor**: `src/components/`, `src/styles/`, `src/app/` e
+`index.html` son byte a byte los de `main` en esta rama —`git diff origin/main...HEAD --
+src/components src/styles src/app index.html` no devuelve una sola línea—, así que la
+barra de abajo, el botón de la cámara y el del mando no pueden haberse movido. Eso importa
+porque el testigo de la capa de pruebas dice que sí: ver «Los 1.265 píxeles del testigo»
+más abajo.
+
 ## Cómo se comprobó
 
 Tres medidas, y ninguna se cree sola.
@@ -129,6 +136,90 @@ Y una comprobación de que la corrida «antes» medía de verdad el código viej
 dos se preguntó al servidor de desarrollo qué estaba sirviendo
 (`curl .../src/features/entrenar/visor/VisorPatron.tsx | grep -c definicionCorporal`),
 que dio `0` en la primera y `1` en la segunda.
+
+## Los 1.265 píxeles del testigo, y de quién son
+
+La capa de pruebas escribió su propio testigo (`testigo/partir-el-visor.mjs`), que no mide
+el lienzo sino **la pantalla entera** —1.316.640 px de un 390×844 al doble—, y le sale
+`todoCero: false`: ~1.265 píxeles distintos en cada uno de sus cuatro escenarios, siempre
+en la misma caja (x 41-753, y 102-1657). Dos medidas que dan cero y una que no piden
+explicación, no elegir la que gusta.
+
+**Son del arnés.** Y no es una opinión: es la corrida de control.
+
+### 1. Qué píxeles son
+
+Cruzando cada píxel encendido de la máscara contra el rect **más pequeño** del DOM que lo
+contiene (`informes/partir-el-visor/capaProfunda-mascara.png`, en la app viva):
+
+| Elemento | px |
+|---|---:|
+| `path` y `svg` — los cinco iconos de la barra de abajo, el de la cámara, el del mando y el galón de «LUNES» | 771 |
+| `div[data-testigo="camara"]` — el aro del botón de cámara | 205 |
+| `button[data-noOrbita]` — el aro del botón del mando | 192 |
+| `div.glass.glass-blur` — el borde redondeado de la barra | 44 |
+| las píldoras de la tira y los rótulos de la barra | ~50 |
+
+**Ni un solo píxel del lienzo**, que es lo que esta tarea toca. Todos son vectores —trazos
+SVG y bordes redondeados— dentro de capas que el CSS promueve: `.glass-blur` lleva
+`backdrop-filter`, `.relieve` lleva `perspective(...) translateZ(0)`.
+
+Y lo que cambia en ellos no es dónde están: el fondo (38,38,38) y el trazo (168,168,168)
+son idénticos píxel a píxel, y lo único que se mueve son los valores intermedios de la
+rampa de antialiasing. La forma está en el mismo sitio, dibujada con otra cobertura.
+
+### 2. Ese código no lo toca esta rama
+
+`git diff origin/main...HEAD -- src/components src/styles src/app index.html` no devuelve
+una línea: `BottomNav.tsx`, `tokens.css` y `CamaraDelSalon.tsx` son byte a byte los de
+`main`. `Joystick.tsx` sí cambia, pero su JSX no: el diff no tiene ni una línea con `<`.
+
+### 3. La corrida de control: `main` contra sí misma
+
+El mismo testigo, con `--ref-base=origin/main --ref-nueva=origin/main` —el código idéntico
+a los dos lados— da esto:
+
+| Escenario | main vs main | main vs `capa/interfaz` (acta del 07-09) |
+|---|---:|---:|
+| patronA | 1.278 | 1.278 |
+| patronB | 1.253 | 1.253 |
+| capaIntermedia | 1.276 | 1.276 |
+| capaProfunda | 1.265 | 1.265 |
+
+**Los cuatro números coinciden dígito a dígito.** El testigo mide lo mismo tanto si las dos
+ramas son distintas como si son la misma: lo que cuenta no es el código. La salida entera
+está en `informes/rojos/partir-el-visor-control-main-vs-main.txt`.
+
+### 4. Y la resta que sí separa el código: cero
+
+`informes/partir-el-visor-arbol-unico.mjs` hace la misma resta quitando las dos variables
+que el testigo mete de más: un solo worktree, un solo `node_modules`, la misma máquina, y
+entre las dos capturas **solo** cambia `src`.
+
+```
+$ node informes/partir-el-visor-arbol-unico.mjs
+  píxeles distintos: 0 de 1316640
+$ node informes/partir-el-visor-arbol-unico.mjs --cebo
+  píxeles distintos: 88044 de 1316640      # el cebo se vio: la medida sabe decir que no
+```
+
+El cebo no sobra: un cero de una medida que nunca se ha visto romperse no es un cero. Las
+dos salidas quedan en `informes/rojos/partir-el-visor-arbol-unico{,-cebo}.txt`.
+
+### 5. Lo que le falta al testigo, y por qué no se toca aquí
+
+`testigo/` es de la capa de pruebas y no se toca desde aquí. Queda escrito el sitio:
+`arrancarChrome` (`testigo/comun.mjs:63`) da a los dos Chrome **el mismo perfil**
+—`join(tmpdir(), 'testigo-salon-' + process.pid)`—, así que el primero lo estrena frío y
+el segundo lo hereda caliente; y en `medirCheckout` la captura se dispara tras
+`SALON_MONTADO` + `--asiento` sin esperar nunca a `document.fonts.ready`, con unas
+tipografías que salen de `fonts.googleapis.com` con `display=swap` (`index.html:28`). El
+turno, y no el código, es lo único asimétrico entre las dos mitades de esa medida — que es
+exactamente lo que dice la tabla del punto 3.
+
+Mientras eso siga así, `todoCero` de ese testigo no puede llegar a `true` ni con el código
+de `main` a los dos lados, y el acta que deja
+(`informes/testigo-partir-el-visor.json`, `todoCero: false`) está midiendo su propio arnés.
 
 ## Qué queda
 
