@@ -36,7 +36,10 @@ export function cuerpoDelRotulo(lineas: readonly string[]): number {
   // Es lo que un rotulista hace con una pared: el cartel tiene un alto, y el número de
   // renglones decide el cuerpo, no al revés.
   const porAlto = 3.9 / Math.max(1, lineas.length)
-  return Math.max(1.37, Math.min(3.77, porAncho, porAlto))
+  // El suelo baja de 1,37 a 1,0 el 2026-09-07: con 1,37 una segunda línea larga («TUMBADO
+  // (SENTADILLA …)») no cabía y el navegador la partía en una TERCERA línea, que pisaba la
+  // banda de la sesión (captura de Bryan). Antes que una línea más, una letra menor.
+  return Math.max(1.0, Math.min(3.77, porAncho, porAlto))
 }
 
 /**

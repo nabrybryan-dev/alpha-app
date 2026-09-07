@@ -202,6 +202,12 @@ function ejercicioEnCurso(sesion: Sesion | undefined): EjercicioPrescrito | unde
  *   error del visor NO lleva esa clase, así que sigue viéndose: es el único texto de ahí
  *   dentro que no se puede esconder.
  */
+/** Dos centros de cámara son el mismo si no se mueven ni un milímetro. */
+function mismoCentro(a: readonly number[] | undefined, b: readonly number[] | undefined): boolean {
+  if (!a || !b) return a === b
+  return Math.abs(a[0] - b[0]) < 1e-3 && Math.abs(a[1] - b[1]) < 1e-3 && Math.abs(a[2] - b[2]) < 1e-3
+}
+
 const SUJETO_A_SANGRE = [
   'absolute inset-0',
   '[&>div]:h-full [&>div]:gap-0',
@@ -681,7 +687,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       data-w={w}
       // La cámara, legible desde fuera: el testigo mide si un gesto orbitó o no sin
       // adivinarlo por los píxeles. Solo se escribe cuando cambia (ver `alMirar`).
-      data-camara={`${camara.azimut.toFixed(1)}|${camara.elevacion.toFixed(1)}|${camara.distancia.toFixed(2)}`}
+      data-camara={`${camara.azimut.toFixed(1)}|${camara.elevacion.toFixed(1)}|${camara.distancia.toFixed(2)}|${(camara.centro ?? []).map((n) => n.toFixed(2)).join(',')}`}
       ref={marcoRef}
       className="fixed inset-0 overflow-hidden bg-ink-1000"
       style={{ zIndex: 'var(--z-elevado)' }}
@@ -754,7 +760,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                   // cambia algo, y guardar un objeto nuevo cada vez re-renderizaría las
                   // paredes sesenta veces por segundo aunque la cámara esté quieta.
                   setCamara((v) =>
-                    v.azimut === c.azimut && v.elevacion === c.elevacion && v.distancia === c.distancia
+                    v.azimut === c.azimut &&
+                    v.elevacion === c.elevacion &&
+                    v.distancia === c.distancia &&
+                    v.campo === c.campo &&
+                    mismoCentro(v.centro, c.centro)
                       ? v
                       : c,
                   )

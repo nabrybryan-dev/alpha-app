@@ -178,7 +178,7 @@ export function TablonDelMuro({
         <div data-prescripcion="muro" className="muro-prescripcion">
           {estacionesDeLaSerie(ejercicio).map((e) => (
             <div key={e.clave} data-cifra={e.clave} className="min-w-0 text-center">
-              <span className="muro-rotulo block text-[9.5px]">{e.rotulo}</span>
+              <span className="muro-rotulo muro-prescripcion-rotulo block">{e.rotulo}</span>
               <span className="muro-prescripcion-cifra block">{e.cifra}</span>
             </div>
           ))}

@@ -37,6 +37,23 @@ export interface CamaraDelSalon {
   azimut: number
   elevacion: number
   distancia: number
+  /**
+   * EL PUNTO AL QUE MIRA LA CÁMARA. Desde el 2026-09-05 el visor mira al centro del CUERPO
+   * (`encuadreDelSalon`), que en un sujeto tumbado está a 30 cm del suelo y no a 1,2 m; los
+   * cuadros del muro seguían proyectándose con el centro fijo de `ENCUADRE_SALA`, o sea con
+   * OTRA cámara, y por eso con el curl femoral tumbado el tablón caía cortado por la
+   * izquierda y montado sobre la banda de la sesión (captura de Bryan, 2026-09-07). Sin
+   * él —el primer fotograma, o una prueba— se usa el de la sala.
+   */
+  centro?: readonly [number, number, number]
+  /**
+   * EL CAMPO VISUAL CON EL QUE DIBUJA EL VISOR, en radianes. Con sala el visor abre el
+   * objetivo por patrón (`encuadreDelSalon.campo`), y los cuadros seguían proyectándose con
+   * los 26° de siempre: otra cámara más. Y `distancia` tiene que ser la EFECTIVA —la pedida
+   * acotada por el muro (`Orbita.distanciaEfectiva`)—, no la pedida: con la pedida los
+   * cuadros salían más altos y más grandes que la sala que tenían debajo.
+   */
+  campo?: number
 }
 
 /** Dónde y cómo se dibuja un cuadro, ya en unidades de pantalla. */
@@ -92,10 +109,10 @@ export function proyectarCuadro(
   alto: number,
   radio = SALA.radio - 0.2,
 ): CuadroEnPantalla {
-  const foco = alto / 2 / Math.tan(CAMPO_VISUAL / 2)
+  const foco = alto / 2 / Math.tan((camara.campo ?? CAMPO_VISUAL) / 2)
   const az = grados(camara.azimut)
   const el = grados(camara.elevacion)
-  const centro = ENCUADRE_SALA.centro
+  const centro = camara.centro ?? ENCUADRE_SALA.centro
 
   // El ojo, exactamente donde lo pone la órbita del motor.
   const ojo: [number, number, number] = [
@@ -135,8 +152,12 @@ export function proyectarCuadro(
   // que usa la órbita —0 en +Z, creciendo hacia +X— y la razón de que esté en un solo sitio
   // es que `sala.ts` usa la OTRA (0 en +X): dos fórmulas sueltas con el seno y el coseno
   // cambiados se leen igual y cuelgan el cuadro un cuarto de vuelta más allá.
-  const [px0, , pz0] = puntoEnElSuelo(radio, sitio.azimut)
-  const p: [number, number, number] = [px0, sitio.altura, pz0]
+  // EL MURO DE ENFRENTE ESTÁ ENFRENTE DEL CENTRO AL QUE SE MIRA, no del origen de la sala.
+  // Con un sujeto tumbado la cámara mira a (0, 0,41, 1,11) y el punto «a 180° de la
+  // entrada» medido desde el origen caía de lado: el tablón salía cortado por un borde
+  // (captura de Bryan, 2026-09-07). El desvío horizontal del centro se suma al punto.
+  const [dx, , dz] = puntoEnElSuelo(radio, sitio.azimut)
+  const p: [number, number, number] = [centro[0] + dx, sitio.altura, centro[2] + dz]
   const d: [number, number, number] = [p[0] - ojo[0], p[1] - ojo[1], p[2] - ojo[2]]
   const z = d[0] * f[0] + d[1] * f[1] + d[2] * f[2]
   const x = d[0] * r[0] + d[1] * r[1] + d[2] * r[2]
@@ -180,7 +201,11 @@ export function proyectarCuadro(
  * Cuesta elevación: cada píxel de margen es muro que ya no se puede usar. Con 28 el techo
  * del salón baja de 10° a lo que diga `geometriaDeCuadro.test.ts`, que lo tiene clavado.
  */
-export const MARGEN_ARRIBA = 28
+// SETENTA Y DOS desde el 2026-09-07: la banda de la sesión (`BarraDeSesion`, a 46 px del
+// borde y de una línea) ocupa hasta los 64, y con 28 el tablón se le metía debajo —«SESIÓN
+// UPPER A» encima de «SALA 02», y el nombre del ejercicio bajo el nombre de la sesión en la
+// captura de Bryan—. Se paga en grados, como siempre; la prueba de abajo dice cuántos.
+export const MARGEN_ARRIBA = 72
 
 /**
  * HASTA DÓNDE SE PUEDE BAJAR UN CUADRO SIN QUE LO TAPE EL CUERPO, en metros.

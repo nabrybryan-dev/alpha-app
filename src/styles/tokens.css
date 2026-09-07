@@ -2436,15 +2436,33 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 0.5em;
+  column-gap: max(0.6em, 12px);
   margin-top: 0.3em;
+  /* GRANDE AUNQUE EL MURO SALGA PEQUEÑO. El cuadro se escala con la pared —con un sujeto
+     tumbado la cámara abre el objetivo y la pared se ve a la mitad—, y las cifras iban en
+     píxeles fijos dentro de una caja que encogía: se montaban unas sobre otras («31221»,
+     2026-09-07). Ahora escalan con el cuadro (em) pero con un suelo en píxeles, y la fila
+     puede ser más ancha que su caja: se centra sobre ella en vez de amontonarse. */
+  width: max-content;
+  min-width: 100%;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.muro-prescripcion > div {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.muro-prescripcion-rotulo {
+  font-size: max(0.75em, 8px);
 }
 
 .muro-prescripcion-cifra {
   font-family: var(--font-display);
   font-stretch: 125%;
   font-weight: 900;
-  font-size: 44px;
+  font-size: max(3.5em, 30px);
   line-height: 0.92;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;

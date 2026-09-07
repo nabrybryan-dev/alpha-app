@@ -663,8 +663,10 @@ export const ENCUADRE_SALA = {
    */
   // Nueve desde el 2026-09-06: la prescripción volvió al muro, grande y sin retirarse, por
   // orden de Bryan («pegada en la pared y muy grande»). El tablón declara 1,2 m en vez de
-  // 0,85 y el techo baja un grado; `geometriaDeCuadro.test.ts` lo recalcula.
-  elevacionMaxima: 9,
+  // 0,85 y el techo baja un grado. Y SIETE desde el 2026-09-07: el margen de arriba pasa de
+  // 28 a 72 px para que el tablón no se meta bajo la banda de la sesión (captura de Bryan).
+  // `geometriaDeCuadro.test.ts` lo recalcula.
+  elevacionMaxima: 7,
 } as const
 
 /**

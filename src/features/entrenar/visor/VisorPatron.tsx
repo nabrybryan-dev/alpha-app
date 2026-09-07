@@ -384,6 +384,10 @@ interface VisorPatronProps {
     azimut: number
     elevacion: number
     distancia: number
+    /** El punto al que mira: el centro del cuerpo con sala, el del encuadre sin ella. */
+    centro: readonly [number, number, number]
+    /** El campo visual con el que se dibuja, en radianes (con sala, el del patrón). */
+    campo: number
     /**
      * El cuerpo en píxeles de PANTALLA (coordenadas de cliente), con la cámara de este
      * fotograma. Lo usa el salón para decidir de quién es un dedo: sobre el cuerpo, del
@@ -1136,7 +1140,17 @@ export function VisorPatron({
         const avisarDeLaCamara = () => {
           const camara = { azimut: orbita.azimut, elevacion: orbita.elevacion, distancia: orbita.distancia }
           estado.current.camaraAnterior = camara
-          estado.current.alMirar?.({ ...camara, cuerpo: cuadroDelCuerpo() })
+          const centro: [number, number, number] = [orbita.centro[0], orbita.centro[1], orbita.centro[2]]
+          // A los muros se les avisa la cámara CON LA QUE SE DIBUJA: la distancia efectiva
+          // (acotada por la sala) y el campo del patrón. Con la distancia pedida y los 26° de
+          // siempre los cuadros salían más altos que la sala de debajo (2026-09-07).
+          estado.current.alMirar?.({
+            ...camara,
+            distancia: orbita.distanciaEfectiva(),
+            centro,
+            campo: estado.current.campoDelSalon ?? CAMPO_VISUAL,
+            cuerpo: cuadroDelCuerpo(),
+          })
         }
 
         redibujar.current = () => {

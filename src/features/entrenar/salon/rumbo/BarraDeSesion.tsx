@@ -56,7 +56,10 @@ export function BarraDeSesion({
       data-barra="sesion"
       className="pointer-events-none flex items-center justify-between gap-2.5"
     >
-      <p className="font-display text-[15px] font-black uppercase leading-none tracking-[0.04em] text-texto">
+      {/* UNA LÍNEA, SIEMPRE. Un nombre de sesión largo («PIERNA · PESO MUERTO Y SENTADILLA»)
+          partía la banda en dos y la segunda línea caía sobre el tablón del muro. Se
+          recorta con puntos: la banda dice dónde estás, no es para leerla entera. */}
+      <p className="min-w-0 truncate font-display text-[15px] font-black uppercase leading-none tracking-[0.04em] text-texto">
         Sesión{' '}
         <span className="text-silver-300">{sesion?.nombre ?? 'Sin sesión'}</span>
       </p>

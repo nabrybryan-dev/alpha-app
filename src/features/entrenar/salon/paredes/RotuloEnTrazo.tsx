@@ -68,7 +68,10 @@ export function RotuloEnTrazo({ nombre }: RotuloEnTrazoProps) {
   return (
     <p
       className="muro-trazo"
-      style={{ fontSize: `${cuerpo.toFixed(2)}em` }}
+      // Con suelo en píxeles: desde que los cuadros se proyectan con la cámara de verdad
+      // (2026-09-07), un muro visto con el objetivo abierto sale a la mitad, y el nombre
+      // en trazo bajaba de 14 px. El kit lo quiere entre 30 y 84.
+      style={{ fontSize: `max(${cuerpo.toFixed(2)}em, 24px)` }}
       // El nombre entero, en un solo nodo, para el lector de pantalla: partido en letras
       // se leería deletreado.
       aria-label={nombre}
