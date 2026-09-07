@@ -516,6 +516,47 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    cribado: {
+      ...local.cribado,
+      contestar: (cribado) => {
+        // El local manda: si ya había fila, `contestar` no hace nada y aquí tampoco
+        // se encola. Se comprueba leyendo DESPUÉS de escribir, para no duplicar la
+        // regla de «se contesta una vez» en dos sitios que podrían separarse.
+        const antes = local.cribado.byUsuario(cribado.usuarioId)
+        local.cribado.contestar(cribado)
+        if (antes) return
+        encolar({
+          // Sin `onConflict`: `usuario_id` ES la clave primaria de la tabla, que es
+          // lo que Supabase usa por defecto.
+          tabla: 'cribado',
+          tipo: 'upsert',
+          payload: {
+            usuario_id: cribado.usuarioId,
+            fecha: cribado.fecha,
+            fuente: cribado.fuente,
+            // `?? null` y no `?? 'ausente'`: lo que no se preguntó viaja como nulo.
+            // La tabla lo admite, y el CHECK de la 0058 exige los doce solo cuando
+            // la fuente es `app` — así una fila a medias no puede colarse como
+            // cribado completo.
+            diagnostico: cribado.diagnostico ?? null,
+            quien_lo_lleva: cribado.quienLoLleva ?? null,
+            tratamiento_activo: cribado.tratamientoActivo ?? null,
+            medicacion_cronica: cribado.medicacionCronica ?? null,
+            autorizacion_sanitaria: cribado.autorizacionSanitaria ?? null,
+            restricciones_explicitas: cribado.restriccionesExplicitas ?? null,
+            sintomas_con_esfuerzo: cribado.sintomasConEsfuerzo ?? null,
+            nivel_funcional: cribado.nivelFuncional ?? null,
+            que_le_han_dicho_que_no_haga: cribado.queLeHanDichoQueNoHaga ?? null,
+            parq_enfermedad_cardiaca: cribado.parqEnfermedadCardiaca ?? null,
+            parq_medicamento_presion: cribado.parqMedicamentoPresion ?? null,
+            parq_huesos_articulaciones: cribado.parqHuesosArticulaciones ?? null,
+            detalle: cribado.detalle,
+            actualizado_en: new Date().toISOString(),
+          },
+        })
+      },
+    },
+
     calibracion: {
       ...local.calibracion,
       registrar: (prueba) => {

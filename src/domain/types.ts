@@ -532,6 +532,26 @@ export interface Cuestionario {
   descripcion: string
   preguntas: Pregunta[]
   asignadoA: string[]
+  /**
+   * Quién lo mandó. `coach` es lo de siempre: un cuestionario que arma una persona.
+   * `cadena` es nuevo: lo escribió un agente que se quedó sin un dato y no puede
+   * seguir sin él —los días que entrena alguien, qué es esa condición médica que
+   * marcó y dejó en blanco—.
+   *
+   * Opcional porque los cuestionarios que ya existen no lo traen, y un `undefined`
+   * significa `coach`, que es lo que eran todos hasta hoy. No se rellena al vuelo
+   * con un valor por defecto: la ausencia ya dice lo que hay que saber.
+   */
+  origen?: 'coach' | 'cadena'
+  /**
+   * A qué vuelve la respuesta cuando llegue. Es el `pregunta_ref` del contrato de los
+   * agentes: el nombre del fichero de la pregunta que dejó la cadena parada.
+   *
+   * Sin esto, la respuesta se queda en la base sin nadie que la recoja — que es
+   * exactamente lo que pasa hoy, cuando el coach copia la pregunta a mano y luego
+   * tiene que acordarse de a qué microciclo pertenecía.
+   */
+  ref?: string
 }
 
 export interface Respuesta {
@@ -691,4 +711,55 @@ export interface PreferenciaEstado {
   usuarioId: string
   familia: string
   estado: 'crudo' | 'cocido' | 'seco'
+}
+
+/**
+ * Lo que cada campo del cribado puede valer.
+ *
+ * `ausente` es «se le preguntó y no tiene». `no_declarado` es «no se le preguntó», y
+ * los dos NO son lo mismo: tratar un hueco como un «no» es inventarse un cribado. Es
+ * el mismo vocabulario que usan las banderas clínicas de los agentes (I-23), a
+ * propósito, para que la fila se vuelque al dictamen sin traducir nada.
+ */
+export type EstadoCribado = 'presente' | 'ausente' | 'no_declarado'
+
+/**
+ * El cribado de salud de una persona: el PAR-Q y los nueve de la entrada mínima.
+ *
+ * POR QUÉ EXISTE. Hasta la migración 0058 esto no estaba en ninguna tabla: vivía en
+ * prosa, dentro del expediente de ocho personas, y ninguna regla podía leerlo. El
+ * 6-sep se midió la consecuencia: cada agente declaraba la zona clínica por lo que
+ * encontraba, y cuatro planes salieron declarados «sin cuadro» sin que nada lo
+ * comprobara. De los ocho que sí habían contestado alguna vez, cuatro dieron positivo.
+ *
+ * Los nueve campos de I-23 y los tres `parq_*` son opcionales en el tipo porque una
+ * fila volcada desde la wiki puede no traerlos todos —lo que no consta se queda sin
+ * poner, nunca se rellena—. Una fila con `fuente: 'app'` sí los trae los doce, y eso
+ * no depende de que el formulario se acuerde: lo exige un CHECK de la propia tabla.
+ */
+export interface Cribado {
+  usuarioId: string
+  /** Cuándo se contestó. No es cuándo se guardó: eso es `actualizadoEn`. */
+  fecha: string
+  /** `wiki` marca lo volcado desde un expediente en prosa: cierto, pero no lo contestó nadie aquí. */
+  fuente: 'app' | 'wiki' | 'encuesta'
+
+  diagnostico?: EstadoCribado
+  quienLoLleva?: EstadoCribado
+  tratamientoActivo?: EstadoCribado
+  medicacionCronica?: EstadoCribado
+  autorizacionSanitaria?: EstadoCribado
+  restriccionesExplicitas?: EstadoCribado
+  sintomasConEsfuerzo?: EstadoCribado
+  nivelFuncional?: EstadoCribado
+  queLeHanDichoQueNoHaga?: EstadoCribado
+
+  /** `false` es «no»; ausente es «no se preguntó». Un booleano con valor por defecto los habría vuelto lo mismo. */
+  parqEnfermedadCardiaca?: boolean
+  parqMedicamentoPresion?: boolean
+  parqHuesosArticulaciones?: boolean
+
+  /** El texto de cada «sí», con la clave del campo: `{ medicacionCronica: 'prednisolona 10 mg' }`. */
+  detalle: Record<string, string>
+  actualizadoEn?: string
 }

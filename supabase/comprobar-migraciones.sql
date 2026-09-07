@@ -1033,4 +1033,49 @@ select '0057 - el asesorado estrena su ficha', 'registrar_medida existe y proteg
                  and p.prosrc like '%usuarioId%')
        then 'SI' else 'NO' end
 
+union all
+-- 0058, primera señal: la tabla con sus DOCE preguntas y el candado que impide que una
+-- fila de la app venga a medias. Se cuentan las columnas por su nombre, no el total:
+-- una tabla con diecisiete columnas donde una se llame distinto no le sirve a
+-- `entrada_desde_historial.py`, que las vuelca al dictamen SIN traducir. Y sin el check
+-- `cribado_de_la_app_esta_completo`, una fila `app` incompleta sería indistinguible de
+-- una `wiki` a medias — que es justo la ambigüedad que la migración viene a cerrar.
+select '0058 - el cribado vive en la base', 'tabla con las 12 preguntas y el check de completitud',
+       case when (
+              select count(*) = 12 from information_schema.columns
+               where table_schema = 'public' and table_name = 'cribado'
+                 and column_name in (
+                   'diagnostico','quien_lo_lleva','tratamiento_activo','medicacion_cronica',
+                   'autorizacion_sanitaria','restricciones_explicitas','sintomas_con_esfuerzo',
+                   'nivel_funcional','que_le_han_dicho_que_no_haga',
+                   'parq_enfermedad_cardiaca','parq_medicamento_presion','parq_huesos_articulaciones'))
+            and exists (
+              select 1 from pg_constraint c
+                join pg_class t on t.oid = c.conrelid
+                join pg_namespace n on n.oid = t.relnamespace
+               where n.nspname = 'public' and t.relname = 'cribado'
+                 and c.conname = 'cribado_de_la_app_esta_completo')
+       then 'SI' else 'NO' end
+
+union all
+-- 0058, segunda señal: la puerta no se abre desde el lado que protege. Son datos de
+-- salud y este dato PARA la cadena: quien contesta «sí» a dolor torácico queda en zona
+-- roja. Si el asesorado pudiera hacer UPDATE de su propia fila, se desbloquearía solo.
+-- Se exige, las tres: RLS encendida, que exista una política de UPDATE, y que NINGUNA
+-- política de UPDATE mencione `auth.uid()` — es decir, que cambiar una respuesta sea
+-- del coach y de nadie más. Diría NO con la tabla creada y las políticas sin poner,
+-- que es el estado peligroso: tabla viva y abierta.
+select '0058 - el cribado vive en la base', 'RLS encendida y el UPDATE es solo del coach',
+       case when (select coalesce(bool_and(c.relrowsecurity), false)
+                    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                   where n.nspname = 'public' and c.relname = 'cribado')
+            and exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'cribado' and cmd = 'UPDATE')
+            and not exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'cribado' and cmd = 'UPDATE'
+                 and coalesce(qual, '') || coalesce(with_check, '') like '%uid()%')
+       then 'SI' else 'NO' end
+
 order by migracion, senal;

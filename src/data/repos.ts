@@ -7,6 +7,7 @@ import type {
   AdherenciaNutricional,
   CheckinDiario,
   Contenido,
+  Cribado,
   Cuestionario,
   EstadoAdherencia,
   MedidaCorporal,
@@ -253,6 +254,21 @@ export interface CuestionariosRepo {
   responder(cuestionarioId: string, usuarioId: string, valores: Record<string, string>): void
 }
 
+/**
+ * El cribado de salud, uno por persona (migración 0058).
+ *
+ * No hay `actualizar`, y es a propósito: cambiar una respuesta es del coach, no de
+ * quien la contestó. Este dato es una puerta —quien declara dolor torácico queda en
+ * zona roja y su plan se para—, así que si el asesorado pudiera reescribirlo, la
+ * puerta se abriría desde el lado que protege. La RLS de la 0058 lo impide en el
+ * servidor; aquí no se ofrece el método para que no parezca que se puede.
+ */
+export interface CribadoRepo {
+  byUsuario(usuarioId: string): Cribado | undefined
+  /** Lo contesta una vez. Si ya hay fila, no se pisa: se ignora. */
+  contestar(cribado: Cribado): void
+}
+
 export interface ContenidosRepo {
   list(): Contenido[]
   byId(id: string): Contenido | undefined
@@ -293,6 +309,7 @@ export interface Db {
   calibracion: CalibracionRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo
+  cribado: CribadoRepo
   contenidos: ContenidosRepo
   premiaciones: PremiacionesRepo
   ranking: RankingRepo

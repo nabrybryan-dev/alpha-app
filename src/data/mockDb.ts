@@ -804,6 +804,23 @@ export function crearMockDb(): Db {
       },
     },
 
+    cribado: {
+      byUsuario: (usuarioId) =>
+        (ref.actual.cribados ?? []).find((c) => c.usuarioId === usuarioId),
+      contestar: (cribado) => {
+        mutar((estado) => {
+          // Se contesta UNA vez. Si ya hay fila, se deja la que está: cambiar una
+          // respuesta es del coach, no de quien la contestó (0058). Sin esta guarda,
+          // un segundo envío del formulario —un doble toque, una pantalla que se
+          // remonta— reescribiría en silencio un dato que es una puerta clínica.
+          if ((estado.cribados ?? []).some((c) => c.usuarioId === cribado.usuarioId)) {
+            return estado
+          }
+          return { ...estado, cribados: [...(estado.cribados ?? []), cribado] }
+        })
+      },
+    },
+
     contenidos: {
       list: () => ref.actual.contenidos,
       byId: (id) => ref.actual.contenidos.find((c) => c.id === id),

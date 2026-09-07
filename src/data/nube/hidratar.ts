@@ -2,7 +2,9 @@ import type {
   AdherenciaNutricional,
   CheckinDiario,
   Contenido,
+  Cribado,
   Cuestionario,
+  EstadoCribado,
   Mensaje,
   Microciclo,
   PlanNutricional,
@@ -70,6 +72,56 @@ function esTablaInexistente(error: { code?: string }): boolean {
 }
 
 type Fila = Record<string, unknown>
+
+/** Los tres valores que admite un campo del cribado. Cualquier otro se descarta. */
+const ESTADOS_CRIBADO = ['presente', 'ausente', 'no_declarado'] as const
+
+/** Los nueve de I-23, los únicos que `campoCribado` puede escribir. */
+type CampoDeCribado =
+  | 'diagnostico'
+  | 'quienLoLleva'
+  | 'tratamientoActivo'
+  | 'medicacionCronica'
+  | 'autorizacionSanitaria'
+  | 'restriccionesExplicitas'
+  | 'sintomasConEsfuerzo'
+  | 'nivelFuncional'
+  | 'queLeHanDichoQueNoHaga'
+
+/** Los tres del PAR-Q. Acotado por lo mismo: que no pueda pisar `fuente` ni `detalle`. */
+type ParqDeCribado =
+  | 'parqEnfermedadCardiaca'
+  | 'parqMedicamentoPresion'
+  | 'parqHuesosArticulaciones'
+
+/**
+ * Un campo del cribado, o nada.
+ *
+ * Devuelve un objeto vacío cuando la columna viene `null` —o con un valor que no
+ * reconocemos— en vez de rellenarla con un valor por defecto. **Es la regla que
+ * sostiene la tabla entera:** `ausente` es «se preguntó y no tiene» y la ausencia es
+ * «no se preguntó», y confundirlas convierte un hueco en un cribado inventado. El
+ * `...spread` de un objeto vacío deja la clave sin poner, que es lo que el tipo
+ * `Cribado` espera de un dato que no consta.
+ */
+function campoCribado<K extends CampoDeCribado>(
+  clave: K,
+  valor: unknown,
+): Partial<Pick<Cribado, K>> {
+  return ESTADOS_CRIBADO.includes(valor as EstadoCribado)
+    ? ({ [clave]: valor as EstadoCribado } as Partial<Pick<Cribado, K>>)
+    : {}
+}
+
+/** Lo mismo para el PAR-Q: `false` es «no», ausente es «no se preguntó». */
+function parqCribado<K extends ParqDeCribado>(
+  clave: K,
+  valor: unknown,
+): Partial<Pick<Cribado, K>> {
+  return typeof valor === 'boolean'
+    ? ({ [clave]: valor } as Partial<Pick<Cribado, K>>)
+    : {}
+}
 
 /**
  * Los microciclos del servidor, con la COLUMNA `estado` mandando sobre el blob.
@@ -387,7 +439,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     .from('perfil_alimentario')
     .select('asesorado_id, respuestas, completada_en')
 
-  const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa] =
+  const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa, cribados] =
     await Promise.all([
     pedir('registro_comida', () => sb.from('registro_comida').select('id,cliente_id,asesorado_id,momento,comida,cocinado_por_el,aceite_g,sal_g,confianza').eq('borrado', false)),
     pedir('registro_item', () => sb.from('registro_item').select('id,cliente_id,registro_id,alimento_id,gramos,fue_pesado,estado_asumido').eq('borrado', false)),
@@ -407,6 +459,10 @@ export async function hidratarDesdeNube(): Promise<void> {
     // Migraciones 0024 y 0042. Solo lo vivo: lo que se sacó de la despensa se
     // conserva arriba —la cola no sabe borrar— pero no vuelve al dispositivo.
     pedir('despensa', () => sb.from('despensa').select('id,asesorado_id,alimento_id,texto_pedido,cantidad_g,agregado_en,origen').eq('borrado', false)),
+    // Migración 0058. El asesorado lee la SUYA —`cribado_lee_lo_suyo` existe para
+    // eso— y su app la necesita para saber si ya contestó: sin bajarla le volvería a
+    // pedir el cribado en cada dispositivo. El coach las baja todas.
+    pedir('cribado', () => sb.from('cribado').select('usuario_id,fecha,fuente,diagnostico,quien_lo_lleva,tratamiento_activo,medicacion_cronica,autorizacion_sanitaria,restricciones_explicitas,sintomas_con_esfuerzo,nivel_funcional,que_le_han_dicho_que_no_haga,parq_enfermedad_cardiaca,parq_medicamento_presion,parq_huesos_articulaciones,detalle,actualizado_en')),
   ])
 
   /**
@@ -598,6 +654,38 @@ export async function hidratarDesdeNube(): Promise<void> {
             estado: ESTADOS.includes(f.estado as EstadoGuardado)
               ? (f.estado as EstadoGuardado)
               : 'automatico',
+          }),
+        ),
+    // El cribado (0058). Con la migración sin aplicar esto da 42P01 y se conserva lo
+    // local, igual que la hidratación y el registro de comidas: la app sigue andando
+    // y lo contestado se queda en el dispositivo hasta que la tabla exista.
+    cribados: cribados.error
+      ? (instantaneaLocal().cribados ?? [])
+      : conPendientes('cribado', cribados.data ?? []).map(
+          (f): Cribado => ({
+            usuarioId: f.usuario_id as string,
+            fecha: String(f.fecha),
+            fuente: (f.fuente as Cribado['fuente']) ?? 'app',
+            // `null` NO se convierte: significa «no se preguntó», que no es lo mismo
+            // que «no tiene». Un `?? 'ausente'` aquí habría inventado un cribado
+            // completo a partir de una fila a medias, que es justo el fallo que la
+            // 0058 viene a cerrar.
+            ...campoCribado('diagnostico', f.diagnostico),
+            ...campoCribado('quienLoLleva', f.quien_lo_lleva),
+            ...campoCribado('tratamientoActivo', f.tratamiento_activo),
+            ...campoCribado('medicacionCronica', f.medicacion_cronica),
+            ...campoCribado('autorizacionSanitaria', f.autorizacion_sanitaria),
+            ...campoCribado('restriccionesExplicitas', f.restricciones_explicitas),
+            ...campoCribado('sintomasConEsfuerzo', f.sintomas_con_esfuerzo),
+            ...campoCribado('nivelFuncional', f.nivel_funcional),
+            ...campoCribado('queLeHanDichoQueNoHaga', f.que_le_han_dicho_que_no_haga),
+            ...parqCribado('parqEnfermedadCardiaca', f.parq_enfermedad_cardiaca),
+            ...parqCribado('parqMedicamentoPresion', f.parq_medicamento_presion),
+            ...parqCribado('parqHuesosArticulaciones', f.parq_huesos_articulaciones),
+            detalle: (f.detalle as Record<string, string> | null) ?? {},
+            ...(f.actualizado_en === null
+              ? {}
+              : { actualizadoEn: String(f.actualizado_en) }),
           }),
         ),
     pruebasCalibracion: calibraciones.error
