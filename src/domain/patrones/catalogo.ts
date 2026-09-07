@@ -629,7 +629,10 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'ABDUCCIÓN HORIZONTAL',
     titulo: 'Abducción horizontal',
-    ejemplos: 'Apertura inversa en máquina · Face pull en polea alta',
+    // EL PRIMER EJEMPLO DECIDE EL IMPLEMENTO, y esta ficha va DE PIE, doblada por la cadera:
+    // es la apertura inversa con mancuernas y el face pull. La de máquina se hace sentado
+    // de frente al aparato y tiene ficha propia desde el 2026-09-07 (`apertura_inversa_maquina`).
+    ejemplos: 'Apertura inversa con mancuernas · Face pull en polea alta',
     resumen:
       'Con el brazo a la altura del hombro, se abre hacia fuera. Es el contrapeso directo de todo el volumen de empuje horizontal.',
     claves: [
@@ -654,6 +657,39 @@ export const PATRONES: Patron[] = [
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
+  },
+  {
+    id: 'apertura_inversa_maquina',
+    cadena: 'abierta',
+    categoria: 'APERTURA INVERSA EN MÁQUINA',
+    titulo: 'Apertura inversa en máquina',
+    ejemplos: 'Apertura inversa en máquina · Pec deck inverso · Deltoides posterior en máquina',
+    resumen:
+      'Sentado de cara a la máquina, con el pecho en el apoyo, los brazos se abren en horizontal a la altura del hombro. El mismo gesto que la apertura inversa de pie, sin tener que sostener el tronco.',
+    claves: [
+      'El pecho pegado al apoyo todo el recorrido: si se despega, el tronco está remando.',
+      'Abre con el codo, a la altura del hombro; la mano solo acompaña.',
+      'Junta los omóplatos al final, sin encoger el trapecio.',
+    ],
+    errores: [
+      'Doblar el codo progresivamente y convertirlo en un remo.',
+      'Bajar el codo por debajo del hombro, que mete al dorsal y saca al deltoides posterior.',
+    ],
+    apoyo: 'ninguno',
+    // SENTADO, ERGUIDO Y DE FRENTE A LA MÁQUINA. Es lo que separa esta ficha de la de pie, y
+    // lo que resuelve la deuda que tenía anoche la apertura inversa: con el tronco doblado
+    // a 60°, el brazo de la máquina —que sale del hombro, porque ahí gira la carga— tenía
+    // que cruzar el tronco para llegar a la mano, y pasaba a 2,3 cm de su eje. Erguido, el
+    // brazo va horizontal a la altura del hombro y no hay tronco en medio: la mano barre un
+    // arco alrededor de un eje vertical, que es exactamente cómo está hecha una pec deck.
+    raizInicio: [0, -0.45, 0],
+    raizFin: [0, -0.45, 0],
+    inicio: { caderaFlex: 88, rodillaFlex: 92, toraxFlex: 2, hombroFlex: 90, hombroAbd: 6, codoFlex: 18, escapulaProt: 24 },
+    fin: { caderaFlex: 88, rodillaFlex: 92, toraxFlex: 2, hombroFlex: 88, hombroAbd: 92, codoFlex: 18, escapulaProt: -30 },
+    activacion: { flexores_carpo: 0.4, extensores_carpo: 0.32, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.5, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.35 },
+    seguimiento: ['mano', 0.5, [0, 0, 0]],
+    // Desde arriba: el arco es horizontal y de perfil se proyecta sobre un punto.
+    camara: { azimut: 30, elevacion: 52 },
   },
   {
     id: 'flexion_codo',
@@ -1668,6 +1704,10 @@ const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
   // La prensa llega SIEMPRE con categoria de sentadilla —«DOMINANTE DE RODILLA» en el
   // seed—, asi que sin esta linea la ficha nueva no la veria nadie.
   sentadilla: [[/prensa|leg ?press|hack/, 'prensa']],
+  // La apertura inversa llega con categoría ABDUCCIÓN HORIZONTAL diga lo que diga el nombre;
+  // la de máquina se sienta de frente al aparato y es otra ficha. El face pull NO entra: es
+  // polea, y de pie.
+  abduccion_horizontal: [[/m[aá]quina|pec ?deck|peck ?deck|contractor/, 'apertura_inversa_maquina']],
   // El orden importa: la asistida antes que la dominada a secas, que también dice «dominada».
   traccion_vertical: [
     [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],

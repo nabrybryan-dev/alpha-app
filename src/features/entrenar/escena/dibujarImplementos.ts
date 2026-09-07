@@ -197,6 +197,13 @@ export interface VolumenDeMaquina {
   /** El punto del cuerpo al que llega el cable o el carro, si llega a alguno. */
   agarre?: Vec3
   /**
+   * LOS DOS AGARRES POR SEPARADO, para las máquinas de un brazo por mano. `agarre` sigue
+   * siendo el punto medio —lo usan el cable y el carro—; esto lo usa la de placas cuando
+   * `porLado` dice que cada mano tiene su brazo y su eje en espejo.
+   */
+  agarres?: readonly Vec3[]
+  porLado?: boolean
+  /**
    * EL CUERPO, para las maquinas que hay que construir contra el —hoy solo la prensa.
    *
    * Es la misma regla del banco (`banco.ts`): la altura a la que el catalogo pone a cada
@@ -318,6 +325,27 @@ export function construirMaquina(m: Malla, v: VolumenDeMaquina): void {
   }
   // El respaldo, que es lo que dice que el cuerpo va apoyado y no libre.
   caja(m, [c[0], 0.62, c[2] + 0.26], [0.22, 0.3, 0.06], g, TAPIZADO)
+  if (v.porLado && v.anclaje && v.agarres && v.agarres.length === 2) {
+    // UN BRAZO POR MANO, como una pec deck: dos ejes en espejo unidos por un travesaño que
+    // sale del bastidor, y de cada eje un brazo a su mano. Con un solo brazo al punto medio
+    // el brazo se estiraba 40 cm entre el arranque y el final, porque ningún eje es
+    // concéntrico con las dos manos a la vez.
+    const ejeD = v.anclaje
+    const ejeI: Vec3 = [-ejeD[0], ejeD[1], ejeD[2]]
+    const cabeza: Vec3 = [c[0], v.alturaDeCarga, c[2]]
+    const medio: Vec3 = [0, ejeD[1], ejeD[2]]
+    if (V.largo(V.restar(medio, cabeza)) > 0.06) manto(m, cabeza, medio, 0.03, BASTIDOR, 8)
+    manto(m, ejeI, ejeD, 0.03, BASTIDOR, 8)
+    for (const [eje, mano] of [
+      [ejeD, v.agarres[0]],
+      [ejeI, v.agarres[1]],
+    ] as const) {
+      manto(m, eje, mano, 0.022, BASTIDOR, 8)
+      const hacia = V.normalizar(V.restar(mano, eje))
+      cilindro(m, V.restar(mano, V.escalar(hacia, 0.06)), V.sumar(mano, V.escalar(hacia, 0.06)), 0.03, TAPIZADO, 8)
+    }
+    return
+  }
   if (v.agarre) {
     // El eje del brazo va donde la carga gira, que desde el 2026-09-06 lo calcula
     // `anclajeQueSeOpone` ajustando una circunferencia al recorrido: así el brazo dibujado
@@ -416,6 +444,8 @@ export function construirPieza(m: Malla, p: ImplementoEnEscena, esq: EsqueletoRe
         giroGrados: s.giroGrados,
         alturaDeCarga: s.alturaDeCarga,
         anclaje: s.anclaje,
+        agarres: puntos,
+        porLado: s.porLado,
         cuerpo:
           p.forma === 'rail-inclinado'
             ? { pelvis: puntoDeHueso(esq, 'pelvis', 0), torax: puntoDeHueso(esq, 'torax', 1) }

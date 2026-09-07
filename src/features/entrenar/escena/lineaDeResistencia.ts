@@ -175,6 +175,15 @@ export interface AnclajeResuelto {
    * hombreras suben rectas— se midiera como si el acolchado girase alrededor de algo.
    */
   guia: 'giro' | 'recta'
+  /**
+   * DOS BRAZOS, UNO POR MANO, con el eje de cada uno en espejo del otro.
+   *
+   * Es como está hecha una pec deck, y es lo único que hace rígido el brazo de una máquina
+   * bilateral: las dos manos giran cada una alrededor de SU hombro, y un solo eje no puede
+   * ser concéntrico con las dos. `anclaje` es el eje del primer agarre; el del segundo es su
+   * reflejo en el plano sagital.
+   */
+  porLado?: boolean
   porQue: string
 }
 
@@ -266,30 +275,6 @@ export function centroDelArco(camino: readonly Vec3[]): Vec3 | undefined {
   return V.sumar(a, V.sumar(V.escalar(e1, cx), V.escalar(e2, cy)))
 }
 
-/**
- * De dos ejes candidatos, el que deja el brazo MÁS RÍGIDO contra el recorrido real.
- *
- * Con la carga entrando por dos puntos hay dos respuestas defendibles y no se puede elegir a
- * priori: el eje de la articulación de un lado —la cadera de una abducción, donde el
- * almohadillado va en cada muslo— o ese mismo eje llevado al plano sagital —la columna
- * central de una apertura inversa, donde los dos brazos giran sobre el mismo pivote—. Se
- * mide cuál de los dos mantiene constante la distancia al punto de carga, que es lo que hace
- * que el brazo dibujado sea una pieza de acero y no una goma.
- */
-function masRigido(candidatos: readonly Vec3[], camino: readonly Vec3[]): Vec3 {
-  let mejor = candidatos[0]
-  let menorHorquilla = Infinity
-  for (const c of candidatos) {
-    const largos = camino.map((p) => Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]))
-    const horquilla = Math.max(...largos) - Math.min(...largos)
-    if (horquilla < menorHorquilla) {
-      menorHorquilla = horquilla
-      mejor = c
-    }
-  }
-  return mejor
-}
-
 /** Aparta del sujeto lo que se apoya en el suelo, sin mover el punto de entrega. */
 function baseLibre(anclaje: Vec3, camino: readonly Vec3[]): Vec3 {
   // El bastidor no puede caer encima del sujeto ni encima del recorrido de la carga.
@@ -333,25 +318,47 @@ export function anclajeQueSeOpone(
     // simétrico y su punto medio va en línea recta) y en una aducción de cadera el de un
     // lado deja el brazo estirándose 18 cm. Así que se prueban y se mide, en vez de elegir.
     const deUnLado = caminoDeUnLado && caminoDeUnLado.length >= 3 ? caminoDeUnLado : undefined
-    const candidatos: Vec3[] = []
+    const candidatos: { eje: Vec3; contra: readonly Vec3[]; porLado: boolean }[] = []
     const lado = deUnLado && centroDelArco(deUnLado)
-    if (lado) candidatos.push(lado, [0, lado[1], lado[2]])
+    // EL EJE DE UN LADO SE JUZGA CONTRA EL RECORRIDO DE ESE LADO, no contra el promedio. En un
+    // gesto simétrico —una apertura, una abducción— el punto medio de las dos manos va en
+    // línea recta a lo largo del brazo, y contra él cualquier eje sale «estirándose» y
+    // «sin oponerse» aunque cada mano describa un arco perfecto alrededor de su hombro.
+    // Medido el 2026-09-07 con la apertura inversa sentada: radio 59,4–59,8 cm por lado, y
+    // aun así caía a la guía recta porque el promedio decía otra cosa.
+    if (lado && deUnLado) {
+      candidatos.push({ eje: lado, contra: deUnLado, porLado: true })
+      candidatos.push({ eje: [0, lado[1], lado[2]], contra: camino, porLado: false })
+    }
     const promedio = centroDelArco(camino)
-    if (promedio) candidatos.push(promedio)
-    const eje = candidatos.length > 0 ? masRigido(candidatos, camino) : undefined
-    if (eje) {
+    if (promedio) candidatos.push({ eje: promedio, contra: camino, porLado: false })
+    // Gana el candidato cuyo brazo cambia menos de largo contra SU recorrido.
+    let mejor: (typeof candidatos)[number] | undefined
+    let menorHorquilla = Infinity
+    for (const c of candidatos) {
+      const largos = c.contra.map((q) => V.largo(V.restar(q, c.eje)))
+      const horquilla = Math.max(...largos) - Math.min(...largos)
+      if (horquilla < menorHorquilla) {
+        menorHorquilla = horquilla
+        mejor = c
+      }
+    }
+    if (mejor) {
+      const gestoDelLado = unitario(V.restar(mejor.contra[mejor.contra.length - 1], mejor.contra[0])) ?? gesto
       const conBrazo = seOpone(
         {
-          anclaje: eje,
-          centro: baseLibre(eje, camino),
-          alturaDeCarga: Math.max(0.12, eje[1]),
+          anclaje: mejor.eje,
+          centro: baseLibre(mejor.eje, camino),
+          alturaDeCarga: Math.max(0.12, mejor.eje[1]),
           guia: 'giro',
+          porLado: mejor.porLado,
           porQue:
             'el eje del brazo va en el centro del arco que traza la carga, que es el eje de la ' +
-            'articulación que trabaja: así el brazo es rígido y su fuerza sale perpendicular al gesto',
+            'articulación que trabaja: así el brazo es rígido y su fuerza sale perpendicular al gesto' +
+            (mejor.porLado ? '; un brazo por mano, con el eje en espejo' : ''),
         },
-        camino,
-        gesto,
+        mejor.contra,
+        gestoDelLado,
         forma,
       )
       if (conBrazo) return conBrazo
@@ -436,6 +443,7 @@ function seOpone(
         alturaDeCarga: resuelto.alturaDeCarga,
         anclaje: resuelto.anclaje,
         guia: resuelto.guia,
+        porLado: resuelto.porLado,
       },
     },
     medio,

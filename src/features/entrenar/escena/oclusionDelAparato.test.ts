@@ -23,9 +23,14 @@ const aparatoDe = (id: string, nombre: string) =>
 
 describe('el aparato que tapa a la persona', () => {
   /** El caso que lo empezó todo, con el nombre que lleva en la demo. */
-  it('en el press de pecho en máquina la máquina tapa más de un cuarto del cuerpo', () => {
+  it('en el press de pecho en máquina la máquina tapa mucho más del umbral', () => {
+    // Era «más de un cuarto» (36 %) con UN brazo grueso al punto medio de las manos. Desde
+    // el 2026-09-07 la máquina de press tiene un brazo por mano —como una Hammer, con los dos
+    // ejes en espejo detrás de los hombros— y dos brazos finos tapan menos que uno gordo:
+    // 21,4 %. Sigue casi al triple del umbral del 8 %, que es lo que este caso afirma: la
+    // máquina se planta entre la cámara y la persona y se vuelve translúcida.
     const tapado = parteDelCuerpoTapada(PATRON_POR_ID.empuje_horizontal, aparatoDe('empuje_horizontal', 'Press de pecho en máquina'))
-    expect(tapado).toBeGreaterThan(0.25)
+    expect(tapado).toBeGreaterThan(UMBRAL_DE_OCLUSION * 2)
     expect(aparatoTapaAlCuerpo(PATRON_POR_ID.empuje_horizontal, aparatoDe('empuje_horizontal', 'Press de pecho en máquina'))).toBe(true)
   })
 
