@@ -37,7 +37,13 @@ describe('el peso del sujeto', () => {
     // elevado, que el modelo no dibuja. Es el mismo hecho que documenta el
     // techo de dorsiflexión: no un fallo del gesto, una exigencia real de
     // movilidad. Fijado para que no crezca.
-    const EXCEPCIONES: Record<string, number> = { sentadilla: 0.10 }
+    //
+    // Medido el 2026-09-06 en las fases 0,75 y 1, en cm fuera del apoyo: neutro 7,8 y
+    // 8,5 · varón 10,6 y 10,6 · mujer 8,5 y 8,3. El varón real —el defecto desde ese
+    // día— tiene la tibia más corta y con la misma dorsiflexión la rodilla adelanta
+    // menos: el peso cae dos centímetros más fuera. El tope sube de 10 a 11 por eso y
+    // no por otra cosa; si vuelve a crecer, es el gesto lo que hay que mirar.
+    const EXCEPCIONES: Record<string, number> = { sentadilla: 0.11 }
     for (const p of PATRONES) {
       const pies: Lado[] = p.pies ?? (p.apoyo === 'suelo' ? ['D', 'I'] : [])
       if (pies.length === 0) continue

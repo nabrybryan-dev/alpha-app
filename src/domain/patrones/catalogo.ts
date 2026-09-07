@@ -109,7 +109,7 @@ export const PATRONES: Patron[] = [
     // —abajo— y decae hacia la extensión completa: cuesta nada más arrancar.
     estancamiento: 0.16,
     titulo: 'Extensión de cadera',
-    ejemplos: 'Empuje de cadera · Patada de glúteo en polea · Empuje de cadera con barra',
+    ejemplos: 'Empuje de cadera con barra · Patada de glúteo en polea · Empuje de cadera con disco',
     resumen:
       'La cadera pasa de flexión a alineación con el tronco. Es el patrón más prescrito de todo Alpha y el que más glúteo produce por repetición.',
     claves: [
@@ -154,7 +154,10 @@ export const PATRONES: Patron[] = [
     // barra, que en un recorrido de medio metro cae en el primer cuarto.
     estancamiento: 0.24,
     titulo: 'Sentadilla',
-    ejemplos: 'Prensa de piernas a 45° · Sentadilla hack · Sentadilla en Smith',
+    // LOS TRES EJEMPLOS ERAN MÁQUINAS, y el primero manda: es el que decide qué implemento
+    // se dibuja. Así que la ficha de la sentadilla —un sujeto de pie— venía saliendo con
+    // una prensa de piernas alrededor. La prensa tiene ficha propia desde el 2026-09-06.
+    ejemplos: 'Sentadilla con barra · Sentadilla goblet con mancuerna · Sentadilla en Smith',
     resumen:
       'Cadera y rodilla se flexionan a la vez mientras el tronco aguanta. Es el patrón que más masa de cuádriceps y glúteo mueve por sesión.',
     claves: [
@@ -167,13 +170,37 @@ export const PATRONES: Patron[] = [
       'Redondear la zona lumbar al final del recorrido para ganar profundidad.',
     ],
     apoyo: 'suelo',
-    giroInicio: [0, 0, 0],
-    giroFin: [16, 0, 0],
-    raizInicio: [0, 0.95, 0],
-    raizFin: [0, 0.60, 0.02],
-    inicio: { hombroFlex: 8, codoFlex: 20, caderaAbd: 4, rodillaFlex: 4 },
-    medio: { caderaFlex: 52, rodillaFlex: 78, toraxFlex: 15, caderaAbd: 8, hombroFlex: 18, codoFlex: 30 },
-    fin: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
+    // LA FASE 0 ES EL FONDO, no el bloqueo, y esto se dio la vuelta el 2026-09-06.
+    //
+    // `faseDeTiempo` le da 1,2 s con punto de atasco al tramo 0→1 y 1,9 s «bajando
+    // frenando» al 1→0: el repo declara que **0→1 es la concéntrica**. Con el bloqueo en 0
+    // esta ficha animaba la sentadilla cayendo en 1,2 s —con el atasco dentro de la
+    // caída— y levantándose en 1,9. Lo cazó `pruebas/la-resistencia-se-opone.test.ts`
+    // midiendo la barra contra la gravedad: coseno +1,00, o sea la carga bajando en la
+    // fase en la que se supone que se empuja. Y encaja el `estancamiento` de arriba, que
+    // ya estaba escrito como «los primeros 15 cm SOBRE la posición más baja»: con el
+    // fondo en la fase 0, ese primer cuarto es el 0,24 que declara.
+    giroInicio: [16, 0, 0],
+    giroFin: [0, 0, 0],
+    raizInicio: [0, 0.60, 0.02],
+    raizFin: [0, 0.95, 0],
+    inicio: { caderaFlex: 126, rodillaFlex: 139, toraxFlex: 24, caderaAbd: 13, hombroFlex: 16, codoFlex: 32 },
+    // LA POSE DE EN MEDIO SE RETOCÓ AL DAR LA VUELTA A LA FICHA, y el motivo se mide.
+    //
+    // Estaba en cadera 52 / rodilla 78, o sea el punto medio de una BAJADA con la rodilla
+    // doblándose pronto. Leído en el otro sentido —que es el que ahora corre—, eso mismo
+    // dice que al subir **la cadera se adelanta y la rodilla se queda doblada**: las
+    // caderas disparadas, que es un fallo, no una técnica. Y no era solo feo: el tobillo
+    // llegaba a pedir 38,8° de dorsiflexión a mitad de subida, 4,8 por encima del tope
+    // articular del propio rig, porque con la cadera arriba y la tibia todavía inclinada
+    // el pie no da más de sí. Medido fase a fase con `apoyarPies`.
+    //
+    // Con 60/76 el peor tobillo del recorrido baja a 33,8° —dentro de rango— y la rodilla
+    // sigue más doblada que la cadera en el punto medio, que es lo que separa una
+    // sentadilla de una bisagra. La profundidad NO se toca: sigue siendo la que Bryan
+    // decidió el 2026-09-06, y en el fondo el tobillo solo pide 29°.
+    medio: { caderaFlex: 60, rodillaFlex: 76, toraxFlex: 15, caderaAbd: 8, hombroFlex: 18, codoFlex: 30 },
+    fin: { hombroFlex: 8, codoFlex: 20, caderaAbd: 4, rodillaFlex: 4 },
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.55, gluteo_mayor: 0.95, 'aductores.mayor': 0.7, 'aductores.largo': 0.5, erectores: 0.7, 'triceps_sural.soleo': 0.45, isquiotibiales: 0.35, recto_abdominal: 0.4, oblicuos: 0.35, gluteo_medio: 0.45 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
     // De lado, no de frente: a 30 grados la profundidad no se lee y la bajada
@@ -181,11 +208,44 @@ export const PATRONES: Patron[] = [
     camara: { azimut: 72, elevacion: 6 },
   },
   {
+    id: 'prensa',
+    cadena: 'cerrada',
+    categoria: 'PRENSA',
+    titulo: 'Prensa de piernas',
+    ejemplos: 'Prensa de piernas a 45° · Sentadilla hack · Prensa horizontal',
+    resumen:
+      'Cadera y rodilla empujan un carro que corre por un rail, con la espalda apoyada. Mueve casi lo mismo que la sentadilla sin pedirle nada al tronco ni al equilibrio.',
+    claves: [
+      'La espalda entera pegada al respaldo: si la cadera se despega abajo, la lumbar paga.',
+      'Empuja con el pie entero, no con la punta.',
+      'Rodilla casi extendida arriba, sin bloquear de golpe.',
+    ],
+    errores: [
+      'Bajar hasta que la pelvis se enrolla y despega del asiento.',
+      'Ayudarse con las manos en las rodillas, que le quita al cuadriceps lo que venia a hacer.',
+    ],
+    apoyo: 'ninguno',
+    // TUMBADO A 45 GRADOS, que es el angulo del rail que dibuja la escena
+    // (`construirMaquina`, forma `rail-inclinado`). El sujeto va reclinado sobre el
+    // respaldo y los pies suben por el rail: en +Y y +Z a la vez, que es lo que hace que el
+    // carro se le oponga. Hasta el 2026-09-06 la prensa era el primer ejemplo de la ficha
+    // de SENTADILLA, asi que se dibujaba la maquina alrededor de alguien de pie y sus pies
+    // no recorrian ni 3 mm: el aparato no se oponia a nada.
+    giro: [-45, 0, 0],
+    raizInicio: [0, -0.16, 0.54],
+    raizFin: [0, -0.16, 0.54],
+    inicio: { caderaFlex: 132, rodillaFlex: 112, caderaAbd: 7, tobilloPlantar: -12, hombroFlex: 8, codoFlex: 62, toraxFlex: 4 },
+    fin: { caderaFlex: 92, rodillaFlex: 14, caderaAbd: 5, tobilloPlantar: -6, hombroFlex: 8, codoFlex: 62, toraxFlex: 2 },
+    activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 0.95, 'cuadriceps.recto': 0.45, gluteo_mayor: 0.85, 'aductores.mayor': 0.6, 'aductores.largo': 0.45, isquiotibiales: 0.3, 'triceps_sural.soleo': 0.35, recto_abdominal: 0.3 },
+    seguimiento: ['pie', 0.55, [0, 0, 0]],
+    camara: { azimut: 74, elevacion: 12 },
+  },
+  {
     id: 'bisagra_cadera',
     cadena: 'cerrada',
     categoria: 'BISAGRA DE CADERA',
     titulo: 'Bisagra de cadera',
-    ejemplos: 'Peso muerto rumano · Peso muerto rumano con mancuernas · Peso muerto parcial desde rack',
+    ejemplos: 'Peso muerto rumano con barra · Peso muerto rumano con mancuernas · Peso muerto parcial con barra desde rack',
     resumen:
       'La cadera se echa atrás con la rodilla casi fija. Es el patrón que separa a quien entrena isquios de quien se hace daño en la espalda.',
     claves: [
@@ -198,11 +258,14 @@ export const PATRONES: Patron[] = [
       'Perder la espalda neutra abajo, que es donde la carga sobre el disco es máxima.',
     ],
     apoyo: 'suelo',
-    giroInicio: [-4, 0, 0],
-    giroFin: [84, 0, 0],
-    raizInicio: [0, 0.95, 0],
-    raizFin: [0, 0.95, -0.12],
-    inicio: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
+    // LA FASE 0 ES ABAJO, con la barra a media espinilla. Se dio la vuelta el 2026-09-06
+    // por lo mismo que la sentadilla: el tramo 0→1 es la concéntrica —1,2 s con punto de
+    // atasco— y esta ficha lo usaba para BAJAR el peso muerto, así que la barra caía
+    // rápido y se levantaba despacio. Coseno medido contra la gravedad: +1,00.
+    giroInicio: [84, 0, 0],
+    giroFin: [-4, 0, 0],
+    raizInicio: [0, 0.95, -0.12],
+    raizFin: [0, 0.95, 0],
     // EL BRAZO CUELGA, y por eso `hombroFlex` acompaña al giro del tronco en vez de
     // quedarse en −10: con el tronco a 84° y el hombro en −10 las manos SUBÍAN de 86 a
     // 103 cm al bajar el peso muerto, o sea la barra se iba hacia arriba y hacia atrás.
@@ -210,7 +273,8 @@ export const PATRONES: Patron[] = [
     // carga baja 41 cm con 9 de deriva (razón 0,23) y las manos acaban a 45 cm del suelo,
     // media espinilla. Va 20° por detrás de la vertical del hombro a propósito: es la
     // clave que el propio patrón escribe —«la barra roza el muslo todo el recorrido»—.
-    fin: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: 64, codoFlex: 3 },
+    inicio: { caderaFlex: 98, rodillaFlex: 14, toraxFlex: 3, hombroFlex: 64, codoFlex: 3 },
+    fin: { hombroFlex: 6, codoFlex: 4, caderaFlex: -6 },
     activacion: { flexores_carpo: 0.65, extensores_carpo: 0.52, 'isquiotibiales.biceps_larga': 1, 'isquiotibiales.semitendinoso': 1, 'isquiotibiales.semimembranoso': 1, 'isquiotibiales.biceps_corta': 0.4, gluteo_mayor: 0.9, erectores: 0.85, 'aductores.mayor': 0.4, dorsal_ancho: 0.4, 'trapecio.medio': 0.35, 'triceps_sural.gastro_medial': 0.25, cuadrado_lumbar: 0.4 },
     seguimiento: ['mano', 0.6, [0, 0, 0]],
     camara: { azimut: 78, elevacion: 4 },
@@ -263,12 +327,35 @@ export const PATRONES: Patron[] = [
     ],
     apoyo: 'suelo',
     pies: ['D'],
-    giroInicio: [4, 0, 0],
-    giroFin: [12, 0, 0],
-    raizInicio: [0, 0.95, 0],
-    raizFin: [0, 0.70, 0],
-    inicio: { caderaFlexD: 32, rodillaFlexD: 26, caderaFlexI: -24, rodillaFlexI: 26, tobilloPlantarI: 20, hombroFlex: 8, codoFlex: 14 },
-    fin: { caderaFlexD: 112, rodillaFlexD: 138, caderaFlexI: -26, rodillaFlexI: 116, tobilloPlantarI: 44, toraxFlex: 15, hombroFlex: 12, codoFlex: 18 },
+    // LA FASE 0 ES EL FONDO. Igual que la sentadilla y la bisagra: el tramo 0→1 es la
+    // concéntrica, y con el fondo en la fase 1 la búlgara caía en 1,2 s y se levantaba en
+    // 1,9. Coseno de las mancuernas contra la gravedad: +1,00.
+    //
+    // Y EL FONDO SUBIÓ 21 CM, que es lo que Bryan vio a ojo. La pose de abajo era cadera
+    // 112 / rodilla 138 con el giro a 12°, y con el pie de delante plantado eso dejaba la
+    // pelvis a 28 cm del suelo —una profundidad que ningún cuerpo alcanza— con la RODILLA
+    // DE ATRÁS 7 cm POR DEBAJO DE LA GOMA y el pie trasero 5,5. Medido con
+    // `scripts/medir-resistencia.mjs`.
+    //
+    // Ahora baja a 49 cm, que es el muslo de delante pasado de la paralela, y la rodilla de
+    // atrás se queda a 15 cm del suelo: cerca, sin cruzarlo. La pierna de atrás además se
+    // reescribió para que **el tobillo caiga siempre a la misma altura** —47 cm abajo, 46
+    // arriba—, porque va apoyado en un banco y un pie apoyado no sube y baja: antes recorría
+    // 10 cm de altura y 11 de fondo, o sea patinaba sobre el banco. El banco lo dibuja
+    // `banco.ts` a partir de `apoyosExtra`, así que sale a la altura que el pie marque.
+    giroInicio: [12, 0, 0],
+    giroFin: [4, 0, 0],
+    raizInicio: [0, 0.70, 0],
+    raizFin: [0, 0.95, 0],
+    // Y LAS MANCUERNAS CUELGAN, que es lo mismo que ya tiene escrito la bisagra. `hombroFlex`
+    // va NEGATIVO y compensando la inclinación del tronco (12° de giro + 15 de tórax abajo,
+    // 4 + 15 arriba), porque el brazo de alguien que sujeta un peso lo pone la gravedad y no
+    // el tronco: si acompaña al tronco, la mancuerna se va hacia delante al bajar. Medido
+    // con `demandaDeTrayectoria`: con el hombro acompañando, la carga derivaba 21 cm de lado
+    // por cada 43 de bajada —razón 0,50, el doble del tope de 0,35— y colgando de verdad se
+    // queda en 8 cm sobre 31, razón 0,25.
+    inicio: { caderaFlexD: 92, rodillaFlexD: 106, caderaFlexI: -30, rodillaFlexI: 107, tobilloPlantarI: 30, toraxFlex: 15, hombroFlex: -27, codoFlex: 14 },
+    fin: { caderaFlexD: 26, rodillaFlexD: 22, caderaFlexI: -13, rodillaFlexI: 77, tobilloPlantarI: 22, toraxFlex: 15, hombroFlex: -19, codoFlex: 14 },
     activacion: { 'cuadriceps.vasto_lateral:D': 1, 'cuadriceps.vasto_medial:D': 1, 'cuadriceps.vasto_intermedio:D': 0.95, 'cuadriceps.recto:D': 0.5, 'gluteo_mayor:D': 0.9, 'gluteo_medio:D': 0.85, 'gluteo_menor:D': 0.6, 'aductores:D': 0.5, 'isquiotibiales:D': 0.4, 'cuadriceps:I': 0.4, 'gluteo_medio:I': 0.3, oblicuos: 0.4, cuadrado_lumbar: 0.45, erectores: 0.5 },
     seguimiento: ['pelvis', 0, [0, 0, 0.10]],
     camara: { azimut: 52, elevacion: 6 },
@@ -318,8 +405,8 @@ export const PATRONES: Patron[] = [
       'Parar antes de la extensión completa, justo donde el cuádriceps más trabaja.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.52, 0],
-    raizFin: [0, 0.52, 0],
+    raizInicio: [0, -0.45, 0],
+    raizFin: [0, -0.45, 0],
     inicio: { caderaFlex: 88, rodillaFlex: 108, toraxFlex: -6, hombroFlex: 22, codoFlex: 44 },
     fin: { caderaFlex: 86, rodillaFlex: 2, toraxFlex: -8, hombroFlex: 20, codoFlex: 40 },
     activacion: { 'cuadriceps.vasto_lateral': 1, 'cuadriceps.vasto_medial': 1, 'cuadriceps.vasto_intermedio': 1, 'cuadriceps.recto': 0.85, tibial_anterior: 0.25, recto_abdominal: 0.2 },
@@ -424,13 +511,79 @@ export const PATRONES: Patron[] = [
       'Tirar de la barra a la nuca, que castiga el hombro sin dar más dorsal.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.60, 0],
-    raizFin: [0, 0.60, 0],
+    raizInicio: [0, -0.48, 0],
+    raizFin: [0, -0.48, 0],
     inicio: { hombroFlex: 168, hombroAbd: 24, codoFlex: 4, escapulaElev: 30, caderaFlex: 86, rodillaFlex: 82, toraxFlex: -2 },
     fin: { hombroFlex: 32, hombroAbd: 32, codoFlex: 130, escapulaProt: -24, escapulaElev: -16, toraxFlex: -16, caderaFlex: 86, rodillaFlex: 82 },
     activacion: { flexores_carpo: 0.6, extensores_carpo: 0.48, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.5, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 22, elevacion: 6 },
+  },
+  {
+    // NACE el 2026-09-06 de noche, tras la asistida. La categoría DOMINADA se traducía por alias
+    // a TRACCIÓN VERTICAL —un jalón SENTADO—, así que una dominada a secas heredaba esa postura:
+    // el implemento salía bien (la barra fija) pero el sujeto estaba sentado en el aire, y
+    // desde que los `raizInicio` bajaron al suelo (bc8e1ca), PLANTADO en el suelo agarrado a
+    // una barra sobre la cabeza. Aquí cuelga de las manos (`apoyo: 'manos'`), con las piernas
+    // estiradas; la asistida de abajo es su hermana arrodillada.
+    id: 'dominada',
+    cadena: 'cerrada',
+    categoria: 'DOMINADA',
+    titulo: 'Dominada',
+    ejemplos: 'Dominadas (prono / supino / neutro) · Pull-up con lastre',
+    resumen:
+      'Colgado de la barra, el cuerpo entero sube hasta pasar la barbilla. Es la tracción vertical con el peso propio: las manos no se mueven, y lo que gira es todo lo demás.',
+    claves: [
+      'Antes de tirar, baja los hombros: primero desciende la escápula, después dobla el codo.',
+      'Sube hasta que la barbilla pase la barra, sin echar la cabeza atrás.',
+      'Piernas juntas y quietas: el cuerpo sube en bloque, sin patalear.',
+    ],
+    errores: [
+      'Balancearse para arrancar: el impulso le quita el trabajo al dorsal.',
+      'Quedarse a medio recorrido arriba, o no estirar del todo abajo.',
+    ],
+    apoyo: 'manos',
+    alturaApoyo: 2.28,
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 1.4, 0],
+    inicio: { hombroFlex: 172, hombroAbd: 24, codoFlex: 6, escapulaElev: 36, escapulaRotAsc: 42, caderaFlex: 8, rodillaFlex: 20, toraxFlex: -4 },
+    fin: { hombroFlex: 46, hombroAbd: 30, codoFlex: 132, escapulaElev: -14, escapulaRotAsc: 18, escapulaProt: -22, caderaFlex: 14, rodillaFlex: 28, toraxFlex: -14 },
+    activacion: { flexores_carpo: 0.85, extensores_carpo: 0.55, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.6, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.45 },
+    seguimiento: ['pelvis', 0, [0.05, 0, 0]],
+    camara: { azimut: 38, elevacion: 8 },
+  },
+  {
+    // NACE el 2026-09-06 a petición de Bryan, con vídeo de referencia (ver
+    // `escena/maquinaAsistida.ts`). Hasta entonces «Dominadas asistidas» caía en la tracción
+    // vertical de arriba: un jalón SENTADO, así que el sujeto salía sentado en el aire
+    // agarrado a una barra fija. Aquí cuelga de las manos —`apoyo: 'manos'`, como la
+    // suspensión— y se arrodilla: la rodillera de la máquina va bajo las espinillas y
+    // sube con él. Es cadena cerrada: las manos no se mueven, el cuerpo sí.
+    id: 'dominada_asistida',
+    cadena: 'cerrada',
+    categoria: 'DOMINADA ASISTIDA',
+    titulo: 'Dominada asistida',
+    ejemplos: 'Dominadas asistidas en máquina (prono / neutro / supino)',
+    resumen:
+      'Una dominada con parte del peso descontado: las manos fijas en la barra, las rodillas sobre la rodillera de la máquina y el cuerpo entero subiendo. Es el patrón que enseña a hacer dominadas antes de poder hacerlas.',
+    claves: [
+      'Antes de tirar, baja los hombros: primero desciende la escápula, después dobla el codo.',
+      'Sube hasta que la barbilla pase la barra, sin echar la cabeza atrás.',
+      'Cuerpo en línea sobre la rodillera: el tronco no se dobla para buscar la barra.',
+    ],
+    errores: [
+      'Poner tanta asistencia que el ejercicio deja de ser una dominada.',
+      'Balancearse o empujar con las rodillas contra la rodillera para arrancar.',
+    ],
+    apoyo: 'manos',
+    alturaApoyo: 2.15,
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 1.35, 0],
+    inicio: { hombroFlex: 170, hombroAbd: 26, codoFlex: 6, escapulaElev: 34, escapulaRotAsc: 40, caderaFlex: 10, rodillaFlex: 100, toraxFlex: -4 },
+    fin: { hombroFlex: 46, hombroAbd: 30, codoFlex: 132, escapulaElev: -14, escapulaRotAsc: 18, escapulaProt: -22, caderaFlex: 12, rodillaFlex: 100, toraxFlex: -14 },
+    activacion: { flexores_carpo: 0.7, extensores_carpo: 0.5, dorsal_ancho: 1, redondo_mayor: 0.9, 'trapecio.inferior': 0.75, 'trapecio.medio': 0.5, biceps: 0.8, braquial: 0.7, braquiorradial: 0.55, romboides: 0.6, 'deltoides.posterior': 0.5, 'pectoral_mayor.esternocostal': 0.3, recto_abdominal: 0.4 },
+    seguimiento: ['pelvis', 0, [0.05, 0, 0]],
+    camara: { azimut: 38, elevacion: 8 },
   },
   {
     id: 'abduccion_hombro',
@@ -452,8 +605,21 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroAbd: -4, codoFlex: 10, toraxFlex: 4 },
-    fin: { hombroAbd: 96, hombroFlex: 14, codoFlex: 20, escapulaElev: 14, toraxFlex: 3 },
+    // TRES ARREGLOS DEL 2026-09-06, y los tres salen de sus propias tres frases.
+    //
+    // 1. `escapulaElev: 14` era **el error que esta ficha desaconseja**, animado: «Encoger
+    //    el trapecio y subir el hombro entero con el brazo». Lo que sí ocurre en una
+    //    elevación lateral —y lo que hay que enseñar— es la ROTACIÓN ASCENDENTE de la
+    //    escápula, que es otro canal y otro gesto: el omóplato gira para dejar sitio al
+    //    húmero en vez de encogerse hacia la oreja.
+    // 2. Subía a 96°, seis grados por encima del hombro, contra su propia clave: «Sube
+    //    hasta la altura del hombro, ni un dedo más».
+    // 3. `hombroFlex` iba de 0 a 14 durante el recorrido, o sea el brazo cambiaba de plano
+    //    mientras subía. La clave pide el codo «ligeramente por delante del cuerpo», que es
+    //    el plano escapular, y un plano no se entra a mitad de camino: se está en él desde
+    //    abajo. Ahora es constante, y el gesto ocurre en un solo plano.
+    inicio: { hombroAbd: -4, hombroFlex: 18, codoFlex: 10, toraxFlex: 4 },
+    fin: { hombroAbd: 90, hombroFlex: 18, codoFlex: 18, escapulaRotAsc: 14, toraxFlex: 3 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.medio': 1, 'manguito.supraespinoso': 0.85, 'trapecio.superior': 0.55, 'trapecio.inferior': 0.4, serrato: 0.6, 'deltoides.anterior': 0.45, 'deltoides.posterior': 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 12, elevacion: 4 },
@@ -480,8 +646,11 @@ export const PATRONES: Patron[] = [
     giroFin: [60, 0, 0],
     raizInicio: [0, 0.95, -0.05],
     raizFin: [0, 0.95, -0.05],
-    inicio: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 14, escapulaProt: 26 },
-    fin: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 22, escapulaProt: -32 },
+    // EL CODO, QUIETO: «Doblar el codo progresivamente y convertirlo en un remo» es el
+    // primer error que esta ficha declara, y la ficha lo hacía —14° a 22°—. En una apertura
+    // inversa el codo es una bisagra bloqueada; el que se dobla está remando.
+    inicio: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 76, hombroAbd: -2, codoFlex: 18, escapulaProt: 26 },
+    fin: { caderaFlex: 66, rodillaFlex: 16, hombroFlex: 74, hombroAbd: 92, codoFlex: 18, escapulaProt: -32 },
     activacion: { flexores_carpo: 0.45, extensores_carpo: 0.36, 'deltoides.posterior': 1, 'trapecio.medio': 0.9, 'trapecio.inferior': 0.55, romboides: 0.85, 'manguito.infraespinoso': 0.65, 'manguito.redondo_menor': 0.6, 'deltoides.medio': 0.4, erectores: 0.5, isquiotibiales: 0.35 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
     camara: { azimut: 26, elevacion: 44 },
@@ -517,7 +686,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'EXTENSIÓN DE CODO',
     titulo: 'Extensión de codo',
-    ejemplos: 'Extensión de codo en polea · Extensión de codo unilateral',
+    ejemplos: 'Extensión de codo en polea · Extensión de codo unilateral en polea',
     resumen:
       'El antebrazo empuja hacia abajo con el codo clavado al costado. El tríceps es dos tercios del volumen del brazo; aquí mandan sus cabezas lateral y medial, porque la larga trabaja acortada con el brazo pegado.',
     claves: [
@@ -550,7 +719,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'EMPUJE VERTICAL',
     titulo: 'Empuje vertical',
-    ejemplos: 'Press de hombro con mancuernas · Press de hombro en máquina · Press militar',
+    ejemplos: 'Press de hombro con mancuernas · Press de hombro en máquina · Press militar con barra',
     resumen:
       'El brazo empuja por encima de la cabeza. Exige que la escápula rote hacia arriba: sin eso, el hombro pellizca antes de llegar al final.',
     claves: [
@@ -590,8 +759,8 @@ export const PATRONES: Patron[] = [
     ],
     apoyo: 'ninguno',
     giro: [86, 0, 0],
-    raizInicio: [0, 0.44, 0],
-    raizFin: [0, 0.40, 0],
+    raizInicio: [0, 0.49, 0],
+    raizFin: [0, 0.45, 0],
     inicio: { lumbarFlex: -24, pelvisBascula: -20, toraxFlex: -10, hombroFlex: 84, codoFlex: 92, rodillaFlex: 6, escapulaProt: -16 },
     fin: { lumbarFlex: 10, pelvisBascula: 16, toraxFlex: 3, hombroFlex: 88, codoFlex: 90, rodillaFlex: 0, escapulaProt: 22 },
     activacion: { recto_abdominal: 1, transverso: 0.9, oblicuos: 0.85, serrato: 0.75, gluteo_mayor: 0.55, cuadriceps: 0.4, erectores: 0.3, triceps: 0.3 },
@@ -648,8 +817,8 @@ export const PATRONES: Patron[] = [
     ],
     apoyo: 'ninguno',
     giro: [-52, 0, 0],
-    raizInicio: [0, 0.52, 0],
-    raizFin: [0, 0.52, 0],
+    raizInicio: [0, -0.4, 0],
+    raizFin: [0, -0.4, 0],
     inicio: { hombroAbd: 38, hombroFlex: 66, codoFlex: 102, escapulaProt: -28, caderaFlex: 62, rodillaFlex: 84 },
     fin: { hombroAbd: 16, hombroFlex: 92, codoFlex: 6, escapulaProt: 10, caderaFlex: 62, rodillaFlex: 84 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'pectoral_mayor.clavicular': 1, 'pectoral_mayor.esternocostal': 0.7, 'deltoides.anterior': 0.95, 'triceps.lateral': 0.75, 'triceps.medial': 0.75, serrato: 0.5, 'manguito.subescapular': 0.3 },
@@ -700,7 +869,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'ANTIRROTACIÓN',
     titulo: 'Antirrotación',
-    ejemplos: 'Pallof press de pie · Pallof press arrodillado',
+    ejemplos: 'Pallof press en polea de pie · Pallof press en polea arrodillado · Pallof press con banda',
     resumen:
       'Las manos salen del pecho hacia delante mientras algo tira de ellas hacia un lado. El tronco no gira, y ese es todo el ejercicio.',
     claves: [
@@ -743,7 +912,7 @@ export const PATRONES: Patron[] = [
     cadena: 'abierta',
     categoria: 'RETRACCIÓN ESCAPULAR',
     titulo: 'Retracción escapular',
-    ejemplos: 'Band pull apart · Retracción en polea · Face pull',
+    ejemplos: 'Band pull apart · Retracción en polea · Face pull en polea',
     resumen:
       'Los omóplatos se juntan sin que el codo haga nada. Es el gesto que sostiene cualquier tracción, y casi nadie lo entrena solo.',
     claves: [
@@ -797,8 +966,13 @@ export const PATRONES: Patron[] = [
     giro: [-88, 0, 0],
     raizInicio: [0, 0.55, 0],
     raizFin: [0, 0.55, 0],
-    inicio: { hombroAbd: 78, hombroFlex: 74, codoFlex: 26, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
-    fin: { hombroAbd: -12, hombroFlex: 90, codoFlex: 34, hombroRot: 0, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
+    // EL CODO NO CAMBIA DE ÁNGULO, que es literalmente la primera clave de esta ficha —«El
+    // codo mantiene su ángulo: es un arco, no un empuje»— y su primer error —«Doblar y
+    // estirar el codo, que lo convierte en un press con peor palanca»—. Iba de 26° a 34°.
+    // Ocho grados no rompen nada por sí solos, pero es la ficha contradiciéndose a sí misma
+    // en el único detalle que separa una apertura de un press.
+    inicio: { hombroAbd: 78, hombroFlex: 74, codoFlex: 30, hombroRot: 14, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 84 },
+    fin: { hombroAbd: -12, hombroFlex: 90, codoFlex: 30, hombroRot: 0, escapulaProt: 16, caderaFlex: 4, rodillaFlex: 84 },
     activacion: {
       'pectoral_mayor.esternocostal': 1,
       'pectoral_mayor.clavicular': 0.9,
@@ -906,8 +1080,8 @@ export const PATRONES: Patron[] = [
       'Tirar con los brazos del cable o de la nuca para bajar más de lo que da el abdomen.',
     ],
     apoyo: 'ninguno',
-    raizInicio: [0, 0.62, 0],
-    raizFin: [0, 0.58, 0],
+    raizInicio: [0, -0.43, 0],
+    raizFin: [0, -0.47, 0],
     inicio: { lumbarFlex: -12, toraxFlex: -8, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 148, codoFlex: 142, cuelloFlex: -8 },
     fin: { lumbarFlex: 34, toraxFlex: 42, caderaFlex: 92, rodillaFlex: 128, hombroFlex: 144, codoFlex: 140, cuelloFlex: 24 },
     activacion: {
@@ -983,7 +1157,13 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroRot: -58, codoFlex: 90, hombroAbd: 8, escapulaProt: 12, caderaFlex: 4, rodillaFlex: 6 },
+    // LAS DOS MANOS SE MONTABAN UNA ENCIMA DE LA OTRA. Con −58° de rotación interna y los
+    // dos codos pegados al costado, los antebrazos cruzaban la barriga y las manos se
+    // quedaban a **4,7 cm** una de otra: un cuerpo atravesándose, que es lo primero que ve
+    // el ojo. Y no era rango que se perdiera, era rango imposible: con el codo al costado,
+    // lo que frena la rotación interna es el propio abdomen, no la cápsula. Medido con
+    // `scripts/medir-gestos.mjs`.
+    inicio: { hombroRot: -26, codoFlex: 90, hombroAbd: 8, escapulaProt: 12, caderaFlex: 4, rodillaFlex: 6 },
     fin: { hombroRot: 46, codoFlex: 90, hombroAbd: 10, escapulaProt: -18, caderaFlex: 4, rodillaFlex: 6 },
     activacion: {
       'manguito.infraespinoso': 1,
@@ -1125,6 +1305,229 @@ export const PATRONES: Patron[] = [
     // cualquier arco aquí sería inventado.
     camara: { azimut: 80, elevacion: 6 },
   },
+  {
+    id: 'flexion_hombro',
+    cadena: 'abierta',
+    categoria: 'FLEXIÓN DE HOMBRO',
+    titulo: 'Flexión de hombro',
+    ejemplos: 'Elevación frontal con mancuernas · Elevación frontal con disco · Elevación frontal en polea',
+    resumen:
+      'El brazo sube por delante con el codo casi recto. Es el deltoides anterior en su función pura, la que el press esconde detrás del tríceps.',
+    claves: [
+      'Sube hasta la altura de los ojos, no más: por encima el trabajo se va al trapecio.',
+      'El codo se queda con la misma flexión de principio a fin.',
+      'Aprieta el abdomen: si la lumbar se arquea, el peso ya lo lleva la espalda.',
+    ],
+    errores: [
+      'Balancear el tronco atrás para lanzar la carga desde la cadera.',
+      'Encoger el hombro hacia la oreja al final del recorrido.',
+    ],
+    apoyo: 'suelo',
+    // SIN contra hacia atrás, y esto se escribió al revés antes de medirlo.
+    //
+    // El razonamiento de partida era el de manual: los brazos son el 10 % de la
+    // masa, al subirlos su centro se va 28 cm por delante del hombro, luego el
+    // peso se sale del pie y hay que echar la cadera atrás. Se le puso −3° y el
+    // guardián de equilibrio lo cazó igual, así que se subió a −9°… y empeoró.
+    // Barrido el 2026-09-06 sobre las cinco fases: sin contra ninguna, el peso
+    // se queda DENTRO del apoyo todo el recorrido (−1,7 cm en el peor punto,
+    // margen 4); con −3° se va a −4,1 y con −9° a −14,1. El signo dice dónde:
+    // detrás del talón, no delante de la punta.
+    //
+    // El motivo importa y no es del gesto: `centroDeMasas` pesa el CUERPO, no la
+    // carga. La mancuerna que justifica la contra no está en la suma, así que
+    // inclinarse atrás aquí es tirarse hacia atrás sin nada que lo compense. La
+    // base del pie llega bastante por delante del tobillo y absorbe el brazo
+    // sola. El día que la carga entre en la plomada, esto se vuelve a medir.
+    raizInicio: [0, 0.95, 0],
+    raizFin: [0, 0.95, 0],
+    inicio: { hombroFlex: 2, codoFlex: 14, escapulaRotAsc: 2, caderaFlex: 4, rodillaFlex: 6, lumbarFlex: -4 },
+    // 94° de hombro con 22 de rotación ascendente de escápula: el reparto
+    // escapulohumeral de siempre, tres de húmero por uno de escápula.
+    fin: { hombroFlex: 96, codoFlex: 14, escapulaRotAsc: 22, caderaFlex: 4, rodillaFlex: 6, lumbarFlex: -4 },
+    activacion: {
+      'deltoides.anterior': 1,
+      'deltoides.medio': 0.45,
+      'pectoral_mayor.clavicular': 0.6,
+      'manguito.supraespinoso': 0.45,
+      serrato: 0.55,
+      'trapecio.superior': 0.45,
+      'trapecio.inferior': 0.4,
+      coracobraquial: 0.4,
+      'biceps.corta': 0.3,
+      flexores_carpo: 0.35,
+      recto_abdominal: 0.4,
+      'erectores.longisimo': 0.45,
+    },
+    seguimiento: ['manoD', 0.6, [0, 0, 0]],
+    camara: { azimut: 76, elevacion: 6 },
+  },
+  {
+    id: 'rotacion_cadera',
+    cadena: 'abierta',
+    categoria: 'ROTACIÓN DE CADERA',
+    titulo: 'Rotación de cadera',
+    ejemplos: '90/90 de cadera · Rotación externa de cadera sentado · Rotación interna de cadera en el suelo',
+    resumen:
+      'Los dos fémures giran dentro de la cadera pasando de un lado al otro. Es el grado de libertad que ningún ejercicio de fuerza entrena y el primero que se pierde.',
+    claves: [
+      'Las dos rodillas mantienen su ángulo: lo que gira es la cadera, no la rodilla.',
+      'Siéntate erguido; en cuanto la espalda se redondea el giro lo hace la lumbar.',
+      'Ve y vuelve despacio. Aquí se busca recorrido, no carga.',
+    ],
+    errores: [
+      'Girar el tronco para llevar la rodilla al suelo en vez de girar el fémur.',
+      'Ayudarse con las manos empujando la rodilla más allá de lo que la cadera da.',
+    ],
+    // Sentado en el suelo: el peso lo lleva la pelvis, no los pies, así que aquí
+    // no hay plomada que cumplir.
+    apoyo: 'ninguno',
+    raizInicio: [0, -0.49, 0],
+    raizFin: [0, -0.49, 0],
+    // Las dos caderas giran A LA VEZ y en sentidos opuestos: es lo que hace el
+    // 90/90 y por eso los canales van por lado. 80° de recorrido en cada una,
+    // dentro de los ±45 que el catálogo articular admite.
+    inicio: { caderaRotD: 40, caderaRotI: -40, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 8, hombroFlex: 14, codoFlex: 20 },
+    fin: { caderaRotD: -40, caderaRotI: 40, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 8, hombroFlex: 14, codoFlex: 20 },
+    activacion: {
+      'gluteo_medio.posterior': 1,
+      'gluteo_medio.anterior': 0.6,
+      gluteo_menor: 0.75,
+      'gluteo_mayor.superior': 0.8,
+      'gluteo_mayor.inferior': 0.55,
+      tfl: 0.6,
+      'aductores.largo': 0.5,
+      'aductores.mayor': 0.45,
+      'psoas_iliaco.iliaco': 0.4,
+      oblicuos: 0.35,
+    },
+    // La tibia barre el arco: el fémur gira sobre su eje y desde fuera lo único
+    // que se ve moverse es la espinilla.
+    seguimiento: ['tibiaD', 1, [0, 0, 0]],
+    // DESDE ARRIBA, y es la única cámara posible: un giro en el plano
+    // transverso visto de perfil es una línea. Con la elevación baja el arco de
+    // `fuerzas.ts` sale de canto y se retira, que es justo lo que hay que ver.
+    camara: { azimut: 12, elevacion: 62 },
+  },
+  {
+    id: 'extension_lumbar',
+    cadena: 'cerrada',
+    categoria: 'EXTENSIÓN LUMBAR',
+    titulo: 'Extensión lumbar',
+    ejemplos: 'Extensión lumbar en banco romano · Hiperextensión a 45° · Extensión de espalda en máquina',
+    resumen:
+      'El tronco sube desde colgando hasta la línea del cuerpo. La mitad del recorrido la pone la cadera y la otra mitad la espalda: por eso entrena glúteo e isquio tanto como erectores.',
+    claves: [
+      'Sube hasta alinearte con las piernas y para ahí; pasarse no añade nada.',
+      'Deja que la espalda se enrolle al bajar: el recorrido de la columna es parte del ejercicio.',
+      'Si añades peso, sujétalo contra el pecho, no detrás de la nuca.',
+    ],
+    errores: [
+      'Llegar arriba a tirones y rebotar en la hiperextensión.',
+      'Hacerlo todo con la cadera y dejar la espalda rígida, que es otro ejercicio.',
+    ],
+    apoyo: 'ninguno',
+    // Tumbado boca abajo sobre el banco: el cuerpo entero va a 45°, y lo que se
+    // mueve dentro de esa inclinación es la columna y la cadera.
+    giro: [45, 0, 0],
+    raizInicio: [0, 0.72, 0],
+    raizFin: [0, 0.72, 0],
+    inicio: { lumbarFlex: 52, toraxFlex: 34, caderaFlex: 46, rodillaFlex: 4, hombroFlex: 6, codoFlex: 118, cuelloFlex: 22 },
+    fin: { lumbarFlex: -18, toraxFlex: -12, caderaFlex: 6, rodillaFlex: 4, hombroFlex: 6, codoFlex: 118, cuelloFlex: -10 },
+    activacion: {
+      'erectores.iliocostal': 1,
+      'erectores.longisimo': 1,
+      'erectores.espinal': 0.9,
+      cuadrado_lumbar: 0.7,
+      'gluteo_mayor.superior': 0.8,
+      'gluteo_mayor.inferior': 0.75,
+      'isquiotibiales.biceps_larga': 0.75,
+      'isquiotibiales.semitendinoso': 0.7,
+      'isquiotibiales.semimembranoso': 0.7,
+      'dorsal_ancho.iliaca': 0.4,
+      'trapecio.medio': 0.35,
+      transverso: 0.4,
+    },
+    seguimiento: ['torax', 1, [0, 0, 0]],
+    camara: { azimut: 84, elevacion: 8 },
+  },
+  {
+    id: 'flexion_muneca',
+    cadena: 'abierta',
+    categoria: 'FLEXIÓN DE MUÑECA',
+    titulo: 'Flexión de muñeca',
+    ejemplos: 'Curl de muñeca con barra sentado · Curl de muñeca con mancuernas',
+    resumen:
+      'La mano se cierra hacia el antebrazo con el codo apoyado. Es el músculo del agarre, y el agarre es lo que decide dónde termina un peso muerto.',
+    claves: [
+      'El antebrazo no se mueve: apóyalo en el muslo o en el banco y déjalo ahí.',
+      'Abre la mano abajo y ciérrala al subir: el recorrido empieza en los dedos.',
+      'Poco peso y recorrido entero; es una articulación pequeña.',
+    ],
+    errores: [
+      'Levantar el codo para ayudarse con el bíceps.',
+      'Rango de dos dedos, que es el error clásico y deja el ejercicio en nada.',
+    ],
+    apoyo: 'ninguno',
+    raizInicio: [0, -0.49, 0],
+    raizFin: [0, -0.49, 0],
+    // 114° de recorrido dentro de los −75/+82 de la muñeca. El codo a 92° y el
+    // antebrazo apoyado son lo que hace que el brazo de momento sea la mano.
+    inicio: { muneca: -52, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    fin: { muneca: 62, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    activacion: {
+      flexores_carpo: 1,
+      pronador_redondo: 0.5,
+      braquiorradial: 0.3,
+      extensores_carpo: 0.3,
+    },
+    seguimiento: ['manoD', 1, [0, 0, 0]],
+    camara: { azimut: 88, elevacion: 10 },
+  },
+  {
+    id: 'extension_muneca',
+    cadena: 'abierta',
+    categoria: 'EXTENSIÓN DE MUÑECA',
+    titulo: 'Extensión de muñeca',
+    ejemplos: 'Curl inverso de muñeca con barra · Extensión de muñeca con mancuerna',
+    resumen:
+      'El dorso de la mano sube hacia el antebrazo. Es el lado que casi nadie entrena y el que se queja: la epicondilitis vive justo ahí.',
+    claves: [
+      'Palma hacia abajo y antebrazo apoyado, quieto.',
+      'Sube sin apretar el puño: el que trabaja es el dorso, no el agarre.',
+      'Baja controlando; el freno es la mitad útil de la repetición.',
+    ],
+    errores: [
+      'Girar el antebrazo a medio camino y convertirlo en un curl.',
+      'Cargar de más: con esta musculatura el peso alto solo compra compensación.',
+    ],
+    apoyo: 'ninguno',
+    raizInicio: [0, -0.49, 0],
+    raizFin: [0, -0.49, 0],
+    // LA MANO SUBE EN LA CONCENTRICA, y aqui hay que decir lo que el rig NO sabe hacer.
+    //
+    // En un curl inverso el antebrazo va PRONADO —palma abajo—, la mano cuelga y lo que
+    // sube es el dorso. Con la palma abajo, «mano colgando» y «mano subiendo» son los
+    // mismos dos extremos del canal `muneca` que en el curl normal, solo que recorridos
+    // desde el otro lado del antebrazo. Y ese giro del antebrazo el rig no lo propaga: se
+    // probó el 2026-09-06 poniendo `antebrazoRot: 180` en los dos patrones de muñeca y el
+    // coseno no se movió ni una centésima, porque `poseAEuler` recompone la rotación de la
+    // mano a partir de la abducción del hombro y ahí se pierde el giro del padre.
+    //
+    // Así que se corrige lo que sí es falso —la carga bajaba en la fase que el repo llama
+    // concéntrica, coseno +0,99— y se deja escrito lo que queda debiendo: mientras el
+    // antebrazo no ruede, estos dos patrones comparten silueta y lo único que los separa
+    // en pantalla es la musculatura que se enciende y las claves que se leen.
+    inicio: { muneca: -48, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    fin: { muneca: 58, codoFlex: 92, hombroFlex: 16, caderaFlex: 88, rodillaFlex: 92, toraxFlex: 14 },
+    activacion: {
+      extensores_carpo: 1,
+      braquiorradial: 0.55,
+      flexores_carpo: 0.3,
+    },
+    seguimiento: ['manoD', 1, [0, 0, 0]],
+    camara: { azimut: 88, elevacion: 10 },
+  },
 ]
 
 export const PATRON_POR_ID: Record<string, Patron> = Object.fromEntries(
@@ -1165,7 +1568,6 @@ const ALIAS: Record<string, string> = {
   CORE: 'ANTIEXTENSION',
   ABDOMEN: 'ANTIEXTENSION',
   JALON: 'TRACCION VERTICAL',
-  DOMINADA: 'TRACCION VERTICAL',
   REMO: 'TRACCION HORIZONTAL',
   ESPALDA: 'TRACCION HORIZONTAL',
   EMPUJE: 'EMPUJE HORIZONTAL',
@@ -1196,15 +1598,47 @@ const ALIAS: Record<string, string> = {
  * específico va antes que lo general.
  */
 const POR_NOMBRE: [RegExp, string][] = [
-  [/rotaci[oó]n externa|manguito|pull apart|control escapular/, 'rotacion_externa_hombro'],
-  [/salto|pogo|drop squat|aterrizaje|lanzamiento|trineo|reactiv/, 'salto'],
+  // VA PRIMERO, antes que la rotación externa de HOMBRO: los dos gestos se
+  // llaman igual y se diferencian solo por la articulación que nombran. Con el
+  // orden al revés un 90/90 enseñaba el manguito del hombro, que fue el defecto
+  // que dejó clavado `cobertura-de-patrones.test.ts` antes de existir la ficha.
+  [/rotaci[oó]n (externa|interna) de cadera|90\/90/, 'rotacion_cadera'],
+  [/rotaci[oó]n externa|manguito|rotador|pull apart|control escapular/, 'rotacion_externa_hombro'],
+  // SIN `trineo`, y es la parte importante de esta línea. Estuvo aquí hasta el 2026-09-06
+  // porque un empuje de trineo se agrupa con lo reactivo cuando se habla de potencia, y el
+  // efecto era que **al asesorado al que se le manda empujar un trineo le salía un muñeco
+  // saltando**, con las flechas de fuerza de un salto. Es el peor tipo de defecto: un hueco
+  // se ve venir porque sale el aviso de «sin modelo», y esto se veía como si estuviera bien.
+  // Ahora está declarado abajo, en `SIN_PATRON`. Decisión de Bryan: quitarle el muñeco antes
+  // que darle ficha propia, que es trabajo de otra tanda.
+  [/salto|pogo|drop squat|aterrizaje|lanzamiento|reactiv|pliometr/, 'salto'],
+  // El swing es una bisagra de cadera lanzada, no acondicionamiento: comparte
+  // categoría con la cinta y no comparte nada más.
+  [/swing/, 'bisagra_cadera'],
+  [/banco romano|hiperextensi[oó]n|extensi[oó]n lumbar|extensi[oó]n de espalda/, 'extension_lumbar'],
+  [/elevaci[oó]n(es)? frontal|frontal raise/, 'flexion_hombro'],
   [/colgad|dead hang|suspensi[oó]n/, 'suspension'],
-  [/monopodal|equilibrio|short foot|apoyo estable a una pierna/, 'apoyo_una_pierna'],
+  [/monopodal|equilibrio|short foot|apoyo estable|arco plantar/, 'apoyo_una_pierna'],
   [/movilidad|foam roller|gato-camello|occiput|rom de hombro/, 'movilidad_toracica'],
-  [/activaci[oó]n gl[uú]tea|puente de isquios/, 'extension_cadera'],
-  [/copenhague|cossack/, 'aduccion_cadera'],
-  [/bird-?dog/, 'antiextension'],
-  [/gemelo|talón colgando|talon colgando/, 'flexion_plantar'],
+  [/activaci[oó]n gl[uú]tea|puente de isquios|patada de gl[uú]teo|kickback/, 'extension_cadera'],
+  [/copenhague|cossack|aducci[oó]n de cadera|aductor/, 'aduccion_cadera'],
+  [/bird-?dog|isometr[ií]a de sost[eé]n|plancha|hollow/, 'antiextension'],
+  [/gemelo|talón colgando|talon colgando|tibial posterior/, 'flexion_plantar'],
+  // ─── Lo que llega con la categoría AISLAMIENTO ───────────────────────────
+  //
+  // `AISLAMIENTO` es de la misma familia que `PREV/REHAB`: no dice el gesto,
+  // dice para qué sirve. Dentro caben un curl femoral y una elevación lateral,
+  // que no se parecen en nada. Medido el 2026-09-06, era el agujero MÁS grande
+  // del barrido: 8 de los 27 ejercicios del seed —el 30 %— se quedaban sin
+  // sujeto por esto, y ninguno necesitaba una ficha nueva. Necesitaban que
+  // alguien mirara el nombre.
+  [/curl femoral|leg curl/, 'flexion_rodilla'],
+  [/abducci[oó]n de cadera|abductor/, 'abduccion_cadera'],
+  [/elevaci[oó]n(es)? lateral|lateral raise/, 'abduccion_hombro'],
+  [/curl de b[ií]ceps|curl b[ií]ceps|curl martillo|curl concentrado|curl predicador/, 'flexion_codo'],
+  [/extensi[oó]n de tr[ií]ceps|press franc[eé]s|patada de tr[ií]ceps|jal[oó]n de tr[ií]ceps/, 'extension_codo'],
+  [/curl de mu[ñn]eca/, 'flexion_muneca'],
+  [/curl inverso de mu[ñn]eca|extensi[oó]n de mu[ñn]eca/, 'extension_muneca'],
 ]
 
 /**
@@ -1213,15 +1647,49 @@ const POR_NOMBRE: [RegExp, string][] = [
  * El cardio no tiene un gesto resistido que enseñar en la esfera, y un cribado
  * de banderas rojas no es un ejercicio. Enseñar aquí un patrón cualquiera sería
  * peor que no enseñar ninguno.
+ *
+ * El TRINEO entra el 2026-09-06 y no por la misma razón que la cinta: un empuje de
+ * trineo **sí** es un gesto resistido y enseñable —tronco muy inclinado, cadera y
+ * rodilla empujando contra el suelo, el cuerpo cayendo hacia delante contra la
+ * resistencia—, lo que pasa es que no tiene ficha. Hasta hoy caía en la lista por
+ * nombre y le salía el muñeco del SALTO. Está aquí como hueco DECLARADO, no como
+ * «esto no se puede enseñar»: el día que alguien le escriba su ficha, se saca de esta
+ * lista. Decisión de Bryan de ese día: antes sin muñeco que con el muñeco de otro.
  */
-const SIN_PATRON = /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado/
+/**
+ * VARIANTES POR NOMBRE DENTRO DE UNA CATEGORÍA. `TRACCIÓN VERTICAL` es un jalón sentado, y
+ * una dominada asistida se prescribe con esa misma categoría (así viene en el seed); pero
+ * su sujeto cuelga de la barra y se arrodilla en una máquina, así que tiene ficha propia.
+ * No es lo mismo que `POR_NOMBRE`, que solo entra cuando la categoría no da nada: aquí la
+ * categoría YA dio una ficha, y el nombre elige entre esa y sus variantes.
+ */
+const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
+  // La prensa llega SIEMPRE con categoria de sentadilla —«DOMINANTE DE RODILLA» en el
+  // seed—, asi que sin esta linea la ficha nueva no la veria nadie.
+  sentadilla: [[/prensa|leg ?press|hack/, 'prensa']],
+  // El orden importa: la asistida antes que la dominada a secas, que también dice «dominada».
+  traccion_vertical: [
+    [/dominadas? asistid|asistid[oa]s? (de|en) dominada|(pull|chin)[- ]?ups? asistid/, 'dominada_asistida'],
+    [/dominada|(pull|chin)[- ]?up/, 'dominada'],
+  ],
+  dominada: [[/asistid/, 'dominada_asistida']],
+}
+
+const SIN_PATRON =
+  /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado|escaladora|hiit|tabata|erg[oó]metro|remo ergom|caminata|trote|carrera continua|trineo|sled/
 
 export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined
   const normalizada = normalizarCategoria(categoria)
   const buscada = ALIAS[normalizada] ?? normalizada
   const porCategoria = PATRONES.find((p) => normalizarCategoria(p.categoria) === buscada)
-  if (porCategoria) return porCategoria
+  if (porCategoria) {
+    // La categoría sigue mandando sobre el nombre; el nombre solo elige ENTRE las fichas
+    // de esa misma categoría. Ver `VARIANTES_POR_NOMBRE`.
+    const texto = (nombre ?? '').toLowerCase()
+    const variante = VARIANTES_POR_NOMBRE[porCategoria.id]?.find(([re]) => re.test(texto))?.[1]
+    return variante ? PATRON_POR_ID[variante] : porCategoria
+  }
 
   // Solo si la categoría no dio nada: cuando la categoría nombra el gesto, es
   // más fiable que el nombre del ejercicio, que lo escribe el coach a mano.

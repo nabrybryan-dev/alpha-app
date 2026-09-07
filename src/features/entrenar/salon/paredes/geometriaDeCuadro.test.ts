@@ -69,7 +69,9 @@ describe('asentarEnLaBanda', () => {
   it('asentado, el cuadro no se sale por arriba en ninguna elevación con muro a la vista', () => {
     // Hasta 8° inclusive. No es un número elegido: es hasta donde llega el muro con este
     // tablón y este suelo, medido abajo. Cubre 18 de los 32 patrones del catálogo.
-    for (const elevacion of [0, 2, 4, 6, 8]) {
+    // Hasta el techo vigente, no hasta un 8 escrito a mano: el techo baja cuando el muro
+    // se llena (7° desde el 2026-09-07) y esta lista tiene que bajar con él.
+    for (const elevacion of [0, 2, 4, 6, ENCUADRE_SALA.elevacionMaxima]) {
       const { sitio, cabe } = asentarEnLaBanda(CUADRO_DEL_EJERCICIO, CAMARA(elevacion), ANCHO, ALTO)
       expect(cabe, `a ${elevacion}° el cuadro no cupo`).toBe(true)
       expect(
@@ -141,13 +143,18 @@ describe('asentarEnLaBanda', () => {
    * el teléfono de Bryan. Y si sube, también — subirlo es la forma de que el salón valga
    * para más patrones.
    */
-  it('el techo del cuadro del ejercicio son 10° de elevación', () => {
+  // NUEVE desde el 2026-09-06: la prescripción grande volvió al muro (Bryan: «pegada en
+  // la pared y muy grande»); el tablón declara 1,2 m y el techo baja un grado. Es el precio
+  // que este comentario anunciaba, pagado a sabiendas.
+  // Y SIETE desde el 2026-09-07: el margen de arriba sube a 72 px para dejar libre la
+  // banda de la sesión, que pisaba el tablón (captura de Bryan). Dos grados más, pagados.
+  it('el techo del cuadro del ejercicio son 7° de elevación', () => {
     let techo = -1
     for (let e = 0; e <= 60; e++) {
       if (!asentarEnLaBanda(CUADRO_DEL_EJERCICIO, CAMARA(e), ANCHO, ALTO).cabe) break
       techo = e
     }
-    expect(techo).toBe(10)
+    expect(techo).toBe(7)
   })
 
   it('a las elevaciones bajas deja la altura declarada como está', () => {

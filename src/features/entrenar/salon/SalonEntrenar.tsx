@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { ejercicioCompleto } from '../../../domain/cumplimiento'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
+import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import type {
   Competencia,
   DiaRuta,
@@ -15,6 +16,7 @@ import type {
   Microciclo,
   SerieRegistrada,
   Sesion,
+  SexoDeFicha,
 } from '../../../domain/types'
 import { useMovimiento } from '../../../app/movimientoContexto'
 import { VisorPatron } from '../visor/VisorPatron'
@@ -27,6 +29,7 @@ import { SUELO_DEL_SALON, type NivelW } from './huecos'
 import { contenidoPared } from './paredes/contenidoPared'
 import { ParedesDelSalon } from './paredes/ParedesDelSalon'
 import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
+import { dedoEnElCuerpo, modoDelDedo, type CuadroEnPantalla } from './camara/dedoEnElCuerpo'
 import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
@@ -39,12 +42,7 @@ import { Joystick } from './mando/Joystick'
 import { CamaraDelSalon } from './camara/CamaraDelSalon'
 import { duracionDelModo, SEGUNDOS_DE_EXCENTRICO, type ModoDelReloj } from './mando/relojDelMuro'
 import { PuntosDeEjercicio } from './rumbo/PuntosDeEjercicio'
-import {
-  duenoDelGesto,
-  ejercicioTrasBarrido,
-  ejerciciosQueAvanza,
-  type DuenoDelGesto,
-} from '../capas/gestoHorizontal'
+import { duenoDelGesto, type DuenoDelGesto } from '../capas/gestoHorizontal'
 import { BarraDeSesion } from './rumbo/BarraDeSesion'
 import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { frasePorSerie } from '../frasesMotivacionales'
@@ -167,6 +165,17 @@ export interface SalonEntrenarProps {
    * las paredes se quedan casi vacías: no hay ejercicio del que hablar.
    */
   sesion?: Sesion
+  /**
+   * El sexo de la ficha, si el coach lo indicó: con él el sujeto se dibuja con los
+   * huesos de un hombre o de una mujer. Sin dato no se pasa nada y el visor usa su
+   * defecto, que es el neutro de siempre. Es dato de la ficha, no del salón: lo lee
+   * quien monta el salón (`RutaPage`) y llega hasta `VisorPatron` sin transformarlo.
+   */
+  sexo?: SexoDeFicha
+  /** La estatura de la ficha, en centímetros: el sujeto se dibuja con la talla de la persona. */
+  estaturaCm?: number
+  /** Y sus proporciones, si alguna serie suya trae pista de pose. */
+  proporciones?: ProporcionesDelCuerpo
 }
 
 /** El ejercicio del que habla el salón: el primero que queda por terminar. */
@@ -193,6 +202,12 @@ function ejercicioEnCurso(sesion: Sesion | undefined): EjercicioPrescrito | unde
  *   error del visor NO lleva esa clase, así que sigue viéndose: es el único texto de ahí
  *   dentro que no se puede esconder.
  */
+/** Dos centros de cámara son el mismo si no se mueven ni un milímetro. */
+function mismoCentro(a: readonly number[] | undefined, b: readonly number[] | undefined): boolean {
+  if (!a || !b) return a === b
+  return Math.abs(a[0] - b[0]) < 1e-3 && Math.abs(a[1] - b[1]) < 1e-3 && Math.abs(a[2] - b[2]) < 1e-3
+}
+
 const SUJETO_A_SANGRE = [
   'absolute inset-0',
   '[&>div]:h-full [&>div]:gap-0',
@@ -440,6 +455,18 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   }))
   const [lienzo, setLienzo] = useState({ ancho: 414, alto: 736 })
   const marcoRef = useRef<HTMLDivElement>(null)
+  /**
+   * EL CUERPO EN LA PANTALLA, tal como lo avisa el visor en cada fotograma. Va en un ref y
+   * no en estado: cambia sesenta veces por segundo con la animación y nadie tiene que
+   * repintarse por eso; solo se lee al bajar un dedo.
+   */
+  const cuerpoRef = useRef<CuadroEnPantalla | undefined>(undefined)
+  /** Cuántos dedos hay sobre el centro. Con dos, el gesto de uno se retira: es la cámara. */
+  const dedos = useRef(0)
+  const dentroDelCuerpo = useCallback((x: number, y: number) => dedoEnElCuerpo(cuerpoRef.current, x, y), [])
+  // Estable a propósito: viaja al efecto que monta el WebGL del visor, y una función nueva
+  // por render lo remontaría —contexto incluido— en cada fotograma.
+  const modoDeLaCamara = useCallback((x: number, y: number) => modoDelDedo(cuerpoRef.current, x, y), [])
 
   // El lienzo se mide del DOM y no se supone: la distancia focal sale de su alto, y con
   // un alto supuesto los cuadros caerían en un sitio y la sala se dibujaría en otro.
@@ -475,19 +502,34 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     capaAlOrigen: 0 as NivelW,
     /** De quién es este contacto. Se decide en los primeros píxeles y ya no cambia. */
     dueno: 'sin-decidir' as DuenoDelGesto,
-    /** El origen del BARRIDO, que se muda a cada salto para no atropellar tres ejercicios. */
-    xBarrido: 0,
   })
 
 
   const alBajarDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') dedos.current += 1
+    // DOS DEDOS: la cámara (pellizco y giro, en el visor). El gesto de un dedo se retira
+    // del todo; hasta el 2026-09-06 seguía vivo y cada giro a dos dedos cambiaba también de
+    // ejercicio, y la vista saltaba al ángulo del siguiente.
+    if (dedos.current >= 2) {
+      gesto.current.vivo = false
+      window.clearTimeout(reloj.current)
+      window.clearInterval(bomba.current)
+      setHundiendo(false)
+      return
+    }
+    // FUERA DEL CUERPO, el dedo es de la cámara (`modoDeLaCamara`): orbita en el visor y
+    // aquí no se hunde. Sobre el cuerpo, mantener hunde y lo vertical atraviesa; lo
+    // horizontal también es de la cámara —gira la sala—, ya no cambia de ejercicio.
+    if (!dentroDelCuerpo(e.clientX, e.clientY)) {
+      gesto.current.vivo = false
+      return
+    }
     gesto.current = {
       vivo: true,
       x: e.clientX,
       y: e.clientY,
       capaAlOrigen: w,
       dueno: 'sin-decidir',
-      xBarrido: e.clientX,
     }
     // HUNDIRSE: aguantar el dedo sobre el cuerpo lo va atravesando capa a capa. El primer
     // escalón tarda `ESPERA` —eso es lo que separa tocar de hundir, y lo que impide que
@@ -521,6 +563,13 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const alMoverDedo = (e: ReactPointerEvent<HTMLDivElement>) => {
     const g = gesto.current
     if (!g.vivo) return
+    if (dedos.current >= 2) {
+      g.vivo = false
+      window.clearTimeout(reloj.current)
+      window.clearInterval(bomba.current)
+      setHundiendo(false)
+      return
+    }
     const dx = e.clientX - g.x
     const dy = e.clientY - g.y
 
@@ -539,17 +588,10 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     // 2026-09-05 había que apoyarlo 320 ms y solo entonces tirar, y por eso Bryan no podía
     // moverse por la app. La cámara ya no compite por este gesto: se orbita con dos dedos.
     if (g.dueno === 'barrido') {
-      if (!sesionEnPantalla) return
-      const total = sesionEnPantalla.ejercicios.length
-      if (total < 2) return
-      const avance = ejerciciosQueAvanza(e.clientX - g.xBarrido)
-      if (avance === 0) return
-      const actual =
-        ejercicioManual ??
-        Math.max(0, sesionEnPantalla.ejercicios.findIndex((x) => x.id === ejercicio?.id))
-      setEjercicioManual(ejercicioTrasBarrido(actual, avance, total))
-      // El origen se muda al punto donde saltó: cada ejercicio cuesta un barrido entero.
-      g.xBarrido = e.clientX
+      // HORIZONTAL SOBRE EL CUERPO: gira la sala (lo hace la cámara del visor con este
+      // mismo dedo). Hasta el 2026-09-06 cambiaba de ejercicio, y girar era imposible en
+      // media pantalla. Cambiar de ejercicio vive en la tira de puntos.
+      g.vivo = false
       return
     }
 
@@ -570,7 +612,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     setW(siguiente)
   }
 
-  const alSoltarDedo = () => {
+  const alSoltarDedo = (e?: ReactPointerEvent<HTMLDivElement>) => {
+    if (e?.pointerType === 'touch') dedos.current = Math.max(0, dedos.current - 1)
     gesto.current.vivo = false
     gesto.current.dueno = 'sin-decidir'
     window.clearTimeout(reloj.current)
@@ -642,6 +685,9 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     <div
       data-salon="entrenar"
       data-w={w}
+      // La cámara, legible desde fuera: el testigo mide si un gesto orbitó o no sin
+      // adivinarlo por los píxeles. Solo se escribe cuando cambia (ver `alMirar`).
+      data-camara={`${camara.azimut.toFixed(1)}|${camara.elevacion.toFixed(1)}|${camara.distancia.toFixed(2)}|${(camara.centro ?? []).map((n) => n.toFixed(2)).join(',')}`}
       ref={marcoRef}
       className="fixed inset-0 overflow-hidden bg-ink-1000"
       style={{ zIndex: 'var(--z-elevado)' }}
@@ -650,6 +696,18 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
       <div
         data-hueco="centro"
         className="absolute inset-0"
+        // EL SALÓN SE TOCA, Y EL NAVEGADOR NO SE LO LLEVA. Sin `touch-action: none` un dedo
+        // vertical es un scroll de página y uno horizontal, en iOS, un «atrás»; sin el
+        // callout ni la selección, mantener el dedo sobre el cuerpo abría el menú del
+        // sistema y cancelaba el hundido. Bryan, 2026-09-06: «se sale para otro lado».
+        style={{
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+          overscrollBehavior: 'none',
+        }}
+        onContextMenu={(e) => e.preventDefault()}
         // LA SALA SE ALEJA MIENTRAS SUBE LA LECTURA, y lo hace LA CÁMARA (`retirada`, más
         // abajo), no un `scale()` de CSS aquí. Lo hubo hasta el 2026-09-05: un `transform`
         // no vuelve a dibujar la escena, reescala la imagen ya pintada —como ampliar una
@@ -682,24 +740,35 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                // LOS HUESOS DE ESTA PERSONA: lo que el coach indicó en su ficha. Sin dato
+                // el visor usa su defecto, que es el neutro de siempre.
+                sexo={props.sexo}
+                estaturaCm={props.estaturaCm}
+                proporciones={props.proporciones}
                 // EN EL SALÓN EL DEDO SUELTO ES DE NAVEGAR, no de la cámara: deslizar de
-                // lado pasa de ejercicio, y se orbita con dos dedos, donde ya vivía el
-                // pellizco. En el estudio del patrón sigue orbitando con uno.
-                orbitaConUnDedo={false}
+                // lado pasa de ejercicio. Y desde el 2026-09-06, FUERA del cuerpo un dedo
+                // orbita, como en cualquier visor 3D; dos dedos siguen siendo la cámara.
+                orbitaConUnDedo={modoDeLaCamara}
+                superficieDeGesto={marcoRef}
                 // La sala se retira al 88 % con la lectura arriba (1 / 0,88 = 1,136 de
                 // distancia) y se acerca un 4 % con el dedo dentro. Se componen.
                 retirada={(1 + avanceDelPanel * 0.136) * (hundiendo ? 0.96 : 1)}
                 nombreEjercicio={ejercicio?.nombre}
-                alMirar={(c) =>
+                alMirar={(c) => {
+                  cuerpoRef.current = c.cuerpo
                   // Se compara antes de guardar: el bucle avisa en cada fotograma que
                   // cambia algo, y guardar un objeto nuevo cada vez re-renderizaría las
                   // paredes sesenta veces por segundo aunque la cámara esté quieta.
                   setCamara((v) =>
-                    v.azimut === c.azimut && v.elevacion === c.elevacion && v.distancia === c.distancia
+                    v.azimut === c.azimut &&
+                    v.elevacion === c.elevacion &&
+                    v.distancia === c.distancia &&
+                    v.campo === c.campo &&
+                    mismoCentro(v.centro, c.centro)
                       ? v
                       : c,
                   )
-                }
+                }}
                 datos={
                   ejercicio
                     ? {

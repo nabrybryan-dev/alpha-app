@@ -32,7 +32,13 @@ import { SalonSinSujeto, tienePatronDeMovimiento } from './SalonSinSujeto'
  *
  * - los ejercicios CON patrón se construyen sobre las categorías reales de `PATRONES`, la
  *   lista importada del catálogo;
- * - los ejercicios SIN patrón se sacan del propio seed de demo, que trae ocho reales;
+ * - los ejercicios SIN patrón salían del propio seed de demo, que traía ocho reales. Desde el
+ *   2026-09-06 el seed ya no trae ninguno: sus ocho eran de categoría `AISLAMIENTO` y ahora la
+ *   lista por nombre los lleva a su gesto. El camino sin sujeto **sigue existiendo y sigue
+ *   siendo el correcto para el cardio**, así que los casos se toman de ahí: son los nueve
+ *   nombres que el barrido de `pruebas/cobertura-de-patrones.test.ts` deja fuera a propósito.
+ *   No es una lista copiada de términos: es el censo de producción, y la respuesta sigue
+ *   dándola `patronDeCategoria()`;
  * - y la respuesta correcta la da siempre `patronDeCategoria()`, no una lista escrita aquí.
  *
  * Copiar los términos habría creado una segunda lista que se separa de la primera: el día que
@@ -65,7 +71,41 @@ function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrit
   }
 }
 
-/** Los ejercicios del seed que el catálogo deja SIN patrón. Reales, no inventados. */
+/**
+ * Lo que hoy cae —correctamente— al camino sin sujeto, con los nombres del clasificador de
+ * `supabase/migrations/0038_taxonomia_final.sql`.
+ *
+ * Nueve son cardio: en una elíptica no hay gesto resistido que enseñar. El décimo, el
+ * TRINEO, está aquí por otra razón y conviene no confundirlas: un empuje de trineo SÍ es un
+ * gesto enseñable, lo que no tiene es ficha. Hasta el 2026-09-06 le salía el muñeco del
+ * salto, y se le quitó por decisión de Bryan —antes sin muñeco que con el de otro—. El día
+ * que alguien le escriba su ficha, sale de esta lista.
+ *
+ * Se afirma que NO tienen patrón dentro del propio test, preguntándoselo al dominio: si un
+ * día alguno lo tuviera, este archivo se pondría rojo en vez de seguir probando el camino
+ * equivocado.
+ */
+const SIN_SUJETO_DE_PRODUCCION = [
+  'CARDIO',
+  'BICICLETA',
+  'CINTA',
+  'ESCALADORA',
+  'ELIPTICA',
+  'HIIT',
+  'CIRCUITO',
+  'TABATA',
+  'ERGOMETRO',
+  'TRINEO',
+]
+
+function ejerciciosSinPatron(): EjercicioPrescrito[] {
+  const cardio = SIN_SUJETO_DE_PRODUCCION.map((nombre) =>
+    ejercicio({ id: `e-sin-sujeto-${nombre}`, categoria: 'ACONDICIONAMIENTO', nombre }),
+  )
+  return [...ejerciciosDelSeedSinPatron(), ...cardio]
+}
+
+/** Los ejercicios del seed que el catálogo deja SIN patrón. Desde el 2026-09-06, ninguno. */
 function ejerciciosDelSeedSinPatron(): EjercicioPrescrito[] {
   const vistos = new Set<string>()
   const salida: EjercicioPrescrito[] = []
@@ -143,9 +183,14 @@ describe('quién decide si hay sujeto', () => {
     // dominio dice que no lo hay, o al revés.
     const casos: EjercicioPrescrito[] = [
       ...PATRONES.map((p) => ejercicio({ categoria: p.categoria, nombre: p.ejemplos })),
-      ...ejerciciosDelSeedSinPatron(),
+      ...ejerciciosSinPatron(),
     ]
     expect(casos.length).toBeGreaterThan(PATRONES.length)
+    // Y que los del cardio siguen SIN patrón de verdad, no por un nombre que dejó de
+    // existir: si alguno ganara ficha, el bloque de abajo estaría probando otra cosa.
+    for (const e of ejerciciosSinPatron()) {
+      expect(patronDeCategoria(e.categoria, e.nombre), `${e.nombre} ya tiene patrón`).toBeUndefined()
+    }
     for (const e of casos) {
       expect(
         tienePatronDeMovimiento(e),
@@ -163,7 +208,7 @@ describe('el salón sin patrón de movimiento', () => {
   beforeEach(() => localStorage.clear())
   afterEach(() => cleanup())
 
-  it.each(ejerciciosDelSeedSinPatron().map((e) => [e.nombre, e] as const))(
+  it.each(ejerciciosSinPatron().map((e) => [e.nombre, e] as const))(
     'con «%s» monta SalonSinSujeto y NO monta el visor',
     (_nombre, e) => {
       montarSalon(sesionCon(e))

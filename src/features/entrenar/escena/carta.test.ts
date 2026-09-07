@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ALTURA_DEL_TOBILLO, ESQUELETO, puntoDeHueso, resolverConApoyo } from '../../../domain/patrones/esqueleto'
+import { plantaDe, puntoDeHueso, resolverConApoyo } from '../../../domain/patrones/esqueleto'
+import { HUESOS_POR_DEFECTO } from '../../../domain/patrones/juegoDeHuesos'
 import { BAHIA } from '../../../domain/escenario/laboratorio'
 import { proyectarCuadro } from '../salon/paredes/geometriaDeCuadro'
 import { ENCUADRE_SALA, SALA } from './sala'
@@ -30,7 +31,9 @@ function dePie() {
   return resolverConApoyo({}, [0, 0, 0], [0, 0, 0], 'suelo', undefined, ['D', 'I'])
 }
 
-const pelvisDeReferencia = ESQUELETO.find((h) => h.nombre === 'pelvis')
+// El sujeto de la carta es el que sale por defecto: desde el 2026-09-06, el varón real.
+const pelvisDeReferencia = HUESOS_POR_DEFECTO.find((h) => h.nombre === 'pelvis')
+const PLANTA = plantaDe(HUESOS_POR_DEFECTO)
 
 describe('la carta del espacio · el sujeto', () => {
   it('el suelo es Y = 0: la PLANTA está en el suelo y el hueso del pie, a la altura del tobillo', () => {
@@ -41,7 +44,7 @@ describe('la carta del espacio · el sujeto', () => {
     const esq = dePie()
     for (const pie of ['pieD', 'pieI']) {
       for (const t of [0, 0.5, 1]) {
-        const planta = puntoDeHueso(esq, pie, t, [0, 0, ALTURA_DEL_TOBILLO])
+        const planta = puntoDeHueso(esq, pie, t, [0, 0, PLANTA])
         expect(Math.abs(planta[1]), `${pie} en t=${t}`).toBeLessThan(0.005)
       }
     }
@@ -74,7 +77,7 @@ describe('la carta del espacio · el sujeto', () => {
     // Antes del arreglo estaba a −0,030: tres centímetros por debajo de la placa.
     const esq = dePie()
     for (const pie of ['pieD', 'pieI']) {
-      expect(puntoDeHueso(esq, pie, 0)[1], `${pie}`).toBeCloseTo(ALTURA_DEL_TOBILLO, 2)
+      expect(puntoDeHueso(esq, pie, 0)[1], `${pie}`).toBeCloseTo(PLANTA, 2)
     }
   })
 

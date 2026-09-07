@@ -13,6 +13,13 @@ export interface Usuario {
 
 export type NivelVolumen = 'Muy Bajo' | 'Bajo' | 'Normal' | 'Alto' | 'Muy Alto'
 
+/**
+ * El sexo con el que se dibuja el sujeto 3D de una persona. Lo indica el coach
+ * en la ficha; el asesorado no lo toca. La lista y la comprobación viven en
+ * `sexoDeFicha.ts`; en la base es la columna `perfiles.sexo` (0056).
+ */
+export type SexoDeFicha = 'hombre' | 'mujer'
+
 export interface MedidaCorporal {
   fecha: string
   /**
@@ -67,6 +74,15 @@ export interface Perfil {
   peldanoAlfa?: number
   /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
   ascensoIso?: string
+  /**
+   * Con qué huesos se dibuja su cuerpo en el salón y en el estudio del cuerpo.
+   * Lo rellena el coach. Opcional a propósito: sin dato se dibuja como hasta
+   * ahora (el juego neutro del visor).
+   *
+   * NO viaja dentro de `perfiles.datos`: tiene su propia columna (migración
+   * 0056) y `src/data/nube/perfilEnNube.ts` es el único sitio que la nombra.
+   */
+  sexo?: SexoDeFicha
 }
 
 /** Nota del coach a una competencia concreta de la Ruta. */

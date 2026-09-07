@@ -77,6 +77,17 @@ describe('VisorPatron', () => {
     expect(screen.getByLabelText('Fase del movimiento')).toBeInTheDocument()
   })
 
+  it('acepta los huesos de una mujer sin perder el material didáctico', () => {
+    // El sexo cambia el cuerpo que se dibuja, no lo que se explica: claves, errores y
+    // musculatura son del patrón. En jsdom no hay WebGL y lo dibujado no se ve; lo que
+    // sí se comprueba es que la prop entra y la pantalla no se rompe. Lo que dibuja
+    // cada juego lo vigila `juegoDeHuesos.test.ts`, sobre el dominio.
+    const patron = PATRON_POR_ID.bisagra_cadera
+    render(<VisorPatron patron={patron} sexo="mujer" />)
+    for (const clave of patron.claves) expect(screen.getByText(clave)).toBeInTheDocument()
+    expect(screen.getByLabelText('Fase del movimiento')).toBeInTheDocument()
+  })
+
   describe('cuando el sistema pide menos movimiento', () => {
     it('no anima solo y lo explica', () => {
       // Sin esto, quien tiene activado «reducir movimiento» se encuentra un

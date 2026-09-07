@@ -1,7 +1,7 @@
 import { grados, V, type Vec3 } from '../../../domain/patrones/algebra'
 import { Malla, type Color } from '../../../domain/patrones/malla'
 import { cuadro } from './piezas'
-import { construirMobiliario } from './mobiliario'
+import { construirMobiliario, construirRellenoDeMuro } from './mobiliario'
 import { BAHIA } from '../../../domain/escenario/laboratorio'
 
 /**
@@ -79,7 +79,7 @@ const ALTO_SALA = 4.2
 // 1,62 y no 1,85 desde el 2026-09-03: a 1,85 el marcador caía justo bajo el tablón del
 // DOM y se le rozaba. Bajarlo lo deja solo en su banda de muro, que es lo que hace que se
 // lea como un display de la sala y no como un fondo del texto.
-const ALTO_PANEL = 1.62
+const ALTO_PANEL = 1.36
 
 // La primera versión usaba valores casi negros: en un móvil el contraste del canvas
 // aplastaba paredes, paneles y material contra el fondo y solo se distinguía el sujeto.
@@ -250,15 +250,37 @@ function anchoDe(n: number, alto: number): number {
  * Los tres van juntos y en ese orden porque es el orden en que se leen durante la
  * serie: cuántas llevo, de cuántas, y con cuánto margen las estoy haciendo.
  */
-function marcador(m: Malla, anguloGrados: number, series: number, reps: number, rir: number | 'FALLO'): void {
+function marcador(
+  m: Malla,
+  anguloGrados: number,
+  series: number,
+  reps: number,
+  rir: number | 'FALLO',
+  /**
+   * La sala rectangular de Blender, si la hay. Entonces el panel se cuelga del muro plano
+   * que el rayo encuentra en esa dirección, PARALELO a ese muro —un panel tangente al
+   * cilindro atraviesa una pared plana por las puntas— y sin salirse por la esquina.
+   */
+  rect?: { medioAncho: number; medioFondo: number },
+): void {
   const a = grados(anguloGrados)
   const co = Math.cos(a)
   const si = Math.sin(a)
+  // Dónde está el muro en esa dirección, y hacia dónde mira. En el cilindro, la normal es
+  // la radial; en el rectángulo, la del muro plano que se ha encontrado.
+  const radioDelMuro = rect ? radioDelMuroRectangular(rect.medioAncho, rect.medioFondo, anguloGrados) : RADIO_SALA
+  let coN = co
+  let siN = si
+  if (rect) {
+    const muroLargo = Math.abs(radioDelMuro * co) >= rect.medioAncho - 1e-6
+    coN = muroLargo ? Math.sign(co) : 0
+    siN = muroLargo ? 0 : Math.sign(si)
+  }
   // Un pelo por dentro de la pared para que no pelee con ella por el mismo píxel.
-  const r = RADIO_SALA - 0.02
-  const haciaDentro: Vec3 = [-co, 0, -si]
+  const r = radioDelMuro - 0.02
+  const haciaDentro: Vec3 = [-coN, 0, -siN]
   // El eje horizontal del panel: tangente a la pared.
-  const tang: Vec3 = [-si, 0, co]
+  const tang: Vec3 = [-siN, 0, coN]
 
   // EL CUERPO DE LAS CIFRAS, y por qué 0,38 y no 0,44.
   //
@@ -284,10 +306,22 @@ function marcador(m: Malla, anguloGrados: number, series: number, reps: number, 
 
   // Fondo del panel y su marco, para que las cifras no floten sobre la pared.
   const margen = alto * 0.42
+  // El centro del panel: donde el rayo toca el muro. En el rectángulo se corre a lo largo
+  // del muro lo justo para que las puntas no se metan en la pared de al lado.
+  let cx = co * r
+  let cz = si * r
+  if (rect) {
+    const medioPanel = anchoTotal / 2 + margen + 0.05
+    const tope = (coN !== 0 ? rect.medioFondo : rect.medioAncho) - medioPanel
+    const alTangente = cx * tang[0] + cz * tang[2]
+    const acotado = Math.max(-tope, Math.min(tope, alTangente))
+    cx += tang[0] * (acotado - alTangente)
+    cz += tang[2] * (acotado - alTangente)
+  }
   const pon = (u: number, v: number, prof: number): Vec3 => [
-    co * (r - prof) + tang[0] * u,
+    cx + haciaDentro[0] * prof + tang[0] * u,
     v,
-    si * (r - prof) + tang[2] * u,
+    cz + haciaDentro[2] * prof + tang[2] * u,
   ]
   const u0 = -anchoTotal / 2 - margen
   const u1 = anchoTotal / 2 + margen
@@ -396,8 +430,95 @@ function estacion(m: Malla): void {
  * Los números se pasan desde fuera porque son los de la serie que se está haciendo:
  * la sala no sabe de entrenamiento, solo sabe dibujar lo que le den.
  */
-export function construirSala(m: Malla, datos: DatosDeSerie, azimutDeEntrada?: number): void {
-  pared(m)
+export interface OpcionesDeSala {
+  /**
+   * LA SALA HECHA EN BLENDER, si está cargada. Entonces la pared y el hierro de cajas no
+   * se construyen —los trae la pieza— y los marcadores se cuelgan del muro rectangular
+   * de esa sala, a la distancia que toque en cada dirección, en vez de en el cilindro.
+   */
+  salaDeBlender?: { medioAncho: number; medioFondo: number }
+}
+
+/**
+ * A qué distancia queda el muro de una sala RECTANGULAR en una dirección dada.
+ *
+ * Es lo que permite colgar los marcadores de las paredes de la sala de Blender: un
+ * rayo desde el centro en el ángulo pedido choca antes con el muro largo o con el corto,
+ * y el marcador se pone justo ahí. Pura, y probada contra las cuatro paredes.
+ */
+export function radioDelMuroRectangular(medioAncho: number, medioFondo: number, anguloGrados: number): number {
+  const a = grados(anguloGrados)
+  const co = Math.abs(Math.cos(a))
+  const si = Math.abs(Math.sin(a))
+  const porAncho = co > 1e-9 ? medioAncho / co : Infinity
+  const porFondo = si > 1e-9 ? medioFondo / si : Infinity
+  return Math.min(porAncho, porFondo)
+}
+
+/**
+ * HASTA DÓNDE PUEDE ALEJARSE LA CÁMARA SIN SALIRSE DE LA SALA.
+ *
+ * La órbita se aleja hasta 6,5 m. En la sala cilíndrica de 7 m eso siempre caía dentro; en
+ * la sala rectangular de Blender, **el muro corto está a 5,5**, así que al alejarse hacia
+ * el fondo la cámara se salía de la habitación y se veían las paredes desde fuera,
+ * atravesándose unas con otras. Lo vio Bryan navegando el 2026-09-05: «se cruzan paredes
+ * que no se debían cruzar».
+ *
+ * El tope no es un número: **depende de hacia dónde se mire**. Mirando al muro largo caben
+ * 8 metros; al corto, 5,5. Y depende de la elevación, porque lo que acerca la cámara a la
+ * pared es su distancia HORIZONTAL, no la que la separa del sujeto.
+ *
+ * Devuelve una función porque el centro de la órbita se mueve con el ejercicio —el encuadre
+ * mira al centro del cuerpo— y el tope hay que recalcularlo con él.
+ */
+export function topeDeDistanciaEnSala(
+  sala: { medioAncho: number; medioFondo: number; alto: number },
+  margen = 0.35,
+): (centro: readonly [number, number, number], azimutGrados: number, elevacionGrados: number) => number {
+  const limX = sala.medioAncho - margen
+  const limZ = sala.medioFondo - margen
+  const limY = sala.alto - margen
+  return (centro, azimutGrados, elevacionGrados) => {
+    const a = grados(azimutGrados)
+    const e = grados(elevacionGrados)
+    // La misma cuenta que `Orbita.ojo()`: el ojo va en centro + [sen a·cos e, sen e, cos a·cos e]·d.
+    const dir: Vec3 = [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)]
+    const limites = [limX, limY, limZ]
+    let tope = Infinity
+    for (let k = 0; k < 3; k++) {
+      const v = dir[k]
+      // Casi paralelo a esa pared: nunca la alcanza por ese eje.
+      if (Math.abs(v) < 1e-6) continue
+      // El suelo no cuenta como pared: por debajo la limita la elevación, no la sala.
+      const limite = v > 0 ? limites[k] : k === 1 ? Infinity : -limites[k]
+      if (!Number.isFinite(limite)) continue
+      const d = (limite - centro[k]) / v
+      if (d > 0) tope = Math.min(tope, d)
+    }
+    return tope
+  }
+}
+
+/**
+ * Los ángulos de la ÓRBITA en que la sala de Blender no deja nada detrás del sujeto.
+ *
+ * Medido sobre `public/piezas/sala-gimnasio.pieza`, que es lo que se descarga: en estos
+ * once, todo lo que queda en el cuadro por detrás son vértices de la parte `hormigon`. La
+ * lista va aquí escrita a mano y no se calcula en ejecución a propósito —recorrer 38.000
+ * vértices por 36 ángulos no es trabajo de un fotograma— y `piezas3d.test.ts` la comprueba
+ * contra la pieza real: si alguien reexporta la sala y mueve el hierro, se pone rojo
+ * pidiendo que se actualice.
+ */
+export const ANGULOS_SIN_FONDO = [0, 10, 20, 170, 180, 190, 200, 210, 330, 340, 350] as const
+
+export function construirSala(
+  m: Malla,
+  datos: DatosDeSerie,
+  azimutDeEntrada?: number,
+  opciones: OpcionesDeSala = {},
+): void {
+  const blender = opciones.salaDeBlender
+  if (!blender) pared(m)
   // TRES MARCADORES FIJOS, COMO EN UN PABELLÓN — más uno en el muro que se está mirando.
   //
   // Los tres de siempre cuelgan a 90°, 210° y 330°, que son ángulos de la SALA y no del
@@ -416,11 +537,22 @@ export function construirSala(m: Malla, datos: DatosDeSerie, azimutDeEntrada?: n
     // el muro de enfrente, y los 90 traducen entre las dos convenciones.
     angulos.push(90 - (azimutDeEntrada + 180))
   }
-  for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir)
+  for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir, blender)
   estacion(m)
   // EL HIERRO. Va el último porque es lo que menos cambia: la pared y los marcadores se
   // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato.
-  construirMobiliario(m, RADIO_SALA, ALTO_SALA)
+  //
+  // Con la sala de Blender el hierro viene dentro de la pieza… casi. Medido el 2026-09-06
+  // sobre la pieza que se descarga: viene apelotonado en los dos muros largos, y en ONCE de
+  // los 36 ángulos de la órbita lo único que queda detrás del sujeto es hormigón pelado.
+  // Eso tira por tierra la regla que `mobiliario.ts` dejó escrita tras medirla —«se mire por
+  // donde se mire tiene que haber algo detrás»— así que esos once se rellenan aquí.
+  //
+  // No con las estaciones de siempre: su anillo es circular y esta sala es rectangular, y
+  // contra un muro corto no cabe ni un árbol de discos. Cabe un estante de pared, y es lo
+  // que va. El porqué, con los números pieza a pieza, está en `mobiliario.ts`.
+  if (blender) construirRellenoDeMuro(m, ANGULOS_SIN_FONDO, blender.medioAncho, blender.medioFondo)
+  else construirMobiliario(m, RADIO_SALA, ALTO_SALA)
 }
 
 /** Los números de la serie que se está haciendo, que son los que van al marcador. */
@@ -529,7 +661,12 @@ export const ENCUADRE_SALA = {
    * la distancia de la estación de grabación, que son el contrato de medida del encoder
    * y no se mueven por motivos de encuadre.
    */
-  elevacionMaxima: 10,
+  // Nueve desde el 2026-09-06: la prescripción volvió al muro, grande y sin retirarse, por
+  // orden de Bryan («pegada en la pared y muy grande»). El tablón declara 1,2 m en vez de
+  // 0,85 y el techo baja un grado. Y SIETE desde el 2026-09-07: el margen de arriba pasa de
+  // 28 a 72 px para que el tablón no se meta bajo la banda de la sesión (captura de Bryan).
+  // `geometriaDeCuadro.test.ts` lo recalcula.
+  elevacionMaxima: 7,
 } as const
 
 /**
@@ -542,4 +679,36 @@ export const ENCUADRE_SALA = {
  */
 export function elevacionDelSalon(elevacionDelPatron: number): number {
   return Math.min(elevacionDelPatron, ENCUADRE_SALA.elevacionMaxima)
+}
+
+/** Cuánto aire se deja bajo el techo y sobre el suelo al inclinar la cámara a mano. */
+export const HOLGURA_DEL_TECHO = 0.45
+export const HOLGURA_DEL_SUELO = 0.25
+/** Y los topes que no se cruzan ni con todo el aire del mundo: un poco desde abajo, y no
+ *  tanto desde arriba que el muro de enfrente se vaya de la pantalla. */
+export const INCLINACION_A_MANO = { min: -6, max: 22 }
+
+/**
+ * HASTA DÓNDE SE PUEDE INCLINAR LA CÁMARA A MANO DENTRO DE LA SALA.
+ *
+ * La entrada de cada patrón se acota a `ENCUADRE_SALA.elevacionMaxima` para que el tablón
+ * del muro entre en el cuadro. Orbitar con el dedo es otra cosa: quien gira quiere ver la
+ * sala y puede perder el tablón un momento; lo que no puede es meter la cámara bajo el
+ * suelo ni por encima del techo. Medido el 2026-09-06 con toques emulados: con los ±78°
+ * del estudio, el dedo dejaba la cámara a −78°, mirando la sala desde debajo del suelo.
+ *
+ * Se calcula contra el centro y la distancia reales: el ojo está a
+ * `centro.y + distancia · sin(elevación)`, así que un sujeto colgado de una barra —centro
+ * más alto— llega antes al techo con el mismo ángulo.
+ */
+export function topesDeElevacion(centro: readonly number[], distancia: number): { min: number; max: number } {
+  const d = Math.max(distancia, 0.01)
+  const seno = (v: number) => Math.max(-1, Math.min(1, v))
+  const aGrados = (r: number) => (r * 180) / Math.PI
+  const arriba = aGrados(Math.asin(seno((ALTO_SALA - HOLGURA_DEL_TECHO - centro[1]) / d)))
+  const abajo = aGrados(Math.asin(seno((HOLGURA_DEL_SUELO - centro[1]) / d)))
+  return {
+    min: Math.max(INCLINACION_A_MANO.min, abajo),
+    max: Math.min(INCLINACION_A_MANO.max, arriba),
+  }
 }

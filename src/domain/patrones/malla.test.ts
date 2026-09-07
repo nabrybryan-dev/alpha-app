@@ -215,6 +215,59 @@ describe('la construcción de malla', () => {
   })
 })
 
+describe('las coordenadas de textura', () => {
+  // Es lo que le faltaba al motor para estampar una imagen sobre una malla. Dos floats
+  // por vértice que NACEN EN CERO, para que ninguna de las mallas que ya existen cambie:
+  // el shader multiplica por blanco cuando la malla no tiene textura.
+  it('nacen en cero y se escriben al final de `verticeSuelto`', () => {
+    const m = new Malla(4)
+    m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.verticeSuelto(1, 0, 0, 0, 1, 0, [1, 1, 1], 0, 0, 0.25, 0.75)
+    expect(Array.from(m.uv)).toEqual([0, 0, 0.25, 0.75])
+    expect(m.uv.length).toBe(m.vertices * 2)
+  })
+
+  it('sobreviven a que el búfer crezca', () => {
+    // La capacidad es de dos vértices: el tercero obliga a reservar de nuevo y copiar.
+    const m = new Malla(2)
+    for (let i = 0; i < 5; i++) m.verticeSuelto(i, 0, 0, 0, 1, 0, [1, 1, 1], 0, 0, i * 0.1, 1 - i * 0.1)
+    expect(m.vertices).toBe(5)
+    // Seis decimales y no nueve: el búfer es `Float32`, que guarda 0,4 como 0,40000000596.
+    expect(m.uv[8]).toBeCloseTo(0.4, 6)
+    expect(m.uv[9]).toBeCloseTo(0.6, 6)
+  })
+
+  it('la textura es de la malla entera y nace sin ninguna', () => {
+    expect(new Malla(8).textura).toBeNull()
+  })
+
+  it('una malla nace sin la luz grabada, y `hornear` conserva la bandera', () => {
+    expect(new Malla(8).horneada).toBe(false)
+    const m = new Malla(8)
+    m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.horneada = true
+    expect(hornear(m, [M4.identidad()]).horneada).toBe(true)
+  })
+
+  it('`arrays()` las incluye', () => {
+    const m = new Malla(4)
+    m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0, 0, 0.5, 0.5)
+    expect(Array.from(m.arrays().uv)).toEqual([0.5, 0.5])
+  })
+
+  it('`hornear` las lleva tal cual, y la textura con ellas', () => {
+    const origen = new Malla(8)
+    origen.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 1, 0, 0.1, 0.2)
+    origen.verticeSuelto(1, 0, 0, 0, 1, 0, [1, 1, 1], 1, 0, 0.3, 0.4)
+    origen.verticeSuelto(0, 0, 1, 0, 1, 0, [1, 1, 1], 1, 0, 0.5, 0.6)
+    origen.triangulo(0, 1, 2)
+    origen.textura = 'suelo-goma'
+    const h = hornear(origen, [M4.identidad(), M4.trasladar(0, 2, 0)])
+    expect(Array.from(h.uv).map((v) => Math.round(v * 10) / 10)).toEqual([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+    expect(h.textura).toBe('suelo-goma')
+  })
+})
+
 describe('hornear', () => {
   it('lleva cada vértice a su hueso y lo deja sin hueso, conservando color, fibra e índices', () => {
     const origen = new Malla(16)
@@ -257,5 +310,20 @@ describe('hornear', () => {
     expect(h).toBe(destino)
     expect(h.vertices).toBe(3)
     expect(h.posicion[0]).toBe(5)
+  })
+})
+
+describe('colgarDe', () => {
+  it('cuelga todos los vértices del hueso que se le dice, y solo los que existen', () => {
+    // Lo que llega hecho (una pieza, el atlas) nace en el hueco 0 —el mundo— y hay que
+    // colgarlo del sujeto entero después. Si esto se saltara un vértice, esa esquina se
+    // quedaría en el suelo mientras el resto del cuerpo flota con la demostración.
+    const m = new Malla(8)
+    m.verticeSuelto(0, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.verticeSuelto(1, 0, 0, 0, 1, 0, [1, 1, 1], 0)
+    m.verticeSuelto(0, 0, 1, 0, 1, 0, [1, 1, 1], 0)
+    m.triangulo(0, 1, 2)
+    m.colgarDe(22)
+    expect(Array.from(m.hueso)).toEqual([22, 22, 22])
   })
 })

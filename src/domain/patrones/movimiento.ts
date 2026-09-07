@@ -173,9 +173,34 @@ export function poseAnimada(
   const pose: Pose = {}
 
   // --- 1. Base con retardo distal -----------------------------------------
+  //
+  // EL RETARDO SE ESTIRA, NO SE RECORTA. Hasta el 2026-09-06 esto era
+  // `limitar(fase - retardo * d, 0, 1)`, y esa resta a secas tenía dos consecuencias que
+  // nadie había medido:
+  //
+  //  1. Subiendo, el canal leía como mucho `1 - retardo`, así que **no llegaba nunca al
+  //     ángulo que la ficha declara**. La muñeca, que es la que más retardo tiene (0,11),
+  //     se quedaba en 49° de los 62 escritos, y ni siquiera durante la pausa de arriba.
+  //  2. Y bajando la resta cambiaba de signo, así que el canal saltaba de golpe a su
+  //     extremo. **12,5 grados en 9 milésimas de segundo**, dos veces por repetición, justo
+  //     en los cambios de sentido. Un tirón, no una animación.
+  //
+  // El segundo es el que importa y es el que no se veía contando ángulos: el recorrido
+  // completo SÍ aparecía —por eso ninguna prueba de rango lo cazaba—, aparecía de un salto.
+  //
+  // La ventana disponible es `1 - retardo`, así que en vez de recortarla se REESCALA sobre
+  // ella. Subiendo el canal se queda quieto mientras la fase recorre su retardo y luego
+  // recupera; bajando se queda arriba ese mismo trecho antes de arrancar. El retardo sigue
+  // siendo un retardo —lo proximal manda y lo distal obedece— y además:
+  //
+  //   · en `fase = 1` los dos sentidos dan 1, y en `fase = 0` los dos dan 0, así que en los
+  //     cambios de sentido no hay salto: la función es continua;
+  //   · el canal recorre su rango entero en las dos direcciones.
   const canales = new Set([...Object.keys(patron.inicio), ...Object.keys(patron.fin)])
   for (const c of canales) {
-    const f = limitar(fase - retardoDe(raizDe(c)) * d, 0, 1)
+    const retardo = retardoDe(raizDe(c))
+    const ventana = 1 - retardo
+    const f = ventana <= 0 ? fase : limitar((fase - (d >= 0 ? retardo : 0)) / ventana, 0, 1)
     pose[c] = canalEnFase(patron, c, f)
   }
 
@@ -209,8 +234,22 @@ export function poseAnimada(
   // La cabeza compensa parte de la inclinación del tronco. Esto sustituyó a
   // veintitrés ángulos de cuello escritos a mano que había que recalcular cada
   // vez que se tocaba la inclinación de un patrón.
+  //
+  // PERO SE APARTA CUANDO EL CUELLO ES DEL PATRÓN, que es la misma regla que este archivo
+  // ya aplica más abajo con el contrapeso de los brazos: una capa no puede pelearse con un
+  // canal que el patrón está moviendo a propósito.
+  //
+  // Se destapó en `movilidad_toracica`, donde el cuello declara ir de +26 a −22 —48 grados,
+  // y es parte de lo que ese ejercicio enseña— y hacía 11. No lo sobrescribía nadie: la
+  // compensación es una resta, y ahí el tronco se inclina 52 grados a lo largo de la
+  // repetición, así que la resta se movía 32 en sentido contrario y el resto se lo comía el
+  // tope del cuello. Un ejercicio de movilidad de la espalda alta con el cuello quieto.
   const inclinacion = giroRaiz[0] + (pose.lumbarFlex ?? 0) + (pose.toraxFlex ?? 0)
-  pose.cuelloFlex = (pose.cuelloFlex ?? 0) - inclinacion * 0.62
+  const cuelloDelPatron =
+    Math.abs((patron.fin.cuelloFlex ?? 0) - (patron.inicio.cuelloFlex ?? 0)) > 6
+  if (!cuelloDelPatron) pose.cuelloFlex = (pose.cuelloFlex ?? 0) - inclinacion * 0.62
+  // El cráneo sigue compensando siempre: es el ajuste fino de la mirada, pesa una quinta
+  // parte que el cuello y ningún patrón del catálogo lo escribe.
   pose.craneoFlex = (pose.craneoFlex ?? 0) - inclinacion * 0.12
 
   // --- 5. Vida en lo que no trabaja ---------------------------------------

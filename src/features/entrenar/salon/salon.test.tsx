@@ -487,14 +487,17 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
   })
 
   /**
-   * DESLIZAR DE LADO PASA DE EJERCICIO.
+   * DESLIZAR DE LADO PASA DE EJERCICIO — SOBRE LA TIRA DE PUNTOS, no sobre el cuerpo.
    *
-   * Es lo que Bryan no podía hacer el 2026-09-05: «no me deja desplazarme entre
-   * ejercicios». Y no le fallaba a él —estaba escondido detrás de aguantar el dedo 320 ms
-   * hasta que el cuerpo empezaba a hundirse—. La regla pura vive en `gestoHorizontal.ts` y
-   * se prueba sola; aquí se comprueba el CABLE, que es lo que se rompe al mover código.
+   * El 2026-09-05 Bryan no podía moverse entre ejercicios y el barrido se puso sobre el
+   * cuerpo. El 2026-09-06 no podía GIRAR la sala: «hacer el giro de 360 grados y
+   * desplazarme por todo el salón», porque ese mismo barrido se llevaba media pantalla y
+   * un tirón a dos dedos cambiaba de ejercicio mientras giraba. Desde entonces un dedo
+   * sobre la sala es de la cámara, y cambiar de ejercicio tiene sitio propio y visible:
+   * la tira de puntos, que se toca o se desliza. La regla pura sigue en
+   * `gestoHorizontal.ts`; aquí se comprueba el CABLE nuevo, y que el viejo se cortó.
    */
-  it('deslizar de lado pasa de ejercicio, sin aguantar el dedo antes', () => {
+  it('deslizar de lado sobre la tira de puntos pasa de ejercicio', () => {
     montarConFuerza((s) => s.ejercicios.length > 1)
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     // Sin este `expect` la prueba se saldría por la puerta de atrás el día que la sesión
@@ -510,16 +513,37 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
       )
     const partida = indiceDe()
 
+    const tira = salon.querySelector('[data-puntos="ejercicios"]') as HTMLElement
+    const dedo = (tipo: string, x: number, y: number) =>
+      fireEvent(tira, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: x, clientY: y }))
+
+    // Un deslizamiento hacia la izquierda sobre la tira: 70 px, que pasa del paso.
+    dedo('pointerdown', 300, 800)
+    dedo('pointerup', 230, 800)
+
+    expect(indiceDe(), 'el deslizamiento sobre la tira no pasó de ejercicio').toBe(partida + 1)
+  })
+
+  it('deslizar de lado sobre el cuerpo YA NO pasa de ejercicio: ese dedo gira la sala', () => {
+    montarConFuerza((s) => s.ejercicios.length > 1)
+    const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    expect(salon.querySelectorAll('[data-punto]').length).toBeGreaterThan(1)
+    const indiceDe = () =>
+      Array.from(salon.querySelectorAll('[data-punto]')).findIndex(
+        (p) => p.getAttribute('data-punto') === 'aqui',
+      )
+    const partida = indiceDe()
+
     const centro = salon.querySelector('[data-hueco="centro"]') as HTMLElement
     const dedo = (tipo: string, x: number, y: number) =>
       fireEvent(centro, new MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: x, clientY: y }))
-
-    // Un deslizamiento hacia la izquierda, sin pausa previa: 70 px, que pasa del paso.
     dedo('pointerdown', 300, 400)
     dedo('pointermove', 230, 402)
     dedo('pointerup', 230, 402)
 
-    expect(indiceDe(), 'el deslizamiento no pasó de ejercicio').toBe(partida + 1)
+    expect(indiceDe(), 'el barrido sobre el cuerpo cambió de ejercicio').toBe(partida)
+    // Y sin que el salón se lleve el gesto del navegador: el centro no deja hacer scroll.
+    expect(centro.style.touchAction).toBe('none')
   })
 
   it('un arrastre vertical NO cambia de ejercicio: ese gesto es del eje W', () => {
@@ -629,7 +653,7 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     ).toEqual([])
   })
 
-  it('el panel sube con un toque y trae los quince recuadros, todos interactivos', async () => {
+  it('el panel sube con un toque y trae los dieciséis recuadros, todos interactivos', async () => {
     const usuario = userEvent.setup()
     montarConFuerza()
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
@@ -640,11 +664,13 @@ describe('el salón con un ejercicio de fuerza: los cinco huecos encendidos', ()
     await usuario.click(screen.getByRole('button', { name: 'Abrir el panel con todo el detalle' }))
 
     const recuadros = Array.from(salon.querySelectorAll('[data-recuadro]'))
-    // Quince, y cada uno llegó bajando de la pared: los dos del reparto del §1 —«El
+    // Dieciséis. Quince llegaron bajando de la pared: los dos del reparto del §1 —«El
     // encuadre de hoy» con sus cuatro campos y «Material de la sesión»— y, desde el
     // 2026-09-04, «Cómo va la sesión», que era la marquesina corrida del muro. Lo que baja
-    // de la pared aterriza aquí; nada se tira.
-    expect(recuadros).toHaveLength(15)
+    // de la pared aterriza aquí; nada se tira. El decimosexto, «El gimnasio», no bajó de
+    // ningún sitio: lo pide la licencia CC Attribution de los modelos 3D, que obliga a
+    // nombrar al autor de forma visible. Quitarlo no es una decisión de diseño.
+    expect(recuadros).toHaveLength(16)
     // Cada recuadro trae un elemento interactivo real: el título ES el botón que pliega. No
     // es una promesa que haya que ir comprobando bloque a bloque, es estructura.
     for (const r of recuadros) {

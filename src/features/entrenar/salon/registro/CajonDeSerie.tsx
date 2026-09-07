@@ -134,7 +134,7 @@ export function CajonDeSerie({
       {/* EL ASIDERO. Tres píxeles de tirador dentro de una franja de 24: el tirador dice
           dónde agarrar y la franja es lo que de verdad responde. Se calcula, no se dibuja
           — que es la misma regla del mando de la cámara. */}
-      <div
+      <div data-no-orbita
         data-asidero="ficha"
         role="button"
         tabIndex={0}

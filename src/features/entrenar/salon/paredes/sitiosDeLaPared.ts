@@ -125,7 +125,7 @@ export const SITIOS = {
   // muro —el que ahora escribe la prescripción— y le pintaba el texto encima. Su contenido
   // real, ya sin las cifras que dice la sala, son 119 px = 0,73 m; 0,85 deja margen sin
   // mentir. El testigo compara este número con el alto de verdad en cada corrida.
-  ejercicio: { desvio: 0, altura: 2.42, ancho: 1.9, alto: 0.85 },
+  ejercicio: { desvio: 0, altura: 2.42, ancho: 1.9, alto: 1.2 },
   /**
    * Lo que ya se levantó hoy. **Fuera de la ventana de entrada, a un giro corto.**
    *

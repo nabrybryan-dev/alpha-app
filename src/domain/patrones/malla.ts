@@ -31,6 +31,8 @@ export interface ArraysDeMalla {
    * conoce el ángulo de penación.
    */
   fibra: Float32Array
+  /** Coordenadas de textura, dos por vértice. Nacen en cero: ver `Malla.uv`. */
+  uv: Float32Array
   indice: Uint32Array
 }
 
@@ -52,6 +54,7 @@ export class Malla {
   private bufCol: Float32Array
   private bufHueso: Float32Array
   private bufFibra: Float32Array
+  private bufUv: Float32Array
   private bufIdx: Uint32Array
   private nv = 0
   private ni = 0
@@ -82,12 +85,34 @@ export class Malla {
    */
   encima = false
 
+  /**
+   * QUÉ IMAGEN SE ESTAMPA SOBRE ESTA MALLA, por su nombre, o ninguna.
+   *
+   * Es de la malla entera, como `alfa` y `encima`, y por la misma razón: el motor
+   * dibuja todo lo que comparte textura de una pasada, y una malla que cambiara de
+   * imagen a mitad de camino tendría que partirse en dos de todos modos. Nace en `null`:
+   * ninguna de las mallas que existían cambia, y el shader multiplica por blanco cuando
+   * no hay imagen. Las coordenadas van en `uv`, por vértice.
+   */
+  textura: string | null = null
+
+  /**
+   * SI LA LUZ YA VIENE GRABADA EN EL COLOR de los vértices.
+   *
+   * Una pieza horneada en Blender trae en su color lo que le llega de cada foco, con sus
+   * sombras: el motor la enseña tal cual y no la vuelve a iluminar. Es lo que permite que
+   * el gimnasio tenga veintiséis luces y el teléfono no calcule ninguna. Nace en `false`:
+   * el cuerpo, el hierro y las guías se iluminan como siempre.
+   */
+  horneada = false
+
   constructor(capacidadVertices = 2048) {
     this.bufPos = new Float32Array(capacidadVertices * 3)
     this.bufNrm = new Float32Array(capacidadVertices * 3)
     this.bufCol = new Float32Array(capacidadVertices * 3)
     this.bufHueso = new Float32Array(capacidadVertices)
     this.bufFibra = new Float32Array(capacidadVertices)
+    this.bufUv = new Float32Array(capacidadVertices * 2)
     this.bufIdx = new Uint32Array(capacidadVertices * 6)
   }
 
@@ -95,6 +120,17 @@ export class Malla {
   reiniciar(): void {
     this.nv = 0
     this.ni = 0
+  }
+
+  /**
+   * Cuelga TODOS los vértices del mismo hueso.
+   *
+   * Para lo que llega ya construido —una pieza de Blender, el atlas anatómico— y tiene que
+   * seguir al sujeto entero: se cuelga de `INDICE_RAIZ` y va donde vaya él, también
+   * tumbado. Lo que se construye vértice a vértice ya dice su hueso al nacer.
+   */
+  colgarDe(hueso: number): void {
+    this.bufHueso.fill(hueso, 0, this.nv)
   }
 
   get vertices(): number {
@@ -117,6 +153,14 @@ export class Malla {
   get fibra(): Float32Array {
     return this.bufFibra.subarray(0, this.nv)
   }
+  /**
+   * Coordenadas de textura, dos por vértice, en el espacio de la imagen: (0, 0) es una
+   * esquina y (1, 1) la opuesta, y por encima de 1 la imagen se repite. Un suelo las
+   * lleva en metros divididos por el tamaño real de la baldosa.
+   */
+  get uv(): Float32Array {
+    return this.bufUv.subarray(0, this.nv * 2)
+  }
   get indice(): Uint32Array {
     return this.bufIdx.subarray(0, this.ni)
   }
@@ -133,6 +177,7 @@ export class Malla {
     this.bufCol = copiar(this.bufCol, 3)
     this.bufHueso = copiar(this.bufHueso, 1)
     this.bufFibra = copiar(this.bufFibra, 1)
+    this.bufUv = copiar(this.bufUv, 2)
   }
 
   private crecerIndices(): void {
@@ -162,6 +207,13 @@ export class Malla {
      * o guías, donde no hay fibra que estriar.
      */
     fibra = 0,
+    /**
+     * Coordenadas de textura. Van las últimas y en cero por defecto por lo mismo que
+     * `fibra`: la carne, el hueso y las guías no llevan imagen, y son casi todos los
+     * llamadores.
+     */
+    u = 0,
+    v = 0,
   ): void {
     if (this.nv >= this.bufHueso.length) this.crecerVertices()
     const i = this.nv * 3
@@ -176,6 +228,8 @@ export class Malla {
     this.bufCol[i + 2] = c[2]
     this.bufHueso[this.nv] = h
     this.bufFibra[this.nv] = fibra
+    this.bufUv[this.nv * 2] = u
+    this.bufUv[this.nv * 2 + 1] = v
     this.nv++
   }
 
@@ -206,6 +260,7 @@ export class Malla {
       color: this.color,
       hueso: this.hueso,
       fibra: this.fibra,
+      uv: this.uv,
       indice: this.indice,
     }
   }
@@ -641,18 +696,26 @@ export function hornear(origen: Malla, matrices: Mat4[], destino?: Malla): Malla
   const d = destino ?? new Malla(Math.max(2048, origen.vertices))
   d.reiniciar()
   d.alfa = origen.alfa
+  d.textura = origen.textura
+  d.horneada = origen.horneada
   const pos = origen.posicion
   const nrm = origen.normal
   const col = origen.color
   const hueso = origen.hueso
   const fibra = origen.fibra
+  const uv = origen.uv
   const n = origen.vertices
   for (let v = 0; v < n; v++) {
     const m = matrices[hueso[v]] ?? matrices[0]
     const i = v * 3
     const p = M4.transformarPunto(m, [pos[i], pos[i + 1], pos[i + 2]])
     const q = M4.transformarDireccion(m, [nrm[i], nrm[i + 1], nrm[i + 2]])
-    d.verticeSuelto(p[0], p[1], p[2], q[0], q[1], q[2], [col[i], col[i + 1], col[i + 2]], 0, fibra[v])
+    d.verticeSuelto(
+      p[0], p[1], p[2], q[0], q[1], q[2],
+      [col[i], col[i + 1], col[i + 2]], 0, fibra[v],
+      // Las coordenadas de textura no se transforman: viven en la imagen, no en el mundo.
+      uv[v * 2], uv[v * 2 + 1],
+    )
   }
   const idx = origen.indice
   for (let k = 0; k + 2 < idx.length; k += 3) d.triangulo(idx[k], idx[k + 1], idx[k + 2])

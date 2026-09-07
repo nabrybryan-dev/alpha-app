@@ -149,7 +149,7 @@ revoke execute on function public.tmp_campos_de_frase(text) from public;
 
 -- ── 2 · El clonador ────────────────────────────────────────────────────────
 -- `p_ajustes` es un objeto
---   {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, carga, unidad, nota}}.
+--   {PREFIJO_DE_EJERCICIO -> {sets, rir, reps, carga, unidad, nota, cues}}.
 -- Gana la clave más larga que haga prefijo, para poder afinar un ejercicio
 -- concreto sin romper la regla general.
 --
@@ -165,6 +165,20 @@ revoke execute on function public.tmp_campos_de_frase(text) from public;
 -- que el asesorado abriría la serie con los kilos de la semana pasada mientras
 -- lee los de esta. Se borran, y el ejercicio queda con la frase como única
 -- verdad hasta que `scripts/rellenar-carga.mjs` vuelva a poblarlos en seco.
+--
+-- POR QUÉ `cues` SE HEREDA Y UNA `nota` NUEVA NO LO BORRA
+-- El contrato dice que ahí va «la EXCEPCIÓN (parciales, medio rango), no la
+-- norma», y si eso fuera cierto una prescripción nueva tendría que invalidarlo,
+-- igual que invalida `cargaKg`. Pero se midió: el 2026-09-05, en producción,
+-- **465 de 465 ejercicios activos tienen `cues` y solo 2 parecen una excepción**.
+-- En la práctica es la nota técnica DEL EJERCICIO, no de la prescripción, y
+-- borrar 465 notas útiles para hacer cumplir una cláusula que nadie sigue sería
+-- un arreglo peor que el problema. Se hereda, y ahora además se puede cambiar.
+--
+-- El riesgo que queda es real y está acotado a esos 2: un `cues` que describe la
+-- excepción de la semana pasada sobrevive a una prescripción nueva. Lo lista
+-- `supabase/comprobar-cues.sql`. La otra salida —alinear contrato y realidad—
+-- es decisión del coach, no de este archivo.
 --
 -- Y un ejercicio ajustado PIERDE `seriesPrescritas`: esa ondulación se calculó
 -- sobre la prescripción vieja, y es lo primero que mira el stepper. Los
@@ -241,6 +255,13 @@ create or replace function public.tmp_nuevo_micro(
                        || case when aj.v ? 'carga'  then jsonb_build_object('cargaKg', (aj.v->>'carga')::numeric) else '{}'::jsonb end
                        || case when aj.v ? 'unidad' then jsonb_build_object('unidadCarga', aj.v->>'unidad') else '{}'::jsonb end
                        || case when aj.v ? 'nota'   then jsonb_build_object('prescripcion', aj.v->>'nota') else '{}'::jsonb end
+                       -- `cues` ES UNA LLAVE MÁS desde el 2026-09-05, y hasta ese
+                       -- día no lo era: el consejo técnico se heredaba y NO había
+                       -- forma de cambiarlo. En un clonador eso es peor que
+                       -- perderlo, porque no se nota — misma familia que el
+                       -- `escenarios` heredado. Lo avisaba el comando del ④ desde
+                       -- agosto y nadie tenía dónde ponerlo.
+                       || case when aj.v ? 'cues'   then jsonb_build_object('cues', aj.v->>'cues') else '{}'::jsonb end
                        -- LAS ESCALERAS DEL BUCLE DEL DÍA, traducidas al pasar.
                        --
                        -- El ③ las escribe en el vocabulario del contrato

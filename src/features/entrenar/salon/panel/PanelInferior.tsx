@@ -1,3 +1,5 @@
+import { semanaEsAdelantada } from '../../../../domain/rutaEntrenamiento'
+import { hoyIso } from '../../../../data/dbInstance'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   resumenSemana,
@@ -22,6 +24,7 @@ import { RequisitosNivel } from '../../ruta/RequisitosNivel'
 import { NotasDeLaSemana } from '../../NotasDeLaSemana'
 import { Recuadro, SinDatos } from './recuadros/Recuadro'
 import { RecuadroMicrociclo } from './recuadros/RecuadroMicrociclo'
+import { RecuadroCreditos } from './recuadros/RecuadroCreditos'
 import { RecuadroEncoder } from './recuadros/RecuadroEncoder'
 import { RecuadroEjercicio } from './recuadros/RecuadroEjercicio'
 import { RecuadroAntes } from './recuadros/RecuadroAntes'
@@ -243,7 +246,7 @@ export function PanelInferior(props: PanelInferiorProps) {
   }, [avance, onAvance])
 
   return (
-    <div
+    <div data-no-orbita
       data-hueco="panelInferior"
       className="pointer-events-none absolute inset-x-0 flex flex-col justify-end"
       // El borde de abajo del panel es el borde de arriba de la barra de navegación, no
@@ -416,7 +419,14 @@ export function PanelInferior(props: PanelInferiorProps) {
             <Recuadro
               clave="calendario"
               titulo="La semana"
-              pie={`Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`}
+              // «Próxima semana» cuando el microciclo aún no ha arrancado (#209, de main): la
+              // rejilla es la de la semana que VIENE y ningún día está marcado como hoy; sin
+              // decirlo, la persona busca el día en el que está y no lo encuentra.
+              pie={
+                semanaEsAdelantada(microciclo, hoyIso())
+                  ? `Próxima semana · Microciclo ${microciclo.numero}`
+                  : `Semana ${ruta.bloque.semana} · Microciclo ${microciclo.numero}`
+              }
               cifra={
                 <span className="text-silver-400">
                   {sesionesDeLaSemana.completadas}/{sesionesDeLaSemana.programadas}
@@ -443,6 +453,14 @@ export function PanelInferior(props: PanelInferiorProps) {
 
             <Recuadro clave="encoder" titulo="Encoder" pie="La tanda entera, los criterios y el CSV.">
               <RecuadroEncoder />
+            </Recuadro>
+
+            <Recuadro
+              clave="creditos"
+              titulo="El gimnasio"
+              pie="El equipamiento es de otros y su licencia obliga a nombrarlos."
+            >
+              <RecuadroCreditos />
             </Recuadro>
 
           </div>

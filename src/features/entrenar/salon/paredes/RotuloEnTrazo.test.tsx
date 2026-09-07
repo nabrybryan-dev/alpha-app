@@ -46,7 +46,9 @@ describe('cuerpoDelRotulo', () => {
 
   it('no baja del suelo de legibilidad ni pasa del techo del muro', () => {
     // El nombre más largo imaginable no puede dejar la letra en una mancha…
-    expect(cuerpoDelRotulo(['ELEVACIONES LATERALES CON MANCUERNA SENTADO'])).toBeGreaterThanOrEqual(1.37)
+    // El suelo baja de 1,37 a 1,0 el 2026-09-07: antes que una tercera línea por CSS, una
+    // letra menor (captura de Bryan con «CURL FEMORAL TUMBADO (…)» en tres líneas).
+    expect(cuerpoDelRotulo(['ELEVACIONES LATERALES CON MANCUERNA SENTADO'])).toBeGreaterThanOrEqual(1.0)
     // …ni el más corto comerse el cuadro entero.
     expect(cuerpoDelRotulo(['A'])).toBeLessThanOrEqual(3.77)
   })

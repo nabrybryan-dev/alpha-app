@@ -29,8 +29,10 @@ import {
  * permanentes alrededor del cuerpo serían otra vez el dashboard con un muñeco dentro, que
  * es de lo que este salón vino a salir.
  *
- * Al tocar una, esa se queda fija —`animation-play-state: paused`— y las otras tres se
- * atenúan: es la única forma de volver a mirar un dato sin esperar al siguiente ciclo.
+ * Y desde el 2026-09-06 VUELVE: ciclo de 5 s —tres quieta, dos fuera— que no termina
+ * (Bryan: «se reflejan al principio y luego se pierden»). Al tocar una, esa se queda FIJA
+ * (`data-fija`: sin animación y posada, no en pausa, que la dejaría invisible si el ciclo
+ * iba por «nada») y las otras tres se atenúan; tocarla otra vez la suelta.
  */
 
 /** A cuántos píxeles del eje del cuerpo se plantan los postes. */
@@ -129,10 +131,8 @@ export function EstacionesDelSujeto({
               <span
                 className="estacion-cifra"
                 data-anima
-                style={{
-                  animationDelay: `${80 + i * 100}ms`,
-                  animationPlayState: enfocada ? 'paused' : 'running',
-                }}
+                data-fija={enfocada ? '' : undefined}
+                style={{ animationDelay: `${80 + i * 100}ms` }}
               >
                 <span
                   className="muro-rotulo block text-[10.5px]"

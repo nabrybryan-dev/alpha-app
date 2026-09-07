@@ -1,4 +1,6 @@
+import { useSyncExternalStore } from 'react'
 import { LIENZO, trazarSalon } from './trazadoDelSalon'
+import { salaDeBlenderCargada, suscribirseALaSalaDeBlender } from '../../visor/piezas'
 
 /**
  * EL SALÓN, A PANTALLA COMPLETA: sus paredes y su luz, alrededor del sujeto.
@@ -81,7 +83,34 @@ export interface ArquitecturaSalaProps {
 }
 
 export function ArquitecturaSala({ variante = 'conSujeto' }: ArquitecturaSalaProps) {
-  const conHabitacion = variante === 'conSujeto'
+  // CON LA SALA DEL GIMNASIO EN EL LIENZO, ESTA NO SE DIBUJA.
+  //
+  // Lo de aquí es una habitación en SVG —cuatro planos en perspectiva de un punto, su
+  // retícula y una viñeta que hunde los bordes a negro—, y existía porque la sala del
+  // lienzo no se leía en un teléfono. Desde que el lienzo trae el gimnasio horneado en
+  // Blender, esto es una SEGUNDA sala encima: otra perspectiva, otra luz y un claroscuro
+  // que apaga el suyo. Es lo que Bryan veía el 2026-09-05 como «no se ve igual que el
+  // render», y apagándola en Chrome el gimnasio aparecía.
+  //
+  // El contenedor se queda, vacío, porque lleva la marca del testigo: quitarlo dejaría al
+  // acta sin dónde medir la sala y daría un falso rojo.
+  const conSalaDeBlender = useSyncExternalStore(
+    suscribirseALaSalaDeBlender,
+    salaDeBlenderCargada,
+    () => false,
+  )
+  const conHabitacion = variante === 'conSujeto' && !conSalaDeBlender
+  if (conSalaDeBlender) {
+    return (
+      <div
+        data-testigo={variante === 'conSujeto' ? 'sala' : undefined}
+        data-sala="salon"
+        data-sala-en="lienzo"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+      />
+    )
+  }
   return (
     <div
       // La marca del testigo va con la habitación: en la variante sin sujeto la sala es

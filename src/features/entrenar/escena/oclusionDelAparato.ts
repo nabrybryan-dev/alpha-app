@@ -4,7 +4,8 @@ import { puntoDeHueso } from '../../../domain/patrones/esqueleto'
 import { Malla } from '../../../domain/patrones/malla'
 import type { Vec3 } from '../../../domain/patrones/algebra'
 import { camaraDelSalon, proyectar } from './encuadreDelSalon'
-import { construirImplementos, type EscenaDeImplementos } from './implementos'
+import { type EscenaDeImplementos, type ImplementoEnEscena } from './implementos'
+import { construirImplementos } from './dibujarImplementos'
 
 /**
  * EL APARATO QUE TAPA A LA PERSONA SE VUELVE TRANSLÚCIDO.
@@ -68,9 +69,26 @@ export function partirImplementos(escena: EscenaDeImplementos): {
   hierro: EscenaDeImplementos
   aparato: EscenaDeImplementos
 } {
+  // EL BANCO VUELVE AL LADO OPACO el 2026-09-06, y esto se decidió con una medida que
+  // contradice a la que estaba escrita aquí.
+  //
+  // Decía que «un banco bajo un sujeto tumbado, visto de lado, le tapa medio tronco». Es
+  // falso: medido pieza a pieza sobre el catálogo entero, **un banco no pasa del 2 %** —la
+  // búlgara 2, el press inclinado 2, el banco romano 2 y todos los demás 0—, porque un
+  // mueble que sostiene queda DEBAJO del cuerpo y no entre el cuerpo y la cámara. No es que
+  // no llegue al umbral: es que no tapa.
+  //
+  // Y sí hacía daño estando en el grupo del aparato, porque la decisión se toma para el
+  // GRUPO ENTERO: en el curl femoral la máquina tapa el 36 % y arrastraba a la camilla con
+  // ella, así que la camilla salía translúcida y el sujeto volvía a parecer que flotaba —que
+  // es exactamente el defecto que la camilla venía a arreglar—. Lo vio asus-f4 en la captura
+  // que mandó Bryan.
+  //
+  // Un mueble translúcido no dice «hay algo debajo»: dice que no hay nada.
+  const esAparato = (p: ImplementoEnEscena) => p.pieza === 'maquina'
   return {
-    hierro: { ...escena, piezas: escena.piezas.filter((p) => p.pieza !== 'maquina') },
-    aparato: { ...escena, piezas: escena.piezas.filter((p) => p.pieza === 'maquina') },
+    hierro: { ...escena, piezas: escena.piezas.filter((p) => !esAparato(p)) },
+    aparato: { ...escena, piezas: escena.piezas.filter(esAparato) },
   }
 }
 

@@ -7,7 +7,16 @@
 
 import { grados, limitar, suavizar, V, type Vec3 } from './algebra'
 import type { Patron } from './catalogo'
-import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type EsqueletoResuelto, type Lado, type Pose } from './esqueleto'
+import {
+  ESQUELETO,
+  INDICE_HUESO,
+  puntoDeHueso,
+  resolverConApoyo,
+  type DefinicionHueso,
+  type EsqueletoResuelto,
+  type Lado,
+  type Pose,
+} from './esqueleto'
 import { flecha, Malla, tuboDiscontinuo, type Color } from './malla'
 import { activacionDe, PORCIONES, trazadoDeFasciculo } from './musculos'
 import { poseAnimada } from './movimiento'
@@ -193,6 +202,8 @@ export function esqueletoEnFase(
   reloj = 0,
   /** Canales medidos que mandan sobre los del patrón: el fantasma articular. */
   medida?: Pose,
+  /** El juego de huesos del sujeto; sin él, el de siempre. Ver `juegoDeHuesos.ts`. */
+  huesos?: readonly DefinicionHueso[],
 ): EsqueletoResuelto {
   const { pose, desplazamiento, giroRaiz } = poseAnimada(patron, fase, sentido, reloj)
   return resolverConApoyo(
@@ -202,6 +213,7 @@ export function esqueletoEnFase(
     patron.apoyo,
     patron.alturaApoyo,
     piesDe(patron),
+    huesos,
   )
 }
 
@@ -243,7 +255,7 @@ export const CAMPO_VISUAL = grados(26)
  */
 const HOLGURA_DEL_FOCO = 1.12
 
-export function encuadrar(patron: Patron): Encuadre {
+export function encuadrar(patron: Patron, huesos?: readonly DefinicionHueso[]): Encuadre {
   const cuerpo: Vec3[] = []
   const activo: Vec3[] = []
   // Se encuadra la PORCIÓN que trabaja, no el músculo entero: en un curl manda
@@ -256,7 +268,7 @@ export function encuadrar(patron: Patron): Encuadre {
   )
 
   for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
-    const esq = esqueletoEnFase(patron, fase)
+    const esq = esqueletoEnFase(patron, fase, 1, 0, undefined, huesos)
     for (const h of ESQUELETO) {
       for (const t of [0, 0.5, 1]) cuerpo.push(puntoDeHueso(esq, h.nombre, t))
     }
@@ -297,7 +309,7 @@ export function encuadrar(patron: Patron): Encuadre {
     const padre = ESQUELETO.find((h) => h.nombre === patron.foco)?.padre
     const enFoco: Vec3[] = []
     for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
-      const esq = esqueletoEnFase(patron, fase)
+      const esq = esqueletoEnFase(patron, fase, 1, 0, undefined, huesos)
       for (const hueso of [patron.foco, padre]) {
         if (hueso === undefined || hueso === null) continue
         for (const t of [0, 0.5, 1]) enFoco.push(puntoDeHueso(esq, hueso, t))
@@ -328,14 +340,15 @@ export function encuadrar(patron: Patron): Encuadre {
  * calcula una vez por patrón. Recalcularla en cada cuadro costaba cincuenta y
  * dos resoluciones del esqueleto por cuadro y dejaba la página sin responder.
  */
-export function trazaDelPatron(patron: Patron): Vec3[] | null {
+export function trazaDelPatron(patron: Patron, huesos?: readonly DefinicionHueso[]): Vec3[] | null {
   if (!patron.seguimiento) return null
   const [hueso, t, desvio] = patron.seguimiento
   const nombre = INDICE_HUESO[hueso + 'D'] ? hueso + 'D' : hueso
   const N = 26
   const puntos: Vec3[] = []
   for (let i = 0; i < N; i++) {
-    puntos.push(puntoDeHueso(esqueletoEnFase(patron, i / (N - 1)), nombre, t, desvio))
+    const esq = esqueletoEnFase(patron, i / (N - 1), 1, 0, undefined, huesos)
+    puntos.push(puntoDeHueso(esq, nombre, t, desvio))
   }
   return puntos
 }

@@ -36,6 +36,21 @@
 export type DuenoDelGesto = 'sin-decidir' | 'barrido' | 'no-es-barrido'
 
 /**
+ * QUÉ PUEDE HACER UN DEDO CON LA CÁMARA según dónde nace (2026-09-06).
+ *
+ * - `todo`: fuera del cuerpo, el dedo es de la cámara en las dos direcciones.
+ * - `solo-azimut`: sobre el cuerpo, en horizontal gira la sala y en vertical atraviesa el
+ *   cuerpo (eje W), con el mismo bloqueo de dirección que `duenoDelGesto`.
+ * - `nada`: sobre un mando que se arrastra (el joystick, el tambor, el cajón, el panel).
+ *
+ * Es el reparto que pidió Bryan: «hacer el giro de 360 grados y desplazarme por todo el
+ * salón» con un dedo, sin que cambiar de ejercicio se dispare al girar. Cambiar de ejercicio
+ * vive ahora en la tira de puntos (`PuntosDeEjercicio`): se toca un punto o se desliza sobre
+ * ella, y usa las mismas dos funciones de abajo.
+ */
+export type ModoDeArrastre = 'todo' | 'solo-azimut' | 'nada'
+
+/**
  * Cuánto dedo hace falta para decidir de quién es el gesto, en píxeles CSS.
  *
  * Doce, que es el orden en que lo resuelven los sistemas operativos táctiles antes de

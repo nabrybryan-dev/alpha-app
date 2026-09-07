@@ -92,7 +92,7 @@ export function Joystick({ onSoltar, onApuntar, encendido = false }: JoystickPro
   }
 
   return (
-    <button
+    <button data-no-orbita
       ref={disco}
       type="button"
       // EL NOMBRE VA EN LA ETIQUETA, NO EN LA PANTALLA. Quien navega con lector necesita

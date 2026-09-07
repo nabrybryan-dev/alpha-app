@@ -1,3 +1,4 @@
+import { estacionesDeLaSerie } from '../estaciones/estacionesDeLaSerie'
 import { useEffect, useState } from 'react'
 import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
@@ -166,6 +167,23 @@ export function TablonDelMuro({
       </div>
 
       <hr className="muro-junta my-[0.45em]" aria-hidden="true" />
+      {/* LA PRESCRIPCIÓN, PEGADA AL MURO Y GRANDE. Bryan, 2026-09-06: «la parte donde estás
+          prescribiendo la rutina, que se supone que era 3D, tiene que ir pegada en la pared y
+          tiene que ser muy grande, como en el diseño». Lo «3D» eran las cifras de siete
+          segmentos de la sala, que desde el ángulo de entrada se veían de canto —dos
+          chevrones rosas—, y las cuatro estaciones, que se retiran. Aquí van las cuatro
+          cifras mirando a cámara, en la materia del muro, y no se van. Son las mismas que
+          las estaciones (`estacionesDeLaSerie`): un solo sitio decide qué dice cada una. */}
+      {ejercicio && (
+        <div data-prescripcion="muro" className="muro-prescripcion">
+          {estacionesDeLaSerie(ejercicio).map((e) => (
+            <div key={e.clave} data-cifra={e.clave} className="min-w-0 text-center">
+              <span className="muro-rotulo muro-prescripcion-rotulo block">{e.rotulo}</span>
+              <span className="muro-prescripcion-cifra block">{e.cifra}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* LOS TRES QUE SE FUERON, montados y sin ver. Una malla no la lee un lector de
           pantalla, y un cartel que se retira a los 3,7 s tampoco está siempre: estos nodos

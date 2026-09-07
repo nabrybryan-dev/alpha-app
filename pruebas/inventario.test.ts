@@ -132,7 +132,7 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
   })
 
   /**
-   * Los catorce recuadros del panel, contados — y de dónde sale cada uno.
+   * Los recuadros del panel, contados — y de dónde sale cada uno.
    *
    * La cuenta sola nunca habría notado los cambios, y ya van dos: salieron `competencias`
    * y `escala-alfa` camino de Progreso, entraron los cuadros verdes del encargo —`antes`,
@@ -145,8 +145,14 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
    * y el estante del material no están en la lista amarilla, y en la pared ocupaban juntos
    * el 98 % del ancho a la altura de las piernas del sujeto — tapando los implementos 3D
    * hasta dejarlos en 36 píxeles.
+   *
+   * Y el 2026-09-06 entró el decimosexto, `creditos`, que no viene ni del inventario ni del
+   * encargo: lo pide la LICENCIA de los modelos 3D del gimnasio, que son CC Attribution y
+   * obligan a nombrar al autor de forma visible. Va en su propio grupo justamente por eso —
+   * quien un día limpie el panel tiene que ver que quitar este no es una decisión de
+   * diseño—.
    */
-  it('el panel monta quince recuadros: los nueve del inventario más los seis del salón', () => {
+  it('el panel monta dieciséis recuadros: nueve del inventario, seis del salón y uno de licencia', () => {
     const claves = [...PANEL_INFERIOR.matchAll(/clave="([a-z-]+)"/g)].map((m) => m[1])
     expect(new Set(claves).size).toBe(claves.length) // ninguno repetido
 
@@ -171,7 +177,10 @@ describe('inventario de /entrenar · ningún bloque se quedó por el camino', ()
     // que estás a punto de hacer. Se lee al bajar a mirar, no mientras se levanta.
     const DEL_SALON = ['ejercicio', 'antes', 'patron', 'encuadre', 'material', 'ritmo']
     for (const clave of DEL_SALON) expect(claves).toContain(clave)
-    expect(claves).toHaveLength(alPanel.length + DEL_SALON.length)
+    // Y el que no se puede quitar sin dejar el gimnasio fuera de licencia.
+    const POR_LICENCIA = ['creditos']
+    for (const clave of POR_LICENCIA) expect(claves).toContain(clave)
+    expect(claves).toHaveLength(alPanel.length + DEL_SALON.length + POR_LICENCIA.length)
   })
 
   /**

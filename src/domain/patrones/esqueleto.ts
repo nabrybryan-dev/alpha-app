@@ -1,7 +1,9 @@
 /**
  * Esqueleto articulado del visor de patrones.
  *
- * Proporciones de un sujeto de ~1,70 m con el suelo en Y=0. El sujeto mira
+ * Proporciones de un sujeto de ~1,70 m con el suelo en Y=0. Desde el 2026-09-06 las
+ * proporciones por defecto son las de un varón real (`juegoDeHuesos.ts`); la definición
+ * original vive en `huesosNeutros.ts`. El sujeto mira
  * hacia +Z y su lado DERECHO anatómico cae en −X: es lo que ve el asesorado si
  * se mira al espejo, que es la referencia con la que corrige su técnica.
  *
@@ -12,56 +14,34 @@
 
 import { grados, M4, V, type Mat4, type Vec3 } from './algebra'
 import type { Color } from './malla'
+import { ESQUELETO, PLANTA_NEUTRA, type DefinicionHueso } from './huesosNeutros'
+import { HUESOS_POR_DEFECTO } from './juegoDeHuesos'
+
+// Se re-exportan para que quien los importaba de aquí siga encontrándolos: el dato se
+// mudó a `huesosNeutros.ts` para romper un ciclo de imports, no para cambiar de sitio.
+export { ESQUELETO }
+export type { DefinicionHueso }
 
 export const COLOR_HUESO: Color = [0.855, 0.835, 0.783]
 export const COLOR_HUESO_OSCURO: Color = [0.7, 0.685, 0.64]
 
-export interface DefinicionHueso {
-  nombre: string
-  padre: string | null
-  /** Desplazamiento desde el origen del padre. */
-  desde: Vec3
-  largo: number
-  reposo: Vec3
-}
-
-const d = grados
-
-export const ESQUELETO: DefinicionHueso[] = [
-  { nombre: 'pelvis', padre: null, desde: [0, 0.95, 0], largo: 0.1, reposo: [0, 0, 0] },
-  { nombre: 'lumbar', padre: 'pelvis', desde: [0, 0.06, -0.005], largo: 0.17, reposo: [0, 0, 0] },
-  { nombre: 'torax', padre: 'lumbar', desde: [0, 0.17, 0], largo: 0.28, reposo: [0, 0, 0] },
-  { nombre: 'cuello', padre: 'torax', desde: [0, 0.27, -0.015], largo: 0.08, reposo: [0, 0, 0] },
-  { nombre: 'craneo', padre: 'cuello', desde: [0, 0.08, 0], largo: 0.16, reposo: [0, 0, 0] },
-
-  { nombre: 'claviculaD', padre: 'torax', desde: [-0.02, 0.245, 0.035], largo: 0.155, reposo: [0, 0, d(72)] },
-  { nombre: 'claviculaI', padre: 'torax', desde: [0.02, 0.245, 0.035], largo: 0.155, reposo: [0, 0, d(-72)] },
-  { nombre: 'escapulaD', padre: 'torax', desde: [-0.055, 0.235, -0.045], largo: 0.15, reposo: [0, 0, d(160)] },
-  { nombre: 'escapulaI', padre: 'torax', desde: [0.055, 0.235, -0.045], largo: 0.15, reposo: [0, 0, d(-160)] },
-
-  // El brazo cuelga del TÓRAX, no de la clavícula. La clavícula lleva un reposo
-  // de 72° en Z, así que el húmero heredaba un eje X casi vertical: rotar sobre
-  // él no era flexión de hombro sino rotación axial, y la pose salía torcida.
-  { nombre: 'brazoD', padre: 'torax', desde: [-0.168, 0.232, 0.008], largo: 0.31, reposo: [d(180), 0, 0] },
-  { nombre: 'brazoI', padre: 'torax', desde: [0.168, 0.232, 0.008], largo: 0.31, reposo: [d(180), 0, 0] },
-  { nombre: 'antebrazoD', padre: 'brazoD', desde: [0, 0.31, 0], largo: 0.26, reposo: [0, 0, 0] },
-  { nombre: 'antebrazoI', padre: 'brazoI', desde: [0, 0.31, 0], largo: 0.26, reposo: [0, 0, 0] },
-  { nombre: 'manoD', padre: 'antebrazoD', desde: [0, 0.26, 0], largo: 0.18, reposo: [0, 0, 0] },
-  { nombre: 'manoI', padre: 'antebrazoI', desde: [0, 0.26, 0], largo: 0.18, reposo: [0, 0, 0] },
-
-  { nombre: 'musloD', padre: 'pelvis', desde: [-0.088, 0.005, 0], largo: 0.45, reposo: [d(180), 0, 0] },
-  { nombre: 'musloI', padre: 'pelvis', desde: [0.088, 0.005, 0], largo: 0.45, reposo: [d(180), 0, 0] },
-  { nombre: 'tibiaD', padre: 'musloD', desde: [0, 0.45, 0], largo: 0.43, reposo: [0, 0, 0] },
-  { nombre: 'tibiaI', padre: 'musloI', desde: [0, 0.45, 0], largo: 0.43, reposo: [0, 0, 0] },
-  { nombre: 'pieD', padre: 'tibiaD', desde: [0, 0.43, 0], largo: 0.22, reposo: [d(-90), 0, 0] },
-  { nombre: 'pieI', padre: 'tibiaI', desde: [0, 0.43, 0], largo: 0.22, reposo: [d(-90), 0, 0] },
-]
 
 /** Índice del hueso en el array de matrices. El 0 queda para la identidad. */
 export const INDICE_HUESO: Record<string, number> = {}
 ESQUELETO.forEach((h, i) => {
   INDICE_HUESO[h.nombre] = i + 1
 })
+
+/**
+ * EL HUECO DE LA RAÍZ: la matriz que coloca al sujeto entero —desplazamiento, giro y la
+ * corrección de apoyo— sin ningún hueso encima. Es el hueco que sigue a los huesos.
+ *
+ * Existe para lo que se pega al sujeto pero no a un hueso: el atlas anatómico. Clavado al
+ * mundo (hueco 0), el atlas se quedaba en el suelo mientras el sujeto de una demostración
+ * flota 0,95 m más arriba, y de la piel solo asomaba la coronilla bajo sus pies. Colgado de
+ * la raíz va donde vaya el sujeto, también tumbado en un press de banca.
+ */
+export const INDICE_RAIZ = ESQUELETO.length + 1
 
 /** Multiplicador del eje X según el lado. La derecha del sujeto cae en −X. */
 export const LADO: Record<'D' | 'I', number> = { D: -1, I: 1 }
@@ -74,6 +54,8 @@ export interface EsqueletoResuelto {
   mundo: Record<string, Mat4>
   matrices: Mat4[]
   largo: Record<string, number>
+  /** La matriz raíz sola, para lo que sigue al sujeto entero: ver `INDICE_RAIZ`. */
+  raiz: Mat4
 }
 
 /**
@@ -170,7 +152,18 @@ export function poseAEuler(pose: Pose): Record<string, Mat4> {
  * Cinemática directa: recorre el esqueleto en orden —los padres van antes que
  * los hijos por construcción— y acumula matrices de mundo.
  */
-export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): EsqueletoResuelto {
+export function resolver(
+  pose: Pose,
+  desplazamiento: Vec3,
+  giroRaiz: Vec3,
+  /**
+   * Con qué huesos: los de siempre si no se dice. Un juego por sexo —ver
+   * `juegoDeHuesos.ts`— trae los mismos veintiún huesos, en el mismo orden y con los
+   * mismos padres, y solo cambia `desde` y `largo`; por eso `INDICE_HUESO` vale para
+   * todos y las matrices salen en el mismo hueco.
+   */
+  huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO,
+): EsqueletoResuelto {
   const eul = poseAEuler(pose)
   const mundo: Record<string, Mat4> = {}
   const matrices: Mat4[] = [M4.identidad()]
@@ -180,7 +173,7 @@ export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): Esqu
     M4.trasladar(desplazamiento[0], desplazamiento[1], desplazamiento[2]),
     M4.euler(grados(giroRaiz[0]), grados(giroRaiz[1]), grados(giroRaiz[2])),
   )
-  for (const h of ESQUELETO) {
+  for (const h of huesos) {
     const e = eul[h.nombre] ?? M4.identidad()
     const local = M4.multiplicar(
       M4.trasladar(h.desde[0], h.desde[1], h.desde[2]),
@@ -192,7 +185,8 @@ export function resolver(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3): Esqu
   return {
     mundo,
     matrices,
-    largo: Object.fromEntries(ESQUELETO.map((h) => [h.nombre, h.largo])),
+    largo: Object.fromEntries(huesos.map((h) => [h.nombre, h.largo])),
+    raiz,
   }
 }
 
@@ -218,8 +212,14 @@ export function puntoDeHueso(
  * pies clavados en el suelo o flotando. Se mide la inclinación real del pie y
  * se corrige el tobillo, que es hoja del árbol y no arrastra a nadie.
  */
-export function apoyarPies(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3, lados: Lado[]): Pose {
-  const esq = resolver(pose, desplazamiento, giroRaiz)
+export function apoyarPies(
+  pose: Pose,
+  desplazamiento: Vec3,
+  giroRaiz: Vec3,
+  lados: Lado[],
+  huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO,
+): Pose {
+  const esq = resolver(pose, desplazamiento, giroRaiz, huesos)
   const salida: Pose = { ...pose }
   for (const s of lados) {
     const m = esq.mundo['pie' + s]
@@ -251,7 +251,12 @@ export function apoyarPies(pose: Pose, desplazamiento: Vec3, giroRaiz: Vec3, lad
  * veía «casi bien», que es como se ven los errores de signo. Lo cazó `escena/carta.test.ts`
  * contrastando el esqueleto resuelto con las medidas que él mismo declara.
  */
-export const ALTURA_DEL_TOBILLO = 0.075
+export const ALTURA_DEL_TOBILLO = PLANTA_NEUTRA
+
+/** Del tobillo a la planta con ESTOS huesos: la del pie del juego, o la neutra. */
+export function plantaDe(huesos: readonly DefinicionHueso[]): number {
+  return huesos.find((h) => h.nombre === 'pieD')?.planta ?? PLANTA_NEUTRA
+}
 
 export type Apoyo = 'suelo' | 'manos' | 'ninguno'
 
@@ -274,19 +279,22 @@ export function resolverConApoyo(
   apoyo: Apoyo,
   altura: number | undefined,
   pies: Lado[],
+  huesos: readonly DefinicionHueso[] = HUESOS_POR_DEFECTO,
 ): EsqueletoResuelto {
-  const conPies = pies.length ? apoyarPies(pose, desplazamiento, giroRaiz, pies) : pose
-  const esq = resolver(conPies, desplazamiento, giroRaiz)
-  if (apoyo === 'ninguno') return esq
-  const huesos = SONDAS[apoyo]
-  if (!huesos) return esq
+  const conPies = pies.length ? apoyarPies(pose, desplazamiento, giroRaiz, pies, huesos) : pose
+  const esq = resolver(conPies, desplazamiento, giroRaiz, huesos)
+  if (apoyo === 'ninguno') {
+    return sobreElSuelo(esq, conPies, desplazamiento, giroRaiz, huesos, altura ?? 0)
+  }
+  const sondas = SONDAS[apoyo]
+  if (!sondas) return esq
 
   let y = apoyo === 'manos' ? -Infinity : Infinity
-  for (const h of huesos) {
+  for (const h of sondas) {
     // Se muestrea a lo largo del hueso porque en flexión plantar el punto más
     // bajo del pie deja de ser el talón y pasa a ser la cabeza del metatarso.
     for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-      const p = puntoDeHueso(esq, h, t, [0, 0, h.startsWith('pie') ? ALTURA_DEL_TOBILLO : 0])
+      const p = puntoDeHueso(esq, h, t, [0, 0, h.startsWith('pie') ? plantaDe(huesos) : 0])
       y = apoyo === 'manos' ? Math.max(y, p[1]) : Math.min(y, p[1])
     }
   }
@@ -303,7 +311,7 @@ export function resolverConApoyo(
   let cx = 0
   let cz = 0
   let n = 0
-  for (const h of huesos) {
+  for (const h of sondas) {
     for (const t of [0, 1]) {
       const p = puntoDeHueso(esq, h, t)
       cx += p[0]
@@ -317,6 +325,64 @@ export function resolverConApoyo(
     conPies,
     [desplazamiento[0] - cx, desplazamiento[1] + (objetivo - y), desplazamiento[2] - cz],
     giroRaiz,
+    huesos,
+  )
+}
+
+/**
+ * NADA POR DEBAJO DEL SUELO, cuando no hay ningún apoyo que anclar.
+ *
+ * `apoyo: 'ninguno'` —sentado, tumbado, en una máquina— no corregía la altura: la ponía a
+ * mano `raizInicio`, y el sujeto quedaba donde ese número lo dejara. Medido el 2026-09-06
+ * sobre el catálogo entero con `scripts/medir-resistencia.mjs`, **nueve patrones tenían los
+ * pies entre 2,5 y 6 cm bajo la goma del suelo**: los dos de muñeca, la rotación de cadera,
+ * la extensión de rodilla, el jalón, la plancha, el press inclinado, el crunch y la
+ * movilidad torácica. No se veía como un fallo de altura sino como un suelo mal dibujado.
+ *
+ * Solo SUBE, nunca baja, y esa asimetría es deliberada:
+ *
+ * - Subir arregla un pie hundido y no rompe nada, porque los muebles de estos patrones se
+ *   construyen CONTRA EL CUERPO (`banco.ts`): al subir el sujeto, su banco sube con él.
+ * - Bajar sería otra cosa. Alguien tumbado con los pies a 15 cm del suelo no está mal
+ *   dibujado: está en un banco alto. Bajarlo hasta tocar el suelo metería el banco dentro.
+ *
+ * Y no se aplica con `suelo` ni con `manos` a propósito: ahí SÍ hay un punto anclado, y
+ * subir el cuerpo entero para salvar una rodilla despegaría el pie que estaba plantado.
+ * Cuando algo se hunde en un patrón de pie, lo que está mal es la pose —fue el caso de la
+ * búlgara, cuya rodilla trasera llegaba a 7,5 cm bajo el suelo— y se arregla en la ficha.
+ */
+function sobreElSuelo(
+  esq: EsqueletoResuelto,
+  pose: Pose,
+  desplazamiento: Vec3,
+  giroRaiz: Vec3,
+  huesos: readonly DefinicionHueso[],
+  objetivo: number,
+): EsqueletoResuelto {
+  const planta = plantaDe(huesos)
+  let masBajo = Infinity
+  for (const hueso of huesos) {
+    const esPie = hueso.nombre.startsWith('pie')
+    for (const t of [0, 0.5, 1]) {
+      masBajo = Math.min(masBajo, puntoDeHueso(esq, hueso.nombre, t)[1])
+      // EL PIE SE MIDE DOS VECES, y esto no es redundancia. La planta está 7,5 cm por el
+      // +Z LOCAL del hueso, que apunta hacia abajo solo mientras el pie esté horizontal;
+      // en flexión plantar —una plancha de puntillas, una elevación de talones— apunta
+      // hacia atrás, y entonces el punto de contacto ya no es la planta sino la punta del
+      // propio hueso. Se toma el menor de los dos y se acabó el caso especial.
+      if (esPie) {
+        masBajo = Math.min(masBajo, puntoDeHueso(esq, hueso.nombre, t, [0, 0, planta])[1])
+      }
+    }
+  }
+  // Medio milímetro de margen: por debajo de eso es ruido de coma flotante, y volver a
+  // resolver el esqueleto entero por medio milímetro cuesta más de lo que arregla.
+  if (!(masBajo < objetivo - 0.0005)) return esq
+  return resolver(
+    pose,
+    [desplazamiento[0], desplazamiento[1] + (objetivo - masBajo), desplazamiento[2]],
+    giroRaiz,
+    huesos,
   )
 }
 

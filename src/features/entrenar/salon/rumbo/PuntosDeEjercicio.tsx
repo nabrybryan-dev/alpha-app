@@ -1,5 +1,7 @@
 import { ejercicioCompleto } from '../../../../domain/cumplimiento'
 import type { Sesion } from '../../../../domain/types'
+import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { ejerciciosQueAvanza, ejercicioTrasBarrido } from '../../capas/gestoHorizontal'
 
 /**
  * POR DÓNDE VAS: un punto por ejercicio, y nada más.
@@ -51,15 +53,38 @@ export interface PuntosDeEjercicioProps {
 
 export function PuntosDeEjercicio({ sesion, ejercicioId, alIr }: PuntosDeEjercicioProps) {
   const ejercicios = sesion?.ejercicios ?? []
+  /**
+   * DESLIZAR SOBRE LA TIRA cambia de ejercicio (2026-09-06). Antes se deslizaba sobre el
+   * cuerpo, y eso le quitaba media pantalla al giro de la cámara; aquí el gesto tiene un
+   * sitio propio y visible, el mismo que ya se toca. Las reglas son las de siempre
+   * (`gestoHorizontal.ts`): un ejercicio por barrido, con vuelta al principio.
+   */
+  const origen = useRef<number | null>(null)
+  const alBajar = (e: ReactPointerEvent<HTMLDivElement>) => {
+    origen.current = e.clientX
+  }
+  const alSoltar = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const desde = origen.current
+    origen.current = null
+    if (desde === null || !alIr) return
+    const avance = ejerciciosQueAvanza(e.clientX - desde)
+    if (avance === 0) return
+    const actual = Math.max(0, ejercicios.findIndex((x) => x.id === ejercicioId))
+    alIr(ejercicioTrasBarrido(actual, avance, ejercicios.length))
+  }
   // Con uno solo no hay recorrido que enseñar: un punto suelto no orienta, decora.
   if (ejercicios.length < 2) return null
-
   return (
     <div
       data-puntos="ejercicios"
+      data-no-orbita
       role="group"
       aria-label="Por dónde vas en la sesión"
-      className="flex items-center justify-center gap-1.5"
+      className="pointer-events-auto flex items-center justify-center gap-1.5"
+      style={{ touchAction: 'none' }}
+      onPointerDown={alIr ? alBajar : undefined}
+      onPointerUp={alIr ? alSoltar : undefined}
+      onPointerCancel={() => (origen.current = null)}
     >
       {ejercicios.map((e, i) => {
         const aqui = e.id === ejercicioId
