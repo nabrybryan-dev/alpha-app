@@ -255,7 +255,15 @@ export interface EscenarioRojo {
 }
 
 export interface EscenariosDelDia {
-  verde: EscenarioVerde
+  /**
+   * OPCIONAL desde el 2026-09-07, porque los datos ya lo eran. Ese día se midió que los
+   * 477 ejercicios con escenarios de los microciclos activos traían SOLO el camino rojo
+   * —el freno viaja siempre, la subida solo cuando el coach la autoriza—, y el tipo seguía
+   * diciendo que `verde` era obligatorio: el muro de /entrenar lo leía sin comprobar y la
+   * pestaña entera se cayó para toda la cartera. Un tipo que promete más que los datos no
+   * protege nada; hace justo lo contrario.
+   */
+  verde?: EscenarioVerde
   rojo: EscenarioRojo
 }
 

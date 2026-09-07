@@ -453,12 +453,18 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
     },
     {
       titulo: 'Si el día viene bueno',
+      // EL CAMINO VERDE PUEDE NO ESTAR ESCRITO, y es lo normal: el freno viaja siempre y la
+      // subida solo cuando el coach la autoriza. Leerlo sin comprobar tiró la pestaña
+      // entera el 2026-09-07 para toda la cartera activa. Sin verde se dice que no hay
+      // nada autorizado, que es la verdad, en vez de inventar un techo.
       texto: ejercicio.escenarios
-        ? `Techo ${cifra(ejercicio.escenarios.verde.techoCargaKg)} kg` +
-          (ejercicio.escenarios.verde.deltaCargaKg !== undefined
-            ? `, sube hasta ${cifra(ejercicio.escenarios.verde.deltaCargaKg)} kg`
-            : ', sin subir carga') +
-          (ejercicio.escenarios.verde.serieExtra ? ', con una serie extra autorizada.' : '.')
+        ? ejercicio.escenarios.verde
+          ? `Techo ${cifra(ejercicio.escenarios.verde.techoCargaKg)} kg` +
+            (ejercicio.escenarios.verde.deltaCargaKg !== undefined
+              ? `, sube hasta ${cifra(ejercicio.escenarios.verde.deltaCargaKg)} kg`
+              : ', sin subir carga') +
+            (ejercicio.escenarios.verde.serieExtra ? ', con una serie extra autorizada.' : '.')
+          : 'No hay subida autorizada: el coach solo dejó escrito el freno.'
         : undefined,
     },
     {

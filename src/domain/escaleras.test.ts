@@ -38,16 +38,20 @@ describe('el techo sale del rango, no de un porcentaje', () => {
     // 100 kg a 10 reps @ RIR 2 → la carga a 8 reps @ RIR 2, por la misma tabla
     // de coeficientes que ya escribe las prescripciones de la casa.
     const esperado = Math.round(((100 * coeficiente1rm(8, 2)) / coeficiente1rm(10, 2)) / 2.5) * 2.5
-    expect(escenarios?.verde.techoCargaKg).toBe(esperado)
-    expect(escenarios!.verde.techoCargaKg).toBeGreaterThan(100)
+    expect(escenarios?.verde?.techoCargaKg).toBe(esperado)
+    expect(escenarios!.verde!.techoCargaKg).toBeGreaterThan(100)
   })
 
+  // Los `verde!` de este archivo son honestos: `derivarEscaleras` escribe el camino verde
+  // siempre, y lo que aquí se prueba es su contenido. Que `verde` sea opcional en el tipo
+  // —desde el 2026-09-07, porque la cartera lleva solo el rojo cuando la carga va
+  // congelada— no cambia lo que derivar devuelve.
   it('el escalón es UN peldaño del rango, no el salto entero al techo', () => {
     const { escenarios } = derivarEscaleras(ej(), COACH)
-    expect(escenarios!.verde.deltaCargaKg).toBeLessThan(
-      escenarios!.verde.techoCargaKg - 100,
+    expect(escenarios!.verde!.deltaCargaKg).toBeLessThan(
+      escenarios!.verde!.techoCargaKg - 100,
     )
-    expect(escenarios!.verde.deltaCargaKg).toBeGreaterThan(0)
+    expect(escenarios!.verde!.deltaCargaKg).toBeGreaterThan(0)
   })
 
   /**
@@ -61,9 +65,9 @@ describe('el techo sale del rango, no de un porcentaje', () => {
    * no hubo que ponerla a mano: sale de la tabla que ya escribe las cargas.
    */
   it('cuanto más cerca del fallo, MENOS margen deja el techo', () => {
-    const suave = derivarEscaleras(ej({ rirObjetivo: 3 }), COACH).escenarios!.verde.techoCargaKg
-    const medio = derivarEscaleras(ej({ rirObjetivo: 2 }), COACH).escenarios!.verde.techoCargaKg
-    const duro = derivarEscaleras(ej({ rirObjetivo: 1 }), COACH).escenarios!.verde.techoCargaKg
+    const suave = derivarEscaleras(ej({ rirObjetivo: 3 }), COACH).escenarios!.verde!.techoCargaKg
+    const medio = derivarEscaleras(ej({ rirObjetivo: 2 }), COACH).escenarios!.verde!.techoCargaKg
+    const duro = derivarEscaleras(ej({ rirObjetivo: 1 }), COACH).escenarios!.verde!.techoCargaKg
     expect(suave).toBeGreaterThanOrEqual(medio)
     expect(medio).toBeGreaterThanOrEqual(duro)
     expect(duro).toBeGreaterThan(100)
@@ -125,12 +129,12 @@ describe('el remate: con escaleras el bucle deja de estar bloqueado', () => {
     const conEscaleras = { ...conRegistroAlto, escenarios }
     const decision = escenarioDelDia(conEscaleras, senalesBuenas)
     const ajuste = aplicarEscenario(conEscaleras, decision)
-    expect(ajuste.cargaKg).toBe(100 + escenarios!.verde.deltaCargaKg!)
+    expect(ajuste.cargaKg).toBe(100 + escenarios!.verde!.deltaCargaKg!)
   })
 
   it('y nunca pasa del techo, por buenos que sean los días', () => {
     const { escenarios } = derivarEscaleras(ej(), COACH)
-    const techo = escenarios!.verde.techoCargaKg
+    const techo = escenarios!.verde!.techoCargaKg
     // Un ejercicio que ya está EN el techo: el verde no propone nada más.
     const enElTecho = ej({ cargaKg: techo, escenarios, series: [{ orden: 1, cargaKg: techo * 1.5, reps: 8, rir: 2 }] })
     const ajuste = aplicarEscenario(enElTecho, escenarioDelDia(enElTecho, senalesBuenas))
@@ -183,6 +187,6 @@ describe('un dato roto no da un techo', () => {
 
   it('y la diana en el máximo exacto SÍ la genera: ahí el rango es real', () => {
     const r = derivarEscaleras(ej({ rango: '8-10', repsDiana: 10 }), { ...POLITICA_DEL_COACH, sueloRir: 3 })
-    expect(r.escenarios?.verde.techoCargaKg).toBeGreaterThan(100)
+    expect(r.escenarios?.verde?.techoCargaKg).toBeGreaterThan(100)
   })
 })

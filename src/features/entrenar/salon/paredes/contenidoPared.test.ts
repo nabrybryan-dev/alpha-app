@@ -36,6 +36,45 @@ function ejercicio(parcial: Partial<EjercicioPrescrito> = {}): EjercicioPrescrit
   }
 }
 
+describe('el ejercicio que solo trae el camino rojo', () => {
+  /**
+   * EL QUE TIRÓ LA PESTAÑA ENTRENAR EN PRODUCCIÓN el 2026-09-07 por la mañana. Bryan mandó
+   * la captura del iPhone: «undefined is not an object (evaluating
+   * 'e.escenarios.verde.techoCargaKg')».
+   *
+   * Medido en la base ese día, solo cifras: de 482 ejercicios en microciclos activos, 477
+   * traían `escenarios`, y **los 477 sin rama `verde`** —ninguno sin `rojo`—, en 22
+   * microciclos. O sea, toda la cartera activa. El tipo decía que `verde` era obligatorio y
+   * los datos decían que no, y este módulo comprobaba `escenarios ?` y luego leía
+   * `.verde.techoCargaKg` sin más. El muro entero se caía, y con él la pestaña.
+   *
+   * Lo que se afirma: sin camino verde escrito el muro sigue en pie, el camino rojo se lee
+   * igual, y el hueco de «si el día viene bueno» dice que no hay nada autorizado en vez de
+   * inventarse un techo.
+   */
+  const soloRojo = ejercicio({
+    escenarios: { rojo: { deltaRir: 1, sueloRir: 3, quitarUltimaSerie: true } },
+  })
+
+  it('no revienta: el muro se lee', () => {
+    expect(() => contenidoPared(soloRojo)).not.toThrow()
+  })
+
+  it('el día malo se sigue leyendo entero', () => {
+    const malo = contenidoPared(soloRojo).alPanel.find((x) => x.titulo === 'Si el día viene malo')
+    expect(malo?.texto).toContain('1 escalón')
+    expect(malo?.texto).toContain('RIR 3')
+    expect(malo?.texto).toContain('última serie')
+  })
+
+  it('y el día bueno dice que no hay nada autorizado, sin inventar un techo', () => {
+    const bueno = contenidoPared(soloRojo).alPanel.find((x) => x.titulo === 'Si el día viene bueno')
+    expect(bueno?.texto).toBeDefined()
+    expect(bueno?.texto).not.toMatch(/Techo/)
+    expect(bueno?.texto).toMatch(/no hay|sin camino/i)
+  })
+})
+
 describe('contenidoPared', () => {
   it('devuelve un texto para cada campo declarado, y ninguno vacío', () => {
     const c = contenidoPared(ejercicio())
