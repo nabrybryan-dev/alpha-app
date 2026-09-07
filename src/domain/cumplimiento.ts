@@ -101,9 +101,19 @@ export interface Semaforo {
 export function semaforoAsesorado(datos: {
   diasSinRegistrar: number
   readinessBaja: boolean
+  /**
+   * Días desde que venció el microciclo activo sin que llegara el siguiente.
+   * 0 o ausente = no ha vencido. Es cosa del coach, no del asesorado: por eso
+   * va en ámbar y no en rojo, y por eso el rojo por no registrar manda antes.
+   */
+  microcicloVencidoHaceDias?: number
 }): Semaforo {
   if (datos.diasSinRegistrar >= 4) {
     return { color: 'rojo', motivo: `${datos.diasSinRegistrar} días sin registrar` }
+  }
+  const vencido = datos.microcicloVencidoHaceDias ?? 0
+  if (vencido >= 1) {
+    return { color: 'ambar', motivo: `Microciclo vencido hace ${vencido} día${vencido === 1 ? '' : 's'}` }
   }
   if (datos.diasSinRegistrar >= 2) {
     return { color: 'ambar', motivo: `${datos.diasSinRegistrar} días sin registrar` }
