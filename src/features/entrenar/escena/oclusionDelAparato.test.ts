@@ -63,12 +63,30 @@ describe('el aparato que tapa a la persona', () => {
   })
 
   /**
-   * SE MIRA LA PEOR FASE, NO UNA. El press de hombro en máquina tapa 0 % a media
-   * repetición y 24 % arriba: medirlo en una sola fase lo dejaba opaco y tapando.
+   * SE MIRA LA PEOR FASE, NO UNA — y el press de hombro es donde se ve, porque el aparato
+   * tapa distinto en cada punto del recorrido.
+   *
+   * EL PRESS DEJÓ DE ESTAR TAPADO EL 2026-09-07, y no por tocar la oclusión: por la ficha.
+   * Hasta ese día el press subía en cruz por el plano frontal y los dos brazos de la máquina
+   * —uno por mano, con el eje detrás del hombro— cruzaban por delante de la cabeza: 24 %
+   * arriba, 0 % a media repetición. Ahora sube por el plano escapular, con el codo adelantado
+   * unos 45°, así que los brazos pasan a los LADOS de la cabeza: 4,8 % arriba, 4,8 % abajo,
+   * 2,4 % en medio. Por debajo del 8 % del umbral, así que ya no se vuelve translúcida, y
+   * está bien: lo que hay entre la cámara y la persona es aire.
+   *
+   * Lo que este caso sigue protegiendo es la REGLA, no el número: el peor punto del
+   * recorrido manda. Si alguien volviera a medir una sola fase y le tocara la de en medio,
+   * la cuenta bajaría a 2,4 % y esto se pondría rojo.
    */
-  it('el press de hombro en máquina tapa en el final del gesto, y con eso basta', () => {
-    expect(parteDelCuerpoTapada(PATRON_POR_ID.empuje_vertical, aparatoDe('empuje_vertical', 'Press de hombro en máquina'))).toBeGreaterThan(0.15)
-    expect(aparatoTapaAlCuerpo(PATRON_POR_ID.empuje_vertical, aparatoDe('empuje_vertical', 'Press de hombro en máquina'))).toBe(true)
+  it('mide el press de hombro en su peor fase, que no es la de en medio', () => {
+    const patron = PATRON_POR_ID.empuje_vertical
+    const aparato = aparatoDe('empuje_vertical', 'Press de hombro en máquina')
+    const soloEnMedio = { ...patron, inicio: patron.medio!, fin: patron.medio!, medio: undefined }
+    const peor = parteDelCuerpoTapada(patron, aparato)
+    expect(peor).toBeGreaterThan(parteDelCuerpoTapada(soloEnMedio, aparato))
+    // Y con el press por el plano escapular la máquina ya no se le cruza a la cámara.
+    expect(peor).toBeLessThan(UMBRAL_DE_OCLUSION)
+    expect(aparatoTapaAlCuerpo(patron, aparato)).toBe(false)
   })
 
   /** Y la caja de pantalla engaña: el Smith flanquea al cuerpo, lo «solapa» entero y no lo tapa. */

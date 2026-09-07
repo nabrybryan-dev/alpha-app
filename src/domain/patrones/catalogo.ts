@@ -1014,11 +1014,33 @@ export const PATRONES: Patron[] = [
     apoyo: 'suelo',
     raizInicio: [0, 0.95, 0],
     raizFin: [0, 0.95, 0],
-    inicio: { hombroAbd: 68, hombroFlex: 18, codoFlex: 118, escapulaElev: 0 },
-    fin: { hombroAbd: 172, hombroFlex: 6, codoFlex: 4, escapulaElev: 26, toraxFlex: -4 },
+    // EL PLANO ESCAPULAR, MEDIDO. Bryan, 2026-09-07: «la flexión de hombro se debe dar en un
+    // plano escapular alineado con el codo; el codo debe mantener una flexión e irse
+    // extendiendo a medida que sube, y además debe haber una breve aducción horizontal».
+    // Hasta ese día el press subía por abducción (68° → 172°): arrancaba con los codos en
+    // cruz (4° de azimut, las manos a 158 cm), el antebrazo iba TUMBADO a media subida (84°
+    // de la vertical, la mano al lado del codo y no encima) y el brazo acababa 12 cm POR
+    // DETRÁS del hombro. Era el press que la propia ficha desaconseja en sus claves.
+    //
+    // Las tres poses salieron de un barrido sobre el esqueleto resuelto
+    // (`scripts/medir-press.mjs`), buscando a la vez la elevación, el azimut del húmero
+    // respecto al plano frontal y el antebrazo vertical con la mano encima del codo. Y las
+    // tres van por LA MISMA RUTA de Euler —abducción casi nula, la elevación la pone
+    // `hombroFlex`—: con rutas distintas cada pose era buena y la interpolación pasaba el
+    // brazo por detrás del cuerpo. Lo que sale, fase a fase:
+    //   arranque  húmero a 51° · azimut 39° · codo 53°  · antebrazo a 10° de la vertical
+    //   medio     húmero a 109° · azimut 48° · codo 109° · antebrazo a 12° (la aducción)
+    //   arriba    húmero a 169° · azimut 28° · codo 176° · antebrazo a 9°
+    // La mano va siempre ~31 cm encima del codo y acaba 3 cm por DELANTE del hombro, no
+    // detrás; las manos, de 83 cm a 58 cm (mancuernas). `hombroRot` arriba en 0: con 30 la
+    // mano acababa 6 cm detrás del hombro y con −25 el húmero giraba 65° por el camino.
+    inicio: { hombroAbd: 2, hombroFlex: 50, hombroRot: 40, codoFlex: 130, escapulaElev: 0 },
+    medio: { hombroAbd: 2, hombroFlex: 110, hombroRot: 30, codoFlex: 68, escapulaElev: 10, toraxFlex: -2 },
+    fin: { hombroAbd: 2, hombroFlex: 172, hombroRot: 0, codoFlex: 4, escapulaElev: 26, toraxFlex: -4 },
     activacion: { flexores_carpo: 0.5, extensores_carpo: 0.4, 'deltoides.anterior': 1, 'deltoides.medio': 0.9, 'deltoides.posterior': 0.3, 'triceps.lateral': 0.85, 'triceps.medial': 0.85, 'triceps.larga': 0.6, serrato: 0.75, 'trapecio.superior': 0.6, 'trapecio.inferior': 0.5, 'manguito.supraespinoso': 0.4, 'pectoral_mayor.clavicular': 0.45, recto_abdominal: 0.4, erectores: 0.35, gluteo_mayor: 0.3 },
     seguimiento: ['mano', 0.5, [0, 0, 0]],
-    camara: { azimut: 18, elevacion: 2 },
+    // Tres cuartos, no de frente: a 18° el codo adelantado no se lee y el press parece en cruz.
+    camara: { azimut: 34, elevacion: 4 },
   },
   {
     id: 'antiextension',
