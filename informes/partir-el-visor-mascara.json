@@ -1,0 +1,26 @@
+{
+  "fecha": "2026-09-07T15:26:45.369Z",
+  "filas": [
+    {
+      "vista": "p1-w0",
+      "pixeles": 304704,
+      "cambiados": 0
+    },
+    {
+      "vista": "p1-w4",
+      "pixeles": 304704,
+      "cambiados": 0
+    },
+    {
+      "vista": "p2-w0",
+      "pixeles": 304704,
+      "cambiados": 0
+    },
+    {
+      "vista": "p2-w4",
+      "pixeles": 304704,
+      "cambiados": 0
+    }
+  ],
+  "total": 0
+}

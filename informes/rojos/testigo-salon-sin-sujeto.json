@@ -1,0 +1,49 @@
+{
+  "pestanaVisible": true,
+  "formato": "9:16",
+  "viewport": {
+    "ancho": 414,
+    "alto": 736
+  },
+  "cuando": "2026-09-07T18:04:39.349Z",
+  "usuario": "(el que elige la app sola)",
+  "sesion": "(el muro no rotula día)",
+  "rama": "conSujeto",
+  "elementos": {
+    "sala": {
+      "visible": false,
+      "pixeles": 0,
+      "enLienzo": true
+    },
+    "letras3D": {
+      "visible": false,
+      "pixeles": 0,
+      "enLienzo": false
+    },
+    "sujeto": {
+      "visible": false,
+      "pixeles": 0,
+      "enLienzo": true
+    },
+    "camara": {
+      "visible": false,
+      "pixeles": 0,
+      "enLienzo": false
+    },
+    "implementos": {
+      "visible": false,
+      "pixeles": 0,
+      "enLienzo": true
+    }
+  },
+  "ejeW": {
+    "medido": false,
+    "metodo": "ninguno",
+    "desde": -1,
+    "hasta": -1,
+    "capas": -1,
+    "botones": -1,
+    "cambioEnSujeto": 0,
+    "ruido": 0
+  }
+}

@@ -108,6 +108,40 @@ describe('la medida del asesorado viaja sola', () => {
     expect(fundidas[0].datos).toMatchObject({ usuarioId: ASESORADA, medidas: [medida('2026-09-06', 165)] })
   })
 
+  it('las ocho medidas de la ficha llegan enteras a `perfiles`, sin tocar registrar_medida', async () => {
+    // La encuesta de las ocho medidas (`domain/medidas.ts`) viaja DENTRO del objeto de la
+    // medida, en `cuerpo`. Eso no es un detalle de estilo: `registrar_medida` (0057) mete
+    // el jsonb tal cual con `jsonb_agg`, sin nombrar una sola clave, así que la función SQL
+    // no se entera de que hay ocho campos nuevos y no hizo falta migración. Lo que sí
+    // podría romperlo es que alguien de esta capa empiece a copiar campo a campo — por eso
+    // se clava aquí que sube el objeto ENTERO y que la fusión lo devuelve entero.
+    const { db, sync } = await dbEnModoNube()
+    const cuerpo = {
+      tibiaCm: 38.5,
+      femurCm: 47.3,
+      torsoCm: 51.4,
+      antebrazoCm: 23.1,
+      brazoCm: 31.1,
+      anchoClavicularCm: 38.8,
+      cinturaCm: 82,
+      caderasCm: 96,
+    }
+    const conOcho = { ...medida('2026-09-08', 175), cuerpo }
+    db.perfiles.agregarMedida(ASESORADA, conOcho)
+
+    const ops = dePerfiles()
+    expect(ops).toHaveLength(1)
+    expect(ops[0].funcion).toBe('registrar_medida')
+    expect(ops[0].payload).toEqual({ p_medida: conOcho })
+
+    // Y de vuelta: lo que la app enseña mientras la subida está en cola.
+    const fundidas = sync.conPendientes<{ datos: unknown }>('perfiles', [])
+    expect(fundidas[0].datos).toMatchObject({ medidas: [conOcho] })
+
+    // Y en el almacén local, que es de donde lee la pantalla.
+    expect(db.perfiles.byUsuario(ASESORADA)?.medidas.at(-1)?.cuerpo).toEqual(cuerpo)
+  })
+
   it('el coach sigue subiendo la ficha entera, con su columna', async () => {
     const { db } = await dbEnModoNube()
     db.perfiles.guardarSexo(ASESORADA, 'mujer')
