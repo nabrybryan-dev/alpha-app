@@ -62,9 +62,20 @@ const huellaDeMatrices = (m: number[][]): string => huella(m.flat())
  * Si alguna vez cambia a propósito —otro rig, otro tempo—, se recalcula y se escribe
  * aquí con su fecha; lo que no puede pasar es que cambie sin que nadie lo note.
  */
+/**
+ * LAS CUATRO SE RECALCULARON EL 2026-09-07, y esta vez cambiaron TODAS, incluidas las dos de
+ * pose vacía que llevaban intactas desde el principio. El motivo es el rig: el codo y la
+ * rodilla dejaron de flexionar «en el plano sagital del cuerpo» —deshaciendo y rehaciendo la
+ * abducción del padre— y pasaron a ser una bisagra colgada de su hueso, que es lo que son.
+ *
+ * En la pose vacía el gesto no cambia ni un micrómetro: los dos caminos dan la identidad. Lo
+ * que cambia son los BYTES, porque `Rz(-7°)·I·Rz(7°)` no es exactamente la matriz identidad
+ * en coma flotante y `M4.euler(0,0,0)` sí. Que estas dos huellas cambien a la vez que las de
+ * los patrones es, precisamente, la señal de que el cambio es del rig y no de una ficha.
+ */
 const DE_ANTES = {
-  poseVaciaEnElSuelo: '3fe4c00bf3b4db61d5c415bead8ad07142c66b30a601960efaf1b58aae173456',
-  poseVaciaA095: 'd3c44c58b213f117e1c256816f510c167dc7b95dcafb58c30b96ac1772e31775',
+  poseVaciaEnElSuelo: '47b03516e6b2625c458b57263688199a03cfafabc9de11d0cf4e68c49473ccea',
+  poseVaciaA095: '3904495f3351c087466cd1db1f2856a20cfc2a9884e5efbcb3196512267a3d6e',
   // Estas DOS se recalcularon el 2026-09-06 —las otras cuatro no se movieron, que es la
   // parte importante: la malla y los largos siguen siendo byte a byte los de antes—.
   // Cambiaron porque ese día cambió la fórmula del retardo distal en `movimiento.ts`, o
@@ -87,8 +98,8 @@ const DE_ANTES = {
   // pasa igual a la banca, por la misma capa. Las CUATRO huellas de pose vacía no se
   // movieron —ahí no hay capa de vida—, y eso es lo que dice que el cambio es el que se
   // cuenta y no otro.
-  sentadillaAMedias: 'a3b004c658004381cda5dfd8ac33018d2de11bb7d3d345d0344eb374c81d9bbb',
-  bancaAUnCuarto: '0b9c03cb74f609069d0d55f2dbeecfeb399405719281e66ed2c0f3f069099c5f',
+  sentadillaAMedias: '032e658d942db2401c9f6c65e3b3a6853aef8aa1cdace6f70dada29f9445b8ed',
+  bancaAUnCuarto: '936a9cf16a6566323727706ce8e50c8897e37709485099fa23becd6141f78282',
   mallaPosiciones: '937e6ef37abad1c9f8d7984cf97f950ceea8b5d011bc53065a4e3a6aa42dc735',
   mallaNormales: '49a584d7433163348e5aa09f6f3b980bb6c85b31041ad4100514cded0192cebc',
   vertices: 13774,
