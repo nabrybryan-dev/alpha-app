@@ -259,18 +259,45 @@ export function montarMedidor(
   // la app ya publica —`data-w` para la capa y el rótulo del lienzo para el ejercicio—.
   // Así el medidor no tiene que enchufarse a ninguna pantalla y no puede desincronizarse
   // de ella.
+  //
+  // Y se cuentan TRANSICIONES, no estados finales. Un `MutationObserver` avisa una vez por
+  // LOTE de cambios, no una por cambio, y para entonces el DOM ya está en su última
+  // posición: si el salón encadenó tres ejercicios sin ceder el hilo, mirar el lienzo en
+  // ese momento cuenta uno. Lo que sí guarda cada escalón por el que se pasó es el
+  // `oldValue` de cada `MutationRecord` —de ahí el `attributeOldValue`—, así que la
+  // secuencia real se reconstruye encadenando esos valores previos y rematando con el que
+  // hay ahora en el DOM.
+  const SALON = '[data-salon="entrenar"]'
+  const LIENZO = '[data-salon="entrenar"] canvas'
   let ultimoPatron = ''
-  const observador = new MutationObserver(() => {
-    const salon = document.querySelector('[data-salon="entrenar"]')
-    const w = salon?.getAttribute('data-w')
-    if (w !== null && w !== undefined) cuenta.capaVisitada(Number(w))
-    const patron = document.querySelector('[data-salon="entrenar"] canvas')?.getAttribute('aria-label') ?? ''
-    if (patron && ultimoPatron && patron !== ultimoPatron) cuenta.cambioDeEjercicio()
-    if (patron) ultimoPatron = patron
+  const observador = new MutationObserver((registros) => {
+    const capas: string[] = []
+    const patrones: string[] = []
+    for (const registro of registros) {
+      const objetivo = registro.target
+      if (!(objetivo instanceof Element)) continue
+      if (registro.attributeName === 'data-w' && objetivo.matches(SALON)) {
+        if (registro.oldValue) capas.push(registro.oldValue)
+      } else if (registro.attributeName === 'aria-label' && objetivo.matches(LIENZO)) {
+        patrones.push(registro.oldValue ?? '')
+      }
+    }
+
+    // El último eslabón de la cadena no lo da ningún `oldValue`: es lo que se ve ahora.
+    const w = document.querySelector(SALON)?.getAttribute('data-w')
+    if (w !== null && w !== undefined) capas.push(w)
+    for (const capa of capas) cuenta.capaVisitada(Number(capa))
+
+    patrones.push(document.querySelector(LIENZO)?.getAttribute('aria-label') ?? '')
+    for (const patron of patrones) {
+      if (patron && ultimoPatron && patron !== ultimoPatron) cuenta.cambioDeEjercicio()
+      if (patron) ultimoPatron = patron
+    }
   })
   observador.observe(document.body, {
     subtree: true,
     attributes: true,
+    attributeOldValue: true,
     attributeFilter: ['data-w', 'aria-label'],
   })
 

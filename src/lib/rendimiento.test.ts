@@ -149,3 +149,72 @@ describe('montar el medidor', () => {
     expect(medidor?.informe().vueltasDeSegundoPlano).toBe(1)
   })
 })
+
+/**
+ * LO QUE VE EL OBSERVADOR DEL DOM, Y LO QUE SE LE ESCAPA SI MIRA EL ESTADO FINAL.
+ *
+ * Un `MutationObserver` NO se despierta una vez por cambio: se despierta una vez por LOTE,
+ * ya con el DOM en su estado final. Un salón que encadena tres ejercicios sin ceder el hilo
+ * —lo normal cuando la app repinta una serie entera de golpe— llega a la callback como un
+ * único aviso en el que solo se ve el último rótulo. Mirar el DOM en ese momento cuenta UNA
+ * transición donde hubo tres, y por eso lo que hay que recorrer son los `MutationRecord`
+ * con su `oldValue`: ahí sí está cada escalón por el que se pasó.
+ */
+describe('el observador cuenta transiciones, no el estado final del lote', () => {
+  /** El salón tal y como lo publica la app: la capa en el contenedor, el ejercicio en el lienzo. */
+  function montarSalon(w: string, rotulo: string) {
+    const salon = document.createElement('div')
+    salon.setAttribute('data-salon', 'entrenar')
+    salon.setAttribute('data-w', w)
+    const lienzo = document.createElement('canvas')
+    lienzo.setAttribute('aria-label', rotulo)
+    salon.appendChild(lienzo)
+    document.body.appendChild(salon)
+    return { salon, lienzo }
+  }
+
+  /**
+   * Deja pasar el lote. Los avisos del observador se entregan en una microtarea, así que
+   * hasta que no se cede el hilo la cuenta todavía no se ha enterado de nada.
+   */
+  const lote = () => new Promise((listo) => setTimeout(listo, 0))
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('tres ejercicios encadenados dentro de un mismo lote son tres cambios', async () => {
+    vi.stubGlobal('requestAnimationFrame', () => 1)
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+    const { lienzo } = montarSalon('0', 'sentadilla')
+    const medidor = montarMedidor({ busqueda: '?medir=1' })
+
+    // Los tres saltos ocurren sin ceder el hilo: cuando la callback mire el DOM ya solo
+    // queda «peso muerto», y las dos paradas de en medio no dejaron rastro en él.
+    lienzo.setAttribute('aria-label', 'zancada')
+    lienzo.setAttribute('aria-label', 'remo')
+    lienzo.setAttribute('aria-label', 'peso muerto')
+    await lote()
+
+    expect(medidor?.informe().cambiosDeEjercicio).toBe(3)
+    medidor?.desmontar()
+  })
+
+  it('las capas atravesadas dentro de un mismo lote quedan todas, y en orden', async () => {
+    vi.stubGlobal('requestAnimationFrame', () => 1)
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+    const { salon } = montarSalon('0', 'sentadilla')
+    const medidor = montarMedidor({ busqueda: '?medir=1' })
+
+    // Atravesar la piel, el músculo y el hueso de un tirón es haber PASADO por los tres:
+    // un informe que solo anota el destino no distingue eso de haber saltado directo.
+    salon.setAttribute('data-w', '1')
+    salon.setAttribute('data-w', '2')
+    salon.setAttribute('data-w', '3')
+    await lote()
+
+    expect(medidor?.informe().capasVisitadas).toEqual([0, 1, 2, 3])
+    medidor?.desmontar()
+  })
+})
