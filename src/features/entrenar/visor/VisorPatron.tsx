@@ -18,7 +18,7 @@ import {
 } from '../../../domain/patrones/juegoDeHuesos'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import { BAHIA, construirLaboratorio } from '../../../domain/escenario/laboratorio'
-import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type DatosDeSerie } from '../escena/sala'
+import { construirSala, elevacionDelSalon, SALA, topeDeDistanciaEnSala, topesDeElevacion, type CifrasDelMuro } from '../escena/sala'
 import { construirSuelo } from '../escena/suelo'
 import { cargarTexturas } from './texturas'
 import { anunciarSalaDeBlender, PIEZAS_DEL_ATLAS, SALA_GIMNASIO } from './piezas'
@@ -104,14 +104,18 @@ function limitarElevacion(elevacion: number, orbita: { elevacionMin: number; ele
   return Math.min(Math.max(elevacion, orbita.elevacionMin), orbita.elevacionMax)
 }
 
-function sala(datos: DatosDeSerie, azimutDeEntrada: number, deBlender: boolean): Malla {
+function sala(cifras: CifrasDelMuro | undefined, azimutDeEntrada: number, deBlender: boolean): Malla {
   // El ángulo entra en la clave: si no, cambiar de ejercicio dejaría el marcador del muro
   // de enfrente colgado donde lo puso el ejercicio anterior. Y si la sala de Blender ya
   // llegó: la de cajas se deja de construir y los marcadores cambian de pared.
-  const clave = `${datos.series}|${datos.reps}|${datos.rir}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}`
+  // «sin» y no un hueco vacío: una sala sin marcador es una malla DISTINTA de una con él,
+  // y dos claves que se parecen demasiado es como se sirve una sala vieja creyendo que es
+  // la nueva.
+  const marca = cifras ? `${cifras.veces}|${cifras.cuanto}|${cifras.esfuerzo ?? 'apagada'}` : 'sin'
+  const clave = `${marca}|${azimutDeEntrada}|${deBlender ? 'blender' : 'cajas'}`
   if (!salaCache || salaCache.clave !== clave) {
     const malla = new Malla()
-    construirSala(malla, datos, azimutDeEntrada, deBlender ? { salaDeBlender: SALA_GIMNASIO } : {})
+    construirSala(malla, cifras, azimutDeEntrada, deBlender ? { salaDeBlender: SALA_GIMNASIO } : {})
     salaCache = { clave, malla }
   }
   return salaCache.malla
@@ -224,7 +228,20 @@ interface VisorPatronProps {
    * trípode, y el visor se queda con la bahía — que es lo que hace falta cuando esto
    * se abre para estudiar el patrón y no para entrenar.
    */
-  datos?: DatosDeSerie
+  /**
+   * Las tres cifras del marcador del muro, si hay algo que marcar. Un día de cardio trae
+   * tramos y minutos; un día de hierro, series y repeticiones.
+   */
+  cifras?: CifrasDelMuro
+  /**
+   * Si este visor dibuja la SALA: gimnasio, suelo y trípode.
+   *
+   * Va aparte de `cifras` desde el 2026-09-10, y ese es el arreglo: antes la sala colgaba
+   * de que hubiera números de serie, así que un día de cardio —que no los tiene— se quedaba
+   * sin habitación y sin el encuadre del salón. Quien quiere sala lo dice; estudiar un
+   * patrón no la quiere, y por eso no basta con `conEscenario`.
+   */
+  conSala?: boolean
   /**
    * Si se dibuja el escenario alrededor del sujeto: la bahía de medida y, cuando hay
    * `datos`, también la sala y el trípode.
@@ -381,7 +398,8 @@ interface VisorPatronProps {
  */
 export function VisorPatron({
   patron,
-  datos,
+  cifras,
+  conSala = false,
   conEscenario = true,
   atlas,
   w,
@@ -405,10 +423,13 @@ export function VisorPatron({
   const reducido = useMovimientoReducido()
   /**
    * La sala y el trípode cuelgan de las dos cosas: sin escenario no hay dónde ponerlos
-   * —el explorador mira una articulación sola, sin suelo— y sin los números de la serie
-   * no hay marcador que enseñar.
+   * —el explorador mira una articulación sola, sin suelo— y sin que la pantalla la pida
+   * tampoco, porque estudiar un patrón es mirar el cuerpo, no un sitio.
+   *
+   * Lo que ya NO hace falta son los números de la serie. Los pedía hasta el 2026-09-10 y
+   * por eso un día de cardio abría sin gimnasio.
    */
-  const haySala = conEscenario && !!datos
+  const haySala = conEscenario && conSala
 
   // Todo lo que cambia sesenta veces por segundo va por referencia y no por
   // estado: meterlo en `useState` volvería a renderizar el árbol en cada cuadro.
@@ -430,7 +451,8 @@ export function VisorPatron({
     // Los números del marcador viven aquí y no en las dependencias del efecto que monta
     // la escena: incluirlos ahí recrearía el contexto WebGL entero cada vez que avanza
     // una serie. Van por referencia y se repinta, como la capa.
-    datos: undefined as DatosDeSerie | undefined,
+    cifras: undefined as CifrasDelMuro | undefined,
+    conSala: false,
     colocacion: COLOCACION_INICIAL,
     // El campo visual con el que se proyecta cuando hay sala. Por referencia, como todo lo
     // que el bucle lee: cambiarlo no puede recrear el contexto WebGL.
@@ -514,7 +536,8 @@ export function VisorPatron({
     estado.current.reproduciendo = reproduciendo && !reducido
     estado.current.girando = girando
     estado.current.capa = capa
-    estado.current.datos = haySala ? datos : undefined
+    estado.current.cifras = haySala ? cifras : undefined
+    estado.current.conSala = haySala
     estado.current.w = w
     estado.current.nombreEjercicio = nombreEjercicio
     estado.current.alMirar = alMirar
@@ -528,7 +551,7 @@ export function VisorPatron({
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, datos, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas])
+  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -626,7 +649,7 @@ export function VisorPatron({
         // salían del cuadro los 31 patrones, hasta 750 px. `encuadreDelSalon` mira al
         // centro del cuerpo, se retira lo justo sin salir de la sala, y solo gira si aún no
         // cabe. Sin sala manda `encuadrar()`, que es de estudiar el cuerpo y no un sitio.
-        const enSalon = estado.current.datos ? encuadreDelSalon(patron) : undefined
+        const enSalon = estado.current.conSala ? encuadreDelSalon(patron) : undefined
         orbita.azimut = patron.camara.azimut
         // CON SALA, EL ENCUADRE ES OTRO. `encuadrar()` enmarca el cuerpo y hace bien
         // —para estudiar un patrón lo que importa es el cuerpo—, pero a esa distancia el
@@ -637,7 +660,7 @@ export function VisorPatron({
         // este efecto recrearía el contexto WebGL cada vez que avanza una serie. El
         // efecto de sincronización se declara ANTES que éste, así que para cuando esto
         // corre el ref ya está puesto.
-        const conSala = !!estado.current.datos
+        const conSala = estado.current.conSala
         orbita.distancia = enSalon ? enSalon.distancia : encuadre.distancia
         orbita.centro = enSalon ? [...enSalon.centro] : encuadre.centro
         estado.current.campoDelSalon = enSalon?.campo
@@ -719,8 +742,7 @@ export function VisorPatron({
               for (const m of mallasDeFuerzas(brazosDeMomento(esq, plan), orbita.ojo())) if (m.vertices > 0) partes.push(m)
             }
           }
-          const d = estado.current.datos
-          if (d) {
+          if (estado.current.conSala) {
             // El suelo va con la sala: es sala, y el testigo que apaga «sala» para medir
             // tiene que apagar también lo que hay debajo de los pies.
             if (!sin.has('sala')) {
@@ -730,7 +752,7 @@ export function VisorPatron({
               if (!deBlender) partes.push(suelo())
               // Las piezas NO van aquí: son estáticas y viven en sus propios búferes,
               // subidas una vez cuando llegan. Aquí solo va lo que cambia.
-              partes.push(sala(d, patron.camara.azimut, deBlender))
+              partes.push(sala(estado.current.cifras, patron.camara.azimut, deBlender))
             }
             if (!sin.has('camara')) partes.push(tripode(estado.current.colocacion))
           }
@@ -739,7 +761,7 @@ export function VisorPatron({
           // el interruptor de arriba ya no la tocaba, y el acta dio «sala: 0 px» con la
           // sala entera en pantalla (2026-09-05). Se sube o se vacía solo cuando cambia:
           // al llegar las piezas, al apagar o encender la capa, y al recuperar el contexto.
-          const quiereSala = !!d && !sin.has('sala') && piezasCache.length > 0
+          const quiereSala = estado.current.conSala && !sin.has('sala') && piezasCache.length > 0
           // El atlas va por los MISMOS búferes estáticos —es geometría que no cambia— pero
           // con su propio interruptor, y obedeciendo al testigo igual que la sala: lo que
           // sale del búfer dinámico tiene que seguir apagándose con `data-sin`.
@@ -773,7 +795,7 @@ export function VisorPatron({
             if (aparato.piezas.length) {
               const mallaAparato = new Malla()
               construirImplementos(mallaAparato, aparato, esq)
-              if (estado.current.datos && aparatoTapaAlCuerpo(patron, aparato)) mallaAparato.alfa = ALFA_DEL_APARATO_QUE_TAPA
+              if (estado.current.conSala && aparatoTapaAlCuerpo(patron, aparato)) mallaAparato.alfa = ALFA_DEL_APARATO_QUE_TAPA
               if (mallaAparato.vertices > 0) partes.push(mallaAparato)
             }
           }

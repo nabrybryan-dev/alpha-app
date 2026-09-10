@@ -253,9 +253,7 @@ function anchoDe(n: number, alto: number): number {
 function marcador(
   m: Malla,
   anguloGrados: number,
-  series: number,
-  reps: number,
-  rir: number | 'FALLO',
+  cifras: CifrasDelMuro,
   /**
    * La sala rectangular de Blender, si la hay. Entonces el panel se cuelga del muro plano
    * que el rayo encuentra en esa dirección, PARALELO a ese muro —un panel tangente al
@@ -295,11 +293,18 @@ function marcador(
   const acotar = (v: number, cifras: number) =>
     String(Math.max(0, Math.min(cifras === 1 ? 9 : 99, Math.round(v)))).padStart(cifras, '0')
   const grupos = [
-    { texto: acotar(series, 2), cifras: 2 },
-    { texto: acotar(reps, 2), cifras: 2 },
-    // El fallo se escribe con su letra. Un cero aquí diría «RIR 0», que es otra cosa.
-    { texto: rir === 'FALLO' ? 'F' : acotar(rir, 1), cifras: 1 },
+    { texto: acotar(cifras.veces, 2), cifras: 2 },
+    { texto: acotar(cifras.cuanto, 2), cifras: 2 },
   ]
+  // LA TERCERA CASILLA SE APAGA CUANDO NO HAY ESFUERZO ESCRITO, y no se pone a cero.
+  //
+  // El fallo se escribe con su letra, porque un cero ahí diría «RIR 0», que es otra cosa.
+  // Y un día de cardio cuyo coach no escribió ni zona ni RPE **no tiene** ese dato: un `0`
+  // sería inventarlo, y encima con el significado de otro. Sin casilla, el muro dice lo
+  // único cierto — que eso no está escrito.
+  if (cifras.esfuerzo !== undefined) {
+    grupos.push({ texto: cifras.esfuerzo === 'FALLO' ? 'F' : acotar(cifras.esfuerzo, 1), cifras: 1 })
+  }
   const hueco = alto * 0.62
   const anchoTotal =
     grupos.reduce((s, g) => s + anchoDe(g.cifras, alto), 0) + hueco * (grupos.length - 1)
@@ -513,7 +518,16 @@ export const ANGULOS_SIN_FONDO = [0, 10, 20, 170, 180, 190, 200, 210, 330, 340, 
 
 export function construirSala(
   m: Malla,
-  datos: DatosDeSerie,
+  /**
+   * Las tres cifras del marcador, o `undefined` cuando no hay nada que marcar.
+   *
+   * **La sala se construye igual.** Hasta el 2026-09-10 esto era obligatorio y la
+   * habitación colgaba de ello, así que un día de cardio —que no tiene números de serie—
+   * se quedaba sin gimnasio: el sujeto salía sobre negro y con el encuadre de estudiar un
+   * patrón en vez del del salón. Una sala es una sala haya o no serie; lo que depende de
+   * los números es el MARCADOR, y solo él.
+   */
+  cifras: CifrasDelMuro | undefined,
   azimutDeEntrada?: number,
   opciones: OpcionesDeSala = {},
 ): void {
@@ -537,7 +551,7 @@ export function construirSala(
     // el muro de enfrente, y los 90 traducen entre las dos convenciones.
     angulos.push(90 - (azimutDeEntrada + 180))
   }
-  for (const a of angulos) marcador(m, a, datos.series, datos.reps, datos.rir, blender)
+  if (cifras) for (const a of angulos) marcador(m, a, cifras, blender)
   estacion(m)
   // EL HIERRO. Va el último porque es lo que menos cambia: la pared y los marcadores se
   // rehacen cuando avanza la serie, y el mobiliario no depende de ningún dato.
@@ -561,6 +575,35 @@ export interface DatosDeSerie {
   reps: number
   /** El RIR objetivo, o el FALLO — que NO es lo mismo que un RIR 0. */
   rir: number | 'FALLO'
+}
+
+/**
+ * LAS TRES CIFRAS DEL MARCADOR DEL MURO, ya traducidas.
+ *
+ * El marcador es un marcador de pabellón: tres cifras de siete segmentos, sin un rótulo que
+ * las nombre. Por eso funciona con cualquier trabajo — siempre responde a las mismas tres
+ * preguntas, y solo cambia la ropa:
+ *
+ * | | cuántas veces | cuánto cada vez | con cuánto esfuerzo |
+ * | --- | --- | --- | --- |
+ * | hierro | series | repeticiones | RIR (o `FALLO`) |
+ * | cardio | tramos | minutos | RPE o zona |
+ *
+ * Los tamaños son los del panel y no se negocian: dos dígitos, dos dígitos y uno. Los
+ * tramos y los minutos caben en dos; el RPE y la zona son de una cifra por definición.
+ */
+export interface CifrasDelMuro {
+  /** Dos dígitos: cuántas veces. */
+  veces: number
+  /** Dos dígitos: cuánto dura cada vez. */
+  cuanto: number
+  /** Un dígito. `undefined` apaga la casilla: no está escrito, y no se inventa. */
+  esfuerzo: number | 'FALLO' | undefined
+}
+
+/** Lo que marca el muro un día de hierro. */
+export function cifrasDeLaSerie(datos: DatosDeSerie): CifrasDelMuro {
+  return { veces: datos.series, cuanto: datos.reps, esfuerzo: datos.rir }
 }
 
 /** Las medidas de la sala, para anclar interfaz al espacio. */

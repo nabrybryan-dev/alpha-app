@@ -35,7 +35,9 @@ import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
+import { cifrasDelCardio } from './estaciones/estacionesDelCardio'
 import { BANDA_DE_SESION, SUELO_DE_LOS_CARTELES } from './estaciones/sitioDelCartel'
+import { cifrasDeLaSerie } from '../escena/sala'
 import { huellaDeReferencia } from './paredes/huellaDeReferencia'
 import { leerHuellaArticular } from '../encoder/huellasArticulares'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
@@ -815,14 +817,21 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                       : c,
                   )
                 }}
-                datos={
+                // LA SALA SE DIBUJA SIEMPRE en el salón: es el salón. Lo que depende de
+                // que haya algo que marcar es el marcador del muro, y nada más.
+                conSala
+                // LAS TRES CIFRAS DEL MURO. Un día de hierro son series, repeticiones y
+                // RIR; uno de cardio, tramos, minutos y el RPE o la zona si están escritos.
+                // Son las mismas tres preguntas con otra ropa, y el marcador no lleva
+                // rótulos, así que no hay palabra nueva que aprender.
+                cifras={
                   ejercicio
-                    ? {
+                    ? cifrasDeLaSerie({
                         series: ejercicio.sets,
                         reps: ejercicio.repsDiana,
                         rir: ejercicio.rirObjetivo,
-                      }
-                    : undefined
+                      })
+                    : cifrasDelCardio(sesionEnPantalla?.bloquesCardio)
                 }
                 // EL SUJETO BAJA EN LO QUE CUENTA LA PARED. El mando del reloj pone la
                 // pared a contar el excéntrico a `SEGUNDOS_DE_EXCENTRICO` por repetición;

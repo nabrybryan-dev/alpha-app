@@ -1,4 +1,5 @@
 import type { ItemMarcable } from '../../../../domain/types'
+import type { CifrasDelMuro } from '../../escena/sala'
 import { ANGULOS, type EstacionDeLaSerie } from './estacionesDeLaSerie'
 
 /**
@@ -94,4 +95,27 @@ export function estacionesDelCardio(
     })
   }
   return estaciones
+}
+
+/**
+ * LO QUE MARCA EL MURO UN DÍA DE CARDIO.
+ *
+ * Las mismas tres preguntas que un día de hierro, con otra ropa: cuántas veces (tramos),
+ * cuánto cada vez (minutos) y con cuánto esfuerzo (RPE o zona). El marcador del muro no
+ * lleva rótulos —son cifras de siete segmentos, como en un pabellón—, así que no hay que
+ * enseñarle palabras nuevas a nadie: quien miró el muro el martes lo entiende el sábado.
+ *
+ * Sin intensidad escrita, la tercera casilla se queda **apagada**. Un cero ahí diría «RIR
+ * 0», que en esta casa es otra cosa, y un dato que el coach no escribió no se inventa.
+ */
+export function cifrasDelCardio(bloques: readonly ItemMarcable[] | undefined): CifrasDelMuro | undefined {
+  if (!bloques || bloques.length === 0) return undefined
+  const minutos = bloques.reduce((t, b) => t + (b.duracionMin ?? 0), 0)
+  const intensidad = intensidadEscrita(
+    bloques.flatMap((b) => [b.titulo, b.indicaciones]).filter(Boolean).join(' '),
+  )
+  // La zona y el RPE son de una cifra por definición; un rango escrito («RPE 7-8») se
+  // queda con el techo, que es el que manda el esfuerzo del bloque.
+  const esfuerzo = intensidad ? Number(intensidad.cifra.split(/[-–]/).pop()) : undefined
+  return { veces: bloques.length, cuanto: minutos, esfuerzo }
 }
