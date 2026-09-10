@@ -115,6 +115,14 @@ grant execute on function public.mesa_del_sabado() to authenticated;
 
 commit;
 
--- Comprobación: supabase/comprobar-0054.sql
--- Aplicada a producción el 2026-09-05; sus cinco señales en OK, incluida la que
--- exige que Manuela siga dentro del resultado.
+-- Comprobación: supabase/comprobar-0055.sql — tres señales, contrato de cero filas,
+-- vistas en rojo contra la función de la 0054 antes de darlas por buenas.
+--
+-- El pie que había aquí era una copia literal del de la 0054: mandaba a correr
+-- `comprobar-0054.sql` —otro comprobante, otras cinco señales, otra fecha— sobre un
+-- cambio que no comprueba. Correrlo habría salido en verde sin haber mirado la
+-- ventana, que es lo que esta migración cambia.
+--
+-- Según el PR #208, la función ya estaba puesta en producción con `create or replace`
+-- y esta migración la versiona. Eso NO está comprobado desde el repositorio: se cierra
+-- corriendo `comprobar-0055.sql` contra la base.
