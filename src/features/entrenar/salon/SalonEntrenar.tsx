@@ -332,7 +332,17 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   // el dominio y lee el texto del bloque; aquí solo se elige entre el ejercicio y el bloque.
   // Con ejercicio elegido manda el ejercicio, como siempre. Revierte la decisión escrita en
   // `SalonSinSujeto.tsx`, y allí queda anotado.
-  const patronDelBloque = useMemo(() => patronDeLosBloques(sesion?.bloquesCardio), [sesion])
+  //
+  // **Y se lee del día QUE SE ESTÁ MIRANDO, no del de hoy.** Hasta el 2026-09-10 esto
+  // decía `sesion`, que es la sesión de hoy, mientras el resto del salón —paredes,
+  // ejercicio, muro— se pintaba con `sesionEnPantalla`. Consecuencia medida en el
+  // navegador: desde un día de fuerza, viajar al METABÓLICO A del seed —treinta minutos
+  // con diez intervalos a RPE 8— daba una sala vacía con cuatro tarjetas que decían «Sin
+  // minutos prescritos». Los datos estaban; lo que no llegaba era el día.
+  const patronDelBloque = useMemo(
+    () => patronDeLosBloques(sesionEnPantalla?.bloquesCardio),
+    [sesionEnPantalla],
+  )
   const patron = useMemo(
     () =>
       ejercicio ? patronDeCategoria(ejercicio.categoria, ejercicio.nombre) : patronDelBloque,
@@ -342,6 +352,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   const contenido = useMemo(() => (ejercicio ? contenidoPared(ejercicio) : undefined), [ejercicio])
   // El ritmo lleva dentro el tiempo del cronómetro, leído de donde lo guarda el propio
   // cronómetro: un segundo reloj daría dos duraciones de la misma sesión.
+  //
+  // Este SÍ es el de hoy, y es la única excepción a que mande el día elegido: la
+  // marquesina dice por dónde va el entrenamiento que se está haciendo AHORA —«vas en
+  // ritmo», «~12 min para el siguiente ejercicio»—, y eso no cambia por asomarse al
+  // sábado. Cronometrar el día que se mira sería contar una sesión que nadie está
+  // haciendo.
   const ritmo = useRitmoDelSalon(sesion)
 
   /**
@@ -863,7 +879,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               }}
             >
               <SalaVacia>
-                <SalonSinSujeto ejercicio={ejercicio} bloques={sesion?.bloquesCardio} />
+                <SalonSinSujeto ejercicio={ejercicio} bloques={sesionEnPantalla?.bloquesCardio} />
               </SalaVacia>
             </div>
 
@@ -882,6 +898,11 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         {conSujeto && (
           <EstacionesDelSujeto
             ejercicio={ejercicio}
+            // Y CUANDO NO HAY EJERCICIO, EL CARDIO. Un día de cardio con modalidad
+            // reconocida tiene sujeto desde el 7-sep, y al ganarlo dejó de montarse la rama
+            // sin sujeto, que era la única que enseñaba sus minutos: el día metabólico se
+            // quedó con un corredor y ni un número. Ver `estaciones/estacionesDelCardio.ts`.
+            bloques={ejercicio ? undefined : sesionEnPantalla?.bloquesCardio}
             azimut={camara.azimut - (patron?.camara.azimut ?? 0)}
             suelo={Math.round(lienzo.alto * 0.78)}
             // EL CUERPO, PARA NO PINTARLE ENCIMA. Es el mismo cuadro con el que el dedo
@@ -1118,12 +1139,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           notas={props.notas}
           alPanel={contenido?.alPanel ?? []}
           contenido={contenido}
-          material={implementosDeSesion(sesion)}
-          bloquesCardio={sesion?.bloquesCardio}
+          material={implementosDeSesion(sesionEnPantalla)}
+          bloquesCardio={sesionEnPantalla?.bloquesCardio}
           nombreEjercicio={ejercicio?.nombre}
           ejercicio={ejercicio}
           ritmo={ritmo}
-          sesion={sesion}
+          sesion={sesionEnPantalla}
           patron={patron}
           onAvance={setAvanceDelPanel}
         />

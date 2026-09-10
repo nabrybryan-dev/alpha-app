@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 
-import type { EjercicioPrescrito } from '../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable } from '../../../../domain/types'
 import type { CuadroEnPantalla } from '../camara/dedoEnElCuerpo'
 import {
   aspectoDeEstacion,
   estacionesDeLaSerie,
   type ClaveDeEstacion,
 } from './estacionesDeLaSerie'
+import { estacionesDelCardio } from './estacionesDelCardio'
 import { desvioDelCartel, type DesvioDelCartel } from './sitioDelCartel'
 
 /**
@@ -121,6 +122,13 @@ const POSTE = 120
 
 export interface EstacionesDelSujetoProps {
   ejercicio: EjercicioPrescrito | undefined
+  /**
+   * Los bloques del día, cuando lo que hay en el centro es cardio y no un ejercicio.
+   *
+   * Excluyentes por construcción: con ejercicio manda el ejercicio, como en el resto del
+   * salón. Sin él, la prescripción que rodea al cuerpo es la del cardio.
+   */
+  bloques?: readonly ItemMarcable[]
   /** El azimut de la cámara del salón, en grados. Es lo que ata las estaciones a la sala. */
   azimut: number
   /** Dónde está el suelo bajo el sujeto, en píxeles desde arriba del salón. */
@@ -142,6 +150,7 @@ export interface EstacionesDelSujetoProps {
 
 export function EstacionesDelSujeto({
   ejercicio,
+  bloques,
   azimut,
   suelo,
   cuerpo,
@@ -149,7 +158,7 @@ export function EstacionesDelSujeto({
   foco,
   onEnfocar,
 }: EstacionesDelSujetoProps) {
-  const estaciones = estacionesDeLaSerie(ejercicio)
+  const estaciones = ejercicio ? estacionesDeLaSerie(ejercicio) : estacionesDelCardio(bloques)
   const zonaRef = useRef<HTMLDivElement>(null)
   useEsquivarElCuerpo(zonaRef, cuerpo, marco)
   if (estaciones.length === 0) return null
