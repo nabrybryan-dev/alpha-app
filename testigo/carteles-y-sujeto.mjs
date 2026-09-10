@@ -37,6 +37,11 @@
  *
  * `--fotos=N` escribe, de los pasos 0..N, la pantalla con carteles, sin ellos, y una
  * tercera con la tinta tapada EN VERDE. La foto manda sobre el número.
+ *
+ * `--sin-esquivar` clava los dos desvíos a cero desde la hoja de estilo, sin tocar el
+ * código: es como se mide el ANTES contra el mismo salón, la misma cámara y el mismo
+ * asesorado del después. Comparar contra otra rama compararía además todo lo que cambió
+ * entre las dos.
  */
 
 import { existsSync } from 'node:fs'
@@ -76,6 +81,15 @@ const CANDIDATOS = (args.get('candidatos') ?? 'u-valentina,u-mateo,u-bryan,').sp
 
 const RAMA_EN_PAGINA = () =>
   document.querySelector('[data-hueco="sinPatron"]') ? 'sinSujeto' : 'conSujeto'
+
+const CLAVAR_DESVIOS = () => {
+  const hoja = document.createElement('style')
+  hoja.id = 'medida-sin-esquivar'
+  hoja.textContent =
+    '.estacion-cartel{--desvio-x:0px !important;--desvio-y:0px !important}'
+  document.head.appendChild(hoja)
+  return true
+}
 
 const APAGAR_ESTACIONES = (apagar) => {
   let hoja = document.getElementById('medida-carteles')
@@ -169,6 +183,10 @@ async function main() {
       if (rama === 'conSujeto') break
     }
 
+    if (args.has('sin-esquivar')) {
+      await dt.evaluar(comoExpresion(CLAVAR_DESVIOS))
+      console.log('   los carteles NO se apartan: se está midiendo el antes.')
+    }
     await dt.evaluar(comoExpresion(CONGELAR_EN_PAGINA))
     await esperar(600)
 
@@ -201,6 +219,7 @@ async function main() {
         if (cuerpo.mascara[i] && cambio.mascara[i]) tapados++
       }
       const pct = cuerpo.cuenta > 0 ? (100 * tapados) / cuerpo.cuenta : 0
+      const etiqueta = args.has('sin-esquivar') ? 'antes-' : ''
       if (args.has('fotos') && paso <= Number(args.get('fotos'))) {
         // La foto manda sobre el número: se pinta EN VERDE la tinta del cuerpo que el
         // cartel se come, sobre la pantalla tal y como la ve el asesorado.
@@ -212,9 +231,9 @@ async function main() {
             tinta[i * 3 + 2] = 90
           }
         }
-        writeFileSync(join(RAIZ, 'informes', `sala-${paso}-con.png`), codificarPngRgb(R.ancho, R.alto, R.rgb))
-        writeFileSync(join(RAIZ, 'informes', `sala-${paso}-sin.png`), codificarPngRgb(P.ancho, P.alto, P.rgb))
-        writeFileSync(join(RAIZ, 'informes', `sala-${paso}-tapado.png`), codificarPngRgb(R.ancho, R.alto, tinta))
+        writeFileSync(join(RAIZ, 'informes', `sala-${etiqueta}${paso}-con.png`), codificarPngRgb(R.ancho, R.alto, R.rgb))
+        writeFileSync(join(RAIZ, 'informes', `sala-${etiqueta}${paso}-sin.png`), codificarPngRgb(P.ancho, P.alto, P.rgb))
+        writeFileSync(join(RAIZ, 'informes', `sala-${etiqueta}${paso}-tapado.png`), codificarPngRgb(R.ancho, R.alto, tinta))
       }
       filas.push({
         azimut: escena.azimut,
