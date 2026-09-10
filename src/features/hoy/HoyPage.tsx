@@ -10,9 +10,9 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
-import { CribadoForm } from '../cribado/CribadoForm'
+import { CribadoForm, hayBorradorDeCribado } from '../cribado/CribadoForm'
 import { necesitaCribado } from '../cribado/necesitaCribado'
-import { preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
+import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
@@ -44,8 +44,14 @@ export default function HoyPage() {
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
+  // Las de la cadena NO se cuentan aquí: ya tienen su propia tarjeta arriba
+  // (`TarjetaPregunta`), y contarlas otra vez hace que la misma pantalla pida dos veces
+  // lo mismo — una vez como pregunta y otra como «1 cuestionario por responder», que
+  // además manda a otra pantalla. Es la misma regla que ya se aplicó al check-in y a los
+  // mensajes del coach tres líneas más abajo.
   const cuestionariosPendientes = db.cuestionarios
     .asignadosA(usuario.id)
+    .filter((q) => !esDeLaCadena(q))
     .filter((q) => !db.cuestionarios.respuestasDe(usuario.id).some((r) => r.cuestionarioId === q.id))
 
   // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
@@ -138,15 +144,31 @@ export default function HoyPage() {
           que va por delante de casi todo en la jerarquía del método. Que el cribado
           sin contestar impida ENTRENAR o solo impida PROGRAMAR es una regla que
           todavía no está escrita; hasta que lo esté, se pide primero y se deja pasar. */}
-      {necesitaCribado(db, usuario) && (
+      {(necesitaCribado(db, usuario) || hayBorradorDeCribado(usuario.id)) && (
         <div className="entrada entrada-2">
-          <CribadoForm usuarioId={usuario.id} contestar={db.cribado.contestar} hoyIso={hoy} />
+          {/* La tarjeta NO se retira a media pregunta. Mientras haya borrador empezado
+              sigue en pantalla, y si entretanto llegó la ficha que volcó el coach se lo
+              dice —`yaNoHaceFalta`— en vez de esfumarse. Antes se apagaba con
+              `necesitaCribado`, y quien estuviera contestando las doce preguntas de
+              salud veía desaparecer el formulario sin una palabra. */}
+          <CribadoForm
+            usuarioId={usuario.id}
+            contestar={db.cribado.contestar}
+            hoyIso={hoy}
+            yaNoHaceFalta={!necesitaCribado(db, usuario)}
+          />
         </div>
       )}
 
       {preguntaPendiente && (
         <div className="entrada entrada-2">
+          {/* El `key` NO es decoración: sin él, React reutiliza la misma tarjeta cuando
+              cambia la pregunta y se queda con lo que ya había escrito dentro. Las
+              preguntas que escribe la cadena numeran sus casillas igual (`p1`, `p2`), así
+              que la siguiente aparecería RELLENADA con las respuestas de la anterior y
+              con el botón activo: un toque y se manda lo que contestó a otra cosa. */}
           <TarjetaPregunta
+            key={preguntaPendiente.id}
             pregunta={preguntaPendiente}
             onResponder={(valores) =>
               db.cuestionarios.responder(preguntaPendiente.id, usuario.id, valores)

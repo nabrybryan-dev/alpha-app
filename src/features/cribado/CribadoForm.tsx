@@ -125,15 +125,43 @@ const VACIO: Borrador = { respuestas: {}, detalle: {} }
 /** Una clave por persona: en un teléfono compartido, el borrador de una no es el de la otra. */
 const claveBorrador = (usuarioId: string) => `alpha-cribado-${usuarioId}`
 
+/**
+ * ¿Esta persona tiene el cribado empezado y sin terminar?
+ *
+ * Lo pregunta HoyPage para NO desmontarle el formulario a media pregunta. Hasta hoy la
+ * tarjeta se pintaba solo mientras `necesitaCribado` fuera cierto, y esa condición se
+ * apaga en cuanto llega de arriba la ficha que volcó el coach: quien estuviera
+ * contestando las doce preguntas veía **desaparecer el formulario sin una palabra**, y el
+ * aviso escrito para ese caso exacto —«esto ya estaba contestado»— no llegaba a
+ * renderizarse nunca, porque hace falta pulsar «Responder» para producirlo.
+ */
+export function hayBorradorDeCribado(usuarioId: string): boolean {
+  const b = leerJSON<Borrador>(claveBorrador(usuarioId), VACIO)
+  return Object.keys(b.respuestas).length > 0
+}
+
 interface CribadoFormProps {
   usuarioId: string
+  /**
+   * La ficha ya está arriba: contestar no serviría de nada.
+   *
+   * No se descubre desde dentro —quien lo sabe es el padre, que es el que consulta
+   * `necesitaCribado`—, y hace falta decirlo en vez de desmontar la tarjeta.
+   */
+  yaNoHaceFalta?: boolean
   /** Se llama solo cuando la respuesta quedó guardada de verdad. */
   onGuardado?: () => void
   contestar: (cribado: Cribado) => ResultadoCribado
   hoyIso: string
 }
 
-export function CribadoForm({ usuarioId, onGuardado, contestar, hoyIso }: CribadoFormProps) {
+export function CribadoForm({
+  usuarioId,
+  onGuardado,
+  contestar,
+  hoyIso,
+  yaNoHaceFalta,
+}: CribadoFormProps) {
   const [borrador, setBorrador] = useState<Borrador>(() =>
     leerJSON<Borrador>(claveBorrador(usuarioId), VACIO),
   )
@@ -214,7 +242,7 @@ export function CribadoForm({ usuarioId, onGuardado, contestar, hoyIso }: Cribad
     }
   }
 
-  if (aviso === 'ya_estaba') {
+  if (aviso === 'ya_estaba' || yaNoHaceFalta) {
     return (
       <div role="status" className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
         <p className="font-display text-base text-texto">Esto ya estaba contestado</p>

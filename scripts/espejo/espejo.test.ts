@@ -119,6 +119,35 @@ describe('el seed de Valentina no dispara ningún aviso', () => {
     const espejo = espejar(activo as Microciclo, activo!.fechaInicio)
     expect(claves(espejo.avisos)).toEqual([])
   })
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Y SALE LIMPIO CUALQUIER DÍA DE LA SEMANA, que es lo que faltaba.
+  //
+  // El seed construye su microciclo activo con `fechaInicio: diasAtras(7)`, así que
+  // arranca SIEMPRE en el día de la semana en que se corran las pruebas. Con la regla
+  // vieja, un arranque de jueves a sábado dejaba menos huecos que sesiones sueltas y
+  // saltaba `descanso-en-cadencia`: la prueba de arriba estaba verde de domingo a
+  // miércoles y roja el resto, y la comprobación automática se limitó a tener suerte
+  // con el calendario. Fijar «hoy» no basta —el seed no lo mira—: hay que recorrer los
+  // siete arranques.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const SIETE_ARRANQUES = [
+    '2026-09-07', // lunes
+    '2026-09-08', // martes
+    '2026-09-09', // miércoles
+    '2026-09-10', // jueves
+    '2026-09-11', // viernes
+    '2026-09-12', // sábado
+    '2026-09-13', // domingo
+  ]
+
+  for (const arranque of SIETE_ARRANQUES) {
+    it(`sigue limpio arrancando el ${arranque}`, () => {
+      const activo = microciclosValentina.find((m) => m.estado === 'activo') as Microciclo
+      const espejo = espejar({ ...activo, fechaInicio: arranque }, arranque)
+      expect(claves(espejo.avisos)).toEqual([])
+    })
+  }
 })
 
 describe('aviso · sesión vacía sin bloques', () => {

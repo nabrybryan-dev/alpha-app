@@ -184,8 +184,32 @@ export function avisosDe(micro: Microciclo, dias: DiaDelEspejo[], nota?: string)
   // llegaron a la rejilla. Una semana de cuatro sesiones tiene días de descanso
   // legítimos; lo que no es legítimo es que una sesión programada no se vea en
   // ninguna parte, que es lo que dejó catorce cuentas en blanco el 6-sep.
+  //
+  // Y SOLO SE MIRA SI LA CADENCIA CABE EN LA REJILLA QUE SE ESTÁ PINTANDO. El espejo
+  // enseña UNA semana —siete casillas— y un microciclo puede durar ocho días o más, así
+  // que una cadencia que empieza un jueves deja cuatro huecos para las sesiones de esa
+  // semana y las demás caen, legítimamente, en la siguiente. Antes se contaban como
+  // perdidas: el aviso saltaba en planes correctos, y el test del seed pasaba o fallaba
+  // SEGÚN EL DÍA DE LA SEMANA en que se corriera (verde de domingo a miércoles, rojo de
+  // jueves a sábado). Un guardián que depende del calendario no vigila: sortea.
+  const ultimoDeLaCadencia = ultimoDia(micro)
+  const laCadenciaCabe =
+    !ultimoDeLaCadencia || dias.some((d) => d.dia.fechaIso >= ultimoDeLaCadencia)
   const colocadas = new Set(dias.map((d) => d.dia.sesionId).filter(Boolean) as string[])
-  const perdidas = micro.sesiones.filter((s) => !colocadas.has(s.id))
+  const perdidas = micro.sesiones.filter(
+    (s) =>
+      !colocadas.has(s.id) &&
+      // Una sesión que NOMBRA su día y no aparece es un fallo siempre: su sitio está
+      // decidido y no lo ocupó, así que no va a salir más adelante. Son los dos casos
+      // reales que esto vigila —dos sesiones peleando por el lunes, y la sesión de un
+      // día anterior al arranque del 24-ago—.
+      //
+      // Una sesión SIN día se reparte por orden en los huecos que queden, así que el
+      // sobrante cae en la semana siguiente y eso es correcto. Solo se cuenta como
+      // perdida cuando la cadencia entera cabe en esta rejilla: entonces no hay semana
+      // siguiente donde pueda salir.
+      (Boolean(s.dia) || laCadenciaCabe),
+  )
   if (perdidas.length > 0) {
     const enBlanco = dias
       .filter((d) => !d.dia.sesionId && dentroDeLaCadencia(micro, d.dia.fechaIso))

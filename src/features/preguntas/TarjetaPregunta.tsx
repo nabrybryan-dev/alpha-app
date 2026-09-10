@@ -36,6 +36,24 @@ interface TarjetaPreguntaProps {
 
 export function TarjetaPregunta({ pregunta, onResponder }: TarjetaPreguntaProps) {
   const [valores, setValores] = useState<Record<string, string>>({})
+
+  // CADA CUESTIONARIO EMPIEZA VACÍO, y hasta hoy no era así.
+  //
+  // Si el padre reutiliza esta tarjeta para la pregunta siguiente, `valores` conserva lo
+  // que se escribió en la anterior. Las preguntas que redacta la cadena numeran sus
+  // casillas igual (`p1`, `p2`), así que la nueva aparecía RELLENADA con las respuestas
+  // de otra y con el botón ya activo: un toque y se enviaba lo que contestó a otra cosa.
+  // HoyPage pasa un `key` para forzar el remontaje, y esto lo garantiza además desde
+  // dentro, para que no dependa de que el siguiente sitio que la use se acuerde.
+  //
+  // Es ajuste de estado DURANTE el render —el patrón que React documenta para «resetear
+  // al cambiar una prop»— y no un efecto: `react-hooks/set-state-in-effect` es error en
+  // este repo, y con razón.
+  const [idPintado, setIdPintado] = useState(pregunta.id)
+  if (idPintado !== pregunta.id) {
+    setIdPintado(pregunta.id)
+    setValores({})
+  }
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState(false)
   const [intento, setIntento] = useState(false)
@@ -112,7 +130,13 @@ export function TarjetaPregunta({ pregunta, onResponder }: TarjetaPreguntaProps)
             </div>
           )}
 
-          {p.tipo === 'texto' && (
+          {/* LA RED DE ABAJO, y no es una cortesía: una pregunta que no se puede
+              contestar deja el cuestionario imposible de enviar, y como la app solo
+              enseña el PRIMER pendiente, esconde todas las siguientes para siempre. La
+              cadena redacta estas preguntas sola y el blob entra sin validar, así que un
+              `opcion_multiple` sin sus `opciones` es cuestión de tiempo. Con la red, la
+              persona puede contestarlo escribiendo. */}
+          {(p.tipo === 'texto' || (p.tipo === 'opcion_multiple' && !p.opciones)) && (
             <textarea
               value={valores[p.id] ?? ''}
               onChange={(e) => responder(p.id, e.target.value)}

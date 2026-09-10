@@ -42,6 +42,25 @@ export {
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
 
+/**
+ * `medicacionCronica` → `medicacion_cronica`, para las claves de un objeto suelto.
+ *
+ * Se calcula en vez de escribirse a mano en una tabla porque una tabla paralela se
+ * queda vieja el día que alguien añade una pregunta al cribado, y ese día el dato
+ * nuevo desaparece sin que falle nada. La regla es la misma que ya usa el resto del
+ * payload, escrita una vez: `enColumnas` la aplica y su test la fija contra los
+ * nombres que declara la migración 0058.
+ */
+export function enColumnas(objeto: Record<string, string> | undefined) {
+  if (!objeto) return objeto
+  return Object.fromEntries(
+    Object.entries(objeto).map(([clave, valor]) => [
+      clave.replace(/[A-Z]/g, (letra) => `_${letra.toLowerCase()}`),
+      valor,
+    ]),
+  )
+}
+
 /** La fila de `mensajes` tal como viaja a Supabase. */
 function encolarFilaDeMensaje(mensaje: Mensaje): void {
   encolar({
@@ -566,7 +585,14 @@ export function crearDbSincronizada(local: Db): Db {
               parq_enfermedad_cardiaca: cribado.parqEnfermedadCardiaca ?? null,
               parq_medicamento_presion: cribado.parqMedicamentoPresion ?? null,
               parq_huesos_articulaciones: cribado.parqHuesosArticulaciones ?? null,
-              detalle: cribado.detalle,
+              // EL DETALLE TAMBIÉN SE TRADUCE, y no se traducía. Sus claves son los
+              // nombres del dominio (`medicacionCronica`) y la 0058 documenta esa
+              // columna con los nombres de la BASE (`medicacion_cronica`) porque el
+              // volcado del cerebro la lee sin traducir. Tal cual iba, la medicación de
+              // quien contesta por la app no la encontraba nadie: el mismo dato con dos
+              // nombres, que es el fallo de la casa. La traducción vive SOLO en esta
+              // costura, como la de `techo_carga_kg` en el cerebro.
+              detalle: enColumnas(cribado.detalle),
             },
           },
         })
