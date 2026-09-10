@@ -26,14 +26,14 @@
 
 /** Los cinco escalones del eje W, en el orden en que se atraviesan de fuera a dentro. */
 export const CAPAS_W = [
-  { w: 0, id: 'piel', nombre: 'Piel' },
+  { w: 0, id: 'anatomia', nombre: 'Anatomía muscular' },
   { w: 1, id: 'musculo-superficial', nombre: 'Músculo superficial' },
   { w: 2, id: 'musculo-profundo', nombre: 'Músculo profundo' },
-  { w: 3, id: 'tendon', nombre: 'Tendón y tejido pasivo' },
+  { w: 3, id: 'tendon', nombre: 'Tejido pasivo · esquema' },
   { w: 4, id: 'hueso', nombre: 'Hueso' },
 ] as const
 
-/** Un escalón del eje W. `0` es la piel y `4` el hueso; no hay medias capas. */
+/** Un escalón del eje W. `0` es anatomía muscular y `4` el hueso. */
 export type NivelW = 0 | 1 | 2 | 3 | 4
 
 /**
