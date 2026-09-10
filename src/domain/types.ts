@@ -409,6 +409,20 @@ export interface CheckinDiario {
   id: string
   usuarioId: string
   fecha: string
+  /**
+   * A qué hora se acostó y a qué hora se levantó, en formato `HH:MM` y hora
+   * local de la persona. Opcionales: el check-in no se bloquea por ellas.
+   *
+   * No sustituyen a `horasSueno`, la acompañan. `horasSueno` dice CUÁNTO y
+   * estas dicen CUÁNDO, que es lo único con lo que se puede calcular el índice
+   * de regularidad del sueño: ocho horas de 23:00 a 07:00 y ocho horas de
+   * 03:00 a 11:00 son el mismo número y dos vidas distintas.
+   *
+   * Viajan dentro del `datos` jsonb del check-in, así que NO necesitan
+   * migración: la nube guarda el objeto entero.
+   */
+  horaAcostarse?: string
+  horaLevantarse?: string
   pesoKg?: number
   pasos?: number
   entreno?: string
