@@ -481,7 +481,14 @@ export async function hidratarDesdeNube(): Promise<void> {
     // Migración 0058. El asesorado lee la SUYA —`cribado_lee_lo_suyo` existe para
     // eso— y su app la necesita para saber si ya contestó: sin bajarla le volvería a
     // pedir el cribado en cada dispositivo. El coach las baja todas.
-    pedir('cribado', () => sb.from('cribado').select('usuario_id,fecha,fuente,diagnostico,quien_lo_lleva,tratamiento_activo,medicacion_cronica,autorizacion_sanitaria,restricciones_explicitas,sintomas_con_esfuerzo,nivel_funcional,que_le_han_dicho_que_no_haga,parq_enfermedad_cardiaca,parq_medicamento_presion,parq_huesos_articulaciones,detalle,actualizado_en')),
+    //
+    // Y se lee de `cribado_vigente`, no de la tabla (0062): la tabla guarda TODA la
+    // historia —cada vez que alguien vuelve a contestar queda una fila nueva— y lo que
+    // el teléfono necesita es la que manda hoy. Bajarlas todas haría que el almacén
+    // local tuviera varias por persona y que `byUsuario` dependiera del orden en que
+    // llegaran. La vista va con `security_invoker`, así que la RLS sigue mandando igual
+    // que sobre la tabla.
+    pedir('cribado', () => sb.from('cribado_vigente').select('usuario_id,fecha,fuente,diagnostico,quien_lo_lleva,tratamiento_activo,medicacion_cronica,autorizacion_sanitaria,restricciones_explicitas,sintomas_con_esfuerzo,nivel_funcional,que_le_han_dicho_que_no_haga,parq_enfermedad_cardiaca,parq_medicamento_presion,parq_huesos_articulaciones,detalle,actualizado_en')),
   ])
 
   /**

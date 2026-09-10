@@ -805,21 +805,29 @@ export function crearMockDb(): Db {
     },
 
     cribado: {
+      // LA ÚLTIMA, no la primera (0062). La tabla guarda la historia y manda la más
+      // reciente: aquí el array está en orden de llegada, así que la última es la
+      // vigente. Con `find` se devolvía la más VIEJA, que es exactamente lo contrario
+      // de lo que se decidió — y sobre salud significaría leer la medicación de antes.
       byUsuario: (usuarioId) =>
-        (ref.actual.cribados ?? []).find((c) => c.usuarioId === usuarioId),
+        (ref.actual.cribados ?? []).findLast((c) => c.usuarioId === usuarioId),
       contestar: (cribado) => {
-        // Se contesta UNA vez. Si ya hay fila, se deja la que está: cambiar una
-        // respuesta es del coach, no de quien la contestó (0058). Sin esta guarda, un
-        // segundo envío —un doble toque, una pantalla que se remonta— reescribiría un
-        // dato que es una puerta clínica.
+        // Contestar OTRA VEZ es legítimo, y es la razón de ser de la 0062: quien sabe
+        // que empezó una medicación esta semana es la persona, no el expediente de hace
+        // un mes. Antes se descartaba su respuesta y se le decía `ya_estaba`; ahora se
+        // guarda al lado, sin pisar la anterior, y manda la nueva.
         //
-        // Pero NO se calla: devuelve `ya_estaba` para que la pantalla pueda decirlo. Un
-        // rechazo silencioso sobre un dato de salud es peor que un error a la vista,
-        // porque la persona se va creyendo que contestó.
-        const yaEstaba = (ref.actual.cribados ?? []).some(
-          (c) => c.usuarioId === cribado.usuarioId,
+        // Lo único que se sigue descartando es el duplicado EXACTO del mismo día: eso
+        // no es un cambio, es un doble toque o una pantalla que se remontó. Y tampoco
+        // se calla —devuelve `ya_estaba`—, porque un rechazo silencioso sobre un dato
+        // de salud es peor que un aviso a la vista.
+        const mismaHoy = (ref.actual.cribados ?? []).some(
+          (c) =>
+            c.usuarioId === cribado.usuarioId &&
+            c.fecha === cribado.fecha &&
+            JSON.stringify(c) === JSON.stringify(cribado),
         )
-        if (yaEstaba) return 'ya_estaba'
+        if (mismaHoy) return 'ya_estaba'
         mutar((estado) => ({
           ...estado,
           cribados: [...(estado.cribados ?? []), cribado],

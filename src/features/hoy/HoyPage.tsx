@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
@@ -10,7 +11,8 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
-import { CribadoForm, hayBorradorDeCribado } from '../cribado/CribadoForm'
+import { hayBorradorDeCribado } from '../cribado/borrador'
+import { CribadoForm } from '../cribado/CribadoForm'
 import { necesitaCribado } from '../cribado/necesitaCribado'
 import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
@@ -41,6 +43,12 @@ export default function HoyPage() {
   const sugerida = microciclo ? sesionDestacada(armarSemana(microciclo, hoy)) : undefined
   const siguienteSesion = microciclo?.sesiones.find((s) => s.id === sugerida?.sesionId)
   const preguntaPendiente = preguntaDelDia(db, usuario.id)
+  // Volver a contestar el cribado es cosa suya y hay que dejarle la puerta abierta: desde
+  // la 0062 la respuesta nueva se guarda al lado de la vieja y manda la más reciente, pero
+  // si nadie le ofrece dónde decirlo, un cambio de medicación se queda en su cabeza. El
+  // formulario solo aparece solo la PRIMERA vez —cuando no hay ficha—, así que después
+  // hace falta esta puerta.
+  const [actualizandoSalud, setActualizandoSalud] = useState(false)
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
@@ -144,18 +152,35 @@ export default function HoyPage() {
           que va por delante de casi todo en la jerarquía del método. Que el cribado
           sin contestar impida ENTRENAR o solo impida PROGRAMAR es una regla que
           todavía no está escrita; hasta que lo esté, se pide primero y se deja pasar. */}
-      {(necesitaCribado(db, usuario) || hayBorradorDeCribado(usuario.id)) && (
+      {usuario.rol === 'asesorado' &&
+        !necesitaCribado(db, usuario) &&
+        !actualizandoSalud &&
+        !hayBorradorDeCribado(usuario.id) && (
+          <p className="entrada entrada-2 text-sm text-tenue">
+            ¿Ha cambiado algo en tu salud —una medicación nueva, una molestia, algo que te
+            hayan dicho—?{' '}
+            <button
+              type="button"
+              onClick={() => setActualizandoSalud(true)}
+              className="font-bold text-texto underline underline-offset-2"
+            >
+              Cuéntanoslo
+            </button>
+          </p>
+        )}
+
+      {(necesitaCribado(db, usuario) || actualizandoSalud || hayBorradorDeCribado(usuario.id)) && (
         <div className="entrada entrada-2">
-          {/* La tarjeta NO se retira a media pregunta. Mientras haya borrador empezado
-              sigue en pantalla, y si entretanto llegó la ficha que volcó el coach se lo
-              dice —`yaNoHaceFalta`— en vez de esfumarse. Antes se apagaba con
-              `necesitaCribado`, y quien estuviera contestando las doce preguntas de
-              salud veía desaparecer el formulario sin una palabra. */}
+          {/* La tarjeta NO se retira a media pregunta: mientras haya borrador empezado
+              sigue en pantalla. Antes se apagaba con `necesitaCribado`, que se vuelve
+              falso en cuanto llega de arriba la ficha que volcó el coach, y quien
+              estuviera contestando las doce preguntas de salud veía desaparecer el
+              formulario sin una palabra. Desde la 0062 su respuesta además se guarda
+              igual, al lado de la del coach y con su fecha. */}
           <CribadoForm
             usuarioId={usuario.id}
             contestar={db.cribado.contestar}
             hoyIso={hoy}
-            yaNoHaceFalta={!necesitaCribado(db, usuario)}
           />
         </div>
       )}

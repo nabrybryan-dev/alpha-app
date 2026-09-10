@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Chip } from '../../components/ui/Chip'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
+import { claveBorrador, VACIO, type Borrador } from './borrador'
 import type { ResultadoCribado } from '../../data/repos'
 import type { Cribado, EstadoCribado } from '../../domain/types'
 
@@ -115,40 +116,8 @@ const PARQ: readonly PreguntaCribado[] = [
 
 const TODAS = [...NUEVE, ...PARQ]
 
-interface Borrador {
-  respuestas: Record<string, 'si' | 'no'>
-  detalle: Record<string, string>
-}
-
-const VACIO: Borrador = { respuestas: {}, detalle: {} }
-
-/** Una clave por persona: en un teléfono compartido, el borrador de una no es el de la otra. */
-const claveBorrador = (usuarioId: string) => `alpha-cribado-${usuarioId}`
-
-/**
- * ¿Esta persona tiene el cribado empezado y sin terminar?
- *
- * Lo pregunta HoyPage para NO desmontarle el formulario a media pregunta. Hasta hoy la
- * tarjeta se pintaba solo mientras `necesitaCribado` fuera cierto, y esa condición se
- * apaga en cuanto llega de arriba la ficha que volcó el coach: quien estuviera
- * contestando las doce preguntas veía **desaparecer el formulario sin una palabra**, y el
- * aviso escrito para ese caso exacto —«esto ya estaba contestado»— no llegaba a
- * renderizarse nunca, porque hace falta pulsar «Responder» para producirlo.
- */
-export function hayBorradorDeCribado(usuarioId: string): boolean {
-  const b = leerJSON<Borrador>(claveBorrador(usuarioId), VACIO)
-  return Object.keys(b.respuestas).length > 0
-}
-
 interface CribadoFormProps {
   usuarioId: string
-  /**
-   * La ficha ya está arriba: contestar no serviría de nada.
-   *
-   * No se descubre desde dentro —quien lo sabe es el padre, que es el que consulta
-   * `necesitaCribado`—, y hace falta decirlo en vez de desmontar la tarjeta.
-   */
-  yaNoHaceFalta?: boolean
   /** Se llama solo cuando la respuesta quedó guardada de verdad. */
   onGuardado?: () => void
   contestar: (cribado: Cribado) => ResultadoCribado
@@ -160,7 +129,6 @@ export function CribadoForm({
   onGuardado,
   contestar,
   hoyIso,
-  yaNoHaceFalta,
 }: CribadoFormProps) {
   const [borrador, setBorrador] = useState<Borrador>(() =>
     leerJSON<Borrador>(claveBorrador(usuarioId), VACIO),
@@ -242,13 +210,18 @@ export function CribadoForm({
     }
   }
 
-  if (aviso === 'ya_estaba' || yaNoHaceFalta) {
+  // Desde la 0062 volver a contestar SÍ guarda: la respuesta nueva se pone al lado de la
+  // vieja y manda la más reciente. Así que `yaNoHaceFalta` ya no manda a este aviso —si
+  // la ficha del coach llegó mientras ella contestaba, lo suyo se guarda igual— y lo
+  // único que queda aquí es el duplicado exacto del mismo día: un doble toque.
+  if (aviso === 'ya_estaba') {
     return (
       <div role="status" className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
-        <p className="font-display text-base text-texto">Esto ya estaba contestado</p>
+        <p className="font-display text-base text-texto">Esto ya lo habías contestado hoy</p>
         <p className="mt-1 text-sm text-tenue">
-          Tu coach ya tiene tus respuestas, así que no hemos guardado estas. Si algo ha cambiado
-          en tu salud, escríbeselo por el chat: cambiarlo lo hace él.
+          Nos has mandado exactamente las mismas respuestas, así que no hemos apuntado una copia.
+          Tu coach ya las tiene. Si algo cambia más adelante, vuelve por aquí y cuéntalo: se
+          guarda con su fecha y él ve qué cambió.
         </p>
       </div>
     )
