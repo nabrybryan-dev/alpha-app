@@ -1033,4 +1033,16 @@ select '0057 - el asesorado estrena su ficha', 'registrar_medida existe y proteg
                  and p.prosrc like '%usuarioId%')
        then 'SI' else 'NO' end
 
+union all
+-- La 0060: activar es UNA operación. Se pide la función Y que no la pueda llamar la
+-- clave anónima, porque `create function` concede EXECUTE a PUBLIC y sin el revoke la
+-- puerta queda abierta aunque la RLS pare las escrituras. Con la función sin el revoke
+-- diría NO, que es lo que se quiere: media migración aplicada no es aplicada.
+select '0060 - activar microciclo en una operacion', 'activar_microciclo existe y anon no puede llamarla',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'activar_microciclo'
+                 and not has_function_privilege('anon', p.oid, 'execute'))
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
