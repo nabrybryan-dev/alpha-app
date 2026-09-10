@@ -35,6 +35,7 @@ import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
+import { BANDA_DE_SESION, SUELO_DE_LOS_CARTELES } from './estaciones/sitioDelCartel'
 import { huellaDeReferencia } from './paredes/huellaDeReferencia'
 import { leerHuellaArticular } from '../encoder/huellasArticulares'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
@@ -478,6 +479,24 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   // Estable a propósito: viaja al efecto que monta el WebGL del visor, y una función nueva
   // por render lo remontaría —contexto incluido— en cada fotograma.
   const modoDeLaCamara = useCallback((x: number, y: number) => modoDelDedo(cuerpoRef.current, x, y), [])
+  /** El mismo cuadro, para que las estaciones no dibujen encima del sujeto. */
+  const leerElCuerpo = useCallback(() => cuerpoRef.current, [])
+  /**
+   * DE DÓNDE A DÓNDE PUEDE VIVIR UN CARTEL DE ESTACIÓN.
+   *
+   * Arriba, por debajo de la banda de la sesión, que es texto y el criterio 3 del kit
+   * prohíbe pisarlo igual que al sujeto. Abajo, por encima del tirador del panel y de la
+   * barra de navegación: un cartel escondido detrás del panel no tapa al sujeto, pero
+   * tampoco se lee, y eso es incumplir el mismo criterio por el otro lado.
+   */
+  const marcoDeLosCarteles = useMemo(
+    () => ({
+      arriba: BANDA_DE_SESION,
+      abajo: lienzo.alto - SUELO_DE_LOS_CARTELES,
+      ancho: lienzo.ancho,
+    }),
+    [lienzo.alto, lienzo.ancho],
+  )
 
   // El lienzo se mide del DOM y no se supone: la distancia focal sale de su alto, y con
   // un alto supuesto los cuadros caerían en un sitio y la sala se dibujaría en otro.
@@ -865,6 +884,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             ejercicio={ejercicio}
             azimut={camara.azimut - (patron?.camara.azimut ?? 0)}
             suelo={Math.round(lienzo.alto * 0.78)}
+            // EL CUERPO, PARA NO PINTARLE ENCIMA. Es el mismo cuadro con el que el dedo
+            // sabe si está sobre el sujeto, y viaja como función porque cambia en cada
+            // fotograma: leerlo como prop repintaría las estaciones sesenta veces por
+            // segundo. Ver `estaciones/sitioDelCartel.ts` para lo que se midió.
+            cuerpo={leerElCuerpo}
+            marco={marcoDeLosCarteles}
             foco={estacionFija}
             onEnfocar={(clave) => setEstacionFija((v) => (v === clave ? undefined : clave))}
           />
