@@ -14,6 +14,7 @@ import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
+import { PedirPermiso } from '../avisos/PedirPermiso'
 import { CabeceraSemanal } from '../chat/CabeceraSemanal'
 import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
@@ -128,6 +129,12 @@ export default function HoyPage() {
           dejó el registro de comidas roto durante semanas. */}
       <div className="entrada entrada-2">
         <AvisoSinSincronizar usuarioId={usuario.id} />
+      </div>
+
+      {/* Se pregunta UNA vez y no se insiste: quien ya contestó no lo vuelve a
+          ver. El permiso del navegador es de una sola bala. */}
+      <div className="entrada entrada-2">
+        <PedirPermiso usuarioId={usuario.id} />
       </div>
 
       {/* La revisión de la semana, ANTES de cualquier otra cosa y sin tener que

@@ -151,6 +151,44 @@ estrés.
 Los seis recados del día y la red que baja el cupo (dependen del mapa de vida), y cualquier
 recomendación de sueño que no pueda señalar el dato que la sostiene.
 
+
+## Tarea 3 — la conversacion que aprende su estilo de vida
+
+Encargada por Bryan el 10-sep, en paralelo a los avisos. Es la pieza de la que cuelgan los
+recados del dia: **preguntarle a cada persona como vive, y usar eso para hablarle cuando le
+sirve**, en vez de a la hora que nos venga bien.
+
+### La regla que lo hace corto y honesto
+
+**Cada pregunta lleva escrito al lado que mensaje dispara y a que hora. La pregunta que no
+tenga mensaje detras se cae de la encuesta.** Eso lo convierte de «recojo datos por si
+acaso» en «recojo exactamente lo que voy a usar», y de paso la acorta — que es la mitad del
+problema de cualquier encuesta.
+
+Lo que si se puede preguntar sin aparatos y es palanca de verdad: a que hora se levanta y
+se acuesta, cuando come por primera y ultima vez, a que hora entrena, cuanto sol le da por
+la manana, cuanto cafe toma y cuando se le junta el estres. Lo que **no** se puede saber
+—cortisol, melatonina, temperatura interna, glucosa— no se nombra: [[la regla de la tarea
+2]] vale igual aqui.
+
+### Empezar por lo pequeno, y contar desde el primer dia
+
+Los seis recados diarios son el ultimo eslabon y dependen del mapa, del disparador y de los
+avisos. **La version que no depende de nada y va primero: UN solo recado al dia, a una hora
+que elige la persona.** Sin mapa, sin modelo, sin nada. Ejercita la cadena entera —permiso,
+empuje, respuesta de un toque— con la decima parte del trabajo, y dice cuanta gente
+contesta antes de invertir en los seis.
+
+**El contador se pone desde el primer recado**, aunque la red que baja el cupo no se
+construya hasta mucho despues: contar es gratis, y puesto mas tarde hay que esperar otra vez
+a que se llene.
+
+### Las dos medidas que dicen si esto va bien o mal
+
+La primera la dijo Bryan: **cuantos contestan**. La segunda es mas dura y mas util:
+**cuantos lo silencian**. Contestar mucho puede ser educacion; silenciar no es nunca un
+accidente. Si el segundo sube, da igual lo bien escrito que este el mensaje.
+
 ## Qué NO entra en esta obra
 
 Los seis recados del día (dependen del mapa, del disparador y de los avisos), la red que
