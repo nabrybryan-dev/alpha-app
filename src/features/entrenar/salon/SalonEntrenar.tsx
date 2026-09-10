@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { ejercicioCompleto } from '../../../domain/cumplimiento'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
 import { patronDeLosBloques } from '../../../domain/patrones/bloqueDeCardio'
+import { esfuerzoDeTexto, patronConEsfuerzo } from '../../../domain/patrones/esfuerzoDelBloque'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import type {
   Competencia,
@@ -345,11 +346,29 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     () => patronDeLosBloques(sesionEnPantalla?.bloquesCardio),
     [sesionEnPantalla],
   )
-  const patron = useMemo(
+  /**
+   * EL RITMO ESCRITO SE VE EN EL CUERPO.
+   *
+   * Un trote de zona 2 y un intervalo a RPE 8 se veian identicos hasta el 2026-09-10: misma
+   * cadencia y misma amplitud, y la diferencia solo en una cifra del muro. Ahora la ficha
+   * del bloque se anima al esfuerzo que el coach escribio. Va en un `useMemo` con la ficha y
+   * el esfuerzo por dependencias y NO por render: el visor monta su WebGL con la ficha como
+   * dependencia, asi que un objeto nuevo cada vez recrearia el contexto entero.
+   */
+  const esfuerzoDelBloque = useMemo(
     () =>
-      ejercicio ? patronDeCategoria(ejercicio.categoria, ejercicio.nombre) : patronDelBloque,
-    [ejercicio, patronDelBloque],
+      esfuerzoDeTexto(
+        (sesionEnPantalla?.bloquesCardio ?? [])
+          .flatMap((b) => [b.titulo, b.indicaciones])
+          .filter(Boolean)
+          .join(' '),
+      ),
+    [sesionEnPantalla],
   )
+  const patron = useMemo(() => {
+    if (ejercicio) return patronDeCategoria(ejercicio.categoria, ejercicio.nombre)
+    return patronDelBloque ? patronConEsfuerzo(patronDelBloque, esfuerzoDelBloque) : undefined
+  }, [ejercicio, patronDelBloque, esfuerzoDelBloque])
   const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
   // EL MURO TAMBIÉN HABLA EN CARDIO. Sin contenido de pared no se monta el tablón, y hasta
   // el 2026-09-10 un día de cardio abría sin nombre y sin código de sala: la habitación
