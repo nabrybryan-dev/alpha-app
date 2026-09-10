@@ -52,6 +52,15 @@ export default function ChatPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-accion" aria-hidden="true" />
             {elegido.rol === 'coach' ? 'Línea directa' : 'Nutrición'}
           </p>
+          {/* Que el silencio no parezca una avería. En este hilo el Centro de
+              Respuestas NO contesta —es del coach y solo del coach—, y sin
+              decirlo se lee como que la app está rota. */}
+          {elegido.rol !== 'coach' && (
+            <p className="mt-1 text-[11px] leading-snug text-tenue">
+              {elegido.nombre.split(' ')[0]} te responde en persona. Aquí no hay respuestas
+              automáticas.
+            </p>
+          )}
         </div>
       </section>
 

@@ -6,7 +6,12 @@
  * que decide qué merece la atención de Bryan se puede probar sin montar nada.
  */
 
-export type ViaConsulta = 'ficha' | 'ficha_tentativa' | 'ia_vivo' | 'escalado'
+/**
+ * Por dónde salió la respuesta. `saludo` entró el 10-sep con su propia vía y no
+ * como `escalado`: contar los saludos como escalados inflaría justo el número
+ * que dice cuántas preguntas de verdad se le escapan al asistente.
+ */
+export type ViaConsulta = 'ficha' | 'ficha_tentativa' | 'ia_vivo' | 'escalado' | 'saludo'
 export type EstadoConsulta = 'criterio' | 'dudas' | 'resuelto'
 
 export interface Consulta {
