@@ -8,6 +8,8 @@ import { AdjuntoMensaje } from './AdjuntoMensaje'
 interface ConversacionProps {
   yoId: string
   otroId: string
+  /** Cómo se rotula el hilo. Depende de con quién se habla, no siempre del coach. */
+  titulo?: string
 }
 
 /**
@@ -32,7 +34,7 @@ function horaDe(fechaIso: string): string {
   return `${fecha.getDate()}/${fecha.getMonth() + 1} ${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`
 }
 
-export function Conversacion({ yoId, otroId }: ConversacionProps) {
+export function Conversacion({ yoId, otroId, titulo = 'Conversación con tu coach' }: ConversacionProps) {
   useDbVersion()
   const [texto, setTexto] = useState('')
   const [esperandoAlpha, setEsperandoAlpha] = useState(false)
@@ -116,7 +118,7 @@ export function Conversacion({ yoId, otroId }: ConversacionProps) {
         <div className="flex flex-col gap-2">
           {hilo.length > 0 && (
             <p className="mb-1 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-tenue">
-              Conversación con tu coach
+              {titulo}
             </p>
           )}
           {hilo.map((mensaje) => {
