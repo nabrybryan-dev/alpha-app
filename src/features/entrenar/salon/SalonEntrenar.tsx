@@ -27,7 +27,7 @@ import { implementosDeSesion } from './implementos/implementosDeSesion'
 import { capaTrasArrastre } from '../capas/gestoVertical'
 import { capaTrasHundir, ESCALON_MS, ESPERA, siguePresionando } from '../capas/hundirEnElCuerpo'
 import { SUELO_DEL_SALON, type NivelW } from './huecos'
-import { contenidoPared } from './paredes/contenidoPared'
+import { contenidoDelCardio, contenidoPared } from './paredes/contenidoPared'
 import { ParedesDelSalon } from './paredes/ParedesDelSalon'
 import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
 import { dedoEnElCuerpo, modoDelDedo, type CuadroEnPantalla } from './camara/dedoEnElCuerpo'
@@ -351,7 +351,17 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     [ejercicio, patronDelBloque],
   )
   const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
-  const contenido = useMemo(() => (ejercicio ? contenidoPared(ejercicio) : undefined), [ejercicio])
+  // EL MURO TAMBIÉN HABLA EN CARDIO. Sin contenido de pared no se monta el tablón, y hasta
+  // el 2026-09-10 un día de cardio abría sin nombre y sin código de sala: la habitación
+  // entera muda. El nombre en trazo sale del título de la ficha —«Carrera»—, que es el
+  // mismo que decide qué sujeto se pinta.
+  const contenido = useMemo(
+    () =>
+      ejercicio
+        ? contenidoPared(ejercicio)
+        : contenidoDelCardio(sesionEnPantalla?.bloquesCardio, patronDelBloque?.titulo),
+    [ejercicio, sesionEnPantalla, patronDelBloque],
+  )
   // El ritmo lleva dentro el tiempo del cronómetro, leído de donde lo guarda el propio
   // cronómetro: un segundo reloj daría dos duraciones de la misma sesión.
   //

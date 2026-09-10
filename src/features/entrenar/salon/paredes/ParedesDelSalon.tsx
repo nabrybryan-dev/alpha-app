@@ -156,6 +156,7 @@ export function ParedesDelSalon({
             contenido={contenido}
             sesion={sesion}
             ejercicio={ejercicio}
+            bloques={sesion?.bloquesCardio}
             cargaPrevia={cargaAnterior(microcicloPrevio, ejercicio)}
             modo={modo}
             anclas={anclas}
