@@ -82,9 +82,13 @@ describe('el chat del asesorado tiene dos remitentes', () => {
     expect(screen.getByRole('heading', { name: /Manuela/ })).toBeInTheDocument()
   })
 
-  it('deja sitio a la revisión de la semana encima de la conversación', async () => {
+  it('la revisión de la semana NO vive aquí: vive en Hoy, y no se duplica', async () => {
+    // Estuvo encima de la conversación unas horas del 10-sep. Bryan pidió que
+    // se viera sin entrar al chat, así que se mudó a Hoy; dejarla en las dos
+    // pantallas serían dos reproductores del mismo vídeo.
     await abrirChat()
-    expect(await screen.findByRole('region', { name: 'Tu revisión de la semana' })).toBeInTheDocument()
+    await screen.findByRole('tablist', { name: 'Con quién hablas' })
+    expect(screen.queryByRole('region', { name: 'Tu revisión de la semana' })).not.toBeInTheDocument()
   })
 
   it('el Centro de Respuestas es del coach: no contesta en el hilo de la nutricionista', async () => {

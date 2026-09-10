@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
-import { CabeceraSemanal } from './CabeceraSemanal'
 import { Conversacion } from './Conversacion'
 import { remitentesDe, tituloDe } from './remitentes'
 import { SelectorRemitente } from './SelectorRemitente'
 
 /**
- * La pantalla del chat del asesorado: arriba su revisión de la semana, debajo
- * la conversación con quien elija del equipo.
+ * La pantalla del chat del asesorado: la conversación con quien elija del
+ * equipo.
+ *
+ * La revisión de la semana **no** vive aquí: vive arriba de Hoy, para que se
+ * vea sin tener que entrar al chat (decisión de Bryan, 10-sep). Un segundo
+ * reproductor en esta pantalla sería el mismo vídeo dos veces.
  *
  * Ya NO clava el id del coach. Lo hizo hasta el 10-sep, y con eso la nutricionista
  * podía escribirle a un asesorado sin que el asesorado tuviera dónde
@@ -39,8 +42,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <CabeceraSemanal />
-
       <section className="entrada entrada-1 flex items-center gap-3">
         <span className="glass grid h-12 w-12 shrink-0 place-items-center rounded-full font-display text-sm text-rojo">
           {elegido.avatarIniciales}

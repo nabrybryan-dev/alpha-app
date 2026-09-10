@@ -2,11 +2,12 @@
 
 Diseñada con Bryan el **7 de septiembre** por la tarde y cerrada el **10**. Hasta hoy no
 existía en ningún archivo: vivía sólo dentro de una conversación, que es el sitio más
-frágil donde puede vivir un diseño. **De esto no hay todavía ni una línea de código.**
+frágil donde puede vivir un diseño. **El primer encargo ya está construido** (PR #236); los
+otros nueve son papel.
 
-Cómo funciona, en una frase: **arriba de la pantalla del chat va un vídeo fijo que no
-cambia nunca, y debajo una tarjeta que sí cambia cada semana**. El vídeo pone la cara, la
-voz y el tono; la tarjeta pone el nombre y los números de esa persona.
+Cómo funciona, en una frase: **nada más abrir la app va un vídeo fijo que no cambia
+nunca, y debajo una tarjeta que sí cambia cada semana**. El vídeo pone la cara, la voz y
+el tono; la tarjeta pone el nombre y los números de esa persona.
 
 ## Las cuatro filas de la tarjeta las dictó Bryan
 
@@ -18,11 +19,11 @@ cosas, y ésas son las filas:
 3. **a qué te estás acercando** — la fila de su plan estratégico y cuánto queda;
 4. **qué vamos a cambiar** — el ajuste de la semana que viene, y a qué darle respuesta.
 
-## Las once decisiones
+## Las doce decisiones
 
 Las ocho primeras son del 7-sep. **Cuatro de ellas se corrigieron esa misma tarde**, al
 oír el vídeo que mandó Bryan; un resumen que se quede en la foto de las 15:20 reconstruye
-un diseño que ya no es el vigente. Las tres últimas son del 10-sep.
+un diseño que ya no es el vigente. Las cuatro últimas son del 10-sep.
 
 | # | Quedó así | Nota |
 |---|---|---|
@@ -37,6 +38,7 @@ un diseño que ya no es el vigente. Las tres últimas son del 10-sep.
 | 9 | **Dos preguntas de sueño** en el check-in: a qué hora te acostaste, a qué hora te levantaste | |
 | 10 | El **molde de la voz** sale de **WhatsApp** | Corrige «de lo escrito dentro de la app» |
 | 11 | Se arranca por **la pantalla + las horas de sueño**; el permiso de avisos va de propina | 10-sep |
+| 12 | El vídeo vive **en Hoy, nada más abrir la app**, y debajo el cuadro para escribirle al coach o a la nutricionista | 10-sep. Corrige «arriba de la pantalla del chat»: **no se puede pedir que entren al chat para ver el vídeo**. La tarjeta va con él, y en el chat no queda ningún reproductor |
 
 ## Lo que ya existe y no hay que construir
 
@@ -56,7 +58,7 @@ volver a mirarlos el día que se escriba cada una**: el número no es parte del 
 
 | Encargo | ENTREGABLE | FORMATO | ACEPTACIÓN | PROHIBIDO |
 |---|---|---|---|---|
-| `bandeja-dos-remitentes` | `src/features/chat/ChatPage.tsx`, `Conversacion.tsx`, `SelectorRemitente.tsx`, `CabeceraSemanal.tsx`, `ChatPage.dos-remitentes.test.tsx`, `src/app/router.tsx` | `ChatPage` deja de fijar `idCoach()` y lista los usuarios con rol `coach` o `nutricionista`. `CabeceraSemanal` = reproductor propio alimentado por el enlace firmado del cajón, más el hueco de la tarjeta | `grep -c "idCoach()" ChatPage.tsx` → 0 · `npm test -- ChatPage.dos-remitentes` pasa, y ese test (mensaje de la nutricionista visible para el asesorado) **se ha visto fallar** contra el `ChatPage` de hoy · un test renderiza las rutas nuevas y ninguna da «no encontrada» · **cambiar el vídeo no obliga a tocar ni una línea de la pantalla** · `npm run build` → 0 | `src/domain/**`, `supabase/functions/**`, `src/features/aprobacion/**` |
+| `bandeja-dos-remitentes` (HECHO, PR #236) | `src/features/chat/ChatPage.tsx`, `Conversacion.tsx`, `SelectorRemitente.tsx`, `remitentes.ts`, `CabeceraSemanal.tsx` (montada en `features/hoy/HoyPage.tsx`), `enlaceDeCabecera.ts` y sus pruebas | `ChatPage` deja de fijar `idCoach()` y lista los usuarios con rol `coach` o `nutricionista`. `CabeceraSemanal` = reproductor propio alimentado por el enlace firmado del cajón, más el hueco de la tarjeta | `grep -c "idCoach()" ChatPage.tsx` → 0 · `npm test -- ChatPage.dos-remitentes` pasa, y ese test (mensaje de la nutricionista visible para el asesorado) **se ha visto fallar** contra el `ChatPage` de hoy · **no se crearon rutas nuevas**: con el selector dentro de la misma pantalla no hacen falta, y una ruta que nadie abre es mantenimiento regalado · **cambiar el vídeo no obliga a tocar ni una línea de la pantalla**, probado con tres orígenes · `npm run build` → 0 | `src/domain/**`, `supabase/functions/**`, `src/features/aprobacion/**` |
 | `cajon-del-video` | `supabase/migrations/0059_cajon_de_medios.sql`, `supabase/functions/enlace-de-cabecera/index.ts` + `.test.ts` | Cajón privado, una carpeta por destino. La función devuelve un enlace firmado de una hora al vídeo vigente | **señuelo**: con la sesión de un asesorado cualquiera, pedir el archivo por su ruta directa da 403, y se ha visto dar 200 antes de la política · el enlace caduca: pasada la hora, 403 en un test que adelanta el reloj · la función responde 200 con enlace no vacío | `src/features/**`, `src/domain/**` |
 | `cabecera-generada` | `medios/cabecera.md`, el vídeo en el cajón, `medios/aviso-cara-generada.md` | El `.md` lleva la transcripción literal, el servicio usado, el coste por minuto real, la fecha y la huella del archivo. El aviso es el texto que Bryan manda **una vez** a sus asesorados | `ffprobe` da 9:16 y duración ≤ 40,5 s (el original sirve hasta el segundo 40: ahí empieza el gesto de coger el teléfono) · volumen normalizado a valor de móvil y sin saturación · la cara cae fuera de la zona que tapa la interfaz · el fotograma de portada **no es el cero** y no sale parpadeando · `medios/aviso-cara-generada.md` existe, escrito por Bryan, **antes** de que el vídeo se publique | Todo el código |
 | `metrica-semanal` | `src/domain/resumenSemanal/calcular.ts` + `.test.ts`, `src/domain/sueno/regularidad.ts` + `.test.ts`, `src/domain/resumenSemanal/contrato.md` | Función pura. Devuelve cifras **y etiquetas ya decididas**: adherencia alta/media/baja, tendencia subió/igual/bajó, regularidad mejorando/estable/empeorando/sin-datos | `npm test -- resumenSemanal regularidad` pasa · caso con menos de 7 noches devuelve «sin datos» y **no** un cero, **visto fallar** devolviendo 0 · `grep -rn "fetch\|supabase\|openai\|anthropic"` en esas carpetas → vacío · `contrato.md` con sus secciones completas | `src/features/**`, `src/domain/redaccion/**`, `supabase/**` |
