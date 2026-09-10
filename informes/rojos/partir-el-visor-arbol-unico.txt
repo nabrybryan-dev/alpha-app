@@ -1,0 +1,10 @@
+
+  árbol único: la rama  vs  origin/main en src
+
+  [rama] capturando ...
+  revirtiendo src a origin/main ...
+  [main] capturando ...
+
+  píxeles distintos: 0 de 1316640
+  la resta da cero
+EXIT=0

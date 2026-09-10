@@ -7,8 +7,10 @@
  * mezclarlas en un archivo es lo que hacía difícil ver de dónde salía cada
  * pérdida.
  */
-import { leerCola } from './cola'
+import { leerCola, type OperacionPendiente } from './cola'
 import { modoNube } from '../supabase'
+import type { MedidaCorporal } from '../../domain/types'
+import { perfilVacio } from '../../domain/perfilVacio'
 
 /**
  * Identidad de una fila, venga del servidor o de la cola.
@@ -72,6 +74,12 @@ export function conPendientes<T>(tabla: string, filas: readonly T[]): T[] {
       salida = salida.map((f) => (cumpleFiltro(f, op.filtro) ? { ...f, ...op.payload } : f))
       continue
     }
+    if (op.tipo === 'rpc') {
+      // Las llamadas al servidor no llevan fila. Solo la medida del asesorado (0057) sabe
+      // fundirse, por `fila` y `p_medida`; las demás siguen sin fusión, como siempre.
+      if (op.funcion === 'registrar_medida') salida = conMedidaPendiente(salida, op)
+      continue
+    }
     const clave = identidadDeFila(op.payload)
     if (clave === undefined) continue
     const i = salida.findIndex((f) => identidadDeFila(f) === clave)
@@ -80,4 +88,30 @@ export function conPendientes<T>(tabla: string, filas: readonly T[]): T[] {
     salida = i === -1 ? [...salida, op.payload] : salida.map((f, j) => (j === i ? op.payload : f))
   }
   return salida as T[]
+}
+
+/**
+ * La medida pendiente, puesta sobre la ficha descargada igual que la pondrá el servidor
+ * (`registrar_medida`, 0057): sustituye la de la misma fecha, deja las medidas por fecha, y
+ * si la ficha aún no existe la estrena con los valores neutros. Sin esto, registrar una
+ * medida con la descarga en vuelo la borraba de la pantalla hasta la siguiente hidratación
+ * —y a quien no tenía ficha, para siempre—.
+ */
+function conMedidaPendiente(
+  filas: Record<string, unknown>[],
+  op: OperacionPendiente,
+): Record<string, unknown>[] {
+  const medida = op.payload.p_medida as MedidaCorporal | undefined
+  if (!medida || !op.fila) return filas
+  const i = filas.findIndex((f) => identidadDeFila(f) === op.fila)
+  if (i === -1) return [...filas, { datos: perfilVacio(op.fila, [medida]) }]
+  return filas.map((f, j) => {
+    if (j !== i) return f
+    const datos = (f.datos && typeof f.datos === 'object' ? f.datos : {}) as Record<string, unknown>
+    const previas = Array.isArray(datos.medidas) ? (datos.medidas as MedidaCorporal[]) : []
+    const medidas = [...previas.filter((m) => m.fecha !== medida.fecha), medida].sort((a, b) =>
+      a.fecha.localeCompare(b.fecha),
+    )
+    return { ...f, datos: { ...datos, medidas } }
+  })
 }

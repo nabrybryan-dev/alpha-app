@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { tramoDeHambre } from '../../domain/senales/hambre'
+import { tramoDeDolor } from '../../domain/senales/dolor'
 import { Stepper } from '../../components/ui/Stepper'
 import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
 
@@ -117,12 +118,16 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
   const [horasSueno, setHorasSueno] = useState(7)
   const [calidadSueno, setCalidadSueno] = useState<Cualitativo3>()
   const [alimentacion, setAlimentacion] = useState<Cualitativo3>()
+  const [dolor, setDolor] = useState<number>()
+  const [dolorDonde, setDolorDonde] = useState('')
   const [comentarios, setComentarios] = useState('')
   const [intento, setIntento] = useState(false)
 
   // Campos cualitativos obligatorios (peso/pasos/sueño ya traen valor numérico).
-  const camposCualitativos = [rendimiento, motivacion, hambreEscala, cansancio, estres, calidadSueno, alimentacion]
-  const faltantes = camposCualitativos.filter((v) => v === undefined).length
+  const camposCualitativos = [rendimiento, motivacion, hambreEscala, cansancio, estres, calidadSueno, alimentacion, dolor]
+  // Un «6» sin sitio no le dice nada al coach: con dolor, el dónde también cuenta.
+  const faltaDonde = dolor !== undefined && dolor > 0 && dolorDonde.trim() === ''
+  const faltantes = camposCualitativos.filter((v) => v === undefined).length + (faltaDonde ? 1 : 0)
 
   const guardar = () => {
     if (faltantes > 0) {
@@ -138,7 +143,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
        *
        * Los steppers arrancan en 70 kg y 8.000 pasos para que el primer
        * check-in de alguien no empiece en cero, pero eso es una sugerencia, no
-       * un dato: los siete campos obligatorios son los cualitativos, así que
+       * un dato: los ocho campos obligatorios son los cualitativos, así que
        * quien no toca estos dos guarda igual. Se registraron 70 kg de una
        * persona que pesa bastante menos, y con ese número se decide un
        * superávit o un déficit.
@@ -162,6 +167,8 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       horasSueno,
       calidadSueno,
       alimentacion,
+      dolor,
+      dolorDonde: dolor !== undefined && dolor > 0 && dolorDonde.trim() ? dolorDonde.trim() : undefined,
       comentarios: comentarios || undefined,
     })
   }
@@ -193,6 +200,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       <EscalaHambre valor={hambreEscala} onCambiar={setHambreEscala} />
       <CampoPills titulo="Cansancio" opciones={CANTIDADES} valor={cansancio} onCambiar={(v) => setCansancio(v as Cantidad3)} />
       <CampoPills titulo="Estrés" opciones={CANTIDADES} valor={estres} onCambiar={(v) => setEstres(v as Cantidad3)} />
+      <EscalaDolor valor={dolor} donde={dolorDonde} onCambiar={setDolor} onCambiarDonde={setDolorDonde} claseInput={inputTexto} />
 
       {/* Horas de sueño: fila con stepper */}
       <div className="flex items-center justify-between rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
@@ -292,4 +300,88 @@ const DESCRIPCION_TRAMO: Record<string, string> = {
   moderada: 'Cuesta, distrae.',
   intensa: 'Interfiere con el trabajo o el entreno.',
   insostenible: 'No la puedes sostener: fatiga, no te concentras.',
+}
+
+/**
+ * El dolor del día, de 0 a 10 (EVA).
+ *
+ * POR QUÉ HAY UN BOTÓN DE «SIN DOLOR» Y NO UN HUECO. A la mayoría no le duele
+ * nada, y para ellos es un toque. Pero ese toque es una medición: el cero
+ * marcado a propósito es lo que permite decir «tres sesiones seguidas sin
+ * dolor», que es justo la condición con la que se reabre un ajuste clínico.
+ * Un campo que se pudiera dejar vacío no distinguiría «no me duele» de «no lo
+ * miré».
+ *
+ * Con dolor, el dónde es obligatorio: un «6» a secas no le dice al coach si es
+ * la rodilla que está vigilando o una agujeta.
+ */
+function EscalaDolor({
+  valor,
+  donde,
+  onCambiar,
+  onCambiarDonde,
+  claseInput,
+}: {
+  valor: number | undefined
+  donde: string
+  onCambiar: (valor: number) => void
+  onCambiarDonde: (donde: string) => void
+  claseInput: string
+}) {
+  const tramo = valor === undefined ? undefined : tramoDeDolor(valor)
+  const clase = (activo: boolean) =>
+    `press rounded-boton border text-xs font-bold transition-colors ${
+      activo ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'
+    }`
+
+  return (
+    <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+      <p className="text-sm font-bold text-texto">Dolor de hoy</p>
+      <p className="mt-0.5 text-[11px] leading-snug text-tenue">
+        0 = ninguno · 10 = el peor que te imaginas
+      </p>
+
+      <button
+        type="button"
+        aria-label="Dolor 0 de 10"
+        aria-pressed={valor === 0}
+        onClick={() => onCambiar(0)}
+        className={`${clase(valor === 0)} mt-2.5 h-9 w-full uppercase tracking-wide`}
+      >
+        Sin dolor
+      </button>
+
+      <div className="mt-1.5 flex gap-1">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            aria-label={`Dolor ${n} de 10`}
+            aria-pressed={valor === n}
+            onClick={() => onCambiar(n)}
+            className={`${clase(valor === n)} h-9 flex-1`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+
+      {tramo && tramo.etiqueta !== 'ninguno' && (
+        <>
+          <p className="mt-2 text-[11px] leading-snug text-tenue">
+            <b className="text-texto">{tramo.descripcion}</b>
+          </p>
+          <label className="mt-2 flex flex-col gap-1.5 text-sm font-bold text-texto">
+            ¿Dónde?
+            <input
+              value={donde}
+              onChange={(e) => onCambiarDonde(e.target.value)}
+              placeholder="Rodilla izquierda, hombro, lumbar…"
+              className={claseInput}
+            />
+          </label>
+        </>
+      )}
+    </div>
+  )
 }

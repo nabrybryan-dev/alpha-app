@@ -1,0 +1,208 @@
+import type { EjercicioPrescrito, Microciclo, Sesion } from '../../../../domain/types'
+import type { ContenidoDePared } from './contenidoPared'
+import { CuadroDePared } from './CuadroDePared'
+import { TablonDelMuro } from './TablonDelMuro'
+import { asentarEnLaBanda, type CamaraDelSalon as EstadoDeCamara } from './geometriaDeCuadro'
+import { SITIOS, sitioEn } from './sitiosDeLaPared'
+import { cargaAnterior } from './cargaAnterior'
+import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
+
+/**
+ * LAS PAREDES DEL SALÓN: todo lo que cuelga del muro, colocado.
+ *
+ * Es el hueco `paredes` de `huecos.ts` montado entero, y la respuesta al reparto que Bryan
+ * marcó en amarillo: microciclo y nombre del día, cronómetro de sesión, duración estimada
+ * con bloque y ejercicio n de N, la marquesina de avisos, la tabla de series ya
+ * registradas, «medir con la cámara» y «a continuación» con lo que falta. La serie en curso
+ * y «guardar serie» no están aquí: viven en la barra del suelo, que es donde se alcanzan
+ * con el pulgar sin soltar la barra.
+ *
+ * ## LA REGLA DE LA COLOCACIÓN: el centro no se toca
+ *
+ * Todo cuelga de un borde y nada cruza el centro del cuadro. Las dos columnas laterales no
+ * pasan del 33 % del ancho cada una, así que queda un tercio central libre de arriba abajo,
+ * que es donde está el cuerpo. Y entre el final de las columnas y el mobiliario del suelo
+ * hay una franja entera sin nada: es la que deja ver el gesto completo, de la cabeza a los
+ * pies.
+ *
+ * Es exactamente lo contrario de lo que Bryan fotografió: «el sujeto ocupaba una franja
+ * estrecha arriba, cortado por el borde, con ocho paneles encajonándolo por los dos lados».
+ * Los paneles siguen estando —los cinco de ejecutar en el muro izquierdo y los cuatro
+ * de medir dentro del módulo de la cámara— pero ya no encajonan: bordean.
+ *
+ * ## Y por qué esta capa no recibe el puntero
+ *
+ * `pointer-events-none` en el contenedor y `pointer-events-auto` solo en las dos piezas que
+ * de verdad se tocan: el cronómetro, que se pausa, y el módulo de la cámara, que abre la
+ * hoja de medición. Todo lo demás se lee mientras el dedo orbita sobre el sujeto, y un
+ * rótulo que capturase el arrastre se lo comería justo en el borde, que es donde el pulgar
+ * empieza el gesto.
+ */
+
+/**
+ * LAS ALTURAS DEL SUELO, CONTADAS DESDE ENCIMA DE LA BARRA DE NAVEGACIÓN.
+ *
+ * Todas llevan `var(--tope-nav)` dentro, y no es una precaución: es una corrección de algo
+ * que estaba mal y no se veía. El marco que envolvía esta capa llevaba un `padding-bottom`
+ * del alto de la barra con la idea de que `bottom: 0` significara «justo encima de la nav»,
+ * y **no lo significa**: el bloque contenedor de un hijo absoluto es la caja de RELLENO,
+ * que incluye el relleno, así que ese `padding` no descontaba nada. Medido en el navegador
+ * a 430 px: el material de la sesión aterrizaba encima de la barra, tapado por ella.
+ *
+ * Así que la barra se suma explícitamente, una vez por pieza, y el marco con relleno se
+ * retira para que nadie vuelva a confiar en él.
+ */
+
+export interface ParedesDelSalonProps {
+  sesion: Sesion | undefined
+  /** El ejercicio del que habla el salón. Sin él no hay tabla, ni cámara, ni campos. */
+  ejercicio: EjercicioPrescrito | undefined
+  /** Los nueve campos cortos, cuando hay ejercicio del que sacarlos. */
+  contenido: ContenidoDePared | undefined
+  /** El microciclo anterior. De él sale «la semana pasada» del muro, que es un hecho. */
+  microcicloPrevio?: Microciclo
+  /** Qué cuenta el reloj de la pared: lo decide el mando y se lee aquí. */
+  modo: ModoDelReloj
+  anclas: AnclasDelReloj
+  alTerminarLaCuenta: () => void
+  /** Si el mando ha pedido la carga en el hueco del reloj. */
+  cargaEnLaPared?: boolean
+  /**
+   * Dónde mira la cámara del salón AHORA MISMO, tal y como la deja la órbita.
+   *
+   * Es lo que convierte estos paneles en cuadros colgados de un muro en vez de tarjetas
+   * pegadas al cristal. Si esta cámara y la que dibuja la escena no fueran la misma, los
+   * cuadros flotarían: medio grado de desfase ya se nota, porque el ojo compara el cuadro
+   * con el suelo que tiene detrás.
+   */
+  camara: EstadoDeCamara
+  /** El lienzo en píxeles CSS. De él salen la distancia focal y el centro del cuadro. */
+  lienzo: { ancho: number; alto: number }
+  /** El ángulo desde el que se entra al salón, que es el que pone el patrón. */
+  azimutDeEntrada: number
+}
+
+export function ParedesDelSalon({
+  sesion,
+  ejercicio,
+  contenido,
+  microcicloPrevio,
+  modo,
+  anclas,
+  alTerminarLaCuenta,
+  cargaEnLaPared,
+  camara,
+  lienzo,
+  azimutDeEntrada,
+}: ParedesDelSalonProps) {
+  /**
+   * DÓNDE CUELGA CADA CUADRO, ya asentado en la banda que la cámara alcanza.
+   *
+   * `sitioEn` resuelve el azimut contra el ángulo de entrada y `asentarEnLaBanda` baja el
+   * cuadro por su muro lo justo para que no se salga por arriba. Lo segundo hace falta
+   * porque las alturas de `sitiosDeLaPared.ts` se midieron con la cámara a 6°, y la
+   * elevación la pone cada patrón: va de 2° a 56° en el catálogo, porque un ejercicio
+   * tumbado se estudia desde arriba. Sin asentar, un press inclinado abría el salón con
+   * los tres cuadros entre 629 y 861 px POR ENCIMA de la pantalla — medido el 2026-09-03.
+   */
+  const donde = (sitio: (typeof SITIOS)[keyof typeof SITIOS]) =>
+    asentarEnLaBanda(sitioEn(sitio, azimutDeEntrada), camara, lienzo.ancho, lienzo.alto).sitio
+
+  return (
+    <div
+      data-hueco="paredes"
+      data-testigo="letras3D"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      // `isolation: isolate` — Y NO SOBRA.
+      //
+      // Cada cuadro lleva un `z-index` que sale de su PROFUNDIDAD en la sala, para que
+      // lo lejano quede detrás: `1000 - z * 20`, o sea valores de hasta ~800. Eso ordena
+      // bien los cuadros entre ellos y es un desastre fuera, porque la escala de la app
+      // llega a `--z-elevado: 20`. Medido el 2026-09-03 abriendo el panel: el tablón del
+      // muro se pintaba ENCIMA de la hoja, con su texto cruzado sobre el del panel.
+      //
+      // Aislando aquí, esos números vuelven a significar lo que significan —el orden de
+      // los cuadros entre sí— y no compiten con nada de fuera. La capa entera se coloca
+      // con `--z-contenido`, que es el escalón que le toca.
+      style={{ isolation: 'isolate', zIndex: 'var(--z-contenido)' }}
+    >
+      {/* EL TABLÓN DEL MURO DE ENFRENTE — una sola composición, no cuatro fragmentos.
+          =================================================================================
+
+          Aquí colgaban cuatro cuadros distintos: la cabecera del día, el cronómetro, el
+          ritmo con su marquesina y la ficha del ejercicio. Cada uno con su caja, y tres de
+          ellos a ±34° y 42° del ángulo de entrada — o sea, a varias pantallas de distancia
+          de lo que se ve al abrir. Bryan lo describió el 2026-09-03 como «partes extraídas
+          de la aplicación y pegadas literal en las paredes», y tenía razón: eran
+          componentes de app re-colgados de un muro, sin composición entre ellos.
+
+          Medido el mismo día: la ventana horizontal de un 390×844 son 12,18°, que a los
+          11,1 m del muro de enfrente son **2,37 m de pared**. Ahí no caben cuatro cuadros.
+          Cabe uno.
+
+          Así que es UNO. Pero un cuadro no es una lista: apiladas dentro, sus siete
+          bandas volvían a ser una página web, ordenada solo por el cuerpo de letra. El
+          2026-09-03 Bryan eligió ordenarlas por TIEMPO, y esa máquina —anuncio, relevo,
+          vivo— vive en `TablonDelMuro`, que es quien decide qué se ve cuándo. Aquí solo
+          se decide DÓNDE cuelga. */}
+      {contenido && (
+        <CuadroDePared clave="ejercicio" sitio={donde(SITIOS.ejercicio)} camara={camara} lienzo={lienzo}>
+          <TablonDelMuro
+            // LA LLAVE ES EL EJERCICIO, y no es una optimización: es lo que hace que el
+            // tablón vuelva a ANUNCIARSE al cambiar de ejercicio. Sin ella el muro se
+            // quedaría en su estado de reposo enseñando la prescripción de un ejercicio
+            // nuevo que nunca dijo cuál es.
+            key={ejercicio?.id ?? 'sin-ejercicio'}
+            contenido={contenido}
+            sesion={sesion}
+            ejercicio={ejercicio}
+            cargaPrevia={cargaAnterior(microcicloPrevio, ejercicio)}
+            modo={modo}
+            anclas={anclas}
+            alTerminarLaCuenta={alTerminarLaCuenta}
+            cargaEnLaPared={cargaEnLaPared}
+          />
+        </CuadroDePared>
+      )}
+
+      {/* LO QUE YA SE LEVANTÓ Y LO QUE VIENE DESPUÉS YA NO CUELGAN DE NINGÚN MURO.
+          =================================================================================
+
+          Eran dos cuadros más —la tabla de series registradas y «a continuación»— y los
+          dos decían con letra lo que ahora dice el salón sin ella:
+
+          - lo levantado lo cuenta la ESTACIÓN DE SERIES, que pasa de «3» a «2/3» en cuanto
+            hay algo registrado y es la única de las cuatro que se mueve durante el
+            ejercicio;
+          - lo que viene lo cuentan los PUNTOS del borde de abajo, uno por ejercicio, con
+            el actual encendido.
+
+          No es que se hayan quitado datos: es que dos tablas de texto colgadas de dos
+          muros distintos se han convertido en una cifra que ya estaba y en cuatro puntos
+          de cuatro píxeles. Es exactamente lo que Bryan pidió el 2026-09-04 —«desaparecer
+          la mayor cantidad de letras y cuadros que estén tapando el salón»—, y el sitio
+          donde va cada cosa es el que marca el diseño de la sala.
+
+          EL MANDO DE REGISTRAR TAMPOCO. Llenar y guardar viven en el cajón que sale del
+          borde izquierdo desde el commit anterior; dejar además un mando en la pared era
+          tener el mismo gesto en dos sitios y un cuadro más tapando el muro. */}
+
+      {/* LA CÁMARA YA NO CUELGA DE NINGÚN MURO.
+          =================================================================================
+
+          Colgaba de enfrente, debajo del registro, con la idea de que los dos aparatos que
+          se OPERAN quedaran uno bajo el otro a la altura de la mano. La idea era buena y el
+          resultado, medido el 2026-09-04, era el contrario: un reflector con silueta de
+          trípode, rótulo, testigo latiendo y una pastilla negra ocupaba media pared y era
+          lo más parecido a un recorte de aplicación que quedaba en pantalla.
+
+          Ahora es un mando desnudo, hermano del del reloj, y vive donde viven los mandos:
+          al alcance del pulgar y fuera de la pared. El trípode de VERDAD sigue en la sala,
+          dibujado por el motor con su cono de tolerancia — lo que se quitó fue el dibujo
+          del trípode en la pared, que era la copia.
+
+          Así el muro se queda con UN solo cuadro: el del ejercicio. */}
+
+    </div>
+  )
+}

@@ -1,5 +1,7 @@
 import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
+import type { MedidasDelCuerpo } from './medidas'
 import type { Confianza } from './nutricion/dia'
+import type { HuellaDeRepeticion } from './patrones/huella'
 
 export type Rol = 'asesorado' | 'coach' | 'nutricionista'
 
@@ -11,6 +13,13 @@ export interface Usuario {
 }
 
 export type NivelVolumen = 'Muy Bajo' | 'Bajo' | 'Normal' | 'Alto' | 'Muy Alto'
+
+/**
+ * El sexo con el que se dibuja el sujeto 3D de una persona. Lo indica el coach
+ * en la ficha; el asesorado no lo toca. La lista y la comprobación viven en
+ * `sexoDeFicha.ts`; en la base es la columna `perfiles.sexo` (0056).
+ */
+export type SexoDeFicha = 'hombre' | 'mujer'
 
 export interface MedidaCorporal {
   fecha: string
@@ -31,6 +40,23 @@ export interface MedidaCorporal {
   perimetros: Record<string, number>
   pgPct?: number
   masaMagraKg?: number
+  /**
+   * LAS OCHO MEDIDAS DE LA FICHA: seis longitudes de segmento y dos perímetros, en cm.
+   *
+   * Van aparte de `perimetros` a propósito. `perimetros` tiene las claves abiertas y por
+   * eso en la app conviven «Cadera» y «Glúteos» para el mismo dato: un mapa así no se
+   * puede consultar, porque nadie sabe si la persona no tiene el dato o lo tiene con otro
+   * nombre. Las ocho de aquí están cerradas, tienen rango y se validan en
+   * `domain/medidas.ts`; lo que no es una de ellas se rechaza.
+   *
+   * Opcional entero, y cada clave opcional dentro: alguien puede tomarse el fémur y no la
+   * cintura, y lo que falta no se rellena.
+   *
+   * Viajan a la nube dentro del mismo objeto que el resto de la medida —`registrar_medida`
+   * (0057) mete el jsonb entero, no columna a columna— así que no hacen falta ni migración
+   * ni cambios en `data/nube/`. Ver `docs/specs/2026-09-08-medidas-en-el-dominio.md`.
+   */
+  cuerpo?: MedidasDelCuerpo
 }
 
 export interface Perfil {
@@ -66,6 +92,15 @@ export interface Perfil {
   peldanoAlfa?: number
   /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
   ascensoIso?: string
+  /**
+   * Con qué huesos se dibuja su cuerpo en el salón y en el estudio del cuerpo.
+   * Lo rellena el coach. Opcional a propósito: sin dato se dibuja como hasta
+   * ahora (el juego neutro del visor).
+   *
+   * NO viaja dentro de `perfiles.datos`: tiene su propia columna (migración
+   * 0056) y `src/data/nube/perfilEnNube.ts` es el único sitio que la nombra.
+   */
+  sexo?: SexoDeFicha
 }
 
 /** Nota del coach a una competencia concreta de la Ruta. */
@@ -107,6 +142,15 @@ export interface VelocidadDeSerie {
    *  solo se cancela si la escala es CONSTANTE: si la referencia se movió entre la
    *  primera repetición y la última, el cociente queda contaminado. */
   inclinacionMax?: number
+  /**
+   * LA ÚLTIMA REPETICIÓN, tal como la hizo: la barra normalizada a lo largo del tiempo.
+   *
+   * Es lo que permite ver un FANTASMA sobre el sujeto —lo que se hizo, superpuesto a lo
+   * que había que hacer— hoy y la semana que viene. Veinticuatro muestras: cabe en la fila
+   * y basta para moverse sin tirones. Ausente = esa serie se midió sin trayectoria
+   * utilizable, o antes de que esto existiera. No se rellena nunca con una ideal.
+   */
+  huella?: HuellaDeRepeticion
 }
 
 export interface SerieRegistrada {
@@ -229,7 +273,15 @@ export interface EscenarioRojo {
 }
 
 export interface EscenariosDelDia {
-  verde: EscenarioVerde
+  /**
+   * OPCIONAL desde el 2026-09-07, porque los datos ya lo eran. Ese día se midió que los
+   * 477 ejercicios con escenarios de los microciclos activos traían SOLO el camino rojo
+   * —el freno viaja siempre, la subida solo cuando el coach la autoriza—, y el tipo seguía
+   * diciendo que `verde` era obligatorio: el muro de /entrenar lo leía sin comprobar y la
+   * pestaña entera se cayó para toda la cartera. Un tipo que promete más que los datos no
+   * protege nada; hace justo lo contrario.
+   */
+  verde?: EscenarioVerde
   rojo: EscenarioRojo
 }
 
@@ -384,6 +436,17 @@ export interface CheckinDiario {
   horasSueno?: number
   calidadSueno?: Cualitativo3
   alimentacion?: Cualitativo3
+  /**
+   * El dolor del día, de 0 a 10 (EVA). Opcional en el tipo porque los check-ins
+   * anteriores a este campo no lo tienen; el formulario lo exige desde ahora.
+   *
+   * Un ajuste clínico puede condicionar su reingreso a «EVA ≤2 en todas las
+   * sesiones»; sin este número esa puerta se abría —o no— sin ningún dato
+   * detrás. El cero se marca a propósito: «sin dolor» es una medición.
+   */
+  dolor?: number
+  /** Dónde duele, en palabras de la persona. Solo tiene sentido con `dolor` > 0. */
+  dolorDonde?: string
   comentarios?: string
 }
 

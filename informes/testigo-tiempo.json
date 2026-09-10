@@ -1,0 +1,79 @@
+{
+  "cuando": "2026-09-07T16:47:26.951Z",
+  "ok": true,
+  "usuario": "u-valentina",
+  "intentos": [
+    {
+      "intento": 1,
+      "ok": true,
+      "rotuloEstable": true,
+      "rotuloAntes": "Sesión",
+      "rotuloDespues": "Sesión",
+      "cifraAntes": "00:00:00",
+      "cifraDespues": "00:00:03"
+    }
+  ],
+  "esperaUsadaMs": 550,
+  "pasos": 10,
+  "pxPorPaso": 18,
+  "relojAntes": "Sesión",
+  "relojDespues": "Sesión",
+  "relojIdentico": true,
+  "cifraDelCronometroAntes": "00:00:00",
+  "cifraDelCronometroDespues": "00:00:03",
+  "mascaras": [
+    {
+      "paso": 1,
+      "pixelesCambiados": 35482,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-01-mascara.png"
+    },
+    {
+      "paso": 2,
+      "pixelesCambiados": 28874,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-02-mascara.png"
+    },
+    {
+      "paso": 3,
+      "pixelesCambiados": 37960,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-03-mascara.png"
+    },
+    {
+      "paso": 4,
+      "pixelesCambiados": 27441,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-04-mascara.png"
+    },
+    {
+      "paso": 5,
+      "pixelesCambiados": 30869,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-05-mascara.png"
+    },
+    {
+      "paso": 6,
+      "pixelesCambiados": 30600,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-06-mascara.png"
+    },
+    {
+      "paso": 7,
+      "pixelesCambiados": 27132,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-07-mascara.png"
+    },
+    {
+      "paso": 8,
+      "pixelesCambiados": 28406,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-08-mascara.png"
+    },
+    {
+      "paso": 9,
+      "pixelesCambiados": 28407,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-09-mascara.png"
+    },
+    {
+      "paso": 10,
+      "pixelesCambiados": 28405,
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\paso-10-mascara.png"
+    }
+  ],
+  "todasDistintasDeCero": true,
+  "capturaAgarrado": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\agarrado.png",
+  "capturaFondoDelRecorrido": "C:\\Users\\ASUS\\dev\\alpha-app\\.claude\\worktrees\\agent-a6910d038f7e6d9ac\\informes\\tiempo-de-la-repeticion\\fondo-del-recorrido.png"
+}

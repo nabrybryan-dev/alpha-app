@@ -190,6 +190,20 @@ describe('aplicarEscenario — solo por los caminos que el coach dejo escritos',
     expect(a.motivo).toContain('sin camino autorizado')
   })
 
+  it('con solo el camino rojo escrito, el verde NO sube nada y lo dice', () => {
+    // Es la cartera entera desde el 4-sep: el molde de carga no deja verde cuando la carga
+    // va congelada, para que ningun escenario heredado la suba sola. Hasta el 2026-09-07
+    // esta rama leia `escenarios.verde.techoCargaKg` sin comprobar y reventaba.
+    const soloRojo = ejercicio({ escenarios: { rojo: escenarios.rojo } })
+    expect(() => aplicarEscenario(soloRojo, verde)).not.toThrow()
+    const a = aplicarEscenario(soloRojo, verde)
+    expect(a.cargaKg).toBeUndefined()
+    expect(a.sets).toBeUndefined()
+    expect(a.motivo).toMatch(/solo trae escrito el camino rojo/)
+    // Y el rojo, con el mismo ejercicio, sigue frenando como siempre.
+    expect(aplicarEscenario(soloRojo, rojo).rirObjetivo).toBeDefined()
+  })
+
   it('el verde sube el escalon autorizado', () => {
     const a = aplicarEscenario(ejercicio({ escenarios }), verde)
     expect(a.cargaKg).toBe(102.5)

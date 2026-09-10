@@ -33,7 +33,8 @@ export default {
         'silver-200': 'var(--silver-200)',
         'silver-300': 'var(--silver-300)',
         'silver-400': 'var(--silver-400)',
-        'silver-500': 'var(--silver-500)',
+        // Por canales: es el tono de la escala que se usa con opacidad.
+        'silver-500': 'rgb(var(--silver-500-rgb) / <alpha-value>)',
         'bone-50': 'var(--bone-50)',
         'bone-100': 'var(--bone-100)',
         'bone-200': 'var(--bone-200)',
