@@ -99,6 +99,58 @@ esto ya es un número». Una barra que se llena tira más que un número que apa
 - **Un guardián que nace verde no vale.** Cada criterio de esta tabla dice «visto fallar» o
   «visto moverse» porque un contador roto y un contador a cero se ven exactamente igual.
 
+
+## Tarea 2 — el sueño que sí se puede medir, y los avisos que llegan
+
+Encargada por Bryan el 10-sep. Sale de la misma conversación del 7 y toca el área de
+**Bienestar**. Va después de la pantalla, y antes que el mapa de vida.
+
+### Lo que ya existe, medido en el código (no se parte de cero)
+
+`src/features/bienestar/recordatorio.ts` **ya manda un aviso**: a partir de las 18:00, si
+no hay check-in de ese día, uno solo por día, pidiendo el permiso del navegador y
+pintándolo por el service worker. Está bien hecho y **tiene un límite que lo decide todo**:
+la comprobación corre *al abrir la app, al volver a ella y mientras esté abierta*. Es decir,
+**avisa a quien ya entró** — justo lo contrario de lo que hace falta. La persona que no abre
+la app no recibe nada, y ésa es la que hay que recuperar.
+
+El check-in de hoy pregunta **cuántas horas** dormiste y **qué tal** dormiste
+(`CheckinForm.tsx`). No pregunta **a qué hora**. Ocho horas de once a siete y ocho horas de
+tres a once son el mismo número y dos vidas distintas: sin la hora, todo lo circadiano se
+queda en literatura.
+
+### Las dos reglas de honestidad, que aquí mandan sobre el diseño
+
+1. **Nada de calculadoras de ciclos de 90 minutos.** Los ciclos reales van de 80 a 150
+   minutos, cambian dentro de la misma noche y entre personas; decir «levántate a las 6:20
+   que ahí se te acaba el ciclo» fabrica una precisión que nadie midió. Lo que sí existe y
+   está validado es el **Índice de Regularidad del Sueño** (0-100): compara, minuto a
+   minuto, si hoy estabas dormido o despierto a la misma hora que ayer. En 2024 se midió
+   con ~60.000 personas y predice mortalidad **mejor que las horas dormidas**.
+2. **Cada frase de la app tiene que poder señalar el dato que la sostiene.** Sin dato, no
+   hay frase. Cortisol, melatonina, temperatura interna, variabilidad cardíaca y glucosa
+   **no se pueden saber** con un teléfono y una encuesta: si la app habla de eso, adivina
+   con bata blanca. Y la frontera de siempre: el coach recomienda horarios y califica
+   hábitos; explicar qué pasa por dentro a nivel molecular se parece a un diagnóstico, y
+   para eso ya está la red que deriva los temas de salud.
+
+Lo que sí se pregunta sin aparatos y son palancas circadianas de verdad: hora de acostarse
+y de levantarse, sol por la mañana, primera y última comida, hora de entrenar, café y
+estrés.
+
+### Los tres encargos de esta tarea
+
+| Encargo | ENTREGABLE | FORMATO | ACEPTACIÓN | PROHIBIDO |
+|---|---|---|---|---|
+| `checkin-sueno` | `src/domain/types.ts`, `src/features/bienestar/CheckinForm.tsx`, `CheckinForm.sueno.test.tsx`, migración (número libre el día que se escriba) | Dos horas opcionales —acostarse y levantarse— junto a las que ya hay. No sustituyen a «horas de sueño»: la acompañan | `npm test -- CheckinForm.sueno` pasa y **se ha visto fallar** sin los campos · las dos horas sobreviven ida y vuelta a la nube · quien no las conteste guarda igual: son opcionales, y un check-in que se bloquea es un check-in que no se hace · `npm run build` → 0 | Todo `src/features/` salvo el formulario; todo `src/domain/` salvo `types.ts` |
+| `regularidad-del-sueno` | `src/domain/sueno/regularidad.ts` + `.test.ts`, `src/domain/sueno/contrato.md` | Función pura: de las horas de acostarse/levantarse de la semana sale un número 0-100, o **«sin datos»** | con menos de 7 noches devuelve «sin datos» y **no un cero**, visto fallar devolviendo 0 · dos semanas iguales dan el mismo número, y una semana caótica puntúa menos que una regular (casos escritos a mano, no generados) · `grep` de `fetch\|supabase` en la carpeta → vacío · **no existe ninguna función que recomiende una hora de despertar por ciclos** | `src/features/**`, `supabase/**` |
+| `avisos-con-la-app-cerrada` | `src/features/avisos/PedirPermiso.tsx`, `suscripcion.ts` + `.test.ts`, migración de suscripciones, `supabase/functions/empujar/`, `informes/permiso-avisos-<fecha>.md` | Pantalla propia que explica para qué es **antes** del permiso del navegador (es de una sola bala: rechazado, en algunos móviles no se vuelve a pedir). Suscripción guardada con RLS de dueño. El recordatorio de las 18:00 que ya existe **pasa a salir del servidor**, no del navegador abierto | tres números en el informe: cuántos vieron la petición, cuántos dijeron sí y **cuántos siguen vivos a los siete días** · **el contador se ha visto moverse** con una suscripción falsa · señuelo: con la sesión de otro usuario el recuento da 0 · **el móvil escribe de vuelta** al recibir el aviso, con hora y aparato, y esa fila es la prueba — sin capturas ni intervención de Bryan · silencio: persona en Bogotá con envío a las 3:00 → no se envía, visto fallar enviándolo · **la línea decidida antes de mirarla**: menos de 12 de 23 al séptimo día → la fontanería se aparca | `src/features/chat/**`, `src/domain/**` |
+
+### Lo que NO entra en la tarea 2
+
+Los seis recados del día y la red que baja el cupo (dependen del mapa de vida), y cualquier
+recomendación de sueño que no pueda señalar el dato que la sostiene.
+
 ## Qué NO entra en esta obra
 
 Los seis recados del día (dependen del mapa, del disparador y de los avisos), la red que
