@@ -252,7 +252,12 @@ describe('la movilidad que los patrones dan por supuesta', () => {
     // 5,7° al empezar a bajar (antes 6,4) y se cierra a 0 al llegar al fondo, en vez de
     // quedarse clavado en 5. Que la cadena converja al final es MÁS parecido a un cuerpo, no
     // menos: nadie termina una sentadilla con el tobillo todavía moviéndose.
-    sentadilla: 34,
+    // 34 → 35 el 2026-09-07: la rodilla pasó a ser una bisagra colgada del fémur (`esqueleto.ts`)
+    // y con la cadera abierta 8° eso mueve la tibia lo justo para que el pie plano derive
+    // 34,8° en vez de 34,0°. Es el único patrón del catálogo al que el cambio de rodilla le
+    // llega —la abducción de cadera es pequeña en todos los demás— y la valla sigue siendo
+    // una valla: si vuelve a crecer, esto lo dice.
+    sentadilla: 35,
     // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
     // deprisa y profundo es de los gestos que más tobillo piden.
     salto: 25,
@@ -315,8 +320,8 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     ['MOVILIDAD', 'Movilidad torácica con foam roller (movilidad de columna)', true],
     ['MOVILIDAD', 'Gato-camello', true],
     // Y lo que no debe tener patrón, que es tan importante como lo que sí.
-    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', false],
-    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', false],
+    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', true] /* cardio con sujeto desde el 2026-09-07 */,
+    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', true] /* cardio con sujeto desde el 2026-09-07 */,
     ['ACONDICIONAMIENTO', 'Circuito metabólico 40/20', false],
     ['PREV/REHAB', 'Cribado de banderas rojas (antes de tocar una carga)', false],
   ]
@@ -328,10 +333,39 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     }
   })
 
-  it('no enseña un gesto de fuerza para el cardio', () => {
-    // Peor que no tener visor es tener uno que enseñe otra cosa: quien monta en
-    // bicicleta no está haciendo ninguno de los treinta y un patrones.
-    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')).toBeUndefined()
+  it('el cardio tiene su propio sujeto, y no un gesto de fuerza prestado', () => {
+    // Hasta el 2026-09-07 esto afirmaba lo contrario: «quien monta en bicicleta no está
+    // haciendo ninguno de los treinta y un patrones», y era verdad. Ese día Bryan pidió
+    // integrar el cardio como patrones de movimiento, y ahora la bicicleta tiene ficha
+    // propia —cíclica, no una repetición—. Lo que sigue siendo verdad: nunca un gesto de
+    // fuerza prestado, y lo que no tiene ficha sigue sin sujeto.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')?.id).toBe('bicicleta_estatica')
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Cinta 30 min zona 2')?.id).toBe('caminata_en_cinta')
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Circuito metabólico 40/20')).toBeUndefined()
+    // El ergómetro ganó ficha propia el 2026-09-07 por la noche, y va ANTES que el remo de
+    // fuerza en la lista de nombres: «remo ergómetro» lleva la palabra remo.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Remo ergómetro 2000 m')?.id).toBe('remo_ergometro')
+    expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Remo con barra')?.id).toBe('traccion_horizontal')
+    expect(patronDeCategoria('PREV/REHAB', 'Cribado de banderas rojas')).toBeUndefined()
+  })
+
+  it('el curl femoral SENTADO va a su silla, venga con la categoría que venga', () => {
+    // Bryan, 2026-09-07, desde el iPhone: «la flexión de rodilla sentado le hace falta la
+    // máquina». Lo que había era peor que faltar la máquina: los nombres «sentado» caían en
+    // la ficha TUMBADA (giro 90, boca abajo, con camilla), y «Curl femoral sentado» —que
+    // llega con categoría AISLAMIENTO— seguía cayendo ahí incluso después de crear la ficha
+    // sentada, porque las variantes por nombre solo entran cuando la categoría ha
+    // acertado, y AISLAMIENTO no acierta nada. Esta prueba nació roja por ese caso.
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'FLEXIÓN DE RODILLA SENTADO')?.id).toBe('flexion_rodilla_sentado')
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'Flexión de rodilla en máquina (sentado)')?.id).toBe('flexion_rodilla_sentado')
+    expect(patronDeCategoria('AISLAMIENTO', 'Curl femoral sentado')?.id).toBe('flexion_rodilla_sentado')
+    // Y el tumbado y el de pie se quedan donde estaban.
+    expect(patronDeCategoria('AISLAMIENTO', 'Curl femoral tumbado')?.id).toBe('flexion_rodilla')
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'FLEXIÓN DE RODILLA ACOSTADO')?.id).toBe('flexion_rodilla')
+  })
+
+  it('la extensión de rodilla tiene sujeto aunque llegue como AISLAMIENTO', () => {
+    expect(patronDeCategoria('AISLAMIENTO', 'Extensión de rodilla')?.id).toBe('extension_rodilla')
   })
 
   it('la categoría manda sobre el nombre cuando dice el gesto', () => {

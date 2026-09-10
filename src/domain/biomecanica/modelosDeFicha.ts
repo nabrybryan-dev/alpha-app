@@ -61,6 +61,64 @@ function mecanicaDeLaDominada(): ModeloDePalanca {
  */
 export const MODELOS_DE_FICHA: Readonly<Record<string, ModeloDePalanca>> = {
   /**
+   * EL FACE PULL, con ficha propia desde el 2026-09-07. Tres ejes a la vez —el hombro
+   * abduciendo en horizontal y rotando hacia fuera, y el codo doblándose— con la línea
+   * fijada por el cable, que baja desde una polea alta. Va aparte de ABDUCCIÓN HORIZONTAL
+   * porque ahí el codo es una bisagra bloqueada y aquí es un motor.
+   */
+  'FACE PULL': {
+    patron: 'ABDUCCIÓN HORIZONTAL',
+    cadena: 'abierta',
+    anclaje: 'el torso, de pie',
+    segmentosMoviles: ['brazo', 'antebrazo'],
+    referencia: 'torso',
+    vista: 'lateral',
+    ejes: [
+      M('hombro', 'principal', 'abduccion', ['Hombros', 'Espalda'], [20, 30], undefined, 'frontal'),
+      M('hombro', 'principal', 'rotacion', ['Hombros'], [15, 25],
+        'La rotación externa es lo que separa un face pull de un remo alto: los nudillos acaban ' +
+          'mirando hacia atrás, no hacia abajo.'),
+      M('codo', 'secundario', 'flexion', ['Bíceps'], [25, 35]),
+      M('escapula', 'secundario', 'retraccion', ['Espalda'], [20, 40], undefined, 'frontal'),
+    ],
+    linea: { origen: 'cable' },
+    marcas: ['hombro', 'codo', 'muñeca'],
+    alineacion: {
+      regla: 'los codos a la altura de los ojos al final, y el tronco quieto',
+      toleranciaMm: 25,
+      porQue: 'Con los codos bajos el dorsal se lleva el trabajo y el ejercicio se vuelve un remo.',
+    },
+  },
+
+  /**
+   * EL CURL FEMORAL SENTADO, con ficha propia desde el 2026-09-07. La misma mecánica que
+   * FLEXIÓN DE RODILLA —el propio modelo lo dice: «tumbado y sentado no son el mismo
+   * ejercicio»— con el fémur sujeto por el acolchado en vez de por la camilla, y la cadera
+   * flexionada, que es lo que alarga el isquio desde el arranque.
+   */
+  'FLEXIÓN DE RODILLA SENTADO': {
+    patron: 'FLEXIÓN DE RODILLA',
+    cadena: 'abierta',
+    anclaje: 'el fémur, bajo el acolchado del asiento',
+    segmentosMoviles: ['pierna'],
+    referencia: 'muslo',
+    vista: 'lateral',
+    ejes: [
+      M('rodilla', 'principal', 'flexion', ['Isquios'], [30, 40]),
+      M('cadera', 'secundario', 'isometrico', ['Glúteos'], [50, 70],
+        'Sentado la cadera va a 90°: el isquio arranca largo y eso cambia la fuerza disponible ' +
+          'respecto al tumbado.'),
+    ],
+    linea: { origen: 'cable' },
+    marcas: ['cadera', 'rodilla', 'tobillo'],
+    alineacion: {
+      regla: 'la pelvis pegada al asiento',
+      toleranciaMm: 20,
+      porQue: 'Si la cadera se levanta, el recorrido lo hace la pelvis y el isquio se acorta menos de lo que parece.',
+    },
+  },
+
+  /**
    * LA APERTURA INVERSA SENTADA, con ficha propia desde el 2026-09-07.
    *
    * Los mismos dos ejes que ABDUCCIÓN HORIZONTAL —es el mismo gesto— y lo único que cambia

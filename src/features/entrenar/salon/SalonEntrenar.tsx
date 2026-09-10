@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { ejercicioCompleto } from '../../../domain/cumplimiento'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
+import { patronDeLosBloques } from '../../../domain/patrones/bloqueDeCardio'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import type {
   Competencia,
@@ -322,11 +323,20 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
    * fuera el cardio y los cribados—. Aquí no hay ninguna lista de términos que se pueda
    * separar de la del catálogo.
    */
-  const conSujeto = tienePatronDeMovimiento(ejercicio)
+  //
+  // Y EL CARDIO TAMBIÉN, desde el 2026-09-07 (Bryan): si no hay ejercicio elegido y un
+  // bloque de la sesión nombra una modalidad —caminadora, escaladora, bici, elíptica,
+  // carrera—, el sujeto del bloque ocupa el centro con su máquina. `patronDeBloque` vive en
+  // el dominio y lee el texto del bloque; aquí solo se elige entre el ejercicio y el bloque.
+  // Con ejercicio elegido manda el ejercicio, como siempre. Revierte la decisión escrita en
+  // `SalonSinSujeto.tsx`, y allí queda anotado.
+  const patronDelBloque = useMemo(() => patronDeLosBloques(sesion?.bloquesCardio), [sesion])
   const patron = useMemo(
-    () => (ejercicio ? patronDeCategoria(ejercicio.categoria, ejercicio.nombre) : undefined),
-    [ejercicio],
+    () =>
+      ejercicio ? patronDeCategoria(ejercicio.categoria, ejercicio.nombre) : patronDelBloque,
+    [ejercicio, patronDelBloque],
   )
+  const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
   const contenido = useMemo(() => (ejercicio ? contenidoPared(ejercicio) : undefined), [ejercicio])
   // El ritmo lleva dentro el tiempo del cronómetro, leído de donde lo guarda el propio
   // cronómetro: un segundo reloj daría dos duraciones de la misma sesión.
