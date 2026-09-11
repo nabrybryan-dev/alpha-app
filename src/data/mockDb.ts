@@ -22,19 +22,38 @@ import { esCuotaLlena, marcarSinEspacio } from './sinEspacio'
 import { diasAtras } from './seed/fechas'
 
 /**
- * Le pone fecha a la sesion la PRIMERA vez que se toca, y solo esa vez.
+ * Le pone fecha y HORAS a la sesion cuando se toca.
  *
  * Las tres escrituras del asesorado —marcar preparacion, anotar una serie y
  * guardar el test— pasan por aqui. Cual de las tres llega primero da igual: lo
  * que se fija es el dia en que la persona aparecio, y ese dia no cambia porque
  * el jueves anote una serie que le faltaba del martes.
  *
- * **No sobrescribe nunca.** Si ya hay fecha, la sesion sale tal cual y quien
- * llama lo nota comparando la referencia: asi el sync sabe si hay algo nuevo que
- * subir sin tener que preguntarlo aparte.
+ * **La fecha y el arranque no se sobrescriben NUNCA; la ultima marca si, en cada
+ * escritura.** Son tres campos con tres vidas distintas a proposito:
+ *
+ * - `fecha` — el DIA en que aparecio. Se sella una vez.
+ * - `empezadaEn` — el INSTANTE de esa primera vez. Se sella una vez.
+ * - `ultimaMarcaEn` — el instante de la ULTIMA cosa que se registro. Se mueve.
+ *
+ * Los dos instantes nacen el 2026-09-10 y no son un adorno: para atar a un
+ * entrenamiento algo que ocurrio durante el —unas pulsaciones, unos pasos— hace
+ * falta un intervalo con horas, y hasta hoy la app solo sabia el dia. El
+ * cronometro, que si sabe horas, vive en el `localStorage` del telefono y no
+ * sube a ningun sitio: no sirve para esto.
+ *
+ * Quien llama nota si hubo cambio comparando la REFERENCIA, asi que se devuelve
+ * el mismo objeto cuando no hay nada que escribir — y eso ya no pasa nunca desde
+ * que `ultimaMarcaEn` se mueve, que es justo lo que se quiere: cada escritura
+ * del asesorado es algo nuevo que subir.
  */
-function conFecha(sesion: Sesion, hoy = hoyIso()): Sesion {
-  return sesion.fecha ? sesion : { ...sesion, fecha: hoy }
+function conFecha(sesion: Sesion, hoy = hoyIso(), ahora = new Date().toISOString()): Sesion {
+  return {
+    ...sesion,
+    fecha: sesion.fecha ?? hoy,
+    empezadaEn: sesion.empezadaEn ?? ahora,
+    ultimaMarcaEn: ahora,
+  }
 }
 
 const CLAVE = 'alpha-db-v2'

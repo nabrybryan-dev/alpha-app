@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { CAMPOS_DE_PARED, contenidoPared, huellaDeTexto } from './contenidoPared'
+import { CAMPOS_DE_PARED, contenidoDelCardio, contenidoPared, hayEncuadre, huellaDeTexto } from './contenidoPared'
 import { MURO_DERECHO, MURO_IZQUIERDO } from './muros'
 import { TOPE_PARED } from '../huecos'
-import type { EjercicioPrescrito } from '../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable } from '../../../../domain/types'
 
 /**
  * LO QUE CUELGA DE LAS PAREDES, PROBADO.
@@ -182,5 +182,72 @@ describe('huellaDeTexto', () => {
   it('el mismo texto da la misma huella y dos distintos no la comparten', () => {
     expect(huellaDeTexto('escápulas retraídas')).toBe(huellaDeTexto('escápulas retraídas'))
     expect(huellaDeTexto('escápulas retraídas')).not.toBe(huellaDeTexto('escapulas retraidas'))
+  })
+})
+
+/**
+ * EL MURO DE UN DÍA DE CARDIO.
+ *
+ * Nace en rojo el 2026-09-10: sin contenido de pared no se monta el tablón, y un día de
+ * cardio abría con la habitación **muda** —sin nombre en trazo y sin código de sala—.
+ */
+describe('contenidoDelCardio', () => {
+  const bloque = (titulo: string, indicaciones: string, duracionMin?: number): ItemMarcable => ({
+    id: titulo,
+    titulo,
+    indicaciones,
+    duracionMin,
+  })
+  const METABOLICO = [
+    bloque('Calentamiento: 5 min trote suave', 'Ritmo conversacional, zancada corta.', 5),
+    bloque('10 × 1 min fuerte / 1 min suave', 'El minuto fuerte a RPE 8.', 20),
+    bloque('Enfriamiento: 5 min caminata', 'Baja pulsaciones caminando.', 5),
+  ]
+
+  it('sin bloques o sin ficha no hay muro que montar', () => {
+    expect(contenidoDelCardio(undefined, 'Carrera')).toBeUndefined()
+    expect(contenidoDelCardio([], 'Carrera')).toBeUndefined()
+    expect(contenidoDelCardio(METABOLICO, undefined)).toBeUndefined()
+  })
+
+  it('el nombre en trazo es el de la FICHA, no el título del bloque', () => {
+    // «10 × 1 min fuerte / 1 min suave» es la prescripción, no el gesto, y en trazo a 84 px
+    // ni cabe ni se lee de lejos.
+    expect(contenidoDelCardio(METABOLICO, 'Carrera')?.nombre).toBe('Carrera')
+  })
+
+  it('dice los tramos y los minutos en la lengua del cardio', () => {
+    expect(contenidoDelCardio(METABOLICO, 'Carrera')?.seriesReps).toBe('3 tramos · 30 min')
+  })
+
+  it('saca la intensidad escrita, y dice que no está cuando no está', () => {
+    expect(contenidoDelCardio(METABOLICO, 'Carrera')?.rir).toBe('RPE 8')
+    const sinNada = contenidoDelCardio([bloque('20 min caminata', 'Suave.', 20)], 'Caminata')
+    expect(sinNada?.rir).toBe('Sin intensidad escrita')
+  })
+
+  it('la carga va vacía: en cardio no hay kilos, y el hueco se queda con el reloj', () => {
+    expect(contenidoDelCardio(METABOLICO, 'Carrera')?.carga).toBe('')
+  })
+
+  it('ningún texto pasa del tope de la pared', () => {
+    const c = contenidoDelCardio(METABOLICO, 'Carrera')!
+    for (const campo of CAMPOS_DE_PARED) {
+      expect(c[campo].length, `${campo} pasa de ${TOPE_PARED}`).toBeLessThanOrEqual(TOPE_PARED)
+    }
+  })
+})
+
+describe('hayEncuadre', () => {
+  it('un ejercicio de hierro tiene encuadre que contar', () => {
+    expect(hayEncuadre(contenidoPared(ejercicio()))).toBe(true)
+  })
+
+  it('un día de cardio NO, y por eso el panel no pinta ese recuadro', () => {
+    const c = contenidoDelCardio(
+      [{ id: 'b', titulo: '30 min bici zona 2', indicaciones: 'Continuo.', duracionMin: 30 }],
+      'Bicicleta',
+    )!
+    expect(hayEncuadre(c)).toBe(false)
   })
 })

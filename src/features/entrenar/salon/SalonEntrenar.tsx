@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { ejercicioCompleto } from '../../../domain/cumplimiento'
 import { patronDeCategoria } from '../../../domain/patrones/catalogo'
 import { patronDeLosBloques } from '../../../domain/patrones/bloqueDeCardio'
+import { esfuerzoDeTexto, patronConEsfuerzo } from '../../../domain/patrones/esfuerzoDelBloque'
 import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
 import type {
   Competencia,
@@ -27,7 +28,7 @@ import { implementosDeSesion } from './implementos/implementosDeSesion'
 import { capaTrasArrastre } from '../capas/gestoVertical'
 import { capaTrasHundir, ESCALON_MS, ESPERA, siguePresionando } from '../capas/hundirEnElCuerpo'
 import { SUELO_DEL_SALON, type NivelW } from './huecos'
-import { contenidoPared } from './paredes/contenidoPared'
+import { contenidoDelCardio, contenidoPared } from './paredes/contenidoPared'
 import { ParedesDelSalon } from './paredes/ParedesDelSalon'
 import { useRitmoDelSalon } from './paredes/useRitmoDelSalon'
 import { dedoEnElCuerpo, modoDelDedo, type CuadroEnPantalla } from './camara/dedoEnElCuerpo'
@@ -35,6 +36,9 @@ import { ArquitecturaSala } from './sala/ArquitecturaSala'
 import { PanelInferior } from './panel/PanelInferior'
 import { CajonDeSerie } from './registro/CajonDeSerie'
 import { EstacionesDelSujeto } from './estaciones/EstacionesDelSujeto'
+import { cifrasDelCardio } from './estaciones/estacionesDelCardio'
+import { BANDA_DE_SESION, SUELO_DE_LOS_CARTELES } from './estaciones/sitioDelCartel'
+import { cifrasDeLaSerie } from '../escena/sala'
 import { huellaDeReferencia } from './paredes/huellaDeReferencia'
 import { leerHuellaArticular } from '../encoder/huellasArticulares'
 import type { ClaveDeEstacion } from './estaciones/estacionesDeLaSerie'
@@ -331,16 +335,60 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   // el dominio y lee el texto del bloque; aquí solo se elige entre el ejercicio y el bloque.
   // Con ejercicio elegido manda el ejercicio, como siempre. Revierte la decisión escrita en
   // `SalonSinSujeto.tsx`, y allí queda anotado.
-  const patronDelBloque = useMemo(() => patronDeLosBloques(sesion?.bloquesCardio), [sesion])
-  const patron = useMemo(
-    () =>
-      ejercicio ? patronDeCategoria(ejercicio.categoria, ejercicio.nombre) : patronDelBloque,
-    [ejercicio, patronDelBloque],
+  //
+  // **Y se lee del día QUE SE ESTÁ MIRANDO, no del de hoy.** Hasta el 2026-09-10 esto
+  // decía `sesion`, que es la sesión de hoy, mientras el resto del salón —paredes,
+  // ejercicio, muro— se pintaba con `sesionEnPantalla`. Consecuencia medida en el
+  // navegador: desde un día de fuerza, viajar al METABÓLICO A del seed —treinta minutos
+  // con diez intervalos a RPE 8— daba una sala vacía con cuatro tarjetas que decían «Sin
+  // minutos prescritos». Los datos estaban; lo que no llegaba era el día.
+  const patronDelBloque = useMemo(
+    () => patronDeLosBloques(sesionEnPantalla?.bloquesCardio),
+    [sesionEnPantalla],
   )
+  /**
+   * EL RITMO ESCRITO SE VE EN EL CUERPO.
+   *
+   * Un trote de zona 2 y un intervalo a RPE 8 se veian identicos hasta el 2026-09-10: misma
+   * cadencia y misma amplitud, y la diferencia solo en una cifra del muro. Ahora la ficha
+   * del bloque se anima al esfuerzo que el coach escribio. Va en un `useMemo` con la ficha y
+   * el esfuerzo por dependencias y NO por render: el visor monta su WebGL con la ficha como
+   * dependencia, asi que un objeto nuevo cada vez recrearia el contexto entero.
+   */
+  const esfuerzoDelBloque = useMemo(
+    () =>
+      esfuerzoDeTexto(
+        (sesionEnPantalla?.bloquesCardio ?? [])
+          .flatMap((b) => [b.titulo, b.indicaciones])
+          .filter(Boolean)
+          .join(' '),
+      ),
+    [sesionEnPantalla],
+  )
+  const patron = useMemo(() => {
+    if (ejercicio) return patronDeCategoria(ejercicio.categoria, ejercicio.nombre)
+    return patronDelBloque ? patronConEsfuerzo(patronDelBloque, esfuerzoDelBloque) : undefined
+  }, [ejercicio, patronDelBloque, esfuerzoDelBloque])
   const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
-  const contenido = useMemo(() => (ejercicio ? contenidoPared(ejercicio) : undefined), [ejercicio])
+  // EL MURO TAMBIÉN HABLA EN CARDIO. Sin contenido de pared no se monta el tablón, y hasta
+  // el 2026-09-10 un día de cardio abría sin nombre y sin código de sala: la habitación
+  // entera muda. El nombre en trazo sale del título de la ficha —«Carrera»—, que es el
+  // mismo que decide qué sujeto se pinta.
+  const contenido = useMemo(
+    () =>
+      ejercicio
+        ? contenidoPared(ejercicio)
+        : contenidoDelCardio(sesionEnPantalla?.bloquesCardio, patronDelBloque?.titulo),
+    [ejercicio, sesionEnPantalla, patronDelBloque],
+  )
   // El ritmo lleva dentro el tiempo del cronómetro, leído de donde lo guarda el propio
   // cronómetro: un segundo reloj daría dos duraciones de la misma sesión.
+  //
+  // Este SÍ es el de hoy, y es la única excepción a que mande el día elegido: la
+  // marquesina dice por dónde va el entrenamiento que se está haciendo AHORA —«vas en
+  // ritmo», «~12 min para el siguiente ejercicio»—, y eso no cambia por asomarse al
+  // sábado. Cronometrar el día que se mira sería contar una sesión que nadie está
+  // haciendo.
   const ritmo = useRitmoDelSalon(sesion)
 
   /**
@@ -478,6 +526,24 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
   // Estable a propósito: viaja al efecto que monta el WebGL del visor, y una función nueva
   // por render lo remontaría —contexto incluido— en cada fotograma.
   const modoDeLaCamara = useCallback((x: number, y: number) => modoDelDedo(cuerpoRef.current, x, y), [])
+  /** El mismo cuadro, para que las estaciones no dibujen encima del sujeto. */
+  const leerElCuerpo = useCallback(() => cuerpoRef.current, [])
+  /**
+   * DE DÓNDE A DÓNDE PUEDE VIVIR UN CARTEL DE ESTACIÓN.
+   *
+   * Arriba, por debajo de la banda de la sesión, que es texto y el criterio 3 del kit
+   * prohíbe pisarlo igual que al sujeto. Abajo, por encima del tirador del panel y de la
+   * barra de navegación: un cartel escondido detrás del panel no tapa al sujeto, pero
+   * tampoco se lee, y eso es incumplir el mismo criterio por el otro lado.
+   */
+  const marcoDeLosCarteles = useMemo(
+    () => ({
+      arriba: BANDA_DE_SESION,
+      abajo: lienzo.alto - SUELO_DE_LOS_CARTELES,
+      ancho: lienzo.ancho,
+    }),
+    [lienzo.alto, lienzo.ancho],
+  )
 
   // El lienzo se mide del DOM y no se supone: la distancia focal sale de su alto, y con
   // un alto supuesto los cuadros caerían en un sitio y la sala se dibujaría en otro.
@@ -780,14 +846,21 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                       : c,
                   )
                 }}
-                datos={
+                // LA SALA SE DIBUJA SIEMPRE en el salón: es el salón. Lo que depende de
+                // que haya algo que marcar es el marcador del muro, y nada más.
+                conSala
+                // LAS TRES CIFRAS DEL MURO. Un día de hierro son series, repeticiones y
+                // RIR; uno de cardio, tramos, minutos y el RPE o la zona si están escritos.
+                // Son las mismas tres preguntas con otra ropa, y el marcador no lleva
+                // rótulos, así que no hay palabra nueva que aprender.
+                cifras={
                   ejercicio
-                    ? {
+                    ? cifrasDeLaSerie({
                         series: ejercicio.sets,
                         reps: ejercicio.repsDiana,
                         rir: ejercicio.rirObjetivo,
-                      }
-                    : undefined
+                      })
+                    : cifrasDelCardio(sesionEnPantalla?.bloquesCardio)
                 }
                 // EL SUJETO BAJA EN LO QUE CUENTA LA PARED. El mando del reloj pone la
                 // pared a contar el excéntrico a `SEGUNDOS_DE_EXCENTRICO` por repetición;
@@ -844,7 +917,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               }}
             >
               <SalaVacia>
-                <SalonSinSujeto ejercicio={ejercicio} bloques={sesion?.bloquesCardio} />
+                <SalonSinSujeto ejercicio={ejercicio} bloques={sesionEnPantalla?.bloquesCardio} />
               </SalaVacia>
             </div>
 
@@ -863,8 +936,19 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
         {conSujeto && (
           <EstacionesDelSujeto
             ejercicio={ejercicio}
+            // Y CUANDO NO HAY EJERCICIO, EL CARDIO. Un día de cardio con modalidad
+            // reconocida tiene sujeto desde el 7-sep, y al ganarlo dejó de montarse la rama
+            // sin sujeto, que era la única que enseñaba sus minutos: el día metabólico se
+            // quedó con un corredor y ni un número. Ver `estaciones/estacionesDelCardio.ts`.
+            bloques={ejercicio ? undefined : sesionEnPantalla?.bloquesCardio}
             azimut={camara.azimut - (patron?.camara.azimut ?? 0)}
             suelo={Math.round(lienzo.alto * 0.78)}
+            // EL CUERPO, PARA NO PINTARLE ENCIMA. Es el mismo cuadro con el que el dedo
+            // sabe si está sobre el sujeto, y viaja como función porque cambia en cada
+            // fotograma: leerlo como prop repintaría las estaciones sesenta veces por
+            // segundo. Ver `estaciones/sitioDelCartel.ts` para lo que se midió.
+            cuerpo={leerElCuerpo}
+            marco={marcoDeLosCarteles}
             foco={estacionFija}
             onEnfocar={(clave) => setEstacionFija((v) => (v === clave ? undefined : clave))}
           />
@@ -1093,12 +1177,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
           notas={props.notas}
           alPanel={contenido?.alPanel ?? []}
           contenido={contenido}
-          material={implementosDeSesion(sesion)}
-          bloquesCardio={sesion?.bloquesCardio}
+          material={implementosDeSesion(sesionEnPantalla)}
+          bloquesCardio={sesionEnPantalla?.bloquesCardio}
           nombreEjercicio={ejercicio?.nombre}
           ejercicio={ejercicio}
           ritmo={ritmo}
-          sesion={sesion}
+          sesion={sesionEnPantalla}
           patron={patron}
           onAvance={setAvanceDelPanel}
         />

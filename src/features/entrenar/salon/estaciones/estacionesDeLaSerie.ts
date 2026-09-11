@@ -33,8 +33,24 @@ import type { EjercicioPrescrito } from '../../../../domain/types'
  * a que el ciclo lo repita.
  */
 
-/** Los cuatro ángulos, repartidos en cruz alrededor del cuerpo. */
-export const ANGULOS = { series: 45, reps: 135, descanso: 225, rir: 315 } as const
+/**
+ * Los cuatro ángulos, repartidos en cruz alrededor del cuerpo.
+ *
+ * Y los tres del cardio, que son los MISMOS sitios con otro contenido: un día de cardio
+ * tiene sujeto desde el 2026-09-07 y su prescripción vive donde vive siempre, alrededor del
+ * cuerpo. Van aquí y no en `estacionesDelCardio.ts` para que exista un único mapa de dónde
+ * se planta un poste: dos listas de ángulos se separan al primer ajuste y el salón acabaría
+ * con estaciones en cinco sitios.
+ */
+export const ANGULOS = {
+  series: 45,
+  reps: 135,
+  descanso: 225,
+  rir: 315,
+  minutos: 45,
+  tramos: 135,
+  intensidad: 315,
+} as const
 
 export type ClaveDeEstacion = keyof typeof ANGULOS
 
