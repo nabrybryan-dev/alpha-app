@@ -39,7 +39,7 @@
 import { limitar } from '../../../domain/patrones/algebra'
 import type { Patron } from '../../../domain/patrones/catalogo'
 import { LADO, type EsqueletoResuelto, type Lado } from '../../../domain/patrones/esqueleto'
-import { curva, Malla, tubo } from '../../../domain/patrones/malla'
+import { curva, Malla, tubo, type Color } from '../../../domain/patrones/malla'
 import {
   activacionDe,
   colorDeMusculo,
@@ -181,10 +181,14 @@ function dibujarPorcion(
   { musculo, porcion, clave }: PorcionLocalizada,
   activacion: Activacion,
   enReposo: Record<string, number>,
+  anatomico = false,
 ): void {
   for (const lado of LADOS) {
     const a = activacionDe(activacion, musculo.id, porcion.id, lado)
-    const color = colorDeMusculo(a)
+    // Tono de tejido, no una estimación de activación. Las porciones vecinas
+    // se distinguen con una pequeña variación estable entre ambos lados.
+    const matiz = [...clave].reduce((n, c) => n + c.charCodeAt(0), 0) % 7 / 100
+    const color: Color = anatomico ? [0.61 + matiz, 0.20 + matiz, 0.18 + matiz] : colorDeMusculo(a)
     const nf = porcion.fasciculos ?? 1
     for (let f = 0; f < nf; f++) {
       const control = trazadoDeFasciculo(esq, porcion, lado, f)
@@ -243,12 +247,13 @@ export function construirMusculosFiltrado(
   enReposo: Record<string, number>,
   claves: ReadonlySet<string> | null,
   reutilizar?: Malla,
+  anatomico = false,
 ): Malla {
   const m = reutilizar ?? new Malla(16384)
   m.reiniciar()
   for (const pl of PORCIONES) {
     if (claves && !claves.has(pl.clave)) continue
-    dibujarPorcion(m, esq, pl, activacion, enReposo)
+    dibujarPorcion(m, esq, pl, activacion, enReposo, anatomico)
   }
   return m
 }
@@ -271,5 +276,5 @@ export function construirMusculosDeNivel(
 ): Malla {
   const nivel = NIVEL_POR_W[w]
   const activacion: Activacion = nivel.acabado === 'activacion' ? patron.activacion : {}
-  return construirMusculosFiltrado(esq, activacion, enReposo, clavesDeNivel(w), reutilizar)
+  return construirMusculosFiltrado(esq, activacion, enReposo, clavesDeNivel(w), reutilizar, nivel.acabado === 'anatomico')
 }

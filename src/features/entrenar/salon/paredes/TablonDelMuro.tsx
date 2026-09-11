@@ -1,6 +1,7 @@
+import { estacionesDelCardio } from '../estaciones/estacionesDelCardio'
 import { estacionesDeLaSerie } from '../estaciones/estacionesDeLaSerie'
 import { useEffect, useState } from 'react'
-import type { EjercicioPrescrito, Sesion } from '../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
 import { MuroDeCampos } from './PanelPared'
 import { TOPE_PARED } from '../huecos'
@@ -72,6 +73,8 @@ export interface TablonDelMuroProps {
   contenido: ContenidoDePared
   sesion?: Sesion
   ejercicio?: EjercicioPrescrito
+  /** Los bloques del día, cuando lo del centro es cardio y no un ejercicio. */
+  bloques?: readonly ItemMarcable[]
   /**
    * Con cuánto levantó este ejercicio la última vez. Ausente = no hay con qué comparar, y
    * entonces la línea no se pinta: un 0 kg ahí sería una carga que nadie levantó.
@@ -95,6 +98,7 @@ export function TablonDelMuro({
   contenido,
   sesion,
   ejercicio,
+  bloques,
   cargaPrevia,
   modo,
   anclas,
@@ -124,6 +128,7 @@ export function TablonDelMuro({
 
   const anunciando = estado === 'anuncio' || estado === 'relevo'
   const conCarga = anunciando || cargaEnLaPared
+  const cifras = ejercicio ? estacionesDeLaSerie(ejercicio) : estacionesDelCardio(bloques)
   return (
     // LA ESCENA DEL TABLÓN. `perspective` va AQUÍ y no más arriba porque alcanza solo a los
     // HIJOS DIRECTOS: puesta en un ancestro, el `translateZ` de las capas se aplicaría
@@ -174,9 +179,12 @@ export function TablonDelMuro({
           chevrones rosas—, y las cuatro estaciones, que se retiran. Aquí van las cuatro
           cifras mirando a cámara, en la materia del muro, y no se van. Son las mismas que
           las estaciones (`estacionesDeLaSerie`): un solo sitio decide qué dice cada una. */}
-      {ejercicio && (
+      {/* Y en un día de cardio, las suyas: tramos, minutos e intensidad. Mismo sitio y
+          misma fuente que la fuerza —`estaciones*`—, para que el muro y los postes de
+          alrededor del cuerpo no puedan decir cosas distintas. */}
+      {cifras.length > 0 && (
         <div data-prescripcion="muro" className="muro-prescripcion">
-          {estacionesDeLaSerie(ejercicio).map((e) => (
+          {cifras.map((e) => (
             <div key={e.clave} data-cifra={e.clave} className="min-w-0 text-center">
               <span className="muro-rotulo muro-prescripcion-rotulo block">{e.rotulo}</span>
               <span className="muro-prescripcion-cifra block">{e.cifra}</span>

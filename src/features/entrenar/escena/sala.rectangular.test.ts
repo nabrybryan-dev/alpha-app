@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Malla } from '../../../domain/patrones/malla'
-import { construirSala, radioDelMuroRectangular } from './sala'
+import { cifrasDeLaSerie, construirSala, radioDelMuroRectangular } from './sala'
 
 /**
  * LOS MARCADORES EN LA SALA DE BLENDER.
@@ -37,7 +37,7 @@ describe('radioDelMuroRectangular', () => {
 })
 
 describe('construirSala con la sala de Blender', () => {
-  const datos = { series: 3, reps: 8, rir: 2 as const }
+  const datos = cifrasDeLaSerie({ series: 3, reps: 8, rir: 2 as const })
 
   it('no levanta la pared ni las estaciones: sigue siendo una fracción de la sala de cajas', () => {
     // Con la pieza de Blender no se dibuja ni el muro ni las diez estaciones del anillo.
@@ -64,5 +64,48 @@ describe('construirSala con la sala de Blender', () => {
       expect(Math.abs(x)).toBeLessThanOrEqual(8)
       expect(Math.abs(z)).toBeLessThanOrEqual(5.5)
     }
+  })
+})
+
+/**
+ * LA SALA NO CUELGA DE LOS NÚMEROS DE LA SERIE.
+ *
+ * Nace en rojo el 2026-09-10. Hasta ese día `construirSala` exigía los datos de la serie y
+ * la habitación entera colgaba de ellos, así que un día de cardio —que no tiene series ni
+ * repeticiones— abría el salón **sin gimnasio**: el sujeto sobre negro y con el encuadre de
+ * estudiar un patrón. Una sala es una sala haya o no serie; lo que depende de los números es
+ * el marcador, y solo él.
+ */
+describe('la sala se construye haya o no algo que marcar', () => {
+  const cifras = cifrasDeLaSerie({ series: 3, reps: 8, rir: 2 as const })
+
+  it('sin cifras sigue habiendo habitación', () => {
+    const m = new Malla()
+    construirSala(m, undefined, 72)
+    expect(m.vertices).toBeGreaterThan(0)
+  })
+
+  it('y lo que falta es exactamente el marcador, no la sala', () => {
+    const con = new Malla()
+    construirSala(con, cifras, 72)
+    const sin = new Malla()
+    construirSala(sin, undefined, 72)
+    expect(sin.vertices).toBeLessThan(con.vertices)
+    // Los cuatro marcadores son una parte del mobiliario, no la mitad de la sala: si esto
+    // se cae, es que se ha llevado por delante algo más que los paneles.
+    expect(sin.vertices).toBeGreaterThan(con.vertices * 0.5)
+  })
+
+  it('la casilla del esfuerzo se APAGA cuando no está escrito, y no se pone a cero', () => {
+    const apagada = new Malla()
+    construirSala(apagada, { veces: 3, cuanto: 30, esfuerzo: undefined }, 72)
+    const encendida = new Malla()
+    construirSala(encendida, { veces: 3, cuanto: 30, esfuerzo: 8 }, 72)
+    // Un cero ahí diría «RIR 0», que es otra cosa. Sin casilla, el muro dice lo único
+    // cierto: que eso no está escrito.
+    expect(apagada.vertices).toBeLessThan(encendida.vertices)
+    const cero = new Malla()
+    construirSala(cero, { veces: 3, cuanto: 30, esfuerzo: 0 }, 72)
+    expect(apagada.vertices).not.toBe(cero.vertices)
   })
 })

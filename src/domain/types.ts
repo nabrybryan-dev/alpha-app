@@ -400,6 +400,34 @@ export interface Sesion {
    * salen de `hoyIso()`: fecha local del dispositivo, nunca UTC.
    */
   fecha?: string
+  /**
+   * EL INSTANTE en que la persona apareció en esta sesión, con zona horaria.
+   *
+   * Hermano de `fecha` y escrito por la misma mano —la primera acción de dentro—, pero no es
+   * lo mismo y por eso son dos campos: `fecha` es un DÍA y esto es una HORA. Hasta el
+   * 2026-09-10 la app solo sabía el día, y el cronómetro que sí sabe horas vivía en el
+   * `localStorage` del teléfono y no subía a ningún sitio.
+   *
+   * **Para qué hace falta una hora, si el día bastaba:** para poder atar a un entrenamiento
+   * algo que ocurrió DURANTE él —unas pulsaciones, unos pasos— hace falta un intervalo. Con
+   * solo el día, asociar sería por cercanía de fecha, y eso empareja la sesión de la mañana
+   * con el paseo de la noche sin que nada falle a la vista.
+   *
+   * Se escribe UNA vez y no se sobrescribe, igual que `fecha`.
+   */
+  empezadaEn?: string
+  /**
+   * LA ÚLTIMA SEÑAL de que la persona seguía en la sesión, con zona horaria.
+   *
+   * No se llama `terminadaEn` a propósito, y la diferencia importa: nadie pulsa «he
+   * terminado». Lo único que la app sabe de verdad es cuándo fue la última cosa que se
+   * registró — la última serie, la última marca, el test. Llamarlo «fin» afirmaría que
+   * después no pasó nada, y lo honesto es que después no hay CONSTANCIA de nada.
+   *
+   * Se mueve con cada escritura, así que junto con `empezadaEn` marca la ventana en la que
+   * consta que hubo entrenamiento. Fuera de esa ventana no se ata nada.
+   */
+  ultimaMarcaEn?: string
   tipo?: 'fuerza' | 'metabolica'
   preparacion?: PartePreparacion[]
   bloquesCardio?: ItemMarcable[]

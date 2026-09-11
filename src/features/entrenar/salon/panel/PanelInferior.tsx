@@ -35,7 +35,7 @@ import { ImplementosDelSalon } from '../implementos/ImplementosDelSalon'
 import type { ImplementosDeSesion } from '../implementos/implementosDeSesion'
 import { MuroDeCampos } from '../paredes/PanelPared'
 import { MURO_DERECHO } from '../paredes/muros'
-import type { ContenidoDePared } from '../paredes/contenidoPared'
+import { hayEncuadre, type ContenidoDePared } from '../paredes/contenidoPared'
 
 /** «7 sep», para el pie del calendario. Sin fecha, nada: no se inventa un día. */
 function fechaCorta(fechaIso: string | undefined): string {
@@ -370,7 +370,12 @@ export function PanelInferior(props: PanelInferiorProps) {
               <RecuadroEjercicio ejercicio={ejercicio} alPanel={alPanel} bloquesCardio={bloquesCardio} />
             </Recuadro>
 
-            {contenido && (
+            {/* EL ENCUADRE, SOLO SI HAY ENCUADRE QUE CONTAR. Los cuatro campos son del
+                encoder —dónde va el móvil, a qué distancia, qué palanca, qué velocidad— y
+                un día de cardio no mide nada, así que llegan vacíos. Un recuadro con su
+                título, su pie y cuatro huecos en blanco es peor que no tenerlo: promete un
+                dato y no lo da. */}
+            {contenido && hayEncuadre(contenido) && (
               <Recuadro
                 clave="encuadre"
                 titulo="El encuadre de hoy"
