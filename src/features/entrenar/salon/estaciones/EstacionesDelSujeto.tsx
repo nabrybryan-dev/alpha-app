@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { EjercicioPrescrito, ItemMarcable } from '../../../../domain/types'
 import type { CuadroEnPantalla } from '../camara/dedoEnElCuerpo'
@@ -8,7 +8,12 @@ import {
   type ClaveDeEstacion,
 } from './estacionesDeLaSerie'
 import { estacionesDelCardio } from './estacionesDelCardio'
-import { desvioDelCartel, type DesvioDelCartel } from './sitioDelCartel'
+import {
+  desviosDeLosCarteles,
+
+  type DesvioDelCartel,
+  type Recuadro,
+} from './sitioDelCartel'
 
 /**
  * LAS CUATRO ESTACIONES, DIBUJADAS: poste, base y cartel alrededor del sujeto.
@@ -34,24 +39,42 @@ import { desvioDelCartel, type DesvioDelCartel } from './sitioDelCartel'
  * permanentes alrededor del cuerpo serían otra vez el dashboard con un muñeco dentro, que
  * es de lo que este salón vino a salir.
  *
- * Y desde el 2026-09-06 VUELVE: ciclo de 5 s —tres quieta, dos fuera— que no termina
- * (Bryan: «se reflejan al principio y luego se pierden»). Al tocar una, esa se queda FIJA
- * (`data-fija`: sin animación y posada, no en pausa, que la dejaría invisible si el ciclo
- * iba por «nada») y las otras tres se atenúan; tocarla otra vez la suelta.
+ * Del 2026-09-06 al 11 volvía sola en un ciclo de 5 s que no terminaba, porque Bryan dijo
+ * «se reflejan al principio y luego se pierden». Lo que faltaba entonces era dónde
+ * encontrarlas después, y eso ya existe: **el muro de enfrente lleva las cuatro cifras
+ * grandes y permanentes** desde ese mismo día. Con la prescripción puesta en la pared, un
+ * segundo juego de números dando vueltas alrededor del cuerpo es la pared repetida encima
+ * de la sala. Medido el 2026-09-11: tapaban el 2,34 % de la pantalla, setenta y cinco veces
+ * el ruido de la propia foto (0,03 %, el cronómetro). Decisión de Bryan ese día: **que se
+ * retiren y vuelvan al tocar**.
+ *
+ * Así que la cifra entra, se lee y se va —una vez—, y lo que queda plantado es el poste con
+ * su base. **Para volver a verla se toca su poste**, que es el objeto de la sala que sigue
+ * ahí: la estación queda FIJA (`data-fija`: sin animación y posada, no en pausa, que la
+ * dejaría invisible) y las otras se atenúan; tocarla otra vez la suelta. Es la regla 3 del
+ * kit —la interacción se hace tocando el salón, no con mandos puestos encima— y por eso el
+ * botón es el poste y no el cartel: un botón donde había un número que ya se fue es una
+ * zona sensible invisible en mitad de la sala.
  */
 
 /** A cuántos píxeles del eje del cuerpo se plantan los postes. */
 const RADIO = 138
 
 /**
- * Cuánto se acerca el cartel a su sitio nuevo en cada fotograma.
+ * POR QUÉ EL CARTEL YA NO PERSIGUE SU SITIO, SE POSA EN ÉL.
  *
- * Dieciocho centésimas: el cartel llega en unos diez fotogramas —un sexto de segundo— y no
- * de un salto. El salto se nota como un parpadeo justo cuando el cuerpo entra o sale de
- * debajo del cartel, que es el momento en que se está mirando esa zona. Con movimiento
- * reducido no se persigue nada: se posa donde toca en el mismo fotograma.
+ * Hasta el 2026-09-11 el cartel viajaba a su sitio nuevo a razón de 0,18 por fotograma
+ * —unos diez fotogramas— para que no diera un salto justo cuando el cuerpo se le metía
+ * debajo. El salto se evitaba, pero se pagaba con el CAMINO: mientras viajaba, el cartel
+ * CRUZABA por encima de los otros tres. Medido ese día: solapes momentáneos de hasta el
+ * 100 % que no estaban en el destino, solo en el trayecto; con la colocación instantánea,
+ * cero desde los 1,3 s hasta que la cifra se retira.
+ *
+ * El cambio es aceptable porque el reparto ya no se recalcula cada fotograma: se sostiene
+ * mientras siga siendo válido, así que el salto ocurre pocas veces y solo cuando de verdad
+ * había que apartarse. Un parpadeo raro se lee mejor que un número cruzando por encima de
+ * otro.
  */
-const PERSECUCION = 0.18
 
 /**
  * EL BUCLE QUE APARTA LOS CARTELES DEL SUJETO.
@@ -65,6 +88,11 @@ const PERSECUCION = 0.18
  * `--desvio` a cero), no contra donde está ahora. Calcularlo contra su sitio actual sería
  * un lazo cerrado: el cartel apartado ya no pisa al cuerpo, el desvío pedido pasaría a
  * cero, volvería a pisarlo, y se quedaría oscilando para siempre.
+ *
+ * Y desde el 2026-09-11 decide por LOS CUATRO A LA VEZ (`desviosDeLosCarteles`). Cada uno
+ * por su cuenta elegía el mismo costado libre y aterrizaban unos sobre otros: medido en el
+ * salón, siempre había al menos una pareja pisándose y a menudo una cifra entera dentro de
+ * otra. Por eso se leen los cuatro sitios naturales antes de mover ninguno.
  */
 function useEsquivarElCuerpo(
   zona: React.RefObject<HTMLDivElement | null>,
@@ -72,6 +100,8 @@ function useEsquivarElCuerpo(
   marco: { arriba: number; abajo: number; ancho: number } | undefined,
 ) {
   const aplicado = useRef(new Map<Element, DesvioDelCartel>())
+  /** Dónde se decidió que vaya cada cartel. `aplicado` es dónde va llegando. */
+  const decidido = useRef(new Map<Element, DesvioDelCartel>())
   // Los tres bordes se desmontan del objeto a propósito: un `marco` recreado en cada render
   // del salón reiniciaría el bucle sesenta veces por segundo aunque los números no cambien.
   const arriba = marco?.arriba
@@ -79,36 +109,122 @@ function useEsquivarElCuerpo(
   const ancho = marco?.ancho
   useEffect(() => {
     if (!cuerpo || arriba === undefined || abajo === undefined || ancho === undefined) return
-    const marcoFijo = { arriba, abajo, ancho }
-    const suave = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    /**
+     * EL TABLÓN DEL MURO TAMBIÉN ESTORBA, no solo el cuerpo.
+     *
+     * `BANDA_DE_SESION` se fijó en 84 px cuando arriba solo estaba «SESIÓN FULL C ·
+     * VIERNES». Desde el 2026-09-06 el tablón cuelga ahí debajo con el nombre del
+     * ejercicio en trazo y las cuatro cifras grandes, y nadie se lo dijo a los carteles:
+     * un cartel que escapaba hacia arriba aterrizaba SOBRE la prescripción de la pared
+     * —fotografiado el 2026-09-11, «RIR 2» encima de «SERIES REPETICIONES DESCANSO RIR»—.
+     * El criterio 3 del kit prohíbe con las mismas palabras pisar al sujeto y pisar otro
+     * texto, así que esto era la otra mitad del mismo incumplimiento.
+     *
+     * Va como ESTORBO y no como un techo aparte porque es la MISMA regla aplicada a otra
+     * cosa: dos reglas que dicen «no pises esto» se separan en cuanto una se ajusta. Se
+     * mide del DOM en cada fotograma y no se supone, porque el tablón cambia de alto entre
+     * el anuncio —el nombre del ejercicio en dos líneas— y el reposo. Medido a 390 px: de
+     * x=91 a x=379 y de y=73 a y=201, así que a esa altura no cabe un cartel de 132 a
+     * ninguno de los dos lados y el efecto práctico hoy es que ninguno sube; el día que el
+     * tablón encoja, el hueco que deje se podrá usar sin tocar nada.
+     */
+    const tablonDelMuro = (): Recuadro[] => {
+      const nodo = document.querySelector('[data-tablon]')
+      if (!nodo) return []
+      const r = nodo.getBoundingClientRect()
+      return [{ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }]
+    }
     let vivo = 0
     const paso = () => {
       vivo = requestAnimationFrame(paso)
       const nodos = zona.current?.querySelectorAll<HTMLElement>('.estacion-cartel')
       if (!nodos?.length) return
       const cuadro = cuerpo()
-      for (const nodo of Array.from(nodos)) {
+      const marcoFijo = { arriba, abajo, ancho }
+      const estorbos = [...(cuadro ? [cuadro] : []), ...tablonDelMuro()]
+
+      // Los sitios NATURALES de los cuatro: donde caería cada cartel sin desvío ninguno.
+      // Se leen todos ANTES de decidir nada, porque el reparto mira a los cuatro a la vez.
+      const lista = Array.from(nodos).map((nodo, i) => {
+        const estrena = !aplicado.current.has(nodo)
         const ya = aplicado.current.get(nodo) ?? { dx: 0, dy: 0 }
         const r = nodo.getBoundingClientRect()
-        // El sitio natural: donde caería el cartel sin desvío ninguno.
-        const natural = {
-          x0: r.left - ya.dx,
-          x1: r.right - ya.dx,
-          y0: r.top - ya.dy,
-          y1: r.bottom - ya.dy,
+        return {
+          nodo,
+          ya,
+          estrena,
+          clave: nodo.dataset.cartel ?? String(i),
+          natural: { x0: r.left - ya.dx, x1: r.right - ya.dx, y0: r.top - ya.dy, y1: r.bottom - ya.dy },
         }
-        const objetivo = desvioDelCartel(natural, cuadro, marcoFijo)
-        const posar = (eje: 'dx' | 'dy') => {
-          if (!suave) return objetivo[eje]
-          const paso = ya[eje] + (objetivo[eje] - ya[eje]) * PERSECUCION
-          return Math.abs(objetivo[eje] - paso) < 0.5 ? objetivo[eje] : paso
-        }
-        const dx = posar('dx')
-        const dy = posar('dy')
-        if (dx !== ya.dx || dy !== ya.dy) {
+      })
+      // EL REPARTO SE MANTIENE HASTA QUE DEJA DE VALER, no se recalcula cada fotograma.
+      //
+      // Recalcularlo siempre parece lo correcto y no lo es: el cuerpo se mueve en cada
+      // fotograma, así que el reparto «óptimo» salta —un cartel que estaba a la izquierda
+      // pasa a estar arriba— y, como la persecución tarda diez fotogramas en llegar, el
+      // cartel CRUZA por encima de los otros mientras viaja. Medido el 2026-09-11: con
+      // recálculo constante aparecían solapes momentáneos de hasta el 87 % que no estaban
+      // en el destino, solo en el camino. Así que se decide una vez y se sostiene mientras
+      // el sitio siga limpio; si deja de estarlo, se vuelve a repartir entero.
+      const sitioCon = (c: (typeof lista)[number], d: DesvioDelCartel) => ({
+        x0: c.natural.x0 + d.dx,
+        x1: c.natural.x1 + d.dx,
+        y0: c.natural.y0 + d.dy,
+        y1: c.natural.y1 + d.dy,
+      })
+      const chocan = (a: Recuadro, b: Recuadro) =>
+        a.x1 > b.x0 && a.x0 < b.x1 && a.y1 > b.y0 && a.y0 < b.y1
+      const valen = (candidatos: DesvioDelCartel[]) => {
+        const sitios = lista.map((c, i) => sitioCon(c, candidatos[i]))
+        if (sitios.some((r) => estorbos.some((e) => chocan(r, e)))) return false
+        return !sitios.some((r, i) => sitios.some((otro, j) => j > i && chocan(r, otro)))
+      }
+
+      const enPie = lista.map(({ nodo }) => decidido.current.get(nodo) ?? { dx: 0, dy: 0 })
+      const aCasa = lista.map(() => ({ dx: 0, dy: 0 }))
+      // Volver a casa en cuanto se pueda: si no, un cartel apartado por una postura que ya
+      // pasó se quedaría a un lado para siempre, y su poste dejaría de señalarlo.
+      const reparto = valen(aCasa)
+        ? new Map(lista.map((c) => [c.clave, { dx: 0, dy: 0 }]))
+        : valen(enPie)
+          ? new Map(lista.map((c, i) => [c.clave, enPie[i]]))
+          : desviosDeLosCarteles(lista, estorbos, marcoFijo)
+
+      const sitios = new Map(
+        lista.map((c) => [c.clave, sitioCon(c, reparto.get(c.clave) ?? { dx: 0, dy: 0 })]),
+      )
+
+      for (const { nodo, ya, estrena, clave } of lista) {
+        const objetivo = reparto.get(clave) ?? { dx: 0, dy: 0 }
+        decidido.current.set(nodo, objetivo)
+        const { dx, dy } = objetivo
+        if (estrena || dx !== ya.dx || dy !== ya.dy) {
           aplicado.current.set(nodo, { dx, dy })
           nodo.style.setProperty('--desvio-x', `${dx.toFixed(1)}px`)
           nodo.style.setProperty('--desvio-y', `${dy.toFixed(1)}px`)
+        }
+        // SI NO HAY SITIO LIMPIO, ESA CIFRA NO SE ENSEÑA.
+        //
+        // El reparto encuentra hueco para las cuatro en la mayoría de los ángulos, pero no
+        // en todos: medido con `testigo/cifras-que-se-pisan.mjs`, en 2 de las 13 posiciones
+        // de cámara el cuerpo y el tablón dejan una sola franja libre y cuatro carteles no
+        // caben en una franja. Empujar más es empaquetar; y de todos modos una cifra
+        // escrita sobre otra no es información, es tinta.
+        //
+        // Así que cuando una se queda sin sitio, se calla. **No se pierde nada**: el muro
+        // de enfrente lleva las cuatro cifras grandes y permanentes, y su poste sigue
+        // plantado para traerla de vuelta con un dedo. Es la misma idea que la retirada a
+        // los 3,8 s, aplicada un poco antes.
+        const suyo = sitios.get(clave)
+        const sinSitio = suyo
+          ? [...estorbos, ...[...sitios.entries()].filter(([k]) => k !== clave).map(([, r]) => r)].some(
+              (otro) => chocan(suyo, otro),
+            )
+          : false
+        const cifra = nodo.querySelector<HTMLElement>('.estacion-cifra')
+        if (cifra) {
+          if (sinSitio) cifra.dataset.sinSitio = ''
+          else delete cifra.dataset.sinSitio
         }
       }
     }
@@ -148,6 +264,17 @@ export interface EstacionesDelSujetoProps {
   onEnfocar: (clave: ClaveDeEstacion) => void
 }
 
+/**
+ * CUÁNTO DURA LA LECTURA, en milisegundos.
+ *
+ * Tres mil ochocientos: los mismos que tarda la cifra en entrar (0,4 s), quedarse quieta
+ * (3 s) y volver a irse (0,4 s) por el otro lado. Se escribe aquí además de en el CSS
+ * porque un `setTimeout` no lee una hoja de estilos, y porque la retirada tiene que ocurrir
+ * también con movimiento reducido, donde no hay animación ninguna que la produzca: quien no
+ * quiere movimiento tampoco quiere la prescripción tapándole la sala para siempre.
+ */
+const LECTURA_MS = 3800
+
 export function EstacionesDelSujeto({
   ejercicio,
   bloques,
@@ -161,6 +288,16 @@ export function EstacionesDelSujeto({
   const estaciones = ejercicio ? estacionesDeLaSerie(ejercicio) : estacionesDelCardio(bloques)
   const zonaRef = useRef<HTMLDivElement>(null)
   useEsquivarElCuerpo(zonaRef, cuerpo, marco)
+
+  // YA SE LEYÓ. El componente nace enseñando y a los 3,8 s se retira; quien decide que esto
+  // es una estación NUEVA —porque cambió el ejercicio— lo monta con `key`, igual que el
+  // tablón del muro, en vez de resetear el estado desde un efecto.
+  const [leidas, setLeidas] = useState(false)
+  useEffect(() => {
+    const reloj = setTimeout(() => setLeidas(true), LECTURA_MS)
+    return () => clearTimeout(reloj)
+  }, [])
+
   if (estaciones.length === 0) return null
 
   return (
@@ -187,41 +324,60 @@ export function EstacionesDelSujeto({
               zIndex: Math.round(500 + a.frente * 100),
             }}
           >
-            {/* EL POSTE Y LA BASE: los dos objetos del suelo. No contrarrestan nada —giran
-                con la sala, que es lo que hace que se lean como plantados en ella. */}
-            <span
-              aria-hidden="true"
-              className="absolute bottom-0 left-[-1px] w-[2px]"
-              style={{
-                height: `${POSTE}px`,
-                background: `linear-gradient(180deg, ${
-                  enfocada ? 'var(--accion)' : 'rgb(var(--silver-300-rgb) / 0.55)'
-                }, transparent)`,
-                opacity: a.opacidad,
-              }}
-            />
-            <span
-              aria-hidden="true"
-              className="absolute left-[-40px] top-[-20px] h-20 w-20 rounded-full border"
-              style={{
-                borderColor: enfocada
-                  ? 'rgb(var(--accion-rgb) / 0.7)'
-                  : 'rgb(var(--silver-300-rgb) / 0.3)',
-                background: enfocada
-                  ? 'rgb(var(--accion-rgb) / 0.1)'
-                  : 'rgb(var(--silver-300-rgb) / 0.04)',
-                transform: 'rotateX(90deg)',
-                opacity: a.opacidad,
-              }}
-            />
-
-            {/* EL CARTEL. La opacidad va AQUÍ y no en el contenedor de arriba: sobre un
-                envoltorio con `preserve-3d` aplanaría el grupo y el cartel se quedaría de
-                canto al orbitar. */}
+            {/* EL POSTE Y LA BASE: los dos objetos del suelo, y LO QUE SE TOCA.
+                No contrarrestan nada —giran con la sala, que es lo que hace que se lean
+                como plantados en ella—. El botón es esto y no el cartel desde el
+                2026-09-11: la cifra se retira a los pocos segundos, así que un botón
+                colgado de donde estuvo sería una zona sensible invisible en mitad de la
+                sala. Lo que sigue ahí es el poste, y el poste es lo que se toca. */}
             <button
               type="button"
+              data-poste={e.clave}
               onClick={() => onEnfocar(e.clave)}
-              className="estacion-cartel pointer-events-auto absolute w-[132px] text-center"
+              aria-label={`${e.rotulo}: ${e.cifra}`}
+              aria-pressed={enfocada}
+              className="estacion-poste pointer-events-auto absolute"
+              style={{
+                // Ancho de dedo y alto de poste. El poste dibujado son dos píxeles; el
+                // sitio donde se acierta con el pulgar, no.
+                left: '-28px',
+                bottom: '-14px',
+                width: '56px',
+                height: `${POSTE + 28}px`,
+                opacity: a.opacidad,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                className="absolute bottom-[14px] left-1/2 w-[2px] -translate-x-1/2"
+                style={{
+                  height: `${POSTE}px`,
+                  background: `linear-gradient(180deg, ${
+                    enfocada ? 'var(--accion)' : 'rgb(var(--silver-300-rgb) / 0.55)'
+                  }, transparent)`,
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute bottom-[-26px] left-1/2 h-20 w-20 -translate-x-1/2 rounded-full border"
+                style={{
+                  borderColor: enfocada
+                    ? 'rgb(var(--accion-rgb) / 0.7)'
+                    : 'rgb(var(--silver-300-rgb) / 0.3)',
+                  background: enfocada
+                    ? 'rgb(var(--accion-rgb) / 0.1)'
+                    : 'rgb(var(--silver-300-rgb) / 0.04)',
+                  transform: 'rotateX(90deg)',
+                }}
+              />
+            </button>
+
+            {/* EL CARTEL. Ya no es un botón: es lo que el poste enseña. La opacidad va AQUÍ
+                y no en el contenedor de arriba: sobre un envoltorio con `preserve-3d`
+                aplanaría el grupo y el cartel se quedaría de canto al orbitar. */}
+            <div
+              data-cartel={e.clave}
+              className="estacion-cartel pointer-events-none absolute w-[132px] text-center"
               style={{
                 left: '-66px',
                 bottom: `${POSTE + 4}px`,
@@ -238,6 +394,7 @@ export function EstacionesDelSujeto({
                 className="estacion-cifra"
                 data-anima
                 data-fija={enfocada ? '' : undefined}
+                data-retirada={leidas && !enfocada ? '' : undefined}
                 style={{ animationDelay: `${80 + i * 100}ms` }}
               >
                 <span
@@ -254,7 +411,7 @@ export function EstacionesDelSujeto({
                 </span>
                 <span className="mt-1.5 block text-[11.5px] leading-tight text-tenue">{e.pie}</span>
               </span>
-            </button>
+            </div>
           </div>
         )
       })}
