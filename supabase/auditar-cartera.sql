@@ -47,7 +47,7 @@ activo as (
            + coalesce((m.datos->>'cadenciaDias')::int, 8)         as vence
     from public.microciclos m
     join public.usuarios_app u on u.id = m.usuario_id
-   where m.estado = 'activo' or m.datos->>'estado' = 'activo'
+   where m.estado = 'activo'
 ),
 -- El último microciclo CERRADO es donde vive el registro: el activo acaba de
 -- nacer y sus series están vacías por diseño.
@@ -56,7 +56,7 @@ ultimo_cerrado as (
          m.id, m.usuario_id, m.numero, m.datos, u.nombre
     from public.microciclos m
     join public.usuarios_app u on u.id = m.usuario_id
-   where m.estado = 'cerrado' and m.datos->>'estado' = 'cerrado'
+   where m.estado = 'cerrado'
    order by m.usuario_id, (m.datos->>'fechaInicio')::date desc, m.numero desc
 ),
 -- G · lo pautado en la frase contra el máximo que registró. El máximo, y no el
@@ -84,8 +84,7 @@ select jsonb_pretty(jsonb_build_object(
                                 select u.id from public.microciclos m
                                   join public.usuarios_app u on u.id = m.usuario_id
                                  group by u.id
-                                having count(*) filter (where m.estado='activo'
-                                                          or m.datos->>'estado'='activo') = 0
+                                having count(*) filter (where m.estado='activo') = 0
                                    and max((m.datos->>'fechaInicio')::date) > current_date - 90) t),
     'D_invisibles',          (select count(*) from activo where rol <> 'asesorado'),
     'G_brechas_10pct',       (select count(*) from brecha
@@ -117,8 +116,7 @@ select jsonb_pretty(jsonb_build_object(
               from public.microciclos m
               join public.usuarios_app u on u.id = m.usuario_id
              group by u.id, u.nombre, u.rol
-            having count(*) filter (where m.estado='activo'
-                                      or m.datos->>'estado'='activo') = 0
+            having count(*) filter (where m.estado='activo') = 0
                and max((m.datos->>'fechaInicio')::date) > current_date - 90) t),
 
   -- D · no es un fallo: es la lista de a quién borra un filtro por rol

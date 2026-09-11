@@ -40,7 +40,7 @@ with ejercicios as (
     join usuarios_app u on u.id = m.usuario_id,
          jsonb_array_elements(m.datos->'sesiones')  s,
          jsonb_array_elements(s->'ejercicios')      e
-   where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+   where m.estado = 'activo'
      and e->>'rango' ~* '\y(seg|segundos?|s|min|minutos?)\y'
 ),
 leidos as (
