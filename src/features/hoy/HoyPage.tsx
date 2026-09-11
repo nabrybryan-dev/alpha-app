@@ -9,7 +9,12 @@ import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { encuestaPendiente, preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
-import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
+import {
+  armarSemana,
+  resumenSemana,
+  semanaEsAdelantada,
+  sesionDestacada,
+} from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { hayBorradorDeCribado } from '../cribado/borrador'
 import { CribadoForm } from '../cribado/CribadoForm'
@@ -45,8 +50,24 @@ export default function HoyPage() {
   // proponían sesiones distintas el mismo día: un lunes sin sesión, Hoy empujaba la
   // más antigua colgada mientras Entrenar ofrecía la del martes. Es el mismo bug que
   // ya se arregló DENTRO de Entrenar entre su botón y su calendario.
-  const sugerida = microciclo ? sesionDestacada(armarSemana(microciclo, hoy)) : undefined
+  const diasDeLaSemana = microciclo ? armarSemana(microciclo, hoy) : undefined
+  const sugerida = diasDeLaSemana ? sesionDestacada(diasDeLaSemana) : undefined
   const siguienteSesion = microciclo?.sesiones.find((s) => s.id === sugerida?.sesionId)
+  // «No tengo nada que ofrecerte» y «ya lo hiciste todo» NO son lo mismo, y hasta
+  // el 2026-08-30 salían por la misma rama (`microciclo && !siguienteSesion`, sin
+  // mirar una sola serie). Se vio en producción: un plan recién cargado, cero
+  // series, doce ejercicios sin tocar, y la app felicitando. La causa es que
+  // `armarSemana` acota por abajo con `fechaInicio` desde el #101 —un microciclo
+  // que empieza la semana que viene deja los siete días en blanco—, y el coach
+  // tiene «arranca la próxima semana» como opción normal en su generador.
+  // Se llamaba `resumen` a secas, pero en `main` ese nombre ya es el de la tarjeta de la
+  // revision semanal (`resumenSemanal`, mas abajo), que es OTRA cosa: aquella son los
+  // numeros que se pintan debajo del video y esta es la cuenta de sesiones hechas contra
+  // programadas. Dos cosas distintas con el mismo nombre en la misma funcion no compilan,
+  // y con que compilaran seria peor: el siguiente que lea una creeria estar leyendo la otra.
+  const cumplimientoSemana = diasDeLaSemana ? resumenSemana(diasDeLaSemana) : undefined
+  const microcicloCompleto = !!cumplimientoSemana && cumplimientoSemana.programadas > 0
+    && cumplimientoSemana.completadas === cumplimientoSemana.programadas
   const preguntaPendiente = preguntaDelDia(db, usuario.id)
   // Volver a contestar el cribado es cosa suya y hay que dejarle la puerta abierta: desde
   // la 0062 la respuesta nueva se guarda al lado de la vieja y manda la más reciente, pero
@@ -360,11 +381,27 @@ export default function HoyPage() {
         </div>
       </section>
 
-      {microciclo && !siguienteSesion && (
+      {microciclo && !siguienteSesion && microcicloCompleto && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
           <p className="text-sm font-bold text-texto">Microciclo completo 💪</p>
           <p className="mt-1 text-sm text-tenue">
             Registraste todas las sesiones. El coach está preparando tu siguiente microciclo.
+          </p>
+        </div>
+      )}
+
+      {/* EL AVISO Y LA SESION CONVIVEN, y es una decision de Bryan (11-sep): quien tiene
+          el plan para la semana que viene ve el cartel de cuando empieza Y la primera
+          sesion debajo, para ojearla. Antes el aviso se excluia con `!siguienteSesion`,
+          y desde que `main` reparte tambien las semanas adelantadas (10-sep) esa
+          condicion no se cumplia nunca: el cartel habia dejado de salir en silencio.
+          La regla no se recalcula aqui — `semanaEsAdelantada` vive en el dominio y es la
+          misma que usa el panel de Entrenar, para que las dos pantallas no discrepen. */}
+      {microciclo && semanaEsAdelantada(microciclo, hoy) && (
+        <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+          <p className="text-sm font-bold text-texto">Tu microciclo empieza el {microciclo.fechaInicio}</p>
+          <p className="mt-1 text-sm text-tenue">
+            El coach ya lo dejó preparado. Hasta entonces, cuida sueño, pasos e hidratación.
           </p>
         </div>
       )}

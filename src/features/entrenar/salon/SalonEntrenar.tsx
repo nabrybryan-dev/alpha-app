@@ -935,6 +935,12 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             el encuadre del salón, y de ahí para arriba crecen el poste y su cartel. */}
         {conSujeto && (
           <EstacionesDelSujeto
+            // LA LECTURA SE REARMA CON EL EJERCICIO, y lo hace REMONTANDO. Las cifras
+            // entran, se leen y se retiran una vez; al cambiar de ejercicio hay una
+            // prescripción nueva que leer, así que esto es una estación NUEVA. Es el mismo
+            // truco que el tablón del muro, y por el mismo motivo: `set-state-in-effect`
+            // es error en este repo y quien sabe que cambió el ejercicio es quien monta.
+            key={ejercicio?.id ?? 'cardio'}
             ejercicio={ejercicio}
             // Y CUANDO NO HAY EJERCICIO, EL CARDIO. Un día de cardio con modalidad
             // reconocida tiene sujeto desde el 7-sep, y al ganarlo dejó de montarse la rama
