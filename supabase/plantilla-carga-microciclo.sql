@@ -216,8 +216,7 @@ create or replace function public.tmp_nuevo_micro(
 ) returns jsonb language sql stable as $fn$
   select jsonb_set(
     jsonb_set(
-      jsonb_set(jsonb_set(p_datos, '{numero}', to_jsonb(p_num)),
-                '{estado}', '"activo"'),
+      jsonb_set(p_datos, '{numero}', to_jsonb(p_num)),
       '{fechaInicio}', to_jsonb(p_inicio)
     ),
     '{sesiones}',
@@ -359,7 +358,7 @@ begin
   select count(*) into v_activos
     from public.microciclos m
    where m.usuario_id = v_uid
-     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+     and m.estado = 'activo';
 
   if v_activos = 0 then return 'SIN ACTIVO: ' || p_nombre; end if;
   if v_activos > 1 then
@@ -370,7 +369,7 @@ begin
   select m.id, m.numero, m.datos into v_src_id, v_num, v_datos
     from public.microciclos m
    where m.usuario_id = v_uid
-     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+     and m.estado = 'activo';
 
   -- ── UNA CLAVE DE AJUSTE QUE CASA CON DOS EJERCICIOS DE IGUAL NOMBRE ────
   -- `p_ajustes` empareja por PREFIJO DE NOMBRE. Si el microciclo lleva dos
@@ -430,19 +429,18 @@ begin
   -- hueco entre cerrar y abrir. Es el mismo orden que usa `activar_microciclo`
   -- (migración `0060`), y por la misma razón.
   --
-  -- Cierra en la COLUMNA y en el JSON. Las dos, mientras el blob siga llevando la
-  -- clave. El 2026-08-16 aparecieron **18 microciclos con la columna en 'cerrado'
-  -- y el JSON en 'activo'**, de 17 asesorados, porque una carga vieja cerró solo
-  -- la columna.
+  -- Cierra SOLO la columna. El estado ya no vive en el blob: la migracion `0066`
+  -- (2026-09-10) le quito la clave a los 155 microciclos, se la quito a
+  -- `activar_microciclo`, y puso un trigger que la borra en cada escritura, la
+  -- mande quien la mande.
   --
-  -- POR QUE ESTO NO SE QUITA TODAVIA, aunque `R-03` quiera que el estado viva solo
-  -- en la columna: las lecturas de este mismo archivo preguntan «columna O blob», y
-  -- son la red que caza a ese fantasma. Quitar la escritura sin quitar esas lecturas
-  -- y sin limpiar los blobs dejaria un 'activo' viejo dentro del JSON de un
-  -- microciclo cerrado, y la propia carga lo contaria como un segundo activo y
-  -- abortaria. Las tres cosas —limpiar el dato, dejar de escribirlo y dejar de
-  -- leerlo— van juntas o no van: ese es el orden, y esta es la nota para quien lo
-  -- haga.
+  -- LO QUE ESTO SUSTITUYE, para que no vuelva. El 2026-08-16 aparecieron 18
+  -- microciclos con la columna en 'cerrado' y el JSON en 'activo', de 17
+  -- asesorados, porque una carga vieja cerro solo la columna; la respuesta de
+  -- entonces fue escribir en los dos sitios y leer «columna O blob» en todo este
+  -- archivo. Eso curaba el sintoma y conservaba la causa: dos fuentes de verdad.
+  -- Las tres cosas tenian que ir juntas —limpiar el dato, dejar de escribirlo y
+  -- dejar de leerlo— y en la 0066 fueron juntas, en la misma transaccion.
   --
   -- Y cierra TODOS los activos de la persona, no solo el de origen. Antes cerraba
   -- únicamente `v_src_id`: si alguien llegaba con dos activos —el estado roto que ya
@@ -450,16 +448,17 @@ begin
   -- reventaría con un `duplicate key` en vez de repararlo. La red de seguridad de
   -- más abajo ya exigía exactamente uno; ahora el cuerpo hace lo que ella pide.
   update public.microciclos
-     set estado = 'cerrado', datos = jsonb_set(datos, '{estado}', '"cerrado"')
+     set estado = 'cerrado'
    where usuario_id = v_uid
      and id <> v_id
-     and (estado = 'activo' or datos->>'estado' = 'activo');
+     and estado = 'activo';
 
   insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
   values (v_id, v_uid, v_num + 1, 'activo',
-          -- `- 'estado'` para que el microciclo NUEVO nazca sin la clave: el blob se
-          -- clona del anterior, que hoy todavia la lleva, y sin esto la carga la
-          -- volveria a sembrar en cada microciclo que crea (`R-03`).
+          -- `- 'estado'` se queda como segunda red aunque desde la `0066` ni el
+          -- blob de origen lleve la clave ni el trigger la dejaria entrar. Cuesta
+          -- nada y cubre el caso de cargar un JSON traido de fuera —un export
+          -- viejo, un pegado a mano— que si la lleve.
           (public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes) - 'estado')
             || jsonb_build_object('id', v_id),
           now())
@@ -471,7 +470,7 @@ begin
   select count(*) into v_activos
     from public.microciclos m
    where m.usuario_id = v_uid
-     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+     and m.estado = 'activo';
 
   if v_activos <> 1 then
     raise exception 'ABORTA · % quedó con % microciclos activos tras la carga',
@@ -542,14 +541,18 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 -- `src/domain/prescripcion.ts`, que son dos implementaciones de la misma regla y
 -- podrían separarse sin que nadie lo notara.
 --
--- Y una más, añadida el 2026-08-16 porque las anteriores no la veían: el estado
--- de la COLUMNA y el del JSON tienen que coincidir en toda la tabla.
+-- Y una mas, nacida el 2026-08-16 y cambiada de forma el 2026-09-10. Entonces
+-- pedia que el estado de la COLUMNA y el del JSON coincidieran; ahora pide algo
+-- mas simple, porque el JSON ya no guarda estado:
 --
 --   select count(*) from public.microciclos
---    where estado is distinct from (datos->>'estado');   -- tiene que dar 0
+--    where jsonb_exists(datos, 'estado');                -- tiene que dar 0
 --
--- Contar activos por la columna daba «uno por persona» mientras 17 asesorados
--- tenían un microciclo de julio con el JSON en 'activo'. La app lee el JSON.
+-- Por que existe: contar activos por la columna daba «uno por persona» mientras
+-- 17 asesorados tenian un microciclo de julio con el JSON en 'activo', y la app
+-- de entonces leia el JSON. Desde la `0066` manda la columna y un trigger borra
+-- la clave en cada escritura, asi que esta consulta ya no busca un desacuerdo:
+-- busca si el trigger se cayo o si alguien lo quito.
 
 
 -- ============================================================================

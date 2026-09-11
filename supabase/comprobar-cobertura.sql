@@ -65,7 +65,7 @@ select u.nombre,
          + coalesce((m.datos->>'cadenciaDias')::int, 8))          as dias_vencido
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id
- where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+ where m.estado = 'activo'
    and (m.datos->>'fechaInicio')::date
          + coalesce((m.datos->>'cadenciaDias')::int, 8) <= current_date
  order by dias_vencido desc, u.nombre;
@@ -90,7 +90,7 @@ select u.nombre,
          + coalesce((m.datos->>'cadenciaDias')::int, 8)           as arranca_el_nuevo
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id
- where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+ where m.estado = 'activo'
    and (m.datos->>'fechaInicio')::date
          + coalesce((m.datos->>'cadenciaDias')::int, 8)
        between current_date and current_date + 3
@@ -116,8 +116,7 @@ select u.nombre,
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id
  group by u.id, u.nombre, u.rol
-having count(*) filter (where m.estado = 'activo'
-                           or m.datos->>'estado' = 'activo') = 0
+having count(*) filter (where m.estado = 'activo') = 0
    and max((m.datos->>'fechaInicio')::date) > current_date - 90
  order by ultimo_arranque desc;
 
@@ -169,6 +168,6 @@ select u.nombre,
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id,
        jsonb_array_elements(m.datos->'sesiones') s
- where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+ where m.estado = 'activo'
    and jsonb_array_length(coalesce(s.value->'ejercicios', '[]'::jsonb)) = 0
  order by u.nombre, (s.value->>'orden')::int;

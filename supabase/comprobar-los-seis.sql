@@ -78,7 +78,7 @@ select s.quien,
   from los_seis s
   join public.usuarios_app u on u.nombre ilike s.patron
   join public.microciclos m  on m.usuario_id = u.id
- where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+ where m.estado = 'activo'
  order by dias_vencido desc nulls last, s.quien;
 
 
@@ -143,7 +143,7 @@ with los_seis(patron, quien) as (
     join public.microciclos m  on m.usuario_id = u.id,
          jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion,
          jsonb_array_elements(coalesce(sesion->'ejercicios','[]'::jsonb)) e
-   where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+   where m.estado = 'activo'
 )
 select quien,
        numero                                                          as microciclo,
@@ -178,7 +178,7 @@ select s.quien,
   join public.usuarios_app u on u.nombre ilike s.patron
   join public.microciclos m  on m.usuario_id = u.id,
        jsonb_array_elements(coalesce(m.datos->'sesiones','[]'::jsonb)) sesion
- where (m.estado = 'activo' or m.datos->>'estado' = 'activo')
+ where m.estado = 'activo'
  order by s.quien, sesion;
 
 
