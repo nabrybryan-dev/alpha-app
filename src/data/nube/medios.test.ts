@@ -1,8 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { medioPublicado, miVideoDeLaSemana, olvidarMediosFirmados } from './medios'
+import {
+  medioPublicado,
+  miVideoDeLaSemana,
+  olvidarElAviso,
+  olvidarMediosFirmados,
+} from './medios'
 
 let fila: { path: string; grabado_el: string | null } | null
 let filaPropia: { path: string; semana: string } | null
+let errorPropio: { code: string; message: string } | null
+/** A quién pidió la fila del vídeo: tiene que ser SU id, no «lo que devuelva». */
+let pidioPara: string | undefined
+let haySesion = true
 let urlQueDevuelve: string | undefined
 let firmas = 0
 let consultas = 0
@@ -11,27 +20,36 @@ let ultimaClave: string | undefined
 vi.mock('../supabase', () => ({
   modoNube: true,
   supabase: () => ({
+    auth: {
+      getUser: () =>
+        Promise.resolve({ data: haySesion ? { user: { id: 'u-1' } } : { user: null } }),
+    },
     from: () => ({
       select: () => ({
-        // La consulta del vídeo propio no filtra por persona: lo hace la
-        // política de la base. Por eso encadena order/limit y no `eq`.
-        order: () => ({
-          limit: () => ({
-            maybeSingle: () => {
-              consultas += 1
-              return Promise.resolve({ data: filaPropia })
-            },
+        // El vídeo propio se pide por `eq('usuario_id', …)` ADEMÁS de la política
+        // de la base: el filtro explícito y la regla del servidor son dos capas,
+        // y este simulacro vigila que el cliente ponga la suya.
+        eq: (columna: string, valor: string) => ({
+          order: () => ({
+            limit: () => ({
+              maybeSingle: () => {
+                consultas += 1
+                if (columna === 'usuario_id') pidioPara = valor
+                // `error` viaja por AQUÍ, que es el camino que recorre el código
+                // de verdad. Estuvo un rato en la rama `order` suelta de abajo
+                // —la de antes de que la consulta filtrara por persona— y ahí no
+                // lo habría leído nadie: las pruebas del aviso habrían mirado un
+                // camino muerto y pasado por otra razón.
+                return Promise.resolve({ data: filaPropia, error: errorPropio })
+              },
+            }),
           }),
+          maybeSingle: () => {
+            consultas += 1
+            ultimaClave = valor
+            return Promise.resolve({ data: fila })
+          },
         }),
-        eq: (_columna: string, valor: string) => {
-          ultimaClave = valor
-          return {
-            maybeSingle: () => {
-              consultas += 1
-              return Promise.resolve({ data: fila })
-            },
-          }
-        },
       }),
     }),
     storage: {
@@ -48,11 +66,15 @@ vi.mock('../supabase', () => ({
 beforeEach(() => {
   fila = { path: 'comunes/cabecera-2026-09-10.mp4', grabado_el: '2026-09-07' }
   filaPropia = { path: 'personas/u-1/2026-09-07.mp4', semana: '2026-09-07' }
+  errorPropio = null
   urlQueDevuelve = 'https://storage/firmada'
   firmas = 0
   consultas = 0
   ultimaClave = undefined
+  pidioPara = undefined
+  haySesion = true
   olvidarMediosFirmados()
+  olvidarElAviso()
 })
 
 describe('el vídeo publicado', () => {
@@ -110,11 +132,69 @@ describe('el vídeo de cada quien', () => {
     })
   })
 
+  it('pide EL SUYO, no lo que devuelva la política', async () => {
+    // El coach puede leer las filas de todo el mundo —lo necesita para
+    // revisarlas—, así que sin este filtro esta consulta le habría dado el
+    // vídeo más reciente de cualquiera. Y el coach también entrena.
+    await miVideoDeLaSemana()
+    expect(pidioPara).toBe('u-1')
+  })
+
+  it('sin sesión no pregunta nada', async () => {
+    haySesion = false
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(consultas).toBe(0)
+  })
+
   it('sin vídeo propio todavía devuelve null y no firma nada', () => {
     filaPropia = null
     return miVideoDeLaSemana().then((v) => {
       expect(v).toBeNull()
       expect(firmas).toBe(0)
     })
+  })
+
+  /**
+   * EL PAR QUE IMPORTA. Los dos casos devuelven `null` —y tienen que seguir
+   * devolviendolo: un video no puede tumbar el chat— pero NO son lo mismo, y
+   * confundirlos ya salio caro. El codigo del video se fusiono y se sirvio en
+   * produccion el 2026-09-10 con la migracion `0065` sin aplicar: `videos_semanales`
+   * no existia, la pantalla decia exactamente lo mismo que un domingo sin video, y
+   * la funcion estuvo muerta sin que nadie lo notara.
+   *
+   * Las dos pruebas van juntas a proposito. Una sola no prueba nada: si el aviso
+   * saltara siempre, la primera pasaria igual y seguiriamos sin poder distinguir.
+   */
+  it('la tabla ausente AVISA, aunque siga devolviendo null', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    filaPropia = null
+    errorPropio = { code: '42P01', message: 'relation "videos_semanales" does not exist' }
+
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(firmas).toBe(0)
+    expect(aviso).toHaveBeenCalledTimes(1)
+    expect(aviso.mock.calls[0]?.[0]).toContain('0065')
+    aviso.mockRestore()
+  })
+
+  it('y una semana sin video NO avisa: el silencio es el caso normal', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    filaPropia = null
+    errorPropio = null
+
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(aviso).not.toHaveBeenCalled()
+    aviso.mockRestore()
+  })
+
+  it('el aviso sale UNA vez por sesion, no en cada montaje', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    filaPropia = null
+    errorPropio = { code: 'PGRST205', message: 'schema cache' }
+
+    await miVideoDeLaSemana()
+    await miVideoDeLaSemana()
+    expect(aviso).toHaveBeenCalledTimes(1)
+    aviso.mockRestore()
   })
 })
