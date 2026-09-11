@@ -9,7 +9,12 @@ import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
 import { encuestaPendiente, preguntasQueVuelven } from '../../domain/nutricion/encuesta'
 import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelBloque'
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
-import { armarSemana, resumenSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
+import {
+  armarSemana,
+  resumenSemana,
+  semanaEsAdelantada,
+  sesionDestacada,
+} from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { hayBorradorDeCribado } from '../cribado/borrador'
 import { CribadoForm } from '../cribado/CribadoForm'
@@ -63,7 +68,6 @@ export default function HoyPage() {
   const cumplimientoSemana = diasDeLaSemana ? resumenSemana(diasDeLaSemana) : undefined
   const microcicloCompleto = !!cumplimientoSemana && cumplimientoSemana.programadas > 0
     && cumplimientoSemana.completadas === cumplimientoSemana.programadas
-  const arranqueFuturo = microciclo?.fechaInicio && microciclo.fechaInicio > hoy ? microciclo.fechaInicio : undefined
   const preguntaPendiente = preguntaDelDia(db, usuario.id)
   // Volver a contestar el cribado es cosa suya y hay que dejarle la puerta abierta: desde
   // la 0062 la respuesta nueva se guarda al lado de la vieja y manda la más reciente, pero
@@ -386,9 +390,16 @@ export default function HoyPage() {
         </div>
       )}
 
-      {microciclo && !siguienteSesion && !microcicloCompleto && arranqueFuturo && (
+      {/* EL AVISO Y LA SESION CONVIVEN, y es una decision de Bryan (11-sep): quien tiene
+          el plan para la semana que viene ve el cartel de cuando empieza Y la primera
+          sesion debajo, para ojearla. Antes el aviso se excluia con `!siguienteSesion`,
+          y desde que `main` reparte tambien las semanas adelantadas (10-sep) esa
+          condicion no se cumplia nunca: el cartel habia dejado de salir en silencio.
+          La regla no se recalcula aqui — `semanaEsAdelantada` vive en el dominio y es la
+          misma que usa el panel de Entrenar, para que las dos pantallas no discrepen. */}
+      {microciclo && semanaEsAdelantada(microciclo, hoy) && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
-          <p className="text-sm font-bold text-texto">Tu microciclo empieza el {arranqueFuturo}</p>
+          <p className="text-sm font-bold text-texto">Tu microciclo empieza el {microciclo.fechaInicio}</p>
           <p className="mt-1 text-sm text-tenue">
             El coach ya lo dejó preparado. Hasta entonces, cuida sueño, pasos e hidratación.
           </p>

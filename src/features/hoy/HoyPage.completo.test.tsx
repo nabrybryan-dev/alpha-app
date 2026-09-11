@@ -109,6 +109,21 @@ describe('HoyPage — el cartel de microciclo completo', () => {
     expect(screen.getByText(/empieza el/i)).toBeTruthy()
   })
 
+  // DECISION DE BRYAN (11-sep): el cartel y la sesion CONVIVEN. Este test existe
+  // porque el aviso estuvo meses sin salir y nadie se entero: su condicion lo
+  // excluia en cuanto habia sesion sugerida, y desde que `main` reparte tambien las
+  // semanas adelantadas (10-sep) siempre la hay. Si alguien vuelve a poner un
+  // «o lo uno o lo otro», este test cae.
+  it('enseña el cartel Y la sesión, no una cosa o la otra', () => {
+    const base = activo().sesiones[0]
+    conPlan('2026-08-31', [sesionSinTocar(base, 's-lunes', 'FULL BODY A (LUNES)', 1)])
+
+    renderizarHoy()
+
+    expect(screen.getByText(/empieza el/i)).toBeTruthy()
+    expect(screen.getByText(/FULL BODY A/i)).toBeTruthy()
+  })
+
   it('sigue diciéndolo cuando el microciclo SÍ está completo', () => {
     const base = activo().sesiones[0]
     // Arranca el mismo lunes y su única sesión queda registrada: aquí el cartel
