@@ -1334,4 +1334,24 @@ select '0069 - un solo microciclo activo', 'indice unico PARCIAL sobre usuario_i
                where estado = 'activo' group by usuario_id having count(*) > 1)
        then 'SI' else 'NO' end
 
+union all
+-- La 0071: las tablas de respaldo dicen para que existen y hasta cuando.
+-- La senal NO es «no hay ninguna sin rotulo»: eso se cumple solo con que no haya tablas de
+-- respaldo, y una base recien creada no tiene ninguna — diria SI sin haberse aplicado nunca,
+-- que es la forma clasica de nacer verde en vacio. Se piden LAS DOS cosas: que haya al menos
+-- una rotulada Y que no quede ninguna sin rotulo. Y se pide el rotulo con su `caduca`, no
+-- solo un comentario cualquiera, porque un respaldo sin fecha de caducidad es justo el
+-- problema que esta migracion cierra.
+select '0071 - los respaldos dicen para que existen', 'toda tabla de respaldo lleva rotulo con caduca, y hay al menos una',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
+                 and obj_description(c.oid) ~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}')
+            and not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
+                 and (obj_description(c.oid) is null
+                      or obj_description(c.oid) !~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}'))
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
