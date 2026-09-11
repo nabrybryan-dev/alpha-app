@@ -91,6 +91,14 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume la bandeja de
+  // firma; `puedeSalirSola` es el CONTRATO que consumira quien envie —hoy nadie, porque el
+  // envio automatico todavia no existe (`empuje-y-disparador`, sin escribir)—. Se deja
+  // porque es el nombre y la forma que el encargo fijo, con sus casos de aceptacion ya
+  // probados, y porque el dia que se escriba el envio la pregunta se hace en UN sitio.
+  'src/domain/aprobacion/puerta.ts#puedeSalirSola':
+    'Contrato del encargo `aprobacion-y-puerta`: lo consumira el envio automatico, que ' +
+    'todavia no esta escrito. La bandeja usa veredictoDeLaPuerta, que es el mismo calculo.',
   // El equilibrio es un CONTRATO, no una función de la app: `desequilibrio`
   // mide cuántos centímetros se sale el peso del apoyo y lo consume la batería
   // de gravedad, que es quien exige que todos los patrones de pie se sostengan.
