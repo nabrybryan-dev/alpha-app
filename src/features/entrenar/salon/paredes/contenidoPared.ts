@@ -1,8 +1,9 @@
-import type { EjercicioPrescrito, UnidadCarga } from '../../../../domain/types'
+import type { EjercicioPrescrito, ItemMarcable, UnidadCarga } from '../../../../domain/types'
 import { esAlFallo, textoDeObjetivo } from '../../../../domain/objetivoDeIntensidad'
 import { planDeMedida } from '../../../../domain/biomecanica/palancas'
 import type { Vista } from '../../../../domain/biomecanica/tipos'
 import { SALA } from '../../escena/sala'
+import { intensidadEscrita } from '../estaciones/estacionesDelCardio'
 import { TOPE_PARED } from '../huecos'
 
 /**
@@ -495,4 +496,74 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
     rir: pared.rir,
     alPanel,
   }
+}
+
+/**
+ * EL MURO DE UN DÍA DE CARDIO.
+ *
+ * Un bloque de cardio no es un `EjercicioPrescrito` —no tiene sets, ni RIR, ni plan de
+ * medida— así que no puede pasar por `contenidoPared()`. Y sin contenido de pared el muro
+ * no monta el tablón: hasta el 2026-09-10 un día de cardio abría **sin nombre y sin código
+ * de sala**, con la habitación entera muda. Bryan: «no lo dejemos fuera».
+ *
+ * ## De dónde sale cada cosa, y qué NO se inventa
+ *
+ * - **el nombre en trazo** es el título de la ficha —«Carrera», «Bicicleta»—, el mismo que
+ *   decide qué sujeto se pinta. Sale del patrón y no del título del bloque a propósito: el
+ *   bloque dice «10 × 1 min fuerte / 1 min suave», que es la prescripción, no el gesto, y en
+ *   trazo a 84 px no cabe ni se lee de lejos. Sin patrón no hay nombre que poner.
+ * - **la técnica** son las indicaciones del primer bloque que traiga alguna: es el ritmo,
+ *   la única frase que el coach escribe sobre CÓMO se hace.
+ * - **series y repeticiones** se dicen en la lengua del cardio: tramos y minutos.
+ * - **la carga va vacía** y eso es lo correcto: en cardio no hay kilos, así que el hueco de
+ *   la derecha se queda con el reloj, que es lo que hace falta mientras se corre.
+ * - **los cuatro campos del encuadre** —dónde va el móvil, a qué distancia, qué palanca, qué
+ *   velocidad— van vacíos porque son del encoder y aquí no se mide nada. El panel de abajo
+ *   ya no pinta ese recuadro cuando están vacíos: un recuadro con título y cuatro huecos en
+ *   blanco es peor que no tenerlo.
+ */
+export function contenidoDelCardio(
+  bloques: readonly ItemMarcable[] | undefined,
+  nombreDelPatron: string | undefined,
+): ContenidoDePared | undefined {
+  if (!bloques || bloques.length === 0 || !nombreDelPatron) return undefined
+
+  const minutos = bloques.reduce((t, b) => t + (b.duracionMin ?? 0), 0)
+  const ritmo = bloques.find((b) => b.indicaciones?.trim())?.indicaciones?.trim()
+  const intensidad = intensidadEscrita(
+    bloques.flatMap((b) => [b.titulo, b.indicaciones]).filter(Boolean).join(' '),
+  )
+  const tramos = `${bloques.length} ${bloques.length === 1 ? 'tramo' : 'tramos'}`
+
+  return {
+    nombre: nombreDelPatron,
+    tecnica: ritmo ? recortar(ritmo) : 'Sin ritmo escrito',
+    colocacionMovil: '',
+    distancia: '',
+    brazoDeMomento: '',
+    velocidad: '',
+    seriesReps: recortar(minutos > 0 ? `${tramos} · ${minutos} min` : tramos),
+    carga: '',
+    rir: intensidad ? `${intensidad.rotulo} ${intensidad.cifra}` : 'Sin intensidad escrita',
+    // Los bloques bajan al panel enteros por su propio camino (`bloquesCardio`), así que
+    // aquí no se manda nada: mandarlo dos veces sería leerlo dos veces.
+    alPanel: [],
+  }
+}
+
+/**
+ * Si este contenido de pared trae algo del ENCUADRE, o los cuatro campos vienen en blanco.
+ *
+ * Los cuatro —dónde va el móvil, a qué distancia, qué palanca y qué velocidad— son del
+ * encoder, y un día de cardio no mide nada. Vive aquí y no en el panel porque es una
+ * pregunta sobre el contenido, no sobre la pantalla: el día que un tercer sitio quiera
+ * pintarlos tiene que preguntar lo mismo y no inventarse su propia condición.
+ */
+export function hayEncuadre(contenido: ContenidoDePared): boolean {
+  return [
+    contenido.colocacionMovil,
+    contenido.distancia,
+    contenido.brazoDeMomento,
+    contenido.velocidad,
+  ].some((t) => t.trim().length > 0)
 }

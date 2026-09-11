@@ -1,3 +1,4 @@
+import type { DiaSemana } from '../domain/calendario'
 import type { ItemDespensa } from '../domain/nutricion/despensa'
 import type { FilaRanking } from '../domain/ranking'
 import type { RutaAsesorado } from '../domain/rutaEntrenamiento'
@@ -7,6 +8,7 @@ import type {
   AdherenciaNutricional,
   CheckinDiario,
   Contenido,
+  Cribado,
   Cuestionario,
   EstadoAdherencia,
   MedidaCorporal,
@@ -21,6 +23,7 @@ import type {
   RegistroComida,
   RegistroItem,
   Respuesta,
+  RespuestaMapaDeVida,
   SerieRegistrada,
   SexoDeFicha,
   TestPostSesion,
@@ -43,6 +46,12 @@ export interface PerfilesRepo {
   byUsuario(usuarioId: string): Perfil | undefined
   /** Registra una medición corporal del propio asesorado (reemplaza la de la misma fecha). */
   agregarMedida(usuarioId: string, medida: MedidaCorporal): void
+  /**
+   * Los días que la persona puede entrenar, dichos por ella (0065). Es lo único del
+   * perfil, junto con las medidas, que escribe el asesorado: viaja por su propia
+   * función y no con el blob entero, que el trigger `proteger_perfil` rechazaría.
+   */
+  guardarDiasDisponibles(usuarioId: string, dias: DiaSemana[]): void
   /**
    * Guarda la nota del coach a una competencia (reemplaza la anterior del mismo
    * id). SOLO STAFF: el trigger `proteger_perfil` de la migración 0008 deja al
@@ -134,6 +143,17 @@ export interface PerfilNutricionRepo {
   byUsuario(usuarioId: string): PerfilNutricion | undefined
   /** Guarda lo respondido. `completada` marca que ya no hay que preguntar más. */
   guardar(usuarioId: string, respuestas: PerfilNutricion['respuestas'], completada: boolean): void
+}
+
+/**
+ * El mapa de vida (`src/domain/mapaDeVida/preguntas.ts`): cómo vive el
+ * asesorado, guardado en crudo para no pedir migración cada vez que se añade
+ * una pregunta. Una fila por asesorado, igual patrón que `PerfilNutricionRepo`.
+ */
+export interface MapaDeVidaRepo {
+  respuestaDe(usuarioId: string): RespuestaMapaDeVida | undefined
+  /** Se acumula sobre lo ya respondido: retomar la encuesta no borra lo anterior. */
+  guardar(usuarioId: string, valores: Record<string, string>): void
 }
 
 /**
@@ -253,6 +273,41 @@ export interface CuestionariosRepo {
   responder(cuestionarioId: string, usuarioId: string, valores: Record<string, string>): void
 }
 
+/**
+ * Qué pasó al contestar el cribado.
+ *
+ * Existe porque `void` no bastaba: cuando ya había fila, `contestar` no hacía nada y no
+ * lo decía, así que la pantalla podía dar por bueno un envío que no llegó a ninguna
+ * parte. Sobre un dato de salud, un rechazo silencioso es peor que un error.
+ */
+export type ResultadoCribado =
+  /** Se guardó y va camino del servidor. */
+  | 'guardado'
+  /**
+   * Ya había uno. No se pisa —cambiarlo es del coach— y quien llame **tiene que
+   * decírselo a la persona**: «esto ya estaba contestado, tu coach lo tiene». Si además
+   * quiere corregirlo, ese camino todavía no existe: ver `src/features/cribado/README.md`.
+   */
+  | 'ya_estaba'
+
+/**
+ * El cribado de salud, uno por persona (migración 0058).
+ *
+ * No hay `actualizar`, y es a propósito: cambiar una respuesta es del coach, no de
+ * quien la contestó. Este dato es una puerta —quien declara dolor torácico queda en
+ * zona roja y su plan se para—, así que si el asesorado pudiera reescribirlo, la
+ * puerta se abriría desde el lado que protege. La RLS de la 0058 lo impide en el
+ * servidor; aquí no se ofrece el método para que no parezca que se puede.
+ */
+export interface CribadoRepo {
+  byUsuario(usuarioId: string): Cribado | undefined
+  /**
+   * Lo contesta una vez. Devuelve qué pasó, y el que llama **no puede ignorarlo**: un
+   * `'ya_estaba'` tratado como éxito es exactamente la pantalla que miente.
+   */
+  contestar(cribado: Cribado): ResultadoCribado
+}
+
 export interface ContenidosRepo {
   list(): Contenido[]
   byId(id: string): Contenido | undefined
@@ -286,6 +341,7 @@ export interface Db {
   bienestar: BienestarRepo
   nutricion: NutricionRepo
   perfilNutricion: PerfilNutricionRepo
+  mapaDeVida: MapaDeVidaRepo
   visibilidad: VisibilidadRepo
   vetados: VetadosRepo
   despensa: DespensaRepo
@@ -293,6 +349,7 @@ export interface Db {
   calibracion: CalibracionRepo
   mensajes: MensajesRepo
   cuestionarios: CuestionariosRepo
+  cribado: CribadoRepo
   contenidos: ContenidosRepo
   premiaciones: PremiacionesRepo
   ranking: RankingRepo

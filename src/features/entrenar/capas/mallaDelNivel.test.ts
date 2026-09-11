@@ -215,6 +215,8 @@ describe('atravesar el cuerpo cambia el cuerpo', () => {
         declarada.activacion,
         REPOSO,
         new Set(declarada.porciones),
+        undefined,
+        declarada.acabado === 'anatomico',
       )
       const construida = construirMusculosDeNivel(w, esq, PATRON, REPOSO)
       expect(huella(construida), `el nivel ${w} construye algo distinto de lo que declara`).toBe(

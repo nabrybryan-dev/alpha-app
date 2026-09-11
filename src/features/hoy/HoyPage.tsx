@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
@@ -10,14 +11,21 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
+import { hayBorradorDeCribado } from '../cribado/borrador'
+import { CribadoForm } from '../cribado/CribadoForm'
+import { necesitaCribado } from '../cribado/necesitaCribado'
+import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
+import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
+import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
 import { PedirPermiso } from '../avisos/PedirPermiso'
 import { CabeceraSemanal } from '../chat/CabeceraSemanal'
 import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
+import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
@@ -39,11 +47,24 @@ export default function HoyPage() {
   // ya se arregló DENTRO de Entrenar entre su botón y su calendario.
   const sugerida = microciclo ? sesionDestacada(armarSemana(microciclo, hoy)) : undefined
   const siguienteSesion = microciclo?.sesiones.find((s) => s.id === sugerida?.sesionId)
+  const preguntaPendiente = preguntaDelDia(db, usuario.id)
+  // Volver a contestar el cribado es cosa suya y hay que dejarle la puerta abierta: desde
+  // la 0062 la respuesta nueva se guarda al lado de la vieja y manda la más reciente, pero
+  // si nadie le ofrece dónde decirlo, un cambio de medicación se queda en su cabeza. El
+  // formulario solo aparece solo la PRIMERA vez —cuando no hay ficha—, así que después
+  // hace falta esta puerta.
+  const [actualizandoSalud, setActualizandoSalud] = useState(false)
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
+  // Las de la cadena NO se cuentan aquí: ya tienen su propia tarjeta arriba
+  // (`TarjetaPregunta`), y contarlas otra vez hace que la misma pantalla pida dos veces
+  // lo mismo — una vez como pregunta y otra como «1 cuestionario por responder», que
+  // además manda a otra pantalla. Es la misma regla que ya se aplicó al check-in y a los
+  // mensajes del coach tres líneas más abajo.
   const cuestionariosPendientes = db.cuestionarios
     .asignadosA(usuario.id)
+    .filter((q) => !esDeLaCadena(q))
     .filter((q) => !db.cuestionarios.respuestasDe(usuario.id).some((r) => r.cuestionarioId === q.id))
 
   // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
@@ -106,6 +127,15 @@ export default function HoyPage() {
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
   const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
 
+  // Los números que van debajo del vídeo de la revisión semanal. Se calculan
+  // aquí, con lo que esta pantalla ya tenía a mano, y la cuenta vive en el
+  // dominio: la tarjeta solo los pinta.
+  const resumen = resumenSemanal({
+    sesiones: microciclo?.sesiones ?? [],
+    checkins: db.bienestar.byUsuario(usuario.id),
+    adherenciaPct,
+  })
+
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
     <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
@@ -142,8 +172,68 @@ export default function HoyPage() {
           se graba una vez y lo que cambia cada semana es la tarjeta que irá
           debajo. Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`. */}
       <div className="entrada entrada-2">
-        <CabeceraSemanal />
+        <CabeceraSemanal>
+          <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
+        </CabeceraSemanal>
       </div>
+
+      {/* La puerta clínica y la pregunta de la cadena van justo debajo de la revisión
+          de la semana, y no
+          bloquean la pantalla: si su plan de hoy ya está prescrito, cerrarle el día
+          por un formulario cuesta una sesión — y quien lo paga es la adherencia,
+          que va por delante de casi todo en la jerarquía del método. Que el cribado
+          sin contestar impida ENTRENAR o solo impida PROGRAMAR es una regla que
+          todavía no está escrita; hasta que lo esté, se pide primero y se deja pasar. */}
+      {usuario.rol === 'asesorado' &&
+        !necesitaCribado(db, usuario) &&
+        !actualizandoSalud &&
+        !hayBorradorDeCribado(usuario.id) && (
+          <p className="entrada entrada-2 text-sm text-tenue">
+            ¿Ha cambiado algo en tu salud —una medicación nueva, una molestia, algo que te
+            hayan dicho—?{' '}
+            <button
+              type="button"
+              onClick={() => setActualizandoSalud(true)}
+              className="font-bold text-texto underline underline-offset-2"
+            >
+              Cuéntanoslo
+            </button>
+          </p>
+        )}
+
+      {(necesitaCribado(db, usuario) || actualizandoSalud || hayBorradorDeCribado(usuario.id)) && (
+        <div className="entrada entrada-2">
+          {/* La tarjeta NO se retira a media pregunta: mientras haya borrador empezado
+              sigue en pantalla. Antes se apagaba con `necesitaCribado`, que se vuelve
+              falso en cuanto llega de arriba la ficha que volcó el coach, y quien
+              estuviera contestando las doce preguntas de salud veía desaparecer el
+              formulario sin una palabra. Desde la 0062 su respuesta además se guarda
+              igual, al lado de la del coach y con su fecha. */}
+          <CribadoForm
+            usuarioId={usuario.id}
+            guardarDias={(dias) => db.perfiles.guardarDiasDisponibles(usuario.id, dias)}
+            contestar={db.cribado.contestar}
+            hoyIso={hoy}
+          />
+        </div>
+      )}
+
+      {preguntaPendiente && (
+        <div className="entrada entrada-2">
+          {/* El `key` NO es decoración: sin él, React reutiliza la misma tarjeta cuando
+              cambia la pregunta y se queda con lo que ya había escrito dentro. Las
+              preguntas que escribe la cadena numeran sus casillas igual (`p1`, `p2`), así
+              que la siguiente aparecería RELLENADA con las respuestas de la anterior y
+              con el botón activo: un toque y se manda lo que contestó a otra cosa. */}
+          <TarjetaPregunta
+            key={preguntaPendiente.id}
+            pregunta={preguntaPendiente}
+            onResponder={(valores) =>
+              db.cuestionarios.responder(preguntaPendiente.id, usuario.id, valores)
+            }
+          />
+        </div>
+      )}
 
       {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
           álbum, el radar y el mapa de fatiga— y ahí no se veía. */}

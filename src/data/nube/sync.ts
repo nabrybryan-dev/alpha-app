@@ -17,6 +17,7 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
+import type { DiaSemana } from '../../domain/calendario'
 import type { MedidaCorporal, Mensaje, Microciclo } from '../../domain/types'
 import {
   condicionesDeclaradas,
@@ -41,6 +42,25 @@ export {
 } from './cola'
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
+
+/**
+ * `medicacionCronica` → `medicacion_cronica`, para las claves de un objeto suelto.
+ *
+ * Se calcula en vez de escribirse a mano en una tabla porque una tabla paralela se
+ * queda vieja el día que alguien añade una pregunta al cribado, y ese día el dato
+ * nuevo desaparece sin que falle nada. La regla es la misma que ya usa el resto del
+ * payload, escrita una vez: `enColumnas` la aplica y su test la fija contra los
+ * nombres que declara la migración 0058.
+ */
+export function enColumnas(objeto: Record<string, string> | undefined) {
+  if (!objeto) return objeto
+  return Object.fromEntries(
+    Object.entries(objeto).map(([clave, valor]) => [
+      clave.replace(/[A-Z]/g, (letra) => `_${letra.toLowerCase()}`),
+      valor,
+    ]),
+  )
+}
 
 /** La fila de `mensajes` tal como viaja a Supabase. */
 function encolarFilaDeMensaje(mensaje: Mensaje): void {
@@ -211,6 +231,23 @@ function subirMedida(usuarioId: string, medida: MedidaCorporal): void {
   })
 }
 
+/**
+ * Los días viajan SOLOS, como la medida (0057) y por la misma razón: el trigger
+ * `proteger_perfil` rechaza a un asesorado que suba el blob entero. La función del
+ * servidor escribe únicamente `diasDisponibles`, para `auth.uid()`. La clave colapsa
+ * envíos seguidos de la misma persona en uno: manda el último.
+ */
+function subirDiasDisponibles(usuarioId: string, dias: DiaSemana[]): void {
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'rpc',
+    funcion: 'registrar_dias_disponibles',
+    claveRpc: `${usuarioId}:dias`,
+    fila: usuarioId,
+    payload: { p_dias: dias },
+  })
+}
+
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -234,6 +271,10 @@ export function crearDbSincronizada(local: Db): Db {
       guardarSexo: (usuarioId, sexo) => {
         local.perfiles.guardarSexo(usuarioId, sexo)
         subirPerfil(local, usuarioId)
+      },
+      guardarDiasDisponibles: (usuarioId, dias) => {
+        local.perfiles.guardarDiasDisponibles(usuarioId, dias)
+        subirDiasDisponibles(usuarioId, dias)
       },
     },
 
@@ -521,6 +562,71 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    cribado: {
+      ...local.cribado,
+      contestar: (cribado) => {
+        const resultado = local.cribado.contestar(cribado)
+        // El local manda: si ya había fila aquí, no se encola nada y se devuelve el
+        // `ya_estaba` para que la pantalla lo diga.
+        if (resultado === 'ya_estaba') return resultado
+        encolar({
+          // ────────────────────────────────────────────────────────────────────
+          // RPC Y NO `upsert`, Y LA DIFERENCIA CUESTA UN DATO DE SALUD
+          // ────────────────────────────────────────────────────────────────────
+          // PostgREST traduce un `upsert` a `insert … on conflict do update`. Basta
+          // con que exista fila arriba y no en la instantánea de este teléfono —el
+          // coach volcó su expediente mientras ella tenía la app abierta, o contesta
+          // en el móvil y en la tablet— para que la rama de UPDATE necesite una
+          // política de UPDATE de esa sesión. La única es la del coach: el asesorado
+          // recibe 42501, la cola lo reintenta ocho veces, lo descarta en silencio, y
+          // `AvisoSinSincronizar` le dice que no se perdió nada. Pierde el dato Y le
+          // miente, que sobre salud es lo peor de las dos.
+          //
+          // `contestar_cribado` hace `on conflict do nothing`: no intenta ningún
+          // UPDATE, así que no hay 42501. Si ya había fila, gana la de la base y la
+          // operación termina bien.
+          //
+          // El `usuario_id` NO viaja: la función lo saca de `auth.uid()`. Y las claves
+          // del payload son exactamente las que la función espera —PostgREST elige la
+          // función por el conjunto exacto de claves, así que una de más la deja sin
+          // función—.
+          tabla: 'cribado',
+          tipo: 'rpc',
+          funcion: 'contestar_cribado',
+          payload: {
+            p_cribado: {
+              fecha: cribado.fecha,
+              // `?? null` y no `?? 'ausente'`: lo que no se preguntó viaja como nulo.
+              // El CHECK de la 0058 exige los doce cuando la fuente es `app`, así que
+              // una respuesta a medias se rechaza arriba en vez de colarse como
+              // cribado completo.
+              diagnostico: cribado.diagnostico ?? null,
+              quien_lo_lleva: cribado.quienLoLleva ?? null,
+              tratamiento_activo: cribado.tratamientoActivo ?? null,
+              medicacion_cronica: cribado.medicacionCronica ?? null,
+              autorizacion_sanitaria: cribado.autorizacionSanitaria ?? null,
+              restricciones_explicitas: cribado.restriccionesExplicitas ?? null,
+              sintomas_con_esfuerzo: cribado.sintomasConEsfuerzo ?? null,
+              nivel_funcional: cribado.nivelFuncional ?? null,
+              que_le_han_dicho_que_no_haga: cribado.queLeHanDichoQueNoHaga ?? null,
+              parq_enfermedad_cardiaca: cribado.parqEnfermedadCardiaca ?? null,
+              parq_medicamento_presion: cribado.parqMedicamentoPresion ?? null,
+              parq_huesos_articulaciones: cribado.parqHuesosArticulaciones ?? null,
+              // EL DETALLE TAMBIÉN SE TRADUCE, y no se traducía. Sus claves son los
+              // nombres del dominio (`medicacionCronica`) y la 0058 documenta esa
+              // columna con los nombres de la BASE (`medicacion_cronica`) porque el
+              // volcado del cerebro la lee sin traducir. Tal cual iba, la medicación de
+              // quien contesta por la app no la encontraba nadie: el mismo dato con dos
+              // nombres, que es el fallo de la casa. La traducción vive SOLO en esta
+              // costura, como la de `techo_carga_kg` en el cerebro.
+              detalle: enColumnas(cribado.detalle),
+            },
+          },
+        })
+        return resultado
+      },
+    },
+
     calibracion: {
       ...local.calibracion,
       registrar: (prueba) => {
@@ -667,6 +773,26 @@ export function crearDbSincronizada(local: Db): Db {
           tipo: 'update',
           payload: { leido: true },
           filtro: { para_id: paraId, de_id: deId },
+        })
+      },
+    },
+
+    mapaDeVida: {
+      ...local.mapaDeVida,
+      guardar: (usuarioId, valores) => {
+        local.mapaDeVida.guardar(usuarioId, valores)
+        // Se relee de local para subir con lo acumulado (`mockDb.guardar` funde
+        // sobre lo que ya había), nunca solo con lo que trajo esta llamada.
+        const respuesta = local.mapaDeVida.respuestaDe(usuarioId)
+        if (!respuesta) return
+        encolar({
+          tabla: 'mapa_de_vida_respuestas',
+          tipo: 'upsert',
+          payload: {
+            usuario_id: usuarioId,
+            valores: respuesta.valores,
+            respondido_en: respuesta.respondidoEnIso,
+          },
         })
       },
     },
@@ -911,6 +1037,27 @@ function subirMicrociclo(local: Db, microcicloId: string): void {
   if (!duenio) return
   const microciclo = local.microciclos.byUsuario(duenio.id).find((m) => m.id === microcicloId)
   if (!microciclo) return
+  // EL ESTADO VIAJA EN LA COLUMNA Y EN NINGÚN OTRO SITIO.
+  //
+  // `datos: microciclo` mandaba el objeto local ENTERO, y el estado se colaba
+  // dentro al serializarlo: no hay ningún `datos.estado = …` que buscar, por eso
+  // llevaba meses pasando desapercibido. Cada guardado de la app reponía la clave
+  // en el blob, y de ahí sale el `R-03` de la auditoría — el 2026-08-16, 18
+  // microciclos de 17 asesorados con la columna en `cerrado` y el JSON en
+  // `activo`, porque una carga vieja cerró solo la columna.
+  //
+  // Quitarla de aquí no deja al microciclo sin estado en ningún lado: la columna
+  // va en el mismo upsert, es `not null` en el esquema, y la hidratación ya la
+  // prefiere (`microciclosDe`). Lo que cambia es que deja de haber **dos
+  // versiones de la misma verdad viajando juntas**, que es la única forma de que
+  // se contradigan.
+  //
+  // OJO CON LO QUE ESTO NO ARREGLA: los blobs ya guardados siguen llevando la
+  // clave, y `plantilla-carga-microciclo.sql` y la RPC `activar_microciclo` la
+  // reponen. La limpieza va aparte, con esas dos cambiadas a la vez.
+  // El mismo desempaquetado hace las dos cosas: saca el estado para la columna y
+  // deja el resto para el blob. Así no hay forma de arreglar uno y olvidar el otro.
+  const { estado, ...sinEstado } = microciclo
   encolar({
     tabla: 'microciclos',
     tipo: 'upsert',
@@ -918,8 +1065,8 @@ function subirMicrociclo(local: Db, microcicloId: string): void {
       id: microciclo.id,
       usuario_id: microciclo.usuarioId,
       numero: microciclo.numero,
-      estado: microciclo.estado,
-      datos: microciclo,
+      estado,
+      datos: sinEstado,
     },
   })
 }
