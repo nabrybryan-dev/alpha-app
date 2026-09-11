@@ -63,18 +63,25 @@ import { basename, extname, resolve } from 'node:path'
 import process from 'node:process'
 import { createClient } from '@supabase/supabase-js'
 
-import { decidirPublicacion, filaDelVideo } from '../src/domain/video/publicacion.ts'
+import {
+  contentTypeDelMedio,
+  decidirPublicacion,
+  filaDelVideo,
+} from '../src/domain/video/publicacion.ts'
 
 const BUCKET = 'medios-app'
 
-const TIPOS = { mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime' }
+// El script YA NO tiene su propia lista de formatos: la unica esta en
+// `domain/video/publicacion.ts`. Tenerla dos veces permitia que discreparan
+// -admitir aqui algo que alla se rechaza, o subirlo con otro Content-Type- y
+// esa clase de desacuerdo no da error, da un archivo que el movil no abre.
 
 const PORQUE = {
   'sin-usuario': 'no se ha dicho de quién es el vídeo',
   'semana-no-es-lunes': 'la semana tiene que ser un LUNES en formato AAAA-MM-DD',
   'archivo-vacio': 'el archivo está vacío',
   'archivo-enorme': 'el archivo pasa del tope: algo salió mal al renderizar',
-  'extension-no-admitida': 'eso no es un vídeo que el móvil vaya a reproducir',
+  'extension-no-admitida': 'eso no es un audio ni un vídeo que el móvil vaya a reproducir',
   'sin-guion': 'falta el guion, y sin él el vídeo no se puede auditar después',
   'ya-aprobado':
     'ese vídeo YA ESTÁ APROBADO. Sobrescribirlo emitiría otro distinto bajo una firma que ' +
@@ -219,14 +226,14 @@ async function main() {
   const cuerpo = await readFile(archivo)
   const { error: errorSubida } = await supabase.storage
     .from(BUCKET)
-    .upload(decision.path, cuerpo, { contentType: TIPOS[extension], upsert: true })
+    .upload(decision.path, cuerpo, { contentType: contentTypeDelMedio(extension), upsert: true })
   if (errorSubida) throw new Error(`no pude subir el archivo: ${errorSubida.message}`)
 
   const { error: errorFila } = await supabase
     .from('videos_semanales')
     .upsert(
       {
-        ...filaDelVideo({ usuarioId, semana, tamanoBytes: size, extension, guion }, decision.path),
+        ...filaDelVideo({ usuarioId, semana, tamanoBytes: size, extension, guion }, decision),
         // La hora la pone AQUI y no el modulo de decision, que es puro y no mira el reloj.
         // Hace falta ponerla a mano porque el `default now()` de la tabla solo corre al
         // INSERTAR: en un reemplazo, sin esto, `publicado_en` seguiria diciendo cuando se

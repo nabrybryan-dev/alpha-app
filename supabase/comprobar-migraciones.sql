@@ -1269,6 +1269,22 @@ select '0068 - el video no sale sin firma', 'aprobado_en existe, la lectura lo e
        then 'SI' else 'NO' end
 
 union all
+-- La 0070: la revision semanal puede ser audio. Lo que se pide NO es que la columna
+-- exista -eso solo dice que el `alter` corrio- sino que la RESTRICCION este puesta:
+-- sin ella, un `tipo` mal escrito entra y la pantalla intenta reproducir algo que no
+-- sabe leer. El `default 'video'` hace que olvidarse no falle, sino que mienta.
+select '0070 - la revision puede ser audio', 'la columna tipo existe y solo admite audio o video',
+       case when exists (
+              select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'videos_semanales'
+                 and column_name = 'tipo')
+            and exists (
+              select 1 from pg_constraint c join pg_class t on t.oid = c.conrelid
+               where t.relname = 'videos_semanales'
+                 and pg_get_constraintdef(c.oid) like '%tipo%audio%video%')
+       then 'SI' else 'NO' end
+
+union all
 -- La 0066: el estado del microciclo deja de vivir en dos sitios. Se piden TRES efectos,
 -- porque la migracion hace tres cosas que se pueden deshacer por separado y cada una sola
 -- deja el agujero abierto por su lado:
