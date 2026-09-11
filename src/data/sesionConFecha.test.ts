@@ -103,6 +103,71 @@ describe('la sesión se queda con la fecha en que se tocó', () => {
 })
 
 /**
+ * LA VENTANA CON HORAS: `empezadaEn` y `ultimaMarcaEn`.
+ *
+ * Nacen el 2026-09-10 para el objetivo del pulso y los pasos, y aquí se defiende lo único
+ * que las hace servir: que el arranque **se sella una vez** y la última marca **se mueve**.
+ * Si las dos se sellaran, la ventana sería un instante; si las dos se movieran, no habría
+ * arranque. Y sin ventana, atar unas pulsaciones a un entrenamiento sería por cercanía de
+ * día — emparejar la sesión de la mañana con el paseo de la noche.
+ *
+ * Se llama `ultimaMarcaEn` y no `terminadaEn` a propósito: nadie pulsa «he terminado», así
+ * que lo único que la app sabe es cuándo fue la última cosa registrada.
+ */
+describe('la ventana con horas de la sesión', () => {
+  beforeEach(() => localStorage.clear())
+  afterEach(() => vi.useRealTimers())
+
+  const activo = (db: ReturnType<typeof crearMockDb>) =>
+    db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')!
+
+  it('el arranque se sella en la primera acción y NO se mueve; la última marca sí', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 8, 1, 18, 0, 0))
+    const db = crearMockDb()
+    const m = activo(db)
+    const sesion = m.sesiones[0]
+    expect(sesion.empezadaEn).toBeUndefined()
+
+    db.microciclos.marcarParte(m.id, sesion.id, sesion.preparacion![0].id)
+    const arranque = activo(db).sesiones[0].empezadaEn!
+    const primera = activo(db).sesiones[0].ultimaMarcaEn!
+    expect(arranque).toBe(primera)
+
+    // Cuarenta minutos después, el test posterior.
+    vi.setSystemTime(new Date(2026, 8, 1, 18, 40, 0))
+    db.microciclos.guardarTestPost(m.id, sesion.id, { prsEntrada: 7, rpeSesion: 8, duracionMin: 60 })
+
+    const despues = activo(db).sesiones[0]
+    expect(despues.empezadaEn, 'el arranque se movió').toBe(arranque)
+    expect(new Date(despues.ultimaMarcaEn!).getTime()).toBeGreaterThan(new Date(primera).getTime())
+  })
+
+  it('la ventana dura lo que duró el trabajo, no lo que dura el día', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 8, 1, 6, 0, 0))
+    const db = crearMockDb()
+    const m = activo(db)
+    const sesion = m.sesiones[0]
+    db.microciclos.marcarParte(m.id, sesion.id, sesion.preparacion![0].id)
+    vi.setSystemTime(new Date(2026, 8, 1, 7, 5, 0))
+    db.microciclos.guardarTestPost(m.id, sesion.id, { prsEntrada: 7, rpeSesion: 8, duracionMin: 60 })
+
+    const s = activo(db).sesiones[0]
+    const minutos = (new Date(s.ultimaMarcaEn!).getTime() - new Date(s.empezadaEn!).getTime()) / 60000
+    expect(minutos).toBeCloseTo(65, 0)
+  })
+
+  it('y no se derrama sobre la sesión de al lado', () => {
+    const db = crearMockDb()
+    const m = activo(db)
+    db.microciclos.marcarParte(m.id, m.sesiones[0].id, m.sesiones[0].preparacion![0].id)
+    expect(activo(db).sesiones[1].empezadaEn).toBeUndefined()
+    expect(activo(db).sesiones[1].ultimaMarcaEn).toBeUndefined()
+  })
+})
+
+/**
  * La fecha es LOCAL, y la trampa tiene hora exacta: en Bogotá (UTC−5) una sesión
  * de las ocho de la tarde cae ya en el día siguiente en Greenwich. Si esto se
  * calculara con `toISOString()`, la sesión del martes por la noche se emparejaría

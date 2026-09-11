@@ -5,7 +5,7 @@
  * cuerpo en cada escalón del cuarto eje. Orbitar (X, Y, Z) no cambia de nivel y
  * cambiar de nivel no mueve la cámara: son dos gestos ortogonales a propósito.
  *
- *     W=0 piel │ W=1 músculo superficial │ W=2 músculo profundo │ W=3 tendón │ W=4 hueso
+ *     W=0 anatomía │ W=1 músculo superficial │ W=2 músculo profundo │ W=3 pasivo (esquema) │ W=4 hueso
  *
  * ## Los nombres son los del código, no una taxonomía nueva
  *
@@ -79,6 +79,7 @@ export type PiezaDelSujeto = 'musculos' | 'huesos'
 /**
  * Cómo se pinta el músculo en un nivel.
  *
+ * - `anatomico`: tono muscular por porción, sin codificar activación. Vista inicial sin piel.
  * - `envolvente`: sin color de activación, todo en `COLOR_PASIVO`. Se consigue
  *   llamando a `construirMusculos()` con una activación vacía —`activacionDe()`
  *   devuelve 0 y `colorDeMusculo(0)` es `COLOR_PASIVO`—, así que no hace falta tocar
@@ -87,13 +88,13 @@ export type PiezaDelSujeto = 'musculos' | 'huesos'
  *   visor de hoy.
  * - `ninguno`: en este nivel no se dibuja músculo.
  */
-export type AcabadoMuscular = 'envolvente' | 'activacion' | 'ninguno'
+export type AcabadoMuscular = 'envolvente' | 'anatomico' | 'activacion' | 'ninguno'
 
 export interface NivelAnatomico {
   /** Su sitio en el eje W. Coincide con el índice en `NIVELES_ANATOMICOS`. */
   w: NivelW
   /** El mismo id que usa `CAPAS_W` en `huecos.ts`. */
-  id: 'piel' | 'musculo-superficial' | 'musculo-profundo' | 'tendon' | 'hueso'
+  id: 'anatomia' | 'musculo-superficial' | 'musculo-profundo' | 'tendon' | 'hueso'
   /** Cómo se llama en pantalla. */
   nombre: string
   /** Qué se está mirando, en una frase corta: es el rótulo del nivel. */
@@ -230,30 +231,25 @@ const BIARTICULARES: readonly string[] = [
 export const NIVELES_ANATOMICOS: readonly NivelAnatomico[] = [
   {
     w: 0,
-    id: 'piel',
-    nombre: 'Piel',
-    resumen: 'La superficie: la forma que se ve en el espejo.',
-    // No hay malla de piel en el código: `construirHuesos()` y `construirMusculos()`
-    // son las dos únicas del sujeto. Así que la superficie se dibuja con la
-    // envolvente de los músculos del primer plano, apagados y todos del mismo color.
-    // Es lo más externo que el motor sabe construir hoy, y queda dicho: **no es piel**,
-    // y entre porción y porción se verá el hueco. La malla cerrada está pendiente y
-    // vive en `malla.ts`, que necesita permiso de Bryan.
-    piezas: ['musculos'],
+    id: 'anatomia',
+    nombre: 'Anatomía muscular',
+    resumen: 'Músculos superficiales y huesos de referencia, sin piel.',
+    // Decisión de Bryan, 7-sep: retirar la superficie de piel. Cada porción
+    // conserva su propia geometría y los huesos completan manos, pies y cabeza.
+    piezas: ['musculos', 'huesos'],
     musculos: SUPERFICIALES,
-    acabado: 'envolvente',
+    acabado: 'anatomico',
     porcionesPasivas: [],
     articulaciones: [],
-    huesos: [],
+    huesos: HUESOS_DEL_RIG,
   },
   {
     w: 1,
     id: 'musculo-superficial',
     nombre: 'Músculo superficial',
     resumen: 'El primer plano, coloreado por lo que trabaja.',
-    // Mismos músculos que en la piel y, sin embargo, otra pantalla: aquí el color
-    // vuelve a decir cuánto trabaja cada porción. Atravesar de 0 a 1 es encender el
-    // trabajo sobre la misma silueta, que es la transición que explica el ejercicio.
+    // Mismos músculos que en la vista anatómica; aquí se retira la referencia ósea
+    // y se muestra el código de activación del patrón.
     piezas: ['musculos'],
     musculos: SUPERFICIALES,
     acabado: 'activacion',
@@ -280,8 +276,8 @@ export const NIVELES_ANATOMICOS: readonly NivelAnatomico[] = [
   {
     w: 3,
     id: 'tendon',
-    nombre: 'Tendón y tejido pasivo',
-    resumen: 'Lo que frena sin contraerse: tendón, tope y palanca.',
+    nombre: 'Tejido pasivo · esquema',
+    resumen: 'Porciones biarticulares de referencia; no es una reconstrucción de tendones y ligamentos.',
     // El nivel del «no puede»: las porciones biarticulares, que se tensan por lo que
     // hace la articulación de al lado, y los topes de `ARTICULACIONES.noPuede`, que
     // son ligamento y hueso, no músculo. El esqueleto se queda encendido porque un

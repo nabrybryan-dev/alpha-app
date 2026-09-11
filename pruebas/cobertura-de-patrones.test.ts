@@ -56,7 +56,7 @@ function ejercicio(caso: Caso): EjercicioPrescrito {
 }
 
 describe('el barrido de categorías', () => {
-  it('recorre 73 categorías y le salen 70 con patrón y 3 sin sujeto', () => {
+  it('recorre 74 categorías y le salen 71 con patrón y 3 sin sujeto', () => {
     // 2026-09-06: eran 54 con patrón y 8 sin. Las cinco que entraron ese día son las cinco
     // fichas nuevas —`flexion_hombro`, `rotacion_cadera`, `extension_lumbar`,
     // `flexion_muneca`, `extension_muneca`—, y las tres que quedan NO son un hueco
@@ -82,8 +82,13 @@ describe('el barrido de categorías', () => {
     // Y la 70 es el ergómetro de remo (2026-09-07, noche): era el único hueco de los seis
     // sin sujeto que tenía un gesto de verdad que enseñar. Los otros cinco son formatos
     // —circuito, HIIT, tabata, trineo, «cardio» a secas—, no movimientos.
-    expect(reparto.casos).toHaveLength(73)
-    expect(reparto.conPatron).toHaveLength(70)
+    // Y la 71 es CARRERA AL AIRE LIBRE (2026-09-10): la misma zancada sin cinta debajo.
+    // Nace de medir la cartera real, no de imaginar un hueco — cuatro bloques activos dicen
+    // «5 km por la tarde» y se dibujaban encima de una caminadora. Los dos números que la
+    // separan de la cinta (+12° de flexión de cadera al contacto, ~10° más de pie levantado)
+    // salen de medidas publicadas, no de ajustar a ojo.
+    expect(reparto.casos).toHaveLength(74)
+    expect(reparto.conPatron).toHaveLength(71)
     expect(reparto.sinPatron.map((c) => c.categoria)).toEqual([
       'PREV/REHAB',
       'ACONDICIONAMIENTO',
