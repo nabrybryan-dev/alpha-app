@@ -66,8 +66,52 @@ export type DecisionDePublicar =
  */
 export const TOPE_BYTES = 40 * 1024 * 1024
 
-/** Lo que un navegador de móvil reproduce sin pensar. */
-export const EXTENSIONES = ['mp4', 'webm', 'mov'] as const
+/**
+ * Los formatos que se pueden publicar, en UNA SOLA TABLA.
+ *
+ * De aquí salen las tres cosas que antes vivían en dos sitios: qué se admite, con qué
+ * `Content-Type` se sube y qué `tipo` se escribe en la fila. El script tenía su propia
+ * lista y podía discrepar de ésta sin que nadie se enterara.
+ *
+ * **Manda la extensión del archivo, no un parámetro aparte.** Un `--tipo` explícito
+ * permitiría que la fila dijera «audio» mientras los bytes son un vídeo: dos fuentes que
+ * pueden contradecirse, y gana la que nadie miró. La extensión también puede mentir —basta
+ * renombrar—, pero entonces mienten las dos a la vez y de forma coherente.
+ *
+ * **El audio entró el 11-sep y no es un añadido menor:** la primera revisión que se publica
+ * ES de audio, y hasta ese día este módulo la habría rechazado por «extensión no admitida».
+ * La pieza que publica no podía publicar el único formato que había que publicar.
+ */
+export const FORMATOS = {
+  mp4: { tipo: 'video', contentType: 'video/mp4' },
+  webm: { tipo: 'video', contentType: 'video/webm' },
+  mov: { tipo: 'video', contentType: 'video/quicktime' },
+  mp3: { tipo: 'audio', contentType: 'audio/mpeg' },
+  m4a: { tipo: 'audio', contentType: 'audio/mp4' },
+  wav: { tipo: 'audio', contentType: 'audio/wav' },
+} as const satisfies Record<string, { tipo: 'audio' | 'video'; contentType: string }>
+
+export type Extension = keyof typeof FORMATOS
+
+function formatoDe(extension: string) {
+  return FORMATOS[extension.toLowerCase() as Extension]
+}
+
+/**
+ * Audio o vídeo, decidido por la extensión del archivo real y escrito SIEMPRE.
+ *
+ * Nunca se deja al valor por defecto de la columna: ese valor es `video`, así que olvidarse
+ * de escribirlo no falla — **miente**, y una revisión de audio quedaría marcada como vídeo
+ * sin que nadie se entere.
+ */
+export function tipoDelMedio(extension: string): 'audio' | 'video' {
+  return formatoDe(extension)?.tipo ?? 'video'
+}
+
+/** Con qué `Content-Type` se sube al cajón. Mismo sitio, misma verdad. */
+export function contentTypeDelMedio(extension: string): string | undefined {
+  return formatoDe(extension)?.contentType
+}
 
 /** Un lunes en `AAAA-MM-DD`, que es como la tabla guarda la semana. */
 function esLunes(iso: string): boolean {
@@ -103,7 +147,7 @@ export function decidirPublicacion(
   if (!esLunes(encargo.semana)) return { publica: false, motivo: 'semana-no-es-lunes' }
   if (encargo.tamanoBytes <= 0) return { publica: false, motivo: 'archivo-vacio' }
   if (encargo.tamanoBytes > TOPE_BYTES) return { publica: false, motivo: 'archivo-enorme' }
-  if (!(EXTENSIONES as readonly string[]).includes(encargo.extension.toLowerCase())) {
+  if (!formatoDe(encargo.extension)) {
     return { publica: false, motivo: 'extension-no-admitida' }
   }
   // EL GUION NO ES OPCIONAL, y no por formalismo: es lo único que permite saber después qué
@@ -132,5 +176,6 @@ export function filaDelVideo(encargo: EncargoDePublicacion, path: string) {
     semana: encargo.semana,
     path,
     guion: encargo.guion,
+    tipo: tipoDelMedio(encargo.extension),
   }
 }
