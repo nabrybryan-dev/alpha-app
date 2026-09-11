@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,700;125,800;125,900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Hanken Grotesk', system-ui, sans-serif; background: #08090a; }
+    a { color: #ff1e1e; } a:hover { color: #c8121a; }
+  </style>
+
+  <style>
+    /* LOS CINCO PESOS, tal cual salen de `scripts/generar-muelles.mjs`: muelles
+       amortiguados muestreados, no Béziers tanteadas. Lo pesado se asienta y NO
+       rebota; lo ligero llega al 110 % y vuelve. */
+    :root {
+      --dur-protagonista: 455ms;
+      --dur-informativo: 542ms;
+      --dur-transicional: 471ms;
+      --dur-ambiental: 792ms;
+      --dur-microinteraccion: 459ms;
+      --muelle-protagonista: linear(0, 0.0106, 0.039, 0.0802, 0.1305, 0.1868, 0.2464, 0.3074, 0.3681, 0.4275, 0.4846, 0.5388, 0.5897, 0.637, 0.6806, 0.7205, 0.7567, 0.7893, 0.8186, 0.8447, 0.8679, 0.8883, 0.9062, 0.9218, 0.9353, 0.947, 0.957, 0.9655, 0.9728, 0.9789, 0.9839, 0.9882, 0.9916, 0.9945, 1);
+      --muelle-informativo: linear(0, 0.0215, 0.0763, 0.1523, 0.2403, 0.333, 0.4254, 0.5137, 0.5957, 0.6698, 0.7354, 0.7923, 0.8408, 0.8814, 0.9148, 0.9418, 0.9631, 0.9797, 0.9922, 1.0013, 1.0076, 1.0118, 1.0142, 1.0154, 1.0156, 1.0151, 1.0141, 1.0129, 1.0115, 1.01, 1.0086, 1.0072, 1.006, 1.0049, 1);
+      --muelle-transicional: linear(0, 0.0204, 0.0724, 0.1444, 0.2276, 0.3154, 0.403, 0.4871, 0.5655, 0.637, 0.7008, 0.7569, 0.8053, 0.8466, 0.8814, 0.9101, 0.9337, 0.9527, 0.9677, 0.9795, 0.9885, 0.9952, 1.0001, 1.0034, 1.0057, 1.007, 1.0077, 1.0079, 1.0077, 1.0072, 1.0067, 1.006, 1.0053, 1.0046, 1);
+      --muelle-ambiental: linear(0, 0.0137, 0.0494, 0.1, 0.1602, 0.2258, 0.2936, 0.3612, 0.4269, 0.4896, 0.5483, 0.6027, 0.6526, 0.6979, 0.7386, 0.7749, 0.8072, 0.8356, 0.8606, 0.8823, 0.9011, 0.9174, 0.9313, 0.9433, 0.9534, 0.962, 0.9692, 0.9752, 0.9802, 0.9844, 0.9878, 0.9906, 0.9929, 0.9948, 1);
+      --muelle-microinteraccion: linear(0, 0.0342, 0.1217, 0.2421, 0.3784, 0.5173, 0.6492, 0.7673, 0.8679, 0.9492, 1.0113, 1.0555, 1.0839, 1.0989, 1.1034, 1.0999, 1.0909, 1.0785, 1.0644, 1.05, 1.0364, 1.0241, 1.0137, 1.0053, 0.9989, 0.9943, 0.9913, 0.9898, 0.9893, 0.9897, 0.9906, 0.9919, 0.9933, 0.9948, 1);
+    }
+
+    @keyframes muro-entra { from { opacity: 0; transform: translateY(14px); } }
+    @keyframes muro-junta-traza { from { transform: scaleX(0); opacity: 0; } }
+    @keyframes muro-palabra-entra { from { opacity: 0; transform: translateY(0.5em); } }
+    @keyframes muro-aliento { 0%, 100% { opacity: 0.82; } 50% { opacity: 1; } }
+    @keyframes muro-cifra-rueda {
+      0%, 86% { opacity: 1; transform: translateY(0); text-shadow: 0 0 0.5em rgba(255,30,30,0.45); }
+      88% { opacity: 0; transform: translateY(0.42em); }
+      90% { opacity: 0; transform: translateY(-0.42em); text-shadow: 0 0 1.4em rgba(255,30,30,0.95); }
+      100% { opacity: 1; transform: translateY(0); text-shadow: 0 0 0.5em rgba(255,30,30,0.45); }
+    }
+    @keyframes muro-testigo { 0%, 100% { opacity: 0.34; } 50% { opacity: 1; } }
+    @keyframes muro-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    .m-entra { animation: muro-entra var(--dur-protagonista) var(--muelle-protagonista) both; }
+    .m-junta { transform-origin: center; animation: muro-junta-traza var(--dur-transicional) var(--muelle-transicional) both; }
+    .m-palabra { display: inline-block; animation: muro-palabra-entra var(--dur-informativo) var(--muelle-informativo) both; }
+    .m-aliento { animation: muro-aliento 9s var(--muelle-ambiental) infinite; }
+    .m-cifra { display: inline-block; animation: muro-cifra-rueda 7s var(--muelle-microinteraccion) infinite; }
+    .m-testigo { animation: muro-testigo 1.6s var(--muelle-ambiental) infinite; }
+    .m-ticker { display: inline-flex; white-space: nowrap; animation: muro-ticker 17s linear infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .m-entra, .m-junta, .m-palabra, .m-cifra, .m-aliento, .m-testigo, .m-ticker { animation: none; }
+    }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #000; color: #f4f5f6;">
+
+  <!-- El salón sigue detrás: el panel no es otra pantalla, es un cajón que sube. -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 74px; background: radial-gradient(70% 200% at 50% 0%, rgba(255,30,30,0.12), transparent 70%);"></div>
+
+  <!-- LA HOJA. Doce recuadros con borde y esquinas de 14 px eran doce tarjetas de app
+       apiladas. Aquí es UNA hoja continua con juntas de luz entre secciones: lo que se
+       saca del salón para leer de cerca, bajo una lámpara. -->
+  <div style="position: absolute; left: 0; right: 0; top: 62px; bottom: 0; background: linear-gradient(180deg, #0f1113, #08090a 22%, #000); box-shadow: inset 0 1px 0 rgba(111,119,130,0.4), 0 -18px 40px -20px rgba(0,0,0,1);">
+
+    <div style="width: 74px; height: 3px; margin: 11px auto 0; border-radius: 2px; background: rgba(194,200,207,0.32);"></div>
+
+    <div style="padding: 20px 22px 0;">
+
+      <!-- Cabecera de la hoja: qué es esto y de qué día habla. -->
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+        <span style="font-family: Archivo, system-ui, sans-serif; font-size: 15px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: #f4f5f6;">La hoja de hoy</span>
+        <span style="font-size: 9px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">M22 · Upper B</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 22px; margin-top: 22px;">
+
+        <!-- ANTES DE ENTRENAR. El número lleva el peso: es lo que dice cuánto queda,
+             y va en la cifra de la marca, no en una insignia con fondo. -->
+        <section class="m-entra" style="display: flex; flex-direction: column; gap: 11px; animation-delay: 120ms;">
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #ff1e1e; font-variant-numeric: tabular-nums;">01</span>
+            <span style="flex-grow: 1; font-size: 9.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Antes de entrenar</span>
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; color: #9aa1ab; font-variant-numeric: tabular-nums;">2 / 5</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 9px;">
+            <label style="display: flex; align-items: center; gap: 11px; cursor: pointer;">
+              <span style="display: grid; place-items: center; width: 19px; height: 19px; border-radius: 2px; flex-shrink: 0; background: linear-gradient(180deg, #ff1e1e, #c8121a); box-shadow: 0 0 12px -2px rgba(255,30,30,0.7);">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 5 5L20 7" /></svg>
+              </span>
+              <span style="font-size: 13px; color: #6f7782; text-decoration: line-through;">Movilidad torácica en banco · 8 rep</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 11px; cursor: pointer;">
+              <span style="display: grid; place-items: center; width: 19px; height: 19px; border-radius: 2px; flex-shrink: 0; background: linear-gradient(180deg, #ff1e1e, #c8121a); box-shadow: 0 0 12px -2px rgba(255,30,30,0.7);">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 5 5L20 7" /></svg>
+              </span>
+              <span style="font-size: 13px; color: #6f7782; text-decoration: line-through;">Rotación externa con banda · 12 rep</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 11px; cursor: pointer;">
+              <span style="width: 19px; height: 19px; border-radius: 2px; flex-shrink: 0; border: 1px solid rgba(111,119,130,0.5);"></span>
+              <span style="font-size: 13px; color: #dfe2e6;">Press inclinado en barra vacía · 10 rep</span>
+            </label>
+          </div>
+        </section>
+
+        <hr class="m-junta" style="height: 1px; border: 0; margin: 0; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.42) 8%, rgba(111,119,130,0.42) 92%, transparent);">
+
+        <!-- LA PRESCRIPCIÓN ÍNTEGRA. Aquí vive entero lo que el muro recortó: es lo que
+             hace HONESTO el recorte de la pared. Por eso no se pliega de fábrica. -->
+        <section class="m-entra" style="display: flex; flex-direction: column; gap: 11px; animation-delay: 230ms;">
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #ff1e1e; font-variant-numeric: tabular-nums;">02</span>
+            <span style="flex-grow: 1; font-size: 9.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">El ejercicio, entero</span>
+          </div>
+          <p style="margin: 0; font-family: Archivo, system-ui, sans-serif; font-size: 15px; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.12; color: #f4f5f6;">Press inclinado en multipower</p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #c2c8cf; text-wrap: pretty;">Banco a 30°: por encima ya es un press de hombro. Escápulas retraídas y pegadas al respaldo, y baja hacia la parte alta del pecho, no hacia el cuello. Sin despegar el glúteo del banco para ayudarte.</p>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding-left: 12px; border-left: 1px solid rgba(255,30,30,0.45);">
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #9aa1ab;"><span style="color: #6f7782; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 8.5px;">Si el día viene bueno</span><br>Techo 47,5 kg, sube hasta 45 kg, con una serie extra autorizada.</p>
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #9aa1ab;"><span style="color: #6f7782; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; font-size: 8.5px;">Si el día viene malo</span><br>Se suelta 1 escalón de RIR, con suelo en RIR 3.</p>
+          </div>
+        </section>
+
+        <hr class="m-junta" style="height: 1px; border: 0; margin: 0; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.42) 8%, rgba(111,119,130,0.42) 92%, transparent);">
+
+        <!-- LA NOTA DEL COACH. Es la única voz humana de la pantalla, así que se lee
+             como una nota escrita y no como un aviso del sistema. -->
+        <section class="m-entra" style="display: flex; flex-direction: column; gap: 11px; animation-delay: 340ms;">
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #ff1e1e; font-variant-numeric: tabular-nums;">03</span>
+            <span style="flex-grow: 1; font-size: 9.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Notas de la semana</span>
+          </div>
+          <p style="margin: 0; font-size: 13.5px; line-height: 1.6; color: #dfe2e6; text-wrap: pretty;">Esta semana el objetivo no es subir kilos: es que las tres series salgan con la misma técnica. Si la tercera se te va, baja 2,5 kg y anótalo.</p>
+        </section>
+
+        <hr class="m-junta" style="height: 1px; border: 0; margin: 0; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.42) 8%, rgba(111,119,130,0.42) 92%, transparent);">
+
+        <!-- Lo que sigue, insinuado: la hoja continúa al deslizar. -->
+        <section style="display: flex; flex-direction: column; gap: 11px; opacity: 0.42;">
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #ff1e1e; font-variant-numeric: tabular-nums;">04</span>
+            <span style="flex-grow: 1; font-size: 9.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Notas de ejecución</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; line-height: 1.55; color: #9aa1ab;">Qué mueve y qué sujeta cada articulación en este patrón.</p>
+        </section>
+      </div>
+    </div>
+
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 96px; background: linear-gradient(to top, #000 30%, transparent);"></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

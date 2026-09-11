@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { DiaRuta, EstadoDiaRuta } from '../../../domain/rutaEntrenamiento'
-import { resumenSemana } from '../../../domain/rutaEntrenamiento'
 
 const ETIQUETA: Record<EstadoDiaRuta, string> = {
   completada: 'Completada',
@@ -93,27 +92,23 @@ function FilaAgenda({ dia, seleccionado }: { dia: DiaRuta; seleccionado: boolean
 
 interface Props {
   dias: readonly DiaRuta[]
-  /** "Semana 3 · Microciclo 8" */
-  titulo: string
 }
 
 /** Rejilla de 7 días + la agenda de la semana. El día de hoy viene seleccionado. */
-export function CalendarioSemana({ dias, titulo }: Props) {
+export function CalendarioSemana({ dias }: Props) {
   const indiceHoy = Math.max(
     0,
     dias.findIndex((d) => d.esHoy),
   )
   const [seleccionado, setSeleccionado] = useState(indiceHoy)
-  const resumen = resumenSemana(dias)
 
   return (
     <section>
-      <div className="mb-2.5 flex items-baseline justify-between gap-2.5">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-silver-500">{titulo}</h3>
-        <span className="cifras text-[11.5px] font-bold text-silver-400">
-          {resumen.completadas}/{resumen.programadas} sesiones
-        </span>
-      </div>
+      {/* La cabecera —«Semana 3 · Microciclo 8» a la izquierda y «2/4 sesiones» a la
+          derecha— se fue el 2026-09-03 y con ella el prop `titulo`: las dos cosas viven
+          ahora en el rótulo del tramo de la hoja, el texto como pie y la cuenta como
+          cifra. Se quitó el prop en vez de dejarlo opcional a propósito: un título que
+          se puede pasar y no se pinta es la vía por la que vuelve el eco. */}
 
       {/* La semana es un TECLADO: siete teclas que sobresalen de la placa y recorren
           sus 16 px al pulsarlas. Por eso la rejilla abre su propia escena — sin

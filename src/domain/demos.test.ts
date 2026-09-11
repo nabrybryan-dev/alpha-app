@@ -38,6 +38,24 @@ const BIBLIOTECA: Contenido[] = [
     descripcion: '',
     url: 'https://www.youtube.com/watch?v=ddddddddddd',
   },
+  {
+    id: 'c-zancada',
+    tipo: 'video',
+    categoria: 'Patrones de movimiento',
+    titulo: 'Zancadas y búlgaras',
+    descripcion: '',
+    url: 'https://www.youtube.com/watch?v=eeeeeeeeeee',
+    patronMovimiento: 'Dominante de rodilla',
+  },
+  {
+    id: 'c-empuje-h',
+    tipo: 'video',
+    categoria: 'Patrones de movimiento',
+    titulo: 'Patrón de empuje horizontal',
+    descripcion: '',
+    url: 'https://www.youtube.com/watch?v=fffffffffff',
+    patronMovimiento: 'Empuje horizontal',
+  },
 ]
 
 /**
@@ -78,6 +96,18 @@ describe('demoDeEjercicio', () => {
   it('no le importan las tildes ni las mayúsculas: las dos listas las escriben personas distintas', () => {
     expect(demoDeEjercicio({ categoria: 'traccion vertical' }, BIBLIOTECA)?.id).toBe('c-traccion')
     expect(demoDeEjercicio({ categoria: 'Dominante de Cadera' }, BIBLIOTECA)?.id).toBe('c-bisagra')
+  })
+
+  it('la taxonomía nueva también encuentra su vídeo: sentadilla, unilateral e inclinado', () => {
+    // Medido el 2026-09-07 sobre los microciclos activos: 67 ejercicios con vídeo disponible
+    // se quedaban sin él porque la tabla solo conocía los nombres viejos de la categoría.
+    expect(demoDeEjercicio({ categoria: 'SENTADILLA' }, BIBLIOTECA)?.id).toBe('c-sentadilla')
+    // A la búlgara le toca el vídeo de zancadas, no el de la sentadilla: el patrón tiene dos.
+    expect(demoDeEjercicio({ categoria: 'SENTADILLA UNILATERAL' }, BIBLIOTECA)?.id).toBe('c-zancada')
+    expect(demoDeEjercicio({ categoria: 'EMPUJE INCLINADO' }, BIBLIOTECA)?.id).toBe('c-empuje-h')
+    // Y sin el vídeo de zancadas en la biblioteca, cae al del patrón: no se queda sin nada.
+    const sinZancada = BIBLIOTECA.filter((c) => c.id !== 'c-zancada')
+    expect(demoDeEjercicio({ categoria: 'SENTADILLA UNILATERAL' }, sinZancada)?.id).toBe('c-sentadilla')
   })
 
   it('devuelve undefined donde no hay patrón que enseñar', () => {

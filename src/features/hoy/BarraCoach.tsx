@@ -9,6 +9,8 @@ export interface EnvioRapido {
 }
 
 interface BarraCoachProps {
+  /** Cómo se llama la entrada. Depende de si hay nutricionista en la base. */
+  titulo?: string
   iniciales: string
   noLeidos: number
   ultimoTexto: string | undefined
@@ -26,7 +28,13 @@ interface BarraCoachProps {
  * le añadirá otro estado —cuenta atrás y temas de la próxima revisión— y con
  * esta forma no hay que reescribirla para eso.
  */
-export function BarraCoach({ iniciales, noLeidos, ultimoTexto, onEnviar }: BarraCoachProps) {
+export function BarraCoach({
+  titulo = 'Escríbele a tu coach',
+  iniciales,
+  noLeidos,
+  ultimoTexto,
+  onEnviar,
+}: BarraCoachProps) {
   const [texto, setTexto] = useState('')
   const [archivo, setArchivo] = useState<File>()
   const [error, setError] = useState('')
@@ -57,7 +65,7 @@ export function BarraCoach({ iniciales, noLeidos, ultimoTexto, onEnviar }: Barra
   }
 
   return (
-    <section className="glass glass-destacada rounded-bloque p-3.5">
+    <section className="relieve glass glass-destacada rounded-bloque p-3.5">
       {/* Enlace de verdad, no un botón que navega: así funciona el clic central,
           el "abrir en pestaña nueva" y se anuncia como enlace. */}
       <Link to="/chat" className="press flex w-full items-center gap-2.5 text-left">
@@ -65,7 +73,7 @@ export function BarraCoach({ iniciales, noLeidos, ultimoTexto, onEnviar }: Barra
           {iniciales}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-sm text-texto">Escríbele a tu coach</span>
+          <span className="block font-display text-sm text-texto">{titulo}</span>
           {/* En texto plano: en una línea truncada la negrita no aporta, y los
               asteriscos crudos se leen como un error. Es lo primero que carga
               la app, así que se veían en cada respuesta del Centro. */}

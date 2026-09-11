@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@125,700;125,800;125,900&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Hanken Grotesk', system-ui, sans-serif; background: #08090a; }
+    a { color: #ff1e1e; } a:hover { color: #c8121a; }
+  </style>
+</helmet>
+
+<div style="width: 800px; box-sizing: border-box; padding: 30px 32px 36px; background: #08090a; color: #f4f5f6;">
+
+  <p style="margin: 0; font-size: 9.5px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: #6f7782;">Los otros muros · se encuentran girando</p>
+  <p style="margin: 12px 0 0; max-width: 560px; font-size: 13px; line-height: 1.6; color: #9aa1ab; text-wrap: pretty;">La ventana horizontal de un 390×844 son 12,18°, que a los 11,1 m del muro de enfrente son <strong style="color: #dfe2e6; font-weight: 600;">2,37 m de pared</strong>. Ahí cabe una composición, no cuatro. Lo demás cuelga fuera y se encuentra girando, como en una sala de verdad.</p>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px; margin-top: 30px;">
+
+    <!-- SERIES REGISTRADAS. La memoria de la sesión: qué se levantó y qué falta. Los
+         peldaños vacíos NO se esconden — ver los huecos es lo que dice cuánto queda,
+         igual que los segmentos que no encienden en un display. -->
+    <div style="position: relative; padding: 26px 24px; overflow: hidden;">
+      <div style="position: absolute; left: -24%; right: -24%; top: -40%; bottom: -46%; background: radial-gradient(58% 46% at 50% 38%, rgba(0,0,0,0.82), rgba(0,0,0,0.42) 44%, transparent 72%), radial-gradient(44% 34% at 50% 12%, rgba(111,119,130,0.20), transparent 68%);"></div>
+      <div style="position: relative; display: flex; flex-direction: column; gap: 12px;">
+        <span style="font-size: 9px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Series registradas</span>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: baseline; justify-content: flex-end; gap: 11px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-variant-numeric: tabular-nums;">
+            <span style="font-family: Archivo, system-ui, sans-serif; font-weight: 900; color: #ff1e1e; text-shadow: 0 0 9px rgba(255,30,30,0.45);">1</span>
+            <span style="font-weight: 700; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55);">42,5 kg</span>
+            <span style="color: #9aa1ab;">× 10</span>
+            <span style="color: #6f7782;">RIR 3</span>
+          </div>
+          <div style="display: flex; align-items: baseline; justify-content: flex-end; gap: 11px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-variant-numeric: tabular-nums;">
+            <span style="font-family: Archivo, system-ui, sans-serif; font-weight: 900; color: #ff1e1e; text-shadow: 0 0 9px rgba(255,30,30,0.45);">2</span>
+            <span style="font-weight: 700; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55);">42,5 kg</span>
+            <span style="color: #9aa1ab;">× 9</span>
+            <span style="color: #6f7782;">RIR 2</span>
+          </div>
+          <div style="display: flex; align-items: baseline; justify-content: flex-end; gap: 11px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: rgba(111,119,130,0.55); font-variant-numeric: tabular-nums;">
+            <span>3</span><span>— · —</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A CONTINUACIÓN. Una cola es algo que avanza: líneas separadas por juntas, no
+         tres cápsulas con borde y fondo colgadas de un muro. -->
+    <div style="position: relative; padding: 26px 24px; overflow: hidden;">
+      <div style="position: absolute; left: -24%; right: -24%; top: -40%; bottom: -46%; background: radial-gradient(58% 46% at 50% 38%, rgba(0,0,0,0.82), rgba(0,0,0,0.42) 44%, transparent 72%), radial-gradient(44% 34% at 50% 12%, rgba(111,119,130,0.20), transparent 68%);"></div>
+      <div style="position: relative; display: flex; flex-direction: column; gap: 10px;">
+        <span style="font-size: 9px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">A continuación</span>
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <span style="min-width: 0; flex-grow: 1; font-size: 13px; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Remo con barra torso inclinado</span>
+          <span style="flex-shrink: 0; font-family: Archivo, system-ui, sans-serif; font-size: 12px; font-weight: 800; color: #ff1e1e; text-shadow: 0 0 8px rgba(255,30,30,0.45);">3×10 RIR 2</span>
+        </div>
+        <hr style="height: 1px; border: 0; margin: 0; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.55) 18%, rgba(111,119,130,0.55) 82%, transparent);">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <span style="min-width: 0; flex-grow: 1; font-size: 13px; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Face pull en polea alta</span>
+          <span style="flex-shrink: 0; font-family: Archivo, system-ui, sans-serif; font-size: 12px; font-weight: 800; color: #ff1e1e; text-shadow: 0 0 8px rgba(255,30,30,0.45);">3×15 RIR 2</span>
+        </div>
+        <hr style="height: 1px; border: 0; margin: 0; background: linear-gradient(90deg, transparent, rgba(111,119,130,0.55) 18%, rgba(111,119,130,0.55) 82%, transparent);">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <span style="min-width: 0; flex-grow: 1; font-size: 13px; color: #f4f5f6; text-shadow: 0 0 7px rgba(111,119,130,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Curl de bíceps en banco inclinado</span>
+          <span style="flex-shrink: 0; font-family: Archivo, system-ui, sans-serif; font-size: 12px; font-weight: 800; color: #ff1e1e; text-shadow: 0 0 8px rgba(255,30,30,0.45);">2×12 RIR 1</span>
+        </div>
+        <span style="font-size: 9px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Y 1 más</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EL MARCADOR DE SIETE SEGMENTOS. No es HTML: la sala lo construye en geometría, en
+       el muro de verdad y en perspectiva. Lo que se dibuja en el DOM tiene que hablar SU
+       idioma, no competir con él. -->
+  <div style="margin-top: 34px; padding-top: 26px; border-top: 1px solid rgba(111,119,130,0.28);">
+    <span style="font-size: 9.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #6f7782;">Y en el muro, en geometría · el marcador de siete segmentos</span>
+    <div style="display: flex; align-items: center; gap: 26px; margin-top: 18px;">
+      <svg viewBox="0 0 300 74" width="300" height="74" aria-hidden="true">
+        <g fill="#db3333">
+          <rect x="6" y="4" width="26" height="7" /><rect x="34" y="6" width="7" height="26" /><rect x="34" y="40" width="7" height="26" /><rect x="6" y="64" width="26" height="7" /><rect x="0" y="40" width="7" height="26" /><rect x="0" y="6" width="7" height="26" /><rect x="6" y="34" width="26" height="7" />
+        </g>
+        <g fill="#1d1f23">
+          <rect x="48" y="4" width="26" height="7" /><rect x="76" y="6" width="7" height="26" /><rect x="76" y="40" width="7" height="26" /><rect x="48" y="64" width="26" height="7" /><rect x="42" y="40" width="7" height="26" /><rect x="42" y="6" width="7" height="26" /><rect x="48" y="34" width="26" height="7" />
+        </g>
+        <g fill="#db3333">
+          <rect x="118" y="4" width="26" height="7" /><rect x="146" y="6" width="7" height="26" /><rect x="146" y="40" width="7" height="26" /><rect x="118" y="64" width="26" height="7" /><rect x="112" y="40" width="7" height="26" /><rect x="118" y="34" width="26" height="7" />
+        </g>
+        <g fill="#db3333">
+          <rect x="160" y="4" width="26" height="7" /><rect x="188" y="6" width="7" height="26" /><rect x="188" y="40" width="7" height="26" /><rect x="160" y="64" width="26" height="7" /><rect x="154" y="40" width="7" height="26" /><rect x="154" y="6" width="7" height="26" />
+        </g>
+        <g fill="#db3333">
+          <rect x="236" y="4" width="26" height="7" /><rect x="230" y="6" width="7" height="26" /><rect x="230" y="40" width="7" height="26" /><rect x="236" y="34" width="26" height="7" />
+        </g>
+      </svg>
+      <p style="margin: 0; max-width: 340px; font-size: 12.5px; line-height: 1.55; color: #9aa1ab;">Series, repeticiones y proximidad al fallo. Un dígito de segmentos es geometría —siete cajas— y no necesita ni tipografía ni atlas de fuente: es lo que lleva una báscula, un cronómetro de pared, el display de la prensa. <strong style="color: #dfe2e6; font-weight: 600;">El fallo se escribe con su letra</strong>, porque un cero ahí diría «RIR 0», que es otra cosa.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

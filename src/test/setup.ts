@@ -1,7 +1,8 @@
 // jsdom no implementa IndexedDB, y ahí es donde esperan los adjuntos que todavía
 // no han subido (`lib/depositoAdjuntos.ts`). Sin esto, sus tests no pueden correr.
 import 'fake-indexeddb/auto'
-import { configure } from '@testing-library/react'
+import { afterEach } from 'vitest'
+import { cleanup, configure } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 /**
@@ -54,3 +55,27 @@ if (typeof Blob !== 'undefined' && typeof Blob.prototype.text !== 'function') {
  * faltaba. Ese fue exactamente el fallo intermitente que costó dos diagnósticos.
  */
 configure({ asyncUtilTimeout: 10_000 })
+
+/**
+ * Limpiar el DOM después de cada test, a mano.
+ *
+ * `@testing-library/react` ya registra su propio `afterEach(cleanup)`, pero lo hace
+ * al CARGARSE el módulo, y como vive en `node_modules`, Vitest lo externaliza y no
+ * lo recarga entre archivos de test. En un proceso único (`--poolOptions.forks
+ * .singleFork`, `--no-isolate`, `singleThread`) ese hook queda registrado una sola
+ * vez, en el contexto del PRIMER archivo que corre. Del segundo en adelante nadie
+ * limpia, y como el `document` también está compartido, el DOM se acumula sin techo:
+ * las queries empiezan a encontrar elementos de tests anteriores
+ * (`Found multiple elements`) y cada búsqueda recorre un `body` cada vez más grande.
+ *
+ * Eso fue exactamente la corrida del 2026-09-07: 390 tests rojos en 3 h 11 m. Los
+ * mismos 72 archivos, con este hook puesto, dieron 5 rojos en 56 s. Ninguno de los
+ * 390 era un bug de la app.
+ *
+ * Este archivo es FUENTE, así que Vitest sí lo re-ejecuta por cada archivo de test
+ * y el hook se vuelve a registrar en todos. Que en el primer archivo `cleanup()`
+ * corra dos veces es inocuo: es idempotente.
+ */
+afterEach(() => {
+  cleanup()
+})

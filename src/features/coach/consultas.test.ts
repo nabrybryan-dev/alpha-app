@@ -58,3 +58,23 @@ describe('agrupar', () => {
     expect(g).toEqual({ criterio: [], dudas: [], resuelto: [] })
   })
 })
+
+describe('el saludo', () => {
+  it('no pide el criterio del coach: se contesta solo y queda resuelto', () => {
+    const saludo = {
+      id: 'c1',
+      usuarioId: 'u1',
+      mensaje: 'hola',
+      fichaId: null,
+      similitud: null,
+      via: 'saludo' as const,
+      banderaRoja: false,
+      revisado: false,
+      corregido: false,
+      creadoEn: '2026-09-10T21:00:00Z',
+    }
+    expect(estadoDe(saludo)).toBe('resuelto')
+    // Pero si el mensaje toca salud, manda la bandera y sube a criterio.
+    expect(estadoDe({ ...saludo, banderaRoja: true })).toBe('criterio')
+  })
+})

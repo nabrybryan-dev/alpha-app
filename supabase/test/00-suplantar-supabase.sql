@@ -118,6 +118,12 @@ $$;
 -- alguna migración haga después (la 0013 le quita `es_staff()` a `anon`) siguen
 -- valiendo. Un grant masivo al final los desharía en silencio.
 grant usage on schema public, extensions, storage to anon, authenticated, service_role;
+-- Y sobre `auth`, que Supabase tambien concede (medido en el proyecto real el 2026-09-06:
+-- `has_schema_privilege('authenticated', 'auth', 'USAGE')` = true). Sin esto las POLITICAS
+-- pasaban igual —resuelven `auth.uid()` al crearse, por OID— pero una funcion plpgsql
+-- `security invoker` que llame a `auth.uid()` moria aqui con «permission denied for schema
+-- auth» y en produccion no: fue `registrar_medida` (0057) la que lo destapo.
+grant usage on schema auth to anon, authenticated, service_role;
 
 alter default privileges in schema public
   grant all on tables to anon, authenticated, service_role;

@@ -1,0 +1,113 @@
+
+  partir-el-visor: origin/main  vs  origin/main
+
+  creando worktree de origin/main en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-yV08bK\base ...
+  creando worktree de origin/main en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-yV08bK\nueva ...
+
+  [base] npm install en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-yV08bK\base ...
+  [base] arrancando vite en :5189 ...
+(node:21436) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  [base] arrancando Chrome en :9359 ...
+
+  [nueva] npm install en C:\Users\ASUS\AppData\Local\Temp\partir-el-visor-yV08bK\nueva ...
+  [nueva] arrancando vite en :5189 ...
+  [nueva] arrancando Chrome en :9359 ...
+  patronA          pixelesCambiados=  1278  caja=(41,102)-(753,1657)
+  patronB          pixelesCambiados=  1253  caja=(40,102)-(753,1656)
+  capaIntermedia   pixelesCambiados=  1276  caja=(40,102)-(753,1657)
+  capaProfunda     pixelesCambiados=  1265  caja=(41,102)-(753,1657)
+
+  TOTAL: hay escenarios con píxeles distintos — ver arriba y las máscaras
+
+{
+  "cuando": "2026-09-07T18:00:18.631Z",
+  "refBase": "origin/main",
+  "refNueva": "origin/main",
+  "commitBase": "d1035fa5c825ec956ac7f9f5443e85b88182842a",
+  "commitNueva": "d1035fa5c825ec956ac7f9f5443e85b88182842a",
+  "viewport": {
+    "ancho": 390,
+    "alto": 844,
+    "escala": 2
+  },
+  "usuarioBase": "u-valentina",
+  "usuarioNueva": "u-valentina",
+  "puntoCuerpoBase": {
+    "x": 195,
+    "y": 388
+  },
+  "puntoCuerpoNueva": {
+    "x": 195,
+    "y": 388
+  },
+  "avisosBase": [],
+  "avisosNueva": [],
+  "escenarios": [
+    {
+      "clave": "patronA",
+      "titulo": "Patrón A — el ejercicio con el que abre la sesión",
+      "pixelesCambiados": 1278,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 41,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1657
+      },
+      "capturaBase": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\patronA-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\patronA-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\patronA-mascara.png",
+      "notaTamano": null
+    },
+    {
+      "clave": "patronB",
+      "titulo": "Patrón B — tras tocar el segundo punto de la tira de ejercicios",
+      "pixelesCambiados": 1253,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 40,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1656
+      },
+      "capturaBase": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\patronB-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\patronB-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\patronB-mascara.png",
+      "notaTamano": null
+    },
+    {
+      "clave": "capaIntermedia",
+      "titulo": "Capa intermedia — a los 900 ms de toque sostenido",
+      "pixelesCambiados": 1276,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 40,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1657
+      },
+      "capturaBase": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\capaIntermedia-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\capaIntermedia-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\capaIntermedia-mascara.png",
+      "notaTamano": null
+    },
+    {
+      "clave": "capaProfunda",
+      "titulo": "Capa profunda — a los 1800 ms de toque sostenido",
+      "pixelesCambiados": 1265,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 41,
+        "y0": 102,
+        "x1": 753,
+        "y1": 1657
+      },
+      "capturaBase": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\capaProfunda-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\capaProfunda-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\claude\\C--Users-ASUS\\97d23a1e-2d7c-41d1-be5e-df07d0b55752\\scratchpad\\aa-testigo\\capaProfunda-mascara.png",
+      "notaTamano": null
+    }
+  ],
+  "todoCero": false
+}

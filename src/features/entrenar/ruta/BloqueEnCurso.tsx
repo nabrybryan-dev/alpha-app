@@ -16,18 +16,13 @@ export function BloqueEnCurso({ bloque, sesion }: Props) {
   const segmentos = Array.from({ length: bloque.semanasTotales }, (_, i) => i < bloque.semana)
 
   return (
-    <section className="escena-prof rounded-tarjeta border border-ink-500 bg-ink-800 px-4 py-3.5">
-      <div className="flex items-center justify-between gap-2.5">
-        <div className="min-w-0">
-          <h3 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-accion">
-            Bloque en curso
-          </h3>
-          <p className="mt-1.5 text-[15px] font-bold text-silver-100">{bloque.nombre}</p>
-          <p className="mt-1 text-xs text-silver-400">{bloque.detalle}</p>
-        </div>
-        <span className="cifras shrink-0 rounded-full border border-ink-400 px-2.5 py-1 text-xs font-bold text-silver-300">
-          {bloque.semana}/{bloque.semanasTotales}
-        </span>
+    // Sin marco ni rótulo propios: los pone el tramo de la hoja. La cuenta de semanas
+    // («3/5») tampoco se pierde, sube a la cifra del tramo — y allí sigue leyéndose con
+    // el bloque plegado, que dentro de esta pastilla no pasaba.
+    <section className="escena-prof">
+      <div className="min-w-0">
+        <p className="text-[15px] font-bold text-silver-100">{bloque.nombre}</p>
+        <p className="mt-1 text-xs text-silver-400">{bloque.detalle}</p>
       </div>
 
       <div className="escena-prof mt-3 flex gap-[5px]" aria-hidden="true">

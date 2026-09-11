@@ -166,6 +166,11 @@ function colaEnDisco(): OperacionPendiente[] {
   return JSON.parse(localStorage.getItem('alpha-cola-sync') ?? '[]') as OperacionPendiente[]
 }
 
+/** Solo las llamadas que suben series de un ejercicio. */
+function seriesEnCola(): OperacionPendiente[] {
+  return colaEnDisco().filter((o) => o.funcion === 'fijar_series_ejercicio')
+}
+
 function seriesDe(m: Microciclo | undefined): number[] {
   return (m?.sesiones[0].ejercicios[0].series ?? []).map((s) => s.orden)
 }
@@ -276,7 +281,7 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
    * hace falta igual: lo que la sostiene es que el local NO se pise.
    */
   it('la serie borrada por el snapshot NO debe desaparecer también de la cola de sync', async () => {
-    const { hidratar, sync, db } = await appEnModoNube()
+    const { hidratar, db } = await appEnModoNube()
     const peticiones = fetchConFreno()
 
     const enCurso = hidratar.hidratarDesdeNube()
@@ -285,7 +290,11 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
     await vi.waitFor(() => expect(peticiones.some((p) => tablaDe(p.url) === 'hidratacion')).toBe(true))
 
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(1, 42.5))
-    expect(sync.pendientesDeSync()).toBe(1)
+    // Se cuenta LA OPERACION DE LAS SERIES, no el total de la cola: desde el
+    // 2026-09-04 anotar una serie encola tambien la fecha de la sesion, y un
+    // total clavado a 1 convertiria este guardian en un detector de operaciones
+    // nuevas en vez de un detector de series perdidas, que es lo suyo.
+    expect(seriesEnCola()).toHaveLength(1)
 
     // La hidratación termina, pero la SUBIDA del microciclo sigue en vuelo:
     // wifi de gimnasio. La serie 1 solo vive ya dentro de esa operación.
@@ -295,8 +304,10 @@ describe('hidratación desde la nube vs. escrituras locales en curso', () => {
     // Valentina sigue entrenando y registra la serie 2.
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(2, 42.5))
 
-    const opMicrociclo = colaEnDisco().find((o) => o.tabla === 'microciclos')
-    const series = (opMicrociclo?.payload.p_series ?? []) as { orden: number }[]
+    // Por `funcion` y no por `tabla`: sobre `microciclos` hay ya tres llamadas
+    // distintas y `find` cogeria la primera que pasara por ahi.
+    const opSeries = seriesEnCola()[0]
+    const series = (opSeries?.payload.p_series ?? []) as { orden: number }[]
     expect(series.map((s) => s.orden)).toEqual([1, 2])
   })
 })
@@ -319,26 +330,39 @@ describe('el interruptor de la tabla hidratacion', () => {
 
   /**
    * ESCENARIO REAL
-   * `hidratarDesdeNube` decide si la tabla `hidratacion` existe mirando SOLO si
-   * la petición dio error (hidratar.ts:76-77):
+   * `hidratarDesdeNube` decidía si la tabla `hidratacion` existe mirando SOLO si
+   * la petición dio error. Pero un error ahí no significa "la tabla no existe":
+   * significa cualquier cosa, incluido un 500 pasajero o un corte de wifi. Y
+   * apagar el interruptor por eso dejaba `registrarHidratacion` sin encolar, con
+   * cada vaso de agua encerrado en el móvil hasta que la siguiente hidratación
+   * con éxito lo borrara con la foto del servidor.
    *
-   *     const hidratacion = await sb.from('hidratacion').select('*')
-   *     marcarTablaHidratacion(!hidratacion.error)
+   * Hoy el interruptor solo lo apaga un "esta tabla no existe" de verdad
+   * (`42P01`/`PGRST205`), y esta prueba lo fija.
    *
-   * Pero un error ahí no significa "la tabla no existe": significa cualquier
-   * cosa, incluido un 500 pasajero o un corte de wifi. Como esa lectura va
-   * SUELTA (fuera del `Promise.all`), un fallo suyo no rompe la hidratación:
-   * la apaga en silencio.
+   * QUÉ CAMBIÓ EL 2026-09-10, porque esta prueba lo vio antes que nadie: ese
+   * mismo 500 pasajero **ahora aborta la descarga** en vez de seguir con la
+   * hidratación a cero (`caso-01`, `REC-03`). Antes, un fallo de esa consulta se
+   * veía en pantalla igual que un día sin beber, y además escribía ese vacío
+   * encima de lo que la persona tenía en el móvil.
    *
-   * A partir de ese momento `registrarHidratacion` deja de encolar
-   * (sync.ts:313) y cada vaso de agua se queda solo en el móvil… hasta que la
-   * siguiente hidratación con éxito lo borre con la foto del servidor.
+   * Las dos cosas van juntas y por eso se prueban juntas: la descarga se queja
+   * **y** el agua sigue sincronizándose. Que grite no puede costar el interruptor.
    */
-  it('un fallo pasajero al leer hidratacion no debe dejar de sincronizar el agua', async () => {
+  it('un fallo pasajero al leer hidratacion aborta la descarga pero NO deja de sincronizar el agua', async () => {
     const { hidratar, sync, db } = await appEnModoNube()
     const peticiones = fetchConFreno()
 
-    const enCurso = hidratar.hidratarDesdeNube()
+    // El manejador del rechazo se engancha AQUÍ, no al final. Entre esta línea y
+    // la comprobación de abajo hay varios `await`, y si la promesa se rompe en
+    // uno de ellos sin nadie escuchando, Node lo cuenta como rechazo NO manejado:
+    // vitest lo reporta como `Errors 1 error` y `npm run verify` sale 1 **aunque
+    // las 4.103 pruebas pasen**. Es un falso rojo que cuesta encontrar, porque el
+    // resumen dice que todo pasó.
+    const enCurso = hidratar.hidratarDesdeNube().then(
+      () => null,
+      (e: unknown) => e as Error,
+    )
     await vi.waitFor(() => expect(peticiones.length).toBeGreaterThanOrEqual(11))
     soltarLecturas(peticiones, LECTURA_HIDRATACION)
 
@@ -355,13 +379,15 @@ describe('el interruptor de la tabla hidratacion', () => {
       } else peticiones.push(p)
     }
     await bombear(peticiones)
-    await enCurso
+    // La descarga se queja en vez de guardar un cero que no es verdad.
+    const fallo = await enCurso
+    expect(fallo?.message).toMatch(/No se pudo descargar tus datos/)
 
     // Valentina se bebe un vaso de agua.
     db.nutricion.registrarHidratacion('u-val', '2026-07-27', 250)
     expect(db.nutricion.hidratacionDe('u-val', '2026-07-27')).toBe(250) // se ve en pantalla
 
-    expect(sync.pendientesDeSync()).toBe(1) // …pero ¿va camino del servidor?
+    expect(sync.pendientesDeSync()).toBe(1) // …y va camino del servidor
   })
 })
 
@@ -408,8 +434,10 @@ describe('cerrar sesión con escrituras sin subir', () => {
     db.microciclos.registrarSerie('m-test', 'ej-1', serie(2, 45))
     await sync.colaEnReposo()
 
-    // El intento de subida falló: sigue pendiente.
-    expect(sync.pendientesDeSync()).toBe(1)
+    // El intento de subida falló: sigue pendiente. Se mira que HAYA pendientes,
+    // no cuántos: lo que este test defiende es que el entreno sea rescatable, y
+    // el número exacto de operaciones no es suyo.
+    expect(sync.pendientesDeSync()).toBeGreaterThan(0)
 
     // --- Secuencia exacta de SessionProvider al cerrar sesión ---
     await sync.procesarCola() // "subir lo pendiente antes de salir"
