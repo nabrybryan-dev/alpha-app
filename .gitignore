@@ -10,6 +10,10 @@ coverage
 CLAVES.local.txt
 RESULTADO.local.txt
 
+# La tanda de revisiones semanales: guiones y audios con el NOMBRE, las cargas, la
+# adherencia y el sueño de personas reales, dichos en voz alta. Nunca al repo.
+salidas/
+
 # Cargas de asesorados: SIEMPRE traen datos personales (nombres, correos,
 # medidas, notas de salud). Nunca deben entrar al repo.
 supabase/_app-cargar-*.sql
