@@ -1231,4 +1231,35 @@ select '0067 - borradores que esperan firma', 'mensajes_leer esconde los borrado
                where n.nspname = 'public' and p.proname = 'es_nutricionista')
        then 'SI' else 'NO' end
 
+union all
+-- La 0066: el estado del microciclo deja de vivir en dos sitios. Se piden TRES efectos,
+-- porque la migracion hace tres cosas que se pueden deshacer por separado y cada una sola
+-- deja el agujero abierto por su lado:
+--
+--   1. que `activar_microciclo` ya NO escriba el estado dentro del blob. Si se restaurara
+--      una version anterior de la funcion, la clave volveria a aparecer en cada activacion
+--      y el trigger estaria limpiando detras de ella para siempre;
+--   2. que el trigger que la quita este puesto sobre `microciclos`;
+--   3. que NINGUNA fila tenga ya la clave en el blob.
+--
+-- La tercera mira DATOS y no catalogo, que normalmente no vale como senal —lo que cambia
+-- cada dia no dice si una migracion corrio—. Aqui si vale, y es la excepcion que conviene
+-- entender: no cuenta filas, cuenta una condicion que el trigger mantiene en CERO para
+-- siempre. Si algun dia da mas de cero, la respuesta correcta es «el trigger se cayo o
+-- alguien lo quito», que es justo lo que una senal tiene que poder decir.
+select '0066 - el estado deja de vivir en dos sitios', 'activar_microciclo no escribe el blob, el trigger esta puesto y ninguna fila conserva la clave',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'activar_microciclo'
+                 and pg_get_functiondef(p.oid) not like '%jsonb_build_object(''estado''%'
+                 and pg_get_functiondef(p.oid) not like '%jsonb_set(datos, ''{estado}''%')
+            and exists (
+              select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+                join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'microciclos'
+                 and t.tgname = 'trg_sin_estado_en_el_blob' and not t.tgisinternal)
+            and not exists (
+              select 1 from public.microciclos where jsonb_exists(datos, 'estado'))
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
