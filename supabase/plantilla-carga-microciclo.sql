@@ -57,6 +57,13 @@ revoke execute on function public.tmp_sin_marcas(jsonb) from public;
 -- julio otra vez y con la peor cara de todas — una semana que nadie ha empezado
 -- naciendo con el día del martes pasado escrito, y el cruce del check-in con la
 -- sesión emparejando dos días distintos sin que nada falle a la vista.
+--
+-- `empezadaEn` y `ultimaMarcaEn` entraron el 2026-09-10 y son de la misma
+-- familia, con una consecuencia PEOR si se heredan: son la ventana con la que se
+-- van a atar las pulsaciones y los pasos a un entrenamiento. Una semana recién
+-- nacida con la ventana de la semana pasada no daría un error: daría mediciones
+-- colgadas de la sesión equivocada, que es el fallo que el plan del pulso viene
+-- a evitar desde su primera línea.
 create or replace function public.tmp_sesion_en_limpio(p_s jsonb)
 returns jsonb language sql immutable as $fn$
   select (
@@ -67,6 +74,8 @@ returns jsonb language sql immutable as $fn$
            end
          ) - 'testPost'          -- inofensivo si la clave no está
            - 'fecha'             -- el día en que se tocó la sesión ANTERIOR
+           - 'empezadaEn'        -- la HORA a la que apareció en la sesión ANTERIOR
+           - 'ultimaMarcaEn'     -- y la de su última señal
     from (
       select case when p_s ? 'bloquesCardio'
                   then jsonb_set(p_s, '{bloquesCardio}',

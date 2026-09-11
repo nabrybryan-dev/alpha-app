@@ -869,6 +869,45 @@ export const PATRONES: Patron[] = [
     camara: { azimut: 70, elevacion: 8 },
   },
   {
+    id: 'carrera_al_aire',
+    cadena: 'cerrada',
+    categoria: 'CARRERA AL AIRE LIBRE',
+    titulo: 'Carrera',
+    ejemplos: 'Carrera al aire libre · Salida de 5 km · Rodaje por la calle',
+    resumen:
+      'La misma carrera, sin cinta debajo. El suelo no se mueve solo, así que la zancada se lleva el cuerpo hacia delante y el pie aterriza un poco más adelantado.',
+    claves: [
+      'Pies bajo la cadera, pasos cortos y frecuentes: la zancada larga frena.',
+      'Codos a noventa grados, manos sueltas, hombros bajos.',
+      'Tronco un poco adelante desde el tobillo, no desde la cintura.',
+    ],
+    errores: [
+      'Aterrizar con el pie muy por delante del cuerpo, con la pierna estirada.',
+      'Encoger los hombros y cerrar los puños.',
+    ],
+    apoyo: 'ninguno',
+    ciclo: { periodoSeg: 0.72 },
+    raizInicio: [0, 0.02, 0],
+    raizFin: [0, 0.02, 0],
+    // LOS DOS NÚMEROS QUE LA SEPARAN DE LA CINTA SALEN DE MEDIDAS PUBLICADAS, no de ajustar
+    // a ojo hasta que «se vea bien»:
+    //
+    // - **flexión de cadera al contacto: +12°.** En cinta se reduce unos doce grados
+    //   respecto a correr por el suelo. Aquí la pierna que llega pasa de 42 a 54.
+    // - **ángulo del pie contra el suelo al contacto: unos 10° más.** El pie llega más
+    //   levantado de punta —aterrizaje más de talón—, así que la dorsiflexión de la pierna
+    //   que aterriza pasa de −4 a −14.
+    //
+    // Todo lo demás —cadencia, rodilla, brazos, tronco— es comparable entre las dos según
+    // la revisión sistemática, así que se deja idéntico: cambiar más sería inventar.
+    // Fuentes en `docs/specs/2026-09-10-el-cardio-de-la-cartera.md`.
+    inicio: { caderaFlexD: 54, caderaFlexI: -18, rodillaFlexD: 32, rodillaFlexI: 92, tobilloPlantarD: -14, tobilloPlantarI: 32, hombroFlexD: -26, hombroFlexI: 42, codoFlex: 88, toraxFlex: 8 },
+    fin: { caderaFlexD: -18, caderaFlexI: 54, rodillaFlexD: 92, rodillaFlexI: 32, tobilloPlantarD: 32, tobilloPlantarI: -14, hombroFlexD: 42, hombroFlexI: -26, codoFlex: 88, toraxFlex: 8 },
+    activacion: { 'triceps_sural.gastro_medial': 1, 'triceps_sural.gastro_lateral': 0.9, 'triceps_sural.soleo': 0.85, gluteo_mayor: 0.8, isquiotibiales: 0.75, 'cuadriceps.vasto_lateral': 0.65, 'cuadriceps.vasto_medial': 0.65, 'cuadriceps.recto': 0.5, gluteo_medio: 0.6, tibial_anterior: 0.5, erectores: 0.4, recto_abdominal: 0.3 },
+    seguimiento: ['pie', 0.5, [0, 0, 0]],
+    camara: { azimut: 70, elevacion: 8 },
+  },
+  {
     id: 'escaladora',
     cadena: 'cerrada',
     categoria: 'ESCALADORA',

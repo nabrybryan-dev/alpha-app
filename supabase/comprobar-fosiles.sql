@@ -64,7 +64,8 @@ select u.nombre,
        sum(d.marcas_reales)                                      as marcas_reales,
        count(*) filter (where d.test_sospechoso)                 as tests_heredados,
        count(*) filter (where d.test_en_ceros)                   as tests_en_ceros,
-       count(*) filter (where d.fecha_fosil)                     as fechas_fosiles
+       count(*) filter (where d.fecha_fosil)                     as fechas_fosiles,
+       count(*) filter (where d.ventana_fosil)                   as ventanas_fosiles
   from public.microciclos m
   join public.usuarios_app u on u.id = m.usuario_id
   cross join lateral jsonb_array_elements(m.datos->'sesiones') s
@@ -102,13 +103,21 @@ select u.nombre,
       -- rompe nada — solo empareja el check-in de un dia con la sesion de otro.
       ((s->>'fecha') is not null
         and (s->>'fecha')::date < (m.datos->>'fechaInicio')::date)
-        as fecha_fosil
+        as fecha_fosil,
+      -- `empezadaEn` y `ultimaMarcaEn` (2026-09-10) son la VENTANA con horas en
+      -- la que consta que hubo entrenamiento, y es con lo que se van a atar las
+      -- pulsaciones y los pasos. Heredada, no rompe nada tampoco: cuelga
+      -- mediciones de la sesion equivocada, que es peor porque parece un dato.
+      ((s->>'empezadaEn') is not null
+        and (s->>'empezadaEn')::timestamptz < (m.datos->>'fechaInicio')::date)
+        as ventana_fosil
   ) d
  -- sin filtro de `rol`: ver la nota de cabecera (2026-08-24)
  group by u.nombre
 having sum(d.marcas_fosiles) > 0
     or count(*) filter (where d.test_sospechoso) > 0
     or count(*) filter (where d.fecha_fosil) > 0
+    or count(*) filter (where d.ventana_fosil) > 0
  order by marcas_fosiles desc, u.nombre;
 -- Cero filas  ->  no hay herencia. Es el estado que debe dejar cada carga.
 

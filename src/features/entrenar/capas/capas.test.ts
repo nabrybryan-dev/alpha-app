@@ -37,11 +37,18 @@ import {
  */
 
 describe('los cinco niveles del eje W', () => {
+  it('abre con anatomía muscular y huesos, sin una capa de piel', () => {
+    expect(NIVELES_ANATOMICOS[0].piezas).toEqual(['musculos', 'huesos'])
+    expect(NIVELES_ANATOMICOS[0].acabado).toBe('anatomico')
+    expect(NIVELES_ANATOMICOS.some(n => /piel/i.test(n.nombre))).toBe(false)
+    expect(NIVELES_ANATOMICOS[3].nombre).toContain('esquema')
+  })
+
   it('son cinco, en orden, y el índice del array ES el valor de W', () => {
     expect(NIVELES_ANATOMICOS).toHaveLength(5)
     expect(NIVELES_ANATOMICOS.map((n) => n.w)).toEqual([0, 1, 2, 3, 4])
     expect(NIVELES_ANATOMICOS.map((n) => n.id)).toEqual([
-      'piel',
+      'anatomia',
       'musculo-superficial',
       'musculo-profundo',
       'tendon',
