@@ -1,8 +1,9 @@
 /**
  * QUÉ SE PUBLICA, DÓNDE Y CUÁNDO SE NIEGA — sin tocar la base.
  *
- * El domingo salen veintitrés vídeos, uno por persona, con la cara y la voz clonadas de
- * Bryan. Entre el archivo renderizado y la app no había nada: **hoy nadie escribe en
+ * El domingo salen veintitrés revisiones, una por persona, con la voz clonada de Bryan —y
+ * con su cara cuando eso sea posible; la primera tanda es **solo audio**, que es lo que la
+ * máquina de Bryan puede producir hoy. Entre el archivo renderizado y la app no había nada: **hoy nadie escribe en
  * `videos_semanales`**, medido sobre todas las ramas. Esto es esa pieza, y aquí vive solo
  * la parte que DECIDE; el script que sube y escribe (`scripts/publicar-video.mjs`) es una
  * tubería fina encima.
@@ -66,8 +67,35 @@ export type DecisionDePublicar =
  */
 export const TOPE_BYTES = 40 * 1024 * 1024
 
-/** Lo que un navegador de móvil reproduce sin pensar. */
-export const EXTENSIONES = ['mp4', 'webm', 'mov'] as const
+/** Vídeo con cara, o solo voz. La primera revisión que sale es de AUDIO. */
+export type TipoDeMedio = 'video' | 'audio'
+
+/**
+ * LA ÚNICA TABLA: qué se admite, cómo se sube y qué se escribe.
+ *
+ * De aquí salen las tres cosas —la lista de extensiones, el `Content-Type` del archivo y el
+ * `tipo` de la fila—, y salen de aquí **a propósito**. Cuando el script tenía su propio mapa
+ * de `Content-Type`, añadir una extensión pedía acordarse de dos sitios; el segundo es
+ * justo el que no se toca.
+ *
+ * Y el `tipo` lo decide **la extensión**, no un parámetro aparte. Un parámetro permitiría
+ * que la fila dijera «audio» mientras los bytes son un mp4: dos fuentes que pueden
+ * contradecirse, y la que gana es la que nadie miró. La extensión también puede mentir —
+ * alguien renombra un .wav a .mp4—, pero entonces miente una sola cosa y de forma coherente.
+ */
+export const MEDIOS: Record<string, { tipo: TipoDeMedio; contentType: string }> = {
+  mp4: { tipo: 'video', contentType: 'video/mp4' },
+  webm: { tipo: 'video', contentType: 'video/webm' },
+  mov: { tipo: 'video', contentType: 'video/quicktime' },
+  mp3: { tipo: 'audio', contentType: 'audio/mpeg' },
+  m4a: { tipo: 'audio', contentType: 'audio/mp4' },
+  wav: { tipo: 'audio', contentType: 'audio/wav' },
+}
+
+/** Qué es este archivo, según su extensión. `undefined` si no se admite. */
+export function medioDeLaExtension(extension: string) {
+  return MEDIOS[extension.toLowerCase()]
+}
 
 /** Un lunes en `AAAA-MM-DD`, que es como la tabla guarda la semana. */
 function esLunes(iso: string): boolean {
@@ -103,7 +131,7 @@ export function decidirPublicacion(
   if (!esLunes(encargo.semana)) return { publica: false, motivo: 'semana-no-es-lunes' }
   if (encargo.tamanoBytes <= 0) return { publica: false, motivo: 'archivo-vacio' }
   if (encargo.tamanoBytes > TOPE_BYTES) return { publica: false, motivo: 'archivo-enorme' }
-  if (!(EXTENSIONES as readonly string[]).includes(encargo.extension.toLowerCase())) {
+  if (!medioDeLaExtension(encargo.extension)) {
     return { publica: false, motivo: 'extension-no-admitida' }
   }
   // EL GUION NO ES OPCIONAL, y no por formalismo: es lo único que permite saber después qué
@@ -120,11 +148,17 @@ export function decidirPublicacion(
 }
 
 /**
- * La fila que se escribe. **Nunca lleva aprobación.**
+ * La fila que se escribe. **Nunca lleva aprobación, y SIEMPRE lleva tipo.**
  *
- * No es que se deje en `null`: es que la clave no se escribe, así que el valor lo pone la
- * base. Si mañana la columna cambia de nombre o de forma, este módulo sigue sin opinar —
- * que es justo lo que se quiere de algo que no tiene permiso para aprobar nada.
+ * Lo de la aprobación no es que se deje en `null`: es que la clave no se escribe, así que el
+ * valor lo pone la base. Si mañana la columna cambia de nombre o de forma, este módulo sigue
+ * sin opinar — que es justo lo que se quiere de algo que no tiene permiso para aprobar nada.
+ *
+ * Con el `tipo` pasa lo contrario, y por eso se escribe siempre aunque la columna tenga un
+ * valor por defecto: ese defecto es `'video'`, así que **olvidarse del tipo no falla,
+ * miente** — una revisión de audio quedaría marcada como vídeo y nadie se enteraría hasta
+ * que a alguien le apareciera un reproductor esperando una cara que no existe. Una columna
+ * con defecto es el sitio donde un olvido se disfraza de dato.
  */
 export function filaDelVideo(encargo: EncargoDePublicacion, path: string) {
   return {
@@ -132,5 +166,6 @@ export function filaDelVideo(encargo: EncargoDePublicacion, path: string) {
     semana: encargo.semana,
     path,
     guion: encargo.guion,
+    tipo: medioDeLaExtension(encargo.extension)?.tipo,
   }
 }

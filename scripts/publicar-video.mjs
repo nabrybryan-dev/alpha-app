@@ -48,7 +48,8 @@
  * Opciones:
  *   --persona <uuid|correo>   a quién va. Por correo se resuelve contra `auth.users`.
  *   --semana <AAAA-MM-DD>     el LUNES de la semana. Otro día se rechaza.
- *   --archivo <ruta>          el vídeo ya renderizado.
+ *   --archivo <ruta>          el archivo ya renderizado: mp4/webm/mov si lleva cara,
+ *                             mp3/m4a/wav si es solo voz. La extension decide el tipo.
  *   --guion <ruta>            lo que dice, palabra por palabra. Obligatorio.
  *   --forzar                  sobrescribir aunque ya esté aprobado. Con la mano.
  *   --ensayo                  NO toca nada: dice lo que haría y sale. Sirve para
@@ -63,11 +64,9 @@ import { basename, extname, resolve } from 'node:path'
 import process from 'node:process'
 import { createClient } from '@supabase/supabase-js'
 
-import { decidirPublicacion, filaDelVideo } from '../src/domain/video/publicacion.ts'
+import { decidirPublicacion, filaDelVideo, medioDeLaExtension } from '../src/domain/video/publicacion.ts'
 
 const BUCKET = 'medios-app'
-
-const TIPOS = { mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime' }
 
 const PORQUE = {
   'sin-usuario': 'no se ha dicho de quién es el vídeo',
@@ -210,6 +209,7 @@ async function main() {
     console.log('ENSAYO — no se ha tocado nada.')
     console.log(`  archivo   ${basename(archivo)} (${(size / 1024 / 1024).toFixed(1)} MB)`)
     console.log(`  iría a    ${BUCKET}/${decision.path}`)
+    console.log(`  tipo      ${medioDeLaExtension(extension).tipo} (lo decide la extensión)`)
     console.log(`  guion     ${guion.length} caracteres`)
     console.log('  firma     NINGUNA: lo publicado nace sin aprobar, siempre.')
     console.log('  ojo       en ensayo no se ha preguntado si ya había un vídeo aprobado.')
@@ -219,7 +219,10 @@ async function main() {
   const cuerpo = await readFile(archivo)
   const { error: errorSubida } = await supabase.storage
     .from(BUCKET)
-    .upload(decision.path, cuerpo, { contentType: TIPOS[extension], upsert: true })
+    .upload(decision.path, cuerpo, {
+      contentType: medioDeLaExtension(extension).contentType,
+      upsert: true,
+    })
   if (errorSubida) throw new Error(`no pude subir el archivo: ${errorSubida.message}`)
 
   const { error: errorFila } = await supabase
@@ -237,7 +240,10 @@ async function main() {
     )
   if (errorFila) throw new Error(`subí el archivo pero no pude escribir la fila: ${errorFila.message}`)
 
-  console.log(`Publicado en ${BUCKET}/${decision.path}${decision.reemplaza ? ' (reemplaza)' : ''}`)
+  const { tipo } = medioDeLaExtension(extension)
+  console.log(
+    `Publicado (${tipo}) en ${BUCKET}/${decision.path}${decision.reemplaza ? ' (reemplaza)' : ''}`,
+  )
   console.log('SIN APROBAR: no se verá hasta que alguien lo firme en la bandeja.')
 }
 

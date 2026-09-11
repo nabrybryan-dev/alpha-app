@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   decidirPublicacion,
   filaDelVideo,
+  MEDIOS,
+  medioDeLaExtension,
   rutaDelVideo,
   TOPE_BYTES,
   type EncargoDePublicacion,
@@ -36,7 +38,7 @@ describe('PUBLICAR NO ES APROBAR', () => {
     // Si el publicador pudiera aprobar, la firma sería un trámite que se salta solo con
     // volver a subir el archivo. La clave ni siquiera se escribe: el valor lo pone la base.
     const fila = filaDelVideo(ENCARGO, 'personas/x/2026-09-14.mp4')
-    expect(Object.keys(fila).sort()).toEqual(['guion', 'path', 'semana', 'usuario_id'])
+    expect(Object.keys(fila).sort()).toEqual(['guion', 'path', 'semana', 'tipo', 'usuario_id'])
     expect(JSON.stringify(fila)).not.toMatch(/aprob/i)
   })
 
@@ -97,6 +99,40 @@ describe('lo que no se publica', () => {
     // El guion es lo único que permite saber después qué se le dijo a alguien. Un vídeo sin
     // él es un vídeo que no se puede auditar, y eso no se arregla luego.
     expect(decidirPublicacion({ ...ENCARGO, guion: '   ' })).toMatchObject({ motivo: 'sin-guion' })
+  })
+})
+
+describe('audio, que es lo que sale primero', () => {
+  const SOLO_VOZ: EncargoDePublicacion = { ...ENCARGO, extension: 'mp3' }
+
+  it('una revisión de solo voz se publica igual que una con cara', () => {
+    expect(decidirPublicacion(SOLO_VOZ)).toEqual({
+      publica: true,
+      path: `personas/${ENCARGO.usuarioId}/2026-09-14.mp3`,
+      reemplaza: false,
+    })
+  })
+
+  it('y la fila dice AUDIO, sin dejarlo al valor por defecto de la base', () => {
+    // El defecto de la columna es 'video', así que callarse el tipo no falla: MIENTE. Una
+    // revisión de voz quedaría marcada como vídeo y nadie se enteraría hasta que a alguien
+    // le saliera un reproductor esperando una cara que no existe.
+    expect(filaDelVideo(SOLO_VOZ, 'personas/x/2026-09-14.mp3').tipo).toBe('audio')
+    expect(filaDelVideo(ENCARGO, 'personas/x/2026-09-14.mp4').tipo).toBe('video')
+  })
+
+  it('el tipo lo decide la extensión, no quien llama', () => {
+    // Si el tipo viniera por parámetro, la fila podría decir «audio» con un mp4 dentro.
+    expect(medioDeLaExtension('MP3')?.tipo).toBe('audio')
+    expect(medioDeLaExtension('MOV')?.tipo).toBe('video')
+    expect(medioDeLaExtension('pdf')).toBeUndefined()
+  })
+
+  it('toda extensión admitida tiene tipo Y content-type, sin excepción', () => {
+    // Para que añadir una séptima sin pensarlo no deje media entrada. Este test no mira una
+    // lista escrita a mano: recorre la tabla, así que crece sola con ella.
+    const cojas = Object.keys(MEDIOS).filter((e) => !MEDIOS[e].tipo || !MEDIOS[e].contentType)
+    expect(cojas, 'estas extensiones están a medias en MEDIOS').toEqual([])
   })
 })
 
