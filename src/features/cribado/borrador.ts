@@ -7,14 +7,17 @@
  * (`react-refresh/only-export-components`, que en este repo es un aviso que no se deja
  * crecer).
  */
+import type { DiaSemana } from '../../domain/calendario'
 import { leerJSON } from '../../lib/persistencia'
 
 export interface Borrador {
   respuestas: Record<string, 'si' | 'no'>
   detalle: Record<string, string>
+  /** Los días que puede entrenar (0065). Un borrador viejo puede no traerlo: `?? []`. */
+  dias?: DiaSemana[]
 }
 
-export const VACIO: Borrador = { respuestas: {}, detalle: {} }
+export const VACIO: Borrador = { respuestas: {}, detalle: {}, dias: [] }
 
 /** Una clave por persona: en un teléfono compartido, el borrador de una no es el de la otra. */
 export const claveBorrador = (usuarioId: string) => `alpha-cribado-${usuarioId}`
@@ -30,5 +33,5 @@ export const claveBorrador = (usuarioId: string) => `alpha-cribado-${usuarioId}`
  */
 export function hayBorradorDeCribado(usuarioId: string): boolean {
   const b = leerJSON<Borrador>(claveBorrador(usuarioId), VACIO)
-  return Object.keys(b.respuestas).length > 0
+  return Object.keys(b.respuestas).length > 0 || (b.dias?.length ?? 0) > 0
 }

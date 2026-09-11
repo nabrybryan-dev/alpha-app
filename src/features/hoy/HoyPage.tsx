@@ -179,6 +179,7 @@ export default function HoyPage() {
               igual, al lado de la del coach y con su fecha. */}
           <CribadoForm
             usuarioId={usuario.id}
+            guardarDias={(dias) => db.perfiles.guardarDiasDisponibles(usuario.id, dias)}
             contestar={db.cribado.contestar}
             hoyIso={hoy}
           />

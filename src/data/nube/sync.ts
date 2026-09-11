@@ -17,6 +17,7 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
+import type { DiaSemana } from '../../domain/calendario'
 import type { MedidaCorporal, Mensaje, Microciclo } from '../../domain/types'
 import {
   condicionesDeclaradas,
@@ -230,6 +231,23 @@ function subirMedida(usuarioId: string, medida: MedidaCorporal): void {
   })
 }
 
+/**
+ * Los días viajan SOLOS, como la medida (0057) y por la misma razón: el trigger
+ * `proteger_perfil` rechaza a un asesorado que suba el blob entero. La función del
+ * servidor escribe únicamente `diasDisponibles`, para `auth.uid()`. La clave colapsa
+ * envíos seguidos de la misma persona en uno: manda el último.
+ */
+function subirDiasDisponibles(usuarioId: string, dias: DiaSemana[]): void {
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'rpc',
+    funcion: 'registrar_dias_disponibles',
+    claveRpc: `${usuarioId}:dias`,
+    fila: usuarioId,
+    payload: { p_dias: dias },
+  })
+}
+
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -253,6 +271,10 @@ export function crearDbSincronizada(local: Db): Db {
       guardarSexo: (usuarioId, sexo) => {
         local.perfiles.guardarSexo(usuarioId, sexo)
         subirPerfil(local, usuarioId)
+      },
+      guardarDiasDisponibles: (usuarioId, dias) => {
+        local.perfiles.guardarDiasDisponibles(usuarioId, dias)
+        subirDiasDisponibles(usuarioId, dias)
       },
     },
 

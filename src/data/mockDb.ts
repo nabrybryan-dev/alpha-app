@@ -288,6 +288,19 @@ export function crearMockDb(): Db {
           }),
         }))
       },
+      guardarDiasDisponibles: (usuarioId, dias) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.some((p) => p.usuarioId === usuarioId)
+            ? estado.perfiles.map((p) =>
+                p.usuarioId === usuarioId ? { ...p, diasDisponibles: [...dias] } : p,
+              )
+            : // Sin ficha todavía: nace con lo mínimo, igual que hace la medida. El
+              // resto lo pone el coach; inventar aquí objetivos o edad sería fabricar
+              // una ficha.
+              [...estado.perfiles, { ...perfilVacio(usuarioId, []), diasDisponibles: [...dias] }],
+        }))
+      },
       guardarValoracion: (usuarioId, valoracion) => {
         mutar((estado) => ({
           ...estado,

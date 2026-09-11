@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Chip } from '../../components/ui/Chip'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
+import type { DiaSemana } from '../../domain/calendario'
 import { claveBorrador, VACIO, type Borrador } from './borrador'
 import type { ResultadoCribado } from '../../data/repos'
 import type { Cribado, EstadoCribado } from '../../domain/types'
@@ -116,8 +117,23 @@ const PARQ: readonly PreguntaCribado[] = [
 
 const TODAS = [...NUEVE, ...PARQ]
 
+/**
+ * Lunes primero, que es como se lee una semana de entrenamiento. `DIAS_SEMANA` de
+ * calendario empieza en domingo porque sigue a `Date.getDay()`; aquí no.
+ */
+const DIAS_PARA_ELEGIR: readonly DiaSemana[] = [
+  'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO',
+]
+
 interface CribadoFormProps {
   usuarioId: string
+  /**
+   * Guarda los días que puede entrenar (0065). Va aparte de `contestar` porque son
+   * dos destinos: el cribado va a su tabla de salud y los días al perfil, por su
+   * propia función. Se llama ANTES que `contestar`, para que un rechazo del cribado
+   * no deje los días sin guardar: ese dato vale por sí solo.
+   */
+  guardarDias: (dias: DiaSemana[]) => void
   /** Se llama solo cuando la respuesta quedó guardada de verdad. */
   onGuardado?: () => void
   contestar: (cribado: Cribado) => ResultadoCribado
@@ -126,6 +142,7 @@ interface CribadoFormProps {
 
 export function CribadoForm({
   usuarioId,
+  guardarDias,
   onGuardado,
   contestar,
   hoyIso,
@@ -141,6 +158,13 @@ export function CribadoForm({
     setBorrador(siguiente)
     escribirJSON(claveBorrador(usuarioId), siguiente)
   }
+
+  const dias = borrador.dias ?? []
+  const alternarDia = (dia: DiaSemana) =>
+    guardar({
+      ...borrador,
+      dias: dias.includes(dia) ? dias.filter((d) => d !== dia) : [...dias, dia],
+    })
 
   const responder = (clave: string, valor: 'si' | 'no') =>
     guardar({
@@ -163,7 +187,8 @@ export function CribadoForm({
       borrador.respuestas[p.clave] === 'si' &&
       !borrador.detalle[p.clave]?.trim(),
   )
-  const completo = contestadas === TODAS.length && detallesQueFaltan.length === 0
+  const completo =
+    contestadas === TODAS.length && detallesQueFaltan.length === 0 && dias.length > 0
 
   const enviar = () => {
     if (!completo) {
@@ -187,6 +212,9 @@ export function CribadoForm({
           .filter(([clave, texto]) => borrador.respuestas[clave] === 'si' && texto.trim())
           .map(([clave, texto]) => [clave, texto.trim()]),
       )
+      // Los días primero: valen por sí solos, y si el cribado se rechazara arriba no
+      // se pueden quedar sin guardar. Van en el orden de la semana, no en el del toque.
+      guardarDias(DIAS_PARA_ELEGIR.filter((d) => dias.includes(d)))
       const resultado = contestar({
         usuarioId,
         fecha: hoyIso,
@@ -243,6 +271,27 @@ export function CribadoForm({
           {contestadas} de {TODAS.length} contestadas
         </p>
       </div>
+
+      <fieldset>
+        <legend className="mb-2 text-sm font-bold text-texto">¿Qué días puedes entrenar?</legend>
+        <p className="mb-2 text-xs text-tenue">
+          Marca todos los que te sirvan. Es lo que decide qué día ves cada sesión: sin esto,
+          tu plan tendría que adivinarlo.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {DIAS_PARA_ELEGIR.map((dia) => (
+            <Chip
+              key={dia}
+              etiqueta={dia.charAt(0) + dia.slice(1).toLowerCase()}
+              seleccionado={dias.includes(dia)}
+              onSeleccionar={() => alternarDia(dia)}
+            />
+          ))}
+        </div>
+        {intento && dias.length === 0 && (
+          <p className="mt-2 text-xs text-rojo">Marca al menos un día.</p>
+        )}
+      </fieldset>
 
       {TODAS.map((pregunta, indice) => {
         const valor = borrador.respuestas[pregunta.clave]

@@ -1,3 +1,4 @@
+import type { DiaSemana } from '../domain/calendario'
 import type { ItemDespensa } from '../domain/nutricion/despensa'
 import type { FilaRanking } from '../domain/ranking'
 import type { RutaAsesorado } from '../domain/rutaEntrenamiento'
@@ -44,6 +45,12 @@ export interface PerfilesRepo {
   byUsuario(usuarioId: string): Perfil | undefined
   /** Registra una medición corporal del propio asesorado (reemplaza la de la misma fecha). */
   agregarMedida(usuarioId: string, medida: MedidaCorporal): void
+  /**
+   * Los días que la persona puede entrenar, dichos por ella (0065). Es lo único del
+   * perfil, junto con las medidas, que escribe el asesorado: viaja por su propia
+   * función y no con el blob entero, que el trigger `proteger_perfil` rechazaría.
+   */
+  guardarDiasDisponibles(usuarioId: string, dias: DiaSemana[]): void
   /**
    * Guarda la nota del coach a una competencia (reemplaza la anterior del mismo
    * id). SOLO STAFF: el trigger `proteger_perfil` de la migración 0008 deja al

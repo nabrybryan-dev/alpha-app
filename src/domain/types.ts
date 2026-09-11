@@ -1,4 +1,5 @@
 import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
+import type { DiaSemana } from './calendario'
 import type { Confianza } from './nutricion/dia'
 import type { HuellaDeRepeticion } from './patrones/huella'
 
@@ -45,7 +46,21 @@ export interface Perfil {
   usuarioId: string
   objetivos: string
   edad: number
+  /** CUÁNTOS días por semana. Es una frecuencia, no un calendario: no dice cuáles. */
   diasEntrenamiento: number
+  /**
+   * CUÁLES días puede entrenar, dichos por la persona y con nombre (`LUNES`…).
+   *
+   * Es otro hecho distinto del número de arriba, y llevaba semanas sin sitio: los 27
+   * perfiles de producción guardan el número y ninguno los nombres (10-sep-2026). Sin
+   * esto, el cerebro no tiene de dónde sacar los días sin inventarlos —I-38 lo prohíbe
+   * y hace bien— y se para a preguntarlos en la primera corrida de cada persona.
+   *
+   * Lo escribe la propia persona desde el formulario de salud, por la función
+   * `registrar_dias_disponibles` (0065): su blob no se sube entero, el trigger no lo
+   * dejaría. Sin definir = nunca lo ha dicho, que NO es lo mismo que «ningún día».
+   */
+  diasDisponibles?: DiaSemana[]
   tiempoSesionMin: number
   somatotipo: string
   volumenSemanal: Record<string, NivelVolumen>
