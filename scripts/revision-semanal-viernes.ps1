@@ -1,7 +1,7 @@
-# EL DOMINGO, SOLO. Los tres pasos de la revision semanal, sin que nadie teclee nada.
+# EL VIERNES, SOLO. Los tres pasos de la revision semanal, sin que nadie teclee nada.
 #
 # Nace de una pregunta de Bryan que era la correcta: "pero eso significa que cada ocho dias
-# lo tendria que hacer". Si hay que pegar una orden cada domingo, esto no esta automatizado:
+# lo tendria que hacer". Si hay que pegar una orden cada semana, esto no esta automatizado:
 # esta esperando a que alguien se acuerde. Y alguien se olvida.
 #
 #   1. calcula los numeros de cada quien y escribe su guion
@@ -23,7 +23,7 @@
 # ============================================================================
 # COMO SE PRUEBA ANTES DE DEJARLO SOLO
 # ============================================================================
-#   powershell -ExecutionPolicy Bypass -File scripts\revision-semanal-domingo.ps1 -Ensayo
+#   powershell -ExecutionPolicy Bypass -File scripts\revision-semanal-viernes.ps1 -Ensayo
 #
 # Con -Ensayo hace los guiones y la voz de verdad, pero NO publica. Es la unica forma
 # honesta de saber que la cadena entera funciona sin tocar la base.
@@ -73,8 +73,11 @@ if ($Semana) {
   $lunes = $Semana
 } else {
   $hoy = Get-Date
-  # El domingo pertenece a la semana que EMPIEZA el lunes anterior, que es la que se esta
-  # revisando cuando el audio sale ese mismo domingo. DayOfWeek: domingo = 0.
+  # La semana es la ISO, de lunes a domingo. El viernes en que sale la revision cae DENTRO
+  # de la semana que se esta contando, asi que el lunes buscado es el de esta misma semana.
+  # OJO: a la hora en que corre, el VIERNES todavia no ha pasado: el audio cuenta de lunes a
+  # jueves. Si algun dia se quiere que el viernes entre, se mueve la hora, no la cuenta.
+  # DayOfWeek: domingo = 0, y ese domingo sigue perteneciendo a la semana que ya empezo.
   $atras = if ($hoy.DayOfWeek -eq [DayOfWeek]::Sunday) { 6 } else { [int]$hoy.DayOfWeek - 1 }
   $lunes = $hoy.AddDays(-$atras).ToString('yyyy-MM-dd')
 }

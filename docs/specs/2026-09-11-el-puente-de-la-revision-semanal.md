@@ -41,7 +41,7 @@ voz y no tiene por qué.
 
 **La tanda la define el microciclo activo, no la lista de asesorados.** Parte de la cartera
 está inactiva a propósito —una pausa, un viaje, un alta que aún no empieza—, y a esa gente
-no se le manda el domingo la revisión de una semana que no tenía que entrenar.
+no se le manda el viernes la revisión de una semana que no tenía que entrenar.
 
 **A quien no hay nada que decirle no se le manda un hola y un adiós.** El saludo y la
 despedida no dependen de ningún dato, así que sin freno saldría un audio con la voz del
@@ -91,14 +91,21 @@ El error decía «Invalid or unexpected token» y señalaba una línea que no ex
 archivo que uno lee. Ni una palabra sobre shebangs. Por eso ninguno de los dos scripts lleva
 uno, y ambos lo dicen en su cabecera.
 
-## Y el domingo, solo
+## Y el viernes, solo
 
 Bryan hizo la pregunta correcta en cuanto vio los tres pasos: «pero eso significa que cada
-ocho días lo tendría que hacer». Si hay que teclear algo cada domingo, esto no está
+ocho días lo tendría que hacer». Si hay que teclear algo cada semana, esto no está
 automatizado — está esperando a que alguien se acuerde, y alguien se olvida.
 
-`scripts/revision-semanal-domingo.ps1` encadena los tres pasos y `scripts/instalar-tarea-domingo.ps1`
-lo deja programado en el Programador de tareas de Windows, **los domingos a las 03:00**.
+`scripts/revision-semanal-viernes.ps1` encadena los tres pasos y `scripts/instalar-tarea-viernes.ps1`
+lo deja programado en el Programador de tareas de Windows, **los viernes a las 03:00**.
+
+**El día lo eligió Bryan el 11-sep: viernes, y contando la semana en curso** —de lunes a
+viernes—, en vez del domingo con la semana ya cerrada. La cuenta no cambia: la semana sigue
+siendo la ISO y se guarda por su lunes, y el viernes cae dentro de ella. Lo que sí conviene
+saber: **a las 03:00 el viernes todavía no ha pasado**, así que el audio cuenta de lunes a
+jueves. Si algún día se quiere que el propio viernes entre, se mueve la HORA (`-Hora 19:00`),
+no la cuenta.
 
 Por qué en la máquina de Bryan y no en un servidor: **el modelo de voz vive ahí**. Subirlo a
 un servidor significaría subir también el molde de su voz y los audios de veintidós personas
@@ -108,8 +115,8 @@ una hora de CPU a la semana, no compensa.
 Tres ajustes de la tarea que no son adorno, y cada uno tapa una forma de fallar en silencio:
 
 - **Se ejecuta aunque el portátil esté a batería.** Por defecto Windows salta las tareas sin
-  enchufe, y eso convierte «todos los domingos» en «los domingos que estuviera cargando».
-- **Si la máquina estaba apagada, se ejecuta al encenderla.** Sin eso, un domingo con el
+  enchufe, y eso convierte «todos los viernes» en «los viernes que estuviera cargando».
+- **Si la máquina estaba apagada, se ejecuta al encenderla.** Sin eso, un viernes con el
   portátil cerrado se salta la semana entera y nadie se entera hasta que un asesorado
   pregunta.
 - **Tope de cuatro horas.** Si algo se cuelga, se corta solo.
@@ -122,6 +129,6 @@ relanzarlo tras un corte no repite la hora de máquina.
 **La clave de servicio no vive en ningún archivo del repo.** El guion la busca en la variable
 de entorno `SUPABASE_SERVICE_KEY` y, si no está, en `%USERPROFILE%\.alpha\service_role.txt`.
 
-**Lo que NO se automatiza, nunca: la firma.** El domingo por la mañana las veintidós esperan
+**Lo que NO se automatiza, nunca: la firma.** El viernes por la mañana las veintidós esperan
 en la bandeja y el asesorado no ve ninguna. Eso es lo que separa «la máquina dijo algo con mi
 voz» de «yo se lo dije».

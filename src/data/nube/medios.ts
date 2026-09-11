@@ -25,7 +25,7 @@ let enVuelo: Promise<MedioPublicado | null> | undefined
  * despublicarlo.
  *
  * Devuelve `null` ante cualquier problema y **nunca lanza**: si el vídeo no se
- * puede traer, la pantalla dice que llega el domingo y la conversación de
+ * puede traer, la pantalla dice que llega el viernes y la conversación de
  * debajo sigue funcionando. Un vídeo no puede tumbar el chat.
  */
 export async function medioPublicado(clave: string): Promise<MedioPublicado | null> {
@@ -135,7 +135,7 @@ export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
     // «No hay video esta semana» y «la tabla no existe» devuelven los dos `null`,
     // y esa igualdad ya costo una funcion muerta: el codigo del video se fusiono
     // y se sirvio en produccion desde el 2026-09-10 con la `0065` SIN APLICAR, y
-    // la pantalla decia lo mismo que un domingo sin video. Nadie se entero.
+    // la pantalla decia lo mismo que un viernes sin video. Nadie se entero.
     //
     // NO se lanza, a proposito: la regla de este archivo es que un video no puede
     // tumbar el chat. Lo que se hace es que el hueco SUENE.

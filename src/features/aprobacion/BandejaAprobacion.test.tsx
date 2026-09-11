@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { DomingoDeFirma } from '../../domain/aprobacion/puerta'
+import type { SemanaDeFirma } from '../../domain/aprobacion/puerta'
 import { BandejaAprobacion, type BorradorPendiente } from './BandejaAprobacion'
 
 /**
@@ -11,7 +11,7 @@ import { BandejaAprobacion, type BorradorPendiente } from './BandejaAprobacion'
  * silencio es la forma de enterarse por un asesorado.
  */
 
-const limpio = (fecha: string): DomingoDeFirma => ({
+const limpio = (fecha: string): SemanaDeFirma => ({
   fecha,
   borradores: 6,
   aprobadosSinTocar: 6,
@@ -35,13 +35,13 @@ describe('la bandeja de firma', () => {
       />,
     )
     expect(document.querySelector('[data-puerta="cerrada"]')).not.toBeNull()
-    expect(screen.getByText(/2 de 4 domingos/)).toBeTruthy()
+    expect(screen.getByText(/2 de 4 semanas/)).toBeTruthy()
   })
 
-  it('y distingue «faltan domingos» de «quedaron sin mirar»', () => {
+  it('y distingue «faltan semanas» de «quedaron sin mirar»', () => {
     // Son dos cosas que llevan a acciones distintas: la primera es esperar, la segunda es
     // que la bandeja se quedó a medias. Si las dos dijeran «cerrada», no serviría de nada.
-    const sinMirar: DomingoDeFirma = {
+    const sinMirar: SemanaDeFirma = {
       fecha: '2026-09-06',
       borradores: 23,
       aprobadosSinTocar: 17,
