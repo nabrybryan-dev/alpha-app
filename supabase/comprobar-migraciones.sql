@@ -154,12 +154,27 @@ select '0013 · acotar nutricionista', 'policy consultas_actualizar_staff usa es
        ) then 'SI' else 'NO' end
 
 union all
-select '0013 · acotar nutricionista', 'policy checkins_lee_staff usa es_coach',
+-- ARREGLADA EL 2026-09-11, y se arregla sola leyendo el archivo: esta señal pedía una
+-- política llamada `checkins_lee_staff` que la **0047 borró a propósito** por redundante
+-- —hay una señal veinte líneas más abajo que comprueba justamente que NO esté—. Dos
+-- señales del mismo archivo pidiendo lo contrario: la vieja llevaba en rojo desde
+-- entonces y nadie lo miraba, que es como un comprobador deja de leerse.
+--
+-- Y el arreglo es el que la cabecera de este archivo ya predicaba: **mirar el EFECTO, no
+-- el NOMBRE**. Lo que la 0013 vino a cerrar es que el staff entre a los check-ins por
+-- `es_staff()` —que incluye a la nutricionista— en vez de por `es_coach()`. Eso se
+-- comprueba sobre TODAS las políticas de la tabla, se llamen como se llamen: tiene que
+-- haber al menos una que conceda por `es_coach()`, y NINGUNA puede nombrar `es_staff()`.
+-- Así sobrevive al siguiente renombre, que es lo que esta señal no hizo.
+select '0013 · acotar nutricionista', 'ninguna politica de checkins abre por es_staff',
        case when exists (
          select 1 from pg_policies
-         where schemaname = 'public' and tablename = 'checkins'
-           and policyname = 'checkins_lee_staff'
-           and qual like '%es_coach()%' and qual not like '%es_staff()%'
+          where schemaname = 'public' and tablename = 'checkins'
+            and coalesce(qual, '') || coalesce(with_check, '') like '%es_coach()%'
+       ) and not exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'checkins'
+            and coalesce(qual, '') || coalesce(with_check, '') like '%es_staff()%'
        ) then 'SI' else 'NO' end
 
 union all
@@ -853,10 +868,16 @@ union all
 -- borrador se cayeron: `registro_comida_vivas` (0017) y
 -- `perfil_alimentario_veto_vivos` (0035) ya existian, y el tercero apuntaba a
 -- una columna inexistente.
-select '0044 - indice de consultas por fecha', 'consultas_chat ordenado por creado_en',
+-- ARREGLADA EL 2026-09-11: pedía un índice llamado `consultas_chat_por_fecha` y el que
+-- hay se llama `consultas_chat_usuario_idx`. Pero **hace exactamente el trabajo**: es
+-- `(usuario_id, creado_en DESC)`, que sirve para lo mismo y además acota por persona.
+-- Un índice no se reconoce por su nombre sino por sus columnas y su orden, así que eso
+-- es lo que se mira. Medido el 2026-09-11: en rojo desde que alguien lo renombró.
+select '0044 - indice de consultas por fecha', 'hay un indice de consultas_chat por creado_en DESC',
        case when exists (
          select 1 from pg_indexes
-          where schemaname = 'public' and indexname = 'consultas_chat_por_fecha'
+          where schemaname = 'public' and tablename = 'consultas_chat'
+            and indexdef like '%creado\_en DESC%'
        ) then 'SI' else 'NO' end
 
 union all
@@ -930,7 +951,7 @@ union all
 -- que se rellenaba a mano en los scripts de carga y las escrituras de la app no
 -- la tocaban. Ese era justo el fallo que esta migracion viene a cerrar: sin el
 -- trigger, la firma diria «no cambio» sobre datos que si cambiaron.
-select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
+select '0049 - firma de sincronizacion', 'ninguna tabla viva con la columna se queda sin su sello',
        case when (
          select count(*) from (
            select 1 from information_schema.columns
@@ -942,8 +963,31 @@ select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
             where n.nspname = 'public' and p.proname = 'firma_de_sincronizacion'
          ) as senales
        ) = 2
-       and (select count(*) from pg_trigger
-             where tgname = 'trg_actualizado_en' and not tgisinternal) = 21
+       -- ARREGLADA EL 2026-09-11: exigía EXACTAMENTE 21 tablas con el sello, y desde
+       -- que la 0058 trajo `cribado` son 22. Se ponía roja justo cuando el sistema
+       -- crecía BIEN — un número congelado dentro de una comprobación se convierte en
+       -- una alarma que suena por aprobar el examen. Lo que hay que exigir es que
+       -- ninguna tabla con la columna se quede SIN su disparador, que es el fallo real:
+       -- una tabla que no sella cuando cambió deja a la caché creyendo que está al día.
+       --
+       -- Dos exclusiones, y las dos con razon: una VISTA hereda la columna de su tabla
+       -- y no puede llevar disparador (`cribado_vigente`, `checkins_nutricion`,
+       -- `visibilidad_pendiente`), y las `respaldo_*` son fotos de una limpieza, no
+       -- datos vivos que alguien esperaria ver sellados.
+       and not exists (
+         select 1
+           from information_schema.columns c
+           join information_schema.tables tb
+             on tb.table_schema = c.table_schema and tb.table_name = c.table_name
+          where c.table_schema = 'public' and c.column_name = 'actualizado_en'
+            and tb.table_type = 'BASE TABLE'
+            and c.table_name not like 'respaldo\_%'
+            and not exists (
+              select 1 from pg_trigger tg
+                join pg_class cl on cl.oid = tg.tgrelid
+                join pg_namespace ns on ns.oid = cl.relnamespace
+               where ns.nspname = 'public' and cl.relname = c.table_name
+                 and tg.tgname = 'trg_actualizado_en' and not tg.tgisinternal))
        then 'SI' else 'NO' end
 
 union all
