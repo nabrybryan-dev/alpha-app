@@ -1,5 +1,8 @@
 import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
+import type { DiaSemana } from './calendario'
+import type { MedidasDelCuerpo } from './medidas'
 import type { Confianza } from './nutricion/dia'
+import type { HuellaDeRepeticion } from './patrones/huella'
 
 export type Rol = 'asesorado' | 'coach' | 'nutricionista'
 
@@ -11,6 +14,13 @@ export interface Usuario {
 }
 
 export type NivelVolumen = 'Muy Bajo' | 'Bajo' | 'Normal' | 'Alto' | 'Muy Alto'
+
+/**
+ * El sexo con el que se dibuja el sujeto 3D de una persona. Lo indica el coach
+ * en la ficha; el asesorado no lo toca. La lista y la comprobación viven en
+ * `sexoDeFicha.ts`; en la base es la columna `perfiles.sexo` (0056).
+ */
+export type SexoDeFicha = 'hombre' | 'mujer'
 
 export interface MedidaCorporal {
   fecha: string
@@ -31,13 +41,44 @@ export interface MedidaCorporal {
   perimetros: Record<string, number>
   pgPct?: number
   masaMagraKg?: number
+  /**
+   * LAS OCHO MEDIDAS DE LA FICHA: seis longitudes de segmento y dos perímetros, en cm.
+   *
+   * Van aparte de `perimetros` a propósito. `perimetros` tiene las claves abiertas y por
+   * eso en la app conviven «Cadera» y «Glúteos» para el mismo dato: un mapa así no se
+   * puede consultar, porque nadie sabe si la persona no tiene el dato o lo tiene con otro
+   * nombre. Las ocho de aquí están cerradas, tienen rango y se validan en
+   * `domain/medidas.ts`; lo que no es una de ellas se rechaza.
+   *
+   * Opcional entero, y cada clave opcional dentro: alguien puede tomarse el fémur y no la
+   * cintura, y lo que falta no se rellena.
+   *
+   * Viajan a la nube dentro del mismo objeto que el resto de la medida —`registrar_medida`
+   * (0057) mete el jsonb entero, no columna a columna— así que no hacen falta ni migración
+   * ni cambios en `data/nube/`. Ver `docs/specs/2026-09-08-medidas-en-el-dominio.md`.
+   */
+  cuerpo?: MedidasDelCuerpo
 }
 
 export interface Perfil {
   usuarioId: string
   objetivos: string
   edad: number
+  /** CUÁNTOS días por semana. Es una frecuencia, no un calendario: no dice cuáles. */
   diasEntrenamiento: number
+  /**
+   * CUÁLES días puede entrenar, dichos por la persona y con nombre (`LUNES`…).
+   *
+   * Es otro hecho distinto del número de arriba, y llevaba semanas sin sitio: los 27
+   * perfiles de producción guardan el número y ninguno los nombres (10-sep-2026). Sin
+   * esto, el cerebro no tiene de dónde sacar los días sin inventarlos —I-38 lo prohíbe
+   * y hace bien— y se para a preguntarlos en la primera corrida de cada persona.
+   *
+   * Lo escribe la propia persona desde el formulario de salud, por la función
+   * `registrar_dias_disponibles` (0065): su blob no se sube entero, el trigger no lo
+   * dejaría. Sin definir = nunca lo ha dicho, que NO es lo mismo que «ningún día».
+   */
+  diasDisponibles?: DiaSemana[]
   tiempoSesionMin: number
   somatotipo: string
   volumenSemanal: Record<string, NivelVolumen>
@@ -66,6 +107,15 @@ export interface Perfil {
   peldanoAlfa?: number
   /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
   ascensoIso?: string
+  /**
+   * Con qué huesos se dibuja su cuerpo en el salón y en el estudio del cuerpo.
+   * Lo rellena el coach. Opcional a propósito: sin dato se dibuja como hasta
+   * ahora (el juego neutro del visor).
+   *
+   * NO viaja dentro de `perfiles.datos`: tiene su propia columna (migración
+   * 0056) y `src/data/nube/perfilEnNube.ts` es el único sitio que la nombra.
+   */
+  sexo?: SexoDeFicha
 }
 
 /** Nota del coach a una competencia concreta de la Ruta. */
@@ -107,6 +157,15 @@ export interface VelocidadDeSerie {
    *  solo se cancela si la escala es CONSTANTE: si la referencia se movió entre la
    *  primera repetición y la última, el cociente queda contaminado. */
   inclinacionMax?: number
+  /**
+   * LA ÚLTIMA REPETICIÓN, tal como la hizo: la barra normalizada a lo largo del tiempo.
+   *
+   * Es lo que permite ver un FANTASMA sobre el sujeto —lo que se hizo, superpuesto a lo
+   * que había que hacer— hoy y la semana que viene. Veinticuatro muestras: cabe en la fila
+   * y basta para moverse sin tirones. Ausente = esa serie se midió sin trayectoria
+   * utilizable, o antes de que esto existiera. No se rellena nunca con una ideal.
+   */
+  huella?: HuellaDeRepeticion
 }
 
 export interface SerieRegistrada {
@@ -229,7 +288,15 @@ export interface EscenarioRojo {
 }
 
 export interface EscenariosDelDia {
-  verde: EscenarioVerde
+  /**
+   * OPCIONAL desde el 2026-09-07, porque los datos ya lo eran. Ese día se midió que los
+   * 477 ejercicios con escenarios de los microciclos activos traían SOLO el camino rojo
+   * —el freno viaja siempre, la subida solo cuando el coach la autoriza—, y el tipo seguía
+   * diciendo que `verde` era obligatorio: el muro de /entrenar lo leía sin comprobar y la
+   * pestaña entera se cayó para toda la cartera. Un tipo que promete más que los datos no
+   * protege nada; hace justo lo contrario.
+   */
+  verde?: EscenarioVerde
   rojo: EscenarioRojo
 }
 
@@ -333,6 +400,34 @@ export interface Sesion {
    * salen de `hoyIso()`: fecha local del dispositivo, nunca UTC.
    */
   fecha?: string
+  /**
+   * EL INSTANTE en que la persona apareció en esta sesión, con zona horaria.
+   *
+   * Hermano de `fecha` y escrito por la misma mano —la primera acción de dentro—, pero no es
+   * lo mismo y por eso son dos campos: `fecha` es un DÍA y esto es una HORA. Hasta el
+   * 2026-09-10 la app solo sabía el día, y el cronómetro que sí sabe horas vivía en el
+   * `localStorage` del teléfono y no subía a ningún sitio.
+   *
+   * **Para qué hace falta una hora, si el día bastaba:** para poder atar a un entrenamiento
+   * algo que ocurrió DURANTE él —unas pulsaciones, unos pasos— hace falta un intervalo. Con
+   * solo el día, asociar sería por cercanía de fecha, y eso empareja la sesión de la mañana
+   * con el paseo de la noche sin que nada falle a la vista.
+   *
+   * Se escribe UNA vez y no se sobrescribe, igual que `fecha`.
+   */
+  empezadaEn?: string
+  /**
+   * LA ÚLTIMA SEÑAL de que la persona seguía en la sesión, con zona horaria.
+   *
+   * No se llama `terminadaEn` a propósito, y la diferencia importa: nadie pulsa «he
+   * terminado». Lo único que la app sabe de verdad es cuándo fue la última cosa que se
+   * registró — la última serie, la última marca, el test. Llamarlo «fin» afirmaría que
+   * después no pasó nada, y lo honesto es que después no hay CONSTANCIA de nada.
+   *
+   * Se mueve con cada escritura, así que junto con `empezadaEn` marca la ventana en la que
+   * consta que hubo entrenamiento. Fuera de esa ventana no se ata nada.
+   */
+  ultimaMarcaEn?: string
   tipo?: 'fuerza' | 'metabolica'
   preparacion?: PartePreparacion[]
   bloquesCardio?: ItemMarcable[]
@@ -370,6 +465,20 @@ export interface CheckinDiario {
   id: string
   usuarioId: string
   fecha: string
+  /**
+   * A qué hora se acostó y a qué hora se levantó, en formato `HH:MM` y hora
+   * local de la persona. Opcionales: el check-in no se bloquea por ellas.
+   *
+   * No sustituyen a `horasSueno`, la acompañan. `horasSueno` dice CUÁNTO y
+   * estas dicen CUÁNDO, que es lo único con lo que se puede calcular el índice
+   * de regularidad del sueño: ocho horas de 23:00 a 07:00 y ocho horas de
+   * 03:00 a 11:00 son el mismo número y dos vidas distintas.
+   *
+   * Viajan dentro del `datos` jsonb del check-in, así que NO necesitan
+   * migración: la nube guarda el objeto entero.
+   */
+  horaAcostarse?: string
+  horaLevantarse?: string
   pesoKg?: number
   pasos?: number
   entreno?: string
@@ -397,6 +506,17 @@ export interface CheckinDiario {
   horasSueno?: number
   calidadSueno?: Cualitativo3
   alimentacion?: Cualitativo3
+  /**
+   * El dolor del día, de 0 a 10 (EVA). Opcional en el tipo porque los check-ins
+   * anteriores a este campo no lo tienen; el formulario lo exige desde ahora.
+   *
+   * Un ajuste clínico puede condicionar su reingreso a «EVA ≤2 en todas las
+   * sesiones»; sin este número esa puerta se abría —o no— sin ningún dato
+   * detrás. El cero se marca a propósito: «sin dolor» es una medición.
+   */
+  dolor?: number
+  /** Dónde duele, en palabras de la persona. Solo tiene sentido con `dolor` > 0. */
+  dolorDonde?: string
   comentarios?: string
 }
 
@@ -500,6 +620,26 @@ export interface Cuestionario {
   descripcion: string
   preguntas: Pregunta[]
   asignadoA: string[]
+  /**
+   * Quién lo mandó. `coach` es lo de siempre: un cuestionario que arma una persona.
+   * `cadena` es nuevo: lo escribió un agente que se quedó sin un dato y no puede
+   * seguir sin él —los días que entrena alguien, qué es esa condición médica que
+   * marcó y dejó en blanco—.
+   *
+   * Opcional porque los cuestionarios que ya existen no lo traen, y un `undefined`
+   * significa `coach`, que es lo que eran todos hasta hoy. No se rellena al vuelo
+   * con un valor por defecto: la ausencia ya dice lo que hay que saber.
+   */
+  origen?: 'coach' | 'cadena'
+  /**
+   * A qué vuelve la respuesta cuando llegue. Es el `pregunta_ref` del contrato de los
+   * agentes: el nombre del fichero de la pregunta que dejó la cadena parada.
+   *
+   * Sin esto, la respuesta se queda en la base sin nadie que la recoja — que es
+   * exactamente lo que pasa hoy, cuando el coach copia la pregunta a mano y luego
+   * tiene que acordarse de a qué microciclo pertenecía.
+   */
+  ref?: string
 }
 
 export interface Respuesta {
@@ -637,6 +777,22 @@ export interface PerfilNutricion {
 }
 
 /**
+ * La respuesta al mapa de vida (`src/domain/mapaDeVida/preguntas.ts`): cómo
+ * vive el asesorado, no cómo durmió hoy — eso ya está en `CheckinDiario`.
+ *
+ * Una fila por asesorado, igual que `PerfilNutricion`. Las claves de
+ * `valores` son los `id` de `PreguntaMapaDeVida`; se guarda en crudo y sin
+ * columnas propias por pregunta, para que añadir una pregunta nueva no pida
+ * una migración (ver `src/domain/mapaDeVida/contrato.md`).
+ */
+export interface RespuestaMapaDeVida {
+  usuarioId: string
+  valores: Record<string, string>
+  /** Cuándo se guardó por última vez. */
+  respondidoEnIso: string
+}
+
+/**
  * Una vez que el asesorado estimó primero y pesó después.
  *
  * El orden importa y es lo que hace que la prueba valga: si pesa antes de
@@ -661,3 +817,53 @@ export interface PreferenciaEstado {
   estado: 'crudo' | 'cocido' | 'seco'
 }
 
+/**
+ * Lo que cada campo del cribado puede valer.
+ *
+ * `ausente` es «se le preguntó y no tiene». `no_declarado` es «no se le preguntó», y
+ * los dos NO son lo mismo: tratar un hueco como un «no» es inventarse un cribado. Es
+ * el mismo vocabulario que usan las banderas clínicas de los agentes (I-23), a
+ * propósito, para que la fila se vuelque al dictamen sin traducir nada.
+ */
+export type EstadoCribado = 'presente' | 'ausente' | 'no_declarado'
+
+/**
+ * El cribado de salud de una persona: el PAR-Q y los nueve de la entrada mínima.
+ *
+ * POR QUÉ EXISTE. Hasta la migración 0058 esto no estaba en ninguna tabla: vivía en
+ * prosa, dentro del expediente de ocho personas, y ninguna regla podía leerlo. El
+ * 6-sep se midió la consecuencia: cada agente declaraba la zona clínica por lo que
+ * encontraba, y cuatro planes salieron declarados «sin cuadro» sin que nada lo
+ * comprobara. De los ocho que sí habían contestado alguna vez, cuatro dieron positivo.
+ *
+ * Los nueve campos de I-23 y los tres `parq_*` son opcionales en el tipo porque una
+ * fila volcada desde la wiki puede no traerlos todos —lo que no consta se queda sin
+ * poner, nunca se rellena—. Una fila con `fuente: 'app'` sí los trae los doce, y eso
+ * no depende de que el formulario se acuerde: lo exige un CHECK de la propia tabla.
+ */
+export interface Cribado {
+  usuarioId: string
+  /** Cuándo se contestó. No es cuándo se guardó: eso es `actualizadoEn`. */
+  fecha: string
+  /** `wiki` marca lo volcado desde un expediente en prosa: cierto, pero no lo contestó nadie aquí. */
+  fuente: 'app' | 'wiki' | 'encuesta'
+
+  diagnostico?: EstadoCribado
+  quienLoLleva?: EstadoCribado
+  tratamientoActivo?: EstadoCribado
+  medicacionCronica?: EstadoCribado
+  autorizacionSanitaria?: EstadoCribado
+  restriccionesExplicitas?: EstadoCribado
+  sintomasConEsfuerzo?: EstadoCribado
+  nivelFuncional?: EstadoCribado
+  queLeHanDichoQueNoHaga?: EstadoCribado
+
+  /** `false` es «no»; ausente es «no se preguntó». Un booleano con valor por defecto los habría vuelto lo mismo. */
+  parqEnfermedadCardiaca?: boolean
+  parqMedicamentoPresion?: boolean
+  parqHuesosArticulaciones?: boolean
+
+  /** El texto de cada «sí», con la clave del campo: `{ medicacionCronica: 'prednisolona 10 mg' }`. */
+  detalle: Record<string, string>
+  actualizadoEn?: string
+}

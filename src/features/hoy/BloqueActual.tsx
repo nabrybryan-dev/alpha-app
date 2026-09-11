@@ -138,7 +138,7 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
   if (filas.length === 0 && !perfil.objetivos) return null
 
   return (
-    <section className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+    <section className="relieve rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
       <div className="flex items-center gap-3">
         <DiscoDespiece />
         <h2 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-tenue">

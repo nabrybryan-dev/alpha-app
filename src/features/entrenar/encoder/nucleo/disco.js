@@ -664,6 +664,45 @@ export function anguloDeCamara(relacion) {
 }
 
 /**
+ * Cuanto del lado corto del encuadre puede ocupar un disco, como mucho.
+ *
+ * NO es una señal de forma, y por eso existe: las de forma ya se midieron y no
+ * separan —una pila de discos coaxiales ES redonda y se ajusta de maravilla, así
+ * que `cobertura`, `redondez` y `esquinas` dan lo mismo para la cara del primer
+ * disco que para la pila entera (`banco/calidad-vs-error.mjs`)—.
+ *
+ * El argumento es físico, no estadístico. Un disco mide 450 mm. Para que ocupara
+ * la mitad del lado corto, ese lado tendría que abarcar 0,9 m en el plano del
+ * atleta — y ahí no cabe ni la barra, que mide 2,2 m, ni la persona de pie. Si el
+ * ajuste dice que el disco ocupa más de eso, lo que se ha ajustado no es un disco
+ * de una serie grabada.
+ *
+ * ## El umbral, y el error que costó ponerlo bien
+ *
+ * El primer intento fue 0,50, elegido midiendo «¿cuántos casos BUENOS tira?» con
+ * bueno = «el detector acertó dentro del 5 %». Con esa definición no tiraba
+ * ninguno, y era una medida mal planteada: las cuatro escenas `--grande` del
+ * banco tienen una VERDAD de 0,667 —el disco de verdad ocupa el 67 % del lado
+ * corto— y el detector las fallaba por un 9-19 %, así que contaban como malas y
+ * rechazarlas parecía un acierto. No lo era: son escenas legítimas que la reja
+ * rechazaba por ser lo que son, y ningún detector las habría salvado.
+ *
+ * La pregunta correcta no es a quién tira HOY sino **a quién tiraría siempre**:
+ * cuántas escenas tienen la verdad por encima del umbral. Eso no depende del
+ * detector (`banco/donde-va-la-reja.mjs`).
+ *
+ * Verdad máxima del banco: 0,667. De un fotograma real de gimnasio: 0,298. Se
+ * elige **0,75**, por encima de la máxima, para no rechazar nada legítimo. El
+ * 0,30 de los fotogramas reales NO justifica bajarlo: son 16 fotogramas de dos
+ * escenas, y no son el mundo.
+ *
+ * A 0,75 esta reja atrapa poco por su cuenta —el trabajo de verdad lo hace la de
+ * «cabe en el encuadre»—, y se queda igual: es un techo físico, barato, que no
+ * cuesta ni una medida buena.
+ */
+export const FRACCION_MARCO_MAX = 0.75
+
+/**
  * ¿Lo que el usuario tocó es un disco?
  *
  * Un disco da radios consistentes en todas las direcciones. Una mancuerna, una
@@ -711,6 +750,32 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
   if (redondez > 0.16) {
     return { tipo: 'no-circular', motivo: 'el contorno no es redondo', redondez, cobertura, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
   }
+  // ── Dos rejas que NO miran la forma ────────────────────────────────────────
+  //
+  // Hasta aquí todo lo comprobado es forma, y la forma no distingue la cara del
+  // primer disco de la pila entera: las dos son redondas y las dos se ajustan
+  // bien. Medido, el peor fallo del banco (+247 % de escala) pasa las tres
+  // comprobaciones de arriba con los tres indicadores dentro de lo normal.
+  //
+  // Y no hay nadie detrás que lo cace: el rastreador acota la búsqueda a
+  // `radioEsperado × (1 ± 0,25)` y luego compara contra ese mismo radio, así que
+  // HEREDA la semilla y la certifica —con la semilla envenenada devuelve
+  // `fiable: true`, y con la buena `fiable: false`—. Ver `banco/semilla-envenenada.mjs`.
+  //
+  // Estas dos son lo único que puede auditar el arranque, porque no salen del
+  // contorno sino del encuadre.
+  const desborda = circulo.x - circulo.r < 0 || circulo.x + circulo.r > ancho ||
+                   circulo.y - circulo.r < 0 || circulo.y + circulo.r > alto
+  if (desborda) {
+    // Un disco más ancho que la propia imagen no es un disco. Es la comprobación
+    // más tonta posible y por eso vale: no depende del contraste ni de la luz.
+    return { tipo: 'desconocida', motivo: 'el disco ajustado no cabe en el encuadre', cobertura, redondez, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+  const fraccion = (circulo.r * 2) / Math.min(ancho, alto)
+  if (fraccion > FRACCION_MARCO_MAX) {
+    return { tipo: 'desconocida', motivo: 'el disco ajustado se come el encuadre: no cabría la serie', cobertura, redondez, fraccion, ajuste: { ...circulo, ...elipse, r: elipse.semiMayor } }
+  }
+
   return {
     tipo: 'disco',
     // `r` es el SEMIEJE MAYOR, que es la escala inmune al escorzo: el diámetro
@@ -725,6 +790,293 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
 }
 
 /**
+ * El centro por VOTO, con el radio conocido.
+ *
+ * ## Por qué no vale ajustar centro y radio a la vez
+ *
+ * Medido el 5-sep sobre doce fotogramas de dos series reales, contra el buje
+ * anotado a ojo: el ajuste libre de circunferencia devolvía el centro a
+ * **0,75 radios** de donde estaba el disco (mediana; peor 0,86), y estable ahí
+ * durante toda la serie. Dos mecanismos, los dos vistos dibujando los puntos:
+ *
+ * - **La pila.** Detrás del disco que se ve asoma otro igual. La silueta de los
+ *   dos es una salchicha, y una circunferencia libre se pone en medio de ella.
+ * - **El enganche.** Con la predicción medio radio fuera, la ventana de búsqueda
+ *   recoge el arco real por un lado y bordes de decorado por el otro, justo a la
+ *   distancia que los rayos esperan. El ajuste reparte, y como la predicción del
+ *   siguiente fotograma sale de él mismo, ahí se queda.
+ *
+ * Un ajuste de tres parámetros con la mitad de los puntos siendo decorado no
+ * tiene defensa. Pero **el radio ya se conoce**: es el del arranque, y en una
+ * toma lateral no cambia (ese es el contrato de `detectarDisco`). Con el radio
+ * fijo el problema tiene dos incógnitas y una propiedad que lo resuelve: cada
+ * borde real está a EXACTAMENTE ese radio del centro verdadero, y el decorado
+ * no está a ese radio de ningún centro común.
+ *
+ * ## Cómo
+ *
+ * Cada candidato a borde vota por todos los centros que lo tendrían a distancia
+ * `radio`: una circunferencia de votos alrededor del punto. Los bordes del canto
+ * real cruzan todos por el mismo sitio —el centro—; los del decorado, el buje,
+ * las letras y el disco de detrás reparten sus votos por ahí. Se coge el pico,
+ * se afina con los puntos que de verdad están a ese radio, y esos son el canto.
+ *
+ * Los votos se acumulan en una rejilla de celdas de unos píxeles y el pico se
+ * lee sumando el vecindario 3×3: con celdas finas los votos de un mismo canto se
+ * reparten entre celdas contiguas y el máximo crudo sale de una casualidad.
+ */
+/**
+ * Los bordes de una caja de la imagen, con su DIRECCIÓN.
+ *
+ * Los rayos desde la predicción tienen dos defectos que aquí se pagan caros:
+ * muestrean el canto de forma desigual cuando la predicción está descentrada
+ * —rozan el lado lejano— y no saben hacia dónde mira cada borde. El gradiente
+ * de la luminancia da las dos cosas: cada píxel de la caja es un candidato en
+ * igualdad de condiciones, y su normal dice de qué lado está lo oscuro.
+ */
+export function bordesConDireccion(datos, ancho, alto, centro, medioLado, opciones = {}) {
+  const { umbral = 12 } = opciones
+  const xa = Math.max(1, Math.floor(centro.x - medioLado)), xb = Math.min(ancho - 2, Math.ceil(centro.x + medioLado))
+  const ya = Math.max(1, Math.floor(centro.y - medioLado)), yb = Math.min(alto - 2, Math.ceil(centro.y + medioLado))
+  if (xb - xa < 4 || yb - ya < 4) return []
+  const w = xb - xa + 3, h = yb - ya + 3
+  const lum = new Float32Array(w * h)
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) lum[y * w + x] = luminancia(datos, ((ya - 1 + y) * ancho + (xa - 1 + x)) * 4)
+  }
+  const bordes = []
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const gx = (lum[y * w + x + 1] - lum[y * w + x - 1]) / 2
+      const gy = (lum[(y + 1) * w + x] - lum[(y - 1) * w + x]) / 2
+      const g = Math.hypot(gx, gy)
+      if (g < umbral) continue
+      bordes.push({ x: xa - 1 + x, y: ya - 1 + y, nx: gx / g, ny: gy / g, fuerza: g })
+    }
+  }
+  return bordes
+}
+
+export function centroPorVoto(candidatos, prediccion, radio, opciones = {}) {
+  const {
+    alcance = 1.0,          // hasta dónde puede estar el centro, en radios, desde la predicción
+    celda = 3,              // píxeles por celda de la rejilla de votos
+    sectores = 64,          // en cuántas direcciones se mide la cobertura del canto
+    picos = 3,              // cuántos centros candidatos se devuelven, de más a menos apoyo
+    interiorOscuro = true,  // el disco es más oscuro que lo que tiene alrededor
+  } = opciones
+  if (!(radio > 4) || candidatos.length < 5) return []
+
+  const medio = alcance * radio
+  const n = Math.ceil((2 * medio) / celda) + 1
+  const x0 = prediccion.x - medio, y0 = prediccion.y - medio
+  const votos = new Float32Array(n * n)
+  const votar = (cx, cy, peso) => {
+    const i = Math.floor((cx - x0) / celda), j = Math.floor((cy - y0) / celda)
+    if (i >= 0 && i < n && j >= 0 && j < n) votos[j * n + i] += peso
+  }
+  // Con dirección, cada borde vota UN centro: el que está a `radio` en contra
+  // del gradiente (si el interior es oscuro, la luminancia sube hacia fuera y
+  // el gradiente apunta hacia fuera). Sin dirección —candidatos de rayos— no
+  // queda otra que votar la circunferencia entera, y medido en un fotograma de
+  // gimnasio eso son ~1.000 bordes × 200 celdas: el canto se ahoga en el fondo.
+  //
+  // Se vota en dos radios (0,94 y 1) porque el canto real es una elipse suave
+  // y en el eje menor está algo más cerca; así los votos del eje menor caen en
+  // la misma zona y el pico no se parte.
+  const signo = interiorOscuro ? -1 : 1
+  const pasos = Math.max(24, Math.ceil((2 * Math.PI * radio) / celda))
+  for (const p of candidatos) {
+    if (Number.isFinite(p.nx)) {
+      const peso = Math.min(p.fuerza ?? 30, 60) / 60
+      for (const f of [0.94, 1.0]) votar(p.x + signo * f * radio * p.nx, p.y + signo * f * radio * p.ny, peso)
+      continue
+    }
+    for (let k = 0; k < pasos; k++) {
+      const ang = (2 * Math.PI * k) / pasos
+      votar(p.x - radio * Math.cos(ang), p.y - radio * Math.sin(ang), 1)
+    }
+  }
+  const suma3x3 = new Float32Array(n * n)
+  for (let j = 1; j < n - 1; j++) {
+    for (let i = 1; i < n - 1; i++) {
+      let s = 0
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) s += votos[(j + dj) * n + (i + di)]
+      suma3x3[j * n + i] = s
+    }
+  }
+
+  // Varios picos, separados al menos medio radio: cuando hay dos discos pegados
+  // los dos tienen un pico legítimo, y quedarse solo con el más alto es dejar
+  // que decida el ruido. Quién manda entre picos parecidos se decide fuera, con
+  // un criterio físico (ver `detectarDisco`).
+  const elegidos = []
+  const separacion = (0.5 * radio) / celda
+  while (elegidos.length < picos) {
+    let mejor = 0, mi = -1, mj = -1
+    for (let j = 1; j < n - 1; j++) {
+      for (let i = 1; i < n - 1; i++) {
+        const s = suma3x3[j * n + i]
+        if (s <= mejor) continue
+        if (elegidos.some((e) => Math.hypot(e.i - i, e.j - j) < separacion)) continue
+        mejor = s; mi = i; mj = j
+      }
+    }
+    if (mi < 0) break
+    elegidos.push({ i: mi, j: mj, votos: mejor })
+  }
+
+  const salida = []
+  for (const e of elegidos) {
+    const c = afinarCentro(candidatos, { x: x0 + (e.i + 0.5) * celda, y: y0 + (e.j + 0.5) * celda }, radio, sectores)
+    if (c) salida.push({ ...c, votos: e.votos })
+  }
+  return salida.sort((a, b) => b.sectores - a.sectores)
+}
+
+/** Radio de una elipse en la dirección `ang`, medido desde su centro. */
+function radioDeElipseEn(elipse, ang) {
+  const a = elipse.semiMayor, b = elipse.semiMenor
+  const c = Math.cos(ang - elipse.giro), s = Math.sin(ang - elipse.giro)
+  return (a * b) / Math.sqrt((b * c) * (b * c) + (a * s) * (a * s))
+}
+
+/**
+ * Afina un centro aproximado hasta el que mejor explica los puntos del canto.
+ *
+ * En dos pasadas, y las dos hacen falta:
+ *
+ * 1. **Con circunferencia y banda ancha** (12 %). El canto real es una ELIPSE
+ *    —la cámara nunca está perpendicular del todo— y con una banda estrecha
+ *    alrededor de una circunferencia se pierden los puntos del eje menor: en
+ *    los fotogramas reales, con relación de ejes 1,05-1,16, eso dejaba la
+ *    cobertura por debajo del mínimo y el disco se rechazaba estando ahí.
+ * 2. **Con la elipse y banda estrecha** (3,5 %). Ajustada la elipse sobre lo que
+ *    recogió la primera pasada, se vuelven a elegir los puntos contra ELLA y se
+ *    afina el centro otra vez. La banda ancha era para no perder canto; la
+ *    estrecha es para no quedarse con decorado.
+ *
+ * El centro se mueve por punto fijo: cada punto tira de él hacia donde le
+ * tocaría estar si estuviera sobre la curva. Converge en pocas vueltas porque
+ * el voto ya lo dejó cerca.
+ *
+ * La cobertura se cuenta en SECTORES alrededor del centro encontrado, no en
+ * rayos lanzados desde la predicción: con la predicción medio radio fuera, los
+ * rayos barren el canto de forma desigual —dos veces por un lado, ninguna por el
+ * otro— y contar rayos decía 55 % donde había un 80 % de canto.
+ */
+function afinarCentro(todos, inicio, radio, sectores) {
+  let cx = inicio.x, cy = inicio.y
+  // Solo los puntos que pueden ser del canto de ESTE pico: una corona amplia
+  // alrededor del arranque. El afinado itera varias veces sobre la lista y con
+  // la caja entera (20.000 bordes en un fotograma de gimnasio) se iba a nueve
+  // minutos por serie; lo que está a media caja de distancia no va a entrar en
+  // ninguna banda.
+  const candidatos = todos.filter((p) => {
+    const d = Math.hypot(p.x - inicio.x, p.y - inicio.y)
+    return d >= radio * 0.6 && d <= radio * 1.4
+  })
+  const radioEn = (elipse) => (elipse ? (p) => radioDeElipseEn(elipse, Math.atan2(p.y - cy, p.x - cx)) : () => radio)
+  // Un punto del canto, además de estar a la distancia justa, tiene el borde
+  // MIRANDO al centro: su normal es radial. Las letras, el buje y el decorado
+  // que caen en la banda por casualidad miran a cualquier parte, y esto los
+  // deja fuera antes de que tiren del centro. Solo se exige si el punto trae
+  // dirección (los candidatos de rayos no la traen).
+  const dentroDe = (elipse, tol) => candidatos.filter((p) => {
+    const dx = p.x - cx, dy = p.y - cy
+    const d = Math.hypot(dx, dy)
+    if (Math.abs(d - radioEn(elipse)(p)) > tol) return false
+    if (!Number.isFinite(p.nx)) return true
+    return Math.abs((dx * p.nx + dy * p.ny) / (d || 1e-9)) >= 0.8
+  })
+  const tirar = (dentro, elipse) => {
+    let sx = 0, sy = 0
+    const rEn = radioEn(elipse)
+    for (const p of dentro) {
+      const d = Math.hypot(p.x - cx, p.y - cy) || 1e-9
+      const r = rEn(p)
+      sx += p.x - (r * (p.x - cx)) / d
+      sy += p.y - (r * (p.y - cy)) / d
+    }
+    return { x: sx / dentro.length, y: sy / dentro.length }
+  }
+  const afinar = (elipse, tol) => {
+    let dentro = []
+    for (let vuelta = 0; vuelta < 8; vuelta++) {
+      dentro = dentroDe(elipse, tol)
+      if (dentro.length < 5) return undefined
+      const nuevo = tirar(dentro, elipse)
+      const movio = Math.hypot(nuevo.x - cx, nuevo.y - cy)
+      cx = nuevo.x; cy = nuevo.y
+      if (movio < 0.05) break
+    }
+    return dentroDe(elipse, tol)
+  }
+
+  const ancha = afinar(null, Math.max(3, radio * 0.12))
+  if (!ancha) return undefined
+  const elipse = elipseRobusta(ancha, { x: cx, y: cy })
+  const dentro = elipse ? afinar(elipse, Math.max(3, radio * 0.035)) : ancha
+  if (!dentro || dentro.length < 5) return undefined
+
+  const ocupado = new Uint8Array(sectores)
+  for (const p of dentro) {
+    const ang = Math.atan2(p.y - cy, p.x - cx)
+    ocupado[Math.floor((((ang % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / ((2 * Math.PI) / sectores))] = 1
+  }
+  let ocupados = 0
+  for (const o of ocupado) ocupados += o
+  // El arco seguido más largo (tolerando huecos de un sector). Importa porque
+  // no es lo mismo ver el 50 % del canto en un arco continuo —que fija el
+  // centro igual de bien que el canto entero, es geometría— que verlo en
+  // sectores sueltos repartidos, que es lo que da el decorado por casualidad.
+  let arco = 0, actual = 0, hueco = 0
+  for (let k = 0; k < 2 * sectores; k++) {
+    if (ocupado[k % sectores]) { actual += 1 + hueco; hueco = 0 }
+    else if (actual && hueco === 0) hueco = 1
+    else { actual = 0; hueco = 0 }
+    arco = Math.max(arco, Math.min(actual, sectores))
+  }
+  let residuo = 0
+  const rEn = radioEn(elipse)
+  for (const p of dentro) residuo += Math.abs(Math.hypot(p.x - cx, p.y - cy) - rEn(p))
+  return {
+    // `radio` es el que el canto DICE tener (el semieje mayor de su elipse), no
+    // el escalón de la rejilla de radios con el que se votó: votando en 66 un
+    // disco de 60 se encuentra igual, y lo que importa después es el 60.
+    x: cx, y: cy, radio: elipse ? elipse.semiMayor : radio, radioVotado: radio,
+    puntos: dentro, sectores: ocupados, cobertura: ocupados / sectores,
+    arcoMayor: arco / sectores, elipse, residuo: residuo / dentro.length,
+  }
+}
+
+/**
+ * Cuánto brilla el centro respecto a la corona: la firma del BUJE.
+ *
+ * Es el desempate entre dos discos pegados, y solo eso. Con dos discos iguales
+ * uno detrás de otro, cada uno enseña la misma cantidad de canto (medido en la
+ * prueba sintética: 64 puntos contra 69) y el voto empata. Lo que los distingue
+ * no es el borde: es que **el extremo de la barra asoma por el centro de la cara
+ * de delante**, metálico y claro, y en el centro geométrico del de detrás lo que
+ * hay es el hierro negro del de delante. Se mide como diferencia de luminancia
+ * entre el disco central (hasta 0,12 radios) y la corona (0,3 a 0,5).
+ */
+export function brilloDelBuje(datos, ancho, alto, centro, radio) {
+  const media = (desde, hasta) => {
+    let s = 0, n = 0
+    for (let f = desde; f <= hasta + 1e-9; f += 0.04) {
+      for (let k = 0; k < 24; k++) {
+        const ang = (2 * Math.PI * k) / 24
+        const l = luminanciaEn(datos, ancho, alto, centro.x + radio * f * Math.cos(ang), centro.y + radio * f * Math.sin(ang))
+        if (Number.isFinite(l)) { s += l; n++ }
+      }
+    }
+    return n ? s / n : NaN
+  }
+  return media(0, 0.12) - media(0.3, 0.5)
+}
+
+/**
  * Detección de un fotograma, dentro de una ventana alrededor de lo previsto.
  *
  * `prediccion` es dónde debería estar el centro (posición anterior + velocidad).
@@ -732,28 +1084,169 @@ export function identificarEstructura(datos, ancho, alto, punto, opciones = {}) 
  * barra no puede saltar 40 cm entre dos fotogramas a 60 fps —serían 24 m/s—, así
  * que un ajuste que caiga fuera de la ventana es un error de detección, no un
  * movimiento, y se descarta en vez de guardarlo.
+ *
+ * ## ⚠ `radioEsperado` tiene que ser el del ARRANQUE, no el del fotograma anterior
+ *
+ * Encadenarlo —pasar el radio que devolvió el fotograma anterior— parece lo
+ * natural y **se dispara**. Medido sobre tres series reales de 90 fotogramas
+ * (`banco/serie-con-dos-semillas.py`):
+ *
+ *     encadenado   el radio va de 94 px a 220 px en 18 fotogramas (menos de un
+ *                  segundo) y ahí se queda clavado. Deriva del 150-180 % en las
+ *                  tres series, con las dos semillas —la buena y la de hoy—.
+ *     anclado      deriva de −2 %, 13 % y 8 %. Y además recupera el seguimiento:
+ *                  la serie que encadenada se perdía a los 52 fotogramas, llega
+ *                  a los 90.
+ *
+ * El mecanismo: cada fotograma admite hasta un ±25 % (`toleranciaRadio`) y la
+ * comprobación de `radio_incoherente` se hace **contra esa misma referencia**. Si
+ * la referencia es el fotograma anterior, un sesgo del 7 % por fotograma nunca la
+ * dispara y en veinte fotogramas ha multiplicado el radio por dos. Ahí engancha
+ * una estructura mayor del encuadre y se queda: **estable y equivocada**, que es
+ * la firma que ya salió en `banco/semilla-envenenada.mjs`.
+ *
+ * Se nota además en el recorrido: encadenado, la serie 104 daba 38 px de subida y
+ * bajada —el rastreador se había agarrado a algo quieto—; anclado da 97 px, que
+ * es la barra de verdad.
+ *
+ * No se cambia el comportamiento por dentro: la función es sin estado y la
+ * referencia la elige quien llama. Lo que hay es este contrato, y el check
+ * «la referencia es el arranque, no el anterior» de `pruebas-disco.mjs`.
  */
 export function detectarDisco(datos, ancho, alto, prediccion, radioEsperado, opciones = {}) {
   const { saltoMaxPx = 40, toleranciaRadio = 0.25, minCobertura = 0.6, coberturaBuena = 0.9 } = opciones
-  const { puntos, nRayos } = bordesPorRayos(datos, ancho, alto, prediccion, {
-    ...opciones,
-    radioMin: Math.max(4, radioEsperado * (1 - toleranciaRadio)),
-    radioMax: radioEsperado * (1 + toleranciaRadio),
-  })
-  const cobertura = puntos.length / nRayos
-  if (cobertura < minCobertura) return { ok: false, motivo: 'marcador_perdido', cobertura }
+  // Los bordes de una CAJA alrededor de la predicción, con su dirección, y no
+  // los de un abanico de rayos. Si la predicción viene medio radio fuera —que
+  // es lo que se está corrigiendo—, los rayos rozan el lado lejano del canto y
+  // apenas lo muestrean; la caja lo trata igual que al cercano. La caja llega
+  // hasta donde puede estar el canto de un disco cuyo centro esté a `alcance`
+  // radios de la predicción.
+  const nRayos = 64
+  const alcance = opciones.alcance ?? 1.0
+  const candidatos = bordesConDireccion(datos, ancho, alto, prediccion, radioEsperado * 1.25 * (alcance + 1.15), opciones)
 
-  const circulo = ajusteRobusto(puntos)
-  if (!circulo) return { ok: false, motivo: 'marcador_perdido', cobertura }
-  const elipse = elipseRobusta(puntos, circulo)
+  // El radio de referencia se respeta como VENTANA, no como valor exacto: la
+  // semilla lo trae con un ±10 % de error (medido: 99 donde el canto vota 108,
+  // 110 donde vota 120) y un voto con el radio equivocado da un pico corrido y
+  // flojo. Se vota en varios radios dentro de la tolerancia y gana el que más
+  // canto explica; a igualdad, el MAYOR, porque un disco tiene por dentro un
+  // aro y un buje que también son circunferencias, y el canto es la de fuera.
+  const radios = []
+  for (let f = 1 - toleranciaRadio; f <= 1 + toleranciaRadio + 1e-9; f += 0.05) radios.push(radioEsperado * f)
+  let picos = []
+  for (const r of radios) {
+    for (const p of centroPorVoto(candidatos, prediccion, r, { ...opciones, alcance, sectores: nRayos })) {
+      // Votado en 69 un disco de 60, la banda ancha roza el canto por un lado y
+      // la elipse ajustada sobre ese arco sale mal condicionada: grande, con
+      // cobertura a medias y dentro de tolerancias. Un pico solo vale si lo que
+      // el canto dice medir es lo que se votó, con el margen de la banda ancha.
+      if (Math.abs(p.radio - p.radioVotado) > p.radioVotado * 0.12) continue
+      // Los picos de radios vecinos que convergen al mismo círculo son UNO.
+      const igual = picos.find((q) => Math.hypot(q.x - p.x, q.y - p.y) <= radioEsperado * 0.1
+        && Math.abs(q.radio - p.radio) <= p.radio * 0.06)
+      if (!igual) picos.push(p)
+      else if (p.sectores > igual.sectores) picos[picos.indexOf(igual)] = p
+    }
+  }
+  if (!picos.length) return { ok: false, motivo: 'marcador_perdido', cobertura: 0 }
+  picos.sort((a, b) => (b.sectores - a.sectores) || (b.radio - a.radio))
+  // Gana el pico con MÁS canto. Y conviene decir lo que eso implica, porque un
+  // disco es varias circunferencias casi concéntricas —el canto, el aro
+  // interior, el buje— y el aro interior se ve entero siempre (está en la cara)
+  // mientras que el canto no, si hay otro disco pegado detrás o una mano
+  // delante. Así que con dos discos pegados **este detector se queda con el aro
+  // interior** (medido en n07: aro con 0,86 de cobertura, canto con 0,53). Para
+  // la POSICIÓN y la velocidad da igual: el aro es una pieza rígida de la cara
+  // de delante y se sigue igual de bien, y su corrimiento de paralaje respecto
+  // al canto es constante en la serie. Para la ESCALA no da igual —`sepPx` sale
+  // un 20 % corto— y esa limitación queda escrita aquí y no escondida. Quien
+  // llama fija el radio tras los primeros fotogramas (ver el seguidor) para que
+  // no se salte del aro al canto y vuelta a mitad de serie.
+  //
+  // Se probó la regla contraria («entre concéntricos, el MAYOR», la que
+  // `radioMasVotado` aprendió con la barra en el suelo) y no se sostiene aquí:
+  // votar con un radio equivocado sobre un disco limpio produce siempre una
+  // elipse TANGENTE al canto —centro corrido 10 px, radio grande, cobertura
+  // 0,5-0,6, relación 1,1— que pasa cualquier criterio de apoyo razonable y es
+  // mayor. Con esa regla el disco sintético limpio salía por `radio_incoherente`
+  // y la serie de 1.500 fotogramas perdía 1.482.
+  const bastante = (p) => p.cobertura >= 0.45 && p.arcoMayor >= 0.40 && (!p.elipse || p.elipse.relacion <= 1.35)
+  const mejor = picos[0]
+  // Entre picos con casi el mismo canto, el más cercano a la predicción. Es la
+  // continuidad de siempre en un seguidor, y aquí hizo falta medirla: sin ella,
+  // en el tramo con la barra en el suelo entre banquetas amarillas, el canto y
+  // un círculo de decorado se turnaban como «el de más canto» por un sector de
+  // diferencia, y la altura saltaba 60-80 px de un fotograma al otro (temblor
+  // de 6 px donde antes había 1,4). El margen es corto (15 %) a propósito: un
+  // pico claramente mejor sigue ganando aunque esté lejos, que es lo que
+  // impide volver a quedarse enganchado en el sitio equivocado.
+  //
+  // Y la carga de la prueba la lleva el SALTO. Medido en n05 con la barra abajo
+  // entre banquetas (6-10 s): el canto real aparecía con 0,92-0,95 de cobertura
+  // y, un fotograma después, un círculo de decorado a 70 px con 0,67 ganaba por
+  // ser «el de más canto» en ese fotograma, el seguidor se iba con él y tardaba
+  // medio segundo en volver. Un candidato lejos de la predicción tiene que
+  // traer más canto que uno cerca para llevarse el seguimiento. CUÁNTO más lo
+  // decide quien llama con `exigenciaSalto`, porque depende de algo que esta
+  // función no sabe: si la predicción viene de un fotograma bueno (entonces un
+  // salto a un 0,67 es casi seguro decorado) o de uno flojo o perdido (entonces
+  // un 0,67 lejos es lo mejor que hay, y con otro disco pegado detrás es todo
+  // lo que se va a ver). Si nada cumple, el fotograma se declara perdido —que
+  // es lo honrado— y la predicción se queda donde estaba.
+  const exigenciaSalto = opciones.exigenciaSalto ?? minCobertura
+  const lejos = (p) => Math.hypot(p.x - prediccion.x, p.y - prediccion.y) > radioEsperado * 0.3
+  const admisibles = picos.filter((p) => (lejos(p) ? (p.cobertura >= exigenciaSalto && p.arcoMayor >= 0.5) : bastante(p)))
+  if (!admisibles.length) return { ok: false, motivo: 'marcador_perdido', cobertura: mejor.cobertura }
+  const mejorAdmisible = admisibles[0]
+  const empatados = admisibles.filter((p) => p.sectores >= mejorAdmisible.sectores * 0.85)
+  let voto = empatados.reduce((a, b) => (Math.hypot(b.x - prediccion.x, b.y - prediccion.y) < Math.hypot(a.x - prediccion.x, a.y - prediccion.y) ? b : a))
+  // Entre picos con apoyo parecido que NO son el mismo disco —dos discos
+  // pegados enseñan el mismo canto cada uno— decide el buje: la cara de delante
+  // es la que tiene el extremo de la barra brillando en el centro. Un pico
+  // claramente más apoyado gana sin mirar el buje, porque el brillo del centro
+  // es una pista y el canto es la medida.
+  const rivales = picos.filter((p) => p.sectores >= mejor.sectores * 0.8
+    && Math.hypot(p.x - voto.x, p.y - voto.y) > radioEsperado * 0.5)
+  if (rivales.length) {
+    const buje = (p) => brilloDelBuje(datos, ancho, alto, p, p.radio)
+    voto = [voto, ...rivales].reduce((a, b) => (buje(b) > buje(a) ? b : a))
+  }
+  // Una última pasada con el radio que el propio canto dice tener (el semieje
+  // mayor de su elipse), no el del escalón de la rejilla de radios: sin esto el
+  // radio informado oscilaba un 3 % entre fotogramas con el disco quieto.
+  if (voto.elipse) {
+    const repasado = afinarCentro(candidatos, voto, voto.elipse.semiMayor, nRayos)
+    if (repasado && repasado.cobertura >= voto.cobertura * 0.9) voto = repasado
+  }
+  // La cobertura es cuántas DIRECCIONES tienen un punto en el canto encontrado,
+  // no cuántos rayos vieron algún borde: eso último lo cumple cualquier gimnasio.
+  //
+  // Y se acepta con menos canto del que pedía el ajuste libre, a condición de
+  // que lo que se ve sea un ARCO seguido. Con otro disco pegado detrás, la mitad
+  // del canto de delante no tiene borde —negro contra negro— y el disco está
+  // ahí igual; un arco de un tercio de circunferencia con el radio conocido fija
+  // el centro con un par de píxeles de error. Lo que no se acepta es la misma
+  // cobertura repartida en sectores sueltos, que es la firma del decorado.
+  const cobertura = voto.cobertura
+  if (cobertura < minCobertura && !bastante(voto)) {
+    return { ok: false, motivo: 'marcador_perdido', cobertura }
+  }
+
+  const centro = { x: voto.x, y: voto.y }
+  const elipse = voto.elipse ?? elipseRobusta(voto.puntos, centro)
   if (!elipse) return { ok: false, motivo: 'marcador_perdido', cobertura }
   // `r` del seguimiento es el semieje MAYOR: es lo que se convierte en `sepPx`,
-  // y `sepPx` es la escala de la medición entera. El centro sigue saliendo de la
-  // circunferencia, que con el disco medio tapado es mucho más estable.
-  const ajuste = { ...circulo, r: elipse.semiMayor }
+  // y `sepPx` es la escala de la medición entera. Sale de los puntos del canto
+  // ya elegidos por el voto, alrededor del centro que el voto fijó.
+  const ajuste = { ...centro, r: elipse.semiMayor, residuo: voto.residuo }
 
+  // El salto admisible crece con el disco: corregir un arranque descentrado
+  // medio radio es un salto de 50 px en un disco de 100, y eso no es un
+  // movimiento imposible, es la corrección que este detector existe para hacer.
+  // Otro objeto igual de redondo y del mismo tamaño a un radio de distancia
+  // sigue fuera de alcance, que era lo que la reja vigilaba.
   const salto = Math.hypot(ajuste.x - prediccion.x, ajuste.y - prediccion.y)
-  if (salto > saltoMaxPx) return { ok: false, motivo: 'salto_imposible', cobertura, salto }
+  if (salto > Math.max(saltoMaxPx, radioEsperado * alcance)) return { ok: false, motivo: 'salto_imposible', cobertura, salto }
   if (Math.abs(ajuste.r - radioEsperado) / radioEsperado > toleranciaRadio) {
     return { ok: false, motivo: 'radio_incoherente', cobertura, r: ajuste.r }
   }
@@ -910,7 +1403,21 @@ export function escalaDeLaBarra(cerca, lejos, diametroMm = 450) {
     mmPorPxEn(x) {
       if (!Number.isFinite(x) || cerca.x === lejos.x) return (mmCerca + mmLejos) / 2
       const t = Math.max(0, Math.min(1, (x - cerca.x) / (lejos.x - cerca.x)))
-      return mmCerca + t * (mmLejos - mmCerca)
+      // Se interpola el INVERSO, y no es un refinamiento: es lo unico exacto.
+      //
+      // mm/px es proporcional a la profundidad Z, y en una camara pinhole lo que
+      // resulta AFIN en la coordenada de imagen es 1/Z, no Z. Para una barra recta
+      // sale despejando: Z(x) = C / (x*Dz - f*Dx). O sea que mm/px es HIPERBOLICA
+      // en x, y la recta que se trazaba antes entre los dos extremos siempre pasa
+      // por encima de ella.
+      //
+      // Siempre por encima: el error no se promedia entre videos, los infla todos
+      // en la misma direccion. Medido sobre los saltos que da el corpus real
+      // (wiki/motor-velocidad/escala-por-disco.md): +1,4 % a 27 % de salto, +3,5 %
+      // a 46 %, +10,8 % a 98 %. Interpolando el inverso el error es exactamente
+      // cero para cualquier salto y cualquier orientacion de la barra.
+      const pxPorMm = 1 / mmCerca + t * (1 / mmLejos - 1 / mmCerca)
+      return 1 / pxPorMm
     },
   }
 }

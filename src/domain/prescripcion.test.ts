@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   cargaSugerida,
   componerPrescripcion,
+  esPorTiempo,
   parsearOndulada,
   parsearPrescripcion,
 } from './prescripcion'
@@ -283,6 +284,67 @@ describe('ida y vuelta · parsear y volver a componer no pierde nada', () => {
       expect(componerPrescripcion(e)).toBe(texto)
     })
   }
+})
+
+describe('los ejercicios por tiempo van en su unidad', () => {
+  /**
+   * 2026-09-07: un M7 real llegó con cuatro ejercicios por tiempo —plancha, Pallof,
+   * sentadilla isométrica— a `repsDiana` 1 y frase «A 1 REPS». La app enseña esa
+   * diana como cifra de la estación y valor del registro, así que la persona veía
+   * «1». La convención desde hoy, compartida con el cerebro (I-35): la diana lleva
+   * el número del rango en la unidad del rango y la frase dice «A 30 SEG».
+   */
+  it('lee «A 30 SEG» como una cabecera canónica, con 30 en la diana', () => {
+    const r = parsearPrescripcion('10KG A 30 SEG; 2 SERIES (RIR 4). EL PESO NO CAMBIA.')
+    expect(r.reconocida).toBe(true)
+    expect(r.cargaKg).toBe(10)
+    expect(r.repsDiana).toBe(30)
+    expect(r.sets).toBe(2)
+    expect(r.rirObjetivo).toBe(4)
+    expect(r.notaCoach).toBe('EL PESO NO CAMBIA.')
+  })
+
+  it('lee minutos y segundos escritos enteros', () => {
+    expect(parsearPrescripcion('5KG A 2 MIN; 3 SERIES (RIR 3).').repsDiana).toBe(2)
+    expect(parsearPrescripcion('5KG A 45 SEGUNDOS POR LADO; 3 SERIES.').repsDiana).toBe(45)
+  })
+
+  it('no toma PASOS ni SERIES por una unidad de tiempo', () => {
+    expect(parsearPrescripcion('10KG A 20 PASOS; 3 SERIES.').reconocida).toBe(false)
+  })
+
+  it('compone «A 30 SEG» cuando el rango va en segundos, y «A 2 MIN» en minutos', () => {
+    const plancha = ejercicio({ cargaKg: 10, rango: '30 seg', repsDiana: 30, sets: 2, rirObjetivo: 4 })
+    expect(componerPrescripcion(plancha)).toBe('10KG A 30 SEG; 2 SERIES (RIR 4).')
+    const carrera = ejercicio({ cargaKg: 5, rango: '2 min', repsDiana: 2, sets: 3, rirObjetivo: 3 })
+    expect(componerPrescripcion(carrera)).toBe('5KG A 2 MIN; 3 SERIES (RIR 3).')
+    // Y un rango de repeticiones sigue escribiendo REPS, como siempre.
+    expect(componerPrescripcion(ejercicio({ cargaKg: 60 }))).toBe('60KG A 10 REPS; 3 SERIES (RIR 2).')
+  })
+
+  it('ida y vuelta: lo que se compone por tiempo se vuelve a leer igual', () => {
+    const texto = '10KG A 30 SEG; 2 SERIES (RIR 4). EL PESO NO CAMBIA.'
+    const r = parsearPrescripcion(texto)
+    const e = ejercicio({
+      rango: '30 seg',
+      cargaKg: r.cargaKg,
+      repsDiana: r.repsDiana ?? 30,
+      sets: r.sets ?? 2,
+      rirObjetivo: (r.rirObjetivo ?? 4) as number,
+      notaCoach: r.notaCoach,
+    })
+    expect(componerPrescripcion(e)).toBe(texto)
+  })
+
+  it('esPorTiempo mira el rango, no la diana', () => {
+    expect(esPorTiempo('30 seg')).toBe(true)
+    expect(esPorTiempo('20-30 seg')).toBe(true)
+    expect(esPorTiempo('20 s')).toBe(true)
+    expect(esPorTiempo('2 min')).toBe(true)
+    expect(esPorTiempo('(8-12)')).toBe(false)
+    expect(esPorTiempo('8 por lado')).toBe(false)
+    expect(esPorTiempo(undefined)).toBe(false)
+  })
 })
 
 describe('las tres formas de escribir las repeticiones', () => {

@@ -77,16 +77,76 @@ function limitarCanal(canal: string, v: number): number {
   return r ? limitar(v, r[0], r[1]) : v
 }
 
-/** Valor de un canal en una fase dada, interpolando inicio → medio → fin. */
+/**
+ * Valor de un canal en una fase dada, pasando por inicio → medio → fin.
+ *
+ * ## Por qué ya no son dos rectas
+ *
+ * Hasta el 2026-09-04 esto era `entre(a, medio)` hasta la mitad y `entre(medio, b)`
+ * después: dos segmentos rectos con un CODO en la pose de en medio. El reloj de la
+ * repetición ya era suave —freno en el estancamiento, asentamiento arriba, bajada más
+ * lenta— pero el ángulo de cada articulación cambiaba de pendiente de golpe a mitad de
+ * recorrido, en todos los canales con pose intermedia y en todas las repeticiones. Es la
+ * firma de un maniquí: velocidad articular discontinua, por muy correctos que sean los
+ * ángulos. Bryan lo pidió como «que los movimientos sean mucho más naturales».
+ *
+ * ## Qué es ahora
+ *
+ * Un cúbico de Hermite MONÓTONO (Fritsch–Carlson) por los tres puntos. Tres propiedades,
+ * y las tres hacen falta:
+ *
+ * - **pasa exactamente por las tres poses**: el catálogo sigue mandando;
+ * - **la pendiente es continua en la pose de en medio**: se acabó el codo;
+ * - **no rebasa ninguna pose**: una rodilla que tiene que llegar a 139° no pasa por 142°
+ *   por el camino. Un spline corriente sí lo haría, y un rebase de tres grados en el
+ *   tope de una sentadilla es una rodilla que se hiperextiende en cada repetición.
+ *
+ * En los extremos la tangente es la secante de su lado y NO cero. Cero suavizaría otra
+ * vez el arranque, y el arranque ya lo suaviza el reloj de la repetición: dos suavizados
+ * encadenados dan un sujeto que tarda en arrancar y se lee como pesado. Cada capa hace lo
+ * suyo — el reloj el tiempo, esta curva el espacio.
+ *
+ * Cuando la pose de en medio es exactamente la media de los extremos, la curva ES la
+ * recta: los patrones sin curvatura real no cambian ni una décima.
+ */
 export function canalEnFase(patron: Patron, canal: string, f: number): number {
   const a = patron.inicio[canal] ?? 0
   const b = patron.fin[canal] ?? 0
   const medio = patron.medio?.[canal]
   if (medio === undefined) return entre(a, b, f)
-  // La pose intermedia deja curvar la trayectoria donde el punto medio real no
-  // es la media de los extremos: la rodilla de una sentadilla adelanta pronto y
-  // después es la cadera la que sigue bajando.
-  return f < 0.5 ? entre(a, medio, f / 0.5) : entre(medio, b, (f - 0.5) / 0.5)
+  return hermiteMonotona(a, medio, b, limitar(f, 0, 1))
+}
+
+/**
+ * Cúbico de Hermite monótono por (0, a), (0,5, m) y (1, b).
+ *
+ * Las pendientes de los extremos son las secantes de su tramo. La del medio es la MEDIA
+ * ARMÓNICA de las dos secantes cuando tienen el mismo signo, y cero cuando cambian de
+ * signo o alguna es nula: es la regla de Fritsch–Carlson y lo que garantiza que la curva
+ * nunca se sale del intervalo entre poses consecutivas.
+ */
+export function hermiteMonotona(a: number, m: number, b: number, f: number): number {
+  const h = 0.5
+  const s1 = (m - a) / h
+  const s2 = (b - m) / h
+  const d0 = s1
+  const d2 = s2
+  const d1 = s1 * s2 <= 0 ? 0 : (2 * s1 * s2) / (s1 + s2)
+  // Tramo y parámetro local en [0, 1].
+  const primero = f < h
+  const t = primero ? f / h : (f - h) / h
+  const p0 = primero ? a : m
+  const p1 = primero ? m : b
+  const t0 = primero ? d0 : d1
+  const t1 = primero ? d1 : d2
+  const t2 = t * t
+  const t3 = t2 * t
+  return (
+    (2 * t3 - 3 * t2 + 1) * p0 +
+    (t3 - 2 * t2 + t) * h * t0 +
+    (-2 * t3 + 3 * t2) * p1 +
+    (t3 - t2) * h * t1
+  )
 }
 
 export interface PoseCompleta {
@@ -113,9 +173,34 @@ export function poseAnimada(
   const pose: Pose = {}
 
   // --- 1. Base con retardo distal -----------------------------------------
+  //
+  // EL RETARDO SE ESTIRA, NO SE RECORTA. Hasta el 2026-09-06 esto era
+  // `limitar(fase - retardo * d, 0, 1)`, y esa resta a secas tenía dos consecuencias que
+  // nadie había medido:
+  //
+  //  1. Subiendo, el canal leía como mucho `1 - retardo`, así que **no llegaba nunca al
+  //     ángulo que la ficha declara**. La muñeca, que es la que más retardo tiene (0,11),
+  //     se quedaba en 49° de los 62 escritos, y ni siquiera durante la pausa de arriba.
+  //  2. Y bajando la resta cambiaba de signo, así que el canal saltaba de golpe a su
+  //     extremo. **12,5 grados en 9 milésimas de segundo**, dos veces por repetición, justo
+  //     en los cambios de sentido. Un tirón, no una animación.
+  //
+  // El segundo es el que importa y es el que no se veía contando ángulos: el recorrido
+  // completo SÍ aparecía —por eso ninguna prueba de rango lo cazaba—, aparecía de un salto.
+  //
+  // La ventana disponible es `1 - retardo`, así que en vez de recortarla se REESCALA sobre
+  // ella. Subiendo el canal se queda quieto mientras la fase recorre su retardo y luego
+  // recupera; bajando se queda arriba ese mismo trecho antes de arrancar. El retardo sigue
+  // siendo un retardo —lo proximal manda y lo distal obedece— y además:
+  //
+  //   · en `fase = 1` los dos sentidos dan 1, y en `fase = 0` los dos dan 0, así que en los
+  //     cambios de sentido no hay salto: la función es continua;
+  //   · el canal recorre su rango entero en las dos direcciones.
   const canales = new Set([...Object.keys(patron.inicio), ...Object.keys(patron.fin)])
   for (const c of canales) {
-    const f = limitar(fase - retardoDe(raizDe(c)) * d, 0, 1)
+    const retardo = retardoDe(raizDe(c))
+    const ventana = 1 - retardo
+    const f = ventana <= 0 ? fase : limitar((fase - (d >= 0 ? retardo : 0)) / ventana, 0, 1)
     pose[c] = canalEnFase(patron, c, f)
   }
 
@@ -149,8 +234,22 @@ export function poseAnimada(
   // La cabeza compensa parte de la inclinación del tronco. Esto sustituyó a
   // veintitrés ángulos de cuello escritos a mano que había que recalcular cada
   // vez que se tocaba la inclinación de un patrón.
+  //
+  // PERO SE APARTA CUANDO EL CUELLO ES DEL PATRÓN, que es la misma regla que este archivo
+  // ya aplica más abajo con el contrapeso de los brazos: una capa no puede pelearse con un
+  // canal que el patrón está moviendo a propósito.
+  //
+  // Se destapó en `movilidad_toracica`, donde el cuello declara ir de +26 a −22 —48 grados,
+  // y es parte de lo que ese ejercicio enseña— y hacía 11. No lo sobrescribía nadie: la
+  // compensación es una resta, y ahí el tronco se inclina 52 grados a lo largo de la
+  // repetición, así que la resta se movía 32 en sentido contrario y el resto se lo comía el
+  // tope del cuello. Un ejercicio de movilidad de la espalda alta con el cuello quieto.
   const inclinacion = giroRaiz[0] + (pose.lumbarFlex ?? 0) + (pose.toraxFlex ?? 0)
-  pose.cuelloFlex = (pose.cuelloFlex ?? 0) - inclinacion * 0.62
+  const cuelloDelPatron =
+    Math.abs((patron.fin.cuelloFlex ?? 0) - (patron.inicio.cuelloFlex ?? 0)) > 6
+  if (!cuelloDelPatron) pose.cuelloFlex = (pose.cuelloFlex ?? 0) - inclinacion * 0.62
+  // El cráneo sigue compensando siempre: es el ajuste fino de la mirada, pesa una quinta
+  // parte que el cuello y ningún patrón del catálogo lo escribe.
   pose.craneoFlex = (pose.craneoFlex ?? 0) - inclinacion * 0.12
 
   // --- 5. Vida en lo que no trabaja ---------------------------------------

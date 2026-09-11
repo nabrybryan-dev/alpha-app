@@ -57,6 +57,13 @@ revoke execute on function public.tmp_sin_marcas(jsonb) from public;
 -- julio otra vez y con la peor cara de todas — una semana que nadie ha empezado
 -- naciendo con el día del martes pasado escrito, y el cruce del check-in con la
 -- sesión emparejando dos días distintos sin que nada falle a la vista.
+--
+-- `empezadaEn` y `ultimaMarcaEn` entraron el 2026-09-10 y son de la misma
+-- familia, con una consecuencia PEOR si se heredan: son la ventana con la que se
+-- van a atar las pulsaciones y los pasos a un entrenamiento. Una semana recién
+-- nacida con la ventana de la semana pasada no daría un error: daría mediciones
+-- colgadas de la sesión equivocada, que es el fallo que el plan del pulso viene
+-- a evitar desde su primera línea.
 create or replace function public.tmp_sesion_en_limpio(p_s jsonb)
 returns jsonb language sql immutable as $fn$
   select (
@@ -67,6 +74,8 @@ returns jsonb language sql immutable as $fn$
            end
          ) - 'testPost'          -- inofensivo si la clave no está
            - 'fecha'             -- el día en que se tocó la sesión ANTERIOR
+           - 'empezadaEn'        -- la HORA a la que apareció en la sesión ANTERIOR
+           - 'ultimaMarcaEn'     -- y la de su última señal
     from (
       select case when p_s ? 'bloquesCardio'
                   then jsonb_set(p_s, '{bloquesCardio}',
@@ -207,8 +216,7 @@ create or replace function public.tmp_nuevo_micro(
 ) returns jsonb language sql stable as $fn$
   select jsonb_set(
     jsonb_set(
-      jsonb_set(jsonb_set(p_datos, '{numero}', to_jsonb(p_num)),
-                '{estado}', '"activo"'),
+      jsonb_set(p_datos, '{numero}', to_jsonb(p_num)),
       '{fechaInicio}', to_jsonb(p_inicio)
     ),
     '{sesiones}',
@@ -315,8 +323,23 @@ create or replace function public.tmp_cargar_siguiente(
 ) returns text language plpgsql as $fn$
 declare
   v_uid uuid; v_num int; v_datos jsonb; v_id text; v_src_id text; v_activos int;
+  v_homonimas int;
   v_ambiguas text;
 begin
+  -- LA PERSONA SE ELIGE POR NOMBRE, y `select into` de plpgsql **no falla con
+  -- varias filas: se queda con una cualquiera, en silencio**. Es `R-12`. Dos
+  -- personas con el mismo nombre y esta carga escribe el microciclo entero en la
+  -- que le dé la gana, sin avisar — el mismo mecanismo que ya vigila el bloque de
+  -- abajo para los microciclos activos, aplicado a la persona.
+  --
+  -- Medido el 2026-09-10: 28 personas, 28 nombres distintos. No está ocurriendo;
+  -- esto es para que siga sin ocurrir el día que entre una homónima.
+  select count(*) into v_homonimas from public.usuarios_app u where u.nombre = p_nombre;
+  if v_homonimas > 1 then
+    return 'ABORTA · hay ' || v_homonimas || ' personas que se llaman ' || p_nombre ||
+           '. Cargar por nombre escribiria en una cualquiera: resolver por id.';
+  end if;
+
   select u.id into v_uid from public.usuarios_app u where u.nombre = p_nombre;
   if v_uid is null then return 'NO ENCONTRADO: ' || p_nombre; end if;
 
@@ -335,7 +358,7 @@ begin
   select count(*) into v_activos
     from public.microciclos m
    where m.usuario_id = v_uid
-     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+     and m.estado = 'activo';
 
   if v_activos = 0 then return 'SIN ACTIVO: ' || p_nombre; end if;
   if v_activos > 1 then
@@ -346,7 +369,7 @@ begin
   select m.id, m.numero, m.datos into v_src_id, v_num, v_datos
     from public.microciclos m
    where m.usuario_id = v_uid
-     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+     and m.estado = 'activo';
 
   -- ── UNA CLAVE DE AJUSTE QUE CASA CON DOS EJERCICIOS DE IGUAL NOMBRE ────
   -- `p_ajustes` empareja por PREFIJO DE NOMBRE. Si el microciclo lleva dos
@@ -393,34 +416,61 @@ begin
     return 'ABORTA · el id ' || v_id || ' ya existe y es de otro usuario.';
   end if;
 
+  -- CERRAR ANTES DE ABRIR, y no al revés. Hasta el 2026-09-10 este bloque metía el
+  -- microciclo nuevo como activo trece líneas antes de cerrar el viejo, así que
+  -- había un instante —dentro de la transacción, pero un instante— con DOS activos
+  -- para la misma persona. Eso deja de ser inofensivo en cuanto entre el índice
+  -- único parcial de `R-01`: un índice único NO SE DIFIERE —Postgres solo difiere
+  -- restricciones, y una restricción única no puede ser parcial—, así que el choque
+  -- salta en la sentencia y la carga abortaría para toda persona que ya tenga
+  -- activo. Medido el 2026-09-10: eso son las 24 de la cartera.
+  --
+  -- Invertido no se pierde nada: como todo ocurre en una transacción, nadie ve el
+  -- hueco entre cerrar y abrir. Es el mismo orden que usa `activar_microciclo`
+  -- (migración `0060`), y por la misma razón.
+  --
+  -- Cierra SOLO la columna. El estado ya no vive en el blob: la migracion `0066`
+  -- (2026-09-10) le quito la clave a los 155 microciclos, se la quito a
+  -- `activar_microciclo`, y puso un trigger que la borra en cada escritura, la
+  -- mande quien la mande.
+  --
+  -- LO QUE ESTO SUSTITUYE, para que no vuelva. El 2026-08-16 aparecieron 18
+  -- microciclos con la columna en 'cerrado' y el JSON en 'activo', de 17
+  -- asesorados, porque una carga vieja cerro solo la columna; la respuesta de
+  -- entonces fue escribir en los dos sitios y leer «columna O blob» en todo este
+  -- archivo. Eso curaba el sintoma y conservaba la causa: dos fuentes de verdad.
+  -- Las tres cosas tenian que ir juntas —limpiar el dato, dejar de escribirlo y
+  -- dejar de leerlo— y en la 0066 fueron juntas, en la misma transaccion.
+  --
+  -- Y cierra TODOS los activos de la persona, no solo el de origen. Antes cerraba
+  -- únicamente `v_src_id`: si alguien llegaba con dos activos —el estado roto que ya
+  -- pasó en producción—, el otro sobrevivía, y con el índice puesto la carga
+  -- reventaría con un `duplicate key` en vez de repararlo. La red de seguridad de
+  -- más abajo ya exigía exactamente uno; ahora el cuerpo hace lo que ella pide.
+  update public.microciclos
+     set estado = 'cerrado'
+   where usuario_id = v_uid
+     and id <> v_id
+     and estado = 'activo';
+
   insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
   values (v_id, v_uid, v_num + 1, 'activo',
-          public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes)
+          -- `- 'estado'` se queda como segunda red aunque desde la `0066` ni el
+          -- blob de origen lleve la clave ni el trigger la dejaria entrar. Cuesta
+          -- nada y cubre el caso de cargar un JSON traido de fuera —un export
+          -- viejo, un pegado a mano— que si la lleve.
+          (public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes) - 'estado')
             || jsonb_build_object('id', v_id),
           now())
   on conflict (id) do update
      set datos = excluded.datos, estado = 'activo', actualizado_en = now();
-
-  -- Cierra el anterior en la COLUMNA y en el JSON (la app lee el JSON).
-  -- Las dos, siempre. El 2026-08-16 aparecieron **18 microciclos de julio con la
-  -- columna en 'cerrado' y el JSON en 'activo'**, de 17 asesorados: alguna carga
-  -- vieja cerró solo la columna. Como la app lee el JSON, esas 17 personas
-  -- arrastraban un microciclo fantasma abierto, y la comprobación de «un solo
-  -- activo» no lo veía porque contaba por la columna. Se corrigieron en bloque.
-  --
-  -- Se cierra POR ID, no por `numero`. Con dos bloques conviviendo hay números
-  -- repetidos —el M5 del bloque 1 y el M5 del bloque 2 de la misma persona— y
-  -- cerrar por número tumbaba los dos.
-  update public.microciclos
-     set estado = 'cerrado', datos = jsonb_set(datos, '{estado}', '"cerrado"')
-   where id = v_src_id and id <> v_id;
 
   -- Red de seguridad: después de cargar tiene que quedar exactamente uno activo.
   -- Si no, se revienta la transacción entera en vez de dejar el fantasma puesto.
   select count(*) into v_activos
     from public.microciclos m
    where m.usuario_id = v_uid
-     and (m.estado = 'activo' or m.datos->>'estado' = 'activo');
+     and m.estado = 'activo';
 
   if v_activos <> 1 then
     raise exception 'ABORTA · % quedó con % microciclos activos tras la carga',
@@ -491,14 +541,18 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 -- `src/domain/prescripcion.ts`, que son dos implementaciones de la misma regla y
 -- podrían separarse sin que nadie lo notara.
 --
--- Y una más, añadida el 2026-08-16 porque las anteriores no la veían: el estado
--- de la COLUMNA y el del JSON tienen que coincidir en toda la tabla.
+-- Y una mas, nacida el 2026-08-16 y cambiada de forma el 2026-09-10. Entonces
+-- pedia que el estado de la COLUMNA y el del JSON coincidieran; ahora pide algo
+-- mas simple, porque el JSON ya no guarda estado:
 --
 --   select count(*) from public.microciclos
---    where estado is distinct from (datos->>'estado');   -- tiene que dar 0
+--    where jsonb_exists(datos, 'estado');                -- tiene que dar 0
 --
--- Contar activos por la columna daba «uno por persona» mientras 17 asesorados
--- tenían un microciclo de julio con el JSON en 'activo'. La app lee el JSON.
+-- Por que existe: contar activos por la columna daba «uno por persona» mientras
+-- 17 asesorados tenian un microciclo de julio con el JSON en 'activo', y la app
+-- de entonces leia el JSON. Desde la `0066` manda la columna y un trigger borra
+-- la clave en cada escritura, asi que esta consulta ya no busca un desacuerdo:
+-- busca si el trigger se cayo o si alguien lo quito.
 
 
 -- ============================================================================

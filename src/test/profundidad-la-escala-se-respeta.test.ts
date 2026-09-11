@@ -43,7 +43,19 @@ describe('la escala de profundidad', () => {
    * Va nombrado y no como patrón: una excepción que se puede grepear es una
    * excepción; una regla laxa deja de guardar nada.
    */
-  const FUERA_DE_LA_ESCALA_CON_MOTIVO = ['GraficaBrazo.tsx']
+  /**
+   * Y la segunda, del 2026-09-04: `TamborDeLaSemana`.
+   *
+   * Su `translateZ(150px)` NO es un escalón de superficie: es el RADIO del cilindro sobre
+   * el que se montan los siete días. Cada fila se gira a su ángulo y se empuja hacia fuera
+   * esa distancia — es lo que hace que el tambor sea un tambor y no una pila de tarjetas.
+   *
+   * Obligarlo a `--prof-relieve` no lo haría coherente con nada: cambiaría el diámetro de
+   * la rueda, que es geometría de un objeto y no altura de una capa. Es exactamente el
+   * mismo caso que `GraficaBrazo`: una escena con su propia perspectiva donde Z mide una
+   * distancia del mundo, no un escalón de interfaz.
+   */
+  const FUERA_DE_LA_ESCALA_CON_MOTIVO = ['GraficaBrazo.tsx', 'TamborDeLaSemana.tsx']
 
   it('ningún translateZ de superficie se sale de los cinco escalones', () => {
     // Los cinco y nada más. Un valor suelto —`translateZ(20px)`— rompe la escala sin

@@ -301,7 +301,35 @@ function estadiometro(m: Malla): void {
  * Recibe la malla en vez de crearla para poder añadirse a la del sujeto: una sola
  * malla, un solo búfer, una sola llamada de dibujo.
  */
-export function construirLaboratorio(m: Malla): void {
+export interface OpcionesDeLaboratorio {
+  /**
+   * SOLO LO QUE MIDE, porque la sala ya pone el sitio.
+   *
+   * Este módulo nació explicando «por qué una bahía y no un gimnasio», y daba dos razones:
+   * que un gimnasio dibujado disfrazaría lo que la app es, y que unas paredes taparían al
+   * sujeto en media vuelta. **Las dos han caducado el 2026-09-05**: Bryan pidió el gimnasio
+   * y está construido, y lo de las paredes se arregló acotando la órbita para que la cámara
+   * no salga de la sala (`topeDeDistanciaEnSala`).
+   *
+   * Lo que no ha caducado es el criterio de admisión: aquí ni una línea es decorativa. Con
+   * la sala puesta, el suelo, la retícula, el bordillo y el estadiómetro **compiten** con
+   * ella —son otra estética, otra luz y otro suelo encima del suyo— y además el gimnasio ya
+   * da lo suyo: la plataforma marca la zona y sus juntas dan la escala.
+   *
+   * Lo que la sala NO puede dar y por eso se queda: la **placa** —dónde se planta el
+   * sujeto, lo que impide que parezca flotando— y el **eje sagital**, que es el plano en el
+   * que el encoder mide de verdad; con una sola cámara el frontal no se puede medir, y el
+   * suelo lo dice en vez de dejarlo en una nota al pie.
+   */
+  soloMarcasDeMedida?: boolean
+}
+
+export function construirLaboratorio(m: Malla, opciones: OpcionesDeLaboratorio = {}): void {
+  if (opciones.soloMarcasDeMedida) {
+    ejeSagital(m)
+    placa(m)
+    return
+  }
   disco(m, RADIO_SUELO, 0, SUELO)
   reticula(m)
   ejeSagital(m)

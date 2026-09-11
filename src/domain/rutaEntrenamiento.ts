@@ -82,18 +82,78 @@ function detalleDeSesion(sesion: Sesion): string {
 }
 
 /**
- * Reparte las sesiones del microciclo en los 7 días de la semana de `hoyIso`.
+ * ¿La rejilla está enseñando una semana que todavía no ha empezado?
+ *
+ * Sirve para que la pantalla lo DIGA. Una semana adelantada no tiene día de
+ * hoy, así que sin aviso parece la de siempre con todo por hacer.
+ */
+export function semanaEsAdelantada(microciclo: Microciclo, hoyIso: string): boolean {
+  return Boolean(microciclo.fechaInicio) && hoyIso < microciclo.fechaInicio
+}
+
+/**
+ * El último día que el microciclo cubre, según su cadencia.
+ *
+ * Misma cuenta que `evaluarCierre` (activación): vence cuando hoy alcanza
+ * `fechaInicio + cadenciaDias`, así que el último día DENTRO es la víspera.
+ * Sin fecha de inicio o sin cadencia no se inventa un fin —la misma regla que
+ * `yaEmpezo`: un campo ausente degrada a la conducta de antes, no marca a nadie
+ * como vencido por error.
+ */
+export function ultimoDiaDe(microciclo: Microciclo): string | undefined {
+  if (!microciclo.fechaInicio || !microciclo.cadenciaDias) return undefined
+  return sumarDias(microciclo.fechaInicio, microciclo.cadenciaDias - 1)
+}
+
+/**
+ * ¿La rejilla está enseñando una semana que YA TERMINÓ?
+ *
+ * Es la otra mitad de `semanaEsAdelantada`, y sirve para lo mismo: que la
+ * pantalla lo DIGA. Un microciclo vencido sigue repartiendo sus sesiones por
+ * nombre de día —a propósito, ver `armarSemana`—, así que sin aviso la semana
+ * vieja es indistinguible de una nueva. El 7-sep-2026 un asesorado llevaba
+ * trece días viendo su M5 como si fuera el M6.
+ */
+export function semanaEsVencida(microciclo: Microciclo, hoyIso: string): boolean {
+  const ultimo = ultimoDiaDe(microciclo)
+  return ultimo !== undefined && hoyIso > ultimo
+}
+
+/**
+ * Reparte las sesiones del microciclo en los 7 días de su semana.
  *
  * Las sesiones que traen `dia` caen en su día exacto. Las que no —el Excel no
  * siempre lo trae— se colocan por `orden` en los primeros huecos libres: es lo
  * mismo que ya hacía la lista de sesiones, y así el calendario nunca sale vacío
  * por un campo que el coach no llenó.
+ *
+ * LA REJILLA SE ANCLA AL MICROCICLO CUANDO ESTE AÚN NO HA EMPEZADO (2026-09-06).
+ *
+ * Antes se anclaba siempre a la semana natural de hoy, y eso escondía el plan
+ * hasta el día en que arrancaba: el domingo 6-sep se cargaron catorce
+ * microciclos que empezaban el lunes 7 y las catorce cuentas decían «Descanso»
+ * los siete días. Los planes estaban bien; no se podían ver.
+ *
+ * Importa porque la revisión ocurre la víspera. Si el plan no se ve hasta que
+ * ya corre, un error de programación se descubre con la gente entrenándolo —y
+ * eso pasó—. Adelantarlo también sirve al asesorado: sabe el domingo qué le
+ * espera.
+ *
+ * NO SE TOCA EL CANDADO DE `yaEmpezo`, y es la clave de que esto sea seguro:
+ * al anclar a la semana del arranque, todos los días dibujados caen en el
+ * bloque o antes de él, nunca después. El fallo del 24-ago sigue siendo
+ * imposible por dos vías independientes, no por una.
  */
 export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
   const inicio = inicioSemanaDe(microciclo)
-  const dowHoy = new Date(`${hoyIso}T00:00:00`).getDay()
-  const desplazamiento = inicio === 'DOMINGO' ? dowHoy : (dowHoy + 6) % 7
-  const primerDia = sumarDias(hoyIso, -desplazamiento)
+  // El ancla es hoy mientras el microciclo corra, y su arranque si aún no ha
+  // empezado. Cuando hoy cae en la misma semana natural que el arranque —el
+  // caso de agosto: lunes 24 con bloque del martes 25— las dos anclas dan la
+  // MISMA rejilla, así que ahí no cambia nada.
+  const ancla = semanaEsAdelantada(microciclo, hoyIso) ? microciclo.fechaInicio : hoyIso
+  const dowAncla = new Date(`${ancla}T00:00:00`).getDay()
+  const desplazamiento = inicio === 'DOMINGO' ? dowAncla : (dowAncla + 6) % 7
+  const primerDia = sumarDias(ancla, -desplazamiento)
 
   const conDia = new Map<DiaSemana, Sesion>()
   const sinDia: Sesion[] = []
@@ -119,8 +179,10 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
    * SOLO SE ACOTA POR ABAJO, y es deliberado. El mismo descuadre tiene una
    * segunda mitad —un microciclo ya vencido sigue repartiendo sesiones de la
    * semana pasada— pero esa afecta a quien YA está entrenando y taparla le
-   * dejaría la semana en blanco. Es una decisión distinta, con otro riesgo, y va
-   * en su propia tanda. Aquí solo se impide ofrecer lo que aún no ha empezado.
+   * dejaría la semana en blanco: entrenar el plan viejo es mejor que nada.
+   * Desde el 2026-09-07 esa segunda mitad NO se tapa pero SÍ se dice: la
+   * pantalla pregunta `semanaEsVencida` y lo escribe, y el semáforo del coach
+   * se pone en ámbar. Aquí solo se impide ofrecer lo que aún no ha empezado.
    *
    * Si falta `fechaInicio`, NO se acota: degradar a la conducta de antes es
    * preferible a dejar a alguien sin semana por un campo ausente.

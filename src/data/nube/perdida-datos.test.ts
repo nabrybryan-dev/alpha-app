@@ -330,26 +330,39 @@ describe('el interruptor de la tabla hidratacion', () => {
 
   /**
    * ESCENARIO REAL
-   * `hidratarDesdeNube` decide si la tabla `hidratacion` existe mirando SOLO si
-   * la petición dio error (hidratar.ts:76-77):
+   * `hidratarDesdeNube` decidía si la tabla `hidratacion` existe mirando SOLO si
+   * la petición dio error. Pero un error ahí no significa "la tabla no existe":
+   * significa cualquier cosa, incluido un 500 pasajero o un corte de wifi. Y
+   * apagar el interruptor por eso dejaba `registrarHidratacion` sin encolar, con
+   * cada vaso de agua encerrado en el móvil hasta que la siguiente hidratación
+   * con éxito lo borrara con la foto del servidor.
    *
-   *     const hidratacion = await sb.from('hidratacion').select('*')
-   *     marcarTablaHidratacion(!hidratacion.error)
+   * Hoy el interruptor solo lo apaga un "esta tabla no existe" de verdad
+   * (`42P01`/`PGRST205`), y esta prueba lo fija.
    *
-   * Pero un error ahí no significa "la tabla no existe": significa cualquier
-   * cosa, incluido un 500 pasajero o un corte de wifi. Como esa lectura va
-   * SUELTA (fuera del `Promise.all`), un fallo suyo no rompe la hidratación:
-   * la apaga en silencio.
+   * QUÉ CAMBIÓ EL 2026-09-10, porque esta prueba lo vio antes que nadie: ese
+   * mismo 500 pasajero **ahora aborta la descarga** en vez de seguir con la
+   * hidratación a cero (`caso-01`, `REC-03`). Antes, un fallo de esa consulta se
+   * veía en pantalla igual que un día sin beber, y además escribía ese vacío
+   * encima de lo que la persona tenía en el móvil.
    *
-   * A partir de ese momento `registrarHidratacion` deja de encolar
-   * (sync.ts:313) y cada vaso de agua se queda solo en el móvil… hasta que la
-   * siguiente hidratación con éxito lo borre con la foto del servidor.
+   * Las dos cosas van juntas y por eso se prueban juntas: la descarga se queja
+   * **y** el agua sigue sincronizándose. Que grite no puede costar el interruptor.
    */
-  it('un fallo pasajero al leer hidratacion no debe dejar de sincronizar el agua', async () => {
+  it('un fallo pasajero al leer hidratacion aborta la descarga pero NO deja de sincronizar el agua', async () => {
     const { hidratar, sync, db } = await appEnModoNube()
     const peticiones = fetchConFreno()
 
-    const enCurso = hidratar.hidratarDesdeNube()
+    // El manejador del rechazo se engancha AQUÍ, no al final. Entre esta línea y
+    // la comprobación de abajo hay varios `await`, y si la promesa se rompe en
+    // uno de ellos sin nadie escuchando, Node lo cuenta como rechazo NO manejado:
+    // vitest lo reporta como `Errors 1 error` y `npm run verify` sale 1 **aunque
+    // las 4.103 pruebas pasen**. Es un falso rojo que cuesta encontrar, porque el
+    // resumen dice que todo pasó.
+    const enCurso = hidratar.hidratarDesdeNube().then(
+      () => null,
+      (e: unknown) => e as Error,
+    )
     await vi.waitFor(() => expect(peticiones.length).toBeGreaterThanOrEqual(11))
     soltarLecturas(peticiones, LECTURA_HIDRATACION)
 
@@ -366,13 +379,15 @@ describe('el interruptor de la tabla hidratacion', () => {
       } else peticiones.push(p)
     }
     await bombear(peticiones)
-    await enCurso
+    // La descarga se queja en vez de guardar un cero que no es verdad.
+    const fallo = await enCurso
+    expect(fallo?.message).toMatch(/No se pudo descargar tus datos/)
 
     // Valentina se bebe un vaso de agua.
     db.nutricion.registrarHidratacion('u-val', '2026-07-27', 250)
     expect(db.nutricion.hidratacionDe('u-val', '2026-07-27')).toBe(250) // se ve en pantalla
 
-    expect(sync.pendientesDeSync()).toBe(1) // …pero ¿va camino del servidor?
+    expect(sync.pendientesDeSync()).toBe(1) // …y va camino del servidor
   })
 })
 
