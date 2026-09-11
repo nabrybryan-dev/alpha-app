@@ -9,6 +9,9 @@ import {
 let fila: { path: string; grabado_el: string | null } | null
 let filaPropia: { path: string; semana: string } | null
 let errorPropio: { code: string; message: string } | null
+/** A quién pidió la fila del vídeo: tiene que ser SU id, no «lo que devuelva». */
+let pidioPara: string | undefined
+let haySesion = true
 let urlQueDevuelve: string | undefined
 let firmas = 0
 let consultas = 0
@@ -17,27 +20,36 @@ let ultimaClave: string | undefined
 vi.mock('../supabase', () => ({
   modoNube: true,
   supabase: () => ({
+    auth: {
+      getUser: () =>
+        Promise.resolve({ data: haySesion ? { user: { id: 'u-1' } } : { user: null } }),
+    },
     from: () => ({
       select: () => ({
-        // La consulta del vídeo propio no filtra por persona: lo hace la
-        // política de la base. Por eso encadena order/limit y no `eq`.
-        order: () => ({
-          limit: () => ({
-            maybeSingle: () => {
-              consultas += 1
-              return Promise.resolve({ data: filaPropia, error: errorPropio })
-            },
+        // El vídeo propio se pide por `eq('usuario_id', …)` ADEMÁS de la política
+        // de la base: el filtro explícito y la regla del servidor son dos capas,
+        // y este simulacro vigila que el cliente ponga la suya.
+        eq: (columna: string, valor: string) => ({
+          order: () => ({
+            limit: () => ({
+              maybeSingle: () => {
+                consultas += 1
+                if (columna === 'usuario_id') pidioPara = valor
+                // `error` viaja por AQUÍ, que es el camino que recorre el código
+                // de verdad. Estuvo un rato en la rama `order` suelta de abajo
+                // —la de antes de que la consulta filtrara por persona— y ahí no
+                // lo habría leído nadie: las pruebas del aviso habrían mirado un
+                // camino muerto y pasado por otra razón.
+                return Promise.resolve({ data: filaPropia, error: errorPropio })
+              },
+            }),
           }),
+          maybeSingle: () => {
+            consultas += 1
+            ultimaClave = valor
+            return Promise.resolve({ data: fila })
+          },
         }),
-        eq: (_columna: string, valor: string) => {
-          ultimaClave = valor
-          return {
-            maybeSingle: () => {
-              consultas += 1
-              return Promise.resolve({ data: fila })
-            },
-          }
-        },
       }),
     }),
     storage: {
@@ -59,6 +71,8 @@ beforeEach(() => {
   firmas = 0
   consultas = 0
   ultimaClave = undefined
+  pidioPara = undefined
+  haySesion = true
   olvidarMediosFirmados()
   olvidarElAviso()
 })
@@ -116,6 +130,20 @@ describe('el vídeo de cada quien', () => {
     return miVideoDeLaSemana().then((v) => {
       expect(v).toEqual({ url: 'https://storage/firmada', grabadoEl: '2026-09-07' })
     })
+  })
+
+  it('pide EL SUYO, no lo que devuelva la política', async () => {
+    // El coach puede leer las filas de todo el mundo —lo necesita para
+    // revisarlas—, así que sin este filtro esta consulta le habría dado el
+    // vídeo más reciente de cualquiera. Y el coach también entrena.
+    await miVideoDeLaSemana()
+    expect(pidioPara).toBe('u-1')
+  })
+
+  it('sin sesión no pregunta nada', async () => {
+    haySesion = false
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(consultas).toBe(0)
   })
 
   it('sin vídeo propio todavía devuelve null y no firma nada', () => {

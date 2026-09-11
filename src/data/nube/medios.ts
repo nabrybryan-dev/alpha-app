@@ -102,16 +102,30 @@ export function olvidarElAviso(): void {
 /**
  * El vídeo de ESTA semana de quien tenga la sesión abierta, ya firmado.
  *
- * No hace falta decir de quién: la política de la 0065 solo devuelve la fila de
- * cada quien. Pedirlo por id sería darle al cliente una llave que no necesita —
- * y la primera carpeta de la ruta (`personas/<uuid>/`) decide el archivo.
+ * **Se pide por id a propósito, aunque la política ya filtre.** Fiarlo todo a
+ * la política tenía un fallo que no se ve hasta que pasa: el COACH puede leer
+ * las filas de todo el mundo —lo necesita para revisarlas antes de firmarlas—,
+ * así que esta consulta, sin el filtro, le habría devuelto el vídeo más
+ * reciente de CUALQUIER persona. Y el coach también entrena y abre esta misma
+ * pantalla; la nutricionista del equipo, igual.
+ *
+ * Así que la política decide qué PUEDE ver y esta línea decide qué PIDE. Las
+ * dos, no una.
+ *
+ * Lo que no se ve aquí y lo cierra la 0068: una fila sin firmar no la devuelve
+ * la política, así que un vídeo existe y no sale hasta que alguien lo aprueba.
  */
 export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
   if (!modoNube) return null
   try {
+    const { data: sesion } = await supabase().auth.getUser()
+    const yo = sesion?.user?.id
+    if (!yo) return null
+
     const { data: fila, error } = await supabase()
       .from('videos_semanales')
       .select('path, semana')
+      .eq('usuario_id', yo)
       .order('semana', { ascending: false })
       .limit(1)
       .maybeSingle()
