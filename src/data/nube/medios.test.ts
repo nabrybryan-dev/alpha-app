@@ -3,6 +3,9 @@ import { medioPublicado, miVideoDeLaSemana, olvidarMediosFirmados } from './medi
 
 let fila: { path: string; grabado_el: string | null } | null
 let filaPropia: { path: string; semana: string } | null
+/** A quién pidió la fila del vídeo: tiene que ser SU id, no «lo que devuelva». */
+let pidioPara: string | undefined
+let haySesion = true
 let urlQueDevuelve: string | undefined
 let firmas = 0
 let consultas = 0
@@ -11,10 +14,30 @@ let ultimaClave: string | undefined
 vi.mock('../supabase', () => ({
   modoNube: true,
   supabase: () => ({
+    auth: {
+      getUser: () =>
+        Promise.resolve({ data: haySesion ? { user: { id: 'u-1' } } : { user: null } }),
+    },
     from: () => ({
       select: () => ({
         // La consulta del vídeo propio no filtra por persona: lo hace la
         // política de la base. Por eso encadena order/limit y no `eq`.
+        eq: (columna: string, valor: string) => ({
+          order: () => ({
+            limit: () => ({
+              maybeSingle: () => {
+                consultas += 1
+                if (columna === 'usuario_id') pidioPara = valor
+                return Promise.resolve({ data: filaPropia })
+              },
+            }),
+          }),
+          maybeSingle: () => {
+            consultas += 1
+            ultimaClave = valor
+            return Promise.resolve({ data: fila })
+          },
+        }),
         order: () => ({
           limit: () => ({
             maybeSingle: () => {
@@ -23,15 +46,7 @@ vi.mock('../supabase', () => ({
             },
           }),
         }),
-        eq: (_columna: string, valor: string) => {
-          ultimaClave = valor
-          return {
-            maybeSingle: () => {
-              consultas += 1
-              return Promise.resolve({ data: fila })
-            },
-          }
-        },
+
       }),
     }),
     storage: {
@@ -52,6 +67,8 @@ beforeEach(() => {
   firmas = 0
   consultas = 0
   ultimaClave = undefined
+  pidioPara = undefined
+  haySesion = true
   olvidarMediosFirmados()
 })
 
@@ -108,6 +125,20 @@ describe('el vídeo de cada quien', () => {
     return miVideoDeLaSemana().then((v) => {
       expect(v).toEqual({ url: 'https://storage/firmada', grabadoEl: '2026-09-07' })
     })
+  })
+
+  it('pide EL SUYO, no lo que devuelva la política', async () => {
+    // El coach puede leer las filas de todo el mundo —lo necesita para
+    // revisarlas—, así que sin este filtro esta consulta le habría dado el
+    // vídeo más reciente de cualquiera. Y el coach también entrena.
+    await miVideoDeLaSemana()
+    expect(pidioPara).toBe('u-1')
+  })
+
+  it('sin sesión no pregunta nada', async () => {
+    haySesion = false
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(consultas).toBe(0)
   })
 
   it('sin vídeo propio todavía devuelve null y no firma nada', () => {
