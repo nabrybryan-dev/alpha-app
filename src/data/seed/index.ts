@@ -16,6 +16,7 @@ import type {
   RegistroComida,
   RegistroHidratacion,
   Respuesta,
+  RespuestaMapaDeVida,
   Usuario,
   VetoAlimento,
   VisibilidadAsesorado,
@@ -47,6 +48,8 @@ export interface SeedDb {
   hidratacion?: RegistroHidratacion[]
   /** Opcional por lo mismo: el registro de comidas llegó después. */
   perfilesNutricion?: PerfilNutricion[]
+  /** El mapa de vida (0059). Opcional: llegó después y no todos lo respondieron. */
+  mapaDeVida?: RespuestaMapaDeVida[]
   visibilidades?: VisibilidadAsesorado[]
   /** Los que marcó la nutricionista. Opcional: llegó después. */
   vetosAlimentarios?: VetoAlimento[]

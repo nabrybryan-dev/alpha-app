@@ -701,6 +701,22 @@ export interface PerfilNutricion {
 }
 
 /**
+ * La respuesta al mapa de vida (`src/domain/mapaDeVida/preguntas.ts`): cómo
+ * vive el asesorado, no cómo durmió hoy — eso ya está en `CheckinDiario`.
+ *
+ * Una fila por asesorado, igual que `PerfilNutricion`. Las claves de
+ * `valores` son los `id` de `PreguntaMapaDeVida`; se guarda en crudo y sin
+ * columnas propias por pregunta, para que añadir una pregunta nueva no pida
+ * una migración (ver `src/domain/mapaDeVida/contrato.md`).
+ */
+export interface RespuestaMapaDeVida {
+  usuarioId: string
+  valores: Record<string, string>
+  /** Cuándo se guardó por última vez. */
+  respondidoEnIso: string
+}
+
+/**
  * Una vez que el asesorado estimó primero y pesó después.
  *
  * El orden importa y es lo que hace que la prueba valga: si pesa antes de

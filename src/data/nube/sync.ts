@@ -671,6 +671,26 @@ export function crearDbSincronizada(local: Db): Db {
       },
     },
 
+    mapaDeVida: {
+      ...local.mapaDeVida,
+      guardar: (usuarioId, valores) => {
+        local.mapaDeVida.guardar(usuarioId, valores)
+        // Se relee de local para subir con lo acumulado (`mockDb.guardar` funde
+        // sobre lo que ya había), nunca solo con lo que trajo esta llamada.
+        const respuesta = local.mapaDeVida.respuestaDe(usuarioId)
+        if (!respuesta) return
+        encolar({
+          tabla: 'mapa_de_vida_respuestas',
+          tipo: 'upsert',
+          payload: {
+            usuario_id: usuarioId,
+            valores: respuesta.valores,
+            respondido_en: respuesta.respondidoEnIso,
+          },
+        })
+      },
+    },
+
     cuestionarios: {
       ...local.cuestionarios,
       responder: (cuestionarioId, usuarioId, valores) => {

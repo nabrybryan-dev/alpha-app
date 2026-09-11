@@ -21,6 +21,7 @@ import type {
   RegistroComida,
   RegistroItem,
   Respuesta,
+  RespuestaMapaDeVida,
   SerieRegistrada,
   SexoDeFicha,
   TestPostSesion,
@@ -134,6 +135,17 @@ export interface PerfilNutricionRepo {
   byUsuario(usuarioId: string): PerfilNutricion | undefined
   /** Guarda lo respondido. `completada` marca que ya no hay que preguntar más. */
   guardar(usuarioId: string, respuestas: PerfilNutricion['respuestas'], completada: boolean): void
+}
+
+/**
+ * El mapa de vida (`src/domain/mapaDeVida/preguntas.ts`): cómo vive el
+ * asesorado, guardado en crudo para no pedir migración cada vez que se añade
+ * una pregunta. Una fila por asesorado, igual patrón que `PerfilNutricionRepo`.
+ */
+export interface MapaDeVidaRepo {
+  respuestaDe(usuarioId: string): RespuestaMapaDeVida | undefined
+  /** Se acumula sobre lo ya respondido: retomar la encuesta no borra lo anterior. */
+  guardar(usuarioId: string, valores: Record<string, string>): void
 }
 
 /**
@@ -286,6 +298,7 @@ export interface Db {
   bienestar: BienestarRepo
   nutricion: NutricionRepo
   perfilNutricion: PerfilNutricionRepo
+  mapaDeVida: MapaDeVidaRepo
   visibilidad: VisibilidadRepo
   vetados: VetadosRepo
   despensa: DespensaRepo
