@@ -1,0 +1,37 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/ASUS/dev/alpha-fix-encoder[39m
+
+ [32m✓[39m src/features/entrenar/encoder/medidaDePalancas.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/importarMedida.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/historial.test.ts [2m([22m[2m22 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/tanda.test.ts [2m([22m[2m34 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/nucleo.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 74[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/la-puerta-se-cierra-siempre.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/historialDeMicrociclos.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/HistorialEncoder.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[90m 103[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/GraficaBrazo.excedente.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 138[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/SelloCalidad.test.tsx [2m([22m[2m22 tests[22m[2m)[22m[33m 326[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/ResultadoSerie.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 360[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/seguimiento.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 448[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/Encuadre.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 515[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/Palancas.test.tsx [2m([22m[2m21 tests[22m[2m)[22m[33m 690[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/toque.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/escala.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/acusarToque.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/avisoDisco.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/cifras.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/AvisoDeCaptura.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[90m 39[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/TablaTanda.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[90m 64[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/Visor.aperturaCamara.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[90m 162[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/importarPista.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/huellasArticulares.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/PanelPalancas.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 471[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/EncoderPage.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 462[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/HojaMedicion.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1027[2mms[22m[39m
+ [32m✓[39m src/features/entrenar/encoder/HistorialDeVelocidad.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m28 passed[39m[22m[90m (28)[39m
+[2m      Tests [22m [1m[32m288 passed[39m[22m[90m (288)[39m
+[2m   Start at [22m 12:34:42
+[2m   Duration [22m 8.59s[2m (transform 5.97s, setup 20.41s, collect 13.20s, tests 5.02s, environment 42.09s, prepare 8.46s)[22m
+

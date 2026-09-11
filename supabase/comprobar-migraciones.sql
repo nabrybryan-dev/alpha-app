@@ -1078,4 +1078,51 @@ select '0058 - el cribado vive en la base', 'RLS encendida y el UPDATE es solo d
                  and coalesce(qual, '') || coalesce(with_check, '') like '%uid()%')
        then 'SI' else 'NO' end
 
+union all
+-- La 0060: activar es UNA operación. Se pide la función Y que no la pueda llamar la
+-- clave anónima, porque `create function` concede EXECUTE a PUBLIC y sin el revoke la
+-- puerta queda abierta aunque la RLS pare las escrituras. Con la función sin el revoke
+-- diría NO, que es lo que se quiere: media migración aplicada no es aplicada.
+select '0060 - activar microciclo en una operacion', 'activar_microciclo existe y anon no puede llamarla',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'activar_microciclo'
+                 and not has_function_privilege('anon', p.oid, 'execute'))
+       then 'SI' else 'NO' end
+
+union all
+-- La 0062: el cribado guarda su historia. Se piden las dos cosas que la hacen segura y
+-- útil a la vez: que la vista `cribado_vigente` exista CON `security_invoker` —sin él se
+-- saltaría la RLS de la tabla y cualquiera vería el cribado de cualquiera— y que la
+-- clave primaria ya no sea la persona sino la fila. Con la vista creada sin la opción
+-- diría NO, que es el estado peligroso.
+select '0062 - el cribado guarda su historia', 'cribado_vigente con security_invoker y la clave es la fila',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'cribado_vigente' and c.relkind = 'v'
+                 and coalesce(c.reloptions::text, '') like '%security_invoker=true%')
+            and exists (
+              select 1 from pg_constraint k
+                join pg_class t on t.oid = k.conrelid
+                join pg_namespace n on n.oid = t.relnamespace
+               where n.nspname = 'public' and t.relname = 'cribado' and k.contype = 'p'
+                 and pg_get_constraintdef(k.oid) = 'PRIMARY KEY (id)')
+       then 'SI' else 'NO' end
+
+union all
+-- La 0065: los días que la persona puede entrenar. La función tiene que existir, la
+-- clave anónima no puede llamarla, y el trigger `proteger_perfil` tiene que admitir la
+-- clave `diasDisponibles` — si no, la app llamaría a una función que el candado
+-- rechaza y la cola descartaría los días en silencio.
+select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe, anon no la llama y proteger_perfil admite la clave',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'registrar_dias_disponibles'
+                 and not has_function_privilege('anon', p.oid, 'execute'))
+            and exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'proteger_perfil'
+                 and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+       then 'SI' else 'NO' end
+
 order by migracion, senal;

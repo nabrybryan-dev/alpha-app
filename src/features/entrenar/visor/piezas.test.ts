@@ -1,7 +1,8 @@
 import { brotliCompressSync } from 'node:zlib'
 import { afterEach, describe, expect, it } from 'vitest'
 import { escribirPieza, leerPieza } from '../escena/piezas3d'
-import { cargarPiezas, PIEZAS_DEL_SALON, sitioDe, traerDeRed } from './piezas'
+import { cargarPiezas, traerDeRed } from './cargaDelAtlas'
+import { PIEZAS_DEL_SALON, sitioDe } from './piezas'
 import { TEXTURAS_DEL_SALON } from './texturas'
 
 /**

@@ -245,6 +245,35 @@ select pruebas.afirmar(
   'la medida repetida no sustituyó, o la nueva no se añadió en orden'
 );
 
+-- 15. Una medida con una clave NUEVA —`cuerpo`, las ocho medidas de bienestar que trae
+--     `src/domain/medidas.ts` (rama `capa/datos`: tibiaCm, femurCm, torsoCm, antebrazoCm,
+--     brazoCm, anchoClavicularCm, cinturaCm, caderasCm)— que llega a `registrar_medida`
+--     para una fecha que YA tiene medida (2026-09-06, sustituida en el caso 12 de arriba).
+--
+--     No es un fallo a media operación: `registrar_medida` (migración 0057) es OPACA al
+--     contenido del jsonb —solo exige que traiga `fecha`, tal como dice su propio
+--     comentario de función y confirma `docs/specs/2026-09-08-medidas-en-el-dominio.md`
+--     §5 («no hay 0058, y no haberla escrito es la decisión, no un olvido»)—, así que esto
+--     sustituye limpio, igual que cualquier otro día repetido, y la clave nueva llega
+--     intacta. Esta prueba es la que deja escrito que ese camino, hoy sin validar en el
+--     servidor, de verdad no revienta con una clave que la base nunca había visto.
+select public.registrar_medida(
+  '{"fecha": "2026-09-06", "alturaCm": 171, "perimetros": {}, "cuerpo": {"femurCm": 45.2, "tibiaCm": 38.0}}'::jsonb
+);
+
+select pruebas.afirmar(
+  (select jsonb_array_length(datos -> 'medidas') from public.perfiles where usuario_id = '22222222-2222-2222-2222-222222222222') = 2,
+  'una clave nueva en la medida creó una fila de más en vez de sustituir la del mismo día'
+);
+
+select pruebas.afirmar(
+  (select m -> 'cuerpo'
+     from public.perfiles p, jsonb_array_elements(p.datos -> 'medidas') m
+    where p.usuario_id = '22222222-2222-2222-2222-222222222222' and m ->> 'fecha' = '2026-09-06')
+    = '{"femurCm": 45.2, "tibiaCm": 38.0}'::jsonb,
+  'la clave nueva "cuerpo" no llegó intacta a la medida del mismo día, o la sustitución la perdió'
+);
+
 -- 14. Y el camino viejo sigue cerrado: un blob con más que medidas y usuarioId no entra.
 --     Es lo que subía la app hasta hoy.
 do $$

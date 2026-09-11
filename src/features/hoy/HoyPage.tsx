@@ -20,7 +20,11 @@ import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
+import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
+import { CabeceraSemanal } from '../chat/CabeceraSemanal'
+import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
+import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
@@ -98,6 +102,7 @@ export default function HoyPage() {
     faseDeEtiqueta(perfil?.faseEnergetica),
     hoy,
   )
+  const equipo = remitentesDe(db.usuarios.list(), usuario.id)
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
   // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
@@ -120,6 +125,15 @@ export default function HoyPage() {
     : undefined
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
   const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
+
+  // Los números que van debajo del vídeo de la revisión semanal. Se calculan
+  // aquí, con lo que esta pantalla ya tenía a mano, y la cuenta vive en el
+  // dominio: la tarjeta solo los pinta.
+  const resumen = resumenSemanal({
+    sesiones: microciclo?.sesiones ?? [],
+    checkins: db.bienestar.byUsuario(usuario.id),
+    adherenciaPct,
+  })
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
@@ -146,7 +160,18 @@ export default function HoyPage() {
         <AvisoSinSincronizar usuarioId={usuario.id} />
       </div>
 
-      {/* La puerta clínica y la pregunta de la cadena van arriba del todo, y no
+      {/* La revisión de la semana, ANTES de cualquier otra cosa y sin tener que
+          entrar al chat (decisión de Bryan, 10-sep). El vídeo es una cabecera:
+          se graba una vez y lo que cambia cada semana es la tarjeta que irá
+          debajo. Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`. */}
+      <div className="entrada entrada-2">
+        <CabeceraSemanal>
+          <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
+        </CabeceraSemanal>
+      </div>
+
+      {/* La puerta clínica y la pregunta de la cadena van justo debajo de la revisión
+          de la semana, y no
           bloquean la pantalla: si su plan de hoy ya está prescrito, cerrarle el día
           por un formulario cuesta una sesión — y quien lo paga es la adherencia,
           que va por delante de casi todo en la jerarquía del método. Que el cribado
@@ -207,6 +232,9 @@ export default function HoyPage() {
           álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
       <div className="entrada entrada-2">
         <BarraCoach
+          titulo={
+            equipo.length > 1 ? 'Escríbele a tu coach o a tu nutricionista' : 'Escríbele a tu coach'
+          }
           iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
           noLeidos={noLeidos}
           ultimoTexto={ultimoDelCoach?.texto}

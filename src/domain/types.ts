@@ -1,5 +1,6 @@
 import type { ObjetivoDeIntensidad } from './objetivoDeIntensidad'
 import type { DiaSemana } from './calendario'
+import type { MedidasDelCuerpo } from './medidas'
 import type { Confianza } from './nutricion/dia'
 import type { HuellaDeRepeticion } from './patrones/huella'
 
@@ -40,6 +41,23 @@ export interface MedidaCorporal {
   perimetros: Record<string, number>
   pgPct?: number
   masaMagraKg?: number
+  /**
+   * LAS OCHO MEDIDAS DE LA FICHA: seis longitudes de segmento y dos perímetros, en cm.
+   *
+   * Van aparte de `perimetros` a propósito. `perimetros` tiene las claves abiertas y por
+   * eso en la app conviven «Cadera» y «Glúteos» para el mismo dato: un mapa así no se
+   * puede consultar, porque nadie sabe si la persona no tiene el dato o lo tiene con otro
+   * nombre. Las ocho de aquí están cerradas, tienen rango y se validan en
+   * `domain/medidas.ts`; lo que no es una de ellas se rechaza.
+   *
+   * Opcional entero, y cada clave opcional dentro: alguien puede tomarse el fémur y no la
+   * cintura, y lo que falta no se rellena.
+   *
+   * Viajan a la nube dentro del mismo objeto que el resto de la medida —`registrar_medida`
+   * (0057) mete el jsonb entero, no columna a columna— así que no hacen falta ni migración
+   * ni cambios en `data/nube/`. Ver `docs/specs/2026-09-08-medidas-en-el-dominio.md`.
+   */
+  cuerpo?: MedidasDelCuerpo
 }
 
 export interface Perfil {
@@ -406,6 +424,20 @@ export interface CheckinDiario {
   id: string
   usuarioId: string
   fecha: string
+  /**
+   * A qué hora se acostó y a qué hora se levantó, en formato `HH:MM` y hora
+   * local de la persona. Opcionales: el check-in no se bloquea por ellas.
+   *
+   * No sustituyen a `horasSueno`, la acompañan. `horasSueno` dice CUÁNTO y
+   * estas dicen CUÁNDO, que es lo único con lo que se puede calcular el índice
+   * de regularidad del sueño: ocho horas de 23:00 a 07:00 y ocho horas de
+   * 03:00 a 11:00 son el mismo número y dos vidas distintas.
+   *
+   * Viajan dentro del `datos` jsonb del check-in, así que NO necesitan
+   * migración: la nube guarda el objeto entero.
+   */
+  horaAcostarse?: string
+  horaLevantarse?: string
   pesoKg?: number
   pasos?: number
   entreno?: string

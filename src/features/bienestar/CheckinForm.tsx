@@ -116,6 +116,8 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
   const [cansancio, setCansancio] = useState<Cantidad3>()
   const [estres, setEstres] = useState<Cantidad3>()
   const [horasSueno, setHorasSueno] = useState(7)
+  const [horaAcostarse, setHoraAcostarse] = useState('')
+  const [horaLevantarse, setHoraLevantarse] = useState('')
   const [calidadSueno, setCalidadSueno] = useState<Cualitativo3>()
   const [alimentacion, setAlimentacion] = useState<Cualitativo3>()
   const [dolor, setDolor] = useState<number>()
@@ -165,6 +167,10 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       cansancio,
       estres,
       horasSueno,
+      // Vacías viajan como «no hay dato», nunca como una hora de relleno: una
+      // medianoche inventada puntuaría una noche que nadie registró.
+      horaAcostarse: horaAcostarse || undefined,
+      horaLevantarse: horaLevantarse || undefined,
       calidadSueno,
       alimentacion,
       dolor,
@@ -208,6 +214,30 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
         <div className="w-40">
           <Stepper etiqueta="" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={setHorasSueno} />
         </div>
+      </div>
+
+      {/* CUÁNDO dormiste, que es lo que `horasSueno` no puede decir. Las dos
+          son opcionales: este formulario ya pide ocho campos obligatorios, y
+          uno que se bloquea es uno que no se rellena. */}
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
+          Me acosté a las
+          <input
+            type="time"
+            value={horaAcostarse}
+            onChange={(e) => setHoraAcostarse(e.target.value)}
+            className={inputTexto}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
+          Me levanté a las
+          <input
+            type="time"
+            value={horaLevantarse}
+            onChange={(e) => setHoraLevantarse(e.target.value)}
+            className={inputTexto}
+          />
+        </label>
       </div>
 
       <CampoPills titulo="Calidad del sueño" opciones={CUALITATIVOS} valor={calidadSueno} onCambiar={(v) => setCalidadSueno(v as Cualitativo3)} />

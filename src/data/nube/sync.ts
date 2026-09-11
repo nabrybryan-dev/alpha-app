@@ -306,25 +306,30 @@ export function crearDbSincronizada(local: Db): Db {
         subirMicrociclo(local, micro.id)
       },
       activarPropuesta: (propuestaId) => {
-        // Qué microciclos estaban activos ANTES de activar: después ya no se
-        // pueden distinguir de los que llevaban cerrados meses, y hay que subir su
-        // cierre igual que la activación. Si solo se subiera la propuesta, el
-        // servidor se quedaría con dos activos.
-        const duenio = local.usuarios
-          .list()
-          .find((u) => local.microciclos.byUsuario(u.id).some((m) => m.id === propuestaId))
-        const activosPrevios = duenio
-          ? local.microciclos.byUsuario(duenio.id).filter((m) => m.estado === 'activo')
-          : []
-
         local.microciclos.activarPropuesta(propuestaId)
 
-        // Primero abrir, después cerrar. Si la cola se drena a medias —se corta la
-        // señal justo entre las dos— este orden deja una ventana con DOS activos:
-        // malo, pero el asesorado tiene algo que entrenar y la pasada siguiente lo
-        // repara. Al revés la ventana tendría CERO: abriría la app sin programación.
-        cambiarEstadoEnNube(propuestaId, 'activo')
-        for (const m of activosPrevios) cambiarEstadoEnNube(m.id, 'cerrado')
+        // UNA SOLA OPERACIÓN, y por eso ya no hace falta mirar quién estaba activo:
+        // de eso se encarga el servidor, que cierra TODOS los activos de esa persona
+        // y abre la propuesta dentro de la misma transacción (`0060`).
+        //
+        // Antes esto eran dos operaciones sueltas —abrir y después cerrar— y el
+        // orden estaba elegido a conciencia: si la cola se drenaba a medias, aquel
+        // orden dejaba DOS activos (malo, pero con algo que entrenar) y el contrario
+        // dejaba CERO (abrir la app sin programación). Con una sola operación no hay
+        // que elegir entre los dos males: no existe el instante intermedio.
+        //
+        // Y sin esto, el índice único parcial de `R-01` no se puede aplicar: un
+        // índice único no se difiere, así que el instante con dos activos no sería
+        // una ventana rara, sería un error en cada activación.
+        encolar({
+          tabla: 'microciclos',
+          tipo: 'rpc',
+          funcion: 'activar_microciclo',
+          // Colapsa dos activaciones seguidas de la misma propuesta en una sola: la
+          // función es idempotente, pero mandarla dos veces no aporta nada.
+          claveRpc: propuestaId,
+          payload: { p_propuesta_id: propuestaId },
+        })
       },
       // Las tres escrituras del asesorado suben SOLO su rama, nunca el blob.
       // Subir el microciclo entero desde el móvil pisó una migración del coach
@@ -902,40 +907,6 @@ function subirComida(local: Db, usuarioId: string, comidaId: string): void {
 }
 
 /**
- * Cambia SOLO la columna `estado` de un microciclo en el servidor.
- *
- * ────────────────────────────────────────────────────────────────────────────
- * POR QUÉ NO ES UN `subirMicrociclo`
- * ────────────────────────────────────────────────────────────────────────────
- * Porque `subirMicrociclo` manda `datos: microciclo` —el blob entero— leído de la
- * copia LOCAL de quien lo llama. En el móvil del asesorado eso es correcto: su
- * copia es la autoridad sobre sus propias series. En el del coach no: su copia de
- * lo del asesorado es la de la última hidratación, que ocurre cada 45 s y solo con
- * la pestaña visible.
- *
- * Cerrar un microciclo con un upsert del blob significaba, entonces, mandar al
- * servidor la foto que el coach tenía en la mano. Las series que el asesorado
- * hubiera registrado después **desaparecían de la fila del servidor**, y de ahí de
- * todos los dispositivos en la siguiente hidratación. Sin error y sin aviso: el
- * upsert de Supabase reemplaza la columna entera, no fusiona.
- *
- * Un cambio de estado es una TRANSICIÓN, no una foto. Mandar solo la columna es lo
- * único que hace falta y es lo único que no puede pisar el trabajo de nadie.
- *
- * Contrapartida asumida: el `estado` que queda dentro del blob se vuelve viejo. Por
- * eso `hidratar.ts` lee la columna y le da prioridad. **Las dos mitades van juntas:
- * si alguien vuelve a leer el estado desde `datos`, esto deja de funcionar.**
- */
-function cambiarEstadoEnNube(microcicloId: string, estado: 'activo' | 'cerrado'): void {
-  encolar({
-    tabla: 'microciclos',
-    tipo: 'update',
-    payload: { estado },
-    filtro: { id: microcicloId },
-  })
-}
-
-/**
  * El microciclo local, o `undefined` si no se encuentra a su dueño.
  *
  * Los repos son por usuario, así que para llegar a un microciclo por id hay que
@@ -1046,6 +1017,27 @@ function subirMicrociclo(local: Db, microcicloId: string): void {
   if (!duenio) return
   const microciclo = local.microciclos.byUsuario(duenio.id).find((m) => m.id === microcicloId)
   if (!microciclo) return
+  // EL ESTADO VIAJA EN LA COLUMNA Y EN NINGÚN OTRO SITIO.
+  //
+  // `datos: microciclo` mandaba el objeto local ENTERO, y el estado se colaba
+  // dentro al serializarlo: no hay ningún `datos.estado = …` que buscar, por eso
+  // llevaba meses pasando desapercibido. Cada guardado de la app reponía la clave
+  // en el blob, y de ahí sale el `R-03` de la auditoría — el 2026-08-16, 18
+  // microciclos de 17 asesorados con la columna en `cerrado` y el JSON en
+  // `activo`, porque una carga vieja cerró solo la columna.
+  //
+  // Quitarla de aquí no deja al microciclo sin estado en ningún lado: la columna
+  // va en el mismo upsert, es `not null` en el esquema, y la hidratación ya la
+  // prefiere (`microciclosDe`). Lo que cambia es que deja de haber **dos
+  // versiones de la misma verdad viajando juntas**, que es la única forma de que
+  // se contradigan.
+  //
+  // OJO CON LO QUE ESTO NO ARREGLA: los blobs ya guardados siguen llevando la
+  // clave, y `plantilla-carga-microciclo.sql` y la RPC `activar_microciclo` la
+  // reponen. La limpieza va aparte, con esas dos cambiadas a la vez.
+  // El mismo desempaquetado hace las dos cosas: saca el estado para la columna y
+  // deja el resto para el blob. Así no hay forma de arreglar uno y olvidar el otro.
+  const { estado, ...sinEstado } = microciclo
   encolar({
     tabla: 'microciclos',
     tipo: 'upsert',
@@ -1053,8 +1045,8 @@ function subirMicrociclo(local: Db, microcicloId: string): void {
       id: microciclo.id,
       usuario_id: microciclo.usuarioId,
       numero: microciclo.numero,
-      estado: microciclo.estado,
-      datos: microciclo,
+      estado,
+      datos: sinEstado,
     },
   })
 }
