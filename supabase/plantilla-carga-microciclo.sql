@@ -393,6 +393,36 @@ begin
     return 'ABORTA · el id ' || v_id || ' ya existe y es de otro usuario.';
   end if;
 
+  -- CERRAR ANTES DE ABRIR, y no al revés. Hasta el 2026-09-10 este bloque metía el
+  -- microciclo nuevo como activo trece líneas antes de cerrar el viejo, así que
+  -- había un instante —dentro de la transacción, pero un instante— con DOS activos
+  -- para la misma persona. Eso deja de ser inofensivo en cuanto entre el índice
+  -- único parcial de `R-01`: un índice único NO SE DIFIERE —Postgres solo difiere
+  -- restricciones, y una restricción única no puede ser parcial—, así que el choque
+  -- salta en la sentencia y la carga abortaría para toda persona que ya tenga
+  -- activo. Medido el 2026-09-10: eso son las 24 de la cartera.
+  --
+  -- Invertido no se pierde nada: como todo ocurre en una transacción, nadie ve el
+  -- hueco entre cerrar y abrir. Es el mismo orden que usa `activar_microciclo`
+  -- (migración `0060`), y por la misma razón.
+  --
+  -- Cierra en la COLUMNA y en el JSON. Las dos, siempre. El 2026-08-16 aparecieron
+  -- **18 microciclos de julio con la columna en 'cerrado' y el JSON en 'activo'**,
+  -- de 17 asesorados: alguna carga vieja cerró solo la columna. Como la app lee el
+  -- JSON, esas 17 personas arrastraban un microciclo fantasma abierto, y la
+  -- comprobación de «un solo activo» no lo veía porque contaba por la columna.
+  --
+  -- Y cierra TODOS los activos de la persona, no solo el de origen. Antes cerraba
+  -- únicamente `v_src_id`: si alguien llegaba con dos activos —el estado roto que ya
+  -- pasó en producción—, el otro sobrevivía, y con el índice puesto la carga
+  -- reventaría con un `duplicate key` en vez de repararlo. La red de seguridad de
+  -- más abajo ya exigía exactamente uno; ahora el cuerpo hace lo que ella pide.
+  update public.microciclos
+     set estado = 'cerrado', datos = jsonb_set(datos, '{estado}', '"cerrado"')
+   where usuario_id = v_uid
+     and id <> v_id
+     and (estado = 'activo' or datos->>'estado' = 'activo');
+
   insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
   values (v_id, v_uid, v_num + 1, 'activo',
           public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes)
@@ -400,20 +430,6 @@ begin
           now())
   on conflict (id) do update
      set datos = excluded.datos, estado = 'activo', actualizado_en = now();
-
-  -- Cierra el anterior en la COLUMNA y en el JSON (la app lee el JSON).
-  -- Las dos, siempre. El 2026-08-16 aparecieron **18 microciclos de julio con la
-  -- columna en 'cerrado' y el JSON en 'activo'**, de 17 asesorados: alguna carga
-  -- vieja cerró solo la columna. Como la app lee el JSON, esas 17 personas
-  -- arrastraban un microciclo fantasma abierto, y la comprobación de «un solo
-  -- activo» no lo veía porque contaba por la columna. Se corrigieron en bloque.
-  --
-  -- Se cierra POR ID, no por `numero`. Con dos bloques conviviendo hay números
-  -- repetidos —el M5 del bloque 1 y el M5 del bloque 2 de la misma persona— y
-  -- cerrar por número tumbaba los dos.
-  update public.microciclos
-     set estado = 'cerrado', datos = jsonb_set(datos, '{estado}', '"cerrado"')
-   where id = v_src_id and id <> v_id;
 
   -- Red de seguridad: después de cargar tiene que quedar exactamente uno activo.
   -- Si no, se revienta la transacción entera en vez de dejar el fantasma puesto.
