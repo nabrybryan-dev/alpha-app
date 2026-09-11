@@ -154,12 +154,27 @@ select '0013 · acotar nutricionista', 'policy consultas_actualizar_staff usa es
        ) then 'SI' else 'NO' end
 
 union all
-select '0013 · acotar nutricionista', 'policy checkins_lee_staff usa es_coach',
+-- ARREGLADA EL 2026-09-11, y se arregla sola leyendo el archivo: esta señal pedía una
+-- política llamada `checkins_lee_staff` que la **0047 borró a propósito** por redundante
+-- —hay una señal veinte líneas más abajo que comprueba justamente que NO esté—. Dos
+-- señales del mismo archivo pidiendo lo contrario: la vieja llevaba en rojo desde
+-- entonces y nadie lo miraba, que es como un comprobador deja de leerse.
+--
+-- Y el arreglo es el que la cabecera de este archivo ya predicaba: **mirar el EFECTO, no
+-- el NOMBRE**. Lo que la 0013 vino a cerrar es que el staff entre a los check-ins por
+-- `es_staff()` —que incluye a la nutricionista— en vez de por `es_coach()`. Eso se
+-- comprueba sobre TODAS las políticas de la tabla, se llamen como se llamen: tiene que
+-- haber al menos una que conceda por `es_coach()`, y NINGUNA puede nombrar `es_staff()`.
+-- Así sobrevive al siguiente renombre, que es lo que esta señal no hizo.
+select '0013 · acotar nutricionista', 'ninguna politica de checkins abre por es_staff',
        case when exists (
          select 1 from pg_policies
-         where schemaname = 'public' and tablename = 'checkins'
-           and policyname = 'checkins_lee_staff'
-           and qual like '%es_coach()%' and qual not like '%es_staff()%'
+          where schemaname = 'public' and tablename = 'checkins'
+            and coalesce(qual, '') || coalesce(with_check, '') like '%es_coach()%'
+       ) and not exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'checkins'
+            and coalesce(qual, '') || coalesce(with_check, '') like '%es_staff()%'
        ) then 'SI' else 'NO' end
 
 union all
@@ -853,10 +868,16 @@ union all
 -- borrador se cayeron: `registro_comida_vivas` (0017) y
 -- `perfil_alimentario_veto_vivos` (0035) ya existian, y el tercero apuntaba a
 -- una columna inexistente.
-select '0044 - indice de consultas por fecha', 'consultas_chat ordenado por creado_en',
+-- ARREGLADA EL 2026-09-11: pedía un índice llamado `consultas_chat_por_fecha` y el que
+-- hay se llama `consultas_chat_usuario_idx`. Pero **hace exactamente el trabajo**: es
+-- `(usuario_id, creado_en DESC)`, que sirve para lo mismo y además acota por persona.
+-- Un índice no se reconoce por su nombre sino por sus columnas y su orden, así que eso
+-- es lo que se mira. Medido el 2026-09-11: en rojo desde que alguien lo renombró.
+select '0044 - indice de consultas por fecha', 'hay un indice de consultas_chat por creado_en DESC',
        case when exists (
          select 1 from pg_indexes
-          where schemaname = 'public' and indexname = 'consultas_chat_por_fecha'
+          where schemaname = 'public' and tablename = 'consultas_chat'
+            and indexdef like '%creado\_en DESC%'
        ) then 'SI' else 'NO' end
 
 union all
@@ -930,7 +951,7 @@ union all
 -- que se rellenaba a mano en los scripts de carga y las escrituras de la app no
 -- la tocaban. Ese era justo el fallo que esta migracion viene a cerrar: sin el
 -- trigger, la firma diria «no cambio» sobre datos que si cambiaron.
-select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
+select '0049 - firma de sincronizacion', 'ninguna tabla viva con la columna se queda sin su sello',
        case when (
          select count(*) from (
            select 1 from information_schema.columns
@@ -942,8 +963,31 @@ select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
             where n.nspname = 'public' and p.proname = 'firma_de_sincronizacion'
          ) as senales
        ) = 2
-       and (select count(*) from pg_trigger
-             where tgname = 'trg_actualizado_en' and not tgisinternal) = 21
+       -- ARREGLADA EL 2026-09-11: exigía EXACTAMENTE 21 tablas con el sello, y desde
+       -- que la 0058 trajo `cribado` son 22. Se ponía roja justo cuando el sistema
+       -- crecía BIEN — un número congelado dentro de una comprobación se convierte en
+       -- una alarma que suena por aprobar el examen. Lo que hay que exigir es que
+       -- ninguna tabla con la columna se quede SIN su disparador, que es el fallo real:
+       -- una tabla que no sella cuando cambió deja a la caché creyendo que está al día.
+       --
+       -- Dos exclusiones, y las dos con razon: una VISTA hereda la columna de su tabla
+       -- y no puede llevar disparador (`cribado_vigente`, `checkins_nutricion`,
+       -- `visibilidad_pendiente`), y las `respaldo_*` son fotos de una limpieza, no
+       -- datos vivos que alguien esperaria ver sellados.
+       and not exists (
+         select 1
+           from information_schema.columns c
+           join information_schema.tables tb
+             on tb.table_schema = c.table_schema and tb.table_name = c.table_name
+          where c.table_schema = 'public' and c.column_name = 'actualizado_en'
+            and tb.table_type = 'BASE TABLE'
+            and c.table_name not like 'respaldo\_%'
+            and not exists (
+              select 1 from pg_trigger tg
+                join pg_class cl on cl.oid = tg.tgrelid
+                join pg_namespace ns on ns.oid = cl.relnamespace
+               where ns.nspname = 'public' and cl.relname = c.table_name
+                 and tg.tgname = 'trg_actualizado_en' and not tg.tgisinternal))
        then 'SI' else 'NO' end
 
 union all
@@ -1269,6 +1313,22 @@ select '0068 - el video no sale sin firma', 'aprobado_en existe, la lectura lo e
        then 'SI' else 'NO' end
 
 union all
+-- La 0070: la revision semanal puede ser audio. Lo que se pide NO es que la columna
+-- exista -eso solo dice que el `alter` corrio- sino que la RESTRICCION este puesta:
+-- sin ella, un `tipo` mal escrito entra y la pantalla intenta reproducir algo que no
+-- sabe leer. El `default 'video'` hace que olvidarse no falle, sino que mienta.
+select '0070 - la revision puede ser audio', 'la columna tipo existe y solo admite audio o video',
+       case when exists (
+              select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'videos_semanales'
+                 and column_name = 'tipo')
+            and exists (
+              select 1 from pg_constraint c join pg_class t on t.oid = c.conrelid
+               where t.relname = 'videos_semanales'
+                 and pg_get_constraintdef(c.oid) like '%tipo%audio%video%')
+       then 'SI' else 'NO' end
+
+union all
 -- La 0066: el estado del microciclo deja de vivir en dos sitios. Se piden TRES efectos,
 -- porque la migracion hace tres cosas que se pueden deshacer por separado y cada una sola
 -- deja el agujero abierto por su lado:
@@ -1316,6 +1376,44 @@ select '0069 - un solo microciclo activo', 'indice unico PARCIAL sobre usuario_i
             and not exists (
               select 1 from public.microciclos
                where estado = 'activo' group by usuario_id having count(*) > 1)
+       then 'SI' else 'NO' end
+
+union all
+-- La 0071: las tablas de respaldo dicen para que existen y hasta cuando.
+-- La senal NO es «no hay ninguna sin rotulo»: eso se cumple solo con que no haya tablas de
+-- respaldo, y una base recien creada no tiene ninguna — diria SI sin haberse aplicado nunca,
+-- que es la forma clasica de nacer verde en vacio. Se piden LAS DOS cosas: que haya al menos
+-- una rotulada Y que no quede ninguna sin rotulo. Y se pide el rotulo con su `caduca`, no
+-- solo un comentario cualquiera, porque un respaldo sin fecha de caducidad es justo el
+-- problema que esta migracion cierra.
+select '0071 - los respaldos dicen para que existen', 'toda tabla de respaldo lleva rotulo con caduca, y hay al menos una',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
+                 and obj_description(c.oid) ~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}')
+            and not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
+                 and (obj_description(c.oid) is null
+                      or obj_description(c.oid) !~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}'))
+       then 'SI' else 'NO' end
+
+union all
+-- La 0072: el primer respaldo que cumplio y se fue. Mismo aviso que la 0051: en una base
+-- recien creada esa tabla no existio nunca, asi que esto dice SI sin que la migracion haya
+-- hecho nada. Es inherente a un borrado. Lo que si se puede decir es que la haria decir NO:
+-- que la tabla REAPAREZCA, que es el caso que importa vigilar. Se le pega la condicion de la
+-- 0071 sobre lo que queda, que si distingue: 13 tablas y las 13 con su rotulo.
+select '0072 - el primer respaldo que cumplio', 'respaldo_perfiles_notas_20260906 ya no esta, y lo que queda sigue rotulado',
+       case when not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r'
+                 and c.relname = 'respaldo_perfiles_notas_20260906')
+            and not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
+                 and (obj_description(c.oid) is null
+                      or obj_description(c.oid) !~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}'))
        then 'SI' else 'NO' end
 
 order by migracion, senal;

@@ -167,7 +167,7 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
    * Si esta fecha cae DENTRO del microciclo.
    *
    * La rejilla que se pinta son los 7 días naturales de hoy, pero el microciclo
-   * dura `cadenciaDias` —8 o 15— y puede empezar cualquier día. No son la misma
+   * dura `cadenciaDias` —7, 8 o 15— y puede empezar cualquier día. No son la misma
    * cosa, y sin esta comprobación el reparto por nombre de día colocaba sesiones
    * en fechas que el microciclo ni siquiera cubre.
    *

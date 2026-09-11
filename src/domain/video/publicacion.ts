@@ -53,8 +53,20 @@ export type MotivoDeNegarse =
   | 'sin-guion'
   | 'ya-aprobado'
 
+/**
+ * La decisión ACEPTADA lleva el tipo dentro, y no por comodidad: es lo que hace imposible
+ * construir una fila con un tipo que nadie validó. `filaDelVideo` pide esto, no el encargo,
+ * así que el camino de inventarse un tipo sencillamente no existe.
+ */
+export interface PublicacionAceptada {
+  publica: true
+  path: string
+  tipo: 'audio' | 'video'
+  reemplaza: boolean
+}
+
 export type DecisionDePublicar =
-  | { publica: true; path: string; reemplaza: boolean }
+  | PublicacionAceptada
   | { publica: false; motivo: MotivoDeNegarse }
 
 /**
@@ -66,11 +78,56 @@ export type DecisionDePublicar =
  */
 export const TOPE_BYTES = 40 * 1024 * 1024
 
-/** Lo que un navegador de móvil reproduce sin pensar. */
-export const EXTENSIONES = ['mp4', 'webm', 'mov'] as const
+/**
+ * Los formatos que se pueden publicar, en UNA SOLA TABLA.
+ *
+ * De aquí salen las tres cosas que antes vivían en dos sitios: qué se admite, con qué
+ * `Content-Type` se sube y qué `tipo` se escribe en la fila. El script tenía su propia
+ * lista y podía discrepar de ésta sin que nadie se enterara.
+ *
+ * **Manda la extensión del archivo, no un parámetro aparte.** Un `--tipo` explícito
+ * permitiría que la fila dijera «audio» mientras los bytes son un vídeo: dos fuentes que
+ * pueden contradecirse, y gana la que nadie miró. La extensión también puede mentir —basta
+ * renombrar—, pero entonces mienten las dos a la vez y de forma coherente.
+ *
+ * **El audio entró el 11-sep y no es un añadido menor:** la primera revisión que se publica
+ * ES de audio, y hasta ese día este módulo la habría rechazado por «extensión no admitida».
+ * La pieza que publica no podía publicar el único formato que había que publicar.
+ */
+export const FORMATOS = {
+  mp4: { tipo: 'video', contentType: 'video/mp4' },
+  webm: { tipo: 'video', contentType: 'video/webm' },
+  mov: { tipo: 'video', contentType: 'video/quicktime' },
+  mp3: { tipo: 'audio', contentType: 'audio/mpeg' },
+  m4a: { tipo: 'audio', contentType: 'audio/mp4' },
+  wav: { tipo: 'audio', contentType: 'audio/wav' },
+} as const satisfies Record<string, { tipo: 'audio' | 'video'; contentType: string }>
+
+export type Extension = keyof typeof FORMATOS
+
+function formatoDe(extension: string) {
+  return FORMATOS[extension.toLowerCase() as Extension]
+}
+
+/**
+ * Audio o vídeo, según la extensión del archivo real. **`undefined` si no la conoce.**
+ *
+ * La primera versión de esta función devolvía `'video'` para lo que no reconocía, y eso era
+ * el mismo fallo que venía a impedir: la columna ya tiene `default 'video'`, así que
+ * olvidarse del tipo no falla — **miente**. Poner ese olvido a mano, dentro de la función
+ * encargada de evitarlo, era peor: parecía decidido.
+ */
+export function tipoDelMedio(extension: string): 'audio' | 'video' | undefined {
+  return formatoDe(extension)?.tipo
+}
+
+/** Con qué `Content-Type` se sube al cajón. Mismo sitio, misma verdad. */
+export function contentTypeDelMedio(extension: string): string | undefined {
+  return formatoDe(extension)?.contentType
+}
 
 /** Un lunes en `AAAA-MM-DD`, que es como la tabla guarda la semana. */
-function esLunes(iso: string): boolean {
+export function esLunes(iso: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
   const d = new Date(`${iso}T00:00:00Z`)
   return !Number.isNaN(d.getTime()) && d.getUTCDay() === 1
@@ -103,7 +160,7 @@ export function decidirPublicacion(
   if (!esLunes(encargo.semana)) return { publica: false, motivo: 'semana-no-es-lunes' }
   if (encargo.tamanoBytes <= 0) return { publica: false, motivo: 'archivo-vacio' }
   if (encargo.tamanoBytes > TOPE_BYTES) return { publica: false, motivo: 'archivo-enorme' }
-  if (!(EXTENSIONES as readonly string[]).includes(encargo.extension.toLowerCase())) {
+  if (!formatoDe(encargo.extension)) {
     return { publica: false, motivo: 'extension-no-admitida' }
   }
   // EL GUION NO ES OPCIONAL, y no por formalismo: es lo único que permite saber después qué
@@ -115,6 +172,9 @@ export function decidirPublicacion(
   return {
     publica: true,
     path: rutaDelVideo(encargo.usuarioId, encargo.semana, encargo.extension),
+    // El tipo sale de AQUI, donde la extension acaba de comprobarse, y viaja con la
+    // decision. Asi no hay forma de construir una fila con un tipo que nadie valido.
+    tipo: tipoDelMedio(encargo.extension) as 'audio' | 'video',
     reemplaza: yaHay !== undefined,
   }
 }
@@ -126,11 +186,12 @@ export function decidirPublicacion(
  * base. Si mañana la columna cambia de nombre o de forma, este módulo sigue sin opinar —
  * que es justo lo que se quiere de algo que no tiene permiso para aprobar nada.
  */
-export function filaDelVideo(encargo: EncargoDePublicacion, path: string) {
+export function filaDelVideo(encargo: EncargoDePublicacion, decision: PublicacionAceptada) {
   return {
     usuario_id: encargo.usuarioId,
     semana: encargo.semana,
-    path,
+    path: decision.path,
     guion: encargo.guion,
+    tipo: decision.tipo,
   }
 }

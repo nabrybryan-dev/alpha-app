@@ -1,6 +1,6 @@
 import { estacionesDelCardio } from '../estaciones/estacionesDelCardio'
 import { estacionesDeLaSerie } from '../estaciones/estacionesDeLaSerie'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EjercicioPrescrito, ItemMarcable, Sesion } from '../../../../domain/types'
 import type { ContenidoDePared } from './contenidoPared'
 import { MuroDeCampos } from './PanelPared'
@@ -8,6 +8,7 @@ import { TOPE_PARED } from '../huecos'
 import { EN_OTRO_SITIO } from './muros'
 import { RotuloDelDia } from './RotulosDelSalon'
 import { RotuloEnTrazo } from './RotuloEnTrazo'
+import { desvioParaQueQuepa } from './sitioDeLaPrescripcion'
 import { HuecoDeDatos } from './HuecoDeDatos'
 import type { AnclasDelReloj, ModoDelReloj } from '../mando/relojDelMuro'
 
@@ -94,6 +95,50 @@ export interface TablonDelMuroProps {
   cargaEnLaPared?: boolean
 }
 
+/**
+ * LA FILA DE CIFRAS SE QUEDA DENTRO DE LA PANTALLA.
+ *
+ * Escribe una variable CSS en el nodo en cada fotograma y **no toca el estado de React**:
+ * el tablón se mueve con la cámara, así que un `setState` aquí repintaría el muro sesenta
+ * veces por segundo. Es el mismo patrón que `useEsquivarElCuerpo` en las estaciones, y por
+ * los mismos motivos.
+ *
+ * ## El desvío se mide en píxeles de PANTALLA y se aplica en los de la FILA
+ *
+ * Y no son los mismos. El tablón cuelga de un cuadro proyectado en la sala: entre la fila y
+ * la pantalla hay una escala que cambia con la distancia de la cámara —con un sujeto tumbado
+ * la pared se ve a la mitad—. Escribir ahí los píxeles de pantalla movería la fila la mitad
+ * de lo pedido justo cuando más falta hace. La escala se saca del propio nodo, dividiendo el
+ * ancho que ocupa en pantalla entre el que ocupa en su propia caja; medirla es más barato y
+ * más fiable que reconstruir la cadena de transformaciones de los padres.
+ */
+function useLaFilaCabeEnLaPantalla(fila: React.RefObject<HTMLDivElement | null>) {
+  const aplicado = useRef(0)
+  useEffect(() => {
+    let vivo = 0
+    const paso = () => {
+      vivo = requestAnimationFrame(paso)
+      const nodo = fila.current
+      if (!nodo) return
+      const r = nodo.getBoundingClientRect()
+      // Sin ancho en pantalla no hay nada que medir: el tablón está montado pero plegado.
+      if (r.width <= 0 || nodo.offsetWidth <= 0) return
+      const escala = r.width / nodo.offsetWidth
+      const puesto = aplicado.current * escala
+      // EL SITIO NATURAL, que es contra el que se decide. Contra el actual sería un lazo
+      // cerrado: apartada ya no se sale, el desvío volvería a cero, y oscilaría.
+      const natural = { x0: r.left - puesto, x1: r.right - puesto }
+      const enPantalla = desvioParaQueQuepa(natural, window.innerWidth)
+      const enLaFila = escala > 0 ? enPantalla / escala : 0
+      if (Math.abs(enLaFila - aplicado.current) < 0.1) return
+      aplicado.current = enLaFila
+      nodo.style.setProperty('--desvio-prescripcion', `${enLaFila.toFixed(1)}px`)
+    }
+    vivo = requestAnimationFrame(paso)
+    return () => cancelAnimationFrame(vivo)
+  }, [fila])
+}
+
 export function TablonDelMuro({
   contenido,
   sesion,
@@ -106,6 +151,8 @@ export function TablonDelMuro({
   cargaEnLaPared = false,
 }: TablonDelMuroProps) {
   const [estado, setEstado] = useState<EstadoDelTablon>('anuncio')
+  const filaRef = useRef<HTMLDivElement>(null)
+  useLaFilaCabeEnLaPantalla(filaRef)
 
   // EL ANUNCIO SE REARMA CON EL EJERCICIO — y lo hace REMONTANDO, no reseteando.
   //
@@ -183,7 +230,7 @@ export function TablonDelMuro({
           misma fuente que la fuerza —`estaciones*`—, para que el muro y los postes de
           alrededor del cuerpo no puedan decir cosas distintas. */}
       {cifras.length > 0 && (
-        <div data-prescripcion="muro" className="muro-prescripcion">
+        <div ref={filaRef} data-prescripcion="muro" className="muro-prescripcion">
           {cifras.map((e) => (
             <div key={e.clave} data-cifra={e.clave} className="min-w-0 text-center">
               <span className="muro-rotulo muro-prescripcion-rotulo block">{e.rotulo}</span>

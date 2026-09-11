@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  FORMATOS,
+  tipoDelMedio,
+  contentTypeDelMedio,
   decidirPublicacion,
   filaDelVideo,
   rutaDelVideo,
@@ -35,8 +38,14 @@ describe('PUBLICAR NO ES APROBAR', () => {
   it('la fila que se escribe no lleva ninguna aprobación', () => {
     // Si el publicador pudiera aprobar, la firma sería un trámite que se salta solo con
     // volver a subir el archivo. La clave ni siquiera se escribe: el valor lo pone la base.
-    const fila = filaDelVideo(ENCARGO, 'personas/x/2026-09-14.mp4')
-    expect(Object.keys(fila).sort()).toEqual(['guion', 'path', 'semana', 'usuario_id'])
+    // El 11-sep entró `tipo` (audio o vídeo) y este guardián saltó, que es
+    // justo su trabajo: vigila qué campos viaja la fila. Se amplía la lista a
+    // mano —nunca se relaja a «contiene»— porque lo que protege es que no
+    // aparezca un campo de aprobación por la puerta de atrás.
+    const decision = decidirPublicacion(ENCARGO, undefined)
+    if (!decision.publica) throw new Error('el encargo de prueba deberia publicarse')
+    const fila = filaDelVideo(ENCARGO, decision)
+    expect(Object.keys(fila).sort()).toEqual(['guion', 'path', 'semana', 'tipo', 'usuario_id'])
     expect(JSON.stringify(fila)).not.toMatch(/aprob/i)
   })
 
@@ -102,10 +111,93 @@ describe('lo que no se publica', () => {
 
 describe('el caso normal', () => {
   it('publica, dice dónde, y avisa de que no reemplaza nada', () => {
+    // El `tipo` entro el 11-sep y viaja CON la decision, no con la fila: es lo
+    // que impide construir una fila con un tipo que nadie valido.
     expect(decidirPublicacion(ENCARGO)).toEqual({
       publica: true,
       path: `personas/${ENCARGO.usuarioId}/2026-09-14.mp4`,
+      tipo: 'video',
       reemplaza: false,
     })
+  })
+})
+
+describe('el audio, que es lo que se publica primero', () => {
+  // Hasta el 11-sep este modulo rechazaba un mp3 por «extension no admitida»:
+  // la pieza que publica no podia publicar el unico formato que habia que
+  // publicar. Se vio fallar quitando las extensiones de audio de la lista.
+  it('acepta mp3, m4a y wav', () => {
+    for (const extension of ['mp3', 'm4a', 'wav']) {
+      const d = decidirPublicacion(
+        { usuarioId: 'u-1', semana: '2026-09-14', tamanoBytes: 200_000, extension, guion: 'hola' },
+        undefined,
+      )
+      expect(d.publica).toBe(true)
+    }
+  })
+
+  it('la fila dice si es audio o video, y lo dice el ARCHIVO', () => {
+    const encargo = (extension: string) => ({
+      usuarioId: 'u-1',
+      semana: '2026-09-14',
+      tamanoBytes: 200_000,
+      extension,
+      guion: 'hola',
+    })
+    const fila = (extension: string) => {
+      const e = encargo(extension)
+      const d = decidirPublicacion(e, undefined)
+      if (!d.publica) throw new Error(`no deberia negarse con ${extension}`)
+      return filaDelVideo(e, d)
+    }
+    expect(fila('mp3')).toMatchObject({ tipo: 'audio' })
+    expect(fila('MP3')).toMatchObject({ tipo: 'audio' })
+    expect(fila('mp4')).toMatchObject({ tipo: 'video' })
+  })
+
+  it('lo que no es ni audio ni video sigue sin entrar', () => {
+    const d = decidirPublicacion(
+      { usuarioId: 'u-1', semana: '2026-09-14', tamanoBytes: 200_000, extension: 'txt', guion: 'hola' },
+      undefined,
+    )
+    expect(d).toMatchObject({ publica: false, motivo: 'extension-no-admitida' })
+  })
+})
+
+describe('la tabla de formatos', () => {
+  it('toda extension admitida tiene tipo y Content-Type', () => {
+    // Para que anadir una septima extension sin pensar no cuele: si falta
+    // cualquiera de las dos cosas, el archivo se sube y el movil no lo abre.
+    for (const [extension, formato] of Object.entries(FORMATOS)) {
+      expect(['audio', 'video']).toContain(formato.tipo)
+      expect(formato.contentType).toMatch(/^(audio|video)\//)
+      expect(contentTypeDelMedio(extension)).toBe(formato.contentType)
+    }
+  })
+
+  it('lo que no esta en la tabla no tiene Content-Type', () => {
+    expect(contentTypeDelMedio('txt')).toBeUndefined()
+  })
+})
+
+describe('el tipo no se puede inventar', () => {
+  // Lo cazo la otra sesion en mi propio codigo: `tipoDelMedio` devolvia 'video'
+  // para lo que no reconocia, que es EXACTAMENTE el olvido que este campo venia
+  // a impedir -la columna ya tiene `default 'video'`, asi que no escribirlo no
+  // falla: miente-. Ahora no hay camino: el tipo sale de la decision, y la
+  // decision solo existe si la extension paso el filtro.
+  it('una extension desconocida no tiene tipo, y no se lo inventa', () => {
+    expect(tipoDelMedio('pdf')).toBeUndefined()
+    expect(tipoDelMedio('exe')).toBeUndefined()
+    expect(tipoDelMedio('mp3')).toBe('audio')
+  })
+
+  it('sin decision aceptada no hay fila: el compilador lo impide', () => {
+    // Esta es la comprobacion de verdad y no corre en tiempo de ejecucion: la
+    // firma de `filaDelVideo` pide una `PublicacionAceptada`, asi que pasarle
+    // una ruta a mano -como se hacia hasta el 11-sep- ya no compila.
+    const e = { usuarioId: 'u-1', semana: '2026-09-14', tamanoBytes: 10, extension: 'pdf', guion: 'x' }
+    const d = decidirPublicacion(e, undefined)
+    expect(d).toMatchObject({ publica: false, motivo: 'extension-no-admitida' })
   })
 })
