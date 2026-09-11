@@ -58,10 +58,12 @@ const EMOJI_PERMITIDO: Record<string, string> = {
     'Cuerpo de la notificación push. Lo pinta el sistema operativo de todas formas.',
   'features/coach/AsesoradoDetallePage.tsx':
     '«Generar microciclo ⚡» en el botón del coach. Remate de la frase, no icono de la acción.',
-  'features/entrenar/encoder/useCaptura.ts':
-    'El ⚠ de «N° incl. ⚠ se descartará» va DENTRO de la lectura del visor, junto al ✕ de ' +
-    '«endereza». No abre etiqueta ni sustituye a un icono: es el estado de la toma en una ' +
-    'cadena compacta que se pinta sobre el vídeo.',
+  'features/entrenar/encoder/motivosEncuadre.ts':
+    'El ⚠ y el ✕ del consejo del ángulo —«✕ endereza la cámara», «⚠ endereza la diana»—. ' +
+    'No abren etiqueta ni sustituyen a un icono: son la gravedad del aviso dentro de la ' +
+    'propia frase, que se pinta sobre el vídeo con la cámara abierta. Estaban en ' +
+    '`useCaptura.ts` hasta el 11-sep, cuando el consejo se separó del valor para que la ' +
+    'columna del ángulo dejara de desbordar en un móvil.',
   'data/seed/mensajes.ts':
     'Mensajes de ejemplo del coach en el modo demo. Es copia, no interfaz.',
 }
