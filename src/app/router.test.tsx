@@ -1,9 +1,37 @@
-import { render, screen } from '@testing-library/react'
+import { configure, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from './SessionProvider'
 import { ThemeProvider } from './ThemeProvider'
 import { AppRouter } from './router'
+
+/**
+ * ESTE FICHERO NECESITA MÁS MARGEN QUE EL RESTO, Y ESTÁ MEDIDO.
+ *
+ * Cada caso monta el router ENTERO, que trae 21 rutas perezosas (`lazy()`), así que
+ * es el fichero más pesado del suite. El presupuesto general de `src/test/setup.ts`
+ * son 10 s por espera, y contra eso el margen se come solo cuando la máquina va justa:
+ *
+ *     suite normal, 6 corridas ......... 2.391 – 6.062 ms  (el fichero entero)
+ *     dos suites en paralelo, 2 corridas .. 11.000 – 12.000 ms
+ *
+ * Cinco veces más lento con solo el DOBLE de carga. Con 10 s por espera, una espera
+ * suelta se planta en el límite en cuanto el equipo tiene algo más corriendo — y este
+ * equipo trabaja con ~2 GB libres de 15. El 2026-09-07 el fichero salió rojo 2 de 5
+ * corridas en una sesión cargada, y en 11 corridas en una sesión tranquila, ninguna.
+ *
+ * NO ES UN REINTENTO NI UN PERDÓN: los nueve casos afirman exactamente lo mismo y
+ * siguen fallando si el elemento no llega. Lo único que cambia es el tiempo que se le
+ * concede a un `lazy()` para resolver en una máquina ocupada. Si algún día el fichero
+ * tarda de verdad 30 s, eso es un problema real y esta puerta lo dirá.
+ *
+ * Y EL ORDEN DE LOS DOS NÚMEROS NO ES CAPRICHO: el límite del test tiene que quedar
+ * POR ENCIMA de la espera, como avisa `src/test/setup.ts`. Al revés, el test muere por
+ * su propio timeout antes de que la espera se rinda, y el error no dice qué elemento
+ * faltaba — según ese comentario, ya costó dos diagnósticos.
+ */
+vi.setConfig({ testTimeout: 45_000, hookTimeout: 45_000 })
+configure({ asyncUtilTimeout: 30_000 })
 
 function renderizarEn(ruta: string) {
   return render(
