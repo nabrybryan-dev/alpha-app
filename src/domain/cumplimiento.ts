@@ -24,7 +24,25 @@ export function desviacionRir(
   if (esAlFallo(rirObjetivo)) return undefined
   // Las series sin RIR se saltan, no cuentan como 0: una plancha isométrica no
   // llegó al fallo, es que no se mide así. Ver `SerieRegistrada`.
-  const conRir = series.filter((s): s is SerieRegistrada & { rir: number } => s.rir !== undefined)
+  //
+  // Y SE COMPRUEBA QUE SEA UN NÚMERO, no solo que exista. El tipo dice `rir?: number`
+  // pero el dato viene de un JSONB que nadie valida al bajarlo, y en producción hay 55
+  // series con TEXTO ahí —«Control», «Isometría», «RIR 2-3»— (medido el 2026-09-11, dos
+  // personas, todas en microciclos cerrados). Con `!== undefined` una cadena pasaba el
+  // filtro, y entonces `suma + s.rir` deja de ser una suma: es pegar texto. `0 + 'Control'`
+  // da `'0Control'`, y al dividir sale **NaN**.
+  //
+  // El daño no era una excepción a la vista sino un número que se propaga: `desviacionRir`
+  // devuelve NaN, `desviacionRirMedia` lo mete en la media —NaN sí es distinto de
+  // undefined— y **UNA sola serie envenena la desviación del microciclo entero**. De ahí
+  // pasa a la Ruta y a la Escala Alfa, donde `NaN >= umbral` es siempre falso: el
+  // requisito de precisión del RIR queda imposible de cumplir, sin decir por qué.
+  //
+  // La familia vecina ya lo hacía bien: `coeficienteCarga` exige `Number.isInteger` y por
+  // eso el 1RM estimado se salta esas series en vez de envenenarse.
+  const conRir = series.filter(
+    (s): s is SerieRegistrada & { rir: number } => typeof s.rir === 'number' && Number.isFinite(s.rir),
+  )
   if (conRir.length === 0) return undefined
   const promedio = conRir.reduce((suma, s) => suma + s.rir, 0) / conRir.length
   return Math.round((promedio - rirObjetivo) * 10) / 10
