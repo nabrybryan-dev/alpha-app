@@ -69,6 +69,37 @@ export async function medioPublicado(clave: string): Promise<MedioPublicado | nu
 }
 
 /**
+ * Los codigos con los que Postgres y PostgREST dicen «eso que pides no existe
+ * todavia»: tabla ausente (`42P01`), tabla que el esquema en cache no conoce
+ * (`PGRST205`), funcion ausente (`42883`) y funcion no expuesta (`PGRST202`).
+ * Son los mismos que usa `hidratar.ts`, y significan lo mismo aqui: falta una
+ * migracion por aplicar, no hay un fallo de red.
+ */
+const PIEZAS_QUE_AUN_NO_EXISTEN = ['42P01', 'PGRST205', '42883', 'PGRST202']
+
+function esPiezaQueAunNoExiste(error: { code?: string } | null): boolean {
+  return !!error?.code && PIEZAS_QUE_AUN_NO_EXISTEN.includes(error.code)
+}
+
+/** Una sola vez por sesion: el aviso es para quien mira, no para inundar. */
+let yaAvisado = false
+
+function avisarDePiezaQueFalta(codigo: string | undefined): void {
+  if (yaAvisado) return
+  yaAvisado = true
+  console.warn(
+    `[medios] videos_semanales no existe en la base (${codigo}). ` +
+      'La migracion 0065 no esta aplicada: el video semanal esta apagado, ' +
+      'no es que no haya video.',
+  )
+}
+
+/** Para las pruebas: el aviso vuelve a estar disponible. */
+export function olvidarElAviso(): void {
+  yaAvisado = false
+}
+
+/**
  * El vídeo de ESTA semana de quien tenga la sesión abierta, ya firmado.
  *
  * No hace falta decir de quién: la política de la 0065 solo devuelve la fila de
@@ -78,12 +109,23 @@ export async function medioPublicado(clave: string): Promise<MedioPublicado | nu
 export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
   if (!modoNube) return null
   try {
-    const { data: fila } = await supabase()
+    const { data: fila, error } = await supabase()
       .from('videos_semanales')
       .select('path, semana')
       .order('semana', { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    // «No hay video esta semana» y «la tabla no existe» devuelven los dos `null`,
+    // y esa igualdad ya costo una funcion muerta: el codigo del video se fusiono
+    // y se sirvio en produccion desde el 2026-09-10 con la `0065` SIN APLICAR, y
+    // la pantalla decia lo mismo que un domingo sin video. Nadie se entero.
+    //
+    // NO se lanza, a proposito: la regla de este archivo es que un video no puede
+    // tumbar el chat. Lo que se hace es que el hueco SUENE.
+    if (esPiezaQueAunNoExiste(error)) {
+      avisarDePiezaQueFalta(error?.code)
+    }
 
     const path = typeof fila?.path === 'string' ? fila.path : undefined
     if (!path) return null

@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { medioPublicado, miVideoDeLaSemana, olvidarMediosFirmados } from './medios'
+import {
+  medioPublicado,
+  miVideoDeLaSemana,
+  olvidarElAviso,
+  olvidarMediosFirmados,
+} from './medios'
 
 let fila: { path: string; grabado_el: string | null } | null
 let filaPropia: { path: string; semana: string } | null
+let errorPropio: { code: string; message: string } | null
 let urlQueDevuelve: string | undefined
 let firmas = 0
 let consultas = 0
@@ -19,7 +25,7 @@ vi.mock('../supabase', () => ({
           limit: () => ({
             maybeSingle: () => {
               consultas += 1
-              return Promise.resolve({ data: filaPropia })
+              return Promise.resolve({ data: filaPropia, error: errorPropio })
             },
           }),
         }),
@@ -48,11 +54,13 @@ vi.mock('../supabase', () => ({
 beforeEach(() => {
   fila = { path: 'comunes/cabecera-2026-09-10.mp4', grabado_el: '2026-09-07' }
   filaPropia = { path: 'personas/u-1/2026-09-07.mp4', semana: '2026-09-07' }
+  errorPropio = null
   urlQueDevuelve = 'https://storage/firmada'
   firmas = 0
   consultas = 0
   ultimaClave = undefined
   olvidarMediosFirmados()
+  olvidarElAviso()
 })
 
 describe('el vídeo publicado', () => {
@@ -116,5 +124,49 @@ describe('el vídeo de cada quien', () => {
       expect(v).toBeNull()
       expect(firmas).toBe(0)
     })
+  })
+
+  /**
+   * EL PAR QUE IMPORTA. Los dos casos devuelven `null` —y tienen que seguir
+   * devolviendolo: un video no puede tumbar el chat— pero NO son lo mismo, y
+   * confundirlos ya salio caro. El codigo del video se fusiono y se sirvio en
+   * produccion el 2026-09-10 con la migracion `0065` sin aplicar: `videos_semanales`
+   * no existia, la pantalla decia exactamente lo mismo que un domingo sin video, y
+   * la funcion estuvo muerta sin que nadie lo notara.
+   *
+   * Las dos pruebas van juntas a proposito. Una sola no prueba nada: si el aviso
+   * saltara siempre, la primera pasaria igual y seguiriamos sin poder distinguir.
+   */
+  it('la tabla ausente AVISA, aunque siga devolviendo null', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    filaPropia = null
+    errorPropio = { code: '42P01', message: 'relation "videos_semanales" does not exist' }
+
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(firmas).toBe(0)
+    expect(aviso).toHaveBeenCalledTimes(1)
+    expect(aviso.mock.calls[0]?.[0]).toContain('0065')
+    aviso.mockRestore()
+  })
+
+  it('y una semana sin video NO avisa: el silencio es el caso normal', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    filaPropia = null
+    errorPropio = null
+
+    expect(await miVideoDeLaSemana()).toBeNull()
+    expect(aviso).not.toHaveBeenCalled()
+    aviso.mockRestore()
+  })
+
+  it('el aviso sale UNA vez por sesion, no en cada montaje', async () => {
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    filaPropia = null
+    errorPropio = { code: 'PGRST205', message: 'schema cache' }
+
+    await miVideoDeLaSemana()
+    await miVideoDeLaSemana()
+    expect(aviso).toHaveBeenCalledTimes(1)
+    aviso.mockRestore()
   })
 })
