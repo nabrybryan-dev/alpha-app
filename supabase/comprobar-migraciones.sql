@@ -1299,4 +1299,23 @@ select '0066 - el estado deja de vivir en dos sitios', 'activar_microciclo no es
               select 1 from public.microciclos where jsonb_exists(datos, 'estado'))
        then 'SI' else 'NO' end
 
+union all
+-- La 0069: un solo microciclo activo por persona. (Nacio como 0068 y se renumero:
+-- otra sesion fusiono su propia 0068 el mismo dia. La base no se guia por el numero.) Lo que se pide NO es que exista un
+-- indice con ese nombre -eso lo cumple cualquier indice- sino que sea UNICO y PARCIAL.
+-- Un unico sin el `where` prohibiria dos CERRADOS, que es lo normal en una persona con
+-- historial: seria el candado equivocado, dando SI. Y se anade el estado que el candado
+-- existe para sostener: nadie con dos activos.
+select '0069 - un solo microciclo activo', 'indice unico PARCIAL sobre usuario_id donde estado=activo, y nadie con dos',
+       case when exists (
+              select 1 from pg_indexes
+               where schemaname = 'public' and tablename = 'microciclos'
+                 and indexname = 'microciclos_un_activo_por_usuario'
+                 and indexdef ilike '%unique%'
+                 and indexdef ilike '%where (estado = ''activo''%')
+            and not exists (
+              select 1 from public.microciclos
+               where estado = 'activo' group by usuario_id having count(*) > 1)
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
