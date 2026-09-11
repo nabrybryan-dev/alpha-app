@@ -53,8 +53,20 @@ export type MotivoDeNegarse =
   | 'sin-guion'
   | 'ya-aprobado'
 
+/**
+ * La decisión ACEPTADA lleva el tipo dentro, y no por comodidad: es lo que hace imposible
+ * construir una fila con un tipo que nadie validó. `filaDelVideo` pide esto, no el encargo,
+ * así que el camino de inventarse un tipo sencillamente no existe.
+ */
+export interface PublicacionAceptada {
+  publica: true
+  path: string
+  tipo: 'audio' | 'video'
+  reemplaza: boolean
+}
+
 export type DecisionDePublicar =
-  | { publica: true; path: string; reemplaza: boolean }
+  | PublicacionAceptada
   | { publica: false; motivo: MotivoDeNegarse }
 
 /**
@@ -98,14 +110,15 @@ function formatoDe(extension: string) {
 }
 
 /**
- * Audio o vídeo, decidido por la extensión del archivo real y escrito SIEMPRE.
+ * Audio o vídeo, según la extensión del archivo real. **`undefined` si no la conoce.**
  *
- * Nunca se deja al valor por defecto de la columna: ese valor es `video`, así que olvidarse
- * de escribirlo no falla — **miente**, y una revisión de audio quedaría marcada como vídeo
- * sin que nadie se entere.
+ * La primera versión de esta función devolvía `'video'` para lo que no reconocía, y eso era
+ * el mismo fallo que venía a impedir: la columna ya tiene `default 'video'`, así que
+ * olvidarse del tipo no falla — **miente**. Poner ese olvido a mano, dentro de la función
+ * encargada de evitarlo, era peor: parecía decidido.
  */
-export function tipoDelMedio(extension: string): 'audio' | 'video' {
-  return formatoDe(extension)?.tipo ?? 'video'
+export function tipoDelMedio(extension: string): 'audio' | 'video' | undefined {
+  return formatoDe(extension)?.tipo
 }
 
 /** Con qué `Content-Type` se sube al cajón. Mismo sitio, misma verdad. */
@@ -159,6 +172,9 @@ export function decidirPublicacion(
   return {
     publica: true,
     path: rutaDelVideo(encargo.usuarioId, encargo.semana, encargo.extension),
+    // El tipo sale de AQUI, donde la extension acaba de comprobarse, y viaja con la
+    // decision. Asi no hay forma de construir una fila con un tipo que nadie valido.
+    tipo: tipoDelMedio(encargo.extension) as 'audio' | 'video',
     reemplaza: yaHay !== undefined,
   }
 }
@@ -170,12 +186,12 @@ export function decidirPublicacion(
  * base. Si mañana la columna cambia de nombre o de forma, este módulo sigue sin opinar —
  * que es justo lo que se quiere de algo que no tiene permiso para aprobar nada.
  */
-export function filaDelVideo(encargo: EncargoDePublicacion, path: string) {
+export function filaDelVideo(encargo: EncargoDePublicacion, decision: PublicacionAceptada) {
   return {
     usuario_id: encargo.usuarioId,
     semana: encargo.semana,
-    path,
+    path: decision.path,
     guion: encargo.guion,
-    tipo: tipoDelMedio(encargo.extension),
+    tipo: decision.tipo,
   }
 }

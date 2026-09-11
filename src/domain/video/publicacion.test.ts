@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   FORMATOS,
+  tipoDelMedio,
   contentTypeDelMedio,
   decidirPublicacion,
   filaDelVideo,
@@ -41,7 +42,9 @@ describe('PUBLICAR NO ES APROBAR', () => {
     // justo su trabajo: vigila qué campos viaja la fila. Se amplía la lista a
     // mano —nunca se relaja a «contiene»— porque lo que protege es que no
     // aparezca un campo de aprobación por la puerta de atrás.
-    const fila = filaDelVideo(ENCARGO, 'personas/x/2026-09-14.mp4')
+    const decision = decidirPublicacion(ENCARGO, undefined)
+    if (!decision.publica) throw new Error('el encargo de prueba deberia publicarse')
+    const fila = filaDelVideo(ENCARGO, decision)
     expect(Object.keys(fila).sort()).toEqual(['guion', 'path', 'semana', 'tipo', 'usuario_id'])
     expect(JSON.stringify(fila)).not.toMatch(/aprob/i)
   })
@@ -108,9 +111,12 @@ describe('lo que no se publica', () => {
 
 describe('el caso normal', () => {
   it('publica, dice dónde, y avisa de que no reemplaza nada', () => {
+    // El `tipo` entro el 11-sep y viaja CON la decision, no con la fila: es lo
+    // que impide construir una fila con un tipo que nadie valido.
     expect(decidirPublicacion(ENCARGO)).toEqual({
       publica: true,
       path: `personas/${ENCARGO.usuarioId}/2026-09-14.mp4`,
+      tipo: 'video',
       reemplaza: false,
     })
   })
@@ -138,9 +144,15 @@ describe('el audio, que es lo que se publica primero', () => {
       extension,
       guion: 'hola',
     })
-    expect(filaDelVideo(encargo('mp3'), 'p.mp3')).toMatchObject({ tipo: 'audio' })
-    expect(filaDelVideo(encargo('MP3'), 'p.mp3')).toMatchObject({ tipo: 'audio' })
-    expect(filaDelVideo(encargo('mp4'), 'p.mp4')).toMatchObject({ tipo: 'video' })
+    const fila = (extension: string) => {
+      const e = encargo(extension)
+      const d = decidirPublicacion(e, undefined)
+      if (!d.publica) throw new Error(`no deberia negarse con ${extension}`)
+      return filaDelVideo(e, d)
+    }
+    expect(fila('mp3')).toMatchObject({ tipo: 'audio' })
+    expect(fila('MP3')).toMatchObject({ tipo: 'audio' })
+    expect(fila('mp4')).toMatchObject({ tipo: 'video' })
   })
 
   it('lo que no es ni audio ni video sigue sin entrar', () => {
@@ -165,5 +177,27 @@ describe('la tabla de formatos', () => {
 
   it('lo que no esta en la tabla no tiene Content-Type', () => {
     expect(contentTypeDelMedio('txt')).toBeUndefined()
+  })
+})
+
+describe('el tipo no se puede inventar', () => {
+  // Lo cazo la otra sesion en mi propio codigo: `tipoDelMedio` devolvia 'video'
+  // para lo que no reconocia, que es EXACTAMENTE el olvido que este campo venia
+  // a impedir -la columna ya tiene `default 'video'`, asi que no escribirlo no
+  // falla: miente-. Ahora no hay camino: el tipo sale de la decision, y la
+  // decision solo existe si la extension paso el filtro.
+  it('una extension desconocida no tiene tipo, y no se lo inventa', () => {
+    expect(tipoDelMedio('pdf')).toBeUndefined()
+    expect(tipoDelMedio('exe')).toBeUndefined()
+    expect(tipoDelMedio('mp3')).toBe('audio')
+  })
+
+  it('sin decision aceptada no hay fila: el compilador lo impide', () => {
+    // Esta es la comprobacion de verdad y no corre en tiempo de ejecucion: la
+    // firma de `filaDelVideo` pide una `PublicacionAceptada`, asi que pasarle
+    // una ruta a mano -como se hacia hasta el 11-sep- ya no compila.
+    const e = { usuarioId: 'u-1', semana: '2026-09-14', tamanoBytes: 10, extension: 'pdf', guion: 'x' }
+    const d = decidirPublicacion(e, undefined)
+    expect(d).toMatchObject({ publica: false, motivo: 'extension-no-admitida' })
   })
 })

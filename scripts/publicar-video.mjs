@@ -233,7 +233,7 @@ async function main() {
     .from('videos_semanales')
     .upsert(
       {
-        ...filaDelVideo({ usuarioId, semana, tamanoBytes: size, extension, guion }, decision.path),
+        ...filaDelVideo({ usuarioId, semana, tamanoBytes: size, extension, guion }, decision),
         // La hora la pone AQUI y no el modulo de decision, que es puro y no mira el reloj.
         // Hace falta ponerla a mano porque el `default now()` de la tabla solo corre al
         // INSERTAR: en un reemplazo, sin esto, `publicado_en` seguiria diciendo cuando se
