@@ -1,4 +1,4 @@
--- Comprobación de la 0059 (el mapa de vida). Se corre APARTE, después de
+-- Comprobación de la 0064 (el mapa de vida). Se corre APARTE, después de
 -- aplicarla, en el SQL Editor.
 --
 -- Lo que importa: que la tabla exista con RLS encendido y que el asesorado NO

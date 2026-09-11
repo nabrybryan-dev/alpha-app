@@ -67,7 +67,7 @@ añade una séptima pregunta, no hace falta nueva migración, solo tocar
 `preguntas.ts`. La migración nueva es de **esquema** (la tabla en sí), no de
 **datos** (las respuestas, que sí viajan en el jsonb sin volver a tocar SQL).
 
-Ver `supabase/migrations/0059_mapa_de_vida.sql`.
+Ver `supabase/migrations/0064_mapa_de_vida.sql`.
 
 ## Flujo de datos
 
