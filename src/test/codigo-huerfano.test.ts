@@ -304,13 +304,6 @@ const HUERFANOS_DE_ENTRENAR: Record<string, string> = {
   'src/features/entrenar/PortadaMicrociclo.tsx':
     'Origen documentado del inventario de mudanza (pruebas/inventario-entrenar.ts); se retira cuando se retire el inventario.',
 
-  // El historial del encoder está escrito y todavía no tiene fuente de datos: se
-  // alimentará cuando `juzgarColocacion.ts` entre en esta rama, que es la precondición
-  // para poder comparar dos tomas (mismo sitio del móvil). Hasta entonces la pantalla
-  // no puede pintar puntos y esta función no tiene a quién dárselos.
-  'src/features/entrenar/encoder/historial.ts#tomasDeLasSeries':
-    'Historial del encoder sin fuente de datos hasta que juzgarColocacion.ts llegue a esta rama.',
-
   // LA VELOCIDAD DE LA DEMOSTRACIÓN, construida y sin gesto todavía. El mando del tiempo
   // se pidió con tres palancas —pausar, ir a fase y velocidad— y las dos primeras ya las
   // usa el disco del salón (`salon/mando/Joystick.tsx`). Para la tercera hace falta

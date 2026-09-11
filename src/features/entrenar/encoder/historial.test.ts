@@ -3,7 +3,6 @@ import {
   cargasDeLaTendencia,
   hayTendencia,
   sinEscalaEnLaTendencia,
-  tomasDeLasSeries,
   puntosDelHistorial,
   tomasDeLaTendencia,
   tramoQueSeñalar,
@@ -148,57 +147,5 @@ describe('lo que el %PV permite y los m/s no', () => {
 
   it('con una sola carga no hay nada que aclarar', () => {
     expect(cargasDeLaTendencia([toma(MANANA), toma(MEDIODIA)])).toEqual([100])
-  })
-})
-
-describe('de las series registradas a los puntos', () => {
-  it('una serie SIN velocidad se salta, no cuenta como pérdida cero', () => {
-    // Hoy casi nadie graba. Contar las no medidas como 0 dibujaría una tendencia
-    // plana inventada sobre las sesiones que nadie midió.
-    const puntos = tomasDeLasSeries([
-      {
-        fecha: MANANA,
-        series: [
-          { cargaKg: 100 },
-          { cargaKg: 100, velocidad: { pvPct: 29.2, hayEscala: true, calidad: 'buena' } },
-        ],
-      },
-    ])
-    expect(puntos).toHaveLength(1)
-    expect(puntos[0].pvPct).toBe(29.2)
-  })
-
-  it('un veredicto desconocido NO se asume bueno', () => {
-    // Se trata como dudoso: se pinta, pero fuera de la línea de tendencia. Darlo
-    // por bueno metería en la tendencia algo que nadie ha validado.
-    const puntos = tomasDeLasSeries([
-      { fecha: MANANA, series: [{ cargaKg: 100, velocidad: { pvPct: 20, hayEscala: true, calidad: 'rarísimo' } }] },
-    ])
-    expect(puntos[0].calidad).toBe('dudosa')
-  })
-
-  it('arrastra la carga, la escala y la inclinación', () => {
-    const puntos = tomasDeLasSeries([
-      {
-        fecha: MANANA,
-        series: [
-          { cargaKg: 110, velocidad: { pvPct: 31, hayEscala: false, calidad: 'buena', inclinacionMax: 8 } },
-        ],
-      },
-    ])
-    expect(puntos[0]).toMatchObject({ cargaKg: 110, hayEscala: false, inclinacionMax: 8 })
-  })
-
-  it('varias sesiones se aplanan en una sola serie de puntos', () => {
-    const puntos = tomasDeLasSeries([
-      { fecha: MANANA, series: [{ cargaKg: 100, velocidad: { pvPct: 25, hayEscala: true, calidad: 'buena' } }] },
-      { fecha: MEDIODIA, series: [{ cargaKg: 100, velocidad: { pvPct: 28, hayEscala: true, calidad: 'buena' } }] },
-    ])
-    expect(puntos).toHaveLength(2)
-    expect(hayTendencia(puntos)).toBe(true)
-  })
-
-  it('sin nada grabado, no hay puntos y no se finge una gráfica', () => {
-    expect(tomasDeLasSeries([{ fecha: MANANA, series: [{ cargaKg: 100 }] }])).toEqual([])
   })
 })
