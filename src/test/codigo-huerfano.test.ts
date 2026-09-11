@@ -275,6 +275,18 @@ const HUERFANOS_DE_ENTRENAR: Record<string, string> = {
   'src/features/entrenar/encoder/nucleo/encuadre.d.ts': 'Declaración del núcleo vendorizado: la consume tsc, no la app.',
   'src/features/entrenar/encoder/nucleo/reloj-fotograma.d.ts': 'Declaración del núcleo vendorizado: la consume tsc, no la app.',
 
+  // LAS 80 PRUEBAS DEL NÚCLEO, que desde el 2026-09-11 viven aquí y no en el otro repo.
+  // No las llama la app A PROPÓSITO —son un banco de medida, y este mismo test avisa de
+  // que un banco no pone nada en uso—: las llama `nucleoContraSusPruebas.test.ts`, que
+  // las ejecuta contra el núcleo de verdad y cuenta sus verdes y sus rojos. Están aquí
+  // porque la regla de `nucleo/ORIGEN.md` se invirtió: manda esta copia, y la red de
+  // seguridad se mudó con ella. Si algún día dejan de tener consumidor, este renglón
+  // sobra y las pruebas también.
+  'src/features/entrenar/encoder/nucleo/pruebas/pruebas-disco.mjs':
+    'Banco de medida del núcleo: lo ejecuta nucleoContraSusPruebas.test.ts, no la app.',
+  'src/features/entrenar/encoder/nucleo/pruebas/pruebas-velocidad.mjs':
+    'Banco de medida del núcleo: lo ejecuta nucleoContraSusPruebas.test.ts, no la app.',
+
   // Un CANARIO, y por eso vive solo en su test: devuelve los huesos que un nivel del
   // eje W declara y no se pueden encender por separado. Hoy sale vacío porque los tres
   // niveles con hueso encienden el rig entero. El día que uno pida media pelvis, lo
