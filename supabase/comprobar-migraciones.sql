@@ -1236,6 +1236,39 @@ select '0067 - borradores que esperan firma', 'mensajes_leer esconde los borrado
        then 'SI' else 'NO' end
 
 union all
+-- La 0068: el video no sale hasta que alguien lo firma. Se piden LAS DOS MITADES,
+-- porque se pueden deshacer por separado y cada una sola deja el agujero abierto
+-- por su lado:
+--
+--   1. que `videos_semanales` tenga `aprobado_en` Y que la lectura del asesorado lo
+--      exija no nulo. Con la columna puesta pero la politica vieja, la fila se lee
+--      igual sin firmar;
+--   2. que la politica del ARCHIVO haya dejado de colgar de la carpeta. Con la
+--      politica vieja, `personas/<uuid>/<lunes>.mp4` se abre adivinando la ruta,
+--      sin que exista ninguna fila — que es como estaba el 10-sep.
+--
+-- Lo que se pide NO es que la columna exista: eso solo dice que el `alter` corrio.
+select '0068 - el video no sale sin firma', 'aprobado_en existe, la lectura lo exige, y el archivo cuelga de la fila firmada',
+       case when exists (
+              select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'videos_semanales'
+                 and column_name = 'aprobado_en')
+            and exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'videos_semanales'
+                 and qual::text like '%aprobado_en%')
+            and exists (
+              select 1 from pg_policies
+               where schemaname = 'storage' and tablename = 'objects'
+                 and policyname = 'medios: el video firmado, y de su dueno'
+                 and qual::text like '%videos_semanales%')
+            and not exists (
+              select 1 from pg_policies
+               where schemaname = 'storage' and tablename = 'objects'
+                 and policyname = 'medios: cada quien abre su video')
+       then 'SI' else 'NO' end
+
+union all
 -- La 0066: el estado del microciclo deja de vivir en dos sitios. Se piden TRES efectos,
 -- porque la migracion hace tres cosas que se pueden deshacer por separado y cada una sola
 -- deja el agujero abierto por su lado:
