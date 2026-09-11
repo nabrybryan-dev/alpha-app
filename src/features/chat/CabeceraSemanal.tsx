@@ -100,7 +100,7 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
           </div>
         ) : (
           <p className="px-4 py-6 text-center text-sm leading-relaxed text-tenue">
-            {cargando ? 'Buscando tu revisión…' : 'Tu revisión en audio llega el domingo.'}
+            {cargando ? 'Buscando tu revisión…' : 'Tu revisión en audio llega el viernes.'}
           </p>
         )}
       </div>

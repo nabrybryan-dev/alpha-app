@@ -13,7 +13,7 @@ describe('la cabecera de la revisión semanal', () => {
 
   it('sin vídeo todavía, lo dice en vez de dejar un hueco negro', async () => {
     render(<CabeceraSemanal traerEnlace={async () => null} />)
-    expect(await screen.findByText('Tu revisión en audio llega el domingo.')).toBeInTheDocument()
+    expect(await screen.findByText('Tu revisión en audio llega el viernes.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Vídeo de tu revisión semanal')).not.toBeInTheDocument()
   })
 
@@ -32,7 +32,7 @@ describe('la cabecera de la revisión semanal', () => {
       />,
     )
     await waitFor(() =>
-      expect(screen.getByText('Tu revisión en audio llega el domingo.')).toBeInTheDocument(),
+      expect(screen.getByText('Tu revisión en audio llega el viernes.')).toBeInTheDocument(),
     )
   })
 

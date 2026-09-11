@@ -92,8 +92,9 @@ function hayAlgoQueDecir(resumen: ResumenSemanal): boolean {
 export function lunesDeLaSemana(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`)
   if (Number.isNaN(d.getTime())) throw new Error(`«${iso}» no es una fecha`)
-  // getUTCDay: domingo es 0. El domingo pertenece a la semana que EMPIEZA el lunes
-  // anterior, que es la que se está revisando cuando el vídeo sale ese mismo domingo.
+  // getUTCDay: domingo es 0. La semana es la ISO, de lunes a domingo: el viernes en que
+  // sale la revisión cae DENTRO de la semana que se está revisando, y el domingo es su
+  // último día, no el primero de la siguiente.
   const dia = d.getUTCDay()
   const atras = dia === 0 ? 6 : dia - 1
   d.setUTCDate(d.getUTCDate() - atras)
@@ -101,7 +102,7 @@ export function lunesDeLaSemana(iso: string): string {
 }
 
 /**
- * El reparto de la tanda: quién oye qué este domingo.
+ * El reparto de la tanda: quién oye qué este viernes.
  *
  * @param semana El LUNES de la semana. Cualquier otro día se rechaza aquí y no
  *   tres pasos después, cuando ya se hubieran generado veintitrés audios que el
@@ -192,7 +193,7 @@ function agruparPorUsuario<T extends { usuario_id: string }>(filas: readonly T[]
  *
  * **La tanda la define el microciclo activo**, no la lista de asesorados: parte de la
  * cartera está inactiva a propósito —una pausa, un viaje, un alta que aún no empieza— y a
- * esa gente no se le manda el domingo la revisión de una semana que no tenía que entrenar.
+ * esa gente no se le manda el viernes la revisión de una semana que no tenía que entrenar.
  *
  * @param soloUno Si se da, solo esa persona. Para probar con uno antes que con veintitrés.
  */
