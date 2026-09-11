@@ -1,5 +1,15 @@
 # Deja la revision semanal programada para que ocurra sola los viernes.
 #
+# CORRELO DESDE LA CARPETA DEDICADA, no desde la de trabajo de siempre:
+#
+#     C:/Users/ASUS/dev/alpha-viernes/scripts/instalar-tarea-viernes.ps1
+#
+# La tarea queda apuntando a la carpeta donde este ESTE archivo. Y la de siempre
+# (dev/alpha-app) NO sirve: la comparten varias sesiones y va cambiando de rama, asi que un
+# viernes de madrugada este archivo puede no existir ahi. No daria error: no habria
+# revisiones, y se sabria el sabado. La carpeta dedicada, ademas, se pone al dia sola antes
+# de cada corrida (ver revision-semanal-viernes.ps1).
+#
 # Se corre UNA VEZ. No pide permisos de administrador: la tarea es del usuario.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\instalar-tarea-viernes.ps1

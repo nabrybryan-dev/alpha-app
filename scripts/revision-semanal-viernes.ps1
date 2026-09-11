@@ -36,7 +36,9 @@ param(
   # Donde vive el entorno de Python con el modelo de voz.
   [string]$Voz = 'C:\Users\ASUS\dev\prueba-voz',
   # Donde se escribe el registro de lo que paso.
-  [string]$Registro = "$env:USERPROFILE\.alpha\registros"
+  [string]$Registro = "$env:USERPROFILE\.alpha\registros",
+  # No traerse el codigo nuevo antes de correr. Para probar con lo que hay delante.
+  [switch]$SinActualizar
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +54,53 @@ function Apunta($texto) {
 if (-not (Test-Path $Registro)) { New-Item -ItemType Directory -Force -Path $Registro | Out-Null }
 $script:archivoRegistro = Join-Path $Registro ("revision-{0}.log" -f (Get-Date -Format 'yyyy-MM-dd'))
 Apunta "===== arranca la revision semanal ====="
+
+# ============================================================================
+# PONERSE AL DIA, Y POR QUE ESTO NO ES UN ADORNO
+# ============================================================================
+# Esta tarea vive en su PROPIA carpeta (`dev\alpha-viernes`), separada de la carpeta de
+# trabajo de siempre. La razon es un fallo que no avisa: `dev\alpha-app` la comparten
+# varias sesiones y va cambiando de rama, asi que un viernes a las 3:00 ese sitio puede
+# estar en una rama donde este archivo NI EXISTE. No saltaria ningun error: simplemente
+# no habria revisiones, y se notaria el sabado.
+#
+# Pero una carpeta fija trae el problema contrario: se queda congelada con el codigo del
+# dia que se creo. Por eso, antes de nada, se trae lo ultimo de `main`.
+#
+# Se usa `checkout --detach`, NO `reset --hard`: si alguien dejo algo a medias ahi, esto
+# se niega a pisarlo y lo dice, en vez de borrarlo en silencio a las tres de la manana.
+if (-not $SinActualizar) {
+  Push-Location $repo
+  try {
+    git fetch origin main --quiet 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      # Sin red no se puede publicar igualmente, asi que no se para aqui: se sigue con lo
+      # que hay y queda ESCRITO, que es lo que permite entender el registro despues.
+      Apunta "AVISO: no pude traer el codigo nuevo (sin red?). Sigo con el que hay."
+    } else {
+      $antes = (git rev-parse --short HEAD)
+      git checkout --detach origin/main --quiet 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        Apunta "PARO: no pude ponerme al dia. Hay algo sin guardar en $repo."
+        exit 1
+      }
+      $ahora = (git rev-parse --short HEAD)
+      if ($antes -eq $ahora) { Apunta "codigo al dia ($ahora)" }
+      else { Apunta "codigo actualizado: $antes -> $ahora" }
+    }
+  } finally { Pop-Location }
+}
+
+# Las dependencias tambien: un `package-lock.json` nuevo con los paquetes viejos rompe de
+# formas raras, y aqui nadie va a estar mirando.
+if (-not (Test-Path (Join-Path $repo 'node_modules'))) {
+  Apunta "no hay node_modules: instalando (esto tarda unos minutos)"
+  Push-Location $repo
+  try {
+    npm ci 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro | Out-Null
+    if ($LASTEXITCODE -ne 0) { Apunta "PARO: fallo la instalacion de dependencias"; exit 1 }
+  } finally { Pop-Location }
+}
 
 # --- la clave ---
 if (-not $env:SUPABASE_SERVICE_KEY) {
