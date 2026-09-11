@@ -1189,14 +1189,18 @@ select '0062b - el saludo es una via', 'consultas_chat.via admite saludo',
        then 'SI' else 'NO' end
 
 union all
--- La 0063 NO TIENE ARCHIVO EN `main` y su efecto si esta aplicado: son los permisos
--- de aviso. Se le pone senal igual -el numero existe en la base aunque no en el
--- repo- para que quien compare las dos listas VEA el hueco en vez de tropezar con el.
-select '0063 - permisos de aviso (SIN ARCHIVO EN MAIN)', 'existe la tabla de suscripciones de aviso',
+-- La 0063 es el caso mas raro de todos, y hay que contarlo entero porque la primera
+-- lectura fue equivocada: NO es un archivo que se perdiera al renumerar. Su fichero
+-- vive en `origin/feat/permiso-de-avisos`, un PR **todavia abierto**, asi que el
+-- numero esta reservado por codigo sin fusionar. Lo que si es cierto -y es lo que
+-- importa- es que **su tabla YA existe en la base**: la migracion se aplico por
+-- delante de su codigo. Por eso lleva senal aunque `main` no tenga el archivo: si no,
+-- quien compare las dos listas veria un hueco y no vera que la base va por delante.
+select '0063 - permisos de aviso (aplicada; su archivo sigue en un PR abierto)', 'existe la tabla de suscripciones de aviso',
        case when exists (
               select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
                where n.nspname = 'public'
-                 and c.relname in ('suscripciones_push', 'permisos_aviso', 'suscripciones_aviso'))
+                 and c.relname in ('permisos_de_aviso', 'suscripciones_push', 'suscripciones_aviso'))
        then 'SI' else 'NO' end
 
 union all
