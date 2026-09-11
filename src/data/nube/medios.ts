@@ -68,6 +68,35 @@ export async function medioPublicado(clave: string): Promise<MedioPublicado | nu
   return peticion
 }
 
+/**
+ * El vídeo de ESTA semana de quien tenga la sesión abierta, ya firmado.
+ *
+ * No hace falta decir de quién: la política de la 0065 solo devuelve la fila de
+ * cada quien. Pedirlo por id sería darle al cliente una llave que no necesita —
+ * y la primera carpeta de la ruta (`personas/<uuid>/`) decide el archivo.
+ */
+export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
+  if (!modoNube) return null
+  try {
+    const { data: fila } = await supabase()
+      .from('videos_semanales')
+      .select('path, semana')
+      .order('semana', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const path = typeof fila?.path === 'string' ? fila.path : undefined
+    if (!path) return null
+
+    const { data } = await supabase().storage.from(BUCKET).createSignedUrl(path, SEGUNDOS_FIRMA)
+    const url = data?.signedUrl
+    if (!url) return null
+    return { url, grabadoEl: typeof fila?.semana === 'string' ? fila.semana : undefined }
+  } catch {
+    return null
+  }
+}
+
 /** Para las pruebas y para el cierre de sesión: la firma no debe sobrevivir. */
 export function olvidarMediosFirmados(): void {
   cache = undefined

@@ -1,4 +1,4 @@
-import { medioPublicado } from '../../data/nube/medios'
+import { medioPublicado, miVideoDeLaSemana } from '../../data/nube/medios'
 
 /**
  * De dónde sale el vídeo de la revisión semanal. **Esta es la costura**, y es
@@ -27,7 +27,13 @@ export interface Cabecera {
 }
 
 export async function enlaceDeCabecera(): Promise<Cabecera | null> {
-  const medio = await medioPublicado(CLAVE_CABECERA)
-  if (!medio) return null
-  return { url: medio.url, grabadaEl: medio.grabadoEl }
+  // Primero el suyo: desde el 10-sep hay un vídeo por persona y por semana. Si
+  // todavía no se le ha generado ninguno, cae en la cabecera común, que es la
+  // misma para todos y no habla de nadie.
+  const propio = await miVideoDeLaSemana()
+  if (propio) return { url: propio.url, grabadaEl: propio.grabadoEl }
+
+  const comun = await medioPublicado(CLAVE_CABECERA)
+  if (!comun) return null
+  return { url: comun.url, grabadaEl: comun.grabadoEl }
 }

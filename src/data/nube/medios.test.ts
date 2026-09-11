@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { medioPublicado, olvidarMediosFirmados } from './medios'
+import { medioPublicado, miVideoDeLaSemana, olvidarMediosFirmados } from './medios'
 
 let fila: { path: string; grabado_el: string | null } | null
+let filaPropia: { path: string; semana: string } | null
 let urlQueDevuelve: string | undefined
 let firmas = 0
 let consultas = 0
@@ -12,6 +13,16 @@ vi.mock('../supabase', () => ({
   supabase: () => ({
     from: () => ({
       select: () => ({
+        // La consulta del vídeo propio no filtra por persona: lo hace la
+        // política de la base. Por eso encadena order/limit y no `eq`.
+        order: () => ({
+          limit: () => ({
+            maybeSingle: () => {
+              consultas += 1
+              return Promise.resolve({ data: filaPropia })
+            },
+          }),
+        }),
         eq: (_columna: string, valor: string) => {
           ultimaClave = valor
           return {
@@ -35,7 +46,8 @@ vi.mock('../supabase', () => ({
 }))
 
 beforeEach(() => {
-  fila = { path: 'cabecera/2026-09-10.mp4', grabado_el: '2026-09-07' }
+  fila = { path: 'comunes/cabecera-2026-09-10.mp4', grabado_el: '2026-09-07' }
+  filaPropia = { path: 'personas/u-1/2026-09-07.mp4', semana: '2026-09-07' }
   urlQueDevuelve = 'https://storage/firmada'
   firmas = 0
   consultas = 0
@@ -85,5 +97,24 @@ describe('el vídeo publicado', () => {
     ])
     expect(a).toEqual(b)
     expect(consultas).toBe(1)
+  })
+})
+
+describe('el vídeo de cada quien', () => {
+  it('devuelve el suyo, firmado, sin decirle a la base de quién es', () => {
+    // Quién es lo decide la política de la 0065 con la sesión: si el cliente
+    // pudiera pedir el de otro id, el vídeo de una persona —que dice sus
+    // cargas y su sueño en voz alta— lo abriría cualquiera.
+    return miVideoDeLaSemana().then((v) => {
+      expect(v).toEqual({ url: 'https://storage/firmada', grabadoEl: '2026-09-07' })
+    })
+  })
+
+  it('sin vídeo propio todavía devuelve null y no firma nada', () => {
+    filaPropia = null
+    return miVideoDeLaSemana().then((v) => {
+      expect(v).toBeNull()
+      expect(firmas).toBe(0)
+    })
   })
 })
