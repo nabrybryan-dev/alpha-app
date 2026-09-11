@@ -12,8 +12,8 @@ interface CabeceraSemanalProps {
 }
 
 /**
- * El vídeo de la revisión semanal, fijo encima de la conversación, y debajo el
- * hueco de la tarjeta.
+ * La revisión semanal, fija encima de la conversación, y debajo el hueco de la
+ * tarjeta. Puede ser audio o vídeo: la primera versión publicada es audio.
  *
  * El vídeo es una CABECERA: se graba una vez y sirve todas las semanas, porque
  * no dice ni un número ni un nombre. Lo que cambia cada semana es la tarjeta de
@@ -67,7 +67,7 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
       </p>
 
       <div className="overflow-hidden rounded-2xl border border-linea bg-surface-1">
-        {cabecera ? (
+        {cabecera?.tipo === 'video' ? (
           <video
             src={cabecera.url}
             controls
@@ -76,9 +76,31 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
             aria-label="Vídeo de tu revisión semanal"
             className="block aspect-[9/16] max-h-[42vh] w-full bg-black object-contain"
           />
+        ) : cabecera ? (
+          <div className="flex items-center gap-3 px-4 py-4">
+            {/* La foto real del coach llega como recurso aprobado cuando se publique.
+                Mientras tanto no fingimos que existe ni sustituimos el audio por avatar. */}
+            <span
+              aria-hidden="true"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink-900 font-display text-sm text-silver-100"
+            >
+              A
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-display text-sm text-texto">Bryan te cuenta tu semana</p>
+              <p className="mt-0.5 text-xs text-tenue">Voz generada a partir de su voz, con revisión humana.</p>
+              <audio
+                src={cabecera.url}
+                controls
+                preload="metadata"
+                aria-label="Audio de tu revisión semanal"
+                className="mt-3 block w-full"
+              />
+            </div>
+          </div>
         ) : (
           <p className="px-4 py-6 text-center text-sm leading-relaxed text-tenue">
-            {cargando ? 'Buscando tu revisión…' : 'Tu revisión en vídeo llega el domingo.'}
+            {cargando ? 'Buscando tu revisión…' : 'Tu revisión en audio llega el domingo.'}
           </p>
         )}
       </div>

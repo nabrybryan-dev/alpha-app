@@ -20,8 +20,9 @@ import { medioPublicado, miVideoDeLaSemana } from '../../data/nube/medios'
 export const CLAVE_CABECERA = 'cabecera-semanal'
 
 export interface Cabecera {
-  /** Dirección del vídeo, ya firmada si el cajón la pide. */
+  /** Dirección del audio o vídeo, ya firmada si el cajón la pide. */
   url: string
+  tipo: 'audio' | 'video'
   /** Cuándo se grabó, para poder decirlo en pantalla. */
   grabadaEl?: string
 }
@@ -31,9 +32,9 @@ export async function enlaceDeCabecera(): Promise<Cabecera | null> {
   // todavía no se le ha generado ninguno, cae en la cabecera común, que es la
   // misma para todos y no habla de nadie.
   const propio = await miVideoDeLaSemana()
-  if (propio) return { url: propio.url, grabadaEl: propio.grabadoEl }
+  if (propio) return { url: propio.url, tipo: propio.tipo ?? 'video', grabadaEl: propio.grabadoEl }
 
   const comun = await medioPublicado(CLAVE_CABECERA)
   if (!comun) return null
-  return { url: comun.url, grabadaEl: comun.grabadoEl }
+  return { url: comun.url, tipo: comun.tipo ?? 'video', grabadaEl: comun.grabadoEl }
 }
