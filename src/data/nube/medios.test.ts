@@ -7,7 +7,7 @@ import {
 } from './medios'
 
 let fila: { path: string; grabado_el: string | null } | null
-let filaPropia: { path: string; semana: string } | null
+let filaPropia: { path: string; semana: string; tipo: 'audio' | 'video' } | null
 let errorPropio: { code: string; message: string } | null
 /** A quién pidió la fila del vídeo: tiene que ser SU id, no «lo que devuelva». */
 let pidioPara: string | undefined
@@ -65,7 +65,7 @@ vi.mock('../supabase', () => ({
 
 beforeEach(() => {
   fila = { path: 'comunes/cabecera-2026-09-10.mp4', grabado_el: '2026-09-07' }
-  filaPropia = { path: 'personas/u-1/2026-09-07.mp4', semana: '2026-09-07' }
+  filaPropia = { path: 'personas/u-1/2026-09-07.mp4', semana: '2026-09-07', tipo: 'video' }
   errorPropio = null
   urlQueDevuelve = 'https://storage/firmada'
   firmas = 0
@@ -128,7 +128,7 @@ describe('el vídeo de cada quien', () => {
     // pudiera pedir el de otro id, el vídeo de una persona —que dice sus
     // cargas y su sueño en voz alta— lo abriría cualquiera.
     return miVideoDeLaSemana().then((v) => {
-      expect(v).toEqual({ url: 'https://storage/firmada', grabadoEl: '2026-09-07' })
+      expect(v).toEqual({ url: 'https://storage/firmada', grabadoEl: '2026-09-07', tipo: 'video' })
     })
   })
 

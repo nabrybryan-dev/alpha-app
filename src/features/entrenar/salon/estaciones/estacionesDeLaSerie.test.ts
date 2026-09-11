@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { ANGULOS, aspectoDeEstacion, estacionesDeLaSerie } from './estacionesDeLaSerie'
+import {
+  ALTO_TOCABLE_DEL_POSTE,
+  ANCHO_TOCABLE_DEL_POSTE,
+  ANGULOS,
+  aspectoDeEstacion,
+  cajaTocableDelPoste,
+  estacionesDeLaSerie,
+} from './estacionesDeLaSerie'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../../../domain/types'
 
 /**
@@ -120,5 +127,80 @@ describe('aspectoDeEstacion', () => {
     const lejos = aspectoDeEstacion(45, 0, 200)
     expect(lejos.x).toBeCloseTo(cerca.x * 2, 5)
     expect(lejos.opacidad).toBeCloseTo(cerca.opacidad, 5)
+  })
+})
+
+describe('la zona que se toca de cada poste', () => {
+  const RADIO = 138
+  const CLAVES = ['series', 'reps', 'descanso', 'rir'] as const
+  const PASO = 0.25
+
+  /** Los seis pares posibles de los cuatro postes, en cada azimut de la vuelta. */
+  function* parejasDeLaVuelta() {
+    for (let azimut = 0; azimut < 360; azimut += PASO) {
+      for (let i = 0; i < CLAVES.length; i++) {
+        for (let j = i + 1; j < CLAVES.length; j++) {
+          yield { azimut, a: CLAVES[i], b: CLAVES[j] }
+        }
+      }
+    }
+  }
+
+  const chocan = (
+    a: { x0: number; x1: number; y0: number; y1: number },
+    b: { x0: number; x1: number; y0: number; y1: number },
+  ) => a.x1 > b.x0 && a.x0 < b.x1 && a.y1 > b.y0 && a.y0 < b.y1
+
+  it('DOS POSTES NO PUEDEN COMPARTIR ZONA SENSIBLE EN NINGÚN PUNTO DE LA VUELTA', () => {
+    // Es la prueba que nace de un fallo medido en el salón el 2026-09-11: en 6 de las 13
+    // posiciones de cámara un poste no recibía su propio toque porque otro estaba encima.
+    // Los cuatro están en cruz, así que la cámara los alinea de dos en dos cuatro veces por
+    // vuelta y con un solo eje el choque es inevitable. Lo que los separa es el alza.
+    const choques = []
+    for (const { azimut, a, b } of parejasDeLaVuelta()) {
+      const ca = cajaTocableDelPoste(ANGULOS[a], azimut, RADIO)
+      const cb = cajaTocableDelPoste(ANGULOS[b], azimut, RADIO)
+      if (chocan(ca, cb)) choques.push(`${a}/${b} a ${azimut}°`)
+    }
+    expect(choques).toEqual([])
+  })
+
+  it('y NO es una prueba que pase sola: sin el alza chocan a montones', () => {
+    // El señuelo. Sin esto, la de arriba pasaría igual con el alza quitada del poste —que
+    // es exactamente el fallo que había— y contaría como red sin serlo.
+    const plana = (angulo: number, azimut: number) => {
+      const { x } = aspectoDeEstacion(angulo, azimut, RADIO)
+      return {
+        x0: x - ANCHO_TOCABLE_DEL_POSTE / 2,
+        x1: x + ANCHO_TOCABLE_DEL_POSTE / 2,
+        y0: -ALTO_TOCABLE_DEL_POSTE,
+        y1: 0,
+      }
+    }
+    let choques = 0
+    for (const { azimut, a, b } of parejasDeLaVuelta()) {
+      if (chocan(plana(ANGULOS[a], azimut), plana(ANGULOS[b], azimut))) choques++
+    }
+    expect(choques).toBeGreaterThan(100)
+  })
+
+  it('la zona sigue siendo un blanco cómodo para un pulgar', () => {
+    // 44 × 44 es el mínimo de cualquier guía de táctil. Bajar de ahí para no chocar sería
+    // cambiar un fallo por otro.
+    expect(ANCHO_TOCABLE_DEL_POSTE).toBeGreaterThanOrEqual(44)
+    expect(ALTO_TOCABLE_DEL_POSTE).toBeGreaterThanOrEqual(44)
+  })
+
+  it('la caja va al pie del poste, que es lo que se lee como plantado', () => {
+    const alRas = cajaTocableDelPoste(ANGULOS.series, 0, RADIO)
+    expect(aspectoDeEstacion(ANGULOS.series, 0, RADIO).alza).toBe(0)
+    expect(alRas.y1).toBeGreaterThan(0)
+    expect(alRas.y0).toBeLessThan(0)
+  })
+
+  it('el poste de atrás sube con su estación, no se queda plantado', () => {
+    const delante = cajaTocableDelPoste(ANGULOS.series, 0, RADIO)
+    const detras = cajaTocableDelPoste(ANGULOS.descanso, 0, RADIO)
+    expect(detras.y1).toBeLessThan(delante.y0)
   })
 })

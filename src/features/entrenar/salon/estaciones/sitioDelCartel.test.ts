@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BANDA_DE_SESION,
   desvioDelCartel,
+  desviosDeLosCarteles,
   HOLGURA_DEL_CARTEL,
   SUELO_DE_LOS_CARTELES,
 } from './sitioDelCartel'
@@ -105,5 +106,128 @@ describe('desvioDelCartel', () => {
     const cuerpo = { x0: 0, y0: 90, x1: 390, y1: 700 }
     const d = desvioDelCartel(cartel(195, 400), cuerpo, MARCO)
     expect(d.dx === 0 && d.dy === 0).toBe(false)
+  })
+})
+
+/**
+ * EL GUARDIÁN DE QUE UNA CIFRA NO SE ESCRIBE ENCIMA DE OTRA.
+ *
+ * Nace del mismo sitio que el de arriba y por su culpa: apartar cada cartel del cuerpo,
+ * cada uno por su cuenta, los manda a los cuatro al mismo costado libre. Medido en el
+ * salón real el 2026-09-11 con `testigo/cifras-que-se-pisan.mjs`: en seis muestras a lo largo de
+ * cuatro segundos y medio, SIEMPRE al menos una pareja pisándose, y en cuatro de las seis
+ * una cifra entera dentro de otra. La primera prueba de este bloque es esa foto escrita en
+ * números: si algún día `desvioDelCartel` dejara de amontonar, esta se pondría roja y
+ * habría que borrar el reparto, no arreglarla.
+ */
+describe('desviosDeLosCarteles', () => {
+  /** Los cuatro postes de un cuerpo de pie: dos a cada lado, como los coloca el azimut. */
+  const CUATRO = [
+    { clave: 'series', natural: cartel(250, 500) },
+    { clave: 'reps', natural: cartel(230, 440) },
+    { clave: 'descanso', natural: cartel(160, 440) },
+    { clave: 'rir', natural: cartel(140, 500) },
+  ]
+
+  const parejasQueSePisan = (sitios: { x0: number; x1: number; y0: number; y1: number }[]) => {
+    let cuenta = 0
+    for (let i = 0; i < sitios.length; i++) {
+      for (let j = i + 1; j < sitios.length; j++) {
+        const a = sitios[i]
+        const b = sitios[j]
+        if (a.x1 > b.x0 && a.x0 < b.x1 && a.y1 > b.y0 && a.y0 < b.y1) cuenta++
+      }
+    }
+    return cuenta
+  }
+
+  it('DOCUMENTA EL FALLO: apartándose cada uno por su cuenta, se amontonan', () => {
+    const sitios = CUATRO.map((c) => tras(c.natural, desvioDelCartel(c.natural, DE_PIE, MARCO)))
+    expect(parejasQueSePisan(sitios)).toBeGreaterThan(0)
+  })
+
+  it('repartiendo el hueco entre los cuatro, ninguna cifra se escribe sobre otra', () => {
+    const reparto = desviosDeLosCarteles(CUATRO, [DE_PIE], MARCO)
+    const sitios = CUATRO.map((c) => tras(c.natural, reparto.get(c.clave)!))
+    expect(parejasQueSePisan(sitios)).toBe(0)
+  })
+
+  it('y ninguno de los cuatro vuelve a pisar al sujeto', () => {
+    const reparto = desviosDeLosCarteles(CUATRO, [DE_PIE], MARCO)
+    for (const c of CUATRO) {
+      expect(pisa(tras(c.natural, reparto.get(c.clave)!), DE_PIE)).toBe(false)
+    }
+  })
+
+  it('tampoco se amontonan sobre un cuerpo tumbado, que pide salidas opuestas', () => {
+    const enBanco = [
+      { clave: 'series', natural: cartel(250, 540) },
+      { clave: 'reps', natural: cartel(230, 520) },
+      { clave: 'descanso', natural: cartel(160, 520) },
+      { clave: 'rir', natural: cartel(140, 540) },
+    ]
+    const reparto = desviosDeLosCarteles(enBanco, [TUMBADO], MARCO)
+    const sitios = enBanco.map((c) => tras(c.natural, reparto.get(c.clave)!))
+    expect(parejasQueSePisan(sitios)).toBe(0)
+    for (const c of enBanco) {
+      expect(pisa(tras(c.natural, reparto.get(c.clave)!), TUMBADO)).toBe(false)
+    }
+  })
+
+  it('al que ya estaba en sitio limpio no lo empuja el que llega', () => {
+    // El de la izquierda no toca al cuerpo: su desvío tiene que seguir siendo cero aunque
+    // otro venga huyendo hacia él. Es la razón del orden: primero los que no se mueven.
+    const reparto = desviosDeLosCarteles(
+      [
+        { clave: 'quieto', natural: cartel(60, 534) },
+        { clave: 'huyendo', natural: cartel(205, 534) },
+      ],
+      [DE_PIE],
+      MARCO,
+    )
+    expect(reparto.get('quieto')).toEqual({ dx: 0, dy: 0 })
+  })
+
+  it('tampoco se suben al tablón del muro, que es texto y también estorba', () => {
+    // Medido en el salón el 2026-09-11: el tablón va de x=91 a x=379 y de y=73 a y=201,
+    // y un cartel que escapaba hacia arriba aterrizaba encima de sus cuatro cifras. Es el
+    // mismo criterio 3 —no pisar otro texto— por el otro lado.
+    const TABLON = { x0: 91, y0: 73, x1: 379, y1: 201 }
+    // Un cartel plantado justo donde está el tablón: sin decírselo se queda ahí encima.
+    const ARRIBA = [{ clave: 'series', natural: cartel(195, 190) }]
+    expect(pisa(tras(ARRIBA[0].natural, { dx: 0, dy: 0 }), TABLON)).toBe(true)
+
+    const reparto = desviosDeLosCarteles(ARRIBA, [DE_PIE, TABLON], MARCO)
+    expect(pisa(tras(ARRIBA[0].natural, reparto.get('series')!), TABLON)).toBe(false)
+    expect(pisa(tras(ARRIBA[0].natural, reparto.get('series')!), DE_PIE)).toBe(false)
+
+    // Y los cuatro de siempre tampoco acaban ahí al repartirse el hueco.
+    const cuatro = desviosDeLosCarteles(CUATRO, [DE_PIE, TABLON], MARCO)
+    for (const c of CUATRO) {
+      expect(pisa(tras(c.natural, cuatro.get(c.clave)!), TABLON)).toBe(false)
+      expect(pisa(tras(c.natural, cuatro.get(c.clave)!), DE_PIE)).toBe(false)
+    }
+  })
+
+  it('el reparto no depende del orden en que lleguen los carteles', () => {
+    const alDerecho = desviosDeLosCarteles(CUATRO, [DE_PIE], MARCO)
+    const alReves = desviosDeLosCarteles([...CUATRO].reverse(), [DE_PIE], MARCO)
+    for (const c of CUATRO) {
+      expect(alReves.get(c.clave)).toEqual(alDerecho.get(c.clave))
+    }
+  })
+
+  it('sin cuerpo medido no esquiva al sujeto, pero las cifras SIGUEN sin pisarse', () => {
+    // «No se esquiva lo que no se ha medido» es una regla sobre el SUJETO: en el primer
+    // fotograma el visor todavía no ha dicho dónde está el cuerpo. Que una cifra no se
+    // escriba encima de otra no necesita medir a nadie —son dos recuadros del mismo
+    // fotograma—, así que eso sí se respeta desde el primer fotograma.
+    const reparto = desviosDeLosCarteles(CUATRO, [], MARCO)
+    const sitios = CUATRO.map((c) => tras(c.natural, reparto.get(c.clave)!))
+    expect(parejasQueSePisan(sitios)).toBe(0)
+    // Y un cartel que no tiene a nadie al lado no se mueve: sin cuerpo medido no hay de
+    // quién esquivarse, que es justo la regla del esquivador de uno solo.
+    const solo = desviosDeLosCarteles([{ clave: 'series', natural: cartel(195, 534) }], [], MARCO)
+    expect(solo.get('series')).toEqual({ dx: 0, dy: 0 })
   })
 })

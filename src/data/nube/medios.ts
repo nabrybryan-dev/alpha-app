@@ -9,6 +9,8 @@ const VIDA_CACHE_MS = 50 * 60 * 1000
 export interface MedioPublicado {
   url: string
   grabadoEl?: string
+  /** La pantalla no debe adivinar por la extensión cómo se reproduce una revisión. */
+  tipo?: 'audio' | 'video'
 }
 
 let cache: { valor: MedioPublicado | null; expira: number } | undefined
@@ -124,7 +126,7 @@ export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
 
     const { data: fila, error } = await supabase()
       .from('videos_semanales')
-      .select('path, semana')
+      .select('path, semana, tipo')
       .eq('usuario_id', yo)
       .order('semana', { ascending: false })
       .limit(1)
@@ -147,7 +149,11 @@ export async function miVideoDeLaSemana(): Promise<MedioPublicado | null> {
     const { data } = await supabase().storage.from(BUCKET).createSignedUrl(path, SEGUNDOS_FIRMA)
     const url = data?.signedUrl
     if (!url) return null
-    return { url, grabadoEl: typeof fila?.semana === 'string' ? fila.semana : undefined }
+    return {
+      url,
+      grabadoEl: typeof fila?.semana === 'string' ? fila.semana : undefined,
+      tipo: fila?.tipo === 'audio' ? 'audio' : 'video',
+    }
   } catch {
     return null
   }
