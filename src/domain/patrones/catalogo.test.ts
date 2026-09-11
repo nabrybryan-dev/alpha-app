@@ -221,8 +221,43 @@ describe('la movilidad que los patrones dan por supuesta', () => {
    * crezca solo.
    */
   const TECHO_DE_DORSIFLEXION: Record<string, number> = {
-    sentadilla_unilateral: 34,
-    sentadilla: 29,
+    // 34 → 39 el 2026-09-06, por lo mismo que la sentadilla de abajo: el retardo distal
+    // dejó de recortar el recorrido y la búlgara pasó a pedir 38,0°. Es la que más tobillo
+    // pide de todo el catálogo, y tiene sentido — el pie de delante carga solo, con la
+    // tibia muy inclinada y la rodilla muy por delante de la punta.
+    sentadilla_unilateral: 39,
+    // 29 → 31 el 2026-09-04, y no por aflojar: la trayectoria entre poses pasó de dos
+    // rectas con codo a un cúbico monótono (`hermiteMonotona`), y la sentadilla pasó a
+    // pedir 30,1°. Las tres poses del catálogo no cambiaron ni una décima —lo afirma
+    // `movimiento.test.ts`—; lo que cambió es cómo se llega de una a otra: la rodilla
+    // adelanta a la cadera a media bajada, que es lo que la pose intermedia pedía, y el
+    // pie plano deriva un grado más de tobillo justo ahí. La valla sigue siendo una
+    // valla: si vuelve a crecer, esto lo dice.
+    //
+    // 31 → 34 el 2026-09-06, y tampoco por aflojar: ese día el retardo distal dejó de
+    // RECORTAR el recorrido. Hasta entonces cada canal se leía en `fase − retardo` con la
+    // fase topada a 1, así que el tobillo se quedaba un 8,2 % corto y la rodilla un 4,2 %
+    // — la sentadilla pedía 30,1° de dorsiflexión porque **no se estaba enseñando entera**.
+    // Las tres poses del catálogo siguen sin cambiar ni una décima; lo que cambió es que
+    // ahora se llega a ellas. O sea que estos 33,4° son los que la pose declarada pedía
+    // desde siempre, medidos por primera vez.
+    //
+    // Y dice algo del ejercicio, no solo del código: 33° de dobladura de tobillo es mucho,
+    // y es justo por lo que el déficit de tobillo es lo primero que se mira cuando alguien
+    // no baja.
+    //
+    // DECIDIDO POR BRYAN el 2026-09-06: la sentadilla de demostración **se queda profunda**.
+    // La pose no se toca. Lo que se pedía a cambio era que no se perdiera la naturalidad del
+    // gesto, y eso está medido: el retardo de la rodilla respecto a la cadera sigue siendo
+    // 5,7° al empezar a bajar (antes 6,4) y se cierra a 0 al llegar al fondo, en vez de
+    // quedarse clavado en 5. Que la cadena converja al final es MÁS parecido a un cuerpo, no
+    // menos: nadie termina una sentadilla con el tobillo todavía moviéndose.
+    // 34 → 35 el 2026-09-07: la rodilla pasó a ser una bisagra colgada del fémur (`esqueleto.ts`)
+    // y con la cadera abierta 8° eso mueve la tibia lo justo para que el pie plano derive
+    // 34,8° en vez de 34,0°. Es el único patrón del catálogo al que el cambio de rodilla le
+    // llega —la abducción de cadera es pequeña en todos los demás— y la valla sigue siendo
+    // una valla: si vuelve a crecer, esto lo dice.
+    sentadilla: 35,
     // El agachado del salto, equilibrado sobre el apoyo, exige 24°: agacharse
     // deprisa y profundo es de los gestos que más tobillo piden.
     salto: 25,
@@ -285,8 +320,8 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     ['MOVILIDAD', 'Movilidad torácica con foam roller (movilidad de columna)', true],
     ['MOVILIDAD', 'Gato-camello', true],
     // Y lo que no debe tener patrón, que es tan importante como lo que sí.
-    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', false],
-    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', false],
+    ['ACONDICIONAMIENTO', 'ZONA 2 — 20 min en cinta o elíptica', true] /* cardio con sujeto desde el 2026-09-07 */,
+    ['ACONDICIONAMIENTO', 'Rodada larga en bicicleta (sábado)', true] /* cardio con sujeto desde el 2026-09-07 */,
     ['ACONDICIONAMIENTO', 'Circuito metabólico 40/20', false],
     ['PREV/REHAB', 'Cribado de banderas rojas (antes de tocar una carga)', false],
   ]
@@ -298,10 +333,39 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
     }
   })
 
-  it('no enseña un gesto de fuerza para el cardio', () => {
-    // Peor que no tener visor es tener uno que enseñe otra cosa: quien monta en
-    // bicicleta no está haciendo ninguno de los treinta y un patrones.
-    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')).toBeUndefined()
+  it('el cardio tiene su propio sujeto, y no un gesto de fuerza prestado', () => {
+    // Hasta el 2026-09-07 esto afirmaba lo contrario: «quien monta en bicicleta no está
+    // haciendo ninguno de los treinta y un patrones», y era verdad. Ese día Bryan pidió
+    // integrar el cardio como patrones de movimiento, y ahora la bicicleta tiene ficha
+    // propia —cíclica, no una repetición—. Lo que sigue siendo verdad: nunca un gesto de
+    // fuerza prestado, y lo que no tiene ficha sigue sin sujeto.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Bicicleta (cardio)')?.id).toBe('bicicleta_estatica')
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Cinta 30 min zona 2')?.id).toBe('caminata_en_cinta')
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Circuito metabólico 40/20')).toBeUndefined()
+    // El ergómetro ganó ficha propia el 2026-09-07 por la noche, y va ANTES que el remo de
+    // fuerza en la lista de nombres: «remo ergómetro» lleva la palabra remo.
+    expect(patronDeCategoria('ACONDICIONAMIENTO', 'Remo ergómetro 2000 m')?.id).toBe('remo_ergometro')
+    expect(patronDeCategoria('TRACCIÓN HORIZONTAL', 'Remo con barra')?.id).toBe('traccion_horizontal')
+    expect(patronDeCategoria('PREV/REHAB', 'Cribado de banderas rojas')).toBeUndefined()
+  })
+
+  it('el curl femoral SENTADO va a su silla, venga con la categoría que venga', () => {
+    // Bryan, 2026-09-07, desde el iPhone: «la flexión de rodilla sentado le hace falta la
+    // máquina». Lo que había era peor que faltar la máquina: los nombres «sentado» caían en
+    // la ficha TUMBADA (giro 90, boca abajo, con camilla), y «Curl femoral sentado» —que
+    // llega con categoría AISLAMIENTO— seguía cayendo ahí incluso después de crear la ficha
+    // sentada, porque las variantes por nombre solo entran cuando la categoría ha
+    // acertado, y AISLAMIENTO no acierta nada. Esta prueba nació roja por ese caso.
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'FLEXIÓN DE RODILLA SENTADO')?.id).toBe('flexion_rodilla_sentado')
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'Flexión de rodilla en máquina (sentado)')?.id).toBe('flexion_rodilla_sentado')
+    expect(patronDeCategoria('AISLAMIENTO', 'Curl femoral sentado')?.id).toBe('flexion_rodilla_sentado')
+    // Y el tumbado y el de pie se quedan donde estaban.
+    expect(patronDeCategoria('AISLAMIENTO', 'Curl femoral tumbado')?.id).toBe('flexion_rodilla')
+    expect(patronDeCategoria('FLEXIÓN DE RODILLA', 'FLEXIÓN DE RODILLA ACOSTADO')?.id).toBe('flexion_rodilla')
+  })
+
+  it('la extensión de rodilla tiene sujeto aunque llegue como AISLAMIENTO', () => {
+    expect(patronDeCategoria('AISLAMIENTO', 'Extensión de rodilla')?.id).toBe('extension_rodilla')
   })
 
   it('la categoría manda sobre el nombre cuando dice el gesto', () => {
@@ -315,6 +379,18 @@ describe('la cobertura sobre los ejercicios de verdad', () => {
 })
 
 describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
+  /**
+   * ARRIBA ES LA FASE 1 Y ABAJO LA 0, y desde el 2026-09-06 no al revés.
+   *
+   * El repo declara que el tramo 0→1 es la concéntrica —1,2 s con punto de atasco frente a
+   * 1,9 s «bajando frenando»—, así que la sentadilla, la bisagra y la búlgara se dieron la
+   * vuelta: antes arrancaban de pie y caían durante la fase que se supone que empuja. Lo
+   * que estas tres pruebas afirman del GESTO no cambia ni una coma; lo que cambia es de
+   * qué extremo se lee cada cosa.
+   */
+  const ABAJO = 0
+  const ARRIBA = 1
+
   /** Dónde queda cada punto respecto al tobillo, en centímetros. +Z va delante. */
   const respectoAlTobillo = (patron: Patron, fase: number) => {
     const pies: Lado[] = patron.pies ?? (patron.apoyo === 'suelo' ? ['D', 'I'] : [])
@@ -332,8 +408,8 @@ describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
     // adelante como quien recoge algo del suelo, que es justo lo que no se
     // quiere enseñar.
     const p = PATRON_POR_ID['bisagra_cadera']
-    const arriba = respectoAlTobillo(p, 0)
-    const abajo = respectoAlTobillo(p, 1)
+    const arriba = respectoAlTobillo(p, ARRIBA)
+    const abajo = respectoAlTobillo(p, ABAJO)
     expect(abajo.cadera, 'la cadera no retrocede').toBeLessThan(arriba.cadera - 8)
     // Y la tibia se queda vertical: la rodilla no se adelanta.
     expect(Math.abs(abajo.rodilla), 'la rodilla se adelanta').toBeLessThan(5)
@@ -343,8 +419,8 @@ describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
     // Aquí sí se adelanta la rodilla: es lo que distingue una sentadilla de una
     // bisagra, y por eso una carga el cuádriceps y la otra los isquios.
     const p = PATRON_POR_ID['sentadilla']
-    const arriba = respectoAlTobillo(p, 0)
-    const abajo = respectoAlTobillo(p, 1)
+    const arriba = respectoAlTobillo(p, ARRIBA)
+    const abajo = respectoAlTobillo(p, ABAJO)
     expect(abajo.cadera).toBeLessThan(arriba.cadera - 15)
     expect(abajo.rodilla).toBeGreaterThan(arriba.rodilla + 8)
   })
@@ -352,8 +428,8 @@ describe('hacia dónde se mueve el cuerpo en cada patrón', () => {
   it('separa la bisagra de la sentadilla por dónde va la rodilla', () => {
     // Si las dos adelantaran la rodilla, el visor estaría enseñando el mismo
     // gesto dos veces con nombres distintos.
-    const bisagra = respectoAlTobillo(PATRON_POR_ID['bisagra_cadera'], 1)
-    const sentadilla = respectoAlTobillo(PATRON_POR_ID['sentadilla'], 1)
+    const bisagra = respectoAlTobillo(PATRON_POR_ID['bisagra_cadera'], ABAJO)
+    const sentadilla = respectoAlTobillo(PATRON_POR_ID['sentadilla'], ABAJO)
     expect(sentadilla.rodilla - bisagra.rodilla).toBeGreaterThan(12)
   })
 })

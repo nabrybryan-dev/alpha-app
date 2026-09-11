@@ -186,7 +186,10 @@ export const ARTICULACIONES: Articulacion[] = [
     huesoProximal: 'brazo',
     huesoDistal: 'antebrazo',
     ejes: [
-      { canal: 'antebrazoRot', plano: 'transverso', positivo: 'Supinación', negativo: 'Pronación', rango: [-88, 88] },
+      // EL CERO ES LA POSICIÓN ANATÓMICA (palma al frente), no el pulgar arriba: así lo
+      // resuelve el rig y así están escritas todas las fichas. Desde ahí la pronación llega
+      // a la palma atrás, que es media vuelta, y la supinación no tiene a dónde ir.
+      { canal: 'antebrazoRot', plano: 'transverso', positivo: 'Supinación', negativo: 'Pronación', rango: [-180, 88] },
     ],
     noPuede: [
       'Es lo que gira la palma, y decide cuánto trabaja el bíceps: con la palma hacia abajo pierde su ventaja.',

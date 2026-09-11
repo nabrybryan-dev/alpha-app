@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { PATRONES, PATRON_POR_ID, type Patron } from './catalogo'
 import { DEMOSTRACIONES, DEMOSTRACION_POR_ID } from './demostraciones'
+import { sobreponerMedida } from './escena'
 import {
   DURACION_CICLO,
+  duracionDelCiclo,
   CAMPO_VISUAL,
   encuadrar,
   esqueletoEnFase,
@@ -13,6 +15,49 @@ import {
 import { construirHuesos } from './huesos'
 import { ESQUELETO, puntoDeHueso } from './esqueleto'
 import { grados, V } from './algebra'
+
+describe('el ritmo cíclico: una zancada no es una repetición', () => {
+  /**
+   * EL CARDIO ENTRA AL SALÓN (Bryan, 2026-09-07) y trae un problema de tempo antes que de
+   * pose. `faseDeTiempo` es una repetición: 1,2 s con punto de atasco, pausa arriba, 1,9 s
+   * frenando, pausa abajo. Una zancada, una pedalada o un peldaño no tienen nada de eso:
+   * los dos medios ciclos son iguales, no hay atasco, no hay asentamiento y no se para en
+   * ningún extremo. Con el tempo de repetición, un sujeto caminando cojearía —la pierna
+   * derecha adelantaría en 1,2 s y la izquierda en 1,9— y se quedaría clavado dos veces por
+   * zancada. La ficha declara `ciclo: { periodoSeg }` y el motor la trata como lo que es.
+   */
+  const ciclico = { ...PATRON_POR_ID.flexion_codo, ciclo: { periodoSeg: 1.2 } }
+
+  it('dura lo que dice su periodo, y no lo que dura una repetición', () => {
+    expect(duracionDelCiclo(undefined, ciclico)).toBeCloseTo(1.2, 9)
+  })
+
+  it('los dos medios ciclos son espejo: fase(t) = fase(T − t)', () => {
+    for (let t = 0; t <= 0.6; t += 0.05) {
+      expect(faseDeTiempo(t, ciclico).fase).toBeCloseTo(faseDeTiempo(1.2 - t, ciclico).fase, 6)
+    }
+  })
+
+  it('no se para en ningún extremo: la fase cambia entre dos instantes cualesquiera', () => {
+    for (let t = 0; t < 1.2; t += 0.02) {
+      const a = faseDeTiempo(t, ciclico).fase
+      const b = faseDeTiempo(t + 0.02, ciclico).fase
+      expect(Math.abs(b - a), `parado en t=${t.toFixed(2)}`).toBeGreaterThan(0.002)
+    }
+  })
+
+  it('llega al extremo justo a mitad de periodo, sin asentamiento que lo pase de largo', () => {
+    expect(faseDeTiempo(0.6, ciclico).fase).toBeCloseTo(1, 6)
+    expect(faseDeTiempo(0, ciclico).fase).toBeCloseTo(0, 6)
+    let maximo = 0
+    for (let t = 0; t < 1.2; t += 0.01) maximo = Math.max(maximo, faseDeTiempo(t, ciclico).fase)
+    expect(maximo).toBeLessThanOrEqual(1 + 1e-9)
+  })
+
+  it('y una ficha sin `ciclo` sigue siendo la repetición de siempre', () => {
+    expect(duracionDelCiclo(undefined, PATRON_POR_ID.flexion_codo)).toBeCloseTo(DURACION_CICLO, 9)
+  })
+})
 
 describe('el tempo de la repetición', () => {
   it('arranca abajo y sube en la fase concéntrica', () => {
@@ -389,5 +434,52 @@ describe('dónde se atasca cada ejercicio', () => {
     for (const p of sinDeclarar.slice(0, 5)) {
       expect(dondeFrena(p), p.id).toBeCloseTo(dondeFrena(sinDeclarar[0]), 1)
     }
+  })
+})
+
+describe('el tempo prescrito', () => {
+  it('sin tempo, el ciclo es el de siempre', () => {
+    expect(duracionDelCiclo()).toBeCloseTo(DURACION_CICLO, 9)
+    expect(faseDeTiempo(0.6, undefined, undefined).fase).toBeCloseTo(faseDeTiempo(0.6).fase, 9)
+  })
+
+  it('con excéntrica de 3 s, la bajada dura 3 s y la subida no cambia', () => {
+    const tempo = { excentricaSeg: 3 }
+    // El ciclo crece exactamente en lo que crece la bajada (1,9 → 3).
+    expect(duracionDelCiclo(tempo)).toBeCloseTo(DURACION_CICLO - 1.9 + 3, 9)
+    // La subida es la misma: al mismo tiempo, la misma fase.
+    expect(faseDeTiempo(0.6, undefined, tempo).fase).toBeCloseTo(faseDeTiempo(0.6).fase, 9)
+    // Y a mitad de la bajada nueva —1,2 + 0,35 + 1,5— la fase ronda la mitad.
+    const mitadDeBajada = faseDeTiempo(1.2 + 0.35 + 1.5, undefined, tempo)
+    expect(mitadDeBajada.sentido).toBe(-1)
+    expect(mitadDeBajada.fase).toBeGreaterThan(0.35)
+    expect(mitadDeBajada.fase).toBeLessThan(0.65)
+  })
+
+  it('un tempo sin sentido no rompe el ciclo', () => {
+    for (const malo of [0, -2, Number.NaN]) {
+      expect(duracionDelCiclo({ excentricaSeg: malo })).toBeCloseTo(DURACION_CICLO, 9)
+    }
+  })
+})
+
+describe('la pose medida manda sobre la del patrón', () => {
+  it('sobreponerMedida quita los dos lados del canal que se mide', () => {
+    const pose = sobreponerMedida({ rodillaFlexD: 10, rodillaFlexI: 12, caderaFlex: 30, codoFlexD: 5 }, { rodillaFlex: 100 })
+    expect(pose).toEqual({ caderaFlex: 30, codoFlexD: 5, rodillaFlex: 100 })
+  })
+
+  it('un valor que no es número no toca nada', () => {
+    expect(sobreponerMedida({ rodillaFlexD: 10 }, { rodillaFlex: NaN })).toEqual({ rodillaFlexD: 10 })
+  })
+
+  it('esqueletoEnFase con medida mueve la rodilla; sin medida es el de siempre', () => {
+    const patron = PATRON_POR_ID.sentadilla
+    const sinMedida = esqueletoEnFase(patron, 0.5, 1, 0)
+    const igual = esqueletoEnFase(patron, 0.5, 1, 0, undefined)
+    const conMedida = esqueletoEnFase(patron, 0.5, 1, 0, { rodillaFlex: 5, caderaFlex: 5 })
+    expect(puntoDeHueso(igual, 'tibiaD', 1)).toEqual(puntoDeHueso(sinMedida, 'tibiaD', 1))
+    // Con la rodilla casi extendida, la cadera queda más alta que a media sentadilla.
+    expect(puntoDeHueso(conMedida, 'pelvis', 0)[1]).toBeGreaterThan(puntoDeHueso(sinMedida, 'pelvis', 0)[1] + 0.1)
   })
 })

@@ -7,7 +7,16 @@
 
 import { grados, limitar, suavizar, V, type Vec3 } from './algebra'
 import type { Patron } from './catalogo'
-import { ESQUELETO, INDICE_HUESO, puntoDeHueso, resolverConApoyo, type EsqueletoResuelto, type Lado } from './esqueleto'
+import {
+  ESQUELETO,
+  INDICE_HUESO,
+  puntoDeHueso,
+  resolverConApoyo,
+  type DefinicionHueso,
+  type EsqueletoResuelto,
+  type Lado,
+  type Pose,
+} from './esqueleto'
 import { flecha, Malla, tuboDiscontinuo, type Color } from './malla'
 import { activacionDe, PORCIONES, trazadoDeFasciculo } from './musculos'
 import { poseAnimada } from './movimiento'
@@ -24,7 +33,19 @@ export const ARO: Color = [0.4, 0.47, 0.545]
  * Ver el tempo correcto es parte de lo que hay que enseñar. Una interpolación
  * lineal enseñaría un tempo que nadie debería copiar.
  */
-const CICLO = [
+/** Un tramo del ciclo: de qué fase a qué fase, en cuántos segundos, y cómo se recorre. */
+interface Tramo {
+  duracion: number
+  desde: number
+  hasta: number
+  suave: boolean
+  /** La subida de una repetición, con su punto de atasco. */
+  subiendo?: boolean
+  /** La pausa de arriba, con el asentamiento del tejido. */
+  asienta?: boolean
+}
+
+const CICLO: Tramo[] = [
   { duracion: 1.2, desde: 0, hasta: 1, suave: true, subiendo: true },
   { duracion: 0.35, desde: 1, hasta: 1, suave: false, asienta: true },
   { duracion: 1.9, desde: 1, hasta: 0, suave: true },
@@ -107,16 +128,66 @@ function avanceDeSubida(k: number, centro: number): number {
 
 export const DURACION_CICLO = CICLO.reduce((s, f) => s + f.duracion, 0)
 
+/**
+ * EL TEMPO PRESCRITO, cuando lo hay.
+ *
+ * El ciclo de arriba es el de una repetición bien hecha sin más datos: baja en 1,9 s. Pero
+ * la pared del salón cuenta el excéntrico a `SEGUNDOS_DE_EXCENTRICO` por repetición, y si
+ * el sujeto baja en 1,9 s mientras el reloj de la pared dice 3, el salón se contradice a
+ * sí mismo en la única cifra de tiempo que enseña. Con esto la bajada del sujeto ES la que
+ * cuenta la pared. Sin tempo, todo sigue como estaba.
+ */
+export interface TempoDeRepeticion {
+  /** Segundos de la fase excéntrica —la bajada—. */
+  excentricaSeg?: number
+}
+
+/**
+ * EL RITMO CÍCLICO, para las fichas que no son una repetición.
+ *
+ * Una zancada, una pedalada o un peldaño no tienen concéntrica ni excéntrica: los dos
+ * medios ciclos son iguales, no hay punto de atasco, no hay asentamiento y no se para en
+ * ningún extremo. El remo es el otro caso: cíclico también, pero con las dos mitades de
+ * distinta duración, y lo dice con `empujeSeg`. Con el tempo de repetición un sujeto caminando COJEARÍA —la pierna
+ * derecha adelantaría en 1,2 s y la izquierda en 1,9— y se quedaría clavado dos veces por
+ * zancada. Dos tramos suaves e iguales, y nada más. Nace el 2026-09-07 con el cardio.
+ */
+function cicloDe(periodoSeg: number, empujeSeg?: number): Tramo[] {
+  // EL REMO NO TIENE LAS DOS MITADES IGUALES, y esa es su técnica: el empuje es corto y
+  // fuerte y la vuelta al frente es larga y suave. Los remeros lo llaman «ratio» y es lo
+  // primero que se corrige. Cuando la ficha declara `empujeSeg` se respeta; cuando no —una
+  // zancada, una pedalada—, las dos mitades duran lo mismo, que es lo correcto ahí.
+  const ida = empujeSeg && empujeSeg > 0 && empujeSeg < periodoSeg ? empujeSeg : periodoSeg / 2
+  return [
+    { duracion: ida, desde: 0, hasta: 1, suave: true },
+    { duracion: periodoSeg - ida, desde: 1, hasta: 0, suave: true },
+  ]
+}
+
+function cicloCon(tempo?: TempoDeRepeticion, patron?: Patron): Tramo[] {
+  if (patron?.ciclo && patron.ciclo.periodoSeg > 0) return cicloDe(patron.ciclo.periodoSeg, patron.ciclo.empujeSeg)
+  const bajada = tempo?.excentricaSeg
+  if (bajada === undefined || !(bajada > 0)) return CICLO
+  return CICLO.map((f) => (f.desde === 1 && f.hasta === 0 ? { ...f, duracion: bajada } : f))
+}
+
+/** Cuánto dura una repetición entera con ese tempo — o un ciclo entero, si la ficha es cíclica. */
+export function duracionDelCiclo(tempo?: TempoDeRepeticion, patron?: Patron): number {
+  return cicloCon(tempo, patron).reduce((s, f) => s + f.duracion, 0)
+}
+
 export interface FaseDelCiclo {
   fase: number
   /** +1 en la fase concéntrica, −1 en la excéntrica. */
   sentido: number
 }
 
-export function faseDeTiempo(t: number, patron?: Patron): FaseDelCiclo {
+export function faseDeTiempo(t: number, patron?: Patron, tempo?: TempoDeRepeticion): FaseDelCiclo {
   const centro = patron?.estancamiento ?? ESTANCAMIENTO.centro
-  let u = ((t % DURACION_CICLO) + DURACION_CICLO) % DURACION_CICLO
-  for (const f of CICLO) {
+  const ciclo = cicloCon(tempo, patron)
+  const duracion = duracionDelCiclo(tempo, patron)
+  let u = ((t % duracion) + duracion) % duracion
+  for (const f of ciclo) {
     if (u < f.duracion) {
       const k = f.duracion > 0 ? u / f.duracion : 0
       const avance = f.subiendo ? avanceDeSubida(k, centro) : f.suave ? suavizar(k) : k
@@ -139,20 +210,45 @@ export function faseDeTiempo(t: number, patron?: Patron): FaseDelCiclo {
 const piesDe = (p: Patron): Lado[] => p.pies ?? (p.apoyo === 'suelo' ? ['D', 'I'] : [])
 
 /** Resuelve el esqueleto de un patrón en una fase concreta. */
+/**
+ * SOBREPONER UNA POSE MEDIDA a la del patrón.
+ *
+ * Un canal medido llega sin lado —la pista es sagital— y tiene que mandar sobre los
+ * dos: si el patrón trae `rodillaFlexD`, `poseAEuler()` lo prefiere al `rodillaFlex`
+ * genérico y la rodilla medida no se vería. Por eso al poner el canal se quitan sus dos
+ * variantes de lado. Lo que la medida no trae —tobillo, escápula, cuello— se queda como
+ * lo hace el patrón: es lo único que hay para esas articulaciones.
+ */
+export function sobreponerMedida(pose: Pose, medida: Pose): Pose {
+  const salida: Pose = { ...pose }
+  for (const [canal, valor] of Object.entries(medida)) {
+    if (!Number.isFinite(valor)) continue
+    delete salida[`${canal}D`]
+    delete salida[`${canal}I`]
+    salida[canal] = valor
+  }
+  return salida
+}
+
 export function esqueletoEnFase(
   patron: Patron,
   fase: number,
   sentido = 1,
   reloj = 0,
+  /** Canales medidos que mandan sobre los del patrón: el fantasma articular. */
+  medida?: Pose,
+  /** El juego de huesos del sujeto; sin él, el de siempre. Ver `juegoDeHuesos.ts`. */
+  huesos?: readonly DefinicionHueso[],
 ): EsqueletoResuelto {
   const { pose, desplazamiento, giroRaiz } = poseAnimada(patron, fase, sentido, reloj)
   return resolverConApoyo(
-    pose,
+    medida ? sobreponerMedida(pose, medida) : pose,
     desplazamiento,
     giroRaiz,
     patron.apoyo,
     patron.alturaApoyo,
     piesDe(patron),
+    huesos,
   )
 }
 
@@ -194,7 +290,7 @@ export const CAMPO_VISUAL = grados(26)
  */
 const HOLGURA_DEL_FOCO = 1.12
 
-export function encuadrar(patron: Patron): Encuadre {
+export function encuadrar(patron: Patron, huesos?: readonly DefinicionHueso[]): Encuadre {
   const cuerpo: Vec3[] = []
   const activo: Vec3[] = []
   // Se encuadra la PORCIÓN que trabaja, no el músculo entero: en un curl manda
@@ -207,7 +303,7 @@ export function encuadrar(patron: Patron): Encuadre {
   )
 
   for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
-    const esq = esqueletoEnFase(patron, fase)
+    const esq = esqueletoEnFase(patron, fase, 1, 0, undefined, huesos)
     for (const h of ESQUELETO) {
       for (const t of [0, 0.5, 1]) cuerpo.push(puntoDeHueso(esq, h.nombre, t))
     }
@@ -248,7 +344,7 @@ export function encuadrar(patron: Patron): Encuadre {
     const padre = ESQUELETO.find((h) => h.nombre === patron.foco)?.padre
     const enFoco: Vec3[] = []
     for (const fase of [0, 0.25, 0.5, 0.75, 1]) {
-      const esq = esqueletoEnFase(patron, fase)
+      const esq = esqueletoEnFase(patron, fase, 1, 0, undefined, huesos)
       for (const hueso of [patron.foco, padre]) {
         if (hueso === undefined || hueso === null) continue
         for (const t of [0, 0.5, 1]) enFoco.push(puntoDeHueso(esq, hueso, t))
@@ -279,14 +375,15 @@ export function encuadrar(patron: Patron): Encuadre {
  * calcula una vez por patrón. Recalcularla en cada cuadro costaba cincuenta y
  * dos resoluciones del esqueleto por cuadro y dejaba la página sin responder.
  */
-export function trazaDelPatron(patron: Patron): Vec3[] | null {
+export function trazaDelPatron(patron: Patron, huesos?: readonly DefinicionHueso[]): Vec3[] | null {
   if (!patron.seguimiento) return null
   const [hueso, t, desvio] = patron.seguimiento
   const nombre = INDICE_HUESO[hueso + 'D'] ? hueso + 'D' : hueso
   const N = 26
   const puntos: Vec3[] = []
   for (let i = 0; i < N; i++) {
-    puntos.push(puntoDeHueso(esqueletoEnFase(patron, i / (N - 1)), nombre, t, desvio))
+    const esq = esqueletoEnFase(patron, i / (N - 1), 1, 0, undefined, huesos)
+    puntos.push(puntoDeHueso(esq, nombre, t, desvio))
   }
   return puntos
 }

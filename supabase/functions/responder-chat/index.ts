@@ -75,6 +75,34 @@ export function esTemaDeSalud(mensaje: string): boolean {
   return SALUD.some((p) => t.includes(p))
 }
 
+// Saludos. Es un conjunto CERRADO y por eso se resuelve con una lista y no con
+// el buscador de fichas: medido el 2026-09-10 sobre una consulta real, «hola»
+// se parece a la ficha mas cercana un 0,29 —muy por debajo del 0,42 minimo— y
+// el asesorado recibia «esa no te la puedo responder bien con lo que tengo».
+// Es la peor primera frase posible para quien acaba de abrir el chat.
+const SALUDOS = [
+  'hola', 'holi', 'holaa', 'ola', 'buenas', 'buenos dias', 'buen dia',
+  'buenas tardes', 'buenas noches', 'hey', 'ey', 'saludos', 'que tal',
+  'como estas', 'como esta', 'como vas', 'hi', 'hello', 'buenass',
+]
+
+/**
+ * Un mensaje es un saludo SOLO si no trae nada mas.
+ *
+ * «hola, me duele la rodilla» NO es un saludo: es una consulta de salud que
+ * empieza con educacion, y contestarle con una bienvenida seria peor que el
+ * fallo que esto arregla. Por eso se compara el mensaje ENTERO —limpio de
+ * signos y emojis— contra la lista, y no se busca la palabra dentro.
+ */
+export function esSaludo(mensaje: string): boolean {
+  const limpio = normalizar(mensaje)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!limpio) return false
+  return SALUDOS.includes(limpio)
+}
+
 /** Saca el token de una cabecera `Authorization: Bearer <token>`. */
 export function tokenDeCabecera(cabecera: string | null): string {
   if (!cabecera) return ''
@@ -205,6 +233,13 @@ const MSG_CRISIS = [
   'Esto no es algo que deba responderte una app, asi que no voy a hablarte de entrenamiento ahora.',
   'Le voy a dejar esto marcado a tu coach para que lo vea.',
   'Si necesitas hablar con alguien ahora mismo, no esperes a que el te escriba: busca a un profesional de salud o a alguien de confianza que este cerca de ti. No te quedes solo con esto.',
+].join('\n\n')
+
+const MSG_BIENVENIDA = [
+  'Hola. Soy Alpha, el asistente de tu coach dentro de la app.',
+  'Puedo contestarte al momento lo de siempre: como se hace un ejercicio, que pasa si te saltas una sesion, como ajustar una comida, para que sirve el RIR o que hacer si una carga se te queda corta.',
+  'Lo que no me toca —tu plan, una molestia o cualquier cosa de salud— se lo paso a tu coach tal cual y te responde el.',
+  'Escribeme tu pregunta con tus palabras.',
 ].join('\n\n')
 
 const MSG_ESCALADO = [
@@ -399,6 +434,14 @@ async function manejar(req: Request): Promise<Response> {
   if (esCrisis(mensaje)) {
     await registrar({ via: 'escalado', bandera_roja: true })
     return entregar(MSG_CRISIS, { via: 'escalado', crisis: true, bandera_roja: true })
+  }
+
+  // Antes de gastar un embedding: un saludo se contesta con una bienvenida.
+  // Va DESPUES de la crisis a proposito — «hola» a secas no puede tapar nada,
+  // pero el orden importa y la crisis manda siempre.
+  if (esSaludo(mensaje)) {
+    await registrar({ via: 'saludo', bandera_roja: false })
+    return entregar(MSG_BIENVENIDA, { via: 'saludo', bandera_roja: false })
   }
 
   const salud = esTemaDeSalud(mensaje)

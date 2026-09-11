@@ -135,10 +135,24 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
     })
   }
 
+  // Lo que esos pasos gastan. Va justo debajo de la meta porque es su otra
+  // mitad: sin las kcal, «sube los pasos» no dice cuánto vale subirlos. Siempre
+  // marcado como estimado — sale de una fórmula, no de un acelerómetro.
+  const neat = perfil.neat
+  if (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined) {
+    const hoy = neat.kcalDia
+    const meta = neat.kcalDiaEnMeta
+    const valor =
+      hoy !== undefined && meta !== undefined
+        ? `${hoy} → ${meta} kcal/día`
+        : `${hoy ?? meta} kcal/día`
+    filas.push({ etiqueta: 'Gasto por pasos', valor, estimado: true })
+  }
+
   if (filas.length === 0 && !perfil.objetivos) return null
 
   return (
-    <section className="rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+    <section className="relieve rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
       <div className="flex items-center gap-3">
         <DiscoDespiece />
         <h2 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-tenue">

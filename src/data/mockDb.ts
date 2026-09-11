@@ -1,13 +1,17 @@
+import { perfilVacio } from '../domain/perfilVacio'
 import { agregar as agregarItem, quitar as quitarItem } from '../domain/nutricion/despensa'
 import type {
   CheckinDiario,
   EstadoAdherencia,
   ItemMarcable,
   Microciclo,
+  Perfil,
   RegistroComida,
   SerieRegistrada,
+  Sesion,
   TestPostSesion,
 } from '../domain/types'
+import { hoyIso } from '../lib/fecha'
 import { construirRanking } from '../domain/ranking'
 import { crearContenidoRepo } from './contenido/contenidoRepo'
 import { patronDeSesion, plantillaPreparacion } from './plantillas/preparacionBase'
@@ -16,6 +20,41 @@ import { crearRutaRepo } from './ruta/rutaRepo'
 import { seedDb, type SeedDb } from './seed'
 import { esCuotaLlena, marcarSinEspacio } from './sinEspacio'
 import { diasAtras } from './seed/fechas'
+
+/**
+ * Le pone fecha y HORAS a la sesion cuando se toca.
+ *
+ * Las tres escrituras del asesorado —marcar preparacion, anotar una serie y
+ * guardar el test— pasan por aqui. Cual de las tres llega primero da igual: lo
+ * que se fija es el dia en que la persona aparecio, y ese dia no cambia porque
+ * el jueves anote una serie que le faltaba del martes.
+ *
+ * **La fecha y el arranque no se sobrescriben NUNCA; la ultima marca si, en cada
+ * escritura.** Son tres campos con tres vidas distintas a proposito:
+ *
+ * - `fecha` — el DIA en que aparecio. Se sella una vez.
+ * - `empezadaEn` — el INSTANTE de esa primera vez. Se sella una vez.
+ * - `ultimaMarcaEn` — el instante de la ULTIMA cosa que se registro. Se mueve.
+ *
+ * Los dos instantes nacen el 2026-09-10 y no son un adorno: para atar a un
+ * entrenamiento algo que ocurrio durante el —unas pulsaciones, unos pasos— hace
+ * falta un intervalo con horas, y hasta hoy la app solo sabia el dia. El
+ * cronometro, que si sabe horas, vive en el `localStorage` del telefono y no
+ * sube a ningun sitio: no sirve para esto.
+ *
+ * Quien llama nota si hubo cambio comparando la REFERENCIA, asi que se devuelve
+ * el mismo objeto cuando no hay nada que escribir — y eso ya no pasa nunca desde
+ * que `ultimaMarcaEn` se mueve, que es justo lo que se quiere: cada escritura
+ * del asesorado es algo nuevo que subir.
+ */
+function conFecha(sesion: Sesion, hoy = hoyIso(), ahora = new Date().toISOString()): Sesion {
+  return {
+    ...sesion,
+    fecha: sesion.fecha ?? hoy,
+    empezadaEn: sesion.empezadaEn ?? ahora,
+    ultimaMarcaEn: ahora,
+  }
+}
 
 const CLAVE = 'alpha-db-v2'
 
@@ -153,9 +192,63 @@ export function instantaneaLocal(): SeedDb {
  */
 export function aplicarSnapshot(nuevo: SeedDb, epocaDeOrigen?: number): void {
   if (epocaDeOrigen !== undefined && epocaDeOrigen !== epoca) return
-  localStorage.setItem(CLAVE, JSON.stringify(nuevo))
+  if (!escribirSnapshot(nuevo)) return
   if (referencia) referencia.actual = nuevo
   oyentes.forEach((o) => o())
+}
+
+/**
+ * Escribe la foto del servidor en disco. Devuelve si quedó aplicada.
+ *
+ * R-16: `aplicarSnapshot` escribía sin capturar el fallo de cuota, a
+ * diferencia de `guardar()`. Aquí no basta con tragarse el error igual que
+ * ahí -esto reemplaza la base ENTERA, no una escritura local- así que, sin
+ * espacio, se sigue la misma regla del módulo pero con reintento: se libera
+ * la instantánea vieja con la rutina que ya existe, se reintenta UNA vez y,
+ * si ni así cabe, se restaura tal cual lo que había. La foto que no cupo se
+ * descarta entera antes que dejar el dispositivo sin nada: la próxima
+ * hidratación la vuelve a intentar.
+ */
+function escribirSnapshot(nuevo: SeedDb): boolean {
+  const serializado = JSON.stringify(nuevo)
+  try {
+    localStorage.setItem(CLAVE, serializado)
+    return true
+  } catch (primerError) {
+    if (!esCuotaLlena(primerError)) throw primerError
+  }
+
+  // Un `setItem` que lanza no llega a escribir: lo que había en disco sigue
+  // intacto. Se guarda para poder devolverlo si ni liberando espacio cabe.
+  let respaldo: string | null = null
+  try {
+    respaldo = localStorage.getItem(CLAVE)
+  } catch {
+    // Sin lectura no hay respaldo que ofrecer; se sigue igual de todos modos.
+  }
+
+  liberarEspacioDeInstantanea()
+  try {
+    localStorage.setItem(CLAVE, serializado)
+    return true
+  } catch (segundoError) {
+    if (!esCuotaLlena(segundoError)) throw segundoError
+
+    if (respaldo !== null) {
+      try {
+        localStorage.setItem(CLAVE, respaldo)
+      } catch {
+        // Si ni el respaldo cabe ya, no queda nada más que intentar aquí.
+      }
+    }
+
+    marcarSinEspacio()
+    console.error(
+      'Sin espacio en el dispositivo: no se pudo aplicar la foto del servidor ni tras liberar espacio. Se conserva lo que ya había.',
+      segundoError,
+    )
+    return false
+  }
 }
 
 function actualizarMicrociclo(
@@ -242,16 +335,7 @@ export function crearMockDb(): Db {
               )
             : [
                 ...estado.perfiles,
-                {
-                  usuarioId,
-                  objetivos: '',
-                  edad: 0,
-                  diasEntrenamiento: 0,
-                  tiempoSesionMin: 0,
-                  somatotipo: '',
-                  volumenSemanal: {},
-                  medidas: [medida],
-                },
+                perfilVacio(usuarioId, [medida]),
               ],
         }))
       },
@@ -261,6 +345,33 @@ export function crearMockDb(): Db {
           perfiles: estado.perfiles.map((p) =>
             p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
           ),
+        }))
+      },
+      guardarSexo: (usuarioId, sexo) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.map((p) => {
+            if (p.usuarioId !== usuarioId) return p
+            // «Sin indicar» es que la clave NO esté, no que valga undefined: así
+            // la ficha guardada es idéntica a una que nunca lo tuvo.
+            const copia: Perfil = { ...p }
+            if (sexo) copia.sexo = sexo
+            else delete copia.sexo
+            return copia
+          }),
+        }))
+      },
+      guardarDiasDisponibles: (usuarioId, dias) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.some((p) => p.usuarioId === usuarioId)
+            ? estado.perfiles.map((p) =>
+                p.usuarioId === usuarioId ? { ...p, diasDisponibles: [...dias] } : p,
+              )
+            : // Sin ficha todavía: nace con lo mínimo, igual que hace la medida. El
+              // resto lo pone el coach; inventar aquí objetivos o edad sería fabricar
+              // una ficha.
+              [...estado.perfiles, { ...perfilVacio(usuarioId, []), diasDisponibles: [...dias] }],
         }))
       },
       guardarValoracion: (usuarioId, valoracion) => {
@@ -346,19 +457,26 @@ export function crearMockDb(): Db {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
-            sesiones: m.sesiones.map((s) => ({
-              ...s,
-              ejercicios: s.ejercicios.map((e) =>
-                e.id === ejercicioId
-                  ? {
-                      ...e,
-                      series: [...e.series.filter((x) => x.orden !== serie.orden), serie].sort(
-                        (a, b) => a.orden - b.orden,
-                      ),
-                    }
-                  : e,
-              ),
-            })),
+            // Solo se fecha la sesion DONDE ESTA el ejercicio: `map` recorre todas,
+            // y sellarlas todas pondria la de hoy en las cinco de la semana.
+            sesiones: m.sesiones.map((s) =>
+              s.ejercicios.some((e) => e.id === ejercicioId)
+                ? conFecha({
+                    ...s,
+                    ejercicios: s.ejercicios.map((e) =>
+                      e.id === ejercicioId
+                        ? {
+                            ...e,
+                            series: [
+                              ...e.series.filter((x) => x.orden !== serie.orden),
+                              serie,
+                            ].sort((a, b) => a.orden - b.orden),
+                          }
+                        : e,
+                    ),
+                  })
+                : s,
+            ),
           })),
         )
       },
@@ -366,7 +484,9 @@ export function crearMockDb(): Db {
         mutar((estado) =>
           actualizarMicrociclo(estado, microcicloId, (m) => ({
             ...m,
-            sesiones: m.sesiones.map((s) => (s.id === sesionId ? { ...s, testPost: test } : s)),
+            sesiones: m.sesiones.map((s) =>
+              s.id === sesionId ? conFecha({ ...s, testPost: test }) : s,
+            ),
           })),
         )
       },
@@ -381,7 +501,11 @@ export function crearMockDb(): Db {
             sesiones: m.sesiones.map((s) => {
               if (s.id !== sesionId) return s
               const preparacion = s.preparacion ?? plantillaPreparacion(patronDeSesion(s.nombre))
-              return { ...s, preparacion: preparacion.map(alternar), bloquesCardio: s.bloquesCardio?.map(alternar) }
+              return conFecha({
+                ...s,
+                preparacion: preparacion.map(alternar),
+                bloquesCardio: s.bloquesCardio?.map(alternar),
+              })
             }),
           })),
         )
@@ -469,6 +593,29 @@ export function crearMockDb(): Db {
                 completadaEn: completada
                   ? (previo?.completadaEn ?? new Date().toISOString())
                   : previo?.completadaEn,
+              },
+            ],
+          }
+        })
+      },
+    },
+
+    mapaDeVida: {
+      respuestaDe: (usuarioId) =>
+        (ref.actual.mapaDeVida ?? []).find((r) => r.usuarioId === usuarioId),
+      guardar: (usuarioId, valores) => {
+        mutar((estado) => {
+          const previo = (estado.mapaDeVida ?? []).find((r) => r.usuarioId === usuarioId)
+          return {
+            ...estado,
+            mapaDeVida: [
+              ...(estado.mapaDeVida ?? []).filter((r) => r.usuarioId !== usuarioId),
+              {
+                usuarioId,
+                // Se acumula sobre lo que ya había: retomar la encuesta no
+                // borra lo que ya se había contestado en una vuelta anterior.
+                valores: { ...previo?.valores, ...valores },
+                respondidoEnIso: new Date().toISOString(),
               },
             ],
           }
@@ -763,6 +910,38 @@ export function crearMockDb(): Db {
             },
           ],
         }))
+      },
+    },
+
+    cribado: {
+      // LA ÚLTIMA, no la primera (0062). La tabla guarda la historia y manda la más
+      // reciente: aquí el array está en orden de llegada, así que la última es la
+      // vigente. Con `find` se devolvía la más VIEJA, que es exactamente lo contrario
+      // de lo que se decidió — y sobre salud significaría leer la medicación de antes.
+      byUsuario: (usuarioId) =>
+        (ref.actual.cribados ?? []).findLast((c) => c.usuarioId === usuarioId),
+      contestar: (cribado) => {
+        // Contestar OTRA VEZ es legítimo, y es la razón de ser de la 0062: quien sabe
+        // que empezó una medicación esta semana es la persona, no el expediente de hace
+        // un mes. Antes se descartaba su respuesta y se le decía `ya_estaba`; ahora se
+        // guarda al lado, sin pisar la anterior, y manda la nueva.
+        //
+        // Lo único que se sigue descartando es el duplicado EXACTO del mismo día: eso
+        // no es un cambio, es un doble toque o una pantalla que se remontó. Y tampoco
+        // se calla —devuelve `ya_estaba`—, porque un rechazo silencioso sobre un dato
+        // de salud es peor que un aviso a la vista.
+        const mismaHoy = (ref.actual.cribados ?? []).some(
+          (c) =>
+            c.usuarioId === cribado.usuarioId &&
+            c.fecha === cribado.fecha &&
+            JSON.stringify(c) === JSON.stringify(cribado),
+        )
+        if (mismaHoy) return 'ya_estaba'
+        mutar((estado) => ({
+          ...estado,
+          cribados: [...(estado.cribados ?? []), cribado],
+        }))
+        return 'guardado'
       },
     },
 

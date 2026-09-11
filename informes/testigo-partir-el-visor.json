@@ -1,0 +1,91 @@
+{
+  "cuando": "2026-09-07T18:52:35.404Z",
+  "refBase": "origin/main",
+  "refNueva": "fix/interfaz-pixeles",
+  "commitBase": "cf0d9153e593d85401089ef6c0320b293b4a8129",
+  "commitNueva": "870380657cb9b786045fbfa7f9559115d2c1f1b4",
+  "viewport": {
+    "ancho": 390,
+    "alto": 844,
+    "escala": 2
+  },
+  "usuarioBase": "u-valentina",
+  "usuarioNueva": "u-valentina",
+  "puntoCuerpoBase": {
+    "x": 195,
+    "y": 388
+  },
+  "puntoCuerpoNueva": {
+    "x": 195,
+    "y": 388
+  },
+  "avisosBase": [],
+  "avisosNueva": [],
+  "escenarios": [
+    {
+      "clave": "patronA",
+      "titulo": "Patrón A — el ejercicio con el que abre la sesión",
+      "pixelesCambiados": 1150033,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 779,
+        "y1": 1687
+      },
+      "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronA-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronA-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronA-mascara.png",
+      "notaTamano": null
+    },
+    {
+      "clave": "patronB",
+      "titulo": "Patrón B — tras tocar el segundo punto de la tira de ejercicios",
+      "pixelesCambiados": 59646,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 779,
+        "y1": 1687
+      },
+      "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronB-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronB-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\patronB-mascara.png",
+      "notaTamano": null
+    },
+    {
+      "clave": "capaIntermedia",
+      "titulo": "Capa intermedia — a los 900 ms de toque sostenido",
+      "pixelesCambiados": 1139946,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 779,
+        "y1": 1687
+      },
+      "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaIntermedia-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaIntermedia-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaIntermedia-mascara.png",
+      "notaTamano": null
+    },
+    {
+      "clave": "capaProfunda",
+      "titulo": "Capa profunda — a los 1800 ms de toque sostenido",
+      "pixelesCambiados": 1133125,
+      "totalPixeles": 1316640,
+      "cajaCambio": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 779,
+        "y1": 1687
+      },
+      "capturaBase": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaProfunda-base.png",
+      "capturaNueva": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaProfunda-nueva.png",
+      "mascara": "C:\\Users\\ASUS\\dev\\alpha-fix-pruebas\\informes\\partir-el-visor\\capaProfunda-mascara.png",
+      "notaTamano": null
+    }
+  ],
+  "todoCero": false
+}

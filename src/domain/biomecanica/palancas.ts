@@ -67,6 +67,7 @@
 
 import { categoriaCanonica, grupoPrimario, type Grupo } from '../taxonomia'
 import { MODELOS, VARIANTES } from './modelos'
+import { MODELOS_DE_FICHA } from './modelosDeFicha'
 import { REGLAS_DE_EJE } from './reglas'
 import {
   IMPLEMENTOS,
@@ -120,7 +121,15 @@ export function modeloDePalanca(
   nombreEjercicio = '',
 ): ModeloDePalanca | undefined {
   const canonica = categoriaCanonica(categoria)
-  if (!canonica) return undefined
+  if (!canonica) {
+    // Las categorías del CATÁLOGO 3D que no están en la taxonomía canónica. No es un caso
+    // raro: por aquí pasan 19 de las 150 familias de producción que tienen sujeto —salto,
+    // manguito, apoyo monopodal y suspensión—, y hasta el 2026-09-06 salían sin plan, o sea
+    // sin una sola flecha de fuerza en el salón. La categoría del ejercicio («PREV/REHAB»)
+    // no puede tener modelo, pero la ficha a la que la lista por nombre ya lo ha llevado sí.
+    const deFicha = MODELOS_DE_FICHA[categoria.trim()]
+    return deFicha ? conReglas(deFicha) : undefined
+  }
 
   const variantes = VARIANTES[canonica]
   if (variantes) {

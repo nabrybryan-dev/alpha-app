@@ -118,6 +118,11 @@ export const FUENTES = {
   preferenciasEstado: ['preferencia_estado'],
   pruebasCalibracion: ['prueba_calibracion'],
   visibilidades: ['visibilidad_nutricion'],
+  // 0058. Sin esta entrada el campo nunca se conserva —el lado seguro— pero tampoco se
+  // sabe cuándo cambió, y quien no mueve ninguna otra tabla no se entera nunca de que
+  // su cribado llegó. La fila `cribado` de `firma_de_sincronizacion()` y el trigger
+  // `trg_actualizado_en` van con esto: las tres cosas o ninguna.
+  cribados: ['cribado'],
   vetosAlimentarios: ['perfil_alimentario_veto'],
   despensa: ['despensa'],
 } as const satisfies Record<string, readonly string[]>

@@ -43,6 +43,7 @@ function avisoDe(c: Consulta): string {
 
 /** Qué contestó Alpha, en una línea que el coach pueda leer de un vistazo. */
 function queRespondio(c: Consulta, titulos: Record<string, string>): string {
+  if (c.via === 'saludo') return 'Un saludo: bienvenida automática'
   if (c.via === 'escalado') return 'Ninguna ficha: se te pasó a ti'
   if (c.via === 'ia_vivo') return 'Respondió la IA en vivo'
   const titulo = (c.fichaId && titulos[c.fichaId]) || c.fichaId || 'Ficha desconocida'

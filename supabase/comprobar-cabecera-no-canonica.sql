@@ -63,7 +63,9 @@ select asesorado,
    -- Empieza por kilos: hay una carga ahi que se esta perdiendo.
    and pres ~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y[^;]*;\s*\d+\s*SERIES?'
    -- Y NO encaja en la cabecera canonica, que es la que sabe leer el dominio.
-   and pres !~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+\d+(?:\s*-\s*\d+)?\s*REPS?(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*\d+\s*SERIES?'
+   -- La cifra lleva unidad: REPS, o SEG / MIN en un ejercicio por tiempo (2026-09-07,
+   -- `esPorTiempo` en `prescripcion.ts`): «10KG A 30 SEG; 2 SERIES» es canonica.
+   and pres !~* '^\s*\d+(?:[.,]\d+)?\s*KGS?\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s+A\s+\d+(?:\s*-\s*\d+)?\s*(?:REPS?|SEG(?:UNDOS?)?|MIN(?:UTOS?)?)\y(?:\s+(?:TOTAL(?:ES)?|POR\s+PIERNA|POR\s+LADO|POR\s+MANO|CADA\s+LADO))?\s*;\s*\d+\s*SERIES?'
    -- Las de tecnica y las de pasos NO son un hallazgo: ver la cabecera.
    and pres !~* 'BAJAS A|->|\+ *PAUSA|PARCIALES|\+ *ISO|PASOS|MYO|REST[- ]?PAUSE'
    -- El contrato es sobre lo VIVO. Lo cerrado es historia y no se reescribe.
