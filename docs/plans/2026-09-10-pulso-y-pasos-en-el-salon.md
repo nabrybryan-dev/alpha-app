@@ -142,6 +142,7 @@ normalmente vacío: los pasos son del día, no de la sesión.
 | Fase | Estado |
 |---|---|
 | A · Diagnóstico | **Hecha** (este documento) |
+| A.1 · La sesión tiene horas | **Hecha** (2026-09-10). `empezadaEn` y `ultimaMarcaEn` en `Sesion`, escritas por el mismo embudo que ya sellaba `fecha`, fuera del clonador (`tmp_sesion_en_limpio`) y vigiladas por `comprobar-fosiles.sql` (`ventanas_fosiles`). Sin migración: viajan en el `datos` jsonb |
 | B · Contratos y permisos | Propuesta escrita; espera la decisión de dispositivo |
 | C · Historial | Bloqueada por A (capa nativa) |
 | D · Lectura en sesión | Bloqueada por C |
@@ -149,5 +150,13 @@ normalmente vacío: los pasos son del día, no de la sesión.
 | F · Pruebas y piloto | Bloqueada |
 | G · Interpretación del coach | Bloqueada, y es la última a propósito |
 
-**Lo siguiente que no depende de nadie:** el inicio y el fin de sesión en la nube.
+**Lo siguiente que no depende de nadie:** la procedencia de los pasos en el check-in —
+distinguir lo anotado a mano de lo medido— y los estados de pantalla con una fuente de mentira.
 **Lo siguiente que depende de Bryan:** iPhone o Android, y si se monta envoltorio nativo.
+
+## Bitácora
+
+- **2026-09-10 · A** — Diagnóstico contra el repo. Tres hallazgos: no hay app nativa (PWA), la
+  sesión no tenía horas, la identidad ya está resuelta y con guardianes.
+- **2026-09-10 · A.1** — La sesión ya tiene su ventana con horas. Es la primera pieza de datos
+  del objetivo y la única que no dependía de ningún dispositivo.
