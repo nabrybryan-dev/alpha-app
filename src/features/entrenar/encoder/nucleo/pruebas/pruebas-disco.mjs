@@ -79,8 +79,13 @@ for (const pct of [0, 25, 40, 60]) {
   })
   const r = detectarDisco(d, W, H, { x: 202, y: 148 }, 60, { radioMax: 140 })
   const errorCentro = r.ok ? Math.hypot(r.x - 200, r.y - 150) : NaN
-  // Se detecta hasta el 60 % tapado, pero solo se considera fiable con el contorno casi entero.
-  const esperado = pct <= 25 ? (r.ok && r.fiable && errorCentro < 1) : (r.ok ? !r.fiable : true)
+  // Se detecta hasta el 60 % tapado, pero solo se considera fiable con el
+  // contorno casi entero. Y «casi entero» es el 90 % del canto DE VERDAD: hasta
+  // el 5-sep el 25 % tapado salía fiable porque la cobertura contaba rayos que
+  // habían visto algún borde, y los bordes del propio tapón contaban como canto.
+  // Con la cobertura medida sobre el canto encontrado, un cuarto tapado es un
+  // 80 % de canto, y eso no es fiable: es exactamente lo que el aviso vigila.
+  const esperado = pct === 0 ? (r.ok && r.fiable && errorCentro < 1) : (r.ok ? (!r.fiable && errorCentro < 3) : true)
   linea(`${pct}% tapado`, esperado,
     r.ok ? `centro err ${errorCentro.toFixed(2)} px · cobertura ${(r.cobertura * 100).toFixed(0)}% · fiable=${r.fiable}`
          : `rechazado: ${r.motivo} (cobertura ${(r.cobertura * 100).toFixed(0)}%)`)
@@ -90,16 +95,92 @@ console.log('\n=== SIN DERIVA: 1.500 fotogramas de una serie ===')
 {
   // Sube y baja 8 veces. Cada fotograma se detecta desde cero.
   let pred = { x: 200, y: 150 }, peor = 0, perdidos = 0
+  let peorRadio = 0
   for (let f = 0; f < 1500; f++) {
     const cy = 150 + 55 * Math.sin((f / 1500) * 8 * 2 * Math.PI)
     const d = marco({ cx: 200, cy, a: 60, b: 60 })
     const r = detectarDisco(d, W, H, pred, 60, { radioMax: 140 })
     if (!r.ok) { perdidos++; continue }
     peor = Math.max(peor, Math.hypot(r.x - 200, r.y - cy))
+    // El RADIO también, y no estaba. Este check solo medía la posición, así que
+    // no podía ver la deriva de escala que sí ocurre en vídeo real (ver el
+    // contrato de `detectarDisco`). Aquí no puede dispararse —el disco sintético
+    // mide 60 siempre— pero deja de ser un check ciego a la mitad del problema.
+    peorRadio = Math.max(peorRadio, Math.abs(r.r - 60) / 60)
     pred = { x: r.x, y: r.y }
   }
   linea('error máximo en 1.500 fotogramas', peor < 2 && perdidos === 0,
     `${peor.toFixed(2)} px · ${perdidos} fotogramas perdidos`)
+  linea('y el radio tampoco deriva', peorRadio < 0.02,
+    `peor desvío ${(peorRadio * 100).toFixed(1)} %`)
+}
+{
+  // La referencia del radio es el ARRANQUE, no el fotograma anterior.
+  //
+  // Encadenarla es lo natural y se dispara: medido sobre tres series reales, el
+  // radio pasa de 94 a 220 px en menos de un segundo y se queda ahí, estable y
+  // equivocado. Este check fija la semántica que lo evita: `radioEsperado` es la
+  // vara de medir, y un ajuste que se aleje de ELLA más del 25 % se rechaza.
+  const d = marco({ cx: 200, cy: 150, a: 60, b: 60 })
+  const conBuena = detectarDisco(d, W, H, { x: 200, y: 150 }, 60, { radioMax: 140 })
+  const conVieja = detectarDisco(d, W, H, { x: 200, y: 150 }, 100, { radioMax: 140 })
+  linea('con la referencia buena, mide', conBuena.ok && Math.abs(conBuena.r - 60) < 3,
+    `r=${conBuena.ok ? conBuena.r.toFixed(1) : '—'}`)
+  // Rechaza, y lo hace ANTES de llegar a `radio_incoherente`: con la referencia
+  // en 100, los rayos solo miran entre 75 y 125, así que el canto real —que está
+  // en 60— queda fuera de la ventana y no se encuentra contorno. Da igual por
+  // cuál de las dos puertas salga; lo que este check fija es que la referencia
+  // MANDA, y por eso se comprueba que no devuelve un número.
+  linea('y contra una referencia lejana, rechaza',
+    !conVieja.ok && ['radio_incoherente', 'marcador_perdido'].includes(conVieja.motivo),
+    `motivo=${conVieja.motivo ?? '(aceptó ' + conVieja.r?.toFixed(1) + ')'}`)
+}
+
+console.log('\n=== EL CENTRO ES EL DE LA CARA, NO EL DE LA PILA ===')
+{
+  // Lo que pasa en el gimnasio (medido en n07, 5-sep): detrás del disco que se
+  // ve hay OTRO igual, medio asomado. La silueta de los dos juntos es una
+  // salchicha, y un ajuste libre de circunferencia se pone en medio de la
+  // salchicha: 70-90 px a un lado del buje, un 0,75 del radio, y estable ahí
+  // durante toda la serie. De ese centro sale la altura, y de la altura la
+  // velocidad.
+  //
+  // El disco de detrás se pinta PRIMERO y el de delante encima, como en la vida.
+  // Y el de delante lleva BUJE: el extremo de la barra asoma por su centro,
+  // metálico y claro. Es lo único que distingue físicamente a la cara de
+  // delante, porque de canto enseñan lo mismo los dos (medido: 64 puntos
+  // contra 69 sin buje, y el voto se iba al de detrás).
+  const d = marco({ cx: 200, cy: 150, a: 60, b: 60 })
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const detras = Math.hypot(x - 150, y - 150) <= 60
+    const delante = Math.hypot(x - 200, y - 150) <= 60
+    const buje = Math.hypot(x - 200, y - 150) <= 7
+    if ((detras && !delante) || buje) { const i = (y * W + x) * 4; d[i] = d[i + 1] = d[i + 2] = buje ? 200 : 45 }
+  }
+  // La predicción viene de donde el ajuste viejo se quedaba: en medio de la pila.
+  const r = detectarDisco(d, W, H, { x: 172, y: 150 }, 60, { radioMax: 140 })
+  const err = r.ok ? Math.hypot(r.x - 200, r.y - 150) : NaN
+  linea('con otro disco detrás, el centro es el de delante', r.ok && err < 3,
+    r.ok ? `centro (${r.x.toFixed(1)}, ${r.y.toFixed(1)}) · err ${err.toFixed(1)} px · r=${r.r.toFixed(1)}` : `rechazado: ${r.motivo}`)
+}
+{
+  // Y el enganche de n05: la predicción viene medio radio abajo-izquierda, y en
+  // la ventana de búsqueda hay bordes de decorado justo a la distancia que los
+  // rayos esperan. El ajuste libre reparte entre el arco real y el decorado y se
+  // queda ahí para siempre, porque la predicción del siguiente fotograma sale de
+  // él mismo. Se simula con cuatro tacos oscuros a ~65 px de la predicción.
+  const d = marco({ cx: 200, cy: 150, a: 60, b: 60 })
+  const pred = { x: 165, y: 185 }
+  for (const ang of [Math.PI * 0.6, Math.PI * 0.8, Math.PI * 1.0, Math.PI * 1.2]) {
+    const tx = pred.x + Math.cos(ang) * 66, ty = pred.y + Math.sin(ang) * 66
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (Math.abs(x - tx) < 9 && Math.abs(y - ty) < 9) { const i = (y * W + x) * 4; d[i] = d[i + 1] = d[i + 2] = 50 }
+    }
+  }
+  const r = detectarDisco(d, W, H, pred, 60, { radioMax: 140 })
+  const err = r.ok ? Math.hypot(r.x - 200, r.y - 150) : NaN
+  linea('con decorado en la ventana, no se engancha', r.ok && err < 3,
+    r.ok ? `centro (${r.x.toFixed(1)}, ${r.y.toFixed(1)}) · err ${err.toFixed(1)} px · cobertura ${(r.cobertura * 100).toFixed(0)}%` : `rechazado: ${r.motivo}`)
 }
 
 console.log('\n=== REJA DE PLAUSIBILIDAD ===')
@@ -113,6 +194,47 @@ console.log('\n=== REJA DE PLAUSIBILIDAD ===')
   const b = romPlausible(0.55, 'sentadilla')
   linea('ROM de 1,40 m en sentadilla', !a.ok, a.motivo ?? '')
   linea('ROM de 0,55 m en sentadilla', b.ok, 'aceptado')
+}
+
+console.log('\n=== LAS DOS REJAS QUE NO MIRAN LA FORMA ===')
+{
+  // El marco es 400x300, asi que el lado corto son 300 y el tope de
+  // FRACCION_MARCO_MAX = 0,75 cae en un radio de 112 px.
+  //
+  // Estas dos rejas existen porque las de forma NO separan: una pila de discos
+  // coaxiales es redonda y se ajusta de maravilla, asi que el peor fallo del
+  // banco (+247 % de escala) pasa cobertura, redondez y esquinas con los tres
+  // indicadores dentro de lo normal. Ver `banco/calidad-vs-error.mjs`.
+
+  // 1. Justo por debajo del tope: tiene que SEGUIR pasando. Este es el check que
+  //    protege contra el falso rojo, que es peor que el falso verde.
+  const cabeJusto = identificarEstructura(marco({ cx: 200, cy: 150, a: 110, b: 110 }),
+    W, H, { x: 205, y: 145 }, { radioMax: 160 })
+  linea('un disco grande PERO plausible pasa',
+    cabeJusto.tipo === 'disco',
+    `tipo=${cabeJusto.tipo} r=${cabeJusto.ajuste?.r.toFixed(0)} · ocupa ${((cabeJusto.ajuste?.r * 2 / 300) * 100).toFixed(0)} % del lado corto`)
+
+  // 2. Por encima del tope: se come el encuadre, no cabria la serie.
+  const seLoCome = identificarEstructura(marco({ cx: 200, cy: 150, a: 125, b: 125 }),
+    W, H, { x: 205, y: 145 }, { radioMax: 160 })
+  linea('un disco que se come el encuadre, fuera',
+    seLoCome.tipo !== 'disco' && /encuadre/.test(seLoCome.motivo ?? ''),
+    `tipo=${seLoCome.tipo} · ${seLoCome.motivo ?? ''}`)
+
+  // 3. Un ajuste que se sale de la imagen. Es la comprobacion mas tonta posible
+  //    y por eso vale: no depende del contraste ni de la luz.
+  //
+  //    Ojo con el caso que se elige aqui. El primer intento se salia tanto que
+  //    el detector ni llegaba a ajustar —devolvia «no se ve un contorno cerrado»
+  //    y el check pasaba por el motivo equivocado, que es un falso verde—. Este
+  //    ajusta de verdad (r=120 centrado en y=200, o sea 80..320 en un alto de
+  //    300) y es la reja la que lo para. Se comprueba el MOTIVO, no solo que no
+  //    sea un disco.
+  const noCabe = identificarEstructura(marco({ cx: 200, cy: 200, a: 120, b: 120 }),
+    W, H, { x: 205, y: 195 }, { radioMax: 200 })
+  linea('un ajuste que se sale de la imagen, fuera',
+    noCabe.tipo !== 'disco' && /no cabe en el encuadre/.test(noCabe.motivo ?? ''),
+    `tipo=${noCabe.tipo} · ${noCabe.motivo ?? ''} · r=${noCabe.ajuste?.r.toFixed(0)}`)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,7 +269,7 @@ console.log('\n=== ESCALA DE LA BARRA: dos discos, no uno ===')
   const bien = brazoEnMm(e, X_CADERA, X_MANO)
   const conUnDisco = brazoEnMm(escalaDeLaBarra(CERCA), X_CADERA, X_MANO)
   const error = Math.abs(conUnDisco / bien - 1)
-  linea('brazo de cadera con los dos discos', Math.abs(bien - 177) < 8, `${bien.toFixed(0)} mm`)
+  linea('brazo de cadera con los dos discos', Math.abs(bien - 169) < 5, `${bien.toFixed(0)} mm`)
   linea('y con uno solo, cuánto se pierde', error > 0.2,
     `${conUnDisco.toFixed(0)} mm · ${(error * 100).toFixed(0)} % corto`)
 
@@ -155,6 +277,24 @@ console.log('\n=== ESCALA DE LA BARRA: dos discos, no uno ===')
   const rodilla = brazoEnMm(e, X_RODILLA, X_MANO)
   linea('la rodilla neutralizada no reclama', rodilla < bien / 4,
     `rodilla ${rodilla.toFixed(0)} mm contra cadera ${bien.toFixed(0)} mm`)
+
+  // La interpolacion es del INVERSO, y esto lo fija con numeros redondos.
+  //
+  // Dos discos a 2 y 4 mm/px separados 100 px. En el punto medio, trazar una
+  // recta entre las dos escalas da 3,00. Pero mm/px es proporcional a la
+  // profundidad Z, y en una camara pinhole lo afin en x es 1/Z: el valor exacto
+  // es 1/((1/2 + 1/4)/2) = 2,667. Un 12,5 % de diferencia, y siempre por arriba.
+  //
+  // Este check existe porque la version anterior devolvia 3,00 y pasaba todo lo
+  // demas: el sesgo se colaba entero por la unica puerta que no habia.
+  {
+    const medio = escalaDeLaBarra(
+      { x: 0, semiMayor: 112.5, semiMenor: 112.5 },
+      { x: 100, semiMayor: 56.25, semiMenor: 56.25 },
+    ).mmPorPxEn(50)
+    linea('en el medio interpola el inverso, no la escala', Math.abs(medio - 8 / 3) < 0.01,
+      `${medio.toFixed(3)} mm/px (la recta daria 3.000)`)
+  }
 
   // Un disco solo no sabe que le falta el otro, y tiene que decirlo.
   const solo = escalaDeLaBarra(CERCA)

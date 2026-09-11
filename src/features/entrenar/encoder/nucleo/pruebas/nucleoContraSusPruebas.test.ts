@@ -4,54 +4,48 @@ import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * LAS 80 PRUEBAS DEL NÚCLEO, CORRIENDO CONTRA EL NÚCLEO QUE USA LA APP.
+ * LAS 89 PRUEBAS DEL NÚCLEO, CORRIENDO CONTRA EL NÚCLEO QUE USA LA APP.
  *
- * ## Por qué existe este archivo
+ * ## Qué hace, y por qué aquí
  *
- * Estas dos baterías vivían SOLO en `cerebro-alpha/herramientas/encoder-camara`, y
- * `nucleo/ORIGEN.md` decía que el núcleo de aquí era una copia verbatim de allí, de solo
- * lectura. Dejó de serlo hace tiempo y nadie lo vio: el 2026-09-11 se midió que el
- * original tiene **928 líneas** y esta copia **1.435**. Quinientas líneas de trabajo real
- * que **ninguna de estas pruebas había visto nunca**, en el código que mide los vídeos de
- * gente que entrena.
+ * El núcleo del encoder (`nucleo/*.js`) entra verbatim desde
+ * `cerebro-alpha/herramientas/encoder-camara`, y **allí** tiene sus dos baterías. Aquí no
+ * las había. `verify` sí comprueba que la copia no se haya separado del original, pero
+ * eso solo corre **si tienes clonado el repo de herramientas**, y en el CI no está: en
+ * CI, hoy, al núcleo no lo comprueba nada.
  *
- * Decisión de Bryan (2026-09-11): **manda la copia de la app, y las pruebas se mudan con
- * ella.** Esto es esa mudanza. No es un test nuevo: es la red de seguridad que ya existía,
- * puesta por fin debajo del código que de verdad corre.
+ * Esto lo cierra: las dos baterías corren contra el núcleo de esta copia en cada
+ * `npm run verify`, con repo de herramientas o sin él.
  *
- * ## Los dos rojos son REALES y están aquí a propósito
+ * **Las baterías siguen siendo de allí y no se editan aquí**, igual que el núcleo: si el
+ * núcleo cambia, se copian las dos cosas juntas. Ese es el punto delicado de este archivo,
+ * y por eso se cuentan los CASOS y no solo los rojos.
  *
- * Al correrlas por primera vez contra el núcleo de producción, 19 de 21 del disco pasan y
- * **dos no**. No se tocan ni se silencian: se cuentan, porque un número es lo único que
- * detecta un tercero. Los dos, medidos:
+ * ## El error que costó esta tarde, escrito para que no se repita
  *
- *   1. `25% tapado` — el original daba la lectura por **fiable** (centro err 0,45 px,
- *      cobertura 97 %); este núcleo la declara **no fiable** (1,13 px, 84 %). Es más
- *      conservador, y eso **puede ser una mejora deliberada**: rechazar antes una lectura
- *      dudosa. Pero nadie lo decidió por escrito.
- *   2. `brazo de cadera con los dos discos` — el original da **177 mm** y este núcleo
- *      **169 mm**. Ocho milímetros, un 4,5 %. Es un número que Bryan USA, y el candidato
- *      más probable es el cambio de medir el disco como circunferencia a medirlo como la
- *      elipse que es. También puede ser correcto. Tampoco lo decidió nadie.
+ * La primera versión de este archivo portó las baterías **de agosto** y las corrió contra
+ * el núcleo **de septiembre**. Dieron dos rojos, y los leí como que la app medía distinto
+ * del original: escribí que el brazo de cadera daba 169 mm donde el original daba 177, y
+ * que había 500 líneas en la app que ninguna prueba había visto nunca.
  *
- *      Y un dato medido que ayuda a decidirlo, salido de mutar el núcleo a propósito:
- *      **multiplicar el brazo por 1,05 pone ese caso en verde**. O sea que los 8 mm no
- *      son ruido ni un caso raro: son un factor de escala sistemático de ~5 %. Quien
- *      revise esto busca una escala, no un borde.
+ * **Era falso, y el fallo estuvo en de dónde leí.** Con veinte worktrees del cerebro en el
+ * disco, leer «el original» de una carpeta te da la rama que esa carpeta tenga sacada, y
+ * leí de dos que llevaban parados en agosto. El núcleo de verdad —el que la app copió—
+ * vive en `origin/encoder/la-semilla-sin-auditar`, tiene las mismas 1.435 líneas, y **su
+ * batería trae 302 líneas, no 162**. Corrida ESA contra este núcleo: **30 verdes, 0
+ * rojos**, y el caso del brazo de cadera espera 169 y sale verde. El cambio de 177 a 169
+ * fue deliberado y vino con su prueba actualizada el 5-sep.
  *
- * **Lo que este test afirma NO es que el núcleo esté bien.** Afirma que se comporta
- * EXACTAMENTE como se comportaba el día que se midió. Si alguien lo mejora y baja a 1
- * rojo, este test cae y hay que venir aquí a bajar el número a mano, leyendo por qué. Si
- * alguien lo rompe y sube a 3, cae igual. Las dos caídas son la gracia.
+ * La regla, que está en `CLAUDE.md` y me la salté: **un fichero se lee de una rama
+ * (`git show <rama>:<ruta>`), no de un directorio.** Un directorio es una opinión con
+ * fecha.
  *
- * **Visto morder, no supuesto.** Con el brazo multiplicado por 1,05 en `disco.js`, los
- * rojos bajan de 2 a 1 y este test cae con «expected 1 to be 2». Antes probé mutando un
- * umbral de fiabilidad y NO cayó — y no era el test el que fallaba, era mi mutación, que
- * tocaba una rama que estas pruebas no ejercitan. Mutar algo que el banco no mide no
- * demuestra nada sobre el banco.
+ * ## Por qué se cuentan los casos
  *
- * La batería de velocidad va en **0 rojos y ahí se queda**: sus 59 pasan en el original y
- * en esta copia, así que la divergencia de las 500 líneas no tocó la velocidad.
+ * Porque aquel fallo habría pasado desapercibido con un `expect(rojos).toBe(0)` a secas:
+ * una batería vieja también da cero rojos el día que alguien ajuste un esperado. Si el
+ * total baja de 30, es que se está corriendo otra batería —probablemente una traída de un
+ * worktree congelado— y eso es justo lo que hay que cazar.
  */
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
@@ -66,6 +60,8 @@ function correr(bateria: string): { verdes: number; rojos: number; salida: strin
   })
   const lineas = salida.split('\n')
   return {
+    // Solo las que EMPIEZAN por la palabra: la batería de velocidad imprime además un
+    // resumen «TODO EN VERDE» que no es un caso, y contarlo infla el total.
     verdes: lineas.filter((l) => l.startsWith('VERDE')).length,
     rojos: lineas.filter((l) => l.startsWith('ROJO')).length,
     salida,
@@ -73,26 +69,23 @@ function correr(bateria: string): { verdes: number; rojos: number; salida: strin
 }
 
 describe('el núcleo del encoder, contra las pruebas que lo validaron', () => {
-  it('la batería del disco: 21 casos, y exactamente los 2 rojos conocidos', () => {
-    const { verdes, rojos, salida } = correr('pruebas-disco.mjs')
-
-    // El total importa tanto como los rojos: una batería que deja de correr casos
-    // también «baja» los rojos, y sin esta línea eso pasaría por una mejora.
-    expect(verdes + rojos).toBe(21)
-    expect(rojos).toBe(2)
-
-    // Y CUÁLES son. Dos rojos distintos de estos dos son otra historia, no la misma.
-    expect(salida).toMatch(/ROJO\s+· 25% tapado/)
-    expect(salida).toMatch(/ROJO\s+· brazo de cadera con los dos discos/)
+  it('la batería del disco: los 30 casos en verde', () => {
+    const { verdes, rojos } = correr('pruebas-disco.mjs')
+    expect(rojos).toBe(0)
+    expect(verdes).toBe(30)
   })
 
-  it('la batería de velocidad: 59 casos y ni un rojo', () => {
+  it('la batería de velocidad: los 59 casos en verde', () => {
     const { verdes, rojos } = correr('pruebas-velocidad.mjs')
-    // 59, no 60: la batería imprime además una línea de resumen «TODO EN VERDE» que
-    // NO es un caso. Contarla infla el total, y así lo conté yo la primera vez —lo
-    // cazó este mismo test al ponerlo en 60—. Por eso aquí se cuentan solo las
-    // líneas que EMPIEZAN por VERDE, y el número está medido, no recordado.
-    expect(verdes).toBe(59)
     expect(rojos).toBe(0)
+    expect(verdes).toBe(59)
+  })
+
+  it('y el brazo de momento sale con la escala de septiembre, no con la de agosto', () => {
+    // El caso exacto donde se vio el error. Se afirma el NÚMERO y no solo el verde: un
+    // cambio de escala del 5 % en el brazo de momento es un dato que se usa con gente
+    // real, y no puede volver a pasar por «mejora» ni por «regresión» sin que se lea.
+    const { salida } = correr('pruebas-disco.mjs')
+    expect(salida).toMatch(/VERDE\s+· brazo de cadera con los dos discos\s+169 mm/)
   })
 })

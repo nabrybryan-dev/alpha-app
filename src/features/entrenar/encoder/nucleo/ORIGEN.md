@@ -1,32 +1,5 @@
 # De dónde sale este núcleo, y por qué no se toca aquí
 
-> ## ⚠ ESTO CAMBIÓ EL 2026-09-11. MANDA ESTA COPIA, NO EL OTRO REPO.
->
-> Lo que sigue debajo describe cómo funcionaba hasta hoy, y se conserva porque explica
-> por qué existen las pruebas. Pero **la regla de «solo lectura» llevaba tiempo rota y
-> nadie lo vio**: medido hoy, el original de `cerebro-alpha` tiene **928 líneas** y este
-> `disco.js` **1.435**. Quinientas líneas de trabajo real que se escribieron aquí, y que
-> **ninguna de las 80 pruebas del original había visto jamás** — en el código que mide los
-> vídeos de gente que entrena.
->
-> **Decisión de Bryan (2026-09-11): manda esta copia, y las pruebas se mudan con ella.**
-> Ya están en `nucleo/pruebas/`, corriendo contra ESTE núcleo en cada `npm run verify`
-> (`nucleoContraSusPruebas.test.ts`).
->
-> **La regla nueva, que es la de antes dada la vuelta:** este núcleo se arregla AQUÍ, y lo
-> que se arregle aquí tiene que pasar esas pruebas antes de entrar. El de
-> `cerebro-alpha/herramientas/encoder-camara` queda como **histórico**: sirve para leer de
-> dónde viene cada cosa, no para copiar de él. Si alguien vuelve a sincronizar desde allí
-> se comerá las 500 líneas.
->
-> **Y hay dos rojos conocidos**, que salieron al correr las pruebas por primera vez contra
-> este núcleo y que **nadie ha decidido todavía**: la lectura con el disco 25 % tapado pasó
-> de fiable a no fiable, y el brazo de cadera con los dos discos da **169 mm donde el
-> original daba 177** — ocho milímetros en un número que se usa. Los dos pueden ser
-> mejoras deliberadas (medir el disco como elipse y no como circunferencia lo explicaría),
-> pero están sin firmar. El test los cuenta para que no se olviden.
-
-
 Los cuatro `.js` de esta carpeta entran **verbatim** desde el otro repo:
 
     Cerebro Alpha/herramientas/encoder-camara/{analisis,disco,reloj-fotograma,encuadre}.js
