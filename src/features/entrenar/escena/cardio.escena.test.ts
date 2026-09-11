@@ -9,28 +9,48 @@ import { implementosDeEscena } from './implementos'
 /**
  * EL CARDIO TIENE SU MÁQUINA, Y LA MÁQUINA ESTÁ DONDE ESTÁ EL CUERPO.
  *
- * Las seis fichas cíclicas (Bryan, 2026-09-07) no llevan carga, así que no pasan por la
- * tabla de implementos: reciben una máquina propia —cinta, escaladora, bicicleta, elíptica
- * y el ergómetro de remo— y NADA más: ni barra, ni polea, ni banco. Y la máquina se construye contra el
- * cuerpo, como el banco y la prensa, así que lo que se comprueba no es dónde está sino que
- * ABARCA al sujeto: su huella en el suelo contiene los dos pies en las tres fases que se
- * miran, y no hay un solo vértice bajo la goma.
+ * Las fichas cíclicas (Bryan, 2026-09-07) no llevan carga, así que no pasan por la tabla de
+ * implementos: reciben una máquina propia —cinta, escaladora, bicicleta, elíptica y el
+ * ergómetro de remo— y NADA más: ni barra, ni polea, ni banco. Y la máquina se construye
+ * contra el cuerpo, como el banco y la prensa, así que lo que se comprueba no es dónde está
+ * sino que ABARCA al sujeto: su huella en el suelo contiene los dos pies en las tres fases
+ * que se miran, y no hay un solo vértice bajo la goma.
+ *
+ * ## Y desde el 2026-09-10, una cíclica SIN máquina
+ *
+ * `carrera_al_aire` es correr por la calle: mismo gesto, ningún aparato debajo. Salió de
+ * medir la cartera real —cuatro bloques que dicen «5 km por la tarde» se dibujaban encima de
+ * una caminadora—. Así que la regla ya no es «toda cíclica tiene máquina», sino **la que
+ * tiene máquina la tiene bien puesta, y la que no, no dibuja ningún aparato**. Las dos
+ * mitades se comprueban: sin esa segunda, quitarle la cinta a una ficha de gimnasio pasaría
+ * de largo.
  */
 
-const ciclicos = PATRONES.filter((p) => p.ciclo)
 const primerEjemplo = (p: (typeof PATRONES)[number]) => p.ejemplos.split('·')[0].trim()
+const ciclicos = PATRONES.filter((p) => p.ciclo)
+/** Las que se hacen SOBRE un aparato. La carrera de la calle no está y por eso se nombra. */
+const SIN_MAQUINA = new Set(['carrera_al_aire'])
+const conMaquina = ciclicos.filter((p) => !SIN_MAQUINA.has(p.id))
 
 describe('la máquina del cardio', () => {
-  it('cada ficha cíclica recibe una máquina y nada más', () => {
-    expect(ciclicos.length).toBeGreaterThanOrEqual(5)
-    for (const p of ciclicos) {
+  it('cada ficha cíclica de gimnasio recibe una máquina y nada más', () => {
+    expect(conMaquina.length).toBeGreaterThanOrEqual(5)
+    for (const p of conMaquina) {
       const piezas = implementosDeEscena(p.categoria, primerEjemplo(p)).piezas
       expect(piezas.map((x) => x.pieza), p.id).toEqual(['maquina'])
       expect(['cinta', 'escaladora', 'bicicleta', 'eliptica', 'remo'], p.id).toContain(piezas[0].forma)
     }
   })
 
-  it.each(ciclicos.map((p) => [p.id, p] as const))('%s: abarca a los pies y no cruza el suelo', (_id, p) => {
+  it('y la carrera de la calle no dibuja ningún aparato', () => {
+    // La otra mitad del contrato. Sin esto, dejar a una ficha de gimnasio sin su cinta
+    // pasaría de largo: la lista de arriba solo mira las que sí la tienen.
+    for (const p of ciclicos.filter((x) => SIN_MAQUINA.has(x.id))) {
+      expect(implementosDeEscena(p.categoria, primerEjemplo(p)).piezas, p.id).toEqual([])
+    }
+  })
+
+  it.each(conMaquina.map((p) => [p.id, p] as const))('%s: abarca a los pies y no cruza el suelo', (_id, p) => {
     const escena = implementosDeEscena(p.categoria, primerEjemplo(p))
     for (const fase of [0, 0.5, 1]) {
       const esq = esqueletoEnFase(p, fase)
