@@ -1,5 +1,7 @@
 -- ===========================================================================
--- Las 14 tablas de respaldo dicen, desde hoy, para que existen y hasta cuando.
+-- Las tablas de respaldo dicen, desde hoy, para que existen y hasta cuando.
+-- Son 14 en produccion y otras 4 que solo aparecen en una base levantada desde
+-- cero: 18 rotulos en total, y ninguna base tiene las 18.
 --
 -- POR QUE. El 28-ago eran 2. Hoy son 14, con 29 filas de datos de salud reales
 -- dentro. No se acumulan por descuido: se acumulan porque **una tabla que no
@@ -16,18 +18,22 @@
 -- una caduque, y quien avisa es `comprobar-respaldos.sql` (señales 6 y 7).
 --
 -- ─────────────────────────────────────────────────────────────────────────────
--- POR QUE VA DENTRO DE UN BUCLE Y NO SON 14 `comment on` SUELTOS
+-- POR QUE VA DENTRO DE UN BUCLE Y NO SON 18 `comment on` SUELTOS
 -- ─────────────────────────────────────────────────────────────────────────────
--- Porque **estas tablas no existen en ninguna migracion**: se crearon a mano, en
--- produccion, por scripts que nunca llegaron al repositorio. Lo destapo el check
+-- Porque **las 14 de produccion no existen en ninguna migracion**: se crearon a
+-- mano, por scripts que nunca llegaron al repositorio. Lo destapo el check
 -- `base-de-datos`, que levanta la base entera desde cero: con los `comment on`
 -- sueltos, el primero reventaba con
 -- `relation "public.respaldo_juliana_lados_20260906" does not exist`.
 --
--- O sea que el rojo del CI no era un estorbo: era la prueba de que estas tablas
--- viven solo en produccion, que es exactamente el riesgo que esta migracion
--- documenta. Aqui se rotula **lo que exista**, y en una base recien creada no
--- hace nada — que es lo correcto, porque alli no hay nada que rotular.
+-- Y al arreglarlo aparecio la divergencia contraria: esa base limpia tenia
+-- **4 tablas de respaldo que produccion NO tiene**, creadas por las migraciones
+-- `0034`, `0036`, `0038` y `0041`. Alguien las borro en produccion sin dejar
+-- migracion. Ninguna base del mundo tiene hoy las 18.
+--
+-- O sea que el rojo del CI no era un estorbo: fue el unico sitio desde el que se
+-- podian ver las dos divergencias, y son justo el riesgo que esta migracion
+-- documenta. Aqui se rotula **lo que exista** en la base donde corra.
 --
 -- ─────────────────────────────────────────────────────────────────────────────
 -- DE DONDE SALE CADA ROTULO — ninguno es una suposicion
@@ -35,6 +41,11 @@
 --   · 5 lo traian escrito DENTRO, en una columna `motivo`: se copia literal.
 --   · 2 estan documentadas en `0051_respaldos_que_ya_cumplieron.sql`.
 --   · 3 son de la restauracion de Camilo del 11-sep.
+--   · 4 las crean las propias migraciones `0034`, `0036`, `0038` y `0041`, y su
+--     motivo esta en la cabecera de cada una. **No existen en produccion**: una
+--     base levantada desde cero las tiene y la real no, asi que alguien las
+--     borro a mano sin dejar migracion. Es otra divergencia repo/produccion, de
+--     la misma familia que las 14 de abajo pero al reves.
 --   · 4 NO aparecian en ningun sitio —ni repo, ni migracion, ni diario—. Su
 --     rotulo se DEDUJO comparando la copia contra lo vivo: la diferencia entre
 --     las dos ES el cambio que la copia protegia.
@@ -64,6 +75,21 @@ declare
 begin
   for t in
     select * from (values
+      -- ── Las CUATRO que crean las propias migraciones ───────────────────────
+      -- Estas no las descubri mirando produccion: las destapo el check
+      -- `base-de-datos` al levantar la base desde cero. **En produccion no
+      -- existen** —alguien las borro a mano, sin migracion que lo cuente—, asi
+      -- que el bucle las salta alli y las rotula aqui. Su motivo si estaba
+      -- escrito, en la cabecera de su propia migracion.
+      ('respaldo_0034_microciclos',
+       'Creada por la 0034: copia previa a recuperar las seis sesiones que la carga del 9-ago dejo en null dentro del array sesiones de seis microciclos activos. · copia 2026-08-10 · caduca 2026-09-09'),
+      ('respaldo_0036_microciclos',
+       'Creada por la 0036: copia previa a reescribir la CATEGORIA de cada ejercicio a las 32 acciones articulares, fase 1 (33 microciclos ya limpios, 849 ejercicios). · copia 2026-08-15 · caduca 2026-09-14'),
+      ('respaldo_0038_microciclos',
+       'Creada por la 0038: copia previa a la taxonomia final sobre los 73 microciclos — los 40 sucios que la 0036 no toco, los 13 mal clasificados y m-jacobo-2. · copia 2026-08-15 · caduca 2026-09-14'),
+      ('respaldo_0039_microciclos',
+       'Creada por la 0041 (aplicada como 0039 el 15-ago y renumerada despues): copia previa a arreglar 81 series que guardaban texto donde el tipo pide un numero. · copia 2026-08-15 · caduca 2026-09-14'),
+
       -- ── Las cinco que traian el motivo dentro ───────────────────────────────
       ('respaldo_juliana_lados_20260906',
        'M16 tal y como se cargo, con IZQUIERDA como pierna debil. Bryan corrige el 6-sep: la fracturada es la DERECHA y la que duele es la IZQUIERDA. (motivo original, columna motivo) · copia 2026-09-06 · caduca 2026-10-06'),
@@ -107,7 +133,7 @@ begin
     end if;
   end loop;
 
-  raise notice '0071: rotuladas % tabla(s) de respaldo de las 14 previstas', puestos;
+  raise notice '0071: rotuladas % tabla(s) de respaldo de las 18 previstas', puestos;
 end $$;
 
 -- Guarda: ninguna tabla de respaldo puede quedarse sin rotulo con fecha.
