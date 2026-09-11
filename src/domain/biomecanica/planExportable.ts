@@ -19,6 +19,7 @@
  */
 
 import type { Grupo } from '../taxonomia'
+import { fiabilidadDeEscala, type Postura } from './escala'
 import { planDeMedida } from './palancas'
 import type { Accion, Articulacion, Protagonismo, Vista } from './tipos'
 
@@ -62,9 +63,24 @@ export interface PlanExportable {
  * defecto ahí sería exactamente cómo el encoder acabaría midiendo una
  * movilidad de hombro con el modelo del press.
  */
-export function planExportable(categoria: string, nombre = ''): PlanExportable | undefined {
+export function planExportable(
+  categoria: string,
+  nombre = '',
+  postura?: Postura,
+): PlanExportable | undefined {
   const plan = planDeMedida(categoria, nombre)
   if (!plan) return undefined
+
+  /* La postura no la sabe la tabla y no se puede adivinar del patrón: el mismo
+   * empuje horizontal se hace tumbado en un banco y de pie en una polea, y son
+   * dos medidas distintas. La dice quien graba, y cuando la dice entra aquí
+   * como un límite más — al lado de los del implemento, porque a quien mira la
+   * pantalla le da igual de cuál de los dos salió. */
+  const porLaPostura = postura ? fiabilidadDeEscala(postura) : undefined
+  const limites =
+    porLaPostura && porLaPostura.nivel !== 'fiable'
+      ? [porLaPostura.porQue, ...plan.limites]
+      : plan.limites
 
   return {
     categoria,
@@ -90,7 +106,7 @@ export function planExportable(categoria: string, nombre = ''): PlanExportable |
     unilateral: plan.unilateral,
     brazoPorDistanciaHorizontal: plan.brazoPorDistanciaHorizontal,
     necesitaRepartoDeApoyos: plan.necesitaRepartoDeApoyos,
-    limites: plan.limites,
+    limites,
     fueraDeVista: plan.fueraDeVista,
   }
 }
