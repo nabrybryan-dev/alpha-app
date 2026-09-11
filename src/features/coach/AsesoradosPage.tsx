@@ -6,6 +6,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import { resumenAsesorado } from './resumenAsesorado'
 import { PanelMicrociclos } from './PanelMicrociclos'
+import { EmbudoDeAvisos } from './EmbudoDeAvisos'
 import { SaludDeDatos } from './SaludDeDatos'
 import { IconoConsulta, IconoMensaje } from '../../components/ui/Icono'
 
@@ -67,6 +68,9 @@ export default function AsesoradosPage() {
       {/* Antes que la cartera: si un canal de datos se cayó, lo que se lee más
           abajo está incompleto y conviene saberlo antes de interpretarlo. */}
       <SaludDeDatos />
+      {/* Los tres números del permiso de avisos. Solo se pinta cuando hay
+          decisiones que contar; en modo demostración no sale. */}
+      <EmbudoDeAvisos />
 
       <PanelMicrociclos />
 

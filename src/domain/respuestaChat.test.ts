@@ -3,6 +3,7 @@ import {
   armarRespuesta,
   decidirVia,
   esCrisis,
+  esSaludo,
   esTemaDeSalud,
   normalizar,
   textoDeAviso,
@@ -280,5 +281,34 @@ describe('armarRespuesta — partes que nunca se omiten', () => {
     expect(r).toContain('Sube a')
     expect(r).toContain('Para si duele en')
     expect(r).toContain('Registra el RIR.')
+  })
+})
+
+describe('esSaludo', () => {
+  it('reconoce un saludo a secas, con signos, mayusculas o emoji', () => {
+    for (const m of ['hola', 'Hola!', 'HOLA', 'buenas', 'Buenos días', 'hey', 'que tal', '  hola  ']) {
+      expect(esSaludo(m)).toBe(true)
+    }
+  })
+
+  it('un saludo con pregunta detras NO es un saludo', () => {
+    // Contestarle una bienvenida a esto seria peor que el fallo que arregla:
+    // la persona pregunto algo de verdad, y encima de salud.
+    expect(esSaludo('hola, me duele la rodilla')).toBe(false)
+    expect(esSaludo('buenas, subo la carga?')).toBe(false)
+    expect(esSaludo('hola coach')).toBe(false)
+  })
+
+  it('un mensaje vacio no es un saludo', () => {
+    expect(esSaludo('')).toBe(false)
+    expect(esSaludo('   ')).toBe(false)
+    expect(esSaludo('...')).toBe(false)
+  })
+
+  it('la crisis manda sobre el saludo: no hay saludo que la tape', () => {
+    // El orden del manejador es crisis primero. Aqui se fija que ningun texto
+    // de crisis pueda colarse como saludo.
+    expect(esSaludo('quiero quitarme la vida')).toBe(false)
+    expect(esCrisis('quiero quitarme la vida')).toBe(true)
   })
 })

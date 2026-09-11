@@ -1,0 +1,41 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/ASUS/dev/alpha-fix-encoder[39m
+
+ [31m❯[39m src/features/entrenar/encoder/nucleo.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[90m 13[2mms[22m[39m
+[31m   [31m×[31m la copia contra el original de las herramientas[2m > [22mdisco.js no se ha separado del original[90m 6[2mms[22m[31m[39m
+[31m     → disco.js se ha separado del original de herramientas/encoder-camara.
+Los dos ficheros tienen que ir a la par y, si se separan, NO dan error: dan
+numeros creibles y equivocados. Pasos: correr alli pruebas-velocidad.mjs y
+pruebas-disco.mjs, copiar los tres .js a nucleo/, y actualizar huellas.json.
+Original en: C:\Users\ASUS\dev\cerebro-alpha\herramientas\encoder-camara: expected false to be true // Object.is equality[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[1m[7m Failed Tests 1 [27m[22m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/features/entrenar/encoder/nucleo.test.ts[2m > [22mla copia contra el original de las herramientas[2m > [22mdisco.js no se ha separado del original
+[31m[1mAssertionError[22m: disco.js se ha separado del original de herramientas/encoder-camara.
+Los dos ficheros tienen que ir a la par y, si se separan, NO dan error: dan
+numeros creibles y equivocados. Pasos: correr alli pruebas-velocidad.mjs y
+pruebas-disco.mjs, copiar los tres .js a nucleo/, y actualizar huellas.json.
+Original en: C:\Users\ASUS\dev\cerebro-alpha\herramientas\encoder-camara: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m src/features/entrenar/encoder/nucleo.test.ts:[2m91:7[22m[39m
+    [90m 89| [39m        [32m'pruebas-disco.mjs, copiar los tres .js a nucleo/, y actualiza[39m…
+    [90m 90| [39m        [32m`Original en: [39m[36m${[39mherramientas[36m}[39m[32m`[39m[33m,[39m
+    [90m 91| [39m    )[33m.[39m[34mtoBe[39m([35mtrue[39m)
+    [90m   | [39m      [31m^[39m
+    [90m 92| [39m  })
+    [90m 93| [39m})
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m7 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 12:32:47
+[2m   Duration [22m 2.63s[2m (transform 68ms, setup 249ms, collect 39ms, tests 13ms, environment 1.70s, prepare 216ms)[22m
+

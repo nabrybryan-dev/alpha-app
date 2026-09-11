@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accionesDelPatron, accionesPrincipales, fraseDelPatron } from './acciones'
+import { accionesDelPatron, accionesPrincipales, fraseDelPatron, segmentosDe } from './acciones'
 import { ARTICULACIONES, EJE_POR_CANAL, RANGO_POR_CANAL } from './articulaciones'
 import { PATRONES, PATRON_POR_ID } from './catalogo'
 import { poseAnimada } from './movimiento'
@@ -94,12 +94,20 @@ describe('el desglose de un ejercicio', () => {
     expect(muneca?.acciones ?? []).toHaveLength(0)
   })
 
-  it('ve la dorsiflexión de tobillo en la sentadilla, que no está escrita', () => {
-    // El apoyo plantar la calcula solo, así que solo aparece si se mira la pose
-    // resuelta. Y es una de las claves de ejecución del patrón.
+  it('ve el tobillo de la sentadilla, que no está escrito en ninguna pose', () => {
+    // El apoyo plantar lo calcula solo, así que solo aparece si se mira la pose resuelta. Y
+    // es una de las claves de ejecución del patrón.
+    //
+    // LO NOMBRA POR LA CONCÉNTRICA, y desde el 2026-09-06 eso es «flexión plantar» y no
+    // «dorsiflexión». No cambió el gesto: cambió de qué extremo se lee. La fase 0 pasó a ser
+    // el fondo —el tramo 0→1 es la concéntrica, y de una sentadilla se sube— así que el
+    // tobillo va del fondo dorsiflexionado a la posición de pie, que es flexión plantar. Es
+    // lo mismo que ya hacía el resto del catálogo: un curl se nombra por la flexión de codo
+    // con la que sube, no por la extensión con la que baja. Lo que la sentadilla PIDE de
+    // dorsiflexión sigue midiéndose donde corresponde, en `catalogo.test.ts`.
     const tobillo = de(PATRON_POR_ID.sentadilla, 'tobillo')
     expect(tobillo?.rol).toBe('motor')
-    expect(tobillo?.acciones[0].accion).toBe('Dorsiflexión')
+    expect(tobillo?.acciones[0].accion).toBe('Flexión plantar')
   })
 
   it('no cuenta como motor una articulación que solo acompaña', () => {
@@ -137,5 +145,51 @@ describe('el desglose de un ejercicio', () => {
     const principales = accionesPrincipales(PATRON_POR_ID.sentadilla)
     expect(principales.length).toBeLessThan(todas.length)
     expect(principales.every((r) => r.rol !== 'libre')).toBe(true)
+  })
+})
+
+describe('qué segmento se mueve en cada ejercicio', () => {
+  it('en la sentadilla mueve el fémur sobre la tibia, no al revés', () => {
+    // Es el malentendido que hay que evitar. La rodilla flexiona en los dos
+    // casos, pero en una sentadilla el pie está clavado en el suelo: la tibia no
+    // puede ir a ninguna parte y es el fémur el que baja sobre ella. Decir
+    // «tibia sobre fémur» lo hace leer como un curl femoral, que carga los
+    // isquios en vez del cuádriceps.
+    const s = segmentosDe(PATRON_POR_ID['sentadilla'], 'rodilla')
+    expect(s.movil).toBe('Fémur')
+    expect(s.fijo).toBe('Tibia')
+  })
+
+  it('en la flexión de rodilla mueve la tibia sobre el fémur', () => {
+    // Cadena abierta: el pie va libre y es él quien viaja.
+    const s = segmentosDe(PATRON_POR_ID['flexion_rodilla'], 'rodilla')
+    expect(s.movil).toBe('Tibia')
+    expect(s.fijo).toBe('Fémur')
+  })
+
+  it('en la sentadilla mueve la pelvis sobre el fémur', () => {
+    // Lo mismo un eslabón más arriba: la cadera flexiona, pero lo que se
+    // desplaza es la pelvis hacia atrás, no el muslo hacia delante.
+    const s = segmentosDe(PATRON_POR_ID['sentadilla'], 'cadera')
+    expect(s.movil).toBe('Pelvis')
+    expect(s.fijo).toBe('Fémur')
+  })
+
+  it('en la abducción de cadera mueve el fémur sobre la pelvis', () => {
+    const s = segmentosDe(PATRON_POR_ID['abduccion_cadera'], 'cadera')
+    expect(s.movil).toBe('Fémur')
+    expect(s.fijo).toBe('Pelvis')
+  })
+
+  it('invierte todas las articulaciones en cadena cerrada', () => {
+    // No es un caso especial de la rodilla: en cadena cerrada se invierte la
+    // relación en toda la cadena, porque el punto fijo está en el extremo.
+    for (const p of PATRONES) {
+      for (const a of ARTICULACIONES) {
+        const s = segmentosDe(p, a.id)
+        const esperadoMovil = p.cadena === 'cerrada' ? a.segmentoFijo : a.segmentoMovil
+        expect(s.movil, `${p.id} · ${a.id}`).toBe(esperadoMovil)
+      }
+    }
   })
 })

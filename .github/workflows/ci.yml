@@ -96,3 +96,6 @@ jobs:
 
       - name: El aislamiento entre asesorados aguanta
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/20-aislamiento.sql
+
+      - name: El molde de carga sabe cambiar el `cues`
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/30-molde-de-carga.sql

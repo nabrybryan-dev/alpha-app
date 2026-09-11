@@ -399,6 +399,31 @@ describe('el implemento declarado en el nombre', () => {
     expect(implementoDe('PRENSA DE PIERNAS 45')).toBe('guiado-inclinado')
     expect(implementoDe('JALON AL PECHO EN POLEA')).toBe('polea')
     expect(implementoDe('ZANCADA BULGARA CON DISCO')).toBe('disco')
+  })
+
+  it('las familias que implican su implemento lo declaran sin decirlo', () => {
+    // Los seis nombres del seed que no declaraban nada, medidos el 2026-09-06. Un curl
+    // femoral no existe con barra, un curl inclinado es de mancuernas, una plancha con
+    // carga lleva un disco en la espalda, y una dominada asistida es una máquina.
+    expect(implementoDe('Curl femoral sentado')).toBe('maquina')
+    expect(implementoDe('Curl femoral tumbado')).toBe('maquina')
+    expect(implementoDe('Elevación de gemelo de pie')).toBe('maquina')
+    expect(implementoDe('Curl de bíceps en banco inclinado')).toBe('mancuernas')
+    expect(implementoDe('Plancha con carga')).toBe('disco')
+    expect(implementoDe('Dominadas asistidas')).toBe('maquina')
+    expect(implementoDe('Dominadas')).toBe('peso-corporal')
+  })
+
+  it('la familia nunca gana a la palabra explícita', () => {
+    // Un gemelo con barra es barra, y un curl martillo con polea es polea: la declaración
+    // va antes que la costumbre.
+    expect(implementoDe('Elevación de gemelo de pie con barra')).toBe('barra')
+    expect(implementoDe('Curl martillo en polea')).toBe('polea')
+    expect(implementoDe('Dominadas lastradas')).toBe('peso-corporal')
+  })
+
+  it('lo que de verdad no dice nada sigue sin implemento', () => {
+    expect(implementoDe('Abducción de cadera tumbada')).toBeUndefined()
     expect(implementoDe('CURL FEMORAL EN MAQUINA')).toBe('maquina')
   })
 

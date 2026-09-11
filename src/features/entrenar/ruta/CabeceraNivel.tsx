@@ -9,10 +9,11 @@ export function CabeceraNivel({ nivel }: { nivel: NivelAlfa }) {
     // mismo choque que `tokens.css` documenta entre `.tecla-3d` y `.press`.
     <header className="escena-prof entrada entrada-1 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-silver-500">
-          Tu ruta de entrenamiento
-        </p>
-        <h2 className="mt-1.5 font-display text-2xl leading-[1.05] text-silver-100">
+        {/* El antetítulo «Tu ruta de entrenamiento» vivía aquí y se fue el 2026-09-03:
+            en la hoja del salón lo pone el tramo, y decirlo dos veces seguidas —una en
+            el rótulo del tramo y otra dos líneas más abajo— es el mismo eco que ya se
+            quitó del calentamiento. Lo que este bloque tiene que decir es el nivel. */}
+        <h2 className="font-display text-2xl leading-[1.05] text-silver-100">
           Nivel {nivel.numero} · {nivel.nombre}
         </h2>
       </div>

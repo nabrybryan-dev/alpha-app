@@ -59,6 +59,7 @@ function marcarTodos() {
     fireEvent.click(opciones[opciones.length - 1])
   }
   fireEvent.click(screen.getByRole('button', { name: 'Hambre 10 de 10' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Dolor 0 de 10' })) // «sin dolor» también se marca
 }
 
 const guardar = () => fireEvent.click(screen.getByRole('button', { name: /guardar check-in/i }))

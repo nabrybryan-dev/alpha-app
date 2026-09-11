@@ -51,6 +51,20 @@ const ALIAS: Record<string, string> = {
   ZANCADA: 'DOMINANTE DE RODILLA',
   'UNILATERAL DE PIERNA': 'DOMINANTE DE RODILLA',
   PIERNA: 'DOMINANTE DE RODILLA',
+  // La taxonomía nueva (2026-09-07). Medido sobre los microciclos activos: 39 sentadillas,
+  // 18 unilaterales y 10 empujes inclinados se quedaban SIN vídeo teniendo vídeo, porque
+  // la tabla solo conocía los nombres viejos de la categoría.
+  SENTADILLA: 'DOMINANTE DE RODILLA',
+  'SENTADILLA UNILATERAL': 'DOMINANTE DE RODILLA',
+  'EMPUJE INCLINADO': 'EMPUJE HORIZONTAL',
+}
+
+/**
+ * Cuando un patrón tiene más de un vídeo, cuál prefiere cada categoría. «Dominante de
+ * rodilla» tiene el de la sentadilla y el de las zancadas: a una búlgara le toca el segundo.
+ */
+const PREFERIDO: Record<string, string> = {
+  'SENTADILLA UNILATERAL': 'c-zancada',
 }
 
 function porPatron(categoria: string, contenidos: Contenido[]): Contenido | undefined {
@@ -69,6 +83,11 @@ export function demoDeEjercicio(
   if (ejercicio.contenidoDemoId) {
     const directo = contenidos.find((c) => c.id === ejercicio.contenidoDemoId)
     if (directo) return directo
+  }
+  const preferido = PREFERIDO[normalizar(ejercicio.categoria ?? '')]
+  if (preferido) {
+    const elegido = contenidos.find((c) => c.id === preferido)
+    if (elegido) return elegido
   }
   return porPatron(ejercicio.categoria ?? '', contenidos)
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { accionesPrincipales } from '../../../domain/patrones/acciones'
 import type { Patron } from '../../../domain/patrones/catalogo'
+import type { ProporcionesDelCuerpo } from '../../../domain/patrones/huellaArticular'
+import type { SexoDeFicha } from '../../../domain/types'
 import { ExploradorAnatomico } from './ExploradorAnatomico'
 import { VisorPatron } from './VisorPatron'
 
@@ -18,6 +20,20 @@ import { VisorPatron } from './VisorPatron'
  */
 export interface EstudioDelPatronProps {
   patron: Patron
+  /**
+   * El sexo de la ficha, si el coach lo indicó. Va a las dos vistas: el visor
+   * lo usa tal cual, y el explorador arranca su selector en ese valor —que
+   * sigue pudiéndose cambiar a mano—. Sin dato no se pasa nada y cada una usa
+   * su defecto, que es el neutro de siempre.
+   */
+  sexo?: SexoDeFicha
+  /**
+   * La estatura de la ficha, en centímetros, para que el sujeto tenga la talla de la
+   * persona. Sin dato, el del atlas: no medido no es una estimación.
+   */
+  estaturaCm?: number
+  /** Y sus proporciones, si alguna serie suya trae pista de pose. */
+  proporciones?: ProporcionesDelCuerpo
 }
 
 type Vista = 'ejercicio' | 'articulacion'
@@ -35,7 +51,7 @@ function articulacionProtagonista(patron: Patron): string | undefined {
   return (mueve ?? principales[0])?.articulacion.id
 }
 
-export function EstudioDelPatron({ patron }: EstudioDelPatronProps) {
+export function EstudioDelPatron({ patron, sexo, estaturaCm, proporciones }: EstudioDelPatronProps) {
   const [vista, setVista] = useState<Vista>('ejercicio')
 
   return (
@@ -69,9 +85,13 @@ export function EstudioDelPatron({ patron }: EstudioDelPatronProps) {
           contexto WebGL, y dos a la vez es el doble de trabajo por cuadro en un
           móvil que además está grabando la serie. */}
       {vista === 'ejercicio' ? (
-        <VisorPatron patron={patron} />
+        <VisorPatron patron={patron} sexo={sexo} estaturaCm={estaturaCm} proporciones={proporciones} />
       ) : (
-        <ExploradorAnatomico articulacionInicial={articulacionProtagonista(patron)} />
+        <ExploradorAnatomico
+          articulacionInicial={articulacionProtagonista(patron)}
+          cadena={patron.cadena}
+          sexoInicial={sexo}
+        />
       )}
     </div>
   )

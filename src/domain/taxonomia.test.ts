@@ -241,6 +241,39 @@ describe('la variante de ejecución redistribuye el estímulo', () => {
   })
 })
 
+describe('las dos variantes del 2026-09-04: profunda y hexagonal', () => {
+  it('la sentadilla profunda cuenta tres: cuádriceps, glúteos y aductores a 1', () => {
+    expect(aportesDeCategoria('SENTADILLA', 'Sentadilla con barra (profunda)')).toEqual([
+      { grupo: 'Cuádriceps', factor: 1 },
+      { grupo: 'Glúteos', factor: 1 },
+      { grupo: 'Aductores', factor: 1 },
+    ])
+  })
+
+  it('la sentadilla normal sigue contando dos: la profunda no le cambia el default', () => {
+    expect(aportesDeCategoria('SENTADILLA', 'Sentadilla con barra')).toEqual([
+      { grupo: 'Cuádriceps', factor: 1 },
+      { grupo: 'Glúteos', factor: 0.5 },
+      { grupo: 'Aductores', factor: 0.5 },
+    ])
+  })
+
+  it('la bisagra con barra hexagonal baja el isquio a secundario y sube la rodilla', () => {
+    expect(aportesDeCategoria('BISAGRA DE CADERA', 'Peso muerto con barra hexagonal')).toEqual([
+      { grupo: 'Cuádriceps', factor: 1 },
+      { grupo: 'Glúteos', factor: 1 },
+      { grupo: 'Isquios', factor: 0.5 },
+      { grupo: 'Lumbares', factor: 0.5 },
+    ])
+    expect(grupoPrimario('BISAGRA DE CADERA', 'Peso muerto rumano')).toBe('Isquios')
+  })
+
+  it('tolera mayúsculas y falta de acentos, como las demás', () => {
+    expect(grupoPrimario('SENTADILLA', 'SENTADILLA CON BARRA (PROFUNDA)')).toBe('Cuádriceps')
+    expect(grupoPrimario('BISAGRA DE CADERA', 'PESO MUERTO HEXAGONAL')).toBe('Cuádriceps')
+  })
+})
+
 describe('tolerancia de escritura', () => {
   it('reconoce la categoría sin acentos', () => {
     expect(categoriaCanonica('EXTENSION DE RODILLA')).toBe('EXTENSIÓN DE RODILLA')

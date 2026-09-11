@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ARTICULACIONES } from './articulaciones'
-import { DEMOSTRACIONES, DEMOSTRACION_POR_ID, demostracionesDe } from './demostraciones'
+import { DEMOSTRACIONES, DEMOSTRACION_POR_ID, demostracionesDe, type Demostracion } from './demostraciones'
 import { encuadrar, esqueletoEnFase } from './escena'
 import { INDICE_HUESO, puntoDeHueso, resolver } from './esqueleto'
 import { construirMusculos, longitudesEnReposo, PORCION_POR_CLAVE } from './musculos'
@@ -201,5 +201,59 @@ describe('desde dónde se mira', () => {
       // El tórax mide unos 15 cm de radio: por debajo de eso, tapa.
       expect(cerca, `${d.id}: el tórax se cruza a ${(cerca * 100).toFixed(0)} cm de la vista`).toBeGreaterThan(0.16)
     }
+  })
+})
+
+describe('las demostraciones en cadena cerrada', () => {
+  const esq = (d: Demostracion, f: number) => esqueletoEnFase(d.patron, f)
+  const cerrada = (id: string, canal: string) =>
+    demostracionesDe(id, 'cerrada').find((d) => d.eje.canal === canal)!
+
+  it('la rodilla cerrada deja el pie plantado y baja la pelvis', () => {
+    // Es lo que se ve al llegar desde una sentadilla: el pie no puede ir a
+    // ninguna parte, así que el fémur baja sobre la tibia y la pelvis con él.
+    // La versión abierta —la tibia columpiándose— es la del curl femoral, y
+    // enseñarla como «lo que hace la rodilla en la sentadilla» lee el músculo
+    // contrario.
+    const d = cerrada('rodilla', 'rodillaFlex')
+    const a = esq(d, 0)
+    const b = esq(d, 1)
+    const talon = (e: typeof a) => puntoDeHueso(e, 'pieD', 0)[1]
+    expect(Math.abs(talon(b) - talon(a)), 'el pie se despega').toBeLessThan(0.06)
+    const pelvis = (e: typeof a) => puntoDeHueso(e, 'pelvis', 0)[1]
+    expect(pelvis(a) - pelvis(b), 'la pelvis no baja').toBeGreaterThan(0.15)
+  })
+
+  it('la cadera cerrada echa la pelvis atrás con el pie quieto', () => {
+    const d = cerrada('cadera', 'caderaFlex')
+    const a = esq(d, 0)
+    const b = esq(d, 1)
+    const zRel = (e: typeof a) =>
+      puntoDeHueso(e, 'pelvis', 0)[2] - puntoDeHueso(e, 'tibiaD', 1)[2]
+    expect(zRel(a) - zRel(b), 'la cadera no retrocede').toBeGreaterThan(0.08)
+  })
+
+  it('el tobillo cerrado sube el talón con la punta en el suelo', () => {
+    const d = cerrada('tobillo', 'tobilloPlantar')
+    const a = esq(d, 0)
+    const b = esq(d, 1)
+    const talon = (e: typeof a) => puntoDeHueso(e, 'pieD', 0)[1]
+    expect(talon(b) - talon(a), 'el talón no sube').toBeGreaterThan(0.04)
+  })
+
+  it('sin contexto cerrado se sirven las abiertas de siempre', () => {
+    // Las abiertas no son un error: aislar la articulación con el segmento
+    // libre es correcto cuando se llega de un curl o sin contexto. Lo que no
+    // pueden es suplantar a la cerrada cuando el ejercicio tiene el pie fijo.
+    const abiertas = demostracionesDe('rodilla')
+    const cerradas = demostracionesDe('rodilla', 'cerrada')
+    expect(abiertas[0].id).not.toBe(cerradas[0].id)
+    expect(demostracionesDe('rodilla', 'abierta')[0].id).toBe(abiertas[0].id)
+  })
+
+  it('las articulaciones sin variante cerrada no cambian', () => {
+    // Un curl de bíceps en cadena cerrada sería una dominada: existe, pero no
+    // está modelada. Mejor la abierta de siempre que una cerrada inventada.
+    expect(demostracionesDe('codo', 'cerrada')[0].id).toBe(demostracionesDe('codo')[0].id)
   })
 })

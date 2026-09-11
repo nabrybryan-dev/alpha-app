@@ -38,8 +38,20 @@ export function borrarClave(clave: string): void {
  * `alpha-notif-bienestar` no lleva id de usuario y por eso también entra aquí:
  * si no se borra, la marca de "ya te avisé hoy" de una persona deja sin
  * recordatorio a la siguiente que use el mismo teléfono.
+ *
+ * `alpha-cribado-` es el borrador del cribado de salud (0058), y es el que más
+ * importa de la lista: son doce respuestas clínicas a medio contestar —medicación,
+ * diagnósticos, dolor en el pecho— y sí lleva id de usuario, pero eso solo evita
+ * que la siguiente persona las LEA. Sin borrarlas al cerrar sesión se quedarían en
+ * el teléfono de todas formas.
  */
-const PREFIJOS_BORRADORES = ['alpha-crono-', 'alpha-descanso-', 'alpha-serie-', 'alpha-notif-']
+const PREFIJOS_BORRADORES = [
+  'alpha-crono-',
+  'alpha-descanso-',
+  'alpha-serie-',
+  'alpha-notif-',
+  'alpha-cribado-',
+]
 
 /**
  * Borra los borradores al cerrar sesión.

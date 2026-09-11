@@ -16,6 +16,23 @@ export interface ArraysDeMalla {
   normal: Float32Array
   color: Float32Array
   hueso: Float32Array
+  /**
+   * Distancia medida ATRAVESANDO las fibras, en metros.
+   *
+   * Es lo que permite estriar el músculo en la dirección real de sus fibras. Va
+   * en transversal y no a lo largo por una razón geométrica: el sombreado dibuja
+   * las líneas donde este número es constante, y esas líneas salen
+   * perpendiculares a la dirección en la que crece. Midiendo a lo largo de la
+   * fibra se obtenía el patrón contrario —anillos cruzando el músculo— que es
+   * exactamente lo que no se quería.
+   *
+   * Es un solo número por vértice, no una dirección: lo que hace falta es la
+   * fase de la estría, y calcularla al construir sale gratis porque ahí ya se
+   * conoce el ángulo de penación.
+   */
+  fibra: Float32Array
+  /** Coordenadas de textura, dos por vértice. Nacen en cero: ver `Malla.uv`. */
+  uv: Float32Array
   indice: Uint32Array
 }
 
@@ -36,15 +53,66 @@ export class Malla {
   private bufNrm: Float32Array
   private bufCol: Float32Array
   private bufHueso: Float32Array
+  private bufFibra: Float32Array
+  private bufUv: Float32Array
   private bufIdx: Uint32Array
   private nv = 0
   private ni = 0
+
+  /**
+   * CUÁNTO SE VE A TRAVÉS DE ESTA MALLA: 1 es opaca, 0 invisible.
+   *
+   * Es de la malla entera y no de cada vértice, a propósito. Lo único translúcido que
+   * hay en el salón es el FANTASMA —el cuerpo que enseña lo que se hizo, superpuesto al
+   * que enseña lo que había que hacer— y un fantasma es translúcido entero o no es un
+   * fantasma. Un alfa por vértice costaría un sexto array en cada malla y sesenta copias
+   * más por segundo para una cosa que nadie necesita vértice a vértice.
+   *
+   * El motor lo lee al subir: rellena el atributo con este valor para todos los vértices
+   * de la malla, ordena las opacas delante y dibuja las translúcidas después sin escribir
+   * profundidad. Ninguna malla de las que ya existían cambia: nace en 1.
+   */
+  alfa = 1
+
+  /**
+   * SI SE DIBUJA ENCIMA DE TODO, sin prueba de profundidad.
+   *
+   * Es para lo que se enseña SOBRE el cuerpo y tiene que leerse aunque el cuerpo lo tape:
+   * el brazo de momento y el arco del par, que viven dentro de la carne de la cadera. Con
+   * profundidad se veían a trozos —lo que asomaba entre dos músculos— y un brazo a trozos
+   * no mide nada. El motor las dibuja en una tercera tanda, después de lo translúcido, con
+   * la prueba de profundidad apagada. Nace en `false`: nada de lo que existía cambia.
+   */
+  encima = false
+
+  /**
+   * QUÉ IMAGEN SE ESTAMPA SOBRE ESTA MALLA, por su nombre, o ninguna.
+   *
+   * Es de la malla entera, como `alfa` y `encima`, y por la misma razón: el motor
+   * dibuja todo lo que comparte textura de una pasada, y una malla que cambiara de
+   * imagen a mitad de camino tendría que partirse en dos de todos modos. Nace en `null`:
+   * ninguna de las mallas que existían cambia, y el shader multiplica por blanco cuando
+   * no hay imagen. Las coordenadas van en `uv`, por vértice.
+   */
+  textura: string | null = null
+
+  /**
+   * SI LA LUZ YA VIENE GRABADA EN EL COLOR de los vértices.
+   *
+   * Una pieza horneada en Blender trae en su color lo que le llega de cada foco, con sus
+   * sombras: el motor la enseña tal cual y no la vuelve a iluminar. Es lo que permite que
+   * el gimnasio tenga veintiséis luces y el teléfono no calcule ninguna. Nace en `false`:
+   * el cuerpo, el hierro y las guías se iluminan como siempre.
+   */
+  horneada = false
 
   constructor(capacidadVertices = 2048) {
     this.bufPos = new Float32Array(capacidadVertices * 3)
     this.bufNrm = new Float32Array(capacidadVertices * 3)
     this.bufCol = new Float32Array(capacidadVertices * 3)
     this.bufHueso = new Float32Array(capacidadVertices)
+    this.bufFibra = new Float32Array(capacidadVertices)
+    this.bufUv = new Float32Array(capacidadVertices * 2)
     this.bufIdx = new Uint32Array(capacidadVertices * 6)
   }
 
@@ -52,6 +120,17 @@ export class Malla {
   reiniciar(): void {
     this.nv = 0
     this.ni = 0
+  }
+
+  /**
+   * Cuelga TODOS los vértices del mismo hueso.
+   *
+   * Para lo que llega ya construido —una pieza de Blender, el atlas anatómico— y tiene que
+   * seguir al sujeto entero: se cuelga de `INDICE_RAIZ` y va donde vaya él, también
+   * tumbado. Lo que se construye vértice a vértice ya dice su hueso al nacer.
+   */
+  colgarDe(hueso: number): void {
+    this.bufHueso.fill(hueso, 0, this.nv)
   }
 
   get vertices(): number {
@@ -71,6 +150,17 @@ export class Malla {
   get hueso(): Float32Array {
     return this.bufHueso.subarray(0, this.nv)
   }
+  get fibra(): Float32Array {
+    return this.bufFibra.subarray(0, this.nv)
+  }
+  /**
+   * Coordenadas de textura, dos por vértice, en el espacio de la imagen: (0, 0) es una
+   * esquina y (1, 1) la opuesta, y por encima de 1 la imagen se repite. Un suelo las
+   * lleva en metros divididos por el tamaño real de la baldosa.
+   */
+  get uv(): Float32Array {
+    return this.bufUv.subarray(0, this.nv * 2)
+  }
   get indice(): Uint32Array {
     return this.bufIdx.subarray(0, this.ni)
   }
@@ -86,6 +176,8 @@ export class Malla {
     this.bufNrm = copiar(this.bufNrm, 3)
     this.bufCol = copiar(this.bufCol, 3)
     this.bufHueso = copiar(this.bufHueso, 1)
+    this.bufFibra = copiar(this.bufFibra, 1)
+    this.bufUv = copiar(this.bufUv, 2)
   }
 
   private crecerIndices(): void {
@@ -109,6 +201,19 @@ export class Malla {
     px: number, py: number, pz: number,
     nx: number, ny: number, nz: number,
     c: Color, h: number,
+    /**
+     * Distancia recorrida a lo largo de la fibra, en metros. Va al final y con
+     * valor por defecto para no tocar a los muchos llamadores que dibujan hueso
+     * o guías, donde no hay fibra que estriar.
+     */
+    fibra = 0,
+    /**
+     * Coordenadas de textura. Van las últimas y en cero por defecto por lo mismo que
+     * `fibra`: la carne, el hueso y las guías no llevan imagen, y son casi todos los
+     * llamadores.
+     */
+    u = 0,
+    v = 0,
   ): void {
     if (this.nv >= this.bufHueso.length) this.crecerVertices()
     const i = this.nv * 3
@@ -122,6 +227,9 @@ export class Malla {
     this.bufCol[i + 1] = c[1]
     this.bufCol[i + 2] = c[2]
     this.bufHueso[this.nv] = h
+    this.bufFibra[this.nv] = fibra
+    this.bufUv[this.nv * 2] = u
+    this.bufUv[this.nv * 2 + 1] = v
     this.nv++
   }
 
@@ -151,6 +259,8 @@ export class Malla {
       normal: this.normal,
       color: this.color,
       hueso: this.hueso,
+      fibra: this.fibra,
+      uv: this.uv,
       indice: this.indice,
     }
   }
@@ -292,6 +402,16 @@ export interface OpcionesTubo {
   /** Achata la sección: músculos planos (dorsal, pectoral) y placas óseas. */
   aplanar?: number
   tapar?: boolean
+  /**
+   * Cómo van las fibras dentro del tubo, para poder estriarlo en su dirección.
+   *
+   * `penacion` es el ángulo en radianes que forma la fibra con el eje: cero es
+   * una fibra que corre a lo largo, y los penados del cuerpo humano rondan los
+   * 10° a 30°. `bilateral` invierte el ángulo en la mitad opuesta, que es lo que
+   * distingue un bipenado —fibras en espiga hacia un tendón central— de un
+   * unipenado, donde todas van al mismo lado.
+   */
+  fibra?: { penacion: number; bilateral?: boolean }
 }
 
 /** Tubo de radio variable a lo largo de una polilínea. */
@@ -320,9 +440,22 @@ export function tubo(
     senA[j] = Math.sin(a)
   }
 
+  // Coordenada transversal a la fibra. Se acumula la longitud real recorrida
+  // para que la estría tenga el mismo paso en un músculo largo y en uno corto.
+  const pen = opciones.fibra?.penacion ?? 0
+  const cosPen = Math.cos(pen)
+  const senPen = Math.sin(pen)
+  const bilateral = opciones.fibra?.bilateral ?? false
+  let recorrido = 0
+
   for (let i = 0; i < n; i++) {
     const r = typeof radio === 'function' ? radio(i / (n - 1)) : radio[i]
     const f = fr[i]
+    if (i > 0) {
+      const [ax, ay, az] = puntos[i - 1]
+      const [bx2, by2, bz2] = puntos[i]
+      recorrido += Math.hypot(bx2 - ax, by2 - ay, bz2 - az)
+    }
     const [nx, ny, nz] = f.n
     const [bx, by, bz] = f.b
     const [px, py, pz] = puntos[i]
@@ -340,6 +473,13 @@ export function tubo(
         pz + nz * ca + bz * sa,
         vx * inv, vy * inv, vz * inv,
         color, hueso,
+        // Perpendicular a la fibra: al girar la fibra un ángulo, esta gira con
+        // ella, así que las estrías salen inclinadas lo mismo. En un fusiforme
+        // queda pura vuelta al tubo, que dibuja las fibras a lo largo. En un
+        // bipenado el giro cambia de sentido en la mitad opuesta y forman
+        // espiga, que es la seña de la arquitectura.
+        (j / seg) * 2 * Math.PI * r * cosPen -
+          (bilateral && cosA[j] < 0 ? -1 : 1) * recorrido * senPen,
       )
     }
   }
@@ -531,3 +671,53 @@ export function flecha(malla: Malla, desde: Vec3, hasta: Vec3, r: number, color:
   })
 }
 
+/**
+ * HORNEAR UNA MALLA: aplicarle sus matrices de hueso en la CPU y dejarla sin hueso.
+ *
+ * ## Para qué
+ *
+ * El motor tiene UNA paleta de matrices de hueso por dibujo —la del sujeto— y cada
+ * vértice dice a qué hueso pertenece. Eso vale para un cuerpo. Un segundo cuerpo en otra
+ * fase —el fantasma— necesita sus propias matrices, y no hay segunda paleta: o se hace un
+ * segundo dibujo con otro juego de uniformes, o se transforma el segundo cuerpo ANTES de
+ * subirlo y se le pone hueso 0, que es la identidad. Esto es lo segundo. Cuesta recorrer
+ * sus vértices una vez por fotograma, que es lo mismo que ya cuesta construirlos.
+ *
+ * ## Qué conserva
+ *
+ * Color, fibra, índices y alfa salen iguales. Solo cambian posición y normal, y la normal
+ * se lleva como DIRECCIÓN —sin la traslación—: llevarla como punto la descuadraría y el
+ * sombreado del fantasma saldría iluminado desde un sitio distinto al del sujeto.
+ *
+ * `destino` se reutiliza para no reservar memoria en cada fotograma, por lo mismo que
+ * `construirMusculos` acepta una malla para reutilizar.
+ */
+export function hornear(origen: Malla, matrices: Mat4[], destino?: Malla): Malla {
+  const d = destino ?? new Malla(Math.max(2048, origen.vertices))
+  d.reiniciar()
+  d.alfa = origen.alfa
+  d.textura = origen.textura
+  d.horneada = origen.horneada
+  const pos = origen.posicion
+  const nrm = origen.normal
+  const col = origen.color
+  const hueso = origen.hueso
+  const fibra = origen.fibra
+  const uv = origen.uv
+  const n = origen.vertices
+  for (let v = 0; v < n; v++) {
+    const m = matrices[hueso[v]] ?? matrices[0]
+    const i = v * 3
+    const p = M4.transformarPunto(m, [pos[i], pos[i + 1], pos[i + 2]])
+    const q = M4.transformarDireccion(m, [nrm[i], nrm[i + 1], nrm[i + 2]])
+    d.verticeSuelto(
+      p[0], p[1], p[2], q[0], q[1], q[2],
+      [col[i], col[i + 1], col[i + 2]], 0, fibra[v],
+      // Las coordenadas de textura no se transforman: viven en la imagen, no en el mundo.
+      uv[v * 2], uv[v * 2 + 1],
+    )
+  }
+  const idx = origen.indice
+  for (let k = 0; k + 2 < idx.length; k += 3) d.triangulo(idx[k], idx[k + 1], idx[k + 2])
+  return d
+}

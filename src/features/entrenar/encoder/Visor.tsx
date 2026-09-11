@@ -72,6 +72,7 @@ export function Visor({ ajustes, children }: VisorProps) {
   const marcasRef = useRef<HTMLElement>(null)
   const escalaRef = useRef<HTMLElement>(null)
   const anguloRef = useRef<HTMLElement>(null)
+  const consejoRef = useRef<HTMLElement>(null)
   const muestrasRef = useRef<HTMLElement>(null)
   const relojRef = useRef<HTMLElement>(null)
 
@@ -84,6 +85,7 @@ export function Visor({ ajustes, children }: VisorProps) {
       marcas: marcasRef,
       separacion: escalaRef,
       angulo: anguloRef,
+      consejo: consejoRef,
       muestras: muestrasRef,
       reloj: relojRef,
     },
@@ -249,6 +251,27 @@ export function Visor({ ajustes, children }: VisorProps) {
           <Medida nombre="marcas" valorRef={marcasRef} principal />
           <Medida nombre="ángulo" valorRef={anguloRef} principal />
         </div>
+        {/* EL CONSEJO DEL ÁNGULO, EN SU PROPIA LÍNEA.
+            Antes iba dentro del valor —la frase entera de aviso, inclinación y giro, en la
+            misma cadena que la cifra— y en un móvil desbordaba la columna, se partía en cuatro líneas y
+            empujaba fps y marcas fuera de sitio: la barra que dice si la toma sirve dejaba
+            de leerse justo con la cámara abierta y el teléfono en el trípode.
+            EL HUECO SE RESERVA SIEMPRE (`min-h`), aunque esté vacío, y no se esconde.
+            Esconderlo ahorra 18 píxeles y los cobra donde más duele: al aparecer el aviso
+            empujaría hacia abajo la segunda fila de medidas Y EL BOTÓN DE GRABAR, que es
+            exactamente lo que este archivo ya arregló una vez —ver el comentario del
+            `AvisoDeCaptura`, que se subió sobre la imagen para no mover el botón con la
+            mano yendo a pulsarlo—. Dieciocho píxeles: medidos los CINCO consejos posibles
+            y los cinco caben en una línea (17,8 px a 356 de ancho), así que el hueco
+            reservado no se queda corto nunca.
+
+            Se escribe por `textContent` como el resto de la barra, y sin `aria-live`: esto
+            cambia con el fotograma y anunciarlo en voz alta sesenta veces por segundo
+            sería peor que no decirlo. */}
+        <p
+          ref={consejoRef as React.RefObject<HTMLParagraphElement>}
+          className="min-h-[18px] px-4 pt-1 text-[11px] leading-tight text-ambar"
+        />
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 px-4 pb-3 pt-2">
           <Medida nombre="escala" valorRef={escalaRef} />
           <Medida nombre="píxeles" valorRef={pixelesRef} />

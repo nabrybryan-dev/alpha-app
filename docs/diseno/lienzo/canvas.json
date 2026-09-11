@@ -1,0 +1,115 @@
+{
+ "artboards": [
+  {
+   "file": "Actual.dc.html",
+   "title": "Hoy · de frente",
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "ActualGirado.dc.html",
+   "title": "Hoy · orbitado 55°",
+   "x": 0,
+   "y": 964,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "Main.dc.html",
+   "title": "Opción A · de frente",
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "AGirado.dc.html",
+   "title": "Opción A · orbitado 55°",
+   "x": 470,
+   "y": 964,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "BFrente.dc.html",
+   "title": "Opción B · de frente",
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "BGirado.dc.html",
+   "title": "Opción B · en su tope, 30°",
+   "x": 940,
+   "y": 964,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "CFrente.dc.html",
+   "title": "Opción C · de frente",
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 844
+  },
+  {
+   "file": "CGirado.dc.html",
+   "title": "Opción C · orbitado 55°",
+   "x": 1410,
+   "y": 964,
+   "w": 390,
+   "h": 844
+  }
+ ],
+ "annotations": [
+  {
+   "id": "lectura",
+   "x": -440,
+   "y": 0,
+   "w": 380,
+   "text": "CÓMO SE LEE ESTA PLANCHA\n\nArriba, la pantalla de frente. Abajo, la MISMA pantalla después de arrastrar el dedo en horizontal.\n\nAl bajar de una fila a otra mira tres cosas: el cuerpo, la retícula del suelo y el trípode rojo. Lo que gire con el sujeto pertenece a la escena; lo que se quede quieto es telón pintado.\n\nGeometría proyectada, no dibujada a ojo: cámara a 3,0 m y a 0,99 m de altura, sujeto de 1,71 m ocupando el 60 % del alto. La habitación de la columna «Hoy» son los trazados literales que devuelve trazadoDelSalon.ts."
+  },
+  {
+   "id": "hoy",
+   "x": -440,
+   "y": 964,
+   "w": 380,
+   "text": "HOY — el telón no gira\n\nAl orbitar 55° giran el cuerpo, la barra y el trípode: eso lo pinta el motor. La habitación NO se mueve: el punto de fuga sigue clavado en el centro, la retícula apunta al mismo sitio y el zócalo sigue horizontal.\n\nEs lo que hay ahora mismo en la rama, sin commitear: construirSala tiene cero llamadas y ArquitecturaSala solo recibe «variante». La sala se traza al cargar el módulo y ya no vuelve a calcularse."
+  },
+  {
+   "id": "a",
+   "x": 470,
+   "y": -300,
+   "w": 390,
+   "text": "A · LA SALA VUELVE AL MOTOR\n\nUna sola habitación —la del motor— y gira entera. Fíjate en el riel y en el zócalo: horizontales de frente, en diagonal al orbitar.\n\nEL PRECIO, medido: para que las dos esquinas quepan en un 390 × 844 con el sujeto al 60 %, la sala no puede pasar de 2,7 m de ancho. Aquí son 2,5 m, treinta centímetros más que una barra olímpica. Deja de ser una bahía de medida y pasa a ser un cuarto, y los muros se meten dentro del radio de órbita."
+  },
+  {
+   "id": "b",
+   "x": 940,
+   "y": -300,
+   "w": 390,
+   "text": "B · PROSCENIO FIJO\n\nDibuja exactamente lo mismo que hoy: es la columna «Hoy» con un tope puesto. La órbita se para en 30°, y a 30° el telón todavía no delata.\n\nLo barato: cero trabajo de motor, y la habitación dibujada ya está escrita. Lo que cuesta: «orbitar el sujeto» sale del contrato del §1 y hay que reescribir esa línea."
+  },
+  {
+   "id": "c",
+   "x": 1410,
+   "y": -300,
+   "w": 390,
+   "text": "C · EL SUELO ES LA HABITACIÓN\n\nEn 9:16 y a esta distancia el campo horizontal son 30°: una sala de más de 2,7 m no enseña ni una esquina. Así que los muros no se dibujan —se apagan en viñeta— y la habitación se lee por lo único que sí cabe en vertical: el suelo, su retícula, el horizonte y la estación de grabación.\n\nTodo eso vive en el motor, así que gira entero y la órbita sigue siendo libre 360°. No queda nada fijo que pueda contradecir al cuerpo."
+  },
+  {
+   "id": "barra",
+   "x": 1850,
+   "y": 964,
+   "w": 340,
+   "text": "LA BARRA NO CABE, Y NO ES UN FALLO DEL DIBUJO\n\nSujeto al 60 % de un 9:16 = un cuadro de 2,85 m de alto por 1,60 m de ancho. Una barra olímpica mide 2,20 m: se sale por los dos lados sí o sí.\n\nO el sujeto baja al 44 % del alto, o el material se ve cortado. Es una decisión del §2, no un ajuste de dibujo."
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ }
+}
