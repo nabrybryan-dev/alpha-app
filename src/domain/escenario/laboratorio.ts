@@ -117,16 +117,36 @@ const ARRIBA: Vec3 = [0, 1, 0]
  * `malla.ts` porque aquella construye volúmenes anatómicos —tubos y elipsoides— y
  * esto es carpintería plana.
  */
+/**
+ * Una losa horizontal, plana, entre dos esquinas. Misma reversión que `disco()`: el
+ * orden de las cuatro esquinas giraba en sentido horario visto desde arriba, así que
+ * con `CULL_FACE` toda losa —la retícula del suelo, el eje sagital— se subía y no se
+ * veía. Se recorre al revés (x0,z0 → x0,z1 → x1,z1 → x1,z0) para que el giro quede
+ * antihorario, que es el que pide el frente por defecto del motor.
+ */
 function losa(m: Malla, x0: number, z0: number, x1: number, z1: number, y: number, c: Color): void {
   const base = m.vertices
   m.vertice([x0, y, z0], ARRIBA, c, 0)
-  m.vertice([x1, y, z0], ARRIBA, c, 0)
-  m.vertice([x1, y, z1], ARRIBA, c, 0)
   m.vertice([x0, y, z1], ARRIBA, c, 0)
+  m.vertice([x1, y, z1], ARRIBA, c, 0)
+  m.vertice([x1, y, z0], ARRIBA, c, 0)
   m.cuadro(base, base + 1, base + 2, base + 3)
 }
 
-/** Un disco horizontal de `n` segmentos. */
+/**
+ * Un disco horizontal de `n` segmentos.
+ *
+ * EL ORDEN DE LOS DOS ÚLTIMOS ÍNDICES IMPORTA, Y AQUÍ ESTUVO AL REVÉS.
+ *
+ * `suelo.ts` tiene el mismo abanico —mismo centro, mismo círculo, mismo bucle— y lo
+ * gira como `(centro, i+2, i+1)`; esta función lo giraba `(centro, i+1, i+2)`, el orden
+ * contrario. Con `gl.CULL_FACE` en `BACK` y el frente por defecto en sentido
+ * antihorario, ese giro pone el disco DE ESPALDAS a una cámara que mira desde arriba: se
+ * sube bien, ocupa memoria, pasa por el shader y la tarjeta lo descarta sin un solo
+ * error. Es la misma familia de fallo documentada en `caras-al-derecho.test.ts`, que es
+ * quien lo cazó —910 de 1.198 triángulos del laboratorio, casi todos los de este disco,
+ * porque `disco()` la alimenta dos veces: como suelo de la bahía y como placa.
+ */
 function disco(m: Malla, radio: number, y: number, c: Color, n = 64): void {
   const centro = m.vertices
   m.vertice([0, y, 0], ARRIBA, c, 0)
@@ -134,10 +154,14 @@ function disco(m: Malla, radio: number, y: number, c: Color, n = 64): void {
     const a = (i / n) * Math.PI * 2
     m.vertice([Math.cos(a) * radio, y, Math.sin(a) * radio], ARRIBA, c, 0)
   }
-  for (let i = 0; i < n; i++) m.triangulo(centro, centro + 1 + i, centro + 2 + i)
+  for (let i = 0; i < n; i++) m.triangulo(centro, centro + 2 + i, centro + 1 + i)
 }
 
 /** Un anillo plano entre dos radios: el filo de la placa, las marcas del suelo. */
+/** Un anillo plano entre dos radios: el filo de la placa, las marcas del suelo.
+ *  Misma familia que `disco()`: la tira gira al revés según el ángulo crece, así que
+ *  se recorre (inner, inner-siguiente, outer-siguiente, outer) en vez de
+ *  (inner, outer, outer-siguiente, inner-siguiente). */
 function anillo(m: Malla, rInt: number, rExt: number, y: number, c: Color, n = 64): void {
   const base = m.vertices
   for (let i = 0; i <= n; i++) {
@@ -149,7 +173,7 @@ function anillo(m: Malla, rInt: number, rExt: number, y: number, c: Color, n = 6
   }
   for (let i = 0; i < n; i++) {
     const k = base + i * 2
-    m.cuadro(k, k + 1, k + 3, k + 2)
+    m.cuadro(k, k + 2, k + 3, k + 1)
   }
 }
 
@@ -232,7 +256,11 @@ function bordillo(m: Malla, n = 72): void {
   for (let i = 0; i < n; i++) {
     const k = base + i * 4
     const s = k + 4
-    m.cuadro(k, k + 1, s + 1, s) // cara interior
+    // Misma familia que `disco()`, `losa()` y `anillo()`: la cara interior giraba al
+    // reves de lo que pide `haciaDentro` -confirmado por el guardian: exactamente los
+    // 72 x 2 triangulos de esta cara, ni uno mas-. El canto y la cara exterior ya
+    // ganaban bien y no se tocan.
+    m.cuadro(k, s, s + 1, k + 1) // cara interior
     m.cuadro(k + 1, k + 2, s + 2, s + 1) // canto
     m.cuadro(k + 2, k + 3, s + 3, s + 2) // cara exterior
   }
@@ -256,11 +284,16 @@ function barra(m: Malla, cx: number, cz: number, ancho: number, y0: number, y1: 
     m.vertice([bx, y0, bz], nr, c, 0)
     m.vertice([bx, y1, bz], nr, c, 0)
     m.vertice([ax, y1, az], nr, c, 0)
-    m.cuadro(k, k + 1, k + 2, k + 3)
+    // Misma familia que `disco()` y `losa()`: (a,b,c,d) gira al reves de lo que pide
+    // `nr`. Se recorre (a-abajo, a-arriba, b-arriba, b-abajo) en vez de a lo largo del
+    // lado y luego hacia arriba.
+    m.cuadro(k, k + 3, k + 2, k + 1)
   }
   const t = m.vertices
   for (const [ex, ez] of esquinas) m.vertice([ex, y1, ez], ARRIBA, c, 0)
-  m.cuadro(t, t + 1, t + 2, t + 3)
+  // La tapa de arriba es la misma losa horizontal que `losa()`: recorrida al reves
+  // para que el giro quede antihorario visto desde arriba.
+  m.cuadro(t, t + 3, t + 2, t + 1)
 }
 
 /**
@@ -291,7 +324,8 @@ function estadiometro(m: Malla): void {
     m.vertice([p1[0], y, p1[2] - g], ARRIBA, MARCA, 0)
     m.vertice([p1[0], y, p1[2] + g], ARRIBA, MARCA, 0)
     m.vertice([p0[0], y, p0[2] + g], ARRIBA, MARCA, 0)
-    m.cuadro(k, k + 1, k + 2, k + 3)
+    // Misma losa horizontal que `losa()`, recorrida al reves por el mismo motivo.
+    m.cuadro(k, k + 3, k + 2, k + 1)
   }
 }
 
