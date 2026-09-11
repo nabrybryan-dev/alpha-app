@@ -1354,4 +1354,22 @@ select '0071 - los respaldos dicen para que existen', 'toda tabla de respaldo ll
                       or obj_description(c.oid) !~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}'))
        then 'SI' else 'NO' end
 
+union all
+-- La 0072: el primer respaldo que cumplio y se fue. Mismo aviso que la 0051: en una base
+-- recien creada esa tabla no existio nunca, asi que esto dice SI sin que la migracion haya
+-- hecho nada. Es inherente a un borrado. Lo que si se puede decir es que la haria decir NO:
+-- que la tabla REAPAREZCA, que es el caso que importa vigilar. Se le pega la condicion de la
+-- 0071 sobre lo que queda, que si distingue: 13 tablas y las 13 con su rotulo.
+select '0072 - el primer respaldo que cumplio', 'respaldo_perfiles_notas_20260906 ya no esta, y lo que queda sigue rotulado',
+       case when not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r'
+                 and c.relname = 'respaldo_perfiles_notas_20260906')
+            and not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relkind = 'r' and c.relname like 'respaldo%'
+                 and (obj_description(c.oid) is null
+                      or obj_description(c.oid) !~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}'))
+       then 'SI' else 'NO' end
+
 order by migracion, senal;
