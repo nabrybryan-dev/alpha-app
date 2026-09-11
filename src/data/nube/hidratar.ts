@@ -176,9 +176,13 @@ function conCribadosSinSubir(delServidor: readonly Cribado[]): Cribado[] {
  * está. El servidor lo refuerza con un trigger (migración 0021) para que tampoco
  * pueda tocar la columna una versión vieja de la app que siga cacheada.
  *
- * El `?? datos.estado` cubre las filas que aún no tengan columna leída (una
- * hidratación de un despliegue anterior): sin él, un `undefined` dejaría al
- * microciclo sin estado y desaparecería de todas las pantallas.
+ * Y DESDE LA `0066` (2026-09-10) EL BLOB YA NO LO LLEVA. Se le quito la clave a los
+ * 155 microciclos, se la quito a `activar_microciclo` y un trigger la borra en cada
+ * escritura, asi que `datos.estado` es hoy `undefined` siempre. El ternario de abajo
+ * se queda igualmente: cubre una fila leida sin la columna —un `select` que no la
+ * pida—, y sin el un `undefined` dejaria al microciclo sin estado y desapareceria de
+ * todas las pantallas. Medido antes de limpiar: la columna es NOT NULL y no tiene ni
+ * un nulo, asi que por el servidor no puede faltar.
  */
 export function microciclosDe(filas: readonly Fila[]): Microciclo[] {
   return filas.map((f) => {
