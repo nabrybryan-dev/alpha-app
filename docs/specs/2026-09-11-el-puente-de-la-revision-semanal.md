@@ -90,3 +90,38 @@ error de sintaxis. Medido el 11-sep sobre `main`, con el archivo tal y como se f
 El error decía «Invalid or unexpected token» y señalaba una línea que no existía en el
 archivo que uno lee. Ni una palabra sobre shebangs. Por eso ninguno de los dos scripts lleva
 uno, y ambos lo dicen en su cabecera.
+
+## Y el domingo, solo
+
+Bryan hizo la pregunta correcta en cuanto vio los tres pasos: «pero eso significa que cada
+ocho días lo tendría que hacer». Si hay que teclear algo cada domingo, esto no está
+automatizado — está esperando a que alguien se acuerde, y alguien se olvida.
+
+`scripts/revision-semanal-domingo.ps1` encadena los tres pasos y `scripts/instalar-tarea-domingo.ps1`
+lo deja programado en el Programador de tareas de Windows, **los domingos a las 03:00**.
+
+Por qué en la máquina de Bryan y no en un servidor: **el modelo de voz vive ahí**. Subirlo a
+un servidor significaría subir también el molde de su voz y los audios de veintidós personas
+—con sus nombres, sus cargas y su sueño dichos en voz alta— a una máquina de un tercero. Por
+una hora de CPU a la semana, no compensa.
+
+Tres ajustes de la tarea que no son adorno, y cada uno tapa una forma de fallar en silencio:
+
+- **Se ejecuta aunque el portátil esté a batería.** Por defecto Windows salta las tareas sin
+  enchufe, y eso convierte «todos los domingos» en «los domingos que estuviera cargando».
+- **Si la máquina estaba apagada, se ejecuta al encenderla.** Sin eso, un domingo con el
+  portátil cerrado se salta la semana entera y nadie se entera hasta que un asesorado
+  pregunta.
+- **Tope de cuatro horas.** Si algo se cuelga, se corta solo.
+
+Y dos frenos heredados de las piezas que encadena: si **alguna voz sale corta**, el paso 2
+devuelve error y **no se publica nada** —media tanda publicada es peor que ninguna, porque
+nadie sabe a quién le falta—; y el paso 2 **se salta los audios que ya existen**, así que
+relanzarlo tras un corte no repite la hora de máquina.
+
+**La clave de servicio no vive en ningún archivo del repo.** El guion la busca en la variable
+de entorno `SUPABASE_SERVICE_KEY` y, si no está, en `%USERPROFILE%\.alpha\service_role.txt`.
+
+**Lo que NO se automatiza, nunca: la firma.** El domingo por la mañana las veintidós esperan
+en la bandeja y el asesorado no ve ninguna. Eso es lo que separa «la máquina dijo algo con mi
+voz» de «yo se lo dije».
