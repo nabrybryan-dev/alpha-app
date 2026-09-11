@@ -20,7 +20,8 @@
     "banco-encoder": "node scripts/banco-encoder.mjs",
     "coverage": "vitest run --coverage",
     "rellenar-carga": "vite-node scripts/rellenar-carga.mjs",
-    "espejo": "vite-node scripts/espejo/espejo.mts"
+    "espejo": "vite-node scripts/espejo/espejo.mts",
+    "firmar-revisiones": "vite-node scripts/firmar-revisiones.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
