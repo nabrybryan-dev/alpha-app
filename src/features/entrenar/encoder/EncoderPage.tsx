@@ -135,6 +135,7 @@ export default function EncoderPage() {
   const marcasRef = useRef<HTMLElement>(null)
   const escalaRef = useRef<HTMLElement>(null)
   const anguloRef = useRef<HTMLElement>(null)
+  const consejoRef = useRef<HTMLElement>(null)
   const muestrasRef = useRef<HTMLElement>(null)
   const relojRef = useRef<HTMLElement>(null)
 
@@ -147,6 +148,7 @@ export default function EncoderPage() {
       marcas: marcasRef,
       separacion: escalaRef,
       angulo: anguloRef,
+      consejo: consejoRef,
       muestras: muestrasRef,
       reloj: relojRef,
     },
@@ -358,6 +360,14 @@ export default function EncoderPage() {
           <Medida nombre="marcas" valorRef={marcasRef} principal />
           <Medida nombre="ángulo" valorRef={anguloRef} principal />
         </div>
+        {/* El consejo del ángulo, en su línea. Mismo motivo y misma forma que en
+            `Visor.tsx`: en la columna solo cabe una cifra, y una frase ahí desborda en un
+            móvil. El hueco se reserva siempre para no empujar el botón de grabar al
+            aparecer el aviso. */}
+        <p
+          ref={consejoRef as React.RefObject<HTMLParagraphElement>}
+          className="min-h-[18px] px-4 pt-1 text-[11px] leading-tight text-ambar"
+        />
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 px-4 pb-3 pt-2">
           <Medida nombre="escala" valorRef={escalaRef} />
           <Medida nombre="píxeles" valorRef={pixelesRef} />
