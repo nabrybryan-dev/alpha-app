@@ -45,3 +45,32 @@ export function textoDeMotivo(motivo: MotivoEncuadre): string {
  * ejercicio lleva barra. Por eso el interruptor, y por eso su valor por defecto
  * es «no»: dar por hecho que hay disco sería dar por hecho la corrección.
  */
+
+/**
+ * Qué pone en la columna del ángulo y qué pone debajo.
+ *
+ * Existen separados por un fallo que se vio en un móvil de verdad: el consejo iba
+ * DENTRO del valor —«81° incl. ✕ endereza · 124° giro ⚠ endereza la diana»— y en una
+ * fila de lecturas cortas eso desborda, se parte en cuatro líneas y empuja a fps y
+ * marcas fuera de su sitio. La barra que decide si la toma sirve dejaba de leerse justo
+ * con la cámara abierta y el teléfono en el trípode.
+ *
+ * La regla, y por eso es una función y no dos plantillas sueltas: **en la columna solo
+ * cabe una cifra**. Todo lo que sea una frase baja. Ninguna información se pierde.
+ */
+export function lecturaDeAngulo(entrada: {
+  inclinacionGrados: number
+  giroGrados: number
+  escorzoDescarta: boolean
+  escorzoAvisa: boolean
+  giroAvisa: boolean
+}): { valor: string; consejo: string } {
+  const avisos: string[] = []
+  if (entrada.escorzoDescarta) avisos.push('✕ endereza la cámara')
+  else if (entrada.escorzoAvisa) avisos.push('⚠ se descartará por escorzo')
+  if (entrada.giroAvisa) avisos.push('⚠ endereza la diana')
+  return {
+    valor: `${entrada.inclinacionGrados.toFixed(0)}° · ${Math.abs(entrada.giroGrados).toFixed(0)}°`,
+    consejo: avisos.join(' · '),
+  }
+}

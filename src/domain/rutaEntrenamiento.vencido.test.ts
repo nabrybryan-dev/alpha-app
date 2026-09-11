@@ -30,7 +30,7 @@ const s = (id: string, nombre: string, orden: number): Sesion => ({
   ejercicios: [],
 })
 
-function micro(fechaInicio: string, cadenciaDias: 8 | 15 = 8): Microciclo {
+function micro(fechaInicio: string, cadenciaDias: 7 | 8 | 15 = 8): Microciclo {
   return {
     id: 'm-parra',
     usuarioId: 'u-parra',
@@ -55,6 +55,14 @@ describe('ultimoDiaDe — el último día que el microciclo cubre', () => {
 
   it('con cadencia 15 cubre dos semanas', () => {
     expect(ultimoDiaDe(micro('2026-09-07', 15))).toBe('2026-09-21')
+
+    // LA CADENCIA DE 7, que es lo que trae esta rama. El tipo pasa de `8 | 15` a
+    // `7 | 8 | 15` y un tipo no se puede probar solo: lo que hay que demostrar es que
+    // la cuenta del vencimiento —escrita en `main` el 10-sep, sin saber que existiria
+    // el 7— sigue saliendo. Empezando el lunes 31, el ultimo dia DENTRO es el domingo
+    // 6: siete dias contando el primero, no ocho. Si alguien vuelve a poner `8 | 15`
+    // en el tipo, esta linea deja de compilar, que es justo lo que se quiere.
+    expect(ultimoDiaDe(micro('2026-08-31', 7))).toBe('2026-09-06')
   })
 
   it('sin fecha de inicio o sin cadencia no se inventa un fin', () => {
