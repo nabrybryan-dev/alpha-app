@@ -2479,7 +2479,11 @@ body {
   width: max-content;
   min-width: 100%;
   margin-left: 50%;
-  transform: translateX(-50%);
+  /* `--desvio-prescripcion` lo escribe `useLaFilaCabeEnLaPantalla` en cada fotograma: la
+     fila puede salirse de SU CAJA (eso es lo de arriba y es a propósito) pero no de la
+     PANTALLA. Sin él, con el tablón cerca de un lado el filo cortaba «SERIES» y su 3, o
+     «RIR» y su 2, hasta un 15 % — en 11 de 40 segundos con el salón quieto. */
+  transform: translateX(calc(-50% + var(--desvio-prescripcion, 0px)));
 }
 
 .muro-prescripcion > div {
