@@ -9,6 +9,13 @@ Cómo funciona, en una frase: **nada más abrir la app va un vídeo fijo que no 
 nunca, y debajo una tarjeta que sí cambia cada semana**. El vídeo pone la cara, la voz y
 el tono; la tarjeta pone el nombre y los números de esa persona.
 
+> ⚠️ **CAMBIO DEL 11-SEP, y este documento no lo refleja abajo:** la revisión **ya no sale el
+> domingo, sale el VIERNES**, y cuenta la **semana en curso** (de lunes a viernes) en vez de
+> la semana ya cerrada. Lo decidió Bryan. Donde este texto diga «domingo» —incluidos los
+> «cuatro domingos limpios» de la puerta de aprobación, que en el código ya son **cuatro
+> semanas limpias**— léase la tanda semanal. Lo vigente está en
+> `2026-09-11-el-puente-de-la-revision-semanal.md`.
+
 ## Las cuatro filas de la tarjeta las dictó Bryan
 
 No hubo que inventarlas. En los primeros cuarenta segundos de su vídeo nombra cuatro
