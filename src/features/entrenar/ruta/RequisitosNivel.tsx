@@ -14,14 +14,12 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
     // Esta sección era la única superficie del área sin una sola línea de movimiento
     // ni de profundidad — se le pasó por alto a la auditoría, que construyó su
     // inventario desde lo que se mueve y por eso no ve lo que está quieto.
-    <section
-      className="escena-prof rounded-tarjeta border border-accion/30 px-4 py-3.5"
-      style={{ background: 'color-mix(in srgb, var(--accion) 7%, var(--ink-700))' }}
-    >
-      <h3 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-accion">
-        Para subir a nivel {siguienteNivel.numero}
-      </h3>
-      <ul className="mt-3 flex flex-col gap-2.5">
+    // El tinte de acción y el borde se fueron con el marco el 2026-09-03: dentro de la
+    // hoja del salón eran la caja número trece. Lo que este bloque tiene que decir —qué
+    // falta para subir— lo dice el rótulo del tramo, y el color sigue estando donde
+    // importa, en los círculos cumplidos.
+    <section className="escena-prof">
+      <ul className="flex flex-col gap-2.5">
         {requisitos.map((r) => (
           <li key={r.id} className="escena-prof flex items-start gap-3">
             <span

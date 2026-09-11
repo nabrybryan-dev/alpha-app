@@ -13,11 +13,13 @@
     "semilla": "node scripts/generar-semilla-sql.mjs",
     "validar-fichas": "vite-node scripts/validar-fichas.mjs",
     "publicar-fichas": "vite-node scripts/publicar-fichas.mjs",
+    "publicar-video": "vite-node scripts/publicar-video.mjs",
     "calibrar-umbrales": "vite-node scripts/calibrar-umbrales.mjs",
     "test": "vitest run",
     "banco-encoder": "node scripts/banco-encoder.mjs",
     "coverage": "vitest run --coverage",
-    "rellenar-carga": "vite-node scripts/rellenar-carga.mjs"
+    "rellenar-carga": "vite-node scripts/rellenar-carga.mjs",
+    "espejo": "vite-node scripts/espejo/espejo.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

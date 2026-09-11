@@ -94,12 +94,20 @@ describe('el desglose de un ejercicio', () => {
     expect(muneca?.acciones ?? []).toHaveLength(0)
   })
 
-  it('ve la dorsiflexión de tobillo en la sentadilla, que no está escrita', () => {
-    // El apoyo plantar la calcula solo, así que solo aparece si se mira la pose
-    // resuelta. Y es una de las claves de ejecución del patrón.
+  it('ve el tobillo de la sentadilla, que no está escrito en ninguna pose', () => {
+    // El apoyo plantar lo calcula solo, así que solo aparece si se mira la pose resuelta. Y
+    // es una de las claves de ejecución del patrón.
+    //
+    // LO NOMBRA POR LA CONCÉNTRICA, y desde el 2026-09-06 eso es «flexión plantar» y no
+    // «dorsiflexión». No cambió el gesto: cambió de qué extremo se lee. La fase 0 pasó a ser
+    // el fondo —el tramo 0→1 es la concéntrica, y de una sentadilla se sube— así que el
+    // tobillo va del fondo dorsiflexionado a la posición de pie, que es flexión plantar. Es
+    // lo mismo que ya hacía el resto del catálogo: un curl se nombra por la flexión de codo
+    // con la que sube, no por la extensión con la que baja. Lo que la sentadilla PIDE de
+    // dorsiflexión sigue midiéndose donde corresponde, en `catalogo.test.ts`.
     const tobillo = de(PATRON_POR_ID.sentadilla, 'tobillo')
     expect(tobillo?.rol).toBe('motor')
-    expect(tobillo?.acciones[0].accion).toBe('Dorsiflexión')
+    expect(tobillo?.acciones[0].accion).toBe('Flexión plantar')
   })
 
   it('no cuenta como motor una articulación que solo acompaña', () => {

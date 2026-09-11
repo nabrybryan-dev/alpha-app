@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
@@ -10,11 +11,21 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import { armarSemana, resumenSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
+import { hayBorradorDeCribado } from '../cribado/borrador'
+import { CribadoForm } from '../cribado/CribadoForm'
+import { necesitaPantallaDeSalud } from '../cribado/necesitaCribado'
+import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
+import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
+import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
+import { PedirPermiso } from '../avisos/PedirPermiso'
+import { CabeceraSemanal } from '../chat/CabeceraSemanal'
+import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
+import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
@@ -44,14 +55,33 @@ export default function HoyPage() {
   // `armarSemana` acota por abajo con `fechaInicio` desde el #101 —un microciclo
   // que empieza la semana que viene deja los siete días en blanco—, y el coach
   // tiene «arranca la próxima semana» como opción normal en su generador.
-  const resumen = diasDeLaSemana ? resumenSemana(diasDeLaSemana) : undefined
-  const microcicloCompleto = !!resumen && resumen.programadas > 0 && resumen.completadas === resumen.programadas
+  // Se llamaba `resumen` a secas, pero en `main` ese nombre ya es el de la tarjeta de la
+  // revision semanal (`resumenSemanal`, mas abajo), que es OTRA cosa: aquella son los
+  // numeros que se pintan debajo del video y esta es la cuenta de sesiones hechas contra
+  // programadas. Dos cosas distintas con el mismo nombre en la misma funcion no compilan,
+  // y con que compilaran seria peor: el siguiente que lea una creeria estar leyendo la otra.
+  const cumplimientoSemana = diasDeLaSemana ? resumenSemana(diasDeLaSemana) : undefined
+  const microcicloCompleto = !!cumplimientoSemana && cumplimientoSemana.programadas > 0
+    && cumplimientoSemana.completadas === cumplimientoSemana.programadas
   const arranqueFuturo = microciclo?.fechaInicio && microciclo.fechaInicio > hoy ? microciclo.fechaInicio : undefined
+  const preguntaPendiente = preguntaDelDia(db, usuario.id)
+  // Volver a contestar el cribado es cosa suya y hay que dejarle la puerta abierta: desde
+  // la 0062 la respuesta nueva se guarda al lado de la vieja y manda la más reciente, pero
+  // si nadie le ofrece dónde decirlo, un cambio de medicación se queda en su cabeza. El
+  // formulario solo aparece solo la PRIMERA vez —cuando no hay ficha—, así que después
+  // hace falta esta puerta.
+  const [actualizandoSalud, setActualizandoSalud] = useState(false)
   const checkinHoy = db.bienestar.byUsuario(usuario.id).some((c) => c.fecha === hoy)
   const adherenciaHoy = db.nutricion.adherenciasByUsuario(usuario.id).some((a) => a.fecha === hoy)
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
+  // Las de la cadena NO se cuentan aquí: ya tienen su propia tarjeta arriba
+  // (`TarjetaPregunta`), y contarlas otra vez hace que la misma pantalla pida dos veces
+  // lo mismo — una vez como pregunta y otra como «1 cuestionario por responder», que
+  // además manda a otra pantalla. Es la misma regla que ya se aplicó al check-in y a los
+  // mensajes del coach tres líneas más abajo.
   const cuestionariosPendientes = db.cuestionarios
     .asignadosA(usuario.id)
+    .filter((q) => !esDeLaCadena(q))
     .filter((q) => !db.cuestionarios.respuestasDe(usuario.id).some((r) => r.cuestionarioId === q.id))
 
   // El check-in y los mensajes del coach ya tienen su propia tarjeta arriba: si
@@ -90,6 +120,7 @@ export default function HoyPage() {
     faseDeEtiqueta(perfil?.faseEnergetica),
     hoy,
   )
+  const equipo = remitentesDe(db.usuarios.list(), usuario.id)
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
   // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
@@ -112,6 +143,15 @@ export default function HoyPage() {
     : undefined
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
   const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
+
+  // Los números que van debajo del vídeo de la revisión semanal. Se calculan
+  // aquí, con lo que esta pantalla ya tenía a mano, y la cuenta vive en el
+  // dominio: la tarjeta solo los pinta.
+  const resumen = resumenSemanal({
+    sesiones: microciclo?.sesiones ?? [],
+    checkins: db.bienestar.byUsuario(usuario.id),
+    adherenciaPct,
+  })
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
@@ -138,10 +178,89 @@ export default function HoyPage() {
         <AvisoSinSincronizar usuarioId={usuario.id} />
       </div>
 
+      {/* Se pregunta UNA vez y no se insiste: quien ya contestó no lo vuelve a
+          ver. El permiso del navegador es de una sola bala. */}
+      <div className="entrada entrada-2">
+        <PedirPermiso usuarioId={usuario.id} />
+      </div>
+
+      {/* La revisión de la semana, ANTES de cualquier otra cosa y sin tener que
+          entrar al chat (decisión de Bryan, 10-sep). El vídeo es una cabecera:
+          se graba una vez y lo que cambia cada semana es la tarjeta que irá
+          debajo. Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`. */}
+      <div className="entrada entrada-2">
+        <CabeceraSemanal>
+          <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
+        </CabeceraSemanal>
+      </div>
+
+      {/* La puerta clínica y la pregunta de la cadena van justo debajo de la revisión
+          de la semana, y no
+          bloquean la pantalla: si su plan de hoy ya está prescrito, cerrarle el día
+          por un formulario cuesta una sesión — y quien lo paga es la adherencia,
+          que va por delante de casi todo en la jerarquía del método. Que el cribado
+          sin contestar impida ENTRENAR o solo impida PROGRAMAR es una regla que
+          todavía no está escrita; hasta que lo esté, se pide primero y se deja pasar. */}
+      {usuario.rol === 'asesorado' &&
+        !necesitaPantallaDeSalud(db, usuario) &&
+        !actualizandoSalud &&
+        !hayBorradorDeCribado(usuario.id) && (
+          <p className="entrada entrada-2 text-sm text-tenue">
+            ¿Ha cambiado algo en tu salud —una medicación nueva, una molestia, algo que te
+            hayan dicho—?{' '}
+            <button
+              type="button"
+              onClick={() => setActualizandoSalud(true)}
+              className="font-bold text-texto underline underline-offset-2"
+            >
+              Cuéntanoslo
+            </button>
+          </p>
+        )}
+
+      {(necesitaPantallaDeSalud(db, usuario) ||
+        actualizandoSalud ||
+        hayBorradorDeCribado(usuario.id)) && (
+        <div className="entrada entrada-2">
+          {/* La tarjeta NO se retira a media pregunta: mientras haya borrador empezado
+              sigue en pantalla. Antes se apagaba con `necesitaCribado`, que se vuelve
+              falso en cuanto llega de arriba la ficha que volcó el coach, y quien
+              estuviera contestando las doce preguntas de salud veía desaparecer el
+              formulario sin una palabra. Desde la 0062 su respuesta además se guarda
+              igual, al lado de la del coach y con su fecha. */}
+          <CribadoForm
+            usuarioId={usuario.id}
+            guardarDias={(dias) => db.perfiles.guardarDiasDisponibles(usuario.id, dias)}
+            contestar={db.cribado.contestar}
+            hoyIso={hoy}
+          />
+        </div>
+      )}
+
+      {preguntaPendiente && (
+        <div className="entrada entrada-2">
+          {/* El `key` NO es decoración: sin él, React reutiliza la misma tarjeta cuando
+              cambia la pregunta y se queda con lo que ya había escrito dentro. Las
+              preguntas que escribe la cadena numeran sus casillas igual (`p1`, `p2`), así
+              que la siguiente aparecería RELLENADA con las respuestas de la anterior y
+              con el botón activo: un toque y se manda lo que contestó a otra cosa. */}
+          <TarjetaPregunta
+            key={preguntaPendiente.id}
+            pregunta={preguntaPendiente}
+            onResponder={(valores) =>
+              db.cuestionarios.responder(preguntaPendiente.id, usuario.id, valores)
+            }
+          />
+        </div>
+      )}
+
       {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
           álbum, el radar y el mapa de fatiga— y ahí no se veía. */}
       <div className="entrada entrada-2">
         <BarraCoach
+          titulo={
+            equipo.length > 1 ? 'Escríbele a tu coach o a tu nutricionista' : 'Escríbele a tu coach'
+          }
           iniciales={db.usuarios.byId(idCoach())?.avatarIniciales ?? 'AA'}
           noLeidos={noLeidos}
           ultimoTexto={ultimoDelCoach?.texto}
@@ -151,7 +270,7 @@ export default function HoyPage() {
 
       {/* Check-in del día */}
       {checkinHoy ? (
-        <div className="entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
+        <div className="relieve entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
             <CheckDibujado className="h-3.5 w-3.5" />
           </span>
@@ -160,7 +279,7 @@ export default function HoyPage() {
       ) : (
         <Link
           to="/bienestar"
-          className="press entrada entrada-2 flex items-center gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
+          className="relieve entrada entrada-2 flex items-center gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline bg-surface-2 text-rojo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -232,7 +351,7 @@ export default function HoyPage() {
       <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
         <Link
           to="/logros"
-          className="press rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
+          className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
         >
           <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
           <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
@@ -240,7 +359,7 @@ export default function HoyPage() {
             <span className="text-sm font-medium text-tenue"> d</span>
           </p>
         </Link>
-        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+        <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
           <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
             Peso{microciclo ? ` M${microciclo.numero}` : ''}
           </p>
@@ -249,7 +368,7 @@ export default function HoyPage() {
             <span className="text-sm font-medium text-tenue"> kg</span>
           </p>
         </div>
-        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+        <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
           <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
           <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
             {adherenciaPct ?? '—'}

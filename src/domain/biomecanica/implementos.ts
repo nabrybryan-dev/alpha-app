@@ -46,6 +46,7 @@ export type Implemento =
   | 'polea'
   | 'polea-tobillera'
   | 'maquina'
+  | 'banda'
   | 'peso-corporal'
 
 export interface PerfilDeImplemento {
@@ -56,7 +57,7 @@ export interface PerfilDeImplemento {
    * Dónde entra la carga en el cuerpo. La tabla de `modelos.ts` da por hecho
    * que está en las manos, y en tres implementos no lo está.
    */
-  aplicacion: 'manos' | 'tobillo' | 'hombros' | 'pelvis' | 'pies' | 'cuerpo'
+  aplicacion: 'manos' | 'tobillo' | 'hombros' | 'pelvis' | 'pies' | 'cuerpo' | 'espalda'
   /** Cuántas masas independientes hay. Dos no es una con el doble de peso. */
   cargas: 1 | 2
   /**
@@ -186,6 +187,28 @@ export const IMPLEMENTOS: Readonly<Record<Implemento, PerfilDeImplemento>> = {
       'fabricante que no tenemos.',
   },
 
+  banda: {
+    nombre: 'banda elástica',
+    // No es gravedad: la banda tira hacia su anclaje, igual que un cable. La diferencia con
+    // la polea no es la dirección — es que la MAGNITUD tampoco es constante.
+    linea: 'cable',
+    aplicacion: 'manos',
+    cargas: 1,
+    distanciaHorizontalVale: false,
+    limite:
+      'la banda no tiene un peso: su fuerza crece con el estiramiento, así que sin saber ' +
+      'cuánto se estira no hay newtons ni siquiera aproximados',
+    porQue:
+      'Entra en la tabla el 2026-09-06 porque faltaba y se estaba usando: band pull apart, ' +
+      'rotación con banda, tibial posterior y apertura de banda son familias del censo de ' +
+      'producción, y las cuatro salían sin implemento —o sea, sin nada que decir sobre su ' +
+      'medida—. Es el ÚNICO implemento de la tabla cuya resistencia depende de la posición ' +
+      'y no del peso: una barra de 20 kg pesa 20 arriba y abajo, y una banda tira poco al ' +
+      'principio del recorrido y mucho al final. Por eso comparte con la polea que el brazo ' +
+      'no sale de la distancia horizontal, y no comparte nada más: en la polea el número que ' +
+      'falta es la dirección del cable, y aquí falta además la propia fuerza.',
+  },
+
   'peso-corporal': {
     nombre: 'peso corporal',
     linea: 'centro-de-masas',
@@ -219,6 +242,54 @@ const DETECCION: readonly { patron: RegExp; implemento: Implemento }[] = [
   { patron: /MAQUINA|SELECTORIZAD/, implemento: 'maquina' },
   { patron: /PESO CORPORAL|SIN PESO|LASTRE/, implemento: 'peso-corporal' },
   { patron: /BARRA|BARBELL/, implemento: 'barra' },
+  // LAS FAMILIAS QUE IMPLICAN SU IMPLEMENTO, al final y no antes: cualquier palabra
+  // explícita de arriba gana. Un curl femoral es una máquina por definición —no existe
+  // un curl femoral con barra—, un curl inclinado o martillo son de mancuernas, una
+  // plancha con carga lleva un disco en la espalda y una dominada asistida es una
+  // máquina. Medido el 2026-09-06: eran 6 de los 27 nombres del seed —el 22 %— y los seis
+  // se resuelven por familia sin tener que renombrar una prescripción. La regla sigue
+  // siendo que el nombre declare; esto solo recoge lo que el nombre ya dice de otra forma.
+  { patron: /DOMINADA.*ASISTID|ASISTID.*DOMINADA|PULL.?UP ASISTID/, implemento: 'maquina' },
+  { patron: /DOMINADA|PULL.?UP|CHIN.?UP|FONDOS?( EN PARALELAS)?$/, implemento: 'peso-corporal' },
+  // «ACOSTADO» y «EN MAQUINA» entran desde el 2026-09-07: «FLEXION DE RODILLA ACOSTADO» salia
+  // sin implemento y solo con camilla. Y la extension de rodilla va aqui por la misma razon
+  // que el curl femoral: en esta casa no existe sin maquina, asi que un nombre que no lo
+  // diga —«Extension de rodilla», «EXTENSION DE RODILLA, ARCO PARCIAL 90→45»— no es una
+  // prescripcion incompleta, es la maquina dada por supuesta. Medido ese dia sobre los
+  // nombres reales: tres de ellos salian con el sujeto sentado en el aire.
+  { patron: /CURL FEMORAL|LEG CURL|FLEXION (DE )?RODILLA( (TUMBAD|SENTAD|ACOSTAD|DE PIE|EN MAQUINA))?|EXTENSION (DE )?RODILLA|LEG EXTENSION/, implemento: 'maquina' },
+  { patron: /CURL.*(INCLINAD|MARTILLO|CONCENTRAD|ALTERN)/, implemento: 'mancuernas' },
+  { patron: /PLANCHA CON (CARGA|PESO)/, implemento: 'disco' },
+  { patron: /(GEMELO|TALON|TALONES|PANTORRILLA|CALF).*(DE PIE|SENTAD|PARAD)|(DE PIE|SENTAD|PARAD).*(GEMELO|TALON|TALONES|PANTORRILLA|CALF)/, implemento: 'maquina' },
+  // LA BANDA, que hasta hoy no existía en la tabla. Va aquí abajo por la misma regla: si
+  // el nombre dice «polea» o «mancuerna», gana la palabra explícita. Un `pull apart` no
+  // lleva apellido porque no hay otra forma de hacerlo — es band pull apart o no es nada.
+  { patron: /BANDA|ELASTICO|MINIBAND|MINI.?BAND|PULL.?APART/, implemento: 'banda' },
+  // EL PESO CORPORAL POR DEFINICIÓN, y solo donde no hay otra forma de hacer el ejercicio.
+  //
+  // Es la parte donde más fácil sería pasarse, así que el criterio es estrecho: entra la
+  // familia cuando añadirle carga la convierte en OTRO ejercicio con otro nombre —una
+  // plancha con disco ya está tres líneas más arriba, un colgado con lastre se llama
+  // «colgado con lastre»—, y se queda fuera todo lo que admite carga sin cambiar de nombre.
+  // Por eso NO está aquí el paseo del granjero: se hace con mancuernas o con barra hexagonal
+  // y el nombre no lo dice, así que `undefined` sigue siendo la respuesta honesta.
+  //
+  // Medido el 2026-09-06 sobre los `ejemplos` del catálogo: eran 37 de 89 sin implemento.
+  { patron: /SALTO|POGO|DROP SQUAT|ATERRIZAJE|PLIOMETR|REACTIV/, implemento: 'peso-corporal' },
+  { patron: /PLANCHA|DEAD ?BUG|BICHO MUERTO|HOLLOW|BIRD.?DOG|PERRO DE MUESTRA|SIDE BRIDGE|ISOMETRIA DE SOSTEN/, implemento: 'peso-corporal' },
+  { patron: /MONOPODAL|EQUILIBRIO|SHORT FOOT|ARCO PLANTAR|APOYO ESTABLE/, implemento: 'peso-corporal' },
+  { patron: /COLGAD|DEAD ?HANG|SUSPENSION/, implemento: 'peso-corporal' },
+  { patron: /GATO.?CAMELLO|FOAM ROLLER|ROTACION TORACICA|MOVILIDAD/, implemento: 'peso-corporal' },
+  { patron: /BANCO ROMANO|HIPEREXTENSION|BANCO 45|REVERSE HYPER/, implemento: 'peso-corporal' },
+  { patron: /ELEVACION DE PUNTAS|TIBIALIS|TIBIAL ANTERIOR|DORSIFLEXION/, implemento: 'peso-corporal' },
+  { patron: /90\/90|ROTACION (EXTERNA|INTERNA) DE CADERA|COPENHAGUE|CURL NORDICO|NORDICO|FLEXIONES|SENTADILLA A LA PARED/, implemento: 'peso-corporal' },
+  // Un CRUNCH a secas es peso corporal. El de polea y el que lleva disco ganan antes, por
+  // las reglas explícitas de arriba: aquí solo cae el que no dice nada, que es el que en el
+  // censo de producción se escribe «CRUNCH» y punto.
+  { patron: /CRUNCH/, implemento: 'peso-corporal' },
+  // Y el PEC DECK es el nombre de la máquina, no del gesto: no existe un pec deck con
+  // mancuernas. Igual la contractora. Dos familias más del censo que dejan de estar mudas.
+  { patron: /PEC.?DECK|PECK.?DECK|CONTRACTORA?/, implemento: 'maquina' },
 ]
 
 /**

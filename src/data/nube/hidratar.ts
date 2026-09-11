@@ -2,10 +2,11 @@ import type {
   AdherenciaNutricional,
   CheckinDiario,
   Contenido,
+  Cribado,
   Cuestionario,
+  EstadoCribado,
   Mensaje,
   Microciclo,
-  Perfil,
   PlanNutricional,
   PremiacionCoach,
   Respuesta,
@@ -37,6 +38,7 @@ import {
 import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
 import { sanearMicrociclo, sanearPlan } from './saneado'
+import { perfilesDe, SELECCION_PERFILES, TABLA_PERFILES, type FilaPerfil } from './perfilEnNube'
 import { conPendientes, marcarTablaHidratacion, marcarTablaRegistro } from './sync'
 
 interface FilaUsuario {
@@ -69,7 +71,90 @@ function esTablaInexistente(error: { code?: string }): boolean {
   return error.code === '42P01' || error.code === 'PGRST205'
 }
 
+/**
+ * Lo que todavía NO EXISTE en el despliegue, frente a lo que está ROTO.
+ *
+ * La diferencia decide si un fallo se tolera en silencio o se grita, así que
+ * conviene tenerla en un solo sitio. «Todavía no existe» es una migración sin
+ * aplicar —la tabla `hidratacion` llegó en la 0003 y la RPC del ranking en la
+ * 0004—, y ante eso la app tiene que seguir andando. Cualquier otra cosa —un
+ * permiso denegado, un tiempo agotado, un 500— es que algo se rompió, y eso el
+ * asesorado tiene que verlo.
+ */
+function esPiezaQueAunNoExiste(error: { code?: string }): boolean {
+  return esTablaInexistente(error) || error.code === '42883' || error.code === 'PGRST202'
+}
+
 type Fila = Record<string, unknown>
+
+/** Los tres valores que admite un campo del cribado. Cualquier otro se descarta. */
+const ESTADOS_CRIBADO = ['presente', 'ausente', 'no_declarado'] as const
+
+/** Los nueve de I-23, los únicos que `campoCribado` puede escribir. */
+type CampoDeCribado =
+  | 'diagnostico'
+  | 'quienLoLleva'
+  | 'tratamientoActivo'
+  | 'medicacionCronica'
+  | 'autorizacionSanitaria'
+  | 'restriccionesExplicitas'
+  | 'sintomasConEsfuerzo'
+  | 'nivelFuncional'
+  | 'queLeHanDichoQueNoHaga'
+
+/** Los tres del PAR-Q. Acotado por lo mismo: que no pueda pisar `fuente` ni `detalle`. */
+type ParqDeCribado =
+  | 'parqEnfermedadCardiaca'
+  | 'parqMedicamentoPresion'
+  | 'parqHuesosArticulaciones'
+
+/**
+ * Un campo del cribado, o nada.
+ *
+ * Devuelve un objeto vacío cuando la columna viene `null` —o con un valor que no
+ * reconocemos— en vez de rellenarla con un valor por defecto. **Es la regla que
+ * sostiene la tabla entera:** `ausente` es «se preguntó y no tiene» y la ausencia es
+ * «no se preguntó», y confundirlas convierte un hueco en un cribado inventado. El
+ * `...spread` de un objeto vacío deja la clave sin poner, que es lo que el tipo
+ * `Cribado` espera de un dato que no consta.
+ */
+function campoCribado<K extends CampoDeCribado>(
+  clave: K,
+  valor: unknown,
+): Partial<Pick<Cribado, K>> {
+  return ESTADOS_CRIBADO.includes(valor as EstadoCribado)
+    ? ({ [clave]: valor as EstadoCribado } as Partial<Pick<Cribado, K>>)
+    : {}
+}
+
+/** Lo mismo para el PAR-Q: `false` es «no», ausente es «no se preguntó». */
+function parqCribado<K extends ParqDeCribado>(
+  clave: K,
+  valor: unknown,
+): Partial<Pick<Cribado, K>> {
+  return typeof valor === 'boolean'
+    ? ({ [clave]: valor } as Partial<Pick<Cribado, K>>)
+    : {}
+}
+
+/**
+ * Los cribados del servidor, más los de este teléfono que todavía no han subido.
+ *
+ * POR QUÉ HACE FALTA. `aplicarSnapshot` reemplaza la base local ENTERA. Quien contesta
+ * el cribado sin señal lo tiene solo aquí, esperando en la cola; si la siguiente
+ * hidratación trae la lista del servidor sin él, su respuesta desaparece de la pantalla
+ * —y volvería a pedírsele—. Y `conPendientes` no puede rescatarlo, porque la operación
+ * es una RPC y las RPC no se funden (`fusion.ts`): solo la medida del 0057 sabe hacerlo.
+ *
+ * MANDA EL SERVIDOR CUANDO TIENE FILA. La de arriba puede ser el volcado del expediente
+ * que hizo el coach, y esa gana sobre lo que este teléfono creyera. Solo se conserva la
+ * local cuando el servidor **no** tiene ninguna para esa persona.
+ */
+function conCribadosSinSubir(delServidor: readonly Cribado[]): Cribado[] {
+  const arriba = new Set(delServidor.map((c) => c.usuarioId))
+  const locales = (instantaneaLocal().cribados ?? []).filter((c) => !arriba.has(c.usuarioId))
+  return [...delServidor, ...locales]
+}
 
 /**
  * Los microciclos del servidor, con la COLUMNA `estado` mandando sobre el blob.
@@ -91,9 +176,13 @@ type Fila = Record<string, unknown>
  * está. El servidor lo refuerza con un trigger (migración 0021) para que tampoco
  * pueda tocar la columna una versión vieja de la app que siga cacheada.
  *
- * El `?? datos.estado` cubre las filas que aún no tengan columna leída (una
- * hidratación de un despliegue anterior): sin él, un `undefined` dejaría al
- * microciclo sin estado y desaparecería de todas las pantallas.
+ * Y DESDE LA `0066` (2026-09-10) EL BLOB YA NO LO LLEVA. Se le quito la clave a los
+ * 155 microciclos, se la quito a `activar_microciclo` y un trigger la borra en cada
+ * escritura, asi que `datos.estado` es hoy `undefined` siempre. El ternario de abajo
+ * se queda igualmente: cubre una fila leida sin la columna —un `select` que no la
+ * pida—, y sin el un `undefined` dejaria al microciclo sin estado y desapareceria de
+ * todas las pantallas. Medido antes de limpiar: la columna es NOT NULL y no tiene ni
+ * un nulo, asi que por el servidor no puede faltar.
  */
 export function microciclosDe(filas: readonly Fila[]): Microciclo[] {
   return filas.map((f) => {
@@ -311,7 +400,10 @@ export async function hidratarDesdeNube(): Promise<void> {
   ] = await Promise.all([
     // Columnas necesarias para UI: id, nombre, rol, avatar
     pedir('usuarios_app', () => sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales')),
-    pedir('perfiles', () => sb.from('perfiles').select('datos')),
+    // El blob y la columna `sexo` (0056). La selección sale de `perfilEnNube.ts`,
+    // que es el único sitio que nombra la columna, y `perfilEnNube.test.ts` la
+    // comprueba contra la migración: una columna inventada aquí no avisa.
+    pedir(TABLA_PERFILES, () => sb.from(TABLA_PERFILES).select(SELECCION_PERFILES)),
     // `id` y `estado` además del blob: ver `microciclosDe` más abajo.
     // Dos recortes que se suman, y son independientes:
     //
@@ -376,6 +468,14 @@ export async function hidratarDesdeNube(): Promise<void> {
   const hidratacion = await pedir('hidratacion', () => sb.from('hidratacion').select('id,usuario_id,fecha,ml'))
   if (!hidratacion.error) marcarTablaHidratacion(true)
   else if (esTablaInexistente(hidratacion.error)) marcarTablaHidratacion(false)
+  // Y si falló por CUALQUIER OTRA cosa, se grita como las otras doce. Hasta el
+  // 2026-09-10 esto devolvía `[]` sin decir nada, así que un permiso denegado o
+  // un 500 pasajero se veían en la app exactamente igual que un día sin beber:
+  // **0 ml**. El fallo se disfrazaba de dato, que es lo que la regla de la línea
+  // 364 de este mismo archivo existe para impedir (`caso-01`, `REC-03`).
+  else if (!esTablaInexistente(hidratacion.error)) {
+    throw new Error(`No se pudo descargar tus datos: ${hidratacion.error.message}`)
+  }
 
   // Registro de comidas (migraciones 0015 y 0017). Mismo trato que la
   // hidratación: si el despliegue todavía no las tiene, la app sigue andando y
@@ -384,7 +484,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     .from('perfil_alimentario')
     .select('asesorado_id, respuestas, completada_en')
 
-  const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa] =
+  const [comidas, items, preferencias, calibraciones, visibilidades, vetos, despensa, cribados] =
     await Promise.all([
     pedir('registro_comida', () => sb.from('registro_comida').select('id,cliente_id,asesorado_id,momento,comida,cocinado_por_el,aceite_g,sal_g,confianza').eq('borrado', false)),
     pedir('registro_item', () => sb.from('registro_item').select('id,cliente_id,registro_id,alimento_id,gramos,fue_pesado,estado_asumido').eq('borrado', false)),
@@ -404,6 +504,17 @@ export async function hidratarDesdeNube(): Promise<void> {
     // Migraciones 0024 y 0042. Solo lo vivo: lo que se sacó de la despensa se
     // conserva arriba —la cola no sabe borrar— pero no vuelve al dispositivo.
     pedir('despensa', () => sb.from('despensa').select('id,asesorado_id,alimento_id,texto_pedido,cantidad_g,agregado_en,origen').eq('borrado', false)),
+    // Migración 0058. El asesorado lee la SUYA —`cribado_lee_lo_suyo` existe para
+    // eso— y su app la necesita para saber si ya contestó: sin bajarla le volvería a
+    // pedir el cribado en cada dispositivo. El coach las baja todas.
+    //
+    // Y se lee de `cribado_vigente`, no de la tabla (0062): la tabla guarda TODA la
+    // historia —cada vez que alguien vuelve a contestar queda una fila nueva— y lo que
+    // el teléfono necesita es la que manda hoy. Bajarlas todas haría que el almacén
+    // local tuviera varias por persona y que `byUsuario` dependiera del orden en que
+    // llegaran. La vista va con `security_invoker`, así que la RLS sigue mandando igual
+    // que sobre la tabla.
+    pedir('cribado', () => sb.from('cribado_vigente').select('usuario_id,fecha,fuente,diagnostico,quien_lo_lleva,tratamiento_activo,medicacion_cronica,autorizacion_sanitaria,restricciones_explicitas,sintomas_con_esfuerzo,nivel_funcional,que_le_han_dicho_que_no_haga,parq_enfermedad_cardiaca,parq_medicamento_presion,parq_huesos_articulaciones,detalle,actualizado_en')),
   ])
 
   /**
@@ -419,9 +530,19 @@ export async function hidratarDesdeNube(): Promise<void> {
   else if (registroDisponible) marcarTablaRegistro(true)
   const local = registroDisponible ? undefined : instantaneaLocal()
 
-  // RPC del ranking (migración 0004): también opcional. Devuelve SOLO
-  // cumplimiento agregado por asesorado, nunca datos personales.
+  // RPC del ranking (migración 0004). Opcional SOLO mientras no exista: si el
+  // despliegue todavía no la tiene, la app sigue y el ranking sale vacío.
+  // Devuelve SOLO cumplimiento agregado por asesorado, nunca datos personales.
+  //
+  // Cualquier otro error sí se grita. Antes no: devolvía la tabla vacía, que es
+  // idéntica a la de una semana en la que nadie entrenó, y nadie podía
+  // distinguirlas (`caso-01`, `REC-03`).
   const ranking = await sb.rpc('ranking_disciplina')
+  if (ranking.error && !esPiezaQueAunNoExiste(ranking.error)) {
+    throw new Error(`No se pudo descargar tus datos: ${ranking.error.message}`)
+  }
+
+  const filasDePerfil = (perfiles.data ?? []) as FilaPerfil[]
 
   const snapshot: SeedDb = {
     // Lo que el servidor decia justo antes de esta descarga. Se guarda DESPUES
@@ -436,7 +557,10 @@ export async function hidratarDesdeNube(): Promise<void> {
         avatarIniciales: u.avatar_iniciales || u.nombre.slice(0, 2).toUpperCase(),
       }),
     ),
-    perfiles: conPendientes('perfiles', perfiles.data ?? []).map((f) => f.datos as Perfil),
+    // Con las pendientes encima Y con las filas del servidor a mano: el upsert
+    // pendiente del asesorado no nombra `sexo`, y sin el respaldo la ficha lo
+    // olvidaría hasta la siguiente descarga. Ver `perfilesDe`.
+    perfiles: perfilesDe(conPendientes(TABLA_PERFILES, filasDePerfil), filasDePerfil),
     microciclos: microciclosDe(conPendientes('microciclos', microciclos.data ?? [])),
     checkins: fusionarCheckins(
       conPendientes('checkins', checkins.data ?? []).map((f) => f.datos as CheckinDiario),
@@ -451,10 +575,9 @@ export async function hidratarDesdeNube(): Promise<void> {
         comentario: (f.comentario as string | null) ?? undefined,
       }),
     ),
-    hidratacion: conPendientes(
-      'hidratacion',
-      hidratacion.error ? [] : (hidratacion.data ?? []),
-    ).map(
+    // Sin ternaria: si hubo un error que importe, arriba ya se lanzó. Lo único
+    // que puede llegar aquí con `error` es la tabla que aún no existe.
+    hidratacion: conPendientes('hidratacion', hidratacion.data ?? []).map(
       (f): RegistroHidratacion => ({
         id: f.id as string,
         usuarioId: f.usuario_id as string,
@@ -462,9 +585,7 @@ export async function hidratarDesdeNube(): Promise<void> {
         ml: (f.ml as number) ?? 0,
       }),
     ),
-    ranking: ranking.error
-      ? []
-      : ((ranking.data ?? []) as Record<string, unknown>[]).map(
+    ranking: ((ranking.data ?? []) as Record<string, unknown>[]).map(
           (f): FilaRanking => ({
             usuarioId: f.usuario_id as string,
             nombre: f.nombre as string,
@@ -591,6 +712,47 @@ export async function hidratarDesdeNube(): Promise<void> {
               ? (f.estado as EstadoGuardado)
               : 'automatico',
           }),
+        ),
+    // El cribado (0058). Con la migración sin aplicar esto da 42P01 y se conserva lo
+    // local, igual que la hidratación y el registro de comidas: la app sigue andando
+    // y lo contestado se queda en el dispositivo hasta que la tabla exista.
+    //
+    // MANDA EL SERVIDOR CUANDO TIENE FILA, Y SE CONSERVA LA LOCAL CUANDO NO. Lo
+    // primero porque la fila de arriba puede ser el volcado del expediente que hizo el
+    // coach, y esa gana sobre lo que este teléfono creyera. Lo segundo porque
+    // `aplicarSnapshot` reemplaza la base local entera: sin conservar la local, quien
+    // contesta sin señal ve desaparecer su respuesta en la siguiente hidratación
+    // —`conPendientes` no puede rescatarla, porque las RPC no se funden—.
+    cribados: cribados.error
+      ? (instantaneaLocal().cribados ?? [])
+      : conCribadosSinSubir(
+          (cribados.data ?? []).map(
+          (f): Cribado => ({
+            usuarioId: f.usuario_id as string,
+            fecha: String(f.fecha),
+            fuente: (f.fuente as Cribado['fuente']) ?? 'app',
+            // `null` NO se convierte: significa «no se preguntó», que no es lo mismo
+            // que «no tiene». Un `?? 'ausente'` aquí habría inventado un cribado
+            // completo a partir de una fila a medias, que es justo el fallo que la
+            // 0058 viene a cerrar.
+            ...campoCribado('diagnostico', f.diagnostico),
+            ...campoCribado('quienLoLleva', f.quien_lo_lleva),
+            ...campoCribado('tratamientoActivo', f.tratamiento_activo),
+            ...campoCribado('medicacionCronica', f.medicacion_cronica),
+            ...campoCribado('autorizacionSanitaria', f.autorizacion_sanitaria),
+            ...campoCribado('restriccionesExplicitas', f.restricciones_explicitas),
+            ...campoCribado('sintomasConEsfuerzo', f.sintomas_con_esfuerzo),
+            ...campoCribado('nivelFuncional', f.nivel_funcional),
+            ...campoCribado('queLeHanDichoQueNoHaga', f.que_le_han_dicho_que_no_haga),
+            ...parqCribado('parqEnfermedadCardiaca', f.parq_enfermedad_cardiaca),
+            ...parqCribado('parqMedicamentoPresion', f.parq_medicamento_presion),
+            ...parqCribado('parqHuesosArticulaciones', f.parq_huesos_articulaciones),
+            detalle: (f.detalle as Record<string, string> | null) ?? {},
+            ...(f.actualizado_en === null
+              ? {}
+              : { actualizadoEn: String(f.actualizado_en) }),
+          }),
+          ),
         ),
     pruebasCalibracion: calibraciones.error
       ? (instantaneaLocal().pruebasCalibracion ?? [])

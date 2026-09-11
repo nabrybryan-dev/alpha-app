@@ -13,6 +13,7 @@ import { CheckinForm } from './CheckinForm'
 import { MedidasCard } from './MedidasCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
 import { tramoDeHambre } from '../../domain/senales/hambre'
+import { tramoDeDolor } from '../../domain/senales/dolor'
 
 function tonoDe(valor?: string): 'verde' | 'ambar' | 'rojo' | 'neutro' {
   if (valor === 'BUENA' || valor === 'POCO') return 'verde'
@@ -49,6 +50,11 @@ function filasCheckin(c: CheckinDiario, verPeso: boolean): [string, string][] {
     filas.push(['Sueño', `${c.horasSueno} h${c.calidadSueno ? ` · ${c.calidadSueno}` : ''}`])
   }
   if (c.alimentacion) filas.push(['Alimentación', c.alimentacion])
+  // El cero se enseña: «sin dolor» es un dato que la persona marcó, no un hueco.
+  if (c.dolor !== undefined) {
+    const donde = c.dolorDonde ? ` · ${c.dolorDonde}` : ''
+    filas.push(['Dolor', `${c.dolor} / 10 · ${tramoDeDolor(c.dolor).etiqueta}${donde}`])
+  }
   return filas
 }
 
@@ -66,6 +72,11 @@ function FilaHistorial({ checkin, verPeso }: { checkin: CheckinDiario; verPeso: 
         {checkin.estres && <Badge tono={tonoDe(checkin.estres)}>Estrés {checkin.estres}</Badge>}
         {checkin.cansancio && <Badge tono={tonoDe(checkin.cansancio)}>Cansancio {checkin.cansancio}</Badge>}
         {checkin.calidadSueno && <Badge tono={tonoDe(checkin.calidadSueno)}>Sueño {checkin.calidadSueno}</Badge>}
+        {checkin.dolor !== undefined && checkin.dolor > 0 && (
+          <Badge tono={tramoDeDolor(checkin.dolor).etiqueta === 'leve' ? 'ambar' : 'rojo'}>
+            Dolor {checkin.dolor}{checkin.dolorDonde ? ` · ${checkin.dolorDonde}` : ''}
+          </Badge>
+        )}
       </div>
       {checkin.comentarios && <p className="mt-1.5 text-xs italic text-tenue">"{checkin.comentarios}"</p>}
     </Card>

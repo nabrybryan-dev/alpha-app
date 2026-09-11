@@ -1,0 +1,712 @@
+{
+  "generado": "2026-09-07",
+  "generadoPor": "npx vite-node informes/definicion-corporal.mjs",
+  "queMide": "Dos cuerpos de la misma estatura (175 cm) y fémur +15 % / -15 % respecto al mismo cuerpo sin proporciones medidas. La MISMA definición corporal alimenta la malla, la traza, la cámara y los cálculos: si el fémur cambia, la traza y los brazos de momento cambian con él, y los ángulos articulares NO, porque el ejercicio es el mismo.",
+  "patron": {
+    "id": "sentadilla",
+    "categoria": "SENTADILLA",
+    "seguimiento": [
+      "pelvis",
+      0,
+      [
+        0,
+        0,
+        0.1
+      ]
+    ]
+  },
+  "planDeMedida": {
+    "origen": "carga-externa",
+    "ejes": [
+      "rodilla:principal",
+      "cadera:principal",
+      "tobillo:secundario",
+      "lumbar:estabilizador"
+    ]
+  },
+  "referencia": {
+    "clave": "hombre|175",
+    "femur": 0.47272,
+    "tibia": 0.38492,
+    "coronilla": 1.75
+  },
+  "cuerpos": [
+    {
+      "nombre": "femur+15",
+      "clave": "hombre|175|0.245,0.173,0.337,0.140,0.104",
+      "sexo": "hombre",
+      "estaturaCm": 175,
+      "juego": {
+        "femur": 0.54363,
+        "tibia": 0.38492,
+        "humero": 0.31141,
+        "antebrazo": 0.23075,
+        "cadera": 1.00206,
+        "coronilla": 1.75,
+        "planta": 0.07351,
+        "fuente": "BodyParts3D 4.0, varón adulto; alturas medidas en el atlas el 2026-09-05. Escalado a 175 cm de estatura (×1.021); las PROPORCIONES siguen siendo las del atlas, no las de la persona. Y REPARTIDA con las proporciones de su pista de pose (30 fotogramas): fémur, tibia y tronco por sus razones medidas; brazos atados al fémur; anchura de hombros y planta sin medir, del atlas."
+      },
+      "largosDeHueso": {
+        "pelvis": 0.10175,
+        "lumbar": 0.17297,
+        "torax": 0.28489,
+        "cuello": 0.0814,
+        "craneo": 0.1628,
+        "claviculaD": 0.18222,
+        "claviculaI": 0.18222,
+        "escapulaD": 0.15,
+        "escapulaI": 0.15,
+        "brazoD": 0.31141,
+        "brazoI": 0.31141,
+        "antebrazoD": 0.23075,
+        "antebrazoI": 0.23075,
+        "manoD": 0.18,
+        "manoI": 0.18,
+        "musloD": 0.54363,
+        "musloI": 0.54363,
+        "tibiaD": 0.38492,
+        "tibiaI": 0.38492,
+        "pieD": 0.22,
+        "pieI": 0.22
+      },
+      "brazosDeMomento": {
+        "0": [
+          {
+            "articulacion": "rodilla",
+            "protagonismo": "principal",
+            "metros": 0.3485,
+            "largoDelHueso": 0.3849
+          },
+          {
+            "articulacion": "cadera",
+            "protagonismo": "principal",
+            "metros": 0.1433,
+            "largoDelHueso": 0.5436
+          },
+          {
+            "articulacion": "tobillo",
+            "protagonismo": "secundario",
+            "metros": 0.1682,
+            "largoDelHueso": 0.22
+          }
+        ],
+        "1": [
+          {
+            "articulacion": "rodilla",
+            "protagonismo": "principal",
+            "metros": 0.185,
+            "largoDelHueso": 0.3849
+          },
+          {
+            "articulacion": "cadera",
+            "protagonismo": "principal",
+            "metros": 0.1847,
+            "largoDelHueso": 0.5436
+          },
+          {
+            "articulacion": "tobillo",
+            "protagonismo": "secundario",
+            "metros": 0.2118,
+            "largoDelHueso": 0.22
+          }
+        ],
+        "0.5": [
+          {
+            "articulacion": "rodilla",
+            "protagonismo": "principal",
+            "metros": 0.1871,
+            "largoDelHueso": 0.3849
+          },
+          {
+            "articulacion": "cadera",
+            "protagonismo": "principal",
+            "metros": 0.2316,
+            "largoDelHueso": 0.5436
+          },
+          {
+            "articulacion": "tobillo",
+            "protagonismo": "secundario",
+            "metros": 0.014,
+            "largoDelHueso": 0.22
+          }
+        ]
+      },
+      "angulosArticulares": {
+        "0": {
+          "pelvis": 0.297499,
+          "lumbar": 0.000001,
+          "torax": 22.81,
+          "cuello": 24.0622,
+          "craneo": 4.6572,
+          "claviculaD": 72.546,
+          "claviculaI": 72.54599,
+          "escapulaD": 160.728,
+          "escapulaI": 160.341635,
+          "brazoD": 162.572482,
+          "brazoI": 162.263326,
+          "antebrazoD": 31.755152,
+          "antebrazoI": 31.699474,
+          "manoD": 0.000001,
+          "manoI": 2.141703,
+          "musloD": 55.499893,
+          "musloI": 55.499893,
+          "tibiaD": 129.005473,
+          "tibiaI": 129.005473,
+          "pieD": 117.85147,
+          "pieI": 117.848139
+        },
+        "1": {
+          "pelvis": 0.297499,
+          "lumbar": 0,
+          "torax": 1.19,
+          "cuello": 0.7378,
+          "craneo": 0.1428,
+          "claviculaD": 71.454,
+          "claviculaI": 71.45401,
+          "escapulaD": 159.272,
+          "escapulaI": 158.885635,
+          "brazoD": 169.384877,
+          "brazoI": 168.87473,
+          "antebrazoD": 19.849408,
+          "antebrazoI": 19.815156,
+          "manoD": 0,
+          "manoI": 2.141703,
+          "musloD": 173.5,
+          "musloI": 173.5,
+          "tibiaD": 3.974277,
+          "tibiaI": 3.974277,
+          "pieD": 93.974358,
+          "pieI": 93.971129
+        },
+        "0.5": {
+          "pelvis": 0.297499,
+          "lumbar": 0,
+          "torax": 15.320394,
+          "cuello": 14.458644,
+          "craneo": 2.798447,
+          "claviculaD": 72,
+          "claviculaI": 72,
+          "escapulaD": 159.142,
+          "escapulaI": 159.040952,
+          "brazoD": 160.082445,
+          "brazoI": 159.998311,
+          "antebrazoD": 29.875183,
+          "antebrazoI": 29.858884,
+          "manoD": 4.744992,
+          "manoI": 5.300979,
+          "musloD": 119.447606,
+          "musloI": 119.447606,
+          "tibiaD": 77.359346,
+          "tibiaI": 77.359346,
+          "pieD": 116.458616,
+          "pieI": 116.43904
+        }
+      },
+      "traza": [
+        [
+          0.0009,
+          0.1927,
+          -0.326
+        ],
+        [
+          0.0002,
+          0.2194,
+          -0.313
+        ],
+        [
+          -0.0003,
+          0.2634,
+          -0.3241
+        ],
+        [
+          -0.0008,
+          0.309,
+          -0.3329
+        ],
+        [
+          -0.0012,
+          0.355,
+          -0.3378
+        ],
+        [
+          -0.0014,
+          0.4012,
+          -0.3391
+        ],
+        [
+          -0.0015,
+          0.4473,
+          -0.3369
+        ],
+        [
+          -0.0015,
+          0.493,
+          -0.3315
+        ],
+        [
+          -0.0014,
+          0.5379,
+          -0.323
+        ],
+        [
+          -0.0012,
+          0.5819,
+          -0.3119
+        ],
+        [
+          -0.0009,
+          0.6245,
+          -0.2984
+        ],
+        [
+          -0.0007,
+          0.6656,
+          -0.283
+        ],
+        [
+          -0.0005,
+          0.705,
+          -0.2661
+        ],
+        [
+          -0.0004,
+          0.7424,
+          -0.2481
+        ],
+        [
+          -0.0005,
+          0.7777,
+          -0.2295
+        ],
+        [
+          -0.0006,
+          0.8109,
+          -0.2103
+        ],
+        [
+          -0.0009,
+          0.8417,
+          -0.1905
+        ],
+        [
+          -0.0013,
+          0.87,
+          -0.1702
+        ],
+        [
+          -0.0018,
+          0.8956,
+          -0.1494
+        ],
+        [
+          -0.0023,
+          0.9184,
+          -0.1279
+        ],
+        [
+          -0.0029,
+          0.9383,
+          -0.1058
+        ],
+        [
+          -0.0035,
+          0.9551,
+          -0.083
+        ],
+        [
+          -0.0041,
+          0.9689,
+          -0.0593
+        ],
+        [
+          -0.0046,
+          0.9795,
+          -0.0348
+        ],
+        [
+          -0.005,
+          0.9869,
+          -0.0093
+        ],
+        [
+          -0.0054,
+          0.991,
+          0.0172
+        ]
+      ]
+    },
+    {
+      "nombre": "femur-15",
+      "clave": "hombre|175|0.181,0.173,0.401,0.140,0.104",
+      "sexo": "hombre",
+      "estaturaCm": 175,
+      "juego": {
+        "femur": 0.40182,
+        "tibia": 0.38492,
+        "humero": 0.31141,
+        "antebrazo": 0.23075,
+        "cadera": 0.86025,
+        "coronilla": 1.75,
+        "planta": 0.07351,
+        "fuente": "BodyParts3D 4.0, varón adulto; alturas medidas en el atlas el 2026-09-05. Escalado a 175 cm de estatura (×1.021); las PROPORCIONES siguen siendo las del atlas, no las de la persona. Y REPARTIDA con las proporciones de su pista de pose (30 fotogramas): fémur, tibia y tronco por sus razones medidas; brazos atados al fémur; anchura de hombros y planta sin medir, del atlas."
+      },
+      "largosDeHueso": {
+        "pelvis": 0.12091,
+        "lumbar": 0.20555,
+        "torax": 0.33856,
+        "cuello": 0.09673,
+        "craneo": 0.19346,
+        "claviculaD": 0.18222,
+        "claviculaI": 0.18222,
+        "escapulaD": 0.15,
+        "escapulaI": 0.15,
+        "brazoD": 0.31141,
+        "brazoI": 0.31141,
+        "antebrazoD": 0.23075,
+        "antebrazoI": 0.23075,
+        "manoD": 0.18,
+        "manoI": 0.18,
+        "musloD": 0.40182,
+        "musloI": 0.40182,
+        "tibiaD": 0.38492,
+        "tibiaI": 0.38492,
+        "pieD": 0.22,
+        "pieI": 0.22
+      },
+      "brazosDeMomento": {
+        "0": [
+          {
+            "articulacion": "rodilla",
+            "protagonismo": "principal",
+            "metros": 0.1803,
+            "largoDelHueso": 0.3849
+          },
+          {
+            "articulacion": "cadera",
+            "protagonismo": "principal",
+            "metros": 0.1832,
+            "largoDelHueso": 0.4018
+          },
+          {
+            "articulacion": "tobillo",
+            "protagonismo": "secundario",
+            "metros": 0.0053,
+            "largoDelHueso": 0.22
+          }
+        ],
+        "1": [
+          {
+            "articulacion": "rodilla",
+            "protagonismo": "principal",
+            "metros": 0.1858,
+            "largoDelHueso": 0.3849
+          },
+          {
+            "articulacion": "cadera",
+            "protagonismo": "principal",
+            "metros": 0.1856,
+            "largoDelHueso": 0.4018
+          },
+          {
+            "articulacion": "tobillo",
+            "protagonismo": "secundario",
+            "metros": 0.2127,
+            "largoDelHueso": 0.22
+          }
+        ],
+        "0.5": [
+          {
+            "articulacion": "rodilla",
+            "protagonismo": "principal",
+            "metros": 0.0541,
+            "largoDelHueso": 0.3849
+          },
+          {
+            "articulacion": "cadera",
+            "protagonismo": "principal",
+            "metros": 0.2554,
+            "largoDelHueso": 0.4018
+          },
+          {
+            "articulacion": "tobillo",
+            "protagonismo": "secundario",
+            "metros": 0.119,
+            "largoDelHueso": 0.22
+          }
+        ]
+      },
+      "angulosArticulares": {
+        "0": {
+          "pelvis": 0.297499,
+          "lumbar": 0.000001,
+          "torax": 22.81,
+          "cuello": 24.0622,
+          "craneo": 4.6572,
+          "claviculaD": 72.546,
+          "claviculaI": 72.54599,
+          "escapulaD": 160.728,
+          "escapulaI": 160.341635,
+          "brazoD": 162.572482,
+          "brazoI": 162.263326,
+          "antebrazoD": 31.755152,
+          "antebrazoI": 31.699474,
+          "manoD": 0.000001,
+          "manoI": 2.141703,
+          "musloD": 55.499893,
+          "musloI": 55.499893,
+          "tibiaD": 129.005473,
+          "tibiaI": 129.005473,
+          "pieD": 117.85147,
+          "pieI": 117.848139
+        },
+        "1": {
+          "pelvis": 0.297499,
+          "lumbar": 0,
+          "torax": 1.19,
+          "cuello": 0.7378,
+          "craneo": 0.1428,
+          "claviculaD": 71.454,
+          "claviculaI": 71.45401,
+          "escapulaD": 159.272,
+          "escapulaI": 158.885635,
+          "brazoD": 169.384877,
+          "brazoI": 168.87473,
+          "antebrazoD": 19.849408,
+          "antebrazoI": 19.815156,
+          "manoD": 0,
+          "manoI": 2.141703,
+          "musloD": 173.5,
+          "musloI": 173.5,
+          "tibiaD": 3.974277,
+          "tibiaI": 3.974277,
+          "pieD": 93.974358,
+          "pieI": 93.971129
+        },
+        "0.5": {
+          "pelvis": 0.297499,
+          "lumbar": 0,
+          "torax": 15.320394,
+          "cuello": 14.458644,
+          "craneo": 2.798447,
+          "claviculaD": 72,
+          "claviculaI": 72,
+          "escapulaD": 159.142,
+          "escapulaI": 159.040952,
+          "brazoD": 160.082445,
+          "brazoI": 159.998311,
+          "antebrazoD": 29.875183,
+          "antebrazoI": 29.858884,
+          "manoD": 4.744992,
+          "manoI": 5.300979,
+          "musloD": 119.447606,
+          "musloI": 119.447606,
+          "tibiaD": 77.359346,
+          "tibiaI": 77.359346,
+          "pieD": 116.458616,
+          "pieI": 116.43904
+        }
+      },
+      "traza": [
+        [
+          0,
+          0.2393,
+          -0.1978
+        ],
+        [
+          -0.0005,
+          0.2556,
+          -0.1812
+        ],
+        [
+          -0.0009,
+          0.2887,
+          -0.1896
+        ],
+        [
+          -0.0013,
+          0.3231,
+          -0.1965
+        ],
+        [
+          -0.0016,
+          0.3579,
+          -0.2006
+        ],
+        [
+          -0.0017,
+          0.3928,
+          -0.202
+        ],
+        [
+          -0.0018,
+          0.4276,
+          -0.2008
+        ],
+        [
+          -0.0018,
+          0.4621,
+          -0.1972
+        ],
+        [
+          -0.0017,
+          0.4961,
+          -0.1916
+        ],
+        [
+          -0.0016,
+          0.5294,
+          -0.1841
+        ],
+        [
+          -0.0014,
+          0.5618,
+          -0.175
+        ],
+        [
+          -0.0013,
+          0.5932,
+          -0.1648
+        ],
+        [
+          -0.0011,
+          0.6234,
+          -0.1537
+        ],
+        [
+          -0.0011,
+          0.6523,
+          -0.1422
+        ],
+        [
+          -0.0011,
+          0.6798,
+          -0.1305
+        ],
+        [
+          -0.0012,
+          0.7057,
+          -0.1186
+        ],
+        [
+          -0.0014,
+          0.7299,
+          -0.1067
+        ],
+        [
+          -0.0016,
+          0.7523,
+          -0.0946
+        ],
+        [
+          -0.002,
+          0.7726,
+          -0.0823
+        ],
+        [
+          -0.0024,
+          0.7908,
+          -0.0697
+        ],
+        [
+          -0.0028,
+          0.8067,
+          -0.0567
+        ],
+        [
+          -0.0032,
+          0.8203,
+          -0.0433
+        ],
+        [
+          -0.0037,
+          0.8314,
+          -0.0293
+        ],
+        [
+          -0.0041,
+          0.8401,
+          -0.0147
+        ],
+        [
+          -0.0044,
+          0.8463,
+          0.0008
+        ],
+        [
+          -0.0046,
+          0.85,
+          0.0171
+        ]
+      ]
+    }
+  ],
+  "comparacion": {
+    "razonDeFemur": 1.352919,
+    "estaturaIgual": true,
+    "tibiaIgual": true,
+    "brazosDeMomentoPorFase": {
+      "0": [
+        {
+          "articulacion": "rodilla",
+          "femur+15": 0.3485,
+          "femur-15": 0.1803,
+          "diferenciaMm": 168.2
+        },
+        {
+          "articulacion": "cadera",
+          "femur+15": 0.1433,
+          "femur-15": 0.1832,
+          "diferenciaMm": -39.9
+        },
+        {
+          "articulacion": "tobillo",
+          "femur+15": 0.1682,
+          "femur-15": 0.0053,
+          "diferenciaMm": 162.9
+        }
+      ],
+      "1": [
+        {
+          "articulacion": "rodilla",
+          "femur+15": 0.185,
+          "femur-15": 0.1858,
+          "diferenciaMm": -0.8
+        },
+        {
+          "articulacion": "cadera",
+          "femur+15": 0.1847,
+          "femur-15": 0.1856,
+          "diferenciaMm": -0.9
+        },
+        {
+          "articulacion": "tobillo",
+          "femur+15": 0.2118,
+          "femur-15": 0.2127,
+          "diferenciaMm": -0.9
+        }
+      ],
+      "0.5": [
+        {
+          "articulacion": "rodilla",
+          "femur+15": 0.1871,
+          "femur-15": 0.0541,
+          "diferenciaMm": 133
+        },
+        {
+          "articulacion": "cadera",
+          "femur+15": 0.2316,
+          "femur-15": 0.2554,
+          "diferenciaMm": -23.8
+        },
+        {
+          "articulacion": "tobillo",
+          "femur+15": 0.014,
+          "femur-15": 0.119,
+          "diferenciaMm": -105
+        }
+      ]
+    },
+    "trazaMaximaSeparacionMm": 141,
+    "angulosIdenticosEnCadaFase": true
+  }
+}

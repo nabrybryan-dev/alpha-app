@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -7,6 +7,35 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    // Los worktrees de los agentes viven DENTRO del repo (`.claude/worktrees/`), así
+    // que sus tests entran al glob y se corren como si fueran de aquí: copias viejas
+    // del mismo archivo, ejecutadas dos y tres veces, ensombreciendo a la de `src/`.
+    // Desde la raíz eso son 884 archivos globados donde solo 234 son de este árbol.
+    //
+    // Se parte de `configDefaults.exclude` a propósito: un array literal REEMPLAZA
+    // el default y volvería a globar `node_modules`.
+    exclude: [...configDefaults.exclude, '**/.claude/worktrees/**'],
+    // Vitest usa por defecto un fork por CPU: aquí son 16 procesos levantando jsdom +
+    // React + Supabase a la vez sobre 15 GB de RAM. Ese pico de arranque es donde
+    // `verify` murió con `Worker exited unexpectedly` de tinypool (el hijo desaparece
+    // sin hablar el protocolo, no es un OOM de heap del propio proceso), y de donde
+    // salen los fallos intermitentes de *collect* sobre archivos que pasan solos y
+    // pasan al repetir.
+    //
+    // La mitad de los forks NO es gratis: medido el 2026-09-08 sobre estos 320
+    // archivos, 60,3 s con 8 contra 48,4 s con 16. Se pagan esos ~12 s a cambio de no
+    // volver a perder una corrida entera por un hijo que muere en el arranque.
+    //
+    // `minForks` hay que bajarlo con él: por defecto también vale
+    // `availableParallelism()`, y tinypool aborta el arranque entero con
+    // `options.minThreads and options.maxThreads must not conflict` si el mínimo
+    // queda por encima del máximo.
+    poolOptions: {
+      forks: {
+        minForks: 1,
+        maxForks: 8,
+      },
+    },
     // Los tests siempre corren en modo demo, aunque .env.local tenga credenciales
     env: {
       VITE_SUPABASE_URL: '',

@@ -1,0 +1,11 @@
+
+  árbol único: la rama  vs  origin/main en src
+
+  [rama] capturando ...
+  revirtiendo src a origin/main ...
+  CEBO puesto en src/styles/tokens.css
+  [main] capturando ...
+
+  píxeles distintos: 88044 de 1316640
+  el cebo se vio: la medida sabe decir que no
+EXIT=0

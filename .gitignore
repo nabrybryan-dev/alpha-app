@@ -16,3 +16,26 @@ supabase/_app-cargar-*.sql
 
 # Estado local del CLI de Supabase
 supabase/.temp/
+
+# Lienzos de diseño: las FUENTES sí van al repo (`*.dc.html`, `canvas.json`),
+# los payloads sembrados NO. Son 5,8 MB de editor empaquetado que se regeneran
+# con el sembrador a partir de esas fuentes, y una vez en el historial ya no se
+# pueden sacar. Ver `docs/diseno/`.
+docs/diseno/*/salon-*.html
+docs/diseno/*/previa.html
+
+# Las capturas del testigo de cuadros. Se regeneran con
+# `node testigo/cuadros-en-pantalla.mjs --foto=...` y pesan más que lo que prueban:
+# lo que vale la pena guardar son los NÚMEROS, y ésos van al informe.
+informes/*.png
+
+# Lo mismo para las capturas y máscaras de `testigo/partir-el-visor.mjs`: se
+# regeneran comparando dos ramas y los números (`pixelesCambiados`, la caja de la
+# máscara) ya van en `testigo-partir-el-visor.json`. Las rutas quedan escritas en
+# el JSON aunque el archivo no esté versionado, para quien vuelva a correrlo.
+informes/partir-el-visor/*.png
+# Y para `testigo/tiempo-de-la-repeticion.mjs`: las diez máscaras y las dos capturas de
+# evidencia se regeneran corriendo el script; los números van en `testigo-tiempo.json`.
+informes/tiempo-de-la-repeticion/*.png
+# El lienzo de diseño se guarda en docs/diseno/; aquí queda solo el montaje que se abre.
+informes/diseno-fuerzas/

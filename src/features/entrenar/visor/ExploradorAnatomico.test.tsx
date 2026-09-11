@@ -72,3 +72,35 @@ describe('el arranque dirigido', () => {
   })
 })
 
+describe('el sexo del sujeto', () => {
+  it('arranca en el hombre, que es el defecto desde el 2026-09-06', () => {
+    // Bryan decidió que el muñeco de todos los ejercicios sea el varón real, aunque cambie
+    // lo que ya había visto; el neutro sigue ahí, por su nombre.
+    render(<ExploradorAnatomico />)
+    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('deja elegir los huesos de una mujer o de un hombre, y anuncia cuál manda', async () => {
+    const usuario = userEvent.setup()
+    render(<ExploradorAnatomico />)
+    await usuario.click(screen.getByRole('button', { name: 'Huesos de mujer' }))
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'false')
+    await usuario.click(screen.getByRole('button', { name: 'Huesos de hombre' }))
+    expect(screen.getByRole('button', { name: 'Huesos de hombre' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('arranca en lo que diga la ficha si el coach lo indicó, y se sigue pudiendo cambiar', async () => {
+    // Es el valor de salida, no una orden: el estudio es para mirar.
+    const usuario = userEvent.setup()
+    render(<ExploradorAnatomico sexoInicial="mujer" />)
+    expect(screen.getByRole('button', { name: 'Huesos de mujer' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'false')
+    await usuario.click(screen.getByRole('button', { name: 'Huesos neutros' }))
+    expect(screen.getByRole('button', { name: 'Huesos neutros' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
