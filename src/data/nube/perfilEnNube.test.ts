@@ -66,10 +66,13 @@ describe('la columna del sexo, contra la migración', () => {
     expect(filas).toHaveLength(1)
     expect(filas.every((e) => !e.incompleto)).toBe(true)
     expect(filas[0].claves).toContain(COLUMNA_SEXO)
-    // La medida del asesorado es una llamada, y su carga no nombra ni la columna ni la fila.
+    // Lo que escribe el asesorado son LLAMADAS, y su carga no nombra ni la columna ni la
+    // fila: la medida (0057) y, desde la 0065, los días que puede entrenar. Cada una
+    // escribe una sola clave del blob para `auth.uid()`; el trigger `proteger_perfil`
+    // rechaza cualquier otra. Si aparece aquí una tercera, que traiga su migración.
     const llamadas = todos.filter((e) => e.tipo === 'rpc')
-    expect(llamadas.map((e) => e.funcion)).toEqual(['registrar_medida'])
-    expect(llamadas[0].claves).toEqual(['p_medida'])
+    expect(llamadas.map((e) => e.funcion)).toEqual(['registrar_medida', 'registrar_dias_disponibles'])
+    expect(llamadas.map((e) => e.claves)).toEqual([['p_medida'], ['p_dias']])
   })
 })
 
