@@ -158,3 +158,63 @@ export function aspectoDeEstacion(
     frente,
   }
 }
+
+/** Lo ancho que es la zona sensible de un poste: un dedo. El poste dibujado son 2 px. */
+export const ANCHO_TOCABLE_DEL_POSTE = 56
+
+/**
+ * LO ALTO QUE ES ESA ZONA, y por qué son 52 px y no el poste entero.
+ *
+ * Desde el 2026-09-11 el poste ES el botón: la cifra se retira sola y el poste es lo que
+ * queda para traerla de vuelta. Eso convirtió en un fallo algo que antes solo era un
+ * dibujo: **los cuatro postes están en cruz alrededor del cuerpo, así que la cámara los
+ * alinea de dos en dos cuatro veces por vuelta**, y dos zonas sensibles en el mismo sitio
+ * son una sola —la de delante se come el toque de la de atrás, que se queda inalcanzable
+ * aunque se vea, porque la de atrás nunca baja del 32 % de opacidad—. Medido en el salón el
+ * 2026-09-11 con `elementFromPoint` en el centro exacto de cada poste: en **6 de las 13
+ * posiciones de cámara** al menos un poste no recibía su propio toque, y en tres de ellas
+ * eran dos de los cuatro.
+ *
+ * El remedio ya existía y no le había llegado: **el alza**, que levanta las estaciones de
+ * la espalda por encima de las de delante y que hasta ahora solo movía el cartel. Aplicada
+ * al poste entero —poste, base y cartel suben juntos, que es además la perspectiva
+ * correcta: lo que está más lejos se dibuja más arriba—, dos postes que comparten columna
+ * quedan siempre separados en vertical.
+ *
+ * Cuánto, exactamente: barriendo la vuelta entera, **cuando dos postes están a menos de 56
+ * px en horizontal el alza los separa como mínimo 52,3 px en vertical**. Así que con la
+ * zona sensible a 56 × 52 no pueden solaparse NUNCA — no es que no se haya visto pasar, es
+ * que no cabe—. Sigue por encima de los 44 × 44 que pide cualquier guía de táctil.
+ *
+ * Por eso la zona no es el poste entero (148 px): a lo alto del poste no le sobra sitio.
+ * Se queda con el pie —la base y el arranque—, que es la parte que se lee como plantada en
+ * el suelo y donde va el pulgar.
+ */
+export const ALTO_TOCABLE_DEL_POSTE = 52
+
+/** Cuánto baja la zona sensible por debajo del punto donde el poste toca el suelo. */
+const VUELO_DEL_POSTE = 14
+
+/**
+ * DÓNDE SE PUEDE TOCAR UN POSTE, en píxeles y respecto al eje del cuerpo a ras de suelo.
+ *
+ * Vive aquí, junto a `aspectoDeEstacion`, y no en el componente, porque es la única forma
+ * de que una prueba pueda barrer la vuelta entera y comprobar que dos postes no comparten
+ * zona. Medir esto en el DOM no vale: en jsdom todos los rectángulos son cero.
+ *
+ * `y` crece hacia abajo y el suelo es el cero, igual que en la pantalla.
+ */
+export function cajaTocableDelPoste(
+  angulo: number,
+  azimutDeCamara: number,
+  radio: number,
+): { x0: number; x1: number; y0: number; y1: number } {
+  const { x, alza } = aspectoDeEstacion(angulo, azimutDeCamara, radio)
+  const abajo = VUELO_DEL_POSTE - alza
+  return {
+    x0: x - ANCHO_TOCABLE_DEL_POSTE / 2,
+    x1: x + ANCHO_TOCABLE_DEL_POSTE / 2,
+    y0: abajo - ALTO_TOCABLE_DEL_POSTE,
+    y1: abajo,
+  }
+}

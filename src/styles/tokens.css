@@ -2337,13 +2337,19 @@ body {
    poste con su base, que no tapa nada. Cuatro números permanentes alrededor del
    cuerpo serían otra vez el dashboard con un muñeco dentro.
 
-   La cifra viene del fondo girada, se posa, se queda quieta tres segundos, se va
-   por donde vino, y VUELVE: el ciclo son 5 s —0,4 s de entrada, 3 s quieta, 0,4 s
-   de salida y 1,2 s de nada— y no termina nunca. Hasta el 2026-09-06 entraba una
-   sola vez (3,7 s) y ya no volvía; Bryan: «se reflejan al principio y luego se
-   pierden… que se reflejen tres segundos, dejen de reflejarse dos, y vuelvan». Al
-   tocar una se queda fija (`data-fija`), no en pausa: pausar un ciclo que pasa por
-   «nada» la dejaría invisible la mitad de las veces.
+   La cifra viene del fondo girada, se posa, se queda quieta tres segundos y se va
+   por donde vino: 0,4 s de entrada, 3 s quieta y 0,4 s de salida, UNA vez.
+
+   Entre el 2026-09-06 y el 11 el ciclo no terminaba, porque Bryan dijo «se reflejan
+   al principio y luego se pierden… que se reflejen tres segundos, dejen de
+   reflejarse dos, y vuelvan». Lo que faltaba era dónde encontrarlas después, y ese
+   mismo día el muro de enfrente se quedó con las cuatro cifras grandes y fijas. Con
+   la prescripción en la pared, un segundo juego de números girando alrededor del
+   cuerpo es la pared repetida encima de la sala: medido el 11, tapaba el 2,34 % de
+   la pantalla. Decisión de Bryan ese día: que se retiren y vuelvan al tocar.
+
+   Al tocar su poste se queda fija (`data-fija`), no en pausa: pausar una animación
+   que termina en «nada» la dejaría invisible.
    ------------------------------------------------------------------------- */
 
 @keyframes estacion-cifra {
@@ -2374,10 +2380,10 @@ body {
   }
 }
 
-/* EL CARTEL. La perspectiva va aquí, en el padre DIRECTO de lo que escorza: un
-   nivel más arriba se paga y no se ve. Y el botón se desnuda —sin fondo, sin
-   borde, sin radio—: es una cifra plantada en el suelo, no un control. */
-.estacion-cartel {
+/* EL POSTE. Es LO QUE SE TOCA, y por eso el botón se desnuda —sin fondo, sin
+   borde, sin radio—: lo que se ve es el palo plantado en el suelo, no un control
+   puesto encima de la sala. La regla 3 del kit en una clase. */
+.estacion-poste {
   appearance: none;
   border: 0;
   background: none;
@@ -2385,22 +2391,49 @@ body {
   color: inherit;
   font: inherit;
   cursor: pointer;
+  transform-style: preserve-3d;
+  transition: opacity var(--dur-informativo) var(--muelle-informativo);
+}
+
+/* EL CARTEL. La perspectiva va aquí, en el padre DIRECTO de lo que escorza: un
+   nivel más arriba se paga y no se ve. */
+.estacion-cartel {
   perspective: 420px;
   perspective-origin: 50% 110%;
   transform-style: preserve-3d;
   transition: opacity var(--dur-informativo) var(--muelle-informativo);
 }
 
+/* UNA VEZ, y no en bucle. Los mismos 5 s de siempre —0,4 de entrada, 3 quieta,
+   0,4 de salida— pero sin `infinite`: la cifra entra, se lee y se va. Dónde
+   encontrarla después es el muro de enfrente, que las lleva las cuatro; y para
+   volver a ver ESTA se toca su poste. */
 .estacion-cifra {
   display: block;
   transform-style: preserve-3d;
   transform-origin: 50% 100%;
-  animation: estacion-cifra 5000ms var(--muelle-informativo) infinite both;
+  animation: estacion-cifra 5000ms var(--muelle-informativo) both;
 }
 
-/* Fija al tocarla: sin animación y posada, mire cuando mire el ciclo. */
+/* Ya se leyó: fuera del todo, y sin dejar hueco que estorbe al dedo. Lo pone un
+   reloj de JavaScript y no el final de la animación, porque con movimiento
+   reducido no hay animación que termine — y quien no quiere movimiento tampoco
+   quiere la prescripción tapándole la sala para siempre. */
+.estacion-cifra[data-retirada] {
+  visibility: hidden;
+}
+
+/* Y la que se quedó sin hueco limpio se calla, en vez de escribirse encima de
+   otra. Lo marca el bucle que reparte los sitios. No se pierde nada: el muro
+   lleva las cuatro y su poste la trae de vuelta con un dedo. */
+.estacion-cifra[data-sin-sitio] {
+  visibility: hidden;
+}
+
+/* Fija al tocar su poste: sin animación y posada, mire cuando mire el ciclo. */
 .estacion-cifra[data-fija] {
   animation: none;
+  visibility: visible;
   opacity: 1;
   transform: translateZ(40px) rotateX(-8deg) scale(1);
   filter: none;
@@ -2446,7 +2479,11 @@ body {
   width: max-content;
   min-width: 100%;
   margin-left: 50%;
-  transform: translateX(-50%);
+  /* `--desvio-prescripcion` lo escribe `useLaFilaCabeEnLaPantalla` en cada fotograma: la
+     fila puede salirse de SU CAJA (eso es lo de arriba y es a propósito) pero no de la
+     PANTALLA. Sin él, con el tablón cerca de un lado el filo cortaba «SERIES» y su 3, o
+     «RIR» y su 2, hasta un 15 % — en 11 de 40 segundos con el salón quieto. */
+  transform: translateX(calc(-50% + var(--desvio-prescripcion, 0px)));
 }
 
 .muro-prescripcion > div {
@@ -2592,10 +2629,11 @@ body {
     animation: none;
   }
 
-  /* LA CIFRA SE QUEDA PUESTA, no desaparece. Con movimiento reducido, una
-     animación que TERMINA en `opacity: 0` deja la prescripción invisible para
-     siempre: apagarla sin más habría dejado el salón sin las cuatro cifras. Se
-     anula el ciclo y se fija el estado legible a mano. */
+  /* LA CIFRA SE POSA SIN VOLAR, y se retira igual que las demás. Apagar la
+     animación sin más la dejaría invisible desde el primer fotograma —termina en
+     `opacity: 0`—, así que se fija a mano el estado legible. Quien la retira es
+     el reloj de `EstacionesDelSujeto` con `data-retirada`, que no es movimiento:
+     es que la prescripción deje de tapar la sala, y eso vale para todos. */
   .estacion-cifra {
     animation: none;
     opacity: 1;
