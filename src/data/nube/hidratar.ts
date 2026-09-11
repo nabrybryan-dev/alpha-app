@@ -69,6 +69,20 @@ function esTablaInexistente(error: { code?: string }): boolean {
   return error.code === '42P01' || error.code === 'PGRST205'
 }
 
+/**
+ * Lo que todavía NO EXISTE en el despliegue, frente a lo que está ROTO.
+ *
+ * La diferencia decide si un fallo se tolera en silencio o se grita, así que
+ * conviene tenerla en un solo sitio. «Todavía no existe» es una migración sin
+ * aplicar —la tabla `hidratacion` llegó en la 0003 y la RPC del ranking en la
+ * 0004—, y ante eso la app tiene que seguir andando. Cualquier otra cosa —un
+ * permiso denegado, un tiempo agotado, un 500— es que algo se rompió, y eso el
+ * asesorado tiene que verlo.
+ */
+function esPiezaQueAunNoExiste(error: { code?: string }): boolean {
+  return esTablaInexistente(error) || error.code === '42883' || error.code === 'PGRST202'
+}
+
 type Fila = Record<string, unknown>
 
 /**
@@ -379,6 +393,14 @@ export async function hidratarDesdeNube(): Promise<void> {
   const hidratacion = await pedir('hidratacion', () => sb.from('hidratacion').select('id,usuario_id,fecha,ml'))
   if (!hidratacion.error) marcarTablaHidratacion(true)
   else if (esTablaInexistente(hidratacion.error)) marcarTablaHidratacion(false)
+  // Y si falló por CUALQUIER OTRA cosa, se grita como las otras doce. Hasta el
+  // 2026-09-10 esto devolvía `[]` sin decir nada, así que un permiso denegado o
+  // un 500 pasajero se veían en la app exactamente igual que un día sin beber:
+  // **0 ml**. El fallo se disfrazaba de dato, que es lo que la regla de la línea
+  // 364 de este mismo archivo existe para impedir (`caso-01`, `REC-03`).
+  else if (!esTablaInexistente(hidratacion.error)) {
+    throw new Error(`No se pudo descargar tus datos: ${hidratacion.error.message}`)
+  }
 
   // Registro de comidas (migraciones 0015 y 0017). Mismo trato que la
   // hidratación: si el despliegue todavía no las tiene, la app sigue andando y
@@ -422,9 +444,17 @@ export async function hidratarDesdeNube(): Promise<void> {
   else if (registroDisponible) marcarTablaRegistro(true)
   const local = registroDisponible ? undefined : instantaneaLocal()
 
-  // RPC del ranking (migración 0004): también opcional. Devuelve SOLO
-  // cumplimiento agregado por asesorado, nunca datos personales.
+  // RPC del ranking (migración 0004). Opcional SOLO mientras no exista: si el
+  // despliegue todavía no la tiene, la app sigue y el ranking sale vacío.
+  // Devuelve SOLO cumplimiento agregado por asesorado, nunca datos personales.
+  //
+  // Cualquier otro error sí se grita. Antes no: devolvía la tabla vacía, que es
+  // idéntica a la de una semana en la que nadie entrenó, y nadie podía
+  // distinguirlas (`caso-01`, `REC-03`).
   const ranking = await sb.rpc('ranking_disciplina')
+  if (ranking.error && !esPiezaQueAunNoExiste(ranking.error)) {
+    throw new Error(`No se pudo descargar tus datos: ${ranking.error.message}`)
+  }
 
   const filasDePerfil = (perfiles.data ?? []) as FilaPerfil[]
 
@@ -459,10 +489,9 @@ export async function hidratarDesdeNube(): Promise<void> {
         comentario: (f.comentario as string | null) ?? undefined,
       }),
     ),
-    hidratacion: conPendientes(
-      'hidratacion',
-      hidratacion.error ? [] : (hidratacion.data ?? []),
-    ).map(
+    // Sin ternaria: si hubo un error que importe, arriba ya se lanzó. Lo único
+    // que puede llegar aquí con `error` es la tabla que aún no existe.
+    hidratacion: conPendientes('hidratacion', hidratacion.data ?? []).map(
       (f): RegistroHidratacion => ({
         id: f.id as string,
         usuarioId: f.usuario_id as string,
@@ -470,9 +499,7 @@ export async function hidratarDesdeNube(): Promise<void> {
         ml: (f.ml as number) ?? 0,
       }),
     ),
-    ranking: ranking.error
-      ? []
-      : ((ranking.data ?? []) as Record<string, unknown>[]).map(
+    ranking: ((ranking.data ?? []) as Record<string, unknown>[]).map(
           (f): FilaRanking => ({
             usuarioId: f.usuario_id as string,
             nombre: f.nombre as string,
