@@ -1,0 +1,85 @@
+{
+  "microciclo": {
+    "id": "m-ejemplo",
+    "usuarioId": "u-ejemplo",
+    "numero": 26,
+    "cadenciaDias": 8,
+    "estado": "activo",
+    "fechaInicio": "2026-09-07",
+    "sesiones": [
+      {
+        "id": "s1",
+        "nombre": "PIERNA A (LUNES)",
+        "orden": 1,
+        "dia": "LUNES",
+        "tipo": "fuerza",
+        "ejercicios": [
+          {
+            "id": "e1",
+            "categoria": "SENTADILLA",
+            "nombre": "Prensa de piernas",
+            "cues": "Controla la bajada.",
+            "prescripcion": "80KG A 10 REPS; 3 SERIES (RIR 2).",
+            "cargaKg": 80.0,
+            "unidadCarga": "kg",
+            "descansoMin": 2.0,
+            "sets": 3,
+            "rango": "8-10",
+            "repsDiana": 10,
+            "rirObjetivo": 2,
+            "series": []
+          },
+          {
+            "id": "e2",
+            "categoria": "SENTADILLA",
+            "nombre": "Peso muerto rumano",
+            "cues": "Controla la bajada.",
+            "prescripcion": "52.5KG A 9 REPS; 3 SERIES (RIR 2).",
+            "cargaKg": 52.5,
+            "unidadCarga": "kg",
+            "descansoMin": 2.0,
+            "sets": 3,
+            "rango": "8-10",
+            "repsDiana": 10,
+            "rirObjetivo": 2,
+            "series": []
+          }
+        ]
+      },
+      {
+        "id": "s2",
+        "nombre": "TORSO (MIÉRCOLES)",
+        "orden": 2,
+        "dia": "MIÉRCOLES",
+        "tipo": "fuerza",
+        "ejercicios": [
+          {
+            "id": "e3",
+            "categoria": "SENTADILLA",
+            "nombre": "Jalón al pecho",
+            "cues": "Controla la bajada.",
+            "prescripcion": "45KG A 11 REPS; 3 SERIES (RIR 2).",
+            "cargaKg": 45.0,
+            "unidadCarga": "kg",
+            "descansoMin": 2.0,
+            "sets": 3,
+            "rango": "8-10",
+            "repsDiana": 10,
+            "rirObjetivo": 2,
+            "series": []
+          }
+        ]
+      },
+      {
+        "id": "s3",
+        "nombre": "ZONA 2 (SÁBADO)",
+        "orden": 3,
+        "dia": "SÁBADO",
+        "tipo": "metabolica",
+        "ejercicios": [],
+        "bloquesCardio": []
+      }
+    ]
+  },
+  "nota": "M26 · LA SEMANA DEL GLUTEO — Subes volumen y bajas descanso. || PASOS: 10.000 al dia. || REGISTRO: anota el RIR que sentiste, no el de la hoja."
+}

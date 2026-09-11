@@ -59,7 +59,7 @@ volver a mirarlos el día que se escriba cada una**: el número no es parte del 
 | Encargo | ENTREGABLE | FORMATO | ACEPTACIÓN | PROHIBIDO |
 |---|---|---|---|---|
 | `bandeja-dos-remitentes` (HECHO, PR #236) | `src/features/chat/ChatPage.tsx`, `Conversacion.tsx`, `SelectorRemitente.tsx`, `remitentes.ts`, `CabeceraSemanal.tsx` (montada en `features/hoy/HoyPage.tsx`), `enlaceDeCabecera.ts` y sus pruebas | `ChatPage` deja de fijar `idCoach()` y lista los usuarios con rol `coach` o `nutricionista`. `CabeceraSemanal` = reproductor propio alimentado por el enlace firmado del cajón, más el hueco de la tarjeta | `grep -c "idCoach()" ChatPage.tsx` → 0 · `npm test -- ChatPage.dos-remitentes` pasa, y ese test (mensaje de la nutricionista visible para el asesorado) **se ha visto fallar** contra el `ChatPage` de hoy · **no se crearon rutas nuevas**: con el selector dentro de la misma pantalla no hacen falta, y una ruta que nadie abre es mantenimiento regalado · **cambiar el vídeo no obliga a tocar ni una línea de la pantalla**, probado con tres orígenes · `npm run build` → 0 | `src/domain/**`, `supabase/functions/**`, `src/features/aprobacion/**` |
-| `cajon-del-video` | `supabase/migrations/0059_cajon_de_medios.sql`, `supabase/functions/enlace-de-cabecera/index.ts` + `.test.ts` | Cajón privado, una carpeta por destino. La función devuelve un enlace firmado de una hora al vídeo vigente | **señuelo**: con la sesión de un asesorado cualquiera, pedir el archivo por su ruta directa da 403, y se ha visto dar 200 antes de la política · el enlace caduca: pasada la hora, 403 en un test que adelanta el reloj · la función responde 200 con enlace no vacío | `src/features/**`, `src/domain/**` |
+| `cajon-del-video` (HECHO, PR pendiente) | `supabase/migrations/0061_cajon_de_medios.sql`, `supabase/comprobar-0061.sql`, `src/data/nube/medios.ts` + `.test.ts` | Cajón privado `medios-app` + tabla `medios_app` con lo publicado. **No hizo falta función de servidor**: el cliente pregunta qué hay publicado y firma ese archivo, en ese orden — al revés, despublicar no apagaría el vídeo | **señuelo**: con la sesión de un asesorado cualquiera, pedir el archivo por su ruta directa da 403, y se ha visto dar 200 antes de la política · el enlace caduca: pasada la hora, 403 en un test que adelanta el reloj · la función responde 200 con enlace no vacío | `src/features/**`, `src/domain/**` |
 | `cabecera-generada` | `medios/cabecera.md`, el vídeo en el cajón, `medios/aviso-cara-generada.md` | El `.md` lleva la transcripción literal, el servicio usado, el coste por minuto real, la fecha y la huella del archivo. El aviso es el texto que Bryan manda **una vez** a sus asesorados | `ffprobe` da 9:16 y duración ≤ 40,5 s (el original sirve hasta el segundo 40: ahí empieza el gesto de coger el teléfono) · volumen normalizado a valor de móvil y sin saturación · la cara cae fuera de la zona que tapa la interfaz · el fotograma de portada **no es el cero** y no sale parpadeando · `medios/aviso-cara-generada.md` existe, escrito por Bryan, **antes** de que el vídeo se publique | Todo el código |
 | `metrica-semanal` | `src/domain/resumenSemanal/calcular.ts` + `.test.ts`, `src/domain/sueno/regularidad.ts` + `.test.ts`, `src/domain/resumenSemanal/contrato.md` | Función pura. Devuelve cifras **y etiquetas ya decididas**: adherencia alta/media/baja, tendencia subió/igual/bajó, regularidad mejorando/estable/empeorando/sin-datos | `npm test -- resumenSemanal regularidad` pasa · caso con menos de 7 noches devuelve «sin datos» y **no** un cero, **visto fallar** devolviendo 0 · `grep -rn "fetch\|supabase\|openai\|anthropic"` en esas carpetas → vacío · `contrato.md` con sus secciones completas | `src/features/**`, `src/domain/redaccion/**`, `supabase/**` |
 | `voz-y-redaccion` | `voz/corpus-bryan.md`, `voz/molde.md`, `voz/prueba-ciega/ronda-1.json` + `respuestas.json` + `veredicto.md`, `supabase/functions/redactar-resumen/index.ts`, `src/domain/redaccion/plantilla.test.ts` | 30 textos, 15 de Bryan **sacados al azar** del corpus y 15 del modelo, **con todo lo identificable tachado** (nombres, fechas, cifras, ejercicios) y **4 repetidos** escondidos para medir al juez. Dos preguntas por texto: ¿es mío? y **¿lo mandarías tal cual?** | `jq` confirma 30 entradas, 15 marcadas y los 4 repetidos · si el juez se contradice en los repetidos, el veredicto no vale · `veredicto.md` dice PASA (≤19 aciertos) o NO PASA, y el número de «lo mandaría» · **el modelo no coloca números: los devuelve aparte y la plantilla los pone en el hueco** · test: se le da una semana **mala** y la tarjeta **no felicita**, visto fallar · tope: **dos vueltas**; a la tercera los textos salen firmados como automáticos | `src/domain/resumenSemanal/**` (sólo lectura), todas las pantallas |
@@ -150,6 +150,44 @@ estrés.
 
 Los seis recados del día y la red que baja el cupo (dependen del mapa de vida), y cualquier
 recomendación de sueño que no pueda señalar el dato que la sostiene.
+
+
+## Tarea 3 — la conversacion que aprende su estilo de vida
+
+Encargada por Bryan el 10-sep, en paralelo a los avisos. Es la pieza de la que cuelgan los
+recados del dia: **preguntarle a cada persona como vive, y usar eso para hablarle cuando le
+sirve**, en vez de a la hora que nos venga bien.
+
+### La regla que lo hace corto y honesto
+
+**Cada pregunta lleva escrito al lado que mensaje dispara y a que hora. La pregunta que no
+tenga mensaje detras se cae de la encuesta.** Eso lo convierte de «recojo datos por si
+acaso» en «recojo exactamente lo que voy a usar», y de paso la acorta — que es la mitad del
+problema de cualquier encuesta.
+
+Lo que si se puede preguntar sin aparatos y es palanca de verdad: a que hora se levanta y
+se acuesta, cuando come por primera y ultima vez, a que hora entrena, cuanto sol le da por
+la manana, cuanto cafe toma y cuando se le junta el estres. Lo que **no** se puede saber
+—cortisol, melatonina, temperatura interna, glucosa— no se nombra: [[la regla de la tarea
+2]] vale igual aqui.
+
+### Empezar por lo pequeno, y contar desde el primer dia
+
+Los seis recados diarios son el ultimo eslabon y dependen del mapa, del disparador y de los
+avisos. **La version que no depende de nada y va primero: UN solo recado al dia, a una hora
+que elige la persona.** Sin mapa, sin modelo, sin nada. Ejercita la cadena entera —permiso,
+empuje, respuesta de un toque— con la decima parte del trabajo, y dice cuanta gente
+contesta antes de invertir en los seis.
+
+**El contador se pone desde el primer recado**, aunque la red que baja el cupo no se
+construya hasta mucho despues: contar es gratis, y puesto mas tarde hay que esperar otra vez
+a que se llene.
+
+### Las dos medidas que dicen si esto va bien o mal
+
+La primera la dijo Bryan: **cuantos contestan**. La segunda es mas dura y mas util:
+**cuantos lo silencian**. Contestar mucho puede ser educacion; silenciar no es nunca un
+accidente. Si el segundo sube, da igual lo bien escrito que este el mensaje.
 
 ## Qué NO entra en esta obra
 

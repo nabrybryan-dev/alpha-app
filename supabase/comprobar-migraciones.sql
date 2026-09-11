@@ -1034,6 +1034,51 @@ select '0057 - el asesorado estrena su ficha', 'registrar_medida existe y proteg
        then 'SI' else 'NO' end
 
 union all
+-- 0058, primera señal: la tabla con sus DOCE preguntas y el candado que impide que una
+-- fila de la app venga a medias. Se cuentan las columnas por su nombre, no el total:
+-- una tabla con diecisiete columnas donde una se llame distinto no le sirve a
+-- `entrada_desde_historial.py`, que las vuelca al dictamen SIN traducir. Y sin el check
+-- `cribado_de_la_app_esta_completo`, una fila `app` incompleta sería indistinguible de
+-- una `wiki` a medias — que es justo la ambigüedad que la migración viene a cerrar.
+select '0058 - el cribado vive en la base', 'tabla con las 12 preguntas y el check de completitud',
+       case when (
+              select count(*) = 12 from information_schema.columns
+               where table_schema = 'public' and table_name = 'cribado'
+                 and column_name in (
+                   'diagnostico','quien_lo_lleva','tratamiento_activo','medicacion_cronica',
+                   'autorizacion_sanitaria','restricciones_explicitas','sintomas_con_esfuerzo',
+                   'nivel_funcional','que_le_han_dicho_que_no_haga',
+                   'parq_enfermedad_cardiaca','parq_medicamento_presion','parq_huesos_articulaciones'))
+            and exists (
+              select 1 from pg_constraint c
+                join pg_class t on t.oid = c.conrelid
+                join pg_namespace n on n.oid = t.relnamespace
+               where n.nspname = 'public' and t.relname = 'cribado'
+                 and c.conname = 'cribado_de_la_app_esta_completo')
+       then 'SI' else 'NO' end
+
+union all
+-- 0058, segunda señal: la puerta no se abre desde el lado que protege. Son datos de
+-- salud y este dato PARA la cadena: quien contesta «sí» a dolor torácico queda en zona
+-- roja. Si el asesorado pudiera hacer UPDATE de su propia fila, se desbloquearía solo.
+-- Se exige, las tres: RLS encendida, que exista una política de UPDATE, y que NINGUNA
+-- política de UPDATE mencione `auth.uid()` — es decir, que cambiar una respuesta sea
+-- del coach y de nadie más. Diría NO con la tabla creada y las políticas sin poner,
+-- que es el estado peligroso: tabla viva y abierta.
+select '0058 - el cribado vive en la base', 'RLS encendida y el UPDATE es solo del coach',
+       case when (select coalesce(bool_and(c.relrowsecurity), false)
+                    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                   where n.nspname = 'public' and c.relname = 'cribado')
+            and exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'cribado' and cmd = 'UPDATE')
+            and not exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'cribado' and cmd = 'UPDATE'
+                 and coalesce(qual, '') || coalesce(with_check, '') like '%uid()%')
+       then 'SI' else 'NO' end
+
+union all
 -- La 0060: activar es UNA operación. Se pide la función Y que no la pueda llamar la
 -- clave anónima, porque `create function` concede EXECUTE a PUBLIC y sin el revoke la
 -- puerta queda abierta aunque la RLS pare las escrituras. Con la función sin el revoke
@@ -1043,6 +1088,182 @@ select '0060 - activar microciclo en una operacion', 'activar_microciclo existe 
               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'activar_microciclo'
                  and not has_function_privilege('anon', p.oid, 'execute'))
+       then 'SI' else 'NO' end
+
+union all
+-- La 0062: el cribado guarda su historia. Se piden las dos cosas que la hacen segura y
+-- útil a la vez: que la vista `cribado_vigente` exista CON `security_invoker` —sin él se
+-- saltaría la RLS de la tabla y cualquiera vería el cribado de cualquiera— y que la
+-- clave primaria ya no sea la persona sino la fila. Con la vista creada sin la opción
+-- diría NO, que es el estado peligroso.
+select '0062 - el cribado guarda su historia', 'cribado_vigente con security_invoker y la clave es la fila',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'cribado_vigente' and c.relkind = 'v'
+                 and coalesce(c.reloptions::text, '') like '%security_invoker=true%')
+            and exists (
+              select 1 from pg_constraint k
+                join pg_class t on t.oid = k.conrelid
+                join pg_namespace n on n.oid = t.relnamespace
+               where n.nspname = 'public' and t.relname = 'cribado' and k.contype = 'p'
+                 and pg_get_constraintdef(k.oid) = 'PRIMARY KEY (id)')
+       then 'SI' else 'NO' end
+
+union all
+-- La 0065: los días que la persona puede entrenar. La función tiene que existir, la
+-- clave anónima no puede llamarla, y el trigger `proteger_perfil` tiene que admitir la
+-- clave `diasDisponibles` — si no, la app llamaría a una función que el candado
+-- rechaza y la cola descartaría los días en silencio.
+select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe, anon no la llama y proteger_perfil admite la clave',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'registrar_dias_disponibles'
+                 and not has_function_privilege('anon', p.oid, 'execute'))
+            and exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'proteger_perfil'
+                 and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+-- == LAS QUE FALTABAN, Y LOS DOS PARES REPETIDOS (anadidas el 2026-09-10) =====
+--
+-- En `main` hay DOS archivos llamados 0062 y DOS llamados 0065, y falta la 0063
+-- entera aunque su efecto este aplicado. Con las migraciones pegadas a mano, un
+-- numero repetido significa que **nadie puede saber cual de las dos corrio**: la
+-- lista de archivos no lo dice y la base tampoco guarda versiones.
+--
+-- Esto lo arregla SIN TOCAR EL TRABAJO DE NADIE: no se renombra ni se reescribe
+-- ninguna migracion —estan aplicadas, y renombrar lo aplicado es como se pierde el
+-- rastro de verdad—. Cada una tiene aqui su propia senal, y cada senal mira lo que
+-- esa migracion HACE. Asi el par deja de ser ambiguo: dos filas distintas, cada
+-- una con su SI o su NO.
+
+-- La 0053: la tabla del motivo por el que alguien se queda sin plan, con su RLS. Se
+-- pide la tabla Y que la RLS este encendida: una tabla sin RLS en este repo es una
+-- tabla abierta a la clave anonima, asi que media migracion tiene que decir NO.
+select '0053 - motivo sin plan', 'la tabla existe con RLS encendida',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'motivo_sin_plan' and c.relrowsecurity)
+       then 'SI' else 'NO' end
+
+union all
+-- La 0054 y la 0055 tocan LA MISMA funcion (`mesa_del_sabado`), asi que preguntar si
+-- existe no distingue una de otra: con la 0054 aplicada y la 0055 no, existir existe.
+-- Lo que separa a la 0055 es que la ventana va por FECHA, y eso se lee en su cuerpo.
+select '0054 - mesa del sabado', 'la funcion mesa_del_sabado existe',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'mesa_del_sabado')
+       then 'SI' else 'NO' end
+
+union all
+select '0055 - la ventana de la mesa va por fecha', 'mesa_del_sabado filtra por fecha',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'mesa_del_sabado'
+                 and p.prosrc like '%fecha%')
+       then 'SI' else 'NO' end
+
+union all
+select '0058 - el cribado', 'la tabla cribado existe con RLS encendida',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'cribado' and c.relrowsecurity)
+       then 'SI' else 'NO' end
+
+union all
+select '0061 - el cajon de medios', 'la tabla medios_app existe con RLS encendida',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'medios_app' and c.relrowsecurity)
+       then 'SI' else 'NO' end
+
+union all
+-- LA OTRA 0062: el saludo es una via propia de la consulta. La primera -el cribado
+-- guarda su historia- tiene su senal mas arriba, escrita por otra sesion. Esta es la
+-- que faltaba, y su efecto vive en la restriccion de `via`, no en ninguna tabla nueva.
+select '0062b - el saludo es una via', 'consultas_chat.via admite saludo',
+       case when exists (
+              select 1 from pg_constraint
+               where conname = 'consultas_chat_via_check'
+                 and pg_get_constraintdef(oid) like '%saludo%')
+       then 'SI' else 'NO' end
+
+union all
+-- La 0063 es el caso mas raro de todos, y hay que contarlo entero porque la primera
+-- lectura fue equivocada: NO es un archivo que se perdiera al renumerar. Su fichero
+-- vive en `origin/feat/permiso-de-avisos`, un PR **todavia abierto**, asi que el
+-- numero esta reservado por codigo sin fusionar. Lo que si es cierto -y es lo que
+-- importa- es que **su tabla YA existe en la base**: la migracion se aplico por
+-- delante de su codigo. Por eso lleva senal aunque `main` no tenga el archivo: si no,
+-- quien compare las dos listas veria un hueco y no vera que la base va por delante.
+select '0063 - permisos de aviso (aplicada; su archivo sigue en un PR abierto)', 'existe la tabla de suscripciones de aviso',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public'
+                 and c.relname in ('permisos_de_aviso', 'suscripciones_push', 'suscripciones_aviso'))
+       then 'SI' else 'NO' end
+
+union all
+select '0064 - el mapa de vida', 'la tabla de respuestas existe con RLS encendida',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'mapa_de_vida_respuestas'
+                 and c.relrowsecurity)
+       then 'SI' else 'NO' end
+
+union all
+-- LA OTRA 0065: el video es de cada quien. La primera -los dias que puede entrenar-
+-- tiene su senal mas arriba. Esta es la que faltaba: tabla propia con RLS.
+select '0065a - el video es de cada quien', 'la tabla videos_semanales existe con RLS encendida',
+       case when exists (
+              select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'videos_semanales' and c.relrowsecurity)
+       then 'SI' else 'NO' end
+
+union all
+-- La 0067: los borradores que esperan firma. Lo que se pide NO es que el `origen`
+-- admita dos valores mas -eso solo dice que la restriccion cambio- sino que la
+-- LECTURA esconda el borrador a su destinatario, que es lo unico que impide que el
+-- asesorado vea y oiga un video antes de que nadie lo firme.
+select '0067 - borradores que esperan firma', 'mensajes_leer esconde los borradores al destinatario',
+       case when exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'mensajes'
+                 and policyname = 'mensajes_leer' and qual::text like '%borrador%')
+            and exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'es_nutricionista')
+       then 'SI' else 'NO' end
+
+union all
+-- La 0066: el estado del microciclo deja de vivir en dos sitios. Se piden TRES efectos,
+-- porque la migracion hace tres cosas que se pueden deshacer por separado y cada una sola
+-- deja el agujero abierto por su lado:
+--
+--   1. que `activar_microciclo` ya NO escriba el estado dentro del blob. Si se restaurara
+--      una version anterior de la funcion, la clave volveria a aparecer en cada activacion
+--      y el trigger estaria limpiando detras de ella para siempre;
+--   2. que el trigger que la quita este puesto sobre `microciclos`;
+--   3. que NINGUNA fila tenga ya la clave en el blob.
+--
+-- La tercera mira DATOS y no catalogo, que normalmente no vale como senal —lo que cambia
+-- cada dia no dice si una migracion corrio—. Aqui si vale, y es la excepcion que conviene
+-- entender: no cuenta filas, cuenta una condicion que el trigger mantiene en CERO para
+-- siempre. Si algun dia da mas de cero, la respuesta correcta es «el trigger se cayo o
+-- alguien lo quito», que es justo lo que una senal tiene que poder decir.
+select '0066 - el estado deja de vivir en dos sitios', 'activar_microciclo no escribe el blob, el trigger esta puesto y ninguna fila conserva la clave',
+       case when exists (
+              select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'activar_microciclo'
+                 and pg_get_functiondef(p.oid) not like '%jsonb_build_object(''estado''%'
+                 and pg_get_functiondef(p.oid) not like '%jsonb_set(datos, ''{estado}''%')
+            and exists (
+              select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+                join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'public' and c.relname = 'microciclos'
+                 and t.tgname = 'trg_sin_estado_en_el_blob' and not t.tgisinternal)
+            and not exists (
+              select 1 from public.microciclos where jsonb_exists(datos, 'estado'))
        then 'SI' else 'NO' end
 
 order by migracion, senal;
