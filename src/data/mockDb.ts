@@ -192,9 +192,63 @@ export function instantaneaLocal(): SeedDb {
  */
 export function aplicarSnapshot(nuevo: SeedDb, epocaDeOrigen?: number): void {
   if (epocaDeOrigen !== undefined && epocaDeOrigen !== epoca) return
-  localStorage.setItem(CLAVE, JSON.stringify(nuevo))
+  if (!escribirSnapshot(nuevo)) return
   if (referencia) referencia.actual = nuevo
   oyentes.forEach((o) => o())
+}
+
+/**
+ * Escribe la foto del servidor en disco. Devuelve si quedó aplicada.
+ *
+ * R-16: `aplicarSnapshot` escribía sin capturar el fallo de cuota, a
+ * diferencia de `guardar()`. Aquí no basta con tragarse el error igual que
+ * ahí -esto reemplaza la base ENTERA, no una escritura local- así que, sin
+ * espacio, se sigue la misma regla del módulo pero con reintento: se libera
+ * la instantánea vieja con la rutina que ya existe, se reintenta UNA vez y,
+ * si ni así cabe, se restaura tal cual lo que había. La foto que no cupo se
+ * descarta entera antes que dejar el dispositivo sin nada: la próxima
+ * hidratación la vuelve a intentar.
+ */
+function escribirSnapshot(nuevo: SeedDb): boolean {
+  const serializado = JSON.stringify(nuevo)
+  try {
+    localStorage.setItem(CLAVE, serializado)
+    return true
+  } catch (primerError) {
+    if (!esCuotaLlena(primerError)) throw primerError
+  }
+
+  // Un `setItem` que lanza no llega a escribir: lo que había en disco sigue
+  // intacto. Se guarda para poder devolverlo si ni liberando espacio cabe.
+  let respaldo: string | null = null
+  try {
+    respaldo = localStorage.getItem(CLAVE)
+  } catch {
+    // Sin lectura no hay respaldo que ofrecer; se sigue igual de todos modos.
+  }
+
+  liberarEspacioDeInstantanea()
+  try {
+    localStorage.setItem(CLAVE, serializado)
+    return true
+  } catch (segundoError) {
+    if (!esCuotaLlena(segundoError)) throw segundoError
+
+    if (respaldo !== null) {
+      try {
+        localStorage.setItem(CLAVE, respaldo)
+      } catch {
+        // Si ni el respaldo cabe ya, no queda nada más que intentar aquí.
+      }
+    }
+
+    marcarSinEspacio()
+    console.error(
+      'Sin espacio en el dispositivo: no se pudo aplicar la foto del servidor ni tras liberar espacio. Se conserva lo que ya había.',
+      segundoError,
+    )
+    return false
+  }
 }
 
 function actualizarMicrociclo(
