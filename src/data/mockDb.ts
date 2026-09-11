@@ -600,6 +600,29 @@ export function crearMockDb(): Db {
       },
     },
 
+    mapaDeVida: {
+      respuestaDe: (usuarioId) =>
+        (ref.actual.mapaDeVida ?? []).find((r) => r.usuarioId === usuarioId),
+      guardar: (usuarioId, valores) => {
+        mutar((estado) => {
+          const previo = (estado.mapaDeVida ?? []).find((r) => r.usuarioId === usuarioId)
+          return {
+            ...estado,
+            mapaDeVida: [
+              ...(estado.mapaDeVida ?? []).filter((r) => r.usuarioId !== usuarioId),
+              {
+                usuarioId,
+                // Se acumula sobre lo que ya había: retomar la encuesta no
+                // borra lo que ya se había contestado en una vuelta anterior.
+                valores: { ...previo?.valores, ...valores },
+                respondidoEnIso: new Date().toISOString(),
+              },
+            ],
+          }
+        })
+      },
+    },
+
     visibilidad: {
       byUsuario: (usuarioId) =>
         (ref.actual.visibilidades ?? []).find((v) => v.usuarioId === usuarioId),
