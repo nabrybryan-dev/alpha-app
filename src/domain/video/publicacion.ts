@@ -195,3 +195,35 @@ export function filaDelVideo(encargo: EncargoDePublicacion, decision: Publicacio
     tipo: decision.tipo,
   }
 }
+
+/**
+ * De todo lo que hay en la carpeta de la tanda, **qué archivo es la revisión de esta
+ * persona**: su cara si existe, y si no su voz.
+ *
+ * Los dos conviven a propósito. El mp3 es el material del que sale el vídeo, así que
+ * cuando el paso de la cara corre bien quedan los dos al lado, con el mismo nombre y
+ * distinta extensión. Publicar la voz teniendo la cara sería tirar la hora de GPU.
+ *
+ * **Antes esto funcionaba por el orden de las claves de `FORMATOS`**, que empieza por los
+ * vídeos. Funcionaba, pero la garantía la sostenía el orden de un objeto: reordenar esas
+ * seis líneas —algo que nadie relacionaría con esto— habría hecho que se publicara la voz
+ * con la cara al lado, y nadie lo habría notado hasta ver un reproductor de audio donde
+ * tenía que estar Bryan hablando.
+ *
+ * Devuelve `undefined` cuando no hay ninguno: a esa persona se la nombra y no se publica
+ * nada suyo, que es distinto de publicarle algo a medias.
+ */
+export function archivoDeLaRevision(
+  enCarpeta: readonly string[],
+  usuarioId: string,
+): { archivo: string; extension: Extension; tipo: 'audio' | 'video' } | undefined {
+  const candidatos = (Object.keys(FORMATOS) as Extension[])
+    .map((extension) => ({
+      archivo: `${usuarioId}.${extension}`,
+      extension,
+      tipo: FORMATOS[extension].tipo,
+    }))
+    .filter(({ archivo }) => enCarpeta.includes(archivo))
+
+  return candidatos.find(({ tipo }) => tipo === 'video') ?? candidatos[0]
+}

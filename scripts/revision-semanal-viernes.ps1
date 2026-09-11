@@ -108,6 +108,17 @@ try {
     exit 1
   }
 
+  # ---------- 2.5 LA CARA, cuando haya donde ----------
+  # Este paso NO corre aqui y no es un olvido: el doblaje de labios pide una tarjeta
+  # NVIDIA y la de este portatil es AMD. Vive en `dev\cara-alphaender_avatar.py`, que
+  # deja un `<uuid>.mp4` al lado de cada `<uuid>.mp3` en esta misma carpeta.
+  #
+  # No hace falta tocar nada de aqui para que la cara salga: el paso 3 publica el mp4
+  # cuando existe y el mp3 cuando no (`archivoDeLaRevision`). O sea que un viernes sin
+  # GPU es un viernes con voz, no un viernes sin revision.
+  $caras = @(Get-ChildItem -Path $carpeta -Filter *.mp4 -ErrorAction SilentlyContinue)
+  Apunta ("caras en la carpeta: {0}" -f $caras.Count)
+
   # ---------- 3. publicar, sin firmar ----------
   if ($Ensayo) {
     Apunta "paso 3: ENSAYO, no se publica"
