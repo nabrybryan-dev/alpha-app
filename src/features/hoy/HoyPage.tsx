@@ -13,7 +13,7 @@ import { armarSemana, sesionDestacada } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { hayBorradorDeCribado } from '../cribado/borrador'
 import { CribadoForm } from '../cribado/CribadoForm'
-import { necesitaCribado } from '../cribado/necesitaCribado'
+import { necesitaPantallaDeSalud } from '../cribado/necesitaCribado'
 import { esDeLaCadena, preguntaDelDia } from '../preguntas/preguntasDeLaCadena'
 import { TarjetaPregunta } from '../preguntas/TarjetaPregunta'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
@@ -21,6 +21,7 @@ import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
 import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
+import { PedirPermiso } from '../avisos/PedirPermiso'
 import { CabeceraSemanal } from '../chat/CabeceraSemanal'
 import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
@@ -160,6 +161,12 @@ export default function HoyPage() {
         <AvisoSinSincronizar usuarioId={usuario.id} />
       </div>
 
+      {/* Se pregunta UNA vez y no se insiste: quien ya contestó no lo vuelve a
+          ver. El permiso del navegador es de una sola bala. */}
+      <div className="entrada entrada-2">
+        <PedirPermiso usuarioId={usuario.id} />
+      </div>
+
       {/* La revisión de la semana, ANTES de cualquier otra cosa y sin tener que
           entrar al chat (decisión de Bryan, 10-sep). El vídeo es una cabecera:
           se graba una vez y lo que cambia cada semana es la tarjeta que irá
@@ -178,7 +185,7 @@ export default function HoyPage() {
           sin contestar impida ENTRENAR o solo impida PROGRAMAR es una regla que
           todavía no está escrita; hasta que lo esté, se pide primero y se deja pasar. */}
       {usuario.rol === 'asesorado' &&
-        !necesitaCribado(db, usuario) &&
+        !necesitaPantallaDeSalud(db, usuario) &&
         !actualizandoSalud &&
         !hayBorradorDeCribado(usuario.id) && (
           <p className="entrada entrada-2 text-sm text-tenue">
@@ -194,7 +201,9 @@ export default function HoyPage() {
           </p>
         )}
 
-      {(necesitaCribado(db, usuario) || actualizandoSalud || hayBorradorDeCribado(usuario.id)) && (
+      {(necesitaPantallaDeSalud(db, usuario) ||
+        actualizandoSalud ||
+        hayBorradorDeCribado(usuario.id)) && (
         <div className="entrada entrada-2">
           {/* La tarjeta NO se retira a media pregunta: mientras haya borrador empezado
               sigue en pantalla. Antes se apagaba con `necesitaCribado`, que se vuelve

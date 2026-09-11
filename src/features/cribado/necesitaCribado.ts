@@ -40,3 +40,29 @@ export function necesitaCribado(db: Db, usuario: Usuario): boolean {
   if (usuario.rol !== 'asesorado') return false
   return db.cribado.byUsuario(usuario.id) === undefined
 }
+
+/**
+ * Si a esta persona hay que **abrirle la pantalla** de salud.
+ *
+ * No es lo mismo que `necesitaCribado`, y confundirlas costó un agujero medido el
+ * 2026-09-11: de 26 asesorados, 8 ya tenían ficha volcada del wiki y 25 no habían dicho
+ * nunca qué días pueden entrenar. Con la pregunta clínica a secas, a esos 8 **no se les
+ * abría nada** —solo la línea pequeña de «¿Ha cambiado algo en tu salud?», que hay que
+ * ver y tocar— así que el mensaje que se les manda («te va a aparecer una pantalla»)
+ * habría sido falso para ellos, y la cadena habría seguido parándose en sus días.
+ *
+ * Los días son el dato que I-38 prohíbe inventar: sin ellos el ① se detiene y esa parada
+ * se paga por persona. Esta pantalla existe exactamente para no pagarlas.
+ *
+ * Ante la duda, `true`. Si el perfil todavía no ha bajado no se sabe si dijo sus días, y
+ * los dos errores no cuestan igual: de más es una pantalla que la persona cierra; de
+ * menos es una corrida detenida que nadie ve.
+ */
+export function necesitaPantallaDeSalud(db: Db, usuario: Usuario): boolean {
+  if (usuario.rol !== 'asesorado') return false
+  if (necesitaCribado(db, usuario)) return true
+  const dias = db.perfiles.byUsuario(usuario.id)?.diasDisponibles
+  // `[]` no es una respuesta: «no puedo ningún día» no existe, y un array vacío es lo
+  // que deja un guardado a medias. Se vuelve a preguntar.
+  return !Array.isArray(dias) || dias.length === 0
+}
