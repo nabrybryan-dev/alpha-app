@@ -1,4 +1,12 @@
--- 0068 · Un solo microciclo activo por persona, garantizado por la base.
+-- 0069 · Un solo microciclo activo por persona, garantizado por la base.
+--
+-- POR QUE ES 0069 Y NACIO SIENDO 0068. Se aplico a la base como `0068` a las 03:35 del
+-- 11-sep y otra sesion fusiono su `0068_el_video_no_sale_sin_firma` veinte minutos despues.
+-- El guardian de `pruebas/migraciones-con-senal.test.ts` lo cazo -en un caso real, el mismo
+-- dia que se escribio- y su regla es la correcta: renumera el TUYO, nunca uno ya aplicado.
+-- El numero se mueve sin riesgo porque la base NO se guia por el: Supabase anota cada
+-- aplicacion con su propia marca de tiempo, asi que las dos quedaron registradas por
+-- separado (`20260911033532` y `20260911035550`) y aqui no hay nada que volver a correr.
 --
 -- QUE CIERRA. Hasta hoy nada lo impedia. El unico indice unico de `microciclos` era su
 -- clave primaria, sobre `id`; `microciclos_usuario` (0001) NO es unico. Y el unico candado
@@ -72,7 +80,7 @@ begin
        and tablename  = 'microciclos'
        and indexname  = 'microciclos_un_activo_por_usuario'
   ) then
-    raise exception '0068: el indice no quedo creado';
+    raise exception '0069: el indice no quedo creado';
   end if;
 end;
 $$;

@@ -1,4 +1,4 @@
--- Comprobación de la migración 0068 (un solo microciclo activo por persona).
+-- Comprobación de la migración 0069 (un solo microciclo activo por persona).
 --
 -- Las consultas 1 y 2 son de estado. La 3 es la única que prueba algo: **sin ella,
 -- «cero filas» en la 2 se cumple igual si la migración no se aplicó nunca**. Es la
