@@ -110,7 +110,7 @@ try {
 
   # ---------- 2.5 LA CARA, cuando haya donde ----------
   # Este paso NO corre aqui y no es un olvido: el doblaje de labios pide una tarjeta
-  # NVIDIA y la de este portatil es AMD. Vive en `dev\cara-alphaender_avatar.py`, que
+  # NVIDIA y la de este portatil es AMD. Vive en `dev/cara-alpha/render_avatar.py`, que
   # deja un `<uuid>.mp4` al lado de cada `<uuid>.mp3` en esta misma carpeta.
   #
   # No hace falta tocar nada de aqui para que la cara salga: el paso 3 publica el mp4
