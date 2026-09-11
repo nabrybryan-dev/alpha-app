@@ -14,9 +14,11 @@ import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { useGamificacion } from '../logros/useGamificacion'
 import { AlbumAlfa } from './AlbumAlfa'
 import { AvisoSinSincronizar } from './AvisoSinSincronizar'
+import { resumenSemanal } from '../../domain/resumenSemanal/calcular'
 import { CabeceraSemanal } from '../chat/CabeceraSemanal'
 import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
+import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
@@ -105,6 +107,15 @@ export default function HoyPage() {
   const adhs = db.nutricion.adherenciasByUsuario(usuario.id)
   const adherenciaPct = adhs.length ? porcentajeAdherencia(adhs) : undefined
 
+  // Los números que van debajo del vídeo de la revisión semanal. Se calculan
+  // aquí, con lo que esta pantalla ya tenía a mano, y la cuenta vive en el
+  // dominio: la tarjeta solo los pinta.
+  const resumen = resumenSemanal({
+    sesiones: microciclo?.sesiones ?? [],
+    checkins: db.bienestar.byUsuario(usuario.id),
+    adherenciaPct,
+  })
+
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
     <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
@@ -135,7 +146,9 @@ export default function HoyPage() {
           se graba una vez y lo que cambia cada semana es la tarjeta que irá
           debajo. Ver `docs/specs/2026-09-10-revision-semanal-en-video.md`. */}
       <div className="entrada entrada-2">
-        <CabeceraSemanal />
+        <CabeceraSemanal>
+          <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
+        </CabeceraSemanal>
       </div>
 
       {/* El coach, arriba de todo. Estaba al final de la pantalla —después del
