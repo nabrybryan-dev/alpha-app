@@ -4,6 +4,7 @@ import type { EjercicioPrescrito, ItemMarcable } from '../../../../domain/types'
 import type { CuadroEnPantalla } from '../camara/dedoEnElCuerpo'
 import {
   aspectoDeEstacion,
+  cajaTocableDelPoste,
   estacionesDeLaSerie,
   type ClaveDeEstacion,
 } from './estacionesDeLaSerie'
@@ -309,6 +310,7 @@ export function EstacionesDelSujeto({
     >
       {estaciones.map((e, i) => {
         const a = aspectoDeEstacion(e.angulo, azimut, RADIO)
+        const caja = cajaTocableDelPoste(e.angulo, azimut, RADIO)
         const enfocada = foco === e.clave
         return (
           <div
@@ -318,7 +320,20 @@ export function EstacionesDelSujeto({
             className="absolute"
             style={{
               left: `calc(50% + ${a.x.toFixed(1)}px)`,
-              top: `${suelo}px`,
+              // EL ALZA SUBE LA ESTACIÓN ENTERA —poste, base y cartel—, no solo el cartel.
+              //
+              // Hasta el 2026-09-11 solo movía el cartel, y el poste de la espalda se
+              // quedaba plantado a la misma altura que el de delante. Mientras el botón fue
+              // el cartel eso no se notaba; en cuanto el botón pasó a ser el poste se
+              // convirtió en un fallo: los cuatro están en cruz, la cámara los alinea de
+              // dos en dos cuatro veces por vuelta, y el de delante se comía el toque del
+              // de atrás. Medido con `elementFromPoint` en el centro de cada poste: 6 de
+              // las 13 posiciones de cámara con al menos uno inalcanzable.
+              //
+              // Subirlo entero es además la perspectiva correcta —lo que está más lejos se
+              // dibuja más arriba—, y es lo que garantiza la separación que
+              // `cajaTocableDelPoste` da por supuesta.
+              top: `${(suelo - a.alza).toFixed(1)}px`,
               // Lo de delante, delante. Sin esto, la estación de la espalda se pinta
               // encima de la de enfrente cuando el azimut las cruza.
               zIndex: Math.round(500 + a.frente * 100),
@@ -338,18 +353,29 @@ export function EstacionesDelSujeto({
               aria-pressed={enfocada}
               className="estacion-poste pointer-events-auto absolute"
               style={{
-                // Ancho de dedo y alto de poste. El poste dibujado son dos píxeles; el
-                // sitio donde se acierta con el pulgar, no.
-                left: '-28px',
-                bottom: '-14px',
-                width: '56px',
-                height: `${POSTE + 28}px`,
+                // ANCHO DE DEDO, Y ALTO EL PIE DEL POSTE —no el poste entero—.
+                //
+                // El poste dibujado son dos píxeles; el sitio donde se acierta con el
+                // pulgar, no. Pero la zona no puede ser tan alta como el poste: dos
+                // estaciones que la cámara alinea quedan separadas en vertical por el alza,
+                // y esa separación tiene un mínimo que manda sobre el alto.
+                //
+                // LOS CUATRO NÚMEROS SALEN DE `cajaTocableDelPoste` Y NO SE ESCRIBEN AQUÍ,
+                // porque es esa función la que barre una prueba para comprobar que dos
+                // postes no comparten zona en ningún punto de la vuelta. Escritos a mano
+                // aquí, la prueba estaría vigilando una cuenta que el salón no usa. Se
+                // traducen a coordenadas de la estación, cuyo origen está en `a.x` y a la
+                // altura del suelo ya subida por el alza.
+                left: `${(caja.x0 - a.x).toFixed(1)}px`,
+                bottom: `${(-(caja.y1 + a.alza)).toFixed(1)}px`,
+                width: `${(caja.x1 - caja.x0).toFixed(1)}px`,
+                height: `${(caja.y1 - caja.y0).toFixed(1)}px`,
                 opacity: a.opacidad,
               }}
             >
               <span
                 aria-hidden="true"
-                className="absolute bottom-[14px] left-1/2 w-[2px] -translate-x-1/2"
+                className="pointer-events-none absolute bottom-[14px] left-1/2 w-[2px] -translate-x-1/2"
                 style={{
                   height: `${POSTE}px`,
                   background: `linear-gradient(180deg, ${
@@ -359,7 +385,7 @@ export function EstacionesDelSujeto({
               />
               <span
                 aria-hidden="true"
-                className="absolute bottom-[-26px] left-1/2 h-20 w-20 -translate-x-1/2 rounded-full border"
+                className="pointer-events-none absolute bottom-[-26px] left-1/2 h-20 w-20 -translate-x-1/2 rounded-full border"
                 style={{
                   borderColor: enfocada
                     ? 'rgb(var(--accion-rgb) / 0.7)'
@@ -386,7 +412,9 @@ export function EstacionesDelSujeto({
                 // directamente en el nodo: es lo que aparta el cartel del sujeto sin
                 // repintar React. Van ANTES del `scale`, para que cuenten en píxeles de
                 // pantalla y no en píxeles encogidos por la distancia.
-                transform: `translate(var(--desvio-x, 0px), calc(${(-a.alza).toFixed(0)}px + var(--desvio-y, 0px))) scale(${a.escala.toFixed(3)})`,
+                // El alza ya la trae la estación entera (arriba): repetirla aquí la subiría
+                // dos veces y despegaría el cartel de su propio poste.
+                transform: `translate(var(--desvio-x, 0px), var(--desvio-y, 0px)) scale(${a.escala.toFixed(3)})`,
                 transformOrigin: '50% 100%',
               }}
             >
