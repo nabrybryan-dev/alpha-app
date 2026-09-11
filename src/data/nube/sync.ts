@@ -911,6 +911,27 @@ function subirMicrociclo(local: Db, microcicloId: string): void {
   if (!duenio) return
   const microciclo = local.microciclos.byUsuario(duenio.id).find((m) => m.id === microcicloId)
   if (!microciclo) return
+  // EL ESTADO VIAJA EN LA COLUMNA Y EN NINGÚN OTRO SITIO.
+  //
+  // `datos: microciclo` mandaba el objeto local ENTERO, y el estado se colaba
+  // dentro al serializarlo: no hay ningún `datos.estado = …` que buscar, por eso
+  // llevaba meses pasando desapercibido. Cada guardado de la app reponía la clave
+  // en el blob, y de ahí sale el `R-03` de la auditoría — el 2026-08-16, 18
+  // microciclos de 17 asesorados con la columna en `cerrado` y el JSON en
+  // `activo`, porque una carga vieja cerró solo la columna.
+  //
+  // Quitarla de aquí no deja al microciclo sin estado en ningún lado: la columna
+  // va en el mismo upsert, es `not null` en el esquema, y la hidratación ya la
+  // prefiere (`microciclosDe`). Lo que cambia es que deja de haber **dos
+  // versiones de la misma verdad viajando juntas**, que es la única forma de que
+  // se contradigan.
+  //
+  // OJO CON LO QUE ESTO NO ARREGLA: los blobs ya guardados siguen llevando la
+  // clave, y `plantilla-carga-microciclo.sql` y la RPC `activar_microciclo` la
+  // reponen. La limpieza va aparte, con esas dos cambiadas a la vez.
+  // El mismo desempaquetado hace las dos cosas: saca el estado para la columna y
+  // deja el resto para el blob. Así no hay forma de arreglar uno y olvidar el otro.
+  const { estado, ...sinEstado } = microciclo
   encolar({
     tabla: 'microciclos',
     tipo: 'upsert',
@@ -918,8 +939,8 @@ function subirMicrociclo(local: Db, microcicloId: string): void {
       id: microciclo.id,
       usuario_id: microciclo.usuarioId,
       numero: microciclo.numero,
-      estado: microciclo.estado,
-      datos: microciclo,
+      estado,
+      datos: sinEstado,
     },
   })
 }
