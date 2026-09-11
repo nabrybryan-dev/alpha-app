@@ -13,12 +13,12 @@ describe('la cabecera de la revisión semanal', () => {
 
   it('sin vídeo todavía, lo dice en vez de dejar un hueco negro', async () => {
     render(<CabeceraSemanal traerEnlace={async () => null} />)
-    expect(await screen.findByText('Tu revisión en vídeo llega el domingo.')).toBeInTheDocument()
+    expect(await screen.findByText('Tu revisión en audio llega el domingo.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Vídeo de tu revisión semanal')).not.toBeInTheDocument()
   })
 
   it('con enlace, monta el reproductor con esa dirección', async () => {
-    render(<CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/cabecera.mp4' })} />)
+    render(<CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/cabecera.mp4', tipo: 'video' })} />)
     const video = await screen.findByLabelText('Vídeo de tu revisión semanal')
     expect(video).toHaveAttribute('src', 'https://ejemplo/cabecera.mp4')
   })
@@ -32,7 +32,7 @@ describe('la cabecera de la revisión semanal', () => {
       />,
     )
     await waitFor(() =>
-      expect(screen.getByText('Tu revisión en vídeo llega el domingo.')).toBeInTheDocument(),
+      expect(screen.getByText('Tu revisión en audio llega el domingo.')).toBeInTheDocument(),
     )
   })
 
@@ -44,5 +44,12 @@ describe('la cabecera de la revisión semanal', () => {
     )
     const region = screen.getByRole('region', { name: 'Tu revisión de la semana' })
     expect(region).toContainElement(screen.getByText('Tu semana, Valentina'))
+  })
+
+  it('con audio ofrece el reproductor y avisa que la voz es generada', async () => {
+    render(<CabeceraSemanal traerEnlace={async () => ({ url: 'https://ejemplo/revision.mp3', tipo: 'audio' })} />)
+    const audio = await screen.findByLabelText('Audio de tu revisión semanal')
+    expect(audio).toHaveAttribute('src', 'https://ejemplo/revision.mp3')
+    expect(screen.getByText(/Voz generada a partir de su voz/)).toBeInTheDocument()
   })
 })
