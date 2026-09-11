@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { ValoracionCompetencias } from './ValoracionCompetencias'
 import { Chip } from '../../components/ui/Chip'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { GuionDeLaSemana } from './GuionDeLaSemana'
 import { Semaforo } from '../../components/ui/Semaforo'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { UMBRAL_DOLOR_QUE_AVISA } from '../../domain/senales/dolor'
@@ -103,6 +104,9 @@ export default function AsesoradoDetallePage() {
           microciclo ⚡
         </button>
       </section>
+
+      {/* Lo que le dirá el vídeo del domingo, para leerlo antes de que salga. */}
+      <GuionDeLaSemana usuarioId={usuario.id} nombre={usuario.nombre} />
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {PESTANAS.map((p) => (

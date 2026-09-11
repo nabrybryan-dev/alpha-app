@@ -17,6 +17,7 @@
  * otra, y las series registradas desaparecerán sin aviso.
  */
 import type { Db } from '../repos'
+import type { DiaSemana } from '../../domain/calendario'
 import type { MedidaCorporal, Mensaje, Microciclo } from '../../domain/types'
 import {
   condicionesDeclaradas,
@@ -41,6 +42,25 @@ export {
 } from './cola'
 export { colaEnReposo, procesarCola, recuperarDescartes } from './procesador'
 export { conPendientes } from './fusion'
+
+/**
+ * `medicacionCronica` → `medicacion_cronica`, para las claves de un objeto suelto.
+ *
+ * Se calcula en vez de escribirse a mano en una tabla porque una tabla paralela se
+ * queda vieja el día que alguien añade una pregunta al cribado, y ese día el dato
+ * nuevo desaparece sin que falle nada. La regla es la misma que ya usa el resto del
+ * payload, escrita una vez: `enColumnas` la aplica y su test la fija contra los
+ * nombres que declara la migración 0058.
+ */
+export function enColumnas(objeto: Record<string, string> | undefined) {
+  if (!objeto) return objeto
+  return Object.fromEntries(
+    Object.entries(objeto).map(([clave, valor]) => [
+      clave.replace(/[A-Z]/g, (letra) => `_${letra.toLowerCase()}`),
+      valor,
+    ]),
+  )
+}
 
 /** La fila de `mensajes` tal como viaja a Supabase. */
 function encolarFilaDeMensaje(mensaje: Mensaje): void {
@@ -211,6 +231,23 @@ function subirMedida(usuarioId: string, medida: MedidaCorporal): void {
   })
 }
 
+/**
+ * Los días viajan SOLOS, como la medida (0057) y por la misma razón: el trigger
+ * `proteger_perfil` rechaza a un asesorado que suba el blob entero. La función del
+ * servidor escribe únicamente `diasDisponibles`, para `auth.uid()`. La clave colapsa
+ * envíos seguidos de la misma persona en uno: manda el último.
+ */
+function subirDiasDisponibles(usuarioId: string, dias: DiaSemana[]): void {
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'rpc',
+    funcion: 'registrar_dias_disponibles',
+    claveRpc: `${usuarioId}:dias`,
+    fila: usuarioId,
+    payload: { p_dias: dias },
+  })
+}
+
 export function crearDbSincronizada(local: Db): Db {
   if (!modoNube) return local
 
@@ -234,6 +271,10 @@ export function crearDbSincronizada(local: Db): Db {
       guardarSexo: (usuarioId, sexo) => {
         local.perfiles.guardarSexo(usuarioId, sexo)
         subirPerfil(local, usuarioId)
+      },
+      guardarDiasDisponibles: (usuarioId, dias) => {
+        local.perfiles.guardarDiasDisponibles(usuarioId, dias)
+        subirDiasDisponibles(usuarioId, dias)
       },
     },
 
@@ -518,6 +559,71 @@ export function crearDbSincronizada(local: Db): Db {
             actualizado_en: new Date().toISOString(),
           },
         })
+      },
+    },
+
+    cribado: {
+      ...local.cribado,
+      contestar: (cribado) => {
+        const resultado = local.cribado.contestar(cribado)
+        // El local manda: si ya había fila aquí, no se encola nada y se devuelve el
+        // `ya_estaba` para que la pantalla lo diga.
+        if (resultado === 'ya_estaba') return resultado
+        encolar({
+          // ────────────────────────────────────────────────────────────────────
+          // RPC Y NO `upsert`, Y LA DIFERENCIA CUESTA UN DATO DE SALUD
+          // ────────────────────────────────────────────────────────────────────
+          // PostgREST traduce un `upsert` a `insert … on conflict do update`. Basta
+          // con que exista fila arriba y no en la instantánea de este teléfono —el
+          // coach volcó su expediente mientras ella tenía la app abierta, o contesta
+          // en el móvil y en la tablet— para que la rama de UPDATE necesite una
+          // política de UPDATE de esa sesión. La única es la del coach: el asesorado
+          // recibe 42501, la cola lo reintenta ocho veces, lo descarta en silencio, y
+          // `AvisoSinSincronizar` le dice que no se perdió nada. Pierde el dato Y le
+          // miente, que sobre salud es lo peor de las dos.
+          //
+          // `contestar_cribado` hace `on conflict do nothing`: no intenta ningún
+          // UPDATE, así que no hay 42501. Si ya había fila, gana la de la base y la
+          // operación termina bien.
+          //
+          // El `usuario_id` NO viaja: la función lo saca de `auth.uid()`. Y las claves
+          // del payload son exactamente las que la función espera —PostgREST elige la
+          // función por el conjunto exacto de claves, así que una de más la deja sin
+          // función—.
+          tabla: 'cribado',
+          tipo: 'rpc',
+          funcion: 'contestar_cribado',
+          payload: {
+            p_cribado: {
+              fecha: cribado.fecha,
+              // `?? null` y no `?? 'ausente'`: lo que no se preguntó viaja como nulo.
+              // El CHECK de la 0058 exige los doce cuando la fuente es `app`, así que
+              // una respuesta a medias se rechaza arriba en vez de colarse como
+              // cribado completo.
+              diagnostico: cribado.diagnostico ?? null,
+              quien_lo_lleva: cribado.quienLoLleva ?? null,
+              tratamiento_activo: cribado.tratamientoActivo ?? null,
+              medicacion_cronica: cribado.medicacionCronica ?? null,
+              autorizacion_sanitaria: cribado.autorizacionSanitaria ?? null,
+              restricciones_explicitas: cribado.restriccionesExplicitas ?? null,
+              sintomas_con_esfuerzo: cribado.sintomasConEsfuerzo ?? null,
+              nivel_funcional: cribado.nivelFuncional ?? null,
+              que_le_han_dicho_que_no_haga: cribado.queLeHanDichoQueNoHaga ?? null,
+              parq_enfermedad_cardiaca: cribado.parqEnfermedadCardiaca ?? null,
+              parq_medicamento_presion: cribado.parqMedicamentoPresion ?? null,
+              parq_huesos_articulaciones: cribado.parqHuesosArticulaciones ?? null,
+              // EL DETALLE TAMBIÉN SE TRADUCE, y no se traducía. Sus claves son los
+              // nombres del dominio (`medicacionCronica`) y la 0058 documenta esa
+              // columna con los nombres de la BASE (`medicacion_cronica`) porque el
+              // volcado del cerebro la lee sin traducir. Tal cual iba, la medicación de
+              // quien contesta por la app no la encontraba nadie: el mismo dato con dos
+              // nombres, que es el fallo de la casa. La traducción vive SOLO en esta
+              // costura, como la de `techo_carga_kg` en el cerebro.
+              detalle: enColumnas(cribado.detalle),
+            },
+          },
+        })
+        return resultado
       },
     },
 

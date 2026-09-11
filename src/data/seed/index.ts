@@ -4,6 +4,7 @@ import type {
   AdherenciaNutricional,
   CheckinDiario,
   Contenido,
+  Cribado,
   Cuestionario,
   Mensaje,
   Microciclo,
@@ -51,6 +52,12 @@ export interface SeedDb {
   /** El mapa de vida (0064). Opcional: llegó después y no todos lo respondieron. */
   mapaDeVida?: RespuestaMapaDeVida[]
   visibilidades?: VisibilidadAsesorado[]
+  /**
+   * El cribado de salud, uno por persona (0058). Opcional: las instantáneas
+   * guardadas antes de esta migración no traen la clave, y un `undefined` significa
+   * «nadie ha contestado todavía», que es lo correcto para ellas.
+   */
+  cribados?: Cribado[]
   /** Los que marcó la nutricionista. Opcional: llegó después. */
   vetosAlimentarios?: VetoAlimento[]
   /** Lo que tiene en casa (0024). Opcional: la despensa llego despues. */

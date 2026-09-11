@@ -324,8 +324,23 @@ create or replace function public.tmp_cargar_siguiente(
 ) returns text language plpgsql as $fn$
 declare
   v_uid uuid; v_num int; v_datos jsonb; v_id text; v_src_id text; v_activos int;
+  v_homonimas int;
   v_ambiguas text;
 begin
+  -- LA PERSONA SE ELIGE POR NOMBRE, y `select into` de plpgsql **no falla con
+  -- varias filas: se queda con una cualquiera, en silencio**. Es `R-12`. Dos
+  -- personas con el mismo nombre y esta carga escribe el microciclo entero en la
+  -- que le dé la gana, sin avisar — el mismo mecanismo que ya vigila el bloque de
+  -- abajo para los microciclos activos, aplicado a la persona.
+  --
+  -- Medido el 2026-09-10: 28 personas, 28 nombres distintos. No está ocurriendo;
+  -- esto es para que siga sin ocurrir el día que entre una homónima.
+  select count(*) into v_homonimas from public.usuarios_app u where u.nombre = p_nombre;
+  if v_homonimas > 1 then
+    return 'ABORTA · hay ' || v_homonimas || ' personas que se llaman ' || p_nombre ||
+           '. Cargar por nombre escribiria en una cualquiera: resolver por id.';
+  end if;
+
   select u.id into v_uid from public.usuarios_app u where u.nombre = p_nombre;
   if v_uid is null then return 'NO ENCONTRADO: ' || p_nombre; end if;
 
@@ -415,11 +430,19 @@ begin
   -- hueco entre cerrar y abrir. Es el mismo orden que usa `activar_microciclo`
   -- (migración `0060`), y por la misma razón.
   --
-  -- Cierra en la COLUMNA y en el JSON. Las dos, siempre. El 2026-08-16 aparecieron
-  -- **18 microciclos de julio con la columna en 'cerrado' y el JSON en 'activo'**,
-  -- de 17 asesorados: alguna carga vieja cerró solo la columna. Como la app lee el
-  -- JSON, esas 17 personas arrastraban un microciclo fantasma abierto, y la
-  -- comprobación de «un solo activo» no lo veía porque contaba por la columna.
+  -- Cierra en la COLUMNA y en el JSON. Las dos, mientras el blob siga llevando la
+  -- clave. El 2026-08-16 aparecieron **18 microciclos con la columna en 'cerrado'
+  -- y el JSON en 'activo'**, de 17 asesorados, porque una carga vieja cerró solo
+  -- la columna.
+  --
+  -- POR QUE ESTO NO SE QUITA TODAVIA, aunque `R-03` quiera que el estado viva solo
+  -- en la columna: las lecturas de este mismo archivo preguntan «columna O blob», y
+  -- son la red que caza a ese fantasma. Quitar la escritura sin quitar esas lecturas
+  -- y sin limpiar los blobs dejaria un 'activo' viejo dentro del JSON de un
+  -- microciclo cerrado, y la propia carga lo contaria como un segundo activo y
+  -- abortaria. Las tres cosas —limpiar el dato, dejar de escribirlo y dejar de
+  -- leerlo— van juntas o no van: ese es el orden, y esta es la nota para quien lo
+  -- haga.
   --
   -- Y cierra TODOS los activos de la persona, no solo el de origen. Antes cerraba
   -- únicamente `v_src_id`: si alguien llegaba con dos activos —el estado roto que ya
@@ -434,7 +457,10 @@ begin
 
   insert into public.microciclos (id, usuario_id, numero, estado, datos, actualizado_en)
   values (v_id, v_uid, v_num + 1, 'activo',
-          public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes)
+          -- `- 'estado'` para que el microciclo NUEVO nazca sin la clave: el blob se
+          -- clona del anterior, que hoy todavia la lleva, y sin esto la carga la
+          -- volveria a sembrar en cada microciclo que crea (`R-03`).
+          (public.tmp_nuevo_micro(v_datos, v_num + 1, p_inicio, p_ajustes) - 'estado')
             || jsonb_build_object('id', v_id),
           now())
   on conflict (id) do update

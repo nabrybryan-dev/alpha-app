@@ -361,6 +361,19 @@ export function crearMockDb(): Db {
           }),
         }))
       },
+      guardarDiasDisponibles: (usuarioId, dias) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: estado.perfiles.some((p) => p.usuarioId === usuarioId)
+            ? estado.perfiles.map((p) =>
+                p.usuarioId === usuarioId ? { ...p, diasDisponibles: [...dias] } : p,
+              )
+            : // Sin ficha todavía: nace con lo mínimo, igual que hace la medida. El
+              // resto lo pone el coach; inventar aquí objetivos o edad sería fabricar
+              // una ficha.
+              [...estado.perfiles, { ...perfilVacio(usuarioId, []), diasDisponibles: [...dias] }],
+        }))
+      },
       guardarValoracion: (usuarioId, valoracion) => {
         mutar((estado) => ({
           ...estado,
@@ -897,6 +910,38 @@ export function crearMockDb(): Db {
             },
           ],
         }))
+      },
+    },
+
+    cribado: {
+      // LA ÚLTIMA, no la primera (0062). La tabla guarda la historia y manda la más
+      // reciente: aquí el array está en orden de llegada, así que la última es la
+      // vigente. Con `find` se devolvía la más VIEJA, que es exactamente lo contrario
+      // de lo que se decidió — y sobre salud significaría leer la medicación de antes.
+      byUsuario: (usuarioId) =>
+        (ref.actual.cribados ?? []).findLast((c) => c.usuarioId === usuarioId),
+      contestar: (cribado) => {
+        // Contestar OTRA VEZ es legítimo, y es la razón de ser de la 0062: quien sabe
+        // que empezó una medicación esta semana es la persona, no el expediente de hace
+        // un mes. Antes se descartaba su respuesta y se le decía `ya_estaba`; ahora se
+        // guarda al lado, sin pisar la anterior, y manda la nueva.
+        //
+        // Lo único que se sigue descartando es el duplicado EXACTO del mismo día: eso
+        // no es un cambio, es un doble toque o una pantalla que se remontó. Y tampoco
+        // se calla —devuelve `ya_estaba`—, porque un rechazo silencioso sobre un dato
+        // de salud es peor que un aviso a la vista.
+        const mismaHoy = (ref.actual.cribados ?? []).some(
+          (c) =>
+            c.usuarioId === cribado.usuarioId &&
+            c.fecha === cribado.fecha &&
+            JSON.stringify(c) === JSON.stringify(cribado),
+        )
+        if (mismaHoy) return 'ya_estaba'
+        mutar((estado) => ({
+          ...estado,
+          cribados: [...(estado.cribados ?? []), cribado],
+        }))
+        return 'guardado'
       },
     },
 
