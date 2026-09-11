@@ -91,6 +91,17 @@ describe('el chat del asesorado tiene dos remitentes', () => {
     expect(screen.queryByRole('region', { name: 'Tu revisión de la semana' })).not.toBeInTheDocument()
   })
 
+  it('el hilo de la nutricionista avisa de que ahí no contesta ninguna máquina', async () => {
+    // Sin esta línea, el silencio del asistente se lee como que la app está
+    // rota. Pasó de verdad el 10-sep: dos mensajes a la nutricionista sin
+    // respuesta automática, y la conclusión fue «no me responde».
+    await abrirChat()
+    expect(screen.queryByText(/te responde en persona/)).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('tab', { name: /Manuela/ }))
+    expect(screen.getByText(/Manuela te responde en persona/)).toBeInTheDocument()
+    expect(screen.getByText(/no hay respuestas automáticas/)).toBeInTheDocument()
+  })
+
   it('el Centro de Respuestas es del coach: no contesta en el hilo de la nutricionista', async () => {
     await abrirChat()
     fireEvent.click(await screen.findByRole('tab', { name: /Manuela/ }))
