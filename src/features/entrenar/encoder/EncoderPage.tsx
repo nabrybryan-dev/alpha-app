@@ -11,6 +11,7 @@ import { COPY } from './copys'
 import { acusarToque } from './acusarToque'
 import { AvisoDeCaptura } from './AvisoDeCaptura'
 import { SelloCalidad } from './SelloCalidad'
+import { EnsayoDeEncuadre } from '../visor/EnsayoDeEncuadre'
 import { useCaptura, type Ajustes, type Resultado } from './useCaptura'
 import { marcarCamaraAbierta } from '../camaraAbierta'
 import {
@@ -111,6 +112,7 @@ export default function EncoderPage() {
   const [encuadreAbierto, setEncuadreAbierto] = useState(false)
   const [palancasAbierto, setPalancasAbierto] = useState(false)
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false)
+  const [ensayoAbierto, setEnsayoAbierto] = useState(false)
 
   const gRef = useMemo(() => gLocal(lat, alt), [lat, alt])
 
@@ -702,6 +704,23 @@ export default function EncoderPage() {
           9,81 gastaría un 0,35 % del presupuesto de error con el signo siempre en la misma
           dirección.
         </p>
+      </details>
+
+      {/* EL ENSAYO DE COLOCACIÓN: dónde plantar el móvil antes de abrir la cámara.
+          Cerrado por defecto —es una ayuda de montaje, no el paso de cada toma— y usa la
+          MISMA puerta que juzga la grabación real, así que lo que aprueba aquí, aprueba
+          allí. */}
+      <details
+        open={ensayoAbierto}
+        onToggle={(e) => setEnsayoAbierto((e.currentTarget as HTMLDetailsElement).open)}
+        className="rounded-panel glass p-4"
+      >
+        <summary className="cursor-pointer text-sm font-bold">Ensayo de colocación</summary>
+        <p className="mb-3 mt-2 text-xs text-tenue">
+          Antes de montar el trípode: mueve el sitio del móvil y mira si desde ahí saldrá
+          una medida fiable. No toca la cámara.
+        </p>
+        {ensayoAbierto && <EnsayoDeEncuadre />}
       </details>
     </div>
   )

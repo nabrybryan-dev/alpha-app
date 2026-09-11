@@ -54,6 +54,22 @@ export interface Colocacion {
   altura: number
 }
 
+/**
+ * Cuánto se desvía esta colocación del perfil, en grados.
+ *
+ * El desvío es lo que mide la puerta del encoder: cuántos grados se sale la barra del
+ * plano de imagen. Con el sujeto mirando a +Z, el plano bueno es el perpendicular al
+ * sagital —el eje X, o sea 0° y 180°—, y el perfil (180°) es el sitio bueno. La
+ * distancia angular al más cercano de esos dos es el desvío.
+ *
+ * Vive aquí, junto a `Colocacion`, porque es geometría de dónde está el trípode y no
+ * sabe de cámaras: la usa el ensayo de encuadre para traducir un ángulo alrededor del
+ * sujeto a la entrada que espera el núcleo.
+ */
+export function desvioDe(anguloGrados: number): number {
+  const a = ((anguloGrados % 360) + 360) % 360
+  return Math.min(Math.abs(a - 180), Math.abs(a - 0), Math.abs(a - 360))
+}
 
 /**
  * Un rectángulo con normal libre. Delega en la primitiva que SE ORIENTA SOLA: se le
