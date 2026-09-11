@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  archivoDeLaRevision,
   FORMATOS,
   tipoDelMedio,
   contentTypeDelMedio,
@@ -199,5 +200,38 @@ describe('el tipo no se puede inventar', () => {
     const e = { usuarioId: 'u-1', semana: '2026-09-14', tamanoBytes: 10, extension: 'pdf', guion: 'x' }
     const d = decidirPublicacion(e, undefined)
     expect(d).toMatchObject({ publica: false, motivo: 'extension-no-admitida' })
+  })
+})
+
+describe('archivoDeLaRevision', () => {
+  const ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+
+  it('con la cara y la voz al lado, publica LA CARA', () => {
+    expect(archivoDeLaRevision([`${ID}.mp3`, `${ID}.mp4`], ID)).toEqual({
+      archivo: `${ID}.mp4`,
+      extension: 'mp4',
+      tipo: 'video',
+    })
+  })
+
+  it('sin cara, publica la voz', () => {
+    expect(archivoDeLaRevision([`${ID}.mp3`], ID)).toMatchObject({ tipo: 'audio' })
+  })
+
+  it('y NO depende del orden en que el sistema de archivos los liste', () => {
+    const alReves = archivoDeLaRevision([`${ID}.mp4`, `${ID}.mp3`], ID)
+    const alDerecho = archivoDeLaRevision([`${ID}.mp3`, `${ID}.mp4`], ID)
+    expect(alReves).toEqual(alDerecho)
+  })
+
+  it('ignora los archivos de otra persona', () => {
+    const otro = '11111111-2222-3333-4444-555555555555'
+    expect(archivoDeLaRevision([`${otro}.mp4`, `${ID}.mp3`], ID)).toMatchObject({
+      archivo: `${ID}.mp3`,
+    })
+  })
+
+  it('sin nada suyo en la carpeta, no inventa un archivo', () => {
+    expect(archivoDeLaRevision(['manifiesto.json'], ID)).toBeUndefined()
   })
 })

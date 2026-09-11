@@ -1,4 +1,4 @@
-import { veredictoDeLaPuerta, type DomingoDeFirma, type MotivoCerrada } from '../../domain/aprobacion/puerta'
+import { veredictoDeLaPuerta, type SemanaDeFirma, type MotivoCerrada } from '../../domain/aprobacion/puerta'
 
 /** Un borrador esperando firma. Lo que la bandeja necesita para pintarlo, y nada más. */
 export interface BorradorPendiente {
@@ -14,8 +14,8 @@ export interface BorradorPendiente {
 export interface BandejaAprobacionProps {
   /** Lo que espera firma AHORA. */
   pendientes: readonly BorradorPendiente[]
-  /** Los domingos de ESTE firmante, del más antiguo al más reciente. */
-  historial: readonly DomingoDeFirma[]
+  /** Las semanas de ESTE firmante, de la más antigua a la más reciente. */
+  historial: readonly SemanaDeFirma[]
   onAprobar: (id: string) => void
   onCorregir: (id: string) => void
 }
@@ -26,11 +26,11 @@ export interface BandejaAprobacionProps {
  * ## Por qué la puerta se enseña, y se enseña con su motivo
  *
  * Lo que hay detrás de esta pantalla no es una cola de textos: son veintitrés vídeos por
- * domingo con la cara y la voz clonadas de Bryan. La puerta decide si algún día salen sin
+ * semana con la cara y la voz clonadas de Bryan. La puerta decide si algún día salen sin
  * que él los oiga, así que **tiene que poder mirarla y saber por qué está como está**. Una
  * puerta que se abre sola y en silencio es la forma de enterarse por un asesorado.
  *
- * Y el motivo se pinta literal, no de adorno: «llevas dos de cuatro» y «ese domingo se
+ * Y el motivo se pinta literal, no de adorno: «llevas dos de cuatro» y «esa semana se
  * quedaron seis sin mirar» son cosas distintas que llevan a acciones distintas — la primera
  * es esperar, la segunda es que la bandeja se le quedó a medias.
  *
@@ -44,13 +44,13 @@ export interface BandejaAprobacionProps {
  */
 
 const EXPLICACION: Record<MotivoCerrada, (n: number) => string> = {
-  'sin-historial': () => 'Todavía no hay ningún domingo con borradores delante.',
-  'faltan-domingos': (n) => `Llevas ${n} de 4 domingos seguidos sin corregir nada.`,
-  'hubo-correccion': () => 'Corregiste algo el último domingo, así que la cuenta empieza de nuevo.',
-  'domingo-flojo': () =>
-    'El último domingo tuvo tan pocos borradores que no cuenta como prueba de nada.',
+  'sin-historial': () => 'Todavía no hay ninguna semana con borradores delante.',
+  'faltan-semanas': (n) => `Llevas ${n} de 4 semanas seguidas sin corregir nada.`,
+  'hubo-correccion': () => 'Corregiste algo la última semana, así que la cuenta empieza de nuevo.',
+  'semana-floja': () =>
+    'La última semana tuvo tan pocos borradores que no cuenta como prueba de nada.',
   'quedaron-sin-mirar': () =>
-    'El último domingo quedaron borradores sin abrir, y lo que nadie miró no está aprobado.',
+    'La última semana quedaron borradores sin abrir, y lo que nadie miró no está aprobado.',
 }
 
 export function BandejaAprobacion({
@@ -74,7 +74,7 @@ export function BandejaAprobacion({
         {veredicto.abierta ? (
           <>
             <p className="mt-1 text-sm font-semibold text-texto">
-              Abierta desde el domingo {veredicto.desde}
+              Abierta desde la semana del {veredicto.desde}
             </p>
             {/* Se dice que se puede cerrar, y cómo. Una puerta que se abrió sola y de la que
                 no se sabe salir es peor que no tenerla. */}
@@ -86,7 +86,7 @@ export function BandejaAprobacion({
           <>
             <p className="mt-1 text-sm font-semibold text-texto">Cerrada</p>
             <p className="mt-1 text-[11px] leading-snug text-tenue">
-              {EXPLICACION[veredicto.motivo](veredicto.domingosLimpios)}
+              {EXPLICACION[veredicto.motivo](veredicto.semanasLimpias)}
             </p>
           </>
         )}

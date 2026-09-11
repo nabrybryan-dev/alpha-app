@@ -59,7 +59,7 @@ import {
   personasDeLaTanda,
   repartoSemanal,
 } from '../src/domain/resumenSemanal/reparto.ts'
-import { FORMATOS } from '../src/domain/video/publicacion.ts'
+import { archivoDeLaRevision, FORMATOS } from '../src/domain/video/publicacion.ts'
 import { PORQUE, publicarUnaRevision } from './lib/publicar-una-revision.mjs'
 
 const MANIFIESTO = 'manifiesto.json'
@@ -259,27 +259,30 @@ async function pasoPublicar(args, carpeta, semana) {
   let publicados = 0
   let sinAudio = 0
   let rechazados = 0
+  let conCara = 0
 
   for (const encargo of manifiesto.encargos) {
     if (soloUno && encargo.usuarioId !== soloUno) continue
     const quien = encargo.nombre || encargo.usuarioId
 
-    const audio = extensiones
-      .map((ext) => `${encargo.usuarioId}.${ext}`)
-      .find((nombre) => enCarpeta.includes(nombre))
+    // La cara manda sobre la voz cuando están las dos: el mp4 es la revisión y el mp3 es
+    // el material del que salió. Lo decide `archivoDeLaRevision`, no el orden en que el
+    // sistema de archivos liste la carpeta ni el orden de las claves de `FORMATOS`.
+    const elegido = archivoDeLaRevision(enCarpeta, encargo.usuarioId)
 
-    if (!audio) {
+    if (!elegido) {
       // No se publica media tanda en silencio: a quien le falta el audio se le nombra.
       console.log(`  SIN AUDIO ${quien}: falta ${encargo.usuarioId}.<${extensiones.join('|')}>`)
       sinAudio += 1
       continue
     }
+    if (elegido.tipo === 'video') conCara += 1
 
     const resultado = await publicarUnaRevision({
       supabase: sb,
       usuarioId: encargo.usuarioId,
       semana: manifiesto.semana,
-      archivo: join(carpeta, audio),
+      archivo: join(carpeta, elegido.archivo),
       // El guion que se publica es el del manifiesto, palabra por palabra: es lo que se
       // revisó, y es lo que permite auditar después qué se le dijo exactamente a alguien.
       guion: encargo.guion,
@@ -296,7 +299,10 @@ async function pasoPublicar(args, carpeta, semana) {
       rechazados += 1
       continue
     }
-    console.log(`  ${quien} → ${resultado.path}${resultado.reemplaza ? ' (reemplaza)' : ''}`)
+    console.log(
+      `  ${quien} ${elegido.tipo === 'video' ? '(CARA)' : '(voz)'} → ${resultado.path}` +
+        `${resultado.reemplaza ? ' (reemplaza)' : ''}`,
+    )
     publicados += 1
   }
 
