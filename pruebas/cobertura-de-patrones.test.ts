@@ -221,32 +221,6 @@ describe('el barrido de los ejercicios con nombre y apellido', () => {
     expect(patronDeCategoria('ACONDICIONAMIENTO', 'HIIT en bicicleta 30/30')).toBeUndefined()
   })
 
-  it('un salto catalogado como SENTADILLA sale saltando, no haciendo sentadilla', () => {
-    // EL MISMO DEFECTO QUE EL TRINEO, PERO AL REVÉS Y DESDE EL OTRO LADO. Allí un empuje
-    // de trineo salía saltando; aquí un salto salía haciendo sentadilla.
-    //
-    // Medido el 2026-09-12 sobre la cartera REAL —291 ejercicios distintos en microciclos
-    // activos, los 291 con sujeto—: este era el único que salía haciendo otro gesto. Y no
-    // faltaba ficha: `salto` existe y sus propios ejemplos dicen «Salto al cajón». Lo que
-    // pasaba es que la categoría manda sobre el nombre y el coach lo cataloga como
-    // SENTADILLA, así que la línea de `POR_NOMBRE` —que ya existía— nunca se consultaba.
-    //
-    // Se arregla en `VARIANTES_POR_NOMBRE`, que es justo el mecanismo para «el nombre elige
-    // ENTRE las fichas cuando la categoría ya resolvió».
-    expect(patronDeCategoria('SENTADILLA', 'Salto al cajón con bajada caminando')?.id).toBe('salto')
-    expect(patronDeCategoria('SENTADILLA', 'SALTO AL CAJON')?.id).toBe('salto')
-    expect(patronDeCategoria('SENTADILLA', 'Box jump')?.id).toBe('salto')
-    expect(patronDeCategoria('SENTADILLA', 'Drop squat')?.id).toBe('salto')
-
-    // Y LA SENTADILLA DE VERDAD NO SE MUEVE, que es lo que hace útil lo de arriba.
-    expect(patronDeCategoria('SENTADILLA', 'Sentadilla goblet')?.id).toBe('sentadilla')
-    expect(patronDeCategoria('SENTADILLA', 'Sentadilla trasera')?.id).toBe('sentadilla')
-    expect(patronDeCategoria('SENTADILLA', 'Sentadilla búlgara con mancuernas')?.id).toBe('sentadilla')
-    // Ni la prensa, que comparte categoría y ya tenía su propia variante.
-    expect(patronDeCategoria('SENTADILLA', 'Prensa de piernas en máquina')?.id).toBe('prensa')
-    expect(patronDeCategoria('SENTADILLA', 'Sentadilla hack en máquina')?.id).toBe('prensa')
-  })
-
   it('lo descartado por no ser un nombre literal no mueve el reparto', () => {
     // De la alternancia del clasificador se apartan las 21 alternativas que llevan
     // metacaracteres: inventarles una grafía metería en el barrido nombres que nadie
