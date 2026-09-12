@@ -40,8 +40,12 @@ export type Huecos = Record<string, Hueco>
 /** Lo que devuelve el modelo: una cadena por sección, con huecos y sin cifras. */
 export type Borrador = Partial<Record<Seccion, string>>
 
-/** La voz lee unos 14 caracteres por segundo (`scripts/revision-semanal.mjs`). */
-export const CARACTERES_POR_SEGUNDO = 14
+/**
+ * La voz lee unos 16 caracteres por segundo. MEDIDO el 12-sep con la voz clonada: 2.084
+ * caracteres sonaron 127 s (16,4/s). Con el 14 que se estimó antes, una revisión «de 2-3
+ * minutos» salía en 1:45-2:35. Si cambia el molde de la voz, se vuelve a medir.
+ */
+export const CARACTERES_POR_SEGUNDO = 16
 export const LARGO_MINIMO = 2 * 60 * CARACTERES_POR_SEGUNDO
 export const LARGO_MAXIMO = 3 * 60 * CARACTERES_POR_SEGUNDO
 

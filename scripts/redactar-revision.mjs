@@ -15,6 +15,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import process from 'node:process'
+import { CARACTERES_POR_SEGUNDO } from '../src/domain/redaccion/huecos.ts'
 import { INTENTOS, redactarUna, slugDe } from './lib/redactar-una-revision.mjs'
 
 function argumentos() {
@@ -58,7 +59,7 @@ async function main() {
     console.log(`\nNO SE ENTREGA: ${INTENTOS} intentos sin pasar. Esta persona sale con la revisión corta.`)
     process.exit(1)
   }
-  console.log(`\n${ficha.nombre} · ${informe.caracteres} caracteres · ~${Math.round(informe.caracteres / 14)} s · ${informe.costeTotalUsd} USD\n`)
+  console.log(`\n${ficha.nombre} · ${informe.caracteres} caracteres · ~${Math.round(informe.caracteres / CARACTERES_POR_SEGUNDO)} s · ${informe.costeTotalUsd} USD\n`)
   console.log(informe.texto)
 }
 
