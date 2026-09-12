@@ -27,6 +27,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import process from 'node:process'
 import { createClient } from '@supabase/supabase-js'
+import { CARACTERES_POR_SEGUNDO } from '../src/domain/redaccion/huecos.ts'
 import { redactarUna, slugDe } from './lib/redactar-una-revision.mjs'
 
 const MANIFIESTO = 'manifiesto.json'
@@ -158,7 +159,7 @@ async function main() {
       encargo.redaccion = 'larga'
       await writeFile(join(carpeta, encargo.archivoGuion), `${informe.texto}\n`, 'utf8')
       resumen.larga.push(nombre)
-      console.log(`  → LARGA · ${informe.caracteres} caracteres · ~${Math.round(informe.caracteres / 14)} s`)
+      console.log(`  → LARGA · ${informe.caracteres} caracteres · ~${Math.round(informe.caracteres / CARACTERES_POR_SEGUNDO)} s`)
     } else {
       Object.assign(encargo, { redaccion: 'corta', motivoCorta: 'la redacción no pasó la revisión' })
       resumen.corta.push(`${nombre} (no pasó la revisión)`)

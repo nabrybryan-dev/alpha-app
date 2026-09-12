@@ -65,7 +65,8 @@ import { PORQUE, publicarUnaRevision } from './lib/publicar-una-revision.mjs'
 const MANIFIESTO = 'manifiesto.json'
 
 /** Cuántos caracteres dice por segundo un hablante normal en español. Solo para avisar. */
-const CARACTERES_POR_SEGUNDO = 14
+// Medido el 12-sep con la voz clonada: 16,4 caracteres por segundo (antes se estimaban 14).
+const CARACTERES_POR_SEGUNDO = 16
 
 /** Por qué alguien se queda fuera de la tanda, dicho para leerlo. */
 const POR_QUE_SALTO = {
