@@ -2,7 +2,7 @@
  * EL PASO 1.5 DE LA REVISIÓN SEMANAL: la versión LARGA para las personas elegidas.
  *
  *     npm run revision-larga -- --semana 2026-09-14 --personas-archivo %USERPROFILE%\.alpha\revision-larga.txt
- *     npm run revision-larga -- --semana 2026-09-14 --personas "Dhanny Agudelo;Tatiana Fernández"
+ *     npm run revision-larga -- --semana 2026-09-14 --personas "Valentina Cruz;Otra Persona"
  *
  * Va DESPUÉS de `revision-semanal --paso guiones` (que deja el manifiesto con la revisión corta
  * de todos) y ANTES de la voz. Por cada persona elegida:

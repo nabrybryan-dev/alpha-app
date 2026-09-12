@@ -4,7 +4,7 @@
  * Lo comparten `scripts/redactar-revision.mjs` (una persona, para probar) y
  * `scripts/revision-larga.mjs` (la tanda de la noche). Una sola copia del prompt y de los
  * reintentos: si cada uno llevara la suya, el jueves correría un prompt distinto del que se
- * probó con Dhanny.
+ * probó a mano.
  *
  * EL MODELO SE LLAMA SIN HERRAMIENTAS (`--tools ""`) y con un system prompt propio: aquí solo
  * redacta. El mensaje va por la entrada estándar y no por la línea de órdenes.

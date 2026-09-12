@@ -10,7 +10,7 @@ import {
 } from './huecos'
 
 const HUECOS: Huecos = {
-  nombre: { valor: 'Dhanny', significa: 'su nombre de pila' },
+  nombre: { valor: 'Valentina', significa: 'su nombre de pila' },
   registro_pct: { valor: '7,4 por ciento', significa: '% de ejercicios con registro propio' },
   meta_registro: { valor: '80 por ciento', significa: 'la meta de registro de su plan' },
   peso_kg_semana: { significa: 'tendencia de peso: SIN DATO esta semana' },
@@ -34,7 +34,7 @@ describe('la revisión larga: el modelo escribe, las cifras las pone la plantill
     expect(r.problemas).toEqual([])
     expect(r.ok).toBe(true)
     expect(r.texto).toContain('7,4 por ciento')
-    expect(r.texto).toContain('Hola Dhanny')
+    expect(r.texto).toContain('Hola Valentina')
     expect(r.texto).not.toMatch(/[{}]/)
     expect(r.caracteres).toBeGreaterThanOrEqual(LARGO_MINIMO)
     expect(r.caracteres).toBeLessThanOrEqual(LARGO_MAXIMO)

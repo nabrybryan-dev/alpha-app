@@ -161,7 +161,7 @@ per as (
               case when jsonb_typeof(p.datos->'medidas') = 'array' then p.datos->'medidas' else '[]'::jsonb end) md
            where p.usuario_id = a.id) as medidas_perfil,
          -- Los pesos UNO A UNO, para la tendencia en kg/semana: con el último solo no
-         -- se ve ni el ritmo ni que la app los siembra (Natalia: 72,8 diez días seguidos).
+         -- se ve ni el ritmo ni que la app los siembra (una asesorada: el mismo peso diez días seguidos).
          (select jsonb_agg(jsonb_build_object('fecha', x.fecha, 'peso', x.peso, 'fuente', x.fuente)
                            order by x.fecha)
             from (select c.fecha, (c.datos->>'pesoKg')::numeric as peso, 'checkin' as fuente
@@ -189,7 +189,7 @@ per as (
             from public.perfil_alimentario pa
            where pa.asesorado_id = a.id
            limit 1) as formulario,
-         -- `pesos_distintos` existe por Natalia: ocho check-ins con 72,8 kg exactos.
+         -- `pesos_distintos` existe porque una asesorada tenía ocho check-ins con el mismo peso exacto.
          -- El selector se siembra con el último valor y se guarda se toque o no.
          (select jsonb_build_object(
                    'n', count(*),
@@ -232,6 +232,6 @@ revoke all on function public.tasa_contra_el_plan_export() from public;
 revoke all on function public.tasa_contra_el_plan_export() from anon, authenticated;
 grant execute on function public.tasa_contra_el_plan_export() to service_role;
 
-comment on function public.tasa_contra_el_plan_export() is 'Export de la tasa de progresión contra el plan para la revisión semanal larga. Solo lectura, solo service_role. Cuerpo copiado de cerebro-alpha-agentes tuberia/sql/tasa-contra-el-plan.sql (311cd3f).';
+comment on function public.tasa_contra_el_plan_export() is 'Export de la tasa de progresión contra el plan para la revisión semanal larga. Solo lectura, solo service_role. Cuerpo copiado de cerebro-alpha-agentes tuberia/sql/tasa-contra-el-plan.sql (327bdc4).';
 
 commit;

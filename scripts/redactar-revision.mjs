@@ -2,7 +2,7 @@
  * La revisión LARGA de UNA persona, para probar: el modelo redacta con huecos y la plantilla
  * pone las cifras.
  *
- *     npm run redactar-revision -- --fichas <fichas.json> --persona "Dhanny Agudelo" \
+ *     npm run redactar-revision -- --fichas <fichas.json> --persona "Valentina Cruz" \
  *        [--contexto <archivo.txt>] [--ejemplos <archivo.txt>] [--salida <carpeta>] [--modelo sonnet]
  *
  * `fichas.json` es la salida de `agentes/tasa_contra_el_plan.py` (cerebro-alpha-agentes).
