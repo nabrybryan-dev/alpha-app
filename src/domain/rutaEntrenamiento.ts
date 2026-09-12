@@ -48,14 +48,30 @@ export type InicioSemana = 'DOMINGO' | 'LUNES'
  *
  * 1. Si el microciclo empieza en domingo o en lunes, ese es el inicio: es la
  *    señal más fuerte, la puso el coach al programar.
- * 2. Si empieza cualquier otro día, manda que haya sesión programada en domingo
- *    (entrena el domingo → el domingo abre su semana).
+ * 2. Si empieza cualquier otro día, manda que la PRIMERA sesión del bloque
+ *    —la de menor `orden`— sea de domingo (entrena el domingo → el domingo
+ *    abre su semana).
+ *
+ * **La regla 2 mira la primera sesión, no «hay alguna en domingo» (R-18,
+ * corregido 2026-09-12).** Un microciclo que arranca en sábado y sigue el
+ * domingo —dos días, «FULL A · SÁBADO» y «FULL A · DOMINGO»— tiene una sesión
+ * de domingo, pero esa sesión es el SEGUNDO día del bloque, no el que lo abre.
+ * Con «hay alguna» esto se leía como semana de tipo DOMINGO, y `armarSemana`
+ * anclaba la víspera a la semana natural domingo-sábado que contiene el
+ * arranque —que es la semana ANTERIOR al propio bloque—, dejando el domingo
+ * de verdad (el día siguiente al sábado) fuera de toda rejilla: no aparecía
+ * tarde ni pronto, no aparecía. Medido contra la base real el 2026-09-12: cero
+ * microciclos con esta forma hoy, así que era un defecto latente, no uno que
+ * ya hubiera mordido a alguien. Ver
+ * `rutaEntrenamiento.sabado-domingo.test.ts` y
+ * `cerebro-alpha-agentes/auditoria/frente-5/R-18-la-bateria-roja.md`.
  */
 export function inicioSemanaDe(microciclo: Microciclo): InicioSemana {
   const arranque = diaSemanaDe(microciclo.fechaInicio)
   if (arranque === 'DOMINGO') return 'DOMINGO'
   if (arranque === 'LUNES') return 'LUNES'
-  return microciclo.sesiones.some((s) => diaDeSesion(s) === 'DOMINGO') ? 'DOMINGO' : 'LUNES'
+  const primera = [...microciclo.sesiones].sort((a, b) => a.orden - b.orden)[0]
+  return primera && diaDeSesion(primera) === 'DOMINGO' ? 'DOMINGO' : 'LUNES'
 }
 
 function sumarDias(fechaIso: string, dias: number): string {
