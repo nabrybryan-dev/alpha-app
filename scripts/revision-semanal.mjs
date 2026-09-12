@@ -260,6 +260,7 @@ async function pasoPublicar(args, carpeta, semana) {
   let sinAudio = 0
   let rechazados = 0
   let conCara = 0
+  let conVoz = 0
 
   for (const encargo of manifiesto.encargos) {
     if (soloUno && encargo.usuarioId !== soloUno) continue
@@ -277,6 +278,7 @@ async function pasoPublicar(args, carpeta, semana) {
       continue
     }
     if (elegido.tipo === 'video') conCara += 1
+    else conVoz += 1
 
     const resultado = await publicarUnaRevision({
       supabase: sb,
@@ -306,8 +308,13 @@ async function pasoPublicar(args, carpeta, semana) {
     publicados += 1
   }
 
+  // CON CARA Y SOLO VOZ, SIEMPRE. Este renglón es lo que queda escrito en el registro del
+  // viernes, y es el único sitio donde se ve si el paso de la cara sirvió de algo: un
+  // viernes sin cara y un viernes con las 22 se leían exactamente igual. El contador ya
+  // se llevaba; no se decía.
   console.log(
-    `\nSemana del ${semana} · ${publicados} publicadas · ${sinAudio} sin audio · ${rechazados} rechazadas`,
+    `\nSemana del ${semana} · ${publicados} publicadas · ${sinAudio} sin audio · ` +
+      `${rechazados} rechazadas · con cara: ${conCara} · solo voz: ${conVoz}`,
   )
   if (ensayo) {
     console.log('ENSAYO: no se ha tocado nada, y no se ha preguntado si alguna estaba ya firmada.')
