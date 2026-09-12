@@ -148,19 +148,21 @@ describe('el día elegido manda también en el cardio', () => {
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
     // El tablón del muro ENTRA con animación y se monta después del viaje: hay que
     // esperarlo. Es la misma trampa que ya está anotada para fotografiar el muro.
-    await waitFor(() => {
-      expect(
-        salon.querySelector('[data-campo="nombre"] [aria-label]'),
-        'el muro se quedó sin nombre',
-      ).not.toBeNull()
-    })
-    const nombre = salon.querySelector('[data-campo="nombre"] [aria-label]')
+    //
+    // LA ESPERA COMPRUEBA EL CONTENIDO, NO QUE HAYA ALGO. Esperar a «que exista un
+    // nombre» no sirve: el muro del día ANTERIOR ya tiene nombre, así que la espera se
+    // cumplía al instante y la aserción leía el día viejo —«HIP THRUST CON BARRA» donde
+    // se esperaba «CARRERA»—. Hay que esperar a que el nombre sea EL DEL DÍA NUEVO.
+    //
     // Se lee del `aria-label` y no del texto: el rótulo en trazo pinta cada letra TRES
     // veces —el trazo y sus dos ecos, que son los que le dan el canto—, así que su
     // `textContent` dice «CCCAAARRRRRREEERRRAAA». El `aria-label` es el nombre de verdad,
     // y además es lo único que lee un lector de pantalla.
-    expect(nombre, 'el muro se quedó sin nombre').not.toBeNull()
-    expect(nombre?.getAttribute('aria-label')?.toUpperCase()).toContain('CARRERA')
+    await waitFor(() => {
+      const enEspera = salon.querySelector('[data-campo="nombre"] [aria-label]')
+      expect(enEspera, 'el muro se quedó sin nombre').not.toBeNull()
+      expect(enEspera?.getAttribute('aria-label')?.toUpperCase()).toContain('CARRERA')
+    })
     // El código de sala sale del orden de la sesión: la metabólica es la sexta.
     expect(salon.textContent).toContain(`Sala 0${metabolica.orden}`)
     // Y las cifras del muro son las del cardio, no las de una serie que no existe.
