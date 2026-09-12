@@ -85,14 +85,29 @@ export function esSemanaMala(ejes: EjeDeLaFicha[], avisos: string[] = [], banda 
   )
 }
 
+/**
+ * Cuántas cifras puede decir una revisión. El 12-sep, con todas las cifras del contexto
+ * convertidas en huecos, el modelo pasó el filtro soltando catorce («80 de 80», «77 de 81»,
+ * «2,5 kilos»…): un parte de datos, no una revisión. Ocho deja decir lo que importa.
+ */
+export const MAXIMO_DE_CIFRAS = 8
+
 export function revisarBorrador(
   borrador: Borrador,
   huecos: Huecos,
-  opciones: { semanaMala: boolean; minimo?: number; maximo?: number },
+  opciones: { semanaMala: boolean; minimo?: number; maximo?: number; maximoDeCifras?: number },
 ): Revision {
   const minimo = opciones.minimo ?? LARGO_MINIMO
   const maximo = opciones.maximo ?? LARGO_MAXIMO
+  const maximoDeCifras = opciones.maximoDeCifras ?? MAXIMO_DE_CIFRAS
   const problemas: string[] = []
+
+  const cifrasDichas = SECCIONES.flatMap((s) =>
+    [...(borrador[s] ?? '').matchAll(HUECO)].filter(([, clave]) => /\d/.test(huecos[clave]?.valor ?? '')),
+  ).length
+  if (cifrasDichas > maximoDeCifras) {
+    problemas.push(`dice ${cifrasDichas} cifras y el máximo es ${maximoDeCifras}: elige las que importan`)
+  }
 
   for (const seccion of SECCIONES) {
     const crudo = borrador[seccion]
