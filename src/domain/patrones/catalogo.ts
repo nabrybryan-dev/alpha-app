@@ -2101,7 +2101,25 @@ const POR_NOMBRE: [RegExp, string][] = [
 const VARIANTES_POR_NOMBRE: Record<string, [RegExp, string][]> = {
   // La prensa llega SIEMPRE con categoria de sentadilla —«DOMINANTE DE RODILLA» en el
   // seed—, asi que sin esta linea la ficha nueva no la veria nadie.
-  sentadilla: [[/prensa|leg ?press|hack/, 'prensa']],
+  //
+  // EL SALTO VA PRIMERO, Y ES LA MISMA HISTORIA AL REVES. La ficha `salto` existe desde
+  // hace semanas y sus propios ejemplos dicen «Salto al cajon», pero al asesorado al que
+  // se le manda un salto al cajon le salia **una sentadilla**: el muñeco bajaba y subia
+  // sin despegar nunca. El motivo es que la categoria manda sobre el nombre, y un salto
+  // al cajon llega catalogado como SENTADILLA —medido el 2026-09-12 sobre la cartera
+  // real: 291 ejercicios activos, todos con sujeto, y este era el unico que salia
+  // haciendo otro gesto—.
+  //
+  // `POR_NOMBRE` ya tenia su linea de salto y no servia de nada aqui: esa lista solo se
+  // consulta cuando la categoria NO resuelve, y `SENTADILLA` resuelve. Se reusa su mismo
+  // vocabulario para que las dos puertas digan lo mismo.
+  //
+  // Es el mismo tipo de defecto que el trineo saliendo como salto, anotado arriba en
+  // `POR_NOMBRE`: un hueco avisa con «sin modelo», y esto se veia como si estuviera bien.
+  sentadilla: [
+    [/salto|pogo|drop squat|box ?jump|aterrizaje|pliometr/, 'salto'],
+    [/prensa|leg ?press|hack/, 'prensa'],
+  ],
   // La apertura inversa llega con categoría ABDUCCIÓN HORIZONTAL diga lo que diga el nombre;
   // la de máquina se sienta de frente al aparato y es otra ficha. Y el face pull, desde el
   // 2026-09-07, también: de pie, erguido, con la cuerda bajando desde una polea alta.

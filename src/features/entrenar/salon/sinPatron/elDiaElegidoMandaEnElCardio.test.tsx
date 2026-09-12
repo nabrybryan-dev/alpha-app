@@ -1,9 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import { db, hoyIso } from '../../../../data/dbInstance'
+import { db } from '../../../../data/dbInstance'
 import { cargaPorGrupo } from '../../../../domain/fatiga'
 import { notasDelMicrociclo } from '../../../../domain/notasDeLaSemana'
 import { requisitosParaPeldano } from '../../../../domain/nivelesAlfa'
@@ -43,7 +43,24 @@ function montarEnUnDiaDeFuerza() {
   const usuario = db.usuarios.byId('u-valentina')!
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')!
   const sesion = microciclo.sesiones.find((s) => s.ejercicios.length > 0)!
-  const hoy = hoyIso()
+  // LA FECHA VA CLAVADA, Y ES LA PARTE IMPORTANTE DE ESTE MONTAJE.
+  //
+  // Con `hoyIso()` esta prueba dependía del calendario y fallaba UN día de cada siete. El
+  // seed reparte LEG A · UPPER A · LEG B · UPPER B · FULL C · METABÓLICO A · descanso, así
+  // que **el sábado el día metabólico ES hoy** — y el tambor, al elegir hoy, pone el día
+  // en «ninguno» a propósito (`setDiaElegido(esHoy ? null : i)`): volver a hoy es dejar de
+  // viajar. Entonces el salón cae en la sesión del prop `sesion`, que aquí es una de
+  // FUERZA, y la prueba veía «HIP THRUST CON BARRA» donde esperaba «CARRERA».
+  //
+  // Eso NO es un fallo de la app: en la app real el prop `sesion` es la de hoy, así que
+  // volver a hoy enseña hoy. El fallo era del montaje, que le daba a la vez una semana
+  // real y una sesión que no le correspondía.
+  //
+  // Se arregla fijando el escenario, no invirtiendo el criterio: un LUNES, que en este
+  // seed es día de fuerza, así que el metabólico nunca es «hoy» y viajar a él es viajar de
+  // verdad. Es la misma lección que ya está escrita en `salon.test.tsx`: un test que
+  // depende del calendario no prueba lo que dice.
+  const hoy = '2026-09-07'
   const datos: DatosRuta = {
     microcicloNumero: microciclo.numero,
     sesionesRegistradas: 0,
@@ -82,6 +99,10 @@ async function viajarA(nombreDeSesion: string) {
     .find((b) => (b.textContent ?? '').toUpperCase().includes(nombreDeSesion))
   expect(fila, `el tambor no ofrece ${nombreDeSesion}`).toBeDefined()
   await usuario.click(fila!)
+  // PULSAR NO ES HABER LLEGADO, y aquí no hay una sola señal fiable de que se llegó: el
+  // tambor NO se cierra al elegir —se probó a esperar a que desapareciera y las cuatro
+  // pruebas murieron por timeout—. Así que quien espera es cada aserción, que es además
+  // lo correcto: lo que hay que esperar no es el viaje, es lo que el día nuevo pinta.
 }
 
 describe('el día elegido manda también en el cardio', () => {
@@ -123,10 +144,13 @@ describe('el día elegido manda también en el cardio', () => {
     await viajarA(metabolica.nombre)
 
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
-    const estaciones = Array.from(salon.querySelectorAll('[data-estacion]'))
-    expect(estaciones.length, 'el día de cardio se quedó sin estaciones').toBeGreaterThan(0)
-    const minutos = salon.querySelector('[data-estacion="minutos"]')
-    expect(minutos?.textContent).toContain('30')
+    // Se ESPERA a que el día nuevo pinte sus estaciones. El salón las monta en un efecto
+    // posterior al viaje, así que mirarlas de golpe es mirar el día que ya no es.
+    await waitFor(() => {
+      const estaciones = Array.from(salon.querySelectorAll('[data-estacion]'))
+      expect(estaciones.length, 'el día de cardio se quedó sin estaciones').toBeGreaterThan(0)
+      expect(salon.querySelector('[data-estacion="minutos"]')?.textContent).toContain('30')
+    })
   })
 
   it('y el muro dice de qué sala es y qué se hace en ella', async () => {
@@ -139,13 +163,23 @@ describe('el día elegido manda también en el cardio', () => {
     await viajarA(metabolica.nombre)
 
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
-    const nombre = salon.querySelector('[data-campo="nombre"] [aria-label]')
+    // El tablón del muro ENTRA con animación y se monta después del viaje: hay que
+    // esperarlo. Es la misma trampa que ya está anotada para fotografiar el muro.
+    //
+    // LA ESPERA COMPRUEBA EL CONTENIDO, NO QUE HAYA ALGO. Esperar a «que exista un
+    // nombre» no sirve: el muro del día ANTERIOR ya tiene nombre, así que la espera se
+    // cumplía al instante y la aserción leía el día viejo —«HIP THRUST CON BARRA» donde
+    // se esperaba «CARRERA»—. Hay que esperar a que el nombre sea EL DEL DÍA NUEVO.
+    //
     // Se lee del `aria-label` y no del texto: el rótulo en trazo pinta cada letra TRES
     // veces —el trazo y sus dos ecos, que son los que le dan el canto—, así que su
     // `textContent` dice «CCCAAARRRRRREEERRRAAA». El `aria-label` es el nombre de verdad,
     // y además es lo único que lee un lector de pantalla.
-    expect(nombre, 'el muro se quedó sin nombre').not.toBeNull()
-    expect(nombre?.getAttribute('aria-label')?.toUpperCase()).toContain('CARRERA')
+    await waitFor(() => {
+      const enEspera = salon.querySelector('[data-campo="nombre"] [aria-label]')
+      expect(enEspera, 'el muro se quedó sin nombre').not.toBeNull()
+      expect(enEspera?.getAttribute('aria-label')?.toUpperCase()).toContain('CARRERA')
+    })
     // El código de sala sale del orden de la sesión: la metabólica es la sexta.
     expect(salon.textContent).toContain(`Sala 0${metabolica.orden}`)
     // Y las cifras del muro son las del cardio, no las de una serie que no existe.

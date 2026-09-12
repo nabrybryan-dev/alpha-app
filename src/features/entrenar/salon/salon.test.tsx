@@ -167,15 +167,33 @@ describe('/entrenar es el salón', () => {
     // Se arregla fijando el escenario, NO invirtiendo el criterio: se vacían los
     // ejercicios de todas las sesiones, así que caiga el día que caiga no hay cuerpo
     // que poner en el centro. Lo que se comprueba sigue siendo lo mismo.
+    //
+    // Y SE VACÍA TAMBIÉN EL CARDIO, que es lo que faltaba. Cuando esto se escribió, un día
+    // sin ejercicios no tenía cuerpo que poner en el centro; desde el 7-sep un bloque de
+    // cardio SÍ lo tiene —lleva su corredor y su máquina—, así que el sábado, que es el
+    // día metabólico del seed, el centro salía con sujeto y el hueco `sinPatron` no
+    // aparecía nunca. Vaciar solo `ejercicios` había dejado de bastar sin que nadie lo
+    // tocara: la prueba se quedó atrás de la app. Un día de cada siete.
     const real = db.microciclos.byUsuario.bind(db.microciclos)
     vi.spyOn(db.microciclos, 'byUsuario').mockImplementation((id: string) =>
-      real(id).map((m) => ({ ...m, sesiones: (m.sesiones ?? []).map((s) => ({ ...s, ejercicios: [] })) })),
+      real(id).map((m) => ({
+        ...m,
+        sesiones: (m.sesiones ?? []).map((s) => ({ ...s, ejercicios: [], bloquesCardio: [] })),
+      })),
     )
     renderizarEntrenar()
     const salon = await esperarAlSalon()
     // Primero, que el centro esté de verdad SIN sujeto: si el salón no hubiera llegado a
     // montar el centro, lo de abajo saldría verde por la razón equivocada.
-    expect(salon.querySelector('[data-hueco="sinPatron"]')).not.toBeNull()
+    //
+    // SE ESPERA, NO SE MIRA DE GOLPE. `esperarAlSalon` solo garantiza el CONTENEDOR
+    // (`[data-salon]`); el centro llega después, cuando el `React.lazy` del módulo del
+    // salón termina de bajar. Mirarlo en el mismo tick daba rojo en CI —donde la suite
+    // corre con cobertura y ocho procesos a la vez— y verde en local, que es el peor de
+    // los dos mundos: el guardián se cae por lentitud y parece un fallo de la app.
+    await waitFor(() => {
+      expect(salon.querySelector('[data-hueco="sinPatron"]')).not.toBeNull()
+    })
     expect(salon.querySelector('canvas'), 'se montó un visor donde no hay patrón').toBeNull()
 
     // Y entonces no hay escalera. Ni suelta: ni un solo peldaño por el salón.

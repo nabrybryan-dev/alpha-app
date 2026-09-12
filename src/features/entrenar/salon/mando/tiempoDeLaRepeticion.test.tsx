@@ -77,7 +77,18 @@ function dedo(el: HTMLElement, tipo: 'pointerdown' | 'pointermove' | 'pointerup'
 describe('el tiempo de la repetición, desde el disco', () => {
   beforeEach(() => {
     soltarElTiempo()
-    vi.useFakeTimers({ shouldAdvanceTime: true })
+    // EL RELOJ VA CLAVADO EN UN LUNES, y no es por los temporizadores: es por el DÍA.
+    //
+    // Esta prueba entra por la ruta real, así que el salón abre en la sesión de HOY. El
+    // seed reparte LEG A · UPPER A · LEG B · UPPER B · FULL C · METABÓLICO A · descanso,
+    // o sea que el SÁBADO abre en el día de cardio — y un día de cardio no tiene mando del
+    // reloj de la pared, porque no hay serie que cronometrar. Las cinco morían con
+    // «Unable to find role=button …Mando del reloj de la pared», un día de cada siete.
+    //
+    // Se veía solo en el CI porque allí corre en UTC y aquí son cinco horas menos: a las
+    // once de la noche de un viernes en Colombia, en el servidor ya es sábado. Se
+    // reproduce en local con `TZ=UTC`.
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-09-07T12:00:00') })
   })
 
   afterEach(() => {
