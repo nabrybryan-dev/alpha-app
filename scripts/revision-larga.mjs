@@ -4,6 +4,9 @@
  *     npm run revision-larga -- --semana 2026-09-14 --personas-archivo %USERPROFILE%\.alpha\revision-larga.txt
  *     npm run revision-larga -- --semana 2026-09-14 --personas "Valentina Cruz;Otra Persona"
  *
+ * Lo ya redactado esa semana (`larga/<persona>.redaccion.json` entregado) se REUTILIZA sin
+ * volver a llamar al modelo; `--rehacer` lo redacta otra vez.
+ *
  * Va DESPUÉS de `revision-semanal --paso guiones` (que deja el manifiesto con la revisión corta
  * de todos) y ANTES de la voz. Por cada persona elegida:
  *
@@ -45,6 +48,14 @@ function argumentos() {
     else args[clave] = true
   }
   return args
+}
+
+async function leerJsonSiExiste(ruta) {
+  try {
+    return JSON.parse(await readFile(ruta, 'utf8'))
+  } catch {
+    return null
+  }
 }
 
 /** El lunes de la semana de cualquier fecha, como hace `revision-semanal`. */
@@ -144,15 +155,26 @@ async function main() {
       continue
     }
     console.log(`${nombre}:`)
+    // REUTILIZAR LO YA REDACTADO (decisión de Bryan del 12-sep: adelantar las largas antes del
+    // jueves). Si esta semana ya tiene su redacción entregada, no se le vuelve a pedir al modelo:
+    // un texto nuevo cambiaría el guion, y la voz se grabaría otra vez desde cero, que es justo
+    // lo que se adelantó. `--rehacer` fuerza a redactar de nuevo.
+    const rutaInforme = join(trabajo, `${slugDe(nombre)}.redaccion.json`)
+    const previo = args.rehacer ? null : await leerJsonSiExiste(rutaInforme)
     let informe
-    try {
-      informe = redactarUna(ficha, { carpetaTemporal: trabajo })
-    } catch (e) {
-      informe = { entregada: false, intentos: [], costeTotalUsd: 0, error: String(e.message || e) }
-      console.log(`  el modelo no respondió: ${informe.error}`)
+    if (previo?.entregada && previo.texto) {
+      informe = { ...previo, costeTotalUsd: 0 }
+      console.log(`  reutilizada: ya estaba redactada (${previo.caracteres} caracteres)`)
+    } else {
+      try {
+        informe = redactarUna(ficha, { carpetaTemporal: trabajo })
+      } catch (e) {
+        informe = { entregada: false, intentos: [], costeTotalUsd: 0, error: String(e.message || e) }
+        console.log(`  el modelo no respondió: ${informe.error}`)
+      }
+      await writeFile(rutaInforme, `${JSON.stringify(informe, null, 2)}\n`, 'utf8')
     }
     coste += informe.costeTotalUsd || 0
-    await writeFile(join(trabajo, `${slugDe(nombre)}.redaccion.json`), `${JSON.stringify(informe, null, 2)}\n`, 'utf8')
     if (informe.entregada) {
       encargo.guionCorto = encargo.guion
       encargo.guion = informe.texto

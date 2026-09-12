@@ -93,6 +93,21 @@ describe('la revisión larga: el modelo escribe, las cifras las pone la plantill
   })
 })
 
+describe('una revisión no es un parte de datos', () => {
+  it('más de ocho cifras no pasa', () => {
+    const muchas: Borrador = {}
+    for (const s of SECCIONES) muchas[s] = `Hola {nombre}, {registro_pct} y {meta_registro}. ${RELLENO.repeat(2)}`
+    const r = revisarBorrador(muchas, HUECOS, { semanaMala: false })
+    expect(r.ok).toBe(false)
+    expect(r.problemas.join()).toMatch(/dice 10 cifras y el máximo es 8/)
+  })
+
+  it('el nombre no cuenta como cifra', () => {
+    const r = revisarBorrador(borrador(), HUECOS, { semanaMala: false })
+    expect(r.ok).toBe(true)
+  })
+})
+
 describe('qué es una semana mala', () => {
   it('un eje ilegible o sin dato la hace mala', () => {
     expect(esSemanaMala([{ estado: 'medido', desvio_pct: 5 }, { estado: 'ilegible' }])).toBe(true)

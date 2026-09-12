@@ -12,6 +12,7 @@
 
 import { spawnSync } from 'node:child_process'
 import process from 'node:process'
+import { contextoSinCifras, microciclosEnPalabras } from '../../src/domain/redaccion/contexto.ts'
 import { esSemanaMala, LARGO_MAXIMO, LARGO_MINIMO, revisarBorrador } from '../../src/domain/redaccion/huecos.ts'
 
 export const INTENTOS = 3
@@ -50,8 +51,12 @@ export function huecosDeLaFicha(ficha) {
     const unidad = e.unidad || ''
     const que = QUE_MIDE[base] || base
     // La ventana es la del ÚLTIMO MICROCICLO CERRADO, no la semana en curso: el 12-sep el
-    // modelo dijo «esta semana completaste el 20 %» con el dato del M21.
-    const cuando = e.ventana ? `del microciclo cerrado (${e.ventana}), NO de esta semana en curso` : ''
+    // modelo dijo «esta semana completaste el 20 %» con el dato del M21. Y va EN PALABRAS: con
+    // «(M23)» escrito aquí, el modelo decía «el M23» y el filtro le tumbaba el borrador por
+    // escribir una cifra que le habíamos puesto nosotros delante.
+    const cuando = e.ventana
+      ? `de ${microciclosEnPalabras(e.ventana, ficha.microciclo_activo ?? null)}, ya cerrado, NO de esta semana en curso`
+      : ''
     if (e.estado === 'medido' && typeof e.valor === 'number') {
       let valor
       if (base === 'cargas') {
@@ -109,6 +114,11 @@ export function sistema() {
     '8. Un dato «que la app todavía no lee» NO es un dato que la persona no registre: nunca se lo reproches ni le pidas que lo anote.',
     '9. Los números son del MICROCICLO ANTERIOR, ya cerrado: dilos como «el microciclo pasado», nunca como «esta semana».',
     '10. No leas en voz alta las descripciones de los huecos: di la idea con tus palabras y pon solo el hueco donde va la cifra.',
+    '11. «Los dos», «las dos» o «las dos cosas» cuentan como cantidad: di «ambos» o «ambas».',
+    '12. No nombres un microciclo por su número: di «el microciclo pasado», «este microciclo» o «el siguiente».',
+    '13. Como mucho OCHO cifras en toda la revisión: elige las que de verdad importan y el resto dilo sin cantidad («casi todas», «muy poco»).',
+    '14. No leas el número de una regla: di lo que manda la regla.',
+    '15. Háblale de tú, como se habla en Colombia; nunca «vosotros». No prometas nada que no esté en el contexto (ni fechas, ni que vas a estar).',
     '',
     'Devuelve SOLO un objeto JSON, sin texto alrededor, con estas cinco claves en este orden:',
     '  "semana": lo más importante que pasó esta semana (qué estás haciendo);',
@@ -121,6 +131,32 @@ export function sistema() {
   ].join('\n')
 }
 
+/**
+ * El contexto de la ficha SIN UNA CIFRA a la vista: los microciclos en palabras y cada número
+ * convertido en un hueco con su valor (`src/domain/redaccion/contexto.ts`). Devuelve las líneas
+ * que lee el modelo y los huecos nuevos, que `revisarBorrador` tiene que conocer.
+ */
+export function contextoDeLaFicha(ficha, contextoCoach = '') {
+  const activo = ficha.microciclo_activo ?? null
+  const huecos = {}
+  const limpio = (texto, prefijo, significa) => {
+    const r = contextoSinCifras(String(texto), prefijo, significa, activo)
+    Object.assign(huecos, r.huecos)
+    return r.texto
+  }
+  const plan = ficha.plan || {}
+  const lineas = [
+    `  métrica principal de su plan: ${plan.metrica_principal ? limpio(plan.metrica_principal, 'metrica', 'cifra de la métrica principal de su plan') : 'su plan no la declara'}`,
+    `  fila de su plan para esta semana: ${plan.fila_vigente ? limpio(plan.fila_vigente, 'plan_esta_semana', 'cifra de lo que pide su plan para esta semana') : 'no hay'}`,
+    `  fila de su plan para la semana que viene: ${plan.fila_siguiente ? limpio(plan.fila_siguiente, 'plan_proxima_semana', 'cifra de lo que pide su plan para la semana que viene') : 'su plan no tiene fila: se le acaba el plan'}`,
+    ...(plan.reglas || []).map((r, i) => `  regla vigente de su plan: ${limpio(r, `regla_${i + 1}`, 'cifra de una regla vigente de su plan')}`),
+    ...(ficha.ejes || []).map((e) => `  eje ${e.eje}: ${e.estado}${e.motivo ? ` · ${limpio(e.motivo, `motivo_${e.eje}`, `cifra del motivo del eje ${e.eje}`)}` : ''}`),
+    ...(ficha.avisos || []).map((a, i) => `  aviso: ${limpio(a, `aviso_${i + 1}`, 'cifra de un aviso de la ficha')}`),
+  ]
+  const coach = contextoCoach ? limpio(contextoCoach.trim(), 'coach', 'cifra de lo que escribió el coach') : ''
+  return { lineas, huecos, coach }
+}
+
 export function mensaje(ficha, huecos, semanaMala, contexto, ejemplos, problemas) {
   const lineas = [
     `semana_mala: ${semanaMala}`,
@@ -128,16 +164,15 @@ export function mensaje(ficha, huecos, semanaMala, contexto, ejemplos, problemas
     'HUECOS (lo único que puedes nombrar con cantidades):',
     ...Object.entries(huecos).map(([k, h]) => `  {${k}} = ${h.valor === undefined ? 'SIN DATO' : 'con dato'} · ${h.significa}`),
     '',
-    'CONTEXTO (para entender; NO copies sus cifras):',
-    `  métrica principal de su plan: ${ficha.plan?.metrica_principal || 'su plan no la declara'}`,
-    `  fila de su plan para esta semana: ${ficha.plan?.fila_vigente || 'no hay'}`,
-    `  fila de su plan para la semana que viene: ${ficha.plan?.fila_siguiente || 'su plan no tiene fila: se le acaba el plan'}`,
-    ...(ficha.plan?.reglas || []).map((r) => `  regla vigente de su plan: ${r}`),
-    ...(ficha.ejes || []).map((e) => `  eje ${e.eje}: ${e.estado}${e.motivo ? ` · ${e.motivo}` : ''}`),
-    ...(ficha.avisos || []).map((a) => `  aviso: ${a}`),
+    'CONTEXTO (para entender; las cantidades ya están en sus huecos):',
+    ...contexto.lineas,
   ]
-  if (contexto) lineas.push('', 'MÁS CONTEXTO DEL COACH:', contexto.trim())
-  if (ejemplos) lineas.push('', 'ASÍ LE HABLA BRYAN (copia el tono, no el contenido):', ejemplos.trim())
+  if (contexto.coach) lineas.push('', 'MÁS CONTEXTO DEL COACH:', contexto.coach)
+  // Los ejemplos son solo de TONO: sus cifras no son de esta persona, así que ni se muestran
+  // ni se convierten en huecos que el modelo pudiera citar.
+  if (ejemplos) {
+    lineas.push('', 'ASÍ LE HABLA BRYAN (copia el tono, no el contenido):', microciclosEnPalabras(ejemplos.trim(), null).replace(/\d+(?:[.,]\d+)?/g, '…'))
+  }
   if (problemas?.length) {
     lineas.push('', 'TU BORRADOR ANTERIOR NO PASÓ. Corrige exactamente esto y devuelve el JSON entero otra vez:')
     for (const p of problemas) lineas.push(`  - ${p}`)
@@ -171,7 +206,8 @@ function llamarAlModelo(sistemaTexto, mensajeTexto, modelo, carpetaTemporal) {
  * `entregada: false` con los problemas de cada intento, y quien llama decide qué sale.
  */
 export function redactarUna(ficha, { contexto = '', ejemplos = '', modelo = 'sonnet', carpetaTemporal = '.', log = console.log } = {}) {
-  const huecos = huecosDeLaFicha(ficha)
+  const contextoLimpio = contextoDeLaFicha(ficha, contexto)
+  const huecos = { ...contextoLimpio.huecos, ...huecosDeLaFicha(ficha) }
   const semanaMala = esSemanaMala(ficha.ejes || [], ficha.avisos || [])
   const sistemaTexto = sistema()
   const intentos = []
@@ -180,7 +216,7 @@ export function redactarUna(ficha, { contexto = '', ejemplos = '', modelo = 'son
 
   for (let n = 1; n <= INTENTOS; n++) {
     const { borrador, coste, bruto } = llamarAlModelo(
-      sistemaTexto, mensaje(ficha, huecos, semanaMala, contexto, ejemplos, problemas), modelo, carpetaTemporal,
+      sistemaTexto, mensaje(ficha, huecos, semanaMala, contextoLimpio, ejemplos, problemas), modelo, carpetaTemporal,
     )
     const revision = revisarBorrador(borrador, huecos, { semanaMala })
     if (!Object.keys(borrador).length) revision.problemas.unshift('la respuesta no era un JSON con las cinco secciones')
