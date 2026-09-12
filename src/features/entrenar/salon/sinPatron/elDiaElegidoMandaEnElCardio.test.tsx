@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
@@ -82,6 +82,10 @@ async function viajarA(nombreDeSesion: string) {
     .find((b) => (b.textContent ?? '').toUpperCase().includes(nombreDeSesion))
   expect(fila, `el tambor no ofrece ${nombreDeSesion}`).toBeDefined()
   await usuario.click(fila!)
+  // PULSAR NO ES HABER LLEGADO, y aquí no hay una sola señal fiable de que se llegó: el
+  // tambor NO se cierra al elegir —se probó a esperar a que desapareciera y las cuatro
+  // pruebas murieron por timeout—. Así que quien espera es cada aserción, que es además
+  // lo correcto: lo que hay que esperar no es el viaje, es lo que el día nuevo pinta.
 }
 
 describe('el día elegido manda también en el cardio', () => {
@@ -123,10 +127,13 @@ describe('el día elegido manda también en el cardio', () => {
     await viajarA(metabolica.nombre)
 
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
-    const estaciones = Array.from(salon.querySelectorAll('[data-estacion]'))
-    expect(estaciones.length, 'el día de cardio se quedó sin estaciones').toBeGreaterThan(0)
-    const minutos = salon.querySelector('[data-estacion="minutos"]')
-    expect(minutos?.textContent).toContain('30')
+    // Se ESPERA a que el día nuevo pinte sus estaciones. El salón las monta en un efecto
+    // posterior al viaje, así que mirarlas de golpe es mirar el día que ya no es.
+    await waitFor(() => {
+      const estaciones = Array.from(salon.querySelectorAll('[data-estacion]'))
+      expect(estaciones.length, 'el día de cardio se quedó sin estaciones').toBeGreaterThan(0)
+      expect(salon.querySelector('[data-estacion="minutos"]')?.textContent).toContain('30')
+    })
   })
 
   it('y el muro dice de qué sala es y qué se hace en ella', async () => {
@@ -139,6 +146,14 @@ describe('el día elegido manda también en el cardio', () => {
     await viajarA(metabolica.nombre)
 
     const salon = document.querySelector('[data-salon="entrenar"]') as HTMLElement
+    // El tablón del muro ENTRA con animación y se monta después del viaje: hay que
+    // esperarlo. Es la misma trampa que ya está anotada para fotografiar el muro.
+    await waitFor(() => {
+      expect(
+        salon.querySelector('[data-campo="nombre"] [aria-label]'),
+        'el muro se quedó sin nombre',
+      ).not.toBeNull()
+    })
     const nombre = salon.querySelector('[data-campo="nombre"] [aria-label]')
     // Se lee del `aria-label` y no del texto: el rótulo en trazo pinta cada letra TRES
     // veces —el trazo y sus dos ecos, que son los que le dan el canto—, así que su

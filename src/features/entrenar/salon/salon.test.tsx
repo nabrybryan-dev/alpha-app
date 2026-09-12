@@ -175,7 +175,15 @@ describe('/entrenar es el salón', () => {
     const salon = await esperarAlSalon()
     // Primero, que el centro esté de verdad SIN sujeto: si el salón no hubiera llegado a
     // montar el centro, lo de abajo saldría verde por la razón equivocada.
-    expect(salon.querySelector('[data-hueco="sinPatron"]')).not.toBeNull()
+    //
+    // SE ESPERA, NO SE MIRA DE GOLPE. `esperarAlSalon` solo garantiza el CONTENEDOR
+    // (`[data-salon]`); el centro llega después, cuando el `React.lazy` del módulo del
+    // salón termina de bajar. Mirarlo en el mismo tick daba rojo en CI —donde la suite
+    // corre con cobertura y ocho procesos a la vez— y verde en local, que es el peor de
+    // los dos mundos: el guardián se cae por lentitud y parece un fallo de la app.
+    await waitFor(() => {
+      expect(salon.querySelector('[data-hueco="sinPatron"]')).not.toBeNull()
+    })
     expect(salon.querySelector('canvas'), 'se montó un visor donde no hay patrón').toBeNull()
 
     // Y entonces no hay escalera. Ni suelta: ni un solo peldaño por el salón.
