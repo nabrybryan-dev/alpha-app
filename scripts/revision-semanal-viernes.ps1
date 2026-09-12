@@ -38,10 +38,23 @@ param(
   # Donde se escribe el registro de lo que paso.
   [string]$Registro = "$env:USERPROFILE\.alpha\registros",
   # No traerse el codigo nuevo antes de correr. Para probar con lo que hay delante.
-  [switch]$SinActualizar
+  [switch]$SinActualizar,
+  # Saltarse la cara y publicar solo la voz. Para una semana con prisa o con Kaggle caido.
+  [switch]$SinCara
 )
 
-$ErrorActionPreference = 'Stop'
+# ============================================================================
+# POR QUE 'Continue' Y NO 'Stop', QUE ES LO QUE PARECE MAS SEGURO
+# ============================================================================
+# Con 'Stop', PowerShell convierte en error MORTAL cualquier cosa que un programa externo
+# escriba por el canal de errores -aunque sea un aviso inofensivo-. El generador de voz
+# imprime "UserWarning: pkg_resources is deprecated" al cargar el modelo, y eso bastaba
+# para tumbar la cadena entera en el paso 2, con un mensaje que habla de setuptools y no
+# menciona ni la voz ni la revision. Medido el 12-sep en un ensayo.
+#
+# No se pierde seguridad: cada paso comprueba su propio `$LASTEXITCODE` justo despues y
+# para con un motivo escrito. Esa es la red de verdad; 'Stop' solo anadia falsos positivos.
+$ErrorActionPreference = 'Continue'
 $repo = Split-Path -Parent $PSScriptRoot
 
 function Apunta($texto) {
@@ -157,16 +170,35 @@ try {
     exit 1
   }
 
-  # ---------- 2.5 LA CARA, cuando haya donde ----------
-  # Este paso NO corre aqui y no es un olvido: el doblaje de labios pide una tarjeta
-  # NVIDIA y la de este portatil es AMD. Vive en `dev/cara-alpha/render_avatar.py`, que
-  # deja un `<uuid>.mp4` al lado de cada `<uuid>.mp3` en esta misma carpeta.
+  $manifiesto = Join-Path $carpeta 'manifiesto.json'
+  $manifiestoCuantos = if (Test-Path $manifiesto) {
+    ((Get-Content $manifiesto -Raw | ConvertFrom-Json).encargos).Count
+  } else { 0 }
+
+  # ---------- 2.5 LA CARA ----------
+  # El doblaje de labios pide una tarjeta NVIDIA y la de este portatil es AMD, asi que
+  # este paso ocurre FUERA: sube los audios a Kaggle, lanza el cuaderno, recoge los mp4
+  # y BORRA los audios de alli. Medido el 12-sep: 142 s por video, ~1 h 15 la tanda de 22.
   #
-  # No hace falta tocar nada de aqui para que la cara salga: el paso 3 publica el mp4
-  # cuando existe y el mp3 cuando no (`archivoDeLaRevision`). O sea que un viernes sin
-  # GPU es un viernes con voz, no un viernes sin revision.
+  # NO PARA LA CADENA SI FALLA, y es la decision mas importante de este paso: el paso 3
+  # publica el mp4 cuando existe y el mp3 cuando no. Un viernes sin cara es un viernes
+  # con voz, no un viernes sin revision. Se anota lo que paso y se sigue.
+  if (-not $SinCara) {
+    $lanzador = 'C:\Users\ASUS\dev\cara-alpha\lanzar_en_kaggle.py'
+    $pythonCara = 'F:\cara-gpu\venv311\Scripts\python.exe'
+    if ((Test-Path $lanzador) -and (Test-Path $pythonCara)) {
+      Apunta "paso 2.5: la cara, en Kaggle (esto tarda ~1 h 15)"
+      & $pythonCara $lanzador $carpeta 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+      if ($LASTEXITCODE -ne 0) {
+        Apunta "la cara no salio (codigo $LASTEXITCODE). SIGO: se publicara la voz."
+      }
+    } else {
+      Apunta "no encuentro el lanzador de la cara. SIGO: se publicara la voz."
+    }
+  }
+
   $caras = @(Get-ChildItem -Path $carpeta -Filter *.mp4 -ErrorAction SilentlyContinue)
-  Apunta ("caras en la carpeta: {0}" -f $caras.Count)
+  Apunta ("caras en la carpeta: {0} de {1}" -f $caras.Count, $manifiestoCuantos)
 
   # ---------- 3. publicar, sin firmar ----------
   if ($Ensayo) {
