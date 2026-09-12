@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import { db, hoyIso } from '../../../../data/dbInstance'
+import { db } from '../../../../data/dbInstance'
 import { cargaPorGrupo } from '../../../../domain/fatiga'
 import { notasDelMicrociclo } from '../../../../domain/notasDeLaSemana'
 import { requisitosParaPeldano } from '../../../../domain/nivelesAlfa'
@@ -43,7 +43,24 @@ function montarEnUnDiaDeFuerza() {
   const usuario = db.usuarios.byId('u-valentina')!
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')!
   const sesion = microciclo.sesiones.find((s) => s.ejercicios.length > 0)!
-  const hoy = hoyIso()
+  // LA FECHA VA CLAVADA, Y ES LA PARTE IMPORTANTE DE ESTE MONTAJE.
+  //
+  // Con `hoyIso()` esta prueba dependía del calendario y fallaba UN día de cada siete. El
+  // seed reparte LEG A · UPPER A · LEG B · UPPER B · FULL C · METABÓLICO A · descanso, así
+  // que **el sábado el día metabólico ES hoy** — y el tambor, al elegir hoy, pone el día
+  // en «ninguno» a propósito (`setDiaElegido(esHoy ? null : i)`): volver a hoy es dejar de
+  // viajar. Entonces el salón cae en la sesión del prop `sesion`, que aquí es una de
+  // FUERZA, y la prueba veía «HIP THRUST CON BARRA» donde esperaba «CARRERA».
+  //
+  // Eso NO es un fallo de la app: en la app real el prop `sesion` es la de hoy, así que
+  // volver a hoy enseña hoy. El fallo era del montaje, que le daba a la vez una semana
+  // real y una sesión que no le correspondía.
+  //
+  // Se arregla fijando el escenario, no invirtiendo el criterio: un LUNES, que en este
+  // seed es día de fuerza, así que el metabólico nunca es «hoy» y viajar a él es viajar de
+  // verdad. Es la misma lección que ya está escrita en `salon.test.tsx`: un test que
+  // depende del calendario no prueba lo que dice.
+  const hoy = '2026-09-07'
   const datos: DatosRuta = {
     microcicloNumero: microciclo.numero,
     sesionesRegistradas: 0,
