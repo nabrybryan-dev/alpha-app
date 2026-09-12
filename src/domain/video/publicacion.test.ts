@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   archivoDeLaRevision,
+  revisionesPorFirmar,
   FORMATOS,
   tipoDelMedio,
   contentTypeDelMedio,
@@ -233,5 +234,57 @@ describe('archivoDeLaRevision', () => {
 
   it('sin nada suyo en la carpeta, no inventa un archivo', () => {
     expect(archivoDeLaRevision(['manifiesto.json'], ID)).toBeUndefined()
+  })
+})
+
+describe('revisionesPorFirmar', () => {
+  const base = {
+    semana: '2026-09-07',
+    path: 'personas/x/2026-09-07.mp3',
+    tipo: 'audio' as const,
+    guion: 'Hola, esta semana moviste 100 kilos.',
+    aprobadoEn: null,
+  }
+
+  it('ofrece las que están sin firmar', () => {
+    const r = revisionesPorFirmar([
+      { ...base, usuarioId: 'a', nombre: 'Ana' },
+      { ...base, usuarioId: 'b', nombre: 'Bruno' },
+    ])
+    expect(r.ofrecer.map((x) => x.nombre)).toEqual(['Ana', 'Bruno'])
+    expect(r.yaFirmadas).toBe(0)
+  })
+
+  it('NO vuelve a ofrecer lo ya firmado', () => {
+    const r = revisionesPorFirmar([
+      { ...base, usuarioId: 'a', nombre: 'Ana', aprobadoEn: '2026-09-11T20:00:00Z' },
+      { ...base, usuarioId: 'b', nombre: 'Bruno' },
+    ])
+    expect(r.ofrecer.map((x) => x.nombre)).toEqual(['Bruno'])
+    expect(r.yaFirmadas).toBe(1)
+  })
+
+  it('aparta las que no traen guion, en vez de ofrecerlas a ciegas', () => {
+    const r = revisionesPorFirmar([
+      { ...base, usuarioId: 'a', nombre: 'Ana', guion: null },
+      { ...base, usuarioId: 'b', nombre: 'Bruno', guion: '   ' },
+      { ...base, usuarioId: 'c', nombre: 'Carla' },
+    ])
+    expect(r.ofrecer.map((x) => x.nombre)).toEqual(['Carla'])
+    expect(r.sinGuion.map((x) => x.nombre)).toEqual(['Ana', 'Bruno'])
+  })
+
+  it('pregunta siempre en el mismo orden, y respeta los acentos', () => {
+    const r = revisionesPorFirmar([
+      { ...base, usuarioId: 'c', nombre: 'Óscar' },
+      { ...base, usuarioId: 'a', nombre: 'Ana' },
+      { ...base, usuarioId: 'b', nombre: 'Nuria' },
+    ])
+    expect(r.ofrecer.map((x) => x.nombre)).toEqual(['Ana', 'Nuria', 'Óscar'])
+  })
+
+  it('sin nombre se ordena por su identificador, y no se cae', () => {
+    const r = revisionesPorFirmar([{ ...base, usuarioId: 'zzz' }, { ...base, usuarioId: 'aaa' }])
+    expect(r.ofrecer.map((x) => x.usuarioId)).toEqual(['aaa', 'zzz'])
   })
 })

@@ -227,3 +227,44 @@ export function archivoDeLaRevision(
 
   return candidatos.find(({ tipo }) => tipo === 'video') ?? candidatos[0]
 }
+
+/**
+ * LA FIRMA: qué revisiones se le pueden poner delante a quien firma, y en qué orden.
+ *
+ * Nace de un agujero que encontró Bryan usándolo: la cadena publicaba, la regla de la base
+ * escondía lo no firmado… y **no había dónde firmar**. Veintidós revisiones publicadas
+ * esperando una acción que no existía en ninguna pantalla ni en ningún comando.
+ *
+ * Esto NO firma: decide qué se ofrece. Firmar es un acto humano y sigue necesitando que
+ * alguien diga que sí, una por una.
+ *
+ * Dos reglas y las dos vienen de lo mismo —que la firma significa «yo se lo dije»—:
+ *
+ * · **Lo ya firmado no se vuelve a ofrecer.** Volver a preguntar por algo aprobado invita a
+ *   pulsar por inercia, y una segunda firma no añade nada.
+ * · **Sin guion no se ofrece.** Si la fila no trae el texto, quien firma no puede saber qué
+ *   va a oír esa persona, y entonces la firma no es una revisión: es un trámite.
+ */
+export interface RevisionParaFirmar {
+  usuarioId: string
+  nombre?: string
+  semana: string
+  path: string
+  tipo: 'audio' | 'video'
+  guion: string | null
+  aprobadoEn: string | null
+}
+
+export function revisionesPorFirmar(
+  filas: readonly RevisionParaFirmar[],
+): { ofrecer: RevisionParaFirmar[]; yaFirmadas: number; sinGuion: RevisionParaFirmar[] } {
+  const yaFirmadas = filas.filter((f) => f.aprobadoEn !== null).length
+  const pendientes = filas.filter((f) => f.aprobadoEn === null)
+  const sinGuion = pendientes.filter((f) => !f.guion || !f.guion.trim())
+  const ofrecer = pendientes
+    .filter((f) => f.guion && f.guion.trim())
+    // Por nombre, para que dos corridas seguidas pregunten en el mismo orden: quien firma
+    // se acostumbra al orden y nota si falta alguien.
+    .sort((a, b) => (a.nombre ?? a.usuarioId).localeCompare(b.nombre ?? b.usuarioId, 'es'))
+  return { ofrecer, yaFirmadas, sinGuion }
+}
