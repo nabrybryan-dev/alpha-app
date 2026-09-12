@@ -139,7 +139,17 @@ describe('la medida del asesorado viaja sola', () => {
     expect(fundidas[0].datos).toMatchObject({ medidas: [conOcho] })
 
     // Y en el almacén local, que es de donde lee la pantalla.
-    expect(db.perfiles.byUsuario(ASESORADA)?.medidas.at(-1)?.cuerpo).toEqual(cuerpo)
+    //
+    // SE BUSCA POR SU FECHA, NO POR `at(-1)`. El almacén ordena las medidas por fecha, así
+    // que «la última» solo es la nuestra mientras no exista ninguna posterior — y esa es
+    // una suposición sobre el calendario, no sobre lo que se quiere probar. Con la fecha
+    // clavada en 2026-09-08, cualquier medida con fecha posterior la desplazaba y el
+    // `?.cuerpo` salía `undefined`: el test fallaba diciendo que se perdieron las ocho
+    // medidas cuando lo único que pasaba es que miraba la fila equivocada. Es el mismo
+    // fallo de calendario que ya está anotado en `salon.test.tsx`.
+    const guardada = db.perfiles.byUsuario(ASESORADA)?.medidas.find((m) => m.fecha === conOcho.fecha)
+    expect(guardada, 'la medida que acabamos de registrar no está en el almacén').toBeDefined()
+    expect(guardada?.cuerpo).toEqual(cuerpo)
   })
 
   it('el coach sigue subiendo la ficha entera, con su columna', async () => {
