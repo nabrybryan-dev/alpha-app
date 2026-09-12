@@ -1416,4 +1416,19 @@ select '0072 - el primer respaldo que cumplio', 'respaldo_perfiles_notas_2026090
                       or obj_description(c.oid) !~ 'caduca [0-9]{4}-[0-9]{2}-[0-9]{2}'))
        then 'SI' else 'NO' end
 
+union all
+-- La 0073: la tasa contra el plan se exporta por rpc para la revision semanal larga. Lo que
+-- se pide NO es solo que la funcion exista: que no la pueda ejecutar ni anon ni authenticated,
+-- porque devuelve registro, pesos y perimetros de TODA la cartera. En Postgres una funcion
+-- nueva nace ejecutable por PUBLIC, y olvidar el revoke no da ningun error. El orden del case
+-- importa: preguntar privilegios sobre una funcion que no existe revienta en vez de decir NO.
+select '0073 - la tasa contra el plan se exporta', 'la funcion existe, es de solo lectura y solo la ejecuta service_role',
+       case when to_regprocedure('public.tasa_contra_el_plan_export()') is null then 'NO'
+            when has_function_privilege('anon', 'public.tasa_contra_el_plan_export()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.tasa_contra_el_plan_export()', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.tasa_contra_el_plan_export()', 'execute') then 'NO'
+            when (select p.provolatile from pg_proc p
+                   where p.oid = to_regprocedure('public.tasa_contra_el_plan_export()')) <> 's' then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

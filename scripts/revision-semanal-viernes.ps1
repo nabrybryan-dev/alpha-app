@@ -40,7 +40,19 @@ param(
   # No traerse el codigo nuevo antes de correr. Para probar con lo que hay delante.
   [switch]$SinActualizar,
   # Saltarse la cara y publicar solo la voz. Para una semana con prisa o con Kaggle caido.
-  [switch]$SinCara
+  [switch]$SinCara,
+  # QUE PARTE DE LA CADENA SE CORRE. La revision larga (decision de Bryan, 12-sep: 2-3 min por
+  # persona) no cabe en una sola tarea de 4 h: la voz pasa a ~3 h y la cara a ~4 h en Kaggle.
+  #   completa : todo seguido, como siempre (la revision corta de 15 s cabe).
+  #   noche    : jueves. Guiones, revision larga, voz, y LANZAR la cara sin esperarla.
+  #   manana   : viernes. RECOGER la cara y publicar sin firmar.
+  [ValidateSet('completa', 'noche', 'manana')]
+  [string]$Fase = 'completa',
+  # La lista de quien lleva revision larga: un nombre por linea, tal cual esta en la app.
+  # Si el archivo no existe, todos salen con la corta.
+  [string]$Larga = "$env:USERPROFILE\.alpha\revision-larga.txt",
+  # Donde vive cerebro-alpha-agentes con `agentes/tasa_contra_el_plan.py` y los planes.
+  [string]$Cerebro = 'C:\Users\ASUS\dev\cerebro-alpha-tasa'
 )
 
 # ============================================================================
@@ -148,29 +160,53 @@ Apunta "semana del $lunes -> $carpeta"
 
 Push-Location $repo
 try {
-  # ---------- 1. los guiones ----------
-  Apunta "paso 1: guiones"
-  & npm run revision-semanal -- --paso guiones --semana $lunes 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
-  if ($LASTEXITCODE -ne 0) { Apunta "PARO en el paso 1 (codigo $LASTEXITCODE)"; exit 1 }
-
-  # ---------- 2. la voz ----------
-  # Aqui esta la hora larga de maquina. El generador se salta los audios que ya existen,
-  # asi que si esto se corta a la mitad, volver a lanzarlo NO repite lo hecho.
-  Apunta "paso 2: la voz (esto tarda ~40 min)"
-  $python = Join-Path $Voz '.venv\Scripts\python.exe'
-  $generador = Join-Path $Voz 'generar_revisiones.py'
-  if (-not (Test-Path $python))    { Apunta "PARO: no esta el Python de la voz en $python"; exit 1 }
-  if (-not (Test-Path $generador)) { Apunta "PARO: no esta el generador en $generador"; exit 1 }
-
-  & $python $generador $carpeta 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
-  if ($LASTEXITCODE -ne 0) {
-    # El generador devuelve error cuando alguna revision salio CORTA. Eso no se publica a
-    # medias: media revision son justo los numeros que faltan.
-    Apunta "PARO en el paso 2 (codigo $LASTEXITCODE): alguna voz salio corta. No se publica nada."
-    exit 1
-  }
-
   $manifiesto = Join-Path $carpeta 'manifiesto.json'
+
+  if ($Fase -eq 'manana') {
+    # La fase de la manana NO rehace nada: guiones, revision larga y voz ya ocurrieron el
+    # jueves por la noche. Si no hay manifiesto, la noche no corrio, y publicar a ciegas seria
+    # publicar la semana de otro dia.
+    if (-not (Test-Path $manifiesto)) {
+      Apunta "PARO: no hay manifiesto en $carpeta. La fase de la noche no corrio."
+      exit 1
+    }
+    Apunta "fase manana: se recoge la cara y se publica"
+  } else {
+    # ---------- 1. los guiones ----------
+    Apunta "paso 1: guiones"
+    & npm run revision-semanal -- --paso guiones --semana $lunes 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    if ($LASTEXITCODE -ne 0) { Apunta "PARO en el paso 1 (codigo $LASTEXITCODE)"; exit 1 }
+
+    # ---------- 1.5 la revision larga ----------
+    # Para los elegidos en $Larga: la tasa contra su plan, redactada por un modelo con las
+    # cifras en huecos. NO PARA LA CADENA SI FALLA: el paso 1 ya dejo la corta de todos, asi
+    # que lo peor que pasa es un viernes con la revision de siempre.
+    if (Test-Path $Larga) {
+      Apunta "paso 1.5: revision larga para los elegidos en $Larga"
+      & npm run revision-larga -- --semana $lunes --personas-archivo $Larga --cerebro $Cerebro 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+      if ($LASTEXITCODE -ne 0) { Apunta "la revision larga no salio (codigo $LASTEXITCODE). SIGO: todos con la corta." }
+    } else {
+      Apunta "sin lista de revision larga en $Larga : todos con la corta"
+    }
+
+    # ---------- 2. la voz ----------
+    # Aqui esta la hora larga de maquina (~40 min la corta, ~3 h con la larga de la mitad).
+    # El generador se salta los audios que ya existen con el mismo guion, asi que si esto se
+    # corta a la mitad, volver a lanzarlo NO repite lo hecho.
+    Apunta "paso 2: la voz"
+    $python = Join-Path $Voz '.venv\Scripts\python.exe'
+    $generador = Join-Path $Voz 'generar_revisiones.py'
+    if (-not (Test-Path $python))    { Apunta "PARO: no esta el Python de la voz en $python"; exit 1 }
+    if (-not (Test-Path $generador)) { Apunta "PARO: no esta el generador en $generador"; exit 1 }
+
+    & $python $generador $carpeta 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    if ($LASTEXITCODE -ne 0) {
+      # El generador devuelve error cuando alguna revision salio CORTA. Eso no se publica a
+      # medias: media revision son justo los numeros que faltan.
+      Apunta "PARO en el paso 2 (codigo $LASTEXITCODE): alguna voz salio corta. No se publica nada."
+      exit 1
+    }
+  }
   $manifiestoCuantos = if (Test-Path $manifiesto) {
     ((Get-Content $manifiesto -Raw | ConvertFrom-Json).encargos).Count
   } else { 0 }
@@ -187,14 +223,23 @@ try {
     $lanzador = 'C:\Users\ASUS\dev\cara-alpha\lanzar_en_kaggle.py'
     $pythonCara = 'F:\cara-gpu\venv311\Scripts\python.exe'
     if ((Test-Path $lanzador) -and (Test-Path $pythonCara)) {
-      Apunta "paso 2.5: la cara, en Kaggle (esto tarda ~1 h 15)"
-      & $pythonCara $lanzador $carpeta 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+      # Tres formas segun la fase. De noche se LANZA y se sale: la larga tarda ~4 h y en este
+      # equipo un proceso que espera en segundo plano muere por RAM. De manana se RECOGE (y
+      # se borran los audios de Kaggle). Completa, como siempre: lanza, espera y recoge.
+      $modoCara = switch ($Fase) { 'noche' { @('--sin-esperar') } 'manana' { @('--solo-recoger') } default { @() } }
+      Apunta ("paso 2.5: la cara, en Kaggle ({0})" -f $(if ($modoCara) { $modoCara -join ' ' } else { 'lanzar, esperar y recoger' }))
+      & $pythonCara $lanzador $carpeta @modoCara 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
       if ($LASTEXITCODE -ne 0) {
         Apunta "la cara no salio (codigo $LASTEXITCODE). SIGO: se publicara la voz."
       }
     } else {
       Apunta "no encuentro el lanzador de la cara. SIGO: se publicara la voz."
     }
+  }
+
+  if ($Fase -eq 'noche') {
+    Apunta "FASE NOCHE LISTA. La cara se recoge y se publica en la fase de la manana."
+    exit 0
   }
 
   $caras = @(Get-ChildItem -Path $carpeta -Filter *.mp4 -ErrorAction SilentlyContinue)
