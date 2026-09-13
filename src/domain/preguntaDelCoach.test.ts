@@ -74,6 +74,14 @@ describe('la pregunta pendiente del coach', () => {
     expect(preguntaPendienteDelCoach(hilo, COACH)?.texto).toBe('¿Ya retomaste?')
   })
 
+  it('una respuesta automática no cuenta como respuesta de la persona, la firme quien la firme', () => {
+    const hilo = [
+      mensaje({ deId: COACH, texto: '¿Ya retomaste?', fechaIso: '2026-09-12T20:00:00Z' }),
+      mensaje({ deId: YO, texto: 'Mensaje automático', fechaIso: '2026-09-12T21:00:00Z', origen: 'alpha' }),
+    ]
+    expect(preguntaPendienteDelCoach(hilo, COACH)?.texto).toBe('¿Ya retomaste?')
+  })
+
   it('con dos preguntas sin contestar, se enseña la más reciente', () => {
     const hilo = [
       mensaje({ deId: COACH, texto: '¿Ya retomaste?', fechaIso: '2026-09-11T20:00:00Z' }),
