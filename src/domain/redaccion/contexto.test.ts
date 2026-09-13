@@ -21,6 +21,22 @@ describe('el contexto que lee el modelo no le enseña ni una cifra', () => {
     expect(sinNombresDeHueco(r.texto)).not.toMatch(/\d/)
   })
 
+  it('un rango no es un número negativo: «4-5 sesiones» se dice «4 a 5»', () => {
+    // El 12-sep una revisión larga dijo «tu plan pide 4menos 5 sesiones»: el guion del rango
+    // se leía como el signo de la segunda cifra.
+    const r = cifrasEnHuecos('Sesiones: 4-5 · RIR 1–2 · energía −15 %', 'x', 'y')
+    expect(r.texto).toBe('Sesiones: {x_1} a {x_2} · RIR {x_3} a {x_4} · energía {x_5}')
+    expect(Object.values(r.huecos).map((h) => h.valor)).toEqual(['4', '5', '1', '2', 'menos 15 por ciento'])
+  })
+
+  it('un guion pegado a una palabra o dentro de una fecha no es un signo', () => {
+    const archivo = cifrasEnHuecos('plan-estrategico-2026-08.md', 'x', 'y')
+    expect(Object.values(archivo.huecos).some((h) => h.valor.startsWith('menos'))).toBe(false)
+    const fechas = cifrasEnHuecos('2026-08-25 → 2026-10-20', 'x', 'y')
+    expect(Object.values(fechas.huecos).some((h) => h.valor.startsWith('menos'))).toBe(false)
+    expect(fechas.texto).not.toContain(' a ')
+  })
+
   it('una letra pegada no es una unidad: «12 grupos» no son gramos', () => {
     const r = cifrasEnHuecos('12 grupos', 'x', 'y')
     expect(r.huecos.x_1.valor).toBe('12')
