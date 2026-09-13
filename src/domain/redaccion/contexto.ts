@@ -41,7 +41,16 @@ const UNIDAD_HABLADA: Record<string, string> = {
   g: 'gramos',
 }
 
-const CIFRA = /([−-]?)(\d+(?:[.,]\d+)?)(?:\s*(%|kcal|kg|cm|min|h|g)(?![a-záéíóúñ]))?/gi
+/**
+ * «4-5», «1–2»: un RANGO, que se dice «4 a 5». Sin esto el guion se leía como el signo de la
+ * segunda cifra y una revisión dijo «4menos 5 sesiones». No toca las fechas ni lo que va
+ * pegado a otro guion («2026-08-25»): el lado izquierdo no puede venir detrás de un dígito o
+ * de un guion, y el derecho no puede seguir con otro.
+ */
+const RANGO = /(?<![\d.,−-])(\d{1,3}(?:[.,]\d+)?)\s*[-–]\s*(\d{1,3}(?:[.,]\d+)?)(?![\d-])/g
+
+/** El signo solo es signo si NO va pegado a una letra o a un dígito («plan-2026», «4-5»). */
+const CIFRA = /((?<![\p{L}\p{N}])[−-])?(\d+(?:[.,]\d+)?)(?:\s*(%|kcal|kg|cm|min|h|g)(?![a-záéíóúñ]))?/giu
 
 export interface ContextoConHuecos {
   texto: string
@@ -55,7 +64,7 @@ export interface ContextoConHuecos {
 export function cifrasEnHuecos(texto: string, prefijo: string, significa: string): ContextoConHuecos {
   const huecos: Huecos = {}
   let n = 0
-  const resultado = texto.replace(CIFRA, (_trozo, signo: string, numero: string, unidad?: string) => {
+  const resultado = texto.replace(RANGO, '$1 a $2').replace(CIFRA, (_trozo, signo: string | undefined, numero: string, unidad?: string) => {
     n += 1
     const clave = `${prefijo}_${n}`
     const dicha = unidad ? ` ${UNIDAD_HABLADA[unidad.toLowerCase()]}` : ''
