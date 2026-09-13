@@ -1456,4 +1456,14 @@ select '0075 - la revision clinica que vence', 'la tabla existe con RLS, anon no
             when pg_get_functiondef(to_regprocedure('public.mesa_del_sabado()')) like '%reevaluaciones_clinicas%' then 'SI'
             else 'NO' end
 
+
+union all
+-- La 0076: el export de la tasa trae el RPE de sesion y el dolor de los check-ins. Sin ella, un
+-- plan con techo de RPE o con «cero dolor» nunca tiene desvio contra su meta.
+select '0076 - la tasa lee el rpe y el dolor', 'el export de la tasa lee testPost.rpeSesion y el dolor del check-in',
+       case when to_regprocedure('public.tasa_contra_el_plan_export()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%rpeSesion%'
+             and pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%dolores%' then 'SI'
+            else 'NO' end
+
 order by migracion, senal;

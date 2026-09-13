@@ -30,6 +30,8 @@ const QUE_MIDE = {
   cargas: 'cómo va el trabajo que mueve frente al ritmo que preveía la semana anterior',
   peso: 'hacia dónde va su peso, semana a semana',
   perimetro: 'la medida de perímetro que pide su plan',
+  rpe: 'lo dura que sintió su sesión más exigente (RPE, de 1 a 10)',
+  dolor: 'el dolor más alto que anotó en sus check-ins (de 0 a 10)',
 }
 
 /** Qué quiere decir un eje sin número. Ninguno de estos estados es culpa de la persona. */
@@ -64,6 +66,7 @@ export function huecosDeLaFicha(ficha) {
       } else if (unidad.startsWith('%')) valor = `${hablado(e.valor)} por ciento`
       else if (unidad.startsWith('kg/semana')) valor = `${hablado(e.valor)} kilos por semana`
       else if (unidad.startsWith('cm')) valor = `${hablado(e.valor)} centímetros`
+      else if (base === 'rpe' || base === 'dolor') valor = `${hablado(e.valor)} sobre 10`
       else valor = hablado(e.valor)
       huecos[`${base}_valor`] = {
         valor,
@@ -81,7 +84,9 @@ export function huecosDeLaFicha(ficha) {
         ? `${hablado(n)} kilos por semana`
         : unidad.startsWith('cm')
           ? `${hablado(n)} centímetros`
-          : `${hablado(n)} por ciento`
+          : base === 'rpe' || base === 'dolor'
+            ? `${hablado(n)} sobre 10`
+            : `${hablado(n)} por ciento`
       huecos[`${base}_meta`] = { valor: dicho, significa: `la meta que escribió su plan para ${base}` }
     }
     if (typeof e.desvio_pct === 'number') {
