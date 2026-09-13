@@ -1440,4 +1440,20 @@ select '0074 - la tasa lee las medidas del cuerpo', 'el export de la tasa lee ci
             when pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%caderasCm%' then 'SI'
             else 'NO' end
 
+
+union all
+-- La 0075: la revision clinica que vence. En riesgo medio el plan ya no se para: se programa y se
+-- le pregunta a la persona, y esta tabla guarda cuando se vuelve a mirar. Se pide lo que la hace
+-- segura, no solo que exista: RLS encendida, anon sin lectura (lleva la pregunta clinica), y que
+-- la mesa del sabado la lea. El orden del case importa: preguntar privilegios sobre una tabla que
+-- no existe revienta en vez de decir NO.
+select '0075 - la revision clinica que vence', 'la tabla existe con RLS, anon no la lee y la mesa exporta la revision abierta',
+       case when to_regclass('public.reevaluaciones_clinicas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c
+                       where c.oid = to_regclass('public.reevaluaciones_clinicas')) then 'NO'
+            when has_table_privilege('anon', 'public.reevaluaciones_clinicas', 'select') then 'NO'
+            when to_regprocedure('public.mesa_del_sabado()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.mesa_del_sabado()')) like '%reevaluaciones_clinicas%' then 'SI'
+            else 'NO' end
+
 order by migracion, senal;
