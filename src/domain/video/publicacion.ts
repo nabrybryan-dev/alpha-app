@@ -42,6 +42,11 @@ export interface VideoYaPublicado {
   path: string
   /** Cuándo se firmó. `null` o ausente = todavía no lo ha firmado nadie. */
   aprobadoEn?: string | null
+  /**
+   * Qué era: voz o cara. Solo hace falta para dejar que una cara reemplace a una voz
+   * firmada; si no consta, esa puerta no se abre.
+   */
+  tipo?: 'audio' | 'video'
 }
 
 export type MotivoDeNegarse =
@@ -63,6 +68,8 @@ export interface PublicacionAceptada {
   path: string
   tipo: 'audio' | 'video'
   reemplaza: boolean
+  /** La cara entra sobre una voz firmada y la firma se quita: vuelve a la bandeja. */
+  quitaFirma: boolean
 }
 
 export type DecisionDePublicar =
@@ -149,12 +156,17 @@ export function rutaDelVideo(usuarioId: string, semana: string, extension: strin
  * Si este encargo se puede publicar, y qué pasa con lo que ya hubiera.
  *
  * @param yaHay Lo que la tabla tiene para esa persona y esa semana, si hay algo.
- * @param forzar Sobrescribir aunque esté aprobado. Se pide a propósito y con la mano.
+ * @param forzar Sobrescribir aunque esté aprobado. Se pide a propósito y con la mano, y la
+ *   firma SE QUEDA.
+ * @param caraSobreVozFirmada Dejar que la CARA reemplace a una VOZ ya firmada. Entonces la
+ *   firma se quita y la revisión vuelve a la bandeja: se firmó un audio, no este vídeo
+ *   (decidido el 13-sep). Un vídeo firmado no se pisa nunca por esta puerta.
  */
 export function decidirPublicacion(
   encargo: EncargoDePublicacion,
   yaHay?: VideoYaPublicado,
   forzar = false,
+  caraSobreVozFirmada = false,
 ): DecisionDePublicar {
   if (!encargo.usuarioId.trim()) return { publica: false, motivo: 'sin-usuario' }
   if (!esLunes(encargo.semana)) return { publica: false, motivo: 'semana-no-es-lunes' }
@@ -167,15 +179,21 @@ export function decidirPublicacion(
   // se le dijo a alguien. Un vídeo sin guion guardado es un vídeo que no se puede auditar.
   if (!encargo.guion.trim()) return { publica: false, motivo: 'sin-guion' }
 
-  if (yaHay?.aprobadoEn && !forzar) return { publica: false, motivo: 'ya-aprobado' }
+  // El tipo sale de AQUI, donde la extension acaba de comprobarse, y viaja con la
+  // decision. Asi no hay forma de construir una fila con un tipo que nadie valido.
+  const tipo = tipoDelMedio(encargo.extension) as 'audio' | 'video'
+  const firmado = Boolean(yaHay?.aprobadoEn)
+  // Solo cara sobre voz, y solo si CONSTA que lo que habia era voz: sin tipo no se arriesga.
+  const quitaFirma = firmado && caraSobreVozFirmada && tipo === 'video' && yaHay?.tipo === 'audio'
+
+  if (firmado && !forzar && !quitaFirma) return { publica: false, motivo: 'ya-aprobado' }
 
   return {
     publica: true,
     path: rutaDelVideo(encargo.usuarioId, encargo.semana, encargo.extension),
-    // El tipo sale de AQUI, donde la extension acaba de comprobarse, y viaja con la
-    // decision. Asi no hay forma de construir una fila con un tipo que nadie valido.
-    tipo: tipoDelMedio(encargo.extension) as 'audio' | 'video',
+    tipo,
     reemplaza: yaHay !== undefined,
+    quitaFirma,
   }
 }
 
@@ -185,15 +203,19 @@ export function decidirPublicacion(
  * No es que se deje en `null`: es que la clave no se escribe, así que el valor lo pone la
  * base. Si mañana la columna cambia de nombre o de forma, este módulo sigue sin opinar —
  * que es justo lo que se quiere de algo que no tiene permiso para aprobar nada.
+ *
+ * La única vez que la toca es para QUITARLA (13-sep): cuando la cara reemplaza a una voz
+ * firmada, esa firma era de otro archivo y se escribe `aprobado_en: null`. Quitar no es firmar.
  */
 export function filaDelVideo(encargo: EncargoDePublicacion, decision: PublicacionAceptada) {
-  return {
+  const fila = {
     usuario_id: encargo.usuarioId,
     semana: encargo.semana,
     path: decision.path,
     guion: encargo.guion,
     tipo: decision.tipo,
   }
+  return decision.quitaFirma ? { ...fila, aprobado_en: null } : fila
 }
 
 /**

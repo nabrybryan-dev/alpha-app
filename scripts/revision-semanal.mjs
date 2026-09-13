@@ -44,6 +44,10 @@
  *                             `salidas/revision-<semana>`.
  *   --persona <uuid|correo>   hacer solo a esa persona. Para probar con uno antes de 23.
  *   --forzar                  en `publicar`, pisar una revisión ya aprobada. Con la mano.
+ *                             La firma SE QUEDA.
+ *   --cara-sobre-voz-firmada  en `publicar`, dejar que la CARA reemplace a una VOZ ya
+ *                             firmada: la firma se quita y vuelve a la bandeja. Un vídeo
+ *                             firmado no se pisa nunca con esto.
  *   --ensayo                  en `publicar`, no toca nada: dice qué haría, y no pregunta
  *                             siquiera si ya había una revisión firmada.
  *
@@ -283,6 +287,7 @@ async function pasoPublicar(args, carpeta, semana) {
   let rechazados = 0
   let conCara = 0
   let conVoz = 0
+  let vuelvenALaBandeja = 0
 
   for (const encargo of manifiesto.encargos) {
     if (soloUno && encargo.usuarioId !== soloUno) continue
@@ -311,6 +316,7 @@ async function pasoPublicar(args, carpeta, semana) {
       // revisó, y es lo que permite auditar después qué se le dijo exactamente a alguien.
       guion: encargo.guion,
       forzar: args.has('forzar'),
+      caraSobreVozFirmada: args.has('cara-sobre-voz-firmada'),
       ensayo,
     })
 
@@ -323,9 +329,11 @@ async function pasoPublicar(args, carpeta, semana) {
       rechazados += 1
       continue
     }
+    if (resultado.quitaFirma) vuelvenALaBandeja += 1
     console.log(
       `  ${quien} ${elegido.tipo === 'video' ? '(CARA)' : '(voz)'} → ${resultado.path}` +
-        `${resultado.reemplaza ? ' (reemplaza)' : ''}`,
+        `${resultado.reemplaza ? ' (reemplaza)' : ''}` +
+        `${resultado.quitaFirma ? ' · la voz estaba FIRMADA: se quita la firma y vuelve a la bandeja' : ''}`,
     )
     publicados += 1
   }
@@ -336,7 +344,8 @@ async function pasoPublicar(args, carpeta, semana) {
   // se llevaba; no se decía.
   console.log(
     `\nSemana del ${semana} · ${publicados} publicadas · ${sinAudio} sin audio · ` +
-      `${rechazados} rechazadas · con cara: ${conCara} · solo voz: ${conVoz}`,
+      `${rechazados} rechazadas · con cara: ${conCara} · solo voz: ${conVoz}` +
+      `${vuelvenALaBandeja ? ` · vuelven a la bandeja: ${vuelvenALaBandeja}` : ''}`,
   )
   if (ensayo) {
     console.log('ENSAYO: no se ha tocado nada, y no se ha preguntado si alguna estaba ya firmada.')

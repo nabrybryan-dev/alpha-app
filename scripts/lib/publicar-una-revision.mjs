@@ -11,6 +11,9 @@
  *
  * Sigue sin aprobar nada, y sigue sin poder: aquí no hay ninguna forma de
  * escribir la firma. Lo que hace que una revisión salga es la bandeja.
+ *
+ * Lo único que puede hacer con una firma es QUITARLA, y solo cuando la cara reemplaza a una
+ * voz ya firmada (13-sep): esa firma se dio a otro archivo. Quitar no es firmar.
  */
 import { readFile, stat } from 'node:fs/promises'
 import { extname, resolve } from 'node:path'
@@ -45,10 +48,12 @@ export const PORQUE = {
  * @param {string} p.semana El lunes, en AAAA-MM-DD.
  * @param {string} p.archivo Ruta del audio o vídeo ya renderizado.
  * @param {string} p.guion Lo que dice, palabra por palabra. Obligatorio.
- * @param {boolean} [p.forzar] Sobrescribir aunque ya esté aprobado.
+ * @param {boolean} [p.forzar] Sobrescribir aunque ya esté aprobado. La firma se queda.
+ * @param {boolean} [p.caraSobreVozFirmada] Dejar que la cara reemplace a una voz ya firmada:
+ *   la firma se quita y vuelve a la bandeja. Nunca pisa un vídeo firmado.
  * @param {boolean} [p.ensayo] No tocar nada: decir qué haría.
  * @returns {Promise<{publicado: boolean, ensayo?: boolean, path?: string, reemplaza?: boolean,
- *                    motivo?: string, tamanoBytes?: number}>}
+ *                    quitaFirma?: boolean, motivo?: string, tamanoBytes?: number}>}
  */
 export async function publicarUnaRevision({
   supabase,
@@ -57,6 +62,7 @@ export async function publicarUnaRevision({
   archivo,
   guion,
   forzar = false,
+  caraSobreVozFirmada = false,
   ensayo = false,
 }) {
   const ruta = resolve(process.cwd(), archivo)
@@ -70,7 +76,7 @@ export async function publicarUnaRevision({
   if (!ensayo) {
     const { data, error } = await supabase
       .from('videos_semanales')
-      .select('path, aprobado_en')
+      .select('path, aprobado_en, tipo')
       .eq('usuario_id', usuarioId)
       .eq('semana', semana)
       .maybeSingle()
@@ -79,11 +85,11 @@ export async function publicarUnaRevision({
     if (error && error.code !== 'PGRST116') {
       throw new Error(`no pude comprobar si ya había vídeo esa semana: ${error.message}`)
     }
-    if (data) yaHay = { path: data.path, aprobadoEn: data.aprobado_en ?? null }
+    if (data) yaHay = { path: data.path, aprobadoEn: data.aprobado_en ?? null, tipo: data.tipo ?? undefined }
   }
 
   const encargo = { usuarioId, semana, tamanoBytes: size, extension, guion: texto }
-  const decision = decidirPublicacion(encargo, yaHay, forzar)
+  const decision = decidirPublicacion(encargo, yaHay, forzar, caraSobreVozFirmada)
 
   if (!decision.publica) {
     return { publicado: false, motivo: decision.motivo, tamanoBytes: size }
@@ -112,5 +118,11 @@ export async function publicarUnaRevision({
   )
   if (errorFila) throw new Error(`subí el archivo pero no pude escribir la fila: ${errorFila.message}`)
 
-  return { publicado: true, path: decision.path, reemplaza: decision.reemplaza, tamanoBytes: size }
+  return {
+    publicado: true,
+    path: decision.path,
+    reemplaza: decision.reemplaza,
+    quitaFirma: decision.quitaFirma,
+    tamanoBytes: size,
+  }
 }

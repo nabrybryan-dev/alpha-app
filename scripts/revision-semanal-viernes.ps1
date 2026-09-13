@@ -298,7 +298,9 @@ try {
     & npm run revision-semanal -- --paso publicar --semana $lunes --ensayo 2>&1 | Registra
   } else {
     Apunta "paso 3: publicar (SIN aprobar)"
-    & npm run revision-semanal -- --paso publicar --semana $lunes 2>&1 | Registra
+    # --cara-sobre-voz-firmada: si el coach firmo la VOZ antes del viernes, la cara la
+    # reemplaza y la firma se QUITA (vuelve a la bandeja). Un video firmado no se pisa nunca.
+    & npm run revision-semanal -- --paso publicar --semana $lunes --cara-sobre-voz-firmada 2>&1 | Registra
     if ($LASTEXITCODE -ne 0) { Apunta "PARO en el paso 3 (codigo $LASTEXITCODE)"; exit 1 }
   }
 
