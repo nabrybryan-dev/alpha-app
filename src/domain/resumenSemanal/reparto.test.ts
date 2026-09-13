@@ -108,6 +108,21 @@ describe('el reparto de la tanda semanal', () => {
     expect(tanda.saltos[0].motivo).toBe('sin-usuario')
   })
 
+  it('a quien el coach deja fuera no le sale vídeo, aunque tenga microciclo activo', () => {
+    const otra = { ...CON_TODO, usuarioId: 'u-9', nombre: 'Ana Pérez' }
+    const tanda = repartoSemanal([CON_TODO, otra], LUNES, ['  ana   PÉREZ '])
+
+    expect(tanda.encargos.map((e) => e.usuarioId)).toEqual(['u-1'])
+    expect(tanda.saltos).toEqual([{ usuarioId: 'u-9', nombre: 'Ana Pérez', motivo: 'fuera-por-el-coach' }])
+  })
+
+  it('la lista de fuera casa también por id, y con la tilde escrita de otra forma', () => {
+    const otra = { ...CON_TODO, usuarioId: 'u-9', nombre: 'Ana Pérez' }
+    expect(repartoSemanal([otra], LUNES, ['u-9']).encargos).toEqual([])
+    expect(repartoSemanal([otra], LUNES, ['Ana Pe\u0301rez']).encargos).toEqual([])
+    expect(repartoSemanal([otra], LUNES, ['Ana']).encargos).toHaveLength(1)
+  })
+
   it('una semana que no es lunes se para AQUÍ, no veintitrés audios después', () => {
     expect(() => repartoSemanal([CON_TODO], '2026-09-13')).toThrow(/lunes/)
     expect(() => repartoSemanal([CON_TODO], 'el domingo')).toThrow(/lunes/)

@@ -176,7 +176,9 @@ async function main() {
     }
     coste += informe.costeTotalUsd || 0
     if (informe.entregada) {
-      encargo.guionCorto = encargo.guion
+      // Solo la primera vez: si esta tanda ya pasó por aquí, `guion` YA es la larga y copiarla
+      // dejaría la corta perdida.
+      if (encargo.redaccion !== 'larga') encargo.guionCorto = encargo.guion
       encargo.guion = informe.texto
       encargo.redaccion = 'larga'
       await writeFile(join(carpeta, encargo.archivoGuion), `${informe.texto}\n`, 'utf8')

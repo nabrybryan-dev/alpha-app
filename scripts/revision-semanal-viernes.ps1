@@ -51,6 +51,9 @@ param(
   # La lista de quien lleva revision larga: un nombre por linea, tal cual esta en la app.
   # Si el archivo no existe, todos salen con la corta.
   [string]$Larga = "$env:USERPROFILE\.alpha\revision-larga.txt",
+  # Quien NO recibe video aunque tenga microciclo activo (inactivos): un nombre por linea.
+  # Si el archivo no existe, sale la tanda entera.
+  [string]$Fuera = "$env:USERPROFILE\.alpha\revision-fuera.txt",
   # Donde vive cerebro-alpha-agentes con `agentes/tasa_contra_el_plan.py` y los planes.
   [string]$Cerebro = 'C:\Users\ASUS\dev\cerebro-alpha-tasa'
 )
@@ -174,7 +177,9 @@ try {
   } else {
     # ---------- 1. los guiones ----------
     Apunta "paso 1: guiones"
-    & npm run revision-semanal -- --paso guiones --semana $lunes 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    $argsGuiones = @('run', 'revision-semanal', '--', '--paso', 'guiones', '--semana', $lunes)
+    if (Test-Path $Fuera) { $argsGuiones += @('--fuera-archivo', $Fuera) }
+    & npm @argsGuiones 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
     if ($LASTEXITCODE -ne 0) { Apunta "PARO en el paso 1 (codigo $LASTEXITCODE)"; exit 1 }
 
     # ---------- 1.5 la revision larga ----------

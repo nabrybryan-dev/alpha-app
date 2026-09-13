@@ -47,6 +47,12 @@ export type MotivoDeSalto =
   | 'nada-que-decir'
   /** Llegó sin id. Nunca debería pasar, pero un encargo sin dueño no se publica. */
   | 'sin-usuario'
+  /**
+   * El coach la dejó fuera: está en la lista de `fuera`. Existe porque la tanda sale de
+   * quien tiene microciclo ACTIVO, y hay quien lo tiene y ya no entrena. Sin esto, el
+   * jueves por la noche su vídeo volvía a salir aunque se hubiera quitado a mano.
+   */
+  | 'fuera-por-el-coach'
 
 export interface Encargo {
   usuarioId: string
@@ -102,13 +108,26 @@ export function lunesDeLaSemana(iso: string): string {
 }
 
 /**
+ * Un nombre de la lista del coach contra el de la app: sin mayúsculas ni espacios de más,
+ * y con las tildes en la misma forma Unicode (una lista escrita a mano puede traer la «é»
+ * descompuesta y la base guardarla precompuesta: a la vista son iguales y no casan).
+ */
+function comparable(texto: string): string {
+  return texto.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
+}
+
+/**
  * El reparto de la tanda: quién oye qué este viernes.
  *
  * @param semana El LUNES de la semana. Cualquier otro día se rechaza aquí y no
  *   tres pasos después, cuando ya se hubieran generado veintitrés audios que el
  *   publicador va a devolver uno por uno.
  */
-export function repartoSemanal(personas: readonly PersonaDeLaTanda[], semana: string): Tanda {
+export function repartoSemanal(
+  personas: readonly PersonaDeLaTanda[],
+  semana: string,
+  fuera: readonly string[] = [],
+): Tanda {
   if (!esLunes(semana)) {
     throw new Error(
       `«${semana}» no es un lunes en AAAA-MM-DD, y la semana se guarda por su lunes. ` +
@@ -118,12 +137,18 @@ export function repartoSemanal(personas: readonly PersonaDeLaTanda[], semana: st
 
   const encargos: Encargo[] = []
   const saltos: Salto[] = []
+  const quienesFuera = new Set(fuera.map(comparable).filter(Boolean))
 
   for (const persona of personas) {
     const nombre = (persona.nombre ?? '').trim()
 
     if (!persona.usuarioId?.trim()) {
       saltos.push({ usuarioId: persona.usuarioId ?? '', nombre, motivo: 'sin-usuario' })
+      continue
+    }
+
+    if (quienesFuera.has(comparable(nombre)) || quienesFuera.has(comparable(persona.usuarioId))) {
+      saltos.push({ usuarioId: persona.usuarioId, nombre, motivo: 'fuera-por-el-coach' })
       continue
     }
 

@@ -1431,4 +1431,13 @@ select '0073 - la tasa contra el plan se exporta', 'la funcion existe, es de sol
                    where p.oid = to_regprocedure('public.tasa_contra_el_plan_export()')) <> 's' then 'NO'
             else 'SI' end
 
+
+union all
+-- La 0074: el export lee las medidas que la tarjeta guarda en `cuerpo`. Sin ella la persona se
+-- mide en la app y su revision larga sigue diciendo que no hay medida.
+select '0074 - la tasa lee las medidas del cuerpo', 'el export de la tasa lee cinturaCm y caderasCm',
+       case when to_regprocedure('public.tasa_contra_el_plan_export()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%caderasCm%' then 'SI'
+            else 'NO' end
+
 order by migracion, senal;
