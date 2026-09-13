@@ -139,7 +139,10 @@ async function pedir(consulta, que) {
  */
 async function traerLaTanda(sb, soloUno) {
   const [usuarios, microciclos, checkins, adherencias] = await Promise.all([
-    pedir(sb.from('usuarios_app').select('id, nombre, rol').eq('rol', 'asesorado'), 'los usuarios'),
+    // El rol decide los PERMISOS, no quién entrena: hay staff (nutricionista) con microciclo
+    // activo de verdad, y con `eq('rol', 'asesorado')` se quedaba sin revisión sin que nadie
+    // lo viera. La cuenta del coach sigue fuera: sus microciclos son de prueba.
+    pedir(sb.from('usuarios_app').select('id, nombre, rol').in('rol', ['asesorado', 'nutricionista']), 'los usuarios'),
     pedir(
       sb.from('microciclos').select('usuario_id, datos').eq('estado', 'activo'),
       'los microciclos',
