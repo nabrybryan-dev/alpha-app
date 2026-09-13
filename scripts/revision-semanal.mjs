@@ -74,6 +74,7 @@ const POR_QUE_SALTO = {
     'no hay ni sesiones, ni comida registrada, ni una sola noche: su revisión sería un ' +
     'hola y un adiós con la voz del coach',
   'sin-usuario': 'la fila venía sin id de persona',
+  'fuera-por-el-coach': 'el coach lo dejó fuera (está en la lista de --fuera-archivo)',
 }
 
 /** Lee `--clave=valor` y `--clave valor`, igual que el publicador. */
@@ -173,11 +174,28 @@ async function idDeLaPersona(sb, persona) {
   return encontrados[0].id
 }
 
+/**
+ * Quién se queda sin vídeo por decisión del coach: un nombre (o id) por línea, `#` comenta.
+ * Si se pidió un archivo y no está, se AVISA y se sigue con la tanda entera: una lista que
+ * falta no puede dejar a toda la cartera sin revisión.
+ */
+async function listaDeFuera(ruta) {
+  if (!ruta) return []
+  try {
+    const texto = await readFile(ruta, 'utf8')
+    return [...new Set(texto.split(/\r?\n/).map((l) => l.replace(/#.*/, '').trim()).filter(Boolean))]
+  } catch (e) {
+    console.log(`AVISO: no pude leer la lista de fuera (${ruta}): ${e.message}. Sigo sin dejar a nadie fuera.`)
+    return []
+  }
+}
+
 async function pasoGuiones(args, carpeta, semana) {
   const sb = clienteDeServicio()
   const soloUno = await idDeLaPersona(sb, texto(args, 'persona'))
   const personas = await traerLaTanda(sb, soloUno)
-  const tanda = repartoSemanal(personas, semana)
+  const fuera = await listaDeFuera(texto(args, 'fuera-archivo'))
+  const tanda = repartoSemanal(personas, semana, fuera)
 
   await mkdir(carpeta, { recursive: true })
 
