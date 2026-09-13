@@ -73,6 +73,65 @@ describe('PUBLICAR NO ES APROBAR', () => {
     const decision = decidirPublicacion(ENCARGO, { path: 'personas/x/2026-09-14.mp4', aprobadoEn: null })
     expect(decision).toMatchObject({ publica: true, reemplaza: true })
   })
+
+  it('--forzar sigue como estaba: pisa, y la firma se QUEDA', () => {
+    // Es lo que pasó el 12-sep: la cara entró sobre la voz firmada y heredó su firma.
+    const decision = decidirPublicacion(
+      ENCARGO,
+      { path: 'personas/x/2026-09-14.mp3', aprobadoEn: '2026-09-14T10:00:00Z', tipo: 'audio' },
+      true,
+    )
+    if (!decision.publica) throw new Error('forzado deberia publicarse')
+    expect(decision.quitaFirma).toBe(false)
+    expect(Object.keys(filaDelVideo(ENCARGO, decision))).not.toContain('aprobado_en')
+  })
+})
+
+/**
+ * El coach firma la VOZ de una revisión y el vídeo con su cara llega después. Forzarlo
+ * encima conservaba la firma: se emitía un vídeo que nadie había visto bajo una firma
+ * dada a un audio. Lo que se decidió (13-sep) es que la cara entre y VUELVA a la bandeja.
+ * Quitar la firma no es firmar: el publicador sigue sin poder aprobar nada.
+ */
+describe('LA CARA SOBRE UNA VOZ YA FIRMADA', () => {
+  const VOZ_FIRMADA = {
+    path: `personas/${ENCARGO.usuarioId}/2026-09-14.mp3`,
+    aprobadoEn: '2026-09-14T10:00:00Z',
+    tipo: 'audio' as const,
+  }
+
+  it('con el permiso, la cara reemplaza a la voz y la firma se quita', () => {
+    const decision = decidirPublicacion(ENCARGO, VOZ_FIRMADA, false, true)
+    expect(decision).toMatchObject({ publica: true, reemplaza: true, tipo: 'video', quitaFirma: true })
+    if (!decision.publica) return
+    expect(filaDelVideo(ENCARGO, decision)).toHaveProperty('aprobado_en', null)
+  })
+
+  it('sin el permiso, se sigue negando', () => {
+    expect(decidirPublicacion(ENCARGO, VOZ_FIRMADA)).toEqual({ publica: false, motivo: 'ya-aprobado' })
+  })
+
+  it('nunca pisa un VÍDEO firmado, aunque tenga el permiso', () => {
+    const videoFirmado = { ...VOZ_FIRMADA, path: `personas/${ENCARGO.usuarioId}/2026-09-14.mp4`, tipo: 'video' as const }
+    expect(decidirPublicacion(ENCARGO, videoFirmado, false, true)).toEqual({ publica: false, motivo: 'ya-aprobado' })
+  })
+
+  it('una voz no reemplaza a otra voz firmada con este permiso', () => {
+    const otraVoz = { ...ENCARGO, extension: 'mp3' }
+    expect(decidirPublicacion(otraVoz, VOZ_FIRMADA, false, true)).toEqual({ publica: false, motivo: 'ya-aprobado' })
+  })
+
+  it('si no consta qué tipo había, no se arriesga', () => {
+    const sinTipo = { path: VOZ_FIRMADA.path, aprobadoEn: VOZ_FIRMADA.aprobadoEn }
+    expect(decidirPublicacion(ENCARGO, sinTipo, false, true)).toEqual({ publica: false, motivo: 'ya-aprobado' })
+  })
+
+  it('sobre una voz SIN firmar no quita nada, porque no hay nada que quitar', () => {
+    const decision = decidirPublicacion(ENCARGO, { ...VOZ_FIRMADA, aprobadoEn: null }, false, true)
+    if (!decision.publica) throw new Error('una voz sin firmar se reemplaza siempre')
+    expect(decision.quitaFirma).toBe(false)
+    expect(Object.keys(filaDelVideo(ENCARGO, decision))).not.toContain('aprobado_en')
+  })
 })
 
 describe('lo que no se publica', () => {
@@ -114,12 +173,14 @@ describe('lo que no se publica', () => {
 describe('el caso normal', () => {
   it('publica, dice dónde, y avisa de que no reemplaza nada', () => {
     // El `tipo` entro el 11-sep y viaja CON la decision, no con la fila: es lo
-    // que impide construir una fila con un tipo que nadie valido.
+    // que impide construir una fila con un tipo que nadie valido. `quitaFirma`
+    // entro el 13-sep y en el caso normal es `false`: no hay firma que quitar.
     expect(decidirPublicacion(ENCARGO)).toEqual({
       publica: true,
       path: `personas/${ENCARGO.usuarioId}/2026-09-14.mp4`,
       tipo: 'video',
       reemplaza: false,
+      quitaFirma: false,
     })
   })
 })
