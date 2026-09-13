@@ -1466,4 +1466,16 @@ select '0076 - la tasa lee el rpe y el dolor', 'el export de la tasa lee testPos
              and pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%dolores%' then 'SI'
             else 'NO' end
 
+union all
+-- La 0077: el cribado vuelve a guardarse. La 0062 perdio los ::boolean de los tres parq_* y
+-- contestar_cribado() revento con 42883 para todo el mundo: cero cribados de la app en la base.
+-- Se pide el cast EN LA COMPARACION del duplicado, que es lo que la 0062 rompio (el insert sin
+-- cast tambien fallaria, pero la comparacion revienta antes), y que anon siga sin llamarla.
+select '0077 - el cribado vuelve a guardarse', 'contestar_cribado compara los parq_* como boolean y anon no la llama',
+       case when to_regprocedure('public.contestar_cribado(jsonb)') is null then 'NO'
+            when has_function_privilege('anon', 'public.contestar_cribado(jsonb)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.contestar_cribado(jsonb)'))
+                 like '%is not distinct from (p_cribado->>''parq_enfermedad_cardiaca'')::boolean%' then 'SI'
+            else 'NO' end
+
 order by migracion, senal;
