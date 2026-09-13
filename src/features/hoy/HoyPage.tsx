@@ -16,6 +16,7 @@ import {
   sesionDestacada,
 } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
+import { preguntaPendienteDelCoach } from '../../domain/preguntaDelCoach'
 import { hayBorradorDeCribado } from '../cribado/borrador'
 import { CribadoForm } from '../cribado/CribadoForm'
 import { necesitaPantallaDeSalud } from '../cribado/necesitaCribado'
@@ -31,6 +32,7 @@ import { CabeceraSemanal } from '../chat/CabeceraSemanal'
 import { remitentesDe } from '../chat/remitentes'
 import { BarraCoach } from './BarraCoach'
 import { TarjetaDeLaSemana } from './TarjetaDeLaSemana'
+import { PreguntaDelCoach } from './PreguntaDelCoach'
 import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
@@ -127,6 +129,10 @@ export default function HoyPage() {
   const equipo = remitentesDe(db.usuarios.list(), usuario.id)
   const hiloCoach = db.mensajes.hilo(usuario.id, idCoach())
   const ultimoDelCoach = [...hiloCoach].reverse().find((m) => m.deId === idCoach())
+  // La pregunta que el coach dejó y la persona no ha contestado: va debajo del vídeo
+  // (Bryan, 12-sep). De su respuesta depende si el plan sigue (riesgo escalonado).
+  const preguntaCoach = preguntaPendienteDelCoach(hiloCoach, idCoach())
+  const nombreCoach = db.usuarios.byId(idCoach())?.nombre.split(' ')[0] ?? 'Tu coach'
   // Prioridad del BLOQUE: lo que el coach marcó en PERFIL como foco de estos
   // meses. Son tres cosas distintas y conviene no confundirlas:
   //   · esto        → qué se prioriza en el bloque (etiqueta, no número)
@@ -195,6 +201,7 @@ export default function HoyPage() {
       <div className="entrada entrada-2">
         <CabeceraSemanal>
           <TarjetaDeLaSemana nombre={usuario.nombre.split(' ')[0]} resumen={resumen} />
+          {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
         </CabeceraSemanal>
       </div>
 
