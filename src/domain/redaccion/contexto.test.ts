@@ -31,9 +31,9 @@ describe('el contexto que lee el modelo no le enseña ni una cifra', () => {
 
   it('un guion pegado a una palabra o dentro de una fecha no es un signo', () => {
     const archivo = cifrasEnHuecos('plan-estrategico-2026-08.md', 'x', 'y')
-    expect(Object.values(archivo.huecos).some((h) => h.valor.startsWith('menos'))).toBe(false)
+    expect(Object.values(archivo.huecos).some((h) => (h.valor ?? '').startsWith('menos'))).toBe(false)
     const fechas = cifrasEnHuecos('2026-08-25 → 2026-10-20', 'x', 'y')
-    expect(Object.values(fechas.huecos).some((h) => h.valor.startsWith('menos'))).toBe(false)
+    expect(Object.values(fechas.huecos).some((h) => (h.valor ?? '').startsWith('menos'))).toBe(false)
     expect(fechas.texto).not.toContain(' a ')
   })
 
