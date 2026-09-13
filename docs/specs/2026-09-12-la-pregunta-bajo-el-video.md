@@ -16,13 +16,20 @@ Hasta ahora esa pregunta solo asomaba recortada en una línea dentro de «Escrí
 
 ## Cuál es «la pregunta pendiente» (`domain/preguntaDelCoach.ts`)
 
-El último mensaje del hilo con el coach, si:
+La pregunta más reciente del coach **que la persona todavía no ha contestado**, es decir,
+de entre los mensajes posteriores a la última palabra de la persona, el más reciente que:
 
-1. es **del coach** (si lo último es de la persona, ya contestó);
+1. es **del coach**;
 2. es **humano**, no una respuesta automática del Centro (`origen: 'alpha'`);
 3. **pregunta algo** (lleva `?`). Un «buen trabajo» no se queda pegado bajo el vídeo.
 
-Cuando la persona contesta, desaparece sola.
+Cuando la persona escribe cualquier cosa en el hilo, cuenta como respuesta y desaparece.
+
+**Segunda vuelta (mismo día, PR siguiente al #291).** La primera versión solo miraba el
+último mensaje del hilo, así que un «buen trabajo» del coach, o una respuesta automática del
+Centro, escrito detrás de la pregunta la quitaba de debajo del vídeo sin que nadie la hubiera
+contestado. Bryan escribe en el mismo hilo en el que el cerebro deja las preguntas clínicas,
+así que eso iba a pasar.
 
 ## Lo que NO cambia
 
