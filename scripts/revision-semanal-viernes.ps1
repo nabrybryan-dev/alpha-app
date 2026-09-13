@@ -72,10 +72,36 @@ param(
 $ErrorActionPreference = 'Continue'
 $repo = Split-Path -Parent $PSScriptRoot
 
+# EL REGISTRO TIENE UN SOLO ESCRITOR. Hasta el 12-sep la salida de cada paso iba por
+# `Tee-Object -Append`, que deja el archivo ABIERTO mientras corre el paso; el `Apunta` de
+# dentro chocaba con el ("IOException ... GetContentWriterIOError") y la linea se perdia. Y en
+# PowerShell 5.1 `Tee-Object` escribe UTF-16: el registro salia mitad UTF-8, mitad UTF-16, y
+# un `grep` normal no veia la mitad. Ahora todo pasa por `Escribe`, que abre, anade una
+# linea en UTF-8 sin BOM y cierra.
+$script:utf8 = New-Object System.Text.UTF8Encoding $false
+function Escribe([string]$linea) {
+  for ($intento = 1; $intento -le 5; $intento++) {
+    try { [System.IO.File]::AppendAllText($script:archivoRegistro, $linea + "`r`n", $script:utf8); return }
+    catch { Start-Sleep -Milliseconds 200 }
+  }
+  Write-Host "(no pude escribir en el registro: $linea)"
+}
+
 function Apunta($texto) {
   $linea = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $texto
   Write-Host $linea
-  Add-Content -Path $script:archivoRegistro -Value $linea -Encoding utf8
+  Escribe $linea
+}
+
+# La salida de un programa (npm, python) al registro, linea a linea. Lo que llega por stderr
+# viene envuelto como error de PowerShell ("NativeCommandError"): se escribe su texto, no el
+# envoltorio. `$LASTEXITCODE` no se toca, asi que el paso sigue pudiendo comprobarlo.
+function Registra([switch]$Callado) {
+  process {
+    $texto = if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() } else { "$_" }
+    if (-not $Callado) { Write-Host $texto }
+    Escribe $texto
+  }
 }
 
 # --- el registro, antes que nada: si algo falla, que quede escrito donde falló ---
@@ -107,6 +133,7 @@ if (-not $SinActualizar) {
       Apunta "AVISO: no pude traer el codigo nuevo (sin red?). Sigo con el que hay."
     } else {
       $antes = (git rev-parse --short HEAD)
+      $huellaAntes = (Get-FileHash -Path $PSCommandPath).Hash
       git checkout --detach origin/main --quiet 2>&1 | Out-Null
       if ($LASTEXITCODE -ne 0) {
         Apunta "PARO: no pude ponerme al dia. Hay algo sin guardar en $repo."
@@ -115,6 +142,21 @@ if (-not $SinActualizar) {
       $ahora = (git rev-parse --short HEAD)
       if ($antes -eq $ahora) { Apunta "codigo al dia ($ahora)" }
       else { Apunta "codigo actualizado: $antes -> $ahora" }
+      # EL SCRIPT SE LEE ENTERO AL ARRANCAR. Si la actualizacion trae una version nueva de
+      # ESTE archivo, lo que corre sigue siendo la vieja: el 12-sep una tanda arranco sin la
+      # lista de "fuera" que acababa de llegar con el checkout. Se relanza con la nueva, con
+      # los mismos parametros y -SinActualizar para que no vuelva a entrar aqui.
+      if ((Get-FileHash -Path $PSCommandPath).Hash -ne $huellaAntes) {
+        Apunta "este script cambio con la actualizacion: me relanzo con la version nueva"
+        $argumentos = @()
+        foreach ($p in $PSBoundParameters.GetEnumerator()) {
+          if ($p.Value -is [System.Management.Automation.SwitchParameter]) {
+            if ($p.Value.IsPresent) { $argumentos += "-$($p.Key)" }
+          } else { $argumentos += @("-$($p.Key)", "$($p.Value)") }
+        }
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath @argumentos -SinActualizar
+        exit $LASTEXITCODE
+      }
     }
   } finally { Pop-Location }
 }
@@ -125,7 +167,7 @@ if (-not (Test-Path (Join-Path $repo 'node_modules'))) {
   Apunta "no hay node_modules: instalando (esto tarda unos minutos)"
   Push-Location $repo
   try {
-    npm ci 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro | Out-Null
+    npm ci 2>&1 | Registra -Callado
     if ($LASTEXITCODE -ne 0) { Apunta "PARO: fallo la instalacion de dependencias"; exit 1 }
   } finally { Pop-Location }
 }
@@ -179,7 +221,7 @@ try {
     Apunta "paso 1: guiones"
     $argsGuiones = @('run', 'revision-semanal', '--', '--paso', 'guiones', '--semana', $lunes)
     if (Test-Path $Fuera) { $argsGuiones += @('--fuera-archivo', $Fuera) }
-    & npm @argsGuiones 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    & npm @argsGuiones 2>&1 | Registra
     if ($LASTEXITCODE -ne 0) { Apunta "PARO en el paso 1 (codigo $LASTEXITCODE)"; exit 1 }
 
     # ---------- 1.5 la revision larga ----------
@@ -188,7 +230,7 @@ try {
     # que lo peor que pasa es un viernes con la revision de siempre.
     if (Test-Path $Larga) {
       Apunta "paso 1.5: revision larga para los elegidos en $Larga"
-      & npm run revision-larga -- --semana $lunes --personas-archivo $Larga --cerebro $Cerebro 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+      & npm run revision-larga -- --semana $lunes --personas-archivo $Larga --cerebro $Cerebro 2>&1 | Registra
       if ($LASTEXITCODE -ne 0) { Apunta "la revision larga no salio (codigo $LASTEXITCODE). SIGO: todos con la corta." }
     } else {
       Apunta "sin lista de revision larga en $Larga : todos con la corta"
@@ -204,7 +246,7 @@ try {
     if (-not (Test-Path $python))    { Apunta "PARO: no esta el Python de la voz en $python"; exit 1 }
     if (-not (Test-Path $generador)) { Apunta "PARO: no esta el generador en $generador"; exit 1 }
 
-    & $python $generador $carpeta 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    & $python $generador $carpeta 2>&1 | Registra
     if ($LASTEXITCODE -ne 0) {
       # El generador devuelve error cuando alguna revision salio CORTA. Eso no se publica a
       # medias: media revision son justo los numeros que faltan.
@@ -233,7 +275,7 @@ try {
       # se borran los audios de Kaggle). Completa, como siempre: lanza, espera y recoge.
       $modoCara = switch ($Fase) { 'noche' { @('--sin-esperar') } 'manana' { @('--solo-recoger') } default { @() } }
       Apunta ("paso 2.5: la cara, en Kaggle ({0})" -f $(if ($modoCara) { $modoCara -join ' ' } else { 'lanzar, esperar y recoger' }))
-      & $pythonCara $lanzador $carpeta @modoCara 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+      & $pythonCara $lanzador $carpeta @modoCara 2>&1 | Registra
       if ($LASTEXITCODE -ne 0) {
         Apunta "la cara no salio (codigo $LASTEXITCODE). SIGO: se publicara la voz."
       }
@@ -253,10 +295,10 @@ try {
   # ---------- 3. publicar, sin firmar ----------
   if ($Ensayo) {
     Apunta "paso 3: ENSAYO, no se publica"
-    & npm run revision-semanal -- --paso publicar --semana $lunes --ensayo 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    & npm run revision-semanal -- --paso publicar --semana $lunes --ensayo 2>&1 | Registra
   } else {
     Apunta "paso 3: publicar (SIN aprobar)"
-    & npm run revision-semanal -- --paso publicar --semana $lunes 2>&1 | Tee-Object -Append -FilePath $script:archivoRegistro
+    & npm run revision-semanal -- --paso publicar --semana $lunes 2>&1 | Registra
     if ($LASTEXITCODE -ne 0) { Apunta "PARO en el paso 3 (codigo $LASTEXITCODE)"; exit 1 }
   }
 
