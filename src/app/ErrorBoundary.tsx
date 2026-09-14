@@ -4,6 +4,7 @@ import {
   recargarPorDespliegue,
   tirarLoViejoYRecargar,
 } from './despliegueNuevo'
+import { reportarError } from '../data/errores/reportarError'
 
 interface Props {
   children: ReactNode
@@ -48,6 +49,9 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.esDespliegue && recargarPorDespliegue()) return
 
     console.error('Fallo de interfaz contenido por ErrorBoundary', error, info.componentStack)
+    // Un fallo que el boundary contiene NO llega a `window.error`: sin esto, la pantalla de
+    // «algo salió mal» sería justo lo único que no se cuenta.
+    reportarError(error, { donde: 'ErrorBoundary' })
   }
 
   /**

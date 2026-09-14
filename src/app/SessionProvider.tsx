@@ -4,6 +4,7 @@ import { db, useDbVersion } from '../data/dbInstance'
 import { abrirSesionLocal, olvidarDatosLocales } from '../data/mockDb'
 import { limpiarBorradoresLocales } from '../lib/persistencia'
 import { hidratarDesdeNube } from '../data/nube/hidratar'
+import { reportarError } from '../data/errores/reportarError'
 import { limpiarColasDeSync, pendientesDeSync, procesarCola, recuperarDescartes } from '../data/nube/sync'
 import { modoNube, supabase } from '../data/supabase'
 import { LoginPage } from '../features/auth/LoginPage'
@@ -180,8 +181,11 @@ function SesionNube({ children }: { children: ReactNode }) {
       hidratandoRef.current = autenticadoId
       try {
         await hidratarDesdeNube()
-      } catch {
-        // error transitorio de red: se reintenta en el siguiente ciclo
+      } catch (fallo: unknown) {
+        // Se reintenta en el siguiente ciclo, así que no se le enseña a nadie. Pero se CUENTA:
+        // «transitorio» era lo que se suponía, y un fallo que se repite cada 45 s no lo es.
+        // Sin red no se manda; el mismo mensaje, una vez por sesión.
+        reportarError(fallo, { donde: 'hidratar:refresco' })
       } finally {
         if (hidratandoRef.current === autenticadoId) hidratandoRef.current = null
       }
