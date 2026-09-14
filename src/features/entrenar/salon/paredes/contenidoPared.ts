@@ -342,8 +342,14 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
   // 7. SERIES Y REPETICIONES ------------------------------------------------
   const ondulado = ejercicio.seriesPrescritas ?? []
   if (ondulado.length > 0) {
+    // Un escalón sin kilos (`null`, o sin la llave) se dice sin kilos: escribir «a null kg»
+    // es poner en la pared una palabra de programador donde iba una carga.
     const detalle = ondulado
-      .map((s) => `serie ${s.orden}: ${s.reps} reps a ${cifra(s.cargaKg)} kg, RIR ${s.rir}`)
+      .map((s) =>
+        Number.isFinite(s.cargaKg)
+          ? `serie ${s.orden}: ${s.reps} reps a ${cifra(s.cargaKg)} kg, RIR ${s.rir}`
+          : `serie ${s.orden}: ${s.reps} reps, RIR ${s.rir}`,
+      )
       .join(' · ')
     campos.push({
       clave: 'seriesReps',
@@ -376,7 +382,9 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
   // el coach no puso, así que la pared dice que no los lleva. Es la misma distinción que
   // guarda el propio tipo en `domain/types.ts`.
   const cargasOnduladas = ondulado.map((s) => s.cargaKg).filter((k) => Number.isFinite(k))
-  if (ejercicio.cargaKg !== undefined) {
+  // `null` tampoco es carga: los planes lo guardan cuando no llevan kilos, y con la guarda
+  // `!== undefined` la pared escribía «null kg» (14-sep, 8 asesorados).
+  if (typeof ejercicio.cargaKg === 'number' && Number.isFinite(ejercicio.cargaKg)) {
     const kilos = `${cifra(ejercicio.cargaKg)} kg${matizDeUnidad(ejercicio.unidadCarga)}`
     campos.push({
       clave: 'carga',

@@ -101,6 +101,30 @@ describe('contenidoPared', () => {
     expect(c.tecnica).toMatch(/^Sin indicaciones/)
   })
 
+  /**
+   * `cargaKg` es opcional en el tipo (`?: number`), pero los planes cargados guardan `null`
+   * cuando el ③ no pone kilos —peso corporal, banda, «elige tú el peso»—. `null` no es
+   * `undefined`: pasaba la guarda y la pared escribía «null kg». Medido el 14-sep contra los
+   * planes reales: 55 textos así en 8 asesorados.
+   */
+  it('con `cargaKg: null` la pared no escribe «null kg»: se lee como sin kilos', () => {
+    const c = contenidoPared(ejercicio({ cargaKg: null as never }))
+    expect(JSON.stringify(c)).not.toMatch(/\bnull\b/)
+  })
+
+  it('una serie ondulada sin kilos no escribe «a null kg» en el detalle de series', () => {
+    const c = contenidoPared(
+      ejercicio({
+        cargaKg: undefined,
+        seriesPrescritas: [
+          { orden: 1, reps: 10, cargaKg: 20, rir: 3 },
+          { orden: 2, reps: 10, cargaKg: null as never, rir: 3 },
+        ],
+      }),
+    )
+    expect(JSON.stringify(c)).not.toMatch(/\b(null|undefined|NaN)\b/)
+  })
+
   it('ningún texto de pared pasa del tope: una pared se lee de reojo', () => {
     // Con los textos más largos que el dominio puede dar: cues de tres frases, ondulado y
     // una categoría con plan de medida. Si algo se pasa, se pasa aquí.
