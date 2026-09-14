@@ -53,7 +53,7 @@ describe('el peso sembrado en el check-in', () => {
   afterEach(cleanup)
 
   it('debe actualizarse cuando el historial real llega después de abrir el formulario', () => {
-    const { rerender } = render(
+    render(
       <CheckinForm usuarioId="u-ana" fecha="2026-07-27" onGuardar={vi.fn()} />,
     )
     // El peso está plegado en "Más detalles" — abrirlo para ver el valor.

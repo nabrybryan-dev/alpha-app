@@ -137,9 +137,14 @@ describe('el check-in no inventa números', () => {
       )
 
       marcarObligatorias()
+      // Más detalles: abrir si está cerrado y marcar hambre 10
+      const details = screen.queryByText('Más detalles (opcional)')?.closest('details')
+      if (details && !details.open) fireEvent.click(screen.getByText('Más detalles (opcional)'))
+      fireEvent.click(screen.getByRole('button', { name: 'Hambre 10 de 10' }))
       guardar()
 
       const guardado = onGuardar.mock.calls[0][0]
+      expect(guardado.hambreEscala).toBe(10)
       expect(guardado.calidadSueno).toBe('BUENA')
       expect(guardado.horasSueno).toBe(7)
     })

@@ -40,6 +40,20 @@ describe('indiceRecuperacion', () => {
   })
 })
 
+describe('compatibilidad check-in viejo sin dolorDesdeAyer', () => {
+  it('un check-in viejo, sin dolorDesdeAyer, da el mismo índice que antes', () => {
+    // Valor anclado contra src/domain/readiness.ts en 40aff16. Se calculó con un
+    // archivo temporal que importaba esa versión (`git show 40aff16:src/domain/readiness.ts`).
+    const viejo = { id: 'v', usuarioId: 'u', fecha: '2026-07-17', cansancio: 'POCO' as const, estres: 'POCO' as const, motivacion: 'MUCHO' as const, calidadSueno: 'BUENA' as const, horasSueno: 8 }
+    const r1 = indiceRecuperacion([viejo], HOY)
+    expect(r1.indice).toBe(100)
+    // Con dolorDesdeAyer hay:false no cambia el índice
+    const conFlag = { ...viejo, dolorDesdeAyer: { hay: false as const, donde: undefined, eva: 0 } }
+    const r2 = indiceRecuperacion([conFlag], HOY)
+    expect(r2.indice).toBe(r1.indice)
+  })
+})
+
 describe('desviacionRirMedia', () => {
   const base = {
     id: 'm', usuarioId: 'u', numero: 1, cadenciaDias: 8 as const,
