@@ -77,7 +77,7 @@ export async function leerBandeja(): Promise<FilaBandeja[]> {
   const pendientes = (data ?? []).map((f) => aPendiente(f as FilaCruda))
 
   const ids = [...new Set(pendientes.map((p) => p.usuarioId))]
-  let nombres: Record<string, string> = {}
+  const nombres: Record<string, string> = {}
   if (ids.length > 0) {
     const { data: usuarios } = await sb.from('usuarios_app').select('id,nombre').in('id', ids)
     for (const u of usuarios ?? []) nombres[u.id as string] = u.nombre as string
