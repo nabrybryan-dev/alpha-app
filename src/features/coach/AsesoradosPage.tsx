@@ -6,6 +6,7 @@ import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { desviacionRirMedia, indiceRecuperacion } from '../../domain/readiness'
 import { resumenAsesorado } from './resumenAsesorado'
 import { PanelMicrociclos } from './PanelMicrociclos'
+import { BandejaVeto } from './BandejaVeto'
 import { EmbudoDeAvisos } from './EmbudoDeAvisos'
 import { SaludDeDatos } from './SaludDeDatos'
 import { IconoConsulta, IconoMensaje } from '../../components/ui/Icono'
@@ -73,6 +74,7 @@ export default function AsesoradosPage() {
       <EmbudoDeAvisos />
 
       <PanelMicrociclos />
+      <BandejaVeto />
 
       <section className="flex flex-col gap-2.5">
         {resumenes.map((r) => (
