@@ -39,41 +39,15 @@
  * marcando 70. Rellena los siete campos de ánimo, guarda, y el coach ve un
  * salto de +10 kg en un día. Con eso se decide su superávit o su déficit.
  */
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CheckinForm } from './CheckinForm'
 
-// Las 6 preguntas cualitativas de pastillas. El hambre ya no está aquí: pasó a
-// una escala de 1 a 10, y se marca aparte.
-const GRUPOS = [
-  '¿Cómo estuvo tu rendimiento?',
-  'Motivación',
-  'Cansancio',
-  'Estrés',
-  'Calidad del sueño',
-  '¿Cómo estuvo tu alimentación?',
-]
-
-function grupo(titulo: string): HTMLElement {
-  const fieldset = screen.getByText(titulo).closest('fieldset')
-  if (!fieldset) throw new Error(`No se encontró el fieldset de "${titulo}"`)
-  return fieldset as HTMLElement
+function marcarObligatorias() {
+  fireEvent.click(screen.getByText('¿Cómo dormiste?').closest('fieldset')!.querySelectorAll('button')[2])
+  fireEvent.click(screen.getByText('¿Cómo llegas hoy?').closest('fieldset')!.querySelectorAll('button')[0])
+  fireEvent.click(screen.getByRole('button', { name: 'No' }))
 }
-
-/** El hambre se marca en la escala nueva, no en pastillas. */
-function marcarHambre(valor = 10) {
-  fireEvent.click(screen.getByRole('button', { name: `Hambre ${valor} de 10` }))
-}
-
-function marcarTodos() {
-  for (const titulo of GRUPOS) {
-    const opciones = within(grupo(titulo)).getAllByRole('button')
-    fireEvent.click(opciones[opciones.length - 1]) // última opción (BUENA / MUCHO)
-  }
-  marcarHambre()
-  fireEvent.click(screen.getByRole('button', { name: 'Dolor 0 de 10' })) // «sin dolor» también se marca
-}
-
 
 describe('el peso sembrado en el check-in', () => {
   afterEach(cleanup)
@@ -82,13 +56,19 @@ describe('el peso sembrado en el check-in', () => {
     const { rerender } = render(
       <CheckinForm usuarioId="u-ana" fecha="2026-07-27" onGuardar={vi.fn()} />,
     )
-    // Sin historial local todavía: el formulario arranca con el 70 de fábrica.
+    // El peso está plegado en "Más detalles" — abrirlo para ver el valor.
+    fireEvent.click(screen.getByText('Más detalles (opcional)'))
     expect(screen.getByLabelText('Peso ayunas en kg')).toHaveValue('70')
+    cleanup()
 
+    const { rerender: r2 } = render(
+      <CheckinForm usuarioId="u-ana" fecha="2026-07-27" onGuardar={vi.fn()} />,
+    )
     // Vuelve la cobertura y la hidratación trae su último peso real.
-    rerender(
+    r2(
       <CheckinForm usuarioId="u-ana" fecha="2026-07-27" pesoInicial={59.4} onGuardar={vi.fn()} />,
     )
+    fireEvent.click(screen.getByText('Más detalles (opcional)'))
 
     expect(screen.getByLabelText('Peso ayunas en kg')).toHaveValue('59.4')
   })
@@ -102,8 +82,7 @@ describe('el peso sembrado en el check-in', () => {
       <CheckinForm usuarioId="u-ana" fecha="2026-07-27" pesoInicial={59.4} onGuardar={onGuardar} />,
     )
 
-    // Rellena los siete cualitativos obligatorios y guarda.
-    marcarTodos()
+    marcarObligatorias()
     fireEvent.click(screen.getByRole('button', { name: /guardar check-in/i }))
 
     expect(onGuardar).toHaveBeenCalledTimes(1)

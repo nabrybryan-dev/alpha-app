@@ -15,32 +15,14 @@
  * pasa contra el viejo por construcción, porque ahí nunca hubo nada que
  * contestar.
  */
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CheckinForm } from './CheckinForm'
 
-const GRUPOS = [
-  '¿Cómo estuvo tu rendimiento?',
-  'Motivación',
-  'Cansancio',
-  'Estrés',
-  'Calidad del sueño',
-  '¿Cómo estuvo tu alimentación?',
-]
-
-function grupo(titulo: string): HTMLElement {
-  const fieldset = screen.getByText(titulo).closest('fieldset')
-  if (!fieldset) throw new Error(`No se encontró el fieldset de "${titulo}"`)
-  return fieldset as HTMLElement
-}
-
-function marcarTodosLosObligatorios() {
-  for (const titulo of GRUPOS) {
-    const opciones = within(grupo(titulo)).getAllByRole('button')
-    fireEvent.click(opciones[opciones.length - 1])
-  }
-  fireEvent.click(screen.getByRole('button', { name: 'Hambre 10 de 10' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Dolor 0 de 10' }))
+function marcarObligatorias() {
+  fireEvent.click(screen.getByText('¿Cómo dormiste?').closest('fieldset')!.querySelectorAll('button')[2])
+  fireEvent.click(screen.getByText('¿Cómo llegas hoy?').closest('fieldset')!.querySelectorAll('button')[0])
+  fireEvent.click(screen.getByRole('button', { name: 'No' }))
 }
 
 const guardarBtn = () => screen.getByRole('button', { name: /guardar check-in/i })
@@ -50,6 +32,7 @@ describe('las dos horas del sueño', () => {
 
   it('el check-in pregunta a qué hora te acostaste y a qué hora te levantaste', () => {
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
+    fireEvent.click(screen.getByText('Más detalles (opcional)'))
     expect(screen.getByLabelText('Me acosté a las')).toBeInTheDocument()
     expect(screen.getByLabelText('Me levanté a las')).toBeInTheDocument()
   })
@@ -57,7 +40,8 @@ describe('las dos horas del sueño', () => {
   it('guarda las dos horas tal como se escribieron', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
-    marcarTodosLosObligatorios()
+    marcarObligatorias()
+    fireEvent.click(screen.getByText('Más detalles (opcional)'))
     fireEvent.change(screen.getByLabelText('Me acosté a las'), { target: { value: '23:30' } })
     fireEvent.change(screen.getByLabelText('Me levanté a las'), { target: { value: '06:45' } })
     fireEvent.click(guardarBtn())
@@ -72,7 +56,7 @@ describe('las dos horas del sueño', () => {
   it('son opcionales: sin ellas el check-in se guarda igual', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
-    marcarTodosLosObligatorios()
+    marcarObligatorias()
     fireEvent.click(guardarBtn())
 
     expect(onGuardar).toHaveBeenCalledTimes(1)
@@ -87,7 +71,8 @@ describe('las dos horas del sueño', () => {
   it('una sola de las dos también viaja, y la otra queda sin dato', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
-    marcarTodosLosObligatorios()
+    marcarObligatorias()
+    fireEvent.click(screen.getByText('Más detalles (opcional)'))
     fireEvent.change(screen.getByLabelText('Me levanté a las'), { target: { value: '05:15' } })
     fireEvent.click(guardarBtn())
 

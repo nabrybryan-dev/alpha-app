@@ -11,6 +11,17 @@ const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
 const PESO_DE_FABRICA = 70
 const PASOS_DE_FABRICA = 8000
 
+/**
+ * Etiquetas visibles de energía → valor guardado en `cansancio` (inverso).
+ * POCO cansancio = alta energía. Se guarda `cansancio` para no duplicar
+ * la señal ni romper `readiness.ts` ni la serie histórica.
+ */
+const ENERGIA_OPCIONES = [
+  { etiqueta: 'Con energía', valor: 'POCO' as Cantidad3 },
+  { etiqueta: 'Normal', valor: 'REGULAR' as Cantidad3 },
+  { etiqueta: 'Sin energía', valor: 'MUCHO' as Cantidad3 },
+] as const
+
 interface CheckinFormProps {
   usuarioId: string
   fecha: string
@@ -122,20 +133,28 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
   const [alimentacion, setAlimentacion] = useState<Cualitativo3>()
   const [dolor, setDolor] = useState<number>()
   const [dolorDonde, setDolorDonde] = useState('')
+  const [hayDolorDesdeAyer, setHayDolorDesdeAyer] = useState<boolean>()
   const [comentarios, setComentarios] = useState('')
   const [intento, setIntento] = useState(false)
+  const [masDetalles, setMasDetalles] = useState(false)
 
-  // Campos cualitativos obligatorios (peso/pasos/sueño ya traen valor numérico).
-  const camposCualitativos = [rendimiento, motivacion, hambreEscala, cansancio, estres, calidadSueno, alimentacion, dolor]
-  // Un «6» sin sitio no le dice nada al coach: con dolor, el dónde también cuenta.
-  const faltaDonde = dolor !== undefined && dolor > 0 && dolorDonde.trim() === ''
-  const faltantes = camposCualitativos.filter((v) => v === undefined).length + (faltaDonde ? 1 : 0)
+  // Tres obligatorias arriba: sueño, energía (cansancio inverso), dolor desde ayer.
+  const faltaSueno = calidadSueno === undefined
+  const faltaEnergia = cansancio === undefined
+  const faltaDolorHay = hayDolorDesdeAyer === undefined
+  const faltaDolorDetalle =
+    hayDolorDesdeAyer === true && (dolor === undefined || (dolor > 0 && dolorDonde.trim() === ''))
+  const faltantesCortos =
+    (faltaSueno ? 1 : 0) + (faltaEnergia ? 1 : 0) + (faltaDolorHay ? 1 : 0) + (faltaDolorDetalle ? 1 : 0)
 
   const guardar = () => {
-    if (faltantes > 0) {
+    if (faltantesCortos > 0) {
       setIntento(true)
       return
     }
+    const dolorFinal = hayDolorDesdeAyer ? dolor : 0
+    const dondeFinal =
+      hayDolorDesdeAyer && dolor !== undefined && dolor > 0 && dolorDonde.trim() ? dolorDonde.trim() : undefined
     onGuardar({
       id: `ck-${usuarioId}-${fecha}`,
       usuarioId,
@@ -173,8 +192,13 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       horaLevantarse: horaLevantarse || undefined,
       calidadSueno,
       alimentacion,
-      dolor,
-      dolorDonde: dolor !== undefined && dolor > 0 && dolorDonde.trim() ? dolorDonde.trim() : undefined,
+      dolor: dolorFinal,
+      dolorDonde: dondeFinal,
+      dolorDesdeAyer: {
+        hay: hayDolorDesdeAyer!,
+        donde: dondeFinal,
+        eva: dolorFinal,
+      },
       comentarios: comentarios || undefined,
     })
   }
@@ -184,75 +208,101 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Peso ayunas + Pasos como steppers en tarjetas paper */}
-      <div className={pedirPeso ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
-        {pedirPeso && (
-          <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
-            <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />
-          </div>
-        )}
-        <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
-          <Stepper etiqueta="Pasos de ayer" valor={pasos} paso={500} minimo={0} maximo={100000} onCambiar={(v) => { setPasosTocados(true); setPasos(v) }} />
+      {/* ── Tres obligatorias ── */}
+      <CampoPills titulo="¿Cómo dormiste?" opciones={CUALITATIVOS} valor={calidadSueno} onCambiar={(v) => setCalidadSueno(v as Cualitativo3)} />
+
+      <fieldset className="rounded-tarjeta border border-linea bg-surface-1 p-3.5 shadow-sm">
+        <legend className="mb-2.5 text-sm font-bold text-texto">¿Cómo llegas hoy?</legend>
+        <div className="flex gap-2">
+          {ENERGIA_OPCIONES.map((o) => {
+            const sel = cansancio === o.valor
+            return (
+              <button
+                key={o.valor}
+                type="button"
+                onClick={() => setCansancio(o.valor)}
+                className={`press flex-1 rounded-full border py-2 text-[11px] font-bold uppercase tracking-wide transition-colors duration-200 ease-salida ${
+                  sel ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'
+                }`}
+              >
+                {o.etiqueta}
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </fieldset>
 
-      <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
-        ¿Qué entrenaste hoy?
-        <input value={entreno} onChange={(e) => setEntreno(e.target.value)} placeholder="LEG A / Descanso" className={inputTexto} />
-      </label>
-
-      <CampoPills titulo="¿Cómo estuvo tu rendimiento?" opciones={CUALITATIVOS} valor={rendimiento} onCambiar={(v) => setRendimiento(v as Cualitativo3)} />
-      <CampoPills titulo="Motivación" opciones={CANTIDADES} valor={motivacion} onCambiar={(v) => setMotivacion(v as Cantidad3)} />
-      <EscalaHambre valor={hambreEscala} onCambiar={setHambreEscala} />
-      <CampoPills titulo="Cansancio" opciones={CANTIDADES} valor={cansancio} onCambiar={(v) => setCansancio(v as Cantidad3)} />
-      <CampoPills titulo="Estrés" opciones={CANTIDADES} valor={estres} onCambiar={(v) => setEstres(v as Cantidad3)} />
-      <EscalaDolor valor={dolor} donde={dolorDonde} onCambiar={setDolor} onCambiarDonde={setDolorDonde} claseInput={inputTexto} />
-
-      {/* Horas de sueño: fila con stepper */}
-      <div className="flex items-center justify-between rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
-        <span className="text-sm font-bold text-texto">Horas de sueño</span>
-        <div className="w-40">
-          <Stepper etiqueta="" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={setHorasSueno} />
-        </div>
-      </div>
-
-      {/* CUÁNDO dormiste, que es lo que `horasSueno` no puede decir. Las dos
-          son opcionales: este formulario ya pide ocho campos obligatorios, y
-          uno que se bloquea es uno que no se rellena. */}
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
-          Me acosté a las
-          <input
-            type="time"
-            value={horaAcostarse}
-            onChange={(e) => setHoraAcostarse(e.target.value)}
-            className={inputTexto}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
-          Me levanté a las
-          <input
-            type="time"
-            value={horaLevantarse}
-            onChange={(e) => setHoraLevantarse(e.target.value)}
-            className={inputTexto}
-          />
-        </label>
-      </div>
-
-      <CampoPills titulo="Calidad del sueño" opciones={CUALITATIVOS} valor={calidadSueno} onCambiar={(v) => setCalidadSueno(v as Cualitativo3)} />
-      <CampoPills titulo="¿Cómo estuvo tu alimentación?" opciones={CUALITATIVOS} valor={alimentacion} onCambiar={(v) => setAlimentacion(v as Cualitativo3)} />
-
-      <input
-        value={comentarios}
-        onChange={(e) => setComentarios(e.target.value)}
-        placeholder="Comentarios para tu coach (opcional)"
-        className={inputTexto}
+      <DolorDesdeAyer
+        hay={hayDolorDesdeAyer}
+        dolor={dolor}
+        donde={dolorDonde}
+        onHay={setHayDolorDesdeAyer}
+        onDolor={setDolor}
+        onDonde={setDolorDonde}
+        claseInput={inputTexto}
       />
 
-      {intento && faltantes > 0 && (
+      {/* ── Más detalles (plegado) ── */}
+      <details
+        className="rounded-tarjeta border border-linea bg-surface-1 shadow-sm"
+        open={masDetalles}
+        onToggle={(e) => setMasDetalles((e.target as HTMLDetailsElement).open)}
+      >
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-texto">Más detalles (opcional)</summary>
+        <div className="flex flex-col gap-3 border-t border-linea p-3">
+          <div className={pedirPeso ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'}>
+            {pedirPeso && (
+              <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+                <Stepper etiqueta="Peso ayunas" valor={pesoKg} paso={0.1} decimal sufijo="kg" minimo={30} maximo={250} onCambiar={(v) => { setPesoTocado(true); setPesoKg(v) }} />
+              </div>
+            )}
+            <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+              <Stepper etiqueta="Pasos de ayer" valor={pasos} paso={500} minimo={0} maximo={100000} onCambiar={(v) => { setPasosTocados(true); setPasos(v) }} />
+            </div>
+          </div>
+
+          <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
+            ¿Qué entrenaste hoy?
+            <input value={entreno} onChange={(e) => setEntreno(e.target.value)} placeholder="LEG A / Descanso" className={inputTexto} />
+          </label>
+
+          <CampoPills titulo="¿Cómo estuvo tu rendimiento?" opciones={CUALITATIVOS} valor={rendimiento} onCambiar={(v) => setRendimiento(v as Cualitativo3)} />
+          <CampoPills titulo="Motivación" opciones={CANTIDADES} valor={motivacion} onCambiar={(v) => setMotivacion(v as Cantidad3)} />
+          <EscalaHambre valor={hambreEscala} onCambiar={setHambreEscala} />
+          <CampoPills titulo="Estrés" opciones={CANTIDADES} valor={estres} onCambiar={(v) => setEstres(v as Cantidad3)} />
+
+          <div className="flex items-center justify-between rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
+            <span className="text-sm font-bold text-texto">Horas de sueño</span>
+            <div className="w-40">
+              <Stepper etiqueta="" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={setHorasSueno} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
+              Me acosté a las
+              <input type="time" value={horaAcostarse} onChange={(e) => setHoraAcostarse(e.target.value)} className={inputTexto} />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-bold text-texto">
+              Me levanté a las
+              <input type="time" value={horaLevantarse} onChange={(e) => setHoraLevantarse(e.target.value)} className={inputTexto} />
+            </label>
+          </div>
+
+          <CampoPills titulo="¿Cómo estuvo tu alimentación?" opciones={CUALITATIVOS} valor={alimentacion} onCambiar={(v) => setAlimentacion(v as Cualitativo3)} />
+
+          <input
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            placeholder="Comentarios para tu coach (opcional)"
+            className={inputTexto}
+          />
+        </div>
+      </details>
+
+      {intento && faltantesCortos > 0 && (
         <p role="alert" className="text-center text-xs font-bold text-rojo">
-          Te falta{faltantes === 1 ? '' : 'n'} {faltantes} campo{faltantes === 1 ? '' : 's'} por marcar
+          Te falta{faltantesCortos === 1 ? '' : 'n'} {faltantesCortos} campo{faltantesCortos === 1 ? '' : 's'} por marcar
         </p>
       )}
       <button
@@ -263,6 +313,98 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       >
         Guardar check-in
       </button>
+    </div>
+  )
+}
+
+/**
+ * P3: ¿Te duele algo desde ayer? Si sí → EVA 0-10 + dónde.
+ * No → guarda dolor 0 sin pedir dónde ni EVA (un toque).
+ */
+function DolorDesdeAyer({
+  hay,
+  dolor,
+  donde,
+  onHay,
+  onDolor,
+  onDonde,
+  claseInput,
+}: {
+  hay: boolean | undefined
+  dolor: number | undefined
+  donde: string
+  onHay: (v: boolean) => void
+  onDolor: (v: number) => void
+  onDonde: (v: string) => void
+  claseInput: string
+}) {
+  const tramo = dolor === undefined ? undefined : tramoDeDolor(dolor)
+  const clase = (activo: boolean) =>
+    `press rounded-boton border text-xs font-bold transition-colors ${
+      activo ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'
+    }`
+
+  return (
+    <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
+      <p className="text-sm font-bold text-texto">¿Te duele algo desde ayer?</p>
+      <div className="mt-2.5 flex gap-2">
+        <button
+          type="button"
+          aria-pressed={hay === false}
+          onClick={() => onHay(false)}
+          className={`press flex-1 rounded-full border py-2 text-[11px] font-bold uppercase tracking-wide transition-colors ${hay === false ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'}`}
+        >
+          No
+        </button>
+        <button
+          type="button"
+          aria-pressed={hay === true}
+          onClick={() => onHay(true)}
+          className={`press flex-1 rounded-full border py-2 text-[11px] font-bold uppercase tracking-wide transition-colors ${hay === true ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'}`}
+        >
+          Sí
+        </button>
+      </div>
+
+      {hay === true && (
+        <>
+          <p className="mt-3 text-[11px] leading-snug text-tenue">0 = ninguno · 10 = el peor que te imaginas</p>
+          <button
+            type="button"
+            aria-label="Dolor 0 de 10"
+            aria-pressed={dolor === 0}
+            onClick={() => onDolor(0)}
+            className={`${clase(dolor === 0)} mt-2.5 h-9 w-full uppercase tracking-wide`}
+          >
+            Sin dolor
+          </button>
+          <div className="mt-1.5 flex gap-1">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-label={`Dolor ${n} de 10`}
+                aria-pressed={dolor === n}
+                onClick={() => onDolor(n)}
+                className={`${clase(dolor === n)} h-9 flex-1`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          {tramo && tramo.etiqueta !== 'ninguno' && (
+            <>
+              <p className="mt-2 text-[11px] leading-snug text-tenue">
+                <b className="text-texto">{tramo.descripcion}</b>
+              </p>
+              <label className="mt-2 flex flex-col gap-1.5 text-sm font-bold text-texto">
+                ¿Dónde?
+                <input value={donde} onChange={(e) => onDonde(e.target.value)} placeholder="Rodilla izquierda, hombro, lumbar…" className={claseInput} />
+              </label>
+            </>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -330,88 +472,4 @@ const DESCRIPCION_TRAMO: Record<string, string> = {
   moderada: 'Cuesta, distrae.',
   intensa: 'Interfiere con el trabajo o el entreno.',
   insostenible: 'No la puedes sostener: fatiga, no te concentras.',
-}
-
-/**
- * El dolor del día, de 0 a 10 (EVA).
- *
- * POR QUÉ HAY UN BOTÓN DE «SIN DOLOR» Y NO UN HUECO. A la mayoría no le duele
- * nada, y para ellos es un toque. Pero ese toque es una medición: el cero
- * marcado a propósito es lo que permite decir «tres sesiones seguidas sin
- * dolor», que es justo la condición con la que se reabre un ajuste clínico.
- * Un campo que se pudiera dejar vacío no distinguiría «no me duele» de «no lo
- * miré».
- *
- * Con dolor, el dónde es obligatorio: un «6» a secas no le dice al coach si es
- * la rodilla que está vigilando o una agujeta.
- */
-function EscalaDolor({
-  valor,
-  donde,
-  onCambiar,
-  onCambiarDonde,
-  claseInput,
-}: {
-  valor: number | undefined
-  donde: string
-  onCambiar: (valor: number) => void
-  onCambiarDonde: (donde: string) => void
-  claseInput: string
-}) {
-  const tramo = valor === undefined ? undefined : tramoDeDolor(valor)
-  const clase = (activo: boolean) =>
-    `press rounded-boton border text-xs font-bold transition-colors ${
-      activo ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'
-    }`
-
-  return (
-    <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
-      <p className="text-sm font-bold text-texto">Dolor de hoy</p>
-      <p className="mt-0.5 text-[11px] leading-snug text-tenue">
-        0 = ninguno · 10 = el peor que te imaginas
-      </p>
-
-      <button
-        type="button"
-        aria-label="Dolor 0 de 10"
-        aria-pressed={valor === 0}
-        onClick={() => onCambiar(0)}
-        className={`${clase(valor === 0)} mt-2.5 h-9 w-full uppercase tracking-wide`}
-      >
-        Sin dolor
-      </button>
-
-      <div className="mt-1.5 flex gap-1">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            type="button"
-            aria-label={`Dolor ${n} de 10`}
-            aria-pressed={valor === n}
-            onClick={() => onCambiar(n)}
-            className={`${clase(valor === n)} h-9 flex-1`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-
-      {tramo && tramo.etiqueta !== 'ninguno' && (
-        <>
-          <p className="mt-2 text-[11px] leading-snug text-tenue">
-            <b className="text-texto">{tramo.descripcion}</b>
-          </p>
-          <label className="mt-2 flex flex-col gap-1.5 text-sm font-bold text-texto">
-            ¿Dónde?
-            <input
-              value={donde}
-              onChange={(e) => onCambiarDonde(e.target.value)}
-              placeholder="Rodilla izquierda, hombro, lumbar…"
-              className={claseInput}
-            />
-          </label>
-        </>
-      )}
-    </div>
-  )
 }

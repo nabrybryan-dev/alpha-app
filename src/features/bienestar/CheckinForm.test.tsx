@@ -2,187 +2,154 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { CheckinForm } from './CheckinForm'
 
-// Las 6 preguntas cualitativas de pastillas. El hambre y el dolor no están
-// aquí: van en escalas numéricas y se marcan aparte.
-const GRUPOS = [
-  '¿Cómo estuvo tu rendimiento?',
-  'Motivación',
-  'Cansancio',
-  'Estrés',
-  'Calidad del sueño',
-  '¿Cómo estuvo tu alimentación?',
-]
+/** Las 3 obligatorias de arriba. */
+const OBLIGATORIAS_CORTAS = 3
 
-/** Pastillas (6) + hambre + dolor. */
-const OBLIGATORIOS = GRUPOS.length + 2
-
-function grupo(titulo: string): HTMLElement {
-  const fieldset = screen.getByText(titulo).closest('fieldset')
-  if (!fieldset) throw new Error(`No se encontró el fieldset de "${titulo}"`)
-  return fieldset as HTMLElement
+function marcarSueno(valor: 'MALA' | 'REGULAR' | 'BUENA' = 'BUENA') {
+  const fs = screen.getByText('¿Cómo dormiste?').closest('fieldset')!
+  fireEvent.click(within(fs as HTMLElement).getByRole('button', { name: valor }))
 }
 
-/** El hambre se marca en la escala nueva, no en pastillas. */
-function marcarHambre(valor = 10) {
-  fireEvent.click(screen.getByRole('button', { name: `Hambre ${valor} de 10` }))
+function marcarEnergia(etiqueta: 'Con energía' | 'Normal' | 'Sin energía' = 'Con energía') {
+  const fs = screen.getByText('¿Cómo llegas hoy?').closest('fieldset')!
+  fireEvent.click(within(fs as HTMLElement).getByRole('button', { name: etiqueta }))
 }
 
-/** El dolor va de 0 a 10; el 0 es «sin dolor» y es una respuesta. */
+function marcarDolorNo() {
+  fireEvent.click(screen.getByRole('button', { name: 'No' }))
+}
+
+function marcarDolorSi() {
+  fireEvent.click(screen.getByRole('button', { name: 'Sí' }))
+}
+
 function marcarDolor(valor = 0) {
   fireEvent.click(screen.getByRole('button', { name: `Dolor ${valor} de 10` }))
 }
 
-function marcarTodos() {
-  for (const titulo of GRUPOS) {
-    const opciones = within(grupo(titulo)).getAllByRole('button')
-    fireEvent.click(opciones[opciones.length - 1]) // última opción (BUENA / MUCHO)
-  }
-  marcarHambre()
-  marcarDolor()
+function abrirMasDetalles() {
+  const summary = screen.getByText('Más detalles (opcional)')
+  fireEvent.click(summary)
 }
 
 const guardarBtn = () => screen.getByRole('button', { name: /guardar check-in/i })
 
-describe('CheckinForm — validación de campos', () => {
-  it('no guarda con campos cualitativos incompletos y avisa cuántos faltan', () => {
+describe('CheckinForm — check-in corto (3 obligatorias)', () => {
+  it('no guarda con las 3 vacías y avisa cuántas faltan', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
 
     fireEvent.click(guardarBtn())
 
     expect(onGuardar).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert')).toHaveTextContent(`Te faltan ${OBLIGATORIOS} campos por marcar`)
+    expect(screen.getByRole('alert')).toHaveTextContent(`Te faltan ${OBLIGATORIAS_CORTAS} campos por marcar`)
   })
 
-  it('la cuenta del aviso baja a medida que se marcan campos', () => {
+  it('la cuenta baja a medida que se marcan', () => {
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
     fireEvent.click(guardarBtn())
-    expect(screen.getByRole('alert')).toHaveTextContent(`${OBLIGATORIOS} campos`)
+    expect(screen.getByRole('alert')).toHaveTextContent(`${OBLIGATORIAS_CORTAS} campos`)
 
-    fireEvent.click(within(grupo('Motivación')).getAllByRole('button')[0])
-    expect(screen.getByRole('alert')).toHaveTextContent(`${OBLIGATORIOS - 1} campos`)
+    marcarSueno()
+    expect(screen.getByRole('alert')).toHaveTextContent(`${OBLIGATORIAS_CORTAS - 1} campos`)
   })
 
-  it('al completar todos, el aviso desaparece y guarda con los valores', () => {
+  it('con las 3 completas guarda y espeja dolorDesdeAyer en dolor/dolorDonde', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
 
-    fireEvent.click(guardarBtn()) // intento fallido → aparece el aviso
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-
-    marcarTodos()
-    expect(screen.queryByRole('alert')).toBeNull() // se limpia al completar
+    marcarSueno('BUENA')
+    marcarEnergia('Con energía')
+    marcarDolorNo()
 
     fireEvent.click(guardarBtn())
     expect(onGuardar).toHaveBeenCalledTimes(1)
-    expect(onGuardar.mock.calls[0][0]).toMatchObject({
-      usuarioId: 'u1',
-      fecha: '2026-01-01',
-      rendimiento: 'BUENA',
-      motivacion: 'MUCHO',
-      alimentacion: 'BUENA',
-    })
-  })
-})
-
-describe('CheckinForm — la escala de hambre', () => {
-  it('ofrece los diez valores, no tres categorías', () => {
-    // Con POCO/REGULAR/MUCHO no se distinguía un 7 de un 9, que es la
-    // diferencia entre esperar cinco días y actuar en dos.
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
-    for (const n of [1, 5, 10]) {
-      expect(screen.getByRole('button', { name: `Hambre ${n} de 10` })).toBeInTheDocument()
-    }
+    const c = onGuardar.mock.calls[0][0]
+    expect(c.calidadSueno).toBe('BUENA')
+    expect(c.cansancio).toBe('POCO')
+    expect(c.dolor).toBe(0)
+    expect(c.dolorDesdeAyer).toEqual({ hay: false, donde: undefined, eva: 0 })
   })
 
-  it('guarda el número, no una etiqueta', () => {
+  it('con dolor desde ayer pide EVA y dónde', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
 
-    marcarTodos()
-    marcarHambre(8)
+    marcarSueno()
+    marcarEnergia()
+    marcarDolorSi()
+    // Sin EVA no guarda
     fireEvent.click(guardarBtn())
-
-    expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ hambreEscala: 8 }))
-  })
-
-  it('dice cómo se vive ese nivel, para que dos personas calibren igual', () => {
-    // Un "8" a secas no significa nada: sin la referencia, cada quien se
-    // inventa su propia escala.
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
-    marcarHambre(8)
-    expect(screen.getByText(/interfiere con el trabajo o el entreno/i)).toBeInTheDocument()
-  })
-
-  it('sin marcarla, sigue contando como campo pendiente', () => {
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
-    fireEvent.click(guardarBtn())
-    expect(screen.getByRole('alert')).toHaveTextContent(`${OBLIGATORIOS} campos`)
-  })
-})
-
-describe('CheckinForm — la escala de dolor', () => {
-  it('ofrece el cero y los diez valores', () => {
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
-    for (const n of [0, 1, 5, 10]) {
-      expect(screen.getByRole('button', { name: `Dolor ${n} de 10` })).toBeInTheDocument()
-    }
-  })
-
-  it('«sin dolor» es una respuesta: marcando el cero se guarda un 0, no un hueco', () => {
-    // Un ajuste clínico se reabre con «EVA ≤2 en todas las sesiones». Para
-    // que eso se pueda contar, el cero tiene que quedar escrito.
-    const onGuardar = vi.fn()
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
-
-    marcarTodos() // incluye Dolor 0
-    fireEvent.click(guardarBtn())
-
-    expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ dolor: 0 }))
-    expect(onGuardar.mock.calls[0][0].dolorDonde).toBeUndefined()
-  })
-
-  it('sin marcarlo, cuenta como campo pendiente', () => {
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={vi.fn()} />)
-    for (const titulo of GRUPOS) {
-      const opciones = within(grupo(titulo)).getAllByRole('button')
-      fireEvent.click(opciones[0])
-    }
-    marcarHambre(3)
-    fireEvent.click(guardarBtn())
-    expect(screen.getByRole('alert')).toHaveTextContent('Te falta 1 campo por marcar')
-  })
-
-  it('con dolor, pregunta dónde y no deja guardar sin decirlo', () => {
-    // Un «6» a secas no le dice al coach si es la rodilla que vigila o una agujeta.
-    const onGuardar = vi.fn()
-    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
-
-    marcarTodos()
-    expect(screen.queryByLabelText('¿Dónde?')).toBeNull() // con 0, no se pregunta
+    expect(onGuardar).not.toHaveBeenCalled()
 
     marcarDolor(6)
-    expect(screen.getByText(/te obliga a cambiar el ejercicio o el ritmo/i)).toBeInTheDocument()
+    // Con EVA>0 falta dónde
     fireEvent.click(guardarBtn())
     expect(onGuardar).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toHaveTextContent('Te falta 1 campo por marcar')
+    expect(screen.getByLabelText('¿Dónde?')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('¿Dónde?'), { target: { value: '  Rodilla izquierda ' } })
+    fireEvent.change(screen.getByLabelText('¿Dónde?'), { target: { value: ' Rodilla ' } })
     fireEvent.click(guardarBtn())
-    expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ dolor: 6, dolorDonde: 'Rodilla izquierda' }))
+    expect(onGuardar).toHaveBeenCalledWith(
+      expect.objectContaining({ dolor: 6, dolorDonde: 'Rodilla', dolorDesdeAyer: { hay: true, donde: 'Rodilla', eva: 6 } }),
+    )
   })
 
-  it('si vuelve a «sin dolor», el dónde no viaja aunque se hubiera escrito', () => {
+  it('sin dolor marcado como No no pide dónde ni EVA', () => {
+    // El caso mayoritario: no duele nada, un toque y listo.
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
+    marcarSueno()
+    marcarEnergia()
+    marcarDolorNo()
+    expect(screen.queryByLabelText('¿Dónde?')).toBeNull()
+    fireEvent.click(guardarBtn())
+    expect(onGuardar).toHaveBeenCalled()
+  })
+})
 
-    marcarTodos()
-    marcarDolor(4)
-    fireEvent.change(screen.getByLabelText('¿Dónde?'), { target: { value: 'Hombro' } })
+describe('CheckinForm — más detalles plegado', () => {
+  it('el resto va plegado y no bloquea el guardar', () => {
+    const onGuardar = vi.fn()
+    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
+    // Sin abrir detalles ya se puede guardar con las 3
+    marcarSueno()
+    marcarEnergia()
+    marcarDolorNo()
+    fireEvent.click(guardarBtn())
+    expect(onGuardar).toHaveBeenCalled()
+  })
+
+  it('si abre detalles, lo opcional se guarda cuando se rellena', () => {
+    const onGuardar = vi.fn()
+    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
+    marcarSueno()
+    marcarEnergia()
+    marcarDolorNo()
+    abrirMasDetalles()
+    // Rellenar hambre y estrés opcionales
+    const hambreBtn = screen.getByRole('button', { name: 'Hambre 8 de 10' })
+    fireEvent.click(hambreBtn)
+    const estresFs = screen.getByText('Estrés').closest('fieldset')!
+    fireEvent.click(within(estresFs as HTMLElement).getAllByRole('button')[0])
+    fireEvent.click(guardarBtn())
+    expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ hambreEscala: 8, estres: 'POCO' }))
+  })
+})
+
+describe('CheckinForm — compatibilidad dolor espejado', () => {
+  it('marcar Sí + 0 guarda eva 0 sin exigir dónde', () => {
+    const onGuardar = vi.fn()
+    render(<CheckinForm usuarioId="u1" fecha="2026-01-01" onGuardar={onGuardar} />)
+    marcarSueno()
+    marcarEnergia()
+    marcarDolorSi()
     marcarDolor(0)
     fireEvent.click(guardarBtn())
-
-    expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ dolor: 0 }))
+    expect(onGuardar).toHaveBeenCalledWith(
+      expect.objectContaining({ dolor: 0, dolorDesdeAyer: { hay: true, donde: undefined, eva: 0 } }),
+    )
     expect(onGuardar.mock.calls[0][0].dolorDonde).toBeUndefined()
   })
 })
