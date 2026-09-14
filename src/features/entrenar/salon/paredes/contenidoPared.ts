@@ -217,7 +217,12 @@ export function contenidoPared(ejercicio: EjercicioPrescrito): ContenidoDePared 
   // 2. TÉCNICA --------------------------------------------------------------
   // Los cues del coach van enteros al panel; en la pared cabe la primera indicación,
   // que es la que ordena el resto. Recortar la lista entera daría media frase suelta.
-  const cues = ejercicio.cues.trim()
+  //
+  // `cues` está declarado obligatorio en el tipo, pero el cargador automático puede
+  // omitir la llave entera cuando el ③ no escribió ninguna nota — no es lo mismo que
+  // una cadena vacía, y en runtime revienta igual. El resto del dominio ya se protege
+  // así (`estandarizacion.ts`); aquí faltaba.
+  const cues = (ejercicio.cues ?? '').trim()
   const primeraCue = cues.split(/[.·;]\s*|\n/).map((c) => c.trim()).find((c) => c.length > 0)
   campos.push({
     clave: 'tecnica',

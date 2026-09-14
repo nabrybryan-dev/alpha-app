@@ -84,6 +84,23 @@ describe('contenidoPared', () => {
     }
   })
 
+  /**
+   * `cues` está declarado obligatorio en `EjercicioPrescrito` (`domain/types.ts`), pero el
+   * cargador automático de esta semana escribió microciclos reales sin esa llave en la
+   * mayoría de los ejercicios —el JSON de la base no la trae, ni siquiera vacía—. En
+   * runtime eso es exactamente lo mismo que `cues: undefined`, y hasta hoy la pantalla de
+   * Entrenar (`contenidoPared` → `SalonEntrenar`) se caía entera por ello: "Cannot read
+   * properties of undefined (reading 'trim')". Le pasó a 16 de 23 asesorados activos el
+   * 14-sep. El `as never` es a propósito: el tipo dice que no puede pasar, y el dato real
+   * demuestra que sí.
+   */
+  it('sin la llave `cues` en el ejercicio, no revienta: se lee como sin indicaciones', () => {
+    const sinCues = ejercicio()
+    delete (sinCues as { cues?: string }).cues
+    const c = contenidoPared(sinCues as never)
+    expect(c.tecnica).toMatch(/^Sin indicaciones/)
+  })
+
   it('ningún texto de pared pasa del tope: una pared se lee de reojo', () => {
     // Con los textos más largos que el dominio puede dar: cues de tres frases, ondulado y
     // una categoría con plan de medida. Si algo se pasa, se pasa aquí.
