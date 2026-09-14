@@ -102,3 +102,6 @@ jobs:
 
       - name: El cribado de salud se guarda de verdad
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/40-el-cribado-se-guarda.sql
+
+      - name: Los errores del navegador se guardan y solo los lee el coach
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/60-los-errores-del-navegador.sql

@@ -5,6 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   // Respeta el puerto que asigne el entorno (p. ej. el panel de vista previa)
   server: { port: Number(process.env.PORT) || 5173 },
+  // La versión que viaja con cada error del navegador (`data/errores/reportarError.ts`). Vercel da
+  // el sha del commit al construir; Vite solo expone lo que se define aquí. Fuera de Vercel queda
+  // vacío y la fila va sin versión.
+  define: {
+    'import.meta.env.VITE_VERSION_APP': JSON.stringify(
+      (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 12),
+    ),
+  },
   build: {
     rollupOptions: {
       output: {

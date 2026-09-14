@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client'
 import './styles/tokens.css'
 import App from './App.tsx'
 import { montarMedidor } from './lib/rendimiento'
+import { instalarRecogidaDeErrores } from './data/errores/reportarError'
+
+// ANTES de pintar: un fallo del primer render también tiene que quedar contado. En modo demo no
+// escucha nada. Nunca lanza. Ver `data/errores/reportarError.ts`.
+instalarRecogidaDeErrores()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
