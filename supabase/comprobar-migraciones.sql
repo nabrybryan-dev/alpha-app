@@ -1504,4 +1504,13 @@ select '0078 - la app cuenta lo que le falla', 'la tabla existe con RLS, anon no
                             and cmd = 'SELECT' and qual like '%es_coach()%') then 'SI'
             else 'NO' end
 
+union all
+-- La 0080: el yogur griego existe en la base. La app lo ofrece desde el 16-ago (#62) y
+-- `registro_item.alimento_id` lo rechazaba por su clave ajena: el registro de comida no se
+-- guardaba. Sin la 0080 dice NO; con solo uno de los dos, tambien.
+select '0080 - el yogur griego existe', 'los dos yogures griegos del catalogo de la app estan en public.alimentos',
+       case when (select count(*) from public.alimentos
+                   where id in ('yogur-griego-entero', 'yogur-griego-descremado')) = 2 then 'SI'
+            else 'NO' end
+
 order by migracion, senal;
