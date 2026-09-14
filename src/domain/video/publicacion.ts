@@ -77,13 +77,19 @@ export type DecisionDePublicar =
   | { publica: false; motivo: MotivoDeNegarse }
 
 /**
- * Tope de tamaño, en bytes. Cuarenta megas.
+ * Tope de tamaño, en bytes. Ciento cincuenta megas.
  *
  * No es una regla de calidad: es el suelo por debajo del cual un archivo no puede ser un
  * vídeo vertical de menos de un minuto, y el techo por encima del cual algo ha salido mal
  * en el renderizado. Subir 400 MB a veintitrés personas es una factura, no un domingo.
+ *
+ * Subido de 40 a 150 el 14-sep, cuando llegó la revisión LARGA (2-3 min, Alpha Estudio):
+ * sus vídeos de verdad pesan 76-96 MB, casi el doble del tope viejo, y con 40 el publicador
+ * los rechazaba como «archivo-enorme» —el mensaje de un render roto— sin que nada estuviera
+ * roto. 150 deja margen hasta ~5 min de revisión larga sin abrir la puerta a un vídeo de
+ * verdad corrupto (esos suelen pesar mucho más, o mucho menos —0 bytes—, no el doble).
  */
-export const TOPE_BYTES = 40 * 1024 * 1024
+export const TOPE_BYTES = 150 * 1024 * 1024
 
 /**
  * Los formatos que se pueden publicar, en UNA SOLA TABLA.
