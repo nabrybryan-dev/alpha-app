@@ -34,32 +34,14 @@
  * Es el mismo agujero que ya tuvo «Mi plan» con `visibilidadDe(undefined)`: la
  * decisión existía y la pantalla no la consultaba.
  */
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CheckinForm } from './CheckinForm'
 
-const GRUPOS = [
-  '¿Cómo estuvo tu rendimiento?',
-  'Motivación',
-  'Cansancio',
-  'Estrés',
-  'Calidad del sueño',
-  '¿Cómo estuvo tu alimentación?',
-]
-
-function grupo(titulo: string): HTMLElement {
-  const fieldset = screen.getByText(titulo).closest('fieldset')
-  if (!fieldset) throw new Error(`No se encontró el fieldset de "${titulo}"`)
-  return fieldset as HTMLElement
-}
-
-function marcarTodos() {
-  for (const titulo of GRUPOS) {
-    const opciones = within(grupo(titulo)).getAllByRole('button')
-    fireEvent.click(opciones[opciones.length - 1])
-  }
-  fireEvent.click(screen.getByRole('button', { name: 'Hambre 10 de 10' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Dolor 0 de 10' })) // «sin dolor» también se marca
+function marcarObligatorias() {
+  fireEvent.click(screen.getByText('¿Cómo dormiste?').closest('fieldset')!.querySelectorAll('button')[2])
+  fireEvent.click(screen.getByText('¿Cómo llegas hoy?').closest('fieldset')!.querySelectorAll('button')[0])
+  fireEvent.click(screen.getByRole('button', { name: 'No' }))
 }
 
 const guardar = () => fireEvent.click(screen.getByRole('button', { name: /guardar check-in/i }))
@@ -72,7 +54,7 @@ describe('el check-in no inventa números', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u-ana" fecha="2026-08-09" onGuardar={onGuardar} />)
 
-    marcarTodos()
+    marcarObligatorias()
     guardar()
 
     expect(onGuardar).toHaveBeenCalledTimes(1)
@@ -83,7 +65,7 @@ describe('el check-in no inventa números', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u-ana" fecha="2026-08-09" onGuardar={onGuardar} />)
 
-    marcarTodos()
+    marcarObligatorias()
     guardar()
 
     expect(onGuardar.mock.calls[0][0].pasos).toBeUndefined()
@@ -92,12 +74,13 @@ describe('el check-in no inventa números', () => {
   it('si toca el selector, el peso sí se guarda', () => {
     const onGuardar = vi.fn()
     render(<CheckinForm usuarioId="u-ana" fecha="2026-08-09" onGuardar={onGuardar} />)
+    fireEvent.click(screen.getByText('Más detalles (opcional)'))
 
     const stepper = screen.getByLabelText('Peso ayunas en kg')
     fireEvent.change(stepper, { target: { value: '56' } })
     fireEvent.blur(stepper)
 
-    marcarTodos()
+    marcarObligatorias()
     guardar()
 
     expect(onGuardar.mock.calls[0][0].pesoKg).toBe(56)
@@ -111,7 +94,7 @@ describe('el check-in no inventa números', () => {
       <CheckinForm usuarioId="u-ana" fecha="2026-08-09" pesoInicial={59.4} onGuardar={onGuardar} />,
     )
 
-    marcarTodos()
+    marcarObligatorias()
     guardar()
 
     expect(onGuardar.mock.calls[0][0].pesoKg).toBe(59.4)
@@ -122,6 +105,7 @@ describe('el check-in no inventa números', () => {
       render(
         <CheckinForm usuarioId="u-ana" fecha="2026-08-09" pedirPeso={false} onGuardar={vi.fn()} />,
       )
+      fireEvent.click(screen.getByText('Más detalles (opcional)'))
 
       expect(screen.queryByLabelText('Peso ayunas en kg')).not.toBeInTheDocument()
     })
@@ -138,7 +122,7 @@ describe('el check-in no inventa números', () => {
         />,
       )
 
-      marcarTodos()
+      marcarObligatorias()
       guardar()
 
       expect(onGuardar.mock.calls[0][0].pesoKg).toBeUndefined()
@@ -152,11 +136,10 @@ describe('el check-in no inventa números', () => {
         <CheckinForm usuarioId="u-ana" fecha="2026-08-09" pedirPeso={false} onGuardar={onGuardar} />,
       )
 
-      marcarTodos()
+      marcarObligatorias()
       guardar()
 
       const guardado = onGuardar.mock.calls[0][0]
-      expect(guardado.hambreEscala).toBe(10)
       expect(guardado.calidadSueno).toBe('BUENA')
       expect(guardado.horasSueno).toBe(7)
     })

@@ -540,6 +540,16 @@ export interface CheckinDiario {
   dolor?: number
   /** Dónde duele, en palabras de la persona. Solo tiene sentido con `dolor` > 0. */
   dolorDonde?: string
+  /**
+   * Dolor aparecido desde ayer: temporalidad, no intensidad.
+   *
+   * `dolor` dice CUÁNTO duele hoy; esto dice si es nuevo desde ayer, para que
+   * el coach filtre «señal nueva» sin confundirla con molestia crónica.
+   * Opcional y nunca migra la base: viaja dentro de `checkins.datos` jsonb.
+   * Cuando existe, `dolor`/`dolorDonde` se mantienen espejados (misma EVA y
+   * zona) para que `readiness` y vistas viejas lo lean sin cambios.
+   */
+  dolorDesdeAyer?: { hay: boolean; donde?: string; eva?: number }
   comentarios?: string
 }
 
