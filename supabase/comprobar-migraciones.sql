@@ -1505,11 +1505,11 @@ select '0078 - la app cuenta lo que le falla', 'la tabla existe con RLS, anon no
             else 'NO' end
 
 union all
--- NNNN · El veto de 24 horas. Cuatro senales, y las cuatro hacen falta:
+-- 0079 · El veto de 24 horas. Cuatro senales, y las cuatro hacen falta:
 -- tabla con RLS y sin lectura anon (lleva datos de planes), funciones no abiertas
 -- a anon y con revokes, y cron cada 15 min. El orden importa: preguntar privilegios
 -- sobre lo que no existe revienta en vez de decir NO.
-select 'NNNN - el veto de 24 horas', 'tabla con RLS, anon no lee y publicado_en existe',
+select '0079 - el veto de 24 horas', 'tabla con RLS, anon no lee y publicado_en existe',
        case when to_regclass('public.publicaciones_pendientes') is null then 'NO'
             when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.publicaciones_pendientes')) then 'NO'
             when has_table_privilege('anon', 'public.publicaciones_pendientes', 'select') then 'NO'
@@ -1517,21 +1517,21 @@ select 'NNNN - el veto de 24 horas', 'tabla con RLS, anon no lee y publicado_en 
             else 'SI' end
 
 union all
-select 'NNNN - el veto de 24 horas', 'publicar_pendientes existe, definer y cerrada a anon',
+select '0079 - el veto de 24 horas', 'publicar_pendientes existe, definer y cerrada a anon',
        case when to_regprocedure('public.publicar_pendientes()') is null then 'NO'
             when has_function_privilege('anon', 'public.publicar_pendientes()', 'execute') then 'NO'
             when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.publicar_pendientes()')) is not true then 'NO'
             else 'SI' end
 
 union all
-select 'NNNN - el veto de 24 horas', 'parar_publicacion existe, definer y cerrada a anon',
+select '0079 - el veto de 24 horas', 'parar_publicacion existe, definer y cerrada a anon',
        case when to_regprocedure('public.parar_publicacion(uuid,text)') is null then 'NO'
             when has_function_privilege('anon', 'public.parar_publicacion(uuid,text)', 'execute') then 'NO'
             when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.parar_publicacion(uuid,text)')) is not true then 'NO'
             else 'SI' end
 
 union all
-select 'NNNN - el veto de 24 horas', 'cron cada 15 min programado',
+select '0079 - el veto de 24 horas', 'cron cada 15 min programado',
        case when not exists (select 1 from pg_available_extensions where name='pg_cron') then 'SI'
             when exists (select 1 from cron.job where jobname='publicar-pendientes-cada-15' and schedule='*/15 * * * *') then 'SI'
             else 'NO' end

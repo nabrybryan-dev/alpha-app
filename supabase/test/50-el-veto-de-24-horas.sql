@@ -1,4 +1,4 @@
--- 50 · El veto de 24 horas (NNNN)
+-- 50 · El veto de 24 horas (0079)
 --
 -- Cinco casos que no pueden quedar a medias, porque son las cinco formas
 -- en que esta bandeja puede hacer daño:
@@ -14,7 +14,7 @@
 
 \set ON_ERROR_STOP on
 \i supabase/test/00-suplantar-supabase.sql
-\i supabase/migrations/NNNN_el_veto_de_24_horas.sql
+\i supabase/migrations/0079_el_veto_de_24_horas.sql
 
 -- ── Montar usuarios y microciclos mínimos ──────────────────────────────
 -- Nota: 0001 crea el trigger de usuarios_app; aquí se insertan directo.

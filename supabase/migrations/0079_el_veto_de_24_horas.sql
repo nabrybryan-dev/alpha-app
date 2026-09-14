@@ -1,5 +1,5 @@
 -- ============================================================================
--- NNNN · El veto de 24 horas
+-- 0079 · El veto de 24 horas
 -- ============================================================================
 --
 -- Decisión del dueño (2026-09-13): «Solo con 24 h de veto». La cadena deja el
@@ -30,8 +30,8 @@
 -- legible con la anon key. Toda auxiliar temporal que se cree para pruebas
 -- sigue la misma regla.
 --
--- NOMBRE. NNNN es literal por encargo: «Nombra la migración
--- `supabase/migrations/NNNN_el_veto_de_24_horas.sql` (literal NNNN)». No se
+-- NOMBRE. El número 0079 lo puso el dueño el 14-sep al revisar el PR (main
+-- llegaba a 0078). No se
 -- renumera.
 -- ============================================================================
 
@@ -304,4 +304,4 @@ begin
 end
 $cron_veto$;
 
--- Comprobación: señales en supabase/comprobar-migraciones.sql (NNNN)
+-- Comprobación: señales en supabase/comprobar-migraciones.sql (0079)

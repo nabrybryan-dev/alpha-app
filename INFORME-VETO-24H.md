@@ -12,7 +12,7 @@ Rama: `feat/veto-24h` (worktree `F:\dev\alpha-veto-24h` desde `origin/main`).
 
 12 secciones. Define: tabla DDL con `publicar_en` generada (`creado_en + 24h`), diagrama de estados (`pendiente | parado | publicado | fallido`), RLS (solo staff lee; service_role inserta; parar solo por `SECURITY DEFINER`), invariante `trae_parada` (nunca auto-publica, queda pendiente), regla `id_anterior` (activo actual distinto → `fallido` con motivo), deshacer (parar antes / revertir activo / fallido reinsertando), reuso del clonador (`tmp_sesion_en_limpio`/`tmp_nuevo_micro`), qué falta para que la cadena escriba en bandeja y riesgos.
 
-### B) Base — `supabase/migrations/NNNN_el_veto_de_24_horas.sql` (literal NNNN)
+### B) Base — `supabase/migrations/0079_el_veto_de_24_horas.sql` (literal 0079)
 
 Conjunto inseparable para no dejar la bandeja a medias:
 
@@ -23,7 +23,7 @@ Conjunto inseparable para no dejar la bandeja a medias:
 - `parar_publicacion(p_id uuid, p_motivo text)` `SECURITY DEFINER` con `if not public.es_staff() then raise 'solo staff'`. `update ... where estado='pendiente'` a `parado` con `parado_por = auth.uid()`.
 - `pg_cron` cada 15 min (`cron.schedule('publicar-pendientes-cada-15','*/15 * * * *','select public.publicar_pendientes();')`) en bloque `do $cron_veto$` con guarda `pg_available_extensions`; fuera de transacción (patrón 0048). Sin cron, no hay publicación automática; la bandeja sigue visible.
 
-Señales añadidas a `supabase/comprobar-migraciones.sql` (NNNN): tabla RLS, funciones definer, cron.
+Señales añadidas a `supabase/comprobar-migraciones.sql` (0079): tabla RLS, funciones definer, cron.
 
 ### C) Prueba SQL — `supabase/test/50-el-veto-de-24-horas.sql`
 
@@ -55,7 +55,7 @@ Los commits se hacen con `git commit --only <rutas>` (rutas explícitas, sin `--
 
 Previstos / realizados sobre `feat/veto-24h`:
 
-1. `feat(veto): spec 2026-09-13 y migración NNNN con bandeja, RLS y cron cada 15` — `docs/specs/2026-09-13-el-veto-de-24-horas.md`, `supabase/migrations/NNNN_el_veto_de_24_horas.sql`, `supabase/comprobar-migraciones.sql`, `supabase/test/50-el-veto-de-24-horas.sql`
+1. `feat(veto): spec 2026-09-13 y migración 0079 con bandeja, RLS y cron cada 15` — `docs/specs/2026-09-13-el-veto-de-24-horas.md`, `supabase/migrations/0079_el_veto_de_24_horas.sql`, `supabase/comprobar-migraciones.sql`, `supabase/test/50-el-veto-de-24-horas.sql`
 2. `feat(veto): panel del coach Planes que salen solos con Veto 24h y Parar` — `src/features/coach/bandejaVetoNube.ts`, `src/features/coach/BandejaVeto.tsx`, `src/features/coach/BandejaVeto.test.tsx`, `src/features/coach/AsesoradosPage.tsx`
 3. `docs(veto): INFORME-VETO-24H.md` — `INFORME-VETO-24H.md`
 
@@ -89,7 +89,7 @@ npx vitest run src/features/coach/BandejaVeto.test.tsx
      · sin pendientes no renderiza nada (no enseña "0 planes")
 supabase/test/50-el-veto-de-24-horas.sql
   → pensado para psql local con el harness 00-suplantar-supabase.sql;
-     no se corre en CI (requiere Postgres/Supabase). Tras `NNNN...sql`
+     no se corre en CI (requiere Postgres/Supabase). Tras `0079...sql`
      aplicado, cubre: publica vencida, no publica parada, no publica
      trae_parada, no publica si activo != id_anterior (fallido), idempotencia,
      y limpieza de fósiles.
@@ -115,7 +115,7 @@ Esta entrega hace la bandeja y el cron; **no toca la cadena** (vive en otro repo
   ```
   `:datos_limpio` ya viene de `tmp_nuevo_micro(tmp_sesion_en_limpio(...))` pasado por `veto_datos_en_limpio` si hiciera falta; sin `estado` en el blob (lo borra el trigger 0066). `:avisos` es el array tal como lo produce la cadena (arriba en el panel). `:trae_parada` sale de la zona clínica del dictamen (I-23/I-30/cribado en rojo, reevaluación que vence y para); la publicación además revisa `avisos ilike '%parada%'` como segunda red.
 - El repo de la cadena debe añadir test de que lo que inserta en `publicaciones_pendientes.datos` no trae `hechoEn/testPost/fecha/empezadaEn/ultimaMarcaEn/series` fósiles ni `estado` en el blob, igual que `50-el-veto-de-24-horas.sql` §6 lo comprueba del lado receptor.
-- Despliegue: aplicar `NNNN_el_veto_de_24_horas.sql` a mano en el SQL Editor (no hay registro de versiones), comprobar con `supabase/comprobar-migraciones.sql` y con `supabase/comprobar-fosiles.sql` tras la primera publicación automática. El `cron.schedule` lo crea la propia migración si `pg_cron` existe; en local sin extensión queda aviso y sin publicación automática.
+- Despliegue: aplicar `0079_el_veto_de_24_horas.sql` a mano en el SQL Editor (no hay registro de versiones), comprobar con `supabase/comprobar-migraciones.sql` y con `supabase/comprobar-fosiles.sql` tras la primera publicación automática. El `cron.schedule` lo crea la propia migración si `pg_cron` existe; en local sin extensión queda aviso y sin publicación automática.
 
 Nada de esto se hace desde `alpha-veto-24h`; aquí solo se deja la bandeja lista para recibir.
 
@@ -134,4 +134,4 @@ Nada de esto se hace desde `alpha-veto-24h`; aquí solo se deja la bandeja lista
 
 ## Si algo bloquea
 
-Nada bloquea la entrega en disco a 2026-09-13. Queda pendiente el commit de este informe y la pasada manual de `NNNN_el_veto_de_24_horas.sql` + `50-el-veto-de-24-horas.sql` en un Supabase de prueba con `pg_cron` habilitado para confirmar el cron real.
+Nada bloquea la entrega en disco a 2026-09-13. Queda pendiente el commit de este informe y la pasada manual de `0079_el_veto_de_24_horas.sql` + `50-el-veto-de-24-horas.sql` en un Supabase de prueba con `pg_cron` habilitado para confirmar el cron real.
