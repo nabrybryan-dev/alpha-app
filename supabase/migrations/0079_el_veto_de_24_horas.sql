@@ -51,14 +51,32 @@ create table if not exists public.publicaciones_pendientes (
   -- Invariante: si trae_parada, NUNCA publica solo. Queda pendiente hasta acción del coach.
   trae_parada   boolean not null default false,
   creado_en     timestamptz not null default now(),
-  -- Generada: evita que un INSERT olvide la cuenta atrás.
-  publicar_en   timestamptz not null generated always as (creado_en + interval '24 hours') stored,
+  -- La cuenta atrás la fija el disparador de abajo: un INSERT no puede elegirla.
+  publicar_en   timestamptz not null default (now() + interval '24 hours'),
   estado        text not null default 'pendiente'
                 check (estado in ('pendiente','parado','publicado','fallido')),
   parado_por    uuid references public.usuarios_app(id),
   motivo        text,
   publicado_en  timestamptz
 );
+
+create or replace function public.fijar_publicar_en()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.publicar_en := new.creado_en + interval '24 hours';
+  return new;
+end;
+$$;
+
+revoke all on function public.fijar_publicar_en() from public, anon, authenticated;
+
+drop trigger if exists trg_fijar_publicar_en on public.publicaciones_pendientes;
+create trigger trg_fijar_publicar_en
+  before insert or update of creado_en, publicar_en on public.publicaciones_pendientes
+  for each row execute function public.fijar_publicar_en();
 
 comment on table public.publicaciones_pendientes is
   'Bandeja del veto de 24 h (2026-09-13): la cadena deja el plan terminado y 24 horas despues '
