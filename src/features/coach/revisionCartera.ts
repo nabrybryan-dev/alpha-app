@@ -61,6 +61,11 @@ export interface FilaCartera {
   /** La propuesta calculada. Solo cuando el microciclo vence y no hay preparada. */
   propuesta?: PropuestaMicrociclo
   /**
+   * Por qué no se activó una que salió automática: su id pisaría una semana ya
+   * entrenada (`domain/idDeMicrociclo.ts`). Solo en `revisar`.
+   */
+  bloqueo?: string
+  /**
    * La que el coach dejó guardada para el número siguiente. Cuando existe, es la
    * que se activa: ya pasó por una persona.
    */
@@ -168,8 +173,14 @@ export function activarAutomaticas(
   db: Db,
   filas: readonly FilaCartera[],
   hoy: string = hoyIso(),
+  /**
+   * Las que no se pudieron activar sin pisar algo (ver `domain/idDeMicrociclo.ts`).
+   * No se activan, no se devuelven, y el motivo sale por aquí para el resumen.
+   */
+  alBloquear?: (fila: FilaCartera, motivo: string) => void,
 ): FilaCartera[] {
   const automaticas = filas.filter((f) => f.estado === 'automatica')
+  const bloqueadas = new Set<FilaCartera>()
 
   for (const fila of automaticas) {
     const activo = db.microciclos.byUsuario(fila.usuario.id).find((m) => m.estado === 'activo')
@@ -189,12 +200,27 @@ export function activarAutomaticas(
       continue
     }
 
-    const propuesta = microcicloPropuesto(activo, { hoy })
+    // El id sale del slug de la persona. Si con él se pisaría una semana ya entrenada
+    // —la numeración se reinició—, no se escribe nada y lo decide Bryan. Aviso: el
+    // teléfono del staff no se baja los cerrados de la cartera, así que esto solo ve los
+    // choques con lo que tiene; el resto lo para la base (trigger de la 0081).
+    let propuesta
+    try {
+      propuesta = microcicloPropuesto(activo, {
+        hoy,
+        slug: fila.usuario.slug ?? db.usuarios.byId(fila.usuario.id)?.slug,
+        existentes: db.microciclos.byUsuario(fila.usuario.id),
+      })
+    } catch (e) {
+      bloqueadas.add(fila)
+      alBloquear?.(fila, e instanceof Error ? e.message : String(e))
+      continue
+    }
     db.microciclos.guardarPropuesta(propuesta)
     db.microciclos.activarPropuesta(propuesta.id)
   }
 
-  return automaticas
+  return automaticas.filter((f) => !bloqueadas.has(f))
 }
 
 /**
@@ -220,8 +246,15 @@ let memoBarrido: { fecha: string; filas: FilaCartera[] } | undefined
 
 export function barrerYActivar(db: Db, hoy: string = hoyIso()): FilaCartera[] {
   if (memoBarrido?.fecha === hoy) return memoBarrido.filas
-  const filas = revisarCartera(db, hoy)
-  activarAutomaticas(db, filas, hoy)
+  const bloqueos = new Map<FilaCartera, string>()
+  const barridas = revisarCartera(db, hoy)
+  activarAutomaticas(db, barridas, hoy, (fila, motivo) => bloqueos.set(fila, motivo))
+  // Una que no se pudo activar no puede salir en la foto como «Activado»: pasa a las
+  // que esperan a Bryan, con el motivo.
+  const filas = barridas.map((f): FilaCartera => {
+    const bloqueo = bloqueos.get(f)
+    return bloqueo ? { ...f, estado: 'revisar', bloqueo } : f
+  })
   memoBarrido = { fecha: hoy, filas }
   return filas
 }
@@ -259,6 +292,8 @@ export function conclusion(fila: FilaCartera): string {
   if (fila.preparada) {
     return `M${fila.preparada.numero}: la que dejaste preparada. Activada, empieza el ${fila.preparada.fechaInicio}${avisoSesiones(fila.cierre)}.`
   }
+
+  if (fila.bloqueo) return `M${fila.numeroActual} vencido, sin activar: ${fila.bloqueo}`
 
   const p = fila.propuesta
   if (!p) return `M${fila.numeroActual} vencido.`

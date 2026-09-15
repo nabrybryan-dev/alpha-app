@@ -30,6 +30,7 @@ export function GenerarMicrocicloSheet({
   const propuesta = microciclo ? proponerMicrociclo(microciclo) : undefined
   const [guardada, setGuardada] = useState(false)
   const [arranque, setArranque] = useState<Arranque>('a-continuacion')
+  const [error, setError] = useState<string>()
 
   const hoy = hoyIso()
   /**
@@ -51,12 +52,25 @@ export function GenerarMicrocicloSheet({
     if (!microciclo) return
     // `hoy` evita que la propuesta nazca con la fecha del microciclo de origen, es
     // decir vencida. Ver el encabezado de `microcicloPropuesto`.
-    db.microciclos.guardarPropuesta(
-      microcicloPropuesto(microciclo, {
+    //
+    // El id sale del slug de la persona (`domain/idDeMicrociclo.ts`). Si no se puede
+    // construir sin pisar una semana ya entrenada, NO se guarda nada y se dice aquí:
+    // el coach es el único que puede decidir, y un guardado que fallara más tarde en
+    // la base acabaría en la cola de descartes sin que nadie lo viera.
+    let propuestaNueva
+    try {
+      propuestaNueva = microcicloPropuesto(microciclo, {
         hoy,
         ...(arranque === 'proxima-semana' ? { fechaInicio } : {}),
-      }),
-    )
+        slug: db.usuarios.byId(microciclo.usuarioId)?.slug,
+        existentes: db.microciclos.byUsuario(microciclo.usuarioId),
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+      return
+    }
+    setError(undefined)
+    db.microciclos.guardarPropuesta(propuestaNueva)
     recalcularNivel(microciclo)
     setGuardada(true)
   }
@@ -202,6 +216,12 @@ export function GenerarMicrocicloSheet({
             No aplica descarga automática: su disparador (semana 4 de cada mesociclo) no coincide
             con lo que muestran tus plantillas.
           </p>
+
+          {error && (
+            <p role="alert" className="rounded-xl border border-rojo/40 bg-rojo/10 p-3 text-xs text-rojo">
+              <strong>No se guardó.</strong> {error}
+            </p>
+          )}
 
           {guardada ? (
             <p className="rounded-xl border border-logrado/40 bg-logrado/10 p-3 text-xs text-logrado">
