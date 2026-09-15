@@ -11,6 +11,16 @@ export interface Usuario {
   nombre: string
   rol: Rol
   avatarIniciales: string
+  /**
+   * El identificador de la persona dentro de los ids de sus microciclos:
+   * `m-<slug>-<numero>`. Uno por persona, único y estable; lo guarda la base
+   * (`usuarios_app.slug`, migración 0081) y la app nunca lo deriva del nombre.
+   *
+   * Opcional porque la app se despliega ANTES que la migración: mientras la columna no
+   * exista, no llega, y «Generar microciclo» conserva el id de siempre. Ver
+   * `domain/idDeMicrociclo.ts`.
+   */
+  slug?: string
 }
 
 export type NivelVolumen = 'Muy Bajo' | 'Bajo' | 'Normal' | 'Alto' | 'Muy Alto'

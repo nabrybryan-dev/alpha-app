@@ -323,6 +323,7 @@ create or replace function public.tmp_cargar_siguiente(
 ) returns text language plpgsql as $fn$
 declare
   v_uid uuid; v_num int; v_datos jsonb; v_id text; v_src_id text; v_activos int;
+  v_slug text; v_slug_base text;
   v_homonimas int;
   v_ambiguas text;
 begin
@@ -406,14 +407,43 @@ begin
         || 'apunta un ajuste, y ese ajuste les escribiria lo mismo a los dos: ' || v_ambiguas;
   end if;
 
-  v_id := 'm-' || p_slug || '-' || (v_num + 1);
+  -- ── EL ID SALE DEL SLUG DE LA BASE: `m-<usuarios_app.slug>-<numero>` ────────
+  -- Regla de Bryan del 2026-09-15 (migración 0081). El slug es UNO POR PERSONA y
+  -- está guardado; derivarlo del nombre en cada carga es lo que le cambió el
+  -- prefijo a tres personas de una semana a otra y le comió una letra a seis.
+  -- Con la 0081 aplicada, un id que no siga la regla lo rechaza la base.
+  --
+  -- `p_slug` se queda por compatibilidad con quien ya llama con cuatro argumentos:
+  -- con la 0081 puede ir a null, y si va, tiene que ser el de la base. Sin la 0081
+  -- (la columna no existe) se usa el que llega, como antes. `to_jsonb(u)->>'slug'`
+  -- y no `u.slug` para que la plantilla se pueda crear en las dos bases.
+  select to_jsonb(u)->>'slug' into v_slug_base from public.usuarios_app u where u.id = v_uid;
+  if v_slug_base is not null then
+    if nullif(p_slug, '') is not null and p_slug <> v_slug_base then
+      return 'ABORTA · el slug pasado (' || p_slug || ') no es el de ' || p_nombre ||
+             ' en la base (' || v_slug_base || '). Pasa null: el id sale de usuarios_app.slug.';
+    end if;
+    v_slug := v_slug_base;
+  else
+    v_slug := p_slug;
+  end if;
 
-  -- El id destino no puede existir ya. Si existe, es de otro bloque con la misma
-  -- numeración (`m-karin-5` del bloque 1 contra el M5 del bloque 2) y el
-  -- `on conflict do update` lo sobrescribiría sin dejar rastro.
-  if exists (select 1 from public.microciclos where id = v_id and id <> v_src_id
-                                                and usuario_id is distinct from v_uid) then
-    return 'ABORTA · el id ' || v_id || ' ya existe y es de otro usuario.';
+  v_id := 'm-' || v_slug || '-' || (v_num + 1);
+
+  -- El id destino no puede ser ya de una semana que existe. Si existe, lo normal
+  -- es otro bloque con la misma numeración (`m-karin-5` del bloque 1 contra el M5
+  -- del bloque 2), y el `on conflict do update` lo sobrescribiría sin dejar rastro.
+  --
+  -- Hasta el 2026-09-15 esto solo abortaba si el id era de OTRA persona, así que
+  -- justo el caso que describe —la misma persona con la numeración reiniciada—
+  -- pasaba de largo. Con la regla nueva ese choque deja de ser raro. Solo se deja
+  -- pasar una PROPUESTA de la misma persona: la que el coach guardó para ese número,
+  -- que es lo que esta carga viene a sustituir.
+  if exists (select 1 from public.microciclos
+              where id = v_id
+                and (usuario_id is distinct from v_uid or estado <> 'propuesto')) then
+    return 'ABORTA · el id ' || v_id || ' ya existe y no es una propuesta de ' || p_nombre ||
+           ': escribirlo encima borraría esa semana. La numeración se reinició; decide el número.';
   end if;
 
   -- CERRAR ANTES DE ABRIR, y no al revés. Hasta el 2026-09-10 este bloque metía el
@@ -477,7 +507,7 @@ begin
       p_nombre, v_activos;
   end if;
 
-  return 'OK ' || p_slug || ' -> M' || (v_num + 1);
+  return 'OK ' || v_id || ' -> M' || (v_num + 1);
 end;
 $fn$;
 revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) from public;
@@ -487,7 +517,7 @@ revoke execute on function public.tmp_cargar_siguiente(text, text, text, jsonb) 
 -- En la carga real (archivo `_app-cargar-*.sql`, que NO va al repo):
 --
 --   begin;
---   select public.tmp_cargar_siguiente('<NOMBRE EN usuarios_app>', '<slug>', '<YYYY-MM-DD>',
+--   select public.tmp_cargar_siguiente('<NOMBRE EN usuarios_app>', null, '<YYYY-MM-DD>',
 --     jsonb_build_object(
 --       'PREFIJO DEL EJERCICIO',
 --       jsonb_build_object('reps',8,'rir',2,'carga',62.5,'nota','<prescripción>')

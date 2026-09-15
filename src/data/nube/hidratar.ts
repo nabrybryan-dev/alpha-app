@@ -10,7 +10,6 @@ import type {
   PlanNutricional,
   PremiacionCoach,
   Respuesta,
-  Usuario,
 } from '../../domain/types'
 import type { ItemDespensaDe } from '../../domain/nutricion/despensa'
 import type { FilaRanking } from '../../domain/ranking'
@@ -39,14 +38,8 @@ import type { SeedDb } from '../seed'
 import { supabase } from '../supabase'
 import { sanearMicrociclo, sanearPlan } from './saneado'
 import { perfilesDe, SELECCION_PERFILES, TABLA_PERFILES, type FilaPerfil } from './perfilEnNube'
+import { SELECCION_USUARIOS, TABLA_USUARIOS, usuarioDeFila, type FilaUsuario } from './usuarioEnNube'
 import { conPendientes, marcarTablaHidratacion, marcarTablaRegistro } from './sync'
-
-interface FilaUsuario {
-  id: string
-  nombre: string
-  rol: 'asesorado' | 'coach' | 'nutricionista'
-  avatar_iniciales: string
-}
 
 interface FilaMensaje {
   id: string
@@ -398,8 +391,9 @@ export async function hidratarDesdeNube(): Promise<void> {
     contenidos,
     premiaciones,
   ] = await Promise.all([
-    // Columnas necesarias para UI: id, nombre, rol, avatar
-    pedir('usuarios_app', () => sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales')),
+    // Todas las columnas, y no una lista: el slug (0081) llega cuando existe y su
+    // ausencia no tumba la descarga. Ver `usuarioEnNube.ts`.
+    pedir(TABLA_USUARIOS, () => sb.from(TABLA_USUARIOS).select(SELECCION_USUARIOS)),
     // El blob y la columna `sexo` (0056). La selección sale de `perfilEnNube.ts`,
     // que es el único sitio que nombra la columna, y `perfilEnNube.test.ts` la
     // comprueba contra la migración: una columna inventada aquí no avisa.
@@ -549,14 +543,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     // de pedir los datos y no antes: si algo cambiara en medio, la firma vieja
     // obliga a repetir en el refresco siguiente, que es el lado seguro.
     firmaSync: await firmaPendiente,
-    usuarios: ((usuarios.data ?? []) as FilaUsuario[]).map(
-      (u): Usuario => ({
-        id: u.id,
-        nombre: u.nombre,
-        rol: u.rol,
-        avatarIniciales: u.avatar_iniciales || u.nombre.slice(0, 2).toUpperCase(),
-      }),
-    ),
+    usuarios: ((usuarios.data ?? []) as FilaUsuario[]).map(usuarioDeFila),
     // Con las pendientes encima Y con las filas del servidor a mano: el upsert
     // pendiente del asesorado no nombra `sexo`, y sin el respaldo la ficha lo
     // olvidaría hasta la siguiente descarga. Ver `perfilesDe`.

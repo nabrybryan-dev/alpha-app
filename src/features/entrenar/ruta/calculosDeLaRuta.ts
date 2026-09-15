@@ -2,6 +2,7 @@ import { db } from '../../../data/dbInstance'
 import { resumenMicrociclo } from '../../../domain/cumplimiento'
 import { cargaPorGrupo } from '../../../domain/fatiga'
 import { porcentajeAdherencia } from '../../../domain/nutricion/adherencia'
+import { microcicloAnterior } from '../../../domain/microcicloAnterior'
 import { desviacionRirMedia } from '../../../domain/readiness'
 import { requisitosParaPeldano } from '../../../domain/nivelesAlfa'
 import {
@@ -75,9 +76,7 @@ export function calculosDeLaRuta(
   const resumen = resumenMicrociclo(microciclo)
   // El anterior con series: el 1RM estimado solo se puede comparar contra un microciclo
   // que la persona llegó a registrar.
-  const previo = microciclos
-    .filter((m) => m.id !== microciclo.id && m.numero < microciclo.numero)
-    .sort((a, b) => b.numero - a.numero)[0]
+  const previo = microcicloAnterior(microciclos, microciclo)
   const adherencias = db.nutricion.adherenciasByUsuario(usuarioId)
   const perfil = db.perfiles.byUsuario(usuarioId)
 

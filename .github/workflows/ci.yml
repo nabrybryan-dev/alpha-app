@@ -105,3 +105,6 @@ jobs:
 
       - name: Los errores del navegador se guardan y solo los lee el coach
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/60-los-errores-del-navegador.sql
+
+      - name: El id de un microciclo nuevo dice de quién es, y los viejos se siguen registrando
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/70-el-id-dice-de-quien-es.sql
