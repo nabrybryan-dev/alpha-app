@@ -2,6 +2,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ErrorBoundary } from './ErrorBoundary'
+import { hayVersionNueva } from './versionNueva'
+
+// Si el servidor tiene otra versión se decide en `versionNueva.ts`, con sus propias pruebas. Aquí
+// solo importa qué hace el boundary con la respuesta.
+vi.mock('./versionNueva', () => ({ hayVersionNueva: vi.fn(() => Promise.resolve(false)) }))
 
 /**
  * El fallo que se reportó desde producción: «Esta sección no se pudo mostrar»,
@@ -28,6 +33,8 @@ let recargas: number
 beforeEach(() => {
   recargas = 0
   sessionStorage.clear()
+  vi.mocked(hayVersionNueva).mockReset()
+  vi.mocked(hayVersionNueva).mockResolvedValue(false)
   // `location.reload` no se puede espiar directamente en jsdom.
   Object.defineProperty(window, 'location', {
     configurable: true,
@@ -152,5 +159,79 @@ describe('ErrorBoundary · el trozo que ya no existe', () => {
     expect(orden.indexOf('unregister')).toBeLessThan(orden.indexOf('reload'))
 
     vi.unstubAllGlobals()
+  })
+})
+
+/**
+ * El fallo del 15-sep: Karin y Natalia veían en Entrenar `e.cues.trim`, arreglado
+ * el día anterior. Su teléfono corría la app de antes y «Reintentar» volvía a
+ * pintar ese mismo código viejo, que fallaba igual.
+ */
+describe('ErrorBoundary · el teléfono con la app de antes', () => {
+  const ERROR_YA_ARREGLADO = "undefined is not an object (evaluating 'e.cues.trim')"
+
+  it('si el servidor tiene otra versión, recarga sola aunque el error sea normal', async () => {
+    vi.mocked(hayVersionNueva).mockResolvedValue(true)
+
+    render(
+      <ErrorBoundary>
+        <Explota mensaje={ERROR_YA_ARREGLADO} />
+      </ErrorBoundary>,
+    )
+
+    await vi.waitFor(() => expect(recargas).toBe(1))
+  })
+
+  /** Con la misma versión el error es de verdad: se enseña y no se recarga nada. */
+  it('si es la misma versión, se enseña el error y no recarga', async () => {
+    render(
+      <ErrorBoundary>
+        <Explota mensaje={ERROR_YA_ARREGLADO} />
+      </ErrorBoundary>,
+    )
+
+    await vi.waitFor(() => expect(hayVersionNueva).toHaveBeenCalled())
+    expect(recargas).toBe(0)
+    expect(screen.getByText('Esta sección no se pudo mostrar.')).toBeTruthy()
+  })
+
+  /**
+   * Si la recarga automática ya se hizo hace nada (el freno la para), queda el
+   * botón. Y el botón tiene que ir a por la versión nueva, no volver a pintar.
+   */
+  it('«Reintentar» va a por la versión nueva en vez de repintar lo viejo', async () => {
+    vi.mocked(hayVersionNueva).mockResolvedValue(true)
+    sessionStorage.setItem('alpha-recarga-por-despliegue', String(Date.now()))
+
+    render(
+      <ErrorBoundary>
+        <Explota mensaje={ERROR_YA_ARREGLADO} />
+      </ErrorBoundary>,
+    )
+    await vi.waitFor(() => expect(hayVersionNueva).toHaveBeenCalled())
+    expect(recargas).toBe(0)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await vi.waitFor(() => expect(recargas).toBe(1))
+  })
+
+  /** Sin versión nueva, «Reintentar» hace lo de siempre: volver a pintar. */
+  it('sin versión nueva, «Reintentar» vuelve a pintar como siempre', async () => {
+    let falla = true
+    function FallaUnaVez() {
+      if (falla) throw new Error(ERROR_YA_ARREGLADO)
+      return <p>Entrenar</p>
+    }
+
+    render(
+      <ErrorBoundary>
+        <FallaUnaVez />
+      </ErrorBoundary>,
+    )
+    falla = false
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+
+    await vi.waitFor(() => expect(screen.getByText('Entrenar')).toBeTruthy())
+    expect(recargas).toBe(0)
   })
 })

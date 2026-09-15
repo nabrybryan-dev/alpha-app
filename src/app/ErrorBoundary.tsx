@@ -5,6 +5,7 @@ import {
   tirarLoViejoYRecargar,
 } from './despliegueNuevo'
 import { reportarError } from '../data/errores/reportarError'
+import { hayVersionNueva } from './versionNueva'
 
 interface Props {
   children: ReactNode
@@ -52,6 +53,16 @@ export class ErrorBoundary extends Component<Props, State> {
     // Un fallo que el boundary contiene NO llega a `window.error`: sin esto, la pantalla de
     // «algo salió mal» sería justo lo único que no se cuenta.
     reportarError(error, { donde: 'ErrorBoundary' })
+
+    // Un error normal puede ser uno YA ARREGLADO que este teléfono sigue corriendo con la app de
+    // antes (Karin y Natalia, 15-sep: `e.cues.trim` un día después del arreglo). Si el servidor
+    // tiene otra versión, se recarga limpiando, con el mismo freno contra el bucle. Se cuenta
+    // antes, a propósito: la fila con la versión vieja es la que dice qué pasó.
+    if (!this.state.esDespliegue) void this.siHayVersionNuevaRecargar()
+  }
+
+  private siHayVersionNuevaRecargar = async () => {
+    if (await hayVersionNueva()) recargarPorDespliegue()
   }
 
   /**
@@ -67,14 +78,30 @@ export class ErrorBoundary extends Component<Props, State> {
     void tirarLoViejoYRecargar()
   }
 
-  private reintentar = () => {
+  private reintentar = async () => {
     // Volver a renderizar pediría EL MISMO fichero que no existe, y fallaría
     // igual. Por eso «Reintentar» no servía y había que salir de la app.
     if (this.state.esDespliegue) {
       this.recargarLimpiando()
       return
     }
+    // Y con un error normal pasaba lo mismo si el teléfono corre la app de antes:
+    // volver a pintar el código viejo da el mismo error. Si hay versión nueva, se
+    // va a por ella; si no, se reintenta el render como siempre.
+    if (await hayVersionNueva()) {
+      this.recargarLimpiando()
+      return
+    }
     this.setState({ hayError: false, detalle: '', esDespliegue: false })
+  }
+
+  /** El botón de pantalla completa: el mismo criterio, con recarga en vez de re-render. */
+  private recargarPantallaCompleta = async () => {
+    if (await hayVersionNueva()) {
+      this.recargarLimpiando()
+      return
+    }
+    window.location.reload()
   }
 
   render() {
@@ -95,7 +122,7 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
             <button
               type="button"
-              onClick={this.state.esDespliegue ? this.recargarLimpiando : () => window.location.reload()}
+              onClick={this.state.esDespliegue ? this.recargarLimpiando : this.recargarPantallaCompleta}
               className="mt-4 rounded-xl bg-rojo px-6 py-3 font-display text-sm text-white"
             >
               Recargar
