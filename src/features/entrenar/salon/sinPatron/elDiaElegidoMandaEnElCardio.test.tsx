@@ -41,7 +41,13 @@ import { SalonEntrenar } from '../SalonEntrenar'
 
 function montarEnUnDiaDeFuerza() {
   const usuario = db.usuarios.byId('u-valentina')!
-  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')!
+  // El seed usa diasAtras(7): fijar solo hoy dejaba el arranque moviendose con
+  // el reloj. En UTC el cardio podia quedar fuera de la semana del escenario.
+  // Copiar evita alterar los datos compartidos con las demas pruebas.
+  const microciclo = {
+    ...db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')!,
+    fechaInicio: '2026-09-07',
+  }
   const sesion = microciclo.sesiones.find((s) => s.ejercicios.length > 0)!
   // LA FECHA VA CLAVADA, Y ES LA PARTE IMPORTANTE DE ESTE MONTAJE.
   //

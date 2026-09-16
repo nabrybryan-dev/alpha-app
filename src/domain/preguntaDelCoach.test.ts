@@ -27,6 +27,13 @@ function mensaje(parcial: Partial<Mensaje> & Pick<Mensaje, 'deId' | 'texto' | 'f
 }
 
 describe('la pregunta pendiente del coach', () => {
+  it('la respuesta posterior en el hilo cierra la pregunta aunque comparta milisegundo', () => {
+    const fechaIso = '2026-09-15T12:00:00.000Z'
+    const pregunta = mensaje({ id: 'pregunta', deId: COACH, texto: '¿Pudiste completar la sesión?', fechaIso })
+    const respuesta = mensaje({ id: 'respuesta', deId: YO, texto: 'Sí', fechaIso })
+    expect(preguntaPendienteDelCoach([pregunta, respuesta], COACH)).toBeUndefined()
+    expect(preguntaPendienteDelCoach([respuesta, pregunta], COACH)).toEqual(pregunta)
+  })
   it('es la última palabra del hilo, si es del coach y pregunta algo', () => {
     const hilo = [
       mensaje({ deId: YO, texto: 'Hola', fechaIso: '2026-09-10T10:00:00Z' }),

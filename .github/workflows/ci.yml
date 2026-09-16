@@ -46,6 +46,12 @@ jobs:
       - name: Tests con cobertura (vitest)
         run: npm run coverage
 
+      - name: Instalar PostgreSQL en memoria para la firma de revisiones
+        run: npm ci --prefix pruebas-sql --ignore-scripts
+
+      - name: La firma respeta versión, permisos y aislamiento del archivo
+        run: npm test --prefix pruebas-sql
+
   # ───────────────────────────────────────────────────────────────────────────
   # Lo que la suite de vitest NO puede ver.
   #

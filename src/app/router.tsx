@@ -23,6 +23,7 @@ const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
+const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 
 function Cargando() {
@@ -74,6 +75,7 @@ export function AppRouter() {
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
         <Route path="consultas" element={envolver(<ConsultasPage />)} />
+        <Route path="revisiones" element={envolver(<RevisionesPage />)} />
       </Route>
     </Routes>
   )
