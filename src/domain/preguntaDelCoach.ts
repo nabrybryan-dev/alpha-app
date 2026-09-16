@@ -25,7 +25,11 @@ export function preguntaPendienteDelCoach(
   hilo: readonly Mensaje[],
   coachId: string,
 ): Mensaje | undefined {
-  const ordenado = [...hilo].sort((a, b) => b.fechaIso.localeCompare(a.fechaIso))
+  // En un empate temporal se recorre primero el último incorporado al hilo.
+  // El sort estable descendente por sí solo dejaba delante la pregunta anterior.
+  const ordenado = hilo.map((mensaje, posicion) => ({ mensaje, posicion }))
+    .sort((a, b) => b.mensaje.fechaIso.localeCompare(a.mensaje.fechaIso) || b.posicion - a.posicion)
+    .map(({ mensaje }) => mensaje)
   for (const m of ordenado) {
     // Lo automático se salta antes de mirar quién lo firma: ni pregunta ni contesta.
     if (m.origen === 'alpha') continue
