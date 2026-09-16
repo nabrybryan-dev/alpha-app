@@ -37,10 +37,10 @@ Tras integrar `main`, renumerar a 0081 y corregir el desempate de mensajes: **38
 
 La prueba SQL ejecuta las políticas reales de 0065/0068 y cambia entre roles autenticado y anónimo: el asesorado no lee borradores, no firma y solo abre su archivo después de aprobarlo el coach. Se recrea el esquema auxiliar de Supabase en memoria; falta comprobarlo contra Auth/Storage desplegados. La inspección visual local está en `2026-09-15-prueba-visual-revisiones.md`; falta un teléfono físico. Si falla la escritura de la fila después de subir un archivo, queda un objeto huérfano: no se publica ni sustituye el anterior; requiere limpieza posterior.
 
-## Acceso requerido para el siguiente paso
+## Acceso y activacion pendientes
 
-La consulta de solo lectura al proyecto Alpha (`sbzmbiwrnvegrticatza`) no pudo ejecutarse: el CLI respondió `LegacyPlatformAuthRequiredError`, sin sesión de Supabase. No se buscaron claves en archivos o historiales. Tras `supabase login`, ejecutar:
+El preflight real ya se ejecuto correctamente con el CLI autenticado fuera del entorno aislado. El error anterior `LegacyPlatformAuthRequiredError` correspondia a ese entorno; no significa que la cuenta siga sin autenticar.
 
 `supabase --output-format json db query --linked --project-ref sbzmbiwrnvegrticatza --file supabase/preflight-firma-revisiones.sql`
 
-Este preflight no aplica cambios. La migración y el despliegue siguen pendientes de activación coordinada.
+La consulta es de solo lectura. La migracion y el despliegue requieren la activacion coordinada descrita arriba. La firma de la revision historica pendiente corresponde al coach despues de reproducir el medio; no forma parte de la activacion automatica.
