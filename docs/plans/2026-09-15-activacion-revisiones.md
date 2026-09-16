@@ -4,6 +4,12 @@ Implementado en la rama `feat/bandeja-revisiones`, integrada sobre `origin/main`
 
 ## Resultado esperado
 
+Actualizacion del preflight real: 42 revisiones, 41 firmadas y una pendiente; todas con rutas historicas. No existen aun la columna de version, el trigger ni la RPC nuevos. Las politicas SELECT de tabla y Storage estan presentes. El CLI accede correctamente al ejecutarse fuera del entorno aislado.
+
+En ASUS hay dos tareas `Alpha - revision semanal (manana)` y `Alpha - revision semanal (noche)`, ambas en estado Ready durante la inspeccion. Ejecutan `C:\Users\ASUS\dev\alpha-viernes\scripts\revision-semanal-viernes.ps1`. Ese script descarga y cambia a `origin/main`; si falla la descarga sigue con el codigo anterior. No basta actualizar una carpeta: antes de reactivar las tareas hay que verificar el commit efectivo del publicador. No se detuvieron ni modificaron las tareas. No se ha inspeccionado MANU.
+
+El firmador de terminal de esta rama queda retirado: sin `--ensayo` termina antes de consultar credenciales y dirige a `/coach/revisiones`. Con `--ensayo` conserva la consulta de pendientes. Ya no contiene la escritura directa de firmas con credencial de servicio. Debe distribuirse junto con la bandeja operativa; las copias antiguas en otros equipos siguen pendientes de retirada.
+
 En el panel del coach aparece «Revisar audios y vídeos», ruta `/coach/revisiones`. Cada tarjeta permite reproducir el medio, leer su guion, confirmar la revisión completa y aprobar. El servidor compara la versión y comprueba el rol. Una solicitud de corrección se conserva sin alterar el guion de un medio existente. El render corregido debe volver a publicarse.
 
 La pantalla conectada es `RevisionesPage`: no utiliza la regla experimental de apertura automática tras cuatro semanas del componente antiguo. No existe un historial real que justifique activar esa regla.
