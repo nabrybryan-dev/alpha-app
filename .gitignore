@@ -44,3 +44,5 @@ informes/tiempo-de-la-repeticion/*.png
 # El lienzo de diseño se guarda en docs/diseno/; aquí queda solo el montaje que se abre.
 informes/diseno-fuerzas/
 verificacion-local.log
+compilacion-local.log
+pruebas-sql/resultado.log

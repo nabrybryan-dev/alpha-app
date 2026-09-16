@@ -34,7 +34,7 @@ function Revision({ revision, actualizar }: { revision: RevisionPendiente; actua
     <p className="my-3 whitespace-pre-line text-sm">{revision.guion}</p>
     <button type="button" disabled={ocupado} onClick={() => void abrir()} className="min-h-[44px] underline">Abrir {revision.tipo}</button>
     {url && (revision.tipo === 'audio'
-      ? <audio controls src={url} onPlay={() => setReproducida(true)} onError={() => { setReproducida(false); setRevisada(false); setError('El audio no se pudo reproducir') }} />
+      ? <audio controls className="block w-full" src={url} onPlay={() => setReproducida(true)} onError={() => { setReproducida(false); setRevisada(false); setError('El audio no se pudo reproducir') }} />
       : <video controls playsInline src={url} className="max-h-96 w-full" onPlay={() => setReproducida(true)} onError={() => { setReproducida(false); setRevisada(false); setError('El vídeo no se pudo reproducir') }} />)}
     {revision.correccion_solicitada && <p role="status" className="my-2 text-sm">Corrección solicitada: {revision.correccion_solicitada}</p>}
     <label className="my-3 flex gap-2 text-sm"><input type="checkbox" disabled={!reproducida || ocupado} checked={revisada} onChange={e => setRevisada(e.target.checked)} />He revisado el guion y el archivo completo.</label>
