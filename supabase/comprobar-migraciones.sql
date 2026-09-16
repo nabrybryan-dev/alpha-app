@@ -1513,4 +1513,10 @@ select '0080 - el yogur griego existe', 'los dos yogures griegos del catalogo de
                    where id in ('yogur-griego-entero', 'yogur-griego-descremado')) = 2 then 'SI'
             else 'NO' end
 
+union all
+select '0081 - firma de revision por version', 'RPC de coach y trigger de version presentes; anon sin permiso',
+       case when to_regprocedure('public.decidir_revision_semanal(uuid,date,integer,boolean,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.decidir_revision_semanal(uuid,date,integer,boolean,text)', 'execute') then 'NO'
+            when exists (select 1 from pg_trigger where tgname = 'versionar_revision_semanal' and not tgisinternal) then 'SI'
+            else 'NO' end
 order by migracion, senal;
