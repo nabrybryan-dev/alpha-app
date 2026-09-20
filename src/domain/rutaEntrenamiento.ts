@@ -136,6 +136,93 @@ export function semanaEsVencida(microciclo: Microciclo, hoyIso: string): boolean
 }
 
 /**
+ * El microciclo VIGENTE de una persona: aquel cuya semana cubre HOY.
+ *
+ * **NO es «el de mayor número» ni «el primero en `estado === 'activo'`».** Hasta
+ * el 2026-09-19, `HoyPage`, `RutaPage` y `ProgresoPage` hacían justo eso
+ * —`db.microciclos.byUsuario(id).find(m => m.estado === 'activo')`—, y
+ * `byUsuario` ordena por número descendente. Mientras solo hay UN `activo` (la
+ * invariante que garantiza `activarPropuesta`) da igual cómo se busque. El
+ * problema es cuando esa invariante se rompe: ya pasó DOS VECES en producción
+ * (ver el comentario de `MicrociclosRepo.activarPropuesta` en `repos.ts`), y
+ * cuando hay dos `activo` a la vez, `find` sobre una lista ordenada por número
+ * devuelve el de MAYOR NÚMERO —normalmente el más nuevo, y por tanto el
+ * futuro—. Un microciclo preparado para la semana que viene DESPLAZABA al
+ * vigente: `armarSemana` acota por `fechaInicio` (arriba), así que la persona
+ * veía su semana en blanco mientras el futuro no llegaba, y las sesiones que le
+ * quedaban por hacer ESTA semana —en el microciclo que se quedó sin mirar—
+ * dejaban de estar en ninguna pantalla.
+ *
+ * Regla de Bryan (19-sep-2026): el vigente se elige por FECHA. Contrato en
+ * `auditoria-alpha-20260919/vigia-codex/REGLA-SEMANA-LUNES-DOMINGO.md`.
+ *
+ * ## LA COMPROBACIÓN POR FECHA SE APLICA SIEMPRE, TAMBIÉN CON UN SOLO `activo`
+ *
+ * La primera versión de esta función (19-sep-2026) devolvía el único `activo`
+ * sin más cuando no había con qué compararlo —«si solo hay uno, da igual la
+ * fecha»—. La devolución de la auditoría (A020) lo marcó bien: eso deja pasar
+ * en silencio justo el caso que se quería excluir. Un único `activo` FUTURO
+ * (su `fechaInicio` todavía no llega) NO es el vigente de hoy, y decirlo
+ * «vigente» sin comprobarlo es la misma promesa rota que el bug original,
+ * solo que con un candidato en vez de dos.
+ *
+ * La decisión, ya explícita: cuando NINGÚN `activo` cubre hoy —sea porque el
+ * único que hay es futuro, porque está vencido, o porque hay varios y ninguno
+ * calza—, esta función sigue devolviendo el mejor candidato disponible (el ya
+ * arrancado más reciente, o si no, el futuro más próximo) **en vez de
+ * `undefined`**. Se descartó devolver `undefined` a propósito: `HoyPage` ya
+ * tiene, desde el 11-sep-2026, la decisión explícita de Bryan de enseñar el
+ * cartel «tu microciclo empieza el…» JUNTO a la sesión que trae ese
+ * microciclo —«el aviso y la sesión conviven»—, y con `armarSemana` un
+ * microciclo vencido se sigue repartiendo a propósito («entrenar el plan
+ * viejo es mejor que nada»). Devolver `undefined` habría apagado las dos cosas
+ * sin que nadie lo pidiera.
+ *
+ * Lo que SÍ cambia con el arreglo: la pregunta «¿cubre esto a hoy?» ya no se
+ * salta nunca —ni con un candidato ni con diez—, y quien llama sigue
+ * pudiendo (y debiendo) comprobar `semanaEsAdelantada` / `semanaEsVencida`
+ * sobre el resultado antes de tratarlo como «la semana de verdad»: son las
+ * mismas dos funciones que ya usan `HoyPage` y `PanelInferior` para pintar
+ * esos avisos, y sirven exactamente para no confundir «esto es lo que se
+ * devolvió» con «esto es lo que corresponde hoy».
+ */
+export function microcicloVigente(
+  microciclos: readonly Microciclo[],
+  hoyIso: string,
+): Microciclo | undefined {
+  const activos = microciclos.filter((m) => m.estado === 'activo')
+  if (activos.length === 0) return undefined
+
+  const masReciente = (a: Microciclo, b: Microciclo) =>
+    b.fechaInicio > a.fechaInicio ? 1 : -1
+  const masProximo = (a: Microciclo, b: Microciclo) =>
+    a.fechaInicio < b.fechaInicio ? -1 : 1
+
+  // El que de verdad cubre hoy: ni adelantado (no ha arrancado) ni vencido (ya
+  // cerró su cadencia). Debería haber como mucho uno —es la invariante rota lo
+  // que puede dar más—, y si hay más de uno se prefiere el de arranque más
+  // reciente: es la semana que se está viviendo. Esta comprobación corre
+  // SIEMPRE, incluso con un solo candidato: es la parte que antes se saltaba.
+  const vigentes = activos
+    .filter((m) => !semanaEsAdelantada(m, hoyIso) && !semanaEsVencida(m, hoyIso))
+    .sort(masReciente)
+  if (vigentes.length > 0) return vigentes[0]
+
+  // Nadie cubre hoy exactamente (fechas ausentes, o todos vencidos/adelantados
+  // a la vez, incluido un único candidato futuro o vencido). Se prefiere el
+  // que YA EMPEZÓ, aunque esté vencido, sobre uno que arranca en el futuro:
+  // entrenar el plan viejo es mejor que nada — la misma prioridad que ya
+  // aplica `armarSemana`.
+  const yaEmpezaron = activos.filter((m) => !semanaEsAdelantada(m, hoyIso)).sort(masReciente)
+  if (yaEmpezaron.length > 0) return yaEmpezaron[0]
+
+  // Todos arrancan en el futuro (incluido si es uno solo): el más próximo,
+  // para que el aviso de «tu microciclo empieza el…» hable del que está más
+  // cerca.
+  return [...activos].sort(masProximo)[0]
+}
+
+/**
  * Reparte las sesiones del microciclo en los 7 días de su semana.
  *
  * Las sesiones que traen `dia` caen en su día exacto. Las que no —el Excel no
@@ -236,6 +323,33 @@ export function armarSemana(microciclo: Microciclo, hoyIso: string): DiaRuta[] {
     const estado: EstadoDiaRuta = sesionCompleta(sesion) ? 'completada' : esHoy ? 'hoy' : 'programada'
     return { ...base, estado, sesionId: sesion.id, titulo: sesion.nombre, detalle: detalleDeSesion(sesion) }
   })
+}
+
+/**
+ * Las sesiones del microciclo que `armarSemana` NO consiguió meter en la
+ * rejilla de 7 días que devolvió para ese mismo `hoyIso`.
+ *
+ * `armarSemana` SIEMPRE pinta 7 días —es una rejilla semanal— pero un
+ * microciclo puede durar 8 o 15 (`cadenciaDias`, heredados de antes de la
+ * regla de Bryan del 19-sep-2026: «todo microciclo nuevo son 7»). Con más
+ * sesiones «con día» que huecos libres, o con dos sesiones que casan el mismo
+ * nombre de día (`diaDeSesion` solo se queda con la primera; ver el mapa
+ * `conDia` de `armarSemana`), algunas sesiones se quedan sin fecha en ESTA
+ * semana. Antes esto no se decía en ningún sitio: la sesión sencillamente no
+ * aparecía, y no había manera de distinguir «no tiene nada programado» de
+ * «tiene algo que la rejilla no pudo colocar».
+ *
+ * Nunca reescribe ni descarta nada — es de solo lectura, para que la interfaz
+ * pueda avisar en vez de ocultar (regla de aceptación #3 del contrato de
+ * Bryan). Con `cadenciaDias: 7` y sesiones sin días repetidos —el caso normal
+ * desde la regla nueva— siempre devuelve `[]`.
+ */
+export function sesionesFueraDeLaSemana(
+  microciclo: Microciclo,
+  dias: readonly DiaRuta[],
+): Sesion[] {
+  const enLaRejilla = new Set(dias.map((d) => d.sesionId).filter((id): id is string => id !== undefined))
+  return microciclo.sesiones.filter((s) => !enLaRejilla.has(s.id))
 }
 
 export interface SesionDestacada {

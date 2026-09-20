@@ -11,9 +11,12 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import {
   armarSemana,
+  microcicloVigente,
   resumenSemana,
   semanaEsAdelantada,
+  semanaEsVencida,
   sesionDestacada,
+  ultimoDiaDe,
 } from '../../domain/rutaEntrenamiento'
 import { prioridadDeVolumen } from '../../domain/volumenPrioridad'
 import { preguntaPendienteDelCoach } from '../../domain/preguntaDelCoach'
@@ -46,7 +49,11 @@ export default function HoyPage() {
   const juego = useGamificacion(usuario.id)
   const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
-  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
+  // El VIGENTE por fecha, no «el primer `activo` que aparezca» (Bryan, 19-sep):
+  // si la invariante de un único `activo` se rompe, `microcicloVigente` elige el
+  // que cubre hoy y no deja que uno futuro ya cargado desplace al de esta
+  // semana. Ver el comentario de la función en `domain/rutaEntrenamiento.ts`.
+  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoy)
   // La MISMA respuesta que da Entrenar, y por la misma función. Hoy tenía criterio
   // propio (`sesionSugerida`, que caía en la primera del array) y las dos pantallas
   // proponían sesiones distintas el mismo día: un lunes sin sesión, Hoy empujaba la
@@ -409,6 +416,24 @@ export default function HoyPage() {
           <p className="text-sm font-bold text-texto">Tu microciclo empieza el {microciclo.fechaInicio}</p>
           <p className="mt-1 text-sm text-tenue">
             El coach ya lo dejó preparado. Hasta entonces, cuida sueño, pasos e hidratación.
+          </p>
+        </div>
+      )}
+
+      {/* LA OTRA MITAD DEL MISMO AVISO: microciclo VENCIDO (A023, auditoría del PR #308).
+          `armarSemana` sigue repartiendo sus sesiones a propósito —entrenar el plan viejo es
+          mejor que nada—, y `PanelInferior` ya avisa de esto en Entrenar («El microciclo X
+          terminó el… · tu coach prepara el siguiente»), pero Hoy no tenía el mismo aviso: la
+          persona veía la sesión de su plan vencido sin nada que le dijera que ya venció. Con
+          `microcicloVigente` eligiendo por fecha, un único microciclo vencido puede ser lo
+          único que hay que mostrar, así que este aviso importa aquí igual que en Entrenar. */}
+      {microciclo && semanaEsVencida(microciclo, hoy) && (
+        <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+          <p className="text-sm font-bold text-texto">
+            Tu microciclo M{microciclo.numero} terminó el {ultimoDiaDe(microciclo)}
+          </p>
+          <p className="mt-1 text-sm text-tenue">
+            Tu coach está preparando el siguiente. Mientras tanto, sigues viendo este plan.
           </p>
         </div>
       )}
