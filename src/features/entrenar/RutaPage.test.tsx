@@ -202,4 +202,30 @@ describe('RutaPage', () => {
     expect(await screen.findByText(/^Semana \d+ · Microciclo/)).toBeInTheDocument()
     expect(screen.queryByText(/Próxima semana/)).not.toBeInTheDocument()
   })
+
+  /**
+   * LA OTRA MITAD: EL MICROCICLO VENCIDO (A023, auditoría del PR #308).
+   *
+   * `PanelInferior` ya calculaba y pintaba esto desde antes de `microcicloVigente` —el
+   * texto vive en `PanelInferior.tsx` junto al de «Próxima semana»—, pero no tenía NINGÚN
+   * test que lo demostrara: la única evidencia era leer el JSX. Con `microcicloVigente`
+   * eligiendo por fecha, un único microciclo vencido puede ser lo único que hay que
+   * mostrar, así que este test cierra ese hueco.
+   *
+   * Mismo truco que la víspera de arriba, con el reloj al revés: el activo del seed dura
+   * `cadenciaDias` días desde `diasAtras(7)`, así que adelantar el reloj lo suficiente lo
+   * deja vencido sin tocar el seed.
+   */
+  it('si el microciclo ya venció, el calendario lo dice en vez de repetir la semana en silencio', async () => {
+    vi.setSystemTime(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000))
+    const usuario = userEvent.setup()
+    renderizar()
+    await abrirPanel(usuario)
+
+    expect(
+      await screen.findByText(/El microciclo \d+ terminó el .* · tu coach prepara el siguiente/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/^Semana \d+ · Microciclo/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Próxima semana/)).not.toBeInTheDocument()
+  })
 })

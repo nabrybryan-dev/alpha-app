@@ -1,6 +1,6 @@
 import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
-import { microcicloVigente } from '../../domain/rutaEntrenamiento'
+import { microcicloVigente, semanaEsAdelantada } from '../../domain/rutaEntrenamiento'
 import { ProgresoEvolucion } from '../logros/ProgresoEvolucion'
 import { HistorialDeVelocidad } from '../entrenar/encoder/HistorialDeVelocidad'
 import { CompetenciasEvaluadas } from '../entrenar/ruta/CompetenciasEvaluadas'
@@ -31,19 +31,29 @@ import { calculosDeLaRuta } from '../entrenar/ruta/calculosDeLaRuta'
  * Las competencias salen del registro del microciclo en curso. Sin uno activo no hay de
  * dónde calcularlas, así que ese bloque no se pinta y la Escala Alfa sí: la escala es la
  * ruta de la persona y existe aunque esta semana no haya programación.
+ *
+ * **Ni de uno que todavía no arrancó (A023, auditoría del PR #308).** Con
+ * `microcicloVigente` eligiendo por fecha, cuando NADA cubre hoy se puede devolver un
+ * microciclo FUTURO —ver el comentario de esa función—. Ese microciclo, por definición,
+ * tiene cero sesiones registradas: computar sus competencias daría una «Consistencia: 0 %»
+ * que no describe que la persona va mal, sino que su semana todavía no empezó. La misma
+ * regla que ya protegía «sin activo» se extiende aquí: `semanaEsAdelantada` decide si hay
+ * de dónde calcular, no solo si hay un `microciclo`.
  */
 export default function ProgresoPage() {
   const { usuario } = useSesion()
   useDbVersion()
 
   const ruta = db.ruta.byUsuario(usuario.id)
+  const hoy = hoyIso()
   // Vigente por FECHA (Bryan, 19-sep): ver `microcicloVigente` en
   // `domain/rutaEntrenamiento.ts`. Mismo criterio que Hoy y Entrenar, para que
   // las competencias evaluadas describan la MISMA semana que ven esas pantallas.
-  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoyIso())
-  const competencias = microciclo
-    ? calculosDeLaRuta(usuario.id, microciclo, hoyIso()).competencias
-    : []
+  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoy)
+  const competencias =
+    microciclo && !semanaEsAdelantada(microciclo, hoy)
+      ? calculosDeLaRuta(usuario.id, microciclo, hoy).competencias
+      : []
 
   return (
     // Superficie oscura, como Entrenar: los gráficos se leen mejor y así lo
