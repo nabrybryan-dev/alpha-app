@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { microcicloVigente } from './rutaEntrenamiento'
+import { microcicloVigente, semanaEsAdelantada, semanaEsVencida } from './rutaEntrenamiento'
 import type { Microciclo } from './types'
 
 /**
@@ -44,14 +44,42 @@ function micro(
   }
 }
 
-describe('microcicloVigente — el caso normal (un único activo)', () => {
-  it('con exactamente un activo, lo devuelve sin mirar la fecha', () => {
-    // Cubre también los casos ya existentes (vencido, adelantado): esos siguen
-    // su camino de siempre — el banner de `semanaEsVencida`/`semanaEsAdelantada`
-    // no cambia con esto.
-    const m = micro('m1', 5, '2026-09-07')
-    expect(microcicloVigente([m], '2026-01-01')).toBe(m)
-    expect(microcicloVigente([m], '2026-12-31')).toBe(m)
+describe('microcicloVigente — un único activo: la comprobación de fecha SIEMPRE corre', () => {
+  // Devolución de la auditoría (A020) al PR #308: la primera versión devolvía
+  // el único `activo` con un atajo (`activos.length <= 1`) que NUNCA miraba la
+  // fecha. Con un solo candidato futuro eso hacía pasar por «vigente», en
+  // silencio, una semana que todavía no le tocaba a la persona. Estos tres
+  // casos —futuro, vencido y control— fijan la decisión explícita: la función
+  // SIEMPRE evalúa la fecha, y cuando nadie cubre hoy sigue devolviendo el
+  // mejor candidato (no `undefined`) por las razones documentadas en el
+  // comentario de `microcicloVigente` — pero quien llama puede (y en `HoyPage`
+  // ya lo hace) comprobar `semanaEsAdelantada`/`semanaEsVencida` sobre el
+  // resultado para saber que NO es la semana de verdad.
+  it('un único activo FUTURO: se devuelve igual (aviso «empieza el…»), pero pasó por la comprobación de fecha', () => {
+    const futuro = micro('m-futuro', 9, '2026-09-14') // arranca el lunes 14, hoy es antes
+    const resultado = microcicloVigente([futuro], '2026-09-10')
+    expect(resultado?.id).toBe('m-futuro')
+    // La prueba de que SÍ se comprobó la fecha, y no un atajo por conteo: este
+    // candidato es, con las mismas reglas del dominio, «adelantado» — no
+    // «vigente». Quien llama debe seguir usando esta función para decidirlo.
+    expect(semanaEsAdelantada(futuro, '2026-09-10')).toBe(true)
+    expect(semanaEsVencida(futuro, '2026-09-10')).toBe(false)
+  })
+
+  it('un único activo VENCIDO: se devuelve igual (entrenar el plan viejo es mejor que nada)', () => {
+    const vencido = micro('m-vencido', 4, '2026-08-10', 7) // cubre 10..16-ago, hoy ya pasó
+    const resultado = microcicloVigente([vencido], '2026-09-05')
+    expect(resultado?.id).toBe('m-vencido')
+    expect(semanaEsVencida(vencido, '2026-09-05')).toBe(true)
+    expect(semanaEsAdelantada(vencido, '2026-09-05')).toBe(false)
+  })
+
+  it('control: un único activo que SÍ cubre hoy, se devuelve como vigente de verdad', () => {
+    const vigente = micro('m-vigente', 5, '2026-09-07', 7) // cubre 07..13
+    const resultado = microcicloVigente([vigente], '2026-09-10')
+    expect(resultado?.id).toBe('m-vigente')
+    expect(semanaEsAdelantada(vigente, '2026-09-10')).toBe(false)
+    expect(semanaEsVencida(vigente, '2026-09-10')).toBe(false)
   })
 
   it('sin ningún activo, no hay vigente', () => {

@@ -156,18 +156,42 @@ export function semanaEsVencida(microciclo: Microciclo, hoyIso: string): boolean
  * Regla de Bryan (19-sep-2026): el vigente se elige por FECHA. Contrato en
  * `auditoria-alpha-20260919/vigia-codex/REGLA-SEMANA-LUNES-DOMINGO.md`.
  *
- * Con exactamente un `activo` —el caso normal— se devuelve ese, sin más: la
- * comprobación por fecha solo entra en juego cuando hay más de uno, que es
- * justo el estado roto que esto repara. Los casos de UN activo vencido o
- * adelantado siguen su camino de siempre (`semanaEsVencida` /
- * `semanaEsAdelantada`, que ya avisan en pantalla); esto no los toca.
+ * ## LA COMPROBACIÓN POR FECHA SE APLICA SIEMPRE, TAMBIÉN CON UN SOLO `activo`
+ *
+ * La primera versión de esta función (19-sep-2026) devolvía el único `activo`
+ * sin más cuando no había con qué compararlo —«si solo hay uno, da igual la
+ * fecha»—. La devolución de la auditoría (A020) lo marcó bien: eso deja pasar
+ * en silencio justo el caso que se quería excluir. Un único `activo` FUTURO
+ * (su `fechaInicio` todavía no llega) NO es el vigente de hoy, y decirlo
+ * «vigente» sin comprobarlo es la misma promesa rota que el bug original,
+ * solo que con un candidato en vez de dos.
+ *
+ * La decisión, ya explícita: cuando NINGÚN `activo` cubre hoy —sea porque el
+ * único que hay es futuro, porque está vencido, o porque hay varios y ninguno
+ * calza—, esta función sigue devolviendo el mejor candidato disponible (el ya
+ * arrancado más reciente, o si no, el futuro más próximo) **en vez de
+ * `undefined`**. Se descartó devolver `undefined` a propósito: `HoyPage` ya
+ * tiene, desde el 11-sep-2026, la decisión explícita de Bryan de enseñar el
+ * cartel «tu microciclo empieza el…» JUNTO a la sesión que trae ese
+ * microciclo —«el aviso y la sesión conviven»—, y con `armarSemana` un
+ * microciclo vencido se sigue repartiendo a propósito («entrenar el plan
+ * viejo es mejor que nada»). Devolver `undefined` habría apagado las dos cosas
+ * sin que nadie lo pidiera.
+ *
+ * Lo que SÍ cambia con el arreglo: la pregunta «¿cubre esto a hoy?» ya no se
+ * salta nunca —ni con un candidato ni con diez—, y quien llama sigue
+ * pudiendo (y debiendo) comprobar `semanaEsAdelantada` / `semanaEsVencida`
+ * sobre el resultado antes de tratarlo como «la semana de verdad»: son las
+ * mismas dos funciones que ya usan `HoyPage` y `PanelInferior` para pintar
+ * esos avisos, y sirven exactamente para no confundir «esto es lo que se
+ * devolvió» con «esto es lo que corresponde hoy».
  */
 export function microcicloVigente(
   microciclos: readonly Microciclo[],
   hoyIso: string,
 ): Microciclo | undefined {
   const activos = microciclos.filter((m) => m.estado === 'activo')
-  if (activos.length <= 1) return activos[0]
+  if (activos.length === 0) return undefined
 
   const masReciente = (a: Microciclo, b: Microciclo) =>
     b.fechaInicio > a.fechaInicio ? 1 : -1
@@ -177,21 +201,24 @@ export function microcicloVigente(
   // El que de verdad cubre hoy: ni adelantado (no ha arrancado) ni vencido (ya
   // cerró su cadencia). Debería haber como mucho uno —es la invariante rota lo
   // que puede dar más—, y si hay más de uno se prefiere el de arranque más
-  // reciente: es la semana que se está viviendo.
+  // reciente: es la semana que se está viviendo. Esta comprobación corre
+  // SIEMPRE, incluso con un solo candidato: es la parte que antes se saltaba.
   const vigentes = activos
     .filter((m) => !semanaEsAdelantada(m, hoyIso) && !semanaEsVencida(m, hoyIso))
     .sort(masReciente)
   if (vigentes.length > 0) return vigentes[0]
 
   // Nadie cubre hoy exactamente (fechas ausentes, o todos vencidos/adelantados
-  // a la vez). Se prefiere el que YA EMPEZÓ, aunque esté vencido, sobre uno que
-  // arranca en el futuro: entrenar el plan viejo es mejor que nada — la misma
-  // prioridad que ya aplica `armarSemana`.
+  // a la vez, incluido un único candidato futuro o vencido). Se prefiere el
+  // que YA EMPEZÓ, aunque esté vencido, sobre uno que arranca en el futuro:
+  // entrenar el plan viejo es mejor que nada — la misma prioridad que ya
+  // aplica `armarSemana`.
   const yaEmpezaron = activos.filter((m) => !semanaEsAdelantada(m, hoyIso)).sort(masReciente)
   if (yaEmpezaron.length > 0) return yaEmpezaron[0]
 
-  // Todos arrancan en el futuro: el más próximo, para que el aviso de «tu
-  // microciclo empieza el…» hable del que está más cerca.
+  // Todos arrancan en el futuro (incluido si es uno solo): el más próximo,
+  // para que el aviso de «tu microciclo empieza el…» hable del que está más
+  // cerca.
   return [...activos].sort(masProximo)[0]
 }
 
