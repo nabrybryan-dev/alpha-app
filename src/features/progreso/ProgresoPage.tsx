@@ -1,5 +1,6 @@
 import { useSesion } from '../../app/SessionProvider'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { microcicloVigente } from '../../domain/rutaEntrenamiento'
 import { ProgresoEvolucion } from '../logros/ProgresoEvolucion'
 import { HistorialDeVelocidad } from '../entrenar/encoder/HistorialDeVelocidad'
 import { CompetenciasEvaluadas } from '../entrenar/ruta/CompetenciasEvaluadas'
@@ -36,7 +37,10 @@ export default function ProgresoPage() {
   useDbVersion()
 
   const ruta = db.ruta.byUsuario(usuario.id)
-  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
+  // Vigente por FECHA (Bryan, 19-sep): ver `microcicloVigente` en
+  // `domain/rutaEntrenamiento.ts`. Mismo criterio que Hoy y Entrenar, para que
+  // las competencias evaluadas describan la MISMA semana que ven esas pantallas.
+  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoyIso())
   const competencias = microciclo
     ? calculosDeLaRuta(usuario.id, microciclo, hoyIso()).competencias
     : []

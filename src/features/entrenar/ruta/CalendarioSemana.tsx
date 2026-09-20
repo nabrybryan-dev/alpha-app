@@ -92,10 +92,18 @@ function FilaAgenda({ dia, seleccionado }: { dia: DiaRuta; seleccionado: boolean
 
 interface Props {
   dias: readonly DiaRuta[]
+  /**
+   * Sesiones del microciclo que NO caben en esta rejilla de 7 días —típico de
+   * un `cadenciaDias` 8 o 15 heredado—. Opcional y vacío en el caso normal: se
+   * dice para que no queden calladas, no para bloquear nada (regla de Bryan,
+   * 19-sep-2026: «si algo no cabe en la semana, se dice en la interfaz, no se
+   * oculta»). Ver `sesionesFueraDeLaSemana` en `domain/rutaEntrenamiento.ts`.
+   */
+  sesionesFueraDeSemana?: readonly { id: string; nombre: string }[]
 }
 
 /** Rejilla de 7 días + la agenda de la semana. El día de hoy viene seleccionado. */
-export function CalendarioSemana({ dias }: Props) {
+export function CalendarioSemana({ dias, sesionesFueraDeSemana }: Props) {
   const indiceHoy = Math.max(
     0,
     dias.findIndex((d) => d.esHoy),
@@ -174,6 +182,15 @@ export function CalendarioSemana({ dias }: Props) {
           <FilaAgenda key={dia.fechaIso} dia={dia} seleccionado={i === seleccionado} />
         ))}
       </div>
+
+      {sesionesFueraDeSemana && sesionesFueraDeSemana.length > 0 && (
+        <p className="mt-2 text-[11.5px] text-silver-400">
+          Tu microciclo trae {sesionesFueraDeSemana.length}{' '}
+          {sesionesFueraDeSemana.length === 1 ? 'sesión más' : 'sesiones más'} que no{' '}
+          {sesionesFueraDeSemana.length === 1 ? 'cabe' : 'caben'} en esta semana:{' '}
+          {sesionesFueraDeSemana.map((s) => s.nombre).join(' · ')}.
+        </p>
+      )}
     </section>
   )
 }

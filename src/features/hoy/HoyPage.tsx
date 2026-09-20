@@ -11,6 +11,7 @@ import { faseDeEtiqueta, pautaDelBloque } from '../../domain/nutricion/pautaDelB
 import { duracionTotalSeg, formatoDuracion } from '../../domain/ritmoSesion'
 import {
   armarSemana,
+  microcicloVigente,
   resumenSemana,
   semanaEsAdelantada,
   sesionDestacada,
@@ -46,7 +47,11 @@ export default function HoyPage() {
   const juego = useGamificacion(usuario.id)
   const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
-  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
+  // El VIGENTE por fecha, no «el primer `activo` que aparezca» (Bryan, 19-sep):
+  // si la invariante de un único `activo` se rompe, `microcicloVigente` elige el
+  // que cubre hoy y no deja que uno futuro ya cargado desplace al de esta
+  // semana. Ver el comentario de la función en `domain/rutaEntrenamiento.ts`.
+  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoy)
   // La MISMA respuesta que da Entrenar, y por la misma función. Hoy tenía criterio
   // propio (`sesionSugerida`, que caía en la primera del array) y las dos pantallas
   // proponían sesiones distintas el mismo día: un lunes sin sesión, Hoy empujaba la

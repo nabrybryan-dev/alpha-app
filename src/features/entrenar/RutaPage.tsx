@@ -2,6 +2,7 @@ import { useSesion } from '../../app/SessionProvider'
 import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
+import { microcicloVigente } from '../../domain/rutaEntrenamiento'
 import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import { indiceRecuperacion } from '../../domain/readiness'
 import { calculosDeLaRuta } from './ruta/calculosDeLaRuta'
@@ -38,7 +39,9 @@ export default function RutaPage() {
   useDbVersion()
   const hoy = hoyIso()
 
-  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
+  // Vigente por FECHA, no el primer `activo` en orden de número (Bryan,
+  // 19-sep): ver `microcicloVigente` en `domain/rutaEntrenamiento.ts`.
+  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoy)
   const ruta = db.ruta.byUsuario(usuario.id)
   const recuperacion = indiceRecuperacion(db.bienestar.byUsuario(usuario.id), hoy)
 
