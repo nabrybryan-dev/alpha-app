@@ -23,6 +23,7 @@ const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
+const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
 const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 
@@ -75,6 +76,10 @@ export function AppRouter() {
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
         <Route path="consultas" element={envolver(<ConsultasPage />)} />
+        {/* Solo lectura: primera entrega de la consola del coach
+            (DISENO-CONSOLA-V2.md). Sin migraciones, sin botones que
+            escriban; el director revisa el PR antes de fusionar. */}
+        <Route path="consola" element={envolver(<ConsolaCoachPage />)} />
         <Route path="revisiones" element={envolver(<RevisionesPage />)} />
       </Route>
     </Routes>
