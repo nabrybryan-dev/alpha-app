@@ -121,9 +121,14 @@ create table if not exists public.casos_firma (
   -- decisión. Fuera de ese único cruce (`rechazado` + tipo null), sigue exigiendo uno de
   -- los dos valores: un caso `preparando`/`listo_para_firmar`/`firmado`/`verificado` SIN
   -- tipo sería un caso a medio llenar, no uno vacío a propósito.
+  -- `tipo in (...)` con `tipo` NULL da NULL (ni true ni false), y un CHECK trata NULL
+  -- como si pasara — así que la rama de "tiene un tipo válido" necesita `tipo is not
+  -- null` explícito, o el caso `listo_para_firmar` con tipo NULL de más abajo se cuela
+  -- (se cayó así la primera versión de esta migración: CI lo atrapó al aplicar 80-
+  -- consola-firma-y-reanudar.sql).
   tipo            text
                     check (
-                      tipo in ('retiro', 'recorte')
+                      (tipo is not null and tipo in ('retiro', 'recorte'))
                       or (tipo is null and estado = 'rechazado')
                     ),
   estado          text not null default 'preparando'
