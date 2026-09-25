@@ -5,14 +5,31 @@ import { detenerPublicacion, reportarRiesgo, type Orden } from '../../../data/co
 import { useCapacidades } from './useCapacidades'
 
 /**
- * «Detener publicación» y «Reportar riesgo» de una persona en su semana (Módulo 1 de la
- * maqueta, DISENO-CONSOLA-V2.md §2.1 y §4). Escribe en `ordenes` (migración 0083) — solo
- * al pulsar «Confirmar», nunca al montar ni al abrir el cuadro de motivo.
+ * «Detener publicación» y «Reportar riesgo» de una persona, sobre la semana que SE VA A
+ * CARGAR (Módulo 1 de la maqueta, DISENO-CONSOLA-V2.md §2.1 y §4). Escribe en `ordenes`
+ * (migración 0083) — solo al pulsar «Confirmar», nunca al montar ni al abrir el cuadro de
+ * motivo.
+ *
+ * `semanaObjetivo` NO es «el lunes de hoy»: quien pinta la lista (`RevisionSemanaTab`) ya
+ * la calculó con `semanaObjetivoDeAcciones` — la semana que se va a cargar para ESTA
+ * persona, no la que está terminando. Bryan revisa sábado/domingo y la carga real es el
+ * lunes siguiente; la guarda de la carga (repo de agentes) compara `objetivo.semana_inicio`
+ * contra la semana NUEVA, así que apuntar a la semana en curso no detendría nada.
  *
  * El motivo se pide en un cuadro DENTRO de la página, nunca con `prompt`/`confirm` del
  * navegador (encargo, punto 2): eso no se puede probar con Testing Library ni queda
  * registrado en la propia pantalla.
  */
+
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+/** `28-sep`, sin depender de `toLocaleDateString` (en es-CO abrevia con punto: «sept.») —
+ *  determinista, para que el texto del botón no cambie con el navegador que lo corra. */
+function formatoDiaMes(iso: string): string {
+  const fecha = new Date(`${iso}T00:00:00Z`)
+  if (Number.isNaN(fecha.getTime())) return iso
+  return `${fecha.getUTCDate()}-${MESES_CORTOS[fecha.getUTCMonth()]}`
+}
 
 function formatoHora(iso: string): string {
   const fecha = new Date(iso)
@@ -28,15 +45,17 @@ type TipoAccion = 'detener' | 'reportar'
 
 interface AccionesRevisionProps {
   usuarioId: string
-  semanaInicio: string
+  /** La semana que se va a cargar para esta persona (`semanaObjetivoDeAcciones`), NO el
+   *  lunes de la semana en curso. */
+  semanaObjetivo: string
   /** Las órdenes ya traídas por quien pinta la lista (una sola consulta para toda la
-   *  cartera) — este componente solo filtra las que le tocan a `usuarioId`+`semanaInicio`. */
+   *  cartera) — este componente solo filtra las que le tocan a `usuarioId`+`semanaObjetivo`. */
   ordenes: readonly Orden[]
   /** Avisa a quien pinta la lista de que hay una orden nueva, para refrescar `ordenes`. */
   onOrdenCreada: () => void
 }
 
-export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCreada }: AccionesRevisionProps) {
+export function AccionesRevision({ usuarioId, semanaObjetivo, ordenes, onOrdenCreada }: AccionesRevisionProps) {
   const { cargando: cargandoCapacidades, tiene, usuarioId: actorId } = useCapacidades()
   const [abierta, setAbierta] = useState<TipoAccion | null>(null)
   const [motivo, setMotivo] = useState('')
@@ -44,8 +63,10 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
 
+  const fechaLegible = formatoDiaMes(semanaObjetivo)
+
   const esDeEstaPersonaYSemana = (orden: Orden) =>
-    orden.objetivo.usuario_id === usuarioId && orden.objetivo.semana_inicio === semanaInicio
+    orden.objetivo.usuario_id === usuarioId && orden.objetivo.semana_inicio === semanaObjetivo
 
   const detencion = ordenes.find((o) => o.tipo === 'detener' && esDeEstaPersonaYSemana(o))
   const riesgo = ordenes.find((o) => o.tipo === 'reportar_riesgo' && esDeEstaPersonaYSemana(o))
@@ -78,7 +99,7 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
     }
     setEnviando(true)
     setError(null)
-    const params = { usuarioId, semanaInicio, motivo: motivo.trim(), actorId }
+    const params = { usuarioId, semanaInicio: semanaObjetivo, motivo: motivo.trim(), actorId }
     const resultado = abierta === 'detener' ? await detenerPublicacion(params) : await reportarRiesgo(params)
     setEnviando(false)
 
@@ -89,7 +110,7 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
     setInfo(
       resultado.yaExistia
         ? abierta === 'detener'
-          ? 'Ya estaba detenida.'
+          ? `Ya estaba detenida la semana del ${fechaLegible}.`
           : 'Ya habías reportado este riesgo.'
         : null,
     )
@@ -105,7 +126,8 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
       <div className="flex flex-wrap items-center gap-2">
         {detencion ? (
           <Badge tono="rojo">
-            Detenida por {nombreDe(detencion.actorId)} a las {formatoHora(detencion.creadaEn)}
+            Detenida la semana del {fechaLegible} por {nombreDe(detencion.actorId)} a las{' '}
+            {formatoHora(detencion.creadaEn)}
           </Badge>
         ) : (
           <>
@@ -115,7 +137,7 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
               disabled={cargandoCapacidades || !puedeDetener}
               onClick={() => abrir('detener')}
             >
-              Detener publicación
+              Detener la semana del {fechaLegible}
             </button>
             {!cargandoCapacidades && !puedeDetener && (
               <span className="text-[11px] text-tenue">— hace falta la capacidad «detener publicación».</span>
@@ -123,14 +145,18 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
           </>
         )}
 
-        {riesgo && <Badge tono="ambar">Riesgo reportado por {nombreDe(riesgo.actorId)}</Badge>}
+        {riesgo && (
+          <Badge tono="ambar">
+            Riesgo reportado por {nombreDe(riesgo.actorId)} (semana del {fechaLegible})
+          </Badge>
+        )}
         <button
           type="button"
           className="tecla-3d rounded-lg border border-linea bg-surface-2 px-3 py-1.5 text-xs font-bold text-texto disabled:cursor-not-allowed disabled:opacity-40"
           disabled={cargandoCapacidades || !puedeReportar}
           onClick={() => abrir('reportar')}
         >
-          Reportar riesgo
+          Reportar riesgo (semana del {fechaLegible})
         </button>
         {!cargandoCapacidades && !puedeReportar && (
           <span className="text-[11px] text-tenue">— hace falta la capacidad «reportar riesgo».</span>
@@ -139,8 +165,8 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
 
       {detencion && (
         <p className="text-[11.5px] text-tenue">
-          Detenida hasta que alguien con permiso la resuelva; no se reanuda sola por el simple paso del tiempo.
-          Todavía no hay botón de «reanudar» — llega con la vía de firma.
+          Detenida la semana del {fechaLegible} hasta que alguien con permiso la resuelva; no se reanuda sola por el
+          simple paso del tiempo. Todavía no hay botón de «reanudar» — llega con la vía de firma.
         </p>
       )}
 
@@ -150,7 +176,7 @@ export function AccionesRevision({ usuarioId, semanaInicio, ordenes, onOrdenCrea
             className="text-[11px] font-bold uppercase tracking-wide text-tenue"
             htmlFor={`motivo-${abierta}-${usuarioId}`}
           >
-            Motivo {abierta === 'detener' ? 'para detener la publicación' : 'del riesgo reportado'}
+            Motivo {abierta === 'detener' ? `para detener la semana del ${fechaLegible}` : `del riesgo reportado (semana del ${fechaLegible})`}
           </label>
           <textarea
             id={`motivo-${abierta}-${usuarioId}`}

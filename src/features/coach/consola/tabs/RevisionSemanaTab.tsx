@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
+import { corridasDeTodaLaCartera, type CadenaCorrida } from '../../../../data/consola/cadenaCorridas'
 import { db, hoyIso } from '../../../../data/dbInstance'
 import { ordenesRecientes, type Orden } from '../../../../data/consola/ordenes'
 import {
   compararMicrociclos,
   type DiffMicrociclo,
 } from '../../../../domain/consolaCoach/diffMicrociclo'
-import { lunesDeLaSemana } from '../../../../domain/resumenSemanal/reparto'
+import { semanaObjetivoDeAcciones } from '../../../../domain/consolaCoach/semanaObjetivo'
 import type { Microciclo } from '../../../../domain/types'
 import { AccionesRevision } from '../AccionesRevision'
 import { conclusion, revisarCartera, type EstadoActivacion, type FilaCartera } from '../../revisionCartera'
@@ -54,12 +55,14 @@ function DiaCelda({ dia }: { dia: DiffMicrociclo['dias'][number] }) {
 
 function FilaPersona({
   fila,
-  semanaInicio,
+  semanaObjetivo,
   ordenes,
   onOrdenCreada,
 }: {
   fila: FilaCartera
-  semanaInicio: string
+  /** La semana que se va a cargar para ESTA persona (`semanaObjetivoDeAcciones`), no el
+   *  lunes de la semana en curso — ver `AccionesRevision`. */
+  semanaObjetivo: string
   ordenes: Orden[]
   onOrdenCreada: () => void
 }) {
@@ -119,7 +122,7 @@ function FilaPersona({
 
       <AccionesRevision
         usuarioId={fila.usuario.id}
-        semanaInicio={semanaInicio}
+        semanaObjetivo={semanaObjetivo}
         ordenes={ordenes}
         onOrdenCreada={onOrdenCreada}
       />
@@ -131,7 +134,6 @@ const TIPOS_ORDENES_DE_REVISION = ['detener', 'reportar_riesgo'] as const
 
 export function RevisionSemanaTab() {
   const hoy = hoyIso()
-  const semanaInicio = lunesDeLaSemana(hoy)
   const filas = revisarCartera(db, hoy)
   const ordenadas = [...filas].sort((a, b) => ORDEN_ATENCION[a.estado] - ORDEN_ATENCION[b.estado])
 
@@ -146,6 +148,20 @@ export function RevisionSemanaTab() {
     let vivo = true
     ordenesRecientes(TIPOS_ORDENES_DE_REVISION).then((lista) => {
       if (vivo) setOrdenes(lista)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  // La semana que "Detener"/"Reportar" tienen que apuntar es la que SE VA A CARGAR para
+  // cada persona, no el lunes en curso (ver `semanaObjetivoDeAcciones`) — hace falta
+  // `cadena_corridas` de toda la cartera para saberlo.
+  const [corridas, setCorridas] = useState<CadenaCorrida[]>([])
+  useEffect(() => {
+    let vivo = true
+    corridasDeTodaLaCartera().then((lista) => {
+      if (vivo) setCorridas(lista)
     })
     return () => {
       vivo = false
@@ -176,7 +192,7 @@ export function RevisionSemanaTab() {
           <FilaPersona
             key={fila.usuario.id}
             fila={fila}
-            semanaInicio={semanaInicio}
+            semanaObjetivo={semanaObjetivoDeAcciones(fila.usuario.id, corridas, hoy)}
             ordenes={ordenes}
             onOrdenCreada={refrescarOrdenes}
           />
