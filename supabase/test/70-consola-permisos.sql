@@ -250,11 +250,26 @@ select pruebas.afirmar(
   'la respuesta del staff no quedó registrada con su origen y su actor'
 );
 
--- No borra la historia: si la asesorada respondió antes, las dos filas conviven.
+reset role;
+
+-- No borra la historia: si la asesorada respondió antes (con su propia sesión — la
+-- política `respuestas_crear_propia` de la 0001 exige `usuario_id = auth.uid()`, así que
+-- esto tiene que insertarse COMO ella, no como el staff que sigue de la prueba anterior),
+-- las dos filas conviven.
+select pruebas.soy('55555555-5555-5555-5555-555555555555');
+set role authenticated;
+select pruebas.exigir_rls();
+
 insert into public.respuestas (id, cuestionario_id, usuario_id, fecha_iso, valores) values
   ('r-consola-test-de-ella', 'q-consola-test-1', '55555555-5555-5555-5555-555555555555',
    now(), '{"animo": "regular"}'::jsonb)
 on conflict (id) do nothing;
+
+reset role;
+
+select pruebas.soy('66666666-6666-6666-6666-666666666666');
+set role authenticated;
+select pruebas.exigir_rls();
 
 select pruebas.afirmar(
   (select count(*) from public.respuestas where cuestionario_id = 'q-consola-test-1') >= 2,
