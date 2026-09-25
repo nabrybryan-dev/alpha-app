@@ -58,10 +58,14 @@ vi.mock('../supabase', () => ({
 
 const {
   claveDetener,
+  claveReanudar,
+  clavePrepararFirma,
   claveReportarRiesgo,
   detenerPublicacion,
   insertarOrden,
   ordenesRecientes,
+  prepararFirma,
+  reanudarPublicacion,
   reportarRiesgo,
 } = await import('./ordenes')
 
@@ -201,6 +205,62 @@ describe('detenerPublicacion y reportarRiesgo: objetivo y clave correctos', () =
       objetivo: { usuario_id: 'u-9', semana_inicio: '2026-10-05', motivo: 'dolor articular' },
       idempotency_key: 'reportar_riesgo|u-9|2026-10-05|u-actor',
     })
+  })
+})
+
+describe('reanudarPublicacion: objetivo y clave con la hora', () => {
+  it('arma {usuario_id, semana_inicio, motivo}, tipo reanudar y la clave reanudar|...|<hora>', async () => {
+    const antes = new Date().toISOString()
+    await reanudarPublicacion({ usuarioId: 'u-9', semanaInicio: '2026-10-05', motivo: 'ya puede entrenar', actorId: 'u-actor' })
+    const despues = new Date().toISOString()
+
+    expect(estado.insertsRecibidos).toHaveLength(1)
+    const enviado = estado.insertsRecibidos[0]
+    expect(enviado.tipo).toBe('reanudar')
+    expect(enviado.objetivo).toEqual({ usuario_id: 'u-9', semana_inicio: '2026-10-05', motivo: 'ya puede entrenar' })
+
+    const clave = enviado.idempotency_key as string
+    expect(clave.startsWith('reanudar|u-9|2026-10-05|u-actor|')).toBe(true)
+    // La hora es la parte final de la clave: cae dentro de la ventana en la que corrió esta prueba.
+    const hora = clave.slice('reanudar|u-9|2026-10-05|u-actor|'.length)
+    expect(hora >= antes && hora <= despues).toBe(true)
+  })
+
+  it('dos reanudaciones seguidas de la misma persona y semana NO comparten clave (llevan la hora)', async () => {
+    // `new Date().toISOString()` solo tiene resolución de milisegundo: dos llamadas reales
+    // (dos clics humanos) nunca caen en el mismo milisegundo, pero dos `await` seguidos en
+    // una prueba sí podrían — así que se fija el reloj del sistema en dos instantes
+    // distintos para probar lo que importa (dos horas distintas arman claves distintas),
+    // no la velocidad de la máquina que corre la prueba.
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-10-05T08:00:00.000Z'))
+      await reanudarPublicacion({ usuarioId: 'u-9', semanaInicio: '2026-10-05', motivo: 'primera', actorId: 'u-actor' })
+      vi.setSystemTime(new Date('2026-10-05T08:00:00.001Z'))
+      await reanudarPublicacion({ usuarioId: 'u-9', semanaInicio: '2026-10-05', motivo: 'segunda', actorId: 'u-actor' })
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(estado.insertsRecibidos).toHaveLength(2)
+    expect(estado.insertsRecibidos[0].idempotency_key).not.toBe(estado.insertsRecibidos[1].idempotency_key)
+  })
+})
+
+describe('prepararFirma: objetivo y clave por persona+semana+actor (sin hora)', () => {
+  it('arma {usuario_id, semana_inicio, motivo}, tipo preparar_firma y la clave preparar_firma|...', async () => {
+    await prepararFirma({ usuarioId: 'u-9', semanaInicio: '2026-10-05', motivo: 'zona roja', actorId: 'u-actor' })
+    expect(estado.insertsRecibidos[0]).toEqual({
+      tipo: 'preparar_firma',
+      objetivo: { usuario_id: 'u-9', semana_inicio: '2026-10-05', motivo: 'zona roja' },
+      idempotency_key: 'preparar_firma|u-9|2026-10-05|u-actor',
+    })
+  })
+
+  it('dos clics seguidos arman la MISMA clave (colapsa como detener, no como reanudar)', async () => {
+    const primera = claveReanudar('u-9', '2026-10-05', 'u-actor', '2026-10-05T00:00:00.000Z')
+    const segunda = claveReanudar('u-9', '2026-10-05', 'u-actor', '2026-10-05T00:00:01.000Z')
+    expect(primera).not.toBe(segunda)
+    expect(clavePrepararFirma('u-9', '2026-10-05', 'u-actor')).toBe(clavePrepararFirma('u-9', '2026-10-05', 'u-actor'))
   })
 })
 
