@@ -111,3 +111,6 @@ jobs:
 
       - name: Los errores del navegador se guardan y solo los lee el coach
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/60-los-errores-del-navegador.sql
+
+      - name: La consola del coach respeta permisos por capacidad, no por rol
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/70-consola-permisos.sql

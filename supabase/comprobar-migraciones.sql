@@ -1530,4 +1530,94 @@ union all
 select '0082 - el cajon de medios admite revisiones largas', 'file_size_limit de medios-app es 150 MB (157286400 bytes)',
        case when (select file_size_limit from storage.buckets where id = 'medios-app') = 150 * 1024 * 1024 then 'SI'
             else 'NO' end
+
+union all
+-- La 0083: capa de servidor de la consola del coach. capacidades_staff + tiene_capacidad(),
+-- SECURITY DEFINER con search_path fijo, y anon sin nada. Sin esto ninguna politica de las
+-- de abajo tiene puerta que consultar.
+select '0083 - capacidades del staff', 'capacidades_staff con RLS, tiene_capacidad() security definer con search_path fijo y anon sin acceso',
+       case when to_regclass('public.capacidades_staff') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.capacidades_staff')) then 'NO'
+            when has_table_privilege('anon', 'public.capacidades_staff', 'select') then 'NO'
+            when to_regprocedure('public.tiene_capacidad(text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.tiene_capacidad(text)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.tiene_capacidad(text)')) not like '%search_path = public%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.tiene_capacidad(text)')) not like '%SECURITY DEFINER%' then 'NO'
+            else 'SI' end
+
+union all
+-- La 0083: cadena_corridas es proyeccion de lectura. event_id unico (idempotencia del
+-- evento, Q4 de Astra), RLS encendida y anon sin nada: la escribe solo service_role.
+select '0083 - cadena_corridas es proyeccion de solo lectura', 'RLS encendida, anon sin acceso y event_id UNIQUE',
+       case when to_regclass('public.cadena_corridas') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.cadena_corridas')) then 'NO'
+            when has_table_privilege('anon', 'public.cadena_corridas', 'select')
+              or has_table_privilege('anon', 'public.cadena_corridas', 'insert') then 'NO'
+            when not exists (
+                   select 1 from pg_constraint
+                    where conrelid = to_regclass('public.cadena_corridas')
+                      and contype = 'u'
+                      and conkey = array[(select attnum from pg_attribute
+                                           where attrelid = to_regclass('public.cadena_corridas')
+                                             and attname = 'event_id')]
+                 ) then 'NO'
+            else 'SI' end
+
+union all
+-- La 0083: un unico plan_estrategico vigente por persona, forzado por indice unico
+-- PARCIAL (mismo patron que 0069_un_solo_microciclo_activo). Sin el `where vigente` el
+-- indice restringiria tambien al historial, que si puede tener muchas filas por persona.
+select '0083 - un solo plan estrategico vigente por persona', 'indice unico parcial planes_estrategicos_un_vigente_por_persona con predicado vigente',
+       case when not exists (
+              select 1 from pg_indexes
+               where schemaname = 'public' and tablename = 'planes_estrategicos'
+                 and indexname = 'planes_estrategicos_un_vigente_por_persona'
+                 and indexdef like '%WHERE (vigente)%'
+            ) then 'NO'
+            else 'SI' end
+
+union all
+-- La 0083: aprobaciones. La firma SSH se verifica FUERA de la base; el navegador no puede
+-- insertar bajo ninguna circunstancia -- se pide el PRIVILEGIO efectivo de insert para
+-- `authenticated`, no que exista o no una politica (la leccion de la 0013: preguntar por
+-- una politica con ese nombre sobrevive a que la migracion nunca se aplicara).
+select '0083 - aprobaciones solo las escribe el servidor', 'RLS encendida, anon sin nada y authenticated SIN privilegio de insert/update/delete',
+       case when to_regclass('public.aprobaciones') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.aprobaciones')) then 'NO'
+            when has_table_privilege('anon', 'public.aprobaciones', 'select')
+              or has_table_privilege('anon', 'public.aprobaciones', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.aprobaciones', 'insert')
+              or has_table_privilege('authenticated', 'public.aprobaciones', 'update')
+              or has_table_privilege('authenticated', 'public.aprobaciones', 'delete') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0083: responder_como_staff() acredita el actor desde auth.uid(), nunca desde un
+-- parametro (Q2 de Astra). Se pide que exista, que anon no la llame, que authenticated si
+-- pueda, y que el cuerpo compruebe tiene_capacidad -- no solo que la funcion exista.
+select '0083 - responder_como_staff no deja falsificar el actor', 'función presente, anon sin ejecutar, authenticated sí, y el cuerpo comprueba tiene_capacidad',
+       case when to_regprocedure('public.responder_como_staff(text,jsonb)') is null then 'NO'
+            when has_function_privilege('anon', 'public.responder_como_staff(text,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.responder_como_staff(text,jsonb)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.responder_como_staff(text,jsonb)')) not like '%tiene_capacidad(''responder_por_asesorado'')%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.responder_como_staff(text,jsonb)')) not like '%search_path = public%' then 'NO'
+            else 'SI' end
+
+union all
+-- La 0083: RLS aditiva por capacidad en las tablas existentes -- se pide que la politica
+-- NUEVA exista (por nombre, que aqui SI es fiable porque se compara contra las 0001/0006
+-- que no usan estos nombres) sin comprobar que las viejas sigan ahi: esa garantia la da
+-- Postgres solo con CREATE POLICY (nunca hay un DROP POLICY de las anteriores en la 0083),
+-- y por eso no hace falta repetirla aqui.
+select '0083 - leer_entrenamiento amplia (no sustituye) microciclos/checkins/cuestionarios', 'las cuatro políticas nuevas existen',
+       case when (
+              select count(*) from pg_policies
+               where schemaname = 'public'
+                 and (
+                   (tablename = 'microciclos'   and policyname = 'microciclos_lee_capacidad') or
+                   (tablename = 'checkins'      and policyname = 'checkins_lee_capacidad') or
+                   (tablename = 'cuestionarios' and policyname = 'cuestionarios_lee_capacidad') or
+                   (tablename = 'respuestas'    and policyname = 'respuestas_lee_capacidad')
+                 )
+            ) = 4 then 'SI' else 'NO' end
 order by migracion, senal;
