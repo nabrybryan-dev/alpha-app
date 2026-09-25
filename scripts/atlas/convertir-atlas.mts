@@ -54,21 +54,44 @@ const RECORTE = 0.15
 const ERROR_MAXIMO = 0.03
 
 /**
- * Dos palancas por entorno, para poder MEDIR varios niveles de detalle sin
- * machacar las piezas que la app ya sirve. Sin ellas, el comportamiento es
- * exactamente el de siempre.
+ * Palancas por entorno, para poder MEDIR sin machacar las piezas que la app ya
+ * sirve. Sin ninguna, el comportamiento es exactamente el de siempre.
  *
- *   ATLAS_RECORTE   cuánto se conserva de hueso y músculo (por defecto 0.15).
- *                   La piel mantiene su proporción histórica: el doble, tope 1.
- *   ATLAS_SALIDA    carpeta donde escribir (por defecto public/piezas).
+ *   ATLAS_SALIDA             carpeta donde escribir (por defecto public/piezas).
+ *   ATLAS_RECORTE            recorte para todas las capas a la vez.
+ *   ATLAS_RECORTE_ESQUELETO  }
+ *   ATLAS_RECORTE_MUSCULOS   }  mandan sobre el anterior, por capa.
+ *   ATLAS_RECORTE_PIEL       }
  *
- *   ATLAS_RECORTE=0.4 ATLAS_SALIDA=/tmp/nivel-40 npx vite-node scripts/atlas/convertir-atlas.mts -- /ruta/al/atlas
+ * El detalle por capa existe porque medirlo demostró que las tres NO se
+ * comportan igual (25 sep 2026, del 15 % al 40 %):
+ *
+ *   - la piel ya está al 0,03 % de error al 15 %: subirla triplica su peso
+ *     para no ganar nada;
+ *   - los músculos bajan de 3,00 % a 1,56 %: ahí sí se compra detalle;
+ *   - el esqueleto clava 3,00 % al 15 % y al 25 % porque choca contra
+ *     ERROR_MAXIMO, no contra el presupuesto: subirle el recorte lo engorda
+ *     sin mejorarlo, y para afinarlo hay que bajar el error, no subir esto.
+ *
+ * Un número único para las tres es, por tanto, la decisión equivocada.
+ *
+ *   ATLAS_RECORTE_MUSCULOS=0.4 ATLAS_RECORTE_ESQUELETO=0.25 npx vite-node scripts/atlas/convertir-atlas.mts -- /ruta/al/atlas
  */
-const RECORTE_BASE = Number(process.env.ATLAS_RECORTE ?? RECORTE)
 const SALIDA = process.env.ATLAS_SALIDA ?? 'public/piezas'
 
-if (!Number.isFinite(RECORTE_BASE) || RECORTE_BASE <= 0 || RECORTE_BASE > 1) {
-  throw new Error(`ATLAS_RECORTE debe estar entre 0 y 1, no "${process.env.ATLAS_RECORTE}"`)
+function recorteDe(capa: 'ESQUELETO' | 'MUSCULOS' | 'PIEL', pordefecto: number): number {
+  const propia = process.env[`ATLAS_RECORTE_${capa}`]
+  const global = process.env.ATLAS_RECORTE
+  // La variable de la capa es absoluta. La global se reparte manteniendo la
+  // proporción histórica: la piel siempre fue el doble que hueso y músculo.
+  const bruto = propia ?? (global === undefined ? undefined : capa === 'PIEL' ? `${Number(global) * 2}` : global)
+  if (bruto === undefined) return pordefecto
+
+  const valor = Math.min(1, Number(bruto))
+  if (!Number.isFinite(valor) || valor <= 0) {
+    throw new Error(`El recorte de ${capa} debe estar entre 0 y 1, no "${bruto}"`)
+  }
+  return valor
 }
 /** Suelo por estructura: por debajo de 24 triángulos una pieza deja de leerse como forma. */
 const MINIMO_TRIANGULOS = 24
@@ -216,8 +239,8 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo;
     grupos: {
       // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
       // superponerlos no parezcan dos anatomías distintas.
-      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: RECORTE_BASE },
-      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: RECORTE_BASE },
+      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: recorteDe('ESQUELETO', RECORTE) },
+      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: recorteDe('MUSCULOS', RECORTE) },
     },
   },
   femenino: {
@@ -230,7 +253,7 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo;
       piel: {
         nombres: ['skin of body'],
         color: [0.72, 0.6, 0.53],
-        recorte: Math.min(1, RECORTE_BASE * 2),
+        recorte: recorteDe('PIEL', RECORTE * 2),
         colgarBrazos: true,
       },
     },
