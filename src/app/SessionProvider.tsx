@@ -316,3 +316,14 @@ export function useSesion(): SesionContexto {
   if (!contexto) throw new Error('useSesion requiere SessionProvider')
   return contexto
 }
+
+/**
+ * Igual que `useSesion`, pero `null` en vez de lanzar cuando no hay `SessionProvider` por
+ * encima. Existe para piezas que pueden montarse en una prueba que renderiza un componente
+ * suelto (sin envolver toda la app) — la consola del coach, por ejemplo — y que deben
+ * degradarse a "sin capacidades" en vez de tumbar la pantalla. Quien sí vive siempre dentro
+ * de `SessionProvider` (el 99% del código) sigue usando `useSesion`.
+ */
+export function useSesionOpcional(): SesionContexto | null {
+  return useContext(Contexto)
+}

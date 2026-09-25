@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
 import { EmptyState } from '../../../../components/ui/EmptyState'
+import { ordenesRecientes, type Orden } from '../../../../data/consola/ordenes'
 import { planVigente, type PlanEstrategico } from '../../../../data/consola/planesEstrategicos'
 import { db, useDbVersion } from '../../../../data/dbInstance'
 import { desviacionRir, resumenMicrociclo } from '../../../../domain/cumplimiento'
@@ -10,6 +11,7 @@ import { leerPlanLegible } from '../../../../domain/consolaCoach/planLegible'
 import { pRatio } from '../../../../domain/consolaCoach/pRatio'
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import type { Microciclo } from '../../../../domain/types'
+import { ResponderComoStaff } from '../ResponderComoStaff'
 
 /**
  * Módulo 3: adherencia, progreso de cargas, RIR prescrito/real, composición
@@ -253,6 +255,74 @@ function SeccionNutricion({ usuarioId }: { usuarioId: string }) {
   )
 }
 
+/**
+ * Aviso de riesgo reportado (encargo, punto 3): lee `ordenes` tipo `reportar_riesgo` de
+ * esta persona y lo muestra como aviso para el coach — no detiene nada por sí solo.
+ */
+function SeccionRiesgoReportado({ usuarioId }: { usuarioId: string }) {
+  const [ordenes, setOrdenes] = useState<Orden[] | undefined>(undefined)
+
+  useEffect(() => {
+    let vivo = true
+    ordenesRecientes(['reportar_riesgo']).then((lista) => {
+      if (vivo) setOrdenes(lista)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const propios = (ordenes ?? []).filter((o) => o.objetivo.usuario_id === usuarioId)
+  if (propios.length === 0) return null
+
+  const masReciente = propios[0]
+  const nombreActor = db.usuarios.byId(masReciente.actorId)?.nombre ?? 'alguien del equipo'
+
+  return (
+    <Card className="border-ambar/50 bg-ambar/10">
+      <p className="kicker">Riesgo reportado</p>
+      <p className="mt-1 text-sm text-texto/90">
+        {nombreActor} reportó un riesgo: <span className="font-bold">{String(masReciente.objetivo.motivo ?? '')}</span>
+      </p>
+      {propios.length > 1 && (
+        <p className="mt-1 text-xs text-tenue">
+          Y {propios.length - 1} {propios.length - 1 === 1 ? 'reporte más' : 'reportes más'} en el historial.
+        </p>
+      )}
+    </Card>
+  )
+}
+
+/**
+ * Cuestionarios pendientes de esta persona (encargo, punto 4): los asignados sin
+ * respuesta todavía, cada uno con «Responder como coach».
+ */
+function SeccionCuestionariosPendientes({ usuarioId }: { usuarioId: string }) {
+  const asignados = db.cuestionarios.asignadosA(usuarioId)
+  const respuestas = db.cuestionarios.respuestasDe(usuarioId)
+  const idsRespondidos = new Set(respuestas.map((r) => r.cuestionarioId))
+  const pendientes = asignados.filter((c) => !idsRespondidos.has(c.id))
+
+  if (pendientes.length === 0) return null
+
+  const nombre = db.usuarios.byId(usuarioId)?.nombre ?? 'esta persona'
+
+  return (
+    <Card>
+      <p className="kicker">Cuestionarios pendientes</p>
+      <ul className="mt-2 flex flex-col gap-2.5">
+        {pendientes.map((c) => (
+          <li key={c.id} className="rounded-lg border border-linea bg-surface-2 p-2.5 text-sm">
+            <p className="font-bold text-texto">{c.titulo}</p>
+            {c.descripcion && <p className="mt-0.5 text-xs text-tenue">{c.descripcion}</p>}
+            <ResponderComoStaff cuestionarioId={c.id} nombrePersona={nombre} />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
 export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
   useDbVersion()
   const usuario = db.usuarios.byId(usuarioId)
@@ -265,12 +335,14 @@ export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <SeccionRiesgoReportado usuarioId={usuarioId} />
       <SeccionPlanEstrategico usuarioId={usuarioId} />
       <SeccionAdherencia activo={activo} />
       <SeccionProgresoCargas historial={historial} activo={activo} />
       <SeccionRir activo={activo} />
       <SeccionComposicion usuarioId={usuarioId} />
       <SeccionNutricion usuarioId={usuarioId} />
+      <SeccionCuestionariosPendientes usuarioId={usuarioId} />
     </div>
   )
 }

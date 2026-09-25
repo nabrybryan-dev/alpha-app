@@ -11,11 +11,14 @@ import {
 import { db, useDbVersion } from '../../../../data/dbInstance'
 import {
   bandejaDePreguntas,
+  cuestionarioIdDePregunta,
   datosAtrasados,
   fechaRecepcionMasReciente,
   filaDeLaPersona,
+  textoDePregunta,
   type PreguntaPendienteDeLaCartera,
 } from '../../../../domain/consolaCoach/tableroAgentes'
+import { ResponderComoStaff } from '../ResponderComoStaff'
 
 /**
  * Módulo 2: el tablero ①②③④ por persona (`cadena_corridas`, migración 0083) y la bandeja
@@ -126,14 +129,21 @@ function FilaPersonaAgentes({
 }
 
 function PreguntaItem({ pregunta, nombre }: { pregunta: PreguntaPendienteDeLaCartera; nombre: string }) {
-  const contenido =
-    typeof pregunta.pregunta === 'string' ? pregunta.pregunta : JSON.stringify(pregunta.pregunta, null, 2)
+  const contenido = textoDePregunta(pregunta.pregunta)
+  const cuestionarioId = cuestionarioIdDePregunta(pregunta.pregunta)
   return (
     <li className="rounded-lg border border-linea bg-surface-2 p-2.5 text-sm">
       <p className="text-[11px] font-bold uppercase tracking-wide text-tenue">
         {nombre} · {NOMBRE_PASO[pregunta.paso]}
       </p>
       <p className="mt-1 whitespace-pre-wrap text-texto/90">{contenido}</p>
+      {cuestionarioId ? (
+        <ResponderComoStaff cuestionarioId={cuestionarioId} nombrePersona={nombre} />
+      ) : (
+        <p className="mt-1.5 text-[11px] text-tenue">
+          No se puede responder desde aquí: esta pregunta no trae el identificador del cuestionario.
+        </p>
+      )}
     </li>
   )
 }
