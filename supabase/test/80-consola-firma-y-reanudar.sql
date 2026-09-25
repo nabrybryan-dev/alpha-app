@@ -391,9 +391,14 @@ begin
   end;
 end $$;
 
+reset role;
+
 -- 4c. El caso SÍ está listo_para_firmar, pero todavía no se subió NINGÚN .sig para él
 -- (el que se subió en el bloque 3 es de `caso-1`, que es justo este caso — se prueba
 -- ANTES de esa subida quitándola de en medio: aquí se usa un caso nuevo, sin .sig).
+-- Como dueño de la tabla, igual que el resto de la semilla: `authenticated` ya no tiene
+-- privilegio de insert sobre `casos_firma` (bloque 2), así que este insert tiene que
+-- correr ANTES de volver a `set role authenticated` para la llamada a la RPC.
 insert into public.casos_firma
   (id, usuario_id, semana_inicio, tipo, estado, ruta_decision, valida_hasta)
 values
@@ -401,6 +406,10 @@ values
    'retiro', 'listo_para_firmar', 'casos/55555555-5555-5555-5555-555555555555/2026-10-05/caso-3.json',
    now() + interval '1 day')
 on conflict (id) do nothing;
+
+select pruebas.soy('99999999-9999-9999-9999-999999999999');
+set role authenticated;
+select pruebas.exigir_rls();
 
 do $$
 begin
