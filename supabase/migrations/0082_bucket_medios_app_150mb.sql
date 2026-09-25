@@ -1,4 +1,8 @@
--- 0078 · El cajón medios-app admite hasta 150 MB, no el límite del proyecto por defecto.
+-- 0082 · El cajón medios-app admite hasta 150 MB, no el límite del proyecto por defecto.
+--
+-- Renombrada de 0078 a 0082 al fusionar el PR #299 (24-sep-2026): el número 0078 ya lo
+-- había tomado en `main` otra migración fusionada antes (`0078_la_app_cuenta_lo_que_le_falla`,
+-- desplegada el 14-sep). El contenido de este archivo no cambió, solo su número.
 --
 -- QUÉ SE ROMPIÓ. La revisión LARGA (2-3 min, cara clonada de Alpha Estudio, 14-sep)
 -- produce mp4 de 76-96 MB. El bucket `medios-app` tenía `file_size_limit = null`, que cae
