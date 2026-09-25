@@ -17,7 +17,30 @@
 --
 -- APLICADA A MANO el 2026-09-14 vía el SQL Editor / MCP, antes de que este archivo
 -- existiera: este migration es el registro, no el primer disparo.
+--
+-- ROBUSTA a propósito (24-sep-2026, a pedido del director): el CI de este repo
+-- (`base-de-datos`, job de `.github/workflows/ci.yml`) aplica las migraciones desde cero
+-- sobre un `pgvector/pgvector:pg16` puro, sin el esquema real de Storage de Supabase — ahí
+-- `storage.buckets` no existe o no tiene `file_size_limit`, y el UPDATE de abajo reventaba
+-- ese check para CUALQUIER PR que lo heredara después de fusionar. Se envuelve en un
+-- `do $$ … $$` que solo escribe si el esquema, la tabla y la columna existen de verdad; si
+-- no, avisa con `raise notice` y no hace nada. En producción el efecto es el mismo UPDATE
+-- de siempre, y sigue siendo idempotente.
 
-update storage.buckets
-set file_size_limit = 150 * 1024 * 1024
-where id = 'medios-app';
+do $$
+begin
+  if exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'storage'
+       and table_name = 'buckets'
+       and column_name = 'file_size_limit'
+  ) then
+    update storage.buckets
+       set file_size_limit = 150 * 1024 * 1024
+     where id = 'medios-app';
+  else
+    raise notice '0082: storage.buckets.file_size_limit no existe en este entorno (sin Storage real de Supabase) — nada que hacer aquí.';
+  end if;
+end
+$$;
