@@ -1620,4 +1620,100 @@ select '0083 - leer_entrenamiento amplia (no sustituye) microciclos/checkins/cue
                    (tablename = 'respuestas'    and policyname = 'respuestas_lee_capacidad')
                  )
             ) = 4 then 'SI' else 'NO' end
+
+union all
+-- La 0084: ordenes.tipo admite reanudar y preparar_firma -- se pide el CHECK real (no un
+-- nombre de restriccion adivinado; la migracion la localiza por definicion antes de
+-- reemplazarla, por la misma razon).
+select '0084 - ordenes.tipo admite reanudar y preparar_firma', 'CHECK de la columna tipo contiene los dos valores nuevos',
+       case when not exists (
+              select 1 from pg_constraint
+               where conrelid = to_regclass('public.ordenes')
+                 and contype = 'c'
+                 and pg_get_constraintdef(oid) ilike '%reanudar%'
+                 and pg_get_constraintdef(oid) ilike '%preparar_firma%'
+            ) then 'NO' else 'SI' end
+
+union all
+-- La 0084: reanudar exige la MISMA capacidad que detener (decision de Bryan) y
+-- preparar_firma exige leer_entrenamiento -- se pide la expresion real de la politica de
+-- alta, no solo que exista una politica con ese nombre (la leccion de la 0013).
+select '0084 - ordenes: reanudar y preparar_firma piden su capacidad, no cualquier sesion', 'policy ordenes_crear_segun_capacidad menciona las dos capacidades junto a sus tipos',
+       case when not exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'ordenes'
+                 and policyname = 'ordenes_crear_segun_capacidad'
+                 and with_check ilike '%reanudar%' and with_check ilike '%detener_publicacion%'
+                 and with_check ilike '%preparar_firma%' and with_check ilike '%leer_entrenamiento%'
+            ) then 'NO' else 'SI' end
+
+union all
+-- La 0084: casos_firma -- RLS encendida, anon sin nada y authenticated SIN privilegio de
+-- escritura (la escribe el equipo de mesa con service_role; el unico avance desde el
+-- navegador pasa por la RPC de abajo, security definer).
+select '0084 - casos_firma con RLS y sin escritura para authenticated', 'RLS encendida, anon sin acceso, authenticated solo con select',
+       case when to_regclass('public.casos_firma') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.casos_firma')) then 'NO'
+            when has_table_privilege('anon', 'public.casos_firma', 'select')
+              or has_table_privilege('anon', 'public.casos_firma', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.casos_firma', 'insert')
+              or has_table_privilege('authenticated', 'public.casos_firma', 'update')
+              or has_table_privilege('authenticated', 'public.casos_firma', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.casos_firma', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0084 (ajuste del equipo de mesa, tras la primera version): tipo es NULLABLE, y el
+-- CHECK exige que un tipo NULL vaya SIEMPRE con estado = rechazado -- un caso a medio
+-- llenar (preparando/listo_para_firmar/firmado/verificado sin tipo) no puede colarse.
+select '0084 - casos_firma.tipo nulo exige estado rechazado', 'CHECK exige tipo in (retiro,recorte) o (tipo is null and estado = rechazado)',
+       case when not exists (
+              select 1 from pg_constraint
+               where conrelid = to_regclass('public.casos_firma')
+                 and contype = 'c'
+                 and pg_get_constraintdef(oid) ilike '%tipo%is null%'
+                 and pg_get_constraintdef(oid) ilike '%rechazado%'
+            ) then 'NO' else 'SI' end
+
+union all
+-- La 0084: el bucket firmas existe y es PRIVADO -- son decisiones clinicas de una
+-- persona concreta, mismo motivo que medios-app (0061).
+select '0084 - bucket firmas privado', 'storage.buckets.public = false para el id firmas',
+       case when not exists (
+              select 1 from storage.buckets where id = 'firmas' and public = false
+            ) then 'NO' else 'SI' end
+
+union all
+-- La 0084: el navegador solo puede SUBIR un .sig (nunca el .json, nunca reemplazar nada
+-- ya subido) -- se pide la expresion real del with_check de la politica de insert, y que
+-- no exista ninguna politica de UPDATE sobre storage.objects para este bucket.
+select '0084 - firmas: sube solo .sig y nunca reemplaza', 'policy de insert exige name like %.sig, y no hay politica de update para el bucket firmas',
+       case when not exists (
+              select 1 from pg_policies
+               where schemaname = 'storage' and tablename = 'objects'
+                 and policyname = 'firmas: sube solo la firma .sig'
+                 and cmd = 'INSERT'
+                 and with_check ilike '%.sig%' and with_check ilike '%firmas%'
+            ) then 'NO'
+            when exists (
+              select 1 from pg_policies
+               where schemaname = 'storage' and tablename = 'objects'
+                 and cmd = 'UPDATE'
+                 and (qual ilike '%firmas%' or with_check ilike '%firmas%')
+            ) then 'NO'
+            else 'SI' end
+
+union all
+-- La 0084: registrar_firma() acredita el actor desde auth.uid(), exige la capacidad y
+-- comprueba el estado del caso -- igual que responder_como_staff en la 0083, se pide el
+-- cuerpo real de la funcion, no solo que exista.
+select '0084 - registrar_firma no deja falsificar el actor ni saltarse el estado', 'función presente, anon sin ejecutar, authenticated sí, search_path fijo y el cuerpo exige listo_para_firmar',
+       case when to_regprocedure('public.registrar_firma(uuid)') is null then 'NO'
+            when has_function_privilege('anon', 'public.registrar_firma(uuid)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.registrar_firma(uuid)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%auth.uid()%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%search_path = public%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%SECURITY DEFINER%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%listo_para_firmar%' then 'NO'
+            else 'SI' end
 order by migracion, senal;

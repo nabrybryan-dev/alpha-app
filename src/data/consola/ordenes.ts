@@ -13,9 +13,16 @@ import { modoNube, supabase } from '../supabase'
  */
 export const TABLA_ORDENES = 'ordenes'
 
-export type TipoOrden = 'detener' | 'reportar_riesgo' | 'pedir_correccion' | 'responder'
+export type TipoOrden = 'detener' | 'reportar_riesgo' | 'pedir_correccion' | 'responder' | 'reanudar' | 'preparar_firma'
 
-const TIPOS_VALIDOS: readonly string[] = ['detener', 'reportar_riesgo', 'pedir_correccion', 'responder']
+const TIPOS_VALIDOS: readonly string[] = [
+  'detener',
+  'reportar_riesgo',
+  'pedir_correccion',
+  'responder',
+  'reanudar',
+  'preparar_firma',
+]
 
 /** La fila tal como baja de Supabase. */
 export interface FilaOrden {
@@ -66,6 +73,23 @@ export function claveDetener(usuarioId: string, semanaInicio: string, actorId: s
  *  mismo actor sobre la misma persona y semana tampoco duplican. */
 export function claveReportarRiesgo(usuarioId: string, semanaInicio: string, actorId: string): string {
   return `reportar_riesgo|${usuarioId}|${semanaInicio}|${actorId}`
+}
+
+/**
+ * `reanudar|usuario_id|semana_inicio|actor|hora`. A diferencia de `claveDetener`, esta SÍ
+ * lleva la hora (contrato, punto 1): una persona se puede detener y reanudar varias veces
+ * seguidas, así que dos reanudaciones NO deben colapsar en la misma orden — cada clic real
+ * es un hecho nuevo que contar, no un reintento del mismo clic.
+ */
+export function claveReanudar(usuarioId: string, semanaInicio: string, actorId: string, ahoraIso: string): string {
+  return `reanudar|${usuarioId}|${semanaInicio}|${actorId}|${ahoraIso}`
+}
+
+/** Misma forma que `claveDetener` (colapsa dos clics del mismo actor): `preparar_firma`
+ *  no necesita la hora porque, a diferencia de reanudar, no tiene sentido preparar dos
+ *  veces el mismo caso a la vez — el segundo clic es un reintento, no un hecho nuevo. */
+export function clavePrepararFirma(usuarioId: string, semanaInicio: string, actorId: string): string {
+  return `preparar_firma|${usuarioId}|${semanaInicio}|${actorId}`
 }
 
 export type ResultadoOrden =
@@ -139,6 +163,31 @@ export async function reportarRiesgo(params: ParametrosOrdenPorPersona): Promise
   const clave = claveReportarRiesgo(params.usuarioId, params.semanaInicio, params.actorId)
   return insertarOrden(
     'reportar_riesgo',
+    { usuario_id: params.usuarioId, semana_inicio: params.semanaInicio, motivo: params.motivo },
+    clave,
+  )
+}
+
+/** «Reanudar la semana del …»: misma forma que `detenerPublicacion`, con la hora en la
+ *  clave (`claveReanudar`) para que varias reanudaciones de la misma persona y semana no
+ *  colapsen entre sí. Exige `detener_publicacion` — la MISMA capacidad que detener
+ *  (decisión de Bryan: «cualquiera del equipo puede reanudar»). */
+export async function reanudarPublicacion(params: ParametrosOrdenPorPersona): Promise<ResultadoOrden> {
+  const clave = claveReanudar(params.usuarioId, params.semanaInicio, params.actorId, new Date().toISOString())
+  return insertarOrden(
+    'reanudar',
+    { usuario_id: params.usuarioId, semana_inicio: params.semanaInicio, motivo: params.motivo },
+    clave,
+  )
+}
+
+/** «Preparar para firmar»: misma forma que `detenerPublicacion`, otro tipo y otra clave.
+ *  Exige `leer_entrenamiento`. La orden solo pide el caso — el equipo de mesa es quien
+ *  crea la fila de `casos_firma` que la consola pasa a mostrar. */
+export async function prepararFirma(params: ParametrosOrdenPorPersona): Promise<ResultadoOrden> {
+  const clave = clavePrepararFirma(params.usuarioId, params.semanaInicio, params.actorId)
+  return insertarOrden(
+    'preparar_firma',
     { usuario_id: params.usuarioId, semana_inicio: params.semanaInicio, motivo: params.motivo },
     clave,
   )

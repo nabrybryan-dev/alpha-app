@@ -130,7 +130,10 @@ function FilaPersona({
   )
 }
 
-const TIPOS_ORDENES_DE_REVISION = ['detener', 'reportar_riesgo'] as const
+// `reanudar` entra aquí también (0084): sin sus órdenes, `AccionesRevision` no podría
+// calcular la detención VIGENTE (la más reciente entre `detener` y `reanudar`) y una
+// persona ya reanudada se seguiría viendo detenida.
+const TIPOS_ORDENES_DE_REVISION = ['detener', 'reportar_riesgo', 'reanudar'] as const
 
 export function RevisionSemanaTab() {
   const hoy = hoyIso()
