@@ -88,13 +88,22 @@ export function AsesoradoLayout() {
 
 export function CoachLayout() {
   const { usuario } = useSesion()
+  const { pathname } = useLocation()
   if (usuario.rol !== 'coach') return <Navigate to="/" replace />
+
+  // La consola necesita más ancho que el resto del panel: cartera lateral +
+  // siete pestañas de contenido no caben en 3xl sin apretarse en escritorio.
+  // El resto del panel del coach se queda como estaba.
+  const anchoContenedor = pathname.startsWith('/coach/consola') ? 'max-w-6xl' : 'max-w-3xl'
 
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo="Panel del coach" />
-      <nav className="mx-auto max-w-3xl px-4 pt-3"><Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link></nav>
-      <main className="mx-auto max-w-3xl overflow-x-clip px-4 pb-16 pt-4">
+      <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
+        <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
+        <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
+      </nav>
+      <main className={`mx-auto overflow-x-clip px-4 pb-16 pt-4 ${anchoContenedor}`}>
         <Outlet />
       </main>
     </div>
