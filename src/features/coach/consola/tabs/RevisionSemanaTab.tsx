@@ -1,11 +1,15 @@
+import { useEffect, useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
 import { db, hoyIso } from '../../../../data/dbInstance'
+import { ordenesRecientes, type Orden } from '../../../../data/consola/ordenes'
 import {
   compararMicrociclos,
   type DiffMicrociclo,
 } from '../../../../domain/consolaCoach/diffMicrociclo'
+import { lunesDeLaSemana } from '../../../../domain/resumenSemanal/reparto'
 import type { Microciclo } from '../../../../domain/types'
+import { AccionesRevision } from '../AccionesRevision'
 import { conclusion, revisarCartera, type EstadoActivacion, type FilaCartera } from '../../revisionCartera'
 
 /**
@@ -48,7 +52,17 @@ function DiaCelda({ dia }: { dia: DiffMicrociclo['dias'][number] }) {
   )
 }
 
-function FilaPersona({ fila }: { fila: FilaCartera }) {
+function FilaPersona({
+  fila,
+  semanaInicio,
+  ordenes,
+  onOrdenCreada,
+}: {
+  fila: FilaCartera
+  semanaInicio: string
+  ordenes: Orden[]
+  onOrdenCreada: () => void
+}) {
   const historial = db.microciclos.byUsuario(fila.usuario.id)
   const activo = historial.find((m) => m.estado === 'activo')
   const anterior = microcicloAnterior(historial, activo)
@@ -102,17 +116,41 @@ function FilaPersona({ fila }: { fila: FilaCartera }) {
         Generado / firmado / publicado / visible: sin dato todavía (llega con la sincronización de la
         cadena).
       </p>
+
+      <AccionesRevision
+        usuarioId={fila.usuario.id}
+        semanaInicio={semanaInicio}
+        ordenes={ordenes}
+        onOrdenCreada={onOrdenCreada}
+      />
     </Card>
   )
 }
 
+const TIPOS_ORDENES_DE_REVISION = ['detener', 'reportar_riesgo'] as const
+
 export function RevisionSemanaTab() {
   const hoy = hoyIso()
+  const semanaInicio = lunesDeLaSemana(hoy)
   const filas = revisarCartera(db, hoy)
   const ordenadas = [...filas].sort((a, b) => ORDEN_ATENCION[a.estado] - ORDEN_ATENCION[b.estado])
 
   const visibleHoy = filas.filter((f) => f.estado === 'en-curso' || f.estado === 'automatica').length
   const sinPlanLunes = filas.filter((f) => f.estado === 'sin-microciclo' || f.estado === 'revisar').length
+
+  const [ordenes, setOrdenes] = useState<Orden[]>([])
+  const refrescarOrdenes = () => {
+    ordenesRecientes(TIPOS_ORDENES_DE_REVISION).then(setOrdenes)
+  }
+  useEffect(() => {
+    let vivo = true
+    ordenesRecientes(TIPOS_ORDENES_DE_REVISION).then((lista) => {
+      if (vivo) setOrdenes(lista)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
 
   return (
     <div className="flex flex-col gap-3">
@@ -135,7 +173,13 @@ export function RevisionSemanaTab() {
 
       <div className="flex flex-col gap-2.5">
         {ordenadas.map((fila) => (
-          <FilaPersona key={fila.usuario.id} fila={fila} />
+          <FilaPersona
+            key={fila.usuario.id}
+            fila={fila}
+            semanaInicio={semanaInicio}
+            ordenes={ordenes}
+            onOrdenCreada={refrescarOrdenes}
+          />
         ))}
       </div>
     </div>

@@ -62,6 +62,34 @@ export interface PreguntaPendienteDeLaCartera {
 }
 
 /**
+ * El `cuestionario_id` de una pregunta pendiente, si el jsonb lo trae — es el único dato
+ * que `responder_como_staff` necesita para poder "responder como coach" desde la bandeja.
+ * `pregunta` es `unknown` a propósito (ver arriba): esto no asume más forma que "si es un
+ * objeto con esa clave como texto no vacío, úsala", y `undefined` en cualquier otro caso
+ * (string suelto, número, objeto sin esa clave...) — nunca inventa un id que no llegó.
+ */
+export function cuestionarioIdDePregunta(pregunta: unknown): string | undefined {
+  if (typeof pregunta !== 'object' || pregunta === null) return undefined
+  const valor = (pregunta as Record<string, unknown>).cuestionario_id
+  return typeof valor === 'string' && valor.length > 0 ? valor : undefined
+}
+
+/**
+ * El texto legible de una pregunta pendiente: si el jsonb trae `texto` o `pregunta` como
+ * string, se usa tal cual; si no, se cae al `JSON.stringify` que ya usaba la bandeja antes
+ * de esto, para no perder información sobre una forma que no se reconoce.
+ */
+export function textoDePregunta(pregunta: unknown): string {
+  if (typeof pregunta === 'string') return pregunta
+  if (typeof pregunta === 'object' && pregunta !== null) {
+    const obj = pregunta as Record<string, unknown>
+    if (typeof obj.texto === 'string') return obj.texto
+    if (typeof obj.pregunta === 'string') return obj.pregunta
+  }
+  return JSON.stringify(pregunta, null, 2)
+}
+
+/**
  * Aplana `preguntas_pendientes` de la última semana de cada persona en una sola bandeja,
  * ordenada por persona y luego por paso. No asume ninguna forma del jsonb de cada
  * pregunta (texto, objeto…): eso lo decide quien la pinta.
