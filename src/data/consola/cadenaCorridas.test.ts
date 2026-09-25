@@ -5,6 +5,7 @@ import {
   aCadenaCorrida,
   COLUMNAS_CADENA_CORRIDAS,
   corridasDeLaCadena,
+  corridasDeTodaLaCartera,
   type FilaCadenaCorrida,
   TABLA_CADENA_CORRIDAS,
   ultimoEventoPorPaso,
@@ -138,6 +139,7 @@ vi.mock('../supabase', () => ({
               }
               return encadenable
             },
+            order: () => Promise.resolve({ data: filas, error: errorPropio }),
           }
         },
       }
@@ -183,5 +185,30 @@ describe('corridasDeLaCadena: nunca lanza, y filtra por LA persona correcta', ()
     columnasPedidas = undefined
     await corridasDeLaCadena('')
     expect(columnasPedidas).toBeUndefined()
+  })
+})
+
+describe('corridasDeTodaLaCartera: toda la cadena de una vez, sin filtrar por persona', () => {
+  beforeEach(() => {
+    filas = [filaDePrueba({ id: 'a', usuario_id: 'u-1' }), filaDePrueba({ id: 'b', usuario_id: 'u-2' })]
+    errorPropio = null
+    usuarioFiltrado = undefined
+    columnasPedidas = undefined
+  })
+
+  it('pide exactamente las columnas declaradas', async () => {
+    await corridasDeTodaLaCartera()
+    expect(columnasPedidas).toBe(COLUMNAS_CADENA_CORRIDAS.join(','))
+  })
+
+  it('no filtra por usuario_id: trae la cartera entera', async () => {
+    const corridas = await corridasDeTodaLaCartera()
+    expect(usuarioFiltrado).toBeUndefined()
+    expect(corridas.map((c) => c.usuarioId)).toEqual(['u-1', 'u-2'])
+  })
+
+  it('devuelve [] ante un error de la base, nunca lanza', async () => {
+    errorPropio = { code: '42P01', message: 'relation "cadena_corridas" does not exist' }
+    await expect(corridasDeTodaLaCartera()).resolves.toEqual([])
   })
 })

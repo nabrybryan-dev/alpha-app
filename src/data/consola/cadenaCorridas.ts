@@ -157,6 +157,32 @@ export async function corridasDeLaCadena(
 }
 
 /**
+ * TODOS los eventos de la cadena, de toda la cartera — la fuente del tablero ①②③④ del
+ * módulo "Agentes" (DISENO-CONSOLA-V2.md §2.2, MAQUETA-CONSOLA.html «Tablero de la cadena ·
+ * toda la cartera»). A diferencia de `corridasDeLaCadena`, no filtra por `usuario_id`:
+ * ese tablero pinta a la cartera entera de una sola vez, no a una persona. Quién es "de la
+ * cartera" lo decide `db.usuarios.entrenan()`, no esta consulta — aquí solo se trae lo que
+ * la cadena escribió, ordenado por secuencia. Mismo contrato de nunca lanzar.
+ */
+export async function corridasDeTodaLaCartera(): Promise<CadenaCorrida[]> {
+  if (!modoNube) return []
+  try {
+    const { data, error } = await supabase()
+      .from(TABLA_CADENA_CORRIDAS)
+      .select(SELECCION_CADENA_CORRIDAS)
+      .order('secuencia', { ascending: true })
+
+    if (error || !data) return []
+
+    return (data as unknown as FilaCadenaCorrida[])
+      .map(aCadenaCorrida)
+      .filter((fila): fila is CadenaCorrida => fila !== null)
+  } catch {
+    return []
+  }
+}
+
+/**
  * El último evento visto de cada paso (1 a 4), calculado en memoria a partir de una lista
  * ya traída — no hace una consulta nueva. Separado de `corridasDeLaCadena` a propósito:
  * "cuál es el último" es una decisión de lectura, no de la base (Q1 de Astra: un reintento
