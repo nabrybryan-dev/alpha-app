@@ -183,7 +183,17 @@ create policy casos_firma_leer on public.casos_firma
 -- service_role (equipo de mesa), salvo el único avance que hace `registrar_firma` más
 -- abajo — y esa función corre `security definer`, así que no necesita que authenticated
 -- tenga privilegio de UPDATE en la tabla.
+--
+-- El `revoke insert, update, delete, truncate ... from authenticated` de más abajo no es
+-- redundante con la ausencia de políticas: `00-suplantar-supabase.sql` (y, en el proyecto
+-- real, los privilegios por defecto de Supabase) conceden `ALL` sobre las tablas nuevas de
+-- `public` a `authenticated` en el momento de crearlas, así que sin este `revoke` el
+-- privilegio de tabla se queda de sobra — RLS igual bloquearía el efecto (un UPDATE sin
+-- política de `update` afecta CERO filas, no lanza), pero un intento se vería como
+-- «tuvo permiso y no cambió nada» en vez de lo que es: sin permiso, punto. Mismo patrón
+-- que la 0078 con `errores_navegador`.
 revoke all on public.casos_firma from anon, public;
+revoke insert, update, delete, truncate on public.casos_firma from authenticated;
 grant select on public.casos_firma to authenticated;
 grant all on public.casos_firma to service_role;
 

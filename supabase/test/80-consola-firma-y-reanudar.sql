@@ -252,8 +252,10 @@ select pruebas.afirmar(
   'staff CON leer_entrenamiento no ve el caso de firma (falso negativo: revisa la semilla)'
 );
 
--- Ni con la capacidad se puede escribir desde una sesión de usuario: sin política de
--- insert/update para `authenticated`, RLS deniega antes de mirar nada más.
+-- Ni con la capacidad se puede escribir desde una sesión de usuario: `authenticated` no
+-- tiene privilegio de insert/update/delete sobre esta tabla (revocado explícitamente en
+-- la 0084, no solo "sin política de RLS") — el intento revienta antes de que RLS llegue a
+-- evaluar nada.
 do $$
 begin
   begin
@@ -266,16 +268,25 @@ begin
   end;
 end $$;
 
+-- Mismo patrón que 60-los-errores-del-navegador.sql (0078): sin privilegio de UPDATE para
+-- `authenticated` (la 0084 lo revoca explícitamente, no solo se apoya en que falte una
+-- política de RLS), el intento tiene que reventar con `insufficient_privilege` — no pasar
+-- en silencio sobre cero filas visibles, que sería un resultado más débil y más fácil de
+-- confundir con «tenía permiso pero no había nada que tocar».
 do $$
 begin
   begin
     update public.casos_firma set estado = 'firmado' where id = '11111111-c0de-0000-0000-000000000001';
     raise exception 'FALLO: actualizó un caso de firma desde una sesión de usuario CON la capacidad';
-  exception
-    when others then
-      if sqlerrm like 'FALLO:%' then raise; end if;
+  exception when insufficient_privilege then
+    null;
   end;
 end $$;
+
+select pruebas.afirmar(
+  (select estado from public.casos_firma where id = '11111111-c0de-0000-0000-000000000001') = 'listo_para_firmar',
+  'un caso de firma cambió de estado pese a que el UPDATE debía rechazarse'
+);
 
 reset role;
 
@@ -310,18 +321,21 @@ begin
   end;
 end $$;
 
--- Reemplazar el `.sig` ya subido: no. Sin política de update, RLS deniega.
-do $$
-begin
-  begin
-    update storage.objects set owner = '99999999-9999-9999-9999-999999999999'
-     where bucket_id = 'firmas' and name = 'casos/55555555-5555-5555-5555-555555555555/2026-09-28/caso-1.json.sig';
-    raise exception 'FALLO: se pudo reemplazar/tocar un .sig ya subido';
-  exception
-    when others then
-      if sqlerrm like 'FALLO:%' then raise; end if;
-  end;
-end $$;
+-- Reemplazar el `.sig` ya subido: no. `authenticated` SÍ tiene privilegio de UPDATE sobre
+-- `storage.objects` a nivel de tabla (`00-suplantar-supabase.sql` lo concede en bloque,
+-- igual que el proyecto real) — la única barrera es RLS, y sin política de `update` un
+-- UPDATE sin filas visibles para esa cláusula NO lanza, afecta CERO filas en silencio
+-- (mismo mecanismo que el de `casos_firma` más arriba, distinto motivo: ahí no hay
+-- privilegio; aquí no hay política). Se comprueba el resultado, no una excepción.
+update storage.objects set owner = '99999999-9999-9999-9999-999999999999'
+ where bucket_id = 'firmas' and name = 'casos/55555555-5555-5555-5555-555555555555/2026-09-28/caso-1.json.sig';
+
+select pruebas.afirmar(
+  (select owner from storage.objects
+    where bucket_id = 'firmas' and name = 'casos/55555555-5555-5555-5555-555555555555/2026-09-28/caso-1.json.sig')
+    is null,
+  'se pudo reemplazar/tocar un .sig ya subido'
+);
 
 reset role;
 
