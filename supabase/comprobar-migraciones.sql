@@ -1522,4 +1522,12 @@ select '0081 - firma de revision por version', 'RPC de coach y trigger de versio
             when exists (select 1 from pg_trigger where tgname = 'versionar_revision_semanal'
                           and tgrelid = to_regclass('public.videos_semanales') and tgenabled <> 'D' and not tgisinternal) then 'SI'
             else 'NO' end
+
+union all
+-- La 0082: el cajon medios-app admite hasta 150 MB, a la par de TOPE_BYTES del dominio
+-- (src/domain/video/publicacion.ts, PR #299). Sin ella el bucket cae al limite global del
+-- proyecto y rechaza las revisiones LARGAS de 76-96 MB antes de llegar al tope del codigo.
+select '0082 - el cajon de medios admite revisiones largas', 'file_size_limit de medios-app es 150 MB (157286400 bytes)',
+       case when (select file_size_limit from storage.buckets where id = 'medios-app') = 150 * 1024 * 1024 then 'SI'
+            else 'NO' end
 order by migracion, senal;
