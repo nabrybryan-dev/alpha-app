@@ -1,9 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
 import { EmptyState } from '../../../../components/ui/EmptyState'
+import { planVigente, type PlanEstrategico } from '../../../../data/consola/planesEstrategicos'
 import { db, useDbVersion } from '../../../../data/dbInstance'
 import { desviacionRir, resumenMicrociclo } from '../../../../domain/cumplimiento'
 import { compararMicrociclos } from '../../../../domain/consolaCoach/diffMicrociclo'
+import { leerPlanLegible } from '../../../../domain/consolaCoach/planLegible'
 import { pRatio } from '../../../../domain/consolaCoach/pRatio'
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import type { Microciclo } from '../../../../domain/types'
@@ -156,6 +159,76 @@ function SeccionComposicion({ usuarioId }: { usuarioId: string }) {
   )
 }
 
+function SeccionPlanEstrategico({ usuarioId }: { usuarioId: string }) {
+  // `undefined` = todavía no llegó nada de la base; `null` = llegó y no hay plan vigente.
+  const [plan, setPlan] = useState<PlanEstrategico | null | undefined>(undefined)
+
+  useEffect(() => {
+    let vivo = true
+    planVigente(usuarioId).then((p) => {
+      if (vivo) setPlan(p)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [usuarioId])
+
+  if (plan === undefined) {
+    return (
+      <Card>
+        <p className="kicker">Plan estratégico</p>
+        <p className="mt-2 text-sm text-tenue">Cargando…</p>
+      </Card>
+    )
+  }
+
+  if (!plan) {
+    return (
+      <Card>
+        <p className="kicker">Plan estratégico</p>
+        <p className="mt-2 text-sm text-tenue">Sin plan estratégico vigente todavía.</p>
+      </Card>
+    )
+  }
+
+  const legible = leerPlanLegible(plan.contenido)
+
+  return (
+    <Card>
+      <p className="kicker">Plan estratégico · versión {plan.version}</p>
+      {legible.objetivo && <p className="mt-2 text-sm text-texto/90">{legible.objetivo}</p>}
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-tenue">
+        {legible.metricaPrincipal && <span>Métrica principal: {legible.metricaPrincipal}</span>}
+        {legible.horizonte && <span>Horizonte: {legible.horizonte}</span>}
+      </div>
+      {legible.reglas.length > 0 && (
+        <ul className="mt-2.5 flex flex-col gap-1.5 text-sm">
+          {legible.reglas.map((regla, i) => (
+            <li key={i} className="text-texto/90">
+              {regla}
+            </li>
+          ))}
+        </ul>
+      )}
+      {legible.reglasDerogadas.length > 0 && (
+        <details className="mt-2 text-xs text-tenue">
+          <summary className="cursor-pointer font-bold">Reglas derogadas ({legible.reglasDerogadas.length})</summary>
+          <ul className="mt-1 flex flex-col gap-1">
+            {legible.reglasDerogadas.map((regla, i) => (
+              <li key={i}>{regla}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+      {!legible.reconocido && (
+        <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-2 text-[11px] text-tenue">
+          {JSON.stringify(plan.contenido, null, 2)}
+        </pre>
+      )}
+    </Card>
+  )
+}
+
 function SeccionNutricion({ usuarioId }: { usuarioId: string }) {
   const plan = db.nutricion.planByUsuario(usuarioId)
   const adherencias = db.nutricion.adherenciasByUsuario(usuarioId)
@@ -192,6 +265,7 @@ export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <SeccionPlanEstrategico usuarioId={usuarioId} />
       <SeccionAdherencia activo={activo} />
       <SeccionProgresoCargas historial={historial} activo={activo} />
       <SeccionRir activo={activo} />
