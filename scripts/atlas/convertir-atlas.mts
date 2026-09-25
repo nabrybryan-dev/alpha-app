@@ -52,6 +52,24 @@ import { esqueletoDe, type Sexo } from '../../src/domain/patrones/juegoDeHuesos'
 /** Cuánto se conserva de cada estructura, y el error máximo que se le tolera. */
 const RECORTE = 0.15
 const ERROR_MAXIMO = 0.03
+
+/**
+ * Dos palancas por entorno, para poder MEDIR varios niveles de detalle sin
+ * machacar las piezas que la app ya sirve. Sin ellas, el comportamiento es
+ * exactamente el de siempre.
+ *
+ *   ATLAS_RECORTE   cuánto se conserva de hueso y músculo (por defecto 0.15).
+ *                   La piel mantiene su proporción histórica: el doble, tope 1.
+ *   ATLAS_SALIDA    carpeta donde escribir (por defecto public/piezas).
+ *
+ *   ATLAS_RECORTE=0.4 ATLAS_SALIDA=/tmp/nivel-40 npx vite-node scripts/atlas/convertir-atlas.mts -- /ruta/al/atlas
+ */
+const RECORTE_BASE = Number(process.env.ATLAS_RECORTE ?? RECORTE)
+const SALIDA = process.env.ATLAS_SALIDA ?? 'public/piezas'
+
+if (!Number.isFinite(RECORTE_BASE) || RECORTE_BASE <= 0 || RECORTE_BASE > 1) {
+  throw new Error(`ATLAS_RECORTE debe estar entre 0 y 1, no "${process.env.ATLAS_RECORTE}"`)
+}
 /** Suelo por estructura: por debajo de 24 triángulos una pieza deja de leerse como forma. */
 const MINIMO_TRIANGULOS = 24
 
@@ -198,8 +216,8 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo;
     grupos: {
       // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
       // superponerlos no parezcan dos anatomías distintas.
-      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: 0.15 },
-      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: 0.15 },
+      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: RECORTE_BASE },
+      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: RECORTE_BASE },
     },
   },
   femenino: {
@@ -209,7 +227,12 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo;
     grupos: {
       // Solo la superficie. Las otras 16 piezas «integumentary» son tejido interno de la
       // mama (lóbulos, conductos), que no es piel ni se ve desde fuera.
-      piel: { nombres: ['skin of body'], color: [0.72, 0.6, 0.53], recorte: 0.3, colgarBrazos: true },
+      piel: {
+        nombres: ['skin of body'],
+        color: [0.72, 0.6, 0.53],
+        recorte: Math.min(1, RECORTE_BASE * 2),
+        colgarBrazos: true,
+      },
     },
   },
 }
@@ -232,7 +255,7 @@ async function main() {
   const { MeshoptSimplifier } = await import(pathToFileURL(`${dir}/node_modules/meshoptimizer/index.js`).href)
   await MeshoptSimplifier.ready
 
-  mkdirSync('public/piezas', { recursive: true })
+  mkdirSync(SALIDA, { recursive: true })
 
   for (const [sexo, fuente] of Object.entries(FUENTES)) {
     // NUESTRO esqueleto en reposo, para sacar de él las alturas de referencia.
@@ -432,7 +455,7 @@ async function main() {
       })
 
       const bytes = escribirPieza(salida)
-      const ruta = `public/piezas/atlas-${nombre}.pieza`
+      const ruta = `${SALIDA}/atlas-${nombre}.pieza`
       writeFileSync(ruta, Buffer.from(bytes))
       const br = brotliCompressSync(Buffer.from(bytes), {
         params: {
