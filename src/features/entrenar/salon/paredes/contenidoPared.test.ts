@@ -84,6 +84,47 @@ describe('contenidoPared', () => {
     }
   })
 
+  /**
+   * `cues` está declarado obligatorio en `EjercicioPrescrito` (`domain/types.ts`), pero el
+   * cargador automático de esta semana escribió microciclos reales sin esa llave en la
+   * mayoría de los ejercicios —el JSON de la base no la trae, ni siquiera vacía—. En
+   * runtime eso es exactamente lo mismo que `cues: undefined`, y hasta hoy la pantalla de
+   * Entrenar (`contenidoPared` → `SalonEntrenar`) se caía entera por ello: "Cannot read
+   * properties of undefined (reading 'trim')". Le pasó a 16 de 23 asesorados activos el
+   * 14-sep. El `as never` es a propósito: el tipo dice que no puede pasar, y el dato real
+   * demuestra que sí.
+   */
+  it('sin la llave `cues` en el ejercicio, no revienta: se lee como sin indicaciones', () => {
+    const sinCues = ejercicio()
+    delete (sinCues as { cues?: string }).cues
+    const c = contenidoPared(sinCues as never)
+    expect(c.tecnica).toMatch(/^Sin indicaciones/)
+  })
+
+  /**
+   * `cargaKg` es opcional en el tipo (`?: number`), pero los planes cargados guardan `null`
+   * cuando el ③ no pone kilos —peso corporal, banda, «elige tú el peso»—. `null` no es
+   * `undefined`: pasaba la guarda y la pared escribía «null kg». Medido el 14-sep contra los
+   * planes reales: 55 textos así en 8 asesorados.
+   */
+  it('con `cargaKg: null` la pared no escribe «null kg»: se lee como sin kilos', () => {
+    const c = contenidoPared(ejercicio({ cargaKg: null as never }))
+    expect(JSON.stringify(c)).not.toMatch(/\bnull\b/)
+  })
+
+  it('una serie ondulada sin kilos no escribe «a null kg» en el detalle de series', () => {
+    const c = contenidoPared(
+      ejercicio({
+        cargaKg: undefined,
+        seriesPrescritas: [
+          { orden: 1, reps: 10, cargaKg: 20, rir: 3 },
+          { orden: 2, reps: 10, cargaKg: null as never, rir: 3 },
+        ],
+      }),
+    )
+    expect(JSON.stringify(c)).not.toMatch(/\b(null|undefined|NaN)\b/)
+  })
+
   it('ningún texto de pared pasa del tope: una pared se lee de reojo', () => {
     // Con los textos más largos que el dominio puede dar: cues de tres frases, ondulado y
     // una categoría con plan de medida. Si algo se pasa, se pasa aquí.

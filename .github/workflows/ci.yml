@@ -46,6 +46,12 @@ jobs:
       - name: Tests con cobertura (vitest)
         run: npm run coverage
 
+      - name: Instalar PostgreSQL en memoria para la firma de revisiones
+        run: npm ci --prefix pruebas-sql --ignore-scripts
+
+      - name: La firma respeta versión, permisos y aislamiento del archivo
+        run: npm test --prefix pruebas-sql
+
   # ───────────────────────────────────────────────────────────────────────────
   # Lo que la suite de vitest NO puede ver.
   #
@@ -102,3 +108,6 @@ jobs:
 
       - name: El cribado de salud se guarda de verdad
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/40-el-cribado-se-guarda.sql
+
+      - name: Los errores del navegador se guardan y solo los lee el coach
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/60-los-errores-del-navegador.sql

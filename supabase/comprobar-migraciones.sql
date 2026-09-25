@@ -1478,4 +1478,48 @@ select '0077 - el cribado vuelve a guardarse', 'contestar_cribado compara los pa
                  like '%is not distinct from (p_cribado->>''parq_enfermedad_cardiaca'')::boolean%' then 'SI'
             else 'NO' end
 
+union all
+-- La 0078: la app cuenta lo que le falla. Del 10 al 12-sep el cribado fallo para todo el mundo y
+-- nadie se entero; esta tabla recoge los errores del navegador de cada persona. Se pide lo que la
+-- hace segura, no solo que exista: RLS encendida, anon sin nada, que un asesorado no pueda
+-- reescribir ni borrar (sin privilegio), que el insert exija su propio uid y que la lectura sea
+-- del coach. Sin la 0078 dice NO en la primera rama; con una politica `with check (true)` dice NO
+-- en la del insert. El orden importa: preguntar privilegios sobre una tabla que no existe revienta.
+select '0078 - la app cuenta lo que le falla', 'la tabla existe con RLS, anon no la toca, nadie la reescribe, cada uno inserta lo suyo y lee el coach',
+       case when to_regclass('public.errores_navegador') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c
+                       where c.oid = to_regclass('public.errores_navegador')) then 'NO'
+            when has_table_privilege('anon', 'public.errores_navegador', 'select')
+              or has_table_privilege('anon', 'public.errores_navegador', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.errores_navegador', 'update')
+              or has_table_privilege('authenticated', 'public.errores_navegador', 'delete') then 'NO'
+            when not exists (select 1 from pg_policies
+                              where schemaname = 'public' and tablename = 'errores_navegador'
+                                and cmd = 'INSERT' and with_check like '%auth.uid()%') then 'NO'
+            when exists (select 1 from pg_policies
+                          where schemaname = 'public' and tablename = 'errores_navegador'
+                            and cmd in ('SELECT', 'ALL') and qual not like '%es_coach()%') then 'NO'
+            when exists (select 1 from pg_policies
+                          where schemaname = 'public' and tablename = 'errores_navegador'
+                            and cmd = 'SELECT' and qual like '%es_coach()%') then 'SI'
+            else 'NO' end
+
+union all
+-- La 0080: el yogur griego existe en la base. La app lo ofrece desde el 16-ago (#62) y
+-- `registro_item.alimento_id` lo rechazaba por su clave ajena: el registro de comida no se
+-- guardaba. Sin la 0080 dice NO; con solo uno de los dos, tambien.
+select '0080 - el yogur griego existe', 'los dos yogures griegos del catalogo de la app estan en public.alimentos',
+       case when (select count(*) from public.alimentos
+                   where id in ('yogur-griego-entero', 'yogur-griego-descremado')) = 2 then 'SI'
+            else 'NO' end
+
+union all
+select '0081 - firma de revision por version', 'RPC de coach y trigger de version presentes; anon sin permiso',
+       case when to_regprocedure('public.decidir_revision_semanal(uuid,date,integer,boolean,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.decidir_revision_semanal(uuid,date,integer,boolean,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.decidir_revision_semanal(uuid,date,integer,boolean,text)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_revision_semanal(uuid,date,integer,boolean,text)')) not like '%es_coach()%' then 'NO'
+            when exists (select 1 from pg_trigger where tgname = 'versionar_revision_semanal'
+                          and tgrelid = to_regclass('public.videos_semanales') and tgenabled <> 'D' and not tgisinternal) then 'SI'
+            else 'NO' end
 order by migracion, senal;

@@ -2,9 +2,17 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const VERSION_APP = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 12)
+
 export default defineConfig({
   // Respeta el puerto que asigne el entorno (p. ej. el panel de vista previa)
   server: { port: Number(process.env.PORT) || 5173 },
+  // La versión que viaja con cada error del navegador (`data/errores/reportarError.ts`). Vercel da
+  // el sha del commit al construir; Vite solo expone lo que se define aquí. Fuera de Vercel queda
+  // vacío y la fila va sin versión.
+  define: {
+    'import.meta.env.VITE_VERSION_APP': JSON.stringify(VERSION_APP),
+  },
   build: {
     rollupOptions: {
       output: {
@@ -20,6 +28,20 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    // `version.json` con el mismo sha que viaja en los errores: el teléfono lo pide a la red y lo
+    // compara con el suyo para saber si corre la app de antes (`src/app/versionNueva.ts`). El
+    // service worker no lo guarda —solo precachea js, css y html—, así que siempre es el de ahora.
+    {
+      name: 'version-json',
+      apply: 'build',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({ version: VERSION_APP }),
+        })
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {

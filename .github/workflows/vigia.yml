@@ -1,0 +1,69 @@
+# El vigía: avisa si la app de los asesorados se cae o si producción se queda
+# sirviendo una versión vieja.
+#
+# Por qué existe: el 13-sep-2026 la app estuvo horas respondiendo `402 Payment
+# Required` (`X-Vercel-Error: DEPLOYMENT_DISABLED`) y nadie se enteró hasta que
+# Bryan lo vio. Días antes, las fusiones a `main` no llegaban a producción por la
+# cuota de Vercel («Deployment rate limited») y tampoco lo avisó nada.
+#
+# Avisa con UN issue con la etiqueta `vigia` (GitHub le manda el correo al dueño).
+# No inunda: una alarma que se repite con el mismo motivo no escribe nada; solo se
+# comenta si el motivo cambia, y el issue se cierra solo al volver a verde. Toda la
+# lógica, con sus pruebas, está en `scripts/vigia/`.
+#
+# OJO: un `schedule` solo corre desde la rama por defecto. Hasta que esto no esté
+# en `main`, no vigila nada.
+name: Vigía
+
+on:
+  schedule:
+    # Cada 15 minutos. GitHub puede retrasar las corridas programadas en horas de
+    # mucha carga: es un vigía, no un monitor de segundos.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  # En los PR que tocan el vigía, corre EN SECO: comprueba que el script arranca de
+  # verdad en un runner con el token de Actions, sin escribir en ningún issue.
+  pull_request:
+    paths:
+      - 'scripts/vigia/**'
+      - '.github/workflows/vigia.yml'
+
+# Dos corridas a la vez podrían leer «no hay issue» las dos y abrir dos.
+concurrency:
+  group: vigia
+  cancel-in-progress: false
+
+# Lo mínimo: leer despliegues, estados y código, y escribir issues. El
+# `GITHUB_TOKEN` de Actions basta; no hay secretos.
+permissions:
+  contents: read
+  deployments: read
+  statuses: read
+  issues: write
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/vigia
+
+      # Sin `npm ci`: el script no tiene dependencias y Node 24 trae `fetch`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Vigilar la app y producción
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Una alarma no pone la corrida en rojo: el aviso es el issue. Si cada alarma
+        # fallara la corrida, Actions mandaría además un correo cada 15 minutos.
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/vigia/vigia.mjs
+          else
+            node scripts/vigia/vigia.mjs --avisar
+          fi

@@ -239,7 +239,9 @@ function pegarNota(cabecera: string, nota: string | undefined): string {
  */
 export function componerPrescripcion(ejercicio: EjercicioPrescrito): string {
   const escalera = ejercicio.seriesPrescritas
-  if (escalera && escalera.length > 0) {
+  // Una escalera con un escalón sin kilos no se puede escribir como escalera sin inventar
+  // ese número: cae a las reglas 2 y 3, igual que un ejercicio sin carga.
+  if (escalera && escalera.length > 0 && escalera.every((s) => Number.isFinite(s.cargaKg))) {
     return pegarNota(cabeceraOndulada(escalera), ejercicio.notaCoach)
   }
 

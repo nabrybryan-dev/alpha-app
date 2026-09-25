@@ -1,6 +1,7 @@
 import { Card } from '../../components/ui/Card'
 import { db, hoyIso, idCoach } from '../../data/dbInstance'
 import { descartesPendientes } from '../../data/nube/sync'
+import { ErroresDelNavegador } from './ErroresDelNavegador'
 import {
   familiasEnRiesgo,
   saludDeDatos,
@@ -104,9 +105,13 @@ export function SaludDeDatos() {
   // que esto no dice nada de los teléfonos de los asesorados.
   const apartadas = descartesPendientes()
 
-  if (salud.sinEstrenar) return null
+  // Los errores del navegador van aquí y no en `AsesoradosPage`: son la otra mitad de la misma
+  // pregunta —¿está llegando lo que la gente hace?—, y así esa página no se toca. Van aunque el
+  // bloque de familias no se pinte: un fallo de la app no espera a que haya datos.
+  if (salud.sinEstrenar) return <ErroresDelNavegador />
 
   return (
+    <>
     <Card destacada={enRiesgo.length > 0}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="kicker">Salud de los datos</p>
@@ -139,5 +144,7 @@ export function SaludDeDatos() {
         </p>
       )}
     </Card>
+    <ErroresDelNavegador />
+    </>
   )
 }

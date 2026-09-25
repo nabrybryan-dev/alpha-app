@@ -21,6 +21,7 @@ import {
   type OperacionPendiente,
 } from './cola'
 import { modoNube, supabase } from '../supabase'
+import { reportarError } from '../errores/reportarError'
 
 /**
  * El procesado en marcha, o `null` si no hay ninguno. Es la promesa, no un
@@ -72,10 +73,13 @@ async function drenar(): Promise<void> {
     try {
       await ejecutar(op)
       escribirCola(sinLaOperacion(leerCola(), op))
-    } catch {
+    } catch (fallo: unknown) {
       // Sin conexión no se cuenta el intento: estar offline durante todo un
       // entreno no puede terminar descartando las series registradas.
       if (typeof navigator !== 'undefined' && !navigator.onLine) return
+      // Con conexión, un fallo aquí es el cribado del 10-sep: 42883 reintentado y apartado
+      // sin que nadie lo supiera. Ahora se cuenta, una vez por mensaje y sesión.
+      reportarError(fallo, { donde: `cola:${op.funcion ?? op.tabla}` })
       const intentos = (op.intentos ?? 0) + 1
       if (intentos >= MAX_INTENTOS) {
         // Operación que falla de forma persistente (fila inexistente, RLS…):

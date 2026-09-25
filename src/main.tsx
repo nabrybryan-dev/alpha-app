@@ -3,6 +3,17 @@ import { createRoot } from 'react-dom/client'
 import './styles/tokens.css'
 import App from './App.tsx'
 import { montarMedidor } from './lib/rendimiento'
+import { instalarRecogidaDeErrores } from './data/errores/reportarError'
+import { vigilarVersionAlVolver } from './app/versionNueva'
+
+// ANTES de pintar: un fallo del primer render también tiene que quedar contado. En modo demo no
+// escucha nada. Nunca lanza. Ver `data/errores/reportarError.ts`.
+instalarRecogidaDeErrores()
+
+// Al volver a la app desde segundo plano, que el service worker mire si hay versión nueva. El
+// iPhone despierta la app sin recargarla y `registerSW.js` solo pregunta al cargar: sin esto un
+// teléfono podía seguir un día entero con un fallo ya arreglado. Ver `app/versionNueva.ts`.
+vigilarVersionAlVolver()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
