@@ -122,7 +122,7 @@ export function CabeceraPersona({ datos, semaforo }: CabeceraPersonaProps) {
               datos.cribado
                 ? `Cribado: ${cribado.motivo.toLowerCase()}`
                 : datos.lecturaRecortada
-                  ? 'Cribado: solo lo lee el coach.'
+                  ? 'Cribado: tu permiso no alcanza.'
                   : 'Cribado: sin contestar.'
             }
             tono={tonoRiesgo}

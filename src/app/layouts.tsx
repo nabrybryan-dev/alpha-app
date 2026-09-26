@@ -4,6 +4,7 @@ import { BottomNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
+import { useCapacidades } from '../features/coach/consola/useCapacidades'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
@@ -89,7 +90,25 @@ export function AsesoradoLayout() {
 export function CoachLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
-  if (usuario.rol !== 'coach') return <Navigate to="/" replace />
+  const { cargando, tiene } = useCapacidades()
+  const esCoach = usuario.rol === 'coach'
+  const enConsola = pathname.startsWith('/coach/consola')
+
+  // La CONSOLA se abre por capacidad, no por rol (decisión de Bryan, 26-sep): el staff con
+  // `leer_entrenamiento` (Manuela) entra a /coach/consola; el resto del panel del coach
+  // sigue siendo solo del coach. Mientras la capacidad se consulta no se decide nada —ni
+  // se abre «por si acaso» ni se echa a quien sí la tiene—; sin ella, a la portada.
+  if (!esCoach) {
+    if (!enConsola) return <Navigate to="/" replace />
+    if (cargando) {
+      return (
+        <div className="grid min-h-dvh place-items-center bg-bg text-sm text-tenue" aria-busy="true">
+          Comprobando tu acceso a la consola…
+        </div>
+      )
+    }
+    if (!tiene('leer_entrenamiento')) return <Navigate to="/" replace />
+  }
 
   // La consola necesita más ancho que el resto del panel: cartera lateral +
   // siete pestañas de contenido no caben en 3xl sin apretarse en escritorio.
@@ -100,10 +119,16 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo="Panel del coach" />
+      <TopBar titulo={esCoach ? 'Panel del coach' : 'Consola del equipo'} />
       <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
-        <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
-        <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
+        {esCoach ? (
+          <>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
+          </>
+        ) : (
+          <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
+        )}
       </nav>
       <main className={`mx-auto overflow-x-clip px-4 pb-16 pt-4 ${anchoContenedor}`}>
         <Outlet />

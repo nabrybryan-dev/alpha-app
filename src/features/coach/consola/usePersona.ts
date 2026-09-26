@@ -3,6 +3,7 @@ import { corridasDeTodaLaCartera, type CadenaCorrida } from '../../../data/conso
 import { planVigente, type PlanEstrategico } from '../../../data/consola/planesEstrategicos'
 import { db, hoyIso, useDbVersion } from '../../../data/dbInstance'
 import type { Microciclo, Rol } from '../../../domain/types'
+import { useCapacidades } from './useCapacidades'
 import { useDatoConsola, type EstadoDato } from './datoConsola'
 
 /**
@@ -13,14 +14,15 @@ import { useDatoConsola, type EstadoDato } from './datoConsola'
  * cadena— pasa por `useDatoConsola`, que lo comparte entre la cabecera y las pestañas.
  *
  * `rolQueMira` existe por la RLS: `perfiles` y `cribado` solo los lee el COACH
- * (`perfiles_leer`, `cribado_lee_lo_suyo`); el staff con capacidad `leer_entrenamiento`
- * (Manuela) no los recibe. Así la pantalla puede decir «tu permiso no alcanza» en vez de
- * «esta persona no tiene ficha», que sería falso.
+ * (`perfiles_leer`, `cribado_lee_lo_suyo`) y, desde la 0085, también quien tenga la
+ * capacidad `leer_entrenamiento` (Manuela). A quien no tiene ninguna de las dos la pantalla
+ * le dice «tu permiso no alcanza» en vez de «esta persona no tiene ficha», que sería falso.
  */
 export function usePersona(usuarioId: string) {
   useDbVersion()
   const sesion = useSesionOpcional()
   const rolQueMira: Rol | undefined = sesion?.usuario.rol
+  const { cargando: cargandoCapacidades, tiene } = useCapacidades()
 
   const usuario = db.usuarios.byId(usuarioId)
   const perfil = db.perfiles.byUsuario(usuarioId)
@@ -43,8 +45,10 @@ export function usePersona(usuarioId: string) {
   return {
     hoy: hoyIso(),
     rolQueMira,
-    /** true si quien mira no es coach: `perfiles` y `cribado` ajenos no le llegan por RLS. */
-    lecturaRecortada: rolQueMira !== undefined && rolQueMira !== 'coach',
+    /** true si quien mira no es coach NI tiene `leer_entrenamiento`: `perfiles` y `cribado`
+     *  ajenos no le llegan por RLS (0085). */
+    lecturaRecortada:
+      rolQueMira !== undefined && rolQueMira !== 'coach' && !cargandoCapacidades && !tiene('leer_entrenamiento'),
     usuario,
     perfil,
     perfilNutricion,

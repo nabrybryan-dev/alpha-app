@@ -278,7 +278,10 @@ function detalleDe(cribado: Cribado, campo: string): string | undefined {
  *   ámbar → cualquier otro «sí».
  *   verde → contestado, sin ningún «sí».
  *   sin_dato → no hay fila de cribado.
- * TODO-DECISION (Bryan): si el rojo debe incluir también la medicación crónica.
+ *
+ * LA MEDICACIÓN CRÓNICA ES ÁMBAR, NUNCA ROJO POR SÍ SOLA (decisión de Bryan, 26-sep): se
+ * ve y avisa —el motivo la nombra— pero no sube a rojo. El rojo por medicación lo marca
+ * Bryan a mano, no esta lectura.
  */
 export function leerCribado(cribado: Cribado | undefined): LecturaCribado {
   if (!cribado) {
@@ -303,9 +306,10 @@ export function leerCribado(cribado: Cribado | undefined): LecturaCribado {
     return { color: 'rojo', motivo: 'Declara un síntoma crítico', positivos, sinDeclarar }
   }
   if (positivos.length > 0) {
+    const cuantas = `${positivos.length} respuesta${positivos.length === 1 ? '' : 's'} con «sí»`
     return {
       color: 'ambar',
-      motivo: `${positivos.length} respuesta${positivos.length === 1 ? '' : 's'} con «sí»`,
+      motivo: cribado.medicacionCronica === 'presente' ? `Toma medicación crónica · ${cuantas}` : cuantas,
       positivos,
       sinDeclarar,
     }

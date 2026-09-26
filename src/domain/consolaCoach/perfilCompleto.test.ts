@@ -173,6 +173,15 @@ describe('leerCribado', () => {
     expect(l.positivos[0]).toMatchObject({ etiqueta: 'Diagnóstico', detalle: 'algo en la rodilla' })
   })
 
+  it('la medicación crónica sola es ámbar y lo avisa, nunca rojo (decisión de Bryan, 26-sep)', () => {
+    const l = leerCribado({ ...base, medicacionCronica: 'presente', detalle: { medicacionCronica: 'algo diario' } })
+    expect(l.color).toBe('ambar')
+    expect(l.motivo).toMatch(/medicación crónica/)
+    expect(l.positivos[0]).toMatchObject({ etiqueta: 'Medicación crónica', detalle: 'algo diario' })
+    // Con un síntoma crítico el rojo sigue mandando: la medicación no lo baja.
+    expect(leerCribado({ ...base, medicacionCronica: 'presente', sintomasConEsfuerzo: 'presente' }).color).toBe('rojo')
+  })
+
   it('todo contestado que no: verde; lo no preguntado queda como sin declarar', () => {
     const l = leerCribado({ ...base, diagnostico: 'ausente', sintomasConEsfuerzo: 'no_declarado', parqEnfermedadCardiaca: false })
     expect(l.color).toBe('verde')

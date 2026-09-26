@@ -117,3 +117,6 @@ jobs:
 
       - name: Reanudar y la firma de casos respetan su capacidad y su estado
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/80-consola-firma-y-reanudar.sql
+
+      - name: La consola lee ficha y cribado por capacidad, y solo lee
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/90-consola-lee-ficha-y-cribado.sql
