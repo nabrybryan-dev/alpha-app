@@ -97,7 +97,7 @@ create table if not exists public.aprobaciones_primer_plan (
   -- Dudas que frenan la progresión (p. ej. «no sabemos si puede cargar la rodilla»).
   -- Con alguna pendiente, el plan no pasa solo al vencer el plazo aunque el riesgo sea bajo.
   dudas_pendientes  text[] not null default '{}',
-  plazo_hasta       timestamptz not null default (now() + interval '48 hours'),
+  plazo_hasta       timestamptz not null default (now() + interval '24 hours'),
   -- Quién decidió (auth.uid() dentro de la RPC). NULL en `vencido_aprobado`: nadie firmó.
   decidido_por      uuid references public.usuarios_app(id),
   -- El motivo de la decisión humana (obligatorio al rechazar) o el texto automático del

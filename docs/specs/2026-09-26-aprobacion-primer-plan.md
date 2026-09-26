@@ -21,7 +21,7 @@ de Bryan y no cambia.
 - **Tabla `aprobaciones_primer_plan`**: `usuario_id`, `microciclo_id` (el plan propuesto,
   `unique`), `estado` (`propuesto` → `aprobado` | `rechazado` | `vencido_aprobado` |
   `espera_bryan`), `riesgo` (`bajo` | `medio` | `alto`), `motivo_riesgo`,
-  `dudas_pendientes text[]`, `plazo_hasta` (por defecto +48 h), `decidido_por`, `motivo`,
+  `dudas_pendientes text[]`, `plazo_hasta` (por defecto +24 h, decisión de Bryan 26-sep), `decidido_por`, `motivo`,
   `decidido_en`, `motivo_espera`, fechas.
   - Checks: rechazar exige motivo; `aprobado`/`rechazado` exigen autor y fecha;
     `vencido_aprobado` solo es posible con riesgo bajo, sin dudas y **sin autor**.
@@ -92,7 +92,7 @@ transacción**:
      pida ojo humano; `bajo` en otro caso;
    - `motivo_riesgo`: una frase en llano de por qué ese riesgo (sin datos de más);
    - `dudas_pendientes`: las dudas que frenan la progresión (lista vacía si no hay);
-   - `plazo_hasta`: por defecto `now() + 48 h` (lo decide la cola si Bryan fija otro).
+   - `plazo_hasta`: por defecto `now() + 24 h` (Bryan, 26-sep) (lo decide la cola si Bryan fija otro).
 3. Si ya hay un pendiente para esa persona, el índice único lo impide: la cola no debe
    proponer un segundo plan mientras el primero no se decida (un `rechazado` sí deja
    proponer otro).
