@@ -12,6 +12,7 @@ import {
 import { semanaObjetivoDeAcciones } from '../../../../domain/consolaCoach/semanaObjetivo'
 import type { Microciclo } from '../../../../domain/types'
 import { AccionesRevision } from '../AccionesRevision'
+import { BandejaPrimerosPlanes } from '../BandejaPrimerosPlanes'
 import { useDatoConsola } from '../datoConsola'
 import { conclusion, revisarCartera, type EstadoActivacion, type FilaCartera } from '../../revisionCartera'
 
@@ -199,6 +200,9 @@ export function RevisionSemanaTab({ seleccionadoId, onVerPersona }: RevisionSema
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Solo con `aprobar_primer_plan`: sin ella, la bandeja no pinta nada. */}
+      <BandejaPrimerosPlanes onVerPersona={onVerPersona} />
+
       <Card destacada>
         <p className="kicker">La pregunta de Astra</p>
         <p className="mt-1 text-sm text-texto">

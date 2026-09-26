@@ -1727,4 +1727,40 @@ select '0085 - la consola lee ficha y cribado por capacidad', 'perfiles_lee_capa
                      and cmd = 'SELECT'
                      and qual ilike '%tiene_capacidad%leer_entrenamiento%') = 2 then 'SI'
             else 'NO' end
+
+union all
+-- La 0086: capacidad nueva aprobar_primer_plan en el CHECK de capacidades_staff.
+select '0086 - capacidad aprobar_primer_plan', 'CHECK de capacidades_staff la admite',
+       case when exists (
+              select 1 from pg_constraint
+               where conrelid = to_regclass('public.capacidades_staff')
+                 and contype = 'c'
+                 and pg_get_constraintdef(oid) ilike '%aprobar_primer_plan%'
+            ) then 'SI' else 'NO' end
+
+union all
+-- La 0086: aprobaciones_primer_plan con RLS y SIN escritura para authenticated (lección
+-- de la 0084): se decide solo por la RPC.
+select '0086 - aprobaciones_primer_plan con RLS y sin escritura para authenticated', 'RLS encendida, anon sin acceso, authenticated solo con select',
+       case when to_regclass('public.aprobaciones_primer_plan') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.aprobaciones_primer_plan')) then 'NO'
+            when has_table_privilege('anon', 'public.aprobaciones_primer_plan', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.aprobaciones_primer_plan', 'insert')
+              or has_table_privilege('authenticated', 'public.aprobaciones_primer_plan', 'update')
+              or has_table_privilege('authenticated', 'public.aprobaciones_primer_plan', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.aprobaciones_primer_plan', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0086: decidir_primer_plan acredita el actor con auth.uid() y reserva el riesgo alto a
+-- autorizar_excepcion; vencer_primer_plan solo para service_role.
+select '0086 - decidir_primer_plan y vencer_primer_plan', 'RPC con auth.uid(), search_path fijo, alto reservado a autorizar_excepcion; vencer sin authenticated',
+       case when to_regprocedure('public.decidir_primer_plan(uuid,text,text)') is null then 'NO'
+            when to_regprocedure('public.vencer_primer_plan()') is null then 'NO'
+            when has_function_privilege('anon', 'public.decidir_primer_plan(uuid,text,text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.vencer_primer_plan()', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%auth.uid()%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%search_path = public%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%autorizar_excepcion%' then 'NO'
+            else 'SI' end
 order by migracion, senal;

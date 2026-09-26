@@ -120,3 +120,6 @@ jobs:
 
       - name: La consola lee ficha y cribado por capacidad, y solo lee
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/90-consola-lee-ficha-y-cribado.sql
+
+      - name: El primer plan lo aprueba quien puede, y al vencer solo pasa el riesgo bajo
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/95-consola-primer-plan.sql

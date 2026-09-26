@@ -6,8 +6,8 @@ import { modoNube, supabase } from '../supabase'
  * tabla no tiene política de insert/update/delete para `authenticated`, así que este
  * archivo no ofrece esas operaciones — se asignan a mano o desde `service_role`.
  *
- * `CAPACIDADES` es la misma lista que el `check` de la migración 0083, palabra por
- * palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
+ * `CAPACIDADES` es la misma lista que el `check` de la migración 0083 (ampliado en la 0086
+ * con `aprobar_primer_plan`), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
  * en silencio (misma lección que `cadenaCorridas.ts` con sus columnas).
  */
 export const TABLA_CAPACIDADES_STAFF = 'capacidades_staff'
@@ -19,6 +19,8 @@ export const CAPACIDADES = [
   'reportar_riesgo',
   'autorizar_excepcion',
   'firmar_politica',
+  // 0086: aprobar el PRIMER plan de un cliente nuevo (Manuela y Bryan).
+  'aprobar_primer_plan',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]
