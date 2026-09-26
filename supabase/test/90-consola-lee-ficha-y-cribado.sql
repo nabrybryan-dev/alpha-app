@@ -132,4 +132,4 @@ reset role;
 
 rollback;
 
-\echo 'OK · la consola lee ficha y cribado por capacidad, y solo lee (0085)'
+\echo 'OK · la consola lee ficha y cribado por capacidad, y solo lee (0085)'
