@@ -1716,4 +1716,15 @@ select '0084 - registrar_firma no deja falsificar el actor ni saltarse el estado
             when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%SECURITY DEFINER%' then 'NO'
             when pg_get_functiondef(to_regprocedure('public.registrar_firma(uuid)')) not like '%listo_para_firmar%' then 'NO'
             else 'SI' end
+
+union all
+-- La 0085: la consola lee `perfiles` y `cribado` por capacidad. SOLO lectura: si alguna
+-- de las dos politicas no fuera `for select`, abriria escritura a staff.
+select '0085 - la consola lee ficha y cribado por capacidad', 'perfiles_lee_capacidad y cribado_lee_capacidad existen, son SELECT y consultan leer_entrenamiento',
+       case when (select count(*) from pg_policies
+                   where schemaname = 'public'
+                     and (tablename, policyname) in (('perfiles', 'perfiles_lee_capacidad'), ('cribado', 'cribado_lee_capacidad'))
+                     and cmd = 'SELECT'
+                     and qual ilike '%tiene_capacidad%leer_entrenamiento%') = 2 then 'SI'
+            else 'NO' end
 order by migracion, senal;

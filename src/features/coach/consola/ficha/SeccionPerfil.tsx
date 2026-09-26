@@ -54,7 +54,7 @@ export function SeccionPerfil({ datos, i }: { datos: DatosPersona; i: number }) 
           que={lecturaRecortada ? 'Tu permiso no alcanza a la ficha de esta persona' : 'Esta persona no tiene ficha (perfiles)'}
           como={
             lecturaRecortada
-              ? 'La tabla perfiles solo la lee el coach (política perfiles_leer). Hace falta una política de lectura para leer_entrenamiento.'
+              ? 'La ficha (perfiles) la leen el coach y quien tenga la capacidad «leer entrenamiento» (0085).'
               : 'Se crea al cargar su primer microciclo o al registrar su primera medida.'
           }
         />
@@ -164,7 +164,7 @@ export function SeccionCribado({ datos, i, className = 'xl:col-span-5' }: { dato
           que={datos.lecturaRecortada ? 'Tu permiso no alcanza al cribado' : 'Sin cribado contestado'}
           como={
             datos.lecturaRecortada
-              ? 'cribado solo lo lee el coach (cribado_lee_lo_suyo). Hace falta una política para leer_entrenamiento.'
+              ? 'El cribado lo leen el coach y quien tenga la capacidad «leer entrenamiento» (0085).'
               : 'Se lo pide la app al abrir Hoy (PAR-Q + los nueve de la entrada mínima).'
           }
         />
@@ -173,7 +173,7 @@ export function SeccionCribado({ datos, i, className = 'xl:col-span-5' }: { dato
           <p className="text-sm text-texto/90">{lectura.motivo}</p>
           <p className="mt-0.5 text-[11px] text-tenue">
             Contestado el {datos.cribado.fecha} · fuente {datos.cribado.fuente}. Rojo = síntomas con el esfuerzo o
-            enfermedad cardíaca; ámbar = cualquier otro «sí». Descriptivo: no decide si entrena.
+            enfermedad cardíaca; ámbar = cualquier otro «sí», incluida la medicación crónica. Descriptivo: no decide si entrena.
           </p>
           {lectura.positivos.length > 0 && (
             <ul className="mt-2.5 flex flex-col gap-1.5">
