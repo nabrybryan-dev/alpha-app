@@ -2701,3 +2701,103 @@ body {
     transparent
   );
 }
+
+/* ---------- La consola del coach: movimiento que conecta ---------- */
+
+/* Todas son keyframes con SOLO `from`: el estado final es el propio del elemento.
+   Si la animación no corre —jsdom, pestaña congelada, movimiento reducido— la pieza
+   está en su sitio y visible. Nada de la consola depende de una animación para verse. */
+
+/* Cambiar de pestaña o de persona: el panel entra con un desplazamiento corto en la
+   dirección de la pestaña (`--consola-dx`: 1 hacia la derecha, -1 hacia la izquierda),
+   así el ojo sabe de dónde viene el contenido nuevo. */
+@keyframes consola-panel-entra {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--consola-dx, 0) * 18px)) translateY(6px);
+  }
+}
+
+.consola-panel-entra {
+  animation: consola-panel-entra var(--dur-transicional) var(--muelle-transicional) both;
+}
+
+/* Las tarjetas se escalonan: `--i` es su orden (0, 1, 2…), 55 ms entre una y otra, con
+   techo para que la décima no tarde medio segundo en llegar. */
+@keyframes consola-tarjeta-entra {
+  from {
+    opacity: 0;
+    transform: perspective(var(--fuga)) translateY(12px) translateZ(-40px) rotateX(-6deg);
+  }
+}
+
+.consola-tarjeta {
+  animation: consola-tarjeta-entra var(--dur-informativo) var(--muelle-informativo) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 55ms);
+  transition: border-color var(--dur-base) var(--ease-salida);
+}
+
+.consola-tarjeta:hover {
+  border-color: var(--hairline-fuerte);
+}
+
+/* Las barras de adherencia crecen desde la base. */
+@keyframes barra-sube {
+  from { transform: scaleY(0); }
+}
+
+.barra-sube {
+  transform-origin: bottom;
+  animation: barra-sube var(--dur-informativo) var(--muelle-informativo) both;
+}
+
+/* Los puntos de una curva aparecen cuando la línea ya pasó por ellos. */
+@keyframes grafica-punto-entra {
+  from { opacity: 0; }
+}
+
+.grafica-punto {
+  animation: grafica-punto-entra var(--dur-base) var(--ease-salida) both;
+}
+
+/* El indicador de la pestaña activa se DESLIZA hasta la nueva en vez de saltar. */
+.consola-indicador {
+  transition:
+    transform var(--dur-panel) var(--muelle-transicional),
+    width var(--dur-panel) var(--muelle-transicional);
+}
+
+/* Confirmación en sitio de una acción (detener, reportar, responder). */
+@keyframes consola-confirmacion {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.consola-confirmacion {
+  animation: consola-confirmacion var(--dur-microinteraccion) var(--muelle-microinteraccion) both;
+}
+
+/* La fila de la persona elegida, al llegar desde otro sitio (Agentes → persona). */
+@keyframes consola-destello {
+  from { background-color: rgb(var(--rojo-rgb) / 0.18); }
+}
+
+.consola-destello {
+  animation: consola-destello 1.2s var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consola-panel-entra,
+  .consola-tarjeta,
+  .barra-sube,
+  .grafica-punto,
+  .consola-confirmacion,
+  .consola-destello {
+    animation: none;
+  }
+  .consola-indicador {
+    transition: none;
+  }
+}

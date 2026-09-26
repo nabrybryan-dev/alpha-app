@@ -169,6 +169,10 @@ describe('AccionesRevision', () => {
       actorId: 'u-actor',
     })
     await waitFor(() => expect(onOrdenCreada).toHaveBeenCalled())
+    // Optimista: la orden recién creada viaja a quien pinta la lista, que la pone YA.
+    expect(onOrdenCreada).toHaveBeenCalledWith(expect.objectContaining({ id: 'o-1', tipo: 'detener' }))
+    // Y la confirmación se ve en el sitio donde se pulsó.
+    expect(screen.getByRole('status')).toHaveTextContent('Semana detenida')
   })
 
   it('reportar riesgo: mismo cuadro, mismo contrato, con su propio texto y su propia semana', async () => {

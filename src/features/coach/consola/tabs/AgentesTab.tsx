@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
 import { EmptyState } from '../../../../components/ui/EmptyState'
@@ -18,6 +18,8 @@ import {
   textoDePregunta,
   type PreguntaPendienteDeLaCartera,
 } from '../../../../domain/consolaCoach/tableroAgentes'
+import { useDatoConsola } from '../datoConsola'
+import { Esqueleto } from '../piezas'
 import { ResponderComoStaff } from '../ResponderComoStaff'
 
 /**
@@ -98,18 +100,39 @@ function FilaPersonaAgentes({
   todasLasCorridas,
   abiertas,
   onAlternar,
+  seleccionada,
+  onVerPersona,
 }: {
   nombre: string
   usuarioId: string
   todasLasCorridas: CadenaCorrida[]
   abiertas: Set<string>
   onAlternar: (clave: string) => void
+  seleccionada: boolean
+  onVerPersona?: (usuarioId: string) => void
 }) {
   const fila = filaDeLaPersona(usuarioId, todasLasCorridas)
   return (
-    <tr className="border-t border-linea">
-      <td className="py-2 pr-3 align-top">
-        <p className="font-bold text-texto">{nombre}</p>
+    <tr
+      className={`border-t border-linea transition-colors duration-base ${seleccionada ? 'consola-destello bg-rojo/[0.07]' : 'hover:bg-surface-2/60'}`}
+      aria-current={seleccionada ? 'true' : undefined}
+    >
+      <td className={`py-2 pl-2 pr-3 align-top ${seleccionada ? 'shadow-[inset_3px_0_0_rgb(var(--rojo-rgb))]' : ''}`}>
+        {onVerPersona ? (
+          <button
+            type="button"
+            onClick={() => onVerPersona(usuarioId)}
+            className="group text-left"
+            aria-label={`Ver la ficha de ${nombre}`}
+          >
+            <span className="block font-bold text-texto underline-offset-2 group-hover:underline">{nombre}</span>
+            <span className="block text-[11px] text-rojo opacity-0 transition-opacity duration-base group-hover:opacity-100 group-focus-visible:opacity-100">
+              Ver ficha →
+            </span>
+          </button>
+        ) : (
+          <p className="font-bold text-texto">{nombre}</p>
+        )}
         <p className="text-[11px] text-tenue">{fila.semanaInicio ? `Semana del ${fila.semanaInicio}` : 'Sin corrida todavía'}</p>
       </td>
       {([1, 2, 3, 4] as const).map((paso) => {
@@ -128,13 +151,28 @@ function FilaPersonaAgentes({
   )
 }
 
-function PreguntaItem({ pregunta, nombre }: { pregunta: PreguntaPendienteDeLaCartera; nombre: string }) {
+function PreguntaItem({
+  pregunta,
+  nombre,
+  onVerPersona,
+}: {
+  pregunta: PreguntaPendienteDeLaCartera
+  nombre: string
+  onVerPersona?: (usuarioId: string) => void
+}) {
   const contenido = textoDePregunta(pregunta.pregunta)
   const cuestionarioId = cuestionarioIdDePregunta(pregunta.pregunta)
   return (
     <li className="rounded-lg border border-linea bg-surface-2 p-2.5 text-sm">
       <p className="text-[11px] font-bold uppercase tracking-wide text-tenue">
-        {nombre} · {NOMBRE_PASO[pregunta.paso]}
+        {onVerPersona ? (
+          <button type="button" className="font-bold uppercase text-texto hover:text-rojo" onClick={() => onVerPersona(pregunta.usuarioId)}>
+            {nombre}
+          </button>
+        ) : (
+          nombre
+        )}{' '}
+        · {NOMBRE_PASO[pregunta.paso]}
       </p>
       <p className="mt-1 whitespace-pre-wrap text-texto/90">{contenido}</p>
       {cuestionarioId ? (
@@ -148,23 +186,19 @@ function PreguntaItem({ pregunta, nombre }: { pregunta: PreguntaPendienteDeLaCar
   )
 }
 
-export function AgentesTab() {
-  useDbVersion()
-  const [todasLasCorridas, setTodasLasCorridas] = useState<CadenaCorrida[]>([])
-  const [cargando, setCargando] = useState(true)
-  const [abiertas, setAbiertas] = useState<Set<string>>(new Set())
+interface AgentesTabProps {
+  /** La persona elegida en la cartera: su fila queda resaltada. */
+  seleccionadoId?: string
+  /** Enlaza el tablero con la persona: elegirla y abrir su ficha. */
+  onVerPersona?: (usuarioId: string) => void
+}
 
-  useEffect(() => {
-    let vivo = true
-    corridasDeTodaLaCartera().then((corridas) => {
-      if (!vivo) return
-      setTodasLasCorridas(corridas)
-      setCargando(false)
-    })
-    return () => {
-      vivo = false
-    }
-  }, [])
+export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {}) {
+  useDbVersion()
+  const corridas = useDatoConsola('corridas', corridasDeTodaLaCartera)
+  const cargando = corridas.estado === 'cargando'
+  const todasLasCorridas = corridas.estado === 'listo' ? corridas.valor : []
+  const [abiertas, setAbiertas] = useState<Set<string>>(new Set())
 
   const alternar = (clave: string) => {
     setAbiertas((previas) => {
@@ -178,7 +212,14 @@ export function AgentesTab() {
   const cartera = db.usuarios.entrenan()
 
   if (cargando) {
-    return <EmptyState titulo="Cargando el tablero de la cadena" detalle="Trayendo cadena_corridas de la cartera." />
+    return (
+      <Card>
+        <p className="kicker">Cargando el tablero de la cadena</p>
+        <div className="mt-3">
+          <Esqueleto lineas={5} />
+        </div>
+      </Card>
+    )
   }
 
   if (todasLasCorridas.length === 0) {
@@ -212,7 +253,7 @@ export function AgentesTab() {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-tenue">
-                <th className="pb-1.5 pr-3 font-bold">Asesorado</th>
+                <th className="pb-1.5 pl-2 pr-3 font-bold">Asesorado</th>
                 <th className="pb-1.5 font-bold">① Valoración</th>
                 <th className="pb-1.5 font-bold">② Planificación</th>
                 <th className="pb-1.5 font-bold">③ Prescripción</th>
@@ -228,6 +269,8 @@ export function AgentesTab() {
                   todasLasCorridas={todasLasCorridas}
                   abiertas={abiertas}
                   onAlternar={alternar}
+                  seleccionada={u.id === seleccionadoId}
+                  onVerPersona={onVerPersona}
                 />
               ))}
             </tbody>
@@ -247,6 +290,7 @@ export function AgentesTab() {
                 key={i}
                 pregunta={pregunta}
                 nombre={cartera.find((u) => u.id === pregunta.usuarioId)?.nombre ?? pregunta.usuarioId}
+                onVerPersona={onVerPersona}
               />
             ))}
           </ul>

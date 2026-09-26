@@ -68,8 +68,10 @@ interface AccionesRevisionProps {
    *  cartera) — este componente solo filtra las que le tocan a `usuarioId`+`semanaObjetivo`.
    *  Tiene que incluir `detener` Y `reanudar` para poder calcular la detención vigente. */
   ordenes: readonly Orden[]
-  /** Avisa a quien pinta la lista de que hay una orden nueva, para refrescar `ordenes`. */
-  onOrdenCreada: () => void
+  /** Avisa a quien pinta la lista de que hay una orden nueva, para refrescar `ordenes`.
+   *  Trae la orden recién creada cuando la base la devolvió: quien pinta la mete en su
+   *  lista AL INSTANTE (optimista) y la confirma con la relectura. */
+  onOrdenCreada: (orden?: Orden) => void
 }
 
 function etiquetaBoton(tipo: TipoAccion, fecha: string): string {
@@ -111,6 +113,13 @@ function etiquetaConfirmar(tipo: TipoAccion): string {
   }
 }
 
+const CONFIRMACION: Record<TipoAccion, string> = {
+  detener: 'Semana detenida',
+  reportar: 'Riesgo reportado',
+  reanudar: 'Semana reanudada',
+  preparar_firma: 'Caso pedido al equipo de mesa',
+}
+
 /** Cada 30 s mientras el caso está en un estado que espera a OTRA parte (el equipo de
  *  mesa, o la verificación) — no mientras espera al staff (`listo_para_firmar`, donde el
  *  botón de acción ya está en pantalla) ni en un estado final. */
@@ -134,6 +143,8 @@ export function AccionesRevision({ usuarioId, semanaObjetivo, ordenes, onOrdenCr
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  /** La confirmación en sitio de la última acción: se ve donde se pulsó, no en otro lado. */
+  const [hecho, setHecho] = useState<string | null>(null)
 
   // ── El ciclo de firma: preparar, descargar, subir el .sig, registrar ──────────────────
   const [caso, setCaso] = useState<CasoFirma | null>(null)
@@ -169,6 +180,7 @@ export function AccionesRevision({ usuarioId, semanaObjetivo, ordenes, onOrdenCr
   const abrir = (tipo: TipoAccion) => {
     setError(null)
     setInfo(null)
+    setHecho(null)
     setMotivo('')
     setAbierta(tipo)
   }
@@ -215,6 +227,7 @@ export function AccionesRevision({ usuarioId, semanaObjetivo, ordenes, onOrdenCr
             : 'Ya se había registrado esta acción.'
         : null,
     )
+    setHecho(resultado.yaExistia ? null : `${CONFIRMACION[abierta]} · ${formatoHora(new Date().toISOString())}`)
     if (abierta === 'preparar_firma') {
       // Todavía no hay fila de `casos_firma`: la crea el equipo de mesa dentro de su
       // ciclo de sincronización (20 min). Mientras tanto la sección de firma queda
@@ -225,7 +238,7 @@ export function AccionesRevision({ usuarioId, semanaObjetivo, ordenes, onOrdenCr
     }
     setAbierta(null)
     setMotivo('')
-    onOrdenCreada()
+    onOrdenCreada(resultado.yaExistia ? undefined : resultado.orden)
   }
 
   // ── Cargar el caso de firma vigente al montar / cambiar de persona o semana ───────────
@@ -311,6 +324,11 @@ export function AccionesRevision({ usuarioId, semanaObjetivo, ordenes, onOrdenCr
   return (
     <div className="mt-2 flex flex-col gap-2 border-t border-linea pt-2.5">
       {info && <p className="text-[11px] text-tenue">{info}</p>}
+      {hecho && (
+        <p role="status" className="consola-confirmacion inline-flex items-center gap-1.5 self-start rounded-full border border-verde/40 bg-verde/10 px-2.5 py-0.5 text-[11.5px] font-bold text-texto">
+          <span aria-hidden="true">✓</span> {hecho}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {detencionVigente ? (

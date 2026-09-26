@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../../data/dbInstance'
 import ConsolaCoachPage from './ConsolaCoachPage'
 
@@ -44,6 +44,13 @@ function espiarEscrituras() {
   ]
 }
 
+/** El botón de la persona EN LA CARTERA (la Revisión también tiene «Ver la ficha de…»). */
+function botonDeCartera(nombre: string): HTMLElement {
+  return within(screen.getByRole('navigation', { name: 'Cartera de asesorados' })).getByRole('button', {
+    name: new RegExp(nombre),
+  })
+}
+
 const PESTANAS = [
   'Revisión de la semana',
   'Ficha del asesorado',
@@ -55,8 +62,55 @@ const PESTANAS = [
 ]
 
 describe('ConsolaCoachPage', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear()
+  })
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('la persona elegida en la cartera manda en todas las pestañas de persona', () => {
+    const cartera = db.usuarios.entrenan()
+    if (cartera.length < 2) return
+    render(<ConsolaCoachPage />)
+    const segunda = cartera[1].nombre
+    fireEvent.click(botonDeCartera(segunda))
+    for (const etiqueta of ['Ficha del asesorado', 'Microciclos', 'Condición y salud', 'Estilo de vida']) {
+      fireEvent.click(screen.getByRole('tab', { name: etiqueta }))
+      // La cabecera de la persona se queda arriba con SU nombre al cambiar de pestaña.
+      expect(screen.getByRole('heading', { level: 2, name: segunda })).toBeInTheDocument()
+    }
+    expect(botonDeCartera(segunda)).toHaveAttribute('aria-current', 'true')
+  })
+
+  it('la selección y la pestaña sobreviven a volver a abrir la consola (misma pestaña del navegador)', () => {
+    const cartera = db.usuarios.entrenan()
+    if (cartera.length < 2) return
+    const { unmount } = render(<ConsolaCoachPage />)
+    fireEvent.click(botonDeCartera(cartera[1].nombre))
+    fireEvent.click(screen.getByRole('tab', { name: 'Microciclos' }))
+    unmount()
+    render(<ConsolaCoachPage />)
+    expect(screen.getByRole('tab', { name: 'Microciclos' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { level: 2, name: cartera[1].nombre })).toBeInTheDocument()
+  })
+
+  it('desde la Revisión, «Ver ficha» elige a la persona y abre su ficha', () => {
+    const cartera = db.usuarios.entrenan()
+    const ultima = cartera[cartera.length - 1].nombre
+    render(<ConsolaCoachPage />)
+    fireEvent.click(screen.getByRole('button', { name: `Ver la ficha de ${ultima}` }))
+    expect(screen.getByRole('tab', { name: 'Ficha del asesorado' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { level: 2, name: ultima })).toBeInTheDocument()
+  })
+
+  it('la cabecera muestra las cinco cifras de la persona, con un vacío que dice qué falta', () => {
+    render(<ConsolaCoachPage />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Ficha del asesorado' }))
+    const cabecera = screen.getByLabelText(/Resumen de/)
+    for (const kpi of ['Semana', 'Adherencia', 'Peso', 'Riesgo', 'Cadena']) {
+      expect(within(cabecera).getByText(kpi)).toBeInTheDocument()
+    }
   })
 
   it('renderiza las siete pestañas ARIA', () => {
