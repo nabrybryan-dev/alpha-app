@@ -128,6 +128,18 @@ describe('AgentesTab', () => {
     expect(screen.queryByText('Datos atrasados')).not.toBeInTheDocument()
   })
 
+  it('enlaza a la persona: su nombre abre su ficha y la elegida queda resaltada', async () => {
+    vi.spyOn(db.usuarios, 'entrenan').mockReturnValue([usuario('u-1', 'Persona Uno'), usuario('u-2', 'Persona Dos')])
+    nube.filas = [filaCruda({ paso: 1 }), filaCruda({ id: 'z', usuario_id: 'u-2', paso: 1, secuencia: 2 })]
+    const onVerPersona = vi.fn()
+    render(<AgentesTab seleccionadoId="u-2" onVerPersona={onVerPersona} />)
+    const boton = await screen.findByRole('button', { name: 'Ver la ficha de Persona Dos' })
+    expect(boton.closest('tr')).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByRole('button', { name: 'Ver la ficha de Persona Uno' }).closest('tr')).not.toHaveAttribute('aria-current')
+    fireEvent.click(boton)
+    expect(onVerPersona).toHaveBeenCalledWith('u-2')
+  })
+
   it('sin preguntas pendientes, la bandeja lo dice explícitamente', async () => {
     vi.spyOn(db.usuarios, 'entrenan').mockReturnValue([usuario('u-1', 'Persona Uno')])
     nube.filas = [filaCruda({ preguntas_pendientes: [] })]

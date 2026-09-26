@@ -1,9 +1,9 @@
 import { Badge } from '../../../../components/ui/Badge'
-import { Card } from '../../../../components/ui/Card'
 import { db, useDbVersion } from '../../../../data/dbInstance'
 import { resumenSemanal } from '../../../../domain/resumenSemanal/calcular'
 import { guionSemanal } from '../../../../domain/resumenSemanal/guion'
 import { PendienteDeCadena } from '../PendienteDeCadena'
+import { Tarjeta } from '../piezas'
 
 const PASOS = ['Guion', 'Voz', 'Imagen', 'Vídeo', 'Publicado'] as const
 
@@ -27,23 +27,25 @@ export function RevisionVideoTab({ usuarioId }: { usuarioId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5">
+      <ol className="flex flex-wrap items-center gap-1.5" aria-label="Pasos del vídeo">
         {PASOS.map((paso, i) => (
-          <Badge key={paso} tono={i === 0 ? 'verde' : 'neutro'}>
-            {paso} {i === 0 ? '· real' : '· sin dato'}
-          </Badge>
+          <li key={paso} className="flex items-center gap-1.5">
+            {i > 0 && <span className="h-px w-5 bg-linea" aria-hidden="true" />}
+            <Badge tono={i === 0 ? 'verde' : 'neutro'}>
+              {paso} {i === 0 ? '· real' : '· sin dato'}
+            </Badge>
+          </li>
         ))}
-      </div>
+      </ol>
 
-      <Card>
-        <p className="kicker">Guion de la revisión semanal</p>
-        <p className="mt-2 text-sm leading-relaxed text-texto">{guion.texto}</p>
+      <Tarjeta titulo="Guion de la revisión semanal" i={0}>
+        <p className="max-w-3xl text-[15px] leading-relaxed text-texto">{guion.texto}</p>
         {guion.omitidas > 0 && (
           <p className="mt-2 text-[11px] text-tenue">
             {guion.omitidas} frase{guion.omitidas === 1 ? '' : 's'} sin decir por falta de dato.
           </p>
         )}
-      </Card>
+      </Tarjeta>
 
       <PendienteDeCadena
         titulo="Voz, imagen, vídeo y publicación"

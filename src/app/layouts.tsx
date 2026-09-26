@@ -94,7 +94,9 @@ export function CoachLayout() {
   // La consola necesita más ancho que el resto del panel: cartera lateral +
   // siete pestañas de contenido no caben en 3xl sin apretarse en escritorio.
   // El resto del panel del coach se queda como estaba.
-  const anchoContenedor = pathname.startsWith('/coach/consola') ? 'max-w-6xl' : 'max-w-3xl'
+  // A 1440/1280 px la rejilla de 12 columnas tiene que llenar el ancho: con 6xl (1152 px)
+  // quedaban dos franjas vacías a los lados y las gráficas se apretaban.
+  const anchoContenedor = pathname.startsWith('/coach/consola') ? 'max-w-[1600px]' : 'max-w-3xl'
 
   return (
     <div className="min-h-dvh bg-bg">

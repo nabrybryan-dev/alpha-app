@@ -7,6 +7,7 @@
  * ejercicio dentro de cada día — la misma identidad que usa el resto del
  * dominio para hablar de "el mismo ejercicio" entre dos microciclos.
  */
+import { diaDeSesion } from '../calendario'
 import type { EjercicioPrescrito, Microciclo, Sesion } from '../types'
 
 export const DIAS_SEMANA = [
@@ -53,8 +54,29 @@ function normalizar(nombre: string): string {
   return nombre.trim().toLowerCase()
 }
 
-function sesionPorDia(microciclo: Microciclo | undefined, dia: DiaSemana): Sesion | undefined {
-  return microciclo?.sesiones.find((s) => s.dia === dia)
+function sinTildes(texto: string): string {
+  return texto.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+/**
+ * Las sesiones de un microciclo por HUECO: su día si lo tiene (en `dia` o en el nombre,
+ * «… (LUNES)», con o sin tilde — `diaDeSesion`), y si no, `#1`, `#2`… por orden.
+ *
+ * Hasta el 26-sep se buscaba solo `s.dia === 'MIERCOLES'`: una sesión con `dia`
+ * «MIÉRCOLES» (la forma del resto del dominio) o sin `dia` (las D1…Dn, cadencias de 8
+ * días) no aparecía nunca, y la revisión pintaba la semana vacía y «sin cambios de carga»
+ * sobre semanas que sí los tenían.
+ */
+function huecos(microciclo: Microciclo | undefined): Map<string, Sesion> {
+  const mapa = new Map<string, Sesion>()
+  let sinDia = 0
+  for (const sesion of [...(microciclo?.sesiones ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))) {
+    const dia = diaDeSesion(sesion)
+    const clave = dia ? sinTildes(dia) : undefined
+    if (clave && !mapa.has(clave)) mapa.set(clave, sesion)
+    else mapa.set(`#${++sinDia}`, sesion)
+  }
+  return mapa
 }
 
 function porNombre(sesion: Sesion | undefined): Map<string, EjercicioPrescrito> {
@@ -72,9 +94,11 @@ export function compararMicrociclos(
   anterior: Microciclo | undefined,
   actual: Microciclo | undefined,
 ): DiffMicrociclo {
+  const hAntes = huecos(anterior)
+  const hDespues = huecos(actual)
   const dias: DiaComparado[] = DIAS_SEMANA.map((dia) => {
-    const sAntes = sesionPorDia(anterior, dia)
-    const sDespues = sesionPorDia(actual, dia)
+    const sAntes = hAntes.get(dia)
+    const sDespues = hDespues.get(dia)
     let estado: EstadoDiaComparado
     if (!sAntes && !sDespues) estado = 'vacio'
     else if (sAntes && !sDespues) estado = 'perdida'
@@ -92,9 +116,10 @@ export function compararMicrociclos(
   const ejerciciosRetirados: string[] = []
   const cargas: CambioCarga[] = []
 
-  for (const dia of DIAS_SEMANA) {
-    const antesPorNombre = porNombre(sesionPorDia(anterior, dia))
-    const despuesPorNombre = porNombre(sesionPorDia(actual, dia))
+  const claves = [...new Set([...hAntes.keys(), ...hDespues.keys()])]
+  for (const hueco of claves) {
+    const antesPorNombre = porNombre(hAntes.get(hueco))
+    const despuesPorNombre = porNombre(hDespues.get(hueco))
 
     for (const [clave, ejercicio] of despuesPorNombre) {
       if (!antesPorNombre.has(clave)) ejerciciosAnadidos.push(ejercicio.nombre)

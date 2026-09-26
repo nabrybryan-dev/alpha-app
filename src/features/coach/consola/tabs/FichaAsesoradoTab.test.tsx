@@ -88,6 +88,49 @@ describe('FichaAsesoradoTab · Plan estratégico', () => {
     expect(screen.getByText('Plan estratégico · versión 3')).toBeInTheDocument()
   })
 
+  it('pinta la tabla del plan con la fila del microciclo en curso resaltada', async () => {
+    const usuarioId = db.usuarios.entrenan()[0].id
+    const activo = db.microciclos.byUsuario(usuarioId).find((m) => m.estado === 'activo')
+    expect(activo).toBeDefined()
+    const n = activo!.numero
+    nube.fila = {
+      id: 'plan-3',
+      usuario_id: usuarioId,
+      version: 2,
+      vigente: true,
+      contenido: {
+        objetivo_largo_plazo: 'objetivo de prueba',
+        cabecera: ['Micro', 'Series'],
+        filas: {
+          [String(n)]: { columnas: { Micro: `M${n}`, Series: '**~60**' }, condiciones: {} },
+          [String(n + 1)]: { columnas: { Micro: `M${n + 1}`, Series: '~64' }, condiciones: {} },
+        },
+      },
+      hash: 'hash-v2',
+      creado_en: '2026-09-20T12:00:00Z',
+    }
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+    const celda = await screen.findByText('~60')
+    // El Markdown del plan no se ve, y la fila del microciclo en curso es la marcada.
+    expect(celda.closest('tr')).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByText('~64').closest('tr')).not.toHaveAttribute('aria-current')
+    expect(screen.getByText(`Resaltada la fila del microciclo en curso (M${n}).`)).toBeInTheDocument()
+  })
+
+  it('cada sección sin dato dice qué falta y cómo se consigue, en vez de quedar vacía', async () => {
+    const usuarioId = db.usuarios.entrenan()[0].id
+    vi.spyOn(db.perfiles, 'byUsuario').mockReturnValue(undefined)
+    vi.spyOn(db.bienestar, 'byUsuario').mockReturnValue([])
+    vi.spyOn(db.perfilNutricion, 'byUsuario').mockReturnValue(undefined)
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+    expect(screen.getByText('Esta persona no tiene ficha (perfiles)')).toBeInTheDocument()
+    expect(screen.getByText('Sin ningún peso registrado')).toBeInTheDocument()
+    expect(screen.getByText(/Llega con el check-in diario/)).toBeInTheDocument()
+    expect(screen.getByText('Sin ningún perímetro')).toBeInTheDocument()
+    expect(screen.getByText('Sin formulario de nutrición')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Sin plan estratégico vigente todavía.')).toBeInTheDocument())
+  })
+
   it('con un contenido sin ninguno de los campos esperados, muestra el JSON crudo en vez de inventar campos', async () => {
     const usuarioId = db.usuarios.entrenan()[0].id
     nube.fila = {

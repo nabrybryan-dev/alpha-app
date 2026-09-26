@@ -103,4 +103,23 @@ describe('compararMicrociclos', () => {
     const diff = compararMicrociclos(anterior, actual)
     expect(diff.cargas).toEqual([])
   })
+
+  it('reconoce el día con tilde o escrito en el nombre, no solo `dia` sin tilde', () => {
+    // Regresión del 26-sep: `dia: 'MIÉRCOLES'` (la forma del resto del dominio) no casaba
+    // con 'MIERCOLES' y la revisión pintaba ese día vacío.
+    const actual = microciclo(2, [
+      sesion('s1', 'Pierna', 'MIÉRCOLES' as Sesion['dia'], []),
+      sesion('s2', 'Torso (VIERNES)', undefined, []),
+    ])
+    const diff = compararMicrociclos(undefined, actual)
+    expect(diff.dias.find((d) => d.dia === 'MIERCOLES')?.despues?.nombre).toBe('Pierna')
+    expect(diff.dias.find((d) => d.dia === 'VIERNES')?.despues?.nombre).toBe('Torso (VIERNES)')
+  })
+
+  it('sin día (D1…Dn), compara las cargas por orden en vez de callarlas', () => {
+    const anterior = microciclo(1, [{ ...sesion('a1', 'D1', undefined, [ejercicio('Sentadilla', 80)]), orden: 1 }])
+    const actual = microciclo(2, [{ ...sesion('b1', 'D1', undefined, [ejercicio('Sentadilla', 85)]), orden: 1 }])
+    const diff = compararMicrociclos(anterior, actual)
+    expect(diff.cargas).toEqual([{ nombre: 'Sentadilla', cargaAntesKg: 80, cargaDespuesKg: 85, direccion: 'sube' }])
+  })
 })

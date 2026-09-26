@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { CifraAnimada } from '../../../../components/ui/CifraAnimada'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
 import { corridasDeTodaLaCartera, type CadenaCorrida } from '../../../../data/consola/cadenaCorridas'
@@ -11,6 +12,7 @@ import {
 import { semanaObjetivoDeAcciones } from '../../../../domain/consolaCoach/semanaObjetivo'
 import type { Microciclo } from '../../../../domain/types'
 import { AccionesRevision } from '../AccionesRevision'
+import { useDatoConsola } from '../datoConsola'
 import { conclusion, revisarCartera, type EstadoActivacion, type FilaCartera } from '../../revisionCartera'
 
 /**
@@ -58,13 +60,19 @@ function FilaPersona({
   semanaObjetivo,
   ordenes,
   onOrdenCreada,
+  seleccionada,
+  onVerPersona,
+  i,
 }: {
+  seleccionada: boolean
+  onVerPersona?: (usuarioId: string) => void
+  i: number
   fila: FilaCartera
   /** La semana que se va a cargar para ESTA persona (`semanaObjetivoDeAcciones`), no el
    *  lunes de la semana en curso — ver `AccionesRevision`. */
   semanaObjetivo: string
   ordenes: Orden[]
-  onOrdenCreada: () => void
+  onOrdenCreada: (orden?: Orden) => void
 }) {
   const historial = db.microciclos.byUsuario(fila.usuario.id)
   const activo = historial.find((m) => m.estado === 'activo')
@@ -73,9 +81,26 @@ function FilaPersona({
   const etiqueta = ETIQUETA_ESTADO[fila.estado]
 
   return (
-    <Card className="flex flex-col gap-2.5">
+    <Card
+      className={`consola-tarjeta flex flex-col gap-2.5 ${seleccionada ? 'glass-destacada' : ''}`}
+      style={{ '--i': i } as CSSProperties}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-display text-base text-texto">{fila.usuario.nombre}</p>
+        {onVerPersona ? (
+          <button
+            type="button"
+            className="group flex items-baseline gap-2 text-left"
+            onClick={() => onVerPersona(fila.usuario.id)}
+            aria-label={`Ver la ficha de ${fila.usuario.nombre}`}
+          >
+            <span className="font-display text-base text-texto underline-offset-4 group-hover:underline">{fila.usuario.nombre}</span>
+            <span className="text-[11px] font-bold text-rojo opacity-0 transition-opacity duration-base group-hover:opacity-100 group-focus-visible:opacity-100">
+              Ver ficha →
+            </span>
+          </button>
+        ) : (
+          <p className="font-display text-base text-texto">{fila.usuario.nombre}</p>
+        )}
         <Badge tono={etiqueta.tono}>{etiqueta.texto}</Badge>
       </div>
       <p className="text-sm text-texto/90">{conclusion(fila)}</p>
@@ -135,7 +160,13 @@ function FilaPersona({
 // persona ya reanudada se seguiría viendo detenida.
 const TIPOS_ORDENES_DE_REVISION = ['detener', 'reportar_riesgo', 'reanudar'] as const
 
-export function RevisionSemanaTab() {
+interface RevisionSemanaTabProps {
+  seleccionadoId?: string
+  /** Enlaza cada tarjeta con la persona: elegirla en la cartera y abrir su ficha. */
+  onVerPersona?: (usuarioId: string) => void
+}
+
+export function RevisionSemanaTab({ seleccionadoId, onVerPersona }: RevisionSemanaTabProps = {}) {
   const hoy = hoyIso()
   const filas = revisarCartera(db, hoy)
   const ordenadas = [...filas].sort((a, b) => ORDEN_ATENCION[a.estado] - ORDEN_ATENCION[b.estado])
@@ -144,7 +175,10 @@ export function RevisionSemanaTab() {
   const sinPlanLunes = filas.filter((f) => f.estado === 'sin-microciclo' || f.estado === 'revisar').length
 
   const [ordenes, setOrdenes] = useState<Orden[]>([])
-  const refrescarOrdenes = () => {
+  // Optimista: la orden recién creada entra YA en la lista (la tarjeta cambia en el sitio
+  // donde se pulsó) y la relectura de la base la confirma o la corrige.
+  const refrescarOrdenes = (nueva?: Orden) => {
+    if (nueva) setOrdenes((previas) => [nueva, ...previas.filter((o) => o.id !== nueva.id)])
     ordenesRecientes(TIPOS_ORDENES_DE_REVISION).then(setOrdenes)
   }
   useEffect(() => {
@@ -160,16 +194,8 @@ export function RevisionSemanaTab() {
   // La semana que "Detener"/"Reportar" tienen que apuntar es la que SE VA A CARGAR para
   // cada persona, no el lunes en curso (ver `semanaObjetivoDeAcciones`) — hace falta
   // `cadena_corridas` de toda la cartera para saberlo.
-  const [corridas, setCorridas] = useState<CadenaCorrida[]>([])
-  useEffect(() => {
-    let vivo = true
-    corridasDeTodaLaCartera().then((lista) => {
-      if (vivo) setCorridas(lista)
-    })
-    return () => {
-      vivo = false
-    }
-  }, [])
+  const estadoCorridas = useDatoConsola('corridas', corridasDeTodaLaCartera)
+  const corridas: CadenaCorrida[] = estadoCorridas.estado === 'listo' ? estadoCorridas.valor : []
 
   return (
     <div className="flex flex-col gap-3">
@@ -180,20 +206,23 @@ export function RevisionSemanaTab() {
         </p>
         <div className="mt-2 flex flex-wrap gap-4 text-sm">
           <span>
-            <span className="cifras text-lg font-bold text-verde">{visibleHoy}</span>{' '}
+            <span className="cifras text-2xl font-bold text-verde"><CifraAnimada valor={visibleHoy} /></span>{' '}
             <span className="text-tenue">con entrenamiento visible hoy</span>
           </span>
           <span>
-            <span className="cifras text-lg font-bold text-rojo">{sinPlanLunes}</span>{' '}
+            <span className="cifras text-2xl font-bold text-rojo"><CifraAnimada valor={sinPlanLunes} /></span>{' '}
             <span className="text-tenue">podrían llegar al lunes sin plan</span>
           </span>
         </div>
       </Card>
 
-      <div className="flex flex-col gap-2.5">
-        {ordenadas.map((fila) => (
+      <div className="grid grid-cols-1 gap-2.5 2xl:grid-cols-2">
+        {ordenadas.map((fila, n) => (
           <FilaPersona
             key={fila.usuario.id}
+            i={n}
+            seleccionada={fila.usuario.id === seleccionadoId}
+            onVerPersona={onVerPersona}
             fila={fila}
             semanaObjetivo={semanaObjetivoDeAcciones(fila.usuario.id, corridas, hoy)}
             ordenes={ordenes}
