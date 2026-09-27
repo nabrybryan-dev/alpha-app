@@ -119,3 +119,47 @@ Medido el 2026-09-27, sobre los 15 `body-*.bin.gz` de `ashemag/human-atlas`:
 
 Ningún archivo pasa de 1 MB de sobra: el conjunto pesa 4,33 MB sin comprimir y 2,56 MB
 comprimido, muy lejos del límite de 50 MB por archivo.
+
+## Músculos y tendones de Z-Anatomy (landing)
+
+**Crédito: Músculos y tendones: Z-Anatomy, CC BY-SA 4.0, basado en BodyParts3D (DBCLS).**
+CC BY-SA obliga a dar crédito y a compartir igual las obras derivadas de esta malla.
+
+Sustituye la aproximación de pintar de blanco los extremos de cada músculo por el tendón
+real: Z-Anatomy lo trae como 2.º material («Tendon») de cada músculo y, además, como
+objetos propios (tendón calcáneo, aponeurosis epicraneal, palmar, plantar, vainas...).
+
+```sh
+# 1. Blender en consola: exporta los objetos de «4: Muscular system» (sin fascias, bolsas
+#    ni ligamentos sueltos) y unos huesos de referencia, en coordenadas de mundo.
+blender -b Startup.blend --python scripts/atlas/exportar-zanatomy.py   # escribe en F:\alpha-estudio\_z-anatomy\export
+# 2. Encaje, cosido, recorte y escritura
+npx vite-node scripts/atlas/convertir-zanatomy.mts -- /ruta/a/export /ruta/a/atlas
+```
+
+- **Color**: todo vértice de una cara con material «Tendon», o de un objeto tendón/aponeurosis,
+  va en blanco puro (255,255,255); el resto en el rojo de músculo de siempre (±6 %). Se
+  recorta con `simplifyWithAttributes` usando el tendón como atributo, para que la frontera
+  músculo–tendón sobreviva al recorte.
+- **Encaje**: semejanza por mínimos cuadrados (Horn: giro, escala uniforme, traslación) entre
+  24 puntos de referencia del esqueleto de Z-Anatomy y de `atlas-esqueleto-alta.pieza`
+  (coronilla, cabezas de fémur, cóndilos, rótulas, talones, cabezas de húmero y centroides
+  de fémur, tibia, calcáneo, húmero, clavícula, escápula y cráneo). Sale escala 1,0011,
+  giro 0,56° y RMS 1,57 cm: Z-Anatomy ya viene en la misma escala que BodyParts3D.
+- **Nombre**: cada parte lleva el nombre del objeto de Z-Anatomy en el campo de nombre (el
+  de textura del formato v3), p. ej. `Calcaneal tendon.r`.
+- `coser()` vive ahora en `coser.mts`, compartido con `convertir-atlas.mts` (mismo cuerpo).
+
+Medido el 2026-09-27:
+
+| capa | estructuras | triángulos (bruto → final) | `.pieza` | comprimida | error máx |
+|---|---|---|---|---|---|
+| músculos + tendones (Z-Anatomy) | 522 | 1.966.086 → 260.660 | 3,18 MB | 1,93 MB | 3,00 % |
+
+- Tendón: 25,7 % de los vértices en blanco.
+- Mediana de distancia vértice → hueso más cercano de `resolver({}, [0,0,0], [0,0,0])`:
+  6,01 cm (la de `atlas-musculos-alta`, 5,70 cm).
+- Alto: de 0,015 a 1,717 m. Pasa de los 1,611 de los músculos de BodyParts3D porque
+  BodyParts3D no trae los músculos del cuero cabelludo: la aponeurosis epicraneal cubre el
+  cráneo (que llega a 1,710) y la piel alta llega a 1,716. Sin la cabeza, el resto del
+  cuerpo encaja con el esqueleto como se ve arriba.
