@@ -103,8 +103,18 @@ end $$;
 -- Sin política de update: una tarjeta ya respondida no se pisa desde el navegador. La
 -- sentencia no falla — RLS sin política de UPDATE simplemente no encuentra filas que
 -- tocar— así que lo que se comprueba es que el CONTENIDO no cambió.
-update public.tarjetas_vida set respuestas = '{"V1": 99}'::jsonb
-  where usuario_id = '98888888-0000-0000-0000-000000000001' and semana_inicio = '2026-09-21';
+-- Desde el endurecimiento (lección de la 0084) authenticated ni siquiera tiene el
+-- privilegio de UPDATE: el intento revienta en voz alta en vez de afectar cero filas.
+do $$
+begin
+  begin
+    update public.tarjetas_vida set respuestas = '{"V1": 99}'::jsonb
+      where usuario_id = '98888888-0000-0000-0000-000000000001' and semana_inicio = '2026-09-21';
+    raise exception 'FALLO: una sesión de usuario tiene privilegio de UPDATE sobre tarjetas_vida';
+  exception
+    when insufficient_privilege then null;
+  end;
+end $$;
 
 select pruebas.afirmar(
   (select respuestas from public.tarjetas_vida
