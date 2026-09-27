@@ -2,8 +2,9 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// El `check` vigente es el que redefinió la 0086 (la 0083 más `aprobar_primer_plan`).
-const MIGRACION = join(process.cwd(), 'supabase', 'migrations', '0086_aprobacion_primer_plan.sql')
+// El `check` vigente es el que redefinió la 0087 (la 0083 más `aprobar_primer_plan` y
+// `aprobar_plan_estrategico`).
+const MIGRACION = join(process.cwd(), 'supabase', 'migrations', '0087_aprobacion_plan_estrategico_renovado.sql')
 
 interface FilaError {
   message: string
@@ -52,14 +53,14 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086)', () => {
+describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087)', () => {
   it('cada capacidad declarada aquí existe en el `check` de la migración, y al revés', () => {
     const sql = readFileSync(MIGRACION, 'utf8')
     const inicio = sql.indexOf('add constraint capacidades_staff_capacidad_check')
     const bloque = sql.slice(inicio, sql.indexOf('));', inicio))
     expect(inicio).toBeGreaterThan(0)
     for (const capacidad of CAPACIDADES) {
-      expect(bloque, `la migración 0086 no declara la capacidad "${capacidad}"`).toContain(`'${capacidad}'`)
+      expect(bloque, `la migración 0087 no declara la capacidad "${capacidad}"`).toContain(`'${capacidad}'`)
     }
     const enElSql = [...bloque.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])
     expect([...enElSql].sort()).toEqual([...CAPACIDADES].sort())

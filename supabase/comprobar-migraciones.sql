@@ -1763,4 +1763,59 @@ select '0086 - decidir_primer_plan y vencer_primer_plan', 'RPC con auth.uid(), s
             when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%search_path = public%' then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_primer_plan(uuid,text,text)')) not like '%autorizar_excepcion%' then 'NO'
             else 'SI' end
+union all
+-- La 0087: planes_estrategicos.estado coherente con vigente, y el asesorado sin borradores.
+select '0087 - planes_estrategicos.estado coherente y sin borradores para el asesorado', 'columna estado not null, check (estado = vigente) = vigente, politica filtra por estado, authenticated sin escritura',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'planes_estrategicos'
+                                and column_name = 'estado' and is_nullable = 'NO') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = to_regclass('public.planes_estrategicos')
+                                and conname = 'planes_estrategicos_estado_coherente') then 'NO'
+            when not exists (select 1 from pg_policies
+                              where schemaname = 'public' and tablename = 'planes_estrategicos'
+                                and policyname = 'planes_estrategicos_leer'
+                                and qual ilike '%estado%vigente%reemplazado%') then 'NO'
+            when has_table_privilege('authenticated', 'public.planes_estrategicos', 'update')
+              or has_table_privilege('authenticated', 'public.planes_estrategicos', 'insert') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0087: capacidad nueva aprobar_plan_estrategico en el CHECK de capacidades_staff.
+select '0087 - capacidad aprobar_plan_estrategico', 'CHECK de capacidades_staff la admite (y conserva aprobar_primer_plan)',
+       case when exists (
+              select 1 from pg_constraint
+               where conrelid = to_regclass('public.capacidades_staff')
+                 and contype = 'c'
+                 and pg_get_constraintdef(oid) ilike '%aprobar_plan_estrategico%'
+                 and pg_get_constraintdef(oid) ilike '%aprobar_primer_plan%'
+            ) then 'SI' else 'NO' end
+
+union all
+-- La 0087: aprobaciones_plan_estrategico con RLS y SIN escritura para authenticated.
+select '0087 - aprobaciones_plan_estrategico con RLS y sin escritura para authenticated', 'RLS encendida, anon sin acceso, authenticated solo con select',
+       case when to_regclass('public.aprobaciones_plan_estrategico') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.aprobaciones_plan_estrategico')) then 'NO'
+            when has_table_privilege('anon', 'public.aprobaciones_plan_estrategico', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.aprobaciones_plan_estrategico', 'insert')
+              or has_table_privilege('authenticated', 'public.aprobaciones_plan_estrategico', 'update')
+              or has_table_privilege('authenticated', 'public.aprobaciones_plan_estrategico', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.aprobaciones_plan_estrategico', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0087: decidir_plan_estrategico acredita el actor con auth.uid() y reserva alto/clínico a
+-- autorizar_excepcion; vencer y encender no son para authenticated.
+select '0087 - decidir_plan_estrategico y vencer_plan_estrategico', 'RPC con auth.uid(), search_path fijo, alto/clinico reservado a autorizar_excepcion; vencer y encender sin authenticated',
+       case when to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)') is null then 'NO'
+            when to_regprocedure('public.vencer_plan_estrategico()') is null then 'NO'
+            when to_regprocedure('public.encender_plan_estrategico(uuid,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.decidir_plan_estrategico(uuid,text,text)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.vencer_plan_estrategico()', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.encender_plan_estrategico(uuid,text)', 'execute') then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%auth.uid()%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%search_path = public%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%autorizar_excepcion%' then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%clinico%' then 'NO'
+            else 'SI' end
 order by migracion, senal;

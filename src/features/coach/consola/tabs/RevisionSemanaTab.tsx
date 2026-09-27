@@ -12,6 +12,7 @@ import {
 import { semanaObjetivoDeAcciones } from '../../../../domain/consolaCoach/semanaObjetivo'
 import type { Microciclo } from '../../../../domain/types'
 import { AccionesRevision } from '../AccionesRevision'
+import { BandejaPlanesRenovados } from '../BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../BandejaPrimerosPlanes'
 import { useDatoConsola } from '../datoConsola'
 import { conclusion, revisarCartera, type EstadoActivacion, type FilaCartera } from '../../revisionCartera'
@@ -202,6 +203,8 @@ export function RevisionSemanaTab({ seleccionadoId, onVerPersona }: RevisionSema
     <div className="flex flex-col gap-3">
       {/* Solo con `aprobar_primer_plan`: sin ella, la bandeja no pinta nada. */}
       <BandejaPrimerosPlanes onVerPersona={onVerPersona} />
+      {/* Solo con `aprobar_plan_estrategico` (0087): el plan estratégico renovado. */}
+      <BandejaPlanesRenovados onVerPersona={onVerPersona} />
 
       <Card destacada>
         <p className="kicker">La pregunta de Astra</p>
