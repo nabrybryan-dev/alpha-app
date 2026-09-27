@@ -126,3 +126,6 @@ jobs:
 
       - name: El plan estratégico renovado lo aprueba quien puede, y el asesorado no ve su borrador
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/97-consola-plan-estrategico.sql
+
+      - name: La tarjeta semanal y los mensajes de estilo de vida respetan quién es el dueño
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/100-tarjeta-vida-y-mensajes.sql

@@ -2,6 +2,7 @@ import { useSesionOpcional } from '../../../app/SessionProvider'
 import { corridasDeTodaLaCartera, type CadenaCorrida } from '../../../data/consola/cadenaCorridas'
 import { planVigente, type PlanEstrategico } from '../../../data/consola/planesEstrategicos'
 import { db, hoyIso, useDbVersion } from '../../../data/dbInstance'
+import { ultimaTarjetaVidaDe, type TarjetaVida } from '../../../data/vida/tarjetasVida'
 import type { Microciclo, Rol } from '../../../domain/types'
 import { useCapacidades } from './useCapacidades'
 import { useDatoConsola, type EstadoDato } from './datoConsola'
@@ -41,6 +42,9 @@ export function usePersona(usuarioId: string) {
   )
   const plan: EstadoDato<PlanEstrategico | null> = useDatoConsola(`plan:${usuarioId}`, () => planVigente(usuarioId))
   const corridas: EstadoDato<CadenaCorrida[]> = useDatoConsola('corridas', corridasDeTodaLaCartera)
+  const tarjetaVida: EstadoDato<TarjetaVida | null> = useDatoConsola(`tarjetaVida:${usuarioId}`, () =>
+    ultimaTarjetaVidaDe(usuarioId),
+  )
 
   return {
     hoy: hoyIso(),
@@ -60,6 +64,7 @@ export function usePersona(usuarioId: string) {
     historial,
     plan,
     corridas,
+    tarjetaVida,
   }
 }
 

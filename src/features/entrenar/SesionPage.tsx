@@ -284,6 +284,9 @@ function SesionEnCurso() {
             bloques={bloques}
             esMetabolica={sesion.tipo === 'metabolica'}
             onMarcar={(bloqueId) => db.microciclos.marcarParte(microciclo.id, sesion.id, bloqueId)}
+            onRegistrar={(bloqueId, registro) =>
+              db.microciclos.registrarEjecucionCardio(microciclo.id, sesion.id, bloqueId, registro)
+            }
           />
         </div>
       )}

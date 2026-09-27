@@ -1,5 +1,6 @@
 import { Badge } from '../../../../components/ui/Badge'
 import { fechaCorta, serieDeCheckins } from '../../../../domain/consolaCoach/perfilCompleto'
+import { ritmoLegible, velocidadKmH } from '../../../../domain/registroCardio'
 import { SeccionCribado } from '../ficha/SeccionPerfil'
 import { GraficaLinea } from '../graficas'
 import { PendienteDeCadena } from '../PendienteDeCadena'
@@ -97,12 +98,28 @@ export function CondicionSaludTab({ usuarioId }: { usuarioId: string }) {
           />
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
-            {bloquesCardio.map((b) => (
-              <li key={b.id} className="flex items-center justify-between gap-2">
-                <span className="text-texto/90">{b.titulo}</span>
-                <Badge tono={b.hechoEn ? 'verde' : 'neutro'}>{b.hechoEn ? 'Hecho' : 'Sin marcar'}</Badge>
-              </li>
-            ))}
+            {bloquesCardio.map((b) => {
+              const ritmo = ritmoLegible(b)
+              const velocidad = velocidadKmH(b)
+              const detalle = [
+                b.duracionRealMin !== undefined ? `${b.duracionRealMin} min` : undefined,
+                b.distanciaKm !== undefined ? `${b.distanciaKm} km` : undefined,
+                ritmo,
+                velocidad !== undefined && !ritmo ? `${velocidad} km/h` : undefined,
+                b.fcMedia !== undefined ? `${b.fcMedia} lpm` : undefined,
+              ].filter(Boolean)
+              return (
+                <li key={b.id} className="flex items-center justify-between gap-2">
+                  <span className="text-texto/90">{b.titulo}</span>
+                  <span className="flex items-center gap-1.5">
+                    {detalle.length > 0 && (
+                      <span className="cifras text-[11px] text-tenue">{detalle.join(' · ')}</span>
+                    )}
+                    <Badge tono={b.hechoEn ? 'verde' : 'neutro'}>{b.hechoEn ? 'Hecho' : 'Sin marcar'}</Badge>
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         )}
       </Tarjeta>

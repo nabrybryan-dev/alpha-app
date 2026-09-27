@@ -16,17 +16,21 @@ import { usePausaFueraDePantalla } from '../../lib/pausaFueraDePantalla'
 import { CheckDibujado } from '../entrenar/CheckDibujado'
 
 /**
- * LAS OCHO MEDIDAS, Y SOLO ESTAS OCHO.
+ * LAS NUEVE MEDIDAS, Y SOLO ESTAS NUEVE.
  *
  * Hasta el 2026-09-08 esto eran cinco perímetros de estética —cintura, cadera, abdomen,
- * muslo, brazo— y la báscula. Ahora son ocho, y seis de ellas son LONGITUDES DE HUESO: son
+ * muslo, brazo— y la báscula. Luego fueron ocho, y seis de ellas son LONGITUDES DE HUESO: son
  * las que le faltan al sujeto 3D para dejar de ser el muñeco del atlas y ser esta persona.
  * Con la estatura sola, dos personas de 1,75 con fémures distintos se dibujan iguales, y
  * eso cambia el brazo de momento de cada ejercicio — que es lo que la app enseña.
  *
+ * La novena, cuello (2026-09-27), no es del atlas: es la que le faltaba a cintura y caderas
+ * para que la fórmula US Navy pudiera estimar % de grasa y masa magra, y con ellas el
+ * P-ratio de la consola (`consolaCoach/composicionEstimada.ts`).
+ *
  * ## Aquí no hay una lista de medidas, y eso es lo importante
  *
- * Las ocho —su orden, su etiqueta, cómo se toma cada una y entre qué dos números es
+ * Las nueve —su orden, su etiqueta, cómo se toma cada una y entre qué dos números es
  * posible— viven en `domain/medidas.ts` y este formulario las PINTA. Tenerlas escritas
  * también aquí sería tener dos catálogos: el día que el rango del fémur cambiara, el
  * dominio rechazaría lo que la ficha sigue pidiendo, y eso no fallaría en ningún test —se
@@ -227,7 +231,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
         )}
       </div>
 
-      {/* EL RESUMEN LEE LAS DOS COSAS: las ocho de la ficha (`cuerpo`) y lo que hubiera
+      {/* EL RESUMEN LEE LAS DOS COSAS: las nueve de la ficha (`cuerpo`) y lo que hubiera
           en `perimetros` de antes. Sin la primera lista, una toma recién guardada dejaría
           la tarjeta con la fecha y nada debajo; sin la segunda, el historial viejo de
           quien lleva meses midiéndose desaparecería de la pantalla. */}
@@ -247,6 +251,18 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
             </span>
           ))}
         </div>
+      )}
+
+      {/* AVISO SUAVE, NO UN BLOQUEO. Sin el cuello, la fórmula US Navy que ya usa el
+          formulario de nutrición (`domain/nutricion/composicion.ts`) no puede estimar el %
+          de grasa ni la masa magra, y el coach se queda sin P-ratio salvo que alguien mida
+          bioimpedancia aparte. Solo se enseña con al menos una medición ya guardada: a quien
+          nunca se ha medido nada, "Aún no hay mediciones registradas" ya se lo dice todo. */}
+      {ultima && !abierto && ultima.cuerpo?.cuelloCm === undefined && (
+        <p className="mt-2 text-[11px] leading-snug text-tenue">
+          Te falta el perímetro de <span className="font-bold text-texto">cuello</span>. Con cintura, caderas y
+          cuello el coach puede estimar tu % de grasa sin báscula de bioimpedancia.
+        </p>
       )}
 
       {guardado && !abierto && (
