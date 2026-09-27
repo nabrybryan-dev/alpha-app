@@ -98,6 +98,7 @@ create policy tarjetas_vida_leer on public.tarjetas_vida
 -- Sin política de update/delete: ni el dueño ni el coach pisan una tarjeta ya respondida
 -- por la API. Corregir un error de captura es cosa de `service_role`, no de este flujo.
 revoke all on public.tarjetas_vida from anon, public;
+revoke update, delete, truncate on public.tarjetas_vida from authenticated;
 grant select, insert on public.tarjetas_vida to authenticated;
 grant all on public.tarjetas_vida to service_role;
 
@@ -146,6 +147,7 @@ create policy mensajes_vida_leer on public.mensajes_vida
 -- `enviado_en`/`detenido_en` — la misma regla que `cadena_corridas` y
 -- `planes_estrategicos` (0083).
 revoke all on public.mensajes_vida from anon, public;
+revoke insert, update, delete, truncate on public.mensajes_vida from authenticated;
 grant select on public.mensajes_vida to authenticated;
 grant all on public.mensajes_vida to service_role;
 
