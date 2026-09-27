@@ -143,4 +143,47 @@ begin
   end if;
 end $$;
 
+-- ────── 4 · `tmp_sesion_en_limpio` no hereda la ejecución del cardio ──────
+--
+-- `duracionRealMin`, `distanciaKm` y `fcMedia` (`BloqueCardio`, 2026-09-27) son la misma
+-- familia que `hechoEn`: lo que el asesorado registró en el microciclo VIEJO, no algo que
+-- el nuevo pueda nacer con puesto. Sin esta prueba, el fósil de julio (`preparacion` y
+-- `bloquesCardio` heredando `hechoEn`) podía volver a colarse por una puerta nueva sin que
+-- ningún test lo notara: los tres campos son opcionales, así que una sesión que los pierde
+-- se ve exactamente igual que una que nunca los tuvo.
+do $$
+declare
+  v_limpia jsonb;
+begin
+  v_limpia := public.tmp_sesion_en_limpio($json$
+    {
+      "id": "s1", "nombre": "ZONA 2", "orden": 1, "dia": "MARTES",
+      "ejercicios": [],
+      "bloquesCardio": [{
+        "id": "c1", "titulo": "Caminadora", "indicaciones": "Zona 2, 30 min",
+        "duracionMin": 30,
+        "hechoEn": "2026-09-20T10:00:00Z",
+        "duracionRealMin": 32.5, "distanciaKm": 3.1, "fcMedia": 128
+      }]
+    }
+  $json$::jsonb);
+
+  if (v_limpia->'bloquesCardio'->0) ? 'hechoEn' then
+    raise exception 'tmp_sesion_en_limpio no quito `hechoEn` del bloque de cardio: %', v_limpia;
+  end if;
+  if (v_limpia->'bloquesCardio'->0) ? 'duracionRealMin' then
+    raise exception 'tmp_sesion_en_limpio hereda `duracionRealMin`: el fosil de julio con otro nombre: %', v_limpia;
+  end if;
+  if (v_limpia->'bloquesCardio'->0) ? 'distanciaKm' then
+    raise exception 'tmp_sesion_en_limpio hereda `distanciaKm`: el fosil de julio con otro nombre: %', v_limpia;
+  end if;
+  if (v_limpia->'bloquesCardio'->0) ? 'fcMedia' then
+    raise exception 'tmp_sesion_en_limpio hereda `fcMedia`: el fosil de julio con otro nombre: %', v_limpia;
+  end if;
+  -- Lo pautado (duracionMin) SÍ se hereda: es prescripción, no ejecución.
+  if (v_limpia->'bloquesCardio'->0->>'duracionMin')::numeric is distinct from 30 then
+    raise exception 'tmp_sesion_en_limpio se llevo por delante `duracionMin`, que es prescripcion: %', v_limpia;
+  end if;
+end $$;
+
 rollback;

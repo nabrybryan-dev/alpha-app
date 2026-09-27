@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { pRatio } from '../../../../domain/consolaCoach/pRatio'
+import { masaMagraEstimada } from '../../../../domain/consolaCoach/composicionEstimada'
 import { fechaCorta, seriePeso, seriesPerimetros, tendencia } from '../../../../domain/consolaCoach/perfilCompleto'
 import { GraficaLinea } from '../graficas'
 import { Falta, Tarjeta } from '../piezas'
@@ -109,7 +110,13 @@ export function SeccionPerimetros({ datos, i, className = '' }: { datos: DatosPe
 
 export function SeccionPRatio({ datos, i, className = '' }: { datos: DatosPersona; i: number; className?: string }) {
   const medidas = [...(datos.perfil?.medidas ?? [])].sort((a, b) => a.fecha.localeCompare(b.fecha))
-  const conMagra = medidas.filter((m) => m.masaMagraKg !== undefined && m.pesoKg !== undefined)
+  // Con `cuerpo.cuelloCm` (2026-09-27), una medida sin masa magra medida a mano puede
+  // seguir sirviendo: si trae cintura + cuello (+ caderas en mujeres) y el sexo de la
+  // ficha, `masaMagraEstimada` la calcula con la misma fórmula US Navy del formulario de
+  // nutrición. Lo medido (bioimpedancia) sigue ganando; esto solo llena el hueco.
+  const conMagra = medidas
+    .map((m) => ({ ...m, masaMagraKg: masaMagraEstimada(m, datos.perfil?.sexo) }))
+    .filter((m) => m.masaMagraKg !== undefined && m.pesoKg !== undefined)
 
   let cuerpo
   if (medidas.length < 2) {
@@ -123,7 +130,7 @@ export function SeccionPRatio({ datos, i, className = '' }: { datos: DatosPerson
     cuerpo = (
       <Falta
         que={`Hay ${medidas.length} medidas, pero ${conMagra.length === 0 ? 'ninguna trae' : 'solo una trae'} masa magra.`}
-        como="El P-ratio necesita masa magra antes y después (bioimpedancia o % graso con peso). Sin ella no se interpreta."
+        como="El P-ratio necesita masa magra antes y después: bioimpedancia, % graso con peso, o cintura + cuello (+ caderas en mujeres) con el sexo puesto en la ficha."
       />
     )
   } else {
@@ -156,7 +163,8 @@ export function SeccionPRatio({ datos, i, className = '' }: { datos: DatosPerson
       {cuerpo}
       <p className="mt-2 text-[11px] leading-snug text-tenue">
         Fracción del cambio de peso que fue masa magra (0 = todo grasa, 1 = todo masa magra); no está acotado a 0-1.
-        Misma fórmula que <span className="cifras">composicion.py::p_ratio</span>.
+        Misma fórmula que <span className="cifras">composicion.py::p_ratio</span>. Cuando no hay masa magra medida,
+        se estima con cintura + cuello (+ caderas en mujeres), fórmula US Navy.
       </p>
     </Tarjeta>
   )

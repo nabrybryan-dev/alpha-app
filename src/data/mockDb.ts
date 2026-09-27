@@ -6,6 +6,7 @@ import type {
   ItemMarcable,
   Microciclo,
   Perfil,
+  RegistroCardioEjecutado,
   RegistroComida,
   SerieRegistrada,
   Sesion,
@@ -505,6 +506,25 @@ export function crearMockDb(): Db {
                 ...s,
                 preparacion: preparacion.map(alternar),
                 bloquesCardio: s.bloquesCardio?.map(alternar),
+              })
+            }),
+          })),
+        )
+      },
+      registrarEjecucionCardio: (
+        microcicloId: string,
+        sesionId: string,
+        bloqueId: string,
+        registro: RegistroCardioEjecutado,
+      ) => {
+        mutar((estado) =>
+          actualizarMicrociclo(estado, microcicloId, (m) => ({
+            ...m,
+            sesiones: m.sesiones.map((s) => {
+              if (s.id !== sesionId) return s
+              return conFecha({
+                ...s,
+                bloquesCardio: s.bloquesCardio?.map((b) => (b.id === bloqueId ? { ...b, ...registro } : b)),
               })
             }),
           })),

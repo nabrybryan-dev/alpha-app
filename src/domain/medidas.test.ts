@@ -29,10 +29,11 @@ const OCHO: MedidasDelCuerpo = {
   anchoClavicularCm: 38.8,
   cinturaCm: 82,
   caderasCm: 96,
+  cuelloCm: 35.5,
 }
 
-describe('el catálogo de las ocho medidas', () => {
-  it('son ocho, ni una más, y en el orden en que las pregunta la ficha', () => {
+describe('el catálogo de las nueve medidas', () => {
+  it('son nueve, ni una más, y en el orden en que las pregunta la ficha', () => {
     expect(CLAVES_DE_MEDIDA).toEqual([
       'tibiaCm',
       'femurCm',
@@ -42,11 +43,12 @@ describe('el catálogo de las ocho medidas', () => {
       'anchoClavicularCm',
       'cinturaCm',
       'caderasCm',
+      'cuelloCm',
     ])
-    expect(CLAVES_DE_MEDIDA).toHaveLength(8)
-    expect(new Set(CLAVES_DE_MEDIDA).size).toBe(8)
+    expect(CLAVES_DE_MEDIDA).toHaveLength(9)
+    expect(new Set(CLAVES_DE_MEDIDA).size).toBe(9)
     expect(MEDIDAS.map((m) => m.clave)).toEqual([...CLAVES_DE_MEDIDA])
-    expect(Object.keys(MEDIDA_POR_CLAVE)).toHaveLength(8)
+    expect(Object.keys(MEDIDA_POR_CLAVE)).toHaveLength(9)
   })
 
   it('cada una lleva etiqueta, cómo se mide, unidad y un rango con sentido', () => {
@@ -58,7 +60,7 @@ describe('el catálogo de las ocho medidas', () => {
       expect(m.unidad, m.clave).toBe('cm')
       expect(m.minimo, m.clave).toBeGreaterThan(0)
       expect(m.maximo, m.clave).toBeGreaterThan(m.minimo)
-      // El sufijo de la clave dice la unidad, y la unidad es la misma para las ocho.
+      // El sufijo de la clave dice la unidad, y la unidad es la misma para las nueve.
       expect(m.clave.endsWith('Cm'), m.clave).toBe(true)
     }
   })
@@ -92,7 +94,7 @@ describe('el catálogo de las ocho medidas', () => {
     }
   })
 
-  it('reconoce las ocho claves y ninguna otra', () => {
+  it('reconoce las nueve claves y ninguna otra', () => {
     for (const c of CLAVES_DE_MEDIDA) expect(esClaveDeMedida(c)).toBe(true)
     // Las de `perimetros`, que es de donde vendría la confusión.
     for (const c of ['Cintura', 'Cadera', 'Glúteos', 'cintura', 'tibia', 'femur']) {
@@ -129,7 +131,19 @@ describe('revisar unas medidas', () => {
     expect(revisarMedidas({ femurCm: 69 })).toEqual([])
   })
 
-  it('una clave que no es de las ocho se rechaza, aunque el número esté bien', () => {
+  it('el cuello tiene su propio rango, más ceñido que el de cintura y caderas', () => {
+    expect(revisarMedidas({ cuelloCm: 35.5 })).toEqual([])
+    // Extremos incluidos.
+    expect(revisarMedidas({ cuelloCm: 20 })).toEqual([])
+    expect(revisarMedidas({ cuelloCm: 60 })).toEqual([])
+    // La coma corrida (3,55 cm de cuello no existe) y el dato en milímetros (350 cm tampoco).
+    const bajo = revisarMedidas({ cuelloCm: 3.55 })
+    expect(bajo).toHaveLength(1)
+    expect(bajo[0].motivo).toContain('Cuello')
+    expect(revisarMedidas({ cuelloCm: 350 })).toHaveLength(1)
+  })
+
+  it('una clave que no es de las nueve se rechaza, aunque el número esté bien', () => {
     // Es lo que impide que vuelva a pasar lo de `perimetros`: «Cadera» y «Glúteos»
     // conviviendo como dos columnas del mismo dato porque nadie dijo que no.
     const reparos = revisarMedidas({ femurCm: 47.3, gluteosCm: 96 })
@@ -150,7 +164,7 @@ describe('revisar unas medidas', () => {
   })
 
   it('devuelve TODOS los reparos, no el primero', () => {
-    // Quien rellena ocho campos merece verlos marcados de una vez.
+    // Quien rellena nueve campos merece verlos marcados de una vez.
     const reparos = revisarMedidas({ femurCm: 473, cinturaCm: 5, gluteosCm: 96 })
     expect(reparos.map((r) => r.campo).sort()).toEqual(['cinturaCm', 'femurCm', 'gluteosCm'])
   })

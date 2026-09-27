@@ -1818,4 +1818,77 @@ select '0087 - decidir_plan_estrategico y vencer_plan_estrategico', 'RPC con aut
             when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%autorizar_excepcion%' then 'NO'
             when pg_get_functiondef(to_regprocedure('public.decidir_plan_estrategico(uuid,text,text)')) not like '%clinico%' then 'NO'
             else 'SI' end
+
+union all
+-- La 0088: tarjetas_vida con RLS, el dueño inserta/lee la suya, y ANON sin acceso.
+select '0088 - tarjetas_vida con RLS y el dueño puede insertar/leer la suya', 'RLS encendida, anon sin acceso, authenticated con select e insert',
+       case when to_regclass('public.tarjetas_vida') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.tarjetas_vida')) then 'NO'
+            when has_table_privilege('anon', 'public.tarjetas_vida', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.tarjetas_vida', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.tarjetas_vida', 'insert') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0088: tarjetas_vida NO tiene política de UPDATE ni de DELETE — una tarjeta
+-- respondida no se pisa desde el navegador, aunque `authenticated` tenga el privilegio de
+-- tabla (Postgres exige además una policy aplicable, o el comando no toca ninguna fila).
+select '0088 - tarjetas_vida sin policy de update ni de delete', 'ninguna policy con cmd update o delete sobre tarjetas_vida',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'tarjetas_vida' and cmd in ('UPDATE', 'DELETE', 'ALL')
+       ) then 'NO' else 'SI' end
+
+union all
+-- La 0088: la política de insert exige que usuario_id sea quien llama (auth.uid()), no un
+-- parámetro — la misma trampa de suplantación que ya se comprueba en `responder_como_staff`.
+select '0088 - tarjetas_vida_insertar_propia exige auth.uid()', 'el with_check de la policy de insert menciona auth.uid()',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'tarjetas_vida'
+            and policyname = 'tarjetas_vida_insertar_propia' and cmd = 'INSERT'
+            and coalesce(with_check, '') like '%auth.uid()%'
+       ) then 'SI' else 'NO' end
+
+union all
+-- La 0088: única por persona y semana — dos respuestas de la misma semana son un
+-- conflicto de aplicación, no dos hechos distintos.
+select '0088 - tarjetas_vida única por usuario y semana', 'constraint unique (usuario_id, semana_inicio)',
+       case when exists (
+         select 1 from pg_constraint c
+          join pg_class t on t.oid = c.conrelid
+         where t.relname = 'tarjetas_vida' and c.contype = 'u'
+           and c.conkey = (
+             select array_agg(a.attnum order by a.attnum)
+               from pg_attribute a
+              where a.attrelid = t.oid and a.attname in ('usuario_id', 'semana_inicio')
+           )
+       ) then 'SI' else 'NO' end
+
+union all
+-- La 0088: mensajes_vida con RLS y CERRADA a anon; authenticated sin ningún privilegio de
+-- escritura — solo service_role inserta y actualiza enviado_en/detenido_en.
+select '0088 - mensajes_vida con RLS, sin escritura para authenticated, anon sin acceso', 'RLS encendida, anon sin select, authenticated solo con select',
+       case when to_regclass('public.mensajes_vida') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.mensajes_vida')) then 'NO'
+            when has_table_privilege('anon', 'public.mensajes_vida', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.mensajes_vida', 'insert')
+              or has_table_privilege('authenticated', 'public.mensajes_vida', 'update')
+              or has_table_privilege('authenticated', 'public.mensajes_vida', 'delete') then 'NO'
+            when not has_table_privilege('authenticated', 'public.mensajes_vida', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0088: la política de lectura de mensajes_vida exige dueño, ventana cumplida y no
+-- detenido — las tres condiciones en el mismo `using`, no repartidas entre la base y la
+-- app (que es justo lo que dejaría fugar un mensaje "detenido" a quien mire con curl).
+select '0088 - mensajes_vida_leer exige dueño, enviar_despues_de y detenido_en', 'el using de la policy de select menciona las tres condiciones',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'mensajes_vida'
+            and policyname = 'mensajes_vida_leer' and cmd = 'SELECT'
+            and coalesce(qual, '') like '%auth.uid()%'
+            and coalesce(qual, '') like '%enviar_despues_de%'
+            and coalesce(qual, '') like '%detenido_en%'
+       ) then 'SI' else 'NO' end
 order by migracion, senal;

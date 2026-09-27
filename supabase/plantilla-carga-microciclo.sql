@@ -25,6 +25,12 @@
 -- HIZO no se hereda nunca. Si añades un campo de ejecución a `Sesion` en
 -- `src/domain/types.ts`, añádelo también a `tmp_sesion_en_limpio()`.
 --
+-- `duracionRealMin`, `distanciaKm` y `fcMedia` (2026-09-27, `BloqueCardio`) son la misma
+-- familia que `hechoEn`: lo que la persona registró de un bloque de cardio ya hecho, no lo
+-- que el bloque pide. `tmp_sin_marcas()` los quita junto con `hechoEn` — de los tres, no
+-- solo de cardio: da igual que `preparacion` no los use hoy, porque restar una clave que no
+-- está no hace nada (`jsonb - 'clave-ausente'` no falla ni cambia el objeto).
+--
 -- DOS AVISOS DE USO
 -- 1. Las funciones son TEMPORALES y van con prefijo `tmp_`: se crean, se usa la
 --    carga y se borran al final (§5). Es la práctica que ya seguían las cargas.
@@ -38,11 +44,14 @@
 
 -- ── 1 · Helpers · dejar la sesión sin rastro de ejecución ──────────────────
 
--- Quita `hechoEn` de cada ítem marcable, conservando el ítem entero.
+-- Quita `hechoEn` y los tres campos de ejecución del cardio (`duracionRealMin`,
+-- `distanciaKm`, `fcMedia`) de cada ítem marcable, conservando el ítem entero.
 create or replace function public.tmp_sin_marcas(p_items jsonb)
 returns jsonb language sql immutable as $fn$
   select coalesce((
-    select jsonb_agg((i - 'hechoEn') order by ord)
+    select jsonb_agg(
+             (i - 'hechoEn' - 'duracionRealMin' - 'distanciaKm' - 'fcMedia') order by ord
+           )
       from jsonb_array_elements(coalesce(p_items,'[]'::jsonb)) with ordinality as t(i, ord)
   ), '[]'::jsonb);
 $fn$;

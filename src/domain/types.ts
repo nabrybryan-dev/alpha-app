@@ -395,6 +395,39 @@ export interface PartePreparacion extends ItemMarcable {
   tipo: TipoPreparacion
 }
 
+/**
+ * UN BLOQUE DE CARDIO, CON LO QUE DE VERDAD PASÓ ENCIMA DE LO PRESCRITO.
+ *
+ * `duracionMin` (heredado de `ItemMarcable`) es lo PAUTADO — lo que el bloque pide hacer.
+ * Estos cuatro son lo REGISTRADO — lo que el asesorado anota al marcarlo hecho—, y por eso
+ * van aparte y no reescriben `duracionMin`: confundir pautado con ejecutado es la misma
+ * trampa que ya tiene su propia comprobación para fuerza
+ * (`supabase/comprobar-alineacion-ejecutada.sql`).
+ *
+ * Los cuatro son opcionales — anotar solo la duración y nada más sigue siendo un registro
+ * válido — y **ninguno se hereda** al clonar el microciclo siguiente: son ejecución, igual
+ * que `hechoEn`, y `tmp_sesion_en_limpio()` (`supabase/plantilla-carga-microciclo.sql`) los
+ * quita de la sesión nueva. Si se añade un campo de ejecución más aquí, hay que añadirlo
+ * también ahí (CLAUDE.md §«Cargas de microciclo»).
+ *
+ * Ritmo y velocidad NO se guardan: se derivan de `duracionRealMin` y `distanciaKm`
+ * (`domain/registroCardio.ts`) cada vez que hacen falta, para no tener dos números que
+ * puedan dejar de estar de acuerdo entre sí.
+ */
+export interface BloqueCardio extends ItemMarcable {
+  /** Minutos que de verdad duró, medidos por la persona (cronómetro, reloj, app externa). */
+  duracionRealMin?: number
+  /** Kilómetros recorridos. Ausente en cardio sin desplazamiento (bici estática sin
+   *  cuentakilómetros, escaladora, remo). */
+  distanciaKm?: number
+  /** Frecuencia cardíaca media de la sesión, en latidos por minuto. */
+  fcMedia?: number
+}
+
+/** Lo que `registrarEjecucionCardio` escribe encima de un bloque: los tres campos de
+ *  ejecución de `BloqueCardio`, todos opcionales — anotar solo uno ya es un registro válido. */
+export type RegistroCardioEjecutado = Pick<BloqueCardio, 'duracionRealMin' | 'distanciaKm' | 'fcMedia'>
+
 export interface Sesion {
   id: string
   nombre: string
@@ -453,7 +486,7 @@ export interface Sesion {
   ultimaMarcaEn?: string
   tipo?: 'fuerza' | 'metabolica'
   preparacion?: PartePreparacion[]
-  bloquesCardio?: ItemMarcable[]
+  bloquesCardio?: BloqueCardio[]
   ejercicios: EjercicioPrescrito[]
   testPost?: TestPostSesion
 }

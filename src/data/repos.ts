@@ -14,6 +14,7 @@ import type {
   MedidaCorporal,
   Mensaje,
   Microciclo,
+  RegistroCardioEjecutado,
   Perfil,
   PlanNutricional,
   PerfilNutricion,
@@ -122,6 +123,18 @@ export interface MicrociclosRepo {
   registrarSerie(microcicloId: string, ejercicioId: string, serie: SerieRegistrada): void
   guardarTestPost(microcicloId: string, sesionId: string, test: TestPostSesion): void
   marcarParte(microcicloId: string, sesionId: string, parteId: string): void
+  /**
+   * Anota lo que de verdad pasó en un bloque de cardio: duración real, distancia y FC
+   * media, todos opcionales — mezclados con lo que ya hubiera (`{ ...bloque, ...registro }`,
+   * nunca lo reemplaza entero). No toca `hechoEn`: marcar el bloque hecho y anotar sus
+   * detalles son dos acciones separadas.
+   */
+  registrarEjecucionCardio(
+    microcicloId: string,
+    sesionId: string,
+    bloqueId: string,
+    registro: RegistroCardioEjecutado,
+  ): void
 }
 
 export interface BienestarRepo {
