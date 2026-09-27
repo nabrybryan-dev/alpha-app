@@ -79,3 +79,43 @@ no arrancar la axila.
 **Y no se mueve.** Es una postura fija. El sujeto que se contrae —el vientre engorda al
 acortarse— sigue siendo el de `domain/patrones/`. Conviven: uno es la anatomía cierta, el
 otro es el movimiento.
+
+## Versión alta (landing)
+
+Para el sujeto 3D de la landing (que se ve de cerca, no en una pantalla de teléfono) se
+regenera con menos recorte, y en otra carpeta para no tocar lo que usa la app.
+`convertir-atlas.mts` admite ahora un modo aparte por variables de entorno —sin variables,
+produce EXACTAMENTE lo mismo que antes—:
+
+```sh
+ATLAS_LANDING=1 \
+ATLAS_SALIDA_DIR=public/piezas/landing \
+ATLAS_SUFIJO=-alta \
+npx vite-node scripts/atlas/convertir-atlas.mts -- /ruta/a/atlas
+```
+
+`ATLAS_LANDING=1` cambia tres cosas:
+
+- **solo usa el atlas masculino** (BodyParts3D): no hace falta bajar ni el atlas femenino
+  ni sus `female-*.bin.gz`, solo los 15 `body-*.bin.gz`;
+- **la piel sale del propio `Skin` de BodyParts3D** (sistema `integumentary`, una sola
+  malla de 44.744 triángulos que cubre el cuerpo entero), no del atlas femenino: comparte
+  postura y escala con el esqueleto y los músculos de esa misma fuente, así que no necesita
+  el giro de brazos (`colgarBrazos`) que sí hace falta con la piel femenina;
+- **recorta menos**: músculos al 40 % (antes 15 %), esqueleto al 25 % con un error máximo
+  de 1,5 % (antes 15 % con 3 %), y la piel se deja en el mismo 15 % de siempre
+  (`ATLAS_RECORTE_PIEL`, que por defecto es la constante `RECORTE` del script).
+
+Salen a `public/piezas/landing/atlas-{esqueleto,musculos,piel}-alta.pieza(.br)`, sin
+reemplazar los de la app (que quedan en `public/piezas/atlas-*.pieza`).
+
+Medido el 2026-09-27, sobre los 15 `body-*.bin.gz` de `ashemag/human-atlas`:
+
+| capa | estructuras | triángulos (bruto → final) | `.pieza` | comprimida | error máx |
+|---|---|---|---|---|---|
+| esqueleto (alta) | 296 | 338.056 → 89.362 | 1,09 MB | 0,64 MB | 1,50 % |
+| músculos (alta) | 402 | 656.120 → 261.178 | 3,16 MB | 1,87 MB | 1,56 % |
+| piel (alta, `Skin` de BodyParts3D) | 1 | 44.744 → 6.710 | 0,08 MB | 0,05 MB | 0,14 % |
+
+Ningún archivo pasa de 1 MB de sobra: el conjunto pesa 4,33 MB sin comprimir y 2,56 MB
+comprimido, muy lejos del límite de 50 MB por archivo.

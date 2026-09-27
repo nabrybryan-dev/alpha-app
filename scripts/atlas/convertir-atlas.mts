@@ -56,6 +56,32 @@ const ERROR_MAXIMO = 0.03
 const MINIMO_TRIANGULOS = 24
 
 /**
+ * MODO LANDING (alta calidad), para F1 (sujeto 3D de la landing).
+ *
+ * Por defecto (sin variables de entorno) el script produce EXACTAMENTE lo mismo que antes:
+ * `public/piezas/atlas-*.pieza`, con los recortes de siempre. Con `ATLAS_LANDING=1` se activa
+ * una tirada aparte, en otra carpeta y con otro sufijo, que:
+ *   - solo usa el atlas MASCULINO (BodyParts3D): no hace falta bajar el atlas femenino;
+ *   - saca la piel del propio `Skin` de BodyParts3D (no del atlas femenino), porque ya
+ *     comparte postura y escala con el esqueleto y los músculos de esa misma fuente;
+ *   - recorta menos (más triángulos) porque aquí el sujeto se ve de cerca, no en una
+ *     pantalla de teléfono.
+ * Los valores por capa salen de `ATLAS_RECORTE_*` / `ATLAS_ERROR_*`, con estos por defecto
+ * para el modo landing si no se fija nada más.
+ */
+const LANDING = process.env.ATLAS_LANDING === '1'
+const SALIDA_DIR = process.env.ATLAS_SALIDA_DIR || 'public/piezas'
+const SUFIJO = process.env.ATLAS_SUFIJO || ''
+const numEnv = (nombre: string, porDefecto: number) => {
+  const v = process.env[nombre]
+  return v ? Number(v) : porDefecto
+}
+const RECORTE_MUSCULOS = numEnv('ATLAS_RECORTE_MUSCULOS', LANDING ? 0.4 : 0.15)
+const RECORTE_ESQUELETO = numEnv('ATLAS_RECORTE_ESQUELETO', LANDING ? 0.25 : 0.15)
+const RECORTE_PIEL = numEnv('ATLAS_RECORTE_PIEL', LANDING ? RECORTE : 0.3)
+const ERROR_ESQUELETO = numEnv('ATLAS_ERROR_ESQUELETO', LANDING ? 0.015 : ERROR_MAXIMO)
+
+/**
  * EL ENCAJE CON NUESTRO SUJETO, hueso por hueso.
  *
  * Los dos miden lo mismo —el atlas va de 0,005 a 1,714 y nuestro esqueleto de 0,076 a
@@ -172,6 +198,8 @@ interface Grupo {
   color: [number, number, number]
   /** Cuánto se conserva. Una piel es UNA superficie grande y aguanta menos recorte que un hueso. */
   recorte: number
+  /** Error máximo propio del grupo. Si falta, se usa el global `ERROR_MAXIMO`. */
+  error?: number
   /**
    * Si los brazos se cuelgan al lado del cuerpo. El atlas femenino viene en posición
    * anatómica —brazos abiertos unos 18°— y nuestro sujeto los lleva colgando a 7°. Sin
@@ -198,8 +226,12 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo;
     grupos: {
       // El hueso lleva el mismo tono que el esqueleto que ya dibuja la app, para que al
       // superponerlos no parezcan dos anatomías distintas.
-      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: 0.15 },
-      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: 0.15 },
+      esqueleto: { sistemas: ['skeletal'], color: [0.855, 0.835, 0.783], recorte: RECORTE_ESQUELETO, error: ERROR_ESQUELETO },
+      musculos: { sistemas: ['muscular'], color: [0.62, 0.24, 0.22], recorte: RECORTE_MUSCULOS },
+      // Solo en modo landing: la propia piel de BodyParts3D («Skin», sistema integumentary).
+      // No hace falta el atlas femenino porque ya comparte postura y escala con el esqueleto
+      // y los músculos de aquí mismo —por eso tampoco lleva `colgarBrazos`—.
+      ...(LANDING ? { piel: { nombres: ['Skin'], color: [0.72, 0.6, 0.53], recorte: RECORTE_PIEL } } : {}),
     },
   },
   femenino: {
@@ -209,7 +241,7 @@ const FUENTES: Record<string, { manifiesto: string; prefijo: string; sexo: Sexo;
     grupos: {
       // Solo la superficie. Las otras 16 piezas «integumentary» son tejido interno de la
       // mama (lóbulos, conductos), que no es piel ni se ve desde fuera.
-      piel: { nombres: ['skin of body'], color: [0.72, 0.6, 0.53], recorte: 0.3, colgarBrazos: true },
+      piel: { nombres: ['skin of body'], color: [0.72, 0.6, 0.53], recorte: RECORTE_PIEL, colgarBrazos: true },
     },
   },
 }
@@ -232,9 +264,12 @@ async function main() {
   const { MeshoptSimplifier } = await import(pathToFileURL(`${dir}/node_modules/meshoptimizer/index.js`).href)
   await MeshoptSimplifier.ready
 
-  mkdirSync('public/piezas', { recursive: true })
+  mkdirSync(SALIDA_DIR, { recursive: true })
 
   for (const [sexo, fuente] of Object.entries(FUENTES)) {
+    // En modo landing solo hace falta el atlas masculino: esqueleto, músculos y ahora
+    // también su propia piel. El femenino no se descarga siquiera.
+    if (LANDING && sexo === 'femenino') continue
     // NUESTRO esqueleto en reposo, para sacar de él las alturas de referencia.
     // Cada atlas se encaja contra el juego de huesos de SU sexo: el masculino contra el
     // varón —que desde el 2026-09-06 es el defecto y tiene sus mismas medidas, así que el
@@ -381,7 +416,7 @@ async function main() {
           pos,
           3,
           Math.min(indice.length, objetivo),
-          ERROR_MAXIMO,
+          grupo.error ?? ERROR_MAXIMO,
         )
         errorMaximo = Math.max(errorMaximo, error)
 
@@ -432,7 +467,7 @@ async function main() {
       })
 
       const bytes = escribirPieza(salida)
-      const ruta = `public/piezas/atlas-${nombre}.pieza`
+      const ruta = `${SALIDA_DIR}/atlas-${nombre}${SUFIJO}.pieza`
       writeFileSync(ruta, Buffer.from(bytes))
       const br = brotliCompressSync(Buffer.from(bytes), {
         params: {
