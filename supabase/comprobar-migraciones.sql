@@ -1987,4 +1987,10 @@ union all
 select '0090 - bucket creadores-cuadros privado', 'storage.buckets creadores-cuadros con public = false',
        case when exists (select 1 from storage.buckets where id = 'creadores-cuadros' and public = false)
             then 'SI' else 'NO' end
+union all
+-- La 0091: la unicidad de creadores_revisiones incluye al creador.
+select '0091 - creadores_revisiones única por (revision_id, creador_id, revisor, rol_reel)', 'constraint creadores_revisiones_unica_por_creador y sin el unique viejo sin creador',
+       case when exists (select 1 from pg_constraint where conname = 'creadores_revisiones_unica_por_creador' and contype = 'u')
+             and not exists (select 1 from pg_constraint where conname = 'creadores_revisiones_revision_id_revisor_rol_reel_key')
+            then 'SI' else 'NO' end
 order by migracion, senal;

@@ -54,6 +54,17 @@ insert into public.creadores_revisiones
   ('etapa2-28sep', 'ig:900000001', 'astra', 'reciente_1', '17894876838608374',
    'https://www.instagram.com/reel/DdrXjLohE-k/', '{"H":2,"C":1,"P":2,"T":2,"CTA":0,"S":2}', now());
 
+-- 5b · Dos creadores con el mismo rol de reel en la misma vuelta NO chocan (0091): el
+-- «reciente_1» de uno no se come el del otro.
+insert into public.creadores_revisiones
+  (revision_id, creador_id, revisor, rol_reel, media_id, notas, fecha_revision)
+values ('etapa2-28sep', 'ig:900000002', 'claude', 'reciente_1', '17894876838608375', '{"H":1}', now())
+on conflict (revision_id, creador_id, revisor, rol_reel) do nothing;
+select pruebas.afirmar(
+  (select count(*) from public.creadores_revisiones where revision_id = 'etapa2-28sep' and revisor = 'claude' and rol_reel = 'reciente_1') = 2,
+  'la revisión de un creador se comió la de otro con el mismo rol de reel'
+);
+
 insert into public.creadores_eventos (event_id, creador_id, carril_anterior, carril_nuevo, motivo, actor, fecha_dato)
 values ('ig:900000001:tambaleando:1', 'ig:900000001', 'etapa2', 'tambaleando', 'C 1,8', 'importador', now());
 
@@ -101,6 +112,7 @@ select pruebas.exigir_rls();
 select pruebas.afirmar(
   (select count(*) from public.creadores_candidatos where creador_id like 'ig:90000000%') = 2
   and (select count(*) from public.creadores_revisiones where creador_id = 'ig:900000001') = 2
+  and (select count(*) from public.creadores_revisiones where creador_id = 'ig:900000002') = 1
   and (select count(*) from public.creadores_eventos where creador_id = 'ig:900000001') = 1,
   'quien tiene revisar_creadores no ve el tablero completo'
 );
