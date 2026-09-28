@@ -1,0 +1,20 @@
+{
+ "piezas_mejoradas": 50,
+ "factor_crecimiento": 1.56,
+ "movil_grupos": {
+  "mejor": 107752,
+  "profundo": 96886,
+  "resto": 94638
+ },
+ "movil_factores": {
+  "mejor": 0.42569400820647163,
+  "profundo": 0.42569400820647163,
+  "resto": 0.426
+ },
+ "tri_escritorio": 299276,
+ "bytes_escritorio": 3636040,
+ "tri_movil": 134327,
+ "bytes_movil": 1655552,
+ "partes_escritorio": 522,
+ "partes_movil": 522
+}
