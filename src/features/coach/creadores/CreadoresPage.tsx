@@ -3,6 +3,7 @@ import {
   NOMBRE_CARRIL,
   S_MINIMA,
   candidatosDelTablero,
+  eventosDelTablero,
   mediaDimension,
   porCarril,
   resumenS,
@@ -43,8 +44,18 @@ const FILAS_EMBUDO: { clave: keyof Embudo; etiqueta: string; rojo?: boolean; ten
  * carriles reales (`embudoDe`). Las barras se miden contra los candidatos en el tablero, que
  * es el total del que sale cada paso; con cero no hay barra que dibujar.
  */
-function CabeceraEmbudo({ embudo }: { embudo: Embudo }) {
+function CabeceraEmbudo({
+  embudo,
+  falloHistoria,
+  onReintentarHistoria,
+}: {
+  embudo: Embudo
+  /** Motivo si la historia (`creadores_eventos`) no se pudo leer; «contactados» queda en «—». */
+  falloHistoria: string | null
+  onReintentarHistoria: () => void
+}) {
   const total = embudo.enTablero
+  const contactados = embudo.contactados
   return (
     <>
       <div role="group" aria-label="Cifras de la bola de nieve" className="entrada entrada-1 grid grid-cols-3 gap-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
@@ -57,17 +68,24 @@ function CabeceraEmbudo({ embudo }: { embudo: Embudo }) {
           <span className="text-xs text-tenue">por decidir</span>
         </div>
         <div className="flex min-w-0 flex-col gap-1">
-          <Cifra3D valor={embudo.contactados} etiqueta={`${embudo.contactados} contactados`} />
+          <Cifra3D
+            valor={contactados ?? undefined}
+            etiqueta={contactados === null ? 'contactados: sin la historia no se sabe' : `${contactados} contactados`}
+          />
           <span className="text-xs text-tenue">contactados</span>
         </div>
       </div>
 
       <section aria-label="El embudo hoy" className="entrada entrada-2 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">El embudo hoy</p>
+        {falloHistoria !== null && (
+          // «Contactados» sale de la historia (E-05): si no se pudo leer, se dice, no se inventa.
+          <FalloDeLectura pequeno texto={`No se pudo leer la historia de contactos (${falloHistoria}).`} onReintentar={onReintentarHistoria} />
+        )}
         <ul className="flex flex-col gap-2.5">
           {FILAS_EMBUDO.map((f) => {
             const n = embudo[f.clave]
-            const pct = total > 0 ? Math.min(100, (n / total) * 100) : 0
+            const pct = n !== null && total > 0 ? Math.min(100, (n / total) * 100) : 0
             return (
               <li key={f.clave} className="grid grid-cols-[9rem_minmax(0,1fr)_2.5rem] items-center gap-2 text-[13px]">
                 <span className={f.rojo ? 'font-bold text-rojo' : 'text-texto'}>{f.etiqueta}</span>
@@ -79,7 +97,7 @@ function CabeceraEmbudo({ embudo }: { embudo: Embudo }) {
                     />
                   )}
                 </div>
-                <span className={`cifras text-right text-sm font-bold ${f.rojo ? 'text-rojo' : 'text-texto'}`}>{n}</span>
+                <span className={`cifras text-right text-sm font-bold ${f.rojo ? 'text-rojo' : 'text-texto'}`}>{n ?? '—'}</span>
               </li>
             )
           })}
@@ -142,10 +160,16 @@ function useLectura<T>(leer: () => Promise<Lectura<T>>): { lectura: Lectura<T> |
   return { lectura, reintentar }
 }
 
+/**
+ * Reels y evaluaciones son unidades distintas (N-02): «reels» cuenta `media_id` distintos;
+ * «evaluaciones», las filas (un revisor sobre un reel). El mínimo es sobre todas las notas.
+ */
 function textoS(s: ReturnType<typeof resumenS>): string {
   const minimo = s.minimo === null ? 'S mínima sin nota' : `S mínima ${s.minimo.toLocaleString('es-CO')}`
-  const pend = s.pendientes > 0 ? ` · ${s.pendientes} ${s.pendientes === 1 ? 'pendiente' : 'pendientes'}` : ''
-  return `${minimo} · ${s.conNota} de ${s.total} reels con S${pend}`
+  const reels = `${s.reelsConS} de ${s.reels} ${s.reels === 1 ? 'reel' : 'reels'} con S`
+  const evaluaciones = `${s.total} ${s.total === 1 ? 'evaluación' : 'evaluaciones'}`
+  const sinS = s.pendientes > 0 ? ` (${s.pendientes} sin S)` : ''
+  return `${minimo} · ${reels} · ${evaluaciones}${sinS}`
 }
 
 function DetalleRevisiones({ creadorId }: { creadorId: string }) {
@@ -304,6 +328,7 @@ function TarjetaCandidato({ candidato }: { candidato: Candidato }) {
 
 export default function CreadoresPage() {
   const { lectura, reintentar } = useLectura(candidatosDelTablero)
+  const { lectura: historia, reintentar: reintentarHistoria } = useLectura(eventosDelTablero)
 
   if (lectura === null) {
     return <p className="text-sm text-tenue" aria-busy="true">Cargando el tablero de creadores…</p>
@@ -326,7 +351,9 @@ export default function CreadoresPage() {
     ...grupos.filter((g) => g.carril === 'entrenador'),
   ]
   const ultimaRecepcion = candidatos.map((c) => c.fechaRecepcion).sort().at(-1)
-  const embudo = embudoDe(candidatos)
+  // Mientras la historia llega, o si falló, «contactados» es desconocido (E-05).
+  const embudo = embudoDe(candidatos, historia?.ok ? historia.datos : null)
+  const falloHistoria = historia !== null && !historia.ok ? historia.error : null
 
   return (
     <div className="flex flex-col gap-5">
@@ -352,7 +379,7 @@ export default function CreadoresPage() {
       {candidatos.length === 0 ? (
         <p className="text-sm text-tenue">Todavía no hay creadores en el tablero.</p>
       ) : (
-        <CabeceraEmbudo embudo={embudo} />
+        <CabeceraEmbudo embudo={embudo} falloHistoria={falloHistoria} onReintentarHistoria={reintentarHistoria} />
       )}
 
       {orden

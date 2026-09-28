@@ -5,7 +5,7 @@
  * más baja: la cartera sale del seed ficticio (Valentina, Mateo, Sara) con el mismo
  * `resumenAsesorado` que usa la consola, y «Por aprobar» cuenta lo que las bandejas leen.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../data/dbInstance'
@@ -30,9 +30,13 @@ vi.mock('../../app/SessionProvider', () => {
   return { useSesion: sesion, useSesionOpcional: sesion }
 })
 
-vi.mock('../coach/consola/useCapacidades', () => ({
-  useCapacidades: () => ({ cargando: false, tiene: (c: string) => estado.capacidades.has(c), usuarioId: 'u-manuela' }),
-}))
+// Las capacidades se sustituyen en su capa más baja (la consulta a `capacidades_staff`), y se
+// leen EN CADA llamada: así se ve si la pantalla vuelve a preguntar cuando el permiso cambia
+// a mitad de sesión (E-11), en vez de quedarse con la primera respuesta.
+vi.mock('../../data/consola/capacidadesStaff', async (original) => {
+  const real = await original<typeof import('../../data/consola/capacidadesStaff')>()
+  return { ...real, capacidadesDe: () => Promise.resolve([...estado.capacidades]) }
+})
 
 vi.mock('../../data/consola/primerosPlanes', () => ({
   primerosPlanesPendientes: () => Promise.resolve(estado.primeros),
@@ -43,6 +47,7 @@ vi.mock('../../data/consola/planesRenovados', () => ({
 }))
 
 const { default: EquipoPage } = await import('./EquipoPage')
+const { REVALIDAR_CAPACIDADES_MS } = await import('./useCapacidadesVigentes')
 
 function pintar() {
   return render(
@@ -67,9 +72,10 @@ beforeEach(() => {
 })
 
 describe('EquipoPage', () => {
-  it('la cartera va con su semáforo: los que piden atención primero, con su motivo', () => {
+  it('la cartera va con su semáforo: los que piden atención primero, con su motivo', async () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     pintar()
+    await screen.findByRole('link', { name: 'Abrir la consola completa' })
     const cartera = screen.getByRole('region', { name: 'Cartera' })
     const resumenes = db.usuarios.entrenan().map((u) => resumenAsesorado(db, u))
     const atencion = resumenes.filter((r) => r.semaforo.color !== 'verde')
@@ -88,16 +94,18 @@ describe('EquipoPage', () => {
     expect(screen.getByText(new RegExp(`${resumenes.length} personas · ${atencion.length} pide`))).toBeInTheDocument()
   })
 
-  it('sin capacidades no pinta «Por aprobar» ni la consola, y la cartera no enlaza a ella', () => {
+  it('sin capacidades no pinta «Por aprobar» ni la consola, y la cartera no enlaza a ella', async () => {
     pintar()
+    await screen.findByText(/permiso de leer el entrenamiento/)
     expect(screen.queryByText('Por aprobar')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Abrir la consola completa' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Cartera' })).queryAllByRole('link')).toHaveLength(0)
   })
 
-  it('sin leer_entrenamiento la cartera no muestra nombres ni semáforos, solo por qué (E-11)', () => {
+  it('sin leer_entrenamiento la cartera no muestra nombres ni semáforos, solo por qué (E-11)', async () => {
     estado.capacidades = new Set(['aprobar_primer_plan'])
     pintar()
+    await screen.findByText(/permiso de leer el entrenamiento/)
     const cartera = screen.getByRole('region', { name: 'Cartera' })
     for (const u of db.usuarios.entrenan()) {
       expect(within(cartera).queryByText(u.nombre)).not.toBeInTheDocument()
@@ -126,10 +134,10 @@ describe('EquipoPage', () => {
     expect(screen.queryByText(/renovado/)).not.toBeInTheDocument()
   })
 
-  it('con leer_entrenamiento, cada fila abre la consola ya puesta en esa persona', () => {
+  it('con leer_entrenamiento, cada fila abre la consola ya puesta en esa persona', async () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     pintar()
-    expect(screen.getByRole('link', { name: 'Abrir la consola completa' })).toHaveAttribute('href', '/coach/consola')
+    expect(await screen.findByRole('link', { name: 'Abrir la consola completa' })).toHaveAttribute('href', '/coach/consola')
     const cartera = screen.getByRole('region', { name: 'Cartera' })
     const boton = within(cartera).queryByRole('button')
     if (boton) fireEvent.click(boton)
@@ -140,8 +148,10 @@ describe('EquipoPage', () => {
     expect(db.usuarios.entrenan().map((u) => u.id)).toContain(guardado.persona)
   })
 
-  it('lleva a los mensajes y ya no trae la tarjeta de nutrición del equipo', () => {
+  it('lleva a los mensajes y ya no trae la tarjeta de nutrición del equipo', async () => {
     pintar()
+    // Espera a que lleguen las capacidades: sin esto, su respuesta pinta fuera de act().
+    await screen.findByText(/permiso de leer el entrenamiento/)
     expect(screen.getByRole('link', { name: /Mensajes/ })).toHaveAttribute('href', '/chat')
     expect(screen.queryByText('Nutrición del equipo')).not.toBeInTheDocument()
   })
@@ -151,5 +161,67 @@ describe('EquipoPage', () => {
     pintar()
     expect(screen.getByText('Portada')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Cartera' })).not.toBeInTheDocument()
+  })
+
+  /** Alguien de la cartera que no es Manuela: su nombre es lo que no debe quedar a la vista. */
+  const alguien = () => db.usuarios.entrenan().find((u) => u.id !== 'u-manuela')!
+
+  async function carteraVisible() {
+    pintar()
+    const cartera = await screen.findByRole('region', { name: 'Cartera' })
+    await screen.findByRole('link', { name: 'Abrir la consola completa' })
+    const boton = within(cartera).queryByRole('button', { name: /al día/ })
+    if (boton) fireEvent.click(boton)
+    expect(within(cartera).getByText(alguien().nombre)).toBeInTheDocument()
+    return cartera
+  }
+
+  it('si le quitan leer_entrenamiento a mitad de sesión, al volver a la pestaña la cartera se retira (E-11)', async () => {
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    const cartera = await carteraVisible()
+    estado.capacidades = new Set()
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await waitFor(() => expect(within(cartera).queryByText(alguien().nombre)).not.toBeInTheDocument())
+    expect(within(cartera).getByText(/permiso de leer el entrenamiento/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Abrir la consola completa' })).not.toBeInTheDocument()
+  })
+
+  it('también al volver a hacerse visible la página (visibilitychange)', async () => {
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    const cartera = await carteraVisible()
+    estado.capacidades = new Set()
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await waitFor(() => expect(within(cartera).queryByText(alguien().nombre)).not.toBeInTheDocument())
+  })
+
+  it('y sola, cada pocos minutos, aunque la pestaña nunca pierda el foco', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      estado.capacidades = new Set(['leer_entrenamiento'])
+      const cartera = await carteraVisible()
+      estado.capacidades = new Set()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(REVALIDAR_CAPACIDADES_MS + 10)
+      })
+      await waitFor(() => expect(within(cartera).queryByText(alguien().nombre)).not.toBeInTheDocument())
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('«Por aprobar» también se retira si le quitan la capacidad a mitad de sesión (E-11)', async () => {
+    estado.capacidades = new Set(['aprobar_primer_plan'])
+    estado.primeros = [{ estado: 'propuesto' }]
+    pintar()
+    expect(await screen.findByText('1 por aprobar')).toBeInTheDocument()
+    estado.capacidades = new Set()
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await waitFor(() => expect(screen.queryByText('Por aprobar')).not.toBeInTheDocument())
   })
 })

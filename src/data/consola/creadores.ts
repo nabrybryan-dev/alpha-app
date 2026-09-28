@@ -220,51 +220,86 @@ const MAX_PETICIONES = 500
 
 type RespuestaPagina = { data: unknown; error: { message?: string } | null; count?: number | null }
 
+/** Una página: las filas cuya clave es mayor que `despuesDe` (o desde el principio), por clave. */
+export type PedirPagina = (despuesDe: string | null, tam: number) => PromiseLike<RespuestaPagina>
+/** El conteo exacto de TODO el universo de la lectura (mismos filtros, sin cursor). */
+export type PedirConteo = () => PromiseLike<RespuestaPagina>
+
 /**
- * Lee TODAS las filas pidiendo `range` hasta completar el conteo exacto (E-06). Avanza por
- * lo que de verdad llegó, así que un `max-rows` menor que la página no trunca: sigue
- * pidiendo. Si una página llega vacía antes de completar el conteo, es un error (lectura
- * incompleta), no un final.
+ * Lee TODAS las filas con un CURSOR sobre una clave única que no cambia (N-01 de la revisión
+ * de Codex del 28-sep), nunca por posición.
+ *
+ * Por qué no por posición (`range` sobre `actualizado_en`, lo que había): si una fila cambia
+ * entre dos peticiones, el orden se corre y la segunda página repite una fila y se salta otra
+ * —con [A,B,C,D], tras [A,B] se actualiza D, el orden pasa a [D,A,B,C] y llegaba [B,C]—, y el
+ * conteo seguía dando 4: la lectura pasaba por completa con B dos veces y sin D.
+ *
+ * Con el cursor (`clave > última vista`, ordenado por esa clave), una fila que existe durante
+ * toda la lectura sale exactamente una vez, cambie lo que cambie en sus otras columnas. Además:
+ *   · se sigue pidiendo hasta una página VACÍA, así que un `max-rows` menor que `tam` no trunca;
+ *   · una clave repetida es un error («fila repetida»), no una fila más;
+ *   · al terminar se cuenta el universo entero: si no coincide con lo leído, la tabla cambió
+ *     por detrás del cursor a mitad de lectura y la lectura se da por INCOMPLETA (se reintenta),
+ *     en vez de entregarse como completa.
+ * Lo que no cubre (y no se promete): un borrado y una inserción por detrás del cursor dentro
+ * de la misma lectura se compensan en el conteo. El importador no borra candidatos.
  */
 export async function leerTodasLasPaginas<F>(
-  pagina: (desde: number, hasta: number) => PromiseLike<RespuestaPagina>,
+  pagina: PedirPagina,
+  contar: PedirConteo,
+  claveDe: (fila: F) => string,
   tam = TAM_PAGINA,
 ): Promise<Lectura<F[]>> {
   const filas: F[] = []
-  for (let peticion = 0; peticion < MAX_PETICIONES; peticion++) {
-    const { data, error, count } = await pagina(filas.length, filas.length + tam - 1)
+  const vistas = new Set<string>()
+  let cursor: string | null = null
+  for (let peticion = 0; ; peticion++) {
+    if (peticion >= MAX_PETICIONES) return { ok: false, error: `lectura incompleta: más de ${MAX_PETICIONES} peticiones` }
+    const { data, error } = await pagina(cursor, tam)
     if (error) return { ok: false, error: error.message || 'la consulta falló' }
     if (!Array.isArray(data)) return { ok: false, error: 'la respuesta no trajo filas' }
-    filas.push(...(data as F[]))
-    const total = typeof count === 'number' ? count : null
-    if (total !== null && filas.length >= total) return { ok: true, datos: filas }
-    if (data.length === 0) {
-      return total === null || filas.length >= total
-        ? { ok: true, datos: filas }
-        : { ok: false, error: `lectura incompleta: ${filas.length} de ${total} filas` }
+    if (data.length === 0) break
+    for (const fila of data as F[]) {
+      const clave = claveDe(fila)
+      if (vistas.has(clave)) return { ok: false, error: `lectura inconsistente: fila repetida (${clave})` }
+      vistas.add(clave)
+      filas.push(fila)
     }
-    if (total === null && data.length < tam) return { ok: true, datos: filas }
+    cursor = claveDe((data as F[])[data.length - 1])
   }
-  return { ok: false, error: `lectura incompleta: más de ${MAX_PETICIONES} peticiones` }
+  const conteo = await contar()
+  if (conteo.error) return { ok: false, error: conteo.error.message || 'el conteo falló' }
+  if (typeof conteo.count !== 'number') return { ok: false, error: 'la respuesta no trajo el conteo' }
+  if (conteo.count !== filas.length) {
+    return { ok: false, error: `lectura incompleta: ${filas.length} de ${conteo.count} filas (la tabla cambió durante la lectura)` }
+  }
+  return { ok: true, datos: filas }
 }
 
 const motivoDe = (e: unknown) => (e instanceof Error && e.message ? e.message : 'la consulta falló')
 
-/** Todos los candidatos visibles. Nunca lanza. En demo, un vacío confirmado. */
+/** Lo más reciente primero, con desempate estable por la clave. */
+const porFechaDesc = <T>(fecha: (x: T) => string, clave: (x: T) => string) => (a: T, b: T) =>
+  fecha(b).localeCompare(fecha(a)) || clave(a).localeCompare(clave(b))
+
+/** Todos los candidatos visibles, el más recién actualizado primero. Nunca lanza. En demo, un vacío confirmado. */
 export async function candidatosDelTablero(): Promise<Lectura<Candidato[]>> {
   if (!modoNube) return { ok: true, datos: [] }
   try {
-    const r = await leerTodasLasPaginas<FilaCandidato>((desde, hasta) =>
-      supabase()
-        .from(TABLA_CREADORES_CANDIDATOS)
-        .select(COLUMNAS_CREADORES_CANDIDATOS.join(','), { count: 'exact' })
-        .order('actualizado_en', { ascending: false })
-        // Desempate estable: sin él, dos páginas podrían repetir o saltarse una fila.
-        .order('creador_id', { ascending: true })
-        .range(desde, hasta),
+    const r = await leerTodasLasPaginas<FilaCandidato>(
+      (despuesDe, tam) => {
+        let q = supabase().from(TABLA_CREADORES_CANDIDATOS).select(COLUMNAS_CREADORES_CANDIDATOS.join(','))
+        if (despuesDe !== null) q = q.gt('creador_id', despuesDe)
+        // El cursor es la clave primaria: no cambia al actualizarse la fila.
+        return q.order('creador_id', { ascending: true }).limit(tam)
+      },
+      () => supabase().from(TABLA_CREADORES_CANDIDATOS).select('creador_id', { count: 'exact', head: true }),
+      (f) => f.creador_id,
     )
     if (!r.ok) return r
-    return { ok: true, datos: r.datos.map(aCandidato).filter((c): c is Candidato => c !== null) }
+    const datos = r.datos.map(aCandidato).filter((c): c is Candidato => c !== null)
+    datos.sort(porFechaDesc((c) => c.actualizadoEn, (c) => c.creadorId))
+    return { ok: true, datos }
   } catch (e) {
     return { ok: false, error: motivoDe(e) }
   }
@@ -274,17 +309,70 @@ export async function candidatosDelTablero(): Promise<Lectura<Candidato[]>> {
 export async function revisionesDe(creadorId: string): Promise<Lectura<RevisionReel[]>> {
   if (!modoNube || !creadorId) return { ok: true, datos: [] }
   try {
-    const r = await leerTodasLasPaginas<FilaRevision>((desde, hasta) =>
-      supabase()
-        .from(TABLA_CREADORES_REVISIONES)
-        .select(COLUMNAS_CREADORES_REVISIONES.join(','), { count: 'exact' })
-        .eq('creador_id', creadorId)
-        .order('fecha_revision', { ascending: false })
-        .order('id', { ascending: true })
-        .range(desde, hasta),
+    const r = await leerTodasLasPaginas<FilaRevision>(
+      (despuesDe, tam) => {
+        let q = supabase().from(TABLA_CREADORES_REVISIONES).select(COLUMNAS_CREADORES_REVISIONES.join(',')).eq('creador_id', creadorId)
+        if (despuesDe !== null) q = q.gt('id', despuesDe)
+        return q.order('id', { ascending: true }).limit(tam)
+      },
+      () =>
+        supabase().from(TABLA_CREADORES_REVISIONES).select('id', { count: 'exact', head: true }).eq('creador_id', creadorId),
+      (f) => f.id,
     )
     if (!r.ok) return r
-    return { ok: true, datos: r.datos.map(aRevision).filter((x): x is RevisionReel => x !== null) }
+    const datos = r.datos.map(aRevision).filter((x): x is RevisionReel => x !== null)
+    datos.sort(porFechaDesc((x) => x.fechaRevision, (x) => x.id))
+    return { ok: true, datos }
+  } catch (e) {
+    return { ok: false, error: motivoDe(e) }
+  }
+}
+
+export const TABLA_CREADORES_EVENTOS = 'creadores_eventos'
+/** Solo lo que el embudo necesita de la historia (el resto de columnas no sale del servidor). */
+export const COLUMNAS_CREADORES_EVENTOS = ['id', 'creador_id', 'carril_nuevo', 'fecha_dato'] as const
+
+/** Un movimiento de carril de `creadores_eventos` (la historia del embudo). */
+export interface EventoCarril {
+  id: string
+  creadorId: string
+  carrilNuevo: Carril
+  fechaDato: string
+}
+
+interface FilaEvento {
+  id: string
+  creador_id: string
+  carril_nuevo: string
+  fecha_dato: string
+}
+
+/** Un carril fuera de vocabulario se descarta (no se disfraza). */
+export function aEvento(fila: FilaEvento): EventoCarril | null {
+  if (!(CARRILES as readonly string[]).includes(fila.carril_nuevo)) return null
+  return { id: fila.id, creadorId: fila.creador_id, carrilNuevo: fila.carril_nuevo as Carril, fechaDato: fila.fecha_dato }
+}
+
+/**
+ * La historia entera del embudo (E-05): de aquí sale «contactados», que no puede depender del
+ * carril de HOY (un contactado que después se descarta sigue siendo alguien a quien se
+ * escribió). El importador deja un evento por carril alcanzado (`<creador>:<carril>`) y no lo
+ * borra al moverse. Nunca lanza.
+ */
+export async function eventosDelTablero(): Promise<Lectura<EventoCarril[]>> {
+  if (!modoNube) return { ok: true, datos: [] }
+  try {
+    const r = await leerTodasLasPaginas<FilaEvento>(
+      (despuesDe, tam) => {
+        let q = supabase().from(TABLA_CREADORES_EVENTOS).select(COLUMNAS_CREADORES_EVENTOS.join(','))
+        if (despuesDe !== null) q = q.gt('id', despuesDe)
+        return q.order('id', { ascending: true }).limit(tam)
+      },
+      () => supabase().from(TABLA_CREADORES_EVENTOS).select('id', { count: 'exact', head: true }),
+      (f) => f.id,
+    )
+    if (!r.ok) return r
+    return { ok: true, datos: r.datos.map(aEvento).filter((x): x is EventoCarril => x !== null) }
   } catch (e) {
     return { ok: false, error: motivoDe(e) }
   }
@@ -318,24 +406,33 @@ export function mediaDimension(revisiones: RevisionReel[], dimension: string): n
 export const S_MINIMA = 2
 
 export interface ResumenS {
-  /** La S más baja conocida; `null` si ningún reel la trae. */
+  /** La S más baja conocida entre TODAS las evaluaciones; `null` si ninguna la trae. */
   minimo: number | null
   /** Alguna S conocida por debajo de `S_MINIMA`. */
   bajo: boolean
-  /** Reels con S conocida. */
+  /** EVALUACIONES (una fila = un revisor sobre un reel) con S conocida. */
   conNota: number
-  /** Reels con S pendiente (nula o sin la dimensión). */
+  /** Evaluaciones con S pendiente (nula o sin la dimensión). */
   pendientes: number
+  /** Evaluaciones en total. Dos revisores del mismo reel son dos evaluaciones, no dos reels. */
   total: number
+  /** Reels distintos (por `media_id`). */
+  reels: number
+  /** Reels con al menos una S conocida. */
+  reelsConS: number
 }
 
 /**
  * La seguridad S se resume por su MÍNIMO, nunca por su media (E-03): un S=1 junto a un S=3
- * es un veto, no un «2». Con la cobertura y los pendientes a la vista, porque un mínimo con
- * reels sin nota no es la última palabra.
+ * es un veto, no un «2». El mínimo se toma sobre TODAS las evaluaciones (cualquier revisor).
+ *
+ * La cobertura se cuenta en dos unidades que no se mezclan (N-02 de la revisión de Codex):
+ * las filas son EVALUACIONES (un revisor sobre un reel) y los reels son `media_id` distintos.
+ * Con un reel y dos revisores hay 1 reel y 2 evaluaciones, no «2 de 2 reels».
  */
 export function resumenS(revisiones: readonly RevisionReel[]): ResumenS {
-  const valores = revisiones.map((r) => r.notas.S).filter((v): v is number => typeof v === 'number')
+  const tieneS = (r: RevisionReel) => typeof r.notas.S === 'number'
+  const valores = revisiones.filter(tieneS).map((r) => r.notas.S as number)
   const minimo = valores.length > 0 ? Math.min(...valores) : null
   return {
     minimo,
@@ -343,6 +440,8 @@ export function resumenS(revisiones: readonly RevisionReel[]): ResumenS {
     conNota: valores.length,
     pendientes: revisiones.length - valores.length,
     total: revisiones.length,
+    reels: new Set(revisiones.map((r) => r.mediaId)).size,
+    reelsConS: new Set(revisiones.filter(tieneS).map((r) => r.mediaId)).size,
   }
 }
 

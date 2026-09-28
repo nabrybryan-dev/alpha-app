@@ -5,7 +5,7 @@ import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, idCoach, useDbVersion } from '../../data/dbInstance'
 import { resumenAsesorado, type ResumenAsesorado } from '../coach/resumenAsesorado'
 import { recordarPersonaEnConsola } from '../coach/consola/memoriaConsola'
-import { useCapacidades } from '../coach/consola/useCapacidades'
+import { useCapacidadesVigentes } from './useCapacidadesVigentes'
 import { usePorAprobar, type PorAprobar } from './usePorAprobar'
 
 /**
@@ -16,7 +16,9 @@ import { usePorAprobar, type PorAprobar } from './usePorAprobar'
  *      decisión, contada con la misma lectura que las bandejas (que viven en Nutrición).
  *   2. La cartera con su semáforo real —el de la consola, `resumenAsesorado`—: los que
  *      piden atención primero y con su motivo; los que van al día, plegados. Solo con
- *      `leer_entrenamiento`: sin esa capacidad no se muestra ni un nombre.
+ *      `leer_entrenamiento`: sin esa capacidad no se muestra ni un nombre. La capacidad se
+ *      vuelve a comprobar al volver a la pestaña y cada pocos minutos
+ *      (`useCapacidadesVigentes`): si se la quitan a mitad de sesión, la cartera se retira.
  *   3. La consola completa (solo con `leer_entrenamiento`) y los mensajes.
  *
  * La nutrición del equipo ya no está aquí: tiene su propio espacio en la barra. Las
@@ -86,8 +88,9 @@ function FilaCartera({ r, conConsola }: { r: ResumenAsesorado; conConsola: boole
 export default function EquipoPage() {
   const { usuario } = useSesion()
   useDbVersion()
-  const { cargando, tiene } = useCapacidades()
-  const porAprobar = usePorAprobar()
+  const capacidades = useCapacidadesVigentes()
+  const { cargando, tiene } = capacidades
+  const porAprobar = usePorAprobar(capacidades)
   const [verTodos, setVerTodos] = useState(false)
 
   if (usuario.rol !== 'nutricionista') return <Navigate to="/" replace />

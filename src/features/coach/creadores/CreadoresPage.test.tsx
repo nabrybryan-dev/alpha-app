@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Candidato, RevisionReel } from '../../../data/consola/creadores'
+import type { Candidato, EventoCarril, RevisionReel } from '../../../data/consola/creadores'
 
 const estado = {
   candidatos: [] as Candidato[],
   revisiones: [] as RevisionReel[],
+  eventos: [] as EventoCarril[],
+  fallaEventos: false,
   fallaCandidatos: false,
   fallaRevisiones: false,
   llamadas: 0,
@@ -24,6 +26,8 @@ vi.mock('../../../data/consola/creadores', async (original) => {
       Promise.resolve(
         estado.fallaRevisiones ? { ok: false, error: 'red caída' } : { ok: true, datos: estado.revisiones },
       ),
+    eventosDelTablero: () =>
+      Promise.resolve(estado.fallaEventos ? { ok: false, error: 'red caída' } : { ok: true, datos: estado.eventos }),
     urlHojaCuadros: () => Promise.resolve(null),
   }
 })
@@ -60,6 +64,8 @@ function reel(extra: Partial<RevisionReel>): RevisionReel {
 beforeEach(() => {
   estado.candidatos = []
   estado.revisiones = []
+  estado.eventos = []
+  estado.fallaEventos = false
   estado.fallaCandidatos = false
   estado.fallaRevisiones = false
   estado.llamadas = 0
@@ -184,10 +190,52 @@ describe('CreadoresPage', () => {
     render(<CreadoresPage />)
     fireEvent.click(await screen.findByRole('button', { name: /@creador/ }))
     const aviso = await screen.findByText(/S mínima 1/)
-    expect(aviso).toHaveTextContent('S mínima 1 · 2 de 3 reels con S · 1 pendiente')
+    expect(aviso).toHaveTextContent('S mínima 1 · 2 de 3 reels con S · 3 evaluaciones (1 sin S)')
     expect(aviso.className).toMatch(/text-rojo/)
     const celda = screen.getByRole('cell', { name: 'mín 1' })
     expect(celda.className).toMatch(/text-rojo/)
     expect(screen.queryByRole('cell', { name: '2' })).not.toBeInTheDocument()
+  })
+
+  it('dos revisores del mismo reel no son «2 de 2 reels»: es un reel con dos evaluaciones (N-02)', async () => {
+    estado.candidatos = [candidato({ carril: 'tambaleando' })]
+    estado.revisiones = [
+      reel({ id: 'a', mediaId: '777', revisor: 'claude', notas: { S: 3 } }),
+      reel({ id: 'b', mediaId: '777', revisor: 'astra', notas: { S: 1 } }),
+    ]
+    render(<CreadoresPage />)
+    fireEvent.click(await screen.findByRole('button', { name: /@creador/ }))
+    const aviso = await screen.findByText(/S mínima 1/)
+    expect(aviso).toHaveTextContent('S mínima 1 · 1 de 1 reel con S · 2 evaluaciones')
+    expect(aviso).not.toHaveTextContent('2 de 2 reels')
+    expect(aviso.className).toMatch(/text-rojo/)
+  })
+
+  it('un contactado que después se descartó sigue en «contactados», por la historia (E-05)', async () => {
+    estado.candidatos = [
+      candidato({ creadorId: 'ig:1', carril: 'descartado' }),
+      candidato({ creadorId: 'ig:2', carril: 'etapa1' }),
+    ]
+    estado.eventos = [
+      { id: 'e1', creadorId: 'ig:1', carrilNuevo: 'mensaje_enviado', fechaDato: '2026-09-20T00:00:00Z' },
+      { id: 'e2', creadorId: 'ig:1', carrilNuevo: 'descartado', fechaDato: '2026-09-25T00:00:00Z' },
+    ]
+    render(<CreadoresPage />)
+    const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
+    expect(await within(cifras).findByText('1 contactados')).toBeInTheDocument()
+  })
+
+  it('si la historia no se puede leer, «contactados» no inventa una cifra y se puede reintentar (E-05)', async () => {
+    estado.candidatos = [candidato({ creadorId: 'ig:1', carril: 'mensaje_enviado' })]
+    estado.fallaEventos = true
+    render(<CreadoresPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo leer la historia de contactos')
+    const embudo = screen.getByRole('region', { name: 'El embudo hoy' })
+    const filas = within(embudo).getAllByRole('listitem').map((li) => li.textContent)
+    expect(filas).toContain('Contactados—')
+    estado.fallaEventos = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    const cifras = screen.getByRole('group', { name: 'Cifras de la bola de nieve' })
+    expect(await within(cifras).findByText('1 contactados')).toBeInTheDocument()
   })
 })

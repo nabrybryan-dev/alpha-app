@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { primerosPlanesPendientes } from '../../data/consola/primerosPlanes'
 import { planesRenovadosPendientes } from '../../data/consola/planesRenovados'
-import { useCapacidades } from '../coach/consola/useCapacidades'
+import type { CapacidadesVigentes } from './useCapacidadesVigentes'
 
 /** Cuenta de lo que espera aprobación, con la MISMA lectura que usan las bandejas. */
 export interface PorAprobar {
@@ -21,9 +21,11 @@ const ESPERANDO = new Set(['propuesto', 'espera_bryan'])
  * bandeja no discrepen. Sin la capacidad de una bandeja, esa cuenta es `null` —no cero—:
  * no poder leer no es lo mismo que no haber nada. Sin ninguna de las dos, `undefined`, y
  * la tarjeta no se pinta. Mientras llega la respuesta, también `undefined`.
+ *
+ * Las capacidades llegan de la pantalla (`useCapacidadesVigentes`), no del caché de sesión de
+ * la consola: si le quitan la capacidad a mitad de sesión, la cuenta se retira (E-11).
  */
-export function usePorAprobar(): PorAprobar | undefined {
-  const { cargando, tiene } = useCapacidades()
+export function usePorAprobar({ cargando, tiene }: CapacidadesVigentes): PorAprobar | undefined {
   const lee1 = !cargando && tiene('aprobar_primer_plan')
   const lee2 = !cargando && tiene('aprobar_plan_estrategico')
   const [cuenta, setCuenta] = useState<{ clave: string; valor: PorAprobar } | undefined>()
