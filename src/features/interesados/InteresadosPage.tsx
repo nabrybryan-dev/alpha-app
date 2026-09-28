@@ -111,7 +111,7 @@ export default function InteresadosPage() {
 
   if (estado === 'guardado') {
     return (
-      <main className="grid min-h-dvh place-items-center bg-bg px-4">
+      <main data-theme="dark" className="grid min-h-dvh place-items-center bg-bg px-4">
         <div role="status" className="max-w-md rounded-tarjeta border border-linea bg-surface-1 p-5 shadow-sm">
           <p className="font-display text-lg text-texto">¡Listo, gracias!</p>
           <p className="mt-2 text-sm text-tenue">
@@ -124,7 +124,7 @@ export default function InteresadosPage() {
 
   const e = borrador.encaje
   return (
-    <main className="min-h-dvh bg-bg px-4 py-6">
+    <main data-theme="dark" className="min-h-dvh bg-bg px-4 py-6">
       <div className="mx-auto flex max-w-md flex-col gap-4">
         <header>
           <p className="kicker">Alpha Athletics</p>
