@@ -9,6 +9,7 @@
 --   5. `service_role` sí escribe (es el importador), y el event_id repetido no duplica.
 --   6. Los checks de forma: creador_id `ig:<dígitos>`, carril conocido, revisor conocido.
 --   7. El bucket `creadores-cuadros` es privado.
+--   8. La 0092 lo vuelve privado aunque ya existiera público.
 --
 -- Bloque de UUID propio (a9…/b9…). ROLLBACK al final.
 
@@ -193,6 +194,18 @@ reset role;
 select pruebas.afirmar(
   (select public from storage.buckets where id = 'creadores-cuadros') = false,
   'el bucket creadores-cuadros no existe o es público'
+);
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 8 · La 0092 vuelve privado un bucket que ya existía público (E-07, 28-sep)
+-- ════════════════════════════════════════════════════════════════════════
+-- La 0090 hace `on conflict do nothing`: si el bucket ya existía con public = true, se
+-- quedaba público. Se simula ese estado y se vuelve a pasar la 0092 (idempotente).
+update storage.buckets set public = true where id = 'creadores-cuadros';
+\ir ../migrations/0092_bucket_creadores_privado.sql
+select pruebas.afirmar(
+  (select public from storage.buckets where id = 'creadores-cuadros') = false,
+  'la 0092 no vuelve privado un bucket creadores-cuadros que ya era público'
 );
 
 rollback;

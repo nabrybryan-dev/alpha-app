@@ -23,14 +23,17 @@ const redondear1 = (n: number) => Math.round(n * 10) / 10
  * Horas de sueño medias de los últimos `dias` días naturales, hoy incluido.
  *
  * Se promedian solo las noches que la persona apuntó: una noche sin apuntar no es una
- * noche de cero horas. Sin ninguna, `undefined`.
+ * noche de cero horas. Pero una noche APUNTADA con 0 horas sí cuenta (el formulario admite
+ * el cero, y excluirlo subía la media: 0 y 8 daban 8 en vez de 4 — E-08 de la revisión de
+ * Codex del 28-sep). Solo se excluye lo ausente, lo negativo o lo no finito. Sin ninguna,
+ * `undefined`.
  */
 export function suenoMedio(checkins: readonly CheckinDiario[], hoy: string, dias = 7): number | undefined {
   const desde = restarDias(hoy, dias - 1)
   const horas = checkins
     .filter((c) => c.fecha >= desde && c.fecha <= hoy)
     .map((c) => c.horasSueno)
-    .filter((h): h is number => typeof h === 'number' && Number.isFinite(h) && h > 0)
+    .filter((h): h is number => typeof h === 'number' && Number.isFinite(h) && h >= 0)
   if (horas.length === 0) return undefined
   return redondear1(horas.reduce((a, b) => a + b, 0) / horas.length)
 }
@@ -55,11 +58,13 @@ export function serieDePeso(
 ): PuntoDePeso[] {
   const desde = restarDias(hoy, semanas * 7 - 1)
   const porDia = new Map<string, number>()
+  // Un peso vale si es un número finito y positivo: un Infinity no es una pesada (E-09).
+  const valido = (kg: unknown): kg is number => typeof kg === 'number' && Number.isFinite(kg) && kg > 0
   for (const m of medidas) {
-    if (typeof m.pesoKg === 'number' && m.pesoKg > 0) porDia.set(m.fecha.slice(0, 10), m.pesoKg)
+    if (valido(m.pesoKg)) porDia.set(m.fecha.slice(0, 10), m.pesoKg)
   }
   for (const c of checkins) {
-    if (typeof c.pesoKg === 'number' && c.pesoKg > 0) porDia.set(c.fecha, c.pesoKg)
+    if (valido(c.pesoKg)) porDia.set(c.fecha, c.pesoKg)
   }
   return [...porDia.entries()]
     .filter(([fecha]) => fecha >= desde && fecha <= hoy)

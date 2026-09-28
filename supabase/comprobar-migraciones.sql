@@ -1993,4 +1993,11 @@ select '0091 - creadores_revisiones única por (revision_id, creador_id, revisor
        case when exists (select 1 from pg_constraint where conname = 'creadores_revisiones_unica_por_creador' and contype = 'u')
              and not exists (select 1 from pg_constraint where conname = 'creadores_revisiones_revision_id_revisor_rol_reel_key')
             then 'SI' else 'NO' end
+union all
+-- La 0092: el bucket de las hojas de cuadros existe y es privado aunque ya existiera
+-- público antes de la 0090 (su `on conflict do nothing` no lo cambiaba).
+select '0092 - bucket creadores-cuadros forzado a privado', 'storage.buckets creadores-cuadros existe y public = false (ninguno público con ese id)',
+       case when exists (select 1 from storage.buckets where id = 'creadores-cuadros')
+             and not exists (select 1 from storage.buckets where id = 'creadores-cuadros' and public is distinct from false)
+            then 'SI' else 'NO' end
 order by migracion, senal;

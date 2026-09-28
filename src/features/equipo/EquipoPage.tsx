@@ -15,7 +15,8 @@ import { usePorAprobar, type PorAprobar } from './usePorAprobar'
  *   1. «Por aprobar»: la cifra roja de primeros planes y planes renovados que esperan
  *      decisión, contada con la misma lectura que las bandejas (que viven en Nutrición).
  *   2. La cartera con su semáforo real —el de la consola, `resumenAsesorado`—: los que
- *      piden atención primero y con su motivo; los que van al día, plegados.
+ *      piden atención primero y con su motivo; los que van al día, plegados. Solo con
+ *      `leer_entrenamiento`: sin esa capacidad no se muestra ni un nombre.
  *   3. La consola completa (solo con `leer_entrenamiento`) y los mensajes.
  *
  * La nutrición del equipo ya no está aquí: tiene su propio espacio en la barra. Las
@@ -92,12 +93,17 @@ export default function EquipoPage() {
   if (usuario.rol !== 'nutricionista') return <Navigate to="/" replace />
 
   const conConsola = !cargando && tiene('leer_entrenamiento')
-  // Su propia fila no va: esta es la cartera de SU equipo, y lo suyo está en Mi día.
-  const cartera = db.usuarios
-    .entrenan()
-    .filter((u) => u.id !== usuario.id)
-    .map((u) => resumenAsesorado(db, u))
-    .sort((a, b) => ORDEN_COLOR[a.semaforo.color] - ORDEN_COLOR[b.semaforo.color])
+  // La cartera (nombres y semáforos, que salen del entrenamiento) solo se calcula con
+  // `leer_entrenamiento` (E-11 de la revisión de Codex del 28-sep): la capacidad no limita
+  // solo el enlace a la consola, limita lo que se muestra. Sin ella, la lista queda vacía y
+  // la pantalla dice por qué. Su propia fila no va: lo suyo está en Mi día.
+  const cartera = conConsola
+    ? db.usuarios
+        .entrenan()
+        .filter((u) => u.id !== usuario.id)
+        .map((u) => resumenAsesorado(db, u))
+        .sort((a, b) => ORDEN_COLOR[a.semaforo.color] - ORDEN_COLOR[b.semaforo.color])
+    : []
   const atencion = cartera.filter((r) => r.semaforo.color !== 'verde')
   const alDia = cartera.filter((r) => r.semaforo.color === 'verde')
   const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
@@ -105,10 +111,12 @@ export default function EquipoPage() {
   return (
     <div className="flex flex-col gap-3.5">
       <header className="flex flex-col gap-1 pt-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">
-          {cartera.length} {cartera.length === 1 ? 'persona' : 'personas'} · {atencion.length}{' '}
-          {atencion.length === 1 ? 'pide' : 'piden'} atención
-        </p>
+        {conConsola && (
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">
+            {cartera.length} {cartera.length === 1 ? 'persona' : 'personas'} · {atencion.length}{' '}
+            {atencion.length === 1 ? 'pide' : 'piden'} atención
+          </p>
+        )}
         <h2 className="font-display text-3xl leading-none text-texto">Equipo</h2>
       </header>
 
@@ -119,7 +127,13 @@ export default function EquipoPage() {
         className="entrada entrada-2 flex flex-col rounded-tarjeta border border-linea bg-surface-1 px-4 py-2 shadow-sm"
       >
         <p className="py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Cartera</p>
-        {cartera.length === 0 ? (
+        {cargando ? (
+          <p className="border-t border-linea py-3 text-sm text-tenue" aria-busy="true">Cargando tus permisos…</p>
+        ) : !conConsola ? (
+          <p className="border-t border-linea py-3 text-sm text-tenue">
+            La cartera se ve con el permiso de leer el entrenamiento, y todavía no lo tienes. Pídeselo al coach.
+          </p>
+        ) : cartera.length === 0 ? (
           <p className="border-t border-linea py-3 text-sm text-tenue">Todavía no hay nadie en la cartera.</p>
         ) : (
           <ul>

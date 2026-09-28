@@ -1,15 +1,29 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Candidato } from '../../../data/consola/creadores'
+import type { Candidato, RevisionReel } from '../../../data/consola/creadores'
 
-const estado = { candidatos: [] as Candidato[] }
+const estado = {
+  candidatos: [] as Candidato[],
+  revisiones: [] as RevisionReel[],
+  fallaCandidatos: false,
+  fallaRevisiones: false,
+  llamadas: 0,
+}
 
 vi.mock('../../../data/consola/creadores', async (original) => {
   const real = await original<typeof import('../../../data/consola/creadores')>()
   return {
     ...real,
-    candidatosDelTablero: () => Promise.resolve(estado.candidatos),
-    revisionesDe: () => Promise.resolve([]),
+    candidatosDelTablero: () => {
+      estado.llamadas += 1
+      return Promise.resolve(
+        estado.fallaCandidatos ? { ok: false, error: 'red caída' } : { ok: true, datos: estado.candidatos },
+      )
+    },
+    revisionesDe: () =>
+      Promise.resolve(
+        estado.fallaRevisiones ? { ok: false, error: 'red caída' } : { ok: true, datos: estado.revisiones },
+      ),
     urlHojaCuadros: () => Promise.resolve(null),
   }
 })
@@ -35,8 +49,20 @@ function candidato(parcial: Partial<Candidato>): Candidato {
   }
 }
 
+function reel(extra: Partial<RevisionReel>): RevisionReel {
+  return {
+    id: 'x', revisionId: 'v1', creadorId: 'ig:1', revisor: 'claude', rolReel: 'reciente_1', mediaId: '1',
+    permalink: null, notas: { H: 2, C: 2, P: 2, T: 2, CTA: 1, S: 2 }, sinAudio: true, descripcion: null,
+    hojaCuadros: null, fechaRevision: '2026-09-28T00:00:00Z', ...extra,
+  }
+}
+
 beforeEach(() => {
   estado.candidatos = []
+  estado.revisiones = []
+  estado.fallaCandidatos = false
+  estado.fallaRevisiones = false
+  estado.llamadas = 0
 })
 
 describe('CreadoresPage', () => {
@@ -75,12 +101,12 @@ describe('CreadoresPage', () => {
     ]
     render(<CreadoresPage />)
     const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
-    expect(within(cifras).getByText('6 evaluados')).toBeInTheDocument()
+    expect(within(cifras).getByText('7 candidatos en el tablero')).toBeInTheDocument()
     expect(within(cifras).getByText('2 por decidir')).toBeInTheDocument()
     expect(within(cifras).getByText('1 contactados')).toBeInTheDocument()
     const embudo = screen.getByRole('region', { name: 'El embudo hoy' })
     const filas = within(embudo).getAllByRole('listitem').map((li) => li.textContent)
-    expect(filas).toEqual(['Evaluados6', 'Esperan video1', 'Tambaleando2', 'Contactados1', 'Entrenadores1'])
+    expect(filas).toEqual(['Candidatos en el tablero7', 'Esperan video1', 'Tambaleando2', 'Contactados1', 'Entrenadores1'])
   })
 
   it('«Por decidir» encabeza a los que tambalean, y solo si hay alguno', async () => {
@@ -107,5 +133,61 @@ describe('CreadoresPage', () => {
     await screen.findByText('@creador')
     const botones = screen.getAllByRole('button').map((b) => b.textContent ?? '')
     expect(botones.some((t) => /firmar|aprobar|enviar|vetar/i.test(t))).toBe(false)
+  })
+
+  it('un fallo de la lectura se dice como fallo, con reintento, y no como «no hay creadores» (E-01)', async () => {
+    estado.fallaCandidatos = true
+    render(<CreadoresPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo leer el tablero')
+    expect(screen.queryByText('Todavía no hay creadores en el tablero.')).not.toBeInTheDocument()
+    estado.fallaCandidatos = false
+    estado.candidatos = [candidato({ carril: 'etapa1' })]
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('@creador')).toBeInTheDocument()
+    expect(estado.llamadas).toBe(2)
+  })
+
+  it('un fallo al leer las revisiones no dice «sin revisión» (E-01)', async () => {
+    estado.candidatos = [candidato({ carril: 'etapa2' })]
+    estado.fallaRevisiones = true
+    render(<CreadoresPage />)
+    fireEvent.click(await screen.findByRole('button', { name: /@creador/ }))
+    expect(await screen.findByText(/No se pudieron leer las revisiones/)).toBeInTheDocument()
+    expect(screen.queryByText('Sin revisión de video todavía.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('muestra la vuelta más reciente y no mezcla sus notas con las de otra (E-02)', async () => {
+    estado.candidatos = [candidato({ carril: 'tambaleando' })]
+    estado.revisiones = [
+      reel({ id: 'nueva', revisionId: 'v2', mediaId: '222', fechaRevision: '2026-09-27T00:00:00Z', notas: { H: 3, S: 3 } }),
+      reel({ id: 'vieja', revisionId: 'v1', mediaId: '111', fechaRevision: '2026-09-20T00:00:00Z', notas: { H: 0, S: 0 } }),
+    ]
+    render(<CreadoresPage />)
+    fireEvent.click(await screen.findByRole('button', { name: /@creador/ }))
+    const selector = await screen.findByRole('combobox', { name: 'Vuelta de revisión' })
+    expect(selector).toHaveValue('v2')
+    expect(screen.getByText(/H 3 · C pendiente/)).toBeInTheDocument()
+    expect(screen.queryByText(/H 0/)).not.toBeInTheDocument()
+    fireEvent.change(selector, { target: { value: 'v1' } })
+    expect(await screen.findByText(/H 0/)).toBeInTheDocument()
+    expect(screen.queryByText(/H 3 · C pendiente/)).not.toBeInTheDocument()
+  })
+
+  it('la S sale como mínimo y cualquier S<2 se marca, nunca como media (E-03)', async () => {
+    estado.candidatos = [candidato({ carril: 'tambaleando' })]
+    estado.revisiones = [
+      reel({ id: 'a', rolReel: 'reciente_1', mediaId: '1', notas: { S: 1 } }),
+      reel({ id: 'b', rolReel: 'reciente_2', mediaId: '2', notas: { S: 3 } }),
+      reel({ id: 'c', rolReel: 'reciente_3', mediaId: '3', notas: { S: null } }),
+    ]
+    render(<CreadoresPage />)
+    fireEvent.click(await screen.findByRole('button', { name: /@creador/ }))
+    const aviso = await screen.findByText(/S mínima 1/)
+    expect(aviso).toHaveTextContent('S mínima 1 · 2 de 3 reels con S · 1 pendiente')
+    expect(aviso.className).toMatch(/text-rojo/)
+    const celda = screen.getByRole('cell', { name: 'mín 1' })
+    expect(celda.className).toMatch(/text-rojo/)
+    expect(screen.queryByRole('cell', { name: '2' })).not.toBeInTheDocument()
   })
 })

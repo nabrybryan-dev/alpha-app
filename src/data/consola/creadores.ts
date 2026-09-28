@@ -206,34 +206,87 @@ export function aRevision(fila: FilaRevision): RevisionReel | null {
   }
 }
 
-/** Todos los candidatos visibles. Nunca lanza: en demo, sin sesión o con error, `[]`. */
-export async function candidatosDelTablero(): Promise<Candidato[]> {
-  if (!modoNube) return []
+/**
+ * El resultado de una lectura: o los datos (un vacío aquí es un vacío CONFIRMADO), o el
+ * fallo con su motivo. Un error de la consulta nunca se disfraza de lista vacía (E-01 de la
+ * revisión de Codex del 28-sep): la pantalla dice «no se pudo leer» y ofrece reintentar.
+ */
+export type Lectura<T> = { ok: true; datos: T } | { ok: false; error: string }
+
+/** Filas por petición. PostgREST puede entregar menos (`max-rows`); la lectura lo tolera. */
+export const TAM_PAGINA = 1000
+/** Tope de peticiones de una lectura: más allá, algo no cuadra y se dice. */
+const MAX_PETICIONES = 500
+
+type RespuestaPagina = { data: unknown; error: { message?: string } | null; count?: number | null }
+
+/**
+ * Lee TODAS las filas pidiendo `range` hasta completar el conteo exacto (E-06). Avanza por
+ * lo que de verdad llegó, así que un `max-rows` menor que la página no trunca: sigue
+ * pidiendo. Si una página llega vacía antes de completar el conteo, es un error (lectura
+ * incompleta), no un final.
+ */
+export async function leerTodasLasPaginas<F>(
+  pagina: (desde: number, hasta: number) => PromiseLike<RespuestaPagina>,
+  tam = TAM_PAGINA,
+): Promise<Lectura<F[]>> {
+  const filas: F[] = []
+  for (let peticion = 0; peticion < MAX_PETICIONES; peticion++) {
+    const { data, error, count } = await pagina(filas.length, filas.length + tam - 1)
+    if (error) return { ok: false, error: error.message || 'la consulta falló' }
+    if (!Array.isArray(data)) return { ok: false, error: 'la respuesta no trajo filas' }
+    filas.push(...(data as F[]))
+    const total = typeof count === 'number' ? count : null
+    if (total !== null && filas.length >= total) return { ok: true, datos: filas }
+    if (data.length === 0) {
+      return total === null || filas.length >= total
+        ? { ok: true, datos: filas }
+        : { ok: false, error: `lectura incompleta: ${filas.length} de ${total} filas` }
+    }
+    if (total === null && data.length < tam) return { ok: true, datos: filas }
+  }
+  return { ok: false, error: `lectura incompleta: más de ${MAX_PETICIONES} peticiones` }
+}
+
+const motivoDe = (e: unknown) => (e instanceof Error && e.message ? e.message : 'la consulta falló')
+
+/** Todos los candidatos visibles. Nunca lanza. En demo, un vacío confirmado. */
+export async function candidatosDelTablero(): Promise<Lectura<Candidato[]>> {
+  if (!modoNube) return { ok: true, datos: [] }
   try {
-    const { data, error } = await supabase()
-      .from(TABLA_CREADORES_CANDIDATOS)
-      .select(COLUMNAS_CREADORES_CANDIDATOS.join(','))
-      .order('actualizado_en', { ascending: false })
-    if (error || !Array.isArray(data)) return []
-    return (data as unknown as FilaCandidato[]).map(aCandidato).filter((c): c is Candidato => c !== null)
-  } catch {
-    return []
+    const r = await leerTodasLasPaginas<FilaCandidato>((desde, hasta) =>
+      supabase()
+        .from(TABLA_CREADORES_CANDIDATOS)
+        .select(COLUMNAS_CREADORES_CANDIDATOS.join(','), { count: 'exact' })
+        .order('actualizado_en', { ascending: false })
+        // Desempate estable: sin él, dos páginas podrían repetir o saltarse una fila.
+        .order('creador_id', { ascending: true })
+        .range(desde, hasta),
+    )
+    if (!r.ok) return r
+    return { ok: true, datos: r.datos.map(aCandidato).filter((c): c is Candidato => c !== null) }
+  } catch (e) {
+    return { ok: false, error: motivoDe(e) }
   }
 }
 
 /** Las revisiones de la etapa 2 de un creador, la más reciente primero. Nunca lanza. */
-export async function revisionesDe(creadorId: string): Promise<RevisionReel[]> {
-  if (!modoNube || !creadorId) return []
+export async function revisionesDe(creadorId: string): Promise<Lectura<RevisionReel[]>> {
+  if (!modoNube || !creadorId) return { ok: true, datos: [] }
   try {
-    const { data, error } = await supabase()
-      .from(TABLA_CREADORES_REVISIONES)
-      .select(COLUMNAS_CREADORES_REVISIONES.join(','))
-      .eq('creador_id', creadorId)
-      .order('fecha_revision', { ascending: false })
-    if (error || !Array.isArray(data)) return []
-    return (data as unknown as FilaRevision[]).map(aRevision).filter((r): r is RevisionReel => r !== null)
-  } catch {
-    return []
+    const r = await leerTodasLasPaginas<FilaRevision>((desde, hasta) =>
+      supabase()
+        .from(TABLA_CREADORES_REVISIONES)
+        .select(COLUMNAS_CREADORES_REVISIONES.join(','), { count: 'exact' })
+        .eq('creador_id', creadorId)
+        .order('fecha_revision', { ascending: false })
+        .order('id', { ascending: true })
+        .range(desde, hasta),
+    )
+    if (!r.ok) return r
+    return { ok: true, datos: r.datos.map(aRevision).filter((x): x is RevisionReel => x !== null) }
+  } catch (e) {
+    return { ok: false, error: motivoDe(e) }
   }
 }
 
@@ -251,11 +304,70 @@ export async function urlHojaCuadros(ruta: string | null): Promise<string | null
   }
 }
 
-/** Media de una dimensión sobre los reels con nota (los pendientes no cuentan). */
+/**
+ * Media de una dimensión sobre los reels con nota (los pendientes no cuentan). NO sirve para
+ * S: la seguridad no se promedia, veta (usa `resumenS`).
+ */
 export function mediaDimension(revisiones: RevisionReel[], dimension: string): number | null {
   const valores = revisiones.map((r) => r.notas[dimension]).filter((v): v is number => typeof v === 'number')
   if (valores.length === 0) return null
   return Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10
+}
+
+/** Por debajo de este valor, una S veta (rúbrica de revisor-video, RV-O09). */
+export const S_MINIMA = 2
+
+export interface ResumenS {
+  /** La S más baja conocida; `null` si ningún reel la trae. */
+  minimo: number | null
+  /** Alguna S conocida por debajo de `S_MINIMA`. */
+  bajo: boolean
+  /** Reels con S conocida. */
+  conNota: number
+  /** Reels con S pendiente (nula o sin la dimensión). */
+  pendientes: number
+  total: number
+}
+
+/**
+ * La seguridad S se resume por su MÍNIMO, nunca por su media (E-03): un S=1 junto a un S=3
+ * es un veto, no un «2». Con la cobertura y los pendientes a la vista, porque un mínimo con
+ * reels sin nota no es la última palabra.
+ */
+export function resumenS(revisiones: readonly RevisionReel[]): ResumenS {
+  const valores = revisiones.map((r) => r.notas.S).filter((v): v is number => typeof v === 'number')
+  const minimo = valores.length > 0 ? Math.min(...valores) : null
+  return {
+    minimo,
+    bajo: minimo !== null && minimo < S_MINIMA,
+    conNota: valores.length,
+    pendientes: revisiones.length - valores.length,
+    total: revisiones.length,
+  }
+}
+
+export interface VueltaDeRevision {
+  revisionId: string
+  /** La fecha más reciente de sus filas. */
+  fecha: string
+  filas: RevisionReel[]
+}
+
+/**
+ * Las revisiones agrupadas por `revision_id` (una vuelta por grupo), la más reciente primero
+ * (E-02). Dos vueltas nunca se mezclan: cada una tiene sus notas y sus reels.
+ */
+export function vueltasDeRevision(revisiones: readonly RevisionReel[]): VueltaDeRevision[] {
+  const porId = new Map<string, VueltaDeRevision>()
+  for (const r of revisiones) {
+    const v = porId.get(r.revisionId)
+    if (!v) porId.set(r.revisionId, { revisionId: r.revisionId, fecha: r.fechaRevision, filas: [r] })
+    else {
+      v.filas.push(r)
+      if (r.fechaRevision > v.fecha) v.fecha = r.fechaRevision
+    }
+  }
+  return [...porId.values()].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.revisionId.localeCompare(a.revisionId))
 }
 
 /** Candidatos agrupados por carril, en el orden del embudo (carriles vacíos incluidos). */

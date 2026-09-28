@@ -68,6 +68,7 @@ beforeEach(() => {
 
 describe('EquipoPage', () => {
   it('la cartera va con su semáforo: los que piden atención primero, con su motivo', () => {
+    estado.capacidades = new Set(['leer_entrenamiento'])
     pintar()
     const cartera = screen.getByRole('region', { name: 'Cartera' })
     const resumenes = db.usuarios.entrenan().map((u) => resumenAsesorado(db, u))
@@ -92,6 +93,17 @@ describe('EquipoPage', () => {
     expect(screen.queryByText('Por aprobar')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Abrir la consola completa' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Cartera' })).queryAllByRole('link')).toHaveLength(0)
+  })
+
+  it('sin leer_entrenamiento la cartera no muestra nombres ni semáforos, solo por qué (E-11)', () => {
+    estado.capacidades = new Set(['aprobar_primer_plan'])
+    pintar()
+    const cartera = screen.getByRole('region', { name: 'Cartera' })
+    for (const u of db.usuarios.entrenan()) {
+      expect(within(cartera).queryByText(u.nombre)).not.toBeInTheDocument()
+    }
+    expect(within(cartera).getByText(/permiso de leer el entrenamiento/)).toBeInTheDocument()
+    expect(screen.queryByText(/pide atención|piden atención/)).not.toBeInTheDocument()
   })
 
   it('«Por aprobar» suma primeros planes y renovados que esperan decisión, en rojo', async () => {

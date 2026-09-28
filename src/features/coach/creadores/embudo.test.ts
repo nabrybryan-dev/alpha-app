@@ -32,7 +32,7 @@ describe('embudoDe', () => {
       ...en('entrenador', 7),
     ]
     expect(embudoDe(lista)).toEqual({
-      evaluados: 21,
+      enTablero: 25,
       esperanVideo: 3,
       tambaleando: 2,
       contactados: 2,
@@ -41,6 +41,16 @@ describe('embudoDe', () => {
   })
 
   it('sin candidatos, todo a cero', () => {
-    expect(embudoDe([])).toEqual({ evaluados: 0, esperanVideo: 0, tambaleando: 0, contactados: 0, entrenadores: 0 })
+    expect(embudoDe([])).toEqual({ enTablero: 0, esperanVideo: 0, tambaleando: 0, contactados: 0, entrenadores: 0 })
+  })
+
+  it('un entrenador cuenta por su segmento aunque su carril sea otro (E-05)', () => {
+    const [pausado] = en('pausa')
+    const e = embudoDe([{ ...pausado, segmento: 'entrenador' }, ...en('entrenador', 2)])
+    expect(e.entrenadores).toBe(3)
+  })
+
+  it('«candidatos en el tablero» son todas las filas subidas, también las recién descubiertas (E-04)', () => {
+    expect(embudoDe([...en('descubierto', 2), ...en('etapa1')]).enTablero).toBe(3)
   })
 })

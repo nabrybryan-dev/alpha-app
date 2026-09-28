@@ -33,12 +33,35 @@ describe('suenoMedio', () => {
     expect(suenoMedio(lista, '2026-09-28')).toBe(7.3)
   })
 
+  it('una noche apuntada con 0 horas cuenta: 0 y 8 dan 4, no 8 (E-08)', () => {
+    const lista = [checkin('2026-09-27', { horasSueno: 0 }), checkin('2026-09-28', { horasSueno: 8 })]
+    expect(suenoMedio(lista, '2026-09-28')).toBe(4)
+  })
+
+  it('un valor negativo o no finito no es una noche', () => {
+    const lista = [
+      checkin('2026-09-26', { horasSueno: -1 }),
+      checkin('2026-09-27', { horasSueno: Number.NaN }),
+      checkin('2026-09-28', { horasSueno: 6 }),
+    ]
+    expect(suenoMedio(lista, '2026-09-28')).toBe(6)
+  })
+
   it('sin noches apuntadas no inventa una media', () => {
     expect(suenoMedio([checkin('2026-09-28')], '2026-09-28')).toBeUndefined()
   })
 })
 
 describe('serieDePeso', () => {
+  it('un peso infinito no entra en la serie (E-09)', () => {
+    const serie = serieDePeso(
+      [checkin('2026-09-27', { pesoKg: Number.POSITIVE_INFINITY }), checkin('2026-09-28', { pesoKg: 60 })],
+      [medida('2026-09-26', { pesoKg: Number.POSITIVE_INFINITY })],
+      '2026-09-28',
+    )
+    expect(serie).toEqual([{ fecha: '2026-09-28', kg: 60 }])
+  })
+
   it('junta check-ins y medidas, ordena, y el check-in manda si coinciden en el día', () => {
     const serie = serieDePeso(
       [checkin('2026-09-27', { pesoKg: 58.4 }), checkin('2026-09-10', { pesoKg: 59 })],
