@@ -23,6 +23,9 @@ export const CAPACIDADES = [
   'aprobar_primer_plan',
   // 0087: aprobar el plan estratégico RENOVADO (Manuela y Bryan).
   'aprobar_plan_estrategico',
+  // 0090: ver el tablero de creadores y firmar contactos/excepciones (Manuela y Bryan).
+  'revisar_creadores',
+  'firmar_creadores',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]

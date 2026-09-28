@@ -129,3 +129,6 @@ jobs:
 
       - name: La tarjeta semanal y los mensajes de estilo de vida respetan quién es el dueño
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/100-tarjeta-vida-y-mensajes.sql
+
+      - name: El tablero de creadores solo lo leen el coach y quien tiene revisar_creadores
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-creadores-tablero.sql

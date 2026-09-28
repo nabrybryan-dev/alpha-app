@@ -93,13 +93,16 @@ export function CoachLayout() {
   const { cargando, tiene } = useCapacidades()
   const esCoach = usuario.rol === 'coach'
   const enConsola = pathname.startsWith('/coach/consola')
+  const enCreadores = pathname.startsWith('/coach/creadores')
 
   // La CONSOLA se abre por capacidad, no por rol (decisión de Bryan, 26-sep): el staff con
   // `leer_entrenamiento` (Manuela) entra a /coach/consola; el resto del panel del coach
   // sigue siendo solo del coach. Mientras la capacidad se consulta no se decide nada —ni
   // se abre «por si acaso» ni se echa a quien sí la tiene—; sin ella, a la portada.
+  // El tablero de CREADORES (0090) sigue la misma regla con su propia capacidad:
+  // `revisar_creadores`, no `leer_entrenamiento`.
   if (!esCoach) {
-    if (!enConsola) return <Navigate to="/" replace />
+    if (!enConsola && !enCreadores) return <Navigate to="/" replace />
     if (cargando) {
       return (
         <div className="grid min-h-dvh place-items-center bg-bg text-sm text-tenue" aria-busy="true">
@@ -107,7 +110,8 @@ export function CoachLayout() {
         </div>
       )
     }
-    if (!tiene('leer_entrenamiento')) return <Navigate to="/" replace />
+    if (enConsola && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
+    if (enCreadores && !tiene('revisar_creadores')) return <Navigate to="/" replace />
   }
 
   // La consola necesita más ancho que el resto del panel: cartera lateral +
@@ -125,6 +129,7 @@ export function CoachLayout() {
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
           </>
         ) : (
           <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>

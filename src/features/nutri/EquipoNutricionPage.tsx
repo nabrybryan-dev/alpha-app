@@ -8,6 +8,7 @@ import { calcularRacha } from '../../domain/gamification'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { visibilidadDe } from '../../domain/nutricion/visibilidad'
+import { useCapacidades } from '../coach/consola/useCapacidades'
 import { SheetVetados } from './SheetVetados'
 
 function fechaAtras(hoy: string, dias: number): string {
@@ -130,6 +131,8 @@ export default function EquipoNutricionPage() {
   const hoy = hoyIso()
   /** El asesorado cuyo panel de vetos está abierto. */
   const [vetando, setVetando] = useState<{ id: string; nombre: string } | null>(null)
+  const { tiene } = useCapacidades()
+  const puedeVerCreadores = usuario.rol === 'coach' || tiene('revisar_creadores')
 
   if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
     return <Navigate to="/" replace />
@@ -165,6 +168,15 @@ export default function EquipoNutricionPage() {
             </span>
           )}
         </Link>
+        {/* Tablero de creadores (0090): solo para quien tiene `revisar_creadores`. */}
+        {puedeVerCreadores && (
+          <Link
+            to="/coach/creadores"
+            className="press ml-2 mt-3 inline-block rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+          >
+            Creadores
+          </Link>
+        )}
       </section>
 
       <section className="flex flex-col gap-2.5">

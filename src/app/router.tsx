@@ -24,6 +24,7 @@ const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetal
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
+const CreadoresPage = lazy(() => import('../features/coach/creadores/CreadoresPage'))
 const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 
@@ -81,6 +82,9 @@ export function AppRouter() {
             escriban; el director revisa el PR antes de fusionar. */}
         <Route path="consola" element={envolver(<ConsolaCoachPage />)} />
         <Route path="revisiones" element={envolver(<RevisionesPage />)} />
+        {/* Tablero de creadores (0090, F1): solo lectura; lo abre el coach o quien tenga
+            `revisar_creadores` (Manuela). */}
+        <Route path="creadores" element={envolver(<CreadoresPage />)} />
       </Route>
     </Routes>
   )
