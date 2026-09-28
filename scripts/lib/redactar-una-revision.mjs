@@ -17,6 +17,53 @@ import { esSemanaMala, LARGO_MAXIMO, LARGO_MINIMO, revisarBorrador } from '../..
 
 export const INTENTOS = 3
 
+/**
+ * Antes de gastar Sonnet, el modelo abierto local (Qwen3-Coder-30B por llama.cpp, :8080) tiene
+ * `INTENTOS_QWEN` intentos con el MISMO prompt y el MISMO `revisarBorrador` detrás: si su
+ * borrador pasa, sale el suyo (0 USD); si no, entra Sonnet con sus `INTENTOS` de siempre.
+ * Con Qwen apagado (o `ALPHA_QWEN=off`) la ruta es idéntica a la de antes. Decisión de Bryan
+ * 28-sep: «todo lo que esté en su capacidad, al modelo abierto».
+ *
+ * APAGADO POR DEFECTO (`ALPHA_QWEN_LARGA=on` lo enciende). Ensayo del 28-sep con 4 fichas
+ * reales: 4/4 pasaron `revisarBorrador`, pero los textos repetían las mismas frases, se
+ * inventaban reglas incumplidas, culpaban a la persona y uno anunciaba «ajustar el volumen
+ * para que sea más bajo» (un recorte, que exige la firma de Bryan). `revisarBorrador` mide
+ * cifras y duración, no eso. No se enciende hasta tener un validador de repetición y de
+ * afirmaciones que no estén en la ficha.
+ */
+export const INTENTOS_QWEN = 2
+const URL_QWEN = process.env.ALPHA_QWEN_URL || 'http://127.0.0.1:8080'
+
+/** ¿Responde el llama-server local? Sonda corta; nunca lanza. */
+export function qwenVivo() {
+  if ((process.env.ALPHA_QWEN || 'auto').toLowerCase() === 'off') return false
+  const r = spawnSync(process.execPath, ['-e', `fetch(${JSON.stringify(`${URL_QWEN}/health`)},{signal:AbortSignal.timeout(2000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))`], { timeout: 5000 })
+  return r.status === 0
+}
+
+// El hijo hace el POST (fetch es asíncrono y `redactarUna` no): lee el cuerpo por stdin.
+const HIJO_QWEN = `let b='';process.stdin.on('data',d=>b+=d).on('end',async()=>{try{const r=await fetch(process.argv[1]+'/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:b,signal:AbortSignal.timeout(${8 * 60 * 1000})});process.stdout.write(await r.text())}catch(e){process.stderr.write(String(e));process.exit(2)}})`
+
+function llamarAQwen(sistemaTexto, mensajeTexto) {
+  const cuerpo = JSON.stringify({
+    model: 'qwen3-coder', temperature: 0.2, max_tokens: 2048, stream: false,
+    response_format: { type: 'json_object' },
+    messages: [{ role: 'system', content: sistemaTexto }, { role: 'user', content: mensajeTexto }],
+  })
+  const r = spawnSync(process.execPath, ['-e', HIJO_QWEN, URL_QWEN], { input: cuerpo, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, timeout: 9 * 60 * 1000 })
+  if (r.status !== 0) return { borrador: {}, coste: 0, bruto: `qwen no respondió: ${(r.stderr || '').slice(0, 300)}` }
+  let bruto = ''
+  try {
+    const resp = JSON.parse(r.stdout)
+    bruto = String(resp.choices?.[0]?.message?.content ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+  } catch {
+    return { borrador: {}, coste: 0, bruto: `qwen devolvió algo que no es JSON: ${String(r.stdout).slice(0, 300)}` }
+  }
+  let borrador
+  try { borrador = JSON.parse(bruto) } catch { borrador = {} }
+  return { borrador, coste: 0, bruto }
+}
+
 const hablado = (n) => String(Math.round(n * 10) / 10).replace('.', ',')
 
 /**
@@ -210,7 +257,7 @@ function llamarAlModelo(sistemaTexto, mensajeTexto, modelo, carpetaTemporal) {
  * Redacta la revisión larga de una ficha. Nunca lanza por un borrador malo: devuelve
  * `entregada: false` con los problemas de cada intento, y quien llama decide qué sale.
  */
-export function redactarUna(ficha, { contexto = '', ejemplos = '', modelo = 'sonnet', carpetaTemporal = '.', log = console.log } = {}) {
+export function redactarUna(ficha, { contexto = '', ejemplos = '', modelo = 'sonnet', carpetaTemporal = '.', log = console.log, usarQwen = process.env.ALPHA_QWEN_LARGA === 'on' } = {}) {
   const contextoLimpio = contextoDeLaFicha(ficha, contexto)
   const huecos = { ...contextoLimpio.huecos, ...huecosDeLaFicha(ficha) }
   const semanaMala = esSemanaMala(ficha.ejes || [], ficha.avisos || [])
@@ -219,17 +266,25 @@ export function redactarUna(ficha, { contexto = '', ejemplos = '', modelo = 'son
   let problemas = []
   let final = null
 
-  for (let n = 1; n <= INTENTOS; n++) {
-    const { borrador, coste, bruto } = llamarAlModelo(
-      sistemaTexto, mensaje(ficha, huecos, semanaMala, contextoLimpio, ejemplos, problemas), modelo, carpetaTemporal,
-    )
+  // Primero Qwen (si está vivo), luego el modelo de siempre, cada uno con sus problemas propios.
+  const vias = [
+    ...(usarQwen && qwenVivo() ? Array.from({ length: INTENTOS_QWEN }, () => 'qwen') : []),
+    ...Array.from({ length: INTENTOS }, () => modelo),
+  ]
+  for (let n = 1; n <= vias.length; n++) {
+    const via = vias[n - 1]
+    if (via !== 'qwen' && vias[n - 2] === 'qwen') problemas = []
+    const texto = mensaje(ficha, huecos, semanaMala, contextoLimpio, ejemplos, problemas)
+    const { borrador, coste, bruto } = via === 'qwen'
+      ? llamarAQwen(sistemaTexto, texto)
+      : llamarAlModelo(sistemaTexto, texto, modelo, carpetaTemporal)
     const revision = revisarBorrador(borrador, huecos, { semanaMala })
     if (!Object.keys(borrador).length) revision.problemas.unshift('la respuesta no era un JSON con las cinco secciones')
-    intentos.push({ intento: n, coste, problemas: revision.problemas, caracteres: revision.caracteres ?? null, bruto })
-    log(`  intento ${n}: ${revision.ok ? 'PASA' : `NO PASA (${revision.problemas.length})`} · ${coste.toFixed(4)} USD`)
+    intentos.push({ intento: n, via, coste, problemas: revision.problemas, caracteres: revision.caracteres ?? null, bruto })
+    log(`  intento ${n} (${via}): ${revision.ok ? 'PASA' : `NO PASA (${revision.problemas.length})`} · ${coste.toFixed(4)} USD`)
     for (const p of revision.problemas) log(`     - ${p}`)
     if (revision.ok) {
-      final = { borrador, texto: revision.texto, caracteres: revision.caracteres }
+      final = { borrador, texto: revision.texto, caracteres: revision.caracteres, via }
       break
     }
     problemas = revision.problemas
