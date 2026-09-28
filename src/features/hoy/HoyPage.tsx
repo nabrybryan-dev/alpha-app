@@ -454,19 +454,24 @@ export default function HoyPage() {
         </section>
       )}
 
+      {/* Mi día del staff (Manuela): sin las pestañas Bienestar, Nutrición y Progreso en la
+          barra, se llega a ellas desde aquí. La nutrición del EQUIPO vive ahora en Equipo. */}
       {usuario.rol === 'nutricionista' && (
-        <Link
-          to="/equipo-nutricion"
-          className="press entrada entrada-5 flex items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3.5 shadow-sm"
-        >
-          <span>
-            <span className="block font-display text-sm text-texto">Nutrición del equipo</span>
-            <span className="block text-xs text-tenue">Evaluación de adherencia de todos los asesorados</span>
-          </span>
-          <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rojo/15 text-base text-rojo">
-            →
-          </span>
-        </Link>
+        <nav aria-label="Mi día" className="entrada entrada-5 grid grid-cols-3 gap-2.5">
+          {[
+            { a: '/bienestar', t: 'Chequeo y medidas' },
+            { a: '/nutricion', t: 'Mi nutrición' },
+            { a: '/progreso', t: 'Mi progreso' },
+          ].map((x) => (
+            <Link
+              key={x.a}
+              to={x.a}
+              className="press flex min-h-[64px] items-center justify-center rounded-tarjeta border border-linea bg-surface-1 px-2 py-3 text-center font-display text-xs text-texto shadow-sm"
+            >
+              {x.t}
+            </Link>
+          ))}
+        </nav>
       )}
 
       <section className="entrada entrada-6 grid grid-cols-2 gap-3">

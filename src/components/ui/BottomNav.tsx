@@ -18,7 +18,7 @@ function Icono({ children }: { children: ReactNode }) {
   )
 }
 
-const pestanas = [
+const pestanasAsesorado = [
   {
     ruta: '/',
     etiqueta: 'Hoy',
@@ -74,7 +74,42 @@ const pestanas = [
   },
 ]
 
-export function BottomNav() {
+/**
+ * Los cuatro ESPACIOS del staff que también entrena (Manuela; maqueta «Espacios de Alpha»
+ * aprobada por Bryan el 28-sep): Mi día junta Hoy con el chequeo, las medidas y los accesos a
+ * nutrición y progreso; Mi entreno es el salón; Equipo reúne la consola, la nutrición del
+ * equipo y los mensajes; Estrategia es el tablero de la bola de nieve (/coach/creadores).
+ * Bienestar, Nutrición y Progreso siguen existiendo: se llega desde Mi día.
+ */
+const pestanasStaff = [
+  { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
+  { ...pestanasAsesorado[1], etiqueta: 'Mi entreno' },
+  {
+    ruta: '/equipo',
+    etiqueta: 'Equipo',
+    icono: (
+      <Icono>
+        <circle cx="9" cy="8" r="3" />
+        <circle cx="17" cy="9" r="2.5" />
+        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2.2 1.3-4 3.5-4.6" />
+      </Icono>
+    ),
+  },
+  {
+    ruta: '/coach/creadores',
+    etiqueta: 'Estrategia',
+    icono: (
+      <Icono>
+        <path d="M4 19V11M10 19V5M16 19v-6M22 19H2" />
+      </Icono>
+    ),
+  },
+]
+
+export type EspaciosNav = 'asesorado' | 'staff'
+
+export function BottomNav({ espacios = 'asesorado' }: { espacios?: EspaciosNav } = {}) {
+  const pestanas = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
   return (
     <nav
       aria-label="Navegación principal"

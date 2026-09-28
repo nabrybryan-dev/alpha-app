@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
-import { BottomNav } from '../components/ui/BottomNav'
+import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
@@ -18,11 +18,18 @@ const titulos: Record<string, string> = {
   '/contenidos': 'Contenidos',
   '/cuestionarios': 'Cuestionarios',
   '/marca': 'Marca',
+  '/equipo': 'Equipo',
 }
 
-function tituloDe(ruta: string): string {
+function tituloDe(ruta: string, esStaff = false): string {
   const base = `/${ruta.split('/')[1] ?? ''}`
+  if (esStaff && base === '/') return 'Mi día'
   return titulos[base] ?? 'Alpha'
+}
+
+/** El staff que también entrena (Manuela) navega por sus cuatro espacios. */
+function espaciosDe(rol: string): EspaciosNav {
+  return rol === 'nutricionista' ? 'staff' : 'asesorado'
 }
 
 /**
@@ -76,13 +83,13 @@ export function AsesoradoLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      {llevaCabecera(pathname) && <TopBar titulo={tituloDe(pathname)} />}
+      {llevaCabecera(pathname) && <TopBar titulo={tituloDe(pathname, usuario.rol === 'nutricionista')} />}
       {/* overflow-x-clip: ningún pseudo-elemento o borde debe generar scroll
           horizontal; el TopBar (sticky) y la BottomNav (fija) van fuera de main. */}
       <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
         <Outlet />
       </main>
-      <BottomNav />
+      <BottomNav espacios={espaciosDe(usuario.rol)} />
     </div>
   )
 }
@@ -123,7 +130,7 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo={esCoach ? 'Panel del coach' : 'Consola del equipo'} />
+      <TopBar titulo={esCoach ? 'Panel del coach' : enCreadores ? 'Estrategia' : 'Consola del equipo'} />
       <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
         {esCoach ? (
           <>
@@ -135,9 +142,12 @@ export function CoachLayout() {
           <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
         )}
       </nav>
-      <main className={`mx-auto overflow-x-clip px-4 pb-16 pt-4 ${anchoContenedor}`}>
+      {/* El staff (Manuela) conserva sus cuatro espacios también dentro de la consola y del
+          tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
+      <main className={`mx-auto overflow-x-clip px-4 pt-4 ${esCoach ? 'pb-16' : 'pb-28'} ${anchoContenedor}`}>
         <Outlet />
       </main>
+      {!esCoach && <BottomNav espacios={espaciosDe(usuario.rol)} />}
     </div>
   )
 }
