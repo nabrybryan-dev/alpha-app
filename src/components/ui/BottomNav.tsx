@@ -75,15 +75,21 @@ const pestanasAsesorado = [
 ]
 
 /**
- * Los cuatro ESPACIOS del staff que también entrena (Manuela; maqueta «Espacios de Alpha»
- * aprobada por Bryan el 28-sep): Mi día junta Hoy con el chequeo, las medidas y los accesos a
- * nutrición y progreso; Mi entreno es el salón; Equipo reúne la consola, la nutrición del
- * equipo y los mensajes; Estrategia es el tablero de la bola de nieve (/coach/creadores).
- * Bienestar, Nutrición y Progreso siguen existiendo: se llega desde Mi día.
+ * Los cinco ESPACIOS del staff que también entrena (Manuela; maqueta «Espacios de Alpha»
+ * aprobada por Bryan el 28-sep), en este orden:
+ *
+ *   · Mi día (/): Hoy con su semana, el chequeo, su nutrición de hoy y sus medidas.
+ *   · Mi entreno (/mi-entreno): la semana, lo que toca hoy y la entrada al salón.
+ *   · Nutrición (/equipo-nutricion): su trabajo de nutricionista con el equipo.
+ *   · Equipo (/equipo): lo que espera aprobación, la cartera y los mensajes.
+ *   · Estrategia (/coach/creadores): el tablero de la bola de nieve.
+ *
+ * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
  */
 const pestanasStaff = [
   { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
-  { ...pestanasAsesorado[1], etiqueta: 'Mi entreno' },
+  { ...pestanasAsesorado[1], ruta: '/mi-entreno', etiqueta: 'Mi entreno' },
+  { ...pestanasAsesorado[3], ruta: '/equipo-nutricion', etiqueta: 'Nutrición' },
   {
     ruta: '/equipo',
     etiqueta: 'Equipo',

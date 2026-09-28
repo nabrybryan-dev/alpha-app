@@ -26,6 +26,7 @@ const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
 const CreadoresPage = lazy(() => import('../features/coach/creadores/CreadoresPage'))
 const EquipoPage = lazy(() => import('../features/equipo/EquipoPage'))
+const MiEntrenoPage = lazy(() => import('../features/entrenar/miEntreno/MiEntrenoPage'))
 const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 
@@ -70,7 +71,9 @@ export function AppRouter() {
         <Route path="contenidos" element={envolver(<ContenidosPage />)} />
         <Route path="logros" element={envolver(<LogrosPage />)} />
         <Route path="marca" element={envolver(<MarcaPage />)} />
-        {/* Espacio «Equipo» de Manuela (maqueta aprobada 28-sep). */}
+        {/* Espacios de Manuela (maqueta aprobada 28-sep): «Mi entreno» presenta la semana y
+            lleva al salón (/entrenar, que no cambia); «Equipo» reúne cartera y aprobaciones. */}
+        <Route path="mi-entreno" element={envolver(<MiEntrenoPage />)} />
         <Route path="equipo" element={envolver(<EquipoPage />)} />
         <Route path="equipo-nutricion" element={envolver(<EquipoNutricionPage />)} />
         <Route path="equipo-nutricion/cifras" element={envolver(<CifrasAsesoradosPage />)} />

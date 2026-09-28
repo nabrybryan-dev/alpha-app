@@ -14,6 +14,7 @@ import { MicrociclosTab } from './tabs/MicrociclosTab'
 import { RevisionSemanaTab } from './tabs/RevisionSemanaTab'
 import { RevisionVideoTab } from './tabs/RevisionVideoTab'
 import { usePersona } from './usePersona'
+import { CLAVE_MEMORIA_CONSOLA } from './memoriaConsola'
 
 /**
  * Consola del coach.
@@ -47,7 +48,7 @@ type PestanaId = (typeof PESTANAS)[number]['id']
 /** Las pestañas que hablan de UNA persona llevan su cabecera encima. */
 const PESTANAS_DE_PERSONA = new Set<PestanaId>(['ficha', 'microciclos', 'condicion', 'estilo', 'video'])
 
-const CLAVE_MEMORIA = 'consola-coach:seleccion'
+const CLAVE_MEMORIA = CLAVE_MEMORIA_CONSOLA
 
 interface Memoria {
   persona?: string

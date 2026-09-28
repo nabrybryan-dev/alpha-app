@@ -63,6 +63,44 @@ describe('CreadoresPage', () => {
     expect(within(tambaleando).getByText('C 1,8')).toBeInTheDocument()
   })
 
+  it('arriba, las cifras y el embudo salen de los carriles reales', async () => {
+    estado.candidatos = [
+      candidato({ creadorId: 'ig:1', carril: 'etapa1' }),
+      candidato({ creadorId: 'ig:2', carril: 'etapa2' }),
+      candidato({ creadorId: 'ig:3', carril: 'tambaleando' }),
+      candidato({ creadorId: 'ig:4', carril: 'tambaleando' }),
+      candidato({ creadorId: 'ig:5', carril: 'mensaje_enviado' }),
+      candidato({ creadorId: 'ig:6', carril: 'entrenador', segmento: 'entrenador' }),
+      candidato({ creadorId: 'ig:7', carril: 'descubierto' }),
+    ]
+    render(<CreadoresPage />)
+    const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
+    expect(within(cifras).getByText('6 evaluados')).toBeInTheDocument()
+    expect(within(cifras).getByText('2 por decidir')).toBeInTheDocument()
+    expect(within(cifras).getByText('1 contactados')).toBeInTheDocument()
+    const embudo = screen.getByRole('region', { name: 'El embudo hoy' })
+    const filas = within(embudo).getAllByRole('listitem').map((li) => li.textContent)
+    expect(filas).toEqual(['Evaluados6', 'Esperan video1', 'Tambaleando2', 'Contactados1', 'Entrenadores1'])
+  })
+
+  it('«Por decidir» encabeza a los que tambalean, y solo si hay alguno', async () => {
+    estado.candidatos = [candidato({ carril: 'tambaleando', motivos: ['sin audio'] })]
+    const { unmount } = render(<CreadoresPage />)
+    expect(await screen.findByText('Por decidir · escúchalos con sonido')).toBeInTheDocument()
+    unmount()
+    estado.candidatos = [candidato({ carril: 'etapa1' })]
+    render(<CreadoresPage />)
+    await screen.findByText('@creador')
+    expect(screen.queryByText('Por decidir · escúchalos con sonido')).not.toBeInTheDocument()
+  })
+
+  it('sin creadores no pinta cifras ni embudo vacíos', async () => {
+    render(<CreadoresPage />)
+    await screen.findByText('Todavía no hay creadores en el tablero.')
+    expect(screen.queryByRole('group', { name: 'Cifras de la bola de nieve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'El embudo hoy' })).not.toBeInTheDocument()
+  })
+
   it('no ofrece ningún botón que escriba (F1 es solo lectura)', async () => {
     estado.candidatos = [candidato({ carril: 'aprobado_contacto' })]
     render(<CreadoresPage />)

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
@@ -90,6 +90,34 @@ describe('EquipoNutricionPage', () => {
 
     expect(await screen.findByText(/30✓/)).toBeTruthy()
     expect(container.textContent).toContain('30✓ · 1± · 0✗ en 31 días')
+  })
+
+  /**
+   * Las tres cifras de arriba (maqueta «Espacios de Alpha», 28-sep) salen de las mismas
+   * filas que la lista: evaluados = quien tiene algún registro en 30 días; piden atención =
+   * lo que la lista pinta en rojo (sin registros o por debajo del 50 %).
+   */
+  it('la cabecera cuenta evaluados y los que piden atención con las filas de la lista', () => {
+    // Valentina en rojo a propósito: 30 días sin cumplir.
+    for (let i = 0; i < 30; i++) db.nutricion.marcarAdherencia('u-valentina', hace(i), 'no')
+    pintar()
+    const resumen = screen.getByRole('group', { name: 'Resumen del equipo' })
+    const asesorados = db.usuarios.asesorados()
+    const conRegistros = asesorados.filter((a) =>
+      db.nutricion.adherenciasByUsuario(a.id).some((x) => x.fecha >= hace(30)),
+    ).length
+    expect(within(resumen).getByText(`${conRegistros} evaluados con registros en 30 días`)).toBeInTheDocument()
+    // Todos los sin registros + Valentina, que está al 0 %.
+    const atencion = asesorados.length - conRegistros + 1
+    expect(within(resumen).getByText(`${atencion} piden atención`)).toBeInTheDocument()
+    expect(within(resumen).getByText(/esperan decidir qué cifras ven/)).toBeInTheDocument()
+  })
+
+  /** Sin la capacidad de aprobar, las bandejas de la consola no se pintan (se ocultan solas). */
+  it('sin capacidades de aprobación no hay bandejas de planes', () => {
+    pintar()
+    expect(screen.queryByText('Primeros planes por aprobar')).not.toBeInTheDocument()
+    expect(screen.queryByText('Planes estratégicos por aprobar')).not.toBeInTheDocument()
   })
 
   /** Quien no es staff no entra: se le redirige fuera y no ve al equipo. */

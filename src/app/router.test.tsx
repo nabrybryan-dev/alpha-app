@@ -92,6 +92,14 @@ describe('rutas del asesorado', () => {
     expect(alChat.length).toBeGreaterThan(0)
   })
 
+  it('los espacios del staff no son para el asesorado: su barra y su Entrenar no cambian', async () => {
+    // /mi-entreno es un espacio de Manuela; quien entrena como asesorado vuelve al salón.
+    renderizarEn('/mi-entreno')
+    const nav = await screen.findByRole('navigation', { name: 'Navegación principal' })
+    expect(nav.textContent).not.toMatch(/Mi entreno|Estrategia|Equipo/)
+    expect(screen.queryByText('Mi entrenamiento')).not.toBeInTheDocument()
+  })
+
   it('muestra el ranking del equipo en Logros sin exponer datos personales', async () => {
     renderizarEn('/logros')
     expect(await screen.findByText('Nivel general del equipo')).toBeInTheDocument()

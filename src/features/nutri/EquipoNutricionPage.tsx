@@ -3,11 +3,14 @@ import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { calcularRacha } from '../../domain/gamification'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { visibilidadDe } from '../../domain/nutricion/visibilidad'
+import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
+import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
 import { useCapacidades } from '../coach/consola/useCapacidades'
 import { SheetVetados } from './SheetVetados'
 
@@ -34,6 +37,14 @@ interface FilaEquipo {
 interface DatosEquipo {
   filas: FilaEquipo[]
   pendientes: number
+}
+
+/** Por debajo de esto la adherencia se pinta en rojo en la lista; es el mismo corte. */
+const ADHERENCIA_EN_ROJO = 50
+
+/** Los que la lista ya pinta en rojo: sin un solo registro en 30 días o por debajo del corte. */
+function pideAtencion(f: FilaEquipo): boolean {
+  return f.pct === undefined || f.pct < ADHERENCIA_EN_ROJO
 }
 
 /**
@@ -139,6 +150,8 @@ export default function EquipoNutricionPage() {
   }
 
   const { filas, pendientes } = datosDelEquipo(version, hoy)
+  const evaluados = filas.filter((f) => f.pct !== undefined).length
+  const atencion = filas.filter(pideAtencion).length
 
 
   return (
@@ -152,7 +165,27 @@ export default function EquipoNutricionPage() {
       <section className="pt-2">
         <p className="kicker">Evaluación nutricional del equipo</p>
         <h2 className="font-display text-3xl text-texto">Nutrición Alpha</h2>
-        <p className="mt-1 text-xs text-tenue">
+        {/* Las tres cifras de la maqueta «Espacios de Alpha» (28-sep). Salen de las MISMAS
+            filas que la lista de abajo, así que no pueden contar otra cosa que ella. */}
+        <div
+          aria-label="Resumen del equipo"
+          role="group"
+          className="entrada entrada-1 mt-3 grid grid-cols-3 gap-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            <Cifra3D valor={evaluados} etiqueta={`${evaluados} evaluados con registros en 30 días`} />
+            <span className="text-xs text-tenue">evaluados</span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <Cifra3D valor={atencion} rojo={atencion > 0} etiqueta={`${atencion} piden atención`} />
+            <span className="text-xs text-tenue">piden atención</span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <Cifra3D valor={pendientes} rojo={pendientes > 0} etiqueta={`${pendientes} esperan decidir qué cifras ven`} />
+            <span className="text-xs text-tenue">cifras por decidir</span>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-tenue">
           Adherencia de los últimos 30 días · ordenado de mayor a menor atención requerida
         </p>
         {/* Sin este enlace la pantalla de decisiones existe y no la alcanza
@@ -179,7 +212,14 @@ export default function EquipoNutricionPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-2.5">
+      {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
+          mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}
+      <div className="entrada entrada-2 flex flex-col gap-3">
+        <BandejaPrimerosPlanes />
+        <BandejaPlanesRenovados />
+      </div>
+
+      <section aria-label="Adherencia del equipo" className="flex flex-col gap-2.5">
         {filas.map((f) => (
           <Card key={f.usuario.id} className="flex items-center gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-3 text-xs font-bold text-texto">

@@ -19,6 +19,8 @@ const titulos: Record<string, string> = {
   '/cuestionarios': 'Cuestionarios',
   '/marca': 'Marca',
   '/equipo': 'Equipo',
+  '/mi-entreno': 'Mi entreno',
+  '/equipo-nutricion': 'Nutrición',
 }
 
 function tituloDe(ruta: string, esStaff = false): string {
@@ -27,7 +29,7 @@ function tituloDe(ruta: string, esStaff = false): string {
   return titulos[base] ?? 'Alpha'
 }
 
-/** El staff que también entrena (Manuela) navega por sus cuatro espacios. */
+/** El staff que también entrena (Manuela) navega por sus cinco espacios. */
 function espaciosDe(rol: string): EspaciosNav {
   return rol === 'nutricionista' ? 'staff' : 'asesorado'
 }
@@ -142,7 +144,7 @@ export function CoachLayout() {
           <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
         )}
       </nav>
-      {/* El staff (Manuela) conserva sus cuatro espacios también dentro de la consola y del
+      {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
       <main className={`mx-auto overflow-x-clip px-4 pt-4 ${esCoach ? 'pb-16' : 'pb-28'} ${anchoContenedor}`}>
         <Outlet />

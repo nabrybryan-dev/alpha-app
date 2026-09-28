@@ -23,12 +23,24 @@ describe('BottomNav', () => {
     ])
   })
 
-  it('el staff que entrena (Manuela) ve sus cuatro espacios', () => {
+  it('el staff que entrena (Manuela) ve sus cinco espacios, en el orden de la maqueta', () => {
     expect(etiquetas('staff')).toEqual([
       ['Mi día', '/'],
-      ['Mi entreno', '/entrenar'],
+      ['Mi entreno', '/mi-entreno'],
+      ['Nutrición', '/equipo-nutricion'],
       ['Equipo', '/equipo'],
       ['Estrategia', '/coach/creadores'],
     ])
+  })
+
+  it('cada espacio es un enlace real con su nombre escrito, no solo un icono', () => {
+    render(
+      <MemoryRouter>
+        <BottomNav espacios="staff" />
+      </MemoryRouter>,
+    )
+    for (const nombre of ['Mi día', 'Mi entreno', 'Nutrición', 'Equipo', 'Estrategia']) {
+      expect(screen.getByRole('link', { name: nombre })).toBeInTheDocument()
+    }
   })
 })

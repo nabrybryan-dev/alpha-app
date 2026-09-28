@@ -10,6 +10,8 @@ import {
   type Carril,
   type RevisionReel,
 } from '../../../data/consola/creadores'
+import { Cifra3D } from '../../../components/ui/Cifra3D'
+import { embudoDe, type Embudo } from './embudo'
 
 /**
  * Tablero de CREADORES (fase F1 de `PLAN-CENTRALIZACION.md`): SOLO LECTURA.
@@ -23,6 +25,66 @@ import {
 
 const DIMENSIONES = ['H', 'C', 'P', 'T', 'CTA', 'S'] as const
 const PRIMERO: Carril[] = ['tambaleando', 'aprobado_contacto']
+
+/** Las filas del embudo, en el orden de la maqueta. Rojo solo el paso que pide criterio. */
+const FILAS_EMBUDO: { clave: keyof Embudo; etiqueta: string; rojo?: boolean; tenue?: boolean }[] = [
+  { clave: 'evaluados', etiqueta: 'Evaluados' },
+  { clave: 'esperanVideo', etiqueta: 'Esperan video' },
+  { clave: 'tambaleando', etiqueta: 'Tambaleando', rojo: true },
+  { clave: 'contactados', etiqueta: 'Contactados' },
+  { clave: 'entrenadores', etiqueta: 'Entrenadores', tenue: true },
+]
+
+/**
+ * Arriba del tablero: tres cifras en relieve y el embudo con sus barras, contado sobre los
+ * carriles reales (`embudoDe`). Las barras se miden contra los evaluados, que es el total
+ * del que sale cada paso; con cero evaluados no hay barra que dibujar.
+ */
+function CabeceraEmbudo({ embudo }: { embudo: Embudo }) {
+  const total = embudo.evaluados
+  return (
+    <>
+      <div role="group" aria-label="Cifras de la bola de nieve" className="entrada entrada-1 grid grid-cols-3 gap-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <div className="flex min-w-0 flex-col gap-1">
+          <Cifra3D valor={embudo.evaluados} etiqueta={`${embudo.evaluados} evaluados`} />
+          <span className="text-xs text-tenue">evaluados</span>
+        </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <Cifra3D valor={embudo.tambaleando} rojo={embudo.tambaleando > 0} etiqueta={`${embudo.tambaleando} por decidir`} />
+          <span className="text-xs text-tenue">por decidir</span>
+        </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <Cifra3D valor={embudo.contactados} etiqueta={`${embudo.contactados} contactados`} />
+          <span className="text-xs text-tenue">contactados</span>
+        </div>
+      </div>
+
+      <section aria-label="El embudo hoy" className="entrada entrada-2 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">El embudo hoy</p>
+        <ul className="flex flex-col gap-2.5">
+          {FILAS_EMBUDO.map((f) => {
+            const n = embudo[f.clave]
+            const pct = total > 0 ? Math.min(100, (n / total) * 100) : 0
+            return (
+              <li key={f.clave} className="grid grid-cols-[7rem_minmax(0,1fr)_2.5rem] items-center gap-2 text-[13px]">
+                <span className={f.rojo ? 'font-bold text-rojo' : 'text-texto'}>{f.etiqueta}</span>
+                <div className="h-2.5 rounded-full bg-surface-2" aria-hidden="true">
+                  {pct > 0 && (
+                    <div
+                      className={`barra-espacio h-2.5 rounded-full ${f.rojo ? 'bg-rojo' : f.tenue ? 'bg-tenue' : 'bg-texto'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                </div>
+                <span className={`cifras text-right text-sm font-bold ${f.rojo ? 'text-rojo' : 'text-texto'}`}>{n}</span>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+    </>
+  )
+}
 
 function formatoSeguidores(n: number | null): string {
   if (n === null) return '—'
@@ -180,12 +242,13 @@ export default function CreadoresPage() {
     ...grupos.filter((g) => g.carril === 'entrenador'),
   ]
   const ultimaRecepcion = candidatos.map((c) => c.fechaRecepcion).sort().at(-1)
+  const embudo = embudoDe(candidatos)
 
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <p className="kicker">Bola de nieve</p>
-        <h1 className="font-display text-2xl text-texto">Creadores</h1>
+        <p className="kicker">Estrategia · creadores</p>
+        <h1 className="font-display text-3xl leading-none text-texto">Bola de nieve</h1>
         <p className="mt-1 text-sm text-tenue">
           Solo lectura. Lo sube el radar de casa; la firma de contactos llega en la siguiente fase.
           {ultimaRecepcion ? ` Último dato recibido: ${new Date(ultimaRecepcion).toLocaleString('es-CO')}.` : ''}
@@ -202,14 +265,27 @@ export default function CreadoresPage() {
           ))}
       </nav>
 
-      {candidatos.length === 0 && (
+      {candidatos.length === 0 ? (
         <p className="text-sm text-tenue">Todavía no hay creadores en el tablero.</p>
+      ) : (
+        <CabeceraEmbudo embudo={embudo} />
       )}
 
       {orden
         .filter((g) => g.candidatos.length > 0)
         .map((g) => (
-          <section key={g.carril} id={`carril-${g.carril}`} aria-labelledby={`titulo-${g.carril}`}>
+          <section
+            key={g.carril}
+            id={`carril-${g.carril}`}
+            aria-labelledby={`titulo-${g.carril}`}
+            // «Por decidir» va primero y en rojo (maqueta): es donde hace falta criterio humano.
+            className={g.carril === 'tambaleando' ? 'rounded-tarjeta border border-rojo bg-surface-1 p-4' : undefined}
+          >
+            {g.carril === 'tambaleando' && (
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-rojo">
+                Por decidir · escúchalos con sonido
+              </p>
+            )}
             <h2 id={`titulo-${g.carril}`} className="mb-2 font-display text-lg text-texto">
               {NOMBRE_CARRIL[g.carril]} <span className="text-sm text-tenue">({g.candidatos.length})</span>
             </h2>
