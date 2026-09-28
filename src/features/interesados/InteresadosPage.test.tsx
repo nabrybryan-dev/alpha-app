@@ -133,3 +133,21 @@ describe('la autorización', () => {
     ])
   })
 })
+
+describe('siempre en negro', () => {
+  it('el formulario va en tema oscuro aunque el teléfono esté en modo claro', () => {
+    document.documentElement.dataset.theme = 'light'
+    const { container } = montar()
+    expect(container.querySelector('main')).toHaveAttribute('data-theme', 'dark')
+  })
+
+  it('la pantalla de «gracias» también va en tema oscuro', async () => {
+    montar()
+    contestarEncaje()
+    marcarCasillas({ A: 'Sí', B: 'No', C: 'No', D: 'No' })
+    tocar('Acepto la declaración')
+    tocar('Enviar')
+    const aviso = await screen.findByRole('status')
+    expect(aviso.closest('main')).toHaveAttribute('data-theme', 'dark')
+  })
+})
