@@ -1891,4 +1891,62 @@ select '0088 - mensajes_vida_leer exige dueño, enviar_despues_de y detenido_en'
             and coalesce(qual, '') like '%enviar_despues_de%'
             and coalesce(qual, '') like '%detenido_en%'
        ) then 'SI' else 'NO' end
+union all
+-- La 0089: el formulario público de interesados solo INSERTA; anon nunca lee.
+select '0089 - formulario de interesados: anon inserta y no lee', 'RLS en piloto_encaje_respuestas y piloto_autorizaciones, anon con insert y sin select/update/delete',
+       case when to_regclass('public.piloto_encaje_respuestas') is null
+              or to_regclass('public.piloto_autorizaciones') is null then 'NO'
+            when exists (select 1 from pg_class c
+                          where c.oid in (to_regclass('public.piloto_encaje_respuestas'), to_regclass('public.piloto_autorizaciones'))
+                            and not c.relrowsecurity) then 'NO'
+            when not has_table_privilege('anon', 'public.piloto_encaje_respuestas', 'insert')
+              or not has_table_privilege('anon', 'public.piloto_autorizaciones', 'insert') then 'NO'
+            when has_table_privilege('anon', 'public.piloto_encaje_respuestas', 'select')
+              or has_table_privilege('anon', 'public.piloto_autorizaciones', 'select')
+              or has_table_privilege('anon', 'public.piloto_encaje_respuestas', 'update')
+              or has_table_privilege('anon', 'public.piloto_autorizaciones', 'delete') then 'NO'
+            when exists (select 1 from pg_policies
+                          where schemaname = 'public'
+                            and tablename in ('piloto_encaje_respuestas', 'piloto_autorizaciones')
+                            and cmd in ('SELECT', 'ALL') and 'anon' = any(roles)) then 'NO'
+            else 'SI' end
+
+union all
+-- La 0089: la evidencia solo entra con el texto vigente y la fecha la pone el servidor.
+select '0089 - piloto_autorizaciones exige la version 0.3 y fecha del servidor', 'with_check de la policy de insert menciona 0.3 y existe el trigger de fecha',
+       case when not exists (select 1 from pg_policies
+                              where schemaname = 'public' and tablename = 'piloto_autorizaciones'
+                                and policyname = 'piloto_autorizacion_insertar_formulario'
+                                and coalesce(with_check, '') like '%0.3%') then 'NO'
+            when not exists (select 1 from pg_trigger
+                              where tgname = 'trg_piloto_autorizacion_fecha' and not tgisinternal) then 'NO'
+            else 'SI' end
+
+union all
+-- La 0089: la hoja del piloto, cerrada a anon y con RLS en sus siete tablas.
+select '0089 - hoja del piloto con RLS y sin nada para anon', 'RLS en las 7 tablas piloto_ de la hoja y anon sin select ni insert',
+       case when (select count(*) from pg_class c
+                   where c.oid in (to_regclass('public.piloto_codigos'), to_regclass('public.piloto_interesados'),
+                                   to_regclass('public.piloto_clientes'), to_regclass('public.piloto_cobros'),
+                                   to_regclass('public.piloto_eventos'), to_regclass('public.piloto_saldos_por_recuperar'),
+                                   to_regclass('public.piloto_avisos_creador'))
+                     and c.relrowsecurity) <> 7 then 'NO'
+            when has_table_privilege('anon', 'public.piloto_codigos', 'select')
+              or has_table_privilege('anon', 'public.piloto_interesados', 'select')
+              or has_table_privilege('anon', 'public.piloto_clientes', 'select')
+              or has_table_privilege('anon', 'public.piloto_cobros', 'select')
+              or has_table_privilege('anon', 'public.piloto_eventos', 'insert')
+              or has_table_privilege('anon', 'public.piloto_saldos_por_recuperar', 'select')
+              or has_table_privilege('anon', 'public.piloto_avisos_creador', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0089: piloto_eventos es de solo añadir — sin policy de update/delete y con el trigger.
+select '0089 - piloto_eventos solo se anade', 'ninguna policy update/delete/all y existe el trigger que bloquea el update',
+       case when exists (select 1 from pg_policies
+                          where schemaname = 'public' and tablename = 'piloto_eventos'
+                            and cmd in ('UPDATE', 'DELETE', 'ALL')) then 'NO'
+            when not exists (select 1 from pg_trigger
+                              where tgname = 'trg_piloto_eventos_solo_se_anaden' and not tgisinternal) then 'NO'
+            else 'SI' end
 order by migracion, senal;

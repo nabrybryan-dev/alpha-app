@@ -91,6 +91,14 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // La puerta de la salud del piloto «bola de nieve» (0089): ¿se le puede PREGUNTAR este
+  // dato de salud a un interesado? El formulario público no pregunta ninguno, marque lo
+  // que marque, así que hoy no la llama nadie. Se deja porque las preguntas de salud llegan
+  // DESPUÉS de la autorización y fuera de ese formulario, y el día que se escriban la
+  // pregunta tiene que hacerse en UN sitio, con sus casos ya probados.
+  'src/domain/interesados/formulario.ts#puedePedirSalud':
+    'Contrato de la autorización v0.3: lo consumirá quien pregunte salud después de la ' +
+    'autorización, que todavía no existe. El formulario de interesados no pregunta salud.',
   // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume la bandeja de
   // firma; `puedeSalirSola` es el CONTRATO que consumira quien envie —hoy nadie, porque el
   // envio automatico todavia no existe (`empuje-y-disparador`, sin escribir)—. Se deja
