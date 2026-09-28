@@ -1,20 +1,20 @@
 {
- "piezas_mejoradas": 50,
- "factor_crecimiento": 1.56,
+ "piezas_mejoradas": 69,
+ "factor_crecimiento": 1.359,
  "movil_grupos": {
-  "mejor": 107752,
+  "mejor": 146348,
   "profundo": 96886,
-  "resto": 94638
+  "resto": 56002
  },
  "movil_factores": {
-  "mejor": 0.42569400820647163,
-  "profundo": 0.42569400820647163,
+  "mejor": 0.4257509123233835,
+  "profundo": 0.4257509123233835,
   "resto": 0.426
  },
- "tri_escritorio": 299276,
- "bytes_escritorio": 3636040,
- "tri_movil": 134327,
- "bytes_movil": 1655552,
+ "tri_escritorio": 299236,
+ "bytes_escritorio": 3634388,
+ "tri_movil": 133683,
+ "bytes_movil": 1646512,
  "partes_escritorio": 522,
  "partes_movil": 522
 }

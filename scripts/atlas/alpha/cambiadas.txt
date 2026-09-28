@@ -1,0 +1,69 @@
+(Abdominal part of pectoralis major muscle)
+Abductor pollicis longus
+Acromial part of deltoid muscle
+Anconeus muscle
+Ascending part of trapezius muscle
+Brachialis muscle
+Brachioradialis muscle
+Clavicular head of pectoralis major muscle
+Clavicular part of deltoid muscle
+Coracobrachialis muscle
+Deep head of pronator teres
+Descending part of trapezius muscle
+Dorsal parts of lateral intertransversarii lumborum muscles
+Extensor carpi radialis brevis
+Extensor carpi radialis longus
+Extensor digiti minimi
+Extensor digitorum
+Extensor digitorum longus
+External abdominal oblique muscle
+Fibularis longus muscle
+Flexor carpi radialis
+Flexor pollicis longus
+Gracilis muscle
+Humeral head of extensor carpi ulnaris
+Humeral head of flexor carpi ulnaris
+Humero-ulnar head of flexor digitorum superficialis
+Iliocostalis lumborum muscle
+Iliotibial tract
+Infraspinatus muscle
+Internal abdominal oblique muscle
+Lateral head of gastrocnemius
+Lateral head of triceps brachii
+Latissimus dorsi muscle
+Long head of biceps brachii
+Long head of biceps femoris
+Long head of triceps brachii
+Medial head of gastrocnemius
+Medial head of triceps brachii
+Multifidus lumborum muscle
+Palmaris longus muscle
+Plantaris muscle
+Popliteus muscle
+Pronator quadratus
+Quadratus lumborum muscle
+Radial head of flexor digitorum superficialis
+Rectus femoris muscle
+Sartorius muscle
+Scapular spinal part of deltoid muscle
+Semimembranosus muscle
+Semitendinosus muscle
+Serratus posterior inferior muscle
+Short head of biceps brachii
+Short head of biceps femoris
+Soleus muscle
+Sternocostal head of pectoralis major muscle
+Superficial head of pronator teres
+Supinator
+Supraspinatus muscle
+Teres major muscle
+Teres minor muscle
+Tibialis anterior muscle
+Transverse part of trapezius muscle
+Transversus abdominis muscle
+Ulnar head of extensor carpi ulnaris
+Ulnar head of flexor carpi ulnaris
+Vastus intermedius muscle
+Vastus lateralis muscle
+Vastus medialis muscle
+Ventral parts of lateral intertransversarii lumborum muscles
