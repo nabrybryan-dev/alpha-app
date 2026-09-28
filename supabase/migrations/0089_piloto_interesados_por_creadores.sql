@@ -2,9 +2,8 @@
 -- 0089 · Piloto «bola de nieve»: el formulario de interesados y la hoja del piloto
 -- ============================================================================
 --
--- NÚMERO PENDIENTE DE CONFIRMAR POR BRYAN. `origin/main` llega a la 0088 (27-sep); la
--- 0079 la tiene reservada la rama `feat/veto-24h` (PR #296). Ninguna rama remota trae
--- una 0089. Si otra rama la coge antes, se renumera ESTA, que no está aplicada.
+-- NÚMERO CONFIRMADO POR BRYAN (27-sep). `origin/main` llega a la 0088; la 0079 la tiene
+-- reservada la rama `feat/veto-24h` (PR #296). Ninguna rama remota trae una 0089.
 --
 -- NO SE HA APLICADO. Se aplica a mano en el SQL Editor cuando Bryan lo decida.
 --
@@ -329,7 +328,9 @@ create table if not exists public.piloto_eventos (
     'autorizacion', 'pago_enviado', 'pago_confirmado', 'alta_fallida', 'alta_hecha',
     'primer_uso', 'perdida', 'reabierto', 'dato_salud_recibido_borrado',
     'pago_duplicado_ignorado', 'atribucion_corregida', 'aviso_creador_enviado',
-    'liquidacion', 'compensacion', 'devolucion')),
+    'liquidacion', 'compensacion', 'devolucion',
+    -- La purga semanal de respuestas de encaje (sección C). Sin cliente_id.
+    'purga_encaje')),
   detalle      text,
   operacion_id text,
   min_bryan    numeric(6, 1) check (min_bryan >= 0),
@@ -441,6 +442,63 @@ drop policy if exists piloto_avisos_coach_anade on public.piloto_avisos_creador;
 create policy piloto_avisos_coach_anade on public.piloto_avisos_creador
   for insert to authenticated with check (public.es_coach());
 
+-- ────────────────────────────────────────────────────────────────────────────
+-- C · PURGA SEMANAL DE LAS RESPUESTAS DE ENCAJE (mapa §4: 3 meses si no compra)
+-- ────────────────────────────────────────────────────────────────────────────
+-- Borra las respuestas de encaje recibidas hace más de 3 meses de quien NO compró, es
+-- decir, cuyo `cliente_id` no está en `piloto_clientes` (la fila nace al confirmarse el
+-- pago). Una respuesta sin `cliente_id` no se puede atar a ningún cliente, así que cuenta
+-- como «no compró»: si compró, Bryan tiene que haberle puesto el `cliente_id` antes.
+--
+-- Su autorización se va con ella (`on delete cascade`): de quien no compró no se guardó
+-- ningún dato de salud, así que no queda nada que esa prueba tenga que respaldar.
+--
+-- Deja UNA fila en `piloto_eventos` con los conteos y nada más: sin cliente_id, sin
+-- envio_id y sin respuestas. Se escribe también cuando borra 0, como prueba de que corrió.
+-- Sin `security definer`: la llama pg_cron como dueño; nadie más tiene `execute`.
+create or replace function public.piloto_purgar_encaje()
+returns integer language plpgsql set search_path = public as $$
+declare
+  n_encaje integer;
+  n_autorizaciones integer;
+begin
+  select count(*) into n_autorizaciones
+    from public.piloto_autorizaciones a
+    join public.piloto_encaje_respuestas e on e.envio_id = a.envio_id
+   where e.recibido_en < now() - interval '3 months'
+     and not exists (select 1 from public.piloto_clientes c where c.cliente_id = e.cliente_id);
+
+  delete from public.piloto_encaje_respuestas e
+   where e.recibido_en < now() - interval '3 months'
+     and not exists (select 1 from public.piloto_clientes c where c.cliente_id = e.cliente_id);
+  get diagnostics n_encaje = row_count;
+
+  insert into public.piloto_eventos (paso, detalle)
+  values ('purga_encaje',
+          format('borradas %s respuestas de encaje y %s autorizaciones; más de 3 meses sin compra',
+                 n_encaje, n_autorizaciones));
+  return n_encaje;
+end;
+$$;
+revoke execute on function public.piloto_purgar_encaje() from public, anon, authenticated;
+
+-- Una vez por semana (lunes 08:00 UTC = 03:00 en Colombia), con el mismo patrón que la
+-- 0048 y la 0086: solo si pg_cron está disponible, y el mismo nombre reemplaza el
+-- trabajo, así que reaplicar no lo duplica. Sin pg_cron, la función queda y no se
+-- programa nada (aviso en el log).
+do $cron_purga_encaje$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    execute 'create extension if not exists pg_cron';
+    execute $q$
+      select cron.schedule('piloto-purgar-encaje', '0 8 * * 1', 'select public.piloto_purgar_encaje();')
+    $q$;
+  else
+    raise notice 'pg_cron no está disponible: piloto_purgar_encaje() no queda programada.';
+  end if;
+end;
+$cron_purga_encaje$;
+
 commit;
 
 -- ============================================================================
@@ -452,7 +510,8 @@ commit;
 -- Borrar la respuesta entera (se lleva su autorización por el `on delete cascade`):
 --   delete from public.piloto_encaje_respuestas where envio_id = '<uuid>';
 --   select count(*) from public.piloto_autorizaciones where envio_id = '<uuid>';           -- 0
--- Respuestas de encaje con más de 3 meses de alguien que no compró (plazo del mapa §4):
+-- Respuestas de encaje con más de 3 meses de alguien que no compró (plazo del mapa §4).
+-- La purga semanal (sección C) las borra sola; esto sirve para ver qué borraría:
 --   select e.envio_id from public.piloto_encaje_respuestas e
 --    where e.recibido_en < now() - interval '3 months'
 --      and not exists (select 1 from public.piloto_clientes c where c.cliente_id = e.cliente_id);

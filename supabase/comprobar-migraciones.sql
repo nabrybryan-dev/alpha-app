@@ -1949,4 +1949,12 @@ select '0089 - piloto_eventos solo se anade', 'ninguna policy update/delete/all 
             when not exists (select 1 from pg_trigger
                               where tgname = 'trg_piloto_eventos_solo_se_anaden' and not tgisinternal) then 'NO'
             else 'SI' end
+union all
+-- La 0089: la purga semanal de encaje existe, no la puede llamar el navegador y está programada.
+select '0089 - piloto_purgar_encaje sin execute para anon/authenticated y programada', 'la funcion existe, anon y authenticated sin execute, trabajo piloto-purgar-encaje en cron.job',
+       case when to_regprocedure('public.piloto_purgar_encaje()') is null then 'NO'
+            when has_function_privilege('anon', 'public.piloto_purgar_encaje()', 'execute')
+              or has_function_privilege('authenticated', 'public.piloto_purgar_encaje()', 'execute') then 'NO'
+            when to_regclass('cron.job') is null then 'NO'
+            else 'SI' end
 order by migracion, senal;
