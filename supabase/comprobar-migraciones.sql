@@ -1957,4 +1957,34 @@ select '0089 - piloto_purgar_encaje sin execute para anon/authenticated y progra
               or has_function_privilege('authenticated', 'public.piloto_purgar_encaje()', 'execute') then 'NO'
             when to_regclass('cron.job') is null then 'NO'
             else 'SI' end
+union all
+-- La 0090: las tres tablas del tablero de creadores con RLS, anon sin nada y authenticated
+-- SOLO con select (el importador escribe con service_role).
+select '0090 - tablero de creadores: RLS, anon sin acceso, authenticated solo lee', 'las 3 tablas creadores_* con RLS; anon sin select; authenticated con select y sin insert/update/delete',
+       case when exists (
+         select 1 from unnest(array['public.creadores_candidatos', 'public.creadores_revisiones', 'public.creadores_eventos']) t(tabla)
+          where to_regclass(t.tabla) is null
+             or not (select c.relrowsecurity from pg_class c where c.oid = to_regclass(t.tabla))
+             or has_table_privilege('anon', t.tabla, 'select')
+             or not has_table_privilege('authenticated', t.tabla, 'select')
+             or has_table_privilege('authenticated', t.tabla, 'insert')
+             or has_table_privilege('authenticated', t.tabla, 'update')
+             or has_table_privilege('authenticated', t.tabla, 'delete')
+       ) then 'NO' else 'SI' end
+union all
+-- La 0090: el check de capacidades admite revisar_creadores y firmar_creadores SIN perder
+-- ninguna de las 8 anteriores.
+select '0090 - capacidades revisar_creadores y firmar_creadores', 'el check de capacidades_staff contiene las 10',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 10
+            then 'SI' else 'NO' end
+union all
+-- La 0090: el bucket de las hojas de cuadros es privado.
+select '0090 - bucket creadores-cuadros privado', 'storage.buckets creadores-cuadros con public = false',
+       case when exists (select 1 from storage.buckets where id = 'creadores-cuadros' and public = false)
+            then 'SI' else 'NO' end
 order by migracion, senal;

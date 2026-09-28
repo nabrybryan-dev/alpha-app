@@ -123,7 +123,7 @@ create index if not exists creadores_candidatos_por_carril
   on public.creadores_candidatos (carril, actualizado_en desc);
 
 alter table public.creadores_candidatos enable row level security;
-revoke all on public.creadores_candidatos from anon, public;
+revoke all on public.creadores_candidatos from anon, authenticated, public;
 grant select on public.creadores_candidatos to authenticated;
 grant all on public.creadores_candidatos to service_role;
 
@@ -165,7 +165,7 @@ create index if not exists creadores_revisiones_por_creador
   on public.creadores_revisiones (creador_id, fecha_revision desc);
 
 alter table public.creadores_revisiones enable row level security;
-revoke all on public.creadores_revisiones from anon, public;
+revoke all on public.creadores_revisiones from anon, authenticated, public;
 grant select on public.creadores_revisiones to authenticated;
 grant all on public.creadores_revisiones to service_role;
 
@@ -197,7 +197,7 @@ create index if not exists creadores_eventos_por_creador
   on public.creadores_eventos (creador_id, fecha_dato desc);
 
 alter table public.creadores_eventos enable row level security;
-revoke all on public.creadores_eventos from anon, public;
+revoke all on public.creadores_eventos from anon, authenticated, public;
 grant select on public.creadores_eventos to authenticated;
 grant all on public.creadores_eventos to service_role;
 
