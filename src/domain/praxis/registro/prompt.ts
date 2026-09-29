@@ -8,7 +8,7 @@
  */
 import type { ContextoRegistro } from './tipos.ts'
 
-export const VERSION_PROMPT = 'registro-prompt-2026-09-29.4'
+export const VERSION_PROMPT = 'registro-prompt-2026-09-29.5'
 
 /** Modelo en vivo (la clave de la API es un secreto de Supabase, nunca va en código). */
 export const MODELO_HAIKU = 'claude-haiku-4-5'
@@ -33,6 +33,7 @@ ENTRENO (entreno[])
 - carga.por: "mano" si dice "en cada mano/por mano", "lado" si "por lado", "total" si "en total"; si no lo dice, "no_dicho".
 - Peso con lastre en ejercicios de peso corporal ("fondos con diez kilos de lastre"): carga absoluta con el número y unidad_cita "de lastre".
 - reserva: "reserva_dicha" con la cita cuando dice cuántas repeticiones le quedaban ("me quedaron como 2 en reserva", "podía hacer como 6 más", "me quedaba una máximo"); "fallo" si dice que llegó al fallo; "rir_de_pauta" si dice "el RIR que me pusieron"; si no dice nada, "no_dicha".
+- Cuando varias series comparten una frase de reserva al final ("en la primera me quedaban 4 y en la segunda 2 de reserva"), la cita de cada serie es SOLO la cifra que está pegada a su ordinal ("4", "2"). Aunque el "de reserva" del final valga para todas, cita solo la cifra: nunca le pegues a una cifra palabras que en la frase no están junto a ella.
 - senales: "aproximado" (como, más o menos, algo así como), "no_recuerda" ("no me acuerdo"), "autocorreccion" (se corrigió en la misma frase), "maximo_o_minimo" ("una máximo").
 - AUTOCORRECCIÓN dentro de la misma frase: si dice "cuarenta y cinco, no no, cincuenta y cinco", cita solo el ÚLTIMO ("cincuenta y cinco") y marca "autocorreccion". Igual con el ejercicio ("en la prensa, eh no perdón, en la sentadilla": cita "sentadilla") y con "le metí 40 por 12... no, perdón, eran 50, no 40" (carga "50", reps "12", autocorreccion).
 - es_calentamiento=true para las series de calentamiento o aproximación (no son series de trabajo).
@@ -88,6 +89,8 @@ Frase: "fondos, tres series, 12, 10 y 8, solo con el peso del cuerpo"
 {"intencion":["entreno"],"entreno":[{"ejercicio":{"cita":"fondos","implicito":"no"},"bloques":[{"reps":"12","carga":{"tipo":"corporal"}},{"reps":"10","carga":{"tipo":"corporal"}},{"reps":"8","carga":{"tipo":"corporal"}}]}]}
 Frase: "dominadas con la banda roja, cinco y cuatro"
 {"intencion":["entreno"],"entreno":[{"ejercicio":{"cita":"dominadas","implicito":"no"},"bloques":[{"reps":"cinco","carga":{"tipo":"corporal"}},{"reps":"cuatro","carga":{"tipo":"corporal"}}]}]}
+Frase: "prensa 140 por 12 las dos, en la primera me quedaban 4 y en la segunda 2 de reserva"
+{"intencion":["entreno"],"entreno":[{"ejercicio":{"cita":"prensa","implicito":"no"},"bloques":[{"ordinal":"la primera","reps":"12","carga":{"tipo":"absoluta","valor":"140","por":"no_dicho"},"reserva":{"tipo":"reserva_dicha","cita":"4"}},{"ordinal":"la segunda","reps":"12","carga":{"tipo":"absoluta","valor":"140","por":"no_dicho"},"reserva":{"tipo":"reserva_dicha","cita":"2"}}]}]}
 Frase: "hoy solo alcancé a hacer la sentadilla y la prensa"
 {"intencion":["entreno"],"entreno":[{"ejercicio":{"cita":"sentadilla","implicito":"no"},"bloques":[]},{"ejercicio":{"cita":"prensa","implicito":"no"},"bloques":[]}]}
 Frase: "no, eran 45 no 40"

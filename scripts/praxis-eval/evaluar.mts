@@ -24,7 +24,7 @@
  * que el contexto sea solo el prompt de Praxis.
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { contextoDeCorpus } from './contexto-corpus.ts'
@@ -87,13 +87,26 @@ interface RespuestaModelo {
   modelo: string
 }
 
+/**
+ * El prompt va por archivo, no por argumento: en Windows la línea de comandos tiene
+ * un tope de ~32 mil caracteres y prompt + esquema ya lo pasan (`spawn ENAMETOOLONG`).
+ */
+let archivoPrompt: string | null = null
+function rutaDelPrompt(): string {
+  if (!archivoPrompt) {
+    archivoPrompt = join(mkdtempSync(join(tmpdir(), 'praxis-eval-')), 'prompt.txt')
+    writeFileSync(archivoPrompt, PROMPT_SISTEMA, 'utf8')
+  }
+  return archivoPrompt
+}
+
 /** Una llamada `claude -p` sin herramientas y con el esquema como salida estructurada. */
 export function llamarClaude(mensaje: string, o: Pick<Opciones, 'modelo' | 'claude'>, cwd: string): Promise<RespuestaModelo> {
   const args = [
     '-p', '--model', o.modelo, '--output-format', 'json',
     '--tools', '',
     '--json-schema', JSON.stringify(ESQUEMA_REGISTRO),
-    '--system-prompt', PROMPT_SISTEMA,
+    '--system-prompt-file', rutaDelPrompt(),
     '--no-session-persistence', '--disable-slash-commands', '--strict-mcp-config',
     '--exclude-dynamic-system-prompt-sections', '--setting-sources', '',
   ]

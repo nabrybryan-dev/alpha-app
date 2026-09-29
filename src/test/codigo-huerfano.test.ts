@@ -25,6 +25,11 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
+  // que queda fuera de src/ y por eso este analisis no la ve.
+  'src/domain/praxis/registro/index.ts':
+    'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+
   // El contrato de trayectorias: que ningun patron contradiga a su propio implemento.
   // No lo importa la app y no es un descuido: es una regla que se hace cumplir desde una
   // prueba, como una regla de linter, no una funcion que alguien llame en un fotograma. Se

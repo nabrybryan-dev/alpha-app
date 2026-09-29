@@ -373,3 +373,36 @@ describe('los 14 casos N/V/D que fallaron, con la extracción que el prompt nuev
     expect(items('N76')[0]).toMatchObject({ alimento: 'arepa delgada', gramos: 112 })
   })
 })
+
+describe('la reserva compartida al final de la frase se cita sin las palabras de la vecina', () => {
+  const frase = 'prensa 140 por 12 las dos, en la primera me quedaban 4 y en la segunda 2 de reserva'
+  const bloque = (ordinal: string, cita: string) => ({
+    ordinal, n_series: null, reps: '12', carga: { tipo: 'absoluta', valor: '140', por: 'no_dicho' },
+    reserva: { tipo: 'reserva_dicha', cita },
+  })
+  const cruda = (c1: string, c2: string) => ({
+    intencion: ['entreno'],
+    entreno: [{ ejercicio: { cita: 'prensa', implicito: 'no' }, bloques: [bloque('la primera', c1), bloque('la segunda', c2)] }],
+  })
+  it('«4 de reserva» no está en la frase: el validador lo descarta y esa serie pierde su RIR (la causa de CE-021)', () => {
+    const { extraccion, citasInvalidas } = validarExtraccion(frase, cruda('4 de reserva', '2'))
+    expect(citasInvalidas.join('|')).toMatch(/reserva\.cita/)
+    expect(extraccion.entreno[0].bloques[0].reserva.tipo).toBe('no_dicha')
+    expect(extraccion.entreno[0].bloques[1].reserva).toMatchObject({ tipo: 'reserva_dicha', cita: '2' })
+  })
+  it('con solo la cifra que pide el prompt, cada serie conserva su RIR', () => {
+    const { extraccion, citasInvalidas } = validarExtraccion(frase, cruda('4', '2'))
+    expect(citasInvalidas).toEqual([])
+    const contexto = ctx({
+      microciclo: { id: 'M1' }, sesionHoyId: 'S1',
+      sesiones: [{ id: 'S1', nombre: 'PIERNA', ejercicios: [{ id: 'a1', nombre: 'PRENSA 45', sesionId: 'S1', sets: 3, unidad: 'kg', series: [] }] }],
+    })
+    const p = resolverPropuesta(frase, extraccion, contexto)
+    expect(p.accion).toBe('tarjeta')
+    expect((p.registros[0] as RegistroSeries).valor.map((x) => x.rir)).toEqual([4, 2])
+  })
+  it('el prompt lo pide con una frase distinta a la del corpus', () => {
+    const t = readFileSync('src/domain/praxis/registro/prompt.ts', 'utf8')
+    expect(t).toMatch(/SOLO la cifra que está pegada a su ordinal/)
+  })
+})
