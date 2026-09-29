@@ -17,6 +17,11 @@ import pieza
 DESPLAZA = np.array([1.0505e-05, -0.0019892, 0.0090613])
 TOPE_ESCRITORIO = 400_000 - 89_362 - 6_710      # triangulos totales - esqueleto - piel
 TOPE_MOVIL = 130_000
+# Opciones (tras '--'): --tope-movil N cambia el tope del celular; --sufijo S (p. ej. -200k) escribe SOLO
+# atlas-musculos-alpha-movil{S}.pieza e informe{S}.json y no toca los archivos de escritorio ni el -movil vigente.
+_a = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
+_o = {_a[i][2:]: _a[i + 1] for i in range(0, len(_a) - 1, 2) if _a[i].startswith('--')}
+TOPE_MOVIL = int(_o.get('tope-movil', TOPE_MOVIL)); SUFIJO = _o.get('sufijo', '')
 ORIG = pieza.leer(os.path.join(AQUI, 'origen', 'atlas-musculos-zanatomy.pieza'))
 PORNOMBRE = {p['nombre']: p for p in ORIG}
 MUS = bpy.data.collections['01_Musculos_y_marcas_tendinosas'].objects
@@ -90,7 +95,7 @@ for o in mejor:
 escritorio = [nuevas.get(p['nombre'], p) for p in ORIG]
 os.makedirs(os.path.join(AQUI, 'salida'), exist_ok=True)
 t_esc = sum(len(p['idx']) // 3 for p in escritorio)
-b_esc = pieza.escribir(escritorio, os.path.join(AQUI, 'salida', 'atlas-musculos-alpha.pieza'))
+b_esc = pieza.escribir(escritorio, os.path.join(AQUI, 'salida', 'atlas-musculos-alpha.pieza')) if not SUFIJO else 0
 
 # --- movil: prioridad a lo visible. Profundos casi fuera; mejorados conservan su forma de escritorio ---
 PROFUNDO = re.compile(r'intercostal|pharyn|arytenoid|crico|thyro|glossus|palat|stylo|multifidus|rotatores|levatores|interspinal|intertransvers|diaphragm|pterygoid|longus (colli|capitis)|transversus thoracis|subcostal|rectus (anterior|lateralis|posterior)|obliquus (superior|inferior) capitis|semispinalis|spinalis|longissimus|iliocostalis|quadratus lumborum|psoas|iliacus|piriformis|gemellus|obturator|pelvic|levator ani|coccyg|sphincter|uvula|tensor veli|levator veli|salpingo|tarsus|tendon sheath|lumbrical|interosse|opponens|adductor minimus|subclavius|pectoralis minor|subscapularis|serratus posterior|scalenus|splenius|mentalis|nasalis|procerus|depressor|levator labii|zygomatic|risorius|buccinator|orbicularis|corrugator|auricular|temporoparietal|occipitofrontalis|digastric|mylohyoid|geniohyoid|sternohyoid|sternothyroid|omohyoid|masseter|temporalis', re.I)
@@ -125,8 +130,8 @@ for p in escritorio:
     if r in PORNOMBRE: movil.append(espejo(q, r, color_base(PORNOMBRE[r])))
 orden = {p['nombre']: i for i, p in enumerate(ORIG)}; movil.sort(key=lambda q: orden[q['nombre']])
 t_mov = sum(len(p['idx']) // 3 for p in movil)
-b_mov = pieza.escribir(movil, os.path.join(AQUI, 'salida', 'atlas-musculos-alpha-movil.pieza'))
+b_mov = pieza.escribir(movil, os.path.join(AQUI, 'salida', 'atlas-musculos-alpha-movil%s.pieza' % SUFIJO))
 informe.update(tri_escritorio=t_esc, bytes_escritorio=b_esc, tri_movil=t_mov, bytes_movil=b_mov,
                partes_escritorio=len(escritorio), partes_movil=len(movil))
-json.dump(informe, open(os.path.join(AQUI, 'salida', 'informe.json'), 'w'), indent=1)
+json.dump(informe, open(os.path.join(AQUI, 'salida', 'informe%s.json' % SUFIJO), 'w'), indent=1)
 print('INFORME', json.dumps(informe))

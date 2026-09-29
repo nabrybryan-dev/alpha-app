@@ -1,5 +1,5 @@
 """Carga .pieza (espacio app, Y arriba) en una escena vacia y renderiza una zona con color de vertice.
-Uso: blender -b --factory-startup --python vista_previa.py -- archivo.pieza salida.png [--centro x,y,z] [--dir x,y,z] [--dist m]
+Uso: blender -b --factory-startup --python vista_previa.py -- archivo.pieza[,otro.pieza...] salida.png [--centro x,y,z] [--dir x,y,z] [--dist m]
   Sin opciones encuadra el hombro izquierdo, igual que siempre.
   --centro  punto al que mira la camara, en coordenadas de Blender de ALPHA_TRABAJO_hombro.blend (Z arriba, metros)
   --dir     direccion del centro hacia la camara (se normaliza). La luz gira con ella alrededor de Z para
@@ -18,7 +18,7 @@ mat = bpy.data.materials.new('vc'); mat.use_nodes = True
 N = mat.node_tree.nodes; b = next(n for n in N if n.type == 'BSDF_PRINCIPLED')
 at = N.new('ShaderNodeVertexColor'); at.layer_name = 'Col'
 mat.node_tree.links.new(at.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = 0.5
-for p in pieza.leer(a[0]):
+for p in [q for f in a[0].split(',') for q in pieza.leer(f)]:     # a[0] puede ser una lista de .pieza separados por comas
     v = p['pos'].astype(float); v = np.stack([v[:, 0], -v[:, 2], v[:, 1]], 1)
     t = p['idx'].reshape(-1, 3)
     me = bpy.data.meshes.new(p['nombre'] or 'x'); me.from_pydata(v.tolist(), [], t.tolist())

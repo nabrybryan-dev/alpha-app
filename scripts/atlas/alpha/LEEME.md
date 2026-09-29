@@ -70,3 +70,39 @@ sin opciones encuadra el hombro; con `--centro x,y,z` (Blender), `--dir x,y,z` y
 cualquier zona. Rodilla izquierda, delante-lateral: `--centro 0.0942,0.0154,0.4504 --dir 1,-1,0.15`.
 Los `.br` se hacen con Node: `zlib.brotliCompressSync` con `BROTLI_PARAM_QUALITY` 11 y
 `BROTLI_PARAM_LGWIN` 24.
+
+## Propuesta pendiente de la landing: esqueleto suave y celular con más presupuesto
+
+> **Sobre el contrato vigente:** en escritorio son 477 059 tri (+19,3 % sobre 400 000) y 3,39 MB br (+13 % sobre 3 MB). En celular, los músculos pasan de ~130 000 a 197 396 tri (+48 %); con esqueleto y piel, 294 423 tri y 2,06 MB. Articulaciones medidas sin penetración (rodillas, tobillos, caderas, rótulas) en escritorio y celular. Si la landing no mantiene la fluidez, vale adoptar solo el esqueleto suave con los músculos de 133 683 tri, o quedarse con lo vigente.
+
+
+Decisión de Bryan (29-sep): suavizar todo el esqueleto (296 huesos, receta subdividir + alisar con
+volumen + compensar la mediana del encogimiento, sin penetraciones en rodillas, codos y hombros) y
+pedir a la landing más presupuesto para el celular. Son archivos NUEVOS; no sustituyen a los
+vigentes y no se han commiteado.
+
+| Archivo | Partes | Triángulos | Brotli |
+|---|---|---|---|
+| `atlas-esqueleto-alpha.pieza` (escritorio) | 296 | 171 113 | 1,34 MB |
+| `atlas-esqueleto-alpha-movil.pieza` (celular) | 296 | 90 317 | 0,68 MB |
+| `atlas-musculos-alpha-movil-200k.pieza` (celular) | 522 | 197 396 | 1,33 MB |
+
+Totales por escena (piel `atlas-piel-alta`: 6 710 tri, 0,05 MB):
+
+| Escena | Músculos | Esqueleto | Piel | Total | Brotli |
+|---|---|---|---|---|---|
+| Escritorio | 299 236 (`atlas-musculos-alpha`) | 171 113 | 6 710 | 477 059 | 3,39 MB |
+| Celular | 197 396 (`-movil-200k`) | 90 317 | 6 710 | 294 423 | 2,06 MB |
+| Celular vigente (referencia) | 133 683 (`-movil`) | 89 362 (original) | 6 710 | 229 755 | 1,60 MB |
+
+Esto pasa del contrato vigente (400 000 tri y 3 MB br): el escritorio queda en 477 059 tri
+(+19,3 %) y 3,39 MB, y el celular en 294 423 tri. La landing debe medir el rendimiento (fps y
+memoria en un celular de gama media y en escritorio) antes de adoptarlos; si no cabe, se queda con
+los archivos vigentes. Los huesos se repartieron en proporción a los triángulos del original, el mismo
+factor para todos; los músculos del celular usan un solo factor para todos, sin recortar los profundos.
+
+Las rodillas, tobillos y caderas (12 huesos) no se aligeran: usan la malla subdividida (nivel 2 en escritorio, 1 en celular) para conservar la holgura medida; por eso `exportar_esqueleto.py` lee `medicion_esqueleto_scripts/artic_nivel*_ok.npz` (en el directorio de trabajo, no copiado aquí). El desvío de caja frente al original es de 6,3 mm como máximo (mediana 0,6 mm).
+
+Regenerar: `blender -b ALPHA_TRABAJO_hombro.blend --python exportar_esqueleto.py` (esqueleto) y
+`--python exportar_musculos.py -- --tope-movil 200000 --sufijo -200k` (solo escribe el `-movil-200k`;
+sin opciones se comporta como siempre).
