@@ -152,6 +152,13 @@ function lineasDeRegistro(r: RegistroPropuesto, base: string): LineaTarjeta[] {
       return [{ tarjeta_id: base, texto: `Esfuerzo de la sesión: ${r.valor} (escala 6-10)`, editable: true, confianza: r.confianza }]
     case 'testPost.duracionMin':
       return [{ tarjeta_id: base, texto: `Duración de la sesión: ${r.valor} min`, detalle: 'Dicha por ti (sin cronómetro)', editable: true, confianza: r.confianza }]
+    case 'adherencia':
+      return [{
+        tarjeta_id: base,
+        texto: `Seguiste el plan: ${r.estado === 'si' ? 'sí' : r.estado === 'parcial' ? 'en parte' : 'no'}`,
+        editable: true,
+        confianza: r.confianza,
+      }]
     case 'checkin':
       return lineasDeCheckin(r, base)
     case 'hidratacion':
@@ -159,6 +166,12 @@ function lineasDeRegistro(r: RegistroPropuesto, base: string): LineaTarjeta[] {
     case 'comida':
       return lineasDeComida(r, base)
     default:
+      if (r.campo.startsWith('bloquesCardio[') && 'bloque_nombre' in r) {
+        return [{ tarjeta_id: base, texto: `${r.bloque_nombre}: ${r.valor} min`, detalle: 'Cardio hecho', editable: true, confianza: r.confianza }]
+      }
+      if (r.campo.startsWith('preparacion[') && 'parte_nombre' in r) {
+        return [{ tarjeta_id: base, texto: `${r.parte_nombre}: hecha`, detalle: 'Se marca como hecha ahora', editable: false, confianza: r.confianza }]
+      }
       return []
   }
 }

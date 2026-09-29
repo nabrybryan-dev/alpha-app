@@ -14,11 +14,11 @@
  */
 import { confianzaDe, minConfianza, type SenalConfianza } from './confianza.ts'
 import { resolverComida } from './comida.ts'
-import { emparejarEjercicio, type ResultadoEjercicio } from './ejercicio.ts'
+import { emparejarEjercicio, tokensDeNombre, type ResultadoEjercicio } from './ejercicio.ts'
 import { derivarPorFiltro } from './filtroClinico.ts'
 import { fechaLocal, resolverFecha } from './fecha.ts'
-import { revisarCarga, revisarReps, revisarRpeSesion } from './limites.ts'
-import { minutosDeCita, numeroDeCita, ordinalDeCita, valorDeCita } from './numeros.ts'
+import { revisarCarga, revisarHorasSueno, revisarReps, revisarRpeSesion } from './limites.ts'
+import { minutosDeCita, normalizarTexto, numeroDeCita, ordinalDeCita, valorDeCita } from './numeros.ts'
 import { planificarOrdenes, quedanDespues, siguienteOrden } from './orden.ts'
 import { resolverReserva } from './rir.ts'
 import { dichoEnLibras, librasAKg, porDeCita, resolverUnidad } from './unidad.ts'
@@ -61,6 +61,8 @@ function borradorDe(item: EjercicioExtraido): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 function resolverEjercicioDelMensaje(item: EjercicioExtraido, ctx: ContextoRegistro, frase: string): ResEntreno {
+  // Ni el nombre ni una cifra («ya entrené pierna»): no hay nada que registrar ni de qué ejercicio preguntar.
+  if (!item.ejercicio.cita && item.bloques.length === 0) return { tipo: 'nada', descartado: [] }
   const modoAnterior =
     !item.ejercicio.cita &&
     item.bloques.some((b) => b.carga.tipo === 'copiar_serie_anterior' || b.carga.tipo === 'relativa' || b.ordinal !== null)
@@ -304,7 +306,12 @@ function resolverBloque(e: EntradaBloque): ResBloque {
     borrador: {},
   })
 
-  if (tipo === 'copiar_serie_anterior') {
+  // En un ejercicio de peso corporal o de banda no hay kilos que copiar ni inventar: lo único que
+  // cuenta es un lastre dicho con número. «Banda roja» no es una carga.
+  const sinKilos = ej.unidad === 'corporal' || ej.unidad === 'banda'
+  const tipoEf = sinKilos && !(tipo === 'absoluta' && numeroDeCita(b.carga.valor)) ? 'corporal' : tipo
+
+  if (tipoEf === 'copiar_serie_anterior') {
     const previa = ultimaSerie([...ej.series, ...e.acumuladas.map((s) => ({ ...s }))])
     if (!previa) return pregCarga(`No veo una serie anterior de ${ej.nombre.toLowerCase()}. ¿Con cuánto peso y cuántas repeticiones fue?`)
     const orden = ord === null || typeof ord !== 'number' ? e.sigOrden : ord
@@ -313,7 +320,7 @@ function resolverBloque(e: EntradaBloque): ResBloque {
     return { tipo: 'series', series: [serie], unidad: unidadCopia, confianza: 'alta', origen: 'copiado_de_serie_anterior', avisos, notasCoach }
   }
 
-  if (tipo === 'absoluta') {
+  if (tipoEf === 'absoluta') {
     const n = numeroDeCita(b.carga.valor)
     if (!n) return pregCarga()
     if (n.aproximado) senales.push('aproximado')
@@ -336,7 +343,7 @@ function resolverBloque(e: EntradaBloque): ResBloque {
     }
     cargaKg = kg
     if (libras) desglose = `${fmt(dicho!.valor)} lb = ${fmt(kg)} kg`
-  } else if (tipo === 'barra_sola') {
+  } else if (tipoEf === 'barra_sola') {
     const barra = ctx.perfil.pesoBarraKg
     if (barra === null || barra === undefined) {
       return {
@@ -348,7 +355,7 @@ function resolverBloque(e: EntradaBloque): ResBloque {
     cargaKg = barra
     senales.push('del_perfil')
     desglose = `barra sola = ${fmt(barra)} kg`
-  } else if (tipo === 'discos') {
+  } else if (tipoEf === 'discos') {
     const barra = ctx.perfil.pesoBarraKg
     if (barra === null || barra === undefined) {
       return {
@@ -370,14 +377,14 @@ function resolverBloque(e: EntradaBloque): ResBloque {
     cargaKg = barra + lados * suma
     senales.push('del_perfil')
     desglose = `${fmt(barra)} + ${fmt(lados * suma)} = ${fmt(cargaKg)} kg`
-  } else if (tipo === 'relativa') {
+  } else if (tipoEf === 'relativa') {
     const previa = visto(ordenes[0] - 1) ?? ultimaSerie(ej.series)
     const d = numeroDeCita(b.carga.delta)
     if (!previa || !d) return pregCarga(`¿Con cuánto peso hiciste la serie ${ordenes[0]}?`)
     const baja = /\b(baj|quit|menos|rest)/.test((b.carga.delta ?? '').toLowerCase())
     cargaKg = Math.round((previa.cargaKg + (baja ? -d.valor : d.valor)) * 10) / 10
     desglose = `${fmt(previa.cargaKg)} ${baja ? '−' : '+'} ${fmt(d.valor)} = ${fmt(cargaKg)} kg`
-  } else if (tipo === 'corporal') {
+  } else if (tipoEf === 'corporal') {
     cargaKg = 0
     unidad = ej.unidad === 'banda' ? 'banda' : 'corporal'
   } else {
@@ -520,7 +527,10 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
     return p
   }
 
-  const tocaEntreno = ext.entreno.length > 0 || !!ext.sesion || !!ext.correccion
+  const corSueno =
+    ext.correccion !== null && ext.entreno.length === 0 &&
+    (ext.correccion.objetivo === 'sueno' || /sue|hora/.test(normalizarTexto(ext.correccion.campo ?? '')))
+  const tocaEntreno = ext.entreno.length > 0 || !!ext.sesion || (!!ext.correccion && !corSueno)
 
   // El bloque venció: nada cae en él ni en el nuevo (CE-051).
   if (tocaEntreno && ctx.microciclo?.vencido) {
@@ -551,8 +561,27 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
   let seguimiento: Pregunta | undefined
   let fechaReal: string | undefined
 
+  // ---- Corrección de las horas de sueño: «no dormí 5 sino 6» ----
+  if (corSueno && ext.correccion) {
+    const n = numeroDeCita(ext.correccion.nuevo_valor)
+    if (n) {
+      const ver = revisarHorasSueno(n.valor)
+      if (ver.tipo === 'imposible') {
+        return {
+          accion: 'preguntar', registros: [], descartado, notas_coach: notas, citas_invalidas: citasInvalidas,
+          pregunta: pregunta('Ese número no me cuadra. ¿Cuántas horas fueron?', [], 'horasSueno'),
+        }
+      }
+      const previo = ctx.checkinHoy?.horasSueno
+      registros.push({
+        campo: 'checkin', fecha: fechaLocal(ctx.ahora), parche: { horasSueno: n.valor }, confianza_por_campo: { horasSueno: 'alta' },
+        ...(typeof previo === 'number' ? { antes: { horasSueno: previo } } : {}),
+      })
+    }
+  }
+
   // ---- Entreno ----
-  const correccion = ext.entreno.length === 0 ? resolverCorreccion(ext, ctx, frase) : null
+  const correccion = ext.entreno.length === 0 && !corSueno ? resolverCorreccion(ext, ctx, frase) : null
   const resultados: ResEntreno[] = correccion ? [correccion] : ext.entreno.map((it) => resolverEjercicioDelMensaje(it, ctx, frase))
   for (const [i, r] of resultados.entries()) {
     if (r.tipo === 'pregunta') {
@@ -608,6 +637,51 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
         descartado.push({ cita: s.duracion, motivo: `ya hay cronómetro local (${ctx.cronometroMin} min): no se pisa` })
       }
     }
+    if (sid && s.cardio) {
+      const m = minutosDeCita(s.cardio)
+      const sesionCtx = sesionDe(ctx, sid)
+      const bloques = sesionCtx?.bloquesCardio ?? []
+      if (m !== null && bloques.length > 0) {
+        const norm = normalizarTexto(frase)
+        const porNombre = bloques.filter((b) => tokensDeNombre(b.nombre).some((t) => t.length > 3 && norm.includes(t.slice(0, 6).toLowerCase())))
+        const elegido = bloques.length === 1 ? bloques[0] : porNombre.length === 1 ? porNombre[0] : null
+        if (elegido) {
+          registros.push({
+            campo: `bloquesCardio[${elegido.id}].duracionRealMin`, sesion_id: sid, bloque_id: elegido.id,
+            bloque_nombre: elegido.nombre, valor: m, unidad: 'min', confianza: 'alta',
+          })
+          sesionId = sesionId ?? sid
+          notas.push('Cardio: hoy registrarEjecucionCardio no sincroniza con la nube (P7); no prometer que el coach lo ve')
+        } else {
+          return {
+            accion: 'preguntar', sesion_id: sid, registros: [], descartado, notas_coach: notas, citas_invalidas: citasInvalidas,
+            pregunta: pregunta('¿Cuál bloque de cardio fue?', bloques.slice(0, 3).map((b) => b.nombre), 'bloque_cardio'),
+          }
+        }
+      } else if (m !== null) {
+        descartado.push({ cita: s.cardio, motivo: 'no hay un bloque de cardio en la sesión' })
+      }
+    }
+    if (sid && s.preparacion.length > 0) {
+      const partes = sesionDe(ctx, sid)?.preparacion ?? []
+      for (const cita of s.preparacion) {
+        const toks = tokensDeNombre(cita)
+        const hit = partes.filter((pt) => toks.length > 0 && toks.every((t) => tokensDeNombre(pt.nombre).some((n) => n.startsWith(t.slice(0, 5)))))
+        if (hit.length !== 1) {
+          descartado.push({ cita, motivo: hit.length === 0 ? 'no encuentro esa parte de la preparación' : 'encaja con más de una parte' })
+          continue
+        }
+        if (hit[0].hecha) {
+          descartado.push({ cita, motivo: 'ya estaba marcada (la marca alterna: no se vuelve a enviar)' })
+          continue
+        }
+        registros.push({
+          campo: `preparacion[${hit[0].id}].hechoEn`, sesion_id: sid, parte_id: hit[0].id, parte_nombre: hit[0].nombre,
+          valor: ctx.ahora, unidad: 'iso', confianza: 'alta',
+        })
+        sesionId = sesionId ?? sid
+      }
+    }
     if (s.omitidos.length > 0) {
       const ids: string[] = []
       for (const cita of s.omitidos) {
@@ -630,7 +704,7 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
 
   // ---- Vida ----
   if (ext.vida) {
-    const v = resolverVida(ext.vida, ctx)
+    const v = resolverVida(ext.vida, ctx, frase)
     if (v.pregunta) {
       return { accion: 'preguntar', registros: [], pregunta: v.pregunta, descartado, notas_coach: notas, citas_invalidas: citasInvalidas }
     }
@@ -644,9 +718,15 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
   if (ext.comida) {
     const c = resolverComida(ext.comida, ctx)
     if (c.registro) registros.push(c.registro)
+    if (c.adherencia) registros.push(c.adherencia)
     descartado.push(...c.descartado)
     avisos.push(...c.avisos)
     seguimiento = seguimiento ?? c.seguimiento
+  }
+
+  // Sin nada que guardar pero con una duda: se pregunta (botella sin tamaño, hambre sin número...).
+  if (registros.length === 0 && seguimiento) {
+    return { accion: 'preguntar', registros: [], pregunta: seguimiento, descartado, notas_coach: notas, citas_invalidas: citasInvalidas }
   }
 
   // ---- Consultas y charla: no son registro ----
@@ -665,18 +745,21 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
     return { ...vacia(citasInvalidas), motivo: 'sin_datos', notas_coach: notas }
   }
 
-  // Una comida sin ninguna cifra no se puede guardar: se pregunta primero.
-  const soloHuecos =
-    seguimiento !== undefined &&
+  // La comida se registra SIEMPRE (R2): un hueco de cantidad no la bloquea. Solo se pregunta
+  // primero cuando no se sabe QUÉ era (un alimento suelto y ambiguo: «un pan»).
+  const unSoloAlimentoAmbiguo =
     registros.length > 0 &&
-    registros.every((r) => r.campo === 'comida' && r.items.every((i) => i.gramos === null) && r.aceite_g == null && r.sal_g == null)
-  if (soloHuecos) {
+    registros.every(
+      (r) =>
+        r.campo === 'comida' && r.items.every((i) => i.gramos === null) && r.aceite_g == null && r.sal_g == null &&
+        (seguimiento?.campo_bloqueante === 'alimento_compuesto' || (seguimiento?.campo_bloqueante === 'alimento' && r.items.length === 1)),
+    )
+  if (unSoloAlimentoAmbiguo && seguimiento) {
     return {
       accion: 'preguntar', registros: [], pregunta: seguimiento, borrador_pendiente: { comida: registros },
       descartado, notas_coach: notas, citas_invalidas: citasInvalidas,
     }
   }
-
   return {
     accion: registros.length > 0 ? 'tarjeta' : 'nada',
     sesion_id: sesionId,

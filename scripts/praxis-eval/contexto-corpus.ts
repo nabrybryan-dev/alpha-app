@@ -109,11 +109,17 @@ export function contextoDeCorpus(texto: string): ContextoRegistro {
   for (const o of otras) registrar(o[1], o[2])
 
   // Sesiones estilo V/D: «Sesion de hoy: Pierna A (sentadilla 4x8 @60 kg, prensa 3x10)».
-  const sv = texto.match(/Sesion de hoy: ([^,(.]+?)(?:\s*\(([^)]*)\)|, ([^.]*))?\./)
+  const cardioV = texto.match(/Sesion de hoy: bloque cardio (\d+) min[^.]*? en (\w+)/)
+  if (cardioV && !hoy) {
+    const s = registrar('SV', 'Cardio')
+    sesionHoyId = 'SV'
+    s.bloquesCardio?.push({ id: 'cd1', nombre: cardioV[2].toUpperCase(), duracionMin: Number(cardioV[1]) })
+  }
+  const sv = cardioV ? null : texto.match(/Sesion de hoy: ([^,(.]+?)(?:\s*\(([^)]*)\)|, ([^.]*))?\./)
   if (sv && !hoy) {
     const s = registrar('SV', sv[1].trim())
     sesionHoyId = 'SV'
-    const items = (sv[2] ?? sv[3] ?? '').split(',').map((x) => x.trim()).filter((x) => x && !/^sin series/i.test(x) && !/^no /i.test(x))
+    const items = (/^series registradas/i.test(sv[2] ?? '') ? '' : (sv[2] ?? sv[3] ?? '')).split(',').map((x) => x.trim()).filter((x) => x && !/^sin series/i.test(x) && !/^no /i.test(x))
     items.forEach((it, i) => {
       const ss = it.match(/^(.+?)(?:\s+(\d+)x(\d+))?(?:\s+@(\d+))?(?:\s+kg)?$/)
       if (!ss) return
@@ -129,6 +135,19 @@ export function contextoDeCorpus(texto: string): ContextoRegistro {
   if (cardio) {
     const s = sesionHoyId ? sesiones.find((x) => x.id === sesionHoyId) : sesiones[0]
     s?.bloquesCardio?.push({ id: cardio[1], nombre: cardio[2].trim(), duracionMin: Number(cardio[3]) })
+  }
+
+  // Preparación: «Preparación: pr1 MOVILIDAD DE CADERA, pr2 ACTIVACION DE GLUTEO, sin marcar.»
+  const prep = texto.match(/Preparaci[oó]n: ((?:[a-z]{1,3}\d+ [A-ZÁÉÍÓÚÑ ]+(?:, )?)+)/)
+  if (prep) {
+    const s = sesionHoyId ? sesiones.find((x) => x.id === sesionHoyId) : sesiones[0]
+    if (s) {
+      const marcadas = !/sin marcar/.test(texto)
+      s.preparacion = prep[1].split(', ').map((it) => it.trim()).filter(Boolean).map((it) => {
+        const m = it.match(/^([a-z]{1,3}\d+) (.+)$/)
+        return { id: m?.[1] ?? it, nombre: (m?.[2] ?? it).trim(), hecha: marcadas }
+      })
+    }
   }
 
   // Ejercicios con atributos: «pa1 SENTADILLA TRASERA (4 series, ...)». Se asignan a la

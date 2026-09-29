@@ -152,8 +152,12 @@ export interface AclaracionExtraida {
 export interface SesionExtraida {
   rpe: string | null
   duracion: string | null
-  /** Citas de ejercicios que la persona dice que NO hizo. */
+  /** Citas de ejercicios que la persona dice EXPLÍCITAMENTE que no hizo. */
   omitidos: string[]
+  /** Duración del bloque de cardio: «20 minutos». */
+  cardio: string | null
+  /** Citas de las partes de la preparación que dice haber hecho: «la movilidad». */
+  preparacion: string[]
 }
 
 export interface Extraccion {
@@ -206,11 +210,19 @@ export interface BloqueCardioCtx {
   duracionMin?: number
 }
 
+export interface ParteCtx {
+  id: string
+  nombre: string
+  /** Ya está marcada: `marcarParte` alterna, así que no se vuelve a enviar. */
+  hecha: boolean
+}
+
 export interface SesionCtx {
   id: string
   nombre: string
   ejercicios: EjercicioCtx[]
   bloquesCardio?: BloqueCardioCtx[]
+  preparacion?: ParteCtx[]
 }
 
 export interface ContextoRegistro {
@@ -278,6 +290,35 @@ export interface RegistroSesionCampo {
   fuente?: 'dicho'
 }
 
+/** `bloquesCardio[cd1].duracionRealMin`: lo que la persona hizo de un bloque de cardio. */
+export interface RegistroCardio {
+  campo: `bloquesCardio[${string}].duracionRealMin`
+  sesion_id: string
+  bloque_id: string
+  bloque_nombre: string
+  valor: number
+  unidad: 'min'
+  confianza: Confianza
+}
+
+/** `preparacion[pr1].hechoEn`: una parte del calentamiento o la movilidad marcada como hecha. */
+export interface RegistroPreparacion {
+  campo: `preparacion[${string}].hechoEn`
+  sesion_id: string
+  parte_id: string
+  parte_nombre: string
+  valor: string
+  unidad: 'iso'
+  confianza: Confianza
+}
+
+export interface RegistroAdherencia {
+  campo: 'adherencia'
+  fecha: string
+  estado: 'si' | 'parcial' | 'no'
+  confianza: Confianza
+}
+
 export interface RegistroCheckin {
   campo: 'checkin'
   fecha: string
@@ -321,6 +362,9 @@ export interface RegistroComida {
 export type RegistroPropuesto =
   | RegistroSeries
   | RegistroSesionCampo
+  | RegistroCardio
+  | RegistroPreparacion
+  | RegistroAdherencia
   | RegistroCheckin
   | RegistroHidratacion
   | RegistroComida

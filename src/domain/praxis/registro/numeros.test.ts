@@ -15,6 +15,10 @@ describe('numeros en letras y cifras (es-CO)', () => {
     expect(valorDeCita(cita)).toBe(esperado)
   })
 
+  it('los puntos suspensivos no se pegan al número: «12...» es 12', () => {
+    expect(valorDeCita('le metí 40 por 12... no, perdón')).toBe(40)
+    expect(valorDeCita('12...')).toBe(12)
+  })
   it('«un 9» es el 9, no el artículo', () => expect(valorDeCita('un 9')).toBe(9))
   it('«un par» es 2 y aproximado', () => expect(numeroDeCita('un par')).toEqual({ valor: 2, aproximado: true }))
   it('«como 5 horas» es 5 aproximado', () => expect(numeroDeCita('como 5 horas')).toEqual({ valor: 5, aproximado: true }))

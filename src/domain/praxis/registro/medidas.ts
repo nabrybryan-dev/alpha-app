@@ -151,6 +151,8 @@ const SINONIMOS_MEDIDA: [RegExp, MedidaCanonica][] = [
   [/\bbotella/, 'botella'],
   [/\blibra/, 'libra'],
   [/\b(unidad|unidades|pieza|piezas)\b/, 'unidad'],
+  // «dos papas medianas»: el tamaño califica la unidad, no es una medida.
+  [/\b(pequen|mediana|mediano|grande|chic)/, 'unidad'],
 ]
 
 /** «cucharadas» → `cucharada`; `null` y «unidad» → `unidad`; lo desconocido → `null`. */
@@ -161,8 +163,15 @@ export function medidaCanonica(cita: string | null | undefined): MedidaCanonica 
   return null
 }
 
+/** «panes» → pan, «papas» → papa, «huevos» → huevo: las claves de la tabla van en singular. */
+function singular(t: string): string {
+  if (t.length > 4 && t.endsWith('es')) return t.slice(0, -2)
+  if (t.length > 3 && t.endsWith('s')) return t.slice(0, -1)
+  return t
+}
+
 function palabras(alimento: string): string[] {
-  return normalizarTexto(alimento).split(' ').filter(Boolean)
+  return normalizarTexto(alimento).split(' ').filter(Boolean).map(singular)
 }
 
 function claveCumple(grupo: string[], toks: string[]): boolean {

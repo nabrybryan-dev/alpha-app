@@ -19,11 +19,15 @@ const STOP = new Set([
 ])
 
 /** Palabras que dicen «músculo» o «tipo de ejercicio» pero no forman parte de un nombre. */
-const GENERICAS = new Set(['biceps', 'ejercicio', 'ejercicios', 'rutina'])
+const GENERICAS = new Set([
+  'biceps', 'ejercicio', 'ejercicios', 'rutina',
+  // La banda de una dominada asistida describe la carga, no el ejercicio.
+  'banda', 'roja', 'rojo', 'azul', 'verde', 'negra', 'negro', 'amarilla', 'amarillo', 'morada', 'morado', 'naranja',
+])
 
 /** Equipo o variante: si la persona la dice y la rutina no la trae, hay que preguntar. */
 export const VARIANTES = new Set([
-  'mancuerna', 'mancuernas', 'barra', 'polea', 'maquina', 'smith', 'banda', 'kettlebell', 'pesa', 'discos',
+  'mancuerna', 'mancuernas', 'barra', 'polea', 'maquina', 'smith', 'kettlebell', 'pesa', 'discos',
 ])
 
 /**

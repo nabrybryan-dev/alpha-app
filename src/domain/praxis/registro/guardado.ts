@@ -10,9 +10,10 @@
  * Solo se toca lo del asesorado: `series[]` y `testPost`. Nunca la pauta, el RIR
  * objetivo, la nota del coach ni el plan.
  */
+import { sumarDias } from './fecha.ts'
 import { revisarCarga, revisarReps, revisarRpeSesion } from './limites.ts'
 import type {
-  Confianza, ContextoRegistro, RegistroPropuesto, RegistroSesionCampo, RegistroSeries, SerieDictada,
+  Confianza, ContextoRegistro, RegistroAdherencia, RegistroPropuesto, RegistroSesionCampo, RegistroSeries, SerieDictada,
 } from './tipos.ts'
 
 export interface OpcionesGuardado {
@@ -112,6 +113,25 @@ export function prerrequisitoPendiente(reg: RegistroPropuesto): string | null {
     case 'comida':
       return 'P5/P6: faltan las columnas de procedencia de registro_item y el catálogo curado'
     default:
+      if (reg.campo.startsWith('bloquesCardio[')) {
+        return 'P7: registrarEjecucionCardio no sincroniza con la nube (0 de 945 en producción); se escribiría solo en el teléfono'
+      }
+      if (reg.campo.startsWith('preparacion[')) {
+        return 'marcarParte alterna la marca y materializa la plantilla: hay que hacerlo desde el repo de la app, no desde el servidor'
+      }
       return null
   }
+}
+
+/** La adherencia sí es idempotente: una fila por (usuario, fecha). Solo hoy y ayer. */
+export function prepararAdherencia(
+  reg: RegistroAdherencia,
+  usuarioId: string,
+  ahoraIso: string,
+): Escritura<{ id: string; usuario_id: string; fecha: string; estado: 'si' | 'parcial' | 'no' }> {
+  if (!['si', 'parcial', 'no'].includes(reg.estado)) return { ok: false, motivo: 'estado de adherencia inválido' }
+  const hoy = ahoraIso.slice(0, 10)
+  const ayer = sumarDias(hoy, -1)
+  if (reg.fecha !== hoy && reg.fecha !== ayer) return { ok: false, motivo: 'la adherencia solo se marca de hoy o de ayer' }
+  return { ok: true, valor: { id: `ad-${usuarioId}-${reg.fecha}`, usuario_id: usuarioId, fecha: reg.fecha, estado: reg.estado } }
 }

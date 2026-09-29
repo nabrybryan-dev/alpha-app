@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { manejar, type Dependencias } from '../../../../supabase/functions/praxis-registro/index.ts'
 import { armarContexto, microcicloVencido, sesionDeHoy, type MicrocicloJson } from './contexto.ts'
-import { prepararSeries, prepararTestPost, prerrequisitoPendiente } from './guardado.ts'
+import { prepararAdherencia, prepararSeries, prepararTestPost, prerrequisitoPendiente } from './guardado.ts'
 import type { RegistroSeries, RegistroSesionCampo } from './tipos.ts'
 
 const micro: MicrocicloJson = {
@@ -116,7 +116,23 @@ describe('guardar el test posterior', () => {
   })
 })
 
+describe('adherencia (idempotente)', () => {
+  it('una fila por usuario y fecha, con el mismo id que usa la app', () => {
+    expect(prepararAdherencia({ campo: 'adherencia', fecha: '2026-09-28', estado: 'si', confianza: 'alta' }, 'u-1', AHORA)).toEqual({
+      ok: true, valor: { id: 'ad-u-1-2026-09-28', usuario_id: 'u-1', fecha: '2026-09-28', estado: 'si' },
+    })
+  })
+  it('solo hoy o ayer, y solo si/parcial/no', () => {
+    expect(prepararAdherencia({ campo: 'adherencia', fecha: '2026-09-01', estado: 'si', confianza: 'alta' }, 'u-1', AHORA).ok).toBe(false)
+    expect(prepararAdherencia({ campo: 'adherencia', fecha: '2026-09-28', estado: 'casi' as never, confianza: 'alta' }, 'u-1', AHORA).ok).toBe(false)
+  })
+})
+
 describe('lo que todavía no se escribe', () => {
+  it('el cardio y la preparación esperan a P7 y a la marca alterna', () => {
+    expect(prerrequisitoPendiente({ campo: 'bloquesCardio[cd1].duracionRealMin', sesion_id: 'S5', bloque_id: 'cd1', bloque_nombre: 'X', valor: 20, unidad: 'min', confianza: 'alta' })).toMatch(/P7/)
+    expect(prerrequisitoPendiente({ campo: 'preparacion[pr1].hechoEn', sesion_id: 'S5', parte_id: 'pr1', parte_nombre: 'X', valor: AHORA, unidad: 'iso', confianza: 'alta' })).toMatch(/alterna/)
+  })
   it('check-in, agua y comida quedan pendientes de su prerrequisito', () => {
     expect(prerrequisitoPendiente({ campo: 'checkin', fecha: 'x', parche: {}, confianza_por_campo: {} })).toMatch(/P2/)
     expect(prerrequisitoPendiente({ campo: 'hidratacion', fecha: 'x', delta_ml: 200, confianza: 'media' })).toMatch(/idempotente/)
@@ -290,6 +306,18 @@ describe('Edge Function praxis-registro', () => {
     const r = await manejar(post({ registros: [{ campo: 'testPost.rpeSesion', sesion_id: 'S1', valor: 9, unidad: 'rpe', confianza: 'alta' }], hora_local: AHORA }, '/guardar'), e.d)
     expect((await r.json()).resultados[0].estado).toBe('guardado')
     expect(JSON.parse(String(e.llamadas.find((l) => l.url.includes('fijar_test_post'))!.init!.body))).toMatchObject({ p_sesion_id: 'S1', p_test: { rpeSesion: 9 } })
+  })
+
+  it('GUARDAR adherencia: upsert por (usuario, fecha) con el JWT, solo las columnas que cambian', async () => {
+    const e = entorno()
+    e.base()
+    e.respuestas.push({ url: /rest\/v1\/adherencias/, cuerpo: null })
+    const r = await manejar(post({ registros: [{ campo: 'adherencia', fecha: '2026-09-28', estado: 'parcial', confianza: 'alta' }], hora_local: AHORA }, '/guardar'), e.d)
+    expect((await r.json()).resultados[0].estado).toBe('guardado')
+    const l = e.llamadas.find((x) => x.url.includes('adherencias'))!
+    expect(l.url).toContain('on_conflict=usuario_id,fecha')
+    expect((l.init!.headers as Record<string, string>).prefer).toContain('merge-duplicates')
+    expect(JSON.parse(String(l.init!.body))).toEqual({ id: 'ad-u-1-2026-09-28', usuario_id: 'u-1', fecha: '2026-09-28', estado: 'parcial' })
   })
 
   it('cuerpo inválido y método equivocado', async () => {

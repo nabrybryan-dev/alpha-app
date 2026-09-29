@@ -19,20 +19,21 @@
 //    nunca con service_role: la función no puede tocar lo de otro asesorado.
 //  - El filtro clínico corre antes del modelo: un mensaje con dolor, lesión,
 //    síntoma, medicamento o riesgo NO llega a Haiku.
-//  - GUARDAR solo escribe `series[]` y `testPost` por las mismas RPC que usa la app
-//    (`fijar_series_ejercicio`, `fijar_test_post`). Check-in, agua y comida quedan
-//    pendientes de sus prerrequisitos (P2, P5, P6) y se dicen en la respuesta.
+//  - GUARDAR escribe `series[]` y `testPost` por las mismas RPC que usa la app
+//    (`fijar_series_ejercicio`, `fijar_test_post`) y la adherencia por upsert (una fila
+//    por usuario y fecha). Check-in, agua, comida, cardio y preparación quedan
+//    pendientes de sus prerrequisitos (P2, P5, P6, P7) y se dicen en la respuesta.
 //
 // NO SE DESPLIEGA SOLA: la publica Bryan. Se importa código de src/domain/praxis/registro
 // con rutas relativas y extensión .ts (lo resuelve `supabase functions deploy`).
 
 import {
   MODELO_HAIKU, PROMPT_SISTEMA, ESQUEMA_REGISTRO, VERSION_ESQUEMA, VERSION_PROMPT, VERSION_RESOLUTORES,
-  armarContexto, armarMensajeUsuario, construirTarjeta, derivarPorFiltro, filtrarClinico, prepararSeries,
+  armarContexto, armarMensajeUsuario, construirTarjeta, derivarPorFiltro, filtrarClinico, prepararAdherencia, prepararSeries,
   prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion,
 } from '../../../src/domain/praxis/registro/index.ts'
 import type {
-  ContextoRegistro, MicrocicloJson, RegistroPropuesto, RegistroSeries, RegistroSesionCampo,
+  ContextoRegistro, MicrocicloJson, RegistroAdherencia, RegistroPropuesto, RegistroSeries, RegistroSesionCampo,
 } from '../../../src/domain/praxis/registro/index.ts'
 
 declare const Deno:
@@ -315,6 +316,25 @@ async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar): Promi
       }
       const ok = await rpc(d, s, 'fijar_test_post', { p_microciclo_id: activo.id, p_sesion_id: w.valor.sesionId, p_test: w.valor.testPost })
       resultados.push({ indice, campo, estado: ok ? 'guardado' : 'rechazado', motivo: ok ? undefined : 'la base no aceptó la escritura' })
+      continue
+    }
+    if (campo === 'adherencia') {
+      const w = prepararAdherencia(bruto as RegistroAdherencia, s.usuarioId, ahora)
+      if (!w.ok) {
+        resultados.push({ indice, campo, estado: 'rechazado', motivo: w.motivo })
+        continue
+      }
+      // Una fila por (usuario, fecha): reaplicar da lo mismo. Solo viajan las columnas que cambian,
+      // así el comentario que ya tuviera la fila no se borra.
+      const r = await d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/adherencias?on_conflict=usuario_id,fecha`, {
+        method: 'POST',
+        headers: {
+          apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${s.token}`, 'content-type': 'application/json',
+          prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(w.valor),
+      })
+      resultados.push({ indice, campo, estado: r.ok ? 'guardado' : 'rechazado', motivo: r.ok ? undefined : 'la base no aceptó la escritura' })
       continue
     }
     resultados.push({ indice, campo, estado: 'rechazado', motivo: 'campo no soportado' })

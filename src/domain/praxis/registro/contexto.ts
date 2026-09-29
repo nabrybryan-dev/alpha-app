@@ -35,6 +35,7 @@ export interface SesionJson {
   fecha?: string
   ejercicios?: EjercicioJson[]
   bloquesCardio?: { id: string; titulo?: string; nombre?: string; duracionMin?: number }[]
+  preparacion?: { id: string; titulo?: string; nombre?: string; hechoEn?: string }[]
 }
 
 export interface MicrocicloJson {
@@ -66,6 +67,7 @@ function sesionCtx(s: SesionJson): SesionCtx {
       }),
     ),
     bloquesCardio: (s.bloquesCardio ?? []).map((b) => ({ id: b.id, nombre: b.titulo ?? b.nombre ?? b.id, duracionMin: b.duracionMin })),
+    preparacion: (s.preparacion ?? []).map((p) => ({ id: p.id, nombre: p.titulo ?? p.nombre ?? p.id, hecha: !!p.hechoEn })),
   }
 }
 

@@ -133,7 +133,9 @@ export const ESQUEMA_REGISTRO: Esquema = objeto(
       objeto({
         rpe: cita('esfuerzo de la sesión entera: «un 9 de esfuerzo»'),
         duracion: cita('«una hora y diez»'),
-        omitidos: lista({ type: 'string' }, 'citas de ejercicios que dice que NO hizo'),
+        omitidos: lista({ type: 'string' }, 'citas de ejercicios que dice EXPLÍCITAMENTE que no hizo'),
+        cardio: cita('duración del cardio: «20 minutos»'),
+        preparacion: lista({ type: 'string' }, 'citas de las partes de la preparación que hizo: «la movilidad», «la activación»'),
       }),
     ),
     correccion: anulable(
@@ -266,7 +268,8 @@ export function validarExtraccion(frase: string, bruto: unknown): ResultadoValid
   const co = esObjeto(raiz.comida) ? raiz.comida : null
   const comida = co
     ? {
-        comida_cita: c(co.comida_cita, 'comida.comida_cita'),
+        // Etiqueta de la comida («almorcé» → almuerzo): no es una cantidad, no se exige literal.
+        comida_cita: str(co.comida_cita),
         cuando: c(co.cuando, 'comida.cuando'),
         segun_plan: (['no_dicho', 'como_el_plan', 'parcial', 'fuera_del_plan'].includes(String(co.segun_plan)) ? co.segun_plan : 'no_dicho') as 'no_dicho' | 'como_el_plan' | 'parcial' | 'fuera_del_plan',
         items: arr(co.items)
@@ -319,6 +322,8 @@ export function validarExtraccion(frase: string, bruto: unknown): ResultadoValid
         rpe: c(se.rpe, 'sesion.rpe'),
         duracion: c(se.duracion, 'sesion.duracion'),
         omitidos: arr(se.omitidos).map((o, k) => c(o, `sesion.omitidos[${k}]`)).filter((o): o is string => o !== null),
+        cardio: c(se.cardio, 'sesion.cardio'),
+        preparacion: arr(se.preparacion).map((o, k) => c(o, `sesion.preparacion[${k}]`)).filter((o): o is string => o !== null),
       }
     : null
 

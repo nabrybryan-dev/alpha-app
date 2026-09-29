@@ -49,8 +49,8 @@ export function accionNormalizada(a: string | undefined): AccionNorm {
 /** Acción esperada de un caso N/V/D leyendo su notación relajada. */
 export function accionEsperadaRelajada(c: Caso): AccionNorm {
   const t = c.esperado
-  if (c.area === 'clinico' || /derivacion|clinico:\{derivar:true|filtro_clinico/.test(t)) return 'clinico'
-  const registrosNoVacios = /"?registros"?:\s*\[\s*[{[]/.test(t) || /"?registros"?:\s*\[\s*\w/.test(t) || /(aceite_g|sal_g|destino:)/.test(t)
+  if (/"?derivacion"?\s*:|clinico:\{derivar:true|filtro_clinico/.test(t)) return 'clinico'
+  const registrosNoVacios = /"?registros"?:\s*\[\s*[{[]/.test(t) || /"?registros"?:\s*\[\s*\w/.test(t) || /(aceite_g|sal_g|suma_ml)/.test(t)
   const pregunta = /"?pregunta"?:\s*['"]?¿|"?pregunta"?:\s*"[^"]{4,}/.test(t)
   if (registrosNoVacios) return 'tarjeta'
   if (pregunta) return 'preguntar'
@@ -159,31 +159,31 @@ export function puntuarRelajado(c: Caso, p: Propuesta, derivadaSinModelo: boolea
  * vacío: «cero inventados» es una puerta dura.
  */
 export function numerosInventados(frase: string, ctx: ContextoRegistro, p: Propuesta): string[] {
-  const enFrase = escanearNumeros(frase).map((n) => n.valor)
-  const base = new Set<number>([0, ...enFrase, ...enFrase.map((n) => Math.round(n * 0.45359237 * 10) / 10)])
+  // Lo que dijo la persona (y sus libras convertidas).
+  const dicho = escanearNumeros(frase).map((n) => n.valor)
+  const F = [...new Set([...dicho, ...dicho.map((n) => Math.round(n * 0.45359237 * 10) / 10)])]
+  // Lo que ya está en la base o en el perfil.
+  const C = new Set<number>()
+  const contadores = new Set<number>([0])
   for (const e of ctx.sesiones.flatMap((s) => s.ejercicios)) {
-    for (const s of e.series) { base.add(s.cargaKg); if (s.reps !== undefined) base.add(s.reps) }
-    for (const s of e.seriesPrescritas ?? []) { base.add(s.cargaKg); base.add(s.reps) }
-    if (e.cargaKg !== undefined) base.add(e.cargaKg)
-    if (e.repsDiana !== undefined) base.add(e.repsDiana)
-    base.add(e.series.length + 1)
-    for (let i = 1; i <= e.sets + 1; i++) base.add(i)
+    for (const s of e.series) { C.add(s.cargaKg); if (s.reps !== undefined) C.add(s.reps) }
+    for (const s of e.seriesPrescritas ?? []) { C.add(s.cargaKg); C.add(s.reps) }
+    if (e.cargaKg !== undefined) C.add(e.cargaKg)
+    if (e.repsDiana !== undefined) C.add(e.repsDiana)
+    for (let i = 1; i <= e.sets + 1; i++) contadores.add(i)
   }
-  for (const serie of Object.values(ctx.semanaAnterior)) for (const s of serie) { base.add(s.cargaKg); if (s.reps !== undefined) base.add(s.reps) }
+  for (const serie of Object.values(ctx.semanaAnterior)) for (const s of serie) { C.add(s.cargaKg); if (s.reps !== undefined) C.add(s.reps) }
   const barra = ctx.perfil.pesoBarraKg
-  if (barra !== null) base.add(barra)
-  const derivados = new Set<number>(base)
-  for (const a of base) {
-    for (const b of base) {
-      derivados.add(a + b)
-      derivados.add(Math.abs(a - b))
-      if (barra !== null) { derivados.add(barra + a * b); derivados.add(barra + 2 * a * b); derivados.add(barra + 2 * a) }
-    }
-    derivados.add(a * 2)
-    derivados.add(a / 2)
-  }
+  if (barra !== null) C.add(barra)
+
+  const permitidos = new Set<number>([...contadores, ...F, ...C])
+  // Operaciones que el código hace a propósito: serie anterior ± lo dicho («le subí cinco»)...
+  for (const c of C) for (const f of F) { permitidos.add(c + f); permitidos.add(Math.abs(c - f)) }
+  // ...y barra + discos por lado («dos discos de 10 por lado»).
+  if (barra !== null) for (const a of F) for (const b of F) { permitidos.add(barra + a * b); permitidos.add(barra + 2 * a * b) }
+
+  const ok = (n: number) => [...permitidos].some((d) => Math.abs(d - n) < 0.051)
   const sospechosos: string[] = []
-  const ok = (n: number) => [...derivados].some((d) => Math.abs(d - n) < 0.051)
   for (const r of p.registros) {
     if (r.campo !== 'series') continue
     for (const s of r.valor) {

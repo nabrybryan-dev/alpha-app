@@ -21,7 +21,7 @@ export function normalizarTexto(texto: string): string {
     .replace(/½/g, ' medio ')
     .replace(/[^a-z0-9.,/\s]/g, ' ')
     // Coma o punto al final de una palabra o número («cuarenta,» «12.») no es decimal.
-    .replace(/[.,](?=\s|$)/g, ' ')
+    .replace(/[.,]+(?=\s|$)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }

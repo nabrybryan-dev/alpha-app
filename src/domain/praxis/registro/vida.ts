@@ -12,7 +12,7 @@
  *  - El dolor NUNCA se escribe por esta vía (lo maneja el filtro clínico).
  */
 import { horaDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
-import { fechaLocal, horaLocal, sumarDias } from './fecha.ts'
+import { etiquetaDeFecha, fechaLocal, horaLocal, sumarDias } from './fecha.ts'
 import { revisarAguaDeltaMl, revisarHorasSueno, revisarPasos } from './limites.ts'
 import { VASO_ML } from './medidas.ts'
 import type {
@@ -82,7 +82,7 @@ export interface ResultadoVida {
   avisos: string[]
 }
 
-export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro): ResultadoVida {
+export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = ''): ResultadoVida {
   const hoy = fechaLocal(ctx.ahora)
   const parche: Record<string, string | number> = {}
   const conf: Record<string, Confianza> = {}
@@ -100,6 +100,14 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro): ResultadoV
 
   // Sueño
   const senalAprox = v.senales.includes('aproximado')
+  // «Ayer dormí nueve horas» puede ser la noche que acaba de pasar o la anterior: se pregunta.
+  if (v.sueno_horas && /\bayer\b/.test(normalizarTexto(frase)) && !/\banoche\b/.test(normalizarTexto(frase))) {
+    const domingo = etiquetaDeFecha(sumarDias(hoy, -1))
+    return {
+      registros: [], descartado, avisos,
+      pregunta: { texto: `¿Fue la noche de anoche o la del ${domingo.split(' ')[0]}?`, opciones: ['La de anoche', `La del ${domingo.split(' ')[0]}`], campo_bloqueante: 'fecha_del_sueno' },
+    }
+  }
   if (v.sueno_horas) {
     const n = numeroDeCita(v.sueno_horas)
     if (n) {
@@ -112,6 +120,13 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro): ResultadoV
       }
       if (ver.tipo === 'aviso') avisos.push(ver.aviso)
       poner('horasSueno', n.valor, 'media')
+    }
+  }
+  // «Me acosté con el celular hasta la una» dice hasta cuándo estuvo despierta, no cuándo se durmió.
+  if (/\bhasta\b/.test(normalizarTexto(v.hora_acostarse ?? ''))) {
+    return {
+      registros: [], descartado, avisos,
+      pregunta: { texto: '¿A qué hora te dormiste más o menos?', opciones: [], campo_bloqueante: 'horaAcostarse' },
     }
   }
   const acostarse = horaDeCita(v.hora_acostarse, 'acostarse')
@@ -150,8 +165,11 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro): ResultadoV
     }
   }
   if (v.actividad_sin_numero) {
-    descartado.push({ cita: v.actividad_sin_numero, motivo: '«bastante» no se convierte en minutos ni pasos' })
-    seguimiento = { texto: '¿Tu celular o reloj te marca cuántos pasos llevas hoy?', opciones: [], campo_bloqueante: 'pasos' }
+    descartado.push({ cita: v.actividad_sin_numero, motivo: '«bastante» o «un rato» no se convierte en minutos ni pasos' })
+    // Solo si habla de caminar se ofrece el campo de pasos; una siesta o un estiramiento no lo piden.
+    if (/(camin|paso|trot|corr)/.test(normalizarTexto(v.actividad_sin_numero))) {
+      seguimiento = { texto: '¿Tu celular o reloj te marca cuántos pasos llevas hoy?', opciones: [], campo_bloqueante: 'pasos' }
+    }
   }
 
   // Escalas (tabla cerrada)
@@ -188,25 +206,35 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro): ResultadoV
     })
   }
 
-  // Agua: vasos × 200 mL (Res. 810), litros, «botella de 600»; botella sin tamaño se pregunta.
+  // Agua: vasos × 200 mL (Res. 810), tazas, litros («litro y medio»), «botella de 600», y varias cosas
+  // sumadas («tres vasos y una botella de 600»). Una botella sin tamaño se pregunta, no se inventa.
   if (v.agua) {
-    const cant = numeroDeCita(v.agua.cantidad)
-    const medida = normalizarTexto(v.agua.medida ?? '')
-    let ml: number | null = null
-    let detalle = ''
-    const explicito = medida.match(/\b(\d{2,4})\b/)
-    if (/\bml\b|mililitros?/.test(medida) && cant) { ml = cant.valor; detalle = `${cant.valor} mL` }
-    else if (/\blitros?\b/.test(medida) && cant) { ml = cant.valor * 1000; detalle = `${cant.valor} L` }
-    else if (/\bbotella/.test(medida) && explicito) { ml = Number(explicito[1]) * (cant?.valor ?? 1); detalle = `botella de ${explicito[1]} mL` }
-    else if (/\bbotella|termo|garrafa/.test(medida)) {
+    const texto = normalizarTexto(`${v.agua.cantidad} ${v.agua.medida ?? ''}`)
+      .replace(/\blitro y medio\b/, '1.5 litros')
+      .replace(/\bmedio litro\b/, '0.5 litros')
+    let ml = 0
+    const partes: string[] = []
+    let sinTamano = false
+    for (const seg of texto.split(/\by\b|,|\+/).map((x) => x.trim()).filter(Boolean)) {
+      const cant = numeroDeCita(seg)
+      const explicito = seg.match(/\bbotellas?\s+de\s+(\d{2,4})\b/)
+      if (explicito) {
+        const n = cant && cant.valor !== Number(explicito[1]) ? cant.valor : 1
+        ml += Number(explicito[1]) * n
+        partes.push(`${n > 1 ? n + ' × ' : ''}botella de ${explicito[1]} mL`)
+      } else if (/\b(ml|mililitros?)\b/.test(seg) && cant) { ml += cant.valor; partes.push(`${cant.valor} mL`) }
+      else if (/\blitros?\b/.test(seg) && cant) { ml += cant.valor * 1000; partes.push(`${cant.valor} L`) }
+      else if (/\b(botellas?|termo|garrafa)/.test(seg)) sinTamano = true
+      else if (/\b(vasos?|tazas?)\b/.test(seg) && cant) { ml += cant.valor * VASO_ML; partes.push(`${cant.valor} × ${VASO_ML} mL`) }
+    }
+    if (sinTamano) {
       seguimiento = { texto: '¿De cuántos ml es tu botella (o si no sabes, pequeña, mediana o grande)?', opciones: ['Pequeña', 'Mediana', 'Grande'], campo_bloqueante: 'botella_ml' }
-    } else if (/\bvaso/.test(medida) && cant) { ml = cant.valor * VASO_ML; detalle = `vaso = ${VASO_ML} mL` }
-    if (ml !== null) {
+    } else if (ml > 0) {
       const ver = revisarAguaDeltaMl(ml, ctx.hidratacionHoyMl ?? 0)
       if (ver.tipo === 'imposible') descartado.push({ cita: v.agua.cantidad, motivo: ver.motivo })
       else {
         if (ver.tipo === 'aviso') avisos.push(ver.aviso)
-        registros.push({ campo: 'hidratacion', fecha: hoy, delta_ml: ml, confianza: 'media', detalle })
+        registros.push({ campo: 'hidratacion', fecha: hoy, delta_ml: ml, confianza: 'media', detalle: partes.join(' + ') })
       }
     }
   }

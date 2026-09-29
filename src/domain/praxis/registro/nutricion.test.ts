@@ -82,10 +82,38 @@ describe('registro de comida', () => {
     expect(r.seguimiento?.texto).toMatch(/cocido o crudo/)
     expect(r.avisos.join(' ')).toMatch(/cocido/)
   })
-  it('un pedazo de pollo no se convierte y pregunta por el tamaño (N03)', () => {
+  it('un pedazo de pollo no se convierte y pregunta QUÉ parte era (N03, N38)', () => {
     const r = resolverComida(comida([item('pollo', 'un', 'pedazo')]), ctx())
     expect(r.registro!.items[0].gramos).toBeNull()
+    expect(r.seguimiento).toMatchObject({ campo_bloqueante: 'alimento', opciones: ['Pechuga', 'Pierna', 'Muslo'] })
+  })
+  it('un pedazo de carne pregunta el tamaño con la palma de la mano (N36)', () => {
+    const r = resolverComida(comida([item('carne', 'un', 'pedazo')]), ctx())
+    expect(r.registro!.items[0].gramos).toBeNull()
     expect(r.seguimiento?.opciones).toEqual(['Palma sin dedos', 'Media palma', 'Dos palmas'])
+  })
+  it('«dos papas medianas» y «cuatro panes de yuca» usan el singular y el tamaño no es medida (N17, N14)', () => {
+    expect(resolverComida(comida([item('papas', 'dos', 'medianas')]), ctx()).registro!.items[0].gramos).toBe(166)
+    expect(resolverComida(comida([item('panes de yuca', 'cuatro', null)]), ctx()).registro!.items[0].gramos).toBe(40)
+  })
+  it('un pedazo de queso pregunta si era tajada; un combo pregunta qué traía y no adivina (N33, D02)', () => {
+    const q = resolverComida(comida([item('queso', 'un', 'pedazo')]), ctx())
+    expect(q.seguimiento).toMatchObject({ campo_bloqueante: 'alimento', opciones: ['Tajada delgada', 'Pedazo grueso'] })
+    const c = resolverComida(comida([item('combo completo', null, null), item('gaseosa', null, null)]), ctx())
+    expect(c.seguimiento).toMatchObject({ campo_bloqueante: 'alimento_compuesto' })
+  })
+  it('almuerzo sin decir qué comió: nada que registrar y se pregunta (N50)', () => {
+    const r = resolverComida(comida([], { comida_cita: 'almuerzo' }), ctx())
+    expect(r.registro).toBeNull()
+    expect(r.seguimiento?.texto).toBe('¿Qué traía tu almuerzo?')
+  })
+  it('«comí como decía el plan» marca la adherencia y no inventa gramos (N61, N62, V25)', () => {
+    const r = resolverComida(comida([], { segun_plan: 'como_el_plan' }), ctx())
+    expect(r.registro).toBeNull()
+    expect(r.adherencia).toMatchObject({ campo: 'adherencia', estado: 'si', fecha: '2026-09-30' })
+    expect(r.seguimiento).toBeUndefined()
+    expect(resolverComida(comida([], { segun_plan: 'parcial' }), ctx()).adherencia?.estado).toBe('parcial')
+    expect(resolverComida(comida([], { segun_plan: 'no_dicho' }), ctx()).adherencia).toBeUndefined()
   })
   it('medio plato de arroz usa la porción habitual, con confianza baja (N02)', () => {
     const r = resolverComida(comida([], { plato: [{ alimento: 'arroz', fraccion: 'medio' }] }), ctx()).registro!
@@ -144,6 +172,30 @@ describe('vida diaria', () => {
   })
   it('12.350 pasos: el punto es de miles (V09)', () => {
     expect(resolverVida(vida({ pasos: '12.350 pasos' }), ctx()).registros[0]).toMatchObject({ parche: { pasos: 12350 } })
+  })
+  it('agua: «litro y medio», tazas y la botella con su nombre pegado (V52, N57, N56)', () => {
+    expect(resolverVida(vida({ agua: { cantidad: 'como litro y medio', medida: null } }), ctx()).registros[0]).toMatchObject({ delta_ml: 1500 })
+    expect(resolverVida(vida({ agua: { cantidad: 'tres', medida: 'tazas de agua de panela' } }), ctx()).registros[0]).toMatchObject({ delta_ml: 600 })
+    expect(resolverVida(vida({ agua: { cantidad: 'una', medida: 'botella de agua' } }), ctx()).seguimiento?.campo_bloqueante).toBe('botella_ml')
+  })
+  it('«ayer dormí nueve horas» pregunta a qué noche se refiere y no guarda (D08)', () => {
+    const r = resolverVida(vida({ sueno_horas: 'nueve horas' }), ctx('2026-09-28T08:00:00-05:00'), 'ayer dormí nueve horas')
+    expect(r.registros).toEqual([])
+    expect(r.pregunta?.texto).toMatch(/noche de anoche o la del domingo/)
+  })
+  it('estar en la cama con el celular «hasta la una» no es la hora de acostarse: se pregunta (V37)', () => {
+    const r = resolverVida(vida({ hora_acostarse: 'hasta la una' }), ctx())
+    expect(r.registros).toEqual([])
+    expect(r.pregunta?.texto).toBe('¿A qué hora te dormiste más o menos?')
+  })
+  it('varias cosas de agua se suman: tres vasos y una botella de 600 (V50)', () => {
+    const r = resolverVida(vida({ agua: { cantidad: 'tres vasos de agua y una botella de 600', medida: null } }), ctx())
+    expect(r.registros[0]).toMatchObject({ delta_ml: 1200, detalle: '3 × 200 mL + botella de 600 mL' })
+  })
+  it('una siesta o estirar no piden los pasos (V38, V46)', () => {
+    const r = resolverVida(vida({ actividad_sin_numero: 'me eché una siesta de una hora' }), ctx())
+    expect(r.seguimiento).toBeUndefined()
+    expect(r.descartado).toHaveLength(1)
   })
   it('agua: vasos × 200 mL, litros, botella con tamaño; botella sin tamaño pregunta (V12, V11)', () => {
     expect(resolverVida(vida({ agua: { cantidad: 'dos', medida: 'vasos' } }), ctx()).registros[0]).toMatchObject({ campo: 'hidratacion', delta_ml: 400 })
