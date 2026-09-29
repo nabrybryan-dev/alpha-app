@@ -1,0 +1,897 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Alpha · Anatomía viva — prueba cinematográfica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --fondo: #08090B;
+    --linea: #23262C;
+    --texto: #C9CDD2;
+    --texto-fuerte: #F4F1EC;
+    --tenue: #7C838C;
+    --rojo: #FF1E1E;
+    --rojo-suave: #FF5A5A;
+    --hueso: #E8DFCF;
+    --tendon: #E9E4DA;
+    --display: 'Archivo', 'Arial Black', system-ui, sans-serif;
+    --cuerpo: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+  }
+  html, body { background: var(--fondo); }
+  body { margin: 0; color: var(--texto); font-family: var(--cuerpo); font-size: 16px; line-height: 1.6; }
+  * { box-sizing: border-box; }
+
+  #escena { position: fixed; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; touch-action: pan-y; }
+  /* Película: viñeta y grano encima del 3D, debajo del texto */
+  .pelicula { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at 62% 46%, rgba(8,9,11,0) 0%, rgba(8,9,11,0.25) 55%, rgba(8,9,11,0.9) 100%); }
+  .grano { position: fixed; inset: -50%; z-index: 1; pointer-events: none; opacity: 0.025; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    animation: grano 0.9s steps(6) infinite; }
+  @keyframes grano { 0%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} 100%{transform:translate(0,0)} }
+  .franja { position: fixed; left: 0; right: 0; height: 7vh; z-index: 1; background: #000; pointer-events: none; transition: transform 1.2s cubic-bezier(0.16,1,0.3,1); }
+  .franja.arriba { top: 0; } .franja.abajo { bottom: 0; }
+  body.ensamblado .franja.arriba { transform: translateY(-100%); }
+  body.ensamblado .franja.abajo { transform: translateY(100%); }
+
+  header.barra { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; padding: 18px clamp(16px, 4vw, 48px); }
+  .marca { display: flex; align-items: baseline; gap: 8px; }
+  .marca b { font-family: var(--display); font-weight: 900; font-size: 17px; letter-spacing: -0.02em; text-transform: uppercase; color: var(--texto-fuerte); }
+  .marca span { font-family: var(--display); font-weight: 700; font-size: 9px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--tenue); }
+  .voz { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--linea); background: rgba(14,15,18,0.8); color: var(--texto-fuerte); font: 700 11px/1 var(--display); letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .voz[aria-pressed="true"] { border-color: var(--rojo); color: var(--rojo-suave); }
+  .voz:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--rojo-suave); outline-offset: 3px; }
+
+  /* Subtítulo: lo que el sujeto está diciendo ahora */
+  .subtitulo { position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 5vh); transform: translateX(-50%); width: min(92vw, 44rem); text-align: center; font: 500 clamp(15px, 1.5vw, 18px)/1.45 var(--cuerpo); color: var(--texto-fuerte); text-shadow: 0 2px 12px rgba(0,0,0,0.9); opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+  .subtitulo.visible { opacity: 1; }
+  .toca { position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 12vh); transform: translateX(-50%); font: 500 12px/1 var(--mono); color: var(--tenue); letter-spacing: 0.04em; pointer-events: none; }
+
+  main { position: relative; z-index: 2; padding-inline: clamp(16px, 4vw, 48px); }
+  section.capitulo { min-height: 120vh; display: flex; align-items: center; }
+  .texto { max-width: 30rem; display: flex; flex-direction: column; gap: 18px; padding-block: 96px; }
+  .eyebrow { display: flex; align-items: center; gap: 10px; font: 700 10.5px/1 var(--display); letter-spacing: 0.26em; text-transform: uppercase; color: var(--rojo-suave); }
+  .eyebrow::before { content: ""; width: 26px; height: 2px; background: var(--rojo); }
+  h1, h2 { margin: 0; font-family: var(--display); font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; line-height: 0.92; color: var(--texto-fuerte); text-wrap: balance; text-shadow: 0 4px 30px rgba(0,0,0,0.6); }
+  h1 { font-size: clamp(2.6rem, 6.4vw, 5.4rem); }
+  h2 { font-size: clamp(2rem, 4.4vw, 3.4rem); }
+  h1 em, h2 em { font-style: normal; color: var(--rojo); }
+  .dato { font-family: var(--mono); font-size: 12.5px; color: var(--tenue); letter-spacing: 0.02em; }
+  .dato b { color: var(--hueso); font-weight: 500; }
+  .capas { display: flex; gap: 8px; flex-wrap: wrap; }
+  .capas span { font: 500 11.5px/1 var(--mono); padding: 7px 10px; border: 1px solid var(--linea); color: var(--tenue); background: rgba(8,9,11,0.6); }
+  .capas span.activa { color: var(--texto-fuerte); border-color: currentColor; }
+  .capas span[data-c="hueso"].activa { color: var(--hueso); }
+  .capas span[data-c="musculo"].activa { color: var(--rojo-suave); }
+  .capas span[data-c="tendon"].activa { color: var(--tendon); }
+
+  .panel { width: min(100%, 26rem); display: flex; flex-direction: column; gap: 18px; padding: 22px; border: 1px solid var(--linea); background: rgba(14,15,18,0.9); backdrop-filter: blur(6px); }
+  .campo { display: flex; flex-direction: column; gap: 8px; }
+  .campo label { display: flex; justify-content: space-between; align-items: baseline; font: 700 11px/1 var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--texto); }
+  .campo output { font: 500 22px/1 var(--mono); color: var(--texto-fuerte); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .campo output small { font-size: 12px; color: var(--tenue); margin-left: 3px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--linea); }
+  input[type=range]::-moz-range-track { height: 2px; background: var(--linea); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -10px; border-radius: 50%; background: var(--rojo); border: 3px solid var(--fondo); box-shadow: 0 0 0 1px var(--rojo); }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--rojo); border: 3px solid var(--fondo); }
+  .sexo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sexo.experiencia button { font-size: 13.5px; min-height: 44px; }
+  .sexo button { min-height: 46px; border: 1px solid var(--linea); background: transparent; color: var(--texto); font: 600 15px/1 var(--cuerpo); cursor: pointer; }
+  .sexo button[aria-pressed="true"] { border-color: var(--rojo); color: var(--texto-fuerte); background: rgba(255,30,30,0.1); }
+  .lectura { font: 500 13px/1.5 var(--mono); color: var(--texto); border-top: 1px solid var(--linea); padding-top: 14px; margin: 0; }
+  .lectura b { color: var(--texto-fuerte); font-weight: 500; }
+
+  .patrones { display: flex; flex-wrap: wrap; gap: 8px; }
+  .patrones button { min-height: 44px; padding: 0 14px; border: 1px solid var(--linea); background: rgba(8,9,11,0.7); color: var(--texto); font: 600 14px/1 var(--cuerpo); cursor: pointer; }
+  .patrones button[aria-pressed="true"] { border-color: var(--rojo); color: var(--texto-fuerte); background: rgba(255,30,30,0.12); }
+  .nota { font-size: 12.5px; line-height: 1.55; color: var(--tenue); max-width: 64ch; margin: 0; }
+  footer { position: relative; z-index: 2; padding: 32px clamp(16px, 4vw, 48px) 48px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--linea); background: var(--fondo); }
+
+  .cargando { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; font: 500 12px/1 var(--mono); color: var(--tenue); letter-spacing: 0.08em; text-transform: uppercase; }
+  .regla { position: fixed; z-index: 3; top: 9vh; bottom: 9vh; right: clamp(16px, 3vw, 40px); width: 44px; pointer-events: none; font: 500 10px/1 var(--mono); color: var(--tenue); opacity: 0; transition: opacity 0.6s ease; }
+  .regla.visible { opacity: 1; }
+  .regla i { position: absolute; right: 0; height: 1px; background: var(--linea); }
+  .regla i.mayor { width: 14px; background: var(--tenue); }
+  .regla i.menor { width: 7px; }
+  .regla em { position: absolute; right: 18px; transform: translateY(-50%); font-style: normal; }
+  .regla .tope { position: absolute; right: 0; width: 44px; height: 2px; background: var(--rojo); transition: top 0.35s cubic-bezier(0.16,1,0.3,1); }
+  .regla .tope span { position: absolute; right: 0; top: -18px; color: var(--rojo-suave); white-space: nowrap; }
+
+  @media (max-width: 760px) {
+    section.capitulo { align-items: flex-end; min-height: 130vh; }
+    .texto { padding-block: 60vh 90px; }
+    .pelicula { background: linear-gradient(180deg, rgba(8,9,11,0) 0%, rgba(8,9,11,0) 45%, rgba(8,9,11,0.92) 78%); }
+    .regla { display: none; }
+    .subtitulo { bottom: calc(env(safe-area-inset-bottom, 0px) + 2vh); }
+  }
+  @media (prefers-reduced-motion: reduce) { .grano { animation: none; } .franja, .regla .tope { transition: none; } }
+</style>
+
+<link rel="stylesheet" href="./cine.css">
+<canvas id="escena" aria-label="Sujeto anatómico en 3D: esqueleto, músculos con sus tendones y piel" role="img"></canvas>
+<div class="pelicula" aria-hidden="true"></div>
+<div class="grano" aria-hidden="true"></div>
+<div class="franja arriba" aria-hidden="true"></div>
+<div class="franja abajo" aria-hidden="true"></div>
+
+<header class="barra">
+  <div class="marca"><b>Alpha</b><span>Athletics</span></div>
+  <button class="voz" id="voz" type="button" aria-pressed="false">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+    <span id="voz-txt">Activar sonido</span>
+  </button>
+</header>
+
+<p class="subtitulo" id="subtitulo" aria-live="polite"></p>
+<p class="toca" id="toca">Toca en cualquier parte para oírlo</p>
+<div class="regla" id="regla" aria-hidden="true"></div>
+<p class="cargando" id="cargando">Ensamblando el cuerpo</p>
+
+<div class="cine-flash" id="cine-flash" aria-hidden="true"></div>
+<div class="cine-panel" id="cine-panel" hidden><span id="cine-label">01 / MATERIA</span><input type="range" id="cine-progress" min="0" max="11.95" step="0.01" value="0" aria-label="Posición de la entrada"><button id="cine-pause">Pausar</button><button id="cine-skip">Saltar entrada</button></div>
+<main>
+  <section class="capitulo" data-capitulo="0" data-voz="0">
+    <div class="texto">
+      <span class="eyebrow">Science based performance</span>
+      <h1>Entiende tu cuerpo.<em>Transforma tu entrenamiento.</em></h1>
+      <p class="intro-copy">La anatomía detrás de cada movimiento. La precisión detrás de tu entrenamiento.</p>
+      <div class="acciones"><button class="cine-play" id="cine-play" disabled>Preparando entrada…</button><a class="cine-link" href="#anatomia">Explorar anatomía ↗</a></div>
+      <span class="cine-help">12 segundos · sonido cinematográfico</span>
+    </div>
+  </section>
+
+  <section class="capitulo" id="anatomia" data-capitulo="1" data-voz="1">
+    <div class="texto">
+      <span class="eyebrow">Capa 1 · piel</span>
+      <h2>Lo que ves en <em>el espejo</em>.</h2>
+      <div class="capas" aria-label="Capas visibles"><span data-c="piel" class="activa">Piel</span><span data-c="musculo">Músculo</span><span data-c="tendon">Tendón</span><span data-c="hueso">Hueso</span></div>
+    </div>
+  </section>
+
+  <section class="capitulo" data-capitulo="2" data-voz="2">
+    <div class="texto">
+      <span class="eyebrow">Capa 2 · músculo e inserción</span>
+      <h2>402 músculos. <em>Entrenas los que ves.</em></h2>
+      <span class="dato"><b>402</b> vientres musculares · en blanco, <b>dónde se insertan</b></span>
+      <div class="capas"><span data-c="piel">Piel</span><span data-c="musculo" class="activa">Músculo</span><span data-c="tendon" class="activa">Tendón</span><span data-c="hueso">Hueso</span></div>
+    </div>
+  </section>
+
+  <section class="capitulo" data-capitulo="3" data-voz="3">
+    <div class="texto">
+      <span class="eyebrow">Capa 3 · hueso</span>
+      <h2>296 palancas. <em>La técnica decide.</em></h2>
+      <span class="dato"><b>296</b> huesos · el músculo se aparta para dejarlos ver</span>
+      <div class="capas"><span data-c="piel">Piel</span><span data-c="musculo">Músculo</span><span data-c="tendon">Tendón</span><span data-c="hueso" class="activa">Hueso</span></div>
+    </div>
+  </section>
+
+  <section class="capitulo" data-capitulo="4" data-voz="4">
+    <div class="texto">
+      <span class="eyebrow">Patrones de movimiento</span>
+      <h2>Así me <em>muevo</em>.</h2>
+      <span class="dato">Los mismos <b>49 patrones</b> que ves en tu app de entrenamiento</span>
+      <div class="patrones" role="group" aria-label="Elige un ejercicio" id="patrones"></div>
+    </div>
+  </section>
+
+  <section class="capitulo" data-capitulo="5" data-voz="5">
+    <div class="texto">
+      <span class="eyebrow">Tu evaluación · empieza aquí</span>
+      <h2>Ahora ponme <em>tus medidas</em>.</h2>
+      <form class="panel" id="medidas" novalidate>
+        <div class="campo">
+          <label for="altura">Altura <output id="altura-v" for="altura">175<small>cm</small></output></label>
+          <input id="altura" type="range" min="145" max="205" step="1" value="175">
+        </div>
+        <div class="campo">
+          <label for="peso">Peso <output id="peso-v" for="peso">74<small>kg</small></output></label>
+          <input id="peso" type="range" min="45" max="130" step="1" value="74">
+        </div>
+        <div class="campo">
+          <label id="sexo-l">Sexo biológico</label>
+          <div class="sexo" role="group" aria-labelledby="sexo-l">
+            <button type="button" id="sexo-h" aria-pressed="true">Hombre</button>
+            <button type="button" id="sexo-m" aria-pressed="false">Mujer</button>
+          </div>
+        </div>
+        <div class="campo">
+          <label id="exp-l">¿Cuánto llevas entrenando?</label>
+          <div class="sexo experiencia" role="group" aria-labelledby="exp-l" id="experiencia">
+            <button type="button" data-masa="0.15" aria-pressed="false">No entreno</button>
+            <button type="button" data-masa="0.4" aria-pressed="false">Menos de 1 año</button>
+            <button type="button" data-masa="0.7" aria-pressed="true">1 a 3 años</button>
+            <button type="button" data-masa="1.0" aria-pressed="false">Más de 3 años</button>
+          </div>
+        </div>
+        <p class="lectura" id="lectura">IMC <b>24,2</b></p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p class="nota"><b>Prueba cinematográfica 01.</b> Diseño sonoro sintético provisional.  Se conservan las pistas de voz del prototipo original, con voz del navegador como respaldo. Las inserciones se dibujan en los extremos de cada músculo: en la fuente anatómica el tendón viene unido a su vientre en una sola pieza. La silueta de «Mujer» ajusta proporciones sobre la anatomía masculina.</p>
+  <p class="nota">Músculos y tendones: Z-Anatomy, CC BY-SA 4.0, basado en BodyParts3D. Huesos: BodyParts3D 4.0 © Database Center for Life Science (DBCLS), CC BY 4.0. Piel: 3D Reference Organ Set for Female v1.5, Human Reference Atlas / HuBMAP (Browne y Schlehlein, 2023), CC BY 4.0.</p>
+</footer>
+
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { crearDirector } from './cine.js';
+// El motor de movimiento de alpha-app (src/domain/patrones), empaquetado tal cual.
+import { PATRONES, esqueletoEnFase, faseDeTiempo, resolver, ESQUELETO, HUESOS_POR_DEFECTO } from './motor-patrones.js';
+
+let director = null;
+const reducir = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Guion: frases del sujeto, en el estilo de Bryan (cortas, al tú) ---------- */
+const GUION = [
+  'Soy tu cuerpo. Y no estoy estancado. Lo que está estancado es el plan.',
+  'Esto es lo que ves en el espejo. La superficie. El cambio de verdad empieza debajo.',
+  'Tengo cuatrocientos dos músculos. Y cada uno se agarra al hueso por un tendón. Si siempre entrenas igual, cargas siempre los mismos.',
+  'Debajo, doscientos noventa y seis huesos. Son palancas. Cómo te mueves decide qué músculo trabaja de verdad.',
+  'Y así me muevo. Cada músculo que ves trabajar, lo programamos con nombre y apellido.',
+  'Ahora dime cuánto mides y cuánto pesas. Me ajusto a ti. No a un promedio.',
+];
+
+/* ---------- Lector del formato .pieza (v3 de alpha-app) ---------- */
+const relleno = (n) => (4 - (n % 4)) % 4;
+function leerPieza(buf) {
+  const v = new DataView(buf);
+  if (String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3)) !== 'PIEZ') throw new Error('no es una pieza');
+  const nPartes = v.getUint16(6, true);
+  let pos = 8;
+  const partes = [];
+  for (let p = 0; p < nPartes; p++) {
+    const largo = v.getUint16(pos, true);
+    pos += 2 + largo + relleno(2 + largo);
+    const banderas = v.getUint32(pos, true); pos += 4;
+    const nV = v.getUint32(pos, true), nI = v.getUint32(pos + 4, true); pos += 8;
+    const f32 = (n) => { const a = new Float32Array(buf.slice(pos, pos + n * 4)); pos += n * 4; return a; };
+    const sinUv = (banderas & 2) !== 0;
+    const base = f32(3), escala = f32(3);
+    if (!sinUv) pos += 16;
+    const avanzar = (b) => { pos += b; pos += relleno(pos); };
+    const crudoPos = new Uint16Array(buf, pos, nV * 3); const posicion = new Float32Array(nV * 3);
+    for (let i = 0; i < nV * 3; i++) posicion[i] = base[i % 3] + (crudoPos[i] / 65535) * escala[i % 3];
+    avanzar(nV * 6);
+    const crudoN = new Int8Array(buf, pos, nV * 3); const normal = new Float32Array(nV * 3);
+    for (let i = 0; i < nV * 3; i++) normal[i] = crudoN[i] / 127;
+    avanzar(nV * 3);
+    const crudoC = new Uint8Array(buf, pos, nV * 3); const color = new Float32Array(nV * 3);
+    for (let i = 0; i < nV * 3; i++) color[i] = crudoC[i] / 255;
+    avanzar(nV * 3);
+    if (!sinUv) avanzar(nV * 4);
+    let indice;
+    if (banderas & 4) { indice = new Uint32Array(buf.slice(pos, pos + nI * 4)); avanzar(nI * 4); }
+    else { indice = new Uint32Array(new Uint16Array(buf, pos, nI)); avanzar(nI * 2); }
+    partes.push({ posicion, normal, color, indice });
+  }
+  return partes;
+}
+
+/* ---------- Eje principal de una pieza: por dónde van sus fibras ---------- */
+function ejePrincipal(p, cx, cy, cz) {
+  let xx = 0, xy = 0, xz = 0, yy = 0, yz = 0, zz = 0;
+  const n = p.posicion.length / 3;
+  for (let i = 0; i < n; i++) {
+    const x = p.posicion[i*3] - cx, y = p.posicion[i*3+1] - cy, z = p.posicion[i*3+2] - cz;
+    xx += x*x; xy += x*y; xz += x*z; yy += y*y; yz += y*z; zz += z*z;
+  }
+  // Iteración de potencia: con 12 vueltas el vector propio mayor ya no se mueve.
+  let v = [0.3, 0.9, 0.2];
+  for (let k = 0; k < 12; k++) {
+    const w = [xx*v[0] + xy*v[1] + xz*v[2], xy*v[0] + yy*v[1] + yz*v[2], xz*v[0] + yz*v[1] + zz*v[2]];
+    const L = Math.hypot(w[0], w[1], w[2]) || 1; v = [w[0]/L, w[1]/L, w[2]/L];
+  }
+  return v;
+}
+
+/* ---------- Una capa = UNA malla; cada pieza guarda su vuelo, su giro y su eje ---------- */
+function capaDesde(partes, centro, tinte, tipo, pesar, tendonReal = false) {
+  let nV = 0, nI = 0;
+  for (const p of partes) { nV += p.posicion.length / 3; nI += p.indice.length; }
+  const pos = new Float32Array(nV * 3), nor = new Float32Array(nV * 3), col = new Float32Array(nV * 3);
+  const dir = new Float32Array(nV * 3), cen = new Float32Array(nV * 3), eje = new Float32Array(nV * 3);
+  const sem = new Float32Array(nV), tt = new Float32Array(nV), rad = new Float32Array(nV);
+  const ten = new Float32Array(nV);
+  const hIdx = new Float32Array(nV * 2), hPeso = new Float32Array(nV);
+  const idx = new Uint32Array(nI);
+  let ov = 0, oi = 0;
+  for (const p of partes) {
+    const n = p.posicion.length / 3;
+    let cx = 0, cy = 0, cz = 0;
+    for (let i = 0; i < n; i++) { cx += p.posicion[i*3]; cy += p.posicion[i*3+1]; cz += p.posicion[i*3+2]; }
+    cx /= n; cy /= n; cz /= n;
+    const e = tipo === 'musculo' ? ejePrincipal(p, cx, cy, cz) : [0, 1, 0];
+    // Extensión de la pieza a lo largo de su eje: para saber dónde están sus extremos.
+    let tMin = Infinity, tMax = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const t = (p.posicion[i*3]-cx)*e[0] + (p.posicion[i*3+1]-cy)*e[1] + (p.posicion[i*3+2]-cz)*e[2];
+      if (t < tMin) tMin = t; if (t > tMax) tMax = t;
+    }
+    // Grosor medio de la pieza: distancia de sus vértices al eje.
+    let radio = 0;
+    for (let i = 0; i < n; i++) {
+      const x = p.posicion[i*3]-cx, y = p.posicion[i*3+1]-cy, z = p.posicion[i*3+2]-cz;
+      const a = x*e[0] + y*e[1] + z*e[2];
+      radio += Math.hypot(x - a*e[0], y - a*e[1], z - a*e[2]);
+    }
+    radio /= n;
+    let dx = cx - centro.x, dy = (cy - centro.y) * 0.3, dz = cz - centro.z;
+    dx += (Math.random() - 0.5) * 0.3; dz += (Math.random() - 0.5) * 0.3; dy += (Math.random() - 0.5) * 0.35;
+    const L = Math.hypot(dx, dy, dz) || 1; dx /= L; dy /= L; dz /= L;
+    const s = Math.random();
+    for (let i = 0; i < n; i++) {
+      const k = (ov + i) * 3;
+      pos.set(p.posicion.subarray(i*3, i*3+3), k);
+      nor.set(p.normal.subarray(i*3, i*3+3), k);
+      const marca = p.color[i*3] > 0.999 && p.color[i*3+1] > 0.999 && p.color[i*3+2] > 0.999;
+      const mezcla = marca ? 0 : 0.04;
+      col[k] = p.color[i*3] * mezcla + tinte.r * (1 - mezcla);
+      col[k+1] = p.color[i*3+1] * mezcla + tinte.g * (1 - mezcla);
+      col[k+2] = p.color[i*3+2] * mezcla + tinte.b * (1 - mezcla);
+      dir[k] = dx; dir[k+1] = dy; dir[k+2] = dz;
+      cen[k] = cx; cen[k+1] = cy; cen[k+2] = cz;
+      eje[k] = e[0]; eje[k+1] = e[1]; eje[k+2] = e[2];
+      const t = (p.posicion[i*3]-cx)*e[0] + (p.posicion[i*3+1]-cy)*e[1] + (p.posicion[i*3+2]-cz)*e[2];
+      tt[ov + i] = tMax > tMin ? ((t - tMin) / (tMax - tMin)) * 2 - 1 : 0;
+      sem[ov + i] = s;
+      rad[ov + i] = radio;
+      ten[ov + i] = p.color[i*3] > 0.999 && p.color[i*3+1] > 0.999 && p.color[i*3+2] > 0.999 ? 1 : 0;
+      const [a, b, w] = pesar(p.posicion[i*3], p.posicion[i*3+1], p.posicion[i*3+2]);
+      hIdx[(ov + i) * 2] = a; hIdx[(ov + i) * 2 + 1] = b; hPeso[ov + i] = w;
+    }
+    for (let i = 0; i < p.indice.length; i++) idx[oi + i] = p.indice[i] + ov;
+    ov += n; oi += p.indice.length;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aDir', new THREE.BufferAttribute(dir, 3));
+  g.setAttribute('aCen', new THREE.BufferAttribute(cen, 3));
+  g.setAttribute('aEje', new THREE.BufferAttribute(eje, 3));
+  g.setAttribute('aSem', new THREE.BufferAttribute(sem, 1));
+  g.setAttribute('aT', new THREE.BufferAttribute(tt, 1));
+  g.setAttribute('aH', new THREE.BufferAttribute(hIdx, 2));
+  g.setAttribute('aRad', new THREE.BufferAttribute(rad, 1));
+  g.setAttribute('aTen', new THREE.BufferAttribute(ten, 1));
+  g.setAttribute('aW', new THREE.BufferAttribute(hPeso, 1));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeVertexNormals();
+
+  const esPiel = tipo === 'piel', esMusculo = tipo === 'musculo';
+  const m = new THREE.ShaderMaterial({
+    uniforms: {
+      uLlegada: { value: 0 }, uAbierto: { value: 0 }, uTiempo: { value: 0 }, uOpacidad: { value: 1 },
+      uHuesos: huesosUniform,
+      uMasa: forma.masa, uDefinicion: forma.definicion, uGrasa: forma.grasa,
+      uEsMusculo: { value: esMusculo ? 1 : 0 }, uEsPiel: { value: esPiel ? 1 : 0 },
+      uTendonReal: { value: esMusculo && tendonReal ? 1 : 0 },
+      uTendon: { value: esMusculo ? 1 : 0 }, uFibras: { value: esMusculo ? 1 : 0 },
+      uPoros: { value: tipo === 'hueso' ? 1 : esPiel ? 0.35 : 0 },
+      uTransl: { value: esMusculo ? 0.45 : esPiel ? 0.6 : 0.15 },
+      uBrillo: { value: esMusculo ? 0.20 : esPiel ? 0.12 : 0.12 },
+      uRim: { value: new THREE.Color(esPiel ? '#D8C9B1' : esMusculo ? '#AF9980' : '#BBA98F') },
+      uRimFuerza: { value: esPiel ? 0.12 : esMusculo ? 0.14 : 0.10 },
+    },
+    vertexShader: `
+      attribute vec3 aDir; attribute vec3 aCen; attribute vec3 aEje; attribute float aSem; attribute float aT;
+      attribute vec2 aH; attribute float aW; attribute float aRad; attribute float aTen;
+      uniform float uMasa, uDefinicion, uGrasa, uEsMusculo, uEsPiel, uTendonReal;
+      varying float vTen;
+      varying float vCav; varying float vVar;
+      uniform float uLlegada, uAbierto, uTiempo;
+      uniform mat4 uHuesos[22];
+      varying vec3 vN; varying vec3 vC; varying vec3 vV; varying vec3 vP; varying vec3 vE; varying float vT; varying vec3 vVista;
+      vec3 girar(vec3 v, vec3 k, float a) { float c = cos(a), s = sin(a); return v*c + cross(k, v)*s + k*dot(k, v)*(1.0 - c); }
+      void main() {
+        // Big bang: cada pieza llega en su momento y girando sobre sí misma.
+        float t = clamp(uLlegada * 1.7 - aSem * 0.7, 0.0, 1.0);
+        float e = 1.0 - pow(1.0 - t, 4.0);
+        float lejos = (1.0 - e) * (1.8 + aSem * 2.6);
+        // Separación de cine: se aparta, gira un poco y queda flotando.
+        float ab = uAbierto * (0.08 + aSem * 0.14);
+        float flota = uAbierto * 0.012 * sin(uTiempo * 0.9 + aSem * 6.2832);
+        vec3 k = normalize(cross(aDir, vec3(0.0, 1.0, 0.0)) + vec3(0.001, 0.0, 0.0));
+        float ang = (1.0 - e) * (2.5 + aSem * 5.0) + uAbierto * (0.25 + aSem * 0.5);
+        // FORMA ALPHA. Hipertrofia: el vientre crece hacia fuera en proporción a su
+        // grosor; el tendón (extremos, |aT| alto) no. Definición: cada músculo se
+        // encoge un poco hacia su eje y aparece el surco con el vecino.
+        vec3 base = position;
+        vec3 rel = base - aCen;
+        vec3 radial = rel - dot(rel, aEje) * aEje;
+        // Con Z-Anatomy el tendón es real (marca por vértice); sin él, los extremos.
+        float vientre = mix(1.0 - smoothstep(0.45, 0.92, abs(aT)), 1.0 - aTen, uTendonReal);
+        vTen = aTen;
+        // Cavidad: donde la superficie mira hacia el eje del músculo en vez de hacia fuera,
+        // está metida en el surco con el vecino. Ahí la luz cae.
+        vec3 rDir = length(radial) > 1e-5 ? normalize(radial) : normal;
+        vCav = clamp(dot(normalize(normal), rDir), 0.0, 1.0);
+        vVar = aSem;
+        base += normal * aRad * uMasa * 0.08 * vientre * uEsMusculo;
+        base -= radial * 0.07 * uDefinicion * uEsMusculo;
+        // La piel se separa del músculo según la grasa: una capa que cubre la definición.
+        base += normal * (0.004 + uGrasa * 0.022) * uEsPiel;
+        vec3 local = girar(base - aCen, k, ang);
+        vec3 p = aCen + local + aDir * (lejos + ab + flota);
+        // Cada vértice sigue a sus dos huesos más cercanos del esqueleto de la app.
+        mat4 B = uHuesos[int(aH.x)] * aW + uHuesos[int(aH.y)] * (1.0 - aW);
+        p = (B * vec4(p, 1.0)).xyz;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vN = normalize(normalMatrix * mat3(B) * girar(normal, k, ang));
+        vC = color; vV = normalize(-mv.xyz); vVista = mv.xyz; vP = position; vE = aEje; vT = aT;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform vec3 uRim; uniform float uRimFuerza, uOpacidad, uTendon, uFibras, uBrillo, uPoros, uTransl, uTendonReal, uEsPiel;
+      varying float vTen;
+      varying vec3 vN; varying vec3 vC; varying vec3 vV; varying vec3 vP; varying vec3 vE; varying float vT; varying vec3 vVista;
+      float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+      float ruido(vec3 x) {
+        vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
+        return mix(mix(mix(hash(i), hash(i+vec3(1,0,0)), f.x), mix(hash(i+vec3(0,1,0)), hash(i+vec3(1,1,0)), f.x), f.y),
+                   mix(mix(hash(i+vec3(0,0,1)), hash(i+vec3(1,0,1)), f.x), mix(hash(i+vec3(0,1,1)), hash(i+vec3(1,1,1)), f.x), f.y), f.z);
+      }
+      vec3 aces(vec3 x) { return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }
+      // Relieve por derivadas (el mismo truco del bump map de three): la altura cambia la normal.
+      vec3 relieve(vec3 pos, vec3 n, float h) {
+        vec3 dpx = dFdx(pos), dpy = dFdy(pos);
+        float dhx = dFdx(h), dhy = dFdy(h);
+        vec3 r1 = cross(dpy, n), r2 = cross(n, dpx);
+        float det = dot(dpx, r1);
+        vec3 g = sign(det) * (dhx * r1 + dhy * r2);
+        return normalize(abs(det) * n - g);
+      }
+      varying float vCav; varying float vVar;
+      void main() {
+        vec3 n = normalize(vN); vec3 v = normalize(vV);
+        if (!gl_FrontFacing) n = -n;
+        float tend = mix(smoothstep(0.66, 0.93, abs(vT)), vTen, uTendonReal) * uTendon;
+        float musc = uFibras * (1.0 - tend);
+        // Fibra fina + haces (fascículos) de tamaño irregular, a lo largo del eje del músculo.
+        vec3 q = vP - dot(vP, vE) * vE;
+        float fibra = sin(dot(q, vec3(0.8, 0.45, 0.4)) * mix(1100.0, 2600.0, tend) + ruido(vP * 180.0) * 3.0);
+        float haz = ruido(q * 140.0 + vE * 6.0);
+        float poro = ruido(vP * 420.0) * ruido(vP * 95.0);
+        float alto = (0.5 + 0.5 * fibra) * musc * 0.00022 + haz * musc * 0.00036 + tend * (0.5 + 0.5 * fibra) * 0.00014
+                   + poro * uPoros * 0.0007;
+        n = relieve(vVista, n, alto);
+
+        // Color de tejido real: cada músculo un poco distinto en tono y claridad.
+        vec3 base = vC * mix(0.82, 1.14, vVar);
+        base = mix(base, base * vec3(1.08, 0.94, 0.9), fract(vVar * 7.3) * 0.5);
+        base *= mix(0.78, 1.1, haz * 0.6 + (0.5 + 0.5 * fibra) * 0.4) * musc + (1.0 - musc);
+        base = mix(base, vec3(0.57, 0.49, 0.38), tend);
+        base *= 1.0 - poro * 0.22 * uPoros;
+        // Caída en los pliegues: el borde que se mete hacia el vecino se oscurece.
+        float pliegue = mix(0.65, 1.0, smoothstep(0.02, 0.55, vCav));
+        base *= mix(1.0, pliegue, musc * 0.9 + tend * 0.4);
+
+        // Luz de estudio: principal suave, cielo frío arriba, rebote cálido abajo.
+        vec3 Lk = normalize(vec3(-0.65, 0.65, 0.60));
+        float ndl = dot(n, Lk);
+        float dk = max((ndl + uTransl * 0.6) / (1.0 + uTransl * 0.6), 0.0);
+        float cielo = 0.5 + 0.5 * n.y;
+        vec3 ambiente = mix(vec3(0.12, 0.105, 0.09), vec3(0.16, 0.20, 0.22), cielo);
+        // Transición luz-sombra con el rojo de la luz que atraviesa el tejido.
+        float borde = smoothstep(-0.25, 0.15, ndl) * (1.0 - smoothstep(0.15, 0.55, ndl));
+        vec3 dispersion = vec3(0.25, 0.09, 0.055) * borde * uTransl * (1.0 - tend);
+        // Velo húmedo: ancho y tenue; algo más en el tendón. Nada de brillo de plástico.
+        vec3 h = normalize(Lk + v);
+        float fres = pow(1.0 - max(dot(n, v), 0.0), 4.0);
+        float velo = pow(max(dot(n, h), 0.0), mix(14.0, 40.0, tend)) * mix(0.024, 0.065, tend) * (uBrillo * 1.2 + 0.2);
+        float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0);
+        vec3 c = base * (ambiente + dk * vec3(1.25, 1.08, 0.87)) + dispersion * base * 2.2
+               + vec3(1.0, 0.97, 0.93) * (velo + fres * 0.012) + uRim * rim * uRimFuerza * 0.35;
+        float alfa = uOpacidad * mix(1.0, 0.04 + 0.96 * pow(rim, 0.8), uEsPiel);
+        gl_FragColor = vec4(aces(c * 1.25), alfa);
+      }`,
+    vertexColors: true,
+    transparent: esPiel,
+    depthWrite: !esPiel,
+    side: THREE.DoubleSide,
+  });
+  const malla = new THREE.Mesh(g, m);
+  malla.renderOrder = esPiel ? 2 : esMusculo ? 1 : 0;
+  malla.frustumCulled = false;
+  return malla;
+}
+
+/* ---------- Forma del personaje: la cambian las respuestas ---------- */
+// Por defecto, el sujeto Alpha: entrenado y definido. Las respuestas lo acercan a la persona.
+const forma = { masa: { value: 0.75 }, definicion: { value: 1.0 }, grasa: { value: 0.15 } };
+const formaObjetivo = { masa: 0.75, grasa: 0.15 };
+
+/* ---------- Esqueleto de la app: reposo, segmentos y pesos ---------- */
+// uHuesos[k] = pose_actual[k] · reposo[k]⁻¹ : cuánto se movió cada hueso desde el reposo.
+const huesosUniform = { value: Array.from({ length: 22 }, () => new THREE.Matrix4()) };
+const REPOSO = resolver({}, [0, 0, 0], [0, 0, 0]).matrices.map((m) => new THREE.Matrix4().fromArray(m));
+const REPOSO_INV = REPOSO.map((m) => m.clone().invert());
+const LARGO = HUESOS_POR_DEFECTO.map((h) => h.largo);
+const SEGMENTOS = ESQUELETO.map((_, i) => {
+  const m = REPOSO[i + 1];
+  const a = new THREE.Vector3().setFromMatrixPosition(m);
+  const b = new THREE.Vector3(0, LARGO[i], 0).applyMatrix4(m);
+  return { a, b, k: i + 1 };
+});
+const _ab = new THREE.Vector3(), _ap = new THREE.Vector3(), _pt = new THREE.Vector3();
+function distSegmento(x, y, z, s) {
+  _pt.set(x, y, z); _ab.subVectors(s.b, s.a); _ap.subVectors(_pt, s.a);
+  const t = Math.min(Math.max(_ap.dot(_ab) / Math.max(_ab.lengthSq(), 1e-9), 0), 1);
+  return _pt.distanceTo(_ab.multiplyScalar(t).add(s.a));
+}
+/** Los dos huesos más cercanos y el peso del primero. Cerca de uno solo, peso 1. */
+function pesar(x, y, z) {
+  let d1 = Infinity, d2 = Infinity, k1 = 0, k2 = 0;
+  for (const s of SEGMENTOS) {
+    const d = distSegmento(x, y, z, s);
+    if (d < d1) { d2 = d1; k2 = k1; d1 = d; k1 = s.k; } else if (d < d2) { d2 = d; k2 = s.k; }
+  }
+  const a = 1 / Math.pow(d1 + 1e-4, 4), b = 1 / Math.pow(d2 + 1e-4, 4);
+  return [k1, k2, a / (a + b)];
+}
+
+/* ---------- Escena ---------- */
+const lienzo = document.getElementById('escena');
+const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x101417, 1);
+const escena = new THREE.Scene();
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace; // el tono ya lo hace el shader (ACES)
+const camara = new THREE.PerspectiveCamera(24, 1, 0.05, 60);
+const sujeto = new THREE.Group();
+const giro = new THREE.Group();
+giro.add(sujeto); escena.add(giro);
+
+// Suelo: un foco en el piso para que el sujeto tenga dónde estar.
+const suelo = new THREE.Mesh(
+  new THREE.CircleGeometry(0.9, 64),
+  new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    vertexShader: 'varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader: 'varying vec2 vU; void main(){ float d = distance(vU, vec2(0.5)); gl_FragColor = vec4(0.005,0.008,0.009, 0.8*(1.0-smoothstep(0.08,0.5,d))); }',
+  }),
+);
+suelo.rotation.x = -Math.PI / 2; suelo.position.y=.002; escena.add(suelo);
+// Mineral studio: restrained tonal variation, architecture and a grounded floor.
+function mineral(color){return new THREE.ShaderMaterial({uniforms:{base:{value:new THREE.Color(color)}},vertexShader:`varying vec3 p; void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`uniform vec3 base;varying vec3 p;void main(){float grain=fract(sin(dot(floor(p.xy*450.),vec2(12.9898,78.233)))*43758.5453);float broad=.5+.5*sin(p.x*2.3+p.y*.5);gl_FragColor=vec4(base*(.82+grain*.16+broad*.2),1.);}`});}
+const fondo=new THREE.Mesh(new THREE.PlaneGeometry(20,10),mineral('#343C3D'));fondo.position.set(0,3,-2.0);escena.add(fondo);
+const piso=new THREE.Mesh(new THREE.PlaneGeometry(30,30),mineral('#454643'));piso.rotation.x=-Math.PI/2;piso.position.y=-.008;escena.add(piso);
+for(const x of [1.3,2.1]){const columna=new THREE.Mesh(new THREE.BoxGeometry(.12,4,.18),new THREE.MeshBasicMaterial({color:'#292E30'}));columna.position.set(x,1.9,-1.85);escena.add(columna);}
+const abertura=new THREE.Mesh(new THREE.PlaneGeometry(.10,3.5),new THREE.MeshBasicMaterial({color:'#A58761'}));abertura.position.set(1.68,1.8,-1.88);escena.add(abertura);
+
+let alto = 1.7;
+// Planos por capítulo: [altura de la mirada (fracción del cuerpo), distancia (en cuerpos), desvío lateral, giro extra]
+const PLANOS = [
+  [0.52, 1.45, 0.00, 0.0],   // plano general, sujeto a pantalla completa
+  [0.62, 1.55, 0.05, 0.3],   // se acerca al torso
+  [0.78, 0.95, 0.12, 0.9],   // hombro y brazo: inserciones de cerca
+  [0.55, 1.75, -0.04, 2.4],  // esqueleto abierto, de lado
+  [0.52, 2.05, 0.00, 1.1],   // el patrón, en tres cuartos para leer el movimiento
+  [0.52, 1.45, 0.00, 0.0],   // de frente para las medidas
+];
+function encuadrar() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camara.aspect = w / h;
+  const movil = w < 760;
+  camara.setViewOffset(w, h, movil ? 0 : -w * 0.22, movil ? h * 0.15 : 0, w, h);
+  camara.updateProjectionMatrix();
+}
+addEventListener('resize', encuadrar);
+
+/* Sin postproducción a propósito: el desenfoque de cámara y el destello se leían como
+   «borroso» y «niebla», y el render a textura apagaba el antialias del navegador. */
+
+const capas = {};
+async function cargar() {
+  const traer = (n) => fetch(`piezas/atlas-${n}.b64.txt`)
+    .then((r) => { if (!r.ok) throw new Error(n + ' ' + r.status); return r.text(); })
+    .then((b64) => { const bin = atob(b64.trim()); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; });
+  // Por defecto, los músculos de Z-Anatomy con sus tendones reales. Con #bodyparts en el
+  // enlace se cargan los de BodyParts3D, para comparar.
+  const conZ = location.hash !== '#bodyparts';
+  const [bE, bM, bP] = await Promise.all([traer('esqueleto'), traer(conZ ? 'musculos-zanatomy' : 'musculos'), traer('piel')]);
+  const pE = leerPieza(bE), pM = leerPieza(bM), pP = leerPieza(bP);
+  const caja = new THREE.Box3();
+  const v = new THREE.Vector3();
+  for (const p of pE) for (let i = 0; i < p.posicion.length; i += 3) caja.expandByPoint(v.set(p.posicion[i], p.posicion[i+1], p.posicion[i+2]));
+  const centro = caja.getCenter(new THREE.Vector3());
+  alto = caja.max.y - caja.min.y;
+  capas.hueso = capaDesde(pE, centro, new THREE.Color('#D6C7A8'), 'hueso', pesar);
+  capas.musculo = capaDesde(pM, centro, new THREE.Color('#80615D'), 'musculo', pesar, conZ);
+  capas.piel = capaDesde(pP, centro, new THREE.Color('#AF9380'), 'piel', pesar);
+  for (const c of Object.values(capas)) { c.position.set(-centro.x, -caja.min.y, -centro.z); sujeto.add(c); }
+  document.getElementById('cargando').hidden = true;
+  director?.ready();
+  encuadrar();
+  inicio = performance.now();
+}
+
+/* ---------- Scroll → progreso continuo 0..4 ---------- */
+const capitulos = [...document.querySelectorAll('[data-capitulo]')];
+let progreso = 0, progresoSuave = 0;
+function leerScroll() {
+  const mitad = innerHeight * 0.5;
+  let p = 0;
+  capitulos.forEach((s, i) => {
+    const r = s.getBoundingClientRect();
+    const f = (mitad - r.top) / r.height;
+    if (f >= 0) p = Math.max(p, i + Math.min(f, 1) - 0.5);
+  });
+  progreso = Math.max(0, Math.min(capitulos.length - 1, p));
+}
+addEventListener('scroll', leerScroll, { passive: true });
+
+const suave = (a, b, x) => { const t = Math.min(Math.max((x - a) / (b - a), 0), 1); return t * t * (3 - 2 * t); };
+function aplicarCapas(p, seg) {
+  if (!capas.piel) return;
+  const piel = (1 - suave(1.2, 1.9, p)) + suave(3.5, 4.0, p) * 0.25 + suave(4.5, 5.0, p) * 0.35;
+  capas.piel.material.uniforms.uOpacidad.value = 0.025 * piel;
+  capas.piel.visible = piel > 0.01;
+  const abrir = suave(2.35, 3.05, p) * (1 - suave(3.45, 4.0, p));
+  capas.musculo.material.uniforms.uAbierto.value = abrir * 3.4;
+  capas.hueso.material.uniforms.uAbierto.value = abrir * 0.12;
+  for (const c of Object.values(capas)) c.material.uniforms.uTiempo.value = seg;
+}
+
+/* ---------- Big bang ---------- */
+let inicio = 0;
+const DUR = { hueso: [0.2, 2.0], musculo: [1.0, 3.2], piel: [2.8, 4.2] };
+function aplicarLlegada(ahora) {
+  if (!inicio) return;
+  const t = (ahora - inicio) / 1000;
+  for (const [nombre, [a, b]] of Object.entries(DUR)) {
+    capas[nombre].material.uniforms.uLlegada.value = 1;
+  }
+  if (t > 3.6 || reducir) document.body.classList.add('ensamblado');
+}
+
+/* ---------- Cámara de cine: se desliza entre planos según el scroll ---------- */
+const mirada = new THREE.Vector3(), posCam = new THREE.Vector3();
+function moverCamara(p, seg) {
+  const i = Math.min(Math.floor(p), PLANOS.length - 2), f = suave(0, 1, p - i);
+  const a = PLANOS[i], b = PLANOS[i + 1];
+  const alturaMirada = (a[0] + (b[0] - a[0]) * f) * alto * sujeto.scale.y;
+  const dist = (a[1] + (b[1] - a[1]) * f) * alto * Math.max(sujeto.scale.y, 0.9) * 1.9 * (innerWidth < 760 ? 1.6 : 1);
+  const lateral = (a[2] + (b[2] - a[2]) * f) * alto;
+  const extra = a[3] + (b[3] - a[3]) * f;
+  // Leve respiración de cámara: nunca está del todo quieta.
+  const resp = reducir ? 0 : Math.sin(seg * 0.35) * 0.012 * alto;
+  posCam.set(lateral + Math.sin(extra * 0.35) * dist * 0.18, alturaMirada + resp, dist);
+  mirada.set(lateral, alturaMirada, 0);
+  camara.position.lerp(posCam, 0.14);
+  camara.lookAt(mirada);
+  return extra;
+}
+
+/* ---------- La entrada: la cámara gira alrededor mientras el cuerpo se arma ----------
+   Cada toma: [segundo, ángulo alrededor del sujeto (grados), altura de la mirada
+   (fracción del cuerpo), distancia (en alturas)]. Empieza pegada al hombro mientras
+   llegan los huesos, baja por torso y rodilla, y se abre al plano general. */
+const TOMAS = [
+  [0.0, 215, 0.80, 0.55],
+  [1.6, 150, 0.62, 0.70],
+  [3.0, 80, 0.30, 0.85],
+  [4.4, 20, 0.52, 1.55],
+  [5.6, 0, 0.50, 1.95],
+];
+const FIN_ENTRADA = 5.6;
+let entradaCortada = true;
+addEventListener('wheel', () => { entradaCortada = true; }, { passive: true, once: true });
+addEventListener('touchmove', () => { entradaCortada = true; }, { passive: true, once: true });
+function camaraDeEntrada(t) {
+  let i = 0; while (i < TOMAS.length - 2 && t > TOMAS[i + 1][0]) i++;
+  const A = TOMAS[i], B = TOMAS[i + 1];
+  const f = suave(0, 1, (t - A[0]) / (B[0] - A[0]));
+  const ang = THREE.MathUtils.degToRad(A[1] + (B[1] - A[1]) * f);
+  const y = (A[2] + (B[2] - A[2]) * f) * alto;
+  const d = (A[3] + (B[3] - A[3]) * f) * alto * 1.9;
+  posCam.set(Math.sin(ang) * d, y, Math.cos(ang) * d);
+  mirada.set(0, y, 0);
+  camara.position.lerp(posCam, 0.09);
+  camara.lookAt(mirada);
+  return d;
+}
+
+/* ---------- Medidas → el sujeto crece ---------- */
+const ALTURA_BASE = 175;
+const escalaObjetivo = new THREE.Vector3(1, 1, 1);
+let esMujer = false;
+function leerMedidas() {
+  const a = +document.getElementById('altura').value;
+  const kg = +document.getElementById('peso').value;
+  document.getElementById('altura-v').innerHTML = `${a}<small>cm</small>`;
+  document.getElementById('peso-v').innerHTML = `${kg}<small>kg</small>`;
+  const imc = kg / ((a / 100) ** 2);
+  const sy = a / ALTURA_BASE;
+  const ancho = Math.min(Math.max(Math.sqrt(imc / 22.5), 0.85), 1.22) * (esMujer ? 0.93 : 1);
+  // IMC 21 = poca grasa; 33 = mucha. La grasa cubre la definición, no la masa.
+  formaObjetivo.grasa = Math.min(Math.max((imc - 21) / 12, 0), 1);
+  escalaObjetivo.set(sy * ancho, sy * (esMujer ? 0.985 : 1), sy * ancho);
+  document.getElementById('lectura').innerHTML = `IMC <b>${imc.toFixed(1).replace('.', ',')}</b> · <b>${a} cm</b> frente a los ${ALTURA_BASE} de referencia`;
+  pintarRegla(a);
+}
+for (const id of ['altura', 'peso']) document.getElementById(id).addEventListener('input', leerMedidas);
+for (const [id, m] of [['sexo-h', false], ['sexo-m', true]]) {
+  document.getElementById(id).addEventListener('click', () => {
+    esMujer = m;
+    document.getElementById('sexo-h').setAttribute('aria-pressed', String(!m));
+    document.getElementById('sexo-m').setAttribute('aria-pressed', String(m));
+    leerMedidas();
+  });
+}
+document.getElementById('medidas').addEventListener('submit', (e) => e.preventDefault());
+for (const b of document.querySelectorAll('#experiencia button')) {
+  b.addEventListener('click', () => {
+    for (const o of document.querySelectorAll('#experiencia button')) o.setAttribute('aria-pressed', String(o === b));
+    formaObjetivo.masa = Number(b.dataset.masa) * (esMujer ? 0.8 : 1);
+  });
+}
+
+const regla = document.getElementById('regla');
+function pintarRegla(a) {
+  const MIN = 140, MAX = 210;
+  let html = '';
+  for (let cm = MIN; cm <= MAX; cm += 5) {
+    const y = 100 - ((cm - MIN) / (MAX - MIN)) * 100;
+    const mayor = cm % 10 === 0;
+    html += `<i class="${mayor ? 'mayor' : 'menor'}" style="top:${y}%"></i>`;
+    if (mayor) html += `<em style="top:${y}%">${cm}</em>`;
+  }
+  html += `<div class="tope" style="top:${100 - ((a - MIN) / (MAX - MIN)) * 100}%"><span>${a} cm</span></div>`;
+  regla.innerHTML = html;
+}
+
+/* ---------- Girar con el dedo o el ratón ---------- */
+let arrastrando = false, x0 = 0, giroUsuario = 0, giroActual = 0;
+lienzo.addEventListener('pointerdown', (e) => { arrastrando = true; x0 = e.clientX; });
+addEventListener('pointerup', () => { arrastrando = false; });
+addEventListener('pointermove', (e) => { if (!arrastrando) return; giroUsuario += (e.clientX - x0) * 0.008; x0 = e.clientX; });
+
+/* ---------- Voz ----------
+   El navegador NO deja sonar nada hasta el primer toque o clic de la persona (regla de
+   todos los navegadores, no se puede saltar). Por eso la voz arranca sola con el primer
+   toque en cualquier parte, y el botón «Sonido» sirve para callarla.
+   Orden de preferencia: 1) mp3 con la voz de Bryan en voz/capitulo-N.mp3 (se generan en
+   el otro equipo con su molde); 2) la voz más natural del navegador (las «Natural» de
+   Edge y las de Google suenan mucho menos robóticas que las locales). */
+const botonVoz = document.getElementById('voz');
+const subtitulo = document.getElementById('subtitulo');
+const toca = document.getElementById('toca');
+let vozActiva = false, desbloqueada = false, ultimoDicho = -1, audio = null;
+const hayMp3 = new Map();
+function mejorVoz() {
+  const es = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('es'));
+  const puntos = (v) => (/natural|online/i.test(v.name) ? 4 : 0) + (/google/i.test(v.name) ? 3 : 0) + (/CO/.test(v.lang) ? 2 : /419|MX|US/.test(v.lang) ? 1 : 0) + (/male|hombre|jorge|gonzalo|alvaro|dario|jorge/i.test(v.name) ? 1 : 0);
+  return es.sort((a, b) => puntos(b) - puntos(a))[0] ?? null;
+}
+function mostrar(texto) { subtitulo.textContent = texto; subtitulo.classList.toggle('visible', Boolean(texto)); }
+async function decir(i) {
+  const linea = GUION[i];
+  if (!linea) return;
+  if (!vozActiva || director?.active) { mostrar(''); return; }
+  mostrar(linea);
+  if (!vozActiva) return;
+  if (audio) { audio.pause(); audio = null; }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  const ruta = `voz/capitulo-${i}.mp3`;
+  if (!hayMp3.has(ruta)) hayMp3.set(ruta, fetch(ruta, { method: 'HEAD' }).then((r) => r.ok).catch(() => false));
+  if (await hayMp3.get(ruta)) {
+    audio = new Audio(ruta); audio.play().catch(() => {});
+    return;
+  }
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(linea);
+  const voz = mejorVoz();
+  if (voz) { u.voice = voz; u.lang = voz.lang; } else { u.lang = 'es-CO'; }
+  u.rate = 1.0; u.pitch = 0.95;
+  speechSynthesis.speak(u);
+}
+function activar(on) {
+  vozActiva = on;
+  botonVoz.setAttribute('aria-pressed', String(on));
+  document.getElementById('voz-txt').textContent = on ? 'Silenciar' : 'Activar sonido';
+  director?.mute(!on);
+  if (!on) { if (audio) audio.pause(); if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+}
+function primerToque() {
+  if (desbloqueada) return;
+  desbloqueada = true;
+  toca.hidden = true;
+  activar(true);
+  ultimoDicho = -1; // que diga la frase del capítulo en el que está
+}
+// Audio requires the explicit sound control; ordinary interactions stay quiet.
+botonVoz.addEventListener('click', (e) => { e.stopPropagation(); if (!desbloqueada) { primerToque(); return; } activar(!vozActiva); ultimoDicho = -1; });
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+function vozPorCapitulo() {
+  const i = Math.round(progreso);
+  if (i !== ultimoDicho) { ultimoDicho = i; decir(i); }
+}
+
+/* ---------- Patrones: el sujeto hace el ejercicio ---------- */
+const ELEGIDOS = [
+  ['sentadilla', 'Sentadilla'], ['bisagra_cadera', 'Peso muerto'], ['empuje_vertical', 'Press militar'],
+  ['traccion_vertical', 'Jalón al pecho'], ['flexion_codo', 'Curl de bíceps'], ['abduccion_hombro', 'Elevación lateral'],
+].filter(([id]) => PATRONES.some((p) => p.id === id));
+let patron = PATRONES.find((p) => p.id === ELEGIDOS[0][0]);
+let relojMov = 0;
+const cajaPatrones = document.getElementById('patrones');
+for (const [id, etiqueta] of ELEGIDOS) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = etiqueta; b.dataset.id = id;
+  b.setAttribute('aria-pressed', String(id === patron.id));
+  b.addEventListener('click', () => {
+    patron = PATRONES.find((p) => p.id === id); relojMov = 0;
+    for (const o of cajaPatrones.children) o.setAttribute('aria-pressed', String(o.dataset.id === id));
+  });
+  cajaPatrones.append(b);
+}
+const _M = new THREE.Matrix4();
+/** Mezcla con la identidad: 0 = de pie en reposo, 1 = el patrón entero. */
+function aplicarPatron(mezcla, dt) {
+  const U = huesosUniform.value;
+  if (mezcla <= 0.001) { for (const m of U) m.identity(); return; }
+  relojMov += dt;
+  const { fase, sentido } = faseDeTiempo(relojMov, patron);
+  const esq = esqueletoEnFase(patron, fase, sentido, relojMov);
+  for (let k = 0; k < U.length; k++) {
+    _M.fromArray(esq.matrices[k]).multiply(REPOSO_INV[k]);
+    const e = _M.elements, o = U[k].elements;
+    for (let j = 0; j < 16; j++) o[j] = (j % 5 === 0 ? 1 : 0) * (1 - mezcla) + e[j] * mezcla;
+  }
+}
+
+/* ---------- Bucle ---------- */
+let antes = 0;
+function cuadro(ahora) {
+  const seg = ahora / 1000;
+  const dt = antes ? Math.min((ahora - antes) / 1000, 0.1) : 0; antes = ahora;
+  aplicarPatron(reducir ? 0 : suave(3.55, 3.95, progresoSuave) * (1 - suave(4.35, 4.75, progresoSuave)), dt);
+  progresoSuave += (progreso - progresoSuave) * 0.08;
+  aplicarLlegada(ahora);
+  aplicarCapas(progresoSuave, seg);
+  const tEntrada = inicio ? (ahora - inicio) / 1000 : 0;
+  const enEntrada = inicio && !reducir && !entradaCortada && tEntrada < FIN_ENTRADA && progreso < 0.2;
+  let extra = 0;
+  if (enEntrada) camaraDeEntrada(tEntrada);
+  else extra = moverCamara(progresoSuave, seg);
+  document.getElementById('regla').classList.toggle('visible', progresoSuave > 4.6);
+  if (inicio && !director?.active) vozPorCapitulo();
+  // Hero holds its angle; user drag still rotates the body.
+  giroActual += (giroUsuario + extra * 0.25 - giroActual) * 0.08;
+  giro.rotation.y = enEntrada ? 0 : giroActual;
+  sujeto.scale.lerp(escalaObjetivo, 0.08);
+  forma.masa.value += (formaObjetivo.masa - forma.masa.value) * 0.05;
+  forma.grasa.value += (formaObjetivo.grasa - forma.grasa.value) * 0.05;
+  forma.definicion.value = 1.0 - forma.grasa.value * 0.6;
+  director?.frame(ahora);
+  renderer.render(escena, camara);
+  requestAnimationFrame(cuadro);
+}
+
+director=crearDirector({THREE,camara,giro,alto:()=>alto,encuadrar,reducir,detenerVoz:()=>{desbloqueada=true;activar(true);if(audio)audio.pause();if('speechSynthesis' in window)speechSynthesis.cancel();mostrar('');}});
+encuadrar();
+leerMedidas();
+leerScroll();
+camara.position.set(0, 0.85, 6.5);
+requestAnimationFrame(cuadro);
+cargar().catch((e) => {
+  document.getElementById('cargando').textContent = 'No se pudo cargar el modelo anatómico. Recarga la página.';
+  console.error(e);
+});
+</script>
+
+</body></html>

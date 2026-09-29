@@ -1,0 +1,16 @@
+{
+ "musculo": {
+  "vertices": 150106,
+  "min": 0.28050485253334045,
+  "mean": 0.6050466299057007,
+  "max": 1.0
+ },
+ "hueso": {
+  "vertices": 85651,
+  "min": 0.28093045949935913,
+  "mean": 0.7962231040000916,
+  "max": 1.0
+ },
+ "musculos": "musculos-alpha",
+ "esqueleto": "esqueleto-alpha"
+}
