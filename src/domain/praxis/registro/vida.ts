@@ -9,11 +9,14 @@
  *  - Ánimo ≠ ganas de entrenar. «Sin ganas de entrenar» va a `motivacion` solo si
  *    la frase dice entrenar o gym; jamás alimenta el ánimo.
  *  - Lo no dicho queda ausente: sin el 7 por defecto del formulario.
- *  - El dolor NUNCA se escribe por esta vía (lo maneja el filtro clínico).
+ *  - El dolor NUNCA se escribe por esta vía (lo maneja el filtro clínico), con UNA
+ *    excepción: la ausencia explícita («no me duele nada») es un cero medido, no un silencio.
+ *  - Peso, entreno del día y tiempos sueltos (caminata, siesta, pantalla) van al check-in
+ *    (`pesoKg`, `entreno`, `comentarios`) como CITA: nunca se convierten en pasos ni en otra cosa.
  */
-import { horaDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
+import { horaDeCita, minutosDeCita, normalizarTexto, numeroDeCita, redondear1 } from './numeros.ts'
 import { etiquetaDeFecha, fechaLocal, horaLocal, sumarDias } from './fecha.ts'
-import { revisarAguaDeltaMl, revisarHorasSueno, revisarPasos } from './limites.ts'
+import { revisarAguaDeltaMl, revisarHorasSueno, revisarPasos, revisarPesoCorporal } from './limites.ts'
 import { VASO_ML } from './medidas.ts'
 import type {
   CampoEscala, Confianza, ContextoRegistro, Pregunta, RegistroCheckin, RegistroHidratacion, VidaExtraida,
@@ -82,7 +85,27 @@ export interface ResultadoVida {
   avisos: string[]
 }
 
-export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = ''): ResultadoVida {
+/** Ausencia explícita de dolor: tabla cerrada. Cualquier otra palabra de dolor en la frase la anula. */
+const SIN_DOLOR = /\b(no me duele(n)? (nada|ni))\b|\bsin (ningun )?dolor(es)?\b|\bcero dolor\b|\bnada de dolor\b|\bno (tengo|siento) (ningun )?(dolor|molestia)s?\b/g
+
+export function sinDolorExplicito(frase: string): boolean {
+  const n = normalizarTexto(frase)
+  if (!SIN_DOLOR.test(n)) return false
+  SIN_DOLOR.lastIndex = 0
+  // Si tras quitar la negación queda otra palabra de dolor («no me duele nada la espalda pero sí el hombro»), no es un cero.
+  const resto = n.replace(SIN_DOLOR, ' ')
+  SIN_DOLOR.lastIndex = 0
+  return !/\b(duel\w*|dolor\w*|molest\w*|adolor\w*)\b/.test(resto) && !/\bpero\b.*\b(si|tengo)\b/.test(resto)
+}
+
+export interface OpcionesVida {
+  /** La misma frase trae series o sesión: «no entrené» sería una contradicción. */
+  hizoEntreno?: boolean
+}
+
+const TIEMPO_ETIQUETA = { caminata: 'Caminata', siesta: 'Siesta', pantalla: 'Pantalla' } as const
+
+export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '', opciones: OpcionesVida = {}): ResultadoVida {
   const hoy = fechaLocal(ctx.ahora)
   const parche: Record<string, string | number> = {}
   const conf: Record<string, Confianza> = {}
@@ -193,6 +216,67 @@ export function resolverVida(v: VidaExtraida, ctx: ContextoRegistro, frase = '')
     }
     if (valor !== null) poner(destino, valor, 'media')
     else descartado.push({ cita: e.cita, motivo: 'no está en la tabla de palabras: no se convierte en un valor' })
+  }
+
+  // Peso corporal: solo si dijo que se pesó y una cifra; una estimación («creo que estoy como en 78») no es un pesaje.
+  if (v.peso_corporal) {
+    const n = numeroDeCita(v.peso_corporal)
+    const nf = normalizarTexto(frase)
+    if (ctx.perfil.verComposicion === false) {
+      descartado.push({ cita: v.peso_corporal, motivo: 'tu plan no lleva el peso corporal en la app' })
+    } else if (!n || /\bno me (pese|pesado|he pesado)\b|\bcreo\b|\bsupongo\b/.test(nf)) {
+      descartado.push({ cita: v.peso_corporal, motivo: 'no fue un pesaje con cifra: no se anota' })
+    } else {
+      const ver = revisarPesoCorporal(n.valor)
+      if (ver.tipo === 'imposible') {
+        return {
+          registros: [], descartado, avisos,
+          pregunta: { texto: 'Ese peso no me cuadra. ¿Cuántos kilos marcó la báscula?', opciones: [], campo_bloqueante: 'pesoKg' },
+        }
+      }
+      poner('pesoKg', redondear1(n.valor), n.aproximado ? 'media' : 'alta')
+    }
+  }
+
+  // Qué pasó con el entreno de hoy: se anota lo que dijo, sin reproche y sin adivinar el porqué.
+  if (v.dia_de_entreno) {
+    const d = v.dia_de_entreno
+    const nombre = ctx.sesiones.find((s) => s.id === ctx.sesionHoyId)?.nombre ?? null
+    if (opciones.hizoEntreno && d.estado !== 'cambio') {
+      descartado.push({ cita: d.motivo ?? 'no entrené', motivo: 'la misma frase trae series: no se anota que no entrenó' })
+    } else if (d.estado === 'descanso') {
+      poner('entreno', 'Descanso', 'alta')
+    } else if (d.estado === 'cambio') {
+      if (d.hizo) poner('entreno', `${d.hizo}${nombre ? ` (cambió ${nombre})` : ' (cambió la pauta)'}`, 'alta')
+      else descartado.push({ cita: 'cambió la sesión', motivo: 'no dijo qué hizo en su lugar' })
+    } else {
+      poner('entreno', `No entrenó${nombre ? ` (${nombre})` : ''}${d.motivo ? ` — «${d.motivo}»` : ''}`, 'alta')
+    }
+  }
+
+  // Tiempos sueltos: la duración dicha, como comentario. Ni pasos ni sueño de la noche.
+  const tiempos: string[] = []
+  for (const t of v.tiempos ?? []) {
+    const min = minutosDeCita(t.duracion)
+    if (min === null || min < 1 || min > 24 * 60) {
+      descartado.push({ cita: t.duracion, motivo: 'no pude leer esa duración' })
+      continue
+    }
+    tiempos.push(`${TIEMPO_ETIQUETA[t.actividad]}: ${t.duracion}`)
+    if (t.actividad === 'caminata' && parche.pasos === undefined) {
+      seguimiento = seguimiento ?? { texto: '¿Tu celular o reloj te marca cuántos pasos llevas hoy?', opciones: [], campo_bloqueante: 'pasos' }
+    }
+  }
+  if (tiempos.length > 0) {
+    const previo = ctx.checkinHoy?.comentarios
+    const nuevo = tiempos.join(' · ')
+    poner('comentarios', typeof previo === 'string' && previo.trim() ? `${previo} · ${nuevo}` : nuevo, 'alta')
+  }
+
+  // Ausencia explícita de dolor: un cero medido (tabla cerrada, ver arriba).
+  if (v.sin_dolor) {
+    if (sinDolorExplicito(frase || v.sin_dolor)) poner('dolor', 0, 'alta')
+    else descartado.push({ cita: v.sin_dolor, motivo: 'no es una ausencia clara de dolor: no se anota un cero' })
   }
 
   if (Object.keys(parche).length > 0) {

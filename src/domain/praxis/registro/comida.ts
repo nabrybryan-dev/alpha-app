@@ -16,7 +16,7 @@ import { gramosDeMedida, medidaCanonica, MEDIDAS_CASERAS, porcionHabitual } from
 import { normalizarTexto, numeroDeCita, valorDeCita } from './numeros.ts'
 import { revisarGramos } from './limites.ts'
 import type {
-  Confianza, ComidaExtraida, ContextoRegistro, ItemComidaPropuesto, Pregunta, RegistroAdherencia, RegistroComida,
+  Confianza, ComidaExtraida, ContextoRegistro, ItemComidaCtx, ItemComidaPropuesto, Pregunta, RegistroAdherencia, RegistroComida,
 } from './tipos.ts'
 
 const CAMBIAN_AL_COCINAR = /\b(arroz|pasta|espagueti|lenteja|lentejas|frijol|frijoles|pollo|pechuga|carne|avena)\b/
@@ -63,6 +63,64 @@ function preguntaDeIdentidad(alimento: string, medida: string | null, medidaText
   return null
 }
 
+const SIN_ARTICULO = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'sin', 'de', 'del', 'pero'])
+
+/** Raíz corta de una palabra de comida: «huevos» y «huevo» coinciden; «arepa» y «arepas» también. */
+function raiz(t: string): string {
+  return t.length > 4 && t.endsWith('es') ? t.slice(0, -2) : t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t
+}
+const palabrasDe = (t: string): string[] => normalizarTexto(t).split(' ').filter((w) => w && !SIN_ARTICULO.has(w)).map(raiz)
+
+/**
+ * «Una arepa» sin decir cuál, cuando la persona ya tiene una tarjeta pendiente (o comió ayer)
+ * con UNA sola variante de esa arepa: es esa, no hace falta preguntar. Con dos variantes en juego
+ * o ninguna, no se adivina. La tarjeta pendiente pesa más que lo de ayer.
+ */
+export function desambiguarConContexto(alimento: string, ctx: ContextoRegistro): string | null {
+  const buscadas = palabrasDe(alimento)
+  if (buscadas.length === 0) return null
+  const fuentes: ItemComidaCtx[][] = [ctx.comidaPendiente ?? [], (ctx.comidasAyer ?? []).flatMap((c) => c.items)]
+  for (const items of fuentes) {
+    const nombres = new Set<string>()
+    for (const it of items) {
+      const p = palabrasDe(it.alimento)
+      if (buscadas.every((b) => p.includes(b))) nombres.add(it.alimento)
+    }
+    if (nombres.size === 1) return [...nombres][0]
+    if (nombres.size > 1) return null
+  }
+  return null
+}
+
+/** «Lo mismo de ayer»: los ítems de esa comida de ayer, menos lo que dijo quitar. `null` si ayer no hay registro. */
+function copiarDeAyer(c: ComidaExtraida, ctx: ContextoRegistro): { items: ItemComidaPropuesto[]; quitados: string[]; noEncontrados: string[] } | null {
+  const cual = comidaDeCita(c.comida_cita, ctx.ahora)
+  const ayer = (ctx.comidasAyer ?? []).find((x) => x.comida === cual)
+  if (!ayer || ayer.items.length === 0) return null
+  const quitados: string[] = []
+  const noEncontrados: string[] = []
+  let restantes = ayer.items
+  for (const cita of c.sin ?? []) {
+    const buscadas = palabrasDe(cita)
+    const fuera = restantes.filter((it) => buscadas.length > 0 && buscadas.every((b) => palabrasDe(it.alimento).includes(b)))
+    if (fuera.length === 0) { noEncontrados.push(cita); continue }
+    quitados.push(...fuera.map((f) => f.alimento))
+    restantes = restantes.filter((it) => !fuera.includes(it))
+  }
+  const items = restantes.map((it): ItemComidaPropuesto => ({
+    alimento: it.alimento,
+    gramos: it.gramos,
+    medida_nombre: it.medida_nombre ?? null,
+    medida_cantidad: it.medida_cantidad ?? null,
+    estado_asumido: it.estado ?? null,
+    fuente_medida: it.fuente_medida ?? null,
+    confianza: 'media',
+    editable: true,
+    nota: 'Copiado de lo que registraste ayer: cámbialo si hoy fue distinto',
+  }))
+  return { items, quitados, noEncontrados }
+}
+
 export interface ResultadoComida {
   registro: RegistroComida | null
   /** «Comí como decía el plan»: se marca la adherencia, no se copian gramos. */
@@ -81,9 +139,23 @@ export function resolverComida(c: ComidaExtraida, ctx: ContextoRegistro): Result
     seguimiento = seguimiento ?? p
   }
 
+  // «Lo mismo de ayer»: se copia SOLO si ayer hay un registro de esa comida; si no, se pregunta qué fue.
+  let sinRegistroDeAyer = false
+  if (c.referencia === 'igual_que_ayer') {
+    const copia = copiarDeAyer(c, ctx)
+    if (copia) {
+      items.push(...copia.items)
+      if (copia.quitados.length) avisos.push(`Sin ${copia.quitados.join(' ni ')}, como dijiste`)
+      for (const x of copia.noEncontrados) descartado.push({ cita: x, motivo: 'no lo encuentro en lo que registraste ayer' })
+    } else {
+      sinRegistroDeAyer = true
+    }
+  }
+
   for (const it of c.items) {
     const pesado = it.senales.includes('pesado')
-    const q = valorDeCita(it.cantidad)
+    // «una taza y media» puede llegar entera en la cantidad o partida entre cantidad y medida.
+    const q = valorDeCita(/\by medi[oa]\b/.test(normalizarTexto(it.medida ?? '')) ? `${it.cantidad ?? ''} ${it.medida}` : it.cantidad)
     const medida = medidaCanonica(it.medida)
     const medidaTexto = normalizarTexto(it.medida ?? '')
     const estado = it.estado ? normalizarTexto(it.estado) : null
@@ -165,6 +237,20 @@ export function resolverComida(c: ComidaExtraida, ctx: ContextoRegistro): Result
       continue
     }
     if (res.tipo === 'ambigua') {
+      const deContexto = desambiguarConContexto(it.alimento, ctx)
+      const res2 = deContexto ? gramosDeMedida(deContexto, medida, cantidad) : null
+      if (deContexto && res2 && res2.tipo === 'gramos') {
+        items.push({
+          ...base,
+          alimento: deContexto,
+          gramos: res2.gramos,
+          estado_asumido: estado ?? res2.fila.estado ?? null,
+          fuente_medida: res2.fila.fuente,
+          confianza: res2.confianza,
+          nota: `Tomé «${deContexto}» de lo que ya tenías anotado: ${res2.eq}`,
+        })
+        continue
+      }
       items.push({ ...base, nota: 'Falta saber cuál era' })
       preguntar(res.pregunta)
       continue
@@ -256,7 +342,11 @@ export function resolverComida(c: ComidaExtraida, ctx: ContextoRegistro): Result
     // Dijo qué comida fue pero no qué comió («almuerzo ejecutivo»): nada que registrar, se pregunta.
     if (!adherencia && !(c.plato && c.plato.length > 0)) {
       const cual = comidaDeCita(c.comida_cita, ctx.ahora)
-      preguntar({ texto: `¿Qué traía tu ${cual}?`, opciones: [], campo_bloqueante: 'alimento' })
+      preguntar({
+        texto: sinRegistroDeAyer ? `No tengo anotado tu ${cual} de ayer. ¿Qué traía el de hoy?` : `¿Qué traía tu ${cual}?`,
+        opciones: [],
+        campo_bloqueante: 'alimento',
+      })
     }
     return { registro: null, adherencia, seguimiento, descartado, avisos }
   }

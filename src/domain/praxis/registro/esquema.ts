@@ -83,7 +83,7 @@ const ENTRENO: Esquema = objeto({
 
 const ITEM_COMIDA: Esquema = objeto({
   alimento: { type: 'string', description: 'cita: «arroz», «pechuga»' },
-  cantidad: cita('cita: «una y media», «2», «medio»'),
+  cantidad: cita('cita literal de la cantidad: «una», «2», «medio», «una taza y media»'),
   medida: cita('cita: «taza», «cucharadas», «gramos», «pedazo», «presa», «plato»'),
   estado: cita('cita: «cocido», «crudo», «frito»'),
   senales: lista(enumerado('aproximado', 'no_recuerda', 'autocorreccion', 'pesado')),
@@ -99,6 +99,8 @@ const COMIDA: Esquema = anulable(
     cocinado_por_ella: enumerado('si', 'no', 'no_dicho'),
     aceite: cita('«una cucharada de aceite»'),
     sal: cita('«una pizca de sal»'),
+    referencia: enumerado('no', 'igual_que_ayer'),
+    sin: lista({ type: 'string' }, 'solo con igual_que_ayer: citas de lo que quita («sin el huevo» => «el huevo»)'),
   }),
 )
 
@@ -118,6 +120,19 @@ const VIDA: Esquema = anulable(
       }),
     ),
     senales: lista(enumerado('aproximado', 'no_recuerda')),
+    peso_corporal: cita('cifra que marcó la báscula si dice que se pesó: «78 y medio», «80,2». null si no se pesó'),
+    dia_de_entreno: anulable(
+      objeto({
+        estado: enumerado('no_entreno', 'descanso', 'cambio'),
+        motivo: cita('cita del porqué, si lo dijo'),
+        hizo: cita('solo con cambio: cita de lo que hizo en lugar de la pauta'),
+      }),
+    ),
+    tiempos: lista(
+      objeto({ actividad: enumerado('caminata', 'siesta', 'pantalla'), duracion: { type: 'string' } }),
+      'caminata, siesta u horas de pantalla CON una duración dicha; duracion = cita',
+    ),
+    sin_dolor: cita('cita de la ausencia EXPLÍCITA de dolor: «no me duele nada», «sin dolor»'),
   }),
 )
 
@@ -159,7 +174,7 @@ export const ESQUEMA_REGISTRO: Esquema = objeto(
 )
 
 /** Sube cada vez que cambia el esquema o el prompt (queda en `praxis_extracciones`). */
-export const VERSION_ESQUEMA = 'registro-esquema-2026-09-28.1'
+export const VERSION_ESQUEMA = 'registro-esquema-2026-09-29.1'
 
 // ---------------------------------------------------------------------------
 // Validador de citas
@@ -291,11 +306,21 @@ export function validarExtraccion(frase: string, bruto: unknown): ResultadoValid
         cocinado_por_ella: (['si', 'no', 'no_dicho'].includes(String(co.cocinado_por_ella)) ? co.cocinado_por_ella : 'no_dicho') as 'si' | 'no' | 'no_dicho',
         aceite: c(co.aceite, 'comida.aceite'),
         sal: c(co.sal, 'comida.sal'),
+        referencia: (co.referencia === 'igual_que_ayer' ? 'igual_que_ayer' : 'no') as 'no' | 'igual_que_ayer',
+        sin: arr(co.sin).map((o, k) => c(o, `comida.sin[${k}]`)).filter((o): o is string => o !== null),
       }
     : null
 
   const vi = esObjeto(raiz.vida) ? raiz.vida : null
   const agua = vi && esObjeto(vi.agua) ? vi.agua : null
+  const de = vi && esObjeto(vi.dia_de_entreno) ? vi.dia_de_entreno : null
+  const diaDeEntreno = de && ['no_entreno', 'descanso', 'cambio'].includes(String(de.estado))
+    ? {
+        estado: de.estado as 'no_entreno' | 'descanso' | 'cambio',
+        motivo: c(de.motivo, 'vida.dia_de_entreno.motivo'),
+        hizo: c(de.hizo, 'vida.dia_de_entreno.hizo'),
+      }
+    : null
   const campos = ['cansancio', 'estres', 'ganas_de_entrenar', 'animo', 'hambre', 'rendimiento', 'alimentacion']
   const vida = vi
     ? {
@@ -313,6 +338,14 @@ export function validarExtraccion(frase: string, bruto: unknown): ResultadoValid
           .map((es, k) => ({ campo: String(es.campo), cita: c(es.cita, `vida.escalas[${k}]`) }))
           .filter((es): es is { campo: CampoEscala; cita: string } => campos.includes(es.campo) && es.cita !== null),
         senales: arr(vi.senales).filter((s): s is 'aproximado' | 'no_recuerda' => s === 'aproximado' || s === 'no_recuerda'),
+        peso_corporal: c(vi.peso_corporal, 'vida.peso_corporal'),
+        dia_de_entreno: diaDeEntreno,
+        tiempos: arr(vi.tiempos)
+          .filter(esObjeto)
+          .map((t, k) => ({ actividad: String(t.actividad), duracion: c(t.duracion, `vida.tiempos[${k}].duracion`) }))
+          .filter((t): t is { actividad: 'caminata' | 'siesta' | 'pantalla'; duracion: string } =>
+            ['caminata', 'siesta', 'pantalla'].includes(t.actividad) && t.duracion !== null),
+        sin_dolor: c(vi.sin_dolor, 'vida.sin_dolor'),
       }
     : null
 

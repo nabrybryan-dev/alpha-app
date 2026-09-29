@@ -14,7 +14,7 @@ const caso = (id: string) => corpus.find((c) => c.id === id)!
 describe('argumentos del evaluador', () => {
   it('valores por defecto: haiku, una corrida, todo el corpus', () => {
     const o = leerArgumentos([])
-    expect(o).toMatchObject({ corridas: 1, modelo: 'haiku', grabadas: false, casos: null, concurrencia: 4 })
+    expect(o).toMatchObject({ corridas: 1, modelo: 'haiku', grabadas: false, casos: null, concurrencia: 8 })
   })
   it('lee los filtros', () => {
     const o = leerArgumentos(['--corridas', '3', '--casos', 'CE-001, CE-002', '--area', 'entreno', '--grabadas', '--limite', '5'])

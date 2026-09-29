@@ -14,7 +14,7 @@
 import { diaDeLaSemana, fechaLocal, sumarDias } from './fecha.ts'
 import { normalizarTexto } from './numeros.ts'
 import { normalizarUnidadCarga } from './unidad.ts'
-import type { ContextoRegistro, EjercicioCtx, SerieHecha, SeriePauta, SesionCtx } from './tipos.ts'
+import type { ComidaCtx, ContextoRegistro, EjercicioCtx, ItemComidaCtx, SerieHecha, SeriePauta, SesionCtx } from './tipos.ts'
 
 export interface EjercicioJson {
   id: string
@@ -103,6 +103,43 @@ export interface EntradaContexto {
   checkinHoy?: Record<string, unknown>
   hidratacionHoyMl?: number
   cronometroMin?: number | null
+  /** Falso si la persona no ve su composición corporal: el peso dicho no se anota. */
+  verComposicion?: boolean | null
+  /** Comidas de ayer que manda la app («lo mismo de ayer»). Se sanea: nada de esto es de fiar. */
+  comidasAyer?: unknown
+  /** Ítems de la tarjeta de comida sin confirmar («no, fueron dos arepas»). */
+  comidaPendiente?: unknown
+}
+
+const COMIDAS = ['desayuno', 'almuerzo', 'cena', 'snack']
+
+function itemCtx(x: unknown): ItemComidaCtx | null {
+  if (typeof x !== 'object' || x === null) return null
+  const o = x as Record<string, unknown>
+  if (typeof o.alimento !== 'string' || !o.alimento.trim() || o.alimento.length > 80) return null
+  const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null)
+  return {
+    alimento: o.alimento.trim(),
+    gramos: num(o.gramos),
+    medida_nombre: typeof o.medida_nombre === 'string' ? o.medida_nombre : null,
+    medida_cantidad: num(o.medida_cantidad),
+    fuente_medida: typeof o.fuente_medida === 'string' ? o.fuente_medida : null,
+    estado: typeof o.estado === 'string' ? o.estado : null,
+  }
+}
+
+export function sanearItemsCtx(x: unknown): ItemComidaCtx[] {
+  return (Array.isArray(x) ? x : []).slice(0, 30).map(itemCtx).filter((i): i is ItemComidaCtx => i !== null)
+}
+
+export function sanearComidasAyer(x: unknown): ComidaCtx[] {
+  return (Array.isArray(x) ? x : []).slice(0, 8).flatMap((c): ComidaCtx[] => {
+    if (typeof c !== 'object' || c === null) return []
+    const o = c as Record<string, unknown>
+    if (typeof o.comida !== 'string' || !COMIDAS.includes(o.comida)) return []
+    const items = sanearItemsCtx(o.items)
+    return items.length ? [{ comida: o.comida as ComidaCtx['comida'], items }] : []
+  })
 }
 
 export function armarContexto(e: EntradaContexto): ContextoRegistro {
@@ -121,7 +158,9 @@ export function armarContexto(e: EntradaContexto): ContextoRegistro {
     pantalla: { ejercicioId: e.pantallaEjercicioId ?? null },
     ultimoTocado: e.ultimoTocado ?? null,
     semanaAnterior,
-    perfil: { pesoBarraKg: e.pesoBarraKg ?? null },
+    perfil: { pesoBarraKg: e.pesoBarraKg ?? null, ...(e.verComposicion !== undefined ? { verComposicion: e.verComposicion } : {}) },
+    ...(e.comidasAyer !== undefined ? { comidasAyer: sanearComidasAyer(e.comidasAyer) } : {}),
+    ...(e.comidaPendiente !== undefined ? { comidaPendiente: sanearItemsCtx(e.comidaPendiente) } : {}),
     checkinHoy: e.checkinHoy,
     hidratacionHoyMl: e.hidratacionHoyMl,
     cronometroMin: e.cronometroMin ?? null,

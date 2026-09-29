@@ -14,7 +14,7 @@
  *   --grabadas          no llama al modelo: usa las extracciones grabadas a mano
  *                       (aísla el código del modelo; cuesta 0)
  *   --modelo alias      alias del modelo de la CLI (default haiku)
- *   --concurrencia N    llamadas a la CLI en paralelo (default 4)
+ *   --concurrencia N    llamadas a la CLI en paralelo (default 8)
  *   --salida dir        carpeta del informe (default scripts/praxis-eval/informes/ultimo)
  *   --claude ruta       ejecutable de la CLI (default `claude` del PATH, o CLAUDE_BIN)
  *
@@ -28,7 +28,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { contextoDeCorpus } from './contexto-corpus.ts'
-import { DISCREPANCIAS_CONOCIDAS, EXTRACCIONES_GRABADAS } from './extracciones-grabadas.ts'
+import { DISCREPANCIAS_CONOCIDAS, EXTRACCIONES_GRABADAS, EXTRACCIONES_GRABADAS_RELAJADAS } from './extracciones-grabadas.ts'
 import { numerosInventados, puntuarCE, puntuarRelajado, type Caso, type ResultadoCaso } from './puntuar.ts'
 import { validarExtraccion } from '../../src/domain/praxis/registro/esquema.ts'
 import { derivarPorFiltro, filtrarClinico } from '../../src/domain/praxis/registro/filtroClinico.ts'
@@ -55,7 +55,7 @@ interface Opciones {
 
 export function leerArgumentos(argv: string[]): Opciones {
   const o: Opciones = {
-    corridas: 1, casos: null, areas: null, limite: null, grabadas: false, modelo: 'haiku', concurrencia: 4,
+    corridas: 1, casos: null, areas: null, limite: null, grabadas: false, modelo: 'haiku', concurrencia: 8,
     salida: resolve('scripts/praxis-eval/informes/ultimo'), claude: process.env.CLAUDE_BIN ?? 'claude',
   }
   for (let i = 0; i < argv.length; i++) {
@@ -180,7 +180,7 @@ async function correrCaso(c: Caso, corrida: number, o: Opciones, cwd: string): P
   } else {
     let bruto: unknown
     if (o.grabadas) {
-      bruto = EXTRACCIONES_GRABADAS[c.id]
+      bruto = EXTRACCIONES_GRABADAS[c.id] ?? EXTRACCIONES_GRABADAS_RELAJADAS[c.id]
       if (!bruto) {
         return {
           id: c.id, area: c.area, frase: c.frase, puntuado_por_campo: false, accion_esperada: 'nada', accion_obtenida: 'nada',

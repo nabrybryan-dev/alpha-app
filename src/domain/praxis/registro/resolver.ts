@@ -28,7 +28,7 @@ import type {
   Pregunta, Propuesta, RegistroPropuesto, RegistroSeries, SerieDictada, SerieHecha, SesionCtx, UnidadSerie,
 } from './tipos.ts'
 
-export const VERSION_RESOLUTORES = 'registro-resolutores-2026-09-28.1'
+export const VERSION_RESOLUTORES = 'registro-resolutores-2026-09-29.1'
 
 const fmt = (n: number): string => String(n).replace('.', ',')
 
@@ -235,7 +235,9 @@ function resolverBloque(e: EntradaBloque): ResBloque {
   if (b.senales.includes('maximo_o_minimo') && b.reserva.tipo !== 'reserva_dicha') senales.push('maximo_o_minimo')
 
   const ord = ordinalDeCita(b.ordinal)
-  const nSeries = Math.max(1, Math.round(valorDeCita(b.n_series) ?? 1))
+  // Un ordinal («la tercera») señala UNA serie: si el modelo repitió el «las tres» de la frase en cada
+  // bloque ordinal, tres bloques × tres series darían nueve. El ordinal manda; la cuenta solo cuenta sin él.
+  const nSeries = typeof ord === 'number' ? 1 : Math.max(1, Math.round(valorDeCita(b.n_series) ?? 1))
   const repsN = numeroDeCita(b.reps)
   const rir = resolverReserva(b.reserva, b.senales)
   if (rir.aviso) avisos.push(rir.aviso)
@@ -704,7 +706,7 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
 
   // ---- Vida ----
   if (ext.vida) {
-    const v = resolverVida(ext.vida, ctx, frase)
+    const v = resolverVida(ext.vida, ctx, frase, { hizoEntreno: ext.entreno.length > 0 })
     if (v.pregunta) {
       return { accion: 'preguntar', registros: [], pregunta: v.pregunta, descartado, notas_coach: notas, citas_invalidas: citasInvalidas }
     }

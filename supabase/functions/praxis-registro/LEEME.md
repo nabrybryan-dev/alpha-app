@@ -29,7 +29,9 @@ Diseño: `DISENO-REGISTRO-NATURAL.md` (28-sep-2026). Código de dominio:
   "hora_local": "2026-09-28T18:40:00-05:00",
   "pantalla_ejercicio_id": "pa1",
   "ultimo_tocado": { "ejercicio_id": "pa1", "minutos_atras": 3 },
-  "peso_barra_kg": 20, "checkin_hoy": {}, "hidratacion_hoy_ml": 500, "cronometro_min": 58 }
+  "peso_barra_kg": 20, "checkin_hoy": {}, "hidratacion_hoy_ml": 500, "cronometro_min": 58,
+  "ver_composicion": true, "comidas_ayer": [{ "comida": "almuerzo", "items": [{ "alimento": "arroz", "gramos": 150 }] }],
+  "comida_pendiente": [{ "alimento": "arepa delgada", "gramos": 56 }] }
 ```
 
 Responde `{ propuesta, tarjeta, meta }`. Orden interno: filtro clínico (si marca,

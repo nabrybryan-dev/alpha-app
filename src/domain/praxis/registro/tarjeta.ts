@@ -111,6 +111,7 @@ const ETIQUETA_CHECKIN: Record<string, string> = {
   horasSueno: 'Horas de sueño', calidadSueno: 'Calidad del sueño', horaAcostarse: 'Hora de acostarse',
   horaLevantarse: 'Hora de levantarse', pasos: 'Pasos', cansancio: 'Cansancio', estres: 'Estrés', animo: 'Ánimo',
   motivacion: 'Ganas de entrenar', hambreEscala: 'Hambre (1-10)', rendimiento: 'Rendimiento', alimentacion: 'Alimentación',
+  pesoKg: 'Peso (kg)', entreno: 'Entreno de hoy', comentarios: 'Comentarios', dolor: 'Dolor (0-10)',
 }
 
 function lineasDeCheckin(r: RegistroCheckin, base: string): LineaTarjeta[] {

@@ -169,6 +169,38 @@ export const EXTRACCIONES_GRABADAS: Record<string, Extraccion> = {
   'CE-080': consulta,
 }
 
+const vida = (o: Partial<NonNullable<Extraccion['vida']>>): NonNullable<Extraccion['vida']> => ({ ...vidaVacia, ...o })
+const diaDe = (estado: 'no_entreno' | 'descanso' | 'cambio', motivo: string | null = null, hizo: string | null = null) =>
+  vida({ dia_de_entreno: { estado, motivo, hizo } })
+const comidaX = (o: Partial<NonNullable<Extraccion['comida']>>): NonNullable<Extraccion['comida']> => ({
+  comida_cita: null, cuando: null, segun_plan: 'no_dicho', items: [], plato: null, cocinado_por_ella: 'no_dicho', aceite: null, sal: null, ...o,
+})
+
+/**
+ * Lo que Haiku debe devolver en los casos N/V/D que fallaron el 29-sep-2026, escrito a mano. Solo se
+ * puntúa la ACCIÓN (notación relajada del corpus). Van aparte de las de arriba porque el test de campos
+ * de `resolver.test.ts` puntúa solo casos CE.
+ */
+export const EXTRACCIONES_GRABADAS_RELAJADAS: Record<string, Extraccion> = {
+  V13: X({ intencion: ['vida'], vida: diaDe('no_entreno', 'el jefe me sacó tarde') }),
+  V44: X({ intencion: ['vida'], vida: diaDe('no_entreno', 'estaba lloviendo y me dio pereza salir') }),
+  V57: X({ intencion: ['vida'], vida: diaDe('no_entreno') }),
+  V45: X({ intencion: ['vida'], vida: diaDe('cambio', null, 'brazos') }),
+  V46: X({ intencion: ['vida'], vida: diaDe('descanso') }),
+  V19: X({ intencion: ['vida'], vida: vida({ peso_corporal: '78 y medio' }) }),
+  V54: X({ intencion: ['vida'], vida: vida({ peso_corporal: '80,2' }) }),
+  V35: X({ intencion: ['vida'], vida: vida({ tiempos: [{ actividad: 'caminata', duracion: 'como una hora' }] }) }),
+  V36: X({ intencion: ['vida'], vida: vida({ tiempos: [{ actividad: 'pantalla', duracion: 'como seis horas' }] }) }),
+  V38: X({ intencion: ['vida'], vida: vida({ tiempos: [{ actividad: 'siesta', duracion: 'una hora' }] }) }),
+  D06: X({ intencion: ['vida'], vida: vida({ sin_dolor: 'no me duele nada' }) }),
+  N59: X({ intencion: ['comida'], comida: comidaX({ comida_cita: 'almorcé', referencia: 'igual_que_ayer' }) }),
+  N60: X({ intencion: ['comida'], comida: comidaX({ comida_cita: 'desayuno', referencia: 'igual_que_ayer', sin: ['el huevo'] }) }),
+  N76: X({
+    intencion: ['comida'],
+    comida: comidaX({ items: [{ alimento: 'arepas', cantidad: 'dos', medida: null, estado: null, senales: [] }] }),
+  }),
+}
+
 /** Casos donde el código y el corpus discrepan A PROPÓSITO (se documentan en el informe). */
 export const DISCREPANCIAS_CONOCIDAS: Record<string, string> = {
   'CE-025': 'El corpus espera pc1, pero «el remo» encaja con REMO CON BARRA y REMO EN POLEA BAJA de la sesión y DISENO §3.1 paso 3 manda preguntar.',

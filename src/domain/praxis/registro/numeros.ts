@@ -62,6 +62,16 @@ const ES_PALABRA_NUMERICA = (t: string): boolean =>
   t in UNIDADES || t in DECENAS || t in CENTENAS ||
   t === 'mil' || t === 'medio' || t === 'media' || t === 'cuarto' || t === 'cuartos' || t === 'par'
 
+/** «una taza y media», «ocho horas y media»: el «y media» se pega a la unidad, no al número. */
+const UNIDAD_CON_MEDIA = /^(tazas?|vasos?|platos?|cucharadas?|cucharaditas?|litros?|kilos?|libras?|horas?|botellas?|tajadas?|panes?|presas?|pedazos?)$/
+
+function conMediaDespuesDeUnidad(tokens: string[], v: number, j: number): { v: number; j: number } {
+  if (Number.isInteger(v) && UNIDAD_CON_MEDIA.test(tokens[j] ?? '') && tokens[j + 1] === 'y' && (tokens[j + 2] === 'medio' || tokens[j + 2] === 'media')) {
+    return { v: v + 0.5, j: j + 3 }
+  }
+  return { v, j }
+}
+
 export interface NumeroEncontrado {
   valor: number
   /** Índice del primer token y del siguiente al último, en la frase normalizada. */
@@ -87,6 +97,7 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
         v *= 1000
         j += 1
       }
+      ;({ v, j } = conMediaDespuesDeUnidad(tokens, v, j))
       salida.push({ valor: v, desde: i, hasta: j })
       i = j
       continue
@@ -119,7 +130,11 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
       }
       // «un 9», «una 70»: el artículo delante de una cifra no es un número.
       const articulo = j - i === 1 && (t === 'un' || t === 'una' || t === 'uno') && valorLiteral(tokens[j] ?? '') !== null
-      if (visto && !articulo) salida.push({ valor: total + cur, desde: i, hasta: j })
+      if (visto && !articulo) {
+        const m = conMediaDespuesDeUnidad(tokens, total + cur, j)
+        salida.push({ valor: m.v, desde: i, hasta: m.j })
+        j = m.j
+      }
       i = Math.max(j, i + 1)
       continue
     }
@@ -129,6 +144,8 @@ export function escanearNumeros(texto: string): NumeroEncontrado[] {
 }
 
 const APROXIMADOR = /\b(como|casi|aprox\w*|unos|unas|algo asi|mas o menos|un par)\b/
+
+const APROXIMADOR_SUELTO = /\b(como|casi|aprox\w*|unos|unas|alrededor de|cerca de|mas o menos|algo asi)\b/g
 
 export interface NumeroDeCita {
   valor: number
@@ -179,7 +196,8 @@ export function minutosDeCita(cita: string | null | undefined): number | null {
   if (/\bmedia hora\b/.test(n)) return 30
   const m = n.match(/^(.*?)\bhoras?\b(.*)$/)
   if (m) {
-    const antes = m[1].trim()
+    // «como hora y media», «unas dos horas»: el aproximador no es la cantidad.
+    const antes = m[1].replace(APROXIMADOR_SUELTO, ' ').replace(/\s+/g, ' ').trim()
     const despues = m[2].trim()
     const horas = antes ? valorDeCita(antes) : 1
     if (horas === null) return null

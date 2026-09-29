@@ -113,6 +113,10 @@ export interface ComidaExtraida {
   cocinado_por_ella: 'si' | 'no' | 'no_dicho'
   aceite: string | null
   sal: string | null
+  /** «Lo mismo de ayer»: copia la comida equivalente de ayer, si existe. Opcional. */
+  referencia?: 'no' | 'igual_que_ayer'
+  /** Citas de lo que quita de esa copia: «sin el huevo» => ["el huevo"]. */
+  sin?: string[]
 }
 
 export type CampoEscala =
@@ -134,6 +138,22 @@ export interface VidaExtraida {
   agua: { cantidad: string; medida: string | null } | null
   escalas: { campo: CampoEscala; cita: string }[]
   senales: ('aproximado' | 'no_recuerda')[]
+  /** Lo que marcó la báscula, si dice que se pesó: «78 y medio». Opcional: el modelo puede omitirlo. */
+  peso_corporal?: string | null
+  /** Qué pasó con el entreno de HOY cuando no fue la pauta tal cual (no entrenó, descanso, cambió). */
+  dia_de_entreno?: DiaDeEntrenoExtraido | null
+  /** Tiempos sueltos que no tienen campo propio (caminata, siesta, pantalla): van a comentarios, citados. */
+  tiempos?: { actividad: 'caminata' | 'siesta' | 'pantalla'; duracion: string }[]
+  /** Cita de la AUSENCIA explícita de dolor («no me duele nada»). El dolor con síntoma sigue siendo del filtro clínico. */
+  sin_dolor?: string | null
+}
+
+export interface DiaDeEntrenoExtraido {
+  estado: 'no_entreno' | 'descanso' | 'cambio'
+  /** Cita del porqué, si lo dijo («el jefe me sacó tarde»). */
+  motivo: string | null
+  /** Cita de lo que hizo en lugar de la pauta («brazos»), solo con `cambio`. */
+  hizo: string | null
 }
 
 export interface CorreccionExtraida {
@@ -225,6 +245,20 @@ export interface SesionCtx {
   preparacion?: ParteCtx[]
 }
 
+export interface ItemComidaCtx {
+  alimento: string
+  gramos: number | null
+  medida_nombre?: string | null
+  medida_cantidad?: number | null
+  fuente_medida?: string | null
+  estado?: string | null
+}
+
+export interface ComidaCtx {
+  comida: 'desayuno' | 'almuerzo' | 'cena' | 'snack'
+  items: ItemComidaCtx[]
+}
+
 export interface ContextoRegistro {
   /** Hora local del teléfono, ISO con zona: `2026-09-28T18:40:00-05:00`. */
   ahora: string
@@ -238,7 +272,11 @@ export interface ContextoRegistro {
   ultimoTocado: { ejercicioId: string; minutosAtras: number } | null
   /** Series del mismo ejercicio.id en el microciclo anterior. */
   semanaAnterior: Record<string, SerieHecha[]>
-  perfil: { pesoBarraKg: number | null }
+  perfil: { pesoBarraKg: number | null; verComposicion?: boolean | null }
+  /** Lo que comió ayer (para «lo mismo de ayer»). Lo manda la app: el servidor no lo lee. */
+  comidasAyer?: ComidaCtx[]
+  /** Los ítems de la tarjeta de comida que la persona todavía no confirmó (para «no, fueron dos arepas»). */
+  comidaPendiente?: ItemComidaCtx[]
   /** Lo que ya trae el check-in de hoy (para mostrar «antes → ahora»). */
   checkinHoy?: Record<string, unknown>
   /** ml de agua ya registrados hoy. */

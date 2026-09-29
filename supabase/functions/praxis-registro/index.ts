@@ -192,6 +192,9 @@ interface CuerpoProponer {
   checkin_hoy?: Record<string, unknown>
   hidratacion_hoy_ml?: unknown
   cronometro_min?: unknown
+  ver_composicion?: unknown
+  comidas_ayer?: unknown
+  comida_pendiente?: unknown
 }
 
 async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Promise<Response> {
@@ -230,6 +233,9 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
     checkinHoy: cuerpo.checkin_hoy,
     hidratacionHoyMl: typeof cuerpo.hidratacion_hoy_ml === 'number' ? cuerpo.hidratacion_hoy_ml : undefined,
     cronometroMin: typeof cuerpo.cronometro_min === 'number' ? cuerpo.cronometro_min : null,
+    verComposicion: typeof cuerpo.ver_composicion === 'boolean' ? cuerpo.ver_composicion : undefined,
+    comidasAyer: cuerpo.comidas_ayer,
+    comidaPendiente: cuerpo.comida_pendiente,
   })
 
   // 3. Haiku: solo cita y etiqueta.

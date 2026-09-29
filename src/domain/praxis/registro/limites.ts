@@ -64,3 +64,8 @@ export function revisarRpeSesion(rpe: number): Veredicto {
   if (!Number.isFinite(rpe) || rpe < 6 || rpe > 10) return { tipo: 'imposible', motivo: 'La escala de la app va de 6 a 10' }
   return OK
 }
+
+export function revisarPesoCorporal(kg: number): Veredicto {
+  if (!Number.isFinite(kg) || kg < 25 || kg > 300) return { tipo: 'imposible', motivo: `${kg} kg no cabe como peso corporal (25 a 300)` }
+  return OK
+}

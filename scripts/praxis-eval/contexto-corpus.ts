@@ -12,7 +12,7 @@
  * salen con las sesiones y series que dice el texto.
  */
 import type {
-  ContextoRegistro, EjercicioCtx, SerieHecha, SeriePauta, SesionCtx, UnidadCarga,
+  ComidaCtx, ContextoRegistro, EjercicioCtx, ItemComidaCtx, SerieHecha, SeriePauta, SesionCtx, UnidadCarga,
 } from '../../src/domain/praxis/registro/tipos.ts'
 
 const MESES: Record<string, string> = { ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06', jul: '07', ago: '08', sep: '09', oct: '10', nov: '11', dic: '12' }
@@ -32,6 +32,27 @@ function ahoraDe(texto: string): string {
   if (ampm === 'pm' && h < 12) h += 12
   if (ampm === 'am' && h === 12) h = 0
   return `${fecha}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00-05:00`
+}
+
+/** Un ítem de comida en prosa: «150 g arroz», «2 huevos (100 g)», «1 arepa delgada 56 g», «tinto con 23 g azucar». */
+export function itemDeComida(t: string): ItemComidaCtx {
+  const txt = t.trim().replace(/\.$/, '')
+  let m = txt.match(/^(?:\d+(?:[.,]\d+)?(?:\/\d+)?\s+)?(.+?)\s*\((\d+(?:[.,]\d+)?) g\)$/)
+  if (m) return { alimento: m[1].trim(), gramos: num(m[2]) }
+  m = txt.match(/^(\d+(?:[.,]\d+)?) g (.+)$/)
+  if (m) return { alimento: m[2].trim(), gramos: num(m[1]) }
+  m = txt.match(/^\d+\s+(.+?)\s+(\d+(?:[.,]\d+)?) g$/)
+  if (m) return { alimento: m[1].trim(), gramos: num(m[2]) }
+  return { alimento: txt, gramos: null }
+}
+
+function comidasDeTexto(texto: string): { ayer: ComidaCtx[]; pendiente: ItemComidaCtx[] } {
+  const ayer: ComidaCtx[] = []
+  for (const m of texto.matchAll(/Ayer (desayuno|almuerzo|cena|snack)(?: registrado)?: (.*?)\.(?:\s|$)/g)) {
+    ayer.push({ comida: m[1] as ComidaCtx['comida'], items: m[2].split(/,\s+(?![^()]*\))/).map(itemDeComida) })
+  }
+  const p = texto.match(/Tarjeta pendiente sin confirmar: (.*?)\.(?:\s|$)/)
+  return { ayer, pendiente: p ? p[1].split(/,\s+(?![^()]*\))/).map(itemDeComida) : [] }
 }
 
 function unidadDe(atributos: string): UnidadCarga | null {
@@ -239,6 +260,9 @@ export function contextoDeCorpus(texto: string): ContextoRegistro {
   const hidr = texto.match(/Hidratacion (?:de hoy|hoy|del dia): (\d+)(?: ml)?/)
   const chk = texto.match(/horasSueno=(\d+)/)
 
+  const { ayer, pendiente } = comidasDeTexto(texto)
+  const verComp = texto.match(/verComposicion=(true|false)/)
+
   return {
     ahora,
     microciclo: micro ? { id: micro[1], numero: Number(micro[2]), vencido: venc } : { id: 'M12', numero: 12, vencido: venc },
@@ -247,7 +271,9 @@ export function contextoDeCorpus(texto: string): ContextoRegistro {
     pantalla: { ejercicioId: pantalla },
     ultimoTocado,
     semanaAnterior,
-    perfil: { pesoBarraKg: barra ? num(barra[1]) : null },
+    perfil: { pesoBarraKg: barra ? num(barra[1]) : null, ...(verComp ? { verComposicion: verComp[1] === 'true' } : {}) },
+    ...(ayer.length ? { comidasAyer: ayer } : {}),
+    ...(pendiente.length ? { comidaPendiente: pendiente } : {}),
     ...(chk ? { checkinHoy: { horasSueno: Number(chk[1]) } } : {}),
     ...(hidr ? { hidratacionHoyMl: Number(hidr[1]) } : {}),
     cronometroMin: cron ? Number(cron[1]) : null,
