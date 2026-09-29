@@ -560,22 +560,47 @@ const lienzo = document.getElementById('escena');
 const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, powerPreference: 'high-performance' });
 // Resolución adaptativa: lo que frena en portátiles son los píxeles, no los triángulos
 // (Iris Xe: 28-40 fps a 1440x900 y 53-60 a 960x600, con cualquiera de los dos juegos de piezas).
-// Si el promedio baja de ~50 fps se reduce la densidad de píxeles, hasta 0,6; si sobra, se recupera.
+// Si en una ventana de 1 s van menos de 56 fps se reduce la densidad de píxeles ×0,85, hasta 0,6;
+// si pasan de 58,5 durante 3 s seguidos, se recupera, sin volver a la densidad que ya falló.
+// Tres cosas que NO son falta de gráfica y no deben bajar la resolución:
+//  - la carga y la compilación de shaders: no se mide hasta 1,5 s después de armar el sujeto;
+//  - una pausa del hilo (pestaña oculta, tarea larga): un hueco de más de 150 ms reinicia la ventana;
+//  - un rAF topado (modo de bajo consumo del iPhone y ahorro de energía de Chrome a 30 fps, pantallas
+//    de 50 Hz, CPU justa): si tras bajar los fps no suben un 10 %, se vuelve a la densidad anterior y
+//    no se baja más hasta un cambio de tamaño o de visibilidad.
 const densidadMax = Math.min(devicePixelRatio, 2);
-let densidad = densidadMax, cuadrosMedidos = 0, desdeMedida = 0, holgura = 0;
+let densidad = densidadMax, techo = densidadMax, bloqueada = false, antesDeBajar = null;
+let cuadrosMedidos = 0, desdeMedida = 0, ultimoCuadro = 0, holgura = 0, descartar = 0;
 renderer.setPixelRatio(densidad);
+function reiniciarMedida() { cuadrosMedidos = 0; desdeMedida = 0; ultimoCuadro = 0; holgura = 0; }
+function liberarDensidad() { bloqueada = false; techo = densidadMax; antesDeBajar = null; reiniciarMedida(); }
+// En el celular la barra del navegador cambia el alto al hacer scroll: eso no libera el bloqueo.
+let anchoMedido = innerWidth;
+addEventListener('resize', () => { if (innerWidth !== anchoMedido) { anchoMedido = innerWidth; liberarDensidad(); } else reiniciarMedida(); });
+document.addEventListener('visibilitychange', liberarDensidad);
+// La ventana que sigue a un cambio incluye el realojo del lienzo: se descarta antes de juzgar.
+function ponerDensidad(nueva) { densidad = nueva; renderer.setPixelRatio(densidad); renderer.setSize(innerWidth, innerHeight, false); reiniciarMedida(); descartar = 1; }
 function ajustarDensidad(ahora) {
+  if (!inicio || ahora - inicio < 1500) { reiniciarMedida(); return; }
+  if (ultimoCuadro && ahora - ultimoCuadro > 150) reiniciarMedida();
+  ultimoCuadro = ahora;
   if (!desdeMedida) { desdeMedida = ahora; return; }
   cuadrosMedidos++;
   const lapso = ahora - desdeMedida;
   if (lapso < 1000) return;
   const fps = cuadrosMedidos * 1000 / lapso;
   cuadrosMedidos = 0; desdeMedida = ahora;
-  let nueva = densidad;
-  if (fps < 50 && densidad > 0.6) { nueva = Math.max(0.6, densidad * 0.85); holgura = 0; }
-  else if (fps > 58 && densidad < densidadMax && ++holgura >= 3) { nueva = Math.min(densidadMax, densidad * 1.1); holgura = 0; }
-  window.__rendimiento = { fps: Math.round(fps), densidad: +nueva.toFixed(2), lienzo: [Math.round(innerWidth * nueva), Math.round(innerHeight * nueva)] };
-  if (nueva !== densidad) { densidad = nueva; renderer.setPixelRatio(densidad); renderer.setSize(innerWidth, innerHeight, false); }
+  if (descartar) { descartar--; return; }
+  if (antesDeBajar) {
+    const previo = antesDeBajar; antesDeBajar = null;
+    if (fps < 56 && fps < previo.fps * 1.1) { ponerDensidad(previo.densidad); techo = previo.densidad; bloqueada = true; }
+  } else if (fps < 56 && densidad > 0.6 && !bloqueada) {
+    antesDeBajar = { fps, densidad }; techo = densidad * 0.97; holgura = 0;
+    ponerDensidad(Math.max(0.6, densidad * 0.85));
+  } else if (fps > 58.5 && densidad < techo) {
+    if (++holgura >= 3) { holgura = 0; ponerDensidad(Math.min(techo, densidad * 1.1)); }
+  } else holgura = 0;
+  window.__rendimiento = { fps: Math.round(fps), densidad: +densidad.toFixed(2), bloqueada, lienzo: [Math.round(innerWidth * densidad), Math.round(innerHeight * densidad)] };
 }
 renderer.setClearColor(0x101417, 1);
 const escena = new THREE.Scene();
@@ -640,7 +665,11 @@ async function cargar() {
   const [nE, nM, sufijoDetalle] = anterior ? ['esqueleto', conZ ? 'musculos-zanatomy' : 'musculos', '']
     : enCelular ? ['esqueleto-alpha-movil', 'musculos-alpha-movil-200k', '-alpha-movil']
     : ['esqueleto-alpha', 'musculos-alpha', '-alpha'];
-  const [bE, bM, bP] = await Promise.all([traer(nE), traer(nM), traer('piel')]);
+  // El sombreado horneado se pide junto a las mallas: si llegara después, el cuerpo se vería
+  // desarmado mientras baja. Es opcional: si falta o no cuadra con su malla, se ve sin él.
+  const detalle = (capa) => (conZ ? fetch(`piezas/detalle-${capa}${sufijoDetalle}.bin`)
+    .then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : Promise.resolve(null));
+  const [bE, bM, bP, dMusculo, dHueso] = await Promise.all([traer(nE), traer(nM), traer('piel'), detalle('musculo'), detalle('hueso')]);
   const pE = leerPieza(bE), pM = leerPieza(bM), pP = leerPieza(bP);
   const caja = new THREE.Box3();
   const v = new THREE.Vector3();
@@ -650,16 +679,14 @@ async function cargar() {
   capas.hueso = capaDesde(pE, centro, new THREE.Color('#D6C7A8'), 'hueso', pesar);
   capas.musculo = capaDesde(pM, centro, new THREE.Color('#80615D'), 'musculo', pesar, conZ);
   capas.piel = capaDesde(pP, centro, new THREE.Color('#AF9380'), 'piel', pesar);
-  for (const c of Object.values(capas)) { c.position.set(-centro.x, -caja.min.y, -centro.z); sujeto.add(c); }
-  if(conZ){
-    for(const name of ['musculo','hueso']){
-      const response=await fetch(`piezas/detalle-${name}${sufijoDetalle}.bin`);
-      if(!response.ok)throw new Error('Falta detalle '+name);
-      const values=new Float32Array(await response.arrayBuffer());
-      if(values.length!==capas[name].geometry.attributes.position.count)throw new Error('Detalle incompatible '+name);
-      capas[name].geometry.setAttribute('aAO',new THREE.BufferAttribute(values,1));
-    }
+  // Va vértice a vértice con su malla: si cambias una pieza, vuelve a hornear
+  // (hornear_detalle_blender.py -- MUSCULOS ESQUELETO SUFIJO).
+  for (const [nombre, buf] of [['musculo', dMusculo], ['hueso', dHueso]]) {
+    const n = capas[nombre].geometry.attributes.position.count;
+    if (buf && buf.byteLength === n * 4) capas[nombre].geometry.setAttribute('aAO', new THREE.BufferAttribute(new Float32Array(buf), 1));
+    else if (conZ) console.warn(`Sombreado horneado ausente o incompatible: detalle-${nombre}${sufijoDetalle}.bin`);
   }
+  for (const c of Object.values(capas)) { c.position.set(-centro.x, -caja.min.y, -centro.z); sujeto.add(c); }
   document.getElementById('cargando').hidden = true;
   director?.ready();
   encuadrar();
