@@ -2123,5 +2123,18 @@ select '0100 - mis_comentarios y decisiones_con_estado con security_invoker', 'l
             when has_table_privilege('anon', 'public.mis_comentarios', 'select')
               or has_table_privilege('anon', 'public.decisiones_con_estado', 'select') then 'NO'
             else 'SI' end
+union all
+-- La 0101: checkins_nutricion con security_invoker (advisor: Security Definer View) y sin execute para anon en es_nutricionista/firmo_yo.
+select '0101 - checkins_nutricion con security_invoker; es_nutricionista y firmo_yo sin anon', 'la vista con reloptions security_invoker=on sobre checkins_nutricion_datos() (definer, sin execute para anon); anon sin select; es_nutricionista() y firmo_yo() sin execute para anon ni public',
+       case when to_regclass('public.checkins_nutricion') is null then 'NO'
+            when not coalesce((select c.reloptions @> array['security_invoker=on'] from pg_class c where c.oid = to_regclass('public.checkins_nutricion')), false) then 'NO'
+            when to_regprocedure('public.checkins_nutricion_datos()') is null
+              or has_function_privilege('anon', 'public.checkins_nutricion_datos()', 'execute') then 'NO'
+            when has_table_privilege('anon', 'public.checkins_nutricion', 'select') then 'NO'
+            when to_regprocedure('public.es_nutricionista()') is null or to_regprocedure('public.firmo_yo(text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.es_nutricionista()', 'execute')
+              or has_function_privilege('anon', 'public.firmo_yo(text)', 'execute')
+              or has_function_privilege('public', 'public.es_nutricionista()', 'execute')
+              or has_function_privilege('public', 'public.firmo_yo(text)', 'execute') then 'NO'
+            else 'SI' end
 order by migracion, senal;
-
