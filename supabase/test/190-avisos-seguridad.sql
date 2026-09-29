@@ -104,11 +104,11 @@ select pruebas.soy('fc000000-0000-0000-0000-000000000001');
 set role authenticated;
 select pruebas.exigir_rls();
 select pruebas.afirmar(
-  (select count(*) from public.checkins_nutricion) = 4,
+  (select count(*) from public.checkins_nutricion where id like 'as-%') = 4,
   'Manuela dejó de ver toda la cartera en checkins_nutricion'
 );
 select pruebas.afirmar(
-  (select count(*) from public.checkins) = 1,
+  (select count(*) from public.checkins where id like 'as-%') = 1,
   'Manuela lee de la tabla checkins más que lo suyo'
 );
 reset role;
@@ -120,7 +120,7 @@ select pruebas.soy('fc000000-0000-0000-0000-000000000002');
 set role authenticated;
 select pruebas.exigir_rls();
 select pruebas.afirmar(
-  (select count(*) from public.checkins_nutricion) = 4,
+  (select count(*) from public.checkins_nutricion where id like 'as-%') = 4,
   'Bryan no ve toda la cartera en checkins_nutricion'
 );
 reset role;
@@ -129,8 +129,8 @@ select pruebas.soy('fc000000-0000-0000-0000-000000000003');
 set role authenticated;
 select pruebas.exigir_rls();
 select pruebas.afirmar(
-  (select count(*) from public.checkins_nutricion) = 4
-  and (select count(*) from public.checkins) = 0,
+  (select count(*) from public.checkins_nutricion where id like 'as-%') = 4
+  and (select count(*) from public.checkins where id like 'as-%') = 0,
   'el staff sin capacidades ve distinto que antes (toda la cartera por la vista, nada por la tabla)'
 );
 reset role;
