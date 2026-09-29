@@ -2000,4 +2000,89 @@ select '0092 - bucket creadores-cuadros forzado a privado', 'storage.buckets cre
        case when exists (select 1 from storage.buckets where id = 'creadores-cuadros')
              and not exists (select 1 from storage.buckets where id = 'creadores-cuadros' and public is distinct from false)
             then 'SI' else 'NO' end
+union all
+-- La 0094: decisiones con RLS, anon sin nada y authenticated SOLO con select (escribe la
+-- función anotar_decision, que anon no ejecuta), y la vista con su estado.
+select '0094 - decisiones compartidas: RLS, solo lee authenticated, funciones cerradas a anon', 'decisiones con RLS; anon sin select; authenticated solo select; anotar_decision y firmar_decision sin execute para anon; vista decisiones_con_estado',
+       case when to_regclass('public.decisiones') is null or to_regclass('public.decisiones_con_estado') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.decisiones')) then 'NO'
+            when has_table_privilege('anon', 'public.decisiones', 'select')
+              or has_table_privilege('anon', 'public.decisiones_con_estado', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.decisiones', 'select')
+              or has_table_privilege('authenticated', 'public.decisiones', 'insert')
+              or has_table_privilege('authenticated', 'public.decisiones', 'update')
+              or has_table_privilege('authenticated', 'public.decisiones', 'delete') then 'NO'
+            when to_regprocedure('public.firmar_decision(uuid,text,text)') is null
+              or has_function_privilege('anon', 'public.firmar_decision(uuid,text,text)', 'execute')
+              or has_function_privilege('anon', 'public.anotar_decision(text,text,text,text,text,bigint,text,date,date,text,text,text,text,text,text,date,uuid,text,date)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0094 - capacidad decisiones_compartidas sin perder las anteriores', 'el check de capacidades_staff contiene decisiones_compartidas y las 10 de la 0090',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores', 'decisiones_compartidas']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 11
+            then 'SI' else 'NO' end
+union all
+-- La 0095: comentarios con RLS, anon sin nada, authenticated sin insert/update/delete, la
+-- vista mis_comentarios sin campos internos y la purga cerrada a las sesiones.
+select '0095 - comentarios de la app: RLS, escribe solo la función, mis_comentarios sin campos internos', 'comentarios_app con RLS; anon sin select; authenticated sin insert/update/delete; enviar_comentario sin execute para anon; mis_comentarios sin contrato_id',
+       case when to_regclass('public.comentarios_app') is null or to_regclass('public.mis_comentarios') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.comentarios_app')) then 'NO'
+            when has_table_privilege('anon', 'public.comentarios_app', 'select')
+              or has_table_privilege('anon', 'public.mis_comentarios', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.comentarios_app', 'insert')
+              or has_table_privilege('authenticated', 'public.comentarios_app', 'update')
+              or has_table_privilege('authenticated', 'public.comentarios_app', 'delete') then 'NO'
+            when to_regprocedure('public.enviar_comentario(text,text,text,text)') is null
+              or has_function_privilege('anon', 'public.enviar_comentario(text,text,text,text)', 'execute')
+              or has_function_privilege('authenticated', 'public.purgar_texto_comentarios(integer)', 'execute') then 'NO'
+            when exists (select 1 from information_schema.columns where table_name = 'mis_comentarios' and column_name = 'contrato_id') then 'NO'
+            else 'SI' end
+union all
+select '0095 - capacidad triar_comentarios sin perder las anteriores', 'el check de capacidades_staff contiene triar_comentarios y las 10 de la 0090',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores', 'triar_comentarios']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 11
+            then 'SI' else 'NO' end
+union all
+-- La 0096: las dos tablas del buzón con RLS, anon sin nada, authenticated solo lee, y las
+-- funciones de responder y de mover la regla cerradas a anon.
+select '0096 - buzón de mercadeo: RLS, solo lee authenticated, funciones cerradas a anon', 'mercadeo_preguntas y mercadeo_referencias con RLS; anon sin select; authenticated solo select; responder_buzon_mercadeo y mover_regla_mercadeo sin execute para anon',
+       case when exists (
+         select 1 from unnest(array['public.mercadeo_preguntas', 'public.mercadeo_referencias']) t(tabla)
+          where to_regclass(t.tabla) is null
+             or not (select c.relrowsecurity from pg_class c where c.oid = to_regclass(t.tabla))
+             or has_table_privilege('anon', t.tabla, 'select')
+             or not has_table_privilege('authenticated', t.tabla, 'select')
+             or has_table_privilege('authenticated', t.tabla, 'insert')
+             or has_table_privilege('authenticated', t.tabla, 'update')
+             or has_table_privilege('authenticated', t.tabla, 'delete')
+       ) then 'NO'
+            when to_regprocedure('public.responder_buzon_mercadeo(uuid,text,jsonb)') is null
+              or to_regprocedure('public.mover_regla_mercadeo(uuid,text,text)') is null
+              or has_function_privilege('anon', 'public.responder_buzon_mercadeo(uuid,text,jsonb)', 'execute')
+              or has_function_privilege('anon', 'public.mover_regla_mercadeo(uuid,text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0096 - capacidad responder_mercadeo sin perder las anteriores', 'el check de capacidades_staff contiene responder_mercadeo y las 10 de la 0090',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores', 'responder_mercadeo']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 11
+            then 'SI' else 'NO' end
+union all
+-- La 0097: creadores_eventos limita carril_nuevo y carril_anterior a la lista de carriles.
+select '0097 - creadores_eventos solo acepta carriles conocidos', 'existen creadores_eventos_carril_nuevo_conocido y creadores_eventos_carril_anterior_conocido',
+       case when (select count(*) from pg_constraint
+                   where conrelid = 'public.creadores_eventos'::regclass and contype = 'c'
+                     and conname in ('creadores_eventos_carril_nuevo_conocido', 'creadores_eventos_carril_anterior_conocido')) = 2
+            then 'SI' else 'NO' end
 order by migracion, senal;

@@ -258,4 +258,24 @@ describe('CreadoresPage', () => {
       /no es el total del piloto/i,
     )
   })
+
+  it('un evento con carril desconocido se avisa, no se descarta en silencio', async () => {
+    estado.candidatos = [candidato({ creadorId: 'ig:1', carril: 'mensaje_enviado' })]
+    estado.eventos = [
+      { id: 'e1', creadorId: 'ig:1', carrilNuevo: 'mensaje_enviado', fechaDato: '2026-09-20T00:00:00Z' },
+      { id: 'e2', creadorId: 'ig:2', carrilNuevo: 'carril_inventado', fechaDato: '2026-09-21T00:00:00Z' },
+      { id: 'e3', creadorId: 'ig:3', carrilNuevo: 'otro_raro', fechaDato: '2026-09-22T00:00:00Z' },
+    ]
+    render(<CreadoresPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('2 eventos con carril desconocido')
+  })
+
+  it('sin eventos raros no hay aviso de carril desconocido', async () => {
+    estado.candidatos = [candidato({ creadorId: 'ig:1', carril: 'mensaje_enviado' })]
+    estado.eventos = [{ id: 'e1', creadorId: 'ig:1', carrilNuevo: 'mensaje_enviado', fechaDato: '2026-09-20T00:00:00Z' }]
+    render(<CreadoresPage />)
+    const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
+    expect(await within(cifras).findByText('1 contactos registrados')).toBeInTheDocument()
+    expect(screen.queryByText(/carril desconocido/)).not.toBeInTheDocument()
+  })
 })

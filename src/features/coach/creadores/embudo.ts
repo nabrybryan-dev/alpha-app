@@ -1,4 +1,4 @@
-import type { Candidato, Carril, EventoCarril } from '../../../data/consola/creadores'
+import { esCarrilConocido, type Candidato, type Carril, type EventoCarril } from '../../../data/consola/creadores'
 
 /**
  * Las cinco cifras del embudo de la bola de nieve (maqueta «Espacios de Alpha», 28-sep),
@@ -31,6 +31,13 @@ export interface Embudo {
    *  se pudo leer: la cifra no se conoce. */
   contactosRegistrados: number | null
   entrenadores: number
+  /**
+   * Eventos de la historia cuyo carril no es ninguno de los conocidos. NO cuentan en ninguna
+   * cifra, pero tampoco se pierden en silencio: la pantalla los avisa («N eventos con carril
+   * desconocido»), porque «contactos registrados» puede estar por debajo de la realidad.
+   * `null` = la historia no se pudo leer.
+   */
+  eventosConCarrilDesconocido: number | null
 }
 
 const CONTACTADOS: readonly Carril[] = [
@@ -48,11 +55,17 @@ const CONTACTADOS: readonly Carril[] = [
 export function embudoDe(candidatos: readonly Candidato[], eventos: readonly EventoCarril[] | null): Embudo {
   const en = (carril: Carril) => candidatos.filter((c) => c.carril === carril).length
   let contactosRegistrados: number | null = null
+  let eventosConCarrilDesconocido: number | null = null
   if (eventos !== null) {
     const personas = new Set<string>()
+    let desconocidos = 0
     for (const c of candidatos) if (CONTACTADOS.includes(c.carril)) personas.add(c.creadorId)
-    for (const e of eventos) if (CONTACTADOS.includes(e.carrilNuevo)) personas.add(e.creadorId)
+    for (const e of eventos) {
+      if (!esCarrilConocido(e.carrilNuevo)) desconocidos += 1
+      else if (CONTACTADOS.includes(e.carrilNuevo)) personas.add(e.creadorId)
+    }
     contactosRegistrados = personas.size
+    eventosConCarrilDesconocido = desconocidos
   }
   return {
     enTablero: candidatos.length,
@@ -60,5 +73,6 @@ export function embudoDe(candidatos: readonly Candidato[], eventos: readonly Eve
     tambaleando: en('tambaleando'),
     contactosRegistrados,
     entrenadores: candidatos.filter((c) => c.segmento === 'entrenador' || c.carril === 'entrenador').length,
+    eventosConCarrilDesconocido,
   }
 }

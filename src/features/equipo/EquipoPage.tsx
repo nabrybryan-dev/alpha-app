@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Cifra3D } from '../../components/ui/Cifra3D'
-import { db, idCoach, useDbVersion } from '../../data/dbInstance'
+import { db, useDbVersion } from '../../data/dbInstance'
 import { resumenAsesorado, type ResumenAsesorado } from '../coach/resumenAsesorado'
 import { recordarPersonaEnConsola } from '../coach/consola/memoriaConsola'
+import { DecisionesCompartidas } from './DecisionesCompartidas'
+import { MensajesEquipo } from './MensajesEquipo'
 import { useCapacidadesVigentes } from './useCapacidadesVigentes'
 import { usePorAprobar, type PorAprobar } from './usePorAprobar'
 
@@ -21,8 +23,10 @@ import { usePorAprobar, type PorAprobar } from './usePorAprobar'
  *      (`useCapacidadesVigentes`): si se la quitan a mitad de sesión, la cartera se retira.
  *   3. La consola completa (solo con `leer_entrenamiento`) y los mensajes.
  *
- * La nutrición del equipo ya no está aquí: tiene su propio espacio en la barra. Las
- * decisiones compartidas de la maqueta llegan cuando exista su tabla.
+ * 4. «Decisiones compartidas» (0094; solo con `decisiones_compartidas`) y «Mensajes» con
+ *    pestañas (asesorados, creadores, Bryan).
+ *
+ * La nutrición del equipo ya no está aquí: tiene su propio espacio en la barra.
  */
 
 const ORDEN_COLOR = { rojo: 0, ambar: 1, verde: 2 } as const
@@ -180,7 +184,6 @@ export default function EquipoPage() {
     : []
   const atencion = cartera.filter((r) => r.semaforo.color !== 'verde')
   const alDia = cartera.filter((r) => r.semaforo.color === 'verde')
-  const noLeidos = db.mensajes.noLeidosDe(usuario.id, idCoach())
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -242,24 +245,23 @@ export default function EquipoPage() {
         </Link>
       )}
 
-      <Link
-        to="/chat"
-        className="press entrada entrada-3 flex min-h-[56px] items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm"
-      >
-        <span className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Mensajes</span>
-          <span className="text-sm text-texto">Conversación con el coach</span>
-        </span>
-        {noLeidos > 0 ? (
-          <span className="cifras shrink-0 text-xs font-bold text-rojo">
-            {noLeidos} {noLeidos === 1 ? 'nuevo' : 'nuevos'}
-          </span>
-        ) : (
-          <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rojo/15 text-base text-rojo">
-            →
-          </span>
-        )}
-      </Link>
+      {cargando ? (
+        <section aria-label="Decisiones compartidas" className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Decisiones compartidas</p>
+          <p className="pt-2 text-sm text-tenue" aria-busy="true">Cargando tus permisos…</p>
+        </section>
+      ) : tiene('decisiones_compartidas') ? (
+        <DecisionesCompartidas puedeAnotar />
+      ) : (
+        <section aria-label="Decisiones compartidas" className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Decisiones compartidas</p>
+          <p className="pt-2 text-sm text-tenue">
+            El registro de decisiones se ve con el permiso de decisiones compartidas, y todavía no lo tienes. Pídeselo al coach.
+          </p>
+        </section>
+      )}
+
+      <MensajesEquipo usuarioId={usuario.id} />
     </div>
   )
 }

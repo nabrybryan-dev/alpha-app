@@ -8,6 +8,7 @@ import { separarNotas } from '../../../domain/notasDeLaSemana'
 import { textoDeObjetivo } from '../../../domain/objetivoDeIntensidad'
 import { armarSemana, sesionDestacada, type DiaRuta } from '../../../domain/rutaEntrenamiento'
 import type { Sesion } from '../../../domain/types'
+import { BuzonComentarios } from './BuzonComentarios'
 
 /**
  * «Mi entreno», el espacio de entrenamiento del staff que también entrena (Manuela;
@@ -19,7 +20,7 @@ import type { Sesion } from '../../../domain/types'
  * prescritos; la tarjeta grande que entra al salón a pantalla completa (/entrenar, que no se
  * toca), y su progreso de fuerza si la app ya lo puede calcular.
  *
- * El buzón de comentarios de la maqueta NO está: necesita una tabla que todavía no existe.
+ * Cierra con el buzón de comentarios sobre la app (0095): enviar y ver el estado de los míos.
  */
 
 /** «PIERNA (LUNES)» → «PIE»: la etiqueta corta de la casilla, como en la maqueta. */
@@ -215,6 +216,8 @@ export default function MiEntrenoPage() {
           </div>
         </section>
       )}
+
+      <BuzonComentarios />
     </div>
   )
 }

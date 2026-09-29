@@ -15,6 +15,7 @@ import {
   type Lectura,
 } from '../../../data/consola/creadores'
 import { Cifra3D } from '../../../components/ui/Cifra3D'
+import { BuzonMercadeo } from './BuzonMercadeo'
 import { embudoDe, type Embudo } from './embudo'
 
 /**
@@ -85,6 +86,15 @@ function CabeceraEmbudo({
         {falloHistoria !== null && (
           // «Contactados» sale de la historia (E-05): si no se pudo leer, se dice, no se inventa.
           <FalloDeLectura pequeno texto={`No se pudo leer la historia de contactos (${falloHistoria}).`} onReintentar={onReintentarHistoria} />
+        )}
+        {embudo.eventosConCarrilDesconocido !== null && embudo.eventosConCarrilDesconocido > 0 && (
+          // Un carril que la app no conoce no se descarta en silencio: la cifra de contactos
+          // puede estar por debajo de la real y se dice.
+          <p role="alert" className="rounded-md border border-rojo px-3 py-2 text-xs font-bold text-rojo">
+            {embudo.eventosConCarrilDesconocido}{' '}
+            {embudo.eventosConCarrilDesconocido === 1 ? 'evento con carril desconocido' : 'eventos con carril desconocido'}
+            : no cuentan en el embudo, así que los contactos pueden ser más de los que se muestran.
+          </p>
         )}
         <ul className="flex flex-col gap-2.5">
           {FILAS_EMBUDO.map((f) => {
@@ -336,7 +346,7 @@ function TarjetaCandidato({ candidato }: { candidato: Candidato }) {
   )
 }
 
-export default function CreadoresPage() {
+function TableroCreadores() {
   const { lectura, reintentar } = useLectura(candidatosDelTablero)
   const { lectura: historia, reintentar: reintentarHistoria } = useLectura(eventosDelTablero)
 
@@ -417,6 +427,19 @@ export default function CreadoresPage() {
             </ul>
           </section>
         ))}
+    </div>
+  )
+}
+
+/**
+ * Estrategia: el tablero de la bola de nieve y, debajo, el buzón de mercadeo de Manuela (0096).
+ * Van separados a propósito: que el tablero no se pueda leer no esconde el buzón, ni al revés.
+ */
+export default function CreadoresPage() {
+  return (
+    <div className="flex flex-col gap-5">
+      <TableroCreadores />
+      <BuzonMercadeo />
     </div>
   )
 }

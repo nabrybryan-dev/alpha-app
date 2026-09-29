@@ -37,11 +37,12 @@ describe('embudoDe', () => {
       tambaleando: 2,
       contactosRegistrados: 2,
       entrenadores: 7,
+      eventosConCarrilDesconocido: 0,
     })
   })
 
   it('sin candidatos, todo a cero', () => {
-    expect(embudoDe([], [])).toEqual({ enTablero: 0, esperanVideo: 0, tambaleando: 0, contactosRegistrados: 0, entrenadores: 0 })
+    expect(embudoDe([], [])).toEqual({ enTablero: 0, esperanVideo: 0, tambaleando: 0, contactosRegistrados: 0, entrenadores: 0, eventosConCarrilDesconocido: 0 })
   })
 
   it('un entrenador cuenta por su segmento aunque su carril sea otro (E-05)', () => {
@@ -54,7 +55,7 @@ describe('embudoDe', () => {
     expect(embudoDe([...en('descubierto', 2), ...en('etapa1')], []).enTablero).toBe(3)
   })
 
-  const evento = (creadorId: string, carrilNuevo: Carril): EventoCarril => ({
+  const evento = (creadorId: string, carrilNuevo: string): EventoCarril => ({
     id: `${creadorId}:${carrilNuevo}`,
     creadorId,
     carrilNuevo,
@@ -77,6 +78,20 @@ describe('embudoDe', () => {
   it('un evento previo al mensaje (etapa2, tambaleando) no es un contacto', () => {
     const [d] = en('descartado')
     expect(embudoDe([d], [evento(d.creadorId, 'etapa2'), evento(d.creadorId, 'tambaleando')]).contactosRegistrados).toBe(0)
+  })
+
+  it('un evento con carril desconocido no se descarta en silencio: se cuenta aparte', () => {
+    const [d] = en('descartado')
+    const e = embudoDe([d], [evento(d.creadorId, 'mensaje_enviado'), evento('ig:77', 'inventado'), evento('ig:78', 'otro_raro')])
+    expect(e.eventosConCarrilDesconocido).toBe(2)
+    // Los desconocidos no inflan «contactos»: solo el conocido cuenta.
+    expect(e.contactosRegistrados).toBe(1)
+  })
+
+  it('sin eventos raros, el conteo de desconocidos es cero; sin historia, es desconocido', () => {
+    const [d] = en('descartado')
+    expect(embudoDe([d], [evento(d.creadorId, 'mensaje_enviado')]).eventosConCarrilDesconocido).toBe(0)
+    expect(embudoDe([d], null).eventosConCarrilDesconocido).toBeNull()
   })
 
   it('sin historia legible, «contactados» es desconocido, no el estado de hoy disfrazado', () => {

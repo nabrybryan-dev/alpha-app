@@ -191,7 +191,9 @@ describe('EquipoPage', () => {
     pintar()
     // Espera a que lleguen las capacidades: sin esto, su respuesta pinta fuera de act().
     await screen.findByText(/permiso de leer el entrenamiento/)
-    expect(screen.getByRole('link', { name: /Mensajes/ })).toHaveAttribute('href', '/chat')
+    // Los mensajes ahora son pestañas: el chat con el coach vive en la de «Bryan».
+    fireEvent.click(screen.getByRole('tab', { name: 'Bryan' }))
+    expect(screen.getByRole('link', { name: /Conversación con el coach/ })).toHaveAttribute('href', '/chat')
     expect(screen.queryByText('Nutrición del equipo')).not.toBeInTheDocument()
   })
 
@@ -262,5 +264,47 @@ describe('EquipoPage', () => {
       window.dispatchEvent(new Event('focus'))
     })
     await waitFor(() => expect(screen.queryByText('Por aprobar')).not.toBeInTheDocument())
+  })
+})
+
+describe('Decisiones compartidas y Mensajes con pestañas', () => {
+  it('sin el permiso de decisiones compartidas se dice por qué y no hay botón para anotar', async () => {
+    pintar()
+    expect(await screen.findByText(/permiso de decisiones compartidas, y todavía no lo tienes/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+ Anotar mi decisión' })).not.toBeInTheDocument()
+  })
+
+  it('con el permiso aparece la tarjeta, con su vacío confirmado y el botón de anotar', async () => {
+    estado.capacidades = new Set(['decisiones_compartidas'])
+    pintar()
+    // La sección de «Cargando tus permisos» tiene el mismo nombre: se espera al contenido, no a la región.
+    expect(await screen.findByText('Todavía no hay decisiones anotadas.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ Anotar mi decisión' })).toBeInTheDocument()
+  })
+
+  it('los mensajes traen tres pestañas y solo enseñan quién escribió y cuántos, nunca el texto', async () => {
+    const asesorado = db.usuarios.entrenan().find((u) => u.id !== 'u-manuela')!
+    db.mensajes.enviar({ deId: asesorado.id, paraId: 'u-manuela', texto: 'TEXTO QUE NO DEBE SALIR EN LA TARJETA' })
+    pintar()
+    const tarjeta = await screen.findByRole('region', { name: 'Mensajes' })
+    const pestanas = within(tarjeta).getAllByRole('tab').map((t) => t.textContent)
+    expect(pestanas).toEqual(['Asesorados', 'Creadores', 'Bryan'])
+    expect(within(tarjeta).getByRole('tab', { name: 'Asesorados' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(tarjeta).getByRole('link', { name: new RegExp(asesorado.nombre) })).toHaveAttribute('href', '/chat')
+    expect(tarjeta).not.toHaveTextContent('TEXTO QUE NO DEBE SALIR')
+  })
+
+  it('la pestaña de creadores dice la verdad: la app aún no tiene mensajes con creadores', async () => {
+    pintar()
+    const tarjeta = await screen.findByRole('region', { name: 'Mensajes' })
+    fireEvent.click(within(tarjeta).getByRole('tab', { name: 'Creadores' }))
+    expect(within(tarjeta).getByText(/todavía no tiene mensajes con creadores/)).toBeInTheDocument()
+    expect(within(tarjeta).getByRole('tab', { name: 'Creadores' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('sin mensajes sin leer, la pestaña de asesorados lo dice', async () => {
+    pintar()
+    const tarjeta = await screen.findByRole('region', { name: 'Mensajes' })
+    expect(within(tarjeta).getByText('Ningún asesorado te ha escrito sin leer.')).toBeInTheDocument()
   })
 })

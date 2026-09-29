@@ -336,8 +336,13 @@ export const COLUMNAS_CREADORES_EVENTOS = ['id', 'creador_id', 'carril_nuevo', '
 export interface EventoCarril {
   id: string
   creadorId: string
-  carrilNuevo: Carril
+  /** Texto tal como llegó: puede NO ser un carril conocido (`esCarrilConocido`); `embudoDe` lo cuenta aparte. */
+  carrilNuevo: string
   fechaDato: string
+}
+
+export function esCarrilConocido(carril: string): carril is Carril {
+  return (CARRILES as readonly string[]).includes(carril)
 }
 
 interface FilaEvento {
@@ -347,10 +352,14 @@ interface FilaEvento {
   fecha_dato: string
 }
 
-/** Un carril fuera de vocabulario se descarta (no se disfraza). */
-export function aEvento(fila: FilaEvento): EventoCarril | null {
-  if (!(CARRILES as readonly string[]).includes(fila.carril_nuevo)) return null
-  return { id: fila.id, creadorId: fila.creador_id, carrilNuevo: fila.carril_nuevo as Carril, fechaDato: fila.fecha_dato }
+/**
+ * Un evento con carril fuera de vocabulario NO se descarta aquí (revisión externa del 28-sep,
+ * gravedad media): descartarlo en silencio dejaba la cifra de contactos por debajo de la real
+ * sin que nadie lo notara. Se conserva tal cual y `embudoDe` lo cuenta aparte para avisarlo.
+ * (La 0097 impide nuevos en la base; esto cubre los que ya estén.)
+ */
+export function aEvento(fila: FilaEvento): EventoCarril {
+  return { id: fila.id, creadorId: fila.creador_id, carrilNuevo: fila.carril_nuevo, fechaDato: fila.fecha_dato }
 }
 
 /**
@@ -372,7 +381,7 @@ export async function eventosDelTablero(): Promise<Lectura<EventoCarril[]>> {
       (f) => f.id,
     )
     if (!r.ok) return r
-    return { ok: true, datos: r.datos.map(aEvento).filter((x): x is EventoCarril => x !== null) }
+    return { ok: true, datos: r.datos.map(aEvento) }
   } catch (e) {
     return { ok: false, error: motivoDe(e) }
   }

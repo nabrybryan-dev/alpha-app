@@ -242,7 +242,7 @@ describe('la lectura no se deja engañar por una fila que cambia entre páginas 
 })
 
 describe('la historia de carriles (creadores_eventos) se lee entera (E-05)', () => {
-  it('lee los eventos paginando y descarta un carril fuera de vocabulario', async () => {
+  it('lee los eventos paginando y conserva un carril fuera de vocabulario para avisarlo', async () => {
     estado.tablas = {
       creadores_eventos: [
         ...Array.from({ length: 5 }, (_, i) => ({ id: `e${i}`, creador_id: `ig:${i}`, carril_nuevo: 'mensaje_enviado', fecha_dato: '2026-09-28T00:00:00Z' })),
@@ -252,7 +252,10 @@ describe('la historia de carriles (creadores_eventos) se lee entera (E-05)', () 
     estado.maxFilas = 2
     const r = await eventosDelTablero()
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.datos.map((e) => e.creadorId).sort()).toEqual(['ig:0', 'ig:1', 'ig:2', 'ig:3', 'ig:4'])
+    if (r.ok) {
+      expect(r.datos.map((e) => e.creadorId).sort()).toEqual(['ig:0', 'ig:1', 'ig:2', 'ig:3', 'ig:4', 'ig:9'])
+      expect(r.datos.find((e) => e.creadorId === 'ig:9')?.carrilNuevo).toBe('inventado')
+    }
   })
 
   it('un error al leer la historia es un error, no una historia vacía', async () => {

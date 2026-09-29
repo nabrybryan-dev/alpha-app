@@ -132,3 +132,15 @@ jobs:
 
       - name: El tablero de creadores solo lo leen el coach y quien tiene revisar_creadores
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-creadores-tablero.sql
+
+      - name: Las decisiones compartidas las anota quien tiene acceso, las firma solo el otro y no admiten salud
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/120-decisiones-compartidas.sql
+
+      - name: Cada quien ve solo sus comentarios de la app y solo el coach los cierra
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/130-comentarios-app.sql
+
+      - name: El buzón de mercadeo es de Manuela, y la regla vigente pide 3 referencias y la firma del coach
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/140-buzon-mercadeo.sql
+
+      - name: La historia del embudo de creadores no acepta un carril inventado
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/150-creadores-eventos-carril.sql
