@@ -32,11 +32,82 @@ const PUNTO: Record<ResumenAsesorado['semaforo']['color'], string> = {
   verde: 'bg-verde',
 }
 
+const NOMBRES_BANDEJA = {
+  primeros: { uno: 'primer plan', varios: 'primeros planes' },
+  renovados: { uno: 'renovado', varios: 'renovados' },
+} as const
+
+/**
+ * Si alguna bandeja no se pudo leer (APP-F01 de la revisión final de Codex, 28-sep), la
+ * tarjeta no da un total definitivo ni dice «Nada esperando tu firma»: cuenta lo que sí se
+ * leyó como mínimo («2 o más»), dice qué bandeja falta y deja reintentar.
+ */
+function TarjetaPorAprobarIncompleta({ cuenta }: { cuenta: PorAprobar }) {
+  const leidas: { k: keyof typeof NOMBRES_BANDEJA; n: number }[] = []
+  const fallidas: { k: keyof typeof NOMBRES_BANDEJA; error: string }[] = []
+  for (const k of ['primeros', 'renovados'] as const) {
+    const c = cuenta[k]
+    if (c === null) continue
+    if (c.ok) leidas.push({ k, n: c.n })
+    else fallidas.push({ k, error: c.error })
+  }
+  const minimo = leidas.reduce((s, b) => s + b.n, 0)
+  const texto =
+    leidas.length === 0
+      ? `No se pudieron leer las bandejas (${fallidas[0]?.error ?? 'error'}). Puede haber planes esperando tu firma.`
+      : [
+          ...leidas.map((b) => `${b.n} ${b.n === 1 ? NOMBRES_BANDEJA[b.k].uno : NOMBRES_BANDEJA[b.k].varios}`),
+          ...fallidas.map((f) => `${NOMBRES_BANDEJA[f.k].varios}: no se pudieron leer`),
+        ].join(' · ')
+  return (
+    <section
+      aria-label="Por aprobar"
+      className="entrada entrada-1 flex flex-col gap-3 rounded-tarjeta border border-rojo bg-surface-1 p-4 shadow-sm"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 flex-col gap-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-rojo">Por aprobar</span>
+          <span role="alert" className="text-sm font-semibold text-texto">
+            {texto}
+          </span>
+        </span>
+        <Cifra3D
+          valor={leidas.length === 0 ? undefined : minimo}
+          sufijo="+"
+          rojo
+          tamano={44}
+          etiqueta={leidas.length === 0 ? 'por aprobar: no se sabe' : `${minimo} o más por aprobar`}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={cuenta.reintentar}
+          className="press min-h-[44px] rounded-full border border-linea px-4 text-sm font-bold text-texto"
+        >
+          Reintentar
+        </button>
+        <Link
+          to="/equipo-nutricion"
+          className="press inline-flex min-h-[44px] items-center px-2 text-sm text-tenue underline"
+        >
+          Abrir las bandejas
+        </Link>
+      </div>
+    </section>
+  )
+}
+
 function TarjetaPorAprobar({ cuenta }: { cuenta: PorAprobar }) {
-  const total = (cuenta.primeros ?? 0) + (cuenta.renovados ?? 0)
+  if (cuenta.primeros?.ok === false || cuenta.renovados?.ok === false) {
+    return <TarjetaPorAprobarIncompleta cuenta={cuenta} />
+  }
+  const primeros = cuenta.primeros?.ok ? cuenta.primeros.n : null
+  const renovados = cuenta.renovados?.ok ? cuenta.renovados.n : null
+  const total = (primeros ?? 0) + (renovados ?? 0)
   const partes = [
-    cuenta.primeros !== null && `${cuenta.primeros} ${cuenta.primeros === 1 ? 'primer plan' : 'primeros planes'}`,
-    cuenta.renovados !== null && `${cuenta.renovados} ${cuenta.renovados === 1 ? 'renovado' : 'renovados'}`,
+    primeros !== null && `${primeros} ${primeros === 1 ? 'primer plan' : 'primeros planes'}`,
+    renovados !== null && `${renovados} ${renovados === 1 ? 'renovado' : 'renovados'}`,
   ].filter(Boolean)
   const pide = total > 0
   return (

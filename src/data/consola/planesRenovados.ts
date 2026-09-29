@@ -1,5 +1,6 @@
 import type { EstadoPlanRenovado, RiesgoPlanRenovado } from '../../domain/consolaCoach/planRenovado'
 import { modoNube, supabase } from '../supabase'
+import type { LecturaBandeja } from './primerosPlanes'
 
 /**
  * `aprobaciones_plan_estrategico` (migración 0087): el plan estratégico RENOVADO (borrador
@@ -108,19 +109,24 @@ export function aPlanRenovado(fila: FilaPlanRenovado): PlanRenovado | null {
   }
 }
 
-/** Los pendientes (`propuesto` o `espera_bryan`). Nunca lanza: ante cualquier error, `[]`. */
-export async function planesRenovadosPendientes(): Promise<PlanRenovado[]> {
-  if (!modoNube) return []
+/** Los pendientes (`propuesto` o `espera_bryan`). Nunca lanza: ante un error,
+ *  `{ ok: false, error }`, no una bandeja vacía (APP-F01). En demo, vacía de verdad. */
+export async function planesRenovadosPendientes(): Promise<LecturaBandeja<PlanRenovado>> {
+  if (!modoNube) return { ok: true, datos: [] }
   try {
     const { data, error } = await supabase()
       .from(TABLA_PLAN_RENOVADO)
       .select(SELECCION)
       .in('estado', ['propuesto', 'espera_bryan'])
       .order('plazo_hasta', { ascending: true })
-    if (error || !data) return []
-    return (data as unknown as FilaPlanRenovado[]).map(aPlanRenovado).filter((p): p is PlanRenovado => p !== null)
-  } catch {
-    return []
+    if (error) return { ok: false, error: error.message || 'No se pudo leer la bandeja.' }
+    if (!data) return { ok: false, error: 'La base no devolvió la bandeja.' }
+    return {
+      ok: true,
+      datos: (data as unknown as FilaPlanRenovado[]).map(aPlanRenovado).filter((p): p is PlanRenovado => p !== null),
+    }
+  } catch (fallo) {
+    return { ok: false, error: fallo instanceof Error ? fallo.message : 'Error de red.' }
   }
 }
 

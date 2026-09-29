@@ -82,19 +82,21 @@ describe('aPrimerPlan', () => {
 describe('primerosPlanesPendientes', () => {
   it('en demo no consulta', async () => {
     estado.activo = false
-    await expect(primerosPlanesPendientes()).resolves.toEqual([])
+    await expect(primerosPlanesPendientes()).resolves.toEqual({ ok: true, datos: [] })
   })
 
   it('pide solo los pendientes', async () => {
     estado.filas = [filaBase]
-    const lista = await primerosPlanesPendientes()
+    const lectura = await primerosPlanesPendientes()
     expect(estado.estadosPedidos).toEqual(['propuesto', 'espera_bryan'])
-    expect(lista.map((p) => p.id)).toEqual(['ap-1'])
+    expect(lectura.ok && lectura.datos.map((p) => p.id)).toEqual(['ap-1'])
   })
 
-  it('ante un error devuelve [], nunca lanza', async () => {
+  // APP-F01 (revisión final de Codex, 28-sep): un error NO es una bandeja vacía. Antes
+  // devolvía [] y la pantalla decía «Nada esperando tu firma» con la red caída.
+  it('ante un error lo dice, no lo disfraza de lista vacía, y nunca lanza', async () => {
     estado.error = { message: 'RLS' }
-    await expect(primerosPlanesPendientes()).resolves.toEqual([])
+    await expect(primerosPlanesPendientes()).resolves.toEqual({ ok: false, error: 'RLS' })
   })
 })
 

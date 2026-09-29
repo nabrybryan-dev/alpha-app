@@ -16,8 +16,15 @@ import { resumenAsesorado } from '../coach/resumenAsesorado'
 const estado = {
   rol: 'nutricionista' as Rol,
   capacidades: new Set<string>(),
-  primeros: [] as { estado: string }[],
-  renovados: [] as { estado: string }[],
+  /** Una lista es la bandeja leída; un texto, el error con el que falla su lectura (APP-F01). */
+  primeros: [] as { estado: string }[] | string,
+  renovados: [] as { estado: string }[] | string,
+  lecturas: 0,
+}
+
+const leer = (x: { estado: string }[] | string) => {
+  estado.lecturas++
+  return Promise.resolve(typeof x === 'string' ? { ok: false as const, error: x } : { ok: true as const, datos: x })
 }
 
 vi.mock('../../app/SessionProvider', () => {
@@ -39,11 +46,11 @@ vi.mock('../../data/consola/capacidadesStaff', async (original) => {
 })
 
 vi.mock('../../data/consola/primerosPlanes', () => ({
-  primerosPlanesPendientes: () => Promise.resolve(estado.primeros),
+  primerosPlanesPendientes: () => leer(estado.primeros),
 }))
 
 vi.mock('../../data/consola/planesRenovados', () => ({
-  planesRenovadosPendientes: () => Promise.resolve(estado.renovados),
+  planesRenovadosPendientes: () => leer(estado.renovados),
 }))
 
 const { default: EquipoPage } = await import('./EquipoPage')
@@ -69,6 +76,7 @@ beforeEach(() => {
   estado.capacidades = new Set()
   estado.primeros = []
   estado.renovados = []
+  estado.lecturas = 0
 })
 
 describe('EquipoPage', () => {
@@ -132,6 +140,37 @@ describe('EquipoPage', () => {
     expect(await screen.findByText('1 por aprobar')).toBeInTheDocument()
     expect(screen.getByText('1 primer plan')).toBeInTheDocument()
     expect(screen.queryByText(/renovado/)).not.toBeInTheDocument()
+  })
+
+  // APP-F01 (revisión final de Codex, 28-sep): con la red caída, las dos lecturas devolvían []
+  // y la tarjeta decía «0 por aprobar» y «Nada esperando tu firma»: un hueco disfrazado de 0.
+  it('si las bandejas no se pueden leer, no dice «0» ni «Nada esperando»: lo dice y deja reintentar', async () => {
+    estado.capacidades = new Set(['aprobar_primer_plan', 'aprobar_plan_estrategico'])
+    estado.primeros = 'Failed to fetch'
+    estado.renovados = 'Failed to fetch'
+    pintar()
+    const tarjeta = await screen.findByRole('region', { name: 'Por aprobar' })
+    expect(within(tarjeta).getByText(/No se pudieron leer las bandejas/)).toBeInTheDocument()
+    expect(screen.queryByText('0 por aprobar')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nada esperando tu firma')).not.toBeInTheDocument()
+    estado.primeros = [{ estado: 'propuesto' }]
+    estado.renovados = []
+    fireEvent.click(within(tarjeta).getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('1 por aprobar')).toBeInTheDocument()
+    expect(screen.queryByText(/No se pudieron leer/)).not.toBeInTheDocument()
+  })
+
+  it('si falla una sola bandeja, no da un total definitivo: cuenta la otra y dice cuál falta', async () => {
+    estado.capacidades = new Set(['aprobar_primer_plan', 'aprobar_plan_estrategico'])
+    estado.primeros = 'Failed to fetch'
+    estado.renovados = [{ estado: 'propuesto' }, { estado: 'espera_bryan' }]
+    pintar()
+    const tarjeta = await screen.findByRole('region', { name: 'Por aprobar' })
+    expect(within(tarjeta).getByText(/2 renovados/)).toBeInTheDocument()
+    expect(within(tarjeta).getByText(/primeros planes: no se pudieron leer/)).toBeInTheDocument()
+    expect(screen.queryByText('2 por aprobar')).not.toBeInTheDocument()
+    expect(within(tarjeta).getByText('2 o más por aprobar')).toBeInTheDocument()
+    expect(within(tarjeta).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
   })
 
   it('con leer_entrenamiento, cada fila abre la consola ya puesta en esa persona', async () => {

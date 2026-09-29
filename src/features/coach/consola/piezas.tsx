@@ -119,6 +119,24 @@ export function Falta({ que, como }: { que: string; como: string }) {
   )
 }
 
+/**
+ * Una bandeja que no se pudo leer (APP-F01 de la revisión final de Codex, 28-sep): se dice
+ * que falló y que PUEDE haber algo esperando, con un botón para volver a leer. Nunca un
+ * «no hay nada» ni un 0.
+ */
+export function FalloBandeja({ error, onReintentar }: { error: string; onReintentar: () => void }) {
+  return (
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rojo px-3 py-2.5 text-[12.5px]">
+      <p className="min-w-0 text-texto">
+        No se pudo leer esta bandeja ({error}). Puede haber planes esperando.
+      </p>
+      <button type="button" onClick={onReintentar} className="press min-h-[36px] rounded-full border border-linea px-3 text-xs font-bold text-texto">
+        Reintentar
+      </button>
+    </div>
+  )
+}
+
 /** Pares etiqueta → valor en rejilla (perfil, alimentación). */
 export function ListaDatos({ datos }: { datos: readonly { etiqueta: string; valor: ReactNode }[] }) {
   return (

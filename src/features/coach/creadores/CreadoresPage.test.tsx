@@ -109,10 +109,10 @@ describe('CreadoresPage', () => {
     const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
     expect(within(cifras).getByText('7 candidatos en el tablero')).toBeInTheDocument()
     expect(within(cifras).getByText('2 por decidir')).toBeInTheDocument()
-    expect(within(cifras).getByText('1 contactados')).toBeInTheDocument()
+    expect(within(cifras).getByText('1 contactos registrados')).toBeInTheDocument()
     const embudo = screen.getByRole('region', { name: 'El embudo hoy' })
     const filas = within(embudo).getAllByRole('listitem').map((li) => li.textContent)
-    expect(filas).toEqual(['Candidatos en el tablero7', 'Esperan video1', 'Tambaleando2', 'Contactados1', 'Entrenadores1'])
+    expect(filas).toEqual(['Candidatos en el tablero7', 'Esperan video1', 'Tambaleando2', 'Contactos registrados1', 'Entrenadores1'])
   })
 
   it('«Por decidir» encabeza a los que tambalean, y solo si hay alguno', async () => {
@@ -222,7 +222,7 @@ describe('CreadoresPage', () => {
     ]
     render(<CreadoresPage />)
     const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
-    expect(await within(cifras).findByText('1 contactados')).toBeInTheDocument()
+    expect(await within(cifras).findByText('1 contactos registrados')).toBeInTheDocument()
   })
 
   it('si la historia no se puede leer, «contactados» no inventa una cifra y se puede reintentar (E-05)', async () => {
@@ -232,10 +232,30 @@ describe('CreadoresPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo leer la historia de contactos')
     const embudo = screen.getByRole('region', { name: 'El embudo hoy' })
     const filas = within(embudo).getAllByRole('listitem').map((li) => li.textContent)
-    expect(filas).toContain('Contactados—')
+    expect(filas).toContain('Contactos registrados—')
     estado.fallaEventos = false
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     const cifras = screen.getByRole('group', { name: 'Cifras de la bola de nieve' })
-    expect(await within(cifras).findByText('1 contactados')).toBeInTheDocument()
+    expect(await within(cifras).findByText('1 contactos registrados')).toBeInTheDocument()
+  })
+  // E-05-R (revisión final de Codex, 28-sep): el importador solo guarda el carril que ve en
+  // cada subida. Con etapa2 → mensaje_enviado → descartado sin subida entre medias, la
+  // historia trae etapa2 y descartado, y el contacto no queda. La app no puede saber que
+  // falta: la cifra se llama «contactos registrados», dice que es un mínimo y que no es el
+  // total del piloto, en vez de dar un «0 contactados» como si fuera la verdad.
+  it('con la historia incompleta del importador no afirma «0 contactados»: son contactos registrados, un mínimo (E-05-R)', async () => {
+    estado.candidatos = [candidato({ creadorId: 'ig:1', carril: 'descartado' })]
+    estado.eventos = [
+      { id: 'e1', creadorId: 'ig:1', carrilNuevo: 'etapa2', fechaDato: '2026-09-20T00:00:00Z' },
+      { id: 'e2', creadorId: 'ig:1', carrilNuevo: 'descartado', fechaDato: '2026-09-25T00:00:00Z' },
+    ]
+    render(<CreadoresPage />)
+    const cifras = await screen.findByRole('group', { name: 'Cifras de la bola de nieve' })
+    expect(await within(cifras).findByText('0 contactos registrados')).toBeInTheDocument()
+    expect(screen.queryByText(/\d+ contactados/)).not.toBeInTheDocument()
+    const embudo = screen.getByRole('region', { name: 'El embudo hoy' })
+    expect(within(embudo).getByText(/Contactos registrados es un mínimo/)).toHaveTextContent(
+      /no es el total del piloto/i,
+    )
   })
 })

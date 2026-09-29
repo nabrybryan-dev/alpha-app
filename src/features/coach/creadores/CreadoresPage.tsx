@@ -35,7 +35,7 @@ const FILAS_EMBUDO: { clave: keyof Embudo; etiqueta: string; rojo?: boolean; ten
   { clave: 'enTablero', etiqueta: 'Candidatos en el tablero' },
   { clave: 'esperanVideo', etiqueta: 'Esperan video' },
   { clave: 'tambaleando', etiqueta: 'Tambaleando', rojo: true },
-  { clave: 'contactados', etiqueta: 'Contactados' },
+  { clave: 'contactosRegistrados', etiqueta: 'Contactos registrados' },
   { clave: 'entrenadores', etiqueta: 'Entrenadores', tenue: true },
 ]
 
@@ -50,12 +50,12 @@ function CabeceraEmbudo({
   onReintentarHistoria,
 }: {
   embudo: Embudo
-  /** Motivo si la historia (`creadores_eventos`) no se pudo leer; «contactados» queda en «—». */
+  /** Motivo si la historia (`creadores_eventos`) no se pudo leer; «contactos registrados» queda en «—». */
   falloHistoria: string | null
   onReintentarHistoria: () => void
 }) {
   const total = embudo.enTablero
-  const contactados = embudo.contactados
+  const contactados = embudo.contactosRegistrados
   return (
     <>
       <div role="group" aria-label="Cifras de la bola de nieve" className="entrada entrada-1 grid grid-cols-3 gap-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
@@ -70,9 +70,13 @@ function CabeceraEmbudo({
         <div className="flex min-w-0 flex-col gap-1">
           <Cifra3D
             valor={contactados ?? undefined}
-            etiqueta={contactados === null ? 'contactados: sin la historia no se sabe' : `${contactados} contactados`}
+            etiqueta={
+              contactados === null
+                ? 'contactos registrados: sin la historia no se sabe'
+                : `${contactados} contactos registrados`
+            }
           />
-          <span className="text-xs text-tenue">contactados</span>
+          <span className="text-xs text-tenue">contactos registrados</span>
         </div>
       </div>
 
@@ -102,6 +106,12 @@ function CabeceraEmbudo({
             )
           })}
         </ul>
+        {/* E-05-R (revisión final de Codex, 28-sep): la historia que sube el importador
+            puede no tener todos los contactos; la cifra es un mínimo y se dice. */}
+        <p className="text-[11.5px] text-tenue">
+          Contactos registrados es un mínimo: el importador solo guarda el carril de cada subida, así que un
+          contacto que cambió de carril entre dos subidas puede faltar. No es el total del piloto.
+        </p>
       </section>
     </>
   )
@@ -351,7 +361,7 @@ export default function CreadoresPage() {
     ...grupos.filter((g) => g.carril === 'entrenador'),
   ]
   const ultimaRecepcion = candidatos.map((c) => c.fechaRecepcion).sort().at(-1)
-  // Mientras la historia llega, o si falló, «contactados» es desconocido (E-05).
+  // Mientras la historia llega, o si falló, «contactos registrados» es desconocido (E-05).
   const embudo = embudoDe(candidatos, historia?.ok ? historia.datos : null)
   const falloHistoria = historia !== null && !historia.ok ? historia.error : null
 

@@ -17,12 +17,12 @@ vi.mock('../coach/consola/useCapacidades', () => ({
 
 vi.mock('../../data/consola/primerosPlanes', async (original) => ({
   ...(await original<typeof import('../../data/consola/primerosPlanes')>()),
-  primerosPlanesPendientes: () => Promise.resolve([]),
+  primerosPlanesPendientes: () => Promise.resolve({ ok: true, datos: [] }),
 }))
 
 vi.mock('../../data/consola/planesRenovados', async (original) => ({
   ...(await original<typeof import('../../data/consola/planesRenovados')>()),
-  planesRenovadosPendientes: () => Promise.resolve([]),
+  planesRenovadosPendientes: () => Promise.resolve({ ok: true, datos: [] }),
 }))
 
 const { default: EquipoNutricionPage } = await import('./EquipoNutricionPage')

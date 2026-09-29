@@ -35,13 +35,13 @@ describe('embudoDe', () => {
       enTablero: 25,
       esperanVideo: 3,
       tambaleando: 2,
-      contactados: 2,
+      contactosRegistrados: 2,
       entrenadores: 7,
     })
   })
 
   it('sin candidatos, todo a cero', () => {
-    expect(embudoDe([], [])).toEqual({ enTablero: 0, esperanVideo: 0, tambaleando: 0, contactados: 0, entrenadores: 0 })
+    expect(embudoDe([], [])).toEqual({ enTablero: 0, esperanVideo: 0, tambaleando: 0, contactosRegistrados: 0, entrenadores: 0 })
   })
 
   it('un entrenador cuenta por su segmento aunque su carril sea otro (E-05)', () => {
@@ -64,22 +64,22 @@ describe('embudoDe', () => {
   it('un contactado que después se descarta sigue contando: sale de la historia (E-05)', () => {
     const [descartado] = en('descartado')
     const e = embudoDe([descartado], [evento(descartado.creadorId, 'mensaje_enviado'), evento(descartado.creadorId, 'descartado')])
-    expect(e.contactados).toBe(1)
+    expect(e.contactosRegistrados).toBe(1)
   })
 
   it('cuenta personas, no eventos: tres pasos de la misma persona son un contactado', () => {
     const [resp] = en('respondio')
     const id = resp.creadorId
     const e = embudoDe([resp], [evento(id, 'mensaje_enviado'), evento(id, 'respondio'), evento(id, 'encuesta')])
-    expect(e.contactados).toBe(1)
+    expect(e.contactosRegistrados).toBe(1)
   })
 
   it('un evento previo al mensaje (etapa2, tambaleando) no es un contacto', () => {
     const [d] = en('descartado')
-    expect(embudoDe([d], [evento(d.creadorId, 'etapa2'), evento(d.creadorId, 'tambaleando')]).contactados).toBe(0)
+    expect(embudoDe([d], [evento(d.creadorId, 'etapa2'), evento(d.creadorId, 'tambaleando')]).contactosRegistrados).toBe(0)
   })
 
   it('sin historia legible, «contactados» es desconocido, no el estado de hoy disfrazado', () => {
-    expect(embudoDe(en('mensaje_enviado', 2), null).contactados).toBeNull()
+    expect(embudoDe(en('mensaje_enviado', 2), null).contactosRegistrados).toBeNull()
   })
 })
