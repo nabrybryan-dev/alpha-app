@@ -15,6 +15,7 @@ import {
   type Lectura,
 } from '../../../data/consola/creadores'
 import { Cifra3D } from '../../../components/ui/Cifra3D'
+import { EntradaMiPlan } from '../../plan/EntradaMiPlan'
 import { BuzonMercadeo } from './BuzonMercadeo'
 import { embudoDe, type Embudo } from './embudo'
 
@@ -438,6 +439,7 @@ function TableroCreadores() {
 export default function CreadoresPage() {
   return (
     <div className="flex flex-col gap-5">
+      <EntradaMiPlan />
       <TableroCreadores />
       <BuzonMercadeo />
     </div>

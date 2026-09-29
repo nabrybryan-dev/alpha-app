@@ -41,6 +41,7 @@ import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import { suenoMedio } from '../../domain/miDia'
 import { NotasDeLaSemana } from '../entrenar/NotasDeLaSemana'
 import { ChequeoDeHoy } from './miDia/ChequeoDeHoy'
+import { EntradaMiPlan } from '../plan/EntradaMiPlan'
 import { MedidasYPeso } from './miDia/MedidasYPeso'
 import { TuSemana } from './miDia/TuSemana'
 
@@ -206,6 +207,8 @@ export default function HoyPage() {
       <div className="entrada entrada-2">
         <PedirPermiso usuarioId={usuario.id} />
       </div>
+
+      {esStaff && <EntradaMiPlan />}
 
       {esStaff && (
         <TuSemana

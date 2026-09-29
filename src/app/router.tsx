@@ -26,6 +26,7 @@ const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
 const CreadoresPage = lazy(() => import('../features/coach/creadores/CreadoresPage'))
 const EquipoPage = lazy(() => import('../features/equipo/EquipoPage'))
+const MiPlanPage = lazy(() => import('../features/plan/MiPlanPage'))
 const MiEntrenoPage = lazy(() => import('../features/entrenar/miEntreno/MiEntrenoPage'))
 const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
@@ -76,6 +77,8 @@ export function AppRouter() {
         <Route path="mi-entreno" element={envolver(<MiEntrenoPage />)} />
         <Route path="equipo" element={envolver(<EquipoPage />)} />
         <Route path="equipo-nutricion" element={envolver(<EquipoNutricionPage />)} />
+        {/* Organizador (0098): el plan de Manuela; el de Bryan cuelga de /coach. */}
+        <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
         <Route path="equipo-nutricion/cifras" element={envolver(<CifrasAsesoradosPage />)} />
       </Route>
       <Route path="coach" element={<CoachLayout />}>
@@ -91,6 +94,8 @@ export function AppRouter() {
         {/* Tablero de creadores (0090, F1): solo lectura; lo abre el coach o quien tenga
             `revisar_creadores` (Manuela). */}
         <Route path="creadores" element={envolver(<CreadoresPage />)} />
+        {/* Organizador (0098): el plan de Bryan. */}
+        <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
       </Route>
     </Routes>
   )

@@ -2085,4 +2085,20 @@ select '0097 - creadores_eventos solo acepta carriles conocidos', 'existen cread
                    where conrelid = 'public.creadores_eventos'::regclass and contype = 'c'
                      and conname in ('creadores_eventos_carril_nuevo_conocido', 'creadores_eventos_carril_anterior_conocido')) = 2
             then 'SI' else 'NO' end
+union all
+-- La 0098: plan_items (organizador). RLS, anon sin nada, authenticated sin delete y con la capacidad.
+select '0098 - plan_items: RLS, anon sin nada, authenticated sin delete, capacidad organizar_plan', 'plan_items con RLS; anon sin select; authenticated con select/insert/update pero sin delete; plan_dueno_actual sin execute para anon; indice unico de una principal por dia; el check de capacidades contiene organizar_plan',
+       case when to_regclass('public.plan_items') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.plan_items')) then 'NO'
+            when has_table_privilege('anon', 'public.plan_items', 'select')
+              or has_table_privilege('anon', 'public.plan_items', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.plan_items', 'select')
+              or has_table_privilege('authenticated', 'public.plan_items', 'delete') then 'NO'
+            when to_regprocedure('public.plan_dueno_actual()') is null
+              or has_function_privilege('anon', 'public.plan_dueno_actual()', 'execute') then 'NO'
+            when to_regclass('public.plan_items_una_principal_por_dia') is null then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%organizar_plan%') then 'NO'
+            else 'SI' end
 order by migracion, senal;

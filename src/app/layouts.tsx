@@ -5,6 +5,7 @@ import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
 import { useCapacidades } from '../features/coach/consola/useCapacidades'
+import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
@@ -21,6 +22,7 @@ const titulos: Record<string, string> = {
   '/equipo': 'Equipo',
   '/mi-entreno': 'Mi entreno',
   '/equipo-nutricion': 'Nutrición',
+  '/mi-plan': 'Mi plan',
 }
 
 function tituloDe(ruta: string, esStaff = false): string {
@@ -86,6 +88,7 @@ export function AsesoradoLayout() {
   return (
     <div className="min-h-dvh bg-bg">
       {llevaCabecera(pathname) && <TopBar titulo={tituloDe(pathname, usuario.rol === 'nutricionista')} />}
+      {usuario.rol === 'nutricionista' && llevaCabecera(pathname) && <BannerPlanHoy />}
       {/* overflow-x-clip: ningún pseudo-elemento o borde debe generar scroll
           horizontal; el TopBar (sticky) y la BottomNav (fija) van fuera de main. */}
       <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
@@ -139,11 +142,13 @@ export function CoachLayout() {
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
           </>
         ) : (
           <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
         )}
       </nav>
+      {(esCoach || enCreadores) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
       <main className={`mx-auto overflow-x-clip px-4 pt-4 ${esCoach ? 'pb-16' : 'pb-28'} ${anchoContenedor}`}>

@@ -8,7 +8,7 @@ import { modoNube, supabase } from '../supabase'
  *
  * `CAPACIDADES` es la misma lista que el `check` de la migración 0083 (ampliado en la 0086
  * con `aprobar_primer_plan`, en la 0087 con `aprobar_plan_estrategico`, en la 0090 con las de creadores y en la
- * 0094, 0095 y 0096 con una cada una), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
+ * 0094, 0095, 0096 y 0098 con una cada una), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
  * en silencio (misma lección que `cadenaCorridas.ts` con sus columnas).
  */
 export const TABLA_CAPACIDADES_STAFF = 'capacidades_staff'
@@ -33,6 +33,8 @@ export const CAPACIDADES = [
   'triar_comentarios',
   // 0096: responder el buzón de mercadeo (Manuela).
   'responder_mercadeo',
+  // 0098: usar el organizador («Mi plan»): cada quien edita lo suyo; el coach lee todo.
+  'organizar_plan',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]

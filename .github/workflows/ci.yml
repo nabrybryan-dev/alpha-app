@@ -144,3 +144,6 @@ jobs:
 
       - name: La historia del embudo de creadores no acepta un carril inventado
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/150-creadores-eventos-carril.sql
+
+      - name: El organizador de Bryan y Manuela guarda cada plan con su dueño, tope de 3 tareas por día y una sola principal
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/160-plan-items.sql
