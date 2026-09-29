@@ -4,8 +4,9 @@
  *
  * Fuentes (repo `alpha-estudio/bola-de-nieve`):
  *   - `embudo/PREGUNTAS-ENCAJE.md` — las 3 preguntas y el código de cada opción.
- *   - `legal/AUTORIZACION-DATOS-SENSIBLES.md` v0.3 — casillas A–D (§10) y registro de la
- *     prueba (§11). La D va con la redacción neutra de Bryan, al pie de la letra.
+ *   - `legal/AUTORIZACION-DATOS-SENSIBLES.md` v0.4 — casillas A–E (§10) y registro de la
+ *     prueba (§11). La D va con la redacción neutra de Bryan, al pie de la letra. La E
+ *     (v0.4, 28-sep) autoriza leer del teléfono los seis datos de la Fase A de salud.
  *   - `embudo/PASO-A-PASO.md` — «Puerta del campo libre»: NINGÚN campo de texto libre.
  *
  * Las dos garantías que viven aquí, y no en la pantalla, para que ninguna pantalla futura
@@ -15,12 +16,12 @@
  *      entero: no se recorta en silencio, porque recortar esconde el fallo de quien lo
  *      mandó.
  *   2. Este formulario NO pide ningún dato de salud, marque lo que marque. Las casillas
- *      A–C autorizan a PREGUNTAR después, fuera de aquí; `puedePedirSalud` es la puerta
- *      que tiene que consultar quien lo pregunte.
+ *      A–C y E autorizan a PREGUNTAR (o a leer del teléfono) después, fuera de aquí;
+ *      `puedePedirSalud` es la puerta que tiene que consultar quien lo pregunte.
  */
 
-export const VERSION_AUTORIZACION = '0.3'
-export const FECHA_VERSION_AUTORIZACION = '2026-09-27'
+export const VERSION_AUTORIZACION = '0.4'
+export const FECHA_VERSION_AUTORIZACION = '2026-09-28'
 
 export interface Opcion<C extends string = string> {
   codigo: C
@@ -93,19 +94,39 @@ export const ENUNCIADOS = {
     'No te pedimos datos de salud en este formulario. Si hacen falta, te los pedimos después, con tu autorización.',
 } as const
 
-// ─── La autorización (v0.3, §10) ────────────────────────────────────────────
+// ─── La autorización (v0.4, §10) ────────────────────────────────────────────
 
-export type LetraCasilla = 'A' | 'B' | 'C' | 'D'
+export type LetraCasilla = 'A' | 'B' | 'C' | 'D' | 'E'
 export type Casilla = 'si' | 'no'
 
 export interface DefinicionCasilla {
   letra: LetraCasilla
   texto: string
-  /** A, B y C autorizan datos de SALUD; D solo el procesamiento por proveedores. */
+  /** A, B, C y E autorizan datos de SALUD; D solo el procesamiento por proveedores. */
   esDeSalud: boolean
-  /** Lo que se muestra junto a la casilla (solo la D lo tiene en v0.3). */
+  /** Lo que se muestra junto a la casilla (la D y la E lo tienen en v0.4). */
   alcance?: string
 }
+
+/**
+ * La casilla E, entera. Vive aquí para que el formulario de interesados y la pantalla de
+ * Bienestar (donde la persona ya con cuenta la otorga o la revoca) muestren EXACTAMENTE el
+ * mismo texto, que es el que quedó firmado en la versión 0.4.
+ */
+export const DATOS_CASILLA_E = [
+  'pasos',
+  'sueño',
+  'frecuencia cardiaca en reposo',
+  'variabilidad de la frecuencia cardiaca',
+  'minutos de ejercicio',
+  'peso',
+] as const
+
+export const TEXTO_CASILLA_E =
+  'Leer desde mi teléfono (Apple Salud, con un atajo, o Health Connect, con la app de Alpha) mis pasos, mi sueño, mi frecuencia cardiaca en reposo, mi variabilidad de la frecuencia cardiaca, mis minutos de ejercicio y mi peso, para que Alpha y mi coach ajusten mis recomendaciones de estilo de vida y entrenamiento'
+
+export const ALCANCE_CASILLA_E =
+  'Solo guardamos un resumen por día de esos seis datos: nunca tu ubicación, tus rutas ni las mediciones sueltas. Lo ven tu coach y el equipo de Alpha con acceso a entrenamiento. Es voluntario: si marcas «No», recibes el mismo servicio y anotas tu check-in a mano. Puedes revocarla cuando quieras, en la app (Bienestar, Salud del celular): tu código deja de funcionar al instante y, si lo pides, borramos lo que ya enviaste. Los proveedores tecnológicos solo reciben estos datos si además marcas la D.'
 
 export const CASILLAS: readonly DefinicionCasilla[] = [
   {
@@ -129,11 +150,21 @@ export const CASILLAS: readonly DefinicionCasilla[] = [
   {
     letra: 'D',
     esDeSalud: false,
-    // Redacción neutra de Bryan (v0.3, 27-sep). NO se parafrasea: es el texto aceptado.
+    // Redacción neutra de Bryan (v0.3, 27-sep; sin cambios en la v0.4). NO se parafrasea:
+    // es el texto aceptado.
     texto:
       'Para preparar y hacer seguimiento a tu plan usamos proveedores tecnológicos que procesan tus datos por encargo nuestro; algunos tienen sus servidores fuera de Colombia. ¿Lo autorizas?',
     alcance:
       'Son los proveedores de la sección 6 marcados «requiere D»; solo reciben, sin tu nombre, los datos de las finalidades que marcaste y los planes derivados, nunca fotos; marcar «Sí» es tu autorización expresa para esa transferencia fuera de Colombia (Ley 1581, art. 26 lit. a). Si marcas «No», recibes el mismo servicio sin esos proveedores.',
+  },
+  {
+    // La E (v0.4, 28-sep): una sola casilla, específica, para los seis datos de la Fase A de
+    // salud del celular (COSTOS-APP-NATIVA-Y-SALUD.md §5.1). Es la que la app vuelve a
+    // pedir, ya con la cuenta, antes de generar el código del atajo (`salud_consentimientos`).
+    letra: 'E',
+    esDeSalud: true,
+    texto: TEXTO_CASILLA_E,
+    alcance: ALCANCE_CASILLA_E,
   },
 ]
 
@@ -153,21 +184,30 @@ export type DatoDeSalud =
   | 'alimentacion'
   | 'medidas'
   | 'fotos'
+  // Los seis de la casilla E (mismos códigos que `salud_muestras.tipo`, migración 0093).
+  | 'pasos'
+  | 'sueno'
+  | 'fc_reposo'
+  | 'vfc'
+  | 'minutos_ejercicio'
+  | 'peso'
 
-const SALUD_POR_CASILLA: Record<'A' | 'B' | 'C', readonly DatoDeSalud[]> = {
+const SALUD_POR_CASILLA: Record<'A' | 'B' | 'C' | 'E', readonly DatoDeSalud[]> = {
   A: ['lesiones', 'patologias', 'medicacion'],
   B: ['lesiones', 'patologias', 'medicacion', 'alimentacion', 'medidas'],
   C: ['fotos', 'medidas'],
+  E: ['pasos', 'sueno', 'fc_reposo', 'vfc', 'minutos_ejercicio', 'peso'],
 }
 
 /**
- * ¿Se le puede PREGUNTAR este dato de salud? Solo si alguna casilla que lo cubre está en
- * «sí». Sin autorización (`undefined`: no la llenó) es «no» en las cuatro (PASO-A-PASO,
- * paso 5). La D no abre ningún dato: solo decide por dónde se procesa lo ya autorizado.
+ * ¿Se le puede PREGUNTAR (o leer del teléfono) este dato de salud? Solo si alguna casilla que
+ * lo cubre está en «sí». Sin autorización (`undefined`: no la llenó) es «no» en las cinco
+ * (PASO-A-PASO, paso 5). La D no abre ningún dato: solo decide por dónde se procesa lo ya
+ * autorizado. Ojo con `peso`: solo lo abre la E; la B cubre las `medidas` del plan de nutrición.
  */
 export function puedePedirSalud(casillas: Casillas | undefined, dato: DatoDeSalud): boolean {
   if (!casillas) return false
-  return (['A', 'B', 'C'] as const).some(
+  return (['A', 'B', 'C', 'E'] as const).some(
     (letra) => casillas[letra] === 'si' && SALUD_POR_CASILLA[letra].includes(dato),
   )
 }
@@ -199,7 +239,7 @@ export type ResultadoEnvio =
   | { ok: true; envio: EnvioInteresado }
   | { ok: false; faltan: string[]; rechazadas: string[] }
 
-const LETRAS: readonly LetraCasilla[] = ['A', 'B', 'C', 'D']
+const LETRAS: readonly LetraCasilla[] = ['A', 'B', 'C', 'D', 'E']
 
 function clavesDeMas(objeto: object, permitidas: readonly string[]): string[] {
   return Object.keys(objeto).filter((k) => !permitidas.includes(k))
@@ -209,7 +249,7 @@ function clavesDeMas(objeto: object, permitidas: readonly string[]): string[] {
  * Valida el borrador y lo convierte en el envío. Rechaza (no recorta):
  *   - cualquier clave que no sea de las 5 respuestas, las 4 casillas o la declaración;
  *   - cualquier valor que no sea un código de opción (así no entra texto libre);
- * y exige las 5 respuestas, las 4 casillas con «sí» o «no» (nada viene marcado y el
+ * y exige las 5 respuestas, las 5 casillas con «sí» o «no» (nada viene marcado y el
  * silencio no autoriza) y la declaración.
  */
 export function construirEnvio(

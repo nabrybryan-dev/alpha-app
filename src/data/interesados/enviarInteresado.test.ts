@@ -1,7 +1,7 @@
 /**
  * Lo que llega a la base desde el formulario de interesados (migración 0089):
  *   - la evidencia de la autorización queda guardada: versión del texto, canal, las
- *     cuatro casillas y la declaración, más la fecha, que pone el servidor;
+ *     cinco casillas (A–E) y la declaración, más la fecha, que pone el servidor;
  *   - solo columnas de opción cerrada: ni una columna de texto libre ni de salud;
  *   - un reintento tras un corte no duplica ni se queda a medias.
  */
@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { construirEnvio, type EnvioInteresado } from '../../domain/interesados/formulario'
 import { enviarInteresado, filasDelEnvio, guardadoEnDemo, vaciarDemo, type Insertar } from './enviarInteresado'
 
-function envio(casillas = { A: 'si', B: 'no', C: 'no', D: 'no' }): EnvioInteresado {
+function envio(casillas = { A: 'si', B: 'no', C: 'no', D: 'no', E: 'no' }): EnvioInteresado {
   const r = construirEnvio(
     {
       encaje: {
@@ -32,19 +32,20 @@ beforeEach(() => vaciarDemo())
 
 describe('la evidencia de la autorización queda guardada', () => {
   it('con versión, canal, casillas, declaración y fecha del servidor', async () => {
-    const e = envio({ A: 'si', B: 'no', C: 'si', D: 'no' })
+    const e = envio({ A: 'si', B: 'no', C: 'si', D: 'no', E: 'si' })
     await enviarInteresado(e)
     const { autorizaciones } = guardadoEnDemo()
     expect(autorizaciones).toHaveLength(1)
     expect(autorizaciones[0]).toMatchObject({
       envio_id: e.envioId,
       cliente_id: 'PRUEBA-001',
-      version_autorizacion: '0.3',
+      version_autorizacion: '0.4',
       canal: 'formulario',
       casilla_a: 'si',
       casilla_b: 'no',
       casilla_c: 'si',
       casilla_d: 'no',
+      casilla_e: 'si',
       declaracion_aceptada: true,
     })
     expect(Number.isNaN(Date.parse(autorizaciones[0].fecha_hora))).toBe(false)
@@ -73,9 +74,12 @@ describe('solo columnas cerradas, nada de salud', () => {
   })
 
   it('con todas las casillas en «sí», ninguna fila lleva un dato de salud', () => {
-    const filas = filasDelEnvio(envio({ A: 'si', B: 'si', C: 'si', D: 'si' }))
+    const filas = filasDelEnvio(envio({ A: 'si', B: 'si', C: 'si', D: 'si', E: 'si' }))
     const columnas = [...Object.keys(filas.encaje), ...Object.keys(filas.autorizacion)]
-    for (const salud of ['lesiones', 'patologias', 'medicacion', 'alimentacion', 'medidas', 'fotos', 'peso']) {
+    for (const salud of [
+      'lesiones', 'patologias', 'medicacion', 'alimentacion', 'medidas', 'fotos', 'peso',
+      'pasos', 'sueno', 'fc_reposo', 'vfc', 'minutos_ejercicio',
+    ]) {
       expect(columnas.some((c) => c.includes(salud))).toBe(false)
     }
   })

@@ -3,7 +3,7 @@
  *   - toma el código de la URL normalizado (mayúsculas, sin espacios);
  *   - no tiene ningún campo de texto libre: solo botones;
  *   - no pide ningún dato de salud, marque lo que marque en las casillas;
- *   - no envía nada sin las cuatro casillas y la declaración, y cuando envía, la
+ *   - no envía nada sin las cinco casillas y la declaración, y cuando envía, la
  *     evidencia de la autorización queda guardada.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -32,7 +32,7 @@ function contestarEncaje() {
   tocar('Ganar fuerza')
 }
 
-function marcarCasillas(valores: Record<'A' | 'B' | 'C' | 'D', 'Sí' | 'No'>) {
+function marcarCasillas(valores: Record<'A' | 'B' | 'C' | 'D' | 'E', 'Sí' | 'No'>) {
   for (const [letra, valor] of Object.entries(valores)) {
     const grupo = screen.getByRole('group', { name: `Casilla ${letra}` })
     fireEvent.click(Array.from(grupo.querySelectorAll('button')).find((b) => b.textContent === valor)!)
@@ -51,7 +51,7 @@ describe('el código de la URL', () => {
     montar('/interesados?codigo=pruébac-1')
     expect(screen.queryByText(/código:/i)).not.toBeInTheDocument()
     contestarEncaje()
-    marcarCasillas({ A: 'No', B: 'No', C: 'No', D: 'No' })
+    marcarCasillas({ A: 'No', B: 'No', C: 'No', D: 'No', E: 'No' })
     tocar('Acepto la declaración')
     tocar('Enviar')
     await screen.findByRole('status')
@@ -68,7 +68,7 @@ describe('sin texto libre y sin salud', () => {
   it('marcar las casillas de salud en «Sí» no abre ninguna pregunta de salud', () => {
     const { container } = montar()
     const antes = container.querySelectorAll('button').length
-    marcarCasillas({ A: 'Sí', B: 'Sí', C: 'Sí', D: 'Sí' })
+    marcarCasillas({ A: 'Sí', B: 'Sí', C: 'Sí', D: 'Sí', E: 'Sí' })
     expect(container.querySelectorAll('button').length).toBe(antes)
     expect(container.querySelectorAll('input, textarea, select')).toHaveLength(0)
     expect(screen.queryByText(/lesi[oó]n(es)? (tienes|te duele)|qu[eé] medicaci[oó]n tomas|cu[aá]nto pesas/i)).toBeNull()
@@ -83,7 +83,7 @@ describe('sin texto libre y sin salud', () => {
 describe('la autorización', () => {
   it('nada viene marcado de antemano', () => {
     montar()
-    for (const letra of ['A', 'B', 'C', 'D']) {
+    for (const letra of ['A', 'B', 'C', 'D', 'E']) {
       const grupo = screen.getByRole('group', { name: `Casilla ${letra}` })
       for (const b of Array.from(grupo.querySelectorAll('button'))) expect(b).toHaveAttribute('aria-pressed', 'false')
     }
@@ -93,7 +93,7 @@ describe('la autorización', () => {
     montar()
     contestarEncaje()
     tocar('Enviar')
-    expect(screen.getByRole('alert')).toHaveTextContent(/casilla A.*casilla D.*declaración/)
+    expect(screen.getByRole('alert')).toHaveTextContent(/casilla A.*casilla E.*declaración/)
     expect(guardadoEnDemo().encaje).toHaveLength(0)
     expect(guardadoEnDemo().autorizaciones).toHaveLength(0)
   })
@@ -101,7 +101,7 @@ describe('la autorización', () => {
   it('al enviar, la evidencia queda guardada con la versión, la fecha y las casillas marcadas', async () => {
     montar('/interesados?codigo=pruebac1&cliente=PRUEBA-002')
     contestarEncaje()
-    marcarCasillas({ A: 'Sí', B: 'No', C: 'No', D: 'Sí' })
+    marcarCasillas({ A: 'Sí', B: 'No', C: 'No', D: 'Sí', E: 'Sí' })
     tocar('Acepto la declaración')
     tocar('Enviar')
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/recibimos tus respuestas/i))
@@ -121,16 +121,49 @@ describe('la autorización', () => {
     expect(autorizaciones).toEqual([
       expect.objectContaining({
         envio_id: encaje[0].envio_id,
-        version_autorizacion: '0.3',
+        version_autorizacion: '0.4',
         canal: 'formulario',
         casilla_a: 'si',
         casilla_b: 'no',
         casilla_c: 'no',
         casilla_d: 'si',
+        casilla_e: 'si',
         declaracion_aceptada: true,
         fecha_hora: expect.any(String),
       }),
     ])
+  })
+})
+
+describe('la casilla E (v0.4)', () => {
+  it('se muestra con su texto y su alcance, sin marcar, y la versión del texto es la 0.4', () => {
+    montar()
+    expect(screen.getByText(/Leer desde mi teléfono/)).toBeInTheDocument()
+    expect(screen.getByText(/nunca tu ubicación, tus rutas/)).toBeInTheDocument()
+    expect(screen.getByText(/Versión del texto: 0\.4/)).toBeInTheDocument()
+    const grupo = screen.getByRole('group', { name: 'Casilla E' })
+    for (const b of Array.from(grupo.querySelectorAll('button'))) expect(b).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('sin contestar la E no se envía: las otras cuatro no bastan', () => {
+    montar()
+    contestarEncaje()
+    for (const letra of ['A', 'B', 'C', 'D']) {
+      const grupo = screen.getByRole('group', { name: `Casilla ${letra}` })
+      fireEvent.click(Array.from(grupo.querySelectorAll('button')).find((b) => b.textContent === 'No')!)
+    }
+    tocar('Acepto la declaración')
+    tocar('Enviar')
+    expect(screen.getByRole('alert')).toHaveTextContent(/casilla E/)
+    expect(guardadoEnDemo().autorizaciones).toHaveLength(0)
+  })
+
+  it('marcar la E en «Sí» no abre ninguna pregunta de salud en este formulario', () => {
+    const { container } = montar()
+    const antes = container.querySelectorAll('button').length
+    marcarCasillas({ A: 'No', B: 'No', C: 'No', D: 'No', E: 'Sí' })
+    expect(container.querySelectorAll('button').length).toBe(antes)
+    expect(container.querySelectorAll('input, textarea, select')).toHaveLength(0)
   })
 })
 
@@ -144,7 +177,7 @@ describe('siempre en negro', () => {
   it('la pantalla de «gracias» también va en tema oscuro', async () => {
     montar()
     contestarEncaje()
-    marcarCasillas({ A: 'Sí', B: 'No', C: 'No', D: 'No' })
+    marcarCasillas({ A: 'Sí', B: 'No', C: 'No', D: 'No', E: 'No' })
     tocar('Acepto la declaración')
     tocar('Enviar')
     const aviso = await screen.findByRole('status')
