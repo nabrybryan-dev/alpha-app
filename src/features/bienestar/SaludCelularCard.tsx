@@ -195,8 +195,8 @@ export function SaludCelularCard({ plataforma: plataformaPropia, enlaceDelAtajo 
         {estado.permiso && <Badge tono="verde">Permiso activo</Badge>}
       </div>
       <p className="mt-0.5 text-xs text-tenue">
-        Opcional. Si quieres, tu iPhone le manda a Alpha un resumen al día de esos datos para que tu
-        coach ajuste tu plan. Si no lo activas, sigues igual con tu check-in.
+        Opcional. Si quieres, tu iPhone le manda a Alpha un resumen al día de seis datos de tu app Salud
+        (los ves abajo) para que tu coach ajuste tu plan. Si no lo activas, sigues igual con tu check-in.
       </p>
 
       {aviso && (
