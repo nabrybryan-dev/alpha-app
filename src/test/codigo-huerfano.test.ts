@@ -91,6 +91,11 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Contratos del organizador (0098/0099) que consumirá su pantalla; hoy solo los ejercita la prueba.
+  'src/domain/planOrganizador.ts#NOMBRE_ESTADO_PLAN':
+    'Rótulos de los estados del plan: los pintará la pantalla «Mi plan» del organizador, que aún no existe.',
+  'src/domain/planOrganizador.ts#tareasAtascadas':
+    'Las tareas que llevan dos semanas moviéndose: las consumirá la pregunta «¿se hace, se delega o se borra?» de la pantalla.',
   // Espejo en TypeScript del criterio de la base para no contar dos veces un enlace de mercadeo.
   // Hoy solo lo ejercita su prueba: la normalización real la hace la base al insertar.
   'src/domain/mercadeoManuela.ts#normalizarUrl':
