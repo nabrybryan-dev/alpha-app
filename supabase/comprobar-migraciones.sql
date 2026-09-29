@@ -1175,6 +1175,9 @@ select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe,
               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'proteger_perfil'
                  and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+       then 'SI' else 'NO' end
+
+union all
 -- == LAS QUE FALTABAN, Y LOS DOS PARES REPETIDOS (anadidas el 2026-09-10) =====
 --
 -- En `main` hay DOS archivos llamados 0062 y DOS llamados 0065, y falta la 0063
