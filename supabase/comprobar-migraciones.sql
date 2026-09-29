@@ -2112,4 +2112,16 @@ select '0099 - avisos_plan_enviados: RLS, solo service_role, un aviso por tarea 
             when not has_table_privilege('service_role', 'public.avisos_plan_enviados', 'insert') then 'NO'
             when to_regclass('public.avisos_plan_enviados_una_por_tarea_y_dia') is null then 'NO'
             else 'SI' end
+union all
+-- La 0100: las vistas mis_comentarios y decisiones_con_estado con security_invoker (advisor: Security Definer View).
+select '0100 - mis_comentarios y decisiones_con_estado con security_invoker', 'las dos vistas con reloptions security_invoker=on; mis_comentarios_datos() security definer sin execute para anon; anon sin select en ninguna vista',
+       case when to_regclass('public.mis_comentarios') is null or to_regclass('public.decisiones_con_estado') is null then 'NO'
+            when not coalesce((select c.reloptions @> array['security_invoker=on'] from pg_class c where c.oid = to_regclass('public.mis_comentarios')), false)
+              or not coalesce((select c.reloptions @> array['security_invoker=on'] from pg_class c where c.oid = to_regclass('public.decisiones_con_estado')), false) then 'NO'
+            when to_regprocedure('public.mis_comentarios_datos()') is null
+              or has_function_privilege('anon', 'public.mis_comentarios_datos()', 'execute') then 'NO'
+            when has_table_privilege('anon', 'public.mis_comentarios', 'select')
+              or has_table_privilege('anon', 'public.decisiones_con_estado', 'select') then 'NO'
+            else 'SI' end
 order by migracion, senal;
+

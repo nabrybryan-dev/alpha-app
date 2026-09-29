@@ -150,3 +150,6 @@ jobs:
 
       - name: El registro de avisos push del organizador admite un aviso por tarea y día y solo lo escribe el servicio
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/170-avisos-plan-enviados.sql
+
+      - name: Las vistas de comentarios y decisiones corren con los permisos de quien las lee, y cada rol ve lo mismo que antes
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/180-vistas-invoker.sql
