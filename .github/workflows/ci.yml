@@ -129,3 +129,6 @@ jobs:
 
       - name: La tarjeta semanal y los mensajes de estilo de vida respetan quién es el dueño
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/100-tarjeta-vida-y-mensajes.sql
+
+      - name: La salud del celular (casilla E, código del atajo, resúmenes) solo la escribe la función y solo la lee su dueño o quien tiene la capacidad
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-salud-del-celular.sql
