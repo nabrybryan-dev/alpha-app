@@ -215,8 +215,10 @@ select pruebas.afirmar(
   'la vista no trae los nombres de quien decidió y de quien firma'
 );
 select pruebas.afirmar(
-  (select count(*) from public.companeros_de_decision()) = 1
-  and (select id from public.companeros_de_decision()) = 'd9000000-0000-0000-0000-000000000002',
+  -- Las pruebas 10/20 dejan un coach confirmado en la base (33333333…): se mira solo el bloque d9…,
+  -- donde únicamente Bryan es coach; ni Manuela, ni el staff sin registro, ni el barrido aparecen.
+  (select array_agg(id order by id) from public.companeros_de_decision() where id::text like 'd9000000-%')
+    = array['d9000000-0000-0000-0000-000000000002']::uuid[],
   'a Manuela solo se le ofrece a Bryan como quien firma'
 );
 
