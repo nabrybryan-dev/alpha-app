@@ -2101,4 +2101,15 @@ select '0098 - plan_items: RLS, anon sin nada, authenticated sin delete, capacid
                               where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
                                 and pg_get_constraintdef(oid) like '%organizar_plan%') then 'NO'
             else 'SI' end
+union all
+-- La 0099: avisos_plan_enviados (avisos push del organizador). Solo service_role escribe.
+select '0099 - avisos_plan_enviados: RLS, solo service_role, un aviso por tarea y dia', 'avisos_plan_enviados con RLS; anon y authenticated sin select ni insert; service_role con insert; indice unico por tarea y dia',
+       case when to_regclass('public.avisos_plan_enviados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.avisos_plan_enviados')) then 'NO'
+            when has_table_privilege('anon', 'public.avisos_plan_enviados', 'select')
+              or has_table_privilege('authenticated', 'public.avisos_plan_enviados', 'select')
+              or has_table_privilege('authenticated', 'public.avisos_plan_enviados', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.avisos_plan_enviados', 'insert') then 'NO'
+            when to_regclass('public.avisos_plan_enviados_una_por_tarea_y_dia') is null then 'NO'
+            else 'SI' end
 order by migracion, senal;

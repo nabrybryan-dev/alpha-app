@@ -24,19 +24,37 @@ Especificación: `bola-de-nieve/organizador/ESPEC-ORGANIZADOR.md`.
 Pegar `0098_plan_items.sql` en el SQL Editor y correr después `supabase/comprobar-migraciones.sql`: la fila 0098 debe decir SI.
 Los `insert` de `capacidades_staff` solo casan con los UUID reales de Bryan y Manuela.
 
-## Avisos: qué existe y qué no (siguiente paso)
+## Avisos push: el emisor (migración 0099 + Edge Function `avisos-plan`)
 
-La app YA tiene el permiso de avisos del navegador y la suscripción (`src/features/avisos/suscripcion.ts`, tabla
-`suscripciones_push` de la 0061, `PedirPermiso` en Mi día). **No existe ningún servicio que ENVÍE un push**: `supabase/functions`
-solo tiene `responder-chat`, y el propio spec de la revisión semanal deja «la fontanería del empuje» aparcada. Por eso esta rama
-NO inventa uno: el aviso es el banner dentro de la app.
+Construido, **sin desplegar ni aplicar**. La tabla de suscripciones real es `permisos_de_aviso` (0063: `endpoint`, `p256dh`, `auth`,
+una fila por persona), no `suscripciones_push`.
 
-Siguiente paso, cuando Bryan lo quiera (no está hecho):
-1. Una Edge Function `enviar-aviso-plan` (web-push con claves VAPID en secretos) que lea `suscripciones_push` del dueño.
-2. Un disparador programado (cron de Supabase o el vigía) a la hora del bloque del día y a las 2 días sin moverse
-   (`estaAtascada` ya define la regla en `src/domain/planOrganizador.ts`; habría que llevarla a SQL o al agente).
-3. El texto lo arma la habilidad `organizador-bryan` (resumen de la mañana y de la noche); el envío por Telegram/WhatsApp sigue
-   apagado por defecto hasta que Bryan configure el token.
+- `supabase/functions/avisos-plan/decidir.ts`: decisión pura (probada en `src/domain/avisosPlan.test.ts`, como hace el repo con
+  `responder-chat`). `index.ts`: lee suscripciones, plan y avisos ya enviados por REST con la clave de servicio, reserva la fila en
+  `avisos_plan_enviados` ANTES de enviar (índice único tarea+día), envía con `npm:web-push` y, si el push responde 404/410, deja
+  la suscripción inactiva (borra endpoint y claves de `permisos_de_aviso`; `dijo_si` no se toca).
+- Casos: (1) inicio de bloque: principal de hoy en `pendiente`, desde la hora fijada (08:00 Bogotá por defecto); (2) atascada:
+  tarea abierta con día <= hoy, 2 días sin `actualizado_en` o `veces_movida` >= 2. Máximo 1 aviso por tarea y día. Texto: título + primer paso.
+- Service worker: `public/push-sw.js` (cargado con `workbox.importScripts` en `vite.config.ts`) muestra la notificación y al
+  tocarla abre `/coach/mi-plan` (Bryan) o `/mi-plan` (Manuela).
+- Migración `0099_avisos_plan_enviados.sql`, prueba `supabase/test/170-avisos-plan-enviados.sql` (paso en CI) y señal 0099 en
+  `comprobar-migraciones.sql`. No se pudo correr aquí (sin Postgres ni Deno); la primera vuelta real es el CI.
+
+### Pasos para Bryan (no ejecutados)
+
+1. Aplicar la 0098 y luego la 0099 (SQL Editor) y correr `supabase/comprobar-migraciones.sql`: 0098 y 0099 deben decir SI.
+2. Generar las claves VAPID: `npx web-push generate-vapid-keys`.
+3. Poner la pública en la app como `VITE_VAPID_PUBLIC_KEY` (la lee `PedirPermiso`; sin ella la app no se suscribe)
+   y guardar los secretos de la función:
+   `supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:tu@correo`
+   Opcionales: `AVISOS_HORA_BRYAN=08:00`, `AVISOS_HORA_MANUELA=08:00`. `SUPABASE_URL` y la service role ya las inyecta Supabase.
+4. Desplegar: `supabase functions deploy avisos-plan` (o pegar `index.ts` y `decidir.ts` en el editor). La función solo acepta la
+   service role en `Authorization`.
+5. Cada dueño abre la app desplegada y acepta el aviso (así queda su fila en `permisos_de_aviso` con endpoint).
+6. Programar el cron (pg_cron + pg_net, cada 30 min de 07:00 a 20:00 Bogotá = 12:00 a 01:00 UTC):
+   `select cron.schedule('avisos-plan', '*/30 12-23,0 * * *', $$ select net.http_post(url := 'https://<proyecto>.supabase.co/functions/v1/avisos-plan', headers := jsonb_build_object('Authorization', 'Bearer ' || '<SERVICE_ROLE>', 'Content-Type', 'application/json'), body := '{}'::jsonb) $$);`
+   (mejor guardar la clave en Vault y leerla de ahí; o crear el programa desde Integrations > Cron del panel).
+7. Probar una vez a mano con `curl -X POST` y la service role; la respuesta dice cuántos enviados, caducadas y fallos.
 
 ## Dudas para Bryan
 
