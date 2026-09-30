@@ -20,6 +20,8 @@ const estado = {
   primeros: [] as { estado: string }[] | string,
   renovados: [] as { estado: string }[] | string,
   lecturas: 0,
+  /** Quién abre la pantalla; por defecto, alguien que no está en la cartera. */
+  usuarioId: 'u-manuela',
 }
 
 const leer = (x: { estado: string }[] | string) => {
@@ -29,7 +31,7 @@ const leer = (x: { estado: string }[] | string) => {
 
 vi.mock('../../app/SessionProvider', () => {
   const sesion = () => ({
-    usuario: { id: 'u-manuela', nombre: 'Manuela Prueba', rol: estado.rol, avatarIniciales: 'MP' },
+    usuario: { id: estado.usuarioId, nombre: 'Manuela Prueba', rol: estado.rol, avatarIniciales: 'MP' },
     esNube: false,
     cambiarUsuario: () => {},
     cerrarSesion: () => {},
@@ -77,6 +79,7 @@ beforeEach(() => {
   estado.primeros = []
   estado.renovados = []
   estado.lecturas = 0
+  estado.usuarioId = 'u-manuela'
 })
 
 describe('EquipoPage', () => {
@@ -306,5 +309,28 @@ describe('Decisiones en Administración y Mensajes con pestañas', () => {
     pintar()
     const tarjeta = await screen.findByRole('region', { name: 'Mensajes' })
     expect(within(tarjeta).getByText('Ningún asesorado te ha escrito sin leer.')).toBeInTheDocument()
+  })
+})
+
+// 26 frente a 27 (revisión de Codex, 30-sep): la consola cuenta a todos los que entrenan,
+// incluida Manuela (la nutricionista entrena con el plan: `usuarios.entrenan()`); Equipo no la
+// pone en su propia cartera. La diferencia es de alcance y la pantalla la dice.
+describe('Equipo: por qué no coincide con la cifra de la consola', () => {
+  it('no cuenta a quien abre la pantalla y lo dice con una frase corta', async () => {
+    const todos = db.usuarios.entrenan()
+    estado.usuarioId = todos[0].id
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    pintar()
+    await screen.findByRole('link', { name: 'Abrir la consola completa' })
+    expect(screen.getByText(new RegExp(`^${todos.length - 1} personas`))).toBeInTheDocument()
+    const nota = screen.getByText(/La consola cuenta/)
+    expect(nota).toHaveTextContent(`La consola cuenta ${todos.length}: incluye a quien abre la pantalla. Aquí no te cuentas a ti.`)
+  })
+
+  it('si quien abre no entrena, no hay nada que aclarar', async () => {
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    pintar()
+    await screen.findByRole('link', { name: 'Abrir la consola completa' })
+    expect(screen.queryByText(/La consola cuenta/)).not.toBeInTheDocument()
   })
 })

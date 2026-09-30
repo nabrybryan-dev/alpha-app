@@ -192,6 +192,10 @@ export default function EquipoPage() {
         .map((u) => resumenAsesorado(db, u))
         .sort((a, b) => ORDEN_COLOR[a.semaforo.color] - ORDEN_COLOR[b.semaforo.color])
     : []
+  // La consola cuenta a TODOS los que entrenan, y la nutricionista entrena con el plan: quien
+  // abre esta pantalla está en esa cuenta (26 aquí frente a 27 allá). Se dice, no se oculta.
+  const entrenan = db.usuarios.entrenan()
+  const yoEntreno = entrenan.some((u) => u.id === usuario.id)
   const atencion = cartera.filter((r) => r.semaforo.color !== 'verde')
   const alDia = cartera.filter((r) => r.semaforo.color === 'verde')
 
@@ -205,6 +209,11 @@ export default function EquipoPage() {
           </p>
         )}
         <h2 className="font-display text-3xl leading-none text-texto">Equipo</h2>
+        {conConsola && yoEntreno && (
+          <p className="text-xs text-tenue">
+            La consola cuenta {entrenan.length}: incluye a quien abre la pantalla. Aquí no te cuentas a ti.
+          </p>
+        )}
       </header>
 
       <Link to="/equipo-nutricion" className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea font-semibold text-texto">Nutrición del equipo</Link>
