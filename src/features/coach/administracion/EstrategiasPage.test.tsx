@@ -52,6 +52,10 @@ describe('EstrategiasPage · orden de Bryan', () => {
     await screen.findByRole('region', { name: 'Mercadeo' })
     expect(nombres()).toEqual([
       'Mercadeo',
+      'Tendencias',
+      'Videos: estructura, loops y cortes',
+      'Ganchos usados (hooks)',
+      'Diseños visuales',
       'Investigación del agente',
       'Creadores evaluados',
       'Influencers (bola de nieve)',
