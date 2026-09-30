@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   NOMBRE_CARRIL,
   S_MINIMA,
@@ -18,6 +19,7 @@ import { Cifra3D } from '../../../components/ui/Cifra3D'
 import { EntradaMiPlan } from '../../plan/EntradaMiPlan'
 import { BuzonMercadeo } from './BuzonMercadeo'
 import { embudoDe, type Embudo } from './embudo'
+import { criteriosAplicados, escribirFiltros, filtrarCandidatos, leerFiltros, SIN_FILTROS, type Filtros } from './filtros'
 
 /**
  * Tablero de CREADORES (fase F1 de `PLAN-CENTRALIZACION.md`): SOLO LECTURA.
@@ -318,13 +320,21 @@ function DetalleRevisiones({ creadorId }: { creadorId: string }) {
   )
 }
 
-function TarjetaCandidato({ candidato }: { candidato: Candidato }) {
-  const [abierta, setAbierta] = useState(false)
+/** Abierta o cerrada la decide el tablero, no la tarjeta: así un filtro no la pliega. */
+function TarjetaCandidato({
+  candidato,
+  abierta,
+  onAlternar,
+}: {
+  candidato: Candidato
+  abierta: boolean
+  onAlternar: () => void
+}) {
   return (
     <li className="rounded-tarjeta border border-linea bg-surface-1 p-3">
       <button
         type="button"
-        onClick={() => setAbierta((a) => !a)}
+        onClick={onAlternar}
         aria-expanded={abierta}
         className="flex w-full flex-wrap items-baseline justify-between gap-2 text-left"
       >
@@ -347,9 +357,92 @@ function TarjetaCandidato({ candidato }: { candidato: Candidato }) {
   )
 }
 
+/**
+ * Búsqueda por cuenta, carril y «espera desempate». Dice los criterios aplicados y cuántos
+ * resultados quedan; el embudo de arriba sigue contando a todos.
+ */
+function BarraFiltros({
+  filtros,
+  onCambiar,
+  total,
+  mostrados,
+  conteos,
+}: {
+  filtros: Filtros
+  onCambiar: (f: Filtros) => void
+  total: number
+  mostrados: number
+  conteos: { carril: Carril; n: number }[]
+}) {
+  const criterios = criteriosAplicados(filtros)
+  return (
+    <section aria-label="Buscar y filtrar" className="flex flex-col gap-2 rounded-tarjeta border border-linea bg-surface-1 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="search"
+          aria-label="Buscar cuenta"
+          placeholder="Buscar cuenta"
+          value={filtros.q}
+          onChange={(e) => onCambiar({ ...filtros, q: e.target.value })}
+          className="min-h-[44px] min-w-0 flex-1 rounded-md border border-linea bg-surface-2 px-3 text-sm text-texto"
+        />
+        <select
+          aria-label="Carril"
+          value={filtros.carril}
+          onChange={(e) => onCambiar({ ...filtros, carril: e.target.value as Filtros['carril'] })}
+          className="min-h-[44px] rounded-md border border-linea bg-surface-2 px-2 text-sm text-texto"
+        >
+          <option value="todos">Todos los carriles</option>
+          {conteos.map((c) => (
+            <option key={c.carril} value={c.carril}>{`${NOMBRE_CARRIL[c.carril]} (${c.n})`}</option>
+          ))}
+        </select>
+      </div>
+      <label className="flex min-h-[44px] items-center gap-2 text-sm text-texto">
+        <input
+          type="checkbox"
+          checked={filtros.desempate}
+          onChange={(e) => onCambiar({ ...filtros, desempate: e.target.checked })}
+        />
+        Espera desempate
+      </label>
+      <p role="status" className="text-xs text-tenue">
+        {mostrados} de {total} {total === 1 ? 'candidato' : 'candidatos'}
+        {criterios.length > 0 ? ` · ${criterios.join(' · ')}` : ' · sin filtros'}
+      </p>
+      {criterios.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onCambiar(SIN_FILTROS)}
+          className="press min-h-[44px] self-start rounded-full border border-linea px-4 text-xs font-bold text-texto"
+        >
+          Quitar filtros
+        </button>
+      )}
+    </section>
+  )
+}
+
 function TableroCreadores() {
   const { lectura, reintentar } = useLectura(candidatosDelTablero)
   const { lectura: historia, reintentar: reintentarHistoria } = useLectura(eventosDelTablero)
+  const ubicacion = useLocation()
+  const navegar = useNavigate()
+  const filtros = leerFiltros(new URLSearchParams(ubicacion.search))
+  // Los filtros viven en la URL (y se cambian en su lugar, sin apilar historia ni perder el
+  // `#carril-…`): salir a otra pantalla y volver deja el mismo carril.
+  const cambiarFiltros = (f: Filtros) => {
+    const p = escribirFiltros(f, new URLSearchParams(ubicacion.search)).toString()
+    navegar({ pathname: ubicacion.pathname, search: p ? `?${p}` : '', hash: ubicacion.hash }, { replace: true })
+  }
+  // Los detalles abiertos los guarda el tablero: un filtro que oculta una tarjeta no la pliega.
+  const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set())
+  const alternar = (id: string) =>
+    setAbiertos((a) => {
+      const n = new Set(a)
+      if (!n.delete(id)) n.add(id)
+      return n
+    })
 
   if (lectura === null) {
     return <p className="text-sm text-tenue" aria-busy="true">Cargando el tablero de creadores…</p>
@@ -365,7 +458,11 @@ function TableroCreadores() {
   }
   const candidatos = lectura.datos
 
-  const grupos = porCarril(candidatos)
+  const visibles = filtrarCandidatos(candidatos, filtros)
+  const grupos = porCarril(visibles)
+  const conteos = porCarril(candidatos)
+    .filter((g) => g.candidatos.length > 0)
+    .map((g) => ({ carril: g.carril, n: g.candidatos.length }))
   const orden = [
     ...grupos.filter((g) => PRIMERO.includes(g.carril)),
     ...grupos.filter((g) => !PRIMERO.includes(g.carril) && g.carril !== 'entrenador'),
@@ -403,6 +500,19 @@ function TableroCreadores() {
         <CabeceraEmbudo embudo={embudo} falloHistoria={falloHistoria} onReintentarHistoria={reintentarHistoria} />
       )}
 
+      {candidatos.length > 0 && (
+        <BarraFiltros
+          filtros={filtros}
+          onCambiar={cambiarFiltros}
+          total={candidatos.length}
+          mostrados={visibles.length}
+          conteos={conteos}
+        />
+      )}
+      {candidatos.length > 0 && visibles.length === 0 && (
+        <p className="text-sm text-tenue">Ningún candidato cumple esos criterios. Quita alguno para ver más.</p>
+      )}
+
       {orden
         .filter((g) => g.candidatos.length > 0)
         .map((g) => (
@@ -423,7 +533,12 @@ function TableroCreadores() {
             </h2>
             <ul className="flex flex-col gap-2">
               {g.candidatos.map((c) => (
-                <TarjetaCandidato key={c.creadorId} candidato={c} />
+                <TarjetaCandidato
+                  key={c.creadorId}
+                  candidato={c}
+                  abierta={abiertos.has(c.creadorId)}
+                  onAlternar={() => alternar(c.creadorId)}
+                />
               ))}
             </ul>
           </section>
