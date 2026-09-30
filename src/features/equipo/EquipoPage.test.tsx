@@ -131,8 +131,12 @@ describe('EquipoPage', () => {
     estado.renovados = [{ estado: 'propuesto' }]
     pintar()
     expect(await screen.findByText('3 por aprobar')).toBeInTheDocument()
-    expect(screen.getByText('2 primeros planes · 1 renovado')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /^Por aprobar/ })).toHaveAttribute('href', '/equipo-nutricion')
+    // Primer plan y renovación van en filas separadas, cada una con su cuenta.
+    const tarjeta = screen.getByRole('region', { name: 'Por aprobar' })
+    const primeros = within(tarjeta).getByRole('link', { name: /^Primer plan: 2 esperando tu firma/ })
+    const renovados = within(tarjeta).getByRole('link', { name: /^Renovación: 1 esperando tu firma/ })
+    expect(primeros).toHaveAttribute('href', '/equipo-nutricion')
+    expect(renovados).toHaveAttribute('href', '/equipo-nutricion')
   })
 
   it('con una sola capacidad cuenta solo esa bandeja, sin fingir un cero en la otra', async () => {
@@ -141,8 +145,8 @@ describe('EquipoPage', () => {
     estado.renovados = [{ estado: 'propuesto' }, { estado: 'propuesto' }]
     pintar()
     expect(await screen.findByText('1 por aprobar')).toBeInTheDocument()
-    expect(screen.getByText('1 primer plan')).toBeInTheDocument()
-    expect(screen.queryByText(/renovado/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^Primer plan: 1 esperando tu firma/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /^Renovación/ })).not.toBeInTheDocument()
   })
 
   // APP-F01 (revisión final de Codex, 28-sep): con la red caída, las dos lecturas devolvían []
@@ -338,5 +342,35 @@ describe('Equipo: por qué no coincide con la cifra de la consola', () => {
     pintar()
     await screen.findByRole('link', { name: 'Abrir la consola completa' })
     expect(screen.queryByText(/La consola cuenta/)).not.toBeInTheDocument()
+  })
+})
+
+describe('Equipo: semáforos explicados y aprobaciones separadas (30-sep)', () => {
+  it('cada color dice qué significa y cuál es el siguiente paso', async () => {
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    pintar()
+    await screen.findByRole('link', { name: 'Abrir la consola completa' })
+    const leyenda = screen.getByRole('list', { name: 'Qué significa cada color' })
+    const filas = within(leyenda).getAllByRole('listitem').map((li) => li.textContent)
+    expect(filas).toEqual([
+      'Rojo: lleva varios días sin registrar. Siguiente paso: ábrelo y revísalo hoy.',
+      'Ámbar: empieza a soltarse (pocos días sin registrar, microciclo vencido o readiness baja). Siguiente paso: abre su entrenamiento y mira el motivo.',
+      'Verde: al día. Siguiente paso: ninguno.',
+    ])
+  })
+
+  it('sin permiso de leer el entrenamiento no hay leyenda de una cartera que no se ve', async () => {
+    pintar()
+    await screen.findByText(/permiso de leer el entrenamiento/)
+    expect(screen.queryByRole('list', { name: 'Qué significa cada color' })).not.toBeInTheDocument()
+  })
+
+  it('con las dos bandejas vacías, cada una lo dice por separado y no habilita nada nuevo', async () => {
+    estado.capacidades = new Set(['aprobar_primer_plan', 'aprobar_plan_estrategico'])
+    pintar()
+    const tarjeta = await screen.findByRole('region', { name: 'Por aprobar' })
+    expect(within(tarjeta).getByText('Ningún primer plan esperando tu firma')).toBeInTheDocument()
+    expect(within(tarjeta).getByText('Ninguna renovación esperando tu firma')).toBeInTheDocument()
+    expect(within(tarjeta).queryByRole('button')).not.toBeInTheDocument()
   })
 })

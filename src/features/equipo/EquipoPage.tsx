@@ -101,6 +101,33 @@ function TarjetaPorAprobarIncompleta({ cuenta }: { cuenta: PorAprobar }) {
   )
 }
 
+/** Una bandeja, en su propia fila: su cuenta o un estado vacío claro. Solo lleva a la bandeja. */
+function FilaAprobacion({
+  nombre,
+  n,
+  vacio,
+}: {
+  nombre: string
+  n: number
+  vacio: string
+}) {
+  const pide = n > 0
+  return (
+    <li>
+      <Link
+        to="/equipo-nutricion"
+        aria-label={pide ? `${nombre}: ${n} esperando tu firma. Abrir la bandeja` : `${nombre}: ${vacio}`}
+        className="press flex min-h-[48px] items-center justify-between gap-3 border-t border-linea"
+      >
+        <span className={`text-sm ${pide ? 'font-semibold text-texto' : 'text-tenue'}`}>
+          {pide ? `${nombre}: ${n} esperando tu firma` : vacio}
+        </span>
+        <span aria-hidden="true" className="text-tenue">›</span>
+      </Link>
+    </li>
+  )
+}
+
 function TarjetaPorAprobar({ cuenta }: { cuenta: PorAprobar }) {
   if (cuenta.primeros?.ok === false || cuenta.renovados?.ok === false) {
     return <TarjetaPorAprobarIncompleta cuenta={cuenta} />
@@ -108,27 +135,60 @@ function TarjetaPorAprobar({ cuenta }: { cuenta: PorAprobar }) {
   const primeros = cuenta.primeros?.ok ? cuenta.primeros.n : null
   const renovados = cuenta.renovados?.ok ? cuenta.renovados.n : null
   const total = (primeros ?? 0) + (renovados ?? 0)
-  const partes = [
-    primeros !== null && `${primeros} ${primeros === 1 ? 'primer plan' : 'primeros planes'}`,
-    renovados !== null && `${renovados} ${renovados === 1 ? 'renovado' : 'renovados'}`,
-  ].filter(Boolean)
   const pide = total > 0
   return (
-    <Link
-      to="/equipo-nutricion"
-      aria-label={`Por aprobar: ${partes.join(' y ')}. Abrir las bandejas`}
-      className={`press entrada entrada-1 flex min-h-[64px] items-center justify-between gap-3 rounded-tarjeta border bg-surface-1 p-4 shadow-sm ${
+    <section
+      aria-label="Por aprobar"
+      className={`entrada entrada-1 flex flex-col rounded-tarjeta border bg-surface-1 px-4 pt-4 shadow-sm ${
         pide ? 'border-rojo' : 'border-linea'
       }`}
     >
-      <span className="flex min-w-0 flex-col gap-1">
+      <div className="flex items-center justify-between gap-3 pb-3">
         <span className={`text-[11px] font-bold uppercase tracking-[0.14em] ${pide ? 'text-rojo' : 'text-tenue'}`}>
           Por aprobar
         </span>
-        <span className="text-sm font-semibold text-texto">{pide ? partes.join(' · ') : 'Nada esperando tu firma'}</span>
-      </span>
-      <Cifra3D valor={total} rojo={pide} tamano={44} etiqueta={`${total} por aprobar`} />
-    </Link>
+        <Cifra3D valor={total} rojo={pide} tamano={44} etiqueta={`${total} por aprobar`} />
+      </div>
+      <ul>
+        {primeros !== null && (
+          <FilaAprobacion nombre="Primer plan" n={primeros} vacio="Ningún primer plan esperando tu firma" />
+        )}
+        {renovados !== null && (
+          <FilaAprobacion nombre="Renovación" n={renovados} vacio="Ninguna renovación esperando tu firma" />
+        )}
+      </ul>
+    </section>
+  )
+}
+
+/**
+ * Qué significa cada color y qué sigue. Solo explica el semáforo de la consola
+ * (`semaforoAsesorado`); no lo calcula ni lo cambia, y evita cifras para no desfasarse si un
+ * umbral se ajusta allí.
+ */
+const LEYENDA_SEMAFORO: { color: ResumenAsesorado['semaforo']['color']; nombre: string; texto: string }[] = [
+  { color: 'rojo', nombre: 'Rojo', texto: 'lleva varios días sin registrar. Siguiente paso: ábrelo y revísalo hoy.' },
+  {
+    color: 'ambar',
+    nombre: 'Ámbar',
+    texto:
+      'empieza a soltarse (pocos días sin registrar, microciclo vencido o readiness baja). Siguiente paso: abre su entrenamiento y mira el motivo.',
+  },
+  { color: 'verde', nombre: 'Verde', texto: 'al día. Siguiente paso: ninguno.' },
+]
+
+function LeyendaSemaforo() {
+  return (
+    <ul aria-label="Qué significa cada color" className="flex flex-col gap-1.5 border-t border-linea py-3">
+      {LEYENDA_SEMAFORO.map((l) => (
+        <li key={l.color} className="flex items-start gap-2 text-xs text-tenue">
+          <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${PUNTO[l.color]}`} aria-hidden="true" />
+          <span>
+            <strong className="text-texto">{l.nombre}:</strong> {l.texto}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -225,6 +285,7 @@ export default function EquipoPage() {
         className="entrada entrada-2 flex flex-col rounded-tarjeta border border-linea bg-surface-1 px-4 py-2 shadow-sm"
       >
         <p className="py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Cartera</p>
+        {conConsola && <LeyendaSemaforo />}
         {cargando ? (
           <p className="border-t border-linea py-3 text-sm text-tenue" aria-busy="true">Cargando tus permisos…</p>
         ) : !conConsola ? (
