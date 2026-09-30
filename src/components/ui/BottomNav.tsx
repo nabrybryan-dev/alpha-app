@@ -82,7 +82,8 @@ const pestanasAsesorado = [
  *   · Mi entreno (/mi-entreno): la semana, lo que toca hoy y la entrada al salón.
  *   · Nutrición (/equipo-nutricion): su trabajo de nutricionista con el equipo.
  *   · Equipo (/equipo): lo que espera aprobación, la cartera y los mensajes.
- *   · Estrategia (/coach/creadores): el tablero de la bola de nieve.
+ *   · Estrategia (/coach/administracion): el Área administrativa (finanzas, plan, agentes,
+ *     desvíos, influencers, mercadeo y plataforma); los creadores cuelgan de ella.
  *
  * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
  */
@@ -102,7 +103,7 @@ const pestanasStaff = [
     ),
   },
   {
-    ruta: '/coach/creadores',
+    ruta: '/coach/administracion',
     etiqueta: 'Estrategia',
     icono: (
       <Icono>

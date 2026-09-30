@@ -156,3 +156,6 @@ jobs:
 
       - name: Los avisos de seguridad (checkins_nutricion invoker, firmas sin anon) no cambian lo que ve cada rol
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/190-avisos-seguridad.sql
+
+      - name: El tablero del área administrativa lo lee quien tiene la capacidad, no lo escribe nadie con sesión y anon no ve nada
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/200-admin-tablero.sql

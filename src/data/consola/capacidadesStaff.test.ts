@@ -60,9 +60,10 @@ const AMPLIACIONES = [
   ['0095_comentarios_app.sql', 'triar_comentarios'],
   ['0096_buzon_mercadeo.sql', 'responder_mercadeo'],
   ['0098_plan_items.sql', 'organizar_plan'],
+  ['0102_admin_tablero.sql', 'ver_administracion'],
 ] as const
 
-describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087 + 0090 + 0094 a 0098)', () => {
+describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087 + 0090 + 0094 a 0098 y 0102)', () => {
   it('cada capacidad declarada aquí existe en el `check` de la migración, y al revés', () => {
     const sql = readFileSync(MIGRACION, 'utf8')
     const inicio = sql.indexOf('add constraint capacidades_staff_capacidad_check')

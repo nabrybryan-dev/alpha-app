@@ -106,6 +106,7 @@ export function CoachLayout() {
   const esCoach = usuario.rol === 'coach'
   const enConsola = pathname.startsWith('/coach/consola')
   const enCreadores = pathname.startsWith('/coach/creadores')
+  const enAdmin = pathname.startsWith('/coach/administracion')
 
   // La CONSOLA se abre por capacidad, no por rol (decisión de Bryan, 26-sep): el staff con
   // `leer_entrenamiento` (Manuela) entra a /coach/consola; el resto del panel del coach
@@ -114,7 +115,7 @@ export function CoachLayout() {
   // El tablero de CREADORES (0090) sigue la misma regla con su propia capacidad:
   // `revisar_creadores`, no `leer_entrenamiento`.
   if (!esCoach) {
-    if (!enConsola && !enCreadores) return <Navigate to="/" replace />
+    if (!enConsola && !enCreadores && !enAdmin) return <Navigate to="/" replace />
     if (cargando) {
       return (
         <div className="grid min-h-dvh place-items-center bg-bg text-sm text-tenue" aria-busy="true">
@@ -124,6 +125,8 @@ export function CoachLayout() {
     }
     if (enConsola && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
     if (enCreadores && !tiene('revisar_creadores')) return <Navigate to="/" replace />
+    // El Área administrativa (0102) se abre con su propia capacidad, no con la de creadores.
+    if (enAdmin && !tiene('ver_administracion')) return <Navigate to="/" replace />
   }
 
   // La consola necesita más ancho que el resto del panel: cartera lateral +
@@ -135,12 +138,13 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo={esCoach ? 'Panel del coach' : enCreadores ? 'Estrategia' : 'Consola del equipo'} />
+      <TopBar titulo={esCoach ? 'Panel del coach' : enAdmin ? 'Área administrativa' : enCreadores ? 'Creadores' : 'Consola del equipo'} />
       <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
         {esCoach ? (
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/administracion">Área administrativa</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
           </>
@@ -148,7 +152,7 @@ export function CoachLayout() {
           <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
         )}
       </nav>
-      {(esCoach || enCreadores) && <BannerPlanHoy />}
+      {(esCoach || enCreadores || enAdmin) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
       <main className={`mx-auto overflow-x-clip px-4 pt-4 ${esCoach ? 'pb-16' : 'pb-28'} ${anchoContenedor}`}>

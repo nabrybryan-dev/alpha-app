@@ -25,6 +25,7 @@ const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
 const CreadoresPage = lazy(() => import('../features/coach/creadores/CreadoresPage'))
+const AdministracionPage = lazy(() => import('../features/coach/administracion/AdministracionPage'))
 const EquipoPage = lazy(() => import('../features/equipo/EquipoPage'))
 const MiPlanPage = lazy(() => import('../features/plan/MiPlanPage'))
 const MiEntrenoPage = lazy(() => import('../features/entrenar/miEntreno/MiEntrenoPage'))
@@ -94,6 +95,9 @@ export function AppRouter() {
         {/* Tablero de creadores (0090, F1): solo lectura; lo abre el coach o quien tenga
             `revisar_creadores` (Manuela). */}
         <Route path="creadores" element={envolver(<CreadoresPage />)} />
+        {/* Área administrativa (0102): las siete secciones; la abre el coach o quien tenga
+            `ver_administracion` (Manuela). */}
+        <Route path="administracion" element={envolver(<AdministracionPage />)} />
         {/* Organizador (0098): el plan de Bryan. */}
         <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
       </Route>

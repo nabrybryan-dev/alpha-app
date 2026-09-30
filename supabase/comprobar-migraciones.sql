@@ -2137,4 +2137,20 @@ select '0101 - checkins_nutricion con security_invoker; es_nutricionista y firmo
               or has_function_privilege('public', 'public.es_nutricionista()', 'execute')
               or has_function_privilege('public', 'public.firmo_yo(text)', 'execute') then 'NO'
             else 'SI' end
+union all
+-- La 0102: admin_tablero (área administrativa) y la capacidad ver_administracion. Lee la capacidad; escribe solo service_role.
+select '0102 - admin_tablero: RLS, lectura por capacidad ver_administracion, solo service_role escribe', 'admin_tablero con RLS; anon sin select; authenticated con select pero sin insert/update/delete; service_role con insert; unico por seccion y corte; el check de capacidades contiene ver_administracion',
+       case when to_regclass('public.admin_tablero') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.admin_tablero')) then 'NO'
+            when has_table_privilege('anon', 'public.admin_tablero', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.admin_tablero', 'select')
+              or has_table_privilege('authenticated', 'public.admin_tablero', 'insert')
+              or has_table_privilege('authenticated', 'public.admin_tablero', 'update')
+              or has_table_privilege('authenticated', 'public.admin_tablero', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.admin_tablero', 'insert') then 'NO'
+            when to_regclass('public.admin_tablero_una_por_seccion_y_corte') is null then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%ver_administracion%') then 'NO'
+            else 'SI' end
 order by migracion, senal;

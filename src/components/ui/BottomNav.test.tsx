@@ -29,7 +29,7 @@ describe('BottomNav', () => {
       ['Mi entreno', '/mi-entreno'],
       ['Nutrición', '/equipo-nutricion'],
       ['Equipo', '/equipo'],
-      ['Estrategia', '/coach/creadores'],
+      ['Estrategia', '/coach/administracion'],
     ])
   })
 
