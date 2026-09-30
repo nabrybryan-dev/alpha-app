@@ -106,7 +106,8 @@ export function CoachLayout() {
   const esCoach = usuario.rol === 'coach'
   const enConsola = pathname.startsWith('/coach/consola')
   const enCreadores = pathname.startsWith('/coach/creadores')
-  const enAdmin = pathname.startsWith('/coach/administracion')
+  const enEstrategias = pathname.startsWith('/coach/estrategias')
+  const enAdmin = pathname.startsWith('/coach/administracion') || enEstrategias
 
   // La CONSOLA se abre por capacidad, no por rol (decisión de Bryan, 26-sep): el staff con
   // `leer_entrenamiento` (Manuela) entra a /coach/consola; el resto del panel del coach
@@ -138,12 +139,13 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo={esCoach ? 'Panel del coach' : enAdmin ? 'Área administrativa' : enCreadores ? 'Creadores' : 'Consola del equipo'} />
+      <TopBar titulo={esCoach ? 'Panel del coach' : enEstrategias ? 'Estrategias' : enAdmin ? 'Área administrativa' : enCreadores ? 'Creadores' : 'Consola del equipo'} />
       <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
         {esCoach ? (
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/estrategias">Estrategias</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/administracion">Área administrativa</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>

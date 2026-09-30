@@ -97,6 +97,7 @@ export function AppRouter() {
         <Route path="creadores" element={envolver(<CreadoresPage />)} />
         {/* Área administrativa (0102): las siete secciones; la abre el coach o quien tenga
             `ver_administracion` (Manuela). */}
+        <Route path="estrategias" element={envolver(<AdministracionPage espacio="estrategias" />)} />
         <Route path="administracion" element={envolver(<AdministracionPage />)} />
         {/* Organizador (0098): el plan de Bryan. */}
         <Route path="mi-plan" element={envolver(<MiPlanPage />)} />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
@@ -138,6 +138,8 @@ function calcularEquipo(hoy: string): DatosEquipo {
  */
 export default function EquipoNutricionPage() {
   const { usuario } = useSesion()
+  const [parametros] = useSearchParams()
+  const persona = parametros.get('persona')
   const version = useDbVersion()
   const hoy = hoyIso()
   /** El asesorado cuyo panel de vetos está abierto. */
@@ -149,7 +151,12 @@ export default function EquipoNutricionPage() {
     return <Navigate to="/" replace />
   }
 
-  const { filas, pendientes } = datosDelEquipo(version, hoy)
+  const datos = datosDelEquipo(version, hoy)
+  const filas = persona === null ? datos.filas : datos.filas.filter((f) => f.usuario.id === persona)
+  const pendientes = persona === null ? datos.pendientes : filas.filter((f) => {
+    const respuestas = (db.perfilNutricion.byUsuario(f.usuario.id)?.respuestas ?? {}) as Respuestas
+    return visibilidadDe(db.visibilidad.byUsuario(f.usuario.id), senalesDeLaEncuesta(respuestas)).estado === 'en_espera'
+  }).length
   const evaluados = filas.filter((f) => f.pct !== undefined).length
   const atencion = filas.filter(pideAtencion).length
 
@@ -164,7 +171,8 @@ export default function EquipoNutricionPage() {
 
       <section className="pt-2">
         <p className="kicker">Evaluación nutricional del equipo</p>
-        <h2 className="font-display text-3xl text-texto">Nutrición Alpha</h2>
+        <h2 className="font-display text-3xl text-texto">{persona === null ? 'Nutrición Alpha' : filas[0]?.usuario.nombre ?? 'Persona no disponible'}</h2>
+        {persona !== null && <Link to="/equipo" className="inline-flex min-h-[44px] items-center text-sm text-tenue underline">Volver a Equipo</Link>}
         {/* Las tres cifras de la maqueta «Espacios de Alpha» (28-sep). Salen de las MISMAS
             filas que la lista de abajo, así que no pueden contar otra cosa que ella. */}
         <div
@@ -190,7 +198,7 @@ export default function EquipoNutricionPage() {
         </p>
         {/* Sin este enlace la pantalla de decisiones existe y no la alcanza
             nadie: la ruta estaba, pero no había por dónde entrar. */}
-        <Link
+        {persona === null && <Link
           to="/equipo-nutricion/cifras"
           className="press mt-3 inline-block rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
         >
@@ -200,9 +208,9 @@ export default function EquipoNutricionPage() {
               {pendientes}
             </span>
           )}
-        </Link>
+        </Link>}
         {/* Tablero de creadores (0090): solo para quien tiene `revisar_creadores`. */}
-        {puedeVerCreadores && (
+        {persona === null && puedeVerCreadores && (
           <Link
             to="/coach/creadores"
             className="press ml-2 mt-3 inline-block rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
@@ -214,12 +222,13 @@ export default function EquipoNutricionPage() {
 
       {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
           mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}
-      <div className="entrada entrada-2 flex flex-col gap-3">
+      {persona === null && <div className="entrada entrada-2 flex flex-col gap-3">
         <BandejaPrimerosPlanes />
         <BandejaPlanesRenovados />
-      </div>
+      </div>}
 
       <section aria-label="Adherencia del equipo" className="flex flex-col gap-2.5">
+        {persona !== null && filas.length === 0 && <p role="status" className="rounded-tarjeta border border-linea p-4 text-sm text-tenue">Esta persona no está disponible en tu cartera nutricional. Vuelve a Equipo para elegir otra.</p>}
         {filas.map((f) => (
           <Card key={f.usuario.id} className="flex items-center gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-3 text-xs font-bold text-texto">

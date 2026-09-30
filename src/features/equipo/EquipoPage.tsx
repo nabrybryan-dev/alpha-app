@@ -5,7 +5,6 @@ import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { resumenAsesorado, type ResumenAsesorado } from '../coach/resumenAsesorado'
 import { recordarPersonaEnConsola } from '../coach/consola/memoriaConsola'
-import { DecisionesCompartidas } from './DecisionesCompartidas'
 import { MensajesEquipo } from './MensajesEquipo'
 import { useCapacidadesVigentes } from './useCapacidadesVigentes'
 import { usePorAprobar, type PorAprobar } from './usePorAprobar'
@@ -144,18 +143,29 @@ function FilaCartera({ r, conConsola }: { r: ResumenAsesorado; conConsola: boole
   const clase = 'flex min-h-[56px] items-center gap-3 border-t border-linea'
   return (
     <li>
+      <details className="group border-t border-linea">
+        <summary className="press flex min-h-[56px] cursor-pointer list-none items-center gap-3">
+          {contenido}
+          <span aria-hidden="true" className="text-tenue group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="grid grid-cols-2 gap-2 pb-3" aria-label={`Áreas de ${r.usuario.nombre}`}>
       {conConsola ? (
         <Link
           to="/coach/consola"
           onClick={() => recordarPersonaEnConsola(r.usuario.id)}
-          aria-label={`${r.usuario.nombre}: ${r.semaforo.motivo}. Abrir en la consola`}
-          className={`press ${clase}`}
+          aria-label={`Entrenamiento de ${r.usuario.nombre}`}
+          className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea text-sm font-semibold text-texto"
         >
-          {contenido}
+          Entrenamiento
         </Link>
       ) : (
         <div className={clase}>{contenido}</div>
       )}
+          <Link to={`/equipo-nutricion?persona=${encodeURIComponent(r.usuario.id)}`} className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea text-sm font-semibold text-texto" aria-label={`Nutrición de ${r.usuario.nombre}`}>
+            Nutrición
+          </Link>
+        </div>
+      </details>
     </li>
   )
 }
@@ -196,6 +206,8 @@ export default function EquipoPage() {
         )}
         <h2 className="font-display text-3xl leading-none text-texto">Equipo</h2>
       </header>
+
+      <Link to="/equipo-nutricion" className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea font-semibold text-texto">Nutrición del equipo</Link>
 
       {porAprobar && <TarjetaPorAprobar cuenta={porAprobar} />}
 
@@ -243,22 +255,6 @@ export default function EquipoPage() {
         >
           Abrir la consola completa
         </Link>
-      )}
-
-      {cargando ? (
-        <section aria-label="Decisiones compartidas" className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Decisiones compartidas</p>
-          <p className="pt-2 text-sm text-tenue" aria-busy="true">Cargando tus permisos…</p>
-        </section>
-      ) : tiene('decisiones_compartidas') ? (
-        <DecisionesCompartidas puedeAnotar />
-      ) : (
-        <section aria-label="Decisiones compartidas" className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Decisiones compartidas</p>
-          <p className="pt-2 text-sm text-tenue">
-            El registro de decisiones se ve con el permiso de decisiones compartidas, y todavía no lo tienes. Pídeselo al coach.
-          </p>
-        </section>
       )}
 
       <MensajesEquipo usuarioId={usuario.id} />

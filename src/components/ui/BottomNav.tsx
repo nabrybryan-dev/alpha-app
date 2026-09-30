@@ -80,17 +80,15 @@ const pestanasAsesorado = [
  *
  *   · Mi día (/): Hoy con su semana, el chequeo, su nutrición de hoy y sus medidas.
  *   · Mi entreno (/mi-entreno): la semana, lo que toca hoy y la entrada al salón.
- *   · Nutrición (/equipo-nutricion): su trabajo de nutricionista con el equipo.
- *   · Equipo (/equipo): lo que espera aprobación, la cartera y los mensajes.
- *   · Estrategia (/coach/administracion): el Área administrativa (finanzas, plan, agentes,
- *     desvíos, influencers, mercadeo y plataforma); los creadores cuelgan de ella.
+ *   · Equipo (/equipo): nutrición y entrenamiento por persona, aprobaciones y mensajes.
+ *   · Estrategias (/coach/estrategias): mercadeo y después influencers.
+ *   · Administración (/coach/administracion): plan, finanzas, agentes y decisiones.
  *
  * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
  */
 const pestanasStaff = [
   { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
   { ...pestanasAsesorado[1], ruta: '/mi-entreno', etiqueta: 'Mi entreno' },
-  { ...pestanasAsesorado[3], ruta: '/equipo-nutricion', etiqueta: 'Nutrición' },
   {
     ruta: '/equipo',
     etiqueta: 'Equipo',
@@ -103,8 +101,13 @@ const pestanasStaff = [
     ),
   },
   {
+    ruta: '/coach/estrategias',
+    etiqueta: 'Estrategias',
+    icono: <Icono><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></Icono>,
+  },
+  {
     ruta: '/coach/administracion',
-    etiqueta: 'Estrategia',
+    etiqueta: 'Administración',
     icono: (
       <Icono>
         <path d="M4 19V11M10 19V5M16 19v-6M22 19H2" />

@@ -15,9 +15,9 @@ import EquipoNutricionPage from './EquipoNutricionPage'
  * la ventana de 30 días vale para los CONTADORES, pero no para la RACHA.
  */
 
-const pintar = () =>
+const pintar = (ruta = '/equipo-nutricion') =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       <SessionProvider>
         <EquipoNutricionPage />
       </SessionProvider>
@@ -48,6 +48,23 @@ beforeEach(() => {
 })
 
 describe('EquipoNutricionPage', () => {
+  it('la selección desde Equipo muestra solo esa persona, sin bandejas ni enlaces globales', () => {
+    pintar('/equipo-nutricion?persona=u-valentina')
+    const cartera = screen.getByRole('region', { name: 'Adherencia del equipo' })
+    expect(within(cartera).getByText(db.usuarios.byId('u-valentina')!.nombre)).toBeInTheDocument()
+    for (const u of db.usuarios.asesorados().filter((u) => u.id !== 'u-valentina')) {
+      expect(within(cartera).queryByText(u.nombre)).not.toBeInTheDocument()
+    }
+    expect(screen.queryByRole('link', { name: /Qué cifras ve cada asesorado/ })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Volver a Equipo' })).toHaveAttribute('href', '/equipo')
+  })
+
+  it('una selección inválida no abre la cartera completa como alternativa', () => {
+    pintar('/equipo-nutricion?persona=no-existe')
+    const cartera = screen.getByRole('region', { name: 'Adherencia del equipo' })
+    expect(within(cartera).getByRole('status')).toHaveTextContent('no está disponible')
+    for (const u of db.usuarios.asesorados()) expect(within(cartera).queryByText(u.nombre)).toBeNull()
+  })
   /**
    * Los contadores SÍ se cortan a 30 días: de hoy a hace 30 hay 31 días
    * registrados, no 35. Si el corte se perdiera, la nutricionista leería una

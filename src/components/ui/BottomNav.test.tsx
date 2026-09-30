@@ -27,9 +27,9 @@ describe('BottomNav', () => {
     expect(etiquetas('staff')).toEqual([
       ['Mi día', '/'],
       ['Mi entreno', '/mi-entreno'],
-      ['Nutrición', '/equipo-nutricion'],
       ['Equipo', '/equipo'],
-      ['Estrategia', '/coach/administracion'],
+      ['Estrategias', '/coach/estrategias'],
+      ['Administración', '/coach/administracion'],
     ])
   })
 
@@ -39,7 +39,7 @@ describe('BottomNav', () => {
         <BottomNav espacios="staff" />
       </MemoryRouter>,
     )
-    for (const nombre of ['Mi día', 'Mi entreno', 'Nutrición', 'Equipo', 'Estrategia']) {
+    for (const nombre of ['Mi día', 'Mi entreno', 'Equipo', 'Estrategias', 'Administración']) {
       expect(screen.getByRole('link', { name: nombre })).toBeInTheDocument()
     }
   })

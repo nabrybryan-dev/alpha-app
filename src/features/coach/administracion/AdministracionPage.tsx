@@ -16,6 +16,7 @@ import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import { useCapacidades } from '../consola/useCapacidades'
 import { useSesionOpcional } from '../../../app/SessionProvider'
 import { TarjetaSeccion, type EnlaceSeccion } from './TarjetaSeccion'
+import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
 
 /**
  * ÁREA ADMINISTRATIVA (migración 0102; ESPEC-ADMINISTRACION-INTERACTIVA.md): antes «Estrategia» de
@@ -67,7 +68,8 @@ function guardarAbiertas(abiertas: Seccion[]): void {
 
 type Filtro = 'todo' | 'accion'
 
-export default function AdministracionPage() {
+export default function AdministracionPage({ espacio = 'administracion' }: { espacio?: 'administracion' | 'estrategias' } = {}) {
+  const esEstrategias = espacio === 'estrategias'
   const { lectura, reintentar } = useLectura(adminTablero)
   const [abiertas, setAbiertas] = useState<Seccion[]>(leerAbiertas)
   const [filtro, setFiltro] = useState<Filtro>('todo')
@@ -95,7 +97,12 @@ export default function AdministracionPage() {
     return null
   }
 
-  const secciones: SeccionLeida[] | null = lectura?.ok ? lectura.datos : null
+  const secciones: SeccionLeida[] | null = lectura?.ok
+    ? lectura.datos.filter((s) => espacio === 'estrategias'
+      ? ['mercadeo', 'influencers'].includes(s.seccion)
+      : !['mercadeo', 'influencers'].includes(s.seccion)).sort((a, b) =>
+        esEstrategias ? (a.seccion === 'mercadeo' ? 0 : 1) - (b.seccion === 'mercadeo' ? 0 : 1) : 0)
+    : null
   const visibles = secciones === null ? [] : filtro === 'todo' ? secciones : secciones.filter(seccionRequiereAccion)
   const pidenAccion = secciones === null ? 0 : contarQueRequierenAccion(secciones)
   const cortes = secciones === null ? [] : secciones.flatMap((s) => (s.estado === 'sin_corte' ? [] : [s.corte]))
@@ -104,8 +111,8 @@ export default function AdministracionPage() {
   return (
     <div className="flex flex-col gap-3.5">
       <header className="flex flex-col gap-1 pt-1">
-        <p className={CLASE_ETIQUETA}>Estrategia</p>
-        <h2 className="font-display text-2xl uppercase text-texto">Área administrativa</h2>
+        <p className={CLASE_ETIQUETA}>{esEstrategias ? "Mercadeo y bola de nieve" : "Empresa"}</p>
+        <h2 className="font-display text-2xl uppercase text-texto">{esEstrategias ? "Estrategias" : "Área administrativa"}</h2>
         <p className="text-sm text-tenue">
           {secciones === null
             ? 'Cómo va el negocio, de lo más general a lo más detallado.'
@@ -115,7 +122,7 @@ export default function AdministracionPage() {
         </p>
       </header>
 
-      <EntradaMiPlan />
+      {!esEstrategias && <EntradaMiPlan />}
 
       {lectura === null && <Cargando texto="Cargando el área administrativa…" />}
       {lectura !== null && !lectura.ok && (
@@ -170,12 +177,14 @@ export default function AdministracionPage() {
 
       {secciones !== null && (
         <p className="text-[11.5px] text-tenue">
-          Lo que dice «FALTA» no es cero: es un dato que nadie ha cargado todavía. La carga la hace un importador con el OK de
-          Bryan; esta pantalla solo lee.{' '}
+          Lo que dice «FALTA» no es cero: es un dato que nadie ha cargado todavía. Cada tarjeta indica quién debe aportar la información.{' '}
           <Link to="/" className="underline">
             Volver a Mi día
           </Link>
         </p>
+      )}
+      {!esEstrategias && (sesion?.usuario.rol === 'coach' || tiene('decisiones_compartidas')) && (
+        <DecisionesCompartidas puedeAnotar />
       )}
     </div>
   )

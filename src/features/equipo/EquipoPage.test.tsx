@@ -187,14 +187,14 @@ describe('EquipoPage', () => {
     expect(db.usuarios.entrenan().map((u) => u.id)).toContain(guardado.persona)
   })
 
-  it('lleva a los mensajes y ya no trae la tarjeta de nutrición del equipo', async () => {
+  it('conserva los mensajes y el acceso a nutrición del equipo', async () => {
     pintar()
     // Espera a que lleguen las capacidades: sin esto, su respuesta pinta fuera de act().
     await screen.findByText(/permiso de leer el entrenamiento/)
     // Los mensajes ahora son pestañas: el chat con el coach vive en la de «Bryan».
     fireEvent.click(screen.getByRole('tab', { name: 'Bryan' }))
     expect(screen.getByRole('link', { name: /Conversación con el coach/ })).toHaveAttribute('href', '/chat')
-    expect(screen.queryByText('Nutrición del equipo')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Nutrición del equipo' })).toHaveAttribute('href', '/equipo-nutricion')
   })
 
   it('un asesorado no entra', () => {
@@ -267,19 +267,19 @@ describe('EquipoPage', () => {
   })
 })
 
-describe('Decisiones compartidas y Mensajes con pestañas', () => {
-  it('sin el permiso de decisiones compartidas se dice por qué y no hay botón para anotar', async () => {
+describe('Decisiones en Administración y Mensajes con pestañas', () => {
+  it('Equipo no duplica el registro que ahora vive en Administración', async () => {
     pintar()
-    expect(await screen.findByText(/permiso de decisiones compartidas, y todavía no lo tienes/)).toBeInTheDocument()
+    await screen.findByText(/permiso de leer el entrenamiento/)
+    expect(screen.queryByRole('region', { name: 'Decisiones compartidas' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '+ Anotar mi decisión' })).not.toBeInTheDocument()
   })
 
-  it('con el permiso aparece la tarjeta, con su vacío confirmado y el botón de anotar', async () => {
+  it('incluso con permiso las decisiones no se duplican dentro de Equipo', async () => {
     estado.capacidades = new Set(['decisiones_compartidas'])
     pintar()
-    // La sección de «Cargando tus permisos» tiene el mismo nombre: se espera al contenido, no a la región.
-    expect(await screen.findByText('Todavía no hay decisiones anotadas.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '+ Anotar mi decisión' })).toBeInTheDocument()
+    await screen.findByText(/permiso de leer el entrenamiento/)
+    expect(screen.queryByRole('region', { name: 'Decisiones compartidas' })).not.toBeInTheDocument()
   })
 
   it('los mensajes traen tres pestañas y solo enseñan quién escribió y cuántos, nunca el texto', async () => {

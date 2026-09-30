@@ -22,6 +22,9 @@ vi.mock('../../../app/SessionProvider', () => ({
   useSesionOpcional: () => ({ usuario: { id: 'u', nombre: 'X', rol: estado.rol, avatarIniciales: 'X' } }),
 }))
 vi.mock('../../plan/EntradaMiPlan', () => ({ EntradaMiPlan: () => null }))
+vi.mock('../../equipo/DecisionesCompartidas', () => ({
+  DecisionesCompartidas: () => <section aria-label="Decisiones compartidas">Registro de decisiones</section>,
+}))
 
 const { default: AdministracionPage } = await import('./AdministracionPage')
 
@@ -43,10 +46,10 @@ const cruda = (seccion: string, semaforo: string, extra: Partial<FilaAdminTabler
   ...extra,
 })
 
-function montar() {
+function montar(espacio: 'administracion' | 'estrategias' = 'administracion') {
   return render(
     <MemoryRouter>
-      <AdministracionPage />
+      <AdministracionPage espacio={espacio} />
     </MemoryRouter>,
   )
 }
@@ -62,6 +65,25 @@ beforeEach(() => {
 })
 
 describe('AdministracionPage', () => {
+  it('deja las decisiones al final de Administración cuando hay permiso', async () => {
+    estado.capacidades.add('decisiones_compartidas')
+    const { container } = montar()
+    await screen.findByRole('group', { name: 'Filtro' })
+    const decisiones = screen.getByRole('region', { name: 'Decisiones compartidas' })
+    expect(container.firstElementChild?.lastElementChild).toBe(decisiones)
+  })
+
+  it('no muestra decisiones sin permiso ni en Estrategias', async () => {
+    const { unmount } = montar()
+    await screen.findByRole('group', { name: 'Filtro' })
+    expect(screen.queryByRole('region', { name: 'Decisiones compartidas' })).not.toBeInTheDocument()
+    unmount()
+    estado.capacidades.add('decisiones_compartidas')
+    montar('estrategias')
+    await screen.findByRole('group', { name: 'Filtro' })
+    expect(screen.queryByRole('region', { name: 'Decisiones compartidas' })).not.toBeInTheDocument()
+  })
+
   it('dice que carga mientras espera', () => {
     estado.pendiente = true
     montar()
@@ -76,11 +98,11 @@ describe('AdministracionPage', () => {
     expect(screen.queryByText(/Todavía no hay ningún corte/)).toBeNull()
   })
 
-  it('pinta las siete secciones en el orden de la espec; las que no tienen corte dicen FALTA', async () => {
+  it('Administración muestra las cinco secciones de empresa; las que no tienen corte dicen FALTA', async () => {
     montar()
     const tarjetas = await screen.findAllByRole('region')
     expect(tarjetas.map((t) => t.getAttribute('aria-label'))).toEqual([
-      'Finanzas', 'Plan estratégico', 'Lo que proponen los agentes', 'Desvíos', 'Influencers (bola de nieve)', 'Mercadeo', 'Plataforma Alpha y estudio',
+      'Finanzas', 'Plan estratégico', 'Lo que proponen los agentes', 'Desvíos', 'Plataforma Alpha y estudio',
     ])
     expect(within(tarjetas[2]).getByText(/^FALTA: las propuestas de los agentes/)).toBeInTheDocument()
     expect(within(tarjetas[2]).getByText('Falta')).toBeInTheDocument()
@@ -159,7 +181,7 @@ describe('AdministracionPage', () => {
     const u = userEvent.setup()
     montar()
     await screen.findAllByRole('region')
-    await u.click(screen.getByRole('button', { name: /Requiere acción · 6/ }))
+    await u.click(screen.getByRole('button', { name: /Requiere acción · 4/ }))
     // finanzas (una fila con que_hacer) y las cinco sin corte quedan; plan (verde, sin que_hacer) sale.
     expect(screen.queryByRole('region', { name: 'Plan estratégico' })).toBeNull()
     const fin = screen.getByRole('region', { name: 'Finanzas' })
@@ -181,23 +203,28 @@ describe('AdministracionPage', () => {
 
   it('influencers y mercadeo enlazan a Creadores (con revisar_creadores); plataforma al buzón de comentarios', async () => {
     const u = userEvent.setup()
-    montar()
+    const vista = montar('estrategias')
     const regiones = await screen.findAllByRole('region')
-    await u.click(within(regiones[4]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[4]).getByRole('link', { name: /tablero de creadores/ })).toHaveAttribute('href', '/coach/creadores')
-    await u.click(within(regiones[5]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[5]).getByRole('link', { name: /buzón de mercadeo/ })).toHaveAttribute('href', '/coach/creadores')
-    await u.click(within(regiones[6]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[6]).getByRole('link', { name: /buzón de comentarios/ })).toHaveAttribute('href', '/mi-entreno')
+    expect(regiones.map((r) => r.getAttribute('aria-label'))).toEqual(['Mercadeo', 'Influencers (bola de nieve)'])
+    expect(screen.queryByRole('region', { name: 'Finanzas' })).toBeNull()
+    await u.click(within(regiones[0]).getByRole('button', { name: /FALTA/ }))
+    expect(within(regiones[0]).getByRole('link', { name: /buzón de mercadeo/ })).toHaveAttribute('href', '/coach/creadores')
+    await u.click(within(regiones[1]).getByRole('button', { name: /FALTA/ }))
+    expect(within(regiones[1]).getByRole('link', { name: /tablero de creadores/ })).toHaveAttribute('href', '/coach/creadores')
+    vista.unmount()
+    montar()
+    const plataforma = await screen.findByRole('region', { name: 'Plataforma Alpha y estudio' })
+    await u.click(within(plataforma).getByRole('button', { name: /FALTA/ }))
+    expect(within(plataforma).getByRole('link', { name: /buzón de comentarios/ })).toHaveAttribute('href', '/mi-entreno')
   })
 
   it('sin revisar_creadores no ofrece el enlace a Creadores (llevaría a una puerta cerrada)', async () => {
     const u = userEvent.setup()
     estado.capacidades = new Set(['ver_administracion'])
-    montar()
+    montar('estrategias')
     const regiones = await screen.findAllByRole('region')
-    await u.click(within(regiones[4]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[4]).queryByRole('link')).toBeNull()
+    await u.click(within(regiones[0]).getByRole('button', { name: /FALTA/ }))
+    expect(within(regiones[0]).queryByRole('link')).toBeNull()
   })
 
   it('sin ningún corte cargado lo dice arriba', async () => {
