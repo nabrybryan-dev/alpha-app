@@ -8,8 +8,8 @@ import {
   type SeccionLeida,
 } from '../../../domain/adminTablero'
 import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
-import MiPlanPage from '../../plan/MiPlanPage'
 import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
+import { JornadaLaboral } from './JornadaLaboral'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
 import { SeccionTablero } from './SeccionTablero'
 import { useTableroAdmin } from './useTableroAdmin'
@@ -19,7 +19,8 @@ import type { EnlaceSeccion } from './TarjetaSeccion'
  * ÁREA ADMINISTRATIVA (ESPEC-ADMINISTRACION-INTERACTIVA.md; orden pedido por Bryan el 30-sep),
  * de arriba abajo y todo plegado (una tarjeta por sección con una frase; al tocarla, el detalle):
  *
- *   1. Hoy y calendario: «Mi plan» (hoy, semana y 90 días).
+ *   1. Jornada laboral: las tareas de hoy y de la semana, que su dueño tacha, con el objetivo de corto y
+ *      mediano plazo al que aportan y sus entregables (`JornadaLaboral`, sobre `plan_items`).
  *   2. Indicadores financieros y de operación.
  *   3. ¿Cumplimos los objetivos? Plan estratégico y desvíos (riesgos financieros, operativos y
  *      de estrategia).
@@ -36,18 +37,6 @@ import type { EnlaceSeccion } from './TarjetaSeccion'
 const SECCIONES_ADMIN: readonly Seccion[] = ['finanzas', 'plataforma', 'plan', 'desvios', 'propuestas']
 
 type Filtro = 'todo' | 'accion'
-
-function PlanHoyYCalendario() {
-  return (
-    <>
-      <p className="text-[12.5px] text-tenue">
-        Hoy: lo del día. Corto plazo: la semana. Mediano plazo: los 90 días. Largo plazo: sin horizonte cargado en el plan;
-        no se inventa una duración.
-      </p>
-      <MiPlanPage />
-    </>
-  )
-}
 
 export default function AdministracionPage() {
   const t = useTableroAdmin()
@@ -86,8 +75,8 @@ export default function AdministracionPage() {
       </header>
 
       {puedePlan && (
-        <TarjetaPlegable nombre="Hoy y calendario" frase="Tu plan de hoy, de la semana y de los 90 días.">
-          <PlanHoyYCalendario />
+        <TarjetaPlegable nombre="Jornada laboral" frase="Tus tareas de hoy y de la semana: las tachas tú y cada una dice a qué objetivo aporta.">
+          <JornadaLaboral />
         </TarjetaPlegable>
       )}
 

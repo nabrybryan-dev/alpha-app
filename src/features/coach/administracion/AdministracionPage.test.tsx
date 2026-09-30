@@ -25,7 +25,7 @@ vi.mock('../consola/useCapacidades', () => ({
 vi.mock('../../../app/SessionProvider', () => ({
   useSesionOpcional: () => ({ usuario: { id: 'u', nombre: 'X', rol: estado.rol, avatarIniciales: 'X' } }),
 }))
-vi.mock('../../plan/MiPlanPage', () => ({ default: () => <p>Contenido de Mi plan</p> }))
+vi.mock('./JornadaLaboral', () => ({ JornadaLaboral: () => <p>Contenido de la jornada</p> }))
 vi.mock('../../equipo/DecisionesCompartidas', () => ({
   DecisionesCompartidas: () => <section aria-label="Decisiones compartidas">Registro de decisiones</section>,
 }))
@@ -72,11 +72,11 @@ beforeEach(() => {
 })
 
 describe('AdministracionPage · orden de Bryan', () => {
-  it('va de arriba abajo: hoy y calendario, finanzas y operación, objetivos, agentes y, al final, decisiones', async () => {
+  it('va de arriba abajo: jornada laboral, finanzas y operación, objetivos, agentes y, al final, decisiones', async () => {
     montar()
     await screen.findByRole('group', { name: 'Filtro' })
     expect(nombres()).toEqual([
-      'Hoy y calendario',
+      'Jornada laboral',
       'Finanzas',
       'Plataforma Alpha y estudio',
       'Plan estratégico',
@@ -90,13 +90,11 @@ describe('AdministracionPage · orden de Bryan', () => {
     const u = userEvent.setup()
     montar()
     await screen.findByRole('group', { name: 'Filtro' })
-    expect(screen.queryByText('Contenido de Mi plan')).toBeNull()
+    expect(screen.queryByText('Contenido de la jornada')).toBeNull()
     expect(screen.queryByText('Registro de decisiones')).toBeNull()
-    const hoy = screen.getByRole('region', { name: 'Hoy y calendario' })
-    await u.click(within(hoy).getByRole('button', { name: /Hoy y calendario/ }))
-    expect(within(hoy).getByText('Contenido de Mi plan')).toBeInTheDocument()
-    // Sin fechas no se inventan plazos: lo dice con etiquetas explícitas.
-    expect(within(hoy).getByText(/Largo plazo: sin horizonte cargado/)).toBeInTheDocument()
+    const hoy = screen.getByRole('region', { name: 'Jornada laboral' })
+    await u.click(within(hoy).getByRole('button', { name: /Jornada laboral/ }))
+    expect(within(hoy).getByText('Contenido de la jornada')).toBeInTheDocument()
     const dec = screen.getByRole('region', { name: 'Decisiones de Bryan y Manuela' })
     await u.click(within(dec).getByRole('button', { name: /Decisiones de Bryan y Manuela/ }))
     expect(within(dec).getByText('Registro de decisiones')).toBeInTheDocument()
@@ -112,13 +110,13 @@ describe('AdministracionPage · orden de Bryan', () => {
   it('con solo organizar_plan: hay Mi plan y no hay decisiones; con solo decisiones: al revés', async () => {
     estado.capacidades = new Set(['organizar_plan'])
     const a = montar()
-    await screen.findByRole('region', { name: 'Hoy y calendario' })
+    await screen.findByRole('region', { name: 'Jornada laboral' })
     expect(screen.queryByRole('region', { name: 'Decisiones de Bryan y Manuela' })).toBeNull()
     a.unmount()
     estado.capacidades = new Set(['decisiones_compartidas'])
     montar()
     await screen.findByRole('region', { name: 'Decisiones de Bryan y Manuela' })
-    expect(screen.queryByRole('region', { name: 'Hoy y calendario' })).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Jornada laboral' })).toBeNull()
   })
 })
 
