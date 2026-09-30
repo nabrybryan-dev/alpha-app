@@ -44,6 +44,8 @@ function en(ruta: string) {
         <Route path="/coach" element={<CoachLayout />}>
           <Route index element={<p>Cartera del coach</p>} />
           <Route path="consola" element={<p>Contenido de la consola</p>} />
+          <Route path="estrategias" element={<p>Contenido de estrategias</p>} />
+          <Route path="administracion" element={<p>Contenido de administracion</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -97,6 +99,57 @@ describe('CoachLayout · acceso por capacidad', () => {
   it('un asesorado nunca entra a la consola', () => {
     estado.rol = 'asesorado'
     en('/coach/consola')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+  })
+
+  // Capacidades REALES de Manuela hoy en la base (sin ver_administracion: la 0102 no está aplicada).
+  const MANUELA = [
+    'aprobar_plan_estrategico', 'aprobar_primer_plan', 'decisiones_compartidas', 'detener_publicacion',
+    'firmar_creadores', 'leer_entrenamiento', 'organizar_plan', 'reportar_riesgo', 'responder_mercadeo',
+    'responder_por_asesorado', 'revisar_creadores',
+  ]
+
+  it('Manuela con sus capacidades reales entra a Estrategias y a Administración', () => {
+    estado.capacidades = new Set(MANUELA)
+    const a = en('/coach/estrategias')
+    expect(screen.getByText('Contenido de estrategias')).toBeInTheDocument()
+    a.unmount()
+    en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+  })
+
+  it('Estrategias se abre con responder_mercadeo o con revisar_creadores, cada una por su lado', () => {
+    estado.capacidades = new Set(['responder_mercadeo'])
+    const a = en('/coach/estrategias')
+    expect(screen.getByText('Contenido de estrategias')).toBeInTheDocument()
+    a.unmount()
+    estado.capacidades = new Set(['revisar_creadores'])
+    en('/coach/estrategias')
+    expect(screen.getByText('Contenido de estrategias')).toBeInTheDocument()
+  })
+
+  it('Administración se abre con organizar_plan o con decisiones_compartidas, cada una por su lado', () => {
+    estado.capacidades = new Set(['organizar_plan'])
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    a.unmount()
+    estado.capacidades = new Set(['decisiones_compartidas'])
+    en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+  })
+
+  it('un staff sin esas capacidades vuelve a la portada en las dos áreas', () => {
+    estado.capacidades = new Set(['responder_por_asesorado', 'leer_entrenamiento'])
+    const a = en('/coach/estrategias')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+    a.unmount()
+    en('/coach/administracion')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+  })
+
+  it('Estrategias y Administración no se prestan la puerta', () => {
+    estado.capacidades = new Set(['responder_mercadeo'])
+    en('/coach/administracion')
     expect(screen.getByText('Portada')).toBeInTheDocument()
   })
 })
