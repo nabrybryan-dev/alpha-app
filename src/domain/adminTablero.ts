@@ -259,3 +259,15 @@ export function nombreDueno(dueno: string): string {
   if (dueno.startsWith('agente:')) return `agente ${dueno.slice('agente:'.length)}`
   return dueno === 'bryan' ? 'Bryan' : dueno === 'manuela' ? 'Manuela' : dueno
 }
+
+/** Lo que dice la tarjeta gris cuando el tablero de la 0102 todavía no se puede leer. */
+export const TEXTO_PENDIENTE_0102 = 'Pendiente de activar (migración 0102)'
+
+/**
+ * ¿El fallo de lectura es que la tabla `admin_tablero` no existe (la 0102 no está aplicada)?
+ * Solo ese caso se dice «pendiente de activar»; un fallo de red o de permiso (RLS) sigue siendo
+ * un fallo y se pinta como tal, con «Reintentar»: nunca se disfraza de pendiente ni de «sin datos».
+ */
+export function esTablaAusente(error: string): boolean {
+  return /could not find the table|schema cache|PGRST205|42P01|relation .*does not exist/i.test(error)
+}

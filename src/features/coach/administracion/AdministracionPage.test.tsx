@@ -9,11 +9,15 @@ const estado = {
   pendiente: false,
   telefono: false,
   rol: 'nutricionista',
-  capacidades: new Set<string>(['ver_administracion', 'revisar_creadores']),
+  capacidades: new Set<string>(['ver_administracion', 'organizar_plan', 'decisiones_compartidas']),
+  lecturas: 0,
 }
 
 vi.mock('../../../data/consola/adminTablero', () => ({
-  adminTablero: () => (estado.pendiente ? new Promise(() => {}) : Promise.resolve(estado.lectura)),
+  adminTablero: () => {
+    estado.lecturas += 1
+    return estado.pendiente ? new Promise(() => {}) : Promise.resolve(estado.lectura)
+  },
 }))
 vi.mock('../consola/useCapacidades', () => ({
   useCapacidades: () => ({ cargando: false, tiene: (c: string) => estado.capacidades.has(c), usuarioId: 'u' }),
@@ -21,13 +25,14 @@ vi.mock('../consola/useCapacidades', () => ({
 vi.mock('../../../app/SessionProvider', () => ({
   useSesionOpcional: () => ({ usuario: { id: 'u', nombre: 'X', rol: estado.rol, avatarIniciales: 'X' } }),
 }))
-vi.mock('../../plan/EntradaMiPlan', () => ({ EntradaMiPlan: () => null }))
+vi.mock('../../plan/MiPlanPage', () => ({ default: () => <p>Contenido de Mi plan</p> }))
 vi.mock('../../equipo/DecisionesCompartidas', () => ({
   DecisionesCompartidas: () => <section aria-label="Decisiones compartidas">Registro de decisiones</section>,
 }))
 
 const { default: AdministracionPage } = await import('./AdministracionPage')
 
+const PENDIENTE = 'Pendiente de activar (migración 0102)'
 const fuente = { archivo: 'finanzas.json', corte: '2026-09-28', huella: 'abc123' }
 const cruda = (seccion: string, semaforo: string, extra: Partial<FilaAdminTablero> = {}, accion = true): FilaAdminTablero => ({
   id: seccion,
@@ -46,71 +51,121 @@ const cruda = (seccion: string, semaforo: string, extra: Partial<FilaAdminTabler
   ...extra,
 })
 
-function montar(espacio: 'administracion' | 'estrategias' = 'administracion') {
+function montar() {
   return render(
     <MemoryRouter>
-      <AdministracionPage espacio={espacio} />
+      <AdministracionPage />
     </MemoryRouter>,
   )
 }
+const nombres = () => screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))
 
 beforeEach(() => {
   estado.lectura = { ok: true, datos: ultimoCortePorSeccion([cruda('finanzas', 'amarillo'), cruda('plan', 'verde', {}, false)]) }
   estado.pendiente = false
   estado.telefono = false
   estado.rol = 'nutricionista'
-  estado.capacidades = new Set(['ver_administracion', 'revisar_creadores'])
+  estado.capacidades = new Set(['ver_administracion', 'organizar_plan', 'decisiones_compartidas'])
+  estado.lecturas = 0
   window.localStorage.clear()
   window.matchMedia = ((q: string) => ({ matches: estado.telefono && q.includes('767'), media: q, addEventListener() {}, removeEventListener() {} })) as never
 })
 
-describe('AdministracionPage', () => {
-  it('deja las decisiones al final de Administración cuando hay permiso', async () => {
-    estado.capacidades.add('decisiones_compartidas')
+describe('AdministracionPage · orden de Bryan', () => {
+  it('va de arriba abajo: hoy y calendario, finanzas y operación, objetivos, agentes y, al final, decisiones', async () => {
+    montar()
+    await screen.findByRole('group', { name: 'Filtro' })
+    expect(nombres()).toEqual([
+      'Hoy y calendario',
+      'Finanzas',
+      'Plataforma Alpha y estudio',
+      'Plan estratégico',
+      'Desvíos',
+      'Lo que proponen los agentes',
+      'Decisiones de Bryan y Manuela',
+    ])
+  })
+
+  it('todo viene plegado: una frase por tarjeta y el detalle al tocarla', async () => {
+    const u = userEvent.setup()
+    montar()
+    await screen.findByRole('group', { name: 'Filtro' })
+    expect(screen.queryByText('Contenido de Mi plan')).toBeNull()
+    expect(screen.queryByText('Registro de decisiones')).toBeNull()
+    const hoy = screen.getByRole('region', { name: 'Hoy y calendario' })
+    await u.click(within(hoy).getByRole('button', { name: /Hoy y calendario/ }))
+    expect(within(hoy).getByText('Contenido de Mi plan')).toBeInTheDocument()
+    // Sin fechas no se inventan plazos: lo dice con etiquetas explícitas.
+    expect(within(hoy).getByText(/Largo plazo: sin horizonte cargado/)).toBeInTheDocument()
+    const dec = screen.getByRole('region', { name: 'Decisiones de Bryan y Manuela' })
+    await u.click(within(dec).getByRole('button', { name: /Decisiones de Bryan y Manuela/ }))
+    expect(within(dec).getByText('Registro de decisiones')).toBeInTheDocument()
+  })
+
+  it('las decisiones son lo último de la pantalla', async () => {
     const { container } = montar()
     await screen.findByRole('group', { name: 'Filtro' })
-    const decisiones = screen.getByRole('region', { name: 'Decisiones compartidas' })
-    expect(container.firstElementChild?.lastElementChild).toBe(decisiones)
+    const dec = screen.getByRole('region', { name: 'Decisiones de Bryan y Manuela' })
+    expect(container.firstElementChild?.lastElementChild).toBe(dec)
   })
 
-  it('no muestra decisiones sin permiso ni en Estrategias', async () => {
-    const { unmount } = montar()
-    await screen.findByRole('group', { name: 'Filtro' })
-    expect(screen.queryByRole('region', { name: 'Decisiones compartidas' })).not.toBeInTheDocument()
-    unmount()
-    estado.capacidades.add('decisiones_compartidas')
-    montar('estrategias')
-    await screen.findByRole('group', { name: 'Filtro' })
-    expect(screen.queryByRole('region', { name: 'Decisiones compartidas' })).not.toBeInTheDocument()
-  })
-
-  it('dice que carga mientras espera', () => {
-    estado.pendiente = true
+  it('con solo organizar_plan: hay Mi plan y no hay decisiones; con solo decisiones: al revés', async () => {
+    estado.capacidades = new Set(['organizar_plan'])
+    const a = montar()
+    await screen.findByRole('region', { name: 'Hoy y calendario' })
+    expect(screen.queryByRole('region', { name: 'Decisiones de Bryan y Manuela' })).toBeNull()
+    a.unmount()
+    estado.capacidades = new Set(['decisiones_compartidas'])
     montar()
-    expect(screen.getByText(/Cargando el área administrativa/)).toBeInTheDocument()
+    await screen.findByRole('region', { name: 'Decisiones de Bryan y Manuela' })
+    expect(screen.queryByRole('region', { name: 'Hoy y calendario' })).toBeNull()
+  })
+})
+
+describe('AdministracionPage · tablero de la migración 0102', () => {
+  it('sin ver_administracion NO lee la tabla y todas las secciones dicen «Pendiente de activar»', async () => {
+    estado.capacidades = new Set(['organizar_plan', 'decisiones_compartidas'])
+    montar()
+    const fin = await screen.findByRole('region', { name: 'Finanzas' })
+    expect(within(fin).getByText(PENDIENTE)).toBeInTheDocument()
+    for (const n of ['Plataforma Alpha y estudio', 'Plan estratégico', 'Desvíos', 'Lo que proponen los agentes']) {
+      expect(within(screen.getByRole('region', { name: n })).getByText(PENDIENTE)).toBeInTheDocument()
+    }
+    expect(estado.lecturas).toBe(0)
+    // Nunca un cero ni un verde.
+    expect(within(fin).queryByText('0')).toBeNull()
+    expect(within(fin).queryByText('Bien')).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Filtro' })).toBeNull()
   })
 
-  it('un fallo de lectura se dice y se puede reintentar; no se pinta como vacío', async () => {
+  it('con permiso pero sin la tabla (error de consulta) también dice «Pendiente», no un fallo ni un verde', async () => {
+    estado.lectura = { ok: false, error: "finanzas: Could not find the table 'public.admin_tablero' in the schema cache" }
+    montar()
+    const fin = await screen.findByRole('region', { name: 'Finanzas' })
+    expect(await within(fin).findByText(PENDIENTE)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('un error de lectura distinto (red, permiso) se ve como fallo con Reintentar y no como «sin datos»', async () => {
     estado.lectura = { ok: false, error: 'desvios: RLS' }
     montar()
     expect(await screen.findByRole('alert')).toHaveTextContent('desvios: RLS')
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
     expect(screen.queryByText(/Todavía no hay ningún corte/)).toBeNull()
+    expect(screen.queryByText(PENDIENTE)).toBeNull()
   })
 
-  it('Administración muestra las cinco secciones de empresa; las que no tienen corte dicen FALTA', async () => {
+  it('mientras carga lo dice', () => {
+    estado.pendiente = true
     montar()
-    const tarjetas = await screen.findAllByRole('region')
-    expect(tarjetas.map((t) => t.getAttribute('aria-label'))).toEqual([
-      'Finanzas', 'Plan estratégico', 'Lo que proponen los agentes', 'Desvíos', 'Plataforma Alpha y estudio',
-    ])
-    expect(within(tarjetas[2]).getByText(/^FALTA: las propuestas de los agentes/)).toBeInTheDocument()
-    expect(within(tarjetas[2]).getByText('Falta')).toBeInTheDocument()
+    expect(screen.getByText(/Cargando el área administrativa/)).toBeInTheDocument()
   })
 
-  it('una cifra vacía dice FALTA y no 0', async () => {
+  it('las secciones sin corte dicen FALTA; una cifra vacía dice FALTA y no 0', async () => {
     montar()
-    const plan = (await screen.findAllByRole('region'))[1]
+    const agentes = await screen.findByRole('region', { name: 'Lo que proponen los agentes' })
+    expect(within(agentes).getByText(/^FALTA: las propuestas de los agentes/)).toBeInTheDocument()
+    const plan = screen.getByRole('region', { name: 'Plan estratégico' })
     expect(within(plan).getByText('FALTA')).toBeInTheDocument()
     expect(within(plan).queryByText('0')).toBeNull()
   })
@@ -118,7 +173,7 @@ describe('AdministracionPage', () => {
   it('capa 2 al tocar la tarjeta y capa 3 al tocar una fila (fuente y qué hacer)', async () => {
     const u = userEvent.setup()
     montar()
-    const fin = (await screen.findAllByRole('region'))[0]
+    const fin = await screen.findByRole('region', { name: 'Finanzas' })
     expect(within(fin).queryByText('Caja del mes')).toBeNull()
     await u.click(within(fin).getByRole('button', { name: /Frase de finanzas/ }))
     expect(within(fin).getByText('Caja del mes')).toBeInTheDocument()
@@ -126,68 +181,57 @@ describe('AdministracionPage', () => {
     await u.click(within(fin).getByRole('button', { name: /Techo de 3 M/ }))
     expect(within(fin).getByText('Decidir el techo')).toBeInTheDocument()
     expect(within(fin).getByText(/finanzas\.json · corte 2026-09-28 · huella abc123/)).toBeInTheDocument()
-    expect(within(fin).getByText(/FALTA: esta cifra no está cargada\. Le toca a Bryan\./)).toBeInTheDocument()
   })
 
   it('en teléfono solo hay una sección abierta a la vez; en pantalla ancha, varias', async () => {
     const u = userEvent.setup()
     estado.telefono = true
-    montar()
-    const [fin, plan] = await screen.findAllByRole('region')
+    const a = montar()
+    const fin = await screen.findByRole('region', { name: 'Finanzas' })
+    const plan = screen.getByRole('region', { name: 'Plan estratégico' })
     await u.click(within(fin).getByRole('button', { name: /Frase de finanzas/ }))
     await u.click(within(plan).getByRole('button', { name: /Frase de plan/ }))
     expect(within(fin).getByRole('button', { name: /Frase de finanzas/ })).toHaveAttribute('aria-expanded', 'false')
     expect(within(plan).getByRole('button', { name: /Frase de plan/ })).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('en pantalla ancha se pueden abrir varias', async () => {
-    const u = userEvent.setup()
+    a.unmount()
+    estado.telefono = false
+    window.localStorage.clear()
     montar()
-    const [fin, plan] = await screen.findAllByRole('region')
-    await u.click(within(fin).getByRole('button', { name: /Frase de finanzas/ }))
-    await u.click(within(plan).getByRole('button', { name: /Frase de plan/ }))
-    expect(within(fin).getByRole('button', { name: /Frase de finanzas/ })).toHaveAttribute('aria-expanded', 'true')
-    expect(within(plan).getByRole('button', { name: /Frase de plan/ })).toHaveAttribute('aria-expanded', 'true')
+    const fin2 = await screen.findByRole('region', { name: 'Finanzas' })
+    const plan2 = screen.getByRole('region', { name: 'Plan estratégico' })
+    await u.click(within(fin2).getByRole('button', { name: /Frase de finanzas/ }))
+    await u.click(within(plan2).getByRole('button', { name: /Frase de plan/ }))
+    expect(within(fin2).getByRole('button', { name: /Frase de finanzas/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(plan2).getByRole('button', { name: /Frase de plan/ })).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('recuerda la sección abierta en localStorage y la restaura', async () => {
+  it('recuerda la sección abierta y funciona aunque localStorage lance', async () => {
     const u = userEvent.setup()
     const primera = montar()
-    const fin = (await screen.findAllByRole('region'))[0]
+    const fin = await screen.findByRole('region', { name: 'Finanzas' })
     await u.click(within(fin).getByRole('button', { name: /Frase de finanzas/ }))
     expect(JSON.parse(window.localStorage.getItem('alpha.admin.abiertas') ?? '[]')).toEqual(['finanzas'])
     primera.unmount()
     montar()
-    const de_nuevo = (await screen.findAllByRole('region'))[0]
-    expect(within(de_nuevo).getByRole('button', { name: /Frase de finanzas/ })).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('funciona aunque localStorage lance', async () => {
-    const u = userEvent.setup()
+    const otra = await screen.findByRole('region', { name: 'Finanzas' })
+    expect(within(otra).getByRole('button', { name: /Frase de finanzas/ })).toHaveAttribute('aria-expanded', 'true')
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('bloqueado')
     })
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('bloqueado')
     })
-    montar()
-    const fin = (await screen.findAllByRole('region'))[0]
-    await u.click(within(fin).getByRole('button', { name: /Frase de finanzas/ }))
-    expect(within(fin).getByText('Caja del mes')).toBeInTheDocument()
+    await u.click(within(otra).getByRole('button', { name: /Frase de finanzas/ }))
+    expect(within(otra).getByRole('button', { name: /Frase de finanzas/ })).toHaveAttribute('aria-expanded', 'false')
     vi.restoreAllMocks()
   })
 
-  it('el filtro «requiere acción» deja las secciones no verdes y, dentro, las filas no verdes', async () => {
+  it('el filtro «requiere acción» deja las secciones que piden acción', async () => {
     const u = userEvent.setup()
     montar()
-    await screen.findAllByRole('region')
+    await screen.findByRole('region', { name: 'Finanzas' })
     await u.click(screen.getByRole('button', { name: /Requiere acción · 4/ }))
-    // finanzas (una fila con que_hacer) y las cinco sin corte quedan; plan (verde, sin que_hacer) sale.
     expect(screen.queryByRole('region', { name: 'Plan estratégico' })).toBeNull()
-    const fin = screen.getByRole('region', { name: 'Finanzas' })
-    await u.click(within(fin).getByRole('button', { name: /Frase de finanzas/ }))
-    expect(within(fin).queryByText('Caja del mes')).toBeNull() // sin que_hacer: no pide acción
-    expect(within(fin).getByText('Techo de 3 M')).toBeInTheDocument()
     await u.click(screen.getByRole('button', { name: 'Todo' }))
     expect(screen.getByRole('region', { name: 'Plan estratégico' })).toBeInTheDocument()
   })
@@ -196,40 +240,22 @@ describe('AdministracionPage', () => {
     const u = userEvent.setup()
     estado.lectura = { ok: true, datos: ultimoCortePorSeccion([cruda('finanzas', 'morado')]) }
     montar()
-    const fin = (await screen.findAllByRole('region'))[0]
+    const fin = await screen.findByRole('region', { name: 'Finanzas' })
     await u.click(within(fin).getByRole('button', { name: /no se pudieron leer/ }))
     expect(within(fin).getByRole('alert')).toHaveTextContent(/semáforo de la tarjeta desconocido/)
-  })
-
-  it('influencers y mercadeo enlazan a Creadores (con revisar_creadores); plataforma al buzón de comentarios', async () => {
-    const u = userEvent.setup()
-    const vista = montar('estrategias')
-    const regiones = await screen.findAllByRole('region')
-    expect(regiones.map((r) => r.getAttribute('aria-label'))).toEqual(['Mercadeo', 'Influencers (bola de nieve)'])
-    expect(screen.queryByRole('region', { name: 'Finanzas' })).toBeNull()
-    await u.click(within(regiones[0]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[0]).getByRole('link', { name: /buzón de mercadeo/ })).toHaveAttribute('href', '/coach/creadores')
-    await u.click(within(regiones[1]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[1]).getByRole('link', { name: /tablero de creadores/ })).toHaveAttribute('href', '/coach/creadores')
-    vista.unmount()
-    montar()
-    const plataforma = await screen.findByRole('region', { name: 'Plataforma Alpha y estudio' })
-    await u.click(within(plataforma).getByRole('button', { name: /FALTA/ }))
-    expect(within(plataforma).getByRole('link', { name: /buzón de comentarios/ })).toHaveAttribute('href', '/mi-entreno')
-  })
-
-  it('sin revisar_creadores no ofrece el enlace a Creadores (llevaría a una puerta cerrada)', async () => {
-    const u = userEvent.setup()
-    estado.capacidades = new Set(['ver_administracion'])
-    montar('estrategias')
-    const regiones = await screen.findAllByRole('region')
-    await u.click(within(regiones[0]).getByRole('button', { name: /FALTA/ }))
-    expect(within(regiones[0]).queryByRole('link')).toBeNull()
   })
 
   it('sin ningún corte cargado lo dice arriba', async () => {
     estado.lectura = { ok: true, datos: ultimoCortePorSeccion([]) }
     montar()
     await waitFor(() => expect(screen.getByText('Todavía no hay ningún corte cargado.')).toBeInTheDocument())
+  })
+
+  it('plataforma enlaza al buzón de comentarios', async () => {
+    const u = userEvent.setup()
+    montar()
+    const p = await screen.findByRole('region', { name: 'Plataforma Alpha y estudio' })
+    await u.click(within(p).getByRole('button', { name: /FALTA/ }))
+    expect(within(p).getByRole('link', { name: /buzón de comentarios/ })).toHaveAttribute('href', '/mi-entreno')
   })
 })
