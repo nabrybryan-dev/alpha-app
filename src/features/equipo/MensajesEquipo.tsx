@@ -77,22 +77,30 @@ export function MensajesEquipo({ usuarioId }: { usuarioId: string }) {
           (deAsesorados.length === 0 ? (
             <p className="border-t border-linea py-3 text-sm text-tenue">Ningún asesorado te ha escrito sin leer.</p>
           ) : (
-            <ul>
-              {deAsesorados.map((f) => (
-                <li key={f.id}>
-                  <Link
-                    to="/chat"
-                    aria-label={`${f.nombre}: ${f.n} ${f.n === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}. Abrir el chat`}
-                    className="press flex min-h-[56px] items-center gap-3 border-t border-linea"
-                  >
+            <>
+              <ul>
+                {deAsesorados.map((f) => (
+                  <li key={f.id} className="flex min-h-[56px] items-center gap-3 border-t border-linea">
                     <span className="min-w-0 flex-1 truncate text-sm font-semibold text-texto">{f.nombre}</span>
                     <span className="cifras shrink-0 text-xs font-bold text-rojo">
                       {f.n} {f.n === 1 ? 'nuevo' : 'nuevos'}
                     </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+              {/* No hay ruta para el hilo de un asesorado: /chat solo abre al coach y a la
+                  nutrición (`remitentesDe`), y /coach/chat es solo del coach. Se dice a dónde
+                  lleva el enlace en vez de prometer un hilo que no abre. */}
+              <p className="border-t border-linea pt-3 text-xs text-tenue">
+                El hilo de cada asesorado todavía no se abre desde esta pantalla: aquí solo se ve quién escribió y cuántos.
+              </p>
+              <Link
+                to="/chat"
+                className="press inline-flex min-h-[44px] items-center text-sm text-tenue underline"
+              >
+                Ir al chat con el coach (no abre estos hilos)
+              </Link>
+            </>
           ))}
 
         {pestana === 'creadores' && (

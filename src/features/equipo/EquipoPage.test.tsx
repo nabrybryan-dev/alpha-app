@@ -293,7 +293,13 @@ describe('Decisiones en Administración y Mensajes con pestañas', () => {
     const pestanas = within(tarjeta).getAllByRole('tab').map((t) => t.textContent)
     expect(pestanas).toEqual(['Asesorados', 'Creadores', 'Bryan'])
     expect(within(tarjeta).getByRole('tab', { name: 'Asesorados' })).toHaveAttribute('aria-selected', 'true')
-    expect(within(tarjeta).getByRole('link', { name: new RegExp(asesorado.nombre) })).toHaveAttribute('href', '/chat')
+    // /chat solo abre la conversación con el coach y la nutrición (`remitentesDe`): no existe una
+    // ruta para el hilo de un asesorado, así que la fila NO promete abrirlo (revisión de Codex, 30-sep).
+    expect(within(tarjeta).queryByRole('link', { name: new RegExp(asesorado.nombre) })).not.toBeInTheDocument()
+    expect(within(tarjeta).getByText(new RegExp(asesorado.nombre))).toBeInTheDocument()
+    expect(within(tarjeta).getByText(/todavía no se abre desde esta pantalla/)).toBeInTheDocument()
+    expect(within(tarjeta).getByRole('link', { name: /Ir al chat con el coach/ })).toHaveAttribute('href', '/chat')
+    expect(tarjeta).not.toHaveTextContent(/Abrir el chat/)
     expect(tarjeta).not.toHaveTextContent('TEXTO QUE NO DEBE SALIR')
   })
 
