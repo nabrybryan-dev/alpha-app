@@ -3,7 +3,8 @@ import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import { BuzonMercadeo } from '../creadores/BuzonMercadeo'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
-import { SeccionTablero, useTableroAdmin } from './useTableroAdmin'
+import { SeccionTablero } from './SeccionTablero'
+import { useTableroAdmin } from './useTableroAdmin'
 
 /**
  * ESTRATEGIAS (orden pedido por Bryan el 30-sep), plegable de arriba abajo:

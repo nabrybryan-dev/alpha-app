@@ -11,7 +11,8 @@ import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import MiPlanPage from '../../plan/MiPlanPage'
 import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
-import { SeccionTablero, useTableroAdmin } from './useTableroAdmin'
+import { SeccionTablero } from './SeccionTablero'
+import { useTableroAdmin } from './useTableroAdmin'
 import type { EnlaceSeccion } from './TarjetaSeccion'
 
 /**
