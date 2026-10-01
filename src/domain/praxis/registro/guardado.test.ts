@@ -161,6 +161,8 @@ function entorno(clave: string | undefined = 'sk-prueba-no-real') {
   }
   const base = () => {
     respuestas.push({ url: /auth\/v1\/user/, cuerpo: { id: 'u-1' } })
+    // Mientras Praxis esté cerrada a los asesorados, la función solo atiende al equipo (A2).
+    respuestas.push({ url: /rest\/v1\/usuarios_app/, cuerpo: [{ rol: 'coach' }] })
     respuestas.push({ url: /rest\/v1\/microciclos/, cuerpo: [{ id: 'm-1', numero: 12, estado: 'activo', datos: micro }] })
   }
   return { d, llamadas, respuestas, base }
@@ -188,7 +190,7 @@ describe('Edge Function praxis-registro', () => {
     expect(e.llamadas).toHaveLength(0)
   })
 
-  it('PROPONER: llama a Haiku con la herramienta forzada y esquema estricto, y NO escribe', async () => {
+  it('PROPONER: llama a Haiku con la herramienta forzada, sin modo estricto (el esquema pasa sus límites), y NO escribe', async () => {
     const e = entorno()
     e.base()
     e.respuestas.push({ url: /api\.anthropic\.com/, cuerpo: haiku(entradaSentadilla) })
@@ -201,7 +203,7 @@ describe('Edge Function praxis-registro', () => {
     expect(cuerpo.meta).toMatchObject({ modelo: 'claude-haiku-4-5', tokens_entrada: 1800 })
     const enviado = JSON.parse(String(e.llamadas.find((l) => l.url.includes('anthropic'))!.init!.body))
     expect(enviado.tool_choice).toEqual({ type: 'tool', name: 'registrar' })
-    expect(enviado.tools[0].strict).toBe(true)
+    expect(enviado.tools[0].strict).toBeUndefined()
     expect(enviado.temperature).toBe(0)
     expect(enviado.system[0].cache_control).toEqual({ type: 'ephemeral' })
     expect(JSON.stringify(enviado.messages)).not.toMatch(/pauta|seriesPrescritas/)

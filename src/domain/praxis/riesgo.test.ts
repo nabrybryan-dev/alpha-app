@@ -83,3 +83,74 @@ describe('las líneas de ayuda de la Quieta', () => {
     expect(JSON.stringify(LINEAS_DE_AYUDA)).not.toContain('192')
   })
 })
+
+describe('revisión del PR #331 · A4: la excepción de exageración no se come frases de riesgo', () => {
+  // Las ocho frases de riesgo y las cuatro inofensivas de la revisión independiente del
+  // 1-oct. OJO: desde que están aquí son frases de DESARROLLO. Que pasen no mide cuánto
+  // generaliza el diccionario; eso solo lo dice un examen que el diccionario no haya visto.
+  it.each([
+    ['jajaja ya me quiero morir de verdad, mejor me pego un tiro y listo 😂', 'vida'],
+    ['jaja tranqui, si mañana no aparezco es que por fin me colgué, estoy mamado de todo', 'vida'],
+    ['mi marido anoche me volvió a cascar y me da miedo volver a la casa', 'pareja'],
+    ['mi ex me dijo que si no vuelvo con él me mata', 'pareja'],
+    ['el padrastro de mi hija de 12 años la toca cuando yo no estoy', 'nino'],
+    ['mi sobrino de 15 me escribió que se quiere matar', 'vida'],
+    ['me dio un dolor en el pecho que me baja por el brazo izquierdo y estoy sudando frío', 'vida'],
+    ['se me durmió medio lado de la cara y no puedo hablar bien', 'vida'],
+    ['me quiero morir por todo lo que me pasó', 'vida'],
+    ['me quiero morir de una vez', 'vida'],
+  ])('«%s» → Quieta (%s)', (frase, linea) => {
+    expect(filtroDeRiesgo(frase)).toEqual({ tipo: 'quieta', linea })
+  })
+
+  it.each([
+    'me muero de la pereza de ir a pierna hoy jajaja',
+    'esa sentadilla búlgara me mató, quedé muerta',
+    'con este plan me voy a morir de hambre jaja, puro pollo y brócoli',
+    'no quiero morirme de hambre esta semana, hoy me comí dos arepas',
+    'me muero de sueño, dormí cuatro horas',
+    'me muero del calor en ese gimnasio',
+    'casi me muero de la risa con el profe',
+  ])('«%s» no es una señal de riesgo', (frase) => {
+    expect(filtroDeRiesgo(frase)).toBeNull()
+  })
+})
+
+describe('el contexto decide: «quiero morir» atado al entreno o a la dieta (Bryan, 1-oct)', () => {
+  // La regla: fórmula de morir + un ancla de lo pautado (la rutina, un ejercicio, la dieta)
+  // y ninguna señal de literalidad → `cuidado`: Praxis pregunta, no se detiene y tampoco lo
+  // ignora. Con una señal de literalidad, o sin ancla → Quieta. El humor nunca apaga la
+  // marca. Las tres primeras son del oro firmado por Bryan el 29-sep (B084, B086, B143), las
+  // tres en AMBIGUO.
+  it.each([
+    ['me dieron ganas de morirme cuando vi los burpees', { tipo: 'cuidado' }],
+    ['hoy me quiero tirar por la ventana con esta dieta jaja', { tipo: 'cuidado' }],
+    ['prefiero estar muerta antes que hacer otro burpee', { tipo: 'cuidado' }],
+    ['me quiero morir con esta rutina de pierna 😂', { tipo: 'cuidado' }],
+    ['si me vuelves a poner cardio me pego un tiro jajaja', { tipo: 'cuidado' }],
+    ['me quiero morir de verdad', { tipo: 'quieta', linea: 'vida' }],
+    ['me quiero morir por todo lo que me pasó', { tipo: 'quieta', linea: 'vida' }],
+    ['prefiero morirme antes que hacer otro burpee, ya no aguanto esta vida', { tipo: 'quieta', linea: 'vida' }],
+    ['con esta dieta me quiero morir, en serio', { tipo: 'quieta', linea: 'vida' }],
+    ['otra vez las sentadillas, ya me quiero morir, siempre es lo mismo', { tipo: 'quieta', linea: 'vida' }],
+    ['tengo las pastillas, después del entreno me quiero morir', { tipo: 'quieta', linea: 'vida' }],
+    ['le metí 40 a la sentadilla pero no quiero vivir más', { tipo: 'quieta', linea: 'vida' }],
+    ['jaja me quiero morir', { tipo: 'quieta', linea: 'vida' }],
+  ] as const)('«%s» → %o', (frase, marca) => {
+    expect(filtroDeRiesgo(frase)).toEqual(marca)
+  })
+
+  it.each([
+    'me muero de la pereza de ir a pierna hoy jajaja',
+    'esa sentadilla búlgara me mató, quedé muerta',
+    'con este plan me voy a morir de hambre jaja, puro pollo y brócoli',
+    'me muero de sueño, dormí cuatro horas',
+    'casi me muero de la risa con el profe en el gimnasio',
+  ])('«%s» sigue siendo una exageración inofensiva: sin marca', (frase) => {
+    expect(filtroDeRiesgo(frase)).toBeNull()
+  })
+
+  it('el ancla no tapa otra señal: con violencia de pareja en la misma frase, la Quieta de pareja', () => {
+    expect(filtroDeRiesgo('con esta rutina me quiero morir, y mi novio me pega')).toEqual({ tipo: 'quieta', linea: 'pareja' })
+  })
+})

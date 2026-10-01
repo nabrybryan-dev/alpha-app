@@ -64,6 +64,7 @@ export type PasoTrasProponer =
   | { paso: 'aclarar'; texto: string; opciones: string[] }
   | { paso: 'salud'; texto: string }
   | { paso: 'quieta'; linea: LineaDeAyuda }
+  | { paso: 'cuidado' }
   | { paso: 'no_se'; texto: string; queFalto: QueFalto }
   | { paso: 'dicho'; texto: string }
   | { paso: 'fallo'; texto: string }
@@ -96,6 +97,10 @@ export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): Paso
   const t = (tu: string, usted: string) => (trato === 'usted' ? usted : tu)
 
   if (propuesta.accion === 'derivar' || tarjeta.tipo === 'derivacion') {
+    // El servidor filtra con el MISMO filtro que la pantalla y dice qué marcó: se respeta tal
+    // cual, para que una frase de pareja lleve a la 155 y una ambigua a la pregunta de cuidado.
+    if (propuesta.riesgo?.tipo === 'quieta') return { paso: 'quieta', linea: propuesta.riesgo.linea }
+    if (propuesta.riesgo?.tipo === 'cuidado') return { paso: 'cuidado' }
     // El servidor filtró algo que la pantalla dejó pasar: gana el más protector.
     if (propuesta.filtro === 'crisis' || (propuesta.urgencia === 'alta' && propuesta.filtro === 'sintoma')) return { paso: 'quieta', linea: 'vida' }
     return { paso: 'salud', texto: SALUD_SIN_REGISTRO[trato] }

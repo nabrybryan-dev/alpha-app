@@ -447,5 +447,11 @@ export interface Propuesta {
   /** Marca de la derivación clínica. */
   filtro?: 'dolor' | 'lesion' | 'sintoma' | 'crisis' | 'medicamento' | 'conducta_alimentaria' | 'animo'
   urgencia?: 'alta'
+  /**
+   * Lo que marcó el filtro de riesgo (`domain/praxis/riesgo.ts`), el MISMO que corre en la
+   * pantalla: la Quieta con su línea de ayuda, o la pregunta de cuidado. La pantalla lo usa
+   * tal cual: así una frase de pareja lleva a la 155 y no a la línea genérica.
+   */
+  riesgo?: { tipo: 'quieta'; linea: 'vida' | 'pareja' | 'nino' } | { tipo: 'cuidado' }
   citas_invalidas: string[]
 }

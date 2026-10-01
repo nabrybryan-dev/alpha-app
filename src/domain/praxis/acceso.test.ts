@@ -34,3 +34,11 @@ describe('quién puede ver Praxis', () => {
     expect(puedeVerPraxis('nutricionista', false)).toBe(true)
   })
 })
+
+// `acceso.ts` no importa nada (lo usa también la Edge Function, en Deno), así que repite el
+// tipo de los roles. Si el del dominio cambia y este no, esto deja de compilar.
+type Igual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+const rolesIguales: Igual<import('./acceso').Rol, import('../types').Rol> = true
+describe('el interruptor y el dominio hablan de los mismos roles', () => {
+  it('el tipo Rol de acceso.ts es el del dominio', () => expect(rolesIguales).toBe(true))
+})

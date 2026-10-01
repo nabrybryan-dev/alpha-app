@@ -46,8 +46,17 @@ const CRISIS_EXTRA: RegExp[] = [
   /\bhacerme dano\b/,
 ]
 
-// "me quiero morir de X" / "me muero de X" son exageraciones, no crisis.
-const EXAGERACION = /\b(me quiero morir|me muero|muerto|muerta)\s+(de|del|por)\s+\S+/g
+/**
+ * «Me muero de sueño», «me quiero morir de la risa»: exageraciones, no crisis. Solo con un
+ * complemento de esta LISTA CERRADA y solo con «de»/«del».
+ *
+ * Antes valía cualquier complemento (`(de|del|por)\s+\S+`) y se comía frases de riesgo
+ * reales: «me quiero morir DE VERDAD», «me quiero morir POR todo lo que me pasó», «… DE UNA
+ * VEZ». Lo encontró la revisión independiente del PR #331 (1-oct-2026). Nunca «por»: «por»
+ * introduce la causa, no la exageración. La comparten la pantalla y la función.
+ */
+export const EXAGERACION_INOFENSIVA =
+  /\b(me quiero morir|me voy a morir|me muero|morirme|morir|muerto|muerta)\s+(de|del)\s+(la |el )?(hambre|sueno|risa|pereza|flojera|calor|frio|cansancio|ganas|nervios|susto|verguenza|envidia|aburrimiento|sed|antojo|emocion)\b/g
 
 // Negaciones benignas: "sin ninguna molestia", "no me duele nada". Se borran antes
 // de buscar, para que decir que NO hay dolor no dispare la derivación.
@@ -104,7 +113,7 @@ function primera(res: RegExp[], n: string): string | null {
 
 /** `null` si la frase no trae nada clínico. */
 export function filtrarClinico(frase: string): MarcaClinica | null {
-  const n = normalizarTexto(frase).replace(EXAGERACION, ' ').replace(NEGACION_BENIGNA, ' ')
+  const n = normalizarTexto(frase).replace(EXAGERACION_INOFENSIVA, ' ').replace(NEGACION_BENIGNA, ' ')
 
   const crisisChat = FRASES_CRISIS_CHAT.find((f) => n.includes(f))
   if (crisisChat) return { filtro: 'crisis', urgencia: 'alta', marca: crisisChat }

@@ -29,9 +29,12 @@
 
 import {
   MODELO_HAIKU, PROMPT_SISTEMA, ESQUEMA_REGISTRO, VERSION_ESQUEMA, VERSION_PROMPT, VERSION_RESOLUTORES,
-  armarContexto, armarMensajeUsuario, construirTarjeta, derivarPorFiltro, filtrarClinico, prepararAdherencia, prepararSeries,
+  armarContexto, armarMensajeUsuario, construirTarjeta, prepararAdherencia, prepararSeries,
   prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion,
 } from '../../../src/domain/praxis/registro/index.ts'
+// El MISMO filtro de riesgo y el MISMO interruptor que la pantalla (revisión del PR #331).
+import { derivarPorRiesgo, filtroDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
+import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 import type {
   ContextoRegistro, MicrocicloJson, RegistroAdherencia, RegistroPropuesto, RegistroSeries, RegistroSesionCampo,
 } from '../../../src/domain/praxis/registro/index.ts'
@@ -91,7 +94,22 @@ export function horaBogota(ahora: Date): string {
   return new Date(ahora.getTime() - 5 * 3_600_000).toISOString().slice(0, 19) + '-05:00'
 }
 
-const esHoraIso = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)
+/** La forma ENTERA de la hora: fecha, hora, segundos opcionales y zona. Nada detrás. */
+const HORA_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)$/
+
+/**
+ * La hora del teléfono, si se puede creer; si no, la del servidor en Bogotá. Se cree solo si
+ * tiene la forma exacta, no pasa de 25 caracteres y cae a menos de un día de la del
+ * servidor. Antes valía cualquier texto que EMPEZARA como una fecha: lo de detrás viajaba
+ * al modelo como `hora_local` y se grababa como `hechoEn` (revisión del PR #331, M3).
+ */
+export function horaConfiable(h: unknown, ahora: Date): string {
+  const servidor = horaBogota(ahora)
+  if (typeof h !== 'string' || h.length > 25 || !HORA_ISO.test(h)) return servidor
+  const t = Date.parse(h)
+  if (!Number.isFinite(t) || Math.abs(t - ahora.getTime()) > 86_400_000) return servidor
+  return h
+}
 
 interface FilaMicrociclo {
   id: string
@@ -141,14 +159,39 @@ async function microciclosDe(d: Dependencias, s: Sesion): Promise<{ activo: Micr
   return { activo: activo ? aMicrociclo(activo) : null, anterior: anterior ? aMicrociclo(anterior) : null }
 }
 
-/** Un solo llamado a Haiku con la herramienta `registrar` forzada y esquema estricto. */
+/**
+ * Lo que respondió Anthropic cuando no fue un 200, para poder diagnosticarlo en el log de la
+ * función: el código y el cuerpo del error. La frase de la persona se borra del cuerpo antes
+ * de escribirlo (algunos errores la citan), y se corta a 600 caracteres.
+ */
+async function registrarErrorDeAnthropic(r: Response, frase: string): Promise<void> {
+  let cuerpo = ''
+  try { cuerpo = await r.text() } catch { /* sin cuerpo */ }
+  for (const forma of [frase, JSON.stringify(frase).slice(1, -1)]) if (forma) cuerpo = cuerpo.split(forma).join('[frase]')
+  console.error('praxis-registro: Anthropic respondió', r.status, cuerpo.slice(0, 600))
+}
+
+/**
+ * Un solo llamado a Haiku con la herramienta `registrar` forzada.
+ *
+ * SIN `strict`. El esquema tiene 46 parámetros con unión (`anyOf` con `null`), y el modo
+ * estricto admite 16 en total («Parameters with union types: 16», documentación de
+ * structured outputs): con `strict: true` la API respondía 400 «Schema is too complex for
+ * compilation» a cada frase. Sin él, la salida no viene garantizada por gramática, pero
+ * `validarExtraccion` revisa cada campo, exige que cada cita sea literal de la frase y que
+ * cada enum esté en su lista, y lo que no cumple se descarta: falla cerrando. Nada de esto
+ * se probó todavía contra la API de verdad (ver PASOS-DE-BRYAN.md, paso 3).
+ */
 export async function llamarHaiku(
   d: Dependencias,
   ctx: ContextoRegistro,
   frase: string,
 ): Promise<{ entrada: unknown; tokensEntrada: number; tokensSalida: number } | null> {
   const clave = d.entorno.ANTHROPIC_API_KEY
-  if (!clave) return null
+  if (!clave) {
+    console.error('praxis-registro: falta el secreto ANTHROPIC_API_KEY')
+    return null
+  }
   const r = await d.fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': clave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -163,7 +206,6 @@ export async function llamarHaiku(
         {
           name: 'registrar',
           description: 'Etiqueta lo que la persona dijo. No calcules ni completes números: copia fragmentos literales.',
-          strict: true,
           input_schema: ESQUEMA_REGISTRO,
         },
       ],
@@ -171,7 +213,10 @@ export async function llamarHaiku(
       messages: [{ role: 'user', content: armarMensajeUsuario(ctx, frase) }],
     }),
   })
-  if (!r.ok) return null
+  if (!r.ok) {
+    await registrarErrorDeAnthropic(r, frase)
+    return null
+  }
   const cuerpo = (await r.json()) as {
     content?: { type: string; input?: unknown }[]
     usage?: { input_tokens?: number; output_tokens?: number }
@@ -204,10 +249,11 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
   const mensajeId = typeof cuerpo.mensaje_id === 'string' && cuerpo.mensaje_id ? cuerpo.mensaje_id : `m-${d.ahora().getTime()}`
   const t0 = d.ahora().getTime()
 
-  // 1. Filtro clínico ANTES del modelo. Haiku no ve estas frases.
-  const marca = filtrarClinico(frase)
+  // 1. Filtro de riesgo ANTES del modelo: el MISMO que corre en la pantalla (riesgo, pareja,
+  //    niños, frases ambiguas, salud). Haiku no ve estas frases.
+  const marca = filtroDeRiesgo(frase)
   if (marca) {
-    const propuesta = derivarPorFiltro(marca)
+    const propuesta = derivarPorRiesgo(marca)
     return json({
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
@@ -218,7 +264,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
   if (excedeLimite(s.usuarioId, t0)) return json({ error: 'Demasiados mensajes en la última hora' }, 429)
 
   // 2. Contexto implícito, leído con el JWT de la persona.
-  const ahora = esHoraIso(cuerpo.hora_local) ? cuerpo.hora_local : horaBogota(d.ahora())
+  const ahora = horaConfiable(cuerpo.hora_local, d.ahora())
   const { activo, anterior } = await microciclosDe(d, s)
   const ut = cuerpo.ultimo_tocado
   const ctx = armarContexto({
@@ -239,7 +285,10 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
   })
 
   // 3. Haiku: solo cita y etiqueta.
-  const salida = await llamarHaiku(d, ctx, frase).catch(() => null)
+  const salida = await llamarHaiku(d, ctx, frase).catch((e: unknown) => {
+    console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
+    return null
+  })
   if (!salida) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
 
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
@@ -280,7 +329,7 @@ async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar): Promi
   if (!Array.isArray(cuerpo.registros) || cuerpo.registros.length === 0 || cuerpo.registros.length > 12) {
     return json({ error: 'Faltan los registros confirmados (1 a 12)' }, 400)
   }
-  const ahora = esHoraIso(cuerpo.hora_local) ? cuerpo.hora_local : horaBogota(d.ahora())
+  const ahora = horaConfiable(cuerpo.hora_local, d.ahora())
   const { activo } = await microciclosDe(d, s)
   const ctx = armarContexto({ ahora, activo })
   const resultados: ResultadoRegistro[] = []
@@ -379,6 +428,15 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
     return json({ error: 'No se pudo validar la sesion' }, 401)
   }
   const sesion: Sesion = { usuarioId, token }
+
+  // Mientras Praxis esté cerrada a los asesorados, la función atiende solo al equipo. El
+  // interruptor es el de la pantalla (`acceso.ts`): antes solo existía allí, y cualquier
+  // asesorado con sesión podía llamar a la función y mandar su texto al modelo (revisión del
+  // PR #331, A2). El rol se pregunta con el JWT de la persona; si no se sabe, se cierra.
+  const filas = await leer<{ rol?: string }[]>(d, sesion, `usuarios_app?id=eq.${usuarioId}&select=rol`).catch(() => null)
+  const rol = filas?.[0]?.rol
+  const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
+  if (!conocido || !puedeVerPraxis(rol as Rol)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
   if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo)

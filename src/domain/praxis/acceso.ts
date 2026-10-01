@@ -1,4 +1,9 @@
-import type { Rol } from '../types'
+/**
+ * Sin importaciones a propósito: este módulo lo usa también la Edge Function
+ * `praxis-registro` (Deno), para que la pantalla y el servidor cierren con el MISMO
+ * interruptor. `acceso.test.ts` comprueba que este tipo y el `Rol` del dominio son iguales.
+ */
+export type Rol = 'asesorado' | 'coach' | 'nutricionista'
 
 /**
  * Quién puede ver la pantalla de Praxis.

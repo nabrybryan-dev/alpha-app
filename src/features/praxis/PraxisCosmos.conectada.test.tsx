@@ -299,6 +299,19 @@ describe('Praxis conectada · seguridad primero', () => {
     expect(c.guardar).not.toHaveBeenCalled()
   })
 
+  it('si el servidor marca violencia de pareja, la Quieta lleva a la 155 (la misma línea que habría elegido la pantalla)', async () => {
+    const u = userEvent.setup()
+    const c = crear({ proponer: vi.fn(async (): Promise<RespuestaDelRegistrador> => ({
+      ok: true, mensajeId: 'm-3',
+      propuesta: { accion: 'derivar', motivo: 'clinico', filtro: 'crisis', urgencia: 'alta', riesgo: { tipo: 'quieta', linea: 'pareja' }, registros: [], descartado: [], notas_coach: [], citas_invalidas: [] },
+      tarjeta: { tipo: 'derivacion', titulo: '', lineas: [], avisos: [], descartado: [], botones: [], requiereConfirmarSesion: false, guardable: false },
+    })) })
+    const { $, raiz } = montar(c)
+    await abrir(u)
+    await decirle(u, $, 'una frase que el diccionario de la pantalla no conoce')
+    await waitFor(() => expect(raiz.querySelector('.quieta a[href="tel:155"]')).not.toBeNull(), ESPERA)
+  })
+
   it('si el servidor deriva por crisis algo que la pantalla dejó pasar, también la Quieta', async () => {
     const u = userEvent.setup()
     const c = crear({ proponer: vi.fn(async (): Promise<RespuestaDelRegistrador> => ({

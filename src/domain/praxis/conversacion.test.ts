@@ -211,3 +211,18 @@ describe('resumenDeGuardado · lo pendiente se nombra como lo que es', () => {
     expect(resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo: 'series', estado: 'rechazado' }] }, 'tu').lineas).toEqual(['No se guardó (series): la base no lo aceptó.'])
   })
 })
+
+describe('revisión del PR #331 · la marca de riesgo del servidor se respeta tal cual', () => {
+  it('una Quieta de pareja del servidor lleva a la 155, no a la línea genérica', () => {
+    const p = pasoTrasProponer(respuesta({ tipo: 'derivacion' }, { accion: 'derivar', filtro: 'crisis', urgencia: 'alta', riesgo: { tipo: 'quieta', linea: 'pareja' } }), 'tu')
+    expect(p).toEqual({ paso: 'quieta', linea: 'pareja' })
+  })
+
+  it('una Quieta de un niño lleva a la 141', () => {
+    expect(pasoTrasProponer(respuesta({ tipo: 'derivacion' }, { accion: 'derivar', filtro: 'crisis', riesgo: { tipo: 'quieta', linea: 'nino' } }), 'tu')).toEqual({ paso: 'quieta', linea: 'nino' })
+  })
+
+  it('una frase ambigua marcada por el servidor lleva a la pregunta de cuidado, no a la Quieta', () => {
+    expect(pasoTrasProponer(respuesta({ tipo: 'derivacion' }, { accion: 'derivar', filtro: 'crisis', urgencia: 'alta', riesgo: { tipo: 'cuidado' } }), 'tu')).toEqual({ paso: 'cuidado' })
+  })
+})

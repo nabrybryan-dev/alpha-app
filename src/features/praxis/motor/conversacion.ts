@@ -153,6 +153,9 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number): Promise
     case 'quieta':
       entrarQuieta(p.linea, frase, false)
       return
+    case 'cuidado':
+      preguntarCuidado(frase, 'texto')
+      return
     case 'no_se':
       await ofrecerPregunta(c, frase, p.texto, p.queFalto, [], tok)
       return
