@@ -8,7 +8,8 @@
 --   1. La dueña inserta la suya y la lee. Nace `abierta`, con plazo de 24 horas, aunque el
 --      navegador intente mandar otra cosa (no tiene privilegio sobre esas columnas).
 --   2. Nadie inserta a nombre de otra persona.
---   3. Como mucho 2 abiertas por persona: la tercera se rechaza.
+--   3. Como mucho 2 abiertas por persona: la tercera se rechaza, también cuando las tres
+--      llegan en UNA sentencia (un POST con un arreglo JSON es un solo insert).
 --   4. La dueña no puede responderse ni cambiar su pregunta.
 --   5. Otra asesorada no ve nada ajeno.
 --   6. La nutricionista ve y responde SOLO las que van a `nutricionista`; el coach, todas.
@@ -245,6 +246,58 @@ select pruebas.afirmar(
 
 insert into public.praxis_preguntas_en_espera (usuario_id, pregunta, destinatario, que_falto) values
   ('a5000000-0000-0000-0000-000000000001', '¿Qué me toca el sábado?', 'coach', 'sin_dato');
+
+reset role;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 3 bis · el tope aguanta varias filas en UNA sentencia (otra asesorada, sin abiertas)
+-- ════════════════════════════════════════════════════════════════════════
+select pruebas.soy('a5000000-0000-0000-0000-000000000002');
+set role authenticated;
+select pruebas.exigir_rls();
+
+-- 3 bis · Tres filas en UNA sentencia: la tercera choca con el tope y la sentencia entera
+-- se deshace. (La primera versión de la 0105 dejaba entrar las tres.)
+do $$
+begin
+  begin
+    insert into public.praxis_preguntas_en_espera (usuario_id, pregunta, destinatario, que_falto) values
+      ('a5000000-0000-0000-0000-000000000002', 'Una', 'coach', 'sin_dato'),
+      ('a5000000-0000-0000-0000-000000000002', 'Dos', 'coach', 'sin_dato'),
+      ('a5000000-0000-0000-0000-000000000002', 'Tres', 'coach', 'sin_dato');
+    raise exception 'FALLO: entraron tres preguntas abiertas en una sola sentencia';
+  exception
+    when check_violation then null;
+  end;
+end $$;
+
+select pruebas.afirmar(
+  (select count(*) from public.praxis_preguntas_en_espera
+    where usuario_id = 'a5000000-0000-0000-0000-000000000002') = 0,
+  'la sentencia de tres filas dejó alguna fila dentro'
+);
+
+-- Dos en una sentencia sí caben; y con esas dos, una más ya no.
+insert into public.praxis_preguntas_en_espera (usuario_id, pregunta, destinatario, que_falto) values
+  ('a5000000-0000-0000-0000-000000000002', 'Una', 'coach', 'sin_dato'),
+  ('a5000000-0000-0000-0000-000000000002', 'Dos', 'nutricionista', 'sin_dato');
+
+select pruebas.afirmar(
+  (select count(*) from public.praxis_preguntas_en_espera
+    where usuario_id = 'a5000000-0000-0000-0000-000000000002' and estado = 'abierta') = 2,
+  'dos preguntas en una sola sentencia no entraron'
+);
+
+do $$
+begin
+  begin
+    insert into public.praxis_preguntas_en_espera (usuario_id, pregunta, destinatario, que_falto) values
+      ('a5000000-0000-0000-0000-000000000002', 'La tercera, sola', 'coach', 'sin_dato');
+    raise exception 'FALLO: con dos abiertas entró una tercera';
+  exception
+    when check_violation then null;
+  end;
+end $$;
 
 reset role;
 
