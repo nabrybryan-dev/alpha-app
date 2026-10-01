@@ -26,6 +26,7 @@ const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
 const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
+const PraxisPage = lazy(() => import('../features/praxis/PraxisPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -71,6 +72,11 @@ export function AppRouter() {
         <Route path="equipo-nutricion" element={envolver(<EquipoNutricionPage />)} />
         <Route path="equipo-nutricion/cifras" element={envolver(<CifrasAsesoradosPage />)} />
       </Route>
+      {/* Praxis (diseño cosmos). Va por fuera de los dos layouts porque es la pantalla
+          entera —su cielo ocupa todo y trae su propia barra— y porque la tiene que poder
+          abrir el coach, al que `AsesoradoLayout` manda a /coach. La guarda vive en
+          `PraxisPage`: solo staff, porque los datos son de EJEMPLO. */}
+      <Route path="praxis" element={envolver(<PraxisPage />)} />
       <Route path="coach" element={<CoachLayout />}>
         <Route index element={envolver(<AsesoradosPage />)} />
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
