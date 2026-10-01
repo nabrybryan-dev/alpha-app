@@ -159,3 +159,6 @@ jobs:
 
       - name: El tablero del área administrativa lo lee quien tiene la capacidad, no lo escribe nadie con sesión y anon no ve nada
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/200-admin-tablero.sql
+
+      - name: Los hallazgos de mercadeo los leen Manuela y Bryan, comentan por la función, solo el servidor escribe y anon no ve nada
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/210-mercadeo-hallazgos.sql

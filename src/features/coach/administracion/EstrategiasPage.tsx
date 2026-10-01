@@ -3,6 +3,7 @@ import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import { BuzonMercadeo } from '../creadores/BuzonMercadeo'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
+import { InvestigacionInteractiva } from './InvestigacionInteractiva'
 import { InvestigacionMercadeo } from './InvestigacionMercadeo'
 import { SeccionTablero } from './SeccionTablero'
 import { useTableroAdmin } from './useTableroAdmin'
@@ -13,8 +14,9 @@ import { useTableroAdmin } from './useTableroAdmin'
  *   1. Mercadeo de lo macro a lo concreto: estrategias en uso, ganchos, loops, estructura de
  *      videos y tendencias (la sección «mercadeo» del tablero de la 0102), y debajo sus cuatro
  *      tarjetas de investigación: tendencias, videos, ganchos y diseños visuales.
- *   2. Investigación: lo que investiga el agente y dónde comenta Manuela (el buzón de mercadeo,
- *      migración 0096, que se abre con `responder_mercadeo`).
+ *   2. Investigación del agente: hallazgos (hook, loop, estructura, tendencia, gancho visual) que
+ *      Manuela comenta y el agente responde (migración 0103), y debajo el buzón de preguntas
+ *      (0096). Ambos se abren con `responder_mercadeo`.
  *   3. Influencers y creadores evaluados (el tablero de Creadores, con `revisar_creadores`).
  *   4. Bola de nieve.
  *
@@ -60,9 +62,15 @@ export default function EstrategiasPage() {
       <InvestigacionMercadeo t={t} />
 
       <RotuloGrupo titulo="Investigación" />
-      <TarjetaPlegable nombre="Investigación del agente" frase="Lo que investiga el agente y un lugar para que Manuela responda y comente.">
+      <TarjetaPlegable nombre="Investigación del agente" frase="Lo que investiga el agente: lo abres, lo comentas y el agente responde y lo fortalece.">
         {puedeMercadeo ? (
-          <BuzonMercadeo />
+          <>
+            <InvestigacionInteractiva puede />
+            <div className="flex flex-col gap-2">
+              <p className={CLASE_ETIQUETA}>Preguntas del agente para Manuela</p>
+              <BuzonMercadeo />
+            </div>
+          </>
         ) : (
           <p className="text-sm text-tenue">
             El buzón se abre con el permiso de responder mercadeo, y todavía no lo tienes. Pídeselo al coach.

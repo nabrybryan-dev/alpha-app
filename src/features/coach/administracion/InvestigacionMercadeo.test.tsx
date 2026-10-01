@@ -74,13 +74,14 @@ describe('InvestigacionMercadeo', () => {
     expect(within(g).getByText(/Estado: FALTA/)).toBeInTheDocument()
   })
 
-  it('Manuela comenta en el buzón; comentar cada hallazgo queda Pendiente: necesita una tabla nueva', async () => {
+  it('Manuela comenta en la tarjeta «Investigación del agente»', async () => {
     const u = userEvent.setup()
     render(<InvestigacionMercadeo t={tablero(conFilas([fila('ganchos-1', 'Abrir con una pregunta directa')]))} />)
     const g = screen.getByRole('region', { name: 'Ganchos usados (hooks)' })
     await u.click(within(g).getByRole('button', { name: /Ganchos usados/ }))
     expect(within(g).getByText(/Investigación del agente/)).toBeInTheDocument()
-    expect(within(g).getByText(/Pendiente: necesita una tabla nueva/)).toBeInTheDocument()
+    expect(within(g).getByText(/el agente responda/)).toBeInTheDocument()
+    expect(within(g).queryByText(/tabla nueva/)).toBeNull()
   })
 
   it('sin permiso o sin tabla, gris «Pendiente de activar» y no FALTA', () => {

@@ -2153,4 +2153,21 @@ select '0102 - admin_tablero: RLS, lectura por capacidad ver_administracion, sol
                               where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
                                 and pg_get_constraintdef(oid) like '%ver_administracion%') then 'NO'
             else 'SI' end
+union all
+-- La 0103: hallazgos de mercadeo y su hilo. RLS, anon sin nada, authenticated solo lee, comentar por función cerrada a anon.
+select '0103 - hallazgos de mercadeo: RLS, solo lee authenticated, comentar por función cerrada a anon', 'mercadeo_hallazgos y mercadeo_hallazgo_comentarios con RLS; anon sin select; authenticated solo select; service_role escribe; comentar_hallazgo_mercadeo sin execute para anon',
+       case when exists (
+         select 1 from unnest(array['public.mercadeo_hallazgos', 'public.mercadeo_hallazgo_comentarios']) t(tabla)
+          where to_regclass(t.tabla) is null
+             or not (select c.relrowsecurity from pg_class c where c.oid = to_regclass(t.tabla))
+             or has_table_privilege('anon', t.tabla, 'select')
+             or not has_table_privilege('authenticated', t.tabla, 'select')
+             or has_table_privilege('authenticated', t.tabla, 'insert')
+             or has_table_privilege('authenticated', t.tabla, 'update')
+             or has_table_privilege('authenticated', t.tabla, 'delete')
+             or not has_table_privilege('service_role', t.tabla, 'insert')
+       ) then 'NO'
+            when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
+              or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute') then 'NO'
+            else 'SI' end
 order by migracion, senal;

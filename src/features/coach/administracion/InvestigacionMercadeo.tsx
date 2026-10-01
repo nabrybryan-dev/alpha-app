@@ -17,12 +17,11 @@ import type { TableroAdmin } from './useTableroAdmin'
  * sección «mercadeo» del tablero (ver `domain/investigacionMercadeo.ts`). Cada hallazgo dice una
  * frase, la fuente, la fecha y el estado. Sin dato, la tarjeta sale gris con FALTA y quién lo trae.
  *
- * Manuela lo comenta en la tarjeta «Investigación del agente» (el buzón de mercadeo). Comentar
- * cada hallazgo por separado necesitaría una tabla nueva: queda dicho como pendiente, no creado.
+ * Manuela lo comenta en la tarjeta «Investigación del agente» (hallazgos con hilo, migración 0103).
  */
 
 const FRASE_COMENTAR =
-  'Para comentarlo, responde en la tarjeta «Investigación del agente» (más abajo). Comentar este hallazgo por separado: Pendiente: necesita una tabla nueva.'
+  'Para comentar un hallazgo y que el agente responda, abre la tarjeta «Investigación del agente» (más abajo).'
 
 function FilaHallazgo({ h }: { h: Hallazgo }) {
   const [abierta, setAbierta] = useState(false)
