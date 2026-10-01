@@ -106,7 +106,7 @@ export const ESCALA3: Record<string, string[]> = {
  */
 export type TipoRiesgo = 'vida' | 'pareja' | 'nino'
 export const LIN_QUIETA: Record<TipoRiesgo, [string, string, string][]> = {
-  vida: [['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país'], ['192', 'Llamar al 192 (opción 4)', 'Línea 192, opción 4 · salud mental, Ministerio de Salud']],
+  vida: [['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país'], ['106', 'Llamar al 106', 'Línea 106 · salud mental, Ministerio de Salud, 24 horas']],
   pareja: [['155', 'Llamar a la Línea 155', 'Línea 155 · violencia de pareja'], ['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país']],
   nino: [['141', 'Llamar a la Línea 141', 'Línea 141 · ICBF'], ['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país']],
 }

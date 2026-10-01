@@ -4,14 +4,13 @@ import type { Trato } from '../motor/entorno'
  * «Privacidad y ayuda»: quién es Praxis, qué se guarda, cómo pedir ayuda y los permisos.
  * Marcado quieto, como el resto de la escena: el motor cuelga los oyentes por id.
  *
- * LOS NÚMEROS DE AYUDA son los de la maqueta aprobada. Antes de abrir Praxis a asesorados
- * los revisa un profesional (y la base de respuestas de seguridad, que ya marcó la opción 4
- * del 192 como sin verificar).
+ * LOS NÚMEROS DE AYUDA son los de la maqueta aprobada, menos la opción 4 del 192: la base
+ * de respuestas de seguridad no pudo verificarla (la página de MinSalud da 404) y la línea
+ * nacional verificada es el 106. Antes de abrir Praxis a asesorados los revisa un profesional.
  */
 const LINEAS: [string, string, string?][] = [
   ['123', 'Línea 123 · emergencias, en todo el país.'],
-  ['192', 'Línea 192, opción 4 · salud mental, Ministerio de Salud, en todo el país.'],
-  ['106', 'Línea 106 · salud mental en tu ciudad (Bogotá, según tu perfil de ejemplo).', 'Línea 106 · salud mental en su ciudad (Bogotá, según su perfil de ejemplo).'],
+  ['106', 'Línea 106 · salud mental, Ministerio de Salud, 24 horas, en todo el país.'],
   ['155', 'Línea 155 · violencia contra la mujer o de pareja.'],
   ['141', 'Línea 141 · ICBF, si un niño o una niña está en riesgo.'],
 ]
