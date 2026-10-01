@@ -1,4 +1,14 @@
-import { estaAbierto, esVivo, lunesDe, sumarDias, type Dueno, type ItemPlan } from './planOrganizador'
+import {
+  avanceDeObjetivo,
+  estaAbierto,
+  esVivo,
+  lunesDe,
+  objetivosActivos,
+  sumarDias,
+  type Avance,
+  type Dueno,
+  type ItemPlan,
+} from './planOrganizador'
 
 /**
  * «Jornada laboral» de Administración (decisión de Bryan, 30-sep). Lógica pura sobre el mismo
@@ -47,5 +57,57 @@ export function jornadaDe(items: readonly ItemPlan[], dueno: Dueno, hoy: string)
     hoy: propias.filter((t) => t.fecha === hoy && esVivo(t)).map(fila),
     semana: propias.filter((t) => t.fecha !== null && t.fecha > hoy && t.fecha <= domingo && esVivo(t)).map(fila),
     sinDia: propias.filter((t) => t.fecha === null && estaAbierto(t)).map(fila),
+  }
+}
+
+/** Tiempo de trabajo de hoy: la suma de lo estimado en las tareas del día. Lo que no trae estimado se cuenta aparte, no como 0. */
+export interface TiempoDeHoy {
+  tareas: number
+  planeadoMin: number
+  hechoMin: number
+  sinEstimar: number
+}
+
+export function tiempoDeHoy(hoy: readonly FilaJornada[]): TiempoDeHoy {
+  let planeadoMin = 0
+  let hechoMin = 0
+  let sinEstimar = 0
+  for (const { tarea } of hoy) {
+    if (tarea.estimadoMin === null) {
+      sinEstimar += 1
+      continue
+    }
+    planeadoMin += tarea.estimadoMin
+    if (tarea.estado === 'hecha') hechoMin += tarea.estimadoMin
+  }
+  return { tareas: hoy.length, planeadoMin, hechoMin, sinEstimar }
+}
+
+/** Mediano plazo = los objetivos de 90 días; largo plazo, lo que cae más allá de ese horizonte. */
+export const DIAS_MEDIANO_PLAZO = 90
+
+export interface ObjetivoConAvance {
+  objetivo: ItemPlan
+  avance: Avance
+}
+
+export interface Horizontes {
+  /** Objetivos propios con fecha dentro de los próximos 90 días (o ya vencida y sin cerrar). */
+  mediano: ObjetivoConAvance[]
+  /** Objetivos propios con fecha más allá de los 90 días. */
+  largo: ObjetivoConAvance[]
+  /** Objetivos sin fecha: no se les inventa un horizonte. */
+  sinFecha: ObjetivoConAvance[]
+}
+
+/** Los objetivos de quien mira repartidos por horizonte, con su avance. Los ya hechos no se listan. */
+export function objetivosPorHorizonte(items: readonly ItemPlan[], dueno: Dueno, hoy: string): Horizontes {
+  const limite = sumarDias(hoy, DIAS_MEDIANO_PLAZO)
+  const abiertos = objetivosActivos(items, dueno).filter(estaAbierto)
+  const con = (objetivo: ItemPlan): ObjetivoConAvance => ({ objetivo, avance: avanceDeObjetivo(items, objetivo.id) })
+  return {
+    mediano: abiertos.filter((o) => o.fecha !== null && o.fecha <= limite).map(con),
+    largo: abiertos.filter((o) => o.fecha !== null && o.fecha > limite).map(con),
+    sinFecha: abiertos.filter((o) => o.fecha === null).map(con),
   }
 }

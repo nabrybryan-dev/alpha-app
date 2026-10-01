@@ -6,8 +6,8 @@ import { isoLocal, sumarDias, type ItemPlan } from '../../../domain/planOrganiza
 
 const HOY = isoLocal(new Date())
 const est = { rol: 'nutricionista', items: [] as ItemPlan[], fallo: null as string | null }
-const terminar = vi.fn(async (_id: string) => ({ ok: true as const, id: 'x' }))
-const reabrir = vi.fn(async (_id: string) => ({ ok: true as const, id: 'x' }))
+const terminar = vi.fn<(id: string) => Promise<{ ok: true; id: string }>>(async () => ({ ok: true, id: 'x' }))
+const reabrir = vi.fn<(id: string) => Promise<{ ok: true; id: string }>>(async () => ({ ok: true, id: 'x' }))
 
 vi.mock('../../../data/consola/planItems', () => ({
   planItems: () => Promise.resolve(est.fallo ? { ok: false, error: est.fallo } : { ok: true, datos: est.items }),
@@ -99,5 +99,29 @@ describe('JornadaLaboral', () => {
     est.items = [mk({ titulo: 'Otra semana', fecha: sumarDias(HOY, 30) })]
     montar()
     await waitFor(() => expect(screen.getByText(/No hay tareas para hoy/)).toBeInTheDocument())
+  })
+
+  it('el tiempo de trabajo de hoy suma lo estimado, y sin estimados dice FALTA, no 0 minutos', async () => {
+    montar()
+    expect(await screen.findByText(/FALTA: ninguna tarea de hoy trae su tiempo estimado/)).toBeInTheDocument()
+  })
+
+  it('con estimados muestra los minutos planeados y hechos de hoy', async () => {
+    est.items = [
+      mk({ id: 'a', titulo: 'Una', fecha: HOY, estimadoMin: 50 }),
+      mk({ id: 'b', titulo: 'Otra', fecha: HOY, estimadoMin: 25, estado: 'hecha' }),
+    ]
+    montar()
+    expect(await screen.findByText('75 min planeados · 25 min hechos')).toBeInTheDocument()
+  })
+
+  it('largo plazo: sin objetivos más allá de 90 días dice FALTA; con uno, lo lista con su avance', async () => {
+    const a = montar()
+    expect(await screen.findByText(/Largo plazo: FALTA/)).toBeInTheDocument()
+    a.unmount()
+    est.items = [mk({ id: 'o9', nivel: 'objetivo', titulo: 'Meta del año', fecha: sumarDias(HOY, 200) })]
+    montar()
+    const li = await screen.findByRole('listitem', { name: 'Meta del año' })
+    expect(within(li).getByText(/Avance: FALTA \(todavía sin tareas\)/)).toBeInTheDocument()
   })
 })

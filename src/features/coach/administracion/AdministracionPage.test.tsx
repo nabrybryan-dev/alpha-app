@@ -72,18 +72,44 @@ beforeEach(() => {
 })
 
 describe('AdministracionPage · orden de Bryan', () => {
-  it('va de arriba abajo: jornada laboral, finanzas y operación, objetivos, agentes y, al final, decisiones', async () => {
+  it('va de arriba abajo: estrategias, agenda, indicadores, riesgos y desvíos, agentes y, al final, decisiones', async () => {
     montar()
     await screen.findByRole('group', { name: 'Filtro' })
     expect(nombres()).toEqual([
+      'Plan estratégico',
       'Jornada laboral',
       'Finanzas',
       'Plataforma Alpha y estudio',
-      'Plan estratégico',
+      'Riesgos',
       'Desvíos',
       'Lo que proponen los agentes',
       'Decisiones de Bryan y Manuela',
     ])
+  })
+
+  it('Riesgos sale de las filas rojas de finanzas y plan; lo que no tiene corte dice FALTA, no «sin riesgos»', async () => {
+    const u = userEvent.setup()
+    montar()
+    await screen.findByRole('group', { name: 'Filtro' })
+    const r = screen.getByRole('region', { name: 'Riesgos' })
+    expect(within(r).getByText(/2 riesgos en rojo/)).toBeInTheDocument()
+    await u.click(within(r).getByRole('button', { name: /Riesgos/ }))
+    const fin = within(r).getByRole('region', { name: 'Riesgos financieros' })
+    expect(within(fin).getByText('Techo de 3 M')).toBeInTheDocument()
+    expect(within(fin).getByText('FALTA')).toBeInTheDocument()
+    expect(within(fin).getByText(/Qué hacer: Decidir el techo/)).toBeInTheDocument()
+    const op = within(r).getByRole('region', { name: 'Riesgos operativos' })
+    expect(within(op).getByText(/FALTA: el corte de «desvios»/)).toBeInTheDocument()
+    expect(within(op).queryByText(/Ninguna fila en rojo/)).toBeNull()
+    expect(within(r).getByRole('region', { name: 'Riesgos de estrategia' })).toBeInTheDocument()
+  })
+
+  it('sin la tabla del tablero, Riesgos sale gris «Pendiente de activar» y no inventa nada', async () => {
+    estado.capacidades = new Set(['organizar_plan'])
+    montar()
+    const r = await screen.findByRole('region', { name: 'Riesgos' })
+    expect(within(r).getByText(PENDIENTE)).toBeInTheDocument()
+    expect(within(r).queryByText(/en rojo/)).toBeNull()
   })
 
   it('todo viene plegado: una frase por tarjeta y el detalle al tocarla', async () => {

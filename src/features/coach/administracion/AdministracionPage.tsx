@@ -10,6 +10,7 @@ import {
 import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
 import { JornadaLaboral } from './JornadaLaboral'
+import { RiesgosAdmin } from './RiesgosAdmin'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
 import { SeccionTablero } from './SeccionTablero'
 import { useTableroAdmin } from './useTableroAdmin'
@@ -19,13 +20,13 @@ import type { EnlaceSeccion } from './TarjetaSeccion'
  * ÁREA ADMINISTRATIVA (ESPEC-ADMINISTRACION-INTERACTIVA.md; orden pedido por Bryan el 30-sep),
  * de arriba abajo y todo plegado (una tarjeta por sección con una frase; al tocarla, el detalle):
  *
- *   1. Jornada laboral: las tareas de hoy y de la semana, que su dueño tacha, con el objetivo de corto y
- *      mediano plazo al que aportan y sus entregables (`JornadaLaboral`, sobre `plan_items`).
- *   2. Indicadores financieros y de operación.
- *   3. ¿Cumplimos los objetivos? Plan estratégico y desvíos (riesgos financieros, operativos y
- *      de estrategia).
- *   4. Lo que proponen los agentes: propuesta, nunca aprobación.
- *   5. Al final, las decisiones de Bryan y Manuela, con dirección y responsable.
+ *   1. Estrategias de la empresa: el plan de 90 días y la operación (sección «plan»).
+ *   2. Calendario y agenda por horizonte (hoy, semana, 90 días, largo plazo) con el tiempo de trabajo
+ *      de hoy: `JornadaLaboral`, sobre `plan_items`, sin duplicar «Mi plan».
+ *   3. Indicadores financieros y de operación.
+ *   4. Riesgos (financieros, operativos y de estrategia, desde las filas rojas del tablero) y desvíos.
+ *   5. Lo que proponen los agentes: propuesta, nunca aprobación; pueden pedir «sentarse a revisar con Bryan».
+ *   6. Al final, las decisiones de Bryan y Manuela, con dirección y responsable.
  *
  * Mi plan y las decisiones funcionan con lo que ya existe en la base (`organizar_plan`,
  * `decisiones_compartidas`). Las secciones del tablero (0102) solo se leen con `ver_administracion`:
@@ -74,12 +75,6 @@ export default function AdministracionPage() {
         </p>
       </header>
 
-      {puedePlan && (
-        <TarjetaPlegable nombre="Jornada laboral" frase="Tus tareas de hoy y de la semana: las tachas tú y cada una dice a qué objetivo aporta.">
-          <JornadaLaboral />
-        </TarjetaPlegable>
-      )}
-
       {t.estado.tipo === 'cargando' && <Cargando texto="Cargando el área administrativa…" />}
       {t.estado.tipo === 'fallo' && (
         <FalloDeLectura texto={`No se pudo leer el área administrativa (${t.estado.error}).`} onReintentar={t.reintentar} />
@@ -116,13 +111,32 @@ export default function AdministracionPage() {
 
       {(t.estado.tipo === 'pendiente' || t.estado.tipo === 'ok') && (
         <>
-          <RotuloGrupo titulo="Indicadores financieros y de operación" />
+          <RotuloGrupo titulo="Estrategias de la empresa" nota="El plan de 90 días y la operación: si se está cumpliendo." />
+          {tarjeta('plan')}
+        </>
+      )}
+
+      {puedePlan && (
+        <>
+          <RotuloGrupo titulo="Calendario y agenda" nota="Hoy, esta semana y el largo plazo, con el tiempo de trabajo de hoy." />
+          <TarjetaPlegable nombre="Jornada laboral" frase="Hoy, la semana, los 90 días y el largo plazo: las tareas las tachas tú y cada una dice a qué objetivo aporta.">
+            <JornadaLaboral />
+          </TarjetaPlegable>
+        </>
+      )}
+
+      {(t.estado.tipo === 'pendiente' || t.estado.tipo === 'ok') && (
+        <>
+          <RotuloGrupo titulo="Indicadores financieros y de operación" nota="Cómo vamos, qué revisan los agentes y hacia dónde." />
           {tarjeta('finanzas')}
           {tarjeta('plataforma')}
-          <RotuloGrupo titulo="¿Cumplimos los objetivos?" nota="Riesgos financieros, operativos y de estrategia." />
-          {tarjeta('plan')}
+          <RotuloGrupo titulo="Riesgos y desvíos" nota="Financieros, operativos y de estrategia: lo que está en rojo y lo que se sale de lo estandarizado." />
+          <RiesgosAdmin t={t} />
           {tarjeta('desvios')}
-          <RotuloGrupo titulo="Lo que proponen los agentes" nota="Son propuestas: ninguna está aprobada hasta que Bryan o Manuela decidan." />
+          <RotuloGrupo
+            titulo="Lo que proponen los agentes"
+            nota="Son propuestas para cambiar o para «sentarse a revisar con Bryan»: ninguna está aprobada hasta que Bryan o Manuela decidan."
+          />
           {tarjeta('propuestas')}
         </>
       )}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jornadaDe, puedeTachar } from './jornadaLaboral'
+import { jornadaDe, objetivosPorHorizonte, puedeTachar, tiempoDeHoy } from './jornadaLaboral'
 import type { ItemPlan } from './planOrganizador'
 
 let n = 0
@@ -70,5 +70,38 @@ describe('jornadaDe', () => {
     const j = jornadaDe([it_({ fecha: null, titulo: 'Sin día' })], 'manuela', HOY)
     expect(j.sinDia.map((f) => f.tarea.titulo)).toEqual(['Sin día'])
     expect(j.hoy).toEqual([])
+  })
+})
+
+describe('tiempoDeHoy y objetivosPorHorizonte (agenda por horizonte)', () => {
+  it('suma lo estimado de hoy, separa lo hecho y cuenta aparte lo que no trae tiempo (no es 0)', () => {
+    const j = jornadaDe(
+      [
+        it_({ fecha: HOY, estimadoMin: 50 }),
+        it_({ fecha: HOY, estimadoMin: 25, estado: 'hecha' }),
+        it_({ fecha: HOY, estimadoMin: null }),
+      ],
+      'manuela',
+      HOY,
+    )
+    expect(tiempoDeHoy(j.hoy)).toEqual({ tareas: 3, planeadoMin: 75, hechoMin: 25, sinEstimar: 1 })
+  })
+
+  it('reparte los objetivos propios por horizonte: 90 días, largo plazo y sin fecha; no lista descartados ni de otro dueño', () => {
+    const items = [
+      it_({ id: 'm', nivel: 'objetivo', titulo: 'Mediano', fecha: '2026-12-15' }),
+      it_({ id: 'l', nivel: 'objetivo', titulo: 'Largo', fecha: '2027-03-01' }),
+      it_({ id: 's', nivel: 'objetivo', titulo: 'Sin fecha', fecha: null }),
+      it_({ id: 'd', nivel: 'objetivo', titulo: 'Descartado', fecha: '2026-11-01', estado: 'descartada' }),
+      it_({ id: 'b', nivel: 'objetivo', titulo: 'De Bryan', fecha: '2026-11-01', dueno: 'bryan' }),
+    ]
+    const h = objetivosPorHorizonte(items, 'manuela', HOY)
+    expect(h.mediano.map((x) => x.objetivo.titulo)).toEqual(['Mediano'])
+    expect(h.largo.map((x) => x.objetivo.titulo)).toEqual(['Largo'])
+    expect(h.sinFecha.map((x) => x.objetivo.titulo)).toEqual(['Sin fecha'])
+  })
+
+  it('sin objetivos más allá de 90 días, largo plazo queda vacío (la pantalla dice FALTA)', () => {
+    expect(objetivosPorHorizonte([it_({ nivel: 'objetivo', fecha: '2026-10-30' })], 'manuela', HOY).largo).toEqual([])
   })
 })

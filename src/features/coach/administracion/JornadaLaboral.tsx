@@ -3,7 +3,14 @@ import { Link } from 'react-router-dom'
 import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { useLectura } from '../../../components/ui/useLectura'
 import { planItems, reabrirTarea, terminarTarea } from '../../../data/consola/planItems'
-import { jornadaDe, puedeTachar, type FilaJornada } from '../../../domain/jornadaLaboral'
+import {
+  jornadaDe,
+  objetivosPorHorizonte,
+  puedeTachar,
+  tiempoDeHoy,
+  type FilaJornada,
+  type ObjetivoConAvance,
+} from '../../../domain/jornadaLaboral'
 import { isoLocal, type Dueno, type ItemPlan } from '../../../domain/planOrganizador'
 import { Cargando, CLASE_BOTON_CHICO, CLASE_ETIQUETA, Vacio } from '../../plan/comun'
 import { useDuenoDelPlan, rutaMiPlan } from '../../plan/dueno'
@@ -95,6 +102,45 @@ function Lista({ titulo, filas, quienMira, ocupado, onTachar, onDeshacer, vacio 
   )
 }
 
+function TiempoHoy({ filas }: { filas: FilaJornada[] }) {
+  const t = tiempoDeHoy(filas)
+  if (t.tareas === 0) return null
+  return (
+    <p className="text-[12.5px] text-tenue" aria-label="Tiempo de trabajo de hoy">
+      <span className={CLASE_ETIQUETA}>Tiempo de trabajo de hoy</span>{' '}
+      {t.planeadoMin > 0 ? (
+        <span className="cifras font-bold text-texto">{t.planeadoMin} min planeados · {t.hechoMin} min hechos</span>
+      ) : (
+        <span>FALTA: ninguna tarea de hoy trae su tiempo estimado.</span>
+      )}
+      {t.planeadoMin > 0 && t.sinEstimar > 0 && ` · ${t.sinEstimar} sin tiempo estimado (FALTA)`}
+    </p>
+  )
+}
+
+function ListaObjetivos({ titulo, filas, vacio }: { titulo: string; filas: ObjetivoConAvance[]; vacio: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <h4 className={CLASE_ETIQUETA}>{titulo}</h4>
+      {filas.length === 0 ? (
+        <Vacio>{vacio}</Vacio>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {filas.map(({ objetivo, avance }) => (
+            <li key={objetivo.id} aria-label={objetivo.titulo} className="flex flex-col gap-0.5 rounded-tarjeta border border-linea p-3">
+              <span className="text-sm font-semibold text-texto">{objetivo.titulo}</span>
+              <span className="text-xs text-tenue">
+                {objetivo.fecha ? `Fecha: ${fechaLarga(objetivo.fecha)}` : 'Fecha: FALTA'} ·{' '}
+                {avance.sinTareas ? 'Avance: FALTA (todavía sin tareas)' : `Avance: ${avance.hechas} de ${avance.total} tareas`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function JornadaLaboral() {
   const dueno = useDuenoDelPlan()
   const { lectura, reintentar } = useLectura(planItems)
@@ -116,6 +162,7 @@ export function JornadaLaboral() {
 
   const hoy = isoLocal(new Date())
   const propia = jornadaDe(items, dueno, hoy)
+  const horizontes = objetivosPorHorizonte(items, dueno, hoy)
   const otro: Dueno = dueno === 'bryan' ? 'manuela' : 'bryan'
   const ajena = dueno === 'bryan' ? jornadaDe(items, otro, hoy) : null
 
@@ -134,15 +181,21 @@ export function JornadaLaboral() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[12.5px] text-tenue">
-        Las tareas que se te asignan cada día; las tachas tú. Cada una dice a qué objetivo aporta: corto plazo, la semana;
-        mediano plazo, los 90 días. Largo plazo: sin horizonte cargado; no se inventa una duración.
+        Tu agenda por horizonte: hoy, la semana (corto plazo), los 90 días (mediano) y lo que está más allá (largo).
+        Las tareas las tachas tú. Lo que el plan no trae se dice FALTA; no se inventa una duración.
       </p>
       {lectura !== null && !lectura.ok && (
         <FalloDeLectura texto={`No se pudo actualizar la jornada: ${lectura.error}`} onReintentar={reintentar} />
       )}
       <Lista titulo="Hoy" filas={propia.hoy} vacio="No hay tareas para hoy. Cuando se cargue la semana o agregues una en Mi plan, aparece aquí." {...comunes} />
-      <Lista titulo="Resto de la semana" filas={propia.semana} {...comunes} />
+      <TiempoHoy filas={propia.hoy} />
+      <Lista titulo="Esta semana (corto plazo)" filas={propia.semana} {...comunes} />
       <Lista titulo="Sin día asignado" filas={propia.sinDia} {...comunes} />
+      <ListaObjetivos titulo="Los próximos 90 días (mediano plazo)" filas={horizontes.mediano} vacio="No hay objetivos con fecha dentro de los próximos 90 días." />
+      <ListaObjetivos titulo="Largo plazo" filas={horizontes.largo} vacio="Largo plazo: FALTA. Ningún objetivo cargado cae más allá de los 90 días." />
+      {horizontes.sinFecha.length > 0 && (
+        <ListaObjetivos titulo="Objetivos sin fecha" filas={horizontes.sinFecha} vacio="" />
+      )}
       {fallo && (
         <p role="alert" className="text-sm text-rojo">
           No se guardó: {fallo}
