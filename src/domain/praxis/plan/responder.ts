@@ -39,8 +39,9 @@ export function esPregunta(frase: string): boolean {
   return /[?¿]/.test(frase) || INTERROGATIVO.test(frase)
 }
 
+/** Pedir un cambio, en tú («me subes», «súbeme») y en usted («me sube», «súbame»). */
 const PIDE_CAMBIO =
-  /\b(me (subes|bajas|cambias|quitas|pones|agregas|aumentas|reduces)|subeme|bajame|cambiame|quitame|ponme|agregame|aumentame|(puedes|podrias|puedo|podria|quiero|quisiera|debo|deberia) (\w+ ){0,2}?(subir|bajar|cambiar|quitar|poner|agregar|aumentar|reducir|saltar)\w*)/
+  /\b(me (subes?|bajas?|cambias?|quitas?|pones?|agregas?|aumentas?|reduces?)\b|(sube|suba|baja|baje|cambia|cambie|quita|quite|agrega|agregue|aumenta|aumente)me\b|ponme\b|pongame\b|(puedes?|podrias?|puedo|quiero|quisiera|debo|deberia) (\w+ ){0,2}?(subir|bajar|cambiar|quitar|poner|agregar|aumentar|reducir|saltar)\w*)/
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
 
@@ -79,15 +80,18 @@ export function responderDelPlan(frase: string, ve: LoQuePraxisVe, hoy: string, 
   const m = ve.activo
   const noSe = (texto: string, queFalto: QueFalto): RespuestaDelPlan => ({ tipo: 'no_se', texto, citas: [], ofrecePregunta: true, queFalto })
 
-  // 1. Pedir un cambio no es una consulta: Praxis no toca el plan.
-  if (PIDE_CAMBIO.test(n)) {
+  const preguntaPorQue = /\bpor ?que\b/.test(n)
+
+  // 1. Pedir un cambio no es una consulta: Praxis no toca el plan. Preguntar POR QUÉ bajó
+  //    algo no es pedir que baje: eso va al punto 2.
+  if (!preguntaPorQue && PIDE_CAMBIO.test(n)) {
     return { tipo: 'pide_cambio', texto: t('Yo no cambio cargas ni tu plan: eso lo decide tu coach.', 'Yo no cambio cargas ni su plan: eso lo decide su coach.'), citas: [], ofrecePregunta: true, queFalto: 'cambio_del_plan' }
   }
 
   const nombrado = ejercicioNombrado(n, m)
 
   // 2. El porqué: el dato sí, la causa no.
-  if (/\bpor ?que\b/.test(n)) {
+  if (preguntaPorQue) {
     if (!m || !nombrado) return noSe(t('El porqué de eso no lo tengo escrito, y no quiero adivinar.', 'El porqué de eso no lo tengo escrito, y no quiero adivinar.'), 'porque_no_escrito')
     const { ejercicio: e, sesion: s } = nombrado
     const previo = ve.cerrados[0]

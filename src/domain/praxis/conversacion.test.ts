@@ -144,3 +144,70 @@ describe('resumenDeGuardado · lo que de verdad quedó guardado', () => {
     expect(resumenDeGuardado({ ok: true, resultados: [] }, 'tu').todoGuardado).toBe(false)
   })
 })
+
+describe('pasoTrasProponer · el resto de salidas del registrador', () => {
+  it('un síntoma de urgencia que derive el servidor también va a la Quieta', () => {
+    expect(pasoTrasProponer(respuesta({ tipo: 'derivacion' }, { accion: 'derivar', filtro: 'sintoma', urgencia: 'alta' }), 'tu')).toEqual({ paso: 'quieta', linea: 'vida' })
+  })
+
+  it('un síntoma sin urgencia es salud, no Quieta', () => {
+    expect(pasoTrasProponer(respuesta({ tipo: 'derivacion' }, { accion: 'derivar', filtro: 'sintoma' }), 'usted')).toEqual({ paso: 'salud', texto: SALUD_SIN_REGISTRO.usted })
+  })
+
+  it('charla, bloque vencido y ejercicios omitidos se dicen sin prometer avisos', () => {
+    const charla = pasoTrasProponer(respuesta({ tipo: 'informativa', mensaje: 'De eso no hablo.' }, { accion: 'nada', motivo: 'charla' }), 'tu')
+    const vencido = pasoTrasProponer(respuesta({ tipo: 'informativa', mensaje: 'le aviso a Bryan y lo dejo guardado' }, { accion: 'nada', motivo: 'microciclo_vencido' }), 'tu')
+    const omitidos = pasoTrasProponer(respuesta({ tipo: 'informativa', mensaje: 'Listo, no los marco y le aviso a Bryan que faltaron.' }, { accion: 'nada', motivo: 'omitidos' }), 'tu')
+    expect(charla.paso === 'dicho' && charla.texto).toContain('Cuéntame qué anoto')
+    expect(vencido.paso === 'dicho' && vencido.texto).toBe('Tu bloque de entrenamiento ya venció y el nuevo todavía no está aprobado. No lo anoto en el bloque viejo.')
+    expect(omitidos).toEqual({ paso: 'dicho', texto: 'Listo, no los marco.' })
+    for (const p of [charla, vencido, omitidos]) expect(JSON.stringify(p)).not.toMatch(/Bryan|le aviso/)
+  })
+
+  it('en usted', () => {
+    const charla = pasoTrasProponer(respuesta({ tipo: 'informativa' }, { accion: 'nada', motivo: 'charla' }), 'usted')
+    const vencido = pasoTrasProponer(respuesta({ tipo: 'informativa' }, { accion: 'nada', motivo: 'microciclo_vencido' }), 'usted')
+    expect(charla.paso === 'dicho' && charla.texto).toContain('Cuénteme qué anoto')
+    expect(vencido.paso === 'dicho' && vencido.texto).toContain('Su bloque de entrenamiento')
+    expect(pasoTrasProponer({ ok: false, motivo: 'frase' }, 'usted')).toEqual({ paso: 'fallo', texto: 'Esa frase es muy larga para anotarla de una vez. Dígamela por partes.' })
+  })
+
+  it('otro «nada que guardar» con mensaje se dice con el rol, no con el nombre', () => {
+    const p = pasoTrasProponer(respuesta({ tipo: 'informativa', mensaje: 'Borrar una serie no lo puedo hacer desde aquí. Díselo a Bryan.' }, { accion: 'nada', motivo: 'no_soportado' }), 'tu')
+    expect(p).toEqual({ paso: 'dicho', texto: 'Borrar una serie no lo puedo hacer desde aquí. Díselo a tu coach.' })
+  })
+
+  it('sin motivo y sin mensaje, dice que no encontró nada que anotar', () => {
+    const p = pasoTrasProponer(respuesta({ tipo: 'informativa' }, { accion: 'nada' }), 'tu')
+    expect(p).toEqual({ paso: 'no_se', texto: 'No encontré nada que anotar en eso, y no quiero adivinar.', queFalto: 'no_entendido' })
+  })
+
+  it('una tarjeta guardable pero sin líneas no se ofrece para guardar a ciegas', () => {
+    expect(pasoTrasProponer(respuesta({ tipo: 'confirmacion', guardable: true, lineas: [] }), 'tu').paso).toBe('no_se')
+  })
+})
+
+describe('decidirTurno · en usted', () => {
+  it('el texto de salud y la respuesta del plan salen en usted', () => {
+    const salud = decidirTurno('me duele la rodilla', ve, HOY, 'usted')
+    expect(salud.paso === 'salud' && salud.texto).toBe(SALUD_SIN_REGISTRO.usted)
+    const plan = decidirTurno('¿qué me toca hoy?', ve, HOY, 'usted')
+    expect(plan.paso === 'plan' && plan.respuesta.texto).toContain('suyo')
+  })
+})
+
+describe('resumenDeGuardado · lo pendiente se nombra como lo que es', () => {
+  it('el agua, la comida, el cardio y la preparación, en tú y en usted', () => {
+    const r = (campo: string, trato: 'tu' | 'usted') => resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo, estado: 'pendiente_prerrequisito' }] }, trato).lineas[0]
+    expect(r('hidratacion', 'tu')).toBe('El agua todavía no se puede guardar desde Praxis: anótalo en el formulario.')
+    expect(r('comida', 'tu')).toBe('La comida todavía no se puede guardar desde Praxis: anótalo en el formulario.')
+    expect(r('bloquesCardio[c1].duracionRealMin', 'tu')).toBe('El cardio todavía no se puede guardar desde Praxis: anótalo en el formulario.')
+    expect(r('preparacion[p1].hechoEn', 'tu')).toBe('La preparación todavía no se puede guardar desde Praxis: anótalo en el formulario.')
+    expect(r('otra_cosa', 'tu')).toBe('Eso todavía no se puede guardar desde Praxis: anótalo en el formulario.')
+    expect(r('checkin', 'usted')).toBe('Su check-in todavía no se puede guardar desde Praxis: anótelo en el formulario.')
+  })
+
+  it('un rechazo sin motivo no deja la frase a medias', () => {
+    expect(resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo: 'series', estado: 'rechazado' }] }, 'tu').lineas).toEqual(['No se guardó (series): la base no lo aceptó.'])
+  })
+})

@@ -227,7 +227,11 @@ export function horaDeCita(cita: string | null | undefined, contexto: 'acostarse
   const n = normalizarTexto(cita)
   let hora: number
   let min = 0
-  const reloj = n.match(/\b(\d{1,2})[:.](\d{2})\b/)
+  // El reloj se busca en la cita CRUDA: `normalizarTexto` cambia los dos puntos por un
+  // espacio, y entonces «11:75» se leía como «11» y «75», el 75 se descartaba por no caber
+  // en los minutos y salía 23:00: una hora que nadie dijo. Con el reloj visto, los minutos
+  // imposibles llegan a la comprobación de abajo y la cita se rechaza.
+  const reloj = cita.match(/\b(\d{1,2})[:.](\d{2})\b/)
   if (reloj) {
     hora = Number(reloj[1])
     min = Number(reloj[2])

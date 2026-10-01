@@ -90,7 +90,7 @@ describe('responderDelPlan · el porqué no se inventa', () => {
 })
 
 describe('responderDelPlan · Praxis no cambia cargas ni el plan', () => {
-  it.each(['¿me subes el peso de la sentadilla?', '¿puedes cambiarme el press por otro ejercicio?', '¿me quitas una serie?', '¿puedo subirle 5 kilos?'])('«%s» se le deja al coach', (f) => {
+  it.each(['¿me subes el peso de la sentadilla?', '¿puedes cambiarme el press por otro ejercicio?', '¿me quitas una serie?', '¿puedo subirle 5 kilos?', '¿me sube el peso?', '¿me cambia el press por otro?', 'súbame el peso de la sentadilla, por favor', '¿podría quitarme una serie?'])('«%s» se le deja al coach', (f) => {
     const r = responderDelPlan(f, ve, HOY)
     expect(r.tipo).toBe('pide_cambio')
     expect(r.texto).toMatch(/tu coach/)
@@ -132,5 +132,67 @@ describe('responderDelPlan · nunca nombra personas', () => {
     for (const f of ['¿qué me toca hoy?', '¿por qué me bajaron el press banca?', '¿me subes el peso?', '¿la creatina engorda?']) {
       expect(responderDelPlan(f, ve, HOY).texto).not.toMatch(/Bryan|Manuela/)
     }
+  })
+})
+
+describe('responderDelPlan · planes sin fechas y sesiones sin ejercicios', () => {
+  const sesion = (o: Record<string, unknown>) => ({ id: 's', nombre: 'SESION', preparacion: [], bloquesCardio: [], ejercicios: [], ...o })
+  const con = (sesiones: Record<string, unknown>[]): LoQuePraxisVe => ({ ...ve, activo: { numero: 7, fechaInicio: '2026-09-28', cadenciaDias: 7, sesiones: sesiones as never }, cerrados: [] })
+
+  it('sin fecha sellada, la sesión de hoy sale del día de la semana', () => {
+    const r = responderDelPlan('¿qué me toca hoy?', con([sesion({ nombre: 'TORSO B', dia: 'Jueves', ejercicios: ve.activo!.sesiones[0].ejercicios }), sesion({ nombre: 'PIERNA B', dia: 'viernes' })]), HOY)
+    expect(r.texto).toContain('Hoy te toca TORSO B: SENTADILLA TRASERA, PRESS BANCA.')
+  })
+
+  it('una sesión de solo cardio dice el cardio, no una lista vacía', () => {
+    const r = responderDelPlan('¿qué me toca hoy?', con([sesion({ nombre: 'CARDIO', fecha: HOY, bloquesCardio: [{ titulo: 'Caminata', indicaciones: 'Zona 2' }], preparacion: [{ titulo: 'Movilidad', indicaciones: '' }] })]), HOY)
+    expect(r.texto).toBe('Hoy te toca CARDIO: Caminata, Movilidad.')
+  })
+
+  it('una sesión sin nada escrito solo dice su nombre', () => {
+    expect(responderDelPlan('¿qué me toca hoy?', con([sesion({ nombre: 'LIBRE', fecha: HOY })]), HOY, 'usted').texto).toBe('Hoy le toca LIBRE.')
+  })
+
+  it('si hoy no hay sesión, lo dice y enseña la semana (con el día cuando lo hay)', () => {
+    const r = responderDelPlan('¿qué me toca hoy?', con([sesion({ nombre: 'PIERNA B', dia: 'viernes' }), sesion({ nombre: 'SUELTA' })]), HOY)
+    expect(r.tipo).toBe('respuesta')
+    expect(r.texto).toBe('Para hoy no veo una sesión con fecha en tu plan. Esta semana, en tu microciclo 7, tienes: PIERNA B (viernes), SUELTA.')
+    expect(responderDelPlan('¿qué me toca hoy?', con([sesion({ nombre: 'SUELTA' })]), HOY, 'usted').texto).toBe('Para hoy no veo una sesión con fecha en su plan. Esta semana, en su microciclo 7, tiene: SUELTA.')
+  })
+
+  it('la semana, en usted', () => {
+    expect(responderDelPlan('¿qué tengo esta semana?', ve, HOY, 'usted').texto).toBe('Esta semana, en su microciclo 6, tiene: PIERNA A (jueves), TORSO A (sabado).')
+  })
+})
+
+describe('responderDelPlan · el porqué, cuando no hubo cambio de carga', () => {
+  it('sin microciclo anterior con qué comparar, dice la prescripción y la nota del coach', () => {
+    const r = responderDelPlan('¿por qué hago sentadilla trasera?', ve, HOY)
+    expect(r.tipo).toBe('parcial')
+    expect(r.texto).toBe('SENTADILLA TRASERA está en tu PIERNA A: 40KG A 8 REPS; 3 SERIES. Tu coach dejó esta nota: «Baja lento y sube fuerte». El porqué de ese cambio no lo tengo escrito.')
+    expect(r.citas).toEqual(['M6 · PIERNA A · SENTADILLA TRASERA · prescripcion', 'M6 · PIERNA A · SENTADILLA TRASERA · notaCoach'])
+  })
+
+  it('en usted, y sin nota', () => {
+    const r = responderDelPlan('¿por qué me bajaron el peso del press banca?', ve, HOY, 'usted')
+    expect(r.texto).toBe('En PRESS BANCA pasó de 40 a 37,5 kg, del microciclo 5 al 6. El porqué de ese cambio no lo tengo escrito.')
+    const s = responderDelPlan('¿por qué hago sentadilla trasera?', ve, HOY, 'usted')
+    expect(s.texto).toContain('está en su PIERNA A')
+    expect(s.texto).toContain('Su coach dejó esta nota')
+  })
+
+  it('un ejercicio y el objetivo, en usted', () => {
+    expect(responderDelPlan('¿cuántas series de sentadilla?', ve, HOY, 'usted').texto).toContain('Nota de su coach: «Baja lento y sube fuerte».')
+    expect(responderDelPlan('¿para qué es mi plan?', ve, HOY, 'usted').texto).toBe('Su perfil dice que el objetivo es: «Ganar fuerza en pierna».')
+    expect(responderDelPlan('¿me sube el peso?', ve, HOY, 'usted').texto).toBe('Yo no cambio cargas ni su plan: eso lo decide su coach.')
+    expect(responderDelPlan('¿la creatina engorda?', ve, HOY, 'usted').texto).toBe('Eso no está en lo que veo de su plan, y no quiero adivinar.')
+  })
+})
+
+describe('responderDelPlan · preguntar por qué bajó no es pedir que baje', () => {
+  it('«¿por qué me baja el peso del press banca?» da el dato y el porqué pendiente, no un «eso lo decide tu coach»', () => {
+    const r = responderDelPlan('¿por qué me baja el peso del press banca?', ve, HOY)
+    expect(r.tipo).toBe('parcial')
+    expect(r.texto).toContain('pasaste de 40 a 37,5 kg')
   })
 })

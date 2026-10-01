@@ -196,3 +196,80 @@ describe('la guarda de la lista blanca', () => {
     }
   })
 })
+
+describe('loQuePraxisVe · datos a medias', () => {
+  // Los microciclos viejos y las cargas hechas a mano no traen todos los campos. La lista
+  // blanca no puede romperse con ellos ni rellenar lo que falta.
+  it('un microciclo sin sesiones, una sesión sin ejercicios y un ejercicio sin series', () => {
+    const sinSesiones = { ...microciclo('cerrado', 3), sesiones: undefined } as unknown as Microciclo
+    const pelado = microciclo('activo', 4)
+    pelado.sesiones = [
+      { id: 's1', nombre: 'CARDIO', orden: 1 } as never,
+      { id: 's2', nombre: 'PIERNA', orden: 2, ejercicios: [{ id: 'e9', nombre: 'PRENSA', categoria: 'PIERNA', prescripcion: '3 SERIES', cues: '', descansoMin: 2, sets: 3, rango: '8-10', repsDiana: 8, rirObjetivo: 2 }] } as never,
+    ]
+    const ve = loQuePraxisVe(crudo({ microciclos: [sinSesiones, pelado] }), HOY)
+    expect(ve.cerrados[0].sesiones).toEqual([])
+    expect(ve.activo?.sesiones[0]).toEqual({ id: 's1', nombre: 'CARDIO', ejercicios: [], preparacion: [], bloquesCardio: [] })
+    expect(ve.activo?.sesiones[1].ejercicios[0]).toEqual({ id: 'e9', nombre: 'PRENSA', categoria: 'PIERNA', prescripcion: '3 SERIES', cues: '', descansoMin: 2, sets: 3, rango: '8-10', repsDiana: 8, rirObjetivo: 2, series: [] })
+  })
+
+  it('lo que el ejercicio sí trae —etiquetas, escenario rojo, test de la sesión— pasa completo', () => {
+    const ve = loQuePraxisVe(crudo(), HOY)
+    const s = ve.activo?.sesiones[0]
+    expect(s?.ejercicios[0].etiquetasSeries).toEqual(['tope'])
+    expect(s?.ejercicios[0].escenarioRojo).toEqual({ deltaRir: 1, sueloRir: 3, quitarUltimaSerie: true })
+    expect(s?.testPost).toEqual({ duracionMin: 60, rpeSesion: 7 })
+    expect(s?.preparacion).toEqual([{ titulo: 'LEE ESTO: cadera', indicaciones: '2 vueltas', duracionMin: 5 }])
+    expect(s?.bloquesCardio).toEqual([{ titulo: 'Caminata', indicaciones: 'Zona 2', duracionMin: 20 }])
+  })
+
+  it('el escenario verde (subir carga) no pasa: Praxis no lo propone', () => {
+    expect(JSON.stringify(loQuePraxisVe(crudo(), HOY))).not.toMatch(/techoCargaKg|deltaCargaKg|verde/)
+  })
+
+  it('un plan de comida con secciones que faltan sale con listas vacías', () => {
+    const corto = { id: 'pn2', usuarioId: 'u1', analisis: 'interno', menus: [{ nombre: 'Único', tipoDia: 'ALTO' }] } as unknown as PlanNutricional
+    expect(loQuePraxisVe(crudo({ planNutricional: corto }), HOY).comida).toEqual({ verCifras: false, menus: [{ nombre: 'Único', comidas: [] }], equivalencias: [], seccionesEspeciales: [], listaCompras: [] })
+    const sinNada = { id: 'pn3', usuarioId: 'u1' } as unknown as PlanNutricional
+    expect(loQuePraxisVe(crudo({ planNutricional: sinNada }), HOY).comida?.menus).toEqual([])
+    const sinAlimentos = { id: 'pn4', usuarioId: 'u1', menus: [{ nombre: 'M', tipoDia: 'ALTO', comidas: [{ hora: '07:00', titulo: 'Desayuno' }] }], equivalencias: [{ grupo: 'G', base: 'b' }] } as unknown as PlanNutricional
+    const comida = loQuePraxisVe(crudo({ planNutricional: sinAlimentos }), HOY).comida
+    expect(comida?.menus[0].comidas[0]).toEqual({ hora: '07:00', titulo: 'Desayuno', alimentos: [] })
+    expect(comida?.equivalencias[0]).toEqual({ grupo: 'G', base: 'b', opciones: [] })
+  })
+
+  it('las cifras de comida solo cuentan como visibles con los TRES interruptores encendidos', () => {
+    const v = (o: Partial<VisibilidadAsesorado>) => loQuePraxisVe(crudo({ visibilidad: { ...visibilidad, verComposicion: true, verObjetivoCalorico: true, verContadorKcal: true, ...o } }), HOY).comida?.verCifras
+    expect(v({})).toBe(true)
+    expect(v({ verComposicion: false })).toBe(false)
+    expect(v({ verObjetivoCalorico: false })).toBe(false)
+    expect(v({ verContadorKcal: false })).toBe(false)
+    expect(loQuePraxisVe(crudo({ visibilidad: undefined }), HOY).comida?.verCifras).toBe(false)
+  })
+
+  it('la visibilidad de otra persona no enciende las cifras', () => {
+    const ajena: VisibilidadAsesorado = { usuarioId: 'otro', verComposicion: true, verObjetivoCalorico: true, verContadorKcal: true, estado: 'decidido' }
+    expect(loQuePraxisVe(crudo({ visibilidad: ajena }), HOY).comida?.verCifras).toBe(false)
+  })
+
+  it('un perfil sin objetivo escrito no inventa uno, y el de otra persona no cuenta', () => {
+    const sinObjetivo = { ...perfil, objetivos: '', diasDisponibles: undefined } as unknown as Perfil
+    const ve = loQuePraxisVe(crudo({ perfil: sinObjetivo }), HOY)
+    expect(ve.perfil).toEqual({ tiempoSesionMin: 60, faseEnergetica: 'mantenimiento', pasosObjetivo: 8000 })
+    expect(loQuePraxisVe(crudo({ perfil: { ...perfil, usuarioId: 'otro' } }), HOY).perfil).toBeNull()
+  })
+
+  it('el plan de comida de otra persona tampoco', () => {
+    expect(loQuePraxisVe(crudo({ planNutricional: { ...plan, usuarioId: 'otro' } }), HOY).comida).toBeNull()
+  })
+
+  it('con dos microciclos activos a la vez (estado roto), toma el de número más alto', () => {
+    const ve = loQuePraxisVe(crudo({ microciclos: [microciclo('activo', 5), microciclo('activo', 6)] }), HOY)
+    expect(ve.activo?.numero).toBe(6)
+  })
+
+  it('una hidratación negativa o ausente es cero', () => {
+    expect(loQuePraxisVe(crudo({ hidratacionHoyMl: -200 }), HOY).hidratacionHoyMl).toBe(0)
+    expect(loQuePraxisVe(crudo({ hidratacionHoyMl: undefined }), HOY).hidratacionHoyMl).toBe(0)
+  })
+})
