@@ -87,6 +87,10 @@
 --   · 0024 → SIN APLICAR. La despensa (spec §11). Sus tres señales van juntas -tabla,
 --            RLS y vista- porque la tabla existiendo sin sus políticas dejaría a la
 --            vista lo que come cada persona, y eso no puede pasar por «aplicada».
+--   · 0105 → SIN APLICAR (escrita el 2026-10-01, rama `feat/praxis-conexion`). La bandeja
+--            de «pregunta en espera» de Praxis. Sus cinco señales tienen que decir NO
+--            antes de aplicarla y SI después. Mientras digan NO, Praxis ofrece la
+--            pregunta, pero al aceptar dice que todavía no puede dejarla.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -1956,5 +1960,59 @@ select '0089 - piloto_purgar_encaje sin execute para anon/authenticated y progra
             when has_function_privilege('anon', 'public.piloto_purgar_encaje()', 'execute')
               or has_function_privilege('authenticated', 'public.piloto_purgar_encaje()', 'execute') then 'NO'
             when to_regclass('cron.job') is null then 'NO'
+            else 'SI' end
+union all
+-- La 0105: la bandeja de preguntas de Praxis existe, con RLS, y anon no tiene nada.
+select '0105 - praxis_preguntas_en_espera con RLS y sin nada para anon', 'RLS encendida, anon sin select ni insert, authenticated con select',
+       case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_preguntas_en_espera')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_preguntas_en_espera', 'select')
+              or has_table_privilege('anon', 'public.praxis_preguntas_en_espera', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'select') then 'NO'
+            else 'SI' end
+union all
+-- La 0105: la persona solo inserta la suya y con tope. La señal mira la EXPRESION de la
+-- politica, no su nombre: tiene que mencionar auth.uid() y el contador de abiertas.
+select '0105 - praxis_preguntas_insertar_propia exige auth.uid() y el tope de abiertas', 'el with_check menciona auth.uid() y praxis_mis_preguntas_abiertas',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'praxis_preguntas_en_espera'
+            and policyname = 'praxis_preguntas_insertar_propia' and cmd = 'INSERT'
+            and coalesce(with_check, '') like '%auth.uid()%'
+            and coalesce(with_check, '') like '%praxis_mis_preguntas_abiertas%'
+       ) then 'SI' else 'NO' end
+union all
+-- La 0105: privilegio EFECTIVO por columna. La persona no escribe el estado ni la respuesta
+-- al insertar, no reescribe la pregunta y no borra.
+select '0105 - authenticated no decide estado, no reescribe la pregunta y no borra', 'sin insert sobre estado/respuesta, sin update sobre pregunta/usuario_id, sin delete',
+       case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'estado', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'respuesta', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'vence_en', 'insert') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'pregunta', 'update')
+              or has_column_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'usuario_id', 'update')
+              or has_column_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'destinatario', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_preguntas_en_espera', 'delete') then 'NO'
+            else 'SI' end
+union all
+-- La 0105: responder es de quien recibe. La politica de update no puede dejar entrar a la
+-- duena por ser duena: su expresion no menciona usuario_id y si exige respondida_por.
+select '0105 - praxis_preguntas_responder es de coach o nutricionista, nunca de la duena', 'using sin usuario_id, con es_coach y es_nutricionista; with_check exige respondida_por = auth.uid()',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'praxis_preguntas_en_espera'
+            and policyname = 'praxis_preguntas_responder' and cmd = 'UPDATE'
+            and coalesce(qual, '') like '%es_coach%'
+            and coalesce(qual, '') like '%es_nutricionista%'
+            and coalesce(qual, '') not like '%usuario_id%'
+            and coalesce(with_check, '') like '%respondida_por%'
+       ) then 'SI' else 'NO' end
+union all
+-- La 0105: el contador no se puede llamar sin sesion y el trigger que fija estado y plazo existe.
+select '0105 - contador sin execute para anon y trigger que fija estado y plazo', 'praxis_mis_preguntas_abiertas() sin execute para anon, y existe trg_praxis_pregunta_nace_abierta',
+       case when to_regprocedure('public.praxis_mis_preguntas_abiertas()') is null then 'NO'
+            when has_function_privilege('anon', 'public.praxis_mis_preguntas_abiertas()', 'execute') then 'NO'
+            when not exists (select 1 from pg_trigger
+                              where tgname = 'trg_praxis_pregunta_nace_abierta' and not tgisinternal) then 'NO'
             else 'SI' end
 order by migracion, senal;
