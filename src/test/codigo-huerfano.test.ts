@@ -96,6 +96,14 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // La lista blanca de Praxis, dicha como lista de rutas. No la llama la app y no es un
+  // descuido: es el CONTRATO que `listaBlanca.test.ts` hace cumplir —recorre lo que sale de
+  // `loQuePraxisVe` y falla si aparece una clave que no esté aquí—. Vive en el módulo, y no
+  // en la prueba, para que quien añada un campo tenga que tocar las dos cosas en el mismo
+  // archivo: el copiado y la lista.
+  'src/domain/praxis/plan/listaBlanca.ts#CAMPOS_PERMITIDOS':
+    'Contrato de la lista blanca de Praxis (DISENO §1.2): lo hace cumplir listaBlanca.test.ts ' +
+    'sobre todo lo que sale de loQuePraxisVe. No es una función que la app llame.',
   // La puerta de la salud del piloto «bola de nieve» (0089): ¿se le puede PREGUNTAR este
   // dato de salud a un interesado? El formulario público no pregunta ninguno, marque lo
   // que marque, así que hoy no la llama nadie. Se deja porque las preguntas de salud llegan

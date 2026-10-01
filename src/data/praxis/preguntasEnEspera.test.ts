@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TABLA_PREGUNTAS_EN_ESPERA, dejarPreguntaEnEspera } from './preguntasEnEspera'
+import { TABLA_PREGUNTAS_EN_ESPERA, dejarPreguntaEnEspera, preguntasEnEsperaDe } from './preguntasEnEspera'
 
 const MIGRACION = join(process.cwd(), 'supabase', 'migrations', '0105_praxis_preguntas_en_espera.sql')
 
@@ -9,6 +9,9 @@ let abiertas: number
 let errorConteo: { code: string; message: string } | null
 let errorInsert: { code: string; message: string } | null
 let insertado: Record<string, unknown> | undefined
+let filas: Record<string, unknown>[] | null
+let errorLista: { code: string; message: string } | null
+let usuarioPedido: string | undefined
 
 vi.mock('../supabase', () => ({
   modoNube: true,
@@ -16,7 +19,10 @@ vi.mock('../supabase', () => ({
     from: (tabla: string) => {
       expect(tabla).toBe('praxis_preguntas_en_espera')
       return {
-        select: () => ({ eq: () => ({ eq: () => Promise.resolve({ count: errorConteo ? null : abiertas, error: errorConteo }) }) }),
+        select: (_columnas: string, opciones?: { head?: boolean }) =>
+          opciones?.head
+            ? { eq: () => ({ eq: () => Promise.resolve({ count: errorConteo ? null : abiertas, error: errorConteo }) }) }
+            : { eq: (_c: string, v: string) => { usuarioPedido = v; return { order: () => ({ limit: () => Promise.resolve({ data: filas, error: errorLista }) }) } } },
         insert: (payload: Record<string, unknown>) => {
           insertado = payload
           return Promise.resolve({ error: errorInsert })
@@ -95,5 +101,35 @@ describe('dejarPreguntaEnEspera', () => {
 
   it('sin usuario no hace nada', async () => {
     await expect(dejarPreguntaEnEspera({ ...base, usuarioId: '' })).resolves.toEqual({ ok: false, motivo: 'sin_nube' })
+  })
+})
+
+describe('preguntasEnEsperaDe', () => {
+  beforeEach(() => {
+    errorLista = null
+    usuarioPedido = undefined
+    filas = [
+      { id: 'p2', pregunta: '¿Puedo cambiar el arroz?', destinatario: 'nutricionista', estado: 'abierta', respuesta: null, vence_en: '2026-10-02T10:00:00Z', creado_en: '2026-10-01T10:00:00Z' },
+      { id: 'p1', pregunta: '¿Por qué bajó el press?', destinatario: 'coach', estado: 'respondida', respuesta: 'Para volver a la reserva.', vence_en: '2026-10-01T10:00:00Z', creado_en: '2026-09-30T10:00:00Z' },
+    ]
+  })
+
+  it('pide SOLO las de la persona y las devuelve con su respuesta', async () => {
+    const r = await preguntasEnEsperaDe('u-1')
+    expect(usuarioPedido).toBe('u-1')
+    expect(r).toEqual([
+      { id: 'p2', pregunta: '¿Puedo cambiar el arroz?', destinatario: 'nutricionista', estado: 'abierta', respuesta: null, venceEn: '2026-10-02T10:00:00Z', creadoEn: '2026-10-01T10:00:00Z' },
+      { id: 'p1', pregunta: '¿Por qué bajó el press?', destinatario: 'coach', estado: 'respondida', respuesta: 'Para volver a la reserva.', venceEn: '2026-10-01T10:00:00Z', creadoEn: '2026-09-30T10:00:00Z' },
+    ])
+  })
+
+  it('si la tabla no existe o algo falla, devuelve una lista vacía y no lanza', async () => {
+    errorLista = { code: '42P01', message: 'no existe' }
+    await expect(preguntasEnEsperaDe('u-1')).resolves.toEqual([])
+  })
+
+  it('sin usuario no consulta', async () => {
+    await expect(preguntasEnEsperaDe('')).resolves.toEqual([])
+    expect(usuarioPedido).toBeUndefined()
   })
 })

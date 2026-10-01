@@ -1,15 +1,23 @@
-import { FIRMAS_PREVIAS, HOY, SEMANA, TXT, USUARIO, ayer, type DatosDia } from './datos'
+import { ANTES, EJEMPLO, FIRMAS_PREVIAS, HOY, RANGO, SEMANA, TXT, USUARIO, ayer, type DatosDia, type DiaMes } from './datos'
+import { conexion } from './conexion'
 import { $, $$, aviso, copiar, h, sv } from './dom'
-import { borrarClave, escuchar, guardar, leer, tu } from './entorno'
+import { borrarClave, escuchar, guardar, leer, raiz, tu } from './entorno'
 import { anilloPath, firmaDelDia, hash01, puntoAnillo, rendimientoDicho, resumenFirma } from './firma'
 import { abrirSala, guardarPermisos, mostrarConsentimiento, reiniciarSesion } from './sala'
 import { Dia, E, aplicarEscenario, fijarHecho, type Escenario } from './sesion'
 import { fmtMiles, fmtNum, listaY, numPalabra, sesion } from './texto'
 
 /**
- * La portada de ejemplo: la tarjeta de Praxis, la semana en órbita y el mes como galaxia.
- * Todo sale de `datos.ts`: nada de esto es de un asesorado.
+ * La portada: la tarjeta de Praxis, la semana en órbita y los días anteriores como galaxia.
+ *
+ * Todo sale de la fuente vigente de `datos.ts`. Conectada (`EJEMPLO` en falso) son los
+ * check-ins de la persona con sesión: lo de hoy es su check-in de hoy —el del formulario de
+ * siempre—, no un borrador de este navegador, y lo que no existe se dice en vez de pintarse.
  */
+/** «MAR 29»: el día de hoy, corto. */
+function hoyCorto(): string { return HOY.corto.split(' ').slice(0, 2).join(' ') }
+/** Los datos de hoy: en el ejemplo, lo que se terminó en este navegador; conectada, el check-in real. */
+function datosDeHoy(): DatosDia | null { return EJEMPLO ? (Dia.hecho && !Dia.hecho.riesgo ? Dia.hecho.datos : null) : (SEMANA[6]?.d ?? null) }
 
 /* Un agujero negro pequeño: anillo de fotones y horizonte */
 function agujeroSvg(g: Element, cx: number, cy: number, r: number): void { g.append(sv('circle', { cx, cy, r: (r * 1.14).toFixed(1), class: 'fotones' }), sv('circle', { cx, cy, r, class: 'horizonte' })) }
@@ -25,7 +33,7 @@ function renderMini(): void {
   svg.textContent = ''
   const hecho = Dia.hecho
   const riesgo = !!(hecho && hecho.riesgo)
-  const hoy = !riesgo && hecho ? hecho.datos : null
+  const hoy = riesgo ? null : datosDeHoy()
   const d = hoy || ayer()
   if (riesgo) { svg.append(sv('circle', { cx: 60, cy: 60, r: 16, class: 'horizonte' })); svg.setAttribute('aria-label', 'Hoy la conversación se detuvo.') } // quieta: sin anillo y sin respiración
   else {
@@ -35,12 +43,21 @@ function renderMini(): void {
     g.append(sv('ellipse', { cx: 60, cy: 60, rx: 30, ry: 8, class: 'disco' }), sv('path', { d: dd, class: 'halo' }), sv('path', { d: dd, class: 'trazo' }))
     agujeroSvg(g, 60, 60, 15)
     svg.append(g)
-    svg.setAttribute('aria-label', resumenFirma(d, hoy ? 'martes (hoy)' : 'lunes'))
+    svg.setAttribute('aria-label', d ? resumenFirma(d, hoy ? HOY.dia + ' (hoy)' : SEMANA[5].dia) : tu('Aún no tengo tu check-in de hoy ni el de ayer.', 'Aún no tengo su check-in de hoy ni el de ayer.'))
   }
-  $('#miniRotulo').textContent = hoy || riesgo ? 'HOY · MAR 29' : tu('TU FIRMA DE AYER · LUN 28', 'SU FIRMA DE AYER · LUN 28')
-  $('#bryanVio').hidden = !!(hoy || riesgo)
+  $('#miniRotulo').textContent = hoy || riesgo ? 'HOY · ' + hoyCorto() : d ? tu('TU FIRMA DE AYER · ', 'SU FIRMA DE AYER · ') + SEMANA[5].rot : 'SIN FIRMA · ' + hoyCorto()
+  $('#bryanVio').hidden = !EJEMPLO || !!(hoy || riesgo)
   const idea = $('#tarjetaIdea'), btnAbrir = $<HTMLButtonElement>('#btnAbrir')
-  if (hecho && (hoy || riesgo)) {
+  if (!EJEMPLO) {
+    const estado = riesgo ? 'Hoy la conversación se detuvo.'
+      : hoy ? tu('Ya tengo tu check-in de hoy.', 'Ya tengo su check-in de hoy.')
+      : !conexion()?.irAlFormulario ? tu('Aún no tengo tu check-in de hoy.', 'Aún no tengo su check-in de hoy.')
+      : tu('Aún no tengo tu check-in de hoy: llénalo en el formulario de siempre.', 'Aún no tengo su check-in de hoy: llénelo en el formulario de siempre.')
+    $('#tarjetaTxt').textContent = riesgo ? estado : estado + tu(' Aquí puedes contarme qué anotar o preguntarme por tu plan.', ' Aquí puede contarme qué anotar o preguntarme por su plan.')
+    idea.hidden = true; btnAbrir.textContent = riesgo ? 'Abrir' : 'Hablar con Praxis'
+    // Tras una Quieta, Praxis queda detenida hasta mañana. Mientras solo la vea el equipo, el equipo puede reabrirla para seguir probando.
+    $('#btnRepetir').hidden = !riesgo; $('#btnRepetir').textContent = 'Reabrir Praxis (solo el equipo)'
+  } else if (hecho && (hoy || riesgo)) {
     $('#tarjetaTxt').textContent = riesgo ? tu('Hoy la conversación se detuvo. Bryan ya recibió tu frase.', 'Hoy la conversación se detuvo. Bryan ya recibió su frase.') : 'Listo por hoy. Bryan lo va a revisar.'
     idea.hidden = riesgo || !hecho.idea
     if (!idea.hidden) { idea.textContent = ''; idea.append(h('b', null, tu('Tu idea de hoy', 'Su idea de hoy')), hecho.idea || '') }
@@ -51,8 +68,8 @@ function renderMini(): void {
     $('#tarjetaTxt').textContent = 'Hoy son ' + numPalabra(q.length) + ': ' + listaY(q) + tu('. Después, tu firma del día.', '. Después, su firma del día.')
     idea.hidden = true; btnAbrir.textContent = 'Hablar con Praxis'; $('#btnRepetir').hidden = true
   }
-  $('#contador').textContent = FIRMAS_PREVIAS + (hoy ? 1 : 0) + ' firmas en total'
-  $('#contadorMes').textContent = mesDeEjemplo().filter((x) => x.d).length + ' firmas este mes'
+  $('#contador').textContent = FIRMAS_PREVIAS + (hoy ? 1 : 0) + (EJEMPLO ? ' firmas en total' : ' firmas en 14 días')
+  $('#contadorMes').textContent = diasDelMes().filter((x) => x.d).length + (EJEMPLO ? ' firmas este mes' : ' firmas')
   const activo = $<HTMLInputElement>('#cRiesgo').checked && $<HTMLInputElement>('#cConversacion').checked
   const sinDecidir = Dia.permisos == null
   btnAbrir.disabled = !activo && !sinDecidir
@@ -61,7 +78,7 @@ function renderMini(): void {
 
 /* ——— La semana: siete astros en una órbita. Cada día, un agujero pequeño con su firma como anillo ——— */
 let compasSel = -1
-function datosDelDia(i: number): DatosDia | null { const dia = SEMANA[i]; if (dia.hoy) return Dia.hecho && !Dia.hecho.riesgo ? Dia.hecho.datos : null; return dia.d }
+function datosDelDia(i: number): DatosDia | null { const dia = SEMANA[i]; return dia.hoy ? datosDeHoy() : dia.d }
 function anchoDe(el: Element | null, def: number): number { const w = el && el.clientWidth; return Math.max(280, Math.min(520, Math.round(w || def))) }
 export function renderPartitura(): void {
   const box = $('#partitura')
@@ -99,8 +116,8 @@ function renderDetalle(): void {
   box.textContent = ''
   if (compasSel < 0) { box.append(h('p', { class: 'pie-nota' }, tu('Toca un astro para ver ese día; es solo de lectura.', 'Toque un astro para ver ese día; es solo de lectura.'))); return }
   const dia = SEMANA[compasSel], d = datosDelDia(compasSel)
-  box.append(h('div', { class: 'detalle-cab' }, h('span', null, dia.hoy ? 'HOY · MAR 29' : dia.rot), h('span', null, 'SOLO LECTURA')))
-  if (!d) { box.append(h('p', { class: 'pie-nota' }, dia.hoy ? (Dia.hecho && Dia.hecho.riesgo ? 'Hoy la conversación se detuvo.' : tu('Tu check-in de hoy todavía está aquí, cuando lo quieras.', 'Su check-in de hoy todavía está aquí, cuando lo quiera.')) : 'Sin registro. Un hueco oscuro también es parte del cielo.')); return }
+  box.append(h('div', { class: 'detalle-cab' }, h('span', null, dia.hoy ? 'HOY · ' + hoyCorto() : dia.rot), h('span', null, 'SOLO LECTURA')))
+  if (!d) { box.append(h('p', { class: 'pie-nota' }, dia.hoy ? (Dia.hecho && Dia.hecho.riesgo ? 'Hoy la conversación se detuvo.' : !EJEMPLO ? tu('Aún no tengo tu check-in de hoy.', 'Aún no tengo su check-in de hoy.') : tu('Tu check-in de hoy todavía está aquí, cuando lo quieras.', 'Su check-in de hoy todavía está aquí, cuando lo quiera.')) : 'Sin registro. Un hueco oscuro también es parte del cielo.')); return }
   const junta = (p: (string | null | undefined | false)[]) => p.filter(Boolean).join(' · ')
   const filas: [string, string][] = [
     ['Sueño', junta([d.horasSueno != null ? fmtNum(d.horasSueno) + ' h' : null, d.calidadSueno ? TXT.sue[d.calidadSueno] : null, d.horaAcostarse && d.horaLevantarse ? d.horaAcostarse + '–' + d.horaLevantarse : null])],
@@ -118,7 +135,11 @@ function renderDetalle(): void {
 }
 
 /* ——— El mes: la galaxia de firmas ——— */
-interface DiaMes { fecha: string; d: DatosDia | null | undefined; hoy?: boolean }
+/** Los días de la galaxia: los anteriores a la semana y la semana. Hoy solo entra cuando ya tiene firma. */
+function diasDelMes(): DiaMes[] {
+  if (ANTES) return [...ANTES, ...SEMANA.filter((s) => !s.hoy || datosDeHoy()).map((s): DiaMes => ({ fecha: s.fecha, d: s.hoy ? datosDeHoy() : s.d, hoy: !!s.hoy }))]
+  return mesDeEjemplo()
+}
 function mesDeEjemplo(): DiaMes[] {
   const dias: DiaMes[] = []
   const base = new Date(Date.UTC(2026, 7, 31))
@@ -136,14 +157,14 @@ function mesDeEjemplo(): DiaMes[] {
       alimentacion: pick('l', ['BUENA', 'REGULAR', 'BUENA']), estres: pick('s', ['POCO', 'REGULAR', 'MUCHO']), pasos: 5000 + Math.floor(r('p') * 9000),
     } })
   }
-  SEMANA.forEach((s) => dias.push({ fecha: s.fecha, d: s.hoy ? (Dia.hecho && !Dia.hecho.riesgo ? Dia.hecho.datos : undefined) : s.d, hoy: !!s.hoy }))
-  return dias.filter((x) => x.d !== undefined)
+  SEMANA.forEach((s) => { if (!s.hoy || datosDeHoy()) dias.push({ fecha: s.fecha, d: s.hoy ? datosDeHoy() : s.d, hoy: !!s.hoy }) })
+  return dias
 }
 /** El mes como galaxia: dos brazos en espiral, del día más viejo (núcleo) al más reciente (borde). */
 export function renderCordillera(): void {
   const svg = $('#cordillera')
   svg.textContent = ''
-  const dias = mesDeEjemplo()
+  const dias = diasDelMes()
   const n = dias.length, W = anchoDe(svg.parentElement, 358), Hh = Math.round(W * 0.66), cx = W / 2, cy = Hh / 2, e = 0.55, rMin = 34, rMax = W / 2 - 22
   svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`)
   const defs = sv('defs'), gr = sv('radialGradient', { id: 'nucleoGal' })
@@ -164,13 +185,18 @@ export function renderCordillera(): void {
   })
   const lista = $('#galaxiaLista')
   lista.textContent = ''
-  lista.append(h('li', null, tu('Tu mes: ', 'Su mes: ') + dias.filter((x) => x.d).length + ' de 30 días con firma.'))
+  lista.append(h('li', null, tu('Tu mes: ', 'Su mes: ') + dias.filter((x) => x.d).length + (EJEMPLO ? ' de 30 días con firma.' : ' de ' + dias.length + ' días con firma.')))
   dias.forEach((dia) => lista.append(h('li', null, dia.fecha + ': ' + (dia.d ? resumenFirma(dia.d, dia.fecha) : 'sin firma.'))))
 }
-export function renderBienestar(): void { renderMini(); renderPartitura(); renderDetalle(); renderCordillera() }
+export function renderBienestar(): void { $('#semRango').textContent = RANGO; renderMini(); renderPartitura(); renderDetalle(); renderCordillera() }
 
 /* ——— Escenario, preferencias, permisos ——— */
 function renderEscenario(): void {
+  if (!EJEMPLO) { // conectada no hay escenario: la fecha y la franja son las de verdad
+    $('.bien-top .fecha').textContent = (HOY.dia + ' ' + HOY.corto.split(' ').slice(1).join(' ')).toUpperCase()
+    $('#tarjetaTit').textContent = new Date().getHours() < 12 ? tu('¿Cómo amaneciste?', '¿Cómo amaneció?') : tu('¿Cómo estuvo tu día?', '¿Cómo estuvo su día?')
+    return
+  }
   aplicarEscenario()
   $$('[data-esc]').forEach((b) => b.setAttribute('aria-pressed', String(E[b.dataset.esc as keyof Escenario] === b.dataset.v)))
   $('.bien-top .fecha').textContent = E.franja === 'manana' ? 'MARTES 29 SEP · 7:10 A. M.' : 'MARTES 29 SEP · 8:40 P. M.'
@@ -196,8 +222,9 @@ export function initBienestar(): void {
   setForm(!!leer('prefiereForm', false))
   escuchar($('#btnPrefieroForm'), 'click', () => setForm($('#formPlegado').hidden))
   escuchar($('#btnVolverPraxis'), 'click', () => { setForm(false); $('#btnAbrir').focus() })
-  escuchar($('#btnBorrarBorrador'), 'click', () => { borrarClave('borrador'); if (!Dia.hecho) reiniciarSesion(); aviso('Se borró el borrador de este teléfono.') })
-  escuchar($('#btnRepetir'), 'click', () => { fijarHecho(null); borrarClave('borrador'); borrarClave('notaFecha'); borrarClave('presentada'); reiniciarSesion(); compasSel = -1; renderBienestar(); aviso(tu('Ejemplo reiniciado. Tu check-in de hoy vuelve a estar aquí.', 'Ejemplo reiniciado. Su check-in de hoy vuelve a estar aquí.')) })
+  const btnBorrador = raiz().querySelector('#btnBorrarBorrador') // conectada no hay borrador: la sala no guarda nada a medias
+  if (btnBorrador) escuchar(btnBorrador, 'click', () => { borrarClave('borrador'); if (!Dia.hecho) reiniciarSesion(); aviso('Se borró el borrador de este teléfono.') })
+  escuchar($('#btnRepetir'), 'click', () => { fijarHecho(null); borrarClave('borrador'); borrarClave('notaFecha'); borrarClave('presentada'); reiniciarSesion(); compasSel = -1; renderBienestar(); aviso(!EJEMPLO ? 'Praxis vuelve a estar disponible.' : tu('Ejemplo reiniciado. Tu check-in de hoy vuelve a estar aquí.', 'Ejemplo reiniciado. Su check-in de hoy vuelve a estar aquí.')) })
   escuchar($('#btnDemoQuieta'), 'click', () => abrirSala('quieta'))
   renderEscenario()
 }

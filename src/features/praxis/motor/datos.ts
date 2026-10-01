@@ -35,13 +35,48 @@ export function fijarDato(d: DatosDia, campo: Campo, valor: Valor): void {
 }
 
 export interface DiaSemana { fecha: string; rot: string; dia: string; d: DatosDia | null; idea?: string; hoy?: boolean }
+/** Un día del mes: `d` nulo es un día sin registro. */
+export interface DiaMes { fecha: string; d: DatosDia | null; hoy?: boolean }
 
-export const USUARIO = 'ejemplo-01'
-export const HOY = { fecha: '2026-09-29', dia: 'martes', corto: 'MAR 29 SEP' } as const
-export const IDEA_AYER = 'dejar el celular cargando en la cocina'
-export const FIRMAS_PREVIAS = 32
+/**
+ * De dónde sale lo que la escena enseña. Hay dos fuentes y no se mezclan:
+ *
+ *   - la de EJEMPLO (abajo), la de la maqueta aprobada. Solo la usan las pruebas de la
+ *     escena guiada; la ruta /praxis ya no la monta;
+ *   - la REAL, que arma `fuenteReal.ts` con lo que Praxis ve de la persona con sesión
+ *     (lista blanca del dominio). Es la que monta `PraxisPage`.
+ *
+ * Son `let` a propósito: el montaje las cambia con `fijarFuente` y los módulos que las
+ * importan leen siempre el valor vigente.
+ */
+export interface FuentePraxis {
+  ejemplo: boolean
+  usuario: string
+  hoy: { fecha: string; dia: string; corto: string }
+  /** Siete días; el último es hoy. */
+  semana: DiaSemana[]
+  /** Los días anteriores a la semana que también se enseñan. `null` = los inventa el ejemplo. */
+  antes: DiaMes[] | null
+  ideaAyer: string | null
+  /** Firmas anteriores a hoy que se conocen. */
+  firmasPrevias: number
+  ultimoPeso: number | null
+  /** El rango de la semana: «23 – 29 SEP». */
+  rango: string
+}
+
+const HOY_EJEMPLO = { fecha: '2026-09-29', dia: 'martes', corto: 'MAR 29 SEP' }
+const IDEA_EJEMPLO = 'dejar el celular cargando en la cocina'
+
+export let EJEMPLO = true
+export let USUARIO = 'ejemplo-01'
+export let HOY: FuentePraxis['hoy'] = HOY_EJEMPLO
+export let IDEA_AYER = IDEA_EJEMPLO
+export let FIRMAS_PREVIAS = 32
 /** Último peso del perfil de ejemplo: solo se guarda si se confirma. */
-export const ULTIMO_PESO = 64.2
+export let ULTIMO_PESO = 64.2
+export let ANTES: DiaMes[] | null = null
+export let RANGO = '23 – 29 SEP'
 
 function semanaDeEjemplo(): DiaSemana[] {
   return [
@@ -50,16 +85,26 @@ function semanaDeEjemplo(): DiaSemana[] {
     { fecha: '2026-09-25', rot: 'VIE 25', dia: 'viernes', d: { horasSueno: 6.5, horaAcostarse: '00:10', horaLevantarse: '06:40', calidadSueno: 'BUENA', cansancio: 'REGULAR', entreno: 'LEG B', rendimiento: 'BUENA', motivacion: 'MUCHO', dolor: 2, dolorDonde: 'rodilla izquierda', hambreEscala: 7, alimentacion: 'BUENA', estres: 'REGULAR', pasos: 12500 } },
     { fecha: '2026-09-26', rot: 'SÁB 26', dia: 'sábado', d: null },
     { fecha: '2026-09-27', rot: 'DOM 27', dia: 'domingo', d: { horasSueno: 8.5, horaAcostarse: '00:30', horaLevantarse: '09:00', calidadSueno: 'BUENA', cansancio: 'POCO', entreno: 'Descansé', rendimiento: 'REGULAR', motivacion: 'REGULAR', dolor: 0, hambreEscala: 3, alimentacion: 'REGULAR', estres: 'POCO', pasos: 6500, comentarios: 'almuerzo familiar' } },
-    { fecha: '2026-09-28', rot: 'LUN 28', dia: 'lunes', d: { horasSueno: 5.5, horaAcostarse: '23:50', horaLevantarse: '05:30', calidadSueno: 'MALA', cansancio: 'MUCHO', entreno: 'UPPER B', rendimiento: 'REGULAR', motivacion: 'POCO', dolor: 0, hambreEscala: 6, alimentacion: 'BUENA', estres: 'MUCHO', pasos: 7000, comentarios: 'semana pesada' }, idea: IDEA_AYER },
-    { fecha: HOY.fecha, rot: 'MAR 29', dia: 'martes', d: null, hoy: true },
+    { fecha: '2026-09-28', rot: 'LUN 28', dia: 'lunes', d: { horasSueno: 5.5, horaAcostarse: '23:50', horaLevantarse: '05:30', calidadSueno: 'MALA', cansancio: 'MUCHO', entreno: 'UPPER B', rendimiento: 'REGULAR', motivacion: 'POCO', dolor: 0, hambreEscala: 6, alimentacion: 'BUENA', estres: 'MUCHO', pasos: 7000, comentarios: 'semana pesada' }, idea: IDEA_EJEMPLO },
+    { fecha: HOY_EJEMPLO.fecha, rot: 'MAR 29', dia: 'martes', d: null, hoy: true },
   ]
 }
 
-/** La semana de ejemplo. El lunes (índice 5) cambia con el escenario, así que se rehace en cada montaje. */
+export function fuenteDeEjemplo(): FuentePraxis {
+  return { ejemplo: true, usuario: 'ejemplo-01', hoy: HOY_EJEMPLO, semana: semanaDeEjemplo(), antes: null, ideaAyer: IDEA_EJEMPLO, firmasPrevias: 32, ultimoPeso: 64.2, rango: '23 – 29 SEP' }
+}
+
+/** La semana que se enseña. En el ejemplo, el lunes (índice 5) cambia con el escenario, así que se rehace en cada montaje. */
 export const SEMANA: DiaSemana[] = semanaDeEjemplo()
-export function reiniciarSemana(): void { SEMANA.splice(0, SEMANA.length, ...semanaDeEjemplo()) }
-/** El lunes de ejemplo: «ayer». */
-export function ayer(): DatosDia { return SEMANA[5].d as DatosDia }
+
+/** Cambia la fuente de la escena. Se llama una vez por montaje, antes de pintar nada. */
+export function fijarFuente(f: FuentePraxis): void {
+  EJEMPLO = f.ejemplo; USUARIO = f.usuario; HOY = f.hoy; ANTES = f.antes; RANGO = f.rango
+  IDEA_AYER = f.ideaAyer ?? ''; FIRMAS_PREVIAS = f.firmasPrevias; ULTIMO_PESO = f.ultimoPeso ?? 0
+  SEMANA.splice(0, SEMANA.length, ...f.semana)
+}
+/** «Ayer»: el penúltimo día de la semana. Con datos reales puede no haber registro. */
+export function ayer(): DatosDia | null { return SEMANA[5]?.d ?? null }
 
 type Tabla = Record<string, Record<string, string>>
 

@@ -1,7 +1,9 @@
 import { renderBienestar } from './bienestar'
 import { Cab, Sala, SinSalto, compactar, enfocarControles, limpiarControles, montar, soltarFlip } from './cabecera'
+import { conectada } from './conexion'
+import { correrConversacion } from './conversacion'
 import { Cosmos } from './cosmos'
-import { HOY, ayer } from './datos'
+import { EJEMPLO, HOY, ayer } from './datos'
 import { $, $$, aviso, escalaX, h } from './dom'
 import { borrarClave, guardar, raiz, reducido, tieneAnimate, tu } from './entorno'
 import { mostrarDiaHecho } from './fases'
@@ -102,7 +104,7 @@ export function abrirSala(modo?: 'quieta' | 'demo', opt: { sinViaje?: boolean } 
     alAcabar(finAbrir)
   } else { ocultarApp(); Sala.estado = 'abierta' }
   setTimeout(() => { if (!sala.hidden && !sala.contains(document.activeElement)) sala.focus({ preventScroll: true }) }, 30) // la sala recibe el foco solo si nadie lo tomó: la Quieta lo pone en su primer párrafo
-  const empezar = () => { if (Sala.estado === 'cerrando' || $('#sala').hidden) return; void correrCheckin() }
+  const empezar = () => { if (Sala.estado === 'cerrando' || $('#sala').hidden) return; void (conectada() ? correrConversacion() : correrCheckin()) }
   if (modo === 'demo') return
   if (modo === 'quieta') { limpiarSala(); entrarQuieta('vida', null, true); return }
   if (Dia.hecho && Dia.hecho.riesgo) { entrarQuieta(Dia.hecho.riesgo, null, false); return }
@@ -113,7 +115,8 @@ export function abrirSala(modo?: 'quieta' | 'demo', opt: { sinViaje?: boolean } 
     cerrarSala(true); aviso(tu('Praxis está apagada. Puedes encenderla en «Tus permisos».', 'Praxis está apagada. Puede encenderla en «Sus permisos».')); return
   }
   if (S.pausaDesde) { S.pausa += performance.now() - S.pausaDesde; S.pausaDesde = 0 }
-  if (!hayDatos()) { Onda.formaAyer(ayer()); Cab.ayer = true } // el agujero arranca con el día de ayer y lo suelta al acabar la primera frase
+  const dAyer = ayer()
+  if (!hayDatos() && dAyer && !conectada()) { Onda.formaAyer(dAyer); Cab.ayer = true } // el agujero arranca con el día de ayer y lo suelta al acabar la primera frase
   if (viaje) setTimeout(() => { if (Sala.estado === 'abriendo') Onda.anticipa() }, 280) // 280–400 ms: el disco toma aire antes de la primera frase
   Sala.tAbrir = window.setTimeout(empezar, viaje ? 380 : 0) // ≈ 400 ms: empieza la primera frase, cuando el agujero ya casi llegó
 }
@@ -186,7 +189,8 @@ export function alternarMenuMas(): void {
 /* ——— Bienvenida: la primera vez Praxis explica y la persona decide. Nada viene marcado de antemano. ——— */
 export function mostrarConsentimiento(): void {
   const p = Dia.permisos
-  $('#consentFecha').textContent = p && p.fecha ? tu('Aceptaste el 29 de septiembre de 2026 (versión 1 del texto). Puedes cambiar cada permiso aquí.', 'Aceptó el 29 de septiembre de 2026 (versión 1 del texto). Puede cambiar cada permiso aquí.') : tu('Todavía no has aceptado. La primera vez que abras Praxis, te explica todo y tú decides.', 'Todavía no ha aceptado. La primera vez que abra Praxis, le explica todo y usted decide.')
+  const cuando = EJEMPLO ? '29 de septiembre de 2026' : String(p && p.fecha)
+  $('#consentFecha').textContent = p && p.fecha ? tu('Aceptaste el ' + cuando + ' (versión 1 del texto). Puedes cambiar cada permiso aquí.', 'Aceptó el ' + cuando + ' (versión 1 del texto). Puede cambiar cada permiso aquí.') : tu('Todavía no has aceptado. La primera vez que abras Praxis, te explica todo y tú decides.', 'Todavía no ha aceptado. La primera vez que abra Praxis, le explica todo y usted decide.')
 }
 export function guardarPermisos(): void {
   const p: Permisos = {}
@@ -201,7 +205,9 @@ function mostrarBienvenida(): void {
   montar(() => h('div', { class: 'bienvenida' },
     h('ol', null,
       h('li', null, h('b', null, 'Quién soy. '), 'Soy Praxis, la voz sintética de Alpha: una inteligencia artificial, no una persona. No diagnostico ni hago terapia.'),
+      conectada() ? h('li', null, h('b', null, 'Qué se guarda. '), tu('Leo tu plan y tus últimos check-ins para contestarte; no los cambio. De lo que me cuentes, solo se guarda lo que confirmes con un toque en «Guardar». Lo que escribes para anotar viaja a un servicio de inteligencia artificial; lo que suene a riesgo o a salud no sale de este teléfono.', 'Leo su plan y sus últimos check-ins para contestarle; no los cambio. De lo que me cuente, solo se guarda lo que confirme con un toque en «Guardar». Lo que escribe para anotar viaja a un servicio de inteligencia artificial; lo que suene a riesgo o a salud no sale de este teléfono.')) :
       h('li', null, h('b', null, 'Qué se guarda. '), tu('Solo lo que toques o escribas, y solo cuando toques LISTO. Lo que no digas queda en blanco. El audio nunca se guarda. Al aceptar, autorizas que Alpha trate esos datos de salud para tu plan de hábitos; lo puedes cambiar en «Tus permisos».', 'Solo lo que toque o escriba, y solo cuando toque LISTO. Lo que no diga queda en blanco. El audio nunca se guarda. Al aceptar, autoriza que Alpha trate esos datos de salud para su plan de hábitos; lo puede cambiar en «Sus permisos».')),
+      conectada() ? h('li', null, h('b', null, 'Si hay riesgo. '), tu('Si algo que cuentas parece una señal de riesgo, me quedo quieta y te doy números de ayuda. Desde aquí todavía no se le avisa a nadie: si es urgente, llama al 123.', 'Si algo que cuenta parece una señal de riesgo, me quedo quieta y le doy números de ayuda. Desde aquí todavía no se le avisa a nadie: si es urgente, llame al 123.')) :
       h('li', null, h('b', null, 'Si hay riesgo. '), tu('Si algo que cuentas parece una señal de riesgo, me quedo quieta, te doy números de ayuda y Bryan recibe tu frase. Bryan no es psicólogo y puede tardar en leer: si es urgente, llama al 123.', 'Si algo que cuenta parece una señal de riesgo, me quedo quieta, le doy números de ayuda y Bryan recibe su frase. Bryan no es psicólogo y puede tardar en leer: si es urgente, llame al 123.'))),
     h('button', { class: 'btn-plata', type: 'button', 'data-k': 'acepto', onclick: aceptarBienvenida }, 'Acepto y empiezo'),
     h('button', { class: 'enlace enlace-plata', type: 'button', onclick: () => cerrarSala() }, 'Ahora no')))
@@ -211,5 +217,5 @@ function aceptarBienvenida(): void {
   $<HTMLInputElement>('#cConversacion').checked = true; $<HTMLInputElement>('#cRiesgo').checked = true
   guardarPermisos(); renderBienestar()
   limpiarControles(); $('#penta').hidden = false; $('#muelle').hidden = false; $('#frase').textContent = ''
-  void correrCheckin()
+  void (conectada() ? correrConversacion() : correrCheckin())
 }

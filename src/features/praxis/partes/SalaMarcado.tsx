@@ -1,31 +1,35 @@
 import type { Trato } from '../motor/entorno'
 
 /**
- * La sala del check-in: la barra, el agujero negro (lienzo `#onda`), la frase, las cinco
- * órbitas, los controles y el muelle de texto. Marcado quieto: lo gobierna el motor.
+ * La sala: la barra, el agujero negro (lienzo `#onda`), la frase, las cinco órbitas, los
+ * controles y el muelle de texto. Marcado quieto: lo gobierna el motor.
+ *
+ * Con `conectada` es la sala de la conversación real: sin el rótulo de ejemplo, sin el modo
+ * «Rápido» del check-in guiado y sin el micrófono, que en la maqueta era una simulación. Los
+ * dos botones siguen en el marcado, ocultos, porque el motor los busca por su id.
  */
 const ORBITAS: [string, string][] = [['sueno', 'SUEÑO'], ['energia', 'ENERGÍA'], ['cuerpo', 'CUERPO'], ['comida', 'COMIDA'], ['mente', 'MENTE']]
 
-export function SalaMarcado({ trato }: { trato: Trato }) {
+export function SalaMarcado({ trato, conectada = false, sinFormulario = false }: { trato: Trato; conectada?: boolean; sinFormulario?: boolean }) {
   const cuentame = trato === 'usted' ? 'Cuéntemelo con sus palabras' : 'Cuéntamelo con tus palabras'
   return (
-    <div className="sala" id="sala" role="dialog" aria-modal="true" aria-label="Check-in con Praxis" tabIndex={-1} hidden>
+    <div className="sala" id="sala" role="dialog" aria-modal="true" aria-label={conectada ? 'Conversación con Praxis' : 'Check-in con Praxis'} tabIndex={-1} hidden>
       <div className="sala-barra" id="salaBarra">
         <div className="sala-fila">
-          <div className="sala-marca"><span className="kicker-plata">Praxis</span><span className="mono" id="salaFecha">29 SEP · EJEMPLO</span></div>
+          <div className="sala-marca"><span className="kicker-plata">Praxis</span><span className="mono" id="salaFecha">{conectada ? '' : '29 SEP · EJEMPLO'}</span></div>
           <div className="sala-acciones">
             <button className="btn-barra" id="btnVoz" type="button" aria-pressed="false" title="Oír la voz sintética de Praxis (apagarla también la calla)">
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8v4h3l4 3V5L6 8H3z" /><path d="M13.5 7.5a3.5 3.5 0 0 1 0 5" /></svg>
               <span className="sr" id="btnVozTxt">Voz de Praxis</span>
             </button>
-            <button className="btn-barra" id="btnMas" type="button" aria-expanded="false" aria-controls="menuMas" aria-label="Más opciones: respirar, formulario, rápido">
+            <button className="btn-barra" id="btnMas" type="button" aria-expanded="false" aria-controls="menuMas" aria-label={conectada ? 'Más opciones: respirar, formulario' : 'Más opciones: respirar, formulario, rápido'}>
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <circle cx="4.5" cy="10" r="1.3" fill="currentColor" stroke="none" />
                 <circle cx="10" cy="10" r="1.3" fill="currentColor" stroke="none" />
                 <circle cx="15.5" cy="10" r="1.3" fill="currentColor" stroke="none" />
               </svg>
             </button>
-            <button className="btn-barra" id="btnCerrar" type="button" aria-label="Cerrar y guardar borrador">
+            <button className="btn-barra" id="btnCerrar" type="button" aria-label={conectada ? 'Cerrar' : 'Cerrar y guardar borrador'}>
               <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" /></svg>
             </button>
           </div>
@@ -33,8 +37,8 @@ export function SalaMarcado({ trato }: { trato: Trato }) {
         <p className="ia-linea" id="iaLinea">voz sintética · guía de hábitos, no terapia</p>
         <div className="menu-mas" id="menuMas" hidden>
           <button type="button" id="btnRespirarMenu">Respirar un minuto</button>
-          <button type="button" id="btnForm">Formulario</button>
-          <button type="button" id="btnRapido" aria-pressed="false">Rápido</button>
+          <button type="button" id="btnForm" hidden={sinFormulario}>Formulario</button>
+          <button type="button" id="btnRapido" aria-pressed="false" hidden={conectada}>Rápido</button>
         </div>
       </div>
       <div className="sala-cuerpo" id="salaCuerpo">
@@ -79,7 +83,7 @@ export function SalaMarcado({ trato }: { trato: Trato }) {
         <div className="muelle-col">
           <div className="sugerencias" id="sugerencias" />
           <form id="formTexto" autoComplete="off">
-            <button className="mic" id="btnMic" type="button" aria-pressed="false" aria-label="Micrófono (simulación)">
+            <button className="mic" id="btnMic" type="button" aria-pressed="false" aria-label="Micrófono (simulación)" hidden={conectada}>
               <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3" /><path d="M4.5 10a5.5 5.5 0 0 0 11 0M10 15.5V18" /></svg>
             </button>
             <label className="sr" htmlFor="entrada">{cuentame}</label>

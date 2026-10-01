@@ -3426,3 +3426,14 @@ body.praxis-sala-abierta { overflow:hidden; }
 .praxis .marca-ejemplo.tenue { color: var(--tenue); }
 .praxis :is(h1, h2, p, dl, dd, ol, ul) { margin: 0; }
 .praxis svg, .praxis canvas { max-width: none; }
+
+/* Praxis conectada (1-oct-2026): la tarjeta de lo que el registrador entendió. Va sin caja,
+   como el resto de la sala: una regla fina a la izquierda y las líneas una debajo de otra.
+   Lo que se guarda es SOLO lo que la persona confirma con el botón plateado. */
+.praxis .tarjeta-registro { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 4px 16px; background: linear-gradient(180deg, rgba(var(--luz), .5), rgba(var(--luz), 0)) 0 0 / 2px 100% no-repeat; }
+.praxis .tarjeta-registro .tarjeta-titulo { font: 700 13px/1.3 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--s300); }
+.praxis .tarjeta-lineas { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.praxis .tarjeta-lineas li { font: 600 17px/1.4 var(--f-ui); color: var(--s100); }
+.praxis .tarjeta-lineas li small { display: block; font: 400 13px/1.4 var(--f-ui); color: var(--s400); }
+.praxis .tarjeta-registro .pie-controles { justify-content: space-between; padding-top: 4px; }
+.praxis .tarjeta-registro button:disabled { opacity: .55; }

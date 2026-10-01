@@ -7,6 +7,10 @@ import type { Trato } from '../motor/entorno'
  * LOS NÚMEROS DE AYUDA son los de la maqueta aprobada, menos la opción 4 del 192: la base
  * de respuestas de seguridad no pudo verificarla (la página de MinSalud da 404) y la línea
  * nacional verificada es el 106. Antes de abrir Praxis a asesorados los revisa un profesional.
+ *
+ * Con `conectada`, el texto dice lo que la pantalla hace HOY: lee el plan sin cambiarlo,
+ * guarda solo lo confirmado y, ante una señal de riesgo, se detiene SIN avisarle a nadie
+ * (ese aviso todavía no existe, y prometerlo dejaría a la persona esperando).
  */
 const LINEAS: [string, string, string?][] = [
   ['123', 'Línea 123 · emergencias, en todo el país.'],
@@ -15,7 +19,7 @@ const LINEAS: [string, string, string?][] = [
   ['141', 'Línea 141 · ICBF, si un niño o una niña está en riesgo.'],
 ]
 
-export function Privacidad({ trato }: { trato: Trato }) {
+export function Privacidad({ trato, conectada = false }: { trato: Trato; conectada?: boolean }) {
   const u = trato === 'usted'
   return (
     <section className="seccion" aria-labelledby="privTit">
@@ -24,7 +28,11 @@ export function Privacidad({ trato }: { trato: Trato }) {
         <details>
           <summary>¿Quién es Praxis?</summary>
           <div className="cuerpo">
-            <p className="cita-fija">«Soy Praxis, la voz sintética de Alpha: una inteligencia artificial, no una persona. No hago terapia. Bryan y Manuela leen los resúmenes, pero no en el momento.»</p>
+            {conectada ? (
+              <p className="cita-fija">«Soy Praxis, la voz sintética de Alpha: una inteligencia artificial, no una persona. No hago terapia.»</p>
+            ) : (
+              <p className="cita-fija">«Soy Praxis, la voz sintética de Alpha: una inteligencia artificial, no una persona. No hago terapia. Bryan y Manuela leen los resúmenes, pero no en el momento.»</p>
+            )}
             {u ? (
               <p>La voz que puede oír es <strong>sintética</strong>: solo suena si su teléfono tiene una voz propia en español, que funciona sin enviar nada. Si su navegador solo tiene voces en línea, Praxis sigue en texto para no enviar lo que cuenta. No es la voz de nadie y no hay nadie hablando en vivo.</p>
             ) : (
@@ -38,17 +46,39 @@ export function Privacidad({ trato }: { trato: Trato }) {
         </details>
         <details>
           <summary>Qué se guarda</summary>
-          <div className="cuerpo">
-            {u ? (
-              <p><strong>Solo lo que toca, escribe o confirma</strong>, y solo cuando toca LISTO. Se guarda en la misma fila de su check-in de hoy, con la fuente de cada dato (toque, texto o voz) y, si lo dijo con sus palabras, la frase literal de donde salió.</p>
-            ) : (
-              <p><strong>Solo lo que tocas, escribes o confirmas</strong>, y solo cuando tocas LISTO. Se guarda en la misma fila de tu check-in de hoy, con la fuente de cada dato (toque, texto o voz) y, si lo dijiste con tus palabras, la frase literal de donde salió.</p>
-            )}
-            <p>{u ? 'Un dato que no dio queda en blanco.' : 'Un dato que no diste queda en blanco.'} Nunca se rellena un 7 de sueño ni un peso que nadie midió.</p>
-            <p>La firma no se guarda: se vuelve a calcular con {u ? 'sus' : 'tus'} respuestas. El audio nunca se guarda. En este prototipo no hay micrófono: la escucha es una simulación.</p>
-            <p>{u ? 'Si cierra a medias' : 'Si cierras a medias'}, el borrador queda solo en este teléfono y se borra al cambiar de día. Lo terminado también se queda aquí hasta el día siguiente.</p>
-            <button className="btn-claro" id="btnBorrarBorrador" type="button">Borrar el borrador</button>
-          </div>
+          {conectada ? (
+            <div className="cuerpo">
+              <p>
+                <strong>Praxis lee, no cambia.</strong>{' '}
+                {u
+                  ? 'Para contestarle mira su plan ya aprobado y sus check-ins de los últimos 14 días. No toca cargas, series ni su plan: eso lo decide su coach.'
+                  : 'Para contestarte mira tu plan ya aprobado y tus check-ins de los últimos 14 días. No toca cargas, series ni tu plan: eso lo decide tu coach.'}
+              </p>
+              <p>
+                {u
+                  ? 'De lo que le cuenta, solo se guarda lo que confirma con un toque en «Guardar». Antes, una tarjeta le dice qué entendió.'
+                  : 'De lo que le cuentas, solo se guarda lo que confirmas con un toque en «Guardar». Antes, una tarjeta te dice qué entendió.'}{' '}
+                {u ? 'Su check-in del día se sigue llenando en el formulario de siempre.' : 'Tu check-in del día se sigue llenando en el formulario de siempre.'}
+              </p>
+              <p>
+                {u ? 'Lo que escribe para anotar' : 'Lo que escribes para anotar'} viaja a un servicio de inteligencia artificial que lo convierte en un registro.
+                Lo que suena a riesgo o a salud no sale de este teléfono: no se anota y no llega a ese servicio.
+              </p>
+              <p>El audio nunca se guarda: aquí no hay micrófono.</p>
+            </div>
+          ) : (
+            <div className="cuerpo">
+              {u ? (
+                <p><strong>Solo lo que toca, escribe o confirma</strong>, y solo cuando toca LISTO. Se guarda en la misma fila de su check-in de hoy, con la fuente de cada dato (toque, texto o voz) y, si lo dijo con sus palabras, la frase literal de donde salió.</p>
+              ) : (
+                <p><strong>Solo lo que tocas, escribes o confirmas</strong>, y solo cuando tocas LISTO. Se guarda en la misma fila de tu check-in de hoy, con la fuente de cada dato (toque, texto o voz) y, si lo dijiste con tus palabras, la frase literal de donde salió.</p>
+              )}
+              <p>{u ? 'Un dato que no dio queda en blanco.' : 'Un dato que no diste queda en blanco.'} Nunca se rellena un 7 de sueño ni un peso que nadie midió.</p>
+              <p>La firma no se guarda: se vuelve a calcular con {u ? 'sus' : 'tus'} respuestas. El audio nunca se guarda. En este prototipo no hay micrófono: la escucha es una simulación.</p>
+              <p>{u ? 'Si cierra a medias' : 'Si cierras a medias'}, el borrador queda solo en este teléfono y se borra al cambiar de día. Lo terminado también se queda aquí hasta el día siguiente.</p>
+              <button className="btn-claro" id="btnBorrarBorrador" type="button">Borrar el borrador</button>
+            </div>
+          )}
         </details>
         <details>
           <summary>Cómo pedir ayuda</summary>
@@ -61,7 +91,12 @@ export function Privacidad({ trato }: { trato: Trato }) {
                 <button className="btn-claro" type="button" data-copiar={numero}>Copiar</button>
               </div>
             ))}
-            {u ? (
+            {conectada ? (
+              <p>
+                Cuando Praxis nota una señal de riesgo, se queda quieta: sin animaciones, sin sonido y sin consejos, con estos números.{' '}
+                <strong>{u ? 'Desde aquí todavía no se le avisa a nadie. Si es urgente, llame al 123.' : 'Desde aquí todavía no se le avisa a nadie. Si es urgente, llama al 123.'}</strong>
+              </p>
+            ) : u ? (
               <p>Cuando Praxis nota una señal de riesgo, se queda quieta: sin animaciones, sin sonido y sin consejos, con estos números. Bryan recibe su frase, pero <strong>Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.</strong></p>
             ) : (
               <p>Cuando Praxis nota una señal de riesgo, se queda quieta: sin animaciones, sin sonido y sin consejos, con estos números. Bryan recibe tu frase, pero <strong>Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.</strong></p>
@@ -75,10 +110,19 @@ export function Privacidad({ trato }: { trato: Trato }) {
           <summary>{u ? 'Sus permisos' : 'Tus permisos'}</summary>
           <div className="cuerpo">
             <p id="consentFecha" />
-            <label className="check"><input type="checkbox" id="cConversacion" /><span>Hacer mi check-in conversando<small>{u ? 'Sin esto, usa el formulario de siempre.' : 'Sin esto, usas el formulario de siempre.'}</small></span></label>
+            {conectada ? (
+              <label className="check"><input type="checkbox" id="cConversacion" /><span>Hablar con Praxis<small>Sin esto, Praxis queda apagada. El formulario sigue igual.</small></span></label>
+            ) : (
+              <label className="check"><input type="checkbox" id="cConversacion" /><span>Hacer mi check-in conversando<small>{u ? 'Sin esto, usa el formulario de siempre.' : 'Sin esto, usas el formulario de siempre.'}</small></span></label>
+            )}
             <label className="check"><input type="checkbox" id="cVoz" disabled /><span>Usar mi voz · Próximamente<small>El audio se transcribirá y se descartará al instante.</small></span></label>
-            <label className="check"><input type="checkbox" id="cRiesgo" /><span>Aviso por riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Bryan recibe un aviso con su frase.' : 'Si algo que cuentas es una señal de riesgo, Bryan recibe un aviso con tu frase.'} Sin este permiso Praxis no se activa.</small></span></label>
-            <label className="check"><input type="checkbox" id="cSonido" /><span>Sonido del eco<small>Apagado por defecto. {u ? 'Si lo enciende, su día suena al terminar.' : 'Si lo enciendes, tu día suena al terminar.'}</small></span></label>
+            {conectada ? (
+              <label className="check"><input type="checkbox" id="cRiesgo" /><span>Detenerse ante una señal de riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Praxis se detiene y le muestra las líneas de ayuda.' : 'Si algo que cuentas es una señal de riesgo, Praxis se detiene y te muestra las líneas de ayuda.'} Sin este permiso Praxis no se activa.</small></span></label>
+            ) : (
+              <label className="check"><input type="checkbox" id="cRiesgo" /><span>Aviso por riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Bryan recibe un aviso con su frase.' : 'Si algo que cuentas es una señal de riesgo, Bryan recibe un aviso con tu frase.'} Sin este permiso Praxis no se activa.</small></span></label>
+            )}
+            {/* El eco del día es de la conversación guiada, que conectada no se monta: la casilla sigue en el marcado porque el motor la lee. */}
+            <label className="check" hidden={conectada}><input type="checkbox" id="cSonido" /><span>Sonido del eco<small>Apagado por defecto. {u ? 'Si lo enciende, su día suena al terminar.' : 'Si lo enciendes, tu día suena al terminar.'}</small></span></label>
             <label className="check"><input type="checkbox" id="cMovSuave" /><span>Movimiento suave<small>Praxis se mueve menos: el agujero queda quieto y solo cambia de brillo. {u ? 'Hace lo mismo que el ajuste de reducir movimiento de su teléfono, aunque no lo tenga activado.' : 'Hace lo mismo que el ajuste de reducir movimiento de tu teléfono, aunque no lo tengas activado.'}</small></span></label>
           </div>
         </details>
@@ -94,14 +138,16 @@ export function Privacidad({ trato }: { trato: Trato }) {
             <label className="check"><input type="checkbox" disabled /><span>Pasos desde Salud · Próximamente</span></label>
             <label className="check"><input type="checkbox" disabled /><span>Sueño desde Salud · Próximamente</span></label>
             <label className="check"><input type="checkbox" disabled id="cSaludPeso" /><span>Peso desde Salud · Próximamente<small id="saludPesoNota">{u ? 'Solo si su plan pide el peso.' : 'Solo si tu plan pide el peso.'}</small></span></label>
-            <div className="salud-demo">
-              <span className="marca-ejemplo tenue">Así se vería · ejemplo</span>
-              <span>
-                {u
-                  ? '«Su iPhone dice que durmió 6 horas y 10 minutos, de 12:05 a 6:15. ¿Así lo sintió?» Lo que llega de Salud entra punteado y solo se guarda si lo confirma.'
-                  : '«Tu iPhone dice que dormiste 6 horas y 10 minutos, de 12:05 a 6:15. ¿Así lo sentiste?» Lo que llega de Salud entra punteado y solo se guarda si lo confirmas.'}
-              </span>
-            </div>
+            {!conectada && (
+              <div className="salud-demo">
+                <span className="marca-ejemplo tenue">Así se vería · ejemplo</span>
+                <span>
+                  {u
+                    ? '«Su iPhone dice que durmió 6 horas y 10 minutos, de 12:05 a 6:15. ¿Así lo sintió?» Lo que llega de Salud entra punteado y solo se guarda si lo confirma.'
+                    : '«Tu iPhone dice que dormiste 6 horas y 10 minutos, de 12:05 a 6:15. ¿Así lo sentiste?» Lo que llega de Salud entra punteado y solo se guarda si lo confirmas.'}
+                </span>
+              </div>
+            )}
           </div>
         </details>
       </div>

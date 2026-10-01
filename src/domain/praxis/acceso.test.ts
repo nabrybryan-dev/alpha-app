@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { PRAXIS_ABIERTA_A_ASESORADOS, esStaff, puedeVerPraxis } from './acceso'
 
 /**
- * Praxis se publicó el 29-sep-2026 como excepción firmada por Bryan, con DATOS DE
- * EJEMPLO y sin su cerebro desplegado (ni el registrador ni la voz). Un asesorado que la
- * viera leería un check-in inventado como si fuera suyo. Por eso la pantalla solo la ve el
- * staff, y el interruptor para asesorados nace apagado.
+ * Praxis se publicó el 29-sep-2026 como excepción firmada por Bryan, y desde el 1-oct lee
+ * datos reales. Que lea datos reales no la abre a los asesorados: su filtro de riesgo es
+ * solo un diccionario, no avisa a nadie y sus textos clínicos no los ha revisado un
+ * profesional. Por eso la pantalla solo la ve el staff, y el interruptor sigue apagado.
  */
 describe('quién puede ver Praxis', () => {
   it('el staff es el coach y la nutricionista, igual que `es_staff()` en la base', () => {

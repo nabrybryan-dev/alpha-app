@@ -73,7 +73,7 @@ export function pieSeguir(ok: boolean): HTMLElement {
 /* La barra de la noche: 18:00 a 12:00, dos asas; el horario de anoche es un fantasma */
 export function enCamaMin(): number | null { if (!S.datos.horaAcostarse || !S.datos.horaLevantarse) return null; return minNoche(S.datos.horaLevantarse) - minNoche(S.datos.horaAcostarse) }
 function barraNoche(g: HTMLElement): void {
-  const FANTASMA = { a: ayer().horaAcostarse as string, l: ayer().horaLevantarse as string } // el horario de la noche anterior, tomado del lunes de ejemplo
+  const FANTASMA = { a: (ayer()?.horaAcostarse ?? '23:30') as string, l: (ayer()?.horaLevantarse ?? '06:30') as string } // el horario de la noche anterior, tomado del lunes de ejemplo
   const TOT = 1080, pct = (m: number) => (m / TOT) * 100 + '%'
   const tocado = S.datos.horaAcostarse != null && S.datos.horaLevantarse != null
   let a = minNoche(S.datos.horaAcostarse || FANTASMA.a), l = minNoche(S.datos.horaLevantarse || FANTASMA.l), arrastrado = false

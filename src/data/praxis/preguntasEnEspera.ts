@@ -19,6 +19,49 @@ export type ResultadoDejarPregunta =
   | { ok: true; destinatario: Destinatario }
   | { ok: false; motivo: 'sin_nube' | 'riesgo' | 'vacia' | 'tope' | 'no_disponible' | 'error' }
 
+export interface PreguntaConRespuesta {
+  id: string
+  pregunta: string
+  destinatario: Destinatario
+  estado: 'abierta' | 'respondida' | 'cerrada'
+  respuesta: string | null
+  venceEn: string
+  creadoEn: string
+}
+
+interface FilaPregunta {
+  id: string
+  pregunta: string
+  destinatario: Destinatario
+  estado: PreguntaConRespuesta['estado']
+  respuesta: string | null
+  vence_en: string
+  creado_en: string
+}
+
+/**
+ * Las últimas preguntas en espera de la persona, de la más nueva a la más vieja. Con ellas
+ * Praxis cumple el «te aviso cuando responda»: al abrirse, dice las respuestas que llegaron.
+ * `[]` sin nube, sin tabla o ante cualquier error: nunca rompe la conversación.
+ */
+export async function preguntasEnEsperaDe(usuarioId: string): Promise<PreguntaConRespuesta[]> {
+  if (!modoNube || !usuarioId) return []
+  try {
+    const { data, error } = await supabase()
+      .from(TABLA_PREGUNTAS_EN_ESPERA)
+      .select('id,pregunta,destinatario,estado,respuesta,vence_en,creado_en')
+      .eq('usuario_id', usuarioId)
+      .order('creado_en', { ascending: false })
+      .limit(10)
+    if (error || !data) return []
+    return (data as unknown as FilaPregunta[]).map((f) => ({
+      id: f.id, pregunta: f.pregunta, destinatario: f.destinatario, estado: f.estado, respuesta: f.respuesta, venceEn: f.vence_en, creadoEn: f.creado_en,
+    }))
+  } catch {
+    return []
+  }
+}
+
 /** La tabla no existe: Postgres (42P01) o la caché de esquema de PostgREST (PGRST205). */
 const noExiste = (codigo: string | undefined) => codigo === '42P01' || codigo === 'PGRST205'
 

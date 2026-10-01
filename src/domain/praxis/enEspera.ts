@@ -62,3 +62,16 @@ export function armarPreguntaEnEspera(entrada: { frase: string; queFalto: QueFal
     },
   }
 }
+
+/**
+ * Lo que Praxis dice de una pregunta que sigue abierta. Si pasó el plazo no inventa una
+ * respuesta ni se queda callada: dice que sigue en la lista (DISENO §4.3, punto 5).
+ */
+export function estadoDeLaEspera(p: { pregunta: string; destinatario: Destinatario; venceEn: string }, ahora: Date, trato: Trato): string {
+  const usted = trato === 'usted'
+  const quien = `${usted ? 'su' : 'tu'} ${p.destinatario === 'nutricionista' ? 'nutricionista' : 'coach'}`
+  const cabeza = `${usted ? 'Su' : 'Tu'} pregunta «${p.pregunta}»`
+  const vence = Date.parse(p.venceEn)
+  if (Number.isFinite(vence) && vence < ahora.getTime()) return `${cabeza} lleva más de ${PLAZO_HORAS} horas en espera: ${quien} todavía no ha respondido. Sigue en su lista.`
+  return `${cabeza} sigue en espera: ${quien} todavía no ha respondido.`
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_ABIERTAS, MAX_LARGO_PREGUNTA, PLAZO_HORAS, armarPreguntaEnEspera, destinatarioDe, ofertaDePregunta } from './enEspera'
+import { MAX_ABIERTAS, MAX_LARGO_PREGUNTA, PLAZO_HORAS, armarPreguntaEnEspera, destinatarioDe, estadoDeLaEspera, ofertaDePregunta } from './enEspera'
 
 /**
  * «Pregunta en espera» (decisión D6 de Bryan, 29-sep): cuando Praxis no sabe, ofrece
@@ -60,5 +60,25 @@ describe('armarPreguntaEnEspera', () => {
   it('el plazo firmado es de 24 horas', () => {
     expect(PLAZO_HORAS).toBe(24)
     expect(MAX_ABIERTAS).toBe(2)
+  })
+})
+
+describe('estadoDeLaEspera · si no hay respuesta en el plazo, se dice', () => {
+  const ahora = new Date('2026-10-02T12:00:00Z')
+
+  it('dentro del plazo: sigue en espera', () => {
+    expect(estadoDeLaEspera({ pregunta: '¿Qué me toca?', destinatario: 'coach', venceEn: '2026-10-02T18:00:00Z' }, ahora, 'tu'))
+      .toBe('Tu pregunta «¿Qué me toca?» sigue en espera: tu coach todavía no ha respondido.')
+  })
+
+  it('pasado el plazo: lo dice con las horas, sin inventar una respuesta y sin nombres', () => {
+    const t = estadoDeLaEspera({ pregunta: '¿Puedo cambiar el arroz?', destinatario: 'nutricionista', venceEn: '2026-10-02T06:00:00Z' }, ahora, 'tu')
+    expect(t).toBe('Tu pregunta «¿Puedo cambiar el arroz?» lleva más de 24 horas en espera: tu nutricionista todavía no ha respondido. Sigue en su lista.')
+    expect(t).not.toMatch(/Bryan|Manuela/)
+  })
+
+  it('sin fecha de plazo no la da por vencida', () => {
+    expect(estadoDeLaEspera({ pregunta: 'x', destinatario: 'coach', venceEn: '' }, ahora, 'usted'))
+      .toBe('Su pregunta «x» sigue en espera: su coach todavía no ha respondido.')
   })
 })

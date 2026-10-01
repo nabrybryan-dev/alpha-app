@@ -125,12 +125,12 @@ export function CoachLayout() {
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (ejemplo)</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
           </>
         ) : (
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (ejemplo)</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
           </>
         )}
       </nav>

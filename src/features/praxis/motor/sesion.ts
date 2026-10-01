@@ -1,4 +1,4 @@
-import { IDEA_AYER, OBLIG, SEMANA, ayer, type Campo, type DatosDia, type TipoRiesgo } from './datos'
+import { EJEMPLO, IDEA_AYER, OBLIG, SEMANA, ayer, type Campo, type DatosDia, type TipoRiesgo } from './datos'
 import { $ } from './dom'
 import { borrarClave, guardar, leer, tu } from './entorno'
 import { num } from './movimiento'
@@ -21,9 +21,18 @@ export interface Escenario { franja: string; idea: string; dolorAyer: string; es
 export type Permisos = Record<string, boolean | string>
 type Montador = () => Node | null | false | (Node | null | false)[]
 
+/**
+ * El turno vigente. Es un contador ÚNICO para todas las sesiones, no uno por sesión: si cada
+ * sesión empezara en 0, un bucle viejo que siguiera esperando (una frase a medias, una
+ * llamada a la red) vería en la sesión NUEVA el mismo número que tenía y seguiría corriendo
+ * sobre la pantalla de otro montaje, con la conexión del anterior. Pasó en las pruebas de la
+ * pantalla conectada: la pregunta en espera de una persona salía por la conexión de la otra.
+ */
+let turnoGlobal = 0
+
 export function nuevaSesion() {
   return {
-    tok: 0, datos: {} as DatosDia, fuentes: {} as Record<string, Fuente>, citas: {} as Record<string, string>, ref: {} as Record<string, string>,
+    tok: ++turnoGlobal, datos: {} as DatosDia, fuentes: {} as Record<string, Fuente>, citas: {} as Record<string, string>, ref: {} as Record<string, string>,
     dudas: {} as Record<string, Duda>, hechos: [] as string[], saltos: [] as string[], t0: 0, pausa: 0, pausaDesde: 0,
     hilo: null as string | null, hiloPequena: null as boolean | null, nota: null as boolean | string | null, presentarPendiente: false, saludoPendiente: false,
     listo: false, enFirma: false, quieta: null as { tipo: TipoRiesgo; cita: string | null; demo: boolean } | null,
@@ -72,6 +81,7 @@ export function guardarBorrador(): void {
 /** El lunes de la partitura sale del escenario: si ayer dolió la rodilla, el lunes lo dice. */
 export function aplicarEscenario(): void {
   const d = ayer()
+  if (!d || !EJEMPLO) return // el escenario solo mueve el lunes del ejemplo
   d.dolor = E.dolorAyer === 'si' ? 6 : 0
   if (E.dolorAyer === 'si') d.dolorDonde = 'rodilla izquierda'; else delete d.dolorDonde
   d.estres = E.estresAyer === 'mucho' ? 'MUCHO' : 'REGULAR'
@@ -112,7 +122,7 @@ export function esperaCon(tok: number, ms: number | null): Promise<Evento> {
   })
 }
 export function cancelar(): void {
-  S.tok++; Voz.callar(); Onda.callar()
+  S.tok = ++turnoGlobal; Voz.callar(); Onda.callar()
   clearTimeout(S.tSilencio)
   if (S.rechazar) { const r = S.rechazar; S.resolver = null; S.rechazar = null; r(new Cancelado()) }
   S.cola = []

@@ -1,5 +1,7 @@
 import { Cab, alInicio, compactar, enfocarControles, limpiarControles, montar, soltarFlip, soltarSalidaControles } from './cabecera'
 import { chips } from './controles'
+import { conectada } from './conexion'
+import { correrConversacion } from './conversacion'
 import { LIN_QUIETA, type TipoRiesgo } from './datos'
 import { $, aviso, copiar, h } from './dom'
 import { tu } from './entorno'
@@ -52,7 +54,7 @@ export function revisarRiesgo(txt: string, fuente: Fuente): boolean {
   const r = interpretar(txt, null)
   if (r.riesgo) { mostrarPersona(txt, fuente || 'texto'); entrarQuieta(r.riesgo, txt, false); return true }
   if (r.ambiguo) { preguntarCuidado(txt, fuente || 'texto'); return true }
-  if (r.alimentaria) registrarSenal('alimentaria', txt)
+  if (r.alimentaria && !conectada()) registrarSenal('alimentaria', txt) // conectada, lo de salud lo atiende la conversación
   return false
 }
 /* Una pregunta directa, escrita por personas: preguntar por el daño no aumenta el riesgo */
@@ -71,6 +73,11 @@ function resolverCuidado(v: string): void {
   S.cuidado = null
   if (v === 'si' || v === 'pn') { entrarQuieta('vida', c.txt, false); return }
   limpiarControles()
+  if (conectada()) { // la frase no se anota ni viaja a ningún modelo: se queda aquí
+    decirCorto('Gracias por decírmelo. Seguimos.')
+    void correrConversacion({ saludo: false })
+    return
+  }
   anotar('comentarios', comentarioCon(c.txt), c.fuente, c.txt) // la frase le llega a Bryan
   decirCorto('Gracias por decírmelo. Seguimos.')
   void correrCheckin()
@@ -90,14 +97,18 @@ export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolea
   limpiarControles(); $('#editor').hidden = true; $('#penta').hidden = true; $('#muelle').hidden = true; $('#saltos').hidden = true; $('#senal').hidden = true
   $('#frase').textContent = ''; $('#ayuda').textContent = ''; $('#dijo').textContent = ''; $('#dicho').classList.add('vacio'); $('#dicho').removeAttribute('aria-busy'); $('#srPiensa').textContent = ''
   const panel = h('div', { class: 'quieta' })
-  panel.append(h('span', { class: 'marca-ejemplo' }, demo ? 'Demostración · texto pendiente de revisión por un profesional' : 'Ejemplo · texto pendiente de revisión por un profesional'),
+  const real = conectada() // conectada, ni la demostración habla de ejemplo ni promete avisos
+  panel.append(h('span', { class: 'marca-ejemplo' }, demo ? 'Demostración · texto pendiente de revisión por un profesional' : real ? 'Texto pendiente de revisión por un profesional' : 'Ejemplo · texto pendiente de revisión por un profesional'),
     h('p', { class: 'quieta-texto', tabindex: '-1' }, tu('Lo que escribiste me importa. Me quedo quieta y no te hago más preguntas. Si estás en peligro o piensas en hacerte daño, llama ahora: te contestan personas, a cualquier hora.', 'Lo que escribió me importa. Me quedo quieta y no le hago más preguntas. Si está en peligro o piensa en hacerse daño, llame ahora: le contestan personas, a cualquier hora.')))
   ;(LIN_QUIETA[tipo] || LIN_QUIETA.vida).forEach(([numero, txt, rot]) => {
     panel.append(h('a', { class: 'btn-quieta', href: 'tel:' + numero }, txt),
       h('div', { class: 'numero-quieta' }, h('span', null, rot), h('span', { class: 'mono' }, numero), h('button', { type: 'button', class: 'chip', onclick: (e) => void copiar(numero, e.currentTarget as Element) }, 'Copiar número')))
   })
-  panel.append(h('p', { class: 'quieta-texto' }, demo ? tu('En la app, Bryan ya recibe tu frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.', 'En la app, Bryan ya recibe su frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.') : tu('Bryan ya recibió tu frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.', 'Bryan ya recibió su frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.')))
-  panel.append(h('p', { class: 'nota-quieta' }, demo ? 'Demostración: en este ejemplo no se envía nada. Hoy no hay firma, ni eco, ni idea.' : tu('Lo que ya marcaste queda como borrador. En este prototipo no se envía nada. Hoy no hay firma, ni eco, ni idea.', 'Lo que ya marcó queda como borrador. En este prototipo no se envía nada. Hoy no hay firma, ni eco, ni idea.')))
+  /* Conectada, la pantalla NO promete un aviso: hoy nada le llega a nadie desde aquí, y decir lo contrario dejaría a la persona esperando. */
+  if (real) panel.append(h('p', { class: 'quieta-texto' }, tu('Desde aquí todavía no se le avisa a nadie: esta versión es de prueba para el equipo. Si es urgente, no esperes: llama al 123.', 'Desde aquí todavía no se le avisa a nadie: esta versión es de prueba para el equipo. Si es urgente, no espere: llame al 123.')),
+    h('p', { class: 'nota-quieta' }, demo ? 'Demostración: así se ve cuando Praxis se detiene. Nada se guardó ni se envió.' : tu('Lo que escribiste no se guardó ni se envió. Hoy no hay más preguntas.', 'Lo que escribió no se guardó ni se envió. Hoy no hay más preguntas.')))
+  else panel.append(h('p', { class: 'quieta-texto' }, demo ? tu('En la app, Bryan ya recibe tu frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.', 'En la app, Bryan ya recibe su frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.') : tu('Bryan ya recibió tu frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.', 'Bryan ya recibió su frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.')))
+  if (!real) panel.append(h('p', { class: 'nota-quieta' }, demo ? 'Demostración: en este ejemplo no se envía nada. Hoy no hay firma, ni eco, ni idea.' : tu('Lo que ya marcaste queda como borrador. En este prototipo no se envía nada. Hoy no hay firma, ni eco, ni idea.', 'Lo que ya marcó queda como borrador. En este prototipo no se envía nada. Hoy no hay firma, ni eco, ni idea.')))
   if (demo && S.turno !== 'demo') panel.append(h('div', { class: 'pie-controles' }, h('button', { type: 'button', class: 'seguir', onclick: () => cerrarSala() }, 'Salir de la demostración')))
   soltarSalidaControles() // el panel de la Quieta se ve desde el primer cuadro, aunque una salida de controles estuviera a medias
   $('#controles').append(panel)
@@ -119,7 +130,7 @@ export const Mic = { activo: false, int: 0, env: [] as number[] }
 /** La envolvente de una voz inventada: lo que pinta el disco cuando «escucha». */
 export function vozSimulada(t: number): number { return clamp(0.3 + 0.45 * Math.abs(Math.sin(t * 9.5)) * (0.6 + 0.4 * Math.sin(t * 2.3)) + 0.2 * Math.random(), 0, 1) }
 export function iniciarMic(): void {
-  if (S.listo || S.quieta) return
+  if (S.listo || S.quieta || conectada()) return // conectada no hay micrófono: la escucha de la maqueta era una simulación
   Voz.callar(); Mic.activo = true; Mic.env = []; Onda.fuente(true)
   const b = $('#btnMic')
   b.setAttribute('aria-pressed', 'true'); b.setAttribute('aria-label', 'Detener la escucha simulada')
@@ -149,7 +160,8 @@ export function detenerMic(mostrar: boolean): void {
 export function enviarTexto(t: string, fuente: Fuente): void {
   if (S.listo || S.quieta) return
   if (S.cuidado) { aviso(tu('Antes de seguir, respóndeme con un toque.', 'Antes de seguir, respóndame con un toque.')); return }
-  if (revisarRiesgo(t, fuente)) return // lo grave detiene; lo ambiguo se pregunta
+  // Conectada, el filtro de riesgo lo aplica la conversación (`decidirTurno`) a CADA frase, antes de cualquier otra cosa.
+  if (!conectada() && revisarRiesgo(t, fuente)) return // lo grave detiene; lo ambiguo se pregunta
   cortarDecir()
   emitir({ tipo: 'texto', txt: t, fuente })
 }

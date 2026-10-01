@@ -1,8 +1,11 @@
 import type { Trato } from '../motor/entorno'
 
 /**
- * La portada de ejemplo de Praxis: la tarjeta, el escenario de la demostración, la semana
- * en órbita y el mes como galaxia.
+ * La portada de Praxis: la tarjeta, la semana en órbita y los días anteriores como galaxia.
+ *
+ * Con `conectada`, lo que el motor pinta aquí son los check-ins de la persona con sesión, y
+ * no hay ni sello de ejemplo, ni escenario de demostración, ni la cita inventada del coach.
+ * Sin ella es la portada de la maqueta, que hoy solo montan las pruebas.
  *
  * Es marcado QUIETO: React lo pinta una vez y a partir de ahí lo gobierna el motor
  * (`motor/bienestar.ts`), que busca cada pieza por su id. Por eso no lleva estado ni
@@ -16,7 +19,7 @@ const ESCENARIO: { id: string; rotulo: string; clave: string; opciones: [string,
   { id: 'escPeso', rotulo: 'Pedir peso (lo decide la nutricionista)', clave: 'peso', opciones: [['si', 'Activo'], ['no', 'Apagado']] },
 ]
 
-export function Portada({ trato }: { trato: Trato }) {
+export function Portada({ trato, conectada = false, sinFormulario = false }: { trato: Trato; conectada?: boolean; sinFormulario?: boolean }) {
   const usted = trato === 'usted'
   return (
     <>
@@ -25,7 +28,9 @@ export function Portada({ trato }: { trato: Trato }) {
           <span className="fecha">MARTES 29 SEP · 7:10 A. M.</span>
           <h1>Bienestar</h1>
         </div>
-        <span className="sello-ejemplo" title="Todo lo que ves son datos inventados para el prototipo">Datos de ejemplo</span>
+        {conectada
+          ? <span className="sello-ejemplo" title="Praxis todavía está cerrada a los asesorados">Solo el equipo</span>
+          : <span className="sello-ejemplo" title="Todo lo que ves son datos inventados para el prototipo">Datos de ejemplo</span>}
       </header>
 
       <section className="portada" aria-labelledby="tarjetaTit">
@@ -35,11 +40,11 @@ export function Portada({ trato }: { trato: Trato }) {
         </div>
         <div className="portada-astro">
           <svg className="mini-firma" id="miniFirma" viewBox="0 0 120 120" role="img" aria-label="Firma de ayer" />
-          <p className="bryan-vio" id="bryanVio">
+          {conectada ? <p className="bryan-vio" id="bryanVio" hidden /> : <p className="bryan-vio" id="bryanVio">
             <b>{usted ? 'Bryan vio su lunes' : 'Bryan vio tu lunes'}</b> ·{' '}
             {usted ? '«La pierna salió bien aunque estaba cansada. Hoy vamos con calma.»' : '«La pierna salió bien aunque estabas cansada. Hoy vamos con calma.»'}{' '}
             <span className="sr">(ejemplo)</span>
-          </p>
+          </p>}
         </div>
         <h2 className="tarjeta-tit" id="tarjetaTit">{usted ? '¿Cómo amaneció?' : '¿Cómo amaneciste?'}</h2>
         <div className="tarjeta-preg" id="tarjetaPreg" />
@@ -50,18 +55,28 @@ export function Portada({ trato }: { trato: Trato }) {
           <span className="contador" id="contador" />
         </div>
         <button className="enlace enlace-plata" id="btnRepetir" type="button" hidden>Repetir el ejemplo</button>
-        <button className="enlace" id="btnPrefieroForm" type="button" aria-expanded="false" aria-controls="formPlegado">Prefiero el formulario</button>
+        <button className="enlace" id="btnPrefieroForm" type="button" aria-expanded="false" aria-controls="formPlegado" hidden={sinFormulario}>Prefiero el formulario</button>
         <div className="plegado" id="formPlegado" hidden>
           <strong>El formulario de siempre</strong>
-          <span>
-            Aquí se abre el formulario de siempre, completo y sin cambios: peso y pasos, entreno, {usted ? 'cómo le fue' : 'cómo te fue'}, ganas,
-            hambre del 1 al 10, cansancio, estrés, dolor, horas y horario de sueño, calidad, comida y comentarios. (En este ejemplo no se muestra.)
-          </span>
+          {conectada ? (
+            <>
+              <span>
+                {usted ? 'Su check-in del día se sigue llenando' : 'Tu check-in del día se sigue llenando'} en el formulario de siempre, completo y sin
+                cambios. Praxis todavía no lo guarda.
+              </span>
+              <button className="btn-claro fuerte" id="btnIrFormulario" type="button">Abrir el formulario</button>
+            </>
+          ) : (
+            <span>
+              Aquí se abre el formulario de siempre, completo y sin cambios: peso y pasos, entreno, {usted ? 'cómo le fue' : 'cómo te fue'}, ganas,
+              hambre del 1 al 10, cansancio, estrés, dolor, horas y horario de sueño, calidad, comida y comentarios. (En este ejemplo no se muestra.)
+            </span>
+          )}
           <button className="btn-claro" id="btnVolverPraxis" type="button">Volver a Praxis</button>
         </div>
       </section>
 
-      <section className="seccion" aria-labelledby="escTit">
+      {!conectada && <section className="seccion" aria-labelledby="escTit">
         <div className="seccion-cab">
           <h2 id="escTit">Escenario del ejemplo</h2>
         </div>
@@ -80,12 +95,12 @@ export function Portada({ trato }: { trato: Trato }) {
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
       <section className="seccion" aria-labelledby="semTit">
         <div className="seccion-cab">
           <h2 id="semTit">{usted ? 'Su semana' : 'Tu semana'}</h2>
-          <span className="mono pie-nota">23 – 29 SEP</span>
+          <span className="mono pie-nota" id="semRango" />
         </div>
         <div className="cielo partitura">
           <div className="semana" id="partitura" role="group" aria-label={usted ? 'Su semana en órbita: siete astros, uno por día' : 'Tu semana en órbita: siete astros, uno por día'} />
@@ -96,11 +111,11 @@ export function Portada({ trato }: { trato: Trato }) {
 
       <section className="seccion" aria-labelledby="mesTit">
         <div className="seccion-cab">
-          <h2 id="mesTit">{usted ? 'Su mes' : 'Tu mes'}</h2>
+          <h2 id="mesTit">{conectada ? (usted ? 'Sus últimos 14 días' : 'Tus últimos 14 días') : usted ? 'Su mes' : 'Tu mes'}</h2>
           <span className="mono pie-nota" id="contadorMes" />
         </div>
         <div className="cielo galaxia">
-          <svg id="cordillera" viewBox="0 0 358 236" role="img" aria-label="Galaxia del mes: cada firma es un astro en el brazo; la más reciente, en el borde. La lista con cada día está debajo." />
+          <svg id="cordillera" viewBox="0 0 358 236" role="img" aria-label="Galaxia de firmas: cada firma es un astro en el brazo; la más reciente, en el borde. La lista con cada día está debajo." />
           <ul className="sr" id="galaxiaLista" />
         </div>
         <p className="pie-nota">La más reciente brilla en el borde; en rojo, hoy. Los días sin registro quedan como huecos oscuros.</p>
