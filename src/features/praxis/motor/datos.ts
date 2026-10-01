@@ -4,6 +4,8 @@
  * Mientras Praxis no lea el check-in de verdad, esto es todo lo que la pantalla enseña, y
  * por eso solo la ve el staff (`domain/praxis/acceso.ts`).
  */
+import { LINEAS_DE_AYUDA, type LineaDeAyuda } from '../../../domain/praxis/riesgo'
+
 export type Nivel = 'MALA' | 'REGULAR' | 'BUENA'
 export type Cantidad = 'POCO' | 'REGULAR' | 'MUCHO'
 
@@ -100,13 +102,9 @@ export const ESCALA3: Record<string, string[]> = {
 }
 
 /**
- * Las líneas de ayuda de la Quieta, por tipo de señal: [número, botón, rótulo].
- * Los textos y la lista los debe revisar un profesional de salud mental antes de abrir
- * Praxis a asesorados.
+ * Las líneas de ayuda de la Quieta viven en el dominio (`domain/praxis/riesgo.ts`), con la
+ * prueba de que solo salen los cuatro números verificados. Los textos los debe revisar un
+ * profesional de salud mental antes de abrir Praxis a asesorados.
  */
-export type TipoRiesgo = 'vida' | 'pareja' | 'nino'
-export const LIN_QUIETA: Record<TipoRiesgo, [string, string, string][]> = {
-  vida: [['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país'], ['106', 'Llamar al 106', 'Línea 106 · salud mental, Ministerio de Salud, 24 horas']],
-  pareja: [['155', 'Llamar a la Línea 155', 'Línea 155 · violencia de pareja'], ['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país']],
-  nino: [['141', 'Llamar a la Línea 141', 'Línea 141 · ICBF'], ['123', 'Llamar al 123', 'Línea 123 · emergencias, en todo el país']],
-}
+export type TipoRiesgo = LineaDeAyuda
+export const LIN_QUIETA = LINEAS_DE_AYUDA
