@@ -51,6 +51,7 @@ describe('InvestigacionInteractiva', () => {
   it('sin el permiso no se hace ni una consulta y dice qué permiso falta', () => {
     render(<InvestigacionInteractiva puede={false} />)
     expect(screen.getByText(/permiso de responder mercadeo/)).toBeInTheDocument()
+    expect(est.lecturas).toBe(0)
   })
 
   it('un hallazgo muestra fuente y estado; Manuela comenta y la lista se vuelve a leer', async () => {
@@ -68,6 +69,20 @@ describe('InvestigacionInteractiva', () => {
     await waitFor(() => expect(est.lecturas).toBe(2))
     // La fila sigue abierta después de releer.
     expect(within(tipo).getByLabelText(/Tu comentario para el agente/)).toBeInTheDocument()
+  })
+
+  it('si la relectura tras comentar falla, avisa y no deja la lista vieja como si estuviera al día', async () => {
+    const u = userEvent.setup()
+    render(<InvestigacionInteractiva puede />)
+    const tipo = await screen.findByRole('region', { name: 'Hooks (ganchos de texto)' })
+    await u.click(within(tipo).getByRole('button', { name: /Hooks/ }))
+    await u.click(within(tipo).getByRole('button', { name: /Pregunta directa al inicio/ }))
+    est.lectura = { ok: false, error: 'red caída' }
+    await u.type(within(tipo).getByLabelText(/Tu comentario para el agente/), 'Mi idea')
+    await u.click(within(tipo).getByRole('button', { name: 'Comentar' }))
+    expect(await screen.findByText(/No se pudo actualizar la investigación \(red caída\)/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Reintentar/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Pregunta directa al inicio/ })).toBeInTheDocument()
   })
 
   it('un comentario con un contacto no se envía y dice por qué', async () => {

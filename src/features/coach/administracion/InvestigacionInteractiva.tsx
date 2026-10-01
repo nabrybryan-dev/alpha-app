@@ -1,6 +1,7 @@
-import { useCallback, useId, useState } from 'react'
+import { useId, useState } from 'react'
 import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { useLectura } from '../../../components/ui/useLectura'
+import type { Lectura } from '../../../data/consola/creadores'
 import { comentarHallazgo, esTablaAusente0103, hallazgosDeMercadeo, TEXTO_PENDIENTE_0103 } from '../../../data/consola/mercadeoHallazgos'
 import {
   MAX_COMENTARIO,
@@ -153,8 +154,11 @@ function FilaHallazgo({ h, onCambio }: { h: HallazgoMercadeo; onCambio: () => vo
 }
 
 /** `puede`: quien mira tiene `responder_mercadeo` o es el coach; sin eso no se hace ni una consulta. */
+const leerNada = (): Promise<Lectura<HallazgoMercadeo[]>> => Promise.resolve({ ok: true, datos: [] })
+
 export function InvestigacionInteractiva({ puede }: { puede: boolean }) {
-  const leer = useCallback(() => hallazgosDeMercadeo(), [])
+  // Sin el permiso ni se consulta: la lectura que se pasa al hook es una que no toca la base.
+  const leer = puede ? hallazgosDeMercadeo : leerNada
   const { lectura, reintentar } = useLectura(leer)
   // Al comentar se vuelve a leer: se conserva lo ya leído para que las filas abiertas no se cierren.
   const [ultimo, setUltimo] = useState<HallazgoMercadeo[] | null>(null)
@@ -185,6 +189,9 @@ export function InvestigacionInteractiva({ puede }: { puede: boolean }) {
   }
   return (
     <div className="flex flex-col gap-3">
+      {lectura !== null && !lectura.ok && (
+        <FalloDeLectura texto={`No se pudo actualizar la investigación (${lectura.error}). Lo que ves puede estar desactualizado.`} onReintentar={reintentar} />
+      )}
       <p className="text-[12.5px] text-tenue">
         Cada hallazgo se puede comentar: el agente lee tu comentario, responde y fortalece el hallazgo. De lo general a lo concreto.
       </p>
