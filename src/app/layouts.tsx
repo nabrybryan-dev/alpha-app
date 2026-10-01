@@ -156,9 +156,13 @@ export function CoachLayout() {
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/administracion">Área administrativa</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (ejemplo)</Link>
           </>
         ) : (
-          <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
+          <>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (ejemplo)</Link>
+          </>
         )}
       </nav>
       {(esCoach || enCreadores || enAdmin || enEstrategias) && <BannerPlanHoy />}
