@@ -162,3 +162,6 @@ jobs:
 
       - name: Los hallazgos de mercadeo los leen Manuela y Bryan, comentan por la función, solo el servidor escribe y anon no ve nada
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/210-mercadeo-hallazgos.sql
+
+      - name: Quien comenta un hallazgo de mercadeo queda con su nombre real, no con el papel de Manuela
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/211-mercadeo-hallazgos-autor-real.sql

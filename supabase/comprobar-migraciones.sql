@@ -2170,4 +2170,13 @@ select '0103 - hallazgos de mercadeo: RLS, solo lee authenticated, comentar por 
             when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
               or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+-- La 0104: el autor real de cada comentario de hallazgo. Columna autor_nombre y la función que la rellena.
+select '0104 - hallazgos de mercadeo: autor real del comentario', 'mercadeo_hallazgo_comentarios.autor_nombre existe; comentar_hallazgo_mercadeo la escribe; anon sigue sin execute',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'mercadeo_hallazgo_comentarios' and column_name = 'autor_nombre') then 'NO'
+            when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
+              or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute')
+              or pg_get_functiondef('public.comentar_hallazgo_mercadeo(uuid,text)'::regprocedure) not like '%autor_nombre%' then 'NO'
+            else 'SI' end
 order by migracion, senal;
