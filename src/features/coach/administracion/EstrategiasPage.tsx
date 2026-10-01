@@ -5,6 +5,7 @@ import { BuzonMercadeo } from '../creadores/BuzonMercadeo'
 import { RotuloGrupo, TarjetaPlegable } from './TarjetaPlegable'
 import { InvestigacionInteractiva } from './InvestigacionInteractiva'
 import { InvestigacionMercadeo } from './InvestigacionMercadeo'
+import { ObjetivosBola } from './ObjetivosBola'
 import { SeccionTablero } from './SeccionTablero'
 import { useTableroAdmin } from './useTableroAdmin'
 
@@ -18,7 +19,8 @@ import { useTableroAdmin } from './useTableroAdmin'
  *      Manuela comenta y el agente responde (migración 0103), y debajo el buzón de preguntas
  *      (0096). Ambos se abren con `responder_mercadeo`.
  *   3. Influencers y creadores evaluados (el tablero de Creadores, con `revisar_creadores`).
- *   4. Bola de nieve.
+ *   4. Bola de nieve: su embudo y, en «Objetivos de la bola de nieve», cada meta contra lo real
+ *      (lo real sale FALTA mientras el tablero no lo traiga; cada meta cita su fuente).
  *
  * La entrada se abre con `responder_mercadeo` o `revisar_creadores` (ver `CoachLayout`). Las
  * secciones del tablero salen como «Pendiente de activar (migración 0102)» sin `ver_administracion`
@@ -90,7 +92,7 @@ export default function EstrategiasPage() {
       </TarjetaPlegable>
       <SeccionTablero t={t} seccion="influencers" />
 
-      <RotuloGrupo titulo="Bola de nieve" />
+      <RotuloGrupo titulo="Bola de nieve" nota="Lo que falta para cumplir sus objetivos: la meta, lo real y de dónde sale cada cifra." />
       <TarjetaPlegable nombre="Bola de nieve" frase="Cómo va el piloto de creadores: del primer contacto a la firma.">
         {puedeCreadores ? (
           <EnlaceCreadores />
@@ -98,6 +100,7 @@ export default function EstrategiasPage() {
           <p className="text-sm text-tenue">El embudo se ve con el permiso de revisar creadores, y todavía no lo tienes.</p>
         )}
       </TarjetaPlegable>
+      <ObjetivosBola t={t} />
     </div>
   )
 }

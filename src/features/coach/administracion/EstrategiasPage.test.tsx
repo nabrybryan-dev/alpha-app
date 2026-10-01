@@ -60,6 +60,7 @@ describe('EstrategiasPage · orden de Bryan', () => {
       'Creadores evaluados',
       'Influencers (bola de nieve)',
       'Bola de nieve',
+      'Objetivos de la bola de nieve',
     ])
     expect(screen.getByText(/estrategias en uso, ganchos, loops, estructura de videos y tendencias/i)).toBeInTheDocument()
   })
@@ -92,6 +93,19 @@ describe('EstrategiasPage · orden de Bryan', () => {
     const b = screen.getByRole('region', { name: 'Bola de nieve' })
     await u.click(within(b).getByRole('button', { name: /Bola de nieve/ }))
     expect(within(b).getByRole('link', { name: /tablero de creadores/ })).toHaveAttribute('href', '/coach/creadores')
+  })
+
+  it('Objetivos de la bola de nieve: meta con su fuente y lo real en FALTA, sin cero', async () => {
+    const u = userEvent.setup()
+    montar()
+    const o = await screen.findByRole('region', { name: 'Objetivos de la bola de nieve' })
+    await u.click(within(o).getByRole('button', { name: /Objetivos de la bola de nieve/ }))
+    const fila = within(o).getByRole('listitem', { name: 'Contactos por semana' })
+    expect(within(fila).getByText('30')).toBeInTheDocument()
+    expect(within(fila).getByText(/FALTA: nadie ha cargado lo real/)).toBeInTheDocument()
+    expect(within(fila).getByText(/PLAN-ESTRATEGICO-90-DIAS\.md/)).toBeInTheDocument()
+    expect(within(o).getByRole('listitem', { name: 'Techo de pérdida del piloto' })).toHaveTextContent('3.000.000 COP')
+    expect(within(o).queryByText('0')).toBeNull()
   })
 
   it('sin revisar_creadores no hay enlace a una puerta cerrada', async () => {
