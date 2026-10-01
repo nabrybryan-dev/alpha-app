@@ -44,9 +44,13 @@ function guardarAbiertas(abiertas: Seccion[]): void {
 const SIN_LEER: Lectura<SeccionLeida[]> = { ok: true, datos: [] }
 const leerNada = () => Promise.resolve(SIN_LEER)
 
-/** Estado del tablero de la 0102. `pendiente` = sin el permiso o sin la tabla: tarjetas grises. */
+/**
+ * Estado del tablero de la 0102. `pendiente` = tarjetas grises, y el `motivo` dice por qué:
+ * `sin_permiso` (no tiene `ver_administracion`; no se consultó nada) o `sin_tabla` (la 0102 no
+ * está aplicada en la base).
+ */
 export type EstadoTablero =
-  | { tipo: 'pendiente' }
+  | { tipo: 'pendiente'; motivo: 'sin_permiso' | 'sin_tabla' }
   | { tipo: 'cargando' }
   | { tipo: 'fallo'; error: string }
   | { tipo: 'ok'; secciones: SeccionLeida[] }
@@ -62,8 +66,8 @@ export interface TableroAdmin {
 
 /**
  * El tablero (`admin_tablero`, migración 0102) solo se LEE con `ver_administracion` (o siendo el
- * coach). Sin ese permiso no se hace ni una consulta; si la consulta dice que la tabla no existe,
- * se dice «pendiente de activar». Un fallo de lectura de otra clase se dice como fallo.
+ * coach). Sin ese permiso no se hace ni una consulta y se dice «sin permiso»; si la consulta
+ * dice que la tabla no existe, se dice «pendiente de activar». Un fallo de lectura de otra clase se dice como fallo.
  */
 export function useTableroAdmin(): TableroAdmin {
   const esCoach = useSesionOpcional()?.usuario.rol === 'coach'
@@ -83,9 +87,9 @@ export function useTableroAdmin(): TableroAdmin {
   }, [])
 
   let estado: EstadoTablero
-  if (!puedeLeer) estado = { tipo: 'pendiente' }
+  if (!puedeLeer) estado = { tipo: 'pendiente', motivo: 'sin_permiso' }
   else if (lectura === null) estado = { tipo: 'cargando' }
-  else if (!lectura.ok) estado = esTablaAusente(lectura.error) ? { tipo: 'pendiente' } : { tipo: 'fallo', error: lectura.error }
+  else if (!lectura.ok) estado = esTablaAusente(lectura.error) ? { tipo: 'pendiente', motivo: 'sin_tabla' } : { tipo: 'fallo', error: lectura.error }
   else estado = { tipo: 'ok', secciones: lectura.datos }
 
   return { estado, reintentar, abiertas, alternar, esCoach, tiene }

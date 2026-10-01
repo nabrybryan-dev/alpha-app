@@ -6,7 +6,7 @@ import {
   type Hallazgo,
   type TarjetaInvestigacion,
 } from '../../../domain/investigacionMercadeo'
-import { TEXTO_PENDIENTE_0102 } from '../../../domain/adminTablero'
+import { TEXTO_PENDIENTE_0102, TEXTO_SIN_PERMISO_0102 } from '../../../domain/adminTablero'
 import { CLASE_ETIQUETA } from '../../plan/comun'
 import { TarjetaPlegable } from './TarjetaPlegable'
 import type { TableroAdmin } from './useTableroAdmin'
@@ -70,13 +70,13 @@ function TarjetaGris({ nombre, children }: { nombre: string; children: React.Rea
   )
 }
 
-function Tarjeta({ t }: { t: TarjetaInvestigacion }) {
+function Tarjeta({ t, sinPermiso }: { t: TarjetaInvestigacion; sinPermiso: boolean }) {
   const { nombre, frase } = TEMA_INVESTIGACION[t.tema]
   switch (t.estado) {
     case 'pendiente_de_activar':
       return (
         <TarjetaGris nombre={nombre}>
-          <span className="text-sm font-bold text-tenue">{TEXTO_PENDIENTE_0102}</span>
+          <span className="text-sm font-bold text-tenue">{sinPermiso ? TEXTO_SIN_PERMISO_0102 : TEXTO_PENDIENTE_0102}</span>
         </TarjetaGris>
       )
     case 'fallo_de_lectura':
@@ -126,7 +126,7 @@ export function InvestigacionMercadeo({ t }: { t: TableroAdmin }) {
   return (
     <div className="flex flex-col gap-3.5">
       {tarjetasDeInvestigacion(lectura).map((c) => (
-        <Tarjeta key={c.tema} t={c} />
+        <Tarjeta key={c.tema} t={c} sinPermiso={t.estado.tipo === 'pendiente' && t.estado.motivo === 'sin_permiso'} />
       ))}
     </div>
   )

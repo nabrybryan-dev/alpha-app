@@ -56,7 +56,7 @@ function Grupo({ g }: { g: GrupoRiesgo }) {
 }
 
 export function RiesgosAdmin({ t }: { t: TableroAdmin }) {
-  if (t.estado.tipo === 'pendiente') return <TarjetaPendiente nombre="Riesgos" />
+  if (t.estado.tipo === 'pendiente') return <TarjetaPendiente nombre="Riesgos" motivo={t.estado.motivo} />
   if (t.estado.tipo !== 'ok') return null
   const grupos = riesgosDeSecciones(t.estado.secciones)
   const n = contarRiesgos(grupos)

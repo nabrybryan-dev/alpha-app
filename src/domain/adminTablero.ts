@@ -262,6 +262,8 @@ export function nombreDueno(dueno: string): string {
 
 /** Lo que dice la tarjeta gris cuando el tablero de la 0102 todavía no se puede leer. */
 export const TEXTO_PENDIENTE_0102 = 'Pendiente de activar (migración 0102)'
+/** Quien mira no tiene `ver_administracion`: no es que falte la tabla, es que falta el permiso. */
+export const TEXTO_SIN_PERMISO_0102 = 'Sin permiso: pídele al coach el permiso «ver_administracion»'
 
 /**
  * ¿El fallo de lectura es que la tabla `admin_tablero` no existe (la 0102 no está aplicada)?

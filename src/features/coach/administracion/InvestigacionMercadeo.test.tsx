@@ -84,9 +84,15 @@ describe('InvestigacionMercadeo', () => {
     expect(within(g).queryByText(/tabla nueva/)).toBeNull()
   })
 
-  it('sin permiso o sin tabla, gris «Pendiente de activar» y no FALTA', () => {
-    render(<InvestigacionMercadeo t={tablero({ tipo: 'pendiente' })} />)
+  it('sin la tabla, gris «Pendiente de activar» y no FALTA', () => {
+    render(<InvestigacionMercadeo t={tablero({ tipo: 'pendiente', motivo: 'sin_tabla' })} />)
     expect(screen.getAllByText('Pendiente de activar (migración 0102)')).toHaveLength(4)
     expect(screen.queryAllByText(/FALTA/)).toHaveLength(0)
+  })
+
+  it('sin el permiso dice que falta el permiso, no que falte activar nada', () => {
+    render(<InvestigacionMercadeo t={tablero({ tipo: 'pendiente', motivo: 'sin_permiso' })} />)
+    expect(screen.getAllByText(/Sin permiso: pídele al coach/)).toHaveLength(4)
+    expect(screen.queryAllByText(/Pendiente de activar/)).toHaveLength(0)
   })
 })

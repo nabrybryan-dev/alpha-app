@@ -103,7 +103,7 @@ export default function AdministracionPage() {
         </div>
       )}
 
-      {t.estado.tipo === 'ok' && visibles.length === 0 && (
+      {t.estado.tipo === 'ok' && filtro === 'accion' && visibles.length === 0 && (
         <p className="rounded-tarjeta border border-dashed border-linea p-4 text-sm text-tenue">
           Ninguna sección pide acción en este corte.
         </p>

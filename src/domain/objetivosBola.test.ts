@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ultimoCortePorSeccion, type FilaAdminTablero } from './adminTablero'
-import { OBJETIVOS_BOLA, objetivosConReal } from './objetivosBola'
+import { OBJETIVOS_BOLA, objetivosConReal, type ObjetivoBola } from './objetivosBola'
 
 const fuente = { archivo: 'guardian.json', corte: '2026-09-28', huella: 'h' }
 const influencers = (filas: { id: string; cifra: string }[]): FilaAdminTablero => ({
@@ -12,6 +12,12 @@ const influencers = (filas: { id: string; cifra: string }[]): FilaAdminTablero =
   },
 })
 const seccion = (f: FilaAdminTablero) => ultimoCortePorSeccion([f]).find((s) => s.seccion === 'influencers')
+
+const FUENTE_RECONOCIBLE = /\.(md|json|csv)(\s|\)|;|,|$)|pedido de bryan/i
+const FECHA_RECONOCIBLE = /^(\d{1,2}-[a-z]{3}-\d{4}|sin fecha en la fuente)/i
+/** Las metas a las que les falta fuente (documento o pedido de Bryan) o fecha. Vacío = todas bien. */
+const metasSinFuente = (metas: readonly ObjetivoBola[]) =>
+  metas.filter((o) => !FUENTE_RECONOCIBLE.test(o.fuente) || !FECHA_RECONOCIBLE.test(o.fecha.trim())).map((o) => o.clave)
 
 describe('OBJETIVOS_BOLA', () => {
   it('trae las metas que pidió Bryan, cada una con su fuente y sin claves repetidas', () => {
@@ -28,6 +34,14 @@ describe('OBJETIVOS_BOLA', () => {
     expect(metas['palanca-c-ia']).toBe('279.014 COP al mes')
     expect(new Set(OBJETIVOS_BOLA.map((o) => o.clave)).size).toBe(OBJETIVOS_BOLA.length)
     for (const o of OBJETIVOS_BOLA) expect(o.fuente.trim(), o.clave).not.toBe('')
+  })
+
+  it('avisa si a alguna meta le falta la fuente o la fecha', () => {
+    expect(metasSinFuente(OBJETIVOS_BOLA), 'metas sin fuente o sin fecha').toEqual([])
+    const base = OBJETIVOS_BOLA[0]
+    expect(metasSinFuente([{ ...base, clave: 'x', fuente: 'lo dijo alguien' }])).toEqual(['x'])
+    expect(metasSinFuente([{ ...base, clave: 'y', fecha: '' }])).toEqual(['y'])
+    expect(metasSinFuente([{ ...base, clave: 'z', fecha: 'sin fecha en la fuente (OPERACION.md)' }])).toEqual([])
   })
 
   it('lo que no sale literal de un documento lo dice en su fuente', () => {

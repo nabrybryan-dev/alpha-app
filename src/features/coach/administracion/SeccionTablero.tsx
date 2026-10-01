@@ -18,7 +18,7 @@ export function SeccionTablero({
   /** Si viene, la sección solo se pinta cuando está en la lista (el filtro «requiere acción»). */
   visibles?: readonly Seccion[]
 }) {
-  if (t.estado.tipo === 'pendiente') return <TarjetaPendiente nombre={NOMBRE_SECCION[seccion]} />
+  if (t.estado.tipo === 'pendiente') return <TarjetaPendiente nombre={NOMBRE_SECCION[seccion]} motivo={t.estado.motivo} />
   if (t.estado.tipo !== 'ok') return null
   if (visibles && !visibles.includes(seccion)) return null
   const leida = t.estado.secciones.find((s) => s.seccion === seccion)

@@ -33,6 +33,7 @@ vi.mock('../../equipo/DecisionesCompartidas', () => ({
 const { default: AdministracionPage } = await import('./AdministracionPage')
 
 const PENDIENTE = 'Pendiente de activar (migración 0102)'
+const SIN_PERMISO = /Sin permiso: pídele al coach/
 const fuente = { archivo: 'finanzas.json', corte: '2026-09-28', huella: 'abc123' }
 const cruda = (seccion: string, semaforo: string, extra: Partial<FilaAdminTablero> = {}, accion = true): FilaAdminTablero => ({
   id: seccion,
@@ -104,11 +105,11 @@ describe('AdministracionPage · orden de Bryan', () => {
     expect(within(r).getByRole('region', { name: 'Riesgos de estrategia' })).toBeInTheDocument()
   })
 
-  it('sin la tabla del tablero, Riesgos sale gris «Pendiente de activar» y no inventa nada', async () => {
+  it('sin ver_administracion, Riesgos sale gris «Sin permiso» y no inventa nada', async () => {
     estado.capacidades = new Set(['organizar_plan'])
     montar()
     const r = await screen.findByRole('region', { name: 'Riesgos' })
-    expect(within(r).getByText(PENDIENTE)).toBeInTheDocument()
+    expect(within(r).getByText(SIN_PERMISO)).toBeInTheDocument()
     expect(within(r).queryByText(/en rojo/)).toBeNull()
   })
 
@@ -147,13 +148,13 @@ describe('AdministracionPage · orden de Bryan', () => {
 })
 
 describe('AdministracionPage · tablero de la migración 0102', () => {
-  it('sin ver_administracion NO lee la tabla y todas las secciones dicen «Pendiente de activar»', async () => {
+  it('sin ver_administracion NO lee la tabla y todas las secciones dicen «Sin permiso»', async () => {
     estado.capacidades = new Set(['organizar_plan', 'decisiones_compartidas'])
     montar()
     const fin = await screen.findByRole('region', { name: 'Finanzas' })
-    expect(within(fin).getByText(PENDIENTE)).toBeInTheDocument()
+    expect(within(fin).getByText(SIN_PERMISO)).toBeInTheDocument()
     for (const n of ['Plataforma Alpha y estudio', 'Plan estratégico', 'Desvíos', 'Lo que proponen los agentes']) {
-      expect(within(screen.getByRole('region', { name: n })).getByText(PENDIENTE)).toBeInTheDocument()
+      expect(within(screen.getByRole('region', { name: n })).getByText(SIN_PERMISO)).toBeInTheDocument()
     }
     expect(estado.lecturas).toBe(0)
     // Nunca un cero ni un verde.
@@ -267,6 +268,13 @@ describe('AdministracionPage · tablero de la migración 0102', () => {
     const fin = await screen.findByRole('region', { name: 'Finanzas' })
     await u.click(within(fin).getByRole('button', { name: /no se pudieron leer/ }))
     expect(within(fin).getByRole('alert')).toHaveTextContent(/semáforo de la tarjeta desconocido/)
+  })
+
+  it('«Ninguna sección pide acción» solo sale con el filtro de acción; sin cortes y con «Todo» no se dice', async () => {
+    estado.lectura = { ok: true, datos: ultimoCortePorSeccion([]) }
+    montar()
+    await waitFor(() => expect(screen.getByText('Todavía no hay ningún corte cargado.')).toBeInTheDocument())
+    expect(screen.queryByText(/Ninguna sección pide acción/)).toBeNull()
   })
 
   it('sin ningún corte cargado lo dice arriba', async () => {

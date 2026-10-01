@@ -28,6 +28,7 @@ vi.mock('../creadores/BuzonMercadeo', () => ({
 
 const { default: EstrategiasPage } = await import('./EstrategiasPage')
 const PENDIENTE = 'Pendiente de activar (migración 0102)'
+const SIN_PERMISO = /Sin permiso: pídele al coach/
 
 const montar = () =>
   render(
@@ -117,11 +118,11 @@ describe('EstrategiasPage · orden de Bryan', () => {
     expect(within(b).queryByRole('link')).toBeNull()
   })
 
-  it('sin ver_administracion las secciones del tablero dicen «Pendiente de activar» y no se lee la tabla', async () => {
+  it('sin ver_administracion las secciones del tablero dicen «Sin permiso» y no se lee la tabla', async () => {
     montar()
     const m = await screen.findByRole('region', { name: 'Mercadeo' })
-    expect(within(m).getByText(PENDIENTE)).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Influencers (bola de nieve)' })).getByText(PENDIENTE)).toBeInTheDocument()
+    expect(within(m).getByText(SIN_PERMISO)).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Influencers (bola de nieve)' })).getByText(SIN_PERMISO)).toBeInTheDocument()
     expect(estado.lecturas).toBe(0)
   })
 

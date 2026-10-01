@@ -102,11 +102,11 @@ describe('CoachLayout · acceso por capacidad', () => {
     expect(screen.getByText('Portada')).toBeInTheDocument()
   })
 
-  // Capacidades REALES de Manuela hoy en la base (sin ver_administracion: la 0102 no está aplicada).
+  // Capacidades REALES de Manuela hoy en la base (incluye ver_administracion).
   const MANUELA = [
     'aprobar_plan_estrategico', 'aprobar_primer_plan', 'decisiones_compartidas', 'detener_publicacion',
     'firmar_creadores', 'leer_entrenamiento', 'organizar_plan', 'reportar_riesgo', 'responder_mercadeo',
-    'responder_por_asesorado', 'revisar_creadores',
+    'responder_por_asesorado', 'revisar_creadores', 'ver_administracion',
   ]
 
   it('Manuela con sus capacidades reales entra a Estrategias y a Administración', () => {

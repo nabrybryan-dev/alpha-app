@@ -127,9 +127,10 @@ export function CoachLayout() {
     if (enConsola && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
     if (enCreadores && !tiene('revisar_creadores')) return <Navigate to="/" replace />
     // Cada espacio de Manuela tiene su propia puerta, con capacidades que ya existen en la base
-    // (la 0102 y `ver_administracion` pueden no estar aplicadas): Estrategias con el buzón de
-    // mercadeo o el tablero de creadores; Administración con el plan o las decisiones. El tablero
-    // de la 0102 se pide dentro de la pantalla y, sin permiso o sin tabla, dice «pendiente».
+    // (Manuela ya tiene también `ver_administracion`): Estrategias con el buzón de mercadeo o el
+    // tablero de creadores; Administración con el plan, las decisiones o `ver_administracion`. El
+    // tablero de la 0102 se pide dentro de la pantalla: sin el permiso dice «sin permiso»; con él
+    // pero sin la tabla (0102 sin aplicar), «pendiente de activar».
     if (enEstrategias && !tiene('responder_mercadeo') && !tiene('revisar_creadores')) return <Navigate to="/" replace />
     if (enAdmin && !tiene('organizar_plan') && !tiene('decisiones_compartidas') && !tiene('ver_administracion')) {
       return <Navigate to="/" replace />

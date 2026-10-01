@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react'
-import { TEXTO_PENDIENTE_0102 } from '../../../domain/adminTablero'
+import { TEXTO_PENDIENTE_0102, TEXTO_SIN_PERMISO_0102 } from '../../../domain/adminTablero'
 import { CLASE_ETIQUETA } from '../../plan/comun'
 
 /**
@@ -38,14 +38,14 @@ export function TarjetaPlegable({ nombre, frase, children }: { nombre: string; f
  * Tarjeta gris de una sección del tablero de la 0102 que todavía no se puede leer (sin el permiso
  * `ver_administracion` o sin la tabla). No lleva cifra, ni cero, ni semáforo de color.
  */
-export function TarjetaPendiente({ nombre }: { nombre: string }) {
+export function TarjetaPendiente({ nombre, motivo = 'sin_tabla' }: { nombre: string; motivo?: 'sin_permiso' | 'sin_tabla' }) {
   return (
     <section aria-label={nombre} className="entrada rounded-tarjeta border border-dashed border-linea bg-surface-1 shadow-sm">
       <div className="flex min-h-[64px] flex-col gap-1 p-4">
         <span className={CLASE_ETIQUETA}>{nombre}</span>
         <span className="inline-flex items-center gap-1.5 text-sm font-bold text-tenue">
           <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full border border-tenue bg-surface-3" />
-          {TEXTO_PENDIENTE_0102}
+          {motivo === 'sin_permiso' ? TEXTO_SIN_PERMISO_0102 : TEXTO_PENDIENTE_0102}
         </span>
       </div>
     </section>
