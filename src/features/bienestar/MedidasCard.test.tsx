@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db } from '../../data/dbInstance'
 import { MEDIDAS, MEDIDA_POR_CLAVE } from '../../domain/medidas'
+import { hoyIso } from '../../lib/fecha'
 import { direccion } from '../../lib/direccionesVisuales'
 import { MedidasCard } from './MedidasCard'
 
@@ -172,7 +173,9 @@ describe('la encuesta de medidas', () => {
 
   it('avisa suave a quien tiene medidas pero no cuello', () => {
     db.perfiles.agregarMedida(ASESORADA, {
-      fecha: '2026-09-27',
+      // La siembra pone sus medidas relativas a hoy (diasAtras): una fecha fija quedaba atrás de ellas
+      // en cuanto el reloj pasó el 27-sep y la «última» ya no era la de la prueba.
+      fecha: hoyIso(),
       alturaCm: 165,
       perimetros: {},
       cuerpo: { cinturaCm: 72, caderasCm: 96 },
@@ -184,7 +187,9 @@ describe('la encuesta de medidas', () => {
 
   it('no avisa a quien ya registró su cuello', () => {
     db.perfiles.agregarMedida(ASESORADA, {
-      fecha: '2026-09-27',
+      // La siembra pone sus medidas relativas a hoy (diasAtras): una fecha fija quedaba atrás de ellas
+      // en cuanto el reloj pasó el 27-sep y la «última» ya no era la de la prueba.
+      fecha: hoyIso(),
       alturaCm: 165,
       perimetros: {},
       cuerpo: { cinturaCm: 72, caderasCm: 96, cuelloCm: 35 },
@@ -195,7 +200,8 @@ describe('la encuesta de medidas', () => {
   })
 
   it('no avisa a quien todavía no tiene ninguna medición (ya se lo dice el vacío)', () => {
-    abrir()
+    // Una persona sin perfil: la asesorada de la siembra ya trae medidas, y sin cuello.
+    render(<MedidasCard usuarioId="u-sin-ninguna-medicion" />)
 
     expect(screen.queryByText(/te falta el perímetro de/i)).toBeNull()
   })
