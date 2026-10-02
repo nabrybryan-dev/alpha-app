@@ -6,6 +6,7 @@ import type { LoQuePraxisVe } from '../../domain/praxis/plan/listaBlanca'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../data/praxis/preguntasEnEspera'
 import { PraxisCosmos } from './PraxisCosmos'
 import type { ConexionPraxis } from './motor/conexion'
+import { Cosmos } from './motor/cosmos'
 import { TOMA_MAX_MS, UMBRAL_MS } from './motor/hablar'
 import { enviarTexto } from './motor/senales'
 import { Voz } from './motor/voz'
@@ -162,12 +163,29 @@ describe('Praxis conectada · mantener el agujero para hablar', () => {
     expect($('#enVivo').textContent).toBe('le metí 40 kilos…') // lo que va entendiendo, en vivo
   })
 
-  it('un toque corto (menos de 250 ms) no graba nada: enseña el gesto', async () => {
+  it('mientras se mantiene, el cielo viaja: arranca al escuchar, sube con cada resultado y frena al soltar', async () => {
+    const escucha = vi.spyOn(Cosmos, 'escucha'), pulso = vi.spyOn(Cosmos, 'pulso')
+    const { $ } = montar(true)
+    await abrir($)
+    expect(escucha).not.toHaveBeenCalledWith(true) // presionar no basta: el viaje empieza cuando de verdad se escucha
+    const rec = await presionarYEsperar()
+    expect(escucha).toHaveBeenLastCalledWith(true)
+    expect(pulso).not.toHaveBeenCalled()
+    act(() => rec.decir(['le metí', false]))
+    act(() => rec.decir(['le metí 40 kilos', false]))
+    expect(pulso).toHaveBeenCalledTimes(2) // el mismo pulso que riza las ondas
+    soltar()
+    expect(escucha).toHaveBeenLastCalledWith(false)
+  })
+
+  it('un toque corto (menos de 250 ms) no graba nada ni pone a viajar el cielo: enseña el gesto', async () => {
+    const escucha = vi.spyOn(Cosmos, 'escucha')
     const { $ } = montar(true)
     await abrir($)
     presionar(); soltar()
     await act(() => new Promise((r) => setTimeout(r, UMBRAL_MS + 150)))
     expect(Falso.creados).toBe(0)
+    expect(escucha).not.toHaveBeenCalled()
     expect($('#ayuda').textContent).toBe('Mantén presionado el agujero mientras hablas.')
   })
 
