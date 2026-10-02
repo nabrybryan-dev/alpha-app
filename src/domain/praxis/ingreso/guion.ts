@@ -140,7 +140,7 @@ export const CAMPOS_INGRESO: readonly CampoIngreso[] = [
   {
     id: 'peso_objetivo_kg', etiqueta: 'Peso al que quiere llegar', modo: 'voz', tipo: 'numero', salud: false, conocimiento: 'ninguna',
     turno: 'objetivo', unidad: 'kg', rango: [30, 250], enCorpus: true,
-    ayuda: 'el peso al que quiere llegar (no el actual)',
+    ayuda: 'el peso CORPORAL al que quiere llegar (no el actual, y nunca un récord o una carga de gimnasio)',
   },
   {
     id: 'tiempo_entrenando', etiqueta: 'Hace cuánto entrena', modo: 'voz', tipo: 'opcion', salud: false,
@@ -152,19 +152,13 @@ export const CAMPOS_INGRESO: readonly CampoIngreso[] = [
     id: 'nivel_fuerza', etiqueta: 'Nivel de fuerza', modo: 'voz', tipo: 'opcion', salud: false,
     opciones: NIVELES, conocimiento: 'parciales', turno: 'historia_entreno', enCorpus: true,
     nota: 'En el corpus viene como «Avanzado» o «Avanzado - 130kg Sentadilla, 63kg Press Banca»; 97 de 1000 vienen vacíos.',
-    ayuda: 'nivel según lo que levanta o su experiencia real; solo si lo dice o se deduce de sus pesos dichos',
+    ayuda: 'el nivel que la persona DICE tener (principiante, intermedio o avanzado); nunca se deduce de los pesos que levanta',
   },
   {
     id: 'marcas_fuerza', etiqueta: 'Marcas de fuerza', modo: 'voz', tipo: 'texto', salud: false, conocimiento: 'ninguna',
     turno: 'historia_entreno', enCorpus: true,
     nota: 'Es la cola «130kg Sentadilla, 63kg Press Banca» de nivel_fuerza, separada para poder medirla.',
     ayuda: 'los pesos que levanta (ej. «130 kilos en sentadilla»), con sus palabras',
-  },
-  {
-    id: 'nivel_autopercibido', etiqueta: 'Cómo se ve a sí misma/o', modo: 'voz', tipo: 'opcion', salud: false,
-    opciones: NIVELES, conocimiento: 'parciales', turno: 'historia_entreno', enCorpus: true,
-    nota: 'Solo aparece el valor «Avanzado» (164 de 1000); las otras etiquetas se suponen.',
-    ayuda: 'cómo se describe ella o él mismo de nivel, con sus palabras (principiante, intermedio, avanzado)',
   },
   {
     id: 'tipo_trabajo', etiqueta: 'Trabajo', modo: 'voz', tipo: 'opcion', salud: false,
@@ -205,6 +199,11 @@ export const CAMPOS_INGRESO: readonly CampoIngreso[] = [
     opciones: ['1', '2', '3', '4', '5', '6', '7'], conocimiento: 'parciales',
     pregunta: '¿Cuántos días a la semana puedes entrenar?', enCorpus: true,
     nota: 'El corpus trae 2 a 6, y 102 de 1000 con basura («todos los q pueda bro», «los que salgan», vacío): el toque obliga a elegir un número.',
+  },
+  {
+    id: 'nivel_autopercibido', etiqueta: 'Cómo se ve a sí misma/o', modo: 'toque', tipo: 'opcion', salud: false,
+    opciones: NIVELES, conocimiento: 'parciales', pregunta: '¿Y tú cómo te ves de nivel: principiante, intermedio o avanzado?', enCorpus: true,
+    nota: 'Solo aparece el valor «Avanzado» (164 de 1000); las otras etiquetas se suponen. Estaba en la voz y se sacó: para quien habla es LA MISMA pregunta que nivel_fuerza («me considero avanzado»), el extractor no podía separarlas (simulacro, corrida 1: 14 de 32 inventados).',
   },
   {
     id: 'cadencia_revision', etiqueta: 'Cada cuántos días revisamos', modo: 'toque', tipo: 'opcion', salud: false,
@@ -284,7 +283,7 @@ export const TURNOS_VOZ: readonly TurnoVoz[] = [
   {
     id: 'historia_entreno',
     pregunta: 'Hablemos de tu entreno: ¿hace cuánto entrenas, cómo te ves de nivel y qué pesos manejas en sentadilla o press banca?',
-    campos: ['tiempo_entrenando', 'nivel_fuerza', 'marcas_fuerza', 'nivel_autopercibido'],
+    campos: ['tiempo_entrenando', 'nivel_fuerza', 'marcas_fuerza'],
   },
   {
     id: 'trabajo_horarios',

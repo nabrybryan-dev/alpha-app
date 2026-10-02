@@ -24,7 +24,7 @@ import {
   type CampoIngreso, type TemaSalud, type TurnoId,
 } from './guion.ts'
 
-export const VERSION_PROMPT_INGRESO = 'ingreso-prompt-2026-10-02.1'
+export const VERSION_PROMPT_INGRESO = 'ingreso-prompt-2026-10-02.3'
 
 export type MotivoDescarte =
   | 'salud' // el modelo intentó rellenar un campo de salud
@@ -33,6 +33,9 @@ export type MotivoDescarte =
   | 'cita_invalida' // la cita no es un fragmento de lo dicho
   | 'sin_cita'
   | 'opcion_invalida'
+  | 'texto_sin_contenido' // la cita es puro andamio («soy de…»): no dice nada
+  | 'opcion_sin_apoyo' // la opción existe pero la cita no dice nada que la sostenga: el modelo la dedujo
+  | 'contexto_de_levantamiento' // un peso corporal que en la frase es un récord o una carga de gimnasio
   | 'numero_ilegible'
   | 'numero_ambiguo' // la cita trae dos cifras: no se sabe cuál es
   | 'fuera_de_rango'
@@ -80,9 +83,9 @@ export const PROMPT_SISTEMA_INGRESO = `Eres el etiquetador del cuestionario de i
 REGLAS DE ORO
 1. CITAS LITERALES. Cada campo lleva "cita": un fragmento EXACTO y contiguo de la transcripción (mismas letras, sin corregir, sin traducir, sin unir pedazos que en la frase no están juntos). Si no puedes copiarlo de la transcripción, NO pongas el campo.
 2. LO NO DICHO SE QUEDA FUERA. Si la persona no dijo un dato, el campo no aparece. No rellenes con lo que "suele" ser, no deduzcas, no uses la pregunta del turno como fuente, no completes. Un campo ausente es una respuesta correcta; uno inventado es el peor error.
-3. NÚMEROS: la cita es solo el tramo de ese dato («treinta y un años», «uno sesenta y seis», «55 kilos», «como 72»). No conviertas, no redondees, no calcules. Si la persona se corrige, cita lo último que dijo.
-4. OPCIONES: en "opcion" pon EXACTAMENTE una de las opciones listadas (copiada tal cual) y en "cita" el fragmento que la sostiene. Solo si lo dicho la sostiene sin ambigüedad; si dudas entre dos, no pongas el campo.
-5. TEXTO LIBRE: la cita ES el valor. Elige el tramo más corto que lo expresa, con sus palabras.
+3. NÚMEROS: la cita es solo el tramo de ese dato («treinta y un años», «uno sesenta y seis», «55 kilos», «como 72»); si lleva decimales, cítalos completos («cuarenta y dos punto nueve», «sesenta y seis, ocho»). No conviertas, no redondees, no calcules. Si la persona se corrige, cita lo último que dijo.
+4. OPCIONES: en "opcion" pon EXACTAMENTE una de las opciones listadas (copiada tal cual) y en "cita" el fragmento que la sostiene, con las palabras que la justifican. Solo si la persona dice con claridad ESA respuesta: no la deduzcas de otro dato (qué parte quiere mejorar, los pesos que levanta, su trabajo); si dudas entre dos, no pongas el campo.
+5. TEXTO LIBRE: la cita ES el valor: el tramo completo (una frase como máximo) en que la persona dice ese dato, sin recortar la idea ni partir una cifra. Si solo dijo algo vago que no lo responde («ando manejando mis cositas» para los pesos), no pongas el campo.
 6. SALUD, NUNCA EN UN CAMPO. Dolor, molestia, lesión, cirugía, enfermedad, corazón, presión, medicamento, alergia, ciclo menstrual, problemas con la comida: no van en ningún campo, ni siquiera dentro de una cita de texto libre. Si la persona lo menciona, regístralo SOLO en "salud" con su tema y la cita literal. Tampoco deduzcas ni contestes tú si tiene o no un problema de salud: eso lo contesta ella con un toque.
 7. No aconsejes, no interpretes, no hables con la persona.
 
@@ -174,6 +177,75 @@ const TEMA_DE_CAMPO_SALUD: Record<string, TemaSalud> = {
 }
 
 // ---------------------------------------------------------------------------
+// Apoyo de las opciones
+// ---------------------------------------------------------------------------
+
+/** Un tiempo de entreno de verdad: una cantidad pegada a una unidad («seis meses», «un año», «unas semanas») o «toda la vida». «Poco tiempo» no alcanza para elegir un rango. */
+const TIEMPO = /\b(\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|medio|media|unas|unos|varias|varios|pocas|pocos|algunas|algunos)\b.{0,25}\b(mes|meses|ano|anos|semana|semanas)\b|\btoda la vida\b/
+
+/**
+ * Para cada campo de opción, qué palabras tiene que traer la CITA para que la opción elegida se sostenga (sobre
+ * texto normalizado: sin tildes ni mayúsculas). Si no las trae, el modelo DEDUJO la opción de otra cosa («trabajar
+ * la espalda y la postura» => «Salud general», «voy bien, progresando» => «Intermedio») y la opción se descarta:
+ * el campo queda vacío y la persona lo toca en la revisión. Es la misma idea que el diccionario de salud: una red
+ * barata y sin modelo que falla cerrando. No sustituye al modelo, solo le exige haber oído la palabra.
+ */
+export const PISTAS_DE_OPCION: Record<string, Record<string, RegExp>> = {
+  objetivo_principal: {
+    'Volver a entrenar tras una parada': /\b(volver|retom\w*|parad[oa]|pausa|regres\w*|reanud\w*|tiempo sin|deje|despues de)\b/,
+    'Fuerza y Potencia (Deportista)': /\b(potencia|explosiv\w*|deport\w*|competi\w*|atleta|fuerza)\b/,
+    'Pérdida de grasa': /\b(grasa|adelgaz\w*|bajar|perder|peso|barriga|gordo|definir|quemar|kilos)\b/,
+    'Salud general': /\b(salud|sano|saludable|bienestar|sentirme bien)\b/,
+    'Recomposición corporal': /\b(recomposicion|recomponer|grasa y musculo|musculo y grasa|ganar musculo y perder|perder grasa y ganar)\b/,
+    'Rendimiento y Fuerza Máxima': /\b(rendimiento|fuerza maxima|maxim\w*|marcas?|rm|record|levantar mas)\b/,
+    'Salud, evitar cirugías': /\b(cirug\w*|operar\w*|operacion|evitar)\b/,
+    'Hipertrofia / estética': /\b(hipertrofia|musculo|musculos|masa|estetic\w*|volumen|verme|cuerpo|tonific\w*|marcar)\b/,
+  },
+  tiempo_entrenando: Object.fromEntries(
+    ['Menos de 6 meses', '6 meses a 1 año', '1 a 2 años', '2 a 3 años', 'Más de 3 años ininterrumpidos', 'Más de 1 año'].map((o) => [o, TIEMPO]),
+  ),
+  nivel_fuerza: {
+    Principiante: /\b(principiante|empezando|apenas|novato|comenzando|iniciando|inicial|nuevo|nueva)\b/,
+    Intermedio: /\b(intermedi\w*|medio|regular|moderad\w*|ni principiante)\b/,
+    Avanzado: /\b(avanzad\w*|experiment\w*|veteran\w*|alto nivel)\b/,
+  },
+  tipo_trabajo: {
+    'oficina sentado 9 h': /\b(oficina|sentad[oa]|escritorio|computador|administrativ\w*)\b/,
+    'obra, cargando peso': /\b(obra|construc\w*|cargando|albanil\w*|cargo peso)\b/,
+    'profesor de pie 6 h': /\b(profesor\w*|docente|clase|clases|colegio|maestr[oa]|de pie)\b/,
+    teletrabajo: /\b(teletrabaj\w*|remoto|desde (la )?casa|virtual|home office)\b/,
+    'conduzco todo el día': /\b(conduc\w*|conduzc\w*|taxi|bus|camion|mensajer\w*|domicili\w*|uber|volante)\b/,
+    'turnos rotativos de enfermería': /\b(enfermer\w*|turnos?|rotativ\w*|clinica|hospital)\b/,
+    'madre a tiempo completo': /\b(madre|mama|hogar|ama de casa|hijos|ninos|bebe)\b/,
+  },
+  cocina_o_compra: {
+    'Cocino la mayoría de mis comidas': /\b(cocin\w*|prepar\w*)\b/,
+    'Cocino la mitad y compro la otra mitad': /\b(mitad|a veces|mezcl\w*|depende|y compro)\b/,
+    'Casi siempre compro hecho o pido domicilio': /\b(compr\w*|hech[oa]s?|domicilio|pido|restaurante|afuera)\b/,
+  },
+}
+
+/** Palabras que no dicen nada por sí solas en una cita de texto libre. */
+const ANDAMIO = new Set([
+  'soy', 'de', 'del', 'vivo', 'vivimos', 'estoy', 'en', 'eh', 'pues', 'mira', 'vea', 'esto', 'eso', 'ese', 'esa', 'algo', 'mas', 'muy',
+  'ahi', 'asi', 'bueno', 'bien', 'mismo', 'yo', 'tengo', 'tiene', 'como', 'que', 'por', 'con', 'una', 'uno', 'los', 'las', 'mis', 'mmm',
+])
+
+/** ¿La cita trae al menos una palabra con contenido? («soy de» => no). */
+export function citaTraeContenido(cita: string): boolean {
+  return normalizarTexto(cita).split(' ').some((w) => w.length >= 3 && !ANDAMIO.has(w))
+}
+
+/** ¿Lo dicho sostiene esta opción? Los campos sin pistas conocidas no se exigen (no hay nada que comprobar). */
+export function citaSostieneOpcion(campo: string, opcion: string, cita: string): boolean {
+  const re = PISTAS_DE_OPCION[campo]?.[opcion]
+  return re ? re.test(normalizarTexto(cita)) : true
+}
+
+/** Palabras de gimnasio que, justo antes de un número, lo vuelven una carga o un récord y no un peso corporal. */
+const CONTEXTO_LEVANTAMIENTO = /\b(record|rm|maximo|levant\w*|sentadilla|press|banca|peso muerto|barra|mancuerna\w*|prensa|dominadas)\b/
+
+// ---------------------------------------------------------------------------
 // Números
 // ---------------------------------------------------------------------------
 
@@ -192,14 +264,38 @@ export function alturaDeCita(cita: string): number | null {
   return v < 3 ? Math.round(v * 100) : v
 }
 
+/**
+ * Un número dicho en voz alta, con decimales: «cuarenta y dos punto nueve» => 42.9, «sesenta y seis, ocho» => 66.8,
+ * «42,9» => 42.9, «como 72» => 72. Nunca suma dos números que son dos datos: «cincuenta y seis, cincuenta y siete»
+ * (un rango), «80 y quiero llegar a 70» o tres cifras son ambiguos y NO se adivinan (`registro/numeros.ts` los
+ * sumaría: 56 + 57 = 113).
+ */
+export function numeroHablado(cita: string): { valor: number } | { motivo: 'numero_ilegible' | 'numero_ambiguo' } {
+  if (/\d[.,]\d/.test(cita)) {
+    return escanearNumeros(cita).length === 1 ? { valor: valorDeCita(cita) ?? NaN } : { motivo: 'numero_ambiguo' }
+  }
+  const explicito = /\b(punto|coma)\b/i.test(cita)
+  const trozos = cita.split(/\s+(?:punto|coma)\s+|,/i).map((t) => t.trim()).filter(Boolean)
+  const cifras = trozos.map((t) => ({ n: escanearNumeros(t).length, v: valorDeCita(t) })).filter((x) => x.n > 0)
+  if (cifras.length === 0) return { motivo: 'numero_ilegible' }
+  if (cifras.some((c) => c.n > 1) || cifras.length > 2) return { motivo: 'numero_ambiguo' }
+  const [a, b] = cifras
+  if (!b) return a.v === null ? { motivo: 'numero_ilegible' } : { valor: a.v }
+  if (a.v === null || b.v === null) return { motivo: 'numero_ilegible' }
+  if (Number.isInteger(b.v) && b.v >= 0 && b.v < 10 && a.v >= 1) return { valor: a.v + b.v / 10 }
+  if (explicito && Number.isInteger(b.v) && b.v >= 10 && b.v < 100 && a.v >= 1) return { valor: a.v + b.v / 100 }
+  return { motivo: 'numero_ambiguo' }
+}
+
 /** El número de una cita, o el motivo por el que no vale. Nunca adivina entre dos cifras. */
 function numeroDeIngreso(c: CampoIngreso, cita: string): { valor: number } | { motivo: MotivoDescarte } {
   let v: number | null
   if (c.id === 'altura_cm') {
     v = alturaDeCita(cita)
   } else {
-    if (escanearNumeros(cita).length > 1) return { motivo: 'numero_ambiguo' }
-    v = valorDeCita(cita)
+    const r = numeroHablado(cita)
+    if ('motivo' in r) return r
+    v = r.valor
   }
   if (v === null || !Number.isFinite(v)) return { motivo: 'numero_ilegible' }
   const [min, max] = c.rango ?? [0, Infinity]
@@ -257,13 +353,19 @@ export function validarIngreso(turno: TurnoId, texto: string, bruto: unknown): R
       const op = cadena(e.opcion)
       const valida = op && def.opciones?.find((o) => normalizarTexto(o) === normalizarTexto(op))
       if (!valida) { descartar(id, 'opcion_invalida', op ?? undefined); continue }
+      if (!citaSostieneOpcion(id, valida, cita)) { descartar(id, 'opcion_sin_apoyo', `${valida} ← «${cita}»`); continue }
       campos[id] = { campo: id, valor: valida, cita }
     } else if (def.tipo === 'numero') {
+      if ((id === 'peso_actual_kg' || id === 'peso_objetivo_kg') && enContextoDeLevantamiento(texto, cita)) {
+        descartar(id, 'contexto_de_levantamiento', cita)
+        continue
+      }
       const r = numeroDeIngreso(def, cita)
       if ('motivo' in r) { descartar(id, r.motivo, cita); continue }
       campos[id] = { campo: id, valor: r.valor, cita }
     } else {
-      // Texto libre: la cita es el valor, y no puede llevar salud dentro.
+      // Texto libre: la cita es el valor, no puede ser puro andamio y no puede llevar salud dentro.
+      if (!citaTraeContenido(cita)) { descartar(id, 'texto_sin_contenido', cita); continue }
       if (traeSalud(cita)) {
         descartar(id, 'texto_clinico', cita)
         for (const m of marcarSaludPorDiccionario(cita).marcas) marcar(m)
@@ -295,6 +397,15 @@ export function validarIngreso(turno: TurnoId, texto: string, bruto: unknown): R
     descartados,
     urgencia: dic.urgencia,
   }
+}
+
+/** ¿La cita sale pegada a un récord o a una carga («mi récord personal es de…», «en sentadilla ando por…»)? */
+function enContextoDeLevantamiento(texto: string, cita: string): boolean {
+  const t = normalizarTexto(texto)
+  const c = normalizarTexto(cita)
+  const i = t.indexOf(c)
+  if (i < 0) return false
+  return CONTEXTO_LEVANTAMIENTO.test(t.slice(Math.max(0, i - 45), i + c.length))
 }
 
 /** Parte de la salida de `claude -p` el objeto JSON que haya dentro, o `null`. */

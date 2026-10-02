@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { CAMPOS_INGRESO, camposDeSalud } from './guion.ts'
+import { CAMPOS_INGRESO, camposDeSalud, campoPorId } from './guion.ts'
+import { normalizarTexto } from '../registro/numeros.ts'
 import {
-  PROMPT_SISTEMA_INGRESO, alturaDeCita, armarMensajeIngreso, juntarTurnos, leerSalidaIngreso, marcarSaludPorDiccionario,
+  PISTAS_DE_OPCION, PROMPT_SISTEMA_INGRESO, alturaDeCita, citaSostieneOpcion, citaTraeContenido, numeroHablado, armarMensajeIngreso, juntarTurnos, leerSalidaIngreso, marcarSaludPorDiccionario,
   validarIngreso,
 } from './extraer.ts'
 
@@ -150,6 +151,93 @@ describe('alturaDeCita', () => {
     ['1 con 66', 166], ['166 centímetros', 166], ['180', 180],
   ])('%s => %s', (cita, esperado) => {
     expect(alturaDeCita(cita)).toBe(esperado)
+  })
+})
+
+describe('numeroHablado: decimales dichos y rangos que no se suman', () => {
+  it.each([
+    ['cuarenta y dos punto nueve kilos', 42.9], ['sesenta y seis, ocho kilos', 66.8], ['42,9', 42.9], ['como 72', 72],
+    ['cincuenta y cinco punto cinco', 55.5], ['sesenta coma cinco', 60.5], ['treinta y un años', 31], ['como 55 y medio', 55.5],
+  ])('%s => %s', (cita, esperado) => {
+    expect(numeroHablado(cita)).toEqual({ valor: esperado })
+  })
+  it.each([
+    ['cincuenta y seis, cincuenta y siete kilos'], // un rango: la suma daba 113
+    ['sesenta y tres, treinta y cuatro kilos'],
+    ['80 y quiero llegar a 70'],
+    ['entre 70, 72 y 75'],
+  ])('%s es ambiguo y no se adivina', (cita) => {
+    expect(numeroHablado(cita)).toEqual({ motivo: 'numero_ambiguo' })
+  })
+  it('sin cifra es ilegible', () => {
+    expect(numeroHablado('bastante')).toEqual({ motivo: 'numero_ilegible' })
+  })
+  it('validarIngreso no deja pasar la suma de un rango', () => {
+    const t = 'peso como cincuenta y seis, cincuenta y siete kilos'
+    const r = validarIngreso('sobre_ti', t, { campos: { peso_actual_kg: { cita: 'cincuenta y seis, cincuenta y siete kilos', opcion: null } } })
+    expect(r.campos.peso_actual_kg).toBeUndefined()
+    expect(r.descartados[0]?.motivo).toBe('numero_ambiguo')
+  })
+})
+
+describe('apoyo de las opciones: el modelo no puede deducir lo que no se dijo', () => {
+  it('cada opción de los campos con pistas se sostiene con sus propias palabras', () => {
+    for (const [nombre, mapa] of Object.entries(PISTAS_DE_OPCION)) {
+      const def = campoPorId(nombre)
+      expect(Object.keys(mapa).sort(), nombre).toEqual([...(def?.opciones ?? [])].sort())
+      for (const [opcion, re] of Object.entries(mapa)) {
+        // la etiqueta de la opción, dicha tal cual, tiene que bastar para sostenerla (el tiempo se dice con números)
+        expect(re.test(normalizarTexto(opcion)) || nombre === 'tiempo_entrenando', `${nombre}/${opcion}`).toBe(true)
+      }
+    }
+  })
+  it('una opción deducida de otra cosa se descarta y el campo queda vacío', () => {
+    const t = 'Quiero trabajar bastante la espalda, o sea, la postura principalmente'
+    const r = validarIngreso('objetivo', t, crudo({ objetivo_principal: campo('trabajar bastante la espalda, o sea, la postura', 'Salud general') }))
+    expect(r.campos.objetivo_principal).toBeUndefined()
+    expect(r.descartados[0]?.motivo).toBe('opcion_sin_apoyo')
+    const nivel = validarIngreso('historia_entreno', 'voy bien ahí, progresando poco a poco', crudo({ nivel_fuerza: campo('voy bien ahí, progresando', 'Intermedio') }))
+    expect(nivel.campos.nivel_fuerza).toBeUndefined()
+  })
+  it('una opción que la persona sí dijo con otras palabras pasa', () => {
+    expect(citaSostieneOpcion('nivel_fuerza', 'Intermedio', 'Me veo en un nivel medio')).toBe(true)
+    expect(citaSostieneOpcion('nivel_fuerza', 'Intermedio', 'no soy principiante total pero tampoco avanzado, un término medio')).toBe(true)
+    expect(citaSostieneOpcion('tipo_trabajo', 'teletrabajo', 'trabajo desde la casa')).toBe(true)
+    expect(citaSostieneOpcion('objetivo_principal', 'Pérdida de grasa', 'quiero bajar de peso')).toBe(true)
+    expect(citaSostieneOpcion('campo_sin_pistas', 'x', 'lo que sea')).toBe(true)
+  })
+})
+
+describe('citas vacías y tiempos vagos', () => {
+  it('«soy de…» sin ciudad no es una ciudad', () => {
+    expect(citaTraeContenido('soy de')).toBe(false)
+    expect(citaTraeContenido('Cali')).toBe(true)
+    const r = validarIngreso('sobre_ti', 'tengo treinta años, soy de... bueno, mido uno sesenta', crudo({ ciudad: campo('soy de') }))
+    expect(r.campos.ciudad).toBeUndefined()
+    expect(r.descartados[0]?.motivo).toBe('texto_sin_contenido')
+  })
+  it('«poco tiempo» no elige un rango de entreno; «seis meses» sí', () => {
+    const vago = validarIngreso('historia_entreno', 'llevo poco tiempo, apenas estoy empezando', crudo({ tiempo_entrenando: campo('llevo poco tiempo, apenas estoy empezando', 'Menos de 6 meses') }))
+    expect(vago.campos.tiempo_entrenando).toBeUndefined()
+    expect(vago.descartados[0]?.motivo).toBe('opcion_sin_apoyo')
+    for (const [dicho, opcion] of [['llevo seis meses', '6 meses a 1 año'], ['desde hace un año', '1 a 2 años'], ['entre dos y tres años', '2 a 3 años'], ['unas semanas', 'Menos de 6 meses'], ['toda la vida', 'Más de 3 años ininterrumpidos']] as const) {
+      const r = validarIngreso('historia_entreno', dicho, crudo({ tiempo_entrenando: campo(dicho, opcion) }))
+      expect(r.campos.tiempo_entrenando?.valor, dicho).toBe(opcion)
+    }
+  })
+})
+
+describe('un récord de gimnasio no es el peso corporal', () => {
+  it('la cifra pegada a «récord» o a un ejercicio se descarta', () => {
+    const t = 'quiero romper mi récord personal que tengo de ciento setenta y uno kilos en peso muerto'
+    const r = validarIngreso('objetivo', t, crudo({ peso_objetivo_kg: campo('ciento setenta y uno kilos') }))
+    expect(r.campos.peso_objetivo_kg).toBeUndefined()
+    expect(r.descartados[0]?.motivo).toBe('contexto_de_levantamiento')
+  })
+  it('un peso corporal normal pasa aunque más adelante hable de ejercicios', () => {
+    const t = 'quiero llegar a setenta y cinco kilos, y en sentadilla ando por cien'
+    const r = validarIngreso('objetivo', t, crudo({ peso_objetivo_kg: campo('setenta y cinco kilos') }))
+    expect(r.campos.peso_objetivo_kg?.valor).toBe(75)
   })
 })
 

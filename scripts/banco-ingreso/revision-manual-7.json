@@ -1,0 +1,107 @@
+{
+ "1:nivel_fuerza": {
+  "cita": "apenas estoy empezando en esto",
+  "juicio": "dicho",
+  "nota": "Dijo «apenas estoy empezando… no tengo mucha experiencia»; la verdad trae el nivel vacío. Frontera: habla de experiencia, el extractor lo leyó como nivel Principiante."
+ },
+ "2:edad": {
+  "cita": "treinta y dos años",
+  "juicio": "dicho",
+  "nota": "Dijo «treinta y uno, treinta y dos años» (la verdad omitida a propósito; el generador la improvisó). El extractor tomó el último; la persona se corrige a sí misma."
+ },
+ "2:dia_tipo_alimentacion": {
+  "cita": "Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de obra; la verdad no trae el campo."
+ },
+ "4:parte_a_mejorar": {
+  "cita": "mejorar mi cuerpo, vea, ponerse más fuerte",
+  "juicio": "dicho",
+  "nota": "Dijo «mejorar mi cuerpo, ponerse más fuerte»; la verdad omitida a propósito, el generador lo derivó del objetivo."
+ },
+ "4:dia_tipo_alimentacion": {
+  "cita": "llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de profesor; la verdad no trae el campo."
+ },
+ "5:parte_a_mejorar": {
+  "cita": "verme bien físicamente, que se note el trabajo en el cuerpo",
+  "juicio": "dicho",
+  "nota": "Dijo «verme bien físicamente, que se note el trabajo»; la verdad omitida a propósito."
+ },
+ "5:dia_tipo_alimentacion": {
+  "cita": "Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo",
+  "juicio": "dicho",
+  "nota": "Describió su día de madre a tiempo completo; la verdad no trae el campo."
+ },
+ "6:dia_tipo_alimentacion": {
+  "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+  "juicio": "dicho",
+  "nota": "Habla idéntica a las de las personas 8 y 11 (mismo estilo y datos, salió de la caché): describe su horario flexible de teletrabajo; la verdad no trae el campo."
+ },
+ "7:parte_a_mejorar": {
+  "cita": "ganar fuerza y potencia",
+  "juicio": "dicho",
+  "nota": "Dijo «ganar fuerza y potencia»; la verdad omitida a propósito."
+ },
+ "7:dia_tipo_alimentacion": {
+  "cita": "llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de escritorio; la verdad no trae el campo."
+ },
+ "8:edad": {
+  "cita": "treinta y dos años ya casi",
+  "juicio": "dicho",
+  "nota": "Dijo «treinta y uno, treinta y dos años ya casi»; la verdad omitida a propósito, el generador la improvisó. El extractor tomó el último."
+ },
+ "8:parte_a_mejorar": {
+  "cita": "la composición corporal",
+  "juicio": "dicho",
+  "nota": "Dijo «la composición corporal»; la verdad omitida a propósito."
+ },
+ "8:dia_tipo_alimentacion": {
+  "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+  "juicio": "dicho",
+  "nota": "Habla idéntica a las de las personas 6 y 11 (caché): horario flexible de teletrabajo; la verdad no trae el campo."
+ },
+ "9:dia_tipo_alimentacion": {
+  "cita": "Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de conductor; la verdad no trae el campo."
+ },
+ "11:dia_tipo_alimentacion": {
+  "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+  "juicio": "dicho",
+  "nota": "Habla idéntica a las de las personas 6 y 8 (caché); la verdad no trae el campo."
+ },
+ "13:dia_tipo_alimentacion": {
+  "cita": "uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día",
+  "juicio": "dicho",
+  "nota": "Describió su día de teletrabajo; la verdad no trae el campo."
+ },
+ "14:dia_tipo_alimentacion": {
+  "cita": "Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de profesor; la verdad no trae el campo."
+ },
+ "15:parte_a_mejorar": {
+  "cita": "Mejorar mi cuerpo, ponerme en forma",
+  "juicio": "dicho",
+  "nota": "Dijo «mejorar mi cuerpo, ponerme en forma»; la verdad omitida a propósito."
+ },
+ "16:marcas_fuerza": {
+  "cita": "en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables",
+  "juicio": "dicho",
+  "nota": "Dijo «en sentadilla manejo bastante bien… pesos considerables»: es vago y NO contiene marcas; el extractor lo guardó aunque el prompt lo prohíbe. Valor sin contenido en el formulario."
+ },
+ "18:parte_a_mejorar": {
+  "cita": "ponerme en forma de nuevo",
+  "juicio": "dicho",
+  "nota": "Dijo «ponerme en forma de nuevo»; la verdad omitida a propósito."
+ },
+ "19:parte_a_mejorar": {
+  "cita": "estancado en el press banca",
+  "juicio": "equivalente",
+  "nota": "«Estancado en el press banca» = «llevo un año sin subir el press banca» (se pierde el «un año»)."
+ }
+}
