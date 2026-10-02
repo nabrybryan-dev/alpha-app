@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
+import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { AsesoradoLayout, CoachLayout, TableroLayout } from './layouts'
 import { useSesion } from './SessionProvider'
 
@@ -49,10 +50,25 @@ function envolver(children: ReactNode) {
   )
 }
 
-/** «/»: la portada del asesorado y del staff que entrena; para Bryan, su «Mi día». */
+/**
+ * «/»: la portada del asesorado y del staff que entrena. Para Bryan, su «Mi día»: la cuenta Alpha (rol coach)
+ * solo su puesto; la personal (asesorado con `puesto_de_coach`) su puesto Y, debajo, su día de asesorado —
+ * entrena como cualquiera: check-in, nutrición de hoy, medidas.
+ */
 function Inicio() {
   const { usuario } = useSesion()
-  return envolver(usuario.rol === 'coach' ? <MiDiaCoachPage /> : <HoyPage />)
+  const { esCoach } = usePuestoCoach(usuario.rol)
+  if (usuario.rol === 'coach') return envolver(<MiDiaCoachPage />)
+  return envolver(
+    esCoach ? (
+      <div className="flex flex-col gap-6">
+        <MiDiaCoachPage />
+        <HoyPage />
+      </div>
+    ) : (
+      <HoyPage />
+    ),
+  )
 }
 
 export function AppRouter() {

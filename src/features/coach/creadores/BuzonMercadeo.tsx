@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { useSesionOpcional } from '../../../app/SessionProvider'
+import { usePuestoCoach } from '../consola/usePuestoCoach'
 import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { useLectura } from '../../../components/ui/useLectura'
 import {
@@ -270,9 +271,9 @@ function TarjetaPregunta({ p, esCoach, onCambio }: { p: PreguntaMercadeo; esCoac
 
 export function BuzonMercadeo() {
   const yo = useSesionOpcional()?.usuario
+  const { esCoach } = usePuestoCoach(yo?.rol)
   const { lectura, reintentar } = useLectura(preguntasDeMercadeo)
   if (!yo) return null
-  const esCoach = yo.rol === 'coach'
 
   return (
     <section

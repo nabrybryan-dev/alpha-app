@@ -5,6 +5,7 @@ import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
 import { useCapacidades } from '../features/coach/consola/useCapacidades'
+import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import { useSesion } from './SessionProvider'
 
@@ -97,7 +98,7 @@ function llevaCabecera(ruta: string): boolean {
 export function AsesoradoLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
-  const { cargando, tiene } = useCapacidades()
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
 
   // Recordatorio de las 6 pm: al abrir la app, al volver a ella y cada 10 min
   // mientras esté abierta. Solo dispara si falta el check-in de hoy.
@@ -120,12 +121,14 @@ export function AsesoradoLayout() {
     }
   }, [usuario.id, usuario.rol])
 
-  // Bryan (cuenta personal): «/» es Mi día y Mi entreno es suyo; cualquier otra pantalla de asesorado lo
-  // devuelve a su inicio. La cuenta «Alpha» (capacidad `solo_tablero`) no tiene espacios: solo el tablero.
-  const esCoach = usuario.rol === 'coach'
-  if (esCoach && cargando) return <ComprobandoAcceso />
+  // Dos cuentas de Bryan (0106). La cuenta «Alpha» (rol coach + `solo_tablero`) no tiene espacios: solo el
+  // tablero. La PERSONAL sigue siendo `asesorado` (entrena, está en la cartera) y lleva el puesto de coach
+  // por la capacidad `puesto_de_coach`: ve la barra de cinco espacios y NO pierde ninguna pantalla de
+  // asesorado. Solo el rol coach (la cuenta Alpha sin tablero) queda acotado a sus espacios.
+  const esRolCoach = usuario.rol === 'coach'
+  if (esRolCoach && cargando) return <ComprobandoAcceso />
   if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
-  if (esCoach && !esRutaPropiaDelCoach(pathname)) return <Navigate to="/" replace />
+  if (esRolCoach && !esRutaPropiaDelCoach(pathname)) return <Navigate to="/" replace />
   const esStaff = usuario.rol === 'nutricionista' || esCoach
 
   return (
@@ -158,8 +161,7 @@ function ComprobandoAcceso({ texto = 'Comprobando tu acceso…' }: { texto?: str
  */
 export function TableroLayout() {
   const { usuario } = useSesion()
-  const { cargando, tiene } = useCapacidades()
-  const esCoach = usuario.rol === 'coach'
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   if (!esCoach && cargando) return <ComprobandoAcceso texto="Comprobando tu acceso al tablero…" />
   if (!esCoach && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
   // La cuenta Alpha no tiene a dónde volver; la personal sí.
@@ -182,8 +184,7 @@ export function TableroLayout() {
 export function CoachLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
-  const { cargando, tiene } = useCapacidades()
-  const esCoach = usuario.rol === 'coach'
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   const enConsola = pathname.startsWith('/coach/consola')
   const enCreadores = pathname.startsWith('/coach/creadores')
   const enEstrategias = pathname.startsWith('/coach/estrategias')
@@ -191,7 +192,7 @@ export function CoachLayout() {
 
   // La cuenta «Alpha» (`solo_tablero`) no tiene panel: todo lo que cuelga de /coach la lleva al tablero.
   // Mientras se consulta la capacidad no se pinta nada del panel (ni se echa a quien no toca).
-  if (esCoach && cargando) return <ComprobandoAcceso />
+  if (usuario.rol !== 'nutricionista' && cargando) return <ComprobandoAcceso />
   if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
 
   // Administración del COACH también va por capacidad: sin `ver_administracion` no la ve (ni en la

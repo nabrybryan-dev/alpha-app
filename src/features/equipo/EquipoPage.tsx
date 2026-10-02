@@ -5,6 +5,7 @@ import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { resumenAsesorado, type ResumenAsesorado } from '../coach/resumenAsesorado'
 import { recordarPersonaEnConsola } from '../coach/consola/memoriaConsola'
+import { ocupaPuestoCoach } from '../coach/consola/usePuestoCoach'
 import { MensajesEquipo } from './MensajesEquipo'
 import { useCapacidadesVigentes } from './useCapacidadesVigentes'
 import { usePorAprobar, type PorAprobar } from './usePorAprobar'
@@ -239,7 +240,9 @@ export default function EquipoPage() {
   const porAprobar = usePorAprobar(capacidades)
   const [verTodos, setVerTodos] = useState(false)
 
-  const esCoach = usuario.rol === 'coach'
+  // Bryan: el coach, o su cuenta personal (asesorado con `puesto_de_coach`, esperando a saberlo).
+  const esCoach = ocupaPuestoCoach(usuario.rol, cargando, tiene)
+  if (usuario.rol === 'asesorado' && cargando) return null
   if (usuario.rol !== 'nutricionista' && !esCoach) return <Navigate to="/" replace />
 
   // Bryan abre la consola por ser coach (igual que `CoachLayout`); Manuela, por la capacidad.

@@ -151,6 +151,27 @@ describe('CoachLayout · acceso por capacidad', () => {
     expect(screen.queryByText('Contenido de la consola')).not.toBeInTheDocument()
   })
 
+  it('la cuenta personal de Bryan (asesorado con puesto_de_coach) entra al panel como coach y ve su barra', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion'])
+    en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).textContent).toMatch(/Mi día.*Mi entreno.*Equipo/)
+  })
+
+  it('…y sin esa capacidad un asesorado vuelve a la portada; mientras se consulta, no se decide nada', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set()
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+    a.unmount()
+    estado.cargando = true
+    estado.capacidades = new Set(['puesto_de_coach'])
+    en('/coach/administracion')
+    expect(screen.getByText('Comprobando tu acceso…')).toBeInTheDocument()
+    expect(screen.queryByText('Portada')).not.toBeInTheDocument()
+  })
+
   it('Manuela no cambia: su barra y su consola siguen igual y no tiene marco aparte', () => {
     estado.capacidades = new Set(['leer_entrenamiento', 'ver_administracion'])
     en('/coach/consola')

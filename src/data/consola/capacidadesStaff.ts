@@ -39,6 +39,9 @@ export const CAPACIDADES = [
   'ver_administracion',
   // 0106: la cuenta «Alpha» (alphaathletics301) entra solo al tablero (/tablero); la app esconde el resto.
   'solo_tablero',
+  // 0106: la cuenta PERSONAL de Bryan (sigue siendo asesorado) ocupa el puesto de coach: `es_coach()` y
+  // `es_staff()` la reconocen. Ver usePuestoCoach.
+  'puesto_de_coach',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]

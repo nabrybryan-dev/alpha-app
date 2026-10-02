@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useSesionOpcional } from '../../app/SessionProvider'
+import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { FalloDeLectura } from '../../components/ui/FalloDeLectura'
 import { useLectura } from '../../components/ui/useLectura'
 import {
@@ -142,6 +143,7 @@ function FilaDecision({ d, yoId, onCambio }: { d: Decision; yoId: string; onCamb
 
 export function DecisionesCompartidas({ puedeAnotar }: { puedeAnotar: boolean }) {
   const yo = useSesionOpcional()?.usuario
+  const { esCoach } = usePuestoCoach(yo?.rol)
   const { lectura, reintentar } = useLectura(decisionesCompartidas)
   const leerCompaneros = useCallback(() => companerosDeDecision(), [])
   const { lectura: companeros } = useLectura(leerCompaneros)
@@ -154,7 +156,6 @@ export function DecisionesCompartidas({ puedeAnotar }: { puedeAnotar: boolean })
   const [verTodas, setVerTodas] = useState(false)
 
   if (!yo) return null
-  const esCoach = yo.rol === 'coach'
 
   const cambiarBorrador = (b: BorradorDecision) => {
     setBorrador(b)

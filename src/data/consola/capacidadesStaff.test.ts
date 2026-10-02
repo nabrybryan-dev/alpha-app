@@ -62,6 +62,7 @@ const AMPLIACIONES = [
   ['0098_plan_items.sql', 'organizar_plan'],
   ['0102_admin_tablero.sql', 'ver_administracion'],
   ['0106_dos_cuentas_de_bryan.sql', 'solo_tablero'],
+  ['0106_dos_cuentas_de_bryan.sql', 'puesto_de_coach'],
 ] as const
 
 describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087 + 0090 + 0094 a 0098, 0102 y 0106)', () => {
@@ -74,7 +75,7 @@ describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 
     for (const [archivo, capacidad] of AMPLIACIONES) {
       const migracion = readFileSync(join(process.cwd(), 'supabase', 'migrations', archivo), 'utf8')
       // La suma la declara UNA vez, y la migración no copia la lista de otra: la lee de la base.
-      expect(migracion, `${archivo} no suma «${capacidad}»`).toContain(`array['${capacidad}']`)
+      expect(migracion, `${archivo} no suma «${capacidad}»`).toMatch(new RegExp(`array\\[[^\\]]*'${capacidad}'`))
       expect(migracion, `${archivo} copia la lista en vez de leer la vigente`).toContain('pg_get_constraintdef')
       enElSql.push(capacidad)
     }

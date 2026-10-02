@@ -218,10 +218,11 @@ describe('EquipoPage', () => {
     expect(screen.getByRole('link', { name: 'Mensajes de los asesorados' })).toHaveAttribute('href', '/coach/chat')
   })
 
-  it('un asesorado no entra', () => {
+  it('un asesorado no entra', async () => {
     estado.rol = 'asesorado'
     pintar()
-    expect(screen.getByText('Portada')).toBeInTheDocument()
+    // Antes de decidir se espera a saber si tiene el puesto de coach (cuenta personal de Bryan).
+    expect(await screen.findByText('Portada')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Cartera' })).not.toBeInTheDocument()
   })
 

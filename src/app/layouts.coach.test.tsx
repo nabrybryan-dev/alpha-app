@@ -111,6 +111,33 @@ describe('AsesoradoLayout · el coach', () => {
   })
 })
 
+describe('AsesoradoLayout · la cuenta personal de Bryan (asesorado con puesto_de_coach)', () => {
+  it('lleva la barra de cinco espacios y NO pierde ninguna pantalla de asesorado: entrena como asesorado', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion', 'revisar_creadores'])
+    en('/')
+    expect(hrefs()).toEqual(['/', '/mi-entreno', '/equipo', '/coach/estrategias', '/coach/administracion'])
+    const r = en('/nutricion')
+    expect(screen.getByText('Nutrición asesorado')).toBeInTheDocument()
+    r.unmount()
+  })
+
+  it('no va al tablero: eso es de la cuenta Alpha', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set(['puesto_de_coach'])
+    en('/')
+    expect(screen.queryByText('Contenido del tablero')).not.toBeInTheDocument()
+    expect(screen.getByText('Inicio')).toBeInTheDocument()
+  })
+
+  it('sin la capacidad es un asesorado cualquiera, aunque tenga otras de staff', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set(['ver_administracion', 'leer_entrenamiento'])
+    en('/')
+    expect(hrefs()).toEqual(['/', '/entrenar', '/bienestar', '/nutricion', '/progreso'])
+  })
+})
+
 describe('AsesoradoLayout · los demás', () => {
   it('Manuela conserva sus cinco espacios, sin mirar capacidades', () => {
     estado.rol = 'nutricionista'

@@ -4,7 +4,7 @@ import { useLectura } from '../../../components/ui/useLectura'
 import { adminTablero } from '../../../data/consola/adminTablero'
 import type { Lectura } from '../../../data/consola/creadores'
 import { esTablaAusente, SECCIONES, type Seccion, type SeccionLeida } from '../../../domain/adminTablero'
-import { useCapacidades } from '../consola/useCapacidades'
+import { usePuestoCoach } from '../consola/usePuestoCoach'
 import type { Capacidad } from '../../../data/consola/capacidadesStaff'
 
 const CLAVE_ABIERTAS = 'alpha.admin.abiertas'
@@ -70,8 +70,7 @@ export interface TableroAdmin {
  * dice que la tabla no existe, se dice «pendiente de activar». Un fallo de lectura de otra clase se dice como fallo.
  */
 export function useTableroAdmin(): TableroAdmin {
-  const esCoach = useSesionOpcional()?.usuario.rol === 'coach'
-  const { tiene } = useCapacidades()
+  const { esCoach, tiene } = usePuestoCoach(useSesionOpcional()?.usuario.rol)
   const puedeLeer = esCoach || tiene('ver_administracion')
   const leer = useCallback(() => (puedeLeer ? adminTablero() : leerNada()), [puedeLeer])
   const { lectura, reintentar } = useLectura(leer)
