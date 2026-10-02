@@ -170,3 +170,6 @@ jobs:
 
       - name: La cuenta personal de Bryan se asigna por correo solo con service_role, la cuenta Alpha queda solo tablero y no se pide la firma a sí mismo
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/212-dos-cuentas-de-bryan.sql
+
+      - name: El alta de un asesorado, de punta a punta: la ficha la crea el coach, el primer plan propuesto crea su aprobación y solo quien puede la aprueba
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/107-alta-de-punta-a-punta.sql

@@ -66,6 +66,10 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos) values
   ('m-pp-6', 'a1000000-0000-0000-0000-000000000006', 1, 'propuesto', '{}'::jsonb)
 on conflict (id) do nothing;
 
+-- Desde la 0107 el trigger de `microciclos` ya creó una fila (riesgo medio) al insertar cada
+-- `propuesto`: se borran para sembrar las de cada escenario con su riesgo, dudas y plazo.
+delete from public.aprobaciones_primer_plan where microciclo_id like 'm-pp-%';
+
 -- Como dueño de la tabla (lo que haría la cola con service_role).
 insert into public.aprobaciones_primer_plan (id, usuario_id, microciclo_id, riesgo, dudas_pendientes, plazo_hasta) values
   ('c1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 'm-pp-1', 'bajo', '{}', now() + interval '1 day'),
