@@ -299,9 +299,17 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
 
   if (excedeLimite(s.usuarioId, t0)) return json({ error: 'Demasiados mensajes en la última hora' }, 429)
 
+  // El lector de riesgo no necesita el plan: arranca ya, en paralelo con la lectura del plan
+  // y con el registrador (Bryan, 2-oct: «Praxis se queda cargando; que sea en tiempo real»).
+  const reloj = cronometro()
+  const riesgoEnCurso = medir(reloj, 'riesgo', leerRiesgoConModelo(d, frase).catch((e: unknown) => {
+    console.error('praxis-registro: el lector de riesgo falló', e instanceof Error ? e.name : 'error')
+    return null
+  }))
+
   // 2. Contexto implícito, leído con el JWT de la persona.
   const ahora = horaConfiable(cuerpo.hora_local, d.ahora())
-  const { activo, anterior } = await microciclosDe(d, s)
+  const { activo, anterior } = await medir(reloj, 'plan', microciclosDe(d, s))
   const ut = cuerpo.ultimo_tocado
   const ctx = armarContexto({
     ahora,
@@ -323,15 +331,14 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
   // 3. Haiku dos veces y en paralelo: el registrador (solo cita y etiqueta) y el lector de
   //    riesgo con modelo. Sin la lectura de riesgo no se sigue: se pide repetir.
   const [salida, riesgo] = await Promise.all([
-    llamarHaiku(d, ctx, frase).catch((e: unknown) => {
+    medir(reloj, 'registro', llamarHaiku(d, ctx, frase).catch((e: unknown) => {
       console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
       return null
-    }),
-    leerRiesgoConModelo(d, frase).catch((e: unknown) => {
-      console.error('praxis-registro: el lector de riesgo falló', e instanceof Error ? e.name : 'error')
-      return null
-    }),
+    })),
+    riesgoEnCurso,
   ])
+  reloj.anotar('total')
+  console.log('praxis-registro: tiempos', JSON.stringify(reloj.tiempos)) // sin la frase: solo milisegundos
   if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
   const marcaModelo = marcaDesdeModelo(riesgo.nivel)
   if (marcaModelo) {
@@ -362,8 +369,22 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
       tokens_entrada: salida.tokensEntrada,
       tokens_salida: salida.tokensSalida,
       latencia_ms: d.ahora().getTime() - t0,
+      tiempos_ms: reloj.tiempos,
     },
   })
+}
+
+/* ——— Cronómetro por paso: dónde se van los segundos de cada mensaje ——— */
+interface Reloj { inicio: number; tiempos: Record<string, number>; anotar: (paso: string) => void }
+function cronometro(): Reloj {
+  const ahora = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const inicio = ahora()
+  const r: Reloj = { inicio, tiempos: {}, anotar: (paso) => { r.tiempos[paso] = Math.round(ahora() - inicio) } }
+  return r
+}
+/** Anota cuándo terminó la promesa, contando desde el inicio del reloj. */
+function medir<T>(reloj: Reloj, paso: string, p: Promise<T>): Promise<T> {
+  return p.finally(() => reloj.anotar(paso))
 }
 
 interface CuerpoGuardar {
@@ -471,6 +492,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   if (!token) return json({ error: 'Falta la sesion' }, 401)
 
   // El usuario se decide con el token, validado contra Auth. Nunca del cuerpo.
+  const relojSesion = cronometro()
   let usuarioId: string
   try {
     const r = await d.fetch(`${d.entorno.SUPABASE_URL}/auth/v1/user`, {
@@ -484,6 +506,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
     return json({ error: 'No se pudo validar la sesion' }, 401)
   }
   const sesion: Sesion = { usuarioId, token }
+  relojSesion.anotar('auth')
 
   // Mientras Praxis esté cerrada a los asesorados, la función atiende solo al equipo. El
   // interruptor es el de la pantalla (`acceso.ts`): antes solo existía allí, y cualquier
@@ -493,6 +516,8 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   const rol = filas?.[0]?.rol
   const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
   if (!conocido || !puedeVerPraxis(rol as Rol)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
+  relojSesion.anotar('rol')
+  console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
   if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo)

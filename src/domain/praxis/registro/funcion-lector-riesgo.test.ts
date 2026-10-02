@@ -112,3 +112,16 @@ describe('la petición al lector es la que se midió', () => {
     expect(e.alLector()).toHaveLength(0)
   })
 })
+
+describe('el cronómetro de cada mensaje (Bryan, 2-oct: «se queda cargando»)', () => {
+  it('anota cuánto tardó cada paso y lo deja en el registro sin la frase de la persona', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const frase = 'hice 4 series de peso muerto con 80'
+    const c = await (await manejar(post(frase), entorno({ cuerpo: lector('NINGUNO') }).d)).json()
+    expect(Object.keys(c.meta.tiempos_ms).sort()).toEqual(['plan', 'registro', 'riesgo', 'total'])
+    const lineas = JSON.stringify(log.mock.calls)
+    expect(lineas).toContain('praxis-registro: tiempos')
+    expect(lineas).toContain('praxis-registro: tiempos-sesion')
+    expect(lineas).not.toContain(frase)
+  })
+})
