@@ -304,7 +304,7 @@ export default function AsesoradoDetallePage() {
         </div>
       )}
 
-      <Link to="/coach" className="text-center text-sm font-bold text-tenue">
+      <Link to="/coach/asesorados" className="text-center text-sm font-bold text-tenue">
         ← Volver a asesorados
       </Link>
 

@@ -2244,4 +2244,23 @@ select '0105 - contador sin execute para anon y trigger que fija estado y plazo'
             when not exists (select 1 from pg_trigger
                               where tgname = 'trg_praxis_pregunta_nace_abierta' and not tgisinternal) then 'NO'
             else 'SI' end
+union all
+-- La 0106: dos cuentas de Bryan. El check admite solo_tablero y puesto_de_coach; es_coach() y es_staff()
+-- reconocen puesto_de_coach; la función que asigna la cuenta personal solo la ejecuta service_role; y la
+-- lista de compañeros de firma excluye solo_tablero.
+select '0106 - dos cuentas de Bryan: capacidades nuevas, es_coach por puesto_de_coach y asignar solo para service_role', 'el check admite solo_tablero y puesto_de_coach; es_coach y es_staff mencionan puesto_de_coach; asignar_cuenta_personal_bryan sin execute para anon/authenticated y con execute para service_role; companeros_de_decision excluye solo_tablero',
+       case when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%solo_tablero%'
+                                and pg_get_constraintdef(oid) like '%puesto_de_coach%') then 'NO'
+            when pg_get_functiondef('public.es_coach()'::regprocedure) not like '%puesto_de_coach%'
+              or pg_get_functiondef('public.es_staff()'::regprocedure) not like '%puesto_de_coach%' then 'NO'
+            when has_function_privilege('anon', 'public.es_coach()', 'execute')
+              or has_function_privilege('anon', 'public.es_staff()', 'execute') then 'NO'
+            when to_regprocedure('public.asignar_cuenta_personal_bryan(text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.asignar_cuenta_personal_bryan(text)', 'execute')
+              or has_function_privilege('authenticated', 'public.asignar_cuenta_personal_bryan(text)', 'execute')
+              or not has_function_privilege('service_role', 'public.asignar_cuenta_personal_bryan(text)', 'execute') then 'NO'
+            when pg_get_functiondef('public.companeros_de_decision()'::regprocedure) not like '%solo_tablero%' then 'NO'
+            else 'SI' end
 order by migracion, senal;

@@ -12,7 +12,12 @@ export function supabase(): SupabaseClient {
     throw new Error('Supabase no está configurado: la app corre en modo demo')
   }
   if (!cliente) {
-    cliente = createClient(url as string, anonKey as string)
+    // La sesión se guarda en el navegador y el token se renueva solo: en cada computador se entra UNA vez
+    // (cuenta «Alpha», tablero). Es el valor por defecto de supabase-js; se deja escrito para que nadie lo
+    // apague sin querer: nunca hay acceso sin login, solo una sesión que no caduca a la hora.
+    cliente = createClient(url as string, anonKey as string, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    })
   }
   return cliente
 }

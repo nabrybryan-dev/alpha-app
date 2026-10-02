@@ -41,6 +41,7 @@ function en(ruta: string) {
     <MemoryRouter initialEntries={[ruta]}>
       <Routes>
         <Route path="/" element={<p>Portada</p>} />
+        <Route path="/tablero" element={<p>Tablero a pantalla completa</p>} />
         <Route path="/coach" element={<CoachLayout />}>
           <Route index element={<p>Cartera del coach</p>} />
           <Route path="consola" element={<p>Contenido de la consola</p>} />
@@ -94,6 +95,88 @@ describe('CoachLayout · acceso por capacidad', () => {
     en('/coach')
     expect(screen.getByText('Cartera del coach')).toBeInTheDocument()
     expect(screen.getByText('Revisar audios y vídeos')).toBeInTheDocument()
+  })
+
+  it('el coach con ver_administracion ve Administración; sin ella, «sin permiso» y sin su pestaña', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['ver_administracion'])
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Administración' }).length).toBeGreaterThan(0)
+    a.unmount()
+    estado.capacidades = new Set(['decisiones_compartidas', 'organizar_plan'])
+    en('/coach/administracion')
+    expect(screen.getByRole('alert').textContent).toMatch(/Sin permiso/)
+    expect(screen.queryByText('Contenido de administracion')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
+  })
+
+  it('el coach (cuenta personal) ve la barra de cinco espacios de Manuela, también en escritorio, sin marco aparte', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['ver_administracion', 'revisar_creadores'])
+    en('/coach/estrategias')
+    const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(barra.textContent).toMatch(/Mi día.*Mi entreno.*Equipo.*Estrategias.*Administración/)
+    expect(screen.queryByRole('navigation', { name: 'Alpha' })).not.toBeInTheDocument()
+    // La barra no se esconde por ancho: ningún ancestro lleva `lg:hidden`.
+    expect(barra.closest('.lg\\:hidden')).toBeNull()
+  })
+
+  it('el coach sin capacidades de estrategia ni de administración no ve esas pestañas', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    en('/coach/consola')
+    const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(barra.textContent).not.toMatch(/Estrategias|Administración/)
+  })
+
+  it('la cuenta «Alpha» (solo_tablero): todo /coach la lleva al tablero, sin barra ni panel', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['solo_tablero', 'leer_entrenamiento', 'ver_administracion'])
+    for (const ruta of ['/coach', '/coach/consola', '/coach/administracion', '/coach/estrategias']) {
+      const r = en(ruta)
+      expect(screen.getByText('Tablero a pantalla completa'), ruta).toBeInTheDocument()
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+      r.unmount()
+    }
+  })
+
+  it('al coach no se le decide nada mientras se consultan sus capacidades', () => {
+    estado.rol = 'coach'
+    estado.cargando = true
+    estado.capacidades = new Set(['solo_tablero'])
+    en('/coach/consola')
+    expect(screen.getByText('Comprobando tu acceso…')).toBeInTheDocument()
+    expect(screen.queryByText('Tablero a pantalla completa')).not.toBeInTheDocument()
+    expect(screen.queryByText('Contenido de la consola')).not.toBeInTheDocument()
+  })
+
+  it('la cuenta personal de Bryan (asesorado con puesto_de_coach) entra al panel como coach y ve su barra', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set(['puesto_de_coach', 'ver_administracion'])
+    en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' }).textContent).toMatch(/Mi día.*Mi entreno.*Equipo/)
+  })
+
+  it('…y sin esa capacidad un asesorado vuelve a la portada; mientras se consulta, no se decide nada', () => {
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set()
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Portada')).toBeInTheDocument()
+    a.unmount()
+    estado.cargando = true
+    estado.capacidades = new Set(['puesto_de_coach'])
+    en('/coach/administracion')
+    expect(screen.getByText('Comprobando tu acceso…')).toBeInTheDocument()
+    expect(screen.queryByText('Portada')).not.toBeInTheDocument()
+  })
+
+  it('Manuela no cambia: su barra y su consola siguen igual y no tiene marco aparte', () => {
+    estado.capacidades = new Set(['leer_entrenamiento', 'ver_administracion'])
+    en('/coach/consola')
+    const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(barra.textContent).toMatch(/Mi día.*Mi entreno.*Equipo.*Estrategias.*Administración/)
   })
 
   it('un asesorado nunca entra a la consola', () => {

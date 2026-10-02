@@ -1,7 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
-import { AsesoradoLayout, CoachLayout } from './layouts'
+import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
+import { AsesoradoLayout, CoachLayout, TableroLayout } from './layouts'
+import { useSesion } from './SessionProvider'
 
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
 const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
@@ -19,6 +21,7 @@ const LogrosPage = lazy(() => import('../features/logros/LogrosPage'))
 const MarcaPage = lazy(() => import('../features/marca/MarcaPage'))
 const EquipoNutricionPage = lazy(() => import('../features/nutri/EquipoNutricionPage'))
 const CifrasAsesoradosPage = lazy(() => import('../features/nutri/CifrasAsesoradosPage'))
+const MiDiaCoachPage = lazy(() => import('../features/coach/MiDiaCoachPage'))
 const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
@@ -47,11 +50,32 @@ function envolver(children: ReactNode) {
   )
 }
 
+/**
+ * «/»: la portada del asesorado y del staff que entrena. Para Bryan, su «Mi día»: la cuenta Alpha (rol coach)
+ * solo su puesto; la personal (asesorado con `puesto_de_coach`) su puesto Y, debajo, su día de asesorado —
+ * entrena como cualquiera: check-in, nutrición de hoy, medidas.
+ */
+function Inicio() {
+  const { usuario } = useSesion()
+  const { esCoach } = usePuestoCoach(usuario.rol)
+  if (usuario.rol === 'coach') return envolver(<MiDiaCoachPage />)
+  return envolver(
+    esCoach ? (
+      <div className="flex flex-col gap-6">
+        <MiDiaCoachPage />
+        <HoyPage />
+      </div>
+    ) : (
+      <HoyPage />
+    ),
+  )
+}
+
 export function AppRouter() {
   return (
     <Routes>
       <Route element={<AsesoradoLayout />}>
-        <Route index element={envolver(<HoyPage />)} />
+        <Route index element={<Inicio />} />
         <Route path="entrenar" element={envolver(<RutaPage />)} />
         <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
         {/* La medicion se hace DENTRO de la serie (ver RegistroSerie). Esta
@@ -94,8 +118,18 @@ export function AppRouter() {
           ejemplo, detrás de la misma guarda. */}
       <Route path="praxis" element={envolver(<PraxisPage />)} />
       <Route path="praxis/ejemplo" element={envolver(<PraxisEjemploPage />)} />
+      {/* El tablero (la consola del coach) en pantalla completa: la cuenta «Alpha», en los dos computadores.
+          Va por fuera de los layouts: sin barra de espacios ni enlaces de panel. */}
+      <Route path="tablero" element={<TableroLayout />}>
+        <Route index element={envolver(<ConsolaCoachPage />)} />
+      </Route>
       <Route path="coach" element={<CoachLayout />}>
-        <Route index element={envolver(<AsesoradosPage />)} />
+        {/* «/coach» ya no cambia con el ancho de pantalla: la cuenta personal vuelve a su Mi día y la cuenta
+            «Alpha» (`solo_tablero`) la manda el layout a /tablero. */}
+        <Route index element={<Navigate to="/" replace />} />
+        {/* La cartera de asesorados: portada del coach hasta el rediseño por espacios; ahora se llega
+            desde Mi día o desde el enlace del panel. */}
+        <Route path="asesorados" element={envolver(<AsesoradosPage />)} />
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
         <Route path="consultas" element={envolver(<ConsultasPage />)} />

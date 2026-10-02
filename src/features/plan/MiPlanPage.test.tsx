@@ -23,7 +23,7 @@ vi.mock('../../app/SessionProvider', () => ({
   useSesionOpcional: () => ({ usuario: { id: 'u-1', nombre: 'Prueba', rol: estado.rol, avatarIniciales: 'PP' } }),
 }))
 vi.mock('../coach/consola/useCapacidades', () => ({
-  useCapacidades: () => ({ cargando: false, tiene: () => estado.capacidad, usuarioId: 'u-1' }),
+  useCapacidades: () => ({ cargando: false, tiene: (c: string) => c !== 'puesto_de_coach' && estado.capacidad, usuarioId: 'u-1' }),
 }))
 vi.mock('../../data/consola/planItems', async (original) => {
   const real = await original<typeof import('../../data/consola/planItems')>()

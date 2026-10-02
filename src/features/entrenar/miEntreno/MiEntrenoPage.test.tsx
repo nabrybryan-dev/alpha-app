@@ -116,10 +116,11 @@ describe('MiEntrenoPage', () => {
     expect(screen.getByRole('link', { name: 'Entrar al salón' })).toBeInTheDocument()
   })
 
-  it('un asesorado normal no entra: sigue yendo al salón como siempre', () => {
+  it('un asesorado normal no entra: sigue yendo al salón como siempre', async () => {
     quien.rol = 'asesorado'
     pintar()
-    expect(screen.getByText('El salón a pantalla completa')).toBeInTheDocument()
+    // Se espera a saber si tiene el puesto de coach (cuenta personal de Bryan) antes de mandarlo al salón.
+    expect(await screen.findByText('El salón a pantalla completa')).toBeInTheDocument()
     expect(screen.queryByText('Mi entrenamiento')).not.toBeInTheDocument()
   })
 })

@@ -8,7 +8,7 @@ import { modoNube, supabase } from '../supabase'
  *
  * `CAPACIDADES` es la misma lista que el `check` de la migración 0083 (ampliado en la 0086
  * con `aprobar_primer_plan`, en la 0087 con `aprobar_plan_estrategico`, en la 0090 con las de creadores y en la
- * 0094, 0095, 0096, 0098 y 0102 con una cada una), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
+ * 0094, 0095, 0096, 0098, 0102 y 0106 con una cada una), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
  * en silencio (misma lección que `cadenaCorridas.ts` con sus columnas).
  */
 export const TABLA_CAPACIDADES_STAFF = 'capacidades_staff'
@@ -37,6 +37,11 @@ export const CAPACIDADES = [
   'organizar_plan',
   // 0102: ver el área administrativa (Bryan y Manuela); solo lectura.
   'ver_administracion',
+  // 0106: la cuenta «Alpha» (alphaathletics301) entra solo al tablero (/tablero); la app esconde el resto.
+  'solo_tablero',
+  // 0106: la cuenta PERSONAL de Bryan (sigue siendo asesorado) ocupa el puesto de coach: `es_coach()` y
+  // `es_staff()` la reconocen. Ver usePuestoCoach.
+  'puesto_de_coach',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]

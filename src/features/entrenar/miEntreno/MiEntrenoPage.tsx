@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useSesion } from '../../../app/SessionProvider'
+import { usePuestoCoach } from '../../coach/consola/usePuestoCoach'
 import { Cifra3D } from '../../../components/ui/Cifra3D'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../../data/dbInstance'
@@ -121,11 +122,14 @@ function SesionDeHoy({ sesion, esDeHoy }: { sesion: Sesion; esDeHoy: boolean }) 
 
 export default function MiEntrenoPage() {
   const { usuario } = useSesion()
+  const { esCoach, cargando } = usePuestoCoach(usuario.rol)
   useDbVersion()
   const hoy = hoyIso()
 
-  // Es un espacio del staff: el asesorado sigue entrando por Entrenar, como siempre.
-  if (usuario.rol !== 'nutricionista') return <Navigate to="/entrenar" replace />
+  // Es un espacio del staff: el asesorado sigue entrando por Entrenar, como siempre. Bryan (cuenta personal,
+  // asesorado con `puesto_de_coach`) también: esperar a saberlo antes de mandarlo a Entrenar.
+  if (usuario.rol === 'asesorado' && cargando) return null
+  if (usuario.rol !== 'nutricionista' && !esCoach) return <Navigate to="/entrenar" replace />
 
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
   const semana = microciclo ? armarSemana(microciclo, hoy) : []
@@ -158,7 +162,11 @@ export default function MiEntrenoPage() {
       ) : (
         <EmptyState
           titulo="Sin microciclo activo"
-          detalle="Cuando el coach te cargue la semana, aquí verás su estructura y lo que toca hoy."
+          detalle={
+            esCoach
+              ? 'Todavía no tienes un plan de entrenamiento propio cargado. Cuando lo tengas, aquí verás tu semana y lo que toca hoy.'
+              : 'Cuando el coach te cargue la semana, aquí verás su estructura y lo que toca hoy.'
+          }
         />
       )}
 

@@ -43,4 +43,13 @@ describe('BottomNav', () => {
       expect(screen.getByRole('link', { name: nombre })).toBeInTheDocument()
     }
   })
+
+  it('Bryan usa la barra de Manuela y solo pierde lo que su capacidad no cubre', () => {
+    render(
+      <MemoryRouter>
+        <BottomNav espacios="staff" opcionesCoach={{ estrategias: false, administracion: false }} />
+      </MemoryRouter>,
+    )
+    expect(screen.getAllByRole('link').map((l) => l.textContent)).toEqual(['Mi día', 'Mi entreno', 'Equipo'])
+  })
 })

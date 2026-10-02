@@ -11,7 +11,7 @@ import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { visibilidadDe } from '../../domain/nutricion/visibilidad'
 import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
 import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
-import { useCapacidades } from '../coach/consola/useCapacidades'
+import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { SheetVetados } from './SheetVetados'
 
 function fechaAtras(hoy: string, dias: number): string {
@@ -144,10 +144,11 @@ export default function EquipoNutricionPage() {
   const hoy = hoyIso()
   /** El asesorado cuyo panel de vetos está abierto. */
   const [vetando, setVetando] = useState<{ id: string; nombre: string } | null>(null)
-  const { tiene } = useCapacidades()
-  const puedeVerCreadores = usuario.rol === 'coach' || tiene('revisar_creadores')
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
+  const puedeVerCreadores = esCoach || tiene('revisar_creadores')
 
-  if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
+  if (usuario.rol === 'asesorado' && cargando) return null
+  if (usuario.rol !== 'nutricionista' && !esCoach) {
     return <Navigate to="/" replace />
   }
 

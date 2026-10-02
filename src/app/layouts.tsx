@@ -5,6 +5,7 @@ import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
 import { useCapacidades } from '../features/coach/consola/useCapacidades'
+import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import { useSesion } from './SessionProvider'
 
@@ -31,9 +32,45 @@ function tituloDe(ruta: string, esStaff = false): string {
   return titulos[base] ?? 'Alpha'
 }
 
-/** El staff que también entrena (Manuela) navega por sus cinco espacios. */
+/** El staff que también entrena (Manuela) navega por sus cinco espacios; Bryan, por los suyos. */
 function espaciosDe(rol: string): EspaciosNav {
-  return rol === 'nutricionista' ? 'staff' : 'asesorado'
+  return rol === 'nutricionista' || rol === 'coach' ? 'staff' : 'asesorado'
+}
+
+/**
+ * Lo que abre el coach de la app «de asesorado»: sus espacios del teléfono —Mi día, Mi entreno
+ * (con el salón, que cuelga de él), Equipo y la nutrición del equipo—. Todo lo demás —su
+ * progreso, el chat de asesorado…— es de quien es asesorado, y el coach vuelve a su panel.
+ */
+function esRutaPropiaDelCoach(ruta: string): boolean {
+  return (
+    ruta === '/' ||
+    ruta === '/mi-entreno' ||
+    ruta === '/equipo' ||
+    ruta === '/equipo-nutricion' ||
+    ruta === '/entrenar' ||
+    ruta.startsWith('/entrenar/')
+  )
+}
+
+type Tiene = ReturnType<typeof useCapacidades>['tiene']
+
+function puedeEstrategia(tiene: Tiene): boolean {
+  return tiene('revisar_creadores') || tiene('responder_mercadeo') || tiene('decisiones_compartidas')
+}
+
+/** La barra de Bryan es la de Manuela; Estrategias y Administración siguen a SUS capacidades. */
+function BottomNavCoach() {
+  const { cargando, tiene } = useCapacidades()
+  return (
+    <BottomNav
+      espacios="staff"
+      opcionesCoach={{
+        estrategias: !cargando && puedeEstrategia(tiene),
+        administracion: !cargando && tiene('ver_administracion'),
+      }}
+    />
+  )
 }
 
 /**
@@ -61,6 +98,7 @@ function llevaCabecera(ruta: string): boolean {
 export function AsesoradoLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
 
   // Recordatorio de las 6 pm: al abrir la app, al volver a ella y cada 10 min
   // mientras esté abierta. Solo dispara si falta el check-in de hoy.
@@ -83,18 +121,62 @@ export function AsesoradoLayout() {
     }
   }, [usuario.id, usuario.rol])
 
-  if (usuario.rol === 'coach') return <Navigate to="/coach" replace />
+  // Dos cuentas de Bryan (0106). La cuenta «Alpha» (rol coach + `solo_tablero`) no tiene espacios: solo el
+  // tablero. La PERSONAL sigue siendo `asesorado` (entrena, está en la cartera) y lleva el puesto de coach
+  // por la capacidad `puesto_de_coach`: ve la barra de cinco espacios y NO pierde ninguna pantalla de
+  // asesorado. Solo el rol coach (la cuenta Alpha sin tablero) queda acotado a sus espacios.
+  const esRolCoach = usuario.rol === 'coach'
+  if (esRolCoach && cargando) return <ComprobandoAcceso />
+  if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
+  if (esRolCoach && !esRutaPropiaDelCoach(pathname)) return <Navigate to="/" replace />
+  const esStaff = usuario.rol === 'nutricionista' || esCoach
 
   return (
     <div className="min-h-dvh bg-bg">
-      {llevaCabecera(pathname) && <TopBar titulo={tituloDe(pathname, usuario.rol === 'nutricionista')} />}
-      {usuario.rol === 'nutricionista' && llevaCabecera(pathname) && <BannerPlanHoy />}
+      {llevaCabecera(pathname) && <TopBar titulo={tituloDe(pathname, esStaff)} />}
+      {esStaff && llevaCabecera(pathname) && <BannerPlanHoy />}
       {/* overflow-x-clip: ningún pseudo-elemento o borde debe generar scroll
           horizontal; el TopBar (sticky) y la BottomNav (fija) van fuera de main. */}
       <main className="mx-auto max-w-lg overflow-x-clip px-4 pb-28 pt-4">
         <Outlet />
       </main>
-      <BottomNav espacios={espaciosDe(usuario.rol)} />
+      {esCoach ? <BottomNavCoach /> : <BottomNav espacios={espaciosDe(usuario.rol)} />}
+    </div>
+  )
+}
+
+function ComprobandoAcceso({ texto = 'Comprobando tu acceso…' }: { texto?: string }) {
+  return (
+    <div className="grid min-h-dvh place-items-center bg-bg text-sm text-tenue" aria-busy="true">
+      {texto}
+    </div>
+  )
+}
+
+/**
+ * «/tablero»: la consola del coach en pantalla completa, para la cuenta «Alpha» (capacidad `solo_tablero`),
+ * en los dos computadores. Sin barra de espacios ni enlaces de panel. Lo abre el coach o quien tenga
+ * `leer_entrenamiento` (la misma regla de la consola); cualquier otra persona vuelve a su inicio. Va tras
+ * el login como todo lo demás: sin sesión no hay datos de salud a la vista.
+ */
+export function TableroLayout() {
+  const { usuario } = useSesion()
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
+  if (!esCoach && cargando) return <ComprobandoAcceso texto="Comprobando tu acceso al tablero…" />
+  if (!esCoach && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
+  // La cuenta Alpha no tiene a dónde volver; la personal sí.
+  const puedeVolver = esCoach && !cargando && !tiene('solo_tablero')
+  return (
+    <div className="min-h-dvh bg-bg">
+      <TopBar titulo="Alpha · Tablero" />
+      <main className="mx-auto max-w-[1600px] overflow-x-clip px-4 pb-8 pt-4">
+        {puedeVolver && (
+          <Link to="/" className="mb-2 inline-flex min-h-[44px] items-center underline">
+            Volver a mis espacios
+          </Link>
+        )}
+        <Outlet />
+      </main>
     </div>
   )
 }
@@ -102,12 +184,35 @@ export function AsesoradoLayout() {
 export function CoachLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
-  const { cargando, tiene } = useCapacidades()
-  const esCoach = usuario.rol === 'coach'
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   const enConsola = pathname.startsWith('/coach/consola')
   const enCreadores = pathname.startsWith('/coach/creadores')
   const enEstrategias = pathname.startsWith('/coach/estrategias')
   const enAdmin = pathname.startsWith('/coach/administracion')
+
+  // La cuenta «Alpha» (`solo_tablero`) no tiene panel: todo lo que cuelga de /coach la lleva al tablero.
+  // Mientras se consulta la capacidad no se pinta nada del panel (ni se echa a quien no toca).
+  if (usuario.rol !== 'nutricionista' && cargando) return <ComprobandoAcceso />
+  if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
+
+  // Administración del COACH también va por capacidad: sin `ver_administracion` no la ve (ni en la
+  // barra ni en el marco) y, si llega por la URL, se le dice «sin permiso» en vez de la pantalla.
+  if (esCoach && enAdmin) {
+    if (!tiene('ver_administracion')) {
+      return (
+        <div className="min-h-dvh bg-bg">
+          <TopBar titulo="Administración" />
+          <main className="mx-auto max-w-3xl px-4 pb-28 pt-6">
+            <p role="alert" className="rounded-tarjeta border border-dashed border-linea p-4 text-sm text-tenue">
+              Sin permiso: la administración se abre con el permiso de ver la administración, y todavía no lo tienes.
+            </p>
+            <Link to="/coach" className="mt-3 inline-flex min-h-[44px] items-center underline">Volver</Link>
+          </main>
+          <BottomNavCoach />
+        </div>
+      )
+    }
+  }
 
   // La CONSOLA se abre por capacidad, no por rol (decisión de Bryan, 26-sep): el staff con
   // `leer_entrenamiento` (Manuela) entra a /coach/consola; el resto del panel del coach
@@ -146,14 +251,13 @@ export function CoachLayout() {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <TopBar titulo={esCoach ? 'Panel del coach' : enEstrategias ? 'Estrategias' : enAdmin ? 'Área administrativa' : enCreadores ? 'Creadores' : 'Consola del equipo'} />
+      <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin })} />
       <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
         {esCoach ? (
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/consola">Consola (solo lectura)</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/estrategias">Estrategias</Link>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/administracion">Área administrativa</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/asesorados">Cartera de asesorados</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/tablero">Tablero</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
@@ -168,10 +272,31 @@ export function CoachLayout() {
       {(esCoach || enCreadores || enAdmin || enEstrategias) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
-      <main className={`mx-auto overflow-x-clip px-4 pt-4 ${esCoach ? 'pb-16' : 'pb-28'} ${anchoContenedor}`}>
+      <main className={`mx-auto overflow-x-clip px-4 pb-28 pt-4 ${anchoContenedor}`}>
         <Outlet />
       </main>
-      {!esCoach && <BottomNav espacios={espaciosDe(usuario.rol)} />}
+      {/* Bryan (cuenta personal): la misma barra de cinco espacios que Manuela, en celular y en escritorio. */}
+      {esCoach ? (
+        <BottomNavCoach />
+      ) : (
+        <BottomNav espacios={espaciosDe(usuario.rol)} />
+      )}
     </div>
   )
+}
+
+function tituloCoachLayout(
+  esCoach: boolean,
+  en: { enConsola: boolean; enEstrategias: boolean; enCreadores: boolean; enAdmin: boolean },
+): string {
+  if (esCoach) {
+    if (en.enConsola) return 'Alpha · Asesorados'
+    if (en.enEstrategias || en.enCreadores) return 'Estrategia'
+    if (en.enAdmin) return 'Administración'
+    return 'Panel del coach'
+  }
+  if (en.enEstrategias) return 'Estrategias'
+  if (en.enAdmin) return 'Área administrativa'
+  if (en.enCreadores) return 'Creadores'
+  return 'Consola del equipo'
 }
