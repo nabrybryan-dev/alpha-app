@@ -96,6 +96,47 @@ describe('CoachLayout · acceso por capacidad', () => {
     expect(screen.getByText('Revisar audios y vídeos')).toBeInTheDocument()
   })
 
+  it('el coach con ver_administracion ve Administración; sin ella, «sin permiso» y sin su pestaña', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['ver_administracion'])
+    const a = en('/coach/administracion')
+    expect(screen.getByText('Contenido de administracion')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Administración' }).length).toBeGreaterThan(0)
+    a.unmount()
+    estado.capacidades = new Set(['decisiones_compartidas', 'organizar_plan'])
+    en('/coach/administracion')
+    expect(screen.getByRole('alert').textContent).toMatch(/Sin permiso/)
+    expect(screen.queryByText('Contenido de administracion')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument()
+  })
+
+  it('el coach ve su barra de cinco espacios (la de Manuela) y el marco Alpha por capacidad', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['ver_administracion', 'revisar_creadores'])
+    en('/coach/estrategias')
+    const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(barra.textContent).toMatch(/Mi día.*Mi entreno.*Equipo.*Estrategias.*Administración/)
+    const marco = screen.getByRole('navigation', { name: 'Alpha' })
+    expect(marco.textContent).toMatch(/AsesoradosEstrategiaAdministración/)
+  })
+
+  it('el coach sin capacidades de estrategia ni de administración no ve esas pestañas', () => {
+    estado.rol = 'coach'
+    estado.capacidades = new Set(['leer_entrenamiento'])
+    en('/coach/consola')
+    const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(barra.textContent).not.toMatch(/Estrategias|Administración/)
+    expect(screen.getByRole('navigation', { name: 'Alpha' }).textContent).toBe('AlphaAsesorados')
+  })
+
+  it('Manuela no cambia: su barra y su consola siguen igual y no tiene el marco Alpha', () => {
+    estado.capacidades = new Set(['leer_entrenamiento', 'ver_administracion'])
+    en('/coach/consola')
+    expect(screen.queryByRole('navigation', { name: 'Alpha' })).not.toBeInTheDocument()
+    const barra = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(barra.textContent).toMatch(/Mi día.*Mi entreno.*Equipo.*Estrategias.*Administración/)
+  })
+
   it('un asesorado nunca entra a la consola', () => {
     estado.rol = 'asesorado'
     en('/coach/consola')

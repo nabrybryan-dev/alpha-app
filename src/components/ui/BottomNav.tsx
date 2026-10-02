@@ -118,8 +118,27 @@ const pestanasStaff = [
 
 export type EspaciosNav = 'asesorado' | 'staff'
 
-export function BottomNav({ espacios = 'asesorado' }: { espacios?: EspaciosNav } = {}) {
-  const pestanas = espacios === 'staff' ? pestanasStaff : pestanasAsesorado
+/**
+ * Bryan usa la MISMA barra de cinco espacios que Manuela (misma pieza, mismo estilo). Lo único que
+ * cambia es qué espacios se ofrecen: cada uno sigue a su capacidad. Por defecto, todos.
+ */
+export interface OpcionesCoach {
+  estrategias?: boolean
+  administracion?: boolean
+}
+
+export function BottomNav({
+  espacios = 'asesorado',
+  opcionesCoach = {},
+}: { espacios?: EspaciosNav; opcionesCoach?: OpcionesCoach } = {}) {
+  const { estrategias = true, administracion = true } = opcionesCoach
+  const pestanas =
+    espacios === 'staff'
+      ? pestanasStaff.filter(
+          (p) =>
+            !(p.ruta === '/coach/estrategias' && !estrategias) && !(p.ruta === '/coach/administracion' && !administracion),
+        )
+      : pestanasAsesorado
   return (
     <nav
       aria-label="Navegación principal"

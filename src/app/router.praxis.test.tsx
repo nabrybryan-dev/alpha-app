@@ -79,7 +79,7 @@ describe('/praxis en el enrutador real', () => {
 
   it('el panel del coach enlaza con Praxis, rotulada como solo del equipo', async () => {
     localStorage.setItem('alpha-usuario', 'u-bryan')
-    renderizarEn('/coach')
+    renderizarEn('/coach/asesorados')
     const enlace = await screen.findByRole('link', { name: 'Praxis (solo equipo)' })
     expect(enlace).toHaveAttribute('href', '/praxis')
   })

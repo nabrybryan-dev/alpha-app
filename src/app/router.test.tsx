@@ -121,15 +121,24 @@ describe('rutas del coach', () => {
   })
 
   it('muestra el panel del coach', async () => {
-    renderizarEn('/coach')
+    renderizarEn('/coach/asesorados')
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+  })
+
+  it('en el teléfono /coach abre «Mi día» y la barra es la de cinco espacios', async () => {
+    // jsdom sin matchMedia = teléfono: no hay marco de escritorio, hay barra.
+    renderizarEn('/coach')
+    expect(await screen.findByRole('heading', { level: 2, name: 'Mi día' })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(nav.textContent).toMatch(/Mi día/)
+    expect(nav.textContent).toMatch(/Equipo/)
   })
 
   it('el encoder ya no está en el panel del coach', async () => {
     // Se movió a Entrenar: la medición ocurre mientras haces la serie, no
     // mientras revisas a alguien. Un coach que quiera medir entra con su cuenta
     // de asesorado, como cualquiera que esté entrenando.
-    renderizarEn('/coach')
+    renderizarEn('/coach/asesorados')
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
     expect(screen.queryByText(/Encoder/i)).not.toBeInTheDocument()
   })

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { DecisionesCompartidas } from '../../equipo/DecisionesCompartidas'
 import { FalloDeLectura } from '../../../components/ui/FalloDeLectura'
 import { Cargando, CLASE_ETIQUETA } from '../../plan/comun'
 import { BuzonMercadeo } from '../creadores/BuzonMercadeo'
@@ -101,6 +102,15 @@ export default function EstrategiasPage() {
         )}
       </TarjetaPlegable>
       <ObjetivosBola t={t} />
+
+      {/* Bryan ve aquí también lo que decidió Manuela (marco «Alpha», pestaña Estrategia); Manuela
+          las sigue teniendo en Administración, sin cambios. */}
+      {t.esCoach && (
+        <>
+          <RotuloGrupo titulo="Decisiones compartidas" nota="Lo que decidieron Bryan y Manuela y a quién le toca." />
+          <DecisionesCompartidas puedeAnotar />
+        </>
+      )}
     </div>
   )
 }

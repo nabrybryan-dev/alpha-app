@@ -192,7 +192,7 @@ function LeyendaSemaforo() {
   )
 }
 
-function FilaCartera({ r, conConsola }: { r: ResumenAsesorado; conConsola: boolean }) {
+function FilaCartera({ r, conConsola, esCoach }: { r: ResumenAsesorado; conConsola: boolean; esCoach: boolean }) {
   const contenido = (
     <>
       <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${PUNTO[r.semaforo.color]}`} aria-hidden="true" />
@@ -211,7 +211,8 @@ function FilaCartera({ r, conConsola }: { r: ResumenAsesorado; conConsola: boole
         <div className="grid grid-cols-2 gap-2 pb-3" aria-label={`Áreas de ${r.usuario.nombre}`}>
       {conConsola ? (
         <Link
-          to="/coach/consola"
+          // Bryan prescribe y aprueba: entra a la ficha de la persona. Manuela, a la consola.
+          to={esCoach ? `/coach/asesorado/${encodeURIComponent(r.usuario.id)}` : '/coach/consola'}
           onClick={() => recordarPersonaEnConsola(r.usuario.id)}
           aria-label={`Entrenamiento de ${r.usuario.nombre}`}
           className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea text-sm font-semibold text-texto"
@@ -238,9 +239,11 @@ export default function EquipoPage() {
   const porAprobar = usePorAprobar(capacidades)
   const [verTodos, setVerTodos] = useState(false)
 
-  if (usuario.rol !== 'nutricionista') return <Navigate to="/" replace />
+  const esCoach = usuario.rol === 'coach'
+  if (usuario.rol !== 'nutricionista' && !esCoach) return <Navigate to="/" replace />
 
-  const conConsola = !cargando && tiene('leer_entrenamiento')
+  // Bryan abre la consola por ser coach (igual que `CoachLayout`); Manuela, por la capacidad.
+  const conConsola = esCoach || (!cargando && tiene('leer_entrenamiento'))
   // La cartera (nombres y semáforos, que salen del entrenamiento) solo se calcula con
   // `leer_entrenamiento` (E-11 de la revisión de Codex del 28-sep): la capacidad no limita
   // solo el enlace a la consola, limita lo que se muestra. Sin ella, la lista queda vacía y
@@ -297,9 +300,9 @@ export default function EquipoPage() {
         ) : (
           <ul>
             {atencion.map((r) => (
-              <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} />
+              <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} esCoach={esCoach} />
             ))}
-            {verTodos && alDia.map((r) => <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} />)}
+            {verTodos && alDia.map((r) => <FilaCartera key={r.usuario.id} r={r} conConsola={conConsola} esCoach={esCoach} />)}
             {alDia.length > 0 && (
               <li>
                 <button
@@ -327,7 +330,16 @@ export default function EquipoPage() {
         </Link>
       )}
 
-      <MensajesEquipo usuarioId={usuario.id} />
+      {esCoach ? (
+        <Link
+          to="/coach/chat"
+          className="press flex min-h-[48px] items-center justify-center rounded-boton border border-linea font-semibold text-texto"
+        >
+          Mensajes de los asesorados
+        </Link>
+      ) : (
+        <MensajesEquipo usuarioId={usuario.id} />
+      )}
     </div>
   )
 }

@@ -125,7 +125,7 @@ export default function MiEntrenoPage() {
   const hoy = hoyIso()
 
   // Es un espacio del staff: el asesorado sigue entrando por Entrenar, como siempre.
-  if (usuario.rol !== 'nutricionista') return <Navigate to="/entrenar" replace />
+  if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') return <Navigate to="/entrenar" replace />
 
   const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
   const semana = microciclo ? armarSemana(microciclo, hoy) : []
@@ -158,7 +158,11 @@ export default function MiEntrenoPage() {
       ) : (
         <EmptyState
           titulo="Sin microciclo activo"
-          detalle="Cuando el coach te cargue la semana, aquí verás su estructura y lo que toca hoy."
+          detalle={
+            usuario.rol === 'coach'
+              ? 'Todavía no tienes un plan de entrenamiento propio cargado. Cuando lo tengas, aquí verás tu semana y lo que toca hoy.'
+              : 'Cuando el coach te cargue la semana, aquí verás su estructura y lo que toca hoy.'
+          }
         />
       )}
 

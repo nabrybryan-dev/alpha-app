@@ -204,6 +204,20 @@ describe('EquipoPage', () => {
     expect(screen.getByRole('link', { name: 'Nutrición del equipo' })).toHaveAttribute('href', '/equipo-nutricion')
   })
 
+  it('Bryan (coach) ve la misma lista, pero cada fila lo lleva a prescribir y sin la pestaña «Bryan»', async () => {
+    estado.rol = 'coach'
+    estado.usuarioId = 'u-bryan'
+    pintar()
+    const cartera = await screen.findByRole('region', { name: 'Cartera' })
+    const boton = within(cartera).queryByRole('button', { name: /al día/ })
+    if (boton) fireEvent.click(boton)
+    const entrenamiento = within(cartera).getAllByRole('link', { name: /^Entrenamiento de / })[0]
+    expect(entrenamiento.getAttribute('href')).toMatch(/^\/coach\/asesorado\/u-/)
+    expect(within(cartera).getAllByRole('link', { name: /^Nutrición de / })[0].getAttribute('href')).toMatch(/^\/equipo-nutricion\?persona=/)
+    expect(screen.queryByRole('tab', { name: 'Bryan' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Mensajes de los asesorados' })).toHaveAttribute('href', '/coach/chat')
+  })
+
   it('un asesorado no entra', () => {
     estado.rol = 'asesorado'
     pintar()

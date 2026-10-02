@@ -1,7 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
+import { useEsEscritorio } from '../lib/useEsEscritorio'
 import { AsesoradoLayout, CoachLayout } from './layouts'
+import { useSesion } from './SessionProvider'
 
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
 const RutaPage = lazy(() => import('../features/entrenar/RutaPage'))
@@ -19,6 +21,7 @@ const LogrosPage = lazy(() => import('../features/logros/LogrosPage'))
 const MarcaPage = lazy(() => import('../features/marca/MarcaPage'))
 const EquipoNutricionPage = lazy(() => import('../features/nutri/EquipoNutricionPage'))
 const CifrasAsesoradosPage = lazy(() => import('../features/nutri/CifrasAsesoradosPage'))
+const MiDiaCoachPage = lazy(() => import('../features/coach/MiDiaCoachPage'))
 const AsesoradosPage = lazy(() => import('../features/coach/AsesoradosPage'))
 const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetallePage'))
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
@@ -47,11 +50,23 @@ function envolver(children: ReactNode) {
   )
 }
 
+/** «/»: la portada del asesorado y del staff que entrena; para Bryan, su «Mi día». */
+function Inicio() {
+  const { usuario } = useSesion()
+  return envolver(usuario.rol === 'coach' ? <MiDiaCoachPage /> : <HoyPage />)
+}
+
+/** «/coach»: en escritorio abre la consola (marco «Alpha»); en el teléfono, «Mi día». */
+function InicioDelCoach() {
+  const esEscritorio = useEsEscritorio()
+  return <Navigate to={esEscritorio ? '/coach/consola' : '/'} replace />
+}
+
 export function AppRouter() {
   return (
     <Routes>
       <Route element={<AsesoradoLayout />}>
-        <Route index element={envolver(<HoyPage />)} />
+        <Route index element={<Inicio />} />
         <Route path="entrenar" element={envolver(<RutaPage />)} />
         <Route path="entrenar/sesion/:sesionId" element={envolver(<SesionPage />)} />
         {/* La medicion se hace DENTRO de la serie (ver RegistroSerie). Esta
@@ -95,7 +110,10 @@ export function AppRouter() {
       <Route path="praxis" element={envolver(<PraxisPage />)} />
       <Route path="praxis/ejemplo" element={envolver(<PraxisEjemploPage />)} />
       <Route path="coach" element={<CoachLayout />}>
-        <Route index element={envolver(<AsesoradosPage />)} />
+        <Route index element={<InicioDelCoach />} />
+        {/* La cartera de asesorados: portada del coach hasta el rediseño por espacios; ahora se llega
+            desde Mi día (teléfono) o desde las pestañas de la consola (escritorio). */}
+        <Route path="asesorados" element={envolver(<AsesoradosPage />)} />
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />
         <Route path="consultas" element={envolver(<ConsultasPage />)} />
