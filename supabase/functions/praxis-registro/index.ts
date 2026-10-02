@@ -91,6 +91,28 @@ export function tokenDeCabecera(cabecera: string | null): string | null {
   return m ? m[1].trim() : null
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * El `sub` del JWT, SIN comprobar la firma: eso ya lo hizo el gateway de Supabase (`verify_jwt`)
+ * antes de entrar aquí. Solo sirve para ADELANTAR las lecturas del rol y del plan en paralelo
+ * con la validación del token. No decide nada: la respuesta sigue dependiendo de que
+ * `/auth/v1/user` diga que sí y devuelva este mismo id. `null` si el token no se puede leer o
+ * el `sub` no es un uuid (entra en la URL de una consulta); entonces se espera a Auth.
+ */
+export function subDelJwt(token: string): string | null {
+  const partes = token.split('.')
+  if (partes.length !== 3) return null
+  try {
+    const b64 = partes[1].replace(/-/g, '+').replace(/_/g, '/')
+    const texto = new TextDecoder().decode(Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) => c.charCodeAt(0)))
+    const sub = (JSON.parse(texto) as { sub?: unknown } | null)?.sub
+    return typeof sub === 'string' && UUID.test(sub) ? sub : null
+  } catch {
+    return null
+  }
+}
+
 /** `2026-09-28T18:40:00-05:00` en hora de Bogotá, si el teléfono no mandó la suya. */
 export function horaBogota(ahora: Date): string {
   return new Date(ahora.getTime() - 5 * 3_600_000).toISOString().slice(0, 19) + '-05:00'
@@ -150,7 +172,9 @@ async function rpc(d: Dependencias, s: Sesion, nombre: string, args: Record<stri
   return r.ok
 }
 
-async function microciclosDe(d: Dependencias, s: Sesion): Promise<{ activo: MicrocicloJson | null; anterior: MicrocicloJson | null }> {
+type Plan = { activo: MicrocicloJson | null; anterior: MicrocicloJson | null }
+
+async function microciclosDe(d: Dependencias, s: Sesion): Promise<Plan> {
   const filas = await leer<FilaMicrociclo[]>(
     d, s,
     `microciclos?usuario_id=eq.${s.usuarioId}&estado=in.(activo,cerrado)&select=id,numero,estado,datos&order=numero.desc&limit=4`,
@@ -278,7 +302,7 @@ interface CuerpoProponer {
   comida_pendiente?: unknown
 }
 
-async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Promise<Response> {
+async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan: Promise<Plan>): Promise<Response> {
   const frase = typeof cuerpo.frase === 'string' ? cuerpo.frase.trim() : ''
   if (!frase) return json({ error: 'Falta la frase' }, 400)
   if (frase.length > MAX_FRASE) return json({ error: 'La frase es muy larga' }, 400)
@@ -309,7 +333,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
 
   // 2. Contexto implícito, leído con el JWT de la persona.
   const ahora = horaConfiable(cuerpo.hora_local, d.ahora())
-  const { activo, anterior } = await medir(reloj, 'plan', microciclosDe(d, s))
+  const { activo, anterior } = await medir(reloj, 'plan', plan) // ya venía leyéndose desde antes de la validación: aquí casi no espera
   const ut = cuerpo.ultimo_tocado
   const ctx = armarContexto({
     ahora,
@@ -402,12 +426,12 @@ export interface ResultadoRegistro {
   motivo?: string
 }
 
-async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar): Promise<Response> {
+async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar, plan: Promise<Plan>): Promise<Response> {
   if (!Array.isArray(cuerpo.registros) || cuerpo.registros.length === 0 || cuerpo.registros.length > 12) {
     return json({ error: 'Faltan los registros confirmados (1 a 12)' }, 400)
   }
   const ahora = horaConfiable(cuerpo.hora_local, d.ahora())
-  const { activo } = await microciclosDe(d, s)
+  const { activo } = await plan
   const ctx = armarContexto({ ahora, activo })
   const resultados: ResultadoRegistro[] = []
 
@@ -474,6 +498,29 @@ async function guardar(d: Dependencias, s: Sesion, cuerpo: CuerpoGuardar): Promi
   return json({ mensaje_id: typeof cuerpo.mensaje_id === 'string' ? cuerpo.mensaje_id : null, resultados })
 }
 
+type ResultadoAuth = { ok: true; id: string } | { ok: false; error: string }
+
+/** El token contra Supabase Auth. Nunca lanza: devuelve el motivo. */
+async function validarSesion(d: Dependencias, token: string): Promise<ResultadoAuth> {
+  try {
+    const r = await d.fetch(`${d.entorno.SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) return { ok: false, error: 'Sesion invalida' }
+    const u = (await r.json()) as { id?: string }
+    if (!u?.id) return { ok: false, error: 'Sesion invalida' }
+    return { ok: true, id: u.id }
+  } catch {
+    return { ok: false, error: 'No se pudo validar la sesion' }
+  }
+}
+
+/** El rol de la persona, con su JWT (RLS). `undefined` si no se pudo leer. */
+async function leerRol(d: Dependencias, s: Sesion): Promise<string | undefined> {
+  const filas = await leer<{ rol?: string }[]>(d, s, `usuarios_app?id=eq.${s.usuarioId}&select=rol`).catch(() => null)
+  return filas?.[0]?.rol
+}
+
 export async function manejar(req: Request, d: Dependencias): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405)
@@ -492,36 +539,47 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   if (!token) return json({ error: 'Falta la sesion' }, 401)
 
   // El usuario se decide con el token, validado contra Auth. Nunca del cuerpo.
+  //
+  // La espera de antes (Bryan, 2-oct: «Praxis se queda cargando»): Auth (~0,7 s), después el rol
+  // (~0,4 s) y después el plan (~0,3 s), uno tras otro. Ahora las TRES lecturas arrancan a la vez.
+  // El rol y el plan se leen con el JWT de la persona (RLS) y con el `sub` del propio token, que el
+  // gateway ya verificó; pero nada de eso vale hasta que Auth diga que sí Y devuelva ese mismo id.
+  //
+  // REGLA DURA: ninguna frase llega a Anthropic (ni el registrador ni el lector de riesgo) antes
+  // de que Auth Y el rol hayan pasado. Lo único que corre en paralelo son lecturas de la propia
+  // base con el JWT de la persona; el modelo se llama más abajo, en `proponer`, ya con las dos
+  // puertas abiertas.
   const relojSesion = cronometro()
-  let usuarioId: string
-  try {
-    const r = await d.fetch(`${d.entorno.SUPABASE_URL}/auth/v1/user`, {
-      headers: { apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
-    })
-    if (!r.ok) return json({ error: 'Sesion invalida' }, 401)
-    const u = (await r.json()) as { id?: string }
-    if (!u?.id) return json({ error: 'Sesion invalida' }, 401)
-    usuarioId = u.id
-  } catch {
-    return json({ error: 'No se pudo validar la sesion' }, 401)
+  const authEnCurso = medir(relojSesion, 'auth', validarSesion(d, token))
+  let previa: Sesion
+  const sub = subDelJwt(token)
+  if (sub) previa = { usuarioId: sub, token }
+  else { // un token ilegible no deja adelantar nada: se espera a Auth, como antes
+    const a = await authEnCurso
+    if (!a.ok) return json({ error: a.error }, 401)
+    previa = { usuarioId: a.id, token }
   }
-  const sesion: Sesion = { usuarioId, token }
-  relojSesion.anotar('auth')
+  const rolEnCurso = medir(relojSesion, 'rol', leerRol(d, previa))
+  const planEnCurso = medir(relojSesion, 'plan', microciclosDe(d, previa))
+  planEnCurso.catch(() => undefined) // si Auth o el rol cierran la puerta antes, que su fallo no quede suelto
+
+  const auth = await authEnCurso
+  if (!auth.ok) return json({ error: auth.error }, 401)
+  if (auth.id !== previa.usuarioId) return json({ error: 'Sesion invalida' }, 401) // el token decía una persona y Auth otra
+  const sesion: Sesion = { usuarioId: auth.id, token }
 
   // Mientras Praxis esté cerrada a los asesorados, la función atiende solo al equipo. El
   // interruptor es el de la pantalla (`acceso.ts`): antes solo existía allí, y cualquier
   // asesorado con sesión podía llamar a la función y mandar su texto al modelo (revisión del
-  // PR #331, A2). El rol se pregunta con el JWT de la persona; si no se sabe, se cierra.
-  const filas = await leer<{ rol?: string }[]>(d, sesion, `usuarios_app?id=eq.${usuarioId}&select=rol`).catch(() => null)
-  const rol = filas?.[0]?.rol
+  // PR #331, A2). Si no se sabe el rol, se cierra.
+  const rol = await rolEnCurso
   const conocido = rol === 'asesorado' || rol === 'coach' || rol === 'nutricionista'
   if (!conocido || !puedeVerPraxis(rol as Rol)) return json({ error: 'Praxis todavía no está abierta para esta cuenta' }, 403)
-  relojSesion.anotar('rol')
   console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
-  if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo)
-  return proponer(d, sesion, cuerpo)
+  if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo, planEnCurso)
+  return proponer(d, sesion, cuerpo, planEnCurso)
 }
 
 function entorno(clave: string): string | undefined {
