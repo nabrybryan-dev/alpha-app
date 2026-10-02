@@ -130,7 +130,8 @@ describe('A2 · la función solo atiende al equipo mientras Praxis esté cerrada
     const r = await manejar(post({ frase: 'sentadilla 40 por 12' }), e.d)
     expect(r.status).toBe(403)
     expect(e.aAnthropic()).toHaveLength(0)
-    expect(e.llamadas.some((l) => l.url.includes('rest/v1/microciclos'))).toBe(false)
+    // El plan de la propia persona ya viene leyéndose en paralelo con Auth y el rol (RLS, con su JWT); lo que NO puede pasar es que la frase salga hacia ningún modelo.
+    expect(e.llamadas.filter((l) => l.url.includes('api.anthropic.com'))).toHaveLength(0)
   })
 
   it('un asesorado tampoco guarda nada por aquí', async () => {

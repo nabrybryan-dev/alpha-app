@@ -1,4 +1,5 @@
 import { Barra } from './barra'
+import { Cosmos } from './cosmos'
 import { esOrdenDeEscribir, limpiarDictado } from './dictado'
 import { $, h } from './dom'
 import { alDesmontar, escuchar, tu, vibrar } from './entorno'
@@ -18,6 +19,9 @@ import { Voz } from './voz'
  * que va entendiendo se lee debajo. Al soltar, piensa: lo final, ya limpio de pausas
  * (`dictado.ts`), entra por `enviarTexto(…, 'voz')`, el MISMO camino que lo escrito, con
  * el filtro de riesgo primero.
+ *
+ * Y el cielo viaja (`viaje.ts`, `cosmos.ts`): las estrellas se abren desde el agujero en rayos plata
+ * mientras se mantiene, aceleran con cada resultado y frenan con inercia al soltar.
  *
  * La app NO toca el audio: ni getUserMedia ni MediaRecorder; solo recibe texto del
  * reconocedor. Por eso no hay nivel de voz real: las ondas se mueven con los resultados.
@@ -80,7 +84,7 @@ function boton(): HTMLElement { return $('#agujeroHablar') }
 function mostrarEscucha(si: boolean): void {
   boton().setAttribute('aria-pressed', String(si))
   $('#ondaCaja').classList.toggle('escuchando', si)
-  Onda.oir(si); Onda.fuente(si)
+  Onda.oir(si); Onda.fuente(si); Cosmos.escucha(si) // el cielo también viaja mientras se escucha (viaje.ts)
   if (!si) Onda.hundir(0)
 }
 
@@ -126,7 +130,7 @@ function alResultado(e: EventoVoz): void {
   T.final = finales.join(' ').replace(/\s+/g, ' ').trim(); T.interino = interinos.join(' ').replace(/\s+/g, ' ').trim()
   if (T.fase !== 'oyendo') return
   const nuevo = Math.max(0, T.final.length + T.interino.length - antes)
-  Onda.nivel(clamp(0.35 + nuevo / 14, 0.35, 1)); Onda.usuario(0.5) // sin audio propio: cada palabra nueva es el pulso de la voz
+  Onda.nivel(clamp(0.35 + nuevo / 14, 0.35, 1)); Onda.usuario(0.5); Cosmos.pulso() // sin audio propio: cada palabra nueva es el pulso de la voz, y también acelera el viaje
   const vivo = (T.final + ' ' + T.interino).trim()
   $('#enVivo').textContent = vivo ? vivo + '…' : ''
 }
@@ -207,6 +211,7 @@ export function conectarHablar(): void {
   Object.assign(T, { fase: 'libre', rec: null, puntero: -1 })
   Mic.cortarVoz = cancelarToma
   Onda.alMedir(colocar); colocar()
+  Cosmos.fijarCentro(() => { const g = Onda.geometria(); return g ? { x: g.cx, y: g.cy, r: g.rOut } : null }) // de ahí salen los rayos
   const liberar = () => { if (T.puntero < 0) return; try { b.releasePointerCapture(T.puntero) } catch { /* nada */ } T.puntero = -1 }
   escuchar<PointerEvent>(b, 'pointerdown', (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -225,5 +230,5 @@ export function conectarHablar(): void {
   escuchar<KeyboardEvent>(b, 'keyup', (e) => { if (!esEspacio(e)) return; e.preventDefault(); if (T.puntero < 0) soltar() })
   escuchar(b, 'blur', () => { if (T.puntero < 0 && T.fase !== 'libre') soltar() })
   escuchar(document, 'visibilitychange', () => { if (document.hidden) cancelarToma() })
-  alDesmontar(() => { liberar(); cancelarToma(); Mic.cortarVoz = null })
+  alDesmontar(() => { liberar(); cancelarToma(); Mic.cortarVoz = null; Cosmos.fijarCentro(null) })
 }
