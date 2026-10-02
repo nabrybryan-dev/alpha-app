@@ -37,6 +37,7 @@ const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 const PraxisPage = lazy(() => import('../features/praxis/PraxisPage'))
 const PraxisEjemploPage = lazy(() => import('../features/praxis/PraxisEjemploPage'))
+const IngresoPruebaPage = lazy(() => import('../features/praxis/IngresoPruebaPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -118,6 +119,9 @@ export function AppRouter() {
           ejemplo, detrás de la misma guarda. */}
       <Route path="praxis" element={envolver(<PraxisPage />)} />
       <Route path="praxis/ejemplo" element={envolver(<PraxisEjemploPage />)} />
+      {/* La prueba con cronómetro del cuestionario de ingreso (hablando contra escribiendo). Misma guarda que
+          /praxis: solo el equipo. No guarda nada. */}
+      <Route path="praxis/ingreso-prueba" element={envolver(<IngresoPruebaPage />)} />
       {/* El tablero (la consola del coach) en pantalla completa: la cuenta «Alpha», en los dos computadores.
           Va por fuera de los layouts: sin barra de espacios ni enlaces de panel. */}
       <Route path="tablero" element={<TableroLayout />}>
