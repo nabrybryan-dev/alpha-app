@@ -1,9 +1,11 @@
-import { render, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
 import { ThemeProvider } from '../../app/ThemeProvider'
 import { db, hoyIso } from '../../data/dbInstance'
+import { reiniciarDb } from '../../data/mockDb'
+import type { Microciclo } from '../../domain/types'
 import { calculosDeLaRuta } from '../entrenar/ruta/calculosDeLaRuta'
 import ProgresoPage from './ProgresoPage'
 
@@ -112,5 +114,90 @@ describe('Progreso · la casa nueva de las competencias y la Escala Alfa', () =>
     expect(caja.getAllByText(/superado|nivel actual|bloqueado|reservado/i).length).toBe(
       escala.length,
     )
+  })
+})
+
+/**
+ * A023 (devolución de la auditoría al PR #308): con `microcicloVigente` eligiendo por
+ * fecha, el único microciclo activo puede no cubrir hoy. Antes de este cambio, Progreso
+ * calculaba «Competencias evaluadas» del microciclo que fuera, incluido uno FUTURO con
+ * cero sesiones registradas — una «Consistencia: 0 %» que no describe que la persona va
+ * mal, sino que su semana todavía no empezó. Este bloque es la evidencia de que ya no
+ * pasa, y de que lo contrario —un microciclo VENCIDO, con datos reales de verdad— sigue
+ * mostrando sus competencias como siempre.
+ */
+describe('Progreso — las competencias de un microciclo que no cubre hoy (A023)', () => {
+  const HOY = new Date('2026-09-10T08:00:00')
+
+  beforeEach(() => {
+    localStorage.clear()
+    reiniciarDb()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(HOY)
+  })
+
+  afterEach(() => vi.useRealTimers())
+
+  /** Deja a la persona con UN ÚNICO microciclo activo, con las fechas que pida el test. */
+  function conUnSoloMicrociclo(cambios: Partial<Microciclo>): Microciclo {
+    const base = db.microciclos.byUsuario('u-valentina').find((m) => m.estado === 'activo')
+    if (!base) throw new Error('el seed no trae microciclo activo')
+    const propuesta: Microciclo = {
+      ...base,
+      id: 'm-progreso-test',
+      numero: base.numero + 1,
+      estado: 'propuesto',
+      ...cambios,
+    }
+    db.microciclos.guardarPropuesta(propuesta)
+    db.microciclos.activarPropuesta(propuesta.id)
+    const activado = db.microciclos.byUsuario('u-valentina').find((m) => m.id === propuesta.id)
+    if (!activado) throw new Error('no se activó la propuesta del test')
+    return activado
+  }
+
+  it('un único microciclo FUTURO: NO se inventan competencias', () => {
+    conUnSoloMicrociclo({ fechaInicio: '2026-09-14', cadenciaDias: 7 }) // el lunes que viene
+
+    render(
+      <ThemeProvider>
+        <SessionProvider>
+          <MemoryRouter>
+            <ProgresoPage />
+          </MemoryRouter>
+        </SessionProvider>
+      </ThemeProvider>,
+    )
+
+    // `CompetenciasEvaluadas` no monta nada cuando la lista viene vacía (su propia
+    // regla, ver el componente); aquí se comprueba que a este microciclo LE TOCA venir
+    // vacía, no que el componente sepa esconderse.
+    expect(screen.queryByText('Competencias evaluadas')).toBeNull()
+    expect(document.querySelector('[data-bloque="competencias"]')).toBeNull()
+    // Y la Escala Alfa SÍ sigue: es la ruta de la persona, no depende de esta semana.
+    expect(screen.getByText('Escala Alfa')).toBeInTheDocument()
+  })
+
+  it('control: un único microciclo VENCIDO SÍ calcula sus competencias, con datos reales', () => {
+    const vencido = conUnSoloMicrociclo({ fechaInicio: '2026-08-10', cadenciaDias: 7 }) // terminó el 16-ago
+
+    render(
+      <ThemeProvider>
+        <SessionProvider>
+          <MemoryRouter>
+            <ProgresoPage />
+          </MemoryRouter>
+        </SessionProvider>
+      </ThemeProvider>,
+    )
+
+    const esperadas = calculosDeLaRuta('u-valentina', vencido, hoyIso()).competencias
+    // Si esto viniera vacío el test de abajo pasaría sin comprobar nada.
+    expect(esperadas.length).toBeGreaterThan(0)
+
+    expect(screen.getByText('Competencias evaluadas')).toBeInTheDocument()
+    for (const c of esperadas) {
+      expect(screen.getByText(c.nombre)).toBeInTheDocument()
+    }
   })
 })
