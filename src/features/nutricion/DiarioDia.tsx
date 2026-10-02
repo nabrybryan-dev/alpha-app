@@ -26,6 +26,7 @@ import { anotar, desanotar, distintas, rachaDeRecetas, type RecetaProbada } from
 import { escribirJSON, leerJSON } from '../../lib/persistencia'
 import { RecetasCarousel } from './RecetasCarousel'
 import { ResumenDia } from './ResumenDia'
+import { AVISO_SIN_MACROS, macrosDelDia } from '../../domain/nutricion/macrosDelDia'
 import { SheetBuscarAlimento } from './SheetBuscarAlimento'
 import { SheetCantidad } from './SheetCantidad'
 import { semanaDe } from '../../domain/nutricion/semana'
@@ -287,7 +288,17 @@ export default function DiarioDia() {
     )
   }
 
-  const meta = plan.macrosPorDia[tipoDia]
+  const meta = macrosDelDia(plan, tipoDia)
+  if (!meta) {
+    return (
+      <p
+        role="alert"
+        className="rounded-2xl border border-linea bg-surface-1 p-6 text-center text-sm text-tenue"
+      >
+        {AVISO_SIN_MACROS}
+      </p>
+    )
+  }
 
   const hojas = (
     <>
