@@ -57,7 +57,7 @@ describe('validarIngreso: las citas', () => {
   })
 
   it('dos cifras en una cita no se adivinan; fuera de rango tampoco', () => {
-    const dos = validarIngreso('objetivo', 'Peso 80 y quiero llegar a 70', crudo({ peso_objetivo_kg: campo('80 y quiero llegar a 70') }))
+    const dos = validarIngreso('historia_entreno', 'Peso 80 y quiero llegar a 70', crudo({ peso_objetivo_kg: campo('80 y quiero llegar a 70') }))
     expect(dos.campos.peso_objetivo_kg).toBeUndefined()
     expect(dos.descartados[0]?.motivo).toBe('numero_ambiguo')
     const rango = validarIngreso('sobre_ti', 'tengo 250 años', crudo({ edad: campo('250 años') }))
@@ -230,13 +230,13 @@ describe('citas vacías y tiempos vagos', () => {
 describe('un récord de gimnasio no es el peso corporal', () => {
   it('la cifra pegada a «récord» o a un ejercicio se descarta', () => {
     const t = 'quiero romper mi récord personal que tengo de ciento setenta y uno kilos en peso muerto'
-    const r = validarIngreso('objetivo', t, crudo({ peso_objetivo_kg: campo('ciento setenta y uno kilos') }))
+    const r = validarIngreso('historia_entreno', t, crudo({ peso_objetivo_kg: campo('ciento setenta y uno kilos') }))
     expect(r.campos.peso_objetivo_kg).toBeUndefined()
     expect(r.descartados[0]?.motivo).toBe('contexto_de_levantamiento')
   })
   it('un peso corporal normal pasa aunque más adelante hable de ejercicios', () => {
     const t = 'quiero llegar a setenta y cinco kilos, y en sentadilla ando por cien'
-    const r = validarIngreso('objetivo', t, crudo({ peso_objetivo_kg: campo('setenta y cinco kilos') }))
+    const r = validarIngreso('historia_entreno', t, crudo({ peso_objetivo_kg: campo('setenta y cinco kilos') }))
     expect(r.campos.peso_objetivo_kg?.valor).toBe(75)
   })
 })

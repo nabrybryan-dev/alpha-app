@@ -6,6 +6,7 @@ import { alDesmontar, escuchar, tu, vibrar } from './entorno'
 import { clamp } from './movimiento'
 import { Onda } from './onda'
 import { cerrarSala } from './sala'
+import { ESPERA_FINAL_MS, TOMA_MAX_MS, UMBRAL_MS, leerResultados, reconocedor, type EventoVoz, type Reconocedor } from './reconocedor'
 import { Mic, enviarTexto } from './senales'
 import { Dia, S, cortarDecir } from './sesion'
 import { Voz } from './voz'
@@ -33,19 +34,8 @@ import { Voz } from './voz'
  *
  * Teclado: con el foco en el agujero, mantener la barra espaciadora hace lo mismo.
  */
-export const UMBRAL_MS = 250
-export const TOMA_MAX_MS = 60_000
-const ESPERA_FINAL_MS = 2500
-
-interface Alternativa { transcript: string }
-interface ResultadoVoz { readonly isFinal: boolean; readonly length: number; readonly [i: number]: Alternativa }
-interface EventoVoz { resultIndex: number; results: ArrayLike<ResultadoVoz> }
-interface Reconocedor {
-  lang: string; interimResults: boolean; continuous: boolean; maxAlternatives: number
-  onresult: ((e: EventoVoz) => void) | null; onerror: ((e: { error?: string }) => void) | null; onend: (() => void) | null
-  start(): void; stop(): void; abort(): void
-}
-type ConstructorReconocedor = new () => Reconocedor
+// Los umbrales y el reconocedor del navegador viven en `reconocedor.ts` (los comparte la prueba del ingreso).
+export { TOMA_MAX_MS, UMBRAL_MS }
 
 type Fase = 'libre' | 'armando' | 'oyendo' | 'cerrando'
 const T = {
@@ -53,11 +43,6 @@ const T = {
   tUmbral: 0, tMax: 0, tFin: 0, puntero: -1, presiones: new Set<number>(),
 }
 
-/** El reconocedor del navegador, si lo hay. */
-export function reconocedor(): ConstructorReconocedor | null {
-  const w = window as unknown as { SpeechRecognition?: ConstructorReconocedor; webkitSpeechRecognition?: ConstructorReconocedor }
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null
-}
 const sinMicrofono = () => tu('Este navegador no deja usar el micrófono aquí; usa el micrófono del teclado.', 'Este navegador no deja usar el micrófono aquí; use el micrófono del teclado.')
 const conPermiso = () => !!(Dia.permisos && Dia.permisos.cVoz)
 const bloqueada = () => $('#sala').hidden || !!S.quieta || S.listo || S.respirando
@@ -121,13 +106,9 @@ function empezar(): void {
 }
 
 function alResultado(e: EventoVoz): void {
-  const finales: string[] = [], interinos: string[] = []
-  for (let i = 0; i < e.results.length; i++) {
-    const r = e.results[i], tx = (r && r[0] && r[0].transcript) || ''
-    if (r.isFinal) finales.push(tx); else interinos.push(tx)
-  }
   const antes = T.final.length + T.interino.length
-  T.final = finales.join(' ').replace(/\s+/g, ' ').trim(); T.interino = interinos.join(' ').replace(/\s+/g, ' ').trim()
+  const { final, interino } = leerResultados(e)
+  T.final = final; T.interino = interino
   if (T.fase !== 'oyendo') return
   const nuevo = Math.max(0, T.final.length + T.interino.length - antes)
   Onda.nivel(clamp(0.35 + nuevo / 14, 0.35, 1)); Onda.usuario(0.5); Cosmos.pulso() // sin audio propio: cada palabra nueva es el pulso de la voz, y también acelera el viaje

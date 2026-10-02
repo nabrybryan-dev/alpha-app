@@ -24,7 +24,7 @@ import {
   type CampoIngreso, type TemaSalud, type TurnoId,
 } from './guion.ts'
 
-export const VERSION_PROMPT_INGRESO = 'ingreso-prompt-2026-10-02.3'
+export const VERSION_PROMPT_INGRESO = 'ingreso-prompt-2026-10-03.4'
 
 export type MotivoDescarte =
   | 'salud' // el modelo intentó rellenar un campo de salud
@@ -82,7 +82,7 @@ export const PROMPT_SISTEMA_INGRESO = `Eres el etiquetador del cuestionario de i
 
 REGLAS DE ORO
 1. CITAS LITERALES. Cada campo lleva "cita": un fragmento EXACTO y contiguo de la transcripción (mismas letras, sin corregir, sin traducir, sin unir pedazos que en la frase no están juntos). Si no puedes copiarlo de la transcripción, NO pongas el campo.
-2. LO NO DICHO SE QUEDA FUERA. Si la persona no dijo un dato, el campo no aparece. No rellenes con lo que "suele" ser, no deduzcas, no uses la pregunta del turno como fuente, no completes. Un campo ausente es una respuesta correcta; uno inventado es el peor error.
+2. LO NO DICHO SE QUEDA FUERA. Si la persona no dijo un dato, el campo no aparece. No rellenes con lo que "suele" ser, no deduzcas, no uses la pregunta del turno como fuente, no completes. Un campo ausente es una respuesta correcta; uno inventado es el peor error. Si la persona dice «no sé», «ni idea», «prefiero no decirlo» o similar sobre un dato, ese campo se queda fuera: un «no sé» nunca es un valor.
 3. NÚMEROS: la cita es solo el tramo de ese dato («treinta y un años», «uno sesenta y seis», «55 kilos», «como 72»); si lleva decimales, cítalos completos («cuarenta y dos punto nueve», «sesenta y seis, ocho»). No conviertas, no redondees, no calcules. Si la persona se corrige, cita lo último que dijo.
 4. OPCIONES: en "opcion" pon EXACTAMENTE una de las opciones listadas (copiada tal cual) y en "cita" el fragmento que la sostiene, con las palabras que la justifican. Solo si la persona dice con claridad ESA respuesta: no la deduzcas de otro dato (qué parte quiere mejorar, los pesos que levanta, su trabajo); si dudas entre dos, no pongas el campo.
 5. TEXTO LIBRE: la cita ES el valor: el tramo completo (una frase como máximo) en que la persona dice ese dato, sin recortar la idea ni partir una cifra. Si solo dijo algo vago que no lo responde («ando manejando mis cositas» para los pesos), no pongas el campo.
@@ -117,7 +117,11 @@ export function armarMensajeIngreso(turno: TurnoId, texto: string): string {
   const t = TURNOS_VOZ.find((x) => x.id === turno)
   if (!t) throw new Error(`turno desconocido: ${turno}`)
   const campos = t.campos.map((id) => campoPorId(id)).filter((c): c is CampoIngreso => !!c)
-  return `Campos de este turno:\n${campos.map(describirCampo).join('\n')}\n\nTranscripción:\n«${texto}»`
+  // Bloque de CONTEXTO (Bryan, 2-oct): aquí la persona se extiende a propósito; la cita de un texto libre puede ser larga.
+  const nota = t.bloque === 'contexto'
+    ? '\n\nEsta respuesta es de CONTEXTO: la persona se extiende a propósito. En un campo de texto, la cita es el tramo contiguo y más completo en que habla de ESE dato (pueden ser varias frases seguidas), sin partirlo ni unir pedazos que en la frase están separados.'
+    : ''
+  return `Campos de este turno:\n${campos.map(describirCampo).join('\n')}${nota}\n\nTranscripción:\n«${texto}»`
 }
 
 // ---------------------------------------------------------------------------

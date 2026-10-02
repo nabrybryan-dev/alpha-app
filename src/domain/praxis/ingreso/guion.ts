@@ -4,6 +4,12 @@
  * FORMA (Bryan, 2-oct-2026): lo abierto se HABLA (`voz`), lo cerrado se TOCA (`toque`), y al final la
  * persona revisa el formulario ya lleno y confirma. Nada se envía sin ese visto bueno.
  *
+ * TRES BLOQUES (ajuste de Bryan, 2-oct): Praxis EXPLICA antes de cada bloque qué tipo de respuesta necesita.
+ *  1. PRECISO  (voz): el dato exacto, sin explicar. Dos turnos.
+ *  2. CONTEXTO (voz): respuesta larga y con detalle, bienvenida. Tres turnos.
+ *  3. SÍ O NO  (toque): salud, siempre con botones. Antes van las pocas opciones cerradas que no son de salud.
+ * Un «no sé» deja el campo vacío, nunca un valor.
+ *
  * REGLA DURA. Todo dato de salud (el PAR-Q, lesiones, medicación, alergias, antecedente alimentario, ciclo,
  * ejercicios limitados) es `toque` con un sí/no explícito. Nunca se deduce de lo que la persona dijo
  * hablando: si en la voz asoma algo de salud, `extraer.ts` lo MARCA y aquí se convierte en la pregunta que
@@ -51,16 +57,33 @@ export interface CampoIngreso {
   condicion?: { campo: string; valor: string }
   /** ¿Lo trae alguna de las 1000 encuestas del corpus? */
   enCorpus: boolean
+  /** Se puede dejar vacío sin que nada falte (p. ej. las marcas de fuerza, que no caben en ningún turno hablado). */
+  opcional?: boolean
   /** Solo voz: cómo entender el campo (va al prompt del extractor). */
   ayuda?: string
   nota?: string
 }
 
+/** Los dos bloques que se HABLAN. El tercero (sí o no) es de toques. */
+export type BloqueVoz = 'preciso' | 'contexto'
+export type BloqueId = BloqueVoz | 'si_no'
+
 export interface TurnoVoz {
   id: TurnoId
+  bloque: BloqueVoz
   /** Lo que dice Praxis. Español colombiano, en tú, corto. */
   pregunta: string
+  /** Lo mismo, de usted. */
+  preguntaUsted: string
+  /** Cómo se contesta, tal cual lo dice Praxis (solo los turnos que traen su propio ejemplo). */
+  ejemplo?: string
   campos: readonly string[]
+}
+
+/** Un mismo texto en los dos tratos. */
+export interface TextoDeTrato {
+  tu: string
+  usted: string
 }
 
 const SI_NO = ['Sí', 'No'] as const
@@ -139,7 +162,7 @@ export const CAMPOS_INGRESO: readonly CampoIngreso[] = [
   },
   {
     id: 'peso_objetivo_kg', etiqueta: 'Peso al que quiere llegar', modo: 'voz', tipo: 'numero', salud: false, conocimiento: 'ninguna',
-    turno: 'objetivo', unidad: 'kg', rango: [30, 250], enCorpus: true,
+    turno: 'historia_entreno', unidad: 'kg', rango: [30, 250], enCorpus: true,
     ayuda: 'el peso CORPORAL al que quiere llegar (no el actual, y nunca un récord o una carga de gimnasio)',
   },
   {
@@ -155,10 +178,11 @@ export const CAMPOS_INGRESO: readonly CampoIngreso[] = [
     ayuda: 'el nivel que la persona DICE tener (principiante, intermedio o avanzado); nunca se deduce de los pesos que levanta',
   },
   {
-    id: 'marcas_fuerza', etiqueta: 'Marcas de fuerza', modo: 'voz', tipo: 'texto', salud: false, conocimiento: 'ninguna',
-    turno: 'historia_entreno', enCorpus: true,
-    nota: 'Es la cola «130kg Sentadilla, 63kg Press Banca» de nivel_fuerza, separada para poder medirla.',
-    ayuda: 'los pesos que levanta (ej. «130 kilos en sentadilla»), con sus palabras',
+    // Ya no es de voz (3-oct, ajuste de Bryan): el turno «¿a qué peso quieres llegar, cuánto llevas entrenando y en qué
+    // nivel te sientes?» es de datos exactos y no deja sitio para «cuánto levantas». Es opcional y se escribe en la revisión.
+    id: 'marcas_fuerza', etiqueta: 'Marcas de fuerza', modo: 'toque', tipo: 'texto', salud: false, conocimiento: 'ninguna',
+    pregunta: '¿Qué pesos manejas en sentadilla o press banca?', opcional: true, enCorpus: true,
+    nota: 'Es la cola «130kg Sentadilla, 63kg Press Banca» de nivel_fuerza, separada para poder medirla. Opcional: sin turno hablado, se escribe en la revisión.',
   },
   {
     id: 'tipo_trabajo', etiqueta: 'Trabajo', modo: 'voz', tipo: 'opcion', salud: false,
@@ -270,39 +294,79 @@ export const CAMPOS_INGRESO: readonly CampoIngreso[] = [
 ]
 
 export const TURNOS_VOZ: readonly TurnoVoz[] = [
+  // ───── Bloque 1 · PRECISO: el dato exacto ─────
   {
-    id: 'sobre_ti',
-    pregunta: 'Cuéntame un poco de ti: ¿de qué ciudad eres, cuántos años tienes, cuánto mides y cuánto pesas hoy?',
+    id: 'sobre_ti', bloque: 'preciso',
+    pregunta: '¿Ciudad, edad, estatura y peso?',
+    preguntaUsted: '¿Ciudad, edad, estatura y peso?',
+    // El ejemplo de este turno va dentro del mensaje del bloque (`BLOQUES.preciso`).
     campos: ['ciudad', 'edad', 'altura_cm', 'peso_actual_kg'],
   },
   {
-    id: 'objetivo',
-    pregunta: '¿Qué quieres lograr con Alpha? Cuéntame qué parte de ti quieres mejorar y, si lo tienes claro, cuánto te gustaría pesar.',
-    campos: ['objetivo_principal', 'parte_a_mejorar', 'peso_objetivo_kg'],
+    id: 'historia_entreno', bloque: 'preciso',
+    pregunta: '¿A qué peso quieres llegar, cuánto llevas entrenando y en qué nivel te sientes?',
+    preguntaUsted: '¿A qué peso quiere llegar, cuánto lleva entrenando y en qué nivel se siente?',
+    ejemplo: '75 kilos, dos años, intermedio',
+    campos: ['peso_objetivo_kg', 'tiempo_entrenando', 'nivel_fuerza'],
+  },
+  // ───── Bloque 2 · CONTEXTO: respuesta larga, con detalle ─────
+  {
+    id: 'objetivo', bloque: 'contexto',
+    pregunta: '¿Qué quieres lograr y qué parte de tu cuerpo quieres mejorar?',
+    preguntaUsted: '¿Qué quiere lograr y qué parte de su cuerpo quiere mejorar?',
+    campos: ['objetivo_principal', 'parte_a_mejorar'],
   },
   {
-    id: 'historia_entreno',
-    pregunta: 'Hablemos de tu entreno: ¿hace cuánto entrenas, cómo te ves de nivel y qué pesos manejas en sentadilla o press banca?',
-    campos: ['tiempo_entrenando', 'nivel_fuerza', 'marcas_fuerza'],
-  },
-  {
-    id: 'trabajo_horarios',
-    pregunta: 'Cuéntame de tu trabajo y tus horarios: ¿qué haces y cómo es un día normal tuyo?',
+    id: 'trabajo_horarios', bloque: 'contexto',
+    pregunta: '¿En qué trabajas y cómo son tus horarios?',
+    preguntaUsted: '¿En qué trabaja y cómo son sus horarios?',
     campos: ['tipo_trabajo', 'dia_tipo_alimentacion'],
   },
   {
-    id: 'comida',
-    pregunta: '¿Cómo comes? Dime si cocinas tú o compras hecho, y cuánta agua tomas al día.',
+    id: 'comida', bloque: 'contexto',
+    pregunta: '¿Cómo comes en un día normal y cuánta agua tomas?',
+    preguntaUsted: '¿Cómo come en un día normal y cuánta agua toma?',
     campos: ['cocina_o_compra', 'vasos_agua'],
   },
 ]
 
-/** Lo que dice Praxis al pasar de la voz a los toques y de los toques a la revisión. */
-export const FRASES_DE_PASO = {
-  aToques: 'Gracias. Ahora unas preguntas rápidas: solo toca la respuesta.',
-  aSalud: 'Ahora las de salud. Cada una la contestas tú con un toque, sí o no.',
-  aRevision: 'Listo. Mira cómo quedó tu formulario y corrige lo que haga falta. No se envía nada hasta que lo confirmes.',
-} as const
+/**
+ * Lo que Praxis dice ANTES de cada bloque (textos de Bryan, literales). La entrada se dice una sola vez,
+ * al empezar; cada bloque explica cómo responder justo antes de sus preguntas.
+ */
+export const MENSAJES_DE_BLOQUE: Record<'entrada' | BloqueId, TextoDeTrato> = {
+  entrada: {
+    tu: 'Te voy a preguntar en tres partes, y antes de cada una te digo cómo responder. Al final revisas todo antes de enviarlo.',
+    usted: 'Le voy a preguntar en tres partes, y antes de cada una le digo cómo responder. Al final revisa todo antes de enviarlo.',
+  },
+  preciso: {
+    tu: 'En estas necesito que seas preciso: solo el dato, sin explicar. Por ejemplo: "Cali, 28, uno setenta, 82 kilos".',
+    usted: 'En estas necesito que sea preciso: solo el dato, sin explicar. Por ejemplo: "Cali, 28, uno setenta, 82 kilos".',
+  },
+  contexto: {
+    tu: 'En estas necesito que me des mucho contexto: cuéntame con detalle, sin afán.',
+    usted: 'En estas necesito que me dé mucho contexto: cuénteme con detalle, sin afán.',
+  },
+  si_no: {
+    tu: 'En estas próximas necesito que me digas solo sí o no.',
+    usted: 'En estas próximas necesito que me diga solo sí o no.',
+  },
+}
+
+/** Lo que dice Praxis al pasar de la voz a los toques cerrados y de los toques a la revisión. */
+export const FRASES_DE_PASO: Record<'aToques' | 'aRevision', TextoDeTrato> = {
+  aToques: {
+    tu: 'Gracias. Ahora unas preguntas rápidas: solo toca la respuesta.',
+    usted: 'Gracias. Ahora unas preguntas rápidas: solo toque la respuesta.',
+  },
+  aRevision: {
+    tu: 'Listo. Mira cómo quedó tu formulario y corrige lo que haga falta. No se envía nada hasta que lo confirmes.',
+    usted: 'Listo. Mire cómo quedó su formulario y corrija lo que haga falta. No se envía nada hasta que lo confirme.',
+  },
+}
+
+/** Los turnos de un bloque, en orden. */
+export const turnosDeBloque = (b: BloqueVoz): TurnoVoz[] => TURNOS_VOZ.filter((t) => t.bloque === b)
 
 /** Temas de salud que `extraer.ts` puede marcar al oírlos, y los toques que se les hacen. */
 export const TEMAS_SALUD = ['lesion', 'dolor', 'medicacion', 'cardiaco', 'alimentario', 'alergia', 'ciclo', 'otro'] as const

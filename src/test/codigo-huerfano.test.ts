@@ -124,6 +124,27 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/praxis/riesgoModelo.ts#SHA16_PROMPT_RIESGO':
     'La Edge Function lo manda en meta.version_prompt_riesgo para saber con qué prompt medido ' +
     'se leyó cada frase; fuera del alcance de este análisis.',
+  // El cuestionario de ingreso por voz (2-3 oct): el prompt y la validación con citas viven en el dominio para
+  // que tengan pruebas de vitest, y los llama la Edge Function `praxis-registro` (`accion: 'ingreso'`), que
+  // está fuera de src/ y por eso este análisis no la ve. El banco de `scripts/banco-ingreso/` también.
+  'src/domain/praxis/ingreso/extraer.ts#validarIngreso':
+    'La consume la Edge Function praxis-registro (accion ingreso) para dejar pasar solo lo que se rastrea ' +
+    'a una cita literal; fuera del alcance de este análisis.',
+  'src/domain/praxis/ingreso/extraer.ts#leerSalidaIngreso':
+    'La consume la Edge Function praxis-registro para sacar el JSON de la respuesta de Haiku; fuera del alcance de este análisis.',
+  'src/domain/praxis/ingreso/extraer.ts#VERSION_PROMPT_INGRESO':
+    'La Edge Function la manda en meta.version_prompt, y el banco la anota en su informe; fuera del alcance de este análisis.',
+  'src/domain/praxis/ingreso/extraer.ts#juntarTurnos':
+    'La usa el banco scripts/banco-ingreso/ para armar el formulario de una persona simulada; la pantalla de la prueba ' +
+    'junta los turnos por su cuenta (valoresDeExtraccion).',
+  'src/domain/praxis/ingreso/extraer.ts#IDS_DE_VOZ':
+    'Lista de los campos que la voz puede llenar, para las pruebas del extractor; la pantalla usa camposDeVoz().',
+  'src/domain/praxis/ingreso/guion.ts#camposAplicables':
+    'Qué toques se preguntan dadas las respuestas ya tocadas: contrato del guion que ejercita guion.test.ts; ' +
+    'la pantalla de la prueba lo resuelve con siguienteToque().',
+  'src/domain/praxis/ingreso/prueba.ts#FUERA_DE_LA_PRUEBA':
+    'Lo que el guion tiene y la prueba deja fuera, con su porqué: lo lee prueba.test.ts para que ningún campo del ' +
+    'guion se pierda sin explicación.',
   // La lista blanca de Praxis, dicha como lista de rutas. No la llama la app y no es un
   // descuido: es el CONTRATO que `listaBlanca.test.ts` hace cumplir —recorre lo que sale de
   // `loQuePraxisVe` y falla si aparece una clave que no esté aquí—. Vive en el módulo, y no

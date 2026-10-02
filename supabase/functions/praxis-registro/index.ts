@@ -1,7 +1,7 @@
 // Edge Function: praxis-registro
 //
 // El registro en lenguaje natural de Praxis (DISENO-REGISTRO-NATURAL.md, 28-sep-2026).
-// Dos rutas:
+// Tres rutas:
 //
 //   POST /praxis-registro            -> PROPONER. Arma el contexto, llama a Haiku con
 //                                       salida estructurada, aplica los resolutores y
@@ -9,6 +9,11 @@
 //   POST /praxis-registro/guardar    -> GUARDAR. Escribe SOLO lo que la persona
 //                                       confirmó, en las tablas reales, comprobando
 //                                       otra vez cada número.
+//   POST /praxis-registro  {accion:'ingreso', turno, texto}
+//                                    -> INGRESO (prueba interna, 3-oct-2026). Etiqueta UN turno
+//                                       hablado del cuestionario de ingreso con Haiku, citando.
+//                                       NO GUARDA NADA, no lee el plan y nunca devuelve un campo
+//                                       de salud (ver `ingresar`).
 //
 // SEGURIDAD
 //  - La clave de la API de Anthropic se lee del secreto ANTHROPIC_API_KEY de
@@ -33,10 +38,13 @@ import {
   prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion,
 } from '../../../src/domain/praxis/registro/index.ts'
 // El MISMO filtro de riesgo y el MISMO interruptor que la pantalla (revisión del PR #331).
-import { derivarPorRiesgo, filtroDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
+import { derivarPorRiesgo, filtroDeRiesgo, type MarcaDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
 // La otra mitad de «diccionario + modelo en cada mensaje» (decisión firmada del 29-sep).
 import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO, leerSalidaRiesgo, marcaDesdeModelo, type LecturaModelo } from '../../../src/domain/praxis/riesgoModelo.ts'
 import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
+// El cuestionario de ingreso por voz: el prompt y la validación con citas (puros) y su guion.
+import { PROMPT_SISTEMA_INGRESO, VERSION_PROMPT_INGRESO, armarMensajeIngreso, leerSalidaIngreso, validarIngreso } from '../../../src/domain/praxis/ingreso/extraer.ts'
+import { TURNOS_VOZ, type TurnoId } from '../../../src/domain/praxis/ingreso/guion.ts'
 import type {
   ContextoRegistro, MicrocicloJson, RegistroAdherencia, RegistroPropuesto, RegistroSeries, RegistroSesionCampo,
 } from '../../../src/domain/praxis/registro/index.ts'
@@ -70,19 +78,25 @@ const MSG_NO_ENTENDI = 'No te entendí bien, ¿lo anotas aquí?'
 const TIMEOUT_MODELO_MS = 8000
 const MAX_FRASE = 600
 const MAX_POR_HORA = 30
+/** Una respuesta de CONTEXTO es larga a propósito (un minuto hablando son ~1.200 caracteres). */
+const MAX_TEXTO_INGRESO = 1500
+/** Un ingreso son 5 turnos: 40 por hora dan para ocho pruebas completas por persona. */
+const MAX_INGRESO_POR_HORA = 40
 
 // Tope por persona y hora. En memoria: se reinicia con la instancia, así que es
 // una red contra el abuso y no una cuota exacta (la cuota exacta vive en
-// `praxis_extracciones`, que llega con su migración).
+// `praxis_extracciones`, que llega con su migración). El ingreso lleva su propia cuenta:
+// una prueba completa no se come el cupo del registro.
 const visto = new Map<string, number[]>()
-function excedeLimite(usuario: string, ahoraMs: number): boolean {
-  const recientes = (visto.get(usuario) ?? []).filter((t) => ahoraMs - t < 3_600_000)
-  if (recientes.length >= MAX_POR_HORA) {
-    visto.set(usuario, recientes)
+const vistoIngreso = new Map<string, number[]>()
+function excedeLimite(usuario: string, ahoraMs: number, mapa: Map<string, number[]> = visto, maximo: number = MAX_POR_HORA): boolean {
+  const recientes = (mapa.get(usuario) ?? []).filter((t) => ahoraMs - t < 3_600_000)
+  if (recientes.length >= maximo) {
+    mapa.set(usuario, recientes)
     return true
   }
   recientes.push(ahoraMs)
-  visto.set(usuario, recientes)
+  mapa.set(usuario, recientes)
   return false
 }
 
@@ -398,6 +412,128 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   })
 }
 
+interface CuerpoIngreso {
+  turno?: unknown
+  texto?: unknown
+}
+
+/**
+ * Un solo llamado a Haiku, sin herramientas, para etiquetar UN turno hablado del ingreso. El prompt y la
+ * validación son los de `ingreso/extraer.ts` (medidos en `scripts/banco-ingreso/`); aquí solo se pone el modelo.
+ */
+export async function llamarHaikuIngreso(
+  d: Dependencias,
+  turno: TurnoId,
+  texto: string,
+): Promise<{ bruto: unknown; tokensEntrada: number; tokensSalida: number } | null> {
+  const clave = d.entorno.ANTHROPIC_API_KEY
+  if (!clave) {
+    console.error('praxis-registro: falta el secreto ANTHROPIC_API_KEY')
+    return null
+  }
+  const r = await d.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': clave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    signal: AbortSignal.timeout(TIMEOUT_MODELO_MS),
+    body: JSON.stringify({
+      model: MODELO_HAIKU,
+      max_tokens: 900,
+      temperature: 0,
+      system: [{ type: 'text', text: PROMPT_SISTEMA_INGRESO, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: armarMensajeIngreso(turno, texto) }],
+    }),
+  })
+  if (!r.ok) {
+    await registrarErrorDeAnthropic(r, texto)
+    return null
+  }
+  const cuerpo = (await r.json()) as {
+    content?: { type: string; text?: string }[]
+    usage?: { input_tokens?: number; output_tokens?: number }
+  }
+  const bruto = leerSalidaIngreso((cuerpo.content ?? []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('\n'))
+  if (bruto === null) return null
+  return { bruto, tokensEntrada: cuerpo.usage?.input_tokens ?? 0, tokensSalida: cuerpo.usage?.output_tokens ?? 0 }
+}
+
+/** Lo único de una derivación que sale hacia la pantalla del ingreso: sin notas del coach ni la marca que disparó. */
+function derivacionDeIngreso(turno: TurnoId, marca: MarcaDeRiesgo, extra: Record<string, unknown> = {}): Response {
+  const p = derivarPorRiesgo(marca)
+  return json({
+    tipo: 'ingreso', turno, derivada: true,
+    derivacion: { filtro: p.filtro ?? null, riesgo: p.riesgo ?? null, urgencia: p.urgencia ?? null },
+    meta: { modelo: null, ...extra },
+  })
+}
+
+/**
+ * INGRESO (prueba interna). Mismo orden de seguridad que `proponer`:
+ *   1. Auth y rol ya pasaron en `manejar`, antes de llegar aquí.
+ *   2. El filtro de riesgo (el mismo de la pantalla) ANTES de cualquier modelo: si marca, se responde
+ *      con la derivación y NO se extrae nada.
+ *   3. El límite por hora.
+ *   4. Haiku dos veces y en paralelo: el etiquetador del ingreso y el lector de riesgo con modelo. Si el
+ *      lector ve riesgo, la extracción se descarta; si falla, no se sigue.
+ *   5. `validarIngreso`: solo pasa lo que se rastrea a una cita literal. Un campo de salud JAMÁS sale de
+ *      aquí: la respuesta lleva el tema y los toques que corresponden, nunca la frase que lo dijo.
+ * No guarda nada, no lee el plan y los tiempos que registra son milisegundos, sin el texto.
+ */
+async function ingresar(d: Dependencias, s: Sesion, cuerpo: CuerpoIngreso): Promise<Response> {
+  const turnoDef = TURNOS_VOZ.find((t) => t.id === cuerpo.turno)
+  if (!turnoDef) return json({ error: 'Turno desconocido' }, 400)
+  const turno = turnoDef.id
+  const texto = typeof cuerpo.texto === 'string' ? cuerpo.texto.trim() : ''
+  if (!texto) return json({ error: 'Falta el texto' }, 400)
+  if (texto.length > MAX_TEXTO_INGRESO) return json({ error: 'El texto es muy largo' }, 400)
+  const t0 = d.ahora().getTime()
+
+  const marca = filtroDeRiesgo(texto)
+  if (marca) return derivacionDeIngreso(turno, marca, { version_prompt: VERSION_PROMPT_INGRESO })
+
+  if (excedeLimite(s.usuarioId, t0, vistoIngreso, MAX_INGRESO_POR_HORA)) return json({ error: 'Demasiados mensajes en la última hora' }, 429)
+
+  const reloj = cronometro()
+  const [salida, riesgo] = await Promise.all([
+    medir(reloj, 'ingreso', llamarHaikuIngreso(d, turno, texto).catch((e: unknown) => {
+      console.error('praxis-registro: la llamada de ingreso a Anthropic falló', e instanceof Error ? e.name : 'error')
+      return null
+    })),
+    medir(reloj, 'riesgo', leerRiesgoConModelo(d, texto).catch((e: unknown) => {
+      console.error('praxis-registro: el lector de riesgo falló', e instanceof Error ? e.name : 'error')
+      return null
+    })),
+  ])
+  reloj.anotar('total')
+  console.log('praxis-registro: tiempos-ingreso', JSON.stringify(reloj.tiempos)) // sin el texto: solo milisegundos
+  if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
+  const marcaModelo = marcaDesdeModelo(riesgo.nivel)
+  if (marcaModelo) return derivacionDeIngreso(turno, marcaModelo, { lector_riesgo: riesgo.nivel, version_prompt_riesgo: SHA16_PROMPT_RIESGO, tiempos_ms: reloj.tiempos })
+  if (!salida) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
+
+  const r = validarIngreso(turno, texto, salida.bruto)
+  // Defensa en profundidad: el filtro de riesgo ya habría detenido un síntoma urgente; si aun así asoma, se detiene.
+  if (r.urgencia === 'alta') return derivacionDeIngreso(turno, { tipo: 'quieta', linea: 'vida' }, { tiempos_ms: reloj.tiempos })
+  return json({
+    tipo: 'ingreso',
+    turno,
+    derivada: false,
+    // Solo el valor ya convertido por el código: ni la cita (puede ser texto libre) ni ningún campo de salud.
+    campos: Object.fromEntries(Object.values(r.campos).map((v) => [v.campo, v.valor])),
+    // Salud: el tema y el toque que hay que hacer. Jamás la frase.
+    temas: r.salud.map((m) => m.tema),
+    toques: r.toques,
+    descartados: r.descartados.map((x) => ({ campo: x.campo, motivo: x.motivo })),
+    meta: {
+      modelo: MODELO_HAIKU,
+      version_prompt: VERSION_PROMPT_INGRESO,
+      tokens_entrada: salida.tokensEntrada,
+      tokens_salida: salida.tokensSalida,
+      latencia_ms: d.ahora().getTime() - t0,
+      tiempos_ms: reloj.tiempos,
+    },
+  })
+}
+
 /* ——— Cronómetro por paso: dónde se van los segundos de cada mensaje ——— */
 interface Reloj { inicio: number; tiempos: Record<string, number>; anotar: (paso: string) => void }
 function cronometro(): Reloj {
@@ -525,7 +661,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405)
 
-  let cuerpo: CuerpoProponer & CuerpoGuardar & { accion?: unknown }
+  let cuerpo: CuerpoProponer & CuerpoGuardar & CuerpoIngreso & { accion?: unknown }
   try {
     cuerpo = await req.json()
   } catch {
@@ -560,7 +696,9 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
     previa = { usuarioId: a.id, token }
   }
   const rolEnCurso = medir(relojSesion, 'rol', leerRol(d, previa))
-  const planEnCurso = medir(relojSesion, 'plan', microciclosDe(d, previa))
+  // El ingreso no usa el plan de nadie: no se lee.
+  const esIngreso = cuerpo.accion === 'ingreso'
+  const planEnCurso = esIngreso ? Promise.resolve<Plan>({ activo: null, anterior: null }) : medir(relojSesion, 'plan', microciclosDe(d, previa))
   planEnCurso.catch(() => undefined) // si Auth o el rol cierran la puerta antes, que su fallo no quede suelto
 
   const auth = await authEnCurso
@@ -578,6 +716,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   console.log('praxis-registro: tiempos-sesion', JSON.stringify(relojSesion.tiempos))
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
+  if (esIngreso) return ingresar(d, sesion, cuerpo)
   if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo, planEnCurso)
   return proponer(d, sesion, cuerpo, planEnCurso)
 }
