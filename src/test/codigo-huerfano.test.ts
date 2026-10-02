@@ -113,6 +113,17 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
     'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
     'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
+  // El lector de riesgo con modelo (2-oct): lo llama SOLO la Edge Function praxis-registro,
+  // que vive fuera de src/. Va en el dominio para que sus reglas tengan pruebas de vitest.
+  'src/domain/praxis/riesgoModelo.ts#leerSalidaRiesgo':
+    'La consume la Edge Function praxis-registro para leer la respuesta del lector de riesgo; ' +
+    'fuera del alcance de este análisis.',
+  'src/domain/praxis/riesgoModelo.ts#marcaDesdeModelo':
+    'La consume la Edge Function praxis-registro para traducir el nivel del modelo a la marca ' +
+    'que ya entiende la pantalla; fuera del alcance de este análisis.',
+  'src/domain/praxis/riesgoModelo.ts#SHA16_PROMPT_RIESGO':
+    'La Edge Function lo manda en meta.version_prompt_riesgo para saber con qué prompt medido ' +
+    'se leyó cada frase; fuera del alcance de este análisis.',
   // La lista blanca de Praxis, dicha como lista de rutas. No la llama la app y no es un
   // descuido: es el CONTRATO que `listaBlanca.test.ts` hace cumplir —recorre lo que sale de
   // `loQuePraxisVe` y falla si aparece una clave que no esté aquí—. Vive en el módulo, y no

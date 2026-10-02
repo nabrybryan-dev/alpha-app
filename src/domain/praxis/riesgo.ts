@@ -18,8 +18,10 @@ import type { Propuesta } from './registro/tipos.ts'
  *
  * LÍMITE CONOCIDO, y no se disimula: una lista de expresiones NO generaliza. Medido el
  * 29-sep contra el examen reservado, el léxico solo alcanzó 47 % en las frases de riesgo
- * que no había visto. La decisión firmada es diccionario + modelo en cada mensaje; aquí
- * está solo el diccionario. Por eso Praxis sigue cerrada a asesorados.
+ * que no había visto. La decisión firmada es diccionario + modelo en cada mensaje: aquí
+ * está el diccionario, y el modelo está en `riesgoModelo.ts`, que la Edge Function corre
+ * después de este filtro (gana la lectura más grave). Praxis sigue cerrada a asesorados
+ * hasta que los dos juntos pasen un examen sellado nuevo.
  *
  * Las frases y los textos los revisa un profesional de salud mental antes de abrir.
  */
