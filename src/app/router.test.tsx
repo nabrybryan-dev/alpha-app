@@ -125,13 +125,19 @@ describe('rutas del coach', () => {
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
   })
 
-  it('en el teléfono /coach abre «Mi día» y la barra es la de cinco espacios', async () => {
-    // jsdom sin matchMedia = teléfono: no hay marco de escritorio, hay barra.
+  it('/coach abre «Mi día» con la barra de cinco espacios (no depende del ancho de pantalla)', async () => {
     renderizarEn('/coach')
     expect(await screen.findByRole('heading', { level: 2, name: 'Mi día' })).toBeInTheDocument()
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' })
     expect(nav.textContent).toMatch(/Mi día/)
     expect(nav.textContent).toMatch(/Equipo/)
+  })
+
+  it('/tablero es la consola a pantalla completa: sin barra de espacios ni enlaces de panel', async () => {
+    renderizarEn('/tablero')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Alpha · Tablero' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Navegación principal' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Revisar audios y vídeos')).not.toBeInTheDocument()
   })
 
   it('el encoder ya no está en el panel del coach', async () => {

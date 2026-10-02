@@ -167,3 +167,6 @@ jobs:
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/211-mercadeo-hallazgos-autor-real.sql
       - name: La pregunta en espera de Praxis es de quien la hace, y solo responde quien la recibe
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/105-praxis-preguntas-en-espera.sql
+
+      - name: La cuenta personal de Bryan se asigna por correo solo con service_role, la cuenta Alpha queda solo tablero y no se pide la firma a sí mismo
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/212-dos-cuentas-de-bryan.sql

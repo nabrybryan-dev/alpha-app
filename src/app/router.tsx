@@ -1,8 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
-import { useEsEscritorio } from '../lib/useEsEscritorio'
-import { AsesoradoLayout, CoachLayout } from './layouts'
+import { AsesoradoLayout, CoachLayout, TableroLayout } from './layouts'
 import { useSesion } from './SessionProvider'
 
 const HoyPage = lazy(() => import('../features/hoy/HoyPage'))
@@ -56,12 +55,6 @@ function Inicio() {
   return envolver(usuario.rol === 'coach' ? <MiDiaCoachPage /> : <HoyPage />)
 }
 
-/** «/coach»: en escritorio abre la consola (marco «Alpha»); en el teléfono, «Mi día». */
-function InicioDelCoach() {
-  const esEscritorio = useEsEscritorio()
-  return <Navigate to={esEscritorio ? '/coach/consola' : '/'} replace />
-}
-
 export function AppRouter() {
   return (
     <Routes>
@@ -109,10 +102,17 @@ export function AppRouter() {
           ejemplo, detrás de la misma guarda. */}
       <Route path="praxis" element={envolver(<PraxisPage />)} />
       <Route path="praxis/ejemplo" element={envolver(<PraxisEjemploPage />)} />
+      {/* El tablero (la consola del coach) en pantalla completa: la cuenta «Alpha», en los dos computadores.
+          Va por fuera de los layouts: sin barra de espacios ni enlaces de panel. */}
+      <Route path="tablero" element={<TableroLayout />}>
+        <Route index element={envolver(<ConsolaCoachPage />)} />
+      </Route>
       <Route path="coach" element={<CoachLayout />}>
-        <Route index element={<InicioDelCoach />} />
+        {/* «/coach» ya no cambia con el ancho de pantalla: la cuenta personal vuelve a su Mi día y la cuenta
+            «Alpha» (`solo_tablero`) la manda el layout a /tablero. */}
+        <Route index element={<Navigate to="/" replace />} />
         {/* La cartera de asesorados: portada del coach hasta el rediseño por espacios; ahora se llega
-            desde Mi día (teléfono) o desde las pestañas de la consola (escritorio). */}
+            desde Mi día o desde el enlace del panel. */}
         <Route path="asesorados" element={envolver(<AsesoradosPage />)} />
         <Route path="asesorado/:usuarioId" element={envolver(<AsesoradoDetallePage />)} />
         <Route path="chat" element={envolver(<CoachChatPage />)} />

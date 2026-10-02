@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
-import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav, type EspaciosNav } from '../components/ui/BottomNav'
 import { TopBar } from '../components/ui/TopBar'
 import { db, hoyIso } from '../data/dbInstance'
 import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio'
 import { useCapacidades } from '../features/coach/consola/useCapacidades'
-import { useEsEscritorio } from '../lib/useEsEscritorio'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
 import { useSesion } from './SessionProvider'
 
@@ -98,7 +97,7 @@ function llevaCabecera(ruta: string): boolean {
 export function AsesoradoLayout() {
   const { usuario } = useSesion()
   const { pathname } = useLocation()
-  const esEscritorio = useEsEscritorio()
+  const { cargando, tiene } = useCapacidades()
 
   // Recordatorio de las 6 pm: al abrir la app, al volver a ella y cada 10 min
   // mientras esté abierta. Solo dispara si falta el check-in de hoy.
@@ -121,12 +120,12 @@ export function AsesoradoLayout() {
     }
   }, [usuario.id, usuario.rol])
 
-  // Bryan: en el teléfono «/» es Mi día y Mi entreno es suyo; en escritorio su portada es el marco
-  // «Alpha» (/coach). Cualquier otra pantalla de asesorado lo devuelve a su panel.
+  // Bryan (cuenta personal): «/» es Mi día y Mi entreno es suyo; cualquier otra pantalla de asesorado lo
+  // devuelve a su inicio. La cuenta «Alpha» (capacidad `solo_tablero`) no tiene espacios: solo el tablero.
   const esCoach = usuario.rol === 'coach'
-  if (esCoach && (!esRutaPropiaDelCoach(pathname) || (pathname === '/' && esEscritorio))) {
-    return <Navigate to="/coach" replace />
-  }
+  if (esCoach && cargando) return <ComprobandoAcceso />
+  if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
+  if (esCoach && !esRutaPropiaDelCoach(pathname)) return <Navigate to="/" replace />
   const esStaff = usuario.rol === 'nutricionista' || esCoach
 
   return (
@@ -143,35 +142,40 @@ export function AsesoradoLayout() {
   )
 }
 
-/** El marco de escritorio «Alpha» de Bryan: tres pestañas, cada una con su capacidad. */
-function MarcoAlpha({ pathname }: { pathname: string }) {
-  const { cargando, tiene } = useCapacidades()
-  const pestanas = [
-    { a: '/coach/consola', texto: 'Asesorados', activa: /^\/coach\/(consola|asesorado|chat|consultas)/, puede: true },
-    { a: '/coach/estrategias', texto: 'Estrategia', activa: /^\/coach\/(estrategias|creadores)/, puede: !cargando && puedeEstrategia(tiene) },
-    { a: '/coach/administracion', texto: 'Administración', activa: /^\/coach\/administracion/, puede: !cargando && tiene('ver_administracion') },
-  ].filter((p) => p.puede)
+function ComprobandoAcceso({ texto = 'Comprobando tu acceso…' }: { texto?: string }) {
   return (
-    <nav aria-label="Alpha" className="mx-auto hidden max-w-[1600px] items-center gap-1 px-4 pt-3 lg:flex">
-      <span className="mr-3 font-display text-sm uppercase tracking-wide text-tenue">Alpha</span>
-      <div className="flex gap-1 rounded-full border border-linea p-1">
-        {pestanas.map((p) => {
-          const activa = p.activa.test(pathname)
-          return (
-            <NavLink
-              key={p.a}
-              to={p.a}
-              aria-current={activa ? 'page' : undefined}
-              className={`press inline-flex min-h-[40px] items-center rounded-full px-4 text-sm font-bold ${
-                activa ? 'bg-texto text-bg' : 'text-texto'
-              }`}
-            >
-              {p.texto}
-            </NavLink>
-          )
-        })}
-      </div>
-    </nav>
+    <div className="grid min-h-dvh place-items-center bg-bg text-sm text-tenue" aria-busy="true">
+      {texto}
+    </div>
+  )
+}
+
+/**
+ * «/tablero»: la consola del coach en pantalla completa, para la cuenta «Alpha» (capacidad `solo_tablero`),
+ * en los dos computadores. Sin barra de espacios ni enlaces de panel. Lo abre el coach o quien tenga
+ * `leer_entrenamiento` (la misma regla de la consola); cualquier otra persona vuelve a su inicio. Va tras
+ * el login como todo lo demás: sin sesión no hay datos de salud a la vista.
+ */
+export function TableroLayout() {
+  const { usuario } = useSesion()
+  const { cargando, tiene } = useCapacidades()
+  const esCoach = usuario.rol === 'coach'
+  if (!esCoach && cargando) return <ComprobandoAcceso texto="Comprobando tu acceso al tablero…" />
+  if (!esCoach && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
+  // La cuenta Alpha no tiene a dónde volver; la personal sí.
+  const puedeVolver = esCoach && !cargando && !tiene('solo_tablero')
+  return (
+    <div className="min-h-dvh bg-bg">
+      <TopBar titulo="Alpha · Tablero" />
+      <main className="mx-auto max-w-[1600px] overflow-x-clip px-4 pb-8 pt-4">
+        {puedeVolver && (
+          <Link to="/" className="mb-2 inline-flex min-h-[44px] items-center underline">
+            Volver a mis espacios
+          </Link>
+        )}
+        <Outlet />
+      </main>
+    </div>
   )
 }
 
@@ -185,16 +189,14 @@ export function CoachLayout() {
   const enEstrategias = pathname.startsWith('/coach/estrategias')
   const enAdmin = pathname.startsWith('/coach/administracion')
 
+  // La cuenta «Alpha» (`solo_tablero`) no tiene panel: todo lo que cuelga de /coach la lleva al tablero.
+  // Mientras se consulta la capacidad no se pinta nada del panel (ni se echa a quien no toca).
+  if (esCoach && cargando) return <ComprobandoAcceso />
+  if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
+
   // Administración del COACH también va por capacidad: sin `ver_administracion` no la ve (ni en la
   // barra ni en el marco) y, si llega por la URL, se le dice «sin permiso» en vez de la pantalla.
   if (esCoach && enAdmin) {
-    if (cargando) {
-      return (
-        <div className="grid min-h-dvh place-items-center bg-bg text-sm text-tenue" aria-busy="true">
-          Comprobando tu acceso…
-        </div>
-      )
-    }
     if (!tiene('ver_administracion')) {
       return (
         <div className="min-h-dvh bg-bg">
@@ -244,19 +246,17 @@ export function CoachLayout() {
   // El resto del panel del coach se queda como estaba.
   // A 1440/1280 px la rejilla de 12 columnas tiene que llenar el ancho: con 6xl (1152 px)
   // quedaban dos franjas vacías a los lados y las gráficas se apretaban.
-  // Bryan, en sus tres pestañas de escritorio, usa el mismo ancho que la consola.
-  const anchoContenedor =
-    pathname.startsWith('/coach/consola') || (esCoach && (enEstrategias || enAdmin)) ? 'max-w-[1600px]' : 'max-w-3xl'
+  const anchoContenedor = pathname.startsWith('/coach/consola') ? 'max-w-[1600px]' : 'max-w-3xl'
 
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo={tituloCoachLayout(esCoach, { enConsola, enEstrategias, enCreadores, enAdmin })} />
-      {esCoach && <MarcoAlpha pathname={pathname} />}
-      <nav className={`mx-auto flex flex-wrap gap-x-4 px-4 pt-3 ${esCoach ? 'max-w-[1600px]' : 'max-w-3xl'}`}>
+      <nav className="mx-auto flex max-w-3xl flex-wrap gap-x-4 px-4 pt-3">
         {esCoach ? (
           <>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/revisiones">Revisar audios y vídeos</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/asesorados">Cartera de asesorados</Link>
+            <Link className="inline-flex min-h-[44px] items-center underline" to="/tablero">Tablero</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/creadores">Creadores</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/coach/mi-plan">Mi plan</Link>
             <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
@@ -271,14 +271,12 @@ export function CoachLayout() {
       {(esCoach || enCreadores || enAdmin || enEstrategias) && <BannerPlanHoy />}
       {/* El staff (Manuela) conserva sus cinco espacios también dentro de la consola y del
           tablero de creadores: sin la barra, Equipo y Estrategia serían callejones. */}
-      <main className={`mx-auto overflow-x-clip px-4 pt-4 ${esCoach ? 'pb-28 lg:pb-16' : 'pb-28'} ${anchoContenedor}`}>
+      <main className={`mx-auto overflow-x-clip px-4 pb-28 pt-4 ${anchoContenedor}`}>
         <Outlet />
       </main>
-      {/* Bryan: barra de espacios en el teléfono; en escritorio lo cubre el marco «Alpha». */}
+      {/* Bryan (cuenta personal): la misma barra de cinco espacios que Manuela, en celular y en escritorio. */}
       {esCoach ? (
-        <div className="lg:hidden">
-          <BottomNavCoach />
-        </div>
+        <BottomNavCoach />
       ) : (
         <BottomNav espacios={espaciosDe(usuario.rol)} />
       )}
