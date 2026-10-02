@@ -29,6 +29,10 @@ function entorno(rol: string | null = 'coach') {
   ]
   const fetchSim = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     llamadas.push({ url: String(url), init })
+    // El lector de riesgo con modelo (sin herramientas) contesta NINGUNO; estas pruebas miran el registrador.
+    if (String(url).includes('api.anthropic.com') && !String(init?.body ?? '').includes('"tools"')) {
+      return new Response(JSON.stringify({ content: [{ type: 'text', text: '{"nivel":"NINGUNO","cita":"","por_que":"prueba"}' }] }))
+    }
     const r = respuestas.find((x) => x.url.test(String(url)))
     if (!r) return new Response('{}', { status: 404 })
     return new Response(JSON.stringify(r.cuerpo), { status: r.status ?? 200 })
@@ -38,7 +42,7 @@ function entorno(rol: string | null = 'coach') {
     fetch: fetchSim as unknown as typeof fetch,
     ahora: () => AHORA_SERVIDOR,
   }
-  const aAnthropic = () => llamadas.filter((l) => l.url.includes('api.anthropic.com'))
+  const aAnthropic = () => llamadas.filter((l) => l.url.includes('api.anthropic.com') && String(l.init?.body ?? '').includes('"tools"'))
   return { d, llamadas, respuestas, aAnthropic }
 }
 const post = (cuerpo: unknown, ruta = '') =>

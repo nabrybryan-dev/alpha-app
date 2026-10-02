@@ -34,6 +34,8 @@ import {
 } from '../../../src/domain/praxis/registro/index.ts'
 // El MISMO filtro de riesgo y el MISMO interruptor que la pantalla (revisión del PR #331).
 import { derivarPorRiesgo, filtroDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
+// La otra mitad de «diccionario + modelo en cada mensaje» (decisión firmada del 29-sep).
+import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO, leerSalidaRiesgo, marcaDesdeModelo, type LecturaModelo } from '../../../src/domain/praxis/riesgoModelo.ts'
 import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 import type {
   ContextoRegistro, MicrocicloJson, RegistroAdherencia, RegistroPropuesto, RegistroSeries, RegistroSesionCampo,
@@ -226,6 +228,40 @@ export async function llamarHaiku(
   return { entrada: bloque.input, tokensEntrada: cuerpo.usage?.input_tokens ?? 0, tokensSalida: cuerpo.usage?.output_tokens ?? 0 }
 }
 
+/**
+ * El lector de riesgo con modelo: una llamada corta a Haiku, sin herramientas, con el prompt
+ * medido contra el oro firmado (`riesgoModelo.ts`). Devuelve null si la llamada falla o la
+ * respuesta no se puede leer; quien llama NO sigue sin cribado.
+ */
+export async function leerRiesgoConModelo(d: Dependencias, frase: string): Promise<LecturaModelo | null> {
+  const clave = d.entorno.ANTHROPIC_API_KEY
+  if (!clave) {
+    console.error('praxis-registro: falta el secreto ANTHROPIC_API_KEY')
+    return null
+  }
+  const r = await d.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': clave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    signal: AbortSignal.timeout(TIMEOUT_MODELO_MS),
+    body: JSON.stringify({
+      model: MODELO_HAIKU,
+      max_tokens: 200,
+      temperature: 0,
+      system: [{ type: 'text', text: PROMPT_RIESGO, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: frase }],
+    }),
+  })
+  if (!r.ok) {
+    await registrarErrorDeAnthropic(r, frase)
+    return null
+  }
+  const cuerpo = (await r.json()) as { content?: { type: string; text?: string }[] }
+  const texto = (cuerpo.content ?? []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('\n')
+  const lectura = leerSalidaRiesgo(texto)
+  if (!lectura) console.error('praxis-registro: el lector de riesgo devolvió algo ilegible')
+  return lectura
+}
+
 interface CuerpoProponer {
   frase?: unknown
   mensaje_id?: unknown
@@ -284,11 +320,31 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer): Pro
     comidaPendiente: cuerpo.comida_pendiente,
   })
 
-  // 3. Haiku: solo cita y etiqueta.
-  const salida = await llamarHaiku(d, ctx, frase).catch((e: unknown) => {
-    console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
-    return null
-  })
+  // 3. Haiku dos veces y en paralelo: el registrador (solo cita y etiqueta) y el lector de
+  //    riesgo con modelo. Sin la lectura de riesgo no se sigue: se pide repetir.
+  const [salida, riesgo] = await Promise.all([
+    llamarHaiku(d, ctx, frase).catch((e: unknown) => {
+      console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
+      return null
+    }),
+    leerRiesgoConModelo(d, frase).catch((e: unknown) => {
+      console.error('praxis-registro: el lector de riesgo falló', e instanceof Error ? e.name : 'error')
+      return null
+    }),
+  ])
+  if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
+  const marcaModelo = marcaDesdeModelo(riesgo.nivel)
+  if (marcaModelo) {
+    const propuesta = derivarPorRiesgo(marcaModelo)
+    return json({
+      propuesta,
+      tarjeta: construirTarjeta(propuesta, mensajeId),
+      meta: {
+        modelo: MODELO_HAIKU, derivada: true, aviso_bryan: true, lector_riesgo: riesgo.nivel,
+        version_prompt_riesgo: SHA16_PROMPT_RIESGO, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES,
+      },
+    })
+  }
   if (!salida) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
 
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.

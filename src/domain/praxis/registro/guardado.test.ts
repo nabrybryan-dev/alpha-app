@@ -150,6 +150,12 @@ function entorno(clave: string | undefined = 'sk-prueba-no-real') {
   const respuestas: { url: RegExp; cuerpo: unknown; ok?: boolean }[] = []
   const fetchSim = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     llamadas.push({ url: String(url), init })
+    // El lector de riesgo con modelo (sin herramientas) contesta NINGUNO, salvo que la prueba
+    // haya hecho fallar a Anthropic entero; estas pruebas miran el registrador.
+    const anthropic = respuestas.find((x) => x.url.test(String(url)) && String(url).includes('api.anthropic.com'))
+    if (String(url).includes('api.anthropic.com') && !String(init?.body ?? '').includes('"tools"') && anthropic?.ok !== false) {
+      return new Response(JSON.stringify({ content: [{ type: 'text', text: '{"nivel":"NINGUNO","cita":"","por_que":"prueba"}' }] }))
+    }
     const r = respuestas.find((x) => x.url.test(String(url)))
     if (!r) return new Response('{}', { status: 404 })
     return new Response(JSON.stringify(r.cuerpo), { status: r.ok === false ? 500 : 200 })
@@ -201,7 +207,7 @@ describe('Edge Function praxis-registro', () => {
     expect(cuerpo.propuesta.registros[0]).toMatchObject({ ejercicio_id: 'pa1', valor: [{ orden: 2, cargaKg: 40, reps: 12 }] })
     expect(cuerpo.tarjeta.lineas[0].texto).toBe('SENTADILLA TRASERA · serie 2 · 40 kg × 12')
     expect(cuerpo.meta).toMatchObject({ modelo: 'claude-haiku-4-5', tokens_entrada: 1800 })
-    const enviado = JSON.parse(String(e.llamadas.find((l) => l.url.includes('anthropic'))!.init!.body))
+    const enviado = JSON.parse(String(e.llamadas.find((l) => l.url.includes("anthropic") && String(l.init?.body ?? "").includes("\"tools\""))!.init!.body))
     expect(enviado.tool_choice).toEqual({ type: 'tool', name: 'registrar' })
     expect(enviado.tools[0].strict).toBeUndefined()
     expect(enviado.temperature).toBe(0)
@@ -216,7 +222,7 @@ describe('Edge Function praxis-registro', () => {
     e.base()
     e.respuestas.push({ url: /api\.anthropic\.com/, cuerpo: haiku(entradaSentadilla) })
     const r = await manejar(post({ frase: 'sentadilla 40 por 12' }), e.d)
-    const llamada = e.llamadas.find((l) => l.url.includes('anthropic'))!
+    const llamada = e.llamadas.find((l) => l.url.includes("anthropic") && String(l.init?.body ?? "").includes("\"tools\""))!
     expect((llamada.init!.headers as Record<string, string>)['x-api-key']).toBe('sk-ant-secreto-de-prueba')
     expect(String(llamada.init!.body)).not.toContain('sk-ant-secreto')
     expect(JSON.stringify(await r.json())).not.toContain('sk-ant-secreto')
