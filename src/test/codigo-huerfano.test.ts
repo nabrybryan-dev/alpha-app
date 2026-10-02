@@ -30,6 +30,14 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   'src/domain/praxis/registro/index.ts':
     'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
 
+  // La condicion del cero (Bryan, 1-oct-2026): con {rir} = 0 las respuestas de Praxis usan
+  // FRASES-DEL-CERO en vez de «te quedaban 0 mas». Sin enchufar porque alpha-app todavia no
+  // tiene enrutador de respuestas ni plantillas PLT-* (viven en el repo de lenguaje); el
+  // enrutador, cuando se construya, llama a variantesParaElTurno antes de elegir variante.
+  'src/domain/praxis/respuestas/frasesDelCero.ts':
+    'Condicion del RIR 0 para el enrutador de respuestas, que aun no existe en la app; ' +
+    'se prueba aparte y no confunde FALLO con RIR 0.',
+
   // El contrato de trayectorias: que ningun patron contradiga a su propio implemento.
   // No lo importa la app y no es un descuido: es una regla que se hace cumplir desde una
   // prueba, como una regla de linter, no una funcion que alguien llame en un fotograma. Se
