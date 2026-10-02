@@ -50,14 +50,23 @@ import { describe, expect, it } from 'vitest'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 
+/**
+ * Cada batería se corre UNA vez por archivo de prueba y su salida se reutiliza. La del disco
+ * tarda ~40 s sola (los 1.500 fotogramas de «sin deriva»); antes se corría dos veces con un
+ * tope de 120 s, y en el CI, compitiendo con los demás hilos de vitest, pasaba del tope y
+ * tumbaba PRs que no tocaban el encoder (#333 y #335, 2-oct). Lo que se comprueba no cambia.
+ */
+const yaCorridas = new Map<string, string>()
+
 /** Corre una batería y devuelve cuántas líneas VERDE y cuántas ROJO imprimió. */
 function correr(bateria: string): { verdes: number; rojos: number; salida: string } {
   // `execFileSync` y no `exec`: sin shell de por medio no hay comillas que escapar ni
   // rutas con espacios que partan el comando (esta máquina tiene «C:\Users\ASUS»).
-  const salida = execFileSync(process.execPath, [join(AQUI, bateria)], {
+  const salida = yaCorridas.get(bateria) ?? execFileSync(process.execPath, [join(AQUI, bateria)], {
     encoding: 'utf8',
-    timeout: 120_000,
+    timeout: 300_000,
   })
+  yaCorridas.set(bateria, salida)
   const lineas = salida.split('\n')
   return {
     // Solo las que EMPIEZAN por la palabra: la batería de velocidad imprime además un
