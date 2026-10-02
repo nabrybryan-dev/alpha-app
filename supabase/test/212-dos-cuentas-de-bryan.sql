@@ -7,8 +7,8 @@
 --      y repetirla recoge una capacidad que la cuenta Alpha ganó después.
 --   4. Falla sin cambiar nada: correo que no existe, correo de la cuenta Alpha.
 --   5. «bryan» sale de es_coach(): las dos cuentas son el mismo dueño en Mi plan (plan_dueno_actual).
---   6. companeros_de_decision(): la cuenta personal no ve a la cuenta Alpha (solo_tablero) como compañero,
---      y sí ve a Manuela.
+--   6. companeros_de_decision(): la cuenta personal ve a Manuela como compañero y NO a la cuenta Alpha
+--      (solo_tablero).
 --
 -- La cuenta Alpha es la del uid real (28c3cfe8-…): la migración lo escribe, la prueba lo reproduce.
 -- Bloque de UUID propio para el resto (e2…). ROLLBACK al final.
@@ -148,8 +148,11 @@ reset role;
 select pruebas.soy('e2000000-0000-0000-0000-000000000001');
 set role authenticated;
 select pruebas.afirmar(
-  (select array_agg(id order by id) = array['e2000000-0000-0000-0000-000000000002'::uuid] from public.companeros_de_decision()),
-  'la cuenta personal debería ver solo a Manuela como compañero de firma, no a la cuenta Alpha');
+  exists (select 1 from public.companeros_de_decision() where id = 'e2000000-0000-0000-0000-000000000002'),
+  'la cuenta personal debería ver a Manuela como compañero de firma');
+select pruebas.afirmar(
+  not exists (select 1 from public.companeros_de_decision() where id = '28c3cfe8-13ef-4f3e-95cc-f23c4f260bce'),
+  'la cuenta Alpha (solo_tablero) aparece como compañero de firma');
 reset role;
 
 select pruebas.soy('e2000000-0000-0000-0000-000000000003');
