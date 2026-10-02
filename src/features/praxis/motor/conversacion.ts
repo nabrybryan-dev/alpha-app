@@ -3,6 +3,7 @@ import { destinatarioDe, estadoDeLaEspera, ofertaDePregunta, type Destinatario }
 import { SIN_DATO, type QueFalto } from '../../../domain/praxis/plan/responder'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
 import { Cab, compactar, enfocarControles, limpiarControles, montar, refrescar } from './cabecera'
+import { decidirTurnoConCharla } from './charla'
 import { chips } from './controles'
 import { conexion, type ConexionPraxis } from './conexion'
 import { $, h } from './dom'
@@ -19,6 +20,8 @@ import { Cancelado, S, cancelar, emitir, esperaCon, vigilar } from './sesion'
  * El orden lo decide el dominio (`decidirTurno`) y aquí solo se pinta:
  *   1. Seguridad: riesgo → la Quieta; ambiguo → la pregunta de cuidado; salud → texto fijo.
  *      Nada de eso sale del teléfono.
+ *   1b. Solo si el filtro no marcó nada: la charla básica («hola», «gracias», «quién eres»), que se
+ *      contesta aquí mismo, sin servidor y sin guardar nada (`charla.ts`).
  *   2. Una pregunta por el plan se contesta con lo que Praxis ve (lista blanca), sin modelo.
  *   3. Lo demás va al registrador (Edge Function `praxis-registro`): vuelve una PROPUESTA,
  *      se enseña en una tarjeta y se guarda solo si la persona toca «Guardar».
@@ -188,14 +191,27 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
   }
 }
 
+/* Lo último que dijo Praxis: ¿fue una pregunta de ánimo? Y cuántas veces habló ya la persona en esta sesión. Solo sirven a la charla. */
+let animoPendiente = false, turnosHablados = 0
+
 async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?: { ejercicioId: string; eco: string }): Promise<void> {
   limpiarControles()
-  const turno = decidirTurno(frase, c.leer(), c.hoy, trato())
+  // Con un ejercicio elegido con un toque nunca es charla. Si no: el filtro de riesgo primero y, solo si no marca nada, la charla.
+  const turno = eleccion
+    ? decidirTurno(frase, c.leer(), c.hoy, trato())
+    : decidirTurnoConCharla(frase, c.leer(), c.hoy, { trato: trato(), hora: new Date().getHours(), esperaAnimo: animoPendiente, yaHablo: turnosHablados > 0 })
   if (turno.paso === 'nada') return
+  turnosHablados++
+  animoPendiente = false // lo último que dijo Praxis cambia con cada turno; solo el saludo y el «¿Y tú?» lo vuelven a abrir
   // La seguridad va primero: estas dos salidas cancelan el turno (el bucle termina en su próximo vigilar).
   if (turno.paso === 'quieta') { mostrarPersona(frase, 'texto'); entrarQuieta(turno.linea, frase, false); return }
   if (turno.paso === 'cuidado') { preguntarCuidado(frase, 'texto'); return }
   mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
+  if (turno.paso === 'charla') { // 0 ms, 0 tokens: nada va al servidor ni se guarda, y se dice con la misma voz que todo lo demás
+    animoPendiente = turno.respuesta.esperaAnimo
+    await decir(turno.respuesta.texto, tok)
+    return
+  }
   if (turno.paso === 'salud') { await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
   if (turno.paso === 'plan') {
     const r = turno.respuesta
@@ -241,6 +257,7 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
   try {
     if (!S.t0) S.t0 = performance.now()
     S.turno = 'conversa'; S.enFirma = false; S.cola = []
+    animoPendiente = false; turnosHablados = 0
     Cab.pendiente = false // conectada no se compacta: el agujero se queda en el centro, que es por donde se habla (Bryan, 2-oct)
     Onda.soltarFirma(); Onda.estado('reposo')
     Penta.cerrar(); $('#penta').hidden = true; $('#muelle').hidden = false; $('#editor').hidden = true
