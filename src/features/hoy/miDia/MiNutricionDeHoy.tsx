@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { catalogoRepo } from '../../../data/catalogo/catalogoRepo'
 import { db } from '../../../data/dbInstance'
 import { visibilidadDelAsesorado } from '../../../data/visibilidadDelAsesorado'
+import { AVISO_SIN_MACROS, macrosDelDia } from '../../../domain/nutricion/macrosDelDia'
 import { resumenDelDia } from '../../../domain/nutricion/resumen'
 import type { TipoDia } from '../../../domain/types'
 import { ResumenDia } from '../../nutricion/ResumenDia'
@@ -32,6 +33,7 @@ interface MiNutricionDeHoyProps {
  */
 export default function MiNutricionDeHoy({ usuarioId, hoy }: MiNutricionDeHoyProps) {
   const plan = db.nutricion.planByUsuario(usuarioId)
+  const meta = macrosDelDia(plan, TIPO_DIA_POR_DEFECTO)
   const total = resumenDelDia(db.registroComidas.delDia(usuarioId, hoy), (id) => catalogoRepo.porId(id))
 
   return (
@@ -50,12 +52,20 @@ export default function MiNutricionDeHoy({ usuarioId, hoy }: MiNutricionDeHoyPro
       </div>
       {plan ? (
         <>
-          <ResumenDia total={total} meta={plan.macrosPorDia[TIPO_DIA_POR_DEFECTO]} visibilidad={visibilidadDelAsesorado(usuarioId)} />
+          {meta ? (
+            <ResumenDia total={total} meta={meta} visibilidad={visibilidadDelAsesorado(usuarioId)} />
+          ) : (
+            <p role="alert" className="text-xs text-tenue">
+              {AVISO_SIN_MACROS}
+            </p>
+          )}
+          {meta && (
           <p className="text-xs text-tenue">
             Meta del día {TIPO_DIA_POR_DEFECTO}
             {plan.etiquetasDia?.[TIPO_DIA_POR_DEFECTO] ? ` («${plan.etiquetasDia[TIPO_DIA_POR_DEFECTO]}»)` : ''}: todavía no se
             elige el tipo de día, así que se mide contra esa, igual que el diario.
           </p>
+          )}
         </>
       ) : (
         <p className="text-sm text-tenue">
