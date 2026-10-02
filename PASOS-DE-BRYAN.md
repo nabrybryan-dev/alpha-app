@@ -35,10 +35,10 @@ sigue en **`/praxis/ejemplo`**, solo para el equipo y con su sello de «Datos de
   línea del editor con la última del archivo (`commit;`): un pegado cortado no da error.
 - **Después:** vuelve a correr `comprobar-migraciones.sql`. Las seis filas `0105 - …` tienen
   que decir **SI**.
-- **Ojo con el número:** hay otras ramas sin fusionar con las migraciones 0090 a 0104. La
-  0105 no depende de ninguna (solo usa `usuarios_app`, `es_coach()` y `es_nutricionista()`,
-  que ya están en producción). Si antes de aplicarla otra rama coge el 0105, se renumera
-  esta **antes** de aplicar.
+- **Ojo con el número:** las migraciones 0090 a 0104 entraron en `main` con el PR #329 la
+  noche del 1-oct. La 0105 no depende de ninguna (solo usa `usuarios_app`, `es_coach()` y
+  `es_nutricionista()`, que ya están en producción). Si antes de aplicarla otra rama coge el
+  0105, se renumera esta **antes** de aplicar.
 - **No crea datos de nadie** y no toca ninguna tabla existente. El tope de dos preguntas
   abiertas por persona vive en un trigger con candado: probado en el CI contra Postgres,
   también con tres filas en una sola petición.

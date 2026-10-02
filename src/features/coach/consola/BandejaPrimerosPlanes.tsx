@@ -17,7 +17,7 @@ import {
   type RiesgoPrimerPlan,
   type SesionResumida,
 } from '../../../domain/consolaCoach/primerPlan'
-import { Esqueleto, Tarjeta } from './piezas'
+import { Esqueleto, FalloBandeja, Tarjeta } from './piezas'
 import { useCapacidades } from './useCapacidades'
 
 /**
@@ -49,20 +49,35 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
   const { cargando, tiene } = useCapacidades()
   const puedeVer = !cargando && tiene('aprobar_primer_plan')
   const [planes, setPlanes] = useState<PrimerPlan[] | null>(null)
+  // Por qué no se pudo leer la bandeja; `null` si no falló. Un fallo no es «no hay» (APP-F01).
+  const [fallo, setFallo] = useState<string | null>(null)
+  const [intento, setIntento] = useState(0)
   const [ahora, setAhora] = useState(() => Date.now())
 
   useEffect(() => {
     if (!puedeVer) return
     let vivo = true
-    primerosPlanesPendientes().then((lista) => {
-      if (vivo) setPlanes(lista)
+    primerosPlanesPendientes().then((lectura) => {
+      if (!vivo) return
+      if (lectura.ok) {
+        setPlanes(lectura.datos)
+        setFallo(null)
+      } else {
+        setPlanes(null)
+        setFallo(lectura.error)
+      }
     })
     const reloj = setInterval(() => setAhora(Date.now()), MS_RELOJ)
     return () => {
       vivo = false
       clearInterval(reloj)
     }
-  }, [puedeVer])
+  }, [puedeVer, intento])
+
+  const reintentar = () => {
+    setFallo(null)
+    setIntento((n) => n + 1)
+  }
 
   if (!puedeVer) return null
 
@@ -74,13 +89,15 @@ export function BandejaPrimerosPlanes({ onVerPersona }: BandejaProps) {
     <Tarjeta
       titulo="Primeros planes por aprobar"
       destacada
-      extra={<span className="cifras text-lg font-bold text-texto">{planes ? pendientes : '…'}</span>}
+      extra={<span className="cifras text-lg font-bold text-texto">{planes ? pendientes : fallo !== null ? '—' : '…'}</span>}
     >
       <p className="mb-2.5 text-[12.5px] text-tenue">
         Clientes nuevos de la landing. Si nadie decide antes del plazo, solo pasa el riesgo bajo sin dudas; lo
         clínico espera siempre a Bryan.
       </p>
-      {planes === null ? (
+      {fallo !== null ? (
+        <FalloBandeja error={fallo} onReintentar={reintentar} />
+      ) : planes === null ? (
         <Esqueleto lineas={2} />
       ) : planes.length === 0 ? (
         <p className="rounded-lg border border-dashed border-linea px-3 py-2.5 text-[12.5px] text-tenue">

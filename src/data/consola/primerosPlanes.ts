@@ -85,20 +85,29 @@ export function aPrimerPlan(fila: FilaPrimerPlan): PrimerPlan | null {
   }
 }
 
-/** Los que siguen pendientes (`propuesto` o `espera_bryan`). Nunca lanza: ante cualquier
- *  error, sin conexión o sin permiso, `[]`. */
-export async function primerosPlanesPendientes(): Promise<PrimerPlan[]> {
-  if (!modoNube) return []
+/** Una lectura de bandeja: la lista, o por qué no se pudo leer. Un fallo NO es una bandeja
+ *  vacía (APP-F01 de la revisión final de Codex, 28-sep): antes el error se volvía `[]` y la
+ *  pantalla decía «Nada esperando tu firma» con la red caída. */
+export type LecturaBandeja<T> = { ok: true; datos: T[] } | { ok: false; error: string }
+
+/** Los que siguen pendientes (`propuesto` o `espera_bryan`). Nunca lanza: ante un error, sin
+ *  conexión o sin permiso, `{ ok: false, error }`. En demo, la bandeja está vacía de verdad. */
+export async function primerosPlanesPendientes(): Promise<LecturaBandeja<PrimerPlan>> {
+  if (!modoNube) return { ok: true, datos: [] }
   try {
     const { data, error } = await supabase()
       .from(TABLA_PRIMER_PLAN)
       .select(SELECCION)
       .in('estado', ['propuesto', 'espera_bryan'])
       .order('plazo_hasta', { ascending: true })
-    if (error || !data) return []
-    return (data as unknown as FilaPrimerPlan[]).map(aPrimerPlan).filter((p): p is PrimerPlan => p !== null)
-  } catch {
-    return []
+    if (error) return { ok: false, error: error.message || 'No se pudo leer la bandeja.' }
+    if (!data) return { ok: false, error: 'La base no devolvió la bandeja.' }
+    return {
+      ok: true,
+      datos: (data as unknown as FilaPrimerPlan[]).map(aPrimerPlan).filter((p): p is PrimerPlan => p !== null),
+    }
+  } catch (fallo) {
+    return { ok: false, error: fallo instanceof Error ? fallo.message : 'Error de red.' }
   }
 }
 

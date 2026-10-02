@@ -130,5 +130,40 @@ jobs:
       - name: La tarjeta semanal y los mensajes de estilo de vida respetan quién es el dueño
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/100-tarjeta-vida-y-mensajes.sql
 
+      - name: El tablero de creadores solo lo leen el coach y quien tiene revisar_creadores
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-creadores-tablero.sql
+
+      - name: Las decisiones compartidas las anota quien tiene acceso, las firma solo el otro y no admiten salud
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/120-decisiones-compartidas.sql
+
+      - name: Cada quien ve solo sus comentarios de la app y solo el coach los cierra
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/130-comentarios-app.sql
+
+      - name: El buzón de mercadeo es de Manuela, y la regla vigente pide 3 referencias y la firma del coach
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/140-buzon-mercadeo.sql
+
+      - name: La historia del embudo de creadores no acepta un carril inventado
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/150-creadores-eventos-carril.sql
+
+      - name: El organizador de Bryan y Manuela guarda cada plan con su dueño, tope de 3 tareas por día y una sola principal
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/160-plan-items.sql
+
+      - name: El registro de avisos push del organizador admite un aviso por tarea y día y solo lo escribe el servicio
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/170-avisos-plan-enviados.sql
+
+      - name: Las vistas de comentarios y decisiones corren con los permisos de quien las lee, y cada rol ve lo mismo que antes
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/180-vistas-invoker.sql
+
+      - name: Los avisos de seguridad (checkins_nutricion invoker, firmas sin anon) no cambian lo que ve cada rol
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/190-avisos-seguridad.sql
+
+      - name: El tablero del área administrativa lo lee quien tiene la capacidad, no lo escribe nadie con sesión y anon no ve nada
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/200-admin-tablero.sql
+
+      - name: Los hallazgos de mercadeo los leen Manuela y Bryan, comentan por la función, solo el servidor escribe y anon no ve nada
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/210-mercadeo-hallazgos.sql
+
+      - name: Quien comenta un hallazgo de mercadeo queda con su nombre real, no con el papel de Manuela
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/211-mercadeo-hallazgos-autor-real.sql
       - name: La pregunta en espera de Praxis es de quien la hace, y solo responde quien la recibe
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/105-praxis-preguntas-en-espera.sql

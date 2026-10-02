@@ -7,10 +7,9 @@
 -- Praxis sigue funcionando: al ofrecer «¿Se lo pregunto a tu coach?» y recibir el «sí»,
 -- dice que todavía no puede dejar la pregunta, y no finge que la dejó.
 --
--- NÚMERO. `main` llega a la 0089. Comprobado el 1-oct contra todas las ramas locales y
--- remotas del repo: la numeración más alta que alguna trae es la 0104
--- (`hallazgos_autor_real`, en `feat/estrategias-investigacion-agenda`); la 0093 es de
--- `feat/salud-atajo`. La 0105 es el siguiente libre. Si otra rama la coge antes de que
+-- NÚMERO. Comprobado el 1-oct contra todas las ramas locales y remotas: la más alta que
+-- alguna trae es la 0104 (`hallazgos_autor_real`), que esa misma noche entró en `main` con
+-- el PR #329; la 0093 es de `feat/salud-atajo`. La 0105 es el siguiente libre. Si otra rama la coge antes de que
 -- esta se aplique, se renumera AQUÍ, antes de aplicar: nunca después.
 --
 -- QUÉ PROBLEMA RESUELVE. Decisión D6 de Bryan (29-sep) y plazos de PD-8 (30-sep): cuando

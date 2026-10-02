@@ -1962,6 +1962,226 @@ select '0089 - piloto_purgar_encaje sin execute para anon/authenticated y progra
             when to_regclass('cron.job') is null then 'NO'
             else 'SI' end
 union all
+-- La 0090: las tres tablas del tablero de creadores con RLS, anon sin nada y authenticated
+-- SOLO con select (el importador escribe con service_role).
+select '0090 - tablero de creadores: RLS, anon sin acceso, authenticated solo lee', 'las 3 tablas creadores_* con RLS; anon sin select; authenticated con select y sin insert/update/delete',
+       case when exists (
+         select 1 from unnest(array['public.creadores_candidatos', 'public.creadores_revisiones', 'public.creadores_eventos']) t(tabla)
+          where to_regclass(t.tabla) is null
+             or not (select c.relrowsecurity from pg_class c where c.oid = to_regclass(t.tabla))
+             or has_table_privilege('anon', t.tabla, 'select')
+             or not has_table_privilege('authenticated', t.tabla, 'select')
+             or has_table_privilege('authenticated', t.tabla, 'insert')
+             or has_table_privilege('authenticated', t.tabla, 'update')
+             or has_table_privilege('authenticated', t.tabla, 'delete')
+       ) then 'NO' else 'SI' end
+union all
+-- La 0090: el check de capacidades admite revisar_creadores y firmar_creadores SIN perder
+-- ninguna de las 8 anteriores.
+select '0090 - capacidades revisar_creadores y firmar_creadores', 'el check de capacidades_staff contiene las 10',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 10
+            then 'SI' else 'NO' end
+union all
+-- La 0090: el bucket de las hojas de cuadros es privado.
+select '0090 - bucket creadores-cuadros privado', 'storage.buckets creadores-cuadros con public = false',
+       case when exists (select 1 from storage.buckets where id = 'creadores-cuadros' and public = false)
+            then 'SI' else 'NO' end
+union all
+-- La 0091: la unicidad de creadores_revisiones incluye al creador.
+select '0091 - creadores_revisiones única por (revision_id, creador_id, revisor, rol_reel)', 'constraint creadores_revisiones_unica_por_creador y sin el unique viejo sin creador',
+       case when exists (select 1 from pg_constraint where conname = 'creadores_revisiones_unica_por_creador' and contype = 'u')
+             and not exists (select 1 from pg_constraint where conname = 'creadores_revisiones_revision_id_revisor_rol_reel_key')
+            then 'SI' else 'NO' end
+union all
+-- La 0092: el bucket de las hojas de cuadros existe y es privado aunque ya existiera
+-- público antes de la 0090 (su `on conflict do nothing` no lo cambiaba).
+select '0092 - bucket creadores-cuadros forzado a privado', 'storage.buckets creadores-cuadros existe y public = false (ninguno público con ese id)',
+       case when exists (select 1 from storage.buckets where id = 'creadores-cuadros')
+             and not exists (select 1 from storage.buckets where id = 'creadores-cuadros' and public is distinct from false)
+            then 'SI' else 'NO' end
+union all
+-- La 0094: decisiones con RLS, anon sin nada y authenticated SOLO con select (escribe la
+-- función anotar_decision, que anon no ejecuta), y la vista con su estado.
+select '0094 - decisiones compartidas: RLS, solo lee authenticated, funciones cerradas a anon', 'decisiones con RLS; anon sin select; authenticated solo select; anotar_decision y firmar_decision sin execute para anon; vista decisiones_con_estado',
+       case when to_regclass('public.decisiones') is null or to_regclass('public.decisiones_con_estado') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.decisiones')) then 'NO'
+            when has_table_privilege('anon', 'public.decisiones', 'select')
+              or has_table_privilege('anon', 'public.decisiones_con_estado', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.decisiones', 'select')
+              or has_table_privilege('authenticated', 'public.decisiones', 'insert')
+              or has_table_privilege('authenticated', 'public.decisiones', 'update')
+              or has_table_privilege('authenticated', 'public.decisiones', 'delete') then 'NO'
+            when to_regprocedure('public.firmar_decision(uuid,text,text)') is null
+              or has_function_privilege('anon', 'public.firmar_decision(uuid,text,text)', 'execute')
+              or has_function_privilege('anon', 'public.anotar_decision(text,text,text,text,text,bigint,text,date,date,text,text,text,text,text,text,date,uuid,text,date)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0094 - capacidad decisiones_compartidas sin perder las anteriores', 'el check de capacidades_staff contiene decisiones_compartidas y las 10 de la 0090',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores', 'decisiones_compartidas']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 11
+            then 'SI' else 'NO' end
+union all
+-- La 0095: comentarios con RLS, anon sin nada, authenticated sin insert/update/delete, la
+-- vista mis_comentarios sin campos internos y la purga cerrada a las sesiones.
+select '0095 - comentarios de la app: RLS, escribe solo la función, mis_comentarios sin campos internos', 'comentarios_app con RLS; anon sin select; authenticated sin insert/update/delete; enviar_comentario sin execute para anon; mis_comentarios sin contrato_id',
+       case when to_regclass('public.comentarios_app') is null or to_regclass('public.mis_comentarios') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.comentarios_app')) then 'NO'
+            when has_table_privilege('anon', 'public.comentarios_app', 'select')
+              or has_table_privilege('anon', 'public.mis_comentarios', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.comentarios_app', 'insert')
+              or has_table_privilege('authenticated', 'public.comentarios_app', 'update')
+              or has_table_privilege('authenticated', 'public.comentarios_app', 'delete') then 'NO'
+            when to_regprocedure('public.enviar_comentario(text,text,text,text)') is null
+              or has_function_privilege('anon', 'public.enviar_comentario(text,text,text,text)', 'execute')
+              or has_function_privilege('authenticated', 'public.purgar_texto_comentarios(integer)', 'execute') then 'NO'
+            when exists (select 1 from information_schema.columns where table_name = 'mis_comentarios' and column_name = 'contrato_id') then 'NO'
+            else 'SI' end
+union all
+select '0095 - capacidad triar_comentarios sin perder las anteriores', 'el check de capacidades_staff contiene triar_comentarios y las 10 de la 0090',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores', 'triar_comentarios']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 11
+            then 'SI' else 'NO' end
+union all
+-- La 0096: las dos tablas del buzón con RLS, anon sin nada, authenticated solo lee, y las
+-- funciones de responder y de mover la regla cerradas a anon.
+select '0096 - buzón de mercadeo: RLS, solo lee authenticated, funciones cerradas a anon', 'mercadeo_preguntas y mercadeo_referencias con RLS; anon sin select; authenticated solo select; responder_buzon_mercadeo y mover_regla_mercadeo sin execute para anon',
+       case when exists (
+         select 1 from unnest(array['public.mercadeo_preguntas', 'public.mercadeo_referencias']) t(tabla)
+          where to_regclass(t.tabla) is null
+             or not (select c.relrowsecurity from pg_class c where c.oid = to_regclass(t.tabla))
+             or has_table_privilege('anon', t.tabla, 'select')
+             or not has_table_privilege('authenticated', t.tabla, 'select')
+             or has_table_privilege('authenticated', t.tabla, 'insert')
+             or has_table_privilege('authenticated', t.tabla, 'update')
+             or has_table_privilege('authenticated', t.tabla, 'delete')
+       ) then 'NO'
+            when to_regprocedure('public.responder_buzon_mercadeo(uuid,text,jsonb)') is null
+              or to_regprocedure('public.mover_regla_mercadeo(uuid,text,text)') is null
+              or has_function_privilege('anon', 'public.responder_buzon_mercadeo(uuid,text,jsonb)', 'execute')
+              or has_function_privilege('anon', 'public.mover_regla_mercadeo(uuid,text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+select '0096 - capacidad responder_mercadeo sin perder las anteriores', 'el check de capacidades_staff contiene responder_mercadeo y las 10 de la 0090',
+       case when (select count(*) from unnest(array['leer_entrenamiento', 'responder_por_asesorado', 'detener_publicacion',
+                    'reportar_riesgo', 'autorizar_excepcion', 'firmar_politica', 'aprobar_primer_plan',
+                    'aprobar_plan_estrategico', 'revisar_creadores', 'firmar_creadores', 'responder_mercadeo']) cap
+                   where exists (select 1 from pg_constraint
+                                  where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                    and pg_get_constraintdef(oid) like '%' || cap || '%')) = 11
+            then 'SI' else 'NO' end
+union all
+-- La 0097: creadores_eventos limita carril_nuevo y carril_anterior a la lista de carriles.
+select '0097 - creadores_eventos solo acepta carriles conocidos', 'existen creadores_eventos_carril_nuevo_conocido y creadores_eventos_carril_anterior_conocido',
+       case when (select count(*) from pg_constraint
+                   where conrelid = 'public.creadores_eventos'::regclass and contype = 'c'
+                     and conname in ('creadores_eventos_carril_nuevo_conocido', 'creadores_eventos_carril_anterior_conocido')) = 2
+            then 'SI' else 'NO' end
+union all
+-- La 0098: plan_items (organizador). RLS, anon sin nada, authenticated sin delete y con la capacidad.
+select '0098 - plan_items: RLS, anon sin nada, authenticated sin delete, capacidad organizar_plan', 'plan_items con RLS; anon sin select; authenticated con select/insert/update pero sin delete; plan_dueno_actual sin execute para anon; indice unico de una principal por dia; el check de capacidades contiene organizar_plan',
+       case when to_regclass('public.plan_items') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.plan_items')) then 'NO'
+            when has_table_privilege('anon', 'public.plan_items', 'select')
+              or has_table_privilege('anon', 'public.plan_items', 'insert') then 'NO'
+            when not has_table_privilege('authenticated', 'public.plan_items', 'select')
+              or has_table_privilege('authenticated', 'public.plan_items', 'delete') then 'NO'
+            when to_regprocedure('public.plan_dueno_actual()') is null
+              or has_function_privilege('anon', 'public.plan_dueno_actual()', 'execute') then 'NO'
+            when to_regclass('public.plan_items_una_principal_por_dia') is null then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%organizar_plan%') then 'NO'
+            else 'SI' end
+union all
+-- La 0099: avisos_plan_enviados (avisos push del organizador). Solo service_role escribe.
+select '0099 - avisos_plan_enviados: RLS, solo service_role, un aviso por tarea y dia', 'avisos_plan_enviados con RLS; anon y authenticated sin select ni insert; service_role con insert; indice unico por tarea y dia',
+       case when to_regclass('public.avisos_plan_enviados') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.avisos_plan_enviados')) then 'NO'
+            when has_table_privilege('anon', 'public.avisos_plan_enviados', 'select')
+              or has_table_privilege('authenticated', 'public.avisos_plan_enviados', 'select')
+              or has_table_privilege('authenticated', 'public.avisos_plan_enviados', 'insert') then 'NO'
+            when not has_table_privilege('service_role', 'public.avisos_plan_enviados', 'insert') then 'NO'
+            when to_regclass('public.avisos_plan_enviados_una_por_tarea_y_dia') is null then 'NO'
+            else 'SI' end
+union all
+-- La 0100: las vistas mis_comentarios y decisiones_con_estado con security_invoker (advisor: Security Definer View).
+select '0100 - mis_comentarios y decisiones_con_estado con security_invoker', 'las dos vistas con reloptions security_invoker=on; mis_comentarios_datos() security definer sin execute para anon; anon sin select en ninguna vista',
+       case when to_regclass('public.mis_comentarios') is null or to_regclass('public.decisiones_con_estado') is null then 'NO'
+            when not coalesce((select c.reloptions @> array['security_invoker=on'] from pg_class c where c.oid = to_regclass('public.mis_comentarios')), false)
+              or not coalesce((select c.reloptions @> array['security_invoker=on'] from pg_class c where c.oid = to_regclass('public.decisiones_con_estado')), false) then 'NO'
+            when to_regprocedure('public.mis_comentarios_datos()') is null
+              or has_function_privilege('anon', 'public.mis_comentarios_datos()', 'execute') then 'NO'
+            when has_table_privilege('anon', 'public.mis_comentarios', 'select')
+              or has_table_privilege('anon', 'public.decisiones_con_estado', 'select') then 'NO'
+            else 'SI' end
+union all
+-- La 0101: checkins_nutricion con security_invoker (advisor: Security Definer View) y sin execute para anon en es_nutricionista/firmo_yo.
+select '0101 - checkins_nutricion con security_invoker; es_nutricionista y firmo_yo sin anon', 'la vista con reloptions security_invoker=on sobre checkins_nutricion_datos() (definer, sin execute para anon); anon sin select; es_nutricionista() y firmo_yo() sin execute para anon ni public',
+       case when to_regclass('public.checkins_nutricion') is null then 'NO'
+            when not coalesce((select c.reloptions @> array['security_invoker=on'] from pg_class c where c.oid = to_regclass('public.checkins_nutricion')), false) then 'NO'
+            when to_regprocedure('public.checkins_nutricion_datos()') is null
+              or has_function_privilege('anon', 'public.checkins_nutricion_datos()', 'execute') then 'NO'
+            when has_table_privilege('anon', 'public.checkins_nutricion', 'select') then 'NO'
+            when to_regprocedure('public.es_nutricionista()') is null or to_regprocedure('public.firmo_yo(text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.es_nutricionista()', 'execute')
+              or has_function_privilege('anon', 'public.firmo_yo(text)', 'execute')
+              or has_function_privilege('public', 'public.es_nutricionista()', 'execute')
+              or has_function_privilege('public', 'public.firmo_yo(text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+-- La 0102: admin_tablero (área administrativa) y la capacidad ver_administracion. Lee la capacidad; escribe solo service_role.
+select '0102 - admin_tablero: RLS, lectura por capacidad ver_administracion, solo service_role escribe', 'admin_tablero con RLS; anon sin select; authenticated con select pero sin insert/update/delete; service_role con insert; unico por seccion y corte; el check de capacidades contiene ver_administracion',
+       case when to_regclass('public.admin_tablero') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.admin_tablero')) then 'NO'
+            when has_table_privilege('anon', 'public.admin_tablero', 'select') then 'NO'
+            when not has_table_privilege('authenticated', 'public.admin_tablero', 'select')
+              or has_table_privilege('authenticated', 'public.admin_tablero', 'insert')
+              or has_table_privilege('authenticated', 'public.admin_tablero', 'update')
+              or has_table_privilege('authenticated', 'public.admin_tablero', 'delete') then 'NO'
+            when not has_table_privilege('service_role', 'public.admin_tablero', 'insert') then 'NO'
+            when to_regclass('public.admin_tablero_una_por_seccion_y_corte') is null then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.capacidades_staff'::regclass and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%ver_administracion%') then 'NO'
+            else 'SI' end
+union all
+-- La 0103: hallazgos de mercadeo y su hilo. RLS, anon sin nada, authenticated solo lee, comentar por función cerrada a anon.
+select '0103 - hallazgos de mercadeo: RLS, solo lee authenticated, comentar por función cerrada a anon', 'mercadeo_hallazgos y mercadeo_hallazgo_comentarios con RLS; anon sin select; authenticated solo select; service_role escribe; comentar_hallazgo_mercadeo sin execute para anon',
+       case when exists (
+         select 1 from unnest(array['public.mercadeo_hallazgos', 'public.mercadeo_hallazgo_comentarios']) t(tabla)
+          where to_regclass(t.tabla) is null
+             or not (select c.relrowsecurity from pg_class c where c.oid = to_regclass(t.tabla))
+             or has_table_privilege('anon', t.tabla, 'select')
+             or not has_table_privilege('authenticated', t.tabla, 'select')
+             or has_table_privilege('authenticated', t.tabla, 'insert')
+             or has_table_privilege('authenticated', t.tabla, 'update')
+             or has_table_privilege('authenticated', t.tabla, 'delete')
+             or not has_table_privilege('service_role', t.tabla, 'insert')
+       ) then 'NO'
+            when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
+              or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+-- La 0104: el autor real de cada comentario de hallazgo. Columna autor_nombre y la función que la rellena.
+select '0104 - hallazgos de mercadeo: autor real del comentario', 'mercadeo_hallazgo_comentarios.autor_nombre existe; comentar_hallazgo_mercadeo la escribe; anon sigue sin execute',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'mercadeo_hallazgo_comentarios' and column_name = 'autor_nombre') then 'NO'
+            when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
+              or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute')
+              or pg_get_functiondef('public.comentar_hallazgo_mercadeo(uuid,text)'::regprocedure) not like '%autor_nombre%' then 'NO'
 -- La 0105: la bandeja de preguntas de Praxis existe, con RLS, y anon no tiene nada.
 select '0105 - praxis_preguntas_en_espera con RLS y sin nada para anon', 'RLS encendida, anon sin select ni insert, authenticated con select',
        case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'

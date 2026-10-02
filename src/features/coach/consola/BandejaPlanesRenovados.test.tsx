@@ -20,7 +20,9 @@ const datos = {
 }
 
 vi.mock('../../../data/consola/planesRenovados', () => ({
-  planesRenovadosPendientes: (...a: unknown[]) => datos.planesRenovadosPendientes(...a),
+  // Una lista en el doble es una lectura buena; `{ ok: false }` es un fallo (APP-F01).
+  planesRenovadosPendientes: (...a: unknown[]) =>
+    Promise.resolve(datos.planesRenovadosPendientes(...a)).then((x) => (Array.isArray(x) ? { ok: true, datos: x } : x)),
   decidirPlanEstrategico: (...a: unknown[]) => datos.decidirPlanEstrategico(...a),
   borradorYVigente: (...a: unknown[]) => datos.borradorYVigente(...a),
 }))
@@ -174,5 +176,17 @@ describe('BandejaPlanesRenovados', () => {
     datos.planesRenovadosPendientes.mockResolvedValue([])
     render(<BandejaPlanesRenovados />)
     await waitFor(() => expect(screen.getByText(/No hay planes renovados esperando/)).toBeInTheDocument())
+  })
+  // APP-F01 (revisión final de Codex, 28-sep): con la red caída la bandeja decía «No hay …
+  // esperando» y la cuenta 0. Un fallo no es una bandeja vacía.
+  it('si la lectura falla lo dice, no pinta un 0 ni «no hay», y se puede reintentar', async () => {
+    datos.planesRenovadosPendientes.mockResolvedValueOnce({ ok: false, error: 'Failed to fetch' })
+    render(<BandejaPlanesRenovados />)
+    expect(await screen.findByText(/No se pudo leer esta bandeja \(Failed to fetch\)/)).toBeInTheDocument()
+    expect(screen.queryByText(/No hay planes renovados esperando/)).not.toBeInTheDocument()
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Asesorado')).toBeInTheDocument()
+    expect(datos.planesRenovadosPendientes).toHaveBeenCalledTimes(2)
   })
 })

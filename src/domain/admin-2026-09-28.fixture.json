@@ -1,0 +1,795 @@
+{
+ "corte": "2026-09-28",
+ "secciones": {
+  "desvios": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "142.857 vs 225.000",
+      "detalle": "Meta: 225.000 (lista). Real: 142.857 de media entre 14 atendidos.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "desvios-ingreso-medio",
+      "que_hacer": "Palanca B: llevar la base a precio de lista al renovar (calendario por persona)",
+      "semaforo": "rojo",
+      "titulo": "Ingreso por asesorado: real vs precio de lista"
+     },
+     {
+      "cifra": "14 vs 16",
+      "detalle": "Meta: 16 asesorados pagando a lista cubren los fijos. Real: 14 atendidos, pagando en promedio menos de lista.",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "desvios-equilibrio",
+      "que_hacer": "Palancas A, B y D",
+      "semaforo": "rojo",
+      "titulo": "Atendidos vs punto de equilibrio"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: contactos.csv no existe (0 contactos hechos). Meta: 30 contactos por semana.",
+      "dueno": "agente:guardian-bola-de-nieve",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "desvios-contactos",
+      "que_hacer": "Crear contactos.csv y arrancar los contactos con Bryan",
+      "semaforo": "gris",
+      "titulo": "Contactos semanales del embudo"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "Meta: bajas <= 5 % al mes. Real: FALTA (FALTA: clientes.csv sin fecha_alta/fecha_baja de la base (0 renovaciones vencidas observadas) - ¿Bryan, desde qué fecha rige el registro de bajas?).",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/decisiones.json",
+       "corte": "2026-09-28",
+       "huella": "d7840959668c"
+      },
+      "id": "desvios-bajas",
+      "que_hacer": "Fechar altas y bajas de los 25 registrados",
+      "semaforo": "gris",
+      "titulo": "Bajas de la base: meta vs real"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "Meta: MANU paga 279.014 al mes desde el mes 1. Real: FALTA (no hay pago registrado).",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "desvios-manu-ia",
+      "que_hacer": "Acordar el pago con MANU; si no paga antes del 15-oct va a la Mesa como vencido",
+      "semaforo": "gris",
+      "titulo": "MANU paga su parte de la IA: meta vs real"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "Meta: hasta 9 h por semana para la bola. Real: FALTA (horas hechas sin registrar).",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "desvios-horas",
+      "que_hacer": "Registrar las horas cada semana",
+      "semaforo": "gris",
+      "titulo": "Horas de Bryan para la bola: meta vs real"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: ninguno se ha generado todavia (de agente:guardian-bola-de-nieve)",
+      "dueno": "agente:guardian-bola-de-nieve",
+      "fuente": {
+       "archivo": "informes",
+       "corte": "2026-09-28",
+       "huella": "sin-archivo"
+      },
+      "id": "desvios-informe-guardian",
+      "que_hacer": "Correr el corte del lunes",
+      "semaforo": "gris",
+      "titulo": "Informes del guardian y del superagente"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-a-03",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "A-03: Cómo contar los creadores que siguen tras su prueba"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-a-04",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "A-04: Posibles dobles conteos (sin demostrar; no se ha quitado nada)"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-a-10",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "A-10: Soportes de los fijos y de la TRM"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-h-a22",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "H-A22: Horas de A y de B"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-g-e",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "G-E: Caja desconocida y la 1.ª microprueba"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-k-a",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "K-A: El agente `controller-financiero` (corridas sin ti)"
+     },
+     {
+      "cifra": "abierta",
+      "detalle": "Pregunta abierta en FALTA-BRYAN.md.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "desvios-falta-rv-01",
+      "que_hacer": "Responderla",
+      "semaforo": "amarillo",
+      "titulo": "RV-01: Hojas de cuadros de reels de terceros enviadas a Astra (OpenAI)"
+     }
+    ],
+    "grafico": null,
+    "tarjeta": {
+     "cifra": "5",
+     "cifra_etiqueta": "metas sin dato real (FALTA)",
+     "frase": "El ingreso real por asesorado esta por debajo de la lista y varias metas no tienen dato real.",
+     "semaforo": "rojo",
+     "titulo": "Desvíos"
+    }
+   },
+   "fuente": "tablero/datos/finanzas.json;tablero/datos/decisiones.json;FALTA-BRYAN.md",
+   "huella": "e1ce800c298b"
+  },
+  "finanzas": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "135.239 COP",
+      "detalle": "Cobro 225.000 → Mercado Pago 9.761 → neto 215.239 → servicio 80.000 → deja 135.239 antes de fijos; con creador: comision 20 % el cobro 1 y 10 % del 2 al 6; fijos 2.038.688 al mes (desde octubre).",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-flujograma",
+      "que_hacer": "",
+      "semaforo": "amarillo",
+      "titulo": "Flujograma de un cobro de lista"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: desglose de los 80.000 de servicio y primer reporte de cobros de Mercado Pago (caja_real_mes = null) (de Bryan)",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-caja",
+      "que_hacer": "Responder el desglose y cargar el primer reporte de cobros",
+      "semaforo": "gris",
+      "titulo": "Caja real del mes"
+     },
+     {
+      "cifra": "−1.158.688 COP",
+      "detalle": "Desde octubre: fijos 2.038.688, base deja 2.000.000, servicio valorado 1.120.000. En el corte de septiembre: −758.688 COP.",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-resultado",
+      "que_hacer": "Ver los nuevos directos a lista que hacen falta: 9",
+      "semaforo": "rojo",
+      "titulo": "Resultado mensual (no es caja)"
+     },
+     {
+      "cifra": "−13.656.519 COP",
+      "detalle": "Proyeccion con supuestos sin observar (0 contactos hechos); necesidad de resultado 13.656.519 en el mes 12.",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-proyeccion",
+      "que_hacer": "Aprobar o cambiar las palancas del plan",
+      "semaforo": "rojo",
+      "titulo": "Proyeccion a 12 meses sin hacer nada"
+     },
+     {
+      "cifra": "18.864.431 COP",
+      "detalle": "A+B+D 15.516.263; A+B+C -2.286.670. D pesa mas y no esta medida (0 micropruebas). Avance real de cada palanca: FALTA (sin observaciones). El plan aprobado citaba 28.100.000 y el motor calcula 18.864.431: no coinciden.",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-palancas",
+      "que_hacer": "Medir bajas (A), cohorte 1 de B, pago de MANU (C) y primera microprueba (D)",
+      "semaforo": "amarillo",
+      "titulo": "Plan de 4 palancas (meta, no pronostico)"
+     },
+     {
+      "cifra": "279.014 COP",
+      "detalle": "De 1.017.372 al mes: MANU paga 279.014 (supuesto hasta su primer pago); TFM y otros 30.408; a Alpha le quedan 707.950: operacion 63.400 y reinversion 644.550.",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-reparto-ia",
+      "que_hacer": "Acordar con MANU el pago y comprobarlo en su caja",
+      "semaforo": "amarillo",
+      "titulo": "Reparto de la IA (MANU / operacion / reinversion)"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: movimientos del piloto registrados (consumo_real = null; solo hay proyeccion de 237.919) (de Bryan)",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-techo",
+      "que_hacer": "Registrar los movimientos del piloto",
+      "semaforo": "gris",
+      "titulo": "Consumo real del techo de 3.000.000"
+     },
+     {
+      "cifra": "16 asesorados",
+      "detalle": "Hoy se atienden 14 y pagan 142.857 en promedio (lista 225.000).",
+      "dueno": "agente:finanzas-alpha",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "finanzas-equilibrio",
+      "que_hacer": "",
+      "semaforo": "rojo",
+      "titulo": "Punto de equilibrio a precio de lista"
+     }
+    ],
+    "grafico": {
+     "series": [
+      {
+       "etiqueta": "Precio de lista",
+       "valor": 225000.0
+      },
+      {
+       "etiqueta": "Mercado Pago",
+       "valor": 9760.98
+      },
+      {
+       "etiqueta": "Servicio",
+       "valor": 80000.0
+      },
+      {
+       "etiqueta": "Deja antes de fijos",
+       "valor": 135239.02
+      }
+     ],
+     "tipo": "flujo"
+    },
+    "tarjeta": {
+     "cifra": "−1.158.688 COP",
+     "cifra_etiqueta": "resultado mensual desde octubre (no es caja)",
+     "frase": "Los fijos superan lo que deja la base; la caja real aun no se conoce.",
+     "semaforo": "rojo",
+     "titulo": "Finanzas"
+    }
+   },
+   "fuente": "tablero/datos/finanzas.json;costos-ia/REPARTO-SUSCRIPCIONES.md;costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+   "huella": "57e77abeeec6"
+  },
+  "influencers": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "12",
+      "detalle": "Por carril: descartado 10; tambaleando 2. Los tambaleando esperan desempate con sonido.",
+      "dueno": "manuela",
+      "fuente": {
+       "archivo": "etapa2/carriles.json",
+       "corte": "2026-09-28",
+       "huella": "7cef1f0a256a"
+      },
+      "id": "influencers-carriles",
+      "que_hacer": "Manuela y Bryan desempatan a los tambaleando en /coach/creadores",
+      "semaforo": "amarillo",
+      "titulo": "Creadores evaluados por carril"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: contactos.csv (0 contactos hechos) (de Bryan)",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "influencers-embudo",
+      "que_hacer": "Crear contactos.csv y registrar cada contacto",
+      "semaforo": "gris",
+      "titulo": "Embudo (contactos, respuestas, encuestas)"
+     },
+     {
+      "cifra": "0",
+      "detalle": "Meta: 3 clientes por creador. Real: 0 micropruebas hechas; primera incorporacion posible el 12-oct-2026.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "tablero/datos/finanzas.json",
+       "corte": "2026-09-28",
+       "huella": "6633fdf5513d"
+      },
+      "id": "influencers-microprueba",
+      "que_hacer": "Autorizar la primera microprueba si la caja lo permite",
+      "semaforo": "amarillo",
+      "titulo": "Micropruebas hechas"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: resumen del radar (creadores.sqlite no se lee aqui) (de agente:buscador-creadores)",
+      "dueno": "agente:buscador-creadores",
+      "fuente": {
+       "archivo": "etapa2/carriles.json",
+       "corte": "2026-09-28",
+       "huella": "7cef1f0a256a"
+      },
+      "id": "influencers-radar",
+      "que_hacer": "Exportar el resumen del radar",
+      "semaforo": "gris",
+      "titulo": "Radar de descubiertos"
+     }
+    ],
+    "grafico": null,
+    "tarjeta": {
+     "cifra": "2",
+     "cifra_etiqueta": "creadores tambaleando esperando desempate",
+     "frase": "Hay 12 creadores evaluados, ninguno contactado todavia.",
+     "semaforo": "amarillo",
+     "titulo": "Influencers (bola de nieve)"
+    }
+   },
+   "fuente": "etapa2/carriles.json;tablero/datos/finanzas.json",
+   "huella": "db3b7e962765"
+  },
+  "mercadeo": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "14 abiertos",
+      "detalle": "Preguntas abiertas: HM-00, HM-05, HM-06, HM-02, HM-03, HM-04, HM-01, HM-08, HM-07, HM-09, HM-10, HM-11, HM-12, HM-13. Bloquean: HM-00, HM-02, HM-05, HM-06 (sin contrato no hay tandas).",
+      "dueno": "manuela",
+      "fuente": {
+       "archivo": "skills/mercadeo-manuela/huecos.md",
+       "corte": "2026-09-28",
+       "huella": "32e9d00b79aa"
+      },
+      "id": "mercadeo-buzon",
+      "que_hacer": "Bryan aprueba HM-00 para abrir la primera tanda",
+      "semaforo": "amarillo",
+      "titulo": "Buzon de mercadeo de Manuela"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: reglas de contenido con evidencia (no existe archivo de reglas) (de Manuela)",
+      "dueno": "manuela",
+      "fuente": {
+       "archivo": "skills/mercadeo-manuela/reglas.md",
+       "corte": "2026-09-28",
+       "huella": "sin-archivo"
+      },
+      "id": "mercadeo-reglas",
+      "que_hacer": "Dar el dato: reglas de contenido con evidencia (no existe archivo de reglas)",
+      "semaforo": "gris",
+      "titulo": "Estrategias y reglas de contenido en uso"
+     },
+     {
+      "cifra": "3 documentos",
+      "detalle": "Documentos vigentes: CONTENIDO-NATIVO.md, GUIA-CREADOR.md, PROPUESTA-CORTA.md. Solo estratega-oferta los cambia.",
+      "dueno": "agente:estratega-oferta",
+      "fuente": {
+       "archivo": "CONTENIDO-NATIVO.md",
+       "corte": "2026-09-28",
+       "huella": "757a7a49e50b"
+      },
+      "id": "mercadeo-a-influencers",
+      "que_hacer": "",
+      "semaforo": "verde",
+      "titulo": "Lo que se muestra a los influencers"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: lista de estrategias nuevas y su estado (de Manuela)",
+      "dueno": "manuela",
+      "fuente": {
+       "archivo": "skills/mercadeo-manuela/huecos.md",
+       "corte": "2026-09-28",
+       "huella": "32e9d00b79aa"
+      },
+      "id": "mercadeo-nuevo",
+      "que_hacer": "Dar el dato: lista de estrategias nuevas y su estado",
+      "semaforo": "gris",
+      "titulo": "Lo nuevo que sale y lo que se implementa"
+     }
+    ],
+    "grafico": null,
+    "tarjeta": {
+     "cifra": "14",
+     "cifra_etiqueta": "preguntas de mercadeo abiertas",
+     "frase": "El buzon de Manuela espera la aprobacion del contrato; no hay reglas en uso.",
+     "semaforo": "amarillo",
+     "titulo": "Mercadeo"
+    }
+   },
+   "fuente": "skills/mercadeo-manuela/huecos.md",
+   "huella": "39f051d96dd9"
+  },
+  "plan": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: avance real; 5 objetivos con fecha 2026-12-28, todos en estado pendiente; horas hechas 0 de 4.7 planeadas.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "organizador/semana-2026-10-05-bryan.json",
+       "corte": "2026-10-05",
+       "huella": "cfd4132afbdf"
+      },
+      "id": "plan-objetivos-bryan",
+      "que_hacer": "Registrar lo hecho en el organizador",
+      "semaforo": "gris",
+      "titulo": "Objetivos de bryan (semana 2026-10-05)"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: avance real; 4 objetivos con fecha 2026-12-28, todos en estado pendiente; horas hechas 0 de 3.9 planeadas.",
+      "dueno": "manuela",
+      "fuente": {
+       "archivo": "organizador/semana-2026-10-05-manuela.json",
+       "corte": "2026-10-05",
+       "huella": "52c9dd46ea34"
+      },
+      "id": "plan-objetivos-manuela",
+      "que_hacer": "Registrar lo hecho en el organizador",
+      "semaforo": "gris",
+      "titulo": "Objetivos de manuela (semana 2026-10-05)"
+     },
+     {
+      "cifra": "10 hitos",
+      "detalle": "FALTA: cuales estan hechos (el plan no registra avance). Obligatorios: 0.1 Ejecutar C: acordar con MANU el pago de su parte de la IA (2; 0.2 Dos cajones: separar la cuenta de Alpha y registrar el saldo; 0.7 Firmar reglas antes de ver datos: tabla de D, reglas de B, u. Meta: >= 8 de 10.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "PLAN-ESTRATEGICO-90-DIAS.md",
+       "corte": "2026-09-28",
+       "huella": "86d49c54c11a"
+      },
+      "id": "plan-semana0",
+      "que_hacer": "Marcar los hitos cerrados",
+      "semaforo": "gris",
+      "titulo": "Semana 0: montar el sistema"
+     },
+     {
+      "cifra": "12-oct-2026",
+      "detalle": "FALTA: cuantas se cumplieron (0 contactos hechos). Fechas: 1: 12-oct-2026; 2: 26-oct-2026; 3: 9-nov-2026; 4: 23-nov-2026; 5: 7-dic-2026. Son minimos, no compromisos.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "OPERACION.md",
+       "corte": "2026-09-28",
+       "huella": "0d0b2a8adf1a"
+      },
+      "id": "plan-calendario",
+      "que_hacer": "Confirmar que se cierra C3-datos antes de la primera",
+      "semaforo": "gris",
+      "titulo": "Incorporaciones de creadores (fechas mas tempranas)"
+     },
+     {
+      "cifra": "20",
+      "detalle": "20 preguntas abiertas en FALTA-BRYAN.md; 7 con codigo: A-03, A-04, A-10, H-A22, G-E, K-A, RV-01.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "FALTA-BRYAN.md",
+       "corte": "2026-09-28",
+       "huella": "1cfbbc6450c3"
+      },
+      "id": "plan-falta-bryan",
+      "que_hacer": "Responder las que bloquean el plan",
+      "semaforo": "amarillo",
+      "titulo": "Preguntas abiertas a Bryan"
+     }
+    ],
+    "grafico": null,
+    "tarjeta": {
+     "cifra": "20",
+     "cifra_etiqueta": "preguntas abiertas a Bryan",
+     "frase": "FALTA: avance real; el plan de 90 dias no tiene nada registrado como hecho.",
+     "semaforo": "gris",
+     "titulo": "Plan estratégico"
+    }
+   },
+   "fuente": "PLAN-ESTRATEGICO-90-DIAS.md;OPERACION.md;FALTA-BRYAN.md;organizador/semana-2026-10-05-bryan.json;organizador/semana-2026-10-05-manuela.json",
+   "huella": "ff1b462283ea"
+  },
+  "plataforma": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "7 hechas",
+      "detalle": "Estado fechado el 16-sep-2026 (12 dias antes del corte). Hechas: 7; pendientes de desarrollo: 5; esperan a Bryan: 4.",
+      "dueno": "agente:reels-editor",
+      "fuente": {
+       "archivo": "ESTADO-Y-PENDIENTES.md",
+       "corte": "2026-09-16",
+       "huella": "17f4880e26c6"
+      },
+      "id": "plataforma-estudio",
+      "que_hacer": "Refrescar el estado del estudio",
+      "semaforo": "amarillo",
+      "titulo": "Estado del estudio (edicion de videos)"
+     },
+     {
+      "cifra": "5 pendientes",
+      "detalle": "Pendientes: Conectar guion → generación del avatar al piloto y mejorar l; Ejecución automática de las instrucciones artísticas del pla; Detección automática de tendencias y análisis visual de refe; Acceso seguro desde el móvil: el piloto escucha únicamente e; Integración de publicación de Instagram; nada se publica aut.",
+      "dueno": "agente:reels-editor",
+      "fuente": {
+       "archivo": "ESTADO-Y-PENDIENTES.md",
+       "corte": "2026-09-16",
+       "huella": "17f4880e26c6"
+      },
+      "id": "plataforma-desarrollo",
+      "que_hacer": "Bryan decide el orden",
+      "semaforo": "amarillo",
+      "titulo": "Lo que se esta desarrollando"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: conteo de comentarios y errores del navegador (viven en Supabase; no hay export local) (de agente:comentarios-app)",
+      "dueno": "agente:comentarios-app",
+      "fuente": {
+       "archivo": "skills/comentarios-app/huecos.md",
+       "corte": "2026-09-28",
+       "huella": "fda703669100"
+      },
+      "id": "plataforma-comentarios",
+      "que_hacer": "Exportar el conteo por estado al importador",
+      "semaforo": "gris",
+      "titulo": "Buzon de comentarios de la app"
+     },
+     {
+      "cifra": "FALTA",
+      "detalle": "FALTA: lista de PRs (parametro --prs; el importador no consulta GitHub) (de Bryan)",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "sin-archivo",
+       "corte": "2026-09-28",
+       "huella": "sin-archivo"
+      },
+      "id": "plataforma-prs",
+      "que_hacer": "Pasar --prs \"titulo|estado|evalua;...\"",
+      "semaforo": "gris",
+      "titulo": "PRs abiertos y quien evalua cada uno"
+     }
+    ],
+    "grafico": null,
+    "tarjeta": {
+     "cifra": "4",
+     "cifra_etiqueta": "cosas esperando a Bryan en el estudio",
+     "frase": "El estado del estudio esta desactualizado; comentarios y PRs aun no llegan al importador.",
+     "semaforo": "amarillo",
+     "titulo": "Plataforma Alpha y estudio"
+    }
+   },
+   "fuente": "ESTADO-Y-PENDIENTES.md;skills/comentarios-app/huecos.md",
+   "huella": "14c63b843843"
+  },
+  "propuestas": {
+   "datos": {
+    "filas": [
+     {
+      "cifra": "hasta 35 % del gasto real (93 de 267 USD); realista 20-30 %",
+      "detalle": "Esfuerzo: Bajo-medio (corridasdormidas.py y pausareintentable ya reanudan en algunos casos; falta cubrir INCOMPLETA y correcciones de codigo). Se sostiene con: Vidas previas medidas.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-1",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "No relanzar lo ya validado"
+     },
+     {
+      "cifra": "10-25 % (las 3 corridas mas caras = 25 %); sobre todo evita colas de 27 USD",
+      "detalle": "Esfuerzo: Bajo (el arnes de presupuesto/ ya lo hace). Se sostiene con: Corridas de 20-28 USD.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-2",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "Tope de dinero y de vidas en produccion"
+     },
+     {
+      "cifra": "30-45 % por llamada si 50-70 % de lo escrito pasara a lectura (0,30-0,43 USD de 0,58 en el banco); en real, menos si el historial domina",
+      "detalle": "Esfuerzo: Medio; hipotesis a probar con 3-5 corridas (~5 USD) antes de cambiar nada. Se sostiene con: cw = 64 % del costo.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-3",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "Cache estable compartida"
+     },
+     {
+      "cifra": "3-5 % (ahorra la mitad del ~82 USD de reintentos)",
+      "detalle": "Esfuerzo: Bajo. Se sostiene con: Rechazos de la costura.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-4",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "Prevalidar antes de llamar"
+     },
+     {
+      "cifra": "10 % del Alpha-Claude en pruebas (~50 k COP/mes de reparto); un banco de 50 = ~85 USD (lista)",
+      "detalle": "Esfuerzo: Bajo. Se sostiene con: C4-C11: 85 USD por banco.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-5",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "Banco mas chico"
+     },
+     {
+      "cifra": "~10-15 % del costo por corrida, no medido; necesita banco de 20 con el criterio como juez",
+      "detalle": "Esfuerzo: Medio-alto. Se sostiene con: Solo si el banco confirma que no baja calidad; el (1) y el (3) son juicio clinico y no se tocan.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-6",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "Sonnet -> Haiku o codigo en pasos mecanicos"
+     },
+     {
+      "cifra": "~5 %",
+      "detalle": "Esfuerzo: Bajo. Se sostiene con: Solo si el validador sigue verde.",
+      "dueno": "agente:costos-ia",
+      "fuente": {
+       "archivo": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md",
+       "corte": "2026-09-29",
+       "huella": "a117e1a167bf"
+      },
+      "id": "propuestas-costo-7",
+      "que_hacer": "Estado: propuesta. Bryan aprueba o descarta",
+      "semaforo": "amarillo",
+      "titulo": "Bajar razonamiento/salida del (3) (11k tokens de salida, 15 % del cost"
+     },
+     {
+      "cifra": "47",
+      "detalle": "Preguntas propuestas por los agentes, aun sin respuesta: superagente-administrativo 0; guardian-bola-de-nieve 19; finanzas-alpha 0; mercadeo-manuela 14; comentarios-app 0; revisor-video 14; buscador-creadores 0.",
+      "dueno": "bryan",
+      "fuente": {
+       "archivo": "skills/guardian-bola-de-nieve/huecos.md",
+       "corte": "2026-09-28",
+       "huella": "16a189a65bcd"
+      },
+      "id": "propuestas-huecos",
+      "que_hacer": "Responder de a una, la de mayor impacto",
+      "semaforo": "amarillo",
+      "titulo": "Huecos abiertos de las 7 habilidades"
+     }
+    ],
+    "grafico": null,
+    "tarjeta": {
+     "cifra": "7",
+     "cifra_etiqueta": "propuestas de ahorro de tokens",
+     "frase": "Hay 7 ahorros de IA propuestos y ninguno aprobado ni descartado.",
+     "semaforo": "amarillo",
+     "titulo": "Lo que proponen los agentes"
+    }
+   },
+   "fuente": "costos-ia/COSTO-PRESCRIPCIONES-Y-REINVERSION.md;skills/superagente-administrativo/huecos.md;skills/guardian-bola-de-nieve/huecos.md;skills/finanzas-alpha/huecos.md;skills/mercadeo-manuela/huecos.md;skills/comentarios-app/huecos.md;skills/revisor-video/huecos.md;skills/buscador-creadores/huecos.md",
+   "huella": "837b32cb603e"
+  }
+ }
+}

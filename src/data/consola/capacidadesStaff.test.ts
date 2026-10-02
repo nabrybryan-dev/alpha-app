@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// El `check` vigente es el que redefinió la 0087 (la 0083 más `aprobar_primer_plan` y
-// `aprobar_plan_estrategico`).
-const MIGRACION = join(process.cwd(), 'supabase', 'migrations', '0087_aprobacion_plan_estrategico_renovado.sql')
+// El `check` vigente es el que redefinió la 0090 (la 0083 más `aprobar_primer_plan`,
+// `aprobar_plan_estrategico`, `revisar_creadores` y `firmar_creadores`).
+const MIGRACION = join(process.cwd(), 'supabase', 'migrations', '0090_creadores_tablero_lectura.sql')
 
 interface FilaError {
   message: string
@@ -53,16 +53,33 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087)', () => {
+// Las migraciones que sumaron una capacidad cada una leyendo la lista vigente de la base
+// (`array['nueva']` dentro de su bloque DO), en el orden en que se aplican.
+const AMPLIACIONES = [
+  ['0094_decisiones_compartidas.sql', 'decisiones_compartidas'],
+  ['0095_comentarios_app.sql', 'triar_comentarios'],
+  ['0096_buzon_mercadeo.sql', 'responder_mercadeo'],
+  ['0098_plan_items.sql', 'organizar_plan'],
+  ['0102_admin_tablero.sql', 'ver_administracion'],
+] as const
+
+describe('CAPACIDADES sale del mismo vocabulario que el `check` vigente (0083 + 0086 + 0087 + 0090 + 0094 a 0098 y 0102)', () => {
   it('cada capacidad declarada aquí existe en el `check` de la migración, y al revés', () => {
     const sql = readFileSync(MIGRACION, 'utf8')
     const inicio = sql.indexOf('add constraint capacidades_staff_capacidad_check')
     const bloque = sql.slice(inicio, sql.indexOf('));', inicio))
     expect(inicio).toBeGreaterThan(0)
-    for (const capacidad of CAPACIDADES) {
-      expect(bloque, `la migración 0087 no declara la capacidad "${capacidad}"`).toContain(`'${capacidad}'`)
-    }
     const enElSql = [...bloque.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])
+    for (const [archivo, capacidad] of AMPLIACIONES) {
+      const migracion = readFileSync(join(process.cwd(), 'supabase', 'migrations', archivo), 'utf8')
+      // La suma la declara UNA vez, y la migración no copia la lista de otra: la lee de la base.
+      expect(migracion, `${archivo} no suma «${capacidad}»`).toContain(`array['${capacidad}']`)
+      expect(migracion, `${archivo} copia la lista en vez de leer la vigente`).toContain('pg_get_constraintdef')
+      enElSql.push(capacidad)
+    }
+    for (const capacidad of CAPACIDADES) {
+      expect(enElSql, `ninguna migración declara la capacidad "${capacidad}"`).toContain(capacidad)
+    }
     expect([...enElSql].sort()).toEqual([...CAPACIDADES].sort())
   })
 })
