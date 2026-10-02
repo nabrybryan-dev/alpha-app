@@ -62,6 +62,21 @@ describe('/praxis en el enrutador real', () => {
     expect(container.querySelectorAll('#partitura .firma-tinta')).toHaveLength(0)
   })
 
+  it('/praxis/ejemplo conserva la maqueta completa para el equipo: con su sello de ejemplo y el check-in guiado', async () => {
+    localStorage.setItem('alpha-usuario', 'u-bryan')
+    const { container } = renderizarEn('/praxis/ejemplo')
+    await waitFor(() => expect(container.querySelector('.praxis')).not.toBeNull())
+    expect(screen.getByText('Datos de ejemplo')).toBeInTheDocument()
+    expect(container.querySelector('#demoSel')).not.toBeNull()
+    expect(container.querySelector('.praxis')?.hasAttribute('data-conectada')).toBe(false)
+  })
+
+  it('una asesorada tampoco entra a /praxis/ejemplo', async () => {
+    const { container } = renderizarEn('/praxis/ejemplo')
+    expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
+    expect(container.querySelector('.praxis')).toBeNull()
+  })
+
   it('el panel del coach enlaza con Praxis, rotulada como solo del equipo', async () => {
     localStorage.setItem('alpha-usuario', 'u-bryan')
     renderizarEn('/coach')

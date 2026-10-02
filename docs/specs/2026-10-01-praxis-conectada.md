@@ -78,3 +78,25 @@ Está en `domain/praxis/conversacion.ts` (`decidirTurno`). Cada salida lleva esc
   que el servidor escribió no aparece en pantalla hasta recargar.
 - **La pregunta de aclaración** se reenvía como la frase original más la opción elegida. El
   servidor no guarda el borrador entre turnos, así que puede volver a preguntar.
+
+## Cambios tras la revisión independiente (1-oct, noche)
+
+La revisión del PR #331 (`REVISION-PR-331.md`, fuera del repo) dio «fusionar con cambios».
+Lo que cambió:
+
+- **Un solo filtro de riesgo para la pantalla y la función** (`domain/praxis/riesgo.ts`; la
+  función lo importa con rutas `.ts`). La excepción de exageración vale solo para una lista
+  cerrada («me muero de sueño») y nunca con «por».
+- **El contexto decide** (Bryan, en vivo): una fórmula de morir atada a lo pautado (rutina,
+  ejercicio, dieta) y sin señal de literalidad lleva a la pregunta de cuidado; con «de
+  verdad», «ya no», «la vida», un método, o sin ancla, a la Quieta. El humor no cuenta.
+- **La función solo atiende al equipo** (mismo interruptor de `acceso.ts`): 403 antes del
+  modelo para quien no lo es.
+- **Sin modo estricto** en la herramienta: el esquema tiene 46 uniones y el modo estricto
+  admite 16. La validación del servidor falla cerrando. Los errores de Anthropic van al log.
+- **`hora_local`** solo se cree con la forma exacta y a menos de un día del servidor.
+- **El tope de dos preguntas** pasa a un trigger con candado (probado en el CI con tres
+  filas en una sentencia).
+- **Escritura perdida**: no se arregla aquí (es la sincronización de toda la app); la
+  pantalla avisa que hay que recargar antes de anotar más series de ese ejercicio.
+- **`/praxis/ejemplo`** conserva la maqueta completa, con datos de ejemplo, para el equipo.

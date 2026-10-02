@@ -96,6 +96,13 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // La traducción de una marca de riesgo a la propuesta que devuelve el servidor. La usa
+  // SOLO la Edge Function `praxis-registro`, que vive fuera de src/ y por eso este análisis
+  // no la ve. Va en el dominio, junto al filtro, para que pantalla y función compartan una
+  // sola regla (revisión del PR #331, A3).
+  'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
+    'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
+    'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
   // La lista blanca de Praxis, dicha como lista de rutas. No la llama la app y no es un
   // descuido: es el CONTRATO que `listaBlanca.test.ts` hace cumplir —recorre lo que sale de
   // `loQuePraxisVe` y falla si aparece una clave que no esté aquí—. Vive en el módulo, y no

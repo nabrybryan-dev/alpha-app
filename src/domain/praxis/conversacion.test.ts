@@ -126,6 +126,7 @@ describe('resumenDeGuardado · lo que de verdad quedó guardado', () => {
       'Guardado: series.',
       'Tu check-in todavía no se puede guardar desde Praxis: anótalo en el formulario.',
       'No se guardó (series): la serie 5 no existe en la pauta.',
+      'Antes de anotar más series de ese ejercicio en la pantalla de la sesión, recarga la app: todavía no sabe de esta.',
     ])
   })
 
@@ -224,5 +225,26 @@ describe('revisión del PR #331 · la marca de riesgo del servidor se respeta ta
 
   it('una frase ambigua marcada por el servidor lleva a la pregunta de cuidado, no a la Quieta', () => {
     expect(pasoTrasProponer(respuesta({ tipo: 'derivacion' }, { accion: 'derivar', filtro: 'crisis', urgencia: 'alta', riesgo: { tipo: 'cuidado' } }), 'tu')).toEqual({ paso: 'cuidado' })
+  })
+})
+
+describe('revisión del PR #331 · M2: lo que Praxis guarda en series, la app aún no lo sabe', () => {
+  // La app sube su copia local entera de las series de un ejercicio. Si la persona guarda
+  // una serie por Praxis y, sin recargar, anota otra del mismo ejercicio en la sesión, la
+  // copia local (sin la de Praxis) pisa la del servidor. Arreglarlo es tocar la
+  // sincronización de toda la app; mientras tanto, la pantalla lo avisa.
+  it('tras guardar series, pide recargar antes de anotar más de ese ejercicio en la sesión', () => {
+    const r = resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo: 'series', estado: 'guardado' }] }, 'tu')
+    expect(r.lineas).toEqual(['Guardado: series.', 'Antes de anotar más series de ese ejercicio en la pantalla de la sesión, recarga la app: todavía no sabe de esta.'])
+  })
+
+  it('en usted', () => {
+    const r = resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo: 'series', estado: 'guardado' }] }, 'usted')
+    expect(r.lineas[1]).toBe('Antes de anotar más series de ese ejercicio en la pantalla de la sesión, recargue la app: todavía no sabe de esta.')
+  })
+
+  it('si no se guardaron series, no hace falta el aviso', () => {
+    expect(resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo: 'adherencia', estado: 'guardado' }] }, 'tu').lineas).toEqual(['Guardado: adherencia.'])
+    expect(resumenDeGuardado({ ok: true, resultados: [{ indice: 0, campo: 'series', estado: 'rechazado', motivo: 'x' }] }, 'tu').lineas).toEqual(['No se guardó (series): x.'])
   })
 })

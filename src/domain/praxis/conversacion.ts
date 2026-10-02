@@ -155,5 +155,12 @@ export function resumenDeGuardado(r: RespuestaDeGuardar, trato: Trato): { todoGu
     }
     return `No se guardó (${x.campo}): ${x.motivo ?? 'la base no lo aceptó'}.`
   })
+  // M2 (revisión del PR #331): la app sube su copia local entera de las series de un
+  // ejercicio y no sabe de lo que Praxis acaba de guardar. Si la persona anota otra serie de
+  // ese ejercicio sin recargar, la copia vieja pisa la de Praxis. Hasta que la
+  // sincronización lo resuelva, se avisa.
+  if (r.resultados.some((x) => x.campo === 'series' && x.estado === 'guardado')) {
+    lineas.push(`Antes de anotar más series de ese ejercicio en la pantalla de la sesión, ${usted ? 'recargue' : 'recarga'} la app: todavía no sabe de esta.`)
+  }
   return { todoGuardado: r.resultados.every((x) => x.estado === 'guardado'), lineas }
 }
