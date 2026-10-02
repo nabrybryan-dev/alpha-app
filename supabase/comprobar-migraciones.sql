@@ -2263,4 +2263,21 @@ select '0106 - dos cuentas de Bryan: capacidades nuevas, es_coach por puesto_de_
               or not has_function_privilege('service_role', 'public.asignar_cuenta_personal_bryan(text)', 'execute') then 'NO'
             when pg_get_functiondef('public.companeros_de_decision()'::regprocedure) not like '%solo_tablero%' then 'NO'
             else 'SI' end
+union all
+-- La 0107: el alta de punta a punta. Existe el trigger que crea la fila de aprobacion del primer plan (security
+-- definer con search_path fijo, sin execute para anon/authenticated) y la funcion con la que el coach crea la
+-- ficha (security definer, sin execute para anon, con execute para authenticated).
+select '0107 - alta de punta a punta: la aprobacion del primer plan se crea sola y el coach crea la ficha', 'trigger trg_crear_aprobacion_primer_plan en microciclos; crear_aprobacion_primer_plan secdef sin execute para anon/authenticated; crear_ficha_si_falta(uuid) secdef sin execute para anon y con execute para authenticated',
+       case when not exists (select 1 from pg_trigger
+                              where tgname = 'trg_crear_aprobacion_primer_plan' and not tgisinternal
+                                and tgrelid = 'public.microciclos'::regclass) then 'NO'
+            when to_regprocedure('public.crear_aprobacion_primer_plan()') is null
+              or to_regprocedure('public.crear_ficha_si_falta(uuid)') is null then 'NO'
+            when not (select prosecdef from pg_proc where oid = 'public.crear_aprobacion_primer_plan()'::regprocedure)
+              or not (select prosecdef from pg_proc where oid = 'public.crear_ficha_si_falta(uuid)'::regprocedure) then 'NO'
+            when has_function_privilege('anon', 'public.crear_aprobacion_primer_plan()', 'execute')
+              or has_function_privilege('authenticated', 'public.crear_aprobacion_primer_plan()', 'execute')
+              or has_function_privilege('anon', 'public.crear_ficha_si_falta(uuid)', 'execute')
+              or not has_function_privilege('authenticated', 'public.crear_ficha_si_falta(uuid)', 'execute') then 'NO'
+            else 'SI' end
 order by migracion, senal;
