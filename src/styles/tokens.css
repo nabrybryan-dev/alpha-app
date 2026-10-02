@@ -3187,6 +3187,20 @@ body.praxis-sala-abierta { overflow:hidden; }
 .praxis .onda-caja.compacta .onda-pie { display:none; }
 .praxis .onda-caja.compacta .onda-rotulo { top:88px; }
 .praxis .onda-rotulo { position:absolute;left:0;right:0;top:calc(var(--caja-max) / 2 + 62px);text-align:center;font:700 11px/1 var(--f-mono);letter-spacing:.2em;color:var(--s300);pointer-events:none;display:none; }
+/* Mantener para hablar (motor/hablar.ts): un botón transparente que el motor coloca justo sobre el agujero (left, top y lado en px).
+   Sin menú del sistema ni selección al mantener; el foco del teclado se ve como un aro alrededor del horizonte. */
+.praxis .agujero-hablar { position:absolute;left:50%;top:50%;width:160px;height:160px;translate:-50% -50%;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer;z-index:1;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent; }
+.praxis .agujero-hablar:focus-visible { outline:2px solid var(--s200);outline-offset:-10px; }
+.praxis .onda-caja.escuchando .onda-rotulo.on { display:block; }
+.praxis .persona.en-vivo { color:var(--s100);font-size:16px; }
+.praxis .en-vivo:empty { display:none; }
+/* La sala conectada (Bryan, 2-oct): el agujero EN EL CENTRO y lo más grande que cabe; la caja no se pega arriba ni se compacta
+   (solo la Quieta la compacta), y el rótulo va bajo la lente: --rh es el radio del horizonte que calcula el motor (geoCentro). */
+.praxis[data-conectada] { --caja-max:clamp(320px,58vh,620px);--rh:min(calc((min(50vw,246px) - 8px) / 2.45),calc(var(--caja-max) * .22)); }
+@supports (height:1svh) { .praxis[data-conectada] { --caja-max:clamp(320px,58svh,620px); } }
+.praxis[data-conectada] .onda-caja { position:relative; }
+.praxis[data-conectada] .onda-rotulo { top:calc(var(--caja-max) / 2 + var(--rh) * 1.42); }
+.praxis[data-conectada] .sala-col { padding-bottom:72px; }
 .praxis .puntos { display:flex;gap:10px; }
 .praxis .puntos span { width:12px;height:12px;border-radius:50%;background:var(--estrella-apagada); }
 .praxis .puntos span.on { background:var(--estrella); }
@@ -3407,6 +3421,15 @@ body.praxis-sala-abierta { overflow:hidden; }
 .praxis .sugerencias { display:flex;gap:4px 14px;overflow-x:auto;scrollbar-width:none; }
 .praxis .sugerencias::-webkit-scrollbar { display:none; }
 .praxis .sugerencias:empty { display:none; }
+/* Conectada, la barra para escribir nace plegada (motor/barra.ts) y sale desde abajo: 360 ms con --ease-cajon al abrir, 240 ms al recogerse.
+   Se mueve con `translate` y no con `transform`, que es del ajuste del teclado de iOS. Plegada queda inert (sin foco ni lector). */
+.praxis[data-conectada] .muelle { position:absolute;left:0;right:0;bottom:0;z-index:7;translate:0 0;opacity:1;transition:translate var(--dur-panel) var(--ease-cajon),opacity var(--dur-base) var(--ease-salida); }
+.praxis[data-conectada] .muelle.plegada { translate:0 calc(100% + 12px);opacity:0;pointer-events:none;transition:translate var(--dur-base) var(--ease-salida),opacity var(--dur-toque) var(--ease-salida); }
+.praxis .btn-escribir { position:absolute;left:50%;bottom:calc(4px + env(safe-area-inset-bottom,0px));translate:-50% 0;z-index:6;min-width:96px;min-height:44px;margin:0;padding:0 0 10px;border:0;background:transparent;color:var(--s400);display:flex;align-items:flex-end;justify-content:center;-webkit-tap-highlight-color:transparent; }
+.praxis .btn-escribir::before { content:"";width:44px;height:4px;border-radius:2px;background:currentColor;opacity:.6; }
+.praxis .btn-escribir[hidden],
+.praxis .btn-escribir[aria-expanded="true"] { display:none; }
+.praxis .btn-escribir:focus-visible { outline:2px solid var(--s200);outline-offset:2px;border-radius:12px; }
 .praxis .sug { flex:none;min-height:44px;max-width:88%;border:0;border-radius:999px;background:transparent;color:var(--s300);padding:6px 2px;font:400 14px/1.25 var(--f-ui);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:underline dotted;text-decoration-color:rgba(var(--linea),.45);text-underline-offset:4px; }
 .praxis .sug b { font:700 11px/1 var(--f-mono);letter-spacing:.08em;color:var(--s400);margin-right:6px; }
 /* Señal cuidada (no apaga el día), bienvenida, campos numéricos, tarjeta */
@@ -3487,6 +3510,12 @@ body.praxis-sala-abierta { overflow:hidden; }
 .praxis[data-mov-suave] .muesca[aria-pressed="true"]::after { transform:none; }
 .praxis[data-mov-suave] .praxis-aparece { animation-name:praxis-aparece-r;animation-delay:0s;animation-duration:var(--dur-toque);animation-timing-function:ease; }
 .praxis[data-mov-suave] .onda-rotulo.on { display:block; }
+.praxis[data-mov-suave][data-conectada] .muelle,
+.praxis[data-mov-suave][data-conectada] .muelle.plegada { translate:0 0;transition:opacity var(--dur-toque) ease; }
+@media (prefers-reduced-motion: reduce) {
+  .praxis[data-conectada] .muelle,
+  .praxis[data-conectada] .muelle.plegada { translate:0 0;transition:opacity var(--dur-toque) ease; }
+}
 
 /* El aviso vive abajo y entra desde abajo. La regla base es el estado visible; @starting-style
    pone el de partida (si el navegador no lo conoce, aparece sin animar). Se centra con

@@ -1,4 +1,5 @@
 import { initBienestar, renderBienestar, renderCordillera, renderPartitura } from './bienestar'
+import { Barra, conectarBarra } from './barra'
 import { Anim, Cab, Sala, SinSalto, velarLuego } from './cabecera'
 import { Cosmos } from './cosmos'
 import { conectada, fijarConexion, type ConexionPraxis } from './conexion'
@@ -9,7 +10,7 @@ import { alDesmontar, escuchaMQ, escuchar, fijarEntorno, fijarMovSuave, guardar,
 import { Escena, Tema } from './escena'
 import { modoRapido } from './fases'
 import { fuenteReal } from './fuenteReal'
-import { DUR } from './movimiento'
+import { conectarHablar } from './hablar'
 import { Onda } from './onda'
 import { Penta, Viajeras } from './penta'
 import { respirar } from './respirar'
@@ -63,6 +64,7 @@ export function montarPraxis(raiz: HTMLElement, { trato, conexion = null }: Opci
   fijarTema(raiz, temaInicial(), false); Tema.leer()
   Cosmos.iniciar($<HTMLCanvasElement>('#cosmos'))
   Onda.iniciar($<HTMLCanvasElement>('#onda')); Onda.tema()
+  Onda.centro(!!conexion) // conectada, el agujero va en el centro y lo más grande que cabe (Bryan, 2-oct)
   escuchar(window, 'resize', () => Onda.redimensionar())
   escuchar($('#temaSel'), 'change', (e) => { fijarTema(raiz, (e.target as HTMLSelectElement).value as TemaPropio); aplicarTema() })
   Onda.alCambiarQuien((q) => { const r = $('#ondaRotulo'); r.textContent = q === 'praxis' ? 'PRAXIS' : q === 'persona' ? tu('TE ESCUCHO', 'LE ESCUCHO') : ''; r.classList.toggle('on', !!q) })
@@ -102,8 +104,10 @@ export function montarPraxis(raiz: HTMLElement, { trato, conexion = null }: Opci
     entrada.value = ''
     if (Mic.activo) detenerMic(false)
     enviarTexto(t, 'texto')
+    Barra.cerrar() // conectada, al enviar la barra vuelve a plegarse
   })
-  conectarMantener()
+  conectarHablar() // mantener el agujero para hablar (hablar.ts)
+  conectarBarra(conectada()) // conectada, la barra para escribir nace plegada (barra.ts)
   /* Compactar al primer toque o desplazamiento (lo que llegue antes que el fin de la frase) */
   const cuerpo = $('#salaCuerpo')
   escuchar(cuerpo, 'pointerdown', (e) => Cab.toque(e), { passive: true })
@@ -164,25 +168,4 @@ function conectarVoz(): void {
     if (Voz.hayVoces()) avisarVoz()
     else { Voz.esperando = true; aviso('Buscando una voz en español…'); setTimeout(() => { if (Voz.esperando && Voz.activa) avisarVoz() }, 1500) } // Chrome entrega las voces después
   })
-}
-
-/* Mantener sobre el agujero (atajo de «Respirar»): anillo de progreso lineal de 700 ms; tolerancia de 10 px; solo sobre el agujero */
-function conectarMantener(): void {
-  const caja = $('#ondaCaja')
-  let sost: { id: number; x: number; y: number; t: number } | null = null
-  const liberar = (id: number) => { try { caja.releasePointerCapture(id) } catch { /* nada */ } }
-  const soltarMant = () => { if (!sost) return; clearTimeout(sost.t); liberar(sost.id); sost = null; Onda.soltarMantener() }
-  escuchar<PointerEvent>(caja, 'pointerdown', (e) => {
-    if ((e.target as Element).closest('button') || S.quieta || S.listo || S.respirando || $('#sala').hidden) return
-    const g = Onda.geometria()
-    if (!g) return
-    if (Math.hypot(e.clientX - g.cx, e.clientY - g.cy) > Math.max(44, g.Rh * 2.2)) return
-    try { caja.setPointerCapture(e.pointerId) } catch { /* nada */ }
-    Onda.mantener(performance.now())
-    const id = e.pointerId
-    sost = { id, x: e.clientX, y: e.clientY, t: window.setTimeout(() => { liberar(id); sost = null; Onda.finMantener(); void respirar() }, DUR.mantener) }
-  })
-  escuchar<PointerEvent>(caja, 'pointermove', (e) => { if (sost && Math.hypot(e.clientX - sost.x, e.clientY - sost.y) > 10) soltarMant() })
-  escuchar(caja, 'pointerup', soltarMant)
-  escuchar(caja, 'pointercancel', soltarMant)
 }

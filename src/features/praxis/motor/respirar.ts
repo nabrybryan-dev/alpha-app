@@ -7,8 +7,8 @@ import { S } from './sesion'
 
 /**
  * La respiración escondida. Inhalar 4 s, soltar 6 s, tres veces. Entradas: el botón
- * «Respirar un minuto» (en la ayuda y en «Más») y el gesto de mantener sobre el agujero
- * (atajo). Con movimiento reducido: cuenta atrás en mono y el anillo cambia solo entre .75 y 1.
+ * «Respirar un minuto» (en la ayuda y en «Más»). Mantener el agujero ya no la abre: desde el
+ * 2-oct ese gesto es hablar (hablar.ts). Con movimiento reducido: cuenta atrás en mono y el anillo cambia solo entre .75 y 1.
  */
 export async function respirar(): Promise<boolean> {
   if (S.respirando || S.quieta || $('#sala').hidden) return false
