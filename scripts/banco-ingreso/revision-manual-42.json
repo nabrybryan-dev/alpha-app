@@ -1,0 +1,122 @@
+{
+ "2:parte_a_mejorar": {
+  "cita": "no he podido subir el press banca",
+  "juicio": "equivalente",
+  "nota": "Mismo contenido que la verdad con otras palabras (no puede subir el press banca)."
+ },
+ "2:dia_tipo_alimentacion": {
+  "cita": "algunos días estoy en la mañana, otros en la tarde, otros de noche, o sea que es medio complicado, ¿sí? No tengo un horario fijo fijo, entonces depende, pues, de cómo me toque la semana",
+  "juicio": "dicho",
+  "nota": "La persona simulada describió sus turnos; la verdad del corpus no trae este campo."
+ },
+ "3:parte_a_mejorar": {
+  "cita": "ganar masa muscular en las piernas",
+  "juicio": "equivalente",
+  "nota": "«Ganar masa en las piernas» = «hipertrofia en piernas»."
+ },
+ "4:nivel_fuerza": {
+  "cita": "no soy principiante total pero tampoco soy de los avanzados, voy en un término medio",
+  "juicio": "dicho",
+  "nota": "Dijo «término medio, ni principiante ni avanzado»; la verdad trae el nivel vacío."
+ },
+ "4:dia_tipo_alimentacion": {
+  "cita": "de las mañanitas hasta que me voy en la tarde",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de oficina; la verdad no trae el campo."
+ },
+ "4:cocina_o_compra": {
+  "cita": "la mayoría de veces compro las cosas ya hechas",
+  "juicio": "dicho",
+  "nota": "Dijo que compra la mayoría de las comidas hechas; el corpus no trae este campo."
+ },
+ "5:dia_tipo_alimentacion": {
+  "cita": "uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día",
+  "juicio": "dicho",
+  "nota": "Describió su día; la verdad no trae el campo."
+ },
+ "6:objetivo_principal": {
+  "cita": "quiero ganar músculo en las piernas",
+  "juicio": "dicho",
+  "nota": "Dijo «quiero ganar músculo en las piernas» (hipertrofia explícita); la verdad omitida a propósito. Frontera: el generador parafraseó parte_a_mejorar."
+ },
+ "6:parte_a_mejorar": {
+  "cita": "músculo en las piernas",
+  "juicio": "equivalente",
+  "nota": "«Músculo en las piernas» = «hipertrofia en piernas»."
+ },
+ "8:parte_a_mejorar": {
+  "cita": "bajar veinticinco kilos",
+  "juicio": "equivalente",
+  "nota": "Falta «antes de diciembre» pero el contenido (bajar 25 kg) es el mismo."
+ },
+ "8:dia_tipo_alimentacion": {
+  "cita": "estar pendiente de todo, eh, de los niños, de la casa, de que coman bien, que... que hagan tareas, todas esas cosas",
+  "juicio": "dicho",
+  "nota": "Describió su día de madre a tiempo completo; la verdad no trae el campo."
+ },
+ "9:dia_tipo_alimentacion": {
+  "cita": "estar pendiente de todo, eh, de los niños, de la casa, de que coman bien, que... que hagan tareas, todas esas cosas",
+  "juicio": "dicho",
+  "nota": "Describió su día de madre a tiempo completo (habla idéntica a la de la persona 8: mismo estilo y mismos datos, salió de la caché); la verdad no trae el campo."
+ },
+ "10:altura_cm": {
+  "cita": "uno sesenta y uno",
+  "juicio": "habla",
+  "nota": "El habla dice «uno sesenta y uno» (161); la verdad es 171: error del generador."
+ },
+ "10:parte_a_mejorar": {
+  "cita": "estar más fuerte y explosivo para mi deporte",
+  "juicio": "dicho",
+  "nota": "Dijo que quiere estar más fuerte y explosivo; la verdad omitida a propósito (el generador lo derivó del objetivo)."
+ },
+ "10:dia_tipo_alimentacion": {
+  "cita": "a veces me toca madrugada a veces tarde a veces de noche y eso pues es complicado porque el día normal no existe, o sea, depende de qué turno me asignen esa semana entonces varía mucho todo",
+  "juicio": "dicho",
+  "nota": "Describió sus turnos; la verdad no trae el campo."
+ },
+ "11:dia_tipo_alimentacion": {
+  "cita": "llego, me siento y hasta que me voy",
+  "juicio": "dicho",
+  "nota": "Describió su jornada; la verdad no trae el campo."
+ },
+ "12:parte_a_mejorar": {
+  "cita": "el press banca",
+  "juicio": "equivalente",
+  "nota": "Recorta «llevo un año sin subir» pero nombra lo mismo (el press banca)."
+ },
+ "12:dia_tipo_alimentacion": {
+  "cita": "de las mañanitas hasta que me voy en la tarde",
+  "juicio": "dicho",
+  "nota": "Describió su jornada; la verdad no trae el campo."
+ },
+ "13:dia_tipo_alimentacion": {
+  "cita": "Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo",
+  "juicio": "dicho",
+  "nota": "Describió su día; la verdad no trae el campo."
+ },
+ "18:dia_tipo_alimentacion": {
+  "cita": "llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso",
+  "juicio": "dicho",
+  "nota": "Describió su jornada de profesor; la verdad no trae el campo."
+ },
+ "19:dia_tipo_alimentacion": {
+  "cita": "Eso es básicamente mi día normal",
+  "juicio": "dicho",
+  "nota": "Dijo «eso es básicamente mi día normal»: es una muletilla sin contenido; el extractor la guardó como valor. Calidad mala aunque fue dicho."
+ },
+ "20:nivel_fuerza": {
+  "cita": "Me veo en un nivel medio",
+  "juicio": "dicho",
+  "nota": "Dijo «me veo en un nivel medio»; la verdad trae el nivel vacío."
+ },
+ "20:marcas_fuerza": {
+  "cita": "En sentadilla ando moviendo unos ochenta kilos más o menos, y en press banca como sesenta",
+  "juicio": "dicho",
+  "nota": "Dijo ochenta en sentadilla y sesenta en press banca; la verdad del corpus no trae las marcas."
+ },
+ "20:salud": {
+  "cita": "",
+  "juicio": "habla",
+  "nota": "El habla generada NO menciona la salud (el generador se la saltó): no hay nada que marcar. Se saca de la cuenta."
+ }
+}

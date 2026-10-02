@@ -42,6 +42,22 @@ cacheado) → validación de citas literales → resolutores → tarjeta.
 Errores: 400 (frase vacía o larga), 401 (sin sesión), 429 (30 por hora), 502
 (`No te entendí bien, ¿lo anotas aquí?`: Haiku falló, sin secreto o sin respuesta).
 
+### `/praxis-registro` con `accion: 'ingreso'` — un turno hablado del cuestionario de ingreso (prueba interna, no guarda)
+
+```json
+{ "accion": "ingreso", "turno": "sobre_ti", "texto": "Soy de Cali, tengo veintiocho años y mido uno setenta" }
+```
+
+Turnos: `sobre_ti`, `historia_entreno`, `objetivo`, `trabajo_horarios`, `comida`. Responde
+`{ tipo: 'ingreso', turno, derivada: false, campos, temas, toques, descartados, meta }`, o
+`{ derivada: true, derivacion }` si Praxis detuvo el turno. Mismo orden de seguridad que proponer:
+Auth y rol (solo equipo) → filtro de riesgo del diccionario ANTES de cualquier modelo (si marca, no se
+extrae nada) → límite de 40 por hora (cuenta aparte) → Haiku dos veces en paralelo (el etiquetador de
+`src/domain/praxis/ingreso/extraer.ts` y el lector de riesgo) → `validarIngreso`: solo pasa lo que se
+rastrea a una cita literal. **Un campo de salud jamás sale de aquí**: la respuesta trae el tema y los
+toques que corresponden, nunca la frase ni las citas. No guarda nada, no lee el plan y registra
+tiempos (milisegundos) sin el texto. Texto: hasta 1.500 caracteres. Pantalla: `/praxis/ingreso-prueba`.
+
 ### `/praxis-registro/guardar` — guardar lo confirmado
 
 ```json

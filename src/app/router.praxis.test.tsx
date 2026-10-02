@@ -77,6 +77,22 @@ describe('/praxis en el enrutador real', () => {
     expect(container.querySelector('.praxis')).toBeNull()
   })
 
+  it('/praxis/ingreso-prueba: una asesorada acaba en su portada, sin la prueba', async () => {
+    const { container } = renderizarEn('/praxis/ingreso-prueba')
+    expect(await screen.findByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
+    expect(container.querySelector('.ingreso')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Hablando' })).not.toBeInTheDocument()
+  })
+
+  it('/praxis/ingreso-prueba: el coach la abre y elige entre hablando y escribiendo', async () => {
+    localStorage.setItem('alpha-usuario', 'u-bryan')
+    const { container } = renderizarEn('/praxis/ingreso-prueba')
+    await waitFor(() => expect(container.querySelector('.ingreso')).not.toBeNull())
+    expect(screen.getByRole('heading', { level: 1, name: 'Prueba de ingreso' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hablando' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Escribiendo' })).toBeInTheDocument()
+  })
+
   it('el panel del coach enlaza con Praxis, rotulada como solo del equipo', async () => {
     localStorage.setItem('alpha-usuario', 'u-bryan')
     renderizarEn('/coach/asesorados')

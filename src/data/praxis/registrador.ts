@@ -1,12 +1,16 @@
 import type { FalloDelRegistrador, RespuestaDeGuardar, RespuestaDelRegistrador, ResultadoDeRegistro } from '../../domain/praxis/conversacion'
 import type { Propuesta, RegistroPropuesto } from '../../domain/praxis/registro/tipos'
 import type { Tarjeta } from '../../domain/praxis/registro/tarjeta'
+import type { TurnoId } from '../../domain/praxis/ingreso/guion'
+import type { RespuestaIngreso } from '../../domain/praxis/ingreso/prueba'
 
 /**
  * El cliente de la Edge Function `praxis-registro` (sin desplegar todavía: la publica Bryan).
  *
  *   proponerRegistro → POST /praxis-registro           NO guarda: devuelve propuesta + tarjeta.
  *   guardarRegistro  → POST /praxis-registro/guardar   Escribe SOLO lo que la persona confirmó.
+ *   extraerIngreso   → POST /praxis-registro {accion:'ingreso'}   Etiqueta UN turno hablado del cuestionario
+ *                      de ingreso (prueba interna). NO guarda nada.
  *
  * Tres reglas:
  *  - El usuario NO viaja en el cuerpo: el servidor lo saca del token. Mandarlo dejaría
@@ -104,4 +108,42 @@ export async function guardarRegistro(sesion: SesionDeFunciones | null, p: Petic
     return { ok: false, motivo: 'red' }
   }
   return { ok: true, resultados: resultados as ResultadoDeRegistro[] }
+}
+
+/**
+ * Un turno hablado del cuestionario de ingreso. Devuelve lo que el servidor pudo rastrear a una cita literal,
+ * los toques de salud que lo dicho hace urgentes, o la derivación si Praxis detuvo el turno. Nunca lanza, y un 200
+ * con otra forma no cuenta como éxito.
+ */
+export async function extraerIngreso(sesion: SesionDeFunciones | null, p: { turno: TurnoId; texto: string }): Promise<RespuestaIngreso> {
+  if (!sesion?.access_token || !sesion.url) return { ok: false, motivo: 'sin_sesion' }
+  const r = await llamar(sesion, RUTA, { accion: 'ingreso', turno: p.turno, texto: p.texto })
+  if (!r.ok) return r
+  const d = r.datos as {
+    tipo?: unknown; derivada?: unknown; campos?: Record<string, string | number>; temas?: unknown; toques?: unknown; descartados?: unknown
+    derivacion?: { filtro?: string | null; riesgo?: { tipo?: string; linea?: string } | null; urgencia?: string | null }
+  } | null
+  if (d?.tipo !== 'ingreso') return { ok: false, motivo: 'no_entendi' }
+  if (d.derivada === true && d.derivacion) {
+    const riesgo = d.derivacion.riesgo
+    return {
+      ok: true, derivada: true, turno: p.turno,
+      derivacion: {
+        filtro: d.derivacion.filtro ?? null,
+        riesgo: riesgo?.tipo === 'quieta' && (riesgo.linea === 'vida' || riesgo.linea === 'pareja' || riesgo.linea === 'nino')
+          ? { tipo: 'quieta', linea: riesgo.linea }
+          : riesgo?.tipo === 'cuidado' ? { tipo: 'cuidado' } : null,
+        urgencia: d.derivacion.urgencia === 'alta' ? 'alta' : null,
+      },
+    }
+  }
+  if (d.derivada !== false || !d.campos || typeof d.campos !== 'object' || !Array.isArray(d.toques) || !Array.isArray(d.temas)) return { ok: false, motivo: 'no_entendi' }
+  const textos = (xs: unknown[]): string[] => xs.filter((x): x is string => typeof x === 'string')
+  return {
+    ok: true, derivada: false, turno: p.turno,
+    campos: d.campos,
+    temas: textos(d.temas),
+    toques: textos(d.toques),
+    descartados: Array.isArray(d.descartados) ? (d.descartados as { campo: string; motivo: string }[]) : [],
+  }
 }

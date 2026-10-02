@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { guardarRegistro, proponerRegistro } from './registrador'
+import { extraerIngreso, guardarRegistro, proponerRegistro } from './registrador'
 
 /**
  * El cliente de la Edge Function `praxis-registro`. Nunca lanza, nunca manda el usuario en
@@ -90,5 +90,53 @@ describe('guardarRegistro', () => {
   it('si el servidor falla, nada quedó guardado', async () => {
     conFetch({ status: 404 })
     expect(await guardarRegistro(sesion, { mensajeId: 'm1', registros: propuesta.registros as never, confirmaSesion: false, horaLocal: 'h' })).toEqual({ ok: false, motivo: 'no_desplegada' })
+  })
+})
+
+describe('extraerIngreso', () => {
+  const ok = { tipo: 'ingreso', turno: 'sobre_ti', derivada: false, campos: { ciudad: 'Cali', edad: 28 }, temas: ['lesion'], toques: ['lesiones'], descartados: [{ campo: 'altura_cm', motivo: 'cita_invalida' }], meta: {} }
+
+  it('manda el turno y el texto con la acción «ingreso», con el JWT y sin decir quién es', async () => {
+    const espia = conFetch({ status: 200, cuerpo: ok })
+    const r = await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'Soy de Cali, tengo veintiocho años' })
+    expect(r).toEqual({ ok: true, derivada: false, turno: 'sobre_ti', campos: { ciudad: 'Cali', edad: 28 }, temas: ['lesion'], toques: ['lesiones'], descartados: [{ campo: 'altura_cm', motivo: 'cita_invalida' }] })
+    const [url, opciones] = espia.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('https://proyecto.supabase.co/functions/v1/praxis-registro')
+    expect((opciones.headers as Record<string, string>).authorization).toBe('Bearer jwt-de-la-persona')
+    expect(JSON.parse(opciones.body as string)).toEqual({ accion: 'ingreso', turno: 'sobre_ti', texto: 'Soy de Cali, tengo veintiocho años' })
+  })
+
+  it('una derivación llega como derivación, con la línea de ayuda si es de riesgo', async () => {
+    conFetch({ status: 200, cuerpo: { tipo: 'ingreso', turno: 'objetivo', derivada: true, derivacion: { filtro: 'crisis', riesgo: { tipo: 'quieta', linea: 'vida' }, urgencia: 'alta' }, meta: {} } })
+    expect(await extraerIngreso(sesion, { turno: 'objetivo', texto: 'x' })).toEqual({
+      ok: true, derivada: true, turno: 'objetivo', derivacion: { filtro: 'crisis', riesgo: { tipo: 'quieta', linea: 'vida' }, urgencia: 'alta' },
+    })
+    conFetch({ status: 200, cuerpo: { tipo: 'ingreso', derivada: true, derivacion: { filtro: 'dolor', riesgo: null, urgencia: null } } })
+    expect(await extraerIngreso(sesion, { turno: 'objetivo', texto: 'x' })).toMatchObject({ derivada: true, derivacion: { filtro: 'dolor', riesgo: null } })
+  })
+
+  it('una línea de ayuda inventada no se acepta como riesgo', async () => {
+    conFetch({ status: 200, cuerpo: { tipo: 'ingreso', derivada: true, derivacion: { filtro: 'crisis', riesgo: { tipo: 'quieta', linea: 'otra' }, urgencia: null } } })
+    expect(await extraerIngreso(sesion, { turno: 'objetivo', texto: 'x' })).toMatchObject({ derivacion: { riesgo: null } })
+  })
+
+  it('sin sesión de nube no llama a nadie', async () => {
+    const espia = conFetch({ status: 200 })
+    expect(await extraerIngreso(null, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo: 'sin_sesion' })
+    expect(espia).not.toHaveBeenCalled()
+  })
+
+  it.each([[403, 'sin_sesion'], [429, 'limite'], [502, 'no_entendi'], [400, 'frase'], [404, 'no_desplegada']] as const)('un %i se dice como «%s»', async (status, motivo) => {
+    conFetch({ status })
+    expect(await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo })
+  })
+
+  it('un 200 con otra forma no se toma por bueno, y si la red se cae no lanza', async () => {
+    conFetch({ status: 200, cuerpo: { ok: true } })
+    expect(await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo: 'no_entendi' })
+    conFetch({ status: 200, cuerpo: { tipo: 'ingreso', derivada: false, campos: {} } }) // faltan toques y temas
+    expect(await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo: 'no_entendi' })
+    conFetch(new TypeError('Failed to fetch'))
+    expect(await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo: 'red' })
   })
 })
