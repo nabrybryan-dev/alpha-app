@@ -27,7 +27,8 @@
 -- y va por la capa de seguridad. Esta tabla NO entra al aprendizaje de Praxis (D5).
 --
 -- QUIÉN PUEDE QUÉ.
---   · La persona: inserta la suya (como mucho 2 abiertas) y lee las suyas. No la edita, no
+--   · La persona: inserta la suya (como mucho 2 abiertas, con un trigger que no se salta
+--     ni con varias filas en una sentencia ni con dos inserciones a la vez) y lee las suyas. No la edita, no
 --     la responde y no la borra: ni puede contestarse a sí misma ni reabrir una cerrada.
 --   · El coach: lee todas y responde.
 --   · La nutricionista: lee y responde SOLO las que van a `nutricionista`. Está acotada a
@@ -39,10 +40,11 @@
 -- el recordatorio a las 24 horas. Tampoco se toca ninguna tabla existente.
 --
 -- CÓMO COMPROBAR QUE LA POLÍTICA FUNCIONA (después de aplicar):
---   1. `supabase/comprobar-migraciones.sql`: las cinco filas `0105 - …` dicen SI. Corrido
+--   1. `supabase/comprobar-migraciones.sql`: las seis filas `0105 - …` dicen SI. Corrido
 --      ANTES de aplicar tienen que decir NO.
 --   2. Con la sesión de un asesorado, insertar una fila con `usuario_id` de OTRA persona
---      tiene que fallar (RLS), e insertar la tercera abierta propia también.
+--      tiene que fallar (RLS), e insertar la tercera abierta propia también, aunque vaya en
+--      la misma sentencia que las otras dos.
 --   3. Con la sesión de un asesorado, `update … set respuesta = 'x'` no toca ninguna fila.
 --   4. Con la sesión de la nutricionista, `select` no devuelve las de `destinatario = 'coach'`.
 --
@@ -96,10 +98,9 @@ create index if not exists praxis_preguntas_abiertas
 alter table public.praxis_preguntas_en_espera enable row level security;
 
 -- ────────────────────────────────────────────────────────────────────────────
--- Cuántas tiene abiertas quien llama. `security definer` porque la política de insert la
--- consulta sobre la MISMA tabla: sin esto la política se leería a sí misma (recursión).
--- No recibe el usuario por parámetro: una función que aceptara un uuid dejaría contar las
--- de otra persona por RPC.
+-- Cuántas tiene abiertas quien llama: para que la app lo pueda preguntar. El tope NO se
+-- hace con esto (ver el trigger de abajo). No recibe el usuario por parámetro: una función
+-- que aceptara un uuid dejaría contar las de otra persona por RPC.
 -- ────────────────────────────────────────────────────────────────────────────
 create or replace function public.praxis_mis_preguntas_abiertas()
 returns integer
@@ -147,15 +148,60 @@ create trigger trg_praxis_pregunta_nace_abierta
   for each row execute function public.praxis_pregunta_nace_abierta();
 
 -- ────────────────────────────────────────────────────────────────────────────
+-- El tope de DOS preguntas abiertas por persona, en un trigger y no en la política.
+--
+-- La primera versión lo ponía en el `with check` de la política, con
+-- `(select praxis_mis_preguntas_abiertas()) < 2`, y se saltaba de dos maneras (revisión
+-- independiente del PR #331, M1):
+--   · un POST con un arreglo JSON es UNA sentencia `insert` de varias filas; la subconsulta
+--     se calcula una sola vez y una función `stable` no ve las filas de su propia sentencia:
+--     entraban N abiertas de golpe;
+--   · dos inserciones a la vez, desde dos pestañas, pasaban las dos.
+-- Un trigger de fila BEFORE en plpgsql (volátil) sí ve las filas que su misma sentencia ya
+-- metió, y el candado por persona (`pg_advisory_xact_lock`) pone en fila a las sentencias
+-- simultáneas: la segunda espera a que la primera termine y cuenta lo que esta dejó.
+-- Corre después de `trg_praxis_pregunta_nace_abierta` (los triggers van por orden
+-- alfabético), así que cuenta con el estado ya fijado.
+-- ────────────────────────────────────────────────────────────────────────────
+create or replace function public.praxis_pregunta_tope_de_abiertas()
+returns trigger
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  abiertas integer;
+begin
+  if new.estado <> 'abierta' then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(hashtext('praxis_preguntas_en_espera:' || new.usuario_id::text));
+  select count(*) into abiertas
+    from public.praxis_preguntas_en_espera
+   where usuario_id = new.usuario_id and estado = 'abierta';
+  if abiertas >= 2 then
+    raise exception 'praxis: ya hay dos preguntas abiertas para esta persona'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.praxis_pregunta_tope_de_abiertas() from public, anon, authenticated;
+
+drop trigger if exists trg_praxis_pregunta_tope_de_abiertas on public.praxis_preguntas_en_espera;
+create trigger trg_praxis_pregunta_tope_de_abiertas
+  before insert on public.praxis_preguntas_en_espera
+  for each row execute function public.praxis_pregunta_tope_de_abiertas();
+
+-- ────────────────────────────────────────────────────────────────────────────
 -- Políticas
 -- ────────────────────────────────────────────────────────────────────────────
 drop policy if exists praxis_preguntas_insertar_propia on public.praxis_preguntas_en_espera;
 create policy praxis_preguntas_insertar_propia on public.praxis_preguntas_en_espera
   for insert to authenticated
-  with check (
-    usuario_id = (select auth.uid())
-    and (select public.praxis_mis_preguntas_abiertas()) < 2
-  );
+  with check (usuario_id = (select auth.uid()));
 
 drop policy if exists praxis_preguntas_leer on public.praxis_preguntas_en_espera;
 create policy praxis_preguntas_leer on public.praxis_preguntas_en_espera

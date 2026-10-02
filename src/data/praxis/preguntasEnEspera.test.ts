@@ -94,6 +94,11 @@ describe('dejarPreguntaEnEspera', () => {
     await expect(dejarPreguntaEnEspera(base)).resolves.toEqual({ ok: false, motivo: 'tope' })
   })
 
+  it('si la base corta por el tope (el trigger de la 0105, check_violation), es «tope»', async () => {
+    errorInsert = { code: '23514', message: 'praxis: ya hay dos preguntas abiertas' }
+    await expect(dejarPreguntaEnEspera(base)).resolves.toEqual({ ok: false, motivo: 'tope' })
+  })
+
   it('cualquier otro error es un error, nunca un «listo»', async () => {
     errorInsert = { code: 'XX000', message: 'algo' }
     await expect(dejarPreguntaEnEspera(base)).resolves.toEqual({ ok: false, motivo: 'error' })

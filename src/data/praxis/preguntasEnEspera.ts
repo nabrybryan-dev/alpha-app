@@ -87,7 +87,8 @@ export async function dejarPreguntaEnEspera(entrada: { usuarioId: string; frase:
     if (error) {
       if (noExiste(error.code)) return { ok: false, motivo: 'no_disponible' }
       // 42501: la política de insert la rechazó. Con la sesión propia, eso es el tope de abiertas.
-      if (error.code === '42501') return { ok: false, motivo: 'tope' }
+      // 23514: el trigger de la 0105 que cuenta las abiertas con un candado (check_violation).
+      if (error.code === '42501' || error.code === '23514') return { ok: false, motivo: 'tope' }
       return { ok: false, motivo: 'error' }
     }
     return { ok: true, destinatario: previa.pregunta.destinatario }
