@@ -178,7 +178,7 @@ describe('Praxis conectada · charla básica, local y al instante', () => {
     await decirle(u, $, 'gracias')
     await waitFor(() => expect(frase($)).toBe('Con mucho gusto.'), ESPERA)
     await decirle(u, $, 'quién eres')
-    await waitFor(() => expect(frase($)).toContain('Soy Praxis, la guía de hábitos de Alpha. Anoto tu entrenamiento'), ESPERA)
+    await waitFor(() => expect(frase($)).toContain('Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrenas'), ESPERA)
     expect(c.proponer).not.toHaveBeenCalled()
   })
 
