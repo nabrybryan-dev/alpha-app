@@ -9,6 +9,8 @@ import type { Rgb } from './escena'
  * demanda y guarda la cadena rgba() ya hecha: cero cadenas nuevas por cuadro.
  */
 export const N = 96 // puntos de la firma y del eco
+/** Alto de la cabecera compacta (px). El mismo valor que `.onda-caja.compacta` en tokens.css. */
+export const CAJA_COMPACTA = 112
 
 export interface Geo { cx: number; cy: number; Rh: number; rOut: number }
 export interface Ojo extends Geo { brillo: number; voz: number; modo: number; aro?: number }
@@ -31,7 +33,7 @@ export const PAL = {
 /** Colores fijos por tema, construidos una vez. */
 export const COL = {
   mezcla: 'lighter' as GlobalCompositeOperation, foton: null as Rgb | null, hor: '#000', hor0: 'rgba(0,0,0,0)',
-  blancoPre: 'rgba(255,255,255,', blanco0: 'rgba(255,255,255,0)', mantBase: 'rgba(244,245,246,0.16)', mant: 'rgba(255,255,255,0.92)',
+  blancoPre: 'rgba(255,255,255,', blanco0: 'rgba(255,255,255,0)', escucha: 'rgba(255,255,255,0.92)',
   cursorRed: 'rgba(255,255,255,0.95)', cursor: '#f4f5f6', brasa: [255, 90, 60] as Rgb, ascua: [255, 176, 130] as Rgb, luz: [244, 245, 246] as Rgb,
 }
 
@@ -86,7 +88,8 @@ export function colorFino(canal: number, mq: number, n: number): string {
 }
 
 export type EstadoOnda = 'reposo' | 'habla' | 'escucha' | 'piensa' | 'aplanada' | 'firma' | 'quieta'
-export interface Mantener { t0: number; suelta: number; desde: number; p: number }
+/** La escucha por voz: desde cuándo se oye, desde cuándo se soltó (0 = sigue) y lo que se hunde el agujero. */
+export interface Oye { t0: number; suelta: number }
 
 function estadoInicial() {
   return {
@@ -98,7 +101,7 @@ function estadoInicial() {
     piensaT: 0, chispaA: 0, chispaAng: -Math.PI / 2, chispaDesde: -1,
     firma: null as Float32Array | null, firmaDesde: null as Float32Array | null, firmaT: 0, trazando: false,
     eco: null as { pts: Float32Array; t1: number | null } | null, ecoT: 0, cursor: -1,
-    quietaAmp: 1, respira: null as { nivel: number } | null, espejo: null as { t0: number; env: number[] } | null, mant: null as Mantener | null,
+    quietaAmp: 1, respira: null as { nivel: number } | null, espejo: null as { t0: number; env: number[] } | null, oye: null as Oye | null, hunde: 0, hundeObj: 0, nivel: 0, nivelObj: 0, centro: false,
     compacta: false, hVis: 0, hAnim: null as { d: number; h: number; t0: number } | null, primero: true, moviendo: false,
   }
 }

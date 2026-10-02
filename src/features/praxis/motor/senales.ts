@@ -90,6 +90,7 @@ export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolea
   cancelar()
   S.quieta = { tipo, cita, demo }; S.cuidado = null; $('#btnRapido').setAttribute('aria-pressed', 'false')
   if (Mic.activo) detenerMic(false)
+  if (Mic.cortarVoz) Mic.cortarVoz() // si estaba hablando por voz, la toma se corta sin enviarse
   Voz.callar(); Viajeras.limpiar(); Cab.pendiente = false; Cab.ayer = false; cerrarMenuMas()
   soltarFlip()
   compactar(true, true); alInicio(true)
@@ -117,7 +118,7 @@ export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolea
   if (!demo) fijarHecho({ riesgo: tipo, datos: {}, idea: null, dia: hoyReal() })
 }
 
-/* ——— El micrófono no existe en el prototipo: la escucha es una simulación ——— */
+/* ——— El botón de micrófono del ejemplo es una simulación. La voz de verdad es mantener el agujero (hablar.ts) ——— */
 const VOZ_EJ: Record<string, string[]> = {
   hilo: ['A medias.', 'Sí, salió.'],
   noche: ['Dormí como seis horas, me acosté a las doce, me levanté a las seis y diez, a saltos, y amanecí muy cansada.', 'Dormí bien, unas ocho horas, amanecí descansada.'],
@@ -126,7 +127,7 @@ const VOZ_EJ: Record<string, string[]> = {
   mesa: ['Hambre como seis, comí bien, estrés alto, semana pesada en el trabajo.'],
   firma: ['Unos 9.500 pasos.'],
 }
-export const Mic = { activo: false, int: 0, env: [] as number[] }
+export const Mic = { activo: false, int: 0, env: [] as number[], /** Corta la toma de voz real (mantener el agujero) sin enviar nada: lo cuelga hablar.ts. */ cortarVoz: null as (() => void) | null }
 /** La envolvente de una voz inventada: lo que pinta el disco cuando «escucha». */
 export function vozSimulada(t: number): number { return clamp(0.3 + 0.45 * Math.abs(Math.sin(t * 9.5)) * (0.6 + 0.4 * Math.sin(t * 2.3)) + 0.2 * Math.random(), 0, 1) }
 export function iniciarMic(): void {

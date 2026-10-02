@@ -5,8 +5,13 @@ import type { Trato } from '../motor/entorno'
  * controles y el muelle de texto. Marcado quieto: lo gobierna el motor.
  *
  * Con `conectada` es la sala de la conversación real: sin el rótulo de ejemplo, sin el modo
- * «Rápido» del check-in guiado y sin el micrófono, que en la maqueta era una simulación. Los
- * dos botones siguen en el marcado, ocultos, porque el motor los busca por su id.
+ * «Rápido» del check-in guiado y sin el botón de micrófono de la maqueta, que era una
+ * simulación. Los dos botones siguen en el marcado, ocultos, porque el motor los busca por su id.
+ *
+ * La voz de verdad es MANTENER PRESIONADO el agujero (`#agujeroHablar`, ver motor/hablar.ts):
+ * un botón transparente que el motor coloca justo encima del disco. Lo que va entendiendo el
+ * reconocedor se lee en `#enVivo`. Conectada, la barra para escribir nace plegada y la abre
+ * el tirador `#btnEscribir` (motor/barra.ts).
  */
 const ORBITAS: [string, string][] = [['sueno', 'SUEÑO'], ['energia', 'ENERGÍA'], ['cuerpo', 'CUERPO'], ['comida', 'COMIDA'], ['mente', 'MENTE']]
 
@@ -45,6 +50,7 @@ export function SalaMarcado({ trato, conectada = false, sinFormulario = false }:
         <div className="sala-col" id="salaCol">
           <div className="onda-caja" id="ondaCaja">
             <canvas id="onda" aria-hidden="true" />
+            <button className="agujero-hablar" id="agujeroHablar" type="button" aria-pressed="false" aria-label={trato === 'usted' ? 'Mantenga presionado para hablar con Praxis' : 'Mantén presionado para hablar con Praxis'} />
             <div className="onda-pie" id="ondaPie" />
             <span className="onda-rotulo" id="ondaRotulo" aria-hidden="true" />
             <div className="onda-acciones" id="filaRespira">
@@ -56,6 +62,7 @@ export function SalaMarcado({ trato, conectada = false, sinFormulario = false }:
             <div className="dicho" id="dicho" aria-live="polite">
               <p className="nota-primera" id="notaPrimera" />
               <p className="frase" id="frase" />
+              <p className="persona en-vivo" id="enVivo" aria-live="off" />
               <p className="persona" id="dijo" />
               <p className="ayuda" id="ayuda" />
               <span className="sr" id="srPiensa" />
@@ -79,6 +86,7 @@ export function SalaMarcado({ trato, conectada = false, sinFormulario = false }:
           </div>
         </div>
       </div>
+      <button className="btn-escribir" id="btnEscribir" type="button" aria-expanded="false" aria-controls="muelle" aria-label="Escribirle a Praxis" hidden />
       <div className="muelle" id="muelle">
         <div className="muelle-col">
           <div className="sugerencias" id="sugerencias" />

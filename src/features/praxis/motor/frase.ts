@@ -138,7 +138,7 @@ let tPersona = 0
 export function mostrarPersona(txt: string, fuente?: Fuente): void {
   const p = $('#dijo')
   p.classList.remove('apaga')
-  p.textContent = (fuente === 'voz' ? tu('Dijiste (simulación): ', 'Dijo (simulación): ') : '') + '«' + txt + '»'
+  p.textContent = (fuente === 'voz' ? tu('Dijiste: ', 'Dijo: ') : '') + '«' + txt + '»'
   $('#dicho').classList.remove('vacio')
   clearTimeout(tPersona); tPersona = window.setTimeout(() => p.classList.add('apaga'), 1400)
   Onda.fuente(false)

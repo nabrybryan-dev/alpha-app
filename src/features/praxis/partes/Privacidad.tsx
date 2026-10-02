@@ -64,7 +64,12 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
                 {u ? 'Lo que escribe para anotar' : 'Lo que escribes para anotar'} viaja a un servicio de inteligencia artificial que lo convierte en un registro.
                 Lo que suena a riesgo o a salud no sale de este teléfono: no se anota y no llega a ese servicio.
               </p>
-              <p>El audio nunca se guarda: aquí no hay micrófono.</p>
+              <p>
+                {u
+                  ? 'Si le habla a Praxis manteniendo presionado el agujero, el reconocimiento de voz de su teléfono (Google en Android y Chrome, Apple en iPhone) convierte su voz en texto y Praxis solo recibe ese texto.'
+                  : 'Si le hablas a Praxis manteniendo presionado el agujero, el reconocimiento de voz de tu teléfono (Google en Android y Chrome, Apple en iPhone) convierte tu voz en texto y Praxis solo recibe ese texto.'}{' '}
+                Alpha no graba ni guarda audio.
+              </p>
             </div>
           ) : (
             <div className="cuerpo">
@@ -74,7 +79,13 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
                 <p><strong>Solo lo que tocas, escribes o confirmas</strong>, y solo cuando tocas LISTO. Se guarda en la misma fila de tu check-in de hoy, con la fuente de cada dato (toque, texto o voz) y, si lo dijiste con tus palabras, la frase literal de donde salió.</p>
               )}
               <p>{u ? 'Un dato que no dio queda en blanco.' : 'Un dato que no diste queda en blanco.'} Nunca se rellena un 7 de sueño ni un peso que nadie midió.</p>
-              <p>La firma no se guarda: se vuelve a calcular con {u ? 'sus' : 'tus'} respuestas. El audio nunca se guarda. En este prototipo no hay micrófono: la escucha es una simulación.</p>
+              <p>
+                La firma no se guarda: se vuelve a calcular con {u ? 'sus' : 'tus'} respuestas. Alpha no graba ni guarda audio:{' '}
+                {u
+                  ? 'si le habla a Praxis manteniendo presionado el agujero, el reconocimiento de voz de su teléfono convierte su voz en texto y Praxis solo recibe ese texto.'
+                  : 'si le hablas a Praxis manteniendo presionado el agujero, el reconocimiento de voz de tu teléfono convierte tu voz en texto y Praxis solo recibe ese texto.'}{' '}
+                El botón de micrófono de este ejemplo sigue siendo una simulación.
+              </p>
               <p>{u ? 'Si cierra a medias' : 'Si cierras a medias'}, el borrador queda solo en este teléfono y se borra al cambiar de día. Lo terminado también se queda aquí hasta el día siguiente.</p>
               <button className="btn-claro" id="btnBorrarBorrador" type="button">Borrar el borrador</button>
             </div>
@@ -115,7 +126,17 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
             ) : (
               <label className="check"><input type="checkbox" id="cConversacion" /><span>Hacer mi check-in conversando<small>{u ? 'Sin esto, usa el formulario de siempre.' : 'Sin esto, usas el formulario de siempre.'}</small></span></label>
             )}
-            <label className="check"><input type="checkbox" id="cVoz" disabled /><span>Usar mi voz · Próximamente<small>El audio se transcribirá y se descartará al instante.</small></span></label>
+            <label className="check">
+              <input type="checkbox" id="cVoz" />
+              <span>
+                Usar mi voz
+                <small>
+                  {u
+                    ? 'Mantenga presionado el agujero y hable. El reconocimiento de voz de su teléfono (Google en Android y Chrome, Apple en iPhone) convierte su voz en texto; ese servicio es de Google o de Apple, no de Alpha, y puede procesar su voz en sus servidores. Praxis solo recibe el texto y lo trata igual que si lo escribiera. Alpha no guarda audio.'
+                    : 'Mantén presionado el agujero y habla. El reconocimiento de voz de tu teléfono (Google en Android y Chrome, Apple en iPhone) convierte tu voz en texto; ese servicio es de Google o de Apple, no de Alpha, y puede procesar tu voz en sus servidores. Praxis solo recibe el texto y lo trata igual que si lo escribieras. Alpha no guarda audio.'}
+                </small>
+              </span>
+            </label>
             {conectada ? (
               <label className="check"><input type="checkbox" id="cRiesgo" /><span>Detenerse ante una señal de riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Praxis se detiene y le muestra las líneas de ayuda.' : 'Si algo que cuentas es una señal de riesgo, Praxis se detiene y te muestra las líneas de ayuda.'} Sin este permiso Praxis no se activa.</small></span></label>
             ) : (

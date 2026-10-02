@@ -4,7 +4,7 @@ import {
   CANAL_FOTON, CANAL_LENTE, CANAL_LUZ, COL, CONICO, L, MODOS, N, NIV, colorCero, colorFino, colorLut, dbg, formaEn, nivelDe, nivelFino,
   rgba, rugosidad, sp, st, tocarTrazo, tono, type Geo, type Ojo,
 } from './ondaEstado'
-import type { Rgb } from './escena'
+import { Escena, type Rgb } from './escena'
 
 /**
  * El dibujo del agujero negro: un solo canvas 2D, sin filter ni shadowBlur. Horizonte negro,
@@ -138,14 +138,64 @@ function fotones(o: Ojo, t: number, mq: number): void {
     ctx.closePath(); tocarTrazo()
   }
 }
+/*
+ * La textura del disco: estrías finas y polvo, pintados UNA vez (al montar o al cambiar el tema) en un lienzo aparte de 384 × 384, en el
+ * plano del disco (un círculo). En cada cuadro va girada (el giro del disco) e inclinada (.26) con UNA drawImage detrás del horizonte y
+ * otra, recortada a la mitad baja del horizonte, por delante: dos copias de imagen en vez de los ~290 trazos que costarían a mano.
+ * Si el cuadro pesa (Escena.baja) se queda solo la de detrás. Con movimiento reducido el giro no avanza: la textura queda quieta.
+ */
+const TEX = 384
+let textura: HTMLCanvasElement | null = null
+export function rehacerTextura(): void { textura = null }
+function texturaDisco(): HTMLCanvasElement | null {
+  if (textura) return textura
+  if (typeof document === 'undefined') return null
+  const c = document.createElement('canvas')
+  c.width = c.height = TEX
+  let x: CanvasRenderingContext2D | null
+  try { x = c.getContext('2d') } catch { x = null }
+  if (!x) return null
+  const R = TEX / 2, luz = COL.luz
+  let semilla = 7
+  const azar = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647 // la misma textura en cada montaje
+  x.translate(R, R)
+  for (let i = 0; i < 46; i++) { // estrías: arcos finos con su radio, su largo y su brillo; más tenues hacia fuera
+    const r = R * (0.56 + 0.42 * azar()), a0 = azar() * Math.PI * 2
+    x.strokeStyle = rgba(luz, (0.05 + 0.18 * azar()) * (1.15 - r / R)); x.lineWidth = 0.6 + 1.2 * azar()
+    x.beginPath(); x.arc(0, 0, r, a0, a0 + 0.5 + 2.3 * azar()); x.stroke()
+  }
+  for (let i = 0; i < 240; i++) { // polvo: granos finos, más densos por dentro
+    const v = Math.pow(azar(), 1.6), r = R * (0.56 + 0.43 * v), a = azar() * Math.PI * 2, s = 0.6 + 1.4 * azar()
+    x.fillStyle = rgba(luz, (0.2 + 0.6 * azar()) * (1 - 0.6 * v)); x.fillRect(r * Math.cos(a) - s / 2, r * Math.sin(a) - s / 2, s, s)
+  }
+  textura = c
+  return c
+}
+function texturaEn(o: Ojo, delante: boolean): void {
+  if (delante && Escena.baja) return
+  const tx = texturaDisco()
+  if (!tx) return
+  const { ctx } = L, r = o.rOut
+  ctx.save()
+  if (delante) { ctx.beginPath(); ctx.rect(o.cx - o.Rh * 1.05, o.cy, o.Rh * 2.1, o.Rh * 1.05); ctx.clip() }
+  ctx.translate(o.cx, o.cy); ctx.scale(1, 0.26); ctx.rotate(st.giro * 0.55)
+  ctx.globalAlpha = clamp(0.3 + 0.6 * o.brillo, 0, 1)
+  ctx.drawImage(tx, -r, -r, 2 * r, 2 * r)
+  ctx.restore()
+}
 export function agujero(t: number, o: Ojo): void {
   const { ctx, H } = L, { cx, cy, Rh, rOut } = o, mq = Math.round(clamp(o.modo, 0, 1) * (MODOS - 1))
   ctx.globalCompositeOperation = COL.mezcla
   const R = Math.max(Rh * 1.2, Math.min(rOut * 1.35, cx, cy, H - cy) - 1)
   const g = ctx.createRadialGradient(cx, cy, Rh * 0.9, cx, cy, R)
-  g.addColorStop(0, colorLut(CANAL_LUZ, mq, nivelDe(0.2 * o.brillo))); g.addColorStop(0.45, colorLut(CANAL_LUZ, mq, nivelDe(0.06 * o.brillo))); g.addColorStop(1, colorCero(CANAL_LUZ, mq)) // sin cadenas nuevas por cuadro
+  /* El brillo del borde: un anillo de luz pegado al de fotones (1,16 Rh), como el de Einstein; va en el mismo degradado, sin trazos nuevos */
+  const kBorde = (Rh * 0.26) / Math.max(1, R - Rh * 0.9)
+  g.addColorStop(0, colorLut(CANAL_LUZ, mq, nivelDe(0.2 * o.brillo)))
+  if (kBorde > 0.02 && kBorde < 0.38) g.addColorStop(kBorde, colorLut(CANAL_LUZ, mq, nivelDe(0.34 * o.brillo)))
+  g.addColorStop(0.45, colorLut(CANAL_LUZ, mq, nivelDe(0.06 * o.brillo))); g.addColorStop(1, colorCero(CANAL_LUZ, mq)) // sin cadenas nuevas por cuadro
   ctx.fillStyle = g; ctx.fillRect(cx - R, cy - R, R * 2, R * 2) // solo el rectángulo del degradado, no el lienzo entero
   disco(o, Math.PI, 2 * Math.PI, t) // la mitad lejana, detrás
+  texturaEn(o, false)
   lente(o, t, mq)
   ctx.globalCompositeOperation = 'source-over' // el horizonte: negro de verdad (tinta en el tema claro)
   const gh = ctx.createRadialGradient(cx, cy, Rh * 0.6, cx, cy, Rh * 1.03)
@@ -154,6 +204,7 @@ export function agujero(t: number, o: Ojo): void {
   ctx.globalCompositeOperation = COL.mezcla
   fotones(o, t, mq)
   disco(o, 0, Math.PI, t) // la mitad cercana pasa por delante del horizonte
+  texturaEn(o, true)
   ctx.globalCompositeOperation = 'source-over'
 }
 function capasDeLuz(w: [number, number, number]): [number, number, Rgb][] { return [[w[0], 0.09, COL.brasa], [w[1], 0.22, COL.ascua], [w[2], 0.95, COL.luz]] }
@@ -176,7 +227,35 @@ export function recorteInferior(): void {
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,1)')
   ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = gr; ctx.fillRect(0, hv - fh, W, fh); ctx.globalCompositeOperation = 'source-over'
 }
-/** Lo que se suma al agujero en reposo: chispa, golpe, punto de salida de una estrella, anillo de mantener. */
+/**
+ * Las ondas de la escucha (mantener presionado para hablar): tres líneas cerradas alrededor del horizonte que se rizan con el nivel de lo
+ * que se oye, a la manera de Wispr Flow. No hay audio propio (ni getUserMedia ni grabación): el nivel lo pone cada resultado del
+ * reconocedor (`Onda.nivel`). Entran en 160 ms y se recogen en 240 ms al soltar. Con movimiento reducido: la misma forma, quieta.
+ */
+function ondasDeEscucha(o: Ojo, red: boolean, ahora: number): void {
+  const oye = st.oye
+  if (!oye) return
+  const u = oye.suelta ? (ahora - oye.suelta) / 240 : 0
+  if (u >= 1 || (red && oye.suelta)) { st.oye = null; return }
+  const { ctx } = L, t = red ? 0 : L.reloj, niv = red ? 0.35 : 0.2 + 0.8 * st.nivel
+  const a = red ? 1 : Math.min(1, (ahora - oye.t0) / 160) * (1 - curvaSalida(u))
+  if (a <= 0.01) return
+  ctx.lineJoin = 'round'; ctx.strokeStyle = COL.escucha
+  for (let k = 0; k < 3; k++) {
+    const base = o.Rh * (1.24 + 0.14 * k), amp = o.Rh * (0.04 + 0.16 * niv) * (1 - 0.2 * k)
+    ctx.globalAlpha = a * (0.85 - 0.25 * k); ctx.lineWidth = k === 0 ? 1.8 : 1.1
+    ctx.beginPath()
+    for (let i = 0; i <= 96; i++) {
+      const th = (i / 96) * Math.PI * 2, env = 0.55 + 0.45 * Math.sin(2 * th + t * 0.9 + k)
+      const r = base + amp * env * (0.6 * Math.sin(5 * th - t * (3.1 + k) + k * 2) + 0.4 * Math.sin(9 * th + t * (4.3 - k) - k))
+      const x = o.cx + r * Math.cos(th), y = o.cy + r * Math.sin(th)
+      if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y)
+    }
+    ctx.closePath(); tocarTrazo()
+  }
+  ctx.globalAlpha = 1
+}
+/** Lo que se suma al agujero en reposo: chispa, golpe, punto de salida de una estrella, ondas de la escucha. */
 export function adornos(o: Ojo, red: boolean, ahora: number): void {
   const { ctx } = L
   ctx.globalCompositeOperation = COL.mezcla
@@ -206,18 +285,7 @@ export function adornos(o: Ojo, red: boolean, ahora: number): void {
       ctx.fillStyle = gp; ctx.fillRect(x - 9, y - 9, 18, 18)
     }
   }
-  if (st.mant) { // mantener para respirar: anillo de progreso lineal alrededor del horizonte; al soltar antes, se recoge en 200 ms
-    const m = st.mant
-    let p
-    if (m.suelta) { const u = (ahora - m.suelta) / 200; p = u >= 1 ? 0 : m.desde * (1 - curvaSalida(u)); if (u >= 1) st.mant = null }
-    else p = Math.min(1, (ahora - m.t0) / DUR.mantener)
-    if (st.mant && p > 0.001) {
-      const r = o.Rh * 1.34
-      ctx.lineWidth = 1.2; ctx.strokeStyle = COL.mantBase; ctx.beginPath(); ctx.arc(o.cx, o.cy, r, 0, Math.PI * 2); tocarTrazo()
-      ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.strokeStyle = COL.mant; ctx.beginPath(); ctx.arc(o.cx, o.cy, r, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); tocarTrazo(); ctx.lineCap = 'butt'
-      m.p = p
-    }
-  }
+  if (st.oye) ondasDeEscucha(o, red, ahora)
   ctx.globalCompositeOperation = 'source-over'
 }
 /** El eco: el agujero absorbe la onda del día y la devuelve como un anillo. La geometría va con el muelle; el anillo, con ANILLO_ECO (un sobrepaso de ≈ 2,8 %). */

@@ -241,7 +241,8 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
   try {
     if (!S.t0) S.t0 = performance.now()
     S.turno = 'conversa'; S.enFirma = false; S.cola = []
-    Cab.arma(); Onda.soltarFirma(); Onda.estado('reposo')
+    Cab.pendiente = false // conectada no se compacta: el agujero se queda en el centro, que es por donde se habla (Bryan, 2-oct)
+    Onda.soltarFirma(); Onda.estado('reposo')
     Penta.cerrar(); $('#penta').hidden = true; $('#muelle').hidden = false; $('#editor').hidden = true
     limpiarControles(); renderSaltos()
     if (opt.saludo !== false) { compactar(false); await saludar(c, tok) }
