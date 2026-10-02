@@ -7,7 +7,7 @@
 --   2. El asesorado NO puede crear la ficha de nadie (ni la suya con la RPC del coach);
 --      conserva `registrar_medida` (0057) para lo suyo.
 --   3. El coach la crea con `crear_ficha_si_falta`: true la primera vez, false la
---      segunda, y falla con una persona que no existe. Manuela (no coach) no puede.
+--      segunda, y falla con una persona que no existe. Manuela (staff) también puede.
 --   4. La cadena deja el primer plan `propuesto` (como servicio, sin sesión) → el trigger
 --      crea la fila de `aprobaciones_primer_plan` (riesgo medio, un pendiente por persona,
 --      idempotente). Una renovación (ya hubo plan), un coach o un plan que nace activo NO
@@ -127,18 +127,18 @@ begin
 end $$;
 reset role;
 
--- Manuela (no es coach) tampoco crea fichas con esta RPC.
+-- Manuela (staff nutricionista) SÍ crea la ficha de un cliente nuevo; el asesorado no (bloque 2).
 select pruebas.soy('e7000000-0000-0000-0000-000000000002');
 set role authenticated;
-do $$
-begin
-  begin
-    perform public.crear_ficha_si_falta('d7000000-0000-0000-0000-000000000002');
-    raise exception 'FALLO: la nutricionista creó una ficha con la RPC del coach';
-  exception when insufficient_privilege then null;
-  end;
-end $$;
+select pruebas.afirmar(
+  public.crear_ficha_si_falta('d7000000-0000-0000-0000-000000000003') is true,
+  'la nutricionista (staff) no pudo crear la ficha de un cliente nuevo'
+);
 reset role;
+select pruebas.afirmar(
+  (select count(*) from public.perfiles where usuario_id = 'd7000000-0000-0000-0000-000000000003') = 1,
+  'la ficha creada por la nutricionista no existe'
+);
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 4 · La cadena propone el primer plan → nace la fila de aprobación

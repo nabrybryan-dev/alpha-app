@@ -21,7 +21,7 @@
 --     que por diseño de la 0086 NUNCA pasa sola al vencer el plazo: la aprueba una persona.
 --     Quien afine el riesgo (service_role, la cadena) puede actualizar la fila.
 --   · `crear_ficha_si_falta(p_usuario)`: el coach crea la ficha mínima de un cliente que
---     aún no la tiene. `security definer` con `search_path` fijo; solo `es_coach()`. El
+--     aún no la tiene. `security definer` con `search_path` fijo; solo `es_staff()` (coach, nutricionista o puesto de coach). El
 --     asesorado conserva `registrar_medida` (0057) para su propia ficha. Devuelve true si
 --     la creó, false si ya existía.
 --
@@ -102,8 +102,8 @@ begin
   if auth.uid() is null then
     raise exception 'Falta sesión' using errcode = '28000';
   end if;
-  if not public.es_coach() then
-    raise exception 'Solo el coach crea la ficha de otra persona' using errcode = '42501';
+  if not public.es_staff() then
+    raise exception 'Solo el staff (coach o nutricionista) crea la ficha de otra persona' using errcode = '42501';
   end if;
   if p_usuario is null
      or not exists (select 1 from public.usuarios_app u where u.id = p_usuario) then
@@ -125,8 +125,8 @@ revoke all on function public.crear_ficha_si_falta(uuid) from public, anon;
 grant execute on function public.crear_ficha_si_falta(uuid) to authenticated, service_role;
 
 comment on function public.crear_ficha_si_falta(uuid) is
-  'El coach crea la ficha minima (usuarioId + medidas) de un cliente que no la tiene. '
-  'security definer, solo es_coach(); true si la creo, false si ya existia.';
+  'El staff crea la ficha minima (usuarioId + medidas) de un cliente que no la tiene. '
+  'security definer, solo es_staff() (coach o Manuela); true si la creo, false si ya existia.';
 
 commit;
 
