@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { guardarDecisionDeAviso } from '../../data/nube/avisos'
 import { pedirPermisoDelNavegador, soportaAvisos, suscribirse } from './suscripcion'
+import { claveVapidPublica } from './clavePublica'
 
 /** Dónde se recuerda que a esta persona ya se le preguntó, en ESTE aparato. */
 const CLAVE_VISTO = 'alpha-aviso-preguntado'
 
-/** La clave pública del servidor de empuje. Vacía mientras no exista. */
-const CLAVE_PUBLICA = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ''
+/** La clave pública del servidor de empuje (por defecto la incrustada; VITE_VAPID_PUBLIC_KEY la sobrescribe). */
+const CLAVE_PUBLICA = claveVapidPublica(import.meta.env.VITE_VAPID_PUBLIC_KEY)
 
 interface PedirPermisoProps {
   usuarioId: string
