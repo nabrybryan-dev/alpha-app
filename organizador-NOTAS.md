@@ -44,8 +44,8 @@ una fila por persona), no `suscripciones_push`.
 
 1. Aplicar la 0098 y luego la 0099 (SQL Editor) y correr `supabase/comprobar-migraciones.sql`: 0098 y 0099 deben decir SI.
 2. Generar las claves VAPID: `npx web-push generate-vapid-keys`.
-3. Poner la pública en la app como `VITE_VAPID_PUBLIC_KEY` (la lee `PedirPermiso`; sin ella la app no se suscribe)
-   y guardar los secretos de la función:
+3. La clave pública ya viene por defecto en la app (`src/features/avisos/clavePublica.ts`; `VITE_VAPID_PUBLIC_KEY` solo la sobrescribe).
+   Guardar los secretos de la función:
    `supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:tu@correo`
    Opcionales: `AVISOS_HORA_BRYAN=08:00`, `AVISOS_HORA_MANUELA=08:00`. `SUPABASE_URL` y la service role ya las inyecta Supabase.
 4. Desplegar: `supabase functions deploy avisos-plan` (o pegar `index.ts` y `decidir.ts` en el editor). La función solo acepta la
