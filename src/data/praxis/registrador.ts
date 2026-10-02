@@ -25,6 +25,8 @@ export interface PeticionProponer {
   hidratacionHoyMl?: number
   verComposicion?: boolean
   checkinHoy?: Record<string, unknown>
+  /** El ejercicio que la persona eligió con un toque tras «¿cuál fue?». */
+  pantallaEjercicioId?: string
 }
 
 export interface PeticionGuardar {
@@ -73,6 +75,7 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
     hidratacion_hoy_ml: p.hidratacionHoyMl,
     ver_composicion: p.verComposicion,
     checkin_hoy: p.checkinHoy,
+    pantalla_ejercicio_id: p.pantallaEjercicioId,
   }))
   if (!r.ok) return r
   const datos = r.datos as { propuesta?: Propuesta; tarjeta?: Tarjeta } | null

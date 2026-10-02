@@ -35,11 +35,13 @@ export function crearConexionPraxis(usuarioId: string, irAlFormulario: (() => vo
     usuarioId,
     hoy,
     leer,
-    proponer: async (frase, mensajeId) => {
+    proponer: async (frase, mensajeId, contexto) => {
       const ve = leer()
       return proponerRegistro(await sesionDeFunciones(), {
         frase,
         mensajeId,
+        // Solo cuando la persona eligió un ejercicio con un toque: si no, no viaja.
+        ...(contexto?.pantallaEjercicioId ? { pantallaEjercicioId: contexto.pantallaEjercicioId } : {}),
         horaLocal: horaLocalIso(),
         hidratacionHoyMl: ve.hidratacionHoyMl,
         verComposicion: ve.comida ? ve.comida.verCifras : false,

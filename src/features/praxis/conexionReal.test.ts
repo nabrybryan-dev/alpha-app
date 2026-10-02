@@ -51,6 +51,14 @@ describe('crearConexionPraxis', () => {
     expect(JSON.stringify(peticion)).not.toMatch(/u-valentina|sesiones|comentarios|dolor/)
   })
 
+  it('si la persona tocó un ejercicio en «¿cuál fue?», viaja su id y nada más del plan', async () => {
+    const c = crearConexionPraxis('u-valentina', () => {})
+    await c.proponer('le metí 40 a la sentadilla', 'm-2', { pantallaEjercicioId: 'e-goblet' })
+    const [, peticion] = proponer.mock.calls[0] as unknown as [unknown, Record<string, unknown>]
+    expect(peticion.pantallaEjercicioId).toBe('e-goblet')
+    expect(JSON.stringify(peticion)).not.toMatch(/u-valentina|sesiones|comentarios|dolor/)
+  })
+
   it('guardar pasa solo lo confirmado, con la hora local', async () => {
     const c = crearConexionPraxis('u-valentina', () => {})
     const registros = [{ campo: 'adherencia', fecha: '2026-10-01', estado: 'si', confianza: 'alta' }] as never

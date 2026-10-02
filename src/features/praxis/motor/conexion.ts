@@ -19,8 +19,12 @@ export interface ConexionPraxis {
   hoy: string
   /** Lo que Praxis ve de la persona, YA filtrado por la lista blanca. Se relee en cada turno. */
   leer: () => LoQuePraxisVe
-  /** Pide una propuesta al registrador. No guarda. */
-  proponer: (frase: string, mensajeId: string) => Promise<RespuestaDelRegistrador>
+  /**
+   * Pide una propuesta al registrador. No guarda. `contexto.pantallaEjercicioId` es el
+   * ejercicio que la persona eligió con un toque cuando Praxis preguntó cuál fue: el
+   * registrador lo usa para no volver a preguntar.
+   */
+  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string }) => Promise<RespuestaDelRegistrador>
   /** Guarda lo que la persona confirmó con un toque. */
   guardar: (p: { mensajeId: string; registros: RegistroPropuesto[]; confirmaSesion: boolean }) => Promise<RespuestaDeGuardar>
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */

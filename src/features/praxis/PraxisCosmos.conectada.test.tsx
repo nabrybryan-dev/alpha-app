@@ -168,6 +168,44 @@ describe('Praxis conectada · lo que se escribe va al registrador y se guarda so
     expect(await screen.findByText('Guardado: series.', undefined, ESPERA)).toBeInTheDocument()
   })
 
+  it('al tocar una de las sentadillas de «¿cuál fue?», vuelve la frase de antes CON el ejercicio elegido, no la misma duda', async () => {
+    // La prueba de Bryan del 2-oct: dos sentadillas en el plan, tocaba una y Praxis preguntaba lo mismo otra vez.
+    const dos: LoQuePraxisVe = {
+      ...ve,
+      activo: {
+        ...ve.activo!,
+        sesiones: [{
+          ...ve.activo!.sesiones[0],
+          ejercicios: [
+            { ...ve.activo!.sesiones[0].ejercicios[0], id: 'e-bulgara', nombre: 'Sentadilla búlgara (unilateral, con pausa)' },
+            { ...ve.activo!.sesiones[0].ejercicios[0], id: 'e-goblet', nombre: 'Sentadilla goblet con mancuerna' },
+          ],
+        }],
+      },
+    }
+    const pregunta: RespuestaDelRegistrador = {
+      ok: true, mensajeId: 'm-1',
+      propuesta: { accion: 'preguntar', registros: [], descartado: [], notas_coach: [], citas_invalidas: [] },
+      tarjeta: {
+        tipo: 'pregunta', titulo: '', lineas: [], avisos: [], descartado: [], botones: [], requiereConfirmarSesion: false, guardable: false,
+        pregunta: { texto: '¿Cuál fue: Sentadilla búlgara (unilateral, con pausa) o Sentadilla goblet con mancuerna?', opciones: ['Sentadilla búlgara (unilateral, con pausa)', 'Sentadilla goblet con mancuerna'] },
+      },
+    }
+    const proponer = vi.fn<ConexionPraxis['proponer']>()
+    proponer.mockResolvedValueOnce(pregunta).mockResolvedValue(propuestaSeries)
+    const u = userEvent.setup()
+    const c = crear({ proponer }, dos)
+    const { $ } = montar(c)
+    await abrir(u)
+    await decirle(u, $, 'hice 4 series de sentadilla con 60')
+
+    await u.click(await screen.findByRole('button', { name: 'Sentadilla goblet con mancuerna' }, ESPERA))
+    await waitFor(() => expect(proponer).toHaveBeenCalledTimes(2), ESPERA)
+    expect(proponer.mock.calls[1][0]).toBe('hice 4 series de sentadilla con 60')
+    expect(proponer.mock.calls[1][2]).toEqual({ pantallaEjercicioId: 'e-goblet' })
+    expect(await screen.findByRole('button', { name: 'Guardar' }, ESPERA)).toBeInTheDocument()
+  })
+
   it('«Descartar» no guarda nada', async () => {
     const u = userEvent.setup()
     const c = crear()
