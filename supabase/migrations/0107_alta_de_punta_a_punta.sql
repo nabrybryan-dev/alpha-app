@@ -112,12 +112,58 @@ begin
 
   -- Misma ficha mínima que deja `registrar_medida` (0057): solo `usuarioId` y `medidas`.
   -- No inventa objetivos ni edad: el resto lo pone el coach.
+  -- Marca local a la transacción: `proteger_perfil` deja pasar SOLO este INSERT de ficha vacía.
+  perform set_config('alpha.crea_ficha_vacia', '1', true);
   insert into public.perfiles (usuario_id, datos)
   values (p_usuario, jsonb_build_object('usuarioId', p_usuario::text, 'medidas', '[]'::jsonb))
   on conflict (usuario_id) do nothing;
 
   get diagnostics v_creada = row_count;
   return v_creada > 0;
+end;
+$$;
+
+-- `proteger_perfil`: copia literal de la 0065 más UNA excepción. Un INSERT de ficha VACÍA
+-- (solo usuarioId + medidas []; sin sexo) lo deja pasar a quien es staff y viene de
+-- `crear_ficha_si_falta` (marca local a la transacción). Triple condición: la marca sola no basta.
+-- Todo UPDATE de un no-coach sigue bloqueado como antes.
+create or replace function public.proteger_perfil()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null or public.es_coach() then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT'
+     and coalesce(current_setting('alpha.crea_ficha_vacia', true), '') = '1'
+     and public.es_staff()
+     and new.datos = jsonb_build_object('usuarioId', new.usuario_id::text, 'medidas', '[]'::jsonb)
+     and new.sexo is null then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE'
+     and (new.datos - 'medidas' - 'diasDisponibles')
+         is distinct from (old.datos - 'medidas' - 'diasDisponibles') then
+    raise exception 'Solo puedes actualizar tus medidas y tus días';
+  end if;
+
+  if tg_op = 'INSERT'
+     and ((new.datos - 'medidas' - 'diasDisponibles' - 'usuarioId') <> '{}'::jsonb
+          or ((new.datos ? 'usuarioId') and new.datos ->> 'usuarioId' is distinct from auth.uid()::text)) then
+    raise exception 'Solo puedes registrar tus medidas y tus días';
+  end if;
+
+  if tg_op = 'UPDATE' and new.sexo is distinct from old.sexo then
+    raise exception 'Solo el coach puede indicar el sexo';
+  end if;
+  if tg_op = 'INSERT' and new.sexo is not null then
+    raise exception 'Solo el coach puede indicar el sexo';
+  end if;
+  return new;
 end;
 $$;
 

@@ -140,6 +140,46 @@ select pruebas.afirmar(
   'la ficha creada por la nutricionista no existe'
 );
 
+-- Manuela NO puede actualizar esa ficha (el UPDATE es del coach), ni la RPC cambia una ficha existente.
+set role authenticated;
+do $$
+begin
+  begin
+    update public.perfiles set datos = datos || '{"objetivo": "x"}'::jsonb
+      where usuario_id = 'd7000000-0000-0000-0000-000000000003';
+    if found then raise exception 'FALLO: la nutricionista actualizó una ficha ajena'; end if;
+  exception when others then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+select pruebas.afirmar(
+  public.crear_ficha_si_falta('d7000000-0000-0000-0000-000000000003') is false,
+  'la RPC sobre quien ya tiene ficha debía devolver false'
+);
+reset role;
+select pruebas.afirmar(
+  (select datos from public.perfiles where usuario_id = 'd7000000-0000-0000-0000-000000000003')
+    = '{"usuarioId": "d7000000-0000-0000-0000-000000000003", "medidas": []}'::jsonb,
+  'la ficha de la renovación cambió'
+);
+
+-- Un asesorado que pone la marca a mano NO inserta la ficha de otro (no es staff + RLS).
+select pruebas.soy('d7000000-0000-0000-0000-000000000001');
+set role authenticated;
+do $$
+begin
+  perform set_config('alpha.crea_ficha_vacia', '1', true);
+  begin
+    insert into public.perfiles (usuario_id, datos)
+    values ('d7000000-0000-0000-0000-000000000002',
+            '{"usuarioId": "d7000000-0000-0000-0000-000000000002", "medidas": []}'::jsonb);
+    raise exception 'FALLO: la marca a mano dejó insertar la ficha de otro';
+  exception when others then
+    if sqlerrm like 'FALLO%' then raise; end if;
+  end;
+end $$;
+reset role;
+
 -- ════════════════════════════════════════════════════════════════════════
 -- 4 · La cadena propone el primer plan → nace la fila de aprobación
 -- ════════════════════════════════════════════════════════════════════════
