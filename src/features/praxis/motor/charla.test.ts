@@ -33,11 +33,11 @@ const CASOS: [string, IntencionDeCharla, string, string][] = [
   ['muchas gracias', 'gracias', 'Con mucho gusto.', 'Con mucho gusto.'],
   ['mil gracias', 'gracias', 'Con mucho gusto.', 'Con mucho gusto.'],
   ['quién eres', 'quien',
-    'Soy Praxis, la guía de hábitos de Alpha. Anoto tu entrenamiento, tu sueño, tu comida y cómo te sientes, y te respondo sobre tu plan.',
-    'Soy Praxis, la guía de hábitos de Alpha. Anoto su entrenamiento, su sueño, su comida y cómo se siente, y le respondo sobre su plan.'],
-  ['qué eres', 'quien', 'Soy Praxis, la guía de hábitos de Alpha. Anoto tu entrenamiento, tu sueño, tu comida y cómo te sientes, y te respondo sobre tu plan.', 'Soy Praxis, la guía de hábitos de Alpha. Anoto su entrenamiento, su sueño, su comida y cómo se siente, y le respondo sobre su plan.'],
-  ['cómo te llamas', 'quien', 'Soy Praxis, la guía de hábitos de Alpha. Anoto tu entrenamiento, tu sueño, tu comida y cómo te sientes, y te respondo sobre tu plan.', 'Soy Praxis, la guía de hábitos de Alpha. Anoto su entrenamiento, su sueño, su comida y cómo se siente, y le respondo sobre su plan.'],
-  ['quién es Praxis', 'quien', 'Soy Praxis, la guía de hábitos de Alpha. Anoto tu entrenamiento, tu sueño, tu comida y cómo te sientes, y te respondo sobre tu plan.', 'Soy Praxis, la guía de hábitos de Alpha. Anoto su entrenamiento, su sueño, su comida y cómo se siente, y le respondo sobre su plan.'],
+    'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrenas, cómo duermes, lo que comes y cómo te sientes, y te respondo sobre tu plan.',
+    'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrena, cómo duerme, lo que come y cómo se siente, y le respondo sobre su plan.'],
+  ['qué eres', 'quien', 'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrenas, cómo duermes, lo que comes y cómo te sientes, y te respondo sobre tu plan.', 'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrena, cómo duerme, lo que come y cómo se siente, y le respondo sobre su plan.'],
+  ['cómo te llamas', 'quien', 'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrenas, cómo duermes, lo que comes y cómo te sientes, y te respondo sobre tu plan.', 'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrena, cómo duerme, lo que come y cómo se siente, y le respondo sobre su plan.'],
+  ['quién es Praxis', 'quien', 'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrenas, cómo duermes, lo que comes y cómo te sientes, y te respondo sobre tu plan.', 'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrena, cómo duerme, lo que come y cómo se siente, y le respondo sobre su plan.'],
   ['¿eres real?', 'real', 'Soy una inteligencia artificial de Alpha. Tu coach sí es una persona, y ve lo que anotamos.', 'Soy una inteligencia artificial de Alpha. Su coach sí es una persona, y ve lo que anotamos.'],
   ['eres humana', 'real', 'Soy una inteligencia artificial de Alpha. Tu coach sí es una persona, y ve lo que anotamos.', 'Soy una inteligencia artificial de Alpha. Su coach sí es una persona, y ve lo que anotamos.'],
   ['eres un robot', 'real', 'Soy una inteligencia artificial de Alpha. Tu coach sí es una persona, y ve lo que anotamos.', 'Soy una inteligencia artificial de Alpha. Su coach sí es una persona, y ve lo que anotamos.'],
@@ -56,12 +56,12 @@ const CASOS: [string, IntencionDeCharla, string, string][] = [
   ['disculpa', 'disculpa', 'No pasa nada.', 'No pasa nada.'],
   ['lo siento', 'disculpa', 'No pasa nada.', 'No pasa nada.'],
   ['sorry', 'disculpa', 'No pasa nada.', 'No pasa nada.'],
-  ['te quiero', 'cariño', 'Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
-  ['te amo', 'cariño', 'Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
-  ['eres linda', 'cariño', 'Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
-  ['eres hermosa', 'cariño', 'Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
-  ['me gustas', 'cariño', 'Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
-  ['eres la mejor', 'cariño', 'Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
+  ['te quiero', 'cariño', 'Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
+  ['te amo', 'cariño', 'Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
+  ['eres linda', 'cariño', 'Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
+  ['eres hermosa', 'cariño', 'Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
+  ['me gustas', 'cariño', 'Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
+  ['eres la mejor', 'cariño', 'Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
 ]
 
 describe('charla · cada intención, en tú y en usted', () => {
@@ -86,13 +86,13 @@ describe('charla · cada intención, en tú y en usted', () => {
 describe('charla · el saludo sigue la hora local', () => {
   it.each([
     [5, 'Buenos días. ¿Cómo amaneciste?'], [11, 'Buenos días. ¿Cómo amaneciste?'],
-    [12, 'Buenas tardes. ¿Cómo va tu día?'], [18, 'Buenas tardes. ¿Cómo va tu día?'],
+    [12, 'Buenas tardes. ¿Cómo va el día?'], [18, 'Buenas tardes. ¿Cómo va el día?'],
     [19, 'Buenas noches. ¿Cómo te fue hoy?'], [23, 'Buenas noches. ¿Cómo te fue hoy?'], [0, 'Buenas noches. ¿Cómo te fue hoy?'], [4, 'Buenas noches. ¿Cómo te fue hoy?'],
   ])('a las %i h', (hora, texto) => {
     expect(dice('hola', { hora })?.texto).toBe(texto)
   })
   it('en usted también', () => {
-    expect(dice('hola', { hora: 15, trato: 'usted' })?.texto).toBe('Buenas tardes. ¿Cómo va su día?')
+    expect(dice('hola', { hora: 15, trato: 'usted' })?.texto).toBe('Buenas tardes. ¿Cómo va el día?')
     expect(dice('hola', { hora: 22, trato: 'usted' })?.texto).toBe('Buenas noches. ¿Cómo le fue hoy?')
   })
   it('los límites de las franjas', () => {

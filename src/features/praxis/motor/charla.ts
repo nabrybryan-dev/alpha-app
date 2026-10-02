@@ -66,7 +66,7 @@ const RE_CARINO = /^(?:te quiero|te amo|te adoro|me gustas|eres (?:muy |tan )?(?
 type Par = readonly [string, string]
 const SALUDO_POR_HORA: Record<'manana' | 'tarde' | 'noche', Par> = {
   manana: ['Buenos días. ¿Cómo amaneciste?', 'Buenos días. ¿Cómo amaneció?'],
-  tarde: ['Buenas tardes. ¿Cómo va tu día?', 'Buenas tardes. ¿Cómo va su día?'],
+  tarde: ['Buenas tardes. ¿Cómo va el día?', 'Buenas tardes. ¿Cómo va el día?'],
   noche: ['Buenas noches. ¿Cómo te fue hoy?', 'Buenas noches. ¿Cómo le fue hoy?'],
 }
 const DESPEDIDA_POR_HORA: Record<'dia' | 'noche', Par> = {
@@ -79,8 +79,8 @@ const TEXTOS: Record<'estado' | 'animoBueno' | 'animoMalo' | 'gracias' | 'quien'
   animoMalo: ['Gracias por contarme. ¿Es el cuerpo, el sueño o el día? Si quieres, lo anoto.', 'Gracias por contarme. ¿Es el cuerpo, el sueño o el día? Si quiere, lo anoto.'],
   gracias: ['Con mucho gusto.', 'Con mucho gusto.'],
   quien: [
-    'Soy Praxis, la guía de hábitos de Alpha. Anoto tu entrenamiento, tu sueño, tu comida y cómo te sientes, y te respondo sobre tu plan.',
-    'Soy Praxis, la guía de hábitos de Alpha. Anoto su entrenamiento, su sueño, su comida y cómo se siente, y le respondo sobre su plan.',
+    'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrenas, cómo duermes, lo que comes y cómo te sientes, y te respondo sobre tu plan.',
+    'Soy Praxis, la guía de hábitos de Alpha. Anoto lo que entrena, cómo duerme, lo que come y cómo se siente, y le respondo sobre su plan.',
   ],
   real: ['Soy una inteligencia artificial de Alpha. Tu coach sí es una persona, y ve lo que anotamos.', 'Soy una inteligencia artificial de Alpha. Su coach sí es una persona, y ve lo que anotamos.'],
   ayuda: [
@@ -88,7 +88,7 @@ const TEXTOS: Record<'estado' | 'animoBueno' | 'animoMalo' | 'gracias' | 'quien'
     'Cuénteme lo que hizo, como «hice 4 series de sentadilla con 60», «dormí 6 horas» o «me tomé dos litros de agua». También puede preguntarme por su plan de hoy.',
   ],
   disculpa: ['No pasa nada.', 'No pasa nada.'],
-  cariño: ['Gracias, qué amable. Yo estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Yo estoy aquí para acompañarle con sus hábitos.'],
+  cariño: ['Gracias, qué amable. Estoy aquí para acompañarte con tus hábitos.', 'Gracias, qué amable. Estoy aquí para acompañarle con sus hábitos.'],
 }
 
 /** Mañana 5–11:59, tarde 12–18:59, noche el resto. */

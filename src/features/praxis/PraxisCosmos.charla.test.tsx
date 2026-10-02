@@ -89,8 +89,8 @@ describe('Praxis conectada · charla básica, local y al instante', () => {
     await abrir(u)
     decirVoz.mockClear()
     await decirle(u, $, 'buenas')
-    await waitFor(() => expect(frase($)).toBe('Buenas tardes. ¿Cómo va tu día?'), ESPERA)
-    expect(decirVoz).toHaveBeenCalledWith('Buenas tardes. ¿Cómo va tu día?', expect.anything(), expect.anything(), expect.anything())
+    await waitFor(() => expect(frase($)).toBe('Buenas tardes. ¿Cómo va el día?'), ESPERA)
+    expect(decirVoz).toHaveBeenCalledWith('Buenas tardes. ¿Cómo va el día?', expect.anything(), expect.anything(), expect.anything())
   })
 
   it('en usted, con su saludo de la noche', async () => {
