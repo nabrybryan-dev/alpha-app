@@ -129,10 +129,25 @@ async function ofrecerPregunta(c: ConexionPraxis, frase: string, texto: string, 
 }
 
 /* ——— Lo que va al registrador ——— */
-async function registrar(c: ConexionPraxis, frase: string, tok: number): Promise<void> {
+const plano = (s: string): string => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
+
+/**
+ * Si la opción que tocó la persona es el nombre de un ejercicio de su plan activo, su id.
+ * Antes, al tocar «Sentadilla goblet…», se mandaba «frase. opción» y el modelo volvía a citar
+ * «sentadilla» a secas: el registrador preguntaba lo mismo otra vez (Bryan, 2-oct).
+ */
+function ejercicioDeLaOpcion(c: ConexionPraxis, opcion: string): string | null {
+  const plan = c.leer().activo
+  if (!plan) return null
+  const buscado = plano(opcion)
+  for (const s of plan.sesiones) for (const e of s.ejercicios) if (plano(e.nombre) === buscado) return e.id
+  return null
+}
+
+async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercicioId?: string): Promise<void> {
   let p: PasoTrasProponer
   pensando(true)
-  try { p = pasoTrasProponer(await c.proponer(frase, idMensaje()), trato()) } finally { if (tok === S.tok) pensando(false) }
+  try { p = pasoTrasProponer(await c.proponer(frase, idMensaje(), ejercicioId ? { pantallaEjercicioId: ejercicioId } : undefined), trato()) } finally { if (tok === S.tok) pensando(false) }
   vigilar(tok)
   switch (p.paso) {
     case 'confirmar':
@@ -145,7 +160,10 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number): Promise
       montar(() => [h('div', { class: 'grupo', 'data-k': 'aclarar' }, chips<string>([...opciones.map((o): [string, string] => [o, o]), ['Descartar', DESCARTAR]], (v) => {
         limpiarControles()
         if (v === DESCARTAR) { decirCorto('Listo, no anoté nada.'); return }
-        emitir({ tipo: 'texto', txt: `${frase}. ${v}`, fuente: 'toque' }) // vuelve a pasar por el filtro de riesgo, como cualquier frase
+        // Las dos vuelven a pasar por el filtro de riesgo, como cualquier frase.
+        const id = ejercicioDeLaOpcion(c, v)
+        if (id) emitir({ tipo: 'texto', txt: frase, fuente: 'toque', ejercicioId: id, eco: v }) // la frase de antes, con el ejercicio elegido
+        else emitir({ tipo: 'texto', txt: `${frase}. ${v}`, fuente: 'toque' })
       }, null, 'aclarar'))])
       enfocarControles()
       return
@@ -170,14 +188,14 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number): Promise
   }
 }
 
-async function atender(c: ConexionPraxis, frase: string, tok: number): Promise<void> {
+async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?: { ejercicioId: string; eco: string }): Promise<void> {
   limpiarControles()
   const turno = decidirTurno(frase, c.leer(), c.hoy, trato())
   if (turno.paso === 'nada') return
   // La seguridad va primero: estas dos salidas cancelan el turno (el bucle termina en su próximo vigilar).
   if (turno.paso === 'quieta') { mostrarPersona(frase, 'texto'); entrarQuieta(turno.linea, frase, false); return }
   if (turno.paso === 'cuidado') { preguntarCuidado(frase, 'texto'); return }
-  mostrarPersona(frase, 'texto')
+  mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
   if (turno.paso === 'salud') { await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
   if (turno.paso === 'plan') {
     const r = turno.respuesta
@@ -186,7 +204,7 @@ async function atender(c: ConexionPraxis, frase: string, tok: number): Promise<v
     if (r.citas.length) montar(() => [citasNodo(r.citas)])
     return
   }
-  await registrar(c, frase, tok)
+  await registrar(c, frase, tok, eleccion?.ejercicioId)
 }
 
 /* ——— Las preguntas en espera: «te aviso cuando responda» se cumple al abrir la sala ——— */
@@ -230,7 +248,7 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
     for (;;) {
       const e = await esperaCon(tok, null)
       if (e.tipo !== 'texto' || !e.txt) continue
-      await atender(c, e.txt, tok)
+      await atender(c, e.txt, tok, e.ejercicioId ? { ejercicioId: e.ejercicioId, eco: e.eco ?? e.txt } : undefined)
     }
   } catch (e) { if (!(e instanceof Cancelado)) throw e }
 }

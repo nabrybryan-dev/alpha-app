@@ -22,9 +22,9 @@ export type Rol = 'asesorado' | 'coach' | 'nutricionista'
  * El interruptor. Que la pantalla ya lea datos reales NO basta para encenderlo. Sigue
  * apagado, y lo que falta es de seguridad, no de pantalla:
  *
- *  - el filtro de riesgo es solo el diccionario (`riesgo.ts`). La decisión firmada es
- *    diccionario + modelo en cada mensaje, medido contra un examen que no haya visto; el
- *    diccionario solo alcanzó 47 % en las frases reservadas;
+ *  - el filtro de riesgo ya es diccionario + modelo en cada mensaje (`riesgo.ts` y
+ *    `riesgoModelo.ts`, PR #333): en el examen reservado pasó del 47 % al 76,5 %, y la
+ *    versión corregida todavía no tiene un examen sellado nuevo que no haya visto;
  *  - ante una señal de riesgo la pantalla se detiene, pero todavía NO le avisa a nadie;
  *  - los textos de la Quieta y las fichas clínicas esperan a un profesional de salud mental;
  *  - el consentimiento y el envío de texto a un proveedor de IA esperan al abogado (P8);

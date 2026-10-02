@@ -11,7 +11,11 @@ import { Voz } from './voz'
  * `praxis.*`): nada sale del aparato y nada toca la base.
  */
 export type Fuente = 'toque' | 'texto' | 'voz'
-export interface Evento { tipo: string; campo?: Campo; txt?: string; fuente?: Fuente; v?: string | boolean }
+/**
+ * `ejercicioId` y `eco` solo los pone el toque de una opción de «¿cuál fue?»: el ejercicio
+ * elegido viaja al registrador y lo que se pinta como mensaje de la persona es la opción.
+ */
+export interface Evento { tipo: string; campo?: Campo; txt?: string; fuente?: Fuente; v?: string | boolean; ejercicioId?: string; eco?: string }
 export interface Duda { opciones: string[]; cita: string }
 export interface Senal { tipo: string; frase: string }
 export interface Idea { area: string; texto?: string; pequena: string | null; probar?: boolean; bryan?: boolean; fija?: boolean }
