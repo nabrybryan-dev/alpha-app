@@ -24,6 +24,12 @@ const AsesoradoDetallePage = lazy(() => import('../features/coach/AsesoradoDetal
 const CoachChatPage = lazy(() => import('../features/coach/CoachChatPage'))
 const ConsultasPage = lazy(() => import('../features/coach/ConsultasPage'))
 const ConsolaCoachPage = lazy(() => import('../features/coach/consola/ConsolaCoachPage'))
+const CreadoresPage = lazy(() => import('../features/coach/creadores/CreadoresPage'))
+const AdministracionPage = lazy(() => import('../features/coach/administracion/AdministracionPage'))
+const EstrategiasPage = lazy(() => import('../features/coach/administracion/EstrategiasPage'))
+const EquipoPage = lazy(() => import('../features/equipo/EquipoPage'))
+const MiPlanPage = lazy(() => import('../features/plan/MiPlanPage'))
+const MiEntrenoPage = lazy(() => import('../features/entrenar/miEntreno/MiEntrenoPage'))
 const RevisionesPage = lazy(() => import('../features/aprobacion/RevisionesPage'))
 const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'))
 const PraxisPage = lazy(() => import('../features/praxis/PraxisPage'))
@@ -69,7 +75,13 @@ export function AppRouter() {
         <Route path="contenidos" element={envolver(<ContenidosPage />)} />
         <Route path="logros" element={envolver(<LogrosPage />)} />
         <Route path="marca" element={envolver(<MarcaPage />)} />
+        {/* Espacios de Manuela (maqueta aprobada 28-sep): «Mi entreno» presenta la semana y
+            lleva al salón (/entrenar, que no cambia); «Equipo» reúne cartera y aprobaciones. */}
+        <Route path="mi-entreno" element={envolver(<MiEntrenoPage />)} />
+        <Route path="equipo" element={envolver(<EquipoPage />)} />
         <Route path="equipo-nutricion" element={envolver(<EquipoNutricionPage />)} />
+        {/* Organizador (0098): el plan de Manuela; el de Bryan cuelga de /coach. */}
+        <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
         <Route path="equipo-nutricion/cifras" element={envolver(<CifrasAsesoradosPage />)} />
       </Route>
       {/* Praxis (diseño cosmos). Va por fuera de los dos layouts porque es la pantalla
@@ -87,6 +99,16 @@ export function AppRouter() {
             escriban; el director revisa el PR antes de fusionar. */}
         <Route path="consola" element={envolver(<ConsolaCoachPage />)} />
         <Route path="revisiones" element={envolver(<RevisionesPage />)} />
+        {/* Tablero de creadores (0090, F1): solo lectura; lo abre el coach o quien tenga
+            `revisar_creadores` (Manuela). */}
+        <Route path="creadores" element={envolver(<CreadoresPage />)} />
+        {/* Estrategias (con `responder_mercadeo` o `revisar_creadores`) y Administración (con
+            `organizar_plan` o `decisiones_compartidas`); el tablero de la 0102 va dentro y dice
+            «pendiente» sin `ver_administracion`. */}
+        <Route path="estrategias" element={envolver(<EstrategiasPage />)} />
+        <Route path="administracion" element={envolver(<AdministracionPage />)} />
+        {/* Organizador (0098): el plan de Bryan. */}
+        <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
       </Route>
     </Routes>
   )

@@ -1344,6 +1344,90 @@ body {
   }
 }
 
+/* ---------- La cifra en relieve (maqueta «Espacios de Alpha», 28-sep) ---------- */
+
+/* El número grande de los espacios del staff: Archivo ancho, inclinado hacia atrás y
+   EXTRUIDO — cuatro capas de sombra de un píxel que cambian de tono hacia abajo hacen el
+   canto del bloque — con una respiración lenta de 3 px. No es un marcador que cuenta: la
+   cifra ya llegó y solo flota, así que el movimiento es ambiental (5 s, sin rebote).
+
+   Va en `inline-block` porque un `transform` no se aplica a una caja en línea, y el
+   origen es el pie de la cifra para que la inclinación no la despegue de su etiqueta.
+
+   Los dos temas llevan su propia extrusión: en oscuro el canto es gris sobre casi negro;
+   en claro la tinta es negra y el canto tiene que aclararse hacia abajo, o el número se
+   lee emborronado en vez de alzado. El rojo es solo para lo que pide atención. */
+.cifra-3d {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-stretch: 125%;
+  line-height: 1;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+  transform: perspective(420px) rotateX(14deg);
+  transform-origin: 50% 100%;
+  text-shadow:
+    0 1px 0 #bdbdbd,
+    0 2px 0 #8f8f8f,
+    0 3px 0 #6b6b6b,
+    0 4px 0 #4a4a4a,
+    0 10px 18px rgb(0 0 0 / 0.6);
+  animation: cifra-flota 5s ease-in-out infinite;
+}
+
+.cifra-3d-rojo {
+  color: var(--rojo);
+  text-shadow:
+    0 1px 0 #d11515,
+    0 2px 0 #a50f0f,
+    0 3px 0 #7a0a0a,
+    0 4px 0 #520606,
+    0 10px 22px rgb(255 30 30 / 0.25);
+}
+
+[data-theme="light"] .cifra-3d {
+  text-shadow:
+    0 1px 0 #6b6b6b,
+    0 2px 0 #8f8f8f,
+    0 3px 0 #b3b3b3,
+    0 4px 0 #d0d0cc,
+    0 10px 16px rgb(0 0 0 / 0.16);
+}
+
+[data-theme="light"] .cifra-3d-rojo {
+  text-shadow:
+    0 1px 0 #a50f0f,
+    0 2px 0 #c43a3a,
+    0 3px 0 #e07a7a,
+    0 4px 0 #f0b3b3,
+    0 10px 16px rgb(213 18 22 / 0.18);
+}
+
+@keyframes cifra-flota {
+  0%,
+  100% {
+    transform: perspective(420px) rotateX(14deg) translateY(0);
+  }
+  50% {
+    transform: perspective(420px) rotateX(8deg) translateY(-3px);
+  }
+}
+
+/* La barra del embudo y de la sesión crece desde la izquierda al entrar: es `barra-crece`
+   de arriba con la duración de la maqueta. Sin movimiento, la barra ya está en su sitio. */
+.barra-espacio {
+  transform-origin: left;
+  animation: barra-crece 1.1s var(--ease-mov) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cifra-3d,
+  .barra-espacio {
+    animation: none;
+  }
+}
+
 /* ---------- Bottom sheet (test post): scrim + deslizar hacia arriba ---------- */
 
 @keyframes scrim-entra {

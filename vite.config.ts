@@ -45,6 +45,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        // Aviso push del organizador (public/push-sw.js): muestra la notificación y abre Mi plan.
+        importScripts: ['push-sw.js'],
         /**
          * EL GIMNASIO SE QUEDA GUARDADO EN EL TELÉFONO.
          *

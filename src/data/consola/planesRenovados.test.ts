@@ -108,14 +108,15 @@ describe('aPlanRenovado', () => {
 describe('planesRenovadosPendientes', () => {
   it('pide solo los pendientes y nunca lanza', async () => {
     estado.filas = [filaBase, { ...filaBase, id: 'mala', estado: '??' }]
-    const lista = await planesRenovadosPendientes()
+    const lectura = await planesRenovadosPendientes()
     expect(estado.tabla).toBe('aprobaciones_plan_estrategico')
     expect(estado.estadosPedidos).toEqual(['propuesto', 'espera_bryan'])
-    expect(lista.map((p) => p.id)).toEqual(['ape-1'])
+    expect(lectura.ok && lectura.datos.map((p) => p.id)).toEqual(['ape-1'])
+    // APP-F01: el error se devuelve como error, no como bandeja vacía.
     estado.error = { message: 'rls' }
-    expect(await planesRenovadosPendientes()).toEqual([])
+    expect(await planesRenovadosPendientes()).toEqual({ ok: false, error: 'rls' })
     estado.activo = false
-    expect(await planesRenovadosPendientes()).toEqual([])
+    expect(await planesRenovadosPendientes()).toEqual({ ok: true, datos: [] })
   })
 })
 

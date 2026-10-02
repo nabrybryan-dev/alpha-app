@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { useContadorAnimado } from '../../components/ui/useContadorAnimado'
@@ -37,12 +37,25 @@ import { BloqueActual } from './BloqueActual'
 import { enviarRapido } from './enviarRapido'
 import { MapaFatiga } from './MapaFatiga'
 import { RadarAlfa } from './RadarAlfa'
+import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
+import { suenoMedio } from '../../domain/miDia'
+import { NotasDeLaSemana } from '../entrenar/NotasDeLaSemana'
+import { ChequeoDeHoy } from './miDia/ChequeoDeHoy'
+import { EntradaMiPlan } from '../plan/EntradaMiPlan'
+import { MedidasYPeso } from './miDia/MedidasYPeso'
+import { TuSemana } from './miDia/TuSemana'
+
+// Solo la pinta el staff, y arrastra el catálogo de alimentos: a demanda.
+const MiNutricionDeHoy = lazy(() => import('./miDia/MiNutricionDeHoy'))
 import monogramaA from '../../assets/brand/monograma-a.png'
 
 export default function HoyPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const hoy = hoyIso()
+  // «Mi día» del staff que también entrena (Manuela), maqueta «Espacios de Alpha» aprobada
+  // el 28-sep. Lo que ve un asesorado normal no cambia: cada pieza nueva va tras esta marca.
+  const esStaff = usuario.rol === 'nutricionista'
   const juego = useGamificacion(usuario.id)
   const rachaAnimada = useContadorAnimado(juego.rachaBienestar.actual, 700)
 
@@ -162,6 +175,7 @@ export default function HoyPage() {
     checkins: db.bienestar.byUsuario(usuario.id),
     adherenciaPct,
   })
+  const notasDelCoach = esStaff ? notasDelMicrociclo(microciclo) : []
 
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
@@ -194,6 +208,17 @@ export default function HoyPage() {
         <PedirPermiso usuarioId={usuario.id} />
       </div>
 
+      {esStaff && <EntradaMiPlan />}
+
+      {esStaff && (
+        <TuSemana
+          sesionesHechas={resumen.sesionesHechas}
+          sesionesPautadas={resumen.sesionesPautadas}
+          suenoH={suenoMedio(db.bienestar.byUsuario(usuario.id), hoy)}
+          adherenciaPct={resumen.adherenciaPct}
+        />
+      )}
+
       {/* La revisión de la semana, ANTES de cualquier otra cosa y sin tener que
           entrar al chat (decisión de Bryan, 10-sep). El vídeo es una cabecera:
           se graba una vez y lo que cambia cada semana es la tarjeta que irá
@@ -204,6 +229,14 @@ export default function HoyPage() {
           {preguntaCoach && <PreguntaDelCoach texto={preguntaCoach.texto} nombreCoach={nombreCoach} />}
         </CabeceraSemanal>
       </div>
+
+      {/* Las recomendaciones y notas que el coach dejó en el microciclo, justo debajo de
+          su revisión y su pregunta (maqueta de Mi día). Sin notas, no se pinta nada. */}
+      {notasDelCoach.length > 0 && (
+        <div className="entrada entrada-3">
+          <NotasDeLaSemana notas={notasDelCoach} />
+        </div>
+      )}
 
       {/* La puerta clínica y la pregunta de la cadena van justo debajo de la revisión
           de la semana, y no
@@ -279,8 +312,23 @@ export default function HoyPage() {
         />
       </div>
 
-      {/* Check-in del día */}
-      {checkinHoy ? (
+      {/* Check-in del día. El staff lo hace aquí mismo (sin pestaña Bienestar en su barra),
+          y debajo van su nutrición de hoy y sus medidas, en el orden de la maqueta. */}
+      {esStaff ? (
+        <>
+          <ChequeoDeHoy usuarioId={usuario.id} hoy={hoy} />
+          <Suspense
+            fallback={
+              <p className="text-sm text-tenue" aria-busy="true">
+                Cargando tu nutrición de hoy…
+              </p>
+            }
+          >
+            <MiNutricionDeHoy usuarioId={usuario.id} hoy={hoy} />
+          </Suspense>
+          <MedidasYPeso usuarioId={usuario.id} hoy={hoy} />
+        </>
+      ) : checkinHoy ? (
         <div className="relieve entrada entrada-2 flex items-center gap-2.5 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-logrado text-ink-900">
             <CheckDibujado className="h-3.5 w-3.5" />
@@ -358,35 +406,38 @@ export default function HoyPage() {
         </div>
       )}
 
-      {/* 3 stat tiles con datos reales; la racha lleva a Logros (nivel/progreso). */}
-      <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
-        <Link
-          to="/logros"
-          className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
-        >
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
-          <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
-            {Math.round(rachaAnimada)}
-            <span className="text-sm font-medium text-tenue"> d</span>
-          </p>
-        </Link>
-        <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
-            Peso{microciclo ? ` M${microciclo.numero}` : ''}
-          </p>
-          <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
-            {pesoProm ?? '—'}
-            <span className="text-sm font-medium text-tenue"> kg</span>
-          </p>
-        </div>
-        <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-          <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
-          <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
-            {adherenciaPct ?? '—'}
-            <span className="text-sm font-medium text-tenue"> %</span>
-          </p>
-        </div>
-      </section>
+      {/* 3 stat tiles con datos reales; la racha lleva a Logros (nivel/progreso). El staff
+          ya tiene la adherencia en «Tu semana» y el peso en «Medidas y peso». */}
+      {!esStaff && (
+        <section className="entrada entrada-2 grid grid-cols-3 gap-2.5">
+          <Link
+            to="/logros"
+            className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
+          >
+            <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
+            <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
+              {Math.round(rachaAnimada)}
+              <span className="text-sm font-medium text-tenue"> d</span>
+            </p>
+          </Link>
+          <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+            <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
+              Peso{microciclo ? ` M${microciclo.numero}` : ''}
+            </p>
+            <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
+              {pesoProm ?? '—'}
+              <span className="text-sm font-medium text-tenue"> kg</span>
+            </p>
+          </div>
+          <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
+            <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
+            <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
+              {adherenciaPct ?? '—'}
+              <span className="text-sm font-medium text-tenue"> %</span>
+            </p>
+          </div>
+        </section>
+      )}
 
       {microciclo && !siguienteSesion && microcicloCompleto && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
@@ -452,21 +503,6 @@ export default function HoyPage() {
             </Link>
           ))}
         </section>
-      )}
-
-      {usuario.rol === 'nutricionista' && (
-        <Link
-          to="/equipo-nutricion"
-          className="press entrada entrada-5 flex items-center justify-between gap-3 rounded-tarjeta border border-linea bg-surface-1 px-4 py-3.5 shadow-sm"
-        >
-          <span>
-            <span className="block font-display text-sm text-texto">Nutrición del equipo</span>
-            <span className="block text-xs text-tenue">Evaluación de adherencia de todos los asesorados</span>
-          </span>
-          <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rojo/15 text-base text-rojo">
-            →
-          </span>
-        </Link>
       )}
 
       <section className="entrada entrada-6 grid grid-cols-2 gap-3">

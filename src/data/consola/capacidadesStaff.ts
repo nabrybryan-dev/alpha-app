@@ -7,7 +7,8 @@ import { modoNube, supabase } from '../supabase'
  * archivo no ofrece esas operaciones — se asignan a mano o desde `service_role`.
  *
  * `CAPACIDADES` es la misma lista que el `check` de la migración 0083 (ampliado en la 0086
- * con `aprobar_primer_plan` y en la 0087 con `aprobar_plan_estrategico`), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
+ * con `aprobar_primer_plan`, en la 0087 con `aprobar_plan_estrategico`, en la 0090 con las de creadores y en la
+ * 0094, 0095, 0096, 0098 y 0102 con una cada una), palabra por palabra; las pruebas de este archivo la comparan contra el SQL para no desincronizarse
  * en silencio (misma lección que `cadenaCorridas.ts` con sus columnas).
  */
 export const TABLA_CAPACIDADES_STAFF = 'capacidades_staff'
@@ -23,6 +24,19 @@ export const CAPACIDADES = [
   'aprobar_primer_plan',
   // 0087: aprobar el plan estratégico RENOVADO (Manuela y Bryan).
   'aprobar_plan_estrategico',
+  // 0090: ver el tablero de creadores y firmar contactos/excepciones (Manuela y Bryan).
+  'revisar_creadores',
+  'firmar_creadores',
+  // 0094: anotar y firmar decisiones compartidas entre Bryan y Manuela.
+  'decisiones_compartidas',
+  // 0095: triar los comentarios de la app (el coach ya puede por serlo).
+  'triar_comentarios',
+  // 0096: responder el buzón de mercadeo (Manuela).
+  'responder_mercadeo',
+  // 0098: usar el organizador («Mi plan»): cada quien edita lo suyo; el coach lee todo.
+  'organizar_plan',
+  // 0102: ver el área administrativa (Bryan y Manuela); solo lectura.
+  'ver_administracion',
 ] as const
 
 export type Capacidad = (typeof CAPACIDADES)[number]
