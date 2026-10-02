@@ -3639,3 +3639,5 @@ body.praxis-sala-abierta { overflow:hidden; }
 .praxis.ingreso .ing-lado div { display: flex; flex-direction: column; gap: 6px; }
 .praxis.ingreso .ing-rotulo { font: 700 11px/1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); }
 .praxis.ingreso .ing-copia { font: 400 13px/1.5 var(--f-mono); }
+.praxis.ingreso .ing-app > section { display: flex; flex-direction: column; gap: 16px; }
+.praxis.ingreso .ing-app > section > .ing-h2 { margin: 0; }
