@@ -10,11 +10,17 @@ import { movimientoReducido } from '../../../components/ui/movimientoReducido'
  */
 export type Trato = 'tu' | 'usted'
 
-const ctx = { raiz: null as HTMLElement | null, trato: 'tu' as Trato, movSuave: false, vivo: false }
+const ctx = { raiz: null as HTMLElement | null, trato: 'tu' as Trato, movSuave: false, vivo: false, prefijo: 'praxis.' }
 let limpiezas: (() => void)[] = []
 
-export function fijarEntorno(raiz: HTMLElement, trato: Trato): void {
+/**
+ * `espacio` es de quién es lo que se guarda en este navegador. Conectada va el id de la
+ * persona: sus permisos y el estado de su día no los hereda quien entre después en el mismo
+ * teléfono. Sin espacio (la escena de ejemplo) las claves son las de la maqueta.
+ */
+export function fijarEntorno(raiz: HTMLElement, trato: Trato, espacio: string | null = null): void {
   ctx.raiz = raiz; ctx.trato = trato; ctx.vivo = true
+  ctx.prefijo = espacio ? `praxis.u.${espacio}.` : 'praxis.'
   ctx.movSuave = !!leer('movSuave', false)
   aplicarMovSuave()
 }
@@ -32,9 +38,9 @@ export function fijarMovSuave(b: boolean): void { ctx.movSuave = b; guardar('mov
 function aplicarMovSuave(): void { if (ctx.raiz) ctx.raiz.toggleAttribute('data-mov-suave', ctx.movSuave) }
 export function reducido(): boolean { return movimientoReducido() || ctx.movSuave }
 
-export function guardar(k: string, v: unknown): void { try { localStorage.setItem('praxis.' + k, JSON.stringify(v)) } catch { /* sin almacenamiento: seguimos */ } }
-export function leer<T>(k: string, def: T): T { try { const v = localStorage.getItem('praxis.' + k); return v == null ? def : (JSON.parse(v) as T) } catch { return def } }
-export function borrarClave(k: string): void { try { localStorage.removeItem('praxis.' + k) } catch { /* nada */ } }
+export function guardar(k: string, v: unknown): void { try { localStorage.setItem(ctx.prefijo + k, JSON.stringify(v)) } catch { /* sin almacenamiento: seguimos */ } }
+export function leer<T>(k: string, def: T): T { try { const v = localStorage.getItem(ctx.prefijo + k); return v == null ? def : (JSON.parse(v) as T) } catch { return def } }
+export function borrarClave(k: string): void { try { localStorage.removeItem(ctx.prefijo + k) } catch { /* nada */ } }
 
 export function tieneAnimate(): boolean { return typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function' }
 

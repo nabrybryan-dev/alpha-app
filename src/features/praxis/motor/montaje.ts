@@ -1,12 +1,14 @@
 import { initBienestar, renderBienestar, renderCordillera, renderPartitura } from './bienestar'
 import { Anim, Cab, Sala, SinSalto, velarLuego } from './cabecera'
 import { Cosmos } from './cosmos'
-import { reiniciarSemana } from './datos'
+import { conectada, fijarConexion, type ConexionPraxis } from './conexion'
+import { HOY, fijarFuente, fuenteDeEjemplo } from './datos'
 import { Demo } from './demo'
 import { $, aviso, callarAviso, traerALaVista } from './dom'
 import { alDesmontar, escuchaMQ, escuchar, fijarEntorno, fijarMovSuave, guardar, leer, limpiarEntorno, movSuave, mq, tu, type Trato } from './entorno'
 import { Escena, Tema } from './escena'
 import { modoRapido } from './fases'
+import { fuenteReal } from './fuenteReal'
 import { DUR } from './movimiento'
 import { Onda } from './onda'
 import { Penta, Viajeras } from './penta'
@@ -24,7 +26,11 @@ import { Voz, cerrarEco, dormirEco } from './voz'
  * dos bucles de cuadros, la voz, el audio, los temporizadores de la demostración y cada
  * oyente colgado de `window` o `document`—.
  */
-export interface OpcionesPraxis { trato: Trato }
+export interface OpcionesPraxis {
+  trato: Trato
+  /** Con conexión, la escena usa los datos y el cerebro reales. Sin ella, es la de ejemplo (solo pruebas). */
+  conexion?: ConexionPraxis | null
+}
 export interface PraxisMontada { desmontar: () => void; alCambiarTema: () => void }
 
 type TemaPropio = '' | 'dark' | 'light'
@@ -42,10 +48,13 @@ function temaInicial(): TemaPropio {
 }
 function aplicarTema(): void { Tema.leer(); Cosmos.tema(); Onda.tema() }
 
-export function montarPraxis(raiz: HTMLElement, { trato }: OpcionesPraxis): PraxisMontada {
+export function montarPraxis(raiz: HTMLElement, { trato, conexion = null }: OpcionesPraxis): PraxisMontada {
   limpiarEntorno() // por si quedó algo de un montaje anterior
-  fijarEntorno(raiz, trato)
-  reiniciarSemana(); Escena.reiniciar()
+  fijarEntorno(raiz, trato, conexion ? conexion.usuarioId : null)
+  fijarConexion(conexion)
+  fijarFuente(conexion ? fuenteReal(conexion.leer(), conexion.usuarioId, conexion.hoy) : fuenteDeEjemplo())
+  Escena.reiniciar()
+  if (conexion) $('#salaFecha').textContent = HOY.corto
   Object.assign(Sala, { estado: 'cerrada', anims: [], clon: null, tAbrir: 0, limpiar: false, avisoBorrador: false, enfocar: false })
   Anim.flip = null; Anim.desliz = null; Cab.pendiente = false; Cab.ayer = false; Penta.abierto = false
   Voz.activa = false; Voz.esperando = false; Mic.activo = false
@@ -79,7 +88,7 @@ export function montarPraxis(raiz: HTMLElement, { trato }: OpcionesPraxis): Prax
     $('#formPlegado').hidden = false; $('#btnPrefieroForm').setAttribute('aria-expanded', 'true'); guardar('prefiereForm', true)
     traerALaVista($('#formPlegado'), 'center')
     $('#btnVolverPraxis').focus({ preventScroll: true })
-    aviso(tu('El formulario de siempre. Tu borrador de Praxis queda guardado.', 'El formulario de siempre. Su borrador de Praxis queda guardado.'))
+    if (!conectada()) aviso(tu('El formulario de siempre. Tu borrador de Praxis queda guardado.', 'El formulario de siempre. Su borrador de Praxis queda guardado.'))
   })
   conectarVoz()
   escuchar($('#btnMic'), 'click', () => { if (Mic.activo) detenerMic(true); else iniciarMic() })
@@ -124,13 +133,14 @@ export function montarPraxis(raiz: HTMLElement, { trato }: OpcionesPraxis): Prax
     Onda.despertar()
     if (!S.listo && !S.quieta && S.t0 && S.turno !== 'demo') aviso('¿Seguimos?')
   })
-  Demo.iniciar()
+  if (conectada()) { const ir = raiz.querySelector('#btnIrFormulario'); if (ir) escuchar(ir, 'click', () => conexion?.irAlFormulario?.()) }
+  else Demo.iniciar() // el selector de estados es de la demostración
 
   alDesmontar(() => {
     cancelar(); clearTimeout(Sala.tAbrir); clearTimeout(tRe); clearTimeout(Escena.tRes); callarAviso()
     if (Mic.activo) { clearInterval(Mic.int); Mic.activo = false }
     Demo.detener(); Viajeras.limpiar(); limpiarAnimsSala(); SinSalto.detener()
-    Voz.activa = false; Voz.callar(); cerrarEco(); soltarBody()
+    Voz.activa = false; Voz.callar(); cerrarEco(); soltarBody(); fijarConexion(null)
   })
   return { desmontar: limpiarEntorno, alCambiarTema: aplicarTema }
 }

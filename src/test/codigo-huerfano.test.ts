@@ -25,6 +25,11 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
+  // que queda fuera de src/ y por eso este analisis no la ve.
+  'src/domain/praxis/registro/index.ts':
+    'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+
   // El contrato de trayectorias: que ningun patron contradiga a su propio implemento.
   // No lo importa la app y no es un descuido: es una regla que se hace cumplir desde una
   // prueba, como una regla de linter, no una funcion que alguien llame en un fotograma. Se
@@ -101,6 +106,21 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/mercadeoManuela.ts#normalizarUrl':
     'Contrato del buzón de mercadeo (0096): lo consumirá el formulario de referencias cuando ' +
     'avise de un enlace repetido antes de enviarlo; la base ya lo normaliza al insertar.',
+  // La traducción de una marca de riesgo a la propuesta que devuelve el servidor. La usa
+  // SOLO la Edge Function `praxis-registro`, que vive fuera de src/ y por eso este análisis
+  // no la ve. Va en el dominio, junto al filtro, para que pantalla y función compartan una
+  // sola regla (revisión del PR #331, A3).
+  'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
+    'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
+    'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
+  // La lista blanca de Praxis, dicha como lista de rutas. No la llama la app y no es un
+  // descuido: es el CONTRATO que `listaBlanca.test.ts` hace cumplir —recorre lo que sale de
+  // `loQuePraxisVe` y falla si aparece una clave que no esté aquí—. Vive en el módulo, y no
+  // en la prueba, para que quien añada un campo tenga que tocar las dos cosas en el mismo
+  // archivo: el copiado y la lista.
+  'src/domain/praxis/plan/listaBlanca.ts#CAMPOS_PERMITIDOS':
+    'Contrato de la lista blanca de Praxis (DISENO §1.2): lo hace cumplir listaBlanca.test.ts ' +
+    'sobre todo lo que sale de loQuePraxisVe. No es una función que la app llame.',
   // La puerta de la salud del piloto «bola de nieve» (0089): ¿se le puede PREGUNTAR este
   // dato de salud a un interesado? El formulario público no pregunta ninguno, marque lo
   // que marque, así que hoy no la llama nadie. Se deja porque las preguntas de salud llegan

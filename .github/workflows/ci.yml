@@ -165,3 +165,5 @@ jobs:
 
       - name: Quien comenta un hallazgo de mercadeo queda con su nombre real, no con el papel de Manuela
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/211-mercadeo-hallazgos-autor-real.sql
+      - name: La pregunta en espera de Praxis es de quien la hace, y solo responde quien la recibe
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/105-praxis-preguntas-en-espera.sql

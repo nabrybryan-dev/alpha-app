@@ -1,3 +1,4 @@
+import { filtroDeRiesgo } from '../../../domain/praxis/riesgo'
 import { ESCALA3, type Campo, type TipoRiesgo, type Valor } from './datos'
 import { cap, normalizar } from './texto'
 
@@ -16,16 +17,10 @@ const aNum = (w: string): number | undefined => (/^\d+$/.test(w) ? +w : NUMS[w])
 const aMin = (w: string | undefined): number => (w == null ? 0 : /^\d+$/.test(w) ? +w : MINS[w])
 
 /**
- * Señales de riesgo. Dos niveles: lo explícito lleva a la Quieta; lo ambiguo lleva primero
- * a una pregunta directa. La lista y los textos los debe revisar un profesional de salud
- * mental antes de salir.
+ * Las señales de riesgo NO se deciden aquí: las decide `domain/praxis/riesgo.ts`, que es la
+ * única lista (la de la escena y la del registrador, juntas; gana la más protectora). Aquí
+ * solo queda la señal de comida, que acompaña sin apagar el día.
  */
-const RIESGO_FUERTE: [TipoRiesgo, RegExp][] = [
-  ['vida', /hacerme dano|hacerme algo|no quiero vivir|no quiero seguir viviendo|quitarme la vida|matarme|suicid|mejor no existir|quiero morir|quiero morirme|ganas de morir|morirme\b|acabar con mi vida|dormirme y no despertar|quisiera no despertar/],
-  ['pareja', /(mi )?(pareja|esposo|esposa|novio|novia|marido|companero|companera|ex) (me )?(pega|pego|golpea|golpeo|amenaza|amenazo|lastima|lastimo|maltrata|maltrato)|violencia (de pareja|en (la )?casa|domestica)/],
-  ['nino', /(nino|nina|hijo|hija|bebe) (esta )?en (riesgo|peligro)|le pegan a (mi|un|una) (nino|nina|hijo|hija|bebe)/],
-]
-const RIESGO_AMBIGUO = /ya no puedo mas|no aguanto mas|no le veo sentido|no veo salida|para que seguir|todo seria mas facil sin mi|desaparecer\b|cansad[ao] de vivir|no vale la pena vivir|mejor sin mi/
 const RIESGO_COMIDA = /vomit|me purg|purgarme|atracon|laxantes/
 
 export interface CampoLeido { campo: Campo; valor: Valor; cita: string }
@@ -82,9 +77,9 @@ export function interpretar(txt: string, turno: string | null): Interpretacion {
     }
     return false
   }
-  const nr = n.replace(/no (quiero|tengo ganas de) morir\w*/g, ' ') // «no quiero morirme de hambre» no es una señal
-  for (const [tipo, re] of RIESGO_FUERTE) if (re.test(nr)) { r.riesgo = tipo; return r }
-  if (RIESGO_AMBIGUO.test(n)) { r.ambiguo = true; return r }
+  const marca = filtroDeRiesgo(txt)
+  if (marca?.tipo === 'quieta') { r.riesgo = marca.linea; return r }
+  if (marca?.tipo === 'cuidado') { r.ambiguo = true; return r }
   if (RIESGO_COMIDA.test(n)) r.alimentaria = true
   if (/eres (una |un )?(persona|humana|humano|real|bot|robot)|hablo con alguien|hay alguien ahi/.test(n)) { r.persona = true; return r }
   if (/^\s*(no se|ni idea|no me acuerdo|no recuerdo)\s*[.!]?\s*$/.test(n)) { r.noSe = true; return r }
