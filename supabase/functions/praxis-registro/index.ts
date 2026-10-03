@@ -42,6 +42,8 @@ import { derivarPorRiesgo, filtroDeRiesgo, type MarcaDeRiesgo } from '../../../s
 // La otra mitad de «diccionario + modelo en cada mensaje» (decisión firmada del 29-sep).
 import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO, leerSalidaRiesgo, marcaDesdeModelo, type LecturaModelo } from '../../../src/domain/praxis/riesgoModelo.ts'
 import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
+// El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
+import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 // El cuestionario de ingreso por voz: el prompt y la validación con citas (puros) y su guion.
 import { PROMPT_SISTEMA_INGRESO, VERSION_PROMPT_INGRESO, armarMensajeIngreso, leerSalidaIngreso, validarIngreso } from '../../../src/domain/praxis/ingreso/extraer.ts'
@@ -185,6 +187,42 @@ async function rpc(d: Dependencias, s: Sesion, nombre: string, args: Record<stri
     body: JSON.stringify(args),
   })
   return r.ok
+}
+
+
+/**
+ * AVISA AL COACH (migración 0108, `praxis_avisos_coach`): una fila con quién, por dónde llegó y qué
+ * TIPO de señal fue. Sin la frase ni la cita: `AvisoNuevo` no tiene dónde ponerlas, y el cuerpo que
+ * viaja se arma aquí campo por campo. Se escribe con el JWT de la persona (la RLS deja insertar solo
+ * el aviso propio); el `usuario_id` sale de la sesión validada, no del cuerpo de la petición.
+ *
+ * NUNCA cambia lo que se le responde a la persona ni lo bloquea: si el insert falla (la migración sin
+ * aplicar, la red, un tiempo agotado) se anota «aviso no guardado» con el código HTTP y el código de
+ * PostgREST, sin la frase, sin el nombre y sin el cuerpo del error (puede citar valores), y la
+ * derivación sigue su curso. Nunca lanza.
+ */
+const TIMEOUT_AVISO_MS = 3000
+export async function avisarAlCoach(d: Dependencias, s: Sesion, aviso: AvisoNuevo): Promise<void> {
+  try {
+    const r = await d.fetch(`${d.entorno.SUPABASE_URL}/rest/v1/praxis_avisos_coach`, {
+      method: 'POST',
+      headers: {
+        apikey: d.entorno.SUPABASE_ANON_KEY, authorization: `Bearer ${s.token}`,
+        'content-type': 'application/json', prefer: 'return=minimal',
+      },
+      signal: AbortSignal.timeout(TIMEOUT_AVISO_MS),
+      body: JSON.stringify({ usuario_id: s.usuarioId, origen: aviso.origen, nivel: aviso.nivel }),
+    })
+    if (r.ok) return
+    let codigo = ''
+    try {
+      const c = ((await r.json()) as { code?: unknown } | null)?.code
+      if (typeof c === 'string' && /^[A-Za-z0-9]{3,10}$/.test(c)) codigo = c
+    } catch { /* sin cuerpo legible */ }
+    console.error('praxis-registro: aviso no guardado', r.status, codigo)
+  } catch (e) {
+    console.error('praxis-registro: aviso no guardado', e instanceof Error ? e.name : 'error')
+  }
 }
 
 type Plan = { activo: MicrocicloJson | null; anterior: MicrocicloJson | null }
@@ -343,6 +381,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   const marca = filtroDeRiesgo(frase)
   if (marca) {
     const propuesta = derivarPorRiesgo(marca)
+    await avisarAlCoach(d, s, { origen: 'praxis', nivel: nivelDeMarca(marca) })
     return json({
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
@@ -396,6 +435,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   const marcaModelo = marcaDesdeModelo(riesgo.nivel)
   if (marcaModelo) {
     const propuesta = derivarPorRiesgo(marcaModelo)
+    await avisarAlCoach(d, s, { origen: 'praxis', nivel: nivelDeMarca(marcaModelo) })
     return json({
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
@@ -472,9 +512,13 @@ export async function llamarHaikuIngreso(
   return { bruto, tokensEntrada: cuerpo.usage?.input_tokens ?? 0, tokensSalida: cuerpo.usage?.output_tokens ?? 0 }
 }
 
-/** Lo único de una derivación que sale hacia la pantalla del ingreso: sin notas del coach ni la marca que disparó. */
-function derivacionDeIngreso(turno: TurnoId, marca: MarcaDeRiesgo, extra: Record<string, unknown> = {}): Response {
+/**
+ * Lo único de una derivación que sale hacia la pantalla del ingreso: sin notas del coach ni la marca que disparó.
+ * Antes de responder deja el aviso para el coach (tipo de señal y origen, nunca el texto).
+ */
+async function derivacionDeIngreso(d: Dependencias, s: Sesion, turno: TurnoId, marca: MarcaDeRiesgo, extra: Record<string, unknown> = {}): Promise<Response> {
   const p = derivarPorRiesgo(marca)
+  await avisarAlCoach(d, s, { origen: 'ingreso', nivel: nivelDeMarca(marca) })
   return json({
     tipo: 'ingreso', turno, derivada: true,
     derivacion: { filtro: p.filtro ?? null, riesgo: p.riesgo ?? null, urgencia: p.urgencia ?? null },
@@ -504,7 +548,7 @@ async function ingresar(d: Dependencias, s: Sesion, cuerpo: CuerpoIngreso): Prom
   const t0 = d.ahora().getTime()
 
   const marca = filtroDeRiesgo(texto)
-  if (marca) return derivacionDeIngreso(turno, marca, { version_prompt: VERSION_PROMPT_INGRESO })
+  if (marca) return derivacionDeIngreso(d, s, turno, marca, { version_prompt: VERSION_PROMPT_INGRESO })
 
   if (excedeLimite(s.usuarioId, t0, vistoIngreso, MAX_INGRESO_POR_HORA)) return json({ error: 'Demasiados mensajes en la última hora' }, 429)
 
@@ -523,12 +567,14 @@ async function ingresar(d: Dependencias, s: Sesion, cuerpo: CuerpoIngreso): Prom
   console.log('praxis-registro: tiempos-ingreso', JSON.stringify(reloj.tiempos)) // sin el texto: solo milisegundos
   if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
   const marcaModelo = marcaDesdeModelo(riesgo.nivel)
-  if (marcaModelo) return derivacionDeIngreso(turno, marcaModelo, { lector_riesgo: riesgo.nivel, version_prompt_riesgo: SHA16_PROMPT_RIESGO, tiempos_ms: reloj.tiempos })
+  if (marcaModelo) return derivacionDeIngreso(d, s, turno, marcaModelo, { lector_riesgo: riesgo.nivel, version_prompt_riesgo: SHA16_PROMPT_RIESGO, tiempos_ms: reloj.tiempos })
   if (!salida) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
 
   const r = validarIngreso(turno, texto, salida.bruto)
   // Defensa en profundidad: el filtro de riesgo ya habría detenido un síntoma urgente; si aun así asoma, se detiene.
-  if (r.urgencia === 'alta') return derivacionDeIngreso(turno, { tipo: 'quieta', linea: 'vida' }, { tiempos_ms: reloj.tiempos })
+  if (r.urgencia === 'alta') return derivacionDeIngreso(d, s, turno, { tipo: 'quieta', linea: 'vida' }, { tiempos_ms: reloj.tiempos })
+  // Salud en lo que dijo: el coach lo sabe por el aviso (solo el tipo), no por la frase.
+  if (r.salud.length > 0) await avisarAlCoach(d, s, { origen: 'ingreso', nivel: 'salud' })
   return json({
     tipo: 'ingreso',
     turno,

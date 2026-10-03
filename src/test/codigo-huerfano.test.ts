@@ -121,6 +121,11 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
     'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
     'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
+  // El aviso al coach (3-oct, migración 0108): de la marca de riesgo al TIPO de señal que se guarda.
+  // Lo llama SOLO la Edge Function praxis-registro (el resto del módulo lo usa la consola).
+  'src/domain/praxis/aviso.ts#nivelDeMarca':
+    'La consume la Edge Function praxis-registro para escribir el aviso al coach (solo el tipo de ' +
+    'señal, nunca la frase); fuera del alcance de este análisis.',
   // El lector de riesgo con modelo (2-oct): lo llama SOLO la Edge Function praxis-registro,
   // que vive fuera de src/. Va en el dominio para que sus reglas tengan pruebas de vitest.
   'src/domain/praxis/riesgoModelo.ts#leerSalidaRiesgo':
