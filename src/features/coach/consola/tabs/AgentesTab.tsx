@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { Card } from '../../../../components/ui/Card'
 import { EmptyState } from '../../../../components/ui/EmptyState'
@@ -9,6 +9,8 @@ import {
   type PasoCadena,
 } from '../../../../data/consola/cadenaCorridas'
 import { db, useDbVersion } from '../../../../data/dbInstance'
+import { respuestasDelCoach, type RespuestaCoach } from '../../../../data/consola/respuestasCoach'
+import { repartirBandeja } from '../../../../domain/consolaCoach/preguntasDeLaCadena'
 import {
   bandejaDePreguntas,
   cuestionarioIdDePregunta,
@@ -20,13 +22,17 @@ import {
 } from '../../../../domain/consolaCoach/tableroAgentes'
 import { useDatoConsola } from '../datoConsola'
 import { Esqueleto } from '../piezas'
+import { PreguntasAlCoach, type EstadoRespuestas } from '../PreguntasAlCoach'
 import { ResponderComoStaff } from '../ResponderComoStaff'
 
 /**
  * Módulo 2: el tablero ①②③④ por persona (`cadena_corridas`, migración 0083) y la bandeja
- * de preguntas pendientes de la última semana. SOLO LECTURA: nada de aquí escribe — no hay
- * "responder", "reenviar" ni "detener" todavía (DISENO-CONSOLA-V2.md fase 3 pide primero el
- * tablero, la bandeja llega sin botones de respuesta).
+ * de preguntas pendientes de la última semana.
+ *
+ * El tablero es SOLO LECTURA. Las preguntas que la cadena le deja al COACH (`para_el_coach` del
+ * ②, etc.; `preguntas_pendientes` con `fuente: 'cadena'`) salen ARRIBA como tarjetas con botones
+ * o un campo de respuesta (`PreguntasAlCoach`, migración 0110); las demás (el D8, las que traen
+ * `cuestionario_id`) siguen en la bandeja de abajo con `responder_como_staff`.
  */
 
 type EstadoCasilla = EstadoCadenaCorrida | 'sin_dato'
@@ -199,6 +205,28 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
   const cargando = corridas.estado === 'cargando'
   const todasLasCorridas = corridas.estado === 'listo' ? corridas.valor : []
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set())
+  const [respuestas, setRespuestas] = useState<RespuestaCoach[]>([])
+  const [estadoRespuestas, setEstadoRespuestas] = useState<EstadoRespuestas>({ tipo: 'cargando' })
+
+  useEffect(() => {
+    let vivo = true
+    respuestasDelCoach().then((lectura) => {
+      if (!vivo) return
+      if (lectura.ok) {
+        setRespuestas(lectura.datos)
+        setEstadoRespuestas({ tipo: 'listo' })
+      } else {
+        setEstadoRespuestas(lectura.sinTabla ? { tipo: 'sin_tabla' } : { tipo: 'error', error: lectura.error })
+      }
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const alRespondida = useCallback((r: RespuestaCoach) => {
+    setRespuestas((previas) => [r, ...previas.filter((x) => x.idPregunta !== r.idPregunta)])
+  }, [])
 
   const alternar = (clave: string) => {
     setAbiertas((previas) => {
@@ -235,10 +263,20 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
   const atrasado = fechaRecepcion ? datosAtrasados(fechaRecepcion) : false
 
   const filas = cartera.map((u) => filaDeLaPersona(u.id, todasLasCorridas))
-  const bandeja = bandejaDePreguntas(filas)
+  const { pendientes: preguntasAlCoach, otras: bandeja } = repartirBandeja(bandejaDePreguntas(filas), respuestas)
+  const nombreDe = (usuarioId: string) => cartera.find((u) => u.id === usuarioId)?.nombre ?? usuarioId
 
   return (
     <div className="flex flex-col gap-3">
+      <PreguntasAlCoach
+        pendientes={preguntasAlCoach}
+        respondidas={respuestas}
+        estado={estadoRespuestas}
+        nombreDe={nombreDe}
+        onRespondida={alRespondida}
+        onVerPersona={onVerPersona}
+      />
+
       <Card destacada className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-texto">
           Datos de la cadena del <span className="font-bold">{fechaRecepcion ? formatoFechaHora(fechaRecepcion) : 'sin dato'}</span>
@@ -289,7 +327,7 @@ export function AgentesTab({ seleccionadoId, onVerPersona }: AgentesTabProps = {
               <PreguntaItem
                 key={i}
                 pregunta={pregunta}
-                nombre={cartera.find((u) => u.id === pregunta.usuarioId)?.nombre ?? pregunta.usuarioId}
+                nombre={nombreDe(pregunta.usuarioId)}
                 onVerPersona={onVerPersona}
               />
             ))}
