@@ -91,6 +91,10 @@
 --            de «pregunta en espera» de Praxis. Sus seis señales tienen que decir NO
 --            antes de aplicarla y SI después. Mientras digan NO, Praxis ofrece la
 --            pregunta, pero al aceptar dice que todavía no puede dejarla.
+--   · 0108 → SIN APLICAR (escrita el 2026-10-03, rama `feat/praxis-aviso-coach`). Los avisos de
+--            Praxis al coach (señal de riesgo: tipo, hora y origen, nunca la frase). Sus cinco
+--            señales tienen que decir NO antes de aplicarla y SI después. Mientras digan NO,
+--            la consola dice «falta aplicar la migración 0108» y la función solo anota en su log.
 
 select '0008 · rol y perfil' as migracion,
        'trigger trg_proteger_rol en usuarios_app' as senal,
@@ -2279,5 +2283,82 @@ select '0107 - alta de punta a punta: la aprobacion del primer plan se crea sola
               or has_function_privilege('authenticated', 'public.crear_aprobacion_primer_plan()', 'execute')
               or has_function_privilege('anon', 'public.crear_ficha_si_falta(uuid)', 'execute')
               or not has_function_privilege('authenticated', 'public.crear_ficha_si_falta(uuid)', 'execute') then 'NO'
+            else 'SI' end
+union all
+-- La 0108: los avisos de Praxis al coach. La tabla existe, con RLS, y anon no tiene nada; y NO hay dónde guardar
+-- una frase: las únicas columnas de texto son origen y nivel, con lista cerrada.
+select '0108 - praxis_avisos_coach con RLS, sin nada para anon y sin columna de texto libre', 'RLS encendida; anon sin privilegios; solo dos columnas de texto (origen y nivel) y sus dos checks cerrados',
+       case when to_regclass('public.praxis_avisos_coach') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.praxis_avisos_coach')) then 'NO'
+            when has_table_privilege('anon', 'public.praxis_avisos_coach', 'select')
+              or has_table_privilege('anon', 'public.praxis_avisos_coach', 'insert')
+              or has_table_privilege('anon', 'public.praxis_avisos_coach', 'update')
+              or has_table_privilege('anon', 'public.praxis_avisos_coach', 'delete') then 'NO'
+            when (select count(*) from information_schema.columns
+                   where table_schema = 'public' and table_name = 'praxis_avisos_coach'
+                     and data_type in ('text', 'character varying', 'json', 'jsonb')) <> 2 then 'NO'
+            when (select count(*) from pg_constraint
+                   where conrelid = to_regclass('public.praxis_avisos_coach') and contype = 'c'
+                     and pg_get_constraintdef(oid) like '%origen%praxis%ingreso%') < 1
+              or (select count(*) from pg_constraint
+                   where conrelid = to_regclass('public.praxis_avisos_coach') and contype = 'c'
+                     and pg_get_constraintdef(oid) like '%nivel%vida%pareja%nino%cuidado%salud%') < 1 then 'NO'
+            else 'SI' end
+union all
+-- La 0108: la persona solo inserta avisos propios. La señal mira la EXPRESION de la politica, no su nombre.
+select '0108 - praxis_avisos_insertar_propio exige auth.uid()', 'el with_check de la policy de insert menciona auth.uid() y usuario_id',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'praxis_avisos_coach'
+            and policyname = 'praxis_avisos_insertar_propio' and cmd = 'INSERT'
+            and coalesce(with_check, '') like '%auth.uid()%'
+            and coalesce(with_check, '') like '%usuario_id%'
+       ) then 'SI' else 'NO' end
+union all
+-- La 0108: leen el coach y la nutricionista (decision de Bryan, 2-oct), nunca la duena por ser duena: la politica de
+-- select menciona es_coach y es_nutricionista y NO usuario_id, y es la unica de select.
+select '0108 - solo el coach y la nutricionista leen los avisos, nunca la duena', 'una sola policy de select, con es_coach y es_nutricionista y sin usuario_id',
+       case when (select count(*) from pg_policies
+                   where schemaname = 'public' and tablename = 'praxis_avisos_coach' and cmd = 'SELECT') <> 1 then 'NO'
+            when exists (
+              select 1 from pg_policies
+               where schemaname = 'public' and tablename = 'praxis_avisos_coach' and cmd = 'SELECT'
+                 and coalesce(qual, '') like '%es_coach%'
+                 and coalesce(qual, '') like '%es_nutricionista%'
+                 and coalesce(qual, '') not like '%usuario_id%'
+            ) then 'SI' else 'NO' end
+union all
+-- La 0108: atender es de quien puede leer, sobre un pendiente y a su nombre.
+select '0108 - atender es del coach o la nutricionista, sobre un pendiente y a su nombre', 'using con es_coach, es_nutricionista y atendido_en IS NULL; with_check con atendido_por = auth.uid()',
+       case when exists (
+         select 1 from pg_policies
+          where schemaname = 'public' and tablename = 'praxis_avisos_coach'
+            and policyname = 'praxis_avisos_atender_coach' and cmd = 'UPDATE'
+            and coalesce(qual, '') like '%es_coach%'
+            and coalesce(qual, '') like '%es_nutricionista%'
+            and coalesce(qual, '') like '%atendido_en IS NULL%'
+            and coalesce(with_check, '') like '%es_coach%'
+            and coalesce(with_check, '') like '%es_nutricionista%'
+            and coalesce(with_check, '') like '%atendido_por%auth.uid()%'
+       ) then 'SI' else 'NO' end
+union all
+-- La 0108: privilegio EFECTIVO por columna (la persona no fija la hora ni el atendido; nadie reescribe de quien es ni
+-- el tipo; nadie borra) y el trigger de «no se duplica» con candado y sin execute para anon/authenticated.
+select '0108 - authenticated no decide la hora ni el tipo, no borra, y el aviso repetido no se duplica', 'insert solo en usuario_id/origen/nivel; update solo en atendido_en/atendido_por; sin delete; trg_praxis_aviso_nace_limpio con pg_advisory_xact_lock',
+       case when to_regclass('public.praxis_avisos_coach') is null then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'creado_en', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'atendido_en', 'insert')
+              or has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'atendido_por', 'insert') then 'NO'
+            when has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'usuario_id', 'update')
+              or has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'nivel', 'update')
+              or has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'origen', 'update')
+              or has_column_privilege('authenticated', 'public.praxis_avisos_coach', 'creado_en', 'update') then 'NO'
+            when has_table_privilege('authenticated', 'public.praxis_avisos_coach', 'delete') then 'NO'
+            when not exists (select 1 from pg_trigger
+                              where tgname = 'trg_praxis_aviso_nace_limpio' and not tgisinternal) then 'NO'
+            when to_regprocedure('public.praxis_aviso_nace_limpio()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.praxis_aviso_nace_limpio()')) not like '%pg_advisory_xact_lock%' then 'NO'
+            when has_function_privilege('anon', 'public.praxis_aviso_nace_limpio()', 'execute')
+              or has_function_privilege('authenticated', 'public.praxis_aviso_nace_limpio()', 'execute') then 'NO'
             else 'SI' end
 order by migracion, senal;

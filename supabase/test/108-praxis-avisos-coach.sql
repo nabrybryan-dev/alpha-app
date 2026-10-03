@@ -12,10 +12,11 @@
 --   3. Solo caben los tipos y los orígenes de la lista: una frase en `nivel` no entra, y no hay
 --      ninguna columna de texto libre donde meterla.
 --   4. La persona no lee (ni los suyos), no atiende y no borra.
---   5. Otra asesorada y la nutricionista no ven nada.
+--   5. Otra asesorada no ve nada.
 --   6. «No se duplica»: el mismo aviso sin atender dentro de la hora no se repite.
 --   7. El coach lee todos y marca atendido: solo uno pendiente, solo como él mismo, y no cambia
---      de quién es ni de qué tipo.
+--      de quién es ni de qué tipo. La nutricionista (Manuela) también lee y atiende (decisión de Bryan,
+--      2-oct), con las mismas reglas.
 --   8. anon no tiene nada.
 --
 -- Bloque de UUID propio (ab…/bb…/cb…). Termina en ROLLBACK: no deja nada detrás.
@@ -147,7 +148,7 @@ select pruebas.afirmar(
 );
 
 -- ════════════════════════════════════════════════════════════════════════
--- 5 · Otra asesorada y la nutricionista no ven nada
+-- 5 · Otra asesorada no ve nada
 -- ════════════════════════════════════════════════════════════════════════
 select pruebas.soy('ab000000-0000-0000-0000-000000000002');
 set role authenticated;
@@ -156,22 +157,13 @@ select pruebas.afirmar(
   (select count(*) from public.praxis_avisos_coach) = 0,
   'otra asesorada ve avisos que no son suyos'
 );
-reset role;
-
-select pruebas.soy('cb000000-0000-0000-0000-000000000001');
-set role authenticated;
-select pruebas.exigir_rls();
-select pruebas.afirmar(
-  (select count(*) from public.praxis_avisos_coach) = 0,
-  'la nutricionista ve los avisos de riesgo'
-);
 update public.praxis_avisos_coach
-   set atendido_en = now(), atendido_por = 'cb000000-0000-0000-0000-000000000001';
+   set atendido_en = now(), atendido_por = 'ab000000-0000-0000-0000-000000000002';
 reset role;
 
 select pruebas.afirmar(
   (select count(*) from public.praxis_avisos_coach where atendido_en is not null) = 0,
-  'la nutricionista marcó un aviso como atendido'
+  'otra asesorada marcó un aviso como atendido'
 );
 
 -- ════════════════════════════════════════════════════════════════════════
@@ -294,6 +286,57 @@ select pruebas.afirmar(
   (select count(*) from public.praxis_avisos_coach
     where nivel = 'cuidado' and origen = 'praxis' and atendido_en is null) = 1,
   'tras atender un aviso, la señal nueva del mismo tipo no quedó pendiente'
+);
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 7 bis · La nutricionista (Manuela) también lee y atiende, con las mismas reglas
+-- ════════════════════════════════════════════════════════════════════════
+select pruebas.soy('cb000000-0000-0000-0000-000000000001');
+set role authenticated;
+select pruebas.exigir_rls();
+
+select pruebas.afirmar(
+  (select count(*) from public.praxis_avisos_coach) = 4,
+  'la nutricionista no ve todos los avisos'
+);
+
+-- No atiende a nombre de otro.
+do $$
+begin
+  begin
+    update public.praxis_avisos_coach
+       set atendido_en = now(), atendido_por = 'bb000000-0000-0000-0000-000000000001'
+     where origen = 'ingreso';
+    raise exception 'FALLO: la nutricionista marcó un aviso como atendido a nombre del coach';
+  exception
+    when others then
+      if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
+  begin
+    update public.praxis_avisos_coach set nivel = 'salud';
+    raise exception 'FALLO: la nutricionista tiene privilegio para cambiar el tipo de señal';
+  exception
+    when insufficient_privilege then null;
+  end;
+  begin
+    delete from public.praxis_avisos_coach;
+    raise exception 'FALLO: la nutricionista tiene privilegio para borrar avisos';
+  exception
+    when insufficient_privilege then null;
+  end;
+end $$;
+
+-- Como ella misma, sí.
+update public.praxis_avisos_coach
+   set atendido_en = now(), atendido_por = 'cb000000-0000-0000-0000-000000000001'
+ where origen = 'ingreso';
+
+reset role;
+
+select pruebas.afirmar(
+  (select count(*) from public.praxis_avisos_coach
+    where atendido_por = 'cb000000-0000-0000-0000-000000000001' and origen = 'ingreso') = 1,
+  'la nutricionista no pudo marcar atendido un aviso pendiente'
 );
 
 -- ════════════════════════════════════════════════════════════════════════

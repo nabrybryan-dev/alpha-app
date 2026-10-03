@@ -6,7 +6,7 @@ import type { AvisoPraxis } from '../../../data/consola/avisosPraxis'
 
 /**
  * El módulo «Avisos de Praxis» de la consola del coach (migración 0108). Lo que importa:
- *   - lo ve quien ocupa el puesto de coach, y NADIE más (un asesorado ni lo pinta ni lo consulta);
+ *   - lo ve quien ocupa el puesto de coach y la nutricionista, y NADIE más (un asesorado ni lo pinta ni lo consulta);
  *   - dice quién, a qué hora, qué tipo de señal y de dónde vino, y NUNCA una frase;
  *   - el aviso se queda hasta que el coach lo marca «Atendido»; los atendidos se ocultan;
  *   - sin la migración dice una sola línea y la consola no se rompe.
@@ -78,11 +78,12 @@ describe('quién lo ve', () => {
     expect(datos.avisosPendientes).not.toHaveBeenCalled()
   })
 
-  it('la nutricionista tampoco', () => {
+  it('la nutricionista (Manuela) también lo ve y puede marcar atendido', async () => {
     sesion.rol = 'nutricionista'
-    const { container } = render(<AvisosPraxis />)
-    expect(container).toBeEmptyDOMElement()
-    expect(datos.avisosPendientes).not.toHaveBeenCalled()
+    render(<AvisosPraxis />)
+    await userEvent.click(await screen.findByRole('button', { name: /Marcar atendido/ }))
+    await waitFor(() => expect(screen.queryByText(PERSONA_A.nombre)).not.toBeInTheDocument())
+    expect(datos.marcarAvisoAtendido).toHaveBeenCalledWith('av-1', sesion.id)
   })
 
   it('un asesorado con la capacidad puesto_de_coach (la cuenta personal de Bryan) sí lo ve', async () => {

@@ -30,12 +30,11 @@
 --   · La persona: INSERTA avisos propios (`usuario_id = auth.uid()`), solo con las tres columnas
 --     que le tocan (usuario, origen, nivel). NO los lee —ni los suyos—, no los edita y no los borra.
 --     Quien no puede leer lo que se dijo de ella tampoco puede borrarlo ni saber si hubo aviso.
---   · El coach (`es_coach()`: el rol y la cuenta personal de Bryan con `puesto_de_coach`, 0106):
---     lee todos y los marca como atendidos. Solo puede tocar `atendido_en` y `atendido_por`, solo
---     en un aviso que sigue pendiente, y `atendido_por` tiene que ser él mismo. No reabre ni
---     reescribe uno ya atendido.
---   · La nutricionista: nada. Es una DECISIÓN ABIERTA, y la salida segura: si Bryan quiere que
---     Manuela vea los avisos de salud, se añade `or es_nutricionista()` a la política de lectura.
+--   · El coach (`es_coach()`: el rol y la cuenta personal de Bryan con `puesto_de_coach`, 0106) y la
+--     nutricionista (`es_nutricionista()`: rol 'nutricionista', 0067; Manuela): leen todos y los marcan
+--     como atendidos. DECISIÓN DE BRYAN (2-oct): Manuela también ve los avisos y los atiende. Solo pueden
+--     tocar `atendido_en` y `atendido_por`, solo en un aviso que sigue pendiente, y `atendido_por` tiene
+--     que ser quien llama. No reabren ni reescriben uno ya atendido.
 --   · anon: nada. Y nadie borra: no hay política de delete (se purgan con service_role).
 --
 -- NO SE DUPLICA. Si una persona escribe tres frases de riesgo seguidas, el coach necesita un aviso
@@ -49,7 +48,7 @@
 --   1. `supabase/migrations/comprobar-0108.sql`: todas dicen SI. Corrido ANTES de aplicar dicen NO.
 --   2. Con la sesión de un asesorado: insertar un aviso con `usuario_id` de OTRA persona falla (RLS);
 --      `select` de la tabla devuelve 0 filas aunque haya avisos suyos; `update` no toca ninguna fila.
---   3. Con la sesión del coach: `select` ve todos y `update … set atendido_en = now(),
+--   3. Con la sesión del coach o de la nutricionista: `select` ve todos y `update … set atendido_en = now(),
 --      atendido_por = auth.uid()` marca uno pendiente.
 --   (El CI corre esto mismo contra un Postgres de verdad: `supabase/test/108-praxis-avisos-coach.sql`.)
 --
@@ -82,7 +81,7 @@ create table if not exists public.praxis_avisos_coach (
 comment on table public.praxis_avisos_coach is
   'Avisos de Praxis al coach (0108, 2026-10-03): una fila por señal de riesgo detectada, con quién, '
   'cuándo, por dónde llegó y el TIPO de señal. SIN la frase ni la cita (retención de texto en revisión '
-  'legal). La persona inserta el suyo y no lo lee; el coach lee todos y marca atendido; nadie borra.';
+  'legal). La persona inserta el suyo y no lo lee; el coach y la nutricionista leen todos y marcan atendido; nadie borra.';
 
 -- Los pendientes, los que la consola pide siempre, del más nuevo al más viejo.
 create index if not exists praxis_avisos_pendientes
@@ -144,19 +143,19 @@ create policy praxis_avisos_insertar_propio on public.praxis_avisos_coach
   for insert to authenticated
   with check (usuario_id = (select auth.uid()));
 
--- Solo el coach lee. La persona no: ni los suyos.
+-- Lee el coach y la nutricionista. La persona no: ni los suyos.
 drop policy if exists praxis_avisos_leer_coach on public.praxis_avisos_coach;
 create policy praxis_avisos_leer_coach on public.praxis_avisos_coach
   for select to authenticated
-  using ((select public.es_coach()));
+  using ((select public.es_coach()) or (select public.es_nutricionista()));
 
--- Marcar atendido: solo el coach, solo un aviso pendiente, y quien atiende es quien llama.
+-- Marcar atendido: el coach o la nutricionista, solo un aviso pendiente, y quien atiende es quien llama.
 drop policy if exists praxis_avisos_atender_coach on public.praxis_avisos_coach;
 create policy praxis_avisos_atender_coach on public.praxis_avisos_coach
   for update to authenticated
-  using ((select public.es_coach()) and atendido_en is null)
+  using (((select public.es_coach()) or (select public.es_nutricionista())) and atendido_en is null)
   with check (
-    (select public.es_coach())
+    ((select public.es_coach()) or (select public.es_nutricionista()))
     and atendido_en is not null
     and atendido_por = (select auth.uid())
   );

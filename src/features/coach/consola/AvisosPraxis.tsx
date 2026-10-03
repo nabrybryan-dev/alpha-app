@@ -15,9 +15,9 @@ import { usePuestoCoach } from './usePuestoCoach'
  * SIN la frase. El aviso solo trae quién, cuándo, por dónde llegó y el tipo; lo que la persona escribió
  * no se guarda en ningún sitio (su retención la está revisando un abogado).
  *
- * Solo lo ve quien ocupa el puesto de coach (el rol, o la cuenta personal de Bryan con
- * `puesto_de_coach`): para cualquier otra sesión no se pinta nada y NO se consulta nada. La base lo
- * vuelve a comprobar con su RLS.
+ * Lo ve quien ocupa el puesto de coach (el rol, o la cuenta personal de Bryan con `puesto_de_coach`) y la
+ * nutricionista (Manuela; decisión de Bryan del 2-oct): ella también lo lee y lo marca atendido. Para cualquier
+ * otra sesión no se pinta nada y NO se consulta nada. La base lo vuelve a comprobar con su RLS.
  *
  * Sin la migración aplicada la tabla no existe y el módulo dice una sola línea: «Avisos de Praxis:
  * falta aplicar la migración 0108». La consola no se rompe.
@@ -39,7 +39,9 @@ type Fallo = { error: string; sinTabla: boolean }
 
 export function AvisosPraxis({ onVerPersona }: Props) {
   const sesion = useSesionOpcional()
-  const { esCoach } = usePuestoCoach(sesion?.usuario.rol)
+  const { esCoach: ocupaPuesto } = usePuestoCoach(sesion?.usuario.rol)
+  // Bryan (coach, o su cuenta personal con `puesto_de_coach`) y Manuela (nutricionista): decisión de Bryan, 2-oct.
+  const esCoach = ocupaPuesto || sesion?.usuario.rol === 'nutricionista'
   const actorId = sesion?.usuario.id
 
   const [pendientes, setPendientes] = useState<AvisoPraxis[] | null>(null)

@@ -4,7 +4,7 @@
 --
 -- Lo que importa aquí no es que la tabla exista: es que guarda una señal de riesgo de salud mental
 -- de una persona, así que (1) la persona no puede leerla ni borrarla, (2) nadie puede avisar a nombre
--- de otra, (3) solo el coach la lee y la marca atendida, y (4) NO hay dónde guardar la frase.
+-- de otra, (3) solo el coach y la nutricionista la leen y la marcan atendida, y (4) NO hay dónde guardar la frase.
 --
 -- Estas señales miran la EXPRESIÓN de las políticas y los privilegios EFECTIVOS por columna, no los
 -- nombres. Las pruebas con dos sesiones de verdad están más abajo (y en el CI, que las corre contra un
@@ -49,12 +49,14 @@ select 'la persona solo inserta avisos propios (with_check con auth.uid())',
        'SI'
 
 union all
--- Solo el coach lee: la política de select menciona es_coach() y NO el usuario_id (la dueña no entra por ser dueña).
-select 'solo el coach lee (select con es_coach, sin usuario_id)',
+-- Leen el coach y la nutricionista (decisión de Bryan, 2-oct): la política de select menciona es_coach() y
+-- es_nutricionista() y NO el usuario_id (la dueña no entra por ser dueña).
+select 'solo el coach y la nutricionista leen (select con es_coach y es_nutricionista, sin usuario_id)',
        case when exists (
               select 1 from pg_policies
                where schemaname = 'public' and tablename = 'praxis_avisos_coach' and cmd = 'SELECT'
                  and coalesce(qual, '') like '%es_coach%'
+                 and coalesce(qual, '') like '%es_nutricionista%'
                  and coalesce(qual, '') not like '%usuario_id%')
              and (select count(*) from pg_policies
                    where schemaname = 'public' and tablename = 'praxis_avisos_coach' and cmd = 'SELECT') = 1
@@ -62,15 +64,17 @@ select 'solo el coach lee (select con es_coach, sin usuario_id)',
        'SI'
 
 union all
--- Atender: solo el coach, solo un pendiente, y a su nombre.
-select 'atender es del coach, sobre un pendiente y a su nombre (update con es_coach, atendido_en y atendido_por = auth.uid())',
+-- Atender: el coach o la nutricionista, solo un pendiente, y a su nombre.
+select 'atender es del coach o la nutricionista, sobre un pendiente y a su nombre (update con es_coach y es_nutricionista, atendido_en y atendido_por = auth.uid())',
        case when exists (
               select 1 from pg_policies
                where schemaname = 'public' and tablename = 'praxis_avisos_coach'
                  and policyname = 'praxis_avisos_atender_coach' and cmd = 'UPDATE'
                  and coalesce(qual, '') like '%es_coach%'
+                 and coalesce(qual, '') like '%es_nutricionista%'
                  and coalesce(qual, '') like '%atendido_en IS NULL%'
                  and coalesce(with_check, '') like '%es_coach%'
+                 and coalesce(with_check, '') like '%es_nutricionista%'
                  and coalesce(with_check, '') like '%atendido_por%auth.uid()%')
        then 'SI' else 'NO' end,
        'SI'
@@ -126,12 +130,11 @@ select 'no se duplica: trigger con candado por persona y sin execute para anon/a
 --     · Con la sesión de un asesorado, insertar con el `usuario_id` de otra persona tiene que
 --       fallar con «new row violates row-level security policy».
 --
--- 3 · LA NUTRICIONISTA NO VE LOS AVISOS
---     · Con la sesión de Manuela: `select count(*) …` tiene que dar 0. (Si Bryan decide que sí
---       los vea, se cambia la política a propósito, no por accidente.)
+-- 3 · LA NUTRICIONISTA SÍ LOS VE (decisión de Bryan, 2-oct)
+--     · Con la sesión de Manuela: `select count(*) …` tiene que dar el total de avisos.
 --
--- 4 · SOLO EL COACH ATIENDE, Y A SU NOMBRE
---     · Con la sesión del coach: `update public.praxis_avisos_coach set atendido_en = now(),
+-- 4 · SOLO EL COACH Y LA NUTRICIONISTA ATIENDEN, Y A SU NOMBRE
+--     · Con la sesión del coach o de Manuela: `update public.praxis_avisos_coach set atendido_en = now(),
 --       atendido_por = auth.uid() where id = '<un pendiente>'` toca 1 fila.
 --     · El mismo `update` con `atendido_por = '<otro uuid>'` falla (RLS).
 --     · Con la sesión de un asesorado, el mismo `update` afecta **0 filas** (no da error:
