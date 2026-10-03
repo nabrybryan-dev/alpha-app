@@ -191,6 +191,16 @@ describe('Praxis conectada · si el modelo falla o tarda, el libreto local (nunc
     await waitFor(() => expect(textosPosibles('suelta', 'tu')).toContain(frase($)), ESPERA)
   })
 
+  it('una frase suelta que no es saludo ni pregunta («bueno, ya veremos») cuando el servidor falla: una pista concreta, no silencio', async () => {
+    const u = userEvent.setup()
+    const c = crear(async () => ({ ok: false, motivo: 'red' }))
+    const { $ } = montar(c)
+    await abrir(u)
+    await decirle(u, $, 'bueno, ya veremos')
+    await waitFor(() => expect(textosPosibles('suelta', 'tu')).toContain(frase($)), ESPERA)
+    expect(c.proponer).toHaveBeenCalledTimes(1)
+  })
+
   it('el modelo contesta sin nada útil (charla sin texto): el libreto, no «no encontré nada que anotar»', async () => {
     aLas(HORA)
     const sinTexto: RespuestaDelRegistrador = { ...(charlaDelModelo('x') as Extract<RespuestaDelRegistrador, { ok: true }>), charla: undefined }
