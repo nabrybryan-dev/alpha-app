@@ -165,7 +165,7 @@ function entorno(clave: string | undefined = 'sk-prueba-no-real') {
     return new Response(JSON.stringify(r.cuerpo), { status: r.ok === false ? 500 : 200 })
   })
   const d: Dependencias = {
-    entorno: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'anon', ANTHROPIC_API_KEY: clave },
+    entorno: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'anon', ANTHROPIC_API_KEY: clave, PRAXIS_CAMINO_RAPIDO: '0' },
     fetch: fetchSim as unknown as typeof fetch,
     ahora: () => new Date('2026-09-28T23:40:00Z'),
   }

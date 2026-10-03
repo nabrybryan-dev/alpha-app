@@ -15,18 +15,69 @@ const bloque = (o: Record<string, unknown>) => ({
 const ejercicio = (b: unknown) => ({ ejercicio: { cita: 'sentadilla', ref_sugerida: null, implicito: 'no' }, bloques: [b], cuando: null })
 
 describe('esquema JSON', () => {
-  it('es estricto: cada objeto exige todas sus propiedades y no admite extras', () => {
+  it('salida corta: ningún objeto admite extras y solo se exige lo esencial (el resto se omite)', () => {
+    const exigidos: string[] = []
     const revisar = (nodo: unknown, ruta: string) => {
       if (Array.isArray(nodo)) return nodo.forEach((x, i) => revisar(x, `${ruta}[${i}]`))
       if (typeof nodo !== 'object' || nodo === null) return
       const o = nodo as Record<string, unknown>
       if (o.type === 'object') {
         expect(o.additionalProperties, ruta).toBe(false)
-        expect(new Set(o.required as string[]), ruta).toEqual(new Set(Object.keys(o.properties as object)))
+        const req = o.required as string[]
+        for (const k of req) expect(Object.keys(o.properties as object), `${ruta}.${k}`).toContain(k)
+        exigidos.push(...req.map((k) => `${ruta}.${k}`))
       }
       for (const [k, v] of Object.entries(o)) revisar(v, `${ruta}.${k}`)
     }
     revisar(ESQUEMA_REGISTRO, 'raiz')
+    // La lista completa: cada campo obligatorio nuevo vuelve a alargar la salida de TODOS los mensajes.
+    expect(exigidos.sort()).toEqual([
+      'raiz.intencion',
+      'raiz.properties.aclaracion.motivo',
+      'raiz.properties.clinico.hay',
+      'raiz.properties.comida.properties.items.items.alimento',
+      'raiz.properties.comida.properties.plato.items.alimento',
+      'raiz.properties.correccion.objetivo',
+      'raiz.properties.entreno.items.ejercicio',
+      'raiz.properties.entreno.items.properties.bloques.items.properties.carga.properties.discos.items.cantidad',
+      'raiz.properties.entreno.items.properties.bloques.items.properties.carga.properties.discos.items.peso',
+      'raiz.properties.entreno.items.properties.bloques.items.properties.carga.tipo',
+      'raiz.properties.entreno.items.properties.bloques.items.properties.extra.items.reps',
+      'raiz.properties.entreno.items.properties.bloques.items.properties.reserva.tipo',
+      'raiz.properties.entreno.items.properties.ejercicio.implicito',
+      'raiz.properties.vida.properties.agua.cantidad',
+      'raiz.properties.vida.properties.dia_de_entreno.estado',
+      'raiz.properties.vida.properties.escalas.items.campo',
+      'raiz.properties.vida.properties.escalas.items.cita',
+      'raiz.properties.vida.properties.tiempos.items.actividad',
+      'raiz.properties.vida.properties.tiempos.items.duracion',
+    ].sort())
+  })
+  it('sin uniones con null: lo no dicho se omite, no se escribe null', () => {
+    expect(JSON.stringify(ESQUEMA_REGISTRO)).not.toContain('"type":"null"')
+    expect(ESQUEMA_REGISTRO.required).toEqual(['intencion'])
+  })
+  it('el prompt manda omitir y sus ejemplos no traen null, listas vacías ni neutros', () => {
+    expect(PROMPT_SISTEMA).toMatch(/LO NO DICHO SE OMITE/)
+    const ejemplos = PROMPT_SISTEMA.split('Frase: ').slice(1).map((x) => x.split('\n')[1] ?? '')
+    expect(ejemplos.length).toBeGreaterThan(20)
+    for (const e of ejemplos) expect(e, e).not.toMatch(/:null|:\[\]|:false|no_dicho|no_dicha/)
+  })
+  it('una salida corta (campos omitidos) llega al validador igual que una larga', () => {
+    const frase = 'sentadilla 60 por 10'
+    const larga = validarExtraccion(frase, raiz({ entreno: [ejercicio(bloque({ reps: '10', carga: { tipo: 'absoluta', valor: '60', unidad_cita: null, discos: null, delta: null, por: 'no_dicho' } }))] }))
+    const corta = validarExtraccion(frase, {
+      intencion: ['entreno'],
+      entreno: [{ ejercicio: { cita: 'sentadilla', implicito: 'no' }, bloques: [{ reps: '10', carga: { tipo: 'absoluta', valor: '60' } }] }],
+    })
+    expect(corta.extraccion).toEqual(larga.extraccion)
+    expect(corta.citasInvalidas).toEqual([])
+  })
+  it('sin implicito y con nombre, el ejercicio se da por nombrado; sin nombre queda desconocido', () => {
+    const a = validarExtraccion('hice sentadilla', { intencion: ['entreno'], entreno: [{ ejercicio: { cita: 'sentadilla' } }] })
+    expect(a.extraccion.entreno[0].ejercicio.implicito).toBe('no')
+    const b = validarExtraccion('otra igual', { intencion: ['entreno'], entreno: [{ ejercicio: {} }] })
+    expect(b.extraccion.entreno[0].ejercicio.implicito).toBe('desconocido')
   })
   it('es serializable y cabe en una línea de comandos', () => {
     expect(JSON.stringify(ESQUEMA_REGISTRO).length).toBeLessThan(12_000)

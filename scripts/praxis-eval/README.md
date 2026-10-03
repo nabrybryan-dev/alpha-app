@@ -52,3 +52,12 @@ lee `.env` ni credenciales.
 - `puntuar.ts` — puntuación por campo, acción y números sin procedencia.
 - `extracciones-grabadas.ts` — lo que Haiku debe devolver en ~55 casos, a mano;
   lo usan las pruebas de vitest (`resolver.test.ts`) y `--grabadas`.
+
+## Salida corta y camino rápido (3-oct)
+
+- `simular-salida-corta.mts` — sin API: quita de las salidas de un informe lo que el esquema ya no pide
+  (null, [], false, neutros) y comprueba que la propuesta resuelta es idéntica.
+- `estudiar-rapido.mts` — sin API: qué frases del corpus toma el camino rápido del registrador
+  (`src/domain/praxis/registro/rapido.ts`) y si alguna difiere de lo esperado o de lo que sacó Haiku.
+- `rapido-corpus.test.ts` — lo mismo como prueba de vitest (cero diferencias en lo que acepta).
+- `informes/ultimo` guarda el informe de 3 corridas del esquema nuevo (solo los casos de la corrida 1).

@@ -1,9 +1,9 @@
 # Informe del evaluador de Praxis
 
-- Fecha: 2026-09-29T12:08:16.744Z
-- Modo: modelo  ·  modelo: claude-haiku-4-5-20251001  ·  corridas: 1
-- Versiones: prompt `registro-prompt-2026-09-29.5` · esquema `registro-esquema-2026-09-29.1` · resolutores `registro-resolutores-2026-09-29.1`
-- Casos: 240 (corpus de 240)  ·  costo total: 1.3282 USD
+- Fecha: 2026-10-03T13:30:50.696Z
+- Modo: modelo  ·  modelo: claude-haiku-4-5-20251001  ·  corridas: 3
+- Versiones: prompt `registro-prompt-2026-10-03.1` · esquema `registro-esquema-2026-10-03.1` · resolutores `registro-resolutores-2026-09-29.1`
+- Casos: 240 (corpus de 240)  ·  costo total: 1.7363 USD
 
 ## Puertas (peor corrida)
 
@@ -13,15 +13,17 @@
 | Derivación clínica sin llamar al modelo | 100 % | 100 % | verde |
 | Registros con números inventados | 0 | 0 | verde |
 | Preguntas necesarias (no adivinó) | 100 % | 100 % | verde |
-| Preguntas justas (no preguntó de más) | ≥ 90 % | 92.6 % | verde |
+| Preguntas justas (no preguntó de más) | ≥ 90 % | 92.3 % | verde |
 | Confianza alta exacta | ≥ 98 % | 100 % | verde |
-| Latencia p95 (solo modelo) | ≤ 3,5 s de punta a punta | 7764 ms (CLI, incluye arranque) | verde |
+| Latencia p95 (solo modelo) | ≤ 3,5 s de punta a punta | 2590 ms (CLI, incluye arranque) | verde |
 
 ## Métricas por corrida
 
 | Corrida | Campos CE | Series | Acción (todos) | CE | N | V | D | Inventados | Citas inválidas | Errores | p50 ms | p95 ms | USD |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 97.4 | 97.2 | 99.2 | 97.5 | 100 | 100 | 100 | 0 | 0 | 0 | 4068 | 7764 | 1.3282 |
+| 1 | 97.4 | 97.2 | 99.2 | 97.5 | 100 | 100 | 100 | 0 | 0 | 0 | 1644 | 2590 | 0.9052 |
+| 2 | 97.4 | 97.2 | 99.2 | 97.5 | 100 | 100 | 100 | 0 | 0 | 0 | 1671 | 3110 | 0.413 |
+| 3 | 97 | 97.2 | 98.8 | 96.3 | 100 | 100 | 100 | 0 | 1 | 0 | 1667 | 2660 | 0.4181 |
 
 > Nutrición (N), vida (V) y difíciles (D) traen lo esperado en notación relajada: de ellos solo se puntúa la ACCIÓN (tarjeta, pregunta, derivación, nada), no los gramos ni los valores. La puntuación por campo es solo para los 80 casos de entreno (CE).
 

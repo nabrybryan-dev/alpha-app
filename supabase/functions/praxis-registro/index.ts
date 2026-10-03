@@ -35,7 +35,7 @@
 import {
   MODELO_HAIKU, PROMPT_SISTEMA, ESQUEMA_REGISTRO, VERSION_ESQUEMA, VERSION_PROMPT, VERSION_RESOLUTORES,
   armarContexto, armarMensajeUsuario, construirTarjeta, prepararAdherencia, prepararSeries,
-  prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion,
+  prepararTestPost, prerrequisitoPendiente, resolverPropuesta, validarExtraccion, caminoRapido,
 } from '../../../src/domain/praxis/registro/index.ts'
 // El MISMO filtro de riesgo y el MISMO interruptor que la pantalla (revisión del PR #331).
 import { derivarPorRiesgo, filtroDeRiesgo, type MarcaDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
@@ -60,6 +60,8 @@ export interface Entorno {
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
   ANTHROPIC_API_KEY: string | undefined
+  /** «0» apaga el camino rápido (el registrador sin modelo) sin tocar el código. */
+  PRAXIS_CAMINO_RAPIDO?: string
 }
 
 export interface Dependencias {
@@ -251,12 +253,12 @@ async function registrarErrorDeAnthropic(r: Response, frase: string): Promise<vo
 }
 
 /**
- * Tope de la salida del registrador. La mayor salida observada fue de 1.037 tokens en 219 casos
- * del evaluador (`scripts/praxis-eval/informes/ultimo`, prompt registro-prompt-2026-09-29.5; p95 735,
- * mediana 374); 1.300 deja ~25 % de margen. Es un techo, no acelera la respuesta: el tiempo lo
- * pone lo que el modelo escribe de verdad.
+ * Tope de la salida del registrador. Con la salida corta (prompt registro-prompt-2026-10-03.1: lo no
+ * dicho se omite) el banco midió, en 657 llamadas (3 corridas de 219 casos): mediana 122 tokens, p95 208,
+ * máximo 508 (antes: 373, 745 y 1.766). 800 deja ~58 % de margen sobre ese máximo. Es un techo, no
+ * acelera la respuesta: el tiempo lo pone lo que el modelo escribe de verdad.
  */
-export const MAX_TOKENS_REGISTRO = 1300
+export const MAX_TOKENS_REGISTRO = 800
 
 const HERRAMIENTAS_REGISTRO = [
   {
@@ -422,13 +424,21 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
 
   // 3. Haiku dos veces y en paralelo: el registrador (solo cita y etiqueta) y el lector de
   //    riesgo con modelo. Sin la lectura de riesgo no se sigue: se pide repetir.
-  const [salida, riesgo] = await Promise.all([
-    medir(reloj, 'registro', llamarHaiku(d, ctx, frase).catch((e: unknown) => {
-      console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
-      return null
-    })),
-    riesgoEnCurso,
-  ])
+  //    CAMINO RÁPIDO (3-oct): las frases más simples de entreno (un ejercicio del plan de hoy, números
+  //    explícitos, ninguna palabra de más) se extraen con una gramática cerrada y NO esperan al registrador;
+  //    pasan por el mismo validador y los mismos resolutores. El lector de riesgo con modelo corre igual,
+  //    y su fallo sigue siendo un 502. Ante la mínima duda, `caminoRapido` devuelve null y se llama al modelo.
+  let rapido: { bruto: unknown } | null = null
+  if (d.entorno.PRAXIS_CAMINO_RAPIDO !== '0') {
+    try { rapido = caminoRapido(frase, ctx) } catch { rapido = null }
+  }
+  const registrador: Promise<{ entrada: unknown; tokensEntrada: number; tokensSalida: number } | null> = rapido
+    ? Promise.resolve({ entrada: rapido.bruto, tokensEntrada: 0, tokensSalida: 0 })
+    : llamarHaiku(d, ctx, frase).catch((e: unknown) => {
+        console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
+        return null
+      })
+  const [salida, riesgo] = await Promise.all([medir(reloj, 'registro', registrador), riesgoEnCurso])
   reloj.anotar('total')
   console.log('praxis-registro: tiempos', JSON.stringify(reloj.tiempos)) // sin la frase: solo milisegundos
   if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
@@ -459,6 +469,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
       version_prompt: VERSION_PROMPT,
       version_esquema: VERSION_ESQUEMA,
       version_resolutores: VERSION_RESOLUTORES,
+      camino: rapido ? 'rapido' : 'modelo', // «rapido»: el registrador no llamó al modelo
       tokens_entrada: salida.tokensEntrada,
       tokens_salida: salida.tokensSalida,
       latencia_ms: d.ahora().getTime() - t0,
@@ -795,6 +806,7 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         SUPABASE_URL: entorno('SUPABASE_URL') ?? '',
         SUPABASE_ANON_KEY: entorno('SUPABASE_ANON_KEY') ?? entorno('SUPABASE_PUBLISHABLE_KEY') ?? '',
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
+        PRAXIS_CAMINO_RAPIDO: entorno('PRAXIS_CAMINO_RAPIDO'),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),
