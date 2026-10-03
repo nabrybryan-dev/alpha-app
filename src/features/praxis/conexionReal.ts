@@ -28,11 +28,12 @@ export function horaLocalIso(d: Date = new Date()): string {
   return `${hoyIso(d)}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${desfase >= 0 ? '+' : '-'}${p(Math.trunc(desfase / 60))}:${p(desfase % 60)}`
 }
 
-export function crearConexionPraxis(usuarioId: string, irAlFormulario: (() => void) | null): ConexionPraxis {
+export function crearConexionPraxis(usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null): ConexionPraxis {
   const hoy = hoyIso()
   const leer = () => leerLoQuePraxisVe(db, usuarioId, hoy)
   return {
     usuarioId,
+    nombre,
     hoy,
     leer,
     proponer: async (frase, mensajeId, contexto) => {
@@ -42,6 +43,7 @@ export function crearConexionPraxis(usuarioId: string, irAlFormulario: (() => vo
         mensajeId,
         // Solo cuando la persona eligió un ejercicio con un toque: si no, no viaja.
         ...(contexto?.pantallaEjercicioId ? { pantallaEjercicioId: contexto.pantallaEjercicioId } : {}),
+        ...(contexto?.charla ? { charla: contexto.charla } : {}),
         horaLocal: horaLocalIso(),
         hidratacionHoyMl: ve.hidratacionHoyMl,
         verComposicion: ve.comida ? ve.comida.verCifras : false,

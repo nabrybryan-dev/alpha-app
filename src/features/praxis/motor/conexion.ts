@@ -1,6 +1,7 @@
 import type { RespuestaDeGuardar, RespuestaDelRegistrador } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { QueFalto } from '../../../domain/praxis/plan/responder'
+import type { ContextoCharla } from '../../../domain/praxis/charla/modelo'
 import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
 
@@ -15,6 +16,8 @@ import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data
  */
 export interface ConexionPraxis {
   usuarioId: string
+  /** El nombre de pila, si existe: Praxis lo usa de vez en cuando al charlar. */
+  nombre?: string | null
   /** Hoy en hora local, `YYYY-MM-DD`. */
   hoy: string
   /** Lo que Praxis ve de la persona, YA filtrado por la lista blanca. Se relee en cada turno. */
@@ -24,7 +27,7 @@ export interface ConexionPraxis {
    * ejercicio que la persona eligió con un toque cuando Praxis preguntó cuál fue: el
    * registrador lo usa para no volver a preguntar.
    */
-  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string }) => Promise<RespuestaDelRegistrador>
+  proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla }) => Promise<RespuestaDelRegistrador>
   /** Guarda lo que la persona confirmó con un toque. */
   guardar: (p: { mensajeId: string; registros: RegistroPropuesto[]; confirmaSesion: boolean }) => Promise<RespuestaDeGuardar>
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */
