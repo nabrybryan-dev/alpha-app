@@ -130,18 +130,13 @@ for (const m of elegidos) {
   const original = originales.get(m.archivo) ?? readFileSync(m.archivo, 'utf8')
   originales.set(m.archivo, original)
   // Los archivos del repo pueden estar con CRLF (Windows): se compara y se muta en LF, y se escribe con su propio fin de línea.
-  const crlf = original.includes('
-')
-  const normal = original.replace(/
-/g, '
-')
+  const crlf = original.includes('\r\n')
+  const normal = original.replace(/\r\n/g, '\n')
   const cuenta = normal.split(m.de).length - 1
   if (cuenta !== 1) { resultados.push({ ...m, estado: `NO APLICA (${cuenta} coincidencias)` }); console.log(`NO APLICA  ${m.id}  ${m.que}`); continue }
   try {
     const mutado = normal.replace(m.de, () => m.a)
-    writeFileSync(m.archivo, crlf ? mutado.replace(/
-/g, '
-') : mutado)
+    writeFileSync(m.archivo, crlf ? mutado.replace(/\n/g, '\r\n') : mutado)
     const r = correr(m.pruebas)
     const rojos = [...new Set((r.salida.replace(/\[[0-9;]*m/g, '').match(/FAIL\s+(\S+)/g) ?? []).map((x) => x.replace(/FAIL\s+/, '')))]
     resultados.push({ ...m, estado: r.ok ? 'SOBREVIVE' : 'MUERTO', rojos })
