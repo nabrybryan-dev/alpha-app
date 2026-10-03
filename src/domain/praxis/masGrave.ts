@@ -23,10 +23,23 @@ import type { LineaDeAyuda, MarcaDeRiesgo } from './riesgo.ts'
  *   - si la más grave es la del modelo, la línea de ayuda es la de lo que leyó el MODELO.
  *
  * INTERRUPTOR DE CONSENTIMIENTO: lo que dice hoy la pantalla de privacidad es lo contrario
- * («lo que suena a riesgo o a salud no sale de este teléfono: no llega a ese servicio»). Mientras
- * Bryan no decida cambiar ese texto, la pantalla NO manda la frase marcada (`LECTURA_DEL_MODELO_SOBRE_MARCADAS`).
+ * («lo que suena a riesgo o a salud no sale de este teléfono: no llega a ese servicio»). Bryan aprobó
+ * cambiar ese texto y volver a pedir el permiso (`VERSION_PERMISOS`): el interruptor sale encendido, pero la
+ * pantalla solo manda la frase marcada si el permiso guardado es de la versión nueva (`permisoCubreLaRelectura`).
  */
-export const LECTURA_DEL_MODELO_SOBRE_MARCADAS = false
+export const LECTURA_DEL_MODELO_SOBRE_MARCADAS = true
+
+/**
+ * Versión del texto de permisos que cubre enviar al modelo, solo para leerla mejor, una frase marcada como salud o
+ * como señal poco clara (Bryan, 3-oct). Quien aceptó una versión anterior ve los permisos otra vez y, mientras no
+ * acepte, Praxis no se activa y NINGUNA frase marcada sale del teléfono.
+ */
+export const VERSION_PERMISOS = 'v2'
+
+/** ¿El permiso guardado es el de la versión que cubre la relectura con el modelo? */
+export function permisoCubreLaRelectura(p: { version?: unknown; cRiesgo?: unknown; cConversacion?: unknown } | null | undefined): boolean {
+  return !!p && p.version === VERSION_PERMISOS && p.cRiesgo === true && p.cConversacion === true
+}
 
 const GRAVEDAD: Record<MarcaDeRiesgo['tipo'], number> = { salud: 1, cuidado: 2, quieta: 3 }
 

@@ -8,6 +8,7 @@ import type { LoQuePraxisVe } from '../../domain/praxis/plan/listaBlanca'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../data/praxis/preguntasEnEspera'
 import { PraxisCosmos } from './PraxisCosmos'
 import { reiniciarVariantes } from './motor/charla'
+import { Dia } from './motor/sesion'
 import type { ConexionPraxis } from './motor/conexion'
 
 /**
@@ -68,7 +69,7 @@ const frase = ($: (s: string) => HTMLElement) => ($('#frase').textContent || '')
 beforeEach(() => {
   reiniciarVariantes()
   localStorage.clear()
-  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v1' }))
+  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v2' }))
   window.matchMedia = ((q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, onchange: null, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false })) as unknown as typeof window.matchMedia
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
 })
@@ -223,5 +224,69 @@ describe('Praxis conectada · la frase marcada sigue sin entrar al hilo, sin gua
     await decirle(u, $, SALUD)
     await waitFor(() => expect(c.releerRiesgo).toHaveBeenCalledTimes(1), ESPERA)
     expect(c.proponer).not.toHaveBeenCalled()
+  })
+})
+
+describe('Praxis conectada · el permiso nuevo y los textos (Bryan, 3-oct)', () => {
+  it('quien aceptó el permiso VIEJO (v1) ve los permisos otra vez y Praxis no se activa hasta aceptar', async () => {
+    localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v1' }))
+    const u = userEvent.setup()
+    const c = crear(async () => null)
+    const { $ } = montar(c)
+    await u.click(screen.getByRole('button', { name: 'Hablar con Praxis' }))
+    const acepto = await screen.findByRole('button', { name: 'Acepto y empiezo' }, ESPERA)
+    expect(c.leer).toBeDefined()
+    expect(($('#frase').textContent || '')).toContain('Antes de empezar')
+    expect(c.proponer).not.toHaveBeenCalled()
+    await u.click(acepto)
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(`praxis.u.${USUARIO}.permisos`) || '{}').version).toBe('v2'), ESPERA)
+  })
+
+  it('con el permiso viejo NO se envía la frase marcada (aunque la sala siga abierta)', async () => {
+    const u = userEvent.setup()
+    const c = crear(async () => ({ tipo: 'quieta', linea: 'vida' }))
+    const { $ } = montar(c)
+    await abrir(u)
+    Dia.permisos = { ...(Dia.permisos as object), version: 'v1' } as never
+    await decirle(u, $, SALUD)
+    await waitFor(() => expect(frase($)).toContain('Eso es de salud'), ESPERA)
+    expect(c.releerRiesgo).not.toHaveBeenCalled()
+  })
+
+  it('la Quieta que subió el modelo dice que se leyó (no que no se envió); la del filtro sigue igual', async () => {
+    const lector = lectorEnEspera()
+    const u = userEvent.setup()
+    const c = crear(() => lector.lectura)
+    const { $, raiz } = montar(c)
+    await abrir(u)
+    await decirle(u, $, SALUD)
+    await waitFor(() => expect(frase($)).toContain('Eso es de salud'), ESPERA)
+    lector.contestar({ tipo: 'quieta', linea: 'vida' })
+    await waitFor(() => expect(raiz.querySelector('.quieta')).not.toBeNull(), ESPERA)
+    const texto = raiz.querySelector('.quieta')?.textContent || ''
+    expect(texto).toContain('Se leyó solo para decidir detenerme')
+    expect(texto).not.toContain('ni se envió')
+  })
+
+  it('la Quieta que puso el filtro dice, como hoy, que no se guardó ni se envió', async () => {
+    const u = userEvent.setup()
+    const c = crear(async () => null)
+    const { $, raiz } = montar(c)
+    await abrir(u)
+    await decirle(u, $, QUIETA)
+    await waitFor(() => expect(raiz.querySelector('.quieta')).not.toBeNull(), ESPERA)
+    expect(raiz.querySelector('.quieta')?.textContent).toContain('no se guardó ni se envió')
+  })
+
+  it('el texto de privacidad ya no promete que lo marcado no sale: dice qué se envía y por qué', async () => {
+    const u = userEvent.setup()
+    const { raiz } = montar(crear())
+    await abrir(u)
+    const t = raiz.textContent || ''
+    expect(t).toContain('esa frase no sale de este teléfono')
+    expect(t).toContain('se envía a ese servicio solo para leerla mejor')
+    expect(t).toContain('esa frase se lee con inteligencia artificial')
+    expect(t).not.toContain('no llega a ese servicio')
+    expect(t).not.toContain('no sale de este teléfono: no se anota')
   })
 })

@@ -54,7 +54,7 @@ export function crearConexionPraxis(
         verComposicion: ve.comida ? ve.comida.verCifras : false,
       })
     },
-    // Sin el interruptor NO existe: la frase marcada por el filtro no sale del teléfono, como dice la pantalla de privacidad.
+    // Apagado, NO existe y la frase marcada no sale del teléfono. Encendido, la pantalla solo la usa si el permiso guardado es de la versión que la cubre.
     ...(lecturaDelModeloSobreMarcadas ? { releerRiesgo: async (frase: string) => releerRiesgo(await sesionDeFunciones(), frase) } : {}),
     guardar: async (p) => guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() }),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),

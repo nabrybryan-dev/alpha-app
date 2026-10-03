@@ -45,7 +45,7 @@ export function nuevaSesion() {
     cuidado: null as { txt: string; fuente: Fuente } | null, aplanar: false, pendienteHoras: false, mostrarDial: false, otraZona: false, otroEntreno: false, respiraOfrecida: false,
     espejoHecho: false, idea: null as Idea | null, ideaTexto: null as string | null, confianza: null as string | null, turno: null as string | null,
     pesoSi: null as boolean | null, peso: null as number | null, reflejo: '',
-    tSilencio: 0, muestras: [] as string[], editando: null as Campo | null, respirando: false, registro: undefined as Registro | undefined, rapidoCampos: [] as Campo[],
+    leidasPorModelo: [] as string[], tSilencio: 0, muestras: [] as string[], editando: null as Campo | null, respirando: false, registro: undefined as Registro | undefined, rapidoCampos: [] as Campo[],
   }
 }
 export type Sesion = ReturnType<typeof nuevaSesion>

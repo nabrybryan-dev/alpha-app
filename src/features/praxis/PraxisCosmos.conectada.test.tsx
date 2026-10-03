@@ -84,7 +84,7 @@ async function decirle(u: ReturnType<typeof userEvent.setup>, $: (s: string) => 
 beforeEach(() => {
   localStorage.clear()
   // Los permisos ya dados por esta persona, en SU espacio del navegador.
-  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v1' }))
+  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v2' }))
   window.matchMedia = ((consulta: string) => ({
     matches: consulta.includes('prefers-reduced-motion'), media: consulta, onchange: null,
     addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
@@ -497,7 +497,7 @@ describe('Praxis conectada · el plan y la pregunta en espera', () => {
 describe('Praxis conectada · en usted', () => {
   it('habla de usted y no mezcla', async () => {
     const u = userEvent.setup()
-    localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v1' }))
+    localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v2' }))
     const { $, raiz } = montar(crear(), 'usted')
     expect($('#tarjetaTxt').textContent).toContain('Aún no tengo su check-in de hoy')
     await abrir(u)

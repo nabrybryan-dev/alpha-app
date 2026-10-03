@@ -88,7 +88,7 @@ class Falso {
 const ventana = window as unknown as Record<string, unknown>
 
 function montar(permisoVoz: boolean) {
-  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, cVoz: permisoVoz, fecha: HOY, version: 'v1' }))
+  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, cVoz: permisoVoz, fecha: HOY, version: 'v2' }))
   const c = crear()
   const r = render(<MemoryRouter><PraxisCosmos trato="tu" conexion={c} /></MemoryRouter>)
   const raiz = r.container.querySelector('.praxis') as HTMLElement

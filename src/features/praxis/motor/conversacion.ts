@@ -1,5 +1,5 @@
 import { decidirTurno, pasoTrasProponer, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
-import { gravedad } from '../../../domain/praxis/masGrave'
+import { gravedad, permisoCubreLaRelectura } from '../../../domain/praxis/masGrave'
 import { cabeCharla, limpiarTurnos, sinSaludoRepetido, type TurnoPrevio } from '../../../domain/praxis/charla/modelo'
 import { destinatarioDe, estadoDeLaEspera, ofertaDePregunta, type Destinatario } from '../../../domain/praxis/enEspera'
 import { SIN_DATO, type QueFalto } from '../../../domain/praxis/plan/responder'
@@ -15,7 +15,7 @@ import { decir, decirCorto, mostrarPersona } from './frase'
 import { Onda } from './onda'
 import { Penta } from './penta'
 import { entrarQuieta, preguntarCuidado, renderSaltos } from './senales'
-import { Cancelado, S, cancelar, emitir, esperaCon, vigilar } from './sesion'
+import { Cancelado, Dia, S, cancelar, emitir, esperaCon, vigilar } from './sesion'
 
 /**
  * La conversación de Praxis CONECTADA: lo que la persona escribe, turno por turno.
@@ -286,12 +286,14 @@ let turnoDeSeguridad = 0
 function subirSiHaceFalta(c: ConexionPraxis, frase: string, filtro: 'cuidado' | 'salud'): void {
   const releer = c.releerRiesgo
   if (!releer) return
+  if (!permisoCubreLaRelectura(Dia.permisos)) return // permiso de una versión vieja: la frase marcada NO sale del teléfono
+  S.leidasPorModelo.push(frase)
   const miTurno = ++turnoDeSeguridad
   const actual = gravedad(filtro === 'salud' ? { tipo: 'salud', filtro: 'sintoma' } : { tipo: 'cuidado' })
   void releer(frase).then((m) => {
     if (!m || gravedad(m) <= actual) return
     if (conexion() !== c || $('#sala').hidden || S.quieta) return // la persona ya se fue de la sala, o ya está en la Quieta
-    if (m.tipo === 'quieta') { entrarQuieta(m.linea, frase, false); return }
+    if (m.tipo === 'quieta') { entrarQuieta(m.linea, frase, false, true); return }
     if (m.tipo === 'cuidado' && miTurno === turnoDeSeguridad && !S.cuidado) preguntarCuidado(frase, 'texto', true)
   }, () => undefined)
 }

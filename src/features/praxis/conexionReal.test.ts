@@ -89,10 +89,14 @@ describe('crearConexionPraxis · relectura del riesgo con el modelo (consentimie
   beforeEach(() => localStorage.clear())
   afterEach(() => vi.clearAllMocks())
 
-  it('por defecto NO existe: lo marcado por el filtro no sale del teléfono, como dice la pantalla de privacidad', () => {
-    const c = crearConexionPraxis('u-valentina', () => {})
+  it('con el interruptor apagado NO existe: lo marcado por el filtro no sale del teléfono', () => {
+    const c = crearConexionPraxis('u-valentina', () => {}, null, false)
     expect(c.releerRiesgo).toBeUndefined()
     expect(releer).not.toHaveBeenCalled()
+  })
+
+  it('por defecto existe (la pantalla decide si el permiso lo cubre)', () => {
+    expect(typeof crearConexionPraxis('u-valentina', () => {}).releerRiesgo).toBe('function')
   })
 
   it('con el interruptor encendido, relee por la función con la frase y devuelve su marca', async () => {

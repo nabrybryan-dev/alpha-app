@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LECTURA_DEL_MODELO_SOBRE_MARCADAS, gravedad, hayQueConsultarAlModelo, leerMarcaDelServidor, masGrave } from './masGrave'
+import { LECTURA_DEL_MODELO_SOBRE_MARCADAS, VERSION_PERMISOS, gravedad, permisoCubreLaRelectura, hayQueConsultarAlModelo, leerMarcaDelServidor, masGrave } from './masGrave'
 import { marcaDesdeModelo, NIVELES_MODELO } from './riesgoModelo'
 import type { MarcaDeRiesgo } from './riesgo'
 
@@ -64,8 +64,14 @@ describe('hayQueConsultarAlModelo', () => {
 })
 
 describe('el interruptor de consentimiento', () => {
-  it('sale APAGADO: lo que dice la pantalla de privacidad hoy es que lo marcado no sale del teléfono', () => {
-    expect(LECTURA_DEL_MODELO_SOBRE_MARCADAS).toBe(false)
+  it('sale encendido (Bryan, 3-oct), pero solo con el permiso de la versión nueva', () => {
+    expect(LECTURA_DEL_MODELO_SOBRE_MARCADAS).toBe(true)
+    expect(VERSION_PERMISOS).not.toBe('v1')
+    expect(permisoCubreLaRelectura({ version: VERSION_PERMISOS, cRiesgo: true, cConversacion: true })).toBe(true)
+    expect(permisoCubreLaRelectura({ version: 'v1', cRiesgo: true, cConversacion: true })).toBe(false)
+    expect(permisoCubreLaRelectura({ cRiesgo: true, cConversacion: true })).toBe(false)
+    expect(permisoCubreLaRelectura({ version: VERSION_PERMISOS, cRiesgo: false, cConversacion: true })).toBe(false)
+    expect(permisoCubreLaRelectura(null)).toBe(false)
   })
 })
 
