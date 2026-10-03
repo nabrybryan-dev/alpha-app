@@ -155,11 +155,11 @@ describe('reglas que importan', () => {
     expect(p.notas_coach.join(' ')).toMatch(/pa3, pa4/)
   })
 
-  it('el esfuerzo de sesión solo admite 6 a 10 (CE-054, CE-055)', () => {
+  it('el esfuerzo de sesión solo admite 1 a 10 (CE-054, CE-055)', () => {
     expect(correr('CE-054').p.registros[0]).toMatchObject({ campo: 'testPost.rpeSesion', valor: 9 })
     const { p } = correr('CE-055')
     expect(p.accion).toBe('preguntar')
-    expect(p.pregunta?.opciones).toEqual(['6', '7'])
+    expect(p.pregunta?.opciones).toEqual(['9', '10'])
   })
 
   it('los calentamientos se oyen y se descartan (CE-044)', () => {

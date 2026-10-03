@@ -1,8 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { SelectorRir } from '../../components/ui/SelectorRir'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
 import { seriePrescrita } from '../../domain/ondulacion'
-import { rirDeTabla } from '../../domain/objetivoDeIntensidad'
 import { cargaSugerida } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
@@ -28,7 +28,8 @@ export interface RegistroSerieHandle {
 interface Borrador {
   cargaKg: number
   reps: number
-  rir: number
+  /** Vacío hasta que la persona lo elige: ver `SelectorRir`. */
+  rir?: number
 }
 
 /** Cuando no hay nada de dónde deducir la carga, el stepper arranca aquí. */
@@ -48,11 +49,10 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
     leerJSON<Borrador>(clave, {
       cargaKg: cargaInicial(ejercicio, orden),
       reps: prescrita?.reps ?? ejercicio.repsDiana,
-      // Con el objetivo en `FALLO` el stepper arranca en 0, y es lo correcto: la
-      // parte contada de una serie al fallo termina en la última repetición
-      // COMPLETA, que es RIR 0. La parcial que viene después no es una
-      // repetición en reserva y no cabe en este campo — su sitio es `extra`.
-      rir: prescrita?.rir ?? rirDeTabla(ejercicio.rirObjetivo),
+      // SIN `rir`. Aquí arrancaba en el RIR objetivo, y quien no tocaba el mando
+      // guardaba el objetivo como si fuera lo que sintió: una asesorada con objetivo
+      // RIR 5 quedaba con RIR 5 en todas sus series. El objetivo se muestra arriba
+      // («Objetivo: … · RIR n»); el RIR REAL lo pone la persona o no existe.
     }),
   )
 
@@ -65,7 +65,12 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
   const cambiar = (parche: Partial<Borrador>) => setBorrador((b) => ({ ...b, ...parche }))
 
   const guardar = () => {
-    onGuardar({ orden, cargaKg: borrador.cargaKg, reps: borrador.reps, rir: borrador.rir })
+    onGuardar({
+      orden,
+      cargaKg: borrador.cargaKg,
+      reps: borrador.reps,
+      ...(borrador.rir !== undefined ? { rir: borrador.rir } : {}),
+    })
     borrarClave(clave) // ya quedó en la base; el borrador deja de hacer falta
   }
 
@@ -121,12 +126,12 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
         </p>
       )}
 
-      {/* Carga a lo ancho (dato principal); Reps y RIR debajo en dos columnas.
+      {/* Carga a lo ancho (dato principal); Reps y RIR debajo, uno por fila (los seis botones del RIR no caben en media columna).
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
       <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad cifraViva onCambiar={(v) => cambiar({ cargaKg: v })} />
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <div className="mt-2 flex flex-col gap-2">
         <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad cifraViva onCambiar={(v) => cambiar({ reps: v })} />
-        <Stepper etiqueta="RIR" valor={borrador.rir} paso={1} minimo={0} maximo={5} profundidad cifraViva onCambiar={(v) => cambiar({ rir: v })} />
+        <SelectorRir valor={borrador.rir} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
       {/* Medir va ANTES de guardar, y no es un detalle de orden: se mide la

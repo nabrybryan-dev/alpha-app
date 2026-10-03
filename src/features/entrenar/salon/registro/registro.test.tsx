@@ -55,7 +55,11 @@ function montar(parcial: Partial<EjercicioPrescrito> = {}) {
 const campo = (etiqueta: string) => screen.getByLabelText(etiqueta) as HTMLInputElement
 const carga = () => campo('Carga en kg')
 const reps = () => campo('Reps')
-const rir = () => campo('RIR')
+/** El RIR es un selector de seis botones, vacío hasta que la persona lo elige. */
+const botonRir = (n: number) => screen.getByRole('button', { name: `RIR ${n}` })
+const elegirRir = async (usuario: ReturnType<typeof userEvent.setup>, n: number) => {
+  await usuario.click(botonRir(n))
+}
 
 /**
  * Espera a que la cifra del stepper SE POSE en su valor.
@@ -97,7 +101,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
 
     await teclear(usuario, carga(), '82.5')
     await teclear(usuario, reps(), '9')
-    await teclear(usuario, rir(), '1')
+    await elegirRir(usuario, 1)
 
     await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
 
@@ -152,7 +156,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
     )
     await teclear(usuario, carga(), '60')
     await teclear(usuario, reps(), '12')
-    await teclear(usuario, rir(), '3')
+    await elegirRir(usuario, 3)
     await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
 
     const guardada = alGuardar.mock.calls[0][0] as SerieRegistrada
@@ -160,6 +164,61 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
     // Y es exactamente lo mismo que fue a la base: un solo dato, no dos que puedan
     // separarse.
     expect(espia).toHaveBeenCalledWith(MICROCICLO, EJERCICIO, guardada)
+  })
+
+  // ── EL RIR NO TIENE VALOR POR DEFECTO ─────────────────────────────────────
+  //
+  // Hasta el 2026-10-02 el mando de RIR arrancaba en el RIR OBJETIVO de la prescripción, y
+  // quien no lo tocaba guardaba el objetivo como si fuera lo que sintió (una asesorada con
+  // objetivo RIR 5 quedó con RIR 5 en todas sus series, también con RPE 8-9).
+  describe('el RIR queda vacío hasta que la persona lo elige', () => {
+    it('al montar no hay ningún RIR elegido, sea cual sea el objetivo', () => {
+      montar({ rirObjetivo: 5 })
+      for (let n = 0; n <= 5; n += 1) expect(botonRir(n).getAttribute('aria-pressed')).toBe('false')
+    })
+
+    it('si no lo toca, la serie se guarda SIN rir (no el objetivo)', async () => {
+      const usuario = userEvent.setup()
+      montar({ rirObjetivo: 5 })
+      await teclear(usuario, carga(), '40')
+      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      const serie = espia.mock.calls[0][2] as SerieRegistrada
+      expect(serie).not.toHaveProperty('rir')
+      expect(serie).toMatchObject({ orden: 1, cargaKg: 40 })
+    })
+
+    it('tampoco hereda el RIR de la ondulación (seriesPrescritas)', async () => {
+      const usuario = userEvent.setup()
+      montar({ rirObjetivo: 3, seriesPrescritas: [1, 2, 3].map((orden) => ({ orden, reps: 10, rir: 3, cargaKg: 50 })) })
+      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
+    })
+
+    it('con el objetivo en FALLO tampoco se rellena con 0', async () => {
+      const usuario = userEvent.setup()
+      montar({ rirObjetivo: 'FALLO' })
+      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
+    })
+
+    it('volver a tocar el botón elegido lo suelta y la serie sale sin rir', async () => {
+      const usuario = userEvent.setup()
+      montar()
+      await elegirRir(usuario, 4)
+      expect(botonRir(4).getAttribute('aria-pressed')).toBe('true')
+      await elegirRir(usuario, 4)
+      expect(botonRir(4).getAttribute('aria-pressed')).toBe('false')
+      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
+    })
+
+    it('un RIR 0 elegido se guarda como 0 (no se confunde con vacío)', async () => {
+      const usuario = userEvent.setup()
+      montar()
+      await elegirRir(usuario, 0)
+      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      expect((espia.mock.calls[0][2] as SerieRegistrada).rir).toBe(0)
+    })
   })
 
   it('la serie que registra es la SIGUIENTE a las ya hechas, no un contador propio', async () => {
@@ -206,16 +265,13 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       await esperaCifra(reps, '1')
     })
 
-    it('el RIR va de 0 a 5 y no admite un sexto escalón', async () => {
+    it('el RIR va de 0 a 5: seis botones y ningún sexto escalón', async () => {
       const usuario = userEvent.setup()
       montar()
-      await teclear(usuario, rir(), '9')
-      await esperaCifra(rir, '5')
+      expect(screen.getAllByRole('button', { name: /^RIR \d$/ }).map((x) => x.textContent)).toEqual(['0', '1', '2', '3', '4', '5'])
+      expect(screen.queryByRole('button', { name: 'RIR 6' })).toBeNull()
 
-      const bajar = screen.getByRole('button', { name: 'Bajar RIR' })
-      for (let i = 0; i < 8; i += 1) await usuario.click(bajar)
-      await esperaCifra(rir, '0')
-
+      await elegirRir(usuario, 0)
       await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
       expect(espia.mock.calls[0][2]).toMatchObject({ rir: 0 })
     })
@@ -225,7 +281,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       montar()
       await teclear(usuario, carga(), '1200')
       await teclear(usuario, reps(), '77')
-      await teclear(usuario, rir(), '8')
+      await elegirRir(usuario, 5)
       await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
       expect(espia).toHaveBeenCalledWith(MICROCICLO, EJERCICIO, {
         orden: 1,
@@ -261,7 +317,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
 
       await teclear(usuario, carga(), '95')
       await teclear(usuario, reps(), '7')
-      await teclear(usuario, rir(), '0')
+      await elegirRir(usuario, 0)
 
       await usuario
         .click(screen.getByRole('button', { name: 'Guardar serie 1' }))
@@ -282,7 +338,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       montar()
       await esperaCifra(carga, '95')
       await esperaCifra(reps, '7')
-      await esperaCifra(rir, '0')
+      expect(botonRir(0).getAttribute('aria-pressed')).toBe('true')
     })
 
     it('cuando el guardado sí sale bien, el borrador se retira', async () => {

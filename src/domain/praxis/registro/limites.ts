@@ -61,7 +61,7 @@ export function revisarGramos(g: number): Veredicto {
 }
 
 export function revisarRpeSesion(rpe: number): Veredicto {
-  if (!Number.isFinite(rpe) || rpe < 6 || rpe > 10) return { tipo: 'imposible', motivo: 'La escala de la app va de 6 a 10' }
+  if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) return { tipo: 'imposible', motivo: 'La escala de la app va de 1 a 10' }
   return OK
 }
 

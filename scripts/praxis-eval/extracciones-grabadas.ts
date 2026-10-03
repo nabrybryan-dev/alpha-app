@@ -138,7 +138,7 @@ export const EXTRACCIONES_GRABADAS: Record<string, Extraccion> = {
   'CE-052': X({ entreno: [e('sentadilla', []), e('prensa', [])] }),
   'CE-053': X({ sesion: { rpe: null, duracion: null, omitidos: ['el rumano', 'el curl femoral'], cardio: null, preparacion: [] } }),
   'CE-054': X({ sesion: { rpe: 'un 9', duracion: null, omitidos: [], cardio: null, preparacion: [] } }),
-  'CE-055': X({ sesion: { rpe: 'un 5', duracion: null, omitidos: [], cardio: null, preparacion: [] } }),
+  'CE-055': X({ sesion: { rpe: 'un 11', duracion: null, omitidos: [], cardio: null, preparacion: [] } }),
   'CE-056': X({ sesion: { rpe: null, duracion: 'una hora y diez', omitidos: [], cardio: null, preparacion: [] } }),
   'CE-057': X({ intencion: ['entreno'], sesion: { rpe: null, duracion: null, omitidos: [], cardio: '20 minutos', preparacion: [] } }),
   'CE-058': X({ intencion: ['entreno'], sesion: { rpe: null, duracion: null, omitidos: [], cardio: null, preparacion: ['la movilidad', 'la activación'] } }),

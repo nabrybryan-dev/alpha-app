@@ -619,10 +619,10 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
       if (v !== null) {
         const ver = revisarRpeSesion(v)
         if (ver.tipo === 'imposible') {
-          const opciones = v < 6 ? ['6', '7'] : ['9', '10']
+          const opciones = v < 1 ? ['1', '2'] : ['9', '10']
           return {
             accion: 'preguntar', sesion_id: sid, registros: [], descartado, notas_coach: notas, citas_invalidas: citasInvalidas,
-            pregunta: pregunta('La escala de la app va de 6 a 10. ¿Cuál se acerca más a lo que sentiste?', opciones, 'rpeSesion'),
+            pregunta: pregunta('La escala de la app va de 1 a 10. ¿Cuál se acerca más a lo que sentiste?', opciones, 'rpeSesion'),
             borrador_pendiente: { rpe_dicho: v },
           }
         }
