@@ -42,6 +42,7 @@ import { derivarPorRiesgo, filtroDeRiesgo, type MarcaDeRiesgo } from '../../../s
 // La otra mitad de «diccionario + modelo en cada mensaje» (decisión firmada del 29-sep).
 import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO, leerSalidaRiesgo, marcaDesdeModelo, type LecturaModelo } from '../../../src/domain/praxis/riesgoModelo.ts'
 import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
+import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
 // El cuestionario de ingreso por voz: el prompt y la validación con citas (puros) y su guion.
 import { PROMPT_SISTEMA_INGRESO, VERSION_PROMPT_INGRESO, armarMensajeIngreso, leerSalidaIngreso, validarIngreso } from '../../../src/domain/praxis/ingreso/extraer.ts'
 import { TURNOS_VOZ, type TurnoId } from '../../../src/domain/praxis/ingreso/guion.ts'
@@ -212,6 +213,23 @@ async function registrarErrorDeAnthropic(r: Response, frase: string): Promise<vo
 }
 
 /**
+ * Tope de la salida del registrador. La mayor salida observada fue de 1.037 tokens en 219 casos
+ * del evaluador (`scripts/praxis-eval/informes/ultimo`, prompt registro-prompt-2026-09-29.5; p95 735,
+ * mediana 374); 1.300 deja ~25 % de margen. Es un techo, no acelera la respuesta: el tiempo lo
+ * pone lo que el modelo escribe de verdad.
+ */
+export const MAX_TOKENS_REGISTRO = 1300
+
+const HERRAMIENTAS_REGISTRO = [
+  {
+    name: 'registrar',
+    description: 'Etiqueta lo que la persona dijo. No calcules ni completes números: copia fragmentos literales.',
+    input_schema: ESQUEMA_REGISTRO,
+  },
+]
+const HERRAMIENTAS_REGISTRO_JSON = JSON.stringify(HERRAMIENTAS_REGISTRO)
+
+/**
  * Un solo llamado a Haiku con la herramienta `registrar` forzada.
  *
  * SIN `strict`. El esquema tiene 46 parámetros con unión (`anyOf` con `null`), y el modo
@@ -238,17 +256,12 @@ export async function llamarHaiku(
     signal: AbortSignal.timeout(TIMEOUT_MODELO_MS),
     body: JSON.stringify({
       model: MODELO_HAIKU,
-      max_tokens: 1500,
+      max_tokens: MAX_TOKENS_REGISTRO,
       temperature: 0,
-      // El prefijo fijo (sistema + herramienta) va cacheado: es lo que se repite.
-      system: [{ type: 'text', text: PROMPT_SISTEMA, cache_control: { type: 'ephemeral' } }],
-      tools: [
-        {
-          name: 'registrar',
-          description: 'Etiqueta lo que la persona dijo. No calcules ni completes números: copia fragmentos literales.',
-          input_schema: ESQUEMA_REGISTRO,
-        },
-      ],
+      // El prefijo fijo (herramienta + sistema, en ese orden) va cacheado: es lo que se repite.
+      // Mide ~8.800 tokens aproximados, sobre el mínimo de 4.096 de Haiku 4.5 (prefijoCacheable.ts).
+      system: [bloqueDeSistema(PROMPT_SISTEMA, HERRAMIENTAS_REGISTRO_JSON)],
+      tools: HERRAMIENTAS_REGISTRO,
       tool_choice: { type: 'tool', name: 'registrar' },
       messages: [{ role: 'user', content: armarMensajeUsuario(ctx, frase) }],
     }),
@@ -285,7 +298,9 @@ export async function leerRiesgoConModelo(d: Dependencias, frase: string): Promi
       model: MODELO_HAIKU,
       max_tokens: 200,
       temperature: 0,
-      system: [{ type: 'text', text: PROMPT_RIESGO, cache_control: { type: 'ephemeral' } }],
+      // Sin herramientas: el prefijo es solo este prompt (~1.600 tokens aproximados), por debajo
+      // del mínimo cacheable de Haiku 4.5; `bloqueDeSistema` no le pone cache_control.
+      system: [bloqueDeSistema(PROMPT_RIESGO)],
       messages: [{ role: 'user', content: frase }],
     }),
   })
@@ -439,7 +454,8 @@ export async function llamarHaikuIngreso(
       model: MODELO_HAIKU,
       max_tokens: 900,
       temperature: 0,
-      system: [{ type: 'text', text: PROMPT_SISTEMA_INGRESO, cache_control: { type: 'ephemeral' } }],
+      // ~1.100 tokens aproximados: por debajo del mínimo cacheable, sin cache_control.
+      system: [bloqueDeSistema(PROMPT_SISTEMA_INGRESO)],
       messages: [{ role: 'user', content: armarMensajeIngreso(turno, texto) }],
     }),
   })
