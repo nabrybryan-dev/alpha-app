@@ -30,13 +30,13 @@ export default function PraxisPage() {
   const trato: Trato = parametros.get('trato')?.toLowerCase() === 'usted' ? 'usted' : 'tu'
   // El coach no llena check-in: su ruta /bienestar lo devuelve a su panel, así que a él no se le ofrece el formulario.
   const esCoach = usuario.rol === 'coach'
-  return <PraxisConectada usuarioId={usuario.id} trato={trato} salida={esCoach ? '/coach' : '/'} conFormulario={!esCoach} />
+  return <PraxisConectada usuarioId={usuario.id} nombre={usuario.nombre} trato={trato} salida={esCoach ? '/coach' : '/'} conFormulario={!esCoach} />
 }
 
 /** Va aparte para que la conexión solo se cree DESPUÉS de pasar la guarda. */
-function PraxisConectada({ usuarioId, trato, salida, conFormulario }: { usuarioId: string; trato: Trato; salida: string; conFormulario: boolean }) {
+function PraxisConectada({ usuarioId, nombre, trato, salida, conFormulario }: { usuarioId: string; nombre: string; trato: Trato; salida: string; conFormulario: boolean }) {
   const navegar = useNavigate()
   // Estable entre renders: si cambiara, la escena se remontaría y la conversación se perdería.
-  const conexion = useMemo(() => crearConexionPraxis(usuarioId, conFormulario ? () => navegar('/bienestar') : null), [usuarioId, navegar, conFormulario])
+  const conexion = useMemo(() => crearConexionPraxis(usuarioId, conFormulario ? () => navegar('/bienestar') : null, nombre), [usuarioId, nombre, navegar, conFormulario])
   return <PraxisCosmos trato={trato} salida={salida} conexion={conexion} />
 }

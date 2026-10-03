@@ -1,9 +1,10 @@
+import { repetirEnCorto } from '../../../domain/praxis/ingreso/repetir'
 import { Cab, alInicio, compactar, enfocarControles, limpiarControles, montar, mostrarControles, refrescar, retirarControles } from './cabecera'
 import { chips, controlAclaracion, controlNoche, enCamaMin, gAlimentacion, gCalidad, gCansancio, gEstres, gGanas, gRendimiento, pieSeguir } from './controles'
 import { avisoBryan, controlDolor, controlEntreno, controlHambre, rotuloBryan } from './controlesCuerpo'
 import { ETQ, HOY, IDEA_AYER, NOMBRE, type Campo, type DatosDia } from './datos'
 import { $, h } from './dom'
-import { guardar, leer, reducido, tu } from './entorno'
+import { guardar, leer, reducido, trato, tu } from './entorno'
 import { faseEco, faseFirma } from './fases'
 import { decir, decirCorto, mostrarPersona, ponerSugerencias } from './frase'
 import { conArticulo, preguntaIdea, preguntaIdeaCorta } from './idea'
@@ -174,7 +175,7 @@ async function correrTurno(tok: number, cfg: Turno): Promise<void> {
     if (evt.tipo === 'texto') {
       const r = await procesarTexto(evt, tok)
       if (r.agotado) await decir('No me llegó la respuesta. Seguimos con toques o con el formulario.', tok)
-      else if (r.nada) await decir(tu('No te entendí del todo. Puedes tocar una opción.', 'No le entendí del todo. Puede tocar una opción.'), tok)
+      else if (r.nada) await decir(repetirEnCorto(cfg.pregunta, trato() === 'usted'), tok)
       else if (!r.meta && cfg.trasTexto) {
         const q = cfg.trasTexto()
         if (q) { await decir(q, tok); if (S.aplanar) { S.aplanar = false; Onda.estado('aplanada') } }

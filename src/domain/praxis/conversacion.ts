@@ -4,6 +4,7 @@ import type { LoQuePraxisVe } from './plan/listaBlanca'
 import type { Propuesta } from './registro/tipos'
 import type { Tarjeta } from './registro/tarjeta'
 import type { FiltroClinico } from './registro/filtroClinico'
+import { cabeCharla } from './charla/modelo'
 import { filtroDeRiesgo, type LineaDeAyuda } from './riesgo'
 
 /**
@@ -56,7 +57,7 @@ export function sinNombres(texto: string, trato: Trato): string {
 export type FalloDelRegistrador = 'no_desplegada' | 'sin_sesion' | 'red' | 'limite' | 'no_entendi' | 'frase'
 
 export type RespuestaDelRegistrador =
-  | { ok: true; propuesta: Propuesta; tarjeta: Tarjeta; mensajeId: string }
+  | { ok: true; propuesta: Propuesta; tarjeta: Tarjeta; mensajeId: string; /** La respuesta de charla del modelo; solo llega cuando no hay nada que guardar. */ charla?: string }
   | { ok: false; motivo: FalloDelRegistrador }
 
 export type PasoTrasProponer =
@@ -67,6 +68,7 @@ export type PasoTrasProponer =
   | { paso: 'cuidado' }
   | { paso: 'no_se'; texto: string; queFalto: QueFalto }
   | { paso: 'dicho'; texto: string }
+  | { paso: 'charla'; texto: string }
   | { paso: 'fallo'; texto: string }
 
 const FALLOS: Record<FalloDelRegistrador, Record<Trato, string>> = {
@@ -86,7 +88,8 @@ const FALLOS: Record<FalloDelRegistrador, Record<Trato, string>> = {
     tu: 'Van muchos mensajes en la última hora. No anoté este; por ahora usa el formulario.',
     usted: 'Van muchos mensajes en la última hora. No anoté este; por ahora use el formulario.',
   },
-  no_entendi: { tu: 'No te entendí bien, así que no anoté nada. ¿Lo anotas en el formulario?', usted: 'No le entendí bien, así que no anoté nada. ¿Lo anota en el formulario?' },
+  // 502 = algo falló de MI lado (el modelo no contestó o su respuesta no se pudo leer): no es que la persona se explicara mal.
+  no_entendi: { tu: 'Se me enredó algo de mi lado y no anoté nada. ¿Me lo repites o lo pasas por el formulario?', usted: 'Se me enredó algo de mi lado y no anoté nada. ¿Me lo repite o lo pasa por el formulario?' },
   frase: { tu: 'Esa frase es muy larga para anotarla de una vez. Dímela por partes.', usted: 'Esa frase es muy larga para anotarla de una vez. Dígamela por partes.' },
 }
 
@@ -95,6 +98,11 @@ export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): Paso
   if (!r.ok) return { paso: 'fallo', texto: FALLOS[r.motivo][trato] }
   const { propuesta, tarjeta } = r
   const t = (tu: string, usted: string) => (trato === 'usted' ? usted : tu)
+
+  // La charla del modelo solo se dice cuando NO hay nada que guardar, preguntar ni derivar: nunca tapa una tarjeta.
+  if (r.charla && cabeCharla(propuesta, { intencionCharla: true }) && tarjeta.tipo !== 'confirmacion' && tarjeta.tipo !== 'pregunta' && tarjeta.tipo !== 'derivacion') {
+    return { paso: 'charla', texto: r.charla }
+  }
 
   if (propuesta.accion === 'derivar' || tarjeta.tipo === 'derivacion') {
     // El servidor filtra con el MISMO filtro que la pantalla y dice qué marcó: se respeta tal
@@ -126,7 +134,8 @@ export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): Paso
       return { paso: 'dicho', texto: 'Listo, no los marco.' }
     default:
       if (tarjeta.tipo === 'informativa' && tarjeta.mensaje) return { paso: 'dicho', texto: sinNombres(tarjeta.mensaje, trato) }
-      return { paso: 'no_se', texto: t('No encontré nada que anotar en eso, y no quiero adivinar.', 'No encontré nada que anotar en eso, y no quiero adivinar.'), queFalto: 'no_entendido' }
+      // Sin registro y sin respuesta del modelo: no se dice «no entendí»; se pregunta por lo que sí se puede anotar.
+      return { paso: 'dicho', texto: t('Eso no me quedó como algo para anotar. ¿Fue de entreno, de comida, de agua o de sueño?', 'Eso no me quedó como algo para anotar. ¿Fue de entreno, de comida, de agua o de sueño?') }
   }
 }
 

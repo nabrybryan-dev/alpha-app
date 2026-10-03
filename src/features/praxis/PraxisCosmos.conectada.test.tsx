@@ -202,7 +202,7 @@ describe('Praxis conectada · lo que se escribe va al registrador y se guarda so
     await u.click(await screen.findByRole('button', { name: 'Sentadilla goblet con mancuerna' }, ESPERA))
     await waitFor(() => expect(proponer).toHaveBeenCalledTimes(2), ESPERA)
     expect(proponer.mock.calls[1][0]).toBe('hice 4 series de sentadilla con 60')
-    expect(proponer.mock.calls[1][2]).toEqual({ pantallaEjercicioId: 'e-goblet' })
+    expect(proponer.mock.calls[1][2]).toMatchObject({ pantallaEjercicioId: 'e-goblet' })
     expect(await screen.findByRole('button', { name: 'Guardar' }, ESPERA)).toBeInTheDocument()
   })
 

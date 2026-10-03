@@ -6,9 +6,10 @@
  * El modelo solo ETIQUETA y CITA. Los números, las unidades, el ejercicio y el
  * orden de la serie los decide el código (`resolver.ts`).
  */
+import { BLOQUE_CHARLA } from '../charla/promptCharla.ts'
 import type { ContextoRegistro } from './tipos.ts'
 
-export const VERSION_PROMPT = 'registro-prompt-2026-10-03.1'
+export const VERSION_PROMPT = 'registro-prompt-2026-10-03.2'
 
 /** Modelo en vivo (la clave de la API es un secreto de Supabase, nunca va en código). */
 export const MODELO_HAIKU = 'claude-haiku-4-5'
@@ -151,7 +152,7 @@ Frase: "hice banco 60 por 8 pero me molestó el hombro derecho"
 Frase: "¿cuánto peso debería subir la próxima semana en sentadilla?"
 {"intencion":["consulta"],"fuera_de_alcance":true}
 Frase: "¿tú qué opinas de las elecciones que vienen?"
-{"intencion":["charla"],"fuera_de_alcance":true}`
+{"intencion":["charla"],"fuera_de_alcance":true}` + BLOQUE_CHARLA
 
 /**
  * El paquete de contexto que SÍ viaja al modelo (DISENO §1.3): lo justo para
@@ -181,6 +182,7 @@ export function armarContextoParaModelo(ctx: ContextoRegistro): Record<string, u
 }
 
 /** El mensaje de usuario: contexto mínimo + la frase. */
-export function armarMensajeUsuario(ctx: ContextoRegistro, frase: string): string {
-  return `Contexto (solo para leer mejor la frase; no lo uses para completar números):\n${JSON.stringify(armarContextoParaModelo(ctx))}\n\nFrase de la persona:\n«${frase}»`
+export function armarMensajeUsuario(ctx: ContextoRegistro, frase: string, charla?: string): string {
+  const base = `Contexto (solo para leer mejor la frase; no lo uses para completar números):\n${JSON.stringify(armarContextoParaModelo(ctx))}\n\nFrase de la persona:\n«${frase}»`
+  return charla ? `${base}\n\n${charla}` : base
 }

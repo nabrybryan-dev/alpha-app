@@ -259,7 +259,7 @@ describe('Edge Function praxis-registro', () => {
     e.respuestas.push({ url: /api\.anthropic\.com/, cuerpo: {}, ok: false })
     const r = await manejar(post({ frase: 'sentadilla 40 por 12' }), e.d)
     expect(r.status).toBe(502)
-    expect((await r.json()).error).toBe('No te entendí bien, ¿lo anotas aquí?')
+    expect((await r.json()).error).toBe('Se me enredó algo de mi lado. ¿Me lo repites?')
   })
 
   it('sin secreto configurado no revienta: 502 con el mismo mensaje', async () => {

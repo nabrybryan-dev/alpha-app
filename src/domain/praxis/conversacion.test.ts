@@ -61,7 +61,7 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
   })
 
   it('una tarjeta sin nada que guardar no ofrece «Guardar»', () => {
-    expect(pasoTrasProponer(respuesta({ tipo: 'confirmacion', guardable: false }), 'tu').paso).toBe('no_se')
+    expect(pasoTrasProponer(respuesta({ tipo: 'confirmacion', guardable: false }), 'tu').paso).toBe('dicho')
   })
 
   it('una derivación clínica del servidor usa el texto honesto de la pantalla, sin nombres ni promesas de aviso', () => {
@@ -89,7 +89,7 @@ describe('pasoTrasProponer · qué se muestra con lo que devolvió el registrado
     ['sin_sesion', /sesión/],
     ['red', /conexión/],
     ['limite', /muchos mensajes/],
-    ['no_entendi', /No te entendí/],
+    ['no_entendi', /Se me enredó algo de mi lado/],
   ] as const)('si el registrador falla (%s) lo dice y no inventa un registro', (motivo, patron) => {
     const p = pasoTrasProponer({ ok: false, motivo }, 'tu')
     expect(p.paso).toBe('fallo')
@@ -178,13 +178,13 @@ describe('pasoTrasProponer · el resto de salidas del registrador', () => {
     expect(p).toEqual({ paso: 'dicho', texto: 'Borrar una serie no lo puedo hacer desde aquí. Díselo a tu coach.' })
   })
 
-  it('sin motivo y sin mensaje, dice que no encontró nada que anotar', () => {
+  it('sin motivo y sin mensaje, no dice «no entendí»: pregunta por lo que sí se puede anotar', () => {
     const p = pasoTrasProponer(respuesta({ tipo: 'informativa' }, { accion: 'nada' }), 'tu')
-    expect(p).toEqual({ paso: 'no_se', texto: 'No encontré nada que anotar en eso, y no quiero adivinar.', queFalto: 'no_entendido' })
+    expect(p).toEqual({ paso: 'dicho', texto: 'Eso no me quedó como algo para anotar. ¿Fue de entreno, de comida, de agua o de sueño?' })
   })
 
   it('una tarjeta guardable pero sin líneas no se ofrece para guardar a ciegas', () => {
-    expect(pasoTrasProponer(respuesta({ tipo: 'confirmacion', guardable: true, lineas: [] }), 'tu').paso).toBe('no_se')
+    expect(pasoTrasProponer(respuesta({ tipo: 'confirmacion', guardable: true, lineas: [] }), 'tu').paso).toBe('dicho')
   })
 })
 

@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import { filtroDeRiesgo } from '../../../domain/praxis/riesgo'
-import { decidirTurnoConCharla, momentoDelDia, normalizarCharla, responderCharla, type ContextoDeCharla, type IntencionDeCharla } from './charla'
+import { aperturaInmediata, aperturasPosibles, colasPosibles, decidirTurnoConCharla, fijarAzarDeCharla, momentoDelDia, normalizarCharla, pareceCharla, reiniciarVariantes, responderCharla, textosPosibles, type ContextoDeCharla, type IntencionDeCharla } from './charla'
 
 const ve: LoQuePraxisVe = { activo: null, cerrados: [], perfil: null, checkins: [], adherencias: [], hidratacionHoyMl: 0, comida: null, falta: ['plan_activo'] }
 const HOY = '2026-10-01'
@@ -68,32 +68,48 @@ describe('charla · cada intención, en tú y en usted', () => {
   it.each(CASOS)('«%s» → %s', (frase, intencion, tuTxt, ustedTxt) => {
     const t = dice(frase, { trato: 'tu' }), u = dice(frase, { trato: 'usted' })
     expect(t?.intencion).toBe(intencion)
-    expect(t?.texto).toBe(tuTxt)
+    expect(textosPosibles(intencion, 'tu')).toContain(tuTxt) // la primera variante sigue siendo la de siempre
+    expect(textosPosibles(intencion, 'tu')).toContain(t?.texto)
     expect(u?.intencion).toBe(intencion)
-    expect(u?.texto).toBe(ustedTxt)
+    expect(textosPosibles(intencion, 'usted')).toContain(ustedTxt)
+    expect(textosPosibles(intencion, 'usted')).toContain(u?.texto)
   })
 
   it('las respuestas en usted no se pasan al tú ni al revés', () => {
     for (const [frase, , , ustedTxt] of CASOS) {
       const t = dice(frase, { trato: 'tu' })?.texto ?? ''
       const u = dice(frase, { trato: 'usted' })?.texto ?? ''
-      expect(u).toBe(ustedTxt)
+      expect(textosPosibles(dice(frase)!.intencion, 'usted')).toContain(u)
+      expect(ustedTxt).toBeTruthy()
       if (t !== u) expect(u).not.toMatch(/\b(tu|tus|te|quieras|puedes|cuéntame|acompañarte|descanses)\b/i)
     }
   })
 })
 
 describe('charla · el saludo sigue la hora local', () => {
-  it.each([
-    [5, 'Buenos días. ¿Cómo amaneciste?'], [11, 'Buenos días. ¿Cómo amaneciste?'],
-    [12, 'Buenas tardes. ¿Cómo va el día?'], [18, 'Buenas tardes. ¿Cómo va el día?'],
-    [19, 'Buenas noches. ¿Cómo te fue hoy?'], [23, 'Buenas noches. ¿Cómo te fue hoy?'], [0, 'Buenas noches. ¿Cómo te fue hoy?'], [4, 'Buenas noches. ¿Cómo te fue hoy?'],
-  ])('a las %i h', (hora, texto) => {
-    expect(dice('hola', { hora })?.texto).toBe(texto)
+  it.each([5, 11, 12, 18, 19, 23, 0, 4])('a las %i h el saludo y su cola son del momento del día', (hora) => {
+    const r = dice('hola', { hora })!
+    expect(aperturasPosibles(hora)).toContain(r.apertura)
+    expect(colasPosibles(hora, 'tu')).toContain(r.cola)
+    expect(r.texto).toBe(`${r.apertura} ${r.cola}`)
   })
-  it('en usted también', () => {
-    expect(dice('hola', { hora: 15, trato: 'usted' })?.texto).toBe('Buenas tardes. ¿Cómo va el día?')
-    expect(dice('hola', { hora: 22, trato: 'usted' })?.texto).toBe('Buenas noches. ¿Cómo le fue hoy?')
+  it('las colas de la mañana preguntan por la mañana y las de la noche, por el día que pasó', () => {
+    expect(colasPosibles(9, 'tu')).toContain('¿Cómo amaneciste?')
+    expect(colasPosibles(15, 'tu')).toContain('¿Cómo va el día?')
+    expect(colasPosibles(21, 'tu')).toContain('¿Cómo te fue hoy?')
+    expect(colasPosibles(21, 'usted')).toContain('¿Cómo le fue hoy?')
+  })
+  it('el nombre aparece en algunas aperturas, no en todas', () => {
+    const con = aperturasPosibles(9, 'Bryan')
+    expect(con).toContain('Hola, Bryan.')
+    expect(con).toContain('Muy buenos días.')
+  })
+  it('el saludo y el «¿Y tú, cómo vas?» dejan la pregunta de ánimo abierta; lo demás no', () => {
+    expect(dice('hola')?.esperaAnimo).toBe(true)
+    expect(dice('cómo estás')?.esperaAnimo).toBe(true)
+    for (const f of ['gracias', 'perdón', 'quién eres', 'chao', 'te quiero', 'qué puedes hacer', 'eres un robot']) expect(dice(f)?.esperaAnimo).toBe(false)
+    expect(dice('bien', { esperaAnimo: true })?.esperaAnimo).toBe(false)
+    expect(dice('mal', { esperaAnimo: true })?.esperaAnimo).toBe(false)
   })
   it('los límites de las franjas', () => {
     expect([4, 5, 11, 12, 18, 19].map(momentoDelDia)).toEqual(['noche', 'manana', 'manana', 'tarde', 'tarde', 'noche'])
@@ -102,17 +118,20 @@ describe('charla · el saludo sigue la hora local', () => {
 
 describe('charla · la despedida', () => {
   it('«buenas noches» dicho al empezar es un saludo; tras haber hablado ya, una despedida', () => {
-    expect(dice('buenas noches', { hora: 21, yaHablo: false })).toMatchObject({ intencion: 'saludo', texto: 'Buenas noches. ¿Cómo te fue hoy?' })
-    expect(dice('buenas noches', { hora: 21, yaHablo: true })).toMatchObject({ intencion: 'despedida', texto: 'Que descanses. Aquí estoy mañana.' })
-    expect(dice('buenas noches', { hora: 21, yaHablo: true, trato: 'usted' })?.texto).toBe('Que descanse. Aquí estoy mañana.')
+    expect(dice('buenas noches', { hora: 21, yaHablo: false })?.intencion).toBe('saludo')
+    const d = dice('buenas noches', { hora: 21, yaHablo: true })!
+    expect(d.intencion).toBe('despedida')
+    expect(textosPosibles('despedida', 'tu', 21)).toContain(d.texto)
+    expect(textosPosibles('despedida', 'usted', 21)).toContain(dice('buenas noches', { hora: 21, yaHablo: true, trato: 'usted' })!.texto)
   })
-  it('de día la despedida es «Hasta luego», de noche «Que descanses»', () => {
-    expect(dice('chao', { hora: 10 })?.texto).toBe('Hasta luego. Aquí estoy cuando quieras.')
-    expect(dice('chao', { hora: 22 })?.texto).toBe('Que descanses. Aquí estoy mañana.')
-    expect(dice('hasta mañana', { hora: 22, trato: 'usted' })?.texto).toBe('Que descanse. Aquí estoy mañana.')
+  it('de día la despedida es de día, de noche es de noche', () => {
+    expect(textosPosibles('despedida', 'tu', 10)).toContain(dice('chao', { hora: 10 })!.texto)
+    expect(textosPosibles('despedida', 'tu', 22)).toContain(dice('chao', { hora: 22 })!.texto)
+    expect(textosPosibles('despedida', 'usted', 22)).toContain(dice('hasta mañana', { hora: 22, trato: 'usted' })!.texto)
+    expect(textosPosibles('despedida', 'tu', 22)).not.toContain('Hasta luego. Aquí estoy cuando quieras.')
   })
   it('«buenas noches» tras haber hablado, aunque sea de tarde, se despide de noche', () => {
-    expect(dice('buenas noches', { hora: 17, yaHablo: true })?.texto).toBe('Que descanses. Aquí estoy mañana.')
+    expect(textosPosibles('despedida', 'tu', 22)).toContain(dice('buenas noches', { hora: 17, yaHablo: true })!.texto)
   })
 })
 
@@ -120,12 +139,14 @@ describe('charla · la respuesta de ánimo solo vale si Praxis acababa de pregun
   const positivas = ['bien', 'muy bien', 'súper', 'excelente', 'todo bien', 'bien y tú', 'de maravilla']
   const negativas = ['mal', 'regular', 'más o menos', 'cansado', 'cansada', 'no muy bien']
   it.each(positivas)('«%s» tras la pregunta es ánimo bueno', (f) => {
-    expect(dice(f, { esperaAnimo: true })).toMatchObject({ intencion: 'animoBueno', texto: 'Me alegra. ¿Qué anotamos hoy?' })
-    expect(dice(f, { esperaAnimo: true, trato: 'usted' })?.texto).toBe('Me alegra. ¿Qué anotamos hoy?')
+    expect(dice(f, { esperaAnimo: true })?.intencion).toBe('animoBueno')
+    expect(textosPosibles('animoBueno', 'tu')).toContain(dice(f, { esperaAnimo: true })!.texto)
+    expect(textosPosibles('animoBueno', 'usted')).toContain(dice(f, { esperaAnimo: true, trato: 'usted' })!.texto)
   })
   it.each(negativas)('«%s» tras la pregunta es ánimo malo', (f) => {
-    expect(dice(f, { esperaAnimo: true })).toMatchObject({ intencion: 'animoMalo', texto: 'Gracias por contarme. ¿Es el cuerpo, el sueño o el día? Si quieres, lo anoto.' })
-    expect(dice(f, { esperaAnimo: true, trato: 'usted' })?.texto).toBe('Gracias por contarme. ¿Es el cuerpo, el sueño o el día? Si quiere, lo anoto.')
+    expect(dice(f, { esperaAnimo: true })?.intencion).toBe('animoMalo')
+    expect(textosPosibles('animoMalo', 'tu')).toContain(dice(f, { esperaAnimo: true })!.texto)
+    expect(textosPosibles('animoMalo', 'usted')).toContain(dice(f, { esperaAnimo: true, trato: 'usted' })!.texto)
   })
   it('fuera de ese contexto, «bien» y «mal» sueltos NO son charla', () => {
     for (const f of [...positivas, ...negativas].filter((x) => x !== 'todo bien')) expect(dice(f, { esperaAnimo: false })).toBeNull()
@@ -197,11 +218,14 @@ describe('charla · el filtro de riesgo va primero', () => {
     expect(charla).not.toHaveBeenCalled() // ni siquiera se le pregunta
   })
 
-  it('si el filtro no marca nada, la charla gana al plan y al registrador, y no va al modelo', () => {
-    for (const f of ['hola', 'cómo estás', 'qué tal', 'gracias', 'quién eres']) {
+  it('si el filtro no marca nada: lo exacto («gracias», «quién eres») se contesta local; el saludo y el «¿cómo estás?» van al modelo con su apertura', () => {
+    for (const f of ['gracias', 'quién eres', 'chao', 'qué puedes hacer']) {
       expect(filtroDeRiesgo(f)).toBeNull()
-      const t = decidirTurnoConCharla(f, ve, HOY, ctx())
-      expect(t).toMatchObject({ paso: 'charla', vaAlModelo: false })
+      expect(decidirTurnoConCharla(f, ve, HOY, ctx())).toMatchObject({ paso: 'charla', vaAlModelo: false })
+    }
+    for (const f of ['hola', 'cómo estás', 'qué tal']) {
+      expect(filtroDeRiesgo(f)).toBeNull()
+      expect(decidirTurnoConCharla(f, ve, HOY, ctx())).toMatchObject({ paso: 'charlaModelo', vaAlModelo: true })
     }
   })
 
@@ -213,7 +237,44 @@ describe('charla · el filtro de riesgo va primero', () => {
   it('NINGUNA frase de charla del catálogo cae en el filtro de riesgo (si alguna cayera, ganaría el filtro)', () => {
     for (const [frase] of CASOS) {
       const t = decidirTurnoConCharla(frase, ve, HOY, ctx())
-      expect(t.paso, frase).toBe('charla')
+      expect(['charla', 'charlaModelo'], frase).toContain(t.paso) // nunca quieta, cuidado, salud ni plan
     }
+  })
+})
+
+describe('charla · varía y no repite la última dicha', () => {
+  beforeEach(() => reiniciarVariantes())
+  afterEach(() => fijarAzarDeCharla(null))
+  it.each(['gracias', 'cómo estás', 'perdón', 'chao', 'te quiero', 'hola'])('«%s»: 60 veces seguidas, nunca igual que la anterior', (f) => {
+    let anterior = ''
+    const vistos = new Set<string>()
+    for (let i = 0; i < 60; i++) {
+      const t = dice(f)!.texto
+      expect(t).not.toBe(anterior)
+      anterior = t
+      vistos.add(t)
+    }
+    expect(vistos.size).toBeGreaterThanOrEqual(3)
+  })
+  it('aunque el azar insista en el mismo número, la variante cambia', () => {
+    fijarAzarDeCharla(() => 0)
+    const a = dice('gracias')!.texto, b = dice('gracias')!.texto, c = dice('gracias')!.texto
+    expect(a).not.toBe(b)
+    expect(b).not.toBe(c)
+  })
+  it('la apertura inmediata: solo si la frase empieza saludando, es corta y no trae cifras', () => {
+    expect(aperturaInmediata('hola, ¿qué me cuentas?', ctx())).not.toBeNull()
+    expect(aperturaInmediata('buenas', ctx())).not.toBeNull()
+    expect(aperturaInmediata('hola, hice 4 series de sentadilla con 60', ctx())).toBeNull()
+    expect(aperturaInmediata('qué me cuentas', ctx())).toBeNull()
+    expect(aperturaInmediata('hola ' + 'palabra '.repeat(8), ctx())).toBeNull()
+    expect(aperturaInmediata('buenas noches', ctx({ yaHablo: true }))).toBeNull() // es una despedida
+  })
+  it('una pregunta fuera del plan va al modelo, salvo las de nutrición, suplementos o salud, que siguen su camino', () => {
+    expect(decidirTurnoConCharla('¿qué me cuentas?', ve, HOY, ctx()).paso).toBe('charlaModelo')
+    expect(decidirTurnoConCharla('¿la creatina engorda?', ve, HOY, ctx()).paso).toBe('plan')
+    expect(decidirTurnoConCharla('¿puedo tomar pastillas para dormir?', ve, HOY, ctx()).paso).toBe('salud')
+    expect(pareceCharla('¿qué me cuentas?')).toBe(true)
+    expect(pareceCharla('hice 4 series')).toBe(false)
   })
 })
