@@ -40,7 +40,13 @@ herramienta `registrar` forzada, `strict: true`, `temperature: 0`, prefijo
 cacheado) → validación de citas literales → resolutores → tarjeta.
 
 Errores: 400 (frase vacía o larga), 401 (sin sesión), 429 (30 por hora), 502
-(`No te entendí bien, ¿lo anotas aquí?`: Haiku falló, sin secreto o sin respuesta).
+(`Se me enredó algo de mi lado. ¿Me lo repites?`: Haiku falló, sin secreto o sin respuesta).
+
+**Charla (3-oct-2026).** La petición puede traer `charla: { trato: 'tu'|'usted', nombre, apertura, turnos: [{ rol: 'persona'|'praxis', texto }] }`
+(máximo 6 turnos de ESA sesión; el servidor los sanea, descarta lo que el filtro de riesgo marca y no guarda nada). Es
+la MISMA llamada a Haiku: el bloque `BLOQUE_CHARLA` va al final de `PROMPT_SISTEMA` y el modelo escribe `respuesta_charla`
+cuando la frase no es un registro ni una consulta. Si no hay nada que guardar, preguntar ni derivar y la respuesta pasa la
+validación (`charla/modelo.ts`), la respuesta trae `charla: { texto }`; si no, no trae nada y la pantalla usa su libreto.
 
 ### `/praxis-registro` con `accion: 'ingreso'` — un turno hablado del cuestionario de ingreso (prueba interna, no guarda)
 
