@@ -1,0 +1,403 @@
+{
+  "que_es_esto": {
+    "resumen": "Expediente de UNA decision pendiente sobre la app de entrenamiento: como termina el giro del gabinete tragaperras que encabeza cada tarjeta de ejercicio. Incluye todo lo logrado en la sesion del 2026-08-28 y lo que falta para cerrar el objetivo.",
+    "para_que_sirve": "Que un segundo lector revise la recomendacion ANTES de que el dueno decida. La decision es de sensacion (de dedo), no de correccion tecnica: las dos opciones funcionan igual de bien.",
+    "anonimizacion": "Nombres de asesorados sustituidos por seudonimos estables (Asesorada A). Numeros y codigo intactos. Lo que se ve en las capturas son datos de DEMO sembrados en el repositorio, no de personas reales.",
+    "fecha": "2026-08-28",
+    "hilo": "auditoria de movimiento de la app, abierta el 2026-08-27"
+  },
+  "objetivo_global": {
+    "que_se_persigue": "Cerrar la auditoria de movimiento de la app.",
+    "de_donde_sale": "El dueno dijo, tras un dia entero de trabajo, que NO VEIA DIFERENCIA. El diagnostico posterior fue que a la app no le falta movimiento ni profundidad: le falta SUJETO. Cada pantalla es una pila de contenedores del mismo peso, y cuando todo pesa igual nada dice donde mirar.",
+    "los_tres_pilares": [
+      "SUJETO: una pantalla, un protagonista.",
+      "CAUSA: nada se mueve por un temporizador; solo si un valor cambio o alguien hizo algo.",
+      "CONTINUIDAD: la app es un espacio, no una pila de pantallas."
+    ],
+    "estado": "Casi cerrada. Queda un veredicto humano (esta decision) y una medicion que exige un movil fisico."
+  },
+  "la_pregunta_exacta": {
+    "pregunta": "El carrete central del gabinete, cuando termina de dar saltos: se desliza 680 ms hasta su fila (ASIENTO) o para en seco en el ultimo salto (CORTE SECO)?",
+    "por_que_es_lo_unico_que_falta": "El codigo de las dos versiones ya esta escrito y funcionando, y el banco de pruebas ya esta levantado. Nadie salvo el dueno puede juzgar si el aterrizaje aporta sensacion de maquina o solo alarga la espera.",
+    "quien_decide": "El dueno. No es delegable: es criterio de producto, no de ingenieria.",
+    "coste_de_no_decidir": "El asiento se queda por inercia en produccion (fusionado en la rama principal desde el PR #175), anadiendo 465 ms a cada tirada."
+  },
+  "palabras_literales_del_dueno_en_esta_sesion": [
+    "retomar conversacion de auditoria de movimiento",
+    "EXACTAMENTE EN DONDE TENGO QUE MIRAR",
+    "Mira no se mueve  [adjuntando un video de 12,5 s grabado a su monitor]",
+    "listo el gabinete quedo",
+    "Aun no lo he visto girar  [respuesta al selector de veredicto]"
+  ],
+  "lo_logrado_en_esta_sesion": [
+    {
+      "n": 1,
+      "titulo": "Reconstruido el hilo de la auditoria desde cero",
+      "detalle": "La sesion arranco sin contexto. Se reconstruyo el estado leyendo la memoria persistente y el repositorio: PRs fusionados, ramas vivas, arboles de trabajo ocupados por otras sesiones.",
+      "resultado": "Inventario de lo cerrado y lo abierto (ver estado_de_la_auditoria). Detectado ademas que el arbol de trabajo principal esta 22 commits por detras de la rama remota y que el arbol que usaba este hilo lo ocupa ahora otra sesion."
+    },
+    {
+      "n": 2,
+      "titulo": "Montado un banco A/B real, no una descripcion",
+      "detalle": "El dueno eligio 'quiero verlo antes' en vez de decidir a ciegas. Se creo un arbol de trabajo propio, colocado en el ultimo commit de la rama principal, para no invadir el de otra sesion. Dentro, un parche SIN COMMITEAR que permite alternar las dos versiones desde la URL.",
+      "como_funciona": "Con ?asiento=1 se ve la version de hoy (asiento de 680 ms); con ?asiento=0, el corte seco. La preferencia se guarda en el navegador y se relee EN CADA TIRADA, para que moverse por la app no la pierda.",
+      "verificacion": "Tipado limpio (comprobador de tipos sin errores) y el modulo se sirve correctamente. Servidor de desarrollo en el puerto 5310. La app corre en modo demo, sin login."
+    },
+    {
+      "n": 3,
+      "titulo": "Corregido un fallo de mis propias instrucciones",
+      "detalle": "Le dije que la tirada salta sola a los 60 ms de abrir la pantalla. Es cierto, pero eso significa que YA HABIA TERMINADO mientras el bajaba a buscar el gabinete. La palanca es el unico disparador repetible.",
+      "leccion": "Una instruccion tecnicamente correcta puede ser inutil si ignora el tiempo que tarda la persona en llegar a lo que tiene que mirar."
+    },
+    {
+      "n": 4,
+      "titulo": "Diagnosticado el video de 'no se mueve' sin adivinar",
+      "detalle": "Se extrajeron fotogramas del video (480x360, 24 fps, 12,5 s) y se leyo la pantalla filmada. Estaba mirando la parte de ARRIBA de la sesion: la portada con el cronometro, la tira de maquinas en miniatura y el bloque de preparacion. El gabinete de verdad esta mas abajo, dentro de la tarjeta del ejercicio.",
+      "hallazgo_clave": "La tira de maquinas en miniatura parece un gabinete pequeno y NO GIRA NUNCA: son fichas que solo se encienden al registrar series. Es la confusion mas probable, y es un sintoma del propio diagnostico de la auditoria: dos cosas distintas con el mismo peso visual.",
+      "prueba_de_que_la_app_estaba_viva": "El cronometro de la sesion avanzaba en el video de 00:04:09 a 00:04:21."
+    },
+    {
+      "n": 5,
+      "titulo": "Descartados los tres asesinos silenciosos del giro, midiendo en su propio navegador",
+      "detalle": "El codigo se salta el giro ENTERO y sin avisar en tres casos. Se comprobaron los tres con una sonda de JavaScript ejecutada en su Chrome.",
+      "resultados": {
+        "movimiento_reducido_del_sistema": "no activo",
+        "marca_de_camara_abierta_pegada": "no marcada",
+        "Element_animate_disponible": "si",
+        "palanca_presente_en_el_DOM": "si",
+        "la_tirada_se_pide_al_pulsar_la_palanca": "SI: tres animaciones creadas, de 1110 ms la ventana central y 846,56 y 532,80 ms los laterales"
+      },
+      "conclusion": "El gabinete NO esta roto. Lo que fallaba era la observacion, no el codigo."
+    },
+    {
+      "n": 6,
+      "titulo": "Confirmada por tercera vez la trampa de la pestana oculta",
+      "detalle": "La sonda devolvio el reloj de animacion del documento a CERO. Con la ventana detras el navegador congela ese reloj y estrangula el bucle de fotogramas.",
+      "por_que_importa": "El modo de fallo no es un error: es un resultado plausible que parece bueno. Todo se ve quieto o lento en las DOS versiones, asi que cualquier juicio hecho asi es falso. Ya costo una acusacion falsa contra la rama principal en una sesion anterior."
+    },
+    {
+      "n": 7,
+      "titulo": "Dejado el banco listo para mirar sin buscar",
+      "detalle": "Se abrio una pestana ya colocada en el primer ejercicio, con el gabinete centrado y la palanca a la vista, y con una tirada congelada esperando: al traer esa pestana al frente, el reloj arranca y el giro se suelta solo."
+    }
+  ],
+  "estado_de_la_auditoria": {
+    "cerrado": [
+      {
+        "id": "PR #169",
+        "que": "Los tres cabos de la auditoria. La elasticidad del tope de la grafica pasa a derivarse de dos constantes que el repositorio ya tenia (objetivo tactil de 44 px por 0,16 grados/px, unos 7 grados), en vez de ser un 6 puesto a ojo. Y las entradas escritas con la regla de estilo de arranque ganan un guardian que revienta si alguien invierte el par y deja una pieza invisible en navegadores viejos.",
+        "verificado": "El guardian se comprobo con senuelo: invirtiendo una clase se pone en rojo. No nacio verde en vacio."
+      },
+      {
+        "id": "PR #158",
+        "que": "Veinte oportunidades de la auditoria rebasadas sobre la rama principal, tras una pila de trece PRs que ya no se podia fusionar sin corromper el resultado."
+      },
+      {
+        "id": "PR #162",
+        "que": "El guino de orbita de la grafica, descartado en aquel rebase, vuelto a traer como cambio propio."
+      },
+      {
+        "id": "PR #175",
+        "que": "El giro del gabinete pasa de una cadena de temporizadores de React a la Web Animations API. ES EL ORIGEN DE ESTA DECISION."
+      },
+      {
+        "id": "PR #179",
+        "que": "El pilar CAUSA: las cifras de la consola reaccionan y la puerta de camara deja de estar muerta en el medidor."
+      }
+    ],
+    "abierto": [
+      {
+        "id": "D-01",
+        "que": "El veredicto de dedo sobre el asiento del gabinete.",
+        "quien_bloquea": "El dueno. Es esta decision.",
+        "estado": "banco de pruebas montado y verificado; falta mirarlo"
+      },
+      {
+        "id": "D-02",
+        "que": "Medir cuantos fotogramas le cuesta el movimiento a la captura de la camara.",
+        "quien_bloquea": "Exige un movil fisico; no sale de un portatil.",
+        "estado": "el PROCEDIMIENTO esta cerrado y escrito, incluidas las dos formas comprobadas de anotar un dato falso; falta el dato"
+      },
+      {
+        "id": "D-03",
+        "que": "Corregir una frase de mas del PR #175: dice que se transcribe y no se reinterpreta, y no es cierto, porque el asiento es nuevo.",
+        "quien_bloquea": "Nadie.",
+        "estado": "pendiente"
+      },
+      {
+        "id": "D-04",
+        "que": "El pilar SUJETO.",
+        "quien_bloquea": "Lo lleva OTRA sesion en un PR abierto. No tocar.",
+        "estado": "en curso, ajeno"
+      },
+      {
+        "id": "D-05",
+        "que": "El pilar CONTINUIDAD.",
+        "quien_bloquea": "Nadie.",
+        "estado": "sin empezar; es el unico de los tres pilares sin tocar"
+      }
+    ]
+  },
+  "el_punto_tecnico_que_decide": {
+    "titulo": "El asiento NO es una animacion que ya existiera: es NUEVA desde el PR #175",
+    "explicacion": [
+      "El componente declaraba en CSS una transicion de 0,68 s para el carrete central.",
+      "Esa transicion NO DISPARABA NUNCA. React instalaba la propiedad de transicion y cambiaba la posicion EN LA MISMA TANDA DE ESTADO, y una transicion de CSS no arranca si la propiedad y el valor cambian en el mismo recalculo de estilo.",
+      "Regla general que salio de aqui y vale para todo el repositorio: una transicion que se INSTALA y se DISPARA en el mismo commit de React es codigo muerto.",
+      "Al pasar el giro a la Web Animations API se transcribio la transicion que el codigo DECLARA, no la que el navegador HACIA. Por eso el asiento es lo unico nuevo del cambio.",
+      "Consecuencia para la decision: quitarlo NO es una regresion ni deshacer una mejora. Es volver a lo que la aplicacion hacia de verdad hasta anteayer, que es lo que cualquiera que la use tiene interiorizado."
+    ],
+    "por_que_ningun_test_lo_vio": "En el entorno de test del repositorio, el metodo animate de los elementos NO EXISTE. Todo el codigo de animacion sale por su guarda y no se ejecuta jamas. Un test puede probar que se PIDE la animacion correcta; nunca que el navegador la corra."
+  },
+  "datos_medidos": {
+    "condiciones": "Medido en el navegador real, con la ventana en primer plano, comparando dos servidores de desarrollo (antes y despues del cambio). Un contador de mutaciones del DOM para el coste, y un muestreo por fotograma de la posicion para el recorrido.",
+    "tabla": {
+      "cambios_de_posicion_por_tirada": {
+        "antes": 14,
+        "despues": 57
+      },
+      "posiciones_fuera_de_la_rejilla_de_126_px": {
+        "antes": 0,
+        "despues": 41,
+        "significado": "con asiento el carrete pasa por posiciones intermedias, entre filas; sin asiento siempre cae en una fila exacta"
+      },
+      "cambios_en_el_DOM_del_gabinete": {
+        "antes": 61,
+        "despues": 27,
+        "significado": "el cambio a la Web Animations API SI redujo el trabajo de React; eso no esta en discusion y se queda gane quien gane"
+      },
+      "tiempo_hasta_quedarse_quieto_ms": {
+        "antes": 1070,
+        "despues": 1535,
+        "diferencia": "+465 ms, un 45 por ciento mas"
+      }
+    },
+    "lo_que_NO_cambia": "Los saltos son identicos en las dos versiones: multiplos exactos de 126 px cada 74 ms, con el escalonado de los tres carretes (izquierdo al 50 por ciento del frenado, derecho al 76, central al 100). La diferencia esta SOLO en el ultimo instante.",
+    "frecuencia_de_uso": "Se dispara decenas de veces por sesion de entrenamiento: cada cambio de ejercicio monta una tarjeta nueva y lanza una tirada, y ademas la palanca es pulsable a voluntad.",
+    "contexto_de_uso": "La app no se navega, se OPERA: de pie, entre series, con el movil en la mano y con prisa."
+  },
+  "opciones": [
+    {
+      "id": "A",
+      "nombre": "CORTE SECO",
+      "recomendada_por_mi": true,
+      "que_hace": "El carrete central para en su fila al acabar los saltos, como un salto mas. La tirada vuelve a 1070 ms.",
+      "a_favor": [
+        "Devuelve 465 ms por tirada, el 30 por ciento del total, en un gesto que se repite decenas de veces por sesion.",
+        "Es lo que la app hacia de verdad hasta el PR #175: nadie echa de menos algo que nunca vio.",
+        "Coherente con el caracter que se le quiere dar al producto: un instrumento de medicion que ademas programa. En un instrumento lo premium lo da la precision, no el adorno.",
+        "Menos trabajo de composicion mientras la camara captura, que necesita 50 fotogramas por segundo para que la toma no se descarte."
+      ],
+      "en_contra": [
+        "Pierde el unico momento del gabinete con un pelin de rebote, que es lo que le daba caracter de maquina fisica.",
+        "El final queda mas brusco justo cuando se enciende el destello de premio."
+      ]
+    },
+    {
+      "id": "B",
+      "nombre": "SE QUEDA EL ASIENTO (680 ms)",
+      "recomendada_por_mi": false,
+      "que_hace": "Nada. Se queda lo que ya esta fusionado en la rama principal.",
+      "a_favor": [
+        "Cero codigo, cero riesgo de regresion.",
+        "El aterrizaje con rebote refuerza la metafora de maquina tragaperras, que en este componente es deliberada: cada ejercicio tiene su propia maquina, con su tipografia, sus simbolos y su palanca."
+      ],
+      "en_contra": [
+        "465 ms extra por tirada, decenas de veces por sesion, en una pantalla que se usa de pie y con prisa.",
+        "Se queda por inercia y no por decision si nadie mira.",
+        "Obliga igualmente a corregir la frase de mas del PR #175."
+      ]
+    },
+    {
+      "id": "C",
+      "nombre": "ASIENTO CORTO (unos 240 ms)",
+      "recomendada_por_mi": false,
+      "que_hace": "Conserva el aterrizaje bajando la duracion de 680 ms a la duracion de token que ya usa la app.",
+      "a_favor": [
+        "Conserva la sensacion de que el carrete se posa y devuelve 300 de los 465 ms.",
+        "Sustituye un numero transcrito de un CSS muerto por uno del sistema de diseno."
+      ],
+      "en_contra": [
+        "Es un compromiso sin defensor: ni la rapidez del corte seco ni el peso del asiento largo.",
+        "Con la curva actual, que tiene rebote, 240 ms puede leerse como un temblor en vez de como un aterrizaje. Habria que revisar tambien la curva."
+      ]
+    }
+  ],
+  "que_falta_para_terminar_el_objetivo": [
+    {
+      "paso": 1,
+      "que": "El dueno mira las dos versiones y da el veredicto.",
+      "quien": "Solo el dueno",
+      "como": "Ventana en primer plano. Bajar a la tarjeta del ejercicio, pulsar la palanca varias veces en cada version, y mirar la VENTANA CENTRAL en el instante del destello: si sigue deslizandose despues del destello es el asiento; si destello y parada caen a la vez es el corte seco.",
+      "bloquea_todo_lo_demas": true
+    },
+    {
+      "paso": 2,
+      "que": "Aplicar el veredicto en una rama propia y abrirlo como PR contra la rama principal.",
+      "quien": "El asistente",
+      "detalle": "Si gana el corte seco, el cambio es pequeno y localizado en el final de la tirada. Si gana el asiento, no se toca el comportamiento.",
+      "coste": "minutos"
+    },
+    {
+      "paso": 3,
+      "que": "Corregir la frase de mas del PR #175 en el comentario del archivo.",
+      "quien": "El asistente",
+      "por_que": "Un comentario que afirma que solo se transcribio hara que el proximo que lo lea de por hecho que ese comportamiento existia antes. Es exactamente el error que costo esta decision."
+    },
+    {
+      "paso": 4,
+      "que": "Limpiar el banco de pruebas: revertir el parche sin commitear, apagar el servidor y liberar el arbol de trabajo.",
+      "quien": "El asistente",
+      "importante": "El parche NO debe llegar a la rama principal: mete una lectura de almacenamiento del navegador dentro de la logica del giro."
+    },
+    {
+      "paso": 5,
+      "que": "Pendiente aparte, no bloquea: medir con un movil real cuantos fotogramas le cuesta el movimiento a la captura.",
+      "quien": "Requiere dispositivo fisico"
+    },
+    {
+      "paso": 6,
+      "que": "Pendiente aparte, no bloquea: el pilar CONTINUIDAD, el unico de los tres sin tocar.",
+      "quien": "El asistente, cuando el dueno lo pida"
+    }
+  ],
+  "restricciones_de_la_casa": [
+    "La rama principal esta protegida: todo entra por PR, nunca empujando directo.",
+    "Empujar a la rama principal publica en produccion. No se hace sin autorizacion explicita.",
+    "Varias sesiones trabajan a la vez en el mismo repositorio con arboles de trabajo separados. Antes de tocar hay que mirar en que carpeta se esta y que commit sirve cada puerto.",
+    "Comprobar que algo ESTA no es comprobar que FUNCIONA. Los guardianes se validan viendolos ponerse en rojo con un senuelo.",
+    "Cualquier medicion de movimiento en el navegador solo vale con la ventana en primer plano."
+  ],
+  "fuentes_en_crudo": {
+    "1_las_tres_condiciones_que_cancelan_el_giro_entero": {
+      "archivo": "src/features/entrenar/ExerciseSlotMachine.tsx",
+      "lineas": "225-245",
+      "codigo": [
+        "// El giro se salta entero en tres casos, y en los tres se va directo a la",
+        "// parada, que es lo que de verdad hay que ensenar. Se pierde el giro, no el",
+        "// argumento.",
+        "//  - Movimiento reducido, por respeto a la preferencia.",
+        "//  - Camara capturando: la puerta de CSS NO cubre este giro, asi que se",
+        "//    pregunta aqui.",
+        "//  - Sin Web Animations API en el elemento. El caso real es el entorno de test.",
+        "if (reducido || camaraAbierta() || typeof ventana.current?.animate !== 'function') {",
+        "  setCatIdx(objetivo)",
+        "  fila.current = { ...fila.current, ventana: objetivo * 2 }",
+        "  setROff(objetivo * 2)",
+        "  return",
+        "}"
+      ]
+    },
+    "2_las_constantes_en_disputa": {
+      "archivo": "src/features/entrenar/ExerciseSlotMachine.tsx",
+      "lineas": "33-49",
+      "codigo": [
+        "/** Lo que dura el asiento del carrete central: los .68s de la transicion de",
+        " *  Ventana, escritos aqui en numero porque la Web Animations API no lee CSS. */",
+        "const ASIENTO_MS = 680",
+        "/** La curva del asiento. Es la del propio archivo, la unica del gabinete con",
+        " *  un pelin de rebote: el 1.06. */",
+        "const CURVA_ASIENTO = 'cubic-bezier(.14,1.06,.32,1)'",
+        "/** Un carrete NO se desliza: da saltos de fila. steps(1, jump-end) sostiene el",
+        " *  fotograma durante todo su tramo y salta al final. */",
+        "const SALTO_DE_FILA = 'steps(1, jump-end)'"
+      ]
+    },
+    "3_el_final_de_la_tirada_hoy_en_produccion": {
+      "archivo": "src/features/entrenar/ExerciseSlotMachine.tsx",
+      "descripcion": "Los saltos y el asiento van en DOS animaciones encadenadas, no en una sola con dos tramos, porque el instante en que acaban los saltos es tambien el del premio y el del desenfoque.",
+      "codigo": [
+        "saltos.onfinish = () => {",
+        "  setSpinC(false)",
+        "  setSnap(false)",
+        "  setCatIdx(objetivo)",
+        "  setWin(true)",
+        "  programar(() => setWin(false), PREMIO_MS)",
+        "",
+        "  const asiento = animar(",
+        "    ventana.current,",
+        "    [",
+        "      { transform: translateY de la fila donde cayeron los saltos },",
+        "      { transform: translateY de la fila final },",
+        "    ],",
+        "    { duration: ASIENTO_MS, easing: CURVA_ASIENTO },",
+        "  )",
+        "  // El orden importa: primero se pone el asiento encima y despues se",
+        "  // retira el que sostenia la fila.",
+        "  saltos.cancel()",
+        "  if (asiento) asiento.onfinish = () => { enMarcha.current = false }",
+        "  else enMarcha.current = false",
+        "}"
+      ]
+    },
+    "4_el_parche_temporal_del_banco_de_pruebas": {
+      "estado": "SIN COMMITEAR. Se revierte al terminar.",
+      "por_que_dos_fotogramas_de_espera": "Al retirar la animacion que sostenia la fila, el valor calculado de la posicion cambia. Si en ese momento la transicion de 0,68 s estuviera instalada, el navegador podria dispararla y convertir el corte seco en un deslizamiento largo: lo contrario de lo que se quiere juzgar. Por eso la propiedad se suelta dos fotogramas despues, con el salto ya pintado.",
+      "diff": [
+        "+function corteSeco() {",
+        "+  try {",
+        "+    const enLaUrl = new URLSearchParams(location.search).get('asiento')",
+        "+    if (enLaUrl !== null) localStorage.setItem('ab-asiento', enLaUrl)",
+        "+    return (localStorage.getItem('ab-asiento') ?? '1') === '0'",
+        "+  } catch {",
+        "+    return false",
+        "+  }",
+        "+}",
+        " ",
+        "   saltos.onfinish = () => {",
+        "+    const seco = corteSeco()",
+        "     setSpinC(false)",
+        "-    setSnap(false)",
+        "+    if (!seco) setSnap(false)",
+        "     setCatIdx(objetivo)",
+        "     setWin(true)",
+        "     programar(() => setWin(false), PREMIO_MS)",
+        "+    if (seco) {",
+        "+      saltos.cancel()",
+        "+      enMarcha.current = false",
+        "+      requestAnimationFrame(() => requestAnimationFrame(() => setSnap(false)))",
+        "+      return",
+        "+    }"
+      ]
+    },
+    "5_sonda_ejecutada_en_el_navegador_del_dueno": {
+      "cuando": "2026-08-28, con la pestana en segundo plano",
+      "salida_literal_primera_sonda": {
+        "abAsiento": null,
+        "camaraAbierta": "(sin marcar)",
+        "ejercicio": true,
+        "hayPalanca": true,
+        "movimientoReducido": false,
+        "tieneAnimate": "function",
+        "titulo": "Entrenar",
+        "visibilidad": "hidden"
+      },
+      "segunda_sonda_tras_pulsar_la_palanca": {
+        "animaciones_del_giro_creadas_ms": [
+          1110,
+          846.56,
+          532.8
+        ],
+        "reloj_de_animacion_del_documento": 0,
+        "lectura": "Las animaciones se crean con las duraciones esperadas pero el reloj esta a cero: la pestana oculta congela el tiempo. Confirma que el gabinete pide su tirada y que lo que fallaba era la observacion."
+      }
+    },
+    "6_donde_esta_el_gabinete_en_la_pantalla": {
+      "archivo": "src/features/entrenar/SesionPage.tsx",
+      "orden_de_la_pantalla": [
+        "portada del microciclo con el cronometro de la sesion",
+        "tira de maquinas en miniatura: FICHAS ESTATICAS, no giran nunca",
+        "riel de navegacion entre ejercicios",
+        "tarjeta del ejercicio actual: EL GABINETE ES SU PARTE DE ARRIBA"
+      ],
+      "nota": "Solo se monta UNA tarjeta de ejercicio a la vez. Cambiar de ejercicio en el riel monta una tarjeta nueva y dispara una tirada automatica a los 60 ms."
+    }
+  },
+  "que_le_pido_a_quien_lea_esto": [
+    "Senala si mi recomendacion (opcion A, corte seco) tiene un fallo. En concreto: estoy pesando demasiado los 465 ms y demasiado poco el caracter del componente?",
+    "El argumento de que nunca existio, y por tanto nadie lo echa de menos, es solido o es una falacia de statu quo? El PR #175 lleva fusionado desde ayer y alguien ya lo ha visto.",
+    "La opcion C (asiento corto) esta bien descartada o merece probarse antes de decidir? Si merece, con que duracion y con que curva.",
+    "Hay algun angulo que no he mirado: accesibilidad, la necesidad de una confirmacion visible de que la maquina respondio, o el hecho de que el destello de premio y la parada coincidan o no.",
+    "El plan de cierre de seis pasos deja algo fuera?"
+  ]
+}

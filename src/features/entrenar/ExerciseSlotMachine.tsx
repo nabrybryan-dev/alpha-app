@@ -48,6 +48,22 @@ const CURVA_ASIENTO = 'cubic-bezier(.14,1.06,.32,1)'
  */
 const SALTO_DE_FILA = 'steps(1, jump-end)'
 
+/**
+ * A/B TEMPORAL — NO COMMITEAR. Con `?asiento=0` en la URL el carrete central
+ * para en seco al acabar los saltos, como hacia el gabinete antes del #175.
+ * Sin el parametro, el asiento de 680 ms de hoy.
+ */
+function corteSeco() {
+  try {
+    const enLaUrl = new URLSearchParams(location.search).get('asiento')
+    if (enLaUrl !== null) localStorage.setItem('ab-asiento', enLaUrl)
+    return (localStorage.getItem('ab-asiento') ?? '1') === '0'
+  } catch {
+    return false
+  }
+}
+
+
 /** Cada cuánto sube el bote de las marquesinas LED. */
 const BOTE_MS = 2600
 /** Créditos con los que arranca la máquina. */
@@ -312,11 +328,23 @@ export function ExerciseSlotMachine(props: ExerciseSlotMachineProps) {
         return
       }
       saltos.onfinish = () => {
+        const seco = corteSeco()
         setSpinC(false)
-        setSnap(false)
+        if (!seco) setSnap(false)
         setCatIdx(objetivo)
         setWin(true)
         programar(() => setWin(false), PREMIO_MS)
+
+        if (seco) {
+          // Se retira el sosten y el carrete cae en el estilo de React —que ya
+          // es su fila final— sin transicion, porque `snap` sigue puesto. Se
+          // suelta dos fotogramas despues, con el salto ya pintado, para que la
+          // transicion de `.68s` no lo convierta en un deslizamiento.
+          saltos.cancel()
+          enMarcha.current = false
+          requestAnimationFrame(() => requestAnimationFrame(() => setSnap(false)))
+          return
+        }
 
         const asiento = animar(
           ventana.current,
