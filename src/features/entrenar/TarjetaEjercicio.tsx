@@ -29,6 +29,8 @@ interface TarjetaEjercicioProps {
   onVerPatron: (patron: Patron) => void
   onGuardarSerie: (serie: SerieRegistrada) => void
   registroRef: React.Ref<RegistroSerieHandle>
+  /** Si ya se puede guardar la serie en curso (la persona confirmó o cambió un número). */
+  onPuedeGuardar?: (puede: boolean) => void
   /** Posición del ejercicio en la sesión: la cabecera-gabinete la muestra. */
   indice: number
   total: number
@@ -50,6 +52,7 @@ export function TarjetaEjercicio({
   onVerPatron,
   onGuardarSerie,
   registroRef,
+  onPuedeGuardar,
   indice,
   total,
 }: TarjetaEjercicioProps) {
@@ -211,6 +214,7 @@ export function TarjetaEjercicio({
               orden={siguienteOrden}
               borradorId={`${microcicloId}-${ejercicio.id}-${siguienteOrden}`}
               onGuardar={onGuardarSerie}
+              onPuedeGuardar={onPuedeGuardar}
             />
           </div>
         )}

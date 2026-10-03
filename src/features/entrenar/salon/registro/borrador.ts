@@ -1,3 +1,4 @@
+import type { ConfirmacionDeBorrador } from '../../../../domain/confirmacionSerie'
 import { seriePrescrita } from '../../../../domain/ondulacion'
 import { cargaSugerida } from '../../../../domain/prescripcion'
 import type { EjercicioPrescrito, VelocidadDeSerie } from '../../../../domain/types'
@@ -28,6 +29,12 @@ export interface BorradorDeSerie {
   reps: number
   /** Vacío hasta que la persona lo elige; sin elegir, la serie se guarda sin RIR. */
   rir?: number
+  /**
+   * `editada` en cuanto la persona cambia la carga o las reps. Sin esto la carga y las reps
+   * son la pauta SUGERIDA y la serie no se puede guardar por «Guardar» (solo con «Hecho tal
+   * cual»). Un borrador viejo sin la clave se lee como «sin confirmar».
+   */
+  confirmada?: ConfirmacionDeBorrador
   /**
    * La medición del encoder de ESTA serie, si se grabó antes de guardarla.
    *

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useContadorAnimado } from './useContadorAnimado'
 
 /**
@@ -48,6 +48,12 @@ interface StepperProps {
    * no acusa el cambio se siente muerto.
    */
   cifraViva?: boolean
+  /**
+   * El valor es una SUGERENCIA de la pauta, no algo que la persona haya escrito: se pinta
+   * atenuado y con la palabra «sugerida», y un lector de pantalla lo anuncia como tal.
+   * Deja de serlo cuando la persona lo cambia (quien monta el stepper quita la prop).
+   */
+  sugerido?: boolean
   onCambiar: (valor: number) => void
 }
 
@@ -62,8 +68,10 @@ export function Stepper({
   grande = false,
   profundidad = false,
   cifraViva = false,
+  sugerido = false,
   onCambiar,
 }: StepperProps) {
+  const idSugerencia = useId()
   const redondear = (n: number) => Math.round(n * 100) / 100
   const acotar = (n: number) => redondear(Math.min(maximo, Math.max(minimo, n)))
   const bajar = () => onCambiar(acotar(valor - paso))
@@ -136,7 +144,10 @@ export function Stepper({
 
   return (
     <div className="flex w-full flex-col items-center gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">{etiqueta}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+        {etiqueta}
+        {sugerido && <span className="ml-1.5 font-semibold normal-case tracking-normal">· sugerida</span>}
+      </span>
       {/* LA ESCENA VA AQUI, en el padre DIRECTO de las teclas y del pozo.
           `perspective` solo alcanza a los hijos directos: con la escena declarada mas
           arriba —en la tarjeta o en la pantalla— estas tres piezas son nietas y el
@@ -171,6 +182,7 @@ export function Stepper({
           <input
             aria-label={`${etiqueta}${sufijo ? ` en ${sufijo}` : ''}`}
             type="text"
+            aria-describedby={sugerido ? idSugerencia : undefined}
             inputMode={decimal ? 'decimal' : 'numeric'}
             value={editando ? texto : mostrado}
             onFocus={(e) => {
@@ -181,8 +193,13 @@ export function Stepper({
             }}
             onChange={(e) => alEscribir(e.target.value)}
             onBlur={alSalir}
-            className={`cifras w-full min-w-0 bg-transparent text-center ${tamValor} font-bold text-texto focus:outline-none`}
+            className={`cifras w-full min-w-0 bg-transparent text-center ${tamValor} font-bold ${sugerido ? 'text-texto/45' : 'text-texto'} focus:outline-none`}
           />
+          {sugerido && (
+            <span id={idSugerencia} className="sr-only">
+              Valor sugerido por tu plan, todavía sin confirmar
+            </span>
+          )}
           {sufijo && <span className="-ml-1 shrink-0 text-xs font-normal text-tenue">{sufijo}</span>}
         </div>
         <button

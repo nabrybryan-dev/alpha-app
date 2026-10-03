@@ -56,6 +56,7 @@ const campo = (etiqueta: string) => screen.getByLabelText(etiqueta) as HTMLInput
 const carga = () => campo('Carga en kg')
 const reps = () => campo('Reps')
 /** El RIR es un selector de seis botones, vacío hasta que la persona lo elige. */
+const hechoTalCual = () => screen.getByRole('button', { name: /^Hecho tal cual/ })
 const botonRir = (n: number) => screen.getByRole('button', { name: `RIR ${n}` })
 const elegirRir = async (usuario: ReturnType<typeof userEvent.setup>, n: number) => {
   await usuario.click(botonRir(n))
@@ -111,6 +112,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       cargaKg: 82.5,
       reps: 9,
       rir: 1,
+      confirmada: 'editada',
     })
   })
 
@@ -160,7 +162,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
     await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
 
     const guardada = alGuardar.mock.calls[0][0] as SerieRegistrada
-    expect(guardada).toEqual({ orden: 1, cargaKg: 60, reps: 12, rir: 3 })
+    expect(guardada).toEqual({ orden: 1, cargaKg: 60, reps: 12, rir: 3, confirmada: 'editada' })
     // Y es exactamente lo mismo que fue a la base: un solo dato, no dos que puedan
     // separarse.
     expect(espia).toHaveBeenCalledWith(MICROCICLO, EJERCICIO, guardada)
@@ -190,14 +192,14 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
     it('tampoco hereda el RIR de la ondulación (seriesPrescritas)', async () => {
       const usuario = userEvent.setup()
       montar({ rirObjetivo: 3, seriesPrescritas: [1, 2, 3].map((orden) => ({ orden, reps: 10, rir: 3, cargaKg: 50 })) })
-      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      await usuario.click(hechoTalCual())
       expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
     })
 
     it('con el objetivo en FALLO tampoco se rellena con 0', async () => {
       const usuario = userEvent.setup()
       montar({ rirObjetivo: 'FALLO' })
-      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      await usuario.click(hechoTalCual())
       expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
     })
 
@@ -208,7 +210,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       expect(botonRir(4).getAttribute('aria-pressed')).toBe('true')
       await elegirRir(usuario, 4)
       expect(botonRir(4).getAttribute('aria-pressed')).toBe('false')
-      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      await usuario.click(hechoTalCual())
       expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
     })
 
@@ -216,7 +218,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       const usuario = userEvent.setup()
       montar()
       await elegirRir(usuario, 0)
-      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      await usuario.click(hechoTalCual())
       expect((espia.mock.calls[0][2] as SerieRegistrada).rir).toBe(0)
     })
   })
@@ -224,7 +226,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
   it('la serie que registra es la SIGUIENTE a las ya hechas, no un contador propio', async () => {
     const usuario = userEvent.setup()
     montar({ series: [{ orden: 1, cargaKg: 80, reps: 10, rir: 2 }] })
-    await usuario.click(screen.getByRole('button', { name: 'Guardar serie 2' }))
+    await usuario.click(hechoTalCual())
     expect(espia.mock.calls[0][2]).toMatchObject({ orden: 2 })
   })
 
@@ -272,7 +274,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       expect(screen.queryByRole('button', { name: 'RIR 6' })).toBeNull()
 
       await elegirRir(usuario, 0)
-      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+      await usuario.click(hechoTalCual())
       expect(espia.mock.calls[0][2]).toMatchObject({ rir: 0 })
     })
 
@@ -288,6 +290,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
         cargaKg: 999,
         reps: 50,
         rir: 5,
+        confirmada: 'editada',
       })
     })
   })
@@ -331,7 +334,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       // aquí y al revés. Dos claves para la misma serie serían dos borradores que se pisan.
       const guardado = localStorage.getItem(CLAVE_BORRADOR)
       expect(guardado, 'el borrador se borró aunque la escritura falló').not.toBeNull()
-      expect(JSON.parse(guardado!)).toEqual({ cargaKg: 95, reps: 7, rir: 0 })
+      expect(JSON.parse(guardado!)).toEqual({ cargaKg: 95, reps: 7, rir: 0, confirmada: 'editada' })
 
       // Y lo que de verdad ve el asesorado: al volver, sus números siguen puestos.
       cleanup()
@@ -361,7 +364,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       throw new Error('el registro del salón no puede salir a la red por su cuenta')
     }) as never)
     montar()
-    await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    await usuario.click(hechoTalCual())
     expect(enRed).not.toHaveBeenCalled()
     expect(espia).toHaveBeenCalledTimes(1)
   })

@@ -151,7 +151,7 @@ describe('RegistroSerie · el RIR queda vacío hasta que se elige', () => {
 
   it('sin tocar el RIR, la serie sale sin rir aunque el objetivo sea 5', () => {
     const alGuardar = montar(ejercicio({ rirObjetivo: 5 }))
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
     const serie = alGuardar.mock.calls[0][0]
     expect(serie).not.toHaveProperty('rir')
     expect(serie).toMatchObject({ orden: 1, reps: 10 })
@@ -161,23 +161,23 @@ describe('RegistroSerie · el RIR queda vacío hasta que se elige', () => {
     const ondulado = montar(
       ejercicio({ rirObjetivo: 3, seriesPrescritas: [1, 2, 3].map((orden) => ({ orden, reps: 10, rir: 3, cargaKg: 50 })) }),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
     expect(ondulado.mock.calls[0][0]).not.toHaveProperty('rir')
     cleanup()
     const alFallo = montar(ejercicio({ rirObjetivo: 'FALLO' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
     expect(alFallo.mock.calls[0][0]).not.toHaveProperty('rir')
   })
 
   it('el RIR que la persona elige sí se guarda, incluido el 0', () => {
     const alGuardar = montar(ejercicio({ rirObjetivo: 5 }))
     fireEvent.click(screen.getByRole('button', { name: 'RIR 2' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
     expect(alGuardar.mock.calls[0][0]).toMatchObject({ rir: 2 })
     cleanup()
     const cero = montar(ejercicio({ rirObjetivo: 5 }))
     fireEvent.click(screen.getByRole('button', { name: 'RIR 0' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
     expect(cero.mock.calls[0][0]).toMatchObject({ rir: 0 })
   })
 })
