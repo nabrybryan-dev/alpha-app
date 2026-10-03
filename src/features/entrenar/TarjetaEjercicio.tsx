@@ -189,7 +189,7 @@ export function TarjetaEjercicio({
                     <span className="ml-0.5 text-[10px] text-silver-500">kg</span>
                   </span>
                   <span className="cifras text-[14px] font-bold text-silver-100">{serie.reps}</span>
-                  <span className="cifras text-[14px] font-bold text-accion">{serie.rir}</span>
+                  <span className="cifras text-[14px] font-bold text-accion">{serie.rir ?? '–'}</span>
                   <CheckDibujado className="h-4 w-4 justify-self-center text-logrado" />
                 </li>
               ))}

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EjercicioPrescrito } from '../../domain/types'
 import { RegistroSerie } from './RegistroSerie'
@@ -126,5 +126,58 @@ describe('RegistroSerie · carga sugerida', () => {
     expect(cargaSugerida(e)).toBe(20)
     // Y con el campo puesto, que es lo que deja el relleno, sale bien.
     expect(cargaSugerida({ ...e, cargaKg: 15 })).toBe(15)
+  })
+})
+
+/**
+ * El RIR NO tiene valor por defecto. Hasta el 2026-10-02 el mando arrancaba en el RIR objetivo
+ * de la prescripción y quien no lo tocaba guardaba el objetivo como si fuera lo que sintió:
+ * una asesorada con objetivo RIR 5 quedó con RIR 5 en todas sus series, también con RPE 8-9.
+ */
+describe('RegistroSerie · el RIR queda vacío hasta que se elige', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+  afterEach(() => {
+    cleanup()
+  })
+
+  function montar(ej: EjercicioPrescrito) {
+    contador += 1
+    const alGuardar = vi.fn()
+    render(<RegistroSerie ejercicio={ej} orden={1} borradorId={`rir${contador}`} onGuardar={alGuardar} />)
+    return alGuardar
+  }
+
+  it('sin tocar el RIR, la serie sale sin rir aunque el objetivo sea 5', () => {
+    const alGuardar = montar(ejercicio({ rirObjetivo: 5 }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    const serie = alGuardar.mock.calls[0][0]
+    expect(serie).not.toHaveProperty('rir')
+    expect(serie).toMatchObject({ orden: 1, reps: 10 })
+  })
+
+  it('ni la ondulación (seriesPrescritas) ni el FALLO rellenan el RIR', () => {
+    const ondulado = montar(
+      ejercicio({ rirObjetivo: 3, seriesPrescritas: [1, 2, 3].map((orden) => ({ orden, reps: 10, rir: 3, cargaKg: 50 })) }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    expect(ondulado.mock.calls[0][0]).not.toHaveProperty('rir')
+    cleanup()
+    const alFallo = montar(ejercicio({ rirObjetivo: 'FALLO' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    expect(alFallo.mock.calls[0][0]).not.toHaveProperty('rir')
+  })
+
+  it('el RIR que la persona elige sí se guarda, incluido el 0', () => {
+    const alGuardar = montar(ejercicio({ rirObjetivo: 5 }))
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 2' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    expect(alGuardar.mock.calls[0][0]).toMatchObject({ rir: 2 })
+    cleanup()
+    const cero = montar(ejercicio({ rirObjetivo: 5 }))
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 0' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
+    expect(cero.mock.calls[0][0]).toMatchObject({ rir: 0 })
   })
 })

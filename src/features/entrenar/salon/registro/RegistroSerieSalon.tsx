@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useState, type Ref } from 'react'
+import { SelectorRir } from '../../../../components/ui/SelectorRir'
 import { Stepper } from '../../../../components/ui/Stepper'
 import { db } from '../../../../data/dbInstance'
 import { etiquetaDeSerie } from '../../../../domain/calendario'
@@ -102,7 +103,7 @@ export function RegistroSerieSalon({
       orden,
       cargaKg: borrador.cargaKg,
       reps: borrador.reps,
-      rir: borrador.rir,
+      ...(borrador.rir !== undefined ? { rir: borrador.rir } : {}),
       ...(velocidad ? { velocidad } : {}),
     }
     // LA MISMA LLAMADA QUE LA SESIÓN. Ver la cabecera del archivo.
@@ -145,7 +146,7 @@ export function RegistroSerieSalon({
         )}
       </p>
 
-      {/* Los tres mandos, con los topes de siempre: carga 0-999, reps 1-50, RIR 0-5.
+      {/* Los tres mandos, con los topes de siempre: carga 0-999, reps 1-50 y el RIR 0-5 como selector (vacío hasta elegir).
           `profundidad` y `cifraViva` van puestos porque esto vive dentro de una escena
           con perspectiva y porque los kilos que vas a levantar son el estado de un mando
           — un mando que no acusa el cambio se siente muerto. */}
@@ -176,16 +177,7 @@ export function RegistroSerieSalon({
           cifraViva
           onCambiar={(v) => cambiar({ reps: v })}
         />
-        <Stepper
-          etiqueta="RIR"
-          valor={borrador.rir}
-          paso={1}
-          minimo={0}
-          maximo={5}
-          profundidad
-          cifraViva
-          onCambiar={(v) => cambiar({ rir: v })}
-        />
+        <SelectorRir valor={borrador.rir} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
       {mostrarBoton && (

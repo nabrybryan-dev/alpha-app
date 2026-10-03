@@ -73,7 +73,7 @@ export function PautadoVsRealizado({ microciclo }: { microciclo: Microciclo }) {
                 {sesion.ejercicios.map((ejercicio) => {
                   const desviacion = desviacionRir(ejercicio.rirObjetivo, ejercicio.series)
                   const realizado = ejercicio.series
-                    .map((s) => `${s.cargaKg}×${s.reps}@${s.rir}`)
+                    .map((s) => `${s.cargaKg}×${s.reps}@${s.rir ?? '–'}`)
                     .join(' · ')
                   return (
                     <tr key={ejercicio.id} className="border-t border-linea align-top">

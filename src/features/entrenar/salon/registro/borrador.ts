@@ -1,4 +1,3 @@
-import { rirDeTabla } from '../../../../domain/objetivoDeIntensidad'
 import { seriePrescrita } from '../../../../domain/ondulacion'
 import { cargaSugerida } from '../../../../domain/prescripcion'
 import type { EjercicioPrescrito, VelocidadDeSerie } from '../../../../domain/types'
@@ -27,7 +26,8 @@ import { escribirJSON, leerJSON } from '../../../../lib/persistencia'
 export interface BorradorDeSerie {
   cargaKg: number
   reps: number
-  rir: number
+  /** Vacío hasta que la persona lo elige; sin elegir, la serie se guarda sin RIR. */
+  rir?: number
   /**
    * La medición del encoder de ESTA serie, si se grabó antes de guardarla.
    *
@@ -50,17 +50,17 @@ export function claveDeBorrador(microcicloId: string, ejercicioId: string, orden
 /**
  * Los valores con los que arranca una serie que aún no se ha tocado.
  *
- * Salen del dominio y de ningún otro sitio: `seriePrescrita()` sabe de la ondulación del
- * microciclo, `cargaSugerida()` de la progresión y `rirDeTabla()` de que **`FALLO` no es
- * `RIR 0`** —con el objetivo en fallo el mando arranca en 0, porque la parte contada de una
- * serie al fallo termina en la última repetición completa—.
+ * Carga y repeticiones salen del dominio: `seriePrescrita()` sabe de la ondulación del
+ * microciclo y `cargaSugerida()` de la progresión. El RIR NO arranca con nada.
  */
 export function borradorDePartida(ejercicio: EjercicioPrescrito, orden: number): BorradorDeSerie {
   const prescrita = seriePrescrita(ejercicio, orden)
   return {
     cargaKg: cargaSugerida(ejercicio, prescrita) ?? CARGA_POR_DEFECTO_KG,
     reps: prescrita?.reps ?? ejercicio.repsDiana,
-    rir: prescrita?.rir ?? rirDeTabla(ejercicio.rirObjetivo),
+    // SIN `rir`: el objetivo de la prescripción NO es lo que la persona sintió. Con él de
+    // valor inicial, quien no tocaba el mando guardaba el objetivo (RIR 5 en toda una
+    // cartera). Se muestra como objetivo; el RIR real lo elige la persona.
   }
 }
 
