@@ -380,9 +380,9 @@
  {
   "id": "CE-055",
   "area": "entreno",
-  "contexto": "Martes 29-sep-2026, 08:20. Microciclo activo M12 vigente. Sesión de hoy S2 EMPUJE: todas las series completadas y el test post de sesión está abierto. La escala de RPE de sesión de la app va de 6 a 10.",
-  "frase": "estuvo suave, un 5",
-  "esperado": "{\"accion\":\"preguntar\",\"sesion_id\":\"S2\",\"pregunta\":\"La escala de la app va de 6 a 10. ¿Cuál se acerca más a lo que sentiste?\",\"opciones\":[\"6\",\"7\"],\"registros\":[],\"notas\":[\"un 5 no cabe en el test post; no se guarda 5 ni se redondea sin preguntar\"]}"
+  "contexto": "Martes 29-sep-2026, 08:20. Microciclo activo M12 vigente. Sesión de hoy S2 EMPUJE: todas las series completadas y el test post de sesión está abierto. La escala de RPE de sesión de la app va de 1 a 10.",
+  "frase": "me dejó muerta, un 11",
+  "esperado": "{\"accion\":\"preguntar\",\"sesion_id\":\"S2\",\"pregunta\":\"La escala de la app va de 1 a 10. ¿Cuál se acerca más a lo que sentiste?\",\"opciones\":[\"9\",\"10\"],\"registros\":[],\"notas\":[\"un 11 no cabe en el test post; no se guarda 11 ni se redondea sin preguntar\"]}"
  },
  {
   "id": "CE-056",

@@ -105,8 +105,12 @@ describe('guardar el test posterior', () => {
     const w = prepararTestPost(rpe(9), ctx(), { duracionMin: 58 })
     expect(w).toEqual({ ok: true, valor: { sesionId: 'S1', testPost: { duracionMin: 58, rpeSesion: 9 } } })
   })
-  it('el esfuerzo solo admite enteros de 6 a 10', () => {
-    expect(prepararTestPost(rpe(5), ctx(), null).ok).toBe(false)
+  it('el esfuerzo solo admite enteros de 1 a 10', () => {
+    expect(prepararTestPost(rpe(0), ctx(), null).ok).toBe(false)
+    expect(prepararTestPost(rpe(11), ctx(), null).ok).toBe(false)
+    // Una asesorada con techo clínico de RPE 5 tiene que poder anotar 1 a 5.
+    expect(prepararTestPost(rpe(3), ctx(), { duracionMin: 40 })).toEqual({ ok: true, valor: { sesionId: 'S1', testPost: { duracionMin: 40, rpeSesion: 3 } } })
+    expect(prepararTestPost(rpe(5), ctx(), null).ok).toBe(true)
     expect(prepararTestPost(rpe(8.5), ctx(), null).ok).toBe(false)
   })
   it('la duración de 1 a 600 min', () => {

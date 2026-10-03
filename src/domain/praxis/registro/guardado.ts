@@ -93,7 +93,7 @@ export function prepararTestPost(
   if (!ctx.sesiones.some((s) => s.id === reg.sesion_id)) return { ok: false, motivo: 'esa sesión no está en tu microciclo activo' }
   if (reg.campo === 'testPost.rpeSesion') {
     const v = revisarRpeSesion(reg.valor)
-    if (v.tipo === 'imposible' || !Number.isInteger(reg.valor)) return { ok: false, motivo: 'esfuerzo de sesión fuera de 6 a 10' }
+    if (v.tipo === 'imposible' || !Number.isInteger(reg.valor)) return { ok: false, motivo: 'esfuerzo de sesión fuera de 1 a 10' }
     return { ok: true, valor: { sesionId: reg.sesion_id, testPost: { ...(actual ?? {}), rpeSesion: reg.valor } } }
   }
   if (!esEntero(reg.valor, 1, 600)) return { ok: false, motivo: 'duración fuera de 1 a 600 min' }
