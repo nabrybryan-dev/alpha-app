@@ -15,6 +15,7 @@
 
 import { type Vec3 } from './algebra'
 import { puntoDeHueso, type EsqueletoResuelto } from './esqueleto'
+import type { Patron } from './catalogo'
 
 /**
  * Fracción de la masa corporal de cada segmento, y en qué punto del hueso está
@@ -100,6 +101,34 @@ export function desequilibrio(
   extra: [string, number][] = [],
 ): number {
   const base = baseDeApoyo(esq, pies, extra)
+  if (!base) return 0
+  const com = centroDeMasas(esq)
+  if (com[2] < base.min) return base.min - com[2]
+  if (com[2] > base.max) return com[2] - base.max
+  return 0
+}
+
+/**
+ * Base derivada del patrón, incluidos los apoyos de manos de una dominada.
+ * `baseDeApoyo` se conserva como primitiva para las simulaciones existentes;
+ * esta es la entrada que conoce el tipo de cadena y evita tratar un colgado
+ * como un cuerpo sin apoyo.
+ */
+export function baseDeSustentacionDelPatron(
+  esq: EsqueletoResuelto,
+  patron: Patron,
+): { min: number; max: number } | null {
+  const pies = patron.apoyo === 'suelo'
+    ? (patron.pies ?? ['D', 'I'])
+    : []
+  const manos: [string, number][] = patron.apoyo === 'manos'
+    ? [['manoD', 1], ['manoI', 1]]
+    : []
+  return baseDeApoyo(esq, pies, [...manos, ...(patron.apoyosExtra ?? [])])
+}
+
+export function desequilibrioDelPatron(esq: EsqueletoResuelto, patron: Patron): number {
+  const base = baseDeSustentacionDelPatron(esq, patron)
   if (!base) return 0
   const com = centroDeMasas(esq)
   if (com[2] < base.min) return base.min - com[2]

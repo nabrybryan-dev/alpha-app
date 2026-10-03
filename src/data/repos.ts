@@ -10,9 +10,11 @@ import type {
   Cuestionario,
   EstadoAdherencia,
   MedidaCorporal,
+  MedidasAntropometricas,
   Mensaje,
   Microciclo,
   Perfil,
+  PerfilAntropometrico,
   PlanNutricional,
   PerfilNutricion,
   PreferenciaEstado,
@@ -58,6 +60,15 @@ export interface PerfilesRepo {
    * que es una acción del coach, y no en el teléfono del asesorado.
    */
   guardarPeldano(usuarioId: string, peldano: number, ascensoIso: string): void
+}
+
+/**
+ * Repositorio separado del perfil general. Guardar palancas no puede reemplazar
+ * objetivos, medidas corporales ni textos escritos por el coach.
+ */
+export interface AntropometriaRepo {
+  byUsuario(usuarioId: string): PerfilAntropometrico | undefined
+  guardar(usuarioId: string, medidas: MedidasAntropometricas): PerfilAntropometrico
 }
 
 export interface MicrociclosRepo {
@@ -274,6 +285,7 @@ export interface ContenidoAlfaRepo {
 export interface Db {
   usuarios: UsuariosRepo
   perfiles: PerfilesRepo
+  antropometria: AntropometriaRepo
   microciclos: MicrociclosRepo
   bienestar: BienestarRepo
   nutricion: NutricionRepo

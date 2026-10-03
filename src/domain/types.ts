@@ -33,6 +33,31 @@ export interface MedidaCorporal {
   masaMagraKg?: number
 }
 
+/**
+ * Las ocho medidas longitudinales/transversales que personalizan las palancas.
+ *
+ * Son exactamente ocho a propósito. No se mezclan con peso, pliegues ni
+ * estatura: esas magnitudes ya tienen otro dueño y no describen el segmento que
+ * gira. Un valor ausente no se representa con cero; el perfil antropométrico
+ * solo existe cuando las ocho medidas fueron validadas juntas.
+ */
+export interface MedidasAntropometricas {
+  tibiaPeroneCm: number
+  femurCm: number
+  torsoCm: number
+  antebrazoCm: number
+  brazoCm: number
+  anchoClavicularCm: number
+  cinturaCm: number
+  caderasCm: number
+}
+
+/** Perfil aislado del perfil general para no sobreescribir prescripción. */
+export interface PerfilAntropometrico extends MedidasAntropometricas {
+  usuarioId: string
+  actualizadoEn: string
+}
+
 /** Ver `Perfil.neat`. Los dos campos son opcionales por separado. */
 export interface GastoPorPasos {
   /** kcal/día que gasta hoy, con los pasos que viene registrando. */

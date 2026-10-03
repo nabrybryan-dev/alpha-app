@@ -157,6 +157,21 @@ export function segmentosDe(
     : { movil: a.segmentoMovil, fijo: a.segmentoFijo }
 }
 
+/**
+ * Explicación corta y trazable de la cadena. Sirve especialmente para evitar
+ * que una dominada herede la frase del jalón: en la primera la mano es el
+ * anclaje; en el segundo es el extremo que se mueve.
+ */
+export function descripcionDeCadena(patron: Patron): string {
+  if (patron.cadena === 'cerrada' && patron.apoyo === 'manos') {
+    return 'Cadena cerrada: las manos quedan fijas y el cuerpo se mueve hacia ellas.'
+  }
+  if (patron.cadena === 'cerrada') {
+    return 'Cadena cerrada: el extremo apoyado queda fijo y el cuerpo gira sobre él.'
+  }
+  return 'Cadena abierta: el extremo distal se mueve y el cuerpo permanece apoyado.'
+}
+
 export function accionesDelPatron(patron: Patron): ResumenArticular[] {
   const salida: ResumenArticular[] = []
 

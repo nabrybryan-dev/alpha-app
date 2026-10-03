@@ -16,6 +16,11 @@ import { crearRutaRepo } from './ruta/rutaRepo'
 import { seedDb, type SeedDb } from './seed'
 import { esCuotaLlena, marcarSinEspacio } from './sinEspacio'
 import { diasAtras } from './seed/fechas'
+import {
+  guardarPerfilAntropometrico,
+  olvidarAntropometriaLocal,
+  perfilAntropometricoDe,
+} from './antropometria/local'
 
 const CLAVE = 'alpha-db-v2'
 
@@ -47,6 +52,11 @@ let escriturasLocales = 0
 
 export function versionEscrituras(): number {
   return escriturasLocales
+}
+
+/** Avisa de una hidratación que vive fuera del snapshot principal. */
+export function notificarCambioAislado(): void {
+  oyentes.forEach((o) => o())
 }
 
 function guardar(estado: SeedDb): void {
@@ -121,6 +131,7 @@ export function abrirSesionLocal(): void {
 export function olvidarDatosLocales(): void {
   epoca += 1
   localStorage.removeItem(CLAVE)
+  olvidarAntropometriaLocal()
   if (referencia) referencia.actual = structuredClone(seedDb)
   oyentes.forEach((o) => o())
 }
@@ -216,6 +227,17 @@ export function crearMockDb(): Db {
   }
 
   return {
+    antropometria: {
+      byUsuario: perfilAntropometricoDe,
+      guardar: (usuarioId, medidas) => {
+        const perfil = guardarPerfilAntropometrico(usuarioId, medidas)
+        // La escritura aislada no reserializa el snapshot, pero sí participa
+        // en la marca de agua que evita aplicar una descarga vieja encima.
+        escriturasLocales += 1
+        oyentes.forEach((o) => o())
+        return perfil
+      },
+    },
     usuarios: {
       list: () => ref.actual.usuarios,
       byId: (id) => ref.actual.usuarios.find((u) => u.id === id),

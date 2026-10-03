@@ -1063,6 +1063,128 @@ export const PATRONES: Patron[] = [
     invertido: true,
   },
   {
+    id: 'peso_muerto_convencional',
+    cadena: 'cerrada',
+    categoria: 'PESO MUERTO CONVENCIONAL',
+    titulo: 'Peso muerto convencional',
+    ejemplos: 'Peso muerto convencional con barra · Peso muerto desde el suelo',
+    resumen:
+      'La barra parte del suelo y sube por extensión coordinada de rodilla y cadera. No es un rumano: aquí la rodilla sí cambia de ángulo de forma relevante.',
+    claves: [
+      'La barra inicia sobre el mediopié y se mantiene junto a la pierna.',
+      'Empuja el suelo mientras cadera y hombros suben juntos.',
+      'Termina de pie, sin buscar rango extra arqueando la lumbar.',
+    ],
+    errores: [
+      'Levantar primero la cadera y convertir la salida en un rumano desde el suelo.',
+      'Separar la barra de la tibia, alargando a la vez el brazo de cadera y lumbar.',
+    ],
+    apoyo: 'suelo',
+    giroInicio: [72, 0, 0],
+    giroFin: [0, 0, 0],
+    raizInicio: [0, 0.58, -0.06],
+    raizFin: [0, 0.95, 0],
+    inicio: {
+      caderaFlex: 92,
+      rodillaFlex: 39,
+      tobilloPlantar: -8,
+      hombroFlex: -8,
+      codoFlex: 3,
+      toraxFlex: 4,
+    },
+    medio: {
+      caderaFlex: 48,
+      rodillaFlex: 30,
+      hombroFlex: -5,
+      codoFlex: 3,
+      toraxFlex: 3,
+    },
+    fin: {
+      caderaFlex: 2,
+      rodillaFlex: 3,
+      hombroFlex: 2,
+      codoFlex: 3,
+      toraxFlex: 1,
+    },
+    activacion: {
+      flexores_carpo: 0.8,
+      extensores_carpo: 0.62,
+      gluteo_mayor: 1,
+      isquiotibiales: 0.85,
+      cuadriceps: 0.78,
+      erectores: 0.9,
+      dorsal_ancho: 0.58,
+      'trapecio.medio': 0.55,
+      recto_abdominal: 0.48,
+    },
+    seguimiento: ['mano', 0.6, [0, 0, 0]],
+    camara: { azimut: 78, elevacion: 4 },
+  },
+  {
+    id: 'dominada',
+    cadena: 'cerrada',
+    categoria: 'DOMINADA',
+    titulo: 'Dominada',
+    ejemplos: 'Dominada prona · Dominada neutra · Chin-up',
+    resumen:
+      'Las manos quedan fijas en la barra y el cuerpo sube hacia ellas. Comparte acciones con el jalón, pero su cadena y su línea de fuerza son opuestas.',
+    claves: [
+      'Inicia desde un colgado controlado y baja las escápulas antes de flexionar los codos.',
+      'Sube el cuerpo hacia la barra sin perseguir un cable que no existe.',
+      'Mantén el centro de masas bajo las manos, sin balanceo.',
+    ],
+    errores: [
+      'Tratarla como un jalón y describir la mano como el segmento que viaja.',
+      'Ganar altura con impulso de cadera en vez de elevar el cuerpo con la cadena superior.',
+    ],
+    apoyo: 'manos',
+    alturaApoyo: 2.28,
+    raizInicio: [0, 0.96, 0],
+    raizFin: [0, 1.48, 0],
+    inicio: {
+      hombroFlex: 170,
+      hombroAbd: 20,
+      codoFlex: 5,
+      escapulaElev: 34,
+      escapulaRotAsc: 42,
+      caderaFlex: 5,
+      rodillaFlex: 18,
+    },
+    medio: {
+      hombroFlex: 92,
+      hombroAbd: 24,
+      codoFlex: 72,
+      escapulaElev: 4,
+      escapulaProt: -12,
+      caderaFlex: 4,
+      rodillaFlex: 16,
+    },
+    fin: {
+      hombroFlex: 30,
+      hombroAbd: 28,
+      codoFlex: 132,
+      escapulaElev: -14,
+      escapulaProt: -26,
+      caderaFlex: 3,
+      rodillaFlex: 14,
+    },
+    activacion: {
+      flexores_carpo: 0.9,
+      extensores_carpo: 0.65,
+      dorsal_ancho: 1,
+      redondo_mayor: 0.9,
+      'trapecio.inferior': 0.82,
+      'trapecio.medio': 0.62,
+      romboides: 0.7,
+      biceps: 0.86,
+      braquial: 0.8,
+      braquiorradial: 0.62,
+      recto_abdominal: 0.52,
+    },
+    seguimiento: ['pelvis', 0.4, [0, 0, 0]],
+    camara: { azimut: 80, elevacion: 6 },
+  },
+  {
     id: 'suspension',
     cadena: 'cerrada',
     categoria: 'SUSPENSIÓN',
@@ -1133,6 +1255,7 @@ export function normalizarCategoria(texto: string): string {
 const ALIAS: Record<string, string> = {
   'DOMINANTE DE CADERA': 'BISAGRA DE CADERA',
   BISAGRA: 'BISAGRA DE CADERA',
+  'PESO MUERTO CONVENCIONAL': 'PESO MUERTO CONVENCIONAL',
   'CADENA POSTERIOR': 'BISAGRA DE CADERA',
   ISQUIOS: 'BISAGRA DE CADERA',
   GLUTEO: 'EXTENSION DE CADERA',
@@ -1144,7 +1267,7 @@ const ALIAS: Record<string, string> = {
   CORE: 'ANTIEXTENSION',
   ABDOMEN: 'ANTIEXTENSION',
   JALON: 'TRACCION VERTICAL',
-  DOMINADA: 'TRACCION VERTICAL',
+  DOMINADA: 'DOMINADA',
   REMO: 'TRACCION HORIZONTAL',
   ESPALDA: 'TRACCION HORIZONTAL',
   EMPUJE: 'EMPUJE HORIZONTAL',
@@ -1195,8 +1318,19 @@ const POR_NOMBRE: [RegExp, string][] = [
  */
 const SIN_PATRON = /bicicleta|cinta|el[ií]ptica|zona 2|rodada|circuito|cardio|cribado/
 
+/** Variantes cuyo nombre cambia la cadena o el gesto dentro de una categoría. */
+const VARIANTE_POR_NOMBRE: readonly [RegExp, string][] = [
+  [/dominada|pull[- ]?up|chin[- ]?up/, 'dominada'],
+  [/^(?!.*(?:rumano|romanian|\brdl\b)).*(?:\bpeso muerto\b|\bdeadlift\b)/, 'peso_muerto_convencional'],
+]
+
 export function patronDeCategoria(categoria: string | undefined, nombre?: string): Patron | undefined {
   if (!categoria) return undefined
+  if (nombre) {
+    const texto = nombre.toLowerCase()
+    const variante = VARIANTE_POR_NOMBRE.find(([re]) => re.test(texto))?.[1]
+    if (variante) return PATRON_POR_ID[variante]
+  }
   const normalizada = normalizarCategoria(categoria)
   const buscada = ALIAS[normalizada] ?? normalizada
   const porCategoria = PATRONES.find((p) => normalizarCategoria(p.categoria) === buscada)

@@ -178,6 +178,30 @@ export function crearDbSincronizada(local: Db): Db {
   return {
     ...local,
 
+    antropometria: {
+      ...local.antropometria,
+      guardar: (usuarioId, medidas) => {
+        const perfil = local.antropometria.guardar(usuarioId, medidas)
+        encolar({
+          tabla: 'perfiles_antropometricos',
+          tipo: 'upsert',
+          payload: {
+            usuario_id: usuarioId,
+            tibia_perone_cm: perfil.tibiaPeroneCm,
+            femur_cm: perfil.femurCm,
+            torso_cm: perfil.torsoCm,
+            antebrazo_cm: perfil.antebrazoCm,
+            brazo_cm: perfil.brazoCm,
+            ancho_clavicular_cm: perfil.anchoClavicularCm,
+            cintura_cm: perfil.cinturaCm,
+            caderas_cm: perfil.caderasCm,
+            actualizado_en: perfil.actualizadoEn,
+          },
+        })
+        return perfil
+      },
+    },
+
     perfiles: {
       ...local.perfiles,
       agregarMedida: (usuarioId, medida) => {

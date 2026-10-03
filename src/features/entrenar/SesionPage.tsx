@@ -23,7 +23,7 @@ import { PreparacionSesion } from './PreparacionSesion'
 import { type RegistroSerieHandle } from './RegistroSerie'
 import { conTransicionDeVista } from '../../lib/transicionDeVista'
 import { SesionCerrada } from './SesionCerrada'
-import { SalonDeMaquinas } from './SalonDeMaquinas'
+import { SalonCuadridimensional } from './salon/SalonCuadridimensional'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
@@ -250,7 +250,7 @@ function SesionEnCurso() {
           </Link>
           <p className="kicker">Microciclo M{microciclo.numero}</p>
           <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>
-          {!todasRegistradas && (
+          {!todasRegistradas && !hayEjercicios && (
             <div className="mt-3">
               <CronometroSesion sesionId={sesion.id} />
             </div>
@@ -314,9 +314,14 @@ function SesionEnCurso() {
               Y cada bloque trae SU escena en vez de una común arriba, porque de la
               tarjeta cuelga la hoja de la cámara, que es `fixed`: una perspectiva
               en un ancestro compartido la encerraría en una tarjeta de 350 px. */}
-          <div className="escena-prof al-fondo">
-            <SalonDeMaquinas ejercicios={sesion.ejercicios} />
-          </div>
+          <SalonCuadridimensional
+            usuarioId={usuario.id}
+            microcicloNumero={microciclo.numero}
+            sesion={sesion}
+            ejercicio={ejercicioActual}
+            indiceEjercicio={exIdx}
+            totalEjercicios={sesion.ejercicios.length}
+          />
 
           <div className="escena-prof al-fondo">
             <BarraEjercicios ejercicios={sesion.ejercicios} exIdx={exIdx} onIr={setExIdxManual} />

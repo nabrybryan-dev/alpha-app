@@ -943,7 +943,7 @@ select '0049 - firma de sincronizacion', 'columna, trigger en las 21 y el RPC',
          ) as senales
        ) = 2
        and (select count(*) from pg_trigger
-             where tgname = 'trg_actualizado_en' and not tgisinternal) = 21
+             where tgname = 'trg_actualizado_en' and not tgisinternal) = 22
        then 'SI' else 'NO' end
 
 union all
@@ -980,5 +980,26 @@ select '0051 - respaldos que ya cumplieron', 'las ocho auditadas ya no estan',
                               'tmp_respaldo_juliana_20260824','tmp_respaldo_dup_20260824',
                               '_backup_microciclos_20260823','tmp_respaldo_20260824')
        ) then 'SI' else 'NO' end
+
+union all
+select '0052 - perfil antropometrico aislado', 'tabla, ocho medidas, RLS y sello',
+       case when exists (
+              select 1 from information_schema.tables
+               where table_schema = 'public' and table_name = 'perfiles_antropometricos'
+            )
+            and (
+              select count(*) from information_schema.columns
+               where table_schema = 'public' and table_name = 'perfiles_antropometricos'
+                 and column_name in ('tibia_perone_cm','femur_cm','torso_cm','antebrazo_cm',
+                                     'brazo_cm','ancho_clavicular_cm','cintura_cm','caderas_cm')
+            ) = 8
+            and (select relrowsecurity from pg_class
+                  where oid = 'public.perfiles_antropometricos'::regclass)
+            and exists (
+              select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
+               where c.relname = 'perfiles_antropometricos'
+                 and t.tgname = 'trg_actualizado_en' and not t.tgisinternal
+            )
+       then 'SI' else 'NO' end
 
 order by migracion, senal;

@@ -6,6 +6,7 @@ import type {
   Mensaje,
   Microciclo,
   Perfil,
+  PerfilAntropometrico,
   PlanNutricional,
   PremiacionCoach,
   Respuesta,
@@ -26,7 +27,14 @@ import type {
 
 type EstadoGuardado = VisibilidadAsesorado['estado']
 const ESTADOS: readonly EstadoGuardado[] = ['automatico', 'en_espera', 'decidido']
-import { aplicarSnapshot, epocaSesion, instantaneaLocal, versionEscrituras } from '../mockDb'
+import {
+  aplicarSnapshot,
+  epocaSesion,
+  instantaneaLocal,
+  notificarCambioAislado,
+  versionEscrituras,
+} from '../mockDb'
+import { reemplazarPerfilesAntropometricos } from '../antropometria/local'
 import {
   clavesConservables,
   pedirFirma,
@@ -268,13 +276,31 @@ export async function hidratarDesdeNube(): Promise<void> {
   // la pantalla de carga. Sin previa se pide igual -hace falta para guardarla-
   // pero en paralelo con las lecturas, y no cuesta latencia.
   let conservar = new Set<ClaveConservable>()
+  let firmaAhora: Awaited<typeof firmaPendiente>
   if (firmaPrevia) {
-    const firmaAhora = await firmaPendiente
+    firmaAhora = await firmaPendiente
     // Nada cambió: ni se construye el snapshot. Es el atajo más barato y el
     // caso más frecuente con diferencia.
     if (firmaAhora && sinCambios(firmaAhora, firmaPrevia)) return
     conservar = clavesConservables(firmaAhora, firmaPrevia)
   }
+
+  /**
+   * La 0052 añade antropometría a la firma global. Si ambas firmas traen la
+   * entrada y coincide, su almacenamiento aislado ya está fresco. Si falta en
+   * cualquiera, se pide: puede ser un despliegue a mitad de migración y omitir
+   * por ausencia dejaría la tabla nueva invisible hasta que cambiara otra.
+   *
+   * En la segunda hidratación SIN cambios el retorno de arriba ocurre antes y
+   * no se consulta ninguna tabla, incluida esta.
+   */
+  const firmaAntropometriaPrevia = firmaPrevia?.perfiles_antropometricos
+  const firmaAntropometriaAhora = firmaAhora?.perfiles_antropometricos
+  const pedirAntropometria =
+    !firmaAntropometriaPrevia ||
+    !firmaAntropometriaAhora ||
+    firmaAntropometriaPrevia.filas !== firmaAntropometriaAhora.filas ||
+    firmaAntropometriaPrevia.ultimo !== firmaAntropometriaAhora.ultimo
 
   /**
    * Las tablas que no hace falta pedir.
@@ -308,6 +334,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     respuestas,
     contenidos,
     premiaciones,
+    antropometria,
   ] = await Promise.all([
     // Columnas necesarias para UI: id, nombre, rol, avatar
     pedir('usuarios_app', () => sb.from('usuarios_app').select('id,nombre,rol,avatar_iniciales')),
@@ -354,6 +381,13 @@ export async function hidratarDesdeNube(): Promise<void> {
     pedir('respuestas', () => sb.from('respuestas').select('id,cuestionario_id,usuario_id,fecha_iso,valores')),
     pedir('contenidos', () => sb.from('contenidos').select('datos')),
     pedir('premiaciones', () => sb.from('premiaciones').select('id,usuario_id,titulo,fecha,nota')),
+    // Arranca en el MISMO lote. Una promesa lenta o colgada aquí no impide que
+    // salgan usuarios, perfiles, microciclos y las demás lecturas.
+    pedirAntropometria
+      ? sb.from('perfiles_antropometricos').select(
+          'usuario_id,tibia_perone_cm,femur_cm,torso_cm,antebrazo_cm,brazo_cm,ancho_clavicular_cm,cintura_cm,caderas_cm,actualizado_en',
+        )
+      : noPedida(),
   ])
 
   // `checkinsNutricion` entra en la lista a propósito, aunque para el asesorado y
@@ -658,6 +692,35 @@ export async function hidratarDesdeNube(): Promise<void> {
   for (const clave of conservar) conservarCampo(snapshot, previo, clave)
 
   if (versionEscrituras() !== versionAlEmpezar) return
+  if (epocaSesion() !== epocaAlEmpezar) return
 
   aplicarSnapshot(snapshot, epocaAlEmpezar)
+
+  // Se aplica tras las MISMAS guardas del snapshot. Si la persona guardó una
+  // medida o cambió la sesión durante la descarga, esta foto también se tira.
+  // Error o tabla inexistente = conservar lo local, nunca reemplazar por vacío.
+  if (pedirAntropometria && !antropometria.error) {
+    const filas = conPendientes(
+      'perfiles_antropometricos',
+      antropometria.data ?? [],
+    ) as Record<string, unknown>[]
+    reemplazarPerfilesAntropometricos(
+      filas.map(
+        (f): PerfilAntropometrico => ({
+          usuarioId: f.usuario_id as string,
+          tibiaPeroneCm: Number(f.tibia_perone_cm),
+          femurCm: Number(f.femur_cm),
+          torsoCm: Number(f.torso_cm),
+          antebrazoCm: Number(f.antebrazo_cm),
+          brazoCm: Number(f.brazo_cm),
+          anchoClavicularCm: Number(f.ancho_clavicular_cm),
+          cinturaCm: Number(f.cintura_cm),
+          caderasCm: Number(f.caderas_cm),
+          actualizadoEn:
+            typeof f.actualizado_en === 'string' ? f.actualizado_en : new Date(0).toISOString(),
+        }),
+      ),
+    )
+    notificarCambioAislado()
+  }
 }
