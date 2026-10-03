@@ -25,7 +25,7 @@ const MOTIVOS: Record<Extract<RespuestaIngreso, { ok: false }>['motivo'], [strin
   sin_sesion: ['No pude comprobar tu sesión. Entra de nuevo a la app.', 'No pude comprobar su sesión. Entre de nuevo a la app.'],
   red: ['No pude conectar con Praxis. Revisa tu internet.', 'No pude conectar con Praxis. Revise su internet.'],
   limite: ['Ya hiciste muchas pruebas en esta hora. Espera un rato.', 'Ya hizo muchas pruebas en esta hora. Espere un rato.'],
-  no_entendi: ['', ''], // se arma con la pregunta del turno (`pedirDeNuevo`): nunca «no te entendí»
+  no_entendi: ['', ''], // se arma con la pregunta del turno (`pedirDeNuevo`) (decisión de Bryan, 3-oct)
   frase: ['Esa respuesta no se pudo leer. ¿Lo intentas otra vez?', 'Esa respuesta no se pudo leer. ¿Lo intenta otra vez?'],
 }
 
