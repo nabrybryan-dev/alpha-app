@@ -86,7 +86,7 @@ describe('qué petición lleva cache_control', () => {
     const [c] = e.cuerpos(true)
     expect(c.system).toEqual([{ type: 'text', text: PROMPT_SISTEMA, cache_control: { type: 'ephemeral' } }])
     expect(c.max_tokens).toBe(MAX_TOKENS_REGISTRO)
-    expect(MAX_TOKENS_REGISTRO).toBe(1300)
+    expect(MAX_TOKENS_REGISTRO).toBe(800)
     expect(c.temperature).toBe(0)
     expect(c.tool_choice).toEqual({ type: 'tool', name: 'registrar' })
   })

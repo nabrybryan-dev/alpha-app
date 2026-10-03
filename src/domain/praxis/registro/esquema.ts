@@ -20,12 +20,15 @@ import type { CampoEscala, Extraccion } from './tipos.ts'
 
 type Esquema = Record<string, unknown>
 
-const anulable = (s: Esquema): Esquema => ({ anyOf: [s, { type: 'null' }] })
-const cita = (descripcion: string): Esquema => anulable({ type: 'string', description: descripcion })
-const objeto = (props: Record<string, Esquema>, descripcion?: string): Esquema => ({
+// SALIDA CORTA (3-oct): lo que el modelo escribe manda en la espera (mediana 374 tokens, y ~70 % era
+// «null», «[]», «false» y valores neutros que el validador rellena igual). Por eso casi ningún campo es
+// obligatorio: lo que no se dijo se OMITE. `validarExtraccion` completa los neutros al llegar, así que
+// ningún consumidor ve la diferencia. Solo se exige lo que da sentido a un objeto que SÍ se escribe.
+const cita = (descripcion: string): Esquema => ({ type: 'string', description: descripcion })
+const objeto = (props: Record<string, Esquema>, required: string[] = [], descripcion?: string): Esquema => ({
   type: 'object',
   additionalProperties: false,
-  required: Object.keys(props),
+  required,
   properties: props,
   ...(descripcion ? { description: descripcion } : {}),
 })
@@ -38,103 +41,121 @@ const lista = (items: Esquema, descripcion?: string): Esquema => ({
 
 const BLOQUE: Esquema = objeto(
   {
-    n_series: cita('cita: «tres», «las tres», «dos series»; null = una sola serie'),
-    ordinal: cita('cita: «la tercera», «la última», «otra», «una cuarta»; null si no dijo cuál'),
+    n_series: cita('cita: «tres», «las tres», «dos series»; sin él = una sola serie'),
+    ordinal: cita('cita: «la tercera», «la última», «otra», «una cuarta»'),
     reps: cita('cita de las repeticiones: «12», «doce», «15»'),
-    carga: objeto({
-      tipo: enumerado(
-        'absoluta', 'barra_sola', 'discos', 'relativa', 'corporal',
-        'copiar_pauta', 'copiar_semana_anterior', 'copiar_serie_anterior', 'no_dicha',
-      ),
-      valor: cita('cita del número de la carga: «40», «cuarenta y cinco», «doce y medio»'),
-      unidad_cita: cita('cita de la unidad: «kilos», «libras», «lb», «de lastre»'),
-      discos: anulable(
-        lista(objeto({ cantidad: { type: 'string' }, peso: { type: 'string' } }), 'solo si habla de discos o platos'),
-      ),
-      delta: cita('cita con el verbo: «le subí cinco», «le bajé 2,5»'),
-      por: enumerado('lado', 'mano', 'total', 'no_dicho'),
-    }),
-    reserva: objeto({
-      tipo: enumerado('no_dicha', 'reserva_dicha', 'fallo', 'rir_de_pauta'),
-      cita: cita('cita de las repeticiones en reserva: «2 en reserva», «me quedaba una»'),
-    }),
-    es_calentamiento: { type: 'boolean', description: 'true si es una serie de calentamiento o aproximación' },
+    carga: objeto(
+      {
+        tipo: enumerado(
+          'absoluta', 'barra_sola', 'discos', 'relativa', 'corporal',
+          'copiar_pauta', 'copiar_semana_anterior', 'copiar_serie_anterior',
+        ),
+        valor: cita('cita del número de la carga: «40», «cuarenta y cinco», «doce y medio»'),
+        unidad_cita: cita('cita de la unidad SOLO si la frase la dice: «kilos», «libras», «lb», «de lastre»'),
+        discos: lista(objeto({ cantidad: { type: 'string' }, peso: { type: 'string' } }, ['cantidad', 'peso']), 'solo si habla de discos o platos'),
+        delta: cita('cita con el verbo: «le subí cinco», «le bajé 2,5»'),
+        por: enumerado('lado', 'mano', 'total'),
+      },
+      ['tipo'],
+    ),
+    reserva: objeto(
+      {
+        tipo: enumerado('reserva_dicha', 'fallo', 'rir_de_pauta'),
+        cita: cita('cita de las repeticiones en reserva: «2 en reserva», «me quedaba una»'),
+      },
+      ['tipo'],
+    ),
+    es_calentamiento: { type: 'boolean', description: 'true solo si es una serie de calentamiento o aproximación' },
     extra: lista(
-      objeto({
-        reps: { type: 'string', description: 'cita de las reps del mini-bloque' },
-        carga: cita('cita de la carga del mini-bloque; null = la misma de la serie'),
-      }),
+      objeto(
+        {
+          reps: { type: 'string', description: 'cita de las reps del mini-bloque' },
+          carga: cita('cita de la carga del mini-bloque; sin él = la misma de la serie'),
+        },
+        ['reps'],
+      ),
       'drop set o rest-pause: repeticiones extra tras la serie, sin ser otra serie',
     ),
     senales: lista(enumerado('aproximado', 'no_recuerda', 'autocorreccion', 'maximo_o_minimo', 'reps_y_carga_ambiguas')),
   },
+  [],
   'un bloque = series con la misma forma; «10, 8 y 6 con 8 kg» son 3 bloques',
 )
 
-const ENTRENO: Esquema = objeto({
-  ejercicio: objeto({
-    cita: cita('nombre del ejercicio tal como lo dijo; null si no nombró ninguno'),
-    ref_sugerida: cita('e1..eN de la lista de la sesión, solo como pista; el código decide'),
-    implicito: enumerado('no', 'pantalla', 'anterior', 'desconocido'),
-  }),
-  bloques: lista(BLOQUE),
-  cuando: cita('cita temporal: «ayer», «esta mañana»; null = hoy'),
-})
-
-const ITEM_COMIDA: Esquema = objeto({
-  alimento: { type: 'string', description: 'cita: «arroz», «pechuga»' },
-  cantidad: cita('cita literal de la cantidad: «una», «2», «medio», «una taza y media»'),
-  medida: cita('cita: «taza», «cucharadas», «gramos», «pedazo», «presa», «plato»'),
-  estado: cita('cita: «cocido», «crudo», «frito»'),
-  senales: lista(enumerado('aproximado', 'no_recuerda', 'autocorreccion', 'pesado')),
-})
-
-const COMIDA: Esquema = anulable(
-  objeto({
-    comida_cita: cita('«almuerzo», «la cena», «algo en la tarde»'),
-    cuando: cita('cita temporal'),
-    segun_plan: enumerado('no_dicho', 'como_el_plan', 'parcial', 'fuera_del_plan'),
-    items: lista(ITEM_COMIDA),
-    plato: anulable(lista(objeto({ alimento: { type: 'string' }, fraccion: cita('«medio», «un cuarto»') }))),
-    cocinado_por_ella: enumerado('si', 'no', 'no_dicho'),
-    aceite: cita('«una cucharada de aceite»'),
-    sal: cita('«una pizca de sal»'),
-    referencia: enumerado('no', 'igual_que_ayer'),
-    sin: lista({ type: 'string' }, 'solo con igual_que_ayer: citas de lo que quita («sin el huevo» => «el huevo»)'),
-  }),
+const ENTRENO: Esquema = objeto(
+  {
+    // `implicito` SE ESCRIBE siempre: obliga al modelo a decidir si hubo nombre (sin él, una corrida del
+    // banco dejó caer la cita de «gemelos»). Cuesta ~6 tokens por ejercicio; vale la exactitud.
+    ejercicio: objeto(
+      {
+        cita: cita('nombre del ejercicio tal como lo dijo; sin él si no nombró ninguno'),
+        implicito: enumerado('no', 'pantalla', 'anterior', 'desconocido'),
+      },
+      ['implicito'],
+    ),
+    bloques: lista(BLOQUE),
+    cuando: cita('cita temporal: «ayer», «esta mañana»; sin él = hoy'),
+  },
+  ['ejercicio'],
 )
 
-const VIDA: Esquema = anulable(
-  objeto({
-    sueno_horas: cita('«como 5 horas»'),
-    hora_acostarse: cita('«a las once»'),
-    hora_levantarse: cita('«a las cinco y media»'),
-    calidad_sueno: cita('«dormí fatal»'),
-    pasos: cita('con número: «8 mil pasos»'),
-    actividad_sin_numero: cita('«caminé bastante». No se convierte en números'),
-    agua: anulable(objeto({ cantidad: { type: 'string' }, medida: cita('«vasos», «litros», «botella de 600»') })),
-    escalas: lista(
-      objeto({
+const ITEM_COMIDA: Esquema = objeto(
+  {
+    alimento: { type: 'string', description: 'cita: «arroz», «pechuga»' },
+    cantidad: cita('cita literal de la cantidad, incluido «un»/«una»: «una», «2», «medio», «una taza y media»'),
+    medida: cita('cita: «taza», «cucharadas», «gramos», «pedazo», «presa», «plato»; si no dijo medida, omite el campo (nunca «no»)'),
+    estado: cita('cita: «cocido», «crudo», «frito»'),
+    senales: lista(enumerado('aproximado', 'no_recuerda', 'autocorreccion', 'pesado')),
+  },
+  ['alimento'],
+)
+
+const COMIDA: Esquema = objeto({
+  comida_cita: cita('«almuerzo», «la cena», «algo en la tarde»'),
+  cuando: cita('cita temporal'),
+  segun_plan: enumerado('como_el_plan', 'parcial', 'fuera_del_plan'),
+  items: lista(ITEM_COMIDA),
+  plato: lista(objeto({ alimento: { type: 'string' }, fraccion: cita('«medio», «un cuarto»') }, ['alimento'])),
+  cocinado_por_ella: enumerado('si', 'no'),
+  aceite: cita('«una cucharada de aceite»'),
+  sal: cita('«una pizca de sal»'),
+  referencia: enumerado('igual_que_ayer'),
+  sin: lista({ type: 'string' }, 'solo con igual_que_ayer: citas de lo que quita («sin el huevo» => «el huevo»)'),
+})
+
+const VIDA: Esquema = objeto({
+  sueno_horas: cita('«como 5 horas»'),
+  hora_acostarse: cita('«a las once»'),
+  hora_levantarse: cita('«a las cinco y media»'),
+  calidad_sueno: cita('«dormí fatal»'),
+  pasos: cita('con número: «8 mil pasos»'),
+  actividad_sin_numero: cita('«caminé bastante». No se convierte en números'),
+  agua: objeto({ cantidad: { type: 'string' }, medida: cita('«vasos», «litros», «botella de 600»') }, ['cantidad']),
+  escalas: lista(
+    objeto(
+      {
         campo: enumerado('cansancio', 'estres', 'ganas_de_entrenar', 'animo', 'hambre', 'rendimiento', 'alimentacion'),
         cita: { type: 'string' },
-      }),
+      },
+      ['campo', 'cita'],
     ),
-    senales: lista(enumerado('aproximado', 'no_recuerda')),
-    peso_corporal: cita('cifra que marcó la báscula si dice que se pesó: «78 y medio», «80,2». null si no se pesó'),
-    dia_de_entreno: anulable(
-      objeto({
-        estado: enumerado('no_entreno', 'descanso', 'cambio'),
-        motivo: cita('cita del porqué, si lo dijo'),
-        hizo: cita('solo con cambio: cita de lo que hizo en lugar de la pauta'),
-      }),
-    ),
-    tiempos: lista(
-      objeto({ actividad: enumerado('caminata', 'siesta', 'pantalla'), duracion: { type: 'string' } }),
-      'caminata, siesta u horas de pantalla CON una duración dicha; duracion = cita',
-    ),
-    sin_dolor: cita('cita de la ausencia EXPLÍCITA de dolor: «no me duele nada», «sin dolor»'),
-  }),
-)
+  ),
+  senales: lista(enumerado('aproximado', 'no_recuerda')),
+  peso_corporal: cita('cifra que marcó la báscula si dice que se pesó: «78 y medio», «80,2»'),
+  dia_de_entreno: objeto(
+    {
+      estado: enumerado('no_entreno', 'descanso', 'cambio'),
+      motivo: cita('cita del porqué, si lo dijo'),
+      hizo: cita('solo con cambio: cita de lo que hizo en lugar de la pauta'),
+    },
+    ['estado'],
+  ),
+  tiempos: lista(
+    objeto({ actividad: enumerado('caminata', 'siesta', 'pantalla'), duracion: { type: 'string' } }, ['actividad', 'duracion']),
+    'caminata, siesta u horas de pantalla CON una duración dicha; duracion = cita',
+  ),
+  sin_dolor: cita('cita de la ausencia EXPLÍCITA de dolor: «no me duele nada», «sin dolor»'),
+})
 
 export const ESQUEMA_REGISTRO: Esquema = objeto(
   {
@@ -144,37 +165,43 @@ export const ESQUEMA_REGISTRO: Esquema = objeto(
     entreno: lista(ENTRENO),
     comida: COMIDA,
     vida: VIDA,
-    sesion: anulable(
-      objeto({
-        rpe: cita('esfuerzo de la sesión entera: «un 9 de esfuerzo»'),
-        duracion: cita('«una hora y diez»'),
-        omitidos: lista({ type: 'string' }, 'citas de ejercicios que dice EXPLÍCITAMENTE que no hizo'),
-        cardio: cita('duración del cardio: «20 minutos»'),
-        preparacion: lista({ type: 'string' }, 'citas de las partes de la preparación que hizo: «la movilidad», «la activación»'),
-      }),
-    ),
-    correccion: anulable(
-      objeto({
+    sesion: objeto({
+      rpe: cita('esfuerzo de la sesión entera: «un 9 de esfuerzo»'),
+      duracion: cita('«una hora y diez»'),
+      omitidos: lista({ type: 'string' }, 'citas de ejercicios que dice EXPLÍCITAMENTE que no hizo'),
+      cardio: cita('duración del cardio: «20 minutos»'),
+      preparacion: lista({ type: 'string' }, 'citas de las partes de la preparación que hizo: «la movilidad», «la activación»'),
+    }),
+    correccion: objeto(
+      {
         objetivo: enumerado('ultimo_registro', 'serie_ordinal', 'comida_ultima', 'sueno', 'no_claro'),
         campo: cita('«carga», «reps», «rir», «gramos», «horas»'),
         nuevo_valor: cita('cita del valor nuevo'),
         ordinal: cita('cita de cuál serie: «la segunda»'),
-      }),
+      },
+      ['objetivo'],
     ),
-    aclaracion: anulable(
-      objeto({
+    aclaracion: objeto(
+      {
         motivo: enumerado('frase_incompleta', 'numeros_sin_papel', 'dos_lecturas', 'otro'),
         opciones_citadas: lista({ type: 'string' }),
-      }),
+      },
+      ['motivo'],
     ),
-    clinico: objeto({ hay: { type: 'boolean' }, cita: cita('lo que viste, sin interpretarlo') }),
-    fuera_de_alcance: { type: 'boolean', description: 'pregunta, consejo o charla: no es un registro' },
+    clinico: objeto(
+      { hay: { type: 'boolean' }, cita: cita('lo que viste, sin interpretarlo') },
+      ['hay'],
+      'SOLO si dijo dolor, molestia, lesión, mareo, síntoma, medicamento o tristeza profunda. Un número raro o exagerado NO es clínico. Sin nada de eso, omite clinico.',
+    ),
+    fuera_de_alcance: { type: 'boolean', description: 'true solo si es pregunta, consejo o charla: no es un registro' },
   },
-  'Etiqueta lo que la persona dijo. No calcules ni completes números: copia fragmentos literales.',
+  ['intencion'],
+  'Etiqueta lo que la persona dijo. No calcules ni completes números: copia fragmentos literales. Omite todo campo vacío; nunca escribas una cita que no esté en la frase.',
 )
 
+
 /** Sube cada vez que cambia el esquema o el prompt (queda en `praxis_extracciones`). */
-export const VERSION_ESQUEMA = 'registro-esquema-2026-09-29.1'
+export const VERSION_ESQUEMA = 'registro-esquema-2026-10-03.1'
 
 // ---------------------------------------------------------------------------
 // Validador de citas
@@ -221,7 +248,10 @@ export function validarExtraccion(frase: string, bruto: unknown): ResultadoValid
       const ej = esObjeto(e.ejercicio) ? e.ejercicio : {}
       const implicito = ['no', 'pantalla', 'anterior', 'desconocido'].includes(String(ej.implicito))
         ? (ej.implicito as 'no' | 'pantalla' | 'anterior' | 'desconocido')
-        : 'desconocido'
+        : // Salida corta: con nombre del ejercicio el modelo omite `implicito` (= 'no'); sin nombre lo dice.
+          ej.implicito === undefined && str(ej.cita) !== null
+          ? 'no'
+          : 'desconocido'
       const bloques = arr(e.bloques)
         .filter(esObjeto)
         .map((b, j) => {

@@ -38,7 +38,7 @@ function entorno(rol: string | null = 'coach') {
     return new Response(JSON.stringify(r.cuerpo), { status: r.status ?? 200 })
   })
   const d: Dependencias = {
-    entorno: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'anon', ANTHROPIC_API_KEY: 'sk-prueba-no-real' },
+    entorno: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'anon', ANTHROPIC_API_KEY: 'sk-prueba-no-real', PRAXIS_CAMINO_RAPIDO: '0' },
     fetch: fetchSim as unknown as typeof fetch,
     ahora: () => AHORA_SERVIDOR,
   }
@@ -96,9 +96,9 @@ describe('A1 · la petición a Anthropic cabe en los límites del modo estricto'
     expect(opcionales, `opcionales en esquemas estrictos: ${opcionales}`).toBeLessThanOrEqual(LIMITE_OPCIONALES)
   })
 
-  it('el contador mira de verdad: el esquema del registrador tiene más de 16 uniones', async () => {
+  it('el contador mira de verdad: el esquema del registrador pasa de 24 opcionales (por eso no va en modo estricto)', async () => {
     const cuerpo = await peticionEnviada()
-    expect(contarUniones(cuerpo.tools[0].input_schema)).toBeGreaterThan(LIMITE_UNIONES)
+    expect(contarOpcionales(cuerpo.tools[0].input_schema)).toBeGreaterThan(LIMITE_OPCIONALES)
   })
 
   it('la herramienta sigue forzada: sin modo estricto, la validación del servidor es la que falla cerrando', async () => {
