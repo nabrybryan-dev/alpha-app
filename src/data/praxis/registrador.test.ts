@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { extraerIngreso, guardarRegistro, proponerRegistro } from './registrador'
+import { extraerIngreso, guardarRegistro, proponerRegistro, releerRiesgo } from './registrador'
 
 /**
  * El cliente de la Edge Function `praxis-registro`. Nunca lanza, nunca manda el usuario en
@@ -138,5 +138,26 @@ describe('extraerIngreso', () => {
     expect(await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo: 'no_entendi' })
     conFetch(new TypeError('Failed to fetch'))
     expect(await extraerIngreso(sesion, { turno: 'sobre_ti', texto: 'x' })).toEqual({ ok: false, motivo: 'red' })
+  })
+})
+
+describe('releerRiesgo', () => {
+  it('manda solo la acción y la frase, con el JWT de la persona, y devuelve la marca del servidor', async () => {
+    const espia = conFetch({ status: 200, cuerpo: { marca: { tipo: 'quieta', linea: 'vida' }, origen: 'modelo' } })
+    expect(await releerRiesgo(sesion, 'me duele la rodilla')).toEqual({ tipo: 'quieta', linea: 'vida' })
+    const [, opciones] = espia.mock.calls[0] as unknown as [string, RequestInit]
+    expect((opciones.headers as Record<string, string>).authorization).toBe('Bearer jwt-de-la-persona')
+    expect(JSON.parse(opciones.body as string)).toEqual({ accion: 'releer_riesgo', frase: 'me duele la rodilla' })
+  })
+  it('nunca lanza y nunca inventa una marca: sin sesión, sin red, error del servidor o forma rara → null', async () => {
+    const sin = conFetch({ status: 200 })
+    expect(await releerRiesgo(null, 'x')).toBeNull()
+    expect(sin).not.toHaveBeenCalled()
+    conFetch(new Error('sin red'))
+    expect(await releerRiesgo(sesion, 'x')).toBeNull()
+    conFetch({ status: 502 })
+    expect(await releerRiesgo(sesion, 'x')).toBeNull()
+    conFetch({ status: 200, cuerpo: { marca: { tipo: 'quieta', linea: 'luna' } } })
+    expect(await releerRiesgo(sesion, 'x')).toBeNull()
   })
 })

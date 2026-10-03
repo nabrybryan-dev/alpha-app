@@ -58,8 +58,8 @@ export function revisarRiesgo(txt: string, fuente: Fuente): boolean {
   return false
 }
 /* Una pregunta directa, escrita por personas: preguntar por el daño no aumenta el riesgo */
-export function preguntarCuidado(txt: string, fuente: Fuente): void {
-  mostrarPersona(txt, fuente)
+export function preguntarCuidado(txt: string, fuente: Fuente, yaMostrada = false): void {
+  if (!yaMostrada) mostrarPersona(txt, fuente)
   cancelar(); Voz.callar(); Onda.estado('reposo')
   S.cuidado = { txt, fuente }
   limpiarControles(); $('#editor').hidden = true; compactar(false)

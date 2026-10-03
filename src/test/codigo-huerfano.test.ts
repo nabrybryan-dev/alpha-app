@@ -131,9 +131,11 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/praxis/riesgoModelo.ts#leerSalidaRiesgo':
     'La consume la Edge Function praxis-registro para leer la respuesta del lector de riesgo; ' +
     'fuera del alcance de este análisis.',
-  'src/domain/praxis/riesgoModelo.ts#marcaDesdeModelo':
-    'La consume la Edge Function praxis-registro para traducir el nivel del modelo a la marca ' +
-    'que ya entiende la pantalla; fuera del alcance de este análisis.',
+  // «Gana la lectura más grave» (3-oct): la regla la aplica SOLO la Edge Function praxis-registro.
+  'src/domain/praxis/masGrave.ts#masGrave':
+    'La consume la Edge Function praxis-registro para quedarse con la marca más grave; fuera del alcance de este análisis.',
+  'src/domain/praxis/masGrave.ts#hayQueConsultarAlModelo':
+    'La consume la Edge Function praxis-registro para decidir si relee con el modelo; fuera del alcance de este análisis.',
   'src/domain/praxis/riesgoModelo.ts#SHA16_PROMPT_RIESGO':
     'La Edge Function lo manda en meta.version_prompt_riesgo para saber con qué prompt medido ' +
     'se leyó cada frase; fuera del alcance de este análisis.',

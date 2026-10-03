@@ -1,6 +1,8 @@
 import type { FalloDelRegistrador, RespuestaDeGuardar, RespuestaDelRegistrador, ResultadoDeRegistro } from '../../domain/praxis/conversacion'
 import type { ContextoCharla } from '../../domain/praxis/charla/modelo'
 import { limpiarTurnos } from '../../domain/praxis/charla/modelo'
+import { leerMarcaDelServidor } from '../../domain/praxis/masGrave'
+import type { MarcaDeRiesgo } from '../../domain/praxis/riesgo'
 import type { Propuesta, RegistroPropuesto } from '../../domain/praxis/registro/tipos'
 import type { Tarjeta } from '../../domain/praxis/registro/tarjeta'
 import type { TurnoId } from '../../domain/praxis/ingreso/guion'
@@ -96,6 +98,18 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
   }
   const charla = typeof datos.charla?.texto === 'string' && datos.charla.texto.trim() ? datos.charla.texto.trim() : undefined
   return { ok: true, propuesta: datos.propuesta, tarjeta: datos.tarjeta, mensajeId: p.mensajeId, ...(charla ? { charla } : {}) }
+}
+
+/**
+ * Relee el riesgo de una frase que la pantalla YA marcó como cuidado o salud: el servidor la pasa también por
+ * el lector con modelo y devuelve la marca más grave. SOLO se llama con el interruptor de consentimiento
+ * encendido (`masGrave.ts`). Nunca lanza: `null` = no hay nada más grave que decir (falla, sesión, red,
+ * respuesta ilegible), y la pantalla se queda con lo que el filtro ya dijo.
+ */
+export async function releerRiesgo(sesion: SesionDeFunciones | null, frase: string): Promise<MarcaDeRiesgo | null> {
+  if (!sesion?.access_token || !sesion.url) return null
+  const r = await llamar(sesion, RUTA, { accion: 'releer_riesgo', frase })
+  return r.ok ? leerMarcaDelServidor(r.datos) : null
 }
 
 const ESTADOS: ResultadoDeRegistro['estado'][] = ['guardado', 'rechazado', 'pendiente_prerrequisito']

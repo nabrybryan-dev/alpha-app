@@ -24,6 +24,11 @@ const T_CHARLA = `${MOTOR}charla.test.ts`
 const T_SIN = 'src/features/praxis/sin-no-entendi.test.ts'
 const T_TOPE = `${DOMINIO}charla/funcion-tope.test.ts`
 const T_CONVERSACION = `${DOMINIO}conversacion.test.ts`
+const T_MAS_GRAVE = `${DOMINIO}masGrave.test.ts`
+const T_MAS_GRAVE_SERVIDOR = `${DOMINIO}registro/funcion-mas-grave.test.ts`
+const T_MAS_GRAVE_PANTALLA = 'src/features/praxis/PraxisCosmos.masgrave.test.tsx'
+const T_CONEXION = 'src/features/praxis/conexionReal.test.ts'
+const SERVIDOR = 'supabase/functions/praxis-registro/index.ts'
 
 const MUTANTES = [
   // 1. Una frase marcada por el filtro llega a la charla
@@ -32,7 +37,7 @@ const MUTANTES = [
   { id: 'M1b', que: 'un turno previo marcado por el filtro viaja como contexto', archivo: `${DOMINIO}charla/modelo.ts`,
     de: "    if (rol === 'persona' && riesgo(limpio)) continue\n", a: '', pruebas: [T_MODELO, T_SERVIDOR] },
   { id: 'M1c', que: 'el servidor no corre el filtro de riesgo antes del modelo', archivo: 'supabase/functions/praxis-registro/index.ts',
-    de: '  const marca = filtroDeRiesgo(frase)\n  if (marca) {\n    const propuesta = derivarPorRiesgo(marca)', a: '  const marca = null as ReturnType<typeof filtroDeRiesgo>\n  if (marca) {\n    const propuesta = derivarPorRiesgo(marca)', pruebas: [T_SERVIDOR] },
+    de: '  const marcaDelFiltro = filtroDeRiesgo(frase)\n  if (marcaDelFiltro) {', a: '  const marcaDelFiltro = null as ReturnType<typeof filtroDeRiesgo>\n  if (marcaDelFiltro) {', pruebas: [T_SERVIDOR] },
   { id: 'M1d', que: 'el texto de charla sale aunque el lector de riesgo con modelo marcó riesgo', archivo: 'supabase/functions/praxis-registro/index.ts',
     de: '  const marcaModelo = marcaDesdeModelo(riesgo.nivel)\n  if (marcaModelo) {\n    const propuesta = derivarPorRiesgo(marcaModelo)\n    await avisarAlCoach(d, s, { origen: \'praxis\', nivel: nivelDeMarca(marcaModelo) })\n    return json({\n      propuesta,\n      tarjeta: construirTarjeta(propuesta, mensajeId),',
     a: '  const marcaModelo = marcaDesdeModelo(riesgo.nivel)\n  if (marcaModelo) {\n    const propuesta = derivarPorRiesgo(marcaModelo)\n    await avisarAlCoach(d, s, { origen: \'praxis\', nivel: nivelDeMarca(marcaModelo) })\n    return json({\n      propuesta, charla: { texto: \'Hola.\' },\n      tarjeta: construirTarjeta(propuesta, mensajeId),', pruebas: [T_SERVIDOR] },
@@ -119,6 +124,41 @@ const MUTANTES = [
     de: '  if (i === ultima) i = (i + 1 + Math.min(lista.length - 2, Math.floor(azar() * (lista.length - 1)))) % lista.length\n', a: '', pruebas: [T_CHARLA] },
   { id: 'M8b', que: 'una pregunta de nutrición o suplementos va a la charla del modelo', archivo: `${MOTOR}charla.ts`,
     de: ' && !esTemaDelCoach(frase)) {', a: ') {', pruebas: [T_CHARLA] },
+  // 9. «Gana la lectura más grave» (3-oct): el modelo solo SUBE la marca del filtro
+  { id: 'G1', que: 'el filtro marca salud o cuidado y el modelo ya no se consulta (servidor)', archivo: SERVIDOR,
+    de: "  if (!hayQueConsultarAlModelo(filtro, d.entorno.PRAXIS_RIESGO_MAS_GRAVE === '1')) return igual", a: '  if (true as boolean) return igual', pruebas: [T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G2', que: 'el modelo BAJA una marca del filtro (gana siempre la lectura del modelo)', archivo: `${DOMINIO}masGrave.ts`,
+    de: 'return gravedad(modelo) > gravedad(filtro) ? (modelo as MarcaDeRiesgo) : filtro', a: 'return modelo ?? filtro', pruebas: [T_MAS_GRAVE, T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G3a', que: 'el modelo falla y la marca del filtro desaparece (servidor)', archivo: SERVIDOR,
+    de: '  if (!lectura) return { ...igual, consultado: true }', a: '  if (!lectura) return { ...igual, marca: null as unknown as MarcaDeRiesgo, consultado: true }', pruebas: [T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G3b', que: 'el modelo falla y la pantalla borra la respuesta del filtro', archivo: `${MOTOR}conversacion.ts`,
+    de: '    if (!m || gravedad(m) <= actual) return\n', a: '    if (!m) { limpiarControles(); return }\n    if (gravedad(m) <= actual) return\n', pruebas: [T_MAS_GRAVE_PANTALLA] },
+  { id: 'G4a', que: 'el modelo dice Quieta y sale salud (la regla no sube nunca)', archivo: `${DOMINIO}masGrave.ts`,
+    de: 'return gravedad(modelo) > gravedad(filtro) ? (modelo as MarcaDeRiesgo) : filtro', a: 'return filtro', pruebas: [T_MAS_GRAVE, T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G4b', que: 'el modelo dice Quieta y la pantalla se queda en salud', archivo: `${MOTOR}conversacion.ts`,
+    de: "    if (m.tipo === 'quieta') { entrarQuieta(m.linea, frase, false); return }\n", a: '', pruebas: [T_MAS_GRAVE_PANTALLA] },
+  { id: 'G5a', que: 'la Quieta sale con la línea del filtro en vez de la del modelo (servidor)', archivo: SERVIDOR,
+    de: "{ tipo: 'quieta', linea: leida.marca.linea }", a: "{ tipo: 'quieta', linea: 'vida' }", pruebas: [T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G5b', que: 'la Quieta sale con la línea de vida en vez de la que leyó el modelo (pantalla)', archivo: `${MOTOR}conversacion.ts`,
+    de: "entrarQuieta(m.linea, frase, false); return }\n    if (m.tipo === 'cuidado'", a: "entrarQuieta('vida', frase, false); return }\n    if (m.tipo === 'cuidado'", pruebas: [T_MAS_GRAVE_PANTALLA] },
+  { id: 'G6a', que: 'con el filtro en Quieta se espera al modelo (regla)', archivo: `${DOMINIO}masGrave.ts`,
+    de: "filtro !== null && filtro.tipo !== 'quieta'", a: 'filtro !== null', pruebas: [T_MAS_GRAVE, T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G6b', que: 'con el filtro en Quieta la pantalla relee con el modelo', archivo: `${MOTOR}conversacion.ts`,
+    de: "  if (turno.paso === 'quieta') { mostrarPersona(frase, 'texto'); entrarQuieta(", a: "  if (turno.paso === 'quieta') { void c.releerRiesgo?.(frase); mostrarPersona(frase, 'texto'); entrarQuieta(", pruebas: [T_MAS_GRAVE_PANTALLA] },
+  { id: 'G7a', que: 'sin consentimiento se envía igual: la conexión trae siempre la relectura', archivo: `${'src/features/praxis/'}conexionReal.ts`,
+    de: '...(lecturaDelModeloSobreMarcadas ? {', a: '...(true as boolean ? {', pruebas: [T_CONEXION] },
+  { id: 'G7b', que: 'sin consentimiento se envía igual: el interruptor de la pantalla sale encendido', archivo: `${DOMINIO}masGrave.ts`,
+    de: 'export const LECTURA_DEL_MODELO_SOBRE_MARCADAS = false', a: 'export const LECTURA_DEL_MODELO_SOBRE_MARCADAS = true', pruebas: [T_MAS_GRAVE, T_CONEXION] },
+  { id: 'G7c', que: 'sin consentimiento se envía igual: el servidor consulta aunque el interruptor esté apagado', archivo: SERVIDOR,
+    de: "d.entorno.PRAXIS_RIESGO_MAS_GRAVE === '1'", a: 'true', pruebas: [T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G8a', que: 'lo que Praxis contestó a una frase de salud entra al hilo de la charla', archivo: `${MOTOR}conversacion.ts`,
+    de: "if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await decir(turno.texto, tok);", a: "if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await dijo(turno.texto, tok);", pruebas: [T_MAS_GRAVE_PANTALLA, PANTALLA] },
+  { id: 'G8b', que: 'la frase marcada (salud) se manda al registrador como una frase cualquiera', archivo: `${MOTOR}conversacion.ts`,
+    de: "if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud');", a: "if (turno.paso === 'salud') { void c.proponer(frase, idMensaje()); subirSiHaceFalta(c, frase, 'salud');", pruebas: [T_MAS_GRAVE_PANTALLA] },
+  { id: 'G9', que: 'la ruta de relectura manda al modelo una frase que el filtro no marcó', archivo: SERVIDOR,
+    de: "  if (!filtro) return json({ marca: null, origen: 'filtro', consultado: false })\n  const leida = await marcaMasGrave(d, s.usuarioId, frase, filtro)", a: "  const leida = await marcaMasGrave(d, s.usuarioId, frase, filtro ?? { tipo: 'cuidado' })", pruebas: [T_MAS_GRAVE_SERVIDOR] },
+  { id: 'G10', que: 'proponer ignora la lectura del modelo sobre una frase marcada', archivo: SERVIDOR,
+    de: '    const marca = leida.marca\n', a: '    const marca = marcaDelFiltro\n', pruebas: [T_MAS_GRAVE_SERVIDOR] },
 ]
 
 const filtro = process.argv.slice(2)

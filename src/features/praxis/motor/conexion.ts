@@ -2,6 +2,7 @@ import type { RespuestaDeGuardar, RespuestaDelRegistrador } from '../../../domai
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { QueFalto } from '../../../domain/praxis/plan/responder'
 import type { ContextoCharla } from '../../../domain/praxis/charla/modelo'
+import type { MarcaDeRiesgo } from '../../../domain/praxis/riesgo'
 import type { RegistroPropuesto } from '../../../domain/praxis/registro/tipos'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
 
@@ -28,6 +29,12 @@ export interface ConexionPraxis {
    * registrador lo usa para no volver a preguntar.
    */
   proponer: (frase: string, mensajeId: string, contexto?: { pantallaEjercicioId?: string; charla?: ContextoCharla }) => Promise<RespuestaDelRegistrador>
+  /**
+   * «Gana la lectura más grave»: relee con el modelo una frase que el filtro marcó como cuidado o salud y devuelve la marca
+   * más grave (o `null`). AUSENTE = el interruptor de consentimiento está apagado y la frase marcada NO sale del teléfono.
+   * Nunca lanza.
+   */
+  releerRiesgo?: (frase: string) => Promise<MarcaDeRiesgo | null>
   /** Guarda lo que la persona confirmó con un toque. */
   guardar: (p: { mensajeId: string; registros: RegistroPropuesto[]; confirmaSesion: boolean }) => Promise<RespuestaDeGuardar>
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */

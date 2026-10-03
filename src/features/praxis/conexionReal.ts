@@ -1,7 +1,8 @@
 import { db } from '../../data/dbInstance'
 import { leerLoQuePraxisVe } from '../../data/praxis/fuente'
 import { dejarPreguntaEnEspera, preguntasEnEsperaDe } from '../../data/praxis/preguntasEnEspera'
-import { guardarRegistro, proponerRegistro } from '../../data/praxis/registrador'
+import { LECTURA_DEL_MODELO_SOBRE_MARCADAS } from '../../domain/praxis/masGrave'
+import { guardarRegistro, proponerRegistro, releerRiesgo } from '../../data/praxis/registrador'
 import { sesionDeFunciones } from '../../data/supabase'
 import { hoyIso } from '../../lib/fecha'
 import type { ConexionPraxis } from './motor/conexion'
@@ -28,7 +29,11 @@ export function horaLocalIso(d: Date = new Date()): string {
   return `${hoyIso(d)}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${desfase >= 0 ? '+' : '-'}${p(Math.trunc(desfase / 60))}:${p(desfase % 60)}`
 }
 
-export function crearConexionPraxis(usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null): ConexionPraxis {
+export function crearConexionPraxis(
+  usuarioId: string, irAlFormulario: (() => void) | null, nombre: string | null = null,
+  /** El interruptor de consentimiento (`masGrave.ts`). Solo las pruebas lo cambian. */
+  lecturaDelModeloSobreMarcadas: boolean = LECTURA_DEL_MODELO_SOBRE_MARCADAS,
+): ConexionPraxis {
   const hoy = hoyIso()
   const leer = () => leerLoQuePraxisVe(db, usuarioId, hoy)
   return {
@@ -49,6 +54,8 @@ export function crearConexionPraxis(usuarioId: string, irAlFormulario: (() => vo
         verComposicion: ve.comida ? ve.comida.verCifras : false,
       })
     },
+    // Sin el interruptor NO existe: la frase marcada por el filtro no sale del teléfono, como dice la pantalla de privacidad.
+    ...(lecturaDelModeloSobreMarcadas ? { releerRiesgo: async (frase: string) => releerRiesgo(await sesionDeFunciones(), frase) } : {}),
     guardar: async (p) => guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() }),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),

@@ -10,7 +10,8 @@ const guardarRegistro = vi.fn(async () => ({ ok: false as const, motivo: 'no_des
 const dejar = vi.fn(async () => ({ ok: false as const, motivo: 'sin_nube' as const }))
 const preguntasDe = vi.fn(async () => [])
 
-vi.mock('../../data/praxis/registrador', () => ({ proponerRegistro: proponer, guardarRegistro }))
+const releer = vi.fn(async () => null)
+vi.mock('../../data/praxis/registrador', () => ({ proponerRegistro: proponer, guardarRegistro, releerRiesgo: releer }))
 vi.mock('../../data/praxis/preguntasEnEspera', () => ({ dejarPreguntaEnEspera: dejar, preguntasEnEsperaDe: preguntasDe }))
 vi.mock('../../data/supabase', () => ({ modoNube: false, sesionDeFunciones: async () => ({ access_token: 'jwt', url: 'https://x.supabase.co' }) }))
 
@@ -83,3 +84,22 @@ describe('crearConexionPraxis', () => {
     expect(dejar).not.toHaveBeenCalled()
   })
 })
+
+describe('crearConexionPraxis · relectura del riesgo con el modelo (consentimiento)', () => {
+  beforeEach(() => localStorage.clear())
+  afterEach(() => vi.clearAllMocks())
+
+  it('por defecto NO existe: lo marcado por el filtro no sale del teléfono, como dice la pantalla de privacidad', () => {
+    const c = crearConexionPraxis('u-valentina', () => {})
+    expect(c.releerRiesgo).toBeUndefined()
+    expect(releer).not.toHaveBeenCalled()
+  })
+
+  it('con el interruptor encendido, relee por la función con la frase y devuelve su marca', async () => {
+    releer.mockResolvedValueOnce({ tipo: 'cuidado' } as never)
+    const c = crearConexionPraxis('u-valentina', () => {}, null, true)
+    expect(await c.releerRiesgo?.('me duele la rodilla')).toEqual({ tipo: 'cuidado' })
+    expect(releer).toHaveBeenCalledWith({ access_token: 'jwt', url: 'https://x.supabase.co' }, 'me duele la rodilla')
+  })
+})
+

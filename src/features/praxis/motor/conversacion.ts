@@ -1,4 +1,5 @@
 import { decidirTurno, pasoTrasProponer, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
+import { gravedad } from '../../../domain/praxis/masGrave'
 import { cabeCharla, limpiarTurnos, sinSaludoRepetido, type TurnoPrevio } from '../../../domain/praxis/charla/modelo'
 import { destinatarioDe, estadoDeLaEspera, ofertaDePregunta, type Destinatario } from '../../../domain/praxis/enEspera'
 import { SIN_DATO, type QueFalto } from '../../../domain/praxis/plan/responder'
@@ -21,7 +22,9 @@ import { Cancelado, S, cancelar, emitir, esperaCon, vigilar } from './sesion'
  *
  * El orden lo decide el dominio (`decidirTurno`) y aquí solo se pinta:
  *   1. Seguridad: riesgo → la Quieta; ambiguo → la pregunta de cuidado; salud → texto fijo.
- *      Nada de eso sale del teléfono.
+ *      Nada de eso entra al hilo ni se guarda. Solo con el interruptor de consentimiento de `masGrave.ts` encendido
+ *      (hoy apagado), cuidado y salud se releen también con el modelo y la pantalla sube si lee algo más grave
+ *      (`subirSiHaceFalta`); sin él, nada de eso sale del teléfono.
  *   1b. Solo si el filtro no marcó nada: la charla. «Gracias», «quién eres», «chao» se contestan aquí mismo
  *      (`charla.ts`). Los saludos, el «¿cómo estás?» y lo que el plan no puede contestar van al modelo (la
  *      misma llamada del registrador), con una APERTURA corta que Praxis dice al instante mientras piensa.
@@ -272,6 +275,27 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
 /* Lo último que dijo Praxis: ¿fue una pregunta de ánimo? Y cuántas veces habló ya la persona en esta sesión. Solo sirven a la charla. */
 let animoPendiente = false, turnosHablados = 0
 
+/* ——— «Gana la lectura más grave» ———
+   La respuesta del filtro (cuidado o salud) se muestra YA, sin esperar. En paralelo, y solo si el interruptor de consentimiento
+   está encendido (`c.releerRiesgo` existe), el servidor la relee con el modelo. Si lo que vuelve es MÁS GRAVE, la pantalla sube:
+     - Quieta: siempre, mientras la sala siga abierta, aunque la persona ya haya escrito otra cosa (una urgencia no caduca);
+     - cuidado (desde salud): solo si ese sigue siendo el último turno, para no pisar una conversación que ya siguió.
+   Si el modelo falla, tarda, no contesta o devuelve algo igual o menor, no pasa nada: ya se dijo lo del filtro. La frase NO entra al hilo. */
+let turnoDeSeguridad = 0
+
+function subirSiHaceFalta(c: ConexionPraxis, frase: string, filtro: 'cuidado' | 'salud'): void {
+  const releer = c.releerRiesgo
+  if (!releer) return
+  const miTurno = ++turnoDeSeguridad
+  const actual = gravedad(filtro === 'salud' ? { tipo: 'salud', filtro: 'sintoma' } : { tipo: 'cuidado' })
+  void releer(frase).then((m) => {
+    if (!m || gravedad(m) <= actual) return
+    if (conexion() !== c || $('#sala').hidden || S.quieta) return // la persona ya se fue de la sala, o ya está en la Quieta
+    if (m.tipo === 'quieta') { entrarQuieta(m.linea, frase, false); return }
+    if (m.tipo === 'cuidado' && miTurno === turnoDeSeguridad && !S.cuidado) preguntarCuidado(frase, 'texto', true)
+  }, () => undefined)
+}
+
 async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?: { ejercicioId: string; eco: string }): Promise<void> {
   limpiarControles()
   const previos = limpiarTurnos(historial) // lo de ANTES de esta frase: máximo 6
@@ -284,9 +308,9 @@ async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?:
   animoPendiente = false // lo último que dijo Praxis cambia con cada turno; solo el saludo y el «¿Y tú?» lo vuelven a abrir
   // La seguridad va primero: estas dos salidas cancelan el turno (el bucle termina en su próximo vigilar).
   if (turno.paso === 'quieta') { mostrarPersona(frase, 'texto'); entrarQuieta(turno.linea, frase, false); return }
-  if (turno.paso === 'cuidado') { preguntarCuidado(frase, 'texto'); return }
+  if (turno.paso === 'cuidado') { preguntarCuidado(frase, 'texto'); subirSiHaceFalta(c, frase, 'cuidado'); return }
   mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
-  if (turno.paso === 'salud') { await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
+  if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
   if (!eleccion) anotar('persona', frase) // ya pasó el filtro de riesgo; el saneador vuelve a descartar lo marcado
   if (turno.paso === 'charla') { // 0 ms, 0 tokens: nada va al servidor ni se guarda, y se dice con la misma voz que todo lo demás
     animoPendiente = turno.respuesta.esperaAnimo
