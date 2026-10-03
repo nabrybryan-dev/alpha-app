@@ -191,9 +191,20 @@ export interface VelocidadDeSerie {
   huella?: HuellaDeRepeticion
 }
 
+/**
+ * Cómo quedó confirmada una serie: la persona tocó «Hecho tal cual» (`tal_cual`: carga y
+ * reps son la pauta, y lo firmó) o cambió algún número (`editada`).
+ *
+ * Una serie SIN esta clave es antigua (anterior al 2026-10-03) o la anotó otro camino
+ * (voz/chat): «no se sabe», no «tal cual» ni «editada».
+ */
+export type ConfirmacionSerie = 'tal_cual' | 'editada'
+
 export interface SerieRegistrada {
   orden: number
   cargaKg: number
+  /** Ausente = serie antigua, no se sabe. Ver `ConfirmacionSerie`. */
+  confirmada?: ConfirmacionSerie
   /** La medición del encoder, si esa serie se grabó. Ausente = no se midió, que
    *  es lo normal: hoy casi nadie graba. */
   velocidad?: VelocidadDeSerie

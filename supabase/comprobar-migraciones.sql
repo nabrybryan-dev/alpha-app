@@ -2361,4 +2361,13 @@ select '0108 - authenticated no decide la hora ni el tipo, no borra, y el aviso 
             when has_function_privilege('anon', 'public.praxis_aviso_nace_limpio()', 'execute')
               or has_function_privilege('authenticated', 'public.praxis_aviso_nace_limpio()', 'execute') then 'NO'
             else 'SI' end
+
+union all
+-- La 0109: el export de la tasa cuenta la confirmacion de cada serie (`confirmada`: tal_cual / editada).
+-- Sin ella la revision larga no distingue «lo hizo y lo firmo» de «no se sabe». SIN APLICAR al escribirla.
+select '0109 - la tasa lee la confirmacion de la serie', 'el export de la tasa cuenta series_tal_cual, series_editadas y series_sin_bandera',
+       case when to_regprocedure('public.tasa_contra_el_plan_export()') is null then 'NO'
+            when pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%series_tal_cual%'
+             and pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%series_sin_bandera%' then 'SI'
+            else 'NO' end
 order by migracion, senal;

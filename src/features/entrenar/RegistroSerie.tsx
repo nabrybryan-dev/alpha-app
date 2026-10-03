@@ -1,7 +1,12 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useEffect, useId, useImperativeHandle, useState } from 'react'
 import { SelectorRir } from '../../components/ui/SelectorRir'
 import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
+import {
+  confirmacionTrasCambio,
+  sePuedeGuardar,
+  type ConfirmacionDeBorrador,
+} from '../../domain/confirmacionSerie'
 import { seriePrescrita } from '../../domain/ondulacion'
 import { cargaSugerida } from '../../domain/prescripcion'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
@@ -9,6 +14,7 @@ import { borrarClave, escribirJSON, leerJSON } from '../../lib/persistencia'
 import { IconoCamara } from '../../components/ui/Icono'
 import { HojaMedicion } from './encoder/HojaMedicion'
 import { marcarCamaraAbierta } from './camaraAbierta'
+import { HechoTalCual, MotivoSinConfirmar } from './HechoTalCual'
 
 interface RegistroSerieProps {
   ejercicio: EjercicioPrescrito
@@ -19,9 +25,12 @@ interface RegistroSerieProps {
    *  dispara desde fuera vía el ref (CTA fijo inferior). */
   mostrarBoton?: boolean
   onGuardar: (serie: SerieRegistrada) => void
+  /** Avisa a quien pinta el botón de guardar de fuera si ya se puede guardar. */
+  onPuedeGuardar?: (puede: boolean) => void
 }
 
 export interface RegistroSerieHandle {
+  /** Guarda por el camino de «Guardar»: no hace nada si la persona aún no ha cambiado un número. */
   guardar: () => void
 }
 
@@ -30,6 +39,8 @@ interface Borrador {
   reps: number
   /** Vacío hasta que la persona lo elige: ver `SelectorRir`. */
   rir?: number
+  /** `editada` en cuanto la persona cambia la carga o las reps. Sin esto, la pauta es solo sugerencia. */
+  confirmada?: ConfirmacionDeBorrador
 }
 
 /** Cuando no hay nada de dónde deducir la carga, el stepper arranca aquí. */
@@ -40,15 +51,18 @@ function cargaInicial(ejercicio: EjercicioPrescrito, orden: number): number {
 }
 
 export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>(function RegistroSerie(
-  { ejercicio, orden, borradorId, mostrarBoton = true, onGuardar },
+  { ejercicio, orden, borradorId, mostrarBoton = true, onGuardar, onPuedeGuardar },
   ref,
 ) {
   const clave = `alpha-serie-${borradorId}`
   const prescrita = seriePrescrita(ejercicio, orden)
+  // La pauta: lo que se SUGIERE. Solo cuenta como hecho si la persona lo firma.
+  const pautaCarga = cargaInicial(ejercicio, orden)
+  const pautaReps = prescrita?.reps ?? ejercicio.repsDiana
   const [borrador, setBorrador] = useState<Borrador>(() =>
     leerJSON<Borrador>(clave, {
-      cargaKg: cargaInicial(ejercicio, orden),
-      reps: prescrita?.reps ?? ejercicio.repsDiana,
+      cargaKg: pautaCarga,
+      reps: pautaReps,
       // SIN `rir`. Aquí arrancaba en el RIR objetivo, y quien no tocaba el mando
       // guardaba el objetivo como si fuera lo que sintió: una asesorada con objetivo
       // RIR 5 quedaba con RIR 5 en todas sus series. El objetivo se muestra arriba
@@ -64,18 +78,37 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
   const cambiar = (parche: Partial<Borrador>) => setBorrador((b) => ({ ...b, ...parche }))
 
+  // Cambiar un número ES confirmar la serie (`editada`); repetir el mismo valor no cuenta.
+  const cambiarNumero = (campo: 'cargaKg' | 'reps', valor: number) =>
+    setBorrador((b) => ({
+      ...b,
+      [campo]: valor,
+      confirmada: confirmacionTrasCambio(b.confirmada, b[campo], valor),
+    }))
+
+  const puedeGuardar = sePuedeGuardar(borrador.confirmada)
+  useEffect(() => {
+    onPuedeGuardar?.(puedeGuardar)
+  }, [onPuedeGuardar, puedeGuardar])
+
+  const rirElegido = borrador.rir !== undefined ? { rir: borrador.rir } : {}
+
+  /** «Hecho tal cual»: se guarda la PAUTA (no lo que haya en el borrador) y se firma. */
+  const hechoTalCual = () => {
+    onGuardar({ orden, cargaKg: pautaCarga, reps: pautaReps, ...rirElegido, confirmada: 'tal_cual' })
+    borrarClave(clave)
+  }
+
+  /** «Guardar»: solo después de cambiar un número. Sin confirmar no guarda NADA. */
   const guardar = () => {
-    onGuardar({
-      orden,
-      cargaKg: borrador.cargaKg,
-      reps: borrador.reps,
-      ...(borrador.rir !== undefined ? { rir: borrador.rir } : {}),
-    })
+    if (!sePuedeGuardar(borrador.confirmada)) return
+    onGuardar({ orden, cargaKg: borrador.cargaKg, reps: borrador.reps, ...rirElegido, confirmada: 'editada' })
     borrarClave(clave) // ya quedó en la base; el borrador deja de hacer falta
   }
 
   // Permite disparar el guardado desde el CTA fijo inferior.
   useImperativeHandle(ref, () => ({ guardar }))
+  const idMotivo = useId()
 
   const etiqueta = etiquetaDeSerie(ejercicio, orden)
   const [midiendo, setMidiendo] = useState(false)
@@ -128,9 +161,9 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo, uno por fila (los seis botones del RIR no caben en media columna).
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
-      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad cifraViva onCambiar={(v) => cambiar({ cargaKg: v })} />
+      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad cifraViva sugerido={!puedeGuardar} onCambiar={(v) => cambiarNumero('cargaKg', v)} />
       <div className="mt-2 flex flex-col gap-2">
-        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad cifraViva onCambiar={(v) => cambiar({ reps: v })} />
+        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad cifraViva sugerido={!puedeGuardar} onCambiar={(v) => cambiarNumero('reps', v)} />
         <SelectorRir valor={borrador.rir} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
@@ -157,15 +190,28 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
         reps={borrador.reps}
       />
 
+      {/* UN TOQUE para lo normal: la pauta tal cual. Si ya cambió un número, ese botón
+          sobra (lo que hay en pantalla ya no es la pauta) y manda «Guardar». */}
+      {!puedeGuardar && (
+        <div className="mt-3.5">
+          <HechoTalCual cargaKg={pautaCarga} reps={pautaReps} onConfirmar={hechoTalCual} />
+        </div>
+      )}
+
       {mostrarBoton && (
-        <button
-          type="button"
-          onClick={guardar}
-          className="press mt-3.5 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white"
-          style={{ boxShadow: 'var(--glow-accion)' }}
-        >
-          Guardar serie {orden}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={!puedeGuardar}
+            aria-describedby={puedeGuardar ? undefined : idMotivo}
+            className="press mt-3 w-full rounded-boton bg-accion py-3.5 font-display text-base uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
+            style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
+          >
+            Guardar serie {orden}
+          </button>
+          {!puedeGuardar && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" />}
+        </>
       )}
     </div>
   )

@@ -25,6 +25,7 @@ import { type RegistroSerieHandle } from './RegistroSerie'
 import { conTransicionDeVista } from '../../lib/transicionDeVista'
 import { SesionCerrada } from './SesionCerrada'
 import { SalonDeMaquinas } from './SalonDeMaquinas'
+import { MotivoSinConfirmar } from './HechoTalCual'
 import { TarjetaEjercicio } from './TarjetaEjercicio'
 import { TestPostSesion } from './TestPostSesion'
 import { VisorContenido } from '../contenidos/VisorContenido'
@@ -100,6 +101,8 @@ function SesionEnCurso() {
   const [exIdxManual, setExIdxManual] = useState<number | null>(null)
   const contadorFrase = useRef(0)
   const registroRef = useRef<RegistroSerieHandle | null>(null)
+  // La serie en curso solo se puede guardar tras «Hecho tal cual» o cambiar un número.
+  const [puedeGuardar, setPuedeGuardar] = useState(false)
 
   useEffect(() => {
     if (descanso) escribirJSON(claveDescanso, descanso)
@@ -343,6 +346,7 @@ function SesionEnCurso() {
               onVerDemo={setDemo}
               onVerPatron={setPatron}
               registroRef={registroRef}
+              onPuedeGuardar={setPuedeGuardar}
               onGuardarSerie={(serie) => {
                 db.microciclos.registrarSerie(microciclo.id, ejercicioActual.id, serie)
                 alGuardarSerie(ejercicioActual.id, ejercicioActual.descansoMin)
@@ -456,14 +460,24 @@ function SesionEnCurso() {
               />
             )}
             {mostrarCTA && (
-              <button
-                type="button"
-                onClick={() => registroRef.current?.guardar()}
-                className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white"
-                style={{ boxShadow: 'var(--glow-accion)' }}
-              >
-                Guardar serie {ordenActual}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => registroRef.current?.guardar()}
+                  disabled={!puedeGuardar}
+                  aria-describedby={puedeGuardar ? undefined : 'motivo-sin-confirmar'}
+                  className="press w-full rounded-boton bg-accion py-4 font-display text-base uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
+                  style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
+                >
+                  Guardar serie {ordenActual}
+                </button>
+                {!puedeGuardar && (
+                  <MotivoSinConfirmar
+                    id="motivo-sin-confirmar"
+                    className="rounded-boton bg-ink-900/90 px-2 py-1"
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
