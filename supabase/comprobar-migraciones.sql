@@ -2370,4 +2370,20 @@ select '0109 - la tasa lee la confirmacion de la serie', 'el export de la tasa c
             when pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%series_tal_cual%'
              and pg_get_functiondef(to_regprocedure('public.tasa_contra_el_plan_export()')) like '%series_sin_bandera%' then 'SI'
             else 'NO' end
+union all
+-- La 0110: las respuestas del coach a las preguntas de la cadena. Solo el coach y la nutricionista leen y responden (por
+-- la funcion, a su nombre); nadie escribe la tabla directo; anon no tiene nada. SIN APLICAR al escribirla.
+select '0110 - las respuestas del coach a la cadena', 'tabla con RLS solo lectura para coach/nutricionista; responder_pregunta_coach security definer, sin anon',
+       case when to_regclass('public.respuestas_coach_cadena') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.respuestas_coach_cadena')) then 'NO'
+            when has_table_privilege('anon', 'public.respuestas_coach_cadena', 'select') then 'NO'
+            when has_table_privilege('authenticated', 'public.respuestas_coach_cadena', 'insert')
+              or has_table_privilege('authenticated', 'public.respuestas_coach_cadena', 'update')
+              or has_table_privilege('authenticated', 'public.respuestas_coach_cadena', 'delete') then 'NO'
+            when to_regprocedure('public.responder_pregunta_coach(text,uuid,integer,text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.responder_pregunta_coach(text,uuid,integer,text,text)')) then 'NO'
+            when has_function_privilege('anon', 'public.responder_pregunta_coach(text,uuid,integer,text,text)', 'execute') then 'NO'
+            else 'SI' end
+
 order by migracion, senal;

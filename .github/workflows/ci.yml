@@ -176,3 +176,6 @@ jobs:
 
       - name: El aviso de Praxis al coach lo deja la persona sin poder leerlo, lo atiende solo el coach y no guarda ninguna frase
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/108-praxis-avisos-coach.sql
+
+      - name: La respuesta del coach a una pregunta de la cadena la dan solo el coach y la nutricionista, a su nombre, y solo por la función
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/112-respuestas-coach-cadena.sql
