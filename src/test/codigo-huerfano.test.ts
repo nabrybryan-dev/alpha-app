@@ -137,6 +137,11 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/praxis/riesgoModelo.ts#SHA16_PROMPT_RIESGO':
     'La Edge Function lo manda en meta.version_prompt_riesgo para saber con qué prompt medido ' +
     'se leyó cada frase; fuera del alcance de este análisis.',
+  // La charla con modelo (3-oct): el servidor la llama desde la Edge Function `praxis-registro`, que vive fuera de src/.
+  'src/domain/praxis/charla/modelo.ts#armarContextoCharla': 'La consume la Edge Function praxis-registro para armar el pedazo de charla del mensaje; fuera del alcance de este análisis.',
+  'src/domain/praxis/charla/modelo.ts#leerContextoCharla': 'La consume la Edge Function praxis-registro para sanear trato, nombre, apertura y turnos; fuera del alcance de este análisis.',
+  'src/domain/praxis/charla/modelo.ts#leerRespuestaCharla': 'La consume la Edge Function praxis-registro para validar la respuesta de charla del modelo; fuera del alcance de este análisis.',
+  'src/domain/praxis/charla/promptCharla.ts#VERSION_PROMPT_CHARLA': 'La Edge Function lo manda en meta.version_prompt_charla; fuera del alcance de este análisis.',
   // El cuestionario de ingreso por voz (2-3 oct): el prompt y la validación con citas viven en el dominio para
   // que tengan pruebas de vitest, y los llama la Edge Function `praxis-registro` (`accion: 'ingreso'`), que
   // está fuera de src/ y por eso este análisis no la ve. El banco de `scripts/banco-ingreso/` también.
