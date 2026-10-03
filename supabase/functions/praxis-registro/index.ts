@@ -45,6 +45,9 @@ import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 // El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
 import { bloqueDeSistema } from '../../../src/domain/praxis/prefijoCacheable.ts'
+// La charla con modelo (3-oct): contexto saneado, validación de la respuesta y la versión de su bloque del prompt.
+import { armarContextoCharla, cabeCharla, leerContextoCharla, leerRespuestaCharla } from '../../../src/domain/praxis/charla/modelo.ts'
+import { VERSION_PROMPT_CHARLA } from '../../../src/domain/praxis/charla/promptCharla.ts'
 // El cuestionario de ingreso por voz: el prompt y la validación con citas (puros) y su guion.
 import { PROMPT_SISTEMA_INGRESO, VERSION_PROMPT_INGRESO, armarMensajeIngreso, leerSalidaIngreso, validarIngreso } from '../../../src/domain/praxis/ingreso/extraer.ts'
 import { TURNOS_VOZ, type TurnoId } from '../../../src/domain/praxis/ingreso/guion.ts'
@@ -79,7 +82,9 @@ const CORS = {
 const json = (cuerpo: unknown, status = 200): Response =>
   new Response(JSON.stringify(cuerpo), { status, headers: { 'content-type': 'application/json', ...CORS } })
 
-const MSG_NO_ENTENDI = 'No te entendí bien, ¿lo anotas aquí?'
+// Es un FALLO del servidor (el modelo no respondió o su respuesta no se pudo leer), no un «no entendí» a la persona.
+// La pantalla ni lo muestra: por el 502 dice su propio texto.
+const MSG_NO_ENTENDI = 'Se me enredó algo de mi lado. ¿Me lo repites?'
 const TIMEOUT_MODELO_MS = 8000
 const MAX_FRASE = 600
 const MAX_POR_HORA = 30
@@ -284,6 +289,8 @@ export async function llamarHaiku(
   d: Dependencias,
   ctx: ContextoRegistro,
   frase: string,
+  /** El pedazo de charla del mensaje de usuario (`armarContextoCharla`); sin él, el registrador de siempre. */
+  charla?: string,
 ): Promise<{ entrada: unknown; tokensEntrada: number; tokensSalida: number } | null> {
   const clave = d.entorno.ANTHROPIC_API_KEY
   if (!clave) {
@@ -303,7 +310,7 @@ export async function llamarHaiku(
       system: [bloqueDeSistema(PROMPT_SISTEMA, HERRAMIENTAS_REGISTRO_JSON)],
       tools: HERRAMIENTAS_REGISTRO,
       tool_choice: { type: 'tool', name: 'registrar' },
-      messages: [{ role: 'user', content: armarMensajeUsuario(ctx, frase) }],
+      messages: [{ role: 'user', content: armarMensajeUsuario(ctx, frase, charla) }],
     }),
   })
   if (!r.ok) {
@@ -369,6 +376,8 @@ interface CuerpoProponer {
   ver_composicion?: unknown
   comidas_ayer?: unknown
   comida_pendiente?: unknown
+  /** La charla (3-oct): trato, nombre, hasta 6 turnos de esta sesión y el saludo ya dicho. Nada de esto se guarda. */
+  charla?: unknown
 }
 
 async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan: Promise<Plan>): Promise<Response> {
@@ -403,6 +412,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
 
   // 2. Contexto implícito, leído con el JWT de la persona.
   const ahora = horaConfiable(cuerpo.hora_local, d.ahora())
+  const contextoCharla = leerContextoCharla(cuerpo.charla)
   const { activo, anterior } = await medir(reloj, 'plan', plan) // ya venía leyéndose desde antes de la validación: aquí casi no espera
   const ut = cuerpo.ultimo_tocado
   const ctx = armarContexto({
@@ -434,7 +444,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   }
   const registrador: Promise<{ entrada: unknown; tokensEntrada: number; tokensSalida: number } | null> = rapido
     ? Promise.resolve({ entrada: rapido.bruto, tokensEntrada: 0, tokensSalida: 0 })
-    : llamarHaiku(d, ctx, frase).catch((e: unknown) => {
+    : llamarHaiku(d, ctx, frase, armarContextoCharla(contextoCharla, ahora)).catch((e: unknown) => {
         console.error('praxis-registro: la llamada a Anthropic falló', e instanceof Error ? e.name : 'error')
         return null
       })
@@ -460,13 +470,17 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   // 4. Citas válidas + resolutores deterministas. Nada se guarda.
   const { extraccion, citasInvalidas } = validarExtraccion(frase, salida.entrada)
   const propuesta = resolverPropuesta(frase, extraccion, ctx, citasInvalidas)
+  // La charla: solo si no hay nada que guardar, preguntar ni derivar. Es TEXTO: no crea tarjeta de confirmación ni escribe nada.
+  const textoCharla = !rapido && cabeCharla(propuesta, { intencionCharla: extraccion.intencion.includes('charla') && !extraccion.intencion.includes('consulta') }) ? leerRespuestaCharla(salida.entrada, contextoCharla) : null
   return json({
     propuesta,
     tarjeta: construirTarjeta(propuesta, mensajeId),
+    ...(textoCharla ? { charla: { texto: textoCharla } } : {}),
     meta: {
       modelo: MODELO_HAIKU,
       derivada: propuesta.accion === 'derivar',
       version_prompt: VERSION_PROMPT,
+      version_prompt_charla: VERSION_PROMPT_CHARLA,
       version_esquema: VERSION_ESQUEMA,
       version_resolutores: VERSION_RESOLUTORES,
       camino: rapido ? 'rapido' : 'modelo', // «rapido»: el registrador no llamó al modelo

@@ -194,6 +194,7 @@ export const ESQUEMA_REGISTRO: Esquema = objeto(
       'SOLO si dijo dolor, molestia, lesión, mareo, síntoma, medicamento o tristeza profunda. Un número raro o exagerado NO es clínico. Sin nada de eso, omite clinico.',
     ),
     fuera_de_alcance: { type: 'boolean', description: 'true solo si es pregunta, consejo o charla: no es un registro' },
+    respuesta_charla: { type: 'string', description: 'SOLO si la frase es charla (intencion charla): lo que Praxis le diría, 1-2 frases cortas. Si hay un registro, omítelo.' },
   },
   ['intencion'],
   'Etiqueta lo que la persona dijo. No calcules ni completes números: copia fragmentos literales. Omite todo campo vacío; nunca escribas una cita que no esté en la frase.',
