@@ -87,7 +87,8 @@ const json = (cuerpo: unknown, status = 200): Response =>
 const MSG_NO_ENTENDI = 'Se me enredó algo de mi lado. ¿Me lo repites?'
 const TIMEOUT_MODELO_MS = 8000
 const MAX_FRASE = 600
-const MAX_POR_HORA = 30
+/** Mensajes por persona y hora. 30 → 60 (Bryan, 3-oct-2026): la charla ahora pasa por el modelo y gasta cupo. */
+export const MAX_POR_HORA = 60
 /** Una respuesta de CONTEXTO es larga a propósito (un minuto hablando son ~1.200 caracteres). */
 const MAX_TEXTO_INGRESO = 1500
 /** Un ingreso son 5 turnos: 40 por hora dan para ocho pruebas completas por persona. */

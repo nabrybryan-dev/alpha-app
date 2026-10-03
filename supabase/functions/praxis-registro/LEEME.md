@@ -39,7 +39,7 @@ Haiku no ve la frase) → contexto leído con el JWT → Haiku (`claude-haiku-4-
 herramienta `registrar` forzada, `strict: true`, `temperature: 0`, prefijo
 cacheado) → validación de citas literales → resolutores → tarjeta.
 
-Errores: 400 (frase vacía o larga), 401 (sin sesión), 429 (30 por hora), 502
+Errores: 400 (frase vacía o larga), 401 (sin sesión), 429 (60 por hora, antes 30), 502
 (`Se me enredó algo de mi lado. ¿Me lo repites?`: Haiku falló, sin secreto o sin respuesta).
 
 **Charla (3-oct-2026).** La petición puede traer `charla: { trato: 'tu'|'usted', nombre, apertura, turnos: [{ rol: 'persona'|'praxis', texto }] }`
@@ -47,6 +47,8 @@ Errores: 400 (frase vacía o larga), 401 (sin sesión), 429 (30 por hora), 502
 la MISMA llamada a Haiku: el bloque `BLOQUE_CHARLA` va al final de `PROMPT_SISTEMA` y el modelo escribe `respuesta_charla`
 cuando la frase no es un registro ni una consulta. Si no hay nada que guardar, preguntar ni derivar y la respuesta pasa la
 validación (`charla/modelo.ts`), la respuesta trae `charla: { texto }`; si no, no trae nada y la pantalla usa su libreto.
+
+**Aprobado por Bryan el 3-oct-2026:** el primer nombre de la persona y los últimos 6 turnos de la sesión (los no marcados por el filtro de riesgo) viajan al modelo. Tope: 60 mensajes por persona y hora (antes 30).
 
 ### `/praxis-registro` con `accion: 'ingreso'` — un turno hablado del cuestionario de ingreso (prueba interna, no guarda)
 

@@ -21,6 +21,8 @@ const PANTALLA = 'src/features/praxis/PraxisCosmos.charla.test.tsx'
 const T_MODELO = `${DOMINIO}charla/modelo.test.ts`
 const T_SERVIDOR = `${DOMINIO}charla/funcion-charla.test.ts`
 const T_CHARLA = `${MOTOR}charla.test.ts`
+const T_SIN = 'src/features/praxis/sin-no-entendi.test.ts'
+const T_TOPE = `${DOMINIO}charla/funcion-tope.test.ts`
 const T_CONVERSACION = `${DOMINIO}conversacion.test.ts`
 
 const MUTANTES = [
@@ -99,6 +101,18 @@ const MUTANTES = [
     de: "const MSG_NO_ENTENDI = 'Se me enredó algo de mi lado. ¿Me lo repites?'", a: "const MSG_NO_ENTENDI = 'No te entendí bien, ¿lo anotas aquí?'", pruebas: [T_SERVIDOR] },
   { id: 'M7e', que: 'un texto local trae «no te entendí»', archivo: `${MOTOR}charla.ts`,
     de: "['Aquí estoy. Cuéntame qué hiciste hoy o pregúntame por tu plan.', 'Aquí estoy. Cuénteme qué hizo hoy o pregúnteme por su plan.']", a: "['No te entendí. Cuéntame qué hiciste hoy.', 'No le entendí. Cuénteme qué hizo hoy.']", pruebas: [T_MODELO] },
+
+  // 9. Ingreso por voz y tope (3-oct, decisiones de Bryan)
+  { id: 'M9a', que: 'vuelve el «no te entendí» en el ingreso por voz', archivo: 'src/features/praxis/ingreso/PasosDeVoz.tsx',
+    de: "{motivo === 'no_entendi' ? pedirDeNuevo(turno.bloque, guion.pregunta, usted) : t(...MOTIVOS[motivo])}", a: "{t('No te entendí bien. ¿Lo intentas otra vez?', 'No le entendí bien. ¿Lo intenta otra vez?')}", pruebas: [T_SIN] },
+  { id: 'M9b', que: 'vuelve el «no te entendí del todo» en los turnos', archivo: `${MOTOR}turnos.ts`,
+    de: "await decir(repetirEnCorto(cfg.pregunta, trato() === 'usted'), tok)", a: "await decir('No te entendí del todo. Puedes tocar una opción.', tok)", pruebas: [T_SIN] },
+  { id: 'M9c', que: 'el reintento del ingreso deja de pedir el dato concreto', archivo: `${DOMINIO}ingreso/repetir.ts`,
+    de: 'Dime solo el dato: ${p}', a: 'No te entendí: ${p}', pruebas: [`${DOMINIO}ingreso/repetir.test.ts`] },
+  { id: 'M9d', que: 'el tope por hora vuelve a 30', archivo: 'supabase/functions/praxis-registro/index.ts',
+    de: 'export const MAX_POR_HORA = 60', a: 'export const MAX_POR_HORA = 30', pruebas: [T_TOPE] },
+  { id: 'M9e', que: 'desaparece el tope por hora', archivo: 'supabase/functions/praxis-registro/index.ts',
+    de: '  if (recientes.length >= maximo) {', a: '  if (false as boolean) {', pruebas: [T_TOPE] },
 
   // 8. Otros
   { id: 'M8a', que: 'el libreto repite la última variante dicha', archivo: `${MOTOR}charla.ts`,

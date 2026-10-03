@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { LINEAS_DE_AYUDA } from '../../../domain/praxis/riesgo'
 import { MENSAJES_DE_BLOQUE, TURNOS_VOZ, turnosDeBloque, type CampoIngreso, type TurnoVoz } from '../../../domain/praxis/ingreso/guion'
+import { pedirDeNuevo } from '../../../domain/praxis/ingreso/repetir'
 import { guionDelTurno, preguntaDeToque, tieneDetalle, type DerivacionIngreso, type RespuestaIngreso } from '../../../domain/praxis/ingreso/prueba'
 import { useMantenerParaHablar } from './useMantenerParaHablar'
 
@@ -24,7 +25,7 @@ const MOTIVOS: Record<Extract<RespuestaIngreso, { ok: false }>['motivo'], [strin
   sin_sesion: ['No pude comprobar tu sesión. Entra de nuevo a la app.', 'No pude comprobar su sesión. Entre de nuevo a la app.'],
   red: ['No pude conectar con Praxis. Revisa tu internet.', 'No pude conectar con Praxis. Revise su internet.'],
   limite: ['Ya hiciste muchas pruebas en esta hora. Espera un rato.', 'Ya hizo muchas pruebas en esta hora. Espere un rato.'],
-  no_entendi: ['No te entendí bien. ¿Lo intentas otra vez?', 'No le entendí bien. ¿Lo intenta otra vez?'],
+  no_entendi: ['', ''], // se arma con la pregunta del turno (`pedirDeNuevo`): nunca «no te entendí»
   frase: ['Esa respuesta no se pudo leer. ¿Lo intentas otra vez?', 'Esa respuesta no se pudo leer. ¿Lo intenta otra vez?'],
 }
 
@@ -139,7 +140,7 @@ export function PasoDeTurno({ indice, turno, t, usted, habla, extraer, alTermina
 
       {fase === 'fallo' && (
         <div className="ing-detenido" role="alert">
-          <p>{t(...MOTIVOS[motivo])}</p>
+          <p>{motivo === 'no_entendi' ? pedirDeNuevo(turno.bloque, guion.pregunta, usted) : t(...MOTIVOS[motivo])}</p>
           <div className="ing-botones">
             {oido && <button type="button" className="ing-boton ing-boton-primario" onClick={() => { void enviar(oido, via) }}>{t('Intentar de nuevo', 'Intentar de nuevo')}</button>}
             <button type="button" className="ing-boton" onClick={() => alTerminar({ tipo: 'saltado', repetidos })}>{t('Seguir sin esta parte', 'Seguir sin esta parte')}</button>
