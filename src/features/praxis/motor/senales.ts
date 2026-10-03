@@ -58,8 +58,8 @@ export function revisarRiesgo(txt: string, fuente: Fuente): boolean {
   return false
 }
 /* Una pregunta directa, escrita por personas: preguntar por el daño no aumenta el riesgo */
-export function preguntarCuidado(txt: string, fuente: Fuente): void {
-  mostrarPersona(txt, fuente)
+export function preguntarCuidado(txt: string, fuente: Fuente, yaMostrada = false): void {
+  if (!yaMostrada) mostrarPersona(txt, fuente)
   cancelar(); Voz.callar(); Onda.estado('reposo')
   S.cuidado = { txt, fuente }
   limpiarControles(); $('#editor').hidden = true; compactar(false)
@@ -73,7 +73,7 @@ function resolverCuidado(v: string): void {
   S.cuidado = null
   if (v === 'si' || v === 'pn') { entrarQuieta('vida', c.txt, false); return }
   limpiarControles()
-  if (conectada()) { // la frase no se anota ni viaja a ningún modelo: se queda aquí
+  if (conectada()) { // la frase no se anota; si se envió al modelo fue solo para leerla
     decirCorto('Gracias por decírmelo. Seguimos.')
     void correrConversacion({ saludo: false })
     return
@@ -85,7 +85,9 @@ function resolverCuidado(v: string): void {
 
 /* ——— Quieta: una señal de riesgo apaga todo lo lúdico. La seguridad va por delante de la coreografía: ninguna animación de salida,
    la cabecera se compacta al instante (los números quedan a la vista), el foco va al primer párrafo y el agujero y el cielo se apagan juntos en 1 600 ms. ——— */
-export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolean): void {
+/** `porModelo`: la Quieta la subió el modelo (o la frase ya se le había enviado para leerla mejor): la nota no puede decir que no se envió. */
+export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolean, porModelo = false): void {
+  const leida = porModelo || (cita !== null && S.leidasPorModelo.includes(cita))
   if (!demo && hayDatos()) guardarBorrador() // lo ya marcado queda como borrador
   cancelar()
   S.quieta = { tipo, cita, demo }; S.cuidado = null; $('#btnRapido').setAttribute('aria-pressed', 'false')
@@ -107,7 +109,7 @@ export function entrarQuieta(tipo: TipoRiesgo, cita: string | null, demo: boolea
   })
   /* Conectada, la pantalla NO promete un aviso: hoy nada le llega a nadie desde aquí, y decir lo contrario dejaría a la persona esperando. */
   if (real) panel.append(h('p', { class: 'quieta-texto' }, tu('Desde aquí todavía no se le avisa a nadie: esta versión es de prueba para el equipo. Si es urgente, no esperes: llama al 123.', 'Desde aquí todavía no se le avisa a nadie: esta versión es de prueba para el equipo. Si es urgente, no espere: llame al 123.')),
-    h('p', { class: 'nota-quieta' }, demo ? 'Demostración: así se ve cuando Praxis se detiene. Nada se guardó ni se envió.' : tu('Lo que escribiste no se guardó ni se envió. Hoy no hay más preguntas.', 'Lo que escribió no se guardó ni se envió. Hoy no hay más preguntas.')))
+    h('p', { class: 'nota-quieta' }, demo ? 'Demostración: así se ve cuando Praxis se detiene. Nada se guardó ni se envió.' : leida && !demo ? tu('Lo que escribiste no se guardó. Se leyó solo para decidir detenerme. Hoy no hay más preguntas.', 'Lo que escribió no se guardó. Se leyó solo para decidir detenerme. Hoy no hay más preguntas.') : tu('Lo que escribiste no se guardó ni se envió. Hoy no hay más preguntas.', 'Lo que escribió no se guardó ni se envió. Hoy no hay más preguntas.')))
   else panel.append(h('p', { class: 'quieta-texto' }, demo ? tu('En la app, Bryan ya recibe tu frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.', 'En la app, Bryan ya recibe su frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.') : tu('Bryan ya recibió tu frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo esperes: llama al 123.', 'Bryan ya recibió su frase. Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.')))
   if (!real) panel.append(h('p', { class: 'nota-quieta' }, demo ? 'Demostración: en este ejemplo no se envía nada. Hoy no hay firma, ni eco, ni idea.' : tu('Lo que ya marcaste queda como borrador. En este prototipo no se envía nada. Hoy no hay firma, ni eco, ni idea.', 'Lo que ya marcó queda como borrador. En este prototipo no se envía nada. Hoy no hay firma, ni eco, ni idea.')))
   if (demo && S.turno !== 'demo') panel.append(h('div', { class: 'pie-controles' }, h('button', { type: 'button', class: 'seguir', onclick: () => cerrarSala() }, 'Salir de la demostración')))

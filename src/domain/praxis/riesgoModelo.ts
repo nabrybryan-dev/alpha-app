@@ -9,8 +9,9 @@ export { PROMPT_RIESGO, SHA16_PROMPT_RIESGO }
  * mensaje», la decisión firmada por Bryan el 29-sep.
  *
  * El diccionario (`riesgo.ts`) sigue corriendo primero y en la pantalla. En el servidor, a cada
- * frase que el diccionario deja pasar, Haiku la lee con un prompt propio y corto, y gana la
- * lectura más grave. El prompt es copia byte a byte del que se midió en
+ * frase que el diccionario deja pasar, Haiku la lee con un prompt propio y corto. A las que el
+ * diccionario SÍ marca como cuidado o salud también se les consulta, con el interruptor de
+ * `masGrave.ts` encendido (hoy apagado), y sale la más grave de las dos; a las Quieta no. El prompt es copia byte a byte del que se midió en
  * `lenguaje/herramientas/prompt_riesgo_modelo.md` (su sha va en `riesgoModeloPrompt.ts` y lo
  * comprueba un test).
  *

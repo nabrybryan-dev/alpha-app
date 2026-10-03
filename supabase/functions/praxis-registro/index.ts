@@ -23,7 +23,10 @@
 //    del cuerpo. Los datos se leen y se escriben con el JWT de la PERSONA (RLS),
 //    nunca con service_role: la función no puede tocar lo de otro asesorado.
 //  - El filtro clínico corre antes del modelo: un mensaje con dolor, lesión,
-//    síntoma, medicamento o riesgo NO llega a Haiku.
+//    síntoma, medicamento o riesgo NO llega a Haiku... salvo con el interruptor
+//    PRAXIS_RIESGO_MAS_GRAVE=1 (apagado por defecto): entonces una marca de «cuidado»
+//    o «salud» se le consulta TAMBIÉN al lector de riesgo con modelo y sale la más grave
+//    (`marcaMasGrave`). Una Quieta del filtro nunca espera al modelo. Ver `masGrave.ts`.
 //  - GUARDAR escribe `series[]` y `testPost` por las mismas RPC que usa la app
 //    (`fijar_series_ejercicio`, `fijar_test_post`) y la adherencia por upsert (una fila
 //    por usuario y fecha). Check-in, agua, comida, cardio y preparación quedan
@@ -41,6 +44,7 @@ import {
 import { derivarPorRiesgo, filtroDeRiesgo, type MarcaDeRiesgo } from '../../../src/domain/praxis/riesgo.ts'
 // La otra mitad de «diccionario + modelo en cada mensaje» (decisión firmada del 29-sep).
 import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO, leerSalidaRiesgo, marcaDesdeModelo, type LecturaModelo } from '../../../src/domain/praxis/riesgoModelo.ts'
+import { hayQueConsultarAlModelo, masGrave } from '../../../src/domain/praxis/masGrave.ts'
 import { puedeVerPraxis, type Rol } from '../../../src/domain/praxis/acceso.ts'
 // El aviso al coach: el tipo de señal y por dónde llegó, nunca la frase (migración 0108).
 import { nivelDeMarca, type AvisoNuevo } from '../../../src/domain/praxis/aviso.ts'
@@ -65,6 +69,8 @@ export interface Entorno {
   ANTHROPIC_API_KEY: string | undefined
   /** «0» apaga el camino rápido (el registrador sin modelo) sin tocar el código. */
   PRAXIS_CAMINO_RAPIDO?: string
+  /** '1' enciende «gana la lectura más grave» sobre frases marcadas por el filtro. Apagado por defecto: ver `masGrave.ts`. */
+  PRAXIS_RIESGO_MAS_GRAVE?: string
 }
 
 export interface Dependencias {
@@ -363,6 +369,31 @@ export async function leerRiesgoConModelo(d: Dependencias, frase: string): Promi
   return lectura
 }
 
+/**
+ * «Gana la lectura más grave» (3-oct). El filtro ya marcó algo: si es Quieta no se hace nada (es el
+ * máximo y la pantalla de emergencia no espera); si es cuidado o salud, y SOLO con el interruptor
+ * `PRAXIS_RIESGO_MAS_GRAVE=1`, se consulta también al lector con modelo y sale la más grave de las dos.
+ * El modelo solo SUBE la marca. Si no hay interruptor, se pasó del límite por hora, el modelo falla,
+ * tarda más de `TIMEOUT_MODELO_MS` o devuelve algo ilegible: se queda la marca del filtro, tal cual.
+ * Nunca lanza.
+ */
+export async function marcaMasGrave(
+  d: Dependencias, usuarioId: string, frase: string, filtro: MarcaDeRiesgo,
+): Promise<{ marca: MarcaDeRiesgo; origen: 'filtro' | 'modelo'; consultado: boolean; lector: string | null }> {
+  const igual = { marca: filtro, origen: 'filtro' as const, consultado: false, lector: null }
+  if (!hayQueConsultarAlModelo(filtro, d.entorno.PRAXIS_RIESGO_MAS_GRAVE === '1')) return igual
+  if (excedeLimite(usuarioId, d.ahora().getTime())) return igual // sin cupo no se consulta; la marca del filtro ya es una respuesta
+  let lectura: LecturaModelo | null = null
+  try {
+    lectura = await leerRiesgoConModelo(d, frase)
+  } catch (e) {
+    console.error('praxis-registro: el lector de riesgo falló sobre una frase marcada', e instanceof Error ? e.name : 'error')
+  }
+  if (!lectura) return { ...igual, consultado: true }
+  const final = masGrave(filtro, marcaDesdeModelo(lectura.nivel))
+  return { marca: final, origen: final === filtro ? 'filtro' : 'modelo', consultado: true, lector: lectura.nivel }
+}
+
 interface CuerpoProponer {
   frase?: unknown
   mensaje_id?: unknown
@@ -390,14 +421,20 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
 
   // 1. Filtro de riesgo ANTES del modelo: el MISMO que corre en la pantalla (riesgo, pareja,
   //    niños, frases ambiguas, salud). Haiku no ve estas frases.
-  const marca = filtroDeRiesgo(frase)
-  if (marca) {
+  const marcaDelFiltro = filtroDeRiesgo(frase)
+  if (marcaDelFiltro) {
+    // Gana la más grave: con el interruptor encendido, una marca de cuidado o salud se consulta también al modelo.
+    const leida = await marcaMasGrave(d, s.usuarioId, frase, marcaDelFiltro)
+    const marca = leida.marca
     const propuesta = derivarPorRiesgo(marca)
     await avisarAlCoach(d, s, { origen: 'praxis', nivel: nivelDeMarca(marca) })
     return json({
       propuesta,
       tarjeta: construirTarjeta(propuesta, mensajeId),
-      meta: { modelo: null, derivada: true, aviso_bryan: true, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES },
+      meta: {
+        modelo: leida.consultado ? MODELO_HAIKU : null, derivada: true, aviso_bryan: true, version_prompt: VERSION_PROMPT, version_resolutores: VERSION_RESOLUTORES,
+        ...(leida.origen === 'modelo' ? { lector_riesgo: leida.lector, version_prompt_riesgo: SHA16_PROMPT_RIESGO } : {}),
+      },
     })
   }
 
@@ -784,9 +821,10 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
     previa = { usuarioId: a.id, token }
   }
   const rolEnCurso = medir(relojSesion, 'rol', leerRol(d, previa))
-  // El ingreso no usa el plan de nadie: no se lee.
+  // El ingreso y la relectura de riesgo no usan el plan de nadie: no se lee.
   const esIngreso = cuerpo.accion === 'ingreso'
-  const planEnCurso = esIngreso ? Promise.resolve<Plan>({ activo: null, anterior: null }) : medir(relojSesion, 'plan', microciclosDe(d, previa))
+  const esRelectura = cuerpo.accion === 'releer_riesgo'
+  const planEnCurso = esIngreso || esRelectura ? Promise.resolve<Plan>({ activo: null, anterior: null }) : medir(relojSesion, 'plan', microciclosDe(d, previa))
   planEnCurso.catch(() => undefined) // si Auth o el rol cierran la puerta antes, que su fallo no quede suelto
 
   const auth = await authEnCurso
@@ -805,8 +843,33 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
 
   const ruta = new URL(req.url).pathname.replace(/\/+$/, '')
   if (esIngreso) return ingresar(d, sesion, cuerpo)
+  if (esRelectura) return releerRiesgo(d, sesion, cuerpo)
   if (ruta.endsWith('/guardar') || cuerpo.accion === 'guardar') return guardar(d, sesion, cuerpo, planEnCurso)
   return proponer(d, sesion, cuerpo, planEnCurso)
+}
+
+interface CuerpoReleer { frase?: unknown }
+
+/**
+ * RELEER EL RIESGO de una frase que la pantalla YA marcó como cuidado o salud (3-oct). Solo devuelve la
+ * marca más grave entre el filtro y el modelo; no lee el plan, no llama al registrador, no guarda nada,
+ * no entra a ningún hilo de charla y no deja aviso al coach (la pantalla dice que desde ahí no se avisa a nadie).
+ * El filtro se vuelve a correr AQUÍ: la función no se fía de lo que la pantalla diga que marcó. Si la frase
+ * no la marca el filtro, no se manda al modelo (esta ruta no es otra puerta al lector). Sin el interruptor
+ * `PRAXIS_RIESGO_MAS_GRAVE=1` devuelve la marca del filtro sin llamar a nadie.
+ */
+async function releerRiesgo(d: Dependencias, s: Sesion, cuerpo: CuerpoReleer): Promise<Response> {
+  const frase = typeof cuerpo.frase === 'string' ? cuerpo.frase.trim() : ''
+  if (!frase) return json({ error: 'Falta la frase' }, 400)
+  if (frase.length > MAX_FRASE) return json({ error: 'La frase es muy larga' }, 400)
+  const filtro = filtroDeRiesgo(frase)
+  if (!filtro) return json({ marca: null, origen: 'filtro', consultado: false })
+  const leida = await marcaMasGrave(d, s.usuarioId, frase, filtro)
+  return json({
+    marca: leida.marca.tipo === 'quieta' ? { tipo: 'quieta', linea: leida.marca.linea } : { tipo: leida.marca.tipo },
+    origen: leida.origen, consultado: leida.consultado,
+    ...(leida.origen === 'modelo' ? { lector_riesgo: leida.lector, version_prompt_riesgo: SHA16_PROMPT_RIESGO } : {}),
+  })
 }
 
 function entorno(clave: string): string | undefined {
@@ -822,6 +885,7 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
         SUPABASE_ANON_KEY: entorno('SUPABASE_ANON_KEY') ?? entorno('SUPABASE_PUBLISHABLE_KEY') ?? '',
         ANTHROPIC_API_KEY: entorno('ANTHROPIC_API_KEY'),
         PRAXIS_CAMINO_RAPIDO: entorno('PRAXIS_CAMINO_RAPIDO'),
+        PRAXIS_RIESGO_MAS_GRAVE: entorno('PRAXIS_RIESGO_MAS_GRAVE'),
       },
       fetch: (...a) => fetch(...a),
       ahora: () => new Date(),

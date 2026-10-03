@@ -62,7 +62,9 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
               </p>
               <p>
                 {u ? 'Lo que escribe para anotar' : 'Lo que escribes para anotar'} viaja a un servicio de inteligencia artificial que lo convierte en un registro.
-                Lo que suena a riesgo o a salud no sale de este teléfono: no se anota y no llega a ese servicio.
+                {u
+                  ? 'Si algo que escribe es una emergencia clara, Praxis se detiene aquí mismo y esa frase no sale de este teléfono. Si suena a salud o a una señal que no es clara, se envía a ese servicio solo para leerla mejor y saber si hay que detenerse. No se anota ni se guarda.'
+                  : 'Si algo que escribes es una emergencia clara, Praxis se detiene aquí mismo y esa frase no sale de este teléfono. Si suena a salud o a una señal que no es clara, se envía a ese servicio solo para leerla mejor y saber si hay que detenerse. No se anota ni se guarda.'}
               </p>
               <p>
                 {u
@@ -138,7 +140,7 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
               </span>
             </label>
             {conectada ? (
-              <label className="check"><input type="checkbox" id="cRiesgo" /><span>Detenerse ante una señal de riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Praxis se detiene y le muestra las líneas de ayuda.' : 'Si algo que cuentas es una señal de riesgo, Praxis se detiene y te muestra las líneas de ayuda.'} Sin este permiso Praxis no se activa.</small></span></label>
+              <label className="check"><input type="checkbox" id="cRiesgo" /><span>Detenerse ante una señal de riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Praxis se detiene y le muestra las líneas de ayuda.' : 'Si algo que cuentas es una señal de riesgo, Praxis se detiene y te muestra las líneas de ayuda.'} Para reconocer mejor una señal que no es clara, esa frase se lee con inteligencia artificial. No se guarda. Sin este permiso Praxis no se activa.</small></span></label>
             ) : (
               <label className="check"><input type="checkbox" id="cRiesgo" /><span>Aviso por riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Bryan recibe un aviso con su frase.' : 'Si algo que cuentas es una señal de riesgo, Bryan recibe un aviso con tu frase.'} Sin este permiso Praxis no se activa.</small></span></label>
             )}

@@ -98,3 +98,8 @@ escribe con las RPC de la app y el JWT de la persona:
 | cardio, preparación | no (P7) | cardio no sincroniza; `marcarParte` alterna |
 
 Nunca se escribe con `service_role`. No se aplican migraciones desde aquí.
+
+## Gana la lectura más grave (3-oct)
+
+Interruptor `PRAXIS_RIESGO_MAS_GRAVE=1` (apagado): con él, una marca de cuidado/salud también se relee con el modelo y sale la más grave (acción `releer_riesgo` y rama marcada de `proponer`); ver `src/domain/praxis/masGrave.ts`. Sin él, todo lo anterior queda tal cual.
+La pantalla NO manda frases marcadas mientras `LECTURA_DEL_MODELO_SOBRE_MARCADAS` siga en `false`: el texto de privacidad dice hoy que no salen del teléfono (decisión de Bryan).

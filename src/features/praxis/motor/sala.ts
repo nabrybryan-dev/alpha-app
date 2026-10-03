@@ -1,3 +1,4 @@
+import { VERSION_PERMISOS } from '../../../domain/praxis/masGrave'
 import { renderBienestar } from './bienestar'
 import { Cab, Sala, SinSalto, compactar, enfocarControles, limpiarControles, montar, soltarFlip } from './cabecera'
 import { conectada } from './conexion'
@@ -110,6 +111,8 @@ export function abrirSala(modo?: 'quieta' | 'demo', opt: { sinViaje?: boolean } 
   if (Dia.hecho && Dia.hecho.riesgo) { entrarQuieta(Dia.hecho.riesgo, null, false); return }
   if (Dia.hecho) { mostrarDiaHecho(); return }
   if (S.quieta) { S.quieta = null; limpiarSala() }
+  // Permiso de una versión anterior (antes de que lo marcado se lea con el modelo): se vuelve a pedir y Praxis no se activa hasta aceptar.
+  if (conectada() && Dia.permisos != null && Dia.permisos.version !== VERSION_PERMISOS) { limpiarSala(); mostrarBienvenida(); return }
   if (!$<HTMLInputElement>('#cConversacion').checked || !$<HTMLInputElement>('#cRiesgo').checked) { // nada viene marcado: la primera vez Praxis explica y la persona decide
     if (Dia.permisos == null) { limpiarSala(); mostrarBienvenida(); return }
     cerrarSala(true); aviso(tu('Praxis está apagada. Puedes encenderla en «Tus permisos».', 'Praxis está apagada. Puede encenderla en «Sus permisos».')); return
@@ -190,12 +193,12 @@ export function alternarMenuMas(): void {
 export function mostrarConsentimiento(): void {
   const p = Dia.permisos
   const cuando = EJEMPLO ? '29 de septiembre de 2026' : String(p && p.fecha)
-  $('#consentFecha').textContent = p && p.fecha ? tu('Aceptaste el ' + cuando + ' (versión 1 del texto). Puedes cambiar cada permiso aquí.', 'Aceptó el ' + cuando + ' (versión 1 del texto). Puede cambiar cada permiso aquí.') : tu('Todavía no has aceptado. La primera vez que abras Praxis, te explica todo y tú decides.', 'Todavía no ha aceptado. La primera vez que abra Praxis, le explica todo y usted decide.')
+  $('#consentFecha').textContent = p && p.fecha ? tu('Aceptaste el ' + cuando + ' (versión ' + String(p.version || 'v1').replace('v', '') + ' del texto). Puedes cambiar cada permiso aquí.', 'Aceptó el ' + cuando + ' (versión 1 del texto). Puede cambiar cada permiso aquí.') : tu('Todavía no has aceptado. La primera vez que abras Praxis, te explica todo y tú decides.', 'Todavía no ha aceptado. La primera vez que abra Praxis, le explica todo y usted decide.')
 }
 export function guardarPermisos(): void {
   const p: Permisos = {}
   ;['cConversacion', 'cVoz', 'cRiesgo', 'cSonido'].forEach((k) => { p[k] = $<HTMLInputElement>('#' + k).checked })
-  if (p.cConversacion && p.cRiesgo) { p.fecha = (Dia.permisos && Dia.permisos.fecha) || HOY.fecha; p.version = 'v1' }
+  if (p.cConversacion && p.cRiesgo) { p.fecha = (Dia.permisos && Dia.permisos.fecha) || HOY.fecha; p.version = VERSION_PERMISOS }
   Dia.permisos = p; guardar('permisos', p); mostrarConsentimiento()
 }
 function mostrarBienvenida(): void {
@@ -205,7 +208,7 @@ function mostrarBienvenida(): void {
   montar(() => h('div', { class: 'bienvenida' },
     h('ol', null,
       h('li', null, h('b', null, 'Quién soy. '), 'Soy Praxis, la voz sintética de Alpha: una inteligencia artificial, no una persona. No diagnostico ni hago terapia.'),
-      conectada() ? h('li', null, h('b', null, 'Qué se guarda. '), tu('Leo tu plan y tus últimos check-ins para contestarte; no los cambio. De lo que me cuentes, solo se guarda lo que confirmes con un toque en «Guardar». Lo que escribes para anotar viaja a un servicio de inteligencia artificial; lo que suene a riesgo o a salud no sale de este teléfono.', 'Leo su plan y sus últimos check-ins para contestarle; no los cambio. De lo que me cuente, solo se guarda lo que confirme con un toque en «Guardar». Lo que escribe para anotar viaja a un servicio de inteligencia artificial; lo que suene a riesgo o a salud no sale de este teléfono.')) :
+      conectada() ? h('li', null, h('b', null, 'Qué se guarda. '), tu('Leo tu plan y tus últimos check-ins para contestarte; no los cambio. De lo que me cuentes, solo se guarda lo que confirmes con un toque en «Guardar». Lo que escribes para anotar viaja a un servicio de inteligencia artificial; lo que suene a una emergencia clara no sale de este teléfono, y lo que suene a salud o a una señal poco clara se lee también con inteligencia artificial solo para decidir si me detengo, sin anotarlo ni guardarlo.', 'Leo su plan y sus últimos check-ins para contestarle; no los cambio. De lo que me cuente, solo se guarda lo que confirme con un toque en «Guardar». Lo que escribe para anotar viaja a un servicio de inteligencia artificial; lo que suene a una emergencia clara no sale de este teléfono, y lo que suene a salud o a una señal poco clara se lee también con inteligencia artificial solo para decidir si me detengo, sin anotarlo ni guardarlo.')) :
       h('li', null, h('b', null, 'Qué se guarda. '), tu('Solo lo que toques o escribas, y solo cuando toques LISTO. Lo que no digas queda en blanco. El audio nunca se guarda. Al aceptar, autorizas que Alpha trate esos datos de salud para tu plan de hábitos; lo puedes cambiar en «Tus permisos».', 'Solo lo que toque o escriba, y solo cuando toque LISTO. Lo que no diga queda en blanco. El audio nunca se guarda. Al aceptar, autoriza que Alpha trate esos datos de salud para su plan de hábitos; lo puede cambiar en «Sus permisos».')),
       conectada() ? h('li', null, h('b', null, 'Si hay riesgo. '), tu('Si algo que cuentas parece una señal de riesgo, me quedo quieta y te doy números de ayuda. Desde aquí todavía no se le avisa a nadie: si es urgente, llama al 123.', 'Si algo que cuenta parece una señal de riesgo, me quedo quieta y le doy números de ayuda. Desde aquí todavía no se le avisa a nadie: si es urgente, llame al 123.')) :
       h('li', null, h('b', null, 'Si hay riesgo. '), tu('Si algo que cuentas parece una señal de riesgo, me quedo quieta, te doy números de ayuda y Bryan recibe tu frase. Bryan no es psicólogo y puede tardar en leer: si es urgente, llama al 123.', 'Si algo que cuenta parece una señal de riesgo, me quedo quieta, le doy números de ayuda y Bryan recibe su frase. Bryan no es psicólogo y puede tardar en leer: si es urgente, llame al 123.'))),

@@ -29,7 +29,7 @@ const ve: LoQuePraxisVe = {
 
 beforeEach(() => {
   localStorage.clear()
-  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v1' }))
+  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v2' }))
   window.matchMedia = ((consulta: string) => ({
     matches: consulta.includes('prefers-reduced-motion'), media: consulta, onchange: null,
     addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,

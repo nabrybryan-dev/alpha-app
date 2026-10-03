@@ -11,7 +11,9 @@ import { filtroDeRiesgo, type LineaDeAyuda } from './riesgo'
  * El orden de un turno de Praxis, sin pantalla y sin red.
  *
  *   frase
- *     ├─ 0. SEGURIDAD: filtro de riesgo por reglas. Quieta, pregunta de cuidado o salud. FIN.
+ *     ├─ 0. SEGURIDAD: filtro de riesgo por reglas. Quieta, pregunta de cuidado o salud. FIN del turno
+ *     │      (con el interruptor de `masGrave.ts` encendido, cuidado y salud además se releen con el modelo
+ *     │      aparte, sin retrasar esta respuesta, y pueden SUBIR a una marca más grave).
  *     ├─ 1. ¿Es una pregunta? Se contesta del plan con reglas, sin modelo. FIN.
  *     └─ 2. Lo demás va al registrador (la Edge Function `praxis-registro`), que es el
  *            ÚNICO camino que llega a un modelo, y que vuelve a filtrar antes de llamarlo.

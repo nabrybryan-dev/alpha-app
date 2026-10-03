@@ -20,7 +20,10 @@ import type { Propuesta } from './registro/tipos.ts'
  * 29-sep contra el examen reservado, el léxico solo alcanzó 47 % en las frases de riesgo
  * que no había visto. La decisión firmada es diccionario + modelo en cada mensaje: aquí
  * está el diccionario, y el modelo está en `riesgoModelo.ts`, que la Edge Function corre
- * después de este filtro (gana la lectura más grave). Praxis sigue cerrada a asesorados
+ * después de este filtro. Qué pasa cuando los dos hablan lo dice `masGrave.ts`: si este filtro
+ * no marca nada, decide el modelo; si marca cuidado o salud, el modelo solo puede SUBIR la marca
+ * (cuando el interruptor de consentimiento está encendido; hoy está apagado); si marca Quieta,
+ * el modelo no se consulta. Praxis sigue cerrada a asesorados
  * hasta que los dos juntos pasen un examen sellado nuevo.
  *
  * Las frases y los textos los revisa un profesional de salud mental antes de abrir.
