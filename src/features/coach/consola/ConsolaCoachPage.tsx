@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEve
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { db, hoyIso, useDbVersion } from '../../../data/dbInstance'
 import { desviacionRirMedia, indiceRecuperacion } from '../../../domain/readiness'
+import { AvisosPraxis } from './AvisosPraxis'
 import { CabeceraPersona } from './CabeceraPersona'
 import { CarteraSidebar } from './CarteraSidebar'
 import { ProveedorDatosConsola } from './ProveedorDatosConsola'
@@ -172,13 +173,22 @@ function Consola() {
   }, [pestana])
 
   if (resumenes.length === 0) {
-    return <EmptyState titulo="Sin cartera" detalle="Todavía no hay asesorados que entrenen." />
+    return (
+      <>
+        <AvisosPraxis />
+        <EmptyState titulo="Sin cartera" detalle="Todavía no hay asesorados que entrenen." />
+      </>
+    )
   }
 
   const resumenElegido = resumenes.find((r) => r.usuario.id === seleccionadoId)
   const dePersona = PESTANAS_DE_PERSONA.has(pestana)
 
   return (
+    <>
+      {/* Arriba de todo: los avisos de Praxis (señales de riesgo) esperan aquí hasta que el coach los atiende.
+          Solo lo ve quien ocupa el puesto de coach; para los demás no se pinta ni se consulta nada. */}
+      <AvisosPraxis onVerPersona={verPersona} />
     <div className="flex flex-col gap-4 entrada entrada-1 lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start lg:gap-5">
       <p className="solo-lectura-nota sr-only">
         Consola del coach: navegar no escribe en la base; solo escriben los botones de acción, con motivo o confirmación.
@@ -248,5 +258,6 @@ function Consola() {
         </div>
       </div>
     </div>
+    </>
   )
 }

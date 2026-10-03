@@ -58,6 +58,17 @@ rastrea a una cita literal. **Un campo de salud jamás sale de aquí**: la respu
 toques que corresponden, nunca la frase ni las citas. No guarda nada, no lee el plan y registra
 tiempos (milisegundos) sin el texto. Texto: hasta 1.500 caracteres. Pantalla: `/praxis/ingreso-prueba`.
 
+### El aviso al coach (migración 0108, sin aplicar)
+
+Cuando `proponer` o `ingreso` detectan una señal de riesgo (el diccionario, el lector con modelo, o un
+tema de salud en el ingreso) la función inserta UNA fila en `praxis_avisos_coach` con el JWT de la persona:
+`{ usuario_id, origen: 'praxis' | 'ingreso', nivel: 'vida' | 'pareja' | 'nino' | 'cuidado' | 'salud' }`.
+**Sin la frase ni la cita** (la retención de texto la revisa un abogado). Aparece en «Avisos de Praxis»,
+arriba de la consola del coach, hasta que él la marca atendida. Si el insert falla (por ejemplo, la
+migración sin aplicar) la respuesta a la persona NO cambia y el log dice
+`praxis-registro: aviso no guardado <código HTTP> <código PostgREST>`, sin datos personales.
+Los avisos iguales (misma persona, origen y tipo) sin atender en la última hora no se repiten: lo decide la base.
+
 ### `/praxis-registro/guardar` — guardar lo confirmado
 
 ```json
