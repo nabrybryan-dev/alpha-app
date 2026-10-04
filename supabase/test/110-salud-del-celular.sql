@@ -11,7 +11,8 @@
 --   2. Nadie con sesión escribe en las tres tablas: ni la dueña, ni el staff, ni anon.
 --   3. La Edge Function (service_role): código desconocido / revocado / sin permiso /
 --      pasado de frecuencia; upsert idempotente por (persona, día, tipo, fuente); gana el
---      último si el mismo día viene repetido; unidad, rango y método los exige la tabla.
+--      último si el mismo día viene repetido; unidad, rango y método los exige la tabla;
+--      el «último envío» del código se anota al GUARDAR, no al aceptar el código.
 --   4. Lectura: cada persona lo suyo; el staff solo con `leer_entrenamiento`; el hash, ni ese.
 --   5. Revocar: apaga el código, deja de aceptar envíos, borra lo enviado solo si se pide,
 --      y el historial de la autorización se conserva.
@@ -307,6 +308,17 @@ select pruebas.afirmar(
   'el código vigente no entró o dijo de quién no era'
 );
 
+-- Aceptar el código NO es recibir datos. La tarjeta enseña `ultimo_uso_en` como «Último
+-- envío», y si se anotara aquí, un envío con el cuerpo roto (400) o con todo descartado
+-- (422) le diría a la persona «Último envío: hoy» sin que se guardara nada. Se anota al
+-- guardar (ver más abajo, después de los rechazos).
+reset role;
+select pruebas.afirmar(
+  (select ultimo_uso_en from public.salud_atajo_tokens where revocado_en is null) is null,
+  'aceptar el código ya anotó un envío, sin que se hubiera guardado nada'
+);
+set role service_role;
+
 -- Límite de frecuencia: 20 envíos por hora y código (ya llevamos 1 arriba).
 do $$
 declare
@@ -420,7 +432,7 @@ select pruebas.afirmar(
 );
 select pruebas.afirmar(
   (select ultimo_uso_en from public.salud_atajo_tokens where revocado_en is null) is not null,
-  'el código no anotó su último uso'
+  'guardar datos no anotó el último envío del código'
 );
 select pruebas.afirmar(
   (select metodo from public.salud_muestras where tipo = 'vfc') = 'sdnn'
