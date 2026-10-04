@@ -2230,6 +2230,8 @@ select '0104 - hallazgos de mercadeo: autor real del comentario', 'mercadeo_hall
             when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
               or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute')
               or pg_get_functiondef('public.comentar_hallazgo_mercadeo(uuid,text)'::regprocedure) not like '%autor_nombre%' then 'NO'
+            else 'SI' end
+union all
 -- La 0105: la bandeja de preguntas de Praxis existe, con RLS, y anon no tiene nada.
 select '0105 - praxis_preguntas_en_espera con RLS y sin nada para anon', 'RLS encendida, anon sin select ni insert, authenticated con select',
        case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'
