@@ -115,9 +115,7 @@ autorización **aparte**, que no incluye datos de salud.
   en esta versión.
 - **Los datos de tu teléfono (casilla E)** los ve **Bryan** y las personas de Alpha a quienes él ha
   dado acceso a la información de entrenamiento (hoy, **Manuela**, que también es la nutricionista), por
-  una regla del sistema, aunque no hayas autorizado B. `FALTA: confirmación de Bryan y revisión de
-  abogado: esto es una excepción a la regla anterior («si no autorizas B, no ve ningún dato tuyo»); si
-  no se acepta, hay que quitar a la nutricionista de esa regla antes de usar E.`
+  una regla del sistema, aunque no hayas autorizado B. `DECIDIDO (Bryan, 4-oct-2026): se acepta la excepción; la nutricionista ve E por su rol. Falta que la línea escrita del abogado la cubra EXPRESAMENTE; si no la nombra, E no se usa.`
 - **El creador de contenido que te recomendó NUNCA ve tus datos de salud, fotos ni medidas.** Como
   mucho sabe que alguien se inscribió con su código, sin datos de salud (criterio propio; ver
   `MAPA-DE-DATOS.md`).
@@ -166,8 +164,7 @@ art. 2.2.2.25.2.8). Plazos propuestos (criterio propio, a validar con abogado):
   app, el código del atajo se apaga **al instante** y dejamos de leer y de usar esos datos. Lo ya enviado
   se borra **en el acto** si dejas marcado «Borrar también los datos que ya envié» (viene marcado); si lo
   desmarcas, no se usa pero queda guardado hasta que pidas borrarlo, y lo borramos en el plazo de arriba.
-  `FALTA: decisión de Bryan: ¿se permite conservar lo enviado después de revocar, o revocar siempre
-  borra? La app hoy deja elegir.`
+  `DECIDIDO (Bryan, 4-oct-2026): el cliente elige al revocar, como hace hoy la app («borrar» viene marcado).`
 - La **prueba de tu autorización** se conserva mientras existan los datos y el tiempo que haga falta
   para demostrarla ante la autoridad (Decreto 1377, art. 8).
 - Si el/la nutricionista abre una **historia clínica**, esta se rige por las normas de historia
