@@ -186,3 +186,6 @@ jobs:
 
       - name: La respuesta del coach a una pregunta de la cadena la dan solo el coach y la nutricionista, a su nombre, y solo por la función
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/112-respuestas-coach-cadena.sql
+
+      - name: Ninguna función de public queda sin search_path fijo
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/213-search-path-fijo.sql
