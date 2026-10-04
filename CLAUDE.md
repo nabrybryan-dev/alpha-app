@@ -291,7 +291,8 @@ ya había:
   tests: escribirlos primero y comprobarlos contra el código viejo.
 - **`preguntas-claras`** — cómo hablarle a Bryan (TDAH): respuesta en la primera línea,
   sin tecnicismos, y toda pregunta en selección múltiple con un símil cotidiano y la
-  lógica de cada opción. Vale para **cualquier** respuesta, no solo las de código.
+  lógica de cada opción. Vale **solo** para los mensajes a Bryan en el chat; el código,
+  los commits, los PR y la documentación siguen en lenguaje técnico. Claude opera, Bryan decide.
 
 `.claude/settings.json` deja pasar sin preguntar lo que es de lectura o verificación
 (`npm run verify`, `git status`, `git diff`…) y **bloquea la lectura de los archivos con

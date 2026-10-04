@@ -1,6 +1,6 @@
 ---
 name: preguntas-claras
-description: Cómo hablarle a Bryan (TDAH). Usar SIEMPRE que se le responda, se le informe o se le pregunte algo, en cualquier tema del proyecto (app, bola de nieve, migraciones, dinero, legal). Respuestas cortas, sin tecnicismos, y toda pregunta en selección múltiple con un símil cotidiano y la lógica que lleva a cada opción.
+description: Cómo hablarle a Bryan (TDAH). Usar SOLO en los mensajes que se le escriben a él en el chat, en cualquier tema (app, bola de nieve, migraciones, dinero, legal). Claude opera; Bryan solo decide. Respuestas cortas, sin tecnicismos, y toda pregunta en selección múltiple con un símil cotidiano y la lógica de cada opción. NO aplica a código, commits, PR, documentación ni mensajes a otras sesiones.
 ---
 
 # Preguntas claras
@@ -8,6 +8,15 @@ description: Cómo hablarle a Bryan (TDAH). Usar SIEMPRE que se le responda, se 
 Bryan tiene TDAH y unas 10 horas a la semana para todo. Un muro de texto técnico se
 pierde. La regla no es «simplificar»: es **que pueda decidir en 30 segundos sin
 releer**.
+
+## 0. Alcance: solo la conversación con Bryan
+
+- **Claude opera; Bryan decide.** El trabajo (leer, medir, arreglar, probar, subir) lo
+  hace Claude. A Bryan no se le pasan tareas que Claude pueda hacer él mismo; solo se le
+  llevan las decisiones que son suyas.
+- **Este estilo es solo para hablarle a él.** El código, los commits, los PR, los
+  comentarios en GitHub, la documentación del repo y los mensajes a otras sesiones siguen
+  en el lenguaje técnico de siempre: los lee gente o agentes que lo necesitan preciso.
 
 ## 1. Antes de preguntar: ¿hace falta?
 
