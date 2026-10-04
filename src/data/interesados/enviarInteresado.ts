@@ -7,7 +7,7 @@ import { modoNube, supabase } from '../supabase'
  * Dos filas, dos destinos del mapa de datos (`bola-de-nieve/legal/MAPA-DE-DATOS.md`):
  *   - `piloto_encaje_respuestas` (SB): las 3 respuestas, solo códigos de opción.
  *   - `piloto_autorizaciones` (EVI): la evidencia de la autorización — versión del texto,
- *     canal, las cuatro casillas y la declaración. La FECHA la pone el servidor (un
+ *     canal, las cinco casillas (A–E; la E llega con la 0093, texto v0.4) y la declaración. La FECHA la pone el servidor (un
  *     trigger pisa lo que mande el navegador), porque la prueba no puede depender del
  *     reloj del teléfono.
  *
@@ -41,6 +41,7 @@ export interface FilaAutorizacion {
   casilla_b: 'si' | 'no'
   casilla_c: 'si' | 'no'
   casilla_d: 'si' | 'no'
+  casilla_e: 'si' | 'no'
   declaracion_aceptada: true
 }
 
@@ -69,6 +70,7 @@ export function filasDelEnvio(envio: EnvioInteresado): {
       casilla_b: casillas.B,
       casilla_c: casillas.C,
       casilla_d: casillas.D,
+      casilla_e: casillas.E,
       declaracion_aceptada: true,
     },
   }

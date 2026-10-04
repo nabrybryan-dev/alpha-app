@@ -12,6 +12,7 @@ import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { CheckinForm } from './CheckinForm'
 import { MedidasCard } from './MedidasCard'
 import { MensajesVidaBandeja } from './MensajesVidaBandeja'
+import { SaludCelularCard } from './SaludCelularCard'
 import { TarjetaVidaCard } from './TarjetaVidaCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
 import { tramoDeHambre } from '../../domain/senales/hambre'
@@ -184,6 +185,10 @@ export default function BienestarPage() {
             tarjeta fuera de su semana. */}
         <MensajesVidaBandeja usuarioId={usuario.id} />
         <TarjetaVidaCard usuarioId={usuario.id} />
+        {/* Salud del celular (Fase A, 0093): la casilla E y el código del atajo de Apple.
+            No se pinta hasta que la base responde, y en Android solo explica el registro
+            a mano. */}
+        <SaludCelularCard />
       </div>
 
       <section className="entrada entrada-4 flex flex-col gap-2">

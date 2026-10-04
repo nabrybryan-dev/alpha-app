@@ -179,3 +179,6 @@ jobs:
 
       - name: La respuesta del coach a una pregunta de la cadena la dan solo el coach y la nutricionista, a su nombre, y solo por la función
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/112-respuestas-coach-cadena.sql
+
+      - name: La salud del celular (casilla E, código del atajo, resúmenes) solo la escribe la función y solo la lee su dueño o quien tiene la capacidad
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-salud-del-celular.sql

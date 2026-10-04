@@ -1175,6 +1175,9 @@ select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe,
               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'proteger_perfil'
                  and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+       then 'SI' else 'NO' end
+
+union all
 -- == LAS QUE FALTABAN, Y LOS DOS PARES REPETIDOS (anadidas el 2026-09-10) =====
 --
 -- En `main` hay DOS archivos llamados 0062 y DOS llamados 0065, y falta la 0063
@@ -2384,6 +2387,99 @@ select '0110 - las respuestas del coach a la cadena', 'tabla con RLS solo lectur
             when not (select p.prosecdef from pg_proc p
                        where p.oid = to_regprocedure('public.responder_pregunta_coach(text,uuid,integer,text,text)')) then 'NO'
             when has_function_privilege('anon', 'public.responder_pregunta_coach(text,uuid,integer,text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+-- La 0093: las tres tablas de salud del celular con RLS, sin escritura para nadie con sesion
+-- y sin nada para anon. Diria NO si alguna tabla no existe, sin RLS, o si un usuario puede escribir.
+select '0093 - salud del celular: tablas con RLS y sin escritura desde el navegador', 'RLS en salud_consentimientos, salud_muestras y salud_atajo_tokens; authenticated sin insert/update/delete; anon sin select',
+       case when (select count(*) from pg_class c
+                   where c.oid in (to_regclass('public.salud_consentimientos'), to_regclass('public.salud_muestras'),
+                                   to_regclass('public.salud_atajo_tokens'))
+                     and c.relrowsecurity) <> 3 then 'NO'
+            when has_table_privilege('authenticated', 'public.salud_muestras', 'insert')
+              or has_table_privilege('authenticated', 'public.salud_muestras', 'update')
+              or has_table_privilege('authenticated', 'public.salud_muestras', 'delete')
+              or has_table_privilege('authenticated', 'public.salud_consentimientos', 'insert')
+              or has_table_privilege('authenticated', 'public.salud_consentimientos', 'update')
+              or has_table_privilege('authenticated', 'public.salud_consentimientos', 'delete')
+              or has_table_privilege('authenticated', 'public.salud_atajo_tokens', 'insert')
+              or has_table_privilege('authenticated', 'public.salud_atajo_tokens', 'update')
+              or has_table_privilege('authenticated', 'public.salud_atajo_tokens', 'delete') then 'NO'
+            when has_table_privilege('anon', 'public.salud_muestras', 'select')
+              or has_table_privilege('anon', 'public.salud_consentimientos', 'select')
+              or has_table_privilege('anon', 'public.salud_atajo_tokens', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0093: el hash del codigo del atajo no sale por la API, ni para su duena (SELECT por columna).
+select '0093 - salud del celular: el hash del codigo no se puede leer', 'authenticated puede leer usuario_id de salud_atajo_tokens pero no token_hash',
+       case when to_regclass('public.salud_atajo_tokens') is null then 'NO'
+            when has_column_privilege('authenticated', 'public.salud_atajo_tokens', 'token_hash', 'select') then 'NO'
+            when not has_column_privilege('authenticated', 'public.salud_atajo_tokens', 'usuario_id', 'select') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0093: las dos funciones de la Edge Function son solo de service_role.
+select '0093 - salud del celular: salud_atajo_autorizar/guardar solo para service_role', 'existen; service_role con execute; anon y authenticated sin execute',
+       case when to_regprocedure('public.salud_atajo_autorizar(text)') is null
+              or to_regprocedure('public.salud_atajo_guardar(uuid,jsonb)') is null then 'NO'
+            when has_function_privilege('anon', 'public.salud_atajo_autorizar(text)', 'execute')
+              or has_function_privilege('authenticated', 'public.salud_atajo_autorizar(text)', 'execute')
+              or has_function_privilege('anon', 'public.salud_atajo_guardar(uuid,jsonb)', 'execute')
+              or has_function_privilege('authenticated', 'public.salud_atajo_guardar(uuid,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.salud_atajo_autorizar(text)', 'execute')
+              or not has_function_privilege('service_role', 'public.salud_atajo_guardar(uuid,jsonb)', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0093: las funciones de la persona existen, authenticated las ejecuta y anon no.
+select '0093 - salud del celular: funciones de la persona solo para authenticated', 'salud_estado, salud_dar_consentimiento, salud_revocar_consentimiento, salud_atajo_generar_token y salud_atajo_revocar_token: authenticated con execute, anon sin execute',
+       case when to_regprocedure('public.salud_estado()') is null
+              or to_regprocedure('public.salud_dar_consentimiento(text,boolean)') is null
+              or to_regprocedure('public.salud_revocar_consentimiento(boolean)') is null
+              or to_regprocedure('public.salud_atajo_generar_token()') is null
+              or to_regprocedure('public.salud_atajo_revocar_token()') is null then 'NO'
+            when has_function_privilege('anon', 'public.salud_estado()', 'execute')
+              or has_function_privilege('anon', 'public.salud_dar_consentimiento(text,boolean)', 'execute')
+              or has_function_privilege('anon', 'public.salud_revocar_consentimiento(boolean)', 'execute')
+              or has_function_privilege('anon', 'public.salud_atajo_generar_token()', 'execute')
+              or has_function_privilege('anon', 'public.salud_atajo_revocar_token()', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.salud_estado()', 'execute')
+              or not has_function_privilege('authenticated', 'public.salud_atajo_generar_token()', 'execute') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0093: la lectura de salud es del dueno o de quien tiene leer_entrenamiento (EXPRESION viva).
+select '0093 - salud del celular: lee el dueno o leer_entrenamiento', 'la policy salud_muestras_leer menciona auth.uid y leer_entrenamiento',
+       case when not exists (select 1 from pg_policies
+                              where schemaname = 'public' and tablename = 'salud_muestras' and policyname = 'salud_muestras_leer'
+                                and cmd = 'SELECT'
+                                and coalesce(qual, '') like '%leer_entrenamiento%'
+                                and coalesce(qual, '') like '%auth.uid()%') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0093: la tabla de muestras exige unidad/rango por tipo y un dato por persona, dia, tipo y fuente.
+select '0093 - salud del celular: salud_muestras exige unidad, rango y unicidad', 'CHECK con los seis tipos y UNIQUE (usuario_id, fecha, tipo, fuente)',
+       case when to_regclass('public.salud_muestras') is null then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = to_regclass('public.salud_muestras') and contype = 'c'
+                                and pg_get_constraintdef(oid) like '%minutos_ejercicio%'
+                                and pg_get_constraintdef(oid) like '%fc_reposo%') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = to_regclass('public.salud_muestras') and contype = 'u'
+                                and pg_get_constraintdef(oid) like '%(usuario_id, fecha, tipo, fuente)%') then 'NO'
+            else 'SI' end
+
+union all
+-- La 0093: la casilla E llego al formulario publico: columna nueva y la politica acepta el texto 0.4.
+select '0093 - salud del celular: piloto_autorizaciones lleva casilla_e y acepta el texto 0.4', 'columna casilla_e y with_check de la policy de insert menciona 0.4',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'piloto_autorizaciones' and column_name = 'casilla_e') then 'NO'
+            when not exists (select 1 from pg_policies
+                              where schemaname = 'public' and tablename = 'piloto_autorizaciones'
+                                and policyname = 'piloto_autorizacion_insertar_formulario'
+                                and coalesce(with_check, '') like '%0.4%') then 'NO'
             else 'SI' end
 
 order by migracion, senal;
