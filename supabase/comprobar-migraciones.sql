@@ -2390,5 +2390,13 @@ select '0110 - las respuestas del coach a la cadena', 'tabla con RLS solo lectur
                        where p.oid = to_regprocedure('public.responder_pregunta_coach(text,uuid,integer,text,text)')) then 'NO'
             when has_function_privilege('anon', 'public.responder_pregunta_coach(text,uuid,integer,text,text)', 'execute') then 'NO'
             else 'SI' end
+union all
+-- La 0111: ninguna función de public (salvo las de extensiones) sin search_path fijo.
+select '0111 - ninguna funcion de public sin search_path fijo', 'cero funciones de public sin set search_path (sin contar las de extensiones)',
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                          where n.nspname = 'public' and p.prokind in ('f', 'p')
+                            and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')
+                            and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')) then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
