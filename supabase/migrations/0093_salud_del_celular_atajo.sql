@@ -6,10 +6,16 @@
 -- DESPUÉS de la 0083 (capacidades) y de la 0089 (piloto de interesados): las dos se
 -- comprueban al principio y la migración se detiene con un mensaje claro si falta alguna.
 --
--- NÚMERO. `origin/main` llega a la 0089. Las ramas `feat/creadores-tablero` y
--- `feat/espacios-manuela` traen la 0090 y la 0091 (y esta última una 0092 sin subir, en su
--- worktree). Comprobado el 28-sep recorriendo TODAS las ramas remotas y los worktrees
--- locales: ninguno trae una 0093. Si otra rama la toma antes de fusionar esta, renumerar.
+-- ORDEN, Y NO ES NEGOCIABLE: ESTA MIGRACIÓN ANTES QUE EL CÓDIGO. El formulario público de
+-- interesados de esta misma rama manda `casilla_e` y el texto 0.4. Si ese código llega a
+-- `main` (= producción) sin esta migración aplicada, la base no tiene la columna ni acepta
+-- el 0.4, y el formulario deja de guardar: es la puerta de entrada de los creadores. Al
+-- revés no rompe nada: con esto aplicado, el formulario viejo (0.3, sin E) sigue entrando.
+-- Comprobar con `comprobar-migraciones.sql` (filas «0093 - …» en SI) antes de fusionar.
+--
+-- NÚMERO. El 28-sep ninguna rama traía una 0093. El 4-oct `main` llega a la 0110 y la
+-- 0093 sigue libre (las otras se numeraron alrededor). Escrita antes que la 0094–0110, se
+-- aplica después de ellas: no toca nada de lo que crearon (comprobado el 4-oct).
 --
 -- Diseño: `vigia-codex/estilo-de-vida/COSTOS-APP-NATIVA-Y-SALUD.md` (§3 Fase 1, §5 lo
 -- legal). Decisiones de Bryan (28-sep): iPhone con un Atajo que lee Salud y lo manda una
@@ -235,6 +241,8 @@ create table if not exists public.salud_atajo_tokens (
   token_hash        text not null unique check (token_hash ~ '^[0-9a-f]{64}$'),
   creado_en         timestamptz not null default now(),
   revocado_en       timestamptz,
+  -- La última vez que ENTRARON datos con este código (lo anota salud_atajo_guardar). No
+  -- la última vez que se aceptó: la tarjeta lo enseña como «Último envío».
   ultimo_uso_en     timestamptz,
   -- Límite de frecuencia básico: envíos en la ventana de una hora (ver salud_atajo_autorizar).
   ventana_inicio    timestamptz,
@@ -377,7 +385,8 @@ grant execute on function public.salud_revocar_consentimiento(boolean) to authen
 
 -- Genera el código del Atajo. Exige el permiso E vigente. Revoca el anterior (solo hay uno
 -- activo) y devuelve el código EN CLARO esta única vez: en la tabla solo queda su hash.
--- Formato: `sa_` + 40 hexadecimales (160 bits) sacados de dos UUID v4 del servidor.
+-- Formato: `sa_` + 40 hexadecimales sacados de dos UUID v4 del servidor: 154 bits de azar
+-- (los 122 del primero, que fija 6 bits de versión y variante, y 32 del segundo).
 -- El hash es el mismo que calcula la Edge Function: sha-256 del texto UTF-8, en hexadecimal.
 create or replace function public.salud_atajo_generar_token()
 returns jsonb
@@ -517,7 +526,8 @@ begin
     return jsonb_build_object('estado', 'sin_consentimiento');
   end if;
 
-  update public.salud_atajo_tokens set ultimo_uso_en = now() where id = t.id;
+  -- `ultimo_uso_en` NO se anota aquí: aceptar el código no es recibir datos. Lo anota
+  -- salud_atajo_guardar cuando de verdad entra algo (prueba 110, sección 3).
   return jsonb_build_object('estado', 'ok', 'usuario_id', t.usuario_id);
 end;
 $$;
@@ -527,7 +537,8 @@ grant execute on function public.salud_atajo_autorizar(text) to service_role;
 -- Guarda los resúmenes ya validados por la Edge Function: upsert idempotente por
 -- (persona, día, tipo, fuente='atajo'). Si el mismo (día, tipo) viene repetido gana el
 -- último. Vuelve a comprobar el permiso: si la revocaron entre `autorizar` y aquí, no
--- entra nada. Las CHECK de la tabla son la última red (unidad y rango).
+-- entra nada. Las CHECK de la tabla son la última red (unidad y rango). Si entra algo,
+-- anota el «último envío» del código.
 create or replace function public.salud_atajo_guardar(p_usuario uuid, p_muestras jsonb)
 returns integer
 language plpgsql
@@ -564,6 +575,12 @@ begin
                 unidad = excluded.unidad,
                 metodo = excluded.metodo;
   get diagnostics v_n = row_count;
+
+  -- «Último envío» = la última vez que entraron datos. Hay un solo código activo por persona.
+  if v_n > 0 then
+    update public.salud_atajo_tokens set ultimo_uso_en = now()
+     where usuario_id = p_usuario and revocado_en is null;
+  end if;
   return v_n;
 end;
 $$;
