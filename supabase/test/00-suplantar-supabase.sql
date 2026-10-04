@@ -89,7 +89,10 @@ $$;
 create table if not exists storage.buckets (
   id text primary key,
   name text not null,
-  public boolean not null default false
+  public boolean not null default false,
+  -- Existe en Supabase y la lee `comprobar-migraciones.sql` (tope de `medios-app`); sin ella
+  -- la consulta de señales no se puede ejecutar en el CI.
+  file_size_limit bigint
 );
 
 create table if not exists storage.objects (
