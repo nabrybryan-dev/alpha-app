@@ -10,7 +10,7 @@ import { db, hoyIso } from '../../../data/dbInstance'
 import { aplicarSnapshot, instantaneaLocal, reiniciarDb } from '../../../data/mockDb'
 import { datosRutaDe } from '../../../data/ruta/datosRuta'
 import { armarSemana, sesionDestacada } from '../../../domain/rutaEntrenamiento'
-import type { Rol } from '../../../domain/types'
+import type { Microciclo, Rol } from '../../../domain/types'
 
 const quien = { id: 'u-valentina', rol: 'nutricionista' as Rol }
 
@@ -141,17 +141,17 @@ describe('MiEntrenoPage', () => {
 
     const foto = instantaneaLocal()
     const base = foto.microciclos.find((m) => m.usuarioId === 'u-valentina' && m.estado === 'activo')!
-    const vigente = {
+    const vigente: Microciclo = {
       ...base,
       fechaInicio: iso(lunes),
-      cadenciaDias: 7,
+      cadenciaDias: 7 as const,
     }
-    const futuro = {
+    const futuro: Microciclo = {
       ...base,
       id: `${base.id}-futuro`,
       numero: base.numero + 1,
       fechaInicio: iso(lunesSiguiente),
-      cadenciaDias: 7,
+      cadenciaDias: 7 as const,
       sesiones: base.sesiones.map((s) => ({ ...s, id: `${s.id}-futuro` })),
     }
     aplicarSnapshot({
