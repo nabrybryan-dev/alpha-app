@@ -9,7 +9,7 @@ import type { Microciclo } from './types'
  *   · los nuevos dicen de quién son y cuál son, y nada más — ni `-prop`, ni `-mN`,
  *     ni la historia de por dónde pasó la propuesta;
  *   · el slug es UNO POR PERSONA y lo guarda la base (`usuarios_app.slug`, migración
- *     0081). Aquí no se deriva del nombre: derivarlo en cada sitio es justo lo que
+ *     0112). Aquí no se deriva del nombre: derivarlo en cada sitio es justo lo que
  *     le cambió el prefijo a tres personas de una semana a otra.
  *
  * La base lo exige con un trigger BEFORE INSERT. Esta función es la mitad de la app.
@@ -20,7 +20,7 @@ import type { Microciclo } from './types'
  * tiene (la migración aborta si no puede dárselo a alguien).
  */
 
-/** Lo que la base admite en `usuarios_app.slug` (el `check` de la 0081). */
+/** Lo que la base admite en `usuarios_app.slug` (el `check` de la 0112). */
 const FORMA_DEL_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 export interface DatosDelIdNuevo {

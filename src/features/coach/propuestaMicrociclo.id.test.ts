@@ -6,7 +6,7 @@ import type { Microciclo } from '../../domain/types'
  * «Generar microciclo» ya no fabrica `-prop`. Ver `src/domain/idDeMicrociclo.ts`.
  *
  * Hasta el 2026-09-15 esta función construía `${origen.id}-prop${n + 1}`: dos
- * propuestas seguidas desde `m-x-1` daban `m-x-1-prop2-prop3`. Con la migración 0081
+ * propuestas seguidas desde `m-x-1` daban `m-x-1-prop2-prop3`. Con la migración 0112
  * puesta, ese id lo rechaza la base, y desde un teléfono se va a la cola de descartes
  * sin que el coach lo vea.
  */

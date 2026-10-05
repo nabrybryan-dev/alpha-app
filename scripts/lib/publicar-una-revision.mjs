@@ -12,11 +12,11 @@
  * Sigue sin aprobar nada, y sigue sin poder: aquí no hay ninguna forma de
  * escribir la firma. Lo que hace que una revisión salga es la bandeja.
  *
- * Lo único que puede hacer con una firma es QUITARLA, y solo cuando la cara reemplaza a una
- * voz ya firmada (13-sep): esa firma se dio a otro archivo. Quitar no es firmar.
+ * Cada reemplazo retira la firma anterior: una firma se dio a un archivo concreto.
  */
 import { readFile, stat } from 'node:fs/promises'
 import { extname, resolve } from 'node:path'
+import { randomUUID } from 'node:crypto'
 
 import {
   contentTypeDelMedio,
@@ -48,7 +48,7 @@ export const PORQUE = {
  * @param {string} p.semana El lunes, en AAAA-MM-DD.
  * @param {string} p.archivo Ruta del audio o vídeo ya renderizado.
  * @param {string} p.guion Lo que dice, palabra por palabra. Obligatorio.
- * @param {boolean} [p.forzar] Sobrescribir aunque ya esté aprobado. La firma se queda.
+ * @param {boolean} [p.forzar] Reemplazar aunque ya esté aprobado. Retira la firma anterior.
  * @param {boolean} [p.caraSobreVozFirmada] Dejar que la cara reemplace a una voz ya firmada:
  *   la firma se quita y vuelve a la bandeja. Nunca pisa un vídeo firmado.
  * @param {boolean} [p.ensayo] No tocar nada: decir qué haría.
@@ -100,14 +100,18 @@ export async function publicarUnaRevision({
   }
 
   const cuerpo = await readFile(ruta)
+  // Cada subida tiene su objeto: una firma nunca apunta a bytes sobrescritos.
+  const path = `personas/${usuarioId}/${semana}/${randomUUID()}.${extension}`
   const { error: errorSubida } = await supabase.storage
     .from(BUCKET)
-    .upload(decision.path, cuerpo, { contentType: contentTypeDelMedio(extension), upsert: true })
+    .upload(path, cuerpo, { contentType: contentTypeDelMedio(extension), upsert: false })
   if (errorSubida) throw new Error(`no pude subir el archivo: ${errorSubida.message}`)
 
   const { error: errorFila } = await supabase.from('videos_semanales').upsert(
     {
       ...filaDelVideo(encargo, decision),
+      path,
+      aprobado_en: null,
       // La hora la pone AQUI y no el modulo de decision, que es puro y no mira el reloj.
       // Hace falta ponerla a mano porque el `default now()` de la tabla solo corre al
       // INSERTAR: en un reemplazo, sin esto, `publicado_en` seguiria diciendo cuando se
@@ -120,9 +124,9 @@ export async function publicarUnaRevision({
 
   return {
     publicado: true,
-    path: decision.path,
+    path,
     reemplaza: decision.reemplaza,
-    quitaFirma: decision.quitaFirma,
+    quitaFirma: Boolean(yaHay?.aprobadoEn),
     tamanoBytes: size,
   }
 }

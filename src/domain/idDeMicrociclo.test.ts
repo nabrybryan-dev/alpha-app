@@ -10,7 +10,7 @@ import type { Microciclo } from './types'
  * id acababa contando la historia (`m-x-1-prop2-prop3`). En la base había 15 así.
  *
  * El slug es uno por persona y lo guarda la base (`usuarios_app.slug`, migración
- * 0081). La app no lo inventa: si la persona aún no lo tiene —la app se despliega
+ * 0112). La app no lo inventa: si la persona aún no lo tiene —la app se despliega
  * ANTES de aplicar la migración—, se queda el id de siempre, porque un id con la regla
  * y un slug inventado lo rechazaría el trigger igual que un `-prop`.
  */
@@ -32,7 +32,7 @@ describe('idDeMicrocicloNuevo', () => {
     ).toBe('m-valentina-cruz-3')
   })
 
-  it('sin slug —antes de la 0081— se queda el id de siempre', () => {
+  it('sin slug —antes de la 0112— se queda el id de siempre', () => {
     expect(idDeMicrocicloNuevo({ slug: undefined, numero: 23, origenId: 'm22', existentes: [] })).toBe('m22-prop23')
   })
 

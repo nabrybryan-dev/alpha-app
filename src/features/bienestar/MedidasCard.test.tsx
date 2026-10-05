@@ -3,19 +3,21 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { db } from '../../data/dbInstance'
 import { MEDIDAS, MEDIDA_POR_CLAVE } from '../../domain/medidas'
+import { hoyIso } from '../../lib/fecha'
 import { direccion } from '../../lib/direccionesVisuales'
 import { MedidasCard } from './MedidasCard'
 
 /**
- * LA ENCUESTA DE MEDIDAS: OCHO, Y NI UNA MÁS.
+ * LA ENCUESTA DE MEDIDAS: NUEVE, Y NI UNA MÁS.
  *
  * Hasta el 2026-09-08 esta tarjeta pedía la báscula y cinco perímetros de estética
- * —cintura, cadera, abdomen, muslo, brazo—. Ahora pide ocho medidas, y seis son longitudes
+ * —cintura, cadera, abdomen, muslo, brazo—. Luego pidió ocho, y seis son longitudes
  * de hueso: son las que le faltan al sujeto 3D del salón para dejar de ser el muñeco del
  * atlas y ser esta persona. Con la estatura sola, dos personas de 1,75 con fémures
- * distintos se dibujan iguales.
+ * distintos se dibujan iguales. Desde el 2026-09-27 son nueve: cuello, para que la fórmula
+ * US Navy pueda estimar % de grasa y masa magra sin bioimpedancia.
  *
- * Que sean EXACTAMENTE ocho es la mitad del encargo. Un formulario que pide once cosas se
+ * Que sean EXACTAMENTE nueve es la mitad del encargo. Un formulario que pide once cosas se
  * rellena a medias, y una medida a medias no se puede comparar con la de dentro de tres
  * meses.
  *
@@ -27,7 +29,7 @@ import { MedidasCard } from './MedidasCard'
  * ## Las etiquetas se comparan contra el DOMINIO, no contra una lista escrita aquí
  *
  * `MEDIDAS` (en `domain/medidas.ts`) es la única fuente: el orden, la etiqueta, cómo se
- * mide y el rango. Si este archivo repitiera los ocho nombres, el test seguiría verde el
+ * mide y el rango. Si este archivo repitiera los nueve nombres, el test seguiría verde el
  * día que la ficha y el dominio dejaran de decir lo mismo — que es exactamente el fallo
  * que hay que cazar, porque no da error: se ve como un campo que no deja guardar sin
  * decir por qué.
@@ -40,8 +42,8 @@ const abrir = (verPeso?: boolean) =>
 
 const medidas = () => db.perfiles.byUsuario(ASESORADA)?.medidas ?? []
 
-/** Las ocho, en el orden y con las palabras que dice el dominio. */
-const LAS_OCHO = MEDIDAS.map((m) => `${m.etiqueta} (${m.unidad})`)
+/** Las nueve, en el orden y con las palabras que dice el dominio. */
+const LAS_NUEVE = MEDIDAS.map((m) => `${m.etiqueta} (${m.unidad})`)
 
 /** El texto de la etiqueta de cada campo, sin la ayuda de cómo se mide. */
 function etiquetasDeLosCampos(): string[] {
@@ -61,13 +63,13 @@ function etiquetasDeLosCampos(): string[] {
 describe('la encuesta de medidas', () => {
   beforeEach(() => localStorage.clear())
 
-  it('pide exactamente ocho, con estas etiquetas y ninguna otra', async () => {
+  it('pide exactamente nueve, con estas etiquetas y ninguna otra', async () => {
     abrir()
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
 
     const campos = screen.getAllByRole('textbox')
-    expect(campos).toHaveLength(8)
-    expect(etiquetasDeLosCampos()).toEqual(LAS_OCHO)
+    expect(campos).toHaveLength(9)
+    expect(etiquetasDeLosCampos()).toEqual(LAS_NUEVE)
   })
 
   it('ya no pide el peso: eso es del check-in del día', async () => {
@@ -108,7 +110,7 @@ describe('la encuesta de medidas', () => {
     expect(ultima.pesoKg).toBeUndefined()
   })
 
-  it('una toma completa llega entera: las ocho claves en `cuerpo`', async () => {
+  it('una toma completa llega entera: las nueve claves en `cuerpo`', async () => {
     abrir()
     await userEvent.click(screen.getByRole('button', { name: /registrar/i }))
     const campos = screen.getAllByRole('textbox')
@@ -123,7 +125,7 @@ describe('la encuesta de medidas', () => {
 
     const [ultima] = medidas().slice(-1)
     expect(ultima.cuerpo).toEqual(esperado)
-    expect(Object.keys(ultima.cuerpo ?? {})).toHaveLength(8)
+    expect(Object.keys(ultima.cuerpo ?? {})).toHaveLength(9)
   })
 
   it('una medida fuera de rango no se guarda, y lo dice con las palabras del dominio', async () => {
@@ -167,6 +169,41 @@ describe('la encuesta de medidas', () => {
     await userEvent.type(screen.getAllByRole('textbox')[0], '41')
 
     expect(screen.getByRole('button', { name: /guardar/i })).toBeEnabled()
+  })
+
+  it('avisa suave a quien tiene medidas pero no cuello', () => {
+    db.perfiles.agregarMedida(ASESORADA, {
+      // La siembra pone sus medidas relativas a hoy (diasAtras): una fecha fija quedaba atrás de ellas
+      // en cuanto el reloj pasó el 27-sep y la «última» ya no era la de la prueba.
+      fecha: hoyIso(),
+      alturaCm: 165,
+      perimetros: {},
+      cuerpo: { cinturaCm: 72, caderasCm: 96 },
+    })
+    abrir()
+
+    expect(screen.getByText(/te falta el perímetro de/i)).toBeTruthy()
+  })
+
+  it('no avisa a quien ya registró su cuello', () => {
+    db.perfiles.agregarMedida(ASESORADA, {
+      // La siembra pone sus medidas relativas a hoy (diasAtras): una fecha fija quedaba atrás de ellas
+      // en cuanto el reloj pasó el 27-sep y la «última» ya no era la de la prueba.
+      fecha: hoyIso(),
+      alturaCm: 165,
+      perimetros: {},
+      cuerpo: { cinturaCm: 72, caderasCm: 96, cuelloCm: 35 },
+    })
+    abrir()
+
+    expect(screen.queryByText(/te falta el perímetro de/i)).toBeNull()
+  })
+
+  it('no avisa a quien todavía no tiene ninguna medición (ya se lo dice el vacío)', () => {
+    // Una persona sin perfil: la asesorada de la siembra ya trae medidas, y sin cuello.
+    render(<MedidasCard usuarioId="u-sin-ninguna-medicion" />)
+
+    expect(screen.queryByText(/te falta el perímetro de/i)).toBeNull()
   })
 
   it('a quien tiene la composición apagada no le enseña el kilaje de antes', () => {

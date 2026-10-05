@@ -92,6 +92,14 @@ describe('rutas del asesorado', () => {
     expect(alChat.length).toBeGreaterThan(0)
   })
 
+  it('los espacios del staff no son para el asesorado: su barra y su Entrenar no cambian', async () => {
+    // /mi-entreno es un espacio de Manuela; quien entrena como asesorado vuelve al salón.
+    renderizarEn('/mi-entreno')
+    const nav = await screen.findByRole('navigation', { name: 'Navegación principal' })
+    expect(nav.textContent).not.toMatch(/Mi entreno|Estrategia|Equipo/)
+    expect(screen.queryByText('Mi entrenamiento')).not.toBeInTheDocument()
+  })
+
   it('muestra el ranking del equipo en Logros sin exponer datos personales', async () => {
     renderizarEn('/logros')
     expect(await screen.findByText('Nivel general del equipo')).toBeInTheDocument()
@@ -113,15 +121,30 @@ describe('rutas del coach', () => {
   })
 
   it('muestra el panel del coach', async () => {
-    renderizarEn('/coach')
+    renderizarEn('/coach/asesorados')
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
+  })
+
+  it('/coach abre «Mi día» con la barra de cinco espacios (no depende del ancho de pantalla)', async () => {
+    renderizarEn('/coach')
+    expect(await screen.findByRole('heading', { level: 2, name: 'Mi día' })).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(nav.textContent).toMatch(/Mi día/)
+    expect(nav.textContent).toMatch(/Equipo/)
+  })
+
+  it('/tablero es la consola a pantalla completa: sin barra de espacios ni enlaces de panel', async () => {
+    renderizarEn('/tablero')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Alpha · Tablero' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Navegación principal' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Revisar audios y vídeos')).not.toBeInTheDocument()
   })
 
   it('el encoder ya no está en el panel del coach', async () => {
     // Se movió a Entrenar: la medición ocurre mientras haces la serie, no
     // mientras revisas a alguien. Un coach que quiera medir entra con su cuenta
     // de asesorado, como cualquiera que esté entrenando.
-    renderizarEn('/coach')
+    renderizarEn('/coach/asesorados')
     expect(await screen.findByText('Panel del coach')).toBeInTheDocument()
     expect(screen.queryByText(/Encoder/i)).not.toBeInTheDocument()
   })

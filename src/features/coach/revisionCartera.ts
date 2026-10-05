@@ -203,7 +203,7 @@ export function activarAutomaticas(
     // El id sale del slug de la persona. Si con él se pisaría una semana ya entrenada
     // —la numeración se reinició—, no se escribe nada y lo decide Bryan. Aviso: el
     // teléfono del staff no se baja los cerrados de la cartera, así que esto solo ve los
-    // choques con lo que tiene; el resto lo para la base (trigger de la 0081).
+    // choques con lo que tiene; el resto lo para la base (trigger de la 0112).
     let propuesta
     try {
       propuesta = microcicloPropuesto(activo, {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
 import { esHora, leerPauta } from '../../domain/nutricion/pauta'
+import { AVISO_SIN_MACROS, macrosDelDia } from '../../domain/nutricion/macrosDelDia'
 import { calcularPerfil } from '../../domain/nutricion/perfilCalculado'
 import { hoyIso } from '../../data/dbInstance'
 import { PerfilCalculadoVista } from './PerfilCalculadoVista'
@@ -44,6 +45,11 @@ const TIPOS: TipoDia[] = ['ALTO', 'BAJO', 'CHEAT']
 function comidaDe(titulo: string): TipoComida {
   const primera = titulo.trim().split(/[\s·]/)[0].toLowerCase()
   return (['desayuno', 'almuerzo', 'cena'] as const).find((c) => c === primera) ?? 'snack'
+}
+
+const kcalDelTipo = (plan: Parameters<typeof macrosDelDia>[0], tipo: TipoDia) => {
+  const m = macrosDelDia(plan, tipo)
+  return m ? `${m.kcal.toLocaleString('es-CO')} kcal` : 'sin macros'
 }
 
 export default function MiPlan() {
@@ -168,7 +174,7 @@ export default function MiPlan() {
           </p>
           <div className="mt-4 flex flex-col gap-2">
             {TIPOS.map((tipo) => {
-              const macros = plan.macrosPorDia[tipo]
+              const macros = macrosDelDia(plan, tipo)
               return (
                 <div
                   key={tipo}
@@ -178,10 +184,16 @@ export default function MiPlan() {
                     {plan.etiquetasDia?.[tipo] ?? tipo}
                   </span>
                   <span className="cifras text-right text-[11px] text-tenue">
-                    <b className="text-texto">{macros.kcal.toLocaleString('es-CO')}</b> kcal
-                    <span className="block">
-                      P {macros.proteinaG} · C {macros.carbosG} · G {macros.grasaG}
-                    </span>
+                    {macros ? (
+                      <>
+                        <b className="text-texto">{macros.kcal.toLocaleString('es-CO')}</b> kcal
+                        <span className="block">
+                          P {macros.proteinaG} · C {macros.carbosG} · G {macros.grasaG}
+                        </span>
+                      </>
+                    ) : (
+                      AVISO_SIN_MACROS
+                    )}
                   </span>
                 </div>
               )
@@ -209,7 +221,7 @@ export default function MiPlan() {
                   {plan.etiquetasDia?.[tipo] ?? tipo}
                 </span>
                 <span className="cifras block text-[10px] opacity-70">
-                  {plan.macrosPorDia[tipo].kcal.toLocaleString('es-CO')} kcal
+                  {kcalDelTipo(plan, tipo)}
                 </span>
               </button>
             ))}

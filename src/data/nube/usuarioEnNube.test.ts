@@ -5,7 +5,7 @@ import { SELECCION_USUARIOS, TABLA_USUARIOS, usuarioDeFila } from './usuarioEnNu
 /**
  * EL SLUG LLEGA A LA APP, Y SU AUSENCIA NO TUMBA LA DESCARGA.
  *
- * `usuarios_app.slug` lo crea la migración 0081, y el orden de despliegue es primero la
+ * `usuarios_app.slug` lo crea la migración 0112, y el orden de despliegue es primero la
  * app y después la migración. En `hidratarDesdeNube` un error en CUALQUIER tabla tumba la
  * descarga entera, y un `.select('...,slug')` contra una base sin la columna es un error:
  * nadie podría abrir la app entre el despliegue y la migración. Por eso la selección no
@@ -15,7 +15,7 @@ import { SELECCION_USUARIOS, TABLA_USUARIOS, usuarioDeFila } from './usuarioEnNu
 describe('la fila de usuarios_app', () => {
   const FILA = { id: 'u-valentina', nombre: 'Valentina Cruz', rol: 'asesorado' as const, avatar_iniciales: 'VC' }
 
-  it('con la 0081 aplicada, el slug llega al usuario', () => {
+  it('con la 0112 aplicada, el slug llega al usuario', () => {
     expect(usuarioDeFila({ ...FILA, slug: 'valentina-cruz' }).slug).toBe('valentina-cruz')
   })
 

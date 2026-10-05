@@ -391,7 +391,7 @@ export async function hidratarDesdeNube(): Promise<void> {
     contenidos,
     premiaciones,
   ] = await Promise.all([
-    // Todas las columnas, y no una lista: el slug (0081) llega cuando existe y su
+    // Todas las columnas, y no una lista: el slug (0112) llega cuando existe y su
     // ausencia no tumba la descarga. Ver `usuarioEnNube.ts`.
     pedir(TABLA_USUARIOS, () => sb.from(TABLA_USUARIOS).select(SELECCION_USUARIOS)),
     // El blob y la columna `sexo` (0056). La selección sale de `perfilEnNube.ts`,

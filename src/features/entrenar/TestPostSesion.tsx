@@ -10,7 +10,11 @@ interface TestPostSesionProps {
   nombreSesion?: string
 }
 
-const RPE_OPCIONES = [6, 7, 8, 9, 10]
+// De 1 a 10 y no de 6 a 10: hay asesoradas con un techo clínico de RPE 5 (lupus) para
+// quienes TODA sesión de la escala vieja quedaba por encima de su límite y no tenían
+// cómo anotar lo que de verdad sintieron. Va en dos filas de cinco (1-5 y 6-10): diez
+// botones en una sola fila quedan en ~24 px a 360 px de ancho, menos de lo tocable.
+const RPE_OPCIONES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
 // La recuperación se pide en niveles pero se guarda numérica (1-10) para que el
 // panel del coach y el índice de readiness la sigan leyendo igual.
 //
@@ -70,7 +74,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
           <legend className="mb-2 text-sm font-bold text-silver-200">
             ¿Qué tan dura estuvo la sesión? <span className="font-semibold text-silver-500">(RPE)</span>
           </legend>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {RPE_OPCIONES.map((n) => {
               const sel = rpeSesion === n
               return (
@@ -78,7 +82,8 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
                   key={n}
                   type="button"
                   onClick={() => setRpeSesion(n)}
-                  className={`cifras press flex-1 rounded-boton border py-2.5 text-base font-bold transition-colors duration-toque ease-salida ${
+                  aria-pressed={sel}
+                  className={`cifras press min-h-[44px] rounded-boton border py-2.5 text-base font-bold transition-colors duration-toque ease-salida ${
                     sel ? 'border-accion bg-accion text-white' : 'border-ink-500 bg-ink-700 text-silver-300'
                   }`}
                 >
@@ -87,6 +92,10 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
               )
             })}
           </div>
+          <p className="mt-1.5 flex justify-between text-[10px] font-semibold uppercase tracking-wide text-silver-500">
+            <span>1 · muy suave</span>
+            <span>10 · máximo</span>
+          </p>
         </fieldset>
 
         <fieldset className="mt-4">
