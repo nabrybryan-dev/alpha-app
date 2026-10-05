@@ -19,6 +19,7 @@ import {
   type RespuestasEncaje,
 } from '../../domain/interesados/formulario'
 import { enviarInteresado } from '../../data/interesados/enviarInteresado'
+import { Vitrina } from './Vitrina'
 
 /**
  * El espacio de los interesados que llegan por un creador: `/interesados?codigo=XXXX`.
@@ -27,6 +28,9 @@ import { enviarInteresado } from '../../data/interesados/enviarInteresado'
  * por fuera de `SessionProvider`. Sigue el patrón del cribado (`CribadoForm`): chips de
  * opción cerrada, «no» se marca y no se deja en blanco, y la validación vive en el
  * dominio (`domain/interesados/formulario.ts`), no aquí.
+ *
+ * Arriba va la VITRINA (`Vitrina.tsx`): qué recibe la persona, en qué nos apoyamos y el
+ * precio, antes de pedirle ninguna decisión sobre sus datos.
  *
  * LO QUE ESTA PANTALLA NO TIENE, A PROPÓSITO:
  *   - ningún `<input>` de texto ni `<textarea>`: solo botones (PASO-A-PASO, «Puerta del
@@ -38,6 +42,9 @@ import { enviarInteresado } from '../../data/interesados/enviarInteresado'
  */
 
 const VACIO: Borrador = { encaje: {}, casillas: {}, declaracion: false }
+
+/** El `id` del encabezado del formulario, al que baja el enlace de la vitrina. */
+const ANCLA_FORMULARIO = 'formulario'
 
 /** Lo que falta, dicho como lo lee la persona y no con el nombre de la columna. */
 const NOMBRE_DE_LO_QUE_FALTA: Record<string, string> = {
@@ -126,9 +133,10 @@ export default function InteresadosPage() {
   return (
     <main data-theme="dark" className="min-h-dvh bg-bg px-4 py-6">
       <div className="mx-auto flex max-w-md flex-col gap-4">
-        <header>
-          <p className="kicker">Alpha Athletics</p>
-          <h1 className="font-display text-2xl text-texto">Antes de empezar</h1>
+        <Vitrina anclaFormulario={ANCLA_FORMULARIO} />
+
+        <header id={ANCLA_FORMULARIO} className="scroll-mt-4 pt-2">
+          <h2 className="font-display text-2xl text-texto">Antes de empezar</h2>
           <p className="mt-1 text-sm text-tenue">
             Tres preguntas para ver si lo que hacemos te sirve, y tu decisión sobre tus datos.
           </p>
