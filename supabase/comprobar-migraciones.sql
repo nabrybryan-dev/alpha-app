@@ -1543,8 +1543,14 @@ select '0079 - el veto de 24 horas', 'parar_publicacion existe, definer y cerrad
 
 union all
 select '0079 - el veto de 24 horas', 'cron cada 15 min programado',
+       -- `cron.job` se consulta en tiempo de ejecución (query_to_xml) y solo si existe: nombrada
+       -- directamente, la consulta entera falla al leerse en una base sin pg_cron (el CI), aunque
+       -- el `case` nunca llegue a esa rama.
        case when not exists (select 1 from pg_available_extensions where name='pg_cron') then 'SI'
-            when exists (select 1 from cron.job where jobname='publicar-pendientes-cada-15' and schedule='*/15 * * * *') then 'SI'
+            when to_regclass('cron.job') is null then 'NO'
+            when (xpath('/row/n/text()', query_to_xml(
+                   'select count(*) as n from cron.job where jobname = ''publicar-pendientes-cada-15'' and schedule = ''*/15 * * * *''',
+                   false, true, '')))[1]::text::int > 0 then 'SI'
             else 'NO' end
 
 union all
