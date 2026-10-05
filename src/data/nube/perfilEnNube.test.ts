@@ -69,10 +69,14 @@ describe('la columna del sexo, contra la migración', () => {
     // Lo que escribe el asesorado son LLAMADAS, y su carga no nombra ni la columna ni la
     // fila: la medida (0057) y, desde la 0065, los días que puede entrenar. Cada una
     // escribe una sola clave del blob para `auth.uid()`; el trigger `proteger_perfil`
-    // rechaza cualquier otra. Si aparece aquí una tercera, que traiga su migración.
+    // rechaza cualquier otra. La primera es del COACH (`crear_ficha_si_falta`, 0107: crea la ficha mínima de un cliente nuevo). Si aparece aquí una más, que traiga su migración.
     const llamadas = todos.filter((e) => e.tipo === 'rpc')
-    expect(llamadas.map((e) => e.funcion)).toEqual(['registrar_medida', 'registrar_dias_disponibles'])
-    expect(llamadas.map((e) => e.claves)).toEqual([['p_medida'], ['p_dias']])
+    expect(llamadas.map((e) => e.funcion)).toEqual([
+      'crear_ficha_si_falta',
+      'registrar_medida',
+      'registrar_dias_disponibles',
+    ])
+    expect(llamadas.map((e) => e.claves)).toEqual([['p_usuario'], ['p_medida'], ['p_dias']])
   })
 })
 

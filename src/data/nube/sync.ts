@@ -30,6 +30,7 @@ import { modoNube, supabase } from '../supabase'
 import { microciclosDe } from './hidratar'
 import { datosDePerfil, type FilaPerfilDelCoach } from './perfilEnNube'
 import { encolar } from './procesador'
+import { reportarError } from '../errores/reportarError'
 
 // Superficie pública. Se reexporta desde aquí para que quien la usa no dependa
 // de cómo esté repartido por dentro.
@@ -197,7 +198,25 @@ function idDeDespensa(usuarioId: string, item: ItemDespensa): string {
  */
 function subirPerfil(local: Db, usuarioId: string): void {
   const perfil = local.perfiles.byUsuario(usuarioId)
-  if (!perfil) return
+  if (!perfil) {
+    // Antes era un `return` mudo: el coach pulsaba, no pasaba nada y nadie lo sabía. La capa
+    // local ya estrena la ficha (`conFicha`), así que llegar aquí es un fallo, y se cuenta.
+    reportarError(new Error('subirPerfil: no hay ficha local que subir'), { donde: 'sync:subirPerfil' })
+    return
+  }
+  // El cliente recién dado de alta solo existe en `usuarios_app`: la ficha la crea el coach con
+  // `crear_ficha_si_falta` (0107). Va ANTES del upsert y la cola es en orden, así que la fila
+  // existe cuando llega el blob; si la llamada falla ocho veces se aparta y se cuenta como
+  // cualquier otro descarte (`descartesPendientes`), no desaparece. Idempotente: la clave la
+  // colapsa si el coach guarda tres cosas seguidas.
+  encolar({
+    tabla: 'perfiles',
+    tipo: 'rpc',
+    funcion: 'crear_ficha_si_falta',
+    claveRpc: `${usuarioId}:ficha`,
+    fila: usuarioId,
+    payload: { p_usuario: usuarioId },
+  })
   const datos = datosDePerfil(perfil)
   encolar({
     tabla: 'perfiles',

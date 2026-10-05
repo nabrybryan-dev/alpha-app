@@ -25,6 +25,19 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
+  // que queda fuera de src/ y por eso este analisis no la ve.
+  'src/domain/praxis/registro/index.ts':
+    'Barril del registro en lenguaje natural; lo consume la Edge Function praxis-registro, no la app.',
+
+  // La condicion del cero (Bryan, 1-oct-2026): con {rir} = 0 las respuestas de Praxis usan
+  // FRASES-DEL-CERO en vez de «te quedaban 0 mas». Sin enchufar porque alpha-app todavia no
+  // tiene enrutador de respuestas ni plantillas PLT-* (viven en el repo de lenguaje); el
+  // enrutador, cuando se construya, llama a variantesParaElTurno antes de elegir variante.
+  'src/domain/praxis/respuestas/frasesDelCero.ts':
+    'Condicion del RIR 0 para el enrutador de respuestas, que aun no existe en la app; ' +
+    'se prueba aparte y no confunde FALLO con RIR 0.',
+
   // El contrato de trayectorias: que ningun patron contradiga a su propio implemento.
   // No lo importa la app y no es un descuido: es una regla que se hace cumplir desde una
   // prueba, como una regla de linter, no una funcion que alguien llame en un fotograma. Se
@@ -91,6 +104,83 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Contratos del organizador (0098/0099) que consumirá su pantalla; hoy solo los ejercita la prueba.
+  'src/domain/planOrganizador.ts#NOMBRE_ESTADO_PLAN':
+    'Rótulos de los estados del plan: los pintará la pantalla «Mi plan» del organizador, que aún no existe.',
+  'src/domain/planOrganizador.ts#tareasAtascadas':
+    'Las tareas que llevan dos semanas moviéndose: las consumirá la pregunta «¿se hace, se delega o se borra?» de la pantalla.',
+  // Espejo en TypeScript del criterio de la base para no contar dos veces un enlace de mercadeo.
+  // Hoy solo lo ejercita su prueba: la normalización real la hace la base al insertar.
+  'src/domain/mercadeoManuela.ts#normalizarUrl':
+    'Contrato del buzón de mercadeo (0096): lo consumirá el formulario de referencias cuando ' +
+    'avise de un enlace repetido antes de enviarlo; la base ya lo normaliza al insertar.',
+  // La traducción de una marca de riesgo a la propuesta que devuelve el servidor. La usa
+  // SOLO la Edge Function `praxis-registro`, que vive fuera de src/ y por eso este análisis
+  // no la ve. Va en el dominio, junto al filtro, para que pantalla y función compartan una
+  // sola regla (revisión del PR #331, A3).
+  'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
+    'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
+    'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
+  // El aviso al coach (3-oct, migración 0108): de la marca de riesgo al TIPO de señal que se guarda.
+  // Lo llama SOLO la Edge Function praxis-registro (el resto del módulo lo usa la consola).
+  'src/domain/praxis/aviso.ts#nivelDeMarca':
+    'La consume la Edge Function praxis-registro para escribir el aviso al coach (solo el tipo de ' +
+    'señal, nunca la frase); fuera del alcance de este análisis.',
+  // El lector de riesgo con modelo (2-oct): lo llama SOLO la Edge Function praxis-registro,
+  // que vive fuera de src/. Va en el dominio para que sus reglas tengan pruebas de vitest.
+  'src/domain/praxis/riesgoModelo.ts#leerSalidaRiesgo':
+    'La consume la Edge Function praxis-registro para leer la respuesta del lector de riesgo; ' +
+    'fuera del alcance de este análisis.',
+  // «Gana la lectura más grave» (3-oct): la regla la aplica SOLO la Edge Function praxis-registro.
+  'src/domain/praxis/masGrave.ts#masGrave':
+    'La consume la Edge Function praxis-registro para quedarse con la marca más grave; fuera del alcance de este análisis.',
+  'src/domain/praxis/masGrave.ts#hayQueConsultarAlModelo':
+    'La consume la Edge Function praxis-registro para decidir si relee con el modelo; fuera del alcance de este análisis.',
+  'src/domain/praxis/riesgoModelo.ts#SHA16_PROMPT_RIESGO':
+    'La Edge Function lo manda en meta.version_prompt_riesgo para saber con qué prompt medido ' +
+    'se leyó cada frase; fuera del alcance de este análisis.',
+  // La charla con modelo (3-oct): el servidor la llama desde la Edge Function `praxis-registro`, que vive fuera de src/.
+  'src/domain/praxis/charla/modelo.ts#armarContextoCharla': 'La consume la Edge Function praxis-registro para armar el pedazo de charla del mensaje; fuera del alcance de este análisis.',
+  'src/domain/praxis/charla/modelo.ts#leerContextoCharla': 'La consume la Edge Function praxis-registro para sanear trato, nombre, apertura y turnos; fuera del alcance de este análisis.',
+  'src/domain/praxis/charla/modelo.ts#leerRespuestaCharla': 'La consume la Edge Function praxis-registro para validar la respuesta de charla del modelo; fuera del alcance de este análisis.',
+  'src/domain/praxis/charla/promptCharla.ts#VERSION_PROMPT_CHARLA': 'La Edge Function lo manda en meta.version_prompt_charla; fuera del alcance de este análisis.',
+  // El cuestionario de ingreso por voz (2-3 oct): el prompt y la validación con citas viven en el dominio para
+  // que tengan pruebas de vitest, y los llama la Edge Function `praxis-registro` (`accion: 'ingreso'`), que
+  // está fuera de src/ y por eso este análisis no la ve. El banco de `scripts/banco-ingreso/` también.
+  'src/domain/praxis/ingreso/extraer.ts#validarIngreso':
+    'La consume la Edge Function praxis-registro (accion ingreso) para dejar pasar solo lo que se rastrea ' +
+    'a una cita literal; fuera del alcance de este análisis.',
+  'src/domain/praxis/ingreso/extraer.ts#leerSalidaIngreso':
+    'La consume la Edge Function praxis-registro para sacar el JSON de la respuesta de Haiku; fuera del alcance de este análisis.',
+  'src/domain/praxis/ingreso/extraer.ts#VERSION_PROMPT_INGRESO':
+    'La Edge Function la manda en meta.version_prompt, y el banco la anota en su informe; fuera del alcance de este análisis.',
+  'src/domain/praxis/ingreso/extraer.ts#juntarTurnos':
+    'La usa el banco scripts/banco-ingreso/ para armar el formulario de una persona simulada; la pantalla de la prueba ' +
+    'junta los turnos por su cuenta (valoresDeExtraccion).',
+  'src/domain/praxis/ingreso/extraer.ts#IDS_DE_VOZ':
+    'Lista de los campos que la voz puede llenar, para las pruebas del extractor; la pantalla usa camposDeVoz().',
+  'src/domain/praxis/ingreso/guion.ts#camposAplicables':
+    'Qué toques se preguntan dadas las respuestas ya tocadas: contrato del guion que ejercita guion.test.ts; ' +
+    'la pantalla de la prueba lo resuelve con siguienteToque().',
+  'src/domain/praxis/ingreso/prueba.ts#FUERA_DE_LA_PRUEBA':
+    'Lo que el guion tiene y la prueba deja fuera, con su porqué: lo lee prueba.test.ts para que ningún campo del ' +
+    'guion se pierda sin explicación.',
+  // La lista blanca de Praxis, dicha como lista de rutas. No la llama la app y no es un
+  // descuido: es el CONTRATO que `listaBlanca.test.ts` hace cumplir —recorre lo que sale de
+  // `loQuePraxisVe` y falla si aparece una clave que no esté aquí—. Vive en el módulo, y no
+  // en la prueba, para que quien añada un campo tenga que tocar las dos cosas en el mismo
+  // archivo: el copiado y la lista.
+  'src/domain/praxis/plan/listaBlanca.ts#CAMPOS_PERMITIDOS':
+    'Contrato de la lista blanca de Praxis (DISENO §1.2): lo hace cumplir listaBlanca.test.ts ' +
+    'sobre todo lo que sale de loQuePraxisVe. No es una función que la app llame.',
+  // La puerta de la salud del piloto «bola de nieve» (0089): ¿se le puede PREGUNTAR este
+  // dato de salud a un interesado? El formulario público no pregunta ninguno, marque lo
+  // que marque, así que hoy no la llama nadie. Se deja porque las preguntas de salud llegan
+  // DESPUÉS de la autorización y fuera de ese formulario, y el día que se escriban la
+  // pregunta tiene que hacerse en UN sitio, con sus casos ya probados.
+  'src/domain/interesados/formulario.ts#puedePedirSalud':
+    'Contrato de la autorización v0.3: lo consumirá quien pregunte salud después de la ' +
+    'autorización, que todavía no existe. El formulario de interesados no pregunta salud.',
   // LA PUERTA de la salida automatica. `veredictoDeLaPuerta` la consume la bandeja de
   // firma; `puedeSalirSola` es el CONTRATO que consumira quien envie —hoy nadie, porque el
   // envio automatico todavia no existe (`empuje-y-disparador`, sin escribir)—. Se deja

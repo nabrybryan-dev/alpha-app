@@ -11,6 +11,8 @@ import { CheckDibujado } from '../entrenar/CheckDibujado'
 import { visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
 import { CheckinForm } from './CheckinForm'
 import { MedidasCard } from './MedidasCard'
+import { MensajesVidaBandeja } from './MensajesVidaBandeja'
+import { TarjetaVidaCard } from './TarjetaVidaCard'
 import { activarRecordatorios, permisoActual } from './recordatorio'
 import { tramoDeHambre } from '../../domain/senales/hambre'
 import { tramoDeDolor } from '../../domain/senales/dolor'
@@ -172,11 +174,16 @@ export default function BienestarPage() {
         </Card>
       )}
 
-      <div className="entrada entrada-3">
+      <div className="entrada entrada-3 flex flex-col gap-3">
         {/* La cuarta superficie de peso, y la última. `MedidaCorporal.pesoKg`
             pasó a ser opcional para poder llegar hasta aquí: sin báscula pero
             con perímetros, que es justo la métrica que su plan sí le pide. */}
         <MedidasCard usuarioId={usuario.id} verPeso={verPeso} />
+        {/* Estilo de vida (fase 2, 0088): mensajes de la cola y la tarjeta semanal.
+            Las dos se pintan solas o no se pintan nada — sin bandeja vacía ni
+            tarjeta fuera de su semana. */}
+        <MensajesVidaBandeja usuarioId={usuario.id} />
+        <TarjetaVidaCard usuarioId={usuario.id} />
       </div>
 
       <section className="entrada entrada-4 flex flex-col gap-2">

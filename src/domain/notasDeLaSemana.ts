@@ -33,14 +33,21 @@ export function esNotaDeLaSemana(bloque: ItemMarcable): boolean {
   return ARRANQUES.some((a) => t.startsWith(normalizar(a)))
 }
 
-export interface BloquesSeparados {
+export interface BloquesSeparados<T extends ItemMarcable = ItemMarcable> {
   /** Para leer. Se pintan aparte y no llevan casilla. */
-  notas: ItemMarcable[]
+  notas: T[]
   /** Para hacer y marcar. Siguen igual que siempre. */
-  marcables: ItemMarcable[]
+  marcables: T[]
 }
 
-export function separarNotas(bloques: readonly ItemMarcable[] = []): BloquesSeparados {
+/**
+ * Genérica en `T` (2026-09-27, para `BloqueCardio`): sin esto, quien llama con bloques de
+ * cardio recibe `marcables: ItemMarcable[]` y pierde `duracionRealMin`, `distanciaKm` y
+ * `fcMedia` en el camino, aunque el dato siga ahí en tiempo de ejecución — el compilador ya
+ * no lo sabe. Con `T` en la firma, inferido del argumento, `separarNotas` devuelve
+ * `BloqueCardio[]` cuando entra `BloqueCardio[]`, y el resto no necesita ningún cast.
+ */
+export function separarNotas<T extends ItemMarcable>(bloques: readonly T[] = []): BloquesSeparados<T> {
   return {
     notas: bloques.filter(esNotaDeLaSemana),
     marcables: bloques.filter((b) => !esNotaDeLaSemana(b)),

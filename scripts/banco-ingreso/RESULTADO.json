@@ -1,0 +1,6166 @@
+{
+ "version": "ingreso-prompt-2026-10-02.3",
+ "semilla": 7,
+ "personas": [
+  {
+   "idx": 0,
+   "id": "2d3fb81c-87fd-4077-a796-0927f623fe44",
+   "estilo": "algo nervioso: frases a medias, se corrige a mitad de frase",
+   "omitidas": [
+    "tipo_trabajo"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ah, pues mira, yo soy de Bucaramanga, eh... tengo... bueno, la verdad es que prefiero no mencionar eso ahora, ¿vea? Y de estatura, pues uno sesenta y cinco, más o menos, o sea, como metro y... y sesenta y cinco centímetros, ahí está.",
+     "palabras": 43,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Bucaramanga\",\"opcion\":null},\"altura_cm\":{\"cita\":\"uno sesenta y cinco\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Bucaramanga",
+        "cita": "Bucaramanga"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 165,
+        "cita": "uno sesenta y cinco"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, eh, yo quiero hacer como una cosa de... de cambiar mi composición corporal, ¿vea? O sea, ganar músculo pero también perder grasa, eso. Y pues lo que más me gustaría es, eh, trabajar el pecho y los hombros, que esos son los que... bueno, los que quiero que se noten más, ¿me entiende? Y de peso pues quisiera llegar a como sesenta y uno punto ocho kilos, ahí ando mirando que sea posible.",
+     "palabras": 75,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"cambiar mi composición corporal\",\n      \"opcion\": \"Recomposición corporal\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"trabajar el pecho y los hombros\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"sesenta y uno punto ocho kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "trabajar el pecho y los hombros",
+        "cita": "trabajar el pecho y los hombros"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 61.8,
+        "cita": "sesenta y uno punto ocho kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "objetivo_principal",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "Recomposición corporal ← «cambiar mi composición corporal»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Mmm, pues mira, yo llevo... o sea, menos de medio año entrenando, ¿vea?, apenas estoy empezando en esto, eh, es que... la verdad es que todavía no, no tengo mucha experiencia ahí.",
+     "palabras": 32,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"menos de medio año entrenando\",\n      \"opcion\": \"Menos de 6 meses\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"apenas estoy empezando en esto\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Menos de 6 meses",
+        "cita": "menos de medio año entrenando"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "apenas estoy empezando en esto"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah, pues mira, trabajo de sol a sol, ¿vea? O sea, me... me toca currando todo el día, prácticamente, entonces pues ahí no me quedan muchas horas libres durante la semana. La verdad es que solo puedo venir al gim... al gimnasio los sábados y domingos, eh? Esos son mis días, pues.",
+     "palabras": 52,
+     "bruto": "```json\n{\"campos\":{\"dia_tipo_alimentacion\":{\"cita\":\"trabajo de sol a sol, me toca currando todo el día, prácticamente, entonces pues ahí no me quedan muchas horas libres durante la semana. La verdad es que solo puedo venir al gim... al gimnasio los sábados y domingos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "dia_tipo_alimentacion",
+        "motivo": "cita_invalida",
+        "detalle": "trabajo de sol a sol, me toca currando todo el día, prácticamente, entonces pues ahí no me quedan muchas horas libres durante la semana. La verdad es que solo puedo venir al gim... al gimnasio los sábados y domingos"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ah bueno, pues mira, yo... o sea, lo del agua, eh, tomo como dos o tres litros al día, digamos. La verdad eso sí lo hago, procuro tomar bastante agua, vea.",
+     "palabras": 31,
+     "bruto": "```json\n{\"campos\":{\"vasos_agua\":{\"cita\":\"tomo como dos o tres litros al día\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {
+       "vasos_agua": {
+        "campo": "vasos_agua",
+        "valor": "tomo como dos o tres litros al día",
+        "cita": "tomo como dos o tres litros al día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 1,
+   "id": "3e8c9c1a-f8ef-430c-a582-81baad2878e9",
+   "estilo": "hablador: se va por las ramas pero dice todo lo que le piden",
+   "omitidas": [
+    "edad",
+    "marcas_fuerza"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "Post-infarto, alta cardiológica hace 8 meses · condromalacia rotuliana bilateral"
+    },
+    {
+     "tipo": "medicacion",
+     "texto": "Metoprolol 50 mg (betabloqueante)"
+    },
+    {
+     "tipo": "limitacion",
+     "texto": "Bajar escaleras me duele."
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Pues mira, yo soy de Madrid, eh, llevo aquí un tiempo ya y la verdad me encanta la ciudad, o sea, tiene de todo ¿vea? Ahí voy entonces con lo que me preguntás: tengo treinta y uno, treinta y dos años, bueno, estoy en esa onda. Mido uno ochenta y dos, así es, y ahorita peso más o menos ochenta y un kilos, ochenta y uno punto uno para ser exacto, pues sí, eso es lo que marca.",
+     "palabras": 78,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Madrid\",\"opcion\":null},\"edad\":{\"cita\":\"treinta y dos años\",\"opcion\":null},\"altura_cm\":{\"cita\":\"uno ochenta y dos\",\"opcion\":null},\"peso_actual_kg\":{\"cita\":\"ochenta y uno punto uno\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Madrid",
+        "cita": "Madrid"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 32,
+        "cita": "treinta y dos años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 182,
+        "cita": "uno ochenta y dos"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 81.1,
+        "cita": "ochenta y uno punto uno"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay pues mira, lo que yo quiero es mejorar la salud en general, ¿vea? Porque llevo como un año estancado en el press banca, o sea, no avanzo, no subo más peso y eso me tiene como frustrado, eh. Y pues la verdad quiero llegar a los ochenta y dos punto tres kilos, porque creo que ahí me sentiría mejor, más fuerte, más en forma. Eso es lo que busco acá en Alpha, básicamente mejorar eso.",
+     "palabras": 76,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"mejorar la salud en general\",\n      \"opcion\": \"Salud general\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"llevo como un año estancado en el press banca, o sea, no avanzo, no subo más peso\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"ochenta y dos punto tres kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Salud general",
+        "cita": "mejorar la salud en general"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "llevo como un año estancado en el press banca, o sea, no avanzo, no subo más peso",
+        "cita": "llevo como un año estancado en el press banca, o sea, no avanzo, no subo más peso"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 82.3,
+        "cita": "ochenta y dos punto tres kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Uy, pues mira, eh, llevo más de tres años entrenando, así es, ininterrumpido, o sea que no he parado, ¿vea? La verdad es que me considero avanzado en esto, pues ya tengo tiempo y experiencia, ahí voy. Mmm, pero bueno, lo que sí te digo es que bajar escaleras me duele un poco, así que eso está ahí, pero en el entreno voy bien, pues.",
+     "palabras": 65,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más de tres años entrenando, así es, ininterrumpido\",\n      \"opcion\": \"Más de 3 años ininterrumpidos\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"me considero avanzado en esto\",\n      \"opcion\": \"Avanzado\"\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"dolor\",\n      \"cita\": \"bajar escaleras me duele un poco\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Más de 3 años ininterrumpidos",
+        "cita": "llevo más de tres años entrenando, así es, ininterrumpido"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Avanzado",
+        "cita": "me considero avanzado en esto"
+       }
+      },
+      "salud": [
+       {
+        "tema": "dolor",
+        "cita": "bajar escaleras me duele un poco",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah bueno, pues mira, yo trabajo en obra, ¿vea? Cargando peso todo el día, eh, o sea, eso es lo mío. Llevo un tiempo ahí metido en eso, pues, levantando, cargando materiales, ayudando en lo que sea de construcción, ¿vea? Es un laburo fuerte la verdad, pero pues uno se acostumbra. Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues.",
+     "palabras": 65,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"trabajo en obra, ¿vea? Cargando peso todo el día\",\n      \"opcion\": \"obra, cargando peso\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "obra, cargando peso",
+        "cita": "trabajo en obra, ¿vea? Cargando peso todo el día"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues",
+        "cita": "Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, pues mira, la verdad es que no, eh... o sea, eso de cómo como y todo eso, no te sabría decir bien, ¿vea? No tengo datos claros de eso ahí en este momento, entonces pues... no quiero soltarte un cuento que no es, ¿me entiende?",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 2,
+   "id": "93e3f653-9721-4f8c-82f7-98d990318f39",
+   "estilo": "directo y breve",
+   "omitidas": [],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Pues mira, soy de Santiago, eh, tengo cuarenta y seis punto cuatro kilos ahorita.",
+     "palabras": 14,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Santiago\",\"opcion\":null},\"peso_actual_kg\":{\"cita\":\"cuarenta y seis punto cuatro kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Santiago",
+        "cita": "Santiago"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 46.4,
+        "cita": "cuarenta y seis punto cuatro kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Mira, yo quiero mejorar mi rendimiento y la fuerza, ¿vea? Principalmente trabajar el abdomen, que es lo que me interesa. Y pues, mi meta de peso es llegar a los cuarenta y ocho kilos, más o menos.",
+     "palabras": 37,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"mejorar mi rendimiento y la fuerza\",\n      \"opcion\": \"Rendimiento y Fuerza Máxima\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"trabajar el abdomen\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"cuarenta y ocho kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Rendimiento y Fuerza Máxima",
+        "cita": "mejorar mi rendimiento y la fuerza"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "trabajar el abdomen",
+        "cita": "trabajar el abdomen"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 48,
+        "cita": "cuarenta y ocho kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Pues mira, llevo más de un año entrenando, eh. Soy intermedio la verdad. De los pesos y eso no te digo ahorita.",
+     "palabras": 22,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más de un año entrenando\",\n      \"opcion\": \"Más de 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"Soy intermedio\",\n      \"opcion\": \"Intermedio\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Más de 1 año",
+        "cita": "llevo más de un año entrenando"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Intermedio",
+        "cita": "Soy intermedio"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Pues, conduzco todo el día, eh. Eso es básicamente, paso en la vía casi todo el tiempo.",
+     "palabras": 17,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"conduzco todo el día\",\n      \"opcion\": \"conduzco todo el día\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "conduzco todo el día",
+        "cita": "conduzco todo el día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Pues mira, eh, yo no tomo agua así pura, la verdad. Tomo coca cola.",
+     "palabras": 14,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```\n\n**Justificación:**\n- **cocina_o_compra**: La transcripción no contiene información sobre si cocina o compra sus comidas. El hecho de que mencione qué bebe no responde a este campo.\n- **vasos_agua**: La persona dice que no toma agua pura y que toma coca cola, pero no especifica una cantidad (vasos, litros, etc.). «yo no tomo agua así pura» y «Tomo coca cola» no son respuestas al \"cuánta agua toma\", son aclaraciones de qué bebe. No hay cifra de consumo de agua.",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 3,
+   "id": "2ea380d0-5f42-40a6-adf5-3958d833cad4",
+   "estilo": "relajado y muy coloquial (paisa o costeño)",
+   "omitidas": [
+    "edad",
+    "altura_cm",
+    "objetivo_principal",
+    "parte_a_mejorar"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Pues mira, yo soy de Barranquilla, eh, y ahorita estoy pesando como ciento nueve punto seis kilos, la verdad. Eso es lo que hay en este momento, pues.",
+     "palabras": 28,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Barranquilla\",\"opcion\":null},\"peso_actual_kg\":{\"cita\":\"ciento nueve punto seis kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Barranquilla",
+        "cita": "Barranquilla"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 109.6,
+        "cita": "ciento nueve punto seis kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay, pues mira, la verdad yo quiero definirme más, eh, ponerse más en forma digamos. Quiero llegar a los ciento doce punto siete kilos, eso es lo que tengo claro en la cabeza. Básicamente quiero mejorar mi cuerpo, vea, ponerse más fuerte y eso.",
+     "palabras": 44,
+     "bruto": "```json\n{\"campos\":{\"objetivo_principal\":{\"cita\":\"quiero definirme más, eh, ponerse más en forma\",\"opcion\":\"Pérdida de grasa\"},\"parte_a_mejorar\":{\"cita\":\"mejorar mi cuerpo, vea, ponerse más fuerte\",\"opcion\":null},\"peso_objetivo_kg\":{\"cita\":\"ciento doce punto siete kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "mejorar mi cuerpo, vea, ponerse más fuerte",
+        "cita": "mejorar mi cuerpo, vea, ponerse más fuerte"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 112.7,
+        "cita": "ciento doce punto siete kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "objetivo_principal",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "Pérdida de grasa ← «quiero definirme más, eh, ponerse más en forma»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ey, pues mira, llevo ahí como unos ocho meses más o menos entrenando, ¿vea? La verdad todavía estoy empezando, o sea, soy principiante pues, apenas estoy aprendiendo cómo va eso. Pero ahí voy, poco a poco, ¿eh?",
+     "palabras": 37,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo ahí como unos ocho meses más o menos entrenando\",\n      \"opcion\": \"6 meses a 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"soy principiante pues\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "llevo ahí como unos ocho meses más o menos entrenando"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "soy principiante pues"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah bueno, pues mira, yo soy profesor, ¿vea? Y la verdad es que paso todo el día de pie, eh, como seis horas más o menos dando clase, pues. Un día normal es eso: llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso, ¿vea?",
+     "palabras": 52,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"soy profesor, ¿vea? Y la verdad es que paso todo el día de pie, eh, como seis horas más o menos dando clase\",\n      \"opcion\": \"profesor de pie 6 h\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "profesor de pie 6 h",
+        "cita": "soy profesor, ¿vea? Y la verdad es que paso todo el día de pie, eh, como seis horas más o menos dando clase"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso",
+        "cita": "llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, la verdad es que eso... mmm, pues mira, de eso no te sé decir mucho, ¿vea? Es que ahí no hemos hablado de eso todavía.",
+     "palabras": 26,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 4,
+   "id": "6b2a0e24-fa30-48cd-90c6-b339aa5b2827",
+   "estilo": "hablador: se va por las ramas pero dice todo lo que le piden",
+   "omitidas": [
+    "parte_a_mejorar",
+    "peso_objetivo_kg"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "manguito rotador del hombro derecho"
+    },
+    {
+     "tipo": "limitacion",
+     "texto": "Nada de press militar por encima de la cabeza."
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ay, pues mira, eh, yo soy de Pereira, nacido y criado allá, la verdad. Tengo cincuenta años ya, o sea que no soy un chamaco pero tampoco estoy tan viejo, vea. Mido uno setenta y cinco, más o menos ahí ando de estatura, y ahorita peso como sesenta y cinco kilos y medio, o sesenta y seis digamos, pues ha estado variando un poquito pero ahí ando en eso, eh.",
+     "palabras": 70,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Pereira\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"cincuenta años\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno setenta y cinco\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"sesenta y cinco kilos y medio\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Pereira",
+        "cita": "Pereira"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 50,
+        "cita": "cincuenta años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 175,
+        "cita": "uno setenta y cinco"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 65.5,
+        "cita": "sesenta y cinco kilos y medio"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay, pues mira, lo que yo quiero es ganar músculo, o sea, hipertrofia ¿vea?, quiero verme bien físicamente, que se note el trabajo en el cuerpo, eh, la estética pues, que la ropa me quede diferente y todo eso, ¿me entiende? Eso es lo que busco acá en Alpha.",
+     "palabras": 49,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"ganar músculo, o sea, hipertrofia\",\n      \"opcion\": \"Hipertrofia / estética\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"verme bien físicamente, que se note el trabajo en el cuerpo\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Hipertrofia / estética",
+        "cita": "ganar músculo, o sea, hipertrofia"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "verme bien físicamente, que se note el trabajo en el cuerpo",
+        "cita": "verme bien físicamente, que se note el trabajo en el cuerpo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay sí, pues mira, llevo más o menos como año y medio entrenando, eh, la verdad es que he estado bastante constante en eso. Me considero avanzado, o sea, ya tengo un nivel pretty bueno, he progresado un montón. Y bueno, los pesos pues, mmm, no sé si especifiques en sentadilla o press banca pero ahí voy. El tema es que tuve un rollo con el manguito rotador del hombro derecho hace un tiempo, entonces en press banca ando un poquito cuidado, pero pues voy levantando peso poco a poco. En sentadilla sí le meto más, la verdad.",
+     "palabras": 98,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más o menos como año y medio entrenando\",\n      \"opcion\": \"1 a 2 años\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"Me considero avanzado\",\n      \"opcion\": \"Avanzado\"\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"lesion\",\n      \"cita\": \"tuve un rollo con el manguito rotador del hombro derecho hace un tiempo\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Avanzado",
+        "cita": "Me considero avanzado"
+       }
+      },
+      "salud": [
+       {
+        "tema": "lesion",
+        "cita": "tuve un rollo con el manguito rotador del hombro derecho hace un tiempo",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [
+       {
+        "campo": "tiempo_entrenando",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "1 a 2 años ← «llevo más o menos como año y medio entrenando»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ay, pues mira, yo soy madre a tiempo completo, eh, o sea que básicamente mi día es eso, ¿vea? Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo, ¿vea? Es que uno como mamá trabaja las veinticuatro horas, mmm, ahí está uno cocinando, limpiando, pendiente de todo, pues, así es mi día a día.",
+     "palabras": 67,
+     "bruto": "```json\n{\"campos\":{\"tipo_trabajo\":{\"cita\":\"madre a tiempo completo\",\"opcion\":\"madre a tiempo completo\"},\"dia_tipo_alimentacion\":{\"cita\":\"Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "madre a tiempo completo",
+        "cita": "madre a tiempo completo"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo",
+        "cita": "Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, pues mira, la verdad es que no, eh... o sea, eso de cómo como y todo eso, no te sabría decir bien, ¿vea? No tengo datos claros de eso ahí en este momento, entonces pues... no quiero soltarte un cuento que no es, ¿me entiende?",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 5,
+   "id": "06cf3139-21f7-4b6f-b2e9-e8b57ce74df9",
+   "estilo": "hablador: se va por las ramas pero dice todo lo que le piden",
+   "omitidas": [
+    "ciudad",
+    "peso_actual_kg"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ay pues mira, eh, yo soy de acá de Colombia, la verdad, cincuenta y siete años tengo ya, o sea que de rato para los sesenta, ¿vea?, y mido como uno sesenta y nueve, pues ahí más o menos, normal. La verdad eso es todo lo que te puedo decir en este momento, ¿vea?",
+     "palabras": 54,
+     "bruto": "```json\n{\"campos\":{\"edad\":{\"cita\":\"cincuenta y siete años\",\"opcion\":null},\"altura_cm\":{\"cita\":\"uno sesenta y nueve\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "edad": {
+        "campo": "edad",
+        "valor": 57,
+        "cita": "cincuenta y siete años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 169,
+        "cita": "uno sesenta y nueve"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Bueno, pues mira, yo lo que quiero es retomar el entrenamiento después de que paré un tiempo, ¿vea?, porque la verdad es que necesito volver a meterme en eso. Y pues, eh, lo que más quiero mejorar son los brazos, o sea, ponerme los brazos más fuertes y todo eso. Y mi peso, pues, quiero llegar a los cincuenta y nueve punto dos kilos, ahí es donde me quiero estabilizar.",
+     "palabras": 70,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"retomar el entrenamiento después de que paré un tiempo\",\n      \"opcion\": \"Volver a entrenar tras una parada\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"los brazos, o sea, ponerme los brazos más fuertes\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"cincuenta y nueve punto dos kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Volver a entrenar tras una parada",
+        "cita": "retomar el entrenamiento después de que paré un tiempo"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "los brazos, o sea, ponerme los brazos más fuertes",
+        "cita": "los brazos, o sea, ponerme los brazos más fuertes"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 59.2,
+        "cita": "cincuenta y nueve punto dos kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay, pues mira, llevo entrenando ahí como dos, tres años ya, ¿vea? O sea, no es que sea mucho tiempo pero tampoco es ayer. La verdad es que me considero principiante todavía, eh, porque pues uno siente que hay mucho por aprender, mucho por mejorar. En cuanto a los pesos, pues eso, no manejo números muy altos porque estoy en ese proceso de ir agarrando experiencia y técnica, ¿sí me entiende? Pero bueno, voy avanzando poco a poco.",
+     "palabras": 78,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo entrenando ahí como dos, tres años ya\",\n      \"opcion\": \"2 a 3 años\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"me considero principiante todavía\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "2 a 3 años",
+        "cita": "llevo entrenando ahí como dos, tres años ya"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "me considero principiante todavía"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah bueno, pues mira, yo trabajo desde la casa, ¿vea?, es teletrabajo. O sea, no tengo que ir a una oficina ni nada de eso, trabajo desde mi compu aquí en la casa. La verdad es que los horarios son más o menos flexibles, pues depende de qué toque hacer ese día, ¿eh? Algunos días empiezo temprano, otros un chin más tarde, pero bueno, eso es lo chévere de trabajar desde casa, que uno se acomoda como puede.",
+     "palabras": 78,
+     "bruto": "```json\n{\"campos\":{\"tipo_trabajo\":{\"cita\":\"trabajo desde la casa\",\"opcion\":\"teletrabajo\"},\"dia_tipo_alimentacion\":{\"cita\":\"los horarios son más o menos flexibles, pues depende de qué toque hacer ese día\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "teletrabajo",
+        "cita": "trabajo desde la casa"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+        "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, pues mira, la verdad es que no, eh... o sea, eso de cómo como y todo eso, no te sabría decir bien, ¿vea? No tengo datos claros de eso ahí en este momento, entonces pues... no quiero soltarte un cuento que no es, ¿me entiende?",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 6,
+   "id": "916a15e9-381d-4a9d-9757-93ed6f98e901",
+   "estilo": "algo nervioso: frases a medias, se corrige a mitad de frase",
+   "omitidas": [
+    "parte_a_mejorar"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ah bueno, pues mira, yo soy de Bucaramanga, eh... tengo cuarenta y seis años ya, ey, casi los cuarenta y sie... no, cuarenta y seis pues. Mido como uno sesenta y uno, eh, por ahí, y ahorita peso pues unos cincuenta y nueve kilos, más o menos, eso es.",
+     "palabras": 49,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Bucaramanga\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"cuarenta y seis años\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno sesenta y uno\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"cincuenta y nueve kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Bucaramanga",
+        "cita": "Bucaramanga"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 46,
+        "cita": "cuarenta y seis años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 161,
+        "cita": "uno sesenta y uno"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 59,
+        "cita": "cincuenta y nueve kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, eh, yo lo que quiero es ganar fuerza y potencia, o sea, mejorar eso, la verdad me interesa mucho el lado deportivo, ¿vea? Y pues, eh, mi meta de peso sería llegar a los cincuenta y cinco punto dos kilos, más o menos, ahí quiero estar.",
+     "palabras": 48,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"ganar fuerza y potencia\",\n      \"opcion\": \"Fuerza y Potencia (Deportista)\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"ganar fuerza y potencia\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"cincuenta y cinco punto dos kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Fuerza y Potencia (Deportista)",
+        "cita": "ganar fuerza y potencia"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "ganar fuerza y potencia",
+        "cita": "ganar fuerza y potencia"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 55.2,
+        "cita": "cincuenta y cinco punto dos kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ah, pues mira, yo llevo entrando, eh, como entre seis meses y un año, más o menos, o sea... la verdad es que voy en un nivel intermedio, pues, nada de principiante pero tampoco soy avanzado, ¿vea?, ahí ando.",
+     "palabras": 39,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"como entre seis meses y un año\",\n      \"opcion\": \"6 meses a 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"voy en un nivel intermedio\",\n      \"opcion\": \"Intermedio\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "como entre seis meses y un año"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Intermedio",
+        "cita": "voy en un nivel intermedio"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah, bueno, pues yo trabajo en una oficina, eh, sentado todo el día prácticamente, como nueve horas o sea... sí, es mucho tiempo ahí en la silla, la verdad. Un día normal mío es pues eso, llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio, ¿vea? Y pues por eso necesito venir acá al gym, pa' desenstumecer las piernas y todo eso, porque literal paso sentado casi todo el día.",
+     "palabras": 78,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"trabajo en una oficina, eh, sentado todo el día prácticamente, como nueve horas\",\n      \"opcion\": \"oficina sentado 9 h\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "oficina sentado 9 h",
+        "cita": "trabajo en una oficina, eh, sentado todo el día prácticamente, como nueve horas"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio",
+        "cita": "llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, eso eh... la verdad es que eso de la comida y el agua y todo eso, pues no... o sea, de eso no te puedo hablar mucho, ¿vea? La guía me pregunta pero yo... no sé, eso es muy personal o algo así, no te sabría decir bien.",
+     "palabras": 49,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 7,
+   "id": "ce4d5ca3-98f6-4d64-9dbb-e89c8e4b89d6",
+   "estilo": "hablador: se va por las ramas pero dice todo lo que le piden",
+   "omitidas": [
+    "edad",
+    "parte_a_mejorar"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ay, pues mira, yo soy de Cali, de allá del Valle, pues. Tengo treinta y uno, treinta y dos años ya casi, eh. Y bueno, mido como uno sesenta y cuatro, más o menos así, y ahorita ando pesando setenta y cuatro, dos kilos, la verdad es que he estado ahí en eso, pues.",
+     "palabras": 54,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Cali\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"treinta y dos años ya casi\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno sesenta y cuatro\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"setenta y cuatro, dos kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Cali",
+        "cita": "Cali"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 32,
+        "cita": "treinta y dos años ya casi"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 164,
+        "cita": "uno sesenta y cuatro"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 74.2,
+        "cita": "setenta y cuatro, dos kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Bueno, la verdad es que quiero perder grasa, eh, o sea, ese es el objetivo principal que me traigo acá a Alpha. Eso, pues, trabajar en eso, en bajar la grasa corporal y tal. Y sí, tengo claro cuánto quiero pesar, pues, me gustaría llegar a como sesenta y uno punto siete kilos, eso es lo que me propuse. Así que eso, mejorar esa parte de mí, pues, la composición corporal y todo eso.",
+     "palabras": 74,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"quiero perder grasa\",\n      \"opcion\": \"Pérdida de grasa\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"la composición corporal\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"sesenta y uno punto siete kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Pérdida de grasa",
+        "cita": "quiero perder grasa"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "la composición corporal",
+        "cita": "la composición corporal"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 61.7,
+        "cita": "sesenta y uno punto siete kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay, pues mira, eh, yo llevo más o menos entre seis meses y un año viniendo acá, o sea que todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios, pues, apenas aprendiendo cómo funcionan las cosas en el gimnasio, ah, pero bueno, voy avanzando poco a poco.",
+     "palabras": 51,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más o menos entre seis meses y un año\",\n      \"opcion\": \"6 meses a 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "llevo más o menos entre seis meses y un año"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah bueno, pues mira, yo trabajo desde la casa, ¿vea?, es teletrabajo. O sea, no tengo que ir a una oficina ni nada de eso, trabajo desde mi compu aquí en la casa. La verdad es que los horarios son más o menos flexibles, pues depende de qué toque hacer ese día, ¿eh? Algunos días empiezo temprano, otros un chin más tarde, pero bueno, eso es lo chévere de trabajar desde casa, que uno se acomoda como puede.",
+     "palabras": 78,
+     "bruto": "```json\n{\"campos\":{\"tipo_trabajo\":{\"cita\":\"trabajo desde la casa\",\"opcion\":\"teletrabajo\"},\"dia_tipo_alimentacion\":{\"cita\":\"los horarios son más o menos flexibles, pues depende de qué toque hacer ese día\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "teletrabajo",
+        "cita": "trabajo desde la casa"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+        "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, pues mira, la verdad es que no, eh... o sea, eso de cómo como y todo eso, no te sabría decir bien, ¿vea? No tengo datos claros de eso ahí en este momento, entonces pues... no quiero soltarte un cuento que no es, ¿me entiende?",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 8,
+   "id": "86535462-b4c8-4998-ac13-92d36da9e1ed",
+   "estilo": "algo nervioso: frases a medias, se corrige a mitad de frase",
+   "omitidas": [
+    "nivel_fuerza"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "menisco interno de la rodilla izquierda"
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ah pues, mira, yo soy de... bueno, vivo en Pereira, eh, llevo un tiempo ahí. Y tengo veintiocho años, pues eso, veintioc... sí, veintiocho. De lo demás, no sé, eso de la estatura y el peso y eso... la verdad no te sabría decir ahorita, eh.",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"vivo en Pereira\",\"opcion\":null},\"edad\":{\"cita\":\"veintiocho\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "vivo en Pereira",
+        "cita": "vivo en Pereira"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 28,
+        "cita": "veintiocho"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, eh, la verdad quiero ganar más masa, o sea, mejorar la estética, ¿vea? Y lo que me tiene como... como estancado es que llevo seis meses sin avanzar en peso muerto, no he podido romper mi récord que está en ciento treinta y cinco kilos, eso es lo que me frustra. Y pues, idealmente me gustaría llegar a como ciento nueve con ocho kilos, ¿sí?",
+     "palabras": 67,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"ganar más masa, o sea, mejorar la estética\",\n      \"opcion\": \"Hipertrofia / estética\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"la estética\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"ciento nueve con ocho kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Hipertrofia / estética",
+        "cita": "ganar más masa, o sea, mejorar la estética"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "la estética",
+        "cita": "la estética"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "peso_objetivo_kg",
+        "motivo": "numero_ambiguo",
+        "detalle": "ciento nueve con ocho kilos"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Mmm, sí pues, llevo como dos años, no casi tres años entrenando, eh, la verdad he estado en esto un poco consistente. Y de nivel, o sea, me siento bien, voy progresando, pero bueno, con cuidado porque tuve un tema con el menisco de la rodilla izquierda, entonces pues voy con ojo. En sentadilla ando levantando ciento quince kilos, y en press banca, eh, unos setenta y cuatro más o menos. Así voy.",
+     "palabras": 73,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo como dos años, no casi tres años entrenando\",\n      \"opcion\": \"2 a 3 años\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"me siento bien, voy progresando\",\n      \"opcion\": \"Intermedio\"\n    },\n    \"marcas_fuerza\": {\n      \"cita\": \"En sentadilla ando levantando ciento quince kilos, y en press banca, eh, unos setenta y cuatro más o menos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"lesion\",\n      \"cita\": \"tuve un tema con el menisco de la rodilla izquierda\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "2 a 3 años",
+        "cita": "llevo como dos años, no casi tres años entrenando"
+       },
+       "marcas_fuerza": {
+        "campo": "marcas_fuerza",
+        "valor": "En sentadilla ando levantando ciento quince kilos, y en press banca, eh, unos setenta y cuatro más o menos",
+        "cita": "En sentadilla ando levantando ciento quince kilos, y en press banca, eh, unos setenta y cuatro más o menos"
+       }
+      },
+      "salud": [
+       {
+        "tema": "lesion",
+        "cita": "tuve un tema con el menisco de la rodilla izquierda",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [
+       {
+        "campo": "nivel_fuerza",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "Intermedio ← «me siento bien, voy progresando»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Pues mira, yo... bueno, eh, conduzco, o sea, paso todo el día manejando, pues. Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo.",
+     "palabras": 37,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"conduzco, o sea, paso todo el día manejando\",\n      \"opcion\": \"conduzco todo el día\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "conduzco todo el día",
+        "cita": "conduzco, o sea, paso todo el día manejando"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo",
+        "cita": "Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ah bueno, pues mira, yo... o sea, lo del agua, eh, tomo como dos o tres litros al día, digamos. La verdad eso sí lo hago, procuro tomar bastante agua, vea.",
+     "palabras": 31,
+     "bruto": "```json\n{\"campos\":{\"vasos_agua\":{\"cita\":\"tomo como dos o tres litros al día\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {
+       "vasos_agua": {
+        "campo": "vasos_agua",
+        "valor": "tomo como dos o tres litros al día",
+        "cita": "tomo como dos o tres litros al día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 9,
+   "id": "b9c1bba8-46da-458d-b2ef-a66bed463b2d",
+   "estilo": "algo nervioso: frases a medias, se corrige a mitad de frase",
+   "omitidas": [],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Pues mira, eh, soy de Bogotá, llevo toda la vida aquí. Tengo sesenta y ocho años, ya ves, no es cualquier edad pero aquí sigo, ¿vea? Mido uno sesenta y seis, o sea, uno punto sesenta y seis de estatura, y pues ahorita estoy pesando, eh, setenta y dos kilos más o menos, setenta y dos punto uno para ser exacto.",
+     "palabras": 61,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Bogotá\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"sesenta y ocho años\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno sesenta y seis\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"setenta y dos punto uno\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Bogotá",
+        "cita": "Bogotá"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 68,
+        "cita": "sesenta y ocho años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 166,
+        "cita": "uno sesenta y seis"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 72.1,
+        "cita": "setenta y dos punto uno"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, eh, yo lo que quiero es retomar las cosas, ¿vea?, después de que llevaba un tiempo sin ir al gym, entonces quiero volver a entrenar de verdad. Y bueno, la verdad los brazos, eso es lo que más quiero trabajar, que se vea, o sea... y el peso, pues me gustaría llegar a setenta y cinco coma cuatro kilos, ahí más o menos.",
+     "palabras": 65,
+     "bruto": "```json\n{\"campos\":{\"objetivo_principal\":{\"cita\":\"retomar las cosas\",\"opcion\":\"Volver a entrenar tras una parada\"},\"parte_a_mejorar\":{\"cita\":\"los brazos\",\"opcion\":null},\"peso_objetivo_kg\":{\"cita\":\"setenta y cinco coma cuatro kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Volver a entrenar tras una parada",
+        "cita": "retomar las cosas"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "los brazos",
+        "cita": "los brazos"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 75.4,
+        "cita": "setenta y cinco coma cuatro kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Mmm, pues mira, llevo entrenando como... unos seis meses, o sea casi un año ya, eh. Y la verdad soy principiante todavía, pues apenas estoy en eso, en aprender bien las cosas, no es que... no sé, que apenas llevo poco tiempo, vea.",
+     "palabras": 43,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo entrenando como... unos seis meses, o sea casi un año ya\",\n      \"opcion\": \"6 meses a 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"soy principiante todavía\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "llevo entrenando como... unos seis meses, o sea casi un año ya"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "soy principiante todavía"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah, pues mira, yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo... eh, a veces más, la verdad, con los alumnos ahí en clase, entonces pues eso, el día se va entre explicaciones y... mmm, sí, básicamente eso, mucho tiempo parado.",
+     "palabras": 50,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo\",\n      \"opcion\": \"profesor de pie 6 h\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "profesor de pie 6 h",
+        "cita": "yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, eso eh... la verdad es que eso de la comida y el agua y todo eso, pues no... o sea, de eso no te puedo hablar mucho, ¿vea? La guía me pregunta pero yo... no sé, eso es muy personal o algo así, no te sabría decir bien.",
+     "palabras": 49,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 10,
+   "id": "56c1294d-e2a1-4cfd-af20-ab1fdbe3ef75",
+   "estilo": "hablador: se va por las ramas pero dice todo lo que le piden",
+   "omitidas": [
+    "edad",
+    "peso_actual_kg"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ay, pues mira, yo soy de Pereira, eh, ahí es donde vivo y todo eso, pues. Y bueno, en cuanto a lo de la estatura, mido como uno sesenta y cuatro, así, uno sesenta y cuatro centímetros. Eso es más o menos lo que me dijeron la última vez que me midieron, pues.",
+     "palabras": 53,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Pereira\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno sesenta y cuatro\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Pereira",
+        "cita": "Pereira"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 164,
+        "cita": "uno sesenta y cuatro"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Bueno, pues mira, lo que yo quiero acá en Alpha es mejorar el rendimiento, eh, la fuerza máxima, ¿vea? Quiero trabajar bastante el pecho y los hombros, la verdad eso es lo que más me interesa ahorita, llevarlos al límite. Y pues, el peso, yo quisiera llegar a los sesenta kilos más o menos, como a cincuenta y nueve punto ocho, ahí.",
+     "palabras": 62,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"mejorar el rendimiento, eh, la fuerza máxima\",\n      \"opcion\": \"Rendimiento y Fuerza Máxima\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"el pecho y los hombros\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"cincuenta y nueve punto ocho\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Rendimiento y Fuerza Máxima",
+        "cita": "mejorar el rendimiento, eh, la fuerza máxima"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "el pecho y los hombros",
+        "cita": "el pecho y los hombros"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 59.8,
+        "cita": "cincuenta y nueve punto ocho"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay, pues mira, eh, yo llevo más o menos entre seis meses y un año viniendo acá, o sea que todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios, pues, apenas aprendiendo cómo funcionan las cosas en el gimnasio, ah, pero bueno, voy avanzando poco a poco.",
+     "palabras": 51,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más o menos entre seis meses y un año\",\n      \"opcion\": \"6 meses a 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "llevo más o menos entre seis meses y un año"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah bueno, pues mira, yo trabajo desde la casa, ¿vea?, es teletrabajo. O sea, no tengo que ir a una oficina ni nada de eso, trabajo desde mi compu aquí en la casa. La verdad es que los horarios son más o menos flexibles, pues depende de qué toque hacer ese día, ¿eh? Algunos días empiezo temprano, otros un chin más tarde, pero bueno, eso es lo chévere de trabajar desde casa, que uno se acomoda como puede.",
+     "palabras": 78,
+     "bruto": "```json\n{\"campos\":{\"tipo_trabajo\":{\"cita\":\"trabajo desde la casa\",\"opcion\":\"teletrabajo\"},\"dia_tipo_alimentacion\":{\"cita\":\"los horarios son más o menos flexibles, pues depende de qué toque hacer ese día\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "teletrabajo",
+        "cita": "trabajo desde la casa"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+        "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, pues mira, la verdad es que no, eh... o sea, eso de cómo como y todo eso, no te sabría decir bien, ¿vea? No tengo datos claros de eso ahí en este momento, entonces pues... no quiero soltarte un cuento que no es, ¿me entiende?",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 11,
+   "id": "cc31ada4-4414-48e0-8967-7b76b6a8f921",
+   "estilo": "directo y breve",
+   "omitidas": [
+    "nivel_fuerza"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "tendinopatía rotuliana"
+    },
+    {
+     "tipo": "limitacion",
+     "texto": "Las extensiones de rodilla me disparan el dolor."
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Soy de Barranquilla, tengo sesenta y seis años, mido uno setenta y tres y peso ahora como ochenta y siete kilos.",
+     "palabras": 21,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Barranquilla\",\"opcion\":null},\"edad\":{\"cita\":\"sesenta y seis años\",\"opcion\":null},\"altura_cm\":{\"cita\":\"uno setenta y tres\",\"opcion\":null},\"peso_actual_kg\":{\"cita\":\"ochenta y siete kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Barranquilla",
+        "cita": "Barranquilla"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 66,
+        "cita": "sesenta y seis años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 173,
+        "cita": "uno setenta y tres"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 87,
+        "cita": "ochenta y siete kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, lo que busco es mejorar mi salud en general, ¿vea? Quiero trabajar la resistencia, eh, tener más capacidad. Y el peso, pues quiero llegar a los noventa kilos.",
+     "palabras": 30,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"mejorar mi salud en general\",\n      \"opcion\": \"Salud general\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"trabajar la resistencia, eh, tener más capacidad\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"noventa kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Salud general",
+        "cita": "mejorar mi salud en general"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "trabajar la resistencia, eh, tener más capacidad",
+        "cita": "trabajar la resistencia, eh, tener más capacidad"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 90,
+        "cita": "noventa kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ey, pues mira, llevo como entre seis meses y un año entrenando. El nivel, eh, voy bien ahí, progresando. En cuanto a pesos, la verdad no te digo exacto ahorita, pero voy moviendo carga. Lo que sí, las extensiones de rodilla me disparan el dolor, entonces eso lo dejo.",
+     "palabras": 49,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo como entre seis meses y un año entrenando\",\n      \"opcion\": \"6 meses a 1 año\"\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"dolor\",\n      \"cita\": \"las extensiones de rodilla me disparan el dolor\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "llevo como entre seis meses y un año entrenando"
+       }
+      },
+      "salud": [
+       {
+        "tema": "dolor",
+        "cita": "las extensiones de rodilla me disparan el dolor",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Pues, soy profesor, ¿vea? Todo el día de pie, unas seis horas dando clase. Un día normal es eso, básicamente: parado en el aula, explicando, moviéndome, agotador la verdad.",
+     "palabras": 29,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"soy profesor, ¿vea? Todo el día de pie, unas seis horas dando clase\",\n      \"opcion\": \"profesor de pie 6 h\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "profesor de pie 6 h",
+        "cita": "soy profesor, ¿vea? Todo el día de pie, unas seis horas dando clase"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Pues, mira, de eso no hablo, ehh... la verdad es que eso no viene para esta guía.",
+     "palabras": 17,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 12,
+   "id": "8b683304-616b-453b-b76d-4b07879cf852",
+   "estilo": "relajado y muy coloquial (paisa o costeño)",
+   "omitidas": [],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "Hipertensión controlada"
+    },
+    {
+     "tipo": "medicacion",
+     "texto": "Losartán 50 mg"
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ey, pues mira, yo soy de Lima, eh, tengo cuarenta años, midiendo como uno sesenta y uno, y ahorita ando en sesenta y dos kilos, más o menos, ¿vea?",
+     "palabras": 29,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Lima\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"cuarenta años\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno sesenta y uno\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"sesenta y dos kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Lima",
+        "cita": "Lima"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 40,
+        "cita": "cuarenta años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 161,
+        "cita": "uno sesenta y uno"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 62,
+        "cita": "sesenta y dos kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay, pues mira, lo que yo quiero es mejorar mi rendimiento, ¿vea?, o sea, ganar más fuerza, más músculo, eh. Y bueno, la verdad es que quiero trabajar mucho el abdomen, que es lo que más me pega, pues. Y el peso, pues, me gustaría llegar a los sesenta y siete kilos más o menos, ¿ya?",
+     "palabras": 56,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"mejorar mi rendimiento, ¿vea?, o sea, ganar más fuerza, más músculo\",\n      \"opcion\": \"Rendimiento y Fuerza Máxima\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"el abdomen, que es lo que más me pega\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"sesenta y siete kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Rendimiento y Fuerza Máxima",
+        "cita": "mejorar mi rendimiento, ¿vea?, o sea, ganar más fuerza, más músculo"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "el abdomen, que es lo que más me pega",
+        "cita": "el abdomen, que es lo que más me pega"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 67,
+        "cita": "sesenta y siete kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay pues mira, llevo menos de seis meses apenas metido en esto, eh, soy principiante todavía, la verdad. Mmm, ahí voy aprendiendo, pues, pero de esos pesos así no te hablo mucho que aún estoy cogiendo ritmo. Eso sí, me cuido porque tengo la presión un chin alta pero ya controlada, entonces voy con cuidado, ¿vea?",
+     "palabras": 56,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo menos de seis meses\",\n      \"opcion\": \"Menos de 6 meses\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"soy principiante todavía\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"cardiaco\",\n      \"cita\": \"tengo la presión un chin alta pero ya controlada\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Menos de 6 meses",
+        "cita": "llevo menos de seis meses"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "soy principiante todavía"
+       }
+      },
+      "salud": [
+       {
+        "tema": "cardiaco",
+        "cita": "tengo la presión un chin alta pero ya controlada",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "parq_enfermedad_cardiaca",
+       "parq_medicamento_presion"
+      ],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah bueno, pues mira, yo trabajo desde la casa, ¿vea? Teletrabajo, eso es. Un día normal mío, pues uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día. Es tranquilo la verdad, porque no hay que perder tiempo en transporte ni eso, pero bueno, uno sigue pegado a la pantalla, ¿sí me entiende?",
+     "palabras": 65,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"yo trabajo desde la casa, ¿vea? Teletrabajo, eso es\",\n      \"opcion\": \"teletrabajo\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "teletrabajo",
+        "cita": "yo trabajo desde la casa, ¿vea? Teletrabajo, eso es"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día",
+        "cita": "uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, la verdad es que eso... mmm, pues mira, de eso no te sé decir mucho, ¿vea? Es que ahí no hemos hablado de eso todavía.",
+     "palabras": 26,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 13,
+   "id": "3125d73a-4302-4b77-82b8-3c4541491722",
+   "estilo": "hablador: se va por las ramas pero dice todo lo que le piden",
+   "omitidas": [
+    "peso_objetivo_kg"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ay sí, pues mira, yo soy de Santiago, eh, llevo toda la vida acá, la verdad. Tengo cincuenta y uno años ya, imagínate, o sea que no soy tan joven pero tampoco estoy tan viejo todavía, vea. Mido uno ochenta y tres, soy bastante alto, la gente me lo dice todo el tiempo. Y pues el peso ahorita ando en setenta y ocho punto nueve kilos, más o menos, eh, eso es lo que marcó la báscula hoy cuando llegué.",
+     "palabras": 80,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Santiago\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"cincuenta y uno años\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno ochenta y tres\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"setenta y ocho punto nueve kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Santiago",
+        "cita": "Santiago"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 51,
+        "cita": "cincuenta y uno años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 183,
+        "cita": "uno ochenta y tres"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 78.9,
+        "cita": "setenta y ocho punto nueve kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay pues mira, eh, lo que yo quiero es ganar fuerza y potencia, ¿vea?, porque yo soy deportista y necesito estar fuerte pa' mi deporte, eso es lo principal. Y bueno, la verdad es que quiero trabajar mucho las piernas y el glúteo, ehh, eso es lo que más me interesa mejorar ahorita, las piernas y el glúteo pues, para tener más potencia y estar más fuerte en esa zona.",
+     "palabras": 70,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"ganar fuerza y potencia\",\n      \"opcion\": \"Fuerza y Potencia (Deportista)\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"las piernas y el glúteo\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Fuerza y Potencia (Deportista)",
+        "cita": "ganar fuerza y potencia"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "las piernas y el glúteo",
+        "cita": "las piernas y el glúteo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay pues mira, llevo como entre uno y dos años metido en esto, ¿vea? O sea, he estado bastante constante, eh, la verdad sí. Y pues mira que me considero avanzado, o sea, ya sé lo que estoy haciendo acá adentro, ya tengo experiencia, ya conozco los movimientos, cómo hacerlos bien, eso, pues. He avanzado bastante desde que empecé, la verdad.",
+     "palabras": 61,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo como entre uno y dos años metido en esto\",\n      \"opcion\": \"1 a 2 años\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"me considero avanzado\",\n      \"opcion\": \"Avanzado\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "1 a 2 años",
+        "cita": "llevo como entre uno y dos años metido en esto"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Avanzado",
+        "cita": "me considero avanzado"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah pues mira, yo soy profesor, ¿vea? Doy clases de pie prácticamente todo el día, o sea que son como seis horas así de pie en el aula, eh, enseñando. Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado, ¿vea? Pero bueno, eso es lo que hay.",
+     "palabras": 70,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"soy profesor, ¿vea? Doy clases de pie prácticamente todo el día, o sea que son como seis horas así de pie en el aula\",\n      \"opcion\": \"profesor de pie 6 h\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "profesor de pie 6 h",
+        "cita": "soy profesor, ¿vea? Doy clases de pie prácticamente todo el día, o sea que son como seis horas así de pie en el aula"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado",
+        "cita": "Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, pues mira, la verdad es que no, eh... o sea, eso de cómo como y todo eso, no te sabría decir bien, ¿vea? No tengo datos claros de eso ahí en este momento, entonces pues... no quiero soltarte un cuento que no es, ¿me entiende?",
+     "palabras": 46,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 14,
+   "id": "2dcd1c3f-bc0e-477f-8346-d982a79bf151",
+   "estilo": "directo y breve",
+   "omitidas": [
+    "objetivo_principal",
+    "parte_a_mejorar",
+    "tipo_trabajo",
+    "dia_tipo_alimentacion"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Listo, pues, soy de Bucaramanga, tengo treinta y dos años, mido uno sesenta y peso como cincuenta y siete kilos más o menos.",
+     "palabras": 23,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Bucaramanga\",\"opcion\":null},\"edad\":{\"cita\":\"treinta y dos años\",\"opcion\":null},\"altura_cm\":{\"cita\":\"uno sesenta\",\"opcion\":null},\"peso_actual_kg\":{\"cita\":\"cincuenta y siete kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Bucaramanga",
+        "cita": "Bucaramanga"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 32,
+        "cita": "treinta y dos años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 160,
+        "cita": "uno sesenta"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 57,
+        "cita": "cincuenta y siete kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, quiero bajar a los cincuenta punto cuatro kilos, eso es lo que me propuse. Mejorar mi cuerpo, ponerme en forma, ahí está.",
+     "palabras": 24,
+     "bruto": "```json\n{\"campos\":{\"objetivo_principal\":{\"cita\":\"Mejorar mi cuerpo, ponerme en forma\",\"opcion\":\"Pérdida de grasa\"},\"parte_a_mejorar\":{\"cita\":\"Mejorar mi cuerpo, ponerme en forma\",\"opcion\":null},\"peso_objetivo_kg\":{\"cita\":\"cincuenta punto cuatro kilos\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "Mejorar mi cuerpo, ponerme en forma",
+        "cita": "Mejorar mi cuerpo, ponerme en forma"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 50.4,
+        "cita": "cincuenta punto cuatro kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "objetivo_principal",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "Pérdida de grasa ← «Mejorar mi cuerpo, ponerme en forma»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Pues mira, llevo más de tres años entrenando sin parar, eh. Y la verdad me considero avanzado ya, he metido bastante trabajo. Los pesos específicos de sentadilla o press no te los digo ahorita, pero ahí voy bien.",
+     "palabras": 38,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más de tres años entrenando sin parar\",\n      \"opcion\": \"Más de 3 años ininterrumpidos\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"me considero avanzado ya\",\n      \"opcion\": \"Avanzado\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Más de 3 años ininterrumpidos",
+        "cita": "llevo más de tres años entrenando sin parar"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Avanzado",
+        "cita": "me considero avanzado ya"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Pues, ahí... la verdad es que de eso no hablo, eh. Siguiente.",
+     "palabras": 12,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Pues, mira, de eso no hablo, ehh... la verdad es que eso no viene para esta guía.",
+     "palabras": 17,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 15,
+   "id": "c1412573-00ff-40f3-984b-abd9a49ef4ea",
+   "estilo": "directo y breve",
+   "omitidas": [
+    "altura_cm",
+    "peso_actual_kg",
+    "tiempo_entrenando"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Pues, soy de Madrid, eh... tengo treinta y nueve años. De lo demás no tengo mucho que decir la verdad.",
+     "palabras": 20,
+     "bruto": "```json\n{\"campos\":{\"ciudad\":{\"cita\":\"Madrid\",\"opcion\":null},\"edad\":{\"cita\":\"treinta y nueve años\",\"opcion\":null}},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Madrid",
+        "cita": "Madrid"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 39,
+        "cita": "treinta y nueve años"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, yo quiero trabajar fuerza y potencia porque soy deportista, ¿vea? Y lo que me urge es fortalecer el pecho y los hombros. Y idealmente llegar a los cuarenta y nueve kilos, más o menos.",
+     "palabras": 36,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"trabajar fuerza y potencia porque soy deportista\",\n      \"opcion\": \"Fuerza y Potencia (Deportista)\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"fortalecer el pecho y los hombros\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"cuarenta y nueve kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Fuerza y Potencia (Deportista)",
+        "cita": "trabajar fuerza y potencia porque soy deportista"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "fortalecer el pecho y los hombros",
+        "cita": "fortalecer el pecho y los hombros"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 49,
+        "cita": "cuarenta y nueve kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Pues, llevo un tiempo entrenando, la verdad. Estoy en nivel intermedio, eh, y en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables, pues.",
+     "palabras": 27,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo un tiempo entrenando\",\n      \"opcion\": null\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"Estoy en nivel intermedio\",\n      \"opcion\": \"Intermedio\"\n    },\n    \"marcas_fuerza\": {\n      \"cita\": \"en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Intermedio",
+        "cita": "Estoy en nivel intermedio"
+       },
+       "marcas_fuerza": {
+        "campo": "marcas_fuerza",
+        "valor": "en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables",
+        "cita": "en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "tiempo_entrenando",
+        "motivo": "opcion_invalida"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Pues, conduzco todo el día, eh. Eso es básicamente, paso en la vía casi todo el tiempo.",
+     "palabras": 17,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"conduzco todo el día\",\n      \"opcion\": \"conduzco todo el día\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "conduzco todo el día",
+        "cita": "conduzco todo el día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Pues, mira, de eso no hablo, ehh... la verdad es que eso no viene para esta guía.",
+     "palabras": 17,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 16,
+   "id": "50e87e7d-0c54-4b45-81be-38f6b3962391",
+   "estilo": "apurado, habla rápido y junta las ideas sin pausa",
+   "omitidas": [
+    "ciudad",
+    "edad",
+    "tipo_trabajo"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "Hernia discal L5-S1 · tendinopatía rotuliana"
+    },
+    {
+     "tipo": "limitacion",
+     "texto": "Las extensiones de rodilla me disparan el dolor."
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ay no, la verdad es que eso no me lo pregunten ahorita eh, o sea, de eso no estoy hablando en este momento, pues.",
+     "palabras": 24,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay pues mira, lo que quiero es trabajar mucho en rendimiento y fuerza, eh, básicamente quiero que el pecho y los hombros se me pongan bien fuertes y marcados, ¿vea? Y pues la meta de peso que tengo ahorita es llegar a los setenta y cuatro punto nueve kilos, o sea casi setenta y cinco, eso es lo que quiero lograr con todo esto aquí en Alpha.",
+     "palabras": 67,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"trabajar mucho en rendimiento y fuerza\",\n      \"opcion\": \"Rendimiento y Fuerza Máxima\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"el pecho y los hombros se me pongan bien fuertes y marcados\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"setenta y cuatro punto nueve kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Rendimiento y Fuerza Máxima",
+        "cita": "trabajar mucho en rendimiento y fuerza"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "el pecho y los hombros se me pongan bien fuertes y marcados",
+        "cita": "el pecho y los hombros se me pongan bien fuertes y marcados"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 74.9,
+        "cita": "setenta y cuatro punto nueve kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ey pues mira, llevo como unos ocho meses metido acá en esto, o sea todavía estoy en ese rango de que no soy ni principiante ni nada pero tampoco sé, estoy aprendiendo todavía, voy cogiendo nivel poco a poco pero bueno, en la sentadilla y eso ando manejando mis pesos ahí moderados, nada del otro mundo, y pues la verdad es que las extensiones de rodilla me matan el dolor entonces eso lo evito, pero bueno, voy mejorando.",
+     "palabras": 78,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo como unos ocho meses metido acá en esto\",\n      \"opcion\": \"6 meses a 1 año\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"estoy aprendiendo todavía, voy cogiendo nivel poco a poco\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"dolor\",\n      \"cita\": \"las extensiones de rodilla me matan el dolor entonces eso lo evito\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "6 meses a 1 año",
+        "cita": "llevo como unos ocho meses metido acá en esto"
+       }
+      },
+      "salud": [
+       {
+        "tema": "dolor",
+        "cita": "las extensiones de rodilla me matan el dolor entonces eso lo evito",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [
+       {
+        "campo": "nivel_fuerza",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "Principiante ← «estoy aprendiendo todavía, voy cogiendo nivel poco a poco»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ay, pues la verdad no, eh, de eso no hablo, vea, yo vengo aquí al gimnasio y listo, eso es lo que me importa ahorita.",
+     "palabras": 25,
+     "bruto": "```json\n{\n  \"campos\": {},\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay no pues mira, la verdad es que ni idea, eh, no sé ni cuánta agua tomo al día, eso no lo tengo ni contado, vea, y pues de la comida, ahí voy día a día, usted sabe cómo es.",
+     "palabras": 40,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 17,
+   "id": "ec2b5318-1fb1-4df0-9c37-8066a07c7d3a",
+   "estilo": "algo nervioso: frases a medias, se corrige a mitad de frase",
+   "omitidas": [
+    "ciudad",
+    "parte_a_mejorar"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "Hernia discal L5-S1 · menisco interno de la rodilla izquierda"
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Ah bueno, pues mira, tengo treinta años, eh, soy de... bueno, mido uno sesenta y uno de estatura, y hoy peso como setenta y dos punto ocho kilos, o sea, setenta y tres más o menos, pues eso.",
+     "palabras": 38,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"edad\": {\n      \"cita\": \"tengo treinta años\",\n      \"opcion\": null\n    },\n    \"ciudad\": {\n      \"cita\": \"soy de\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"mido uno sesenta y uno\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"hoy peso como setenta y dos punto ocho kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "edad": {
+        "campo": "edad",
+        "valor": 30,
+        "cita": "tengo treinta años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 161,
+        "cita": "mido uno sesenta y uno"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 72.8,
+        "cita": "hoy peso como setenta y dos punto ocho kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "ciudad",
+        "motivo": "texto_sin_contenido",
+        "detalle": "soy de"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Eh, pues la verdad es que, o sea, llevo un tiempo sin entrenar y quiero volver a retomar eso, ¿vea? Quiero ponerme en forma de nuevo. Y bueno, mi meta de peso es llegar a los setenta y uno con uno, eh, setenta y un kilo más o menos.",
+     "palabras": 49,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"llevo un tiempo sin entrenar y quiero volver a retomar eso\",\n      \"opcion\": \"Volver a entrenar tras una parada\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"ponerme en forma de nuevo\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"setenta y uno con uno\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Volver a entrenar tras una parada",
+        "cita": "llevo un tiempo sin entrenar y quiero volver a retomar eso"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "ponerme en forma de nuevo",
+        "cita": "ponerme en forma de nuevo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "peso_objetivo_kg",
+        "motivo": "numero_ambiguo",
+        "detalle": "setenta y uno con uno"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Mmm, bueno, llevo más de tres años entrenando, pues, sin parar, o sea... la verdad he sido consistente, eh. Me considero en un nivel avanzado ya, como que... pues sé lo que estoy haciendo, ¿vea? Tengo mis lesiones que me... bueno, una hernia en la espalda baja y el menisco, pero ahí voy adaptándome.",
+     "palabras": 54,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo más de tres años entrenando, pues, sin parar\",\n      \"opcion\": \"Más de 3 años ininterrumpidos\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"Me considero en un nivel avanzado ya\",\n      \"opcion\": \"Avanzado\"\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"lesion\",\n      \"cita\": \"una hernia en la espalda baja y el menisco\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Más de 3 años ininterrumpidos",
+        "cita": "llevo más de tres años entrenando, pues, sin parar"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Avanzado",
+        "cita": "Me considero en un nivel avanzado ya"
+       }
+      },
+      "salud": [
+       {
+        "tema": "lesion",
+        "cita": "una hernia en la espalda baja y el menisco",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah, pues mira, yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo... eh, a veces más, la verdad, con los alumnos ahí en clase, entonces pues eso, el día se va entre explicaciones y... mmm, sí, básicamente eso, mucho tiempo parado.",
+     "palabras": 50,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo\",\n      \"opcion\": \"profesor de pie 6 h\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "profesor de pie 6 h",
+        "cita": "yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, eso eh... la verdad es que eso de la comida y el agua y todo eso, pues no... o sea, de eso no te puedo hablar mucho, ¿vea? La guía me pregunta pero yo... no sé, eso es muy personal o algo así, no te sabría decir bien.",
+     "palabras": 49,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 18,
+   "id": "b01ae7d4-2c4b-4b7e-afd3-e811dff3752e",
+   "estilo": "directo y breve",
+   "omitidas": [
+    "edad"
+   ],
+   "salud": [
+    {
+     "tipo": "lesion",
+     "texto": "tendinopatía rotuliana"
+    },
+    {
+     "tipo": "limitacion",
+     "texto": "Las extensiones de rodilla me disparan el dolor."
+    }
+   ],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Listo, pues mira: soy de Buenos Aires, tengo uno ochenta y seis de estatura, y peso más o menos ochenta y siete kilos ahorita.",
+     "palabras": 24,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Buenos Aires\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno ochenta y seis\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"ochenta y siete kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Buenos Aires",
+        "cita": "Buenos Aires"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 186,
+        "cita": "uno ochenta y seis"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 87,
+        "cita": "ochenta y siete kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Pues mira, lo que quiero es mejorar mi salud en general, ¿vea? Llevo un año ahí estancado en el press banca y la verdad es que eso me tiene fastidiado. Quiero llegar a los noventa y medio kilos, eh, eso es lo que me propuse.",
+     "palabras": 45,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"mejorar mi salud en general\",\n      \"opcion\": \"Salud general\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"estancado en el press banca\",\n      \"opcion\": null\n    },\n    \"peso_objetivo_kg\": {\n      \"cita\": \"noventa y medio kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "objetivo_principal": {
+        "campo": "objetivo_principal",
+        "valor": "Salud general",
+        "cita": "mejorar mi salud en general"
+       },
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "estancado en el press banca",
+        "cita": "estancado en el press banca"
+       },
+       "peso_objetivo_kg": {
+        "campo": "peso_objetivo_kg",
+        "valor": 90.5,
+        "cita": "noventa y medio kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Llevo más de tres años entrenando sin parar, pues. Soy avanzado, la verdad. En sentadilla ando en ciento doce kilos y en press banca en noventa y tres. Ahí voy, aunque la rodilla me ha jodido un poco con lo de la tendinopatía, pero sigo.",
+     "palabras": 45,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"Llevo más de tres años entrenando sin parar\",\n      \"opcion\": \"Más de 3 años ininterrumpidos\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"Soy avanzado\",\n      \"opcion\": \"Avanzado\"\n    },\n    \"marcas_fuerza\": {\n      \"cita\": \"En sentadilla ando en ciento doce kilos y en press banca en noventa y tres\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": [\n    {\n      \"tema\": \"lesion\",\n      \"cita\": \"la rodilla me ha jodido un poco con lo de la tendinopatía\"\n    }\n  ]\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "tiempo_entrenando": {
+        "campo": "tiempo_entrenando",
+        "valor": "Más de 3 años ininterrumpidos",
+        "cita": "Llevo más de tres años entrenando sin parar"
+       },
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Avanzado",
+        "cita": "Soy avanzado"
+       },
+       "marcas_fuerza": {
+        "campo": "marcas_fuerza",
+        "valor": "En sentadilla ando en ciento doce kilos y en press banca en noventa y tres",
+        "cita": "En sentadilla ando en ciento doce kilos y en press banca en noventa y tres"
+       }
+      },
+      "salud": [
+       {
+        "tema": "lesion",
+        "cita": "la rodilla me ha jodido un poco con lo de la tendinopatía",
+        "origen": "modelo"
+       }
+      ],
+      "toques": [
+       "lesiones",
+       "parq_huesos_articulaciones"
+      ],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ah, pues mire, yo soy profesor, estoy de pie como seis horas diarias. Entre semana es imposible, llego a las diez de la noche, eh. Entonces los fines de semana sí me puedo venir al gimnasio.",
+     "palabras": 36,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"yo soy profesor, estoy de pie como seis horas diarias\",\n      \"opcion\": \"profesor de pie 6 h\"\n    },\n    \"dia_tipo_alimentacion\": {\n      \"cita\": \"Entre semana es imposible, llego a las diez de la noche, eh. Entonces los fines de semana sí me puedo venir al gimnasio\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "profesor de pie 6 h",
+        "cita": "yo soy profesor, estoy de pie como seis horas diarias"
+       },
+       "dia_tipo_alimentacion": {
+        "campo": "dia_tipo_alimentacion",
+        "valor": "Entre semana es imposible, llego a las diez de la noche, eh. Entonces los fines de semana sí me puedo venir al gimnasio",
+        "cita": "Entre semana es imposible, llego a las diez de la noche, eh. Entonces los fines de semana sí me puedo venir al gimnasio"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Pues, mira, de eso no hablo, ehh... la verdad es que eso no viene para esta guía.",
+     "palabras": 17,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  },
+  {
+   "idx": 19,
+   "id": "af49b138-7a44-415a-9b71-450661a5f9ac",
+   "estilo": "apurado, habla rápido y junta las ideas sin pausa",
+   "omitidas": [
+    "peso_objetivo_kg",
+    "tiempo_entrenando"
+   ],
+   "salud": [],
+   "turnos": [
+    {
+     "turno": "sobre_ti",
+     "habla": "Listo eh, mira soy de la Ciudad de México, tengo veinte años, mido como uno setenta y siete y ahorita peso noventa y dos punto cuatro kilos, pues eso es más o menos lo que hay.",
+     "palabras": 36,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"ciudad\": {\n      \"cita\": \"Ciudad de México\",\n      \"opcion\": null\n    },\n    \"edad\": {\n      \"cita\": \"veinte años\",\n      \"opcion\": null\n    },\n    \"altura_cm\": {\n      \"cita\": \"uno setenta y siete\",\n      \"opcion\": null\n    },\n    \"peso_actual_kg\": {\n      \"cita\": \"noventa y dos punto cuatro kilos\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "sobre_ti",
+      "campos": {
+       "ciudad": {
+        "campo": "ciudad",
+        "valor": "Ciudad de México",
+        "cita": "Ciudad de México"
+       },
+       "edad": {
+        "campo": "edad",
+        "valor": 20,
+        "cita": "veinte años"
+       },
+       "altura_cm": {
+        "campo": "altura_cm",
+        "valor": 177,
+        "cita": "uno setenta y siete"
+       },
+       "peso_actual_kg": {
+        "campo": "peso_actual_kg",
+        "valor": 92.4,
+        "cita": "noventa y dos punto cuatro kilos"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "objetivo",
+     "habla": "Ay pues mira, lo que quiero es ganar músculo, ¿vea?, mejorar la estética, verse bien ahí, y también necesito trabajar la resistencia general porque, pues, la verdad ando algo bajito en eso, entonces quiero mejorar eso de poder aguantar más, o sea, rendir más en los entrenamientos sin cansarme tan rápido, eso es lo que necesito.",
+     "palabras": 56,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"objetivo_principal\": {\n      \"cita\": \"ganar músculo, mejorar la estética\",\n      \"opcion\": \"Hipertrofia / estética\"\n    },\n    \"parte_a_mejorar\": {\n      \"cita\": \"la resistencia general porque, pues, la verdad ando algo bajito en eso\",\n      \"opcion\": null\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "objetivo",
+      "campos": {
+       "parte_a_mejorar": {
+        "campo": "parte_a_mejorar",
+        "valor": "la resistencia general porque, pues, la verdad ando algo bajito en eso",
+        "cita": "la resistencia general porque, pues, la verdad ando algo bajito en eso"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "objetivo_principal",
+        "motivo": "cita_invalida",
+        "detalle": "ganar músculo, mejorar la estética"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "historia_entreno",
+     "habla": "Ay pues mira llevo poco tiempo apenas estoy empezando en esto la verdad ando muy verde todavía o sea principiante de los principiantes eh y pues los pesos no son gran cosa pero bueno voy aprendiendo poco a poco.",
+     "palabras": 39,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tiempo_entrenando\": {\n      \"cita\": \"llevo poco tiempo apenas estoy empezando\",\n      \"opcion\": \"Menos de 6 meses\"\n    },\n    \"nivel_fuerza\": {\n      \"cita\": \"principiante de los principiantes\",\n      \"opcion\": \"Principiante\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "historia_entreno",
+      "campos": {
+       "nivel_fuerza": {
+        "campo": "nivel_fuerza",
+        "valor": "Principiante",
+        "cita": "principiante de los principiantes"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [
+       {
+        "campo": "tiempo_entrenando",
+        "motivo": "opcion_sin_apoyo",
+        "detalle": "Menos de 6 meses ← «llevo poco tiempo apenas estoy empezando»"
+       }
+      ],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "trabajo_horarios",
+     "habla": "Ay pues mira, yo trabajo en obra, eh, cargando peso todo el día, o sea que es un día normal de estar ahí moviendo cosas, levantando, bajando, pues la verdad es cansador pero ahí voy, eso es lo que hay.",
+     "palabras": 40,
+     "bruto": "```json\n{\n  \"campos\": {\n    \"tipo_trabajo\": {\n      \"cita\": \"trabajo en obra, eh, cargando peso todo el día\",\n      \"opcion\": \"obra, cargando peso\"\n    }\n  },\n  \"salud\": []\n}\n```",
+     "resultado": {
+      "turno": "trabajo_horarios",
+      "campos": {
+       "tipo_trabajo": {
+        "campo": "tipo_trabajo",
+        "valor": "obra, cargando peso",
+        "cita": "trabajo en obra, eh, cargando peso todo el día"
+       }
+      },
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    },
+    {
+     "turno": "comida",
+     "habla": "Ay, la verdad es que eso de la comida pues no, ehh, ahorita no te puedo decir mucho sobre eso, no sé, es que... pues mira, de eso no hablo en este momento, ¿vea?",
+     "palabras": 34,
+     "bruto": "```json\n{\"campos\":{},\"salud\":[]}\n```",
+     "resultado": {
+      "turno": "comida",
+      "campos": {},
+      "salud": [],
+      "toques": [],
+      "descartados": [],
+      "urgencia": null
+     }
+    }
+   ]
+  }
+ ],
+ "filas": [
+  {
+   "persona": 0,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Bucaramanga",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Bucaramanga",
+   "cita": "Bucaramanga",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 0,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 0,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 165,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 165,
+   "cita": "uno sesenta y cinco",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 0,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 0,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Recomposición corporal",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 0,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Pecho y hombros",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "trabajar el pecho y los hombros",
+   "cita": "trabajar el pecho y los hombros",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 0,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 61.8,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 61.8,
+   "cita": "sesenta y uno punto ocho kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 0,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Menos de 6 meses",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Menos de 6 meses",
+   "cita": "menos de medio año entrenando",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 0,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "apenas estoy empezando en esto",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 0,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 0,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 0,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": "Trabajo de sol a sol, solo puedo ir al gimnasio los sábados y domingos.",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 0,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 0,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": "2 o 3",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "tomo como dos o tres litros al día",
+   "cita": "tomo como dos o tres litros al día",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 1,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Madrid",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Madrid",
+   "cita": "Madrid",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": 32,
+   "cita": "treinta y dos años",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 1,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 182,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 182,
+   "cita": "uno ochenta y dos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 81.1,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 81.1,
+   "cita": "ochenta y uno punto uno",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Salud general",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Salud general",
+   "cita": "mejorar la salud en general",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Llevo un año sin subir el press banca.",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "llevo como un año estancado en el press banca, o sea, no avanzo, no subo más peso",
+   "cita": "llevo como un año estancado en el press banca, o sea, no avanzo, no subo más peso",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 1,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 82.3,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 82.3,
+   "cita": "ochenta y dos punto tres kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Más de 3 años ininterrumpidos",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Más de 3 años ininterrumpidos",
+   "cita": "llevo más de tres años entrenando, así es, ininterrumpido",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Avanzado",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Avanzado",
+   "cita": "me considero avanzado en esto",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 1,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "obra, cargando peso",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "obra, cargando peso",
+   "cita": "trabajo en obra, ¿vea? Cargando peso todo el día",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 1,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues",
+   "cita": "Un día normal mío es eso, madrugada, a trabajar, cargando, sudando, y así, pues",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 1,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 1,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 2,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Santiago",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Santiago",
+   "cita": "Santiago",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 2,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 2,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 2,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 46.4,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 46.4,
+   "cita": "cuarenta y seis punto cuatro kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 2,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Rendimiento y Fuerza Máxima",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Rendimiento y Fuerza Máxima",
+   "cita": "mejorar mi rendimiento y la fuerza",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 2,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Abdomen",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "trabajar el abdomen",
+   "cita": "trabajar el abdomen",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 2,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 47.9,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 48,
+   "cita": "cuarenta y ocho kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 2,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Más de 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Más de 1 año",
+   "cita": "llevo más de un año entrenando",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 2,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Intermedio",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Intermedio",
+   "cita": "Soy intermedio",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 2,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 2,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "conduzco todo el día",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "conduzco todo el día",
+   "cita": "conduzco todo el día",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 2,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 2,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 2,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": "no tomo agua pura coca cola",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 3,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Barranquilla",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Barranquilla",
+   "cita": "Barranquilla",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 3,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 3,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 3,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 109.6,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 109.6,
+   "cita": "ciento nueve punto seis kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 3,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 3,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": true,
+   "obtenido": "mejorar mi cuerpo, vea, ponerse más fuerte",
+   "cita": "mejorar mi cuerpo, vea, ponerse más fuerte",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 3,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 112.7,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 112.7,
+   "cita": "ciento doce punto siete kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 3,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "llevo ahí como unos ocho meses más o menos entrenando",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 3,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "soy principiante pues",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 3,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 3,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "profesor de pie 6 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "profesor de pie 6 h",
+   "cita": "soy profesor, ¿vea? Y la verdad es que paso todo el día de pie, eh, como seis horas más o menos dando clase",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 3,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso",
+   "cita": "llego, estoy parado explicando, interactuando con los estudiantes, y ahí ando toda la mañana metido en eso",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 3,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 3,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 4,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Pereira",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Pereira",
+   "cita": "Pereira",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 4,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 50,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 50,
+   "cita": "cincuenta años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 4,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 175,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 175,
+   "cita": "uno setenta y cinco",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 4,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 65.8,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 65.5,
+   "cita": "sesenta y cinco kilos y medio",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 4,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Hipertrofia / estética",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Hipertrofia / estética",
+   "cita": "ganar músculo, o sea, hipertrofia",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 4,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": "verme bien físicamente, que se note el trabajo en el cuerpo",
+   "cita": "verme bien físicamente, que se note el trabajo en el cuerpo",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 4,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 4,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "1 a 2 años",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 4,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Avanzado",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Avanzado",
+   "cita": "Me considero avanzado",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 4,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 4,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "madre a tiempo completo",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "madre a tiempo completo",
+   "cita": "madre a tiempo completo",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 4,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo",
+   "cita": "Desde que me despierto hasta que me acuesto estoy pendiente de los míos, pues, la verdad es que no hay horario fijo",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 4,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 4,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 5,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 5,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 57,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 57,
+   "cita": "cincuenta y siete años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 169,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 169,
+   "cita": "uno sesenta y nueve",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 5,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Volver a entrenar tras una parada",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Volver a entrenar tras una parada",
+   "cita": "retomar el entrenamiento después de que paré un tiempo",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Brazos",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "los brazos, o sea, ponerme los brazos más fuertes",
+   "cita": "los brazos, o sea, ponerme los brazos más fuertes",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 5,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 59.2,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 59.2,
+   "cita": "cincuenta y nueve punto dos kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "2 a 3 años",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "2 a 3 años",
+   "cita": "llevo entrenando ahí como dos, tres años ya",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "me considero principiante todavía",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 5,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "teletrabajo",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "teletrabajo",
+   "cita": "trabajo desde la casa",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 5,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+   "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 5,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 5,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 6,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Bucaramanga",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Bucaramanga",
+   "cita": "Bucaramanga",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 46,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 46,
+   "cita": "cuarenta y seis años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 161,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 161,
+   "cita": "uno sesenta y uno",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 58.9,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 59,
+   "cita": "cincuenta y nueve kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 6,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Fuerza y Potencia (Deportista)",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Fuerza y Potencia (Deportista)",
+   "cita": "ganar fuerza y potencia",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": "ganar fuerza y potencia",
+   "cita": "ganar fuerza y potencia",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 6,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 55.2,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 55.2,
+   "cita": "cincuenta y cinco punto dos kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "como entre seis meses y un año",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Intermedio",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Intermedio",
+   "cita": "voy en un nivel intermedio",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 6,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "oficina sentado 9 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "oficina sentado 9 h",
+   "cita": "trabajo en una oficina, eh, sentado todo el día prácticamente, como nueve horas",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 6,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio",
+   "cita": "llego y me siento, estoy frente a la pantalla, eh... escribiendo, reuniones, así, todo lo de escritorio",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 6,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 6,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 7,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Cali",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Cali",
+   "cita": "Cali",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": 32,
+   "cita": "treinta y dos años ya casi",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 7,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 164,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 164,
+   "cita": "uno sesenta y cuatro",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 74.2,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 74.2,
+   "cita": "setenta y cuatro, dos kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Pérdida de grasa",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Pérdida de grasa",
+   "cita": "quiero perder grasa",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": "la composición corporal",
+   "cita": "la composición corporal",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 7,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 61.7,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 61.7,
+   "cita": "sesenta y uno punto siete kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "llevo más o menos entre seis meses y un año",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 7,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "teletrabajo",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "teletrabajo",
+   "cita": "trabajo desde la casa",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 7,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+   "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 7,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 7,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 8,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Pereira",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "vivo en Pereira",
+   "cita": "vivo en Pereira",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 8,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 28,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 28,
+   "cita": "veintiocho",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 8,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 8,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 8,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Hipertrofia / estética",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Hipertrofia / estética",
+   "cita": "ganar más masa, o sea, mejorar la estética",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 8,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Estancamiento en peso muerto desde hace 6 meses. Quiero romper mi RM de 135kg.",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "la estética",
+   "cita": "la estética",
+   "categoria": "incorrecto"
+  },
+  {
+   "persona": 8,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 109.8,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 8,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "2 a 3 años",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "2 a 3 años",
+   "cita": "llevo como dos años, no casi tres años entrenando",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 8,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 8,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": "115kg Sentadilla, 74kg Press Banca",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "En sentadilla ando levantando ciento quince kilos, y en press banca, eh, unos setenta y cuatro más o menos",
+   "cita": "En sentadilla ando levantando ciento quince kilos, y en press banca, eh, unos setenta y cuatro más o menos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 8,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "conduzco todo el día",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "conduzco todo el día",
+   "cita": "conduzco, o sea, paso todo el día manejando",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 8,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo",
+   "cita": "Un día normal es... es bastante cansón la verdad, ando ahí en el carro de corrida y... sí, eso, conduciendo todo el tiempo",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 8,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 8,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": "2 o 3",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "tomo como dos o tres litros al día",
+   "cita": "tomo como dos o tres litros al día",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 9,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Bogotá",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Bogotá",
+   "cita": "Bogotá",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 68,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 68,
+   "cita": "sesenta y ocho años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 166,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 166,
+   "cita": "uno sesenta y seis",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 72.1,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 72.1,
+   "cita": "setenta y dos punto uno",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Volver a entrenar tras una parada",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Volver a entrenar tras una parada",
+   "cita": "retomar las cosas",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Brazos",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "los brazos",
+   "cita": "los brazos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 75.4,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 75.4,
+   "cita": "setenta y cinco coma cuatro kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "llevo entrenando como... unos seis meses, o sea casi un año ya",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "soy principiante todavía",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 9,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "profesor de pie 6 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "profesor de pie 6 h",
+   "cita": "yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 9,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 9,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 9,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 10,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Pereira",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Pereira",
+   "cita": "Pereira",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 10,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 164,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 164,
+   "cita": "uno sesenta y cuatro",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 10,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Rendimiento y Fuerza Máxima",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Rendimiento y Fuerza Máxima",
+   "cita": "mejorar el rendimiento, eh, la fuerza máxima",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Pecho y hombros",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "el pecho y los hombros",
+   "cita": "el pecho y los hombros",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 59.8,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 59.8,
+   "cita": "cincuenta y nueve punto ocho",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "llevo más o menos entre seis meses y un año",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "todavía soy bastante nuevo en esto, la verdad, apenas estoy en los principios",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 10,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "teletrabajo",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "teletrabajo",
+   "cita": "trabajo desde la casa",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 10,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+   "cita": "los horarios son más o menos flexibles, pues depende de qué toque hacer ese día",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 10,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 10,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 11,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Barranquilla",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Barranquilla",
+   "cita": "Barranquilla",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 66,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 66,
+   "cita": "sesenta y seis años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 173,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 173,
+   "cita": "uno setenta y tres",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 87.4,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 87,
+   "cita": "ochenta y siete kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 11,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Salud general",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Salud general",
+   "cita": "mejorar mi salud en general",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Resistencia general",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "trabajar la resistencia, eh, tener más capacidad",
+   "cita": "trabajar la resistencia, eh, tener más capacidad",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 11,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 90,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 90,
+   "cita": "noventa kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "llevo como entre seis meses y un año entrenando",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 11,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 11,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "profesor de pie 6 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "profesor de pie 6 h",
+   "cita": "soy profesor, ¿vea? Todo el día de pie, unas seis horas dando clase",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 11,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 11,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 11,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 12,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Lima",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Lima",
+   "cita": "Lima",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 40,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 40,
+   "cita": "cuarenta años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 161,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 161,
+   "cita": "uno sesenta y uno",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 62.6,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 62,
+   "cita": "sesenta y dos kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 12,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Rendimiento y Fuerza Máxima",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Rendimiento y Fuerza Máxima",
+   "cita": "mejorar mi rendimiento, ¿vea?, o sea, ganar más fuerza, más músculo",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Abdomen",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "el abdomen, que es lo que más me pega",
+   "cita": "el abdomen, que es lo que más me pega",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 12,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 66.9,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 67,
+   "cita": "sesenta y siete kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 12,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Menos de 6 meses",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Menos de 6 meses",
+   "cita": "llevo menos de seis meses",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "soy principiante todavía",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 12,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "teletrabajo",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "teletrabajo",
+   "cita": "yo trabajo desde la casa, ¿vea? Teletrabajo, eso es",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 12,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día",
+   "cita": "uno se levanta, se mete a la computadora y ya, ahí está uno metido en las cosas del curro todo el día",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 12,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 12,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 13,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Santiago",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Santiago",
+   "cita": "Santiago",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 51,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 51,
+   "cita": "cincuenta y uno años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 183,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 183,
+   "cita": "uno ochenta y tres",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 78.9,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 78.9,
+   "cita": "setenta y ocho punto nueve kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Fuerza y Potencia (Deportista)",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Fuerza y Potencia (Deportista)",
+   "cita": "ganar fuerza y potencia",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Piernas y glúteo",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "las piernas y el glúteo",
+   "cita": "las piernas y el glúteo",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 13,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "1 a 2 años",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "1 a 2 años",
+   "cita": "llevo como entre uno y dos años metido en esto",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Avanzado",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Avanzado",
+   "cita": "me considero avanzado",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 13,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "profesor de pie 6 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "profesor de pie 6 h",
+   "cita": "soy profesor, ¿vea? Doy clases de pie prácticamente todo el día, o sea que son como seis horas así de pie en el aula",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 13,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado",
+   "cita": "Un día normal mío es bastante agotador la verdad, porque uno está ahí de pie explicando, escribiendo en el tablero, moviendo pa' todos lados, atendiendo a los estudiantes... pues uno llega cansado",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 13,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 13,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 14,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Bucaramanga",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Bucaramanga",
+   "cita": "Bucaramanga",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 14,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 32,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 32,
+   "cita": "treinta y dos años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 14,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 160,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 160,
+   "cita": "uno sesenta",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 14,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 56.7,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 57,
+   "cita": "cincuenta y siete kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 14,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 14,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": "Mejorar mi cuerpo, ponerme en forma",
+   "cita": "Mejorar mi cuerpo, ponerme en forma",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 14,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 50.4,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 50.4,
+   "cita": "cincuenta punto cuatro kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 14,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Más de 3 años ininterrumpidos",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Más de 3 años ininterrumpidos",
+   "cita": "llevo más de tres años entrenando sin parar",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 14,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Avanzado",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Avanzado",
+   "cita": "me considero avanzado ya",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 14,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 14,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 14,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 14,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 14,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 15,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Madrid",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Madrid",
+   "cita": "Madrid",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 15,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 39,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 39,
+   "cita": "treinta y nueve años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 15,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 15,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 15,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Fuerza y Potencia (Deportista)",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Fuerza y Potencia (Deportista)",
+   "cita": "trabajar fuerza y potencia porque soy deportista",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 15,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Pecho y hombros",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "fortalecer el pecho y los hombros",
+   "cita": "fortalecer el pecho y los hombros",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 15,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 49.2,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 49,
+   "cita": "cuarenta y nueve kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 15,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 15,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Intermedio",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Intermedio",
+   "cita": "Estoy en nivel intermedio",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 15,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables",
+   "cita": "en sentadilla manejo bastante bien, en press banca igual. Voy con pesos considerables",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 15,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "conduzco todo el día",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "conduzco todo el día",
+   "cita": "conduzco todo el día",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 15,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 15,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 15,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Rendimiento y Fuerza Máxima",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Rendimiento y Fuerza Máxima",
+   "cita": "trabajar mucho en rendimiento y fuerza",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 16,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Pecho y hombros",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "el pecho y los hombros se me pongan bien fuertes y marcados",
+   "cita": "el pecho y los hombros se me pongan bien fuertes y marcados",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 16,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 74.9,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 74.9,
+   "cita": "setenta y cuatro punto nueve kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 16,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "6 meses a 1 año",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "6 meses a 1 año",
+   "cita": "llevo como unos ocho meses metido acá en esto",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 16,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 16,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": "ni idea",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 17,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 17,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 30,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 30,
+   "cita": "tengo treinta años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 161,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 161,
+   "cita": "mido uno sesenta y uno",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 72.8,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 72.8,
+   "cita": "hoy peso como setenta y dos punto ocho kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Volver a entrenar tras una parada",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Volver a entrenar tras una parada",
+   "cita": "llevo un tiempo sin entrenar y quiero volver a retomar eso",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": "ponerme en forma de nuevo",
+   "cita": "ponerme en forma de nuevo",
+   "categoria": "dicho"
+  },
+  {
+   "persona": 17,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 71.1,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 17,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Más de 3 años ininterrumpidos",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Más de 3 años ininterrumpidos",
+   "cita": "llevo más de tres años entrenando, pues, sin parar",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Avanzado",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Avanzado",
+   "cita": "Me considero en un nivel avanzado ya",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 17,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "profesor de pie 6 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "profesor de pie 6 h",
+   "cita": "yo soy profe, ¿vea?, y paso prácticamente todo el día de pie, o sea, como seis horas mínimo",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 17,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 17,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 17,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 18,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Buenos Aires",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Buenos Aires",
+   "cita": "Buenos Aires",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 18,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 186,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 186,
+   "cita": "uno ochenta y seis",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 86.8,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 87,
+   "cita": "ochenta y siete kilos",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 18,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Salud general",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Salud general",
+   "cita": "mejorar mi salud en general",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Llevo un año sin subir el press banca.",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "estancado en el press banca",
+   "cita": "estancado en el press banca",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 18,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": 90.5,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 90.5,
+   "cita": "noventa y medio kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": "Más de 3 años ininterrumpidos",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Más de 3 años ininterrumpidos",
+   "cita": "Llevo más de tres años entrenando sin parar",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Avanzado",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Avanzado",
+   "cita": "Soy avanzado",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": "112kg Sentadilla, 93kg Press Banca",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "En sentadilla ando en ciento doce kilos y en press banca en noventa y tres",
+   "cita": "En sentadilla ando en ciento doce kilos y en press banca en noventa y tres",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 18,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "profesor de pie 6 h",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "profesor de pie 6 h",
+   "cita": "yo soy profesor, estoy de pie como seis horas diarias",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 18,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": "Entre semana imposible, llego a las 10 de la noche. Fin de semana sí.",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Entre semana es imposible, llego a las diez de la noche, eh. Entonces los fines de semana sí me puedo venir al gimnasio",
+   "cita": "Entre semana es imposible, llego a las diez de la noche, eh. Entonces los fines de semana sí me puedo venir al gimnasio",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 18,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 18,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 19,
+   "campo": "ciudad",
+   "tipo": "texto",
+   "esperado": "Ciudad de México",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Ciudad de México",
+   "cita": "Ciudad de México",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 19,
+   "campo": "edad",
+   "tipo": "numero",
+   "esperado": 20,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 20,
+   "cita": "veinte años",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 19,
+   "campo": "altura_cm",
+   "tipo": "numero",
+   "esperado": 177,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 177,
+   "cita": "uno setenta y siete",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 19,
+   "campo": "peso_actual_kg",
+   "tipo": "numero",
+   "esperado": 92.4,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": 92.4,
+   "cita": "noventa y dos punto cuatro kilos",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 19,
+   "campo": "objetivo_principal",
+   "tipo": "opcion",
+   "esperado": "Hipertrofia / estética",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio"
+  },
+  {
+   "persona": 19,
+   "campo": "parte_a_mejorar",
+   "tipo": "texto",
+   "esperado": "Resistencia general",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "la resistencia general porque, pues, la verdad ando algo bajito en eso",
+   "cita": "la resistencia general porque, pues, la verdad ando algo bajito en eso",
+   "categoria": "aproximado"
+  },
+  {
+   "persona": 19,
+   "campo": "peso_objetivo_kg",
+   "tipo": "numero",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 19,
+   "campo": "tiempo_entrenando",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": true,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 19,
+   "campo": "nivel_fuerza",
+   "tipo": "opcion",
+   "esperado": "Principiante",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "Principiante",
+   "cita": "principiante de los principiantes",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 19,
+   "campo": "marcas_fuerza",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 19,
+   "campo": "tipo_trabajo",
+   "tipo": "opcion",
+   "esperado": "obra, cargando peso",
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": "obra, cargando peso",
+   "cita": "trabajo en obra, eh, cargando peso todo el día",
+   "categoria": "exacto"
+  },
+  {
+   "persona": 19,
+   "campo": "dia_tipo_alimentacion",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 19,
+   "campo": "cocina_o_compra",
+   "tipo": "opcion",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  },
+  {
+   "persona": 19,
+   "campo": "vasos_agua",
+   "tipo": "texto",
+   "esperado": null,
+   "omitida": false,
+   "porSalud": false,
+   "obtenido": null,
+   "cita": null,
+   "categoria": "vacio_correcto"
+  }
+ ],
+ "tiempos": [
+  {
+   "habla": 93.19999999999999,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 25.299999999999997,
+   "nToques": 8,
+   "nPalabras": 233,
+   "nCaracteres": 109,
+   "vozSinCorreccion": 139.2,
+   "voz": 164.5,
+   "escrito": 54.7
+  },
+  {
+   "habla": 132,
+   "toques": 22,
+   "revision": 30,
+   "detalles": 41.4,
+   "correcciones": 0,
+   "nToques": 11,
+   "nPalabras": 330,
+   "nCaracteres": 92,
+   "vozSinCorreccion": 225.4,
+   "voz": 225.4,
+   "escrito": 99
+  },
+  {
+   "habla": 41.6,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 10.100000000000001,
+   "nToques": 8,
+   "nPalabras": 104,
+   "nCaracteres": 50,
+   "vozSinCorreccion": 87.6,
+   "voz": 97.69999999999999,
+   "escrito": 39
+  },
+  {
+   "habla": 74.8,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 187,
+   "nCaracteres": 110,
+   "vozSinCorreccion": 120.8,
+   "voz": 120.8,
+   "escrito": 57
+  },
+  {
+   "habla": 132,
+   "toques": 18,
+   "revision": 30,
+   "detalles": 24.3,
+   "correcciones": 2,
+   "nToques": 9,
+   "nPalabras": 330,
+   "nCaracteres": 41,
+   "vozSinCorreccion": 204.3,
+   "voz": 206.3,
+   "escrito": 62.599999999999994
+  },
+  {
+   "habla": 130.4,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 326,
+   "nCaracteres": 23,
+   "vozSinCorreccion": 176.4,
+   "voz": 176.4,
+   "escrito": 30.9
+  },
+  {
+   "habla": 105.2,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 263,
+   "nCaracteres": 28,
+   "vozSinCorreccion": 151.2,
+   "voz": 151.2,
+   "escrito": 32.4
+  },
+  {
+   "habla": 121.2,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 303,
+   "nCaracteres": 34,
+   "vozSinCorreccion": 167.2,
+   "voz": 167.2,
+   "escrito": 34.2
+  },
+  {
+   "habla": 101.6,
+   "toques": 20,
+   "revision": 30,
+   "detalles": 11.700000000000001,
+   "correcciones": 28.900000000000002,
+   "nToques": 10,
+   "nPalabras": 254,
+   "nCaracteres": 131,
+   "vozSinCorreccion": 163.29999999999998,
+   "voz": 192.2,
+   "escrito": 79.00000000000001
+  },
+  {
+   "habla": 107.2,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 268,
+   "nCaracteres": 25,
+   "vozSinCorreccion": 153.2,
+   "voz": 153.2,
+   "escrito": 31.5
+  },
+  {
+   "habla": 116,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 290,
+   "nCaracteres": 35,
+   "vozSinCorreccion": 162,
+   "voz": 162,
+   "escrito": 34.5
+  },
+  {
+   "habla": 58.400000000000006,
+   "toques": 18,
+   "revision": 30,
+   "detalles": 21,
+   "correcciones": 0,
+   "nToques": 9,
+   "nPalabras": 146,
+   "nCaracteres": 42,
+   "vozSinCorreccion": 127.4,
+   "voz": 127.4,
+   "escrito": 59.6
+  },
+  {
+   "habla": 92.8,
+   "toques": 18,
+   "revision": 30,
+   "detalles": 11.1,
+   "correcciones": 0,
+   "nToques": 9,
+   "nPalabras": 232,
+   "nCaracteres": 24,
+   "vozSinCorreccion": 151.9,
+   "voz": 151.9,
+   "escrito": 44.300000000000004
+  },
+  {
+   "habla": 130.8,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 327,
+   "nCaracteres": 37,
+   "vozSinCorreccion": 176.8,
+   "voz": 176.8,
+   "escrito": 35.1
+  },
+  {
+   "habla": 45.6,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 114,
+   "nCaracteres": 97,
+   "vozSinCorreccion": 91.6,
+   "voz": 91.6,
+   "escrito": 53.099999999999994
+  },
+  {
+   "habla": 46.800000000000004,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 0,
+   "nToques": 8,
+   "nPalabras": 117,
+   "nCaracteres": 34,
+   "vozSinCorreccion": 92.80000000000001,
+   "voz": 92.80000000000001,
+   "escrito": 34.2
+  },
+  {
+   "habla": 93.60000000000001,
+   "toques": 18,
+   "revision": 30,
+   "detalles": 27.6,
+   "correcciones": 4.1,
+   "nToques": 9,
+   "nPalabras": 234,
+   "nCaracteres": 44,
+   "vozSinCorreccion": 169.20000000000002,
+   "voz": 173.3,
+   "escrito": 64.80000000000001
+  },
+  {
+   "habla": 96,
+   "toques": 18,
+   "revision": 30,
+   "detalles": 18.3,
+   "correcciones": 3.2,
+   "nToques": 9,
+   "nPalabras": 240,
+   "nCaracteres": 32,
+   "vozSinCorreccion": 162.3,
+   "voz": 165.5,
+   "escrito": 53.900000000000006
+  },
+  {
+   "habla": 66.8,
+   "toques": 20,
+   "revision": 30,
+   "detalles": 21,
+   "correcciones": 0,
+   "nToques": 10,
+   "nPalabras": 167,
+   "nCaracteres": 166,
+   "vozSinCorreccion": 137.8,
+   "voz": 137.8,
+   "escrito": 98.8
+  },
+  {
+   "habla": 82,
+   "toques": 16,
+   "revision": 30,
+   "detalles": 0,
+   "correcciones": 2,
+   "nToques": 8,
+   "nPalabras": 205,
+   "nCaracteres": 47,
+   "vozSinCorreccion": 128,
+   "voz": 130,
+   "escrito": 38.1
+  }
+ ]
+}

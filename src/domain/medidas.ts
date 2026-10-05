@@ -1,13 +1,20 @@
 /**
- * LAS OCHO MEDIDAS QUE PIDE LA FICHA.
+ * LAS NUEVE MEDIDAS QUE PIDE LA FICHA.
  *
- * Seis longitudes de segmento y dos perímetros, todas en centímetros y todas tomadas con
+ * Seis longitudes de segmento y tres perímetros, todas en centímetros y todas tomadas con
  * cinta por una persona. Son las que hacen falta para dejar de dibujar al asesorado con el
  * cuerpo del atlas: hasta hoy lo único medido en metros era la estatura, y con la estatura
  * sola dos personas de 1,75 con fémures distintos se ven iguales
- * (`patrones/estatura.ts`). Con estas ocho, no.
+ * (`patrones/estatura.ts`). Con estas nueve, no.
  *
- * ## Por qué ocho y no las que se quieran
+ * `cuelloCm` (2026-09-27) es la novena, y no es del atlas: es lo que le faltaba a la ficha
+ * para que la fórmula US Navy (`domain/nutricion/composicion.ts`, ya usada por la encuesta
+ * de nutrición) pudiera estimar el % de grasa con cintura + cuello (+ caderas en mujeres) y,
+ * con eso, la masa magra que necesita el P-ratio de la consola
+ * (`consolaCoach/composicionEstimada.ts`). Sin cuello, el P-ratio solo se podía calcular con
+ * una masa magra medida aparte (bioimpedancia) — algo que casi nadie trae.
+ *
+ * ## Por qué nueve y no las que se quieran
  *
  * `MedidaCorporal.perimetros` es un `Record<string, number>` con las claves libres, y se ve
  * lo que pasa cuando nadie cierra un catálogo: en la app conviven «Cadera» y «Glúteos»,
@@ -15,7 +22,7 @@
  * cada semilla escribió la etiqueta que le pareció. Un mapa con las claves abiertas no se
  * puede consultar: nadie sabe si la persona no tiene el dato o lo tiene con otro nombre.
  *
- * Aquí las claves están cerradas. Ocho, con nombre estable, y lo que no está en la lista
+ * Aquí las claves están cerradas. Nueve, con nombre estable, y lo que no está en la lista
  * **se rechaza** en vez de guardarse: es la diferencia entre un formulario y un catálogo.
  *
  * ## Todas opcionales, y eso no es dejadez
@@ -38,15 +45,16 @@
  * fémur en milímetros, la coma corrida, el campo de al lado—. Todo lo que un cuerpo humano
  * puede medir de verdad pasa.
  *
- * Los dos perímetros no tienen atlas del que derivarlos —un contorno no tiene techo
+ * Los tres perímetros no tienen atlas del que derivarlos —un contorno no tiene techo
  * anatómico como un hueso— así que su rango es generoso a propósito y se apoya en lo que
  * se ve en consulta: por debajo de 40 cm de cintura no hay adulto, y por encima de 200 el
- * dato está mal escrito.
+ * dato está mal escrito. El cuello es más estrecho por naturaleza —ni la persona más grande
+ * llega a 60 cm de cuello— y por eso su rango es más ceñido que el de cintura y caderas.
  */
 
 /**
- * Las ocho, en el orden en el que se preguntan: primero las longitudes de abajo arriba y
- * después los dos perímetros. La ficha las pinta en este orden y el orden es parte del
+ * Las nueve, en el orden en el que se preguntan: primero las longitudes de abajo arriba y
+ * después los tres perímetros. La ficha las pinta en este orden y el orden es parte del
  * contrato — cambiarlo cambia el formulario.
  */
 export const CLAVES_DE_MEDIDA = [
@@ -58,6 +66,7 @@ export const CLAVES_DE_MEDIDA = [
   'anchoClavicularCm',
   'cinturaCm',
   'caderasCm',
+  'cuelloCm',
 ] as const
 
 export type ClaveDeMedida = (typeof CLAVES_DE_MEDIDA)[number]
@@ -154,6 +163,16 @@ export const MEDIDAS: readonly DefinicionDeMedida[] = [
     minimo: 50,
     maximo: 200,
   },
+  {
+    clave: 'cuelloCm',
+    etiqueta: 'Cuello',
+    comoSeMide:
+      'Justo debajo de la nuez (laringe), con la cinta ligeramente inclinada hacia abajo ' +
+      'por delante, sin apretar.',
+    unidad: 'cm',
+    minimo: 20,
+    maximo: 60,
+  },
 ]
 
 export const MEDIDA_POR_CLAVE: Record<ClaveDeMedida, DefinicionDeMedida> = Object.fromEntries(
@@ -162,7 +181,7 @@ export const MEDIDA_POR_CLAVE: Record<ClaveDeMedida, DefinicionDeMedida> = Objec
 
 const ES_CLAVE = new Set<string>(CLAVES_DE_MEDIDA)
 
-/** Si una clave es una de las ocho. Sirve para leer lo que ya está guardado. */
+/** Si una clave es una de las nueve. Sirve para leer lo que ya está guardado. */
 export function esClaveDeMedida(clave: string): clave is ClaveDeMedida {
   return ES_CLAVE.has(clave)
 }
@@ -181,14 +200,14 @@ export interface ReparoDeMedida {
 /**
  * REVISA UNAS MEDIDAS Y DEVUELVE LO QUE ESTÁ MAL. Lista vacía = se pueden guardar.
  *
- * Devuelve TODOS los reparos, no el primero: quien rellena ocho campos merece verlos todos
+ * Devuelve TODOS los reparos, no el primero: quien rellena nueve campos merece verlos todos
  * marcados de una vez en vez de descubrirlos de uno en uno.
  *
  * Rechaza tres cosas, y la tercera es la que justifica que el catálogo esté cerrado:
  *
  *  1. lo que no es un número (texto, `null`, infinito, `NaN`);
  *  2. lo que está fuera del rango de esa medida;
- *  3. **una clave que no es una de las ocho**. Es lo que impide que vuelva a pasar lo de
+ *  3. **una clave que no es una de las nueve**. Es lo que impide que vuelva a pasar lo de
  *     `perimetros`, donde «Cadera» y «Glúteos» acabaron siendo dos columnas del mismo dato
  *     porque nadie dijo que no.
  */
@@ -201,7 +220,7 @@ export function revisarMedidas(entrada: unknown): ReparoDeMedida[] {
     if (!esClaveDeMedida(clave)) {
       reparos.push({
         campo: clave,
-        motivo: `«${clave}» no es una de las ocho medidas de la ficha.`,
+        motivo: `«${clave}» no es una de las nueve medidas de la ficha.`,
       })
       continue
     }
@@ -228,7 +247,7 @@ export function revisarMedidas(entrada: unknown): ReparoDeMedida[] {
  *
  * No hay una `medidasVigentes` que devuelva la toma más reciente, como sí la hay para la
  * estatura (`patrones/estatura.ts#estaturaVigente`). Se escribió y se quitó: su único
- * consumidor sería quien decida **si estas ocho mandan sobre las proporciones que salen de
+ * consumidor sería quien decida **si estas nueve mandan sobre las proporciones que salen de
  * la pista de pose** (`patrones/huellaArticular.ts#proporcionesDePista`), y esa decisión no
  * es de esta tanda —está apuntada en `docs/specs/2026-09-08-definicion-corporal.md` §5—.
  * Una función sin consumidor con una decisión pendiente dentro es justo lo que este repo

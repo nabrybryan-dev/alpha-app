@@ -86,7 +86,11 @@ export function HuecoDeDatos({
     )
   }
 
-  const kilos = ejercicio?.cargaKg
+  // Solo cuenta como kilos un número de verdad. Los planes guardan `null` cuando no llevan
+  // kilos, y `null` no es `undefined`: pasaba la guarda de abajo y `cifra` le hacía
+  // `toFixed`, tirando la pantalla entera (14-sep, 6 asesorados).
+  const kilos = esKilos(ejercicio?.cargaKg) ? ejercicio?.cargaKg : undefined
+  const previa = esKilos(cargaPrevia) ? cargaPrevia : undefined
 
   return (
     <div className="muro-hueco muro-hueco-entra" data-hueco-muro="carga">
@@ -106,17 +110,22 @@ export function HuecoDeDatos({
           ciertos y juntos decían una cosa falsa —que hoy se baja de 20 a nada—, cuando
           lo que pasa es que la prescripción de hoy no se mide en kilos.
           Una comparación necesita dos cosas de la misma naturaleza. */}
-      {kilos !== undefined && cargaPrevia !== undefined && (
+      {kilos !== undefined && previa !== undefined && (
         <>
           <p className="muro-rotulo mt-[0.34em] text-[0.44em]">La semana pasada</p>
           <p className="muro-kilos muro-kilos-previo mt-[0.1em]">
-            {cifra(cargaPrevia)}
+            {cifra(previa)}
             <span className="muro-kilos-unidad"> KG</span>
           </p>
         </>
       )}
     </div>
   )
+}
+
+/** Un peso que se puede escribir: número finito. `null`, `undefined` y `NaN` no lo son. */
+function esKilos(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n)
 }
 
 /** Sin decimales cuando son redondos: «80 KG», no «80,0 KG». */

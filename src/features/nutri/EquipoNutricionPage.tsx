@@ -1,13 +1,17 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { Cifra3D } from '../../components/ui/Cifra3D'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import { calcularRacha } from '../../domain/gamification'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
 import { visibilidadDe } from '../../domain/nutricion/visibilidad'
+import { BandejaPlanesRenovados } from '../coach/consola/BandejaPlanesRenovados'
+import { BandejaPrimerosPlanes } from '../coach/consola/BandejaPrimerosPlanes'
+import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { SheetVetados } from './SheetVetados'
 
 function fechaAtras(hoy: string, dias: number): string {
@@ -33,6 +37,14 @@ interface FilaEquipo {
 interface DatosEquipo {
   filas: FilaEquipo[]
   pendientes: number
+}
+
+/** Por debajo de esto la adherencia se pinta en rojo en la lista; es el mismo corte. */
+const ADHERENCIA_EN_ROJO = 50
+
+/** Los que la lista ya pinta en rojo: sin un solo registro en 30 días o por debajo del corte. */
+function pideAtencion(f: FilaEquipo): boolean {
+  return f.pct === undefined || f.pct < ADHERENCIA_EN_ROJO
 }
 
 /**
@@ -126,16 +138,28 @@ function calcularEquipo(hoy: string): DatosEquipo {
  */
 export default function EquipoNutricionPage() {
   const { usuario } = useSesion()
+  const [parametros] = useSearchParams()
+  const persona = parametros.get('persona')
   const version = useDbVersion()
   const hoy = hoyIso()
   /** El asesorado cuyo panel de vetos está abierto. */
   const [vetando, setVetando] = useState<{ id: string; nombre: string } | null>(null)
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
+  const puedeVerCreadores = esCoach || tiene('revisar_creadores')
 
-  if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
+  if (usuario.rol === 'asesorado' && cargando) return null
+  if (usuario.rol !== 'nutricionista' && !esCoach) {
     return <Navigate to="/" replace />
   }
 
-  const { filas, pendientes } = datosDelEquipo(version, hoy)
+  const datos = datosDelEquipo(version, hoy)
+  const filas = persona === null ? datos.filas : datos.filas.filter((f) => f.usuario.id === persona)
+  const pendientes = persona === null ? datos.pendientes : filas.filter((f) => {
+    const respuestas = (db.perfilNutricion.byUsuario(f.usuario.id)?.respuestas ?? {}) as Respuestas
+    return visibilidadDe(db.visibilidad.byUsuario(f.usuario.id), senalesDeLaEncuesta(respuestas)).estado === 'en_espera'
+  }).length
+  const evaluados = filas.filter((f) => f.pct !== undefined).length
+  const atencion = filas.filter(pideAtencion).length
 
 
   return (
@@ -148,13 +172,34 @@ export default function EquipoNutricionPage() {
 
       <section className="pt-2">
         <p className="kicker">Evaluación nutricional del equipo</p>
-        <h2 className="font-display text-3xl text-texto">Nutrición Alpha</h2>
-        <p className="mt-1 text-xs text-tenue">
+        <h2 className="font-display text-3xl text-texto">{persona === null ? 'Nutrición Alpha' : filas[0]?.usuario.nombre ?? 'Persona no disponible'}</h2>
+        {persona !== null && <Link to="/equipo" className="inline-flex min-h-[44px] items-center text-sm text-tenue underline">Volver a Equipo</Link>}
+        {/* Las tres cifras de la maqueta «Espacios de Alpha» (28-sep). Salen de las MISMAS
+            filas que la lista de abajo, así que no pueden contar otra cosa que ella. */}
+        <div
+          aria-label="Resumen del equipo"
+          role="group"
+          className="entrada entrada-1 mt-3 grid grid-cols-3 gap-2 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            <Cifra3D valor={evaluados} etiqueta={`${evaluados} evaluados con registros en 30 días`} />
+            <span className="text-xs text-tenue">evaluados</span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <Cifra3D valor={atencion} rojo={atencion > 0} etiqueta={`${atencion} piden atención`} />
+            <span className="text-xs text-tenue">piden atención</span>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <Cifra3D valor={pendientes} rojo={pendientes > 0} etiqueta={`${pendientes} esperan decidir qué cifras ven`} />
+            <span className="text-xs text-tenue">cifras por decidir</span>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-tenue">
           Adherencia de los últimos 30 días · ordenado de mayor a menor atención requerida
         </p>
         {/* Sin este enlace la pantalla de decisiones existe y no la alcanza
             nadie: la ruta estaba, pero no había por dónde entrar. */}
-        <Link
+        {persona === null && <Link
           to="/equipo-nutricion/cifras"
           className="press mt-3 inline-block rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
         >
@@ -164,10 +209,27 @@ export default function EquipoNutricionPage() {
               {pendientes}
             </span>
           )}
-        </Link>
+        </Link>}
+        {/* Tablero de creadores (0090): solo para quien tiene `revisar_creadores`. */}
+        {persona === null && puedeVerCreadores && (
+          <Link
+            to="/coach/creadores"
+            className="press ml-2 mt-3 inline-block rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+          >
+            Creadores
+          </Link>
+        )}
       </section>
 
-      <section className="flex flex-col gap-2.5">
+      {/* Las bandejas de aprobación de la consola, tal cual: cada una se pinta sola si quien
+          mira tiene su capacidad (`aprobar_primer_plan`, `aprobar_plan_estrategico`). */}
+      {persona === null && <div className="entrada entrada-2 flex flex-col gap-3">
+        <BandejaPrimerosPlanes />
+        <BandejaPlanesRenovados />
+      </div>}
+
+      <section aria-label="Adherencia del equipo" className="flex flex-col gap-2.5">
+        {persona !== null && filas.length === 0 && <p role="status" className="rounded-tarjeta border border-linea p-4 text-sm text-tenue">Esta persona no está disponible en tu cartera nutricional. Vuelve a Equipo para elegir otra.</p>}
         {filas.map((f) => (
           <Card key={f.usuario.id} className="flex items-center gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-3 text-xs font-bold text-texto">

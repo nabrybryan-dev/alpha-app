@@ -1,9 +1,14 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { ErrorBoundary } from './app/ErrorBoundary'
 import { MovimientoProvider } from './app/MovimientoProvider'
 import { AppRouter } from './app/router'
+import { esRutaPublica } from './app/rutasPublicas'
 import { SessionProvider } from './app/SessionProvider'
 import { ThemeProvider } from './app/ThemeProvider'
+
+// Público y sin sesión: no pasa por `SessionProvider` (ver `app/rutasPublicas.ts`).
+const InteresadosPage = lazy(() => import('./features/interesados/InteresadosPage'))
 
 function App() {
   return (
@@ -13,11 +18,19 @@ function App() {
             no de una pantalla, y remontarlo en cada navegación volvería a medir
             la fluidez cada vez. */}
         <MovimientoProvider>
-          <SessionProvider>
+          {esRutaPublica(window.location.pathname) ? (
             <BrowserRouter>
-              <AppRouter />
+              <Suspense fallback={null}>
+                <InteresadosPage />
+              </Suspense>
             </BrowserRouter>
-          </SessionProvider>
+          ) : (
+            <SessionProvider>
+              <BrowserRouter>
+                <AppRouter />
+              </BrowserRouter>
+            </SessionProvider>
+          )}
         </MovimientoProvider>
       </ThemeProvider>
     </ErrorBoundary>

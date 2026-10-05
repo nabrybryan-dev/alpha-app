@@ -6,6 +6,7 @@ import type {
   ItemMarcable,
   Microciclo,
   Perfil,
+  RegistroCardioEjecutado,
   RegistroComida,
   SerieRegistrada,
   Sesion,
@@ -282,6 +283,19 @@ const esSuya = (comida: RegistroComida, usuarioId: string, comidaId: string) =>
  * propósito, porque aquí significa "no se preguntó", que es un dato y no un
  * hueco -la misma regla que separa el `null` del `0` en el catálogo-.
  */
+/**
+ * Las fichas, con la de esta persona garantizada: si aún no tiene, nace con lo mínimo
+ * (`perfilVacio`), igual que cuando su primera medida estrena la ficha. Sin esto, el coach
+ * que fijaba el sexo, el peldaño o una valoración a un cliente recién dado de alta
+ * (solo `usuarios_app`, sin ficha) no cambiaba nada y no recibía error alguno (auditoría
+ * 2-oct-2026, A-2).
+ */
+function conFicha(perfiles: readonly Perfil[], usuarioId: string): Perfil[] {
+  return perfiles.some((p) => p.usuarioId === usuarioId)
+    ? [...perfiles]
+    : [...perfiles, perfilVacio(usuarioId, [])]
+}
+
 function conCambios<T extends object>(base: T, cambios: Partial<T>): T {
   const definidos = Object.fromEntries(
     Object.entries(cambios).filter(([, valor]) => valor !== undefined),
@@ -342,7 +356,7 @@ export function crearMockDb(): Db {
       guardarPeldano: (usuarioId, peldano, ascensoIso) => {
         mutar((estado) => ({
           ...estado,
-          perfiles: estado.perfiles.map((p) =>
+          perfiles: conFicha(estado.perfiles, usuarioId).map((p) =>
             p.usuarioId === usuarioId ? { ...p, peldanoAlfa: peldano, ascensoIso } : p,
           ),
         }))
@@ -350,7 +364,7 @@ export function crearMockDb(): Db {
       guardarSexo: (usuarioId, sexo) => {
         mutar((estado) => ({
           ...estado,
-          perfiles: estado.perfiles.map((p) => {
+          perfiles: conFicha(estado.perfiles, usuarioId).map((p) => {
             if (p.usuarioId !== usuarioId) return p
             // «Sin indicar» es que la clave NO esté, no que valga undefined: así
             // la ficha guardada es idéntica a una que nunca lo tuvo.
@@ -377,7 +391,7 @@ export function crearMockDb(): Db {
       guardarValoracion: (usuarioId, valoracion) => {
         mutar((estado) => ({
           ...estado,
-          perfiles: estado.perfiles.map((p) =>
+          perfiles: conFicha(estado.perfiles, usuarioId).map((p) =>
             p.usuarioId === usuarioId
               ? {
                   ...p,
@@ -505,6 +519,25 @@ export function crearMockDb(): Db {
                 ...s,
                 preparacion: preparacion.map(alternar),
                 bloquesCardio: s.bloquesCardio?.map(alternar),
+              })
+            }),
+          })),
+        )
+      },
+      registrarEjecucionCardio: (
+        microcicloId: string,
+        sesionId: string,
+        bloqueId: string,
+        registro: RegistroCardioEjecutado,
+      ) => {
+        mutar((estado) =>
+          actualizarMicrociclo(estado, microcicloId, (m) => ({
+            ...m,
+            sesiones: m.sesiones.map((s) => {
+              if (s.id !== sesionId) return s
+              return conFecha({
+                ...s,
+                bloquesCardio: s.bloquesCardio?.map((b) => (b.id === bloqueId ? { ...b, ...registro } : b)),
               })
             }),
           })),

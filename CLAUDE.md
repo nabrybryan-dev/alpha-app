@@ -281,7 +281,7 @@ Reglas que quedan:
 
 ## 7. Skills y permisos
 
-Dos skills de ingeniería en `.claude/skills/`, además de las de diseño y animación que
+Tres skills propias en `.claude/skills/`, además de las de diseño y animación que
 ya había:
 
 - **`verificar-contra-la-realidad`** — antes de afirmar que algo está aplicado,
@@ -289,6 +289,10 @@ ya había:
   **no** es la realidad: las migraciones se aplican a mano y los tests no ven píxeles.
 - **`tests-primero-sin-cobertura`** — cómo tocar un archivo de `src/` que no tiene
   tests: escribirlos primero y comprobarlos contra el código viejo.
+- **`preguntas-claras`** — cómo hablarle a Bryan (TDAH): respuesta en la primera línea,
+  sin tecnicismos, y toda pregunta en selección múltiple con un símil cotidiano y la
+  lógica de cada opción. Vale **solo** para los mensajes a Bryan en el chat; el código,
+  los commits, los PR y la documentación siguen en lenguaje técnico. Claude opera, Bryan decide.
 
 `.claude/settings.json` deja pasar sin preguntar lo que es de lectura o verificación
 (`npm run verify`, `git status`, `git diff`…) y **bloquea la lectura de los archivos con

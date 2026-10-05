@@ -42,10 +42,14 @@ describe('mockDb.perfiles.guardarSexo', () => {
     expect(db.perfiles.byUsuario('u-mateo')).toEqual(mateoAntes)
   })
 
-  it('sin ficha no escribe nada: no inventa una ficha vacía por un dato suelto', () => {
+  it('sin ficha, la estrena con lo mínimo: el coach no pulsa en el vacío (0107)', () => {
+    // Antes no escribía nada y no avisaba: un cliente recién dado de alta no se podía fichar.
     const db = crearMockDb()
     db.perfiles.guardarSexo('u-sin-ficha', 'mujer')
-    expect(db.perfiles.byUsuario('u-sin-ficha')).toBeUndefined()
+    const ficha = db.perfiles.byUsuario('u-sin-ficha')
+    expect(ficha?.sexo).toBe('mujer')
+    expect(ficha?.objetivos).toBe('')
+    expect(ficha?.edad).toBe(0)
   })
 
   it('sobrevive a recargar el almacén', () => {

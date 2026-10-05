@@ -155,9 +155,11 @@ describe('la medida del asesorado viaja sola', () => {
   it('el coach sigue subiendo la ficha entera, con su columna', async () => {
     const { db } = await dbEnModoNube()
     db.perfiles.guardarSexo(ASESORADA, 'mujer')
+    // Desde la 0107 la fila va precedida de `crear_ficha_si_falta` (por si el cliente es nuevo).
     const ops = dePerfiles()
-    expect(ops).toHaveLength(1)
-    expect(ops[0].tipo).toBe('upsert')
-    expect(ops[0].payload.sexo).toBe('mujer')
+    expect(ops).toHaveLength(2)
+    expect(ops[0].funcion).toBe('crear_ficha_si_falta')
+    expect(ops[1].tipo).toBe('upsert')
+    expect(ops[1].payload.sexo).toBe('mujer')
   })
 })
