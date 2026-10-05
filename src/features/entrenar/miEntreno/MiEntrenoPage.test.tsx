@@ -137,6 +137,7 @@ describe('MiEntrenoPage', () => {
     const lunesSiguiente = new Date(lunes)
     lunesSiguiente.setUTCDate(lunes.getUTCDate() + 7)
     const iso = (d: Date) => d.toISOString().slice(0, 10)
+    const dia = (d: Date) => String(d.getUTCDate()).padStart(2, '0') // «Lun 05»
 
     const foto = instantaneaLocal()
     const base = foto.microciclos.find((m) => m.usuarioId === 'u-valentina' && m.estado === 'activo')!
@@ -168,8 +169,8 @@ describe('MiEntrenoPage', () => {
       .queryAllByRole('link')
       .map((a) => a.getAttribute('aria-label') ?? a.textContent ?? '')
     expect(nombres.length).toBeGreaterThan(0)
-    expect(nombres.some((n) => n.startsWith(`Lun ${lunes.getUTCDate()}:`))).toBe(true)
-    expect(nombres.filter((n) => n.startsWith(`Lun ${lunesSiguiente.getUTCDate()}:`))).toEqual([])
+    expect(nombres.some((n) => n.startsWith(`Lun ${dia(lunes)}:`))).toBe(true)
+    expect(nombres.filter((n) => n.startsWith(`Lun ${dia(lunesSiguiente)}:`))).toEqual([])
   })
 })
 
