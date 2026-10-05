@@ -115,7 +115,7 @@ autorización **aparte**, que no incluye datos de salud.
   en esta versión.
 - **Los datos de tu teléfono (casilla E)** los ve **Bryan** y las personas de Alpha a quienes él ha
   dado acceso a la información de entrenamiento (hoy, **Manuela**, que también es la nutricionista), por
-  una regla del sistema, aunque no hayas autorizado B. `DECIDIDO (Bryan, 4-oct-2026): se acepta la excepción; la nutricionista ve E por su rol. Falta que la línea escrita del abogado la cubra EXPRESAMENTE; si no la nombra, E no se usa.`
+  una regla del sistema, aunque no hayas autorizado B. `DECIDIDO (Bryan, 4-oct-2026): se acepta la excepción; la nutricionista ve E por su rol. ACTUALIZADO (Bryan, 5-oct-2026): Bryan revisa y aprueba el texto él mismo y ordena lanzar E SIN la línea escrita del abogado. Queda bajo su responsabilidad como responsable del tratamiento; pedir la línea escrita sigue pendiente.`
 - **El creador de contenido que te recomendó NUNCA ve tus datos de salud, fotos ni medidas.** Como
   mucho sabe que alguien se inscribió con su código, sin datos de salud (criterio propio; ver
   `MAPA-DE-DATOS.md`).
