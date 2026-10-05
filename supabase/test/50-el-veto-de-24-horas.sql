@@ -16,16 +16,22 @@
 \i supabase/test/00-suplantar-supabase.sql
 \i supabase/migrations/0079_el_veto_de_24_horas.sql
 
+-- Todo dentro de una transacción que se deshace al final, como las demás pruebas: sin ella,
+-- lo que siembra se quedaba en la base y ensuciaba a las que corren detrás en el CI.
+begin;
+
 -- ── Montar usuarios y microciclos mínimos ──────────────────────────────
 -- Nota: 0001 crea el trigger de usuarios_app; aquí se insertan directo.
 
 -- Usuarios de prueba
-insert into auth.users (id) values
-  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa1'),
-  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa2'),
-  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa3'),
-  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa4'),
-  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa5')
+-- Con correo: el trigger de alta crea su fila en usuarios_app, y `nombre` no admite NULL
+-- (igual que en las demás pruebas SQL).
+insert into auth.users (id, email) values
+  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa1', 'veto-uno@ejemplo.test'),
+  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa2', 'veto-dos@ejemplo.test'),
+  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa3', 'veto-tres@ejemplo.test'),
+  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa4', 'veto-cuatro@ejemplo.test'),
+  ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa5', 'veto-cinco@ejemplo.test')
 on conflict (id) do nothing;
 
 insert into public.usuarios_app (id, nombre, rol) values
@@ -35,6 +41,15 @@ insert into public.usuarios_app (id, nombre, rol) values
   ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa4', 'Veto Cuatro', 'asesorado'),
   ('aaaaaaaa-aaaa-4000-8000-aaaaaaaaaaa5', 'Veto Cinco', 'asesorado')
 on conflict (id) do update set nombre = excluded.nombre;
+
+-- El coach que para la publicación. La prueba lo daba por sembrado (venía de la semilla, que
+-- el CI no aplica); se crea aquí, como en 107-alta-de-punta-a-punta.sql.
+insert into auth.users (id, email) values
+  ('00000000-0000-4000-8000-000000000001', 'veto-coach@ejemplo.test')
+on conflict (id) do nothing;
+insert into public.usuarios_app (id, nombre, rol) values
+  ('00000000-0000-4000-8000-000000000001', 'Coach del veto', 'coach')
+on conflict (id) do update set nombre = excluded.nombre, rol = excluded.rol;
 
 -- Cada uno con un activo M1
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
@@ -81,7 +96,10 @@ set role authenticated;
 select pruebas.exigir_rls();
 select public.parar_publicacion('22222222-2222-4000-8000-222222222222', 'revisar');
 reset role;
-select pruebas.soy('00000000-0000-0000-0000-000000000000'::uuid);
+-- De vuelta a servicio = SIN sesión, como corre pg_cron. El UUID de ceros NO sirve: auth.uid()
+-- no es nulo, y `proteger_estado_microciclo` (0021) deja el estado como estaba en silencio, así
+-- que publicar_pendientes no podía cerrar el anterior y fallaba por «un solo activo» (0069).
+select set_config('request.jwt.claim.sub', '', false);
 
 select public.publicar_pendientes();
 
@@ -182,3 +200,5 @@ begin
     '6 limpieza estado en blob: quedo la clave'
   );
 end $$;
+
+rollback;
