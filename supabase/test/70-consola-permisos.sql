@@ -52,7 +52,7 @@ on conflict do nothing;
 -- comprobar que 77 no los ve y 66 sí. `cuestionarios.asignado_a` es lo que exige
 -- `responder_como_staff`: un único destinatario.
 insert into public.microciclos (id, usuario_id, numero, estado, datos) values
-  ('m-consola-test-1', '55555555-5555-5555-5555-555555555555', 1, 'activo', '{}'::jsonb)
+  ('m-consola-asesorada-1', '55555555-5555-5555-5555-555555555555', 1, 'activo', '{}'::jsonb)
 on conflict (id) do nothing;
 
 insert into public.checkins (id, usuario_id, fecha, datos) values
@@ -88,7 +88,7 @@ set role authenticated;
 select pruebas.exigir_rls();
 
 select pruebas.afirmar(
-  (select count(*) from public.microciclos where id = 'm-consola-test-1') = 0,
+  (select count(*) from public.microciclos where id = 'm-consola-asesorada-1') = 0,
   'staff SIN leer_entrenamiento ve un microciclo ajeno'
 );
 select pruebas.afirmar(
@@ -117,7 +117,7 @@ select pruebas.exigir_rls();
 -- Control positivo: si estas fallaran por CUALQUIER motivo —incluida la tabla vacía—, el
 -- bloque negativo de arriba no probaría que la política filtra, probaría que no hay datos.
 select pruebas.afirmar(
-  (select count(*) from public.microciclos where id = 'm-consola-test-1') = 1,
+  (select count(*) from public.microciclos where id = 'm-consola-asesorada-1') = 1,
   'staff CON leer_entrenamiento no ve el microciclo (falso negativo: revisa la semilla)'
 );
 select pruebas.afirmar(
