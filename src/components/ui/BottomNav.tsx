@@ -18,7 +18,7 @@ function Icono({ children }: { children: ReactNode }) {
   )
 }
 
-const pestanas = [
+const pestanasAsesorado = [
   {
     ruta: '/',
     etiqueta: 'Hoy',
@@ -74,7 +74,71 @@ const pestanas = [
   },
 ]
 
-export function BottomNav() {
+/**
+ * Los cinco ESPACIOS del staff que también entrena (Manuela; maqueta «Espacios de Alpha»
+ * aprobada por Bryan el 28-sep), en este orden:
+ *
+ *   · Mi día (/): Hoy con su semana, el chequeo, su nutrición de hoy y sus medidas.
+ *   · Mi entreno (/mi-entreno): la semana, lo que toca hoy y la entrada al salón.
+ *   · Equipo (/equipo): nutrición y entrenamiento por persona, aprobaciones y mensajes.
+ *   · Estrategias (/coach/estrategias): mercadeo y después influencers.
+ *   · Administración (/coach/administracion): plan, finanzas, agentes y decisiones.
+ *
+ * Bienestar, Nutrición (la suya) y Progreso siguen existiendo: se llega desde Mi día.
+ */
+const pestanasStaff = [
+  { ...pestanasAsesorado[0], etiqueta: 'Mi día' },
+  { ...pestanasAsesorado[1], ruta: '/mi-entreno', etiqueta: 'Mi entreno' },
+  {
+    ruta: '/equipo',
+    etiqueta: 'Equipo',
+    icono: (
+      <Icono>
+        <circle cx="9" cy="8" r="3" />
+        <circle cx="17" cy="9" r="2.5" />
+        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2.2 1.3-4 3.5-4.6" />
+      </Icono>
+    ),
+  },
+  {
+    ruta: '/coach/estrategias',
+    etiqueta: 'Estrategias',
+    icono: <Icono><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></Icono>,
+  },
+  {
+    ruta: '/coach/administracion',
+    etiqueta: 'Administración',
+    icono: (
+      <Icono>
+        <path d="M4 19V11M10 19V5M16 19v-6M22 19H2" />
+      </Icono>
+    ),
+  },
+]
+
+export type EspaciosNav = 'asesorado' | 'staff'
+
+/**
+ * Bryan usa la MISMA barra de cinco espacios que Manuela (misma pieza, mismo estilo). Lo único que
+ * cambia es qué espacios se ofrecen: cada uno sigue a su capacidad. Por defecto, todos.
+ */
+export interface OpcionesCoach {
+  estrategias?: boolean
+  administracion?: boolean
+}
+
+export function BottomNav({
+  espacios = 'asesorado',
+  opcionesCoach = {},
+}: { espacios?: EspaciosNav; opcionesCoach?: OpcionesCoach } = {}) {
+  const { estrategias = true, administracion = true } = opcionesCoach
+  const pestanas =
+    espacios === 'staff'
+      ? pestanasStaff.filter(
+          (p) =>
+            !(p.ruta === '/coach/estrategias' && !estrategias) && !(p.ruta === '/coach/administracion' && !administracion),
+        )
+      : pestanasAsesorado
   return (
     <nav
       aria-label="Navegación principal"

@@ -1,10 +1,13 @@
-import { useEffect, useImperativeHandle, useState, type Ref } from 'react'
+import { useEffect, useId, useImperativeHandle, useState, type Ref } from 'react'
+import { SelectorRir } from '../../../../components/ui/SelectorRir'
 import { Stepper } from '../../../../components/ui/Stepper'
 import { db } from '../../../../data/dbInstance'
 import { etiquetaDeSerie } from '../../../../domain/calendario'
+import { confirmacionTrasCambio, sePuedeGuardar } from '../../../../domain/confirmacionSerie'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../../../domain/types'
 import { borrarClave, escribirJSON } from '../../../../lib/persistencia'
-import { claveDeBorrador, leerBorrador, type BorradorDeSerie } from './borrador'
+import { HechoTalCual, MotivoSinConfirmar } from '../../HechoTalCual'
+import { borradorDePartida, claveDeBorrador, leerBorrador, type BorradorDeSerie } from './borrador'
 
 /**
  * EL REGISTRO EN EL SUELO DEL SALÓN.
@@ -41,6 +44,7 @@ import { claveDeBorrador, leerBorrador, type BorradorDeSerie } from './borrador'
 
 /** Lo que la barra del suelo necesita poder hacer desde fuera: guardar. */
 export interface RegistroSerieSalonHandle {
+  /** No hace nada hasta que la persona cambie un número: la pauta sola no se guarda. */
   guardar: () => void
 }
 
@@ -92,7 +96,21 @@ export function RegistroSerieSalon({
 
   const cambiar = (parche: Partial<BorradorDeSerie>) => setBorrador((b) => ({ ...b, ...parche }))
 
-  const guardar = () => {
+  // Cambiar un número ES confirmar la serie (`editada`); repetir el mismo valor no cuenta.
+  const cambiarNumero = (campo: 'cargaKg' | 'reps', valor: number) =>
+    setBorrador((b) => ({
+      ...b,
+      [campo]: valor,
+      confirmada: confirmacionTrasCambio(b.confirmada, b[campo], valor),
+    }))
+
+  const puedeGuardar = sePuedeGuardar(borrador.confirmada)
+  const idMotivo = useId()
+  // La pauta: lo que se SUGIERE. Solo cuenta como hecho si la persona lo firma.
+  const pauta = borradorDePartida(ejercicio, orden)
+
+  const guardar = (modo: 'tal_cual' | 'editada' = 'editada') => {
+    if (modo === 'editada' && !puedeGuardar) return // sin confirmar no se guarda NADA
     // LA MEDIDA SE RELEE DEL BORRADOR PERSISTIDO, no del estado. La cámara la anota
     // después de que este componente leyera el borrador al montarse, así que el estado
     // no la tiene: la tiene la clave. Si no hay medida, la serie sale sin `velocidad`,
@@ -100,10 +118,12 @@ export function RegistroSerieSalon({
     const velocidad = leerBorrador(microcicloId, ejercicio, orden).velocidad ?? borrador.velocidad
     const serie: SerieRegistrada = {
       orden,
-      cargaKg: borrador.cargaKg,
-      reps: borrador.reps,
-      rir: borrador.rir,
+      // «Hecho tal cual» guarda la PAUTA, no lo que hubiera en un borrador viejo.
+      cargaKg: modo === 'tal_cual' ? pauta.cargaKg : borrador.cargaKg,
+      reps: modo === 'tal_cual' ? pauta.reps : borrador.reps,
+      ...(borrador.rir !== undefined ? { rir: borrador.rir } : {}),
       ...(velocidad ? { velocidad } : {}),
+      confirmada: modo,
     }
     // LA MISMA LLAMADA QUE LA SESIÓN. Ver la cabecera del archivo.
     db.microciclos.registrarSerie(microcicloId, ejercicio.id, serie)
@@ -114,7 +134,7 @@ export function RegistroSerieSalon({
   // El mando de fuera va DESPUÉS de definir `guardar` y antes del retorno temprano: un
   // hook detrás de un `return` es lo que prohíbe la regla de los hooks, y con el ejercicio
   // completo este componente sí retorna antes.
-  useImperativeHandle(ref, () => ({ guardar }))
+  useImperativeHandle(ref, () => ({ guardar: () => guardar('editada') }))
 
   if (completo) {
     return (
@@ -145,7 +165,7 @@ export function RegistroSerieSalon({
         )}
       </p>
 
-      {/* Los tres mandos, con los topes de siempre: carga 0-999, reps 1-50, RIR 0-5.
+      {/* Los tres mandos, con los topes de siempre: carga 0-999, reps 1-50 y el RIR 0-5 como selector (vacío hasta elegir).
           `profundidad` y `cifraViva` van puestos porque esto vive dentro de una escena
           con perspectiva y porque los kilos que vas a levantar son el estado de un mando
           — un mando que no acusa el cambio se siente muerto. */}
@@ -159,7 +179,8 @@ export function RegistroSerieSalon({
         decimal
         profundidad
         cifraViva
-        onCambiar={(v) => cambiar({ cargaKg: v })}
+        sugerido={!puedeGuardar}
+        onCambiar={(v) => cambiarNumero('cargaKg', v)}
       />
       {/* LOS TRES, UNO DEBAJO DE OTRO. Reps y RIR iban en dos columnas, que cabían en la
           barra ancha de antes y NO caben en los 232 px del cajón: cada mando quedaba en
@@ -174,29 +195,33 @@ export function RegistroSerieSalon({
           maximo={50}
           profundidad
           cifraViva
-          onCambiar={(v) => cambiar({ reps: v })}
+          sugerido={!puedeGuardar}
+          onCambiar={(v) => cambiarNumero('reps', v)}
         />
-        <Stepper
-          etiqueta="RIR"
-          valor={borrador.rir}
-          paso={1}
-          minimo={0}
-          maximo={5}
-          profundidad
-          cifraViva
-          onCambiar={(v) => cambiar({ rir: v })}
-        />
+        <SelectorRir valor={borrador.rir} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
+      {/* UN TOQUE para lo normal: la pauta tal cual. Con un número ya cambiado, manda «Guardar». */}
+      {!puedeGuardar && (
+        <div className="mt-2.5">
+          <HechoTalCual cargaKg={pauta.cargaKg} reps={pauta.reps} onConfirmar={() => guardar('tal_cual')} compacto />
+        </div>
+      )}
+
       {mostrarBoton && (
-        <button
-          type="button"
-          onClick={guardar}
-          className="press mt-2.5 w-full rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white"
-          style={{ boxShadow: 'var(--glow-accion)' }}
-        >
-          Guardar serie {orden}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => guardar('editada')}
+            disabled={!puedeGuardar}
+            aria-describedby={puedeGuardar ? undefined : idMotivo}
+            className="press mt-2.5 w-full rounded-boton bg-accion py-3 font-display text-sm uppercase tracking-wide text-white disabled:opacity-40 disabled:shadow-none"
+            style={puedeGuardar ? { boxShadow: 'var(--glow-accion)' } : undefined}
+          >
+            Guardar serie {orden}
+          </button>
+          {!puedeGuardar && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" />}
+        </>
       )}
     </div>
   )

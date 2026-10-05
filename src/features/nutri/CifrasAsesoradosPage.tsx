@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
+import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { db, hoyIso, useDbVersion } from '../../data/dbInstance'
 import type { Respuestas } from '../../domain/nutricion/encuesta'
 import { calcularPerfil, senalesDeLaEncuesta } from '../../domain/nutricion/perfilCalculado'
@@ -98,8 +99,10 @@ export default function CifrasAsesoradosPage() {
   const { usuario } = useSesion()
   useDbVersion()
   const [abierta, setAbierta] = useState<string | null>(null)
+  const { esCoach, cargando } = usePuestoCoach(usuario.rol)
 
-  if (usuario.rol !== 'nutricionista' && usuario.rol !== 'coach') {
+  if (usuario.rol === 'asesorado' && cargando) return null
+  if (usuario.rol !== 'nutricionista' && !esCoach) {
     return <Navigate to="/" replace />
   }
 

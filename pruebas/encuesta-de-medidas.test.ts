@@ -39,7 +39,7 @@ describe('caso feliz', () => {
     expect(revisarMedidas({})).toEqual([])
   })
 
-  it('las ocho claves están, en el orden del contrato', () => {
+  it('las nueve claves están, en el orden del contrato', () => {
     expect(CLAVES_DE_MEDIDA).toEqual([
       'tibiaCm',
       'femurCm',
@@ -49,6 +49,7 @@ describe('caso feliz', () => {
       'anchoClavicularCm',
       'cinturaCm',
       'caderasCm',
+      'cuelloCm',
     ])
   })
 })
@@ -96,15 +97,15 @@ describe('borde: otra medida en el límite exacto del rango (cintura)', () => {
 })
 
 describe('clave extra: el catálogo está cerrado', () => {
-  it('una clave que no es una de las ocho se rechaza, aunque el número sea razonable', () => {
+  it('una clave que no es una de las nueve se rechaza, aunque el número sea razonable', () => {
     const reparos = revisarMedidas({ gluteosCm: 95 })
     expect(reparos).toHaveLength(1)
     expect(reparos[0].campo).toBe('gluteosCm')
     expect(reparos[0].motivo).toContain('gluteosCm')
-    expect(reparos[0].motivo).toContain('no es una de las ocho')
+    expect(reparos[0].motivo).toContain('no es una de las nueve')
   })
 
-  it('esClaveDeMedida dice que no para una clave ajena, y que sí para las ocho', () => {
+  it('esClaveDeMedida dice que no para una clave ajena, y que sí para las nueve', () => {
     expect(esClaveDeMedida('gluteosCm')).toBe(false)
     expect(esClaveDeMedida('Cadera')).toBe(false)
     for (const clave of CLAVES_DE_MEDIDA) expect(esClaveDeMedida(clave)).toBe(true)
