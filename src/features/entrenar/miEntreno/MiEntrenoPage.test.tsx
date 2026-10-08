@@ -10,7 +10,7 @@ import { db, hoyIso } from '../../../data/dbInstance'
 import { aplicarSnapshot, instantaneaLocal, reiniciarDb } from '../../../data/mockDb'
 import { datosRutaDe } from '../../../data/ruta/datosRuta'
 import { armarSemana, sesionDestacada } from '../../../domain/rutaEntrenamiento'
-import type { Rol } from '../../../domain/types'
+import type { Microciclo, Rol } from '../../../domain/types'
 
 const quien = { id: 'u-valentina', rol: 'nutricionista' as Rol }
 
@@ -123,4 +123,54 @@ describe('MiEntrenoPage', () => {
     expect(await screen.findByText('El salón a pantalla completa')).toBeInTheDocument()
     expect(screen.queryByText('Mi entrenamiento')).not.toBeInTheDocument()
   })
+
+  // Regresión del PR #308 (vigente por FECHA, Bryan 19-sep). La invariante «un solo activo» ya se
+  // rompió dos veces en producción; `byUsuario` ordena por número descendente, así que el `find`
+  // de antes se quedaba con el de MAYOR número —la semana que viene— y la de hoy salía en blanco.
+  // Esta pantalla nació después del arreglo y lo había heredado sin él.
+  it('con dos activos (el de hoy y el de la semana que viene), pinta la semana de HOY', () => {
+    // Fechas desde el lunes de HOY, no desde el seed: así la prueba no depende del reloj
+    // (el seed vence un lunes, y ese lunes el «futuro» pasaría a ser el vigente).
+    const hoy = new Date(`${hoyIso()}T00:00:00Z`)
+    const lunes = new Date(hoy)
+    lunes.setUTCDate(hoy.getUTCDate() - ((hoy.getUTCDay() + 6) % 7))
+    const lunesSiguiente = new Date(lunes)
+    lunesSiguiente.setUTCDate(lunes.getUTCDate() + 7)
+    const iso = (d: Date) => d.toISOString().slice(0, 10)
+    const dia = (d: Date) => String(d.getUTCDate()).padStart(2, '0') // «Lun 05»
+
+    const foto = instantaneaLocal()
+    const base = foto.microciclos.find((m) => m.usuarioId === 'u-valentina' && m.estado === 'activo')!
+    const vigente: Microciclo = {
+      ...base,
+      fechaInicio: iso(lunes),
+      cadenciaDias: 7 as const,
+    }
+    const futuro: Microciclo = {
+      ...base,
+      id: `${base.id}-futuro`,
+      numero: base.numero + 1,
+      fechaInicio: iso(lunesSiguiente),
+      cadenciaDias: 7 as const,
+      sesiones: base.sesiones.map((s) => ({ ...s, id: `${s.id}-futuro` })),
+    }
+    aplicarSnapshot({
+      ...foto,
+      microciclos: [...foto.microciclos.filter((m) => m.id !== base.id), vigente, futuro],
+    })
+    expect(db.microciclos.byUsuario('u-valentina').filter((m) => m.estado === 'activo')).toHaveLength(2)
+
+    pintar()
+
+    // Cada día es un enlace cuyo nombre empieza por su fecha («Lun 12: …»): la semana pintada se
+    // reconoce por el número del lunes.
+    const semana = screen.getByRole('region', { name: 'Estructura de la semana' })
+    const nombres = within(semana)
+      .queryAllByRole('link')
+      .map((a) => a.getAttribute('aria-label') ?? a.textContent ?? '')
+    expect(nombres.length).toBeGreaterThan(0)
+    expect(nombres.some((n) => n.startsWith(`Lun ${dia(lunes)}:`))).toBe(true)
+    expect(nombres.filter((n) => n.startsWith(`Lun ${dia(lunesSiguiente)}:`))).toEqual([])
+  })
 })
+

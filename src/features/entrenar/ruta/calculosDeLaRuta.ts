@@ -11,6 +11,7 @@ import {
   estadisticasCalculadas,
   progresoAlSiguiente,
   sesionDestacada,
+  sesionesFueraDeLaSemana,
   valoracionesACompetencias,
   type Competencia,
   type DatosRuta,
@@ -62,6 +63,15 @@ export interface CalculosDeLaRuta {
    * sabe de qué ejercicio se habla es el salón, no esto.
    */
   microcicloPrevio: Microciclo | undefined
+  /**
+   * Sesiones del microciclo que la rejilla de 7 días NO consiguió colocar esta
+   * semana — típico de un `cadenciaDias` 8 o 15 heredado con más sesiones «con
+   * día» que huecos libres. No se pierden (siguen en `microciclo.sesiones`,
+   * registrables desde donde ya se llega a ellas); esto es solo la señal para
+   * que la interfaz lo diga en vez de callarlo. Vacío en el caso normal
+   * (`cadenciaDias: 7`, sin días repetidos).
+   */
+  sesionesFueraDeSemana: readonly Sesion[]
 }
 
 export function calculosDeLaRuta(
@@ -124,5 +134,6 @@ export function calculosDeLaRuta(
     microcicloPrevio: previo,
     sesionDeHoy,
     sesionCta,
+    sesionesFueraDeSemana: sesionesFueraDeLaSemana(microciclo, semana),
   }
 }

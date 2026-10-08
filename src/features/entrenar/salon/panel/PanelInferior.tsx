@@ -4,6 +4,7 @@ import {
   resumenSemana,
   semanaEsAdelantada,
   semanaEsVencida,
+  sesionesFueraDeLaSemana,
   ultimoDiaDe,
   type DiaRuta,
   type MiniEstadistica,
@@ -477,7 +478,7 @@ export function PanelInferior(props: PanelInferiorProps) {
                 </span>
               }
             >
-              <CalendarioSemana dias={semana} />
+              <CalendarioSemana dias={semana} sesionesFueraDeSemana={sesionesFueraDeLaSemana(microciclo, semana)} />
             </Recuadro>
 
             <Recuadro

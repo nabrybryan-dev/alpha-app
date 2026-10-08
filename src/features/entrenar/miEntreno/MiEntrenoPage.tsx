@@ -7,7 +7,7 @@ import { db, hoyIso, useDbVersion } from '../../../data/dbInstance'
 import { datosRutaDe } from '../../../data/ruta/datosRuta'
 import { separarNotas } from '../../../domain/notasDeLaSemana'
 import { textoDeObjetivo } from '../../../domain/objetivoDeIntensidad'
-import { armarSemana, sesionDestacada, type DiaRuta } from '../../../domain/rutaEntrenamiento'
+import { armarSemana, microcicloVigente, sesionDestacada, type DiaRuta } from '../../../domain/rutaEntrenamiento'
 import type { Sesion } from '../../../domain/types'
 import { BuzonComentarios } from './BuzonComentarios'
 
@@ -131,7 +131,9 @@ export default function MiEntrenoPage() {
   if (usuario.rol === 'asesorado' && cargando) return null
   if (usuario.rol !== 'nutricionista' && !esCoach) return <Navigate to="/entrenar" replace />
 
-  const microciclo = db.microciclos.byUsuario(usuario.id).find((m) => m.estado === 'activo')
+  // Vigente por FECHA (Bryan, 19-sep), como Hoy, Ruta y Progreso: si la invariante de un solo
+  // `activo` se rompe, el de mayor número suele ser la semana que viene.
+  const microciclo = microcicloVigente(db.microciclos.byUsuario(usuario.id), hoy)
   const semana = microciclo ? armarSemana(microciclo, hoy) : []
   const destacada = sesionDestacada(semana)
   const sesion = microciclo?.sesiones.find((s) => s.id === destacada?.sesionId)
