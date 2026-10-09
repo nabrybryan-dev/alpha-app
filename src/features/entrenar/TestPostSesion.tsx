@@ -51,7 +51,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
       role="dialog"
       aria-label="Test post entrenamiento"
     >
-      <div className="subir-hoja mx-auto max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] border-t border-ink-400 bg-ink-800 px-5 pb-8 pt-5">
+      <div className="subir-hoja mx-auto max-h-[88dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-ink-400 bg-ink-800 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ink-500" aria-hidden="true" />
 
         <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-accion">

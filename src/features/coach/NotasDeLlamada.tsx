@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Card } from '../../components/ui/Card'
+import { useSesionOpcional } from '../../app/SessionProvider'
 import { db, hoyIso } from '../../data/dbInstance'
 import {
   agregarNotaLlamada,
+  borrarNotaLlamada,
+  corregirNotaLlamada,
   fechaDeLlamada,
   horaDeLlamada,
   notasLlamadaDe,
@@ -110,6 +113,14 @@ export function NotasDeLlamada({ usuarioId }: Props) {
   const [proximaReunion, setProximaReunion] = useState(borrador?.proximaReunion ?? '')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Corregir y borrar (0114): solo las notas propias. La base lo exige igual (`coach_id =
+  // auth.uid()`); aquí se usa para no ofrecer un botón que iba a fallar.
+  const miId = useSesionOpcional()?.usuario.id
+  /** La nota que se está corrigiendo en el formulario, o `null` si el formulario anota una nueva. */
+  const [corrigiendoId, setCorrigiendoId] = useState<string | null>(null)
+  /** La nota cuyo borrado espera el segundo toque. Borrar no se puede deshacer: pide dos. */
+  const [porBorrarId, setPorBorrarId] = useState<string | null>(null)
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null)
   /** El `disabled` del botón ya lo impide, pero el estado se actualiza en el siguiente render:
    *  la referencia cierra la puerta en el mismo instante en que `guardar` arranca. */
   const guardandoAhora = useRef(false)
@@ -133,7 +144,8 @@ export function NotasDeLlamada({ usuarioId }: Props) {
   // Cada cambio del formulario abierto deja su borrador. Cerrado no escribe nada: cerrar es
   // guardar o cancelar, y los dos lo borran a mano.
   useEffect(() => {
-    if (!abierto) return
+    // Una corrección no es un borrador: su texto ya está guardado en la base.
+    if (!abierto || corrigiendoId) return
     // Un formulario abierto y vacío no es un borrador: si se guardara, mañana reaparecería
     // abierto con la fecha de hoy y la llamada de mañana quedaría anotada en el día equivocado.
     if (!conclusiones.trim() && !tareas.trim() && !proximaReunion.trim()) {
@@ -141,7 +153,7 @@ export function NotasDeLlamada({ usuarioId }: Props) {
       return
     }
     escribirBorrador(usuarioId, { abierto, fecha, hora, conclusiones, tareas, proximaReunion })
-  }, [usuarioId, abierto, fecha, hora, conclusiones, tareas, proximaReunion])
+  }, [usuarioId, abierto, corrigiendoId, fecha, hora, conclusiones, tareas, proximaReunion])
 
   const cerrarYLimpiar = () => {
     setConclusiones('')
@@ -150,6 +162,7 @@ export function NotasDeLlamada({ usuarioId }: Props) {
     setHora('')
     setFecha(hoyIso())
     setAbierto(false)
+    setCorrigiendoId(null)
     setError(null)
     // Después de encolar el cierre: nada de lo que se escriba a partir de aquí lo vuelve a dejar.
     borrarBorrador(usuarioId)
@@ -161,13 +174,16 @@ export function NotasDeLlamada({ usuarioId }: Props) {
     setGuardando(true)
     setError(null)
     try {
-      const resultado = await agregarNotaLlamada(usuarioId, {
+      const campos = {
         fecha,
         hora: hora || undefined,
         conclusiones,
         tareas: tareas || undefined,
         proximaReunion: proximaReunion || undefined,
-      })
+      }
+      const resultado = corrigiendoId
+        ? await corregirNotaLlamada(corrigiendoId, campos)
+        : await agregarNotaLlamada(usuarioId, campos)
       if (!resultado.ok) {
         setError(resultado.error)
         return
@@ -185,12 +201,43 @@ export function NotasDeLlamada({ usuarioId }: Props) {
         setErrorCarga(null)
       } else {
         // La nota SÍ quedó guardada; solo falló releer. Se deja arriba de lo que ya había.
-        setNotas((previas) => [resultado.nota, ...(previas ?? [])])
+        setNotas((previas) => [resultado.nota, ...(previas ?? []).filter((n) => n.id !== resultado.nota.id)])
       }
       cerrarYLimpiar()
     } finally {
       guardandoAhora.current = false
       setGuardando(false)
+    }
+  }
+
+  const empezarACorregir = (nota: NotaLlamada) => {
+    setCorrigiendoId(nota.id)
+    setFecha(nota.fecha)
+    // La base devuelve `18:30:00`; el campo de hora trabaja con `18:30`.
+    setHora(nota.hora ? horaDeLlamada(nota.hora) : '')
+    setConclusiones(nota.conclusiones)
+    setTareas(nota.tareas ?? '')
+    setProximaReunion(nota.proximaReunion ?? '')
+    setError(null)
+    setPorBorrarId(null)
+    setAbierto(true)
+  }
+
+  const borrar = async (id: string) => {
+    if (guardandoAhora.current) return
+    guardandoAhora.current = true
+    setErrorBorrar(null)
+    try {
+      const resultado = await borrarNotaLlamada(id)
+      if (!resultado.ok) {
+        setErrorBorrar(resultado.error)
+        return
+      }
+      setNotas((previas) => (previas ?? []).filter((n) => n.id !== id))
+      setPorBorrarId(null)
+      if (corrigiendoId === id) cerrarYLimpiar()
+    } finally {
+      guardandoAhora.current = false
     }
   }
 
@@ -270,7 +317,7 @@ export function NotasDeLlamada({ usuarioId }: Props) {
               disabled={guardando || !conclusiones.trim()}
               onClick={() => void guardar()}
             >
-              {guardando ? 'Guardando…' : 'Guardar nota'}
+              {guardando ? 'Guardando…' : corrigiendoId ? 'Guardar corrección' : 'Guardar nota'}
             </button>
             <button
               type="button"
@@ -319,6 +366,59 @@ export function NotasDeLlamada({ usuarioId }: Props) {
             {nota.tareas && <p className="mt-1 whitespace-pre-wrap text-xs text-texto">Tareas: {nota.tareas}</p>}
             {nota.proximaReunion && (
               <p className="mt-1 text-xs text-tenue">Próxima reunión: {nota.proximaReunion}</p>
+            )}
+            {miId !== undefined && nota.coachId === miId && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {porBorrarId === nota.id ? (
+                  <>
+                    <span className="text-xs text-texto">¿Borrar esta nota? No se puede deshacer.</span>
+                    <button
+                      type="button"
+                      className="min-h-[44px] rounded-lg border border-rojo/50 px-3 text-xs font-bold text-rojo"
+                      onClick={() => void borrar(nota.id)}
+                    >
+                      Sí, borrar
+                    </button>
+                    <button
+                      type="button"
+                      className="min-h-[44px] rounded-lg border border-linea px-3 text-xs font-bold text-tenue"
+                      onClick={() => {
+                        setPorBorrarId(null)
+                        setErrorBorrar(null)
+                      }}
+                    >
+                      No
+                    </button>
+                    {errorBorrar && (
+                      <p role="alert" className="w-full text-xs text-rojo">
+                        {errorBorrar}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      aria-label={`Corregir la nota del ${fechaDeLlamada(nota.fecha)}`}
+                      className="min-h-[44px] rounded-lg border border-linea px-3 text-xs font-bold text-texto"
+                      onClick={() => empezarACorregir(nota)}
+                    >
+                      Corregir
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Borrar la nota del ${fechaDeLlamada(nota.fecha)}`}
+                      className="min-h-[44px] rounded-lg border border-linea px-3 text-xs font-bold text-tenue"
+                      onClick={() => {
+                        setPorBorrarId(nota.id)
+                        setErrorBorrar(null)
+                      }}
+                    >
+                      Borrar
+                    </button>
+                  </>
+                )}
+              </div>
             )}
           </div>
         ))}

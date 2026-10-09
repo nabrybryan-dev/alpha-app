@@ -1,3 +1,4 @@
+import { fraseRir } from '../../domain/palabrasLlanas'
 import { forwardRef, useEffect, useId, useImperativeHandle, useState } from 'react'
 import { SelectorRir } from '../../components/ui/SelectorRir'
 import { Stepper } from '../../components/ui/Stepper'
@@ -27,6 +28,8 @@ interface RegistroSerieProps {
   onGuardar: (serie: SerieRegistrada) => void
   /** Avisa a quien pinta el botón de guardar de fuera si ya se puede guardar. */
   onPuedeGuardar?: (puede: boolean) => void
+  /** Vista simple: el objetivo se dice sin la sigla «RIR» (ver `palabrasLlanas`). */
+  simple?: boolean
 }
 
 export interface RegistroSerieHandle {
@@ -51,7 +54,7 @@ function cargaInicial(ejercicio: EjercicioPrescrito, orden: number): number {
 }
 
 export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>(function RegistroSerie(
-  { ejercicio, orden, borradorId, mostrarBoton = true, onGuardar, onPuedeGuardar },
+  { ejercicio, orden, borradorId, mostrarBoton = true, onGuardar, onPuedeGuardar, simple = false },
   ref,
 ) {
   const clave = `alpha-serie-${borradorId}`
@@ -155,7 +158,7 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
           <span className="font-semibold text-texto">
             {prescrita.reps} reps × {prescrita.cargaKg} kg
           </span>{' '}
-          · RIR {prescrita.rir}
+          · {fraseRir(prescrita.rir, simple)}
         </p>
       )}
 

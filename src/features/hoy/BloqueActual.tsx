@@ -109,7 +109,20 @@ function DiscoDespiece() {
  * prescripción, no cálculo. Si el perfil no los trae, la tarjeta desaparece en
  * vez de rellenarse con un valor por defecto que nadie recetó.
  */
-export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: PautaDelBloque }) {
+export function BloqueActual({
+  perfil,
+  pauta,
+  simple = false,
+}: {
+  perfil?: Perfil
+  pauta?: PautaDelBloque
+  /**
+   * Vista simple (`perfil.vistaSimple`): solo lo que la persona puede hacer hoy sin traducir
+   * nada —sus pasos—, con otro título. «Fase energética», «g/kg» y «kcal/día» son vocabulario
+   * del coach: se quedan en su consola, no en la portada de quien pidió una app sin tecnicismos.
+   */
+  simple?: boolean
+}) {
   if (!perfil) return null
 
   // `pauta` ya resuelve quién manda (el coach) y qué se dedujo de la encuesta.
@@ -119,8 +132,8 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
   const pasos = pauta?.pasosObjetivo ?? (perfil.pasosObjetivo !== undefined ? { valor: perfil.pasosObjetivo, origen: 'coach' as const } : undefined)
 
   const filas: Fila[] = []
-  if (fase) filas.push({ etiqueta: 'Fase energética', valor: fase.valor, estimado: fase.origen === 'calculado' })
-  if (prote) {
+  if (fase && !simple) filas.push({ etiqueta: 'Fase energética', valor: fase.valor, estimado: fase.origen === 'calculado' })
+  if (prote && !simple) {
     filas.push({
       etiqueta: 'Proteína',
       valor: `${prote.valor.toString().replace('.', ',')} g/kg`,
@@ -129,7 +142,7 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
   }
   if (pasos) {
     filas.push({
-      etiqueta: 'Pasos',
+      etiqueta: simple ? 'Pasos al día' : 'Pasos',
       valor: `${pasos.valor.toLocaleString('es-CO')}/día`,
       estimado: pasos.origen === 'calculado',
     })
@@ -139,7 +152,7 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
   // mitad: sin las kcal, «sube los pasos» no dice cuánto vale subirlos. Siempre
   // marcado como estimado — sale de una fórmula, no de un acelerómetro.
   const neat = perfil.neat
-  if (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined) {
+  if (!simple && (neat?.kcalDia !== undefined || neat?.kcalDiaEnMeta !== undefined)) {
     const hoy = neat.kcalDia
     const meta = neat.kcalDiaEnMeta
     const valor =
@@ -156,7 +169,7 @@ export function BloqueActual({ perfil, pauta }: { perfil?: Perfil; pauta?: Pauta
       <div className="flex items-center gap-3">
         <DiscoDespiece />
         <h2 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-tenue">
-          Tu bloque actual
+          {simple ? 'Tu meta de ahora' : 'Tu bloque actual'}
         </h2>
       </div>
       {perfil.objetivos && (

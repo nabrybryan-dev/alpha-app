@@ -2424,16 +2424,31 @@ select '0113 - notas de llamada con la puerta de la consola', 'la columna tareas
                           where table_schema = 'public' and table_name = 'notas_llamada' and column_name = 'tareas') then 'SI'
             else 'NO' end
 union all
-select '0113 - notas de llamada con la puerta de la consola', 'anon sin privilegios; authenticated solo select e insert',
+select '0113 - notas de llamada con la puerta de la consola', 'anon sin privilegios; authenticated lee y anota, sin truncate',
        case when to_regclass('public.notas_llamada') is null then 'NO'
             when has_table_privilege('anon', 'public.notas_llamada', 'select')
               or has_table_privilege('anon', 'public.notas_llamada', 'insert')
               or has_table_privilege('anon', 'public.notas_llamada', 'delete') then 'NO'
-            when has_table_privilege('authenticated', 'public.notas_llamada', 'update')
-              or has_table_privilege('authenticated', 'public.notas_llamada', 'delete')
-              or has_table_privilege('authenticated', 'public.notas_llamada', 'truncate') then 'NO'
+            -- `update` y `delete` ya no se miran aquí: desde la 0114 existen a propósito (señal de abajo).
+            when has_table_privilege('authenticated', 'public.notas_llamada', 'truncate') then 'NO'
             when not has_table_privilege('authenticated', 'public.notas_llamada', 'select')
               or not has_table_privilege('authenticated', 'public.notas_llamada', 'insert') then 'NO'
+            else 'SI' end
+union all
+-- La 0114: quien anotó corrige y borra lo suyo. Mira el TEXTO de las políticas (que exijan al autor) y que
+-- el `update` sea por columna: con privilegio sobre `coach_id` cualquiera se quedaría con la nota de otro.
+select '0114 - notas de llamada: corregir y borrar lo propio', 'politicas de update y delete por autor; update sin coach_id, usuario_id ni creado_en',
+       case when to_regclass('public.notas_llamada') is null then 'NO'
+            when (select count(*) from pg_policy p
+                   where p.polrelid = to_regclass('public.notas_llamada')
+                     and p.polname in ('notas_llamada_corregir', 'notas_llamada_borrar')
+                     and pg_get_expr(p.polqual, p.polrelid) like '%coach_id%'
+                     and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%') <> 2 then 'NO'
+            when not has_column_privilege('authenticated', 'public.notas_llamada', 'conclusiones', 'update') then 'NO'
+            when not has_table_privilege('authenticated', 'public.notas_llamada', 'delete') then 'NO'
+            when has_column_privilege('authenticated', 'public.notas_llamada', 'coach_id', 'update')
+              or has_column_privilege('authenticated', 'public.notas_llamada', 'usuario_id', 'update')
+              or has_column_privilege('authenticated', 'public.notas_llamada', 'creado_en', 'update') then 'NO'
             else 'SI' end
 
 order by migracion, senal;
