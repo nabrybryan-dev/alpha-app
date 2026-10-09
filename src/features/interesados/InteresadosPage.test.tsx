@@ -134,6 +134,16 @@ describe('la autorización', () => {
   })
 })
 
+describe('la vitrina', () => {
+  it('va antes del formulario: primero qué recibes, después las preguntas', () => {
+    montar()
+    const vitrina = screen.getByRole('heading', { name: 'Qué recibes' })
+    const formulario = screen.getByRole('heading', { name: 'Antes de empezar' })
+    expect(vitrina.compareDocumentPosition(formulario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('link', { name: /empezar/i })).toHaveAttribute('href', `#${formulario.closest('header')!.id}`)
+  })
+})
+
 describe('siempre en negro', () => {
   it('el formulario va en tema oscuro aunque el teléfono esté en modo claro', () => {
     document.documentElement.dataset.theme = 'light'
