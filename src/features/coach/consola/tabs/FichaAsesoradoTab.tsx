@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSesionOpcional } from '../../../../app/SessionProvider'
 import { Badge } from '../../../../components/ui/Badge'
 import { EmptyState } from '../../../../components/ui/EmptyState'
 import { ordenesRecientes, type Orden } from '../../../../data/consola/ordenes'
@@ -7,12 +8,15 @@ import { desviacionRir } from '../../../../domain/cumplimiento'
 import { compararMicrociclos } from '../../../../domain/consolaCoach/diffMicrociclo'
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import type { Microciclo } from '../../../../domain/types'
+import { NotasDeLlamada } from '../../NotasDeLlamada'
+import { VistaSimpleDeLaFicha } from '../../VistaSimpleDeLaFicha'
 import { SeccionPeso, SeccionPerimetros, SeccionPRatio } from '../ficha/SeccionCuerpo'
 import { SeccionCuestionarios } from '../ficha/SeccionCuestionarios'
 import { SeccionAlimentacion, SeccionCribado, SeccionPerfil } from '../ficha/SeccionPerfil'
 import { SeccionAdherenciaHistorial, SeccionPlanEstrategico } from '../ficha/SeccionPlan'
 import { Falta, Tarjeta } from '../piezas'
 import { usePersona } from '../usePersona'
+import { usePuestoCoach } from '../usePuestoCoach'
 
 /**
  * Módulo 3: el perfil completo de la persona. Rejilla de 12 columnas en escritorio para
@@ -20,8 +24,16 @@ import { usePersona } from '../usePersona'
  * P-ratio), la adherencia por semana, el plan estratégico con la fila del microciclo
  * actual, cargas y RIR, alimentación y cuestionarios.
  *
- * Todo de LECTURA sobre lo que ya baja el repositorio y las tablas de la cadena; ningún
- * control de aquí escribe salvo «Responder como coach», que pide confirmación.
+ * Casi todo es de LECTURA sobre lo que ya baja el repositorio y las tablas de la cadena. Lo que
+ * sí escribe, y solo eso:
+ *  - las notas de llamada (`NotasDeLlamada`), de quien las anota: es la pestaña que Manuela abre
+ *    (entra por la capacidad `leer_entrenamiento`), no la ficha de `/coach/asesorados`, a la que
+ *    no llega;
+ *  - el interruptor de vista simple, SOLO para quien ocupa el puesto de coach: la escritura de
+ *    la ficha la rechaza la base a cualquiera que no sea el coach (el trigger `proteger_perfil`),
+ *    la cola la reintentaría 8 veces y la descartaría en silencio, y quien lo pulsara vería el
+ *    botón «funcionar» y volver atrás solo;
+ *  - «Responder como coach», que pide confirmación.
  */
 
 function microcicloAnterior(historial: Microciclo[], activo: Microciclo | undefined): Microciclo | undefined {
@@ -154,6 +166,12 @@ function SeccionRiesgoReportado({ usuarioId }: { usuarioId: string }) {
 
 export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
   const datos = usePersona(usuarioId)
+  // `useSesionOpcional` y no `useSesion`: la consola se monta suelta en pruebas, sin `SessionProvider`,
+  // y sin sesión nadie ocupa el puesto de coach (el resultado seguro: sin interruptor).
+  const ocupaElPuesto = usePuestoCoach(useSesionOpcional()?.usuario.rol).esCoach
+  // Y solo con la ficha ya en la copia local, igual que `AsesoradoDetallePage`: el interruptor
+  // sube la ficha entera, y pulsarlo antes de que haya bajado subiría una ficha mínima.
+  const esCoach = ocupaElPuesto && Boolean(datos.perfil)
 
   if (!datos.usuario) {
     return <EmptyState titulo="Asesorado no encontrado" detalle="Elige a alguien de la cartera." />
@@ -164,6 +182,16 @@ export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
       <SeccionRiesgoReportado usuarioId={usuarioId} />
+      {/* `key`: el estado y el borrador de la tarjeta son de UNA persona; sin ella, pasar de un
+          asesorado a otro arrastraría lo escrito al siguiente. */}
+      <div className={`min-w-0 ${esCoach ? 'xl:col-span-8' : 'xl:col-span-12'}`}>
+        <NotasDeLlamada key={usuarioId} usuarioId={usuarioId} />
+      </div>
+      {esCoach && (
+        <div className="min-w-0 xl:col-span-4">
+          <VistaSimpleDeLaFicha usuarioId={usuarioId} vistaSimple={datos.perfil?.vistaSimple} />
+        </div>
+      )}
       <SeccionPerfil datos={datos} i={0} />
       <SeccionCribado datos={datos} i={1} />
       <SeccionPeso datos={datos} i={2} className="xl:col-span-7" />

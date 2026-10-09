@@ -131,7 +131,7 @@ export default function AsesoradoDetallePage() {
               </Card>
               <SexoDeLaFicha usuarioId={usuario.id} sexo={perfil.sexo} />
               <VistaSimpleDeLaFicha usuarioId={usuario.id} vistaSimple={perfil.vistaSimple} />
-              <NotasDeLlamada usuarioId={usuario.id} />
+              <NotasDeLlamada key={usuario.id} usuarioId={usuario.id} />
               <Card>
                 <p className="kicker">Volumen semanal por grupo</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">

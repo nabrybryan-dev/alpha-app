@@ -63,8 +63,17 @@ export default function RutaPage() {
   const perfil = db.perfiles.byUsuario(usuario.id)
 
   if (perfil?.vistaSimple) {
+    // Lo mismo que el salón dice y la lista no debe callar: las notas del coach, el aviso de
+    // semana vencida (necesita `hoy`) y las sesiones que la rejilla no pudo colocar.
     return (
-      <RutaSimple microciclo={microciclo} semana={calculos.semana} sesionCta={calculos.sesionCta} />
+      <RutaSimple
+        microciclo={microciclo}
+        semana={calculos.semana}
+        sesionCta={calculos.sesionCta}
+        notas={notasDelMicrociclo(microciclo)}
+        hoy={hoy}
+        sesionesFueraDeSemana={calculos.sesionesFueraDeSemana}
+      />
     )
   }
 

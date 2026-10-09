@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
 import { ThemeProvider } from '../../app/ThemeProvider'
 import { db } from '../../data/dbInstance'
+import type { Microciclo, Sesion } from '../../domain/types'
 import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
 import RutaPage from './RutaPage'
 
@@ -258,5 +259,115 @@ describe('RutaPage', () => {
     // La lista plana, no el tirador del panel del salón.
     expect(await screen.findByText('Tu semana')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /abrir el panel/i })).toBeNull()
+  })
+
+  /**
+   * LO QUE LA LISTA SENCILLA RECIBE DE `RutaPage` (revisión del 9-oct-2026).
+   *
+   * La primera versión de `RutaSimple` solo recibía la semana y el botón: las notas del coach,
+   * el aviso de semana vencida y las sesiones que no caben en la rejilla —lo que el salón sí
+   * dice— se quedaban por el camino. Estos tests miran lo que llega a la PANTALLA, no a las
+   * props: si `RutaPage` dejara de pasar algo, la lista vuelve a callarlo y se ponen rojos.
+   *
+   * El seed no trae ninguna nota de la semana, así que se le pone una (y las sesiones de más)
+   * al microciclo activo por encima de `db.microciclos.byUsuario`, sin tocar la base: lo demás
+   * de la ficha y del microciclo sigue siendo lo real.
+   */
+  describe('con vistaSimple, lo que RutaPage le pasa a la lista', () => {
+    function conVistaSimple() {
+      const original = db.perfiles.byUsuario
+      vi.spyOn(db.perfiles, 'byUsuario').mockImplementation((id) => {
+        const real = original(id)
+        return real && { ...real, vistaSimple: true }
+      })
+    }
+
+    /** El mismo microciclo activo de siempre con `cambio` aplicado; los demás, intactos. */
+    function conMicrociclo(cambio: (activo: Microciclo) => Microciclo) {
+      const original = db.microciclos.byUsuario
+      vi.spyOn(db.microciclos, 'byUsuario').mockImplementation((id) =>
+        original(id).map((m) => (m.estado === 'activo' ? cambio(m) : m)),
+      )
+    }
+
+    const NOTA = 'LEE ESTO: la semana arranca con el jueves corto'
+
+    it('las notas del coach para la semana aparecen en la lista', async () => {
+      conVistaSimple()
+      conMicrociclo((m) => ({
+        ...m,
+        sesiones: m.sesiones.map((s, i) =>
+          i === 0
+            ? {
+                ...s,
+                bloquesCardio: [
+                  ...(s.bloquesCardio ?? []),
+                  { id: 'nota-de-prueba', titulo: NOTA, indicaciones: 'Solo 45 minutos, sin fallo.' },
+                ],
+              }
+            : s,
+        ),
+      }))
+
+      renderizar()
+
+      expect(await screen.findByText(NOTA)).toBeInTheDocument()
+      expect(screen.getByText('Solo 45 minutos, sin fallo.')).toBeInTheDocument()
+      expect(screen.getByText('Notas de la semana')).toBeInTheDocument()
+      // Sigue siendo la lista y no el salón.
+      expect(screen.queryByRole('button', { name: /abrir el panel/i })).toBeNull()
+    })
+
+    it('sin notas del coach no se pinta el recuadro', async () => {
+      conVistaSimple()
+
+      renderizar()
+
+      expect(await screen.findByText('Tu semana')).toBeInTheDocument()
+      expect(screen.queryByText('Notas de la semana')).toBeNull()
+    })
+
+    it('con el microciclo vencido, la lista lo dice (le llega el día de hoy)', async () => {
+      vi.setSystemTime(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000))
+      conVistaSimple()
+
+      renderizar()
+
+      expect(
+        await screen.findByText(/El microciclo \d+ terminó el .* · tu coach prepara el siguiente/),
+      ).toBeInTheDocument()
+    })
+
+    it('con el microciclo en marcha, la lista no dice nada de vencido ni de adelantado', async () => {
+      conVistaSimple()
+
+      renderizar()
+
+      expect(await screen.findByText('Tu semana')).toBeInTheDocument()
+      expect(screen.queryByText(/terminó el/)).toBeNull()
+      expect(screen.queryByText(/Próxima semana/)).toBeNull()
+    })
+
+    it('las sesiones que no caben en la rejilla de siete días salen al final, con su enlace', async () => {
+      conVistaSimple()
+      // Ocho sesiones de más, sin día: ocupan los huecos libres de la rejilla y las últimas
+      // se quedan fuera —el caso del microciclo heredado de 8 o 15 días—.
+      const sobrantes: Sesion[] = Array.from({ length: 8 }, (_, i) => ({
+        id: `s-sobrante-${i + 1}`,
+        nombre: `SOBRANTE ${i + 1}`,
+        orden: 90 + i,
+        ejercicios: [],
+      }))
+      conMicrociclo((m) => ({ ...m, sesiones: [...m.sesiones, ...sobrantes] }))
+
+      renderizar()
+
+      const titulo = await screen.findByRole('heading', { name: 'También de esta semana' })
+      const enlaces = within(titulo.parentElement as HTMLElement).getAllByRole('link')
+      // Alguna se quedó fuera y es un enlace a su sesión; la última de todas, seguro.
+      expect(enlaces.length).toBeGreaterThan(0)
+      const ultima = enlaces.find((a) => a.textContent === 'SOBRANTE 8')
+      expect(ultima).toHaveAttribute('href', '/entrenar/sesion/s-sobrante-8')
+    })
   })
 })

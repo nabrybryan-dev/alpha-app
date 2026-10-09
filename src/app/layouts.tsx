@@ -88,11 +88,15 @@ function BottomNavCoach() {
  * que es la que da la salida de esta ruta. Ocultarla además ahorra el
  * `backdrop-filter` de su cristal, que se seguiría pagando debajo de un salón
  * opaco, y deja de haber botones enfocables con el tabulador detrás del salón.
+ *
+ * SALVO con `perfil.vistaSimple`: ahí `/entrenar` es la lista plana (`RutaSimple`), sin salón
+ * que tape nada, y sin cabecera la persona se quedaba sin título, sin el aviso de mensajes
+ * sin leer y sin el menú de cuenta. El `BannerPlanHoy` no cambia: sigue su regla de siempre.
  */
 const RUTAS_SIN_CABECERA: readonly string[] = ['/entrenar']
 
-function llevaCabecera(ruta: string): boolean {
-  return !RUTAS_SIN_CABECERA.includes(ruta)
+function llevaCabecera(ruta: string, vistaSimple = false): boolean {
+  return vistaSimple || !RUTAS_SIN_CABECERA.includes(ruta)
 }
 
 export function AsesoradoLayout() {
@@ -130,10 +134,11 @@ export function AsesoradoLayout() {
   if (esCoach && tiene('solo_tablero')) return <Navigate to="/tablero" replace />
   if (esRolCoach && !esRutaPropiaDelCoach(pathname)) return <Navigate to="/" replace />
   const esStaff = usuario.rol === 'nutricionista' || esCoach
+  const vistaSimple = Boolean(db.perfiles.byUsuario(usuario.id)?.vistaSimple)
 
   return (
     <div className="min-h-dvh bg-bg">
-      {llevaCabecera(pathname) && <TopBar titulo={tituloDe(pathname, esStaff)} />}
+      {llevaCabecera(pathname, vistaSimple) && <TopBar titulo={tituloDe(pathname, esStaff)} />}
       {esStaff && llevaCabecera(pathname) && <BannerPlanHoy />}
       {/* overflow-x-clip: ningún pseudo-elemento o borde debe generar scroll
           horizontal; el TopBar (sticky) y la BottomNav (fija) van fuera de main. */}
