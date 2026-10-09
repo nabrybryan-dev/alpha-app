@@ -32,7 +32,7 @@ export function TiraSemana({ fecha, conRegistro, onElegir }: TiraSemanaProps) {
                 : 'border-linea bg-surface-2 text-tenue'
             }`}
           >
-            <span className="text-[9px] font-bold uppercase tracking-wide">{DOW[i]}</span>
+            <span className="text-xs font-bold uppercase tracking-wide">{DOW[i]}</span>
             <span className="cifras text-sm font-bold">{Number(dia.slice(8))}</span>
             <span
               aria-hidden="true"

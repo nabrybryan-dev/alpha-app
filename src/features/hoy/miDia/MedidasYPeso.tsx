@@ -89,7 +89,7 @@ export function MedidasYPeso({ usuarioId, hoy }: MedidasYPesoProps) {
       className="entrada entrada-6 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Medidas y peso</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Medidas y peso</p>
         <Link
           to="/bienestar"
           className="press inline-flex min-h-[44px] items-center text-xs font-semibold text-texto underline underline-offset-2"
@@ -123,7 +123,7 @@ export function MedidasYPeso({ usuarioId, hoy }: MedidasYPesoProps) {
         </div>
       )}
       {perimetros?.fuente === 'encuesta' && (
-        <p className="text-[11px] text-tenue">Perímetros de tu encuesta de nutrición: aún no hay una toma en tu tarjeta de medidas.</p>
+        <p className="text-xs text-tenue">Perímetros de tu encuesta de nutrición: aún no hay una toma en tu tarjeta de medidas.</p>
       )}
 
       {!actual && !perimetros && (

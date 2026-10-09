@@ -84,7 +84,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             const tope = meta[macro.meta]
             return (
               <div key={macro.clave}>
-                <div className="mb-1 flex items-baseline justify-between text-[11px]">
+                <div className="mb-1 flex items-baseline justify-between text-xs">
                   <span className="text-tenue">{macro.etiqueta}</span>
                   <span className="cifras text-tenue">
                     <b className="text-texto">{valor}</b> / {tope} g
@@ -106,10 +106,10 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
             : ''
         }`}
       >
-        <span className="rounded-full border border-linea bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-texto">
+        <span className="rounded-full border border-linea bg-surface-2 px-2.5 py-1 text-xs font-semibold text-texto">
           ±{total.margenPct} %
         </span>
-        <span className="min-w-0 flex-1 text-[11px] leading-snug text-tenue">
+        <span className="min-w-0 flex-1 text-xs leading-snug text-tenue">
           {notaFase ?? 'Margen de tu registro de hoy'}
         </span>
       </div>
@@ -117,7 +117,7 @@ export function ResumenDia({ total, meta, visibilidad, notaFase }: ResumenDiaPro
       {/* Un nutriente parcial no se avisa por pedantería: significa que la cifra
           de arriba es un SUELO, y quien la lea tiene que saberlo. */}
       {total.parciales.size > 0 && (
-        <p className="mt-2 text-[11px] leading-snug text-tenue">
+        <p className="mt-2 text-xs leading-snug text-tenue">
           Falta el dato de {total.parciales.size}{' '}
           {total.parciales.size === 1 ? 'nutriente' : 'nutrientes'} en algún alimento: lo sumado es
           un mínimo.

@@ -254,7 +254,7 @@ function SesionEnCurso() {
             // botón se queda sin fondo. Comprobado en el navegador —
             // `.bg-ink-900\/80` no existe en el CSS compilado—. `black` sí lo
             // admite porque es un color por defecto en hexadecimal.
-            className="press absolute left-3.5 top-3.5 z-[2] grid h-[38px] w-[38px] place-items-center rounded-boton border border-white/20 bg-black/40 text-white"
+            className="press absolute left-3.5 top-3.5 z-[2] grid h-11 w-11 place-items-center rounded-boton border border-white/20 bg-black/40 text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
               <path d="m15 18-6-6 6-6" />
@@ -311,7 +311,7 @@ function SesionEnCurso() {
             <p className="kicker">
               Ejercicio {exIdx + 1} de {sesion.ejercicios.length}
             </p>
-            <p className="cifras text-[11px] font-bold text-silver-400">
+            <p className="cifras text-xs font-bold text-silver-400">
               {sesion.ejercicios.filter(ejercicioCompleto).length}/{sesion.ejercicios.length} hechos
             </p>
           </div>

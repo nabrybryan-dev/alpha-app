@@ -116,7 +116,7 @@ export function TarjetaVidaCard({ usuarioId }: { usuarioId: string }) {
                     aria-pressed={respuestas[p.id] === n}
                     onClick={() => responder(p.id, n)}
                     title={p.escala.etiquetas?.[n]}
-                    className={`tecla-3d rounded-tag border px-2.5 py-1 text-xs font-bold ${
+                    className={`tecla-3d min-h-11 min-w-11 rounded-tag border px-2.5 py-1 text-xs font-bold ${
                       respuestas[p.id] === n
                         ? 'border-rojo/60 bg-rojo/15 text-rojo'
                         : 'border-linea bg-surface-2 text-tenue'
@@ -131,7 +131,7 @@ export function TarjetaVidaCard({ usuarioId }: { usuarioId: string }) {
         })}
       </div>
       {error && (
-        <p role="alert" className="mt-2 text-[11px] leading-snug text-rojo">
+        <p role="alert" className="mt-2 text-xs leading-snug text-rojo">
           {error}
         </p>
       )}
@@ -139,7 +139,7 @@ export function TarjetaVidaCard({ usuarioId }: { usuarioId: string }) {
         type="button"
         onClick={() => void guardar()}
         disabled={guardando}
-        className="press btn-cristal-rojo mt-3 w-full rounded-full py-2.5 font-display text-xs disabled:opacity-40"
+        className="press min-h-11 btn-cristal-rojo mt-3 w-full rounded-full py-2.5 font-display text-xs disabled:opacity-40"
       >
         Guardar ✓
       </button>

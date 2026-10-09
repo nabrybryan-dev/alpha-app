@@ -42,7 +42,7 @@ export default function MiNutricionDeHoy({ usuarioId, hoy }: MiNutricionDeHoyPro
       className="entrada entrada-5 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Mi nutrición de hoy</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Mi nutrición de hoy</p>
         <Link
           to="/nutricion"
           className="press inline-flex min-h-[44px] items-center text-xs font-semibold text-texto underline underline-offset-2"

@@ -47,7 +47,7 @@ export function RequisitosNivel({ requisitos, siguienteNivel }: Props) {
               <span className="block text-[13px] font-semibold leading-snug text-silver-100">
                 {r.texto}
               </span>
-              <span className="cifras mt-1 block text-[11.5px] text-silver-400">{r.metrica}</span>
+              <span className="cifras mt-1 block text-xs text-silver-400">{r.metrica}</span>
             </span>
           </li>
         ))}

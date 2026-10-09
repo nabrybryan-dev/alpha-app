@@ -63,7 +63,7 @@ export function VistaSemana({
           type="button"
           onClick={onVolver}
           aria-label="Volver al diario"
-          className="press h-9 w-9 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
+          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
         >
           ←
         </button>
@@ -86,7 +86,7 @@ export function VistaSemana({
         ) : (
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
                 Promedio registrado
               </p>
               <p className="cifras text-2xl font-bold leading-none text-texto">
@@ -95,13 +95,13 @@ export function VistaSemana({
               </p>
               {/* Se dice sobre cuántos días es la media. Un promedio de dos días
                   y uno de siete no se leen igual, y sin el número parecen lo mismo. */}
-              <p className="text-[11px] text-tenue">
+              <p className="text-xs text-tenue">
                 sobre {resumen.diasRegistrados}{' '}
                 {resumen.diasRegistrados === 1 ? 'día anotado' : 'días anotados'}
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
                 Vs. pauta
               </p>
               <p className="cifras text-lg font-bold leading-none text-accion">
@@ -146,7 +146,7 @@ export function VistaSemana({
                   <span className="h-full w-full rounded-md border border-dashed border-linea" />
                 )}
               </span>
-              <span className="text-[9px] font-bold uppercase text-tenue">{DOW[i]}</span>
+              <span className="text-xs font-bold uppercase text-tenue">{DOW[i]}</span>
             </button>
           ))}
         </div>
@@ -155,17 +155,17 @@ export function VistaSemana({
       <div className="grid grid-cols-3 gap-2">
         {stats.map((stat) => (
           <div key={stat.etiqueta} className="rounded-2xl border border-linea bg-surface-1 p-3">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-tenue">
+            <p className="text-xs font-bold uppercase tracking-wide text-tenue">
               {stat.etiqueta}
             </p>
             <p className="cifras mt-1 text-lg font-bold leading-none text-texto">{stat.valor}</p>
-            <p className="text-[10px] text-tenue">{stat.unidad}</p>
+            <p className="text-xs text-tenue">{stat.unidad}</p>
           </div>
         ))}
       </div>
 
       {resumen.diasRegistrados > 0 && resumen.diasRegistrados < 7 && (
-        <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-[11px] leading-snug text-tenue">
+        <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-xs leading-snug text-tenue">
           Faltan <b className="text-texto">{7 - resumen.diasRegistrados}</b> días por anotar. El
           promedio de arriba solo mira los que sí registraste, así que todavía no dice cómo fue la
           semana entera.

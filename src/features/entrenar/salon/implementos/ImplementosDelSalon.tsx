@@ -156,7 +156,7 @@ export function ImplementosDelSalon({
     >
       {/* El rótulo del estante, en la misma voz que el de la cámara del otro lado del
           suelo: versalitas finas, sin caja, para que titule sin competir con las piezas. */}
-      <p className="text-[7.5px] font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
+      <p className="text-xs font-bold uppercase leading-none tracking-[0.2em] text-silver-500">
         Material de la sesión
       </p>
 
@@ -179,11 +179,11 @@ export function ImplementosDelSalon({
           >
             {SILUETA[implemento.id] ?? GENERICA}
           </svg>
-          <span className="text-[10.5px] font-semibold leading-tight text-silver-200">
+          <span className="text-xs font-semibold leading-tight text-silver-200">
             {implemento.nombre}
           </span>
           {implemento.ejercicios > 1 && (
-            <span className="cifras ml-auto pl-1 text-[10px] leading-none text-silver-500">
+            <span className="cifras ml-auto pl-1 text-xs leading-none text-silver-500">
               ×{implemento.ejercicios}
             </span>
           )}
@@ -191,7 +191,7 @@ export function ImplementosDelSalon({
       ))}
 
       {material.sinDeducir > 0 && (
-        <span className="w-full rounded-[10px] border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[9.5px] leading-tight text-silver-500">
+        <span className="w-full rounded-[10px] border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-xs leading-tight text-silver-500">
           {material.sinDeducir} sin material escrito
         </span>
       )}

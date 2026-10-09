@@ -20,7 +20,7 @@ export function Medalla({ logro }: { logro: Logro }) {
         )}
       </span>
       <p className="text-xs font-bold leading-tight text-texto">{logro.titulo}</p>
-      <p className="text-[10px] leading-tight text-tenue">{logro.criterio}</p>
+      <p className="text-xs leading-tight text-tenue">{logro.criterio}</p>
     </div>
   )
 }

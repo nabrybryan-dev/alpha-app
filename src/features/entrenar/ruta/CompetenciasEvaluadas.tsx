@@ -15,7 +15,7 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
 
   return (
     <section>
-      <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.16em] text-silver-500">
+      <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.16em] text-silver-500">
         Competencias evaluadas
       </h3>
       <div className="flex flex-col gap-2.5">
@@ -47,7 +47,7 @@ export function CompetenciasEvaluadas({ competencias }: { competencias: readonly
                   style={{ transform: `scaleX(${Math.max(0, Math.min(100, c.pct)) / 100})` }}
                 />
               </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-silver-400">{c.nota}</p>
+              <p className="mt-2 text-xs leading-relaxed text-silver-400">{c.nota}</p>
             </article>
           )
         })}

@@ -105,7 +105,7 @@ export default function BienestarPage() {
     // Bienestar es superficie clara siempre (decisión de diseño), sin importar el tema global.
     <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
       <header className="entrada entrada-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">Test durante el día</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">Test durante el día</p>
         <h2 className="mt-1 font-display text-3xl leading-none text-texto">Check-in diario</h2>
         <p className="mt-1.5 text-sm text-tenue">
           2 minutos que tu coach lee cada mañana para ajustar tu plan.
@@ -128,14 +128,14 @@ export default function BienestarPage() {
             onClick={() => {
               void activarRecordatorios().then((r) => setPermiso(r))
             }}
-            className="press shrink-0 rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
+            className="press min-h-11 shrink-0 rounded-full bg-rojo px-4 py-2 font-display text-xs text-white"
           >
             Activar
           </button>
         </Card>
       )}
       {permiso === 'denied' && (
-        <p className="entrada entrada-2 text-center text-[11px] text-tenue">
+        <p className="entrada entrada-2 text-center text-xs text-tenue">
           Las notificaciones están bloqueadas en tu navegador — actívalas en la configuración del
           sitio para recibir el recordatorio de las 6 pm.
         </p>

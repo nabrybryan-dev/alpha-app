@@ -21,7 +21,7 @@ export function MacroPill({ tipo, valor, unidad = 'g' }: MacroPillProps) {
         {Math.round(valor)}
         {tipo !== 'kcal' && <span className="text-xs font-normal">{unidad}</span>}
       </span>
-      <span className="block text-[10px] uppercase tracking-widest text-tenue">{etiqueta}</span>
+      <span className="block text-xs uppercase tracking-widest text-tenue">{etiqueta}</span>
     </div>
   )
 }

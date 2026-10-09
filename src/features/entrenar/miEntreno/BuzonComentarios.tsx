@@ -66,7 +66,7 @@ export function BuzonComentarios() {
       className="entrada entrada-4 flex flex-col gap-3 rounded-tarjeta border border-rojo bg-surface-1 p-4 shadow-sm"
     >
       <div className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-rojo">Tus comentarios sobre la app</span>
+        <span className="text-xs font-bold uppercase tracking-[0.14em] text-rojo">Tus comentarios sobre la app</span>
         <span className="text-[13px] leading-snug text-tenue">
           Lo que escribas aquí se convierte en tareas para los agentes que mejoran la app.
         </span>
@@ -107,7 +107,7 @@ export function BuzonComentarios() {
             placeholder="Ej.: en la sesión, el cronómetro se reinicia si bloqueo el celular"
             className="resize-none rounded-xl border border-linea bg-bg p-3 text-sm text-texto placeholder:text-tenue"
           />
-          <span className="cifras self-end text-[11px]" aria-live="off">
+          <span className="cifras self-end text-xs" aria-live="off">
             {texto.length}/{LARGO_MAXIMO_COMENTARIO}
           </span>
         </label>
@@ -143,12 +143,12 @@ export function BuzonComentarios() {
               <li key={c.id} className="flex items-start justify-between gap-2 text-[13px]">
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="text-texto">{c.texto ?? '(texto borrado)'}</span>
-                  <span className="text-[11px] text-tenue">
+                  <span className="text-xs text-tenue">
                     {NOMBRE_TIPO[c.tipo]} · {fechaCorta(c.creadoEn)}
                   </span>
                 </span>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[11px] font-bold ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-xs font-bold ${
                     c.estado === 'arreglado' ? 'bg-texto text-bg' : 'border border-tenue text-texto'
                   }`}
                 >

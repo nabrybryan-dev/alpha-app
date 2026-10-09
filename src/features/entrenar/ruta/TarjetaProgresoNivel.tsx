@@ -57,7 +57,7 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
         />
       </div>
 
-      <div className="mt-2 flex justify-between text-[11.5px] text-silver-400">
+      <div className="mt-2 flex justify-between text-xs text-silver-400">
         <span>{nombreBonito(nivelActual.nombre)}</span>
         {siguienteNivel && <span>{nombreBonito(siguienteNivel.nombre)}</span>}
       </div>
@@ -75,7 +75,7 @@ export function TarjetaProgresoNivel({ pct, nivelActual, siguienteNivel, estadis
         {estadisticas.map((e) => (
           <div key={e.etiqueta} className="px-3 first:pl-0 last:pr-0">
             <p className="cifras text-base font-bold leading-none text-silver-100">{e.valor}</p>
-            <p className="mt-1.5 text-[9.5px] font-bold uppercase leading-tight tracking-[0.12em] text-silver-500">
+            <p className="mt-1.5 text-xs font-bold uppercase leading-tight tracking-[0.12em] text-silver-500">
               {e.etiqueta}
             </p>
           </div>

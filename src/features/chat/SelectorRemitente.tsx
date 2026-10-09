@@ -26,7 +26,7 @@ export function SelectorRemitente({ remitentes, elegidoId, onElegir }: SelectorR
             role="tab"
             aria-selected={elegido}
             onClick={() => onElegir(remitente.id)}
-            className={`press rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-200 ease-salida ${
+            className={`press min-h-11 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-200 ease-salida ${
               elegido
                 ? 'border-accion bg-accion text-white'
                 : 'border-linea bg-surface-1 text-tenue'

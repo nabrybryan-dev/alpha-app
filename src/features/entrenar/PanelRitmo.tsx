@@ -41,18 +41,18 @@ export function PanelRitmo({ sesion, sesionId }: PanelRitmoProps) {
     <div className="glass rounded-panel border border-hairline p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">Duración estimada</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">Duración estimada</p>
           <p className="cifras font-display text-2xl leading-none text-texto">
             ≈ {formatoDuracion(ritmo.totalSeg)}
           </p>
         </div>
         <div className="min-w-0 text-right">
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">Ahora</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">Ahora</p>
           {/* El nombre del bloque hace una entrada vertical cada vez que cambia */}
           <p key={ritmo.bloqueActual ?? 'x'} className="entrada truncate font-display text-base leading-tight text-rojo">
             {bloque}
           </p>
-          <p className="truncate text-[11px] text-tenue">
+          <p className="truncate text-xs text-tenue">
             Ejercicio {ritmo.ejercicioActual}/{ritmo.totalEjercicios} · ~{ritmo.restaEjercicioMin} min
           </p>
         </div>
@@ -60,7 +60,7 @@ export function PanelRitmo({ sesion, sesionId }: PanelRitmoProps) {
 
       {/* Ticker desplazante: da esa sensación "viva" mientras el tiempo corre */}
       <div className="mt-2 overflow-hidden border-t border-hairline pt-2">
-        <span className={`ticker-pista text-[11px] font-medium ${estado.clase}`}>
+        <span className={`ticker-pista text-xs font-medium ${estado.clase}`}>
           {/* duplicado para que el bucle sea continuo (-50%) */}
           <span>{tick}</span>
           <span aria-hidden="true">{tick}</span>

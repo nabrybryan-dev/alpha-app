@@ -118,7 +118,7 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
         <div className="mt-3">
           <ReelPlayer media={media} handle={receta.handle} />
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="cifras text-[10.5px] text-tenue">
+            <span className="cifras text-xs text-tenue">
               {social.likes} me gusta · {social.guardados} guardados
             </span>
             {media.instagramPermalink && (
@@ -126,7 +126,7 @@ export function RecetaSheet({ receta, kcalRestantes, onCerrar, registro }: Recet
                 href={media.instagramPermalink}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="press inline-flex items-center rounded-boton border border-linea px-3 text-[11px] font-bold text-texto"
+                className="press inline-flex items-center rounded-boton border border-linea px-3 text-xs font-bold text-texto"
                 style={{ minHeight: 44 }}
               >
                 Ver en Instagram
@@ -210,7 +210,7 @@ function PieFijo({
         >
           Agregar al registro
         </button>
-        {motivo && <p className="mt-1.5 text-center text-[11px] leading-snug text-tenue">{motivo}</p>}
+        {motivo && <p className="mt-1.5 text-center text-xs leading-snug text-tenue">{motivo}</p>}
       </div>
     </div>
   )
@@ -224,7 +224,7 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-bold text-texto">{receta.handle}</p>
-        <p className="cifras text-[10.5px] text-tenue">
+        <p className="cifras text-xs text-tenue">
           Reel · {receta.media.duracion} · {receta.social.views} de vistas
         </p>
       </div>
@@ -249,7 +249,7 @@ function Cabecera({ receta, onCerrar }: { receta: Receta; onCerrar: () => void }
 function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalRestantes?: number }) {
   return (
     <section className="mt-4 rounded-[18px] border border-linea bg-ink-800 p-4">
-      <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-accion">Tu ajuste Alfa</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Tu ajuste Alfa</p>
       <p className="cifras mt-1.5 text-[26px] font-bold leading-none text-texto">{ajuste.porcion}</p>
       <p className="mt-1 text-xs text-tenue">{ajuste.porcionNota}</p>
       {/*
@@ -272,7 +272,7 @@ function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalR
       {/* Solo se ve en desarrollo: en producción una receta sin notas no se
           sirve. Es lo que le dice al coach cuáles le faltan por escribir. */}
       {ajuste.notas.length === 0 && (
-        <p className="mt-3 rounded-[12px] border border-ambar/40 bg-ambar/10 p-2.5 text-[11px] leading-snug text-ambar">
+        <p className="mt-3 rounded-[12px] border border-ambar/40 bg-ambar/10 p-2.5 text-xs leading-snug text-ambar">
           <b>Sin firmar.</b> Le faltan tus notas: dónde encaja hoy, el canje, el ojo con. Hasta
           que las escribas, esta receta no le llega a nadie.
         </p>
@@ -283,7 +283,7 @@ function AjusteAlfa({ ajuste, kcalRestantes }: { ajuste: Receta['ajuste']; kcalR
           <li key={nota.tipo} className="flex gap-2.5">
             <span className={`mt-0.5 shrink-0 ${COLOR_NOTA[nota.tipo]}`}>{ICONO_NOTA[nota.tipo]}</span>
             <span className="min-w-0">
-              <span className={`block text-[11px] font-bold uppercase tracking-[0.1em] ${COLOR_NOTA[nota.tipo]}`}>
+              <span className={`block text-xs font-bold uppercase tracking-[0.1em] ${COLOR_NOTA[nota.tipo]}`}>
                 {nota.label}
               </span>
               <span className="mt-0.5 block text-[12.5px] leading-snug text-silver-300">{nota.texto}</span>
@@ -308,16 +308,16 @@ function Ingredientes({ receta }: { receta: Receta }) {
   return (
     <section className="mt-3 rounded-[18px] border border-linea bg-ink-800 p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-accion">Qué lleva</p>
-        {receta.rinde && <span className="cifras text-[10px] text-tenue">{receta.rinde}</span>}
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Qué lleva</p>
+        {receta.rinde && <span className="cifras text-xs text-tenue">{receta.rinde}</span>}
       </div>
 
       <div className="mt-2.5 grid grid-cols-[1fr_auto_auto] items-baseline gap-x-3 gap-y-2">
-        <span className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Ingrediente</span>
-        <span className="cifras text-right text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
+        <span className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">Ingrediente</span>
+        <span className="cifras text-right text-xs font-bold uppercase tracking-[0.1em] text-tenue">
           En el reel
         </span>
-        <span className="cifras text-right text-[9.5px] font-bold uppercase tracking-[0.1em] text-accion">
+        <span className="cifras text-right text-xs font-bold uppercase tracking-[0.1em] text-accion">
           Para ti
         </span>
 
@@ -326,7 +326,7 @@ function Ingredientes({ receta }: { receta: Receta }) {
             <span className="text-[12.5px] leading-snug text-silver-200">
               {ing.nombre}
               {ing.cambiado && (
-                <span className="ml-1 text-[9.5px] font-bold uppercase tracking-[0.08em] text-ambar">
+                <span className="ml-1 text-xs font-bold uppercase tracking-[0.08em] text-ambar">
                   cambia
                 </span>
               )}
@@ -345,7 +345,7 @@ function Ingredientes({ receta }: { receta: Receta }) {
       </div>
 
       {lista.some((i) => i.estimado) && (
-        <p className="mt-2.5 text-[10.5px] leading-snug text-tenue">
+        <p className="mt-2.5 text-xs leading-snug text-tenue">
           <span className="text-ambar">*</span> El reel no daba esta cantidad. La calculó tu
           coach para que la receta cuadre con tu plan.
         </p>
@@ -358,11 +358,11 @@ function Preparacion({ pasos }: { pasos?: string[] }) {
   if (!pasos || pasos.length === 0) return null
   return (
     <section className="mt-3 rounded-[18px] border border-linea bg-ink-800 p-4">
-      <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-accion">Cómo se hace</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-accion">Cómo se hace</p>
       <ol className="mt-2.5 flex flex-col gap-2">
         {pasos.map((paso, i) => (
           <li key={paso} className="flex gap-2.5">
-            <span className="cifras mt-0.5 shrink-0 text-[11px] font-bold text-accion">
+            <span className="cifras mt-0.5 shrink-0 text-xs font-bold text-accion">
               {String(i + 1).padStart(2, '0')}
             </span>
             <span className="text-[12.5px] leading-snug text-silver-300">{paso}</span>
@@ -376,7 +376,7 @@ function Preparacion({ pasos }: { pasos?: string[] }) {
 function Macro({ etiqueta, valor, clase, sufijo }: { etiqueta: string; valor: number; clase: string; sufijo?: string }) {
   return (
     <span className="text-center">
-      <span className="cifras block text-[10px] font-bold uppercase tracking-[0.1em] text-tenue">{etiqueta}</span>
+      <span className="cifras block text-xs font-bold uppercase tracking-[0.1em] text-tenue">{etiqueta}</span>
       <span className={`cifras mt-0.5 block text-[15px] font-bold ${clase}`}>
         {valor}
         {sufijo}

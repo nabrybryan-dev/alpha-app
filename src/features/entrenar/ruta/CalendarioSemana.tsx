@@ -59,10 +59,10 @@ function FilaAgenda({ dia, seleccionado }: { dia: DiaRuta; seleccionado: boolean
         <span className={`block text-[13.5px] font-bold ${descanso ? 'text-silver-300' : 'text-silver-100'}`}>
           {dia.titulo}
         </span>
-        <span className="mt-0.5 block text-[11.5px] text-silver-400">{dia.detalle}</span>
+        <span className="mt-0.5 block text-xs text-silver-400">{dia.detalle}</span>
       </span>
       <span
-        className={`shrink-0 whitespace-nowrap text-right text-[10px] font-bold uppercase tracking-[0.1em] ${COLOR_ESTADO[dia.estado]}`}
+        className={`shrink-0 whitespace-nowrap text-right text-xs font-bold uppercase tracking-[0.1em] ${COLOR_ESTADO[dia.estado]}`}
       >
         {ETIQUETA[dia.estado]}
       </span>
@@ -162,7 +162,7 @@ export function CalendarioSemana({ dias, sesionesFueraDeSemana }: Props) {
               }
             >
               <span
-                className={`text-[9.5px] font-bold uppercase tracking-[0.1em] ${activo ? 'text-accion' : 'text-silver-500'}`}
+                className={`text-xs font-bold uppercase tracking-[0.1em] ${activo ? 'text-accion' : 'text-silver-500'}`}
               >
                 {dia.abreviatura}
               </span>
@@ -184,7 +184,7 @@ export function CalendarioSemana({ dias, sesionesFueraDeSemana }: Props) {
       </div>
 
       {sesionesFueraDeSemana && sesionesFueraDeSemana.length > 0 && (
-        <p className="mt-2 text-[11.5px] text-silver-400">
+        <p className="mt-2 text-xs text-silver-400">
           Tu microciclo trae {sesionesFueraDeSemana.length}{' '}
           {sesionesFueraDeSemana.length === 1 ? 'sesión más' : 'sesiones más'} que no{' '}
           {sesionesFueraDeSemana.length === 1 ? 'cabe' : 'caben'} en esta semana:{' '}

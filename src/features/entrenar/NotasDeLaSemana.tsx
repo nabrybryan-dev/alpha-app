@@ -18,7 +18,7 @@ export function NotasDeLaSemana({ notas }: { notas: ItemMarcable[] }) {
   return (
     <section className="overflow-hidden rounded-[20px] border border-ink-500 bg-ink-900 shadow-lg">
       <header className="border-b border-ink-600 bg-gradient-to-b from-white/[.05] to-transparent px-[18px] pb-4 pt-[18px]">
-        <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-silver-500">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
           Notas de la semana
         </p>
         <h2 className="font-display mt-[7px] text-[21px] font-black leading-[1.04] tracking-[-0.015em] text-silver-100">

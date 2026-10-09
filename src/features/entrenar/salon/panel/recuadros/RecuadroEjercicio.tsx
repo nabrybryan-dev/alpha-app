@@ -82,7 +82,7 @@ export function RecuadroEjercicio({
           data-huella={t.huella}
           data-campo={t.campo}
         >
-          <p className="text-[9.5px] font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
+          <p className="text-xs font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
             {t.titulo}
           </p>
           <p className="mt-2 text-[13px] leading-relaxed text-silver-200">{t.texto}</p>
@@ -91,7 +91,7 @@ export function RecuadroEjercicio({
 
       {bloquesCardio.length > 0 && (
         <div>
-          <p className="text-[9.5px] font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
+          <p className="text-xs font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
             Los bloques de la sesión
           </p>
           {/* El bloque se marca con su NÚMERO en rojo, no con un filete de acento a la
@@ -103,7 +103,7 @@ export function RecuadroEjercicio({
               <li key={b.id} className="flex gap-3">
                 <span
                   aria-hidden="true"
-                  className="cifras shrink-0 pt-[1px] text-[11px] font-bold leading-none text-accion"
+                  className="cifras shrink-0 pt-[1px] text-xs font-bold leading-none text-accion"
                 >
                   {String(i + 1).padStart(2, '0')}
                 </span>
@@ -117,7 +117,7 @@ export function RecuadroEjercicio({
                     </span>
                   )}
                   {b.duracionMin !== undefined && (
-                    <span className="cifras mt-1.5 block text-[11px] text-silver-500">
+                    <span className="cifras mt-1.5 block text-xs text-silver-500">
                       {b.duracionMin} min
                     </span>
                   )}

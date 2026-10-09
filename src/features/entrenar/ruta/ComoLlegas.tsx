@@ -47,7 +47,7 @@ export function ComoLlegas({ recuperacion }: { recuperacion: Recuperacion }) {
           style={{ transform: `scaleX(${Math.max(0, Math.min(100, indice)) / 100})` }}
         />
       </div>
-      <p className="mt-2 text-[11.5px] leading-relaxed text-silver-400">
+      <p className="mt-2 text-xs leading-relaxed text-silver-400">
         <span className={`font-bold ${t.clase}`}>{t.texto}</span> · sueño, cansancio, estrés y ánimo
         de tus últimos {dias} check-in{dias === 1 ? '' : 's'}. No es una nota: es el contexto con el
         que tu coach ajusta la carga.

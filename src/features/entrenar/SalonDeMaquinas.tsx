@@ -31,7 +31,7 @@ export function SalonDeMaquinas({ ejercicios }: { ejercicios: readonly Ejercicio
         {salon.completo ? (
           <Insignia ejercicios={ejercicios} />
         ) : (
-          <span className="cifras text-[11px] font-bold text-silver-400">
+          <span className="cifras text-xs font-bold text-silver-400">
             {salon.abiertas.length}/{salon.total} máquinas
           </span>
         )}
@@ -105,7 +105,7 @@ function Insignia({ ejercicios }: { ejercicios: readonly EjercicioPrescrito[] })
   return (
     <>
       <span
-        className="insignia-salon cifras rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em]"
+        className="insignia-salon cifras rounded-full px-2 py-1 text-xs font-bold uppercase tracking-[0.1em]"
         style={{ background: 'var(--oro, #c8a24a)', color: '#1a1408' }}
       >
         Salón completo
@@ -118,7 +118,7 @@ function Insignia({ ejercicios }: { ejercicios: readonly EjercicioPrescrito[] })
         style={{ width: 44, height: 44 }}
       >
         {copiado ? (
-          <span className="text-[10px] font-bold text-logrado">Copiado</span>
+          <span className="text-xs font-bold text-logrado">Copiado</span>
         ) : (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
             <circle cx="18" cy="5" r="3" />

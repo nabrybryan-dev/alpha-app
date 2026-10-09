@@ -64,7 +64,7 @@ export default function ProgresoPage() {
             bajó DENTRO del gráfico, recortada por la propia curva, en
             `ProgresoEvolucion`. Una banda decorativa arriba y un gráfico abajo eran
             dos cosas que no se hablaban; ahora son la misma. */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-silver-500">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
           Cómo vas
         </p>
         <h2 className="mt-1.5 font-display text-2xl leading-[1.05] text-silver-100">Tu progreso</h2>

@@ -46,7 +46,7 @@ export function ReelPlayer({ media, handle }: { media: Receta['media']; handle: 
       ) : (
         <>
           <img src={media.thumbnail} alt="" className="h-full w-full object-cover" />
-          <span className="cifras absolute inset-x-0 bottom-0 bg-ink-900/80 px-3 py-2 text-center text-[10px] font-bold text-silver-300">
+          <span className="cifras absolute inset-x-0 bottom-0 bg-ink-900/80 px-3 py-2 text-center text-xs font-bold text-silver-300">
             Reel disponible en Instagram
           </span>
         </>

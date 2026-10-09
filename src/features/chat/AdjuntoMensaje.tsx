@@ -33,13 +33,13 @@ export function AdjuntoMensaje({ path, tipo, estado }: AdjuntoMensajeProps) {
 
   if (estado === 'subiendo') {
     return (
-      <p className="cifras mb-1.5 text-[11px] opacity-80">
+      <p className="cifras mb-1.5 text-xs opacity-80">
         {tipo === 'video' ? 'Video' : 'Foto'} subiendo…
       </p>
     )
   }
 
-  if (!url) return <p className="cifras mb-1.5 text-[11px] opacity-60">Cargando…</p>
+  if (!url) return <p className="cifras mb-1.5 text-xs opacity-60">Cargando…</p>
 
   return tipo === 'video' ? (
     <video src={url} controls className="mb-1.5 max-h-72 w-full rounded-tarjeta" />

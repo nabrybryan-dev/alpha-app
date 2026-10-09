@@ -21,13 +21,13 @@ function Sticker({ sticker }: { sticker: StickerAlbum }) {
             className="h-full w-full object-cover"
             style={{ objectPosition: sticker.fotoPos ?? 'center' }}
           />
-          <span className="cifras absolute left-2 top-2 rounded-tag bg-accion px-1.5 py-0.5 text-[10.5px] font-bold text-white">
+          <span className="cifras absolute left-2 top-2 rounded-tag bg-accion px-1.5 py-0.5 text-xs font-bold text-white">
             {sticker.numero}
           </span>
           {/* El velo al 60% desaparecía sobre cielos y pieles claras: la
               categoría solo se leía en las fotos oscuras. Con 78% y desenfoque
               la píldora se sostiene sola, sea cual sea la foto que toque. */}
-          <span className="absolute right-2 top-2 rounded-full border border-white/25 bg-ink-900/[0.78] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm backdrop-blur-sm">
+          <span className="absolute left-2 top-[34px] max-w-[calc(100%-1rem)] rounded-full border border-white/25 bg-ink-900/[0.78] px-1.5 py-0.5 text-xs font-bold uppercase tracking-[0.06em] text-white shadow-sm backdrop-blur-sm">
             {sticker.categoria}
           </span>
         </span>
@@ -35,10 +35,10 @@ function Sticker({ sticker }: { sticker: StickerAlbum }) {
           <span className="block font-display text-sm leading-tight text-silver-100">
             {sticker.nombre}
           </span>
-          <span className="cifras mt-1.5 block text-[10.5px] font-bold text-accion">
+          <span className="cifras mt-1.5 block text-xs font-bold text-accion">
             {sticker.detalle}
           </span>
-          <span className="mt-1.5 block text-[11.5px] leading-relaxed text-silver-400">
+          <span className="mt-1.5 block text-xs leading-relaxed text-silver-400">
             {sticker.frase}
           </span>
         </span>
@@ -55,7 +55,7 @@ export function AlbumAlfa({ stickers }: { stickers: readonly StickerAlbum[] }) {
     <section>
       <div className="mb-1 flex items-baseline justify-between gap-2.5">
         <h2 className="font-display text-[17px] text-texto">Álbum Alfa</h2>
-        <span className="cifras text-[11px] font-bold text-tenue">
+        <span className="cifras text-xs font-bold text-tenue">
           {String(stickers.length).padStart(2, '0')} / {STICKERS_TOTALES}
         </span>
       </div>

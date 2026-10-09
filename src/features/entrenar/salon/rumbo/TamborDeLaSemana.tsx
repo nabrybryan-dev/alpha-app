@@ -135,7 +135,7 @@ export function TamborDeLaSemana({
       onPointerUp={alSoltarDedo}
       onPointerCancel={alSoltarDedo}
     >
-      <p className="muro-rotulo text-[10.5px]">Tu semana</p>
+      <p className="muro-rotulo text-xs">Tu semana</p>
 
       <div
         className="relative mt-2.5 h-[360px] w-full"
@@ -173,7 +173,7 @@ export function TamborDeLaSemana({
                 backfaceVisibility: 'hidden',
               }}
             >
-              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-tenue">
+              <span className="font-mono text-xs uppercase tracking-[0.16em] text-tenue">
                 {d.dia}
               </span>
               <span className="font-display text-[15px] font-black uppercase tracking-[0.02em] text-texto">
@@ -199,7 +199,7 @@ export function TamborDeLaSemana({
         />
       </div>
 
-      <p className="muro-rotulo text-[10px]">Desliza · toca el día</p>
+      <p className="muro-rotulo text-xs">Desliza · toca el día</p>
     </div>
   )
 }

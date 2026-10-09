@@ -143,17 +143,17 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
           `tecla-3d`, y sin este eslabón el `<p>` aplana a sus hijos y ese
           `translateZ` no producía escorzo ninguno. Se veía la sombra —eso sí se
           pinta— así que parecía en relieve sin estarlo: coste sin efecto. */}
-      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-accion [transform-style:preserve-3d]">
+      <p className="mb-3 text-center text-xs font-bold uppercase tracking-[0.2em] text-accion [transform-style:preserve-3d]">
         Serie {orden} de {ejercicio.sets}
         {etiqueta && (
-          <span className="tecla-3d ml-2 inline-block rounded-tag bg-accion/15 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-accion">
+          <span className="tecla-3d ml-2 inline-block rounded-tag bg-accion/15 px-2 py-0.5 text-xs font-bold tracking-[0.12em] text-accion">
             {etiqueta}
           </span>
         )}
       </p>
 
       {prescrita && (
-        <p className="-mt-1.5 mb-3 text-center text-[11px] text-tenue">
+        <p className="-mt-1.5 mb-3 text-center text-xs text-tenue">
           Objetivo:{' '}
           <span className="font-semibold text-texto">
             {prescrita.reps} reps × {prescrita.cargaKg} kg

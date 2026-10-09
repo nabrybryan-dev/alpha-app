@@ -53,7 +53,7 @@ export function EjercicioCompletado({ ex, onSeguir }: { ex: ExCompletado; onSegu
           {ex.nombre} — {ex.series} series registradas
         </p>
         {ex.siguienteNombre && (
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-accion">
+          <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-accion">
             A continuación: <span className="text-silver-200">{ex.siguienteNombre}</span>
           </p>
         )}

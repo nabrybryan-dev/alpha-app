@@ -47,7 +47,7 @@ export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCal
     <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="font-display text-sm text-texto">Tu ojo</h3>
-        <span className="cifras text-[11px] text-tenue">
+        <span className="cifras text-xs text-tenue">
           {avance.pruebas} / {PRUEBAS_MINIMAS} pruebas
         </span>
       </div>
@@ -88,7 +88,7 @@ export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCal
           </p>
 
           {avance.sesgoPct !== null && avance.pruebas >= 3 && (
-            <p className="mt-1.5 text-[11px] leading-snug text-tenue">
+            <p className="mt-1.5 text-xs leading-snug text-tenue">
               Por ahora{' '}
               <b className="text-texto">
                 {avance.sesgoPct > 0 ? 'te pasas' : 'te quedas corto'} un{' '}
@@ -101,7 +101,7 @@ export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCal
           {typeof debePesar === 'object' && (
             // Pasadas cuatro semanas no se le deja pesando todo: castigarle con
             // la báscula entera es como se pierde la adherencia.
-            <p className="mt-2 rounded-2xl border border-ambar/40 bg-ambar/10 p-3 text-[11px] leading-snug text-texto">
+            <p className="mt-2 rounded-2xl border border-ambar/40 bg-ambar/10 p-3 text-xs leading-snug text-texto">
               Llevas un mes practicando. De ahora en adelante <b>pesa solo esto</b>, que es lo que
               peor calculas:{' '}
               {debePesar.peores
@@ -120,7 +120,7 @@ export function PanelCalibracion({ pruebas, diasPesando, onRegistrar }: PanelCal
         Hacer una prueba
       </button>
 
-      <p className="mt-2 text-[10px] leading-snug text-tenue">
+      <p className="mt-2 text-xs leading-snug text-tenue">
         Adivina primero cuánto pesa, y después lo pesas. En ese orden — al revés no mides tu ojo,
         copias la báscula.
       </p>
@@ -235,7 +235,7 @@ function SheetPrueba({
         </>
       )}
 
-      <p className="mt-3 text-[11px] leading-snug text-tenue">
+      <p className="mt-3 text-xs leading-snug text-tenue">
         Hacen falta {PRUEBAS_MINIMAS} pruebas repartidas en al menos {DIAS_MINIMOS} días. Con
         menos, la diferencia entre estimar bien y acertar por suerte no se distingue.
       </p>

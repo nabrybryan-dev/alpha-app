@@ -107,7 +107,7 @@ export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
         <SinCambios alimento={alimento.nombre} motivo={porQueNoHayCambios(alimento).motivo} />
       ) : (
         <>
-          <p className="text-[11px] leading-snug text-tenue">
+          <p className="text-xs leading-snug text-tenue">
             En vez de{' '}
             <b className="text-texto">
               {porcion} g de {alimento.nombre}
@@ -123,7 +123,7 @@ export function SheetCambios({ linea, onCerrar }: SheetCambiosProps) {
 
           {/* No es un descargo legal: es lo que de verdad sostiene la lista.
               Salen del mismo grupo que lo que ella ya tiene pautado. */}
-          <p className="mt-4 text-[10px] leading-snug text-tenue">
+          <p className="mt-4 text-xs leading-snug text-tenue">
             Son alimentos del mismo grupo que el que te pautaron. Si alguno no te cae bien o no
             puedes comerlo, díselo a tu nutricionista.
           </p>
@@ -156,14 +156,14 @@ function FilaCambio({ cambio }: { cambio: Cambio }) {
               hacer esta noche sin ir al mercado, y esta pantalla existe para
               resolver la discrepancia en el momento. */}
           {cambio.enCasa && (
-            <span className="mt-0.5 block text-[11px] font-semibold text-accion">
+            <span className="mt-0.5 block text-xs font-semibold text-accion">
               Lo tienes en casa
             </span>
           )}
         </span>
         <b className="cifras shrink-0 text-sm text-texto">{cambio.gramos} g</b>
       </div>
-      <p className="cifras mt-1 text-[11px] text-tenue">
+      <p className="cifras mt-1 text-xs text-tenue">
         {/* Sin movimientos que valga la pena decir, se dice eso y no un vacío:
             «casi no cambia nada» es información, un renglón en blanco no. */}
         {movimientos.length > 0 ? movimientos.join(' · ') : 'casi no cambia nada'}

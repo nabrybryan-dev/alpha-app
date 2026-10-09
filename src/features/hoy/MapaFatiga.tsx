@@ -35,7 +35,7 @@ export function MapaFatiga({ microciclo }: { microciclo: Microciclo }) {
       <div className="flex flex-col gap-3">
         {carga.map((c) => (
           <div key={c.grupo} className="flex items-center gap-3">
-            <p className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-[0.15em] text-texto">
+            <p className="w-24 shrink-0 text-xs font-bold uppercase tracking-[0.15em] text-texto">
               {c.grupo}
             </p>
             <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-3">
@@ -48,7 +48,7 @@ export function MapaFatiga({ microciclo }: { microciclo: Microciclo }) {
                 }}
               />
             </div>
-            <p className="cifras w-14 shrink-0 text-right text-[10px] text-tenue">
+            <p className="cifras w-14 shrink-0 text-right text-xs text-tenue">
               {formatearSeries(c.seriesHechas)}/{formatearSeries(c.seriesPautadas)}
             </p>
           </div>
@@ -56,7 +56,7 @@ export function MapaFatiga({ microciclo }: { microciclo: Microciclo }) {
       </div>
       <div className="mt-4 flex justify-center gap-4">
         {LEYENDA.map((l) => (
-          <p key={l.nivel} className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-tenue">
+          <p key={l.nivel} className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-tenue">
             <span
               aria-hidden="true"
               className="h-1.5 w-1.5 rounded-full"

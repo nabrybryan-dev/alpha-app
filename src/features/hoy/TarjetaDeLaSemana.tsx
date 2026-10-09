@@ -11,7 +11,7 @@ function Fila({ etiqueta, valor, nota }: { etiqueta: string; valor: string; nota
       <span className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">{etiqueta}</span>
       <span className="text-right">
         <span className="cifras text-sm font-semibold text-texto">{valor}</span>
-        {nota && <span className="mt-0.5 block text-[11px] leading-snug text-tenue">{nota}</span>}
+        {nota && <span className="mt-0.5 block text-xs leading-snug text-tenue">{nota}</span>}
       </span>
     </div>
   )

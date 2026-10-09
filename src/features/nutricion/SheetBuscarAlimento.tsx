@@ -117,7 +117,7 @@ function CuerpoBuscar({
             type="button"
             onClick={() => setFiltro(f.etiqueta)}
             aria-pressed={filtro === f.etiqueta}
-            className={`press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`press min-h-11 shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
               filtro === f.etiqueta
                 ? 'border-accion bg-accion/15 text-texto'
                 : 'border-linea bg-surface-2 text-tenue'
@@ -128,7 +128,7 @@ function CuerpoBuscar({
         ))}
       </div>
 
-      <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+      <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-tenue">
         {resultados.length} de {total.toLocaleString('es-CO')} alimentos
       </p>
 
@@ -146,7 +146,7 @@ function CuerpoBuscar({
                 <span className="block truncate text-sm font-semibold text-texto">
                   {alimento.nombre}
                 </span>
-                <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-tenue">
+                <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-tenue">
                   {/* Solo cuando de verdad hay elección. En el resto sería ruido. */}
                   {variantes.length > 0 && (
                     <span className="rounded-full border border-azul/40 bg-azul/10 px-1.5 py-0.5 uppercase tracking-wide text-azul">
@@ -164,7 +164,7 @@ function CuerpoBuscar({
                 <span className="cifras block text-base font-bold text-texto">
                   {cifra(alimento.por100g.kcal)}
                 </span>
-                <span className="block text-[9px] uppercase tracking-wide text-tenue">
+                <span className="block text-xs uppercase tracking-wide text-tenue">
                   kcal/100 g
                 </span>
               </span>

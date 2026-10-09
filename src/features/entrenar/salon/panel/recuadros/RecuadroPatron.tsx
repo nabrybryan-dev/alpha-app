@@ -65,21 +65,21 @@ export function RecuadroPatron({ patron }: { patron: Patron | undefined }) {
                     ámbar porque es el que hay que sentir; el que sujeta, en gris, porque
                     su trabajo es no moverse. */}
                 <span
-                  className={`w-[52px] shrink-0 text-[9px] font-bold uppercase tracking-[0.08em] ${
+                  className={`w-[52px] shrink-0 text-xs font-bold uppercase tracking-[0.08em] ${
                     resumen.rol === 'motor' ? 'text-ambar' : 'text-silver-500'
                   }`}
                 >
                   {NOMBRE_DE_ROL[resumen.rol]}
                 </span>
                 <span className="flex-1 text-silver-200">{resumen.articulacion.nombre}</span>
-                <span className="text-[10px] text-silver-500">
+                <span className="text-xs text-silver-500">
                   {resumen.acciones.length > 0
                     ? resumen.acciones.map((a) => a.accion.toLowerCase()).join(' · ')
                     : 'isometría'}
                 </span>
               </div>
 
-              <p className="mt-1 pl-[60px] text-[11px] leading-snug text-silver-400">
+              <p className="mt-1 pl-[60px] text-xs leading-snug text-silver-400">
                 {NOMBRE_DE_TIPO[resumen.articulacion.tipo]}. {segmentos.movil} sobre{' '}
                 {segmentos.fijo.toLowerCase()}.
               </p>
@@ -87,7 +87,7 @@ export function RecuadroPatron({ patron }: { patron: Patron | undefined }) {
               {/* Lo que la articulación NO puede hacer. Es la mitad que evita forzarla, y
                   la que nadie escribe en una ficha de ejercicio. */}
               {resumen.articulacion.noPuede.length > 0 && (
-                <p className="mt-0.5 pl-[60px] text-[11px] leading-snug text-silver-500">
+                <p className="mt-0.5 pl-[60px] text-xs leading-snug text-silver-500">
                   No puede: {resumen.articulacion.noPuede.join(' · ').toLowerCase()}.
                 </p>
               )}

@@ -36,7 +36,7 @@ export function PanelMicros({ total, condiciones = [], nombresDelDia = [] }: Pan
     <section className="relieve rounded-3xl border border-linea bg-surface-1 p-4">
       <div className="mb-3 flex items-baseline justify-between">
         <h3 className="font-display text-sm text-texto">Micronutrientes clave</h3>
-        <span className="text-[10px] uppercase tracking-wide text-tenue">TCAC · USDA</span>
+        <span className="text-xs uppercase tracking-wide text-tenue">TCAC · USDA</span>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -48,7 +48,7 @@ export function PanelMicros({ total, condiciones = [], nombresDelDia = [] }: Pan
           const parcial = total.parciales.has(micro.clave)
           return (
             <div key={micro.clave}>
-              <div className="mb-1 flex items-baseline justify-between text-[11px]">
+              <div className="mb-1 flex items-baseline justify-between text-xs">
                 <span className="text-tenue">{micro.etiqueta}</span>
                 <span className="cifras text-tenue">
                   <b className="text-texto">
@@ -110,7 +110,7 @@ function AvisoDeTecho({
   return (
     <div className="mt-4 rounded-2xl border border-ambar/40 bg-ambar/15 p-3">
       {pasados.map((techo) => (
-        <p key={techo.nutriente} className="text-[11px] leading-relaxed text-tenue">
+        <p key={techo.nutriente} className="text-xs leading-relaxed text-tenue">
           <b className="text-texto">
             Hoy llevas {techo.parcial && 'al menos '}
             {Math.round(techo.veces * 10) / 10}×

@@ -53,7 +53,7 @@ export function FilaComida({ comida, kcal, resumen, verKcal, onAbrir }: FilaComi
 
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-texto">{NOMBRES[comida.comida]}</span>
-        <span className="block truncate text-[11px] text-tenue">
+        <span className="block truncate text-xs text-tenue">
           {vacia ? 'Sin nada anotado todavía' : resumen}
         </span>
       </span>
@@ -63,7 +63,7 @@ export function FilaComida({ comida, kcal, resumen, verKcal, onAbrir }: FilaComi
           <span className="cifras block text-sm font-bold text-texto">
             {vacia ? '—' : kcal.toLocaleString('es-CO')}
           </span>
-          <span className="block text-[9px] uppercase tracking-wide text-tenue">kcal</span>
+          <span className="block text-xs uppercase tracking-wide text-tenue">kcal</span>
         </span>
       )}
 

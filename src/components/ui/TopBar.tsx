@@ -54,7 +54,7 @@ export function TopBar({ titulo }: TopBarProps) {
             type="button"
             onClick={alternar}
             aria-label={tema === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-            className="press glass grid h-10 w-10 place-items-center rounded-full text-texto"
+            className="press glass grid h-11 w-11 place-items-center rounded-full text-texto"
           >
             {tema === 'dark' ? <IconoSol /> : <IconoLuna />}
           </button>
@@ -64,11 +64,11 @@ export function TopBar({ titulo }: TopBarProps) {
               onClick={() => setMenuAbierto((v) => !v)}
               aria-label="Cambiar usuario"
               aria-expanded={menuAbierto}
-              className="press glass relative grid h-10 w-10 place-items-center rounded-full text-xs font-bold text-texto"
+              className="press glass relative grid h-11 w-11 place-items-center rounded-full text-xs font-bold text-texto"
             >
               {usuario.avatarIniciales}
               {noLeidos > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rojo px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rojo px-1 text-xs font-bold text-white">
                   {noLeidos}
                 </span>
               )}
@@ -79,7 +79,7 @@ export function TopBar({ titulo }: TopBarProps) {
                 <button
                   type="button"
                   onClick={cerrarSesion}
-                  className="press mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-rojo active:bg-surface-2"
+                  className="press mt-1 min-h-[44px] w-full rounded-xl px-3 py-2 text-left text-sm text-rojo active:bg-surface-2"
                 >
                   Cerrar sesión
                 </button>
@@ -87,7 +87,7 @@ export function TopBar({ titulo }: TopBarProps) {
             )}
             {menuAbierto && !esNube && (
               <div className="entrada glass glass-blur absolute right-0 top-12 w-56 rounded-panel p-2 shadow-xl">
-                <p className="px-3 py-1 text-[10px] uppercase tracking-widest text-tenue">
+                <p className="px-3 py-1 text-xs uppercase tracking-widest text-tenue">
                   Ver la app como
                 </p>
                 {db.usuarios.list().map((u) => (
@@ -95,15 +95,15 @@ export function TopBar({ titulo }: TopBarProps) {
                     key={u.id}
                     type="button"
                     onClick={() => elegirUsuario(u.id)}
-                    className={`press flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm ${
+                    className={`press flex min-h-[44px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm ${
                       u.id === usuario.id ? 'bg-rojo/10 text-rojo' : 'text-texto active:bg-surface-2'
                     }`}
                   >
-                    <span className="grid h-7 w-7 place-items-center rounded-full bg-surface-3 text-[10px] font-bold">
+                    <span className="grid h-7 w-7 place-items-center rounded-full bg-surface-3 text-xs font-bold">
                       {u.avatarIniciales}
                     </span>
                     {u.nombre}
-                    {u.rol === 'coach' && <span className="ml-auto text-[10px] uppercase text-tenue">Coach</span>}
+                    {u.rol === 'coach' && <span className="ml-auto text-xs uppercase text-tenue">Coach</span>}
                   </button>
                 ))}
               </div>

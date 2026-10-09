@@ -52,7 +52,7 @@ function CampoPills({
               key={o}
               type="button"
               onClick={() => onCambiar(o)}
-              className={`press flex-1 rounded-full border py-2 text-[11px] font-bold uppercase tracking-wide transition-colors duration-200 ease-salida ${
+              className={`press min-h-[44px] flex-1 rounded-full border py-2 text-xs font-bold uppercase tracking-wide transition-colors duration-200 ease-salida ${
                 sel ? 'border-accion bg-accion text-white' : 'border-linea bg-surface-2 text-tenue'
               }`}
             >
@@ -180,7 +180,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
   }
 
   const inputTexto =
-    'w-full rounded-boton border border-linea bg-surface-1 px-3.5 py-2.5 text-texto shadow-sm placeholder:text-tenue focus:border-accion focus:outline-none'
+    'min-h-[44px] w-full rounded-boton border border-linea bg-surface-1 px-3.5 py-2.5 text-texto shadow-sm placeholder:text-tenue focus:border-accion focus:outline-none'
 
   return (
     <div className="flex flex-col gap-3">
@@ -292,11 +292,11 @@ function EscalaHambre({
   return (
     <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
       <p className="text-sm font-bold text-texto">Hambre de hoy</p>
-      <p className="mt-0.5 text-[11px] leading-snug text-tenue">
+      <p className="mt-0.5 text-xs leading-snug text-tenue">
         1 = no la sentiste · 10 = no la pudiste sostener
       </p>
 
-      <div className="mt-2.5 flex gap-1">
+      <div className="mt-2.5 grid grid-cols-5 gap-1.5">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
           <button
             key={n}
@@ -304,7 +304,7 @@ function EscalaHambre({
             aria-label={`Hambre ${n} de 10`}
             aria-pressed={valor === n}
             onClick={() => onCambiar(n)}
-            className={`press h-9 flex-1 rounded-boton border text-xs font-bold transition-colors ${
+            className={`press h-11 rounded-boton border text-sm font-bold transition-colors ${
               valor === n
                 ? 'border-accion bg-accion text-white'
                 : 'border-linea bg-surface-2 text-tenue'
@@ -316,7 +316,7 @@ function EscalaHambre({
       </div>
 
       {tramo && (
-        <p className="mt-2 text-[11px] leading-snug text-tenue">
+        <p className="mt-2 text-xs leading-snug text-tenue">
           <b className="text-texto">{DESCRIPCION_TRAMO[tramo.etiqueta]}</b>
         </p>
       )}
@@ -367,7 +367,7 @@ function EscalaDolor({
   return (
     <div className="rounded-tarjeta border border-linea bg-surface-1 p-3 shadow-sm">
       <p className="text-sm font-bold text-texto">Dolor de hoy</p>
-      <p className="mt-0.5 text-[11px] leading-snug text-tenue">
+      <p className="mt-0.5 text-xs leading-snug text-tenue">
         0 = ninguno · 10 = el peor que te imaginas
       </p>
 
@@ -376,12 +376,12 @@ function EscalaDolor({
         aria-label="Dolor 0 de 10"
         aria-pressed={valor === 0}
         onClick={() => onCambiar(0)}
-        className={`${clase(valor === 0)} mt-2.5 h-9 w-full uppercase tracking-wide`}
+        className={`${clase(valor === 0)} mt-2.5 h-11 w-full uppercase tracking-wide`}
       >
         Sin dolor
       </button>
 
-      <div className="mt-1.5 flex gap-1">
+      <div className="mt-1.5 grid grid-cols-5 gap-1.5">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
           <button
             key={n}
@@ -389,7 +389,7 @@ function EscalaDolor({
             aria-label={`Dolor ${n} de 10`}
             aria-pressed={valor === n}
             onClick={() => onCambiar(n)}
-            className={`${clase(valor === n)} h-9 flex-1`}
+            className={`${clase(valor === n)} h-11 text-sm`}
           >
             {n}
           </button>
@@ -398,7 +398,7 @@ function EscalaDolor({
 
       {tramo && tramo.etiqueta !== 'ninguno' && (
         <>
-          <p className="mt-2 text-[11px] leading-snug text-tenue">
+          <p className="mt-2 text-xs leading-snug text-tenue">
             <b className="text-texto">{tramo.descripcion}</b>
           </p>
           <label className="mt-2 flex flex-col gap-1.5 text-sm font-bold text-texto">

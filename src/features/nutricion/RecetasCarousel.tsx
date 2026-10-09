@@ -56,7 +56,7 @@ export function RecetasCarousel({
     <section className="mt-4">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-bold text-texto">Recetas que sí encajan</h2>
-        <span className="cifras shrink-0 text-[10.5px] text-tenue">{recetas.length} nuevas</span>
+        <span className="cifras shrink-0 text-xs text-tenue">{recetas.length} nuevas</span>
       </div>
       <p className="mt-0.5 text-[12.5px] leading-snug text-tenue">
         Virales de Instagram, revisadas por tu coach. Toca una y te decimos la porción exacta.
@@ -131,11 +131,11 @@ function Cocinadas({ cocinadas, racha }: { cocinadas: number; racha: number }) {
 
   return (
     <p className="mt-1.5 flex items-center gap-1.5">
-      <span className="cifras rounded-full bg-surface-3 px-2 py-0.5 text-[10.5px] font-bold text-silver-200">
+      <span className="cifras rounded-full bg-surface-3 px-2 py-0.5 text-xs font-bold text-silver-200">
         {cocinadas} {cocinadas === 1 ? 'cocinada' : 'cocinadas'}
       </span>
       {racha > 1 && (
-        <span className="cifras rounded-full bg-accion/15 px-2 py-0.5 text-[10.5px] font-bold text-accion">
+        <span className="cifras rounded-full bg-accion/15 px-2 py-0.5 text-xs font-bold text-accion">
           {racha} días seguidos
         </span>
       )}
@@ -159,11 +159,11 @@ function TarjetaReceta({ receta, onAbrir }: { receta: Receta; onAbrir: () => voi
           className="absolute inset-x-0 bottom-0 h-1/2"
           style={{ background: 'linear-gradient(180deg, transparent, rgba(8,9,10,.88))' }}
         />
-        <span className="cifras absolute right-1.5 top-1.5 rounded-full bg-ink-900/80 px-1.5 py-0.5 text-[9.5px] font-bold text-silver-100">
+        <span className="cifras absolute left-1.5 top-[32px] rounded-full bg-ink-900/80 px-1.5 py-0.5 text-xs font-bold text-silver-100">
           {receta.ajuste.kcal} kcal
         </span>
         <span
-          className={`absolute left-1.5 top-1.5 rounded-full bg-ink-900/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${COLOR_CATEGORIA[receta.categoria]}`}
+          className={`absolute left-1.5 top-1.5 rounded-full bg-ink-900/80 px-1.5 py-0.5 text-xs font-bold uppercase tracking-[0.08em] ${COLOR_CATEGORIA[receta.categoria]}`}
         >
           {receta.categoria}
         </span>
@@ -174,8 +174,8 @@ function TarjetaReceta({ receta, onAbrir }: { receta: Receta; onAbrir: () => voi
         </span>
       </span>
       <span className="block px-2 pb-2 pt-1.5">
-        <span className="cifras block text-[9px] font-bold tracking-[0.06em] text-accion">{receta.handle}</span>
-        <span className="mt-0.5 line-clamp-2 block text-[11.5px] font-bold leading-tight text-texto [text-wrap:pretty]">
+        <span className="cifras block text-xs font-bold tracking-[0.06em] text-accion">{receta.handle}</span>
+        <span className="mt-0.5 line-clamp-2 block text-xs font-bold leading-tight text-texto [text-wrap:pretty]">
           {receta.nombre}
         </span>
       </span>

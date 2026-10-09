@@ -48,7 +48,7 @@ export function ObjetivoDelBloque({ objetivos }: { objetivos?: string }) {
               className="rounded-xl border border-hairline bg-surface-2 px-3 py-2.5"
             >
               {s.etiqueta && (
-                <p className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-accion-osc">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-accion-osc">
                   {s.etiqueta}
                 </p>
               )}
@@ -64,7 +64,7 @@ export function ObjetivoDelBloque({ objetivos }: { objetivos?: string }) {
         <button
           type="button"
           onClick={() => setAbierto(!abierto)}
-          className="press mt-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-accion-osc"
+          className="press mt-1 min-h-[44px] text-xs font-bold uppercase tracking-[0.12em] text-accion-osc"
         >
           {abierto ? 'Ver menos' : `Ver todo · ${ocultas} más`}
         </button>

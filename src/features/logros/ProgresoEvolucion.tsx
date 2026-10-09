@@ -209,7 +209,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
       <div className="relieve rounded-bloque border border-ink-500 bg-ink-800 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-silver-500">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-silver-500">
               {metrica === 'peso' ? 'Peso en ayunas' : 'Carga de trabajo'}
             </p>
             <div className="mt-1.5 flex items-baseline gap-2">
@@ -231,7 +231,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
                 key={m}
                 type="button"
                 onClick={() => setMetrica(m)}
-                className={`press rounded-full px-3 py-1 text-xs font-bold transition-colors duration-200 ${
+                className={`press min-h-11 rounded-full px-3 py-1 text-xs font-bold transition-colors duration-200 ${
                   metrica === m ? 'bg-accion text-white' : 'text-silver-400'
                 }`}
               >
@@ -243,7 +243,7 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         <div className="mt-3">
           <GraficoLinea key={metrica} puntos={puntos} unidad={unidad} />
         </div>
-        <p className="mt-2 text-[11px] text-silver-500">
+        <p className="mt-2 text-xs text-silver-500">
           {metrica === 'peso'
             ? 'Peso en ayunas registrado a lo largo del tiempo.'
             : 'Tonelaje (carga × reps) por sesión del microciclo actual.'}
@@ -258,14 +258,14 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
         <div className="relieve rounded-bloque border border-ink-500 bg-ink-800 p-4">
           <div className="mb-1 flex items-center justify-between">
             <span className="font-display text-sm text-silver-100">Volumen por grupo</span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">
+            <span className="text-xs font-bold uppercase tracking-[0.1em] text-silver-500">
               Microciclo
             </span>
           </div>
           {/* La etiqueta (ALTO, NORMAL…) describe el PLAN, no lo hecho. Sin
               decirlo, "Espalda 0/15 ALTO" se lee como que va sobrada de volumen
               cuando lleva cero series. */}
-          <p className="mb-3 text-[11px] leading-snug text-silver-500">
+          <p className="mb-3 text-xs leading-snug text-silver-500">
             Barra clara y etiqueta: lo que te pautó tu coach. Barra roja y primer número: lo
             que llevas registrado.
           </p>
@@ -290,11 +290,11 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
                     </span>
                   </span>
                   <span className="text-right">
-                    <span className="cifras block text-[11px] font-bold text-silver-100">
+                    <span className="cifras block text-xs font-bold text-silver-100">
                       {formatearSeries(g.seriesHechas)}/{formatearSeries(g.seriesPautadas)}
                     </span>
                     <span
-                      className={`block text-[9px] font-bold uppercase tracking-[0.06em] ${CLASE_NIVEL[nivel]}`}
+                      className={`block text-xs font-bold uppercase tracking-[0.06em] ${CLASE_NIVEL[nivel]}`}
                     >
                       {nivel}
                     </span>
@@ -316,14 +316,14 @@ export function ProgresoEvolucion({ usuarioId }: { usuarioId: string }) {
               const d = antes !== undefined ? Math.round((valor - antes) * 10) / 10 : undefined
               return (
                 <div key={nombre} className="rounded-tarjeta border border-ink-500 bg-ink-800 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-silver-500">{nombre}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-silver-500">{nombre}</p>
                   <div className="mt-1 flex items-baseline justify-between gap-1">
                     <span className="cifras text-xl font-bold text-silver-100">
                       {valor}
                       <span className="text-xs font-medium text-silver-500"> {unidad}</span>
                     </span>
                     {d !== undefined && d !== 0 && (
-                      <span className={`cifras text-[11px] font-bold ${d < 0 ? 'text-accion' : 'text-silver-400'}`}>
+                      <span className={`cifras text-xs font-bold ${d < 0 ? 'text-accion' : 'text-silver-400'}`}>
                         {d > 0 ? '+' : ''}
                         {d}
                       </span>

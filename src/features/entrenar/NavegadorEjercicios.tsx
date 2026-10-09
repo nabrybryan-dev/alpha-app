@@ -30,8 +30,9 @@ export function BarraEjercicios({ ejercicios, exIdx, onIr }: NavegadorProps) {
             onClick={() => onIr(idx)}
             // La escena va en el BOTON, que es el padre directo del tramo. El boton
             // se queda en el plano —es la zona tocable— y lo que se hunde es el
-            // tramo de dentro, que no lo es.
-            className="escena-prof press flex-1 py-1.5"
+            // tramo de dentro, que no lo es. El `before` es un área táctil invisible:
+            // el tramo se ve de 6 px, pero el dedo tiene 44 px de alto donde acertar.
+            className="escena-prof press relative flex-1 py-1.5 before:absolute before:inset-x-0 before:-inset-y-[13px]"
           >
             {/* Lo que falta se HUNDE, lo hecho se queda en el plano: es el mismo
                 argumento del carril de una barra —lo pendiente es materia que
@@ -83,7 +84,7 @@ export function ProximosEjercicios({ ejercicios, exIdx, onIr }: NavegadorProps) 
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold leading-snug text-silver-200">{e.nombre}</span>
-                <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-silver-500">
+                <span className="mt-0.5 block text-xs font-bold uppercase tracking-[0.12em] text-silver-500">
                   {e.categoria}
                 </span>
               </span>

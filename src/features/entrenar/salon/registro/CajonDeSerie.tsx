@@ -201,7 +201,7 @@ export function CajonDeSerie({
         <button
           type="button"
           onClick={onCerrar}
-          className="press min-h-[44px] rounded-boton border border-ink-500 font-mono text-[11px] uppercase tracking-[0.16em] text-gris-marca"
+          className="press min-h-[44px] rounded-boton border border-ink-500 font-mono text-xs uppercase tracking-[0.16em] text-gris-marca"
         >
           Cerrar
         </button>

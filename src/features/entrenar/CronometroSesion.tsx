@@ -111,7 +111,7 @@ export function CronometroSesion({ sesionId }: { sesionId: string }) {
       >
         {formatear(totalSeg(estado))}
       </button>
-      <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-tenue">
+      <p className="mt-1.5 text-xs font-bold uppercase tracking-[0.2em] text-tenue">
         {corriendo ? 'Toca para pausar' : 'En pausa · toca para seguir'}
       </p>
     </div>
