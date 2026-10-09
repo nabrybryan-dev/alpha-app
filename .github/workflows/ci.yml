@@ -100,6 +100,13 @@ jobs:
       - name: Las escrituras del asesorado llegan de verdad
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/10-escrituras-del-asesorado.sql
 
+      # Es la consulta con la que se mira qué está aplicado en producción, y dos
+      # veces quedó rota por una mezcla sin que nadie lo notara (1f9c7ce y la 0104).
+      # Aquí no se exige que todo diga SI (la base de pruebas no tiene cron ni
+      # Storage): solo que se pueda ejecutar entera.
+      - name: comprobar-migraciones.sql se puede ejecutar entera
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -o /dev/null -f supabase/comprobar-migraciones.sql
+
       - name: El aislamiento entre asesorados aguanta
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/20-aislamiento.sql
 
@@ -179,3 +186,6 @@ jobs:
 
       - name: La respuesta del coach a una pregunta de la cadena la dan solo el coach y la nutricionista, a su nombre, y solo por la función
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/112-respuestas-coach-cadena.sql
+
+      - name: La salud del celular (casilla E, código del atajo, resúmenes) solo la escribe la función y solo la lee su dueño o quien tiene la capacidad
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/110-salud-del-celular.sql
