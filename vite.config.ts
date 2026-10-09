@@ -27,10 +27,11 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
-          // three.js y su entorno de React: solo los pide la presentación para el asesorado
-          // (`React.lazy`). Quien no la abre no los descarga: ni la navegación ni, más abajo, el
-          // service worker los precargan.
-          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+          // three.js NO va aquí a propósito. Nombrarlo como trozo manual hizo que Rollup le
+          // colgara código compartido con la entrada, y `index.html` salió con un
+          // `modulepreload` de 1,1 MB para TODO el mundo (visto en producción el 9-oct-2026).
+          // Sin nombrarlo, viaja en los trozos que crea el `import()` de la presentación y solo
+          // lo descarga quien la abre.
         },
       },
     },
@@ -59,7 +60,7 @@ export default defineConfig({
         // El trozo de three.js (≈ 1,1 MB, 311 kB comprimido) NO se precarga con la app: solo quien
         // abre la presentación lo baja. Sin esto Workbox lo metería en la precarga y TODO el mundo lo
         // descargaría al instalar la app, que es justo lo que `React.lazy` evita.
-        globIgnores: ['**/vendor-three-*.js', '**/Escena3D*.js'],
+        globIgnores: ['**/Suelo-*.js', '**/Escena3D*.js'],
         /**
          * EL GIMNASIO SE QUEDA GUARDADO EN EL TELÉFONO.
          *
