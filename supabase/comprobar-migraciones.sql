@@ -1175,6 +1175,9 @@ select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe,
               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'proteger_perfil'
                  and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+       then 'SI' else 'NO' end
+
+union all
 -- == LAS QUE FALTABAN, Y LOS DOS PARES REPETIDOS (anadidas el 2026-09-10) =====
 --
 -- En `main` hay DOS archivos llamados 0062 y DOS llamados 0065, y falta la 0063
@@ -1520,6 +1523,47 @@ select '0080 - el yogur griego existe', 'los dos yogures griegos del catalogo de
        case when (select count(*) from public.alimentos
                    where id in ('yogur-griego-entero', 'yogur-griego-descremado')) = 2 then 'SI'
             else 'NO' end
+
+union all
+-- La 0112: el id de un microciclo nuevo dice de quien es, `m-<slug>-<numero>`. Tres señales.
+-- La columna se lee con `to_jsonb(u)->>'slug'` y no `u.slug`: sin la 0112 la columna no
+-- existe y nombrarla reventaria la consulta entera en vez de decir NO.
+--
+-- 1) El slug existe, es unico por restriccion y nadie se ha quedado sin el. Sin la 0112 dice
+--    NO en la primera rama; con una alta nueva cuyo nombre choca con otra persona, dice NO en
+--    la ultima: esa persona no puede recibir microciclos hasta que se le ponga uno a mano.
+select '0112 - el id dice de quien es', 'usuarios_app.slug existe, es unico y nadie esta sin slug',
+       case when not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'usuarios_app'
+                                and column_name = 'slug') then 'NO'
+            when not exists (select 1 from pg_constraint
+                              where conrelid = 'public.usuarios_app'::regclass and contype = 'u'
+                                and pg_get_constraintdef(oid) = 'UNIQUE (slug)') then 'NO'
+            when exists (select 1 from public.usuarios_app u where to_jsonb(u)->>'slug' is null) then 'NO'
+            else 'SI' end
+
+union all
+-- 2) El guardian de microciclos es BEFORE INSERT, NO corre en UPDATE, y exige la regla. Se pide
+--    lo que lo hace seguro: si alguien lo cambiara a `before insert or update`, registrar una
+--    serie en cualquiera de los 170 microciclos con id viejo fallaria, y aqui diria NO.
+--    tgtype: 2 = BEFORE, 4 = INSERT, 16 = UPDATE.
+select '0112 - el id dice de quien es', 'trigger BEFORE INSERT (y no UPDATE) en microciclos que exige m-<slug>-<numero>',
+       case when exists (select 1 from pg_trigger t
+                          where t.tgrelid = 'public.microciclos'::regclass and not t.tgisinternal
+                            and t.tgname = 'trg_id_de_la_regla'
+                            and (t.tgtype & 2) = 2 and (t.tgtype & 4) = 4 and (t.tgtype & 16) = 0
+                            and pg_get_functiondef(t.tgfoid) like '%''m-'' || v_slug || ''-'' || new.numero%')
+            then 'SI' else 'NO' end
+
+union all
+-- 3) Nadie se cambia el slug desde la app: `usuarios_editar_propio` deja actualizar la propia
+--    fila, y sin este trigger cualquiera podria quedarse con un prefijo ajeno.
+select '0112 - el id dice de quien es', 'trigger que impide cambiar el slug desde la app',
+       case when exists (select 1 from pg_trigger t
+                          where t.tgrelid = 'public.usuarios_app'::regclass and not t.tgisinternal
+                            and t.tgname = 'trg_proteger_slug' and (t.tgtype & 16) = 16
+                            and pg_get_functiondef(t.tgfoid) like '%auth.uid() is not null%')
+            then 'SI' else 'NO' end
 
 union all
 select '0081 - firma de revision por version', 'RPC de coach y trigger de version presentes; anon sin permiso',
@@ -2186,6 +2230,8 @@ select '0104 - hallazgos de mercadeo: autor real del comentario', 'mercadeo_hall
             when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
               or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute')
               or pg_get_functiondef('public.comentar_hallazgo_mercadeo(uuid,text)'::regprocedure) not like '%autor_nombre%' then 'NO'
+            else 'SI' end
+union all
 -- La 0105: la bandeja de preguntas de Praxis existe, con RLS, y anon no tiene nada.
 select '0105 - praxis_preguntas_en_espera con RLS y sin nada para anon', 'RLS encendida, anon sin select ni insert, authenticated con select',
        case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'
