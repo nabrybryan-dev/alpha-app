@@ -3,7 +3,7 @@ import type { PlanEstrategico } from '../../../data/consola/planesEstrategicos'
 import { tablaDelPlan } from '../../../domain/consolaCoach/perfilCompleto'
 import { leerPlanLegible } from '../../../domain/consolaCoach/planLegible'
 import { nombreDelMicrociclo } from '../../../domain/palabrasLlanas'
-import { mapaDelPlan, type SituacionCasilla } from '../../../domain/presentacionAsesorado'
+import { lugarEnElPlan, mapaDelPlan, type SituacionCasilla } from '../../../domain/presentacionAsesorado'
 import type { EstadoDato } from '../consola/datoConsola'
 import { Esqueleto } from '../consola/piezas'
 import { RespaldoSiFalla } from './RespaldoSiFalla'
@@ -60,6 +60,19 @@ export function SeccionMapaDelPlan({ plan, numeroActual, ultimoCerrado }: Props)
   }
 
   const elegida = casillas.find((c) => c.numero === abierta)
+  const lugar = lugarEnElPlan(casillas, numeroActual)
+  /** Cuando la semana de ahora no está en el plan, se dice: si no, el mapa sin casilla roja parece roto. */
+  const avisoDeLugar =
+    lugar.tipo === 'despues' ? (
+      <p role="note" className="rounded-2xl border border-linea bg-surface-2 p-3 text-[14px] leading-snug text-texto">
+        Este plan llegaba hasta la semana {lugar.ultimaDelPlan} y ya vas en la {lugar.actual}. Tu siguiente plan
+        está por cargarse; aquí ves el que acabas de completar.
+      </p>
+    ) : lugar.tipo === 'antes' ? (
+      <p role="note" className="rounded-2xl border border-linea bg-surface-2 p-3 text-[14px] leading-snug text-texto">
+        Este plan empieza en la semana {lugar.primeraDelPlan} y vas en la {lugar.actual}: todavía no arranca.
+      </p>
+    ) : null
 
   const alternar = (numero: number) => setAbierta(abierta === numero ? null : numero)
 
@@ -107,6 +120,7 @@ export function SeccionMapaDelPlan({ plan, numeroActual, ultimoCerrado }: Props)
   return (
     <div className="flex flex-col gap-3">
       {objetivo && <p className="text-[15px] font-bold leading-snug text-texto">{objetivo}</p>}
+      {avisoDeLugar}
 
       {casillas.length === 0 ? (
         <p className="text-[15px] text-tenue">El plan está cargado, pero todavía no trae el detalle semana a semana.</p>

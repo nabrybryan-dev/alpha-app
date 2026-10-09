@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { CadenaCorrida } from '../../../data/consola/cadenaCorridas'
 import type { ConclusionDeSemana } from '../../../domain/presentacionAsesorado'
 import type { EstadoDato } from '../consola/datoConsola'
@@ -18,10 +19,34 @@ const A_LA_VISTA = 3
  * ni se reformula nada. Lo más reciente primero.
  */
 export function SeccionConclusiones({ corridas, conclusiones }: Props) {
+  // Arranca CERRADA. Lo de abajo es el texto interno de la cadena de agentes, sin retocar: puede
+  // traer jerga o cosas que no son para decirle así a la persona. Esta pantalla se enseña en una
+  // llamada, de modo que quien presenta lo lee antes y decide abrirlo; no aparece solo al bajar.
+  const [aLaVista, setALaVista] = useState(false)
+
   if (corridas.estado === 'cargando') return <Esqueleto lineas={3} />
 
   if (conclusiones.length === 0) {
     return <p className="text-[15px] text-tenue">Todavía no hay conclusiones escritas para mostrar.</p>
+  }
+
+  if (!aLaVista) {
+    return (
+      <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-linea bg-surface-2 p-4">
+        <p className="text-[14px] leading-snug text-texto">
+          Hay notas del equipo de {conclusiones.length} {conclusiones.length === 1 ? 'semana' : 'semanas'}. Son el
+          texto interno tal como quedó escrito, sin retocar:{' '}
+          <span className="font-bold">léelas tú antes de mostrarlas.</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => setALaVista(true)}
+          className="press min-h-[44px] self-start rounded-boton border border-linea bg-surface-1 px-4 text-sm font-bold text-texto"
+        >
+          Mostrar las conclusiones
+        </button>
+      </div>
+    )
   }
 
   const recientes = conclusiones.slice(0, A_LA_VISTA)
@@ -29,6 +54,13 @@ export function SeccionConclusiones({ corridas, conclusiones }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setALaVista(false)}
+        className="press min-h-[44px] self-start rounded-boton border border-linea px-4 text-sm font-bold text-tenue"
+      >
+        Ocultar las conclusiones
+      </button>
       {recientes.map((c, i) => (
         <Conclusion key={c.clave} conclusion={c} demora={i * 90} />
       ))}

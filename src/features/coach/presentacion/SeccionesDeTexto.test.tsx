@@ -29,13 +29,37 @@ describe('SeccionConclusiones', () => {
     expect(screen.getByLabelText('Cargando')).toBeInTheDocument()
   })
 
-  it('por semana, el resumen y los avisos tal como están escritos', () => {
+  it('arranca CERRADA: avisa de que es texto interno y no enseña nada hasta que se pide', async () => {
+    const user = userEvent.setup()
+    render(
+      <SeccionConclusiones
+        corridas={{ estado: 'listo', valor: [] }}
+        conclusiones={[conclusion(2, { resumen: 'Subió la carga en prensa', avisos: ['Durmió poco'] })]}
+      />,
+    )
+    // Lo que no debe verse de entrada: esta pantalla se enseña en una llamada.
+    expect(screen.queryByText('Subió la carga en prensa')).toBeNull()
+    expect(screen.queryByText('Durmió poco')).toBeNull()
+    expect(screen.getByText(/léelas tú antes de mostrarlas/)).toBeInTheDocument()
+    expect(screen.getByText(/de 1 semana\./)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Mostrar las conclusiones' }))
+    expect(screen.getByText('Subió la carga en prensa')).toBeInTheDocument()
+
+    // Y se puede volver a guardar.
+    await user.click(screen.getByRole('button', { name: 'Ocultar las conclusiones' }))
+    expect(screen.queryByText('Subió la carga en prensa')).toBeNull()
+  })
+
+  it('por semana, el resumen y los avisos tal como están escritos', async () => {
+    const user = userEvent.setup()
     render(
       <SeccionConclusiones
         corridas={{ estado: 'listo', valor: [] }}
         conclusiones={[conclusion(2, { resumen: 'Subió la carga en prensa', avisos: ['Durmió poco', 'Dolor leve en rodilla'] })]}
       />,
     )
+    await user.click(screen.getByRole('button', { name: 'Mostrar las conclusiones' }))
     expect(screen.getByRole('heading', { name: 'Semana 2' })).toBeInTheDocument()
     expect(screen.getByText('Subió la carga en prensa')).toBeInTheDocument()
     expect(screen.getByText('Durmió poco')).toBeInTheDocument()
@@ -46,6 +70,7 @@ describe('SeccionConclusiones', () => {
     const user = userEvent.setup()
     const cinco = [5, 4, 3, 2, 1].map((n) => conclusion(n))
     render(<SeccionConclusiones corridas={{ estado: 'listo', valor: [] }} conclusiones={cinco} />)
+    await user.click(screen.getByRole('button', { name: 'Mostrar las conclusiones' }))
     expect(screen.getByText('Semanas anteriores (2)')).toBeInTheDocument()
     const plegado = screen.getByText('resumen 1').closest('details')!
     expect(plegado).not.toHaveAttribute('open')

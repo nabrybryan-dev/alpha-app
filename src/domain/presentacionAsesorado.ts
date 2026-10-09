@@ -52,6 +52,31 @@ export function mapaDelPlan(
   })
 }
 
+/**
+ * Dónde cae la semana de ahora respecto al plan cargado.
+ *
+ * POR QUÉ EXISTE. Se diseñó pensando en planes de 24 o 32 semanas con la persona dentro. La
+ * base real (9-oct-2026) dice otra cosa: los 12 planes vigentes tienen entre 4 y 11 semanas,
+ * no empiezan en la 1, y en 7 de 12 la persona ya va por una semana POSTERIOR a la última del
+ * plan. Sin decirlo, el mapa salía con todas las casillas «hechas» y ninguna marcada como la
+ * de ahora: parecía roto, y era un plan que ya se acabó.
+ */
+export type LugarEnElPlan =
+  | { tipo: 'dentro' }
+  | { tipo: 'despues'; ultimaDelPlan: number; actual: number }
+  | { tipo: 'antes'; primeraDelPlan: number; actual: number }
+  | { tipo: 'sin_dato' }
+
+export function lugarEnElPlan(casillas: readonly CasillaMapa[], numeroActual: number | undefined): LugarEnElPlan {
+  if (numeroActual === undefined || casillas.length === 0) return { tipo: 'sin_dato' }
+  const numeros = casillas.map((c) => c.numero)
+  const primera = Math.min(...numeros)
+  const ultima = Math.max(...numeros)
+  if (numeroActual > ultima) return { tipo: 'despues', ultimaDelPlan: ultima, actual: numeroActual }
+  if (numeroActual < primera) return { tipo: 'antes', primeraDelPlan: primera, actual: numeroActual }
+  return { tipo: 'dentro' }
+}
+
 // ── Las conclusiones de la cadena ─────────────────────────────────────────────────────
 
 export interface ConclusionDeSemana {

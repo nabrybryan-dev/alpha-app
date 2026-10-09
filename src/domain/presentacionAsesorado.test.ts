@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CadenaCorrida } from '../data/consola/cadenaCorridas'
 import type { TablaPlan } from './consolaCoach/perfilCompleto'
-import { conclusionesPorMicrociclo, mapaDelPlan, textoDeAviso } from './presentacionAsesorado'
+import { conclusionesPorMicrociclo, lugarEnElPlan, mapaDelPlan, textoDeAviso } from './presentacionAsesorado'
 import type { Microciclo } from './types'
 
 const TABLA: TablaPlan = {
@@ -12,6 +12,30 @@ const TABLA: TablaPlan = {
     { numero: 3, celdas: ['M3', '68', ''], actual: false },
   ],
 }
+
+describe('lugarEnElPlan', () => {
+  // Las formas que tiene la base real (9-oct-2026): planes de 4 a 11 semanas que no empiezan en la 1.
+  const casillas = (numeros: number[]) => numeros.map((numero) => ({ numero, situacion: 'hecha' as const, detalle: [] }))
+
+  it('la semana de ahora dentro del plan: no hay nada que avisar', () => {
+    expect(lugarEnElPlan(casillas([3, 4, 5, 6, 7, 8, 9]), 5)).toEqual({ tipo: 'dentro' })
+    expect(lugarEnElPlan(casillas([3, 4, 5, 6, 7, 8, 9]), 3)).toEqual({ tipo: 'dentro' })
+    expect(lugarEnElPlan(casillas([3, 4, 5, 6, 7, 8, 9]), 9)).toEqual({ tipo: 'dentro' })
+  })
+
+  it('el plan ya se acabó: la persona va por una semana posterior a la última (7 de 12 planes reales)', () => {
+    expect(lugarEnElPlan(casillas([3, 4, 5, 6, 7, 8, 9]), 11)).toEqual({ tipo: 'despues', ultimaDelPlan: 9, actual: 11 })
+  })
+
+  it('el plan todavía no arranca', () => {
+    expect(lugarEnElPlan(casillas([19, 20, 21]), 18)).toEqual({ tipo: 'antes', primeraDelPlan: 19, actual: 18 })
+  })
+
+  it('sin semana en curso o sin casillas no afirma nada', () => {
+    expect(lugarEnElPlan(casillas([1, 2]), undefined)).toEqual({ tipo: 'sin_dato' })
+    expect(lugarEnElPlan([], 4)).toEqual({ tipo: 'sin_dato' })
+  })
+})
 
 describe('mapaDelPlan', () => {
   it('sin tabla no hay mapa', () => {
