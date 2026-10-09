@@ -130,10 +130,10 @@ function PanelDePared({
         boxShadow: '0 6px 18px -12px rgba(0,0,0,.9)',
       }}
     >
-      <dt className="text-[8.5px] font-bold uppercase leading-none tracking-[0.16em] text-silver-500">
+      <dt className="text-xs font-bold uppercase leading-none tracking-[0.16em] text-silver-500">
         {rotulo}
       </dt>
-      <dd className="mt-1 text-[11.5px] font-semibold leading-snug text-silver-100">{valor}</dd>
+      <dd className="mt-1 text-xs font-semibold leading-snug text-silver-100">{valor}</dd>
     </div>
   )
 }
@@ -218,10 +218,10 @@ export function SalonSinSujeto({ ejercicio, bloques = [] }: SalonSinSujetoProps)
           estrecho: las dos anotaciones se reparten el borde de abajo y ninguna pisa a la
           otra. */}
       <div className="absolute bottom-2 left-3 max-w-[52%] text-left">
-        <p className="text-[9.5px] font-semibold leading-snug text-silver-300">
+        <p className="text-xs font-semibold leading-snug text-silver-300">
           {enCorto('Sin modelo 3D para este ejercicio.')}
         </p>
-        <p className="text-[9px] leading-snug text-silver-500">
+        <p className="text-xs leading-snug text-silver-500">
           {enCorto('No hay gesto resistido que enseñar.')}
         </p>
       </div>

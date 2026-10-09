@@ -18,7 +18,7 @@ interface BadgeProps {
 export function Badge({ children, tono = 'neutro' }: BadgeProps) {
   return (
     <span
-      className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${tonos[tono]}`}
+      className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${tonos[tono]}`}
     >
       {children}
     </span>

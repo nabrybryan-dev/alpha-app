@@ -139,7 +139,7 @@ export function RegistroSerieSalon({
   if (completo) {
     return (
       <div className="rounded-[14px] border border-white/10 bg-ink-900 px-3.5 py-3 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-logrado">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-logrado">
           {ejercicio.sets} series registradas
         </p>
       </div>
@@ -154,12 +154,12 @@ export function RegistroSerieSalon({
     // es un cajón, el respaldo lo pone el cajón: dejar la caja aquí dentro era una tarjeta
     // dentro de otra, que es lo que este salón lleva quitando desde el 2026-09-02.
     <div>
-      <p className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-accion">
+      <p className="mb-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-accion">
         <span>
           Serie {orden} de {ejercicio.sets}
         </span>
         {etiqueta && (
-          <span className="rounded-tag bg-accion/15 px-2 py-0.5 text-[9px] tracking-[0.12em]">
+          <span className="rounded-tag bg-accion/15 px-2 py-0.5 text-xs tracking-[0.12em]">
             {etiqueta}
           </span>
         )}

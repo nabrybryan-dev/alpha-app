@@ -117,7 +117,7 @@ export function Conversacion({ yoId, otroId, titulo = 'Conversación con tu coac
       <div className="flex-1 overflow-y-auto pb-2">
         <div className="flex flex-col gap-2">
           {hilo.length > 0 && (
-            <p className="mb-1 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-tenue">
+            <p className="mb-1 text-center text-xs font-bold uppercase tracking-[0.16em] text-tenue">
               {titulo}
             </p>
           )}
@@ -144,7 +144,7 @@ export function Conversacion({ yoId, otroId, titulo = 'Conversación con tu coac
                 className={`entrada max-w-[82%] px-3.5 py-2.5 text-sm leading-relaxed ${forma} ${piel}`}
               >
                 {deAlpha && (
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-tenue">
+                  <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.16em] text-tenue">
                     Alpha · respuesta automática
                   </p>
                 )}
@@ -159,7 +159,7 @@ export function Conversacion({ yoId, otroId, titulo = 'Conversación con tu coac
                   </p>
                 )}
                 <p
-                  className={`cifras mt-1 text-[10px] ${mio && !deAlpha ? 'text-white/70' : 'text-tenue'}`}
+                  className={`cifras mt-1 text-xs ${mio && !deAlpha ? 'text-white/70' : 'text-tenue'}`}
                 >
                   {horaDe(mensaje.fechaIso)}
                 </p>
@@ -167,7 +167,7 @@ export function Conversacion({ yoId, otroId, titulo = 'Conversación con tu coac
             )
           })}
           {esperandoAlpha && (
-            <p className="animate-pulse self-start px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-tenue">
+            <p className="animate-pulse self-start px-1 text-xs font-bold uppercase tracking-[0.16em] text-tenue">
               Alpha está leyendo…
             </p>
           )}

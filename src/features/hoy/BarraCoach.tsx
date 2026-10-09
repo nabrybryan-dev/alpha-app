@@ -68,8 +68,8 @@ export function BarraCoach({
     <section className="relieve glass glass-destacada rounded-bloque p-3.5">
       {/* Enlace de verdad, no un botón que navega: así funciona el clic central,
           el "abrir en pestaña nueva" y se anuncia como enlace. */}
-      <Link to="/chat" className="press flex w-full items-center gap-2.5 text-left">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-3 text-[11px] font-bold text-texto">
+      <Link to="/chat" className="press flex min-h-[44px] w-full items-center gap-2.5 text-left">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface-3 text-xs font-bold text-texto">
           {iniciales}
         </span>
         <span className="min-w-0 flex-1">
@@ -82,7 +82,7 @@ export function BarraCoach({
           )}
         </span>
         {noLeidos > 0 && (
-          <span className="cifras shrink-0 rounded-full bg-rojo px-2 py-0.5 text-[10px] font-bold text-white">
+          <span className="cifras shrink-0 rounded-full bg-rojo px-2 py-0.5 text-xs font-bold text-white">
             {noLeidos}
           </span>
         )}
@@ -93,7 +93,7 @@ export function BarraCoach({
           <span className="truncate">{archivo.name}</span>
           <button
             type="button"
-            className="press ml-auto shrink-0 font-bold text-accion"
+            className="press relative ml-auto shrink-0 font-bold text-accion before:absolute before:-inset-x-2 before:-inset-y-3 before:content-['']"
             onClick={() => setArchivo(undefined)}
           >
             quitar
@@ -144,13 +144,13 @@ export function BarraCoach({
             if (e.key === 'Enter') enviar()
           }}
           placeholder="Escríbele un mensaje…"
-          className="min-w-0 flex-1 rounded-boton border border-linea bg-surface-1 px-3.5 py-2.5 text-sm text-texto placeholder:text-tenue focus:border-accion focus:outline-none"
+          className="min-h-[44px] min-w-0 flex-1 rounded-boton border border-linea bg-surface-1 px-3.5 py-2.5 text-sm text-texto placeholder:text-tenue focus:border-accion focus:outline-none"
         />
         <button
           type="button"
           onClick={enviar}
           aria-label="Enviar mensaje"
-          className="press grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accion text-white"
+          className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accion text-white"
           style={{ boxShadow: 'var(--glow-accion)' }}
         >
           <svg

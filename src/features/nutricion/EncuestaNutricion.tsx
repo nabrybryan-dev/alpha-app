@@ -79,7 +79,7 @@ export function EncuestaNutricion({
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
           {titulo ? 'Cada quince días' : 'Antes de empezar'}
         </p>
         <h1 className="font-display text-xl leading-tight text-texto">
@@ -102,7 +102,7 @@ export function EncuestaNutricion({
               style={{ width: `${(respondidas / campos.length) * 100}%` }}
             />
           </div>
-          <span className="cifras shrink-0 text-[11px] text-tenue">
+          <span className="cifras shrink-0 text-xs text-tenue">
             {respondidas} de {campos.length}
           </span>
         </div>
@@ -163,7 +163,7 @@ function Campo({ campo, valor, error, onResponder }: CampoProps) {
           bien lo que no entiende, y una pregunta sin motivo se responde por
           salir del paso. */}
       {campo.porQue && (
-        <p className="mt-1 text-[11px] leading-snug text-tenue">{campo.porQue}</p>
+        <p className="mt-1 text-xs leading-snug text-tenue">{campo.porQue}</p>
       )}
 
       <div className="mt-3">
@@ -209,7 +209,7 @@ function Campo({ campo, valor, error, onResponder }: CampoProps) {
                 type="button"
                 aria-pressed={valor === opcion.valor}
                 onClick={() => onResponder(opcion.valor)}
-                className={`press rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                className={`press min-h-11 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
                   valor === opcion.valor
                     ? 'border-accion bg-accion/15 text-texto'
                     : 'border-linea bg-surface-2 text-tenue'
@@ -243,7 +243,7 @@ function Campo({ campo, valor, error, onResponder }: CampoProps) {
                         : [...sinNinguna, opcion.valor],
                     )
                   }}
-                  className={`press rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                  className={`press min-h-11 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
                     activa
                       ? 'border-accion bg-accion/15 text-texto'
                       : 'border-linea bg-surface-2 text-tenue'
@@ -258,7 +258,7 @@ function Campo({ campo, valor, error, onResponder }: CampoProps) {
       </div>
 
       {error && (
-        <p className="mt-2 text-[11px] font-semibold text-accion">{error}</p>
+        <p className="mt-2 text-xs font-semibold text-accion">{error}</p>
       )}
     </div>
   )

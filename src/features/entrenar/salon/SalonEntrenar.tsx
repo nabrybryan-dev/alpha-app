@@ -1047,7 +1047,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
                 'radial-gradient(circle at 50% 45%, rgb(var(--accion-rgb) / 0.16), rgb(var(--ink-1000-rgb) / 0.94) 62%)',
             }}
           >
-            <p className="muro-rotulo text-[10.5px] text-accion">{logro.rotulo}</p>
+            <p className="muro-rotulo text-xs text-accion">{logro.rotulo}</p>
             <p className="font-display text-[32px] font-black uppercase leading-tight text-texto">
               {logro.frase}
             </p>

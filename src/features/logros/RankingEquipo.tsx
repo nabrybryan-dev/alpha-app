@@ -49,11 +49,11 @@ function Podio({
       </p>
       <p className={`max-w-20 truncate text-center ${primero ? 'text-sm font-bold text-texto' : 'text-xs text-texto/90'}`}>
         {fila.nombre.split(' ')[0]}
-        {propia && <span className="ml-1 text-[9px] text-rojo">tú</span>}
+        {propia && <span className="ml-1 text-xs text-rojo">tú</span>}
       </p>
       <p className="cifras text-xs font-bold text-texto">
         <CifraAnimada valor={valorDeCategoria(fila, categoria)} duracionMs={700} />
-        <span className="ml-0.5 text-[9px] font-normal text-tenue">{UNIDAD[categoria]}</span>
+        <span className="ml-0.5 text-xs font-normal text-tenue">{UNIDAD[categoria]}</span>
       </p>
     </div>
   )
@@ -94,7 +94,7 @@ export function RankingEquipo({ usuarioActualId }: { usuarioActualId: string }) 
         ))}
       </div>
 
-      <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
+      <p className="mt-3 text-center text-xs font-bold uppercase tracking-[0.2em] text-tenue">
         {activa.titulo}
       </p>
 
@@ -126,7 +126,7 @@ export function RankingEquipo({ usuarioActualId }: { usuarioActualId: string }) 
                 <div className="flex items-center gap-3 py-2.5">
                   <p className="cifras w-5 shrink-0 text-center text-xs text-tenue">{i + 4}</p>
                   <div
-                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-[10px] font-bold ${
+                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-bold ${
                       propia ? 'border-rojo text-rojo' : 'border-hairline text-tenue'
                     }`}
                   >
@@ -134,11 +134,11 @@ export function RankingEquipo({ usuarioActualId }: { usuarioActualId: string }) 
                   </div>
                   <p className={`min-w-0 flex-1 truncate text-sm ${propia ? 'font-bold text-texto' : 'text-texto/90'}`}>
                     {fila.nombre}
-                    {propia && <span className="ml-1.5 text-[10px] font-normal text-rojo">tú</span>}
+                    {propia && <span className="ml-1.5 text-xs font-normal text-rojo">tú</span>}
                   </p>
                   <p className="cifras shrink-0 text-sm font-bold text-texto">
                     {valorDeCategoria(fila, categoria)}
-                    <span className="ml-0.5 text-[10px] font-normal text-tenue">{UNIDAD[categoria]}</span>
+                    <span className="ml-0.5 text-xs font-normal text-tenue">{UNIDAD[categoria]}</span>
                   </p>
                 </div>
               </Revelar>
@@ -147,7 +147,7 @@ export function RankingEquipo({ usuarioActualId }: { usuarioActualId: string }) 
         </div>
       )}
 
-      <p className="mt-3 text-center text-[10px] text-tenue">
+      <p className="mt-3 text-center text-xs text-tenue">
         Solo cumplimiento y rendimiento · últimos 30 días · nada personal se comparte
       </p>
     </Card>

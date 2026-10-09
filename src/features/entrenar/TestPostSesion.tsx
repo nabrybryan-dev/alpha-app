@@ -54,7 +54,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
       <div className="subir-hoja mx-auto max-h-[88dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-ink-400 bg-ink-800 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-5">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ink-500" aria-hidden="true" />
 
-        <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-accion">
+        <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-accion">
           Test post entrenamiento
         </p>
         <h2 className="mt-1.5 text-center font-display text-xl text-silver-100">
@@ -67,7 +67,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
 
         <figure className="mt-4 rounded-tarjeta border-l-2 border-accion bg-ink-700 py-2.5 pl-3 pr-2">
           <blockquote className="font-display text-sm italic leading-snug text-silver-100">“{cita.texto}”</blockquote>
-          <figcaption className="mt-1 text-[10px] font-bold uppercase tracking-wider text-silver-500">— {cita.autor}</figcaption>
+          <figcaption className="mt-1 text-xs font-bold uppercase tracking-wider text-silver-500">— {cita.autor}</figcaption>
         </figure>
 
         <fieldset className="mt-5">
@@ -92,7 +92,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
               )
             })}
           </div>
-          <p className="mt-1.5 flex justify-between text-[10px] font-semibold uppercase tracking-wide text-silver-500">
+          <p className="mt-1.5 flex justify-between text-xs font-semibold uppercase tracking-wide text-silver-500">
             <span>1 · muy suave</span>
             <span>10 · máximo</span>
           </p>
@@ -108,7 +108,7 @@ export function TestPostSesion({ onGuardar, sesionId = '', nombreSesion }: TestP
                   key={o.label}
                   type="button"
                   onClick={() => setPrsEntrada(o.valor)}
-                  className={`press flex-1 rounded-full border py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors duration-toque ease-salida ${
+                  className={`press min-h-11 flex-1 rounded-full border py-2.5 text-xs font-bold uppercase tracking-wide transition-colors duration-toque ease-salida ${
                     sel ? 'border-accion bg-accion text-white' : 'border-ink-500 bg-ink-700 text-silver-300'
                   }`}
                 >

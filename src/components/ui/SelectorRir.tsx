@@ -24,7 +24,7 @@ export function SelectorRir({ valor, onCambiar, etiqueta = 'RIR', maximo = 5 }: 
   const opciones = Array.from({ length: maximo + 1 }, (_, i) => i)
   return (
     <div role="group" aria-label={etiqueta} className="flex w-full flex-col items-center gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+      <span className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
         {etiqueta}
         {valor === undefined && <span className="ml-1.5 font-semibold normal-case tracking-normal">· elige cuántas te quedaban</span>}
       </span>

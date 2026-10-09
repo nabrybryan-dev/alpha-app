@@ -381,7 +381,7 @@ export default function DiarioDia() {
     <div className="flex flex-col gap-4 pb-6">
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Diario de comidas · {etiquetaDelTipoDeDia(plan, tipoDia)}
           </p>
           <h1 className="font-display text-xl capitalize text-texto">{fechaBonita(fecha)}</h1>
@@ -389,13 +389,13 @@ export default function DiarioDia() {
         <button
           type="button"
           onClick={() => setVerSemana(true)}
-          className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+          className="press flex min-h-11 shrink-0 items-center rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
         >
           Semana
         </button>
         <Link
           to="/nutricion/plan"
-          className="press shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
+          className="press flex min-h-11 shrink-0 items-center rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-texto"
         >
           Mi plan
         </Link>
@@ -408,7 +408,7 @@ export default function DiarioDia() {
           to="/nutricion/al-dia"
           className="press flex items-center justify-between gap-3 rounded-2xl border border-ambar/40 bg-ambar/15 p-3"
         >
-          <span className="text-[11px] leading-snug text-tenue">
+          <span className="text-xs leading-snug text-tenue">
             <b className="text-texto">Cuéntanos qué te dijo tu médico.</b> Lo que él te indique
             manda sobre lo que calcule la app.
           </span>

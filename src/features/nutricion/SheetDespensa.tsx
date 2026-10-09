@@ -70,7 +70,7 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
   return (
     <Sheet abierto titulo="Lo que tienes en casa" onCerrar={onCerrar}>
       {vieja && (
-        <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-[11px] leading-snug text-texto">
+        <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-xs leading-snug text-texto">
           Tu despensa lleva más de un ciclo de compra sin tocarse. Si ya hiciste mercado,
           actualízala: mientras diga lo de la vez pasada, el plan te propondrá comida que
           quizá ya no tienes.
@@ -85,12 +85,12 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
         Añadir lo que compré
       </button>
 
-      <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+      <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-tenue">
         En casa ({despensa.length})
       </p>
 
       {despensa.length === 0 ? (
-        <p className="mt-2 text-[11px] leading-snug text-tenue">
+        <p className="mt-2 text-xs leading-snug text-tenue">
           Todavía nada. Mientras esté vacía, el plan te propone cambios sin saber qué
           tienes en la cocina.
         </p>
@@ -107,7 +107,7 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
                     deja fuera de todo cálculo. Se dice, en vez de que la
                     persona se pregunte por qué ese no cuenta. */}
                 {!item.alimentoId && (
-                  <span className="mt-0.5 block text-[11px] text-tenue">
+                  <span className="mt-0.5 block text-xs text-tenue">
                     Sin datos todavía · lo está revisando el equipo
                   </span>
                 )}
@@ -116,7 +116,7 @@ export function SheetDespensa({ asesoradoId, abierto, onCerrar }: SheetDespensaP
                 type="button"
                 aria-label={`Quitar ${nombreDe(item)}`}
                 onClick={() => db.despensa.quitar(asesoradoId, claveDe(item))}
-                className="press shrink-0 rounded-full border border-linea px-3 py-1 text-[11px] font-semibold text-tenue"
+                className="press min-h-11 shrink-0 rounded-full border border-linea px-3 py-1 text-xs font-semibold text-tenue"
               >
                 Se acabó
               </button>

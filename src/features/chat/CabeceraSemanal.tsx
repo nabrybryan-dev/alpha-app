@@ -61,7 +61,7 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
       aria-label="Tu revisión de la semana"
       className="entrada entrada-1 flex flex-col gap-2"
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.2em] text-tenue">
         <span className="h-1.5 w-1.5 rounded-full bg-rojo" aria-hidden="true" />
         Tu revisión de la semana
       </p>

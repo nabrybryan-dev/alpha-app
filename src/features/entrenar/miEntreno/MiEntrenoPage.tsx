@@ -38,7 +38,7 @@ const ESTADO_LEIDO: Record<DiaRuta['estado'], string> = {
 }
 
 function CasillaDia({ dia }: { dia: DiaRuta }) {
-  const base = 'flex h-11 items-center justify-center rounded-[10px] text-[11px] font-extrabold'
+  const base = 'flex h-11 items-center justify-center rounded-[10px] text-xs font-extrabold'
   const estilo =
     dia.estado === 'completada'
       ? 'bg-texto text-bg'
@@ -52,7 +52,7 @@ function CasillaDia({ dia }: { dia: DiaRuta }) {
 
   return (
     <li className="flex min-w-0 flex-col gap-1 text-center">
-      <span className="text-[11px] text-tenue" aria-hidden="true">
+      <span className="text-xs text-tenue" aria-hidden="true">
         {dia.abreviatura.charAt(0)}
       </span>
       {dia.sesionId ? (
@@ -86,7 +86,7 @@ function SesionDeHoy({ sesion, esDeHoy }: { sesion: Sesion; esDeHoy: boolean }) 
       className="entrada entrada-2 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">
+        <p className="min-w-0 truncate text-xs font-bold uppercase tracking-[0.14em] text-tenue">
           {esDeHoy ? 'Hoy' : 'Lo siguiente'} · {sesion.nombre}
         </p>
         <span className="shrink-0 text-xs font-semibold text-tenue">
@@ -142,7 +142,7 @@ export default function MiEntrenoPage() {
   return (
     <div className="flex flex-col gap-3.5">
       <header className="flex flex-col gap-1 pt-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
           {microciclo ? `Microciclo M${microciclo.numero} · cadencia ${microciclo.cadenciaDias} días` : 'Sin microciclo activo'}
         </p>
         <h2 className="font-display text-3xl leading-none text-texto">Mi entrenamiento</h2>
@@ -153,7 +153,7 @@ export default function MiEntrenoPage() {
           aria-label="Estructura de la semana"
           className="entrada entrada-1 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Estructura de la semana</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Estructura de la semana</p>
           <ol className="grid grid-cols-7 gap-1.5">
             {semana.map((d) => (
               <CasillaDia key={d.fechaIso} dia={d} />
@@ -191,7 +191,7 @@ export default function MiEntrenoPage() {
           <rect x="200" y="26" width="8" height="14" rx="2" fill="#f2f2f2" />
         </svg>
         <div className="relative flex flex-col gap-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accion">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-accion">
             El salón{sesion ? ` · ${destacada?.esDeHoy ? 'hoy' : 'lo siguiente'}: ${sesion.nombre}` : ''}
           </p>
           <p className="font-display text-2xl leading-none text-silver-100">Entra y entrena</p>
@@ -212,7 +212,7 @@ export default function MiEntrenoPage() {
           aria-label="Tu progreso"
           className="entrada entrada-4 flex flex-col gap-2.5 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Tu progreso · fuerza</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Tu progreso · fuerza</p>
           <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
             <Cifra3D
               valor={fuerza.mejoraron}

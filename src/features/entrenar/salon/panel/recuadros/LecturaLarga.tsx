@@ -53,7 +53,7 @@ export function LecturaLarga({ lecturas, foco }: LecturaLargaProps) {
         >
           <div>
             <p
-              className={`text-[9.5px] font-bold uppercase leading-none tracking-[0.18em] ${
+              className={`text-xs font-bold uppercase leading-none tracking-[0.18em] ${
                 l.id === foco ? 'text-accion' : 'text-silver-500'
               }`}
             >

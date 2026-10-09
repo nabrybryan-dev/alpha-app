@@ -191,7 +191,7 @@ export default function HoyPage() {
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
     <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
       <section className="entrada entrada-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
           {[
             microciclo
               ? nombreDelMicrociclo(microciclo.numero, simple)
@@ -269,7 +269,7 @@ export default function HoyPage() {
             <button
               type="button"
               onClick={() => setActualizandoSalud(true)}
-              className="font-bold text-texto underline underline-offset-2"
+              className="relative font-bold text-texto underline underline-offset-2 before:absolute before:-inset-x-2 before:-inset-y-3 before:content-['']"
             >
               Cuéntanoslo
             </button>
@@ -363,7 +363,7 @@ export default function HoyPage() {
             <span className="block text-sm font-bold text-texto">Check-in diario pendiente</span>
             <span className="block text-xs text-tenue">Peso, pasos, sueño y sensaciones · 1 min</span>
           </span>
-          <span className="text-[11px] font-bold uppercase tracking-wide text-rojo">Llenar →</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-rojo">Llenar →</span>
         </Link>
       )}
 
@@ -373,7 +373,7 @@ export default function HoyPage() {
           <span className="absolute bottom-3.5 left-0 top-3.5 w-[3px] rounded-r bg-accion" aria-hidden="true" />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accion">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-accion">
                 {sugerida?.esDeHoy
                   ? `Sesión de hoy · ${siglaDelMicrociclo(microciclo.numero, simple)}`
                   : diaDeSesion(siguienteSesion)
@@ -394,7 +394,7 @@ export default function HoyPage() {
               {prioridadVolumen.map((g) => (
                 <li
                   key={g.grupo}
-                  className="rounded-full border border-ink-500 bg-ink-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-silver-300"
+                  className="rounded-full border border-ink-500 bg-ink-700 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-silver-300"
                 >
                   {g.grupo} <span className="text-silver-500">{g.nivel}</span>
                 </li>
@@ -428,14 +428,14 @@ export default function HoyPage() {
             to="/logros"
             className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm"
           >
-            <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">Racha</p>
             <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
               {Math.round(rachaAnimada)}
               <span className="text-sm font-medium text-tenue"> d</span>
             </p>
           </Link>
           <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-            <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">
               Peso{microciclo ? ` ${siglaDelMicrociclo(microciclo.numero, simple)}` : ''}
             </p>
             <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
@@ -444,7 +444,7 @@ export default function HoyPage() {
             </p>
           </div>
           <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
-            <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-tenue">Adherencia</p>
             <p className="cifras mt-1 text-2xl font-bold leading-none text-accion">
               {adherenciaPct ?? '—'}
               <span className="text-sm font-medium text-tenue"> %</span>

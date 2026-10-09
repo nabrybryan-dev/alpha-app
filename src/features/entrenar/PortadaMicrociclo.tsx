@@ -146,7 +146,7 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
       <section className="bisel-nucleo overflow-hidden border border-ink-500 bg-ink-900 shadow-lg">
         <header className="flex items-start justify-between gap-3 border-b border-ink-600 bg-gradient-to-b from-white/[.05] to-transparent px-[18px] pb-4 pt-[18px]">
           <div>
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-silver-500">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
               Empieza tu microciclo
             </p>
             <h2 className="font-display mt-[7px] text-[25px] font-black leading-[1.04] tracking-[-0.015em] text-silver-100">
@@ -155,14 +155,14 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
               {`M${microciclo.numero}`}
             </h2>
           </div>
-          <span className="cifras shrink-0 rounded-full border border-accion/40 px-2.5 py-[5px] text-[10.5px] font-bold text-accion">
+          <span className="cifras shrink-0 rounded-full border border-accion/40 px-2.5 py-[5px] text-xs font-bold text-accion">
             {`${sesiones} SESIONES`}
           </span>
         </header>
 
         {prioritarios.length > 0 && (
           <div className="border-b border-ink-600 px-[18px] py-4">
-            <p className="mb-[11px] text-[10px] font-bold uppercase tracking-[0.18em] text-silver-500">
+            <p className="mb-[11px] text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
               {`Lo que trabajas esta semana · ${series} series`}
             </p>
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-[7px]">
@@ -171,10 +171,10 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
                   key={g.grupo}
                   className="flex items-center gap-[7px] rounded-[10px] border border-ink-500 bg-ink-700 px-[9px] py-2"
                 >
-                  <span className="cifras text-[10px] font-bold text-accion">
+                  <span className="cifras text-xs font-bold text-accion">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <span className="text-[11.5px] font-semibold text-silver-200">{g.grupo}</span>
+                  <span className="text-xs font-semibold text-silver-200">{g.grupo}</span>
                 </li>
               ))}
             </ul>
@@ -193,7 +193,7 @@ export function PortadaMicrociclo({ microciclo }: { microciclo: Microciclo }) {
               </svg>
             </span>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-silver-500">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
                 Foco de la semana
               </p>
               <p className="font-display text-[18px] font-black uppercase text-accion">{foco.grupo}</p>

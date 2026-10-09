@@ -29,7 +29,7 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">Tu perfil</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Tu perfil</p>
         <h2 className="font-display text-lg text-texto">{nombre}</h2>
       </header>
 
@@ -50,14 +50,14 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
             <Dato etiqueta="Masa magra" valor={cifra(perfil.masaMagraKg, 1)} unidad="kg" />
             <Dato etiqueta="IMC" valor={cifra(perfil.imc, 1)} />
           </div>
-          <p className="mt-3 text-[11px] leading-snug text-tenue">
+          <p className="mt-3 text-xs leading-snug text-tenue">
             Es una <b className="text-texto">estimación</b> a partir de tus medidas, con un margen
             de 3 a 4 puntos. Sirve para seguir tu propia evolución, no para compararte con nadie.
           </p>
           {perfil.imc !== null && (
             // El IMC no distingue músculo de grasa. En una asesoría de fuerza
             // eso no es un matiz: es la diferencia entre un dato y un insulto.
-            <p className="mt-1 text-[11px] leading-snug text-tenue">
+            <p className="mt-1 text-xs leading-snug text-tenue">
               El IMC solo cruza peso y altura: no sabe cuánto de ese peso es músculo. Mira antes el
               porcentaje de grasa.
             </p>
@@ -76,7 +76,7 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
 
           {perfil.macros && (
             <div className="mt-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
                 Punto de partida
               </p>
               <div className="mt-2 grid grid-cols-3 gap-2">
@@ -87,7 +87,7 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
             </div>
           )}
 
-          <p className="mt-3 text-[11px] leading-snug text-tenue">
+          <p className="mt-3 text-xs leading-snug text-tenue">
             Es un <b className="text-texto">punto de partida calculado</b>, no tu plan. Tu
             nutricionista lo revisa y lo ajusta a ti.
           </p>
@@ -118,13 +118,13 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
                 : 'border-linea bg-surface-2'
           }`}
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Energía disponible
           </p>
           <p className="cifras mt-1 text-lg font-bold text-texto">
             {perfil.energia.disponibilidad} kcal/kg
           </p>
-          <p className="mt-1 text-[11px] leading-snug text-tenue">
+          <p className="mt-1 text-xs leading-snug text-tenue">
             {perfil.energia.estado === 'problema'
               ? 'Estás comiendo menos de lo que tu cuerpo necesita para funcionar. Habla con tu nutricionista.'
               : perfil.energia.estado === 'vigilancia'
@@ -142,7 +142,7 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
       )}
 
       {perfil.incompleto.length > 0 && (
-        <p className="text-[11px] leading-snug text-tenue">
+        <p className="text-xs leading-snug text-tenue">
           Falta calcular {perfil.incompleto.join(', ')}: revisa que tus medidas estén completas.
         </p>
       )}
@@ -153,9 +153,9 @@ export function PerfilCalculadoVista({ perfil, visibilidad, nombre }: PerfilCalc
 function Dato({ etiqueta, valor, unidad }: { etiqueta: string; valor: string; unidad?: string }) {
   return (
     <div className="rounded-2xl border border-linea bg-surface-2 p-3">
-      <p className="text-[9px] font-bold uppercase tracking-wide text-tenue">{etiqueta}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-tenue">{etiqueta}</p>
       <p className="cifras mt-1 text-lg font-bold leading-none text-texto">{valor}</p>
-      {unidad && <p className="text-[10px] text-tenue">{unidad}</p>}
+      {unidad && <p className="text-xs text-tenue">{unidad}</p>}
     </div>
   )
 }

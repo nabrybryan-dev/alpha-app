@@ -168,7 +168,7 @@ export function BloqueActual({
     <section className="relieve rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
       <div className="flex items-center gap-3">
         <DiscoDespiece />
-        <h2 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-tenue">
+        <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
           {simple ? 'Tu meta de ahora' : 'Tu bloque actual'}
         </h2>
       </div>
@@ -187,7 +187,7 @@ export function BloqueActual({
               <dt className="text-xs text-tenue">
                 {f.etiqueta}
                 {f.estimado && (
-                  <span className="ml-1.5 text-[9.5px] uppercase tracking-wide text-tenue/70">
+                  <span className="ml-1.5 text-xs uppercase tracking-wide text-tenue/70">
                     estimado
                   </span>
                 )}

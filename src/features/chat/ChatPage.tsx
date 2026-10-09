@@ -48,7 +48,7 @@ export default function ChatPage() {
         </span>
         <div>
           <h2 className="font-display text-xl leading-tight text-texto">{tituloDe(elegido)}</h2>
-          <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-accion">
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.2em] text-accion">
             <span className="h-1.5 w-1.5 rounded-full bg-accion" aria-hidden="true" />
             {elegido.rol === 'coach' ? 'Línea directa' : 'Nutrición'}
           </p>
@@ -56,7 +56,7 @@ export default function ChatPage() {
               Respuestas NO contesta —es del coach y solo del coach—, y sin
               decirlo se lee como que la app está rota. */}
           {elegido.rol !== 'coach' && (
-            <p className="mt-1 text-[11px] leading-snug text-tenue">
+            <p className="mt-1 text-xs leading-snug text-tenue">
               {elegido.nombre.split(' ')[0]} te responde en persona. Aquí no hay respuestas
               automáticas.
             </p>

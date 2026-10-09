@@ -53,7 +53,7 @@ export function Hidratacion({ usuarioId }: { usuarioId: string }) {
         </svg>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-tenue">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tenue">
               Hidratación
             </p>
             <p className="cifras text-xs text-tenue">
@@ -78,7 +78,7 @@ export function Hidratacion({ usuarioId }: { usuarioId: string }) {
               type="button"
               aria-label="Quitar 250 mililitros"
               onClick={() => db.nutricion.registrarHidratacion(usuarioId, hoy, -VASO_ML)}
-              className="press grid h-9 w-9 place-items-center rounded-full border border-hairline text-base text-tenue"
+              className="press grid h-11 w-11 place-items-center rounded-full border border-hairline text-base text-tenue"
             >
               −
             </button>

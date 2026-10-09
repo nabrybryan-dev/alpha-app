@@ -55,7 +55,7 @@ function claseTarjeta(estado: EstadoNivelAlfa): string {
 export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
   return (
     <section>
-      <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.16em] text-silver-500">
+      <h3 className="mb-2.5 text-xs font-bold uppercase tracking-[0.16em] text-silver-500">
         Escala Alfa
       </h3>
       <ol className="flex flex-col">
@@ -96,14 +96,14 @@ export function EscalaAlfa({ niveles }: { niveles: readonly NivelAlfa[] }) {
                       entrenados: cada peldaño declara al suyo. Se calla cuando
                       diría lo mismo que el nombre ("AVANZADO · Avanzado"). */}
                   {ETIQUETA_METODO[nivel.nivelMetodo].toUpperCase() !== nivel.nombre && (
-                    <span className="shrink-0 whitespace-nowrap text-[10.5px] uppercase tracking-[0.1em] text-silver-500">
+                    <span className="shrink-0 whitespace-nowrap text-xs uppercase tracking-[0.1em] text-silver-500">
                       {ETIQUETA_METODO[nivel.nivelMetodo]}
                     </span>
                   )}
                 </div>
                 <p className="mt-1.5 text-xs leading-relaxed text-silver-400">{nivel.descripcion}</p>
                 <p
-                  className={`mt-2 text-[10.5px] font-bold uppercase tracking-[0.12em] ${COLOR_ETIQUETA[nivel.estado]}`}
+                  className={`mt-2 text-xs font-bold uppercase tracking-[0.12em] ${COLOR_ETIQUETA[nivel.estado]}`}
                 >
                   {ETIQUETA[nivel.estado]}
                 </p>

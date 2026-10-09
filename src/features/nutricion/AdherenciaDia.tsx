@@ -50,7 +50,7 @@ export function AdherenciaDia({ usuarioId }: { usuarioId: string }) {
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
             placeholder="Comentario opcional (salidas, cambios, antojos…)"
-            className="mt-2 w-full rounded-xl border border-linea bg-surface-2 px-3 py-2 text-sm text-texto placeholder:text-tenue focus:border-rojo focus:outline-none"
+            className="mt-2 min-h-[44px] w-full rounded-xl border border-linea bg-surface-2 px-3 py-2 text-sm text-texto placeholder:text-tenue focus:border-rojo focus:outline-none"
           />
         </>
       )}

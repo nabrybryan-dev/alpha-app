@@ -93,12 +93,12 @@ export function DetalleComida({
           type="button"
           onClick={onVolver}
           aria-label="Volver al diario"
-          className="press h-9 w-9 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
+          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
         >
           ←
         </button>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             {comida.momentoIso.slice(11, 16)}
           </p>
           <h1 className="font-display text-xl text-texto">{NOMBRES[comida.comida]}</h1>
@@ -110,7 +110,7 @@ export function DetalleComida({
 
       {pauta && (
         <section className="rounded-2xl border border-linea bg-surface-2 p-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Lo que pauta tu plan
           </p>
           <p className="mt-1 text-sm leading-snug text-texto">{pauta}</p>
@@ -136,7 +136,7 @@ export function DetalleComida({
                   <span className="block truncate text-sm font-semibold text-texto">
                     {alimento?.nombre ?? 'Alimento que ya no está en el catálogo'}
                   </span>
-                  <span className="cifras block text-[10px] text-tenue">
+                  <span className="cifras block text-xs text-tenue">
                     {item.estadoAsumido} · P {cifra(por?.proteina_g)} · C {cifra(por?.carbos_g)} · G{' '}
                     {cifra(por?.grasa_g)}
                     {!item.fuePesado && ' · estimado'}
@@ -144,15 +144,20 @@ export function DetalleComida({
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="cifras block text-sm font-bold text-texto">{item.gramos} g</span>
-                  <span className="cifras block text-[10px] text-tenue">{cifra(por?.kcal)} kcal</span>
+                  <span className="cifras block text-xs text-tenue">{cifra(por?.kcal)} kcal</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => onQuitarItem(item.id)}
                   aria-label={`Quitar ${alimento?.nombre ?? 'alimento'}`}
-                  className="press h-8 w-8 shrink-0 rounded-full border border-linea text-tenue hover:border-accion hover:text-accion"
+                  className="press group grid h-11 w-11 shrink-0 place-items-center"
                 >
-                  ✕
+                  <span
+                    aria-hidden="true"
+                    className="grid h-8 w-8 place-items-center rounded-full border border-linea text-tenue group-hover:border-accion group-hover:text-accion"
+                  >
+                    ✕
+                  </span>
                 </button>
               </li>
             ))}
@@ -185,7 +190,7 @@ export function DetalleComida({
                   : { cocinadoPorEl: true, confianza: 'estimado' },
               )
             }
-            className={`press h-7 w-12 shrink-0 rounded-full border transition-colors ${
+            className={`press relative h-7 w-12 shrink-0 rounded-full border transition-colors before:absolute before:-inset-y-2 before:inset-x-0 before:content-[''] ${
               comida.cocinadoPorEl ? 'border-accion bg-accion' : 'border-linea bg-surface-3'
             }`}
           >
@@ -200,7 +205,7 @@ export function DetalleComida({
 
         {comida.cocinadoPorEl ? (
           <>
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-tenue">
               ¿Cuánto aceite usaste?
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -210,7 +215,7 @@ export function DetalleComida({
                   type="button"
                   aria-pressed={aceiteElegido === opcion}
                   onClick={() => onCambiar({ aceiteG: gramosDeAceite(opcion) })}
-                  className={`press rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`press min-h-11 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                     aceiteElegido === opcion
                       ? 'border-accion bg-accion/15 text-texto'
                       : 'border-linea bg-surface-2 text-tenue'
@@ -221,7 +226,7 @@ export function DetalleComida({
               ))}
             </div>
 
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-tenue">
               ¿Cuánta sal o caldo?
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -231,7 +236,7 @@ export function DetalleComida({
                   type="button"
                   aria-pressed={salElegida === opcion}
                   onClick={() => onCambiar({ salG: gramosDeSal(opcion) })}
-                  className={`press rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`press min-h-11 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                     salElegida === opcion
                       ? 'border-accion bg-accion/15 text-texto'
                       : 'border-linea bg-surface-2 text-tenue'
@@ -243,7 +248,7 @@ export function DetalleComida({
             </div>
 
             {grasaOculta && (
-              <p className="mt-3 text-[11px] leading-snug text-tenue">
+              <p className="mt-3 text-xs leading-snug text-tenue">
                 Ese aceite son{' '}
                 <b className="text-texto">{kcalDelAceite} kcal</b> que no se ven en el plato. Es la
                 parte del registro que más se olvida.
@@ -251,7 +256,7 @@ export function DetalleComida({
             )}
           </>
         ) : (
-          <p className="mt-3 text-[11px] leading-snug text-tenue">
+          <p className="mt-3 text-xs leading-snug text-tenue">
             No te preguntamos por el aceite y la sal: no puedes saberlo. Este registro entra con
             margen <b className="text-texto">±30 %</b> y tu coach lo verá marcado.
           </p>

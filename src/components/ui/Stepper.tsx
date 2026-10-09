@@ -137,14 +137,14 @@ export function Stepper({
     onCambiar(acotar(Number.isFinite(n) ? (decimal ? n : Math.round(n)) : valor))
   }
 
-  const tamBoton = grande ? 'h-12 w-12' : 'h-10 w-10'
+  const tamBoton = grande ? 'h-12 w-12' : 'h-11 w-11'
   // `.tecla-3d` SUSTITUYE a `.press`, no se suma: las dos escriben `transform`.
   const tacto = profundidad ? 'tecla-3d' : 'press'
   const tamValor = grande ? 'text-[26px]' : 'text-lg'
 
   return (
     <div className="flex w-full flex-col items-center gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+      <span className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
         {etiqueta}
         {sugerido && <span className="ml-1.5 font-semibold normal-case tracking-normal">· sugerida</span>}
       </span>
@@ -193,7 +193,7 @@ export function Stepper({
             }}
             onChange={(e) => alEscribir(e.target.value)}
             onBlur={alSalir}
-            className={`cifras w-full min-w-0 bg-transparent text-center ${tamValor} font-bold ${sugerido ? 'text-texto/45' : 'text-texto'} focus:outline-none`}
+            className={`cifras min-h-[44px] w-full min-w-0 bg-transparent text-center ${tamValor} font-bold ${sugerido ? 'text-texto/45' : 'text-texto'} focus:outline-none`}
           />
           {sugerido && (
             <span id={idSugerencia} className="sr-only">

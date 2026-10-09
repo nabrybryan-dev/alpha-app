@@ -78,7 +78,7 @@ export default function AlDiaEmbarazo() {
         <button
           type="button"
           onClick={() => navegar('/nutricion')}
-          className="press w-full py-2 text-center text-xs font-semibold text-tenue"
+          className="press min-h-11 w-full py-2 text-center text-xs font-semibold text-tenue"
         >
           Ahora no
         </button>

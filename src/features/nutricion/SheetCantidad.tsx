@@ -155,7 +155,7 @@ function CuerpoCantidad({
   // Paso 2 · Cuánto.
   return (
     <Sheet abierto={abierto} titulo={alimento.nombre} onCerrar={onCerrar}>
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-tenue">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-tenue">
         <span className="rounded-full border border-linea bg-surface-2 px-2 py-0.5 uppercase tracking-wide">
           {alimento.estado}
         </span>
@@ -183,7 +183,7 @@ function CuerpoCantidad({
 
       {alimento.medidas?.length ? (
         <div className="mt-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Medidas de este alimento
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -193,7 +193,7 @@ function CuerpoCantidad({
                 type="button"
                 onClick={() => setGramos(Math.round(medida.gramos))}
                 aria-pressed={gramos === Math.round(medida.gramos)}
-                className={`press rounded-full border px-3 py-2 text-left text-xs transition-colors ${
+                className={`press min-h-11 rounded-full border px-3 py-2 text-left text-xs transition-colors ${
                   gramos === Math.round(medida.gramos)
                     ? 'border-accion bg-accion/15 text-texto'
                     : 'border-linea bg-surface-2 text-tenue'
@@ -208,7 +208,7 @@ function CuerpoCantidad({
       ) : null}
 
       <div className="mt-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
           ¿Cómo lo supiste?
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -228,7 +228,7 @@ function CuerpoCantidad({
               }`}
             >
               <span className="block text-sm font-semibold">{opcion.etiqueta}</span>
-              <span className="cifras block text-[11px] opacity-70">
+              <span className="cifras block text-xs opacity-70">
                 margen ±{Math.round(MARGENES[opcion.confianza] * 100)} %
               </span>
             </button>

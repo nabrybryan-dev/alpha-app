@@ -18,7 +18,7 @@ function Casilla({ valor, etiqueta, rojo = false }: { valor: string; etiqueta: s
       }`}
     >
       <span className="font-display text-xl leading-none text-texto">{valor}</span>
-      <span className="text-[11px] text-tenue">{etiqueta}</span>
+      <span className="text-xs text-tenue">{etiqueta}</span>
     </div>
   )
 }
@@ -42,7 +42,7 @@ export function ChequeoDeHoy({ usuarioId, hoy }: ChequeoDeHoyProps) {
       className="entrada entrada-4 flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tenue">Chequeo de hoy</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">Chequeo de hoy</p>
         {deHoy ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-texto">
             <span className="grid h-5 w-5 place-items-center rounded-full bg-logrado text-ink-900">

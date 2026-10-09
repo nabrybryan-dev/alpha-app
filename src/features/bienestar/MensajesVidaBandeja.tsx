@@ -35,7 +35,7 @@ export function MensajesVidaBandeja({ usuarioId }: { usuarioId: string }) {
           <li key={m.id} className="flex flex-col gap-1 border-t border-hairline pt-2 first:border-0 first:pt-0">
             <div className="flex items-center gap-1.5">
               {m.tipo === 'ayuda_animo' && <Badge tono="rojo">Ayuda</Badge>}
-              <span className="text-[10px] text-tenue">{new Date(m.enviarDespuesDe).toLocaleDateString('es-CO')}</span>
+              <span className="text-xs text-tenue">{new Date(m.enviarDespuesDe).toLocaleDateString('es-CO')}</span>
             </div>
             <p className="text-sm text-texto">{m.texto}</p>
           </li>

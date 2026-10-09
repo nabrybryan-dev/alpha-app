@@ -67,21 +67,21 @@ export function Recuadro({ clave, titulo, pie, cifra, children }: RecuadroProps)
           aria-expanded={abierto}
           aria-controls={idContenido}
           onClick={() => setAbierto((v) => !v)}
-          className="press flex w-full items-baseline gap-3 py-0.5 text-left"
+          className="press min-h-[44px] flex w-full items-baseline gap-3 py-0.5 text-left"
         >
           {/* EL NÚMERO. Es lo único de la cabecera que lleva color de marca, y lleva el
               peso de la jerarquía: en una hoja larga, el número es por dónde vas. Sale de
               un contador de CSS y no de una prop — tres de los doce recuadros son
               condicionales, y un índice pasado desde fuera numeraría 01, 02, 04. */}
           <span
-            className="hoja-numero cifras shrink-0 text-[11px] font-bold leading-none text-accion"
+            className="hoja-numero cifras shrink-0 text-xs font-bold leading-none text-accion"
             aria-hidden="true"
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
+            <span className="block text-xs font-bold uppercase leading-none tracking-[0.22em] text-silver-500">
               {titulo}
             </span>
-            {pie && <span className="mt-1.5 block text-[11.5px] leading-snug text-silver-400">{pie}</span>}
+            {pie && <span className="mt-1.5 block text-xs leading-snug text-silver-400">{pie}</span>}
           </span>
           {cifra !== undefined && (
             <span className="cifras shrink-0 self-center text-[13px] font-bold leading-none">

@@ -54,7 +54,7 @@ function RegistroDeCardio({
   return (
     <div className="mt-2 flex flex-col gap-1.5 border-t border-hairline pt-2">
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1 text-[11px] text-tenue">
+        <label className="flex items-center gap-1 text-xs text-tenue">
           Duración
           <input
             inputMode="decimal"
@@ -66,7 +66,7 @@ function RegistroDeCardio({
             className="w-14 rounded-md border border-hairline bg-surface-2 px-1.5 py-1 text-right text-xs text-texto focus:outline-none focus:border-rojo"
           />
         </label>
-        <label className="flex items-center gap-1 text-[11px] text-tenue">
+        <label className="flex items-center gap-1 text-xs text-tenue">
           Distancia
           <input
             inputMode="decimal"
@@ -78,7 +78,7 @@ function RegistroDeCardio({
             className="w-14 rounded-md border border-hairline bg-surface-2 px-1.5 py-1 text-right text-xs text-texto focus:outline-none focus:border-rojo"
           />
         </label>
-        <label className="flex items-center gap-1 text-[11px] text-tenue">
+        <label className="flex items-center gap-1 text-xs text-tenue">
           FC media
           <input
             inputMode="decimal"
@@ -92,7 +92,7 @@ function RegistroDeCardio({
         </label>
       </div>
       {(ritmo || velocidad !== undefined) && (
-        <p className="cifras text-[11px] text-tenue">
+        <p className="cifras text-xs text-tenue">
           {ritmo}
           {ritmo && velocidad !== undefined ? ' · ' : ''}
           {velocidad !== undefined ? `${velocidad} km/h` : ''}
@@ -129,7 +129,7 @@ export function BloquesSesion({ bloques, esMetabolica, onMarcar, onRegistrar }: 
               // también a `transition-colors`, que ya lleva dentro. La casilla sube a
               // relieve y baja al PLANO al pulsar, nunca por debajo: hundir encoge, y
               // una diana ya justa de tamaño no puede permitírselo.
-              className={`tecla-3d mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-sm font-bold ${
+              className={`tecla-3d relative mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border before:absolute before:-inset-1 before:content-[''] text-sm font-bold ${
                 bloque.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
               }`}
             >

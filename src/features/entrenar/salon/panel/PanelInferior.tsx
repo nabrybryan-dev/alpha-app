@@ -298,7 +298,7 @@ export function PanelInferior(props: PanelInferiorProps) {
           onPointerMove={alMoverDedo}
           onPointerUp={alLevantarDedo}
           onPointerCancel={alLevantarDedo}
-          className="flex w-full shrink-0 touch-none items-center justify-center py-3"
+          className="flex min-h-[44px] w-full shrink-0 touch-none items-center justify-center py-3"
         >
           {/* Bajado, la manija va sola sobre la sala —suelo claro o muro oscuro—, así que
               lleva un halo oscuro alrededor para leerse en los dos. */}

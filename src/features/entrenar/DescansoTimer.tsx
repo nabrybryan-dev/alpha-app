@@ -135,7 +135,7 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
                   transform: `translateZ(var(${pausado ? '--prof-plano' : '--prof-relieve'}))`,
                 }}
               >
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-500">
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-silver-500">
                   Descanso{pausado ? ' · en pausa' : ''}
                 </div>
                 {/* Pausar hunde el dato al ras. Antes era `opacity-60`, y la
@@ -154,7 +154,7 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
                 <button
                   type="button"
                   onClick={onMas15}
-                  className="press cifras rounded-boton border border-ink-400 bg-ink-600 px-3 py-2.5 text-sm font-bold text-silver-200"
+                  className="press min-h-[44px] cifras rounded-boton border border-ink-400 bg-ink-600 px-3 py-2.5 text-sm font-bold text-silver-200"
                 >
                   +15s
                 </button>
@@ -163,7 +163,7 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
                   onClick={alternarPausa}
                   aria-label={pausado ? 'Reanudar descanso' : 'Pausar descanso'}
                   aria-pressed={pausado}
-                  className="press grid place-items-center rounded-boton border border-ink-400 bg-ink-600 px-3.5 py-2.5 text-silver-200"
+                  className="press min-h-[44px] grid place-items-center rounded-boton border border-ink-400 bg-ink-600 px-3.5 py-2.5 text-silver-200"
                 >
                   {pausado ? (
                     <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
@@ -186,7 +186,7 @@ export function DescansoTimer({ hasta, totalSeg, onCerrar, onMas15 }: DescansoTi
                 <button
                   type="button"
                   onClick={cerrarUnaVez}
-                  className="press rounded-boton bg-ink-600 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wide text-silver-300"
+                  className="press min-h-[44px] rounded-boton bg-ink-600 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wide text-silver-300"
                 >
                   Saltar
                 </button>

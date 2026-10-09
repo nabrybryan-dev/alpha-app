@@ -138,7 +138,7 @@ export default function MiPlan() {
           type="button"
           onClick={() => navegar('/nutricion')}
           aria-label="Volver al diario"
-          className="press h-9 w-9 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
+          className="press h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
         >
           ←
         </button>
@@ -149,7 +149,7 @@ export default function MiPlan() {
         <button
           type="button"
           onClick={() => setDespensaAbierta(true)}
-          className="press ml-auto shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-tenue"
+          className="press relative before:absolute before:-inset-y-2 before:inset-x-0 before:content-[''] ml-auto shrink-0 rounded-full border border-linea bg-surface-2 px-3 py-1.5 text-xs font-semibold text-tenue"
         >
           En casa
         </button>
@@ -162,14 +162,14 @@ export default function MiPlan() {
         onCerrar={() => setDespensaAbierta(false)}
       />
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="-mx-1 -my-2 flex gap-2 overflow-x-auto px-1 py-2 pb-3">
         {secciones.map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => setSeccion(s)}
             aria-pressed={seccion === s}
-            className={`press shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`press relative before:absolute before:-inset-y-2 before:inset-x-0 before:content-[''] shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
               seccion === s
                 ? 'border-accion bg-accion/15 text-texto'
                 : 'border-linea bg-surface-2 text-tenue'
@@ -190,7 +190,7 @@ export default function MiPlan() {
 
       {seccion === 'Contexto' && (
         <section className="rounded-2xl border border-linea bg-surface-1 p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
             Antes de los números
           </p>
           <p className="mt-2 text-sm leading-relaxed text-texto">{plan.analisis}</p>
@@ -216,7 +216,7 @@ export default function MiPlan() {
                   <span className="text-sm font-semibold text-texto">
                     {plan.etiquetasDia?.[tipo] ?? tipo}
                   </span>
-                  <span className="cifras text-right text-[11px] text-tenue">
+                  <span className="cifras text-right text-xs text-tenue">
                     {macros ? (
                       <>
                         <b className="text-texto">{macros.kcal.toLocaleString('es-CO')}</b> kcal
@@ -253,14 +253,14 @@ export default function MiPlan() {
                 <span className="block text-xs font-semibold">
                   {plan.etiquetasDia?.[tipo] ?? tipo}
                 </span>
-                <span className="cifras block text-[10px] opacity-70">
+                <span className="cifras block text-xs opacity-70">
                   {kcalDelTipo(plan, tipo)}
                 </span>
               </button>
             ))}
           </div>
 
-          <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-[11px] leading-snug text-tenue">
+          <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-xs leading-snug text-tenue">
             Todos los pesos son <b className="text-texto">en el estado que dice la etiqueta</b>. Si
             dice cocido, se pesa cocido.
           </p>
@@ -271,13 +271,13 @@ export default function MiPlan() {
 
       {seccion === 'Intercambios' && (
         <section className="flex flex-col gap-3">
-          <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-[11px] leading-snug text-tenue">
+          <p className="rounded-2xl border border-linea bg-surface-2 p-3 text-xs leading-snug text-tenue">
             Cambia <b className="text-texto">dentro del grupo, no entre grupos</b>. Cada cantidad
             aporta lo mismo que sustituye.
           </p>
           {plan.equivalencias.map((grupo) => (
             <div key={grupo.grupo} className="rounded-2xl border border-linea bg-surface-1 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
                 {grupo.grupo}
               </p>
               <p className="mt-1 text-sm font-semibold text-texto">{grupo.base}</p>
@@ -350,7 +350,7 @@ export function ComidasDelMenu({
         <div key={comida.titulo} className="rounded-2xl border border-linea bg-surface-1 p-4">
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="font-display text-sm text-texto">{comida.titulo}</h3>
-            <span className="cifras shrink-0 text-[11px] text-tenue">{comida.hora}</span>
+            <span className="cifras shrink-0 text-xs text-tenue">{comida.hora}</span>
           </div>
 
           <ul className="mt-2 flex flex-col gap-1">
@@ -363,24 +363,28 @@ export function ComidasDelMenu({
                   type="button"
                   onClick={() => onCambiar(alimento)}
                   aria-label={`Por qué cambiar ${alimento}`}
-                  className="press h-7 w-7 shrink-0 rounded-full border border-linea text-sm text-tenue"
+                  className="press grid h-11 w-11 shrink-0 place-items-center"
                 >
-                  ⇄
+                  <span className="grid h-7 w-7 place-items-center rounded-full border border-linea text-sm text-tenue" aria-hidden="true">
+                    ⇄
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onRegistrar(alimento, comida.titulo)}
                   aria-label={`Registrar ${alimento}`}
-                  className="press h-7 w-7 shrink-0 rounded-full border border-accion/50 text-sm font-bold text-accion"
+                  className="press grid h-11 w-11 shrink-0 place-items-center"
                 >
-                  +
+                  <span className="grid h-7 w-7 place-items-center rounded-full border border-accion/50 text-sm font-bold text-accion" aria-hidden="true">
+                    +
+                  </span>
                 </button>
               </li>
             ))}
           </ul>
 
           {comida.nota && (
-            <p className="mt-2 text-[11px] leading-snug text-tenue">{comida.nota}</p>
+            <p className="mt-2 text-xs leading-snug text-tenue">{comida.nota}</p>
           )}
         </div>
       ))}

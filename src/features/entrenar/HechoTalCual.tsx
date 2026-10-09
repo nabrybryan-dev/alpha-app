@@ -34,7 +34,7 @@ export function HechoTalCual({ cargaKg, reps, onConfirmar, compacto = false }: H
 /** Por qué «Guardar» está apagado. `id` para enlazarlo con `aria-describedby`. */
 export function MotivoSinConfirmar({ id, className = '' }: { id?: string; className?: string }) {
   return (
-    <p id={id} className={`text-center text-[11px] leading-snug text-tenue ${className}`}>
+    <p id={id} className={`text-center text-xs leading-snug text-tenue ${className}`}>
       {MOTIVO_SIN_CONFIRMAR}
     </p>
   )

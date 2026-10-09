@@ -13,7 +13,7 @@ import { esAlFallo } from '../../domain/objetivoDeIntensidad'
 function Estadistica({ etiqueta, valor }: { etiqueta: string; valor: string | number }) {
   return (
     <div className="text-center">
-      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
       <p className="cifras font-display text-xl leading-tight text-rojo">{valor}</p>
     </div>
   )
@@ -150,17 +150,17 @@ export function TarjetaEjercicio({
         >
           <div className="relative pl-3">
             <span className="absolute bottom-0.5 left-0 top-0.5 w-[3px] rounded-full bg-accion" aria-hidden="true" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-silver-500">Prescripción del coach</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-silver-500">Prescripción del coach</p>
             <p className="cifras mt-1.5 text-[12.5px] font-semibold leading-relaxed text-silver-100">
               {ejercicio.prescripcion}
             </p>
           </div>
-          <div className="mt-2.5 flex items-center gap-3">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3">
             <button
               type="button"
               onClick={onAlternarNota}
               aria-expanded={notaVisible}
-              className="press text-[10px] font-bold uppercase tracking-[0.1em] text-accion"
+              className="press min-h-[44px] text-left text-xs font-bold uppercase tracking-[0.1em] text-accion"
             >
               {notaVisible ? 'Ocultar ejecución ▴' : 'Ver notas de ejecución ▾'}
             </button>
@@ -169,7 +169,7 @@ export function TarjetaEjercicio({
                 <button
                   type="button"
                   onClick={() => onVerPatron(patron)}
-                  className="press text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                  className="press min-h-[44px] text-xs font-bold uppercase tracking-[0.1em] text-silver-400"
                 >
                   Patrón 3D
                 </button>
@@ -178,7 +178,7 @@ export function TarjetaEjercicio({
                 <button
                   type="button"
                   onClick={() => onVerDemo(contenidoDemo)}
-                  className="press flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-silver-400"
+                  className="press flex min-h-[44px] items-center gap-1.5 text-xs font-bold uppercase tracking-[0.1em] text-silver-400"
                 >
                   <IconoVideo className="h-[13px] w-[13px]" />
                   Técnica
@@ -197,7 +197,7 @@ export function TarjetaEjercicio({
           // Hundido al mismo escalón que las cifras: lo ya registrado es del mismo
           // material que el objetivo, y ninguno de los dos se toca.
           <div className="mt-3" style={{ transform: 'translateZ(var(--prof-hueco))' }}>
-            <div className="grid grid-cols-[38px_1fr_1fr_1fr_26px] gap-2 px-1 pb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-silver-500">
+            <div className="grid grid-cols-[38px_1fr_1fr_1fr_26px] gap-2 px-1 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-silver-500">
               <span>Serie</span>
               <span>Carga</span>
               <span>Reps</span>
@@ -213,7 +213,7 @@ export function TarjetaEjercicio({
                   <span className="cifras text-center text-[13px] font-bold text-silver-500">{serie.orden}</span>
                   <span className="cifras text-[14px] font-bold text-silver-100">
                     {serie.cargaKg}
-                    <span className="ml-0.5 text-[10px] text-silver-500">kg</span>
+                    <span className="ml-0.5 text-xs text-silver-500">kg</span>
                   </span>
                   <span className="cifras text-[14px] font-bold text-silver-100">{serie.reps}</span>
                   <span className="cifras text-[14px] font-bold text-accion">{serie.rir ?? '–'}</span>

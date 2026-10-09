@@ -40,7 +40,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
       <button
         type="button"
         onClick={() => setAbierta(!abierta)}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="flex min-h-[44px] w-full items-center justify-between gap-2 text-left"
       >
         <p className="kicker">Antes de entrenar</p>
         <span className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
             if (grupo.length === 0) return null
             return (
               <div key={tipo}>
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{titulo}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">{titulo}</p>
                 {/* La escena en el `<ul>` y el `preserve-3d` en cada `<li>`:
                     `perspective` solo alcanza a los hijos DIRECTOS, y sin ese
                     eslabón el relieve de la casilla costaría una capa de
@@ -94,7 +94,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                           // bajar al PLANO, nunca por debajo. Esta diana mide 28 px, la
                           // más pequeña de la pantalla: es la que menos se puede
                           // permitir que hundirla la encoja.
-                          className={`tecla-3d mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs font-bold ${
+                          className={`tecla-3d relative mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border before:absolute before:-inset-2 before:content-[''] text-xs font-bold ${
                             parte.hechoEn ? 'border-logrado bg-logrado text-ink-900' : 'border-hairline-fuerte text-tenue'
                           }`}
                         >
@@ -105,7 +105,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                             type="button"
                             onClick={() => alternarDetalle(parte.id)}
                             aria-expanded={detalleAbierto}
-                            className="flex w-full items-center justify-between gap-2 text-left"
+                            className="flex min-h-[44px] w-full items-center justify-between gap-2 text-left"
                           >
                             <p className="text-sm font-bold leading-snug text-texto">
                               {parte.titulo}
@@ -113,7 +113,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                                 <span className="cifras ml-1 text-xs font-normal text-tenue">· {parte.duracionMin} min</span>
                               ) : null}
                             </p>
-                            <span aria-hidden="true" className="text-[10px] text-tenue">
+                            <span aria-hidden="true" className="text-xs text-tenue">
                               {detalleAbierto ? '▴' : '▾'}
                             </span>
                           </button>
@@ -124,7 +124,7 @@ export function PreparacionSesion({ partes, onMarcar, onVerDemo }: Props) {
                                 <button
                                   type="button"
                                   onClick={() => onVerDemo(demo)}
-                                  className="press mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-azul"
+                                  className="press flex min-h-[44px] items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-azul"
                                 >
                                   <IconoVideo className="h-[13px] w-[13px]" />
                                   Técnica

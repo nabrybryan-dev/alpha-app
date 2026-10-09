@@ -65,12 +65,12 @@ export function AnilloMacro({ etiqueta, gramos, pct, color, unidad = 'g' }: Anil
         <div className="absolute inset-0 grid place-items-center">
           <p className="cifras text-center font-display text-sm leading-none text-texto">
             {Math.round(gramosAnimados)}
-            <span className="block text-[9px] font-normal normal-case text-tenue">{unidad}</span>
+            <span className="block text-xs font-normal normal-case text-tenue">{unidad}</span>
           </p>
         </div>
       </div>
-      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
-      <p className="cifras text-[10px] font-bold" style={{ color }}>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-tenue">{etiqueta}</p>
+      <p className="cifras text-xs font-bold" style={{ color }}>
         {Math.round(pctAnimado)}%
       </p>
     </div>

@@ -48,7 +48,7 @@ export function AvisoSinSincronizar({ usuarioId }: { usuarioId: string }) {
         type="button"
         onClick={reintentar}
         disabled={reintentando}
-        className="press mt-2.5 rounded-full bg-ambar px-4 py-2 text-xs font-bold text-bg disabled:opacity-50"
+        className="press min-h-11 mt-2.5 rounded-full bg-ambar px-4 py-2 text-xs font-bold text-bg disabled:opacity-50"
       >
         {reintentando ? 'Intentando…' : 'Intentar de nuevo'}
       </button>

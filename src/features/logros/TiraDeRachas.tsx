@@ -106,8 +106,8 @@ export function TiraDeRachas({ celdas }: { celdas: CeldaDeRacha[] }) {
               <p className="cifras font-display text-2xl text-rojo">
                 <CifraAnimada valor={celda.racha.actual} duracionMs={700} />
               </p>
-              <p className="text-[10px] uppercase tracking-wider text-tenue">{celda.nombre}</p>
-              <p className="mt-0.5 text-[10px] text-tenue">Récord: {celda.racha.record}</p>
+              <p className="text-xs uppercase tracking-wider text-tenue">{celda.nombre}</p>
+              <p className="mt-0.5 text-xs text-tenue">Récord: {celda.racha.record}</p>
             </div>
           </div>
         ))}

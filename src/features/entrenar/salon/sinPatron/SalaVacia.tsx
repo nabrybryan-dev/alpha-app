@@ -185,7 +185,7 @@ export function SalaVacia({ children }: SalaVaciaProps) {
 
         {/* LA MISMA LEYENDA QUE EL VISOR, porque es la misma retícula y salen del mismo
             sitio: `BAHIA`. Un día de cardio el suelo se puede seguir leyendo en cuadros. */}
-        <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-[9px] uppercase tracking-[0.1em] text-white/35">
+        <p className="pointer-events-none absolute bottom-2 right-3 text-right font-mono text-xs uppercase tracking-[0.1em] text-white/35">
           retícula {BAHIA.pasoMenor * 100} cm
           <span className="mx-1 text-white/20">·</span>
           {BAHIA.pasoMayor * 100} cm

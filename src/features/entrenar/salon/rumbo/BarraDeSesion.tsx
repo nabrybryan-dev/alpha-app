@@ -68,7 +68,7 @@ export function BarraDeSesion({
           type="button"
           onClick={onAbrirSemana}
           disabled={!onAbrirSemana}
-          className="press pointer-events-auto -my-3 -mr-3 flex min-h-[44px] items-center gap-2 px-3 font-mono text-[11px] uppercase tracking-[0.16em] text-accion disabled:pointer-events-none"
+          className="press pointer-events-auto -my-3 -mr-3 flex min-h-[44px] items-center gap-2 px-3 font-mono text-xs uppercase tracking-[0.16em] text-accion disabled:pointer-events-none"
         >
           {dia}
           {/* La doble punta dice que ESTO SE CAMBIA, y en qué eje: la semana se recorre

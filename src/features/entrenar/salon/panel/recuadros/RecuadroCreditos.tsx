@@ -27,7 +27,7 @@ export function RecuadroCreditos() {
           <p className="mt-0.5 text-xs text-tenue">
             {f.queEs}
           </p>
-          <p className="mt-1 text-[11px] text-tenue">
+          <p className="mt-1 text-xs text-tenue">
             <span className="text-silver-300">{f.autor}</span>
             {' · '}
             <span className={obligaACitar(f) ? 'text-silver-400' : 'text-tenue'}>{f.licencia}</span>

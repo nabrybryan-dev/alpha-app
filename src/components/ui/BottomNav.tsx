@@ -152,7 +152,7 @@ export function BottomNav({
           se quedaba en un pegote gris con las etiquetas lavadas—, y esa es la misma
           frontera que ya vigila `blur-solo-en-superficies-fijas`. Puesto en cada pestaña
           la profundidad se nota donde se toca, que es donde sirve. */}
-      <div className="glass glass-blur flex w-full max-w-[22rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
+      <div className="glass glass-blur flex w-full max-w-[24rem] items-stretch gap-0.5 rounded-full px-1.5 py-1.5">
         {pestanas.map((p) => (
           <NavLink
             key={p.ruta}
@@ -165,7 +165,7 @@ export function BottomNav({
             // el resto de la app. Donde no esté soportada, navega igual.
             viewTransition
             className={({ isActive }) =>
-              `relieve relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-0.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] ${
+              `relieve relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-0 py-1.5 text-[11px] font-bold uppercase tracking-[0.02em] ${
                 isActive ? 'text-rojo' : 'text-tenue'
               }`
             }

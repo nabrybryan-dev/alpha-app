@@ -83,7 +83,7 @@ export function TarjetaPregunta({ pregunta, onResponder }: TarjetaPreguntaProps)
   return (
     <section className="flex flex-col gap-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
       <header>
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
           Tu coach te pregunta
         </p>
         <h2 className="mt-1 font-display text-lg leading-tight text-texto">{pregunta.titulo}</h2>

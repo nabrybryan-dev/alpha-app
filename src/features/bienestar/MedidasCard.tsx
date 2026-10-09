@@ -65,7 +65,7 @@ function Delta({ actual, previa }: { actual: number; previa?: number }) {
   if (previa === undefined || previa === actual) return null
   const delta = Math.round((actual - previa) * 10) / 10
   return (
-    <span className={`cifras ml-1 text-[10px] font-bold ${delta < 0 ? 'text-accion' : 'text-tenue'}`}>
+    <span className={`cifras ml-1 text-xs font-bold ${delta < 0 ? 'text-accion' : 'text-tenue'}`}>
       {delta > 0 ? '+' : ''}
       {delta}
     </span>
@@ -224,7 +224,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
               setAbierto(true)
               setGuardado(false)
             }}
-            className="press shrink-0 rounded-full border border-hairline-fuerte px-4 py-2 font-display text-xs text-texto"
+            className="press min-h-11 shrink-0 rounded-full border border-hairline-fuerte px-4 py-2 font-display text-xs text-texto"
           >
             Registrar
           </button>
@@ -259,7 +259,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
           bioimpedancia aparte. Solo se enseña con al menos una medición ya guardada: a quien
           nunca se ha medido nada, "Aún no hay mediciones registradas" ya se lo dice todo. */}
       {ultima && !abierto && ultima.cuerpo?.cuelloCm === undefined && (
-        <p className="mt-2 text-[11px] leading-snug text-tenue">
+        <p className="mt-2 text-xs leading-snug text-tenue">
           Te falta el perímetro de <span className="font-bold text-texto">cuello</span>. Con cintura, caderas y
           cuello el coach puede estimar tu % de grasa sin báscula de bioimpedancia.
         </p>
@@ -296,7 +296,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
                             la cadera y desde el trocánter son dos números distintos, y el
                             que se compara dentro de tres meses tiene que salir del mismo
                             sitio. */}
-                        <span className="mt-0.5 block text-[10px] leading-snug text-tenue/70">
+                        <span className="mt-0.5 block text-xs leading-snug text-tenue/70">
                           {comoSeMide}
                         </span>
                       </span>
@@ -320,7 +320,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
                         cual viene: es el sitio donde está escrito qué es posible y qué no,
                         y reescribir el mensaje aquí sería una tercera versión de la regla. */}
                     {reparo && (
-                      <span role="alert" className="text-[10px] leading-snug text-rojo">
+                      <span role="alert" className="text-xs leading-snug text-rojo">
                         {reparo.motivo}
                       </span>
                     )}
@@ -334,11 +334,11 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
           {reparos
             .filter((r) => !MEDIDAS.some((m) => m.clave === r.campo))
             .map((r) => (
-              <p key={r.campo || 'todo'} role="alert" className="mt-2 text-[10px] leading-snug text-rojo">
+              <p key={r.campo || 'todo'} role="alert" className="mt-2 text-xs leading-snug text-rojo">
                 {r.motivo}
               </p>
             ))}
-          <p className="mt-2 text-[10px] text-tenue">
+          <p className="mt-2 text-xs text-tenue">
             Anota al menos una; las que dejes vacías no se guardan. Mídete siempre en las
             mismas condiciones (en ayunas, misma hora) y con la cinta apoyada sin apretar.
             El peso se apunta en el check-in del día, no aquí.
@@ -347,7 +347,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
             <button
               type="button"
               onClick={() => setAbierto(false)}
-              className="press flex-1 rounded-full border border-hairline py-2.5 font-display text-xs text-tenue"
+              className="press min-h-11 flex-1 rounded-full border border-hairline py-2.5 font-display text-xs text-tenue"
             >
               Cancelar
             </button>
@@ -355,7 +355,7 @@ export function MedidasCard({ usuarioId, verPeso = true }: MedidasCardProps) {
               type="button"
               onClick={guardar}
               disabled={!puedeGuardar}
-              className="press btn-cristal-rojo flex-1 rounded-full py-2.5 font-display text-xs disabled:opacity-40"
+              className="press min-h-11 btn-cristal-rojo flex-1 rounded-full py-2.5 font-display text-xs disabled:opacity-40"
             >
               Guardar ✓
             </button>

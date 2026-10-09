@@ -45,18 +45,18 @@ export function RecuadroMicrociclo({ microciclo }: { microciclo: Microciclo }) {
         <p className="font-display text-[19px] font-black leading-none tracking-[-0.015em] text-silver-100">
           MICROCICLO M{microciclo.numero}
         </p>
-        <span className="cifras shrink-0 rounded-full border border-accion/40 px-2.5 py-[5px] text-[10.5px] font-bold text-accion">
+        <span className="cifras shrink-0 rounded-full border border-accion/40 px-2.5 py-[5px] text-xs font-bold text-accion">
           {sesiones} SESIONES
         </span>
       </div>
 
-      <p className="cifras text-[11.5px] text-silver-400">
+      <p className="cifras text-xs text-silver-400">
         {formatearSeries(series)} series programadas · cadencia de {microciclo.cadenciaDias} días
       </p>
 
       {prioritarios.length > 0 && (
         <div>
-          <p className="mb-[9px] text-[10px] font-bold uppercase tracking-[0.18em] text-silver-500">
+          <p className="mb-[9px] text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
             Lo que trabajas esta semana
           </p>
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-[7px]">
@@ -65,13 +65,13 @@ export function RecuadroMicrociclo({ microciclo }: { microciclo: Microciclo }) {
                 key={g.grupo}
                 className="flex items-center gap-[7px] rounded-[10px] border border-ink-500 bg-ink-700 px-[9px] py-2"
               >
-                <span className="cifras text-[10px] font-bold text-accion">
+                <span className="cifras text-xs font-bold text-accion">
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className="min-w-0 text-[11.5px] font-semibold text-silver-200">
+                <span className="min-w-0 text-xs font-semibold text-silver-200">
                   {g.grupo}
                 </span>
-                <span className="cifras ml-auto text-[10px] text-silver-500">
+                <span className="cifras ml-auto text-xs text-silver-500">
                   {formatearSeries(g.seriesPautadas)}
                 </span>
               </li>
@@ -82,11 +82,11 @@ export function RecuadroMicrociclo({ microciclo }: { microciclo: Microciclo }) {
 
       {foco && (
         <div className="rounded-[10px] border border-ink-500 bg-ink-700 px-3 py-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-silver-500">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-silver-500">
             Foco de la semana
           </p>
           <p className="font-display text-[16px] font-black uppercase text-accion">{foco.grupo}</p>
-          <p className="cifras text-[11.5px] text-silver-400">
+          <p className="cifras text-xs text-silver-400">
             {formatearSeries(foco.seriesPautadas)} series programadas
           </p>
         </div>
