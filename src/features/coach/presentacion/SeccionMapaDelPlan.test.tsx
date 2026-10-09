@@ -35,6 +35,16 @@ describe('SeccionMapaDelPlan', () => {
     expect(screen.queryByText(/no hay un plan/)).toBeNull()
   })
 
+  it('si la persona ya va por una semana posterior a la última del plan, lo dice (así están 7 de 12 planes reales)', () => {
+    render(<SeccionMapaDelPlan plan={{ estado: 'listo', valor: CON_TABLA }} numeroActual={5} ultimoCerrado={4} />)
+    expect(screen.getByRole('note')).toHaveTextContent('Este plan llegaba hasta la semana 3 y ya vas en la 5.')
+  })
+
+  it('con la semana de ahora dentro del plan no hay aviso', () => {
+    render(<SeccionMapaDelPlan plan={{ estado: 'listo', valor: CON_TABLA }} numeroActual={2} ultimoCerrado={1} />)
+    expect(screen.queryByRole('note')).toBeNull()
+  })
+
   it('un plan sin tabla semana a semana lo dice', () => {
     render(
       <SeccionMapaDelPlan plan={{ estado: 'listo', valor: plan({ objetivo_largo_plazo: 'algo' }) }} numeroActual={1} ultimoCerrado={undefined} />,

@@ -61,6 +61,11 @@ export default defineConfig({
         // abre la presentación lo baja. Sin esto Workbox lo metería en la precarga y TODO el mundo lo
         // descargaría al instalar la app, que es justo lo que `React.lazy` evita.
         globIgnores: ['**/Suelo-*.js', '**/Escena3D*.js'],
+        // Y un tope por TAMAÑO, que no depende del nombre que Rollup le dé al trozo: `Suelo-*`
+        // es el nombre de hoy y puede cambiar con cualquier refactor. Nada de más de 600 kB entra
+        // en la precarga; el mayor trozo legítimo ronda los 370 kB y three pasa de 900.
+        // `scripts/vigilar-precarga-3d.mjs` comprueba el resultado en el CI.
+        maximumFileSizeToCacheInBytes: 600 * 1024,
         /**
          * EL GIMNASIO SE QUEDA GUARDADO EN EL TELÉFONO.
          *

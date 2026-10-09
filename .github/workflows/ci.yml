@@ -46,6 +46,11 @@ jobs:
       - name: Tests con cobertura (vitest)
         run: npm run coverage
 
+      # El 9-oct-2026 se publicó la presentación 3D con three.js (1,1 MB) precargado para TODO
+      # el mundo. Ninguna prueba lo vio: solo se nota en lo que sale del build.
+      - name: three.js no se le descarga a quien no abre la presentación
+        run: npx vite build && node scripts/vigilar-precarga-3d.mjs
+
       - name: Instalar PostgreSQL en memoria para la firma de revisiones
         run: npm ci --prefix pruebas-sql --ignore-scripts
 
