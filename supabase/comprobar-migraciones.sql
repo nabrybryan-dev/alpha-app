@@ -2398,5 +2398,42 @@ select '0111 - ninguna funcion de public sin search_path fijo', 'cero funciones 
                             and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')
                             and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')) then 'NO'
             else 'SI' end
+union all
+-- La 0112: la bitácora de llamadas. Se aplicó a producción el 9-oct-2026 ANTES de que su archivo entrara al repo.
+-- Esta señal solo dice que la tabla existe con RLS; NO dice que la puerta esté bien (eso es la 0113).
+select '0112 - notas de llamada', 'la tabla notas_llamada existe y tiene RLS',
+       case when to_regclass('public.notas_llamada') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.notas_llamada')) then 'NO'
+            else 'SI' end
+union all
+-- La 0113, tres señales, porque son tres efectos y cada uno puede faltar por separado (pegado truncado).
+-- La de la puerta mira el TEXTO de la política, no su nombre: `notas_llamada_leer` existe desde la 0112 con
+-- `es_coach()` a secas, así que preguntar si existe daría SI con la 0113 aplicada y SI sin ella.
+select '0113 - notas de llamada con la puerta de la consola', 'las dos politicas abren por es_coach() o leer_entrenamiento, solo a authenticated',
+       case when to_regclass('public.notas_llamada') is null then 'NO'
+            when (select count(*) from pg_policy p
+                   where p.polrelid = to_regclass('public.notas_llamada')
+                     and p.polname in ('notas_llamada_leer', 'notas_llamada_escribir')
+                     and coalesce(pg_get_expr(p.polqual, p.polrelid), '') || coalesce(pg_get_expr(p.polwithcheck, p.polrelid), '')
+                         like '%leer_entrenamiento%'
+                     and p.polroles = array[(select oid from pg_roles where rolname = 'authenticated')]) = 2 then 'SI'
+            else 'NO' end
+union all
+select '0113 - notas de llamada con la puerta de la consola', 'la columna tareas existe',
+       case when exists (select 1 from information_schema.columns
+                          where table_schema = 'public' and table_name = 'notas_llamada' and column_name = 'tareas') then 'SI'
+            else 'NO' end
+union all
+select '0113 - notas de llamada con la puerta de la consola', 'anon sin privilegios; authenticated solo select e insert',
+       case when to_regclass('public.notas_llamada') is null then 'NO'
+            when has_table_privilege('anon', 'public.notas_llamada', 'select')
+              or has_table_privilege('anon', 'public.notas_llamada', 'insert')
+              or has_table_privilege('anon', 'public.notas_llamada', 'delete') then 'NO'
+            when has_table_privilege('authenticated', 'public.notas_llamada', 'update')
+              or has_table_privilege('authenticated', 'public.notas_llamada', 'delete')
+              or has_table_privilege('authenticated', 'public.notas_llamada', 'truncate') then 'NO'
+            when not has_table_privilege('authenticated', 'public.notas_llamada', 'select')
+              or not has_table_privilege('authenticated', 'public.notas_llamada', 'insert') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;

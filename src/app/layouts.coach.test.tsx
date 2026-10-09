@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { db } from '../data/dbInstance'
 import type { Rol } from '../domain/types'
 
 /**
@@ -24,7 +25,8 @@ vi.mock('../features/coach/consola/useCapacidades', () => ({
   useCapacidades: () => ({ cargando: estado.cargando, tiene: (c: string) => estado.capacidades.has(c), usuarioId: 'u-1' }),
 }))
 vi.mock('../components/ui/TopBar', () => ({ TopBar: ({ titulo }: { titulo: string }) => <h1>{titulo}</h1> }))
-vi.mock('../features/plan/BannerPlanHoy', () => ({ BannerPlanHoy: () => null }))
+// Con marca visible para poder afirmar que el aviso aparece o NO aparece (en `/entrenar`, no).
+vi.mock('../features/plan/BannerPlanHoy', () => ({ BannerPlanHoy: () => <p>Aviso del plan de hoy</p> }))
 vi.mock('../features/bienestar/recordatorio', () => ({ revisarRecordatorioBienestar: () => Promise.resolve() }))
 
 const { AsesoradoLayout, TableroLayout } = await import('./layouts')
@@ -39,6 +41,7 @@ function en(ruta: string) {
         <Route element={<AsesoradoLayout />}>
           <Route index element={<p>Inicio</p>} />
           <Route path="mi-entreno" element={<p>Entreno</p>} />
+          <Route path="entrenar" element={<p>Pantalla de entrenar</p>} />
           <Route path="equipo" element={<p>Equipo página</p>} />
           <Route path="nutricion" element={<p>Nutrición asesorado</p>} />
         </Route>
@@ -184,5 +187,62 @@ describe('TableroLayout', () => {
     estado.capacidades = new Set()
     en('/tablero')
     expect(screen.queryByText('Contenido del tablero')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * La cabecera de `/entrenar`. Se oculta porque el salón 3D ocupa toda la pantalla (ver
+ * `RUTAS_SIN_CABECERA`), pero con `perfil.vistaSimple` no hay salón sino una lista plana, y
+ * sin cabecera la persona se quedaba sin título, sin el aviso de mensajes sin leer y sin el
+ * menú de cuenta. El `BannerPlanHoy` NO cambia: en `/entrenar` sigue sin pintarse.
+ */
+describe('AsesoradoLayout · la cabecera de /entrenar', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  /** La MISMA ficha real de cualquiera, con `vistaSimple` puesto o no, para quien esté dentro. */
+  function conVistaSimple(vistaSimple: boolean) {
+    const ficha = db.perfiles.byUsuario('u-valentina')
+    if (!ficha) throw new Error('el seed no trae la ficha de u-valentina')
+    vi.spyOn(db.perfiles, 'byUsuario').mockImplementation(() => ({ ...ficha, vistaSimple }))
+  }
+
+  it('sin vistaSimple (el salón 3D ocupa la pantalla): /entrenar no lleva cabecera', () => {
+    estado.rol = 'asesorado'
+    conVistaSimple(false)
+    en('/entrenar')
+    expect(screen.getByText('Pantalla de entrenar')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Entrenar' })).not.toBeInTheDocument()
+  })
+
+  it('con vistaSimple (la lista plana): /entrenar sí lleva cabecera, con su título', () => {
+    estado.rol = 'asesorado'
+    conVistaSimple(true)
+    en('/entrenar')
+    expect(screen.getByText('Pantalla de entrenar')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Entrenar' })).toBeInTheDocument()
+  })
+
+  it('la ficha sin el campo vistaSimple cuenta como que no lo tiene', () => {
+    estado.rol = 'asesorado'
+    const ficha = db.perfiles.byUsuario('u-valentina')
+    if (!ficha) throw new Error('el seed no trae la ficha de u-valentina')
+    vi.spyOn(db.perfiles, 'byUsuario').mockImplementation(() => ({ ...ficha, vistaSimple: undefined }))
+    en('/entrenar')
+    expect(screen.queryByRole('heading', { name: 'Entrenar' })).not.toBeInTheDocument()
+  })
+
+  it('el aviso del plan de hoy sigue su regla: el staff lo ve en «/», no en /entrenar, ni con vistaSimple', () => {
+    estado.rol = 'nutricionista'
+    conVistaSimple(true)
+
+    // Control positivo: el aviso SÍ se pinta para el staff fuera de /entrenar, así que la
+    // ausencia de abajo no es un mock que nunca pinta nada.
+    const inicio = en('/')
+    expect(screen.getByText('Aviso del plan de hoy')).toBeInTheDocument()
+    inicio.unmount()
+
+    en('/entrenar')
+    expect(screen.getByRole('heading', { name: 'Entrenar' })).toBeInTheDocument()
+    expect(screen.queryByText('Aviso del plan de hoy')).not.toBeInTheDocument()
   })
 })

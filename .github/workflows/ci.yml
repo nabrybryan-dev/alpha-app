@@ -189,3 +189,6 @@ jobs:
 
       - name: Ninguna función de public queda sin search_path fijo
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/213-search-path-fijo.sql
+
+      - name: Las notas de llamada las lee y las anota quien entra a la consola (coach o leer_entrenamiento), a su nombre; el asesorado no ve nada
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/214-notas-de-llamada.sql

@@ -213,14 +213,30 @@ describe('MiPlan', () => {
   /**
    * `perfil.vistaSimple` (8-oct-2026, pedida para Karin Better): una sola pantalla con la
    * comida de la semana, sin las pestañas, sin «kcal/P/C/G» por delante.
+   *
+   * Pero la pantalla sencilla no trae el mercado, los suplementos ni el cambio de un
+   * alimento que no se tiene, así que lleva una salida al plan completo y el plan completo
+   * una vuelta a la lista sencilla. Quien no tiene `vistaSimple` no ve ninguna de las dos.
    */
   describe('con vistaSimple', () => {
-    it('pinta la comida de la semana en una pantalla, no las pestañas de siempre', () => {
+    const ver = 'Ver mercado, suplementos y cambios de alimentos'
+
+    /**
+     * La MISMA ficha real con `vistaSimple` encima, para no tocar el seed de los demás tests.
+     * Devuelve el espía de `scrollTo`: jsdom lo trae sin implementar (solo escribe un error
+     * en consola) y cambiar de vista lo llama.
+     */
+    function conVistaSimple() {
       const original = db.perfiles.byUsuario
       vi.spyOn(db.perfiles, 'byUsuario').mockImplementation((id) => {
         const real = original(id)
         return real && { ...real, vistaSimple: true }
       })
+      return vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    }
+
+    it('pinta la comida de la semana en una pantalla, no las pestañas de siempre', () => {
+      conVistaSimple()
 
       pintar()
 
@@ -230,23 +246,70 @@ describe('MiPlan', () => {
       expect(screen.queryByRole('button', { name: 'Ondulación' })).toBeNull()
       expect(screen.queryByRole('button', { name: 'Intercambios' })).toBeNull()
       // Pero sí al menos una comida real del plan del seed, con su botón de texto.
-      expect(screen.getAllByRole('button', { name: 'Ya comí esto' }).length).toBeGreaterThan(0)
+      expect(screen.getAllByRole('button', { name: /^Anotar / }).length).toBeGreaterThan(0)
     })
 
     it('registrar desde la versión simple manda al diario igual que desde la completa', async () => {
-      const original = db.perfiles.byUsuario
-      vi.spyOn(db.perfiles, 'byUsuario').mockImplementation((id) => {
-        const real = original(id)
-        return real && { ...real, vistaSimple: true }
-      })
+      conVistaSimple()
       const usuario = userEvent.setup()
       pintar()
 
-      await usuario.click(screen.getAllByRole('button', { name: 'Ya comí esto' })[0])
+      await usuario.click(screen.getAllByRole('button', { name: /^Anotar / })[0])
 
       // Mismo `registrar` que la vista completa: navega a `/nutricion`, así que esta
       // pantalla (montada en `/nutricion/plan`) desaparece.
       expect(screen.queryByText('Lo que comes esta semana')).toBeNull()
     })
+
+    it('«Ver mercado, suplementos y cambios de alimentos» enseña el plan completo, y «Volver a la lista sencilla» regresa', async () => {
+      conVistaSimple()
+      const usuario = userEvent.setup()
+      pintar()
+
+      // Se entra siempre por la lista sencilla, sin la vuelta (que es de la vista completa).
+      expect(screen.queryByRole('button', { name: 'Volver a la lista sencilla' })).toBeNull()
+
+      await usuario.click(screen.getByRole('button', { name: ver }))
+
+      // El plan de siempre: sus pestañas, su título, y la vuelta arriba del todo.
+      expect(screen.getByRole('button', { name: 'Mercado' })).toBeInTheDocument()
+      // Y abierto en lo que el botón prometía —el mercado—, no en «Mi perfil», la primera pestaña.
+      expect(screen.getByRole('button', { name: 'Mercado' })).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'Mi perfil' })).toHaveAttribute('aria-pressed', 'false')
+      expect(screen.getByRole('heading', { name: 'Mercado de 15 días' })).toBeInTheDocument()
+      expect(screen.getByText('Tu plan nutricional')).toBeInTheDocument()
+      expect(screen.queryByText('Lo que comes esta semana')).toBeNull()
+      expect(screen.queryByRole('button', { name: ver })).toBeNull()
+      const volver = screen.getByRole('button', { name: 'Volver a la lista sencilla' })
+      const principio = screen.getByRole('button', { name: 'Volver al diario' })
+      // «Arriba del todo»: antes que el resto de los botones de la pantalla.
+      expect(volver.compareDocumentPosition(principio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+      await usuario.click(volver)
+
+      expect(screen.getByText('Lo que comes esta semana')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Mercado' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Volver a la lista sencilla' })).toBeNull()
+      expect(screen.getByRole('button', { name: ver })).toBeInTheDocument()
+    })
+
+    it('al cambiar de vista vuelve al principio de la página, no se queda donde estaba el dedo', async () => {
+      const subir = conVistaSimple()
+      const usuario = userEvent.setup()
+      pintar()
+
+      await usuario.click(screen.getByRole('button', { name: ver }))
+      expect(subir).toHaveBeenCalledTimes(1)
+      await usuario.click(screen.getByRole('button', { name: 'Volver a la lista sencilla' }))
+      expect(subir).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('sin vistaSimple no hay salida a la lista sencilla: el plan completo es el de siempre', () => {
+    pintar()
+
+    expect(screen.getByRole('button', { name: 'Mercado' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Volver a la lista sencilla' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Ver mercado, suplementos/ })).toBeNull()
   })
 })

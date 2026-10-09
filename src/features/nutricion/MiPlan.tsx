@@ -53,6 +53,8 @@ export default function MiPlan() {
   /** La línea del plan cuya hoja de cambios está abierta. */
   const [cambiando, setCambiando] = useState<string | null>(null)
   const [despensaAbierta, setDespensaAbierta] = useState(false)
+  /** Con `vistaSimple`: la persona pidió el plan completo desde la lista sencilla. Siempre arranca en false. */
+  const [verCompleto, setVerCompleto] = useState(false)
 
   // Lo que decidió la nutricionista, o lo que la encuesta pide retener mientras
   // ella no haya decidido. Ver `visibilidadDelAsesorado`.
@@ -86,16 +88,51 @@ export default function MiPlan() {
     })
   }
 
+  /**
+   * Cambia entre la lista sencilla y el plan completo. Sube al principio porque las dos
+   * pantallas miden distinto: sin subir, quien pulsó el botón del pie de la lista se queda
+   * en el fondo del plan completo, sin ver ni sus pestañas ni la vuelta.
+   */
+  const cambiarVista = (completo: boolean) => {
+    setVerCompleto(completo)
+    // El botón de la lista promete «mercado, suplementos y cambios»: el plan completo se abre
+    // en Mercado y no en «Mi perfil» —la primera pestaña—, para que lo prometido sea lo
+    // primero que se ve y no haya que buscarlo entre siete pestañas.
+    if (completo) setSeccion('Mercado')
+    window.scrollTo({ top: 0 })
+  }
+
   // La versión sin pestañas: toda la comida de la semana en una sola pantalla, en vez de
   // repartida en siete secciones. Mismo `plan`, mismo `registrar` — solo cambia cómo se pinta.
-  if (db.perfiles.byUsuario(usuario.id)?.vistaSimple) {
-    return <MiPlanSimple plan={plan} onRegistrar={registrar} onVolver={() => navegar('/nutricion')} />
+  // Le faltan el mercado, los suplementos y el cambio de alimentos: de ahí sale `verCompleto`.
+  const vistaSimple = Boolean(db.perfiles.byUsuario(usuario.id)?.vistaSimple)
+  if (vistaSimple && !verCompleto) {
+    return (
+      <MiPlanSimple
+        plan={plan}
+        onRegistrar={registrar}
+        onVolver={() => navegar('/nutricion')}
+        onVerCompleto={() => cambiarVista(true)}
+      />
+    )
   }
 
   const menu = plan.menus.find((m) => m.tipoDia === tipoMenu) ?? plan.menus[0]
 
   return (
     <div className="flex flex-col gap-4 pb-6">
+      {/* Solo llega aquí quien entró por la lista sencilla (`vistaSimple`): para el resto
+          el plan completo es el de siempre y no hay a qué volver. */}
+      {vistaSimple && (
+        <button
+          type="button"
+          onClick={() => cambiarVista(false)}
+          className="press min-h-[44px] self-start text-sm font-semibold text-accion underline underline-offset-4"
+        >
+          Volver a la lista sencilla
+        </button>
+      )}
+
       <header className="flex items-start gap-3">
         <button
           type="button"

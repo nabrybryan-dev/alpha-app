@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
  * Supabase falso para `planes_estrategicos`, mismo patrón de
@@ -35,6 +36,41 @@ vi.mock('../../../../data/supabase', () => ({
     return nube.activo
   },
   supabase: () => cliente(),
+}))
+
+/**
+ * Quién mira la pestaña. `null` = sin `SessionProvider` por encima, que es como corren las
+ * pruebas de plan de abajo (y como degrada `useSesionOpcional`). Las de «quién ve qué» lo
+ * cambian: la pestaña decide con el ROL de la sesión y con las capacidades de la persona.
+ */
+interface SesionFalsa {
+  usuario: { id: string; nombre: string; rol: string }
+  esNube: boolean
+}
+
+const quien = {
+  sesion: null as SesionFalsa | null,
+  capacidades: [] as string[],
+  cargandoCapacidades: false,
+}
+
+vi.mock('../../../../app/SessionProvider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../app/SessionProvider')>()),
+  useSesionOpcional: () => quien.sesion,
+}))
+
+vi.mock('../useCapacidades', () => ({
+  useCapacidades: () => ({
+    cargando: quien.cargandoCapacidades,
+    usuarioId: quien.sesion?.usuario.id ?? null,
+    tiene: (capacidad: string) => quien.capacidades.includes(capacidad),
+  }),
+}))
+
+// Las notas de llamada tienen su propia prueba: aquí solo importa SI la tarjeta se pinta.
+vi.mock('../../../../data/consola/notasLlamada', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../data/consola/notasLlamada')>()),
+  notasLlamadaDe: () => Promise.resolve({ ok: true, notas: [] }),
 }))
 
 // Import DINÁMICO y después del mock a propósito (igual que ConsultasPage.test.tsx):
@@ -145,5 +181,120 @@ describe('FichaAsesoradoTab · Plan estratégico', () => {
     render(<FichaAsesoradoTab usuarioId={usuarioId} />)
     await waitFor(() => expect(screen.getByText('Plan estratégico · versión 1')).toBeInTheDocument())
     expect(screen.getByText(/forma_no_prevista/)).toBeInTheDocument()
+  })
+})
+
+/** Quién entra y qué ve: la pestaña la abre Manuela (rol `nutricionista`, por la capacidad
+ *  `leer_entrenamiento`) igual que el coach, y el interruptor de vista simple SOLO es del puesto
+ *  de coach — la base rechaza la escritura de la ficha a cualquier otro, y la cola la
+ *  reintentaría 8 veces y la descartaría en silencio. */
+describe('FichaAsesoradoTab · notas de llamada e interruptor de vista simple', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear()
+    quien.sesion = null
+    quien.capacidades = []
+    quien.cargandoCapacidades = false
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    nube.activo = true
+    nube.fila = null
+    quien.sesion = null
+    quien.capacidades = []
+    quien.cargandoCapacidades = false
+  })
+
+  const sesion = (rol: string): SesionFalsa => ({ usuario: { id: 'u-sesion', nombre: 'Quien mira', rol }, esNube: true })
+
+  /** El bloque que envuelve la tarjeta (el que lleva la clase de columnas de la rejilla). */
+  const bloqueDe = (texto: string) => {
+    const bloque = screen.getByText(texto).closest('div[class*="xl:col-span-"]')
+    expect(bloque).not.toBeNull()
+    return bloque as HTMLElement
+  }
+
+  it('con rol nutricionista (Manuela) la tarjeta de notas SE pinta y el interruptor NO', async () => {
+    quien.sesion = sesion('nutricionista')
+    quien.capacidades = ['leer_entrenamiento']
+    const usuarioId = db.usuarios.entrenan()[0].id
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
+    expect(await screen.findByText('Todavía no hay llamadas anotadas.')).toBeInTheDocument()
+    expect(screen.queryByText('Vista de la app')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Vista simple' })).not.toBeInTheDocument()
+    // Sin el interruptor al lado, las notas ocupan las 12 columnas.
+    expect(bloqueDe('Notas de llamada')).toHaveClass('xl:col-span-12')
+  })
+
+  it('con rol coach se pintan los dos, las notas a 8 columnas y el interruptor a 4', async () => {
+    quien.sesion = sesion('coach')
+    const usuarioId = db.usuarios.entrenan()[0].id
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
+    expect(await screen.findByText('Vista de la app')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Vista simple' })).toBeInTheDocument()
+    expect(bloqueDe('Notas de llamada')).toHaveClass('xl:col-span-8')
+    expect(bloqueDe('Vista de la app')).toHaveClass('xl:col-span-4')
+  })
+
+  it('la cuenta personal de Bryan (asesorado con puesto_de_coach) también ve los dos', async () => {
+    quien.sesion = sesion('asesorado')
+    quien.capacidades = ['puesto_de_coach']
+    const usuarioId = db.usuarios.entrenan()[0].id
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
+    expect(screen.getByText('Vista de la app')).toBeInTheDocument()
+  })
+
+  it('mientras se consultan las capacidades, quien es asesorado NO ve el interruptor (el resultado seguro)', async () => {
+    quien.sesion = sesion('asesorado')
+    quien.capacidades = ['puesto_de_coach']
+    quien.cargandoCapacidades = true
+    const usuarioId = db.usuarios.entrenan()[0].id
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
+    expect(screen.queryByText('Vista de la app')).not.toBeInTheDocument()
+  })
+
+  it('sin sesión (pantalla suelta) las notas se pintan y el interruptor no', async () => {
+    quien.sesion = null
+    const usuarioId = db.usuarios.entrenan()[0].id
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    expect(await screen.findByText('Notas de llamada')).toBeInTheDocument()
+    expect(screen.queryByText('Vista de la app')).not.toBeInTheDocument()
+  })
+
+  it('el interruptor, para el coach, de verdad cambia la ficha', async () => {
+    quien.sesion = sesion('coach')
+    const usuarioId = db.usuarios.entrenan()[0].id
+    const guardar = vi.spyOn(db.perfiles, 'guardarVistaSimple').mockImplementation(() => {})
+    const user = userEvent.setup()
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Vista simple' }))
+    expect(guardar).toHaveBeenCalledWith(usuarioId, true)
+  })
+
+  it('al pasar a otro asesorado la tarjeta arranca limpia: el borrador de uno no se arrastra al otro', async () => {
+    quien.sesion = sesion('nutricionista')
+    quien.capacidades = ['leer_entrenamiento']
+    const [primero, segundo] = db.usuarios.entrenan()
+    const user = userEvent.setup()
+    const vista = render(<FichaAsesoradoTab usuarioId={primero.id} />)
+
+    await user.click(await screen.findByRole('button', { name: '+ Anotar llamada' }))
+    await user.type(screen.getByLabelText('Qué se habló'), 'Esto es del primero')
+    vista.rerender(<FichaAsesoradoTab usuarioId={segundo.id} />)
+
+    expect(await screen.findByRole('button', { name: '+ Anotar llamada' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Qué se habló')).not.toBeInTheDocument()
+    // Y el del primero sigue esperándolo.
+    expect(window.sessionStorage.getItem(`notas-llamada:borrador:${primero.id}`)).toContain('Esto es del primero')
   })
 })
