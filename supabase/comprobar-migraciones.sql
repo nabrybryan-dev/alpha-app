@@ -1175,6 +1175,9 @@ select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe,
               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'proteger_perfil'
                  and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+       then 'SI' else 'NO' end
+
+union all
 -- == LAS QUE FALTABAN, Y LOS DOS PARES REPETIDOS (anadidas el 2026-09-10) =====
 --
 -- En `main` hay DOS archivos llamados 0062 y DOS llamados 0065, y falta la 0063
@@ -1510,6 +1513,44 @@ select '0078 - la app cuenta lo que le falla', 'la tabla existe con RLS, anon no
             when exists (select 1 from pg_policies
                           where schemaname = 'public' and tablename = 'errores_navegador'
                             and cmd = 'SELECT' and qual like '%es_coach()%') then 'SI'
+            else 'NO' end
+
+union all
+-- 0079 · El veto de 24 horas. Cuatro senales, y las cuatro hacen falta:
+-- tabla con RLS y sin lectura anon (lleva datos de planes), funciones no abiertas
+-- a anon y con revokes, y cron cada 15 min. El orden importa: preguntar privilegios
+-- sobre lo que no existe revienta en vez de decir NO.
+select '0079 - el veto de 24 horas', 'tabla con RLS, anon no lee y publicado_en existe',
+       case when to_regclass('public.publicaciones_pendientes') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.publicaciones_pendientes')) then 'NO'
+            when has_table_privilege('anon', 'public.publicaciones_pendientes', 'select') then 'NO'
+            when not exists (select 1 from information_schema.columns where table_schema='public' and table_name='publicaciones_pendientes' and column_name='publicar_en') then 'NO'
+            else 'SI' end
+
+union all
+select '0079 - el veto de 24 horas', 'publicar_pendientes existe, definer y cerrada a anon',
+       case when to_regprocedure('public.publicar_pendientes()') is null then 'NO'
+            when has_function_privilege('anon', 'public.publicar_pendientes()', 'execute') then 'NO'
+            when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.publicar_pendientes()')) is not true then 'NO'
+            else 'SI' end
+
+union all
+select '0079 - el veto de 24 horas', 'parar_publicacion existe, definer y cerrada a anon',
+       case when to_regprocedure('public.parar_publicacion(uuid,text)') is null then 'NO'
+            when has_function_privilege('anon', 'public.parar_publicacion(uuid,text)', 'execute') then 'NO'
+            when (select p.prosecdef from pg_proc p where p.oid = to_regprocedure('public.parar_publicacion(uuid,text)')) is not true then 'NO'
+            else 'SI' end
+
+union all
+select '0079 - el veto de 24 horas', 'cron cada 15 min programado',
+       -- `cron.job` se consulta en tiempo de ejecución (query_to_xml) y solo si existe: nombrada
+       -- directamente, la consulta entera falla al leerse en una base sin pg_cron (el CI), aunque
+       -- el `case` nunca llegue a esa rama.
+       case when not exists (select 1 from pg_available_extensions where name='pg_cron') then 'SI'
+            when to_regclass('cron.job') is null then 'NO'
+            when (xpath('/row/n/text()', query_to_xml(
+                   'select count(*) as n from cron.job where jobname = ''publicar-pendientes-cada-15'' and schedule = ''*/15 * * * *''',
+                   false, true, '')))[1]::text::int > 0 then 'SI'
             else 'NO' end
 
 union all
@@ -2186,6 +2227,8 @@ select '0104 - hallazgos de mercadeo: autor real del comentario', 'mercadeo_hall
             when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
               or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute')
               or pg_get_functiondef('public.comentar_hallazgo_mercadeo(uuid,text)'::regprocedure) not like '%autor_nombre%' then 'NO'
+            else 'SI' end
+union all
 -- La 0105: la bandeja de preguntas de Praxis existe, con RLS, y anon no tiene nada.
 select '0105 - praxis_preguntas_en_espera con RLS y sin nada para anon', 'RLS encendida, anon sin select ni insert, authenticated con select',
        case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'
