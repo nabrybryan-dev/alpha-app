@@ -7,9 +7,14 @@ import { notasDelMicrociclo } from '../../domain/notasDeLaSemana'
 import { indiceRecuperacion } from '../../domain/readiness'
 import { calculosDeLaRuta } from './ruta/calculosDeLaRuta'
 import { SalonEntrenar } from './salon/SalonEntrenar'
+import { RutaSimple } from './RutaSimple'
 
 /**
  * La pestaña Entrenar. Tocar ENTRENAR abre EL SALÓN, sin pantalla de aterrizaje.
+ *
+ * SALVO con `perfil.vistaSimple`: ahí abre la lista plana (`RutaSimple`), con
+ * los MISMOS cálculos de `calculosDeLaRuta` — nunca una cuenta aparte. Pedido
+ * por Bryan el 8-oct-2026 para Karin Better.
  *
  * Este archivo LEE y entrega; quien pinta es el salón. Antes era también la maqueta —doce
  * bloques en una columna con scroll, escritos aquí mismo— y después fue el sitio donde
@@ -55,12 +60,17 @@ export default function RutaPage() {
   }
 
   const calculos = calculosDeLaRuta(usuario.id, microciclo, hoy)
+  const perfil = db.perfiles.byUsuario(usuario.id)
+
+  if (perfil?.vistaSimple) {
+    return (
+      <RutaSimple microciclo={microciclo} semana={calculos.semana} sesionCta={calculos.sesionCta} />
+    )
+  }
+
   // Cómo es el cuerpo de esta persona: su talla, de la ficha, y su forma, de la última
   // serie suya con pista de pose. Se lee aquí y no en un estado para que mande el dato.
-  const cuerpo = cuerpoDelAsesorado(
-    db.perfiles.byUsuario(usuario.id),
-    db.microciclos.byUsuario(usuario.id),
-  )
+  const cuerpo = cuerpoDelAsesorado(perfil, db.microciclos.byUsuario(usuario.id))
 
   return (
     <SalonEntrenar
@@ -78,7 +88,7 @@ export default function RutaPage() {
       microcicloPrevio={calculos.microcicloPrevio}
       // De la ficha, tal cual: 'mujer' es 'mujer', 'hombre' es 'hombre', y sin dato no
       // se pasa nada, para que el visor decida su defecto y no esta pantalla.
-      sexo={db.perfiles.byUsuario(usuario.id)?.sexo}
+      sexo={perfil?.sexo}
       // Y su estatura, de la medida más reciente que la traiga. Misma regla que el sexo:
       // sin dato no se pasa nada y el visor usa el sujeto del atlas.
       estaturaCm={cuerpo.estaturaCm}

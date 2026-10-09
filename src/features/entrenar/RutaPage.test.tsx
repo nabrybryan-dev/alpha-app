@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionProvider } from '../../app/SessionProvider'
 import { ThemeProvider } from '../../app/ThemeProvider'
+import { db } from '../../data/dbInstance'
 import { requisitosParaPeldano } from '../../domain/nivelesAlfa'
 import RutaPage from './RutaPage'
 
@@ -56,7 +57,12 @@ function recuadro(clave: string): HTMLElement {
 
 describe('RutaPage', () => {
   beforeEach(() => localStorage.clear())
-  afterEach(() => vi.useRealTimers())
+  afterEach(() => {
+    vi.useRealTimers()
+    // El espía de `db.perfiles.byUsuario` del test de `vistaSimple` no puede quedarse
+    // puesto para los demás: son todos el mismo `db`, un módulo singleton.
+    vi.restoreAllMocks()
+  })
 
   /**
    * LO QUE EL PANEL SIGUE TRAYENDO — Y LO QUE SE FUE A PROGRESO.
@@ -227,5 +233,30 @@ describe('RutaPage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText(/^Semana \d+ · Microciclo/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Próxima semana/)).not.toBeInTheDocument()
+  })
+
+  /**
+   * `perfil.vistaSimple` (8-oct-2026, pedida para Karin Better): el salón ni se monta.
+   *
+   * No se reescribe la ficha del seed para esto —cambiaría el resto de pruebas del mismo
+   * usuario demo—, se espía `db.perfiles.byUsuario` para devolver la MISMA ficha real con
+   * un solo campo encima. Así el resto de datos (medidas, sexo…) siguen siendo los de
+   * siempre y lo único que se prueba es la bifurcación.
+   */
+  it('con vistaSimple, abre la lista plana y no monta el salón', async () => {
+    // No se adivina el id del usuario demo (su orden en `list()` no es el que usa
+    // `SessionProvider` para elegirlo): se le suma `vistaSimple` a CUALQUIER ficha real
+    // que el original devuelva, sea quien sea.
+    const original = db.perfiles.byUsuario
+    vi.spyOn(db.perfiles, 'byUsuario').mockImplementation((id) => {
+      const real = original(id)
+      return real && { ...real, vistaSimple: true }
+    })
+
+    renderizar()
+
+    // La lista plana, no el tirador del panel del salón.
+    expect(await screen.findByText('Tu semana')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /abrir el panel/i })).toBeNull()
   })
 })

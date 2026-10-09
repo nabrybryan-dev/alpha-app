@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -35,6 +35,7 @@ describe('MiPlan', () => {
     localStorage.clear()
     reiniciarDb()
   })
+  afterEach(() => vi.restoreAllMocks())
 
   it('abre por su perfil: es lo que acaba de ganarse respondiendo', () => {
     // El diseño abría por "Contexto", pero se escribió cuando no existía la
@@ -206,6 +207,46 @@ describe('MiPlan', () => {
       })
       pintar()
       expect(screen.getByText(/tu composición/i)).toBeInTheDocument()
+    })
+  })
+
+  /**
+   * `perfil.vistaSimple` (8-oct-2026, pedida para Karin Better): una sola pantalla con la
+   * comida de la semana, sin las pestañas, sin «kcal/P/C/G» por delante.
+   */
+  describe('con vistaSimple', () => {
+    it('pinta la comida de la semana en una pantalla, no las pestañas de siempre', () => {
+      const original = db.perfiles.byUsuario
+      vi.spyOn(db.perfiles, 'byUsuario').mockImplementation((id) => {
+        const real = original(id)
+        return real && { ...real, vistaSimple: true }
+      })
+
+      pintar()
+
+      expect(screen.getByText('Lo que comes esta semana')).toBeInTheDocument()
+      // Ni rastro de las pestañas de la vista completa.
+      expect(screen.queryByRole('button', { name: 'Mi perfil' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Ondulación' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Intercambios' })).toBeNull()
+      // Pero sí al menos una comida real del plan del seed, con su botón de texto.
+      expect(screen.getAllByRole('button', { name: 'Ya comí esto' }).length).toBeGreaterThan(0)
+    })
+
+    it('registrar desde la versión simple manda al diario igual que desde la completa', async () => {
+      const original = db.perfiles.byUsuario
+      vi.spyOn(db.perfiles, 'byUsuario').mockImplementation((id) => {
+        const real = original(id)
+        return real && { ...real, vistaSimple: true }
+      })
+      const usuario = userEvent.setup()
+      pintar()
+
+      await usuario.click(screen.getAllByRole('button', { name: 'Ya comí esto' })[0])
+
+      // Mismo `registrar` que la vista completa: navega a `/nutricion`, así que esta
+      // pantalla (montada en `/nutricion/plan`) desaparece.
+      expect(screen.queryByText('Lo que comes esta semana')).toBeNull()
     })
   })
 })

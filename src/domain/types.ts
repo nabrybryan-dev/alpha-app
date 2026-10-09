@@ -131,6 +131,23 @@ export interface Perfil {
   /** Cuándo subió por última vez, para poder avisárselo en la Ruta. */
   ascensoIso?: string
   /**
+   * Pide la versión sin el salón 3D ni el mando: una lista plana de la semana
+   * con un botón grande para entrar a la sesión de hoy, y en Nutrición una
+   * sola pantalla con la comida de hoy en vez de las siete pestañas del plan
+   * completo.
+   *
+   * Lo decide el coach a mano (8-oct-2026, Bryan: Karin Better no está cómoda
+   * interactuando con el cuarto 3D). No es un nivel de la persona —no implica
+   * nada sobre su condición física ni su peldaño— es solo cuánta interfaz
+   * necesita para llegar a su rutina. Por eso vive aparte de `peldanoAlfa` y
+   * de `faseEnergetica`, que sí son del método.
+   *
+   * Sin definir = la experiencia de siempre (el salón). Opcional a propósito,
+   * mismo criterio que el resto de este bloque: un campo ausente nunca cambia
+   * a nadie de comportamiento sin que alguien lo haya puesto.
+   */
+  vistaSimple?: boolean
+  /**
    * Con qué huesos se dibuja su cuerpo en el salón y en el estudio del cuerpo.
    * Lo rellena el coach. Opcional a propósito: sin dato se dibuja como hasta
    * ahora (el juego neutro del visor).
