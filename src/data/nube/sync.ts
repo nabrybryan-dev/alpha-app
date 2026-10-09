@@ -291,6 +291,10 @@ export function crearDbSincronizada(local: Db): Db {
         local.perfiles.guardarSexo(usuarioId, sexo)
         subirPerfil(local, usuarioId)
       },
+      guardarVistaSimple: (usuarioId, vistaSimple) => {
+        local.perfiles.guardarVistaSimple(usuarioId, vistaSimple)
+        subirPerfil(local, usuarioId)
+      },
       guardarDiasDisponibles: (usuarioId, dias) => {
         local.perfiles.guardarDiasDisponibles(usuarioId, dias)
         subirDiasDisponibles(usuarioId, dias)

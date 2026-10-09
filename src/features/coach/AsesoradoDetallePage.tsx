@@ -15,6 +15,7 @@ import { PautadoVsRealizado } from './PautadoVsRealizado'
 import { RejillaDeVolumen } from './RejillaDeVolumen'
 import { resumenAsesorado } from './resumenAsesorado'
 import { SexoDeLaFicha } from './SexoDeLaFicha'
+import { VistaSimpleDeLaFicha } from './VistaSimpleDeLaFicha'
 import { IconoEstrella } from '../../components/ui/Icono'
 
 const PESTANAS = ['Resumen', 'Entrenamiento', 'Vida', 'Nutrición', 'Cuestionarios'] as const
@@ -128,6 +129,7 @@ export default function AsesoradoDetallePage() {
                 </p>
               </Card>
               <SexoDeLaFicha usuarioId={usuario.id} sexo={perfil.sexo} />
+              <VistaSimpleDeLaFicha usuarioId={usuario.id} vistaSimple={perfil.vistaSimple} />
               <Card>
                 <p className="kicker">Volumen semanal por grupo</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
