@@ -9,6 +9,7 @@ import { compararMicrociclos } from '../../../../domain/consolaCoach/diffMicroci
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import type { Microciclo } from '../../../../domain/types'
 import { NotasDeLlamada } from '../../NotasDeLlamada'
+import { PresentarAlAsesorado } from '../../presentacion/PresentacionAsesorado'
 import { VistaSimpleDeLaFicha } from '../../VistaSimpleDeLaFicha'
 import { SeccionPeso, SeccionPerimetros, SeccionPRatio } from '../ficha/SeccionCuerpo'
 import { SeccionCuestionarios } from '../ficha/SeccionCuestionarios'
@@ -23,6 +24,8 @@ import { usePuestoCoach } from '../usePuestoCoach'
  * que nada deje huecos: perfil y cribado arriba, el cuerpo en el tiempo (peso, perímetros,
  * P-ratio), la adherencia por semana, el plan estratégico con la fila del microciclo
  * actual, cargas y RIR, alimentación y cuestionarios.
+ *
+ * Arriba lleva el botón «Presentar a …» (la presentación para el asesorado, solo lectura).
  *
  * Casi todo es de LECTURA sobre lo que ya baja el repositorio y las tablas de la cadena. Lo que
  * sí escribe, y solo eso:
@@ -182,6 +185,12 @@ export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
       <SeccionRiesgoReportado usuarioId={usuarioId} />
+      {/* Para la llamada: la presentación a pantalla completa con lo que se le enseña a la persona.
+          Solo lee; no escribe nada. Va arriba, junto a las notas de la llamada. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 xl:col-span-12">
+        <p className="min-w-0 text-[13px] text-tenue">Para enseñarle cómo va: su semana, su plan y lo que hizo contra lo que se le pidió.</p>
+        <PresentarAlAsesorado datos={datos} historial={historial} />
+      </div>
       {/* `key`: el estado y el borrador de la tarjeta son de UNA persona; sin ella, pasar de un
           asesorado a otro arrastraría lo escrito al siguiente. */}
       <div className={`min-w-0 ${esCoach ? 'xl:col-span-8' : 'xl:col-span-12'}`}>

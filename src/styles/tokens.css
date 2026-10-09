@@ -3659,3 +3659,63 @@ body.praxis-sala-abierta { overflow:hidden; }
     font-size: 16px;
   }
 }
+
+/* ---------- La presentación para el asesorado (9-oct-2026) ---------- */
+
+/* Lo que entra al aparecer: sube 14 px y se enciende, escalonado con `animation-delay`.
+   Solo `transform` y `opacity`. Los keyframes llevan solo `from`: si la animación no corre
+   (jsdom, movimiento reducido, pestaña congelada) la pieza está entera y visible.
+
+   Mientras la sección no se ha revelado (`Revelar` aún no le puso `.revelado`) las
+   animaciones esperan en pausa: una barra que creciera con la sección fuera de pantalla
+   terminaría antes de que nadie la mirara. */
+@keyframes pres-entra {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.pres-entra {
+  animation: pres-entra var(--dur-informativo) var(--muelle-informativo) both;
+}
+
+.revelar:not(.revelado) .pres-entra,
+.revelar:not(.revelado) .escena-barra,
+.revelar:not(.revelado) .grafica-punto {
+  animation-play-state: paused;
+}
+
+/* Una barra de la escena es un grupo SVG: para que `scaleY` crezca desde SU base y no desde
+   el origen del lienzo, la caja de transformación es la del propio grupo. */
+.escena-barra {
+  transform-box: fill-box;
+}
+
+/* El giro es horizontal: el navegador se queda con el desplazamiento vertical de la página
+   (`pan-y`) y nosotros con el arrastre de lado. */
+.escena-giro {
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.escena-giro:active {
+  cursor: grabbing;
+}
+
+/* Las cifras de la escena llevan un halo del color del fondo: se leen aunque pasen por
+   encima de una barra translúcida. */
+.escena-texto {
+  paint-order: stroke;
+  stroke: rgb(var(--bg-rgb));
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pres-entra {
+    animation: none;
+  }
+}

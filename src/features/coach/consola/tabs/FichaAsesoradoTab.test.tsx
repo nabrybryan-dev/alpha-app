@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -296,5 +296,93 @@ describe('FichaAsesoradoTab · notas de llamada e interruptor de vista simple', 
     expect(screen.queryByLabelText('Qué se habló')).not.toBeInTheDocument()
     // Y el del primero sigue esperándolo.
     expect(window.sessionStorage.getItem(`notas-llamada:borrador:${primero.id}`)).toContain('Esto es del primero')
+  })
+})
+
+/** La presentación para el asesorado: el botón de arriba abre la pantalla completa con las cinco
+ *  secciones, y cerrarla no deja nada colgado. */
+describe('FichaAsesoradoTab · presentar al asesorado', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    nube.activo = true
+    nube.fila = null
+  })
+
+  const persona = () => db.usuarios.entrenan()[0]
+
+  it('el botón «Presentar a …» abre la presentación y Escape la cierra', async () => {
+    const user = userEvent.setup()
+    render(<FichaAsesoradoTab usuarioId={persona().id} />)
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
+    const dialogo = await screen.findByRole('dialog', { name: `Presentación de ${persona().nombre}` })
+    expect(dialogo).toHaveAttribute('aria-modal', 'true')
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('trae las cinco secciones en su orden, y el bloque reservado de velocidad y técnica no lleva cifras', async () => {
+    const user = userEvent.setup()
+    render(<FichaAsesoradoTab usuarioId={persona().id} />)
+    await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
+    const dialogo = await screen.findByRole('dialog')
+
+    const titulos = within(dialogo)
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+    expect(titulos).toEqual([
+      'Esta semana',
+      'El mapa de tu plan',
+      'Lo que te pedimos y lo que hiciste',
+      'Conclusiones',
+      'Velocidad y técnica',
+    ])
+
+    const reservada = within(dialogo).getByRole('region', { name: 'Velocidad y técnica' })
+    expect(reservada.textContent).toMatch(/Todavía no hay mediciones de velocidad ni tomas de técnica/)
+    // El título y el texto reservado no traen ni un dígito (no hay datos de ejemplo).
+    expect(reservada.textContent).not.toMatch(/\d/)
+  })
+
+  it('sin plan vigente, la sección del mapa lo dice y la presentación no se rompe', async () => {
+    nube.fila = null
+    const user = userEvent.setup()
+    render(<FichaAsesoradoTab usuarioId={persona().id} />)
+    await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
+    expect(await screen.findByText(/no hay un plan de largo plazo/)).toBeInTheDocument()
+    expect(screen.getByText('Todavía no hay conclusiones escritas para mostrar.')).toBeInTheDocument()
+  })
+
+  it('con plan vigente, el mapa marca la semana de ahora y al tocar otra abre su detalle', async () => {
+    const usuarioId = persona().id
+    const activo = db.microciclos.byUsuario(usuarioId).find((m) => m.estado === 'activo')!
+    const n = activo.numero
+    nube.fila = {
+      id: 'plan-p',
+      usuario_id: usuarioId,
+      version: 1,
+      vigente: true,
+      contenido: {
+        objetivo_largo_plazo: 'objetivo de la presentación',
+        cabecera: ['Micro', 'Series'],
+        filas: {
+          [String(n)]: { columnas: { Micro: `M${n}`, Series: '**~60**' }, condiciones: {} },
+          [String(n + 1)]: { columnas: { Micro: `M${n + 1}`, Series: '~64' }, condiciones: {} },
+        },
+      },
+      hash: 'h',
+      creado_en: '2026-09-20T12:00:00Z',
+    }
+    const user = userEvent.setup()
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+    await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
+
+    const actual = await screen.findByRole('button', { name: `Semana ${n}, es esta, la de ahora` })
+    expect(actual).toHaveAttribute('aria-current', 'step')
+    await user.click(screen.getByRole('button', { name: `Semana ${n + 1}, viene` }))
+    // La ficha de detrás también trae la tabla del plan: se mira solo dentro de la presentación.
+    expect(within(screen.getByRole('dialog')).getByText('~64')).toBeInTheDocument()
   })
 })
