@@ -1,3 +1,4 @@
+import { nombreDelMicrociclo } from '../../domain/palabrasLlanas'
 import { useEffect, useRef, useState } from 'react'
 import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
 import { Link, useParams } from 'react-router-dom'
@@ -66,6 +67,8 @@ export default function SesionPage() {
 function SesionEnCurso() {
   const { sesionId } = useParams()
   const { usuario } = useSesion()
+  // Vista simple: «Semana 11», «Series» y «Te sobran» en vez de las palabras técnicas.
+  const simple = Boolean(db.perfiles.byUsuario(usuario.id)?.vistaSimple)
   // Su talla y su forma, en un solo sitio. Ver `cuerpoDelAsesorado`.
   const cuerpo = cuerpoDelAsesorado(
     db.perfiles.byUsuario(usuario.id),
@@ -257,7 +260,7 @@ function SesionEnCurso() {
               <path d="m15 18-6-6 6-6" />
             </svg>
           </Link>
-          <p className="kicker">Microciclo M{microciclo.numero}</p>
+          <p className="kicker">{nombreDelMicrociclo(microciclo.numero, simple)}</p>
           <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>
           {!todasRegistradas && (
             <div className="mt-3">
@@ -341,6 +344,7 @@ function SesionEnCurso() {
               indice={exIdx}
               total={sesion.ejercicios.length}
               microcicloId={microciclo.id}
+              simple={simple}
               notaVisible={notasVisibles.has(ejercicioActual.id)}
               onAlternarNota={() => alternarNota(ejercicioActual.id)}
               onVerDemo={setDemo}

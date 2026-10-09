@@ -1,4 +1,4 @@
--- Las notas de llamada (0112 + 0113).
+-- Las notas de llamada (0112 + 0113 + 0114).
 --
 -- POR QUÉ ESTA PRUEBA EXISTE. La 0112 se aplicó a producción con las notas detrás de `es_coach()`
 -- y con un comentario que afirmaba que esa puerta «ya cubre a Manuela». No la cubría: Manuela es
@@ -10,13 +10,14 @@
 --   1. Quien entra a la consola por `leer_entrenamiento` (Manuela) anota y lee, y la nota queda a
 --      SU nombre, con sus tareas y su hora.
 --   2. Nadie anota a nombre de otro.
---   3. Nadie corrige ni borra una nota (no hay privilegio de tabla para ello).
+--   3. Cada quien corrige y borra SOLO lo que anotó (0114); ni el coach toca la nota de otro, y
+--      nadie cambia de quién es la llamada ni quién la anotó.
 --   4. El coach lee lo que anotó Manuela y anota lo suyo.
 --   5. La cuenta personal (asesorado con `puesto_de_coach`) también lee y anota.
 --   6. Una nutricionista SIN la capacidad ni lee ni anota: la puerta es la capacidad, no el rol.
 --      Es el control que distingue la 0113 de un `es_staff()`.
 --   7. La asesorada de quien hablan las notas ni las lee ni puede escribirlas.
---   8. anon no tiene nada; `authenticated` solo `select` e `insert`.
+--   8. anon no tiene nada; `authenticated` lee, anota, corrige cinco columnas y borra; sin truncate.
 --
 -- Bloque de UUID propio (f113…). Termina en ROLLBACK: no deja nada detrás.
 
@@ -74,7 +75,7 @@ select pruebas.afirmar(
 );
 
 -- ════════════════════════════════════════════════════════════════════════
--- 2 · Nadie anota a nombre de otro   ·   3 · Nadie corrige ni borra
+-- 2 · Nadie anota a nombre de otro   ·   3a · Quien anotó corrige lo suyo, y solo el texto
 -- ════════════════════════════════════════════════════════════════════════
 do $$
 begin
@@ -83,15 +84,29 @@ begin
     values ('f1130000-0000-0000-0000-000000000001', 'f1130000-0000-0000-0000-000000000002', 'A nombre del coach');
     raise exception 'FALLO: se pudo anotar una llamada a nombre de otra persona';
   exception when insufficient_privilege then null; end;
+  -- Las tres columnas que una corrección NO puede tocar: no hay privilegio de columna.
   begin
-    update public.notas_llamada set conclusiones = 'otra cosa';
-    raise exception 'FALLO: se pudo corregir una nota ya guardada';
+    update public.notas_llamada set coach_id = 'f1130000-0000-0000-0000-000000000002';
+    raise exception 'FALLO: se pudo cambiar quién anotó la nota';
   exception when insufficient_privilege then null; end;
   begin
-    delete from public.notas_llamada;
-    raise exception 'FALLO: se pudo borrar una nota';
+    update public.notas_llamada set usuario_id = 'f1130000-0000-0000-0000-000000000005';
+    raise exception 'FALLO: se pudo cambiar de quién es la llamada';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.notas_llamada set creado_en = now() - interval '1 year';
+    raise exception 'FALLO: se pudo cambiar cuándo se anotó la nota';
   exception when insufficient_privilege then null; end;
 end $$;
+
+update public.notas_llamada set conclusiones = 'Hablamos del desayuno y de la cena.', hora = '19:00'
+ where usuario_id = 'f1130000-0000-0000-0000-000000000001';
+select pruebas.afirmar(
+  (select conclusiones = 'Hablamos del desayuno y de la cena.' and hora = '19:00'::time
+          and coach_id = 'f1130000-0000-0000-0000-000000000003'
+     from public.notas_llamada where usuario_id = 'f1130000-0000-0000-0000-000000000001'),
+  'quien anotó la llamada no pudo corregir su propia nota'
+);
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 4 · El coach lee lo de Manuela y anota lo suyo
@@ -116,6 +131,25 @@ select pruebas.afirmar(
       and fecha = current_date and hora is null and tareas is null) = 1,
   'el coach no pudo anotar, o la nota sin fecha/hora/tareas no quedó con sus valores por omisión'
 );
+
+-- 3b · Ni el coach corrige ni borra la nota de otro. Bajo RLS no da error: no toca ninguna fila.
+update public.notas_llamada set conclusiones = 'REESCRITA POR EL COACH'
+ where coach_id = 'f1130000-0000-0000-0000-000000000003';
+delete from public.notas_llamada where coach_id = 'f1130000-0000-0000-0000-000000000003';
+select pruebas.afirmar(
+  (select count(*) from public.notas_llamada
+    where coach_id = 'f1130000-0000-0000-0000-000000000003'
+      and conclusiones = 'Hablamos del desayuno y de la cena.') = 1,
+  'el coach pudo corregir o borrar la nota que anotó otra persona'
+);
+-- Control positivo de lo mismo: la SUYA sí la borra y la vuelve a anotar.
+delete from public.notas_llamada where coach_id = 'f1130000-0000-0000-0000-000000000002';
+select pruebas.afirmar(
+  (select count(*) from public.notas_llamada where coach_id = 'f1130000-0000-0000-0000-000000000002') = 0,
+  'el coach no pudo borrar su propia nota'
+);
+insert into public.notas_llamada (usuario_id, conclusiones)
+values ('f1130000-0000-0000-0000-000000000001', 'Segunda llamada.');
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 5 · La cuenta personal (asesorado con el puesto de coach) lee y anota
@@ -153,6 +187,9 @@ begin
     raise exception 'FALLO: una nutricionista sin acceso a la consola anotó una llamada';
   exception when insufficient_privilege then null; end;
 end $$;
+-- Y tampoco corrige ni borra: no ve ninguna fila sobre la que hacerlo.
+update public.notas_llamada set conclusiones = 'REESCRITA SIN PERMISO';
+delete from public.notas_llamada;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 7 · La asesorada de quien hablan las notas: ni las lee ni las escribe
@@ -176,9 +213,15 @@ begin
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
--- 8 · anon no tiene nada; authenticated solo lee y anota
+-- 8 · anon no tiene nada; authenticated lee, anota, corrige el texto y borra
 -- ════════════════════════════════════════════════════════════════════════
 reset role;
+select pruebas.afirmar(
+  (select count(*) from public.notas_llamada
+    where usuario_id = 'f1130000-0000-0000-0000-000000000001'
+      and conclusiones not like 'REESCRITA%') = 3,
+  'alguien sin permiso (nutricionista sin consola o la asesorada) corrigió o borró notas'
+);
 select pruebas.afirmar(
   not has_table_privilege('anon', 'public.notas_llamada', 'select')
   and not has_table_privilege('anon', 'public.notas_llamada', 'insert')
@@ -190,10 +233,14 @@ select pruebas.afirmar(
 select pruebas.afirmar(
   has_table_privilege('authenticated', 'public.notas_llamada', 'select')
   and has_table_privilege('authenticated', 'public.notas_llamada', 'insert')
-  and not has_table_privilege('authenticated', 'public.notas_llamada', 'update')
-  and not has_table_privilege('authenticated', 'public.notas_llamada', 'delete')
+  and has_table_privilege('authenticated', 'public.notas_llamada', 'delete')
+  and has_column_privilege('authenticated', 'public.notas_llamada', 'conclusiones', 'update')
+  and has_column_privilege('authenticated', 'public.notas_llamada', 'tareas', 'update')
+  and not has_column_privilege('authenticated', 'public.notas_llamada', 'coach_id', 'update')
+  and not has_column_privilege('authenticated', 'public.notas_llamada', 'usuario_id', 'update')
+  and not has_column_privilege('authenticated', 'public.notas_llamada', 'creado_en', 'update')
   and not has_table_privilege('authenticated', 'public.notas_llamada', 'truncate'),
-  'authenticated tiene de más o de menos sobre las notas de llamada: debe ser solo select e insert'
+  'authenticated tiene de más o de menos sobre las notas de llamada (0114: corrige cinco columnas y borra; nunca coach_id, usuario_id ni creado_en)'
 );
 
 rollback;

@@ -1,3 +1,4 @@
+import { etiquetaDelTipoDeDia, tipoDiaDeLaFecha } from '../../domain/nutricion/tipoDiaDeLaFecha'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
@@ -10,7 +11,7 @@ import {
   kcalDeComida,
   resumenDelDia,
 } from '../../domain/nutricion/resumen'
-import type { RegistroComida, TipoComida, TipoDia } from '../../domain/types'
+import type { RegistroComida, TipoComida } from '../../domain/types'
 import { AdherenciaDia } from './AdherenciaDia'
 import { DetalleComida } from './DetalleComida'
 import { FilaComida } from './FilaComida'
@@ -120,7 +121,6 @@ export default function DiarioDia() {
     setProbadasEstado(nuevas)
     escribirJSON(claveProbadas, nuevas)
   }
-  const [tipoDia] = useState<TipoDia>('ALTO')
   // `detalle` es la comida que se está mirando entera; `comidaAbierta` es en
   // cuál va a caer lo que se busque. Son distintas: desde el detalle se abre el
   // buscador sin dejar de estar en el detalle.
@@ -130,6 +130,8 @@ export default function DiarioDia() {
   const [elegido, setElegido] = useState<AlimentoIndice | null>(null)
 
   const plan = db.nutricion.planByUsuario(usuario.id)
+  // El tipo de día sale del plan y de la fecha que se mira; antes estaba fijo en ALTO.
+  const tipoDia = tipoDiaDeLaFecha(plan, fecha)
   const delDia = db.registroComidas.delDia(usuario.id, fecha)
 
   // Misma función que usa "Mi plan": el contador del diario y las cifras del
@@ -380,7 +382,7 @@ export default function DiarioDia() {
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-tenue">
-            Diario de comidas · Día {plan.etiquetasDia?.[tipoDia] ?? tipoDia}
+            Diario de comidas · {etiquetaDelTipoDeDia(plan, tipoDia)}
           </p>
           <h1 className="font-display text-xl capitalize text-texto">{fechaBonita(fecha)}</h1>
         </div>

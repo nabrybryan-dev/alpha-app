@@ -3641,3 +3641,21 @@ body.praxis-sala-abierta { overflow:hidden; }
 .praxis.ingreso .ing-copia { font: 400 13px/1.5 var(--f-mono); }
 .praxis.ingreso .ing-app > section { display: flex; flex-direction: column; gap: 16px; }
 .praxis.ingreso .ing-app > section > .ing-h2 { margin: 0; }
+
+/*
+ * iPhone: Safari amplía la página entera al enfocar un campo con letra de menos de 16 px, y no
+ * vuelve sola. Había 17 campos así (chat, medidas, cuestionarios, bloques de la sesión…): se
+ * escribían con `text-sm` o `text-xs`. Se arregla aquí, una vez, en vez de campo por campo: la
+ * letra del campo nunca baja de 16 px. Va fuera de `@layer` a propósito, para ganarle a las
+ * utilidades de tamaño; un campo que pida MÁS de 16 px lo conserva (`max`).
+ */
+@media (pointer: coarse) {
+  input.text-sm,
+  input.text-xs,
+  select.text-sm,
+  select.text-xs,
+  textarea.text-sm,
+  textarea.text-xs {
+    font-size: 16px;
+  }
+}

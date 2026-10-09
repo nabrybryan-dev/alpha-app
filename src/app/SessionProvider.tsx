@@ -1,3 +1,4 @@
+import { capacidadesDe } from '../data/consola/capacidadesStaff'
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Usuario } from '../domain/types'
 import { db, useDbVersion } from '../data/dbInstance'
@@ -165,6 +166,29 @@ function SesionNube({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // La cuenta personal de Bryan es rol `asesorado` con la capacidad `puesto_de_coach` (0106): abre
+  // la ficha de cada asesorado y escribe en ella, pero por su ROL no entraba al refresco de abajo.
+  // Su copia envejecía toda la sesión, y como la ficha se sube entera, guardar cualquier cosa
+  // desde una copia de hace horas borraba lo que la persona hubiera escrito después (una medida,
+  // sus días) y podía apagar la vista simple. Se pregunta una vez por sesión; sin red o sin la
+  // capacidad queda en `false`, que es lo de antes.
+  const [puestoDeCoach, setPuestoDeCoach] = useState(false)
+  useEffect(() => {
+    if (estado !== 'listo' || !autenticadoId) return
+    let vivo = true
+    capacidadesDe(autenticadoId)
+      .then((lista) => {
+        if (vivo) setPuestoDeCoach(lista.includes('puesto_de_coach'))
+      })
+      .catch(() => {
+        // Sin saberlo no se refresca: es el comportamiento anterior, no uno peor.
+      })
+    return () => {
+      vivo = false
+      setPuestoDeCoach(false)
+    }
+  }, [estado, autenticadoId])
+
   // Refresco en vivo para el staff: al volver a la pestaña o cada 45 s, si no
   // hay escrituras locales pendientes, vuelve a bajar los datos de todos los
   // asesorados. Así el coach y la nutricionista ven las modificaciones de cada
@@ -172,7 +196,7 @@ function SesionNube({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (estado !== 'listo' || !autenticadoId) return
     const rol = db.usuarios.byId(autenticadoId)?.rol
-    if (rol !== 'coach' && rol !== 'nutricionista') return
+    if (rol !== 'coach' && rol !== 'nutricionista' && !puestoDeCoach) return
 
     let activo = true
     const refrescar = async () => {
@@ -198,7 +222,7 @@ function SesionNube({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', alVolver)
       window.clearInterval(id)
     }
-  }, [estado, autenticadoId])
+  }, [estado, autenticadoId, puestoDeCoach])
 
   if (recuperacion) {
     return (

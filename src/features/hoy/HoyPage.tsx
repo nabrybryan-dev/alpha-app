@@ -1,3 +1,4 @@
+import { nombreDelMicrociclo, palabraMicrociclo, siglaDelMicrociclo } from '../../domain/palabrasLlanas'
 import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
@@ -138,6 +139,8 @@ export default function HoyPage() {
   ].filter((p): p is { texto: string; ruta: string } => Boolean(p))
 
   const perfil = db.perfiles.byUsuario(usuario.id)
+  // Vista simple: las mismas tarjetas, sin «microciclo», «M11» ni la cadencia (ver `palabrasLlanas`).
+  const simple = Boolean(perfil?.vistaSimple)
   // Los tres números de «Tu bloque actual»: lo que el coach prescribió y, donde
   // no prescribió, lo que sale de la encuesta marcado como estimado.
   const pauta = pautaDelBloque(
@@ -190,9 +193,13 @@ export default function HoyPage() {
       <section className="entrada entrada-1">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-tenue">
           {[
-            microciclo ? `Microciclo M${microciclo.numero}` : 'Sin microciclo activo',
-            microciclo ? `Cadencia ${microciclo.cadenciaDias} días` : undefined,
-            perfil?.faseEnergetica,
+            microciclo
+              ? nombreDelMicrociclo(microciclo.numero, simple)
+              : simple
+                ? 'Sin plan esta semana'
+                : 'Sin microciclo activo',
+            microciclo && !simple ? `Cadencia ${microciclo.cadenciaDias} días` : undefined,
+            simple ? undefined : perfil?.faseEnergetica,
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -368,10 +375,10 @@ export default function HoyPage() {
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accion">
                 {sugerida?.esDeHoy
-                  ? `Sesión de hoy · M${microciclo.numero}`
+                  ? `Sesión de hoy · ${siglaDelMicrociclo(microciclo.numero, simple)}`
                   : diaDeSesion(siguienteSesion)
-                    ? `Pendiente del ${diaDeSesion(siguienteSesion)?.toLowerCase()} · M${microciclo.numero}`
-                    : `Tu siguiente sesión · M${microciclo.numero}`}
+                    ? `Pendiente del ${diaDeSesion(siguienteSesion)?.toLowerCase()} · ${siglaDelMicrociclo(microciclo.numero, simple)}`
+                    : `Tu siguiente sesión · ${siglaDelMicrociclo(microciclo.numero, simple)}`}
               </p>
               <h3 className="mt-2 font-display text-2xl leading-tight text-silver-100">{siguienteSesion.nombre}</h3>
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-silver-400">
@@ -429,7 +436,7 @@ export default function HoyPage() {
           </Link>
           <div className="relieve rounded-tarjeta border border-linea bg-surface-1 p-3 text-center shadow-sm">
             <p className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-tenue">
-              Peso{microciclo ? ` M${microciclo.numero}` : ''}
+              Peso{microciclo ? ` ${siglaDelMicrociclo(microciclo.numero, simple)}` : ''}
             </p>
             <p className="cifras mt-1 text-2xl font-bold leading-none text-texto">
               {pesoProm ?? '—'}
@@ -448,9 +455,9 @@ export default function HoyPage() {
 
       {microciclo && !siguienteSesion && microcicloCompleto && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
-          <p className="text-sm font-bold text-texto">Microciclo completo 💪</p>
+          <p className="text-sm font-bold text-texto">{simple ? 'Semana completa' : 'Microciclo completo'} 💪</p>
           <p className="mt-1 text-sm text-tenue">
-            Registraste todas las sesiones. El coach está preparando tu siguiente microciclo.
+            Registraste todas las sesiones. El coach está preparando tu siguiente {palabraMicrociclo(simple)}.
           </p>
         </div>
       )}
@@ -464,7 +471,7 @@ export default function HoyPage() {
           misma que usa el panel de Entrenar, para que las dos pantallas no discrepen. */}
       {microciclo && semanaEsAdelantada(microciclo, hoy) && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
-          <p className="text-sm font-bold text-texto">Tu microciclo empieza el {microciclo.fechaInicio}</p>
+          <p className="text-sm font-bold text-texto">Tu {palabraMicrociclo(simple)} empieza el {microciclo.fechaInicio}</p>
           <p className="mt-1 text-sm text-tenue">
             El coach ya lo dejó preparado. Hasta entonces, cuida sueño, pasos e hidratación.
           </p>
@@ -481,7 +488,9 @@ export default function HoyPage() {
       {microciclo && semanaEsVencida(microciclo, hoy) && (
         <div className="entrada entrada-3 rounded-tarjeta border border-linea bg-surface-1 p-4 shadow-sm">
           <p className="text-sm font-bold text-texto">
-            Tu microciclo M{microciclo.numero} terminó el {ultimoDiaDe(microciclo)}
+            {simple
+              ? `Tu semana ${microciclo.numero} terminó el ${ultimoDiaDe(microciclo)}`
+              : `Tu microciclo M${microciclo.numero} terminó el ${ultimoDiaDe(microciclo)}`}
           </p>
           <p className="mt-1 text-sm text-tenue">
             Tu coach está preparando el siguiente. Mientras tanto, sigues viendo este plan.
@@ -490,7 +499,7 @@ export default function HoyPage() {
       )}
 
       <div className="entrada entrada-4">
-        <BloqueActual perfil={perfil} pauta={pauta} />
+        <BloqueActual perfil={perfil} pauta={pauta} simple={simple} />
       </div>
 
       <div className="entrada entrada-6">

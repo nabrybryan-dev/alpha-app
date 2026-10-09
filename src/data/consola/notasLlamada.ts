@@ -163,6 +163,61 @@ export async function agregarNotaLlamada(
   }
 }
 
+/**
+ * Corrige una nota ya guardada. Solo la suya: la política de la 0114 exige `coach_id =
+ * auth.uid()`, así que para una nota ajena la base no cambia ninguna fila y aquí se dice.
+ * No se manda `usuario_id` ni `coach_id`: una corrección no cambia de quién es la llamada ni
+ * quién la anotó (y la base no da permiso para tocar esas columnas).
+ */
+export async function corregirNotaLlamada(id: string, nota: NuevaNotaLlamada): Promise<ResultadoAgregarNota> {
+  if (!modoNube) return { ok: false, error: 'Sin conexión con la base: esto es un demo.' }
+  if (!nota.conclusiones.trim()) return { ok: false, error: 'Escribe qué se habló en la llamada.' }
+  if (!FECHA_ISO.test(nota.fecha)) return { ok: false, error: 'Pon la fecha de la llamada.' }
+  try {
+    const { data, error } = await supabase()
+      .from(TABLA_NOTAS_LLAMADA)
+      .update({
+        fecha: nota.fecha,
+        hora: nota.hora || null,
+        conclusiones: nota.conclusiones.trim(),
+        tareas: nota.tareas?.trim() || null,
+        proxima_reunion: nota.proximaReunion?.trim() || null,
+      })
+      .eq('id', id)
+      .select(SELECCION_NOTAS_LLAMADA)
+    if (error || !data) return { ok: false, error: mensajeDeError(error ?? {}) }
+    const filas = data as unknown as FilaNotaLlamada[]
+    // Bajo RLS, corregir una nota ajena no falla: no toca ninguna fila.
+    if (filas.length === 0) return { ok: false, error: 'Solo puedes corregir las notas que anotaste tú.' }
+    return { ok: true, nota: aNotaLlamada(filas[0]) }
+  } catch {
+    return { ok: false, error: 'Sin conexión: la nota no se guardó. Vuelve a intentarlo.' }
+  }
+}
+
+export type ResultadoBorrarNota = { ok: true } | { ok: false; error: string }
+
+/** Borra una nota. Solo la suya, por la misma política que la corrección. No se puede deshacer. */
+export async function borrarNotaLlamada(id: string): Promise<ResultadoBorrarNota> {
+  if (!modoNube) return { ok: false, error: 'Sin conexión con la base: esto es un demo.' }
+  try {
+    const { data, error } = await supabase().from(TABLA_NOTAS_LLAMADA).delete().eq('id', id).select('id')
+    if (error || !data) {
+      return {
+        ok: false,
+        error:
+          error?.code === CODIGO_SIN_PERMISO
+            ? 'No tienes permiso para borrar esta nota.'
+            : 'No se pudo borrar la nota. Vuelve a intentarlo.',
+      }
+    }
+    if ((data as unknown[]).length === 0) return { ok: false, error: 'Solo puedes borrar las notas que anotaste tú.' }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Sin conexión: la nota no se borró. Vuelve a intentarlo.' }
+  }
+}
+
 // ------------------------------------------------------------------ formato
 
 const DIAS_SEMANA = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']

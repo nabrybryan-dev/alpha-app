@@ -43,7 +43,7 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
         style={{ zIndex: 'var(--z-scrim)' }}
       />
       <div
-        className={`relative max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border-t border-linea bg-surface-1 p-5 pb-8 ${
+        className={`relative max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl border-t border-linea bg-surface-1 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ${
           animar ? 'subir-hoja' : ''
         }`}
         style={{ zIndex: 'var(--z-hoja)' }}
@@ -55,7 +55,7 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar panel"
-            className="h-9 w-9 rounded-full border border-linea bg-surface-2 text-tenue"
+            className="h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
           >
             ✕
           </button>

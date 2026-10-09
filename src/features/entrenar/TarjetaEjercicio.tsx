@@ -1,3 +1,4 @@
+import { etiquetaRir, etiquetaSets } from '../../domain/palabrasLlanas'
 import { Card } from '../../components/ui/Card'
 import { db } from '../../data/dbInstance'
 import { ejercicioCompleto } from '../../domain/cumplimiento'
@@ -5,7 +6,6 @@ import { demoDeEjercicio } from '../../domain/demos'
 import { patronDeCategoria, type Patron } from '../../domain/patrones/catalogo'
 import type { Contenido, EjercicioPrescrito, SerieRegistrada } from '../../domain/types'
 import { CheckDibujado } from './CheckDibujado'
-import { ExerciseSlotMachine } from './ExerciseSlotMachine'
 import { RegistroSerie, type RegistroSerieHandle } from './RegistroSerie'
 import { IconoVideo } from '../../components/ui/Icono'
 import { esAlFallo } from '../../domain/objetivoDeIntensidad'
@@ -34,6 +34,8 @@ interface TarjetaEjercicioProps {
   /** Posición del ejercicio en la sesión: la cabecera-gabinete la muestra. */
   indice: number
   total: number
+  /** Vista simple: «Series» y «Te sobran» en vez de «Sets» y «RIR» (ver `palabrasLlanas`). */
+  simple?: boolean
 }
 
 /**
@@ -55,6 +57,7 @@ export function TarjetaEjercicio({
   onPuedeGuardar,
   indice,
   total,
+  simple = false,
 }: TarjetaEjercicioProps) {
   const completo = ejercicioCompleto(ejercicio)
   const siguienteOrden = ejercicio.series.length + 1
@@ -74,7 +77,28 @@ export function TarjetaEjercicio({
     // puede interrumpir: tocar dos ejercicios seguidos reiniciaba desde cero.
     <div id={`ej-${ejercicio.id}`} className="scroll-mt-4">
       <Card className={completo ? 'opacity-75' : ''}>
-        <ExerciseSlotMachine index={indice} total={total} nombre={ejercicio.nombre} categoria={ejercicio.categoria} rango={ejercicio.rango} tecnica={ejercicio.cues || undefined} paused={completo} onRefTap={contenidoDemo ? () => onVerDemo(contenidoDemo) : undefined} refVisual={contenidoDemo ? 'Ver demostración' : undefined} />
+        {/* LA CABECERA, EN TEXTO QUIETO. Aquí iba `ExerciseSlotMachine`, la cabecera animada
+            con forma de tragaperras. Bryan la quitó para todos el 9-oct-2026: en el teléfono
+            el nombre del ejercicio —lo primero que hay que leer— competía con el gabinete, sus
+            luces y sus letras de 8 a 11 px. Queda lo mismo que decía, sin moverse: en qué
+            ejercicio va, cómo se llama, de qué categoría es y, si hay vídeo, cómo verlo. */}
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-tenue">
+              Ejercicio {indice + 1} de {total} · {ejercicio.categoria}
+            </p>
+            <h3 className="mt-1 font-display text-2xl leading-tight text-texto">{ejercicio.nombre}</h3>
+          </div>
+          {contenidoDemo && (
+            <button
+              type="button"
+              onClick={() => onVerDemo(contenidoDemo)}
+              className="press min-h-[44px] shrink-0 rounded-boton border border-linea bg-surface-2 px-3 text-xs font-bold text-texto"
+            >
+              Ver demostración
+            </button>
+          )}
+        </header>
 
         {/* EL BANCO DE TRABAJO. La tarjeta es la superficie; lo que lleva encima se
             reparte en tres escalones de la escala y ni uno más:
@@ -96,7 +120,7 @@ export function TarjetaEjercicio({
             la misma regla. */}
         <div className="escena-prof">
         <div className="pozo-3d mt-3 flex items-center justify-around rounded-boton bg-ink-800/60 py-2.5">
-          <Estadistica etiqueta="Sets" valor={ejercicio.sets} />
+          <Estadistica etiqueta={etiquetaSets(simple)} valor={ejercicio.sets} />
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
           <Estadistica etiqueta="Reps" valor={ejercicio.rango.replace(/[()]/g, '')} />
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
@@ -105,7 +129,7 @@ export function TarjetaEjercicio({
           {esAlFallo(ejercicio.rirObjetivo) ? (
             <Estadistica etiqueta="Objetivo" valor="FALLO" />
           ) : (
-            <Estadistica etiqueta="RIR" valor={ejercicio.rirObjetivo} />
+            <Estadistica etiqueta={etiquetaRir(simple)} valor={ejercicio.rirObjetivo} />
           )}
           <span className="h-7 w-px bg-linea/60" aria-hidden="true" />
           <Estadistica etiqueta="Descanso" valor={`${ejercicio.descansoMin}'`} />
@@ -177,7 +201,7 @@ export function TarjetaEjercicio({
               <span>Serie</span>
               <span>Carga</span>
               <span>Reps</span>
-              <span>RIR</span>
+              <span>{simple ? 'Sobran' : 'RIR'}</span>
               <span />
             </div>
             <ul className="flex flex-col gap-1.5">
@@ -215,6 +239,7 @@ export function TarjetaEjercicio({
               borradorId={`${microcicloId}-${ejercicio.id}-${siguienteOrden}`}
               onGuardar={onGuardarSerie}
               onPuedeGuardar={onPuedeGuardar}
+              simple={simple}
             />
           </div>
         )}
