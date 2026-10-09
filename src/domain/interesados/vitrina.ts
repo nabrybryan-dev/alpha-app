@@ -41,13 +41,14 @@ export const RESPALDO: readonly Respaldo[] = [
   {
     frase: 'No hace falta entrenar hasta no poder más.',
     detalle:
-      'La fuerza mejora igual dejando repeticiones en reserva. Medimos cuánto te queda en el tanque en cada serie.',
-    fuente: 'Robinson, Pelland, Refalo et al. (Sports Medicine, 2024)',
+      'Para la mayoría de las personas sanas, llegar siempre al límite no cambió de forma consistente los resultados, y la fuerza mejora igual dejando repeticiones en reserva. Para ganar músculo, acercarse un poco más al límite ayuda algo: por eso tu coach lo ajusta. Medimos cuánto te queda en el tanque en cada serie.',
+    fuente:
+      'American College of Sports Medicine (Med Sci Sports Exerc, 2026); Robinson, Pelland, Refalo et al. (Sports Medicine, 2024)',
   },
   {
-    frase: 'Una app con un coach humano funciona mejor que una app sola.',
+    frase: 'Con un coach humano, la constancia suele ser mayor que con una app sola.',
     detalle:
-      'En unas 65.000 personas, quienes tenían también un coach humano perdieron más peso que quienes solo tenían el automático.',
+      'En unas 65.000 personas de una app de salud, quienes tenían además un coach humano registraron más y perdieron más peso en tres meses que quienes solo tenían el entrenador automático. Es un estudio observacional: muestra una asociación, no asegura lo que te pasará a ti.',
     fuente: 'Kapoor, Narayanan y Manchanda (Marketing Science)',
   },
 ]
