@@ -13,6 +13,11 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_VERSION_APP': JSON.stringify(VERSION_APP),
   },
+  // Una sola copia de React para todo: three-fiber y drei traen su propio `react-dom/client`
+  // (drei lo usa en `Html`) y, sin esto, el optimizador del servidor de desarrollo los
+  // empaquetaba aparte, con un React duplicado y «Cannot read properties of null (reading 'useState')».
+  resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: { include: ['react', 'react-dom', 'react-dom/client', 'three', '@react-three/fiber', '@react-three/drei'] },
   build: {
     rollupOptions: {
       output: {
@@ -22,6 +27,10 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
+          // three.js y su entorno de React: solo los pide la presentación para el asesorado
+          // (`React.lazy`). Quien no la abre no los descarga: ni la navegación ni, más abajo, el
+          // service worker los precargan.
+          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
         },
       },
     },
@@ -47,6 +56,10 @@ export default defineConfig({
       workbox: {
         // Aviso push del organizador (public/push-sw.js): muestra la notificación y abre Mi plan.
         importScripts: ['push-sw.js'],
+        // El trozo de three.js (≈ 1,1 MB, 311 kB comprimido) NO se precarga con la app: solo quien
+        // abre la presentación lo baja. Sin esto Workbox lo metería en la precarga y TODO el mundo lo
+        // descargaría al instalar la app, que es justo lo que `React.lazy` evita.
+        globIgnores: ['**/vendor-three-*.js', '**/Escena3D*.js'],
         /**
          * EL GIMNASIO SE QUEDA GUARDADO EN EL TELÉFONO.
          *
