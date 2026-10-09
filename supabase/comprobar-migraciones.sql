@@ -1175,6 +1175,9 @@ select '0065 - los dias que puede entrenar', 'registrar_dias_disponibles existe,
               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'proteger_perfil'
                  and pg_get_functiondef(p.oid) like '%diasDisponibles%')
+       then 'SI' else 'NO' end
+
+union all
 -- == LAS QUE FALTABAN, Y LOS DOS PARES REPETIDOS (anadidas el 2026-09-10) =====
 --
 -- En `main` hay DOS archivos llamados 0062 y DOS llamados 0065, y falta la 0063
@@ -2186,6 +2189,8 @@ select '0104 - hallazgos de mercadeo: autor real del comentario', 'mercadeo_hall
             when to_regprocedure('public.comentar_hallazgo_mercadeo(uuid,text)') is null
               or has_function_privilege('anon', 'public.comentar_hallazgo_mercadeo(uuid,text)', 'execute')
               or pg_get_functiondef('public.comentar_hallazgo_mercadeo(uuid,text)'::regprocedure) not like '%autor_nombre%' then 'NO'
+            else 'SI' end
+union all
 -- La 0105: la bandeja de preguntas de Praxis existe, con RLS, y anon no tiene nada.
 select '0105 - praxis_preguntas_en_espera con RLS y sin nada para anon', 'RLS encendida, anon sin select ni insert, authenticated con select',
        case when to_regclass('public.praxis_preguntas_en_espera') is null then 'NO'
@@ -2384,6 +2389,14 @@ select '0110 - las respuestas del coach a la cadena', 'tabla con RLS solo lectur
             when not (select p.prosecdef from pg_proc p
                        where p.oid = to_regprocedure('public.responder_pregunta_coach(text,uuid,integer,text,text)')) then 'NO'
             when has_function_privilege('anon', 'public.responder_pregunta_coach(text,uuid,integer,text,text)', 'execute') then 'NO'
+            else 'SI' end
+union all
+-- La 0111: ninguna función de public (salvo las de extensiones) sin search_path fijo.
+select '0111 - ninguna funcion de public sin search_path fijo', 'cero funciones de public sin set search_path (sin contar las de extensiones)',
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                          where n.nspname = 'public' and p.prokind in ('f', 'p')
+                            and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')
+                            and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')) then 'NO'
             else 'SI' end
 
 order by migracion, senal;
