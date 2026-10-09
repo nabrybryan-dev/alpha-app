@@ -76,6 +76,13 @@ export interface PerfilesRepo {
    * 0056) no deja al asesorado tocarlo. Solo escribe si la ficha existe.
    */
   guardarSexo(usuarioId: string, sexo: SexoDeFicha | undefined): void
+  /**
+   * Prende o apaga la vista sin el salón 3D ni las pestañas (8-oct-2026, Karin
+   * Better). `undefined` = apagada, la experiencia de siempre. **SOLO STAFF**,
+   * mismo camino que `guardarSexo`: el trigger `proteger_perfil` no deja al
+   * asesorado tocar esto en su propio teléfono.
+   */
+  guardarVistaSimple(usuarioId: string, vistaSimple: boolean | undefined): void
 }
 
 export interface MicrociclosRepo {

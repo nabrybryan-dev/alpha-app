@@ -375,6 +375,21 @@ export function crearMockDb(): Db {
           }),
         }))
       },
+      guardarVistaSimple: (usuarioId, vistaSimple) => {
+        mutar((estado) => ({
+          ...estado,
+          perfiles: conFicha(estado.perfiles, usuarioId).map((p) => {
+            if (p.usuarioId !== usuarioId) return p
+            // Mismo criterio que `guardarSexo`: apagada es que la clave NO esté,
+            // no que valga `false` — así una ficha que nunca la tocó y una que
+            // la apagó a mano quedan idénticas.
+            const copia: Perfil = { ...p }
+            if (vistaSimple) copia.vistaSimple = true
+            else delete copia.vistaSimple
+            return copia
+          }),
+        }))
+      },
       guardarDiasDisponibles: (usuarioId, dias) => {
         mutar((estado) => ({
           ...estado,
