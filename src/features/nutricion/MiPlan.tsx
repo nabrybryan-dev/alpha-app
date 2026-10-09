@@ -10,7 +10,9 @@ import { PerfilCalculadoVista } from './PerfilCalculadoVista'
 import { SheetCambios } from './SheetCambios'
 import { SheetDespensa } from './SheetDespensa'
 import { respuestasDe, visibilidadDelAsesorado } from '../../data/visibilidadDelAsesorado'
-import type { MenuDia, TipoComida, TipoDia } from '../../domain/types'
+import type { MenuDia, TipoDia } from '../../domain/types'
+import { comidaDe } from './comidaDe'
+import { MiPlanSimple } from './MiPlanSimple'
 
 /**
  * El plan nutricional completo, por secciones.
@@ -34,18 +36,6 @@ const SECCIONES = [
 type Seccion = (typeof SECCIONES)[number]
 
 const TIPOS: TipoDia[] = ['ALTO', 'BAJO', 'CHEAT']
-
-/**
- * A que comida del diario corresponde el titulo del menu.
- *
- * Los titulos los escribe el coach ("Desayuno · overnight oats"), asi que se
- * mira solo la primera palabra. Lo que no encaje cae en snack, que es donde
- * viven las medias mananas y los pre-entrenos.
- */
-function comidaDe(titulo: string): TipoComida {
-  const primera = titulo.trim().split(/[\s·]/)[0].toLowerCase()
-  return (['desayuno', 'almuerzo', 'cena'] as const).find((c) => c === primera) ?? 'snack'
-}
 
 const kcalDelTipo = (plan: Parameters<typeof macrosDelDia>[0], tipo: TipoDia) => {
   const m = macrosDelDia(plan, tipo)
@@ -94,6 +84,12 @@ export default function MiPlan() {
         },
       },
     })
+  }
+
+  // La versión sin pestañas: toda la comida de la semana en una sola pantalla, en vez de
+  // repartida en siete secciones. Mismo `plan`, mismo `registrar` — solo cambia cómo se pinta.
+  if (db.perfiles.byUsuario(usuario.id)?.vistaSimple) {
+    return <MiPlanSimple plan={plan} onRegistrar={registrar} onVolver={() => navegar('/nutricion')} />
   }
 
   const menu = plan.menus.find((m) => m.tipoDia === tipoMenu) ?? plan.menus[0]
@@ -302,7 +298,7 @@ export default function MiPlan() {
   )
 }
 
-function ComidasDelMenu({
+export function ComidasDelMenu({
   menu,
   onRegistrar,
   onCambiar,
