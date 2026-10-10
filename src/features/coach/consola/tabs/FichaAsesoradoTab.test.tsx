@@ -299,7 +299,7 @@ describe('FichaAsesoradoTab · notas de llamada e interruptor de vista simple', 
   })
 })
 
-/** La presentación para el asesorado: el botón de arriba abre la pantalla completa con las cinco
+/** La presentación para el asesorado: el botón de arriba abre la pantalla completa con las seis
  *  secciones, y cerrarla no deja nada colgado. */
 describe('FichaAsesoradoTab · presentar al asesorado', () => {
   afterEach(() => {
@@ -323,7 +323,7 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('trae las cinco secciones en su orden, y el bloque reservado de velocidad y técnica no lleva cifras', async () => {
+  it('trae las seis secciones en su orden, y el bloque reservado de velocidad y técnica no lleva cifras', async () => {
     const user = userEvent.setup()
     render(<FichaAsesoradoTab usuarioId={persona().id} />)
     await user.click(screen.getByRole('button', { name: `Presentar a ${persona().nombre}` }))
@@ -334,6 +334,7 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
       .map((h) => h.textContent)
     expect(titulos).toEqual([
       'Esta semana',
+      'Tu semana pasada, esta y la que viene',
       'El mapa de tu plan',
       'Lo que te pedimos y lo que hiciste',
       'Conclusiones',

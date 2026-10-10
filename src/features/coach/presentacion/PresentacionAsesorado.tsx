@@ -1,3 +1,4 @@
+import { tresSemanasDeLaPersona } from '../../../domain/tresSemanas'
 import { useMemo, useState } from 'react'
 import { PantallaCompleta } from '../../../components/ui/PantallaCompleta'
 import { conclusionesPorMicrociclo } from '../../../domain/presentacionAsesorado'
@@ -10,6 +11,7 @@ import { SeccionConclusiones } from './SeccionConclusiones'
 import { SeccionDePresentacion } from './SeccionDePresentacion'
 import { SeccionMapaDelPlan } from './SeccionMapaDelPlan'
 import { SeccionPautadoVsHecho } from './SeccionPautadoVsHecho'
+import { SeccionTresSemanas } from './SeccionTresSemanas'
 import { SeccionVelocidadTecnica } from './SeccionVelocidadTecnica'
 
 interface Props {
@@ -53,9 +55,17 @@ export function PresentarAlAsesorado({ datos, historial }: Props) {
 function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombre: string }) {
   const { activo, checkins, adherencias, perfil, hoy, plan, corridas, usuario } = datos
 
+  // LA SEMANA DE AHORA SE DECIDE POR FECHA, NO POR `estado`. `activo` es el microciclo marcado
+  // `activo`, y eso no siempre es el que cubre hoy: cuando la semana siguiente ya está cargada, la
+  // de ahora queda `cerrado` y `activo` es la que empieza el lunes (pasó el 9-oct-2026 con dos
+  // personas). Con `activo` a secas, «Esta semana» enseñaba una semana sin empezar, en ceros, y el
+  // mapa marcaba como «la de ahora» una casilla del futuro. Es la misma regla de la sección de
+  // las tres semanas, para que las tres secciones hablen de la misma semana.
+  const enCurso = useMemo(() => tresSemanasDeLaPersona(historial, hoy).esta?.microciclo ?? activo, [historial, hoy, activo])
+
   const resumen = useMemo(
-    () => resumenSemanalParaPresentar(activo, checkins, adherencias, perfil?.medidas ?? [], hoy),
-    [activo, checkins, adherencias, perfil?.medidas, hoy],
+    () => resumenSemanalParaPresentar(enCurso, checkins, adherencias, perfil?.medidas ?? [], hoy),
+    [enCurso, checkins, adherencias, perfil?.medidas, hoy],
   )
   const filas = useMemo(() => pautadoVsHechoPorMicrociclo(historial), [historial])
   const ultimoCerrado = useMemo(
@@ -73,23 +83,31 @@ function ContenidoDeLaPresentacion({ datos, historial, nombre }: Props & { nombr
         <PresentacionSemanal resumen={resumen} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={1} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
-        <SeccionMapaDelPlan plan={plan} numeroActual={activo?.numero} ultimoCerrado={ultimoCerrado} />
+      <SeccionDePresentacion
+        indice={1}
+        titulo="Tu semana pasada, esta y la que viene"
+        subtitulo="Lo que te pedimos y lo que hiciste, para que veas el antes, el ahora y lo que sigue."
+      >
+        <SeccionTresSemanas historial={historial} hoy={hoy} plan={plan} />
+      </SeccionDePresentacion>
+
+      <SeccionDePresentacion indice={2} titulo="El mapa de tu plan" subtitulo="Cada casilla es una semana del plan.">
+        <SeccionMapaDelPlan plan={plan} numeroActual={enCurso?.numero} ultimoCerrado={ultimoCerrado} />
       </SeccionDePresentacion>
 
       <SeccionDePresentacion
-        indice={2}
+        indice={3}
         titulo="Lo que te pedimos y lo que hiciste"
         subtitulo="Semana a semana: las series y el volumen que tocaban, contra los que registraste."
       >
         <SeccionPautadoVsHecho filas={filas} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={3} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
+      <SeccionDePresentacion indice={4} titulo="Conclusiones" subtitulo="Lo que el equipo dejó escrito de cada semana.">
         <SeccionConclusiones corridas={corridas} conclusiones={conclusiones} />
       </SeccionDePresentacion>
 
-      <SeccionDePresentacion indice={4} titulo="Velocidad y técnica">
+      <SeccionDePresentacion indice={5} titulo="Velocidad y técnica">
         <SeccionVelocidadTecnica nombre={nombre} />
       </SeccionDePresentacion>
     </div>
