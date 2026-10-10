@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { pRatio } from '../../../../domain/consolaCoach/pRatio'
 import { masaMagraEstimada } from '../../../../domain/consolaCoach/composicionEstimada'
 import { fechaCorta, seriePeso, seriesPerimetros, tendencia } from '../../../../domain/consolaCoach/perfilCompleto'
+import { pesoEstimado, type ConfianzaPeso, type PesoEstimado } from '../../../../domain/estimadores/pesoEstimado'
 import { GraficaLinea } from '../graficas'
 import { Falta, Tarjeta } from '../piezas'
 import type { DatosPersona } from '../usePersona'
@@ -11,9 +12,73 @@ import type { DatosPersona } from '../usePersona'
  * perímetros que tenga, y el P-ratio entre las dos últimas medidas con masa magra.
  */
 
-export function SeccionPeso({ datos, i, className = '' }: { datos: DatosPersona; i: number; className?: string }) {
+/** Kilos con coma decimal (es-CO): 87,8 · 83,35. Mínimo un decimal, máximo dos. */
+function kg(n: number): string {
+  return n.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+}
+
+const ETIQUETA_CONFIANZA: Record<ConfianzaPeso, { texto: string; clase: string }> = {
+  alta: { texto: 'rango estrecho', clase: 'text-texto' },
+  media: { texto: 'rango medio', clase: 'text-texto' },
+  baja: { texto: 'rango ancho: faltan pesajes', clase: 'text-ambar' },
+}
+
+/** «baja ≈ 0,7 kg por semana» / «sube ≈ …» / «estable». Por debajo de 0,2 kg/sem es ruido. */
+function textoTendencia(porSemana: number): string {
+  if (Math.abs(porSemana) < 0.2) return 'estable'
+  return `${porSemana < 0 ? 'baja' : 'sube'} ≈ ${kg(Math.abs(porSemana))} kg por semana`
+}
+
+/**
+ * El peso de HOY como estimación con rango (`pesoEstimado`), para que el coach no lea un
+ * número suelto donde hay pocos datos. Se dibuja distinto de un dato medido a propósito:
+ * borde punteado y la palabra «estimado» a la vista. Solo consola del coach.
+ */
+function BloquePesoEstimado({ e }: { e: PesoEstimado }) {
+  const confianza = ETIQUETA_CONFIANZA[e.confianza]
+  return (
+    <div
+      className="mt-3 rounded-bloque border border-dashed border-linea px-3 py-2.5"
+      role="group"
+      aria-label="Peso de hoy, estimado"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="kicker text-xs">Peso de hoy, estimado</p>
+        <p className={`text-xs font-bold ${confianza.clase}`}>{confianza.texto}</p>
+      </div>
+      <p className="cifras mt-1 text-2xl font-bold leading-tight text-texto">
+        entre {kg(e.bajoKg)} y {kg(e.altoKg)} kg
+      </p>
+      <p className="mt-1 text-xs text-tenue">
+        Centro {kg(e.centroKg)} kg · calculado con {e.n} {e.n === 1 ? 'pesaje' : 'pesajes'} · último el{' '}
+        {fechaCorta(e.ultimoPesaje.fecha)}
+        {e.kgPorSemana !== undefined && <> · {textoTendencia(e.kgPorSemana)}</>}
+      </p>
+      {e.metodo === 'ultimo_dato' && (
+        <p className="mt-1 text-xs text-tenue">
+          Con menos de 3 pesajes (o menos de una semana de datos) no hay tendencia: el rango solo se abre con los
+          días que pasan.
+        </p>
+      )}
+      {e.apartados.map((a) => (
+        <p key={a.fecha} className="mt-1 text-xs text-ambar">
+          1 pesaje apartado por raro: {kg(a.pesoKg)} kg el {fechaCorta(a.fecha)}. Revísalo.
+        </p>
+      ))}
+    </div>
+  )
+}
+
+/** Lo que `SeccionPeso` lee de la persona: se acota para poder probarla sin armar toda la ficha. */
+type DatosDelPeso = Pick<DatosPersona, 'hoy' | 'checkins' | 'perfil' | 'perfilNutricion'>
+
+export function SeccionPeso({ datos, i, className = '' }: { datos: DatosDelPeso; i: number; className?: string }) {
   const serie = seriePeso(datos.checkins, datos.perfil?.medidas ?? [], datos.perfilNutricion)
   const t = tendencia(serie)
+  const estimado = pesoEstimado(
+    serie.map((p) => ({ fecha: p.fecha, pesoKg: p.valor })),
+    datos.hoy,
+  )
   return (
     <Tarjeta
       titulo="Evolución del peso"
@@ -43,6 +108,7 @@ export function SeccionPeso({ datos, i, className = '' }: { datos: DatosPersona;
           {serie.length === 1 && (
             <p className="mt-1 text-[11px] text-tenue">Un solo registro: la curva aparece con el segundo.</p>
           )}
+          {estimado && <BloquePesoEstimado e={estimado} />}
         </>
       )}
     </Tarjeta>
