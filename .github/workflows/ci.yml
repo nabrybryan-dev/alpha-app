@@ -197,3 +197,6 @@ jobs:
 
       - name: Las notas de llamada las lee y las anota quien entra a la consola (coach o leer_entrenamiento), a su nombre; el asesorado no ve nada
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/214-notas-de-llamada.sql
+
+      - name: Las observaciones del agente las lee quien entra a la consola; seguridad y prescripciones solo entran para firma, sin fuente no entran, y se firman por la función, a nombre de quien firma
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/test/215-observaciones-agente.sql
