@@ -30,7 +30,7 @@ interface TarjetaEjercicioProps {
   onGuardarSerie: (serie: SerieRegistrada) => void
   registroRef: React.Ref<RegistroSerieHandle>
   /** Si ya se puede guardar la serie en curso (la persona confirmó o cambió un número). */
-  onPuedeGuardar?: (puede: boolean) => void
+  onPuedeGuardar?: (puede: boolean, motivo: string | null) => void
   /** Posición del ejercicio en la sesión: la cabecera-gabinete la muestra. */
   indice: number
   total: number

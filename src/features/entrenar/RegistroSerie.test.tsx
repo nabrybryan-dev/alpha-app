@@ -149,12 +149,15 @@ describe('RegistroSerie · el RIR queda vacío hasta que se elige', () => {
     return alGuardar
   }
 
-  it('sin tocar el RIR, la serie sale sin rir aunque el objetivo sea 5', () => {
+  // Desde el 2026-10-10 sin RIR no se guarda: el objetivo sigue sin rellenarlo, y lo que
+  // se comprueba es que la serie NO sale con el objetivo puesto por la app.
+  it('sin tocar el RIR la serie no se guarda, aunque el objetivo sea 5', () => {
     const alGuardar = montar(ejercicio({ rirObjetivo: 5 }))
+    for (let n = 0; n <= 5; n += 1) {
+      expect(screen.getByRole('button', { name: `RIR ${n}` }).getAttribute('aria-pressed')).toBe('false')
+    }
     fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
-    const serie = alGuardar.mock.calls[0][0]
-    expect(serie).not.toHaveProperty('rir')
-    expect(serie).toMatchObject({ orden: 1, reps: 10 })
+    expect(alGuardar).not.toHaveBeenCalled()
   })
 
   it('ni la ondulación (seriesPrescritas) ni el FALLO rellenan el RIR', () => {
@@ -162,11 +165,14 @@ describe('RegistroSerie · el RIR queda vacío hasta que se elige', () => {
       ejercicio({ rirObjetivo: 3, seriesPrescritas: [1, 2, 3].map((orden) => ({ orden, reps: 10, rir: 3, cargaKg: 50 })) }),
     )
     fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
-    expect(ondulado.mock.calls[0][0]).not.toHaveProperty('rir')
+    expect(ondulado).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 1' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
+    expect(ondulado.mock.calls[0][0]).toMatchObject({ rir: 1 }) // el elegido, no el 3 de la ondulación
     cleanup()
     const alFallo = montar(ejercicio({ rirObjetivo: 'FALLO' }))
     fireEvent.click(screen.getByRole('button', { name: /^Hecho tal cual/ }))
-    expect(alFallo.mock.calls[0][0]).not.toHaveProperty('rir')
+    expect(alFallo).not.toHaveBeenCalled()
   })
 
   it('el RIR que la persona elige sí se guarda, incluido el 0', () => {

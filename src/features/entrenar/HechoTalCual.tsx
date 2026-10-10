@@ -14,15 +14,18 @@ interface HechoTalCualProps {
   reps: number
   onConfirmar: () => void
   compacto?: boolean
+  /** Apagado mientras falte el esfuerzo: sin RIR no se firma nada. */
+  deshabilitado?: boolean
 }
 
-export function HechoTalCual({ cargaKg, reps, onConfirmar, compacto = false }: HechoTalCualProps) {
+export function HechoTalCual({ cargaKg, reps, onConfirmar, compacto = false, deshabilitado = false }: HechoTalCualProps) {
   return (
     <button
       type="button"
       onClick={onConfirmar}
+      disabled={deshabilitado}
       aria-label={`Hecho tal cual: ${cargaKg} kilos, ${reps} repeticiones`}
-      className={`press w-full rounded-boton border-2 border-accion bg-accion/10 font-display uppercase tracking-wide text-accion focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accion ${
+      className={`press w-full rounded-boton border-2 border-accion bg-accion/10 font-display uppercase tracking-wide text-accion disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accion ${
         compacto ? 'min-h-[44px] py-2.5 text-sm' : 'min-h-[48px] py-3 text-base'
       }`}
     >
@@ -32,10 +35,19 @@ export function HechoTalCual({ cargaKg, reps, onConfirmar, compacto = false }: H
 }
 
 /** Por qué «Guardar» está apagado. `id` para enlazarlo con `aria-describedby`. */
-export function MotivoSinConfirmar({ id, className = '' }: { id?: string; className?: string }) {
+export function MotivoSinConfirmar({
+  id,
+  className = '',
+  motivo = MOTIVO_SIN_CONFIRMAR,
+}: {
+  id?: string
+  className?: string
+  /** Qué falta: el esfuerzo o la confirmación (`motivoDeNoGuardar`). */
+  motivo?: string
+}) {
   return (
     <p id={id} className={`text-center text-xs leading-snug text-tenue ${className}`}>
-      {MOTIVO_SIN_CONFIRMAR}
+      {motivo}
     </p>
   )
 }
