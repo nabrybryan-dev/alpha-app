@@ -25,15 +25,25 @@ const PESOS: [string, number][] = [
   ['10-02', 87.75],
 ]
 
-function checkins(pares: readonly [string, number][]): CheckinDiario[] {
-  return pares.map(([f, kg]) => ({ id: `c-${f}`, usuarioId: 'u1', fecha: `2026-${f}`, pesoKg: kg }))
+/**
+ * `marcados`: cada reporte dice que la persona movió el peso ese día (`anotadoHoy`), así que todos
+ * cuentan aunque se repitan. Sin marca son reportes viejos, y los repetidos seguidos se apartan.
+ */
+function checkins(pares: readonly [string, number][], marcados: boolean): CheckinDiario[] {
+  return pares.map(([f, kg]) => ({
+    id: `c-${f}`,
+    usuarioId: 'u1',
+    fecha: `2026-${f}`,
+    pesoKg: kg,
+    ...(marcados ? { anotadoHoy: ['pesoKg' as const] } : {}),
+  }))
 }
 
-function pintar(pares: readonly [string, number][]) {
+function pintar(pares: readonly [string, number][], marcados = true) {
   render(
     <SeccionPeso
       i={0}
-      datos={{ hoy: '2026-10-02', checkins: checkins(pares), perfil: undefined, perfilNutricion: undefined }}
+      datos={{ hoy: '2026-10-02', checkins: checkins(pares, marcados), perfil: undefined, perfilNutricion: undefined }}
     />,
   )
 }
@@ -72,6 +82,21 @@ describe('SeccionPeso · peso de hoy estimado', () => {
   it('una serie plana dice «estable» en vez de inventar una pendiente', () => {
     pintar(['20', '21', '22', '23', '24', '25', '26', '27', '28', '29'].map((d): [string, number] => [`09-${d}`, 75]))
     expect(screen.getByRole('group', { name: 'Peso de hoy, estimado' }).textContent).toContain('estable')
+  })
+
+  it('en reportes viejos, sin marca, no cuenta los pesos repetidos del reporte anterior, y lo dice', () => {
+    // La misma serie real, tal como está guardada: 18 reportes, pero solo 7 pesos distintos seguidos.
+    pintar(PESOS, false)
+    const bloque = screen.getByRole('group', { name: 'Peso de hoy, estimado' })
+    expect(bloque.textContent).toContain('calculado con 6 pesajes')
+    expect(
+      screen.getByText('No se contaron 11 pesos repetidos del reporte anterior: no se sabe si se pesó esos días.'),
+    ).toBeInTheDocument()
+  })
+
+  it('con todos los pesos anotados ese día no avisa de repetidos', () => {
+    pintar(PESOS)
+    expect(screen.queryByText(/pesos? repetidos? del reporte anterior/)).not.toBeInTheDocument()
   })
 
   it('sin pesajes no pinta el bloque y deja el texto de «sin ningún peso»', () => {

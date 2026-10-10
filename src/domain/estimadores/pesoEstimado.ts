@@ -14,6 +14,12 @@
  * 0,6 kg, multiplicadores 2,0 / 2,4 / 3,2, umbral de 3 kg para datos raros, 7 días para
  * hablar de tendencia) son las de la prueba. Cambiarlas invalida las cifras de arriba.
  *
+ * OJO CON ESAS CIFRAS (9-oct-2026): la prueba se hizo sobre los pesos tal como estaban guardados, y
+ * después se vio que el check-in arrastra el peso del reporte anterior. En la serie de la prueba,
+ * 11 de 18 pesos eran repeticiones seguidas. Acertar sobre datos copiados es más fácil, así que el
+ * «12 de 12» vale menos de lo que parece. Hay que repetir la prueba con pesos anotados de verdad
+ * (`datoAnotado.ts`); hasta entonces las constantes son las de la prueba, no una verdad medida.
+ *
  * Qué NO se estima nunca aquí ni con este patrón: dolor, medicación, visto bueno médico
  * y la regla (la menstruación). Son datos que una persona o un profesional dicen; una
  * curva no puede inventarlos. Esta pieza es SOLO el peso, y SOLO para la consola del coach.
@@ -111,7 +117,11 @@ function limpiar(pesajes: readonly PesajeEntrada[]): Pesaje[] {
 function separarRaros(ordenados: readonly Pesaje[]): { buenos: Pesaje[]; raros: Pesaje[] } {
   if (ordenados.length < 3) return { buenos: [...ordenados], raros: [] }
   const candidatos = ordenados.filter((p, i) => {
-    const vecinos = [ordenados[i - 1], ordenados[i + 1]].filter((v): v is Pesaje => v !== undefined)
+    // En los extremos solo hay vecinos de un lado: se miran los DOS más cercanos de ese lado. Con
+    // uno solo, el último pesaje se iba por raro cuando su único vecino era el raro de verdad.
+    const ultimo = ordenados.length - 1
+    const indices = i === 0 ? [1, 2] : i === ultimo ? [ultimo - 1, ultimo - 2] : [i - 1, i + 1]
+    const vecinos = indices.map((j) => ordenados[j]).filter((v): v is Pesaje => v !== undefined)
     return vecinos.every((v) => Math.abs(p.pesoKg - v.pesoKg) > SALTO_RARO_KG)
   })
   let raros = candidatos

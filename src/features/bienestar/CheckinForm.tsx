@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { tramoDeHambre } from '../../domain/senales/hambre'
 import { tramoDeDolor } from '../../domain/senales/dolor'
 import { Stepper } from '../../components/ui/Stepper'
-import type { Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
+import type { CampoAnotable, Cantidad3, CheckinDiario, Cualitativo3 } from '../../domain/types'
 
 const CUALITATIVOS = ['MALA', 'REGULAR', 'BUENA'] as const
 const CANTIDADES = ['POCO', 'REGULAR', 'MUCHO'] as const
@@ -116,6 +116,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
   const [cansancio, setCansancio] = useState<Cantidad3>()
   const [estres, setEstres] = useState<Cantidad3>()
   const [horasSueno, setHorasSueno] = useState(7)
+  const [suenoTocado, setSuenoTocado] = useState(false)
   const [horaAcostarse, setHoraAcostarse] = useState('')
   const [horaLevantarse, setHoraLevantarse] = useState('')
   const [calidadSueno, setCalidadSueno] = useState<Cualitativo3>()
@@ -136,10 +137,18 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       setIntento(true)
       return
     }
+    // Qué números movió hoy la persona. El valor arrastrado se sigue guardando (abajo se explica
+    // por qué), pero sin esta marca quien calcula no distingue una medición de una copia.
+    const anotadoHoy: CampoAnotable[] = []
+    if (pedirPeso && pesoTocado) anotadoHoy.push('pesoKg')
+    if (pasosTocados) anotadoHoy.push('pasos')
+    if (suenoTocado) anotadoHoy.push('horasSueno')
+
     onGuardar({
       id: `ck-${usuarioId}-${fecha}`,
       usuarioId,
       fecha,
+      anotadoHoy,
       /*
        * Un número que nadie tocó NO es una medición.
        *
@@ -212,7 +221,7 @@ export function CheckinForm({ usuarioId, fecha, pesoInicial, pasosInicial, pedir
       <div className="flex items-center justify-between rounded-tarjeta border border-linea bg-surface-1 px-4 py-3 shadow-sm">
         <span className="text-sm font-bold text-texto">Horas de sueño</span>
         <div className="w-40">
-          <Stepper etiqueta="" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={setHorasSueno} />
+          <Stepper etiqueta="" valor={horasSueno} paso={0.5} minimo={0} maximo={14} sufijo="h" onCambiar={(v) => { setSuenoTocado(true); setHorasSueno(v) }} />
         </div>
       </div>
 

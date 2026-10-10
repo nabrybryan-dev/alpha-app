@@ -3,6 +3,7 @@ import { pRatio } from '../../../../domain/consolaCoach/pRatio'
 import { masaMagraEstimada } from '../../../../domain/consolaCoach/composicionEstimada'
 import { fechaCorta, seriePeso, seriesPerimetros, tendencia } from '../../../../domain/consolaCoach/perfilCompleto'
 import { pesoEstimado, type ConfianzaPeso, type PesoEstimado } from '../../../../domain/estimadores/pesoEstimado'
+import { checkinsConDatoAnotado } from '../../../../domain/estimadores/datoAnotado'
 import { GraficaLinea } from '../graficas'
 import { Falta, Tarjeta } from '../piezas'
 import type { DatosPersona } from '../usePersona'
@@ -75,8 +76,11 @@ type DatosDelPeso = Pick<DatosPersona, 'hoy' | 'checkins' | 'perfil' | 'perfilNu
 export function SeccionPeso({ datos, i, className = '' }: { datos: DatosDelPeso; i: number; className?: string }) {
   const serie = seriePeso(datos.checkins, datos.perfil?.medidas ?? [], datos.perfilNutricion)
   const t = tendencia(serie)
+  // El estimado solo cuenta pesos que alguien anotó: el check-in arrastra el peso anterior y un
+  // peso copiado doce veces no es una tendencia plana, es un dato. La gráfica sí los enseña todos.
+  const { anotados, apartados } = checkinsConDatoAnotado(datos.checkins, 'pesoKg')
   const estimado = pesoEstimado(
-    serie.map((p) => ({ fecha: p.fecha, pesoKg: p.valor })),
+    seriePeso(anotados, datos.perfil?.medidas ?? [], datos.perfilNutricion).map((p) => ({ fecha: p.fecha, pesoKg: p.valor })),
     datos.hoy,
   )
   return (
@@ -109,6 +113,13 @@ export function SeccionPeso({ datos, i, className = '' }: { datos: DatosDelPeso;
             <p className="mt-1 text-[11px] text-tenue">Un solo registro: la curva aparece con el segundo.</p>
           )}
           {estimado && <BloquePesoEstimado e={estimado} />}
+          {estimado && apartados > 0 && (
+            <p className="mt-1 text-xs leading-snug text-tenue">
+              {apartados === 1
+                ? 'No se contó 1 peso repetido del reporte anterior: no se sabe si se pesó ese día.'
+                : `No se contaron ${apartados} pesos repetidos del reporte anterior: no se sabe si se pesó esos días.`}
+            </p>
+          )}
         </>
       )}
     </Tarjeta>
