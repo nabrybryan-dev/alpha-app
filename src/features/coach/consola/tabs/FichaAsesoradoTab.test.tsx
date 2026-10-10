@@ -73,6 +73,16 @@ vi.mock('../../../../data/consola/notasLlamada', async (importOriginal) => ({
   notasLlamadaDe: () => Promise.resolve({ ok: true, notas: [] }),
 }))
 
+// Las observaciones del agente tienen su propia prueba: aquí solo importa que la pestaña las MONTA, debajo
+// de las notas y con la persona correcta. Por omisión no hay ninguna; `vi.hoisted` porque la fábrica del
+// mock se iza por encima de cualquier `const`.
+const observaciones = vi.hoisted(() => ({ de: vi.fn() }))
+vi.mock('../../../../data/consola/observacionesAgente', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../data/consola/observacionesAgente')>()),
+  observacionesDe: (...args: unknown[]) =>
+    observaciones.de(...args) ?? Promise.resolve({ ok: true, observaciones: [] }),
+}))
+
 // Import DINÁMICO y después del mock a propósito (igual que ConsultasPage.test.tsx):
 // un `import` estático se iza por encima de `const nube`, y `dbInstance` lee
 // `modoNube` al cargarse — con un `import` normal revienta "Cannot access 'nube'
@@ -385,5 +395,82 @@ describe('FichaAsesoradoTab · presentar al asesorado', () => {
     await user.click(screen.getByRole('button', { name: `Semana ${n + 1}, viene` }))
     // La ficha de detrás también trae la tabla del plan: se mira solo dentro de la presentación.
     expect(within(screen.getByRole('dialog')).getByText('~64')).toBeInTheDocument()
+  })
+})
+
+/** Las observaciones del agente (0115) viven en esta pestaña, debajo de las notas de llamada. */
+describe('FichaAsesoradoTab · observaciones del agente', () => {
+  const pendiente = (extra: Record<string, unknown> = {}) => ({
+    id: 'obs-1',
+    usuarioId: 'u-1',
+    creadoEn: '2026-10-09T15:00:00Z',
+    tema: 'seguridad',
+    carril: 'para_firma',
+    titulo: 'Dolor de rodilla al bajar escaleras',
+    texto: 'Lo mencionó en la llamada.',
+    fuentes: [{ tipo: 'base', ref: 'wiki/seguridad/dolor.md', cita: 'derivar antes de cargar' }],
+    agente: 'agente-de-llamadas',
+    corridaId: null,
+    estado: 'pendiente',
+    firmadaPor: null,
+    firmadaEn: null,
+    notaDeFirma: null,
+    ...extra,
+  })
+
+  beforeEach(() => {
+    window.sessionStorage.clear()
+    observaciones.de.mockReset()
+    quien.sesion = null
+    quien.capacidades = []
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    nube.activo = true
+    nube.fila = null
+    quien.sesion = null
+    quien.capacidades = []
+  })
+
+  it('la tarjeta está debajo de las notas de llamada, a ancho completo, y pide las observaciones de ESTA persona', async () => {
+    const usuarioId = db.usuarios.entrenan()[0].id
+    render(<FichaAsesoradoTab usuarioId={usuarioId} />)
+
+    const titulo = await screen.findByText('Observaciones del agente')
+    const notas = screen.getByText('Notas de llamada')
+    // `DOCUMENT_POSITION_FOLLOWING`: el título de las observaciones viene DESPUÉS del de las notas.
+    expect(notas.compareDocumentPosition(titulo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(titulo.closest('div[class*="xl:col-span-"]')).toHaveClass('xl:col-span-12')
+    expect(observaciones.de).toHaveBeenCalledWith(usuarioId)
+    expect(await screen.findByText('Todavía no hay observaciones del agente para esta persona.')).toBeInTheDocument()
+  })
+
+  it('lo que espera firma se ve en la ficha, con sus botones', async () => {
+    observaciones.de.mockResolvedValue({ ok: true, observaciones: [pendiente()] })
+    render(<FichaAsesoradoTab usuarioId={db.usuarios.entrenan()[0].id} />)
+
+    expect(await screen.findByText('Dolor de rodilla al bajar escaleras')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Aceptar/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Descartar/ })).toBeInTheDocument()
+  })
+
+  it('al pasar a otro asesorado la tarjeta arranca limpia: las observaciones de uno no se quedan bajo el nombre del otro', async () => {
+    const [primero, segundo] = db.usuarios.entrenan()
+    observaciones.de.mockImplementation((id: string) =>
+      Promise.resolve({
+        ok: true,
+        observaciones: id === primero.id ? [pendiente({ titulo: 'Solo del primero' })] : [],
+      }),
+    )
+    const vista = render(<FichaAsesoradoTab usuarioId={primero.id} />)
+    expect(await screen.findByText('Solo del primero')).toBeInTheDocument()
+
+    vista.rerender(<FichaAsesoradoTab usuarioId={segundo.id} />)
+
+    // Sin `key`, la lista del primero seguiría en pantalla hasta que llegara la del segundo.
+    expect(screen.queryByText('Solo del primero')).not.toBeInTheDocument()
+    expect(await screen.findByText('Todavía no hay observaciones del agente para esta persona.')).toBeInTheDocument()
+    expect(observaciones.de).toHaveBeenLastCalledWith(segundo.id)
   })
 })

@@ -9,6 +9,7 @@ import { compararMicrociclos } from '../../../../domain/consolaCoach/diffMicroci
 import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import type { Microciclo } from '../../../../domain/types'
 import { NotasDeLlamada } from '../../NotasDeLlamada'
+import { ObservacionesDelAgente } from '../../ObservacionesDelAgente'
 import { PresentarAlAsesorado } from '../../presentacion/PresentacionAsesorado'
 import { VistaSimpleDeLaFicha } from '../../VistaSimpleDeLaFicha'
 import { SeccionPeso, SeccionPerimetros, SeccionPRatio } from '../ficha/SeccionCuerpo'
@@ -36,6 +37,8 @@ import { usePuestoCoach } from '../usePuestoCoach'
  *    la ficha la rechaza la base a cualquiera que no sea el coach (el trigger `proteger_perfil`),
  *    la cola la reintentaría 8 veces y la descartaría en silencio, y quien lo pulsara vería el
  *    botón «funcionar» y volver atrás solo;
+ *  - las observaciones del agente (`ObservacionesDelAgente`): solo la FIRMA (aceptar o descartar lo que
+ *    espera), por una función de la base que pone quién y cuándo; las observaciones las escribe el agente;
  *  - «Responder como coach», que pide confirmación.
  */
 
@@ -201,6 +204,11 @@ export function FichaAsesoradoTab({ usuarioId }: { usuarioId: string }) {
           <VistaSimpleDeLaFicha usuarioId={usuarioId} vistaSimple={datos.perfil?.vistaSimple} />
         </div>
       )}
+      {/* Lo que el agente observó, con sus fuentes; seguridad y prescripciones esperan una firma. Ancho completo,
+          debajo de las notas de llamada. `key`, por lo mismo que arriba: el estado es de UNA persona. */}
+      <div className="min-w-0 xl:col-span-12">
+        <ObservacionesDelAgente key={usuarioId} usuarioId={usuarioId} />
+      </div>
       <SeccionPerfil datos={datos} i={0} />
       <SeccionCribado datos={datos} i={1} />
       <SeccionPeso datos={datos} i={2} className="xl:col-span-7" />

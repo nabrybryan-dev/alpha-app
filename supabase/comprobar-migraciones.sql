@@ -2450,5 +2450,52 @@ select '0114 - notas de llamada: corregir y borrar lo propio', 'politicas de upd
               or has_column_privilege('authenticated', 'public.notas_llamada', 'usuario_id', 'update')
               or has_column_privilege('authenticated', 'public.notas_llamada', 'creado_en', 'update') then 'NO'
             else 'SI' end
+union all
+-- La 0115: las observaciones del agente. NO se mira que la tabla exista (un nombre no prueba nada): se mira el
+-- EFECTO de cada pieza. (1) la regla del dueno vive en la base: un CHECK que mira el tema Y el carril, no solo
+-- su nombre; (2) sin fuente no entra; (3) leen quienes entran a la consola, escribe solo el servicio; (4) la firma
+-- va por una funcion security definer que anon no puede llamar.
+select '0115 - observaciones del agente: seguridad y prescripciones se firman', 'un CHECK obliga a que seguridad y prescripcion vayan en para_firma; otro exige fuentes',
+       case when to_regclass('public.observaciones_agente') is null then 'NO'
+            when not exists (select 1 from pg_constraint c
+                              where c.conrelid = to_regclass('public.observaciones_agente') and c.contype = 'c'
+                                and pg_get_constraintdef(c.oid) like '%seguridad%'
+                                and pg_get_constraintdef(c.oid) like '%prescripcion%'
+                                and pg_get_constraintdef(c.oid) like '%para_firma%'
+                                and pg_get_constraintdef(c.oid) not like '%nota_de_llamada%') then 'NO'
+            when not exists (select 1 from pg_constraint c
+                              where c.conrelid = to_regclass('public.observaciones_agente') and c.contype = 'c'
+                                and pg_get_constraintdef(c.oid) like '%jsonb_array_length(fuentes)%') then 'NO'
+            else 'SI' end
+union all
+select '0115 - observaciones del agente: seguridad y prescripciones se firman', 'RLS: leen es_coach() o leer_entrenamiento, solo authenticated; nadie con sesion escribe; anon sin nada',
+       case when to_regclass('public.observaciones_agente') is null then 'NO'
+            when not (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.observaciones_agente')) then 'NO'
+            when (select count(*) from pg_policy p
+                   where p.polrelid = to_regclass('public.observaciones_agente')
+                     and p.polcmd = 'r'
+                     and pg_get_expr(p.polqual, p.polrelid) like '%leer_entrenamiento%'
+                     and p.polroles = array[(select oid from pg_roles where rolname = 'authenticated')]) <> 1 then 'NO'
+            when exists (select 1 from pg_policy p where p.polrelid = to_regclass('public.observaciones_agente') and p.polcmd <> 'r') then 'NO'
+            when has_table_privilege('anon', 'public.observaciones_agente', 'select')
+              or has_table_privilege('anon', 'public.observaciones_agente', 'insert') then 'NO'
+            when has_table_privilege('authenticated', 'public.observaciones_agente', 'insert')
+              or has_table_privilege('authenticated', 'public.observaciones_agente', 'update')
+              or has_table_privilege('authenticated', 'public.observaciones_agente', 'delete')
+              or has_table_privilege('authenticated', 'public.observaciones_agente', 'truncate') then 'NO'
+            when not has_table_privilege('authenticated', 'public.observaciones_agente', 'select') then 'NO'
+            when not has_table_privilege('service_role', 'public.observaciones_agente', 'insert') then 'NO'
+            else 'SI' end
+union all
+select '0115 - observaciones del agente: seguridad y prescripciones se firman', 'firmar_observacion_agente: security definer con search_path fijo, sin anon, con authenticated',
+       case when to_regprocedure('public.firmar_observacion_agente(uuid,text,text)') is null then 'NO'
+            when not (select p.prosecdef from pg_proc p
+                       where p.oid = to_regprocedure('public.firmar_observacion_agente(uuid,text,text)')) then 'NO'
+            when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
+                              where p.oid = to_regprocedure('public.firmar_observacion_agente(uuid,text,text)')
+                                and c like 'search_path=%') then 'NO'
+            when has_function_privilege('anon', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
+            when not has_function_privilege('authenticated', 'public.firmar_observacion_agente(uuid,text,text)', 'execute') then 'NO'
+            else 'SI' end
 
 order by migracion, senal;
