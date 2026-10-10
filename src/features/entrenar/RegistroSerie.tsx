@@ -5,7 +5,10 @@ import { Stepper } from '../../components/ui/Stepper'
 import { etiquetaDeSerie } from '../../domain/calendario'
 import {
   confirmacionTrasCambio,
+  llevaEsfuerzo,
+  motivoDeNoGuardar,
   sePuedeGuardar,
+  tieneEsfuerzo,
   type ConfirmacionDeBorrador,
 } from '../../domain/confirmacionSerie'
 import { seriePrescrita } from '../../domain/ondulacion'
@@ -26,14 +29,14 @@ interface RegistroSerieProps {
    *  dispara desde fuera vía el ref (CTA fijo inferior). */
   mostrarBoton?: boolean
   onGuardar: (serie: SerieRegistrada) => void
-  /** Avisa a quien pinta el botón de guardar de fuera si ya se puede guardar. */
-  onPuedeGuardar?: (puede: boolean) => void
+  /** Avisa a quien pinta el botón de guardar de fuera si ya se puede guardar y, si no, qué falta. */
+  onPuedeGuardar?: (puede: boolean, motivo: string | null) => void
   /** Vista simple: el objetivo se dice sin la sigla «RIR» (ver `palabrasLlanas`). */
   simple?: boolean
 }
 
 export interface RegistroSerieHandle {
-  /** Guarda por el camino de «Guardar»: no hace nada si la persona aún no ha cambiado un número. */
+  /** Guarda por el camino de «Guardar»: no hace nada si falta cambiar un número o elegir el RIR. */
   guardar: () => void
 }
 
@@ -89,22 +92,29 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
       confirmada: confirmacionTrasCambio(b.confirmada, b[campo], valor),
     }))
 
-  const puedeGuardar = sePuedeGuardar(borrador.confirmada)
+  // Dos cosas distintas: `editada` decide QUÉ botón manda; `puedeGuardar` exige además el RIR.
+  const editada = sePuedeGuardar(borrador.confirmada)
+  // Donde el RIR no aplica (isometría, control) no se exige: sería inventarlo.
+  const exigeEsfuerzo = llevaEsfuerzo(ejercicio.rirObjetivo)
+  const conEsfuerzo = !exigeEsfuerzo || tieneEsfuerzo(borrador.rir)
+  const motivo = motivoDeNoGuardar(borrador.confirmada, borrador.rir, exigeEsfuerzo)
+  const puedeGuardar = motivo === null
   useEffect(() => {
-    onPuedeGuardar?.(puedeGuardar)
-  }, [onPuedeGuardar, puedeGuardar])
+    onPuedeGuardar?.(puedeGuardar, motivo)
+  }, [onPuedeGuardar, puedeGuardar, motivo])
 
-  const rirElegido = borrador.rir !== undefined ? { rir: borrador.rir } : {}
+  const rirElegido = tieneEsfuerzo(borrador.rir) ? { rir: borrador.rir } : {}
 
   /** «Hecho tal cual»: se guarda la PAUTA (no lo que haya en el borrador) y se firma. */
   const hechoTalCual = () => {
+    if (!conEsfuerzo) return // sin RIR no se firma
     onGuardar({ orden, cargaKg: pautaCarga, reps: pautaReps, ...rirElegido, confirmada: 'tal_cual' })
     borrarClave(clave)
   }
 
-  /** «Guardar»: solo después de cambiar un número. Sin confirmar no guarda NADA. */
+  /** «Guardar»: solo después de cambiar un número y con el RIR elegido. Si falta algo no guarda NADA. */
   const guardar = () => {
-    if (!sePuedeGuardar(borrador.confirmada)) return
+    if (!puedeGuardar) return
     onGuardar({ orden, cargaKg: borrador.cargaKg, reps: borrador.reps, ...rirElegido, confirmada: 'editada' })
     borrarClave(clave) // ya quedó en la base; el borrador deja de hacer falta
   }
@@ -164,9 +174,9 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
       {/* Carga a lo ancho (dato principal); Reps y RIR debajo, uno por fila (los seis botones del RIR no caben en media columna).
           Así nada se sale de la pantalla en móvil y la jerarquía queda clara. */}
-      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad cifraViva sugerido={!puedeGuardar} onCambiar={(v) => cambiarNumero('cargaKg', v)} />
+      <Stepper etiqueta="Carga" valor={borrador.cargaKg} paso={1} sufijo="kg" decimal grande profundidad cifraViva sugerido={!editada} onCambiar={(v) => cambiarNumero('cargaKg', v)} />
       <div className="mt-2 flex flex-col gap-2">
-        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad cifraViva sugerido={!puedeGuardar} onCambiar={(v) => cambiarNumero('reps', v)} />
+        <Stepper etiqueta="Reps" valor={borrador.reps} paso={1} minimo={1} maximo={50} profundidad cifraViva sugerido={!editada} onCambiar={(v) => cambiarNumero('reps', v)} />
         <SelectorRir valor={borrador.rir} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
@@ -195,9 +205,9 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
 
       {/* UN TOQUE para lo normal: la pauta tal cual. Si ya cambió un número, ese botón
           sobra (lo que hay en pantalla ya no es la pauta) y manda «Guardar». */}
-      {!puedeGuardar && (
+      {!editada && (
         <div className="mt-3.5">
-          <HechoTalCual cargaKg={pautaCarga} reps={pautaReps} onConfirmar={hechoTalCual} />
+          <HechoTalCual cargaKg={pautaCarga} reps={pautaReps} onConfirmar={hechoTalCual} deshabilitado={!conEsfuerzo} />
         </div>
       )}
 
@@ -213,7 +223,7 @@ export const RegistroSerie = forwardRef<RegistroSerieHandle, RegistroSerieProps>
           >
             Guardar serie {orden}
           </button>
-          {!puedeGuardar && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" />}
+          {motivo && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" motivo={motivo} />}
         </>
       )}
     </div>

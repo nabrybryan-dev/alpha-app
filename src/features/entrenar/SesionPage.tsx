@@ -1,5 +1,5 @@
 import { nombreDelMicrociclo } from '../../domain/palabrasLlanas'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
 import { Link, useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
@@ -104,8 +104,13 @@ function SesionEnCurso() {
   const [exIdxManual, setExIdxManual] = useState<number | null>(null)
   const contadorFrase = useRef(0)
   const registroRef = useRef<RegistroSerieHandle | null>(null)
-  // La serie en curso solo se puede guardar tras «Hecho tal cual» o cambiar un número.
+  // La serie en curso solo se puede guardar tras «Hecho tal cual» o cambiar un número, y con el RIR elegido.
   const [puedeGuardar, setPuedeGuardar] = useState(false)
+  const [motivoSinGuardar, setMotivoSinGuardar] = useState<string | null>(null)
+  const alPoderGuardar = useCallback((puede: boolean, motivo: string | null) => {
+    setPuedeGuardar(puede)
+    setMotivoSinGuardar(motivo)
+  }, [])
 
   useEffect(() => {
     if (descanso) escribirJSON(claveDescanso, descanso)
@@ -350,7 +355,7 @@ function SesionEnCurso() {
               onVerDemo={setDemo}
               onVerPatron={setPatron}
               registroRef={registroRef}
-              onPuedeGuardar={setPuedeGuardar}
+              onPuedeGuardar={alPoderGuardar}
               onGuardarSerie={(serie) => {
                 db.microciclos.registrarSerie(microciclo.id, ejercicioActual.id, serie)
                 alGuardarSerie(ejercicioActual.id, ejercicioActual.descansoMin)
@@ -478,6 +483,7 @@ function SesionEnCurso() {
                 {!puedeGuardar && (
                   <MotivoSinConfirmar
                     id="motivo-sin-confirmar"
+                    motivo={motivoSinGuardar ?? undefined}
                     className="rounded-boton bg-ink-900/90 px-2 py-1"
                   />
                 )}

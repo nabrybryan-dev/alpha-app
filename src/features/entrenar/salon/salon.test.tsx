@@ -845,7 +845,9 @@ describe('la ficha de la serie sale de la izquierda, y al guardar pasa algo', ()
 
     // Guardar desde DENTRO de la ficha. El botón es el de `RegistroSerieSalon`, que es el
     // que ya está probado: aquí lo que se comprueba es que está enchufado.
-    // Un toque en «Hecho tal cual»: sin él (o sin cambiar un número) «Guardar» está apagado.
+    // Primero el RIR (sin él no se guarda nada, 2026-10-10) y después «Hecho tal cual»:
+    // sin ese toque (o sin cambiar un número) «Guardar» está apagado.
+    fireEvent.click(within(cajon).getByRole('button', { name: 'RIR 2' }))
     const guardar = within(cajon).getByRole('button', { name: /^Hecho tal cual/ })
     fireEvent.click(guardar)
 

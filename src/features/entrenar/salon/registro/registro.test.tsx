@@ -138,6 +138,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
     }
     anotarVelocidadEnBorrador(MICROCICLO, ejercicio(), 1, velocidad)
 
+    await elegirRir(usuario, 2)
     await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
 
     expect(espia).toHaveBeenCalledTimes(1)
@@ -179,31 +180,35 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       for (let n = 0; n <= 5; n += 1) expect(botonRir(n).getAttribute('aria-pressed')).toBe('false')
     })
 
-    it('si no lo toca, la serie se guarda SIN rir (no el objetivo)', async () => {
+    // Desde el 2026-10-10 sin RIR no se guarda: ni vacío ni con el objetivo.
+    it('si no lo toca, la serie NO se guarda (ni vacía ni con el objetivo)', async () => {
       const usuario = userEvent.setup()
       montar({ rirObjetivo: 5 })
       await teclear(usuario, carga(), '40')
-      await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
-      const serie = espia.mock.calls[0][2] as SerieRegistrada
-      expect(serie).not.toHaveProperty('rir')
-      expect(serie).toMatchObject({ orden: 1, cargaKg: 40 })
+      const guardar = screen.getByRole('button', { name: 'Guardar serie 1' }) as HTMLButtonElement
+      expect(guardar.disabled).toBe(true)
+      await usuario.click(guardar)
+      expect(espia).not.toHaveBeenCalled()
     })
 
     it('tampoco hereda el RIR de la ondulación (seriesPrescritas)', async () => {
       const usuario = userEvent.setup()
       montar({ rirObjetivo: 3, seriesPrescritas: [1, 2, 3].map((orden) => ({ orden, reps: 10, rir: 3, cargaKg: 50 })) })
       await usuario.click(hechoTalCual())
-      expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
+      expect(espia).not.toHaveBeenCalled()
+      await elegirRir(usuario, 1)
+      await usuario.click(hechoTalCual())
+      expect((espia.mock.calls[0][2] as SerieRegistrada).rir).toBe(1) // el elegido, no el 3
     })
 
     it('con el objetivo en FALLO tampoco se rellena con 0', async () => {
       const usuario = userEvent.setup()
       montar({ rirObjetivo: 'FALLO' })
       await usuario.click(hechoTalCual())
-      expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
+      expect(espia).not.toHaveBeenCalled()
     })
 
-    it('volver a tocar el botón elegido lo suelta y la serie sale sin rir', async () => {
+    it('volver a tocar el botón elegido lo suelta y la serie ya no se puede guardar', async () => {
       const usuario = userEvent.setup()
       montar()
       await elegirRir(usuario, 4)
@@ -211,7 +216,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       await elegirRir(usuario, 4)
       expect(botonRir(4).getAttribute('aria-pressed')).toBe('false')
       await usuario.click(hechoTalCual())
-      expect(espia.mock.calls[0][2]).not.toHaveProperty('rir')
+      expect(espia).not.toHaveBeenCalled()
     })
 
     it('un RIR 0 elegido se guarda como 0 (no se confunde con vacío)', async () => {
@@ -226,6 +231,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
   it('la serie que registra es la SIGUIENTE a las ya hechas, no un contador propio', async () => {
     const usuario = userEvent.setup()
     montar({ series: [{ orden: 1, cargaKg: 80, reps: 10, rir: 2 }] })
+    await elegirRir(usuario, 2)
     await usuario.click(hechoTalCual())
     expect(espia.mock.calls[0][2]).toMatchObject({ orden: 2 })
   })
@@ -251,6 +257,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       for (let i = 0; i < 6; i += 1) await usuario.click(bajar)
       await esperaCifra(carga, '0')
 
+      await elegirRir(usuario, 2)
       await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
       expect(espia.mock.calls[0][2]).toMatchObject({ cargaKg: 0 })
     })
@@ -350,6 +357,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       await teclear(usuario, carga(), '70')
       expect(localStorage.getItem(CLAVE_BORRADOR)).not.toBeNull()
 
+      await elegirRir(usuario, 2)
       await usuario.click(screen.getByRole('button', { name: 'Guardar serie 1' }))
       // Ya quedó en la base: dejar el borrador haría que la serie siguiente arrancara con
       // los números de la anterior.
@@ -364,6 +372,7 @@ describe('RegistroSerieSalon · lo que se teclea es lo que se guarda', () => {
       throw new Error('el registro del salón no puede salir a la red por su cuenta')
     }) as never)
     montar()
+    await elegirRir(usuario, 2)
     await usuario.click(hechoTalCual())
     expect(enRed).not.toHaveBeenCalled()
     expect(espia).toHaveBeenCalledTimes(1)

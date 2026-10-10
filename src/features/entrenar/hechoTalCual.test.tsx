@@ -76,6 +76,9 @@ describe('RegistroSerie (tarjeta de la sesión) · la pauta es sugerencia', () =
     const { alGuardar } = montar()
     const g = guardarBtn()
     expect(g.disabled).toBe(true)
+    // Sin RIR lo primero que falta es el esfuerzo; con él, el motivo vuelve a ser la confirmación.
+    expect(screen.getByText(/Marca cuántas repeticiones te quedaban/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 2' }))
     expect(screen.getByText(/Toca «Hecho tal cual» o cambia la carga o las reps/)).toBeInTheDocument()
     expect(g.getAttribute('aria-describedby')).toBeTruthy()
     expect(screen.getAllByText(/sugerida/).length).toBeGreaterThanOrEqual(2)
@@ -89,14 +92,15 @@ describe('RegistroSerie (tarjeta de la sesión) · la pauta es sugerencia', () =
     expect(alGuardar).not.toHaveBeenCalled()
   })
 
-  it('«Hecho tal cual» guarda carga y reps de la pauta con confirmada: tal_cual, en UN toque', () => {
+  it('«Hecho tal cual» guarda carga y reps de la pauta con confirmada: tal_cual, con el RIR ya elegido', () => {
     const { alGuardar } = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 2' }))
     fireEvent.click(tal())
     expect(alGuardar).toHaveBeenCalledTimes(1)
-    expect(alGuardar).toHaveBeenCalledWith({ orden: 1, cargaKg: 85, reps: 10, confirmada: 'tal_cual' })
+    expect(alGuardar).toHaveBeenCalledWith({ orden: 1, cargaKg: 85, reps: 10, rir: 2, confirmada: 'tal_cual' })
   })
 
-  it('el RIR sigue aparte: si lo eligió viaja, si no, no', () => {
+  it('el RIR que eligió es el que viaja', () => {
     const { alGuardar } = montar()
     fireEvent.click(screen.getByRole('button', { name: 'RIR 3' }))
     fireEvent.click(tal())
@@ -107,10 +111,11 @@ describe('RegistroSerie (tarjeta de la sesión) · la pauta es sugerencia', () =
     const usuario = userEvent.setup()
     const { alGuardar } = montar()
     await usuario.click(screen.getByRole('button', { name: 'Subir Carga' }))
+    await usuario.click(screen.getByRole('button', { name: 'RIR 2' }))
     expect(guardarBtn().disabled).toBe(false)
     expect(screen.queryByRole('button', { name: /^Hecho tal cual/ })).toBeNull()
     await usuario.click(guardarBtn())
-    expect(alGuardar).toHaveBeenCalledWith({ orden: 1, cargaKg: 86, reps: 10, confirmada: 'editada' })
+    expect(alGuardar).toHaveBeenCalledWith({ orden: 1, cargaKg: 86, reps: 10, rir: 2, confirmada: 'editada' })
   })
 
   it('entrar y salir del campo sin cambiar nada NO cuenta como editar', async () => {
@@ -142,6 +147,7 @@ describe('RegistroSerieSalon (salón) · la pauta es sugerencia', () => {
     const ref = createRef<RegistroSerieSalonHandle>()
     render(<RegistroSerieSalon ref={ref} microcicloId="m-tc" ejercicio={ejercicio()} />)
     expect(guardarBtn().disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 2' }))
     expect(screen.getByText(/Toca «Hecho tal cual»/)).toBeInTheDocument()
     fireEvent.click(guardarBtn())
     ref.current?.guardar()
@@ -151,17 +157,19 @@ describe('RegistroSerieSalon (salón) · la pauta es sugerencia', () => {
   it('«Hecho tal cual» guarda la pauta con la bandera tal_cual, aunque el borrador viejo diga otra cosa', () => {
     localStorage.setItem('alpha-serie-m-tc-e-tc-1', JSON.stringify({ cargaKg: 12, reps: 3 }))
     render(<RegistroSerieSalon microcicloId="m-tc" ejercicio={ejercicio()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'RIR 2' }))
     fireEvent.click(tal())
     expect(espia).toHaveBeenCalledTimes(1)
-    expect(espia).toHaveBeenCalledWith('m-tc', 'e-tc', { orden: 1, cargaKg: 85, reps: 10, confirmada: 'tal_cual' })
+    expect(espia).toHaveBeenCalledWith('m-tc', 'e-tc', { orden: 1, cargaKg: 85, reps: 10, rir: 2, confirmada: 'tal_cual' })
   })
 
   it('editar guarda con la bandera editada', async () => {
     const usuario = userEvent.setup()
     render(<RegistroSerieSalon microcicloId="m-tc" ejercicio={ejercicio()} />)
     await usuario.click(screen.getByRole('button', { name: 'Bajar Reps' }))
+    await usuario.click(screen.getByRole('button', { name: 'RIR 2' }))
     await usuario.click(guardarBtn())
-    expect(espia).toHaveBeenCalledWith('m-tc', 'e-tc', { orden: 1, cargaKg: 85, reps: 9, confirmada: 'editada' })
+    expect(espia).toHaveBeenCalledWith('m-tc', 'e-tc', { orden: 1, cargaKg: 85, reps: 9, rir: 2, confirmada: 'editada' })
   })
 })
 

@@ -3,7 +3,13 @@ import { SelectorRir } from '../../../../components/ui/SelectorRir'
 import { Stepper } from '../../../../components/ui/Stepper'
 import { db } from '../../../../data/dbInstance'
 import { etiquetaDeSerie } from '../../../../domain/calendario'
-import { confirmacionTrasCambio, sePuedeGuardar } from '../../../../domain/confirmacionSerie'
+import {
+  confirmacionTrasCambio,
+  llevaEsfuerzo,
+  motivoDeNoGuardar,
+  sePuedeGuardar,
+  tieneEsfuerzo,
+} from '../../../../domain/confirmacionSerie'
 import type { EjercicioPrescrito, SerieRegistrada } from '../../../../domain/types'
 import { borrarClave, escribirJSON } from '../../../../lib/persistencia'
 import { HechoTalCual, MotivoSinConfirmar } from '../../HechoTalCual'
@@ -90,8 +96,13 @@ export function RegistroSerieSalon({
   // corre en el primer montaje, así que sin esto la serie 2 arrancaría con lo tecleado
   // en la 1. Quien monta este componente le pone `key` por ejercicio y orden; el efecto
   // es la red por debajo, no el mecanismo principal.
+  // LA MEDIDA DE LA CÁMARA NO ESTÁ EN ESTE ESTADO: la anota `anotarVelocidadEnBorrador` en la
+  // clave, después del montaje. Escribir el estado a secas la borraba en cuanto la persona
+  // tocaba un mando tras medir —y desde que el RIR es obligatorio, ese toque es lo normal—.
   useEffect(() => {
-    escribirJSON(clave, borrador)
+    const velocidad = leerBorrador(microcicloId, ejercicio, orden).velocidad ?? borrador.velocidad
+    escribirJSON(clave, velocidad ? { ...borrador, velocidad } : borrador)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar el borrador o su clave
   }, [clave, borrador])
 
   const cambiar = (parche: Partial<BorradorDeSerie>) => setBorrador((b) => ({ ...b, ...parche }))
@@ -104,12 +115,19 @@ export function RegistroSerieSalon({
       confirmada: confirmacionTrasCambio(b.confirmada, b[campo], valor),
     }))
 
-  const puedeGuardar = sePuedeGuardar(borrador.confirmada)
+  // Dos cosas distintas: `editada` decide QUÉ botón manda; `puedeGuardar` exige además el RIR.
+  const editada = sePuedeGuardar(borrador.confirmada)
+  // Donde el RIR no aplica (isometría, control) no se exige: sería inventarlo.
+  const exigeEsfuerzo = llevaEsfuerzo(ejercicio.rirObjetivo)
+  const conEsfuerzo = !exigeEsfuerzo || tieneEsfuerzo(borrador.rir)
+  const motivo = motivoDeNoGuardar(borrador.confirmada, borrador.rir, exigeEsfuerzo)
+  const puedeGuardar = motivo === null
   const idMotivo = useId()
   // La pauta: lo que se SUGIERE. Solo cuenta como hecho si la persona lo firma.
   const pauta = borradorDePartida(ejercicio, orden)
 
   const guardar = (modo: 'tal_cual' | 'editada' = 'editada') => {
+    if (!conEsfuerzo) return // sin RIR no se guarda por ningún camino
     if (modo === 'editada' && !puedeGuardar) return // sin confirmar no se guarda NADA
     // LA MEDIDA SE RELEE DEL BORRADOR PERSISTIDO, no del estado. La cámara la anota
     // después de que este componente leyera el borrador al montarse, así que el estado
@@ -121,7 +139,7 @@ export function RegistroSerieSalon({
       // «Hecho tal cual» guarda la PAUTA, no lo que hubiera en un borrador viejo.
       cargaKg: modo === 'tal_cual' ? pauta.cargaKg : borrador.cargaKg,
       reps: modo === 'tal_cual' ? pauta.reps : borrador.reps,
-      ...(borrador.rir !== undefined ? { rir: borrador.rir } : {}),
+      ...(tieneEsfuerzo(borrador.rir) ? { rir: borrador.rir } : {}),
       ...(velocidad ? { velocidad } : {}),
       confirmada: modo,
     }
@@ -179,7 +197,7 @@ export function RegistroSerieSalon({
         decimal
         profundidad
         cifraViva
-        sugerido={!puedeGuardar}
+        sugerido={!editada}
         onCambiar={(v) => cambiarNumero('cargaKg', v)}
       />
       {/* LOS TRES, UNO DEBAJO DE OTRO. Reps y RIR iban en dos columnas, que cabían en la
@@ -195,16 +213,18 @@ export function RegistroSerieSalon({
           maximo={50}
           profundidad
           cifraViva
-          sugerido={!puedeGuardar}
+          sugerido={!editada}
           onCambiar={(v) => cambiarNumero('reps', v)}
         />
         <SelectorRir valor={borrador.rir} onCambiar={(v) => cambiar({ rir: v })} />
       </div>
 
       {/* UN TOQUE para lo normal: la pauta tal cual. Con un número ya cambiado, manda «Guardar». */}
-      {!puedeGuardar && (
+      {!editada && (
         <div className="mt-2.5">
-          <HechoTalCual cargaKg={pauta.cargaKg} reps={pauta.reps} onConfirmar={() => guardar('tal_cual')} compacto />
+          <HechoTalCual cargaKg={pauta.cargaKg} reps={pauta.reps} onConfirmar={() => guardar('tal_cual')} compacto deshabilitado={!conEsfuerzo} />
+          {/* Con el botón de guardar fuera (barra del suelo), el motivo se dice aquí. */}
+          {!conEsfuerzo && !mostrarBoton && motivo && <MotivoSinConfirmar className="mt-1.5" motivo={motivo} />}
         </div>
       )}
 
@@ -220,7 +240,7 @@ export function RegistroSerieSalon({
           >
             Guardar serie {orden}
           </button>
-          {!puedeGuardar && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" />}
+          {motivo && <MotivoSinConfirmar id={idMotivo} className="mt-1.5" motivo={motivo} />}
         </>
       )}
     </div>

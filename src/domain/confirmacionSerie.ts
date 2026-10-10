@@ -23,6 +23,50 @@ export function sePuedeGuardar(confirmada: ConfirmacionDeBorrador): boolean {
 }
 
 /**
+ * SIN EL ESFUERZO NO SE GUARDA (decisión del coach, 2026-10-10). El RIR arranca vacío para
+ * que nadie guarde el objetivo como propio; pero vacío también se guardaba, y la cadena que
+ * arma la semana siguiente no acepta una serie sin RIR. Se pide aquí, con un toque.
+ */
+export const MOTIVO_SIN_ESFUERZO = 'Marca cuántas repeticiones te quedaban para guardar.'
+
+/**
+ * ¿La persona ya dijo cuántas le quedaban? El 0 cuenta: es una respuesta.
+ *
+ * SE COMPRUEBA QUE SEA UN RIR, no solo que exista: el borrador sale de `localStorage` y
+ * nadie lo valida al leerlo. Un `null` o un «Control» de un borrador viejo pasaban un
+ * `!== undefined` y se guardaban sin ningún botón marcado (misma trampa que `cumplimiento.ts`).
+ */
+export function tieneEsfuerzo(rir: unknown): rir is number {
+  return typeof rir === 'number' && Number.isInteger(rir) && rir >= 0 && rir <= 5
+}
+
+/**
+ * ¿Este ejercicio se mide con RIR? Una plancha isométrica o un trabajo de control no tienen
+ * repeticiones en reserva (ver `SerieRegistrada.rir`): exigirlo ahí sería inventar el dato
+ * que esta regla vino a proteger. Lleva RIR si el objetivo es un número, un rango («2-3») o
+ * el FALLO; un objetivo de solo texto («ISOMETRÍA», «CONTROL») o vacío, no.
+ */
+export function llevaEsfuerzo(rirObjetivo: unknown): boolean {
+  if (typeof rirObjetivo === 'number') return Number.isFinite(rirObjetivo)
+  if (typeof rirObjetivo !== 'string') return false
+  const texto = rirObjetivo.trim().toUpperCase()
+  return texto === 'FALLO' || /\d/.test(texto)
+}
+
+/**
+ * Por qué «Guardar» está apagado, o `null` si ya se puede. Primero el esfuerzo: falta en
+ * los dos caminos. `exigeEsfuerzo` = `llevaEsfuerzo(ejercicio.rirObjetivo)`.
+ */
+export function motivoDeNoGuardar(
+  confirmada: ConfirmacionDeBorrador,
+  rir: unknown,
+  exigeEsfuerzo = true,
+): string | null {
+  if (exigeEsfuerzo && !tieneEsfuerzo(rir)) return MOTIVO_SIN_ESFUERZO
+  return sePuedeGuardar(confirmada) ? null : MOTIVO_SIN_CONFIRMAR
+}
+
+/**
  * La confirmación tras cambiar un número. Un cambio que deja el mismo valor (el campo
  * normaliza al salir y vuelve a avisar con lo que ya había) NO es una edición.
  */
