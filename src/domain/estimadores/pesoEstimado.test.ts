@@ -201,3 +201,35 @@ describe('pesoEstimado · casos límite', () => {
     expect(e.diasDesdeElUltimo).toBe(2)
   })
 })
+
+describe('pesoEstimado · el último pesaje junto a un dato raro', () => {
+  it('no aparta el último pesaje solo porque su único vecino es el raro', () => {
+    // Pasó al dejar de contar los pesos arrastrados (9-oct-2026): la serie se adelgaza, el raro
+    // queda penúltimo y el último —que cuadra con todo lo anterior— se iba con él.
+    const e = pesoEstimado(
+      [
+        { fecha: '2026-09-17', pesoKg: 89.3 },
+        { fecha: '2026-09-23', pesoKg: 88.8 },
+        { fecha: '2026-09-26', pesoKg: 88.35 },
+        { fecha: '2026-09-28', pesoKg: 83.35 },
+        { fecha: '2026-10-01', pesoKg: 87.75 },
+      ],
+      '2026-10-02',
+    )
+    expect(e?.apartados.map((p) => p.pesoKg)).toEqual([83.35])
+    expect(e?.ultimoPesaje.fecha).toBe('2026-10-01')
+  })
+
+  it('un primer pesaje lejos de los dos siguientes sí se aparta', () => {
+    const e = pesoEstimado(
+      [
+        { fecha: '2026-09-01', pesoKg: 70 },
+        { fecha: '2026-09-08', pesoKg: 88.8 },
+        { fecha: '2026-09-15', pesoKg: 88.4 },
+        { fecha: '2026-09-22', pesoKg: 88.1 },
+      ],
+      '2026-09-23',
+    )
+    expect(e?.apartados.map((p) => p.pesoKg)).toEqual([70])
+  })
+})

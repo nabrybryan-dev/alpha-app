@@ -545,10 +545,22 @@ export interface Microciclo {
 export type Cualitativo3 = 'MALA' | 'REGULAR' | 'BUENA'
 export type Cantidad3 = 'POCO' | 'REGULAR' | 'MUCHO'
 
+/** Los números del check-in que el formulario trae ya puestos y que se pueden guardar sin tocar. */
+export type CampoAnotable = 'pesoKg' | 'pasos' | 'horasSueno'
+
 export interface CheckinDiario {
   id: string
   usuarioId: string
   fecha: string
+  /**
+   * Cuáles de los números que el formulario trae ya puestos MOVIÓ la persona ese día. El peso y
+   * los pasos abren con los del reporte anterior y el sueño con 7 horas; sin esta marca, un dato
+   * arrastrado y uno anotado son indistinguibles (ver `domain/estimadores/datoAnotado.ts`).
+   *
+   * Ausente en los reportes anteriores al 9-oct-2026: ahí no se sabe. Viaja dentro del `datos`
+   * jsonb, así que no necesita migración.
+   */
+  anotadoHoy?: CampoAnotable[]
   /**
    * A qué hora se acostó y a qué hora se levantó, en formato `HH:MM` y hora
    * local de la persona. Opcionales: el check-in no se bloquea por ellas.
