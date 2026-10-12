@@ -4,11 +4,8 @@ import { db } from '../../../data/dbInstance'
 import { visibilidadDelAsesorado } from '../../../data/visibilidadDelAsesorado'
 import { AVISO_SIN_MACROS, macrosDelDia } from '../../../domain/nutricion/macrosDelDia'
 import { resumenDelDia } from '../../../domain/nutricion/resumen'
-import type { TipoDia } from '../../../domain/types'
+import { etiquetaDelTipoDeDia, tipoDiaDeLaFecha } from '../../../domain/nutricion/tipoDiaDeLaFecha'
 import { ResumenDia } from '../../nutricion/ResumenDia'
-
-/** Sin fuente del tipo de día, el mismo que fija `DiarioDia`. */
-const TIPO_DIA_POR_DEFECTO: TipoDia = 'ALTO'
 
 interface MiNutricionDeHoyProps {
   usuarioId: string
@@ -17,13 +14,11 @@ interface MiNutricionDeHoyProps {
 
 /**
  * «Mi nutrición de hoy» en Mi día: lo comido hoy contra su objetivo, con la MISMA tarjeta
- * que abre el diario (`ResumenDia`) y la misma cuenta (`resumenDelDia`, meta del día ALTO,
- * que es la que usa `DiarioDia`). Así no hay dos números para el mismo día.
+ * que abre el diario (`ResumenDia`) y la misma cuenta (`resumenDelDia`) con el MISMO tipo de
+ * día que el diario (`tipoDiaDeLaFecha`, que lo lee de los menús del plan). Así no hay dos
+ * números para el mismo día. Si el plan no dice qué tipo es hoy, cae en ALTO como el diario.
  *
- * La app todavía NO sabe qué tipo de día es hoy (ALTO, BAJO o CHEAT): el diario también lo
- * fija en ALTO. Coincidir con el diario no lo vuelve correcto, así que la tarjeta DICE qué
- * meta usa (E-10 de la revisión de Codex del 28-sep) en vez de callarlo. Cuando exista una
- * fuente común del tipo de día, esta línea se va y la meta sale de ella.
+ * La tarjeta DICE qué meta usa (E-10 de la revisión de Codex del 28-sep) en vez de callarlo.
  *
  * La decisión de qué cifras ve la persona (`visibilidadDelAsesorado`, 0018) también manda
  * aquí: si tiene el contador apagado, la tarjeta se queda con el margen, como en el diario.
@@ -33,7 +28,8 @@ interface MiNutricionDeHoyProps {
  */
 export default function MiNutricionDeHoy({ usuarioId, hoy }: MiNutricionDeHoyProps) {
   const plan = db.nutricion.planByUsuario(usuarioId)
-  const meta = macrosDelDia(plan, TIPO_DIA_POR_DEFECTO)
+  const tipoDia = tipoDiaDeLaFecha(plan, hoy)
+  const meta = macrosDelDia(plan, tipoDia)
   const total = resumenDelDia(db.registroComidas.delDia(usuarioId, hoy), (id) => catalogoRepo.porId(id))
 
   return (
@@ -61,9 +57,7 @@ export default function MiNutricionDeHoy({ usuarioId, hoy }: MiNutricionDeHoyPro
           )}
           {meta && (
           <p className="text-xs text-tenue">
-            Meta del día {TIPO_DIA_POR_DEFECTO}
-            {plan.etiquetasDia?.[TIPO_DIA_POR_DEFECTO] ? ` («${plan.etiquetasDia[TIPO_DIA_POR_DEFECTO]}»)` : ''}: todavía no se
-            elige el tipo de día, así que se mide contra esa, igual que el diario.
+            Meta de hoy ({etiquetaDelTipoDeDia(plan, tipoDia)}): la misma que usa tu diario.
           </p>
           )}
         </>
