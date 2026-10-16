@@ -57,3 +57,25 @@ export function ritmoLegible(registro: CardioRegistrado): string | undefined {
   const [m, s] = segundos === 60 ? [minutos + 1, 0] : [minutos, segundos]
   return `${m}:${String(s).padStart(2, '0')} min/km`
 }
+
+/**
+ * Bloques que se marcan como cardio pero NO son de desplazamiento: core, fuerza,
+ * explosividad, movilidad. La sesión compartida del jueves (16-oct-2026, Karin, Dhanny y
+ * Lina) los carga como bloques, y pedirle distancia o FC media a una plancha es un error que
+ * la persona ve. Se decide por el TÍTULO: las indicaciones de un cardio de verdad pueden
+ * nombrar el core («activa el core») y no por eso dejan de ser cardio.
+ */
+const SIN_DESPLAZAMIENTO =
+  /\b(core|abdom\w*|plancha\w*|fuerza|explosiv\w*|potencia|pliometr\w*|salto\w*|movilidad|estabilidad|estiramient\w*|stretching|foam|propiocepcion|tecnica|activacion|plank|hollow|dead bug|bird dog|pallof|clamshell)\b/
+
+/** Si el título nombra un medio de cardio, manda él: «bici + activación de glúteo» o
+ *  «caminata + movilidad» siguen pidiendo distancia. */
+const CON_DESPLAZAMIENTO =
+  /\b(cardio|bici\w*|caminadora|caminat\w*|caminar|trote|correr|carrera|escaladora|eliptica|remo|remadora|ciclismo|liss|z\d|zona \d|km)\b/
+
+/** `false` si el bloque es de core, fuerza, explosividad o movilidad y no nombra ningún
+ *  medio de cardio: no se le pide distancia ni FC media, solo la duración. */
+export function pideDistanciaYFc(titulo: string): boolean {
+  const limpio = titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  return CON_DESPLAZAMIENTO.test(limpio) || !SIN_DESPLAZAMIENTO.test(limpio)
+}
