@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card } from '../../components/ui/Card'
 import type { BloqueCardio, RegistroCardioEjecutado } from '../../domain/types'
 import { separarNotas } from '../../domain/notasDeLaSemana'
-import { ritmoLegible, velocidadKmH } from '../../domain/registroCardio'
+import { pideDistanciaYFc, ritmoLegible, velocidadKmH } from '../../domain/registroCardio'
 import { CheckDibujado } from './CheckDibujado'
 import { NotasDeLaSemana } from './NotasDeLaSemana'
 
@@ -47,6 +47,8 @@ function RegistroDeCardio({
     })
   }
 
+  // Core, fuerza o explosividad: solo la duración (Bryan, 16-oct: la plancha de Karin pedía km).
+  const completo = pideDistanciaYFc(bloque.titulo)
   const derivado = { duracionRealMin: numeroDe(duracion), distanciaKm: numeroDe(distancia) }
   const ritmo = ritmoLegible(derivado)
   const velocidad = velocidadKmH(derivado)
@@ -66,6 +68,8 @@ function RegistroDeCardio({
             className="w-14 rounded-md border border-hairline bg-surface-2 px-1.5 py-1 text-right text-xs text-texto focus:outline-none focus:border-rojo"
           />
         </label>
+        {completo && (
+        <>
         <label className="flex items-center gap-1 text-xs text-tenue">
           Distancia
           <input
@@ -90,6 +94,8 @@ function RegistroDeCardio({
             className="w-14 rounded-md border border-hairline bg-surface-2 px-1.5 py-1 text-right text-xs text-texto focus:outline-none focus:border-rojo"
           />
         </label>
+        </>
+        )}
       </div>
       {(ritmo || velocidad !== undefined) && (
         <p className="cifras text-xs text-tenue">
