@@ -1,7 +1,9 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Badge } from '../../../../components/ui/Badge'
 import { EmptyState } from '../../../../components/ui/EmptyState'
+import { esAlFallo } from '../../../../domain/objetivoDeIntensidad'
 import { armarSemana } from '../../../../domain/rutaEntrenamiento'
+import type { Sesion } from '../../../../domain/types'
 import { adherenciaPorMicrociclo, fechaCorta, tablaDelPlan } from '../../../../domain/consolaCoach/perfilCompleto'
 import { SeccionAdherenciaHistorial } from '../ficha/SeccionPlan'
 import { Esqueleto, Falta, Tarjeta } from '../piezas'
@@ -13,9 +15,76 @@ import { usePersona } from '../usePersona'
  * «pedir semana», «editar antes de publicar» y «crear a mano» escriben y no son de esta
  * fase (DISENO-CONSOLA-V2.md §2.4).
  */
+/**
+ * LA RUTINA DEL DÍA (Bryan, 2026-10-15: «vemos los días de entrenamiento pero no las rutinas»).
+ * Lo pautado de cada ejercicio, lo que la persona ya anotó al lado, y el cardio con sus
+ * indicaciones. Solo lectura: desde la consola no se cambia nada del plan.
+ */
+function RutinaDelDia({ sesion, etiqueta }: { sesion: Sesion | undefined; etiqueta: string }) {
+  return (
+    <section aria-label={`Rutina del ${etiqueta}`} className="mt-3 rounded-tarjeta border border-linea bg-surface-2 p-3">
+      {!sesion ? (
+        <p className="text-sm italic text-tenue">Descanso: este día no tiene sesión.</p>
+      ) : (
+        <>
+          <p className="text-sm font-bold text-texto">{sesion.nombre}</p>
+          {sesion.ejercicios.length > 0 && (
+            <ol className="mt-2 flex flex-col gap-2">
+              {sesion.ejercicios.map((e) => {
+                const objetivo = esAlFallo(e.rirObjetivo) ? 'al fallo' : `RIR ${e.rirObjetivo}`
+                const kg = e.cargaKg !== undefined && e.cargaKg !== null ? ` · ${e.cargaKg} kg` : ''
+                const reps = e.rango || e.repsDiana
+                return (
+                  <li key={e.id} className="border-t border-linea/60 pt-2 first:border-0 first:pt-0">
+                    <p className="text-[13px] font-bold text-texto">{e.nombre}</p>
+                    <p className="text-[12px] text-tenue">
+                      {e.sets} series · {reps} reps{kg} · {objetivo}
+                    </p>
+                    {e.series.length > 0 && (
+                      <ul className="mt-0.5 flex flex-col text-[12px] text-verde">
+                        {e.series.map((s) => (
+                          <li key={s.orden}>
+                            Anotado: {s.cargaKg} kg × {s.reps ?? '—'}
+                            {s.rir !== undefined ? ` · RIR ${s.rir}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          )}
+          {(sesion.bloquesCardio ?? []).length > 0 && (
+            <ul className="mt-2 flex flex-col gap-2 border-t border-linea pt-2">
+              {(sesion.bloquesCardio ?? []).map((b, n) => (
+                <li key={b.id || n}>
+                  <p className="text-[13px] font-bold text-texto">
+                    {b.titulo}
+                    {b.duracionMin ? <span className="font-normal text-tenue"> · {b.duracionMin} min</span> : null}
+                    {b.hechoEn ? <span className="font-normal text-verde"> · hecho</span> : null}
+                  </p>
+                  {b.indicaciones && <p className="text-[12px] text-tenue">{b.indicaciones}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+          {sesion.ejercicios.length === 0 && (sesion.bloquesCardio ?? []).length === 0 && (
+            <p className="mt-1 text-xs italic text-tenue">La sesión no trae ejercicios ni cardio.</p>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
 export function MicrociclosTab({ usuarioId }: { usuarioId: string }) {
   const datos = usePersona(usuarioId)
   const microciclo = datos.activo
+  const semana = microciclo ? armarSemana(microciclo, datos.hoy) : []
+  const porDefecto = (semana.find((d) => d.esHoy && d.sesionId) ?? semana.find((d) => d.sesionId))?.fechaIso
+  const [elegido, setElegido] = useState<string | undefined>(undefined)
+  const diaElegido = semana.find((d) => d.fechaIso === (elegido ?? porDefecto))
 
   const filaPlan =
     datos.plan.estado === 'listo' && datos.plan.valor
@@ -44,15 +113,20 @@ export function MicrociclosTab({ usuarioId }: { usuarioId: string }) {
               nombre de día y, las sesiones D1…Dn sin día, por orden. Pintar solo las que
               traen `dia` dejaba la semana entera en «Descanso» para quien no lo tiene. */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            {armarSemana(microciclo, datos.hoy).map((d, n) => {
+            {semana.map((d, n) => {
               const sesion = d.sesionId ? microciclo.sesiones.find((s) => s.id === d.sesionId) : undefined
               const hecha = d.estado === 'completada'
+              const esElegido = d.fechaIso === diaElegido?.fechaIso
+              const Caja = sesion ? 'button' : 'div'
               return (
-                <div
+                <Caja
                   key={d.fechaIso}
-                  className={`consola-tarjeta rounded-tarjeta border p-2.5 ${
+                  {...(sesion
+                    ? { type: 'button' as const, onClick: () => setElegido(d.fechaIso), 'aria-pressed': esElegido }
+                    : {})}
+                  className={`consola-tarjeta rounded-tarjeta border p-2.5 text-left ${
                     !sesion ? 'border-dashed border-linea' : hecha ? 'border-verde/45 bg-verde/10' : 'border-linea bg-surface-2'
-                  } ${d.esHoy ? 'ring-2 ring-rojo/60' : ''}`}
+                  } ${d.esHoy ? 'ring-2 ring-rojo/60' : ''} ${esElegido ? 'outline outline-2 outline-texto/60' : ''}`}
                   style={{ '--i': n } as CSSProperties}
                 >
                   <p className="flex items-baseline justify-between text-[10px] font-bold uppercase tracking-wide text-tenue">
@@ -73,10 +147,16 @@ export function MicrociclosTab({ usuarioId }: { usuarioId: string }) {
                   ) : (
                     <p className="mt-2 text-xs italic text-tenue">Descanso</p>
                   )}
-                </div>
+                </Caja>
               )
             })}
           </div>
+          {diaElegido && (
+            <RutinaDelDia
+              sesion={diaElegido.sesionId ? microciclo.sesiones.find((s) => s.id === diaElegido.sesionId) : undefined}
+              etiqueta={`${diaElegido.abreviatura} ${diaElegido.numero}`}
+            />
+          )}
         </Tarjeta>
       )}
 
