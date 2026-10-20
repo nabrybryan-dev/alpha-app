@@ -193,6 +193,70 @@ export const MUTACIONES = [
     reemplazar: '',
     que: 'una carga ausente pasa como si fuera 0',
   },
+  // ── Fase 3 ──
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'const talla = (e.talla as number) + u.talla * normal(azar)',
+    reemplazar: 'const talla = (e.talla as number) + 0 * u.talla * normal(azar)',
+    que: 'ignora la incertidumbre de la talla',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'const masa = (e.masa as number) + u.masa * normal(azar)',
+    reemplazar: 'const masa = (e.masa as number) + 0 * u.masa * normal(azar)',
+    que: 'ignora la incertidumbre de la masa',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'const a = (x: number) => x + u.angulo * normal(azar)',
+    reemplazar: 'const a = (x: number) => x + 0 * u.angulo * normal(azar)',
+    que: 'ignora la incertidumbre de los ángulos',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'const carga = Math.max(0, (e.cargaKg as number) + u.carga * normal(azar))',
+    reemplazar: 'const carga = Math.max(0, (e.cargaKg as number) + 0 * u.carga * normal(azar))',
+    que: 'ignora la incertidumbre de la carga',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'const k = antes / despues',
+    reemplazar: 'const k = 1',
+    que: 'quita la renormalización de masas (la masa total deja de conservarse)',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'inf: Math.min(percentil(orden, 0.05), c.valor as number),',
+    reemplazar: 'inf: Math.min(percentil(orden, 0.95), c.valor as number),',
+    que: 'percentil inferior tomado del 95',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: '{ muestras = 2000, semilla = 20261020 }: OpcionesDeBanda = {},\n): MuestrasDeMomentos {\n  const azar = crearAzar(semilla)',
+    reemplazar: '{ muestras = 2000, semilla = 20261020 }: OpcionesDeBanda = {},\n): MuestrasDeMomentos {\n  const azar = crearAzar(1)',
+    que: 'ignora la semilla pedida',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'nuevaMasa[n] = s.segmentos[n].masa * factor()\n    nuevoCm[n]',
+    reemplazar: 'nuevaMasa[n] = s.segmentos[n].masa\n    nuevoCm[n]',
+    que: 'ignora la incertidumbre de la masa de los segmentos',
+  },
+  {
+    fase: 'fase3',
+    archivo: D + 'bandas.ts',
+    buscar: 'if (datos.length < n * 0.9) {',
+    reemplazar: 'if (false) {',
+    que: 'deja de abstenerse cuando las muestras fallan',
+  },
 ]
 
 const PDF_DE_LEVA =

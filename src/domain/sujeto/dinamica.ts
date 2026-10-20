@@ -1,6 +1,6 @@
 import { noAfirmable, type Cifra } from './contrato'
 import { GRAVEDAD, VERSION_DEL_MODELO } from './convenciones'
-import { DE_LEVA, DE_LEVA_CERV } from './deleva'
+import { DE_LEVA, DE_LEVA_CERV, type ParametrosDeSegmento } from './deleva'
 import { construirSujeto, type EntradaDelSujeto, type Sujeto } from './sujeto'
 
 /**
@@ -76,10 +76,14 @@ export interface Geometria {
 const finito = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
 
 /** Resuelve la cadena. Pura y sin dependencia de la dinámica: la reutilizan las pruebas y el cruce. */
-export function geometriaSagital(s: Sujeto, cargaKg: number, p: PoseSagital): Geometria {
+export function geometriaSagital(
+  s: Sujeto,
+  cargaKg: number,
+  p: PoseSagital,
+  cerv: Readonly<Record<'cabeza' | 'tronco', ParametrosDeSegmento>> = DE_LEVA_CERV[s.sexo],
+): Geometria {
   const tabla = DE_LEVA[s.sexo]
   const escala = s.talla / tabla.estaturaDeReferencia
-  const cerv = DE_LEVA_CERV[s.sexo]
   const dir = (a: number) => ({ z: Math.sin(a), y: Math.cos(a) })
 
   const largoTibia = s.segmentos.tibia.largoM
