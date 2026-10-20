@@ -59,11 +59,27 @@ def principal(ruta_valores, ruta_pdf):
         print('no encuentro la fila alternativa de la tibia (438.6 440.3)')
         return 2
     pdf['tibia'] = {'largo': (alt[0], alt[1]), 'masa': (alt[2], alt[3]), 'cm': (alt[4], alt[5])}
+    # Cabeza VERT-CERV y tronco CERV-MIDH: filas de extremos alternativos (largo F M, masa F M, CM F M).
+    for nombre, primeros in (('cerv_cabeza', [243.7, 242.9]), ('cerv_tronco', [614.8, 603.3])):
+        fila = next((numeros(l) for l in lineas if numeros(l)[:2] == primeros), None)
+        if fila is None:
+            print(f'no encuentro la fila alternativa {nombre}')
+            return 2
+        pdf[nombre] = {'largo': (fila[0], fila[1]), 'masa': (fila[2], fila[3]), 'cm': (fila[4], fila[5])}
     cuenta = 0
     malas = []
     for id_, valor in codigo.items():
         p = id_.split('.')
         if p[0] != 'deleva96':
+            continue
+        if p[1] == 'cerv':
+            sexo = 0 if p[2] == 'm' else 1
+            campo = p[4]
+            bruto = pdf['cerv_' + p[3]][campo][sexo]
+            esperado = bruto / 1000 if campo == 'largo' else bruto / 100
+            cuenta += 1
+            if abs(esperado - valor) > 1e-9:
+                malas.append((id_, valor, esperado))
             continue
         sexo = 0 if p[1] == 'm' else 1
         if p[2] == 'estatura_ref':

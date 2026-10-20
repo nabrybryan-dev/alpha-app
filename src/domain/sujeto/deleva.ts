@@ -72,6 +72,24 @@ export const DE_LEVA: Readonly<Record<Sexo, TablaDeLeva>> = {
   },
 }
 
+/**
+ * Cabeza y tronco con los EXTREMOS ALTERNATIVOS de la Tabla 4 (segunda parte): cabeza VERT-CERV
+ * y tronco CERV-MIDH. Con estos dos la cadena es continua —el tronco acaba donde empieza la
+ * cabeza, en el cervical—, que es lo que necesita la dinámica; con los de la primera parte
+ * (VERT-MIDG y SUPR-MIDH) la cabeza queda colgando del tronco sin tocarlo. La masa total no
+ * cambia (6,94 y 43,46 en varones; 6,68 y 42,57 en mujeres), cambian largo y CM.
+ */
+export const DE_LEVA_CERV: Readonly<Record<Sexo, Readonly<Record<'cabeza' | 'tronco', ParametrosDeSegmento>>>> = {
+  h: {
+    cabeza: { masa: 0.0694, cm: 0.5002, largo: 0.2429 },
+    tronco: { masa: 0.4346, cm: 0.5138, largo: 0.6033 },
+  },
+  m: {
+    cabeza: { masa: 0.0668, cm: 0.4841, largo: 0.2437 },
+    tronco: { masa: 0.4257, cm: 0.4964, largo: 0.6148 },
+  },
+}
+
 /** Los segmentos que van de a dos (derecho e izquierdo). Cabeza y tronco van solos. */
 export const SEGMENTOS_PARES: readonly Segmento[] = ['brazo', 'antebrazo', 'mano', 'muslo', 'tibia', 'pie']
 
@@ -93,6 +111,14 @@ export function valoresDeLeva(): Record<string, number> {
       salida[`deleva96.${sexo}.${s}.masa`] = p.masa
       salida[`deleva96.${sexo}.${s}.cm`] = p.cm
       salida[`deleva96.${sexo}.${s}.largo`] = p.largo
+    }
+  }
+  for (const sexo of ['h', 'm'] as const) {
+    for (const s of ['cabeza', 'tronco'] as const) {
+      const p = DE_LEVA_CERV[sexo][s]
+      salida[`deleva96.cerv.${sexo}.${s}.masa`] = p.masa
+      salida[`deleva96.cerv.${sexo}.${s}.cm`] = p.cm
+      salida[`deleva96.cerv.${sexo}.${s}.largo`] = p.largo
     }
   }
   return salida

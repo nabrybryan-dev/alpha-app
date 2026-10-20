@@ -143,6 +143,56 @@ export const MUTACIONES = [
     reemplazar: 'suma + DE_LEVA[sexo].segmentos[s].masa,',
     que: 'la suma de fracciones no cuenta los pares dos veces',
   },
+  // ── Fase 2 ──
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'tobillo: suma(g.porEncimaDelTobillo, (z) => z - g.tobillo.z),',
+    reemplazar: 'tobillo: suma(g.porEncimaDelTobillo, (z) => g.tobillo.z - z),',
+    que: 'signo del tobillo invertido',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'rodilla: suma(g.porEncimaDeLaRodilla, (z) => g.rodilla.z - z),',
+    reemplazar: 'rodilla: suma(g.porEncimaDeLaRodilla, (z) => z - g.rodilla.z),',
+    que: 'signo de la rodilla invertido',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: "const barra: MasaPuntual = { nombre: 'barra', kg: cargaKg, ...puntoBarra }",
+    reemplazar: "const barra: MasaPuntual = { nombre: 'barra', kg: 0, ...puntoBarra }",
+    que: 'se ignora la barra',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'kg: 2 * (m.brazo.masaKg + m.antebrazo.masaKg + m.mano.masaKg),',
+    reemplazar: 'kg: 0,',
+    que: 'se ignoran los brazos',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'z: prox.z - cm * largo * u.z,',
+    reemplazar: 'z: prox.z + cm * largo * u.z,',
+    que: 'el centro de masas medido hacia el lado equivocado del segmento',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'const sobreLaCadera = [tronco, cabeza, brazos, barra]',
+    reemplazar: 'const sobreLaCadera = [tronco, brazos, barra]',
+    que: 'se olvida la cabeza',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: "if (!finito(e.cargaKg) || e.cargaKg < 0) return faltan('carga ausente o negativa')",
+    reemplazar: '',
+    que: 'una carga ausente pasa como si fuera 0',
+  },
 ]
 
 const PDF_DE_LEVA =

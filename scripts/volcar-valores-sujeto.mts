@@ -24,6 +24,11 @@ const FUENTE =
 
 function fila(id: string, valor: number): string {
   const p = id.split('.')
+  if (p[0] === 'deleva96' && p[1] === 'cerv') {
+    const sexo = SEXOS[p[2]]
+    const ext = p[3] === 'cabeza' ? 'cabeza (VERT-CERV, extremos alternativos)' : 'tronco (CERV-MIDH, extremos alternativos)'
+    return [valor, `[${id}] ${CAMPOS[p[4]]} de ${ext}, ${sexo}`, FUENTE, 'transcrito', '2026-10-20', 'segunda parte de la Tabla 4; leído en texto y en la imagen'].join('	')
+  }
   if (p[0] === 'deleva96') {
     const sexo = SEXOS[p[1]]
     const que =
