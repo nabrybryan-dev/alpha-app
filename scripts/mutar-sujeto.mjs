@@ -7,7 +7,7 @@
 //
 // Sale con código 1 si alguna mutación SOBREVIVE (las pruebas siguen en verde con la regla
 // rota: el arnés no ve ese defecto) o si el texto a mutar ya no existe (la mutación quedó vieja).
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -15,7 +15,11 @@ import { dirname, join } from 'node:path'
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const D = 'src/domain/sujeto/'
 
-/** { fase, archivo, buscar, reemplazar, que } — `buscar` debe aparecer exactamente una vez. */
+/**
+ * { fase, archivo, buscar, reemplazar, que, con? } — `buscar` debe aparecer exactamente una vez.
+ * `con: 'cotejo'` = la mutación la tiene que ver el cotejo contra el PDF (valores transcritos),
+ * no las pruebas: una tabla transcrita se juzga contra su fuente, no contra sí misma.
+ */
 export const MUTACIONES = [
   {
     fase: 'fase0',
@@ -80,7 +84,88 @@ export const MUTACIONES = [
     reemplazar: 'export const ESTADOS_QUE_NO_RESPALDAN: string[] = []',
     que: 'una cifra puede citar una fila marcada INVENTADO',
   },
+  // ── Fase 1 ──
+  {
+    fase: 'fase1',
+    archivo: D + 'deleva.ts',
+    buscar: 'muslo: { masa: 0.1416, cm: 0.4095, largo: 0.4222 },',
+    reemplazar: 'muslo: { masa: 0.1461, cm: 0.4095, largo: 0.4222 },',
+    que: 'varones: dos cifras del muslo intercambiadas (14,16 a 14,61 %)',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'deleva.ts',
+    buscar: 'muslo: { masa: 0.1478, cm: 0.3612, largo: 0.3685 },',
+    reemplazar: 'muslo: { masa: 0.1478, cm: 0.3612, largo: 0.3865 },',
+    que: 'mujeres: el largo del muslo con dos cifras intercambiadas (solo lo ve el cotejo)',
+    con: 'cotejo',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'deleva.ts',
+    buscar: 'cabeza: { masa: 0.0668, cm: 0.5894, largo: 0.2002 },',
+    reemplazar: 'cabeza: { masa: 0.0668, cm: 0.5984, largo: 0.2002 },',
+    que: 'mujeres: el CM de la cabeza mal copiado (solo lo ve el cotejo)',
+    con: 'cotejo',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'sujeto.ts',
+    buscar: 'const escala = e.talla / tabla.estaturaDeReferencia',
+    reemplazar: 'const escala = tabla.estaturaDeReferencia / e.talla',
+    que: 'la escala a la talla al revés',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'sujeto.ts',
+    buscar: 'masaKg: p.masa * e.masa,',
+    reemplazar: 'masaKg: p.masa,',
+    que: 'la masa del segmento sin multiplicar por la masa del asesorado',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'sujeto.ts',
+    buscar: 'if (!valido(e.talla) || !valido(e.masa)) return null',
+    reemplazar: 'if (false) return null',
+    que: 'deja de rechazar una talla o masa NaN',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'sujeto.ts',
+    buscar: 'if (e.talla < LIMITES_DE_CORDURA.tallaMin || e.talla > LIMITES_DE_CORDURA.tallaMax) return null',
+    reemplazar: '',
+    que: 'deja de rechazar una talla en centímetros',
+  },
+  {
+    fase: 'fase1',
+    archivo: D + 'deleva.ts',
+    buscar: 'suma + DE_LEVA[sexo].segmentos[s].masa * (SEGMENTOS_PARES.includes(s) ? 2 : 1),',
+    reemplazar: 'suma + DE_LEVA[sexo].segmentos[s].masa,',
+    que: 'la suma de fracciones no cuenta los pares dos veces',
+  },
 ]
+
+const PDF_DE_LEVA =
+  process.env.LEVA_PDF ??
+  join(raiz, '..', 'cerebro-alpha', 'herramientas', 'encoder-camara', 'articulos', 'DeLeva_1996_J_Biomech_segment_parameters.pdf')
+
+/** Vuelca las constantes del código y las coteja contra el PDF. Código 0 = coinciden. */
+function correrCotejo() {
+  if (!existsSync(PDF_DE_LEVA)) {
+    console.error(`No encuentro el PDF de de Leva en ${PDF_DE_LEVA}`)
+    process.exit(2)
+  }
+  const volcado = spawnSync(
+    process.execPath,
+    [join(raiz, 'node_modules', 'vite-node', 'vite-node.mjs'), 'scripts/volcar-valores-sujeto.mts'],
+    { cwd: raiz, encoding: 'utf8', timeout: 120_000 },
+  )
+  if (volcado.status !== 0) return volcado.status ?? 1
+  const ruta = join(raiz, 'node_modules', '.tmp', 'valores-sujeto.json')
+  writeFileSync(ruta, volcado.stdout)
+  const r = spawnSync('python', ['-I', 'scripts/cotejar-deleva-con-pdf.py', ruta, PDF_DE_LEVA], { cwd: raiz, encoding: 'utf8' })
+  return r.status
+}
 
 function correrPruebas() {
   const vitest = join(raiz, 'node_modules', 'vitest', 'vitest.mjs')
@@ -101,8 +186,8 @@ function principal() {
   }
   // Control: sin mutar, las pruebas tienen que estar en verde, o "fallarían" por otra cosa.
   const base = correrPruebas()
-  if (base !== 0) {
-    console.error('Las pruebas ya están en rojo SIN mutar: no se puede juzgar a las mutaciones.')
+  if (base !== 0 || (lista.some((m) => m.con === 'cotejo') && correrCotejo() !== 0)) {
+    console.error('Las pruebas o el cotejo ya están en rojo SIN mutar: no se puede juzgar a las mutaciones.')
     process.exit(1)
   }
   let sobrevivientes = 0
@@ -118,7 +203,7 @@ function principal() {
     }
     try {
       writeFileSync(ruta, original.replace(m.buscar, () => m.reemplazar))
-      const estado = correrPruebas()
+      const estado = m.con === 'cotejo' ? correrCotejo() : correrPruebas()
       if (estado === 0) {
         console.log(`SOBREVIVE  ${m.fase} ${m.archivo}: ${m.que}`)
         sobrevivientes++
