@@ -22,6 +22,8 @@
     "banco-encoder": "node scripts/banco-encoder.mjs",
     "coverage": "vitest run --coverage",
     "rellenar-carga": "vite-node scripts/rellenar-carga.mjs",
+    "mutar-sujeto": "node scripts/mutar-sujeto.mjs",
+    "procedencias-sujeto": "vite-node scripts/comprobar-procedencias-sujeto.mts",
     "espejo": "vite-node scripts/espejo/espejo.mts",
     "firmar-revisiones": "vite-node scripts/firmar-revisiones.mjs",
     "praxis-eval": "vite-node scripts/praxis-eval/evaluar.mts --"
