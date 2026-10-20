@@ -257,6 +257,56 @@ export const MUTACIONES = [
     reemplazar: 'if (false) {',
     que: 'deja de abstenerse cuando las muestras fallan',
   },
+  // ── Fase 4 ──
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'Math.pow(m.brazo * Math.pow(m.area, r), 1 / (r - 1))',
+    reemplazar: 'Math.pow(m.brazo * Math.pow(m.area, 2), 1 / (r - 1))',
+    que: 'el área se eleva siempre a 2 en vez de a r',
+  },
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'const fuerza = m.brazo > 0 ? c * peso(m) : 0',
+    reemplazar: 'const fuerza = c * peso(m)',
+    que: 'un antagonista (brazo negativo) recibe fuerza',
+  },
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'if (!Number.isFinite(momento) || momento <= 0) return null',
+    reemplazar: 'if (!Number.isFinite(momento)) return null',
+    que: 'reparte un momento no positivo en vez de abstenerse',
+  },
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'if (!Number.isFinite(r) || r <= 1) return null',
+    reemplazar: 'if (!Number.isFinite(r)) return null',
+    que: 'acepta r = 1, donde no hay solución cerrada',
+  },
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'return (m.brazoCadera * p.cadera - m.brazoRodilla * p.rodilla) / m.largoDeReferencia',
+    reemplazar: 'return (m.brazoCadera * p.cadera + m.brazoRodilla * p.rodilla) / m.largoDeReferencia',
+    que: 'signo de la rodilla invertido en el índice de longitud',
+  },
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'return (m.brazoCadera * p.cadera - m.brazoRodilla * p.rodilla) / m.largoDeReferencia',
+    reemplazar: 'return (-m.brazoCadera * p.cadera - m.brazoRodilla * p.rodilla) / m.largoDeReferencia',
+    que: 'signo de la cadera invertido en el índice de longitud',
+  },
+  {
+    fase: 'fase4',
+    archivo: D + 'reparto.ts',
+    buscar: 'area: m.area * Math.max(0.05, 1 + sdRelativaDelArea * normal(azar))',
+    reemplazar: 'area: m.area',
+    que: 'la banda ignora la incertidumbre del área',
+  },
 ]
 
 const PDF_DE_LEVA =
