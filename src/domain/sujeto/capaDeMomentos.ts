@@ -67,7 +67,7 @@ const VACIA: CapaDeMomentos = { elementos: [], lineas: [] }
 /** Sentadilla con barra: la categoría SENTADILLA y «barra» en el nombre, sin goblet, Smith ni unilateral. */
 export function esSentadillaConBarra(categoria: string, nombre: string): boolean {
   const n = nombre.toLowerCase()
-  return categoria.toUpperCase() === 'SENTADILLA' && n.includes('barra') && !n.includes('smith') && !n.includes('goblet')
+  return categoria.toUpperCase() === 'SENTADILLA' && n.includes('barra') && !n.includes('smith') && !n.includes('goblet') && !n.includes('unilateral')
 }
 
 const fraccionDe = (nm: number): number => Math.min(1, Math.abs(nm) / MOMENTO_DE_ESCALA)

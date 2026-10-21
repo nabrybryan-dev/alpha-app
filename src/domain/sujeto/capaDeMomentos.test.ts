@@ -64,6 +64,7 @@ describe('la puerta: basta con que falle UNA condición', () => {
     expect(esSentadillaConBarra('sentadilla', 'SENTADILLA CON BARRA ALTA')).toBe(true)
     expect(esSentadillaConBarra('SENTADILLA', 'Sentadilla en Smith con barra')).toBe(false)
     expect(esSentadillaConBarra('SENTADILLA', 'Sentadilla goblet con barra')).toBe(false)
+    expect(esSentadillaConBarra('SENTADILLA', 'Sentadilla unilateral con barra')).toBe(false)
     expect(esSentadillaConBarra('SENTADILLA', 'Sentadilla con mancuerna')).toBe(false)
     expect(esSentadillaConBarra('PRENSA', 'Sentadilla con barra')).toBe(false)
   })

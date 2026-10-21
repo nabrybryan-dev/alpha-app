@@ -328,6 +328,13 @@ export const MUTACIONES = [
   {
     fase: 'tandaB',
     archivo: D + 'capaDeMomentos.ts',
+    buscar: " && !n.includes('unilateral')",
+    reemplazar: '',
+    que: 'una sentadilla unilateral con barra entra en la capa aunque el codigo dice excluirla',
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
     buscar: 'if (!contexto.sujetoDeEjemplo || !esSentadillaConBarra(',
     reemplazar: 'if (!contexto.sujetoDeEjemplo && !esSentadillaConBarra(',
     que: 'la puerta de abstencion pide que fallen las dos condiciones (|| por &&) y deja pasar a un asesorado real',
