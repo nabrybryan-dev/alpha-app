@@ -320,3 +320,43 @@ pestaña oculta. La capa añade **912 vértices por fotograma** a 35.933 (2,5 %)
   del ruido hay que repetir con la cola parada; mientras tanto el coste de la capa queda **sin
   distinguir del ruido**, y este informe no inventa una cifra.
 - **Sigue sin medirse:** GPU real, móvil, sesión larga y la sala de Blender subida.
+
+### 20 pares alternados con Chrome en prioridad alta: criterio fijado ANTES de medir (21-oct, 15:03)
+
+- **Estadístico:** por par, `d = fotogramaCPU.mediana(capa) − fotogramaCPU.mediana(sin capa)`; 20 pares
+  alternados (capa, sin capa, capa…) y la mediana de las 20 `d`.
+- **Intervalo:** bootstrap percentil de la mediana de `d`, 10.000 remuestras con semilla fija (20261021),
+  nivel 95 %.
+- **Regla:** la capa **cabe** si el límite superior del intervalo es **menor de 1 ms**. Si no, se escribe
+  «no determinable con el equipo cargado», sin cifra de coste.
+- **Condiciones:** procesos de Chrome lanzados por la medida en prioridad alta; no se toca ningún proceso
+  ajeno (la cola de MANU y los agentes del laboratorio siguen corriendo). Se anota la carga de CPU de cada
+  corrida y la hora; los agentes del laboratorio cargan el equipo hasta cerca de las 16:55.
+- Se rechaza una corrida con la pestaña oculta o que no cuadre vértices = fotogramas × 912.
+
+#### Resultado de los 20 pares (15:02 a 15:17, mismo día)
+
+Cumplen la condición previa las 40 corridas: Chrome en prioridad `High` en todas, 0 pasos con la pestaña
+oculta, vértices = fotogramas × 912 (190 × 912 = 173.280) en las 20 con capa y 0 en las 20 sin ella.
+
+- **Mediana de las 20 diferencias por pares: +0,20 ms** (capa 6,10 ms, sin capa 5,95). 12 pares positivos
+  y 8 negativos.
+- **Intervalo de bootstrap del 95 % de esa mediana: de −0,35 a +1,30 ms.** El límite superior (1,30) no es
+  menor de 1 ms.
+- **Veredicto según la regla fijada antes: NO DETERMINABLE CON EL EQUIPO CARGADO.** No se afirma que la capa
+  quepa ni que no, ni se da un coste en ms. (La mediana apunta a algo pequeño, pero el intervalo incluye
+  tanto 0 como más de 1 ms.)
+- **Carga durante la tanda:** la carga de CPU antes de cada corrida osciló entre 32 % y 100 % (la mayoría
+  entre 70 % y 100 %). Seguían en marcha la cola U-Net de MANU y los agentes del laboratorio (cargan el
+  equipo hasta cerca de las 16:55), así que **coinciden con toda la tanda**. Hay dos corridas con tirones
+  claros, ambas con capa: el par 14 (mediana 16,3 y p90 213,9 ms) y el 17 (p90 55,9 ms); y huecos de tiempo
+  entre corridas (15:06 a 15:08, 15:12 a 15:14) que indican que el equipo se ahogó. No se descartaron:
+  el criterio se fijó antes y no incluía descartes.
+- **Datos y código:** `informes/medidas/capa-20-pares/*.json` (cada JSON lleva `hora`, `cargaCPUantes`,
+  `prioridadChrome`, `fotogramas`), `informes/medidas/medir-capa-20-pares.py`,
+  `informes/medidas/analizar-capa-20-pares.py`.
+- **Para repetir con la cola de MANU parada y sin agentes del laboratorio** (con el servidor
+  `npx vite --host 127.0.0.1 --port 5198 --strictPort` en marcha, desde este repo):
+  `py -3.13 informes/medidas/medir-capa-20-pares.py salidas 20` y luego, desde la carpeta de salidas,
+  `py -3.13 informes/medidas/analizar-capa-20-pares.py` (ajustar la ruta `salidas20/` del analizador). Misma regla:
+  cabe si el límite superior del IC95 de la mediana de las diferencias es < 1 ms.
