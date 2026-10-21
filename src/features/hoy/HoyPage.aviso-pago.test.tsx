@@ -55,4 +55,14 @@ describe('Hoy: aviso de mensualidad vencida', () => {
     pintar()
     expect(screen.queryByRole('link', { name: /pagar mi mensualidad/i })).toBeNull()
   })
+
+  it.each(['coach', 'nutricionista'] as const)('si quien abre es %s no sale, aunque la ficha lo tenga activo', (rol) => {
+    fichaConAviso({ venceDesde: '2026-10-05', enlace: 'https://pago.ejemplo.com/x', activo: true })
+    const real = db.usuarios.byId('u-valentina')
+    if (!real) throw new Error('el seed no trae a Valentina')
+    const original = db.usuarios.byId.bind(db.usuarios)
+    vi.spyOn(db.usuarios, 'byId').mockImplementation((id) => (id === 'u-valentina' ? { ...real, rol } : original(id)))
+    pintar()
+    expect(screen.queryByRole('link', { name: /pagar mi mensualidad/i })).toBeNull()
+  })
 })

@@ -48,10 +48,13 @@ function enlaceHttpsValido(valor: unknown): string | undefined {
   return url.href
 }
 
-function textoPorDefecto(nombre: string, venceDesde: unknown): string {
+/** Sin fecha válida no hay texto aprobado: devuelve `undefined` y el aviso no sale. */
+function textoPorDefecto(nombre: string, venceDesde: unknown): string | undefined {
   const fecha = fechaEnEspanol(venceDesde)
-  const vencida = fecha ? `venció el ${fecha}` : 'está vencida'
-  return `${nombre}, tu mensualidad de Alpha ${vencida}. Ya te cargué la semana para que no pierdas el ritmo que traes. Para seguir con tu plan, ponte al día aquí:`
+  if (!fecha) return undefined
+  const quien = nombre.trim()
+  const inicio = quien ? `${quien}, tu mensualidad` : 'Tu mensualidad'
+  return `${inicio} de Alpha venció el ${fecha}. Ya te cargué la semana para que no pierdas el ritmo que traes. Para seguir con tu plan, ponte al día aquí:`
 }
 
 /**
@@ -65,5 +68,7 @@ export function avisoPagoVisible(datos: unknown, nombre: string): AvisoPagoVisib
   const enlace = enlaceHttpsValido(d.enlace)
   if (!enlace) return undefined
   const propio = typeof d.texto === 'string' && d.texto.trim() !== '' ? d.texto : undefined
-  return { texto: propio ?? textoPorDefecto(nombre, d.venceDesde), enlace }
+  const texto = propio ?? textoPorDefecto(nombre, d.venceDesde)
+  if (texto === undefined) return undefined
+  return { texto, enlace }
 }

@@ -1,7 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { avisoPagoVisible, fechaEnEspanol } from './avisoPago'
 
 const base = { venceDesde: '2026-10-05', enlace: 'https://pago.ejemplo.com/abc', activo: true }
+
+// Zona de Colombia (UTC-5): ahí `new Date('2026-10-05')` cae el 4 y delata el desfase. En UTC
+// ese error es invisible, así que la fecha se prueba con la zona fijada aquí y no con la del equipo.
+const TZ_ORIGINAL = process.env.TZ
+beforeAll(() => {
+  process.env.TZ = 'America/Bogota'
+})
+afterAll(() => {
+  if (TZ_ORIGINAL === undefined) delete process.env.TZ
+  else process.env.TZ = TZ_ORIGINAL
+})
 
 describe('fechaEnEspanol', () => {
   it('dice el día y el mes sin ceros ni desfase de zona horaria', () => {
@@ -48,10 +59,18 @@ describe('avisoPagoVisible', () => {
     const t = avisoPagoVisible({ ...base, venceDesde: '2026-11-12' }, 'Luis')?.texto
     expect(t).toMatch(/^Luis, tu mensualidad de Alpha venció el 12 de noviembre\./)
   })
-  it('sin fecha válida no inventa una', () => {
-    const t = avisoPagoVisible({ ...base, venceDesde: undefined }, 'Ana')?.texto
-    expect(t).toMatch(/^Ana, tu mensualidad de Alpha está vencida\./)
-    expect(t).not.toMatch(/undefined|venció el/)
+  it('sin venceDesde válida y sin texto propio NO se muestra: no hay texto aprobado para ese caso', () => {
+    expect(avisoPagoVisible({ ...base, venceDesde: undefined }, 'Ana')).toBeUndefined()
+    expect(avisoPagoVisible({ ...base, venceDesde: '2026-02-30' }, 'Ana')).toBeUndefined()
+    expect(avisoPagoVisible({ ...base, venceDesde: 'ayer' }, 'Ana')).toBeUndefined()
+  })
+  it('con texto propio no hace falta la fecha', () => {
+    expect(avisoPagoVisible({ ...base, venceDesde: undefined, texto: 'Hola.' }, 'Ana')?.texto).toBe('Hola.')
+  })
+  it('sin nombre el texto no empieza por coma', () => {
+    for (const nombre of ['', '   ']) {
+      expect(avisoPagoVisible(base, nombre)?.texto).toMatch(/^Tu mensualidad de Alpha venció el 5 de octubre\. Ya te cargué/)
+    }
   })
   it('si trae texto, se usa tal cual', () => {
     expect(avisoPagoVisible({ ...base, texto: 'Hola, mira esto.' }, 'Ana')?.texto).toBe('Hola, mira esto.')
