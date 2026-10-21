@@ -10,6 +10,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { clasificarCorrida } from './mutar-clasificar.mjs'
 import { dirname, join } from 'node:path'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -190,8 +191,64 @@ export const MUTACIONES = [
     fase: 'fase2',
     archivo: D + 'dinamica.ts',
     buscar: "if (!finito(e.cargaKg) || e.cargaKg < 0) return faltan('carga ausente o negativa')",
-    reemplazar: '',
+    reemplazar: "if (!finito(e.cargaKg)) e = { ...e, cargaKg: 0 }\n  if (e.cargaKg < 0) return faltan('carga negativa')",
     que: 'una carga ausente pasa como si fuera 0',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'cadera: suma(g.porEncimaDeLaCadera, (z) => z - g.cadera.z),',
+    reemplazar: 'cadera: suma(g.porEncimaDeLaCadera, (z) => g.cadera.z - z),',
+    que: 'el signo del momento de cadera invertido',
+  },
+  {
+    fase: 'fase2',
+    archivo: D + 'dinamica.ts',
+    buscar: 'kg: 2 * s.segmentos.tibia.masaKg,',
+    reemplazar: 'kg: s.segmentos.tibia.masaKg,',
+    que: 'la tibia cuenta una sola pierna (falta el x2 de los pares)',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: "  if (!VACIAS) VACIAS = nuevasMallas(1)\n",
+    reemplazar: "  VACIAS = nuevasMallas(1)\n",
+    que: "fuera de la pose se vuelven a reservar mallas en cada fotograma (~230 KB)",
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/salon/momentos/useCapaDelSalon.ts',
+    buscar: "[busqueda, categoria, nombre]",
+    reemplazar: "[categoria, nombre]",
+    que: "la capa del salon no se recalcula al cambiar la direccion",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'bandas.ts',
+    buscar: "inf !== p5 || sup !== p95 ? NIVEL_ENSANCHADO",
+    reemplazar: "false ? NIVEL_ENSANCHADO",
+    que: "una banda ensanchada para incluir el valor sigue rotulada como p5-p95 puro (B-1)",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'bandas.ts',
+    buscar: "sup === inf ? NIVEL_SIN_DISPERSION",
+    reemplazar: "false ? NIVEL_SIN_DISPERSION",
+    que: "una banda de ancho cero se presenta como un intervalo (B-2)",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'reparto.ts',
+    buscar: "estado: 'simulado',",
+    reemplazar: "estado: 'estimado',",
+    que: "el reparto con areas y brazos hipoteticos se marca estimado (C-5)",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'dinamica.ts',
+    buscar: "    estado: 'estimado',\n    fuente,",
+    reemplazar: "    estado: 'calculado',\n    fuente,",
+    que: "un momento que sale de la tabla poblacional se marca calculado (C-2)",
   },
   // ── Fase 3 ──
   {
@@ -232,8 +289,8 @@ export const MUTACIONES = [
   {
     fase: 'fase3',
     archivo: D + 'bandas.ts',
-    buscar: 'inf: Math.min(percentil(orden, 0.05), c.valor as number),',
-    reemplazar: 'inf: Math.min(percentil(orden, 0.95), c.valor as number),',
+    buscar: 'const inf = Math.min(p5, valor)',
+    reemplazar: 'const inf = Math.min(p95, valor)',
     que: 'percentil inferior tomado del 95',
   },
   {
@@ -405,8 +462,8 @@ export const MUTACIONES = [
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
-    buscar: "if (!capa.poseDelCalculo || !enLaPoseDelCalculo(esq, capa.poseDelCalculo)) return salida",
-    reemplazar: "if (!capa.poseDelCalculo) return salida",
+    buscar: "if (!capa.poseDelCalculo || !enLaPoseDelCalculo(esq, capa.poseDelCalculo)) return mallasVacias()",
+    reemplazar: "if (!capa.poseDelCalculo) return mallasVacias()",
     que: "los arcos se pintan en todas las fases de la animacion (C-3)",
   },
   {
@@ -651,8 +708,12 @@ function correrPruebas() {
     encoding: 'utf8',
     timeout: 170_000,
   })
+  ultimaSalida = `${r.stdout ?? ''}${r.stderr ?? ''}`
+  ultimaCorrida = { status: r.status, signal: r.signal, error: r.error, salida: ultimaSalida }
   return r.status
 }
+let ultimaSalida = ''
+let ultimaCorrida = { status: 0 }
 
 function principal() {
   const filtro = process.argv[2]
@@ -669,6 +730,7 @@ function principal() {
   }
   let sobrevivientes = 0
   let viejas = 0
+  let sinJuzgar = 0
   for (const m of lista) {
     const ruta = join(raiz, m.archivo)
     const original = readFileSync(ruta, 'utf8')
@@ -684,11 +746,16 @@ function principal() {
       for (const [a, b] of m.tambien ?? []) mutado = mutado.replace(a, () => b)
       writeFileSync(ruta, mutado)
       const estado = m.con === 'cotejo' ? correrCotejo() : m.con === 'cotejoSW' ? correrCotejoSW() : correrPruebas()
-      if (estado === 0) {
+      // El cotejo contra los articulos no tiene «pruebas fallidas»: su codigo de salida distinto de 0 es el kill.
+      const veredicto = m.con === 'cotejo' || m.con === 'cotejoSW' ? (estado === 0 ? 'sobrevive' : estado === null ? 'indeterminada' : 'muerta') : clasificarCorrida(ultimaCorrida)
+      if (veredicto === 'sobrevive') {
         console.log(`SOBREVIVE  ${m.fase} ${m.archivo}: ${m.que}`)
         sobrevivientes++
-      } else {
+      } else if (veredicto === 'muerta') {
         console.log(`muerta     ${m.fase} ${m.archivo}: ${m.que}`)
+      } else {
+        console.log(`SIN JUZGAR ${m.fase} ${m.archivo}: ${m.que} (${veredicto}: ninguna prueba la vio)`)
+        sinJuzgar++
       }
     } finally {
       writeFileSync(ruta, original)
@@ -696,9 +763,9 @@ function principal() {
   }
   const restaurado = correrPruebas()
   console.log(
-    `\n${lista.length} mutaciones · ${sobrevivientes} sobreviven · ${viejas} viejas · pruebas tras restaurar: ${restaurado === 0 ? 'verde' : 'ROJO'}`,
+    `\n${lista.length} mutaciones · ${sobrevivientes} sobreviven · ${sinJuzgar} sin juzgar · ${viejas} viejas · pruebas tras restaurar: ${restaurado === 0 ? 'verde' : 'ROJO'}`,
   )
-  process.exit(sobrevivientes + viejas > 0 || restaurado !== 0 ? 1 : 0)
+  process.exit(sobrevivientes + viejas + sinJuzgar > 0 || restaurado !== 0 ? 1 : 0)
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) principal()

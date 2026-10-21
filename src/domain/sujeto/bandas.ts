@@ -140,6 +140,24 @@ export function muestraDeMomentos(e: EntradaDeSentadilla, u: Incertidumbre, azar
   return momentosEstaticos(geometriaSagital(sujeto, carga, p, cerv))
 }
 
+export const NIVEL_P5_P95 = 'percentil 5 a 95 del Monte Carlo'
+export const NIVEL_ENSANCHADO = 'percentil 5 a 95 del Monte Carlo, ensanchado hasta incluir el valor central'
+export const NIVEL_SIN_DISPERSION = 'ancho cero: las entradas no tienen incertidumbre, no hay dispersión que medir'
+
+/**
+ * Banda p5-p95 de unas muestras ordenadas, con el valor central DENTRO (un modelo asimétrico puede dejarlo
+ * fuera) y el `nivel` diciendo la verdad: si hubo que ensanchar para incluirlo ya no es un p5-p95 puro, y
+ * si no hay ancho no es un intervalo de nada (B-1 y B-2 de la revisión de Opus).
+ */
+export function bandaP5P95(ordenados: number[], valor: number): Banda {
+  const p5 = percentil(ordenados, 0.05)
+  const p95 = percentil(ordenados, 0.95)
+  const inf = Math.min(p5, valor)
+  const sup = Math.max(p95, valor)
+  const nivel = sup === inf ? NIVEL_SIN_DISPERSION : inf !== p5 || sup !== p95 ? NIVEL_ENSANCHADO : NIVEL_P5_P95
+  return { inf, sup, nivel }
+}
+
 export function percentil(ordenados: number[], q: number): number {
   const i = (ordenados.length - 1) * q
   const lo = Math.floor(i)
@@ -208,12 +226,7 @@ export function bandasDeSentadilla(
       return faltante(c.id, `${m.descartadas} de ${n} muestras cayeron fuera de rango: la incertidumbre pedida rompe el modelo`)
     }
     const orden = [...datos].sort((x, y) => x - y)
-    // El valor central sin perturbar puede quedar fuera del 5-95 si el modelo es muy asimétrico: la banda lo incluye.
-    const banda: Banda = {
-      inf: Math.min(percentil(orden, 0.05), c.valor as number),
-      sup: Math.max(percentil(orden, 0.95), c.valor as number),
-      nivel: 'percentil 5 a 95 del Monte Carlo',
-    }
+    const banda: Banda = bandaP5P95(orden, c.valor as number)
     return { ...c, estado: 'estimado', banda, supuestos: [...c.supuestos, ...SUPUESTOS_DE_BANDA(u, n, semilla)] }
   }
   return { tobillo: armar('tobillo'), rodilla: armar('rodilla'), cadera: armar('cadera') }

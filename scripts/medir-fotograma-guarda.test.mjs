@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { comprobarElCuadreDeLaTanda, comprobarQueLaCapaAporto, mallasDelPeorCaso, VERTICES_POR_FOTOGRAMA_PEOR_CASO } from './medir-fotograma-guarda.mjs'
+import { liberarContextoWebGL, comprobarElCuadreDeLaTanda, comprobarQueLaCapaAporto, mallasDelPeorCaso, VERTICES_POR_FOTOGRAMA_PEOR_CASO } from './medir-fotograma-guarda.mjs'
 import { capaDeMomentos, INCERTIDUMBRE_DE_EJEMPLO, SUJETO_DE_EJEMPLO } from '../src/domain/sujeto/capaDeMomentos'
 import { enLaPoseDelCalculo, mallasDeMomentos, poseDelEsqueleto } from '../src/features/entrenar/escena/dibujarMomentos'
 import { PATRON_POR_ID } from '../src/domain/patrones/catalogo'
@@ -81,5 +81,19 @@ describe('la medida del peor caso', () => {
   })
   it('sin pose legible del esqueleto no devuelve nada', () => {
     expect(mallasDelPeorCaso(capa, mallasDeMomentos, () => undefined, esqueletoEnFase(patron, 0.25))).toEqual([])
+  })
+})
+
+describe('el contexto WebGL de la medida se suelta', () => {
+  it('pide la perdida del contexto cuando la extension existe', () => {
+    let llamadas = 0
+    const gl = { getExtension: (n) => (n === 'WEBGL_lose_context' ? { loseContext: () => llamadas++ } : null) }
+    expect(liberarContextoWebGL(gl)).toBe(true)
+    expect(llamadas).toBe(1)
+  })
+  it('sin extension, sin gl o con un gl raro no revienta y dice que no pudo', () => {
+    expect(liberarContextoWebGL({ getExtension: () => null })).toBe(false)
+    expect(liberarContextoWebGL(null)).toBe(false)
+    expect(liberarContextoWebGL({})).toBe(false)
   })
 })

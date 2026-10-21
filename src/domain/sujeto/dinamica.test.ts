@@ -52,7 +52,19 @@ describe('casos a mano', () => {
   })
 
   it('signo del tobillo: la carga delante lo hace flexor plantar (+), detrás (-)', () => {
-    expect(mom({ ...pose0, tibia: 0.3, muslo: -0.3 }).tobillo).toBeDefined()
+    // A mano, con de Leva (hombres): tibia 0,4403 m, cm 0,4395, masa 0,0433; muslo 0,4222 m, cm 0,4095, masa 0,1416.
+    // Todo lo que esta sobre la cadera (tronco vertical) cuelga de z_cadera = (Lt - Lm)·sen 0,3.
+    const Lt = 0.4403
+    const Lm = 0.4222
+    const sn = Math.sin(0.3)
+    const zCadera = (Lt - Lm) * sn
+    const zTibia = Lt * sn * (1 - 0.4395)
+    const zMuslo = zCadera + 0.4095 * Lm * sn
+    const arriba = (0.4346 + 0.0694 + 2 * (0.0271 + 0.0162 + 0.0061)) * M + 100
+    const esperado = g * (2 * 0.0433 * M * zTibia + 2 * 0.1416 * M * zMuslo + arriba * zCadera)
+    const t = mom({ ...pose0, tibia: 0.3, muslo: -0.3 }).tobillo
+    expect(t).toBeCloseTo(esperado, 8)
+    expect(t).toBeGreaterThan(0)
     // tronco inclinado adelante con la tibia vertical: todo cae delante del tobillo
     expect(mom({ ...pose0, tronco: 0.6 }).tobillo).toBeGreaterThan(0)
     expect(mom({ ...pose0, tronco: -0.6 }).tobillo).toBeLessThan(0)

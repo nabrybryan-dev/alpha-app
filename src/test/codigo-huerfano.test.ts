@@ -28,8 +28,9 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
   // Sujeto anatómico propio (fases 0 a 4, 20-oct y 21-oct). Solo se enchufa a la app lo que la fase 5
   // dibuja (capaDeMomentos); el resto es dominio probado que espera su consumidor.
   'src/domain/sujeto/procedencias.ts':
-    'Arnés A-procedencias: lo ejecutan scripts/comprobar-procedencias-sujeto.mts y las pruebas contra ' +
-    'PROCEDENCIAS.tsv del cerebro; la app no lo necesita en ejecución.',
+    'Arnés A-procedencias: la comparación contra PROCEDENCIAS.tsv del cerebro la hace ' +
+    'scripts/comprobar-procedencias-sujeto.mts (npm run procedencias-sujeto); las pruebas de procedencias.test.ts ' +
+    'usan un TSV EN LÍNEA, no el libro real. La app no lo necesita en ejecución.',
   'src/domain/sujeto/repartoDeSentadilla.ts':
     'Reparto entre músculos de la sentadilla: tanda A detenida (licencia de Rajagopal 2016 no verificada), ' +
     'así que se abstiene y el salón no lo dibuja (plan §10, tanda B reducida). Se enchufa si hay datos verificados.',

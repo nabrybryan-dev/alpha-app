@@ -16,7 +16,7 @@
  * en el informe. No toca ningún archivo de `src/`.
  */
 
-import { comprobarElCuadreDeLaTanda, comprobarQueLaCapaAporto } from './medir-fotograma-guarda.mjs'
+import { comprobarElCuadreDeLaTanda, comprobarQueLaCapaAporto, liberarContextoWebGL } from './medir-fotograma-guarda.mjs'
 
 const REP = 80
 const CALENTAR = 15
@@ -187,6 +187,8 @@ export async function medir({ capa = false, extras = null } = {}) {
     requestAnimationFrame(paso)
   })
 
+  // Se suelta el contexto ANTES de las guardas: si una falla, el contexto no se queda abierto.
+  liberarContextoWebGL(gl)
   comprobarQueLaCapaAporto(capa, verticesDeLaCapa)
   comprobarElCuadreDeLaTanda(capa, verticesDeLaCapa, fotogramas)
   const salida = {

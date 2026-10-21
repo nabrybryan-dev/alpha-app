@@ -96,6 +96,13 @@ describe('banda del reparto', () => {
     expect(w(poco)).toBeGreaterThan(0)
     expect(sin[0].fraccion.valor! + sin[1].fraccion.valor!).toBeCloseTo(1, 12)
   })
+  it('C-5: con areas y brazos hipoteticos la fraccion es simulada, nunca estimada', () => {
+    const b = bandasDeReparto(100, dos, 2, 0.1, { muestras: 100 })!
+    expect(b.every((x) => x.fraccion.estado === 'simulado')).toBe(true)
+  })
+  it('con area exacta el nivel dice que no hay dispersion', () => {
+    expect(bandasDeReparto(100, dos, 2, 0, { muestras: 100 })![0].fraccion.banda!.nivel).toMatch(/^ancho cero/)
+  })
   it('las cifras son válidas para el contrato', () => {
     const b = bandasDeReparto(100, dos, 2, 0.1)!
     expect(verificarCifras(b.map((x) => x.fraccion))).toEqual([])

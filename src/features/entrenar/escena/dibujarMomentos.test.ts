@@ -82,6 +82,26 @@ describe('los momentos articulares, en malla', () => {
     expect(estimados.vertices).toBe(0)
   })
 
+  it('fuera de la pose NO se crean mallas nuevas: es siempre el mismo trio, y dentro de ella uno nuevo cada vez', () => {
+    const a = mallasDeMomentos(capaReal, dePie)
+    const b = mallasDeMomentos(capaReal, esqueletoEnFase(PATRON_POR_ID.sentadilla, 0.6))
+    expect(b[0]).toBe(a[0])
+    expect(b[1]).toBe(a[1])
+    expect(b[2]).toBe(a[2])
+    const c = mallasDeMomentos(un('estimado', null), dePie) // otra capa, misma pose fuera: sigue el mismo trio
+    expect(c[1]).toBe(a[1])
+    expect(mallasDeMomentos(capaReal, enLaPose)[1]).not.toBe(mallasDeMomentos(capaReal, enLaPose)[1])
+    expect(mallasDeMomentos(capaReal, enLaPose)[1]).not.toBe(a[1])
+  })
+
+  it('el trio compartido conserva su estado (alfa, encima) y nunca acumula vertices', () => {
+    for (let i = 0; i < 5; i++) mallasDeMomentos(capaReal, dePie)
+    const [c, e, b] = mallasDeMomentos(capaReal, dePie)
+    expect([c.vertices, e.vertices, b.vertices]).toEqual([0, 0, 0])
+    expect([c.alfa, e.alfa, b.alfa]).toEqual([1, ALFA_DEL_VALOR, ALFA_DE_LA_BANDA])
+    expect([c.encima, e.encima, b.encima]).toEqual([true, true, true])
+  })
+
   it('una capa vacía (no_afirmable) no sube ni un vértice', () => {
     const vacia: CapaDeMomentos = { elementos: [], lineas: ['Cadera: no se dibuja. carga ausente'], escala: 0, poseDelCalculo: null }
     for (const m of mallasDeMomentos(vacia, enLaPose)) expect(m.vertices).toBe(0)

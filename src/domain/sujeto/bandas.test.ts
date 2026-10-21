@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bandasDeSentadilla, crearAzar, muestrear, perturbarProporciones, SIN_INCERTIDUMBRE, type Incertidumbre } from './bandas'
+import { bandaP5P95, bandasDeSentadilla, crearAzar, NIVEL_ENSANCHADO, NIVEL_P5_P95, NIVEL_SIN_DISPERSION, muestrear, perturbarProporciones, SIN_INCERTIDUMBRE, type Incertidumbre } from './bandas'
 import { verificarCifras } from './contrato'
 import { GRAVEDAD } from './convenciones'
 import { geometriaSagital, momentosDeSentadilla, type EntradaDeSentadilla } from './dinamica'
@@ -158,5 +158,23 @@ describe('hallazgos del revisor (Codex, 20-oct)', () => {
       const p = perturbarProporciones(s, 1, azar)
       if (p) for (const n of ['muslo', 'tibia', 'brazo'] as const) expect(p.sujeto.segmentos[n].masaKg).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('el nivel de la banda dice la verdad (B-1 y B-2 de la revision de Opus)', () => {
+  const orden = Array.from({ length: 101 }, (_, i) => i) // 0..100: p5 = 5 y p95 = 95 exactos
+  it('un valor central dentro de p5-p95 deja la banda tal cual, rotulada p5-p95', () => {
+    expect(bandaP5P95(orden, 50)).toEqual({ inf: 5, sup: 95, nivel: NIVEL_P5_P95 })
+  })
+  it('un valor central fuera ensancha la banda hasta incluirlo y LO DICE', () => {
+    expect(bandaP5P95(orden, 99)).toEqual({ inf: 5, sup: 99, nivel: NIVEL_ENSANCHADO })
+    expect(bandaP5P95(orden, 1)).toEqual({ inf: 1, sup: 95, nivel: NIVEL_ENSANCHADO })
+  })
+  it('sin dispersion (todas las muestras iguales al valor) el ancho es cero y el nivel no pretende ser un intervalo', () => {
+    expect(bandaP5P95([7, 7, 7, 7], 7)).toEqual({ inf: 7, sup: 7, nivel: NIVEL_SIN_DISPERSION })
+  })
+  it('con incertidumbre cero la banda de la sentadilla sale con el nivel de ancho cero', () => {
+    const r = bandasDeSentadilla({ sexo: 'h', talla: 1.78, masa: 82, cargaKg: 100, pose: { tibia: 0.45, muslo: -1.45, tronco: 0.75, cabeza: 0.2, barraT: 0.1, pieZ: 0.05 } }, SIN_INCERTIDUMBRE, { muestras: 50 })
+    expect(r.cadera.banda!.nivel).toBe(NIVEL_SIN_DISPERSION)
   })
 })

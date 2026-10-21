@@ -42,3 +42,15 @@ export function mallasDelPeorCaso(capa, dibujar, poseDe, esq) {
   if (!pose) return []
   return dibujar({ ...capa, poseDelCalculo: pose }, esq)
 }
+
+/**
+ * Suelta el contexto WebGL de una medida. Cada `medir()` abria uno nuevo y nunca lo soltaba: tras
+ * muchas corridas en la misma pagina el navegador empieza a descartar los mas viejos (hasta 16) y la
+ * medida siguiente puede correr sobre un contexto perdido. Devuelve `true` si lo pidio.
+ */
+export function liberarContextoWebGL(gl) {
+  const ext = gl && typeof gl.getExtension === 'function' ? gl.getExtension('WEBGL_lose_context') : null
+  if (!ext) return false
+  ext.loseContext()
+  return true
+}

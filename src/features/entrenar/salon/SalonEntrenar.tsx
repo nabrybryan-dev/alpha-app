@@ -54,7 +54,7 @@ import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
-import { banderaDeMomentos, capaDelSalon } from './momentos/capaDelSalon'
+import { useCapaDelSalon } from './momentos/useCapaDelSalon'
 import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 
@@ -372,10 +372,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     return patronDelBloque ? patronConEsfuerzo(patronDelBloque, esfuerzoDelBloque) : undefined
   }, [ejercicio, patronDelBloque, esfuerzoDelBloque])
   // LA CAPA DE MOMENTOS, apagada salvo con `?momentos=ejemplo`: sujeto de ejemplo, nunca un asesorado.
-  const capaMomentos = useMemo(
-    () => capaDelSalon(banderaDeMomentos(window.location.search), patron?.categoria, ejercicio?.nombre),
-    [patron, ejercicio?.nombre],
-  )
+  const capaMomentos = useCapaDelSalon(window.location.search, patron?.categoria, ejercicio?.nombre)
   const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
   // EL MURO TAMBIÉN HABLA EN CARDIO. Sin contenido de pared no se monta el tablón, y hasta
   // el 2026-09-10 un día de cardio abría sin nombre y sin código de sala: la habitación

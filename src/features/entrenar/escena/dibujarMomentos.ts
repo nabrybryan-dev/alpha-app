@@ -92,15 +92,32 @@ function arco(m: Malla, eje: Vec3, radio: number, desde: number, hasta: number, 
   tubo(m, puntos, () => grosor, { radial: 6, color: COLOR_DEL_MOMENTO, tapar: true })
 }
 
-export function mallasDeMomentos(capa: CapaDeMomentos, esq: EsqueletoResuelto): Malla[] {
-  const calculados = new Malla(1024)
-  const estimados = new Malla(1024)
-  const banda = new Malla(1024)
+/**
+ * Las tres mallas SIN VÉRTICES que se devuelven fuera de la pose del cálculo. Se crean una vez: antes
+ * se reservaban 3 × Malla(1024) (~230 KB) en CADA fotograma antes de mirar la pose, aunque no se
+ * dibujara nada. El llamador solo lee `vertices` (y sube las que tienen), nunca las escribe.
+ */
+let VACIAS: Malla[] | null = null
+function mallasVacias(): Malla[] {
+  if (!VACIAS) VACIAS = nuevasMallas(1)
+  return VACIAS
+}
+
+function nuevasMallas(capacidad: number): Malla[] {
+  const calculados = new Malla(capacidad)
+  const estimados = new Malla(capacidad)
+  const banda = new Malla(capacidad)
   for (const m of [calculados, estimados, banda]) m.encima = true
   estimados.alfa = ALFA_DEL_VALOR
   banda.alfa = ALFA_DE_LA_BANDA
-  const salida = [calculados, estimados, banda]
-  if (!capa.poseDelCalculo || !enLaPoseDelCalculo(esq, capa.poseDelCalculo)) return salida
+  return [calculados, estimados, banda]
+}
+
+export function mallasDeMomentos(capa: CapaDeMomentos, esq: EsqueletoResuelto): Malla[] {
+  // La pose se mira ANTES de reservar nada: fuera de ella (casi todos los fotogramas) no se crea ni una malla.
+  if (!capa.poseDelCalculo || !enLaPoseDelCalculo(esq, capa.poseDelCalculo)) return mallasVacias()
+  const salida = nuevasMallas(1024)
+  const [calculados, estimados, banda] = salida
   for (const e of capa.elementos) {
     const hueso = ejeDe(esq, HUESO_DE[e.articulacion])
     if (!hueso) continue

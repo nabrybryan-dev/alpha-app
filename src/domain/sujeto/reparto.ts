@@ -1,4 +1,4 @@
-import { crearAzar, normal } from './bandas'
+import { bandaP5P95, crearAzar, normal } from './bandas'
 import { noAfirmable, type Cifra } from './contrato'
 import { VERSION_DEL_MODELO } from './convenciones'
 
@@ -73,10 +73,6 @@ export function bandasDeReparto(
     if (!rep) continue
     rep.forEach((x, j) => datos[j].push(x.fraccion))
   }
-  const pct = (o: number[], q: number) => {
-    const i = (o.length - 1) * q
-    return o[Math.floor(i)] + (o[Math.ceil(i)] - o[Math.floor(i)]) * (i - Math.floor(i))
-  }
   return musculos.map((m, j) => {
     const o = [...datos[j]].sort((a, b) => a - b)
     const v = central[j].fraccion
@@ -86,14 +82,15 @@ export function bandasDeReparto(
         id: `reparto.fraccion.${m.nombre}`,
         valor: v,
         unidad: '1',
-        estado: 'estimado',
+        // simulado, no estimado: las áreas y los brazos son hipotéticos (C-5 de la revisión de Opus).
+        estado: 'simulado',
         fuente: ['reparto.metodo.crowninshield-brand-1981'],
         supuestos: [
           `criterio: minimizar Σ(F/A)^r con r = ${r} (lo fija quien llama; la literatura no lo cierra)`,
           `áreas y brazos son entrada, hipotéticos hasta verificar una fuente`,
           `sd relativa del área ${sdRelativaDelArea}, ${muestras} muestras, semilla ${semilla}`,
         ],
-        banda: { inf: Math.min(pct(o, 0.05), v), sup: Math.max(pct(o, 0.95), v), nivel: 'percentil 5 a 95 del Monte Carlo' },
+        banda: bandaP5P95(o, v),
         version: VERSION_DEL_MODELO,
       } satisfies Cifra,
     }
