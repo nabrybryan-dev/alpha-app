@@ -48,6 +48,8 @@ import { ChequeoDeHoy } from './miDia/ChequeoDeHoy'
 import { EntradaMiPlan } from '../plan/EntradaMiPlan'
 import { MedidasYPeso } from './miDia/MedidasYPeso'
 import { TuSemana } from './miDia/TuSemana'
+import { avisoPagoVisible } from '../../domain/avisoPago'
+import { AvisoPago } from './AvisoPago'
 
 // Solo la pinta el staff, y arrastra el catálogo de alimentos: a demanda.
 const MiNutricionDeHoy = lazy(() => import('./miDia/MiNutricionDeHoy'))
@@ -190,6 +192,11 @@ export default function HoyPage() {
   return (
     // Hoy es superficie clara (decisión de diseño), como Bienestar.
     <div data-theme="light" className="-mx-4 -mt-4 flex min-h-dvh flex-col gap-4 bg-bg px-4 pb-4 pt-5">
+      {/* Arriba de todo, solo para el asesorado: el staff no ve cobros en sus vistas. */}
+      {usuario.rol === 'asesorado' && (
+        <AvisoPago aviso={avisoPagoVisible(perfil?.avisoPago, usuario.nombre.split(' ')[0])} />
+      )}
+
       <section className="entrada entrada-1">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-tenue">
           {[
