@@ -309,6 +309,21 @@ export const MUTACIONES = [
     reemplazar: 'area: m.area',
     que: 'la banda ignora la incertidumbre del área',
   },
+  // -- Tanda A --
+  {
+    fase: 'tandaA',
+    archivo: D + 'repartoDeSentadilla.ts',
+    buscar: "estado: 'simulado',",
+    reemplazar: "estado: 'estimado',",
+    que: 'parametros hipoteticos se presentan como estimados',
+  },
+  {
+    fase: 'tandaA',
+    archivo: D + 'repartoDeSentadilla.ts',
+    buscar: 'if (!tabla) return sinDatos(MOTIVO_MUSCULOS)',
+    reemplazar: 'if (!tabla) tabla = { r: 2, rodilla: [{ nombre: "cuadriceps", area: 1, brazo: 0.04 }], cadera: [{ nombre: "gluteoMayor", area: 1, brazo: 0.05 }] }',
+    que: 'sin tabla verificada se rellena con una tabla inventada en vez de abstenerse',
+  },
 ]
 
 const PDF_DE_LEVA =
