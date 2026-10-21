@@ -140,7 +140,7 @@ export function muestraDeMomentos(e: EntradaDeSentadilla, u: Incertidumbre, azar
   return momentosEstaticos(geometriaSagital(sujeto, carga, p, cerv))
 }
 
-function percentil(ordenados: number[], q: number): number {
+export function percentil(ordenados: number[], q: number): number {
   const i = (ordenados.length - 1) * q
   const lo = Math.floor(i)
   const hi = Math.ceil(i)

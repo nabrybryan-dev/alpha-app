@@ -22,6 +22,16 @@ const SEXOS: Record<string, string> = { h: 'varones (73,0 kg, 1,741 m)', m: 'muj
 const FUENTE =
   'de Leva 1996 J Biomech 29(9):1223-30 DOI 10.1016/0021-9290(95)00178-6, Tabla 4 p.1228; PDF ebm.ufabc.edu.br/wp-content/uploads/2013/12/Leva-1996.pdf; cotejo: scripts/cotejar-deleva-con-pdf.py'
 
+const FUENTE_SILDER =
+  'Silder, Whittington, Heiderscheit, Thelen 2007 J Biomech 40(12):2628-35 DOI 10.1016/j.jbiomech.2006.12.017, PMC2020832 Tabla 4; copia: articulos/Silder2007_PMC2020832.html; cotejo: scripts/cotejar-silder-ward-con-html.py'
+const FUENTE_WARD =
+  'Ward, Eng, Smallwood, Lieber 2009 Clin Orthop Relat Res 467(4):1074-82 DOI 10.1007/s11999-008-0594-8, PMC2650051 Tabla 3; copia: articulos/Ward2009_PMC2650051.html; cotejo: scripts/cotejar-silder-ward-con-html.py'
+const CAMPOS_SILDER: Record<string, string> = {
+  bp: 'ganancia β proximal (o la única del músculo uni-articular)',
+  bd: 'ganancia β distal del músculo bi-articular',
+  a: 'desfase α en grados',
+}
+
 function fila(id: string, valor: number): string {
   const p = id.split('.')
   if (p[0] === 'deleva96' && p[1] === 'cerv') {
@@ -36,6 +46,23 @@ function fila(id: string, valor: number): string {
         ? `estatura media de la muestra de ${sexo}, en metros (la leyenda del artículo imprime 173.5 m para mujeres: errata de unidad)`
         : `${CAMPOS[p[3]]} de ${NOMBRES[p[2]]}, ${sexo}`
     return [valor, `[${id}] ${que}`, FUENTE, 'transcrito', '2026-10-20', 'leído en texto (pypdf) y en la imagen de la página'].join('\t')
+  }
+  if (id.startsWith('silder07.dominio.')) {
+    const campo = id.slice('silder07.dominio.'.length)
+    return [valor, `[${id}] límite del dominio ensayado por Silder 2007 (${campo}), en grados`, FUENTE_SILDER.replace('Tabla 4', 'Tabla 2'), 'transcrito', '2026-10-21', 'derivado de las 15 filas de la Tabla 2 (extremo de la columna); el cotejo lo recalcula'].join('	')
+  }
+  if (id.startsWith('silder07.')) {
+    const [, musculo, campo, estad] = id.split('.')
+    const que = `${CAMPOS_SILDER[campo]} (${estad === 'media' ? 'media' : 'desviación estándar'} de 20 sujetos), ${musculo}`
+    const nota = campo === 'a' ? 'desfase α en grados, tal como está en la tabla' : 'la unidad de β (1/rad) es un supuesto, ver [pasivo.supuesto.beta_por_radian]'
+    return [valor, `[${id}] ${que}`, FUENTE_SILDER, 'transcrito', '2026-10-21', `leído en la tabla del manuscrito PMC; ${nota}`].join('	')
+  }
+  if (id === 'pasivo.supuesto.beta_por_radian') {
+    return [valor, `[${id}] la ganancia β de Silder 2007 va por radián (1) y no por grado (0)`, 'el artículo NO da la unidad de β; derivación en src/domain/sujeto/pasivo.ts', 'supuesto', '2026-10-21', 'con β por grado los exponentes salen de cientos; con β por radián la cadera al despegue da ~34 N·m, del orden de los ~20 Nm del artículo (prueba en pasivo.test.ts); confirmar con el PDF de la editorial'].join('	')
+  }
+  if (id.startsWith('ward09.')) {
+    const [, musculo, , estad] = id.split('.')
+    return [valor, `[${id}] PCSA en cm² (${estad === 'media' ? 'media' : 'desviación estándar entre especímenes'}), ${musculo}`, FUENTE_WARD, 'transcrito', '2026-10-21', 'cadáveres fijados, 83 ± 9 años: solo se usa como PROPORCIÓN entre grupos, nunca en cm²'].join('	')
   }
   if (id === 'convenciones.gravedad') {
     return [valor, `[${id}] aceleración normal de la gravedad, m/s2`, 'valor convencional g_n (CGPM 1901); NO se abrió hoy el folleto SI del BIPM', 'supuesto', '2026-10-20', 'lo fijó Claude como constante estándar; verificar contra la fuente'].join('\t')

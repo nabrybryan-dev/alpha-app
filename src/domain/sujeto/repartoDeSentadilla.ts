@@ -2,6 +2,8 @@ import { noAfirmable, type Cifra } from './contrato'
 import { VERSION_DEL_MODELO } from './convenciones'
 import { momentosDeSentadilla, type EntradaDeSentadilla } from './dinamica'
 import { repartirMomento, type Musculo } from './reparto'
+import { momentosPasivosDeLaPose } from './pasivo'
+import { proporcionesDeAreaDeCadera } from './areasDeWard'
 
 /**
  * EL REPARTO DE LA SENTADILLA CON BARRA ENTRE MÚSCULOS (M5), con la puerta puesta.
@@ -9,10 +11,11 @@ import { repartirMomento, type Musculo } from './reparto'
  * Plano y unidades: las de `dinamica.ts` y `reparto.ts`.
  *
  * Los cuatro grupos de la sentadilla son cuádriceps (rodilla) y glúteo mayor, isquios y aductor
- * mayor (cadera). Sus áreas de sección y brazos internos NO tienen fuente verificada: la licencia
- * del modelo de Rajagopal 2016 no se pudo leer (ver plan §10, tanda A) y Riener y Edrich 1999 no se
- * abrió. Por eso, SIN una tabla muscular la salida son seis cifras `no_afirmable` (cuatro músculos y
- * dos momentos pasivos), nunca un número.
+ * mayor (cadera). Tanda A reabierta el 21-oct con fuentes abiertas:
+ *   · el momento pasivo viene de Silder 2007 (`pasivo.ts`) y es `no_afirmable` fuera de su dominio;
+ *   · las áreas de Ward 2009 (`areasDeWard.ts`) dan solo PROPORCIONES entre los grupos de cadera;
+ *   · los BRAZOS DE PALANCA internos de cada músculo siguen sin una tabla abierta (Arnold 2010 está en
+ *     figuras). Sin brazos no hay reparto: SIN una tabla muscular los cuatro músculos son `no_afirmable`.
  *
  * Si quien llama pasa una tabla, el resultado se marca `simulado` y con el supuesto «parámetros
  * hipotéticos»: sirve para ver cómo se comporta el método, no para decirle nada a un asesorado.
@@ -29,20 +32,27 @@ export interface TablaMuscular {
 export const MUSCULOS_DE_LA_SENTADILLA = ['cuadriceps', 'gluteoMayor', 'isquios', 'aductorMayor'] as const
 
 const MOTIVO_MUSCULOS =
-  'sin áreas de sección ni brazos internos verificados: licencia del modelo de Rajagopal 2016 no verificada'
-const MOTIVO_PASIVO = 'Riener y Edrich 1999 no se abrió en texto completo: ningún coeficiente verificado'
+  'faltan los brazos de palanca internos de cada músculo (sin tabla abierta; Arnold 2010 solo en figuras): las áreas de Ward 2009 dan proporciones, no el reparto'
 
 export interface RepartoDeSentadilla {
   musculos: Cifra[]
+  /** Momento pasivo de cadera y rodilla (Silder 2007), `no_afirmable` fuera de su dominio. */
   pasivo: Cifra[]
+  /** Proporción del área de los grupos que extienden la cadera (Ward 2009), con su banda. */
+  areas: Cifra[]
 }
 
 export function repartoDeSentadilla(e: EntradaDeSentadilla, tabla?: TablaMuscular | null): RepartoDeSentadilla {
   const v = VERSION_DEL_MODELO
-  const pasivo = ['cadera', 'rodilla'].map((a) => noAfirmable(`sentadilla.pasivo.${a}`, 'N·m', MOTIVO_PASIVO, v))
+  const pose = e.pose ? { tibia: e.pose.tibia, muslo: e.pose.muslo, tronco: e.pose.tronco } : null
+  const pas = momentosPasivosDeLaPose(pose)
+  const pasivo = [pas.cadera, pas.rodilla]
+  const proporciones = proporcionesDeAreaDeCadera()
+  const areas = [proporciones.gluteoMayor, proporciones.isquios, proporciones.aductorMayor]
   const sinDatos = (motivo: string): RepartoDeSentadilla => ({
     musculos: MUSCULOS_DE_LA_SENTADILLA.map((m) => noAfirmable(`sentadilla.reparto.${m}`, '1', motivo, v)),
     pasivo,
+    areas,
   })
   if (!tabla) return sinDatos(MOTIVO_MUSCULOS)
   const mom = momentosDeSentadilla(e)
@@ -67,5 +77,6 @@ export function repartoDeSentadilla(e: EntradaDeSentadilla, tabla?: TablaMuscula
   return {
     musculos: [...rodilla, ...cadera].map((x) => cifra(x.nombre, x.fraccion)),
     pasivo,
+    areas,
   }
 }

@@ -324,76 +324,263 @@ export const MUTACIONES = [
     reemplazar: 'if (!tabla) tabla = { r: 2, rodilla: [{ nombre: "cuadriceps", area: 1, brazo: 0.04 }], cadera: [{ nombre: "gluteoMayor", area: 1, brazo: 0.05 }] }',
     que: 'sin tabla verificada se rellena con una tabla inventada en vez de abstenerse',
   },
-  // -- Tanda B (capa de momentos) --
+  // -- Tanda B (capa de momentos) y tanda A reabierta (Silder 2007, Ward 2009) --
   {
     fase: 'tandaB',
     archivo: D + 'capaDeMomentos.ts',
-    buscar: " && !n.includes('unilateral')",
-    reemplazar: '',
-    que: 'una sentadilla unilateral con barra entra en la capa aunque el codigo dice excluirla',
+    buscar: "if (!contexto.sujetoDeEjemplo || !esSentadillaConBarra(",
+    reemplazar: "if (!contexto.sujetoDeEjemplo && !esSentadillaConBarra(",
+    que: "la puerta de abstencion pide que fallen las dos condiciones (|| por &&) y deja pasar a un asesorado real",
   },
   {
     fase: 'tandaB',
     archivo: D + 'capaDeMomentos.ts',
-    buscar: 'if (!contexto.sujetoDeEjemplo || !esSentadillaConBarra(',
-    reemplazar: 'if (!contexto.sujetoDeEjemplo && !esSentadillaConBarra(',
-    que: 'la puerta de abstencion pide que fallen las dos condiciones (|| por &&) y deja pasar a un asesorado real',
+    buscar: "if (c.valor === null || !Number.isFinite(c.valor) || (c.estado !== 'estimado' && c.estado !== 'calculado')) continue",
+    reemplazar: "if (false) continue",
+    que: "un momento null o no afirmable se dibuja como un arco de cero",
   },
   {
     fase: 'tandaB',
     archivo: D + 'capaDeMomentos.ts',
-    buscar: "if (c.valor === null || c.estado !== 'calculado' || !Number.isFinite(c.valor)) continue",
-    reemplazar: 'if (false) continue',
-    que: 'un momento null o no afirmable se dibuja como un arco de cero',
+    buscar: "100 * Math.ceil(mayor / 100)",
+    reemplazar: "300",
+    que: "la escala vuelve a ser fija y la cadera satura (C-1)",
   },
   {
     fase: 'tandaB',
     archivo: D + 'capaDeMomentos.ts',
-    buscar: 'Math.min(1, Math.abs(nm) / MOMENTO_DE_ESCALA)',
-    reemplazar: 'Math.abs(nm) / MOMENTO_DE_ESCALA',
-    que: 'el arco no se acota y una carga enorme lo desborda',
+    buscar: "Math.ceil(mayor / 100)",
+    reemplazar: "Math.floor(mayor / 100)",
+    que: "la escala se redondea hacia abajo y deja fracciones mayores que 1",
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
+    buscar: "b.banda.inf >= 0 === b.banda.sup >= 0 &&",
+    reemplazar: "",
+    que: "una banda que cruza el cero se dibuja invertida (C-6)",
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
+    buscar: "!n.includes('goblet') &&\n    !n.includes('unilateral')",
+    reemplazar: "!n.includes('goblet')",
+    que: "una sentadilla unilateral con barra entra en la capa aunque el codigo dice excluirla",
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
+    buscar: "const ancha = c.banda.sup - c.banda.inf > Math.abs(c.valor)",
+    reemplazar: "const ancha = false",
+    que: "el texto del pasivo no avisa de que su banda es mas ancha que el valor",
   },
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
-    buscar: 'export const ALFA_DE_LA_BANDA = 0.35',
-    reemplazar: 'export const ALFA_DE_LA_BANDA = 1',
-    que: 'lo estimado se dibuja opaco, igual que lo calculado',
+    buscar: "export const ALFA_DE_LA_BANDA = 0.35",
+    reemplazar: "export const ALFA_DE_LA_BANDA = 1",
+    que: "la banda estimada se dibuja opaca",
   },
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
-    buscar: 'solida.encima = true',
-    reemplazar: 'solida.encima = false',
-    que: 'el arco queda tapado por la carne en vez de ir encima',
+    buscar: "export const ALFA_DEL_VALOR = 0.7",
+    reemplazar: "export const ALFA_DEL_VALOR = 1",
+    que: "lo estimado se dibuja opaco, igual que lo calculado",
   },
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
-    buscar: 'if (!(hasta > desde)) return',
-    reemplazar: 'if (false) return',
-    que: 'un arco de barrido cero sube un tubo degenerado',
+    buscar: "m.encima = true",
+    reemplazar: "m.encima = false",
+    que: "los arcos quedan tapados por la carne en vez de ir encima",
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: "if (!capa.poseDelCalculo || !enLaPoseDelCalculo(esq, capa.poseDelCalculo)) return salida",
+    reemplazar: "if (!capa.poseDelCalculo) return salida",
+    que: "los arcos se pintan en todas las fases de la animacion (C-3)",
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: "Math.abs(ahora.tibia - pose.tibia) <= tolerancia && Math.abs(ahora.muslo - pose.muslo) <= tolerancia",
+    reemplazar: "Math.abs(ahora.tibia - pose.tibia) <= tolerancia || Math.abs(ahora.muslo - pose.muslo) <= tolerancia",
+    que: "basta que coincida un solo angulo con la pose del calculo (&& por ||)",
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: "e.estado === 'calculado' ? calculados : estimados",
+    reemplazar: "estimados",
+    que: "lo calculado se dibuja en la malla de lo estimado",
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: "if (!(hasta > desde)) return",
+    reemplazar: "if (false) return",
+    que: "un arco de barrido cero sube un tubo degenerado",
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: "return Math.atan2(prox[2] - dist[2], prox[1] - dist[1])",
+    reemplazar: "return Math.atan2(dist[2] - prox[2], dist[1] - prox[1])",
+    que: "el angulo del segmento se lee del extremo equivocado (signo invertido)",
   },
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/salon/momentos/capaDelSalon.ts',
     buscar: "get('momentos') === 'ejemplo'",
     reemplazar: "get('momentos') !== null",
-    que: 'cualquier valor de la bandera enciende la capa',
+    que: "cualquier valor de la bandera enciende la capa",
   },
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/salon/momentos/capaDelSalon.ts',
-    buscar: 'if (!activa || !categoria || !nombre) return VACIA',
-    reemplazar: 'if (false) return VACIA',
-    que: 'la capa se calcula aunque la bandera este apagada',
+    buscar: "if (!activa || !categoria || !nombre) return VACIA",
+    reemplazar: "if (false) return VACIA",
+    que: "la capa se calcula aunque la bandera este apagada",
   },
   {
     fase: 'tandaB',
     archivo: 'src/features/entrenar/salon/momentos/LecturaDeMomentos.tsx',
-    buscar: 'if (capa.lineas.length === 0) return null',
-    reemplazar: 'if (false) return null',
-    que: 'con la capa apagada el salon crea un nodo de texto vacio',
+    buscar: "if (capa.lineas.length === 0) return null",
+    reemplazar: "if (false) return null",
+    que: "con la capa apagada el salon crea un nodo de texto vacio",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "const valor = -2 * centro[a]",
+    reemplazar: "const valor = -centro[a]",
+    que: "el pasivo de las dos piernas se cuenta como el de una",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "const valor = -2 * centro[a]",
+    reemplazar: "const valor = 2 * centro[a]",
+    que: "el pasivo sale con el signo del articulo (flexor positivo) en vez del de dinamica.ts",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "const rad = (g: number) => (g * Math.PI) / 180",
+    reemplazar: "const rad = (g: number) => g",
+    que: "los desfases alfa se usan en grados donde el modelo pide radianes",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "cadera: rf + hf - ham - he, // A.5",
+    reemplazar: "cadera: rf + hf + ham - he, // A.5",
+    que: "ecuacion A.5 con un signo cambiado (isquios suman en vez de restar)",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "rodilla: -kRF * rf - ke + kHAM * ham + kf + gas, // A.6",
+    reemplazar: "rodilla: kRF * rf - ke + kHAM * ham + kf + gas, // A.6",
+    que: "ecuacion A.6 con el signo del recto femoral cambiado",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "const kGAS = bd('GAS') / bp('GAS')",
+    reemplazar: "const kGAS = bp('GAS') / bd('GAS')",
+    que: "el cociente de ganancias del gemelo al reves (A.7)",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "h <= d.caderaHastaConRodillaFlexionada && enRodilla",
+    reemplazar: "h <= d.caderaMax && enRodilla",
+    que: "se afirma el pasivo con cadera profunda y rodilla flexionada, que Silder nunca ensayo",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "enRodilla && t >= d.tobilloMin && t <= d.tobilloMax",
+    reemplazar: "enRodilla && t >= d.tobilloMin",
+    que: "el techo de tobillo del dominio de Silder desaparece",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "rodilla: caderaRodilla && rodillaTobillo",
+    reemplazar: "rodilla: caderaRodilla",
+    que: "el pasivo de rodilla ignora que el gemelo exige el tobillo en dominio",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "if (!dom[a]) {",
+    reemplazar: "if (false) {",
+    que: "se afirma un pasivo fuera del dominio ensayado en vez de no_afirmable",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "HAM: { bp: 5.1, bd: 3.9, a: 30.8 },",
+    reemplazar: "HAM: { bp: 5.1, bd: 3.9, a: 30.9 },",
+    que: "una cifra de la Tabla 4 de Silder transcrita mal (la ve el cotejo con el articulo)",
+    con: 'cotejoSW',
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "HAM: { bp: 2.0, bd: 2.5, a: 14.9 },",
+    reemplazar: "HAM: { bp: 2.0, bd: 2.5, a: 14.8 },",
+    que: "una sd de la Tabla 4 de Silder transcrita mal (la ve el cotejo con el articulo)",
+    con: 'cotejoSW',
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'pasivo.ts',
+    buscar: "caderaHastaConRodillaFlexionada: 85,",
+    reemplazar: "caderaHastaConRodillaFlexionada: 90,",
+    que: "el dominio de Silder se ensancha 5 grados (lo ve el cotejo con la Tabla 2)",
+    con: 'cotejoSW',
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'areasDeWard.ts',
+    buscar: "isquios: ['biceps_larga', 'semitendinoso', 'semimembranoso'],",
+    reemplazar: "isquios: ['biceps_larga', 'biceps_corta', 'semitendinoso', 'semimembranoso'],",
+    que: "la cabeza corta del biceps (que no cruza la cadera) entra en los isquios",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'areasDeWard.ts',
+    buscar: "gluteo_mayor: { media: 33.4, sd: 8.8 },",
+    reemplazar: "gluteo_mayor: { media: 33.5, sd: 8.8 },",
+    que: "una cifra de la Tabla 3 de Ward transcrita mal (la ve el cotejo con el articulo)",
+    con: 'cotejoSW',
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'areasDeWard.ts',
+    buscar: "aductor_mayor: { media: 20.5, sd: 7.8 },",
+    reemplazar: "aductor_mayor: { media: 20.5, sd: 7.9 },",
+    que: "una sd de la Tabla 3 de Ward transcrita mal (la ve el cotejo con el articulo)",
+    con: 'cotejoSW',
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'areasDeWard.ts',
+    buscar: "if (x > 0) return x",
+    reemplazar: "return x",
+    que: "el muestreo de areas admite areas negativas",
+  },
+  {
+    fase: 'tandaA2',
+    archivo: D + 'repartoDeSentadilla.ts',
+    buscar: "const pasivo = [pas.cadera, pas.rodilla]",
+    reemplazar: "const pasivo = [pas.cadera, pas.tobillo]",
+    que: "el reparto lleva el pasivo de tobillo en lugar del de rodilla",
   },
 ]
 
@@ -426,6 +613,30 @@ const PRUEBAS = [
   'src/features/entrenar/salon/momentos',
 ]
 
+const ARTICULOS = join(raiz, '..', 'cerebro-alpha', 'herramientas', 'encoder-camara', 'articulos')
+
+/** Vuelca las constantes y las coteja contra las tablas de Silder 2007 y Ward 2009 (HTML de PMC). */
+function correrCotejoSW() {
+  const silder = join(ARTICULOS, 'Silder2007_PMC2020832.html')
+  const ward = join(ARTICULOS, 'Ward2009_PMC2650051.html')
+  for (const f of [silder, ward]) {
+    if (!existsSync(f)) {
+      console.error(`No encuentro ${f}`)
+      process.exit(2)
+    }
+  }
+  const volcado = spawnSync(
+    process.execPath,
+    [join(raiz, 'node_modules', 'vite-node', 'vite-node.mjs'), 'scripts/volcar-valores-sujeto.mts'],
+    { cwd: raiz, encoding: 'utf8', timeout: 120_000 },
+  )
+  if (volcado.status !== 0) return volcado.status ?? 1
+  const ruta = join(raiz, 'node_modules', '.tmp', 'valores-sujeto-sw.json')
+  writeFileSync(ruta, volcado.stdout)
+  const r = spawnSync('python', ['-I', 'scripts/cotejar-silder-ward-con-html.py', ruta, silder, ward], { cwd: raiz, encoding: 'utf8' })
+  return r.status
+}
+
 function correrPruebas() {
   const vitest = join(raiz, 'node_modules', 'vitest', 'vitest.mjs')
   const r = spawnSync(process.execPath, [vitest, 'run', ...PRUEBAS], {
@@ -445,7 +656,7 @@ function principal() {
   }
   // Control: sin mutar, las pruebas tienen que estar en verde, o "fallarían" por otra cosa.
   const base = correrPruebas()
-  if (base !== 0 || (lista.some((m) => m.con === 'cotejo') && correrCotejo() !== 0)) {
+  if (base !== 0 || (lista.some((m) => m.con === 'cotejo') && correrCotejo() !== 0) || (lista.some((m) => m.con === 'cotejoSW') && correrCotejoSW() !== 0)) {
     console.error('Las pruebas o el cotejo ya están en rojo SIN mutar: no se puede juzgar a las mutaciones.')
     process.exit(1)
   }
@@ -465,7 +676,7 @@ function principal() {
       // `tambien`: segundo cambio para quitar una defensa redundante que taparía a la primera.
       for (const [a, b] of m.tambien ?? []) mutado = mutado.replace(a, () => b)
       writeFileSync(ruta, mutado)
-      const estado = m.con === 'cotejo' ? correrCotejo() : correrPruebas()
+      const estado = m.con === 'cotejo' ? correrCotejo() : m.con === 'cotejoSW' ? correrCotejoSW() : correrPruebas()
       if (estado === 0) {
         console.log(`SOBREVIVE  ${m.fase} ${m.archivo}: ${m.que}`)
         sobrevivientes++

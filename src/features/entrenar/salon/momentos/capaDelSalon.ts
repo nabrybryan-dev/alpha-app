@@ -17,7 +17,7 @@ export function banderaDeMomentos(busqueda: string): boolean {
   return new URLSearchParams(busqueda).get('momentos') === 'ejemplo'
 }
 
-const VACIA: CapaDeMomentos = { elementos: [], lineas: [] }
+const VACIA: CapaDeMomentos = { elementos: [], lineas: [], escala: 0, poseDelCalculo: null }
 
 export function capaDelSalon(activa: boolean, categoria: string | undefined, nombre: string | undefined): CapaDeMomentos {
   if (!activa || !categoria || !nombre) return VACIA

@@ -16,12 +16,12 @@ describe('la bandera que enciende la capa', () => {
 
 describe('la capa del salón', () => {
   it('apagada: vacía, aunque el ejercicio sea el bueno', () => {
-    expect(capaDelSalon(false, 'SENTADILLA', 'Sentadilla con barra')).toEqual({ elementos: [], lineas: [] })
+    expect(capaDelSalon(false, 'SENTADILLA', 'Sentadilla con barra')).toEqual({ elementos: [], lineas: [], escala: 0, poseDelCalculo: null })
   })
   it('encendida con la sentadilla con barra: tres articulaciones y el texto', () => {
     const c = capaDelSalon(true, 'SENTADILLA', 'Sentadilla con barra')
     expect(c.elementos).toHaveLength(3)
-    expect(c.lineas.length).toBe(4)
+    expect(c.lineas.length).toBe(8)
   })
   it('encendida con otro ejercicio o sin ejercicio: vacía', () => {
     expect(capaDelSalon(true, 'SENTADILLA', 'Sentadilla goblet con mancuerna').elementos).toEqual([])
@@ -33,10 +33,10 @@ describe('la capa del salón', () => {
 
 describe('el texto de la capa', () => {
   it('sin líneas no crea nada', () => {
-    expect(LecturaDeMomentos({ capa: { elementos: [], lineas: [] } })).toBeNull()
+    expect(LecturaDeMomentos({ capa: { elementos: [], lineas: [], escala: 0, poseDelCalculo: null } })).toBeNull()
   })
   it('con líneas crea un nodo que dice que es un sujeto de ejemplo', () => {
-    const el = LecturaDeMomentos({ capa: { elementos: [], lineas: ['Cadera: no se dibuja. carga ausente'] } })
+    const el = LecturaDeMomentos({ capa: { elementos: [], lineas: ['Cadera: no se dibuja. carga ausente'], escala: 0, poseDelCalculo: null } })
     expect(isValidElement(el)).toBe(true)
     expect(JSON.stringify(el)).toContain('Sujeto de ejemplo')
     expect(JSON.stringify(el)).toContain('carga ausente')

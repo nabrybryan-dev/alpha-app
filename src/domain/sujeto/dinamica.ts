@@ -176,6 +176,9 @@ export interface ResultadoDeSentadilla {
   inercial: Cifra
 }
 
+/** El texto de la banda de ancho cero: no es un intervalo de confianza, es la ausencia de dispersión. */
+export const BANDA_SIN_DISPERSION = 'ancho cero: tabla poblacional tomada como exacta, sin dispersión (ver bandas.ts)'
+
 const SUPUESTOS = [
   'estático: sin aceleración (el término inercial no se calcula)',
   'plano sagital, momento total de las dos piernas',
@@ -183,7 +186,14 @@ const SUPUESTOS = [
   'proporciones poblacionales de de Leva 1996 escaladas a la talla y la masa',
 ]
 
-/** Con todo lo necesario, tres cifras `calculado` con su fuente; sin algo, cuatro `no_afirmable`. */
+/**
+ * Con todo lo necesario, tres cifras `estimado` con su fuente; sin algo, cuatro `no_afirmable`.
+ *
+ * Son `estimado` y no `calculado` (convenciones.ts) porque las masas y los centros de masa salen de
+ * una TABLA POBLACIONAL (de Leva 1996) escalada a la talla: el número es exacto sobre esa tabla, pero
+ * para una persona concreta es una estimación. Como este módulo no conoce la dispersión, la banda va
+ * con ancho cero y lo dice en `nivel`; la dispersión real la pone `bandas.ts` con el Monte Carlo.
+ */
 export function momentosDeSentadilla(e: EntradaDeSentadilla): ResultadoDeSentadilla {
   const v = VERSION_DEL_MODELO
   const inercial = noAfirmable(
@@ -225,10 +235,10 @@ export function momentosDeSentadilla(e: EntradaDeSentadilla): ResultadoDeSentadi
     id,
     valor,
     unidad: 'N·m',
-    estado: 'calculado',
+    estado: 'estimado',
     fuente,
     supuestos: SUPUESTOS,
-    banda: null,
+    banda: { inf: valor, sup: valor, nivel: BANDA_SIN_DISPERSION },
     version: v,
   })
   return {

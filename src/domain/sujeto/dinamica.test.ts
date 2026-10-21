@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { verificarCifras } from './contrato'
 import { GRAVEDAD } from './convenciones'
-import { geometriaSagital, momentosDeSentadilla, momentosEstaticos, type PoseSagital } from './dinamica'
+import { BANDA_SIN_DISPERSION, geometriaSagital, momentosDeSentadilla, momentosEstaticos, type PoseSagital } from './dinamica'
 import { construirSujeto } from './sujeto'
 import { VALORES_REGISTRADOS } from './registro'
 
@@ -77,10 +77,13 @@ describe('casos a mano', () => {
 
 describe('el resultado con contrato', () => {
   const pose: PoseSagital = { tibia: 0.45, muslo: -1.45, tronco: 0.75, cabeza: 0.2, barraT: 0.1, pieZ: 0.05 }
-  it('con todo: tres cifras calculadas válidas y el término inercial no_afirmable', () => {
+  it('con todo: tres cifras estimadas válidas (tabla poblacional) y el término inercial no_afirmable', () => {
     const r = momentosDeSentadilla({ ...e, cargaKg: 100, pose })
     expect(verificarCifras([r.tobillo, r.rodilla, r.cadera, r.inercial])).toEqual([])
-    expect(r.cadera.estado).toBe('calculado')
+    for (const c of [r.tobillo, r.rodilla, r.cadera]) {
+      expect(c.estado).toBe('estimado')
+      expect(c.banda).toEqual({ inf: c.valor, sup: c.valor, nivel: BANDA_SIN_DISPERSION })
+    }
     expect(r.inercial.valor).toBeNull()
   })
   it('cada fuente que cita existe en el registro de constantes vigiladas', () => {
