@@ -66,6 +66,9 @@ def main():
     v = json.load(open(sys.argv[1], encoding='utf-8'))
     codigo = json.load(open(sys.argv[2], encoding='utf-8'))
     poses = json.load(open('scripts/poses-sentadilla.json', encoding='utf-8'))
+    if len(poses) != len(codigo) or not poses:
+        print(f'{len(poses)} poses y {len(codigo)} resultados del codigo: no se puede cotejar')
+        return 1
     malas = 0
     for p, c in zip(poses, codigo):
         r = calcular(v, p)

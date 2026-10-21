@@ -130,3 +130,12 @@ describe('índice de longitud regional: el orden de Maeo 2021 (sentado ~90° de 
     expect(indiceDeLongitud(largaDelBiceps, { cadera: NaN, rodilla: 0 })).toBeNull()
   })
 })
+
+describe('hallazgos del revisor (Codex, 20-oct)', () => {
+  it('un exponente que desborda las potencias se abstiene en vez de dar NaN', () => {
+    expect(repartirMomento(100, [{ nombre: 'a', area: 0.001, brazo: 0.04 }], 1000)).toBeNull()
+  })
+  it('cero muestras es un error, no una banda de NaN', () => {
+    expect(() => bandasDeReparto(100, dos, 2, 0.1, { muestras: 0 })).toThrow(RangeError)
+  })
+})

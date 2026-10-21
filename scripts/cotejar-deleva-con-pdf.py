@@ -91,6 +91,10 @@ def principal(ruta_valores, ruta_pdf):
         cuenta += 1
         if abs(esperado - valor) > 1e-9:
             malas.append((id_, valor, esperado))
+    ESPERADOS = 62
+    if cuenta != ESPERADOS:
+        print(f'se esperaban {ESPERADOS} valores de de Leva y el codigo trae {cuenta}: el cotejo no puede pasar')
+        return 1
     for m in malas:
         print(f'DIFERENCIA {m[0]}: código {m[1]}, PDF {m[2]}')
     print(f'{cuenta} valores de de Leva cotejados contra el PDF · {len(malas)} diferencias')

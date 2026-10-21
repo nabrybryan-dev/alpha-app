@@ -81,7 +81,7 @@ export function perturbarProporciones(
   s: Sujeto,
   rel: number,
   azar: () => number,
-): { sujeto: Sujeto; cerv: Record<'cabeza' | 'tronco', ParametrosDeSegmento> } {
+): { sujeto: Sujeto; cerv: Record<'cabeza' | 'tronco', ParametrosDeSegmento> } | null {
   const base = DE_LEVA_CERV[s.sexo]
   const factor = () => 1 + rel * normal(azar)
   const segmentos = { ...s.segmentos }
@@ -102,6 +102,7 @@ export function perturbarProporciones(
   )
   const despues = [...USADOS, 'cabeza', 'tronco'].reduce((t, n) => t + peso(n) * nuevaMasa[n], 0)
   const k = antes / despues
+  if (!Number.isFinite(k) || [...USADOS, 'cabeza', 'tronco'].some((n) => !(nuevaMasa[n] > 0))) return null
   for (const n of USADOS) {
     const masa = nuevaMasa[n] * k
     segmentos[n] = { ...s.segmentos[n], masa, cm: nuevoCm[n], masaKg: masa * s.masa }
@@ -118,11 +119,14 @@ export function perturbarProporciones(
 /** Una muestra de momentos con las entradas perturbadas. */
 export function muestraDeMomentos(e: EntradaDeSentadilla, u: Incertidumbre, azar: () => number): MomentosEstaticos | null {
   const pose = e.pose as PoseSagital
+  if (!Number.isFinite(e.cargaKg)) return null
   const talla = (e.talla as number) + u.talla * normal(azar)
   const masa = (e.masa as number) + u.masa * normal(azar)
   const base = construirSujeto({ sexo: e.sexo, talla, masa })
   if (!base) return null
-  const { sujeto, cerv } = perturbarProporciones(base, u.proporciones, azar)
+  const perturbado = perturbarProporciones(base, u.proporciones, azar)
+  if (!perturbado) return null
+  const { sujeto, cerv } = perturbado
   const a = (x: number) => x + u.angulo * normal(azar)
   const p: PoseSagital = {
     tibia: a(pose.tibia),
@@ -155,6 +159,7 @@ export function muestrear(
   u: Incertidumbre,
   { muestras = 2000, semilla = 20261020 }: OpcionesDeBanda = {},
 ): MuestrasDeMomentos {
+  if (!Number.isInteger(muestras) || muestras < 1) throw new RangeError('muestras debe ser un entero >= 1')
   const azar = crearAzar(semilla)
   const salida: MuestrasDeMomentos = { tobillo: [], rodilla: [], cadera: [], descartadas: 0 }
   for (let i = 0; i < muestras; i++) {
@@ -193,6 +198,7 @@ export function bandasDeSentadilla(
     }
   }
   const n = opciones.muestras ?? 2000
+  if (!Number.isInteger(n) || n < 1) throw new RangeError('muestras debe ser un entero >= 1')
   const semilla = opciones.semilla ?? 20261020
   const m = muestrear(e, u, opciones)
   const armar = (articulacion: 'tobillo' | 'rodilla' | 'cadera'): Cifra => {

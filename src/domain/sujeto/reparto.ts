@@ -47,6 +47,7 @@ export function repartirMomento(momento: number, musculos: readonly Musculo[], r
   if (activos.length === 0) return null
   const peso = (m: Musculo) => Math.pow(m.brazo * Math.pow(m.area, r), 1 / (r - 1))
   const c = momento / activos.reduce((t, m) => t + m.brazo * peso(m), 0)
+  if (!Number.isFinite(c) || c <= 0 || activos.some((m) => !Number.isFinite(peso(m)) || peso(m) <= 0)) return null
   return musculos.map((m) => {
     const fuerza = m.brazo > 0 ? c * peso(m) : 0
     return { nombre: m.nombre, fuerza, fraccion: (fuerza * Math.max(m.brazo, 0)) / momento }
@@ -61,6 +62,7 @@ export function bandasDeReparto(
   sdRelativaDelArea: number,
   { muestras = 2000, semilla = 20261020 } = {},
 ): { nombre: string; fraccion: Cifra }[] | null {
+  if (!Number.isInteger(muestras) || muestras < 1) throw new RangeError('muestras debe ser un entero >= 1')
   const central = repartirMomento(momento, musculos, r)
   if (!central) return null
   const azar = crearAzar(semilla)

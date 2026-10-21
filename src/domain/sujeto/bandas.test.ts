@@ -104,7 +104,7 @@ describe('las proporciones conservan la masa', () => {
     let cambio = false
     let razonCambia = false
     for (let i = 0; i < 200; i++) {
-      const p = perturbarProporciones(s, 0.1, azar)
+      const p = perturbarProporciones(s, 0.1, azar)!
       expect(Math.abs(total(p) - base)).toBeLessThan(1e-9)
       if (Math.abs(p.sujeto.segmentos.muslo.masa - s.segmentos.muslo.masa) > 1e-6) cambio = true
       // La renormalización escala todo igual: que cambie la RAZÓN entre dos segmentos prueba que cada masa se perturbó.
@@ -138,5 +138,25 @@ describe('contrato', () => {
   it('una incertidumbre que rompe el modelo se abstiene en vez de dar una banda', () => {
     const r = bandasDeSentadilla(e, { ...u, talla: 5 }, { muestras: 300 })
     expect(r.cadera.valor).toBeNull()
+  })
+})
+
+describe('hallazgos del revisor (Codex, 20-oct)', () => {
+  it('cero muestras es un error, no una banda de NaN', () => {
+    expect(() => bandasDeSentadilla(e, SIN, { muestras: 0 })).toThrow(RangeError)
+    expect(() => muestrear(e, SIN, { muestras: 0 })).toThrow(RangeError)
+  })
+  it('una carga ausente no se cuenta como barra vacía en el muestreo', () => {
+    const m = muestrear({ ...e, cargaKg: null }, SIN, { muestras: 5 })
+    expect(m.cadera).toHaveLength(0)
+    expect(m.descartadas).toBe(5)
+  })
+  it('con proporciones muy inciertas ninguna muestra lleva masas negativas', () => {
+    const s = construirSujeto(e)!
+    const azar = crearAzar(1)
+    for (let i = 0; i < 300; i++) {
+      const p = perturbarProporciones(s, 1, azar)
+      if (p) for (const n of ['muslo', 'tibia', 'brazo'] as const) expect(p.sujeto.segmentos[n].masaKg).toBeGreaterThan(0)
+    }
   })
 })
