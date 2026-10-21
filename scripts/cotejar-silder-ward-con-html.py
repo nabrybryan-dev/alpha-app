@@ -5,7 +5,13 @@
 
 Los dos artículos son manuscritos de acceso abierto de PubMed Central, guardados como HTML. Se leen
 las TABLAS (no un resumen): Silder Tabla 4 (parámetros, media y sd) y Tabla 2 (ensayos, de donde sale
-el dominio), Ward Tabla 3 (PCSA). Sale con código 1 si algún valor del código difiere, y con 2 si no
+el dominio), Ward Tabla 3 (PCSA). LOS HTML NO ESTAN EN GIT (texto completo con derechos). Viven en
+cerebro-alpha/herramientas/encoder-camara/articulos/ y se bajan de PubMed Central con estos nombres:
+    Silder2007_PMC2020832.html  <- https://pmc.ncbi.nlm.nih.gov/articles/PMC2020832/
+    Ward2009_PMC2650051.html    <- https://pmc.ncbi.nlm.nih.gov/articles/PMC2650051/
+(guardar el HTML de la pagina). Ver el README de esa carpeta.
+
+Sale con código 1 si algún valor del código difiere, y con 2 si no
 encuentra una tabla (un cotejo que no encuentra su fuente no puede dar verde).
 """
 import html as _html

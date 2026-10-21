@@ -685,7 +685,7 @@ function correrCotejoSW() {
   const ward = join(ARTICULOS, 'Ward2009_PMC2650051.html')
   for (const f of [silder, ward]) {
     if (!existsSync(f)) {
-      console.error(`No encuentro ${f}`)
+      console.error(`No encuentro ${f}. Los HTML no van en git: bajarlos de PubMed Central (ver articulos/README.md del cerebro).`)
       process.exit(2)
     }
   }
