@@ -189,7 +189,13 @@ export function capaDeMomentos(
     articulacion: p.articulacion,
     estado: p.estado,
     fraccion: fraccion(p.valor),
-    banda: p.banda ? { inf: fraccion(p.banda.inf), sup: fraccion(p.banda.sup) } : null,
+    // Con el momento negativo el valor absoluto invierte el orden de los extremos: se reordena.
+    banda: p.banda
+      ? {
+          inf: Math.min(fraccion(p.banda.inf), fraccion(p.banda.sup)),
+          sup: Math.max(fraccion(p.banda.inf), fraccion(p.banda.sup)),
+        }
+      : null,
   }))
   const pose = entrada.pose
   const poseDelCalculo = pose ? { tibia: pose.tibia, muslo: pose.muslo } : null

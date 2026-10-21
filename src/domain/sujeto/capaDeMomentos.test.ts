@@ -98,6 +98,21 @@ describe('cuándo una banda se puede dibujar (C-6)', () => {
   })
 })
 
+describe('momentos negativos (revision de Codex del 21-oct)', () => {
+  // Tronco inclinado hacia atras y muslo vertical: el momento de rodilla sale negativo y su banda tambien.
+  const inclinada = { ...SUJETO_DE_EJEMPLO, pose: { tibia: 0.2, muslo: 0, tronco: 0.3, cabeza: 0.2, barraT: 0.1, pieZ: 0.05 } }
+  const r = capaDeMomentos(inclinada, INCERTIDUMBRE_DE_EJEMPLO, ctx, opc)
+  it('hay al menos un momento con la banda negativa en este caso', () => {
+    expect(r.lineas.some((l) => /^Rodilla: -\d+ N·m.*banda -\d+ a -\d+/.test(l))).toBe(true)
+  })
+  it('las fracciones de la banda quedan ordenadas (inf <= sup) y la banda se dibuja', () => {
+    const rodilla = r.elementos.find((e) => e.articulacion === 'rodilla')!
+    expect(rodilla.banda).not.toBeNull()
+    expect(rodilla.banda!.inf).toBeLessThanOrEqual(rodilla.banda!.sup)
+    for (const e of r.elementos) if (e.banda) expect(e.banda.inf).toBeLessThanOrEqual(e.banda.sup)
+  })
+})
+
 describe('la escala del arco', () => {
   it('es el múltiplo de 100 que contiene al mayor, y nunca menos de 100', () => {
     expect(escalaDelArco(497)).toBe(500)

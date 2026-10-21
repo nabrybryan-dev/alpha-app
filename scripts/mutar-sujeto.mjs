@@ -328,6 +328,13 @@ export const MUTACIONES = [
   {
     fase: 'tandaB',
     archivo: D + 'capaDeMomentos.ts',
+    buscar: "inf: Math.min(fraccion(p.banda.inf), fraccion(p.banda.sup)),",
+    reemplazar: "inf: fraccion(p.banda.inf),",
+    que: "una banda de momento negativo queda con inf > sup y no se dibuja (hallazgo de Codex)",
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
     buscar: "if (!contexto.sujetoDeEjemplo || !esSentadillaConBarra(",
     reemplazar: "if (!contexto.sujetoDeEjemplo && !esSentadillaConBarra(",
     que: "la puerta de abstencion pide que fallen las dos condiciones (|| por &&) y deja pasar a un asesorado real",
