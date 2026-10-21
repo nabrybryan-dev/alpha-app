@@ -115,16 +115,12 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
   // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
-  'src/domain/sujeto/bandas.ts#SIN_INCERTIDUMBRE':
-    'Incertidumbre nula para las pruebas de bandas; la capa del salón pasa la suya.',
   'src/domain/sujeto/reparto.ts#bandasDeReparto':
     'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',
   'src/domain/sujeto/reparto.ts#indiceDeLongitud':
     'Orden de longitud de Maeo 2021 (fase 4): lo ejercitan las pruebas; el salón no dibuja reparto.',
   'src/domain/sujeto/reparto.ts#momentoPasivo':
     'Momento pasivo no_afirmable (Riener y Edrich 1999 sin texto completo): el salón no lo dibuja.',
-  'src/domain/sujeto/sujeto.ts#masaDeLosSegmentos':
-    'Suma de masas de segmento (fase 1) para las pruebas que exigen que sumen la masa total.',
   // Contratos del organizador (0098/0099) que consumirá su pantalla; hoy solo los ejercita la prueba.
   'src/domain/planOrganizador.ts#NOMBRE_ESTADO_PLAN':
     'Rótulos de los estados del plan: los pintará la pantalla «Mi plan» del organizador, que aún no existe.',
