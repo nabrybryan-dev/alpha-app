@@ -108,7 +108,8 @@ describe('momentos negativos (revision de Codex del 21-oct)', () => {
   it('las fracciones de la banda quedan ordenadas (inf <= sup) y la banda se dibuja', () => {
     const rodilla = r.elementos.find((e) => e.articulacion === 'rodilla')!
     expect(rodilla.banda).not.toBeNull()
-    expect(rodilla.banda!.inf).toBeLessThanOrEqual(rodilla.banda!.sup)
+    expect(rodilla.banda!.inf).toBeLessThan(rodilla.banda!.sup)
+    // con ancho: una banda de ancho cero tampoco se dibuja
     for (const e of r.elementos) if (e.banda) expect(e.banda.inf).toBeLessThanOrEqual(e.banda.sup)
   })
 })

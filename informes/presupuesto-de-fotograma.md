@@ -360,3 +360,27 @@ oculta, vértices = fotogramas × 912 (190 × 912 = 173.280) en las 20 con capa 
   `py -3.13 informes/medidas/medir-capa-20-pares.py salidas 20` y luego, desde la carpeta de salidas,
   `py -3.13 informes/medidas/analizar-capa-20-pares.py` (ajustar la ruta `salidas20/` del analizador). Misma regla:
   cabe si el límite superior del IC95 de la mediana de las diferencias es < 1 ms.
+
+### Trazas de Chrome con eventos de recolección de basura (21-oct-2026, tarde)
+
+**Pregunta:** ¿explica el GC los tirones de los pares 14 y 17 de los 20 pares (p90 de 213,9 y 55,9 ms, ambos con capa)?
+
+**Cómo:** `informes/medidas/traza-gc-capa.py` (Playwright, `start_tracing` con las categorías `devtools.timeline`,
+`disabled-by-default-devtools.timeline`, `v8`, `disabled-by-default-v8.gc`), una traza por corrida; 14 corridas con capa y
+14 sin ella, alternadas, con el mismo peor caso (912 vértices por fotograma). `informes/medidas/analizar-gc.py` cuenta los
+eventos `MinorGC`/`MajorGC` y las tareas largas. Las trazas (5 MB cada una) no se versionan.
+
+| | corridas | GC por corrida | ms de GC por corrida (mediana, rango) | pausa máxima de un GC | p90 de fotograma, máximo |
+|---|---|---|---|---|---|
+| con capa | 14 | 259 a 267 (todos `MinorGC` salvo 1 `MajorGC` por corrida) | 129,7 (92,5 a 146,7) | 7,3 ms | 13,0 ms |
+| sin capa | 14 | 269 a 276 (ídem) | 137,3 (80,0 a 176,3) | 39,3 ms | 12,6 ms |
+
+- **La capa no añade recolecciones:** tiene incluso algo menos de GC que la corrida sin capa (261 contra 273 de mediana).
+  El trabajo de GC es el mismo orden en las dos (unos 130 ms repartidos en ~260 *scavenges* de ~0,5 ms).
+- **Veredicto sobre los tirones 14 y 17: el GC NO los explica — refutado por magnitud, no por coincidencia.** Una pausa
+  de GC mide como mucho 39 ms en estas 28 corridas (y esa, sin capa, no subió el p90 de su corrida: 7,5 ms); para un p90
+  de 213,9 ms hacen falta al menos 8 fotogramas seguidos de más de 200 ms, y el GC total de una corrida entera no
+  llega a 180 ms. **Limitación:** en estas 28 corridas trazadas **no se reprodujo ningún tirón** (el p90 máximo fue 13 ms),
+  así que no se pudo mirar un tirón concreto con su traza; lo que se descarta es que el GC tenga la magnitud para producirlo.
+  La causa de los tirones 14 y 17 sigue **sin explicar**; los huecos de tiempo entre corridas de esa tanda (15:06 a
+  15:08, 15:12 a 15:14) apuntan a que el equipo, no la página, se ahogó, pero eso no está demostrado.
