@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { comprobarQueLaCapaAporto, mallasDelPeorCaso } from './medir-fotograma-guarda.mjs'
+import { comprobarElCuadreDeLaTanda, comprobarQueLaCapaAporto, mallasDelPeorCaso, VERTICES_POR_FOTOGRAMA_PEOR_CASO } from './medir-fotograma-guarda.mjs'
 import { capaDeMomentos, INCERTIDUMBRE_DE_EJEMPLO, SUJETO_DE_EJEMPLO } from '../src/domain/sujeto/capaDeMomentos'
 import { enLaPoseDelCalculo, mallasDeMomentos, poseDelEsqueleto } from '../src/features/entrenar/escena/dibujarMomentos'
 import { PATRON_POR_ID } from '../src/domain/patrones/catalogo'
@@ -28,6 +28,32 @@ describe('la guarda de la medida cuenta la tanda entera', () => {
   })
   it('un conteo no numerico tambien falla', () => {
     expect(() => comprobarQueLaCapaAporto(true, NaN)).toThrow()
+  })
+})
+
+describe('el cuadre de la tanda: vertices = fotogramas × 912', () => {
+  it('cuadra con 190 fotogramas y 173.280 vertices (la tanda real de 15 + 80, dos pasadas)', () => {
+    expect(() => comprobarElCuadreDeLaTanda(true, 173280, 190)).not.toThrow()
+  })
+  it('falla si falta un solo fotograma de vertices o si sobra uno', () => {
+    expect(() => comprobarElCuadreDeLaTanda(true, 173280 - 912, 190)).toThrow(/no cuadra/)
+    expect(() => comprobarElCuadreDeLaTanda(true, 173280 + 1, 190)).toThrow(/no cuadra/)
+  })
+  it('falla si la capa solo dibujo en parte de los fotogramas (el salon real, no el peor caso)', () => {
+    expect(() => comprobarElCuadreDeLaTanda(true, 912 * 40, 190)).toThrow(/no cuadra/)
+  })
+  it('un numero de fotogramas invalido o cero falla en vez de cuadrar 0 = 0', () => {
+    expect(() => comprobarElCuadreDeLaTanda(true, 0, 0)).toThrow(/invalido/)
+    expect(() => comprobarElCuadreDeLaTanda(true, 0, NaN)).toThrow(/invalido/)
+  })
+  it('sin capa no exige nada', () => {
+    expect(() => comprobarElCuadreDeLaTanda(false, 0, 190)).not.toThrow()
+  })
+  it('la constante es de verdad lo que la capa del ejemplo construye por fotograma en el peor caso', () => {
+    for (const fase of [0, 0.25, 0.6, 1]) {
+      const esq = esqueletoEnFase(patron, fase)
+      expect(vertices(mallasDelPeorCaso(capa, mallasDeMomentos, poseDelEsqueleto, esq))).toBe(VERTICES_POR_FOTOGRAMA_PEOR_CASO)
+    }
   })
 })
 

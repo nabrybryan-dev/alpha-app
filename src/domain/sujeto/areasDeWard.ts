@@ -75,6 +75,15 @@ export function proporcionesCentrales(): Record<GrupoDeCadera, number> {
   return Object.fromEntries(GRUPOS_QUE_EXTIENDEN_LA_CADERA.map((g) => [g, area(g) / total])) as Record<GrupoDeCadera, number>
 }
 
+/** Un sorteo normal(media, sd) truncado a > 0: un área no puede ser negativa. Reintenta; agotados los intentos, la media. */
+export function sorteoPositivo(media: number, sd: number, azar: () => number): number {
+  for (let i = 0; i < 50; i++) {
+    const x = media + sd * normal(azar)
+    if (x > 0) return x
+  }
+  return media
+}
+
 export const MUESTRAS_DE_AREA = 2000
 export const SEMILLA_DE_AREA = 20261021
 
@@ -99,13 +108,7 @@ export function proporcionesDeAreaDeCadera(
   const semilla = opciones.semilla ?? SEMILLA_DE_AREA
   const azar = crearAzar(semilla)
   const muestras: Record<GrupoDeCadera, number[]> = { gluteoMayor: [], isquios: [], aductorMayor: [] }
-  const area = (m: MusculoDeWard) => {
-    for (let i = 0; i < 50; i++) {
-      const x = PCSA_DE_WARD[m].media + PCSA_DE_WARD[m].sd * normal(azar)
-      if (x > 0) return x
-    }
-    return PCSA_DE_WARD[m].media
-  }
+  const area = (m: MusculoDeWard) => sorteoPositivo(PCSA_DE_WARD[m].media, PCSA_DE_WARD[m].sd, azar)
   for (let i = 0; i < n; i++) {
     const a = Object.fromEntries(
       GRUPOS_QUE_EXTIENDEN_LA_CADERA.map((g) => [g, MUSCULOS_DEL_GRUPO[g].reduce((s, m) => s + area(m), 0)]),

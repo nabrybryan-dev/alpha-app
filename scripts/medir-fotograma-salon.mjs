@@ -16,7 +16,7 @@
  * en el informe. No toca ningún archivo de `src/`.
  */
 
-import { comprobarQueLaCapaAporto } from './medir-fotograma-guarda.mjs'
+import { comprobarElCuadreDeLaTanda, comprobarQueLaCapaAporto } from './medir-fotograma-guarda.mjs'
 
 const REP = 80
 const CALENTAR = 15
@@ -105,7 +105,9 @@ export async function medir({ capa = false, extras = null } = {}) {
   /** Lo mismo que `construir()` del visor, para una fase dada. Devuelve las partes. */
   // Acumulado de toda la tanda (no del ultimo fotograma): la capa solo dibuja cerca de la pose del calculo.
   let verticesDeLaCapa = 0
+  let fotogramas = 0 // llamadas a partesEn: la guarda cuadra los vertices contra este numero
   const partesEn = (fase, tiempos) => {
+    fotogramas++
     let t0 = performance.now()
     const esq = M.escena.esqueletoEnFase(patron, fase, 1, fase * 3, undefined, definicion)
     if (tiempos) tiempos.esqueleto.push(performance.now() - t0)
@@ -186,6 +188,7 @@ export async function medir({ capa = false, extras = null } = {}) {
   })
 
   comprobarQueLaCapaAporto(capa, verticesDeLaCapa)
+  comprobarElCuadreDeLaTanda(capa, verticesDeLaCapa, fotogramas)
   const salida = {
     cuando: new Date().toISOString(),
     capa,
@@ -195,6 +198,7 @@ export async function medir({ capa = false, extras = null } = {}) {
     pasosConPestanaOculta: visible.filter((v) => v !== 'visible').length,
     vertices,
     verticesDeLaCapa,
+    fotogramas,
     subir: estadistica(subirT),
     dibujar: estadistica(dibujarT),
     construirMusculos: estadistica(tiempos.musculos),

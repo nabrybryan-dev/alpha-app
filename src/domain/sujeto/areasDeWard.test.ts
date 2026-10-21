@@ -5,7 +5,9 @@ import {
   MUSCULOS_DEL_GRUPO,
   proporcionesCentrales,
   proporcionesDeAreaDeCadera,
+  sorteoPositivo,
 } from './areasDeWard'
+import { normal } from './bandas'
 import { VALORES_REGISTRADOS } from './registro'
 
 describe('las proporciones de las medias, con la respuesta a mano', () => {
@@ -22,6 +24,23 @@ describe('las proporciones de las medias, con la respuesta a mano', () => {
   it('la cabeza corta del bíceps no entra en los isquios (no cruza la cadera)', () => {
     expect(MUSCULOS_DEL_GRUPO.isquios).toEqual(['biceps_larga', 'semitendinoso', 'semimembranoso'])
     expect(MUSCULOS_DEL_GRUPO.isquios).not.toContain('biceps_corta')
+  })
+})
+
+describe('el sorteo de un area nunca es negativo', () => {
+  // Una media de 1 con sd 100: casi la mitad de los sorteos crudos son negativos.
+  it('con sorteos crudos negativos reintenta y devuelve siempre algo > 0', () => {
+    let k = 0
+    const azar = () => ((k++ * 0.6180339887) % 1) // deterministica, recorre (0,1)
+    for (let i = 0; i < 300; i++) expect(sorteoPositivo(1, 100, azar)).toBeGreaterThan(0)
+  })
+  it('un primer sorteo negativo conocido se descarta: azar fijo en u1=0.5, u2=0.5 da z = -1.1774 (cos pi = -1)', () => {
+    const z = normal(() => 0.5)
+    expect(z).toBeLessThan(0)
+    expect(sorteoPositivo(1, 5, () => 0.5)).toBe(1) // 1 + 5·z < 0 las 50 veces: cae a la media
+  })
+  it('con sd pequena devuelve media + sd·z tal cual', () => {
+    expect(sorteoPositivo(10, 0.1, () => 0.5)).toBeCloseTo(10 + 0.1 * normal(() => 0.5), 12)
   })
 })
 

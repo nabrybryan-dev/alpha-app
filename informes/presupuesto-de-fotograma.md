@@ -282,3 +282,41 @@ se repitió como `capa-1b`. Las tres válidas tienen 0 pasos con la pestaña ocu
   otras sesiones y pruebas corriendo). Se puede afirmar que no supera el umbral fijado; no se puede
   afirmar que cueste «0 ms».
 - **Sigue sin medirse:** GPU real, móvil, sesión larga, y el fotograma con la sala de Blender subida.
+
+### Peor caso de la capa, remedido alternando 6 + 6 (21-oct-2026, tarde)
+
+**Por qué otra vez.** Desde C-3 la capa solo dibuja cerca de la pose del cálculo, y el medidor
+(`?capa=1`) fallaba con «no aportó ni un vértice». Se arregló en `c07dabb0`:
+`capa-momentos-medida.mjs` pone la pose del cálculo en la de cada fotograma (`mallasDelPeorCaso`), así
+que los arcos se construyen en TODOS los fotogramas: es una **cota superior** del coste, no el típico
+(en el salón real, de pie o en otra fase, la capa cuesta 0 vértices). La guarda suma los vértices de
+toda la tanda. Prueba que falla con la versión vieja de cada una: `scripts/medir-fotograma-guarda.test.mjs`.
+
+**Cómo.** Playwright con Chrome (`channel='chrome'`, ventana visible, `bring_to_front`), contexto nuevo
+por corrida, lienzo 405 × 720, 15 fotogramas de calentamiento y 80 medidos, 6 corridas con capa y 6 sin
+ella, alternadas (capa-1, hoy-1, capa-2, hoy-2…). `visibilityState` = `visible` en las 12, 0 pasos con la
+pestaña oculta. La capa añade **912 vértices por fotograma** a 35.933 (2,5 %).
+
+| par | fotograma CPU mediana, capa / sin capa (ms) | p90, capa / sin capa | `subir()` mediana, capa / sin | carga de CPU antes (capa / sin) |
+|---|---|---|---|---|
+| 1 | 6,2 / 6,7 | 11,9 / 10,2 | 1,7 / 1,2 | 91 % / 66 % |
+| 2 | 7,8 / 8,3 | 13,2 / 15,0 | 1,1 / 1,0 | 59 % / 68 % |
+| 3 | 6,8 / 7,6 | 12,2 / 14,1 | 1,0 / 1,6 | 70 % / 94 % |
+| 4 | 6,8 / 5,5 | 13,9 / 12,5 | 1,8 / 1,2 | 100 % / 66 % |
+| 5 | 7,9 / 7,0 | 16,1 / 13,4 | 1,3 / 1,1 | 88 % / 60 % |
+| 6 | 10,8 / 6,0 | 16,7 / 14,9 | 1,4 / 1,1 | 54 % / 90 % |
+
+- **Mediana de las seis medianas:** 7,3 ms con capa y 6,85 sin ella; mediana de los p90: 13,6 y 13,75.
+  Diferencia por pares (capa − sin capa): −0,5, −0,5, −0,8, +1,3, +0,9, +4,8: **signos mezclados**.
+- **Lectura:** la diferencia está **dentro del ruido**. Las medianas sin capa van de 5,5 a 8,3 ms (2,8 ms de
+  rango entre corridas idénticas) y las con capa de 6,2 a 10,8. No se puede decir que la capa cueste algo
+  ni que cueste 0; lo que sí se sostiene es que el peor caso queda por debajo de los umbrales fijados
+  (mediana 8,1 ms, p90 16,7 ms) en la **mediana de las medianas** (7,3) y en la mediana de los p90 (13,6),
+  pero **no en todas las corridas**: capa-6 (10,8 ms) y los p90 de capa-5 (16,1) y capa-6 (16,7, en el borde)
+  los rozan o superan. Esas corridas coinciden con otras tareas del equipo en marcha.
+- **El equipo NO estaba descargado.** Durante toda la tanda corrían la cola U-Net de MANU
+  (`unet_cola.py`, ~71.000 s de CPU acumulados) y un `grupo_medir.py`; la carga de CPU osciló entre 54 % y
+  100 % (columna de la tabla). No se pausó la cola de otro proyecto. Para separar el efecto de la capa
+  del ruido hay que repetir con la cola parada; mientras tanto el coste de la capa queda **sin
+  distinguir del ruido**, y este informe no inventa una cifra.
+- **Sigue sin medirse:** GPU real, móvil, sesión larga y la sala de Blender subida.
