@@ -23,7 +23,10 @@ const PROHIBIDOS: { nombre: string; esto: RegExp }[] = [
   { nombre: 'Supabase', esto: /supabase/i },
   { nombre: 'react-router', esto: /^react-router/ },
   { nombre: 'el DOM / pruebas de interfaz', esto: /^@testing-library\/|^jsdom$|^happy-dom$/ },
-  { nombre: 'Node (el laboratorio corre en el navegador)', esto: /^node:/ },
+  {
+    nombre: 'Node (el laboratorio corre en el navegador)',
+    esto: /^node:|^(?:fs|path|os|url|util|crypto|child_process|http|https|net|stream|buffer|events|process|worker_threads|zlib|readline)(?:\/|$)/,
+  },
   { nombre: 'features/', esto: /(^|\/)features(\/|$)/ },
   { nombre: 'components/', esto: /(^|\/)components(\/|$)/ },
   { nombre: 'data/ (repositorios y nube)', esto: /(^|\/)data(\/|$)/ },
@@ -40,7 +43,7 @@ export function especificadores(codigo: string): string[] {
   const limpio = sinComentarios(codigo)
   const salida = new Set<string>()
   // `from '...'` cubre import y export ... from, de una o de varias líneas; `import '...'` y `import('...')` el resto.
-  for (const re of [/\bfrom\s+['"]([^'"]+)['"]/g, /\bimport\s+['"]([^'"]+)['"]/g, /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g]) {
+  for (const re of [/\bfrom\s+['"]([^'"]+)['"]/g, /\bimport\s+['"]([^'"]+)['"]/g, /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g]) {
     let m: RegExpExecArray | null
     while ((m = re.exec(limpio))) salida.add(m[1])
   }
@@ -144,6 +147,15 @@ describe('el detector de importaciones ve lo que debe ver', () => {
     const esp = especificadores("import { useMemo } from 'react'\nimport x from './x'")
     expect(esp.some((e) => PROHIBIDOS[0].esto.test(e))).toBe(true)
     expect(especificadores("import x from './x'").some((e) => PROHIBIDOS.some((p) => p.esto.test(e)))).toBe(false)
+  })
+  it('ve la importacion dinamica con espacio antes del parentesis', () => {
+    expect(especificadores("const x = import ('react');")).toEqual(['react'])
+    expect(especificadores("const x = import('react');")).toEqual(['react'])
+  })
+  it('Node sin el prefijo node: tambien esta prohibido', () => {
+    const node = PROHIBIDOS.find((p) => p.nombre.startsWith('Node'))!
+    for (const m of ['fs', 'path', 'node:fs', 'child_process', 'fs/promises']) expect(node.esto.test(m)).toBe(true)
+    for (const m of ['./fs', './pasivo', '../patrones/gravedad', 'pathfinder']) expect(node.esto.test(m)).toBe(false)
   })
   it('las globales del navegador se detectan', () => {
     expect(GLOBALES_DEL_DOM.test('const q = window.location.search')).toBe(true)
