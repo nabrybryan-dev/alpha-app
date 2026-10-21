@@ -33,6 +33,8 @@ import { mallasDeFuerzas } from '../../../domain/patrones/fuerzas'
 import type { Activacion } from '../../../domain/patrones/anatomia'
 import { implementosDeEscena, type EscenaDeImplementos } from '../escena/implementos'
 import { construirImplementos } from '../escena/dibujarImplementos'
+import { mallasDeMomentos } from '../escena/dibujarMomentos'
+import type { CapaDeMomentos } from '../../../domain/sujeto/capaDeMomentos'
 import { construirTripode, type Colocacion } from '../escena/tripode'
 import { Malla } from '../../../domain/patrones/malla'
 import { type EsqueletoResuelto, INDICE_RAIZ, puntoDeHueso, resolver } from '../../../domain/patrones/esqueleto'
@@ -207,7 +209,7 @@ const COLOCACION_INICIAL: Colocacion = {
  * resta de siempre aplicada donde hacía falta. No es un modo de depuración escondido:
  * sin el atributo no cambia nada, y el atributo solo lo pone quien levanta el acta.
  */
-const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia', 'fantasma', 'fuerzas'] as const
+const PARTES_DE_ESCENA = ['sala', 'camara', 'implementos', 'sujeto', 'bahia', 'fantasma', 'fuerzas', 'momentos'] as const
 
 function partesOmitidas(lienzo: HTMLCanvasElement | null): Set<string> {
   const crudo = lienzo?.dataset.sin
@@ -273,6 +275,12 @@ interface VisorPatronProps {
    * sin saber cuál gana —la capa 4 con el botón «Músculo» pulsado no tiene respuesta.
    */
   w?: NivelW
+  /**
+   * LOS MOMENTOS ARTICULARES de la sentadilla con barra, ya decididos por
+   * `domain/sujeto/capaDeMomentos`. Opcional: sin él el visor dibuja lo mismo que antes. Esta pieza
+   * solo convierte la capa en geometría; qué se dibuja y qué se dice lo decide el dominio.
+   */
+  momentos?: CapaDeMomentos
   /**
    * El nombre del ejercicio, para saber CON QUÉ se hace.
    *
@@ -403,6 +411,7 @@ export function VisorPatron({
   conEscenario = true,
   atlas,
   w,
+  momentos,
   nombreEjercicio,
   alMirar,
   tempo,
@@ -466,6 +475,8 @@ export function VisorPatron({
     // Qué capas del atlas anatómico se piden. Por referencia como todo lo demás:
     // encender la musculatura no puede recrear el contexto WebGL.
     atlas: undefined as readonly ('esqueleto' | 'musculos' | 'piel')[] | undefined,
+    // La capa de momentos, por referencia como el resto: encenderla no recrea el contexto WebGL.
+    momentos: undefined as CapaDeMomentos | undefined,
     // El escalón de W va por referencia y NO en las dependencias del efecto que monta
     // la escena, por lo mismo que la capa y los números de la serie: recrear el
     // contexto WebGL al atravesar el cuerpo mataría la animación en cada capa, y el
@@ -546,12 +557,13 @@ export function VisorPatron({
     estado.current.fantasma = fantasma
     estado.current.retirada = retirada
     estado.current.atlas = atlas
+    estado.current.momentos = momentos
     // `redibujar` reconstruye ADEMÁS de pintar, y aquí hace falta que lo haga: los
     // dígitos del marcador son geometría, así que un número nuevo es una malla nueva.
     // Solo repintar dejaría en la pared las cifras de la serie anterior — el fallo mudo
     // de manual, porque la escena seguiría viéndose perfecta.
     redibujar.current?.()
-  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas])
+  }, [reproduciendo, reducido, girando, capa, haySala, cifras, w, nombreEjercicio, alMirar, tempo, fantasma, retirada, atlas, momentos])
 
   useEffect(() => {
     const lienzo = lienzoRef.current
@@ -821,6 +833,11 @@ export function VisorPatron({
               if (m.pieza === 'huesos') partes.push(huesos)
               else partes.push(construirMusculosDeNivel(nivelW, esq, patron, reposo, mallaMusculo))
             }
+          }
+          // LOS MOMENTOS ARTICULARES. Van sobre el cuerpo y solo si el dominio dejó algo que
+          // dibujar: una capa vacía (no afirmable, otro ejercicio, un asesorado real) no sube nada.
+          if (estado.current.momentos && !sin.has('momentos')) {
+            for (const m of mallasDeMomentos(estado.current.momentos, esq)) if (m.vertices > 0) partes.push(m)
           }
           // EL FANTASMA: el mismo esqueleto, en la fase que marca la HUELLA de la persona
           // y no la del patrón. Translúcido y apagado —sin activación, así que el color es

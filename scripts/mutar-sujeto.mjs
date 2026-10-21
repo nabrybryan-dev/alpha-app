@@ -324,6 +324,70 @@ export const MUTACIONES = [
     reemplazar: 'if (!tabla) tabla = { r: 2, rodilla: [{ nombre: "cuadriceps", area: 1, brazo: 0.04 }], cadera: [{ nombre: "gluteoMayor", area: 1, brazo: 0.05 }] }',
     que: 'sin tabla verificada se rellena con una tabla inventada en vez de abstenerse',
   },
+  // -- Tanda B (capa de momentos) --
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
+    buscar: 'if (!contexto.sujetoDeEjemplo || !esSentadillaConBarra(',
+    reemplazar: 'if (!contexto.sujetoDeEjemplo && !esSentadillaConBarra(',
+    que: 'la puerta de abstencion pide que fallen las dos condiciones (|| por &&) y deja pasar a un asesorado real',
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
+    buscar: "if (c.valor === null || c.estado !== 'calculado' || !Number.isFinite(c.valor)) continue",
+    reemplazar: 'if (false) continue',
+    que: 'un momento null o no afirmable se dibuja como un arco de cero',
+  },
+  {
+    fase: 'tandaB',
+    archivo: D + 'capaDeMomentos.ts',
+    buscar: 'Math.min(1, Math.abs(nm) / MOMENTO_DE_ESCALA)',
+    reemplazar: 'Math.abs(nm) / MOMENTO_DE_ESCALA',
+    que: 'el arco no se acota y una carga enorme lo desborda',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: 'export const ALFA_DE_LA_BANDA = 0.35',
+    reemplazar: 'export const ALFA_DE_LA_BANDA = 1',
+    que: 'lo estimado se dibuja opaco, igual que lo calculado',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: 'solida.encima = true',
+    reemplazar: 'solida.encima = false',
+    que: 'el arco queda tapado por la carne en vez de ir encima',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/escena/dibujarMomentos.ts',
+    buscar: 'if (!(hasta > desde)) return',
+    reemplazar: 'if (false) return',
+    que: 'un arco de barrido cero sube un tubo degenerado',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/salon/momentos/capaDelSalon.ts',
+    buscar: "get('momentos') === 'ejemplo'",
+    reemplazar: "get('momentos') !== null",
+    que: 'cualquier valor de la bandera enciende la capa',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/salon/momentos/capaDelSalon.ts',
+    buscar: 'if (!activa || !categoria || !nombre) return VACIA',
+    reemplazar: 'if (false) return VACIA',
+    que: 'la capa se calcula aunque la bandera este apagada',
+  },
+  {
+    fase: 'tandaB',
+    archivo: 'src/features/entrenar/salon/momentos/LecturaDeMomentos.tsx',
+    buscar: 'if (capa.lineas.length === 0) return null',
+    reemplazar: 'if (false) return null',
+    que: 'con la capa apagada el salon crea un nodo de texto vacio',
+  },
 ]
 
 const PDF_DE_LEVA =
@@ -348,9 +412,16 @@ function correrCotejo() {
   return r.status
 }
 
+// Las pruebas del dominio y las de la capa dibujada (la capa de momentos vive en features).
+const PRUEBAS = [
+  D.replace(/\/$/, ''),
+  'src/features/entrenar/escena/dibujarMomentos.test.ts',
+  'src/features/entrenar/salon/momentos',
+]
+
 function correrPruebas() {
   const vitest = join(raiz, 'node_modules', 'vitest', 'vitest.mjs')
-  const r = spawnSync(process.execPath, [vitest, 'run', D.replace(/\/$/, '')], {
+  const r = spawnSync(process.execPath, [vitest, 'run', ...PRUEBAS], {
     cwd: raiz,
     encoding: 'utf8',
     timeout: 170_000,

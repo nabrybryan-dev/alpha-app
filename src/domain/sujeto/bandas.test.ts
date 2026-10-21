@@ -95,7 +95,7 @@ describe('las proporciones conservan la masa', () => {
   it('en 200 muestras la suma de masas (pares dos veces) no cambia, y sí cambian las masas', () => {
     const s = construirSujeto(e)!
     const azar = crearAzar(1)
-    const total = (x: ReturnType<typeof perturbarProporciones>) => {
+    const total = (x: NonNullable<ReturnType<typeof perturbarProporciones>>) => {
       const t = x.sujeto.segmentos
       const pares = (['brazo', 'antebrazo', 'mano', 'muslo', 'tibia', 'pie'] as const).reduce((a, n) => a + 2 * t[n].masa, 0)
       return pares + x.cerv.cabeza.masa + x.cerv.tronco.masa

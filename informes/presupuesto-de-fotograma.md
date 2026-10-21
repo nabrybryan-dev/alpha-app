@@ -229,3 +229,56 @@ Se dice para que nadie lo lea como si estuviera cubierto:
 - **La sesión larga.** Las tandas son de decenas de segundos. Nada aquí dice qué
   pasa a los veinte minutos de sesión con el teléfono caliente y la frecuencia
   bajada.
+
+---
+
+## Remedida del 21-oct-2026 (R-15): la cifra de hoy
+
+Los 13,9 ms de arriba son del 29-ago. Desde el 2-sep `Motor.subir()` reserva arrays tipados y
+escribe con `set()` (lo dice su comentario en `motor.ts`), y el visor se partió en módulos. Se
+mide otra vez, sin tocar `motor.ts`.
+
+- **Comando:** servidor `npx vite --host 127.0.0.1 --port 5198`; en Chrome 155 (Windows 11), con la
+  pestaña delante, se abre
+  `http://127.0.0.1:5198/scripts/medir-fotograma-salon.html?nombre=hoy-N`. La página importa los
+  módulos reales, monta la escena de `construir()` para `SENTADILLA` («Sentadilla con barra»,
+  lienzo 405 × 720, `dpr` 1), descarta 15 fotogramas de calentamiento, mide 80 y manda el JSON a un
+  receptor local. Archivos: `scripts/medir-fotograma-salon.{mjs,html}`.
+- **Visibilidad:** `visible` en todos los pasos de las tres corridas; 0 pasos con la pestaña oculta.
+- **Escena:** 35.933 vértices (la de 29-ago tenía 31.129). No incluye las piezas estáticas de la sala
+  de Blender (van por `subirEstaticas()`, fuera de `subir()`), ni coste de GPU real: `gl.finish()` no
+  cambió ninguna cifra, lo que indica que esta medida casi no ve GPU.
+
+| corrida | `subir()` mediana | `construirMusculos()` mediana | fotograma CPU mediana | p90 | máx |
+|---|---|---|---|---|---|
+| hoy-1 | 1,0 | 3,5 | 5,8 | 12,1 | 18,5 |
+| hoy-2 | 1,0 | 3,5 | 7,1 | 14,7 | 21,1 |
+| hoy-3 | 1,1 | 3,3 | 6,8 | 14,8 | 17,8 |
+
+- **Cifra de hoy:** fotograma de CPU, **mediana 6,8 ms** (mediana de las tres corridas), p90 de
+  12,1 a 14,8 ms; `subir()` 1,0 ms. Antes: 13,9 y 11,5.
+- **Banda de ruido, medida:** las medianas de tres corridas idénticas van de 5,8 a 7,1, **1,3 ms**.
+  Una diferencia menor de ~1,3 ms entre dos configuraciones no la distingue esta medida.
+- **Lo que cambió de fondo:** el cuello ya no es `subir()` sino la musculatura (3,5 ms de 6,8).
+
+### Con la capa de momentos encendida (21-oct-2026)
+
+Mismo comando con `&capa=1` (`scripts/capa-momentos-medida.mjs`: la capa se decide una vez, como el
+`useMemo` del salón, y las dos mallas se construyen en cada fotograma). La capa aporta **760
+vértices** (36.693 contra 35.933, un 2 %). `capa-1` se descartó: la pestaña pasó a oculta en 2 pasos;
+se repitió como `capa-1b`. Las tres válidas tienen 0 pasos con la pestaña oculta.
+
+| corrida | `subir()` | `construirMusculos()` | fotograma CPU mediana | p90 | máx |
+|---|---|---|---|---|---|
+| capa-1b | 0,9 | 2,6 | 4,7 | 10,4 | 16,1 |
+| capa-2 | 1,0 | 3,1 | 9,4 | 15,5 | 19,9 |
+| capa-3 | 0,9 | 3,0 | 6,8 | 13,9 | 15,4 |
+| control sin capa (hoy-4, misma tanda) | 0,9 | 2,3 | 7,2 | 12,8 | 18,2 |
+
+- **Mediana de medianas con la capa: 6,8 ms** (contra 6,8 sin capa). Criterio del plan: no entra si
+  pasa de 8,1 ms o si algún p90 pasa de 16,7: **cumple** (el p90 más alto es 15,5).
+- **Lo que esta medida NO distingue:** las medianas con capa van de 4,7 a 9,4 ms, más ancho que la
+  banda sin capa (5,8 a 7,1). Una capa de 760 vértices no se separa del ruido de la máquina (hubo
+  otras sesiones y pruebas corriendo). Se puede afirmar que no supera el umbral fijado; no se puede
+  afirmar que cueste «0 ms».
+- **Sigue sin medirse:** GPU real, móvil, sesión larga, y el fotograma con la sala de Blender subida.
