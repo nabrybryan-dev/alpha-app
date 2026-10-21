@@ -148,6 +148,13 @@ export interface Perfil {
    */
   vistaSimple?: boolean
   /**
+   * Aviso de mensualidad vencida con botón de pago (21-oct-2026). Lo escribe el coach a mano
+   * en `perfiles.datos.avisoPago`, sin migración. Llega como jsonb libre: se declara
+   * `unknown` a propósito y `avisoPagoVisible` (`domain/avisoPago.ts`) lo valida; no se lee
+   * directo. Forma esperada: `{ venceDesde, texto?, enlace, activo }`.
+   */
+  avisoPago?: unknown
+  /**
    * Con qué huesos se dibuja su cuerpo en el salón y en el estudio del cuerpo.
    * Lo rellena el coach. Opcional a propósito: sin dato se dibuja como hasta
    * ahora (el juego neutro del visor).
