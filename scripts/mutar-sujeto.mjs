@@ -239,10 +239,8 @@ export const MUTACIONES = [
   {
     fase: 'fase3',
     archivo: D + 'bandas.ts',
-    buscar: '  const azar = crearAzar(semilla)
-  const salida: MuestrasDeMomentos',
-    reemplazar: '  const azar = crearAzar(1)
-  const salida: MuestrasDeMomentos',
+    buscar: '  const azar = crearAzar(semilla)\n  const salida: MuestrasDeMomentos',
+    reemplazar: '  const azar = crearAzar(1)\n  const salida: MuestrasDeMomentos',
     que: 'ignora la semilla pedida',
   },
   {
