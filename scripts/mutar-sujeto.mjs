@@ -239,8 +239,10 @@ export const MUTACIONES = [
   {
     fase: 'fase3',
     archivo: D + 'bandas.ts',
-    buscar: '{ muestras = 2000, semilla = 20261020 }: OpcionesDeBanda = {},\n): MuestrasDeMomentos {\n  const azar = crearAzar(semilla)',
-    reemplazar: '{ muestras = 2000, semilla = 20261020 }: OpcionesDeBanda = {},\n): MuestrasDeMomentos {\n  const azar = crearAzar(1)',
+    buscar: '  const azar = crearAzar(semilla)
+  const salida: MuestrasDeMomentos',
+    reemplazar: '  const azar = crearAzar(1)
+  const salida: MuestrasDeMomentos',
     que: 'ignora la semilla pedida',
   },
   {
@@ -278,6 +280,7 @@ export const MUTACIONES = [
     buscar: 'if (!Number.isFinite(momento) || momento <= 0) return null',
     reemplazar: 'if (!Number.isFinite(momento)) return null',
     que: 'reparte un momento no positivo en vez de abstenerse',
+    tambien: [['if (!Number.isFinite(c) || c <= 0 || activos.some((m) => !Number.isFinite(peso(m)) || peso(m) <= 0)) return null', '']],
   },
   {
     fase: 'fase4',
@@ -285,6 +288,7 @@ export const MUTACIONES = [
     buscar: 'if (!Number.isFinite(r) || r <= 1) return null',
     reemplazar: 'if (!Number.isFinite(r)) return null',
     que: 'acepta r = 1, donde no hay solución cerrada',
+    tambien: [['if (!Number.isFinite(c) || c <= 0 || activos.some((m) => !Number.isFinite(peso(m)) || peso(m) <= 0)) return null', '']],
   },
   {
     fase: 'fase4',
@@ -366,7 +370,10 @@ function principal() {
       continue
     }
     try {
-      writeFileSync(ruta, original.replace(m.buscar, () => m.reemplazar))
+      let mutado = original.replace(m.buscar, () => m.reemplazar)
+      // `tambien`: segundo cambio para quitar una defensa redundante que taparía a la primera.
+      for (const [a, b] of m.tambien ?? []) mutado = mutado.replace(a, () => b)
+      writeFileSync(ruta, mutado)
       const estado = m.con === 'cotejo' ? correrCotejo() : correrPruebas()
       if (estado === 0) {
         console.log(`SOBREVIVE  ${m.fase} ${m.archivo}: ${m.que}`)
