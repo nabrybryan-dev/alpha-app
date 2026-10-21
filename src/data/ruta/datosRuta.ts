@@ -2,6 +2,7 @@ import { db } from '../dbInstance'
 import { resumenMicrociclo } from '../../domain/cumplimiento'
 import { cargaPorGrupo } from '../../domain/fatiga'
 import { porcentajeAdherencia } from '../../domain/nutricion/adherencia'
+import { microcicloAnterior } from '../../domain/microcicloAnterior'
 import { desviacionRirMedia } from '../../domain/readiness'
 import { compararFuerza, type DatosRuta } from '../../domain/rutaEntrenamiento'
 import type { Microciclo } from '../../domain/types'
@@ -19,9 +20,7 @@ export function datosRutaDe(usuarioId: string, microciclo: Microciclo): DatosRut
   const microciclos = db.microciclos.byUsuario(usuarioId)
   // El anterior CON series: el 1RM estimado solo se puede comparar contra un
   // microciclo que la persona llegó a registrar.
-  const previo = microciclos
-    .filter((m) => m.id !== microciclo.id && m.numero < microciclo.numero)
-    .sort((a, b) => b.numero - a.numero)[0]
+  const previo = microcicloAnterior(microciclos, microciclo)
 
   const resumen = resumenMicrociclo(microciclo)
   const adherencias = db.nutricion.adherenciasByUsuario(usuarioId)
