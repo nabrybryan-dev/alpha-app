@@ -1,10 +1,17 @@
 /**
- * La capa de momentos tal como la enciende el salón con `?momentos=ejemplo`, para
- * `medir-fotograma-salon.mjs` (`?capa=1`): la decisión del dominio se toma UNA vez (como el
- * `useMemo` del salón) y las mallas se construyen en cada fotograma (como `construir()`).
+ * La capa de momentos para `medir-fotograma-salon.mjs` (`?capa=1`): la decisión del dominio se toma
+ * UNA vez (como el `useMemo` del salón) y las mallas se construyen en cada fotograma.
+ *
+ * Mide el PEOR CASO: desde C-3 el salón real solo dibuja los arcos cerca de la pose del cálculo, así que
+ * aquí la pose del cálculo se pone en la del fotograma (`mallasDelPeorCaso`) y los arcos se construyen
+ * en todos. Es una cota superior del coste, no el coste típico.
  */
+import { mallasDelPeorCaso } from './medir-fotograma-guarda.mjs'
+
+
 let capa = null
 let dibujar = null
+let poseDe = null
 
 /** Carga los módulos y decide la capa UNA vez, antes de medir. */
 export async function preparar() {
@@ -19,9 +26,10 @@ export async function preparar() {
     { muestras: 500 },
   )
   dibujar = f.mallasDeMomentos
+  poseDe = f.poseDelEsqueleto
 }
 
 /** Lo que se construye en cada fotograma: las dos mallas de los momentos. */
 export function extras(esq) {
-  return dibujar(capa, esq)
+  return mallasDelPeorCaso(capa, dibujar, poseDe, esq)
 }

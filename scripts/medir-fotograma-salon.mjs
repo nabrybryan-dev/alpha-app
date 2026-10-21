@@ -16,6 +16,8 @@
  * en el informe. No toca ningún archivo de `src/`.
  */
 
+import { comprobarQueLaCapaAporto } from './medir-fotograma-guarda.mjs'
+
 const REP = 80
 const CALENTAR = 15
 
@@ -101,9 +103,9 @@ export async function medir({ capa = false, extras = null } = {}) {
   }
 
   /** Lo mismo que `construir()` del visor, para una fase dada. Devuelve las partes. */
+  // Acumulado de toda la tanda (no del ultimo fotograma): la capa solo dibuja cerca de la pose del calculo.
   let verticesDeLaCapa = 0
   const partesEn = (fase, tiempos) => {
-    verticesDeLaCapa = 0
     let t0 = performance.now()
     const esq = M.escena.esqueletoEnFase(patron, fase, 1, fase * 3, undefined, definicion)
     if (tiempos) tiempos.esqueleto.push(performance.now() - t0)
@@ -183,7 +185,7 @@ export async function medir({ capa = false, extras = null } = {}) {
     requestAnimationFrame(paso)
   })
 
-  if (capa && verticesDeLaCapa === 0) throw new Error('capa encendida pero no aporto ni un vertice: la medida no la incluye')
+  comprobarQueLaCapaAporto(capa, verticesDeLaCapa)
   const salida = {
     cuando: new Date().toISOString(),
     capa,
