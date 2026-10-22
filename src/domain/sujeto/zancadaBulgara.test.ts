@@ -171,6 +171,26 @@ describe('el resultado estático con contrato', () => {
     expect(r.repartoDelantera.banda!.sup).toBeGreaterThan(r.repartoDelantera.valor!)
     expect(r.inercial.estado).toBe('no_afirmable')
   })
+  it('si parte de la regla [0,26; 0,35] deja el CP delantero fuera del pie, la banda lo declara: envolvente parcial (revisor 22-oct)', () => {
+    // 80 kg, 1,78 m, 40 kg, tronco -0,05, paso 1,0: con 0,26 BW el CP delantero sale del pie; con 0,30 y 0,35 no
+    const e2 = { sexo: 'h' as const, talla: 1.78, masa: 80 }
+    const p2 = { ...pose, tronco: -0.05, pasoM: 1.0 }
+    const s2 = construirSujeto(e2)!
+    const esc2 = resolverEscenario(s2, 40, p2) as Exclude<ReturnType<typeof resolverEscenario>, string>
+    const z2 = esc2.trasera.tobillo.z + p2.copTraseroM
+    expect(evaluarBulgara(s2, esc2, cuerposQuietos(esc2), 0.26, z2)).toBeNull()
+    expect(evaluarBulgara(s2, esc2, cuerposQuietos(esc2), 0.3, z2)).not.toBeNull()
+    const r = momentosDeBulgara({ ...e2, cargaKg: 40, pose: p2 })
+    expect(r.repartoDelantera.estado).toBe('estimado')
+    expect(r.repartoDelantera.banda!.nivel).toMatch(/parcial/)
+    expect(r.trasera.cadera.banda!.nivel).toMatch(/parcial/)
+    const completo = momentosDeBulgara(entrada())
+    expect(completo.repartoDelantera.banda!.nivel).not.toMatch(/parcial/)
+    const serieQuieta = Array.from({ length: 3 }, (_, i) => ({ t: i * 0.1, pose: p2 }))
+    const d = momentosDeBulgaraEnElTiempo({ ...e2, cargaKg: 40, fuenteDeAngulos: 'prueba', instantes: serieQuieta })
+    expect(d.marcos[1]!.delantera.cadera.total.banda!.nivel).toMatch(/parcial/)
+    expect(d.marcos[1]!.delantera.cadera.estatico.banda!.nivel).toMatch(/parcial/)
+  })
   it('sin talla, con carga negativa, con paso negativo o fuera de alcance: no_afirmable', () => {
     for (const r of [
       momentosDeBulgara(entrada({}, { talla: null })),
