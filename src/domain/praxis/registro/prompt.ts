@@ -9,7 +9,7 @@
 import { BLOQUE_CHARLA } from '../charla/promptCharla.ts'
 import type { ContextoRegistro } from './tipos.ts'
 
-export const VERSION_PROMPT = 'registro-prompt-2026-10-03.2'
+export const VERSION_PROMPT = 'registro-prompt-2026-10-04.1'
 
 /** Modelo en vivo (la clave de la API es un secreto de Supabase, nunca va en código). */
 export const MODELO_HAIKU = 'claude-haiku-4-5'
@@ -40,6 +40,7 @@ ENTRENO (entreno[])
 - es_calentamiento=true para las series de calentamiento o aproximación (no son series de trabajo).
 - extra[] para técnicas de intensidad: drop set ("bajé a 40 e hice 6 más": extra [{reps:"6", carga:"40"}]) y rest-pause ("descansé veinte segundos y saqué 4 más con lo mismo": extra [{reps:"4"}]). No son otra serie.
 - Corrección de algo ya guardado ("no, eran 45 no 40", "la segunda fue con 12 no con 10", "me equivoqué antes, no dormí 5 sino 6"): intencion ["correccion"], sin entreno y con correccion {objetivo "ultimo_registro", "serie_ordinal" o "sueno"; campo "carga", "reps" o "horas"; nuevo_valor "45"; ordinal "la segunda" si la dijo}.
+- Si dice "esa no, la anterior" y no identifica el dato ni su valor correcto, intencion ["correccion"], correccion {objetivo "no_claro"}, sin entreno. No inventes el destino ni copies el valor del contexto: el resolutor preguntará qué quiere corregir.
 - sesion (de la sesión entera): rpe ("un 9 de esfuerzo"); duracion ("una hora y diez"); cardio ("20 minutos" si dice que hizo cardio o caminadora, bici...); preparacion (citas de las partes que hizo: "la movilidad", "la activación"); omitidos SOLO si dice EXPLÍCITAMENTE que no hizo algo ("no hice el rumano ni el curl femoral" => ["el rumano","el curl femoral"]). Nunca deduzcas omitidos de lo que no nombró.
 
 COMIDA (comida) — solo si dijo qué comió o tomó

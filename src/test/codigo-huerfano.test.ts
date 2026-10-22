@@ -25,6 +25,10 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // El enrutador de Praxis (diseño del 17-oct-2026: mirar todo, mover con permiso, solo el equipo).
+  // Contrato con pruebas; no se conecta a la pantalla hasta tener el selector de intención y la
+  // guardia de riesgo reales como dependencias.
+
   // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
@@ -104,6 +108,17 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // El canal «proponer al coach» (Bryan, 21-oct-2026). Lo importa el repositorio de src/data/praxis, que a su
+  // vez espera la tabla (borrador SQL sin numerar en supabase/borradores/; la numera y aplica Bryan).
+  'src/domain/praxis/propuestaCoach.ts#debeContestarPraxis':
+    'Respuesta automática a las 12 h: APAGADA a propósito (espera psicólogo y abogado). Solo la ejercita su prueba.',
+  'src/domain/praxis/propuestaCoach.ts#preguntaPedirSerie':
+    'La pregunta «dame una serie»; la dirá el enrutador de Praxis cuando pase de observar a decidir.',
+  // Salida «aclarar» del enrutador (Bryan, 21-oct-2026: 9 de 30 frases son ambiguas y se repreguntan).
+  'src/domain/praxis/enrutador.ts#AREAS_A_ACLARAR':
+    'Las tres áreas que ofrece la repregunta. Hoy solo las ejercita su prueba: el enrutador solo observa y no pinta la pregunta todavía.',
+  'src/domain/praxis/enrutador.ts#PREGUNTA_ACLARAR':
+    'Texto de la repregunta (tú/usted). Lo pintará la pantalla de Praxis cuando el enrutador pase de observar a decidir; hoy solo lo ejercita su prueba.',
   // Contratos del organizador (0098/0099) que consumirá su pantalla; hoy solo los ejercita la prueba.
   'src/domain/planOrganizador.ts#NOMBRE_ESTADO_PLAN':
     'Rótulos de los estados del plan: los pintará la pantalla «Mi plan» del organizador, que aún no existe.',
@@ -114,13 +129,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/mercadeoManuela.ts#normalizarUrl':
     'Contrato del buzón de mercadeo (0096): lo consumirá el formulario de referencias cuando ' +
     'avise de un enlace repetido antes de enviarlo; la base ya lo normaliza al insertar.',
-  // La traducción de una marca de riesgo a la propuesta que devuelve el servidor. La usa
-  // SOLO la Edge Function `praxis-registro`, que vive fuera de src/ y por eso este análisis
-  // no la ve. Va en el dominio, junto al filtro, para que pantalla y función compartan una
-  // sola regla (revisión del PR #331, A3).
-  'src/domain/praxis/riesgo.ts#derivarPorRiesgo':
-    'La consume la Edge Function praxis-registro (supabase/functions/), fuera del alcance ' +
-    'de este análisis; vive junto a filtroDeRiesgo para que pantalla y servidor filtren igual.',
   // El aviso al coach (3-oct, migración 0108): de la marca de riesgo al TIPO de señal que se guarda.
   // Lo llama SOLO la Edge Function praxis-registro (el resto del módulo lo usa la consola).
   'src/domain/praxis/aviso.ts#nivelDeMarca':
@@ -132,8 +140,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
     'La consume la Edge Function praxis-registro para leer la respuesta del lector de riesgo; ' +
     'fuera del alcance de este análisis.',
   // «Gana la lectura más grave» (3-oct): la regla la aplica SOLO la Edge Function praxis-registro.
-  'src/domain/praxis/masGrave.ts#masGrave':
-    'La consume la Edge Function praxis-registro para quedarse con la marca más grave; fuera del alcance de este análisis.',
   'src/domain/praxis/masGrave.ts#hayQueConsultarAlModelo':
     'La consume la Edge Function praxis-registro para decidir si relee con el modelo; fuera del alcance de este análisis.',
   'src/domain/praxis/riesgoModelo.ts#SHA16_PROMPT_RIESGO':

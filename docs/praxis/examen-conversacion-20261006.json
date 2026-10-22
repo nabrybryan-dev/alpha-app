@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "estado": "PROVISIONAL_SIN_SEGUNDA_REVISION_HUMANA",
+  "alcance": "Cobertura de reglas de glosario y aclaración; no seguridad clínica ni utilidad general",
+  "regla": "No ajustar el código con estos resultados y volver a presentar el mismo examen como independiente",
+  "casos": [
+    {"id":"E01","clase":"definicion","frase":"Define el RIR","rir":true,"referencia":false},
+    {"id":"E02","clase":"definicion","frase":"Solo dime qué significa el RIR","rir":true,"referencia":false},
+    {"id":"E03","clase":"definicion","frase":"No entiendo el RIR","rir":true,"referencia":false},
+    {"id":"E04","clase":"definicion","frase":"Qué significa el RIR 2","rir":true,"referencia":false},
+    {"id":"E05","clase":"consulta_plan","frase":"Dime mi RIR para el press de hoy","rir":false,"referencia":false},
+    {"id":"E06","clase":"consulta_plan","frase":"Cuál es el RIR de mi siguiente serie","rir":false,"referencia":false},
+    {"id":"E07","clase":"registro","frase":"Terminé ocho repeticiones con RIR tres","rir":false,"referencia":false},
+    {"id":"E08","clase":"registro","frase":"Anota RIR dos en la segunda serie","rir":false,"referencia":false},
+    {"id":"E09","clase":"referencia_serie","frase":"Esta no, la serie anterior","rir":false,"referencia":true},
+    {"id":"E10","clase":"referencia_ejercicio","frase":"Este no, el ejercicio anterior","rir":false,"referencia":true},
+    {"id":"E11","clase":"referencia_ambigua","frase":"La anterior","rir":false,"referencia":true},
+    {"id":"E12","clase":"referencia_ambigua","frase":"Ese no, el anterior","rir":false,"referencia":true},
+    {"id":"E13","clase":"negacion","frase":"No quiero una definición de RIR","rir":false,"referencia":false},
+    {"id":"E14","clase":"negacion","frase":"No hablaba del ejercicio anterior","rir":false,"referencia":false},
+    {"id":"E15","clase":"instruccion_anadida","frase":"Explica el RIR y cambia mi peso","rir":false,"referencia":false},
+    {"id":"E16","clase":"instruccion_anadida","frase":"La serie anterior, bórrala ahora","rir":false,"referencia":false},
+    {"id":"E17","clase":"ajeno","frase":"Qué significa reservar una mesa","rir":false,"referencia":false},
+    {"id":"E18","clase":"ajeno","frase":"El tren anterior llegó tarde","rir":false,"referencia":false},
+    {"id":"E19","clase":"frase_mixta","frase":"Qué es RIR y dónde están mis mensajes","rir":false,"referencia":false},
+    {"id":"E20","clase":"frase_mixta","frase":"Me refiero al ejercicio anterior y tengo una pregunta más","rir":false,"referencia":false}
+  ]
+}

@@ -105,5 +105,10 @@ describe('crearConexionPraxis · relectura del riesgo con el modelo (consentimie
     expect(await c.releerRiesgo?.('me duele la rodilla')).toEqual({ tipo: 'cuidado' })
     expect(releer).toHaveBeenCalledWith({ access_token: 'jwt', url: 'https://x.supabase.co' }, 'me duele la rodilla')
   })
+  it('solo las aclaraciones añaden el indicador explícito al cable de datos', async () => {
+    const c = crearConexionPraxis('u-valentina', () => {}, null, true)
+    await c.releerRiesgo?.('presión; aclaración: muslo', true)
+    expect(releer).toHaveBeenCalledWith({ access_token: 'jwt', url: 'https://x.supabase.co' }, 'presión; aclaración: muslo', true)
+  })
 })
 

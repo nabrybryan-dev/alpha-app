@@ -390,7 +390,7 @@ export async function marcaMasGrave(
     console.error('praxis-registro: el lector de riesgo falló sobre una frase marcada', e instanceof Error ? e.name : 'error')
   }
   if (!lectura) return { ...igual, consultado: true }
-  const final = masGrave(filtro, marcaDesdeModelo(lectura.nivel))
+  const final = masGrave(filtro, marcaDesdeModelo(lectura.nivel, frase))
   return { marca: final, origen: final === filtro ? 'filtro' : 'modelo', consultado: true, lector: lectura.nivel }
 }
 
@@ -490,7 +490,7 @@ async function proponer(d: Dependencias, s: Sesion, cuerpo: CuerpoProponer, plan
   reloj.anotar('total')
   console.log('praxis-registro: tiempos', JSON.stringify(reloj.tiempos)) // sin la frase: solo milisegundos
   if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
-  const marcaModelo = marcaDesdeModelo(riesgo.nivel)
+  const marcaModelo = marcaDesdeModelo(riesgo.nivel, frase)
   if (marcaModelo) {
     const propuesta = derivarPorRiesgo(marcaModelo)
     await avisarAlCoach(d, s, { origen: 'praxis', nivel: nivelDeMarca(marcaModelo) })
@@ -629,7 +629,7 @@ async function ingresar(d: Dependencias, s: Sesion, cuerpo: CuerpoIngreso): Prom
   reloj.anotar('total')
   console.log('praxis-registro: tiempos-ingreso', JSON.stringify(reloj.tiempos)) // sin el texto: solo milisegundos
   if (!riesgo) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
-  const marcaModelo = marcaDesdeModelo(riesgo.nivel)
+  const marcaModelo = marcaDesdeModelo(riesgo.nivel, texto)
   if (marcaModelo) return derivacionDeIngreso(d, s, turno, marcaModelo, { lector_riesgo: riesgo.nivel, version_prompt_riesgo: SHA16_PROMPT_RIESGO, tiempos_ms: reloj.tiempos })
   if (!salida) return json({ error: MSG_NO_ENTENDI, reintentable: true }, 502)
 
@@ -848,7 +848,7 @@ export async function manejar(req: Request, d: Dependencias): Promise<Response> 
   return proponer(d, sesion, cuerpo, planEnCurso)
 }
 
-interface CuerpoReleer { frase?: unknown }
+interface CuerpoReleer { frase?: unknown; aclaracion_salud?: unknown }
 
 /**
  * RELEER EL RIESGO de una frase que la pantalla YA marcó como cuidado o salud (3-oct). Solo devuelve la
@@ -862,11 +862,14 @@ async function releerRiesgo(d: Dependencias, s: Sesion, cuerpo: CuerpoReleer): P
   const frase = typeof cuerpo.frase === 'string' ? cuerpo.frase.trim() : ''
   if (!frase) return json({ error: 'Falta la frase' }, 400)
   if (frase.length > MAX_FRASE) return json({ error: 'La frase es muy larga' }, 400)
-  const filtro = filtroDeRiesgo(frase)
+  if (cuerpo.aclaracion_salud !== undefined && typeof cuerpo.aclaracion_salud !== 'boolean') return json({ error: 'Aclaración de salud inválida' }, 400)
+  const filtro = filtroDeRiesgo(frase) ?? (cuerpo.aclaracion_salud === true ? { tipo: 'salud' as const, filtro: 'sintoma' as const } : null)
   if (!filtro) return json({ marca: null, origen: 'filtro', consultado: false })
   const leida = await marcaMasGrave(d, s.usuarioId, frase, filtro)
   return json({
-    marca: leida.marca.tipo === 'quieta' ? { tipo: 'quieta', linea: leida.marca.linea } : { tipo: leida.marca.tipo },
+    marca: leida.marca.tipo === 'quieta' ? { tipo: 'quieta', linea: leida.marca.linea }
+      : leida.marca.tipo === 'salud' && leida.marca.orientacion ? { tipo: 'salud', orientacion: leida.marca.orientacion }
+      : { tipo: leida.marca.tipo },
     origen: leida.origen, consultado: leida.consultado,
     ...(leida.origen === 'modelo' ? { lector_riesgo: leida.lector, version_prompt_riesgo: SHA16_PROMPT_RIESGO } : {}),
   })

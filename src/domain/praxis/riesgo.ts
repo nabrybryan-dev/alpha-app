@@ -2,6 +2,7 @@
 // para que la pantalla y el servidor filtren con la MISMA lista.
 import { EXAGERACION_INOFENSIVA, derivarPorFiltro, filtrarClinico, type FiltroClinico } from './registro/filtroClinico.ts'
 import type { Propuesta } from './registro/tipos.ts'
+import { preguntaLocalPorSensacion, type OrientacionSalud } from './orientacionSalud.ts'
 
 /**
  * El filtro de riesgo de Praxis: REGLAS, sin modelo, y lo primero que corre en cada mensaje.
@@ -33,7 +34,7 @@ export type LineaDeAyuda = 'vida' | 'pareja' | 'nino'
 export type MarcaDeRiesgo =
   | { tipo: 'quieta'; linea: LineaDeAyuda }
   | { tipo: 'cuidado' }
-  | { tipo: 'salud'; filtro: FiltroClinico }
+  | { tipo: 'salud'; filtro: FiltroClinico; orientacion?: OrientacionSalud }
 
 /** Los únicos números que la base de respuestas de seguridad dio por verificados (29-sep). */
 export const NUMEROS_VERIFICADOS = ['123', '106', '155', '141'] as const
@@ -112,7 +113,10 @@ export function filtroDeRiesgo(frase: string): MarcaDeRiesgo | null {
   const clinico = filtrarClinico(n)
   if (clinico?.filtro === 'sintoma' && clinico.urgencia === 'alta') return { tipo: 'quieta', linea: 'vida' }
   if (AMBIGUO.test(n)) return { tipo: 'cuidado' }
-  if (!clinico) return null
+  if (!clinico) {
+    const orientacion = preguntaLocalPorSensacion(frase)
+    return orientacion ? { tipo: 'salud', filtro: 'sintoma', orientacion } : null
+  }
   if (clinico.filtro === 'crisis') {
     // Las frases de crisis del chat son explícitas; las demás («no quiero seguir») son ambiguas.
     return /no quiero seguir|no le (veo|encuentro) sentido|no despertar|desaparecer/.test(clinico.marca) ? { tipo: 'cuidado' } : { tipo: 'quieta', linea: 'vida' }
@@ -126,7 +130,7 @@ export function filtroDeRiesgo(frase: string): MarcaDeRiesgo | null {
  * que habría elegido ella. El texto lo pone la pantalla, no el servidor.
  */
 export function derivarPorRiesgo(marca: MarcaDeRiesgo): Propuesta {
-  if (marca.tipo === 'salud') return derivarPorFiltro({ filtro: marca.filtro, marca: marca.filtro })
+  if (marca.tipo === 'salud') return { ...derivarPorFiltro({ filtro: marca.filtro, marca: marca.filtro }), ...(marca.orientacion ? { orientacion_salud: marca.orientacion } : {}) }
   const base = derivarPorFiltro({ filtro: 'crisis', urgencia: 'alta', marca: marca.tipo === 'quieta' ? `riesgo: ${marca.linea}` : 'riesgo: ambiguo' })
   return { ...base, riesgo: marca.tipo === 'quieta' ? { tipo: 'quieta', linea: marca.linea } : { tipo: 'cuidado' } }
 }

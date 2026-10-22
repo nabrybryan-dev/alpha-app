@@ -36,7 +36,15 @@ const INTERROGATIVO = /^\s*¿?\s*(qué|por qué|para qué|cuál|cuáles|cuánto|
 
 /** ¿Es una pregunta (y no algo que anotar)? */
 export function esPregunta(frase: string): boolean {
-  return /[?¿]/.test(frase) || INTERROGATIVO.test(frase)
+  return /[?¿]/.test(frase) || INTERROGATIVO.test(frase) || esConsultaDeRir(frase)
+}
+
+/** Solo una definición completa; no absorbe registros, síntomas ni pedidos de cambio. */
+export function esConsultaDeRir(frase: string): boolean {
+  const n = sinTildes(frase).replace(/[¿?,.!]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (/^(?:a que te refieres con (?:el )?rir|que quiere decir eso de (?:el )?rir|explicame que son (?:las )?repeticiones en reserva)$/.test(n)) return true
+  if (/^(?:no entiendo (?:el )?rir|(?:que (?:es|significa)|explicame) (?:el )?rir 2|(?:que son|explicame) (?:las )?repeticiones en reserva)$/.test(n)) return true
+  return /^(?:no cambies mi (?:rutina|plan|entrenamiento) )?(?:solo )?(?:(?:que (?:es|significa|quiere decir) )|(?:(?:explica|explicame|dime|define) (?:que significa )?))(?:el )?(?:rir|repeticiones en reserva)$/.test(n)
 }
 
 /** Pedir un cambio, en tú («me subes», «súbeme») y en usted («me sube», «súbame»). */
@@ -86,6 +94,10 @@ export function responderDelPlan(frase: string, ve: LoQuePraxisVe, hoy: string, 
   //    algo no es pedir que baje: eso va al punto 2.
   if (!preguntaPorQue && PIDE_CAMBIO.test(n)) {
     return { tipo: 'pide_cambio', texto: t('Yo no cambio cargas ni tu plan: eso lo decide tu coach.', 'Yo no cambio cargas ni su plan: eso lo decide su coach.'), citas: [], ofrecePregunta: true, queFalto: 'cambio_del_plan' }
+  }
+
+  if (esConsultaDeRir(frase)) {
+    return { tipo: 'respuesta', texto: t('RIR significa repeticiones en reserva: cuántas más calculas que podrías completar al terminar una serie. RIR 2 significa que calculas que te quedarían dos más. Es una estimación; no cambia tu rutina.', 'RIR significa repeticiones en reserva: cuántas más calcula que podría completar al terminar una serie. RIR 2 significa que calcula que le quedarían dos más. Es una estimación; no cambia su rutina.'), citas: ['GLOSARIO · RIR'], ofrecePregunta: false }
   }
 
   const nombrado = ejercicioNombrado(n, m)

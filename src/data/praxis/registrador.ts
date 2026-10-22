@@ -106,9 +106,9 @@ export async function proponerRegistro(sesion: SesionDeFunciones | null, p: Peti
  * encendido (`masGrave.ts`). Nunca lanza: `null` = no hay nada más grave que decir (falla, sesión, red,
  * respuesta ilegible), y la pantalla se queda con lo que el filtro ya dijo.
  */
-export async function releerRiesgo(sesion: SesionDeFunciones | null, frase: string): Promise<MarcaDeRiesgo | null> {
+export async function releerRiesgo(sesion: SesionDeFunciones | null, frase: string, aclaracionSalud = false): Promise<MarcaDeRiesgo | null> {
   if (!sesion?.access_token || !sesion.url) return null
-  const r = await llamar(sesion, RUTA, { accion: 'releer_riesgo', frase })
+  const r = await llamar(sesion, RUTA, { accion: 'releer_riesgo', frase, ...(aclaracionSalud ? { aclaracion_salud: true } : {}) })
   return r.ok ? leerMarcaDelServidor(r.datos) : null
 }
 

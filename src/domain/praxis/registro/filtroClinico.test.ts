@@ -10,6 +10,12 @@ const corpus: Caso[] = JSON.parse(readFileSync(new URL('../../../../scripts/prax
 const CLINICOS = corpus.filter((c) => c.area === 'clinico' && c.id !== 'D06')
 
 describe('filtro clínico contra el corpus', () => {
+  it.each(['No me lesioné.', 'NO ME LESIONE', 'No me lesioné!'])('una negación aislada no se convierte en lesión: %s', (frase) => {
+    expect(filtrarClinico(frase)).toBeNull()
+  })
+  it.each(['No me lesioné, pero me duele el pecho.', 'No me lesioné, pero no puedo respirar.', 'No me lesioné, pero me duele la rodilla.'])('la negación no borra síntomas: %s', (frase) => {
+    expect(filtrarClinico(frase)).not.toBeNull()
+  })
   it.each(CLINICOS.map((c) => [c.id, c.frase]))('%s se deriva sin llegar al modelo: «%s»', (_id, frase) => {
     expect(filtrarClinico(frase)).not.toBeNull()
   })

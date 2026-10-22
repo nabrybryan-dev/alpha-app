@@ -28,7 +28,7 @@ import type {
   Pregunta, Propuesta, RegistroPropuesto, RegistroSeries, SerieDictada, SerieHecha, SesionCtx, UnidadSerie,
 } from './tipos.ts'
 
-export const VERSION_RESOLUTORES = 'registro-resolutores-2026-09-29.1'
+export const VERSION_RESOLUTORES = 'registro-resolutores-2026-10-04.1'
 
 const fmt = (n: number): string => String(n).replace('.', ',')
 
@@ -551,6 +551,10 @@ export function resolverPropuesta(frase: string, ext: Extraccion, ctx: ContextoR
       motivo: 'no_soportado',
       respuesta: 'Borrar una serie no lo puedo hacer desde aquí. Si me dices el valor correcto de esa serie, la corrijo con tu confirmación; o quítala en la pantalla de la sesión.',
     }
+  }
+
+  if (ext.correccion?.objetivo === 'no_claro') {
+    return { ...vacia(citasInvalidas), accion: 'preguntar', pregunta: pregunta('¿Qué dato quieres corregir? Dime cuál y cómo debe quedar.', [], 'correccion'), borrador_pendiente: { texto: frase } }
   }
 
   const registros: RegistroPropuesto[] = []

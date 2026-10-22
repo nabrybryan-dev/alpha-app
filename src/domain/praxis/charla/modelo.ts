@@ -1,11 +1,11 @@
-import { filtroDeRiesgo } from '../riesgo.ts'
+import { filtroDeRiesgo, sinTildes } from '../riesgo.ts'
 
 /**
  * La charla de Praxis con modelo: lo que viaja al servidor y lo que de allí se acepta. PURO: sin red,
  * sin base, sin pantalla.
  *
  * REGLAS (cada una tiene su prueba y su mutante):
- *  - Los turnos previos son de ESTA sesión, los manda el cliente y NO se guardan en ningún sitio. Máximo 6.
+ *  - Los turnos previos son de ESTA sesión; este módulo no los persiste. Se envían como contexto. Máximo 6.
  *  - Un turno de la persona que el filtro de riesgo marca nunca viaja como contexto.
  *  - La respuesta del modelo se acepta solo si es corta, sin «no te entendí», sin dosis, sin afectos
  *    de coqueteo, sin decir que anotó algo y sin repetir el saludo que Praxis ya dijo en voz alta.
@@ -137,7 +137,7 @@ export function sinSaludoRepetido(texto: string, nombre: string | null): string 
  * La respuesta de charla que el modelo puso en `respuesta_charla`, o `null` si no sirve (entonces el cliente
  * cae al libreto local). `apertura`: si Praxis ya saludó, un saludo repetido se quita en vez de rechazar todo.
  */
-export function leerRespuestaCharla(entrada: unknown, c: { apertura: string | null; nombre: string | null }): string | null {
+export function leerRespuestaCharla(entrada: unknown, c: { apertura: string | null; nombre: string | null; trato?: TratoCharla }): string | null {
   const bruto = entrada && typeof entrada === 'object' ? (entrada as Record<string, unknown>).respuesta_charla : null
   if (typeof bruto !== 'string') return null
   let t = bruto.replace(/\s+/g, ' ').trim()
@@ -146,6 +146,11 @@ export function leerRespuestaCharla(entrada: unknown, c: { apertura: string | nu
   if (NO_ENTENDI.test(t) || DOSIS.test(t) || AFECTO.test(t) || DICE_QUE_ANOTO.test(t) || DICE_QUE_ES_PERSONA.test(t)) return null
   if (EMOJI.test(t) || ENLACE.test(t) || /[*_#`<>]/.test(t)) return null
   if (CALCOS_DEL_INGLES.some((r) => r.test(t))) return null
+  if (/\b(?:no queda(?:ra)? nada guardado|(?:no|nunca|jamas) (?:se )?(?:guarda(?:mos)?|almacena(?:mos)?) (?:nada|ningun dato))\b/.test(sinTildes(t))) {
+    return c.trato === 'usted'
+      ? 'Si quiere añadir datos al plan, le mostraré una tarjeta para que decida si guardarlos. Puede consultar los detalles en «Privacidad y ayuda».'
+      : 'Si quieres añadir datos al plan, te mostraré una tarjeta para que decidas si guardarlos. Puedes consultar los detalles en «Privacidad y ayuda».'
+  }
   return t
 }
 

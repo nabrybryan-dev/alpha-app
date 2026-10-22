@@ -1,5 +1,6 @@
 // Rutas con «.ts»: este módulo lo importa también la Edge Function `praxis-registro` (Deno).
 import type { LineaDeAyuda, MarcaDeRiesgo } from './riesgo.ts'
+import { leerOrientacionSalud } from './orientacionSalud.ts'
 
 /**
  * «Gana la lectura más grave», de verdad (Bryan, 3-oct: «Sí, arréglalo ya»).
@@ -31,10 +32,11 @@ export const LECTURA_DEL_MODELO_SOBRE_MARCADAS = true
 
 /**
  * Versión del texto de permisos que cubre enviar al modelo, solo para leerla mejor, una frase marcada como salud o
- * como señal poco clara (Bryan, 3-oct). Quien aceptó una versión anterior ve los permisos otra vez y, mientras no
+ * como señal poco clara (Bryan, 3-oct). v3 aclara los registros del plan, el aviso sin frase y los límites de
+ * conservación del proveedor. Quien aceptó una versión anterior ve los permisos otra vez y, mientras no
  * acepte, Praxis no se activa y NINGUNA frase marcada sale del teléfono.
  */
-export const VERSION_PERMISOS = 'v2'
+export const VERSION_PERMISOS = 'v3'
 
 /** ¿El permiso guardado es el de la versión que cubre la relectura con el modelo? */
 export function permisoCubreLaRelectura(p: { version?: unknown; cRiesgo?: unknown; cConversacion?: unknown } | null | undefined): boolean {
@@ -58,6 +60,8 @@ export function hayQueConsultarAlModelo(filtro: MarcaDeRiesgo | null, encendido:
  * filtro no se inventa una desde aquí: el modelo no puede bajar, y tampoco aparece de la nada.
  */
 export function masGrave(filtro: MarcaDeRiesgo, modelo: MarcaDeRiesgo | null): MarcaDeRiesgo {
+  // Una pregunta complementa salud genérica, pero no sustituye categorías específicas ni baja riesgo.
+  if (filtro.tipo === 'salud' && ['sintoma', 'dolor', 'lesion'].includes(filtro.filtro) && modelo?.tipo === 'salud' && modelo.orientacion && !filtro.orientacion) return { ...filtro, orientacion: modelo.orientacion }
   return gravedad(modelo) > gravedad(filtro) ? (modelo as MarcaDeRiesgo) : filtro
 }
 
@@ -71,6 +75,9 @@ export function leerMarcaDelServidor(datos: unknown): MarcaDeRiesgo | null {
   const { tipo, linea } = m as { tipo?: unknown; linea?: unknown }
   if (tipo === 'quieta' && typeof linea === 'string' && (LINEAS as readonly string[]).includes(linea)) return { tipo: 'quieta', linea: linea as LineaDeAyuda }
   if (tipo === 'cuidado') return { tipo: 'cuidado' }
-  if (tipo === 'salud') return { tipo: 'salud', filtro: 'sintoma' }
+  if (tipo === 'salud') {
+    const orientacion = leerOrientacionSalud((m as { orientacion?: unknown }).orientacion)
+    return { tipo: 'salud', filtro: 'sintoma', ...(orientacion ? { orientacion } : {}) }
+  }
   return null
 }

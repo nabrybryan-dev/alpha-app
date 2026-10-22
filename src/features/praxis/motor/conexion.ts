@@ -1,3 +1,4 @@
+import type { Rol } from '../../../domain/praxis/acceso'
 import type { RespuestaDeGuardar, RespuestaDelRegistrador } from '../../../domain/praxis/conversacion'
 import type { LoQuePraxisVe } from '../../../domain/praxis/plan/listaBlanca'
 import type { QueFalto } from '../../../domain/praxis/plan/responder'
@@ -17,6 +18,8 @@ import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data
  */
 export interface ConexionPraxis {
   usuarioId: string
+  /** El rol de quien conversa; lo usa el enrutador en modo observación. Ausente = no se observa. */
+  rol?: Rol
   /** El nombre de pila, si existe: Praxis lo usa de vez en cuando al charlar. */
   nombre?: string | null
   /** Hoy en hora local, `YYYY-MM-DD`. */
@@ -34,7 +37,7 @@ export interface ConexionPraxis {
    * más grave (o `null`). AUSENTE = el interruptor de consentimiento está apagado y la frase marcada NO sale del teléfono.
    * Nunca lanza.
    */
-  releerRiesgo?: (frase: string) => Promise<MarcaDeRiesgo | null>
+  releerRiesgo?: (frase: string, aclaracionSalud?: boolean) => Promise<MarcaDeRiesgo | null>
   /** Guarda lo que la persona confirmó con un toque. */
   guardar: (p: { mensajeId: string; registros: RegistroPropuesto[]; confirmaSesion: boolean }) => Promise<RespuestaDeGuardar>
   /** Deja una «pregunta en espera». Solo se llama con el «sí» de la persona. */

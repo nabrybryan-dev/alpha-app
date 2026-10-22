@@ -55,7 +55,7 @@ export function crearConexionPraxis(
       })
     },
     // Apagado, NO existe y la frase marcada no sale del teléfono. Encendido, la pantalla solo la usa si el permiso guardado es de la versión que la cubre.
-    ...(lecturaDelModeloSobreMarcadas ? { releerRiesgo: async (frase: string) => releerRiesgo(await sesionDeFunciones(), frase) } : {}),
+    ...(lecturaDelModeloSobreMarcadas ? { releerRiesgo: async (frase: string, aclaracionSalud?: boolean) => releerRiesgo(await sesionDeFunciones(), frase, ...(aclaracionSalud ? [true] as const : [])) } : {}),
     guardar: async (p) => guardarRegistro(await sesionDeFunciones(), { ...p, horaLocal: horaLocalIso() }),
     preguntar: (p) => dejarPreguntaEnEspera({ usuarioId, ...p }),
     preguntas: () => preguntasEnEsperaDe(usuarioId),

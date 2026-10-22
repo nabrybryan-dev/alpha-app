@@ -1,10 +1,12 @@
 import { decidirTurno, pasoTrasProponer, resumenDeGuardado, type PasoTrasProponer } from '../../../domain/praxis/conversacion'
+import { continuarAclaracionSalud, textoOrientacionSalud, type AclaracionSaludPendiente, type OrientacionSalud } from '../../../domain/praxis/orientacionSalud'
 import { gravedad, permisoCubreLaRelectura } from '../../../domain/praxis/masGrave'
 import { cabeCharla, limpiarTurnos, sinSaludoRepetido, type TurnoPrevio } from '../../../domain/praxis/charla/modelo'
 import { destinatarioDe, estadoDeLaEspera, ofertaDePregunta, type Destinatario } from '../../../domain/praxis/enEspera'
 import { SIN_DATO, type QueFalto } from '../../../domain/praxis/plan/responder'
 import type { RespuestaDelRegistrador } from '../../../domain/praxis/conversacion'
 import type { PreguntaConRespuesta, ResultadoDejarPregunta } from '../../../data/praxis/preguntasEnEspera'
+import { observarRuta } from './observacion'
 import { Cab, compactar, enfocarControles, limpiarControles, montar, refrescar } from './cabecera'
 import { charlaSuelta, decidirTurnoConCharla, pareceCharla, type CharlaConModelo } from './charla'
 import { chips } from './controles'
@@ -78,7 +80,9 @@ function mostrarTarjeta(c: ConexionPraxis, p: Confirmar): void {
     if (tok !== S.tok || S.quieta || $('#sala').hidden) return
     pensando(false)
     const res = resumenDeGuardado(r, trato())
-    decirCorto(res.todoGuardado ? 'Listo, guardado.' : tu('No todo quedó guardado. Mira el detalle.', 'No todo quedó guardado. Mire el detalle.'))
+    decirCorto(res.todoGuardado ? 'Listo, guardado.' : res.incierto
+      ? tu('No pude confirmar el guardado. Mira el detalle.', 'No pude confirmar el guardado. Mire el detalle.')
+      : tu('No todo quedó guardado. Mira el detalle.', 'No todo quedó guardado. Mire el detalle.'))
     montar(() => [h('div', { class: 'tarjeta-registro', 'data-k': 'resultado' },
       h('span', { class: 'marca-ejemplo' }, 'Lo que pasó al guardar'),
       res.lineas.map((l) => h('p', { class: 'salto' }, l)),
@@ -162,6 +166,10 @@ function ejercicioDeLaOpcion(c: ConexionPraxis, opcion: string): string | null {
  * no se escribe en el almacenamiento ni en la base. Al servidor viajan, como mucho, los últimos 6.
  */
 let historial: TurnoPrevio[] = []
+let saludPendiente: (AclaracionSaludPendiente & { token: number }) | null = null
+function recordarPreguntaSalud(frase: string, orientacion?: OrientacionSalud): void {
+  saludPendiente = orientacion && orientacion !== 'atencion_hoy' ? { frase, pregunta: orientacion, token: S.tok } : null
+}
 const anotar = (rol: TurnoPrevio['rol'], texto: string): void => { historial = [...historial, { rol, texto }].slice(-12) }
 
 /** Cuánto se espera al modelo en un turno de charla antes de caer al libreto local. Las pruebas lo bajan. */
@@ -226,6 +234,8 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
   // Sin nada que guardar y sin respuesta del modelo: el libreto, no el mensaje genérico.
   if (r && r.ok && !r.charla && ch.alFallar !== null && cabeCharla(r.propuesta)) { await alFallarLaCharla(c, frase, tok, ch); return }
   const p: PasoTrasProponer = pasoTrasProponer(r ?? { ok: false, motivo: 'red' }, trato())
+  // Si solo el modelo detectó salud, tampoco se arrastra esa frase al hilo de charla siguiente.
+  if (p.paso === 'salud' || p.paso === 'quieta' || p.paso === 'cuidado') historial = historial.filter((t) => t.rol !== 'persona' || t.texto !== frase)
   switch (p.paso) {
     case 'charla': {
       // Si Praxis ya saludó en voz alta, un saludo repetido por el modelo se quita (defensa en profundidad: el servidor ya lo quita).
@@ -265,6 +275,10 @@ async function registrar(c: ConexionPraxis, frase: string, tok: number, ejercici
       await dijo(p.texto, tok)
       return
     case 'salud':
+      recordarPreguntaSalud(frase, p.orientacion)
+      await decir(p.texto, tok)
+      montar(() => [pieFormulario(c)])
+      return
     case 'fallo':
       await decir(p.texto, tok)
       montar(() => [pieFormulario(c)])
@@ -283,36 +297,54 @@ let animoPendiente = false, turnosHablados = 0
    Si el modelo falla, tarda, no contesta o devuelve algo igual o menor, no pasa nada: ya se dijo lo del filtro. La frase NO entra al hilo. */
 let turnoDeSeguridad = 0
 
-function subirSiHaceFalta(c: ConexionPraxis, frase: string, filtro: 'cuidado' | 'salud'): void {
+function subirSiHaceFalta(c: ConexionPraxis, frase: string, filtro: 'cuidado' | 'salud', aclaracionSalud = false): void {
   const releer = c.releerRiesgo
   if (!releer) return
   if (!permisoCubreLaRelectura(Dia.permisos)) return // permiso de una versión vieja: la frase marcada NO sale del teléfono
   S.leidasPorModelo.push(frase)
   const miTurno = ++turnoDeSeguridad
   const actual = gravedad(filtro === 'salud' ? { tipo: 'salud', filtro: 'sintoma' } : { tipo: 'cuidado' })
-  void releer(frase).then((m) => {
-    if (!m || gravedad(m) <= actual) return
+  void releer(frase, ...(aclaracionSalud ? [true] as const : [])).then((m) => {
+    if (!m) return
     if (conexion() !== c || $('#sala').hidden || S.quieta) return // la persona ya se fue de la sala, o ya está en la Quieta
+    // La orientación completa salud; nunca reemplaza una pregunta de cuidado ni una emergencia.
+    if (m.tipo === 'salud' && m.orientacion && filtro === 'salud' && miTurno === turnoDeSeguridad && !S.cuidado) {
+      if (saludPendiente?.pregunta === m.orientacion) return
+      recordarPreguntaSalud(frase, m.orientacion)
+      decirCorto(textoOrientacionSalud(m.orientacion, trato()))
+      return
+    }
+    if (gravedad(m) <= actual) return
     if (m.tipo === 'quieta') { entrarQuieta(m.linea, frase, false, true); return }
     if (m.tipo === 'cuidado' && miTurno === turnoDeSeguridad && !S.cuidado) preguntarCuidado(frase, 'texto', true)
   }, () => undefined)
 }
 
 async function atender(c: ConexionPraxis, frase: string, tok: number, eleccion?: { ejercicioId: string; eco: string }): Promise<void> {
+  ++turnoDeSeguridad // una respuesta de salud antigua no debe pisar un turno posterior
+  const continuacion = !eleccion ? continuarAclaracionSalud(saludPendiente, frase) : null
+  saludPendiente = null
+  const fraseVisible = frase
+  if (continuacion) frase = continuacion
   limpiarControles()
   const previos = limpiarTurnos(historial) // lo de ANTES de esta frase: máximo 6
   // Con un ejercicio elegido con un toque nunca es charla. Si no: el filtro de riesgo primero y, solo si no marca nada, la charla.
-  const turno = eleccion
-    ? decidirTurno(frase, c.leer(), c.hoy, trato())
+  const turno = eleccion || continuacion
+    ? decidirTurno(frase, c.leer(), c.hoy, trato(), !!continuacion)
     : decidirTurnoConCharla(frase, c.leer(), c.hoy, { trato: trato(), hora: new Date().getHours(), esperaAnimo: animoPendiente, yaHablo: turnosHablados > 0, nombre: c.nombre ?? null })
   if (turno.paso === 'nada') return
+  observarRuta(frase, c.usuarioId, c.rol, !!continuacion) // modo observación: anota ruta y área, no cambia nada
   turnosHablados++
   animoPendiente = false // lo último que dijo Praxis cambia con cada turno; solo el saludo y el «¿Y tú?» lo vuelven a abrir
   // La seguridad va primero: estas dos salidas cancelan el turno (el bucle termina en su próximo vigilar).
   if (turno.paso === 'quieta') { mostrarPersona(frase, 'texto'); entrarQuieta(turno.linea, frase, false); return }
   if (turno.paso === 'cuidado') { preguntarCuidado(frase, 'texto'); subirSiHaceFalta(c, frase, 'cuidado'); return }
-  mostrarPersona(eleccion ? eleccion.eco : frase, 'texto')
-  if (turno.paso === 'salud') { subirSiHaceFalta(c, frase, 'salud'); await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return }
+  mostrarPersona(eleccion ? eleccion.eco : fraseVisible, 'texto')
+  if (turno.paso === 'salud') {
+    recordarPreguntaSalud(frase, turno.orientacion)
+    subirSiHaceFalta(c, frase, 'salud', !!continuacion)
+    await decir(turno.texto, tok); montar(() => [pieFormulario(c)]); return
+  }
   if (!eleccion) anotar('persona', frase) // ya pasó el filtro de riesgo; el saneador vuelve a descartar lo marcado
   if (turno.paso === 'charla') { // 0 ms, 0 tokens: nada va al servidor ni se guarda, y se dice con la misma voz que todo lo demás
     animoPendiente = turno.respuesta.esperaAnimo
@@ -367,7 +399,7 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
   try {
     if (!S.t0) S.t0 = performance.now()
     S.turno = 'conversa'; S.enFirma = false; S.cola = []
-    animoPendiente = false; turnosHablados = 0; historial = []
+    animoPendiente = false; turnosHablados = 0; historial = []; saludPendiente = null
     Cab.pendiente = false // conectada no se compacta: el agujero se queda en el centro, que es por donde se habla (Bryan, 2-oct)
     Onda.soltarFirma(); Onda.estado('reposo')
     Penta.cerrar(); $('#penta').hidden = true; $('#muelle').hidden = false; $('#editor').hidden = true
@@ -379,4 +411,5 @@ export async function correrConversacion(opt: { saludo?: boolean } = {}): Promis
       await atender(c, e.txt, tok, e.ejercicioId ? { ejercicioId: e.ejercicioId, eco: e.eco ?? e.txt } : undefined)
     }
   } catch (e) { if (!(e instanceof Cancelado)) throw e }
+  finally { if (saludPendiente?.token === tok) saludPendiente = null }
 }
