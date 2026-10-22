@@ -10,6 +10,13 @@
  * librería (`lib/redactar-una-revision.mjs`) que importaba un script que lanzaba el `.ps1`. Una
  * lista de archivos no ve la librería que alguien importe mañana.
  *
+ * Y NO SOLO MODELOS (revisión 06, H2): subir los audios de la tanda a un servicio externo es lo mismo. La
+ * cara se hacía subiendo los `*.mp3` (con el nombre y las cifras de salud de cada persona) a Kaggle.
+ * Esas formas —Kaggle, una subida por HTTP, `curl`, un host de fuera— se marcan `optIn`: son un
+ * hallazgo SALVO que estén dentro de un bloque `if ($ConCara) { … }` de un `.ps1`, la bandera
+ * explícita que las apaga por defecto. Entonces salen aparte, en `optIn`, para que la prueba vea que
+ * existen y sepa que están detrás de la bandera. Un modelo de lenguaje NUNCA es opt-in.
+ *
  * LÍMITE DECLARADO: es un detector de formas conocidas (la CLI del modelo, su variable de entorno,
  * las URL y los SDK de los proveedores). No ve una llamada escrita de forma que no conoce. Por eso
  * la prueba lo comprueba con positivos sembrados, y por eso no sustituye a leer el diff.
@@ -20,6 +27,17 @@ import { dirname, join, relative, resolve } from 'node:path'
 
 /** Cada forma conocida de llamar a un modelo que no corre en este equipo. */
 export const PATRONES_DE_MODELO_EXTERNO = [
+  // ── servicios externos a los que subir audios (opt-in detrás de `if ($ConCara)`) ──
+  { nombre: 'Kaggle (la cara en GPU de fuera)', regex: /\bkaggle\b|lanzar_en_kaggle/i, optIn: true },
+  { nombre: 'el entorno de la cara en GPU', regex: /cara-gpu|cara-alpha/i, optIn: true },
+  { nombre: 'una subida o descarga por HTTP desde PowerShell', regex: /\b(?:Invoke-RestMethod|Invoke-WebRequest|Start-BitsTransfer)\b/i, optIn: true },
+  { nombre: 'curl, scp, rsync o sftp', regex: /(?:^|[\s;&|('"`])(?:curl(?:\.exe)?|scp|rsync|sftp)\s/im, optIn: true },
+  {
+    nombre: 'un host de fuera (no es Supabase ni este equipo)',
+    regex: /https?:\/\/(?!(?:[\w-]+\.)*supabase\.co\b|localhost\b|127\.0\.0\.1\b|\[::1\])[\w.-]+\.[a-z]{2,}/i,
+    optIn: true,
+  },
+  // ── modelos de lenguaje: NUNCA opt-in ──
   { nombre: 'la CLI del modelo por nombre', regex: /['"`]claude(?:\.exe)?['"`]/i },
   { nombre: 'la CLI del modelo en una orden', regex: /(?:^|[\s;&|('"`])claude(?:\.exe)?\s+-p\b/im },
   { nombre: 'el ejecutable del modelo', regex: /\bclaude\.exe\b/i },
@@ -72,14 +90,39 @@ function archivosDeUnScript(comando, raiz) {
 
 /**
  * @param {{raiz: string, entradas: string[]}} p  `entradas` relativas a la raíz (el `.ps1`)
- * @returns {Promise<{archivos: string[], hallazgos: {archivo: string, linea: number, patron: string, texto: string}[]}>}
+ * @returns {Promise<{archivos: string[], hallazgos: Hallazgo[], optIn: Hallazgo[]}>}
  */
+/**
+ * Una línea que solo es un comentario no ejecuta nada: explicar en un comentario por qué la cara está
+ * apagada («sube los audios a Kaggle») no puede encender el detector. Una línea con código y un comentario
+ * al final SÍ se mira.
+ */
+function esComentario(linea, ruta) {
+  return /\.ps1$/i.test(ruta) ? /^\s*#/.test(linea) : /^\s*(?:\/\/|\/\*|\*)/.test(linea)
+}
+
+/** Las líneas (1-based) que quedan dentro de un `if ($ConCara) { … }`: la bandera que apaga lo externo. */
+function lineasDeLaBandera(lineas) {
+  const dentro = new Set()
+  for (let i = 0; i < lineas.length; i++) {
+    if (!/^\s*if\s*\(\s*\$ConCara\s*\)\s*\{/i.test(lineas[i])) continue
+    let profundidad = 0
+    for (let j = i; j < lineas.length; j++) {
+      profundidad += (lineas[j].match(/\{/g) ?? []).length - (lineas[j].match(/\}/g) ?? []).length
+      dentro.add(j + 1)
+      if (profundidad <= 0) break
+    }
+  }
+  return dentro
+}
+
 export async function recorrerLaCadena({ raiz, entradas }) {
   const paquete = JSON.parse((await leer(join(raiz, 'package.json'))) ?? '{"scripts":{}}')
   const scripts = paquete.scripts ?? {}
   const pendientes = entradas.map((e) => resolve(raiz, e))
   const vistos = new Set()
   const hallazgos = []
+  const optIn = []
 
   while (pendientes.length) {
     const ruta = pendientes.pop()
@@ -89,11 +132,15 @@ export async function recorrerLaCadena({ raiz, entradas }) {
     if (texto === null) continue
     const relativa = relative(raiz, ruta).replace(/\\/g, '/')
 
-    texto.split(/\r?\n/).forEach((linea, i) => {
+    const lineas = texto.split(/\r?\n/)
+    const enLaBandera = /\.ps1$/i.test(ruta) ? lineasDeLaBandera(lineas) : new Set()
+    lineas.forEach((linea, i) => {
+      if (esComentario(linea, ruta)) return
       for (const p of PATRONES_DE_MODELO_EXTERNO) {
-        if (p.regex.test(linea)) {
-          hallazgos.push({ archivo: relativa, linea: i + 1, patron: p.nombre, texto: linea.trim().slice(0, 160) })
-        }
+        if (!p.regex.test(linea)) continue
+        const hallazgo = { archivo: relativa, linea: i + 1, patron: p.nombre, texto: linea.trim().slice(0, 160) }
+        if (p.optIn && enLaBandera.has(i + 1)) optIn.push(hallazgo)
+        else hallazgos.push(hallazgo)
       }
     })
 
@@ -109,7 +156,8 @@ export async function recorrerLaCadena({ raiz, entradas }) {
         const palabra = new RegExp(`(?<![\\w.-])${nombre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`)
         if (palabra.test(texto)) pendientes.push(...archivosDeUnScript(comando, raiz))
       }
-      for (const m of texto.matchAll(/(scripts[\\/][\w./\\-]+\.(?:mjs|ps1|py))/g)) {
+      const sinComentarios = lineas.filter((l) => !esComentario(l, ruta)).join('\n')
+      for (const m of sinComentarios.matchAll(/(scripts[\\/][\w./\\-]+\.(?:mjs|ps1|py))/g)) {
         const ruta2 = resolve(raiz, m[1])
         if (existsSync(ruta2)) pendientes.push(ruta2)
       }
@@ -119,5 +167,6 @@ export async function recorrerLaCadena({ raiz, entradas }) {
   return {
     archivos: [...vistos].map((r) => relative(raiz, r).replace(/\\/g, '/')).sort(),
     hallazgos,
+    optIn,
   }
 }

@@ -53,8 +53,11 @@ param(
   [string]$Registro = "$env:USERPROFILE\.alpha\registros",
   # No traerse el codigo nuevo antes de correr. Para probar con lo que hay delante.
   [switch]$SinActualizar,
-  # Saltarse la cara y publicar solo la voz. Para una semana con prisa o con Kaggle caido.
-  [switch]$SinCara,
+  # LA CARA (el doblaje de labios) corre en Kaggle, FUERA de este equipo: sube los audios de la tanda,
+  # que llevan el nombre y las cifras de salud de cada persona. Decision de Bryan, 22-oct: "Todo en el PC".
+  # Por eso la cara esta APAGADA por defecto y solo corre con -ConCara, a proposito y cada vez. Antes
+  # corria sola en cuanto existian el lanzador y el venv de la GPU, y solo se apagaba con -SinCara.
+  [switch]$ConCara,
   # QUE PARTE DE LA CADENA SE CORRE. La voz de una tanda entera (~9 min por persona con el PC
   # apretado de memoria) y la cara en Kaggle no caben en una sola tarea corta.
   #   completa : todo seguido, como siempre.
@@ -73,7 +76,12 @@ param(
   [switch]$FirmaAutomatica,
   [string]$FirmaAutomaticaArchivo = "$env:USERPROFILE\.alpha\firma-automatica.activa",
   # Si por la manana faltan mas voces que estas, no se rehacen (no caben en la tarea): se avisa.
-  [int]$MaximoDeVocesPorLaManana = 4
+  [int]$MaximoDeVocesPorLaManana = 4,
+  # El CANDADO contra dos corridas a la vez (la tarea de la noche que se alarga + la de la manana, o una
+  # corrida a mano mientras corre la programada). Dos corridas pisarian el mismo manifiesto, lanzarian
+  # dos modelos de voz de 2-3 GB en un PC que ya va justo de memoria y publicarian dos veces.
+  # Es un archivo abierto SIN compartir: el sistema lo suelta solo si el proceso muere, no queda candado huerfano.
+  [string]$Candado = "$env:USERPROFILE\.alpha\revision-semanal.lock"
 )
 
 # ============================================================================
@@ -150,10 +158,30 @@ function Falla([string]$paso, [string]$motivo, [int]$codigo = 1) {
   exit $codigo
 }
 
+# EL CANDADO. Se toma antes que nada (antes de traer codigo y de tocar el manifiesto) y lo suelta el sistema
+# al terminar el proceso, pase lo que pase. Si no se puede tomar, hay otra corrida en marcha: se para, se
+# avisa y se sale con el codigo 5. NO se espera: una corrida que espera a otra puede acabar publicando dos veces.
+$script:manejadorDelCandado = $null
+function TomaElCandado([string]$archivo) {
+  try {
+    $carpetaDelCandado = Split-Path -Parent $archivo
+    if ($carpetaDelCandado -and -not (Test-Path $carpetaDelCandado)) { New-Item -ItemType Directory -Force -Path $carpetaDelCandado | Out-Null }
+    $script:manejadorDelCandado = [System.IO.File]::Open($archivo, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes(("pid {0} desde {1}" -f $PID, (Get-Date -Format 's')))
+    $script:manejadorDelCandado.SetLength(0)
+    $script:manejadorDelCandado.Write($bytes, 0, $bytes.Length)
+    $script:manejadorDelCandado.Flush()
+    return $true
+  } catch { return $false }
+}
+
 # --- el registro, antes que nada: si algo falla, que quede escrito donde falló ---
 if (-not (Test-Path $Registro)) { New-Item -ItemType Directory -Force -Path $Registro | Out-Null }
 $script:archivoRegistro = Join-Path $Registro ("revision-{0}.log" -f (Get-Date -Format 'yyyy-MM-dd'))
 Apunta "===== arranca la revision semanal ====="
+if (-not (TomaElCandado $Candado)) {
+  Falla 'candado' "hay otra corrida de la revision semanal en marcha (no pude tomar $Candado). Esta no hace nada." 5
+}
 
 # ============================================================================
 # PONERSE AL DIA, Y POR QUE ESTO NO ES UN ADORNO
@@ -193,6 +221,8 @@ if (-not $SinActualizar) {
       # los mismos parametros y -SinActualizar para que no vuelva a entrar aqui.
       if ((Get-FileHash -Path $PSCommandPath).Hash -ne $huellaAntes) {
         Apunta "este script cambio con la actualizacion: me relanzo con la version nueva"
+        # La corrida nueva tiene que poder tomar el candado: se suelta aqui.
+        if ($script:manejadorDelCandado) { $script:manejadorDelCandado.Dispose(); $script:manejadorDelCandado = $null }
         $argumentos = @()
         foreach ($p in $PSBoundParameters.GetEnumerator()) {
           if ($p.Value -is [System.Management.Automation.SwitchParameter]) {
@@ -314,15 +344,20 @@ try {
     }
   }
 
-  # ---------- 2.5 LA CARA ----------
+  # ---------- 2.5 LA CARA (APAGADA por defecto: solo con -ConCara) ----------
   # El doblaje de labios pide una tarjeta NVIDIA y la de este portatil es AMD, asi que
   # este paso ocurre FUERA: sube los audios a Kaggle, lanza el cuaderno, recoge los mp4
   # y BORRA los audios de alli. Medido el 12-sep: 142 s por video, ~1 h 15 la tanda de 22.
   #
+  # DECISION DE BRYAN, 22-oct, "Todo en el PC": los audios llevan el nombre y las cifras de salud de
+  # cada persona y NO salen de este equipo salvo que alguien lo pida a proposito con -ConCara. La
+  # prueba scripts/lib/cadena-sin-modelo-externo.test.mjs ve este bloque, lo separa como "opt-in" y
+  # falla si algo parecido aparece FUERA de el.
+  #
   # NO PARA LA CADENA SI FALLA, y es la decision mas importante de este paso: el paso 3
   # publica el mp4 cuando existe y el mp3 cuando no. Un viernes sin cara es un viernes
   # con voz, no un viernes sin revision. Se anota lo que paso y se sigue.
-  if (-not $SinCara) {
+  if ($ConCara) {
     $lanzador = 'C:\Users\ASUS\dev\cara-alpha\lanzar_en_kaggle.py'
     $pythonCara = 'F:\cara-gpu\venv311\Scripts\python.exe'
     if ((Test-Path $lanzador) -and (Test-Path $pythonCara)) {
@@ -330,7 +365,7 @@ try {
       # equipo un proceso que espera en segundo plano muere por RAM. De manana se RECOGE (y
       # se borran los audios de Kaggle). Completa, como siempre: lanza, espera y recoge.
       $modoCara = switch ($Fase) { 'noche' { @('--sin-esperar') } 'manana' { @('--solo-recoger') } default { @() } }
-      Apunta ("paso 2.5: la cara, en Kaggle ({0})" -f $(if ($modoCara) { $modoCara -join ' ' } else { 'lanzar, esperar y recoger' }))
+      Apunta ("paso 2.5: la cara, en Kaggle, FUERA del equipo, porque se pidio -ConCara ({0})" -f $(if ($modoCara) { $modoCara -join ' ' } else { 'lanzar, esperar y recoger' }))
       & $pythonCara $lanzador $carpeta @modoCara 2>&1 | Registra
       if ($LASTEXITCODE -ne 0) {
         Apunta "la cara no salio (codigo $LASTEXITCODE). SIGO: se publicara la voz."
@@ -338,6 +373,8 @@ try {
     } else {
       Apunta "no encuentro el lanzador de la cara. SIGO: se publicara la voz."
     }
+  } else {
+    Apunta "paso 2.5: la cara APAGADA (todo en el PC; solo corre con -ConCara). Se publica la voz."
   }
 
   if ($Fase -eq 'noche') {

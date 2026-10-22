@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -86,6 +86,66 @@ describe('el detector (con positivos y negativo)', () => {
   })
 })
 
+describe('H2 (revisión 06) · subir los audios de la tanda a un servicio externo tampoco vale', () => {
+  // La cara se hacía subiendo los `*.mp3` de la tanda (con el nombre y las cifras de salud de cada
+  // persona) a Kaggle. Hoy no corre porque el venv de la GPU no existe; si alguien lo repone, los
+  // audios salen del PC. Decisión de Bryan: «Todo en el PC». Solo corre con una bandera EXPLÍCITA.
+  const subidas = {
+    'el lanzador de Kaggle': "& $pythonCara 'C:\\Users\\ASUS\\dev\\cara-alpha\\lanzar_en_kaggle.py' $carpeta",
+    'la CLI de Kaggle': '& kaggle kernels push -p $carpeta',
+    'el venv de la cara en GPU': "$pythonCara = 'F:\\cara-gpu\\venv311\\Scripts\\python.exe'",
+    'una subida por HTTP': "Invoke-RestMethod -Uri 'https://servicio-de-fuera.example/subir' -Method Post -InFile $audio",
+    'curl a un host de fuera': 'curl.exe -F "audio=@$audio" https://servicio-de-fuera.example/subir',
+    'un fetch a un host de fuera': "await fetch('https://servicio-de-fuera.example/subir', { method: 'POST', body })",
+  }
+
+  for (const [nombre, linea] of Object.entries(subidas)) {
+    it(`enciende con ${nombre} si NO está detrás de la bandera explícita`, async () => {
+      await cadenaDeJuguete('export const ayuda = () => 1\n')
+      await escribe('scripts/cadena.ps1', `param([switch]$ConCara)\n& npm run paso\n${linea}\n`)
+      const r = await recorrerLaCadena({ raiz, entradas: ['scripts/cadena.ps1'] })
+      expect(r.hallazgos.map((h) => h.archivo)).toContain('scripts/cadena.ps1')
+      expect(r.optIn).toEqual([])
+    })
+  }
+
+  it('detrás de `if ($ConCara) { … }` NO es un hallazgo, pero se ve: sale en `optIn`', async () => {
+    await cadenaDeJuguete('export const ayuda = () => 1\n')
+    await escribe(
+      'scripts/cadena.ps1',
+      `param([switch]$ConCara)\n& npm run paso\nif ($ConCara) {\n  & $pythonCara 'x\\cara-alpha\\lanzar_en_kaggle.py' $carpeta\n}\n`,
+    )
+    const r = await recorrerLaCadena({ raiz, entradas: ['scripts/cadena.ps1'] })
+    expect(r.hallazgos).toEqual([])
+    expect([...new Set(r.optIn.map((h) => h.archivo))]).toEqual(['scripts/cadena.ps1'])
+  })
+
+  it('la bandera NO disculpa a un modelo de lenguaje: eso nunca es opt-in', async () => {
+    await cadenaDeJuguete('export const ayuda = () => 1\n')
+    await escribe('scripts/cadena.ps1', `param([switch]$ConCara)\n& npm run paso\nif ($ConCara) {\n  & claude.exe -p 'resume'\n}\n`)
+    const r = await recorrerLaCadena({ raiz, entradas: ['scripts/cadena.ps1'] })
+    expect(r.hallazgos.length).toBeGreaterThan(0)
+  })
+
+  it('si el bloque de la bandera se cierra, lo que viene después vuelve a vigilarse', async () => {
+    await cadenaDeJuguete('export const ayuda = () => 1\n')
+    await escribe(
+      'scripts/cadena.ps1',
+      `param([switch]$ConCara)\n& npm run paso\nif ($ConCara) {\n  Write-Host 'cara'\n}\n& kaggle kernels push -p $carpeta\n`,
+    )
+    const r = await recorrerLaCadena({ raiz, entradas: ['scripts/cadena.ps1'] })
+    expect(r.hallazgos.map((h) => h.archivo)).toEqual(['scripts/cadena.ps1'])
+  })
+
+  it('NO se puede encender sin querer: el .ps1 real solo la declara como switch y la usa como condición', async () => {
+    const ps1 = await readFile('scripts/revision-semanal-viernes.ps1', 'utf8')
+    expect(ps1).toMatch(/\[switch\]\$ConCara/)
+    expect(ps1).toMatch(/if\s*\(\$ConCara\)\s*\{/)
+    // Y ya no existe la forma vieja, en la que la cara corría salvo que alguien pasara -SinCara.
+    expect(ps1).not.toMatch(/\$SinCara/)
+  })
+})
+
 describe('la cadena REAL del viernes', () => {
   it('no llama a ningún modelo externo, y la prueba ve de verdad la cadena (no pasa en vacío)', async () => {
     const r = await recorrerLaCadena({ raiz: process.cwd(), entradas: ['scripts/revision-semanal-viernes.ps1'] })
@@ -102,6 +162,9 @@ describe('la cadena REAL del viernes', () => {
       ]),
     )
     expect(r.hallazgos).toEqual([])
+    // La cara en Kaggle SÍ está en el .ps1, pero solo detrás de -ConCara: el detector la ve y la separa.
+    expect(r.optIn.length).toBeGreaterThan(0)
+    expect(new Set(r.optIn.map((h) => h.archivo))).toEqual(new Set(['scripts/revision-semanal-viernes.ps1']))
   })
 
   it('el paso viejo que llamaba al modelo ya no existe en la cadena', async () => {
