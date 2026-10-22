@@ -81,6 +81,17 @@ Casi todo lo que sale con incertidumbre o con posibilidad de abstención sale co
   la segunda derivada lo amplifica y hay que propagarlo con el ruido de la IK (Monte Carlo) antes de afirmar un valor con video real.
 - Supuesto: tobillo fijo en el suelo (pie plano). Falso cuando el talón despega.
 
+### Peso muerto y zancada
+- `momentosDePesoMuerto({ sexo, talla, masa, cargaKg, pose: { tibia, muslo, tronco, cabeza, brazo, pieZ } })` → `{ tobillo, rodilla, cadera, inercial }`. Misma cadena
+  y signos que la sentadilla; la barra cuelga de las manos con los brazos estirados (`brazo` = ángulo de la recta hombro-mano desde la vertical; 0 = vertical).
+  `brazoParaBarraSobre(sujeto, pose, z)` da el ángulo que deja la barra sobre una vertical (p. ej. el medio del pie) o `null` si el brazo no llega.
+  `momentosDePesoMuertoEnElTiempo` = la serie con el término inercial, con las reglas de la sentadilla. El hombro se toma en el punto cervical (supuesto).
+  `POSE_DE_PARTIDA_ILUSTRATIVA` es una pose de ejemplo, no la técnica de nadie.
+- `momentosDeZancada({ sexo, talla, masa, cargaKg (suma de las dos mancuernas), pose })` → momentos de la pierna **delantera** y de la **trasera** por separado
+  (tobillo, rodilla, cadera), el reparto de la fuerza vertical entre los pies y `inercial` (siempre `no_afirmable`: con aceleración no hay regla publicada para repartir
+  la reacción entre los dos pies). La rodilla trasera sale del triángulo cadera-rodilla-tobillo; el reparto, de la regla de la palanca con el centro de masas; la **banda** es
+  la envolvente de mover cada centro de presión ± 3 cm, no un intervalo de confianza. Centro de masas fuera de los dos apoyos, o tobillo trasero fuera de alcance → `no_afirmable`.
+
 ### Momento pasivo (Silder 2007, solo plano sagital, jóvenes sanos)
 - `momentosPasivosDeLaPose(pose{tibia, muslo, tronco} | null, { muestras?, semilla? }) → { cadera, rodilla, tobillo }` (`Cifra`, N·m, **signo
   funcional de este dominio**, total de las dos piernas, con banda p5–p95 de la población ensayada). **`no_afirmable` fuera del dominio

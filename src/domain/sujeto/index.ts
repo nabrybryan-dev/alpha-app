@@ -78,6 +78,18 @@ export {
   type ResultadoDeSerie,
 } from './inercial'
 
+// Peso muerto (barra en las manos) y zancada con mancuernas (dos apoyos, estática): misma cadena y mismos signos que la sentadilla.
+export {
+  POSE_DE_PARTIDA_ILUSTRATIVA,
+  brazoParaBarraSobre,
+  momentosDePesoMuerto,
+  momentosDePesoMuertoEnElTiempo,
+  type EntradaDePesoMuerto,
+  type PoseDePesoMuerto,
+  type ResultadoDePesoMuerto,
+} from './pesoMuerto'
+export { INCERTIDUMBRE_DEL_CP_M, momentosDeZancada, type EntradaDeZancada, type PoseDeZancada, type ResultadoDeZancada } from './zancada'
+
 // Bandas p5-p95 por Monte Carlo de esos momentos.
 export {
   SIN_INCERTIDUMBRE,
