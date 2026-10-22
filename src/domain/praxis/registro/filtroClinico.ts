@@ -67,7 +67,7 @@ const ANIMO: RegExp[] = [/\bsin ganas de nada\b/, /\bni de comer ni de salir\b/]
 
 const URGENTE: RegExp[] = [
   /(dolor|duele|dolio|ardor|opresion|presion|pinchazo|punzada|aprieta|quemazon)[^,.;]{0,30}\bpecho\b/,
-  /\bpecho\b[^,.;]{0,20}(duele|dolio|ardor|opresion|aprieta|quema)/,
+  /\bpecho\b[^,.;]{0,20}(duele|dolio|ardor|opresion|presion|aprieta|quema)/,
   /\bfalta de aire\b|\bme falto el aire\b|\bme falta el aire\b|\bsin aire\b|\bno puedo respirar\b/,
   /\bdesmay/,
 ]
@@ -113,7 +113,10 @@ function primera(res: RegExp[], n: string): string | null {
 
 /** `null` si la frase no trae nada clínico. */
 export function filtrarClinico(frase: string): MarcaClinica | null {
-  const n = normalizarTexto(frase).replace(EXAGERACION_INOFENSIVA, ' ').replace(NEGACION_BENIGNA, ' ')
+  const normal = normalizarTexto(frase)
+  // Negación completa y aislada. Nunca quitarla de un mensaje que añade síntomas.
+  if (normal === 'no me lesione') return null
+  const n = normal.replace(EXAGERACION_INOFENSIVA, ' ').replace(NEGACION_BENIGNA, ' ')
 
   const crisisChat = FRASES_CRISIS_CHAT.find((f) => n.includes(f))
   if (crisisChat) return { filtro: 'crisis', urgencia: 'alta', marca: crisisChat }
@@ -149,9 +152,9 @@ export function filtrarClinico(frase: string): MarcaClinica | null {
  * tratamiento. Ninguno autoriza ni prohíbe entrenar.
  */
 export const RESPUESTAS_CLINICAS: Record<FiltroClinico, string> = {
-  dolor: 'Gracias por decírmelo. Le paso esto a Bryan para que lo revise; por ahora no anoto nada de este mensaje como un registro normal.',
-  lesion: 'Lo que sentiste importa. Se lo paso a Bryan ya; por ahora no anoto nada de este mensaje como un registro normal.',
-  sintoma: 'Gracias por avisarme. Se lo paso a Bryan ahora; no puedo decirte qué es. Si sigues mal, busca atención médica.',
+  dolor: 'Gracias por decírmelo. No esperes una respuesta de Bryan para buscar atención médica si la necesitas. Le paso esto para que lo revise; por ahora no anoto nada de este mensaje como un registro normal.',
+  lesion: 'Lo que sentiste importa. No esperes una respuesta de Bryan para buscar atención médica si la necesitas. Se lo paso ya; por ahora no anoto nada de este mensaje como un registro normal.',
+  sintoma: 'Gracias por avisarme; no puedo decirte qué es. No esperes una respuesta de Bryan para buscar atención médica si la necesitas. Se lo paso ahora.',
   crisis:
     'Gracias por decírmelo. Lo que sientes importa más que el entreno. Le aviso a Bryan ahora. Si estás en peligro o piensas en hacerte daño, llama a la Línea 106 o al 123; no estás solo ni sola.',
   medicamento: 'No puedo recomendar medicamentos ni suplementos. Se lo paso a Bryan y, si te preocupa, consúltalo con un médico.',
@@ -160,7 +163,7 @@ export const RESPUESTAS_CLINICAS: Record<FiltroClinico, string> = {
 }
 
 export const RESPUESTA_URGENCIA_ALTA =
-  'Lo que describes necesita atención médica pronto. Si sigue o te falta el aire, busca urgencias ahora. Aviso a Bryan de inmediato.'
+  'Lo que describes necesita atención médica urgente. Llama al 123 ahora. No esperes una respuesta de Bryan. Aviso a Bryan de inmediato.'
 
 /** La propuesta de derivación: nada que guardar, aviso a Bryan, texto fijo. */
 export function derivarPorFiltro(marca: MarcaClinica): Propuesta {

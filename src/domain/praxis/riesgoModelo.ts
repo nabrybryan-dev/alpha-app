@@ -1,6 +1,7 @@
 // Rutas con «.ts»: este módulo lo importa también la Edge Function `praxis-registro` (Deno).
 import type { MarcaDeRiesgo } from './riesgo.ts'
 import { PROMPT_RIESGO, SHA16_PROMPT_RIESGO } from './riesgoModeloPrompt.ts'
+import { preguntaDeSalud } from './orientacionSalud.ts'
 
 export { PROMPT_RIESGO, SHA16_PROMPT_RIESGO }
 
@@ -63,7 +64,7 @@ export function leerSalidaRiesgo(texto: string): LecturaModelo | null {
  *   (decisión de Bryan del 2-oct) todavía no tiene pantalla; mientras tanto va por salud, que
  *   protege y NUNCA le pregunta a alguien con un pie aplastado si piensa hacerse daño.
  */
-export function marcaDesdeModelo(nivel: NivelModelo): MarcaDeRiesgo | null {
+export function marcaDesdeModelo(nivel: NivelModelo, frase?: string): MarcaDeRiesgo | null {
   switch (nivel) {
     case 'URGENTE_FISICO':
     case 'RIESGO_VIDA':
@@ -74,7 +75,10 @@ export function marcaDesdeModelo(nivel: NivelModelo): MarcaDeRiesgo | null {
       return { tipo: 'quieta', linea: 'nino' }
     case 'AMBIGUO_VIDA':
       return { tipo: 'cuidado' }
-    case 'PREGUNTAR_ANTES_DE_ENTRENAR':
+    case 'PREGUNTAR_ANTES_DE_ENTRENAR': {
+      const orientacion = frase !== undefined ? preguntaDeSalud(frase, true) : null
+      return { tipo: 'salud', filtro: 'sintoma', ...(orientacion ? { orientacion } : {}) }
+    }
     case 'DERIVAR':
       return { tipo: 'salud', filtro: 'sintoma' }
     default:

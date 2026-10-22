@@ -135,14 +135,22 @@ describe('resumenDeGuardado · lo que de verdad quedó guardado', () => {
     expect(r).toEqual({ todoGuardado: true, lineas: ['Guardado: adherencia.'] })
   })
 
-  it('si la llamada falló, NADA quedó guardado y lo dice', () => {
+  it('si se pierde la respuesta de red, el estado del guardado queda incierto', () => {
     const r = resumenDeGuardado({ ok: false, motivo: 'red' }, 'tu')
     expect(r.todoGuardado).toBe(false)
-    expect(r.lineas[0]).toMatch(/No se guardó nada/)
+    expect(r.lineas[0]).toMatch(/No pude confirmar si se guardó/)
+    expect(r.lineas[0]).not.toContain('No se guardó nada')
+    expect(r.lineas[0]).toContain('antes de intentarlo otra vez')
   })
 
   it('una respuesta sin resultados no se da por buena', () => {
     expect(resumenDeGuardado({ ok: true, resultados: [] }, 'tu').todoGuardado).toBe(false)
+    expect(resumenDeGuardado({ ok: true, resultados: [] }, 'tu').lineas[0]).toContain('No pude confirmar el guardado')
+  })
+  it('un fallo reintentable del servidor no acredita que no haya escrito', () => {
+    const r = resumenDeGuardado({ ok: false, motivo: 'no_entendi' }, 'usted')
+    expect(r.lineas[0]).toContain('Revise el registro')
+    expect(r.lineas[0]).not.toContain('No se guardó nada')
   })
 })
 

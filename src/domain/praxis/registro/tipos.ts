@@ -15,6 +15,8 @@
  * Diseño: DISENO-REGISTRO-NATURAL.md (28-sep-2026), §2 y §3.
  */
 
+import type { OrientacionSalud } from '../orientacionSalud.ts'
+
 export type Confianza = 'alta' | 'media' | 'baja'
 
 /** Cómo se lee `cargaKg` de un ejercicio. `corporal` y `banda` no llevan kilos. */
@@ -447,6 +449,8 @@ export interface Propuesta {
   /** Marca de la derivación clínica. */
   filtro?: 'dolor' | 'lesion' | 'sintoma' | 'crisis' | 'medicamento' | 'conducta_alimentaria' | 'animo'
   urgencia?: 'alta'
+  /** Código cerrado del mensaje de salud. No permite rebajar una urgencia. */
+  orientacion_salud?: OrientacionSalud
   /**
    * Lo que marcó el filtro de riesgo (`domain/praxis/riesgo.ts`), el MISMO que corre en la
    * pantalla: la Quieta con su línea de ayuda, o la pregunta de cuidado. La pantalla lo usa

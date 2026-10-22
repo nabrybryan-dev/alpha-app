@@ -6,6 +6,8 @@ import type { Tarjeta } from './registro/tarjeta'
 import type { FiltroClinico } from './registro/filtroClinico'
 import { cabeCharla } from './charla/modelo'
 import { filtroDeRiesgo, type LineaDeAyuda } from './riesgo'
+import { aclararReferenciaAnterior } from './referenciaAnterior'
+import { leerOrientacionSalud, preguntaDeSalud, textoOrientacionSalud, type OrientacionSalud } from './orientacionSalud'
 
 /**
  * El orden de un turno de Praxis, sin pantalla y sin red.
@@ -25,7 +27,7 @@ export type Turno =
   | { paso: 'nada'; vaAlModelo: false }
   | { paso: 'quieta'; linea: LineaDeAyuda; vaAlModelo: false }
   | { paso: 'cuidado'; vaAlModelo: false }
-  | { paso: 'salud'; filtro: FiltroClinico; texto: string; vaAlModelo: false }
+  | { paso: 'salud'; filtro: FiltroClinico; texto: string; orientacion?: OrientacionSalud; vaAlModelo: false }
   | { paso: 'plan'; respuesta: RespuestaDelPlan; vaAlModelo: false }
   | { paso: 'registrar'; vaAlModelo: true }
 
@@ -36,16 +38,22 @@ export type Turno =
  * profesional, así que no se usan.
  */
 export const SALUD_SIN_REGISTRO: Record<Trato, string> = {
-  tu: 'Eso es de salud: no lo anoto como un registro ni lo interpreto. Desde aquí todavía no puedo avisarle a nadie, así que cuéntaselo a tu coach directamente. Si es urgente, llama al 123.',
-  usted: 'Eso es de salud: no lo anoto como un registro ni lo interpreto. Desde aquí todavía no puedo avisarle a nadie, así que cuénteselo a su coach directamente. Si es urgente, llame al 123.',
+  tu: 'Eso es de salud: no lo anoto como un registro ni lo interpreto. No esperes una respuesta de tu coach para buscar atención médica si la necesitas. Si es urgente, llama al 123. No puedo confirmar un aviso automático; cuéntaselo a tu coach directamente.',
+  usted: 'Eso es de salud: no lo anoto como un registro ni lo interpreto. No espere una respuesta de su coach para buscar atención médica si la necesita. Si es urgente, llame al 123. No puedo confirmar un aviso automático; cuénteselo a su coach directamente.',
 }
 
-export function decidirTurno(frase: string, ve: LoQuePraxisVe, hoy: string, trato: Trato = 'tu'): Turno {
+export function decidirTurno(frase: string, ve: LoQuePraxisVe, hoy: string, trato: Trato = 'tu', aclaracionSalud = false): Turno {
   if (!frase.trim()) return { paso: 'nada', vaAlModelo: false }
   const marca = filtroDeRiesgo(frase)
   if (marca?.tipo === 'quieta') return { paso: 'quieta', linea: marca.linea, vaAlModelo: false }
   if (marca?.tipo === 'cuidado') return { paso: 'cuidado', vaAlModelo: false }
-  if (marca?.tipo === 'salud') return { paso: 'salud', filtro: marca.filtro, texto: SALUD_SIN_REGISTRO[trato], vaAlModelo: false }
+  if (marca?.tipo === 'salud' || aclaracionSalud) {
+    const filtro = marca?.tipo === 'salud' ? marca.filtro : 'sintoma'
+    const orientacion = (filtro === 'dolor' || filtro === 'lesion' || filtro === 'sintoma') ? preguntaDeSalud(frase) : null
+    return { paso: 'salud', filtro, texto: orientacion ? textoOrientacionSalud(orientacion, trato) : SALUD_SIN_REGISTRO[trato], ...(orientacion ? { orientacion } : {}), vaAlModelo: false }
+  }
+  const aclaracion = aclararReferenciaAnterior(frase, trato)
+  if (aclaracion) return { paso: 'plan', respuesta: { tipo: 'respuesta', texto: aclaracion, citas: [], ofrecePregunta: false }, vaAlModelo: false }
   if (esPregunta(frase)) return { paso: 'plan', respuesta: responderDelPlan(frase, ve, hoy, trato), vaAlModelo: false }
   return { paso: 'registrar', vaAlModelo: true }
 }
@@ -65,7 +73,7 @@ export type RespuestaDelRegistrador =
 export type PasoTrasProponer =
   | { paso: 'confirmar'; tarjeta: Tarjeta; propuesta: Propuesta; mensajeId: string }
   | { paso: 'aclarar'; texto: string; opciones: string[] }
-  | { paso: 'salud'; texto: string }
+  | { paso: 'salud'; texto: string; orientacion?: OrientacionSalud }
   | { paso: 'quieta'; linea: LineaDeAyuda }
   | { paso: 'cuidado' }
   | { paso: 'no_se'; texto: string; queFalto: QueFalto }
@@ -113,7 +121,8 @@ export function pasoTrasProponer(r: RespuestaDelRegistrador, trato: Trato): Paso
     if (propuesta.riesgo?.tipo === 'cuidado') return { paso: 'cuidado' }
     // El servidor filtró algo que la pantalla dejó pasar: gana el más protector.
     if (propuesta.filtro === 'crisis' || (propuesta.urgencia === 'alta' && propuesta.filtro === 'sintoma')) return { paso: 'quieta', linea: 'vida' }
-    return { paso: 'salud', texto: SALUD_SIN_REGISTRO[trato] }
+    const orientacion = leerOrientacionSalud(propuesta.orientacion_salud)
+    return { paso: 'salud', texto: orientacion ? textoOrientacionSalud(orientacion, trato) : SALUD_SIN_REGISTRO[trato], ...(orientacion ? { orientacion } : {}) }
   }
 
   if (tarjeta.tipo === 'pregunta' && tarjeta.pregunta) {
@@ -154,9 +163,13 @@ const NOMBRE_DE_CAMPO: Record<string, [string, string]> = {
  * Lo que de verdad quedó guardado, registro por registro. «Guardado» solo lo dice de lo que
  * la base aceptó: lo pendiente y lo rechazado se nombran como lo que son.
  */
-export function resumenDeGuardado(r: RespuestaDeGuardar, trato: Trato): { todoGuardado: boolean; lineas: string[] } {
-  if (!r.ok) return { todoGuardado: false, lineas: [`No se guardó nada. ${FALLOS[r.motivo][trato]}`] }
-  if (r.resultados.length === 0) return { todoGuardado: false, lineas: ['No se guardó nada: el registrador no devolvió ningún resultado.'] }
+export function resumenDeGuardado(r: RespuestaDeGuardar, trato: Trato): { todoGuardado: boolean; incierto?: boolean; lineas: string[] } {
+  const revisar = trato === 'usted' ? 'Revise el registro antes de intentarlo otra vez, para evitar duplicados.' : 'Revisa el registro antes de intentarlo otra vez, para evitar duplicados.'
+  if (!r.ok) {
+    if (r.motivo === 'red' || r.motivo === 'no_entendi') return { todoGuardado: false, incierto: true, lineas: [`No pude confirmar si se guardó. ${revisar}`] }
+    return { todoGuardado: false, lineas: [`No se guardó nada. ${FALLOS[r.motivo][trato]}`] }
+  }
+  if (r.resultados.length === 0) return { todoGuardado: false, incierto: true, lineas: [`No pude confirmar el guardado: el registrador no devolvió ningún resultado. ${revisar}`] }
   const usted = trato === 'usted'
   const lineas = r.resultados.map((x) => {
     if (x.estado === 'guardado') return `Guardado: ${x.campo}.`

@@ -9,8 +9,8 @@ import type { Trato } from '../motor/entorno'
  * nacional verificada es el 106. Antes de abrir Praxis a asesorados los revisa un profesional.
  *
  * Con `conectada`, el texto dice lo que la pantalla hace HOY: lee el plan sin cambiarlo,
- * guarda solo lo confirmado y, ante una señal de riesgo, se detiene SIN avisarle a nadie
- * (ese aviso todavía no existe, y prometerlo dejaría a la persona esperando).
+ * añade al plan solo lo confirmado. El servidor intenta guardar avisos de riesgo sin la frase;
+ * eso no garantiza que el coach los lea ni sustituye ayuda urgente.
  */
 const LINEAS: [string, string, string?][] = [
   ['123', 'Línea 123 · emergencias, en todo el país.'],
@@ -56,15 +56,20 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
               </p>
               <p>
                 {u
-                  ? 'De lo que le cuenta, solo se guarda lo que confirma con un toque en «Guardar». Antes, una tarjeta le dice qué entendió.'
-                  : 'De lo que le cuentas, solo se guarda lo que confirmas con un toque en «Guardar». Antes, una tarjeta te dice qué entendió.'}{' '}
+                  ? 'En su plan, solo se añade lo que confirma con un toque en «Guardar». Antes, una tarjeta le dice qué entendió.'
+                  : 'En tu plan, solo se añade lo que confirmas con un toque en «Guardar». Antes, una tarjeta te dice qué entendió.'}{' '}
                 {u ? 'Su check-in del día se sigue llenando en el formulario de siempre.' : 'Tu check-in del día se sigue llenando en el formulario de siempre.'}
               </p>
               <p>
-                {u ? 'Lo que escribe para anotar' : 'Lo que escribes para anotar'} viaja a un servicio de inteligencia artificial que lo convierte en un registro.
+                {u ? 'Lo que escribe para conversar o anotar' : 'Lo que escribes para conversar o anotar'} viaja a un servicio de inteligencia artificial, junto con el contexto necesario para responder. No podemos prometer que ese servicio no conserve datos.
                 {u
-                  ? 'Si algo que escribe es una emergencia clara, Praxis se detiene aquí mismo y esa frase no sale de este teléfono. Si suena a salud o a una señal que no es clara, se envía a ese servicio solo para leerla mejor y saber si hay que detenerse. No se anota ni se guarda.'
-                  : 'Si algo que escribes es una emergencia clara, Praxis se detiene aquí mismo y esa frase no sale de este teléfono. Si suena a salud o a una señal que no es clara, se envía a ese servicio solo para leerla mejor y saber si hay que detenerse. No se anota ni se guarda.'}
+                  ? 'Si algo que escribe es una emergencia clara, Praxis se detiene aquí mismo y esa frase no sale de este teléfono. Si suena a salud o a una señal que no es clara, se envía a ese servicio solo para leerla mejor y saber si hay que detenerse. No se añade como registro del plan.'
+                  : 'Si algo que escribes es una emergencia clara, Praxis se detiene aquí mismo y esa frase no sale de este teléfono. Si suena a salud o a una señal que no es clara, se envía a ese servicio solo para leerla mejor y saber si hay que detenerse. No se añade como registro del plan.'}
+              </p>
+              <p>
+                {u
+                  ? 'Si Praxis le pregunta por una sensación, lee su aclaración junto con esa frase y la pregunta. Ese contexto no se añade al historial de charla ni al plan y se descarta al salir de la conversación.'
+                  : 'Si Praxis te pregunta por una sensación, lee tu aclaración junto con esa frase y la pregunta. Ese contexto no se añade al historial de charla ni al plan y se descarta al salir de la conversación.'}
               </p>
               <p>
                 {u
@@ -107,7 +112,8 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
             {conectada ? (
               <p>
                 Cuando Praxis nota una señal de riesgo, se queda quieta: sin animaciones, sin sonido y sin consejos, con estos números.{' '}
-                <strong>{u ? 'Desde aquí todavía no se le avisa a nadie. Si es urgente, llame al 123.' : 'Desde aquí todavía no se le avisa a nadie. Si es urgente, llama al 123.'}</strong>
+                Cuando el servidor detecta la señal, intenta guardar un aviso para el coach con el tipo de señal y la cuenta de la persona, sin la frase.{' '}
+                <strong>{u ? 'No espere que el coach lo lea para buscar ayuda. Si es urgente, llame al 123.' : 'No esperes que el coach lo lea para buscar ayuda. Si es urgente, llama al 123.'}</strong>
               </p>
             ) : u ? (
               <p>Cuando Praxis nota una señal de riesgo, se queda quieta: sin animaciones, sin sonido y sin consejos, con estos números. Bryan recibe su frase, pero <strong>Bryan no es psicólogo y puede tardar en leer. Si es urgente, no lo espere: llame al 123.</strong></p>
@@ -140,7 +146,7 @@ export function Privacidad({ trato, conectada = false }: { trato: Trato; conecta
               </span>
             </label>
             {conectada ? (
-              <label className="check"><input type="checkbox" id="cRiesgo" /><span>Detenerse ante una señal de riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Praxis se detiene y le muestra las líneas de ayuda.' : 'Si algo que cuentas es una señal de riesgo, Praxis se detiene y te muestra las líneas de ayuda.'} Para reconocer mejor una señal que no es clara, esa frase se lee con inteligencia artificial. No se guarda. Sin este permiso Praxis no se activa.</small></span></label>
+              <label className="check"><input type="checkbox" id="cRiesgo" /><span>Detenerse ante una señal de riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Praxis se detiene y le muestra las líneas de ayuda.' : 'Si algo que cuentas es una señal de riesgo, Praxis se detiene y te muestra las líneas de ayuda.'} Para reconocer mejor una señal que no es clara, esa frase se lee con inteligencia artificial. No se añade al plan. El servidor intenta guardar un aviso para el coach con el tipo de señal, sin la frase; no garantiza atención inmediata. Sin este permiso Praxis no se activa.</small></span></label>
             ) : (
               <label className="check"><input type="checkbox" id="cRiesgo" /><span>Aviso por riesgo<small>{u ? 'Si algo que cuenta es una señal de riesgo, Bryan recibe un aviso con su frase.' : 'Si algo que cuentas es una señal de riesgo, Bryan recibe un aviso con tu frase.'} Sin este permiso Praxis no se activa.</small></span></label>
             )}

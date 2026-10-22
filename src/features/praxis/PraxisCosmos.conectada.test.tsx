@@ -84,7 +84,7 @@ async function decirle(u: ReturnType<typeof userEvent.setup>, $: (s: string) => 
 beforeEach(() => {
   localStorage.clear()
   // Los permisos ya dados por esta persona, en SU espacio del navegador.
-  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v2' }))
+  localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v3' }))
   window.matchMedia = ((consulta: string) => ({
     matches: consulta.includes('prefers-reduced-motion'), media: consulta, onchange: null,
     addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
@@ -242,6 +242,21 @@ describe('Praxis conectada · lo que se escribe va al registrador y se guarda so
     expect(await screen.findByText(/Tu check-in todavía no se puede guardar desde Praxis/, undefined, ESPERA)).toBeInTheDocument()
     expect($('#frase').textContent).toContain('No todo quedó guardado')
     expect(screen.queryByText(/^Guardado:/)).not.toBeInTheDocument()
+  })
+  it('si el servidor recibió el dato pero se pierde la respuesta, no asegura que no se guardó ni reintenta solo', async () => {
+    const u = userEvent.setup()
+    let recibidos = 0
+    const c = crear({ guardar: vi.fn(async (): Promise<RespuestaDeGuardar> => { recibidos++; return { ok: false, motivo: 'red' } }) })
+    const { $ } = montar(c)
+    await abrir(u)
+    await decirle(u, $, 'le metí 40 kilos, 12 en la sentadilla')
+    await u.click(await screen.findByRole('button', { name: 'Guardar' }, ESPERA))
+    expect(await screen.findByText(/No pude confirmar si se guardó/, undefined, ESPERA)).toBeInTheDocument()
+    expect($('#frase').textContent).toContain('No pude confirmar el guardado')
+    expect(screen.queryByText(/^Guardado:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/No se guardó nada/)).not.toBeInTheDocument()
+    expect(recibidos).toBe(1)
+    expect(c.guardar).toHaveBeenCalledTimes(1)
   })
 
   it('con el registrador sin desplegar lo dice, y no inventa una tarjeta', async () => {
@@ -497,7 +512,7 @@ describe('Praxis conectada · el plan y la pregunta en espera', () => {
 describe('Praxis conectada · en usted', () => {
   it('habla de usted y no mezcla', async () => {
     const u = userEvent.setup()
-    localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v2' }))
+    localStorage.setItem(`praxis.u.${USUARIO}.permisos`, JSON.stringify({ cConversacion: true, cRiesgo: true, fecha: HOY, version: 'v3' }))
     const { $, raiz } = montar(crear(), 'usted')
     expect($('#tarjetaTxt').textContent).toContain('Aún no tengo su check-in de hoy')
     await abrir(u)

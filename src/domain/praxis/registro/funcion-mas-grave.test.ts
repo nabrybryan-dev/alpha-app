@@ -41,9 +41,9 @@ function entorno(modelo: Modelo, interruptor: string | undefined = '1', usuario 
   const alPlan = () => llamadas.filter((l) => /rest\/v1\/microciclos/.test(l.url))
   return { d, alModelo, alPlan, avisos }
 }
-const releer = (frase: string) =>
+const releer = (frase: string, aclaracion_salud?: unknown) =>
   new Request('https://x.supabase.co/functions/v1/praxis-registro', {
-    method: 'POST', headers: { authorization: 'Bearer jwt', 'content-type': 'application/json' }, body: JSON.stringify({ accion: 'releer_riesgo', frase }),
+    method: 'POST', headers: { authorization: 'Bearer jwt', 'content-type': 'application/json' }, body: JSON.stringify({ accion: 'releer_riesgo', frase, ...(aclaracion_salud !== undefined ? { aclaracion_salud } : {}) }),
   })
 const proponer = (frase: string) =>
   new Request('https://x.supabase.co/functions/v1/praxis-registro', {
@@ -51,6 +51,45 @@ const proponer = (frase: string) =>
   })
 
 afterEach(() => vi.restoreAllMocks())
+
+describe('aclaraciones de salud y preguntas completas en la respuesta del servidor', () => {
+  it('la orientación atraviesa releer_riesgo, sin enviar una pregunta arbitraria del modelo', async () => {
+    const e = entorno({ cuerpo: lector('PREGUNTAR_ANTES_DE_ENTRENAR') }, '1', 'u-pregunta-zona')
+    const c = await (await manejar(releer('En la prensa sentí presión.', true), e.d)).json()
+    expect(c.marca).toEqual({ tipo: 'salud', orientacion: 'preguntar_zona' })
+  })
+  it('una aclaración sin palabra del filtro mantiene salud aunque el modelo diga NINGUNO', async () => {
+    const e = entorno({ cuerpo: lector('NINGUNO') }, '1', 'u-aclaracion-no')
+    const c = await (await manejar(releer('En la prensa sentí presión. Aclaración: muslo', true), e.d)).json()
+    expect(c.marca.tipo).toBe('salud')
+    expect(e.alModelo()).toHaveLength(1)
+    expect(e.alPlan()).toHaveLength(0)
+    expect(e.avisos).toHaveLength(0)
+  })
+  it('sin contexto pendiente y sin marca no crea una lectura nueva', async () => {
+    const e = entorno({ cuerpo: lector('NINGUNO') }, '1', 'u-no-aclaracion')
+    const c = await (await manejar(releer('En la prensa hice doce.'), e.d)).json()
+    expect(c.marca).toBeNull()
+    expect(e.alModelo()).toHaveLength(0)
+  })
+  it.each(['true', 1, {}, null])('el indicador mal formado no dispara llamadas: %s', async (valor) => {
+    const e = entorno({ cuerpo: lector('NINGUNO') })
+    expect((await manejar(releer('muslo', valor), e.d)).status).toBe(400)
+    expect(e.alModelo()).toHaveLength(0)
+  })
+  it('sin interruptor no se envía una aclaración: conserva salud local', async () => {
+    const e = entorno({ cuerpo: lector('URGENTE_FISICO') }, '0', 'u-aclaracion-apagada')
+    const c = await (await manejar(releer('En la prensa sentí presión. Aclaración: muslo', true), e.d)).json()
+    expect(c.marca.tipo).toBe('salud')
+    expect(e.alModelo()).toHaveLength(0)
+  })
+  it('la respuesta normal también conserva PREGUNTAR como orientación', async () => {
+    const e = entorno({ cuerpo: lector('PREGUNTAR_ANTES_DE_ENTRENAR') }, '1', 'u-propuesta-pregunta')
+    const c = await (await manejar(proponer('Sentí presión en el muslo.'), e.d)).json()
+    expect(c.propuesta.orientacion_salud).toBe('preguntar_funcion')
+    expect(c.propuesta.registros).toEqual([])
+  })
+})
 
 describe('releer_riesgo: el modelo solo SUBE la marca', () => {
   it('el filtro marca salud y el modelo se consulta (no se tapa)', async () => {
