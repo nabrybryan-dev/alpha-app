@@ -1,11 +1,19 @@
 <!doctype html>
 <!--
-  Versión 0.2 · 2026-10-22. Basada en POLITICA-DATOS-CREADORES.md v0.2 y MAPA-DE-DATOS.md.
+  Versión 0.3 · 2026-10-22. Basada en POLITICA-DATOS-CREADORES.md v0.2 y MAPA-DE-DATOS.md.
   Estado: pendiente de revisión del abogado. NO publicar hasta que la confirme.
   Antes de publicar:
-  1. Abogado: plazos de conservación, base de la captura previa y retención del proveedor de IA.
-  2. Reemplazar el marcador [POR CONFIRMAR] de «Quién puede verlos» con el dato verificado.
+  1. Abogado: plazos de conservación, base de la captura previa (dato público), si el proveedor de IA es
+     transmisión o transferencia internacional y qué base la cubre, y si una huella de menores cuenta como dato.
+  2. Reemplazar el marcador [POR CONFIRMAR] de «Quién puede verlos» con el dato verificado (es un bloqueo a propósito).
   3. Comprobar en el sitio que /privacidad y /borrar-datos abren estas páginas y no la app.
+  4. Operación: no hay hoy rutina de caducidad/borrado ni responsable confirmado; crearla antes de publicar plazos.
+  5. Decidir el dominio y escribir en el aviso exactamente https://DOMINIO/privacidad (sin barra final);
+     entonces añadir <link rel="canonical">.
+  6. Conflictos política/norma que NO se resolvieron aquí: POLITICA §8 (30 días) vs §9 (15 días hábiles);
+     §4 (sin huella de menores/«fuera de la API») vs §5 (huella, exports, registro manual); §11 sin cuadros de reels.
+  7. Si la base pasa a Supabase/Vercel (PLAN-CENTRALIZACION F1), cambiar «Quién puede verlos» antes de subir datos.
+  8. Falta periodo de vigencia de la base de datos (art. 13 Decreto 1377): decidir con el abogado.
 -->
 <html lang="es">
 <head>
@@ -26,17 +34,23 @@
 </head>
 <body>
 <h1>Política de privacidad de Alpha Athletics</h1>
-<p class="dato">Versión 0.2 · 2026-10-22 · Aplica a la herramienta interna «Alpha Estudio».</p>
+<p class="dato">Versión 0.3 · 2026-10-22 · Aplica a la herramienta interna «Alpha Estudio».</p>
 
 <h2>Quién responde por tus datos</h2>
 <p>Bryan Arango, persona natural, que opera Alpha Athletics.<br>
 Domicilio: Barrio Puerto Espejo, Mz 28 Casa 30, Armenia, Quindío, Colombia.<br>
-Contacto para temas de datos: <a href="mailto:alphaathletics301@gmail.com">alphaathletics301@gmail.com</a></p>
+Contacto para temas de datos: <a href="mailto:alphaathletics301@gmail.com">alphaathletics301@gmail.com</a>
+ o WhatsApp 302 733 5745.<br>
+Quien atiende consultas y reclamos: Bryan Arango.</p>
 
 <h2>Qué hace esta herramienta</h2>
-<p>Alpha Athletics ofrece entrenamiento y nutrición en Colombia. Con la API oficial de Instagram buscamos
+<p>Alpha Athletics ofrece entrenamiento y nutrición en Colombia. Buscamos
 <strong>cuentas profesionales públicas</strong> de creadores de contenido de fitness y nutrición, para decidir si les
-proponemos una colaboración. Una persona revisa cada candidato.
+proponemos una colaboración. Una persona revisa cada candidato.</p>
+<p>Sus fuentes son: (1) la API oficial de Instagram; (2) registro manual de una persona de nuestro equipo; y
+(3) páginas web públicas y listas o exportaciones de herramientas o referidos que nos pasan, de las que guardamos solo
+el @, la dirección de la fuente, la fecha y la cifra que da la fuente (no guardamos nombre, teléfono, correo ni
+biografía de esas listas). Tus derechos se aplican igual sin importar de cuál fuente vengan tus datos.
 <strong>No enviamos mensajes automáticos</strong>: cualquier mensaje lo escribe y lo envía una persona.</p>
 
 <h2>Qué datos tratamos</h2>
@@ -54,12 +68,12 @@ proponemos una colaboración. Una persona revisa cada candidato.
 
 <h2>Qué no tratamos</h2>
 <ul>
-  <li>Datos de tus seguidores ni de terceros que aparezcan en tus publicaciones o comentarios.</li>
+  <li>Datos de tus seguidores ni de terceros que aparezcan en tus publicaciones o comentarios: no los buscamos ni
+      los guardamos.</li>
   <li>Datos de salud ni otros datos sensibles.</li>
   <li>Tu correo, tu teléfono, contenido privado ni estadísticas privadas, salvo que respondas y lo autorices.</li>
-  <li>Cuentas de menores de 18 años: se descartan y no guardamos su @, solo una huella cifrada (sha256) durante
-      6 meses para no volver a evaluarlas.</li>
-  <li>Nada obtenido por raspado de pantalla ni fuera de la API oficial.</li>
+  <li>Cuentas de menores de 18 años: si una cuenta parece de un menor, procuramos descartarla y no la registramos.</li>
+  <li>Nada obtenido por raspado de pantalla ni por mensajes directos automáticos.</li>
 </ul>
 
 <h2>Para qué los usamos</h2>
@@ -74,9 +88,11 @@ proponemos una colaboración. Una persona revisa cada candidato.
 <p>Bryan Arango y los agentes (programas) de la herramienta que buscan creadores y redactan propuestas. Los datos
 se guardan en un equipo propio; el identificador interno y el número de identificación de Instagram no salen de él.</p>
 <p>Para clasificar temas y redactar propuestas podemos usar un proveedor de inteligencia artificial
-(Anthropic, Estados Unidos), por encargo nuestro y solo para ese fin. Puede recibir tu @, tus métricas públicas, el
-enlace de tus publicaciones, cuadros fijos de tus reels públicos (sin audio) y, solo de paso, tu biografía ya
-depurada. Nunca recibe datos de clientes ni de salud.
+(Anthropic), solo para ese fin y solo si antes verificamos cuánto tiempo conserva los registros y que los borra.
+Puede recibir tu @, tus métricas públicas, el enlace de tus publicaciones, cuadros fijos de tus reels públicos
+(sin audio; pueden mostrar a otras personas que aparezcan en ellos) y, solo de paso, tu biografía ya depurada.
+Nunca recibe datos de clientes ni de salud. El proveedor está en Estados Unidos, así que estos datos saldrían de
+Colombia.
 Tiempo que el proveedor conserva los registros: <strong>[POR CONFIRMAR]</strong>.</p>
 
 <h2>Cuánto tiempo los conservamos</h2>
@@ -86,50 +102,59 @@ Tiempo que el proveedor conserva los registros: <strong>[POR CONFIRMAR]</strong>
       no volver a registrarte; luego se borra.</li>
   <li>Si te contactamos y no respondes: hasta 3 meses desde el último mensaje. Después borramos tu ficha y dejamos
       solo el identificador interno y el estado «sin respuesta» durante 12 meses para no volver a escribirte.</li>
-  <li>Si respondes que no: hasta 30 días, y pasas a la lista de exclusión (ver abajo).</li>
+  <li>Si respondes que no: tu petición se atiende en máximo 15 días hábiles (ver «Tus derechos») y pasas a la lista
+      de exclusión (ver abajo).</li>
   <li>Si hay un acuerdo de colaboración: mientras dure y, para pagos y comisiones, 5 años desde su fin por exigencia
       contable y tributaria. Lo demás se borra.</li>
 </ul>
 
 <h2>Cuándo pedimos tu autorización</h2>
-<p>Los datos públicos de tu cuenta profesional se tratan sin pedir autorización previa. El primer mensaje te dice
-quiénes somos y cómo pedir que los borremos. Cuando respondes con interés, te pedimos autorización antes de guardar
+<p>Tratamos los datos públicos de cuentas profesionales y te informamos en el primer mensaje quiénes somos y cómo
+pedir que los borremos. Consideramos que los datos de naturaleza pública no requieren autorización previa
+(Ley 1581, artículo 10), criterio que está pendiente de confirmación escrita de nuestro abogado; igual los tratamos con
+los principios de la ley. Cuando respondes con interés, te pedimos autorización antes de guardar
 tu correo, tu teléfono o cualquier dato que no venga de la API, y de forma expresa y separada antes de recibir
 estadísticas privadas.</p>
 
 <h2>Tus derechos</h2>
-<p>Puedes conocer, actualizar y rectificar tus datos, saber para qué se usan, revocar tu autorización, pedir que los
-borremos y acceder a ellos gratis (Ley 1581 de 2012, artículo 8).</p>
-<p>Escribe a <a href="mailto:alphaathletics301@gmail.com">alphaathletics301@gmail.com</a>.</p>
+<p>Puedes conocer, actualizar y rectificar tus datos, saber para qué se usan, pedir prueba de la autorización que nos
+hayas dado, revocarla, pedir que borremos tus datos y acceder a ellos gratis (Ley 1581 de 2012, artículo 8).</p>
+<p>Escribe a <a href="mailto:alphaathletics301@gmail.com">alphaathletics301@gmail.com</a> o por WhatsApp al
+302 733 5745.</p>
 <ul>
   <li><strong>Consultas</strong> (qué datos tenemos de ti y de dónde salen): respuesta en máximo 10 días hábiles;
       si no alcanzamos, te avisamos y respondemos en máximo 5 días hábiles más.</li>
   <li><strong>Reclamos</strong> (corregir, borrar, excluir, incumplimiento): respuesta en máximo 15 días hábiles;
-      si no alcanzamos, te avisamos y respondemos en máximo 8 días hábiles más.</li>
+      si no alcanzamos, te avisamos y respondemos en máximo 8 días hábiles más. Para un reclamo indica tu nombre y
+      tu @, qué quieres que hagamos y a dónde responderte. Si falta algo, te lo pedimos en los 5 días siguientes; si
+      pasan 2 meses sin que lo completes, entendemos que desististe.</li>
 </ul>
 <p>Solo después de agotar este trámite con nosotros puedes presentar una queja ante la Superintendencia de Industria
 y Comercio (SIC).</p>
 
 <h2>Si no quieres que te contactemos</h2>
-<p>Dínoslo por cualquier canal y dejamos de hacerlo. Para no volver a registrar tu cuenta por error, en la lista de
+<p>Dínoslo por correo, por WhatsApp o respondiendo al mensaje, y dejamos de hacerlo. Para no volver a registrar tu cuenta por error, en la lista de
 exclusión conservamos solo lo mínimo para reconocerla: el identificador interno, el número de identificación de
 Instagram, el @ de ese día y la fecha y el canal de tu petición. Esa entrada se conserva mientras no pidas
 borrarla; si lo pides, te explicamos qué pasaría. Mira
 <a href="borrar-datos.html">cómo pedir que borremos tus datos</a>.</p>
 
 <h2>Cambios</h2>
-<p>Cada cambio sube la versión y la fecha de esta página.</p>
+<p>Cada cambio sube la versión y la fecha de esta página. Si cambia para qué usamos tus datos, te lo informamos antes
+de aplicarlo a quienes nos hayan dado su autorización.</p>
 
 <h2>English summary</h2>
 <p>Alpha Studio is an internal tool of Alpha Athletics (fitness and nutrition coaching, Colombia). It uses the official
-Instagram API to find public professional accounts and stores a minimum of data: username, account ID, follower and
+Instagram API, manual entry and public web pages or lists (username, source link, date and figure only) to find
+public professional accounts and stores a minimum of data: username, account ID, follower and
 post counts, public engagement counts, post links and dates, topic tags, a fit score and a drafted proposal. The bio is
 used only in passing, stripped of contact details, and is not stored. A person reviews each candidate; no messages are
-sent automatically. We do not store data of followers, private insights or health data, and we do not scrape. Accounts
-of minors are discarded and only a sha256 fingerprint is kept for 6 months. An AI provider (Anthropic, USA) may process
-usernames, public metrics, post links and frames of public reels (no audio) on our behalf; its retention period is
-to be confirmed. Retention: up to 6 months if never contacted, 3 months if contacted without reply, 30 days after a
-refusal, and 5 years for accounting if there is an agreement. A minimal record is kept for 12 months after deletion,
+sent automatically. We do not look for or store data of followers, private insights or health data, and we do not
+scrape. If an account appears to belong to a minor we try to discard it and do not record it. An AI provider
+(Anthropic, USA) may process usernames, public metrics, post links and frames of public reels (no audio), only after
+we verify its retention and deletion; this would send data outside Colombia, and its retention period is
+to be confirmed. Retention: up to 6 months if never contacted, 3 months if contacted without reply, requests after a
+refusal handled within 15 business days, and 5 years for accounting if there is an agreement. A minimal record is kept for 12 months after deletion,
 and an exclusion entry is kept until you ask otherwise. Queries are answered in 10 business days and claims in 15; you
 may complain to the Superintendencia de Industria y Comercio (SIC) after contacting us. See the
 <a href="borrar-datos.html">data deletion page</a>. Contact: alphaathletics301@gmail.com.</p>

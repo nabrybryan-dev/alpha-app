@@ -65,7 +65,8 @@ export default defineConfig({
         // public/borrar-datos.html): son HTML estáticos, no rutas de la app. Sin esta lista el
         // service worker contesta cualquier navegación con `index.html` y /privacidad abría la app.
         // Se sirven del precaché (Workbox prueba `/privacidad` como `/privacidad.html`).
-        navigateFallbackDenylist: [/^\/privacidad(\.html)?\/?$/, /^\/borrar-datos(\.html)?\/?$/],
+        navigateFallbackDenylist: [/^\/privacidad(\.html)?\/?(\?.*)?$/, /^\/borrar-datos(\.html)?\/?(\?.*)?$/],
+        // El denylist se compara contra ruta + query: sin `(?.*)?` cualquier ?x=1 abría la app.
         // Meta y los enlaces compartidos añaden parámetros (?fbclid=, ?mibextid=): que no impidan
         // encontrar la página en el precaché.
         ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^mibextid$/],
