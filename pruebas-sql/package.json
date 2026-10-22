@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node firma-revisiones.mjs"
+    "test": "node firma-revisiones.mjs && node aprobacion-automatica.mjs",
+    "mutantes": "node mutar-aprobacion-automatica.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8"

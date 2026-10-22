@@ -21,6 +21,8 @@ const estado = {
   errorSelect: null as FilaError | null,
   insertsRecibidos: [] as Record<string, unknown>[],
   tiposFiltrados: [] as string[][],
+  /** Si no es null, emula el `unique(idempotency_key)` de la 0083: la misma clave dos veces = 23505. */
+  clavesVistas: null as Set<string> | null,
 }
 
 function cliente() {
@@ -32,7 +34,20 @@ function cliente() {
           estado.insertsRecibidos.push(payload)
           return {
             select: () => ({
-              single: () => Promise.resolve(estado.resultadoInsert),
+              single: () => {
+                if (estado.clavesVistas) {
+                  const clave = String(payload.idempotency_key)
+                  if (estado.clavesVistas.has(clave)) {
+                    return Promise.resolve({
+                      data: null,
+                      error: { code: '23505', message: 'duplicate key value violates unique constraint "ordenes_idempotency_key_key"' },
+                    })
+                  }
+                  estado.clavesVistas.add(clave)
+                  return Promise.resolve({ data: filaOrdenCruda({ idempotency_key: clave, tipo: payload.tipo }), error: null })
+                }
+                return Promise.resolve(estado.resultadoInsert)
+              },
             }),
           }
         },
@@ -88,6 +103,7 @@ beforeEach(() => {
   estado.errorSelect = null
   estado.insertsRecibidos = []
   estado.tiposFiltrados = []
+  estado.clavesVistas = null
 })
 
 afterEach(() => {
@@ -95,23 +111,31 @@ afterEach(() => {
 })
 
 describe('las claves de idempotencia', () => {
-  it('claveDetener: detener|usuario|semana|actor', () => {
-    expect(claveDetener('u-1', '2026-09-28', 'u-actor')).toBe('detener|u-1|2026-09-28|u-actor')
+  it('claveDetener: detener|usuario|semana|actor|hora (lleva la hora, como claveReanudar)', () => {
+    expect(claveDetener('u-1', '2026-09-28', 'u-actor', '2026-09-28T08:00:00.000Z')).toBe(
+      'detener|u-1|2026-09-28|u-actor|2026-09-28T08:00:00.000Z',
+    )
   })
 
   it('claveReportarRiesgo: reportar_riesgo|usuario|semana|actor', () => {
     expect(claveReportarRiesgo('u-1', '2026-09-28', 'u-actor')).toBe('reportar_riesgo|u-1|2026-09-28|u-actor')
   })
 
-  it('la misma persona+semana+actor siempre da la MISMA clave (dos clics no la cambian)', () => {
-    const primera = claveDetener('u-1', '2026-09-28', 'u-actor')
-    const segunda = claveDetener('u-1', '2026-09-28', 'u-actor')
-    expect(primera).toBe(segunda)
+  const HORA = '2026-09-28T08:00:00.000Z'
+
+  it('la misma persona+semana+actor A LA MISMA HORA da la misma clave (un reenvío del mismo clic)', () => {
+    expect(claveDetener('u-1', '2026-09-28', 'u-actor', HORA)).toBe(claveDetener('u-1', '2026-09-28', 'u-actor', HORA))
+  })
+
+  it('a otra hora, otra clave: un detener nuevo es un hecho nuevo, no un duplicado del anterior', () => {
+    expect(claveDetener('u-1', '2026-09-28', 'u-actor', HORA)).not.toBe(
+      claveDetener('u-1', '2026-09-28', 'u-actor', '2026-09-28T09:00:00.000Z'),
+    )
   })
 
   it('personas o semanas distintas dan claves distintas', () => {
-    expect(claveDetener('u-1', '2026-09-28', 'u-actor')).not.toBe(claveDetener('u-2', '2026-09-28', 'u-actor'))
-    expect(claveDetener('u-1', '2026-09-28', 'u-actor')).not.toBe(claveDetener('u-1', '2026-10-05', 'u-actor'))
+    expect(claveDetener('u-1', '2026-09-28', 'u-actor', HORA)).not.toBe(claveDetener('u-2', '2026-09-28', 'u-actor', HORA))
+    expect(claveDetener('u-1', '2026-09-28', 'u-actor', HORA)).not.toBe(claveDetener('u-1', '2026-10-05', 'u-actor', HORA))
   })
 })
 
@@ -165,36 +189,61 @@ describe('insertarOrden', () => {
   })
 })
 
-describe('dos clics = una sola orden (idempotencia real de punta a punta)', () => {
-  it('el segundo insert con la MISMA clave choca con 23505 y no crea una segunda orden', async () => {
-    const clave = claveDetener('u-1', '2026-09-28', 'u-actor')
+describe('un reenvío de la MISMA orden no la duplica (idempotencia real)', () => {
+  it('el segundo insert con la MISMA clave choca con 23505 y se trata como «ya estaba»', async () => {
+    estado.clavesVistas = new Set()
+    const orden = { usuarioId: 'u-1', semanaInicio: '2026-09-28', motivo: 'x' }
+    const objetivo = { usuario_id: orden.usuarioId, semana_inicio: orden.semanaInicio, motivo: orden.motivo }
+    const clave = claveDetener('u-1', '2026-09-28', 'u-actor', '2026-09-28T08:00:00.000Z')
 
-    // Primer clic: la base acepta e inserta la fila.
-    estado.resultadoInsert = { data: filaOrdenCruda({ idempotency_key: clave }), error: null }
-    const primero = await detenerPublicacion({ usuarioId: 'u-1', semanaInicio: '2026-09-28', motivo: 'x', actorId: 'u-actor' })
-    expect(primero).toEqual({ ok: true, yaExistia: false, orden: expect.objectContaining({ idempotencyKey: clave }) })
+    expect(await insertarOrden('detener', objetivo, clave)).toMatchObject({ ok: true, yaExistia: false })
+    // Mismo clic reenviado por una red inestable: la MISMA clave, la base lo reconoce.
+    expect(await insertarOrden('detener', objetivo, clave)).toEqual({ ok: true, yaExistia: true })
+  })
+})
 
-    // Segundo clic (mismo actor, misma persona, misma semana): la base rechaza por
-    // `idempotency_key` duplicada — exactamente lo que dispara el índice único de la 0083.
-    estado.resultadoInsert = { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "ordenes_idempotency_key_key"' } }
-    const segundo = await detenerPublicacion({ usuarioId: 'u-1', semanaInicio: '2026-09-28', motivo: 'x', actorId: 'u-actor' })
-    expect(segundo).toEqual({ ok: true, yaExistia: true })
+describe('H1 · detener → reanudar → detener del mismo actor NO pierde la segunda detención', () => {
+  // EL FALLO (revisión 06, H1): `claveDetener` no llevaba la hora y `reanudar` sí. El segundo
+  // «detener» del mismo actor sobre la misma persona y semana choca con `unique(idempotency_key)`;
+  // el 23505 se trata como éxito silencioso y la consola dice «Ya estaba detenida» cuando NO es
+  // cierto: la orden más reciente queda en `reanudar` y la firma automática firma a quien Bryan
+  // había detenido. Esta prueba usa un Supabase falso con ese mismo `unique`.
+  it('las tres órdenes se guardan, y la última en el tiempo es un detener', async () => {
+    estado.clavesVistas = new Set()
+    const base = { usuarioId: 'u-1', semanaInicio: '2026-09-28', actorId: 'u-actor' }
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-09-28T08:00:00.000Z'))
+      const detener1 = await detenerPublicacion({ ...base, motivo: 'se lastimó' })
+      vi.setSystemTime(new Date('2026-09-28T09:00:00.000Z'))
+      const reanudar = await reanudarPublicacion({ ...base, motivo: 'ya puede' })
+      vi.setSystemTime(new Date('2026-09-28T10:00:00.000Z'))
+      const detener2 = await detenerPublicacion({ ...base, motivo: 'se volvió a lastimar' })
 
-    // Los dos intentos mandaron LA MISMA clave: es lo que hace posible que la base
-    // reconozca el segundo como un duplicado del primero, no como una orden nueva.
-    expect(estado.insertsRecibidos).toHaveLength(2)
-    expect(estado.insertsRecibidos[0].idempotency_key).toBe(clave)
-    expect(estado.insertsRecibidos[1].idempotency_key).toBe(clave)
+      expect(detener1).toMatchObject({ ok: true, yaExistia: false })
+      expect(reanudar).toMatchObject({ ok: true, yaExistia: false })
+      // Lo que fallaba: aquí salía `{ ok: true, yaExistia: true }` y NO se guardaba nada.
+      expect(detener2).toMatchObject({ ok: true, yaExistia: false })
+      expect(estado.clavesVistas.size).toBe(3)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
 describe('detenerPublicacion y reportarRiesgo: objetivo y clave correctos', () => {
-  it('detenerPublicacion arma {usuario_id, semana_inicio, motivo} y la clave detener|...', async () => {
-    await detenerPublicacion({ usuarioId: 'u-9', semanaInicio: '2026-10-05', motivo: 'se cayó', actorId: 'u-actor' })
+  it('detenerPublicacion arma {usuario_id, semana_inicio, motivo} y la clave detener|...|<hora>', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-10-05T08:00:00.000Z'))
+      await detenerPublicacion({ usuarioId: 'u-9', semanaInicio: '2026-10-05', motivo: 'se cayó', actorId: 'u-actor' })
+    } finally {
+      vi.useRealTimers()
+    }
     expect(estado.insertsRecibidos[0]).toEqual({
       tipo: 'detener',
       objetivo: { usuario_id: 'u-9', semana_inicio: '2026-10-05', motivo: 'se cayó' },
-      idempotency_key: 'detener|u-9|2026-10-05|u-actor',
+      idempotency_key: 'detener|u-9|2026-10-05|u-actor|2026-10-05T08:00:00.000Z',
     })
   })
 
