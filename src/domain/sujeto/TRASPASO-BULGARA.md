@@ -27,7 +27,7 @@ Formato de los radios del bloque 10 (valor TAB [id] que_es TAB fuente TAB estado
 | valor | id | fuente | estado |
 |---|---|---|---|
 | 0.30 | `helme20.bulgara.trasera.bw` | Helme M, Emmonds S, Low CJ. J Strength Cond Res 2020, DOI 10.1519/JSC.0000000000003727, tabla 2 (0,30 +- 0,09 BW, n = 26, barra); via REPARTO-ZANCADA.md §1 fila A y §4 | transcrito, 2026-10-22 |
-| 0.26 | `arakawa25.bulgara.trasera.bw_inf` | Arakawa H et al. Int J Exerc Sci 2025;18(7):881-894, PMC12408075, tabla 1; limite tal como lo escribe REPARTO-ZANCADA.md §4 (169/666 daria 0,254) | transcrito, 2026-10-22 |
+| 0.25 | `arakawa25.bulgara.trasera.bw_inf` | Arakawa H et al. Int J Exerc Sci 2025;18(7):881-894, PMC12408075, tabla 1; limite 0,25 por decision 36 de Bryan (22-oct; REPARTO-ZANCADA.md §4 escribia 0,26, pero 169/666 = 0,254) | transcrito, 2026-10-22 |
 | 0.35 | `arakawa25.bulgara.trasera.bw_sup` | idem; 234/666 = 0,351 | transcrito, 2026-10-22 |
 
 ## Pruebas y mutaciones (22-oct)
@@ -43,3 +43,8 @@ Formato de los radios del bloque 10 (valor TAB [id] que_es TAB fuente TAB estado
 
 ## No se comprobo
 Nada con personas ni video. Los valores 0,30/0,26/0,35 no se recotejaron contra los PDF (se citan del documento). No se corrio `npm run verify` completo ni `procedencias-sujeto` (el libro del cerebro no tiene las filas aun).
+
+Decision 36 de Bryan (CONTRATOS-F2.md, 22-oct-2026), ejecutada:
+- Banda de la trasera 0,25-0,35 BW (antes 0,26), rotulada «promedio de varones jovenes entrenados (Helme 2020, Arakawa 2025)». La fila propuesta de PROCEDENCIAS.tsv para `arakawa25.bulgara.trasera.bw_inf` pasa a 0.25 (tabla de arriba corregida).
+- Termino inercial: por pierna `no_afirmable` con su motivo en cada `inercial`; para el cuerpo entero se da `inercialCuerpoEntero` = Σ m·a_y (N) = fuerza vertical total - peso del cuerpo y la carga, `estimado`, sin la regla del reparto. Eleccion mia (la decision no dice que cifra del cuerpo entero): la fuerza vertical; el momento inercial de la cadena entera lo da `momentosEnElTiempo` (oraculo ya usado en las pruebas). El `total` de cada pierna sigue `estimado`. Si Bryan o asus-c9 quieren otra cifra del cuerpo entero, es un cambio aditivo.
+- Pruebas: rojo `src/domain/sujeto/zancadaBulgara.test.ts` (7 fallos a proposito) -> verde. `npx vitest run src/domain`: 210 archivos, 4087 OK; eslint limpio; `npx tsc --noEmit` sin errores en src/domain. 151/188/497 intactos (suite completa de src/domain en verde).

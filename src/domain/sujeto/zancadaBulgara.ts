@@ -18,22 +18,23 @@ import {
  * SENTADILLA BÚLGARA (zancada con el pie trasero elevado ~40 cm): el reparto del peso entre las dos piernas por una REGLA, no por la palanca.
  *
  * En la búlgara el pie trasero soporta una fuerza casi constante en términos absolutos, que no crece con la carga (REPARTO-ZANCADA.md, §4):
- *     F_tras = 0,30 del peso corporal (BW), banda [0,26; 0,35] BW,   F_del = F_total − F_tras
+ *     F_tras = 0,30 del peso corporal (BW), banda [0,25; 0,35] BW,   F_del = F_total − F_tras
  * con `F_total` = peso del cuerpo + carga + término inercial (la regla se aplica al total, §4 «Estado propuesto»). BW = masa corporal · g, SIN la carga.
  *
  * FUENTES (texto completo abierto, leídas por quien escribió el documento el 22-oct-2026; aquí no se reabrieron):
  *   A. Helme M, Emmonds S, Low CJ. J Strength Cond Res 2020, DOI 10.1519/JSC.0000000000003727: 26 hombres entrenados, barra, 5RM incremental,
  *      trasera 0,30 ± 0,09 BW, delantera 1,54 ± 0,23 BW; la fuerza trasera no cambia con la carga (rho −0,01).
- *   B. Arakawa H et al. Int J Exerc Sci 2025;18(7):881-894, PMC12408075: 9 hombres entrenados, peso corporal, en el fondo: 0,26-0,35 BW
+ *   B. Arakawa H et al. Int J Exerc Sci 2025;18(7):881-894, PMC12408075: 9 hombres entrenados, peso corporal, en el fondo: 0,26-0,35 BW (la decisión 36 de Bryan, 22-oct, baja el límite a 0,25: 169/666 = 0,254)
  *      (el documento avisa de que delantera + trasera suman ~0,9 BW sin explicación en el texto).
  * Estado: `estimado` con banda. Dos estudios abiertos coherentes; solo hombres jóvenes entrenados; elevación de 40 cm.
  *
  * LO QUE NO ESTÁ ESTABLECIDO (y el código se abstiene):
  *  · Sentadilla dividida plana (pie trasero en el suelo): un solo estudio abierto (n = 8, promedio temporal) → `no_afirmable`.
  *  · Zancada con paso (adelante, inversa, caminando): ningún estudio abierto con el reparto → `no_afirmable`.
- *  · El término inercial POR PIERNA como cifra propia: ningún estudio lo separa (§4). Lo que sí hace el documento es aplicar la regla al `F_total`
- *    completo, con la salvedad de la excéntrica: el pico trasero llega en la excéntrica (28,9 ± 11,7 % de la repetición), así que en la concéntrica la regla
- *    probablemente SOBRESTIMA la trasera (sesgo no medido). Por eso el inercial por pierna sale `estimado` pero con ese aviso en `supuestos`.
+ *  · El término inercial POR PIERNA como cifra propia: ningún estudio lo separa (§4) y por decisión 36 de Bryan (22-oct) sale `no_afirmable` con su motivo.
+ *    Se da para el CUERPO ENTERO (`inercialCuerpoEntero`: Σ m·a_y en N, que no usa la regla del reparto). El `total` de cada pierna sigue siendo la regla
+ *    aplicada al `F_total` completo, con la salvedad de la excéntrica: el pico trasero llega en la excéntrica (28,9 ± 11,7 % de la repetición), así que en la
+ *    concéntrica la regla probablemente SOBRESTIMA la trasera (sesgo no medido); el aviso va en `supuestos`.
  *
  * DÓNDE VA CADA PIE (supuestos de este módulo):
  *  1. Los dos pies fijos: el delantero en el origen, el trasero `pasoM` detrás y a `alturaTobilloTraseroM` (la elevación). Reacciones solo VERTICALES
@@ -49,7 +50,7 @@ import {
  */
 
 /** Fracción del peso corporal (BW) que lleva la pierna trasera en la búlgara: REPARTO-ZANCADA.md §4, `convencion_propuesta`. */
-export const FRACCION_TRASERA_BULGARA = { central: 0.3, inf: 0.26, sup: 0.35 } as const
+export const FRACCION_TRASERA_BULGARA = { central: 0.3, inf: 0.25, sup: 0.35 } as const
 
 /** Los ids de `registro.ts` de las tres cifras de la regla (central: Helme 2020; límites: Arakawa 2025 según el documento). */
 export const IDS_DE_LA_REGLA_BULGARA = [
@@ -72,7 +73,7 @@ const MOTIVO_NO_AFIRMABLE: Record<Exclude<VarianteDeZancada, 'bulgara'>, string>
 }
 
 const SUPUESTOS_DE_LA_REGLA = [
-  'regla de la búlgara (pie trasero elevado ~40 cm): la trasera lleva 0,30 BW, banda [0,26; 0,35] BW, independiente de la carga externa; la delantera lleva el resto',
+  'regla de la búlgara (pie trasero elevado ~40 cm): la trasera lleva 0,30 BW, banda [0,25; 0,35] BW, independiente de la carga externa; la delantera lleva el resto',
   'BW = masa corporal · g, sin la carga; la regla se aplica al total (peso + carga + término inercial)',
   'solo hombres jóvenes entrenados (n = 26 con carga, n = 9 sin carga); el segundo estudio no cierra la suma de fuerzas (~0,9 BW)',
   'el pico trasero llega en la excéntrica: en la concéntrica la regla probablemente sobrestima la trasera (sesgo no medido)',
@@ -84,9 +85,11 @@ const SUPUESTOS_GEOMETRICOS = [
   'mancuernas en las manos con los brazos estirados y verticales; hombro en el punto cervical',
   'proporciones poblacionales de de Leva 1996 escaladas a la talla y la masa',
 ]
-const NIVEL_ESTATICO = 'envolvente de la regla en [0,26; 0,35] BW y del centro de presión trasero ± 3 cm; no es un intervalo de confianza'
+const MOTIVO_INERCIAL_POR_PIERNA = 'por pierna: ningún estudio separa el término inercial entre las dos piernas (decisión 36 de Bryan); se da para el cuerpo entero en `inercialCuerpoEntero`'
+const NIVEL_INERCIAL_CUERPO_ENTERO = 'Σ m·a_y de las masas puntuales del modelo por diferencias finitas de 3 puntos (no usa la regla del reparto); no es un intervalo de confianza'
+const NIVEL_ESTATICO = 'envolvente de la regla en [0,25; 0,35] BW y del centro de presión trasero ± 3 cm; no es un intervalo de confianza'
 const NIVEL_DINAMICO =
-  'envolvente de la regla [0,26; 0,35] BW, del centro de presión trasero ± 3 cm y del rango entre los radios «sagital» y «transverso» de de Leva; no es un intervalo de confianza'
+  'envolvente de la regla [0,25; 0,35] BW, del centro de presión trasero ± 3 cm y del rango entre los radios «sagital» y «transverso» de de Leva; no es un intervalo de confianza'
 
 /** Si alguna combinación (regla × CP trasero) deja el CP delantero fuera del pie, la banda es más estrecha que la regla y el nivel lo dice. */
 function nivelConCobertura(nivel: string, validas: number): string {
@@ -108,7 +111,7 @@ export function fraccionTraseraDe(variante: VarianteDeZancada): Cifra {
     estado: 'estimado',
     fuente: [...IDS_DE_LA_REGLA_BULGARA],
     supuestos: SUPUESTOS_DE_LA_REGLA,
-    banda: { inf: FRACCION_TRASERA_BULGARA.inf, sup: FRACCION_TRASERA_BULGARA.sup, nivel: 'rango 0,26-0,35 BW de REPARTO-ZANCADA.md §4; no es un intervalo de confianza' },
+    banda: { inf: FRACCION_TRASERA_BULGARA.inf, sup: FRACCION_TRASERA_BULGARA.sup, nivel: 'promedio de varones jóvenes entrenados (Helme 2020, Arakawa 2025): rango 0,25-0,35 BW (decisión 36 de Bryan, REPARTO-ZANCADA.md §4); no es un intervalo de confianza' },
     version: v,
   }
 }
@@ -328,7 +331,7 @@ export interface EntradaDeSerieDeBulgara extends EntradaDelSujeto {
 export interface MomentoDeBulgara {
   /** La misma pose sin aceleración (con la regla). */
   estatico: Cifra
-  /** total − estático: lo que añade la aceleración, incluido el cambio de reparto de la reacción. */
+  /** `no_afirmable` por pierna (decisión 36): el término inercial se da para el cuerpo entero (`MarcoDeBulgara.inercialCuerpoEntero`). */
   inercial: Cifra
   /** Con aceleración. */
   total: Cifra
@@ -344,6 +347,8 @@ export interface MarcoDeBulgara {
   /** Fuerza vertical total del cuadro, Σ m·(g + a_y), y la que lleva la trasera por la regla (N); `null` si el marco no se calculó. */
   fuerzaTotalN: number | null
   fuerzaTraseraN: number | null
+  /** Término inercial del cuerpo entero (decisión 36): Σ m·a_y = fuerza vertical total − peso del cuerpo y la carga (N); no usa la regla del reparto. */
+  inercialCuerpoEntero: Cifra
 }
 
 export interface ResultadoDeSerieDeBulgara {
@@ -361,7 +366,16 @@ function marcoNoAfirmable(indice: number, t: number, motivo: string): MarcoDeBul
     total: noAfirmable(`bulgara.${lado}.momento.dinamico.${a}`, 'N·m', motivo, v),
   })
   const pata = (lado: string) => ({ tobillo: m(lado, 'tobillo'), rodilla: m(lado, 'rodilla'), cadera: m(lado, 'cadera') })
-  return { indice, t, delantera: pata('delantera'), trasera: pata('trasera'), horizontalNoRepartidaN: null, fuerzaTotalN: null, fuerzaTraseraN: null }
+  return {
+    indice,
+    t,
+    delantera: pata('delantera'),
+    trasera: pata('trasera'),
+    horizontalNoRepartidaN: null,
+    fuerzaTotalN: null,
+    fuerzaTraseraN: null,
+    inercialCuerpoEntero: noAfirmable('bulgara.cuerpo.inercial.fuerza_vertical', 'N', motivo, v),
+  }
 }
 
 type Clave = 'sup:tronco' | 'sup:cabeza' | 'sup:brazos' | 'sup:barra' | 'del:pie' | 'del:tibia' | 'del:muslo' | 'tras:pie' | 'tras:tibia' | 'tras:muslo'
@@ -479,7 +493,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
     'ángulos de entrada sin ruido: la segunda derivada amplifica el ruido, se propaga aparte',
     'derivada segunda por diferencias finitas de 3 puntos; sin vecino a ambos lados no se calcula',
     'los dos pies fijos; las piernas, el tronco y la cabeza giran con la inercia de de Leva (rango sagital-transverso); brazos y carga son masas puntuales sin inercia propia',
-    'el inercial por pierna no tiene estudio que lo separe: es la regla aplicada al F_total con aceleración, con el sesgo de la concéntrica',
+    'el inercial por pierna no tiene estudio que lo separe: sale no_afirmable; el total de cada pierna es la regla aplicada al F_total con aceleración, con el sesgo de la concéntrica',
   ]
 
   const marcos = ins.map((x, k): MarcoDeBulgara => {
@@ -523,15 +537,37 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
       const estatico = sEst(nom)
       const total = media(nom)
       const serieTotal = filas.flatMap((r) => [sTot(r, 0), sTot(r, 1)])
-      const serieInercial = filas.flatMap((r) => [sTot(r, 0) - sEst(r), sTot(r, 1) - sEst(r)])
       return {
         estatico: cifra(`bulgara.${lado}.momento.${a}`, estatico, filas.map(sEst), NIVEL_ESTATICO),
-        inercial: cifra(`bulgara.${lado}.momento.inercial.total.${a}`, total - estatico, serieInercial, NIVEL_DINAMICO),
+        inercial: noAfirmable(`bulgara.${lado}.momento.inercial.total.${a}`, 'N·m', MOTIVO_INERCIAL_POR_PIERNA, v),
         total: cifra(`bulgara.${lado}.momento.dinamico.${a}`, total, serieTotal, NIVEL_DINAMICO),
       }
     }
     const pata = (lado: Lado) => ({ tobillo: mom(lado, 'tobillo'), rodilla: mom(lado, 'rodilla'), cadera: mom(lado, 'cadera') })
-    return { indice: k, t: x.t, delantera: pata('delantera'), trasera: pata('trasera'), horizontalNoRepartidaN: fuerzaHorizontalNeta(ninguno), fuerzaTotalN: nom.din[0]!.fuerzaTotalN, fuerzaTraseraN: nom.din[0]!.fuerzaTraseraN }
+    // término inercial del CUERPO ENTERO: Σ m·a_y = fuerza vertical total − peso (cuerpo + carga); no depende de la regla del reparto
+    const pesoN = (sujeto.masa + e.cargaKg) * GRAVEDAD
+    const inerciales = filas.flatMap((fl) => fl.din.map((d) => d.fuerzaTotalN - pesoN))
+    const valorInercial = nom.din[0]!.fuerzaTotalN - pesoN
+    const inercialCuerpoEntero: Cifra = {
+      id: 'bulgara.cuerpo.inercial.fuerza_vertical',
+      valor: valorInercial,
+      unidad: 'N',
+      estado: 'estimado',
+      fuente,
+      supuestos,
+      banda: { inf: Math.min(valorInercial, ...inerciales), sup: Math.max(valorInercial, ...inerciales), nivel: NIVEL_INERCIAL_CUERPO_ENTERO },
+      version: v,
+    }
+    return {
+      indice: k,
+      t: x.t,
+      delantera: pata('delantera'),
+      trasera: pata('trasera'),
+      horizontalNoRepartidaN: fuerzaHorizontalNeta(ninguno),
+      fuerzaTotalN: nom.din[0]!.fuerzaTotalN,
+      fuerzaTraseraN: nom.din[0]!.fuerzaTraseraN,
+      inercialCuerpoEntero,
+    }
   })
   return { motivo: null, marcos }
 }
