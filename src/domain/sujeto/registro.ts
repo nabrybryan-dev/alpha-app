@@ -4,6 +4,7 @@ import { valoresDeLeva } from './deleva'
 import { valoresDeRadios } from './inercia'
 import { DOMINIO_DE_SILDER, MUSCULOS_DE_SILDER, SILDER_MEDIA, SILDER_SD } from './pasivo'
 import { LIMITES_DE_CORDURA } from './sujeto'
+import { FRACCION_TRASERA_BULGARA } from './zancadaBulgara'
 
 /**
  * Todas las constantes numéricas que el dominio del sujeto toma de una fuente, con su id.
@@ -43,6 +44,10 @@ export const VALORES_REGISTRADOS: Readonly<Record<string, number>> = {
   ...valoresDeRadios(),
   ...valoresDeSilder(),
   ...valoresDeWard(),
+  // Regla de la búlgara (REPARTO-ZANCADA.md §4): fracción del peso corporal en la pierna trasera.
+  'helme20.bulgara.trasera.bw': FRACCION_TRASERA_BULGARA.central,
+  'arakawa25.bulgara.trasera.bw_inf': FRACCION_TRASERA_BULGARA.inf,
+  'arakawa25.bulgara.trasera.bw_sup': FRACCION_TRASERA_BULGARA.sup,
   'convenciones.gravedad': GRAVEDAD,
   'sujeto.limite.talla_min': LIMITES_DE_CORDURA.tallaMin,
   'sujeto.limite.talla_max': LIMITES_DE_CORDURA.tallaMax,

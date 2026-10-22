@@ -118,3 +118,16 @@ export {
   proporcionesDeAreaDeCadera,
   type GrupoDeCadera,
 } from './areasDeWard'
+// Sentadilla búlgara: el reparto entre piernas por la regla de REPARTO-ZANCADA.md (0,30 BW en la trasera) y su término inercial por pierna.
+export {
+  FRACCION_TRASERA_BULGARA,
+  VARIANTES_DE_ZANCADA,
+  fraccionTraseraDe,
+  momentosDeBulgara,
+  momentosDeBulgaraEnElTiempo,
+  momentosDeZancadaPorVariante,
+  type EntradaDeSerieDeBulgara,
+  type ResultadoDeBulgara,
+  type ResultadoDeSerieDeBulgara,
+  type VarianteDeZancada,
+} from './zancadaBulgara'
