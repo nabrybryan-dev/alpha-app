@@ -36,8 +36,19 @@
  *   SUPABASE_URL=... SUPABASE_SERVICE_KEY=... \
  *     npm run revision-semanal -- --paso publicar --semana 2026-09-07
  *
+ * CÓDIGOS DE SALIDA (desde el 22-oct; antes `publicar` terminaba SIEMPRE con 0, y el 16-oct el
+ * registro dijo «LISTO» con 0 de 13 publicadas):
+ *   0  todo lo que tocaba quedó publicado (o ya estaba publicado y firmado)
+ *   1  reventó algo (sin clave, sin manifiesto, la base no contestó…)
+ *   3  TANDA INCOMPLETA: hay gente sin audio o rechazada. Lo decide `lib/balance-de-la-tanda.mjs`.
+ *
+ *   `--paso firmar` es la firma AUTOMÁTICA (decisión de Bryan, 21-oct: «Solos, sin freno»). No mira
+ *   ninguna bandera: la mira quien lo lanza (`revision-semanal-viernes.ps1`, que la deja APAGADA
+ *   por defecto). Firma solo lo que el agente de mensajes marcó «publicar»; la base pone el resto
+ *   de las guardas. Con `--ensayo` dice a quién firmaría y no toca nada.
+ *
  * Opciones:
- *   --paso guiones|publicar   qué mitad se hace. Obligatorio.
+ *   --paso guiones|publicar|firmar   qué mitad se hace. Obligatorio.
  *   --semana <AAAA-MM-DD>     cualquier día de la semana; se guarda por su LUNES.
  *                             Sin ella, la semana en la que cae hoy.
  *   --carpeta <ruta>          dónde viven guiones y audios. Por defecto
@@ -64,6 +75,8 @@ import {
   repartoSemanal,
 } from '../src/domain/resumenSemanal/reparto.ts'
 import { archivoDeLaRevision, FORMATOS } from '../src/domain/video/publicacion.ts'
+import { balanceDeLaPublicacion } from './lib/balance-de-la-tanda.mjs'
+import { elegirParaFirmar, firmarRevisionesAutomaticas } from './lib/firma-automatica.mjs'
 import { PORQUE, publicarUnaRevision } from './lib/publicar-una-revision.mjs'
 
 const MANIFIESTO = 'manifiesto.json'
@@ -285,12 +298,18 @@ async function pasoPublicar(args, carpeta, semana) {
   let publicados = 0
   let sinAudio = 0
   let rechazados = 0
+  let yaAprobados = 0
   let conCara = 0
   let conVoz = 0
   let vuelvenALaBandeja = 0
 
-  for (const encargo of manifiesto.encargos) {
-    if (soloUno && encargo.usuarioId !== soloUno) continue
+  // Quien el agente de mensajes OMITIÓ (orden de detener vigente) no tiene audio a propósito y no
+  // cuenta como esperado: sin esto una persona detenida volvería "incompleta" cada tanda.
+  const aPublicar = manifiesto.encargos.filter((e) => !e.omitido && (!soloUno || e.usuarioId === soloUno))
+  const omitidos = manifiesto.encargos.filter((e) => e.omitido && (!soloUno || e.usuarioId === soloUno)).length
+  if (omitidos) console.log(`  ${omitidos} persona(s) omitida(s) por el agente de mensajes: no se esperan.`)
+
+  for (const encargo of aPublicar) {
     const quien = encargo.nombre || encargo.usuarioId
 
     // La cara manda sobre la voz cuando están las dos: el mp4 es la revisión y el mp3 es
@@ -326,7 +345,9 @@ async function pasoPublicar(args, carpeta, semana) {
     }
     if (!resultado.publicado) {
       console.log(`  NO ${quien}: ${PORQUE[resultado.motivo] ?? resultado.motivo}`)
-      rechazados += 1
+      // Repetir la corrida sobre algo ya firmado no es un fallo: es lo que debe pasar.
+      if (resultado.motivo === 'ya-aprobado') yaAprobados += 1
+      else rechazados += 1
       continue
     }
     if (resultado.quitaFirma) vuelvenALaBandeja += 1
@@ -350,15 +371,75 @@ async function pasoPublicar(args, carpeta, semana) {
   if (ensayo) {
     console.log('ENSAYO: no se ha tocado nada, y no se ha preguntado si alguna estaba ya firmada.')
   } else if (publicados > 0) {
-    console.log('SIN APROBAR: nadie las verá hasta que se firmen en la bandeja.')
+    console.log(
+      'SIN FIRMAR: nadie las verá hasta que se firmen (la bandeja del coach o, si está encendida, ' +
+        'la firma automática: --paso firmar).',
+    )
   }
+
+  // EL BALANCE. Hasta el 22-oct esto terminaba SIEMPRE con 0 (16-oct: 0 de 13 y «LISTO»). Ahora una
+  // tanda que no publicó lo que tocaba sale con un código distinto de 0 y lo dice con todas sus letras.
+  const balance = balanceDeLaPublicacion({
+    esperados: aPublicar.length,
+    publicados,
+    yaAprobados,
+    rechazados,
+    sinAudio,
+    ensayo,
+  })
+  console.log(balance.linea)
+  return balance.codigoDeSalida
+}
+
+/**
+ * LA FIRMA AUTOMÁTICA (decisión de Bryan, 21-oct: «Solos, sin freno»). DETRÁS DE UNA BANDERA que
+ * el `.ps1` solo enciende si Bryan la dejó encendida; este paso no mira la bandera, la mira quien
+ * lo lanza. Firma solo lo que el agente marcó «publicar» y que la base muestra tal cual el
+ * manifiesto; la base pone el resto de las guardas (`firmar_revisiones_automaticas`).
+ */
+async function pasoFirmar(args, carpeta, semana) {
+  const ensayo = args.has('ensayo')
+  let manifiesto
+  try {
+    manifiesto = JSON.parse(await readFile(join(carpeta, MANIFIESTO), 'utf8'))
+  } catch {
+    console.error(`No hay manifiesto en ${carpeta}.`)
+    process.exit(1)
+  }
+  if (manifiesto.semana !== semana) {
+    console.error(`El manifiesto es de la semana del ${manifiesto.semana} y se pidió firmar la del ${semana}.`)
+    process.exit(1)
+  }
+  const sb = clienteDeServicio()
+  const { data: filas, error } = await sb
+    .from('videos_semanales')
+    .select('usuario_id, guion, aprobado_en, tipo')
+    .eq('semana', semana)
+  if (error) throw new Error(`no pude leer lo publicado: ${error.message}`)
+
+  const { usuarios, noFirmadas } = elegirParaFirmar({ manifiesto, filas: filas ?? [] })
+  const nombres = new Map(manifiesto.encargos.map((e) => [e.usuarioId, e.nombre || e.usuarioId]))
+  for (const n of noFirmadas) console.log(`  SIN FIRMA ${nombres.get(n.usuarioId)}: ${n.motivo}`)
+  if (ensayo) {
+    console.log(`\nENSAYO: la firma automática firmaría a ${usuarios.length} y dejaría ${noFirmadas.length} para el coach.`)
+    return 0
+  }
+  const { firmadas, pedidas } = await firmarRevisionesAutomaticas(sb, { semana, usuarios })
+  console.log(`\nFirma automática · semana del ${semana} · firmadas ${firmadas} de ${pedidas} pedidas · para el coach: ${noFirmadas.length}`)
+  if (firmadas < pedidas) {
+    console.log(
+      `  ${pedidas - firmadas} quedaron sin firmar: la base las frenó (orden «detener» vigente, corrección pedida o la fila cambió). ` +
+        'Es el interruptor funcionando; están en la bandeja del coach.',
+    )
+  }
+  return 0
 }
 
 async function main() {
   const args = argumentos()
   const paso = texto(args, 'paso')
-  if (paso !== 'guiones' && paso !== 'publicar') {
-    console.error('Falta --paso guiones o --paso publicar. Ver la cabecera de este archivo.')
+  if (paso !== 'guiones' && paso !== 'publicar' && paso !== 'firmar') {
+    console.error('Falta --paso guiones, --paso publicar o --paso firmar. Ver la cabecera de este archivo.')
     process.exit(1)
   }
 
@@ -371,8 +452,13 @@ async function main() {
 
   const carpeta = resolve(process.cwd(), texto(args, 'carpeta', join('salidas', `revision-${semana}`)))
 
-  if (paso === 'guiones') await pasoGuiones(args, carpeta, semana)
-  else await pasoPublicar(args, carpeta, semana)
+  if (paso === 'guiones') {
+    await pasoGuiones(args, carpeta, semana)
+  } else if (paso === 'firmar') {
+    process.exitCode = await pasoFirmar(args, carpeta, semana)
+  } else {
+    process.exitCode = await pasoPublicar(args, carpeta, semana)
+  }
 }
 
 main().catch((e) => {
