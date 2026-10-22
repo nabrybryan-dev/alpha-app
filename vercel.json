@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/privacidad",
+      "destination": "/privacidad.html"
+    },
+    {
+      "source": "/borrar-datos",
+      "destination": "/borrar-datos.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

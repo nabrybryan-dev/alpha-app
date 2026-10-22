@@ -1,11 +1,11 @@
 <!doctype html>
 <!--
-  LISTA PARA SUBIR, NO PUBLICADA. Preparada el 10-oct-2026 a partir de POLITICA-DATOS-CREADORES.md v0.2.
+  Versión 0.2 · 2026-10-22. Basada en POLITICA-DATOS-CREADORES.md v0.2 y MAPA-DE-DATOS.md.
+  Estado: pendiente de revisión del abogado. NO publicar hasta que la confirme.
   Antes de publicar:
-  1. Revisión del abogado (plazos de conservación y base de la captura previa).
-  2. Bryan confirma la frase del proveedor de IA (sale de MAPA-DE-DATOS.md, fila IAX, y de la política §11).
-  3. Poner la fecha real de publicación donde dice FECHA.
-  4. El enlace a borrar-datos.html debe funcionar en el sitio.
+  1. Abogado: plazos de conservación, base de la captura previa y retención del proveedor de IA.
+  2. Reemplazar el marcador [POR CONFIRMAR] de «Quién puede verlos» con el dato verificado.
+  3. Comprobar en el sitio que /privacidad y /borrar-datos abren estas páginas y no la app.
 -->
 <html lang="es">
 <head>
@@ -20,12 +20,13 @@
   h2 { font-size: 1.15rem; margin-top: 2rem; }
   .dato { font-size: .95rem; opacity: .85; }
   li { margin: .3rem 0; }
-  a { color: inherit; }
+  a { color: inherit; overflow-wrap: anywhere; }
+  body { overflow-wrap: break-word; }
 </style>
 </head>
 <body>
 <h1>Política de privacidad de Alpha Athletics</h1>
-<p class="dato">Versión 0.1 · FECHA · Aplica a la herramienta interna «Alpha Estudio».</p>
+<p class="dato">Versión 0.2 · 2026-10-22 · Aplica a la herramienta interna «Alpha Estudio».</p>
 
 <h2>Quién responde por tus datos</h2>
 <p>Bryan Arango, persona natural, que opera Alpha Athletics.<br>
@@ -35,23 +36,29 @@ Contacto para temas de datos: <a href="mailto:alphaathletics301@gmail.com">alpha
 <h2>Qué hace esta herramienta</h2>
 <p>Alpha Athletics ofrece entrenamiento y nutrición en Colombia. Con la API oficial de Instagram buscamos
 <strong>cuentas profesionales públicas</strong> de creadores de contenido de fitness y nutrición, para decidir si les
-proponemos una colaboración. Una persona de nuestro equipo revisa cada candidato.
+proponemos una colaboración. Una persona revisa cada candidato.
 <strong>No enviamos mensajes automáticos</strong>: cualquier mensaje lo escribe y lo envía una persona.</p>
 
 <h2>Qué datos tratamos</h2>
+<p>Aunque sean visibles en Instagram, los tratamos como datos personales y guardamos lo mínimo.</p>
 <ul>
-  <li>El nombre de usuario (@) y el nombre público de la cuenta.</li>
-  <li>Número de seguidores y de publicaciones.</li>
+  <li>El @, el nombre público de la cuenta y su número de identificación en Instagram.</li>
+  <li>Seguidores, número de publicaciones y fecha de observación.</li>
   <li>Métricas públicas de publicaciones (me gusta, comentarios, reproducciones), su enlace y su fecha.</li>
-  <li>Una nota interna de encaje y el estado de nuestro contacto con la cuenta.</li>
+  <li>Temas de tu contenido (etiquetas de una lista cerrada) y una puntuación de encaje con su motivo.</li>
+  <li>La propuesta de colaboración que redactamos para ti y el estado de nuestro contacto.</li>
+  <li>La fecha en que registramos tu cuenta por primera vez.</li>
+  <li>Tu biografía pública, solo de paso: le quitamos correos, teléfonos y enlaces de contacto, la usamos para
+      clasificar temas y <strong>no la guardamos</strong>.</li>
 </ul>
 
 <h2>Qué no tratamos</h2>
 <ul>
   <li>Datos de tus seguidores ni de terceros que aparezcan en tus publicaciones o comentarios.</li>
   <li>Datos de salud ni otros datos sensibles.</li>
-  <li>Contenido privado, mensajes directos ni estadísticas privadas, salvo que tú las compartas y lo autorices.</li>
-  <li>Cuentas de menores de 18 años: se descartan.</li>
+  <li>Tu correo, tu teléfono, contenido privado ni estadísticas privadas, salvo que respondas y lo autorices.</li>
+  <li>Cuentas de menores de 18 años: se descartan y no guardamos su @, solo una huella cifrada (sha256) durante
+      6 meses para no volver a evaluarlas.</li>
   <li>Nada obtenido por raspado de pantalla ni fuera de la API oficial.</li>
 </ul>
 
@@ -64,29 +71,50 @@ proponemos una colaboración. Una persona de nuestro equipo revisa cada candidat
 <p>No vendemos estos datos, no los usamos para publicidad de terceros y no los usamos para contactar a tu audiencia.</p>
 
 <h2>Quién puede verlos</h2>
-<p>Bryan Arango y el equipo de Alpha Athletics. Los datos se guardan en un equipo propio.
-Para ordenar candidatos y redactar propuestas podemos usar un proveedor de inteligencia artificial
-(Anthropic, Estados Unidos), que recibe el @, las métricas públicas y cuadros de reels públicos, por encargo nuestro
-y solo para ese fin.</p>
+<p>Bryan Arango y los agentes (programas) de la herramienta que buscan creadores y redactan propuestas. Los datos
+se guardan en un equipo propio; el identificador interno y el número de identificación de Instagram no salen de él.</p>
+<p>Para clasificar temas y redactar propuestas podemos usar un proveedor de inteligencia artificial
+(Anthropic, Estados Unidos), por encargo nuestro y solo para ese fin. Puede recibir tu @, tus métricas públicas, el
+enlace de tus publicaciones, cuadros fijos de tus reels públicos (sin audio) y, solo de paso, tu biografía ya
+depurada. Nunca recibe datos de clientes ni de salud.
+Tiempo que el proveedor conserva los registros: <strong>[POR CONFIRMAR]</strong>.</p>
 
 <h2>Cuánto tiempo los conservamos</h2>
 <ul>
-  <li>Si nunca te contactamos: hasta 6 meses.</li>
-  <li>Si te contactamos y no respondes: hasta 3 meses.</li>
-  <li>Si respondes que no: hasta 30 días.</li>
-  <li>Si hay un acuerdo de colaboración: mientras dure, y lo que exija la ley contable.</li>
+  <li>Si nunca te contactamos: hasta 6 meses desde que registramos tu cuenta. Después borramos tu ficha y dejamos
+      una marca mínima (identificador interno, número de identificación de Instagram y fecha) durante 12 meses para
+      no volver a registrarte; luego se borra.</li>
+  <li>Si te contactamos y no respondes: hasta 3 meses desde el último mensaje. Después borramos tu ficha y dejamos
+      solo el identificador interno y el estado «sin respuesta» durante 12 meses para no volver a escribirte.</li>
+  <li>Si respondes que no: hasta 30 días, y pasas a la lista de exclusión (ver abajo).</li>
+  <li>Si hay un acuerdo de colaboración: mientras dure y, para pagos y comisiones, 5 años desde su fin por exigencia
+      contable y tributaria. Lo demás se borra.</li>
 </ul>
 
+<h2>Cuándo pedimos tu autorización</h2>
+<p>Los datos públicos de tu cuenta profesional se tratan sin pedir autorización previa. El primer mensaje te dice
+quiénes somos y cómo pedir que los borremos. Cuando respondes con interés, te pedimos autorización antes de guardar
+tu correo, tu teléfono o cualquier dato que no venga de la API, y de forma expresa y separada antes de recibir
+estadísticas privadas.</p>
+
 <h2>Tus derechos</h2>
-<p>Puedes conocer, actualizar y rectificar tus datos, saber para qué se usan, revocar tu autorización y pedir que los
-borremos (Ley 1581 de 2012, artículo 8). Escribe a
-<a href="mailto:alphaathletics301@gmail.com">alphaathletics301@gmail.com</a>. Respondemos las consultas en máximo
-10 días hábiles y los reclamos en máximo 15 días hábiles. Si no quedas conforme, puedes acudir a la Superintendencia
-de Industria y Comercio (SIC).</p>
+<p>Puedes conocer, actualizar y rectificar tus datos, saber para qué se usan, revocar tu autorización, pedir que los
+borremos y acceder a ellos gratis (Ley 1581 de 2012, artículo 8).</p>
+<p>Escribe a <a href="mailto:alphaathletics301@gmail.com">alphaathletics301@gmail.com</a>.</p>
+<ul>
+  <li><strong>Consultas</strong> (qué datos tenemos de ti y de dónde salen): respuesta en máximo 10 días hábiles;
+      si no alcanzamos, te avisamos y respondemos en máximo 5 días hábiles más.</li>
+  <li><strong>Reclamos</strong> (corregir, borrar, excluir, incumplimiento): respuesta en máximo 15 días hábiles;
+      si no alcanzamos, te avisamos y respondemos en máximo 8 días hábiles más.</li>
+</ul>
+<p>Solo después de agotar este trámite con nosotros puedes presentar una queja ante la Superintendencia de Industria
+y Comercio (SIC).</p>
 
 <h2>Si no quieres que te contactemos</h2>
-<p>Dínoslo y dejamos de hacerlo. Para no volver a registrar tu cuenta por error conservamos solo lo mínimo para
-reconocerla: su identificador, el @, la fecha y el canal de tu petición. Mira
+<p>Dínoslo por cualquier canal y dejamos de hacerlo. Para no volver a registrar tu cuenta por error, en la lista de
+exclusión conservamos solo lo mínimo para reconocerla: el identificador interno, el número de identificación de
+Instagram, el @ de ese día y la fecha y el canal de tu petición. Esa entrada se conserva mientras no pidas
+borrarla; si lo pides, te explicamos qué pasaría. Mira
 <a href="borrar-datos.html">cómo pedir que borremos tus datos</a>.</p>
 
 <h2>Cambios</h2>
@@ -94,11 +122,16 @@ reconocerla: su identificador, el @, la fecha y el canal de tu petición. Mira
 
 <h2>English summary</h2>
 <p>Alpha Studio is an internal tool of Alpha Athletics (fitness and nutrition coaching, Colombia). It uses the official
-Instagram API to find public professional accounts and stores only public account metrics: username, follower and
-post counts, public engagement counts, post links and dates. A person reviews each candidate; no messages are sent
-automatically. We do not store followers' data, private insights, health data or data of minors, and we do not
-scrape. An AI service provider (Anthropic, USA) may process usernames, public metrics and frames of public reels on
-our behalf. Data is kept for a limited time (up to 6 months if the account is never contacted) and is deleted on
-request: see the <a href="borrar-datos.html">data deletion page</a>. Contact: alphaathletics301@gmail.com.</p>
+Instagram API to find public professional accounts and stores a minimum of data: username, account ID, follower and
+post counts, public engagement counts, post links and dates, topic tags, a fit score and a drafted proposal. The bio is
+used only in passing, stripped of contact details, and is not stored. A person reviews each candidate; no messages are
+sent automatically. We do not store data of followers, private insights or health data, and we do not scrape. Accounts
+of minors are discarded and only a sha256 fingerprint is kept for 6 months. An AI provider (Anthropic, USA) may process
+usernames, public metrics, post links and frames of public reels (no audio) on our behalf; its retention period is
+to be confirmed. Retention: up to 6 months if never contacted, 3 months if contacted without reply, 30 days after a
+refusal, and 5 years for accounting if there is an agreement. A minimal record is kept for 12 months after deletion,
+and an exclusion entry is kept until you ask otherwise. Queries are answered in 10 business days and claims in 15; you
+may complain to the Superintendencia de Industria y Comercio (SIC) after contacting us. See the
+<a href="borrar-datos.html">data deletion page</a>. Contact: alphaathletics301@gmail.com.</p>
 </body>
 </html>

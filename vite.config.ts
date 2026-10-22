@@ -61,6 +61,14 @@ export default defineConfig({
         // abre la presentación lo baja. Sin esto Workbox lo metería en la precarga y TODO el mundo lo
         // descargaría al instalar la app, que es justo lo que `React.lazy` evita.
         globIgnores: ['**/Suelo-*.js', '**/Escena3D*.js'],
+        // Páginas públicas de privacidad y de borrado de datos (public/privacidad.html y
+        // public/borrar-datos.html): son HTML estáticos, no rutas de la app. Sin esta lista el
+        // service worker contesta cualquier navegación con `index.html` y /privacidad abría la app.
+        // Se sirven del precaché (Workbox prueba `/privacidad` como `/privacidad.html`).
+        navigateFallbackDenylist: [/^\/privacidad(\.html)?\/?$/, /^\/borrar-datos(\.html)?\/?$/],
+        // Meta y los enlaces compartidos añaden parámetros (?fbclid=, ?mibextid=): que no impidan
+        // encontrar la página en el precaché.
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^mibextid$/],
         // Y un tope por TAMAÑO, que no depende del nombre que Rollup le dé al trozo: `Suelo-*`
         // es el nombre de hoy y puede cambiar con cualquier refactor. Nada de más de 600 kB entra
         // en la precarga; el mayor trozo legítimo ronda los 370 kB y three pasa de 900.
