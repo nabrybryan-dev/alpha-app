@@ -17,6 +17,7 @@ Fecha: 2026-10-22. Origen: informe `05-VOZ-ESTADO.md` (REDISENO-APP-20261021) y 
 | 1.5 revisión larga | `revision-larga.mjs` llamaba a la CLI del modelo externo con la ficha de la tasa | **retirado** (y con él `redactar-revision.mjs` y `lib/redactar-una-revision.mjs`) |
 | 1.6 mensajes | no existía | `mensaje-semanal.mjs` corre el agente local `cerebro-alpha-agentes/agentes/mensaje_semanal.py`; si no está o no responde queda la plantilla y no se firma nada |
 | 2 voz | `dev/prueba-voz/generar_revisiones.py` (molde de 12 s, ajustes del 13-sep, un proceso para todos) | `generar-voces.mjs`: `estudio.voz` de alpha-estudio, **un proceso por persona, un reintento**, 120 ms de silencio previo |
+| 2.5 la cara | corría sola en Kaggle (fuera del PC) en cuanto existían el lanzador y el venv de la GPU | **apagada**: solo con `-ConCara`, a propósito y cada vez (decisión «Todo en el PC»); el detector ve estas subidas |
 | 3 publicar | terminaba siempre con 0 (el 16-oct: 0 de 13 y «LISTO») | código **3** si la tanda no quedó completa; aviso en `notificaciones.log` |
 | 4 firma | no existía (la firma era solo del coach) | `revision-semanal --paso firmar`, **apagado por defecto** |
 
@@ -35,10 +36,17 @@ Fecha: 2026-10-22. Origen: informe `05-VOZ-ESTADO.md` (REDISENO-APP-20261021) y 
    10-sep; lo escribe Bryan).
 
 Qué se firma: solo a quien el agente marcó `publicar` y cuya fila en la base dice lo mismo que el manifiesto.
-La base (`firmar_revisiones_automaticas`) además se niega si el que llama no es `service_role`, si la fila ya
-estaba firmada, tiene corrección pedida, no tiene guion, tiene ruta histórica o no tiene archivo, o si hay una
-orden `detener` vigente para esa persona en la semana de la revisión o en la siguiente (la consola apunta
-`detener` a la semana que se va a cargar). Las políticas RLS de la `0068` no se tocan.
+Cada firma lleva la **versión y el sha256 del guion** que el puente comprobó (`firmar_revisiones_automaticas(semana, revisiones)`): si otra corrida republica entre la lectura y la firma, no se firma.
+La base además se niega si el que llama no es `service_role`, si la fila ya estaba firmada, tiene corrección
+pedida, no tiene guion, tiene ruta histórica o no tiene archivo, si hay una orden `detener` vigente para esa
+persona (la más reciente entre detener y reanudar, por semana) o un `reportar_riesgo` de la consola para esa
+persona, en la semana de la revisión o en la siguiente (la consola apunta a la semana que se va a cargar).
+Las políticas RLS de la `0068` no se tocan.
+
+Otras guardas: un candado de archivo impide dos corridas a la vez (la segunda sale con código 5 y avisa);
+`detener` ahora lleva la hora en su clave de idempotencia (`src/data/consola/ordenes.ts`), porque sin ella un
+detener posterior a un reanudar del mismo actor chocaba con el `unique` y se perdía; y cada corrida de la voz
+escribe en el log el sha256 del molde (`<id>.molde.sha256` junto a cada audio; un audio hecho con otro molde se rehace).
 
 ## Lo medido al probar con la voz real (durante la construcción de esto, en este PC)
 
