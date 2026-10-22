@@ -186,6 +186,14 @@ describe('la voz de la tanda, una persona por proceso', () => {
     expect(r.generadas.map((g) => g.usuarioId)).toEqual([BETO])
   })
 
+  it('el molde sale de config.MOLDE_OFICIAL de alpha-estudio en cada corrida, no de una ruta fija', async () => {
+    // Bryan cambia de molde en alpha-estudio (el 22-oct eligió a ciegas el de 21-OCT): la cadena tiene que
+    // seguirlo sin tocar este repo. Una ruta .wav escrita aquí la dejaría con el molde viejo en silencio.
+    const fuente = await readFile('scripts/generar-voces.mjs', 'utf8')
+    expect(fuente).toContain('from estudio.config import MOLDE_OFICIAL')
+    expect(fuente).not.toMatch(/molde-de-voz|medios-alpha|\.wav['"`]/i)
+  })
+
   it('un guion vacío no se manda a la voz: fallo con motivo, sin gastar el proceso', async () => {
     const io = ioFalso()
     const r = await correr([encargo(ANA, '   ')], io)

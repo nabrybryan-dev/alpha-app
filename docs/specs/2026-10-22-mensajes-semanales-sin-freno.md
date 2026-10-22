@@ -66,6 +66,11 @@ volverá a caerse, ahora persona por persona y con aviso, no en bloque y en sile
 - No aplica la migración, no toca las tareas programadas, no firma nada.
 - No calcula las banderas de ánimo, dolor o alerta clínica: el agente las acepta en la entrada, el puente aún no las
   alimenta. Con «sin freno» no frenarían el mensaje de todos modos; sirven para el tono y para el aviso.
-- No hace el chequeo automático del audio por transcripción (whisper.cpp local) que pide el informe §3.1d.
+- No hace el chequeo automático del audio por transcripción (whisper.cpp local) que pide el informe §3.1d. Si se
+  construye, **no puede frenar la publicación**: whisper (small y medium) entendió mal «82 por ciento» justo en el
+  audio que Bryan oyó bien, y bien en el que él oyó mal. Solo registra la discrepancia en el log, regenera ese audio
+  una vez y, si sigue, publica y deja la nota.
+- El molde no está escrito aquí: `generar-voces.mjs` lo lee de `config.MOLDE_OFICIAL` de alpha-estudio en cada
+  corrida (hoy `molde-de-voz-21OCT-mezcla.wav`, comprobado), y una prueba falla si alguien escribe una ruta fija.
 - `guion.ts` (la plantilla que queda de piso) sigue diciendo «Tu plan sigue en pie» sin mirar el plan: por eso la
   plantilla **nunca** se firma sola.
