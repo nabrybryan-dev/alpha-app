@@ -15,6 +15,7 @@
  *     que se firman son los que se revisaron;
  *   · la bandera está APAGADA por defecto.
  */
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 
 const MOTIVOS = {
@@ -26,12 +27,17 @@ const MOTIVOS = {
 const normal = (t) => String(t ?? '').trim()
 
 /**
- * @param {{manifiesto: {encargos: object[]}, filas: {usuario_id: string, guion: string, aprobado_en: string|null}[]}} p
- * @returns {{usuarios: string[], noFirmadas: {usuarioId: string, motivo: string}[]}}
+ * @param {{manifiesto: {encargos: object[]}, filas: {usuario_id: string, guion: string, version: number, aprobado_en: string|null}[]}} p
+ * @returns {{usuarios: string[], revisiones: {usuario_id: string, version: number, guion_sha256: string}[], noFirmadas: {usuarioId: string, motivo: string}[]}}
+ *
+ * H4 (revisión 06): lo que se firma es LA VERSIÓN Y EL GUION QUE SE COMPROBÓ aquí. Cada revisión lleva la
+ * versión de la fila y la huella (sha256) de su guion TAL COMO ESTÁ en la base; la RPC firma solo si en
+ * ese instante la fila sigue siendo esa. Si otra corrida republica entre la lectura y la firma, no se firma.
  */
 export function elegirParaFirmar({ manifiesto, filas }) {
   const porUsuario = new Map(filas.map((f) => [f.usuario_id, f]))
   const usuarios = []
+  const revisiones = []
   const noFirmadas = []
   const vistos = new Set()
   for (const encargo of manifiesto.encargos) {
@@ -51,26 +57,39 @@ export function elegirParaFirmar({ manifiesto, filas }) {
       noFirmadas.push({ usuarioId: id, motivo: 'ya estaba firmada' })
     } else if (normal(fila.guion) !== normal(encargo.guion)) {
       noFirmadas.push({ usuarioId: id, motivo: 'el guion de la base no es el del manifiesto' })
+    } else if (!Number.isInteger(fila.version)) {
+      noFirmadas.push({ usuarioId: id, motivo: 'la fila no trae su versión: no hay a qué versión atar la firma' })
     } else {
       usuarios.push(id)
+      revisiones.push({ usuario_id: id, version: fila.version, guion_sha256: huellaDelGuion(fila.guion) })
     }
   }
-  return { usuarios, noFirmadas }
+  return { usuarios, revisiones, noFirmadas }
+}
+
+/** La huella del guion byte a byte, como lo guarda la base (la RPC calcula la misma sobre ideos_semanales.guion). */
+export function huellaDelGuion(guion) {
+  return createHash('sha256').update(String(guion ?? ''), 'utf8').digest('hex')
 }
 
 /**
  * Llama a la RPC. Un error de la base NO se lee como «cero firmadas»: sin esto una función que no
  * existe (la migración sin aplicar) pasaría por una tanda tranquila.
  */
-export async function firmarRevisionesAutomaticas(supabase, { semana, usuarios }) {
-  if (usuarios.length === 0) return { firmadas: 0, pedidas: 0 }
+export async function firmarRevisionesAutomaticas(supabase, { semana, revisiones }) {
+  if (revisiones.length === 0) return { firmadas: 0, pedidas: 0 }
+  for (const r of revisiones) {
+    if (!r.usuario_id || !Number.isInteger(r.version) || !/^[0-9a-f]{64}$/.test(String(r.guion_sha256 ?? ''))) {
+      throw new Error(`una revisión sin versión o sin huella del guion no se puede firmar (${r.usuario_id ?? 'sin id'})`)
+    }
+  }
   const { data, error } = await supabase.rpc('firmar_revisiones_automaticas', {
     p_semana: semana,
-    p_usuarios: usuarios,
+    p_revisiones: revisiones,
   })
   if (error) throw new Error(`no pude firmar las revisiones: ${error.message}`)
   if (typeof data !== 'number') throw new Error('la base no contestó cuántas firmó (se esperaba un número)')
-  return { firmadas: data, pedidas: usuarios.length }
+  return { firmadas: data, pedidas: revisiones.length }
 }
 
 /**

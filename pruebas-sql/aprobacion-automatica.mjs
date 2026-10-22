@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
@@ -30,6 +31,9 @@ const coach = '00000000-0000-4000-8000-000000000001'
 const ana = '00000000-0000-4000-8000-000000000002'
 const beto = '00000000-0000-4000-8000-000000000004'
 const carla = '00000000-0000-4000-8000-000000000005'
+const dani = '00000000-0000-4000-8000-000000000006'
+const eva = '00000000-0000-4000-8000-000000000007'
+const fede = '00000000-0000-4000-8000-000000000008'
 const SEMANA = '2026-10-19'
 const SIGUIENTE = '2026-10-26'
 const rutaDe = (persona, semana = SEMANA, n = 3) =>
@@ -41,8 +45,15 @@ const fila = async (persona) =>
   (await q('select * from videos_semanales where usuario_id = $1 and semana = $2', [persona, SEMANA])).rows[0]
 const comoServicio = () => q("select set_config('request.jwt.claim.role', 'service_role', false)")
 const sinRol = () => q("select set_config('request.jwt.claim.role', '', false)")
-const firmar = (usuarios, semana = SEMANA) =>
-  q('select firmar_revisiones_automaticas($1::date, $2::uuid[]) as n', [semana, usuarios])
+const huellaDe = (texto) => createHash('sha256').update(texto ?? '', 'utf8').digest('hex')
+const llamar = (revisiones, semana = SEMANA) =>
+  q('select firmar_revisiones_automaticas($1::date, $2::jsonb) as n', [semana, JSON.stringify(revisiones)])
+// Lo que hace el puente: LEE la fila (versión y guion) y firma ESA versión, con la huella de ESE guion.
+const revisionDe = async (persona, semana = SEMANA) => {
+  const f = (await q('select version, guion from videos_semanales where usuario_id = $1 and semana = $2', [persona, semana])).rows[0]
+  return { usuario_id: persona, version: f?.version ?? 1, guion_sha256: huellaDe(f?.guion) }
+}
+const firmar = async (usuarios, semana = SEMANA) => llamar(await Promise.all(usuarios.map((u) => revisionDe(u, semana))), semana)
 const publicar = async (persona, extra = {}) => {
   const ruta = extra.path ?? rutaDe(persona)
   await q(
@@ -53,11 +64,17 @@ const publicar = async (persona, extra = {}) => {
   )
   if (extra.sinArchivo !== true) await q('insert into storage.objects values ($1,$2)', ['medios-app', ruta])
 }
-const orden = (tipo, persona, semana, creada) =>
-  q('insert into public.ordenes(tipo, objetivo, creada_en) values ($1, $2::jsonb, $3)', [
+// La clave de idempotencia con la MISMA forma que src/data/consola/ordenes.ts: detener y reanudar
+// llevan la hora (desde la revisión 06, H1); reportar_riesgo no. Una `clave` explícita reproduce la
+// forma vieja de detener (sin hora) para comprobar que ESA colisionaba.
+const claveDe = (tipo, persona, semana, creada) =>
+  tipo === 'reportar_riesgo' ? `${tipo}|${persona}|${semana}|actor` : `${tipo}|${persona}|${semana}|actor|${creada}`
+const orden = (tipo, persona, semana, creada, clave = claveDe(tipo, persona, semana, creada)) =>
+  q('insert into public.ordenes(tipo, objetivo, creada_en, idempotency_key) values ($1, $2::jsonb, $3, $4)', [
     tipo,
     JSON.stringify({ usuario_id: persona, semana_inicio: semana, motivo: 'prueba' }),
     creada,
+    clave,
   ])
 
 try {
@@ -68,7 +85,7 @@ try {
     alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
     create schema auth; create schema storage;
     create table auth.users(id uuid primary key);
-    insert into auth.users values ('${coach}'), ('${ana}'), ('${beto}'), ('${carla}');
+    insert into auth.users values ('${coach}'), ('${ana}'), ('${beto}'), ('${carla}'), ('${dani}'), ('${eva}'), ('${fede}');
     create function auth.uid() returns uuid language sql as
       $$ select nullif(current_setting('prueba.usuario', true), '')::uuid $$;
     create function public.es_coach() returns boolean language sql as
@@ -81,10 +98,12 @@ try {
     create table public.videos_semanales(usuario_id uuid, semana date, path text, guion text,
       tipo text default 'video', publicado_en timestamptz default now(), aprobado_en timestamptz,
       primary key(usuario_id,semana));
-    -- Solo las columnas que la función lee de la 0083 (ordenes) y 0084 (tipo 'reanudar').
+    -- Las columnas de la 0083 (ordenes) y 0084 (tipo 'reanudar'), CON el unique(idempotency_key):
+    -- sin él esta prueba no veía que un segundo detener del mismo actor colisiona (revisión 06, H1).
     create table public.ordenes(id uuid primary key default gen_random_uuid(),
       tipo text not null check (tipo in ('detener','reportar_riesgo','pedir_correccion','responder','reanudar','preparar_firma')),
-      objetivo jsonb not null, creada_en timestamptz not null default now());
+      objetivo jsonb not null, creada_en timestamptz not null default now(),
+      idempotency_key text not null unique);
   `)
   await db.exec(await leer('0065_el_video_es_de_cada_quien.sql'))
   await db.exec(await leer('0068_el_video_no_sale_sin_firma.sql'))
@@ -97,6 +116,8 @@ try {
   assert.notEqual((await fila(ana)).aprobado_en, null, 'la firma antigua existe antes de migrar')
 
   // ── La migración ──
+  await db.exec(await readFile(MIGRACION, 'utf8'))
+  // IDEMPOTENTE (revisión 06, A4): las migraciones se pegan a mano y alguien puede pegarla dos veces.
   await db.exec(await readFile(MIGRACION, 'utf8'))
 
   // 1. Las firmas antiguas pasan a «coach»; lo no firmado se queda sin marca.
@@ -130,9 +151,9 @@ try {
   await publicar(carla)
   await assert.rejects(firmar([carla]), /Solo el proceso de servicio/, 'sin rol de servicio, ni siendo el dueño de la función')
   const permisos = (
-    await q(`select has_function_privilege('anon', 'firmar_revisiones_automaticas(date,uuid[])', 'execute') as anon,
-                    has_function_privilege('authenticated', 'firmar_revisiones_automaticas(date,uuid[])', 'execute') as autenticado,
-                    has_function_privilege('service_role', 'firmar_revisiones_automaticas(date,uuid[])', 'execute') as servicio`)
+    await q(`select has_function_privilege('anon', 'firmar_revisiones_automaticas(date,jsonb)', 'execute') as anon,
+                    has_function_privilege('authenticated', 'firmar_revisiones_automaticas(date,jsonb)', 'execute') as autenticado,
+                    has_function_privilege('service_role', 'firmar_revisiones_automaticas(date,jsonb)', 'execute') as servicio`)
   ).rows[0]
   assert.deepEqual(permisos, { anon: false, autenticado: false, servicio: true })
   await db.exec('set role authenticated')
@@ -194,6 +215,92 @@ try {
   await orden('detener', beto, SIGUIENTE, '2026-10-22T10:00:00Z')
   assert.equal((await firmar([beto])).rows[0].n, 0, 'detener la semana siguiente también frena')
   assert.equal((await fila(beto)).aprobado_en, null)
+
+  // e) A1 (revisión 06): manda la orden más reciente POR SEMANA, no por persona. Un detener de la
+  //    semana que se va a cargar NO lo apaga un reanudar posterior de la semana de la revisión.
+  await publicar(eva)
+  await orden('detener', eva, SIGUIENTE, '2026-10-22T10:00:00Z')
+  await orden('reanudar', eva, SEMANA, '2026-10-22T12:00:00Z')
+  assert.equal((await firmar([eva])).rows[0].n, 0, 'un reanudar de OTRA semana no apaga el detener de la siguiente')
+  assert.equal((await fila(eva)).aprobado_en, null)
+
+  // f) H1 (revisión 06): detener → reanudar → detener del mismo actor. La consola armaba la clave de
+  //    detener SIN hora: el segundo detener chocaba con unique(idempotency_key) (23505), se tomaba por
+  //    «ya estaba detenida» y la orden más reciente quedaba en reanudar. Primero, el fallo reproducido:
+  const claveVieja = `detener|${dani}|${SEMANA}|actor`
+  await publicar(dani)
+  await orden('detener', dani, SEMANA, '2026-10-21T08:00:00Z', claveVieja)
+  await orden('reanudar', dani, SEMANA, '2026-10-21T09:00:00Z')
+  await assert.rejects(
+    orden('detener', dani, SEMANA, '2026-10-21T10:00:00Z', claveVieja),
+    /unique|duplicate/i,
+    'la clave sin hora colisiona: ESE era el agujero',
+  )
+  assert.equal((await firmar([dani])).rows[0].n, 1, 'con el segundo detener perdido, la firma pasaba (la consecuencia del agujero)')
+  //    Y ahora con la clave de ahora (lleva la hora): las tres órdenes se guardan y NO se firma.
+  await publicar(fede)
+  await orden('detener', fede, SEMANA, '2026-10-21T08:00:00Z')
+  await orden('reanudar', fede, SEMANA, '2026-10-21T09:00:00Z')
+  await orden('detener', fede, SEMANA, '2026-10-21T10:00:00Z')
+  assert.equal((await firmar([fede])).rows[0].n, 0, 'detener → reanudar → detener: la última orden manda y es un detener')
+  assert.equal((await fila(fede)).aprobado_en, null)
+
+  // g) «Reportar riesgo» de la consola frena SOLO a esa persona (decisión de Bryan, 22-oct). Mismas
+  //    semanas que detener (la de la revisión y la siguiente); un reanudar NO lo apaga (reanudar es de
+  //    detener); el riesgo de otra persona o de otra semana lejana no frena.
+  const persona = (n) => `00000000-0000-4000-8000-0000000001${String(n).padStart(2, '0')}`
+  const [r1, r2, r3, r4, r5] = [11, 12, 13, 14, 15].map(persona)
+  for (const p of [r1, r2, r3, r4, r5]) await publicar(p)
+  await orden('reportar_riesgo', r1, SEMANA, '2026-10-21T10:00:00Z')
+  await orden('reportar_riesgo', r2, SIGUIENTE, '2026-10-21T10:00:00Z')
+  await orden('reportar_riesgo', r3, '2026-11-02', '2026-10-21T10:00:00Z')
+  await orden('reportar_riesgo', r5, SEMANA, '2026-10-21T10:00:00Z')
+  await orden('reanudar', r5, SEMANA, '2026-10-21T11:00:00Z')
+  assert.equal((await firmar([r1])).rows[0].n, 0, 'riesgo reportado esa semana frena a esa persona')
+  assert.equal((await firmar([r2])).rows[0].n, 0, 'riesgo reportado para la semana siguiente también frena')
+  assert.equal((await firmar([r5])).rows[0].n, 0, 'un reanudar no apaga un riesgo reportado')
+  assert.equal((await firmar([r3, r4])).rows[0].n, 2, 'un riesgo de otra semana lejana, o de otra persona, no frena a los demás')
+  for (const p of [r1, r2, r5]) assert.equal((await fila(p)).aprobado_en, null)
+
+  // h) H4: se firma la versión y el guion que el puente COMPROBÓ, no lo que haya cuando llegue la llamada.
+  const h = persona(21)
+  await publicar(h)
+  const comprobada = await revisionDe(h)
+  assert.equal((await llamar([{ ...comprobada, version: comprobada.version + 1 }])).rows[0].n, 0, 'otra versión: no firma')
+  assert.equal((await llamar([{ ...comprobada, guion_sha256: huellaDe('otro guion') }])).rows[0].n, 0, 'otra huella: no firma')
+  assert.equal((await llamar([{ ...comprobada, guion_sha256: '' }])).rows[0].n, 0, 'sin huella: no firma')
+  assert.equal((await llamar([{ usuario_id: h, version: comprobada.version }])).rows[0].n, 0, 'sin campo de huella: no firma')
+  //    Otra corrida republica ENTRE la lectura y la firma: la lectura vieja ya no vale.
+  await q("update videos_semanales set guion = 'Guion republicado' where usuario_id = $1", [h])
+  assert.equal((await llamar([comprobada])).rows[0].n, 0, 'si la fila cambió entre la lectura y la firma, no firma')
+  assert.equal((await fila(h)).aprobado_en, null)
+  assert.equal((await firmar([h])).rows[0].n, 1, 'releída, la versión nueva sí se firma')
+  assert.equal((await llamar('esto no es una lista')).rows[0].n, 0, 'una entrada que no es una lista no firma nada y no revienta')
+
+  // i) A3 (revisión 06): un INSERT nunca nace firmado (la hebilla de la 0081 sigue donde estaba).
+  const nacida = persona(31)
+  await q(
+    `insert into videos_semanales(usuario_id, semana, path, guion, tipo, aprobado_en, aprobado_por, aprobacion)
+     values ($1,$2,$3,'Guion ficticio','audio', now(), $4, 'coach')`,
+    [nacida, SEMANA, rutaDe(nacida), coach],
+  )
+  const recienNacida = await fila(nacida)
+  assert.equal(recienNacida.aprobado_en, null, 'un INSERT con aprobado_en nace SIN firma')
+  assert.equal(recienNacida.aprobacion, null)
+  assert.equal(recienNacida.aprobado_por, null)
+
+  // j) A5 (revisión 06): la SEGUNDA puerta del rol. El dueño de la función (que no pasa por el REVOKE)
+  //    la llama diciendo ser otro rol: authenticated, anon o ninguno de los dos.
+  await publicar(persona(41))
+  for (const rolFalso of ['authenticated', 'anon', 'postgres', 'service_role_falso']) {
+    await db.exec(`select set_config('request.jwt.claim.role', '${rolFalso}', false)`)
+    await assert.rejects(firmar([persona(41)]), /Solo el proceso de servicio/, `el rol «${rolFalso}» no firma`)
+  }
+  await db.exec(`select set_config('request.jwt.claim.role', '', false); select set_config('request.jwt.claims', '{"role":"authenticated"}', false)`)
+  await assert.rejects(firmar([persona(41)]), /Solo el proceso de servicio/, 'tampoco por request.jwt.claims')
+  await db.exec("select set_config('request.jwt.claims', '', false)")
+  await comoServicio()
+  assert.equal((await fila(persona(41))).aprobado_en, null, 'nada se firmó en esos intentos')
 
   // ── La forma moderna del rol (request.jwt.claims en JSON) también vale ──
   await db.exec("select set_config('request.jwt.claim.role', '', false); select set_config('request.jwt.claims', '{\"role\":\"service_role\"}', false)")

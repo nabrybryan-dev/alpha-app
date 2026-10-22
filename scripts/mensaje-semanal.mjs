@@ -36,7 +36,7 @@ import process from 'node:process'
 import { createClient } from '@supabase/supabase-js'
 import { lunesDeLaSemana } from '../src/domain/resumenSemanal/reparto.ts'
 import { avisarABryan } from './lib/aviso-a-bryan.mjs'
-import { aplicarSalidaDelAgente, armarEntradaDelAgente } from './lib/mensaje-semanal.mjs'
+import { aplicarSalidaDelAgente, armarEntradaDelAgente, marcarSinAgente, personasConRiesgo } from './lib/mensaje-semanal.mjs'
 
 const MANIFIESTO = 'manifiesto.json'
 const CEREBRO_POR_DEFECTO = 'C:\\Users\\ASUS\\dev\\cerebro-alpha-agentes'
@@ -72,10 +72,10 @@ function correrPython(python, argumentosDelScript) {
   })
 }
 
-/** Órdenes `detener`/`reanudar` de la consola. Sin clave o con error: lista vacía (la base de datos vuelve a mirarlas al firmar). */
+/** Órdenes `detener`/`reanudar`/`reportar_riesgo` de la consola. Sin clave o con error: lista vacía (la base de datos vuelve a mirarlas al firmar). */
 async function traerOrdenes(sb) {
   if (!sb) return []
-  const { data, error } = await sb.from('ordenes').select('tipo, objetivo, creada_en').in('tipo', ['detener', 'reanudar'])
+  const { data, error } = await sb.from('ordenes').select('tipo, objetivo, creada_en').in('tipo', ['detener', 'reanudar', 'reportar_riesgo'])
   if (error) {
     console.log(`AVISO: no pude leer las órdenes de la consola (${error.message}). Sigo sin ellas: la base las vuelve a mirar al firmar.`)
     return []
@@ -118,7 +118,7 @@ async function traerFichas({ sb, args, cerebro, python, trabajo }) {
 async function sinAgente({ semana, carpeta, manifiesto, motivo }) {
   console.log(`EL AGENTE NO RESPONDIÓ: ${motivo}`)
   console.log('Todos salen con la plantilla de siempre y NO se firma nada automáticamente.')
-  const nuevo = { ...manifiesto, mensajeSemanal: { generado: new Date().toISOString(), agente: 'ausente', motivo } }
+  const nuevo = marcarSinAgente(manifiesto, motivo)
   await writeFile(join(carpeta, MANIFIESTO), `${JSON.stringify(nuevo, null, 2)}\n`, 'utf8')
   await avisarABryan({
     id: `mensaje-semanal-${semana}-agente-ausente`,
@@ -187,7 +187,10 @@ async function main() {
     return
   }
 
-  const aplicado = aplicarSalidaDelAgente({ manifiesto, salida })
+  // Un riesgo reportado en la consola frena el audio AUTOMÁTICO de esa persona (y solo de ella).
+  const riesgos = personasConRiesgo(ordenes, semana)
+  if (riesgos.size) console.log(`Riesgo reportado en la consola: ${riesgos.size} persona(s) no se firman solas (quedan en la bandeja del coach).`)
+  const aplicado = aplicarSalidaDelAgente({ manifiesto, salida, riesgos })
   for (const t of aplicado.textos) await writeFile(join(carpeta, t.archivoGuion), `${t.texto}\n`, 'utf8')
   await writeFile(join(carpeta, MANIFIESTO), `${JSON.stringify(aplicado.manifiesto, null, 2)}\n`, 'utf8')
   for (const a of aplicado.avisos) await avisarABryan(a)

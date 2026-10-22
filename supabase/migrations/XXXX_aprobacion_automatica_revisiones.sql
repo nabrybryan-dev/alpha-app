@@ -18,9 +18,14 @@
 --   · Añade `aprobacion` ('coach' | 'automatica') para que una firma automática se distinga de
 --     las 59 antiguas (todas con `aprobado_por` nulo: firmadas a mano con la clave de servicio).
 --     Las antiguas se marcan 'coach': las hizo Bryan.
---   · `firmar_revisiones_automaticas(semana, usuarios)`: SOLO el proceso de servicio, SOLO a los
+--   · `firmar_revisiones_automaticas(semana, revisiones)`: SOLO el proceso de servicio, SOLO a los
 --     que el agente de mensajes marcó «publicar», y nunca una fila ya firmada, con corrección
---     pedida, sin guion, con ruta histórica o sin archivo en el almacén.
+--     pedida, sin guion, con ruta histórica o sin archivo en el almacén. Cada elemento lleva la
+--     VERSIÓN y la HUELLA (sha256) del guion que el puente comprobó: si la fila cambió entre la
+--     lectura y la firma, no se firma (revisión 06, H4).
+--   · «REPORTAR RIESGO» de la consola frena el audio automático de ESA persona (y solo de ella),
+--     en la semana de la revisión y en la siguiente (decisión de Bryan, 22-oct). Ningún
+--     `reanudar` lo levanta: reanudar es de `detener`.
 --   · EL INTERRUPTOR: una orden `detener` vigente para esa persona frena la firma. «Vigente» =
 --     la orden MÁS RECIENTE entre `detener` y `reanudar` (misma regla que la consola:
 --     AccionesRevision.tsx y tuberia/verificar_carga.py). La consola apunta `detener` a la
@@ -93,8 +98,18 @@ update public.videos_semanales
    set aprobacion = 'coach'
  where aprobado_en is not null and aprobacion is null;
 
+
 -- 4 · La firma automática.
-create or replace function public.firmar_revisiones_automaticas(p_semana date, p_usuarios uuid[])
+--
+-- Se borra la versión anterior de este borrador (firmaba por lista de usuarios, sin versión):
+-- la firma lleva ahora la VERSIÓN y la HUELLA del guion que el puente comprobó (revisión 06, H4).
+drop function if exists public.firmar_revisiones_automaticas(date, uuid[]);
+
+-- p_revisiones: [{"usuario_id": "<uuid>", "version": 3, "guion_sha256": "<hex de 64>"}, ...]
+-- La fila se firma SOLO si en este instante sigue siendo esa versión con ese guion: si otra
+-- corrida republicó entre la lectura del puente y esta llamada, no se firma una versión que nadie
+-- comparó. (`decidir_revision_semanal`, la firma del coach, también exige la versión.)
+create or replace function public.firmar_revisiones_automaticas(p_semana date, p_revisiones jsonb)
 returns integer
 language plpgsql security definer set search_path = public as $$
 declare
@@ -113,15 +128,24 @@ begin
     raise exception 'Solo el proceso de servicio' using errcode = '42501';
   end if;
 
-  if p_semana is null or p_usuarios is null or coalesce(array_length(p_usuarios, 1), 0) = 0 then
+  if p_semana is null or p_revisiones is null
+     or jsonb_typeof(p_revisiones) <> 'array' or jsonb_array_length(p_revisiones) = 0 then
     return 0;
   end if;
 
-  with firmadas as (
+  with pedidas as (
+    select (e->>'usuario_id')::uuid as usuario_id,
+           (e->>'version')::integer as version,
+           lower(coalesce(e->>'guion_sha256', '')) as huella
+      from jsonb_array_elements(p_revisiones) e),
+  firmadas as (
     update public.videos_semanales v
        set aprobado_en = now(), aprobacion = 'automatica'
+      from pedidas p
      where v.semana = p_semana
-       and v.usuario_id = any (p_usuarios)            -- solo los que el agente marcó «publicar»
+       and v.usuario_id = p.usuario_id                -- solo los que el agente marcó «publicar»
+       and v.version = p.version                      -- la versión que el puente comprobó
+       and encode(sha256(convert_to(coalesce(v.guion, ''), 'UTF8')), 'hex') = p.huella
        and v.aprobado_en is null                      -- nunca pisa una firma
        and v.correccion_solicitada is null
        and nullif(trim(v.guion), '') is not null
@@ -139,6 +163,14 @@ begin
                     and left(r.objetivo->>'semana_inicio', 10) in (v.semana::text, (v.semana + 7)::text)
                   order by left(r.objetivo->>'semana_inicio', 10), r.creada_en desc) ultima
           where ultima.tipo = 'detener')
+       -- «Reportar riesgo» de la consola (decisión de Bryan, 22-oct): frena el audio automático de
+       -- ESA persona, y solo de ella. Mismas semanas que detener. No hay orden que lo levante: un
+       -- `reanudar` es de `detener`; levantar un riesgo es una decisión del coach, no de la máquina.
+       and not exists (
+         select 1 from public.ordenes r
+          where r.tipo = 'reportar_riesgo'
+            and r.objetivo->>'usuario_id' = v.usuario_id::text
+            and left(r.objetivo->>'semana_inicio', 10) in (v.semana::text, (v.semana + 7)::text))
     returning 1)
   select count(*) into n from firmadas;
   return n;
@@ -147,10 +179,10 @@ $$;
 
 -- Ni `public` ni `anon` ni `authenticated`: una función security definer que escribe firmas
 -- expuesta como RPC es justo el agujero que documenta CLAUDE.md §3 (funciones `tmp_`).
-revoke all on function public.firmar_revisiones_automaticas(date, uuid[]) from public, anon, authenticated;
-grant execute on function public.firmar_revisiones_automaticas(date, uuid[]) to service_role;
+revoke all on function public.firmar_revisiones_automaticas(date, jsonb) from public, anon, authenticated;
+grant execute on function public.firmar_revisiones_automaticas(date, jsonb) to service_role;
 
-comment on function public.firmar_revisiones_automaticas(date, uuid[]) is
-  'Firma como automatica las revisiones semanales de p_usuarios en p_semana. Solo service_role. No pisa firmas, ni correcciones pedidas, ni filas sin guion/archivo, ni personas con una orden detener vigente (semana de la revision o la siguiente). Devuelve cuantas firmó.';
+comment on function public.firmar_revisiones_automaticas(date, jsonb) is
+  'Firma como automatica las revisiones semanales de p_revisiones ([{usuario_id, version, guion_sha256}]) en p_semana. Solo service_role. No pisa firmas ni correcciones pedidas, ni filas sin guion/archivo, ni una version o guion distintos de los comprobados, ni personas con una orden detener vigente o un riesgo reportado (semana de la revision o la siguiente). Devuelve cuantas firmo.';
 
 commit;

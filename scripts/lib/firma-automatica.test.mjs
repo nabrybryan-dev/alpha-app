@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -24,10 +25,12 @@ const encargo = (usuarioId, estado, guion = `Guion de ${usuarioId}`, extra = {})
 const fila = (usuarioId, guion = `Guion de ${usuarioId}`, extra = {}) => ({
   usuario_id: usuarioId,
   guion,
+  version: 1,
   aprobado_en: null,
   tipo: 'audio',
   ...extra,
 })
+const sha256 = (texto) => createHash('sha256').update(texto, 'utf8').digest('hex')
 
 describe('a quién se firma', () => {
   it('solo a quien el agente marcó «publicar» y cuya fila dice lo mismo que el manifiesto', () => {
@@ -35,6 +38,20 @@ describe('a quién se firma', () => {
     const r = elegirParaFirmar({ manifiesto, filas: [fila(ANA), fila(BETO)] })
     expect(r.usuarios).toEqual([ANA])
     expect(r.noFirmadas).toEqual([{ usuarioId: BETO, motivo: 'el agente lo mandó a la bandeja del coach' }])
+  })
+
+  it('H4 · lleva la VERSIÓN y la HUELLA del guion tal como estaba en la base cuando se comprobó', () => {
+    const manifiesto = { semana: '2026-10-19', encargos: [encargo(ANA, 'publicar', 'Hola.\n')] }
+    // La base guarda el guion recortado; la huella es la de ESE texto, byte a byte, no la del manifiesto.
+    const r = elegirParaFirmar({ manifiesto, filas: [fila(ANA, 'Hola.', { version: 4 })] })
+    expect(r.revisiones).toEqual([{ usuario_id: ANA, version: 4, guion_sha256: sha256('Hola.') }])
+  })
+
+  it('una fila sin versión no se puede firmar: no hay a qué versión atar la firma', () => {
+    const manifiesto = { semana: '2026-10-19', encargos: [encargo(ANA, 'publicar')] }
+    const r = elegirParaFirmar({ manifiesto, filas: [fila(ANA, undefined, { version: undefined })] })
+    expect(r.revisiones).toEqual([])
+    expect(r.noFirmadas[0].motivo).toMatch(/versi/)
   })
 
   it('sin la respuesta del agente (cayó a la plantilla) no se firma a nadie', () => {
@@ -77,31 +94,41 @@ describe('a quién se firma', () => {
 })
 
 describe('la llamada a la base', () => {
-  it('llama a la RPC con la semana y los usuarios, y dice cuántas firmó', async () => {
+  const revision = (id, version = 1) => ({ usuario_id: id, version, guion_sha256: sha256(`Guion de ${id}`) })
+
+  it('llama a la RPC con la semana y las revisiones (versión y huella), y dice cuántas firmó', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: 2, error: null })
-    const r = await firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', usuarios: [ANA, BETO, CARLA] })
-    expect(rpc).toHaveBeenCalledWith('firmar_revisiones_automaticas', { p_semana: '2026-10-19', p_usuarios: [ANA, BETO, CARLA] })
+    const revisiones = [revision(ANA), revision(BETO, 3), revision(CARLA)]
+    const r = await firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', revisiones })
+    expect(rpc).toHaveBeenCalledWith('firmar_revisiones_automaticas', { p_semana: '2026-10-19', p_revisiones: revisiones })
     expect(r).toEqual({ firmadas: 2, pedidas: 3 })
   })
 
   it('con nadie que firmar no llama a la base', async () => {
     const rpc = vi.fn()
-    const r = await firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', usuarios: [] })
+    const r = await firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', revisiones: [] })
     expect(rpc).not.toHaveBeenCalled()
     expect(r).toEqual({ firmadas: 0, pedidas: 0 })
   })
 
   it('un error de la base NO se lee como «cero firmadas»: revienta con el motivo', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'function firmar_revisiones_automaticas does not exist' } })
-    await expect(firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', usuarios: [ANA] })).rejects.toThrow(/does not exist/)
+    await expect(firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', revisiones: [revision(ANA)] })).rejects.toThrow(/does not exist/)
   })
 
   it('una respuesta que no es un número tampoco se da por buena', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
-    await expect(firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', usuarios: [ANA] })).rejects.toThrow(/no contest/)
+    await expect(firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', revisiones: [revision(ANA)] })).rejects.toThrow(/no contest/)
+  })
+
+  it('una revisión sin versión o sin huella no viaja: la base la rechazaría y el motivo se perdería', async () => {
+    const rpc = vi.fn()
+    await expect(
+      firmarRevisionesAutomaticas({ rpc }, { semana: '2026-10-19', revisiones: [{ usuario_id: ANA, version: 1 }] }),
+    ).rejects.toThrow(/huella/)
+    expect(rpc).not.toHaveBeenCalled()
   })
 })
-
 describe('la bandera: apagada por defecto', () => {
   let carpeta
   beforeEach(async () => {

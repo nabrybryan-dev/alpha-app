@@ -47,6 +47,24 @@ export function personasDetenidas(ordenes, semana) {
   return detenidos
 }
 
+/**
+ * Quién tiene un «reportar riesgo» de la consola para la semana de la revisión o la siguiente
+ * (decisión de Bryan, 22-oct: frena el audio automático de ESA persona, y solo de ella). A
+ * diferencia de `detener`, nada lo levanta desde el puente: un `reanudar` es de `detener`.
+ * La función SQL `firmar_revisiones_automaticas` aplica la misma regla en el momento de firmar.
+ */
+export function personasConRiesgo(ordenes, semana) {
+  const semanas = new Set([semana, mas7Dias(semana)])
+  const conRiesgo = new Set()
+  for (const o of ordenes ?? []) {
+    if (o.tipo !== 'reportar_riesgo') continue
+    const usuario = o.objetivo?.usuario_id
+    const inicio = String(o.objetivo?.semana_inicio ?? '').slice(0, 10)
+    if (usuario && semanas.has(inicio)) conRiesgo.add(usuario)
+  }
+  return conRiesgo
+}
+
 function numerosDelAgente(n) {
   const r = n.regularidad ?? {}
   const regularidad = { estado: r.estado, noches_con_dato: r.nochesConDato ?? 0 }
@@ -101,8 +119,10 @@ export function armarEntradaDelAgente({ manifiesto, fichas = [], roster = [], or
  * · `omitir`: no se hace audio.
  * · cualquier otra cosa —persona que el agente no devolvió, estado desconocido—: `sin_respuesta`,
  *   se queda la plantilla y no se firma.
+ * · `riesgos`: quien tiene un riesgo reportado en la consola NO se firma solo aunque el agente haya
+ *   dicho `publicar`: pasa a `bandeja_humana` (se publica sin firma, para el coach).
  */
-export function aplicarSalidaDelAgente({ manifiesto, salida }) {
+export function aplicarSalidaDelAgente({ manifiesto, salida, riesgos = new Set() }) {
   const respuestas = new Map()
   const ignorados = []
   const enManifiesto = new Set(manifiesto.encargos.map((e) => e.usuarioId))
@@ -122,10 +142,12 @@ export function aplicarSalidaDelAgente({ manifiesto, salida }) {
       resumen.sin_respuesta += 1
       return nuevo
     }
-    resumen[m.estado] += 1
+    const frenadoPorRiesgo = m.estado === 'publicar' && riesgos.has(e.usuarioId)
+    const estado = frenadoPorRiesgo ? 'bandeja_humana' : m.estado
+    resumen[estado] += 1
     nuevo.mensaje = {
-      estado: m.estado,
-      motivo: m.motivo ?? null,
+      estado,
+      motivo: frenadoPorRiesgo ? 'riesgo reportado en la consola para esa semana o la siguiente' : (m.motivo ?? null),
       agente: salida.agente ?? null,
       entradaSha256: salida.entrada_sha256 ?? null,
       preguntas: (m.preguntas_a_persona ?? []).length,
@@ -163,5 +185,19 @@ export function aplicarSalidaDelAgente({ manifiesto, salida }) {
     avisos,
     ignorados,
     resumen,
+  }
+}
+
+/**
+ * El agente no estuvo o no respondió: NADIE queda como «publicar». Si esta corrida se repite sola
+ * (sin volver a pasar por el paso 1, que reescribe el manifiesto) y el agente falla, un `publicar`
+ * de la corrida anterior seguiría ahí y la firma automática firmaría un guion que esta corrida no
+ * comprobó. Las personas ya omitidas siguen omitidas.
+ */
+export function marcarSinAgente(manifiesto, motivo) {
+  return {
+    ...manifiesto,
+    encargos: manifiesto.encargos.map((e) => ({ ...e, mensaje: { estado: 'sin_respuesta', motivo } })),
+    mensajeSemanal: { generado: new Date().toISOString(), agente: 'ausente', motivo },
   }
 }

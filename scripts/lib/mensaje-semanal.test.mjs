@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { aplicarSalidaDelAgente, armarEntradaDelAgente, personasDetenidas } from './mensaje-semanal.mjs'
+import { aplicarSalidaDelAgente, armarEntradaDelAgente, marcarSinAgente, personasConRiesgo, personasDetenidas } from './mensaje-semanal.mjs'
 
 // Paso 1.6 de la cadena: entre los guiones de la plantilla y la voz, el agente LOCAL
 // `mensaje_semanal.py` (cerebro-alpha-agentes) reescribe el guion de cada persona. Todo en este
@@ -191,5 +191,68 @@ describe('lo que se hace con la respuesta del agente', () => {
     expect(r.avisos[0].id).toContain(SEMANA)
     expect(r.avisos[0].id).toContain(ANA)
     expect(r.avisos[0].mensaje).toContain('Anotó dolor alto')
+  })
+})
+
+describe('«reportar riesgo» de la consola frena el audio automático de ESA persona (decisión de Bryan, 22-oct)', () => {
+  const ordenes = [
+    { tipo: 'reportar_riesgo', objetivo: { usuario_id: ANA, semana_inicio: SEMANA }, creada_en: '2026-10-21T10:00:00Z' },
+    { tipo: 'reportar_riesgo', objetivo: { usuario_id: BETO, semana_inicio: '2026-10-26' }, creada_en: '2026-10-21T10:00:00Z' },
+    { tipo: 'reportar_riesgo', objetivo: { usuario_id: CARLA, semana_inicio: '2026-11-09' }, creada_en: '2026-10-21T10:00:00Z' },
+  ]
+  const salida = (mensajes) => ({ version: 1, semana: SEMANA, agente: 'mensaje_semanal@1', entrada_sha256: 'abc123', mensajes })
+
+  it('quien tiene un riesgo reportado esa semana o la siguiente, y nadie más', () => {
+    expect([...personasConRiesgo(ordenes, SEMANA)].sort()).toEqual([ANA, BETO].sort())
+  })
+
+  it('un reanudar NO levanta un riesgo (reanudar es de detener)', () => {
+    const conReanudar = [...ordenes, { tipo: 'reanudar', objetivo: { usuario_id: ANA, semana_inicio: SEMANA }, creada_en: '2026-10-21T11:00:00Z' }]
+    expect(personasConRiesgo(conReanudar, SEMANA).has(ANA)).toBe(true)
+  })
+
+  it('lo que el agente marcó «publicar» pasa a la bandeja del coach: se publica SIN firma', () => {
+    const r = aplicarSalidaDelAgente({
+      manifiesto: manifiestoBase(),
+      salida: salida([
+        { usuario_id: ANA, estado: 'publicar', guion: 'Texto del agente para Ana.' },
+        { usuario_id: BETO, estado: 'publicar', guion: 'Texto del agente para Beto.' },
+      ]),
+      riesgos: new Set([ANA]),
+    })
+    const [ana, beto] = r.manifiesto.encargos
+    expect(ana.mensaje.estado).toBe('bandeja_humana')
+    expect(ana.mensaje.motivo).toMatch(/riesgo/i)
+    // Solo ella: Beto no tiene riesgo y sigue su camino.
+    expect(beto.mensaje.estado).toBe('publicar')
+    expect(r.resumen).toMatchObject({ publicar: 1, bandeja_humana: 1 })
+  })
+
+  it('no vuelve «publicar» a quien el agente mandó a la bandeja ni resucita a un omitido', () => {
+    const r = aplicarSalidaDelAgente({
+      manifiesto: manifiestoBase(),
+      salida: salida([
+        { usuario_id: ANA, estado: 'omitir', motivo: 'detenido', guion: null },
+        { usuario_id: BETO, estado: 'bandeja_humana', motivo: 'sin datos', guion: null },
+      ]),
+      riesgos: new Set([ANA, BETO]),
+    })
+    expect(r.manifiesto.encargos[0].mensaje.estado).toBe('omitir')
+    expect(r.manifiesto.encargos[1].mensaje.motivo).toBe('sin datos')
+  })
+})
+
+describe('si el agente falla, no queda un «publicar» de una corrida anterior', () => {
+  it('marcarSinAgente borra el estado de cada persona (y su «omitido» NO se toca)', () => {
+    const viejo = manifiestoBase()
+    viejo.encargos[0].mensaje = { estado: 'publicar', agente: 'mensaje_semanal@1' }
+    viejo.encargos[1].omitido = true
+    viejo.encargos[1].mensaje = { estado: 'omitir', motivo: 'detenido' }
+    const r = marcarSinAgente(viejo, 'el agente salió con código 1')
+    expect(r.encargos[0].mensaje).toEqual({ estado: 'sin_respuesta', motivo: 'el agente salió con código 1' })
+    expect(r.encargos[1].omitido).toBe(true)
+    expect(r.mensajeSemanal).toMatchObject({ agente: 'ausente', motivo: 'el agente salió con código 1' })
+    // y no muta lo que recibe
+    expect(viejo.encargos[0].mensaje.estado).toBe('publicar')
   })
 })

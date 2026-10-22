@@ -413,22 +413,23 @@ async function pasoFirmar(args, carpeta, semana) {
   const sb = clienteDeServicio()
   const { data: filas, error } = await sb
     .from('videos_semanales')
-    .select('usuario_id, guion, aprobado_en, tipo')
+    .select('usuario_id, guion, version, aprobado_en, tipo')
     .eq('semana', semana)
   if (error) throw new Error(`no pude leer lo publicado: ${error.message}`)
 
-  const { usuarios, noFirmadas } = elegirParaFirmar({ manifiesto, filas: filas ?? [] })
+  const { usuarios, revisiones, noFirmadas } = elegirParaFirmar({ manifiesto, filas: filas ?? [] })
   const nombres = new Map(manifiesto.encargos.map((e) => [e.usuarioId, e.nombre || e.usuarioId]))
   for (const n of noFirmadas) console.log(`  SIN FIRMA ${nombres.get(n.usuarioId)}: ${n.motivo}`)
   if (ensayo) {
     console.log(`\nENSAYO: la firma automática firmaría a ${usuarios.length} y dejaría ${noFirmadas.length} para el coach.`)
     return 0
   }
-  const { firmadas, pedidas } = await firmarRevisionesAutomaticas(sb, { semana, usuarios })
+  // Se firma la VERSIÓN y la HUELLA del guion que se acaba de comprobar (revisión 06, H4), no lo que haya luego.
+  const { firmadas, pedidas } = await firmarRevisionesAutomaticas(sb, { semana, revisiones })
   console.log(`\nFirma automática · semana del ${semana} · firmadas ${firmadas} de ${pedidas} pedidas · para el coach: ${noFirmadas.length}`)
   if (firmadas < pedidas) {
     console.log(
-      `  ${pedidas - firmadas} quedaron sin firmar: la base las frenó (orden «detener» vigente, corrección pedida o la fila cambió). ` +
+      `  ${pedidas - firmadas} quedaron sin firmar: la base las frenó (orden «detener» o riesgo reportado vigente, corrección pedida, o la fila cambió entre la lectura y la firma). ` +
         'Es el interruptor funcionando; están en la bandeja del coach.',
     )
   }
