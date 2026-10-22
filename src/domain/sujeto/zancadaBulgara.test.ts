@@ -123,6 +123,19 @@ describe('(b) fuerzas y momentos estáticos a mano', () => {
     const wPieT = g * esc.trasera.masas.pie.kg
     expect(ev.trasera.tobillo).toBeCloseTo(ev.fuerzaTraseraN * pose.copTraseroM - wPieT * pose.pieZ, 6)
   })
+  it('momento de rodilla: extensor positivo = −(F·(z_CP − z_rodilla) − peso del pie y de la tibia por su distancia a la rodilla)', () => {
+    for (const [lado, F, zCp] of [['delantera', ev.fuerzaDelanteraN, ev.zCpDelantero], ['trasera', ev.fuerzaTraseraN, zTras]] as const) {
+      const p = esc[lado]
+      const w = (m: { kg: number; z: number }) => g * m.kg * (m.z - p.rodilla.z)
+      const esperado = -(F * (zCp - p.rodilla.z) - w(p.masas.pie) - w(p.masas.tibia))
+      expect(ev[lado].rodilla).toBeCloseTo(esperado, 6)
+      const cadera = F * (zCp - p.cadera.z) - w2(p.masas.pie, p.cadera.z) - w2(p.masas.tibia, p.cadera.z) - w2(p.masas.muslo, p.cadera.z)
+      expect(ev[lado].cadera).toBeCloseTo(cadera, 6)
+    }
+    function w2(m: { kg: number; z: number }, zj: number) {
+      return g * m.kg * (m.z - zj)
+    }
+  })
   it('las dos caderas suman el momento de tronco, cabeza, brazos y carga respecto de la cadera', () => {
     const arriba = esc.superior.reduce((t, m) => t + g * m.kg * (m.z - esc.delantera.cadera.z), 0)
     expect(ev.delantera.cadera + ev.trasera.cadera).toBeCloseTo(arriba, 6)

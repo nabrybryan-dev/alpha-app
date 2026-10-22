@@ -344,7 +344,7 @@ export interface ResultadoDeSerieDeBulgara {
   marcos: MarcoDeBulgara[]
 }
 
-const LADOS = ['delantera', 'trasera'] as const
+type Lado = 'delantera' | 'trasera'
 
 function marcoNoAfirmable(indice: number, t: number, motivo: string): MarcoDeBulgara {
   const v = VERSION_DEL_MODELO
@@ -509,7 +509,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
       banda: { inf: Math.min(valor, ...serie), sup: Math.max(valor, ...serie), nivel },
       version: v,
     })
-    const mom = (lado: (typeof LADOS)[number], a: Articulacion): MomentoDeBulgara => {
+    const mom = (lado: Lado, a: Articulacion): MomentoDeBulgara => {
       const sEst = (r: { est: EvaluacionDeBulgara }) => r.est[lado][a]
       const sTot = (r: { din: EvaluacionDeBulgara[] }, i: number) => r.din[i]![lado][a]
       const media = (r: { din: EvaluacionDeBulgara[] }) => (sTot(r, 0) + sTot(r, 1)) / 2
@@ -523,7 +523,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
         total: cifra(`bulgara.${lado}.momento.dinamico.${a}`, total, serieTotal, NIVEL_DINAMICO),
       }
     }
-    const pata = (lado: (typeof LADOS)[number]) => ({ tobillo: mom(lado, 'tobillo'), rodilla: mom(lado, 'rodilla'), cadera: mom(lado, 'cadera') })
+    const pata = (lado: Lado) => ({ tobillo: mom(lado, 'tobillo'), rodilla: mom(lado, 'rodilla'), cadera: mom(lado, 'cadera') })
     return { indice: k, t: x.t, delantera: pata('delantera'), trasera: pata('trasera'), horizontalNoRepartidaN: fuerzaHorizontalNeta(ninguno), fuerzaTotalN: nom.din[0]!.fuerzaTotalN, fuerzaTraseraN: nom.din[0]!.fuerzaTraseraN }
   })
   return { motivo: null, marcos }

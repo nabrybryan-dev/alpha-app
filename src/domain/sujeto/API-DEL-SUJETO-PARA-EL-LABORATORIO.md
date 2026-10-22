@@ -92,6 +92,17 @@ Casi todo lo que sale con incertidumbre o con posibilidad de abstención sale co
   la reacción entre los dos pies). La rodilla trasera sale del triángulo cadera-rodilla-tobillo; el reparto, de la regla de la palanca con el centro de masas; la **banda** es
   la envolvente de mover cada centro de presión ± 3 cm, no un intervalo de confianza. Centro de masas fuera de los dos apoyos, o tobillo trasero fuera de alcance → `no_afirmable`.
 
+### Sentadilla búlgara (pie trasero elevado ~40 cm) y variantes del reparto
+- `momentosDeBulgara({ sexo, talla, masa, cargaKg, pose })` (misma entrada y pose que `momentosDeZancada`; la elevación es `alturaTobilloTraseroM`) → momentos de la
+  **delantera** y la **trasera**, `repartoDelantera`, `cpDelantero` (dónde tiene que estar el centro de presión del pie delantero para cerrar el equilibrio) e `inercial` (`no_afirmable`
+  en estático). **Regla** (REPARTO-ZANCADA.md §4): la trasera lleva **0,30 BW** (BW = masa corporal · g, sin la carga), banda **[0,26; 0,35]**, estado `estimado`, independiente de la carga;
+  la delantera, el resto de `F_total`. Ids de la regla: `helme20.bulgara.trasera.bw`, `arakawa25.bulgara.trasera.bw_inf`, `arakawa25.bulgara.trasera.bw_sup`. La banda es la envolvente de la regla y del CP trasero ± 3 cm.
+  Si el CP delantero que exige la regla cae fuera del pie, `no_afirmable`.
+- `momentosDeBulgaraEnElTiempo({ ..., instantes: [{ t, pose }], fuenteDeAngulos })` → por cuadro y por pierna: `estatico`, `inercial` (= total − estático) y `total`, con las reglas de la sentadilla
+  (extremos y fuente sin declarar → `no_afirmable`; pies de apoyo fijos). Cada cuadro trae `horizontalNoRepartidaN` (Σ m·a_z, que el modelo no reparte entre los pies), `fuerzaTotalN` y `fuerzaTraseraN`.
+  La regla se aplica al `F_total` con aceleración; el documento avisa de que el pico trasero llega en la excéntrica, así que en la concéntrica la trasera probablemente se sobrestima (sesgo no medido).
+- `fraccionTraseraDe(variante)` y `momentosDeZancadaPorVariante(variante, entrada)`: `sentadilla_dividida_plana` y `zancada_con_paso` salen **`no_afirmable`** con su motivo (un solo estudio abierto n = 8 de promedio temporal; ningún estudio abierto, respectivamente).
+
 ### Momento pasivo (Silder 2007, solo plano sagital, jóvenes sanos)
 - `momentosPasivosDeLaPose(pose{tibia, muslo, tronco} | null, { muestras?, semilla? }) → { cadera, rodilla, tobillo }` (`Cifra`, N·m, **signo
   funcional de este dominio**, total de las dos piernas, con banda p5–p95 de la población ensayada). **`no_afirmable` fuera del dominio
