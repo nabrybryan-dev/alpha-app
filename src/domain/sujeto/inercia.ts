@@ -20,8 +20,9 @@
  * tabla cuál es ese eje. Por eso cada segmento entra como RANGO [menor, mayor] de los dos radios (sagital, transverso),
  * y la banda del término rotacional abarca ambos. El banco virtual usa el transverso y mide la alternativa aparte.
  *
- * Estas constantes todavía no están en `registro.ts` ni en `PROCEDENCIAS.tsv` (están en otro repositorio): pendiente
- * añadir las filas con estado «leído del PDF por OCR» y comprobarlas contra la imagen de la página.
+ * Cada radio está en `registro.ts` (`valoresDeRadios`) con su fila en `PROCEDENCIAS.tsv` del cerebro (estado `transcrito`, leído en texto y en
+ * la imagen de la página 228 el 22-oct); `scripts/comprobar-procedencias-sujeto.mts` las compara con el código. El cotejo automático con el PDF
+ * (`cotejar-deleva-con-pdf.py`) NO cubre los radios todavía.
  */
 
 export interface RadiosLeidos {
@@ -46,6 +47,27 @@ export const RADIOS_DE_GIRO: Readonly<Record<SexoConInercia, Readonly<Record<Seg
     muslo: { sagital: 0.369, transverso: 0.364, longitudinal: 0.162 },
     tibia: { sagital: 0.267, transverso: 0.263, longitudinal: 0.092 },
   },
+}
+
+const EJES_DEL_PLANO = ['sagital', 'transverso'] as const
+
+/** Id de procedencia de un radio: `deleva96.h.muslo.radio_sagital`; en tronco y cabeza va el extremo alternativo CERV: `deleva96.cerv.h.tronco.radio_sagital`. */
+export function idsDeRadio(sexo: SexoConInercia, segmento: SegmentoConInercia): string[] {
+  const base = segmento === 'tronco' || segmento === 'cabeza' ? `deleva96.cerv.${sexo}.${segmento}` : `deleva96.${sexo}.${segmento}`
+  return EJES_DEL_PLANO.map((eje) => `${base}.radio_${eje}`)
+}
+
+/** Cada radio que usa el dominio con su id de procedencia (el registro de constantes vigiladas). */
+export function valoresDeRadios(): Record<string, number> {
+  const salida: Record<string, number> = {}
+  for (const sexo of ['h', 'm'] as const) {
+    for (const segmento of ['tibia', 'muslo', 'tronco', 'cabeza'] as const) {
+      const [sagital, transverso] = idsDeRadio(sexo, segmento)
+      salida[sagital!] = RADIOS_DE_GIRO[sexo][segmento].sagital
+      salida[transverso!] = RADIOS_DE_GIRO[sexo][segmento].transverso
+    }
+  }
+  return salida
 }
 
 export interface RangoDeRadio {

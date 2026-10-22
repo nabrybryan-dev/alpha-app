@@ -1,6 +1,7 @@
 import { GRAVEDAD } from './convenciones'
 import { PCSA_DE_WARD } from './areasDeWard'
 import { valoresDeLeva } from './deleva'
+import { valoresDeRadios } from './inercia'
 import { DOMINIO_DE_SILDER, MUSCULOS_DE_SILDER, SILDER_MEDIA, SILDER_SD } from './pasivo'
 import { LIMITES_DE_CORDURA } from './sujeto'
 
@@ -39,6 +40,7 @@ function valoresDeWard(): Record<string, number> {
 
 export const VALORES_REGISTRADOS: Readonly<Record<string, number>> = {
   ...valoresDeLeva(),
+  ...valoresDeRadios(),
   ...valoresDeSilder(),
   ...valoresDeWard(),
   'convenciones.gravedad': GRAVEDAD,

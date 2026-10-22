@@ -2,7 +2,7 @@ import { noAfirmable, type Cifra } from './contrato'
 import { GRAVEDAD, VERSION_DEL_MODELO } from './convenciones'
 import { BANDA_SIN_DISPERSION, fuentesDeLeva, geometriaSagital, type MasaPuntual, type PoseSagital } from './dinamica'
 import { DE_LEVA, DE_LEVA_CERV } from './deleva'
-import { momentoDeInercia, rangoDeRadio, type SegmentoConInercia } from './inercia'
+import { idsDeRadio, momentoDeInercia, rangoDeRadio, type SegmentoConInercia } from './inercia'
 import { construirSujeto, type EntradaDelSujeto, type Sujeto } from './sujeto'
 
 /**
@@ -205,7 +205,7 @@ function momentoDe(d: Datos, instantes: readonly InstanteDePose[], k: number, a:
   const estatico = signo * momentoNetoSobre(cuerpos(d, instantes, k, a, 'ninguno').map((c) => ({ ...c, az: 0, ay: 0 })), j, GRAVEDAD)
   const radios = SOBRE[a]
     .filter((n): n is SegmentoConInercia => n === 'tibia' || n === 'muslo' || n === 'tronco' || n === 'cabeza')
-    .map((n) => `inercia.radio.${d.sujeto.sexo}.${n}.deleva96_tabla4_ocr`)
+    .flatMap((n) => idsDeRadio(d.sujeto.sexo, n))
   const fuenteRot = [...fuente, ...radios]
   const nivelRot = 'rango entre los radios «sagital» y «transverso» de de Leva; no es un intervalo de confianza'
   const inercial = traslacional + rot

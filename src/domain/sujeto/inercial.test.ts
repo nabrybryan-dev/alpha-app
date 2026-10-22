@@ -3,7 +3,8 @@ import { verificarCifras, type Cifra } from './contrato'
 import { GRAVEDAD } from './convenciones'
 import { DE_LEVA_CERV } from './deleva'
 import { geometriaSagital, momentosEstaticos, type PoseSagital } from './dinamica'
-import { momentoDeInercia, rangoDeRadio } from './inercia'
+import { idsDeRadio, momentoDeInercia, rangoDeRadio, valoresDeRadios } from './inercia'
+import { VALORES_REGISTRADOS } from './registro'
 import {
   derivadaSegunda,
   momentoNetoSobre,
@@ -206,14 +207,36 @@ describe('lo que no se puede afirmar no se afirma', () => {
       ),
     )
     const m = r.marcos[2]
-    expect(m.tobillo.rotacional.fuente).toContain('inercia.radio.m.tibia.deleva96_tabla4_ocr')
-    expect(m.cadera.rotacional.fuente).not.toContain('inercia.radio.m.tibia.deleva96_tabla4_ocr')
-    expect(m.cadera.rotacional.fuente).toContain('inercia.radio.m.tronco.deleva96_tabla4_ocr')
+    expect(m.tobillo.rotacional.fuente).toEqual(expect.arrayContaining(['deleva96.m.tibia.radio_sagital', 'deleva96.m.tibia.radio_transverso']))
+    expect(m.cadera.rotacional.fuente).not.toContain('deleva96.m.tibia.radio_sagital')
+    expect(m.cadera.rotacional.fuente).toEqual(expect.arrayContaining(['deleva96.cerv.m.tronco.radio_sagital', 'deleva96.cerv.m.tronco.radio_transverso']))
     expect(m.tobillo.rotacional.banda!.sup - m.tobillo.rotacional.banda!.inf).toBeGreaterThan(0)
   })
   it('la fuente de los ángulos viaja en la fuente de cada cifra', () => {
     const m = momentosDeSentadillaEnElTiempo(serie(cinco, 0.1)).marcos[2]
     expect(m.cadera.total.fuente).toContain(`angulos:${FUENTE}`)
+  })
+})
+
+describe('procedencia de los radios: cada fuente que cita una cifra inercial existe en el registro', () => {
+  it('las 16 constantes están registradas con sus valores y toda fuente de las cifras del tobillo, la rodilla y la cadera (los dos sexos) es una de ellas', () => {
+    const radios = valoresDeRadios()
+    expect(Object.keys(radios)).toHaveLength(16)
+    for (const [id, v] of Object.entries(radios)) expect(VALORES_REGISTRADOS[id]).toBe(v)
+    for (const sexo of ['h', 'm'] as const) {
+      const poses = Array.from({ length: 5 }, (_, k) => ({ ...paralelo, tibia: 0.45 + 0.1 * k * k, tronco: 0.75 + 0.05 * k }))
+      const marco = momentosDeSentadillaEnElTiempo(serie(poses, 0.1, { sexo })).marcos[2]!
+      for (const a of ['tobillo', 'rodilla', 'cadera'] as const) {
+        for (const c of [marco[a].traslacional, marco[a].rotacional, marco[a].inercial, marco[a].total]) {
+          const sin = c.fuente.filter((f) => !f.startsWith('angulos:') && !(f in VALORES_REGISTRADOS))
+          expect(sin, `${sexo} ${a} ${c.id}`).toEqual([])
+        }
+      }
+    }
+  })
+  it('los ids tienen la forma del libro: CERV para tronco y cabeza, sin CERV para muslo y tibia', () => {
+    expect(idsDeRadio('h', 'muslo')).toEqual(['deleva96.h.muslo.radio_sagital', 'deleva96.h.muslo.radio_transverso'])
+    expect(idsDeRadio('m', 'cabeza')).toEqual(['deleva96.cerv.m.cabeza.radio_sagital', 'deleva96.cerv.m.cabeza.radio_transverso'])
   })
 })
 
