@@ -68,6 +68,16 @@ export {
   type ResultadoDeSentadilla,
 } from './dinamica'
 
+// Término inercial de la sentadilla: dinámica inversa sagital con los ángulos en el tiempo.
+export {
+  momentosDeSentadillaEnElTiempo,
+  type EntradaDeSerie,
+  type InstanteDePose,
+  type MarcoDinamico,
+  type MomentoDinamico,
+  type ResultadoDeSerie,
+} from './inercial'
+
 // Bandas p5-p95 por Monte Carlo de esos momentos.
 export {
   SIN_INCERTIDUMBRE,

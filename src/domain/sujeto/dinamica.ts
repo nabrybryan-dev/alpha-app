@@ -176,6 +176,25 @@ export interface ResultadoDeSentadilla {
   inercial: Cifra
 }
 
+/** Los ids de `registro.ts` de las constantes de de Leva que usa la cadena sagital (la fuente de cada cifra). */
+export function fuentesDeLeva(sexo: 'h' | 'm'): string[] {
+  const s = sexo
+  return [
+    'convenciones.gravedad',
+    `deleva96.${s}.estatura_ref`,
+    ...(['muslo', 'tibia', 'pie', 'brazo', 'antebrazo', 'mano'] as const).flatMap((n) => [
+      `deleva96.${s}.${n}.masa`,
+      `deleva96.${s}.${n}.cm`,
+      `deleva96.${s}.${n}.largo`,
+    ]),
+    ...(['cabeza', 'tronco'] as const).flatMap((n) => [
+      `deleva96.cerv.${s}.${n}.masa`,
+      `deleva96.cerv.${s}.${n}.cm`,
+      `deleva96.cerv.${s}.${n}.largo`,
+    ]),
+  ]
+}
+
 /** El texto de la banda de ancho cero: no es un intervalo de confianza, es la ausencia de dispersión. */
 export const BANDA_SIN_DISPERSION = 'ancho cero: tabla poblacional tomada como exacta, sin dispersión (ver bandas.ts)'
 
@@ -216,21 +235,7 @@ export function momentosDeSentadilla(e: EntradaDeSentadilla): ResultadoDeSentadi
     return faltan('algún ángulo de la pose o la posición de la barra falta')
   }
   const mom = momentosEstaticos(geometriaSagital(sujeto, e.cargaKg, p))
-  const s = sujeto.sexo
-  const fuente = [
-    'convenciones.gravedad',
-    `deleva96.${s}.estatura_ref`,
-    ...(['muslo', 'tibia', 'pie', 'brazo', 'antebrazo', 'mano'] as const).flatMap((n) => [
-      `deleva96.${s}.${n}.masa`,
-      `deleva96.${s}.${n}.cm`,
-      `deleva96.${s}.${n}.largo`,
-    ]),
-    ...(['cabeza', 'tronco'] as const).flatMap((n) => [
-      `deleva96.cerv.${s}.${n}.masa`,
-      `deleva96.cerv.${s}.${n}.cm`,
-      `deleva96.cerv.${s}.${n}.largo`,
-    ]),
-  ]
+  const fuente = fuentesDeLeva(sujeto.sexo)
   const cifra = (id: string, valor: number): Cifra => ({
     id,
     valor,

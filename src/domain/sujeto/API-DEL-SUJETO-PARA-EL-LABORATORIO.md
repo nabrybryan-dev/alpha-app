@@ -60,12 +60,26 @@ Casi todo lo que sale con incertidumbre o con posibilidad de abstención sale co
   `barraT` del tronco (fracción del largo desde el cervical).
 - `momentosEstaticos(geometria) → { tobillo, rodilla, cadera }` en **N·m**, números sin contrato.
 - `momentosDeSentadilla({ sexo, talla, masa, cargaKg, pose }) → { tobillo, rodilla, cadera, inercial }` (`Cifra`, N·m). El término inercial
-  es **siempre `no_afirmable`** (sin escala del vídeo no hay aceleración). Falta cualquier dato → tres `no_afirmable`. Caso de referencia
+  de esta función estática es **siempre `no_afirmable`**; para tenerlo, usar `momentosDeSentadillaEnElTiempo`. Falta cualquier dato → tres `no_afirmable`. Caso de referencia
   a mano: hombre 1,78 m, 82 kg, 100 kg, pose `{tibia 0,45; muslo −1,45; tronco 0,75; cabeza 0,2; barraT 0,1; pieZ 0,05}` → tobillo 151, rodilla 188,
   cadera 497 N·m.
 - `bandasDeSentadilla(entrada, incertidumbre, { muestras?, semilla? })` → los tres momentos con `banda` p5–p95 (Monte Carlo con semilla,
   por defecto 2000 muestras). `Incertidumbre` = `{ talla (m), masa (kg), proporciones (relativa), angulo (rad), carga (kg) }`; la fija quien llama
   (de Leva no publica dispersión). `SIN_INCERTIDUMBRE` da ancho cero. El `nivel` de la banda dice si se ensanchó para incluir el valor central.
+
+### Término inercial de la sentadilla (ángulos en el tiempo)
+- `momentosDeSentadillaEnElTiempo({ sexo, talla, masa, cargaKg, instantes: [{ t (s), pose }], fuenteDeAngulos })` → `{ motivo, marcos[] }`; un marco por
+  instante con `tobillo | rodilla | cadera`, cada uno con cuatro `Cifra` (N·m): `traslacional` (Σ m·[(z−z_J)·a_y − (y−y_J)·a_z]), `rotacional` (Σ I·α),
+  `inercial` (la suma) y `total` (estático + inercial). Mismos signos que `momentosDeSentadilla` (positivo = lo hacen los músculos extensores).
+- Aceleraciones por diferencias finitas de 3 puntos sobre los `t` dados: **el primer y el último cuadro, y todo cuadro con entrada inválida,
+  son `no_afirmable`** (no se extrapola). Tiempos estrictamente crecientes, al menos 3 instantes.
+- **`estimado` solo con `fuenteDeAngulos` declarada** (p. ej. `video:ik@dos-celulares`); en blanco → todo `no_afirmable`, y la fuente viaja en
+  la `fuente` de cada cifra como `angulos:<texto>`. La escala métrica sale de la talla, del vídeo solo entran ángulos y tiempos.
+- Caso a mano: aceleración cero reproduce 151 / 188 / 497 N·m; caída libre da 0; el tronco girando con la cadera fija coincide con la fórmula del
+  péndulo (0,05 N·m). **La banda del `rotacional` y de lo que lo contiene recoge SOLO el rango de los radios de giro**, que vienen de una fuente
+  secundaria SIN cotejar contra el artículo (`inercia.ts`; cabeza y tibia de la mujer: cota geométrica). El ruido de los ángulos NO está en la banda:
+  la segunda derivada lo amplifica y hay que propagarlo con el ruido de la IK (Monte Carlo) antes de afirmar un valor con video real.
+- Supuesto: tobillo fijo en el suelo (pie plano). Falso cuando el talón despega.
 
 ### Momento pasivo (Silder 2007, solo plano sagital, jóvenes sanos)
 - `momentosPasivosDeLaPose(pose{tibia, muslo, tronco} | null, { muestras?, semilla? }) → { cadera, rodilla, tobillo }` (`Cifra`, N·m, **signo
@@ -87,7 +101,7 @@ Casi todo lo que sale con incertidumbre o con posibilidad de abstención sale co
 ### Lo que no hay (a propósito)
 - **Reparto del momento entre músculos: no existe** (`no_afirmable`): faltan brazos de palanca internos abiertos. No se exporta.
 - `capaDeMomentos` y `repartoDeSentadilla` (qué se dibuja y qué se dice en el salón de la app) tampoco se exportan.
-- Nada de 3D, nada lateral, nada dinámico (sin aceleración), nada que no sea la sentadilla con barra.
+- Nada de 3D, nada lateral, nada que no sea la sentadilla con barra. La dinámica con aceleración existe solo como serie temporal (arriba), no como valor suelto.
 
 ## 4. Procedencia
 Cada constante tiene su fila en `cerebro-alpha/herramientas/encoder-camara/PROCEDENCIAS.tsv` (de Leva 1996, Silder 2007, Ward 2009) y se
