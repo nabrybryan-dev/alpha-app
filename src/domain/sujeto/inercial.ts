@@ -117,7 +117,7 @@ const SUPUESTOS = [
   'brazos y barra: masas puntuales sin inercia propia, ligadas al tronco',
   'escala métrica por la talla (largos de de Leva), del vídeo solo ángulos y tiempos',
   'derivada segunda por diferencias finitas de 3 puntos; sin vecino a ambos lados no se calcula',
-  'radios de giro de fuente secundaria sin cotejar con el artículo, como rango (inercia.ts)',
+  'radios de giro de la Tabla 4 de de Leva (PDF por OCR) como rango entre el «sagital» y el «transverso»: no está fijado cuál es el eje (inercia.ts)',
 ]
 
 type Nombre = 'tibia' | 'muslo' | 'tronco' | 'cabeza' | 'brazos' | 'barra'
@@ -205,9 +205,9 @@ function momentoDe(d: Datos, instantes: readonly InstanteDePose[], k: number, a:
   const estatico = signo * momentoNetoSobre(cuerpos(d, instantes, k, a, 'ninguno').map((c) => ({ ...c, az: 0, ay: 0 })), j, GRAVEDAD)
   const radios = SOBRE[a]
     .filter((n): n is SegmentoConInercia => n === 'tibia' || n === 'muslo' || n === 'tronco' || n === 'cabeza')
-    .map((n) => `inercia.radio.${d.sujeto.sexo}.${n}.${rangoDeRadio(d.sujeto.sexo, n).origen}`)
+    .map((n) => `inercia.radio.${d.sujeto.sexo}.${n}.deleva96_tabla4_ocr`)
   const fuenteRot = [...fuente, ...radios]
-  const nivelRot = 'rango entre los radios «sagital» y «transverso» (o cota geométrica); no es un intervalo de confianza'
+  const nivelRot = 'rango entre los radios «sagital» y «transverso» de de Leva; no es un intervalo de confianza'
   const inercial = traslacional + rot
   return {
     traslacional: cifra(ID('traslacional', a), traslacional, traslacional, traslacional, fuente, BANDA_SIN_DISPERSION, v),

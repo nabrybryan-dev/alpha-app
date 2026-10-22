@@ -197,7 +197,7 @@ describe('lo que no se puede afirmar no se afirma', () => {
     sinValor(r, 4)
     expect(r.marcos[1].cadera.total.estado).toBe('estimado')
   })
-  it('mujer: la tibia no tiene radios leídos, el tobillo usa la cota geométrica y lo dice; la cadera usa la leída', () => {
+  it('mujer: cada articulación cita los radios de los segmentos que mueve, y la banda rotacional tiene ancho', () => {
     const r = momentosDeSentadillaEnElTiempo(
       serie(
         Array.from({ length: 5 }, (_, k) => ({ ...paralelo, tibia: 0.45 + 0.1 * k * k })),
@@ -206,9 +206,9 @@ describe('lo que no se puede afirmar no se afirma', () => {
       ),
     )
     const m = r.marcos[2]
-    expect(m.tobillo.rotacional.fuente).toContain('inercia.radio.m.tibia.cota_geometrica')
-    expect(m.cadera.rotacional.fuente).not.toContain('inercia.radio.m.tibia.cota_geometrica')
-    expect(m.cadera.rotacional.fuente).toContain('inercia.radio.m.tronco.secundaria_sin_cotejar')
+    expect(m.tobillo.rotacional.fuente).toContain('inercia.radio.m.tibia.deleva96_tabla4_ocr')
+    expect(m.cadera.rotacional.fuente).not.toContain('inercia.radio.m.tibia.deleva96_tabla4_ocr')
+    expect(m.cadera.rotacional.fuente).toContain('inercia.radio.m.tronco.deleva96_tabla4_ocr')
     expect(m.tobillo.rotacional.banda!.sup - m.tobillo.rotacional.banda!.inf).toBeGreaterThan(0)
   })
   it('la fuente de los ángulos viaja en la fuente de cada cifra', () => {
@@ -217,15 +217,11 @@ describe('lo que no se puede afirmar no se afirma', () => {
   })
 })
 
-describe('la cota geométrica es una cota', () => {
-  it('el radio de giro sin dato va de 0 a max(cm, 1 − cm), y el leído queda dentro de [0, 1]', () => {
-    const c = rangoDeRadio('h', 'cabeza')
-    expect(c.min).toBe(0)
-    expect(c.max).toBeCloseTo(0.5002, 12)
-    expect(c.origen).toBe('cota_geometrica')
-    const t = rangoDeRadio('h', 'tibia')
-    expect(t.min).toBe(0.246)
-    expect(t.max).toBe(0.251)
-    expect(t.origen).toBe('secundaria_sin_cotejar')
+describe('los radios de giro de la Tabla 4', () => {
+  it('el rango abarca los dos radios del plano (sagital y transverso) y los hombres de la tibia son los del artículo', () => {
+    expect(rangoDeRadio('h', 'tibia')).toEqual({ min: 0.246, max: 0.251 })
+    expect(rangoDeRadio('h', 'tronco')).toEqual({ min: 0.306, max: 0.328 })
+    expect(rangoDeRadio('m', 'cabeza')).toEqual({ min: 0.271, max: 0.295 })
+    expect(rangoDeRadio('m', 'tibia')).toEqual({ min: 0.263, max: 0.267 })
   })
 })

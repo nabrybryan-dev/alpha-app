@@ -76,8 +76,8 @@ Casi todo lo que sale con incertidumbre o con posibilidad de abstención sale co
 - **`estimado` solo con `fuenteDeAngulos` declarada** (p. ej. `video:ik@dos-celulares`); en blanco → todo `no_afirmable`, y la fuente viaja en
   la `fuente` de cada cifra como `angulos:<texto>`. La escala métrica sale de la talla, del vídeo solo entran ángulos y tiempos.
 - Caso a mano: aceleración cero reproduce 151 / 188 / 497 N·m; caída libre da 0; el tronco girando con la cadera fija coincide con la fórmula del
-  péndulo (0,05 N·m). **La banda del `rotacional` y de lo que lo contiene recoge SOLO el rango de los radios de giro**, que vienen de una fuente
-  secundaria SIN cotejar contra el artículo (`inercia.ts`; cabeza y tibia de la mujer: cota geométrica). El ruido de los ángulos NO está en la banda:
+  péndulo (0,05 N·m). **La banda del `rotacional` y de lo que lo contiene recoge SOLO el rango de los radios de giro** (`inercia.ts`: Tabla 4 de de Leva
+  leída del PDF por OCR, rango entre el radio «sagital» y el «transverso» porque no está fijado cuál es el eje de la flexión). El ruido de los ángulos NO está en la banda:
   la segunda derivada lo amplifica y hay que propagarlo con el ruido de la IK (Monte Carlo) antes de afirmar un valor con video real.
 - Supuesto: tobillo fijo en el suelo (pie plano). Falso cuando el talón despega.
 
