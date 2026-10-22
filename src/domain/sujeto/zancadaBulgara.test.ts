@@ -44,10 +44,10 @@ const pose: PoseDeZancada = {
 const entrada = (p: Partial<PoseDeZancada> = {}, extra: Partial<EntradaDeZancada> = {}): EntradaDeZancada => ({ ...e, cargaKg: 32, pose: { ...pose, ...p }, ...extra })
 
 describe('(a) la regla escrita en el documento', () => {
-  it('0,30 BW con banda [0,26; 0,35], estimado, adimensional y con sus tres fuentes registradas', () => {
+  it('0,30 BW con banda [0,25; 0,35], estimado, adimensional y con sus tres fuentes registradas (decisión 36)', () => {
     const c = fraccionTraseraDe('bulgara')
     expect(c.valor).toBe(0.3)
-    expect(c.banda!.inf).toBe(0.26)
+    expect(c.banda!.inf).toBe(0.25)
     expect(c.banda!.sup).toBe(0.35)
     expect(c.estado).toBe('estimado')
     expect(c.unidad).toBe('1')
@@ -57,10 +57,16 @@ describe('(a) la regla escrita en el documento', () => {
   })
   it('el registro de constantes vigiladas lleva los tres valores del documento', () => {
     expect(VALORES_REGISTRADOS['helme20.bulgara.trasera.bw']).toBe(0.3)
-    expect(VALORES_REGISTRADOS['arakawa25.bulgara.trasera.bw_inf']).toBe(0.26)
+    expect(VALORES_REGISTRADOS['arakawa25.bulgara.trasera.bw_inf']).toBe(0.25)
     expect(VALORES_REGISTRADOS['arakawa25.bulgara.trasera.bw_sup']).toBe(0.35)
     expect(IDS_DE_LA_REGLA_BULGARA).toHaveLength(3)
-    expect(FRACCION_TRASERA_BULGARA).toEqual({ central: 0.3, inf: 0.26, sup: 0.35 })
+    expect(FRACCION_TRASERA_BULGARA).toEqual({ central: 0.3, inf: 0.25, sup: 0.35 })
+  })
+  it('la banda se rotula como promedio de varones jóvenes entrenados (decisión 36 de Bryan), no como intervalo de confianza', () => {
+    const c = fraccionTraseraDe('bulgara')
+    expect(c.banda!.nivel).toContain('promedio de varones jóvenes entrenados (Helme 2020, Arakawa 2025)')
+    expect(c.banda!.nivel).not.toContain('0,26')
+    expect(c.banda!.nivel).toContain('0,25')
   })
 })
 
@@ -143,7 +149,7 @@ describe('(b) fuerzas y momentos estáticos a mano', () => {
   })
   it('una fracción mayor en la trasera descarga la delantera y mueve el CP delantero hacia atrás', () => {
     const alto = evaluarBulgara(s, esc, cuerposQuietos(esc), 0.35, zTras)!
-    const bajo = evaluarBulgara(s, esc, cuerposQuietos(esc), 0.26, zTras)!
+    const bajo = evaluarBulgara(s, esc, cuerposQuietos(esc), 0.25, zTras)!
     expect(alto.fuerzaDelanteraN).toBeLessThan(ev.fuerzaDelanteraN)
     expect(bajo.fuerzaDelanteraN).toBeGreaterThan(ev.fuerzaDelanteraN)
     // F_tras · z_tras + F_del · z_del = constante: más trasera (z_tras < z_del) => z_del sube la cuota que le falta a la trasera
@@ -171,14 +177,14 @@ describe('el resultado estático con contrato', () => {
     expect(r.repartoDelantera.banda!.sup).toBeGreaterThan(r.repartoDelantera.valor!)
     expect(r.inercial.estado).toBe('no_afirmable')
   })
-  it('si parte de la regla [0,26; 0,35] deja el CP delantero fuera del pie, la banda lo declara: envolvente parcial (revisor 22-oct)', () => {
-    // 80 kg, 1,78 m, 40 kg, tronco -0,05, paso 1,0: con 0,26 BW el CP delantero sale del pie; con 0,30 y 0,35 no
+  it('si parte de la regla [0,25; 0,35] deja el CP delantero fuera del pie, la banda lo declara: envolvente parcial (revisor 22-oct)', () => {
+    // 80 kg, 1,78 m, 40 kg, tronco -0,05, paso 1,0: con 0,25 BW el CP delantero sale del pie; con 0,30 y 0,35 no
     const e2 = { sexo: 'h' as const, talla: 1.78, masa: 80 }
     const p2 = { ...pose, tronco: -0.05, pasoM: 1.0 }
     const s2 = construirSujeto(e2)!
     const esc2 = resolverEscenario(s2, 40, p2) as Exclude<ReturnType<typeof resolverEscenario>, string>
     const z2 = esc2.trasera.tobillo.z + p2.copTraseroM
-    expect(evaluarBulgara(s2, esc2, cuerposQuietos(esc2), 0.26, z2)).toBeNull()
+    expect(evaluarBulgara(s2, esc2, cuerposQuietos(esc2), 0.25, z2)).toBeNull()
     expect(evaluarBulgara(s2, esc2, cuerposQuietos(esc2), 0.3, z2)).not.toBeNull()
     const r = momentosDeBulgara({ ...e2, cargaKg: 40, pose: p2 })
     expect(r.repartoDelantera.estado).toBe('estimado')
@@ -214,19 +220,21 @@ const serie = (n: number, dt: number, f: (i: number) => Partial<PoseDeZancada>):
   Array.from({ length: n }, (_, i) => ({ t: i * dt, pose: { ...pose, ...f(i) } }))
 
 describe('(d) en el tiempo', () => {
-  it('sin movimiento el inercial es 0 en las dos piernas y el total es el estático', () => {
+  it('sin movimiento el inercial del cuerpo entero es 0 y el total de cada pierna es el estático; el inercial por pierna no se afirma (decisión 36)', () => {
     const r = momentosDeBulgaraEnElTiempo({ ...e, cargaKg: 32, fuenteDeAngulos: FUENTE, instantes: serie(5, 0.1, () => ({})) })
     const est = momentosDeBulgara(entrada())
     expect(r.motivo).toBeNull()
     const m = r.marcos[2]!
     for (const lado of ['delantera', 'trasera'] as const) {
       for (const a of ['tobillo', 'rodilla', 'cadera'] as const) {
-        expect(Math.abs(m[lado][a].inercial.valor!)).toBeLessThan(1e-9)
+        expect(m[lado][a].inercial.estado).toBe('no_afirmable')
         expect(m[lado][a].total.valor!).toBeCloseTo(est[lado][a].valor!, 9)
         expect(m[lado][a].estatico.valor!).toBeCloseTo(est[lado][a].valor!, 9)
       }
     }
     expect(Math.abs(m.horizontalNoRepartidaN!)).toBeLessThan(1e-9)
+    expect(m.inercialCuerpoEntero.estado).toBe('estimado')
+    expect(Math.abs(m.inercialCuerpoEntero.valor!)).toBeLessThan(1e-9)
   })
 
   // el tronco y la cabeza oscilan (parábola exacta para la derivada de 3 puntos) y la rodilla delantera se flexiona: aceleraciones horizontales y verticales
@@ -274,20 +282,40 @@ describe('(d) en el tiempo', () => {
     expect(visto).toBe(5)
   })
 
-  it('el inercial es total − estático, tiene contrato y banda, y cada pierna lo lleva distinto', () => {
+  it('decisión 36: el inercial por pierna es no_afirmable con su motivo; el total y el estático de cada pierna siguen estimados con contrato y banda', () => {
     const r = momentosDeBulgaraEnElTiempo({ ...e, cargaKg: 32, fuenteDeAngulos: FUENTE, instantes: movida })
     const m = r.marcos[3]!
     for (const lado of ['delantera', 'trasera'] as const) {
       for (const a of ['tobillo', 'rodilla', 'cadera'] as const) {
         const c = m[lado][a]
-        expect(c.inercial.valor!).toBeCloseTo(c.total.valor! - c.estatico.valor!, 9)
+        expect(c.inercial.estado).toBe('no_afirmable')
+        expect(c.inercial.valor).toBeNull()
+        expect(c.inercial.motivo).toMatch(/por pierna/)
+        expect(c.inercial.motivo).toMatch(/cuerpo entero/)
         expect(verificarCifras([c.estatico, c.inercial, c.total])).toEqual([])
         expect(c.total.banda!.sup - c.total.banda!.inf).toBeGreaterThan(0)
         expect(c.total.fuente).toContain(`angulos:${FUENTE}`)
         expect(c.total.fuente).toContain('deleva96.h.muslo.radio_sagital')
       }
     }
-    expect(Math.abs(m.delantera.cadera.inercial.valor! - m.trasera.cadera.inercial.valor!)).toBeGreaterThan(0.1)
+    expect(Math.abs(m.delantera.cadera.total.valor! - m.delantera.cadera.estatico.valor!)).toBeGreaterThan(0.1) // la aceleración sí mueve el total
+  })
+
+  it('decisión 36: el término inercial del cuerpo entero es Σ m·a_y (N) = fuerza vertical total − peso del cuerpo y la carga, con contrato', () => {
+    const r = momentosDeBulgaraEnElTiempo({ ...e, cargaKg: 32, fuenteDeAngulos: FUENTE, instantes: movida })
+    const m = r.marcos[3]!
+    const pesoN = (73 + 32) * g
+    expect(m.fuerzaTotalN! - pesoN).toBeCloseTo(m.inercialCuerpoEntero.valor!, 9)
+    expect(Math.abs(m.inercialCuerpoEntero.valor!)).toBeGreaterThan(0.1) // el caso positivo: aquí el cuerpo sí acelera
+    expect(m.inercialCuerpoEntero.unidad).toBe('N')
+    expect(m.inercialCuerpoEntero.estado).toBe('estimado')
+    expect(verificarCifras([m.inercialCuerpoEntero])).toEqual([])
+    expect(m.inercialCuerpoEntero.fuente).toContain(`angulos:${FUENTE}`)
+  })
+  it('decisión 36: en los extremos y con datos malos el término del cuerpo entero también es no_afirmable', () => {
+    const r = momentosDeBulgaraEnElTiempo({ ...e, cargaKg: 32, fuenteDeAngulos: FUENTE, instantes: movida })
+    expect(r.marcos[0]!.inercialCuerpoEntero.estado).toBe('no_afirmable')
+    expect(momentosDeBulgaraEnElTiempo({ ...e, cargaKg: -1, fuenteDeAngulos: FUENTE, instantes: movida }).marcos[2]!.inercialCuerpoEntero.estado).toBe('no_afirmable')
   })
 
   it('los extremos, la fuente sin declarar, los pies que se mueven y los datos malos: no_afirmable', () => {
