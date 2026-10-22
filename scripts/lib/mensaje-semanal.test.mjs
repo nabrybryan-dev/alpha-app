@@ -80,6 +80,15 @@ describe('lo que se le entrega al agente', () => {
     expect(entrada.personas.find((p) => p.usuario_id === BETO).slug).toBeUndefined()
   })
 
+  it('P2 (revisión 06): el nombre que el roster tiene para ese slug viaja como roster_nombre, para que el agente compruebe de quién es el plan', () => {
+    const entrada = armarEntradaDelAgente({
+      manifiesto: manifiestoBase(),
+      roster: [{ usuario_id: ANA, slug: 'ana-ficticia', nombre: 'Ana Ficticia Prueba' }, { usuario_id: BETO, slug: 'beto-ficticio' }],
+    })
+    expect(entrada.personas.find((p) => p.usuario_id === ANA).roster_nombre).toBe('Ana Ficticia Prueba')
+    expect(entrada.personas.find((p) => p.usuario_id === BETO).roster_nombre).toBeUndefined()
+  })
+
   it('la tasa llega solo a quien tiene ficha con su usuario_id', () => {
     const fichas = [
       { usuario_id: ANA, nombre: 'Ana Ficticia Prueba', microciclo_activo: 35, ejes: [{ eje: 'cargas', estado: 'medido', valor: -4.2, unidad: '%' }] },

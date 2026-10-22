@@ -87,6 +87,7 @@ function numerosDelAgente(n) {
  */
 export function armarEntradaDelAgente({ manifiesto, fichas = [], roster = [], ordenes = [] }) {
   const slugs = new Map(roster.map((r) => [r.usuario_id, r.slug]))
+  const nombresDelRoster = new Map(roster.filter((r) => r.nombre).map((r) => [r.usuario_id, r.nombre]))
   const tasas = new Map(fichas.filter((f) => f.usuario_id).map((f) => [f.usuario_id, f]))
   const detenidos = personasDetenidas(ordenes, manifiesto.semana)
   const personas = manifiesto.encargos
@@ -99,6 +100,9 @@ export function armarEntradaDelAgente({ manifiesto, fichas = [], roster = [], or
       }
       const slug = slugs.get(e.usuarioId)
       if (slug) persona.slug = slug
+      // P2: el nombre del roster deja al agente comprobar que el plan leído por slug es de ESTA persona.
+      const nombreDelRoster = nombresDelRoster.get(e.usuarioId)
+      if (nombreDelRoster) persona.roster_nombre = nombreDelRoster
       const ficha = tasas.get(e.usuarioId)
       if (ficha) {
         persona.tasa = { ejes: ficha.ejes ?? [] }
