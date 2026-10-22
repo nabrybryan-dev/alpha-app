@@ -20,6 +20,8 @@ const ANA = '00000000-0000-4000-8000-0000000000a1'
 const BETO = '00000000-0000-4000-8000-0000000000b2'
 const CARLA = '00000000-0000-4000-8000-0000000000c3'
 const MOLDE = 'C:\\molde\\ficticio.wav'
+const HUELLA_DEL_MOLDE = 'a'.repeat(64)
+const OTRA_HUELLA = 'b'.repeat(64)
 const ESTUDIO = 'C:\\estudio\\ficticio'
 
 let carpeta
@@ -74,6 +76,7 @@ const correr = (encargos, io, extra = {}) =>
     carpeta,
     manifiesto: { semana: '2026-10-19', encargos },
     molde: MOLDE,
+    moldeSha256: HUELLA_DEL_MOLDE,
     estudio: ESTUDIO,
     io,
     log: () => {},
@@ -162,6 +165,39 @@ describe('la voz de la tanda, una persona por proceso', () => {
     expect(otra.llamadas).toHaveLength(1)
     expect(r.generadas).toHaveLength(1)
     expect(await readFile(join(carpeta, `${ANA}.guion.txt`), 'utf8')).toBe(`Guion ficticio nuevo de ${ANA}.`)
+  })
+
+  it('H8 · cada corrida deja en el log la huella sha256 del molde que usa', async () => {
+    const lineas = []
+    await correr([encargo(ANA)], ioFalso(), { log: (t) => lineas.push(t) })
+    const linea = lineas.find((l) => /molde/i.test(l))
+    expect(linea).toContain(MOLDE)
+    expect(linea).toContain(HUELLA_DEL_MOLDE)
+  })
+
+  it('H8 · un audio hecho con OTRO molde se rehace aunque el guion sea el mismo (si no, se mezclan dos voces)', async () => {
+    await correr([encargo(ANA)], ioFalso())
+    const otra = ioFalso()
+    const r = await correr([encargo(ANA)], otra, { moldeSha256: OTRA_HUELLA })
+    expect(otra.llamadas).toHaveLength(1)
+    expect(r.generadas).toHaveLength(1)
+    expect(await readFile(join(carpeta, `${ANA}.molde.sha256`), 'utf8')).toBe(OTRA_HUELLA)
+  })
+
+  it('H8 · un audio sin constancia del molde no se da por bueno (se hizo antes de llevar la huella)', async () => {
+    await correr([encargo(ANA)], ioFalso())
+    await rm(join(carpeta, `${ANA}.molde.sha256`))
+    const otra = ioFalso()
+    await correr([encargo(ANA)], otra)
+    expect(otra.llamadas).toHaveLength(1)
+  })
+
+  it('H8 · con el MISMO guion y el MISMO molde sigue sin rehacerse', async () => {
+    await correr([encargo(ANA)], ioFalso())
+    const otra = ioFalso()
+    const r = await correr([encargo(ANA)], otra)
+    expect(otra.llamadas).toHaveLength(0)
+    expect(r.yaEstaban).toHaveLength(1)
   })
 
   it('un audio sin testigo no se da por bueno: no consta con qué guion se hizo', async () => {

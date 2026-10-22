@@ -21,6 +21,7 @@ export function generarVocesDeLaTanda(p: {
   carpeta: string
   manifiesto: { semana: string; encargos: { usuarioId: string; nombre?: string; guion?: string; omitido?: boolean; mensaje?: { motivo?: string | null } }[] }
   molde: string
+  moldeSha256: string
   estudio: string
   io: IoDeLaVoz
   silencioMs?: number

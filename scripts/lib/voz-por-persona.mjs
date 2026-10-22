@@ -73,6 +73,8 @@ async function motivoDelFallo(trabajo, resultado) {
  * @param {string} p.carpeta    la carpeta de la tanda (la del manifiesto)
  * @param {{semana: string, encargos: object[]}} p.manifiesto
  * @param {string} p.molde      ruta del .wav de referencia (`estudio.config.MOLDE_OFICIAL`)
+ * @param {string} p.moldeSha256 la huella sha256 de ese archivo, calculada por quien lo lee (H8, revisión 06):
+ *   se escribe en el log y junto a cada audio (`<id>.molde.sha256`), y un audio hecho con otro molde se rehace.
  * @param {string} p.estudio    carpeta de alpha-estudio: desde ahí se lanza `estudio.voz`
  * @param {object} p.io         { correrVoz(rutaEncargo, cwd), anteponerSilencio(entrada, salida, ms), esperar(ms) }
  */
@@ -80,6 +82,7 @@ export async function generarVocesDeLaTanda({
   carpeta,
   manifiesto,
   molde,
+  moldeSha256,
   estudio,
   io,
   silencioMs = SILENCIO_PREVIO_MS,
@@ -91,6 +94,7 @@ export async function generarVocesDeLaTanda({
   const resumen = { generadas: [], yaEstaban: [], fallidas: [], omitidas: [] }
   const encargos = manifiesto.encargos.filter((e) => !soloUno || e.usuarioId === soloUno)
   log(`Semana del ${manifiesto.semana} · ${encargos.length} voces, una por proceso`)
+  log(`Molde: ${molde} · sha256 ${moldeSha256}`)
 
   let n = 0
   for (const encargo of encargos) {
@@ -113,14 +117,24 @@ export async function generarVocesDeLaTanda({
 
     const destino = join(carpeta, `${encargo.usuarioId}.mp3`)
     const testigo = join(carpeta, `${encargo.usuarioId}.guion.txt`)
+    const testigoDelMolde = join(carpeta, `${encargo.usuarioId}.molde.sha256`)
     if (existsSync(destino)) {
       const dice = await leerSiExiste(testigo)
-      if (dice !== null && sinEspacios(dice) === guion) {
+      const conMolde = await leerSiExiste(testigoDelMolde)
+      if (dice !== null && sinEspacios(dice) === guion && conMolde !== null && sinEspacios(conMolde) === moldeSha256) {
         log(`  ${marca}: ya estaba`)
         resumen.yaEstaban.push(ficha)
         continue
       }
-      log(`  ${marca}: se rehace (${dice !== null ? 'el guion CAMBIÓ' : 'no consta con qué guion se hizo'})`)
+      const motivo =
+        dice === null
+          ? 'no consta con qué guion se hizo'
+          : sinEspacios(dice) !== guion
+            ? 'el guion CAMBIÓ'
+            : conMolde === null
+              ? 'no consta con qué molde se hizo'
+              : 'el molde CAMBIÓ'
+      log(`  ${marca}: se rehace (${motivo})`)
       await unlink(destino).catch(() => {})
     }
 
@@ -160,6 +174,7 @@ export async function generarVocesDeLaTanda({
 
     await io.anteponerSilencio(join(trabajo, 'voz.mp3'), destino, silencioMs)
     await writeFile(testigo, guion, 'utf8')
+    await writeFile(testigoDelMolde, moldeSha256, 'utf8')
     await rm(trabajo, { recursive: true, force: true })
     log(`  ${marca}: lista${intentos > 1 ? ` (al intento ${intentos})` : ''}`)
     resumen.generadas.push({ ...ficha, intentos })

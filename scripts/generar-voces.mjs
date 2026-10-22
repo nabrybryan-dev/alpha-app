@@ -17,6 +17,7 @@
  * empezar). NO publica ni toca la base.
  */
 import { spawn, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -126,10 +127,15 @@ async function main() {
     process.exit(1)
   }
 
+  // H8: la huella del molde que de verdad se va a usar, al log y a cada audio. El molde lo da
+  // alpha-estudio (config.MOLDE_OFICIAL) y puede cambiar sin que este repo se entere (un cambio sin
+  // commit, otra rama): la huella lo hace visible y rehace lo que se hizo con otro molde.
+  const moldeSha256 = createHash('sha256').update(await readFile(molde)).digest('hex')
   const resumen = await generarVocesDeLaTanda({
     carpeta,
     manifiesto,
     molde,
+    moldeSha256,
     estudio,
     io: ioReal(estudio),
     soloUno: typeof args.persona === 'string' ? args.persona : undefined,
