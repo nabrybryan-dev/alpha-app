@@ -2511,15 +2511,15 @@ select 'XXXX - firma automatica de la revision semanal', 'videos_semanales.aprob
             else 'SI' end
 union all
 select 'XXXX - firma automatica de la revision semanal', 'firmar_revisiones_automaticas: security definer con search_path fijo, SOLO service_role (ni anon ni authenticated)',
-       case when to_regprocedure('public.firmar_revisiones_automaticas(date,uuid[])') is null then 'NO'
+       case when to_regprocedure('public.firmar_revisiones_automaticas(date,jsonb)') is null then 'NO'
             when not (select p.prosecdef from pg_proc p
-                       where p.oid = to_regprocedure('public.firmar_revisiones_automaticas(date,uuid[])')) then 'NO'
+                       where p.oid = to_regprocedure('public.firmar_revisiones_automaticas(date,jsonb)')) then 'NO'
             when not exists (select 1 from pg_proc p, unnest(coalesce(p.proconfig, '{}')) c
-                              where p.oid = to_regprocedure('public.firmar_revisiones_automaticas(date,uuid[])')
+                              where p.oid = to_regprocedure('public.firmar_revisiones_automaticas(date,jsonb)')
                                 and c like 'search_path=%') then 'NO'
-            when has_function_privilege('anon', 'public.firmar_revisiones_automaticas(date,uuid[])', 'execute') then 'NO'
-            when has_function_privilege('authenticated', 'public.firmar_revisiones_automaticas(date,uuid[])', 'execute') then 'NO'
-            when not has_function_privilege('service_role', 'public.firmar_revisiones_automaticas(date,uuid[])', 'execute') then 'NO'
+            when has_function_privilege('anon', 'public.firmar_revisiones_automaticas(date,jsonb)', 'execute') then 'NO'
+            when has_function_privilege('authenticated', 'public.firmar_revisiones_automaticas(date,jsonb)', 'execute') then 'NO'
+            when not has_function_privilege('service_role', 'public.firmar_revisiones_automaticas(date,jsonb)', 'execute') then 'NO'
             else 'SI' end
 union all
 select 'XXXX - firma automatica de la revision semanal', 'el trigger de versiones retira la marca junto con la firma',
