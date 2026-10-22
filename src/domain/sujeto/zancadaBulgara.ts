@@ -88,6 +88,13 @@ const NIVEL_ESTATICO = 'envolvente de la regla en [0,26; 0,35] BW y del centro d
 const NIVEL_DINAMICO =
   'envolvente de la regla [0,26; 0,35] BW, del centro de presión trasero ± 3 cm y del rango entre los radios «sagital» y «transverso» de de Leva; no es un intervalo de confianza'
 
+/** Si alguna combinación (regla × CP trasero) deja el CP delantero fuera del pie, la banda es más estrecha que la regla y el nivel lo dice. */
+function nivelConCobertura(nivel: string, validas: number): string {
+  const total = PASOS_DE_LA_REGLA.length * PASOS_DEL_CP.length
+  if (validas >= total) return nivel
+  return `${nivel}; envolvente parcial: ${validas} de ${total} combinaciones, en las demás el centro de presión delantero cae fuera del pie, así que la banda es más estrecha que la de la regla`
+}
+
 const finito = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
 
 /** La fracción de BW que lleva la pierna trasera según la variante: cifra `estimado` en la búlgara, `no_afirmable` con su motivo en las demás. */
@@ -273,7 +280,7 @@ export function momentosDeBulgara(entrada: EntradaDeZancada): ResultadoDeBulgara
     estado: 'estimado',
     fuente,
     supuestos,
-    banda: { inf: Math.min(valor, ...serie), sup: Math.max(valor, ...serie), nivel: NIVEL_ESTATICO },
+    banda: { inf: Math.min(valor, ...serie), sup: Math.max(valor, ...serie), nivel: nivelConCobertura(NIVEL_ESTATICO, todos.length) },
     version: v,
   })
   const pata = (lado: 'delantera' | 'trasera') => {
@@ -506,7 +513,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
       estado: 'estimado',
       fuente,
       supuestos,
-      banda: { inf: Math.min(valor, ...serie), sup: Math.max(valor, ...serie), nivel },
+      banda: { inf: Math.min(valor, ...serie), sup: Math.max(valor, ...serie), nivel: nivelConCobertura(nivel, filas.length) },
       version: v,
     })
     const mom = (lado: Lado, a: Articulacion): MomentoDeBulgara => {
