@@ -34,8 +34,12 @@ import { join } from 'node:path'
 export const SILENCIO_PREVIO_MS = 120
 /** Un reintento: una caída aislada (memoria) se supera; dos seguidas no son mala suerte. */
 export const REINTENTOS_DE_LA_VOZ = 1
-/** Pausa antes de reintentar: que Windows devuelva la memoria del proceso que murió. */
-export const ESPERA_ANTES_DE_REINTENTAR_MS = 20_000
+/**
+ * Pausa antes de reintentar: que Windows devuelva la memoria del proceso que murió. Con 20 s no
+ * bastó: el 22-oct, con el PC al límite de memoria virtual, el reintento murió con el mismo
+ * 0xC0000005 de la caída del 15-oct (ver docs/specs/2026-10-22-mensajes-semanales-sin-freno.md).
+ */
+export const ESPERA_ANTES_DE_REINTENTAR_MS = 60_000
 
 const sinEspacios = (t) => String(t ?? '').trim()
 

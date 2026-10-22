@@ -40,6 +40,27 @@ estaba firmada, tiene corrección pedida, no tiene guion, tiene ruta histórica 
 orden `detener` vigente para esa persona en la semana de la revisión o en la siguiente (la consola apunta
 `detener` a la semana que se va a cargar). Las políticas RLS de la `0068` no se tocan.
 
+## Lo medido al probar con la voz real (durante la construcción de esto, en este PC)
+
+`generar-voces.mjs` se corrió dos veces contra `estudio.voz` real con una frase de 80 caracteres. Las dos
+fallaron, y por una razón que no es de este código: el PC estaba al límite de memoria virtual.
+
+- 1.ª corrida: intento 1 `código 1: El archivo de paginación es demasiado pequeño (os error 1455)`; intento 2, igual.
+- 2.ª corrida: intento 1 `os error 1455`; intento 2 `código 3221225477` = **0xC0000005**, el mismo código con el que
+  murió la tanda del 15-oct. Ya van dos veces vistas con la misma causa aparente (memoria), aunque sigue sin probarse
+  que sea la causa de aquella caída.
+- Medido en ese momento: memoria virtual total 62,5 GB, libre 6,5 GB; RAM física libre entre 0,3 y 2,6 GB, con decenas
+  de procesos de Claude/Chrome/Python abiertos.
+
+Qué prueba esto: que el proceso se lanza bien (`python -B -m estudio.voz` desde alpha-estudio, el modelo se baja de la
+caché sin descargar nada), que el motivo real de cada fallo llega al registro (el código y el texto de `FALLO.json`,
+no «alguna voz salió corta»), que el reintento y el código de salida 1 funcionan contra el proceso de verdad. Qué NO
+prueba: el camino feliz con el modelo real (audio terminado + 120 ms de silencio + testigo). Ese camino está probado con
+un proceso simulado, y el silencio previo con `ffmpeg` sobre una muestra real (+0,12 s exactos, silencio de 0 a 0,12 s).
+
+Consecuencia práctica: **antes de la tarea de las 21:00, cerrar sesiones** (o ampliar el archivo de paginación) o la voz
+volverá a caerse, ahora persona por persona y con aviso, no en bloque y en silencio. El reintento espera 60 s.
+
 ## Qué NO hace esta entrega
 
 - No aplica la migración, no toca las tareas programadas, no firma nada.
