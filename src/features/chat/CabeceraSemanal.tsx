@@ -88,7 +88,11 @@ export function CabeceraSemanal({ traerEnlace = enlaceDeCabecera, children }: Ca
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-display text-sm text-texto">Bryan te cuenta tu semana</p>
-              <p className="mt-0.5 text-xs text-tenue">Voz generada a partir de su voz, con revisión humana.</p>
+              {/* Desde la firma automática (decisión de Bryan, 21-oct) el mensaje sale sin que nadie
+                  lo revise: el texto dice lo que hay, no lo que había antes. */}
+              <p className="mt-0.5 text-xs text-tenue">
+                Mensaje automático con voz generada a partir de la voz de Bryan.
+              </p>
               <audio
                 src={cabecera.url}
                 controls
