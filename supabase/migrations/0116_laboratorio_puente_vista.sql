@@ -88,15 +88,8 @@ exception when others then
 end
 $$;
 
--- Un arreglo JSON o uno vacío (los datos viejos no siempre traen todas las claves).
-create or replace function lab.arreglo(j jsonb)
-returns jsonb
-language sql
-immutable
-set search_path = pg_catalog
-as $$
-  select case when jsonb_typeof(j) = 'array' then j else '[]'::jsonb end
-$$;
+-- Las vistas usan «arreglo JSON o vacío» en línea (case jsonb_typeof): lab_lector no ejecuta ninguna función del
+-- esquema lab, y las funciones que usa una vista se comprueban con los permisos de quien la lee.
 
 -- ─────────────────────────── Consentimientos ───────────────────────────
 
@@ -183,12 +176,12 @@ select
   lab.num(pr.p -> 'cargaKg')                            as carga_prescrita_kg
 from lab.consentimientos c
 join public.microciclos m on m.usuario_id = c.usuario_id
-cross join lateral jsonb_array_elements(lab.arreglo(m.datos -> 'sesiones')) as s(js)
-cross join lateral jsonb_array_elements(lab.arreglo(s.js -> 'ejercicios')) as e(je)
-cross join lateral jsonb_array_elements(lab.arreglo(e.je -> 'series')) as r(jr)
+cross join lateral jsonb_array_elements((case when jsonb_typeof(m.datos -> 'sesiones') = 'array' then m.datos -> 'sesiones' else '[]'::jsonb end)) as s(js)
+cross join lateral jsonb_array_elements((case when jsonb_typeof(s.js -> 'ejercicios') = 'array' then s.js -> 'ejercicios' else '[]'::jsonb end)) as e(je)
+cross join lateral jsonb_array_elements((case when jsonb_typeof(e.je -> 'series') = 'array' then e.je -> 'series' else '[]'::jsonb end)) as r(jr)
 left join lateral (
   select p
-    from jsonb_array_elements(lab.arreglo(e.je -> 'seriesPrescritas')) as p
+    from jsonb_array_elements((case when jsonb_typeof(e.je -> 'seriesPrescritas') = 'array' then e.je -> 'seriesPrescritas' else '[]'::jsonb end)) as p
    where lab.num(p -> 'orden') = lab.num(r.jr -> 'orden')
    limit 1
 ) as pr(p) on true
@@ -210,7 +203,7 @@ from lab.consentimientos c
 join public.perfiles p on p.usuario_id = c.usuario_id
 left join lateral (
   select med
-    from jsonb_array_elements(lab.arreglo(p.datos -> 'medidas')) as med
+    from jsonb_array_elements((case when jsonb_typeof(p.datos -> 'medidas') = 'array' then p.datos -> 'medidas' else '[]'::jsonb end)) as med
    where jsonb_typeof(med) = 'object'
    order by lab.dia(med ->> 'fecha') desc nulls last
    limit 1
