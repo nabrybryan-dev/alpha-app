@@ -207,3 +207,16 @@ describe('direcciones que no existen', () => {
     }
   })
 })
+
+describe('Praxis por puesto (decisión de Bryan, 23-oct-2026)', () => {
+  const PRAXIS = ['/praxis', '/praxis/ejemplo', '/praxis/ingreso-prueba']
+  it.each(PRAXIS)('%s: la cuenta personal de Bryan entra y el asesorado sigue sin entrar', async (direccion) => {
+    const personal = PERFILES.find((p) => p.nombre.startsWith('cuenta personal'))!
+    estado.rol = personal.rol
+    estado.capacidades = new Set(personal.capacidades)
+    expect(await observar(direccion)).toEqual({ tipo: 'entra', vacia: false })
+    estado.rol = 'asesorado'
+    estado.capacidades = new Set()
+    expect(await observar(direccion)).toMatchObject({ tipo: 'redirige', a: '/' })
+  })
+})

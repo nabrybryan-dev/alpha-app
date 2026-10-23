@@ -218,9 +218,10 @@ export function resolverAcceso(ruta: RutaApp, p: PerfilAcceso): ResultadoAcceso 
       return ENTRA
 
     case 'praxis':
-      // `puedeVerPraxis`: por ROL (coach o nutricionista), no por puesto. La cuenta personal de Bryan es
-      // `asesorado`: hoy NO entra (el paso 2 del plan lo cambia a «por puesto»).
-      return p.rol === 'coach' || p.rol === 'nutricionista' ? ENTRA : redirigir('/')
+      // `puedeVerPraxis`: el equipo por ROL (coach o nutricionista) y, desde la decisión de Bryan del 23-oct,
+      // quien ocupa el PUESTO de coach (su cuenta personal es `asesorado` + `puesto_de_coach`). Los
+      // asesorados siguen sin entrar.
+      return p.rol === 'coach' || p.rol === 'nutricionista' || esCoach ? ENTRA : redirigir('/')
 
     case 'tablero':
       if (!esCoach && !g.capacidades?.some(tiene)) return redirigir('/')

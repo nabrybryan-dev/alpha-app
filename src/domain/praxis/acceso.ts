@@ -40,6 +40,15 @@ export function esStaff(rol: Rol): boolean {
   return rol === 'coach' || rol === 'nutricionista'
 }
 
-export function puedeVerPraxis(rol: Rol, abiertaAAsesorados: boolean = PRAXIS_ABIERTA_A_ASESORADOS): boolean {
-  return esStaff(rol) || abiertaAAsesorados
+/**
+ * Praxis se abre por ROL del equipo o por PUESTO (decisión de Bryan, 23-oct-2026): su cuenta personal es
+ * `asesorado` con la capacidad `puesto_de_coach` (`usePuestoCoach`), y ocupa el puesto aunque el rol no cambie.
+ * Los asesorados de verdad siguen sin entrar mientras `PRAXIS_ABIERTA_A_ASESORADOS` sea `false`.
+ */
+export function puedeVerPraxis(
+  rol: Rol,
+  abiertaAAsesorados: boolean = PRAXIS_ABIERTA_A_ASESORADOS,
+  ocupaElPuesto: boolean = false,
+): boolean {
+  return esStaff(rol) || ocupaElPuesto || abiertaAAsesorados
 }
