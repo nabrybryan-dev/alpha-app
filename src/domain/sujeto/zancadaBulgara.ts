@@ -464,6 +464,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
   const sujeto = construirSujeto(e)
   if (!sujeto) return todos('talla, masa o sexo ausentes o fuera de rango')
   if (!finito(e.cargaKg) || e.cargaKg < 0) return todos('carga ausente o negativa')
+  const cargaKg: number = e.cargaKg
   if (typeof e.fuenteDeAngulos !== 'string' || e.fuenteDeAngulos.trim() === '') {
     return todos('la fuente de los ángulos no está declarada: sin ella el término inercial no se afirma')
   }
@@ -546,7 +547,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
     }
     const pata = (lado: Lado) => ({ tobillo: mom(lado, 'tobillo'), rodilla: mom(lado, 'rodilla'), cadera: mom(lado, 'cadera') })
     // término inercial del CUERPO ENTERO: Σ m·a_y = fuerza vertical total − peso (cuerpo + carga); no depende de la regla del reparto
-    const pesoN = (sujeto.masa + e.cargaKg) * GRAVEDAD
+    const pesoN = (sujeto.masa + cargaKg) * GRAVEDAD
     const inerciales = filas.flatMap((fl) => fl.din.map((d) => d.fuerzaTotalN - pesoN))
     const valorInercial = nom.din[0]!.fuerzaTotalN - pesoN
     const inercialCuerpoEntero: Cifra = {
