@@ -11,6 +11,8 @@ import { RUTAS, buscarRuta, padreDe, tituloDeRuta } from './rutas'
  * la ruta vieja como redirección rompe esta prueba. Que cada una de esas direcciones llegue de verdad a
  * una pantalla (y no a un blanco) lo prueba `rutas.acceso.test.tsx`, con el router montado.
  */
+const CONCRETAS = RUTAS.filter((r) => r.guarda.marco !== 'comodin')
+
 describe('inventario de rutas', () => {
   it('el router y la tabla tienen exactamente las mismas rutas (menos las públicas, que no pasan por el router)', () => {
     const delRouter = patronesDelRouter().sort()
@@ -30,12 +32,20 @@ describe('inventario de rutas', () => {
   it('no hay dos filas con el mismo patrón, y cada ejemplo cae en SU patrón', () => {
     const patrones = RUTAS.map((r) => r.patron)
     expect(new Set(patrones).size).toBe(patrones.length)
-    for (const r of RUTAS) expect(buscarRuta(r.ejemplo)?.patron, r.ejemplo).toBe(r.patron)
+    for (const r of CONCRETAS) expect(buscarRuta(r.ejemplo)?.patron, r.ejemplo).toBe(r.patron)
+  })
+
+  it('hay UNA ruta comodín («Esta página no existe»), está en el router, y el resto de la app no la confunde con una ruta conocida', () => {
+    const comodines = RUTAS.filter((r) => r.guarda.marco === 'comodin')
+    expect(comodines).toHaveLength(1)
+    expect(patronesDelRouter()).toContain('/*')
+    expect(buscarRuta(comodines[0].ejemplo)).toBeUndefined()
+    expect(padreDe(comodines[0].ejemplo)).toBeNull()
   })
 
   it('cada padre es otra fila de la tabla, sin parámetros, y las cadenas terminan en una raíz sin ciclos', () => {
     const porPatron = new Map(RUTAS.map((r) => [r.patron, r]))
-    for (const r of RUTAS) {
+    for (const r of CONCRETAS) {
       for (const padre of [r.padre, r.padreEquipo]) {
         if (padre === null || padre === undefined) continue
         expect(porPatron.has(padre), `${r.patron} → ${padre}`).toBe(true)

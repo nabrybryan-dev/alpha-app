@@ -1,4 +1,4 @@
-import { configure, render, waitFor } from '@testing-library/react'
+import { configure, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Capacidad } from '../data/consola/capacidadesStaff'
@@ -187,6 +187,23 @@ describe('lo que prometen los avisos y los scripts llega a una pantalla', () => 
     for (const ruta of RUTAS.filter((r) => r.guarda.marco !== 'publica' && !r.guarda.redirigeA)) {
       const entran = PERFILES.filter((p) => resolverAcceso(ruta, { rol: p.rol, capacidades: new Set(p.capacidades) }).tipo === 'entra')
       expect(entran.length, ruta.patron).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('direcciones que no existen', () => {
+  it.each(PERFILES.map((p) => [p.nombre, p] as const))('%s ve «Esta página no existe», no un blanco', async (_n, perfil) => {
+    estado.rol = perfil.rol
+    estado.capacidades = new Set(perfil.capacidades)
+    for (const direccion of ['/esta-pagina-no-existe', '/coach/inventada', '/entrenar/algo/que/no/hay']) {
+      const r = render(
+        <MemoryRouter initialEntries={[direccion]}>
+          <AppRouter />
+        </MemoryRouter>,
+      )
+      expect(await screen.findByRole('heading', { name: 'Esta página no existe' }), direccion).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Ir a Hoy' })).toBeInTheDocument()
+      r.unmount()
     }
   })
 })

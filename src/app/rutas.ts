@@ -22,9 +22,8 @@ import type { Rol } from '../domain/types'
  * redirección: entonces la fila vieja se queda (con `redirigeA`) y se añade la nueva. NO se borran filas
  * (relevo-sin-perdidas): los avisos push que ya salieron siguen abriendo `/mi-plan` y `/coach/mi-plan`.
  *
- * Rutas desconocidas: `router.tsx` NO tiene comodín (`*`), así que una dirección que no existe se
- * pinta en blanco. Es el comportamiento de hoy y este paso no lo cambia; está anotado en el PR como
- * pregunta para Bryan.
+ * Rutas desconocidas: decisión de Bryan (23-oct): toda dirección que la app no conoce muestra «Esta
+ * página no existe» con un botón a Hoy (la fila `/*`, que es la última del router). Antes se pintaba en blanco.
  */
 
 /** Quién monta la ruta. Define el orden de las puertas (ver `resolverAcceso`). */
@@ -39,6 +38,8 @@ export type Marco =
   | 'praxis'
   /** Se abre SIN sesión (`rutasPublicas.ts`); no pasa por el router de la app. */
   | 'publica'
+  /** La ruta comodín (`*`): toda dirección que la app no conoce. Fuera de los layouts; la ve cualquiera con sesión. */
+  | 'comodin'
 
 export interface Guarda {
   marco: Marco
@@ -137,6 +138,9 @@ export const RUTAS: readonly RutaApp[] = [
   // Mi plan de Bryan. Los avisos push de Bryan (`avisos-plan/decidir.ts`) abren ESTA ruta: queda para siempre.
   { patron: '/coach/mi-plan', ejemplo: '/coach/mi-plan', padre: '/', titulo: 'Mi plan', guarda: { marco: 'coach' } },
 
+  // ---- Toda dirección que no existe ----
+  { patron: '/*', ejemplo: '/esta-pagina-no-existe', padre: null, titulo: 'No encontrada', guarda: { marco: 'comodin' } },
+
   // ---- Sin sesión ----
   { patron: '/interesados', ejemplo: '/interesados', padre: null, titulo: 'Interesados', guarda: { marco: 'publica' } },
 ]
@@ -144,7 +148,8 @@ export const RUTAS: readonly RutaApp[] = [
 /** La fila de una dirección concreta (sin la búsqueda ni el ancla), o `undefined` si la app no la conoce. */
 export function buscarRuta(pathname: string): RutaApp | undefined {
   const limpio = pathname.split(/[?#]/)[0] || '/'
-  return RUTAS.find((r) => matchPath({ path: r.patron, end: true }, limpio) !== null)
+  // El comodín encaja con todo: no cuenta como «la app conoce esta dirección».
+  return RUTAS.find((r) => r.guarda.marco !== 'comodin' && matchPath({ path: r.patron, end: true }, limpio) !== null)
 }
 
 function filaPorPatron(patron: string): RutaApp | undefined {
@@ -209,6 +214,7 @@ export function resolverAcceso(ruta: RutaApp, p: PerfilAcceso): ResultadoAcceso 
 
   switch (g.marco) {
     case 'publica':
+    case 'comodin':
       return ENTRA
 
     case 'praxis':

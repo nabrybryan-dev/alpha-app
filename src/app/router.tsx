@@ -39,6 +39,7 @@ const EncoderPage = lazy(() => import('../features/entrenar/encoder/EncoderPage'
 const PraxisPage = lazy(() => import('../features/praxis/PraxisPage'))
 const PraxisEjemploPage = lazy(() => import('../features/praxis/PraxisEjemploPage'))
 const IngresoPruebaPage = lazy(() => import('../features/praxis/IngresoPruebaPage'))
+const NoEncontradaPage = lazy(() => import('../features/noEncontrada/NoEncontradaPage'))
 
 function Cargando() {
   return <p className="p-6 text-center text-sm text-tenue">Cargando…</p>
@@ -155,6 +156,9 @@ export function AppRouter() {
         {/* Organizador (0098): el plan de Bryan. */}
         <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
       </Route>
+      {/* Toda dirección que no existe (decisión de Bryan, 23-oct): una pantalla que lo dice y lleva a Hoy.
+          Antes se pintaba en blanco. Va fuera de los layouts, como Praxis. */}
+      <Route path="*" element={envolver(<NoEncontradaPage />)} />
     </Routes>
     </HistoriaInterna>
   )
