@@ -99,9 +99,9 @@ export const RUTAS: readonly RutaApp[] = [
   { patron: '/contenidos', ejemplo: '/contenidos', padre: '/', titulo: 'Contenidos', guarda: ASESORADO },
   { patron: '/logros', ejemplo: '/logros', padre: '/', titulo: 'Logros', guarda: ASESORADO },
   { patron: '/marca', ejemplo: '/marca', padre: '/', titulo: 'Marca', guarda: ASESORADO },
-  // Espacios del equipo: la propia pantalla manda al asesorado a su sitio.
-  { patron: '/mi-entreno', ejemplo: '/mi-entreno', padre: '/', titulo: 'Mi entreno', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/entrenar' } } },
-  { patron: '/equipo', ejemplo: '/equipo', padre: '/', titulo: 'Equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
+  // Espacios del equipo (pestañas de su barra, sin «‹»): la propia pantalla manda al asesorado a su sitio.
+  { patron: '/mi-entreno', ejemplo: '/mi-entreno', padre: null, titulo: 'Mi entreno', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/entrenar' } } },
+  { patron: '/equipo', ejemplo: '/equipo', padre: null, titulo: 'Equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   { patron: '/equipo-nutricion', ejemplo: '/equipo-nutricion', padre: '/equipo', titulo: 'Nutrición del equipo', guarda: { marco: 'asesorado', propiaDelCoach: true, soloEquipo: { destino: '/' } } },
   { patron: '/equipo-nutricion/cifras', ejemplo: '/equipo-nutricion/cifras', padre: '/equipo-nutricion', titulo: 'Cifras', guarda: SOLO_EQUIPO_A_RAIZ },
   // Mi plan de Manuela. Los avisos push de Manuela abren ESTA ruta: queda para siempre.

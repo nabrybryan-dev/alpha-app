@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { padreDe } from '../../app/rutas'
+import { useHistoriaInterna } from '../../app/historiaInternaContexto'
+import { buscarRuta, padreDe, tituloDeRuta } from '../../app/rutas'
 import { useSesion } from '../../app/SessionProvider'
 import { useTema } from '../../app/ThemeProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
@@ -41,17 +42,22 @@ export function TopBar({ titulo }: TopBarProps) {
   const { tema, alternar } = useTema()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const navigate = useNavigate()
-  const { pathname, key } = useLocation()
-  const { esCoach, tiene } = usePuestoCoach(usuario.rol)
+  const { pathname } = useLocation()
+  const { anterior } = useHistoriaInterna()
+  const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   useDbVersion()
 
-  // El «‹» único (04 §3.5): el padre sale de la tabla `app/rutas.ts`. La cuenta Alpha (`solo_tablero`) no tiene
-  // a dónde volver. Con una pantalla anterior DENTRO de la app (`key` distinto de «default»: no se entró por
-  // un enlace directo ni por un aviso) vuelve a ELLA; si no, al padre declarado, sustituyendo la entrada.
-  const padre = esCoach && tiene('solo_tablero') ? null : padreDe(pathname, usuario.rol === 'nutricionista' || esCoach)
+  // El «‹» único (04 §3.5). Hasta saber quién mira no se pinta: «Hoy» o «Mi día», y la cuenta Alpha (`solo_tablero`),
+  // que no tiene a dónde volver, dependen de los permisos. Si la pantalla anterior es de la app (la cuenta la
+  // lleva `HistoriaInterna`) vuelve a ELLA y la etiqueta dice cuál es; si no, al padre declarado en `rutas.ts`,
+  // sustituyendo la entrada, así que nunca saca de la app.
+  const esEquipo = usuario.rol === 'nutricionista' || esCoach
+  const padre = cargando || (esCoach && tiene('solo_tablero')) ? null : padreDe(pathname, esEquipo)
+  const previa = padre && anterior && anterior !== pathname ? buscarRuta(anterior) : undefined
+  const destino = previa ? { titulo: tituloDeRuta(previa.patron, esEquipo) ?? padre?.titulo ?? '', atras: true } : padre ? { titulo: padre.titulo, atras: false } : null
   const volver = () => {
-    if (!padre) return
-    if (key !== 'default') navigate(-1)
+    if (!padre || !destino) return
+    if (destino.atras) navigate(-1)
     else navigate(padre.patron, { replace: true })
   }
 
@@ -68,15 +74,15 @@ export function TopBar({ titulo }: TopBarProps) {
     <header className="glass-blur sticky top-0 z-40 border-b border-hairline bg-bg/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-2 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
-          {padre ? (
+          {destino ? (
             <button
               type="button"
               onClick={volver}
-              aria-label={`Volver a ${padre.titulo}`}
+              aria-label={`Volver a ${destino.titulo}`}
               className="press -ml-2 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-0.5 rounded-full pl-1 pr-3 font-bold text-rojo"
             >
               <IconoAtras />
-              <span className="max-w-[5.5rem] truncate text-sm">{padre.titulo}</span>
+              <span className="max-w-[5.5rem] truncate text-sm">{destino.titulo}</span>
             </button>
           ) : (
             <MarcaAguila className="h-8 w-8 text-texto" />

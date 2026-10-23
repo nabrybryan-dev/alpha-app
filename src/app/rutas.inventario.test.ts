@@ -64,6 +64,8 @@ describe('inventario de rutas', () => {
     expect(padreDe('/progreso')).toBeNull()
     expect(padreDe('/entrenar', true)).toEqual({ patron: '/mi-entreno', titulo: 'Mi entreno' })
     expect(padreDe('/no-existe')).toBeNull()
+    // Las cinco pestañas del equipo son raíces: sin «‹».
+    for (const r of ['/', '/mi-entreno', '/equipo', '/coach/estrategias', '/coach/administracion']) expect(padreDe(r, true), r).toBeNull()
     expect(tituloDeRuta('/')).toBe('Hoy')
   })
 

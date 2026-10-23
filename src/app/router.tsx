@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ErrorBoundary } from './ErrorBoundary'
+import { HistoriaInterna } from './HistoriaInterna'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { AsesoradoLayout, CoachLayout, TableroLayout } from './layouts'
 import { useSesion } from './SessionProvider'
@@ -74,6 +75,7 @@ function Inicio() {
 
 export function AppRouter() {
   return (
+    <HistoriaInterna>
     <Routes>
       <Route element={<AsesoradoLayout />}>
         <Route index element={<Inicio />} />
@@ -154,5 +156,6 @@ export function AppRouter() {
         <Route path="mi-plan" element={envolver(<MiPlanPage />)} />
       </Route>
     </Routes>
+    </HistoriaInterna>
   )
 }
