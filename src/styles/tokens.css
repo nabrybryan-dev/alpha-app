@@ -111,6 +111,23 @@
       rgba(0, 0, 0, 0.13) 100%
     );
   /* El corte de las dos esquinas opuestas del troquel. */
+  /* Escena 3D del salón (maqueta 7): los colores que el CSS necesita del sujeto y de la sala. */
+  --salon-3d-piel: #a9afb8;
+  --salon-3d-base: #2b3038;
+  --salon-3d-apagada: #3b414b;
+  --salon-3d-luz: #e9eef4;
+  --salon-3d-hueso: #d9d4c8;
+  --salon-3d-cielo: #cfd8e3;
+  --salon-3d-tierra: #0b0e12;
+  --salon-3d-sombra: 0.45;
+  --salon-3d-brillo: 0.22;
+  /* Tecla 3D (maqueta 7): luz del borde superior, cuatro cantos que se oscurecen hacia abajo y sombra. */
+  --pt-luz: rgba(255, 255, 255, 0.14);
+  --pt-canto-1: #28282d;
+  --pt-canto-2: #212126;
+  --pt-canto-3: #1a1a1e;
+  --pt-canto-4: #131316;
+  --pt-sombra: rgba(0, 0, 0, 0.7);
   --troquel: 10px;
 }
 
@@ -181,6 +198,23 @@
       rgba(255, 255, 255, 0.15) 46%,
       rgba(0, 0, 0, 0.05) 100%
     );
+  /* Escena 3D del salón (maqueta 7): los colores que el CSS necesita del sujeto y de la sala. */
+  --salon-3d-piel: #c3c7cd;
+  --salon-3d-base: #a3a8b0;
+  --salon-3d-apagada: #b6bac1;
+  --salon-3d-luz: #262b33;
+  --salon-3d-hueso: #f1eee6;
+  --salon-3d-cielo: #ffffff;
+  --salon-3d-tierra: #8d8a83;
+  --salon-3d-sombra: 0.2;
+  --salon-3d-brillo: 0;
+  /* Tecla 3D (maqueta 7): luz del borde superior, cuatro cantos que se oscurecen hacia abajo y sombra. */
+  --pt-luz: rgba(255, 255, 255, 0.95);
+  --pt-canto-1: #dcdcdf;
+  --pt-canto-2: #d1d1d5;
+  --pt-canto-3: #c6c6cb;
+  --pt-canto-4: #bbbbc1;
+  --pt-sombra: rgba(0, 0, 0, 0.14);
   --troquel: 10px;
 }
 
