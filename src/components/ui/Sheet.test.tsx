@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -451,5 +451,131 @@ describe('la hoja: la salida tras un arrastre sigue hacia ABAJO', () => {
     rerender(hoja(false))
     rerender(hoja(true))
     expect(screen.getByTestId('panel-de-la-hoja').style.transform).toBe('')
+  })
+})
+
+describe('ronda 3: la pila de hojas, el borde exacto y el gesto final', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  function Tres({ alUno, alDos, alTres }: { alUno: () => void; alDos: () => void; alTres: () => void }) {
+    return (
+      <Sheet abierto titulo="Uno" onCerrar={alUno}>
+        <input aria-label="Campo uno" />
+        <Sheet abierto titulo="Dos" onCerrar={alDos}>
+          <input aria-label="Campo dos" />
+          <Sheet abierto titulo="Tres" onCerrar={alTres}>
+            <input aria-label="Campo tres" />
+          </Sheet>
+        </Sheet>
+      </Sheet>
+    )
+  }
+
+  it('tres hojas MONTADAS ya abiertas a la vez: Escape cierra la de más adentro, luego la siguiente', async () => {
+    const usuario = userEvent.setup()
+    const cierres: string[] = []
+    render(<Tres alUno={() => cierres.push('uno')} alDos={() => cierres.push('dos')} alTres={() => cierres.push('tres')} />)
+    await usuario.keyboard('{Escape}')
+    expect(cierres).toEqual(['tres'])
+  })
+
+  it('tres hojas montadas a la vez: el foco da la vuelta DENTRO de la de más adentro', async () => {
+    const usuario = userEvent.setup()
+    render(<Tres alUno={vi.fn()} alDos={vi.fn()} alTres={vi.fn()} />)
+    const tres = screen.getByRole('dialog', { name: 'Tres' })
+    expect(tres.contains(document.activeElement)).toBe(true)
+    for (let i = 0; i < 5; i++) {
+      await usuario.tab()
+      expect(tres.contains(document.activeElement), `Tab ${i + 1}`).toBe(true)
+    }
+  })
+
+  it('si el foco se escapa con dos hojas abiertas, vuelve a la de ARRIBA (no a la de abajo)', () => {
+    render(
+      <>
+        <button type="button">Detrás de todo</button>
+        <Sheet abierto titulo="Fuera" onCerrar={vi.fn()}>
+          <input aria-label="Campo fuera" />
+          <Sheet abierto titulo="Dentro" onCerrar={vi.fn()}>
+            <input aria-label="Campo dentro" />
+          </Sheet>
+        </Sheet>
+      </>,
+    )
+    act(() => screen.getByRole('button', { name: 'Detrás de todo' }).focus())
+    expect(screen.getByRole('dialog', { name: 'Dentro' }).contains(document.activeElement)).toBe(true)
+  })
+
+  it('dos hojas hermanas: la de abajo no le roba el foco a la que se abrió después', () => {
+    const par = (b: boolean) => (
+      <>
+        <Sheet abierto titulo="Abajo" onCerrar={vi.fn()}>
+          <input aria-label="Campo abajo" />
+        </Sheet>
+        <Sheet abierto={b} titulo="Arriba" onCerrar={vi.fn()}>
+          <input aria-label="Campo arriba" />
+        </Sheet>
+      </>
+    )
+    const { rerender } = render(par(false))
+    rerender(par(true))
+    const arriba = screen.getByRole('dialog', { name: 'Arriba' })
+    act(() => screen.getByRole('textbox', { name: 'Campo arriba' }).focus())
+    expect(arriba.contains(document.activeElement)).toBe(true)
+    expect(screen.getByRole('dialog', { name: 'Abajo' }).contains(document.activeElement)).toBe(false)
+  })
+
+  function arrastrar(dy: number, ms: number) {
+    let ahora = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => ahora)
+    const asa = screen.getByTestId('asa-de-la-hoja')
+    puntero(asa, 'pointerdown', 100)
+    ahora += ms
+    puntero(asa, 'pointermove', 100 + dy)
+    puntero(asa, 'pointerup', 100 + dy)
+  }
+
+  it('el borde exacto: 120 px despacio SÍ cierra (119 no, 121 sí)', () => {
+    for (const [dy, cierra] of [[119, false], [120, true], [121, true]] as const) {
+      const cerrar = vi.fn()
+      const r = abrir({ onCerrar: cerrar })
+      arrastrar(dy, 5000)
+      expect(cerrar.mock.calls.length, `${dy} px`).toBe(cierra ? 1 : 0)
+      r.unmount()
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('si el padre NO cierra tras un arrastre largo, la hoja vuelve a su sitio', async () => {
+    const cerrar = vi.fn() // el padre ignora el cierre
+    abrir({ onCerrar: cerrar })
+    arrastrar(300, 5000)
+    expect(cerrar).toHaveBeenCalledTimes(1)
+    const panel = screen.getByTestId('panel-de-la-hoja')
+    await waitFor(() => expect(panel.style.transform).toBe(''))
+    expect(panel.style.getPropertyValue('--sale-hasta')).toBe('')
+  })
+
+  it('arrastre LENTO y un golpe rápido al final: cuenta el final del gesto, no la media', () => {
+    const cerrar = vi.fn()
+    abrir({ onCerrar: cerrar })
+    let ahora = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => ahora)
+    const asa = screen.getByTestId('asa-de-la-hoja')
+    puntero(asa, 'pointerdown', 100)
+    ahora += 2000
+    puntero(asa, 'pointermove', 140) // 40 px en 2 s: despacio
+    ahora += 30
+    puntero(asa, 'pointermove', 180) // 40 px en 30 ms: el golpe
+    ahora += 10
+    puntero(asa, 'pointerup', 180)
+    expect(cerrar).toHaveBeenCalledTimes(1)
+  })
+
+  it('un arrastre lento de principio a fin, aunque largo de 80 px, no cierra', () => {
+    const cerrar = vi.fn()
+    abrir({ onCerrar: cerrar })
+    arrastrar(80, 3000)
+    expect(cerrar).not.toHaveBeenCalled()
   })
 })

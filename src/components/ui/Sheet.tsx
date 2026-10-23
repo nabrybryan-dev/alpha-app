@@ -27,6 +27,8 @@ const SALIDA_MS = 240
 /** Cuánto hay que arrastrar hacia abajo para que suelte la hoja, o la rapidez (px/ms) con un arrastre corto. */
 const DISTANCIA_CIERRE = 120
 const VELOCIDAD_CIERRE = 0.6
+/** La rapidez del gesto se mide sobre estos últimos milisegundos. */
+const VENTANA_VELOCIDAD_MS = 100
 const DISTANCIA_MINIMA_VELOZ = 40
 /** Hasta aquí es un toque, no un arrastre. */
 const UMBRAL_ARRASTRE = 4
@@ -42,7 +44,21 @@ function enfocables(panel: HTMLElement): HTMLElement[] {
  * La pila de hojas abiertas, la de arriba al final. Escape, Tab y la vigilancia del foco son SOLO de la de
  * arriba: sin esto, `SheetDespensa` con `SheetBuscarAlimento` dentro se cerraban las dos con una Escape.
  */
-const pilaDeHojas: symbol[] = []
+interface HojaAbierta {
+  id: symbol
+  panel: HTMLElement
+}
+const pilaDeHojas: HojaAbierta[] = []
+
+/**
+ * ¿Es esta la hoja de ARRIBA? No se decide por el orden en que se apilaron (React corre los efectos de los hijos
+ * antes que los del padre, y con varias hojas montadas ya abiertas a la vez la de fuera quedaba la última), sino
+ * por el DOM: una hoja que contiene a otra abierta NO es la de arriba. Entre hermanas manda la que se abrió después.
+ */
+function esLaDeArriba(yo: symbol): boolean {
+  const libres = pilaDeHojas.filter((h) => !pilaDeHojas.some((otra) => otra !== h && h.panel.contains(otra.panel)))
+  return libres[libres.length - 1]?.id === yo
+}
 
 /** ¿Se puede animar la salida? Sin `matchMedia` (jsdom, navegadores muy viejos) o con movimiento reducido, no. */
 function puedeAnimarSalida(): boolean {
@@ -74,8 +90,10 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
   const panel = useRef<HTMLDivElement>(null)
   const scrim = useRef<HTMLButtonElement>(null)
   const alCerrar = useRef(onCerrar)
+  const sigueAbierta = useRef(abierto)
   useEffect(() => {
     alCerrar.current = onCerrar
+    sigueAbierta.current = abierto
   })
 
   // Escape, foco atrapado y foco de vuelta a quien la abrió. Solo mientras está abierta (no mientras se despide).
@@ -91,8 +109,8 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
     }
     if (scrim.current) scrim.current.style.opacity = ''
     const yo = Symbol('hoja')
-    pilaDeHojas.push(yo)
-    const dePrimera = () => pilaDeHojas[pilaDeHojas.length - 1] === yo
+    if (el) pilaDeHojas.push({ id: yo, panel: el })
+    const dePrimera = () => esLaDeArriba(yo)
     if (el && !el.contains(document.activeElement)) {
       const primero = enfocables(el)[0] ?? el
       primero.focus({ preventScroll: true })
@@ -133,17 +151,17 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
     return () => {
       document.removeEventListener('keydown', alTeclear)
       document.removeEventListener('focusin', alEnfocar)
-      const lugar = pilaDeHojas.indexOf(yo)
+      const lugar = pilaDeHojas.findIndex((h) => h.id === yo)
       if (lugar >= 0) pilaDeHojas.splice(lugar, 1)
       if (previo?.isConnected) previo.focus({ preventScroll: true })
     }
   }, [abierto, montada])
 
   // Arrastrar el asa (la rayita y la cabecera) hacia abajo para cerrar.
-  const arrastre = useRef<{ id: number; y0: number; t0: number; dy: number; activo: boolean } | null>(null)
+  const arrastre = useRef<{ id: number; y0: number; dy: number; activo: boolean; muestras: { t: number; y: number }[] } | null>(null)
   const alBajarPuntero = (e: EventoPuntero<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return
-    arrastre.current = { id: e.pointerId, y0: e.clientY, t0: performance.now(), dy: 0, activo: false }
+    arrastre.current = { id: e.pointerId, y0: e.clientY, dy: 0, activo: false, muestras: [{ t: performance.now(), y: e.clientY }] }
   }
   const alMoverPuntero = (e: EventoPuntero<HTMLDivElement>) => {
     const a = arrastre.current
@@ -160,6 +178,7 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
       if (panel.current) panel.current.style.transition = 'none'
     }
     a.dy = dy
+    a.muestras.push({ t: performance.now(), y: e.clientY })
     const baja = Math.max(0, dy)
     if (panel.current) panel.current.style.transform = `translateY(${baja}px)`
     if (scrim.current) scrim.current.style.opacity = String(Math.max(0, 1 - baja / 400))
@@ -169,12 +188,24 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
     arrastre.current = null
     if (!a || a.id !== e.pointerId || !a.activo) return
     const dy = e.clientY - a.y0
-    const ms = Math.max(1, performance.now() - a.t0)
-    const cierra = dy >= DISTANCIA_CIERRE || (dy >= DISTANCIA_MINIMA_VELOZ && dy / ms >= VELOCIDAD_CIERRE)
+    // La rapidez es la del FINAL del gesto (últimos ~100 ms), no la media: despacio y un golpe al final es un golpe.
+    const ahora = performance.now()
+    const enVentana = a.muestras.filter((m) => m.t >= ahora - VENTANA_VELOCIDAD_MS)
+    const desde = enVentana.length > 0 && enVentana[0] !== a.muestras[a.muestras.length - 1] ? enVentana[0] : a.muestras[Math.max(0, a.muestras.length - 2)]
+    const velocidad = (e.clientY - desde.y) / Math.max(1, ahora - desde.t)
+    const cierra = dy >= DISTANCIA_CIERRE || (dy >= DISTANCIA_MINIMA_VELOZ && velocidad >= VELOCIDAD_CIERRE)
     if (cierra) {
       // La salida sigue hacia ABAJO desde donde se soltó el dedo (si no, la hoja subiría hacia los 40 px).
       panel.current?.style.setProperty('--sale-hasta', `${Math.max(0, dy) + 40}px`)
       alCerrar.current()
+      // Si quien usa la hoja no la cierra (pide confirmar, está ocupada), la hoja vuelve a su sitio.
+      window.requestAnimationFrame(() => {
+        if (!sigueAbierta.current || !panel.current) return
+        panel.current.style.transition = 'transform var(--dur-base) var(--ease-salida)'
+        panel.current.style.transform = ''
+        panel.current.style.removeProperty('--sale-hasta')
+        if (scrim.current) scrim.current.style.opacity = ''
+      })
       return
     }
     if (panel.current) {
