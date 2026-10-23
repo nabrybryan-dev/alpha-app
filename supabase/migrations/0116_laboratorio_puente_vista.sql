@@ -239,6 +239,9 @@ revoke execute on all functions in schema lab from public, anon, authenticated, 
 alter default privileges in schema lab revoke execute on functions from public;
 grant usage on schema lab to lab_lector;
 grant select on lab.lab_series, lab.lab_sujetos, lab.lab_revocaciones to lab_lector;
+-- Las vistas llaman a lab.num y lab.dia, y Postgres comprueba EXECUTE con los permisos de quien lee la vista.
+-- Son puras (convierten un valor JSON o un texto) y no tocan tablas: lab_lector las ejecuta; nadie más.
+grant execute on function lab.num(jsonb), lab.dia(text) to lab_lector;
 
 commit;
 

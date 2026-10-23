@@ -95,9 +95,12 @@ select pruebas.afirmar(not exists (
   select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'lab'
      and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')
-          or has_function_privilege('lab_lector', p.oid, 'execute')
+          or (has_function_privilege('lab_lector', p.oid, 'execute') and p.proname not in ('num', 'dia'))
           or exists (select 1 from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where a.grantee = 0))),
-  'una funcion del esquema lab es ejecutable por PUBLIC, anon, authenticated o lab_lector');
+  'una funcion del esquema lab es ejecutable por PUBLIC, anon, authenticated o lab_lector (salvo num y dia, que usan las vistas)');
+select pruebas.afirmar(has_function_privilege('lab_lector', 'lab.num(jsonb)', 'execute') and has_function_privilege('lab_lector', 'lab.dia(text)', 'execute')
+  and not has_function_privilege('lab_lector', 'lab.revocar_si_se_borro()', 'execute'),
+  'lab_lector debe ejecutar solo lab.num y lab.dia (las que usan las vistas)');
 
 -- 4 · lista blanca de columnas (leída como dueño del catálogo)
 select pruebas.afirmar(not exists (
