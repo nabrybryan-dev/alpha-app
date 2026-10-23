@@ -240,6 +240,10 @@ alter role lab_lector set statement_timeout = '30s';
 
 revoke all on all tables in schema public from lab_lector;
 revoke all on all tables in schema lab from public, anon, authenticated, lab_lector;
+-- Las funciones de `lab` (ayudas y trigger) nacen con EXECUTE para PUBLIC: se cierra. Las vistas corren como dueño y
+-- no lo necesitan; la llave no debe poder llamarlas.
+revoke execute on all functions in schema lab from public, anon, authenticated, lab_lector;
+alter default privileges in schema lab revoke execute on functions from public;
 grant usage on schema lab to lab_lector;
 grant select on lab.lab_series, lab.lab_sujetos, lab.lab_revocaciones to lab_lector;
 

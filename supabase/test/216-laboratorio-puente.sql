@@ -19,14 +19,16 @@ insert into auth.users (id, email) values
   ('f1160000-0000-0000-0000-000000000001', 'lab-con-permiso@ejemplo.test'),
   ('f1160000-0000-0000-0000-000000000002', 'lab-sin-permiso@ejemplo.test'),
   ('f1160000-0000-0000-0000-000000000003', 'lab-revocado@ejemplo.test'),
-  ('f1160000-0000-0000-0000-000000000004', 'lab-se-borra@ejemplo.test')
+  ('f1160000-0000-0000-0000-000000000004', 'lab-se-borra@ejemplo.test'),
+  ('f1160000-0000-0000-0000-000000000005', 'lab-revocado-con-segmentos@ejemplo.test')
 on conflict (id) do nothing;
 
 insert into public.usuarios_app (id, nombre, rol, avatar_iniciales) values
   ('f1160000-0000-0000-0000-000000000001', 'Nombre Secreto Uno', 'asesorado', 'NU'),
   ('f1160000-0000-0000-0000-000000000002', 'Nombre Secreto Dos', 'asesorado', 'ND'),
   ('f1160000-0000-0000-0000-000000000003', 'Nombre Secreto Tres', 'asesorado', 'NT'),
-  ('f1160000-0000-0000-0000-000000000004', 'Nombre Secreto Cuatro', 'asesorado', 'NC')
+  ('f1160000-0000-0000-0000-000000000004', 'Nombre Secreto Cuatro', 'asesorado', 'NC'),
+  ('f1160000-0000-0000-0000-000000000005', 'Nombre Secreto Cinco', 'asesorado', 'NS')
 on conflict (id) do update set nombre = excluded.nombre;
 
 -- Perfil: la 1 con peso y segmentos; la 3 sin peso.
@@ -36,7 +38,9 @@ insert into public.perfiles (usuario_id, sexo, datos) values
                 {"fecha":"2026-10-01","alturaCm":163,"pesoKg":60.2,"perimetros":{"Glúteos":98},"pgPct":24,
                  "cuerpo":{"femurCm":44.5,"tibiaCm":37.5,"torsoCm":50}}]}'::jsonb),
   ('f1160000-0000-0000-0000-000000000003', 'hombre',
-   '{"medidas":[{"fecha":"2026-10-01","alturaCm":175,"perimetros":{}}]}'::jsonb)
+   '{"medidas":[{"fecha":"2026-10-01","alturaCm":175,"perimetros":{}}]}'::jsonb),
+  ('f1160000-0000-0000-0000-000000000005', 'hombre',
+   '{"medidas":[{"fecha":"2026-10-01","alturaCm":181,"pesoKg":77,"cuerpo":{"femurCm":46,"tibiaCm":39,"torsoCm":52}}]}'::jsonb)
 on conflict (usuario_id) do update set sexo = excluded.sexo, datos = excluded.datos;
 
 -- Un microciclo por persona. La 1: serie con RIR numérico, serie con RIR texto y huella; las demás, una serie.
@@ -52,15 +56,20 @@ insert into public.microciclos (id, usuario_id, numero, estado, datos) values
    '{"fechaInicio":"2026-10-05","sesiones":[{"ejercicios":[{"id":"x","nombre":"Sin permiso","series":[{"orden":1,"cargaKg":99,"reps":5,"rir":1}]}]}]}'::jsonb),
   ('lab-m3', 'f1160000-0000-0000-0000-000000000003', 1, 'activo',
    '{"fechaInicio":"2026-10-05","sesiones":[{"ejercicios":[{"id":"x","nombre":"Revocado","series":[{"orden":1,"cargaKg":88,"reps":5,"rir":1}]}]}]}'::jsonb),
+  ('lab-m5', 'f1160000-0000-0000-0000-000000000005', 1, 'activo',
+   '{"fechaInicio":"2026-10-05","sesiones":[{"ejercicios":[{"id":"x","nombre":"Revocado con segmentos","series":[{"orden":1,"cargaKg":66,"reps":5,"rir":1}]}]}]}'::jsonb),
   ('lab-m4', 'f1160000-0000-0000-0000-000000000004', 1, 'activo',
    '{"fechaInicio":"2026-10-05","sesiones":[{"ejercicios":[{"id":"x","nombre":"Se borra","series":[{"orden":1,"cargaKg":77,"reps":5,"rir":1}]}]}]}'::jsonb);
 
+-- P-905: REVOCADO pero con permite_segmentos = true. No debe salir en NINGUNA vista de datos (solo en lab_revocaciones).
 -- Consentimientos (como dueño, en el SQL Editor): 1 vigente con segmentos, 3 revocado, 4 vigente; la 2 no tiene.
 insert into lab.consentimientos (usuario_id, seudonimo, permite_segmentos, cuenta_de_prueba, nota) values
   ('f1160000-0000-0000-0000-000000000001', 'P-901', true, true, 'prueba'),
   ('f1160000-0000-0000-0000-000000000004', 'P-904', false, false, 'prueba');
 insert into lab.consentimientos (usuario_id, seudonimo, revocado_en, nota) values
   ('f1160000-0000-0000-0000-000000000003', 'P-903', now(), 'prueba');
+insert into lab.consentimientos (usuario_id, seudonimo, permite_segmentos, revocado_en, nota) values
+  ('f1160000-0000-0000-0000-000000000005', 'P-905', true, now(), 'prueba');
 
 -- La 1.ª: el seudónimo automático existe con la forma P-NNN.
 insert into lab.consentimientos (usuario_id, nota) values ('f1160000-0000-0000-0000-000000000002', 'auto');
@@ -80,6 +89,15 @@ select pruebas.afirmar(not has_table_privilege('lab_lector', 'public.microciclos
   'lab_lector tiene SELECT sobre una tabla base o sobre los consentimientos');
 select pruebas.afirmar((select not rolcanlogin and not rolbypassrls and not rolsuper from pg_roles where rolname = 'lab_lector'),
   'lab_lector nace con login, bypassrls o superusuario');
+
+-- funciones de lab: ni PUBLIC, ni anon, ni authenticated, ni lab_lector pueden ejecutarlas
+select pruebas.afirmar(not exists (
+  select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'lab'
+     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')
+          or has_function_privilege('lab_lector', p.oid, 'execute')
+          or exists (select 1 from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a where a.grantee = 0))),
+  'una funcion del esquema lab es ejecutable por PUBLIC, anon, authenticated o lab_lector');
 
 -- 4 · lista blanca de columnas (leída como dueño del catálogo)
 select pruebas.afirmar(not exists (
@@ -113,6 +131,9 @@ select pruebas.afirmar((select rir = 3 and rir_prescrito = 2 and rir_objetivo = 
   'la serie 1 de P-901 no trae lo esperado');
 select pruebas.afirmar((select peso_kg = 60.2 and talla_cm = 163 and sexo = 'mujer' and femur_cm = 44.5 and tibia_cm = 37.5 and torso_cm = 50
                           from lab.lab_sujetos where seudonimo = 'P-901'), 'lab_sujetos P-901: última medida con segmentos');
+select pruebas.afirmar(not exists (select 1 from lab.lab_sujetos where seudonimo = 'P-905')
+                       and not exists (select 1 from lab.lab_series where seudonimo = 'P-905'),
+  'una persona REVOCADA con permite_segmentos=true aparece en una vista de datos');
 select pruebas.afirmar((select count(*) from lab.lab_sujetos) = 1, 'lab_sujetos debe tener solo a P-901 (P-904 no tiene perfil)');
 
 -- 6 · revocaciones
