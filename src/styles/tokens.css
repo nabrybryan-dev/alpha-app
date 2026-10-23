@@ -1492,6 +1492,34 @@ body {
   }
 }
 
+/* La salida de la hoja (maqueta 7): rápida y sin rebote, porque quien cierra ya decidió. Dura lo mismo que
+   `SALIDA_MS` en `Sheet.tsx` (`--dur-base`). Parte de donde esté la hoja, incluso si se soltó arrastrando. */
+@keyframes scrim-sale {
+  to { opacity: 0; }
+}
+
+.scrim-sale {
+  animation: scrim-sale var(--dur-base) var(--ease-salida) both;
+}
+
+@keyframes bajar-hoja {
+  to {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
+.bajar-hoja {
+  animation: bajar-hoja var(--dur-base) var(--ease-salida) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim-sale,
+  .bajar-hoja {
+    animation-duration: 1ms;
+  }
+}
+
 /* ---------- Desplegable corto (notas de ejecución, detalle de una parte) ---------- */
 
 /* `transition` y NO `@keyframes`, y esa es toda la razón de que exista: estos

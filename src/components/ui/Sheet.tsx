@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as EventoPuntero, type ReactNode } from 'react'
 
 interface SheetProps {
   abierto: boolean
@@ -6,7 +6,7 @@ interface SheetProps {
   onCerrar: () => void
   children: ReactNode
   /**
-   * Si la hoja entra deslizando o aparece puesta. **Por defecto entra.**
+   * Si la hoja entra deslizando (y se despide al cerrar) o aparece y desaparece puesta. **Por defecto anima.**
    *
    * Este primitivo no tenía ninguna entrada: `if (!abierto) return null` y la hoja
    * se materializaba en un fotograma, atenuador incluido. Lo consumen once sitios y
@@ -22,43 +22,201 @@ interface SheetProps {
   animar?: boolean
 }
 
+/** Lo que dura la salida: `--dur-base` de `tokens.css` (240 ms). Si cambia uno, cambia el otro. */
+const SALIDA_MS = 240
+/** Cuánto hay que arrastrar hacia abajo para que suelte la hoja, o la rapidez (px/ms) con un arrastre corto. */
+const DISTANCIA_CIERRE = 120
+const VELOCIDAD_CIERRE = 0.6
+const DISTANCIA_MINIMA_VELOZ = 40
+/** Hasta aquí es un toque, no un arrastre. */
+const UMBRAL_ARRASTRE = 4
+
+const ENFOCABLES =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function enfocables(panel: HTMLElement): HTMLElement[] {
+  return Array.from(panel.querySelectorAll<HTMLElement>(ENFOCABLES)).filter((el) => !el.hasAttribute('hidden'))
+}
+
+/** ¿Se puede animar la salida? Sin `matchMedia` (jsdom, navegadores muy viejos) o con movimiento reducido, no. */
+function puedeAnimarSalida(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: SheetProps) {
-  if (!abierto) return null
+  // `montada` sigue a `abierto` pero se retrasa lo que dura la salida; así la hoja se ve despedirse.
+  const [montada, setMontada] = useState(abierto)
+  const [saliendo, setSaliendo] = useState(false)
+  if (abierto && (!montada || saliendo)) {
+    setMontada(true)
+    setSaliendo(false)
+  } else if (!abierto && montada && !saliendo) {
+    if (animar && puedeAnimarSalida()) setSaliendo(true)
+    else setMontada(false)
+  }
+
+  useEffect(() => {
+    if (!saliendo) return
+    const reloj = window.setTimeout(() => {
+      setSaliendo(false)
+      setMontada(false)
+    }, SALIDA_MS)
+    return () => window.clearTimeout(reloj)
+  }, [saliendo])
+
+  const panel = useRef<HTMLDivElement>(null)
+  const scrim = useRef<HTMLButtonElement>(null)
+  const alCerrar = useRef(onCerrar)
+  useEffect(() => {
+    alCerrar.current = onCerrar
+  })
+
+  // Escape, foco atrapado y foco de vuelta a quien la abrió. Solo mientras está abierta (no mientras se despide).
+  useEffect(() => {
+    if (!abierto || !montada) return
+    const previo = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const el = panel.current
+    if (el && !el.contains(document.activeElement)) {
+      const primero = enfocables(el)[0] ?? el
+      primero.focus({ preventScroll: true })
+    }
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        alCerrar.current()
+        return
+      }
+      if (e.key !== 'Tab' || !el) return
+      const lista = enfocables(el)
+      if (lista.length === 0) {
+        e.preventDefault()
+        el.focus()
+        return
+      }
+      const primero = lista[0]
+      const ultimo = lista[lista.length - 1]
+      const dentro = el.contains(document.activeElement)
+      if (e.shiftKey && (!dentro || document.activeElement === primero || document.activeElement === el)) {
+        e.preventDefault()
+        ultimo.focus()
+      } else if (!e.shiftKey && (!dentro || document.activeElement === ultimo)) {
+        e.preventDefault()
+        primero.focus()
+      }
+    }
+    const alEnfocar = (e: FocusEvent) => {
+      if (el && e.target instanceof Node && !el.contains(e.target)) {
+        const lista = enfocables(el)
+        ;(lista[0] ?? el).focus({ preventScroll: true })
+      }
+    }
+    document.addEventListener('keydown', alTeclear)
+    document.addEventListener('focusin', alEnfocar)
+    return () => {
+      document.removeEventListener('keydown', alTeclear)
+      document.removeEventListener('focusin', alEnfocar)
+      if (previo?.isConnected) previo.focus({ preventScroll: true })
+    }
+  }, [abierto, montada])
+
+  // Arrastrar el asa (la rayita y la cabecera) hacia abajo para cerrar.
+  const arrastre = useRef<{ id: number; y0: number; t0: number; dy: number; activo: boolean } | null>(null)
+  const alBajarPuntero = (e: EventoPuntero<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    arrastre.current = { id: e.pointerId, y0: e.clientY, t0: performance.now(), dy: 0, activo: false }
+  }
+  const alMoverPuntero = (e: EventoPuntero<HTMLDivElement>) => {
+    const a = arrastre.current
+    if (!a || a.id !== e.pointerId) return
+    const dy = e.clientY - a.y0
+    if (!a.activo) {
+      if (Math.abs(dy) < UMBRAL_ARRASTRE) return
+      a.activo = true
+      try {
+        e.currentTarget.setPointerCapture?.(e.pointerId)
+      } catch {
+        /* sin captura el arrastre sigue por los eventos de la propia asa */
+      }
+      if (panel.current) panel.current.style.transition = 'none'
+    }
+    a.dy = dy
+    const baja = Math.max(0, dy)
+    if (panel.current) panel.current.style.transform = `translateY(${baja}px)`
+    if (scrim.current) scrim.current.style.opacity = String(Math.max(0, 1 - baja / 400))
+  }
+  const alSoltarPuntero = (e: EventoPuntero<HTMLDivElement>) => {
+    const a = arrastre.current
+    arrastre.current = null
+    if (!a || a.id !== e.pointerId || !a.activo) return
+    const dy = e.clientY - a.y0
+    const ms = Math.max(1, performance.now() - a.t0)
+    const cierra = dy >= DISTANCIA_CIERRE || (dy >= DISTANCIA_MINIMA_VELOZ && dy / ms >= VELOCIDAD_CIERRE)
+    if (cierra) {
+      alCerrar.current()
+      return
+    }
+    if (panel.current) {
+      panel.current.style.transition = 'transform var(--dur-base) var(--ease-salida)'
+      panel.current.style.transform = ''
+    }
+    if (scrim.current) scrim.current.style.opacity = ''
+  }
+
+  if (!montada) return null
+  const animada = animar
   return (
     // El `z-50` que había aquí no decía nada: era un número más alto que el resto
     // y ya. Ahora el atenuador y la hoja viven en capas con nombre, y se ve de un
     // vistazo que la hoja va por encima de su propio atenuador y los dos por
     // encima de la barra inferior.
     <div
-      className="fixed inset-0 flex items-end justify-center"
+      className={`fixed inset-0 flex items-end justify-center ${saliendo ? 'pointer-events-none' : ''}`}
       style={{ zIndex: 'var(--z-hoja)' }}
       role="dialog"
+      aria-modal="true"
       aria-label={titulo}
+      aria-hidden={saliendo ? true : undefined}
     >
       <button
+        ref={scrim}
         type="button"
         aria-label="Cerrar"
+        tabIndex={-1}
         onClick={onCerrar}
-        className={`absolute inset-0 bg-black/60 ${animar ? 'scrim-entra' : ''}`}
+        className={`absolute inset-0 bg-black/60 ${saliendo ? 'scrim-sale' : animada ? 'scrim-entra' : ''}`}
         style={{ zIndex: 'var(--z-scrim)' }}
       />
       <div
-        className={`relative max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl border-t border-linea bg-surface-1 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] ${
-          animar ? 'subir-hoja' : ''
+        ref={panel}
+        data-testid="panel-de-la-hoja"
+        tabIndex={-1}
+        className={`relative max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl border-t border-linea bg-surface-1 p-5 pb-[max(2rem,env(safe-area-inset-bottom))] outline-none ${
+          saliendo ? 'bajar-hoja' : animada ? 'subir-hoja' : ''
         }`}
         style={{ zIndex: 'var(--z-hoja)' }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-surface-3" aria-hidden="true" />
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg text-texto">{titulo}</h2>
-          <button
-            type="button"
-            onClick={onCerrar}
-            aria-label="Cerrar panel"
-            className="h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
-          >
-            ✕
-          </button>
+        <div
+          data-testid="asa-de-la-hoja"
+          className="-mx-5 -mt-5 px-5 pt-5"
+          style={{ touchAction: 'none' }}
+          onPointerDown={alBajarPuntero}
+          onPointerMove={alMoverPuntero}
+          onPointerUp={alSoltarPuntero}
+          onPointerCancel={alSoltarPuntero}
+        >
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-surface-3" aria-hidden="true" />
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="font-display text-lg text-texto">{titulo}</h2>
+            <button
+              type="button"
+              onClick={onCerrar}
+              aria-label="Cerrar panel"
+              className="h-11 w-11 shrink-0 rounded-full border border-linea bg-surface-2 text-tenue"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         {children}
       </div>
