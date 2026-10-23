@@ -1505,7 +1505,7 @@ body {
 @keyframes bajar-hoja {
   to {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(var(--sale-hasta, 40px));
   }
 }
 

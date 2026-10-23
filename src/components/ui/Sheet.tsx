@@ -9,7 +9,7 @@ interface SheetProps {
    * Si la hoja entra deslizando (y se despide al cerrar) o aparece y desaparece puesta. **Por defecto anima.**
    *
    * Este primitivo no tenía ninguna entrada: `if (!abierto) return null` y la hoja
-   * se materializaba en un fotograma, atenuador incluido. Lo consumen once sitios y
+   * se materializaba en un fotograma, atenuador incluido. Lo consumen quince archivos y
    * ninguno se movía, mientras el test post —que hace exactamente lo mismo— sí
    * usaba `.scrim-entra` y `.subir-hoja`, que llevan en `tokens.css` desde siempre.
    * Eran el mismo objeto con dos personalidades a un toque de distancia.
@@ -37,6 +37,12 @@ const ENFOCABLES =
 function enfocables(panel: HTMLElement): HTMLElement[] {
   return Array.from(panel.querySelectorAll<HTMLElement>(ENFOCABLES)).filter((el) => !el.hasAttribute('hidden'))
 }
+
+/**
+ * La pila de hojas abiertas, la de arriba al final. Escape, Tab y la vigilancia del foco son SOLO de la de
+ * arriba: sin esto, `SheetDespensa` con `SheetBuscarAlimento` dentro se cerraban las dos con una Escape.
+ */
+const pilaDeHojas: symbol[] = []
 
 /** ¿Se puede animar la salida? Sin `matchMedia` (jsdom, navegadores muy viejos) o con movimiento reducido, no. */
 function puedeAnimarSalida(): boolean {
@@ -77,14 +83,25 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
     if (!abierto || !montada) return
     const previo = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const el = panel.current
+    // Una hoja que se reabre mientras se despedía vuelve a su sitio (si antes se la arrastró).
+    if (el) {
+      el.style.transform = ''
+      el.style.transition = ''
+      el.style.removeProperty('--sale-hasta')
+    }
+    if (scrim.current) scrim.current.style.opacity = ''
+    const yo = Symbol('hoja')
+    pilaDeHojas.push(yo)
+    const dePrimera = () => pilaDeHojas[pilaDeHojas.length - 1] === yo
     if (el && !el.contains(document.activeElement)) {
       const primero = enfocables(el)[0] ?? el
       primero.focus({ preventScroll: true })
     }
     const alTeclear = (e: KeyboardEvent) => {
+      if (!dePrimera()) return
       if (e.key === 'Escape') {
-        e.stopPropagation()
-        alCerrar.current()
+        // Si un campo de dentro ya consumió la tecla (`preventDefault`), no es para la hoja.
+        if (!e.defaultPrevented) alCerrar.current()
         return
       }
       if (e.key !== 'Tab' || !el) return
@@ -106,7 +123,7 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
       }
     }
     const alEnfocar = (e: FocusEvent) => {
-      if (el && e.target instanceof Node && !el.contains(e.target)) {
+      if (dePrimera() && el && e.target instanceof Node && !el.contains(e.target)) {
         const lista = enfocables(el)
         ;(lista[0] ?? el).focus({ preventScroll: true })
       }
@@ -116,6 +133,8 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
     return () => {
       document.removeEventListener('keydown', alTeclear)
       document.removeEventListener('focusin', alEnfocar)
+      const lugar = pilaDeHojas.indexOf(yo)
+      if (lugar >= 0) pilaDeHojas.splice(lugar, 1)
       if (previo?.isConnected) previo.focus({ preventScroll: true })
     }
   }, [abierto, montada])
@@ -153,6 +172,8 @@ export function Sheet({ abierto, titulo, onCerrar, children, animar = true }: Sh
     const ms = Math.max(1, performance.now() - a.t0)
     const cierra = dy >= DISTANCIA_CIERRE || (dy >= DISTANCIA_MINIMA_VELOZ && dy / ms >= VELOCIDAD_CIERRE)
     if (cierra) {
+      // La salida sigue hacia ABAJO desde donde se soltó el dedo (si no, la hoja subiría hacia los 40 px).
+      panel.current?.style.setProperty('--sale-hasta', `${Math.max(0, dy) + 40}px`)
       alCerrar.current()
       return
     }

@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Sheet } from './Sheet'
 
@@ -288,5 +289,167 @@ describe('la hoja: animación de salida', () => {
       </Sheet>,
     )
     expect(screen.queryByRole('dialog', { hidden: true })).toBeNull()
+  })
+})
+
+describe('la hoja: umbrales del arrastre (cada rama se ve fallar si se rompe)', () => {
+  const asa = () => screen.getByTestId('asa-de-la-hoja')
+  /** Suelta tras `ms` milisegundos de arrastre y `dy` píxeles. */
+  function arrastrar(dy: number, ms: number) {
+    let ahora = 1000
+    const reloj = vi.spyOn(performance, 'now').mockImplementation(() => ahora)
+    puntero(asa(), 'pointerdown', 100)
+    ahora += ms
+    puntero(asa(), 'pointermove', 100 + dy)
+    puntero(asa(), 'pointerup', 100 + dy)
+    reloj.mockRestore()
+  }
+  afterEach(() => vi.restoreAllMocks())
+
+  it('119 px despacio NO cierra y 121 px despacio SÍ', () => {
+    const cerrar = vi.fn()
+    const a = abrir({ onCerrar: cerrar })
+    arrastrar(119, 5000)
+    expect(cerrar).not.toHaveBeenCalled()
+    a.unmount()
+    const cerrar2 = vi.fn()
+    abrir({ onCerrar: cerrar2 })
+    arrastrar(121, 5000)
+    expect(cerrar2).toHaveBeenCalledTimes(1)
+  })
+
+  it('un gesto RÁPIDO y corto (60 px en 50 ms) cierra; el mismo recorrido lento no', () => {
+    const rapido = vi.fn()
+    const a = abrir({ onCerrar: rapido })
+    arrastrar(60, 50)
+    expect(rapido).toHaveBeenCalledTimes(1)
+    a.unmount()
+    const lento = vi.fn()
+    abrir({ onCerrar: lento })
+    arrastrar(60, 2000)
+    expect(lento).not.toHaveBeenCalled()
+  })
+
+  it('un gesto rapidísimo pero minúsculo (30 px) no es un cierre: solo es un roce', () => {
+    const cerrar = vi.fn()
+    abrir({ onCerrar: cerrar })
+    arrastrar(30, 10)
+    expect(cerrar).not.toHaveBeenCalled()
+  })
+})
+
+describe('la hoja: hojas dentro de hojas', () => {
+  function Anidadas({ interna, alExterna, alInterna }: { interna: boolean; alExterna: () => void; alInterna: () => void }) {
+    return (
+      <Sheet abierto titulo="Externa" onCerrar={alExterna}>
+        <input aria-label="Campo externo" />
+        <Sheet abierto={interna} titulo="Interna" onCerrar={alInterna}>
+          <input aria-label="Campo interno" />
+        </Sheet>
+      </Sheet>
+    )
+  }
+
+  it('Escape cierra SOLO la de arriba', async () => {
+    const usuario = userEvent.setup()
+    const alExterna = vi.fn()
+    const alInterna = vi.fn()
+    const { rerender } = render(<Anidadas interna={false} alExterna={alExterna} alInterna={alInterna} />)
+    rerender(<Anidadas interna alExterna={alExterna} alInterna={alInterna} />)
+    await usuario.keyboard('{Escape}')
+    expect(alInterna).toHaveBeenCalledTimes(1)
+    expect(alExterna).not.toHaveBeenCalled()
+    // Cerrada la de arriba, la siguiente Escape es para la de abajo.
+    rerender(<Anidadas interna={false} alExterna={alExterna} alInterna={alInterna} />)
+    await usuario.keyboard('{Escape}')
+    expect(alExterna).toHaveBeenCalledTimes(1)
+  })
+
+  it('la de abajo no le roba el foco a la de arriba', async () => {
+    const usuario = userEvent.setup()
+    const { rerender } = render(<Anidadas interna={false} alExterna={vi.fn()} alInterna={vi.fn()} />)
+    rerender(<Anidadas interna alExterna={vi.fn()} alInterna={vi.fn()} />)
+    const interna = screen.getByRole('dialog', { name: 'Interna' })
+    expect(interna.contains(document.activeElement)).toBe(true)
+    for (let i = 0; i < 5; i++) {
+      await usuario.tab()
+      expect(interna.contains(document.activeElement), `Tab ${i + 1}`).toBe(true)
+    }
+  })
+
+  it('un Escape que un campo ya consumió (preventDefault) no cierra la hoja', async () => {
+    const usuario = userEvent.setup()
+    const cerrar = vi.fn()
+    render(
+      <Sheet abierto titulo="Con campo" onCerrar={cerrar}>
+        <input
+          aria-label="Motivo"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') e.preventDefault()
+          }}
+        />
+      </Sheet>,
+    )
+    screen.getByRole('textbox', { name: 'Motivo' }).focus()
+    await usuario.keyboard('{Escape}')
+    expect(cerrar).not.toHaveBeenCalled()
+  })
+})
+
+describe('la hoja: la salida tras un arrastre sigue hacia ABAJO', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  const sinReducir = () =>
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }))
+
+  it('la animación de salida parte de donde soltó el dedo, no de 40 px', () => {
+    sinReducir()
+    function Controlada() {
+      const [abierto, setAbierto] = useState(true)
+      return (
+        <Sheet abierto={abierto} titulo="Un panel" onCerrar={() => setAbierto(false)}>
+          <p>contenido</p>
+        </Sheet>
+      )
+    }
+    render(<Controlada />)
+    const asa = screen.getByTestId('asa-de-la-hoja')
+    puntero(asa, 'pointerdown', 100)
+    puntero(asa, 'pointermove', 400)
+    puntero(asa, 'pointerup', 400)
+    const panel = screen.getByTestId('panel-de-la-hoja')
+    expect(panel.className).toMatch(/bajar-hoja/)
+    // Soltó a 300 px: la salida termina más abajo (340), nunca por encima de donde estaba.
+    expect(panel.style.getPropertyValue('--sale-hasta')).toBe('340px')
+  })
+
+  it('una salida normal (sin arrastre) termina a los 40 px de siempre', () => {
+    sinReducir()
+    const { rerender } = render(
+      <Sheet abierto titulo="Un panel" onCerrar={vi.fn()}>
+        <p>contenido</p>
+      </Sheet>,
+    )
+    rerender(
+      <Sheet abierto={false} titulo="Un panel" onCerrar={vi.fn()}>
+        <p>contenido</p>
+      </Sheet>,
+    )
+    expect(screen.getByTestId('panel-de-la-hoja').style.getPropertyValue('--sale-hasta')).toBe('')
+  })
+
+  it('al reabrir tras un arrastre, la hoja vuelve a su sitio', () => {
+    sinReducir()
+    const hoja = (abierto: boolean) => (
+      <Sheet abierto={abierto} titulo="Un panel" onCerrar={vi.fn()}>
+        <p>contenido</p>
+      </Sheet>
+    )
+    const { rerender } = render(hoja(true))
+    const asa = screen.getByTestId('asa-de-la-hoja')
+    puntero(asa, 'pointerdown', 100)
+    puntero(asa, 'pointermove', 300)
+    rerender(hoja(false))
+    rerender(hoja(true))
+    expect(screen.getByTestId('panel-de-la-hoja').style.transform).toBe('')
   })
 })
