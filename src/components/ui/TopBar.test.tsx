@@ -39,10 +39,12 @@ function Sonda() {
 /** Los botones del «sistema»: atrás y adelante del navegador. */
 function Sistema() {
   const navigate = useNavigate()
+  const location = useLocation()
   return (
     <>
       <button type="button" onClick={() => navigate(-1)}>sistema atrás</button>
       <button type="button" onClick={() => navigate(1)}>sistema adelante</button>
+      <button type="button" onClick={() => navigate(location.pathname)}>al mismo sitio</button>
     </>
   )
 }
@@ -175,6 +177,16 @@ describe('TopBar: el «‹» único', () => {
     montar('/progreso', { sinHistoria: true })
     await act(async () => void (await usuario.click(screen.getByRole('link', { name: 'ir al chat' }))))
     expect(volver()).toHaveAccessibleName('Volver a Hoy')
+  })
+
+  it('si la pantalla anterior es LA MISMA dirección (entrada repetida), no se «vuelve» a ella: va al padre', async () => {
+    const usuario = userEvent.setup()
+    montar('/chat')
+    await usuario.click(screen.getByRole('button', { name: 'al mismo sitio' }))
+    expect(ruta()).toBe('/chat')
+    expect(volver()).toHaveAccessibleName('Volver a Hoy')
+    await usuario.click(volver()!)
+    expect(ruta()).toBe('/')
   })
 
   it('una dirección que la app no conoce no inventa un «‹»', () => {
