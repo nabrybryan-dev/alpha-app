@@ -54,6 +54,8 @@ import { TamborDeLaSemana } from './rumbo/TamborDeLaSemana'
 import { frasePorSerie } from '../frasesMotivacionales'
 import { sinEmoji } from './registro/sinEmoji'
 import { SalaVacia } from './sinPatron/SalaVacia'
+import { useCapaDelSalon } from './momentos/useCapaDelSalon'
+import { LecturaDeMomentos } from './momentos/LecturaDeMomentos'
 import { SalonSinSujeto, tienePatronDeMovimiento } from './sinPatron/SalonSinSujeto'
 
 /**
@@ -369,6 +371,8 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
     if (ejercicio) return patronDeCategoria(ejercicio.categoria, ejercicio.nombre)
     return patronDelBloque ? patronConEsfuerzo(patronDelBloque, esfuerzoDelBloque) : undefined
   }, [ejercicio, patronDelBloque, esfuerzoDelBloque])
+  // LA CAPA DE MOMENTOS, apagada salvo con `?momentos=ejemplo`: sujeto de ejemplo, nunca un asesorado.
+  const capaMomentos = useCapaDelSalon(window.location.search, patron?.categoria, ejercicio?.nombre)
   const conSujeto = tienePatronDeMovimiento(ejercicio) || (!ejercicio && patron !== undefined)
   // EL MURO TAMBIÉN HABLA EN CARDIO. Sin contenido de pared no se monta el tablón, y hasta
   // el 2026-09-10 un día de cardio abría sin nombre y sin código de sala: la habitación
@@ -817,6 +821,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
               <VisorPatron
                 patron={patron}
                 w={w}
+                momentos={capaMomentos}
                 // LOS HUESOS DE ESTA PERSONA: lo que el coach indicó en su ficha. Sin dato
                 // el visor usa su defecto, que es el neutro de siempre.
                 sexo={props.sexo}
@@ -890,6 +895,7 @@ export function SalonEntrenar(props: SalonEntrenarProps) {
             {/* LA HABITACIÓN, por encima del lienzo y por debajo de los rótulos. Trazo y
                 degradado: no tapa al sujeto, lo enmarca. */}
             <ArquitecturaSala />
+            <LecturaDeMomentos capa={capaMomentos} />
           </>
         ) : (
           // El hueco `sinPatron` de `huecos.ts`: MISMO SALÓN, con su sala y sus paredes, y

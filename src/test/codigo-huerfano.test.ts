@@ -25,6 +25,16 @@ import {
  * qué es legítimo que viva suelto. «Pendiente» no es un motivo.
  */
 const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
+  // Sujeto anatómico propio (fases 0 a 4, 20-oct y 21-oct). Solo se enchufa a la app lo que la fase 5
+  // dibuja (capaDeMomentos); el resto es dominio probado que espera su consumidor.
+  'src/domain/sujeto/procedencias.ts':
+    'Arnés A-procedencias: la comparación contra PROCEDENCIAS.tsv del cerebro la hace ' +
+    'scripts/comprobar-procedencias-sujeto.mts (npm run procedencias-sujeto); las pruebas de procedencias.test.ts ' +
+    'usan un TSV EN LÍNEA, no el libro real. La app no lo necesita en ejecución.',
+  'src/domain/sujeto/repartoDeSentadilla.ts':
+    'Reparto entre músculos de la sentadilla: tanda A detenida (licencia de Rajagopal 2016 no verificada), ' +
+    'así que se abstiene y el salón no lo dibuja (plan §10, tanda B reducida). Se enchufa si hay datos verificados.',
+
   // La puerta del registro de Praxis: la importa la Edge Function (supabase/functions/praxis-registro),
   // que queda fuera de src/ y por eso este analisis no la ve.
   'src/domain/praxis/registro/index.ts':
@@ -104,6 +114,13 @@ const MODULOS_SIN_ENCHUFAR: Record<string, string> = {
  * enchufe o se borre una, su entrada desaparece de aquí (hay un test que lo exige).
  */
 const EXPORTACIONES_SIN_USO: Record<string, string> = {
+  // Sujeto anatómico propio: exportaciones que hoy solo ejercitan sus pruebas y sus scripts.
+  'src/domain/sujeto/reparto.ts#bandasDeReparto':
+    'Bandas del reparto muscular (fase 4): sin consumidor hasta que la tanda A tenga datos musculares verificados.',
+  'src/domain/sujeto/reparto.ts#indiceDeLongitud':
+    'Orden de longitud de Maeo 2021 (fase 4): lo ejercitan las pruebas; el salón no dibuja reparto.',
+  'src/domain/sujeto/reparto.ts#momentoPasivo':
+    'Momento pasivo no_afirmable (Riener y Edrich 1999 sin texto completo): el salón no lo dibuja.',
   // Contratos del organizador (0098/0099) que consumirá su pantalla; hoy solo los ejercita la prueba.
   'src/domain/planOrganizador.ts#NOMBRE_ESTADO_PLAN':
     'Rótulos de los estados del plan: los pintará la pantalla «Mi plan» del organizador, que aún no existe.',
@@ -197,8 +214,6 @@ const EXPORTACIONES_SIN_USO: Record<string, string> = {
   'src/domain/patrones/gravedad.ts#desequilibrio':
     'Contrato de equilibrio: lo ejecuta gravedad.test.ts sobre los 31 patrones. ' +
     'La app dibuja la plomada; el numero es del guardian.',
-  'src/domain/patrones/gravedad.ts#_soloParaTests':
-    'Las fracciones de masa, expuestas para que el test compruebe que suman 1.',
   // El acabado de imagen corre en la TARJETA, no en TypeScript: el shader recibe
   // `GLSL_ACABADO`, que es texto generado con estos mismos coeficientes. Las
   // versiones en TS existen para poder probar la curva —que no se puede ejecutar
