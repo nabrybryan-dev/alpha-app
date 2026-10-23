@@ -36,11 +36,38 @@ describe('tokens del diseño final 3', () => {
     expect(veces(claro, nombre)).toBe(1)
   })
 
-  it('los valores de la maqueta 7 (claro y oscuro) se conservan', () => {
-    expect(claro).toMatch(/--salon-3d-piel:\s*#c3c7cd/i)
-    expect(oscuro).toMatch(/--salon-3d-piel:\s*#a9afb8/i)
-    expect(claro).toMatch(/--pt-canto-1:\s*#dcdcdf/i)
-    expect(oscuro).toMatch(/--pt-canto-4:\s*#131316/i)
+  // Los 15 valores de la maqueta 7 (líneas 50-51 y 82-83 de maqueta-v7.html), uno por uno, en cada tema.
+  const CLARO: Record<string, string> = {
+    'salon-3d-piel': '#c3c7cd', 'salon-3d-base': '#a3a8b0', 'salon-3d-apagada': '#b6bac1', 'salon-3d-luz': '#262b33',
+    'salon-3d-hueso': '#f1eee6', 'salon-3d-cielo': '#ffffff', 'salon-3d-tierra': '#8d8a83', 'salon-3d-sombra': '0.2',
+    'salon-3d-brillo': '0', 'pt-luz': 'rgba(255, 255, 255, 0.95)', 'pt-canto-1': '#dcdcdf', 'pt-canto-2': '#d1d1d5',
+    'pt-canto-3': '#c6c6cb', 'pt-canto-4': '#bbbbc1', 'pt-sombra': 'rgba(0, 0, 0, 0.14)',
+  }
+  const OSCURO: Record<string, string> = {
+    'salon-3d-piel': '#a9afb8', 'salon-3d-base': '#2b3038', 'salon-3d-apagada': '#3b414b', 'salon-3d-luz': '#e9eef4',
+    'salon-3d-hueso': '#d9d4c8', 'salon-3d-cielo': '#cfd8e3', 'salon-3d-tierra': '#0b0e12', 'salon-3d-sombra': '0.45',
+    'salon-3d-brillo': '0.22', 'pt-luz': 'rgba(255, 255, 255, 0.14)', 'pt-canto-1': '#28282d', 'pt-canto-2': '#212126',
+    'pt-canto-3': '#1a1a1e', 'pt-canto-4': '#131316', 'pt-sombra': 'rgba(0, 0, 0, 0.7)',
+  }
+  const valorDe = (texto: string, nombre: string) => new RegExp(`^\\s*--${nombre}:\\s*([^;]+);`, 'm').exec(texto)?.[1].trim()
+
+  it.each(NUEVOS)('--%s tiene el valor de la maqueta en los dos temas', (nombre) => {
+    expect(valorDe(claro, nombre), `claro ${nombre}`).toBe(CLARO[nombre])
+    expect(valorDe(oscuro, nombre), `oscuro ${nombre}`).toBe(OSCURO[nombre])
+  })
+
+  it('el mapa de valores de esta prueba cubre exactamente los tokens nuevos', () => {
+    expect(Object.keys(CLARO).sort()).toEqual([...NUEVOS].sort())
+    expect(Object.keys(OSCURO).sort()).toEqual([...NUEVOS].sort())
+  })
+
+  it('van juntos, ANTES del comentario del troquel (no partidos entre su comentario y su variable)', () => {
+    for (const bloqueDelTema of [oscuro, claro]) {
+      const comentario = '/* El corte de las dos esquinas opuestas del troquel. */'
+      const troquel = bloqueDelTema.indexOf(bloqueDelTema.includes(comentario) ? comentario : '--troquel:')
+      expect(troquel).toBeGreaterThan(0)
+      for (const n of NUEVOS) expect(bloqueDelTema.indexOf(`--${n}:`), n).toBeLessThan(troquel)
+    }
   })
 
   it('los cinco muelles ya existían: no se duplican', () => {

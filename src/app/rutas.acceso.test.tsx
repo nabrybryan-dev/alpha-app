@@ -112,7 +112,10 @@ async function observar(ruta: string): Promise<ResultadoAcceso & { vacia: boolea
     { interval: 40 },
   )
   const sinPermiso = document.querySelector('[role="alert"]')?.textContent?.includes('Sin permiso') ?? false
-  const vacia = (document.body.textContent ?? '').trim() === ''
+  // «En blanco» = la PANTALLA no pinta nada. La cabecera (h1 del TopBar de prueba), la barra y los avisos no cuentan.
+  const copia = document.body.cloneNode(true) as HTMLElement
+  copia.querySelectorAll('h1, nav, header').forEach((n) => n.remove())
+  const vacia = (copia.textContent ?? '').trim() === ''
   r.unmount()
   if (actual !== ruta.split('?')[0]) return { tipo: 'redirige', a: actual, vacia }
   return { tipo: sinPermiso ? 'sin_permiso' : 'entra', vacia }

@@ -110,7 +110,6 @@
       rgba(255, 255, 255, 0.012) 46%,
       rgba(0, 0, 0, 0.13) 100%
     );
-  /* El corte de las dos esquinas opuestas del troquel. */
   /* Escena 3D del salón (maqueta 7): los colores que el CSS necesita del sujeto y de la sala. */
   --salon-3d-piel: #a9afb8;
   --salon-3d-base: #2b3038;
@@ -128,6 +127,7 @@
   --pt-canto-3: #1a1a1e;
   --pt-canto-4: #131316;
   --pt-sombra: rgba(0, 0, 0, 0.7);
+  /* El corte de las dos esquinas opuestas del troquel. */
   --troquel: 10px;
 }
 
