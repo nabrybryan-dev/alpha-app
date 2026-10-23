@@ -64,4 +64,18 @@ describe('useCapacidades', () => {
     expect(capacidadesDeMock).toHaveBeenCalledTimes(1)
     expect(segundo.result.current.tiene('detener_publicacion')).toBe(true)
   })
+
+  it('si la consulta FALLA no se queda cargando para siempre: sin capacidades (falla cerrado) y se reintenta después', async () => {
+    estadoSesion.usuario = { id: 'u-1' }
+    capacidadesDeMock.mockRejectedValueOnce(new Error('sin red'))
+    const { result, unmount } = renderHook(() => useCapacidades())
+    expect(result.current.cargando).toBe(true)
+    await waitFor(() => expect(result.current.cargando).toBe(false))
+    expect(result.current.tiene('detener_publicacion')).toBe(false)
+    unmount()
+    // El fallo no se queda en el caché: la próxima vez se vuelve a preguntar.
+    capacidadesDeMock.mockResolvedValue(['detener_publicacion'])
+    const otra = renderHook(() => useCapacidades())
+    await waitFor(() => expect(otra.result.current.tiene('detener_publicacion')).toBe(true))
+  })
 })

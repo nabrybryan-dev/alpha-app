@@ -2,6 +2,7 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { usePuestoCoach } from '../coach/consola/usePuestoCoach'
 import { puedeVerPraxis } from '../../domain/praxis/acceso'
+import { ComprobandoAcceso } from './ComprobandoAcceso'
 import type { Trato } from './motor/entorno'
 import { PraxisCosmos } from './PraxisCosmos'
 
@@ -20,7 +21,7 @@ export default function PraxisEjemploPage() {
   const { esCoach, cargando } = usePuestoCoach(usuario.rol)
   const [parametros] = useSearchParams()
   // Quien ocupa el puesto de coach (la cuenta personal de Bryan) entra; mientras se sabe, no se decide nada.
-  if (usuario.rol === 'asesorado' && cargando) return null
+  if (usuario.rol === 'asesorado' && cargando) return <ComprobandoAcceso />
   if (!puedeVerPraxis(usuario.rol, undefined, esCoach)) return <Navigate to="/" replace />
   const trato: Trato = parametros.get('trato')?.toLowerCase() === 'usted' ? 'usted' : 'tu'
   return <PraxisCosmos trato={trato} salida="/praxis" />
