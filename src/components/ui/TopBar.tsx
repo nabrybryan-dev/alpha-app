@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { padreDe } from '../../app/rutas'
 import { useSesion } from '../../app/SessionProvider'
 import { useTema } from '../../app/ThemeProvider'
 import { db, useDbVersion } from '../../data/dbInstance'
+import { usePuestoCoach } from '../../features/coach/consola/usePuestoCoach'
 import { MarcaAguila } from './MarcaAguila'
 
 interface TopBarProps {
@@ -26,12 +28,32 @@ function IconoLuna() {
   )
 }
 
+function IconoAtras() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="h-[26px] w-[26px] shrink-0" aria-hidden="true">
+      <path d="m15 5-7 7 7 7" />
+    </svg>
+  )
+}
+
 export function TopBar({ titulo }: TopBarProps) {
   const { usuario, cambiarUsuario, esNube, cerrarSesion } = useSesion()
   const { tema, alternar } = useTema()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const navigate = useNavigate()
+  const { pathname, key } = useLocation()
+  const { esCoach, tiene } = usePuestoCoach(usuario.rol)
   useDbVersion()
+
+  // El «‹» único (04 §3.5): el padre sale de la tabla `app/rutas.ts`. La cuenta Alpha (`solo_tablero`) no tiene
+  // a dónde volver. Con una pantalla anterior DENTRO de la app (`key` distinto de «default»: no se entró por
+  // un enlace directo ni por un aviso) vuelve a ELLA; si no, al padre declarado, sustituyendo la entrada.
+  const padre = esCoach && tiene('solo_tablero') ? null : padreDe(pathname, usuario.rol === 'nutricionista' || esCoach)
+  const volver = () => {
+    if (!padre) return
+    if (key !== 'default') navigate(-1)
+    else navigate(padre.patron, { replace: true })
+  }
 
   const noLeidos = db.mensajes.noLeidosPara(usuario.id)
 
@@ -45,9 +67,21 @@ export function TopBar({ titulo }: TopBarProps) {
   return (
     <header className="glass-blur sticky top-0 z-40 border-b border-hairline bg-bg/80">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between gap-2 px-4">
-        <div className="flex items-center gap-2.5">
-          <MarcaAguila className="h-8 w-8 text-texto" />
-          <h1 className="font-display text-base tracking-wide text-texto">{titulo}</h1>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {padre ? (
+            <button
+              type="button"
+              onClick={volver}
+              aria-label={`Volver a ${padre.titulo}`}
+              className="press -ml-2 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-0.5 rounded-full pl-1 pr-3 font-bold text-rojo"
+            >
+              <IconoAtras />
+              <span className="max-w-[5.5rem] truncate text-sm">{padre.titulo}</span>
+            </button>
+          ) : (
+            <MarcaAguila className="h-8 w-8 text-texto" />
+          )}
+          <h1 className="truncate font-display text-base tracking-wide text-texto">{titulo}</h1>
         </div>
         <div className="flex items-center gap-1.5">
           <button
