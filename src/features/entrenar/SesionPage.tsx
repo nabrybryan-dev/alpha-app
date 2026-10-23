@@ -1,7 +1,7 @@
 import { nombreDelMicrociclo } from '../../domain/palabrasLlanas'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cuerpoDelAsesorado } from '../../domain/cuerpoDelAsesorado'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useSesion } from '../../app/SessionProvider'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -239,32 +239,9 @@ function SesionEnCurso() {
           // `src/test/fondos-de-tarjeta.test.ts`, que impide que se amplíen.
           style={{ '--foto': `url(${fondoDeLaSesion})`, '--foto-pos': 'center 18%' } as React.CSSProperties}
         >
-          {/* La sesión es el segundo nivel de Entrenar: atrás vuelve a la Ruta,
-              no a Hoy, aunque se haya entrado desde ahí. */}
-          <Link
-            to="/entrenar"
-            aria-label="Volver a tu ruta de entrenamiento"
-            // Sin `backdrop-blur`: este botón es `absolute` dentro de la tarjeta
-            // con foto, o sea contenido normal que SE DESPLAZA con el scroll, y un
-            // backdrop-filter ahí obliga a re-muestrear y desenfocar la región en
-            // cada fotograma —encima sobre una fotografía a sangre—. La regla está
-            // escrita en tokens.css: el blur solo va en superficies fijas.
-            // El contraste del icono no lo daba el desenfoque, lo da el velo de
-            // `.tarjeta-foto::after`; el fondo sólido se queda como estaba.
-            //
-            // OJO CON EL COLOR: tiene que ser `bg-black/40` y no `bg-ink-900/NN`.
-            // Los colores `ink-*` se declaran en `tailwind.config.js` como `var()`
-            // a secas, sin el marcador `<alpha-value>`, así que Tailwind DESCARTA
-            // el modificador de opacidad sin avisar y no genera ninguna regla: el
-            // botón se queda sin fondo. Comprobado en el navegador —
-            // `.bg-ink-900\/80` no existe en el CSS compilado—. `black` sí lo
-            // admite porque es un color por defecto en hexadecimal.
-            className="press absolute left-3.5 top-3.5 z-[2] grid h-11 w-11 place-items-center rounded-boton border border-white/20 bg-black/40 text-white"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </Link>
+          {/* Volver: lo hace el «‹» de la cabecera (`TopBar`), que te devuelve de donde viniste (Hoy o la Ruta).
+              Decisión de Bryan, 23-oct-2026: antes este sitio llevaba un enlace propio que mandaba siempre a la
+              Ruta, aunque se hubiera entrado desde Hoy. */}
           <p className="kicker">{nombreDelMicrociclo(microciclo.numero, simple)}</p>
           <h2 className="mt-1 font-display text-4xl leading-none">{sesion.nombre}</h2>
           {!todasRegistradas && (

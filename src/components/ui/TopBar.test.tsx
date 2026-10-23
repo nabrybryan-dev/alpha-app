@@ -127,6 +127,23 @@ describe('TopBar: el «‹» único', () => {
     expect(ruta()).toBe('/progreso')
   })
 
+  it('la sesión: entrando desde Hoy el «‹» vuelve a Hoy; entrando desde la Ruta, a la Ruta (decisión de Bryan, 23-oct)', async () => {
+    const usuario = userEvent.setup()
+    const desdeHoy = montar('/')
+    await usuario.click(screen.getByRole('link', { name: 'ir a la sesión' }))
+    expect(ruta()).toBe('/entrenar/sesion/s-1')
+    expect(volver()).toHaveAccessibleName('Volver a Hoy')
+    await usuario.click(volver()!)
+    expect(ruta()).toBe('/')
+    desdeHoy.unmount()
+
+    montar('/entrenar')
+    await usuario.click(screen.getByRole('link', { name: 'ir a la sesión' }))
+    expect(volver()).toHaveAccessibleName('Volver a Entrenar')
+    await usuario.click(volver()!)
+    expect(ruta()).toBe('/entrenar')
+  })
+
   it('«replace» de verdad sustituye la entrada: el atrás del sistema no vuelve a la pantalla de la que se salió', async () => {
     const usuario = userEvent.setup()
     montar(['/progreso', '/entrenar/sesion/s-1'])
