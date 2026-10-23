@@ -301,6 +301,17 @@ describe('(d) en el tiempo', () => {
     expect(Math.abs(m.delantera.cadera.total.valor! - m.delantera.cadera.estatico.valor!)).toBeGreaterThan(0.1) // la aceleración sí mueve el total
   })
 
+  it('decisión 36: el total y el estático de cada pierna avisan de que NO se restan para sacar un inercial por pierna (revisor 23-oct)', () => {
+    const r = momentosDeBulgaraEnElTiempo({ ...e, cargaKg: 32, fuenteDeAngulos: FUENTE, instantes: movida })
+    const m = r.marcos[3]!
+    for (const lado of ['delantera', 'trasera'] as const) {
+      for (const a of ['tobillo', 'rodilla', 'cadera'] as const) {
+        for (const c of [m[lado][a].estatico, m[lado][a].total]) {
+          expect(c.supuestos.some((x) => /NO restar/.test(x) && /inercial por pierna/.test(x) && /decisión 36/.test(x))).toBe(true)
+        }
+      }
+    }
+  })
   it('decisión 36: el término inercial del cuerpo entero es Σ m·a_y (N) = fuerza vertical total − peso del cuerpo y la carga, con contrato', () => {
     const r = momentosDeBulgaraEnElTiempo({ ...e, cargaKg: 32, fuenteDeAngulos: FUENTE, instantes: movida })
     const m = r.marcos[3]!

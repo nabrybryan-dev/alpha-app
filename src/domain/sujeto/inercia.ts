@@ -20,8 +20,8 @@
  * tabla cuál es ese eje. Por eso cada segmento entra como RANGO [menor, mayor] de los dos radios (sagital, transverso),
  * y la banda del término rotacional abarca ambos. El banco virtual usa el transverso y mide la alternativa aparte.
  *
- * Cada radio está en `registro.ts` (`valoresDeRadios`) con su fila en `PROCEDENCIAS.tsv` del cerebro (estado `transcrito`, leído en texto y en
- * la imagen de la página 228 el 22-oct); `scripts/comprobar-procedencias-sujeto.mts` las compara con el código. El cotejo automático con el PDF
+ * Cada radio está en `registro.ts` (`valoresDeRadios`) con su fila en `PROCEDENCIAS-FILAS-PENDIENTES.tsv` (por añadir a `PROCEDENCIAS.tsv` del cerebro; estado `transcrito`, leído SOLO en el texto OCR, no cotejado
+ * con la imagen de la página); `scripts/comprobar-procedencias-sujeto.mts` las compara con el código. El cotejo automático con el PDF
  * (`cotejar-deleva-con-pdf.py`) NO cubre los radios todavía.
  */
 

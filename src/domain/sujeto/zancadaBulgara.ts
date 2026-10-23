@@ -494,6 +494,7 @@ export function momentosDeBulgaraEnElTiempo(e: EntradaDeSerieDeBulgara): Resulta
     'derivada segunda por diferencias finitas de 3 puntos; sin vecino a ambos lados no se calcula',
     'los dos pies fijos; las piernas, el tronco y la cabeza giran con la inercia de de Leva (rango sagital-transverso); brazos y carga son masas puntuales sin inercia propia',
     'el inercial por pierna no tiene estudio que lo separe: sale no_afirmable; el total de cada pierna es la regla aplicada al F_total con aceleración, con el sesgo de la concéntrica',
+    'NO restar el estático del total para obtener un inercial por pierna: esa diferencia no se afirma (inercial por pierna no_afirmable, decisión 36); el término inercial solo se da para el cuerpo entero',
   ]
 
   const marcos = ins.map((x, k): MarcoDeBulgara => {

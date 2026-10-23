@@ -67,10 +67,15 @@ def principal(ruta_valores, ruta_pdf):
             return 2
         pdf[nombre] = {'largo': (fila[0], fila[1]), 'masa': (fila[2], fila[3]), 'cm': (fila[4], fila[5])}
     cuenta = 0
+    sin_cotejar = 0
     malas = []
     for id_, valor in codigo.items():
         p = id_.split('.')
         if p[0] != 'deleva96':
+            continue
+        if p[-1].startswith('radio_'):
+            # Los radios de giro NO se cotejan aqui: el OCR separa las columnas de la segunda parte de la tabla (ver inercia.ts).
+            sin_cotejar += 1
             continue
         if p[1] == 'cerv':
             sexo = 0 if p[2] == 'm' else 1
@@ -97,7 +102,7 @@ def principal(ruta_valores, ruta_pdf):
         return 1
     for m in malas:
         print(f'DIFERENCIA {m[0]}: código {m[1]}, PDF {m[2]}')
-    print(f'{cuenta} valores de de Leva cotejados contra el PDF · {len(malas)} diferencias')
+    print(f'{cuenta} valores de de Leva cotejados contra el PDF · {len(malas)} diferencias · {sin_cotejar} radios de giro NO cotejados')
     return 1 if malas else 0
 
 
