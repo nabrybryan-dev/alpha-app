@@ -113,6 +113,11 @@ select pruebas.afirmar(
           'pv_calidad','pv_inclinacion_max','rir_objetivo','objetivo_al_fallo','rir_prescrito','reps_prescritas','carga_prescrita_kg'],
   'las columnas de lab_series no son las de la lista blanca');
 
+-- El esquema de ayuda `pruebas` solo existe en el CI (00-suplantar-supabase.sql) y no da permiso a lab_lector;
+-- se le presta aquí, dentro de esta transacción que termina en rollback, solo para poder afirmar.
+grant usage on schema pruebas to lab_lector;
+grant execute on all functions in schema pruebas to lab_lector;
+
 -- ════════════════ Como lab_lector ════════════════
 set role lab_lector;
 
