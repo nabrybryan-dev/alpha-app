@@ -107,3 +107,22 @@ describe('direcciones que la app promete abrir', () => {
     expect(malas.map((c) => `${c.origen} → ${c.ruta}`)).toEqual([])
   })
 })
+
+/**
+ * RELEVO SIN PÉRDIDAS: enlaces de «volver» propios que se quitaron de las pantallas porque el «‹» de la cabecera
+ * ya lleva al mismo sitio. Cada fila: dónde estaba, a dónde llevaba y cómo se llama ahora. Si alguien cambia el
+ * padre de una de estas rutas, la salida que se quitó dejaría de existir.
+ */
+describe('salidas que el «‹» heredó de enlaces propios', () => {
+  const HEREDADAS = [
+    { desde: '/coach/asesorado/u-valentina', llevaba: '/coach/asesorados', equipo: true },
+    { desde: '/coach/revisiones', llevaba: '/', equipo: true },
+    { desde: '/equipo-nutricion', llevaba: '/equipo', equipo: true },
+    { desde: '/tablero', llevaba: '/', equipo: true },
+    { desde: '/coach/consola', llevaba: '/', equipo: true },
+    { desde: '/coach/creadores', llevaba: '/', equipo: true },
+  ]
+  it.each(HEREDADAS.map((h) => [h.desde, h] as const))('%s sigue pudiendo volver a su destino de siempre', (_d, h) => {
+    expect(padreDe(h.desde, h.equipo)?.patron).toBe(h.llevaba)
+  })
+})

@@ -64,8 +64,18 @@ describe('CoachLayout · acceso por capacidad', () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     en('/coach/consola')
     expect(screen.getByText('Contenido de la consola')).toBeInTheDocument()
-    // Sin los enlaces del panel del coach: solo la vuelta a su app.
+    // Sin los enlaces del panel del coach. La vuelta a su app ya la hace el «‹» de la cabecera (aquí
+    // simulada): el enlace «Volver a mi app» no se repite donde el «‹» existe.
     expect(screen.queryByText('Revisar audios y vídeos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Volver a mi app')).not.toBeInTheDocument()
+  })
+
+  it('…y donde NO hay «‹» (las pestañas Estrategias y Administración) el enlace a su app se conserva: ninguna salida se pierde', () => {
+    estado.capacidades = new Set(['responder_mercadeo', 'ver_administracion', 'organizar_plan'])
+    const a = en('/coach/estrategias')
+    expect(screen.getByText('Volver a mi app')).toBeInTheDocument()
+    a.unmount()
+    en('/coach/administracion')
     expect(screen.getByText('Volver a mi app')).toBeInTheDocument()
   })
 

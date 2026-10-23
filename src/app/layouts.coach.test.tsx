@@ -158,11 +158,11 @@ describe('AsesoradoLayout · los demás', () => {
 })
 
 describe('TableroLayout', () => {
-  it('la cuenta personal también lo abre, con un enlace para volver a sus espacios', () => {
+  it('la cuenta personal también lo abre; volver a sus espacios lo hace el «‹» de la cabecera, no un enlace repetido', () => {
     estado.capacidades = new Set(['leer_entrenamiento'])
     en('/tablero')
     expect(screen.getByText('Contenido del tablero')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Volver a mis espacios' })).toHaveAttribute('href', '/')
+    expect(screen.queryByRole('link', { name: 'Volver a mis espacios' })).toBeNull()
   })
 
   it('la cuenta Alpha no tiene a dónde volver: ni barra ni enlaces', () => {

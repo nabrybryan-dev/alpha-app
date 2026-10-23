@@ -7,6 +7,7 @@ import { revisarRecordatorioBienestar } from '../features/bienestar/recordatorio
 import { useCapacidades } from '../features/coach/consola/useCapacidades'
 import { usePuestoCoach } from '../features/coach/consola/usePuestoCoach'
 import { BannerPlanHoy } from '../features/plan/BannerPlanHoy'
+import { padreDe } from './rutas'
 import { useSesion } from './SessionProvider'
 
 const titulos: Record<string, string> = {
@@ -169,17 +170,11 @@ export function TableroLayout() {
   const { esCoach, cargando, tiene } = usePuestoCoach(usuario.rol)
   if (!esCoach && cargando) return <ComprobandoAcceso texto="Comprobando tu acceso al tablero…" />
   if (!esCoach && !tiene('leer_entrenamiento')) return <Navigate to="/" replace />
-  // La cuenta Alpha no tiene a dónde volver; la personal sí.
-  const puedeVolver = esCoach && !cargando && !tiene('solo_tablero')
+  // Volver a «Mi día» lo hace el «‹» de la cabecera (`TopBar`, padre de `/tablero` en `rutas.ts`); la cuenta Alpha no lo lleva.
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar titulo="Alpha · Tablero" />
       <main className="mx-auto max-w-[1600px] overflow-x-clip px-4 pb-8 pt-4">
-        {puedeVolver && (
-          <Link to="/" className="mb-2 inline-flex min-h-[44px] items-center underline">
-            Volver a mis espacios
-          </Link>
-        )}
         <Outlet />
       </main>
     </div>
@@ -269,7 +264,11 @@ export function CoachLayout() {
           </>
         ) : (
           <>
-            <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
+            {/* Donde la cabecera ya trae el «‹» (padre en `rutas.ts`) este enlace no se repite; en las pestañas
+                Estrategias y Administración, que no tienen «‹», se conserva: ninguna salida se pierde. */}
+            {!padreDe(pathname, true) && (
+              <Link className="inline-flex min-h-[44px] items-center underline" to="/">Volver a mi app</Link>
+            )}
             <Link className="inline-flex min-h-[44px] items-center underline" to="/praxis">Praxis (solo equipo)</Link>
           </>
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { ValoracionCompetencias } from './ValoracionCompetencias'
@@ -307,10 +307,6 @@ export default function AsesoradoDetallePage() {
           })}
         </div>
       )}
-
-      <Link to="/coach/asesorados" className="text-center text-sm font-bold text-tenue">
-        ← Volver a asesorados
-      </Link>
 
       <GenerarMicrocicloSheet
         abierto={iaAbierta}
