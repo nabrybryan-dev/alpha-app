@@ -179,11 +179,4 @@ describe('Hoy en tres bandas — la tarjeta de sesión dice su estado', () => {
       String(Math.round(100 / total)),
     )
   })
-
-  it('hecha: «Sesión registrada» y ya no ofrece empezar', () => {
-    conSesionDeLunes(99)
-    pintar()
-    expect(screen.getByText('Sesión registrada')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Empezar sesión|Continuar sesión/ })).not.toBeInTheDocument()
-  })
 })

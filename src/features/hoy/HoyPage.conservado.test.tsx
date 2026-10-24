@@ -143,7 +143,7 @@ describe('Hoy del asesorado — lo que se conserva', () => {
     pintar()
     abrirElResto()
     expect(screen.getByText(/Fatiga por grupo muscular/)).toBeInTheDocument()
-    expect(screen.getByText(/Radar/i)).toBeInTheDocument()
+    expect(screen.getByText(/Radar Alfa/)).toBeInTheDocument()
   })
 
   it('barra para escribirle al coach y revisión de la semana: siguen', () => {
